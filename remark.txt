@@ -1,0 +1,122 @@
+rpc refence:
+
+sofa-pbrpc
+PhxRPC
+
+http://blog.csdn.net/mindfloating/article/details/39474123
+
+rpc_server
+rpc_client
+rpc_protocol
+rpc_connector
+rpc_acceptor
+rpc_invoker
+rpc_proxy
+rpc_processor
+rpc_channel
+
+
+c++中如何定义宏将64位和32位linux区分开来
+
+#ifdef __x86_64__
+         printf("__x86_64__");
+   #elif __i386__
+         printf("__i386__");
+   #endif
+
+
+>> asio 提取
+---------------------------------------------------------------------------------------------------
+将boost/config/user.hpp中的#define BOOST_ALL_NO_LIB取消注释
+在boost/config/user.hpp中添加以下预定义宏
+#define BOOST_ERROR_CODE_HEADER_ONLY
+#define BOOST_SYSTEM_NO_DEPRECATED
+可以删除boost/mpl/aux_/preprocessed目录
+
+
+快速可靠协议:KCP 
+
+接上，在国内最好udp包大小最好不超过576，也就是MTU大小,我们踩过坑（国内一些设备制造商没有严格遵循rfc标准），576最安全
+
+
+由于自己对OpenSSL和密码学什么的还在白痴状态，所以这里只能记录一下一个简单的流程了——从编译OpenSSL到生成证书，然后在asio里面从内存加载证书文件简历安全连接。
+1.编译OpenSSL
+这个网上一搜一大堆，不过还是记录下吧。首先到OpenSSL官网下载最新的OpenSSL源码（就别用老的了吧，再遇到个HeartBleed啥的也能减少点危害），随便解压到哪。下载安装ActivePerl，并加到PATH环境变量中（有的系统加完要重启电脑才能在cmd中执行perl命令）。完成后，打开VS的开发人员命令提示，CD到OpenSSL根目录，执行以下命令：
+perl configure VC-WIN32
+ms\do_ms
+nmake -f ms\nt.mak
+nmake -f ms\nt.mak install
+注意最后的nmake -f ms\nt.mak install不能少，这个命令会在源码所在的盘的根目录下新建一个usr目录，头文件库文件还有编译好的openssl.exe都在这个目录里面，而且还有一些配置文件，如果没有这些配置文件，后面生成证书会失败。
+如果要编译OpenSSL为dll而不是静态库，把最后两句改成
+nmake -f ms\ntdll.mak
+nmake -f ms\ntdll.mak install
+就好了。如果不出错，OpenSSL就编译完了
+
+2.生成证书
+证书这东西我是完全不了解，也完全不知道asio的ssl示例里面的证书是怎么生成的，这个有空还得请教jackarain，再怎么说也是自己发现过OpenSSL的漏洞的人（好口怕啊...囧），在stackoverflow上找了个示例，这个是在Linux下的，windows其实也一样，把里面
+cp server.key server.key.secure
+这一句改成
+copy server.key server.key.secure
+就可以了，然后按照下面说的修改server.cpp和client.cpp就好了，测试了下么啥问题
+3.从内存加载证书
+虽然用证书加密了传输内容，但是因为证书暴漏在外面，别人也可以用你的证书来和服务器通信，所以最好是能把证书写到程序里面，然后加个强壳，虽然也不可能完全阻止破解，但只要破解难度过大，超过了破解后带来的利益，那一般就是安全的了，所以需要从内存加载证书，静态链接OpenSSL（要不别人hook一下OpenSSL的相关函数，你的证书内容又完全暴露了），然后加强壳（虚拟机壳啥的，要不IDA看一下字符串就看到证书了）。
+废话了这么多，说一下具体该怎么搞吧。貌似老版本的asio没提供直接从内存加载证书的接口，要用OpenSSL自己本身的接口，比较麻烦，新版本的boost（写文章用的1.55,boost官网里面说是1.54添加的）里面的asio直接有从内存加载证书的接口，很简单，把几个加载证书文件的接口换一下就可以了
+client.cpp：
+load_verify_file替换成add_certificate_authority
+server.cpp：
+use_certificate_chain_file替换成use_certificate_chain
+use_private_key_file替换成use_private_key
+use_tmp_dh_file替换成use_tmp_dh
+除了client里面的那个函数没法通过函数名来联想到，其他的函数都是把原来函数的_file去掉了而已。这些函数都是把原来要求输入文件名的参数换成了boost::asio::const_buffer，用一个字符串（证书内容）创建个buffer传进去就好了，另外boost 1.54版本里面的asio添加的关于从内存加载证书的函数一共有六个，具体自己看这里吧。
+最后吐槽下我在找asio从内存加载证书的东西时，在stackoverflow上看到有人也在问，不过都没人知道load_verify_file对应的函数是哪个，我搞明白了之后就注册了个号去回答了一下，结果因为引用了csdn的一片文章（文章内容是转载的一个英文文章，应该不是看不懂的原因），所以被人踩了，然后标记为删除了..让我把文章内容贴上去，不知道是不是他们访问不了csdn。后来我发现CSDN那篇文章其实就是转的stackoverflow上的一个回答（我在这篇博文中引用的这个），我那个汗...算了懒得折腾了。
+
+asio http git
+https://github.com/avplayer/avhttp/tree/master/include      
+
+>> openssl install on linux
+------------------------------------------------------------------------------------------------
+./config -fPIC no-shared
+make
+make install
+
+
+>> boost install 
+------------------------------------------------------------------------------------------------
+// **************************************************************************************************************************************
+
+【Windows】 :
+
+1、打开VS2017，点菜单栏的“工具 - Visual Studio 命令提示”打开开发人员命令提示
+
+2、解压 boost_1_65_0.7z 到当前文件夹 cd到该文件夹即boost_1_65_0目录下
+
+3、执行 bootstrap.bat
+
+4、编译32位执行 b2 stage --build-type=complete link=static runtime-link=shared threading=multi address-model=32 --with-system --with-date_time --with-regex --with-filesystem --with-log debug release
+   编译64位执行 b2 stage --build-type=complete link=static runtime-link=shared threading=multi address-model=64 --with-system --with-date_time --with-regex --with-filesystem --with-log debug release
+
+注：上面的编译过程就是本项目Engine在Windows下所使用的编译过程
+注：在VS2017项目属性 - C/C++ - 常规 - 附加包含目录，中添加boost_1_65_0这个目录路径，在VS项目属性 - 链接器 - 常规 - 附加库目录，中添加boost_1_65_0/stage/lib或boost_1_65_0/stage/lib64，附加依赖项boost会自动添加，不用在VS项目属性中额外添加了
+
+
+// **************************************************************************************************************************************
+
+【Linux】 :
+
+1、解压boost_1_65_0.7z 到任意文件夹 cd到该文件夹即boost_1_65_0目录下
+
+2、执行 ./bootstrap.sh
+ 
+     --prefix=/usr/local  其中prefix的值是你希望安装boost的路径, 不开启此参数的话默认安装在 /usr/local 下.
+
+3、执行 ./b2 install link=static runtime-link=shared threading=multi address-model=32 --with-system --with-date_time --with-regex --with-filesystem --with-log release
+        ./b2 install link=static runtime-link=shared threading=multi address-model=64 --with-system --with-date_time --with-regex --with-filesystem --with-log release
+
+注：上面的编译过程就是本项目Engine在Linux下所使用的编译过程，即默认安装在/usr/local下
+注：在VS项目属性 - C/C++ - 常规 - 附加包含目录，中添加/usr/local/include，在链接器 - 常规 - 附加库目录，中添加/usr/local/lib，在链接器 - 输入 - 库依赖项，中添加boost_system;boost_filesystem;boost_log;boost_thread;
+注：可用g++编译命令测试 g++ -std=c++11 -pthread main.cpp -o main.out -I /usr/local/include -L /usr/local/lib -l boost_system -l boost_filesystem -l boost_log -l boost_thread
+
+
+// **************************************************************************************************************************************
+
+                               

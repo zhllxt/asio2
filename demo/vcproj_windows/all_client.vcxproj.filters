@@ -1,0 +1,225 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="源文件">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="头文件">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="资源文件">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="asio2">
+      <UniqueIdentifier>{830a9a3f-7db9-4018-83c8-e0cd9d528fa5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\util">
+      <UniqueIdentifier>{8ce517cf-9906-4458-9ee1-f97e16790b09}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\base">
+      <UniqueIdentifier>{6002fb7e-f11f-43ed-a403-e667f4cec7e3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\udp">
+      <UniqueIdentifier>{1e274046-ed63-41c5-b5e0-ecd1eed8e7eb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\tcp">
+      <UniqueIdentifier>{ac709bbb-e482-4c40-a5c8-53daeaf2a48a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\rpc">
+      <UniqueIdentifier>{a2751212-5189-473a-b931-e2bf28edab28}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\icmp">
+      <UniqueIdentifier>{46fe98d4-b9e1-4ba6-8416-644fdb02c5be}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\kcp">
+      <UniqueIdentifier>{52506c63-fba2-4753-a992-3378d31450c5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\http">
+      <UniqueIdentifier>{804dd2de-781e-4769-9f3b-0b4957eeb86d}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\all_client.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\asio2\base\acceptor_impl.hpp">
+      <Filter>asio2\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\base\client_impl.hpp">
+      <Filter>asio2\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\base\connection_impl.hpp">
+      <Filter>asio2\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\base\def.hpp">
+      <Filter>asio2\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\base\error.hpp">
+      <Filter>asio2\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\base\io_service_pool.hpp">
+      <Filter>asio2\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\base\listener.hpp">
+      <Filter>asio2\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\base\listener_mgr.hpp">
+      <Filter>asio2\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\base\sender_impl.hpp">
+      <Filter>asio2\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\base\server_impl.hpp">
+      <Filter>asio2\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\base\session_impl.hpp">
+      <Filter>asio2\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\base\session_mgr.hpp">
+      <Filter>asio2\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\base\url_parser.hpp">
+      <Filter>asio2\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\icmp\icmp_header.hpp">
+      <Filter>asio2\icmp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\icmp\icmp_sender_impl.hpp">
+      <Filter>asio2\icmp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\icmp\ipv4_header.hpp">
+      <Filter>asio2\icmp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\http\http_acceptor_impl.hpp">
+      <Filter>asio2\http</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\http\http_client_impl.hpp">
+      <Filter>asio2\http</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\http\http_parser.h">
+      <Filter>asio2\http</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\http\http_server_impl.hpp">
+      <Filter>asio2\http</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\http\http_session_impl.hpp">
+      <Filter>asio2\http</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\tcp\tcp_acceptor_impl.hpp">
+      <Filter>asio2\tcp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\tcp\tcp_auto_client_impl.hpp">
+      <Filter>asio2\tcp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\tcp\tcp_auto_connection_impl.hpp">
+      <Filter>asio2\tcp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\tcp\tcp_auto_session_impl.hpp">
+      <Filter>asio2\tcp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\tcp\tcp_client_impl.hpp">
+      <Filter>asio2\tcp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\tcp\tcp_connection_impl.hpp">
+      <Filter>asio2\tcp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\tcp\tcp_pack_acceptor_impl.hpp">
+      <Filter>asio2\tcp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\tcp\tcp_pack_client_impl.hpp">
+      <Filter>asio2\tcp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\tcp\tcp_pack_connection_impl.hpp">
+      <Filter>asio2\tcp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\tcp\tcp_pack_server_impl.hpp">
+      <Filter>asio2\tcp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\tcp\tcp_pack_session_impl.hpp">
+      <Filter>asio2\tcp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\tcp\tcp_server_impl.hpp">
+      <Filter>asio2\tcp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\tcp\tcp_session_impl.hpp">
+      <Filter>asio2\tcp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\tcp\tcps_acceptor_impl.hpp">
+      <Filter>asio2\tcp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\tcp\tcps_client_impl.hpp">
+      <Filter>asio2\tcp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\tcp\tcps_connection_impl.hpp">
+      <Filter>asio2\tcp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\tcp\tcps_server_impl.hpp">
+      <Filter>asio2\tcp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\tcp\tcps_session_impl.hpp">
+      <Filter>asio2\tcp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\udp\udp_acceptor_impl.hpp">
+      <Filter>asio2\udp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\udp\udp_client_impl.hpp">
+      <Filter>asio2\udp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\udp\udp_connection_impl.hpp">
+      <Filter>asio2\udp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\udp\udp_sender_impl.hpp">
+      <Filter>asio2\udp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\udp\udp_server_impl.hpp">
+      <Filter>asio2\udp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\udp\udp_session_impl.hpp">
+      <Filter>asio2\udp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\util\helper.hpp">
+      <Filter>asio2\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\util\logger.hpp">
+      <Filter>asio2\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\util\multi_pool.hpp">
+      <Filter>asio2\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\util\object_pool.hpp">
+      <Filter>asio2\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\util\pool.hpp">
+      <Filter>asio2\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\util\rwlock.hpp">
+      <Filter>asio2\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\util\spin_lock.hpp">
+      <Filter>asio2\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\util\thread_pool.hpp">
+      <Filter>asio2\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\asio2.hpp">
+      <Filter>asio2</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\client.hpp">
+      <Filter>asio2</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\sender.hpp">
+      <Filter>asio2</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\server.hpp">
+      <Filter>asio2</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\session.hpp">
+      <Filter>asio2</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
