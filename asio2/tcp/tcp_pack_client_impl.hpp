@@ -85,7 +85,7 @@ namespace asio2
 
 	protected:
 
-		using parser_callback = std::size_t(std::shared_ptr<uint8_t> data_ptr, std::size_t len);
+		using parser_callback = std::size_t(std::shared_ptr<buffer<uint8_t>> data_ptr);
 
 		std::function<parser_callback>       m_pack_parser;
 

@@ -37,14 +37,6 @@
 #endif
 
 
-
-#include <asio2/util/pool.hpp>
-#include <asio2/util/object_pool.hpp>
-#include <asio2/util/rwlock.hpp>
-#include <asio2/util/spin_lock.hpp>
-#include <asio2/util/helper.hpp>
-#include <asio2/util/thread_pool.hpp>
-
 #include <asio2/server.hpp>
 #include <asio2/client.hpp>
 #include <asio2/sender.hpp>

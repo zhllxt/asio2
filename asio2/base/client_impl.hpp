@@ -23,6 +23,10 @@
 #include <boost/asio.hpp>
 #include <boost/system/system_error.hpp>
 
+#include <asio2/util/buffer.hpp>
+#include <asio2/util/buffer_pool.hpp>
+#include <asio2/util/multi_buffer_pool.hpp>
+
 #include <asio2/base/io_service_pool.hpp>
 #include <asio2/base/error.hpp>
 #include <asio2/base/def.hpp>
@@ -89,20 +93,21 @@ namespace asio2
 
 		/**
 		 * @function : send data
-		 * @param    : send_buf_ptr - std::shared_ptr<uint8_t> object
-		 *             len          - data len
 		 */
-		virtual bool send(std::shared_ptr<uint8_t> send_buf_ptr, std::size_t len) = 0;
+		virtual bool send(std::shared_ptr<buffer<uint8_t>> buf_ptr) = 0;
 
 		/**
 		 * @function : send data
 		 */
-		virtual bool send(const char * buf, std::size_t len) = 0;
+		virtual bool send(const uint8_t * buf, std::size_t len) = 0;
 
 		/**
 		 * @function : send data
 		 */
-		virtual bool send(const char * buf) = 0;
+		virtual bool send(const char * buf)
+		{
+			return this->send(reinterpret_cast<const uint8_t *>(buf), std::strlen(buf));
+		}
 
 	public:
 		/**
@@ -124,22 +129,6 @@ namespace asio2
 		 * @function : get the remote port
 		 */
 		virtual unsigned short get_remote_port() = 0;
-
-	public:
-		///**
-		// * @function : get last active time 
-		// */
-		//virtual std::chrono::time_point<std::chrono::steady_clock> get_last_active_time() = 0;
-
-		///**
-		// * @function : reset last active time 
-		// */
-		//virtual void reset_last_active_time() = 0;
-
-		///**
-		// * @function : get silence duration of seconds
-		// */
-		//virtual std::chrono::seconds::rep get_silence_duration() = 0;
 
 	protected:
 

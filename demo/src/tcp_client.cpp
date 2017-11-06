@@ -35,14 +35,10 @@ int main(int argc, char *argv[])
 
 	while (run_flag)
 	{
-		asio2::client tcp_client("tcp://localhost:8088/");
-		tcp_client.bind_recv([](std::shared_ptr<uint8_t> data_ptr, std::size_t len)
+		asio2::client tcp_client("tcp://localhost:9001/");
+		tcp_client.bind_recv([](asio2::buffer_ptr data_ptr)
 		{
-			char * p = (char*)data_ptr.get();
-			std::string s;
-			s.resize(len);
-			std::memcpy((void*)s.c_str(), (const void *)p, len);
-			std::printf("tcp_server recv : %s\n", s.c_str());
+			std::printf("recv : %.*s\n", (int)data_ptr->size(), (const char*)data_ptr->data());
 		}).bind_connect([&tcp_client](int error)
 		{
 			if (error == 0)
@@ -71,7 +67,7 @@ int main(int argc, char *argv[])
 				s += '>';
 				len += 3;
 
-				tcp_client.send(s.c_str(), s.length());
+				tcp_client.send(s.c_str());
 			}
 		}).join();
 

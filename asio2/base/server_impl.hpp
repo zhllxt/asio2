@@ -21,6 +21,10 @@
 #include <boost/asio.hpp>
 #include <boost/system/system_error.hpp>
 
+#include <asio2/util/buffer.hpp>
+#include <asio2/util/buffer_pool.hpp>
+#include <asio2/util/multi_buffer_pool.hpp>
+
 #include <asio2/base/io_service_pool.hpp>
 #include <asio2/base/error.hpp>
 #include <asio2/base/def.hpp>
@@ -81,27 +85,20 @@ namespace asio2
 
 		/**
 		 * @function : send data
-		 * @param    : send_buf_ptr - std::shared_ptr<uint8_t> object
-		 *             len          - data len
 		 */
-		virtual bool send(std::shared_ptr<uint8_t> send_buf_ptr, std::size_t len) = 0;
+		virtual bool send(std::shared_ptr<buffer<uint8_t>> buf_ptr) = 0;
 
 		/**
 		 * @function : send data
 		 */
-		virtual bool send(const char * buf, std::size_t len)
-		{
-			std::shared_ptr<uint8_t> buf_ptr(new uint8_t[len], std::default_delete<uint8_t[]>());
-			std::memcpy(static_cast<void *>(buf_ptr.get()), static_cast<const void *>(buf), len);
-			return this->send(buf_ptr, len);
-		}
+		virtual bool send(const uint8_t * buf, std::size_t len) = 0;
 
 		/**
 		 * @function : send data
 		 */
 		virtual bool send(const char * buf)
 		{
-			return this->send(buf, std::strlen(buf));
+			return this->send(reinterpret_cast<const uint8_t *>(buf), std::strlen(buf));
 		}
 
 		/**
@@ -118,16 +115,6 @@ namespace asio2
 		 * @function : get connected session count
 		 */
 		virtual std::size_t get_session_count() = 0;
-
-		/**
-		 * @function : get send pending packet size
-		 */
-		virtual std::size_t get_send_pending() { return static_cast<std::size_t>(0); }
-
-		/**
-		 * @function : get recv pending packet size
-		 */
-		virtual std::size_t get_recv_pending() { return static_cast<std::size_t>(0); }
 
 	protected:
 

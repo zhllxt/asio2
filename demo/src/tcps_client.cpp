@@ -59,13 +59,9 @@ int main(int argc, char *argv[])
 			//.use_certificate_file("server.crt");
 			.use_certificate(cer);
 
-		tcps_client.bind_recv([](std::shared_ptr<uint8_t> data_ptr, std::size_t len)
+		tcps_client.bind_recv([](asio2::buffer_ptr data_ptr)
 		{
-			char * p = (char*)data_ptr.get();
-			std::string s;
-			s.resize(len);
-			std::memcpy((void*)s.c_str(), (const void *)p, len);
-			std::printf("tcps_client recv : %s\n", s.c_str());
+			std::printf("recv : %.*s\n", (int)data_ptr->size(), (const char*)data_ptr->data());
 		}).bind_connect([&tcps_client](int error)
 		{
 			if (error == 0)
@@ -92,7 +88,7 @@ int main(int argc, char *argv[])
 				}
 				s += '>';
 
-				tcps_client.send(s.c_str(), s.length());
+				tcps_client.send(s.c_str());
 			}
 		}).join();
 

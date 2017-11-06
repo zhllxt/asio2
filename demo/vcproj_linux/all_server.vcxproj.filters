@@ -207,13 +207,7 @@
     <ClInclude Include="..\..\asio2\util\logger.hpp">
       <Filter>asio2\util</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\asio2\util\multi_pool.hpp">
-      <Filter>asio2\util</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\asio2\util\object_pool.hpp">
-      <Filter>asio2\util</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\asio2\util\pool.hpp">
       <Filter>asio2\util</Filter>
     </ClInclude>
     <ClInclude Include="..\..\asio2\util\rwlock.hpp">
@@ -223,6 +217,15 @@
       <Filter>asio2\util</Filter>
     </ClInclude>
     <ClInclude Include="..\..\asio2\util\thread_pool.hpp">
+      <Filter>asio2\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\util\buffer.hpp">
+      <Filter>asio2\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\util\buffer_pool.hpp">
+      <Filter>asio2\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\util\multi_buffer_pool.hpp">
       <Filter>asio2\util</Filter>
     </ClInclude>
   </ItemGroup>

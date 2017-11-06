@@ -121,11 +121,12 @@
     <ClInclude Include="..\..\asio2\udp\udp_sender_impl.hpp" />
     <ClInclude Include="..\..\asio2\udp\udp_server_impl.hpp" />
     <ClInclude Include="..\..\asio2\udp\udp_session_impl.hpp" />
+    <ClInclude Include="..\..\asio2\util\buffer.hpp" />
+    <ClInclude Include="..\..\asio2\util\buffer_pool.hpp" />
     <ClInclude Include="..\..\asio2\util\helper.hpp" />
     <ClInclude Include="..\..\asio2\util\logger.hpp" />
-    <ClInclude Include="..\..\asio2\util\multi_pool.hpp" />
+    <ClInclude Include="..\..\asio2\util\multi_buffer_pool.hpp" />
     <ClInclude Include="..\..\asio2\util\object_pool.hpp" />
-    <ClInclude Include="..\..\asio2\util\pool.hpp" />
     <ClInclude Include="..\..\asio2\util\rwlock.hpp" />
     <ClInclude Include="..\..\asio2\util\spin_lock.hpp" />
     <ClInclude Include="..\..\asio2\util\thread_pool.hpp" />

@@ -42,15 +42,15 @@ namespace asio2
 		 * @construct
 		 */
 		tcp_acceptor_impl(
-			io_service_pool_ptr io_service_pool_evt_ptr,
-			io_service_pool_ptr io_service_pool_msg_ptr,
+			io_service_pool_ptr ioservice_pool_ptr,
 			std::shared_ptr<listener_mgr> listener_mgr_ptr,
 			std::shared_ptr<url_parser> url_parser_ptr,
+			std::shared_ptr<pool_s> send_buf_pool_ptr,
 			std::shared_ptr<pool_t> recv_buf_pool_ptr
 		)
-			: acceptor_impl(io_service_pool_evt_ptr->get_io_service_ptr(), listener_mgr_ptr, url_parser_ptr)
-			, m_io_service_pool_evt_ptr(io_service_pool_evt_ptr)
-			, m_io_service_pool_msg_ptr(io_service_pool_msg_ptr)
+			: acceptor_impl(ioservice_pool_ptr->get_io_service_ptr(), listener_mgr_ptr, url_parser_ptr)
+			, m_ioservice_pool_ptr(ioservice_pool_ptr)
+			, m_send_buf_pool_ptr(send_buf_pool_ptr)
 			, m_recv_buf_pool_ptr(recv_buf_pool_ptr)
 		{
 		}
@@ -96,11 +96,11 @@ namespace asio2
 
 				_fire_listen();
 
-				_post_accept();
+				_post_accept(shared_from_this());
 			}
 			catch (boost::system::system_error & e)
 			{
-				set_last_error(e.code().value(), e.what());
+				set_last_error(e.code().value());
 
 				m_acceptor_ptr.reset();
 			}
@@ -129,11 +129,11 @@ namespace asio2
 
 					m_acceptor_ptr->cancel(ec);
 					if (ec)
-						set_last_error(ec.value(), ec.message());
+						set_last_error(ec.value());
 
 					m_acceptor_ptr->close(ec);
 					if (ec)
-						set_last_error(ec.value(), ec.message());
+						set_last_error(ec.value());
 
 					auto_promise<void> ap(promise_accept);
 				});
@@ -152,6 +152,12 @@ namespace asio2
 			// first stop all connected sessions,then destroy(delete) the session pointer
 			if (m_session_mgr_ptr)
 			{
+				// stop all the sessions, the session::stop must be no blocking,otherwise it may be cause loop lock.
+				m_session_mgr_ptr->for_each_session([](std::shared_ptr<session_impl_t> session_ptr)
+				{
+					session_ptr->stop();
+				});
+
 				m_session_mgr_ptr->destroy();
 			}
 		}
@@ -179,7 +185,7 @@ namespace asio2
 			}
 			catch (boost::system::system_error & e)
 			{
-				set_last_error(e.code().value(), e.what());
+				set_last_error(e.code().value());
 			}
 			return "";
 		}
@@ -199,7 +205,7 @@ namespace asio2
 			}
 			catch (boost::system::system_error & e)
 			{
-				set_last_error(e.code().value(), e.what());
+				set_last_error(e.code().value());
 			}
 			return 0;
 		}
@@ -230,10 +236,10 @@ namespace asio2
 			{
 				// the params of get_session is final passed to session constructor
 				std::shared_ptr<_session_impl_t> session_ptr = m_session_mgr_ptr->get_session(
-					m_io_service_pool_evt_ptr->get_io_service_ptr(),
-					m_io_service_pool_msg_ptr->get_io_service_ptr(),
+					m_ioservice_pool_ptr->get_io_service_ptr(),
 					m_listener_mgr_ptr,
 					m_url_parser_ptr,
+					m_send_buf_pool_ptr,
 					m_recv_buf_pool_ptr
 				);
 
@@ -253,14 +259,14 @@ namespace asio2
 			return nullptr;
 		}
 
-		virtual void _post_accept()
+		virtual void _post_accept(std::shared_ptr<acceptor_impl> this_ptr)
 		{
 			auto session_ptr = _prepare_session();
 
-			_do_accept(session_ptr);
+			_do_accept(this_ptr, session_ptr);
 		}
 
-		virtual void _do_accept(std::shared_ptr<_session_impl_t> session_ptr)
+		virtual void _do_accept(std::shared_ptr<acceptor_impl> this_ptr, std::shared_ptr<_session_impl_t> session_ptr)
 		{
 			if (is_start())
 			{
@@ -273,9 +279,9 @@ namespace asio2
 #else
 						*socket_ptr,
 #endif
-						m_strand_ptr->wrap(std::bind(&tcp_acceptor_impl::_handle_accept,
-							std::static_pointer_cast<tcp_acceptor_impl>(shared_from_this()),
-							std::placeholders::_1,
+						m_strand_ptr->wrap(std::bind(&tcp_acceptor_impl::_handle_accept, std::static_pointer_cast<tcp_acceptor_impl>(this_ptr),
+							std::placeholders::_1, // error_code
+							this_ptr,
 							session_ptr
 						)));
 				}
@@ -284,12 +290,12 @@ namespace asio2
 				{
 					std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-					m_strand_ptr->post(std::bind(&tcp_acceptor_impl::_post_accept, std::static_pointer_cast<tcp_acceptor_impl>(shared_from_this())));
+					m_strand_ptr->post(std::bind(&tcp_acceptor_impl::_post_accept, std::static_pointer_cast<tcp_acceptor_impl>(this_ptr), this_ptr));
 				}
 			}
 		}
 
-		virtual void _handle_accept(const boost::system::error_code& ec, std::shared_ptr<_session_impl_t> session_ptr)
+		virtual void _handle_accept(const boost::system::error_code& ec, std::shared_ptr<acceptor_impl> this_ptr, std::shared_ptr<_session_impl_t> session_ptr)
 		{
 			set_last_error(ec.value());
 
@@ -297,7 +303,10 @@ namespace asio2
 			{
 				_fire_accept(session_ptr);
 
-				m_session_mgr_ptr->start(session_ptr);
+				if (session_ptr->start())
+				{
+					m_session_mgr_ptr->put_session(session_ptr);
+				}
 			}
 			else
 			{
@@ -320,43 +329,31 @@ namespace asio2
 				}
 			}
 
-			_post_accept();
+			_post_accept(this_ptr);
 		}
 
 		virtual void _fire_listen()
 		{
-			try
-			{
-				std::static_pointer_cast<server_listener_mgr>(m_listener_mgr_ptr)->notify_listen();
-			}
-			catch (std::exception &) {}
+			std::static_pointer_cast<server_listener_mgr>(m_listener_mgr_ptr)->notify_listen();
 		}
 
 		virtual void _fire_accept(std::shared_ptr<_session_impl_t> session_ptr)
 		{
-			try
-			{
-				std::static_pointer_cast<server_listener_mgr>(m_listener_mgr_ptr)->notify_accept(session_ptr);
-			}
-			catch (std::exception &) {}
+			std::static_pointer_cast<server_listener_mgr>(m_listener_mgr_ptr)->notify_accept(session_ptr);
 		}
 
 		virtual void _fire_shutdown(int error)
 		{
-			try
-			{
-				std::dynamic_pointer_cast<server_listener_mgr>(m_listener_mgr_ptr)->notify_shutdown(error);
-			}
-			catch (std::exception &) {}
+			std::dynamic_pointer_cast<server_listener_mgr>(m_listener_mgr_ptr)->notify_shutdown(error);
 		}
 
 	protected:
 		
 		/// the io_service_pool for socket event
-		io_service_pool_ptr m_io_service_pool_evt_ptr;
+		io_service_pool_ptr m_ioservice_pool_ptr;
 
-		/// the io_service_pool for msg handle
-		io_service_pool_ptr m_io_service_pool_msg_ptr;
+		/// send buffer pool
+		std::shared_ptr<pool_s> m_send_buf_pool_ptr;
 
 		/// recv buffer pool for every session
 		std::shared_ptr<pool_t> m_recv_buf_pool_ptr;

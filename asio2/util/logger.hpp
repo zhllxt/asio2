@@ -53,7 +53,7 @@ namespace asio2
 		{
 			if (filename.empty())
 			{
-				filename = asio2::get_current_directory();
+				filename = get_current_directory();
 
 				time_t aclock;
 				time(&aclock);                 /* Get time in seconds */
@@ -63,11 +63,31 @@ namespace asio2
 
 				filename += buf;
 				filename += ".log";
-
-				m_file = std::fopen(filename.c_str(), "a+");
-
-				assert(m_file != nullptr);
 			}
+			else
+			{
+				// Compatible with three file name parameters : 
+				// abc.log
+				// D:/log/abc.log
+				// /usr/log/abc.log
+				size_t pos = filename.find_last_of('/');
+				if (pos == std::string::npos)
+					pos = filename.find_last_of('\\');
+
+				std::string dir;
+				if (pos != std::string::npos)
+					dir = filename.substr(0, pos);
+
+				if (pos == std::string::npos || dir.empty() || -1 == access(dir.c_str(), 0))
+				{
+					dir = get_current_directory();
+					filename.insert(0, dir);
+				}
+			}
+
+			m_file = std::fopen(filename.c_str(), "a+");
+
+			assert(m_file != nullptr);
 		}
 
 		/**

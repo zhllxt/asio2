@@ -24,6 +24,8 @@
 #	define NDEBUG
 #endif
 
+#include <cassert>
+
 #include <memory>
 #include <future>
 #include <functional>
@@ -52,34 +54,36 @@
 namespace asio2
 {
 
-	using tcp_session        = tcp_session_impl<pool<uint8_t>>;
+	using tcp_session        = tcp_session_impl<buffer_pool<uint8_t>>;
 	using tcp_acceptor       = tcp_acceptor_impl<tcp_session>;
 	using tcp_server         = tcp_server_impl<tcp_acceptor>;
 
-	using tcp_auto_session   = tcp_auto_session_impl<multi_pool<uint8_t>>;
+	using tcp_auto_session   = tcp_auto_session_impl<multi_buffer_pool<uint8_t>>;
 	using tcp_auto_acceptor  = tcp_acceptor_impl<tcp_auto_session>;
 	using tcp_auto_server    = tcp_server_impl<tcp_auto_acceptor>;
 
-	using tcp_pack_session   = tcp_pack_session_impl<pool<uint8_t>>;
+	using tcp_pack_session   = tcp_pack_session_impl<buffer_pool<uint8_t>>;
 	using tcp_pack_acceptor  = tcp_pack_acceptor_impl<tcp_pack_session>;
 	using tcp_pack_server    = tcp_pack_server_impl<tcp_pack_acceptor>;
 
-	using udp_session        = udp_session_impl<pool<uint8_t>>;
+	using udp_session        = udp_session_impl<buffer_pool<uint8_t>>;
 	using udp_acceptor       = udp_acceptor_impl<udp_session>;
 	using udp_server         = udp_server_impl<udp_acceptor>;
 
-	using http_server        = http_server_impl<http_acceptor_impl<http_session_impl<pool<uint8_t>>>>;
+	using http_session       = http_session_impl<buffer_pool<uint8_t>>;
+	using http_acceptor      = http_acceptor_impl<http_session>;
+	using http_server        = http_server_impl<http_acceptor>;
 
 #if defined(USE_SSL)
-	using tcps_session       = tcps_session_impl<pool<uint8_t>>;
+	using tcps_session       = tcps_session_impl<buffer_pool<uint8_t>>;
 	using tcps_acceptor      = tcps_acceptor_impl<tcps_session>;
 	using tcps_server        = tcps_server_impl<tcps_acceptor>;
 
-	using tcps_auto_session  = tcps_auto_session_impl<multi_pool<uint8_t>>;
+	using tcps_auto_session  = tcps_auto_session_impl<multi_buffer_pool<uint8_t>>;
 	using tcps_auto_acceptor = tcps_acceptor_impl<tcps_auto_session>;
 	using tcps_auto_server   = tcps_server_impl<tcps_auto_acceptor>;
 
-	using tcps_pack_session   = tcps_pack_session_impl<pool<uint8_t>>;
+	using tcps_pack_session   = tcps_pack_session_impl<buffer_pool<uint8_t>>;
 	using tcps_pack_acceptor  = tcps_pack_acceptor_impl<tcps_pack_session>;
 	using tcps_pack_server    = tcps_pack_server_impl<tcps_pack_acceptor>;
 #endif
@@ -95,13 +99,13 @@ namespace asio2
 		 * @param    : url string,see below
 		 *
 		 * tcp
-		 * tcp://127.0.0.1:3306/pack?notify_mode=async&send_buffer_size=16M&recv_buffer_size=16m&pool_buffer_size=1024k&io_service_pool_size=3&max_packet_size=1024&packet_header_flag=11
+		 * tcp://127.0.0.1:3306/pack?send_buffer_size=16M&recv_buffer_size=16m&pool_buffer_size=1024k&io_service_pool_size=3&max_packet_size=1024&packet_header_flag=11
 		 *
 		 * tcps
-		 * tcps://127.0.0.1:3306/auto?notify_mode=async&send_buffer_size=1024k&recv_buffer_size=1024K&pool_buffer_size=1024k&io_service_pool_size=3
+		 * tcps://127.0.0.1:3306/auto?send_buffer_size=1024k&recv_buffer_size=1024K&pool_buffer_size=1024k&io_service_pool_size=3
 		 *
 		 * udp
-		 * udp://127.0.0.1:3306/notify_mode=sync&send_buffer_size=1024k&recv_buffer_size=1024K&pool_buffer_size=1024k&io_service_pool_size=3&silence_timeout=60s
+		 * udp://127.0.0.1:3306/send_buffer_size=1024k&recv_buffer_size=1024K&pool_buffer_size=1024k&io_service_pool_size=3&silence_timeout=60s
 		 *
 		 * http
 		 * http://127.0.0.1:5432
@@ -121,8 +125,8 @@ namespace asio2
 		 * # auto - only useful to tcp, asio2 will help you handle the tcp sticky bag by add a 4 bytes header at the packet beginning,
 		 *        and every times packet passed to your recv listener,the packet must be a completed packet,under auto model,you
 		 *        need to set the max packet length,you can also set the packet header flag,if you don't set the packet header flag,
-		 *        asio2 will use the default packet header flag 0b10101010,the header flag is 1~255 (1 to 255),the max packet length
-		 *        is 0x00ffffff,the max_packet_size and packet_header_flag is only useful to auto model
+		 *        asio2 will use the default packet header flag 0b011101,the header flag is 1~63 (1 to 63),the max packet length
+		 *        is 0x03ffffff(64M),the max_packet_size and packet_header_flag is only useful to auto model
 		 * # pack - only useful to tcp, you need to set up a data format parser,when recved data,asio2 will call the parser to judge
 		 *        whether the data is valid,if valid and completed,the recv listener will be notifyed.if data length is not enough
 		 *        for a completed packet,the parse should return NEED_MORE_DATA,if the data is invalid,the parser should return
@@ -132,12 +136,11 @@ namespace asio2
 		 *        need judge whether the data is valid or completed youself.
 		 *
 		 * @param explain :
-		 * # notify_mode - "async" or "sync"(default)
 		 * # send_buffer_size - set the operation system socket send buffer size
 		 * # recv_buffer_size - set the operation system socket recv buffer size,we can set this value with a large number to resolve
 		 *        the packet loss problem
 		 * # io_service_pool_size -
-		 * # max_packet_size - just used for pack mode,set your data packet max length
+		 * # max_packet_size - just used for auto mode,set your data packet max length
 		 * # packet_header_flag - just used for pack mode,set your data packet header flag
 		 * # silence_timeout - if there has no data transfer for a long time,the session will be disconnect
 		 * % note : when use ssl on windows,you need add "Crypt32.lib" to the additional libs.
@@ -225,27 +228,22 @@ namespace asio2
 
 		/**
 		 * @function : send data
-		 * @param    : send_buf_ptr - std::shared_ptr<uint8_t> object
-		 *             len          - data len
 		 */
-		virtual bool send(std::shared_ptr<uint8_t> send_buf_ptr, std::size_t len)
+		virtual bool send(std::shared_ptr<buffer<uint8_t>> buf_ptr)
 		{
-			return (m_server_impl_ptr ? m_server_impl_ptr->send(send_buf_ptr, len) : false);
+			return (m_server_impl_ptr ? m_server_impl_ptr->send(buf_ptr) : false);
 		}
 
 		/**
 		 * @function : send data
-		 * @param    : buf - const char pointer
-		 *             len - buf len
 		 */
-		virtual bool send(const char * buf, std::size_t len)
+		virtual bool send(const uint8_t * buf, std::size_t len)
 		{
 			return (m_server_impl_ptr ? m_server_impl_ptr->send(buf, len) : false);
 		}
 
 		/**
 		 * @function : send data, inner use std::strlen(buf) to calc the buf len.
-		 * @param    : buf - const char pointer
 		 */
 		virtual bool send(const char * buf)
 		{
@@ -314,14 +312,6 @@ namespace asio2
 		}
 
 		/**
-		 * @function : get send pending packet size
-		 */
-		std::size_t get_send_pending()
-		{
-			return (m_server_impl_ptr ? m_server_impl_ptr->get_send_pending() : static_cast<std::size_t>(0));
-		}
-
-		/**
 		 * @function : get connected session count
 		 */
 		std::size_t get_session_count()
@@ -364,10 +354,10 @@ namespace asio2
 				std::static_pointer_cast<tcps_server>(m_server_impl_ptr)->get_context_ptr()->use_certificate(
 					boost::asio::const_buffer(buffer.c_str(), buffer.length()), boost::asio::ssl::context::pem);
 			}
-			catch (std::exception & e)
+			catch (boost::system::system_error & e)
 			{
-				set_last_error(DEFAULT_EXCEPTION_CODE, e.what());
-				PRINT_EXCEPTION;
+				set_last_error(e.code().value());
+				assert(false);
 			}
 			return (*this);
 		}
@@ -378,10 +368,10 @@ namespace asio2
 				std::static_pointer_cast<tcps_server>(m_server_impl_ptr)->get_context_ptr()->use_certificate_file(
 					file, boost::asio::ssl::context::pem);
 			}
-			catch (std::exception & e)
+			catch (boost::system::system_error & e)
 			{
-				set_last_error(DEFAULT_EXCEPTION_CODE, e.what());
-				PRINT_EXCEPTION;
+				set_last_error(e.code().value());
+				assert(false);
 			}
 			return (*this);
 		}
@@ -392,10 +382,10 @@ namespace asio2
 				std::static_pointer_cast<tcps_server>(m_server_impl_ptr)->get_context_ptr()->use_certificate_chain(
 					boost::asio::const_buffer(buffer.c_str(), buffer.length()));
 			}
-			catch (std::exception & e)
+			catch (boost::system::system_error & e)
 			{
-				set_last_error(DEFAULT_EXCEPTION_CODE, e.what());
-				PRINT_EXCEPTION;
+				set_last_error(e.code().value());
+				assert(false);
 			}
 			return (*this);
 		}
@@ -405,10 +395,10 @@ namespace asio2
 			{
 				std::static_pointer_cast<tcps_server>(m_server_impl_ptr)->get_context_ptr()->use_certificate_chain_file(file);
 			}
-			catch (std::exception & e)
+			catch (boost::system::system_error & e)
 			{
-				set_last_error(DEFAULT_EXCEPTION_CODE, e.what());
-				PRINT_EXCEPTION;
+				set_last_error(e.code().value());
+				assert(false);
 			}
 			return (*this);
 		}
@@ -419,10 +409,10 @@ namespace asio2
 				std::static_pointer_cast<tcps_server>(m_server_impl_ptr)->get_context_ptr()->use_private_key(
 					boost::asio::const_buffer(buffer.c_str(), buffer.length()), boost::asio::ssl::context::pem);
 			}
-			catch (std::exception & e)
+			catch (boost::system::system_error & e)
 			{
-				set_last_error(DEFAULT_EXCEPTION_CODE, e.what());
-				PRINT_EXCEPTION;
+				set_last_error(e.code().value());
+				assert(false);
 			}
 			return (*this);
 		}
@@ -433,10 +423,10 @@ namespace asio2
 				std::static_pointer_cast<tcps_server>(m_server_impl_ptr)->get_context_ptr()->use_private_key_file(
 					file, boost::asio::ssl::context::pem);
 			}
-			catch (std::exception & e)
+			catch (boost::system::system_error & e)
 			{
-				set_last_error(DEFAULT_EXCEPTION_CODE, e.what());
-				PRINT_EXCEPTION;
+				set_last_error(e.code().value());
+				assert(false);
 			}
 			return (*this);
 		}
@@ -447,10 +437,10 @@ namespace asio2
 				std::static_pointer_cast<tcps_server>(m_server_impl_ptr)->get_context_ptr()->use_tmp_dh(
 					boost::asio::const_buffer(buffer.c_str(), buffer.length()));
 			}
-			catch (std::exception & e)
+			catch (boost::system::system_error & e)
 			{
-				set_last_error(DEFAULT_EXCEPTION_CODE, e.what());
-				PRINT_EXCEPTION;
+				set_last_error(e.code().value());
+				assert(false);
 			}
 			return (*this);
 		}
@@ -460,10 +450,10 @@ namespace asio2
 			{
 				std::static_pointer_cast<tcps_server>(m_server_impl_ptr)->get_context_ptr()->use_tmp_dh_file(file);
 			}
-			catch (std::exception & e)
+			catch (boost::system::system_error & e)
 			{
-				set_last_error(DEFAULT_EXCEPTION_CODE, e.what());
-				PRINT_EXCEPTION;
+				set_last_error(e.code().value());
+				assert(false);
 			}
 			return (*this);
 		}
@@ -473,10 +463,10 @@ namespace asio2
 			{
 				std::static_pointer_cast<tcps_server>(m_server_impl_ptr)->set_password(password);
 			}
-			catch (std::exception & e)
+			catch (boost::system::system_error & e)
 			{
-				set_last_error(DEFAULT_EXCEPTION_CODE, e.what());
-				PRINT_EXCEPTION;
+				set_last_error(e.code().value());
+				assert(false);
 			}
 			return (*this);
 		}
@@ -521,7 +511,7 @@ namespace asio2
 		 * the callback function like this :
 		 * void on_send(std::shared_ptr<asio2::session> session_ptr, std::shared_ptr<uint8_t> data_ptr, std::size_t len, int error)
 		 * or a lumbda function like this :
-		 * [&](std::shared_ptr<asio2::session> session_ptr, std::shared_ptr<uint8_t> data_ptr, std::size_t len, int error){}
+		 * [&](std::shared_ptr<asio2::session> session_ptr, std::shared_ptr<buffer<uint8_t>> data_ptr, int error){}
 		 */
 		template<typename _listener>
 		server & bind_send(_listener listener)
@@ -537,7 +527,7 @@ namespace asio2
 		/**
 		 * @function : bind listener - the session recv data from remote endpoint
 		 * @param    : listener - a callback function like this:
-		 * void on_recv(std::shared_ptr<asio2::session> session_ptr, std::shared_ptr<uint8_t> data_ptr, std::size_t len)
+		 * void on_recv(std::shared_ptr<asio2::session> session_ptr, std::shared_ptr<buffer<uint8_t>> data_ptr)
 		 */
 		template<typename _listener>
 		server & bind_recv(_listener listener)
@@ -615,8 +605,6 @@ namespace asio2
 		}
 
 	protected:
-
-		using parser_callback = std::size_t(std::shared_ptr<uint8_t> data_ptr, std::size_t len);
 
 		std::shared_ptr<server_impl>         m_server_impl_ptr;
 		std::shared_ptr<url_parser>          m_url_parser_ptr;

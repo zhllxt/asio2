@@ -23,7 +23,6 @@
 #include <boost/asio.hpp>
 
 #include <asio2/util/rwlock.hpp>
-#include <asio2/util/pool.hpp>
 #include <asio2/util/thread_pool.hpp>
 
 #include <asio2/base/session_impl.hpp>
@@ -64,81 +63,15 @@ namespace asio2
 		}
 
 		/**
-		 * @function : start session
+		 * @function : put the connected session into the map
 		 */
-		virtual void start(std::shared_ptr<_Session> ptr)
+		virtual void put_session(std::shared_ptr<_Session> ptr)
 		{
-			wlock_guard g(m_rwlock);
-			if (!m_destroyed)
+			if (ptr)
 			{
-				if (ptr && ptr->start())
-				{
-					m_connected_session_map_ptr->emplace(*(static_cast<_Kty *>(ptr->_get_key())), ptr.get());
-				}
+				wlock_guard g(m_rwlock);
+				m_connected_session_map_ptr->emplace(*(static_cast<_Kty *>(ptr->_get_key())), ptr.get());
 			}
-		}
-
-		/**
-		 * @function : call user custom define function for everyone element in the connected session map
-		 * note : can't add or erase elems when call for_each_session,it will cause crash.
-		 */
-		template<typename H>
-		void for_each_session(const H & _handler)
-		{
-			if (m_connected_session_map_ptr->size() > 0)
-			{
-				try
-				{
-					rlock_guard g(m_rwlock);
-					for (auto & pair : *m_connected_session_map_ptr)
-					{
-						// the map's second elem is the session raw pointer,and the session shared_ptr will pass to the 
-						// _handler as a parameter
-						// can't use std::shared_ptr<session>(pair.second),must use pair.second->shared_from_this().
-						_handler(std::static_pointer_cast<_Session>(pair.second->shared_from_this()));
-					}
-				}
-				catch (std::bad_weak_ptr &) {}
-			}
-		}
-
-		/**
-		 * @function : find the session by map key
-		 * @return   : session shared_ptr
-		 */
-		std::shared_ptr<_Session> find(_Kty key)
-		{
-			if (m_connected_session_map_ptr->size() > 0)
-			{
-				rlock_guard g(m_rwlock);
-				auto iterator = m_connected_session_map_ptr->find(key);
-				if (iterator != m_connected_session_map_ptr->end())
-				{
-					try
-					{
-						// may be the session shared_ptr just disappeared,then call shared_from_this will occur exception
-						return std::static_pointer_cast<_Session>(iterator->second->shared_from_this());
-					}
-					catch (std::bad_weak_ptr &) {}
-				}
-			}
-			return nullptr;
-		}
-
-		/**
-		 * @function : get connected session count
-		 */
-		std::size_t get_connected_session_count()
-		{
-			return m_connected_session_map_ptr->size();
-		}
-
-		/**
-		 * @function : get allocated session count
-		 */
-		std::size_t get_allocated_session_count()
-		{
-			return m_total_session_count;
 		}
 
 		/**
@@ -204,6 +137,69 @@ namespace asio2
 		}
 
 		/**
+		 * @function : call user custom define function for everyone element in the connected session map
+		 * note : can't add or erase elems when call for_each_session,it will cause crash.
+		 */
+		template<typename H>
+		void for_each_session(const H & _handler)
+		{
+			if (m_connected_session_map_ptr->size() > 0)
+			{
+				try
+				{
+					rlock_guard g(m_rwlock);
+					for (auto & pair : *m_connected_session_map_ptr)
+					{
+						// the map's second elem is the session raw pointer,and the session shared_ptr will pass to the 
+						// _handler as a parameter
+						// can't use std::shared_ptr<session>(pair.second),must use pair.second->shared_from_this().
+						_handler(std::static_pointer_cast<_Session>(pair.second->shared_from_this()));
+					}
+				}
+				catch (std::bad_weak_ptr &) {}
+			}
+		}
+
+		/**
+		 * @function : find the session by map key
+		 * @return   : session shared_ptr
+		 */
+		std::shared_ptr<_Session> find_session(_Kty & key)
+		{
+			if (m_connected_session_map_ptr->size() > 0)
+			{
+				rlock_guard g(m_rwlock);
+				auto iterator = m_connected_session_map_ptr->find(key);
+				if (iterator != m_connected_session_map_ptr->end())
+				{
+					try
+					{
+						// may be the session shared_ptr just disappeared,then call shared_from_this will occur exception
+						return std::static_pointer_cast<_Session>(iterator->second->shared_from_this());
+					}
+					catch (std::bad_weak_ptr &) {}
+				}
+			}
+			return nullptr;
+		}
+
+		/**
+		 * @function : get connected session count
+		 */
+		std::size_t get_connected_session_count()
+		{
+			return m_connected_session_map_ptr->size();
+		}
+
+		/**
+		 * @function : get allocated session count
+		 */
+		std::size_t get_allocated_session_count()
+		{
+			return m_total_session_count;
+		}
+
+		/**
 		 * @function : destroy the "new" sessions,must call destroy function manaul begin application exit,otherwise will
 		 *             cause memory leaks.
 		 * because the "new" sessions shared_ptr hold a custom deleter,and the deleter hold the share_from_this ,so if we 
@@ -212,19 +208,6 @@ namespace asio2
 		 */
 		virtual void destroy()
 		{
-			// prepared destroy,avoid other session connected and insert into m_connected_session_map_ptr,set the destroyed
-			// flag 
-			{
-				wlock_guard g(m_rwlock);
-				m_destroyed = true;
-			}
-
-			// notify all connected sessions to stop .
-			// the std::placeholders::_1 is the session pointer,which will be passed by the _handler(head->second); in function
-			// for_each_session.
-			// the session::stop must be no blocking,otherwise it may be cause loop lock.
-			for_each_session(std::bind(&_Session::stop, std::placeholders::_1));
-
 			// if total session count greater than the idle session count,mean that there has some session is in using,we
 			// should wait for until the session is idle.if total session count is equal the idle session count,we can't
 			// wait,because the wait will never return
@@ -235,9 +218,7 @@ namespace asio2
 				{
 					if (std::cv_status::timeout == m_cv.wait_for(lock, std::chrono::seconds(60)))
 					{
-						set_last_error(DEFAULT_EXCEPTION_CODE, "wait for all sessions closed timeout,may be has some bugs.");
-						PRINT_EXCEPTION;
-						//assert(false);
+						assert(false);
 					}
 				}
 			}
@@ -300,9 +281,6 @@ namespace asio2
 
 		/// use rwlock to make this session map thread safe
 		rwlock m_rwlock;
-
-		/// used to avoid new session connected after session_mgr is destroyed already
-		volatile bool m_destroyed = false;
 
 		/// used to recovery the shared_ptr object 
 		std::shared_ptr<thread_pool<false>> m_thread_pool_ptr;

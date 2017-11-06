@@ -63,7 +63,7 @@ namespace asio2
 				m_listener_mgr_ptr = std::make_shared<sender_listener_mgr>();
 
 			if /**/ (m_url_parser_ptr->get_protocol() == "udp")
-				m_sender_impl_ptr = std::make_shared<udp_sender_impl<pool<uint8_t>>>(m_listener_mgr_ptr, m_url_parser_ptr);
+				m_sender_impl_ptr = std::make_shared<udp_sender_impl<buffer_pool<uint8_t>>>(m_listener_mgr_ptr, m_url_parser_ptr);
 		}
 
 		/**
@@ -98,23 +98,23 @@ namespace asio2
 		/**
 		 * @function : send data
 		 */
-		virtual bool send(std::string ip, unsigned short port, std::shared_ptr<uint8_t> send_buf_ptr, std::size_t len)
+		virtual bool send(std::string ip, unsigned short port, std::shared_ptr<buffer<uint8_t>> buf_ptr)
 		{
-			return (m_sender_impl_ptr ? m_sender_impl_ptr->send(ip, port, send_buf_ptr, len) : false);
+			return (m_sender_impl_ptr ? m_sender_impl_ptr->send(ip, port, buf_ptr) : false);
 		}
 
 		/**
 		 * @function : send data
 		 */
-		virtual bool send(std::string ip, std::string port, std::shared_ptr<uint8_t> send_buf_ptr, std::size_t len)
+		virtual bool send(std::string ip, std::string port, std::shared_ptr<buffer<uint8_t>> buf_ptr)
 		{
-			return (m_sender_impl_ptr ? m_sender_impl_ptr->send(ip, port, send_buf_ptr, len) : false);
+			return (m_sender_impl_ptr ? m_sender_impl_ptr->send(ip, port, buf_ptr) : false);
 		}
 
 		/**
 		 * @function : send data
 		 */
-		virtual bool send(std::string ip, unsigned short port, const char * buf, std::size_t len)
+		virtual bool send(std::string ip, unsigned short port, const uint8_t * buf, std::size_t len)
 		{
 			return (m_sender_impl_ptr ? m_sender_impl_ptr->send(ip, port, buf, len) : false);
 		}
@@ -122,7 +122,7 @@ namespace asio2
 		/**
 		 * @function : send data
 		 */
-		virtual bool send(std::string ip, std::string port, const char * buf, std::size_t len)
+		virtual bool send(std::string ip, std::string port, const uint8_t * buf, std::size_t len)
 		{
 			return (m_sender_impl_ptr ? m_sender_impl_ptr->send(ip, port, buf, len) : false);
 		}
@@ -179,7 +179,7 @@ namespace asio2
 		/**
 		 * @function : bind listener - the sender send data finished
 		 * @param    : listener - a callback function like this :
-		 * void on_send(std::string ip, unsigned short port, std::shared_ptr<uint8_t> data_ptr, std::size_t len, int error);
+		 * void on_send(std::string ip, unsigned short port, std::shared_ptr<buffer<uint8_t>> data_ptr, int error);
 		 */
 		template<typename _listener>
 		sender & bind_send(_listener listener)
@@ -195,7 +195,7 @@ namespace asio2
 		/**
 		 * @function : bind listener - the sender recv data from remote endpoint
 		 * @param    : listener - a callback function like this :
-		 * void on_recv(std::string ip, unsigned short port, std::shared_ptr<uint8_t> data_ptr, std::size_t len);
+		 * void on_recv(std::string ip, unsigned short port, std::shared_ptr<buffer<uint8_t>> data_ptr);
 		 */
 		template<typename _listener>
 		sender & bind_recv(_listener listener)
@@ -226,28 +226,12 @@ namespace asio2
 
 	public:
 		/**
-		 * @function : get socket's recv buffer size
-		 */
-		inline int get_recv_buffer_size()
-		{
-			return (m_sender_impl_ptr ? m_sender_impl_ptr->get_recv_buffer_size() : static_cast<int>(0));
-		}
-
-		/**
 		 * @function : set socket's recv buffer size.
 		 *             when packet lost rate is high,you can set the recv buffer size to a big value to avoid it.
 		 */
 		inline bool set_recv_buffer_size(int size)
 		{
 			return (m_sender_impl_ptr ? m_sender_impl_ptr->set_recv_buffer_size(size) : false);
-		}
-
-		/**
-		 * @function : get socket's send buffer size
-		 */
-		inline int get_send_buffer_size()
-		{
-			return (m_sender_impl_ptr ? m_sender_impl_ptr->get_send_buffer_size() : static_cast<int>(0));
 		}
 
 		/**

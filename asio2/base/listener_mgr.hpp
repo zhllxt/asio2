@@ -19,7 +19,7 @@
 #include <boost/asio.hpp>
 #include <boost/system/system_error.hpp>
 
-#include <asio2/util/pool.hpp>
+#include <asio2/util/buffer.hpp>
 
 #include <asio2/base/listener.hpp>
 
@@ -140,13 +140,6 @@ namespace asio2
 			return (*this);
 		}
 
-		inline bool is_send_listener_exist()     { return (m_send_listener || m_listener_sptr || m_listener_rptr); }
-		inline bool is_recv_listener_exist()     { return (m_recv_listener || m_listener_sptr || m_listener_rptr); }
-		inline bool is_listen_listener_exist()   { return (m_lisn_listener || m_listener_sptr || m_listener_rptr); }
-		inline bool is_accept_listener_exist()   { return (m_acpt_listener || m_listener_sptr || m_listener_rptr); }
-		inline bool is_close_listener_exist()    { return (m_clos_listener || m_listener_sptr || m_listener_rptr); }
-		inline bool is_shutdown_listener_exist() { return (m_shut_listener || m_listener_sptr || m_listener_rptr); }
-
 		/**
 		 * @function : call the listener callback function
 		 */
@@ -218,8 +211,8 @@ namespace asio2
 
 	protected:
 
-		using send_callback = void(std::shared_ptr<session_impl> session_ptr, std::shared_ptr<uint8_t> data_ptr, std::size_t len, int error);
-		using recv_callback = void(std::shared_ptr<session_impl> session_ptr, std::shared_ptr<uint8_t> data_ptr, std::size_t len);
+		using send_callback = void(std::shared_ptr<session_impl> session_ptr, std::shared_ptr<buffer<uint8_t>> data_ptr, int error);
+		using recv_callback = void(std::shared_ptr<session_impl> session_ptr, std::shared_ptr<buffer<uint8_t>> data_ptr);
 		using lisn_callback = void();
 		using acpt_callback = void(std::shared_ptr<session_impl> session_ptr);
 		using clos_callback = void(std::shared_ptr<session_impl> session_ptr, int error);
@@ -314,11 +307,6 @@ namespace asio2
 			return (*this);
 		}
 
-		inline bool is_send_listener_exist()     { return (m_send_listener || m_listener_sptr || m_listener_rptr); }
-		inline bool is_recv_listener_exist()     { return (m_recv_listener || m_listener_sptr || m_listener_rptr); }
-		inline bool is_close_listener_exist()    { return (m_clos_listener || m_listener_sptr || m_listener_rptr); }
-		inline bool is_connect_listener_exist()  { return (m_conn_listener || m_listener_sptr || m_listener_rptr); }
-
 		/**
 		 * @function : call the listener callback function
 		 */
@@ -368,8 +356,8 @@ namespace asio2
 
 	protected:
 
-		using send_callback = void(std::shared_ptr<uint8_t> data_ptr, std::size_t len, int error);
-		using recv_callback = void(std::shared_ptr<uint8_t> data_ptr, std::size_t len);
+		using send_callback = void(std::shared_ptr<buffer<uint8_t>> data_ptr, int error);
+		using recv_callback = void(std::shared_ptr<buffer<uint8_t>> data_ptr);
 		using clos_callback = void(int error);
 		using conn_callback = void(int error);
 
@@ -453,10 +441,6 @@ namespace asio2
 			return (*this);
 		}
 
-		inline bool is_send_listener_exist()     { return (m_send_listener || m_listener_sptr || m_listener_rptr); }
-		inline bool is_recv_listener_exist()     { return (m_recv_listener || m_listener_sptr || m_listener_rptr); }
-		inline bool is_close_listener_exist()    { return (m_clos_listener || m_listener_sptr || m_listener_rptr); }
-
 		/**
 		 * @function : call the listener callback function
 		 */
@@ -495,8 +479,8 @@ namespace asio2
 
 	protected:
 
-		using send_callback = void(std::string ip, unsigned short port, std::shared_ptr<uint8_t> data_ptr, std::size_t len, int error);
-		using recv_callback = void(std::string ip, unsigned short port, std::shared_ptr<uint8_t> data_ptr, std::size_t len);
+		using send_callback = void(std::string ip, unsigned short port, std::shared_ptr<buffer<uint8_t>> data_ptr, int error);
+		using recv_callback = void(std::string ip, unsigned short port, std::shared_ptr<buffer<uint8_t>> data_ptr);
 		using clos_callback = void(int error);
 
 		std::function<send_callback> m_send_listener = nullptr;

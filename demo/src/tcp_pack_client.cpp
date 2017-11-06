@@ -25,16 +25,16 @@ volatile bool run_flag = true;
 // ...  content
 // tail 1 byte >
 
-std::size_t pack_parser(std::shared_ptr<uint8_t> data_ptr, std::size_t len)
+std::size_t pack_parser(asio2::buffer_ptr data_ptr)
 {
-	if (len < 3)
+	if (data_ptr->size() < 3)
 		return NEED_MORE_DATA;
 
-	uint8_t * data = data_ptr.get();
+	uint8_t * data = data_ptr->data();
 	if (data[0] == '<')
 	{
 		std::size_t total_len = data[1] + 3;
-		if (len < total_len)
+		if (data_ptr->size() < total_len)
 			return NEED_MORE_DATA;
 		if (data[total_len - 1] == '>')
 			return total_len;
@@ -66,22 +66,12 @@ int main(int argc, char *argv[])
 		for (i = 0; i < client_count; i++)
 		{
 			tcp_pack_client[i] = std::make_shared<asio2::client>("tcp://localhost:8099/pack");
-			tcp_pack_client[i]->bind_recv([](std::shared_ptr<uint8_t> data_ptr, std::size_t len)
+			tcp_pack_client[i]->bind_recv([](asio2::buffer_ptr data_ptr)
 			{
-				char * p = (char*)data_ptr.get();
-				std::string s;
-				s.resize(len);
-				std::memcpy((void*)s.c_str(), (const void *)p, len);
-				std::printf("tcp_pack_client recv : %s\n", s.c_str());
-
-			}).bind_send([&tcp_pack_client](std::shared_ptr<uint8_t> data_ptr, std::size_t len, int error)
+				std::printf("recv : %.*s\n", (int)data_ptr->size(), (const char*)data_ptr->data());
+			}).bind_send([&tcp_pack_client](asio2::buffer_ptr data_ptr, int error)
 			{
-				//char * p = (char*)data_ptr.get();
-				//std::string s;
-				//s.resize(len);
-				//std::memcpy((void*)s.c_str(), (const void*)data_ptr.get(), len);
-				//std::printf("tcp client send : %s\n", s.c_str());
-			}).set_pack_parser(std::bind(pack_parser, std::placeholders::_1, std::placeholders::_2));
+			}).set_pack_parser(std::bind(pack_parser, std::placeholders::_1));
 
 			if (!tcp_pack_client[i]->start(false))
 				std::printf("connect to tcp server failed : %d - %s. %d\n", asio2::get_last_error(), asio2::get_last_error_desc().c_str(), i);
@@ -115,7 +105,7 @@ int main(int argc, char *argv[])
 					while (true)
 					{
 						packet_send_times++;
-						tcp_pack_client[i]->send(s.c_str() + already_send_len, (std::size_t)send_len);
+						tcp_pack_client[i]->send((const uint8_t *)(s.c_str() + already_send_len), (std::size_t)send_len);
 						already_send_len += send_len;
 
 						if (already_send_len >= len)

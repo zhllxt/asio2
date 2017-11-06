@@ -30,10 +30,7 @@
 #include <boost/asio/ssl.hpp>
 #include <boost/asio/ssl/error.hpp>
 
-#include <asio2/util/pool.hpp>
-
 #include <asio2/base/session_impl.hpp>
-#include <asio2/base/session_mgr.hpp>
 
 namespace asio2
 {
@@ -53,17 +50,16 @@ namespace asio2
 
 		/**
 		 * @construct
-		 * @param    : io_service_evt - the io_service used to handle the socket event
-		 *           : io_service_msg - the io_service used to handle the received msg
 		 */
 		explicit tcps_session_impl(
-			io_service_ptr evt_ioservice_ptr,
-			io_service_ptr msg_ioservice_ptr,
+			std::shared_ptr<io_service> ioservice_ptr,
 			std::shared_ptr<listener_mgr> listener_mgr_ptr,
 			std::shared_ptr<url_parser> url_parser_ptr,
-			std::shared_ptr<_pool_t> recv_buf_pool_ptr
+			std::shared_ptr<pool_s> send_buf_pool_ptr,
+			std::shared_ptr<pool_t> recv_buf_pool_ptr
 		)
-			: session_impl(evt_ioservice_ptr, msg_ioservice_ptr, listener_mgr_ptr, url_parser_ptr)
+			: session_impl(ioservice_ptr, listener_mgr_ptr, url_parser_ptr)
+			, m_send_buf_pool_ptr(send_buf_pool_ptr)
 			, m_recv_buf_pool_ptr(recv_buf_pool_ptr)
 		{
 		}
@@ -90,8 +86,6 @@ namespace asio2
 
 			if (is_start())
 			{
-				m_async_notify = (m_url_parser_ptr->get_param_value("notify_mode") == "async");
-
 				// set keeplive
 				set_keepalive_vals();
 
@@ -101,7 +95,7 @@ namespace asio2
 				// set recv buffer size from url params
 				_set_recv_buffer_size_from_url();
 
-				_post_handshake();
+				_post_handshake(shared_from_this());
 
 				return true;
 			}
@@ -134,7 +128,7 @@ namespace asio2
 						// when call shared_from_this ,may be the shared_ptr of "this" has disappeared already,so call shared_from_this will
 						// cause exception,and we should't post event again,
 						auto this_ptr = std::static_pointer_cast<tcps_session_impl>(shared_from_this());
-						m_evt_strand_ptr->post([this_ptr]()
+						m_strand_ptr->post([this_ptr]()
 						{
 							this_ptr->_close_socket();
 						});
@@ -155,26 +149,39 @@ namespace asio2
 		/**
 		 * @function : send data
 		 */
-		virtual bool send(std::shared_ptr<uint8_t> send_buf_ptr, std::size_t len) override
+		virtual bool send(std::shared_ptr<buffer<uint8_t>> send_buf_ptr) override
 		{
-			if (is_start())
+			if (is_start() && send_buf_ptr)
 			{
 				try
 				{
-					// note : can't use m_msg_ioservice_ptr to post event,because can't operate socket in multi thread.
+					auto this_ptr = shared_from_this();
 					// must use strand.post to send data.why we should do it like this ? see udp_session._post_send.
-					m_evt_strand_ptr->post(std::bind(&tcps_session_impl::_post_send,
-						std::static_pointer_cast<tcps_session_impl>(shared_from_this()),
-						send_buf_ptr,
-						len
+					m_strand_ptr->post(std::bind(&tcps_session_impl::_post_send,
+						std::static_pointer_cast<tcps_session_impl>(this_ptr),
+						this_ptr,
+						send_buf_ptr
 					));
 					return true;
 				}
-				catch (std::exception & e)
+				catch (std::exception &)
 				{
-					set_last_error(DEFAULT_EXCEPTION_CODE, e.what());
-					PRINT_EXCEPTION;
 				}
+			}
+			return false;
+		}
+
+		/**
+		 * @function : send data
+		 */
+		virtual bool send(const uint8_t * buf, std::size_t len) override
+		{
+			if (is_start())
+			{
+				auto buf_ptr = this->m_send_buf_pool_ptr->get(get_power_number(len));
+				std::memcpy((void *)buf_ptr->data(), (const void *)buf, len);
+				buf_ptr->resize(len);
+				return this->send(buf_ptr);
 			}
 			return false;
 		}
@@ -204,7 +211,7 @@ namespace asio2
 			}
 			catch (boost::system::system_error & e)
 			{
-				set_last_error(e.code().value(), e.what());
+				set_last_error(e.code().value());
 			}
 			return "";
 		}
@@ -224,7 +231,7 @@ namespace asio2
 			}
 			catch (boost::system::system_error & e)
 			{
-				set_last_error(e.code().value(), e.what());
+				set_last_error(e.code().value());
 			}
 			return 0;
 		}
@@ -244,7 +251,7 @@ namespace asio2
 			}
 			catch (boost::system::system_error & e)
 			{
-				set_last_error(e.code().value(), e.what());
+				set_last_error(e.code().value());
 			}
 			return "";
 		}
@@ -264,28 +271,7 @@ namespace asio2
 			}
 			catch (boost::system::system_error & e)
 			{
-				set_last_error(e.code().value(), e.what());
-			}
-			return 0;
-		}
-
-		/**
-		 * @function : get socket's recv buffer size
-		 */
-		virtual int get_recv_buffer_size() override
-		{
-			try
-			{
-				if (m_socket_ptr && m_socket_ptr->lowest_layer().is_open())
-				{
-					boost::asio::socket_base::receive_buffer_size option;
-					m_socket_ptr->lowest_layer().get_option(option);
-					return option.value();
-				}
-			}
-			catch (boost::system::system_error & e)
-			{
-				set_last_error(e.code().value(), e.what());
+				set_last_error(e.code().value());
 			}
 			return 0;
 		}
@@ -307,30 +293,9 @@ namespace asio2
 			}
 			catch (boost::system::system_error & e)
 			{
-				set_last_error(e.code().value(), e.what());
+				set_last_error(e.code().value());
 			}
 			return false;
-		}
-
-		/**
-		 * @function : get socket's send buffer size
-		 */
-		virtual int get_send_buffer_size() override
-		{
-			try
-			{
-				if (m_socket_ptr && m_socket_ptr->lowest_layer().is_open())
-				{
-					boost::asio::socket_base::send_buffer_size option;
-					m_socket_ptr->lowest_layer().get_option(option);
-					return option.value();
-				}
-			}
-			catch (boost::system::system_error & e)
-			{
-				set_last_error(e.code().value(), e.what());
-			}
-			return 0;
 		}
 
 		/**
@@ -349,7 +314,7 @@ namespace asio2
 			}
 			catch (boost::system::system_error & e)
 			{
-				set_last_error(e.code().value(), e.what());
+				set_last_error(e.code().value());
 			}
 			return false;
 		}
@@ -422,11 +387,11 @@ namespace asio2
 		{
 			m_context_ptr = context_ptr;
 
-			if (m_evt_ioservice_ptr && m_context_ptr)
+			if (m_ioservice_ptr && m_context_ptr)
 			{
-				m_socket_ptr = std::make_shared<ssl_socket>(*m_evt_ioservice_ptr, *m_context_ptr);
+				m_socket_ptr = std::make_shared<ssl_socket>(*m_ioservice_ptr, *m_context_ptr);
 
-				m_timer_ptr = std::make_shared<boost::asio::deadline_timer>(*m_evt_ioservice_ptr);
+				m_timer_ptr = std::make_shared<boost::asio::deadline_timer>(*m_ioservice_ptr);
 			}
 
 			return (*this);
@@ -440,8 +405,6 @@ namespace asio2
 		virtual void _reset() override
 		{
 			session_impl::_reset();
-
-			m_async_notify = false;
 
 			m_stop_is_called = false;
 			m_fire_close_is_called.clear(std::memory_order_release);
@@ -459,40 +422,40 @@ namespace asio2
 				auto this_ptr = std::static_pointer_cast<tcps_session_impl>(shared_from_this());
 
 				m_timer_ptr->expires_from_now(boost::posix_time::seconds(60));
-				m_timer_ptr->async_wait(m_evt_strand_ptr->wrap([this_ptr](const boost::system::error_code& err)
+				m_timer_ptr->async_wait(m_strand_ptr->wrap([this_ptr](const boost::system::error_code& err)
 				{
 					boost::system::error_code ec;
 
 					// when the lowest socket is closed,the ssl stream shutdown will returned.
 					this_ptr->m_socket_ptr->lowest_layer().shutdown(boost::asio::socket_base::shutdown_both, ec);
 					if (ec)
-						set_last_error(ec.value(), ec.message());
+						set_last_error(ec.value());
 
 					this_ptr->m_socket_ptr->lowest_layer().close(ec);
 					if (ec)
-						set_last_error(ec.value(), ec.message());
+						set_last_error(ec.value());
 				}));
 
 				// when server call ssl stream shutdown first,if the client socket is not closed forever,then here shutdowm will blocking forever.
-				m_socket_ptr->async_shutdown(m_evt_strand_ptr->wrap([this_ptr](const boost::system::error_code & ec)
+				m_socket_ptr->async_shutdown(m_strand_ptr->wrap([this_ptr](const boost::system::error_code & ec)
 				{
 					this_ptr->m_timer_ptr->cancel();
 
-					if ((ec.category() == boost::asio::error::get_ssl_category())/* && (SSL_R_PROTOCOL_IS_SHUTDOWN == ERR_GET_REASON(ec.value()))*/)
-					{
-						//ssl_stream.lowest_layer().close();
-						set_last_error(ec.value(), ec.message());
-					}
+					//if ((ec.category() == boost::asio::error::get_ssl_category())/* && (SSL_R_PROTOCOL_IS_SHUTDOWN == ERR_GET_REASON(ec.value()))*/)
+					//{
+					//	//ssl_stream.lowest_layer().close();
+					//	set_last_error(ec.value());
+					//}
 
-					if (ec.category() == boost::asio::error::get_ssl_category() && ec.value() == boost::asio::ssl::error::stream_truncated)
-					{
-						// -> not a real error:
-						//do_ssl_async_shutdown();
-						set_last_error(ec.value(), ec.message());
-					}
+					//if (ec.category() == boost::asio::error::get_ssl_category() && ec.value() == boost::asio::ssl::error::stream_truncated)
+					//{
+					//	// -> not a real error:
+					//	//do_ssl_async_shutdown();
+					//	set_last_error(ec.value());
+					//}
 
 					if (ec)
-						set_last_error(ec.value(), ec.message());
+						set_last_error(ec.value());
 				}));
 			}
 		}
@@ -502,77 +465,81 @@ namespace asio2
 			return static_cast<void *>(&_key);
 		}
 
-		virtual void _post_handshake()
+		virtual void _post_handshake(std::shared_ptr<session_impl> this_ptr)
 		{
 			if (is_start())
 			{
 				m_socket_ptr->async_handshake(boost::asio::ssl::stream_base::server,
-					m_evt_strand_ptr->wrap(std::bind(&tcps_session_impl::_handle_handshake, std::static_pointer_cast<tcps_session_impl>(shared_from_this()),
-						std::placeholders::_1 // error_code
-					)));
-			}
-		}
-
-		virtual void _handle_handshake(const boost::system::error_code& ec)
-		{
-			if (!ec)
-			{
-				_post_recv();
-			}
-			else
-			{
-				set_last_error(ec.value(), ec.message());
-
-				_fire_close(ec.value());
-			}
-		}
-
-		virtual void _post_recv()
-		{
-			if (is_start())
-			{
-				// every times post recv event,we get the recv buffer from the buffer pool
-				std::shared_ptr<uint8_t> recv_buf_ptr = m_recv_buf_pool_ptr->get(0);
-
-				m_socket_ptr->async_read_some(
-					boost::asio::buffer(recv_buf_ptr.get(), m_recv_buf_pool_ptr->get_requested_size()),
-					m_evt_strand_ptr->wrap(std::bind(&tcps_session_impl::_handle_recv, std::static_pointer_cast<tcps_session_impl>(shared_from_this()),
+					m_strand_ptr->wrap(std::bind(&tcps_session_impl::_handle_handshake, std::static_pointer_cast<tcps_session_impl>(this_ptr),
 						std::placeholders::_1, // error_code
-						std::placeholders::_2, // bytes_recvd
-						recv_buf_ptr
+						this_ptr
 					)));
 			}
 		}
 
-		virtual void _handle_recv(const boost::system::error_code& ec, std::size_t bytes_recvd, std::shared_ptr<uint8_t> recv_buf_ptr)
+		virtual void _handle_handshake(const boost::system::error_code& ec, std::shared_ptr<session_impl> this_ptr)
 		{
-			// every times recv data,we update the last active time.
-			reset_last_active_time();
-
-			if ((ec.category() == boost::asio::error::get_ssl_category())/* && (SSL_R_PROTOCOL_IS_SHUTDOWN == ERR_GET_REASON(ec.value()))*/)
-			{
-				//ssl_stream.lowest_layer().close();
-				set_last_error(ec.value(), ec.message());
-			}
-
-			if (ec.category() == boost::asio::error::get_ssl_category() && ec.value() == boost::asio::ssl::error::stream_truncated)
-			{
-				// -> not a real error:
-				//do_ssl_async_shutdown();
-				set_last_error(ec.value(), ec.message());
-			}
-
 			if (!ec)
 			{
-				_fire_recv(recv_buf_ptr, bytes_recvd);
-
-				_post_recv();
+				_post_recv(this_ptr);
 			}
 			else
 			{
 				set_last_error(ec.value());
 
-				_fire_close(ec.value());
+				_fire_close(this_ptr, ec.value());
+			}
+		}
+
+		virtual void _post_recv(std::shared_ptr<session_impl> this_ptr)
+		{
+			if (is_start())
+			{
+				// every times post recv event,we get the recv buffer from the buffer pool
+				std::shared_ptr<buffer<uint8_t>> recv_buf_ptr = m_recv_buf_pool_ptr->get(0);
+
+				m_socket_ptr->async_read_some(
+					boost::asio::buffer(recv_buf_ptr->data(), recv_buf_ptr->capacity()),
+					m_strand_ptr->wrap(std::bind(&tcps_session_impl::_handle_recv, std::static_pointer_cast<tcps_session_impl>(this_ptr),
+						std::placeholders::_1, // error_code
+						std::placeholders::_2, // bytes_recvd
+						this_ptr,
+						recv_buf_ptr
+					)));
+			}
+		}
+
+		virtual void _handle_recv(const boost::system::error_code& ec, std::size_t bytes_recvd, std::shared_ptr<session_impl> this_ptr, std::shared_ptr<buffer<uint8_t>> recv_buf_ptr)
+		{
+			//if ((ec.category() == boost::asio::error::get_ssl_category())/* && (SSL_R_PROTOCOL_IS_SHUTDOWN == ERR_GET_REASON(ec.value()))*/)
+			//{
+			//	//ssl_stream.lowest_layer().close();
+			//	set_last_error(ec.value());
+			//}
+
+			//if (ec.category() == boost::asio::error::get_ssl_category() && ec.value() == boost::asio::ssl::error::stream_truncated)
+			//{
+			//	// -> not a real error:
+			//	//do_ssl_async_shutdown();
+			//	set_last_error(ec.value());
+			//}
+
+			if (!ec)
+			{
+				// every times recv data,we update the last active time.
+				reset_last_active_time();
+
+				recv_buf_ptr->resize(bytes_recvd);
+
+				_fire_recv(this_ptr, recv_buf_ptr);
+
+				_post_recv(this_ptr);
+			}
+			else
+			{
+				set_last_error(ec.value());
+
+				_fire_close(this_ptr, ec.value());
 			}
 
 			// If an error occurs then no new asynchronous operations are started. This
@@ -581,105 +548,42 @@ namespace asio2
 			// handler returns. The connection class's destructor closes the socket.
 		}
 
-		virtual void _post_send(std::shared_ptr<uint8_t> send_buf_ptr, std::size_t len)
+		virtual void _post_send(std::shared_ptr<session_impl> this_ptr, std::shared_ptr<buffer<uint8_t>> send_buf_ptr)
 		{
 			if (is_start())
 			{
 				boost::system::error_code ec;
-				size_t bytes_sent = boost::asio::write(*m_socket_ptr, boost::asio::buffer(send_buf_ptr.get(), len), ec);
+				boost::asio::write(*m_socket_ptr, boost::asio::buffer(send_buf_ptr->data(),send_buf_ptr->size()), ec);
 				set_last_error(ec.value());
-				_fire_send(send_buf_ptr, bytes_sent, ec.value());
+				_fire_send(this_ptr, send_buf_ptr, ec.value());
 
 				if (ec)
 				{
 					PRINT_EXCEPTION;
 
-					_fire_close(ec.value());
+					_fire_close(this_ptr, ec.value());
 				}
 			}
 		}
 
-		virtual void _fire_recv(std::shared_ptr<uint8_t> recv_buf_ptr, std::size_t bytes_recvd)
+		virtual void _fire_recv(std::shared_ptr<session_impl> this_ptr, std::shared_ptr<buffer<uint8_t>> recv_buf_ptr)
 		{
-			// when recv one msg,we don't handle it in this socket thread,instead we handle it in another thread by io_service.post function,
-			// note : after we post the msg,if the post handler function _do_fire_recv is need long time to handle the msg,will cause the shared_ptr 
-			// "recv_buf_ptr" not released,the recv_buf_ptr is allocated with default 1024 bytes buffer,when the remain recv_buf_ptr is too many,
-			// will cause the memory use is too big.
-			try
-			{
-				if (is_start() && std::static_pointer_cast<server_listener_mgr>(m_listener_mgr_ptr)->is_recv_listener_exist())
-				{
-					if (m_async_notify)
-					{
-						m_msg_strand_ptr->post(std::bind(&tcps_session_impl::_do_fire_recv,
-							std::static_pointer_cast<tcps_session_impl>(shared_from_this()),
-							recv_buf_ptr, bytes_recvd));
-					}
-					else
-					{
-						_do_fire_recv(recv_buf_ptr, bytes_recvd);
-					}
-				}
-			}
-			catch (std::exception &) {}
+			std::static_pointer_cast<server_listener_mgr>(m_listener_mgr_ptr)->notify_recv(this_ptr, recv_buf_ptr);
 		}
 
-		virtual void _do_fire_recv(std::shared_ptr<uint8_t> recv_buf_ptr, std::size_t bytes_recvd)
+		virtual void _fire_send(std::shared_ptr<session_impl> this_ptr, std::shared_ptr<buffer<uint8_t>> send_buf_ptr, int error)
 		{
-			try
-			{
-				std::static_pointer_cast<server_listener_mgr>(m_listener_mgr_ptr)->notify_recv(shared_from_this(), recv_buf_ptr, bytes_recvd);
-			}
-			catch (std::exception &) {}
+			std::static_pointer_cast<server_listener_mgr>(m_listener_mgr_ptr)->notify_send(this_ptr, send_buf_ptr, error);
 		}
 
-		virtual void _fire_send(std::shared_ptr<uint8_t> send_buf_ptr, std::size_t bytes_sent, int error)
-		{
-			try
-			{
-				if (is_start() && std::static_pointer_cast<server_listener_mgr>(m_listener_mgr_ptr)->is_send_listener_exist())
-				{
-					if (m_async_notify)
-					{
-						m_msg_strand_ptr->post(std::bind(&tcps_session_impl::_do_fire_send,
-							std::static_pointer_cast<tcps_session_impl>(shared_from_this()),
-							send_buf_ptr, bytes_sent, error));
-					}
-					else
-					{
-						_do_fire_send(send_buf_ptr, bytes_sent, error);
-					}
-				}
-			}
-			catch (std::exception &) {}
-		}
-
-		virtual void _do_fire_send(std::shared_ptr<uint8_t> send_buf_ptr, std::size_t bytes_sent, int error)
-		{
-			try
-			{
-				std::static_pointer_cast<server_listener_mgr>(m_listener_mgr_ptr)->notify_send(shared_from_this(), send_buf_ptr, bytes_sent, error);
-			}
-			catch (std::exception &) {}
-		}
-
-		virtual void _fire_close(int error)
+		virtual void _fire_close(std::shared_ptr<session_impl> this_ptr, int error)
 		{
 			if (!m_fire_close_is_called.test_and_set(std::memory_order_acquire))
 			{
-				_do_fire_close(error);
-			}
-		}
+				std::static_pointer_cast<server_listener_mgr>(m_listener_mgr_ptr)->notify_close(this_ptr, error);
 
-		virtual void _do_fire_close(int error)
-		{
-			try
-			{
-				std::static_pointer_cast<server_listener_mgr>(m_listener_mgr_ptr)->notify_close(shared_from_this(), error);
+				_close_socket();
 			}
-			catch (std::exception &) {}
-
-			_close_socket();
 		}
 
 	protected:
@@ -689,14 +593,14 @@ namespace asio2
 		/// ssl context 
 		std::shared_ptr<boost::asio::ssl::context> m_context_ptr;
 
+		/// send buffer pool
+		std::shared_ptr<pool_s> m_send_buf_pool_ptr;
+
 		/// Buffer pool used to store data received from the client. 
-		std::shared_ptr<_pool_t> m_recv_buf_pool_ptr;
+		std::shared_ptr<pool_t> m_recv_buf_pool_ptr;
 
 		/// used for session_mgr's session unordered_map key
 		tcps_session_impl * _key = this;
-
-		/// notify mode,async or sync
-		bool m_async_notify = false;
 
 		/// use to check whether the user call session stop in the listener
 		volatile bool m_stop_is_called = false;

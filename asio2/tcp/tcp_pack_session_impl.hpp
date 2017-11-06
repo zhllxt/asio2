@@ -15,6 +15,7 @@
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
 #include <asio2/util/helper.hpp>
+
 #include <asio2/tcp/tcp_session_impl.hpp>
 
 namespace asio2
@@ -29,25 +30,25 @@ namespace asio2
 
 	public:
 
+		typedef _pool_t pool_t;
+
 		/**
 		 * @construct
-		 * @param    : io_service_evt - the io_service used to handle the socket event
-		 *           : io_service_msg - the io_service used to handle the received msg
 		 */
 		explicit tcp_pack_session_impl(
-			io_service_ptr evt_ioservice_ptr,
-			io_service_ptr msg_ioservice_ptr,
+			std::shared_ptr<io_service> ioservice_ptr,
 			std::shared_ptr<listener_mgr> listener_mgr_ptr,
 			std::shared_ptr<url_parser> url_parser_ptr,
-			std::shared_ptr<_pool_t> recv_buf_pool_ptr
+			std::shared_ptr<pool_s> send_buf_pool_ptr,
+			std::shared_ptr<pool_t> recv_buf_pool_ptr
 		)
 			: tcp_session_impl<_pool_t>(
-				evt_ioservice_ptr,
-				msg_ioservice_ptr,
+				ioservice_ptr,
 				listener_mgr_ptr,
 				url_parser_ptr,
+				send_buf_pool_ptr,
 				recv_buf_pool_ptr
-			)
+				)
 		{
 		}
 
@@ -84,116 +85,117 @@ namespace asio2
 		{
 			tcp_session_impl<_pool_t>::_reset();
 			
-			m_bytes_recvd = 0;
-
 			m_pack_parser = nullptr;
 		}
 
-		virtual void _post_recv(std::shared_ptr<uint8_t> recv_buf_ptr, std::size_t bytes_recvd)
+		virtual void _post_recv(std::shared_ptr<session_impl> this_ptr, std::shared_ptr<buffer<uint8_t>> recv_buf_ptr)
 		{
 			if (this->is_start())
 			{
-				if (bytes_recvd >= 0 && bytes_recvd < this->m_recv_buf_pool_ptr->get_requested_size())
+				if (recv_buf_ptr->size() < recv_buf_ptr->capacity())
 				{
 					this->m_socket_ptr->async_read_some(
-						boost::asio::buffer(recv_buf_ptr.get() + bytes_recvd, this->m_recv_buf_pool_ptr->get_requested_size() - bytes_recvd),
-						this->m_evt_strand_ptr->wrap(std::bind(&tcp_pack_session_impl::_handle_recv, std::static_pointer_cast<tcp_pack_session_impl>(this->shared_from_this()),
+						boost::asio::buffer(recv_buf_ptr->data() + recv_buf_ptr->size(), recv_buf_ptr->capacity() - recv_buf_ptr->size()),
+						this->m_strand_ptr->wrap(std::bind(&tcp_pack_session_impl::_handle_recv, std::static_pointer_cast<tcp_pack_session_impl>(this_ptr),
 							std::placeholders::_1, // error_code
 							std::placeholders::_2, // bytes_recvd
+							this_ptr,
 							recv_buf_ptr
 						)));
 				}
 				else
 				{
-					set_last_error(DEFAULT_EXCEPTION_CODE, "packet length is greater than pool_buffer_size,may be you need to set a larger pool_buffer_size");
+					set_last_error((int)errcode::packet_length_too_large);
 					PRINT_EXCEPTION;
 					assert(false);
-					this->_fire_close(DEFAULT_EXCEPTION_CODE);
+					this->_fire_close(this_ptr, (int)errcode::packet_length_too_large);
 				}
 			}
 		}
 
-		virtual void recurse_parse_data(std::shared_ptr<uint8_t> recv_buf_ptr, bool is_buf_header)
+		virtual void _recurse_parse_data(std::shared_ptr<session_impl> this_ptr, std::shared_ptr<buffer<uint8_t>> recv_buf_ptr)
 		{
-			std::size_t ret = m_pack_parser(recv_buf_ptr, m_bytes_recvd);
+			std::size_t ret = m_pack_parser(recv_buf_ptr);
 
-			if (ret == NEED_MORE_DATA)
+			if /**/ (ret == recv_buf_ptr->size())
 			{
-				if (m_bytes_recvd >= this->m_recv_buf_pool_ptr->get_requested_size())
+				this->_fire_recv(this_ptr, recv_buf_ptr);
+
+				tcp_session_impl<_pool_t>::_post_recv(this_ptr);
+			}
+			else if (ret == NEED_MORE_DATA)
+			{
+				if (recv_buf_ptr->size() >= recv_buf_ptr->capacity())
 				{
-					set_last_error(DEFAULT_EXCEPTION_CODE, "packet length is greater than pool_buffer_size,may be you need to set a larger pool_buffer_size");
+					set_last_error((int)errcode::packet_length_too_large);
 					PRINT_EXCEPTION;
 					assert(false);
-					this->_fire_close(DEFAULT_EXCEPTION_CODE);
+					this->_fire_close(this_ptr, (int)errcode::packet_length_too_large);
 				}
 				else
 				{
-					if (is_buf_header)
-						_post_recv(recv_buf_ptr, m_bytes_recvd);
+					if (recv_buf_ptr->offset() > 0)
+					{
+						std::shared_ptr<buffer<uint8_t>> recv_ptr = this->m_recv_buf_pool_ptr->get(0);
+						std::memcpy((void *)recv_ptr->data(), (const void *)recv_buf_ptr->data(), recv_buf_ptr->size());
+						recv_ptr->resize(recv_buf_ptr->size());
+
+						this->_post_recv(this_ptr, recv_ptr);
+					}
 					else
 					{
-						std::shared_ptr<uint8_t> new_recv_buf_ptr = this->m_recv_buf_pool_ptr->get(0);
-						std::memcpy((void*)new_recv_buf_ptr.get(), (const void *)recv_buf_ptr.get(), m_bytes_recvd);
-						_post_recv(new_recv_buf_ptr, m_bytes_recvd);
+						this->_post_recv(this_ptr, recv_buf_ptr);
 					}
 				}
 			}
-			else if (ret == INVALID_DATA)
+			else if (ret > 0 && ret < recv_buf_ptr->size())
 			{
-				this->_fire_close(DEFAULT_EXCEPTION_CODE);
-			}
-			else if (ret > 0 && ret <= m_bytes_recvd)
-			{
-				this->_fire_recv(recv_buf_ptr, ret);
+				std::shared_ptr<buffer<uint8_t>> recv_ptr = this->m_recv_buf_pool_ptr->get(0);
+				std::memcpy((void *)recv_ptr->data(), (const void *)recv_buf_ptr->data(), ret);
+				recv_ptr->resize(ret);
 
-				m_bytes_recvd -= ret;
+				this->_fire_recv(this_ptr, recv_ptr);
 
-				if (m_bytes_recvd == 0)
-					tcp_session_impl<_pool_t>::_post_recv();
-				else if (m_bytes_recvd > 0)
-				{
-					std::shared_ptr<uint8_t> data_ptr(recv_buf_ptr.get() + ret, [](uint8_t *) {});
-					recurse_parse_data(data_ptr, false);
-				}
+				recv_buf_ptr->reoffset(ret);
+
+				_recurse_parse_data(this_ptr, recv_buf_ptr);
 			}
-			else if (ret <= 0 || ret > m_bytes_recvd)
+			else if (ret == INVALID_DATA || ret <= 0 || ret > recv_buf_ptr->size())
 			{
-				set_last_error(DEFAULT_EXCEPTION_CODE, "pack parser return value indicate that the recvd data is invalid");
+				set_last_error((int)errcode::recvd_data_invalid);
 				PRINT_EXCEPTION;
 				assert(false);
-				this->_fire_close(boost::asio::error::invalid_argument);
+				this->_fire_close(this_ptr, (int)errcode::recvd_data_invalid);
 			}
 		}
 
-		virtual void _handle_recv(const boost::system::error_code& ec, std::size_t bytes_recvd, std::shared_ptr<uint8_t> recv_buf_ptr) override
+		virtual void _handle_recv(const boost::system::error_code& ec, std::size_t bytes_recvd, std::shared_ptr<session_impl> this_ptr, std::shared_ptr<buffer<uint8_t>> recv_buf_ptr) override
 		{
-			set_last_error(ec.value());
-
-			// every times recv data,we update the last active time.
-			this->reset_last_active_time();
-
 			if (!ec)
 			{
-				m_bytes_recvd += bytes_recvd;
+				// every times recv data,we update the last active time.
+				this->reset_last_active_time();
 
-				recurse_parse_data(recv_buf_ptr, true);
+				recv_buf_ptr->resize(recv_buf_ptr->size() + bytes_recvd);
+
+				_recurse_parse_data(this_ptr, recv_buf_ptr);
 			}
 			else
 			{
-				this->_fire_close(ec.value());
+				set_last_error(ec.value());
+
+				this->_fire_close(this_ptr, ec.value());
 			}
 
-			// If an error occurs then no new asynchronous operations are started. This
-			// means that all shared_ptr references to the connection object will
-			// disappear and the object will be destroyed automatically after this
-			// handler returns. The connection class's destructor closes the socket.
+			// No new asynchronous operations are started. This means that all shared_ptr
+			// references to the connection object will disappear and the object will be
+			// destroyed automatically after this handler returns. The connection class's
+			// destructor closes the socket.
 		}
 
 	protected:
 
-		std::size_t m_bytes_recvd = 0;
-
-		using parser_callback = std::size_t(std::shared_ptr<uint8_t> data_ptr, std::size_t len);
+		using parser_callback = std::size_t(std::shared_ptr<buffer<uint8_t>> data_ptr);
 
 		std::function<parser_callback>       m_pack_parser;
 

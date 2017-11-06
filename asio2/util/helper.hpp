@@ -208,14 +208,19 @@ namespace asio2
 		__UNUSED__ T get_power_number(T v)
 		{
 			uint8_t bits = 0;
+			T t = v;
 
-			for (T tmp = v; tmp > 0;)
+			for (; t > 0; bits++)
 			{
-				tmp = tmp >> 1;
-				bits++;
+				t = t >> 1;
 			}
 
-			return ((v << 1) & ((-1) << bits));
+			t = ((v << 1) & ((-1) << bits));
+
+			if (t <= 0)
+				t = 8;
+
+			return t;
 		}
 
 		/**
@@ -244,17 +249,6 @@ namespace asio2
 
 
 	}
-
-
-	template<class T>
-	class auto_decrease
-	{
-	public:
-		auto_decrease(T & v) : _v(v) {}
-		~auto_decrease() { _v--; }
-	protected:
-		T & _v;
-	};
 
 
 	template<class T>

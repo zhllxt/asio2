@@ -52,7 +52,7 @@ namespace asio2
 			}
 			catch (boost::system::system_error & e)
 			{
-				set_last_error(e.code().value(), e.what());
+				set_last_error(e.code().value());
 				PRINT_EXCEPTION;
 			}
 		}
@@ -112,10 +112,10 @@ namespace asio2
 			try
 			{
 				this->m_acceptor_impl_ptr = std::make_shared<_acceptor_impl_t>(
-					this->m_io_service_pool_evt_ptr,
-					this->m_io_service_pool_msg_ptr,
+					this->m_ioservice_pool_ptr,
 					this->m_listener_mgr_ptr,
 					this->m_url_parser_ptr,
+					this->m_send_buf_pool_ptr,
 					this->m_recv_buf_pool_ptr
 					);
 
@@ -125,7 +125,7 @@ namespace asio2
 			}
 			catch (boost::system::system_error & e)
 			{
-				set_last_error(e.code().value(), e.what());
+				set_last_error(e.code().value());
 			}
 
 			return false;

@@ -26,6 +26,8 @@ namespace asio2
 	{
 		template<class _session_impl_t> friend class tcp_acceptor_impl;
 
+		template<class _acceptor_impl_t> friend class http_server_impl;
+
 		template<class _Kty, class _Session, class _Hasher, class _Keyeq> friend class session_mgr_t;
 
 	public:
@@ -34,24 +36,23 @@ namespace asio2
 
 		/**
 		 * @construct
-		 * @param    : io_service_evt - the io_service used to handle the socket event
-		 *           : io_service_msg - the io_service used to handle the received msg
 		 */
 		explicit http_session_impl(
-			io_service_ptr evt_ioservice_ptr,
-			io_service_ptr msg_ioservice_ptr,
+			std::shared_ptr<io_service> ioservice_ptr,
 			std::shared_ptr<listener_mgr> listener_mgr_ptr,
 			std::shared_ptr<url_parser> url_parser_ptr,
-			std::shared_ptr<_pool_t> recv_buf_pool_ptr
+			std::shared_ptr<pool_s> send_buf_pool_ptr,
+			std::shared_ptr<pool_t> recv_buf_pool_ptr
 		)
 			: tcp_session_impl<_pool_t>(
-				evt_ioservice_ptr,
-				msg_ioservice_ptr,
+				ioservice_ptr,
 				listener_mgr_ptr,
 				url_parser_ptr,
+				send_buf_pool_ptr,
 				recv_buf_pool_ptr
 				)
 		{
+			m_parser.data = this;
 		}
 
 		/**
@@ -61,215 +62,101 @@ namespace asio2
 		{
 		}
 
-	//	/**
-	//	 * @function : start this session for prepare to recv msg
-	//	 */
-	//	virtual bool start() override
-	//	{
-	//		// user has called stop in the listener function,so we can't start continue.
-	//		if (m_stop_is_called)
-	//			return false;
+		virtual bool start() override
+		{
+			http::http_parser_init(&m_parser, http::HTTP_REQUEST);
 
-	//		// first call base class start function
-	//		if (!tcp_session_impl<_pool_t>::start())
-	//			return false;
+			return tcp_session_impl<_pool_t>::start();
+		}
 
-	//		if (is_start())
-	//		{
-	//			m_async_notify = (m_url_parser_ptr->get_param_value("notify_mode") == "async");
-
-	//			// set keeplive
-	//			set_keepalive_vals();
-
-	//			// set send buffer size from url params
-	//			_set_send_buffer_size_from_url();
-
-	//			// set recv buffer size from url params
-	//			_set_recv_buffer_size_from_url();
-
-	//			_post_recv();
-
-	//			return true;
-	//		}
-
-	//		return false;
-	//	}
-
-	//	/**
-	//	 * @function : stop session
-	//	 * note : this function must be noblocking,if it's blocking,will cause circle lock in session_mgr's function stop_all and stop
-	//	 */
-	//	virtual void stop() override
-	//	{
-	//		bool is_start = this->is_start();
-
-	//		m_stop_is_called = true;
-
-	//		// call socket's close function to notify the _handle_recv function response with error > 0 ,then the socket 
-	//		// can get notify to exit
-	//		if (m_socket_ptr && m_socket_ptr->is_open())
-	//		{
-	//			// close the socket by post a event
-	//			if (is_start)
-	//			{
-	//				// asio don't allow operate the same socket in multi thread,if you close socket in one thread and another thread is 
-	//				// calling socket's async_... function,it will crash.so we must care for operate the socket.when need close the
-	//				// socket ,we use the strand to post a event,make sure the socket's close operation is in the same thread.
-	//				try
-	//				{
-	//					// when call shared_from_this ,may be the shared_ptr of "this" has disappeared already,so call shared_from_this will
-	//					// cause exception,and we should't post event again,
-	//					auto this_ptr = std::static_pointer_cast<http_session_impl>(shared_from_this());
-	//					m_evt_strand_ptr->post([this_ptr]()
-	//					{
-	//						boost::system::error_code ec;
-
-	//						this_ptr->m_socket_ptr->shutdown(boost::asio::socket_base::shutdown_both, ec);
-	//						if (ec)
-	//							set_last_error(ec.value(), ec.message());
-
-	//						this_ptr->m_socket_ptr->close(ec);
-	//						if (ec)
-	//							set_last_error(ec.value(), ec.message());
-	//					});
-	//				}
-	//				catch (std::exception &) {}
-	//			}
-	//		}
-	//	}
-
-	//	/**
-	//	 * @function : whether the session is started
-	//	 */
-	//	virtual bool is_start() override
-	//	{
-	//		return (
-	//			!m_stop_is_called &&
-	//			m_socket_ptr && m_socket_ptr->is_open() 
-	//			);
-	//	}
-
-	//	/**
-	//	 * @function : send data
-	//	 */
-	//	virtual bool send(std::shared_ptr<uint8_t> send_buf_ptr, std::size_t len) override
-	//	{
-	//		if (is_start())
-	//		{
-	//			try
-	//			{
-	//				// note : can't use m_msg_ioservice_ptr to post event,because can't operate socket in multi thread.
-	//				// must use strand.post to send data.why we should do it like this ? see udp_session._post_send.
-	//				m_evt_strand_ptr->post(std::bind(&http_session_impl::_post_send,
-	//					std::static_pointer_cast<http_session_impl>(shared_from_this()),
-	//					send_buf_ptr,
-	//					len
-	//				));
-	//				return true;
-	//			}
-	//			catch (std::exception & e)
-	//			{
-	//				set_last_error(DEFAULT_EXCEPTION_CODE, e.what());
-	//				PRINT_EXCEPTION;
-	//			}
-	//		}
-	//		return false;
-	//	}
-
-	//protected:
-	//	/**
-	//	 * @function : reset the resource to default status
-	//	 */
-	//	virtual void _reset() override
-	//	{
-	//		tcp_session_impl<_pool_t>::_reset();
-
-	//		if (m_socket_ptr && m_socket_ptr->is_open())
-	//		{
-	//			boost::system::error_code ec;
-
-	//			m_socket_ptr->shutdown(boost::asio::socket_base::shutdown_both, ec);
-	//			if (ec)
-	//				set_last_error(ec.value(), ec.message());
-
-	//			m_socket_ptr->close(ec);
-	//			if (ec)
-	//				set_last_error(ec.value(), ec.message());
-	//		}
-	//		
-	//		m_async_notify = false;
-
-	//		m_stop_is_called = false;
-	//		m_fire_close_is_called.clear(std::memory_order_release);
-	//	}
-
-	//	virtual void * _get_key() override
-	//	{
-	//		return static_cast<void *>(&_key);
-	//	}
-
-	//	virtual void _post_recv() override
-	//	{
-	//		if (is_start())
-	//		{
-	//			// every times post recv event,we get the recv buffer from the buffer pool
-	//			std::shared_ptr<uint8_t> recv_buf_ptr = m_recv_buf_pool_ptr->get(0);
-
-	//			m_socket_ptr->async_read_some(
-	//				boost::asio::buffer(recv_buf_ptr.get(), m_recv_buf_pool_ptr->get_requested_size()),
-	//				m_evt_strand_ptr->wrap(std::bind(&http_session_impl::_handle_recv, std::static_pointer_cast<http_session_impl>(shared_from_this()),
-	//					std::placeholders::_1,
-	//					std::placeholders::_2,
-	//					recv_buf_ptr
-	//				)));
-	//		}
-	//	}
-
-	//	virtual void _handle_recv(const boost::system::error_code& ec, std::size_t bytes_recvd, std::shared_ptr<uint8_t> recv_buf_ptr) override
-	//	{
-	//		set_last_error(ec.value(), ec.message());
-
-	//		// every times recv data,we update the last active time.
-	//		reset_last_active_time();
-
-	//		if (!ec)
-	//		{
-	//			_fire_recv(recv_buf_ptr, bytes_recvd);
-
-	//			_post_recv();
-	//		}
-	//		else
-	//		{
-	//			_fire_close(ec.value());
-	//		}
-
-	//		// If an error occurs then no new asynchronous operations are started. This
-	//		// means that all shared_ptr references to the connection object will
-	//		// disappear and the object will be destroyed automatically after this
-	//		// handler returns. The connection class's destructor closes the socket.
-	//	}
-
-	//	virtual void _post_send(std::shared_ptr<uint8_t> send_buf_ptr, std::size_t len) override
-	//	{
-	//		if (is_start())
-	//		{
-	//			boost::system::error_code ec;
-	//			size_t bytes_sent = boost::asio::write(*m_socket_ptr, boost::asio::buffer(send_buf_ptr.get(), len), ec);
-	//			set_last_error(ec.value(), ec.message());
-	//			_fire_send(send_buf_ptr, bytes_sent, ec.value());
-
-	//			if (ec)
-	//			{
-	//				PRINT_EXCEPTION;
-
-	//				_fire_close(ec.value());
-	//			}
-	//		}
-	//	}
-
+		inline http_session_impl & set_parser_settings(std::shared_ptr<http::http_parser_settings> settings_ptr)
+		{
+			m_settings_ptr = settings_ptr;
+			return (*this);
+		}
 
 	protected:
+		virtual void _handle_recv(const boost::system::error_code& ec, std::size_t bytes_recvd, std::shared_ptr<session_impl> this_ptr, std::shared_ptr<buffer<uint8_t>> recv_buf_ptr) override
+		{
+			if (!ec)
+			{
+				// every times recv data,we update the last active time.
+				reset_last_active_time();
 
+				recv_buf_ptr->resize(bytes_recvd);
+
+				http::http_parser_execute(&m_parser, m_settings_ptr.get(), (const char *)recv_buf_ptr->data(), recv_buf_ptr->size());
+
+				if (m_parser.http_errno != http::HPE_OK)
+				{
+					set_last_error((int)(m_parser.http_errno | HTTP_ERROR_CODE_MASK));
+
+					_fire_close(this_ptr, (int)(m_parser.http_errno | HTTP_ERROR_CODE_MASK));
+
+					return;
+				}
+
+				_post_recv(this_ptr);
+			}
+			else
+			{
+				set_last_error(ec.value());
+
+				_fire_close(this_ptr, ec.value());
+			}
+
+			// If an error occurs then no new asynchronous operations are started. This
+			// means that all shared_ptr references to the connection object will
+			// disappear and the object will be destroyed automatically after this
+			// handler returns. The connection class's destructor closes the socket.
+		}
+
+	protected:
+		virtual int on_message_begin(asio2::http::http_parser * parser)
+		{
+			return 0;
+		}
+		virtual int on_url(asio2::http::http_parser * parser, const char *at, size_t length)
+		{
+			return 0;
+		}
+		virtual int on_status(asio2::http::http_parser * parser, const char *at, size_t length)
+		{
+			return 0;
+		}
+		virtual int on_header_field(asio2::http::http_parser * parser, const char *at, size_t length)
+		{
+			return 0;
+		}
+		virtual int on_header_value(asio2::http::http_parser * parser, const char *at, size_t length)
+		{
+			return 0;
+		}
+		virtual int on_headers_complete(asio2::http::http_parser * parser)
+		{
+			return 0;
+		}
+		virtual int on_body(asio2::http::http_parser * parser, const char *at, size_t length)
+		{
+			return 0;
+		}
+		virtual int on_message_complete(asio2::http::http_parser * parser)
+		{
+			return 0;
+		}
+		virtual int on_chunk_header(asio2::http::http_parser * parser)
+		{
+			return 0;
+		}
+		virtual int on_chunk_complete(asio2::http::http_parser * parser)
+		{
+			return 0;
+		}
+
+	protected:
+		http::http_parser            m_parser;
+
+		std::shared_ptr<http::http_parser_settings> m_settings_ptr;
 	};
 
 }

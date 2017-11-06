@@ -28,8 +28,6 @@
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
 
-#include <asio2/util/pool.hpp>
-
 #include <asio2/base/connection_impl.hpp>
 #include <asio2/base/io_service_pool.hpp>
 #include <asio2/base/listener_mgr.hpp>
@@ -51,22 +49,20 @@ namespace asio2
 		 * @construct
 		 */
 		explicit tcps_connection_impl(
-			io_service_ptr evt_send_ioservice_ptr,
-			io_service_ptr evt_recv_ioservice_ptr,
-			io_service_ptr msg_send_ioservice_ptr,
-			io_service_ptr msg_recv_ioservice_ptr,
+			std::shared_ptr<io_service> send_ioservice_ptr,
+			std::shared_ptr<io_service> recv_ioservice_ptr,
 			std::shared_ptr<listener_mgr> listener_mgr_ptr,
 			std::shared_ptr<url_parser> url_parser_ptr,
+			std::shared_ptr<pool_s> send_buf_pool_ptr,
 			std::shared_ptr<pool_t> recv_buf_pool_ptr
 		)
 			: connection_impl(
-				evt_send_ioservice_ptr,
-				evt_send_ioservice_ptr, // ssl socket is half duplex,so we must ensure the send and recv on socket is single threaded sequential execution
-				msg_send_ioservice_ptr,
-				msg_send_ioservice_ptr,
+				send_ioservice_ptr,
+				send_ioservice_ptr, // ssl socket is half duplex,so we must ensure the send and recv on socket is single threaded sequential execution
 				listener_mgr_ptr,
 				url_parser_ptr
 			)
+			, m_send_buf_pool_ptr(send_buf_pool_ptr)
 			, m_recv_buf_pool_ptr(recv_buf_pool_ptr)
 		{
 		}
@@ -89,13 +85,15 @@ namespace asio2
 			if (!connection_impl::start(async_connect))
 				return false;
 
+			// reset the state to the default
+			m_stop_is_called = false;
+			m_fire_close_is_called.clear(std::memory_order_release);
+
 			try
 			{
-				m_async_notify = (m_url_parser_ptr->get_param_value("notify_mode") == "async");
+				m_timer_ptr = std::make_shared<boost::asio::deadline_timer>(*m_recv_ioservice_ptr);
 
-				m_timer_ptr = std::make_shared<boost::asio::deadline_timer>(*m_evt_recv_ioservice_ptr);
-
-				m_socket_ptr = std::make_shared<ssl_socket>(*m_evt_recv_ioservice_ptr, *m_context_ptr);
+				m_socket_ptr = std::make_shared<ssl_socket>(*m_recv_ioservice_ptr, *m_context_ptr);
 				m_socket_ptr->set_verify_mode(boost::asio::ssl::verify_peer);
 				m_socket_ptr->set_verify_callback(
 					std::bind(&tcps_connection_impl::_verify_certificate, 
@@ -106,14 +104,14 @@ namespace asio2
 						std::placeholders::_2  // boost::asio::ssl::verify_context
 					));
 
-				boost::asio::ip::tcp::resolver resolver(*m_evt_recv_ioservice_ptr);
+				boost::asio::ip::tcp::resolver resolver(*m_recv_ioservice_ptr);
 				boost::asio::ip::tcp::resolver::query query(m_url_parser_ptr->get_ip(), m_url_parser_ptr->get_port());
 				boost::asio::ip::tcp::resolver::iterator iterator = resolver.resolve(query);
 
 				if (async_connect)
 				{
 					boost::asio::async_connect(m_socket_ptr->lowest_layer(), iterator,
-						m_evt_recv_strand_ptr->wrap(std::bind(&tcps_connection_impl::_handle_connect,
+						m_recv_strand_ptr->wrap(std::bind(&tcps_connection_impl::_handle_connect,
 							std::dynamic_pointer_cast<tcps_connection_impl>(shared_from_this()),
 							std::placeholders::_1 // error_code
 						)));
@@ -131,10 +129,8 @@ namespace asio2
 					return (ec == 0 && is_start());
 				}
 			}
-			catch (std::exception & e)
+			catch (std::exception &)
 			{
-				set_last_error(DEFAULT_EXCEPTION_CODE, e.what());
-				PRINT_EXCEPTION;
 			}
 
 			return false;
@@ -145,18 +141,22 @@ namespace asio2
 		 */
 		virtual void stop() override
 		{
+			bool is_start = this->is_start();
+
+			m_stop_is_called = true;
+
 			// call listen socket's close function to notify the _handle_accept function response with error > 0 ,then the listen socket 
 			// can get notify to exit
 			if (m_socket_ptr && m_socket_ptr->lowest_layer().is_open())
 			{
 				// close the socket by post a event
-				if (is_start())
+				if (is_start)
 				{
 					// asio don't allow operate the same socket in multi thread,if you close socket in one thread and another thread is 
 					// calling socket's async_read... function,it will crash.so we must care for operate the socket.when need close the
 					// socket ,we use the strand to post a event,make sure the socket's close operation is in the same thread.
 					auto this_ptr = std::dynamic_pointer_cast<tcps_connection_impl>(shared_from_this());
-					m_evt_recv_strand_ptr->post([this_ptr]()
+					m_recv_strand_ptr->post([this_ptr]()
 					{
 						this_ptr->_close_socket();
 					});
@@ -169,30 +169,41 @@ namespace asio2
 		 */
 		virtual bool is_start()
 		{
-			return (
-				//!m_stop_is_called &&
-				(m_socket_ptr && m_socket_ptr->lowest_layer().is_open()) 
-				);
+			return (!m_stop_is_called && (m_socket_ptr && m_socket_ptr->lowest_layer().is_open()));
 		}
 
 		/**
 		 * @function : send data
 		 */
-		virtual bool send(std::shared_ptr<uint8_t> send_buf_ptr, std::size_t len) override
+		virtual bool send(std::shared_ptr<buffer<uint8_t>> send_buf_ptr) override
 		{
-			// note : can't use m_io_service_msg to post event,because can't operate socket in multi thread.
 			// must use strand.post to send data.why we should do it like this ? see udp_session._post_send.
 			try
 			{
-				if (is_start())
+				if (is_start() && send_buf_ptr)
 				{
-					m_evt_send_strand_ptr->post(std::bind(&tcps_connection_impl::_post_send,
+					m_send_strand_ptr->post(std::bind(&tcps_connection_impl::_post_send,
 						std::static_pointer_cast<tcps_connection_impl>(shared_from_this()),
-						send_buf_ptr, len));
+						send_buf_ptr));
 					return true;
 				}
 			}
 			catch (std::exception &) {}
+			return false;
+		}
+
+		/**
+		 * @function : send data
+		 */
+		virtual bool send(const uint8_t * buf, std::size_t len) override
+		{
+			if (is_start())
+			{
+				auto buf_ptr = this->m_send_buf_pool_ptr->get(get_power_number(len));
+				std::memcpy((void *)buf_ptr->data(), (const void *)buf, len);
+				buf_ptr->resize(len);
+				return this->send(buf_ptr);
+			}
 			return false;
 		}
 
@@ -221,7 +232,7 @@ namespace asio2
 			}
 			catch (boost::system::system_error & e)
 			{
-				set_last_error(e.code().value(), e.what());
+				set_last_error(e.code().value());
 			}
 			return "";
 		}
@@ -241,7 +252,7 @@ namespace asio2
 			}
 			catch (boost::system::system_error & e)
 			{
-				set_last_error(e.code().value(), e.what());
+				set_last_error(e.code().value());
 			}
 			return 0;
 		}
@@ -261,7 +272,7 @@ namespace asio2
 			}
 			catch (boost::system::system_error & e)
 			{
-				set_last_error(e.code().value(), e.what());
+				set_last_error(e.code().value());
 			}
 			return "";
 		}
@@ -281,28 +292,7 @@ namespace asio2
 			}
 			catch (boost::system::system_error & e)
 			{
-				set_last_error(e.code().value(), e.what());
-			}
-			return 0;
-		}
-
-		/**
-		 * @function : get socket's recv buffer size
-		 */
-		virtual int get_recv_buffer_size() override
-		{
-			try
-			{
-				if (m_socket_ptr && m_socket_ptr->lowest_layer().is_open())
-				{
-					boost::asio::socket_base::receive_buffer_size option;
-					m_socket_ptr->lowest_layer().get_option(option);
-					return option.value();
-				}
-			}
-			catch (boost::system::system_error & e)
-			{
-				set_last_error(e.code().value(), e.what());
+				set_last_error(e.code().value());
 			}
 			return 0;
 		}
@@ -324,30 +314,9 @@ namespace asio2
 			}
 			catch (boost::system::system_error & e)
 			{
-				set_last_error(e.code().value(), e.what());
+				set_last_error(e.code().value());
 			}
 			return false;
-		}
-
-		/**
-		 * @function : get socket's send buffer size
-		 */
-		virtual int get_send_buffer_size() override
-		{
-			try
-			{
-				if (m_socket_ptr && m_socket_ptr->lowest_layer().is_open())
-				{
-					boost::asio::socket_base::send_buffer_size option;
-					m_socket_ptr->lowest_layer().get_option(option);
-					return option.value();
-				}
-			}
-			catch (boost::system::system_error & e)
-			{
-				set_last_error(e.code().value(), e.what());
-			}
-			return 0;
 		}
 
 		/**
@@ -366,7 +335,7 @@ namespace asio2
 			}
 			catch (boost::system::system_error & e)
 			{
-				set_last_error(e.code().value(), e.what());
+				set_last_error(e.code().value());
 			}
 			return false;
 		}
@@ -454,40 +423,40 @@ namespace asio2
 				auto this_ptr = std::dynamic_pointer_cast<tcps_connection_impl>(shared_from_this());
 
 				m_timer_ptr->expires_from_now(boost::posix_time::seconds(60));
-				m_timer_ptr->async_wait(m_evt_recv_strand_ptr->wrap([this_ptr](const boost::system::error_code& err)
+				m_timer_ptr->async_wait(m_recv_strand_ptr->wrap([this_ptr](const boost::system::error_code& err)
 				{
 					boost::system::error_code ec;
 
 					// when the lowest socket is closed,the ssl stream shutdown will returned.
 					this_ptr->m_socket_ptr->lowest_layer().shutdown(boost::asio::socket_base::shutdown_both, ec);
 					if (ec)
-						set_last_error(ec.value(), ec.message());
+						set_last_error(ec.value());
 
 					this_ptr->m_socket_ptr->lowest_layer().close(ec);
 					if (ec)
-						set_last_error(ec.value(), ec.message());
+						set_last_error(ec.value());
 				}));
 
 				// when server call ssl stream shutdown first,if the client socket is not closed forever,then here shutdowm will blocking forever.
-				m_socket_ptr->async_shutdown(m_evt_recv_strand_ptr->wrap([this_ptr](const boost::system::error_code & ec)
+				m_socket_ptr->async_shutdown(m_recv_strand_ptr->wrap([this_ptr](const boost::system::error_code & ec)
 				{
 					this_ptr->m_timer_ptr->cancel();
 
-					if ((ec.category() == boost::asio::error::get_ssl_category())/* && (SSL_R_PROTOCOL_IS_SHUTDOWN == ERR_GET_REASON(ec.value()))*/)
-					{
-						//ssl_stream.lowest_layer().close();
-						set_last_error(ec.value(), ec.message());
-					}
+					//if ((ec.category() == boost::asio::error::get_ssl_category())/* && (SSL_R_PROTOCOL_IS_SHUTDOWN == ERR_GET_REASON(ec.value()))*/)
+					//{
+					//	//ssl_stream.lowest_layer().close();
+					//	set_last_error(ec.value());
+					//}
 
-					if (ec.category() == boost::asio::error::get_ssl_category() && ec.value() == boost::asio::ssl::error::stream_truncated)
-					{
-						// -> not a real error:
-						//do_ssl_async_shutdown();
-						set_last_error(ec.value(), ec.message());
-					}
+					//if (ec.category() == boost::asio::error::get_ssl_category() && ec.value() == boost::asio::ssl::error::stream_truncated)
+					//{
+					//	// -> not a real error:
+					//	//do_ssl_async_shutdown();
+					//	set_last_error(ec.value());
+					//}
 
 					if (ec)
-						set_last_error(ec.value(), ec.message());
+						set_last_error(ec.value());
 				}));
 			}
 		}
@@ -511,7 +480,7 @@ namespace asio2
 
 		virtual void _handle_connect(const boost::system::error_code& ec)
 		{
-			set_last_error(ec.value(), ec.message());
+			set_last_error(ec.value());
 
 			if (!ec)
 			{
@@ -524,7 +493,7 @@ namespace asio2
 			if (is_start())
 			{
 				m_socket_ptr->async_handshake(boost::asio::ssl::stream_base::client,
-					m_evt_recv_strand_ptr->wrap(std::bind(&tcps_connection_impl::_handle_handshake,
+					m_recv_strand_ptr->wrap(std::bind(&tcps_connection_impl::_handle_handshake,
 						std::dynamic_pointer_cast<tcps_connection_impl>(shared_from_this()),
 						std::placeholders::_1 // error_code
 					)));
@@ -533,9 +502,9 @@ namespace asio2
 
 		virtual void _handle_handshake(const boost::system::error_code & ec)
 		{
-			set_last_error(ec.value(), ec.message());
+			set_last_error(ec.value());
 
-			_fire_connect(ec);
+			_fire_connect(ec.value());
 
 			// Connect succeeded.
 			if (!ec)
@@ -550,64 +519,65 @@ namespace asio2
 				_set_recv_buffer_size_from_url();
 
 				// Connect succeeded. post recv request.
-				_post_recv();
+				_post_recv(shared_from_this());
 			}
 		}
 
-		virtual void _post_recv()
+		virtual void _post_recv(std::shared_ptr<connection_impl> this_ptr)
 		{
 			if (is_start())
 			{
 				// every times post recv event,we get the recv buffer from the buffer pool
-				std::shared_ptr<uint8_t> recv_buf_ptr = m_recv_buf_pool_ptr->get(0);
+				std::shared_ptr<buffer<uint8_t>> recv_buf_ptr = m_recv_buf_pool_ptr->get(0);
 
 				m_socket_ptr->async_read_some(
-					boost::asio::buffer(recv_buf_ptr.get(), m_recv_buf_pool_ptr->get_requested_size()),
-					m_evt_recv_strand_ptr->wrap(std::bind(&tcps_connection_impl::_handle_recv, std::static_pointer_cast<tcps_connection_impl>(shared_from_this()),
-						std::placeholders::_1,
-						std::placeholders::_2,
+					boost::asio::buffer(recv_buf_ptr->data(), recv_buf_ptr->capacity()),
+					m_recv_strand_ptr->wrap(std::bind(&tcps_connection_impl::_handle_recv, std::static_pointer_cast<tcps_connection_impl>(this_ptr),
+						std::placeholders::_1, // error_code
+						std::placeholders::_2, // bytes_recvd
+						this_ptr,
 						recv_buf_ptr
 					)));
 			}
 		}
 
-		virtual void _handle_recv(const boost::system::error_code& ec, std::size_t bytes_recvd, std::shared_ptr<uint8_t> recv_buf_ptr)
+		virtual void _handle_recv(const boost::system::error_code& ec, std::size_t bytes_recvd, std::shared_ptr<connection_impl> this_ptr, std::shared_ptr<buffer<uint8_t>> recv_buf_ptr)
 		{
-			set_last_error(ec.value());
+			//if ((ec.category() == boost::asio::error::get_ssl_category())/* && (SSL_R_PROTOCOL_IS_SHUTDOWN == ERR_GET_REASON(ec.value()))*/)
+			//{
+			//	//ssl_stream.lowest_layer().close();
+			//	set_last_error(ec.value());
+			//}
 
-			// every times recv data,we update the last active time.
-			reset_last_active_time();
-
-			if ((ec.category() == boost::asio::error::get_ssl_category())/* && (SSL_R_PROTOCOL_IS_SHUTDOWN == ERR_GET_REASON(ec.value()))*/)
-			{
-				//ssl_stream.lowest_layer().close();
-				set_last_error(ec.value(), ec.message());
-			}
-
-			if (ec.category() == boost::asio::error::get_ssl_category() && ec.value() == boost::asio::ssl::error::stream_truncated)
-			{
-				// -> not a real error:
-				//do_ssl_async_shutdown();
-				set_last_error(ec.value(), ec.message());
-			}
+			//if (ec.category() == boost::asio::error::get_ssl_category() && ec.value() == boost::asio::ssl::error::stream_truncated)
+			//{
+			//	// -> not a real error:
+			//	//do_ssl_async_shutdown();
+			//	set_last_error(ec.value());
+			//}
 
 			if (!ec)
 			{
+				// every times recv data,we update the last active time.
+				reset_last_active_time();
+
 				if (bytes_recvd == 0)
 				{
 					// recvd data len is 0,may be heartbeat packet.
 				}
 				else if (bytes_recvd > 0)
 				{
-					// recvd data 
+					recv_buf_ptr->resize(bytes_recvd);
 				}
 
-				_fire_recv(recv_buf_ptr, bytes_recvd);
+				_fire_recv(recv_buf_ptr);
 
-				_post_recv();
+				_post_recv(this_ptr);
 			}
 			else
 			{
+				set_last_error(ec.value());
+
 				// close this session
 				_fire_close(ec.value());
 			}
@@ -618,14 +588,14 @@ namespace asio2
 			// destructor closes the socket.
 		}
 
-		virtual void _post_send(std::shared_ptr<uint8_t> send_buf_ptr, std::size_t len)
+		virtual void _post_send(std::shared_ptr<buffer<uint8_t>> send_buf_ptr)
 		{
 			if (is_start())
 			{
 				boost::system::error_code ec;
-				size_t bytes_sent = boost::asio::write(*m_socket_ptr, boost::asio::buffer(send_buf_ptr.get(), len), ec);
+				boost::asio::write(*m_socket_ptr, boost::asio::buffer(send_buf_ptr->data(), send_buf_ptr->size()), ec);
 				set_last_error(ec.value());
-				_fire_send(send_buf_ptr, bytes_sent, ec.value());
+				_fire_send(send_buf_ptr, ec.value());
 
 				if (ec)
 				{
@@ -636,94 +606,29 @@ namespace asio2
 			}
 		}
 
-		virtual void _fire_connect(const boost::system::error_code& ec)
+		virtual void _fire_connect(int error)
 		{
-			try
-			{
-				std::dynamic_pointer_cast<client_listener_mgr>(m_listener_mgr_ptr)->notify_connect(ec.value());
-			}
-			catch (std::exception &) {}
+			std::dynamic_pointer_cast<client_listener_mgr>(m_listener_mgr_ptr)->notify_connect(error);
 		}
 
-		virtual void _fire_recv(std::shared_ptr<uint8_t> recv_buf_ptr, std::size_t bytes_recvd)
+		virtual void _fire_recv(std::shared_ptr<buffer<uint8_t>> recv_buf_ptr)
 		{
-			// when recv one msg,we don't handle it in this socket thread,instead we handle it in another thread by io_service.post function,
-			// note : after we post the msg,if the post handler function _fire_recv is need long time to handle the msg,will cause the shared_ptr 
-			// "recv_buf_ptr" not released,the recv_buf_ptr is allocated with default 1024 bytes buffer,when the remain recv_buf_ptr is too many,
-			// will cause the memory use is too big.
-			try
-			{
-				if (is_start() && std::static_pointer_cast<client_listener_mgr>(m_listener_mgr_ptr)->is_recv_listener_exist())
-				{
-					if (m_async_notify)
-					{
-						m_msg_recv_strand_ptr->post(std::bind(&tcps_connection_impl::_do_fire_recv,
-							std::static_pointer_cast<tcps_connection_impl>(shared_from_this()),
-							recv_buf_ptr, bytes_recvd));
-					}
-					else
-					{
-						_do_fire_recv(recv_buf_ptr, bytes_recvd);
-					}
-				}
-			}
-			catch (std::exception &) {}
+			std::static_pointer_cast<client_listener_mgr>(m_listener_mgr_ptr)->notify_recv(recv_buf_ptr);
 		}
 
-		virtual void _do_fire_recv(std::shared_ptr<uint8_t> recv_buf_ptr, std::size_t bytes_recvd)
+		virtual void _fire_send(std::shared_ptr<buffer<uint8_t>> send_buf_ptr, int error)
 		{
-			try
-			{
-				std::static_pointer_cast<client_listener_mgr>(m_listener_mgr_ptr)->notify_recv(recv_buf_ptr, bytes_recvd);
-			}
-			catch (std::exception &) {}
-		}
-
-		virtual void _fire_send(std::shared_ptr<uint8_t> send_buf_ptr, std::size_t bytes_sent, int error)
-		{
-			try
-			{
-				if (is_start() && std::static_pointer_cast<client_listener_mgr>(m_listener_mgr_ptr)->is_send_listener_exist())
-				{
-					if (m_async_notify)
-					{
-						m_msg_send_strand_ptr->post(std::bind(&tcps_connection_impl::_do_fire_send,
-							std::static_pointer_cast<tcps_connection_impl>(shared_from_this()),
-							send_buf_ptr, bytes_sent, error));
-					}
-					else
-					{
-						_do_fire_send(send_buf_ptr, bytes_sent, error);
-					}
-				}
-			}
-			catch (std::exception &) {}
-		}
-
-		virtual void _do_fire_send(std::shared_ptr<uint8_t> send_buf_ptr, std::size_t bytes_sent, int error)
-		{
-			try
-			{
-				std::static_pointer_cast<client_listener_mgr>(m_listener_mgr_ptr)->notify_send(send_buf_ptr, bytes_sent, error);
-			}
-			catch (std::exception &) {}
+			std::static_pointer_cast<client_listener_mgr>(m_listener_mgr_ptr)->notify_send(send_buf_ptr, error);
 		}
 
 		virtual void _fire_close(int error)
 		{
 			if (!m_fire_close_is_called.test_and_set(std::memory_order_acquire))
-				_do_fire_close(error);
-		}
-
-		virtual void _do_fire_close(int error)
-		{
-			try
 			{
 				std::dynamic_pointer_cast<client_listener_mgr>(m_listener_mgr_ptr)->notify_close(error);
-			}
-			catch (std::exception &) {}
 
-			_close_socket();
+				_close_socket();
+			}
 		}
 
 	protected:
@@ -733,11 +638,13 @@ namespace asio2
 		/// ssl context 
 		std::shared_ptr<boost::asio::ssl::context> m_context_ptr;
 
+		/// send buffer pool
+		std::shared_ptr<pool_s> m_send_buf_pool_ptr;
+
 		/// recv buffer pool for every session
 		std::shared_ptr<pool_t> m_recv_buf_pool_ptr;
 
-		/// notify mode,async or sync
-		bool m_async_notify = false;
+		volatile bool m_stop_is_called = false;
 
 		/// use to avoid call _fire_close twice
 		std::atomic_flag m_fire_close_is_called = ATOMIC_FLAG_INIT;

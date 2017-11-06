@@ -20,7 +20,6 @@
 
 #include <boost/asio.hpp>
 
-#include <asio2/util/pool.hpp>
 #include <asio2/util/helper.hpp>
 
 #include <asio2/base/sender_impl.hpp>
@@ -76,30 +75,26 @@ namespace asio2
 					return false;
 
 				// reset the state to the default
+				m_stop_is_called = false;
 				m_fire_close_is_called.clear(std::memory_order_release);
 
-				// init service pool size 
-				m_io_service_pool_evt_ptr = std::make_shared<io_service_pool>(_get_io_service_pool_size());
-				m_io_service_pool_msg_ptr = std::make_shared<io_service_pool>(_get_io_service_pool_size());
-
-				// init recv buf pool 
+				// init buf pool 
 				m_recv_buf_pool_ptr = std::make_shared<pool_t>(_get_pool_buffer_size());
+				m_send_buf_pool_ptr = std::make_shared<pool_s>();
 
-				// startup the io service thread 
-				m_io_service_thread_evt_ptr = std::make_shared<std::thread>(std::bind(&io_service_pool::run, m_io_service_pool_evt_ptr));
-				m_io_service_thread_msg_ptr = std::make_shared<std::thread>(std::bind(&io_service_pool::run, m_io_service_pool_msg_ptr));
+				// init service pool size and startup the io service thread 
+				m_ioservice_pool_ptr = std::make_shared<io_service_pool>(_get_io_service_pool_size());
+				m_ioservice_thread_ptr = std::make_shared<std::thread>(std::bind(&io_service_pool::run, m_ioservice_pool_ptr));
 
 				// start connect
 				return _start_connect();
 			}
 			catch (boost::system::system_error & e)
 			{
-				set_last_error(e.code().value(), e.what());
+				set_last_error(e.code().value());
 			}
-			catch (std::exception & e)
+			catch (std::exception &)
 			{
-				set_last_error(DEFAULT_EXCEPTION_CODE, e.what());
-				PRINT_EXCEPTION;
 			}
 
 			return false;
@@ -125,7 +120,7 @@ namespace asio2
 					std::promise<void> promise_send;
 
 					// first wait for all send pending complete
-					m_evt_send_strand_ptr->post([this, &promise_send]()
+					m_send_strand_ptr->post([this, &promise_send]()
 					{
 						// do nothing ,just make sure the send pending is last executed
 						auto_promise<void> ap(promise_send);
@@ -139,54 +134,39 @@ namespace asio2
 					// asio don't allow operate the same socket in multi thread,if you close socket in one thread and another thread is 
 					// calling socket's async_read... function,it will crash.so we must care for operate the socket.when need close the
 					// socket ,we use the strand to post a event,make sure the socket's close operation is in the same thread.
-					m_evt_recv_strand_ptr->post([this, &promise_recv]()
+					m_recv_strand_ptr->post([this, &promise_recv]()
 					{
 						boost::system::error_code ec;
 
 						m_socket_ptr->shutdown(boost::asio::socket_base::shutdown_both, ec);
 						if (ec)
-							set_last_error(ec.value(), ec.message());
+							set_last_error(ec.value());
 
 						m_socket_ptr->close(ec);
 						if (ec)
-							set_last_error(ec.value(), ec.message());
+							set_last_error(ec.value());
 
 						auto_promise<void> ap(promise_recv);
 					});
 
 					// wait util the socket is closed completed
-					// must wait for the socket closed completed,otherwise when use m_evt_strand_ptr post a event to close the socket,
+					// must wait for the socket closed completed,otherwise when use m_strand_ptr post a event to close the socket,
 					// before socket closed ,the event thread join is returned already,and it will cause memory leaks
 
 					// wait for the async task finish,when finished,the socket must be closed already.
 					promise_recv.get_future().wait();
 				}
-				// close the socket directly
-				else
-				{
-					boost::system::error_code ec;
-
-					m_socket_ptr->shutdown(boost::asio::socket_base::shutdown_both, ec);
-					if (ec)
-						set_last_error(ec.value(), ec.message());
-
-					m_socket_ptr->close(ec);
-					if (ec)
-						set_last_error(ec.value(), ec.message());
-				}
 			}
 
-			if (m_io_service_pool_evt_ptr)
-				m_io_service_pool_evt_ptr->stop();
-			if (m_io_service_pool_msg_ptr)
-				m_io_service_pool_msg_ptr->stop();
+			if (m_ioservice_pool_ptr)
+				m_ioservice_pool_ptr->stop();
 
-			if (m_io_service_thread_evt_ptr && m_io_service_thread_evt_ptr->joinable())
-				m_io_service_thread_evt_ptr->join();
-			if (m_io_service_thread_msg_ptr && m_io_service_thread_msg_ptr->joinable())
-				m_io_service_thread_msg_ptr->join();
+			if (m_ioservice_thread_ptr && m_ioservice_thread_ptr->joinable())
+				m_ioservice_thread_ptr->join();
 
 			// release the buffer pool malloced memory 
+			if (m_send_buf_pool_ptr)
+				m_send_buf_pool_ptr->destroy();
 			if (m_recv_buf_pool_ptr)
 				m_recv_buf_pool_ptr->destroy();
 
@@ -200,24 +180,15 @@ namespace asio2
 		{
 			return (
 				!m_stop_is_called &&
-				m_evt_send_ioservice_ptr &&
-				m_evt_recv_ioservice_ptr &&
-				m_msg_send_ioservice_ptr &&
-				m_msg_recv_ioservice_ptr &&
-				m_evt_send_strand_ptr &&
-				m_evt_recv_strand_ptr &&
-				m_msg_send_strand_ptr &&
-				m_msg_recv_strand_ptr &&
 				(m_socket_ptr && m_socket_ptr->is_open()) &&
-				(m_io_service_thread_evt_ptr && m_io_service_thread_evt_ptr->joinable()) &&
-				(m_io_service_thread_msg_ptr && m_io_service_thread_msg_ptr->joinable())
+				(m_ioservice_thread_ptr && m_ioservice_thread_ptr->joinable())
 				);
 		}
 
 		/**
 		 * @function : send data
 		 */
-		virtual bool send(std::string ip, unsigned short port, std::shared_ptr<uint8_t> send_buf_ptr, std::size_t len)
+		virtual bool send(std::string ip, unsigned short port, std::shared_ptr<buffer<uint8_t>> send_buf_ptr) override
 		{
 			try
 			{
@@ -227,17 +198,32 @@ namespace asio2
 						boost::asio::ip::address::from_string(ip),
 						port);
 
-					// note : can't use m_io_service_msg to post event,because can't operate socket in multi thread.
 					// must use strand.post to send data.why we should do it like this ? see udp_session._post_send.
-					m_evt_send_strand_ptr->post(std::bind(&udp_sender_impl::_post_send,
+					m_send_strand_ptr->post(std::bind(&udp_sender_impl::_post_send,
 						std::static_pointer_cast<udp_sender_impl>(shared_from_this()),
-						recver_endpoint, send_buf_ptr, len));
+						recver_endpoint, send_buf_ptr
+					));
 					return true;
 				}
 			}
 			catch (boost::system::system_error & e)
 			{
-				set_last_error(e.code().value(), e.what());
+				set_last_error(e.code().value());
+			}
+			return false;
+		}
+
+		/**
+		 * @function : send data
+		 */
+		virtual bool send(std::string ip, unsigned short port, const uint8_t * buf, std::size_t len) override
+		{
+			if (is_start() && !ip.empty())
+			{
+				auto buf_ptr = this->m_send_buf_pool_ptr->get(get_power_number(len));
+				std::memcpy((void *)buf_ptr->data(), (const void *)buf, len);
+				buf_ptr->resize(len);
+				return this->send(ip, port, buf_ptr);
 			}
 			return false;
 		}
@@ -267,7 +253,7 @@ namespace asio2
 			}
 			catch (boost::system::system_error & e)
 			{
-				set_last_error(e.code().value(), e.what());
+				set_last_error(e.code().value());
 			}
 			return "";
 		}
@@ -287,7 +273,7 @@ namespace asio2
 			}
 			catch (boost::system::system_error & e)
 			{
-				set_last_error(e.code().value(), e.what());
+				set_last_error(e.code().value());
 			}
 			return 0;
 		}
@@ -307,7 +293,7 @@ namespace asio2
 			}
 			catch (boost::system::system_error & e)
 			{
-				set_last_error(e.code().value(), e.what());
+				set_last_error(e.code().value());
 			}
 			return "";
 		}
@@ -327,28 +313,7 @@ namespace asio2
 			}
 			catch (boost::system::system_error & e)
 			{
-				set_last_error(e.code().value(), e.what());
-			}
-			return 0;
-		}
-
-		/**
-		 * @function : get socket's recv buffer size
-		 */
-		virtual int get_recv_buffer_size() override
-		{
-			try
-			{
-				if (m_socket_ptr && m_socket_ptr->is_open())
-				{
-					boost::asio::socket_base::receive_buffer_size option;
-					m_socket_ptr->get_option(option);
-					return option.value();
-				}
-			}
-			catch (boost::system::system_error & e)
-			{
-				set_last_error(e.code().value(), e.what());
+				set_last_error(e.code().value());
 			}
 			return 0;
 		}
@@ -370,30 +335,9 @@ namespace asio2
 			}
 			catch (boost::system::system_error & e)
 			{
-				set_last_error(e.code().value(), e.what());
+				set_last_error(e.code().value());
 			}
 			return false;
-		}
-
-		/**
-		 * @function : get socket's send buffer size
-		 */
-		virtual int get_send_buffer_size() override
-		{
-			try
-			{
-				if (m_socket_ptr && m_socket_ptr->is_open())
-				{
-					boost::asio::socket_base::send_buffer_size option;
-					m_socket_ptr->get_option(option);
-					return option.value();
-				}
-			}
-			catch (boost::system::system_error & e)
-			{
-				set_last_error(e.code().value(), e.what());
-			}
-			return 0;
 		}
 
 		/**
@@ -412,7 +356,7 @@ namespace asio2
 			}
 			catch (boost::system::system_error & e)
 			{
-				set_last_error(e.code().value(), e.what());
+				set_last_error(e.code().value());
 			}
 			return false;
 		}
@@ -453,17 +397,11 @@ namespace asio2
 		{
 			try
 			{
-				m_async_notify = (m_url_parser_ptr->get_param_value("notify_mode") == "async");
+				m_send_ioservice_ptr = m_ioservice_pool_ptr->get_io_service_ptr();
+				m_recv_ioservice_ptr = m_ioservice_pool_ptr->get_io_service_ptr();
 
-				m_evt_send_ioservice_ptr = m_io_service_pool_evt_ptr->get_io_service_ptr();
-				m_evt_recv_ioservice_ptr = m_io_service_pool_evt_ptr->get_io_service_ptr();
-				m_msg_send_ioservice_ptr = m_io_service_pool_msg_ptr->get_io_service_ptr();
-				m_msg_recv_ioservice_ptr = m_io_service_pool_msg_ptr->get_io_service_ptr();
-
-				m_evt_send_strand_ptr = std::make_shared <boost::asio::io_service::strand>(*m_evt_send_ioservice_ptr);
-				m_evt_recv_strand_ptr = std::make_shared <boost::asio::io_service::strand>(*m_evt_recv_ioservice_ptr);
-				m_msg_send_strand_ptr = std::make_shared <boost::asio::io_service::strand>(*m_msg_send_ioservice_ptr);
-				m_msg_recv_strand_ptr = std::make_shared <boost::asio::io_service::strand>(*m_msg_recv_ioservice_ptr);
+				m_send_strand_ptr = std::make_shared <boost::asio::io_service::strand>(*m_send_ioservice_ptr);
+				m_recv_strand_ptr = std::make_shared <boost::asio::io_service::strand>(*m_recv_ioservice_ptr);
 
 				boost::asio::ip::udp::endpoint bind_endpoint(
 					boost::asio::ip::address::from_string(m_url_parser_ptr->get_ip()),
@@ -471,53 +409,50 @@ namespace asio2
 
 				// socket contructor function with endpoint param will automic call open and bind.
 				m_socket_ptr = std::make_shared<boost::asio::ip::udp::socket>(
-					*m_evt_recv_ioservice_ptr, bind_endpoint);
+					*m_recv_ioservice_ptr, bind_endpoint);
 
 				//m_socket_ptr->open(endpoint.protocol());
 				//m_socket_ptr->bind(endpoint);
 
-				_post_recv();
+				_post_recv(shared_from_this());
 
 				return (m_socket_ptr && m_socket_ptr->is_open());
 			}
 			catch (boost::system::system_error & e)
 			{
-				set_last_error(e.code().value(), e.what());
+				set_last_error(e.code().value());
 			}
 
 			return false;
 		}
 
-		virtual void _post_recv()
+		virtual void _post_recv(std::shared_ptr<sender_impl> this_ptr)
 		{
 			if (is_start())
 			{
 				// every times post recv event,we get the recv buffer from the buffer pool
-				std::shared_ptr<uint8_t> recv_buf_ptr = m_recv_buf_pool_ptr->get();
+				std::shared_ptr<buffer<uint8_t>> recv_buf_ptr = m_recv_buf_pool_ptr->get(0);
 
 				try
 				{
 					m_socket_ptr->async_receive_from(
-						boost::asio::buffer(recv_buf_ptr.get(), m_recv_buf_pool_ptr->get_requested_size()),
+						boost::asio::buffer(recv_buf_ptr->data(), recv_buf_ptr->capacity()),
 						m_sender_endpoint,
-						m_evt_recv_strand_ptr->wrap(std::bind(&udp_sender_impl::_handle_recv, std::static_pointer_cast<udp_sender_impl>(shared_from_this()),
+						m_recv_strand_ptr->wrap(std::bind(&udp_sender_impl::_handle_recv, std::static_pointer_cast<udp_sender_impl>(this_ptr),
 							std::placeholders::_1,
 							std::placeholders::_2,
+							this_ptr,
 							recv_buf_ptr
 						)));
 				}
-				catch (std::exception & e)
+				catch (std::exception &)
 				{
-					set_last_error(DEFAULT_EXCEPTION_CODE, e.what());
-					PRINT_EXCEPTION;
 				}
 			}
 		}
 
-		virtual void _handle_recv(const boost::system::error_code& ec, std::size_t bytes_recvd, std::shared_ptr<uint8_t> recv_buf_ptr)
+		virtual void _handle_recv(const boost::system::error_code& ec, std::size_t bytes_recvd, std::shared_ptr<sender_impl> this_ptr, std::shared_ptr<buffer<uint8_t>> recv_buf_ptr)
 		{
-			set_last_error(ec.value());
-
 			if (!ec)
 			{
 				if (bytes_recvd == 0)
@@ -526,15 +461,17 @@ namespace asio2
 				}
 				else if (bytes_recvd > 0)
 				{
-					// recvd data 
+					recv_buf_ptr->resize(bytes_recvd);
 				}
 
-				_fire_recv(m_sender_endpoint, recv_buf_ptr, bytes_recvd);
+				_fire_recv(m_sender_endpoint, recv_buf_ptr);
 
-				_post_recv();
+				_post_recv(this_ptr);
 			}
 			else
 			{
+				set_last_error(ec.value());
+
 				// close this sender
 				_fire_close(ec.value());
 
@@ -549,15 +486,15 @@ namespace asio2
 			}
 		}
 
-		virtual void _post_send(boost::asio::ip::udp::endpoint recver_endpoint, std::shared_ptr<uint8_t> send_buf_ptr, std::size_t len)
+		virtual void _post_send(boost::asio::ip::udp::endpoint recver_endpoint, std::shared_ptr<buffer<uint8_t>> send_buf_ptr)
 		{
 			if (is_start())
 			{
 				boost::system::error_code ec;
-				size_t bytes_sent = m_socket_ptr->send_to(boost::asio::buffer(send_buf_ptr.get(), len), recver_endpoint, 0, ec);
+				m_socket_ptr->send_to(boost::asio::buffer(send_buf_ptr->data(),send_buf_ptr->size()), recver_endpoint, 0, ec);
 				set_last_error(ec.value());
 
-				_fire_send(recver_endpoint, send_buf_ptr, bytes_sent, ec.value());
+				_fire_send(recver_endpoint, send_buf_ptr, ec.value());
 
 				if (ec)
 				{
@@ -568,80 +505,22 @@ namespace asio2
 			}
 		}
 
-		virtual void _fire_recv(boost::asio::ip::udp::endpoint sender_endpoint, std::shared_ptr<uint8_t> recv_buf_ptr, std::size_t bytes_recvd)
+		virtual void _fire_recv(boost::asio::ip::udp::endpoint sender_endpoint, std::shared_ptr<buffer<uint8_t>> recv_buf_ptr)
 		{
-			try
-			{
-				if (is_start() && std::static_pointer_cast<sender_listener_mgr>(m_listener_mgr_ptr)->is_recv_listener_exist())
-				{
-					if (m_async_notify)
-					{
-						// when recv one msg,we don't handle it in this socket thread,instead we handle it in another thread by io_service.post function.
-						m_msg_recv_strand_ptr->post(std::bind(&udp_sender_impl::_do_fire_recv,
-							std::static_pointer_cast<udp_sender_impl>(shared_from_this()),
-							sender_endpoint, recv_buf_ptr, bytes_recvd));
-					}
-					else
-					{
-						_do_fire_recv(sender_endpoint, recv_buf_ptr, bytes_recvd);
-					}
-				}
-			}
-			catch (std::exception &) {}
+			std::static_pointer_cast<sender_listener_mgr>(m_listener_mgr_ptr)->notify_recv(sender_endpoint.address().to_string(), sender_endpoint.port(), recv_buf_ptr);
 		}
 
-		virtual void _do_fire_recv(boost::asio::ip::udp::endpoint & sender_endpoint, std::shared_ptr<uint8_t> recv_buf_ptr, std::size_t bytes_recvd)
+		virtual void _fire_send(boost::asio::ip::udp::endpoint recver_endpoint, std::shared_ptr<buffer<uint8_t>> send_buf_ptr, int error)
 		{
-			try
-			{
-				std::static_pointer_cast<sender_listener_mgr>(m_listener_mgr_ptr)->notify_recv(sender_endpoint.address().to_string(), sender_endpoint.port(), recv_buf_ptr, bytes_recvd);
-			}
-			catch (std::exception &) {}
-		}
-
-		virtual void _fire_send(boost::asio::ip::udp::endpoint recver_endpoint, std::shared_ptr<uint8_t> send_buf_ptr, std::size_t bytes_sent, int error)
-		{
-			try
-			{
-				if (is_start() && std::static_pointer_cast<sender_listener_mgr>(m_listener_mgr_ptr)->is_send_listener_exist())
-				{
-					if (m_async_notify)
-					{
-						m_msg_send_strand_ptr->post(std::bind(&udp_sender_impl::_do_fire_send,
-							std::static_pointer_cast<udp_sender_impl>(shared_from_this()),
-							recver_endpoint, send_buf_ptr, bytes_sent, error));
-					}
-					else
-					{
-						_do_fire_send(recver_endpoint, send_buf_ptr, bytes_sent, error);
-					}
-				}
-			}
-			catch (std::exception &) {}
-		}
-
-		virtual void _do_fire_send(boost::asio::ip::udp::endpoint & recver_endpoint, std::shared_ptr<uint8_t> send_buf_ptr, std::size_t bytes_sent, int error)
-		{
-			try
-			{
-				std::static_pointer_cast<sender_listener_mgr>(m_listener_mgr_ptr)->notify_send(recver_endpoint.address().to_string(), recver_endpoint.port(), send_buf_ptr, bytes_sent, error);
-			}
-			catch (std::exception &) {}
+			std::static_pointer_cast<sender_listener_mgr>(m_listener_mgr_ptr)->notify_send(recver_endpoint.address().to_string(), recver_endpoint.port(), send_buf_ptr, error);
 		}
 
 		virtual void _fire_close(int error)
 		{
 			if (!m_fire_close_is_called.test_and_set(std::memory_order_acquire))
-				_do_fire_close(error);
-		}
-
-		virtual void _do_fire_close(int error)
-		{
-			try
 			{
 				std::dynamic_pointer_cast<sender_listener_mgr>(m_listener_mgr_ptr)->notify_close(error);
 			}
-			catch (std::exception &) {}
 		}
 
 	protected:
@@ -649,22 +528,16 @@ namespace asio2
 		std::shared_ptr<boost::asio::ip::udp::socket> m_socket_ptr;
 
 		/// the m_io_service_pool_evt thread for socket event
-		std::shared_ptr<std::thread> m_io_service_thread_evt_ptr;
-
-		/// the m_io_service_pool_msg for msg handle
-		std::shared_ptr<std::thread> m_io_service_thread_msg_ptr;
+		std::shared_ptr<std::thread> m_ioservice_thread_ptr;
 
 		/// the io_service_pool for socket event
-		io_service_pool_ptr m_io_service_pool_evt_ptr;
+		io_service_pool_ptr m_ioservice_pool_ptr;
 
-		/// the io_service_pool for msg handle
-		io_service_pool_ptr m_io_service_pool_msg_ptr;
+		/// send buffer pool
+		std::shared_ptr<pool_s> m_send_buf_pool_ptr;
 
 		/// recv buffer pool for every session
 		std::shared_ptr<pool_t> m_recv_buf_pool_ptr;
-
-		/// notify mode,async or sync
-		bool m_async_notify = false;
 
 		/// use to check whether the user call session stop function
 		volatile bool m_stop_is_called = false;

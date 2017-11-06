@@ -32,17 +32,17 @@ namespace asio2
 		 * @construct
 		 */
 		tcps_pack_acceptor_impl(
-			io_service_pool_ptr io_service_pool_evt_ptr,
-			io_service_pool_ptr io_service_pool_msg_ptr,
+			io_service_pool_ptr ioservice_pool_ptr,
 			std::shared_ptr<listener_mgr> listener_mgr_ptr,
 			std::shared_ptr<url_parser> url_parser_ptr,
+			std::shared_ptr<pool_s> send_buf_pool_ptr,
 			std::shared_ptr<pool_t> recv_buf_pool_ptr
 		)
 			: tcps_acceptor_impl<_session_impl_t>(
-				io_service_pool_evt_ptr,
-				io_service_pool_msg_ptr,
+				ioservice_pool_ptr,
 				listener_mgr_ptr,
 				url_parser_ptr,
+				send_buf_pool_ptr,
 				recv_buf_pool_ptr
 				)
 		{
@@ -73,22 +73,21 @@ namespace asio2
 		}
 
 	protected:
-
-		virtual void _post_accept() override
+		virtual std::shared_ptr<_session_impl_t> _prepare_session() override
 		{
-			std::shared_ptr<_session_impl_t> session_ptr = this->_prepare_session();
+			std::shared_ptr<_session_impl_t> session_ptr = tcps_acceptor_impl<_session_impl_t>::_prepare_session();
 
 			if (session_ptr)
 			{
 				session_ptr->set_pack_parser(m_pack_parser);
 			}
 
-			this->_do_accept(session_ptr);
+			return session_ptr;
 		}
 
 	protected:
 		
-		using parser_callback = std::size_t(std::shared_ptr<uint8_t> data_ptr, std::size_t len);
+		using parser_callback = std::size_t(std::shared_ptr<buffer<uint8_t>> data_ptr);
 
 		std::function<parser_callback>       m_pack_parser;
 

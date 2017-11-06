@@ -21,8 +21,6 @@
 
 #include <boost/asio.hpp>
 
-#include <asio2/util/pool.hpp>
-
 #include <asio2/base/session_impl.hpp>
 #include <asio2/base/session_mgr.hpp>
 #include <asio2/base/listener_mgr.hpp>
@@ -43,28 +41,25 @@ namespace asio2
 
 		/**
 		 * @construct
-		 * @param    : io_service_evt - the io_service used to handle the socket event
-		 *           : io_service_msg - the io_service used to handle the received msg
 		 */
 		explicit udp_session_impl(
-			io_service_ptr evt_ioservice_ptr,
-			io_service_ptr msg_ioservice_ptr,
+			std::shared_ptr<io_service> ioservice_ptr,
 			std::shared_ptr<listener_mgr> listener_mgr_ptr,
 			std::shared_ptr<url_parser> url_parser_ptr,
+			std::shared_ptr<pool_s> send_buf_pool_ptr,
 			std::shared_ptr<pool_t> recv_buf_pool_ptr,
+			volatile bool & acceptor_stop_is_called,
 			int & seted_send_buffer_size,
-			int & seted_recv_buffer_size,
-			volatile bool & acceptor_stop_is_called
+			int & seted_recv_buffer_size
 		)
-			: session_impl(nullptr, msg_ioservice_ptr, listener_mgr_ptr, url_parser_ptr)
+			: session_impl(nullptr, listener_mgr_ptr, url_parser_ptr)
+			, m_send_buf_pool_ptr(send_buf_pool_ptr)
 			, m_recv_buf_pool_ptr(recv_buf_pool_ptr)
-			, m_timer(*msg_ioservice_ptr)
-			, m_timer_strand(*msg_ioservice_ptr)
+			, m_acceptor_stop_is_called(acceptor_stop_is_called)
 			, m_seted_send_buffer_size(seted_send_buffer_size)
 			, m_seted_recv_buffer_size(seted_recv_buffer_size)
-			, m_acceptor_stop_is_called(acceptor_stop_is_called)
-			, m_send_pending(0)
-			, m_recv_pending(0)
+			, m_timer(*ioservice_ptr)
+			, m_timer_strand(*ioservice_ptr)
 		{
 		}
 
@@ -93,11 +88,10 @@ namespace asio2
 			// this session shared_ptr should be disappeared,and we should't start continue.
 			if (is_start())
 			{
-				m_async_notify = (m_url_parser_ptr->get_param_value("notify_mode") == "async");
-
 				// set the silence timeout from url parser
 				_set_silence_timeout_from_url();
 
+				auto this_ptr = shared_from_this();
 				// start the timer of check silence timeout,this timer has another purpose : when this udp session is created,
 				// if has't pass a shared_from_this object to the io_service worker,will cause this udp session shared_ptr disapperd
 				// immediately,and the udp session_mgr will never has any udp session object.then if we use this timer,and pass
@@ -105,8 +99,9 @@ namespace asio2
 				m_timer.expires_from_now(boost::posix_time::seconds(m_silence_timeout));
 				m_timer.async_wait(
 					m_timer_strand.wrap(std::bind(&udp_session_impl::_handle_timeout,
-						std::static_pointer_cast<udp_session_impl>(shared_from_this()),
-						std::placeholders::_1 // error_code
+						std::static_pointer_cast<udp_session_impl>(this_ptr),
+						std::placeholders::_1, // error_code
+						this_ptr
 					)));
 
 				// set send buffer size from url params
@@ -142,7 +137,7 @@ namespace asio2
 					}
 					catch (boost::system::system_error & e)
 					{
-						set_last_error(e.code().value(), e.what());
+						set_last_error(e.code().value());
 					}
 				});
 			}
@@ -164,27 +159,39 @@ namespace asio2
 		/**
 		 * @function : send data
 		 */
-		virtual bool send(std::shared_ptr<uint8_t> send_buf_ptr, std::size_t len)  override
+		virtual bool send(std::shared_ptr<buffer<uint8_t>> send_buf_ptr)  override
 		{
-			if (is_start())
+			if (is_start() && send_buf_ptr)
 			{
 				try
 				{
-					// note : can't use m_io_service_msg to post event,because can't operate socket in multi thread.
+					auto this_ptr = shared_from_this();
 					// must use strand.post to send data.why we should do it like this ? see udp_session_impl._post_send.
 					m_send_strand_ptr->post(std::bind(&udp_session_impl::_post_send,
-						std::static_pointer_cast<udp_session_impl>(shared_from_this()),
-						send_buf_ptr,
-						len
+						std::static_pointer_cast<udp_session_impl>(this_ptr),
+						this_ptr,
+						send_buf_ptr
 					));
-					m_send_pending++;
 					return true;
 				}
-				catch (std::exception & e)
+				catch (std::exception &)
 				{
-					set_last_error(DEFAULT_EXCEPTION_CODE, e.what());
-					PRINT_EXCEPTION;
 				}
+			}
+			return false;
+		}
+
+		/**
+		 * @function : send data
+		 */
+		virtual bool send(const uint8_t * buf, std::size_t len) override
+		{
+			if (is_start())
+			{
+				auto buf_ptr = this->m_send_buf_pool_ptr->get(get_power_number(len));
+				std::memcpy((void *)buf_ptr->data(), (const void *)buf, len);
+				buf_ptr->resize(len);
+				return this->send(buf_ptr);
 			}
 			return false;
 		}
@@ -212,7 +219,7 @@ namespace asio2
 			}
 			catch (boost::system::system_error & e)
 			{
-				set_last_error(e.code().value(), e.what());
+				set_last_error(e.code().value());
 			}
 			return "";
 		}
@@ -232,7 +239,7 @@ namespace asio2
 			}
 			catch (boost::system::system_error & e)
 			{
-				set_last_error(e.code().value(), e.what());
+				set_last_error(e.code().value());
 			}
 			return 0;
 		}
@@ -248,7 +255,7 @@ namespace asio2
 			}
 			catch (boost::system::system_error & e)
 			{
-				set_last_error(e.code().value(), e.what());
+				set_last_error(e.code().value());
 			}
 			return "";
 		}
@@ -259,27 +266,6 @@ namespace asio2
 		virtual unsigned short get_remote_port() override
 		{
 			return m_remote_endpoint.port();
-		}
-
-		/**
-		 * @function : get socket's recv buffer size
-		 */
-		virtual int get_recv_buffer_size() override
-		{
-			try
-			{
-				if (m_socket_ptr && m_socket_ptr->is_open())
-				{
-					boost::asio::socket_base::receive_buffer_size option;
-					m_socket_ptr->get_option(option);
-					return option.value();
-				}
-			}
-			catch (boost::system::system_error & e)
-			{
-				set_last_error(e.code().value(), e.what());
-			}
-			return 0;
 		}
 
 		/**
@@ -302,30 +288,9 @@ namespace asio2
 			}
 			catch (boost::system::system_error & e)
 			{
-				set_last_error(e.code().value(), e.what());
+				set_last_error(e.code().value());
 			}
 			return false;
-		}
-
-		/**
-		 * @function : get socket's send buffer size
-		 */
-		virtual int get_send_buffer_size() override
-		{
-			try
-			{
-				if (m_socket_ptr && m_socket_ptr->is_open())
-				{
-					boost::asio::socket_base::send_buffer_size option;
-					m_socket_ptr->get_option(option);
-					return option.value();
-				}
-			}
-			catch (boost::system::system_error & e)
-			{
-				set_last_error(e.code().value(), e.what());
-			}
-			return 0;
 		}
 
 		/**
@@ -347,39 +312,23 @@ namespace asio2
 			}
 			catch (boost::system::system_error & e)
 			{
-				set_last_error(e.code().value(), e.what());
+				set_last_error(e.code().value());
 			}
 			return false;
 		}
 
-		/**
-		 * @function : get send pending packet size
-		 */
-		virtual std::size_t get_send_pending() override
-		{
-			return m_send_pending;
-		}
-
-		/**
-		 * @function : get recv pending packet size
-		 */
-		virtual std::size_t get_recv_pending() override
-		{
-			return m_recv_pending;
-		}
-
 		void attach(
-			io_service_ptr evt_ioservice_ptr,
-			std::shared_ptr<boost::asio::io_service::strand> evt_strand_ptr,
-			io_service_ptr send_ioservice_ptr,
+			std::shared_ptr<io_service> ioservice_ptr,
+			std::shared_ptr<boost::asio::io_service::strand> strand_ptr,
+			std::shared_ptr<io_service> send_ioservice_ptr,
 			std::shared_ptr<boost::asio::io_service::strand> send_strand_ptr,
 			std::shared_ptr<boost::asio::ip::udp::socket> socket_ptr,
 			boost::asio::ip::udp::endpoint endpoint
 		)
 		{
-			m_evt_ioservice_ptr = evt_ioservice_ptr;
-			m_evt_strand_ptr = evt_strand_ptr;
-			m_send_io_service_ptr = send_ioservice_ptr;
+			m_ioservice_ptr = ioservice_ptr;
+			m_strand_ptr = strand_ptr;
+			m_send_ioservice_ptr = send_ioservice_ptr;
 			m_send_strand_ptr = send_strand_ptr;
 			m_socket_ptr = socket_ptr;
 			m_remote_endpoint = endpoint;
@@ -412,13 +361,8 @@ namespace asio2
 		{
 			session_impl::_reset();
 
-			m_async_notify = false;
-
 			m_stop_is_called = false;
 			m_fire_close_is_called.clear(std::memory_order_release);
-
-			m_send_pending = 0;
-			m_recv_pending = 0;
 		}
 
 		/**
@@ -437,15 +381,15 @@ namespace asio2
 		}
 
 	protected:
-		virtual void _handle_recv(std::shared_ptr<uint8_t> recv_buf_ptr, std::size_t bytes_recvd)
+		virtual void _handle_recv(std::shared_ptr<session_impl> this_ptr, std::shared_ptr<buffer<uint8_t>> recv_buf_ptr)
 		{
 			// every times recv data,we reset the last active time.
 			reset_last_active_time();
 
-			_fire_recv(recv_buf_ptr, bytes_recvd);
+			_fire_recv(this_ptr, recv_buf_ptr);
 		}
 
-		virtual void _handle_timeout(const boost::system::error_code& ec)
+		virtual void _handle_timeout(const boost::system::error_code& ec, std::shared_ptr<session_impl> this_ptr)
 		{
 			if (!ec)
 			{
@@ -461,34 +405,33 @@ namespace asio2
 					m_timer.expires_from_now(boost::posix_time::seconds(m_silence_timeout));
 					m_timer.async_wait(
 						m_timer_strand.wrap(std::bind(&udp_session_impl::_handle_timeout,
-							std::static_pointer_cast<udp_session_impl>(shared_from_this()),
-							std::placeholders::_1
+							std::static_pointer_cast<udp_session_impl>(this_ptr),
+							std::placeholders::_1,
+							this_ptr
 						)));
 				}
 				else
 				{
 					// silence timeout has elasped,but has't data trans,don't post a timer event again,so this session shared_ptr will
 					// disappear and the object will be destroyed automatically after this handler returns.
-					_fire_close(ec);
+					_fire_close(this_ptr, ec.value());
 				}
 			}
 			else
 			{
 				// occur error,may be cancel is called
-				_fire_close(ec);
+				_fire_close(this_ptr, ec.value());
 			}
 		}
 
-		virtual void _post_send(std::shared_ptr<uint8_t> send_buf_ptr, std::size_t len)
+		virtual void _post_send(std::shared_ptr<session_impl> this_ptr, std::shared_ptr<buffer<uint8_t>> send_buf_ptr)
 		{
-			auto_decrease<std::atomic<std::size_t>> decreaser(m_send_pending);
-
 			if (is_start())
 			{
 				boost::system::error_code ec;
-				size_t bytes_sent = m_socket_ptr->send_to(boost::asio::buffer(send_buf_ptr.get(), len), m_remote_endpoint, 0, ec);
+				m_socket_ptr->send_to(boost::asio::buffer(send_buf_ptr->data(),send_buf_ptr->size()), m_remote_endpoint, 0, ec);
 				set_last_error(ec.value());
-				_fire_send(send_buf_ptr, bytes_sent, ec.value());
+				_fire_send(this_ptr, send_buf_ptr, ec.value());
 
 				if (ec)
 				{
@@ -497,100 +440,24 @@ namespace asio2
 			}
 		}
 
-		virtual void _fire_recv(std::shared_ptr<uint8_t> recv_buf_ptr, std::size_t bytes_recvd)
+		virtual void _fire_recv(std::shared_ptr<session_impl> this_ptr, std::shared_ptr<buffer<uint8_t>> recv_buf_ptr)
 		{
-			try
-			{
-				if (is_start() && std::static_pointer_cast<server_listener_mgr>(m_listener_mgr_ptr)->is_recv_listener_exist())
-				{
-					if (m_async_notify)
-					{
-						try
-						{
-							// don't fire the notify in current thread,instead post to the msg thread for fire.
-							m_msg_strand_ptr->post(std::bind(&udp_session_impl::_do_fire_recv,
-								std::static_pointer_cast<udp_session_impl>(shared_from_this()),
-								recv_buf_ptr,
-								bytes_recvd
-							));
-							m_recv_pending++;
-						}
-						catch (std::exception &) {}
-					}
-					else
-					{
-						m_recv_pending++;
-						_do_fire_recv(recv_buf_ptr, bytes_recvd);
-					}
-				}
-			}
-			catch (std::exception &) {}
+			std::static_pointer_cast<server_listener_mgr>(m_listener_mgr_ptr)->notify_recv(this_ptr, recv_buf_ptr);
 		}
 
-		virtual void _do_fire_recv(std::shared_ptr<uint8_t> recv_buf_ptr, std::size_t bytes_recvd )
+		virtual void _fire_send(std::shared_ptr<session_impl> this_ptr, std::shared_ptr<buffer<uint8_t>> send_buf_ptr, int error)
 		{
-			auto_decrease<std::atomic<std::size_t>> decreaser(m_recv_pending);
-
-			try
-			{
-				std::static_pointer_cast<server_listener_mgr>(m_listener_mgr_ptr)->notify_recv(shared_from_this(), recv_buf_ptr, bytes_recvd);
-			}
-			catch (std::exception &) {}
+			std::static_pointer_cast<server_listener_mgr>(m_listener_mgr_ptr)->notify_send(this_ptr, send_buf_ptr, error);
 		}
 
-		virtual void _fire_send(std::shared_ptr<uint8_t> send_buf_ptr, std::size_t bytes_sent, int error)
-		{
-			try
-			{
-				if (is_start() && std::static_pointer_cast<server_listener_mgr>(m_listener_mgr_ptr)->is_send_listener_exist())
-				{
-					if (m_async_notify)
-					{
-						try
-						{
-							m_msg_strand_ptr->post(std::bind(&udp_session_impl::_do_fire_send,
-								std::static_pointer_cast<udp_session_impl>(shared_from_this()),
-								send_buf_ptr, bytes_sent, error));
-							m_send_pending++;
-						}
-						catch (std::exception &) {}
-					}
-					else
-					{
-						m_send_pending++;
-						_do_fire_send(send_buf_ptr, bytes_sent, error);
-					}
-				}
-			}
-			catch (std::exception &) {}
-		}
-
-		virtual void _do_fire_send(std::shared_ptr<uint8_t> send_buf_ptr, std::size_t bytes_sent, int error)
-		{
-			auto_decrease<std::atomic<std::size_t>> decreaser(m_send_pending);
-
-			try
-			{
-				std::static_pointer_cast<server_listener_mgr>(m_listener_mgr_ptr)->notify_send(shared_from_this(), send_buf_ptr, bytes_sent, error);
-			}
-			catch (std::exception &) {}
-		}
-
-		virtual void _fire_close(const boost::system::error_code& ec)
+		virtual void _fire_close(std::shared_ptr<session_impl> this_ptr, int error)
 		{
 			if (!m_fire_close_is_called.test_and_set(std::memory_order_acquire))
-				_do_fire_close(ec);
-		}
-
-		virtual void _do_fire_close(const boost::system::error_code& ec)
-		{
-			try
 			{
-				std::static_pointer_cast<server_listener_mgr>(m_listener_mgr_ptr)->notify_close(shared_from_this(), ec.value());
-			}
-			catch (std::exception &) {}
+				std::static_pointer_cast<server_listener_mgr>(m_listener_mgr_ptr)->notify_close(this_ptr, error);
 
-			_close_socket();
+				_close_socket();
+			}
 		}
 
 	public:
@@ -635,6 +502,9 @@ namespace asio2
 
 		std::shared_ptr<boost::asio::ip::udp::socket> m_socket_ptr;
 
+		/// send buffer pool
+		std::shared_ptr<pool_s> m_send_buf_pool_ptr;
+
 		/// Buffer pool used to store data received from the client. 
 		std::shared_ptr<pool_t> m_recv_buf_pool_ptr;
 
@@ -642,7 +512,7 @@ namespace asio2
 		boost::asio::ip::udp::endpoint m_remote_endpoint;
 
 		/// hold the io_service shared_ptr,make sure the io_service is destroy after current object
-		io_service_ptr m_send_io_service_ptr;
+		std::shared_ptr<io_service> m_send_ioservice_ptr;
 
 		/// asio's strand to ensure asio.socket multi thread safe
 		std::shared_ptr<boost::asio::io_service::strand> m_send_strand_ptr;
@@ -656,23 +526,16 @@ namespace asio2
 		/// strand for timer to insure multi thread safe
 		boost::asio::io_service::strand m_timer_strand;
 
-		int & m_seted_send_buffer_size;
-		int & m_seted_recv_buffer_size;
-
 		volatile bool & m_acceptor_stop_is_called;
 
-		/// notify mode,async or sync
-		bool m_async_notify = false;
+		int & m_seted_send_buffer_size;
+		int & m_seted_recv_buffer_size;
 
 		/// use to check whether the user call session stop in the listener
 		volatile bool m_stop_is_called = false;
 
 		/// use to avoid call _fire_close twice
 		std::atomic_flag m_fire_close_is_called = ATOMIC_FLAG_INIT;
-
-		std::atomic<std::size_t> m_send_pending;
-
-		std::atomic<std::size_t> m_recv_pending;
 
 	};
 

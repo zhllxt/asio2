@@ -23,10 +23,6 @@
 namespace asio2
 {
 
-	using io_service_ptr = std::shared_ptr<boost::asio::io_service>;
-	using work_ptr = std::shared_ptr<boost::asio::io_service::work>;
-
-
 	/**
 	 * the io_service_pool interface
 	 * note : must ensure all events completion handler of the same socket run in the same thread within 
@@ -52,8 +48,8 @@ namespace asio2
 			// exit until they are explicitly stopped. 
 			for (std::size_t i = 0; i < pool_size; ++i)
 			{
-				io_service_ptr ioservice_ptr = std::make_shared<boost::asio::io_service>();
-				work_ptr workptr = std::make_shared<boost::asio::io_service::work>(*ioservice_ptr);
+				std::shared_ptr<boost::asio::io_service> ioservice_ptr = std::make_shared<boost::asio::io_service>();
+				std::shared_ptr<boost::asio::io_service::work> workptr = std::make_shared<boost::asio::io_service::work>(*ioservice_ptr);
 				m_io_services.emplace_back(ioservice_ptr);
 				m_works.emplace_back(workptr);
 			}
@@ -116,12 +112,12 @@ namespace asio2
 		/**
 		 * @function : get an io_service to use
 		 */
-		io_service_ptr get_io_service_ptr()
+		std::shared_ptr<boost::asio::io_service> get_io_service_ptr()
 		{
 			// use lock to protected "m_next_io_service",otherwise "m_io_services[m_next_io_service]" may be out of bounds
 			std::lock_guard<spin_lock> g(m_lock);
 			// Use a round-robin scheme to choose the next io_service to use. 
-			io_service_ptr ioservice_ptr = m_io_services[m_next_io_service];
+			std::shared_ptr<boost::asio::io_service> ioservice_ptr = m_io_services[m_next_io_service];
 			m_next_io_service++;
 			if (m_next_io_service == m_io_services.size())
 				m_next_io_service = 0;
@@ -131,10 +127,10 @@ namespace asio2
 	protected:
 
 		/// The pool of io_services. 
-		std::vector<io_service_ptr> m_io_services;
+		std::vector<std::shared_ptr<boost::asio::io_service>> m_io_services;
 
 		/// The work that keeps the io_services running. 
-		std::vector<work_ptr> m_works;
+		std::vector<std::shared_ptr<boost::asio::io_service::work>> m_works;
 
 		/// The next io_service to use for a connection. 
 		std::size_t m_next_io_service = 0;
@@ -143,6 +139,7 @@ namespace asio2
 		spin_lock m_lock;
 	};
 
+	using io_service = boost::asio::io_service;
 	using io_service_pool_ptr = std::shared_ptr<io_service_pool>;
 }
 

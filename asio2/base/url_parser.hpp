@@ -31,6 +31,7 @@
 #include <unordered_map>
 
 #include <asio2/util/helper.hpp>
+#include <asio2/base/error.hpp>
 
 namespace asio2 
 {
@@ -44,7 +45,11 @@ namespace asio2
 		url_parser(std::string url) : m_url(url)
 		{
 			if (!_parse_url())
+			{
+				set_last_error((int)errcode::url_string_invalid);
+
 				_clear();
+			}
 		}
 		virtual ~url_parser()
 		{

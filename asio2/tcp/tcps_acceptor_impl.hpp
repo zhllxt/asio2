@@ -36,17 +36,17 @@ namespace asio2
 		 * @construct
 		 */
 		tcps_acceptor_impl(
-			io_service_pool_ptr io_service_pool_evt_ptr,
-			io_service_pool_ptr io_service_pool_msg_ptr,
+			io_service_pool_ptr ioservice_pool_ptr,
 			std::shared_ptr<listener_mgr> listener_mgr_ptr,
 			std::shared_ptr<url_parser> url_parser_ptr,
+			std::shared_ptr<pool_s> send_buf_pool_ptr,
 			std::shared_ptr<pool_t> recv_buf_pool_ptr
 		)
 			: tcp_acceptor_impl<_session_impl_t>(
-				io_service_pool_evt_ptr,
-				io_service_pool_msg_ptr,
+				ioservice_pool_ptr,
 				listener_mgr_ptr,
 				url_parser_ptr,
+				send_buf_pool_ptr,
 				recv_buf_pool_ptr
 				)
 		{
@@ -81,11 +81,9 @@ namespace asio2
 			if (session_ptr)
 			{
 				session_ptr->set_context(m_context_ptr);
-				
-				return session_ptr;
 			}
 
-			return nullptr;
+			return session_ptr;
 		}
 
 	protected:

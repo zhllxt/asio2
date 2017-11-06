@@ -22,7 +22,9 @@
 #include <boost/asio.hpp>
 #include <boost/system/system_error.hpp>
 
-#include <asio2/util/pool.hpp>
+#include <asio2/util/buffer.hpp>
+#include <asio2/util/buffer_pool.hpp>
+#include <asio2/util/multi_buffer_pool.hpp>
 
 #include <asio2/base/io_service_pool.hpp>
 #include <asio2/base/error.hpp>
@@ -41,35 +43,23 @@ namespace asio2
 		 * @construct
 		 */
 		connection_impl(
-			io_service_ptr evt_send_ioservice_ptr,
-			io_service_ptr evt_recv_ioservice_ptr,
-			io_service_ptr msg_send_ioservice_ptr,
-			io_service_ptr msg_recv_ioservice_ptr,
+			std::shared_ptr<io_service> send_ioservice_ptr,
+			std::shared_ptr<io_service> recv_ioservice_ptr,
 			std::shared_ptr<listener_mgr> listener_mgr_ptr,
 			std::shared_ptr<url_parser> url_parser_ptr
 		)
-			: m_evt_send_ioservice_ptr(evt_send_ioservice_ptr)
-			, m_evt_recv_ioservice_ptr(evt_recv_ioservice_ptr)
-			, m_msg_send_ioservice_ptr(msg_send_ioservice_ptr)
-			, m_msg_recv_ioservice_ptr(msg_recv_ioservice_ptr)
+			: m_send_ioservice_ptr(send_ioservice_ptr)
+			, m_recv_ioservice_ptr(recv_ioservice_ptr)
 			, m_listener_mgr_ptr(listener_mgr_ptr)
 			, m_url_parser_ptr(url_parser_ptr)
 		{
-			if (m_evt_send_ioservice_ptr)
+			if (m_send_ioservice_ptr)
 			{
-				m_evt_send_strand_ptr = std::make_shared<boost::asio::io_service::strand>(*m_evt_send_ioservice_ptr);
+				m_send_strand_ptr = std::make_shared<boost::asio::io_service::strand>(*m_send_ioservice_ptr);
 			}
-			if (m_evt_recv_ioservice_ptr)
+			if (m_recv_ioservice_ptr)
 			{
-				m_evt_recv_strand_ptr = std::make_shared<boost::asio::io_service::strand>(*m_evt_recv_ioservice_ptr);
-			}
-			if (m_msg_send_ioservice_ptr)
-			{
-				m_msg_send_strand_ptr = std::make_shared<boost::asio::io_service::strand>(*m_msg_send_ioservice_ptr);
-			}
-			if (m_msg_recv_ioservice_ptr)
-			{
-				m_msg_recv_strand_ptr = std::make_shared<boost::asio::io_service::strand>(*m_msg_recv_ioservice_ptr);
+				m_recv_strand_ptr = std::make_shared<boost::asio::io_service::strand>(*m_recv_ioservice_ptr);
 			}
 		}
 
@@ -92,7 +82,6 @@ namespace asio2
 			// so here,at debug mode,we check if user create the object correct
 			// note : can't call shared_from_this() in construct function
 			// note : can't call shared_from_this() in shared_ptr custom deleter function 
-#if defined(_DEBUG) || defined(DEBUG)
 			try
 			{
 				shared_from_this();
@@ -102,7 +91,6 @@ namespace asio2
 				assert(false);
 				return false;
 			}
-#endif // DEBUG
 			return true;
 		}
 
@@ -119,45 +107,28 @@ namespace asio2
 
 		/**
 		 * @function : send data
-		 * @param    : send_buf_ptr - std::shared_ptr<uint8_t> object
-		 *             len          - data len
 		 */
-		virtual bool send(std::shared_ptr<uint8_t> send_buf_ptr, std::size_t len) = 0;
+		virtual bool send(std::shared_ptr<buffer<uint8_t>> buf_ptr) = 0;
 
 		/**
 		 * @function : send data
 		 */
-		virtual bool send(const char * buf, std::size_t len)
-		{
-			std::shared_ptr<uint8_t> buf_ptr(new uint8_t[len], std::default_delete<uint8_t[]>());
-			std::memcpy(static_cast<void *>(buf_ptr.get()), static_cast<const void *>(buf), len);
-			return this->send(buf_ptr, len);
-		}
+		virtual bool send(const uint8_t * buf, std::size_t len) = 0;
 
 		/**
 		 * @function : send data
 		 */
 		virtual bool send(const char * buf)
 		{
-			return this->send(buf, std::strlen(buf));
+			return this->send(reinterpret_cast<const uint8_t *>(buf), std::strlen(buf));
 		}
 
 	public:
-		/**
-		 * @function : get socket's recv buffer size
-		 */
-		virtual int get_recv_buffer_size() = 0;
-
 		/**
 		 * @function : set socket's recv buffer size.
 		 *             when packet lost rate is high,you can set the recv buffer size to a big value to avoid it.
 		 */
 		virtual bool set_recv_buffer_size(int size) = 0;
-
-		/**
-		 * @function : get socket's send buffer size
-		 */
-		virtual int get_send_buffer_size() = 0;
 
 		/**
 		 * @function : set socket's send buffer size
@@ -269,20 +240,16 @@ namespace asio2
 
 	protected:
 
-		io_service_ptr m_evt_send_ioservice_ptr;
-		io_service_ptr m_evt_recv_ioservice_ptr;
-		io_service_ptr m_msg_send_ioservice_ptr;
-		io_service_ptr m_msg_recv_ioservice_ptr;
+		std::shared_ptr<io_service> m_send_ioservice_ptr;
+		std::shared_ptr<io_service> m_recv_ioservice_ptr;
 
 		/// asio::strand shared_ptr,used to ensure socket multi thread safe,we must ensure that only
 		/// one operator can operate socket at the same time,and strand can enuser that the event will
 		/// be processed in the order of post, eg : strand.post(1);strand.post(2); the 2 will processed
 		/// certaion after the 1,if 1 is block,the 2 won't be processed,util the 1 is processed completed
 		/// more details see : http://bbs.csdn.net/topics/390931471
-		std::shared_ptr<boost::asio::io_service::strand> m_evt_send_strand_ptr;
-		std::shared_ptr<boost::asio::io_service::strand> m_evt_recv_strand_ptr;
-		std::shared_ptr<boost::asio::io_service::strand> m_msg_send_strand_ptr;
-		std::shared_ptr<boost::asio::io_service::strand> m_msg_recv_strand_ptr;
+		std::shared_ptr<boost::asio::io_service::strand> m_send_strand_ptr;
+		std::shared_ptr<boost::asio::io_service::strand> m_recv_strand_ptr;
 
 		/// last active time 
 		std::chrono::time_point<std::chrono::steady_clock> m_last_active_time = std::chrono::steady_clock::now();

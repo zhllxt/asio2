@@ -18,6 +18,8 @@
 
 #include <boost/asio.hpp>
 
+#include <asio2/util/buffer.hpp>
+
 namespace asio2
 {
 	/**
@@ -71,7 +73,7 @@ namespace asio2
 		 *             data_ptr    - the send data buffer shared_ptr
 		 *             len         - the send data buffer len
 		 */
-		virtual void on_send(std::shared_ptr<_session> session_ptr, std::shared_ptr<_format> data_ptr, std::size_t len, int error) {};
+		virtual void on_send(std::shared_ptr<_session> session_ptr, std::shared_ptr<buffer<_format>> data_ptr, int error) {};
 
 		/**
 		 * @function : handle the recv data notify,you can call session_ptr->stop(); directly to close the session.
@@ -79,7 +81,7 @@ namespace asio2
 		 *             data_ptr    - the recv data buffer shared_ptr
 		 *             len         - the recv data buffer len
 		 */
-		virtual void on_recv(std::shared_ptr<_session> session_ptr, std::shared_ptr<_format> data_ptr, std::size_t len) {};
+		virtual void on_recv(std::shared_ptr<_session> session_ptr, std::shared_ptr<buffer<_format>> data_ptr) {};
 
 		/**
 		 * @function : handle the session closed notify
@@ -135,14 +137,14 @@ namespace asio2
 		 * @param    : data_ptr    - the send data buffer shared_ptr
 		 *             len         - the send data buffer len
 		 */
-		virtual void on_send(std::shared_ptr<_format> data_ptr, std::size_t len, int error) {};
+		virtual void on_send(std::shared_ptr<buffer<_format>> data_ptr, int error) {};
 
 		/**
 		 * @function : handle the recv data notify,you can call session_ptr->stop(); directly to close the session.
 		 * @param    : data_ptr    - the recv data buffer shared_ptr
 		 *             len         - the recv data buffer len
 		 */
-		virtual void on_recv(std::shared_ptr<_format> data_ptr, std::size_t len) {};
+		virtual void on_recv(std::shared_ptr<buffer<_format>> data_ptr) {};
 
 		/**
 		 * @function : handle the session closed notify
@@ -187,14 +189,14 @@ namespace asio2
 		 * @param    : data_ptr    - the send data buffer shared_ptr
 		 *             len         - the send data buffer len
 		 */
-		virtual void on_send(std::string ip, unsigned short port, std::shared_ptr<_format> data_ptr, std::size_t len, int error) {};
+		virtual void on_send(std::string ip, unsigned short port, std::shared_ptr<buffer<_format>> data_ptr, int error) {};
 
 		/**
 		 * @function : handle the recv data notify,you can call session_ptr->stop(); directly to close the session.
 		 * @param    : data_ptr    - the recv data buffer shared_ptr
 		 *             len         - the recv data buffer len
 		 */
-		virtual void on_recv(std::string ip, unsigned short port, std::shared_ptr<_format> data_ptr, std::size_t len) {};
+		virtual void on_recv(std::string ip, unsigned short port, std::shared_ptr<buffer<_format>> data_ptr) {};
 
 		/**
 		 * @function : handle the session closed notify

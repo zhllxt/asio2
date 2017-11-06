@@ -33,17 +33,17 @@ namespace asio2
 		 * @construct
 		 */
 		http_acceptor_impl(
-			io_service_pool_ptr io_service_pool_evt_ptr,
-			io_service_pool_ptr io_service_pool_msg_ptr,
+			io_service_pool_ptr ioservice_pool_ptr,
 			std::shared_ptr<listener_mgr> listener_mgr_ptr,
 			std::shared_ptr<url_parser> url_parser_ptr,
+			std::shared_ptr<pool_s> send_buf_pool_ptr,
 			std::shared_ptr<pool_t> recv_buf_pool_ptr
 		)
 			: tcp_acceptor_impl<_session_impl_t>(
-				io_service_pool_evt_ptr,
-				io_service_pool_msg_ptr,
+				ioservice_pool_ptr,
 				listener_mgr_ptr,
 				url_parser_ptr,
+				send_buf_pool_ptr,
 				recv_buf_pool_ptr
 				)
 		{
@@ -55,6 +55,29 @@ namespace asio2
 		virtual ~http_acceptor_impl()
 		{
 		}
+
+		inline http_acceptor_impl & set_parser_settings(std::shared_ptr<http::http_parser_settings> settings_ptr)
+		{
+			m_settings_ptr = settings_ptr;
+			return (*this);
+		}
+
+	protected:
+
+		virtual std::shared_ptr<_session_impl_t> _prepare_session() override
+		{
+			std::shared_ptr<_session_impl_t> session_ptr = tcp_acceptor_impl<_session_impl_t>::_prepare_session();
+			
+			if (session_ptr)
+			{
+				session_ptr->set_parser_settings(m_settings_ptr);
+			}
+
+			return session_ptr;
+		}
+
+	protected:
+		std::shared_ptr<http::http_parser_settings> m_settings_ptr;
 
 	};
 

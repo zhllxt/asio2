@@ -21,25 +21,18 @@
 class user_udp_server_listener : public asio2::udp_server_listener_t<asio2::session,uint8_t>
 {
 public:
-	virtual void on_send(std::shared_ptr<asio2::session> session_ptr, std::shared_ptr<uint8_t> data_ptr, std::size_t len, int error) override
+	virtual void on_send(std::shared_ptr<asio2::session> session_ptr, asio2::buffer_ptr data_ptr, int error) override
 	{
 	}
-	virtual void on_recv(std::shared_ptr<asio2::session> session_ptr, std::shared_ptr<uint8_t> data_ptr, std::size_t len) override
+	virtual void on_recv(std::shared_ptr<asio2::session> session_ptr, asio2::buffer_ptr data_ptr) override
 	{
-		//char * p = (char*)data_ptr.get();
-		//*(p + len) = 0; // a b 
-		//std::printf("udp server recv : %s %zd %d\n", p,len,std::rand());
-
-		session_ptr->send(data_ptr, len);
+		session_ptr->send(data_ptr);
 	}
 	virtual void on_close(std::shared_ptr<asio2::session> session_ptr, int error) override
 	{
 	}
 	virtual void on_listen() override
 	{
-		//if (!server_ptr->set_recv_buffer_size(32 * 1024 * 1024))
-		//{
-		//}
 	}
 	virtual void on_accept(std::shared_ptr<asio2::session> session_ptr) override
 	{
@@ -52,21 +45,14 @@ public:
 class user_tcp_client_listener : public asio2::tcp_client_listener_t<uint8_t>
 {
 public:
-	virtual void on_send(std::shared_ptr<uint8_t> data_ptr, std::size_t len, int error) override
+	virtual void on_send(asio2::buffer_ptr data_ptr, int error) override
 	{
-		//char * p = (char*)data.get();
-		//std::printf("tcp client send <%zu> %s\n", len, p);
 	}
-	virtual void on_recv(std::shared_ptr<uint8_t> data_ptr, std::size_t len) override
+	virtual void on_recv(asio2::buffer_ptr data_ptr) override
 	{
-		//char * p = (char*)data.get();
-		//*(p + len) = 0;
-		//std::printf("tcp client recv : %s\n", p);
 	}
 	virtual void on_close(int error) override
 	{
-		//static int i = 0;
-		//std::printf(">> tcp client closed %d %llx %s\n", i++, (std::size_t)client_ptr.get(),asio2::get_error_desc(error).c_str());
 	}
 	virtual void on_connect(int error) override
 	{
@@ -79,9 +65,9 @@ class main_frame
 {
 public:
 
-	void on_recv(std::shared_ptr<asio2::session> session_ptr, std::shared_ptr<uint8_t> data_ptr, std::size_t len,int num)
+	void on_recv(std::shared_ptr<asio2::session> session_ptr, asio2::buffer_ptr data_ptr, int num)
 	{
-		session_ptr->send(data_ptr, len);
+		session_ptr->send(data_ptr);
 	}
 };
 
@@ -96,16 +82,16 @@ std::size_t g_session_count = 0;
 // ...  content
 // tail 1 byte >
 
-std::size_t pack_parser(std::shared_ptr<uint8_t> data_ptr, std::size_t len)
+std::size_t pack_parser(asio2::buffer_ptr data_ptr)
 {
-	if (len < 3)
+	if (data_ptr->size() < 3)
 		return NEED_MORE_DATA;
 
-	uint8_t * data = data_ptr.get();
+	uint8_t * data = data_ptr->data();
 	if (data[0] == '<')
 	{
 		std::size_t total_len = data[1] + 3;
-		if (len < total_len)
+		if (data_ptr->size() < total_len)
 			return NEED_MORE_DATA;
 		if (data[total_len - 1] == '>')
 			return total_len;
@@ -341,7 +327,7 @@ std::size_t pack_parser(std::shared_ptr<uint8_t> data_ptr, std::size_t len)
 //	/* Handle error. Usually just close the connection. */
 //}
 //
-
+#include <asio2/util/buffer.hpp>
 int main(int argc, char *argv[])
 {
 #if defined(WIN32) || defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS_)
@@ -405,12 +391,8 @@ int main(int argc, char *argv[])
 		asio2::http::http_parser_parse_url(url, std::strlen(url), 0, &u);
 
 		asio2::server http_server("http://*:8443");
-		http_server.bind_recv([&http_server](std::shared_ptr<asio2::session> session_ptr, std::shared_ptr<uint8_t> data_ptr, std::size_t len)
+		http_server.bind_recv([&http_server](std::shared_ptr<asio2::session> session_ptr, asio2::buffer_ptr data_ptr)
 		{
-			char buf[1024] = { 0 };
-			std::memcpy((void *)buf, (const void *)data_ptr.get(), len);
-			buf[len] = '\0';
-			char * s = 0;
 		});
 		if(!http_server.start())
 			std::printf("start http server failed : %d - %s.\n", asio2::get_last_error(), asio2::get_last_error_desc().c_str());
@@ -418,7 +400,7 @@ int main(int argc, char *argv[])
 			std::printf("start http server successed : %s - %u\n", http_server.get_listen_address().c_str(), http_server.get_listen_port());
 
 		asio2::server tcps_server("tcps://*:9443");
-		tcps_server.bind_recv([](std::shared_ptr<asio2::session> session_ptr, std::shared_ptr<uint8_t> data_ptr, std::size_t len)
+		tcps_server.bind_recv([](std::shared_ptr<asio2::session> session_ptr, asio2::buffer_ptr data_ptr)
 		{
 		});
 		if (!tcps_server.start())
@@ -427,7 +409,7 @@ int main(int argc, char *argv[])
 			std::printf("start tcps server successed : %s - %u\n", tcps_server.get_listen_address().c_str(), tcps_server.get_listen_port());
 
 		asio2::client tcps_client("tcps://127.0.0.1:9443");
-		tcps_client.bind_recv([] (std::shared_ptr<uint8_t> data_ptr, std::size_t len)
+		tcps_client.bind_recv([] (asio2::buffer_ptr data_ptr)
 		{
 		});
 		if(!tcps_client.start())
@@ -436,7 +418,7 @@ int main(int argc, char *argv[])
 			std::printf("start tcps client successed : %s - %u\n", tcps_client.get_remote_address().c_str(), tcps_client.get_remote_port());
 
 		asio2::server tcps_auto_server("tcps://*:9445/auto");
-		tcps_auto_server.bind_recv([](std::shared_ptr<asio2::session> session_ptr, std::shared_ptr<uint8_t> data_ptr, std::size_t len)
+		tcps_auto_server.bind_recv([](std::shared_ptr<asio2::session> session_ptr, asio2::buffer_ptr data_ptr)
 		{
 		});
 		if (!tcps_auto_server.start())
@@ -445,7 +427,7 @@ int main(int argc, char *argv[])
 			std::printf("start tcps auto server successed : %s - %u\n", tcps_auto_server.get_listen_address().c_str(), tcps_auto_server.get_listen_port());
 
 		asio2::client tcps_auto_client("tcps://127.0.0.1:9445/auto");
-		tcps_auto_client.bind_recv([] (std::shared_ptr<uint8_t> data_ptr, std::size_t len)
+		tcps_auto_client.bind_recv([] (asio2::buffer_ptr data_ptr)
 		{
 		});
 		if(!tcps_auto_client.start())
@@ -454,32 +436,28 @@ int main(int argc, char *argv[])
 			std::printf("start tcps auto client successed : %s - %u\n", tcps_auto_client.get_remote_address().c_str(), tcps_auto_client.get_remote_port());
 
 		asio2::server tcps_pack_server("tcps://*:9447/pack");
-		tcps_pack_server.bind_recv([](std::shared_ptr<asio2::session> session_ptr, std::shared_ptr<uint8_t> data_ptr, std::size_t len)
+		tcps_pack_server.bind_recv([](std::shared_ptr<asio2::session> session_ptr, asio2::buffer_ptr data_ptr)
 		{
-		}).set_pack_parser(std::bind(pack_parser, std::placeholders::_1, std::placeholders::_2));
+		}).set_pack_parser(std::bind(pack_parser, std::placeholders::_1));
 		if (!tcps_pack_server.start())
 			std::printf("start tcps pack server failed : %d - %s.\n", asio2::get_last_error(), asio2::get_last_error_desc().c_str());
 		else
 			std::printf("start tcps pack server successed : %s - %u\n", tcps_pack_server.get_listen_address().c_str(), tcps_pack_server.get_listen_port());
 
 		asio2::client tcps_pack_client("tcps://127.0.0.1:9447/pack");
-		tcps_pack_client.bind_recv([] (std::shared_ptr<uint8_t> data_ptr, std::size_t len)
+		tcps_pack_client.bind_recv([] (asio2::buffer_ptr data_ptr)
 		{
-		}).set_pack_parser(std::bind(pack_parser, std::placeholders::_1, std::placeholders::_2));
+		}).set_pack_parser(std::bind(pack_parser, std::placeholders::_1));
 		if(!tcps_pack_client.start())
 			std::printf("start tcps pack client failed : %d - %s.\n", asio2::get_last_error(), asio2::get_last_error_desc().c_str());
 		else
 			std::printf("start tcps pack client successed : %s - %u\n", tcps_pack_client.get_remote_address().c_str(), tcps_pack_client.get_remote_port());
 
 		//-----------------------------------------------------------------------------------------
-		std::shared_ptr<asio2::server> tcp_auto_server = std::make_shared<asio2::server>(" tcp://*:8088/auto?notify_mode=async&send_buffer_size=1024k & recv_buffer_size=1024K & pool_buffer_size=1024 & io_service_pool_size=3 ");
-		tcp_auto_server->bind_recv([&tcp_auto_server](std::shared_ptr<asio2::session> session_ptr, std::shared_ptr<uint8_t> data_ptr, std::size_t len)
+		std::shared_ptr<asio2::server> tcp_auto_server = std::make_shared<asio2::server>(" tcp://*:8088/auto?send_buffer_size=1024k & recv_buffer_size=1024K & pool_buffer_size=1024 & io_service_pool_size=3 ");
+		tcp_auto_server->bind_recv([&tcp_auto_server](std::shared_ptr<asio2::session> session_ptr, asio2::buffer_ptr data_ptr)
 		{
-			//char * p = (char*)data_ptr.get();
-			//*(p + len ) = 0;
-			//std::printf("tcp auto server recv : %s\n", p);
-
-			session_ptr->send(data_ptr, len); 
+			session_ptr->send(data_ptr); 
 		}).bind_accept([](std::shared_ptr<asio2::session> session_ptr)
 		{
 			session_ptr->set_user_data(session_ptr);
@@ -496,11 +474,8 @@ int main(int argc, char *argv[])
 		for (i = 0; i < client_count; i++)
 		{
 			tcp_auto_client_ptr[i] = std::make_shared<asio2::client>("tcp://localhost:8088/auto");
-			tcp_auto_client_ptr[i]->bind_recv([](std::shared_ptr<uint8_t> data_ptr, std::size_t len)
+			tcp_auto_client_ptr[i]->bind_recv([](asio2::buffer_ptr data_ptr)
 			{
-				//char * p = (char*)data_ptr.get();
-				//*(p + len ) = 0;
-				//std::printf("tcp auto client recv : %s\n", p);
 			});
 			if (!tcp_auto_client_ptr[i]->start(false))
 				std::printf("connect to tcp server failed : %d - %s. %d\n", asio2::get_last_error(), asio2::get_last_error_desc().c_str(), i);
@@ -511,30 +486,30 @@ int main(int argc, char *argv[])
 
 		//-----------------------------------------------------------------------------------------
 		asio2::server tcp_pack_server(" tcp://*:8099/pack?send_buffer_size=1024k & recv_buffer_size=1024K & pool_buffer_size=1024 & io_service_pool_size=3");
-		tcp_pack_server.bind_recv([&tcp_pack_server](std::shared_ptr<asio2::session> session_ptr, std::shared_ptr<uint8_t> data_ptr, std::size_t len)
+		tcp_pack_server.bind_recv([&tcp_pack_server](std::shared_ptr<asio2::session> session_ptr, asio2::buffer_ptr data_ptr)
 		{
-			char * p = (char*)data_ptr.get();
+			char * p = (char*)data_ptr->data();
 			std::string s;
-			s.resize(len);
-			std::memcpy((void*)s.c_str(), (const void *)p, len);
+			s.resize(data_ptr->size());
+			std::memcpy((void*)s.c_str(), (const void *)p, data_ptr->size());
 			//std::printf("tcp_pack_server recv : %s\n", s.c_str());
 
-			int send_len = std::rand() % ((int)len / 2);
+			int send_len = std::rand() % ((int)data_ptr->size() / 2);
 			int already_send_len = 0;
 			while (true)
 			{
-				session_ptr->send(p + already_send_len, (std::size_t)send_len);
+				session_ptr->send((const uint8_t *)p + already_send_len, (std::size_t)send_len);
 				already_send_len += send_len;
 
-				if ((std::size_t)already_send_len >= len)
+				if ((std::size_t)already_send_len >= data_ptr->size())
 					break;
 
-				send_len = std::rand() % ((int)len / 2);
-				if (send_len + already_send_len > (int)len)
-					send_len = (int)len - already_send_len;
+				send_len = std::rand() % ((int)data_ptr->size() / 2);
+				if (send_len + already_send_len > (int)data_ptr->size())
+					send_len = (int)data_ptr->size() - already_send_len;
 			}
 			
-		}).set_pack_parser(std::bind(pack_parser, std::placeholders::_1, std::placeholders::_2));
+		}).set_pack_parser(std::bind(pack_parser, std::placeholders::_1));
 		if (!tcp_pack_server.start())
 			std::printf("start tcp server failed : %d - %s.\n", asio2::get_last_error(), asio2::get_last_error_desc().c_str());
 		else
@@ -544,22 +519,22 @@ int main(int argc, char *argv[])
 		for (i = 0; i < client_count; i++)
 		{
 			tcp_pack_client[i] = std::make_shared<asio2::client>("tcp://localhost:8099/pack");
-			tcp_pack_client[i]->bind_recv([](std::shared_ptr<uint8_t> data_ptr, std::size_t len)
+			tcp_pack_client[i]->bind_recv([](asio2::buffer_ptr data_ptr)
 			{
-				char * p = (char*)data_ptr.get();
+				char * p = (char*)data_ptr->data();
 				std::string s;
-				s.resize(len);
-				std::memcpy((void*)s.c_str(), (const void *)p, len);
+				s.resize(data_ptr->size());
+				std::memcpy((void*)s.c_str(), (const void *)p, data_ptr->size());
 				//std::printf("tcp_pack_client recv : %s\n", s.c_str());
 
-			}).bind_send([&tcp_pack_client](std::shared_ptr<uint8_t> data_ptr, std::size_t len,int error)
+			}).bind_send([&tcp_pack_client](asio2::buffer_ptr data_ptr, int error)
 			{
-				//char * p = (char*)data_ptr.get();
+				//char * p = (char*)data_ptr->data();
 				//std::string s;
 				//s.resize(len);
-				//std::memcpy((void*)s.c_str(), (const void*)data_ptr.get(), len);
+				//std::memcpy((void*)s.c_str(), (const void*)data_ptr->data(), len);
 				//std::printf("tcp client send : %s\n", s.c_str());
-			}).set_pack_parser(std::bind(pack_parser, std::placeholders::_1, std::placeholders::_2));
+			}).set_pack_parser(std::bind(pack_parser, std::placeholders::_1));
 			if (!tcp_pack_client[i]->start(false))
 				std::printf("connect to tcp server failed : %d - %s. %d\n", asio2::get_last_error(), asio2::get_last_error_desc().c_str(), i);
 			//else
@@ -571,15 +546,15 @@ int main(int argc, char *argv[])
 		asio2::server udp_server("udp://*:9530/?send_buffer_size=256m&recv_buffer_size=256m&pool_buffer_size=1024");
 		//udp_server.bind_listener(std::make_shared<user_udp_server_listener>());
 		//udp_server.bind_recv(std::bind(&main_frame::on_recv,&_main_frame,std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, 10));
-		udp_server.bind_recv([&udp_server,&lock](std::shared_ptr<asio2::session> session_ptr, std::shared_ptr<uint8_t> data_ptr, std::size_t len)
+		udp_server.bind_recv([&udp_server,&lock](std::shared_ptr<asio2::session> session_ptr, asio2::buffer_ptr data_ptr)
 		{
-			//char * p = (char*)data_ptr.get();
+			//char * p = (char*)data_ptr->data();
 			//*(p + len - 1) = 0;
 			//std::printf("udp server recv : %d %s\n", len, p);
 			std::lock_guard<asio2::spin_lock> g(lock);
 			{
 				g_recvd_total_packet_count++;
-				g_recvd_total_bytes += len;
+				g_recvd_total_bytes += data_ptr->size();
 
 				static std::clock_t s_start = std::clock();
 				static std::clock_t c_start = std::clock();
@@ -587,12 +562,11 @@ int main(int argc, char *argv[])
 				std::clock_t c_end = std::clock();
 				if (c_end - c_start > 3000)
 				{
-					std::printf("%-5lld %6dms %7lldpackets %9lldbytes %6lld < %-5lldpackets/sec %5.2fMB bytes/sec >\n",  
+					std::printf("%-5lld %6dms %7lldpackets %9lldbytes < %-5lldpackets/sec %5.2fMB bytes/sec >\n",  
 						g_session_count,
 						c_end - s_start, 
 						g_recvd_total_packet_count, 
 						g_recvd_total_bytes, 
-						udp_server.get_send_pending(),
 						g_recvd_total_packet_count * 1000 / (c_end - s_start),
 						(double)g_recvd_total_bytes * (double)1000 / (double)(c_end - s_start) / (double)1024 / (double)1024
 						);
@@ -601,7 +575,7 @@ int main(int argc, char *argv[])
 				}
 			}
 
-			session_ptr->send(data_ptr, len);
+			session_ptr->send(data_ptr);
 			
 			//session_ptr->send("0");
 		}).bind_accept([](std::shared_ptr<asio2::session> session_ptr)
@@ -622,14 +596,14 @@ int main(int argc, char *argv[])
 		for (i = 0; i < client_count; i++)
 		{
 			udp_client[i] = std::make_shared<asio2::client>("udp://localhost:9530");
-			udp_client[i]->bind_recv([&udp_client](std::shared_ptr<uint8_t> data_ptr, std::size_t len)
+			udp_client[i]->bind_recv([&udp_client](asio2::buffer_ptr data_ptr)
 			{
-				//char * p = (char*)data_ptr.get();
+				//char * p = (char*)data_ptr->data();
 				//*(p + len - 1) = 0;
 				//std::printf("udp client recv : %s\n", p);
-			}).bind_send([&udp_client](std::shared_ptr<uint8_t> data_ptr, std::size_t len, int error)
+			}).bind_send([&udp_client](asio2::buffer_ptr data_ptr, int error)
 			{
-				//char * p = (char*)data_ptr.get();
+				//char * p = (char*)data_ptr->data();
 				//*(p + len - 1) = 0;
 				//std::printf("udp client send :%lld %s\n", len, p);
 			});;
@@ -646,65 +620,9 @@ int main(int argc, char *argv[])
 		//-----------------------------------------------------------------------------------------
 		std::thread([&]()
 		{
-			int count = 0,seconds = 30 + std::rand() % 6;
-			//while (run_flag && count++ < seconds)
-			while (run_flag )
+			while (run_flag)
 			{
-				static bool flag = false;
-				//if (!flag)
-				{
-					//for (i = 0; i < client_count; i++)
-					//	tcp_auto_client[i].send("<tcp abc 123>");
-					for (i = 0; i < client_count; i++)
-					{
-						std::string s;
-						for (int i = 0, len = 10 + std::rand() % 100; i < len; i++)
-						{
-							s += (char)(std::rand() % 26) + 'a';
-						}
-						tcp_auto_client_ptr[i]->send(s.c_str());
-					}
-					for (i = 0; i < client_count; i++)
-					{
-						std::string s;
-						s += '<';
-						int len = 33 + std::rand() % (126 - 33);
-						s += (char)len;
-						for (int i = 0; i < len; i++)
-						{
-							s += (char)(std::rand() % 26) + 'a';
-						}
-						s += '>';
-						len += 3;
-
-						int packet_send_times = 0;
-						int send_len = std::rand() % (len / 2);
-						int already_send_len = 0;
-						while (true)
-						{
-							packet_send_times++;
-							tcp_pack_client[i]->send(s.c_str() + already_send_len, (std::size_t)send_len);
-							already_send_len += send_len;
-
-							if (already_send_len >= len)
-								break;
-
-							send_len = std::rand() % (len / 2);
-							if (send_len + already_send_len > len)
-								send_len = len - already_send_len;
-						}
-
-						//std::printf("split packet count : %d\n", packet_send_times);
-					}
-					for (i = 0; i < client_count; i++)
-						udp_client[i]->send("<udp abc 123 456>");
-					for (i = 0; i < client_count; i++)
-						udp_client[i]->send("<udp abc 123 456 789 xyz>");
-
-					flag = true;
-				}
-
-				std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+				std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 			}
 		}).join();
 

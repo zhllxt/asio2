@@ -24,6 +24,8 @@
 #	define NDEBUG
 #endif
 
+#include <cassert>
+
 #include <memory>
 #include <future>
 #include <functional>
@@ -55,26 +57,29 @@
 namespace asio2
 {
 
-	using tcp_connection        = tcp_connection_impl<pool<uint8_t>>;
+	using tcp_connection        = tcp_connection_impl<buffer_pool<uint8_t>>;
 	using tcp_client            = tcp_client_impl<tcp_connection>;
 
-	using tcp_auto_connection   = tcp_auto_connection_impl<multi_pool<uint8_t>>;
+	using tcp_auto_connection   = tcp_auto_connection_impl<multi_buffer_pool<uint8_t>>;
 	using tcp_auto_client       = tcp_auto_client_impl<tcp_auto_connection>;
 
-	using tcp_pack_connection   = tcp_pack_connection_impl<pool<uint8_t>>;
+	using tcp_pack_connection   = tcp_pack_connection_impl<buffer_pool<uint8_t>>;
 	using tcp_pack_client       = tcp_pack_client_impl<tcp_pack_connection>;
 
-	using udp_connection        = udp_connection_impl<pool<uint8_t>>;
+	using udp_connection        = udp_connection_impl<buffer_pool<uint8_t>>;
 	using udp_client            = udp_client_impl<udp_connection>;
 
+	using http_connection       = http_connection_impl<buffer_pool<uint8_t>>;
+	using http_client           = http_client_impl<http_connection>;
+
 #if defined(USE_SSL)
-	using tcps_connection       = tcps_connection_impl<pool<uint8_t>>;
+	using tcps_connection       = tcps_connection_impl<buffer_pool<uint8_t>>;
 	using tcps_client           = tcps_client_impl<tcps_connection>;
 
-	using tcps_auto_connection  = tcps_auto_connection_impl<pool<uint8_t>>;
+	using tcps_auto_connection  = tcps_auto_connection_impl<buffer_pool<uint8_t>>;
 	using tcps_auto_client      = tcps_auto_client_impl<tcps_auto_connection>;
 
-	using tcps_pack_connection   = tcps_pack_connection_impl<pool<uint8_t>>;
+	using tcps_pack_connection   = tcps_pack_connection_impl<buffer_pool<uint8_t>>;
 	using tcps_pack_client       = tcps_pack_client_impl<tcps_pack_connection>;
 #endif
 
@@ -130,7 +135,7 @@ namespace asio2
 			else if (m_url_parser_ptr->get_protocol() == "udp")
 				m_client_impl_ptr = std::make_shared<udp_client>(m_listener_mgr_ptr, m_url_parser_ptr);
 			else if (m_url_parser_ptr->get_protocol() == "http")
-				m_client_impl_ptr = std::make_shared<udp_client>(m_listener_mgr_ptr, m_url_parser_ptr);
+				m_client_impl_ptr = std::make_shared<http_client>(m_listener_mgr_ptr, m_url_parser_ptr);
 			else if (m_url_parser_ptr->get_protocol() == "https")
 				m_client_impl_ptr = std::make_shared<udp_client>(m_listener_mgr_ptr, m_url_parser_ptr);
 			else if (m_url_parser_ptr->get_protocol() == "rpc")
@@ -173,27 +178,22 @@ namespace asio2
 
 		/**
 		 * @function : send data
-		 * @param    : send_buf_ptr - std::shared_ptr<uint8_t> object
-		 *             len          - data len
 		 */
-		virtual bool send(std::shared_ptr<uint8_t> send_buf_ptr, std::size_t len)
+		virtual bool send(std::shared_ptr<buffer<uint8_t>> buf_ptr)
 		{
-			return (m_client_impl_ptr ? m_client_impl_ptr->send(send_buf_ptr, len) : false);
+			return (m_client_impl_ptr ? m_client_impl_ptr->send(buf_ptr) : false);
 		}
 
 		/**
 		 * @function : send data
-		 * @param    : buf - const char pointer
-		 *             len - buf len
 		 */
-		virtual bool send(const char * buf, std::size_t len)
+		virtual bool send(const uint8_t * buf, std::size_t len)
 		{
 			return (m_client_impl_ptr ? m_client_impl_ptr->send(buf, len) : false);
 		}
 
 		/**
 		 * @function : send data, inner use std::strlen(buf) to calc the buf len.
-		 * @param    : buf - const char pointer
 		 */
 		virtual bool send(const char * buf)
 		{
@@ -235,10 +235,10 @@ namespace asio2
 				std::static_pointer_cast<tcps_client>(m_client_impl_ptr)->get_context_ptr()->add_certificate_authority(
 					boost::asio::const_buffer(buffer.c_str(), buffer.length()));
 			}
-			catch (std::exception & e)
+			catch (boost::system::system_error & e)
 			{
-				set_last_error(DEFAULT_EXCEPTION_CODE, e.what());
-				PRINT_EXCEPTION;
+				set_last_error(e.code().value());
+				assert(false);
 			}
 			return (*this);
 		}
@@ -248,10 +248,10 @@ namespace asio2
 			{
 				std::static_pointer_cast<tcps_client>(m_client_impl_ptr)->get_context_ptr()->load_verify_file(file);
 			}
-			catch (std::exception & e)
+			catch (boost::system::system_error & e)
 			{
-				set_last_error(DEFAULT_EXCEPTION_CODE, e.what());
-				PRINT_EXCEPTION;
+				set_last_error(e.code().value());
+				assert(false);
 			}
 			return (*this);
 		}
@@ -297,7 +297,7 @@ namespace asio2
 		 * the callback function like this : 
 		 * void on_send(std::shared_ptr<uint8_t> data_ptr, std::size_t len, int error)
 		 * or a lumbda function like this : 
-		 * [&](std::shared_ptr<uint8_t> data_ptr, std::size_t len, int error){}
+		 * [&](std::shared_ptr<buffer<uint8_t>> data_ptr, int error){}
 		 */
 		template<typename _listener>
 		client & bind_send(_listener listener)
@@ -313,7 +313,7 @@ namespace asio2
 		/**
 		 * @function : bind listener - the client recv data from remote endpoint
 		 * @param    : listener - a callback function like this:
-		 * void on_recv(std::shared_ptr<uint8_t> data_ptr, std::size_t len)
+		 * void on_recv(std::shared_ptr<buffer<uint8_t>> data_ptr)
 		 */
 		template<typename _listener>
 		client & bind_recv(_listener listener)
@@ -400,8 +400,6 @@ namespace asio2
 		}
 
 	protected:
-
-		using parser_callback = std::size_t(std::shared_ptr<uint8_t> data_ptr, std::size_t len);
 
 		std::shared_ptr<client_impl>         m_client_impl_ptr;
 		std::shared_ptr<url_parser>          m_url_parser_ptr;

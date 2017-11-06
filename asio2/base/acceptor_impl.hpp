@@ -23,7 +23,9 @@
 #include <boost/asio.hpp>
 #include <boost/system/system_error.hpp>
 
-#include <asio2/util/pool.hpp>
+#include <asio2/util/buffer.hpp>
+#include <asio2/util/buffer_pool.hpp>
+#include <asio2/util/multi_buffer_pool.hpp>
 
 #include <asio2/base/error.hpp>
 #include <asio2/base/io_service_pool.hpp>
@@ -41,17 +43,17 @@ namespace asio2
 		 * @construct
 		 */
 		acceptor_impl(
-			io_service_ptr ioservice_ptr,
+			std::shared_ptr<io_service> ioservice_ptr,
 			std::shared_ptr<listener_mgr> listener_mgr_ptr,
 			std::shared_ptr<url_parser> url_parser_ptr
 		)
-			: m_io_service_ptr(ioservice_ptr)
+			: m_ioservice_ptr(ioservice_ptr)
 			, m_listener_mgr_ptr(listener_mgr_ptr)
 			, m_url_parser_ptr(url_parser_ptr)
 		{
-			if (m_io_service_ptr)
+			if (m_ioservice_ptr)
 			{
-				m_strand_ptr = std::make_shared<boost::asio::io_service::strand>(*m_io_service_ptr);
+				m_strand_ptr = std::make_shared<boost::asio::io_service::strand>(*m_ioservice_ptr);
 			}
 		}
 
@@ -98,14 +100,6 @@ namespace asio2
 		virtual bool is_start() = 0;
 
 		/**
-		 * @function : get the strand shared_ptr
-		 */
-		inline std::shared_ptr<boost::asio::io_service::strand> get_strand_ptr()
-		{
-			return m_strand_ptr;
-		}
-
-		/**
 		 * @function : get the listen address
 		 */
 		virtual std::string get_listen_address() = 0;
@@ -115,20 +109,10 @@ namespace asio2
 		 */
 		virtual unsigned short get_listen_port() = 0;
 
-		/**
-		 * @function : get send pending packet size
-		 */
-		virtual std::size_t get_send_pending() { return static_cast<std::size_t>(0); }
-
-		/**
-		 * @function : get recv pending packet size
-		 */
-		virtual std::size_t get_recv_pending() { return static_cast<std::size_t>(0); }
-
 	protected:
 
 		/// hold the io_service shared_ptr,make sure the io_service is destroy after current object
-		io_service_ptr m_io_service_ptr;
+		std::shared_ptr<io_service> m_ioservice_ptr;
 
 		/// asio's strand to ensure asio.socket multi thread safe
 		std::shared_ptr<boost::asio::io_service::strand> m_strand_ptr;

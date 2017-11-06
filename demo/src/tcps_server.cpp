@@ -91,17 +91,13 @@ int main(int argc, char *argv[])
 			.use_private_key(key)
 			.use_tmp_dh(dh);
 
-		tcps_server.bind_recv([](std::shared_ptr<asio2::session> session_ptr, std::shared_ptr<uint8_t> data_ptr, std::size_t len)
+		tcps_server.bind_recv([](std::shared_ptr<asio2::session> session_ptr, asio2::buffer_ptr data_ptr)
 		{
 			std::dynamic_pointer_cast<asio2::tcps_auto_session>(session_ptr)->get_socket_ptr();
 
-			char * p = (char*)data_ptr.get();
-			std::string s;
-			s.resize(len);
-			std::memcpy((void*)s.c_str(), (const void *)p, len);
-			std::printf("tcps_server recv : %s\n", s.c_str());
+			std::printf("recv : %.*s\n", (int)data_ptr->size(), (const char*)data_ptr->data());
 
-			session_ptr->send(data_ptr, len);
+			session_ptr->send(data_ptr);
 		});
 		if (!tcps_server.start())
 			std::printf("start tcps server failed : %d - %s.\n", asio2::get_last_error(), asio2::get_last_error_desc().c_str());

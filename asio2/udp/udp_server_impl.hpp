@@ -20,13 +20,10 @@
 #include <atomic>
 #include <functional>
 
-#include <asio2/util/pool.hpp>
-
 #include <asio2/base/server_impl.hpp>
 #include <asio2/base/io_service_pool.hpp>
 #include <asio2/base/session_mgr.hpp>
 
-#include <asio2/udp/udp_session_impl.hpp>
 #include <asio2/udp/udp_acceptor_impl.hpp>
 
 namespace asio2
@@ -81,28 +78,23 @@ namespace asio2
 				if (!server_impl::start())
 					return false;
 
-				// init service pool size 
-				m_io_service_pool_evt_ptr = std::make_shared<io_service_pool>(_get_io_service_pool_size());
-				m_io_service_pool_msg_ptr = std::make_shared<io_service_pool>(_get_io_service_pool_size());
-
-				// init recv buf pool 
+				// init buf pool 
 				m_recv_buf_pool_ptr = std::make_shared<pool_t>(_get_pool_buffer_size());
+				m_send_buf_pool_ptr = std::make_shared<pool_s>();
 
-				// startup the io service thread 
-				m_io_service_thread_evt_ptr = std::make_shared<std::thread>(std::bind(&io_service_pool::run, m_io_service_pool_evt_ptr));
-				m_io_service_thread_msg_ptr = std::make_shared<std::thread>(std::bind(&io_service_pool::run, m_io_service_pool_msg_ptr));
+				// init service pool size and startup the io service thread 
+				m_ioservice_pool_ptr = std::make_shared<io_service_pool>(_get_io_service_pool_size());
+				m_ioservice_thread_ptr = std::make_shared<std::thread>(std::bind(&io_service_pool::run, m_ioservice_pool_ptr));
 
 				// start listen
 				return _start_listen();
 			}
 			catch (boost::system::system_error & e)
 			{
-				set_last_error(e.code().value(), e.what());
+				set_last_error(e.code().value());
 			}
-			catch (std::exception & e)
+			catch (std::exception &)
 			{
-				set_last_error(DEFAULT_EXCEPTION_CODE, e.what());
-				PRINT_EXCEPTION;
 			}
 
 			return false;
@@ -118,18 +110,16 @@ namespace asio2
 				m_acceptor_impl_ptr->stop();
 
 			// stop the io_service
-			if (m_io_service_pool_evt_ptr)
-				m_io_service_pool_evt_ptr->stop();
-			if (m_io_service_pool_msg_ptr)
-				m_io_service_pool_msg_ptr->stop();
+			if (m_ioservice_pool_ptr)
+				m_ioservice_pool_ptr->stop();
 
 			// wait for the io_service thread finish
-			if (m_io_service_thread_evt_ptr && m_io_service_thread_evt_ptr->joinable())
-				m_io_service_thread_evt_ptr->join();
-			if (m_io_service_thread_msg_ptr && m_io_service_thread_msg_ptr->joinable())
-				m_io_service_thread_msg_ptr->join();
+			if (m_ioservice_thread_ptr && m_ioservice_thread_ptr->joinable())
+				m_ioservice_thread_ptr->join();
 
 			// release the buffer pool malloced memory 
+			if (m_send_buf_pool_ptr)
+				m_send_buf_pool_ptr->destroy();
 			if (m_recv_buf_pool_ptr)
 				m_recv_buf_pool_ptr->destroy();
 		}
@@ -141,21 +131,36 @@ namespace asio2
 		{
 			return (
 				(m_acceptor_impl_ptr && m_acceptor_impl_ptr->is_start()) &&
-				(m_io_service_thread_evt_ptr && m_io_service_thread_evt_ptr->joinable()) &&
-				(m_io_service_thread_msg_ptr && m_io_service_thread_msg_ptr->joinable())
+				(m_ioservice_thread_ptr && m_ioservice_thread_ptr->joinable())
 				);
 		}
 
 		/**
 		 * @function : send data
 		 */
-		virtual bool send(std::shared_ptr<uint8_t> send_buf_ptr, std::size_t len) override
+		virtual bool send(std::shared_ptr<buffer<uint8_t>> send_buf_ptr) override
 		{
 			if (is_start())
 			{
-				m_acceptor_impl_ptr->get_session_mgr_ptr()->for_each_session([send_buf_ptr, len](std::shared_ptr<session_impl_t> session_ptr)
+				m_acceptor_impl_ptr->get_session_mgr_ptr()->for_each_session([send_buf_ptr](std::shared_ptr<session_impl_t> session_ptr)
 				{
-					session_ptr->send(send_buf_ptr, len);
+					session_ptr->send(send_buf_ptr);
+				});
+				return true;
+			}
+			return false;
+		}
+
+		/**
+		 * @function : send data
+		 */
+		virtual bool send(const uint8_t * buf, std::size_t len) override
+		{
+			if (is_start())
+			{
+				m_acceptor_impl_ptr->get_session_mgr_ptr()->for_each_session([buf, len](std::shared_ptr<session_impl_t> session_ptr)
+				{
+					session_ptr->send(buf, len);
 				});
 				return true;
 			}
@@ -212,22 +217,6 @@ namespace asio2
 			return false;
 		}
 
-		/**
-		 * @function : get send pending packet size
-		 */
-		virtual std::size_t get_send_pending() override
-		{
-			return (m_acceptor_impl_ptr ? m_acceptor_impl_ptr->get_send_pending() : static_cast<std::size_t>(0));
-		}
-
-		/**
-		 * @function : get recv pending packet size
-		 */
-		virtual std::size_t get_recv_pending() override
-		{
-			return (m_acceptor_impl_ptr ? m_acceptor_impl_ptr->get_recv_pending() : static_cast<std::size_t>(0));
-		}
-
 	protected:
 
 		virtual bool _start_listen()
@@ -235,10 +224,10 @@ namespace asio2
 			try
 			{
 				m_acceptor_impl_ptr = std::make_shared<_acceptor_impl_t>(
-					m_io_service_pool_evt_ptr,
-					m_io_service_pool_msg_ptr,
+					m_ioservice_pool_ptr,
 					m_listener_mgr_ptr,
 					m_url_parser_ptr,
+					m_send_buf_pool_ptr,
 					m_recv_buf_pool_ptr
 					);
 
@@ -246,7 +235,7 @@ namespace asio2
 			}
 			catch (boost::system::system_error & e)
 			{
-				set_last_error(e.code().value(), e.what());
+				set_last_error(e.code().value());
 
 				m_acceptor_impl_ptr.reset();
 			}
@@ -276,16 +265,13 @@ namespace asio2
 
 	protected:
 		/// the m_io_service_pool_evt thread for socket event
-		std::shared_ptr<std::thread> m_io_service_thread_evt_ptr;
-
-		/// the m_io_service_pool_msg for msg handle
-		std::shared_ptr<std::thread> m_io_service_thread_msg_ptr;
+		std::shared_ptr<std::thread> m_ioservice_thread_ptr;
 
 		/// the io_service_pool for socket event
-		io_service_pool_ptr m_io_service_pool_evt_ptr;
+		io_service_pool_ptr m_ioservice_pool_ptr;
 
-		/// the io_service_pool for msg handle
-		io_service_pool_ptr m_io_service_pool_msg_ptr;
+		/// send buffer pool
+		std::shared_ptr<pool_s> m_send_buf_pool_ptr;
 
 		/// recv buffer pool for every session
 		std::shared_ptr<pool_t> m_recv_buf_pool_ptr;

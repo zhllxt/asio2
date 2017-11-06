@@ -35,17 +35,13 @@ int main(int argc, char *argv[])
 
 	while (run_flag)
 	{
-		std::string url(" tcp://*:8088/?notify_mode=async&send_buffer_size=1024k & recv_buffer_size=1024K & pool_buffer_size=1024 & io_service_pool_size=3 ");
+		std::string url(" tcp://*:9001/?send_buffer_size=1024k & recv_buffer_size=1024K & pool_buffer_size=1024 & io_service_pool_size=3 ");
 		std::shared_ptr<asio2::server> tcp_server = std::make_shared<asio2::server>(url);
-		tcp_server->bind_recv([&tcp_server](std::shared_ptr<asio2::session> session_ptr, std::shared_ptr<uint8_t> data_ptr, std::size_t len)
+		tcp_server->bind_recv([&tcp_server](std::shared_ptr<asio2::session> session_ptr, asio2::buffer_ptr data_ptr)
 		{
-			char * p = (char*)data_ptr.get();
-			std::string s;
-			s.resize(len);
-			std::memcpy((void*)s.c_str(), (const void *)p, len);
-			std::printf("tcp_server recv : %s\n", s.c_str());
+			std::printf("recv : %.*s\n", (int)data_ptr->size(), (const char*)data_ptr->data());
 
-			session_ptr->send(data_ptr, len);
+			session_ptr->send(data_ptr);
 		}).bind_accept([](std::shared_ptr<asio2::session> session_ptr)
 		{
 			session_ptr->set_user_data(session_ptr);
@@ -54,7 +50,7 @@ int main(int argc, char *argv[])
 			session_ptr->set_user_data(nullptr);
 		});
 		if (!tcp_server->start())
-			std::printf("start tcp server failed : %d - %s.\n", asio2::get_last_error(), asio2::get_last_error_desc().c_str());
+			std::printf("start tcp server failed : %d - %s\n", asio2::get_last_error(), asio2::get_last_error_desc().c_str());
 		else
 			std::printf("start tcp server successed : %s - %u\n", tcp_server->get_listen_address().c_str(), tcp_server->get_listen_port());
 

@@ -24,16 +24,16 @@ volatile bool run_flag = true;
 // ...  content
 // tail 1 byte >
 
-std::size_t pack_parser(std::shared_ptr<uint8_t> data_ptr, std::size_t len)
+std::size_t pack_parser(asio2::buffer_ptr data_ptr)
 {
-	if (len < 3)
+	if (data_ptr->size() < 3)
 		return NEED_MORE_DATA;
 
-	uint8_t * data = data_ptr.get();
+	uint8_t * data = data_ptr->data();
 	if (data[0] == '<')
 	{
 		std::size_t total_len = data[1] + 3;
-		if (len < total_len)
+		if (data_ptr->size() < total_len)
 			return NEED_MORE_DATA;
 		if (data[total_len - 1] == '>')
 			return total_len;
@@ -59,34 +59,30 @@ int main(int argc, char *argv[])
 	while (run_flag)
 	{
 		asio2::server tcp_pack_server(" tcp://*:8099/pack?send_buffer_size=1024k & recv_buffer_size=1024K & pool_buffer_size=1024 & io_service_pool_size=3");
-		tcp_pack_server.bind_recv([&tcp_pack_server](std::shared_ptr<asio2::session> session_ptr, std::shared_ptr<uint8_t> data_ptr, std::size_t len)
+		tcp_pack_server.bind_recv([&tcp_pack_server](std::shared_ptr<asio2::session> session_ptr, asio2::buffer_ptr data_ptr)
 		{
-			char * p = (char*)data_ptr.get();
-			std::string s;
-			s.resize(len);
-			std::memcpy((void*)s.c_str(), (const void *)p, len);
-			std::printf("tcp_pack_server recv : %s\n", s.c_str());
+			std::printf("recv : %.*s\n", (int)data_ptr->size(), (const char*)data_ptr->data());
 
-			int send_len = std::rand() % ((int)len / 2);
+			int send_len = std::rand() % ((int)data_ptr->size() / 2);
 			int already_send_len = 0;
 			while (true)
 			{
-				session_ptr->send(p + already_send_len, (std::size_t)send_len);
+				session_ptr->send((const uint8_t *)(data_ptr->data() + already_send_len), (std::size_t)send_len);
 				already_send_len += send_len;
 
-				if ((std::size_t)already_send_len >= len)
+				if ((std::size_t)already_send_len >= data_ptr->size())
 					break;
 
-				send_len = std::rand() % ((int)len / 2);
-				if (send_len + already_send_len > (int)len)
-					send_len = (int)len - already_send_len;
+				send_len = std::rand() % ((int)data_ptr->size() / 2);
+				if (send_len + already_send_len > (int)data_ptr->size())
+					send_len = (int)data_ptr->size() - already_send_len;
 
 				// send for several packets,and sleep for a moment after each send is completed
 				// the client will recv a full packet
 				std::this_thread::sleep_for(std::chrono::milliseconds(100));
 			}
 
-		}).set_pack_parser(std::bind(pack_parser, std::placeholders::_1, std::placeholders::_2));
+		}).set_pack_parser(std::bind(pack_parser, std::placeholders::_1));
 
 		if (!tcp_pack_server.start())
 			std::printf("start tcp server failed : %d - %s.\n", asio2::get_last_error(), asio2::get_last_error_desc().c_str());

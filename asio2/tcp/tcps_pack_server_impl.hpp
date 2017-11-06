@@ -78,10 +78,10 @@ namespace asio2
 			try
 			{
 				this->m_acceptor_impl_ptr = std::make_shared<_acceptor_impl_t>(
-					this->m_io_service_pool_evt_ptr,
-					this->m_io_service_pool_msg_ptr,
+					this->m_ioservice_pool_ptr,
 					this->m_listener_mgr_ptr,
 					this->m_url_parser_ptr,
+					this->m_send_buf_pool_ptr,
 					this->m_recv_buf_pool_ptr
 					);
 
@@ -91,7 +91,7 @@ namespace asio2
 			}
 			catch (boost::system::system_error & e)
 			{
-				set_last_error(e.code().value(), e.what());
+				set_last_error(e.code().value());
 			}
 
 			return false;
@@ -99,7 +99,7 @@ namespace asio2
 
 	protected:
 
-		using parser_callback = std::size_t(std::shared_ptr<uint8_t> data_ptr, std::size_t len);
+		using parser_callback = std::size_t(std::shared_ptr<buffer<uint8_t>> data_ptr);
 
 		std::function<parser_callback>       m_pack_parser;
 
