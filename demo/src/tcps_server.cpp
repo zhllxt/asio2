@@ -91,7 +91,7 @@ int main(int argc, char *argv[])
 			.use_private_key(key)
 			.use_tmp_dh(dh);
 
-		tcps_server.bind_recv([](std::shared_ptr<asio2::session> session_ptr, asio2::buffer_ptr data_ptr)
+		tcps_server.bind_recv([](asio2::session_ptr session_ptr, asio2::buffer_ptr data_ptr)
 		{
 			std::dynamic_pointer_cast<asio2::tcps_auto_session>(session_ptr)->get_socket_ptr();
 

@@ -7,12 +7,6 @@
  *
  */
 
- /*
-  * 
-  * if you find some bugs,or have any troubles or questions on using this library,please contact me.
-  * 
-  */
-
 #ifndef __ASIO2_PLACEHOLDER_HPP__
 #define __ASIO2_PLACEHOLDER_HPP__
 

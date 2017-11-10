@@ -401,7 +401,7 @@ namespace asio2
 	//			else if (str_reply_timeout.find_last_of('s') != std::string::npos)
 	//				reply_timeout *= 1000;
 	//			if (reply_timeout < 1)
-	//				reply_timeout = DEFAULT_REPLY_TIMEOUT;
+	//				reply_timeout = ICMP_DEFAULT_REPLY_TIMEOUT;
 
 	//			m_reply_timeout = reply_timeout;
 	//		}
@@ -691,7 +691,7 @@ namespace asio2
 	//	std::chrono::time_point<std::chrono::steady_clock> m_sent_time = std::chrono::steady_clock::now();
 
 	//	/// reply timeout value,unit : milliseconds
-	//	long m_reply_timeout = DEFAULT_REPLY_TIMEOUT;
+	//	long m_reply_timeout = ICMP_DEFAULT_REPLY_TIMEOUT;
 
 	//	unsigned short m_sequence_number = 0;
 

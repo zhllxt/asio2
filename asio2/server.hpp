@@ -129,8 +129,8 @@ namespace asio2
 		 *        is 0x03ffffff(64M),the max_packet_size and packet_header_flag is only useful to auto model
 		 * # pack - only useful to tcp, you need to set up a data format parser,when recved data,asio2 will call the parser to judge
 		 *        whether the data is valid,if valid and completed,the recv listener will be notifyed.if data length is not enough
-		 *        for a completed packet,the parse should return NEED_MORE_DATA,if the data is invalid,the parser should return
-		 *        INVALID_DATA,if the data is valid and is a completed packet,the parser should return the completed packet length.
+		 *        for a completed packet,the parse should return asio2::need_more_data,if the data is invalid,the parser should return
+		 *        asio2::invalid_data,if the data is valid and is a completed packet,the parser should return the completed packet length.
 		 *        you must ensure the pool_buffer_size is greater than max packet length.
 		 * # default model : when recved data,the recv listener will be notifyed,but the data content and data length is random,you
 		 *        need judge whether the data is valid or completed youself.
@@ -156,9 +156,9 @@ namespace asio2
 			else if (m_url_parser_ptr->get_protocol() == "udp")
 				m_listener_mgr_ptr = std::make_shared<server_listener_mgr>();
 			else if (m_url_parser_ptr->get_protocol() == "http")
-				m_listener_mgr_ptr = std::make_shared<server_listener_mgr>();
+				m_listener_mgr_ptr = std::make_shared<http_server_listener_mgr>();
 			else if (m_url_parser_ptr->get_protocol() == "https")
-				m_listener_mgr_ptr = std::make_shared<server_listener_mgr>();
+				m_listener_mgr_ptr = std::make_shared<http_server_listener_mgr>();
 			else if (m_url_parser_ptr->get_protocol() == "rpc")
 				m_listener_mgr_ptr = std::make_shared<server_listener_mgr>();
 
@@ -253,7 +253,7 @@ namespace asio2
 		/**
 		 * @function : 
 		 * @param    : the user callback function,the session shared_ptr will pass to the function as a param,
-		 *             the callback like this : void handler(std::shared_ptr<asio2::session> session_ptr){...}
+		 *             the callback like this : void handler(asio2::session_ptr session_ptr){...}
 		 */
 		template<typename _handler>
 		bool for_each_session(_handler handler)
@@ -341,7 +341,7 @@ namespace asio2
 #endif
 				}
 			}
-			catch (std::exception &) {}
+			catch (std::exception &) { assert(false); }
 			return (*this);
 		}
 
@@ -474,69 +474,131 @@ namespace asio2
 
 	public:
 		/**
-		 * @function : bind listener - 
+		 * @function : bind listener , used for tcp_server,udp_server,tcp_pack_server,tcps_server,tcps_pack_server
 		 * @param    : listener_sptr - a listener object shared_ptr
 		 * must ensure the listener_sptr is valid before server has stoped 
 		 */
-		template<typename _listener_t>
-		server & bind_listener(std::shared_ptr<_listener_t> listener_sptr)
+		server & bind_listener(std::shared_ptr<server_listener> listener_sptr)
 		{
 			try
 			{
 				std::dynamic_pointer_cast<server_listener_mgr>(m_listener_mgr_ptr)->bind_listener(listener_sptr);
 			}
-			catch (std::exception &) {}
+			catch (std::exception &) { assert(false); }
 			return (*this);
 		}
 
 		/**
-		 * @function : bind listener - 
+		 * @function : bind listener , used for http_server
+		 * @param    : listener_sptr - a listener object shared_ptr
+		 * must ensure the listener_sptr is valid before server has stoped 
+		 */
+		server & bind_listener(std::shared_ptr<http_server_listener> listener_sptr)
+		{
+			try
+			{
+				std::dynamic_pointer_cast<http_server_listener_mgr>(m_listener_mgr_ptr)->bind_listener(listener_sptr);
+			}
+			catch (std::exception &) { assert(false); }
+			return (*this);
+		}
+
+		/**
+		 * @function : bind listener , used for tcp_server,udp_server,tcp_pack_server,tcps_server,tcps_pack_server
 		 * @param    : listener_rptr - a listener object raw pointer
 		 * must ensure the listener_rptr is valid before server has stoped 
 		 */
-		template<typename _listener_t>
-		server & bind_listener(_listener_t                * listener_rptr)
+		server & bind_listener(server_listener                * listener_rptr)
 		{
 			try
 			{
 				std::dynamic_pointer_cast<server_listener_mgr>(m_listener_mgr_ptr)->bind_listener(listener_rptr);
 			}
-			catch (std::exception &) {}
+			catch (std::exception &) { assert(false); }
 			return (*this);
 		}
 
 		/**
-		 * @function : bind listener - the session send data finished
+		 * @function : bind listener , used for http_server
+		 * @param    : listener_rptr - a listener object raw pointer
+		 * must ensure the listener_rptr is valid before server has stoped 
+		 */
+		server & bind_listener(http_server_listener                * listener_rptr)
+		{
+			try
+			{
+				std::dynamic_pointer_cast<http_server_listener_mgr>(m_listener_mgr_ptr)->bind_listener(listener_rptr);
+			}
+			catch (std::exception &) { assert(false); }
+			return (*this);
+		}
+
+		/**
+		 * @function : bind listener - the session send data finished , used for tcp_server,udp_server,tcp_pack_server,tcps_server,tcps_pack_server
 		 * @param    : listener - a callback function
 		 * the callback function like this :
-		 * void on_send(std::shared_ptr<asio2::session> session_ptr, std::shared_ptr<uint8_t> data_ptr, std::size_t len, int error)
+		 * void on_send(asio2::session_ptr session_ptr, asio2::buffer_ptr data_ptr, int error)
 		 * or a lumbda function like this :
-		 * [&](std::shared_ptr<asio2::session> session_ptr, std::shared_ptr<buffer<uint8_t>> data_ptr, int error){}
+		 * [&](asio2::session_ptr session_ptr, asio2::buffer_ptr data_ptr, int error){}
 		 */
-		template<typename _listener>
-		server & bind_send(_listener listener)
+		server & bind_send(std::function<server_listener_mgr::send_callback> listener)
 		{
 			try
 			{
 				std::dynamic_pointer_cast<server_listener_mgr>(m_listener_mgr_ptr)->bind_send(listener);
 			}
-			catch (std::exception &) {}
+			catch (std::exception &) { assert(false); }
+			return (*this);
+		}
+
+		/**
+		 * @function : bind listener - the session send data finished , used for http_server
+		 * @param    : listener - a callback function
+		 * the callback function like this :
+		 * void on_send(asio2::session_ptr session_ptr, asio2::response_ptr response_ptr, int error)
+		 * or a lumbda function like this :
+		 * [&](asio2::session_ptr session_ptr, asio2::response_ptr response_ptr, int error){}
+		 */
+		server & bind_send(std::function<http_server_listener_mgr::send_callback> listener)
+		{
+			try
+			{
+				std::dynamic_pointer_cast<http_server_listener_mgr>(m_listener_mgr_ptr)->bind_send(listener);
+			}
+			catch (std::exception &) { assert(false); }
 			return (*this);
 		}
 
 		/**
 		 * @function : bind listener - the session recv data from remote endpoint
+		 * , used for tcp_server,udp_server,tcp_pack_server,tcps_server,tcps_pack_server
 		 * @param    : listener - a callback function like this:
-		 * void on_recv(std::shared_ptr<asio2::session> session_ptr, std::shared_ptr<buffer<uint8_t>> data_ptr)
+		 * void on_recv(asio2::session_ptr session_ptr, asio2::buffer_ptr data_ptr)
+		 * or a lumbda function like this :
+		 * [&](asio2::session_ptr session_ptr, asio2::buffer_ptr data_ptr){}
 		 */
-		template<typename _listener>
-		server & bind_recv(_listener listener)
+		server & bind_recv(std::function<server_listener_mgr::recv_callback> listener)
 		{
 			try
 			{
 				std::dynamic_pointer_cast<server_listener_mgr>(m_listener_mgr_ptr)->bind_recv(listener);
 			}
-			catch (std::exception &) {}
+			catch (std::exception &) { assert(false); }
+			return (*this);
+		}
+
+		/**
+		 * @function : bind listener - the session recv data from remote endpoint,used fo http_server
+		 * @param    : listener - a callback function like this:
+		 * void on_recv(asio2::session_ptr session_ptr, asio2::request_ptr request_ptr)
+		 */
+		server & bind_recv(std::function<http_server_listener_mgr::recv_callback> listener)
+		{
+			try
+			{
+				std::dynamic_pointer_cast<http_server_listener_mgr>(m_listener_mgr_ptr)->bind_recv(listener);
+			}
+			catch (std::exception &) { assert(false); }
 			return (*this);
 		}
 
@@ -545,46 +607,76 @@ namespace asio2
 		 * @param    : listener - a callback function like this:
 		 * void on_listen()
 		 */
-		template<typename _listener>
-		server & bind_listen(_listener listener)
+		server & bind_listen(std::function<server_listener_mgr::lisn_callback> listener)
 		{
 			try
 			{
-				std::dynamic_pointer_cast<server_listener_mgr>(m_listener_mgr_ptr)->bind_listen(listener);
+				if /**/ (m_url_parser_ptr->get_protocol() == "tcp")
+					std::dynamic_pointer_cast<server_listener_mgr>(m_listener_mgr_ptr)->bind_listen(listener);
+				else if (m_url_parser_ptr->get_protocol() == "tcps")
+					std::dynamic_pointer_cast<server_listener_mgr>(m_listener_mgr_ptr)->bind_listen(listener);
+				else if (m_url_parser_ptr->get_protocol() == "udp")
+					std::dynamic_pointer_cast<server_listener_mgr>(m_listener_mgr_ptr)->bind_listen(listener);
+				else if (m_url_parser_ptr->get_protocol() == "http")
+					std::dynamic_pointer_cast<http_server_listener_mgr>(m_listener_mgr_ptr)->bind_listen(listener);
+				else if (m_url_parser_ptr->get_protocol() == "https")
+					std::dynamic_pointer_cast<http_server_listener_mgr>(m_listener_mgr_ptr)->bind_listen(listener);
+				else if (m_url_parser_ptr->get_protocol() == "rpc")
+					std::dynamic_pointer_cast<server_listener_mgr>(m_listener_mgr_ptr)->bind_listen(listener);
 			}
-			catch (std::exception &) {}
+			catch (std::exception &) { assert(false); }
 			return (*this);
 		}
 
 		/**
 		 * @function : bind listener - accept a new session
 		 * @param    : listener - a callback function like this:
-		 * void on_accept(std::shared_ptr<asio2::session> session_ptr)
+		 * void on_accept(asio2::session_ptr session_ptr)
 		 */
-		template<typename _listener>
-		server & bind_accept(_listener listener)
+		server & bind_accept(std::function<server_listener_mgr::acpt_callback> listener)
 		{
 			try
 			{
-				std::dynamic_pointer_cast<server_listener_mgr>(m_listener_mgr_ptr)->bind_accept(listener);
+				if /**/ (m_url_parser_ptr->get_protocol() == "tcp")
+					std::dynamic_pointer_cast<server_listener_mgr>(m_listener_mgr_ptr)->bind_accept(listener);
+				else if (m_url_parser_ptr->get_protocol() == "tcps")
+					std::dynamic_pointer_cast<server_listener_mgr>(m_listener_mgr_ptr)->bind_accept(listener);
+				else if (m_url_parser_ptr->get_protocol() == "udp")
+					std::dynamic_pointer_cast<server_listener_mgr>(m_listener_mgr_ptr)->bind_accept(listener);
+				else if (m_url_parser_ptr->get_protocol() == "http")
+					std::dynamic_pointer_cast<http_server_listener_mgr>(m_listener_mgr_ptr)->bind_accept(listener);
+				else if (m_url_parser_ptr->get_protocol() == "https")
+					std::dynamic_pointer_cast<http_server_listener_mgr>(m_listener_mgr_ptr)->bind_accept(listener);
+				else if (m_url_parser_ptr->get_protocol() == "rpc")
+					std::dynamic_pointer_cast<server_listener_mgr>(m_listener_mgr_ptr)->bind_accept(listener);
 			}
-			catch (std::exception &) {}
+			catch (std::exception &) { assert(false); }
 			return (*this);
 		}
 
 		/**
 		 * @function : bind listener - the session is closed
 		 * @param    : listener - a callback function like this:
-		 * void on_close(std::shared_ptr<asio2::session> session_ptr, int error)
+		 * void on_close(asio2::session_ptr session_ptr, int error)
 		 */
-		template<typename _listener>
-		server & bind_close(_listener listener)
+		server & bind_close(std::function<server_listener_mgr::clos_callback> listener)
 		{
 			try
 			{
-				std::dynamic_pointer_cast<server_listener_mgr>(m_listener_mgr_ptr)->bind_close(listener);
+				if /**/ (m_url_parser_ptr->get_protocol() == "tcp")
+					std::dynamic_pointer_cast<server_listener_mgr>(m_listener_mgr_ptr)->bind_close(listener);
+				else if (m_url_parser_ptr->get_protocol() == "tcps")
+					std::dynamic_pointer_cast<server_listener_mgr>(m_listener_mgr_ptr)->bind_close(listener);
+				else if (m_url_parser_ptr->get_protocol() == "udp")
+					std::dynamic_pointer_cast<server_listener_mgr>(m_listener_mgr_ptr)->bind_close(listener);
+				else if (m_url_parser_ptr->get_protocol() == "http")
+					std::dynamic_pointer_cast<http_server_listener_mgr>(m_listener_mgr_ptr)->bind_close(listener);
+				else if (m_url_parser_ptr->get_protocol() == "https")
+					std::dynamic_pointer_cast<http_server_listener_mgr>(m_listener_mgr_ptr)->bind_close(listener);
+				else if (m_url_parser_ptr->get_protocol() == "rpc")
+					std::dynamic_pointer_cast<server_listener_mgr>(m_listener_mgr_ptr)->bind_close(listener);
 			}
-			catch (std::exception &) {}
+			catch (std::exception &) { assert(false); }
 			return (*this);
 		}
 
@@ -593,14 +685,24 @@ namespace asio2
 		 * @param    : listener - a callback function like this:
 		 * void on_shutdown(int error)
 		 */
-		template<typename _listener>
-		server & bind_shutdown(_listener listener)
+		server & bind_shutdown(std::function<server_listener_mgr::shut_callback> listener)
 		{
 			try
 			{
-				std::dynamic_pointer_cast<server_listener_mgr>(m_listener_mgr_ptr)->bind_shutdown(listener);
+				if /**/ (m_url_parser_ptr->get_protocol() == "tcp")
+					std::dynamic_pointer_cast<server_listener_mgr>(m_listener_mgr_ptr)->bind_shutdown(listener);
+				else if (m_url_parser_ptr->get_protocol() == "tcps")
+					std::dynamic_pointer_cast<server_listener_mgr>(m_listener_mgr_ptr)->bind_shutdown(listener);
+				else if (m_url_parser_ptr->get_protocol() == "udp")
+					std::dynamic_pointer_cast<server_listener_mgr>(m_listener_mgr_ptr)->bind_shutdown(listener);
+				else if (m_url_parser_ptr->get_protocol() == "http")
+					std::dynamic_pointer_cast<http_server_listener_mgr>(m_listener_mgr_ptr)->bind_shutdown(listener);
+				else if (m_url_parser_ptr->get_protocol() == "https")
+					std::dynamic_pointer_cast<http_server_listener_mgr>(m_listener_mgr_ptr)->bind_shutdown(listener);
+				else if (m_url_parser_ptr->get_protocol() == "rpc")
+					std::dynamic_pointer_cast<server_listener_mgr>(m_listener_mgr_ptr)->bind_shutdown(listener);
 			}
-			catch (std::exception &) {}
+			catch (std::exception &) { assert(false); }
 			return (*this);
 		}
 

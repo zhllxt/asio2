@@ -28,19 +28,19 @@ volatile bool run_flag = true;
 std::size_t pack_parser(asio2::buffer_ptr data_ptr)
 {
 	if (data_ptr->size() < 3)
-		return NEED_MORE_DATA;
+		return asio2::need_more_data;
 
 	uint8_t * data = data_ptr->data();
 	if (data[0] == '<')
 	{
 		std::size_t total_len = data[1] + 3;
 		if (data_ptr->size() < total_len)
-			return NEED_MORE_DATA;
+			return asio2::need_more_data;
 		if (data[total_len - 1] == '>')
 			return total_len;
 	}
 
-	return INVALID_DATA;
+	return asio2::invalid_data;
 }
 
 int main(int argc, char *argv[])

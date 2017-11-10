@@ -149,8 +149,7 @@ namespace asio2
 		 * @param    : listener_sptr - a listener object shared_ptr
 		 * must ensure the listener_sptr is valid before sender has stoped 
 		 */
-		template<typename _listener_t>
-		sender & bind_listener(std::shared_ptr<_listener_t> listener_sptr)
+		sender & bind_listener(std::shared_ptr<sender_listener> listener_sptr)
 		{
 			try
 			{
@@ -165,8 +164,7 @@ namespace asio2
 		 * @param    : listener_rptr - a listener object raw pointer
 		 * must ensure the listener_rptr is valid before sender has stoped 
 		 */
-		template<typename _listener_t>
-		sender & bind_listener(_listener_t                * listener_rptr)
+		sender & bind_listener(sender_listener                * listener_rptr)
 		{
 			try
 			{
@@ -179,10 +177,9 @@ namespace asio2
 		/**
 		 * @function : bind listener - the sender send data finished
 		 * @param    : listener - a callback function like this :
-		 * void on_send(std::string ip, unsigned short port, std::shared_ptr<buffer<uint8_t>> data_ptr, int error);
+		 * void on_send(std::string ip, unsigned short port, asio2::buffer_ptr data_ptr, int error);
 		 */
-		template<typename _listener>
-		sender & bind_send(_listener listener)
+		sender & bind_send(std::function<sender_listener_mgr::send_callback> listener)
 		{
 			try
 			{
@@ -195,10 +192,9 @@ namespace asio2
 		/**
 		 * @function : bind listener - the sender recv data from remote endpoint
 		 * @param    : listener - a callback function like this :
-		 * void on_recv(std::string ip, unsigned short port, std::shared_ptr<buffer<uint8_t>> data_ptr);
+		 * void on_recv(std::string ip, unsigned short port, asio2::buffer_ptr data_ptr);
 		 */
-		template<typename _listener>
-		sender & bind_recv(_listener listener)
+		sender & bind_recv(std::function<sender_listener_mgr::recv_callback> listener)
 		{
 			try
 			{
@@ -213,8 +209,7 @@ namespace asio2
 		 * @param    : listener - a callback function like this :
 		 * void on_close(int error);
 		 */
-		template<typename _listener>
-		sender & bind_close(_listener listener)
+		sender & bind_close(std::function<sender_listener_mgr::clos_callback> listener)
 		{
 			try
 			{

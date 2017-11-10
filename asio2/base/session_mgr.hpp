@@ -49,8 +49,7 @@ namespace asio2
 		explicit session_mgr_t()
 		{
 			// init session map ptr
-			m_connected_session_map_ptr = std::make_shared<session_map>();
-			m_connected_session_map_ptr->reserve(64);
+			m_conn_sessions.reserve(64);
 
 			m_thread_pool_ptr = std::make_shared<thread_pool<false>>(1);
 		}
@@ -70,7 +69,7 @@ namespace asio2
 			if (ptr)
 			{
 				wlock_guard g(m_rwlock);
-				m_connected_session_map_ptr->emplace(*(static_cast<_Kty *>(ptr->_get_key())), ptr.get());
+				m_conn_sessions.emplace(*(static_cast<_Kty *>(ptr->_get_key())), ptr.get());
 			}
 		}
 
@@ -89,7 +88,7 @@ namespace asio2
 					_Session * pointer = new _Session(std::forward<Args>(args)...);
 					if (pointer)
 					{
-						m_total_session_count++;
+						m_pool_size++;
 						m_idle_sessions.emplace_back(pointer);
 					}
 				}
@@ -143,20 +142,20 @@ namespace asio2
 		template<typename H>
 		void for_each_session(const H & _handler)
 		{
-			if (m_connected_session_map_ptr->size() > 0)
+			if (m_conn_sessions.size() > 0)
 			{
-				try
+				rlock_guard g(m_rwlock);
+				for (auto & pair : m_conn_sessions)
 				{
-					rlock_guard g(m_rwlock);
-					for (auto & pair : *m_connected_session_map_ptr)
+					// the map's second elem is the session raw pointer,and the session shared_ptr will pass to the 
+					// _handler as a parameter
+					// can't use std::shared_ptr<session>(pair.second),must use pair.second->shared_from_this().
+					try
 					{
-						// the map's second elem is the session raw pointer,and the session shared_ptr will pass to the 
-						// _handler as a parameter
-						// can't use std::shared_ptr<session>(pair.second),must use pair.second->shared_from_this().
 						_handler(std::static_pointer_cast<_Session>(pair.second->shared_from_this()));
 					}
+					catch (std::bad_weak_ptr &) {}
 				}
-				catch (std::bad_weak_ptr &) {}
 			}
 		}
 
@@ -166,11 +165,11 @@ namespace asio2
 		 */
 		std::shared_ptr<_Session> find_session(_Kty & key)
 		{
-			if (m_connected_session_map_ptr->size() > 0)
+			if (m_conn_sessions.size() > 0)
 			{
 				rlock_guard g(m_rwlock);
-				auto iterator = m_connected_session_map_ptr->find(key);
-				if (iterator != m_connected_session_map_ptr->end())
+				auto iterator = m_conn_sessions.find(key);
+				if (iterator != m_conn_sessions.end())
 				{
 					try
 					{
@@ -188,7 +187,7 @@ namespace asio2
 		 */
 		std::size_t get_connected_session_count()
 		{
-			return m_connected_session_map_ptr->size();
+			return m_conn_sessions.size();
 		}
 
 		/**
@@ -196,7 +195,7 @@ namespace asio2
 		 */
 		std::size_t get_allocated_session_count()
 		{
-			return m_total_session_count;
+			return m_pool_size;
 		}
 
 		/**
@@ -214,7 +213,7 @@ namespace asio2
 			{
 				// Wait until all session closed completed
 				std::unique_lock<std::mutex> lock(m_mtx);
-				if (m_total_session_count > m_idle_sessions.size())
+				if (m_pool_size > m_idle_sessions.size())
 				{
 					if (std::cv_status::timeout == m_cv.wait_for(lock, std::chrono::seconds(60)))
 					{
@@ -229,13 +228,14 @@ namespace asio2
 				for (auto & session_pointer : m_idle_sessions)
 				{
 					delete session_pointer;
-					m_total_session_count--;
+					m_pool_size--;
 				}
 				m_idle_sessions.clear();
 
-				assert(m_total_session_count == 0);
-				assert(m_connected_session_map_ptr->size() == 0);
 			}
+
+			assert(m_pool_size == 0);
+			assert(m_conn_sessions.size() == 0);
 		}
 
 	protected:
@@ -252,7 +252,7 @@ namespace asio2
 			// remove the session from the connected session map
 			if (pointer)
 			{
-				m_connected_session_map_ptr->erase(*(static_cast<_Kty *>(pointer->_get_key())));
+				m_conn_sessions.erase(*(static_cast<_Kty *>(pointer->_get_key())));
 
 				// place the session pointer into the idle sessions deque
 				m_idle_sessions.emplace_back(pointer);
@@ -260,7 +260,7 @@ namespace asio2
 
 			// if idle session count equal the total "new" session count,mean that may be user call stop_all function and waiting in the destroy 
 			// function,so we should check and notify the waiter.
-			if (m_idle_sessions.size() == m_total_session_count)
+			if (m_idle_sessions.size() == m_pool_size)
 			{
 				// notify the wait thread,now all session is closed completed
 				std::unique_lock<std::mutex> lock(m_mtx);
@@ -269,15 +269,13 @@ namespace asio2
 		}
 
 	protected:
-		using session_map = std::unordered_map<_Kty, _Session*, _Hasher, _Keyeq>;
-
 		/// session unorder map,these session is already connected session 
-		std::shared_ptr<session_map> m_connected_session_map_ptr;
+		std::unordered_map<_Kty, _Session*, _Hasher, _Keyeq> m_conn_sessions;
 
 		/// the idle sessions
 		std::deque<_Session*> m_idle_sessions;
 
-		std::size_t m_total_session_count = 0;
+		std::size_t m_pool_size = 0;
 
 		/// use rwlock to make this session map thread safe
 		rwlock m_rwlock;

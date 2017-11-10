@@ -62,18 +62,15 @@ namespace asio2
 		{
 		}
 
-	protected:
-		/**
-		 * @function : reset the resource to default status
-		 */
-		virtual void _reset() override
+		virtual bool start() override
 		{
-			tcp_session_impl<_pool_t>::_reset();
-
+			// reset the variable to default status
 			m_body_len = 0;
 			m_header = 0;
 			m_recv_is_header = true;
 			m_sent_is_header = true;
+
+			return tcp_session_impl<_pool_t>::start();
 		}
 
 	protected:
@@ -116,6 +113,7 @@ namespace asio2
 				if (m_recv_is_header)
 				{
 					m_header = 0;
+					// This function is used to asynchronously read a certain number of bytes of data from a stream.
 					boost::asio::async_read(*this->m_socket_ptr,
 						boost::asio::buffer((uint8_t*)(&m_header), sizeof(m_header)),
 						this->m_strand_ptr->wrap(std::bind(&tcp_auto_session_impl::_handle_recv, std::static_pointer_cast<tcp_auto_session_impl>(this_ptr),
@@ -132,6 +130,7 @@ namespace asio2
 					// every times post recv event,we get the recv buffer from the buffer pool
 					std::shared_ptr<buffer<uint8_t>> recv_buf_ptr = this->m_recv_buf_pool_ptr->get(buf_len);
 
+					// This function is used to asynchronously read a certain number of bytes of data from a stream.
 					boost::asio::async_read(*this->m_socket_ptr,
 						boost::asio::buffer(recv_buf_ptr->data(), m_body_len),
 						this->m_strand_ptr->wrap(std::bind(&tcp_auto_session_impl::_handle_recv, std::static_pointer_cast<tcp_auto_session_impl>(this_ptr),

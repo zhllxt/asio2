@@ -185,12 +185,11 @@ namespace asio2
 		}
 
 		/**
-		 * @function : get silence duration of seconds
+		 * @function : get silence duration of milliseconds
 		 */
-		std::chrono::seconds::rep get_silence_duration()
+		std::chrono::milliseconds::rep get_silence_duration()
 		{
-			return std::chrono::duration_cast<std::chrono::seconds>(
-				std::chrono::steady_clock::now() - m_last_active_time).count();
+			return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - m_last_active_time).count();
 		}
 
 	protected:

@@ -87,6 +87,11 @@ namespace asio2
 				return false;
 			}
 #endif // DEBUG
+
+			// reset the variable to default status
+			m_last_active_time = std::chrono::steady_clock::now();
+			m_accept_time = std::chrono::steady_clock::now();
+
 			return true;
 		}
 
@@ -186,31 +191,37 @@ namespace asio2
 		}
 
 		/**
-		 * @function : get silence duration of seconds
+		 * @function : get silence duration of milliseconds
 		 */
-		std::chrono::seconds::rep get_silence_duration()
+		std::chrono::milliseconds::rep get_silence_duration()
 		{
-			return std::chrono::duration_cast<std::chrono::seconds>(
-				std::chrono::steady_clock::now() - m_last_active_time).count();
+			return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - m_last_active_time).count();
+		}
+
+		/**
+		 * @function : get build connection time 
+		 */
+		std::chrono::time_point<std::chrono::steady_clock> get_accept_time()
+		{
+			return m_accept_time;
+		}
+
+		/**
+		 * @function : get connection keepalive duration of milliseconds
+		 */
+		std::chrono::milliseconds::rep get_keepalive_duration()
+		{
+			return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - m_accept_time).count();
 		}
 
 	protected:
-
-		/**
-		 * @function : reset the resource to default status
-		 */
-		virtual void _reset()
-		{
-			_close_socket();
-
-			m_last_active_time = std::chrono::steady_clock::now();
-			m_user_data_ptr.reset();
-		}
-
 		/**
 		 * @function : colse the socket
 		 */
-		virtual void _close_socket() = 0;
+		virtual void _close_socket()
+		{
+			m_user_data_ptr.reset();
+		}
 
 		/**
 		 * @function : used for the unorder_map key
@@ -267,6 +278,9 @@ namespace asio2
 		/// last active time 
 		std::chrono::time_point<std::chrono::steady_clock> m_last_active_time = std::chrono::steady_clock::now();
 
+		/// build connection time
+		std::chrono::time_point<std::chrono::steady_clock> m_accept_time      = std::chrono::steady_clock::now();
+
 		/// listener manager shared_ptr
 		std::shared_ptr<listener_mgr>        m_listener_mgr_ptr;
 
@@ -279,6 +293,8 @@ namespace asio2
 	};
 
 	using session = session_impl;
+	using session_ptr = std::shared_ptr<session_impl>;
+
 
 }
 

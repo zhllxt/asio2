@@ -403,9 +403,10 @@ namespace asio2
 				m_send_strand_ptr = std::make_shared <boost::asio::io_service::strand>(*m_send_ioservice_ptr);
 				m_recv_strand_ptr = std::make_shared <boost::asio::io_service::strand>(*m_recv_ioservice_ptr);
 
-				boost::asio::ip::udp::endpoint bind_endpoint(
-					boost::asio::ip::address::from_string(m_url_parser_ptr->get_ip()),
-					static_cast<unsigned short>(std::atoi(m_url_parser_ptr->get_port().c_str())));
+				// parse address and port
+				boost::asio::ip::udp::resolver resolver(*m_recv_ioservice_ptr);
+				boost::asio::ip::udp::resolver::query query(m_url_parser_ptr->get_ip(), m_url_parser_ptr->get_port());
+				boost::asio::ip::udp::endpoint bind_endpoint = *resolver.resolve(query);
 
 				// socket contructor function with endpoint param will automic call open and bind.
 				m_socket_ptr = std::make_shared<boost::asio::ip::udp::socket>(

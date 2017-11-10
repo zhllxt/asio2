@@ -1,3 +1,9 @@
+/*
+ * this file has modifyed by 37792738@qq.com,so that it can be used in C++ 
+ * programs,and add a param "void * user_data" into the http callback,and 
+ * add a param "void * user_data" into the http_parser_execute function.
+ */
+
 /* Copyright Joyent, Inc. and other Node contributors. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -86,8 +92,8 @@ typedef struct http_parser_settings http_parser_settings;
  * many times for each string. E.G. you might get 10 callbacks for "on_url"
  * each providing just a few characters more data.
  */
-typedef int (*http_data_cb) (http_parser*, const char *at, size_t length);
-typedef int (*http_cb) (http_parser*);
+typedef int (*http_data_cb) (http_parser*, const char *at, size_t length, void * user_data);
+typedef int (*http_cb) (http_parser*, void * user_data);
 
 
 /* Status Codes */
@@ -512,7 +518,7 @@ do {                                                                 \
                                                                      \
   if (LIKELY(settings->on_##FOR)) {                                  \
     parser->state = CURRENT_STATE();                                 \
-    if (UNLIKELY(0 != settings->on_##FOR(parser))) {                 \
+    if (UNLIKELY(0 != settings->on_##FOR(parser, user_data))) {      \
       SET_ERRNO(HPE_CB_##FOR);                                       \
     }                                                                \
     UPDATE_STATE(parser->state);                                     \
@@ -539,7 +545,7 @@ do {                                                                 \
     if (LIKELY(settings->on_##FOR)) {                                \
       parser->state = CURRENT_STATE();                               \
       if (UNLIKELY(0 !=                                              \
-                   settings->on_##FOR(parser, FOR##_mark, (LEN)))) { \
+        settings->on_##FOR(parser, FOR##_mark, (LEN), user_data))) { \
         SET_ERRNO(HPE_CB_##FOR);                                     \
       }                                                              \
       UPDATE_STATE(parser->state);                                   \
@@ -1106,7 +1112,9 @@ parse_url_char(enum state s, const char ch)
 size_t http_parser_execute (http_parser *parser,
                             const http_parser_settings *settings,
                             const char *data,
-                            size_t len)
+                            size_t len,
+	                        void * user_data = nullptr
+	                        )
 {
   char c, ch;
   int8_t unhex_val;
@@ -2221,7 +2229,7 @@ reexecute:
          * we have to simulate it by handling a change in errno below.
          */
         if (settings->on_headers_complete) {
-          switch (settings->on_headers_complete(parser)) {
+          switch (settings->on_headers_complete(parser, user_data)) {
             case 0:
               break;
 
@@ -2510,6 +2518,19 @@ http_method_str (enum http_method m)
   return ELEM_AT(method_strings, m, "<unknown>");
 }
 
+// add by zhllxt
+const char * http_status_str(unsigned int status_code)
+{
+	switch (status_code)
+	{
+#define XX(num, name, string) case num : return #string;
+		HTTP_STATUS_MAP(XX)
+#undef XX
+	default:
+		break;
+	}
+	return "unknown";
+}
 
 void
 http_parser_init (http_parser *parser, enum http_parser_type t)

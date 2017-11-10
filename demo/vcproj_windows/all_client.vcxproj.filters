@@ -245,5 +245,26 @@
     <ClInclude Include="..\..\asio2\tcp\tcps_pack_session_impl.hpp">
       <Filter>asio2\tcp</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\asio2\http\http_connection_impl.hpp">
+      <Filter>asio2\http</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\http\http_request.hpp">
+      <Filter>asio2\http</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\http\http_request_handler.hpp">
+      <Filter>asio2\http</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\http\http_request_parser.hpp">
+      <Filter>asio2\http</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\http\http_response.hpp">
+      <Filter>asio2\http</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\http\http_response_parser.hpp">
+      <Filter>asio2\http</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\http\mime_types.hpp">
+      <Filter>asio2\http</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

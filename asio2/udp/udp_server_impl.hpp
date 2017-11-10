@@ -204,7 +204,7 @@ namespace asio2
 		/**
 		 * @function : 
 		 * @param    : the user callback function,the session shared_ptr will pass to the function as a param,
-		 *             the callback like this : void handler(std::shared_ptr<asio2::session> session_ptr){...}
+		 *             the callback like this : void handler(asio2::session_ptr session_ptr){...}
 		 */
 		template<typename _handler>
 		bool for_each_session(_handler handler)

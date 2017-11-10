@@ -55,18 +55,6 @@ namespace asio2
 	};
 
 
-	namespace
-	{
-		static const char * errmsg[] = {
-			("the url string is invalid"),
-			("packet length is too large to exceed the pool_buffer_size"),
-			("the received data is invalid"),
-			("send data failed"),
-			("null"),
-		};
-	}
-
-
 	class asio2_category : public std::error_category
 	{
 	public:
@@ -84,8 +72,17 @@ namespace asio2
 
 		virtual std::string message(int err_num) const
 		{	// convert to name of error
+
+			static const char * _err_msg[] = {
+				("the url string is invalid"),
+				("packet length is too large to exceed the pool_buffer_size"),
+				("the received data is invalid"),
+				("send data failed"),
+				("null"),
+			};
+
 			int index = err_num - 0x800001;
-			return ((index >= 0 && index < (sizeof(errmsg) / sizeof(const char *))) ? errmsg[index] : ("unknown error"));
+			return ((index >= 0 && index < (sizeof(_err_msg) / sizeof(const char *))) ? _err_msg[index] : ("unknown error"));
 		}
 	};
 
@@ -120,16 +117,19 @@ namespace asio2
 		 */
 		inline std::string get_error_desc(int err_num)
 		{
-			if (err_num & 0x00800000)
-				return std::error_code(err_num, asio2_category()).message();
-			
-			if (err_num & HTTP_ERROR_CODE_MASK)
-				return http::http_errno_description((enum http::http_errno)(err_num & (~HTTP_ERROR_CODE_MASK)));
-
+			// 1.must check ssl_category first 
 #if defined(USE_SSL)
 			if (err_num & 0xff000000)
 				return boost::system::error_code(err_num, boost::asio::error::detail::ssl_category()).message();
 #endif
+
+			// 2.check asio2_category
+			if (err_num & 0x00800000)
+				return std::error_code(err_num, asio2_category()).message();
+			
+			// 3.check http_errno
+			if (err_num & HTTP_ERROR_CODE_MASK)
+				return http::http_errno_description((enum http::http_errno)(err_num & (~HTTP_ERROR_CODE_MASK)));
 
 			return boost::system::error_code(err_num, boost::system::system_category()).message();
 		}

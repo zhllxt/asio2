@@ -36,11 +36,11 @@ namespace asio2
 	//---------------------------------------------------------------------------------------------
 
 	// mean that current data length is not enough for a completed packet,it need more data
-	#define NEED_MORE_DATA (std::size_t(-1))
+	static const std::size_t need_more_data = (std::size_t(-1));
 
 	// mean that current data is invalid,may be the client is a invalid or hacker client,if get this 
 	// return value,the session will be disconnect forced.
-	#define INVALID_DATA   (std::size_t(-2))
+	static const std::size_t invalid_data   = (std::size_t(-2));
 
 
 
@@ -48,32 +48,35 @@ namespace asio2
 	// auto model used macro
 	//---------------------------------------------------------------------------------------------
 
-	#define DEFAULT_HEADER_FLAG        ((uint8_t)0b011101) // 29
-	#define MAX_HEADER_FLAG            ((uint8_t)0b111111) // 63
-	#define MAX_PACKET_SIZE            ((uint32_t)0b00000011111111111111111111111111) // 0x03FF FFFF
-	#define HEADER_FLAG_MASK           ((uint32_t)0b00000000000000000000000000111111)
-	#define HEADER_FLAG_BITS           (6)
+	#define DEFAULT_HEADER_FLAG           ((uint8_t)0b011101) // 29
+	#define MAX_HEADER_FLAG               ((uint8_t)0b111111) // 63
+	#define MAX_PACKET_SIZE               ((uint32_t)0b00000011111111111111111111111111) // 0x03FF FFFF
+	#define HEADER_FLAG_MASK              ((uint32_t)0b00000000000000000000000000111111)
+	#define HEADER_FLAG_BITS              (6)
 
 
 
 	//---------------------------------------------------------------------------------------------
 	// udp used macro
 	//---------------------------------------------------------------------------------------------
-	#define DEFAULT_SILENCE_TIMEOUT    (60)
+	#define UDP_DEFAULT_SILENCE_TIMEOUT   (60)
 
 
 
 	//---------------------------------------------------------------------------------------------
 	// icmp used macro
 	//---------------------------------------------------------------------------------------------
-	#define DEFAULT_REPLY_TIMEOUT      (5000)
+	#define ICMP_DEFAULT_REPLY_TIMEOUT    (5000)
 
 
 
 	//---------------------------------------------------------------------------------------------
 	// http used macro
 	//---------------------------------------------------------------------------------------------
-	#define HTTP_ERROR_CODE_MASK       (0x400000) // http_parser error code,we manual set the 22 bit to 1
+	#define HTTP_ERROR_CODE_MASK          (0x400000) // http_parser error code,we manual set the 22 bit to 1
+	#define HTTP_KEEPALIVE_TIMEOUT        (10)
+	#define HTTP_SILENCE_TIMEOUT          (1)
+	#define HTTP_MAX_REQUEST_COUNT        (100)
 
 }
 

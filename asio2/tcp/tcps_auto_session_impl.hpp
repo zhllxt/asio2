@@ -59,19 +59,16 @@ namespace asio2
 		virtual ~tcps_auto_session_impl()
 		{
 		}
-	
-	protected:
-		/**
-		 * @function : reset the resource to default status
-		 */
-		virtual void _reset() override
-		{
-			tcps_session_impl<_pool_t>::_reset();
 
+		virtual bool start() override
+		{
+			// reset the variable to default status
 			m_body_len = 0;
 			m_header = 0;
 			m_recv_is_header = true;
 			m_sent_is_header = true;
+
+			return tcps_session_impl<_pool_t>::start();
 		}
 
 	protected:

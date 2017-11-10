@@ -79,7 +79,7 @@ namespace asio2
 				m_acceptor_ptr = std::make_shared<boost::asio::ip::tcp::acceptor>(m_strand_ptr->get_io_service());
 
 				// parse address and port
-				boost::asio::ip::tcp::resolver resolver(m_acceptor_ptr->get_io_service());
+				boost::asio::ip::tcp::resolver resolver(m_strand_ptr->get_io_service());
 				boost::asio::ip::tcp::resolver::query query(m_url_parser_ptr->get_ip(), m_url_parser_ptr->get_port());
 				boost::asio::ip::tcp::endpoint bind_endpoint = *resolver.resolve(query);
 
@@ -243,9 +243,6 @@ namespace asio2
 					m_recv_buf_pool_ptr
 				);
 
-				// reset the session's status to default 
-				session_ptr->_reset();
-
 				return session_ptr;
 			}
 			// handle exception,may be is the exception "Too many open files" (exception code : 24)
@@ -334,7 +331,7 @@ namespace asio2
 
 		virtual void _fire_listen()
 		{
-			std::static_pointer_cast<server_listener_mgr>(m_listener_mgr_ptr)->notify_listen();
+			std::dynamic_pointer_cast<server_listener_mgr>(m_listener_mgr_ptr)->notify_listen();
 		}
 
 		virtual void _fire_accept(std::shared_ptr<_session_impl_t> session_ptr)

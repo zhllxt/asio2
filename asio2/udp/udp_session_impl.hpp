@@ -79,6 +79,9 @@ namespace asio2
 			if (m_stop_is_called || m_acceptor_stop_is_called)
 				return false;
 
+			// reset the variable to default status
+			m_fire_close_is_called.clear(std::memory_order_release);
+
 			// first call base class start function
 			if (!session_impl::start())
 				return false;
@@ -347,7 +350,7 @@ namespace asio2
 				else if (str_silence_timeout.find_last_of('h') != std::string::npos)
 					silence_timeout *= 60 * 60;
 				if (silence_timeout < 1)
-					silence_timeout = DEFAULT_SILENCE_TIMEOUT;
+					silence_timeout = UDP_DEFAULT_SILENCE_TIMEOUT;
 				
 				m_silence_timeout = silence_timeout;
 			}
@@ -355,21 +358,13 @@ namespace asio2
 
 	protected:
 		/**
-		 * @function : reset the resource to default status
-		 */
-		virtual void _reset() override
-		{
-			session_impl::_reset();
-
-			m_stop_is_called = false;
-			m_fire_close_is_called.clear(std::memory_order_release);
-		}
-
-		/**
 		 * @function : colse the socket
 		 */
 		virtual void _close_socket() override
 		{
+			session_impl::_close_socket();
+
+			m_stop_is_called = false;
 		}
 
 		/**
@@ -400,7 +395,7 @@ namespace asio2
 
 				// silence duration seconds not exceed the silence timeout,post a timer event agagin to avoid this session shared_ptr
 				// object disappear.
-				if (get_silence_duration() <= m_silence_timeout)
+				if (get_silence_duration() <= m_silence_timeout * 1000)
 				{
 					m_timer.expires_from_now(boost::posix_time::seconds(m_silence_timeout));
 					m_timer.async_wait(
@@ -518,7 +513,7 @@ namespace asio2
 		std::shared_ptr<boost::asio::io_service::strand> m_send_strand_ptr;
 
 		/// silence timeout value,unit : seconds,if time out value is elapsed,and has't data trans,then this session will be closed.
-		long m_silence_timeout = DEFAULT_SILENCE_TIMEOUT;
+		long m_silence_timeout = UDP_DEFAULT_SILENCE_TIMEOUT;
 
 		/// timer for session time out
 		boost::asio::deadline_timer m_timer;

@@ -81,9 +81,10 @@ namespace asio2
 				// init session manager 
 				m_session_mgr_ptr = std::make_shared<udp_session_mgr>();
 
-				boost::asio::ip::udp::endpoint bind_endpoint(
-					boost::asio::ip::address::from_string(m_url_parser_ptr->get_ip()), 
-					static_cast<unsigned short>(std::atoi(m_url_parser_ptr->get_port().c_str())));
+				// parse address and port
+				boost::asio::ip::udp::resolver resolver(*m_ioservice_ptr);
+				boost::asio::ip::udp::resolver::query query(m_url_parser_ptr->get_ip(), m_url_parser_ptr->get_port());
+				boost::asio::ip::udp::endpoint bind_endpoint = *resolver.resolve(query);
 
 				// send io_service and strand used for send data ,socket is full duplex,can read and write at the same time
 				m_send_ioservice_ptr = m_ioservice_pool_ptr->get_io_service_ptr();
@@ -353,9 +354,6 @@ namespace asio2
 					m_seted_send_buffer_size,
 					m_seted_recv_buffer_size
 				);
-
-				// must reset the session's resource 
-				session_ptr->_reset();
 
 				return session_ptr;
 			}

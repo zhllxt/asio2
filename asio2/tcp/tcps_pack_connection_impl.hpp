@@ -119,7 +119,7 @@ namespace asio2
 
 				tcps_connection_impl<_pool_t>::_post_recv(this_ptr);
 			}
-			else if (ret == NEED_MORE_DATA)
+			else if (ret == asio2::need_more_data)
 			{
 				if (recv_buf_ptr->size() >= recv_buf_ptr->capacity())
 				{
@@ -156,7 +156,7 @@ namespace asio2
 
 				_recurse_parse_data(this_ptr, recv_buf_ptr);
 			}
-			else if (ret == INVALID_DATA || ret <= 0 || ret > recv_buf_ptr->size())
+			else if (ret == asio2::invalid_data || ret <= 0 || ret > recv_buf_ptr->size())
 			{
 				set_last_error((int)errcode::recvd_data_invalid);
 				PRINT_EXCEPTION;

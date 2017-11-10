@@ -95,9 +95,10 @@ namespace asio2
 				//m_socket_ptr->open(endpoint.protocol());
 				//m_socket_ptr->bind(endpoint);
 
-				boost::asio::ip::udp::endpoint server_endpoint(
-					boost::asio::ip::address::from_string(m_url_parser_ptr->get_ip()),
-					static_cast<unsigned short>(std::atoi(m_url_parser_ptr->get_port().c_str())));
+				// parse address and port
+				boost::asio::ip::udp::resolver resolver(*m_recv_ioservice_ptr);
+				boost::asio::ip::udp::resolver::query query(m_url_parser_ptr->get_ip(), m_url_parser_ptr->get_port());
+				boost::asio::ip::udp::endpoint server_endpoint = *resolver.resolve(query);
 
 				if (async_connect)
 				{

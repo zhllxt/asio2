@@ -80,6 +80,9 @@ namespace asio2
 			if (m_stop_is_called)
 				return false;
 
+			// reset the variable to default status
+			m_fire_close_is_called.clear(std::memory_order_release);
+
 			// first call base class start function
 			if (!session_impl::start())
 				return false;
@@ -398,25 +401,13 @@ namespace asio2
 		}
 
 	protected:
-
-		/**
-		 * @function : reset the resource to default status
-		 */
-		virtual void _reset() override
-		{
-			session_impl::_reset();
-
-			m_stop_is_called = false;
-			m_fire_close_is_called.clear(std::memory_order_release);
-
-			m_context_ptr.reset();
-		}
-
 		/**
 		 * @function : colse the socket
 		 */
 		virtual void _close_socket() override
 		{
+			session_impl::_close_socket();
+
 			if (m_socket_ptr && m_socket_ptr->lowest_layer().is_open())
 			{
 				auto this_ptr = std::static_pointer_cast<tcps_session_impl>(shared_from_this());
@@ -458,6 +449,7 @@ namespace asio2
 						set_last_error(ec.value());
 				}));
 			}
+			m_stop_is_called = false;
 		}
 
 		virtual void * _get_key() override

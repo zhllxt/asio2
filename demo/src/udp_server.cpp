@@ -17,25 +17,25 @@
 
 #include <asio2/asio2.hpp>
 
-class user_udp_server_listener : public asio2::udp_server_listener_t<asio2::session, uint8_t>
+class user_udp_server_listener : public asio2::udp_server_listener
 {
 public:
-	virtual void on_send(std::shared_ptr<asio2::session> session_ptr, asio2::buffer_ptr data_ptr, int error) override
+	virtual void on_send(asio2::session_ptr session_ptr, asio2::buffer_ptr data_ptr, int error) override
 	{
 	}
-	virtual void on_recv(std::shared_ptr<asio2::session> session_ptr, asio2::buffer_ptr data_ptr) override
+	virtual void on_recv(asio2::session_ptr session_ptr, asio2::buffer_ptr data_ptr) override
 	{
 		std::printf("recv : %.*s\n", (int)data_ptr->size(), (const char*)data_ptr->data());
 
 		session_ptr->send(data_ptr);
 	}
-	virtual void on_close(std::shared_ptr<asio2::session> session_ptr, int error) override
+	virtual void on_close(asio2::session_ptr session_ptr, int error) override
 	{
 	}
 	virtual void on_listen() override
 	{
 	}
-	virtual void on_accept(std::shared_ptr<asio2::session> session_ptr) override
+	virtual void on_accept(asio2::session_ptr session_ptr) override
 	{
 	}
 	virtual void on_shutdown(int error) override

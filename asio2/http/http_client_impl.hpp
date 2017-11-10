@@ -37,6 +37,8 @@ namespace asio2
 		)
 			: tcp_client_impl<_connection_impl_t>(listener_mgr_ptr, url_parser_ptr)
 		{
+			m_request_pool_ptr  = std::make_shared<object_pool<http_request>>();
+			m_response_pool_ptr = std::make_shared<object_pool<http_response>>();
 		}
 
 		/**
@@ -45,6 +47,35 @@ namespace asio2
 		virtual ~http_client_impl()
 		{
 		}
+
+		virtual void stop() override
+		{
+			tcp_client_impl<_connection_impl_t>::stop();
+
+			if (m_request_pool_ptr)
+				m_request_pool_ptr->destroy();
+			if (m_response_pool_ptr)
+				m_response_pool_ptr->destroy();
+		}
+
+	protected:
+
+		virtual void _prepare_connection() override
+		{
+			tcp_client_impl<_connection_impl_t>::_prepare_connection();
+
+			if (this->m_connection_impl_ptr)
+			{
+				std::dynamic_pointer_cast<_connection_impl_t>(this->m_connection_impl_ptr)->set_request_pool(this->m_request_pool_ptr);
+				std::dynamic_pointer_cast<_connection_impl_t>(this->m_connection_impl_ptr)->set_response_pool(this->m_response_pool_ptr);
+			}
+		}
+
+	protected:
+
+		std::shared_ptr<object_pool<http_request>>  m_request_pool_ptr;
+
+		std::shared_ptr<object_pool<http_response>> m_response_pool_ptr;
 
 	};
 

@@ -37,15 +37,15 @@ int main(int argc, char *argv[])
 	{
 		std::string url(" tcp://*:9001/?send_buffer_size=1024k & recv_buffer_size=1024K & pool_buffer_size=1024 & io_service_pool_size=3 ");
 		std::shared_ptr<asio2::server> tcp_server = std::make_shared<asio2::server>(url);
-		tcp_server->bind_recv([&tcp_server](std::shared_ptr<asio2::session> session_ptr, asio2::buffer_ptr data_ptr)
+		tcp_server->bind_recv([&tcp_server](asio2::session_ptr session_ptr, asio2::buffer_ptr data_ptr)
 		{
 			std::printf("recv : %.*s\n", (int)data_ptr->size(), (const char*)data_ptr->data());
 
 			session_ptr->send(data_ptr);
-		}).bind_accept([](std::shared_ptr<asio2::session> session_ptr)
+		}).bind_accept([](asio2::session_ptr session_ptr)
 		{
 			session_ptr->set_user_data(session_ptr);
-		}).bind_close([](std::shared_ptr<asio2::session> session_ptr, int error)
+		}).bind_close([](asio2::session_ptr session_ptr, int error)
 		{
 			session_ptr->set_user_data(nullptr);
 		});

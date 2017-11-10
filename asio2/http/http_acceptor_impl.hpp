@@ -56,28 +56,46 @@ namespace asio2
 		{
 		}
 
-		inline http_acceptor_impl & set_parser_settings(std::shared_ptr<http::http_parser_settings> settings_ptr)
+		http_acceptor_impl & set_request_pool(std::shared_ptr<object_pool<http_request>> request_pool_ptr)
 		{
-			m_settings_ptr = settings_ptr;
+			m_request_pool_ptr = request_pool_ptr;
 			return (*this);
 		}
 
 	protected:
-
 		virtual std::shared_ptr<_session_impl_t> _prepare_session() override
 		{
 			std::shared_ptr<_session_impl_t> session_ptr = tcp_acceptor_impl<_session_impl_t>::_prepare_session();
-			
+
 			if (session_ptr)
 			{
-				session_ptr->set_parser_settings(m_settings_ptr);
+				session_ptr->set_request_pool(m_request_pool_ptr);
 			}
 
 			return session_ptr;
 		}
 
+		/// must override all listener functions,and cast the m_listener_mgr_ptr to http_server_listener_mgr,
+		/// otherwise it will crash when these listener was called.
 	protected:
-		std::shared_ptr<http::http_parser_settings> m_settings_ptr;
+		virtual void _fire_listen() override
+		{
+			std::dynamic_pointer_cast<http_server_listener_mgr>(m_listener_mgr_ptr)->notify_listen();
+		}
+
+		virtual void _fire_accept(std::shared_ptr<_session_impl_t> session_ptr) override
+		{
+			std::static_pointer_cast<http_server_listener_mgr>(m_listener_mgr_ptr)->notify_accept(session_ptr);
+		}
+
+		virtual void _fire_shutdown(int error) override
+		{
+			std::dynamic_pointer_cast<http_server_listener_mgr>(m_listener_mgr_ptr)->notify_shutdown(error);
+		}
+
+	protected:
+
+		std::shared_ptr<object_pool<http_request>> m_request_pool_ptr;
 
 	};
 

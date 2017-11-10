@@ -60,11 +60,12 @@ namespace asio2
 		template<typename... Args>
 		std::shared_ptr<_obj> get(Args&&... args)
 		{
+			std::lock_guard<spin_lock> g(m_lock);
+
 			while (true)
 			{
 				if (m_pool.size() == 0)
 				{
-					std::lock_guard<spin_lock> g(m_lock);
 					for (std::size_t i = 0; i < m_next_size; i++)
 					{
 						auto p = new _obj(std::forward<Args>(args)...);
@@ -72,12 +73,11 @@ namespace asio2
 						if (p)
 						{
 							m_pool_size++;
-							m_pool.emplace(p);
+							m_pool.push(p);
 						}
 					}
 				}
 
-				std::lock_guard<spin_lock> g(m_lock);
 				if (m_pool.size() > 0)
 				{
 					auto p = m_pool.front();
@@ -91,7 +91,7 @@ namespace asio2
 					auto deleter = [this](_obj * p)
 					{
 						std::lock_guard<spin_lock> g(m_lock);
-						m_pool.emplace(p);
+						m_pool.push(p);
 
 						if (m_pool_size == m_pool.size())
 						{
@@ -134,12 +134,12 @@ namespace asio2
 			if (m_pool.size() > 0)
 			{
 				std::lock_guard<spin_lock> g(m_lock);
-				for (auto p : m_pool)
+				while (m_pool.size() > 0)
 				{
 					m_pool_size--;
-					delete p;
+					delete m_pool.front();
+					m_pool.pop();
 				}
-				m_pool.clear();
 			}
 		}
 

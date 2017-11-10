@@ -19,7 +19,7 @@
 
 volatile bool run_flag = true;
 
-class main_app : public asio2::tcp_server_listener_t<asio2::session, uint8_t>
+class main_app : public asio2::http_server_listener
 {
 public:
 	/// construct 
@@ -34,21 +34,25 @@ public:
 	}
 
 public:
-	virtual void on_send(std::shared_ptr<asio2::session> session_ptr, asio2::buffer_ptr data_ptr, int error) override
+	virtual void on_send(asio2::session_ptr session_ptr, asio2::response_ptr response_ptr, int error) override
 	{
 	}
-	virtual void on_recv(std::shared_ptr<asio2::session> session_ptr, asio2::buffer_ptr data_ptr) override
+	virtual void on_recv(asio2::session_ptr session_ptr, asio2::request_ptr request_ptr) override
 	{
-		
+		auto iska = request_ptr->is_keepalive();
+		auto host = request_ptr->host();
+		auto port = request_ptr->port();
 	}
-	virtual void on_close(std::shared_ptr<asio2::session> session_ptr, int error) override
+	virtual void on_close(asio2::session_ptr session_ptr, int error) override
 	{
+		printf("http session leave %s %u %s\n", session_ptr->get_remote_address().c_str(), session_ptr->get_remote_port(), asio2::get_error_desc(error).data());
 	}
 	virtual void on_listen() override
 	{
 	}
-	virtual void on_accept(std::shared_ptr<asio2::session> session_ptr) override
+	virtual void on_accept(asio2::session_ptr session_ptr) override
 	{
+		printf("http session enter %s %u\n", session_ptr->get_remote_address().c_str(), session_ptr->get_remote_port());
 	}
 	virtual void on_shutdown(int error) override
 	{
@@ -58,7 +62,7 @@ protected:
 	asio2::server http_server;
 
 };
-
+#include <strstream>
 int main(int argc, char *argv[])
 {
 #if defined(WIN32) || defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS_)
@@ -70,8 +74,6 @@ int main(int argc, char *argv[])
 #endif
 
 	std::signal(SIGINT, [](int signal) { run_flag = false; });
-
-	std::srand(static_cast<unsigned int>(std::time(nullptr)));
 
 	while (run_flag)
 	{

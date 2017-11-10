@@ -185,8 +185,14 @@
     <ClInclude Include="..\..\asio2\http\http_client_impl.hpp" />
     <ClInclude Include="..\..\asio2\http\http_connection_impl.hpp" />
     <ClInclude Include="..\..\asio2\http\http_parser.h" />
+    <ClInclude Include="..\..\asio2\http\http_request.hpp" />
+    <ClInclude Include="..\..\asio2\http\http_request_handler.hpp" />
+    <ClInclude Include="..\..\asio2\http\http_request_parser.hpp" />
+    <ClInclude Include="..\..\asio2\http\http_response.hpp" />
+    <ClInclude Include="..\..\asio2\http\http_response_parser.hpp" />
     <ClInclude Include="..\..\asio2\http\http_server_impl.hpp" />
     <ClInclude Include="..\..\asio2\http\http_session_impl.hpp" />
+    <ClInclude Include="..\..\asio2\http\mime_types.hpp" />
     <ClInclude Include="..\..\asio2\icmp\icmp_header.hpp" />
     <ClInclude Include="..\..\asio2\icmp\icmp_sender_impl.hpp" />
     <ClInclude Include="..\..\asio2\icmp\ipv4_header.hpp" />
