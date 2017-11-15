@@ -22,7 +22,7 @@ volatile bool run_flag = true;
 class main_app : public asio2::http_server_listener
 {
 public:
-	/// construct 
+	/// construct  
 	main_app() : http_server("http://*:9080")
 	{
 		http_server.bind_listener(this);
