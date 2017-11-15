@@ -54,8 +54,6 @@ int main(int argc, char *argv[])
 
 	std::signal(SIGINT, [](int signal) { run_flag = false; });
 
-	std::srand(static_cast<unsigned int>(std::time(nullptr)));
-
 	while (run_flag)
 	{
 		asio2::server tcp_pack_server(" tcp://*:8099/pack?send_buffer_size=1024k & recv_buffer_size=1024K & pool_buffer_size=1024 & io_service_pool_size=3");
