@@ -24,6 +24,8 @@ bld/
 [Oo]bj/
 [Ll]og/
 
+[Tt]humbs.db
+
 demo/bin/
 
 # Visual Studio 2015 cache/options directory
