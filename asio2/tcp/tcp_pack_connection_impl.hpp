@@ -121,7 +121,7 @@ namespace asio2
 			}
 			else if (ret == asio2::need_more_data)
 			{
-				if (recv_buf_ptr->size() >= recv_buf_ptr->capacity())
+				if (recv_buf_ptr->size() >= recv_buf_ptr->capacity() && recv_buf_ptr->offset() == 0)
 				{
 					set_last_error((int)errcode::packet_length_too_large);
 					PRINT_EXCEPTION;
@@ -152,7 +152,7 @@ namespace asio2
 
 				this->_fire_recv(recv_ptr);
 
-				recv_buf_ptr->reoffset(ret);
+				recv_buf_ptr->offset(ret);
 
 				_recurse_parse_data(this_ptr, recv_buf_ptr);
 			}

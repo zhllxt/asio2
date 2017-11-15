@@ -122,6 +122,14 @@ namespace asio2
 		}
 
 		/**
+		 * @function : update the buffer offset
+		 */
+		inline void offset(std::size_t offset)
+		{
+			m_offset += offset;
+		}
+
+		/**
 		 * @function : get the buffer offset
 		 */
 		inline std::size_t offset()

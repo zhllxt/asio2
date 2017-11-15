@@ -68,10 +68,10 @@ namespace asio2
 		{
 #if defined(__unix__) || defined(__linux__)
 			std::string dir(PATH_MAX, '\0');
-			readlink("/proc/self/exe", (char *)dir.data(), PATH_MAX);
+			readlink("/proc/self/exe", (char *)(&dir[0]), PATH_MAX);
 #elif defined(WIN32) || defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS_)
 			std::string dir(MAX_PATH, '\0');
-			::GetModuleFileNameA(NULL, (LPSTR)dir.data(), MAX_PATH);
+			::GetModuleFileNameA(NULL, (LPSTR)(&dir[0]), MAX_PATH);
 #endif
 			auto pos = dir.find_last_of('\\', dir.length());
 			if (pos == std::string::npos)
@@ -86,7 +86,7 @@ namespace asio2
 		 */
 		__UNUSED__ std::string format(const char * format, va_list args)
 		{
-			std::string str;
+			std::string s;
 
 			// under windows and linux system,std::vsnprintf(nullptr, 0, format, args) can get the need buffer len for the output,
 			va_list args_copy;
@@ -94,12 +94,15 @@ namespace asio2
 			va_copy(args_copy, args);
 			int len = std::vsnprintf(nullptr, 0, format, args_copy);
 
-			str.resize(len);
+			if (len > 0)
+			{
+				s.resize(len);
 
-			va_copy(args_copy, args);
-			std::vsprintf((char*)str.data(), format, args_copy);
+				va_copy(args_copy, args);
+				std::vsprintf((char*)(&s[0]), format, args_copy);
+			}
 
-			return std::move(str);
+			return std::move(s);
 		}
 
 		/**
@@ -107,28 +110,30 @@ namespace asio2
 		 */
 		__UNUSED__ std::wstring format(const wchar_t * format, va_list args)
 		{
-			std::wstring str;
+			std::wstring s;
 
 			va_list args_copy;
 
-			int len = -1;
-			std::size_t size = str.capacity();
-			while (len == -1)
+			while (true)
 			{
-				str.resize(size);
+				s.resize(s.capacity());
 
 				va_copy(args_copy, args);
 
 				// if provided buffer size is less than required size,vswprintf will return -1
 				// so if len equal -1,we increase the buffer size again, and has to use a loop 
 				// to get the correct output buffer len,
-				len = std::vswprintf((wchar_t*)str.data(), str.size(), format, args_copy);
-
-				size *= 2;
+				int len = std::vswprintf((wchar_t*)(&s[0]), s.size(), format, args_copy);
+				if (len == -1)
+					s.reserve(s.capacity() * 2);
+				else
+				{
+					s.resize(len);
+					break;
+				}
 			}
-			str.resize(len);
 
-			return std::move(str);
+			return std::move(s);
 		}
 
 		/**
@@ -136,7 +141,7 @@ namespace asio2
 		 */
 		__UNUSED__ std::string format(const char * format, ...)
 		{
-			std::string str;
+			std::string s;
 
 			// under windows and linux system,std::vsnprintf(nullptr, 0, format, args) can get the need buffer len for the output,
 			va_list args, args_copy;
@@ -144,15 +149,17 @@ namespace asio2
 
 			va_copy(args_copy, args);
 			int len = std::vsnprintf(nullptr, 0, format, args_copy);
+			if (len > 0)
+			{
+				s.resize(len);
 
-			str.resize(len);
-
-			va_copy(args_copy, args);
-			std::vsprintf((char*)str.data(), format, args_copy);
+				va_copy(args_copy, args);
+				std::vsprintf((char*)(&s[0]), format, args_copy);
+			}
 
 			va_end(args);
 
-			return std::move(str);
+			return std::move(s);
 		}
 
 		/**
@@ -160,29 +167,32 @@ namespace asio2
 		 */
 		__UNUSED__ std::wstring format(const wchar_t * format, ...)
 		{
-			std::wstring str;
+			std::wstring s;
 
 			va_list args, args_copy;
 			va_start(args, format);
-			int len = -1;
-			std::size_t size = str.capacity();
-			while (len == -1)
+
+			while (true)
 			{
-				str.resize(size);
+				s.resize(s.capacity());
 
 				va_copy(args_copy, args);
 
 				// if provided buffer size is less than required size,vswprintf will return -1
 				// so if len equal -1,we increase the buffer size again, and has to use a loop 
 				// to get the correct output buffer len,
-				len = std::vswprintf((wchar_t*)str.data(), str.size(), format, args_copy);
-
-				size *= 2;
+				int len = std::vswprintf((wchar_t*)(&s[0]), s.size(), format, args_copy);
+				if (len == -1)
+					s.reserve(s.capacity() * 2);
+				else
+				{
+					s.resize(len);
+					break;
+				}
 			}
-			str.resize(len);
 			va_end(args);
 
-			return std::move(str);
+			return std::move(s);
 		}
 
 		/**
@@ -234,16 +244,16 @@ namespace asio2
 			if (path.empty())
 				return false;
 
-			if (0 == access(path.c_str(), 0))
+			if (0 == access(path.data(), 0))
 				return true;
 
 			std::size_t sep = path.find_last_of("/\\");
 			if (std::string::npos != sep && sep > 0)
-				create_directory(path.substr(0, sep).c_str());
+				create_directory(path.substr(0, sep).data());
 #if defined(__unix__) || defined(__linux__)
-			return (0 == mkdir(path.c_str(), S_IRWXU | S_IRWXG | S_IROTH));
+			return (0 == mkdir(path.data(), S_IRWXU | S_IRWXG | S_IROTH));
 #elif defined(WIN32) || defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS_)
-			return (0 == mkdir(path.c_str()));
+			return (0 == mkdir(path.data()));
 #endif
 		}
 
