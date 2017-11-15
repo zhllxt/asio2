@@ -1,7 +1,7 @@
 # asio2
 A open source cross-platform c++ library for network programming based on boost::asio,support for tcp,udp,http,ssl and so on.
 
-##### 代码基于boost::asio构建，包含C++11语法，支持TCP,UDP,HTTP,SSL,支持从内存字符串加载SSL证书，使用URL方式字符串方式建立server或client对象，隐藏通信细节，使用相当简单；已经将boost::asio代码单独摘出并引入，无需安装boost和openssl库，所有代码均是hpp文件，以源码级链入，只需在Include包含目录中添加asio2路径，然后#include <asio2/asio2.hpp>包含头文件即可使用。
+##### 代码基于boost::asio构建，包含C++11语法，支持TCP,UDP,HTTP,SSL,支持从内存字符串加载SSL证书，使用URL字符串方式建立server或client对象；已将boost::asio代码单独摘出并引入，无需安装boost和openssl库，所有代码均是hpp文件，以源码级链入，只需在Include包含目录中添加asio2路径，然后#include <asio2/asio2.hpp>包含头文件即可，隐藏通信细节，使用相当简单；
 
 ## TCP：
 #### PACK模式：
