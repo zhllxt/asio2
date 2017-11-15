@@ -5,7 +5,7 @@ A open source cross-platform c++ library for network programming based on boost:
 
 ## TCP：
 #### :small_orange_diamond:PACK模式：
-  用于常见的“包头,包体,包尾”等等封包格式，给server或client设置一个封包解析函数后，则server或client会自动进行拆包操作，确保在收到完整的数据包之后才会触发用户的数据接收监听器；
+用于常见的“包头,包体,包尾”等等封包格式，给server或client设置一个封包解析函数后，则server或client会自动进行拆包操作，确保在收到完整的数据包之后才会触发用户的数据接收监听器；
 #### 服务端：
 ```c++
 // head 1 byte <
@@ -47,7 +47,7 @@ tcp_pack_client.bind_recv([](asio2::buffer_ptr data_ptr)
 tcp_pack_client.start();
 ```
 #### :small_orange_diamond:AUTO模式：
-  server或client可发送任意数据包，接收方会确保收到的数据包是和发送方的数据包完全一致时才会触发用户的数据接收监听器；注意：AUTO模式发送数据时会自动在数据头添加4个字节的额外数据，用于标识发送内容的长度，接收方解析时需要使用该4字节解析出内容长度；
+server或client可发送任意数据包，接收方会确保收到的数据包是和发送方的数据包完全一致时才会触发用户的数据接收监听器；注意：AUTO模式发送数据时会自动在数据头添加4个字节的额外数据，用于标识发送内容的长度，接收方解析时需要使用该4字节解析出内容长度；
 #### 服务端：
 ```c++
 asio2::server tcp_auto_server("tcp://*:8098/auto");
