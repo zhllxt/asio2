@@ -4,7 +4,7 @@ A open source cross-platform c++ library for network programming based on boost:
 ##### 代码基于boost::asio构建，使用了C++11语法，支持TCP,UDP,HTTP,SSL,支持从内存字符串加载SSL证书，使用URL字符串方式建立server或client对象；已将boost::asio代码单独摘出并引入，无需安装boost和openssl库，所有代码均是hpp文件，以源码级链入，只需在Include包含目录中添加asio2路径，然后#include <asio2/asio2.hpp>包含头文件即可，隐藏通信细节，使用相当简单；
 
 ## TCP：
-#### PACK模式：
+#### :large_blue_diamond:PACK模式：
   用于常见的“包头,包体,包尾”等等封包格式，给server或client设置一个封包解析函数后，则server或client会自动进行拆包操作，确保在收到完整的数据包之后才会触发用户的数据接收监听器；
 #### 服务端：
 ```c++
