@@ -49,3 +49,21 @@ tcp_pack_client.start();
 #### AUTO模式：
   server或client可发送任意数据包，接收方会确保收到的数据包是和发送方的数据包完全一致时才会触发用户的数据接收监听器；注意：AUTO模式发送数据时会自动在数据头添加4个字节的额外数据，用于标识发送内容的长度，接收方解析时需要使用该4字节解析出内容长度；
 #### 服务端：
+```c++
+asio2::server tcp_auto_server("tcp://*:8098/auto");
+tcp_auto_server.bind_recv([](asio2::session_ptr session_ptr, asio2::buffer_ptr data_ptr)
+{
+	std::printf("recv : %.*s\n", (int)data_ptr->size(), (const char*)data_ptr->data());
+});
+tcp_auto_server.start();
+```
+#### 客户端：
+```c++
+asio2::client tcp_auto_client("tcp://127.0.0.1:8098/auto");
+tcp_auto_client.bind_recv([](asio2::buffer_ptr data_ptr)
+{
+	std::printf("recv : %.*s\n", (int)data_ptr->size(), (const char*)data_ptr->data());
+});
+tcp_auto_client.start();
+```
+
