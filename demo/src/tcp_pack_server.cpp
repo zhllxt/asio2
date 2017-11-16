@@ -32,11 +32,11 @@ std::size_t pack_parser(asio2::buffer_ptr data_ptr)
 	uint8_t * data = data_ptr->data();
 	if (data[0] == '<')
 	{
-		std::size_t total_len = data[1] + 3;
-		if (data_ptr->size() < total_len)
+		std::size_t pack_len = data[1] + 3;
+		if (data_ptr->size() < pack_len)
 			return asio2::need_more_data;
-		if (data[total_len - 1] == '>')
-			return total_len;
+		if (data[pack_len - 1] == '>')
+			return pack_len;
 	}
 
 	return asio2::invalid_data;
