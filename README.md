@@ -24,11 +24,11 @@ std::size_t pack_parser(asio2::buffer_ptr data_ptr)
 	uint8_t * data = data_ptr->data();
 	if (data[0] == '<') // 包头正确
 	{
-		std::size_t total_len = data[1] + 3;
-		if (data_ptr->size() < total_len) // 接收的数据总长度小于一个完整包的长度
+		std::size_t pack_len = data[1] + 3;
+		if (data_ptr->size() < pack_len) // 接收的数据总长度小于一个完整包的长度
 			return asio2::need_more_data; // 返回“需要更多数据”
-		if (data[total_len - 1] == '>') // 包尾正确
-			return total_len; // 返回这个封包的完整长度
+		if (data[pack_len - 1] == '>') // 包尾正确
+			return pack_len; // 返回这个封包的完整长度
 	}
 
 	return asio2::invalid_data; // 返回无效数据，则此连接会被断开
