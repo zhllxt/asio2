@@ -18,35 +18,35 @@ A open source cross-platform c++ library for network programming based on boost:
 
 std::size_t pack_parser(asio2::buffer_ptr data_ptr)
 {
-	if (data_ptr->size() < 3)
-		return asio2::need_more_data;
+	if (data_ptr->size() < 3) // 接收数据长度小于封包最小长度：包头1个字节，包体长度1个字节，包尾1个字节
+		return asio2::need_more_data; // 返回“需要更多数据”
 
 	uint8_t * data = data_ptr->data();
-	if (data[0] == '<')
+	if (data[0] == '<') // 包头正确
 	{
 		std::size_t total_len = data[1] + 3;
-		if (data_ptr->size() < total_len)
-			return asio2::need_more_data;
-		if (data[total_len - 1] == '>')
-			return total_len;
+		if (data_ptr->size() < total_len) // 接收的数据总长度小于一个完整包的长度
+			return asio2::need_more_data; // 返回“需要更多数据”
+		if (data[total_len - 1] == '>') // 包尾正确
+			return total_len; // 返回这个封包的完整长度
 	}
 
-	return asio2::invalid_data;
+	return asio2::invalid_data; // 返回无效数据，则此连接会被断开
 }
 asio2::server tcp_pack_server(" tcp://*:8099/pack?pool_buffer_size=1024");
-tcp_pack_server.bind_recv([](asio2::session_ptr session_ptr, asio2::buffer_ptr data_ptr)
+tcp_pack_server.bind_recv([](asio2::session_ptr session_ptr, asio2::buffer_ptr data_ptr) // 设置数据接收监听器
 {
 	std::printf("recv : %.*s\n", (int)data_ptr->size(), (const char*)data_ptr->data());
-}).set_pack_parser(std::bind(pack_parser, std::placeholders::_1));
+}).set_pack_parser(std::bind(pack_parser, std::placeholders::_1)); // 设置封包格式解析器
 tcp_pack_server.start();
 ```
 ##### 客户端：
 ```c++
 asio2::client tcp_pack_client("tcp://localhost:8099/pack");
-tcp_pack_client.bind_recv([](asio2::buffer_ptr data_ptr)
+tcp_pack_client.bind_recv([](asio2::buffer_ptr data_ptr) // 设置数据接收监听器
 {
 	std::printf("recv : %.*s\n", (int)data_ptr->size(), (const char*)data_ptr->data());
-}).set_pack_parser(std::bind(pack_parser, std::placeholders::_1));
+}).set_pack_parser(std::bind(pack_parser, std::placeholders::_1)); // 设置封包格式解析器
 tcp_pack_client.start();
 ```
 #### :small_orange_diamond:AUTO模式：
@@ -63,7 +63,7 @@ tcp_auto_server.start();
 ##### 客户端：
 ```c++
 asio2::client tcp_auto_client("tcp://127.0.0.1:8098/auto");
-tcp_auto_client.bind_recv([](asio2::buffer_ptr data_ptr)
+tcp_auto_client.bind_recv([](asio2::buffer_ptr data_ptr) // 设置数据接收监听器
 {
 	std::printf("recv : %.*s\n", (int)data_ptr->size(), (const char*)data_ptr->data());
 });
@@ -120,10 +120,10 @@ std::string dh =
 
 tcps_server
 	.set_password("test") // should call set_password first 
-	//.use_certificate_chain_file("server.crt")
+	//.use_certificate_chain_file("server.crt") // 从文件加载证书
 	//.use_private_key_file("server.key")
 	//.use_tmp_dh_file("dh512.pem");
-	.use_certificate_chain(cer)
+	.use_certificate_chain(cer) // 从内存字符串加载证书
 	.use_private_key(key)
 	.use_tmp_dh(dh);
 
