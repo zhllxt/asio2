@@ -129,8 +129,6 @@ tcps_server
 
 tcps_server.bind_recv([](asio2::session_ptr session_ptr, asio2::buffer_ptr data_ptr)
 {
-	std::dynamic_pointer_cast<asio2::tcps_auto_session>(session_ptr)->get_socket_ptr();
-
 	std::printf("recv : %.*s\n", (int)data_ptr->size(), (const char*)data_ptr->data());
 
 	session_ptr->send(data_ptr);
