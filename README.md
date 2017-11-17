@@ -73,8 +73,6 @@ tcp_auto_client.start();
 ## SSL TCP：
 ##### 服务端：
 ```c++
-asio2::server tcps_server("tcps://*:9443/auto");
-
 std::string cer =
 	"-----BEGIN CERTIFICATE-----\r\n"\
 	"MIICcTCCAdoCCQDYl7YrsugMEDANBgkqhkiG9w0BAQsFADB9MQswCQYDVQQGEwJD\r\n"\
@@ -119,6 +117,7 @@ std::string dh =
 	"NgWnHCe/vsGJok2wHS4R/laH6MQTAgEC\r\n"\
 	"-----END DH PARAMETERS-----\r\n";
 
+asio2::server tcps_server("tcps://*:9443/auto");
 tcps_server
 	.set_password("test") // should call set_password first 
 	//.use_certificate_chain_file("server.crt") // 从文件加载证书
