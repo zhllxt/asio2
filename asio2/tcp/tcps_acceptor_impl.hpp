@@ -74,7 +74,7 @@ namespace asio2
 
 	protected:
 
-		virtual std::shared_ptr<_session_impl_t> _prepare_session()
+		virtual std::shared_ptr<_session_impl_t> _prepare_session() override
 		{
 			std::shared_ptr<_session_impl_t> session_ptr = tcp_acceptor_impl<_session_impl_t>::_prepare_session();
 
