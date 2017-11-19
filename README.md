@@ -2,7 +2,7 @@
 A open source cross-platform c++ library for network programming based on boost::asio,support for tcp,udp,http,ssl and so on.
 
 * 支持TCP,UDP,HTTP,SSL,支持从内存字符串加载SSL证书；支持windows,linux,32位,64位；
-* 代码基于boost::asio构建，使用了C++11语法，使用URL字符串方式建立server或client对象；
+* 代码基于boost::asio构建，使用了C++11，采用URL字符串方式建立server或client连接；
 * 已将boost::asio代码单独摘出并引入，无需安装boost和openssl库，所有代码均是hpp文件，以源码级链入，只需在工程的Include包含目录中添加asio2路径，然后在源码中#include <asio2/asio2.hpp>包含头文件即可；
 * demo目录包含大量的示例工程（工程基于VS2017创建），各种使用方法请参考示例代码；
 
@@ -36,6 +36,7 @@ std::size_t pack_parser(asio2::buffer_ptr data_ptr)
 asio2::server tcp_pack_server(" tcp://*:8099/pack?pool_buffer_size=1024");
 tcp_pack_server.bind_recv([](asio2::session_ptr session_ptr, asio2::buffer_ptr data_ptr) // 设置数据接收监听器
 {
+	// session_ptr 连接对象智能指针 buffer_ptr 数据对象智能指针 (server端会将连接对象和通信数据一起通知给监听器)
 	std::printf("recv : %.*s\n", (int)data_ptr->size(), (const char*)data_ptr->data());
 }).set_pack_parser(std::bind(pack_parser, std::placeholders::_1)); // 设置封包格式解析器
 tcp_pack_server.start();
@@ -72,8 +73,6 @@ tcp_auto_client.start();
 ## SSL TCP：
 ##### 服务端：
 ```c++
-asio2::server tcps_server("tcps://*:9443/auto");
-
 std::string cer =
 	"-----BEGIN CERTIFICATE-----\r\n"\
 	"MIICcTCCAdoCCQDYl7YrsugMEDANBgkqhkiG9w0BAQsFADB9MQswCQYDVQQGEwJD\r\n"\
@@ -118,6 +117,7 @@ std::string dh =
 	"NgWnHCe/vsGJok2wHS4R/laH6MQTAgEC\r\n"\
 	"-----END DH PARAMETERS-----\r\n";
 
+asio2::server tcps_server("tcps://*:9443/auto");
 tcps_server
 	.set_password("test") // should call set_password first 
 	//.use_certificate_chain_file("server.crt") // 从文件加载证书
