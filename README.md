@@ -31,7 +31,7 @@ std::size_t pack_parser(asio2::buffer_ptr data_ptr)
 			return pack_len; // 返回这个封包的完整长度
 	}
 
-	return asio2::invalid_data; // 返回无效数据，则此连接会被断开
+	return asio2::invalid_data; // 如果发现无效数据，返回invalid_data,则此连接会被断开
 }
 asio2::server tcp_pack_server(" tcp://*:8099/pack?pool_buffer_size=1024");
 tcp_pack_server.bind_recv([](asio2::session_ptr session_ptr, asio2::buffer_ptr data_ptr) // 设置数据接收监听器
