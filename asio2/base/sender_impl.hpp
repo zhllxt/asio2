@@ -85,6 +85,8 @@ namespace asio2
 		 */
 		virtual void stop() = 0;
 
+		virtual bool is_start() = 0;
+
 		/**
 		 * @function : send data
 		 */

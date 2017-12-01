@@ -56,12 +56,20 @@ namespace asio2
 			std::shared_ptr<listener_mgr> listener_mgr_ptr,
 			std::shared_ptr<url_parser> url_parser_ptr,
 			std::shared_ptr<pool_s> send_buf_pool_ptr,
-			std::shared_ptr<pool_t> recv_buf_pool_ptr
+			std::shared_ptr<pool_t> recv_buf_pool_ptr,
+			std::shared_ptr<boost::asio::ssl::context> context_ptr = nullptr
 		)
 			: session_impl(ioservice_ptr, listener_mgr_ptr, url_parser_ptr)
 			, m_send_buf_pool_ptr(send_buf_pool_ptr)
 			, m_recv_buf_pool_ptr(recv_buf_pool_ptr)
+			, m_context_ptr(context_ptr)
 		{
+			if (m_ioservice_ptr && m_context_ptr)
+			{
+				m_socket_ptr = std::make_shared<ssl_socket>(*m_ioservice_ptr, *m_context_ptr);
+
+				m_timer_ptr = std::make_shared<boost::asio::deadline_timer>(*m_ioservice_ptr);
+			}
 		}
 
 		/**
@@ -384,20 +392,6 @@ namespace asio2
 			}
 #endif
 			return true;
-		}
-
-		tcps_session_impl & set_context(std::shared_ptr<boost::asio::ssl::context> context_ptr)
-		{
-			m_context_ptr = context_ptr;
-
-			if (m_ioservice_ptr && m_context_ptr)
-			{
-				m_socket_ptr = std::make_shared<ssl_socket>(*m_ioservice_ptr, *m_context_ptr);
-
-				m_timer_ptr = std::make_shared<boost::asio::deadline_timer>(*m_ioservice_ptr);
-			}
-
-			return (*this);
 		}
 
 	protected:

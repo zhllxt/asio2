@@ -39,14 +39,16 @@ namespace asio2
 			std::shared_ptr<listener_mgr> listener_mgr_ptr,
 			std::shared_ptr<url_parser> url_parser_ptr,
 			std::shared_ptr<pool_s> send_buf_pool_ptr,
-			std::shared_ptr<pool_t> recv_buf_pool_ptr
+			std::shared_ptr<pool_t> recv_buf_pool_ptr,
+			std::shared_ptr<boost::asio::ssl::context> context_ptr = nullptr
 		)
 			: tcps_session_impl<_pool_t>(
 				ioservice_ptr,
 				listener_mgr_ptr,
 				url_parser_ptr,
 				send_buf_pool_ptr,
-				recv_buf_pool_ptr
+				recv_buf_pool_ptr,
+				context_ptr
 				)
 		{
 			m_max_packet_size = this->_get_max_packet_size();

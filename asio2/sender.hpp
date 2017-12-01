@@ -95,6 +95,11 @@ namespace asio2
 			}
 		}
 
+		bool is_start()
+		{
+			return (m_sender_impl_ptr ? m_sender_impl_ptr->is_start() : false);
+		}
+
 		/**
 		 * @function : send data
 		 */

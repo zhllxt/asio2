@@ -18,6 +18,11 @@
  * but in order to keep the interface simple,we don't add stop function,you can use "new" "delete" way to avoid above problems,you 
  * can delete thread_pool pointer object before exit.
  * 
+ * std::thread cause deadlock in DLLMain : 
+ * The constructor for the std::thread cannot return until the new thread starts executing the thread procedure. When a new thread 
+ * is created, before the thread procedure is invoked, the entry point of each loaded DLL is invoked for DLL_THREAD_ATTACH. To do 
+ * this, the new thread must acquire the loader lock. Unfortunately, your existing thread already holds the loader lock.
+ * 
  */
 
 #ifndef __ASIO2_THREAD_POOL_HPP__
@@ -199,9 +204,9 @@ namespace asio2
 
 			for (std::size_t i = 0; i < thread_count; ++i)
 			{
-				std::shared_ptr<std::mutex> mtx = std::make_shared<std::mutex>();
-				std::shared_ptr<std::condition_variable> cv = std::make_shared<std::condition_variable>();
-				std::shared_ptr<std::queue<std::function<void()>>> que = std::make_shared<std::queue<std::function<void()>>>();
+				std::mutex * mtx = new std::mutex();
+				std::condition_variable * cv = new std::condition_variable();
+				std::queue<std::function<void()>> * que = new std::queue<std::function<void()>>();
 
 				_mtx.emplace_back(mtx);
 				_cv.emplace_back(cv);
@@ -255,6 +260,15 @@ namespace asio2
 				if (worker.joinable())
 					worker.join();
 			}
+
+			for (auto & mtx : _mtx)
+				delete mtx;
+
+			for (auto & cv : _cv)
+				delete cv;
+
+			for (auto & task : _tasks)
+				delete task;
 		}
 
 		/**
@@ -330,11 +344,11 @@ namespace asio2
 		std::vector<std::thread> _workers;
 
 		// the task queue
-		std::vector<std::shared_ptr<std::queue<std::function<void()>>>> _tasks;
+		std::vector<std::queue<std::function<void()>> *> _tasks;
 
 		// synchronization
-		std::vector<std::shared_ptr<std::mutex>> _mtx;
-		std::vector<std::shared_ptr<std::condition_variable>> _cv;
+		std::vector<std::mutex *> _mtx;
+		std::vector<std::condition_variable *> _cv;
 
 		// 
 		volatile bool _is_stop = false;

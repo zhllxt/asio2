@@ -50,13 +50,6 @@ namespace asio2
 			return tcp_server_impl<_acceptor_impl_t>::start();
 		}
 
-		virtual void stop() override
-		{
-			tcp_server_impl<_acceptor_impl_t>::stop();
-
-			m_pack_parser = nullptr;
-		}
-
 		/**
 		 * @function : set the data parser under pack model
 		 */
@@ -78,10 +71,9 @@ namespace asio2
 					this->m_listener_mgr_ptr,
 					this->m_url_parser_ptr,
 					this->m_send_buf_pool_ptr,
-					this->m_recv_buf_pool_ptr
+					this->m_recv_buf_pool_ptr,
+					this->m_pack_parser
 					);
-
-				std::dynamic_pointer_cast<_acceptor_impl_t>(this->m_acceptor_impl_ptr)->set_pack_parser(m_pack_parser);
 
 				return this->m_acceptor_impl_ptr->start();
 			}

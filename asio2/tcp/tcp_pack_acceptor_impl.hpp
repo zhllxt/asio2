@@ -28,6 +28,8 @@ namespace asio2
 		typedef _session_impl_t session_impl_t;
 		typedef typename _session_impl_t::pool_t pool_t;
 
+		using parser_callback = std::size_t(std::shared_ptr<buffer<uint8_t>> data_ptr);
+
 		/**
 		 * @construct
 		 */
@@ -36,7 +38,8 @@ namespace asio2
 			std::shared_ptr<listener_mgr> listener_mgr_ptr,
 			std::shared_ptr<url_parser> url_parser_ptr,
 			std::shared_ptr<pool_s> send_buf_pool_ptr,
-			std::shared_ptr<pool_t> recv_buf_pool_ptr
+			std::shared_ptr<pool_t> recv_buf_pool_ptr,
+			std::function<parser_callback> pack_parser = nullptr
 		)
 			: tcp_acceptor_impl<_session_impl_t>(
 				ioservice_pool_ptr,
@@ -45,6 +48,7 @@ namespace asio2
 				send_buf_pool_ptr,
 				recv_buf_pool_ptr
 			)
+			, m_pack_parser(pack_parser)
 		{
 		}
 
@@ -55,40 +59,37 @@ namespace asio2
 		{
 		}
 
-		virtual void stop() override
-		{
-			tcp_acceptor_impl<_session_impl_t>::stop();
-
-			m_pack_parser = nullptr;
-		}
-
-		/**
-		 * @function : set the data parser under pack model
-		 */
-		template<typename _parser>
-		tcp_pack_acceptor_impl & set_pack_parser(_parser parser)
-		{
-			m_pack_parser = parser;
-			return (*this);
-		}
-
 	protected:
 		virtual std::shared_ptr<_session_impl_t> _prepare_session() override
 		{
-			std::shared_ptr<_session_impl_t> session_ptr = tcp_acceptor_impl<_session_impl_t>::_prepare_session();
-
-			if (session_ptr)
+			// get a session shared_ptr from session manager
+			try
 			{
-				session_ptr->set_pack_parser(m_pack_parser);
+				// the params of get_session is final passed to session constructor
+				std::shared_ptr<_session_impl_t> session_ptr = m_session_mgr_ptr->get_session(
+					m_ioservice_pool_ptr->get_io_service_ptr(),
+					m_listener_mgr_ptr,
+					m_url_parser_ptr,
+					m_send_buf_pool_ptr,
+					m_recv_buf_pool_ptr,
+					m_pack_parser
+				);
+
+				return session_ptr;
+			}
+			// handle exception,may be is the exception "Too many open files" (exception code : 24)
+			catch (boost::system::system_error & e)
+			{
+				set_last_error(e.code().value());
+
+				PRINT_EXCEPTION;
 			}
 
-			return session_ptr;
+			return nullptr;
 		}
 
 	protected:
 		
-		using parser_callback = std::size_t(std::shared_ptr<buffer<uint8_t>> data_ptr);
-
 		std::function<parser_callback>       m_pack_parser;
 
 	};

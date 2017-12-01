@@ -176,7 +176,7 @@ namespace asio2
 		/**
 		 * @function : whether the sender is started
 		 */
-		virtual bool is_start()
+		virtual bool is_start() override
 		{
 			return (
 				!m_stop_is_called &&

@@ -116,10 +116,9 @@ namespace asio2
 					this->m_listener_mgr_ptr,
 					this->m_url_parser_ptr,
 					this->m_send_buf_pool_ptr,
-					this->m_recv_buf_pool_ptr
+					this->m_recv_buf_pool_ptr,
+					this->m_context_ptr
 					);
-
-				std::dynamic_pointer_cast<_acceptor_impl_t>(this->m_acceptor_impl_ptr)->set_context(m_context_ptr);
 
 				return this->m_acceptor_impl_ptr->start();
 			}

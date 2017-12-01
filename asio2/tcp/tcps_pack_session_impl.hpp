@@ -31,6 +31,8 @@ namespace asio2
 
 		typedef _pool_t pool_t;
 
+		using parser_callback = std::size_t(std::shared_ptr<buffer<uint8_t>> data_ptr);
+
 		/**
 		 * @construct
 		 */
@@ -39,15 +41,19 @@ namespace asio2
 			std::shared_ptr<listener_mgr> listener_mgr_ptr,
 			std::shared_ptr<url_parser> url_parser_ptr,
 			std::shared_ptr<pool_s> send_buf_pool_ptr,
-			std::shared_ptr<pool_t> recv_buf_pool_ptr
+			std::shared_ptr<pool_t> recv_buf_pool_ptr,
+			std::shared_ptr<boost::asio::ssl::context> context_ptr = nullptr,
+			std::function<parser_callback> pack_parser = nullptr
 		)
 			: tcps_session_impl<_pool_t>(
 				ioservice_ptr,
 				listener_mgr_ptr,
 				url_parser_ptr,
 				send_buf_pool_ptr,
-				recv_buf_pool_ptr
+				recv_buf_pool_ptr,
+				context_ptr
 				)
+			, m_pack_parser(pack_parser)
 		{
 		}
 
@@ -56,23 +62,6 @@ namespace asio2
 		 */
 		virtual ~tcps_pack_session_impl()
 		{
-		}
-
-		virtual void stop() override
-		{
-			tcps_session_impl<_pool_t>::stop();
-
-			m_pack_parser = nullptr;
-		}
-
-		/**
-		 * @function : set the data parser under pack model
-		 */
-		template<typename _parser>
-		tcps_pack_session_impl & set_pack_parser(_parser parser)
-		{
-			m_pack_parser = parser;
-			return (*this);
 		}
 
 	protected:
@@ -182,8 +171,6 @@ namespace asio2
 		}
 
 	protected:
-
-		using parser_callback = std::size_t(std::shared_ptr<buffer<uint8_t>> data_ptr);
 
 		std::function<parser_callback>       m_pack_parser;
 
