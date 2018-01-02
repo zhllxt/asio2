@@ -1,14 +1,14 @@
 # asio2
 A open source cross-platform c++ library for network programming based on boost::asio,support for tcp,udp,http,ssl and so on.
 
-* Support TCP, UDP, HTTP, SSL, support the loading of SSL certificates from the memory string; support windows, Linux, 32 bit, 64 bit;
-* The code is based on boost:: ASIO construction, using C++11, using URL string to establish server or client connections;
+* Support TCP, UDP, HTTP, SSL, support load SSL certificates from the memory string; support windows, Linux, 32 bit, 64 bit;
+* The code is based on boost::asio construction, using C++11, using URL string to establish server or client connections;
 * boost::asio code has been picked out and introduced, no need to install boost and OpenSSL libraries, all the code is the hpp file, just need to add the asio2 path to the Include inclusion directory of the project, and then use #include <asio2/asio2.hpp> to contains the header file in the source code;
 * The demo directory contains a large number of sample projects (projects based on VS2017 creation), and a variety of use methods refer to the sample code.
 
 ## TCP:
 #### :small_orange_diamond:PACK mode:
-used for "packet header,packet body,packet tail" or other similar packet formats, you need to setting up a packet parsing function, when data is recvd, the packet parse function will be invoked automatically, and user custom data listener will recvd a completed packet；
+used for "packet header,packet body,packet tail" or other similar packet formats, you need to setting up a packet parsing function, when data is recvd, the packet parse function will be invoked automatically, and user custom data listener will recvd a completed packet;
 ##### server:
 ```c++
 // head 1 byte <
