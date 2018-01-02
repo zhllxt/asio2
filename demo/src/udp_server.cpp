@@ -20,22 +20,22 @@
 class user_udp_server_listener : public asio2::udp_server_listener
 {
 public:
-	virtual void on_send(asio2::session_ptr session_ptr, asio2::buffer_ptr data_ptr, int error) override
+	virtual void on_send(asio2::session_ptr & session_ptr, asio2::buffer_ptr & buf_ptr, int error) override
 	{
 	}
-	virtual void on_recv(asio2::session_ptr session_ptr, asio2::buffer_ptr data_ptr) override
+	virtual void on_recv(asio2::session_ptr & session_ptr, asio2::buffer_ptr & buf_ptr) override
 	{
-		std::printf("recv : %.*s\n", (int)data_ptr->size(), (const char*)data_ptr->data());
+		std::printf("recv : %.*s\n", (int)buf_ptr->size(), (const char*)buf_ptr->data());
 
-		session_ptr->send(data_ptr);
+		session_ptr->send(buf_ptr);
 	}
-	virtual void on_close(asio2::session_ptr session_ptr, int error) override
+	virtual void on_close(asio2::session_ptr & session_ptr, int error) override
 	{
 	}
 	virtual void on_listen() override
 	{
 	}
-	virtual void on_accept(asio2::session_ptr session_ptr) override
+	virtual void on_accept(asio2::session_ptr & session_ptr) override
 	{
 	}
 	virtual void on_shutdown(int error) override
@@ -61,7 +61,7 @@ int main(int argc, char *argv[])
 
 	while (run_flag)
 	{
-		asio2::server udp_server("udp://*:9530/?send_buffer_size=256m&recv_buffer_size=256m&pool_buffer_size=1024");
+		asio2::server udp_server("udp://*:9010/?so_sndbuf=256m&so_rcvbuf=256m&recv_buffer_size=1024");
 		udp_server.bind_listener(std::make_shared<user_udp_server_listener>());
 		if (!udp_server.start())
 			std::printf("start udp server failed : %d - %s.\n", asio2::get_last_error(), asio2::get_last_error_desc().c_str());
@@ -73,7 +73,7 @@ int main(int argc, char *argv[])
 		{
 			while (run_flag)
 			{
-				std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+				std::this_thread::sleep_for(std::chrono::milliseconds(100));
 			}
 		}).join();
 

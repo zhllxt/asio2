@@ -29,10 +29,10 @@ namespace asio2
 		 * @construct
 		 */
 		explicit tcp_auto_client_impl(
-			std::shared_ptr<listener_mgr> listener_mgr_ptr,
-			std::shared_ptr<url_parser> url_parser_ptr
+			std::shared_ptr<url_parser>                    url_parser_ptr,
+			std::shared_ptr<listener_mgr>                  listener_mgr_ptr
 		)
-			: tcp_client_impl<_connection_impl_t>(listener_mgr_ptr, url_parser_ptr)
+			: tcp_client_impl<_connection_impl_t>(url_parser_ptr, listener_mgr_ptr)
 		{
 		}
 

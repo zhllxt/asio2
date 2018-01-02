@@ -14,46 +14,64 @@
 #pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
+#if !defined(NDEBUG) && !defined(DEBUG) && !defined(_DEBUG)
+#	define NDEBUG
+#endif
+
+#include <cassert>
 #include <memory>
 #include <chrono>
 #include <future>
 #include <functional>
+#include <thread>
+#include <mutex>
+#include <atomic>
 
 #include <boost/asio.hpp>
 #include <boost/system/system_error.hpp>
 
 #include <asio2/util/buffer.hpp>
-#include <asio2/util/buffer_pool.hpp>
-#include <asio2/util/multi_buffer_pool.hpp>
+#include <asio2/util/def.hpp>
+#include <asio2/util/helper.hpp>
+#include <asio2/util/logger.hpp>
+#include <asio2/util/pool.hpp>
+#include <asio2/util/rwlock.hpp>
+#include <asio2/util/spin_lock.hpp>
 
-#include <asio2/base/io_service_pool.hpp>
+#include <asio2/base/socket_helper.hpp>
+#include <asio2/base/io_context_pool.hpp>
 #include <asio2/base/error.hpp>
 #include <asio2/base/def.hpp>
 #include <asio2/base/listener_mgr.hpp>
 #include <asio2/base/url_parser.hpp>
+#include <asio2/base/session_mgr.hpp>
 
 namespace asio2
 {
 
 	class session_impl : public std::enable_shared_from_this<session_impl>
 	{
-	public:
+		template<class _key, class _hasher, class _equaler> friend class session_mgr_t;
 
+	public:
 		/**
 		 * @construct
 		 */
 		session_impl(
-			std::shared_ptr<io_service> ioservice_ptr,
-			std::shared_ptr<listener_mgr> listener_mgr_ptr,
-			std::shared_ptr<url_parser> url_parser_ptr
+			std::shared_ptr<url_parser>                    url_parser_ptr,
+			std::shared_ptr<listener_mgr>                  listener_mgr_ptr,
+			std::shared_ptr<boost::asio::io_context>       io_context_ptr,
+			std::shared_ptr<session_mgr>                   session_mgr_ptr
 		)
-			: m_ioservice_ptr(ioservice_ptr)
-			, m_listener_mgr_ptr(listener_mgr_ptr)
-			, m_url_parser_ptr(url_parser_ptr)
+			: m_url_parser_ptr   (url_parser_ptr)
+			, m_listener_mgr_ptr (listener_mgr_ptr)
+			, m_io_context_ptr   (io_context_ptr)
+			, m_timer            (*io_context_ptr)
+			, m_session_mgr_ptr  (session_mgr_ptr)
 		{
-			if (m_ioservice_ptr)
+			if (m_io_context_ptr)
 			{
-				m_strand_ptr = std::make_shared<boost::asio::io_service::strand>(*m_ioservice_ptr);
+				m_strand_ptr = std::make_shared<boost::asio::io_context::strand>(*m_io_context_ptr);
 			}
 		}
 
@@ -67,33 +85,7 @@ namespace asio2
 		/**
 		 * @function : start session
 		 */
-		virtual bool start()
-		{
-			// if you want use shared_from_this() function in the derived from enable_shared_from_this class,
-			// the object must created with "new" mode on the heap,if you create the object on the stack,
-			// it will throw a exception,and can't create object use shared_from_this(),but in many 
-			// member functions,it has to use shared_from_this() to create object.
-			// so here,at debug mode,we check if user create the object correct
-			// note : can't call shared_from_this() in construct function
-			// note : can't call shared_from_this() in shared_ptr custom deleter function 
-#if defined(_DEBUG) || defined(DEBUG)
-			try
-			{
-				shared_from_this();
-			}
-			catch (std::bad_weak_ptr &)
-			{
-				assert(false);
-				return false;
-			}
-#endif // DEBUG
-
-			// reset the variable to default status
-			m_last_active_time = std::chrono::steady_clock::now();
-			m_accept_time = std::chrono::steady_clock::now();
-
-			return true;
-		}
+		virtual bool start() = 0;
 
 		/**
 		 * @function : stop session
@@ -102,7 +94,7 @@ namespace asio2
 		virtual void stop() = 0;
 
 		/**
-		 * @function : whether the session is started
+		 * @function : check whether the session is started
 		 */
 		virtual bool is_start() = 0;
 
@@ -114,28 +106,20 @@ namespace asio2
 		/**
 		 * @function : send data
 		 */
-		virtual bool send(const uint8_t * buf, std::size_t len) = 0;
+		virtual bool send(const uint8_t * buf, std::size_t len)
+		{
+			return (buf ? this->send(std::make_shared<buffer<uint8_t>>(len, malloc_send_buffer(len), buf, len)) : false);
+		}
 
 		/**
 		 * @function : send data
 		 */
 		virtual bool send(const char * buf)
 		{
-			return this->send(reinterpret_cast<const uint8_t *>(buf), std::strlen(buf));
+			return (buf ? this->send(reinterpret_cast<const uint8_t *>(buf), std::strlen(buf)) : false);
 		}
 
 	public:
-		/**
-		 * @function : set socket's recv buffer size.
-		 *             when packet lost rate is high,you can set the recv buffer size to a big value to avoid it.
-		 */
-		virtual bool set_recv_buffer_size(int size) = 0;
-
-		/**
-		 * @function : set socket's send buffer size
-		 */
-		virtual bool set_send_buffer_size(int size) = 0;
-
 		/**
 		 * @function : get the local address
 		 */
@@ -155,29 +139,28 @@ namespace asio2
 		 * @function : get the remote port
 		 */
 		virtual unsigned short get_remote_port() = 0;
-
 		
 		/**
-		 * @function : get user data shared_ptr
+		 * @function : get user data 
 		 */
-		virtual std::shared_ptr<void> get_user_data() 
+		inline std::size_t get_user_data()
 		{
-			return m_user_data_ptr;
+			return m_user_data;
 		}
 
 		/**
-		 * @function : set user data shared_ptr
+		 * @function : set user data
 		 */
-		virtual void set_user_data(std::shared_ptr<void> user_data_ptr) 
+		inline void set_user_data(std::size_t user_data)
 		{
-			m_user_data_ptr = user_data_ptr;
+			m_user_data = user_data;
 		}
 
 	public:
 		/**
 		 * @function : get last active time 
 		 */
-		std::chrono::time_point<std::chrono::steady_clock> get_last_active_time()
+		inline std::chrono::time_point<std::chrono::system_clock> get_last_active_time()
 		{
 			return m_last_active_time;
 		}
@@ -185,23 +168,23 @@ namespace asio2
 		/**
 		 * @function : reset last active time 
 		 */
-		void reset_last_active_time()
+		inline void reset_last_active_time()
 		{
-			m_last_active_time = std::chrono::steady_clock::now();
+			m_last_active_time = std::chrono::system_clock::now();
 		}
 
 		/**
 		 * @function : get silence duration of milliseconds
 		 */
-		std::chrono::milliseconds::rep get_silence_duration()
+		inline std::chrono::milliseconds::rep get_silence_duration()
 		{
-			return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - m_last_active_time).count();
+			return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - m_last_active_time).count();
 		}
 
 		/**
 		 * @function : get build connection time 
 		 */
-		std::chrono::time_point<std::chrono::steady_clock> get_accept_time()
+		inline std::chrono::time_point<std::chrono::system_clock> get_accept_time()
 		{
 			return m_accept_time;
 		}
@@ -209,86 +192,53 @@ namespace asio2
 		/**
 		 * @function : get connection keepalive duration of milliseconds
 		 */
-		std::chrono::milliseconds::rep get_keepalive_duration()
+		inline std::chrono::milliseconds::rep get_keepalive_duration()
 		{
-			return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - m_accept_time).count();
+			return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - m_accept_time).count();
 		}
 
 	protected:
-		/**
-		 * @function : colse the socket
-		 */
-		virtual void _close_socket()
-		{
-			m_user_data_ptr.reset();
-		}
-
 		/**
 		 * @function : used for the unorder_map key
 		 */
 		virtual void * _get_key() = 0;
 
 	protected:
-
-		virtual void _set_send_buffer_size_from_url()
-		{
-			// set send buffer size from url params
-			std::string str_send_buffer_size = m_url_parser_ptr->get_param_value("send_buffer_size");
-			if (!str_send_buffer_size.empty())
-			{
-				int send_buffer_size = std::atoi(str_send_buffer_size.c_str());
-				if (str_send_buffer_size.find_last_of('k') != std::string::npos)
-					send_buffer_size *= 1024;
-				else if (str_send_buffer_size.find_last_of('m') != std::string::npos)
-					send_buffer_size *= 1024 * 1024;
-				if (send_buffer_size < 1024)
-					send_buffer_size = 1024;
-				this->set_send_buffer_size(send_buffer_size);
-			}
-		}
-
-		virtual void _set_recv_buffer_size_from_url()
-		{
-			std::string str_recv_buffer_size = m_url_parser_ptr->get_param_value("recv_buffer_size");
-			if (!str_recv_buffer_size.empty())
-			{
-				int recv_buffer_size = std::atoi(str_recv_buffer_size.c_str());
-				if (str_recv_buffer_size.find_last_of('k') != std::string::npos)
-					recv_buffer_size *= 1024;
-				else if (str_recv_buffer_size.find_last_of('m') != std::string::npos)
-					recv_buffer_size *= 1024 * 1024;
-				if (recv_buffer_size < 1024)
-					recv_buffer_size = 1024;
-				this->set_recv_buffer_size(recv_buffer_size);
-			}
-		}
-
-	protected:
-
-		/// The io_service used to handle the socket event.
-		std::shared_ptr<io_service> m_ioservice_ptr;
-
-		/// asio::strand shared_ptr,used to ensure socket multi thread safe,we must ensure that only
-		/// one operator can operate socket at the same time,and strand can enuser that the event will
+		/// asio::strand ,used to ensure socket multi thread safe,we must ensure that only one operator
+		/// can operate the same socket at the same time,and strand can enuser that the event will
 		/// be processed in the order of post, eg : strand.post(1);strand.post(2); the 2 will processed
 		/// certaion after the 1,if 1 is block,the 2 won't be processed,util the 1 is processed completed
 		/// more details see : http://bbs.csdn.net/topics/390931471
-		std::shared_ptr<boost::asio::io_service::strand> m_strand_ptr;
 
-		/// last active time 
-		std::chrono::time_point<std::chrono::steady_clock> m_last_active_time = std::chrono::steady_clock::now();
+		/// url parser
+		std::shared_ptr<url_parser>                        m_url_parser_ptr;
 
-		/// build connection time
-		std::chrono::time_point<std::chrono::steady_clock> m_accept_time      = std::chrono::steady_clock::now();
+		/// listener manager
+		std::shared_ptr<listener_mgr>                      m_listener_mgr_ptr;
 
-		/// listener manager shared_ptr
-		std::shared_ptr<listener_mgr>        m_listener_mgr_ptr;
+		/// The io_context used to handle the socket event.
+		std::shared_ptr<boost::asio::io_context>           m_io_context_ptr;
 
-		/// url parser shared_ptr
-		std::shared_ptr<url_parser>          m_url_parser_ptr;
+		/// The strand used to handle the socket event.
+		std::shared_ptr<boost::asio::io_context::strand>   m_strand_ptr;
+
+		/// timer for session silence time out
+		boost::asio::deadline_timer                        m_timer;
 
 		/// user data
-		std::shared_ptr<void>                m_user_data_ptr;
+		std::size_t                                        m_user_data         = 0;
+
+		/// use to check whether the user call stop in the listener
+		volatile state                                     m_state             = state::stopped;
+
+		/// session_mgr interface pointer,this object must be created after acceptor has created
+		std::shared_ptr<session_mgr>                       m_session_mgr_ptr;
+
+		/// last active time 
+		std::chrono::time_point<std::chrono::system_clock> m_last_active_time  = std::chrono::system_clock::now();
+
+		/// build connection time
+		std::chrono::time_point<std::chrono::system_clock> m_accept_time       = std::chrono::system_clock::now();
 
 	};
 

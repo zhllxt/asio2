@@ -18,7 +18,6 @@
 #include <unordered_map>
 
 #include <asio2/base/def.hpp>
-#include <asio2/util/object_pool.hpp>
 
 #include <asio2/http/http_parser.h>
 #include <asio2/http/mime_types.hpp>
@@ -32,10 +31,9 @@ namespace asio2
 
 	class http_request_parser
 	{
-		template<class _pool_t> friend class http_session_impl;
+		friend class http_session_impl;
 
 	protected:
-
 		typedef enum { NOTHING, FIELD, VALUE } last_on_header_t;
 
 		enum class status { idle, indeterminate, success, fail };
@@ -78,7 +76,7 @@ namespace asio2
 			return m_status;
 		}
 
-		status parse(std::shared_ptr<buffer<uint8_t>> buf_ptr, std::shared_ptr<http_request> request_ptr)
+		status parse(std::shared_ptr<buffer<uint8_t>> & buf_ptr, std::shared_ptr<http_request> & request_ptr)
 		{
 			if (buf_ptr->size() == 0)
 			{
@@ -86,7 +84,7 @@ namespace asio2
 				return m_status;
 			}
 
-			size_t parsed = http::http_parser_execute(&m_parser, &get_http_parser_settings(), (const char *)buf_ptr->data(), buf_ptr->size(), request_ptr.get());
+			size_t parsed = http::http_parser_execute(&m_parser, &get_http_parser_settings(), (const char *)buf_ptr->read_begin(), buf_ptr->size(), request_ptr.get());
 
 			/* Stop parsing if we parsed nothing, as that indicates something header! */
 			if (parsed == 0 || m_parser.http_errno != http::HPE_OK)
@@ -111,7 +109,6 @@ namespace asio2
 		}
 
 	protected:
-
 		http::http_parser_settings & get_http_parser_settings()
 		{
 			static http::http_parser_settings settings =
@@ -192,6 +189,7 @@ namespace asio2
 			url.resize(index);
 			return true;
 		}
+
 	protected:
 		int on_message_begin(void * user_data)
 		{
@@ -316,11 +314,11 @@ namespace asio2
 	protected:
 		http::http_parser m_parser;
 
-		status m_status = status::idle;
+		status            m_status = status::idle;
 
 		/* placeholders for possibly-incomplete header data */
-		last_on_header_t last_on_header = NOTHING;
-		std::string      header_value, header_field;
+		last_on_header_t  last_on_header = NOTHING;
+		std::string       header_value, header_field;
 	};
 
 }

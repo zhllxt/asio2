@@ -38,7 +38,7 @@ namespace asio2
 		explicit http_request()
 		{
 			m_uri.reserve(512);
-			m_headers.reserve(30);
+			m_headers.reserve(10);
 		}
 
 		/**
@@ -177,7 +177,7 @@ namespace asio2
 	public:
 		std::string data()
 		{
-			std::size_t size = 0;
+			//std::size_t size = 0;
 			std::ostringstream oss;
 			oss << http::method_strings[m_method] << " " << m_uri << " " << "HTTP/" << m_http_major << "." << m_http_minor << "\r\n";
 			for (auto & pair : m_headers)

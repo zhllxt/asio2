@@ -15,7 +15,7 @@
 #	pragma warning(disable:4996)
 #endif
 
-#define USE_SSL
+#define ASIO2_USE_SSL
 #include <asio2/asio2.hpp>
 
 volatile bool run_flag = true;
@@ -25,7 +25,6 @@ int main(int argc, char *argv[])
 #if defined(WIN32) || defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS_)
 	// Detected memory leaks on windows system,linux has't these function
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-
 	// the number is the memory leak line num of the vs output window content.
 	//_CrtSetBreakAlloc(1640);
 #endif
@@ -36,7 +35,7 @@ int main(int argc, char *argv[])
 
 	while (run_flag)
 	{
-		asio2::server tcps_server("tcps://*:9443/auto");
+		asio2::server tcps_server("tcps://*:9443/");
 
 		std::string cer =
 			"-----BEGIN CERTIFICATE-----\r\n"\
@@ -82,22 +81,16 @@ int main(int argc, char *argv[])
 			"NgWnHCe/vsGJok2wHS4R/laH6MQTAgEC\r\n"\
 			"-----END DH PARAMETERS-----\r\n";
 
-		tcps_server
-			.set_password("test") // should call set_password first 
-			//.use_certificate_chain_file("server.crt")
-			//.use_private_key_file("server.key")
-			//.use_tmp_dh_file("dh512.pem");
-			.use_certificate_chain(cer)
-			.use_private_key(key)
-			.use_tmp_dh(dh);
+		tcps_server.set_certificate("test", cer, key, dh);
+		//tcps_server.set_certificate_file("test", "server.crt", "server.key", "dh512.pem");
 
-		tcps_server.bind_recv([](asio2::session_ptr session_ptr, asio2::buffer_ptr data_ptr)
+		tcps_server.bind_recv([](asio2::session_ptr & session_ptr, asio2::buffer_ptr & buf_ptr)
 		{
-			std::dynamic_pointer_cast<asio2::tcps_auto_session>(session_ptr)->get_socket_ptr();
+			std::printf("recv : %.*s\n", (int)buf_ptr->size(), (const char*)buf_ptr->data());
 
-			std::printf("recv : %.*s\n", (int)data_ptr->size(), (const char*)data_ptr->data());
-
-			session_ptr->send(data_ptr);
+			session_ptr->send(buf_ptr);
+		}).bind_accept([](asio2::session_ptr & session_ptr)
+		{
 		});
 		if (!tcps_server.start())
 			std::printf("start tcps server failed : %d - %s.\n", asio2::get_last_error(), asio2::get_last_error_desc().c_str());

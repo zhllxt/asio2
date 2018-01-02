@@ -23,34 +23,27 @@ namespace asio2
 	template<class _session_impl_t>
 	class tcps_pack_acceptor_impl : public tcps_acceptor_impl<_session_impl_t>
 	{
+		template<class _acceptor_impl_t> friend class tcps_pack_server_impl;
+
 	public:
-
 		typedef _session_impl_t session_impl_t;
-		typedef typename _session_impl_t::pool_t pool_t;
-
-		using parser_callback = std::size_t(std::shared_ptr<buffer<uint8_t>> data_ptr);
+		typedef typename session_impl_t::parser_callback parser_callback;
 
 		/**
 		 * @construct
 		 */
 		tcps_pack_acceptor_impl(
-			io_service_pool_ptr ioservice_pool_ptr,
-			std::shared_ptr<listener_mgr> listener_mgr_ptr,
-			std::shared_ptr<url_parser> url_parser_ptr,
-			std::shared_ptr<pool_s> send_buf_pool_ptr,
-			std::shared_ptr<pool_t> recv_buf_pool_ptr,
-			std::shared_ptr<boost::asio::ssl::context> context_ptr = nullptr,
-			std::function<parser_callback> pack_parser = nullptr
+			std::shared_ptr<url_parser>                    url_parser_ptr,
+			std::shared_ptr<listener_mgr>                  listener_mgr_ptr,
+			std::shared_ptr<io_context_pool>               io_context_pool_ptr,
+			std::shared_ptr<boost::asio::ssl::context>     ssl_context_ptr = nullptr
 		)
 			: tcps_acceptor_impl<_session_impl_t>(
-				ioservice_pool_ptr,
-				listener_mgr_ptr,
 				url_parser_ptr,
-				send_buf_pool_ptr,
-				recv_buf_pool_ptr,
-				context_ptr
+				listener_mgr_ptr,
+				io_context_pool_ptr,
+				ssl_context_ptr
 				)
-			, m_pack_parser(pack_parser)
 		{
 		}
 
@@ -62,23 +55,18 @@ namespace asio2
 		}
 
 	protected:
-		virtual std::shared_ptr<_session_impl_t> _prepare_session() override
+		virtual std::shared_ptr<_session_impl_t> _make_session() override
 		{
-			// get a session shared_ptr from session manager
 			try
 			{
-				// the params of get_session is final passed to session constructor
-				std::shared_ptr<_session_impl_t> session_ptr = m_session_mgr_ptr->get_session(
-					m_ioservice_pool_ptr->get_io_service_ptr(),
-					m_listener_mgr_ptr,
-					m_url_parser_ptr,
-					m_send_buf_pool_ptr,
-					m_recv_buf_pool_ptr,
-					m_context_ptr,
-					m_pack_parser
-				);
-
-				return session_ptr;
+				return std::make_shared<_session_impl_t>(
+					this->m_url_parser_ptr,
+					this->m_listener_mgr_ptr,
+					this->m_io_context_pool_ptr->get_io_context_ptr(),
+					this->m_session_mgr_ptr,
+					this->m_ssl_context_ptr,
+					this->m_pack_parser
+					);
 			}
 			// handle exception,may be is the exception "Too many open files" (exception code : 24)
 			catch (boost::system::system_error & e)
@@ -87,12 +75,10 @@ namespace asio2
 
 				PRINT_EXCEPTION;
 			}
-
 			return nullptr;
 		}
 
 	protected:
-		
 		std::function<parser_callback>       m_pack_parser;
 
 	};

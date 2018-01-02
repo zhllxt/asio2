@@ -22,7 +22,7 @@
 #include <boost/asio.hpp>
 #include <boost/system/system_error.hpp>
 
-#if defined(USE_SSL)
+#if defined(ASIO2_USE_SSL)
 #include <boost/asio/ssl.hpp>
 #endif
 
@@ -48,10 +48,11 @@ namespace asio2
 	 */
 
 	enum class errcode {	// names for generic error codes
-		url_string_invalid      = 0x800001,
-		packet_length_too_large = 0x800002,
-		recvd_data_invalid      = 0x800003,
-		send_data_failed        = 0x800004,
+		url_string_invalid         = 0x800001,
+		recv_buffer_size_too_small = 0x800002,
+		recvd_data_invalid         = 0x800003,
+		send_data_failed           = 0x800004,
+		socket_not_ready           = 0x800005,
 	};
 
 
@@ -65,7 +66,7 @@ namespace asio2
 		{
 		}
 
-		virtual const char *name() const _NOEXCEPT
+		virtual const char *name() const noexcept
 		{	// get name of category
 			return ("asio2");
 		}
@@ -75,14 +76,15 @@ namespace asio2
 
 			static const char * _err_msg[] = {
 				("the url string is invalid"),
-				("packet length is too large to exceed the pool_buffer_size"),
+				("the recv_buffer_size is too small to hold the packet"),
 				("the received data is invalid"),
 				("send data failed"),
+				("the socket is closed or not ready"),
 				("null"),
 			};
 
 			int index = err_num - 0x800001;
-			return ((index >= 0 && index < (sizeof(_err_msg) / sizeof(const char *))) ? _err_msg[index] : ("unknown error"));
+			return ((index >= 0 && index < (int)(sizeof(_err_msg) / sizeof(const char *))) ? _err_msg[index] : ("unknown error"));
 		}
 	};
 
@@ -118,7 +120,7 @@ namespace asio2
 		inline std::string get_error_desc(int err_num)
 		{
 			// 1.must check ssl_category first 
-#if defined(USE_SSL)
+#if defined(ASIO2_USE_SSL)
 			if (err_num & 0xff000000)
 				return boost::system::error_code(err_num, boost::asio::error::detail::ssl_category()).message();
 #endif

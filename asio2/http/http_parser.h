@@ -26,7 +26,7 @@
  */
 #ifndef http_parser_h
 #define http_parser_h
-namespace asio2 { namespace http { namespace {
+namespace asio2 { namespace http {
 //#ifdef __cplusplus
 //extern "C" {
 //#endif
@@ -2863,5 +2863,5 @@ http_parser_version(void) {
 //#ifdef __cplusplus
 //}
 //#endif
-}}}
+}}
 #endif

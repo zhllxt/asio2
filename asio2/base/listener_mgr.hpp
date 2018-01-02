@@ -60,11 +60,11 @@ namespace asio2
 
 		using _listener_t = server_listener_t<session_impl, uint8_t>;
 
-		using send_callback = void(std::shared_ptr<session_impl> session_ptr, std::shared_ptr<buffer<uint8_t>> data_ptr, int error);
-		using recv_callback = void(std::shared_ptr<session_impl> session_ptr, std::shared_ptr<buffer<uint8_t>> data_ptr);
+		using send_callback = void(std::shared_ptr<session_impl> & session_ptr, std::shared_ptr<buffer<uint8_t>> & buf_ptr, int error);
+		using recv_callback = void(std::shared_ptr<session_impl> & session_ptr, std::shared_ptr<buffer<uint8_t>> & buf_ptr);
 		using lisn_callback = void();
-		using acpt_callback = void(std::shared_ptr<session_impl> session_ptr);
-		using clos_callback = void(std::shared_ptr<session_impl> session_ptr, int error);
+		using acpt_callback = void(std::shared_ptr<session_impl> & session_ptr);
+		using clos_callback = void(std::shared_ptr<session_impl> & session_ptr, int error);
 		using shut_callback = void(int error);
 
 		/**
@@ -85,9 +85,9 @@ namespace asio2
 		 * @function : bind listener - 
 		 * @param    : listener_sptr - a listener object shared_ptr
 		 */
-		server_listener_mgr & bind_listener(std::shared_ptr<_listener_t> listener_sptr)
+		server_listener_mgr & bind_listener(std::shared_ptr<_listener_t> & listener_sptr)
 		{
-			m_listener_sptr = listener_sptr;
+			m_listener_ptr = std::move(listener_sptr);
 			return (*this);
 		}
 
@@ -95,9 +95,10 @@ namespace asio2
 		 * @function : bind listener - 
 		 * @param    : listener_rptr - a listener object raw pointer
 		 */
-		server_listener_mgr & bind_listener(_listener_t                * listener_rptr)
+		server_listener_mgr & bind_listener(_listener_t                  * listener_rptr)
 		{
-			m_listener_rptr = listener_rptr;
+			std::shared_ptr<_listener_t> listener_sptr(listener_rptr, [](_listener_t *) {});
+			m_listener_ptr = std::move(listener_sptr);
 			return (*this);
 		}
 
@@ -106,42 +107,42 @@ namespace asio2
 		 * @param    : listener - a callback function
 		 */
 		template<typename _listener>
-		server_listener_mgr & bind_send(_listener listener)
+		server_listener_mgr & bind_send(_listener & listener)
 		{
 			m_send_listener = listener;
 			return (*this);
 		}
 
 		template<typename _listener>
-		server_listener_mgr & bind_recv(_listener listener)
+		server_listener_mgr & bind_recv(_listener & listener)
 		{
 			m_recv_listener = listener;
 			return (*this);
 		}
 
 		template<typename _listener>
-		server_listener_mgr & bind_listen(_listener listener)
+		server_listener_mgr & bind_listen(_listener & listener)
 		{
 			m_lisn_listener = listener;
 			return (*this);
 		}
 
 		template<typename _listener>
-		server_listener_mgr & bind_accept(_listener listener)
+		server_listener_mgr & bind_accept(_listener & listener)
 		{
 			m_acpt_listener = listener;
 			return (*this);
 		}
 
 		template<typename _listener>
-		server_listener_mgr & bind_close(_listener listener)
+		server_listener_mgr & bind_close(_listener & listener)
 		{
 			m_clos_listener = listener;
 			return (*this);
 		}
 
 		template<typename _listener>
-		server_listener_mgr & bind_shutdown(_listener listener)
+		server_listener_mgr & bind_shutdown(_listener & listener)
 		{
 			m_shut_listener = listener;
 			return (*this);
@@ -155,10 +156,8 @@ namespace asio2
 		{
 			if (m_send_listener)
 				m_send_listener(std::forward<Args>(args)...);
-			else if (m_listener_sptr)
-				m_listener_sptr->on_send(std::forward<Args>(args)...);
-			else if (m_listener_rptr)
-				m_listener_rptr->on_send(std::forward<Args>(args)...);
+			else if (m_listener_ptr)
+				m_listener_ptr->on_send(std::forward<Args>(args)...);
 		}
 
 		template<typename... Args>
@@ -166,10 +165,8 @@ namespace asio2
 		{
 			if (m_recv_listener)
 				m_recv_listener(std::forward<Args>(args)...);
-			else if (m_listener_sptr)
-				m_listener_sptr->on_recv(std::forward<Args>(args)...);
-			else if (m_listener_rptr)
-				m_listener_rptr->on_recv(std::forward<Args>(args)...);
+			else if (m_listener_ptr)
+				m_listener_ptr->on_recv(std::forward<Args>(args)...);
 		}
 
 		template<typename... Args>
@@ -177,10 +174,8 @@ namespace asio2
 		{
 			if (m_lisn_listener)
 				m_lisn_listener(std::forward<Args>(args)...);
-			else if (m_listener_sptr)
-				m_listener_sptr->on_listen(std::forward<Args>(args)...);
-			else if (m_listener_rptr)
-				m_listener_rptr->on_listen(std::forward<Args>(args)...);
+			else if (m_listener_ptr)
+				m_listener_ptr->on_listen(std::forward<Args>(args)...);
 		}
 
 		template<typename... Args>
@@ -188,10 +183,8 @@ namespace asio2
 		{
 			if (m_acpt_listener)
 				m_acpt_listener(std::forward<Args>(args)...);
-			else if (m_listener_sptr)
-				m_listener_sptr->on_accept(std::forward<Args>(args)...);
-			else if (m_listener_rptr)
-				m_listener_rptr->on_accept(std::forward<Args>(args)...);
+			else if (m_listener_ptr)
+				m_listener_ptr->on_accept(std::forward<Args>(args)...);
 		}
 
 		template<typename... Args>
@@ -199,10 +192,8 @@ namespace asio2
 		{
 			if (m_clos_listener)
 				m_clos_listener(std::forward<Args>(args)...);
-			else if (m_listener_sptr)
-				m_listener_sptr->on_close(std::forward<Args>(args)...);
-			else if (m_listener_rptr)
-				m_listener_rptr->on_close(std::forward<Args>(args)...);
+			else if (m_listener_ptr)
+				m_listener_ptr->on_close(std::forward<Args>(args)...);
 		}
 
 		template<typename... Args>
@@ -210,10 +201,8 @@ namespace asio2
 		{
 			if (m_shut_listener)
 				m_shut_listener(std::forward<Args>(args)...);
-			else if (m_listener_sptr)
-				m_listener_sptr->on_shutdown(std::forward<Args>(args)...);
-			else if (m_listener_rptr)
-				m_listener_rptr->on_shutdown(std::forward<Args>(args)...);
+			else if (m_listener_ptr)
+				m_listener_ptr->on_shutdown(std::forward<Args>(args)...);
 		}
 
 	protected:
@@ -227,8 +216,7 @@ namespace asio2
 
 	protected:
 
-		std::shared_ptr<_listener_t> m_listener_sptr = nullptr;
-		_listener_t                * m_listener_rptr = nullptr;
+		std::shared_ptr<_listener_t> m_listener_ptr = nullptr;
 	};
 
 
@@ -241,8 +229,8 @@ namespace asio2
 
 		using _listener_t = client_listener_t<uint8_t>;
 
-		using send_callback = void(std::shared_ptr<buffer<uint8_t>> data_ptr, int error);
-		using recv_callback = void(std::shared_ptr<buffer<uint8_t>> data_ptr);
+		using send_callback = void(std::shared_ptr<buffer<uint8_t>> & buf_ptr, int error);
+		using recv_callback = void(std::shared_ptr<buffer<uint8_t>> & buf_ptr);
 		using clos_callback = void(int error);
 		using conn_callback = void(int error);
 
@@ -264,9 +252,9 @@ namespace asio2
 		 * @function : bind listener - 
 		 * @param    : listener_sptr - a listener object shared_ptr
 		 */
-		client_listener_mgr & bind_listener(std::shared_ptr<_listener_t> listener_sptr)
+		client_listener_mgr & bind_listener(std::shared_ptr<_listener_t> & listener_sptr)
 		{
-			m_listener_sptr = listener_sptr;
+			m_listener_ptr = std::move(listener_sptr);
 			return (*this);
 		}
 
@@ -274,9 +262,10 @@ namespace asio2
 		 * @function : bind listener - 
 		 * @param    : listener_rptr - a listener object raw pointer
 		 */
-		client_listener_mgr & bind_listener(_listener_t                * listener_rptr)
+		client_listener_mgr & bind_listener(_listener_t                  * listener_rptr)
 		{
-			m_listener_rptr = listener_rptr;
+			std::shared_ptr<_listener_t> listener_sptr(listener_rptr, [](_listener_t *) {});
+			m_listener_ptr = std::move(listener_sptr);
 			return (*this);
 		}
 
@@ -285,28 +274,28 @@ namespace asio2
 		 * @param    : listener - a callback function
 		 */
 		template<typename _listener>
-		client_listener_mgr & bind_send(_listener listener)
+		client_listener_mgr & bind_send(_listener & listener)
 		{
 			m_send_listener = listener;
 			return (*this);
 		}
 
 		template<typename _listener>
-		client_listener_mgr & bind_recv(_listener listener)
+		client_listener_mgr & bind_recv(_listener & listener)
 		{
 			m_recv_listener = listener;
 			return (*this);
 		}
 
 		template<typename _listener>
-		client_listener_mgr & bind_close(_listener listener)
+		client_listener_mgr & bind_close(_listener & listener)
 		{
 			m_clos_listener = listener;
 			return (*this);
 		}
 
 		template<typename _listener>
-		client_listener_mgr & bind_connect(_listener listener)
+		client_listener_mgr & bind_connect(_listener & listener)
 		{
 			m_conn_listener = listener;
 			return (*this);
@@ -320,10 +309,8 @@ namespace asio2
 		{
 			if (m_send_listener)
 				m_send_listener(std::forward<Args>(args)...);
-			else if (m_listener_sptr)
-				m_listener_sptr->on_send(std::forward<Args>(args)...);
-			else if (m_listener_rptr)
-				m_listener_rptr->on_send(std::forward<Args>(args)...);
+			else if (m_listener_ptr)
+				m_listener_ptr->on_send(std::forward<Args>(args)...);
 		}
 
 		template<typename... Args>
@@ -331,10 +318,8 @@ namespace asio2
 		{
 			if (m_recv_listener)
 				m_recv_listener(std::forward<Args>(args)...);
-			else if (m_listener_sptr)
-				m_listener_sptr->on_recv(std::forward<Args>(args)...);
-			else if (m_listener_rptr)
-				m_listener_rptr->on_recv(std::forward<Args>(args)...);
+			else if (m_listener_ptr)
+				m_listener_ptr->on_recv(std::forward<Args>(args)...);
 		}
 
 		template<typename... Args>
@@ -342,10 +327,8 @@ namespace asio2
 		{
 			if (m_clos_listener)
 				m_clos_listener(std::forward<Args>(args)...);
-			else if (m_listener_sptr)
-				m_listener_sptr->on_close(std::forward<Args>(args)...);
-			else if (m_listener_rptr)
-				m_listener_rptr->on_close(std::forward<Args>(args)...);
+			else if (m_listener_ptr)
+				m_listener_ptr->on_close(std::forward<Args>(args)...);
 		}
 
 		template<typename... Args>
@@ -353,10 +336,8 @@ namespace asio2
 		{
 			if (m_conn_listener)
 				m_conn_listener(std::forward<Args>(args)...);
-			else if (m_listener_sptr)
-				m_listener_sptr->on_connect(std::forward<Args>(args)...);
-			else if (m_listener_rptr)
-				m_listener_rptr->on_connect(std::forward<Args>(args)...);
+			else if (m_listener_ptr)
+				m_listener_ptr->on_connect(std::forward<Args>(args)...);
 		}
 
 	protected:
@@ -368,8 +349,7 @@ namespace asio2
 
 	protected:
 
-		std::shared_ptr<_listener_t> m_listener_sptr = nullptr;
-		_listener_t                * m_listener_rptr = nullptr;
+		std::shared_ptr<_listener_t> m_listener_ptr = nullptr;
 	};
 
 
@@ -382,8 +362,8 @@ namespace asio2
 
 		using _listener_t = sender_listener_t<uint8_t>;
 
-		using send_callback = void(std::string ip, unsigned short port, std::shared_ptr<buffer<uint8_t>> data_ptr, int error);
-		using recv_callback = void(std::string ip, unsigned short port, std::shared_ptr<buffer<uint8_t>> data_ptr);
+		using send_callback = void(std::string & ip, unsigned short port, std::shared_ptr<buffer<uint8_t>> & buf_ptr, int error);
+		using recv_callback = void(std::string & ip, unsigned short port, std::shared_ptr<buffer<uint8_t>> & buf_ptr);
 		using clos_callback = void(int error);
 
 		/**
@@ -404,9 +384,9 @@ namespace asio2
 		 * @function : bind listener - 
 		 * @param    : listener_sptr - a listener object shared_ptr
 		 */
-		sender_listener_mgr & bind_listener(std::shared_ptr<_listener_t> listener_sptr)
+		sender_listener_mgr & bind_listener(std::shared_ptr<_listener_t> & listener_sptr)
 		{
-			m_listener_sptr = listener_sptr;
+			m_listener_ptr = std::move(listener_sptr);
 			return (*this);
 		}
 
@@ -414,9 +394,10 @@ namespace asio2
 		 * @function : bind listener - 
 		 * @param    : listener_rptr - a listener object raw pointer
 		 */
-		sender_listener_mgr & bind_listener(_listener_t                * listener_rptr)
+		sender_listener_mgr & bind_listener(_listener_t                  * listener_rptr)
 		{
-			m_listener_rptr = listener_rptr;
+			std::shared_ptr<_listener_t> listener_sptr(listener_rptr, [](_listener_t *) {});
+			m_listener_ptr = std::move(listener_sptr);
 			return (*this);
 		}
 
@@ -425,21 +406,21 @@ namespace asio2
 		 * @param    : listener - a callback function
 		 */
 		template<typename _listener>
-		sender_listener_mgr & bind_send(_listener listener)
+		sender_listener_mgr & bind_send(_listener & listener)
 		{
 			m_send_listener = listener;
 			return (*this);
 		}
 
 		template<typename _listener>
-		sender_listener_mgr & bind_recv(_listener listener)
+		sender_listener_mgr & bind_recv(_listener & listener)
 		{
 			m_recv_listener = listener;
 			return (*this);
 		}
 
 		template<typename _listener>
-		sender_listener_mgr & bind_close(_listener listener)
+		sender_listener_mgr & bind_close(_listener & listener)
 		{
 			m_clos_listener = listener;
 			return (*this);
@@ -453,10 +434,8 @@ namespace asio2
 		{
 			if (m_send_listener)
 				m_send_listener(std::forward<Args>(args)...);
-			else if (m_listener_sptr)
-				m_listener_sptr->on_send(std::forward<Args>(args)...);
-			else if (m_listener_rptr)
-				m_listener_rptr->on_send(std::forward<Args>(args)...);
+			else if (m_listener_ptr)
+				m_listener_ptr->on_send(std::forward<Args>(args)...);
 		}
 
 		template<typename... Args>
@@ -464,10 +443,8 @@ namespace asio2
 		{
 			if (m_recv_listener)
 				m_recv_listener(std::forward<Args>(args)...);
-			else if (m_listener_sptr)
-				m_listener_sptr->on_recv(std::forward<Args>(args)...);
-			else if (m_listener_rptr)
-				m_listener_rptr->on_recv(std::forward<Args>(args)...);
+			else if (m_listener_ptr)
+				m_listener_ptr->on_recv(std::forward<Args>(args)...);
 		}
 
 		template<typename... Args>
@@ -475,10 +452,8 @@ namespace asio2
 		{
 			if (m_clos_listener)
 				m_clos_listener(std::forward<Args>(args)...);
-			else if (m_listener_sptr)
-				m_listener_sptr->on_close(std::forward<Args>(args)...);
-			else if (m_listener_rptr)
-				m_listener_rptr->on_close(std::forward<Args>(args)...);
+			else if (m_listener_ptr)
+				m_listener_ptr->on_close(std::forward<Args>(args)...);
 		}
 
 	protected:
@@ -489,8 +464,7 @@ namespace asio2
 
 	protected:
 
-		std::shared_ptr<_listener_t> m_listener_sptr = nullptr;
-		_listener_t                * m_listener_rptr = nullptr;
+		std::shared_ptr<_listener_t> m_listener_ptr = nullptr;
 	};
 
 
@@ -504,11 +478,11 @@ namespace asio2
 
 		using _listener_t = http_server_listener_t<session_impl, uint8_t>;
 
-		using send_callback = void(std::shared_ptr<session_impl> session_ptr, std::shared_ptr<http_response> response_ptr, int error);
-		using recv_callback = void(std::shared_ptr<session_impl> session_ptr, std::shared_ptr<http_request> request_ptr);
+		using send_callback = void(std::shared_ptr<session_impl> & session_ptr, std::shared_ptr<http_response> & response_ptr, int error);
+		using recv_callback = void(std::shared_ptr<session_impl> & session_ptr, std::shared_ptr<http_request > & request_ptr);
 		using lisn_callback = void();
-		using acpt_callback = void(std::shared_ptr<session_impl> session_ptr);
-		using clos_callback = void(std::shared_ptr<session_impl> session_ptr, int error);
+		using acpt_callback = void(std::shared_ptr<session_impl> & session_ptr);
+		using clos_callback = void(std::shared_ptr<session_impl> & session_ptr, int error);
 		using shut_callback = void(int error);
 
 		/**
@@ -529,9 +503,9 @@ namespace asio2
 		 * @function : bind listener - 
 		 * @param    : listener_sptr - a listener object shared_ptr
 		 */
-		http_server_listener_mgr & bind_listener(std::shared_ptr<_listener_t> listener_sptr)
+		http_server_listener_mgr & bind_listener(std::shared_ptr<_listener_t> & listener_sptr)
 		{
-			m_listener_sptr = listener_sptr;
+			m_listener_ptr = std::move(listener_sptr);
 			return (*this);
 		}
 
@@ -539,9 +513,10 @@ namespace asio2
 		 * @function : bind listener - 
 		 * @param    : listener_rptr - a listener object raw pointer
 		 */
-		http_server_listener_mgr & bind_listener(_listener_t                * listener_rptr)
+		http_server_listener_mgr & bind_listener(_listener_t                  * listener_rptr)
 		{
-			m_listener_rptr = listener_rptr;
+			std::shared_ptr<_listener_t> listener_sptr(listener_rptr, [](_listener_t *) {});
+			m_listener_ptr = std::move(listener_sptr);
 			return (*this);
 		}
 
@@ -550,42 +525,42 @@ namespace asio2
 		 * @param    : listener - a callback function
 		 */
 		template<typename _listener>
-		http_server_listener_mgr & bind_send(_listener listener)
+		http_server_listener_mgr & bind_send(_listener & listener)
 		{
 			m_send_listener = listener;
 			return (*this);
 		}
 
 		template<typename _listener>
-		http_server_listener_mgr & bind_recv(_listener listener)
+		http_server_listener_mgr & bind_recv(_listener & listener)
 		{
 			m_recv_listener = listener;
 			return (*this);
 		}
 
 		template<typename _listener>
-		http_server_listener_mgr & bind_listen(_listener listener)
+		http_server_listener_mgr & bind_listen(_listener & listener)
 		{
 			m_lisn_listener = listener;
 			return (*this);
 		}
 
 		template<typename _listener>
-		http_server_listener_mgr & bind_accept(_listener listener)
+		http_server_listener_mgr & bind_accept(_listener & listener)
 		{
 			m_acpt_listener = listener;
 			return (*this);
 		}
 
 		template<typename _listener>
-		http_server_listener_mgr & bind_close(_listener listener)
+		http_server_listener_mgr & bind_close(_listener & listener)
 		{
 			m_clos_listener = listener;
 			return (*this);
 		}
 
 		template<typename _listener>
-		http_server_listener_mgr & bind_shutdown(_listener listener)
+		http_server_listener_mgr & bind_shutdown(_listener & listener)
 		{
 			m_shut_listener = listener;
 			return (*this);
@@ -599,10 +574,8 @@ namespace asio2
 		{
 			if (m_send_listener)
 				m_send_listener(std::forward<Args>(args)...);
-			else if (m_listener_sptr)
-				m_listener_sptr->on_send(std::forward<Args>(args)...);
-			else if (m_listener_rptr)
-				m_listener_rptr->on_send(std::forward<Args>(args)...);
+			else if (m_listener_ptr)
+				m_listener_ptr->on_send(std::forward<Args>(args)...);
 		}
 
 		template<typename... Args>
@@ -610,10 +583,8 @@ namespace asio2
 		{
 			if (m_recv_listener)
 				m_recv_listener(std::forward<Args>(args)...);
-			else if (m_listener_sptr)
-				m_listener_sptr->on_recv(std::forward<Args>(args)...);
-			else if (m_listener_rptr)
-				m_listener_rptr->on_recv(std::forward<Args>(args)...);
+			else if (m_listener_ptr)
+				m_listener_ptr->on_recv(std::forward<Args>(args)...);
 		}
 
 		template<typename... Args>
@@ -621,10 +592,8 @@ namespace asio2
 		{
 			if (m_lisn_listener)
 				m_lisn_listener(std::forward<Args>(args)...);
-			else if (m_listener_sptr)
-				m_listener_sptr->on_listen(std::forward<Args>(args)...);
-			else if (m_listener_rptr)
-				m_listener_rptr->on_listen(std::forward<Args>(args)...);
+			else if (m_listener_ptr)
+				m_listener_ptr->on_listen(std::forward<Args>(args)...);
 		}
 
 		template<typename... Args>
@@ -632,10 +601,8 @@ namespace asio2
 		{
 			if (m_acpt_listener)
 				m_acpt_listener(std::forward<Args>(args)...);
-			else if (m_listener_sptr)
-				m_listener_sptr->on_accept(std::forward<Args>(args)...);
-			else if (m_listener_rptr)
-				m_listener_rptr->on_accept(std::forward<Args>(args)...);
+			else if (m_listener_ptr)
+				m_listener_ptr->on_accept(std::forward<Args>(args)...);
 		}
 
 		template<typename... Args>
@@ -643,10 +610,8 @@ namespace asio2
 		{
 			if (m_clos_listener)
 				m_clos_listener(std::forward<Args>(args)...);
-			else if (m_listener_sptr)
-				m_listener_sptr->on_close(std::forward<Args>(args)...);
-			else if (m_listener_rptr)
-				m_listener_rptr->on_close(std::forward<Args>(args)...);
+			else if (m_listener_ptr)
+				m_listener_ptr->on_close(std::forward<Args>(args)...);
 		}
 
 		template<typename... Args>
@@ -654,10 +619,8 @@ namespace asio2
 		{
 			if (m_shut_listener)
 				m_shut_listener(std::forward<Args>(args)...);
-			else if (m_listener_sptr)
-				m_listener_sptr->on_shutdown(std::forward<Args>(args)...);
-			else if (m_listener_rptr)
-				m_listener_rptr->on_shutdown(std::forward<Args>(args)...);
+			else if (m_listener_ptr)
+				m_listener_ptr->on_shutdown(std::forward<Args>(args)...);
 		}
 
 	protected:
@@ -671,8 +634,7 @@ namespace asio2
 
 	protected:
 
-		std::shared_ptr<_listener_t> m_listener_sptr = nullptr;
-		_listener_t                * m_listener_rptr = nullptr;
+		std::shared_ptr<_listener_t> m_listener_ptr = nullptr;
 	};
 
 
@@ -685,8 +647,8 @@ namespace asio2
 
 		using _listener_t = http_client_listener_t<uint8_t>;
 
-		using send_callback = void(std::shared_ptr<http_request> request_ptr, int error);
-		using recv_callback = void(std::shared_ptr<http_response> response_ptr);
+		using send_callback = void(std::shared_ptr<http_request > & request_ptr, int error);
+		using recv_callback = void(std::shared_ptr<http_response> & response_ptr);
 		using clos_callback = void(int error);
 		using conn_callback = void(int error);
 
@@ -708,9 +670,9 @@ namespace asio2
 		 * @function : bind listener - 
 		 * @param    : listener_sptr - a listener object shared_ptr
 		 */
-		http_client_listener_mgr & bind_listener(std::shared_ptr<_listener_t> listener_sptr)
+		http_client_listener_mgr & bind_listener(std::shared_ptr<_listener_t> & listener_sptr)
 		{
-			m_listener_sptr = listener_sptr;
+			m_listener_ptr = std::move(listener_sptr);
 			return (*this);
 		}
 
@@ -718,9 +680,10 @@ namespace asio2
 		 * @function : bind listener - 
 		 * @param    : listener_rptr - a listener object raw pointer
 		 */
-		http_client_listener_mgr & bind_listener(_listener_t                * listener_rptr)
+		http_client_listener_mgr & bind_listener(_listener_t                  * listener_rptr)
 		{
-			m_listener_rptr = listener_rptr;
+			std::shared_ptr<_listener_t> listener_sptr(listener_rptr, [](_listener_t *) {});
+			m_listener_ptr = std::move(listener_sptr);
 			return (*this);
 		}
 
@@ -729,28 +692,28 @@ namespace asio2
 		 * @param    : listener - a callback function
 		 */
 		template<typename _listener>
-		http_client_listener_mgr & bind_send(_listener listener)
+		http_client_listener_mgr & bind_send(_listener & listener)
 		{
 			m_send_listener = listener;
 			return (*this);
 		}
 
 		template<typename _listener>
-		http_client_listener_mgr & bind_recv(_listener listener)
+		http_client_listener_mgr & bind_recv(_listener & listener)
 		{
 			m_recv_listener = listener;
 			return (*this);
 		}
 
 		template<typename _listener>
-		http_client_listener_mgr & bind_close(_listener listener)
+		http_client_listener_mgr & bind_close(_listener & listener)
 		{
 			m_clos_listener = listener;
 			return (*this);
 		}
 
 		template<typename _listener>
-		http_client_listener_mgr & bind_connect(_listener listener)
+		http_client_listener_mgr & bind_connect(_listener & listener)
 		{
 			m_conn_listener = listener;
 			return (*this);
@@ -764,10 +727,8 @@ namespace asio2
 		{
 			if (m_send_listener)
 				m_send_listener(std::forward<Args>(args)...);
-			else if (m_listener_sptr)
-				m_listener_sptr->on_send(std::forward<Args>(args)...);
-			else if (m_listener_rptr)
-				m_listener_rptr->on_send(std::forward<Args>(args)...);
+			else if (m_listener_ptr)
+				m_listener_ptr->on_send(std::forward<Args>(args)...);
 		}
 
 		template<typename... Args>
@@ -775,10 +736,8 @@ namespace asio2
 		{
 			if (m_recv_listener)
 				m_recv_listener(std::forward<Args>(args)...);
-			else if (m_listener_sptr)
-				m_listener_sptr->on_recv(std::forward<Args>(args)...);
-			else if (m_listener_rptr)
-				m_listener_rptr->on_recv(std::forward<Args>(args)...);
+			else if (m_listener_ptr)
+				m_listener_ptr->on_recv(std::forward<Args>(args)...);
 		}
 
 		template<typename... Args>
@@ -786,10 +745,8 @@ namespace asio2
 		{
 			if (m_clos_listener)
 				m_clos_listener(std::forward<Args>(args)...);
-			else if (m_listener_sptr)
-				m_listener_sptr->on_close(std::forward<Args>(args)...);
-			else if (m_listener_rptr)
-				m_listener_rptr->on_close(std::forward<Args>(args)...);
+			else if (m_listener_ptr)
+				m_listener_ptr->on_close(std::forward<Args>(args)...);
 		}
 
 		template<typename... Args>
@@ -797,10 +754,8 @@ namespace asio2
 		{
 			if (m_conn_listener)
 				m_conn_listener(std::forward<Args>(args)...);
-			else if (m_listener_sptr)
-				m_listener_sptr->on_connect(std::forward<Args>(args)...);
-			else if (m_listener_rptr)
-				m_listener_rptr->on_connect(std::forward<Args>(args)...);
+			else if (m_listener_ptr)
+				m_listener_ptr->on_connect(std::forward<Args>(args)...);
 		}
 
 	protected:
@@ -812,8 +767,7 @@ namespace asio2
 
 	protected:
 
-		std::shared_ptr<_listener_t> m_listener_sptr = nullptr;
-		_listener_t                * m_listener_rptr = nullptr;
+		std::shared_ptr<_listener_t> m_listener_ptr = nullptr;
 	};
 
 }

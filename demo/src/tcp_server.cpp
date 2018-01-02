@@ -21,45 +21,42 @@ volatile bool run_flag = true;
 
 int main(int argc, char *argv[])
 {
-#if defined(WIN32) || defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS_)
+#ifdef WINDOWS
 	// Detected memory leaks on windows system,linux has't these function
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-
 	// the number is the memory leak line num of the vs output window content.
 	//_CrtSetBreakAlloc(1640);
 #endif
 
 	std::signal(SIGINT, [](int signal) { run_flag = false; });
 
-	std::srand(static_cast<unsigned int>(std::time(nullptr)));
-
+	asio2::session_ptr session;
 	while (run_flag)
 	{
-		std::string url(" tcp://*:9001/?send_buffer_size=1024k & recv_buffer_size=1024K & pool_buffer_size=1024 & io_service_pool_size=3 ");
-		std::shared_ptr<asio2::server> tcp_server = std::make_shared<asio2::server>(url);
-		tcp_server->bind_recv([&tcp_server](asio2::session_ptr session_ptr, asio2::buffer_ptr data_ptr)
+		std::string url(" tcp://*:9001/auto?so_sndbuf=1024k & so_rcvbuf=1024K & recv_buffer_size=1024 & io_context_pool_size=4 ");
+		asio2::server tcp_server(url);
+		tcp_server.bind_recv([&tcp_server](asio2::session_ptr & session_ptr, asio2::buffer_ptr & buf_ptr)
 		{
-			std::printf("recv : %.*s\n", (int)data_ptr->size(), (const char*)data_ptr->data());
+			std::printf("recv : %.*s\n", (int)buf_ptr->size(), (const char*)buf_ptr->data());
 
-			session_ptr->send(data_ptr);
-		}).bind_accept([](asio2::session_ptr session_ptr)
+			session_ptr->send(buf_ptr);
+		}).bind_close([](asio2::session_ptr & session_ptr, int error)
 		{
-			session_ptr->set_user_data(session_ptr);
-		}).bind_close([](asio2::session_ptr session_ptr, int error)
+		}).bind_accept([&session](asio2::session_ptr & session_ptr)
 		{
-			session_ptr->set_user_data(nullptr);
+			session = session_ptr;
 		});
-		if (!tcp_server->start())
-			std::printf("start tcp server failed : %d - %s\n", asio2::get_last_error(), asio2::get_last_error_desc().c_str());
+		if (!tcp_server.start())
+			std::printf("start tcp server failed : %d - %s\n", asio2::get_last_error(), asio2::get_last_error_desc().data());
 		else
-			std::printf("start tcp server successed : %s - %u\n", tcp_server->get_listen_address().c_str(), tcp_server->get_listen_port());
+			std::printf("start tcp server successed : %s - %u\n", tcp_server.get_listen_address().data(), tcp_server.get_listen_port());
 
 		//-----------------------------------------------------------------------------------------
 		std::thread([&]()
 		{
 			while (run_flag)
 			{
-				std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+				std::this_thread::sleep_for(std::chrono::milliseconds(100));
 			}
 		}).join();
 
@@ -68,7 +65,7 @@ int main(int argc, char *argv[])
 
 	std::printf(">> leave main \n");
 
-#if defined(WIN32) || defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS_)
+#ifdef WINDOWS
 	//system("pause");
 #endif
 

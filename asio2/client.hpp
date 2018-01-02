@@ -7,12 +7,6 @@
  *
  */
 
- /*
-  * 
-  * if you find some bugs,or have any troubles or questions on using this library,please contact me.
-  * 
-  */
-
 #ifndef __ASIO2_CLIENT_HPP__
 #define __ASIO2_CLIENT_HPP__
 
@@ -24,21 +18,6 @@
 #	define NDEBUG
 #endif
 
-#include <cassert>
-
-#include <memory>
-#include <future>
-#include <functional>
-
-#include <boost/asio.hpp>
-#include <boost/system/system_error.hpp>
-
-#include <asio2/base/error.hpp>
-
-#include <asio2/base/url_parser.hpp>
-#include <asio2/base/client_impl.hpp>
-#include <asio2/base/listener_mgr.hpp>
-
 #include <asio2/tcp/tcp_client_impl.hpp>
 #include <asio2/tcp/tcp_auto_client_impl.hpp>
 #include <asio2/tcp/tcp_pack_client_impl.hpp>
@@ -47,7 +26,7 @@
 
 #include <asio2/http/http_client_impl.hpp>
 
-#if defined(USE_SSL)
+#if defined(ASIO2_USE_SSL)
 #include <asio2/tcp/tcps_client_impl.hpp>
 #include <asio2/tcp/tcps_auto_client_impl.hpp>
 #include <asio2/tcp/tcps_pack_client_impl.hpp>
@@ -57,29 +36,29 @@
 namespace asio2
 {
 
-	using tcp_connection        = tcp_connection_impl<buffer_pool<uint8_t>>;
+	using tcp_connection        = tcp_connection_impl;
 	using tcp_client            = tcp_client_impl<tcp_connection>;
 
-	using tcp_auto_connection   = tcp_auto_connection_impl<multi_buffer_pool<uint8_t>>;
+	using tcp_auto_connection   = tcp_auto_connection_impl;
 	using tcp_auto_client       = tcp_auto_client_impl<tcp_auto_connection>;
 
-	using tcp_pack_connection   = tcp_pack_connection_impl<buffer_pool<uint8_t>>;
+	using tcp_pack_connection   = tcp_pack_connection_impl;
 	using tcp_pack_client       = tcp_pack_client_impl<tcp_pack_connection>;
 
-	using udp_connection        = udp_connection_impl<buffer_pool<uint8_t>>;
+	using udp_connection        = udp_connection_impl;
 	using udp_client            = udp_client_impl<udp_connection>;
 
-	using http_connection       = http_connection_impl<buffer_pool<uint8_t>>;
+	using http_connection       = http_connection_impl;
 	using http_client           = http_client_impl<http_connection>;
 
-#if defined(USE_SSL)
-	using tcps_connection       = tcps_connection_impl<buffer_pool<uint8_t>>;
+#if defined(ASIO2_USE_SSL)
+	using tcps_connection       = tcps_connection_impl;
 	using tcps_client           = tcps_client_impl<tcps_connection>;
 
-	using tcps_auto_connection  = tcps_auto_connection_impl<buffer_pool<uint8_t>>;
+	using tcps_auto_connection  = tcps_auto_connection_impl;
 	using tcps_auto_client      = tcps_auto_client_impl<tcps_auto_connection>;
 
-	using tcps_pack_connection   = tcps_pack_connection_impl<buffer_pool<uint8_t>>;
+	using tcps_pack_connection   = tcps_pack_connection_impl;
 	using tcps_pack_client       = tcps_pack_client_impl<tcps_pack_connection>;
 #endif
 
@@ -93,53 +72,21 @@ namespace asio2
 		 * @construct
 		 * @param    : url - for the detailed meaning of this parameter, please refer to server::construct function
 		 */
-		client(std::string url)
-		{
-			m_url_parser_ptr = std::make_shared<url_parser>(url);
-
-			if /**/ (m_url_parser_ptr->get_protocol() == "tcp")
-				m_listener_mgr_ptr = std::make_shared<client_listener_mgr>();
-			else if (m_url_parser_ptr->get_protocol() == "tcps")
-				m_listener_mgr_ptr = std::make_shared<client_listener_mgr>();
-			else if (m_url_parser_ptr->get_protocol() == "udp")
-				m_listener_mgr_ptr = std::make_shared<client_listener_mgr>();
-			else if (m_url_parser_ptr->get_protocol() == "http")
-				m_listener_mgr_ptr = std::make_shared<http_client_listener_mgr>();
-			else if (m_url_parser_ptr->get_protocol() == "https")
-				m_listener_mgr_ptr = std::make_shared<http_client_listener_mgr>();
-			else if (m_url_parser_ptr->get_protocol() == "rpc")
-				m_listener_mgr_ptr = std::make_shared<client_listener_mgr>();
-
-			if/**/ (m_url_parser_ptr->get_protocol() == "tcp")
-			{
-				if /**/ (m_url_parser_ptr->get_model() == "auto")
-					m_client_impl_ptr = std::make_shared<tcp_auto_client>(m_listener_mgr_ptr, m_url_parser_ptr);
-				else if (m_url_parser_ptr->get_model() == "pack")
-					m_client_impl_ptr = std::make_shared<tcp_pack_client>(m_listener_mgr_ptr, m_url_parser_ptr);
-				else
-					m_client_impl_ptr = std::make_shared<tcp_client>(m_listener_mgr_ptr, m_url_parser_ptr);
-			}
-			else if (m_url_parser_ptr->get_protocol() == "tcps")
-			{
-#if defined(USE_SSL)
-				if /**/ (m_url_parser_ptr->get_model() == "auto")
-					m_client_impl_ptr = std::make_shared<tcps_auto_client>(m_listener_mgr_ptr, m_url_parser_ptr);
-				else if (m_url_parser_ptr->get_model() == "pack")
-					m_client_impl_ptr = std::make_shared<tcps_pack_client>(m_listener_mgr_ptr, m_url_parser_ptr);
-				else
-					m_client_impl_ptr = std::make_shared<tcps_client>(m_listener_mgr_ptr, m_url_parser_ptr);
-#else
-				throw std::runtime_error("you must #define USE_SSL macro before #include <asio2/asio2.hpp>");
+		client(std::string url
+#if defined(ASIO2_USE_SSL)
+			, boost::asio::ssl::context::method  method  = boost::asio::ssl::context::sslv23
+			, boost::asio::ssl::context::options options =
+														   boost::asio::ssl::context::default_workarounds |
+														   boost::asio::ssl::context::no_sslv2 |
+														   boost::asio::ssl::context::single_dh_use
 #endif
-			}
-			else if (m_url_parser_ptr->get_protocol() == "udp")
-				m_client_impl_ptr = std::make_shared<udp_client>(m_listener_mgr_ptr, m_url_parser_ptr);
-			else if (m_url_parser_ptr->get_protocol() == "http")
-				m_client_impl_ptr = std::make_shared<http_client>(m_listener_mgr_ptr, m_url_parser_ptr);
-			else if (m_url_parser_ptr->get_protocol() == "https")
-				m_client_impl_ptr = std::make_shared<http_client>(m_listener_mgr_ptr, m_url_parser_ptr);
-			else if (m_url_parser_ptr->get_protocol() == "rpc")
-				m_client_impl_ptr = std::make_shared<udp_client>(m_listener_mgr_ptr, m_url_parser_ptr);
+		)
+		{
+#if defined(ASIO2_USE_SSL)
+			_init(url, method, options);
+#else
+			_init(url);
+#endif
 		}
 
 		/**
@@ -181,7 +128,7 @@ namespace asio2
 		 */
 		virtual bool send(std::shared_ptr<buffer<uint8_t>> buf_ptr)
 		{
-			return (m_client_impl_ptr ? m_client_impl_ptr->send(buf_ptr) : false);
+			return (m_client_impl_ptr ? m_client_impl_ptr->send(std::move(buf_ptr)) : false);
 		}
 
 		/**
@@ -203,9 +150,11 @@ namespace asio2
 	public:
 		/**
 		 * @function : set the data parser under pack model,you must call set_pack_parser before call server::start()
+		 * the pack parser function like this :
+		 * std::size_t pack_parser(std::shared_ptr<buffer<uint8_t>> & buf_ptr)
 		 */
 		template<typename _parser>
-		client & set_pack_parser(_parser parser)
+		client & set_pack_parser(const _parser & parser)
 		{
 			try
 			{
@@ -215,10 +164,10 @@ namespace asio2
 				}
 				else if (m_url_parser_ptr->get_protocol() == "tcps")
 				{
-#if defined(USE_SSL)
+#if defined(ASIO2_USE_SSL)
 					std::dynamic_pointer_cast<tcps_pack_client>(m_client_impl_ptr)->set_pack_parser(parser);
 #else
-					throw std::runtime_error("you must #define USE_SSL macro before #include <asio2/asio2.hpp>");
+					throw std::runtime_error("you must #define ASIO2_USE_SSL macro before #include <asio2/asio2.hpp>");
 #endif
 				}
 			}
@@ -226,14 +175,14 @@ namespace asio2
 			return (*this);
 		}
 
-#if defined(USE_SSL)
+#if defined(ASIO2_USE_SSL)
 	public:
-		client & use_certificate(std::string buffer)
+		client & set_certificate(std::string buffer)
 		{
 			try
 			{
-				std::static_pointer_cast<tcps_client>(m_client_impl_ptr)->get_context_ptr()->add_certificate_authority(
-					boost::asio::const_buffer(buffer.c_str(), buffer.length()));
+				std::static_pointer_cast<tcps_client>(m_client_impl_ptr)->get_ssl_context()->add_certificate_authority(
+					boost::asio::const_buffer(buffer.data(), buffer.size()));
 			}
 			catch (boost::system::system_error & e)
 			{
@@ -242,11 +191,11 @@ namespace asio2
 			}
 			return (*this);
 		}
-		client & use_certificate_file(std::string file)
+		client & set_certificate_file(std::string file)
 		{
 			try
 			{
-				std::static_pointer_cast<tcps_client>(m_client_impl_ptr)->get_context_ptr()->load_verify_file(file);
+				std::static_pointer_cast<tcps_client>(m_client_impl_ptr)->get_ssl_context()->load_verify_file(file);
 			}
 			catch (boost::system::system_error & e)
 			{
@@ -322,9 +271,9 @@ namespace asio2
 		 * @function : bind listener - the client send data finished
 		 * @param    : listener - a callback function
 		 * the callback function like this : 
-		 * void on_send(asio2::buffer_ptr data_ptr, int error)
+		 * void on_send(asio2::buffer_ptr & buf_ptr, int error)
 		 * or a lumbda function like this : 
-		 * [&](asio2::buffer_ptr data_ptr, int error){}
+		 * [&](asio2::buffer_ptr & buf_ptr, int error){}
 		 */
 		client & bind_send(std::function<client_listener_mgr::send_callback> listener)
 		{
@@ -340,9 +289,9 @@ namespace asio2
 		 * @function : bind listener - the client send data finished
 		 * @param    : listener - a callback function
 		 * the callback function like this : 
-		 * void on_send(asio2::buffer_ptr data_ptr, int error)
+		 * void on_send(asio2::buffer_ptr & buf_ptr, int error)
 		 * or a lumbda function like this : 
-		 * [&](asio2::buffer_ptr data_ptr, int error){}
+		 * [&](asio2::buffer_ptr & buf_ptr, int error){}
 		 */
 		client & bind_send(std::function<http_client_listener_mgr::send_callback> listener)
 		{
@@ -357,9 +306,9 @@ namespace asio2
 		/**
 		 * @function : bind listener - the client recv data from remote endpoint
 		 * @param    : listener - a callback function like this:
-		 * void on_recv(asio2::buffer_ptr data_ptr)
+		 * void on_recv(asio2::buffer_ptr & buf_ptr)
 		 * or a lambda function like this :
-		 * [&](asio2::buffer_ptr data_ptr){}
+		 * [&](asio2::buffer_ptr & buf_ptr){}
 		 */
 		client & bind_recv(std::function<client_listener_mgr::recv_callback> listener)
 		{
@@ -374,9 +323,9 @@ namespace asio2
 		/**
 		 * @function : bind listener - the client recv data from remote endpoint
 		 * @param    : listener - a callback function like this:
-		 * void on_recv(asio2::buffer_ptr data_ptr)
+		 * void on_recv(asio2::buffer_ptr & buf_ptr)
 		 * or a lambda function like this :
-		 * [&](asio2::buffer_ptr data_ptr){}
+		 * [&](asio2::buffer_ptr & buf_ptr){}
 		 */
 		client & bind_recv(std::function<http_client_listener_mgr::recv_callback> listener)
 		{
@@ -482,10 +431,68 @@ namespace asio2
 		}
 
 	protected:
+		void _init(std::string & url
+#if defined(ASIO2_USE_SSL)
+			, boost::asio::ssl::context::method  method
+			, boost::asio::ssl::context::options options
+#endif
+		)
+		{
+			m_url_parser_ptr = std::make_shared<url_parser>(url);
 
-		std::shared_ptr<client_impl>         m_client_impl_ptr;
-		std::shared_ptr<url_parser>          m_url_parser_ptr;
+			if /**/ (m_url_parser_ptr->get_protocol() == "tcp")
+				m_listener_mgr_ptr = std::make_shared<client_listener_mgr>();
+			else if (m_url_parser_ptr->get_protocol() == "tcps")
+				m_listener_mgr_ptr = std::make_shared<client_listener_mgr>();
+			else if (m_url_parser_ptr->get_protocol() == "udp")
+				m_listener_mgr_ptr = std::make_shared<client_listener_mgr>();
+			else if (m_url_parser_ptr->get_protocol() == "http")
+				m_listener_mgr_ptr = std::make_shared<http_client_listener_mgr>();
+			else if (m_url_parser_ptr->get_protocol() == "https")
+				m_listener_mgr_ptr = std::make_shared<http_client_listener_mgr>();
+			else if (m_url_parser_ptr->get_protocol() == "rpc")
+				m_listener_mgr_ptr = std::make_shared<client_listener_mgr>();
+
+			if/**/ (m_url_parser_ptr->get_protocol() == "tcp")
+			{
+				if /**/ (m_url_parser_ptr->get_model() == "auto")
+					m_client_impl_ptr = std::make_shared<tcp_auto_client>(m_url_parser_ptr, m_listener_mgr_ptr);
+				else if (m_url_parser_ptr->get_model() == "pack")
+					m_client_impl_ptr = std::make_shared<tcp_pack_client>(m_url_parser_ptr, m_listener_mgr_ptr);
+				else
+					m_client_impl_ptr = std::make_shared<tcp_client>     (m_url_parser_ptr, m_listener_mgr_ptr);
+			}
+			else if (m_url_parser_ptr->get_protocol() == "tcps")
+			{
+#if defined(ASIO2_USE_SSL)
+				if /**/ (m_url_parser_ptr->get_model() == "auto")
+					m_client_impl_ptr = std::make_shared<tcps_auto_client>(m_url_parser_ptr, m_listener_mgr_ptr, method, options);
+				else if (m_url_parser_ptr->get_model() == "pack")
+					m_client_impl_ptr = std::make_shared<tcps_pack_client>(m_url_parser_ptr, m_listener_mgr_ptr, method, options);
+				else
+					m_client_impl_ptr = std::make_shared<tcps_client>     (m_url_parser_ptr, m_listener_mgr_ptr, method, options);
+#else
+				throw std::runtime_error("you must #define ASIO2_USE_SSL macro before #include <asio2/asio2.hpp>");
+#endif
+			}
+			else if (m_url_parser_ptr->get_protocol() == "udp")
+				m_client_impl_ptr = std::make_shared<udp_client>(m_url_parser_ptr, m_listener_mgr_ptr);
+			else if (m_url_parser_ptr->get_protocol() == "http")
+				m_client_impl_ptr = std::make_shared<http_client>(m_url_parser_ptr, m_listener_mgr_ptr);
+			else if (m_url_parser_ptr->get_protocol() == "https")
+#if defined(ASIO2_USE_SSL)
+				m_client_impl_ptr = std::make_shared<http_client>(m_url_parser_ptr, m_listener_mgr_ptr);
+#else
+				throw std::runtime_error("you must #define ASIO2_USE_SSL macro before #include <asio2/asio2.hpp>");
+#endif
+			else if (m_url_parser_ptr->get_protocol() == "rpc")
+				m_client_impl_ptr = std::make_shared<udp_client>(m_url_parser_ptr, m_listener_mgr_ptr);
+		}
+
+	protected:
+		std::shared_ptr<url_parser  >        m_url_parser_ptr;
 		std::shared_ptr<listener_mgr>        m_listener_mgr_ptr;
+		std::shared_ptr<client_impl >        m_client_impl_ptr;
 
 	};
 }

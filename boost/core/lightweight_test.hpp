@@ -115,7 +115,7 @@ inline const void* test_output_impl(signed char* v) { return v; }
 template<class T> inline const void* test_output_impl(T volatile* v) { return const_cast<T*>(v); }
 
 #if !defined( BOOST_NO_CXX11_NULLPTR )
-inline const void* test_output_impl(std::nullptr_t v) { return v; }
+inline const void* test_output_impl(std::nullptr_t) { return nullptr; }
 #endif
 
 template<class T, class U> inline void test_eq_impl( char const * expr1, char const * expr2,

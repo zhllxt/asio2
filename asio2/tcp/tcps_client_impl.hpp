@@ -15,7 +15,6 @@
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
 #include <asio2/tcp/tcps_connection_impl.hpp>
-
 #include <asio2/tcp/tcp_client_impl.hpp>
 
 namespace asio2
@@ -25,19 +24,32 @@ namespace asio2
 	class tcps_client_impl : public tcp_client_impl<_connection_impl_t>
 	{
 	public:
-
-		typedef boost::asio::ssl::stream<boost::asio::ip::tcp::socket> ssl_socket;
-
 		/**
 		 * @construct
 		 */
 		explicit tcps_client_impl(
-			std::shared_ptr<listener_mgr> listener_mgr_ptr,
-			std::shared_ptr<url_parser> url_parser_ptr
+			std::shared_ptr<url_parser>        url_parser_ptr,
+			std::shared_ptr<listener_mgr>      listener_mgr_ptr,
+			boost::asio::ssl::context::method  method,
+			boost::asio::ssl::context::options options
 		)
-			: tcp_client_impl<_connection_impl_t>(listener_mgr_ptr, url_parser_ptr)
+			: tcp_client_impl<_connection_impl_t>(url_parser_ptr, nullptr)
 		{
-			this->m_context_ptr = std::make_shared<boost::asio::ssl::context>(boost::asio::ssl::context::sslv23);
+			this->m_listener_mgr_ptr = listener_mgr_ptr;
+			try
+			{
+				this->m_ssl_context_ptr = std::make_shared<boost::asio::ssl::context>(method);
+				this->m_ssl_context_ptr->set_options(options);
+
+				this->m_connection_impl_ptr = std::make_shared<_connection_impl_t>(url_parser_ptr, listener_mgr_ptr,
+					nullptr, this->m_io_context_pool_ptr->get_io_context_ptr(), this->m_ssl_context_ptr);
+			}
+			catch (boost::system::system_error & e)
+			{
+				set_last_error(e.code().value());
+				PRINT_EXCEPTION;
+				m_ssl_context_ptr.reset();
+			}
 		}
 
 		/**
@@ -49,7 +61,7 @@ namespace asio2
 
 		virtual bool start(bool async_connect = true) override
 		{
-			return tcp_client_impl<_connection_impl_t>::start(async_connect);
+			return ((this->m_ssl_context_ptr && this->m_connection_impl_ptr) ? tcp_client_impl<_connection_impl_t>::start(async_connect) : false);
 		}
 
 		virtual void stop() override
@@ -57,24 +69,11 @@ namespace asio2
 			tcp_client_impl<_connection_impl_t>::stop();
 		}
 
-		inline std::shared_ptr<boost::asio::ssl::context> get_context_ptr() { return this->m_context_ptr; }
+		inline std::shared_ptr<boost::asio::ssl::context> get_ssl_context() { return this->m_ssl_context_ptr; }
 
 	protected:
-
-		virtual void _prepare_connection() override
-		{
-			tcp_client_impl<_connection_impl_t>::_prepare_connection();
-
-			if (this->m_connection_impl_ptr)
-			{
-				std::dynamic_pointer_cast<_connection_impl_t>(this->m_connection_impl_ptr)->set_context(this->m_context_ptr);
-			}
-		}
-
-	protected:
-
 		/// ssl context 
-		std::shared_ptr<boost::asio::ssl::context> m_context_ptr;
+		std::shared_ptr<boost::asio::ssl::context> m_ssl_context_ptr;
 
 	};
 

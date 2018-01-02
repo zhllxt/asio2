@@ -14,8 +14,6 @@
 #pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
-#include <boost/asio/ssl.hpp>
-
 #include <asio2/tcp/tcps_server_impl.hpp>
 
 #include <asio2/tcp/tcps_pack_acceptor_impl.hpp>
@@ -27,15 +25,19 @@ namespace asio2
 	class tcps_pack_server_impl : public tcps_server_impl<_acceptor_impl_t>
 	{
 	public:
+		typedef _acceptor_impl_t acceptor_impl_t;
+		typedef typename acceptor_impl_t::parser_callback parser_callback;
 
 		/**
 		 * @construct
 		 */
 		tcps_pack_server_impl(
-			std::shared_ptr<listener_mgr> listener_mgr_ptr,
-			std::shared_ptr<url_parser> url_parser_ptr
+			std::shared_ptr<url_parser>        url_parser_ptr,
+			std::shared_ptr<listener_mgr>      listener_mgr_ptr,
+			boost::asio::ssl::context::method  method,
+			boost::asio::ssl::context::options options
 		)
-			: tcps_server_impl<_acceptor_impl_t>(listener_mgr_ptr, url_parser_ptr)
+			: tcps_server_impl<_acceptor_impl_t>(url_parser_ptr, listener_mgr_ptr, method, options)
 		{
 		}
 
@@ -48,8 +50,8 @@ namespace asio2
 
 		virtual bool start() override
 		{
-			if (!m_pack_parser)
-				throw std::runtime_error("must call set_pack_parser to specifies the data parser before start server under pack model");
+			if (!std::static_pointer_cast<_acceptor_impl_t>(this->get_acceptor_impl())->m_pack_parser)
+				throw std::runtime_error("must call set_pack_parser to specifies the data parser before start server on pack model");
 
 			return tcps_server_impl<_acceptor_impl_t>::start();
 		}
@@ -57,44 +59,11 @@ namespace asio2
 		/**
 		 * @function : set the data parser under pack model
 		 */
-		template<typename _parser>
-		tcps_pack_server_impl & set_pack_parser(_parser parser)
+		tcps_pack_server_impl & set_pack_parser(const std::function<parser_callback> & parser)
 		{
-			m_pack_parser = parser;
+			std::static_pointer_cast<_acceptor_impl_t>(this->get_acceptor_impl())->m_pack_parser = parser;
 			return (*this);
 		}
-
-	protected:
-
-		virtual bool _start_listen() override
-		{
-			try
-			{
-				this->m_acceptor_impl_ptr = std::make_shared<_acceptor_impl_t>(
-					this->m_ioservice_pool_ptr,
-					this->m_listener_mgr_ptr,
-					this->m_url_parser_ptr,
-					this->m_send_buf_pool_ptr,
-					this->m_recv_buf_pool_ptr,
-					this->m_context_ptr,
-					this->m_pack_parser
-					);
-
-				return this->m_acceptor_impl_ptr->start();
-			}
-			catch (boost::system::system_error & e)
-			{
-				set_last_error(e.code().value());
-			}
-
-			return false;
-		}
-
-	protected:
-
-		using parser_callback = std::size_t(std::shared_ptr<buffer<uint8_t>> data_ptr);
-
-		std::function<parser_callback>       m_pack_parser;
 
 	};
 

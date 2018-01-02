@@ -18,12 +18,9 @@
 #	define NDEBUG
 #endif
 
-
 #include <cassert>
 #include <memory>
 #include <atomic>
-
-#include <asio2/util/spin_lock.hpp>
 
 #include <boost/pool/pool.hpp>
 
@@ -32,20 +29,16 @@ namespace asio2
 {
 
 	/**
-	 * thread safe pool based on boost pool
-	 * you must construct this object by "new" mode, can't construct this object on the stack.because it used shared_from_this.
+	 * no thread safed and no locked buffer pool based on boost::pool,just used for thread_local
 	 */
-	template<typename T>
-	class pool : public boost::pool<>, public std::enable_shared_from_this<asio2::pool<T>>
+	template<class T>
+	class pool : public boost::pool<>, public std::enable_shared_from_this<pool<T>>
 	{
 	public:
-
 		/**
 		 * @construct
 		 */
-		explicit pool(
-			const std::size_t nrequested_size
-		) : boost::pool<>(nrequested_size)
+		pool(std::size_t requested_size) : boost::pool<>(requested_size)
 		{
 		}
 
@@ -60,40 +53,34 @@ namespace asio2
 		 * @function : get a buf for use from pool, return a shared_ptr object contain the buf,
 		 *             when the shared_ptr invalid,will enter the custom deleter,and put the buf
 		 *             into the pool again for next use.
-		 * @param : requested_size - have no effect,just for placeholders
 		 */
-		std::shared_ptr<T> get(std::size_t requested_size = 0)
+		std::shared_ptr<T> malloc()
 		{
-			std::lock_guard<spin_lock> g(m_lock);
-			// [it's very important] why pass the shared_ptr<this> to the lumdba function ? why not pass "this" pointer to the lumdba function ?
-			// because the shared_ptr custom deleter has used "this" object,when the shared_ptr is destructed,it will call the custom deleter,
-			// but at this time the "this" object may be destructed already before the shared_ptr destructed,so pass a shared_ptr<this> to the
-			// custom deleter,can make sure the "this" obejct is destructed after the the shared_ptr destructed.
-			auto this_ptr = this->shared_from_this();
-			// note : must use this->shared_from_this() ,if you use shared_from_this() ,it will occur [-fpermissive] error when compile on gcc
-			auto deleter = [this_ptr](T * p)
+			// use "this->shared_from_this()", don't use "shared_from_this()", otherwise will cause [-fpermissive] error when compiler with gcc.
+			auto zhis = this->shared_from_this();
+			auto deleter = [this, zhis](void * buffer)
 			{
-				std::lock_guard<spin_lock> g(this_ptr->m_lock);
-				assert(this_ptr->is_from((void*)p));
-				this_ptr->free((void*)p);
+				assert(is_from(buffer));
+				free(buffer);
 			};
-			return std::shared_ptr<T>((T*)malloc(), deleter);
+
+			return std::move(std::shared_ptr<T>(reinterpret_cast<T *>(boost::pool<>::malloc()), std::move(deleter)));
 		}
 
 		/**
 		 * @function : get the allocated memory size
 		 */
-		std::size_t get_pool_size()
+		inline std::size_t alloc_size()
 		{
-			return this->alloc_size();
+			return boost::pool<>::alloc_size();
 		}
 
 		/**
-		 * @function : release the buffer pool malloced memory 
+		 * @function : get the requested chunk size
 		 */
-		void destroy()
+		inline std::size_t get_requested_size()
 		{
-			purge_memory();
+			return boost::pool<>::get_requested_size();
 		}
 
 	private:
@@ -103,12 +90,53 @@ namespace asio2
 		/// no operator equal function
 		pool& operator=(const pool&) = delete;
 
-	protected:
-
-		/// lock for thread safe
-		spin_lock m_lock;
-
 	};
+
+	// use anonymous namespace to resolve global function redefinition problem 
+	namespace
+	{
+
+		//thread_local static std::shared_ptr<boost::pool<>> _recv_buffer_pool;
+
+		//thread_local static std::shared_ptr<boost::pool<>> _send_buffer_pool;
+
+		std::shared_ptr<uint8_t> malloc_recv_buffer(std::size_t requested_size)
+		{
+			//if (!_recv_buffer_pool)
+			//	_recv_buffer_pool = std::make_shared<boost::pool<>>(requested_size);
+
+			//if (requested_size > _recv_buffer_pool->get_requested_size())
+			return std::shared_ptr<uint8_t>(new uint8_t[requested_size], std::default_delete<uint8_t[]>());
+
+			//std::shared_ptr<boost::pool<>> & _pool = _recv_buffer_pool;
+			//auto deleter = [_pool](void * buffer)
+			//{
+			//	assert(_pool->is_from(buffer));
+			//	_pool->free(buffer);
+			//};
+
+			//return std::shared_ptr<uint8_t>(reinterpret_cast<uint8_t *>(_recv_buffer_pool->malloc()), deleter);
+		}
+
+		std::shared_ptr<uint8_t> malloc_send_buffer(std::size_t requested_size)
+		{
+			//if (!_send_buffer_pool)
+			//	_send_buffer_pool = std::make_shared<boost::pool<>>(requested_size);
+
+			//if (requested_size > _send_buffer_pool->get_requested_size())
+			return std::shared_ptr<uint8_t>(new uint8_t[requested_size], std::default_delete<uint8_t[]>());
+
+			//std::shared_ptr<boost::pool<>> & _pool = _send_buffer_pool;
+			//auto deleter = [_pool](void * buffer)
+			//{
+			//	assert(_pool->is_from(buffer));
+			//	_pool->free(buffer);
+			//};
+
+			//return std::shared_ptr<uint8_t>(reinterpret_cast<uint8_t *>(_send_buffer_pool->malloc()), deleter);
+		}
+
+	}
 
 }
 

@@ -62,9 +62,6 @@
     <ClInclude Include="..\..\asio2\base\error.hpp">
       <Filter>asio2\base</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\asio2\base\io_service_pool.hpp">
-      <Filter>asio2\base</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\asio2\base\listener.hpp">
       <Filter>asio2\base</Filter>
     </ClInclude>
@@ -188,9 +185,6 @@
     <ClInclude Include="..\..\asio2\util\logger.hpp">
       <Filter>asio2\util</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\asio2\util\object_pool.hpp">
-      <Filter>asio2\util</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\asio2\util\rwlock.hpp">
       <Filter>asio2\util</Filter>
     </ClInclude>
@@ -213,12 +207,6 @@
       <Filter>asio2</Filter>
     </ClInclude>
     <ClInclude Include="..\..\asio2\util\buffer.hpp">
-      <Filter>asio2\util</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\asio2\util\buffer_pool.hpp">
-      <Filter>asio2\util</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\asio2\util\multi_buffer_pool.hpp">
       <Filter>asio2\util</Filter>
     </ClInclude>
     <ClInclude Include="..\..\asio2\tcp\tcps_auto_client_impl.hpp">
@@ -265,6 +253,21 @@
     </ClInclude>
     <ClInclude Include="..\..\asio2\http\mime_types.hpp">
       <Filter>asio2\http</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\util\def.hpp">
+      <Filter>asio2\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\util\pool.hpp">
+      <Filter>asio2\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\base\io_context_pool.hpp">
+      <Filter>asio2\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\base\socket_helper.hpp">
+      <Filter>asio2\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\base\session_mgr_impl.hpp">
+      <Filter>asio2\base</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

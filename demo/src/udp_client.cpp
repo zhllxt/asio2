@@ -22,9 +22,9 @@ volatile bool run_flag = true;
 class main_frame
 {
 public:
-	void on_recv(asio2::buffer_ptr data_ptr, int user_data)
+	void on_recv(asio2::buffer_ptr & buf_ptr, int user_data)
 	{
-		std::printf("user_data : %d recv : %.*s\n", user_data, (int)data_ptr->size(), (const char*)data_ptr->data());
+		std::printf("user_data : %d recv : %.*s\n", user_data, (int)buf_ptr->size(), (const char*)buf_ptr->data());
 	}
 };
 
@@ -51,13 +51,13 @@ int main(int argc, char *argv[])
 		std::shared_ptr<asio2::client> udp_client[client_count];
 		for (int i = 0; i < client_count; i++)
 		{
-			udp_client[i] = std::make_shared<asio2::client>("udp://localhost:9530");
+			udp_client[i] = std::make_shared<asio2::client>("udp://localhost:9010");
 			udp_client[i]->bind_recv(std::bind(&main_frame::on_recv, &_main_frame, std::placeholders::_1, 100));
 
 			if (!udp_client[i]->start(false))
 				std::printf("connect to udp server failed : %d - %s.\n %d", asio2::get_last_error(), asio2::get_last_error_desc().c_str(), i);
 			else
-				std::printf("connect to udp server successed : %s - %u\n", udp_client[i]->get_remote_address().c_str(), udp_client[i]->get_remote_port());
+				std::printf("connect to udp server successed : %s - %u\n", udp_client[i]->get_remote_address().c_str(), udp_client[i]->get_local_port());
 		}
 
 

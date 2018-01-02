@@ -14,22 +14,7 @@
 #pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
-#include <memory>
-#include <future>
-#include <functional>
-
-#include <boost/asio.hpp>
-#include <boost/system/system_error.hpp>
-
-#include <asio2/util/buffer.hpp>
-#include <asio2/util/buffer_pool.hpp>
-#include <asio2/util/multi_buffer_pool.hpp>
-
-#include <asio2/base/io_service_pool.hpp>
-#include <asio2/base/error.hpp>
-#include <asio2/base/def.hpp>
-#include <asio2/base/listener_mgr.hpp>
-#include <asio2/base/url_parser.hpp>
+#include <asio2/base/acceptor_impl.hpp>
 
 namespace asio2
 {
@@ -39,16 +24,15 @@ namespace asio2
 	public:
 		/**
 		 * @construct
-		 * @param    : listener_mgr_ptr - 
-		 * @param    : url_parser_ptr - url parser shared_ptr
 		 */
 		explicit server_impl(
-			std::shared_ptr<listener_mgr> listener_mgr_ptr,
-			std::shared_ptr<url_parser> url_parser_ptr
+			std::shared_ptr<url_parser>                    url_parser_ptr,
+			std::shared_ptr<listener_mgr>                  listener_mgr_ptr
 		)
-			: m_listener_mgr_ptr(listener_mgr_ptr)
-			, m_url_parser_ptr(url_parser_ptr)
+			: m_url_parser_ptr  (url_parser_ptr)
+			, m_listener_mgr_ptr(listener_mgr_ptr)
 		{
+			m_io_context_pool_ptr = std::make_shared<io_context_pool>(_get_io_context_pool_size());
 		}
 
 		/**
@@ -66,97 +50,136 @@ namespace asio2
 		{
 			try
 			{
-				shared_from_this();
+				// check if started and not stoped
+				if (this->is_start())
+				{
+					assert(false);
+					return false;
+				}
+
+				// startup the io service thread 
+				m_io_context_pool_ptr->run();
+
+				// start acceptor
+				return m_acceptor_impl_ptr->start();
 			}
-			catch (std::bad_weak_ptr &)
+			catch (boost::system::system_error & e)
 			{
-				assert(false);
-				return false;
+				set_last_error(e.code().value());
 			}
-			return true;
+
+			return false;
 		}
 
 		/**
 		 * @function : stop the server
 		 */
-		virtual void stop() = 0;
+		virtual void stop()
+		{
+			// first close the acceptor
+			m_acceptor_impl_ptr->stop();
 
-		virtual bool is_start() = 0;
+			// stop the io_context
+			m_io_context_pool_ptr->stop();
+		}
+
+		/**
+		 * @function : check whether the server is started 
+		 */
+		virtual bool is_start() { return (m_acceptor_impl_ptr->is_start()); }
 
 		/**
 		 * @function : send data
 		 */
-		virtual bool send(std::shared_ptr<buffer<uint8_t>> buf_ptr) = 0;
+		virtual bool send(std::shared_ptr<buffer<uint8_t>> buf_ptr)
+		{
+			if (this->is_start())
+			{
+				this->m_acceptor_impl_ptr->get_session_mgr()->for_each_session([&](std::shared_ptr<session_impl> & session_ptr)
+				{
+					session_ptr->send(buf_ptr);
+				});
+				return true;
+			}
+			return false;
+		}
 
 		/**
 		 * @function : send data
 		 */
-		virtual bool send(const uint8_t * buf, std::size_t len) = 0;
+		virtual bool send(const uint8_t * buf, std::size_t len)
+		{
+			return (buf ? this->send(std::make_shared<buffer<uint8_t>>(len, malloc_send_buffer(len), buf, len)) : false);
+		}
 
 		/**
 		 * @function : send data
 		 */
 		virtual bool send(const char * buf)
 		{
-			return this->send(reinterpret_cast<const uint8_t *>(buf), std::strlen(buf));
+			return (buf ? this->send(reinterpret_cast<const uint8_t *>(buf), std::strlen(buf)) : false);
 		}
+
+		/**
+		 * @function : get the acceptor_impl shared_ptr
+		 */
+		inline std::shared_ptr<acceptor_impl> get_acceptor_impl() { return m_acceptor_impl_ptr; }
 
 		/**
 		 * @function : get the listen address
 		 */
-		virtual std::string get_listen_address() = 0;
+		virtual std::string get_listen_address() { return this->m_acceptor_impl_ptr->get_listen_address(); }
 
 		/**
 		 * @function : get the listen port
 		 */
-		virtual unsigned short get_listen_port() = 0;
+		virtual unsigned short get_listen_port() { return this->m_acceptor_impl_ptr->get_listen_port(); }
 
 		/**
 		 * @function : get connected session count
 		 */
-		virtual std::size_t get_session_count() = 0;
+		virtual std::size_t get_session_count()  { return this->m_acceptor_impl_ptr->get_session_mgr()->get_session_count(); }
 
-	protected:
-
-		virtual std::size_t _get_io_service_pool_size()
+		/**
+		 * @function : 
+		 * @param    : the user callback function,the session shared_ptr will pass to the function as a param,
+		 *             the callback like this : void handler(asio2::session_ptr & session_ptr){...}
+		 */
+		virtual bool for_each_session(const std::function<void(std::shared_ptr<session_impl> & session_ptr)> & handler)
 		{
-			// get io_service_pool_size from the url
-			std::size_t io_service_pool_size = std::thread::hardware_concurrency();
-			std::string str_io_service_pool_size = m_url_parser_ptr->get_param_value("io_service_pool_size");
-			if (!str_io_service_pool_size.empty())
-				io_service_pool_size = static_cast<std::size_t>(std::atoi(str_io_service_pool_size.c_str()));
-			if (io_service_pool_size == 0)
-				io_service_pool_size = std::thread::hardware_concurrency();
-			return io_service_pool_size;
-		}
-
-		virtual std::size_t _get_pool_buffer_size()
-		{
-			// get pool_buffer_size from the url
-			std::size_t pool_buffer_size = 1024;
-			std::string str_pool_buffer_size = m_url_parser_ptr->get_param_value("pool_buffer_size");
-			if (!str_pool_buffer_size.empty())
+			if (this->is_start())
 			{
-				pool_buffer_size = static_cast<std::size_t>(std::atoi(str_pool_buffer_size.c_str()));
-				if (str_pool_buffer_size.find_last_of('k') != std::string::npos)
-					pool_buffer_size *= 1024;
-				else if (str_pool_buffer_size.find_last_of('m') != std::string::npos)
-					pool_buffer_size *= 1024 * 1024;
+				this->m_acceptor_impl_ptr->get_session_mgr()->for_each_session(handler);
+				return true;
 			}
-			if (pool_buffer_size < 16)
-				pool_buffer_size = 1024;
-			return pool_buffer_size;
+			return false;
 		}
 
+	protected:
+		virtual std::size_t _get_io_context_pool_size()
+		{
+			// get io_context_pool_size from the url
+			std::size_t size = std::thread::hardware_concurrency();
+			auto val = m_url_parser_ptr->get_param_value("io_context_pool_size");
+			if (!val.empty())
+				size = static_cast<std::size_t>(std::strtoull(val.data(), nullptr, 10));
+			if (size == 0)
+				size = std::thread::hardware_concurrency();
+			return size;
+		}
 
 	protected:
+		/// url parser
+		std::shared_ptr<url_parser>                        m_url_parser_ptr;
 
-		/// listener manager shared_ptr
-		std::shared_ptr<listener_mgr> m_listener_mgr_ptr;
+		/// listener manager
+		std::shared_ptr<listener_mgr>                      m_listener_mgr_ptr;
 
-		/// url parser shared_ptr
-		std::shared_ptr<url_parser>   m_url_parser_ptr;
+		/// the io_context_pool for socket event
+		std::shared_ptr<io_context_pool>                   m_io_context_pool_ptr;
 
+		/// acceptor_impl pointer,this object must be created after server has created
+		std::shared_ptr<acceptor_impl>                     m_acceptor_impl_ptr;
 	};
 }
 

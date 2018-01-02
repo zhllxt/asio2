@@ -1,17 +1,15 @@
 /*
  * COPYRIGHT (C) 2017, zhllxt
- *
+ * 
+ * version	: 1.1
+ * 
  * author   : zhllxt
  * qq       : 37792738
  * email    : 37792738@qq.com
  *
+ * if you find some bugs,or have any troubles or questions on using this library,please contact me.
+ * 
  */
-
- /*
-  * 
-  * if you find some bugs,or have any troubles or questions on using this library,please contact me.
-  * 
-  */
 
 #ifndef __ASIO2_HPP__
 #define __ASIO2_HPP__
@@ -25,10 +23,8 @@
 #endif
 
 
-// if PRINT_FATAL_EXCEPTION is defined,when important exception occured,it will print the exception msg.if you don't 
-// want print the exception msg,you can use #undef PRINT_FATAL_EXCEPTION after include <asio2/asio2.hpp> to avoid it.
-#define PRINT_FATAL_EXCEPTION
-
+// if ASIO2_WRITE_LOG is defined,when important exception occured,it will print the exception msg.
+#define ASIO2_WRITE_LOG
 
 
 #if defined(__GNUC__) || defined(__GNUG__)
@@ -40,7 +36,6 @@
 #include <asio2/server.hpp>
 #include <asio2/client.hpp>
 #include <asio2/sender.hpp>
-
 
 
 #if defined(__GNUC__) || defined(__GNUG__)

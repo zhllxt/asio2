@@ -34,23 +34,23 @@ public:
 	}
 
 public:
-	virtual void on_send(asio2::session_ptr session_ptr, asio2::response_ptr response_ptr, int error) override
+	virtual void on_send(asio2::session_ptr & session_ptr, asio2::response_ptr & response_ptr, int error) override
 	{
 	}
-	virtual void on_recv(asio2::session_ptr session_ptr, asio2::request_ptr request_ptr) override
+	virtual void on_recv(asio2::session_ptr & session_ptr, asio2::request_ptr & request_ptr) override
 	{
 		auto iska = request_ptr->is_keepalive();
 		auto host = request_ptr->host();
 		auto port = request_ptr->port();
 	}
-	virtual void on_close(asio2::session_ptr session_ptr, int error) override
+	virtual void on_close(asio2::session_ptr & session_ptr, int error) override
 	{
 		printf("http session leave %s %u %s\n", session_ptr->get_remote_address().c_str(), session_ptr->get_remote_port(), asio2::get_error_desc(error).data());
 	}
 	virtual void on_listen() override
 	{
 	}
-	virtual void on_accept(asio2::session_ptr session_ptr) override
+	virtual void on_accept(asio2::session_ptr & session_ptr) override
 	{
 		printf("http session enter %s %u\n", session_ptr->get_remote_address().c_str(), session_ptr->get_remote_port());
 	}

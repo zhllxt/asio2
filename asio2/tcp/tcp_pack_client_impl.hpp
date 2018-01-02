@@ -25,15 +25,17 @@ namespace asio2
 	class tcp_pack_client_impl : public tcp_client_impl<_connection_impl_t>
 	{
 	public:
+		typedef _connection_impl_t connection_impl_t;
+		typedef typename connection_impl_t::parser_callback parser_callback;
 
 		/**
 		 * @construct
 		 */
 		explicit tcp_pack_client_impl(
-			std::shared_ptr<listener_mgr> listener_mgr_ptr,
-			std::shared_ptr<url_parser> url_parser_ptr
+			std::shared_ptr<url_parser>                    url_parser_ptr,
+			std::shared_ptr<listener_mgr>                  listener_mgr_ptr
 		)
-			: tcp_client_impl<_connection_impl_t>(listener_mgr_ptr, url_parser_ptr)
+			: tcp_client_impl<_connection_impl_t>(url_parser_ptr, listener_mgr_ptr)
 		{
 		}
 
@@ -46,48 +48,20 @@ namespace asio2
 
 		virtual bool start(bool async_connect = true) override
 		{
-			if (!this->m_pack_parser)
+			if (!std::static_pointer_cast<_connection_impl_t>(this->m_connection_impl_ptr)->m_pack_parser)
 				throw std::runtime_error("must call set_pack_parser to specifies the data parser before start client under pack model");
 
 			return tcp_client_impl<_connection_impl_t>::start(async_connect);
 		}
 
-		virtual void stop() override
-		{
-			tcp_client_impl<_connection_impl_t>::stop();
-
-			m_pack_parser = nullptr;
-		}
-
-	public:
-
 		/**
 		 * @function : set the data parser under pack model
 		 */
-		template<typename _parser>
-		tcp_pack_client_impl & set_pack_parser(_parser parser)
+		tcp_pack_client_impl & set_pack_parser(const std::function<parser_callback> & parser)
 		{
-			this->m_pack_parser = parser;
+			std::static_pointer_cast<_connection_impl_t>(this->m_connection_impl_ptr)->m_pack_parser = parser;
 			return (*this);
 		}
-
-	protected:
-
-		virtual void _prepare_connection() override
-		{
-			tcp_client_impl<_connection_impl_t>::_prepare_connection();
-
-			if (this->m_connection_impl_ptr)
-			{
-				std::dynamic_pointer_cast<_connection_impl_t>(this->m_connection_impl_ptr)->set_pack_parser(this->m_pack_parser);
-			}
-		}
-
-	protected:
-
-		using parser_callback = std::size_t(std::shared_ptr<buffer<uint8_t>> data_ptr);
-
-		std::function<parser_callback>       m_pack_parser;
 
 	};
 

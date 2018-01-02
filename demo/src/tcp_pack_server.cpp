@@ -24,16 +24,16 @@ volatile bool run_flag = true;
 // ...  content
 // tail 1 byte >
 
-std::size_t pack_parser(asio2::buffer_ptr data_ptr)
+std::size_t pack_parser(asio2::buffer_ptr & buf_ptr)
 {
-	if (data_ptr->size() < 3)
+	if (buf_ptr->size() < 3)
 		return asio2::need_more_data;
 
-	uint8_t * data = data_ptr->data();
+	uint8_t * data = buf_ptr->data();
 	if (data[0] == '<')
 	{
-		std::size_t pack_len = data[1] + 3;
-		if (data_ptr->size() < pack_len)
+		std::size_t pack_len = (data[1] - '0') + 3;
+		if (buf_ptr->size() < pack_len)
 			return asio2::need_more_data;
 		if (data[pack_len - 1] == '>')
 			return pack_len;
@@ -56,28 +56,28 @@ int main(int argc, char *argv[])
 
 	while (run_flag)
 	{
-		asio2::server tcp_pack_server(" tcp://*:8099/pack?send_buffer_size=1024k & recv_buffer_size=1024K & pool_buffer_size=1024 & io_service_pool_size=3");
-		tcp_pack_server.bind_recv([&tcp_pack_server](asio2::session_ptr session_ptr, asio2::buffer_ptr data_ptr)
+		asio2::server tcp_pack_server(" tcp://*:8099/pack?send_buffer_size=1024k & recv_buffer_size=1024K & pool_buffer_size=1024 & io_context_pool_size=3");
+		tcp_pack_server.bind_recv([&tcp_pack_server](asio2::session_ptr & session_ptr, asio2::buffer_ptr & buf_ptr)
 		{
-			std::printf("recv : %.*s\n", (int)data_ptr->size(), (const char*)data_ptr->data());
+			std::printf("recv : %.*s\n", (int)buf_ptr->size(), (const char*)buf_ptr->data());
 
-			int send_len = std::rand() % ((int)data_ptr->size() / 2);
+			int send_len = std::rand() % ((int)buf_ptr->size() / 2);
 			int already_send_len = 0;
 			while (true)
 			{
-				session_ptr->send((const uint8_t *)(data_ptr->data() + already_send_len), (std::size_t)send_len);
+				session_ptr->send((const uint8_t *)(buf_ptr->data() + already_send_len), (std::size_t)send_len);
 				already_send_len += send_len;
 
-				if ((std::size_t)already_send_len >= data_ptr->size())
+				if ((std::size_t)already_send_len >= buf_ptr->size())
 					break;
 
-				send_len = std::rand() % ((int)data_ptr->size() / 2);
-				if (send_len + already_send_len > (int)data_ptr->size())
-					send_len = (int)data_ptr->size() - already_send_len;
+				send_len = std::rand() % ((int)buf_ptr->size() / 2);
+				if (send_len + already_send_len > (int)buf_ptr->size())
+					send_len = (int)buf_ptr->size() - already_send_len;
 
 				// send for several packets,and sleep for a moment after each send is completed
 				// the client will recv a full packet
-				std::this_thread::sleep_for(std::chrono::milliseconds(100));
+				//std::this_thread::sleep_for(std::chrono::milliseconds(100));
 			}
 
 		}).set_pack_parser(std::bind(pack_parser, std::placeholders::_1));

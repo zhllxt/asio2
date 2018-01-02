@@ -14,14 +14,7 @@
 #pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
-#include <memory>
-#include <chrono>
-
-#include <boost/asio.hpp>
-#include <boost/system/system_error.hpp>
-
 #include <asio2/base/acceptor_impl.hpp>
-#include <asio2/base/session_mgr.hpp>
 
 #include <asio2/tcp/tcp_session_impl.hpp>
 #include <asio2/tcp/tcp_auto_session_impl.hpp>
@@ -34,25 +27,20 @@ namespace asio2
 	class tcp_acceptor_impl : public acceptor_impl
 	{
 	public:
-
 		typedef _session_impl_t session_impl_t;
-		typedef typename _session_impl_t::pool_t pool_t;
 
 		/**
 		 * @construct
 		 */
 		tcp_acceptor_impl(
-			io_service_pool_ptr ioservice_pool_ptr,
-			std::shared_ptr<listener_mgr> listener_mgr_ptr,
-			std::shared_ptr<url_parser> url_parser_ptr,
-			std::shared_ptr<pool_s> send_buf_pool_ptr,
-			std::shared_ptr<pool_t> recv_buf_pool_ptr
+			std::shared_ptr<url_parser>                    url_parser_ptr,
+			std::shared_ptr<listener_mgr>                  listener_mgr_ptr,
+			std::shared_ptr<io_context_pool>               io_context_pool_ptr
 		)
-			: acceptor_impl(ioservice_pool_ptr->get_io_service_ptr(), listener_mgr_ptr, url_parser_ptr)
-			, m_ioservice_pool_ptr(ioservice_pool_ptr)
-			, m_send_buf_pool_ptr(send_buf_pool_ptr)
-			, m_recv_buf_pool_ptr(recv_buf_pool_ptr)
+			: acceptor_impl(url_parser_ptr, listener_mgr_ptr, io_context_pool_ptr)
+			, m_acceptor(*m_io_context_ptr)
 		{
+			m_session_mgr_ptr = std::make_shared<session_mgr_t<_session_impl_t*>>();
 		}
 
 		/**
@@ -67,32 +55,23 @@ namespace asio2
 		 */
 		virtual bool start() override
 		{
-			if (!acceptor_impl::start())
-				return false;
-
 			try
 			{
-				// init session manager 
-				m_session_mgr_ptr = std::make_shared<session_mgr_t<_session_impl_t*, _session_impl_t>>();
-
-				// Open the acceptor with the option to reuse the address (i.e. SO_REUSEADDR).
-				m_acceptor_ptr = std::make_shared<boost::asio::ip::tcp::acceptor>(m_strand_ptr->get_io_service());
-
 				// parse address and port
-				boost::asio::ip::tcp::resolver resolver(m_strand_ptr->get_io_service());
+				boost::asio::ip::tcp::resolver resolver(*m_io_context_ptr);
 				boost::asio::ip::tcp::resolver::query query(m_url_parser_ptr->get_ip(), m_url_parser_ptr->get_port());
-				boost::asio::ip::tcp::endpoint bind_endpoint = *resolver.resolve(query);
+				boost::asio::ip::tcp::endpoint endpoint = *resolver.resolve(query);
 
-				m_acceptor_ptr->open(bind_endpoint.protocol());
+				m_acceptor.open(endpoint.protocol());
 
 				// when you close socket in linux system,and start socket immediate,you will get like this "the address is in use",
 				// and bind is failed,but i'm suer i close the socket correct already before,why does this happen? the reasion is 
 				// the socket option "TIME_WAIT",although you close the socket,but the system not release the socket,util 2~4 
 				// seconds later,so we can use the SO_REUSEADDR option to avoid this problem,like below
-				m_acceptor_ptr->set_option(boost::asio::ip::tcp::acceptor::reuse_address(true)); // set port reuse
-				m_acceptor_ptr->bind(bind_endpoint);
+				m_acceptor.set_option(boost::asio::ip::tcp::acceptor::reuse_address(true)); // set port reuse
+				m_acceptor.bind(endpoint);
 
-				m_acceptor_ptr->listen(boost::asio::socket_base::max_connections);
+				m_acceptor.listen(boost::asio::socket_base::max_connections);
 
 				_fire_listen();
 
@@ -102,10 +81,11 @@ namespace asio2
 			{
 				set_last_error(e.code().value());
 
-				m_acceptor_ptr.reset();
+				boost::system::error_code ec;
+				m_acceptor.close(ec);
 			}
 
-			return (m_acceptor_ptr && m_acceptor_ptr->is_open());
+			return (m_acceptor.is_open());
 		}
 
 		/**
@@ -115,59 +95,37 @@ namespace asio2
 		{
 			// call acceptor's close function to notify the _handle_accept function response with error > 0 ,then the listen socket 
 			// can get notify to exit
-			if (m_acceptor_ptr && m_acceptor_ptr->is_open())
+			if (m_acceptor.is_open())
 			{
-				// use promise and future to wait for the async post finished.
-				std::promise<void> promise_accept;
-
 				// asio don't allow operate the same socket in multi thread,if you close socket in one thread and another thread is 
 				// calling socket's async_... function,it will crash.so we must care for operate the socket.when need close the
 				// socket ,we use the strand to post a event,make sure the socket's close operation is in the same thread.
-				m_strand_ptr->post([this, &promise_accept]()
+				m_strand_ptr->post([this]()
 				{
-					boost::system::error_code ec;
+					try
+					{
+						_fire_shutdown(get_last_error());
 
-					m_acceptor_ptr->cancel(ec);
-					if (ec)
-						set_last_error(ec.value());
+						m_acceptor.cancel();
+						m_acceptor.close();
+					}
+					catch (boost::system::system_error & e)
+					{
+						set_last_error(e.code().value());
+					}
 
-					m_acceptor_ptr->close(ec);
-					if (ec)
-						set_last_error(ec.value());
-
-					auto_promise<void> ap(promise_accept);
+					// stop all the sessions, the session::stop must be no blocking,otherwise it may be cause loop lock.
+					m_session_mgr_ptr->stop_all();
 				});
-
-				// wait util the socket is closed completed
-				// must wait for the socket closed completed,otherwise when use m_strand_ptr post a event to close the socket,
-				// before socket closed ,the event thread join is returned already,and it will cause memory leaks
-				// also can don't wati for the acceptor closed completed,because the _handle_accept hold the session shared_ptr,
-				// and session mgr's destroy function will wait for all session destroyed,so after _handle_accept finished,
-				// the session mgr's destroy can be return,so we don't need to wait for the _handle_accept return.
-
-				// wait for the async task finish,when finished,the socket must be closed already.
-				promise_accept.get_future().wait();
-			}
-
-			// first stop all connected sessions,then destroy(delete) the session pointer
-			if (m_session_mgr_ptr)
-			{
-				// stop all the sessions, the session::stop must be no blocking,otherwise it may be cause loop lock.
-				m_session_mgr_ptr->for_each_session([](std::shared_ptr<session_impl_t> session_ptr)
-				{
-					session_ptr->stop();
-				});
-
-				m_session_mgr_ptr->destroy();
 			}
 		}
 
 		/**
-		 * @function : test whether the acceptor is opened
+		 * @function : check whether the acceptor is opened
 		 */
 		virtual bool is_start() override
 		{
-			return (m_acceptor_ptr && m_acceptor_ptr->is_open());
+			return (m_acceptor.is_open());
 		}
 
 		/**
@@ -177,17 +135,16 @@ namespace asio2
 		{
 			try
 			{
-				if (m_acceptor_ptr && m_acceptor_ptr->is_open())
+				if (m_acceptor.is_open())
 				{
-					auto endpoint = m_acceptor_ptr->local_endpoint();
-					return endpoint.address().to_string();
+					return m_acceptor.local_endpoint().address().to_string();
 				}
 			}
 			catch (boost::system::system_error & e)
 			{
 				set_last_error(e.code().value());
 			}
-			return "";
+			return std::string();
 		}
 
 		/**
@@ -197,10 +154,9 @@ namespace asio2
 		{
 			try
 			{
-				if (m_acceptor_ptr && m_acceptor_ptr->is_open())
+				if (m_acceptor.is_open())
 				{
-					auto endpoint = m_acceptor_ptr->local_endpoint();
-					return endpoint.port();
+					return m_acceptor.local_endpoint().port();
 				}
 			}
 			catch (boost::system::system_error & e)
@@ -213,37 +169,22 @@ namespace asio2
 		/**
 		 * @function : get the acceptor shared_ptr
 		 */
-		inline std::shared_ptr<boost::asio::ip::tcp::acceptor> get_acceptor_ptr()
+		inline boost::asio::ip::tcp::acceptor & get_acceptor()
 		{
-			return m_acceptor_ptr;
+			return m_acceptor;
 		}
-
-		/**
-		 * @function : get the session manager shared_ptr
-		 */
-		inline std::shared_ptr<session_mgr_t<_session_impl_t*, _session_impl_t>> get_session_mgr_ptr()
-		{
-			return m_session_mgr_ptr;
-		}
-
 
 	protected:
-
-		virtual std::shared_ptr<_session_impl_t> _prepare_session()
+		virtual std::shared_ptr<_session_impl_t> _make_session()
 		{
-			// get a session shared_ptr from session manager
 			try
 			{
-				// the params of get_session is final passed to session constructor
-				std::shared_ptr<_session_impl_t> session_ptr = m_session_mgr_ptr->get_session(
-					m_ioservice_pool_ptr->get_io_service_ptr(),
-					m_listener_mgr_ptr,
-					m_url_parser_ptr,
-					m_send_buf_pool_ptr,
-					m_recv_buf_pool_ptr
-				);
-
-				return session_ptr;
+				return std::make_shared<_session_impl_t>(
+					this->m_url_parser_ptr,
+					this->m_listener_mgr_ptr,
+					this->m_io_context_pool_ptr->get_io_context_ptr(),
+					this->m_session_mgr_ptr
+					);
 			}
 			// handle exception,may be is the exception "Too many open files" (exception code : 24)
 			catch (boost::system::system_error & e)
@@ -252,34 +193,26 @@ namespace asio2
 
 				PRINT_EXCEPTION;
 			}
-
 			return nullptr;
 		}
 
 		virtual void _post_accept(std::shared_ptr<acceptor_impl> this_ptr)
 		{
-			auto session_ptr = _prepare_session();
-
-			_do_accept(this_ptr, session_ptr);
-		}
-
-		virtual void _do_accept(std::shared_ptr<acceptor_impl> this_ptr, std::shared_ptr<_session_impl_t> session_ptr)
-		{
 			if (is_start())
 			{
-				auto socket_ptr = session_ptr->get_socket_ptr();
-				if (session_ptr && socket_ptr)
+				auto session_ptr = _make_session();
+				if (session_ptr)
 				{
-					m_acceptor_ptr->async_accept(
-#ifdef USE_SSL
-						socket_ptr->lowest_layer(),
+#ifdef ASIO2_USE_SSL
+					auto & socket = session_ptr->get_socket().lowest_layer();
 #else
-						*socket_ptr,
+					auto & socket = session_ptr->get_socket();
 #endif
-						m_strand_ptr->wrap(std::bind(&tcp_acceptor_impl::_handle_accept, std::static_pointer_cast<tcp_acceptor_impl>(this_ptr),
+					m_acceptor.async_accept(socket,
+						m_strand_ptr->wrap(std::bind(&tcp_acceptor_impl::_handle_accept, this,
 							std::placeholders::_1, // error_code
-							this_ptr,
-							session_ptr
+							std::move(this_ptr),
+							std::move(session_ptr)
 						)));
 				}
 				// occur exception,may be is the exception "Too many open files" (exception code : 24)
@@ -287,80 +220,47 @@ namespace asio2
 				{
 					std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-					m_strand_ptr->post(std::bind(&tcp_acceptor_impl::_post_accept, std::static_pointer_cast<tcp_acceptor_impl>(this_ptr), this_ptr));
+					m_strand_ptr->post(std::bind(&tcp_acceptor_impl::_post_accept, this, std::move(this_ptr)));
 				}
 			}
 		}
 
-		virtual void _handle_accept(const boost::system::error_code& ec, std::shared_ptr<acceptor_impl> this_ptr, std::shared_ptr<_session_impl_t> session_ptr)
+		virtual void _handle_accept(const boost::system::error_code & ec, std::shared_ptr<acceptor_impl> this_ptr, std::shared_ptr<session_impl> session_ptr)
 		{
-			set_last_error(ec.value());
-
-			if (!ec)
+			if (is_start())
 			{
-				_fire_accept(session_ptr);
+				if (!ec)
+				{
+					session_ptr->start();
+				}
+				else
+				{
+					set_last_error(ec.value());
+					// may be user pressed the CTRL + C to exit application.
+					// the acceptor status,if closed,don't call _post_accept again.
+					if (ec == boost::asio::error::operation_aborted)
+						return;
 
-				if (session_ptr->start())
-				{
-					m_session_mgr_ptr->put_session(session_ptr);
-				}
-			}
-			else
-			{
-				// may be user pressed the CTRL + C to exit application.
-				// the acceptor status,if closed,don't call _post_accept again.
-				if (ec == boost::asio::error::operation_aborted)
-				{
-					_fire_shutdown(ec.value());
-					return;
-				}
-				else if (ec != boost::asio::error::connection_reset)
-				{
 					PRINT_EXCEPTION;
 				}
 
-				if (!m_acceptor_ptr || !m_acceptor_ptr->is_open())
-				{
-					_fire_shutdown(ec.value());
-					return;
-				}
+				_post_accept(std::move(this_ptr));
 			}
-
-			_post_accept(this_ptr);
 		}
 
 		virtual void _fire_listen()
 		{
-			std::dynamic_pointer_cast<server_listener_mgr>(m_listener_mgr_ptr)->notify_listen();
-		}
-
-		virtual void _fire_accept(std::shared_ptr<_session_impl_t> session_ptr)
-		{
-			std::static_pointer_cast<server_listener_mgr>(m_listener_mgr_ptr)->notify_accept(session_ptr);
+			dynamic_cast<server_listener_mgr *>(this->m_listener_mgr_ptr.get())->notify_listen();
 		}
 
 		virtual void _fire_shutdown(int error)
 		{
-			std::dynamic_pointer_cast<server_listener_mgr>(m_listener_mgr_ptr)->notify_shutdown(error);
+			dynamic_cast<server_listener_mgr *>(this->m_listener_mgr_ptr.get())->notify_shutdown(error);
 		}
 
 	protected:
-		
-		/// the io_service_pool for socket event
-		io_service_pool_ptr m_ioservice_pool_ptr;
-
-		/// send buffer pool
-		std::shared_ptr<pool_s> m_send_buf_pool_ptr;
-
-		/// recv buffer pool for every session
-		std::shared_ptr<pool_t> m_recv_buf_pool_ptr;
-
-		/// the connected session manager
-		std::shared_ptr<session_mgr_t<_session_impl_t*, _session_impl_t>> m_session_mgr_ptr;
-		//std::shared_ptr<tcp_session_mgr> m_session_mgr_ptr;
-
 		/// acceptor to accept client connection
-		std::shared_ptr<boost::asio::ip::tcp::acceptor> m_acceptor_ptr;
+		boost::asio::ip::tcp::acceptor       m_acceptor;
 
 	};
 

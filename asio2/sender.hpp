@@ -7,12 +7,6 @@
  *
  */
 
- /*
-  * 
-  * if you find some bugs,or have any troubles or questions on using this library,please contact me.
-  * 
-  */
-
 #ifndef __ASIO2_SENDER_HPP__
 #define __ASIO2_SENDER_HPP__
 
@@ -20,28 +14,15 @@
 #pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
-#include <memory>
-#include <future>
-#include <functional>
-
-#include <boost/asio.hpp>
-#include <boost/system/system_error.hpp>
-
-#include <asio2/base/error.hpp>
-
-#include <asio2/base/url_parser.hpp>
-#include <asio2/base/client_impl.hpp>
-#include <asio2/base/listener_mgr.hpp>
-
-#include <asio2/tcp/tcp_client_impl.hpp>
-#include <asio2/tcp/tcp_auto_client_impl.hpp>
-#include <asio2/tcp/tcp_pack_client_impl.hpp>
+#if !defined(NDEBUG) && !defined(DEBUG) && !defined(_DEBUG)
+#	define NDEBUG
+#endif
 
 #include <asio2/udp/udp_sender_impl.hpp>
 
-
 namespace asio2
 {
+	using udp_sender         = udp_sender_impl;
 
 	/**
 	 * the sender interface 
@@ -63,7 +44,7 @@ namespace asio2
 				m_listener_mgr_ptr = std::make_shared<sender_listener_mgr>();
 
 			if /**/ (m_url_parser_ptr->get_protocol() == "udp")
-				m_sender_impl_ptr = std::make_shared<udp_sender_impl<buffer_pool<uint8_t>>>(m_listener_mgr_ptr, m_url_parser_ptr);
+				m_sender_impl_ptr = std::make_shared<udp_sender>(m_url_parser_ptr, m_listener_mgr_ptr);
 		}
 
 		/**
@@ -103,23 +84,23 @@ namespace asio2
 		/**
 		 * @function : send data
 		 */
-		virtual bool send(std::string ip, unsigned short port, std::shared_ptr<buffer<uint8_t>> buf_ptr)
+		virtual bool send(std::string & ip, unsigned short port, std::shared_ptr<buffer<uint8_t>> buf_ptr)
 		{
-			return (m_sender_impl_ptr ? m_sender_impl_ptr->send(ip, port, buf_ptr) : false);
+			return (m_sender_impl_ptr ? m_sender_impl_ptr->send(ip, port, std::move(buf_ptr)) : false);
 		}
 
 		/**
 		 * @function : send data
 		 */
-		virtual bool send(std::string ip, std::string port, std::shared_ptr<buffer<uint8_t>> buf_ptr)
+		virtual bool send(std::string & ip, std::string & port, std::shared_ptr<buffer<uint8_t>> buf_ptr)
 		{
-			return (m_sender_impl_ptr ? m_sender_impl_ptr->send(ip, port, buf_ptr) : false);
+			return (m_sender_impl_ptr ? m_sender_impl_ptr->send(ip, port, std::move(buf_ptr)) : false);
 		}
 
 		/**
 		 * @function : send data
 		 */
-		virtual bool send(std::string ip, unsigned short port, const uint8_t * buf, std::size_t len)
+		virtual bool send(std::string & ip, unsigned short port, const uint8_t * buf, std::size_t len)
 		{
 			return (m_sender_impl_ptr ? m_sender_impl_ptr->send(ip, port, buf, len) : false);
 		}
@@ -127,14 +108,14 @@ namespace asio2
 		/**
 		 * @function : send data
 		 */
-		virtual bool send(std::string ip, std::string port, const uint8_t * buf, std::size_t len)
+		virtual bool send(std::string & ip, std::string & port, const uint8_t * buf, std::size_t len)
 		{
 			return (m_sender_impl_ptr ? m_sender_impl_ptr->send(ip, port, buf, len) : false);
 		}
 		/**
 		 * @function : send data
 		 */
-		virtual bool send(std::string ip, unsigned short port, const char * buf)
+		virtual bool send(std::string & ip, unsigned short port, const char * buf)
 		{
 			return (m_sender_impl_ptr ? m_sender_impl_ptr->send(ip, port, buf) : false);
 		}
@@ -142,13 +123,12 @@ namespace asio2
 		/**
 		 * @function : send data
 		 */
-		virtual bool send(std::string ip, std::string port, const char * buf)
+		virtual bool send(std::string & ip, std::string & port, const char * buf)
 		{
 			return (m_sender_impl_ptr ? m_sender_impl_ptr->send(ip, port, buf) : false);
 		}
 
 	public:
-
 		/**
 		 * @function : bind listener - 
 		 * @param    : listener_sptr - a listener object shared_ptr
@@ -182,7 +162,7 @@ namespace asio2
 		/**
 		 * @function : bind listener - the sender send data finished
 		 * @param    : listener - a callback function like this :
-		 * void on_send(std::string ip, unsigned short port, asio2::buffer_ptr data_ptr, int error);
+		 * void on_send(std::string & ip, unsigned short port, asio2::buffer_ptr & buf_ptr, int error);
 		 */
 		sender & bind_send(std::function<sender_listener_mgr::send_callback> listener)
 		{
@@ -197,7 +177,7 @@ namespace asio2
 		/**
 		 * @function : bind listener - the sender recv data from remote endpoint
 		 * @param    : listener - a callback function like this :
-		 * void on_recv(std::string ip, unsigned short port, asio2::buffer_ptr data_ptr);
+		 * void on_recv(std::string & ip, unsigned short port, asio2::buffer_ptr & buf_ptr);
 		 */
 		sender & bind_recv(std::function<sender_listener_mgr::recv_callback> listener)
 		{
@@ -225,23 +205,6 @@ namespace asio2
 		}
 
 	public:
-		/**
-		 * @function : set socket's recv buffer size.
-		 *             when packet lost rate is high,you can set the recv buffer size to a big value to avoid it.
-		 */
-		inline bool set_recv_buffer_size(int size)
-		{
-			return (m_sender_impl_ptr ? m_sender_impl_ptr->set_recv_buffer_size(size) : false);
-		}
-
-		/**
-		 * @function : set socket's send buffer size
-		 */
-		inline bool set_send_buffer_size(int size)
-		{
-			return (m_sender_impl_ptr ? m_sender_impl_ptr->set_send_buffer_size(size) : false);
-		}
-
 		/**
 		 * @function : get the local address
 		 */
@@ -275,10 +238,9 @@ namespace asio2
 		}
 
 	protected:
-
-		std::shared_ptr<sender_impl>         m_sender_impl_ptr;
-		std::shared_ptr<url_parser>          m_url_parser_ptr;
+		std::shared_ptr<url_parser  >        m_url_parser_ptr;
 		std::shared_ptr<listener_mgr>        m_listener_mgr_ptr;
+		std::shared_ptr<sender_impl >        m_sender_impl_ptr;
 
 	};
 }

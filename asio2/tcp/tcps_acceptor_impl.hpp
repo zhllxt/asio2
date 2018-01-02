@@ -14,12 +14,11 @@
 #pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
-#include <boost/asio/ssl.hpp>
-
 #include <asio2/tcp/tcp_acceptor_impl.hpp>
 
 #include <asio2/tcp/tcps_session_impl.hpp>
 #include <asio2/tcp/tcps_auto_session_impl.hpp>
+#include <asio2/tcp/tcps_pack_session_impl.hpp>
 
 namespace asio2
 {
@@ -28,29 +27,23 @@ namespace asio2
 	class tcps_acceptor_impl : public tcp_acceptor_impl<_session_impl_t>
 	{
 	public:
-
 		typedef _session_impl_t session_impl_t;
-		typedef typename _session_impl_t::pool_t pool_t;
 
 		/**
 		 * @construct
 		 */
 		tcps_acceptor_impl(
-			io_service_pool_ptr ioservice_pool_ptr,
-			std::shared_ptr<listener_mgr> listener_mgr_ptr,
-			std::shared_ptr<url_parser> url_parser_ptr,
-			std::shared_ptr<pool_s> send_buf_pool_ptr,
-			std::shared_ptr<pool_t> recv_buf_pool_ptr,
-			std::shared_ptr<boost::asio::ssl::context> context_ptr = nullptr
+			std::shared_ptr<url_parser>                    url_parser_ptr,
+			std::shared_ptr<listener_mgr>                  listener_mgr_ptr,
+			std::shared_ptr<io_context_pool>               io_context_pool_ptr,
+			std::shared_ptr<boost::asio::ssl::context>     ssl_context_ptr = nullptr
 		)
 			: tcp_acceptor_impl<_session_impl_t>(
-				ioservice_pool_ptr,
-				listener_mgr_ptr,
 				url_parser_ptr,
-				send_buf_pool_ptr,
-				recv_buf_pool_ptr
+				listener_mgr_ptr,
+				io_context_pool_ptr
 				)
-			, m_context_ptr(context_ptr)
+			, m_ssl_context_ptr(ssl_context_ptr)
 		{
 		}
 
@@ -62,23 +55,17 @@ namespace asio2
 		}
 
 	protected:
-
-		virtual std::shared_ptr<_session_impl_t> _prepare_session() override
+		virtual std::shared_ptr<_session_impl_t> _make_session() override
 		{
-			// get a session shared_ptr from session manager
 			try
 			{
-				// the params of get_session is final passed to session constructor
-				std::shared_ptr<_session_impl_t> session_ptr = m_session_mgr_ptr->get_session(
-					m_ioservice_pool_ptr->get_io_service_ptr(),
-					m_listener_mgr_ptr,
-					m_url_parser_ptr,
-					m_send_buf_pool_ptr,
-					m_recv_buf_pool_ptr,
-					m_context_ptr
-				);
-
-				return session_ptr;
+				return std::make_shared<_session_impl_t>(
+					this->m_url_parser_ptr,
+					this->m_listener_mgr_ptr,
+					this->m_io_context_pool_ptr->get_io_context_ptr(),
+					this->m_session_mgr_ptr,
+					this->m_ssl_context_ptr
+					);
 			}
 			// handle exception,may be is the exception "Too many open files" (exception code : 24)
 			catch (boost::system::system_error & e)
@@ -87,14 +74,12 @@ namespace asio2
 
 				PRINT_EXCEPTION;
 			}
-
 			return nullptr;
 		}
 
 	protected:
-		
 		/// ssl context 
-		std::shared_ptr<boost::asio::ssl::context> m_context_ptr;
+		std::shared_ptr<boost::asio::ssl::context> m_ssl_context_ptr;
 
 	};
 

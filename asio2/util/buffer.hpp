@@ -21,49 +21,84 @@
 #include <cassert>
 #include <memory>
 
+// 
+// <------------------------------------------------- m_capacity --------------------------------------------------->
+// <.. m_data ....
+//                    <= m_rpos 
+//                                                             <= m_wpos
+// 
+// |----------------------------------------------------------------------------------------------------------------|
+// |                  |                                        |                                                    |
+// |----------------------------------------------------------------------------------------------------------------|
+// 
+//                    <---------------- size() ---------------->
+//                    <= read_pos()                            <---------------------- remain() -------------------->
+//                    <.. read_begin()....
+//                    <.. data()....
+//                                                             <= write_pos()
+//                                                             <.. write_begin()....
+// <------------------------------------------------- capacity() --------------------------------------------------->
+// 
 
 namespace asio2
 {
 
 	/**
-	 * buffer interface
+	 * template buffer interface, the sizeof(T) must be equal to 1,otherwise the member function will be not correct.
 	 */
 	template<typename T>
 	class buffer
 	{
 	public:
-
 		/**
 		 * @construct
 		 */
 		explicit buffer(const std::size_t capacity) : m_capacity(capacity)
 		{
-			if (m_capacity > 0)
+			if (m_capacity == 0)
+				m_capacity = 64;
+			m_data = std::shared_ptr<T>(new T[m_capacity], std::default_delete<T[]>());
+		}
+
+		explicit buffer(const T * data, std::size_t size) : m_capacity(size)
+		{
+			if (m_capacity == 0)
+				m_capacity = 64;
+			m_data = std::shared_ptr<T>(new T[m_capacity], std::default_delete<T[]>());
+			if (data && size > 0)
 			{
-				m_data = std::shared_ptr<T>(new T[m_capacity], std::default_delete<T[]>());
+				std::memcpy((void *)write_begin(), (const void *)data, size);
+				write_bytes(size);
 			}
 		}
 
-		explicit buffer(const T * data, std::size_t len) : m_size(len), m_capacity(len)
+		explicit buffer(const std::size_t capacity, const T * data, std::size_t size) : m_capacity(capacity)
 		{
-			if (m_capacity > 0)
+			if (m_capacity == 0)
+				m_capacity = 64;
+			if (m_capacity < size)
+				m_capacity = size;
+			m_data = std::shared_ptr<T>(new T[m_capacity], std::default_delete<T[]>());
+			if (data && size > 0)
 			{
-				m_data = std::shared_ptr<T>(new T[m_capacity], std::default_delete<T[]>());
-				std::memcpy((void *)m_data.get(), (const void *)data, m_size);
+				std::memcpy((void *)write_begin(), (const void *)data, size);
+				write_bytes(size);
 			}
 		}
 
-		explicit buffer(const std::size_t capacity, const T * data, std::size_t len) : m_size(len), m_capacity(capacity)
+		explicit buffer(std::size_t capacity, std::shared_ptr<T> buf, std::size_t size) : m_data(std::move(buf)), m_capacity(capacity), m_wpos(size)
 		{
-			if (m_capacity > 0 && m_capacity >= m_size)
-			{
-				m_data = std::shared_ptr<T>(new T[m_capacity], std::default_delete<T[]>());
-				std::memcpy((void *)m_data.get(), (const void *)data, m_size);
-			}
+			assert(m_wpos <= m_capacity);
 		}
 
-		explicit buffer(std::shared_ptr<T> data, std::size_t size, std::size_t capacity) : m_data(data), m_size(size), m_capacity(capacity)
+		explicit buffer(std::size_t capacity, std::shared_ptr<T> buf, const T * data, std::size_t size) : m_data(std::move(buf)), m_capacity(capacity)
 		{
+			if (m_data && data && size > 0)
+			{
+				std::memcpy((void *)write_begin(), (const void *)data, size);
+				write_bytes(size);
+				assert(m_wpos <= m_capacity);
+			}
 		}
 
 		/**
@@ -78,7 +113,8 @@ namespace asio2
 		 */
 		inline std::size_t size()
 		{
-			return (m_size - m_offset);
+			assert(m_rpos <= m_wpos);
+			return (m_wpos - m_rpos);
 		}
 
 		/**
@@ -90,67 +126,95 @@ namespace asio2
 		}
 
 		/**
-		 * @function : reset the data length
-		 */
-		inline void resize(std::size_t size)
-		{
-			m_size = size;
-		}
-
-		/**
-		 * @function : reset the data capacity
-		 */
-		inline void recapacity(std::size_t capacity)
-		{
-			m_capacity = capacity;
-		}
-
-		/**
-		 * @function : get the buffer capacity length
+		 * @function : get the buffer total capacity
 		 */
 		inline std::size_t capacity()
 		{
-			return (m_capacity - m_offset);
+			return (m_capacity);
 		}
 
 		/**
-		 * @function : reset the buffer offset
+		 * @function : get the buffer remain length
 		 */
-		inline void reoffset(std::size_t offset)
+		inline std::size_t remain()
 		{
-			m_offset = offset;
+			assert(m_wpos <= m_capacity);
+			return (m_capacity - m_wpos);
 		}
 
 		/**
-		 * @function : update the buffer offset
+		 * @function : reset the read position and write position to zero
 		 */
-		inline void offset(std::size_t offset)
+		inline void reset()
 		{
-			m_offset += offset;
+			m_rpos = 0;
+			m_wpos = 0;
 		}
 
 		/**
-		 * @function : get the buffer offset
+		 * @function : get buffer begin pointer
 		 */
-		inline std::size_t offset()
+		inline T * buffer_begin()
 		{
-			return m_offset;
+			return (m_data.get());
 		}
 
 		/**
-		 * @function : get data pointer
+		 * @function : get data pointer( equal to read position pointer )
 		 */
 		inline T * data()
 		{
-			return (m_data.get() + m_offset);
+			return read_begin();
 		}
 
 		/**
-		 * @function : 
+		 * @function : get read position pointer
 		 */
-		inline operator T*() const
+		inline T * read_begin()
 		{
-			return data();
+			return (m_data.get() + m_rpos);
+		}
+
+		/**
+		 * @function : get write position pointer
+		 */
+		inline T * write_begin()
+		{
+			return (m_data.get() + m_wpos);
+		}
+
+		/**
+		 * @function : increase the read position
+		 */
+		inline void read_bytes(std::size_t bytes)
+		{
+			m_rpos += bytes;
+			assert(m_rpos <= m_wpos);
+		}
+
+		/**
+		 * @function : increase the write position
+		 */
+		inline void write_bytes(std::size_t bytes)
+		{
+			m_wpos += bytes;
+			assert(m_wpos <= m_capacity);
+		}
+
+		/**
+		 * @function : get read position
+		 */
+		inline std::size_t read_pos()
+		{
+			return m_rpos;
+		}
+
+		/**
+		 * @function : get write position
+		 */
+		inline std::size_t write_pos()
+		{
+			return m_wpos;
 		}
 
 	private:
@@ -167,14 +231,13 @@ namespace asio2
 		buffer& operator=(buffer&&) = delete;
 
 	protected:
-
 		std::shared_ptr<T> m_data;
 
-		std::size_t m_size = 0;
-
-		std::size_t m_offset = 0;
-
 		std::size_t m_capacity = 0;
+
+		std::size_t m_rpos     = 0;
+
+		std::size_t m_wpos     = 0;
 
 	};
 

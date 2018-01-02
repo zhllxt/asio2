@@ -15,7 +15,7 @@
 #	pragma warning(disable:4996)
 #endif
 
-#define USE_SSL
+#define ASIO2_USE_SSL
 #include <asio2/asio2.hpp>
 
 volatile bool run_flag = true;
@@ -54,23 +54,39 @@ int main(int argc, char *argv[])
 			"EstmrAs=\r\n"\
 			"-----END CERTIFICATE-----\r\n";
 
-		asio2::client tcps_client("tcps://127.0.0.1:9443/auto");
-		tcps_client
-			//.use_certificate_file("server.crt");
-			.use_certificate(cer);
+		while (run_flag)
+		{
+			asio2::client tcps_client("tcps://127.0.0.1:9443/");
+			tcps_client
+				//.set_certificate_file("server.crt");
+				.set_certificate(cer);
 
-		tcps_client.bind_recv([](asio2::buffer_ptr data_ptr)
-		{
-			std::printf("recv : %.*s\n", (int)data_ptr->size(), (const char*)data_ptr->data());
-		}).bind_connect([&tcps_client](int error)
-		{
-			if (error == 0)
-				std::printf("start tcps client successed : %s - %u\n", tcps_client.get_remote_address().c_str(), tcps_client.get_remote_port());
-			else
+			tcps_client.bind_recv([](asio2::buffer_ptr & buf_ptr)
+			{
+				//std::printf("recv : %.*s\n", (int)buf_ptr->size(), (const char*)buf_ptr->data());
+			}).bind_connect([&tcps_client](int error)
+			{
+				if (error == 0)
+					std::printf("start tcps client successed : %s - %u\n", tcps_client.get_remote_address().c_str(), tcps_client.get_remote_port());
+				else
+					std::printf("start tcps client failed : %d - %s.\n", asio2::get_last_error(), asio2::get_last_error_desc().c_str());
+			});
+			if (!tcps_client.start(false))
 				std::printf("start tcps client failed : %d - %s.\n", asio2::get_last_error(), asio2::get_last_error_desc().c_str());
-		});
-		if (!tcps_client.start())
-			std::printf("start tcps client failed : %d - %s.\n", asio2::get_last_error(), asio2::get_last_error_desc().c_str());
+
+			std::string s;
+			s += '<';
+			int len = 33 + std::rand() % (126 - 33);
+			for (int i = 0; i < len; i++)
+			{
+				s += (char)(std::rand() % 26) + 'a';
+			}
+			s += '>';
+
+			tcps_client.send(s.c_str());
+
+			std::this_thread::sleep_for(std::chrono::milliseconds(10));
+		}
 
 		//-----------------------------------------------------------------------------------------
 		std::thread([&]()
@@ -79,16 +95,16 @@ int main(int argc, char *argv[])
 			{
 				std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 
-				std::string s;
-				s += '<';
-				int len = 33 + std::rand() % (126 - 33);
-				for (int i = 0; i < len; i++)
-				{
-					s += (char)(std::rand() % 26) + 'a';
-				}
-				s += '>';
+				//std::string s;
+				//s += '<';
+				//int len = 33 + std::rand() % (126 - 33);
+				//for (int i = 0; i < len; i++)
+				//{
+				//	s += (char)(std::rand() % 26) + 'a';
+				//}
+				//s += '>';
 
-				tcps_client.send(s.c_str());
+				//tcps_client.send(s.c_str());
 			}
 		}).join();
 

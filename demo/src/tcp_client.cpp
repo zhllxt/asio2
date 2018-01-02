@@ -35,19 +35,31 @@ int main(int argc, char *argv[])
 
 	while (run_flag)
 	{
-		asio2::client tcp_client("tcp://localhost:9001/");
-		tcp_client.bind_recv([](asio2::buffer_ptr data_ptr)
+		const int client_count = 1;
+		std::shared_ptr<asio2::client> tcp_client[client_count];
+		for (int i = 0; i < client_count; i++)
 		{
-			std::printf("recv : %.*s\n", (int)data_ptr->size(), (const char*)data_ptr->data());
-		}).bind_connect([&tcp_client](int error)
+			tcp_client[i] = std::move(std::make_shared<asio2::client>("tcp://127.0.0.1:9001/auto"));
+		}
+		for (int i = 0; i < client_count; i++)
 		{
-			if (error == 0)
-				std::printf("connect to tcp server successed : %s - %u\n", tcp_client.get_remote_address().c_str(), tcp_client.get_remote_port());
-			else
+			tcp_client[i]->bind_recv([&tcp_client, i](asio2::buffer_ptr & buf_ptr)
+			{
+				std::printf("recv : %.*s\n", (int)buf_ptr->size(), (const char*)buf_ptr->data());
+
+				//tcp_client[i]->send(std::move(buf_ptr), false);
+			}).bind_connect([&tcp_client, i](int error)
+			{
+				if (error == 0)
+					std::printf("connect to tcp server successed : %s - %u\n", tcp_client[i]->get_remote_address().c_str(), tcp_client[i]->get_remote_port());
+				else
+					std::printf("connect to tcp server failed : %d - %s\n", asio2::get_last_error(), asio2::get_last_error_desc().c_str());
+			}).bind_close([](int error)
+			{
+			});
+			if (!tcp_client[i]->start(false))
 				std::printf("connect to tcp server failed : %d - %s\n", asio2::get_last_error(), asio2::get_last_error_desc().c_str());
-		});
-		if (!tcp_client.start(false))
-			std::printf("connect to tcp server failed : %d - %s\n", asio2::get_last_error(), asio2::get_last_error_desc().c_str());
+		}
 
 		//-----------------------------------------------------------------------------------------
 		std::thread([&]()
@@ -56,18 +68,21 @@ int main(int argc, char *argv[])
 			{
 				std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 
-				std::string s;
-				s += '<';
-				int len = 33 + std::rand() % (126 - 33);
-				s += (char)len;
-				for (int i = 0; i < len; i++)
+				for (int i = 0; i < client_count; i++)
 				{
-					s += (char)(std::rand() % 26) + 'a';
-				}
-				s += '>';
-				len += 3;
+					std::string s;
+					s += '<';
+					int len = 33 + std::rand() % (126 - 33);
+					s += (char)len;
+					for (int i = 0; i < len; i++)
+					{
+						s += (char)(std::rand() % 26) + 'a';
+					}
+					s += '>';
+					len += 3;
 
-				tcp_client.send(s.c_str());
+					tcp_client[i]->send(s.c_str());
+				}
 			}
 		}).join();
 

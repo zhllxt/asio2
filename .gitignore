@@ -27,6 +27,8 @@ bld/
 [Tt]humbs.db
 
 demo/bin/
+demo/vcproj_linux/bin
+demo/vcproj_linux/obj
 
 # Visual Studio 2015 cache/options directory
 .vs/

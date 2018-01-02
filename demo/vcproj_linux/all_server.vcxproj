@@ -39,21 +39,27 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'" Label="Configuration">
     <UseDebugLibraries>true</UseDebugLibraries>
+    <UseOfStl>libstdc++_static</UseOfStl>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'" Label="Configuration">
     <UseDebugLibraries>false</UseDebugLibraries>
+    <UseOfStl>libstdc++_static</UseOfStl>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'" Label="Configuration">
     <UseDebugLibraries>true</UseDebugLibraries>
+    <UseOfStl>libstdc++_static</UseOfStl>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'" Label="Configuration">
     <UseDebugLibraries>false</UseDebugLibraries>
+    <UseOfStl>libstdc++_static</UseOfStl>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <UseDebugLibraries>true</UseDebugLibraries>
+    <UseOfStl>libstdc++_static</UseOfStl>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <UseDebugLibraries>false</UseDebugLibraries>
+    <UseOfStl>libstdc++_static</UseOfStl>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings" />
@@ -70,23 +76,34 @@
     <ClInclude Include="..\..\asio2\base\connection_impl.hpp" />
     <ClInclude Include="..\..\asio2\base\def.hpp" />
     <ClInclude Include="..\..\asio2\base\error.hpp" />
-    <ClInclude Include="..\..\asio2\base\io_service_pool.hpp" />
+    <ClInclude Include="..\..\asio2\base\io_context_pool.hpp" />
     <ClInclude Include="..\..\asio2\base\listener.hpp" />
     <ClInclude Include="..\..\asio2\base\listener_mgr.hpp" />
     <ClInclude Include="..\..\asio2\base\sender_impl.hpp" />
     <ClInclude Include="..\..\asio2\base\server_impl.hpp" />
     <ClInclude Include="..\..\asio2\base\session_impl.hpp" />
     <ClInclude Include="..\..\asio2\base\session_mgr.hpp" />
+    <ClInclude Include="..\..\asio2\base\session_mgr_impl.hpp" />
+    <ClInclude Include="..\..\asio2\base\socket_helper.hpp" />
     <ClInclude Include="..\..\asio2\base\url_parser.hpp" />
     <ClInclude Include="..\..\asio2\client.hpp" />
     <ClInclude Include="..\..\asio2\http\http_acceptor_impl.hpp" />
     <ClInclude Include="..\..\asio2\http\http_client_impl.hpp" />
+    <ClInclude Include="..\..\asio2\http\http_connection_impl.hpp" />
     <ClInclude Include="..\..\asio2\http\http_parser.h" />
+    <ClInclude Include="..\..\asio2\http\http_request.hpp" />
+    <ClInclude Include="..\..\asio2\http\http_request_handler.hpp" />
+    <ClInclude Include="..\..\asio2\http\http_request_parser.hpp" />
+    <ClInclude Include="..\..\asio2\http\http_response.hpp" />
+    <ClInclude Include="..\..\asio2\http\http_response_parser.hpp" />
     <ClInclude Include="..\..\asio2\http\http_server_impl.hpp" />
     <ClInclude Include="..\..\asio2\http\http_session_impl.hpp" />
+    <ClInclude Include="..\..\asio2\http\mime_types.hpp" />
     <ClInclude Include="..\..\asio2\icmp\icmp_header.hpp" />
     <ClInclude Include="..\..\asio2\icmp\icmp_sender_impl.hpp" />
     <ClInclude Include="..\..\asio2\icmp\ipv4_header.hpp" />
+    <ClInclude Include="..\..\asio2\kcp\placeholder.hpp" />
+    <ClInclude Include="..\..\asio2\rpc\placeholder.hpp" />
     <ClInclude Include="..\..\asio2\sender.hpp" />
     <ClInclude Include="..\..\asio2\server.hpp" />
     <ClInclude Include="..\..\asio2\tcp\tcps_acceptor_impl.hpp" />
@@ -122,11 +139,10 @@
     <ClInclude Include="..\..\asio2\udp\udp_server_impl.hpp" />
     <ClInclude Include="..\..\asio2\udp\udp_session_impl.hpp" />
     <ClInclude Include="..\..\asio2\util\buffer.hpp" />
-    <ClInclude Include="..\..\asio2\util\buffer_pool.hpp" />
+    <ClInclude Include="..\..\asio2\util\def.hpp" />
     <ClInclude Include="..\..\asio2\util\helper.hpp" />
     <ClInclude Include="..\..\asio2\util\logger.hpp" />
-    <ClInclude Include="..\..\asio2\util\multi_buffer_pool.hpp" />
-    <ClInclude Include="..\..\asio2\util\object_pool.hpp" />
+    <ClInclude Include="..\..\asio2\util\pool.hpp" />
     <ClInclude Include="..\..\asio2\util\rwlock.hpp" />
     <ClInclude Include="..\..\asio2\util\spin_lock.hpp" />
     <ClInclude Include="..\..\asio2\util\thread_pool.hpp" />

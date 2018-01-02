@@ -7,10 +7,11 @@
  * 
  * refenced from : https://github.com/progschj/ThreadPool
  * 
- * I've found a very strange problem that when thread_pool is used in windows DLL : 
- * 1 : when declare an global thread_pool object in dll,when enter the constructor to create std thread,it will blocking forever.
+ * note :
+ * 
+ * 1 : when declare an global thread_pool object in dll,when enter the constructor to create std::thread,it will blocking forever.
  * 2 : when declare an global thread_pool object in dll and when dll is released,the code will run into thread_pool
- *     destructor,then call notify_all in the destructor, but the notify_all calling will be blocked forever.
+ *     destructor,then call notify_all in the destructor, but the notify_all calling will blocking forever.
  * 
  * one resolve method is add a start and stop function,and move the notify_all into the stop inner,and tell user call the 
  * start and stop function manual.

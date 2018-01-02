@@ -25,16 +25,16 @@ volatile bool run_flag = true;
 // ...  content
 // tail 1 byte >
 
-std::size_t pack_parser(asio2::buffer_ptr data_ptr)
+std::size_t pack_parser(asio2::buffer_ptr & buf_ptr)
 {
-	if (data_ptr->size() < 3)
+	if (buf_ptr->size() < 3)
 		return asio2::need_more_data;
 
-	uint8_t * data = data_ptr->data();
+	uint8_t * data = buf_ptr->data();
 	if (data[0] == '<')
 	{
-		std::size_t pack_len = data[1] + 3;
-		if (data_ptr->size() < pack_len)
+		std::size_t pack_len = (data[1] - '0') + 3;
+		if (buf_ptr->size() < pack_len)
 			return asio2::need_more_data;
 		if (data[pack_len - 1] == '>')
 			return pack_len;
@@ -59,24 +59,63 @@ int main(int argc, char *argv[])
 
 	while (run_flag)
 	{
-		int i = 0;
-		const int client_count = 1;
-
-		std::shared_ptr<asio2::client> tcp_pack_client[client_count];
-		for (i = 0; i < client_count; i++)
+		while (run_flag)
 		{
-			tcp_pack_client[i] = std::make_shared<asio2::client>("tcp://localhost:8099/pack");
-			tcp_pack_client[i]->bind_recv([](asio2::buffer_ptr data_ptr)
-			{
-				std::printf("recv : %.*s\n", (int)data_ptr->size(), (const char*)data_ptr->data());
-			}).bind_send([&tcp_pack_client](asio2::buffer_ptr data_ptr, int error)
-			{
-			}).set_pack_parser(std::bind(pack_parser, std::placeholders::_1));
+			int i = 0;
+			const int client_count = 10;
 
-			if (!tcp_pack_client[i]->start(false))
-				std::printf("connect to tcp server failed : %d - %s. %d\n", asio2::get_last_error(), asio2::get_last_error_desc().c_str(), i);
-			else
-				std::printf("connect to tcp server successed : %s - %u\n", tcp_pack_client[i]->get_remote_address().c_str(), tcp_pack_client[i]->get_remote_port());
+			std::shared_ptr<asio2::client> tcp_pack_client[client_count];
+			for (i = 0; i < client_count; i++)
+			{
+				tcp_pack_client[i] = std::make_shared<asio2::client>("tcp://localhost:8099/pack");
+				tcp_pack_client[i]->bind_recv([](asio2::buffer_ptr & buf_ptr)
+				{
+					std::printf("recv : %.*s\n", (int)buf_ptr->size(), (const char*)buf_ptr->data());
+				}).bind_send([&tcp_pack_client](asio2::buffer_ptr & buf_ptr, int error)
+				{
+				}).set_pack_parser(std::bind(pack_parser, std::placeholders::_1));
+
+				if (!tcp_pack_client[i]->start(false))
+					std::printf("connect to tcp server failed : %d - %s. %d\n", asio2::get_last_error(), asio2::get_last_error_desc().c_str(), i);
+				else
+					std::printf("connect to tcp server successed : %s - %u\n", tcp_pack_client[i]->get_remote_address().c_str(), tcp_pack_client[i]->get_remote_port());
+			}
+			for (i = 0; i < client_count; i++)
+			{
+				std::string s;
+				s += '<';
+				int len = 33 + std::rand() % (126 - 33);
+				s += ((char)len + '0');
+				for (int i = 0; i < len; i++)
+				{
+					s += (char)(std::rand() % 26) + 'a';
+				}
+				s += '>';
+				len += 3;
+
+				int packet_send_times = 0;
+				int send_len = std::rand() % (len / 2);
+				int already_send_len = 0;
+				while (true)
+				{
+					packet_send_times++;
+					tcp_pack_client[i]->send((const uint8_t *)(s.c_str() + already_send_len), (std::size_t)send_len);
+					already_send_len += send_len;
+
+					if (already_send_len >= len)
+						break;
+
+					send_len = std::rand() % (len / 2);
+					if (send_len + already_send_len > len)
+						send_len = len - already_send_len;
+
+					// send for several packets,and sleep for a moment after each send is completed
+					// the server will recv a full packet
+					//std::this_thread::sleep_for(std::chrono::milliseconds(100));
+				}
+
+				//std::printf("split packet count : %d\n", packet_send_times);
+			}
 		}
 
 		//-----------------------------------------------------------------------------------------
@@ -86,42 +125,42 @@ int main(int argc, char *argv[])
 			{
 				std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 
-				for (i = 0; i < client_count; i++)
-				{
-					std::string s;
-					s += '<';
-					int len = 33 + std::rand() % (126 - 33);
-					s += (char)len;
-					for (int i = 0; i < len; i++)
-					{
-						s += (char)(std::rand() % 26) + 'a';
-					}
-					s += '>';
-					len += 3;
+				//for (i = 0; i < client_count; i++)
+				//{
+				//	std::string s;
+				//	s += '<';
+				//	int len = 33 + std::rand() % (126 - 33);
+				//	s += ((char)len + '0');
+				//	for (int i = 0; i < len; i++)
+				//	{
+				//		s += (char)(std::rand() % 26) + 'a';
+				//	}
+				//	s += '>';
+				//	len += 3;
 
-					int packet_send_times = 0;
-					int send_len = std::rand() % (len / 2);
-					int already_send_len = 0;
-					while (true)
-					{
-						packet_send_times++;
-						tcp_pack_client[i]->send((const uint8_t *)(s.c_str() + already_send_len), (std::size_t)send_len);
-						already_send_len += send_len;
+				//	int packet_send_times = 0;
+				//	int send_len = std::rand() % (len / 2);
+				//	int already_send_len = 0;
+				//	while (true)
+				//	{
+				//		packet_send_times++;
+				//		tcp_pack_client[i]->send((const uint8_t *)(s.c_str() + already_send_len), (std::size_t)send_len);
+				//		already_send_len += send_len;
 
-						if (already_send_len >= len)
-							break;
+				//		if (already_send_len >= len)
+				//			break;
 
-						send_len = std::rand() % (len / 2);
-						if (send_len + already_send_len > len)
-							send_len = len - already_send_len;
+				//		send_len = std::rand() % (len / 2);
+				//		if (send_len + already_send_len > len)
+				//			send_len = len - already_send_len;
 
-						// send for several packets,and sleep for a moment after each send is completed
-						// the server will recv a full packet
-						std::this_thread::sleep_for(std::chrono::milliseconds(100));
-					}
+				//		// send for several packets,and sleep for a moment after each send is completed
+				//		// the server will recv a full packet
+				//		std::this_thread::sleep_for(std::chrono::milliseconds(100));
+				//	}
 
-					//std::printf("split packet count : %d\n", packet_send_times);
-				}
+				//	//std::printf("split packet count : %d\n", packet_send_times);
+				//}
 			}
 		}).join();
 

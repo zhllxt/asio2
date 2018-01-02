@@ -18,7 +18,6 @@
 #include <unordered_map>
 
 #include <asio2/base/def.hpp>
-#include <asio2/util/object_pool.hpp>
 
 #include <asio2/http/http_parser.h>
 #include <asio2/http/mime_types.hpp>
@@ -33,7 +32,7 @@ namespace asio2
 
 	class http_response_parser
 	{
-		template<class _pool_t> friend class http_connection_impl;
+		friend class http_connection_impl;
 
 	protected:
 
@@ -87,7 +86,7 @@ namespace asio2
 				return m_status;
 			}
 
-			size_t parsed = http::http_parser_execute(&m_parser, &get_http_parser_settings(), (const char *)buf_ptr->data(), buf_ptr->size(), response_ptr.get());
+			size_t parsed = http::http_parser_execute(&m_parser, &get_http_parser_settings(), (const char *)buf_ptr->read_begin(), buf_ptr->size(), response_ptr.get());
 
 			/* Stop parsing if we parsed nothing, as that indicates something header! */
 			if (parsed == 0 || m_parser.http_errno != http::HPE_OK)

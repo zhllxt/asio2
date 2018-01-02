@@ -46,7 +46,7 @@ int main(int argc, char *argv[])
 		//Accept-Language: zh-CN,zh;q=0.8
 
 		auto t1 = std::chrono::steady_clock::now();
-		asio2::client http_client("http://bbs.csdn.net:80");
+		asio2::client http_client("http://127.0.0.1:8080/engine/api/anchor/get_anchor");
 		http_client.bind_recv([](asio2::response_ptr response_ptr)
 		{
 

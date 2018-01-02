@@ -75,18 +75,18 @@ namespace asio2
 		/**
 		 * @function : handle the send data notify,you can call session_ptr->stop(); directly to close the session.
 		 * @param    : session_ptr - the send data session shared_ptr
-		 *             data_ptr    - the send data buffer shared_ptr
+		 *             buf_ptr    - the send data buffer shared_ptr
 		 *             len         - the send data buffer len
 		 */
-		virtual void on_send(std::shared_ptr<_session> session_ptr, std::shared_ptr<buffer<_format>> data_ptr, int error) {};
+		virtual void on_send(std::shared_ptr<_session> & session_ptr, std::shared_ptr<buffer<_format>> & buf_ptr, int error) {};
 
 		/**
 		 * @function : handle the recv data notify,you can call session_ptr->stop(); directly to close the session.
 		 * @param    : session_ptr - the recv data session shared_ptr
-		 *             data_ptr    - the recv data buffer shared_ptr
+		 *             buf_ptr    - the recv data buffer shared_ptr
 		 *             len         - the recv data buffer len
 		 */
-		virtual void on_recv(std::shared_ptr<_session> session_ptr, std::shared_ptr<buffer<_format>> data_ptr) {};
+		virtual void on_recv(std::shared_ptr<_session> & session_ptr, std::shared_ptr<buffer<_format>> & buf_ptr) {};
 
 		/**
 		 * @function : handle the session closed notify
@@ -95,7 +95,7 @@ namespace asio2
 		 * when on_close is called,the session's socket is closed,so if you call get_local_address or get_local_port and so on in 
 		 * on_close function,it will not get correct result.
 		 */
-		virtual void on_close(std::shared_ptr<_session> session_ptr, int error) {};
+		virtual void on_close(std::shared_ptr<_session> & session_ptr, int error) {};
 
 		/**
 		 * @function : handle the listen notify,you can't call server_ptr->stop(); directly to close the server.
@@ -106,7 +106,7 @@ namespace asio2
 		 * @function : handle the new connected session notify,you can call session_ptr->stop(); directly to close the session.
 		 * @param    : session_ptr  - the new connected session shared_ptr
 		 */
-		virtual void on_accept(std::shared_ptr<_session> session_ptr) {};
+		virtual void on_accept(std::shared_ptr<_session> & session_ptr) {};
 
 		/**
 		 * @function : handle the server's acceptor closed notify,when the acceptor is closed,we will get this notify
@@ -139,17 +139,17 @@ namespace asio2
 
 		/**
 		 * @function : handle the send data notify,you can call session_ptr->stop(); directly to close the session.
-		 * @param    : data_ptr    - the send data buffer shared_ptr
+		 * @param    : buf_ptr    - the send data buffer shared_ptr
 		 *             len         - the send data buffer len
 		 */
-		virtual void on_send(std::shared_ptr<buffer<_format>> data_ptr, int error) {};
+		virtual void on_send(std::shared_ptr<buffer<_format>> & buf_ptr, int error) {};
 
 		/**
 		 * @function : handle the recv data notify,you can call session_ptr->stop(); directly to close the session.
-		 * @param    : data_ptr    - the recv data buffer shared_ptr
+		 * @param    : buf_ptr    - the recv data buffer shared_ptr
 		 *             len         - the recv data buffer len
 		 */
-		virtual void on_recv(std::shared_ptr<buffer<_format>> data_ptr) {};
+		virtual void on_recv(std::shared_ptr<buffer<_format>> & buf_ptr) {};
 
 		/**
 		 * @function : handle the session closed notify
@@ -191,17 +191,17 @@ namespace asio2
 
 		/**
 		 * @function : handle the send data notify,you can call session_ptr->stop(); directly to close the session.
-		 * @param    : data_ptr    - the send data buffer shared_ptr
+		 * @param    : buf_ptr    - the send data buffer shared_ptr
 		 *             len         - the send data buffer len
 		 */
-		virtual void on_send(std::string ip, unsigned short port, std::shared_ptr<buffer<_format>> data_ptr, int error) {};
+		virtual void on_send(std::string & ip, unsigned short port, std::shared_ptr<buffer<_format>> & buf_ptr, int error) {};
 
 		/**
 		 * @function : handle the recv data notify,you can call session_ptr->stop(); directly to close the session.
-		 * @param    : data_ptr    - the recv data buffer shared_ptr
+		 * @param    : buf_ptr    - the recv data buffer shared_ptr
 		 *             len         - the recv data buffer len
 		 */
-		virtual void on_recv(std::string ip, unsigned short port, std::shared_ptr<buffer<_format>> data_ptr) {};
+		virtual void on_recv(std::string & ip, unsigned short port, std::shared_ptr<buffer<_format>> & buf_ptr) {};
 
 		/**
 		 * @function : handle the session closed notify
@@ -289,7 +289,7 @@ namespace asio2
 		 *             response_ptr - the send data buffer shared_ptr
 		 *             len          - the send data buffer len
 		 */
-		virtual void on_send(std::shared_ptr<_session> session_ptr, std::shared_ptr<http_response> response_ptr, int error) {};
+		virtual void on_send(std::shared_ptr<_session> & session_ptr, std::shared_ptr<http_response> & response_ptr, int error) {};
 
 		/**
 		 * @function : handle the recv data notify,you can call session_ptr->stop(); directly to close the session.
@@ -297,7 +297,7 @@ namespace asio2
 		 *             request_ptr - the recv data buffer shared_ptr
 		 *             len         - the recv data buffer len
 		 */
-		virtual void on_recv(std::shared_ptr<_session> session_ptr, std::shared_ptr<http_request> request_ptr) {};
+		virtual void on_recv(std::shared_ptr<_session> & session_ptr, std::shared_ptr<http_request> & request_ptr) {};
 
 		/**
 		 * @function : handle the session closed notify
@@ -306,7 +306,7 @@ namespace asio2
 		 * when on_close is called,the session's socket is closed,so if you call get_local_address or get_local_port and so on in 
 		 * on_close function,it will not get correct result.
 		 */
-		virtual void on_close(std::shared_ptr<_session> session_ptr, int error) {};
+		virtual void on_close(std::shared_ptr<_session> & session_ptr, int error) {};
 
 		/**
 		 * @function : handle the listen notify,you can't call server_ptr->stop(); directly to close the server.
@@ -317,7 +317,7 @@ namespace asio2
 		 * @function : handle the new connected session notify,you can call session_ptr->stop(); directly to close the session.
 		 * @param    : session_ptr  - the new connected session shared_ptr
 		 */
-		virtual void on_accept(std::shared_ptr<_session> session_ptr) {};
+		virtual void on_accept(std::shared_ptr<_session> & session_ptr) {};
 
 		/**
 		 * @function : handle the server's acceptor closed notify,when the acceptor is closed,we will get this notify
@@ -401,14 +401,14 @@ namespace asio2
 		 * @param    : request_ptr - the send data buffer shared_ptr
 		 *             len         - the send data buffer len
 		 */
-		virtual void on_send(std::shared_ptr<http_request> request_ptr, int error) {};
+		virtual void on_send(std::shared_ptr<http_request> & request_ptr, int error) {};
 
 		/**
 		 * @function : handle the recv data notify,you can call session_ptr->stop(); directly to close the session.
 		 * @param    : response_ptr - the recv data buffer shared_ptr
 		 *             len          - the recv data buffer len
 		 */
-		virtual void on_recv(std::shared_ptr<http_response> response_ptr) {};
+		virtual void on_recv(std::shared_ptr<http_response> & response_ptr) {};
 
 		/**
 		 * @function : handle the session closed notify

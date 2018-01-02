@@ -15,7 +15,6 @@
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
 #include <asio2/tcp/tcps_auto_connection_impl.hpp>
-
 #include <asio2/tcp/tcps_client_impl.hpp>
 
 namespace asio2
@@ -30,10 +29,12 @@ namespace asio2
 		 * @construct
 		 */
 		explicit tcps_auto_client_impl(
-			std::shared_ptr<listener_mgr> listener_mgr_ptr,
-			std::shared_ptr<url_parser> url_parser_ptr
+			std::shared_ptr<url_parser>        url_parser_ptr,
+			std::shared_ptr<listener_mgr>      listener_mgr_ptr,
+			boost::asio::ssl::context::method  method,
+			boost::asio::ssl::context::options options
 		)
-			: tcps_client_impl<_connection_impl_t>(listener_mgr_ptr, url_parser_ptr)
+			: tcps_client_impl<_connection_impl_t>(url_parser_ptr, listener_mgr_ptr, method, options)
 		{
 		}
 
