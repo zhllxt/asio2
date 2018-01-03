@@ -33,7 +33,7 @@ std::size_t pack_parser(asio2::buffer_ptr & data_ptr)
 
 	return asio2::invalid_data; // find invalid data, return invalid_data, then this session will be closed automatically
 }
-asio2::server tcp_pack_server(" tcp://*:8099/pack?pool_buffer_size=1024");
+asio2::server tcp_pack_server(" tcp://*:8099/pack?recv_buffer_size=1024");
 tcp_pack_server.bind_recv([](asio2::session_ptr & session_ptr, asio2::buffer_ptr & data_ptr) // set recvd data listener
 {
 	std::printf("recv : %.*s\n", (int)data_ptr->size(), (const char*)data_ptr->data());
