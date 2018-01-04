@@ -34,7 +34,7 @@ std::size_t pack_parser(asio2::buffer_ptr & data_ptr)
 
 	return asio2::invalid_data; // 如果发现无效数据，返回invalid_data,则此连接会被断开
 }
-asio2::server tcp_pack_server(" tcp://*:8099/pack?pool_buffer_size=1024");
+asio2::server tcp_pack_server(" tcp://*:8099/pack?recv_buffer_size=1024");
 tcp_pack_server.bind_recv([](asio2::session_ptr & session_ptr, asio2::buffer_ptr & data_ptr) // 设置数据接收监听器
 {
 	// session_ptr 连接对象智能指针 buffer_ptr 数据对象智能指针 (server端会将连接对象和通信数据一起通知给监听器)
