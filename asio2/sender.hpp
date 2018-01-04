@@ -84,7 +84,7 @@ namespace asio2
 		/**
 		 * @function : send data
 		 */
-		virtual bool send(std::string & ip, unsigned short port, std::shared_ptr<buffer<uint8_t>> buf_ptr)
+		virtual bool send(const std::string & ip, unsigned short port, std::shared_ptr<buffer<uint8_t>> buf_ptr)
 		{
 			return (m_sender_impl_ptr ? m_sender_impl_ptr->send(ip, port, std::move(buf_ptr)) : false);
 		}
@@ -92,7 +92,7 @@ namespace asio2
 		/**
 		 * @function : send data
 		 */
-		virtual bool send(std::string & ip, std::string & port, std::shared_ptr<buffer<uint8_t>> buf_ptr)
+		virtual bool send(const std::string & ip, const std::string & port, std::shared_ptr<buffer<uint8_t>> buf_ptr)
 		{
 			return (m_sender_impl_ptr ? m_sender_impl_ptr->send(ip, port, std::move(buf_ptr)) : false);
 		}
@@ -100,7 +100,7 @@ namespace asio2
 		/**
 		 * @function : send data
 		 */
-		virtual bool send(std::string & ip, unsigned short port, const uint8_t * buf, std::size_t len)
+		virtual bool send(const std::string & ip, unsigned short port, const uint8_t * buf, std::size_t len)
 		{
 			return (m_sender_impl_ptr ? m_sender_impl_ptr->send(ip, port, buf, len) : false);
 		}
@@ -108,14 +108,14 @@ namespace asio2
 		/**
 		 * @function : send data
 		 */
-		virtual bool send(std::string & ip, std::string & port, const uint8_t * buf, std::size_t len)
+		virtual bool send(const std::string & ip, const std::string & port, const uint8_t * buf, std::size_t len)
 		{
 			return (m_sender_impl_ptr ? m_sender_impl_ptr->send(ip, port, buf, len) : false);
 		}
 		/**
 		 * @function : send data
 		 */
-		virtual bool send(std::string & ip, unsigned short port, const char * buf)
+		virtual bool send(const std::string & ip, unsigned short port, const char * buf)
 		{
 			return (m_sender_impl_ptr ? m_sender_impl_ptr->send(ip, port, buf) : false);
 		}
@@ -123,7 +123,7 @@ namespace asio2
 		/**
 		 * @function : send data
 		 */
-		virtual bool send(std::string & ip, std::string & port, const char * buf)
+		virtual bool send(const std::string & ip, const std::string & port, const char * buf)
 		{
 			return (m_sender_impl_ptr ? m_sender_impl_ptr->send(ip, port, buf) : false);
 		}
@@ -162,7 +162,7 @@ namespace asio2
 		/**
 		 * @function : bind listener - the sender send data finished
 		 * @param    : listener - a callback function like this :
-		 * void on_send(std::string & ip, unsigned short port, asio2::buffer_ptr & buf_ptr, int error);
+		 * void on_send(const std::string & ip, unsigned short port, asio2::buffer_ptr & buf_ptr, int error);
 		 */
 		sender & bind_send(std::function<sender_listener_mgr::send_callback> listener)
 		{
@@ -177,7 +177,7 @@ namespace asio2
 		/**
 		 * @function : bind listener - the sender recv data from remote endpoint
 		 * @param    : listener - a callback function like this :
-		 * void on_recv(std::string & ip, unsigned short port, asio2::buffer_ptr & buf_ptr);
+		 * void on_recv(const std::string & ip, unsigned short port, asio2::buffer_ptr & buf_ptr);
 		 */
 		sender & bind_recv(std::function<sender_listener_mgr::recv_callback> listener)
 		{

@@ -44,9 +44,9 @@ namespace asio2
 	 * @param    : interval - check interval
 	 * @param    : count    - check times
 	 */
+	template<typename sock>
 	bool set_keepalive_vals(
-		boost::asio::basic_socket<boost::asio::ip::tcp> & socket,
-		//const boost::asio::ip::tcp::socket & socket,
+		sock       & socket,
 		bool         onoff    = true,
 		unsigned int timeout  = 30 * 1000,
 		unsigned int interval = 10 * 1000,

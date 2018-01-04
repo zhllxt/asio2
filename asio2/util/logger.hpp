@@ -33,16 +33,14 @@
 #include <asio2/util/def.hpp>
 #include <asio2/util/helper.hpp>
 
-// when use logger in multi module(eg:exe and dll),should #define CROSS_MODULE 1
-#if !defined(CROSS_MODULE)
-#	define CROSS_MODULE 0
-#endif
+// when use logger in multi module(eg:exe and dll),should #define ASIO2_LOGGER_MULTI_MODULE
+// #define ASIO2_LOGGER_MULTI_MODULE
 
 /*
  # don't use "FILE fwrite ..." to handle the file,because if you declare a logger object,when call "fopen" in exe module,
    and call "fwite" in dll module,it will crash.use std::ofstream can avoid this problem.
  
- # why use "CROSS_MODULE" and create the file in a thread ? when call std::ofstream::open in exe module,and close file in
+ # why use "ASIO2_LOGGER_MULTI_MODULE" and create the file in a thread ? when call std::ofstream::open in exe module,and close file in
    dll module,it will crash.we should ensure that which module create the object,the object must destroy by the same module.
    so we create a threa,when need recreate the file,we post a notify event to the thread,and the thread will create the 
    file in the module which create the file.
@@ -100,7 +98,7 @@ namespace asio2
 			if (m_level < trace || m_level > report)
 				m_level = debug;
 
-#if (CROSS_MODULE > 0)
+#if defined(ASIO2_LOGGER_MULTI_MODULE)
 			_thread.swap(std::thread([this]()
 			{
 				while (true)
@@ -126,7 +124,7 @@ namespace asio2
 
 		virtual ~logger()
 		{
-#if (CROSS_MODULE > 0)
+#if defined(ASIO2_LOGGER_MULTI_MODULE)
 			{
 				std::unique_lock<std::mutex> lock(_mtx);
 				_is_stop = true;
@@ -392,7 +390,7 @@ namespace asio2
 							// if file size is too large,close this file,and create a new file.
 							if (m_size > m_roll_size)
 							{
-#if (CROSS_MODULE > 0)
+#if defined(ASIO2_LOGGER_MULTI_MODULE)
 								_mkflag = true;
 
 								while (_mkflag)
@@ -508,7 +506,7 @@ namespace asio2
 
 		std::mutex     m_lock;
 
-#if (CROSS_MODULE > 0)
+#if defined(ASIO2_LOGGER_MULTI_MODULE)
 		std::thread    _thread;
 		std::mutex     _mtx;
 		std::condition_variable _cv;

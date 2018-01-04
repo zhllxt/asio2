@@ -211,7 +211,7 @@ namespace asio2
 		 */
 #if   defined(LINUX)
 		template<typename _handler>
-		void traverse_file(const char * directory, const char * filetype, _handler handler)
+		void traverse_file(const char * directory, const char * filetype, const _handler & handler)
 		{
 			if (!directory || !(*directory))
 				return;
@@ -235,7 +235,7 @@ namespace asio2
 		}
 #elif defined(WINDOWS)
 		template<typename _handler>
-		void traverse_file(const char * directory, const char * filetype, _handler handler)
+		void traverse_file(const char * directory, const char * filetype, const _handler & handler)
 		{
 			if (!directory || !(*directory))
 				return;

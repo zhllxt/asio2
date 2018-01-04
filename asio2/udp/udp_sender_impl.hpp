@@ -164,7 +164,7 @@ namespace asio2
 		/**
 		 * @function : send data
 		 */
-		virtual bool send(std::string & ip, std::string & port, std::shared_ptr<buffer<uint8_t>> buf_ptr) override
+		virtual bool send(const std::string & ip, const std::string & port, std::shared_ptr<buffer<uint8_t>> buf_ptr) override
 		{
 			try
 			{

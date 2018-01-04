@@ -129,7 +129,7 @@ namespace asio2
 		/**
 		 * @function : send data
 		 */
-		virtual bool send(std::string & ip, unsigned short port, std::shared_ptr<buffer<uint8_t>> buf_ptr)
+		virtual bool send(const std::string & ip, unsigned short port, std::shared_ptr<buffer<uint8_t>> buf_ptr)
 		{
 			auto sport = format("%u", port);
 			return ((!ip.empty() && buf_ptr) ?
@@ -139,12 +139,12 @@ namespace asio2
 		/**
 		 * @function : send data
 		 */
-		virtual bool send(std::string & ip, std::string & port, std::shared_ptr<buffer<uint8_t>> buf_ptr) = 0;
+		virtual bool send(const std::string & ip, const std::string & port, std::shared_ptr<buffer<uint8_t>> buf_ptr) = 0;
 
 		/**
 		 * @function : send data
 		 */
-		virtual bool send(std::string & ip, unsigned short port, const uint8_t * buf, std::size_t len)
+		virtual bool send(const std::string & ip, unsigned short port, const uint8_t * buf, std::size_t len)
 		{
 			auto sport = format("%u", port);
 			return ((!ip.empty() && buf) ?
@@ -154,7 +154,7 @@ namespace asio2
 		/**
 		 * @function : send data
 		 */
-		virtual bool send(std::string & ip, std::string & port, const uint8_t * buf, std::size_t len)
+		virtual bool send(const std::string & ip, const std::string & port, const uint8_t * buf, std::size_t len)
 		{
 			return ((!ip.empty() && !port.empty() && buf) ?
 				this->send(ip, port, std::make_shared<buffer<uint8_t>>(len, malloc_send_buffer(len), buf, len)) : false);
@@ -163,7 +163,7 @@ namespace asio2
 		/**
 		 * @function : send data
 		 */
-		virtual bool send(std::string & ip, unsigned short port, const char * buf)
+		virtual bool send(const std::string & ip, unsigned short port, const char * buf)
 		{
 			auto sport = format("%u", port);
 			return ((!ip.empty() && buf) ?
@@ -173,7 +173,7 @@ namespace asio2
 		/**
 		 * @function : send data
 		 */
-		virtual bool send(std::string & ip, std::string & port, const char * buf)
+		virtual bool send(const std::string & ip, const std::string & port, const char * buf)
 		{
 			return ((!ip.empty() && !port.empty() && buf) ?
 				this->send(ip, port, reinterpret_cast<const uint8_t *>(buf), std::strlen(buf)) : false);
