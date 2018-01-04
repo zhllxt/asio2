@@ -44,9 +44,9 @@ namespace asio2
 	 * @param    : interval - check interval
 	 * @param    : count    - check times
 	 */
-	template<typename sock>
+	template<typename socket_t>
 	bool set_keepalive_vals(
-		sock       & socket,
+		socket_t   & socket,
 		bool         onoff    = true,
 		unsigned int timeout  = 30 * 1000,
 		unsigned int interval = 10 * 1000,
