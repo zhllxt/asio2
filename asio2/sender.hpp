@@ -22,7 +22,8 @@
 
 namespace asio2
 {
-	using udp_sender         = udp_sender_impl;
+	using udp_transmitter    = udp_transmitter_impl;
+	using udp_sender         = udp_sender_impl<udp_transmitter>;
 
 	/**
 	 * the sender interface 
@@ -76,9 +77,9 @@ namespace asio2
 			}
 		}
 
-		bool is_start()
+		bool is_started()
 		{
-			return (m_sender_impl_ptr ? m_sender_impl_ptr->is_start() : false);
+			return (m_sender_impl_ptr ? m_sender_impl_ptr->is_started() : false);
 		}
 
 		/**
@@ -132,7 +133,7 @@ namespace asio2
 		/**
 		 * @function : bind listener - 
 		 * @param    : listener_sptr - a listener object shared_ptr
-		 * must ensure the listener_sptr is valid before sender has stoped 
+		 * must ensure the listener_sptr is valid before sender has stopped 
 		 */
 		sender & bind_listener(std::shared_ptr<sender_listener> listener_sptr)
 		{
@@ -147,7 +148,7 @@ namespace asio2
 		/**
 		 * @function : bind listener - 
 		 * @param    : listener_rptr - a listener object raw pointer
-		 * must ensure the listener_rptr is valid before sender has stoped 
+		 * must ensure the listener_rptr is valid before sender has stopped 
 		 */
 		sender & bind_listener(sender_listener                * listener_rptr)
 		{

@@ -1,7 +1,8 @@
 /*
  * COPYRIGHT (C) 2017, zhllxt
  * 
- * version	: 1.1
+ * date     : 2018-01-05
+ * version	: 1.2
  * 
  * author   : zhllxt
  * qq       : 37792738

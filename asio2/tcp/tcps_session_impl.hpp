@@ -98,6 +98,7 @@ namespace asio2
 		{
 			if (m_state >= state::starting)
 			{
+				auto prev_state = m_state;
 				m_state = state::stopping;
 
 				// call socket's close function to notify the _handle_recv function response with error > 0 ,then the socket 
@@ -111,20 +112,20 @@ namespace asio2
 					try
 					{
 						auto self(shared_from_this());
-						m_strand_ptr->post([this, self]()
+						m_strand_ptr->post([this, self, prev_state]()
 						{
 							try
 							{
 								// if the client socket is not closed forever,this async_shutdown callback also can't be called forever,
 								// so we use a timer to force close the socket,then the async_shutdown callback will be called.
 								m_timer.expires_from_now(boost::posix_time::seconds(DEFAULT_SSL_SHUTDOWN_TIMEOUT));
-								m_timer.async_wait(m_strand_ptr->wrap([this, self](const boost::system::error_code & ec)
+								m_timer.async_wait(m_strand_ptr->wrap([this, self, prev_state](const boost::system::error_code & ec)
 								{
 									if (ec)
 										set_last_error(ec.value());
 									try
 									{
-										if (m_state == state::running)
+										if (prev_state == state::running)
 										{
 											auto this_ptr = std::const_pointer_cast<session_impl>(self);
 											_fire_close(this_ptr, get_last_error());
@@ -169,9 +170,17 @@ namespace asio2
 		/**
 		 * @function : whether the session is started
 		 */
-		virtual bool is_start() override
+		virtual bool is_started() override
 		{
 			return ((m_state >= state::started) && m_socket.lowest_layer().is_open());
+		}
+
+		/**
+		 * @function : check whether the session is stopped
+		 */
+		virtual bool is_stopped() override
+		{
+			return ((m_state == state::stopped) && !m_socket.lowest_layer().is_open());
 		}
 
 		/**
@@ -179,7 +188,7 @@ namespace asio2
 		 */
 		virtual bool send(std::shared_ptr<buffer<uint8_t>> buf_ptr) override
 		{
-			if (is_start() && buf_ptr)
+			if (is_started() && buf_ptr)
 			{
 				try
 				{
@@ -191,6 +200,10 @@ namespace asio2
 					return true;
 				}
 				catch (std::exception &) {}
+			}
+			else if (!m_socket.lowest_layer().is_open())
+			{
+				set_last_error((int)errcode::socket_not_ready);
 			}
 			return false;
 		}
@@ -369,7 +382,7 @@ namespace asio2
 
 		virtual void _post_recv(std::shared_ptr<session_impl> this_ptr, std::shared_ptr<buffer<uint8_t>> buf_ptr)
 		{
-			if (this->is_start())
+			if (this->is_started())
 			{
 				if (buf_ptr->remain() > 0)
 				{
@@ -431,7 +444,7 @@ namespace asio2
 
 		virtual void _post_send(std::shared_ptr<session_impl> this_ptr, std::shared_ptr<buffer<uint8_t>> buf_ptr)
 		{
-			if (is_start())
+			if (is_started())
 			{
 				boost::system::error_code ec;
 				boost::asio::write(m_socket, boost::asio::buffer((void *)buf_ptr->read_begin(), buf_ptr->size()), ec);

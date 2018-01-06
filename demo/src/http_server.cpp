@@ -28,9 +28,9 @@ public:
 		http_server.bind_listener(this);
 
 		if (!http_server.start())
-			std::printf("start http server failed : %d - %s.\n", asio2::get_last_error(), asio2::get_last_error_desc().c_str());
+			std::printf("start http server failed : %d - %s.\n", asio2::get_last_error(), asio2::get_last_error_desc().data());
 		else
-			std::printf("start http server successed : %s - %u\n", http_server.get_listen_address().c_str(), http_server.get_listen_port());
+			std::printf("start http server successed : %s - %u\n", http_server.get_listen_address().data(), http_server.get_listen_port());
 	}
 
 public:
@@ -45,14 +45,14 @@ public:
 	}
 	virtual void on_close(asio2::session_ptr & session_ptr, int error) override
 	{
-		printf("http session leave %s %u %s\n", session_ptr->get_remote_address().c_str(), session_ptr->get_remote_port(), asio2::get_error_desc(error).data());
+		printf("http session leave %s %u %s\n", session_ptr->get_remote_address().data(), session_ptr->get_remote_port(), asio2::get_error_desc(error).data());
 	}
 	virtual void on_listen() override
 	{
 	}
 	virtual void on_accept(asio2::session_ptr & session_ptr) override
 	{
-		printf("http session enter %s %u\n", session_ptr->get_remote_address().c_str(), session_ptr->get_remote_port());
+		printf("http session enter %s %u\n", session_ptr->get_remote_address().data(), session_ptr->get_remote_port());
 	}
 	virtual void on_shutdown(int error) override
 	{

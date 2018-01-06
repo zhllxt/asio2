@@ -51,18 +51,21 @@ namespace asio2
 		{
 			try
 			{
-				// check if started and not stoped
-				if (this->is_start())
+				// check if started and not stopped
+				if (this->m_connection_impl_ptr->m_state >= state::starting)
 				{
 					assert(false);
 					return false;
 				}
 
+				// call stop before start
+				this->stop();
+
 				// startup the io service thread 
-				m_io_context_pool_ptr->run();
+				this->m_io_context_pool_ptr->run();
 
 				// start connect
-				return m_connection_impl_ptr->start(async_connect);
+				return this->m_connection_impl_ptr->start(async_connect);
 			}
 			catch (boost::system::system_error & e)
 			{
@@ -87,9 +90,17 @@ namespace asio2
 		/**
 		 * @function : check whether the client is started
 		 */
-		virtual bool is_start()
+		virtual bool is_started()
 		{
-			return m_connection_impl_ptr->is_start();
+			return m_connection_impl_ptr->is_started();
+		}
+
+		/**
+		 * @function : check whether the client is stopped
+		 */
+		virtual bool is_stopped()
+		{
+			return m_connection_impl_ptr->is_stopped();
 		}
 
 		/**

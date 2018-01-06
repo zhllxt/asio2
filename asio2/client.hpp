@@ -118,9 +118,9 @@ namespace asio2
 			}
 		}
 
-		bool is_start()
+		bool is_started()
 		{
-			return (m_client_impl_ptr ? m_client_impl_ptr->is_start() : false);
+			return (m_client_impl_ptr ? m_client_impl_ptr->is_started() : false);
 		}
 
 		/**
@@ -210,7 +210,7 @@ namespace asio2
 		/**
 		 * @function : bind listener - 
 		 * @param    : listener_sptr - a listener object shared_ptr
-		 * must ensure the listener_sptr is valid before server has stoped 
+		 * must ensure the listener_sptr is valid before server has stopped 
 		 */
 		client & bind_listener(std::shared_ptr<client_listener> listener_sptr)
 		{
@@ -225,7 +225,7 @@ namespace asio2
 		/**
 		 * @function : bind listener - 
 		 * @param    : listener_sptr - a listener object shared_ptr
-		 * must ensure the listener_sptr is valid before server has stoped 
+		 * must ensure the listener_sptr is valid before server has stopped 
 		 */
 		client & bind_listener(std::shared_ptr<http_client_listener> listener_sptr)
 		{
@@ -240,7 +240,7 @@ namespace asio2
 		/**
 		 * @function : bind listener - 
 		 * @param    : listener_rptr - a listener object raw pointer
-		 * must ensure the listener_rptr is valid before server has stoped 
+		 * must ensure the listener_rptr is valid before server has stopped 
 		 */
 		client & bind_listener(client_listener                * listener_rptr)
 		{
@@ -255,7 +255,7 @@ namespace asio2
 		/**
 		 * @function : bind listener - 
 		 * @param    : listener_rptr - a listener object raw pointer
-		 * must ensure the listener_rptr is valid before server has stoped 
+		 * must ensure the listener_rptr is valid before server has stopped 
 		 */
 		client & bind_listener(http_client_listener                * listener_rptr)
 		{

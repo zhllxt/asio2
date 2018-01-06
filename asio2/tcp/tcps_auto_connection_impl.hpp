@@ -63,7 +63,7 @@ namespace asio2
 	protected:
 		virtual void _post_recv(std::shared_ptr<connection_impl> this_ptr, std::shared_ptr<buffer<uint8_t>> buf_ptr) override
 		{
-			if (this->is_start())
+			if (this->is_started())
 			{
 				if (m_recv_is_header)
 				{
@@ -110,7 +110,7 @@ namespace asio2
 				// every times recv data,we update the last active time.
 				this->reset_last_active_time();
 
-				long use_count = 0;
+				auto use_count = buf_ptr.use_count();
 
 				if (m_recv_is_header)
 				{
@@ -140,8 +140,6 @@ namespace asio2
 					if (static_cast<std::size_t>(m_body_len) == bytes_recvd)
 					{
 						buf_ptr->write_bytes(bytes_recvd);
-
-						use_count = buf_ptr.use_count();
 
 						this->_fire_recv(buf_ptr);
 					}

@@ -112,7 +112,7 @@ namespace asio2
 					_handle_connect(ec, shared_from_this());
 
 					// if error code is not 0,then connect failed,return false
-					return (ec == 0 && is_start());
+					return (ec == 0 && is_started());
 				}
 			}
 			catch (boost::system::system_error & e)
@@ -130,6 +130,7 @@ namespace asio2
 		{
 			if (m_state >= state::starting)
 			{
+				auto prev_state = m_state;
 				m_state = state::stopping;
 
 				// call socket's close function to notify the _handle_recv function response with error > 0 ,then the socket 
@@ -150,7 +151,7 @@ namespace asio2
 						// asio don't allow operate the same socket in multi thread,if you close socket in one thread and another thread is 
 						// calling socket's async_... function,it will crash.so we must care for operate the socket.when need close the
 						// socket ,we use the strand to post a event,make sure the socket's close operation is in the same thread.
-						m_recv_strand_ptr->post([this, self, promise_ptr]()
+						m_recv_strand_ptr->post([this, self, promise_ptr, prev_state]()
 						{
 							// wait util the send event is finished compelted
 							promise_ptr->get_future().wait();
@@ -158,7 +159,7 @@ namespace asio2
 							// close the socket
 							try
 							{
-								if (m_state == state::running)
+								if (prev_state == state::running)
 									_fire_close(get_last_error());
 
 								m_socket.shutdown(boost::asio::socket_base::shutdown_both);
@@ -180,9 +181,17 @@ namespace asio2
 		/**
 		 * @function : check whether the connection is started
 		 */
-		virtual bool is_start()
+		virtual bool is_started() override
 		{
 			return ((m_state >= state::started) && m_socket.is_open());
+		}
+
+		/**
+		 * @function : check whether the connection is stopped
+		 */
+		virtual bool is_stopped() override
+		{
+			return ((m_state == state::stopped) && !m_socket.is_open());
 		}
 
 		/**
@@ -192,7 +201,7 @@ namespace asio2
 		virtual bool send(std::shared_ptr<buffer<uint8_t>> buf_ptr) override
 		{
 			// We must ensure that there is only one operation to send data at the same time,otherwise may be cause crash.
-			if (is_start() && buf_ptr)
+			if (is_started() && buf_ptr)
 			{
 				try
 				{
@@ -204,6 +213,10 @@ namespace asio2
 					return true;
 				}
 				catch (std::exception &) {}
+			}
+			else if (!m_socket.is_open())
+			{
+				set_last_error((int)errcode::socket_not_ready);
 			}
 			return false;
 		}
@@ -320,7 +333,7 @@ namespace asio2
 
 		virtual void _post_recv(std::shared_ptr<connection_impl> this_ptr, std::shared_ptr<buffer<uint8_t>> buf_ptr)
 		{
-			if (is_start())
+			if (is_started())
 			{
 				if (buf_ptr->remain() > 0)
 				{
@@ -390,7 +403,7 @@ namespace asio2
 
 		virtual void _post_send(std::shared_ptr<connection_impl> this_ptr, std::shared_ptr<buffer<uint8_t>> buf_ptr)
 		{
-			if (is_start())
+			if (is_started())
 			{
 				boost::system::error_code ec;
 				boost::asio::write(m_socket, boost::asio::buffer((void *)buf_ptr->read_begin(), buf_ptr->size()), ec);

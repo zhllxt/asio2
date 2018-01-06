@@ -168,9 +168,9 @@ namespace asio2
 			}
 		}
 
-		bool is_start()
+		bool is_started()
 		{
-			return (m_server_impl_ptr ? m_server_impl_ptr->is_start() : false);
+			return (m_server_impl_ptr ? m_server_impl_ptr->is_started() : false);
 		}
 
 		/**
@@ -348,7 +348,7 @@ namespace asio2
 		/**
 		 * @function : bind listener , used for tcp_server,udp_server,tcp_pack_server,tcps_server,tcps_pack_server
 		 * @param    : listener_sptr - a listener object shared_ptr
-		 * must ensure the listener_sptr is valid before server has stoped 
+		 * must ensure the listener_sptr is valid before server has stopped 
 		 */
 		server & bind_listener(std::shared_ptr<server_listener> listener_sptr)
 		{
@@ -363,7 +363,7 @@ namespace asio2
 		/**
 		 * @function : bind listener , used for http_server
 		 * @param    : listener_sptr - a listener object shared_ptr
-		 * must ensure the listener_sptr is valid before server has stoped 
+		 * must ensure the listener_sptr is valid before server has stopped 
 		 */
 		server & bind_listener(std::shared_ptr<http_server_listener> listener_sptr)
 		{
@@ -378,7 +378,7 @@ namespace asio2
 		/**
 		 * @function : bind listener , used for tcp_server,udp_server,tcp_pack_server,tcps_server,tcps_pack_server
 		 * @param    : listener_rptr - a listener object raw pointer
-		 * must ensure the listener_rptr is valid before server has stoped 
+		 * must ensure the listener_rptr is valid before server has stopped 
 		 */
 		server & bind_listener(server_listener                * listener_rptr)
 		{
@@ -393,7 +393,7 @@ namespace asio2
 		/**
 		 * @function : bind listener , used for http_server
 		 * @param    : listener_rptr - a listener object raw pointer
-		 * must ensure the listener_rptr is valid before server has stoped 
+		 * must ensure the listener_rptr is valid before server has stopped 
 		 */
 		server & bind_listener(http_server_listener                * listener_rptr)
 		{
@@ -413,7 +413,7 @@ namespace asio2
 		 * or a lumbda function like this :
 		 * [&](asio2::session_ptr & session_ptr, asio2::buffer_ptr & buf_ptr, int error){}
 		 */
-		server & bind_send(std::function<server_listener_mgr::send_callback> listener)
+		server & bind_send(const std::function<server_listener_mgr::send_callback> & listener)
 		{
 			try
 			{
@@ -431,7 +431,7 @@ namespace asio2
 		 * or a lumbda function like this :
 		 * [&](asio2::session_ptr & session_ptr, asio2::response_ptr response_ptr, int error){}
 		 */
-		server & bind_send(std::function<http_server_listener_mgr::send_callback> listener)
+		server & bind_send(const std::function<http_server_listener_mgr::send_callback> & listener)
 		{
 			try
 			{
@@ -449,7 +449,7 @@ namespace asio2
 		 * or a lumbda function like this :
 		 * [&](asio2::session_ptr & session_ptr, asio2::buffer_ptr & buf_ptr){}
 		 */
-		server & bind_recv(std::function<server_listener_mgr::recv_callback> listener)
+		server & bind_recv(const std::function<server_listener_mgr::recv_callback> & listener)
 		{
 			try
 			{
@@ -464,7 +464,7 @@ namespace asio2
 		 * @param    : listener - a callback function like this:
 		 * void on_recv(asio2::session_ptr & session_ptr, asio2::request_ptr request_ptr)
 		 */
-		server & bind_recv(std::function<http_server_listener_mgr::recv_callback> listener)
+		server & bind_recv(const std::function<http_server_listener_mgr::recv_callback> & listener)
 		{
 			try
 			{
@@ -479,7 +479,7 @@ namespace asio2
 		 * @param    : listener - a callback function like this:
 		 * void on_listen()
 		 */
-		server & bind_listen(std::function<server_listener_mgr::lisn_callback> listener)
+		server & bind_listen(const std::function<server_listener_mgr::lisn_callback> & listener)
 		{
 			try
 			{
@@ -505,7 +505,7 @@ namespace asio2
 		 * @param    : listener - a callback function like this:
 		 * void on_accept(asio2::session_ptr & session_ptr)
 		 */
-		server & bind_accept(std::function<server_listener_mgr::acpt_callback> listener)
+		server & bind_accept(const std::function<server_listener_mgr::acpt_callback> & listener)
 		{
 			try
 			{
@@ -531,7 +531,7 @@ namespace asio2
 		 * @param    : listener - a callback function like this:
 		 * void on_close(asio2::session_ptr & session_ptr, int error)
 		 */
-		server & bind_close(std::function<server_listener_mgr::clos_callback> listener)
+		server & bind_close(const std::function<server_listener_mgr::clos_callback> & listener)
 		{
 			try
 			{
@@ -557,7 +557,7 @@ namespace asio2
 		 * @param    : listener - a callback function like this:
 		 * void on_shutdown(int error)
 		 */
-		server & bind_shutdown(std::function<server_listener_mgr::shut_callback> listener)
+		server & bind_shutdown(const std::function<server_listener_mgr::shut_callback> & listener)
 		{
 			try
 			{

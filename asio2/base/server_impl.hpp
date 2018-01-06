@@ -50,12 +50,15 @@ namespace asio2
 		{
 			try
 			{
-				// check if started and not stoped
-				if (this->is_start())
+				// check if started and not stopped
+				if (this->is_started())
 				{
 					assert(false);
 					return false;
 				}
+
+				// call stop before start
+				this->stop();
 
 				// startup the io service thread 
 				m_io_context_pool_ptr->run();
@@ -86,14 +89,19 @@ namespace asio2
 		/**
 		 * @function : check whether the server is started 
 		 */
-		virtual bool is_start() { return (m_acceptor_impl_ptr->is_start()); }
+		virtual bool is_started() { return (m_acceptor_impl_ptr->is_started()); }
+
+		/**
+		 * @function : check whether the server is stopped
+		 */
+		virtual bool is_stopped() { return (m_acceptor_impl_ptr->is_stopped()); }
 
 		/**
 		 * @function : send data
 		 */
 		virtual bool send(std::shared_ptr<buffer<uint8_t>> buf_ptr)
 		{
-			if (this->is_start())
+			if (this->is_started())
 			{
 				this->m_acceptor_impl_ptr->get_session_mgr()->for_each_session([&](std::shared_ptr<session_impl> & session_ptr)
 				{
@@ -147,7 +155,7 @@ namespace asio2
 		 */
 		virtual bool for_each_session(const std::function<void(std::shared_ptr<session_impl> & session_ptr)> & handler)
 		{
-			if (this->is_start())
+			if (this->is_started())
 			{
 				this->m_acceptor_impl_ptr->get_session_mgr()->for_each_session(handler);
 				return true;

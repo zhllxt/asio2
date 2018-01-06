@@ -113,17 +113,18 @@ namespace asio2
 		{
 			if (m_state >= state::starting)
 			{
+				auto prev_state = m_state;
 				m_state = state::stopping;
 
 				try
 				{
 					auto self(shared_from_this());
-					m_strand_ptr->post([this, self]()
+					m_strand_ptr->post([this, self, prev_state]()
 					{
 						auto this_ptr = std::const_pointer_cast<session_impl>(self);
 						try
 						{
-							if (m_state == state::running)
+							if (prev_state == state::running)
 								_fire_close(this_ptr, get_last_error());
 
 							m_timer.cancel();
@@ -146,9 +147,17 @@ namespace asio2
 		/**
 		 * @function : whether the session is started
 		 */
-		virtual bool is_start() override
+		virtual bool is_started() override
 		{
 			return ((m_state >= state::started) && m_socket.is_open());
+		}
+
+		/**
+		 * @function : check whether the session is stopped
+		 */
+		virtual bool is_stopped() override
+		{
+			return ((m_state == state::stopped) && !m_socket.is_open());
 		}
 
 		/**
@@ -157,7 +166,7 @@ namespace asio2
 		virtual bool send(std::shared_ptr<buffer<uint8_t>> buf_ptr)  override
 		{
 			// We must ensure that there is only one operation to send data at the same time,otherwise may be cause crash.
-			if (is_start() && buf_ptr)
+			if (is_started() && buf_ptr)
 			{
 				try
 				{
@@ -169,6 +178,10 @@ namespace asio2
 					return true;
 				}
 				catch (std::exception &) {}
+			}
+			else if (!m_socket.is_open())
+			{
+				set_last_error((int)errcode::socket_not_ready);
 			}
 			return false;
 		}
@@ -254,7 +267,7 @@ namespace asio2
 
 		virtual void _post_recv(std::shared_ptr<session_impl> & this_ptr, std::shared_ptr<buffer<uint8_t>> & buf_ptr)
 		{
-			if (this->is_start())
+			if (this->is_started())
 			{
 				_handle_recv(this_ptr, buf_ptr);
 			}
@@ -305,7 +318,7 @@ namespace asio2
 
 		virtual void _post_send(std::shared_ptr<session_impl> this_ptr, std::shared_ptr<buffer<uint8_t>> buf_ptr)
 		{
-			if (is_start())
+			if (is_started())
 			{
 				boost::system::error_code ec;
 				m_socket.send_to(boost::asio::buffer((void *)buf_ptr->read_begin(), buf_ptr->size()), m_remote_endpoint, 0, ec);
@@ -314,7 +327,6 @@ namespace asio2
 				if (ec)
 				{
 					PRINT_EXCEPTION;
-					this->stop();
 				}
 			}
 			else

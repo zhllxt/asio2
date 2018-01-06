@@ -104,6 +104,7 @@
       <SubSystem>Console</SubSystem>
       <AdditionalLibraryDirectories>../../lib/x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>libssl.lib;libcrypto.lib;Crypt32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/ignore:4099 %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -120,6 +121,7 @@
       <SubSystem>Console</SubSystem>
       <AdditionalLibraryDirectories>../../lib/x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>libssl.lib;libcrypto.lib;Crypt32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/ignore:4099 %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -140,6 +142,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalLibraryDirectories>../../lib/x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>libssl.lib;libcrypto.lib;Crypt32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/ignore:4099 %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -160,6 +163,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalLibraryDirectories>../../lib/x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>libssl.lib;libcrypto.lib;Crypt32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/ignore:4099 %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -181,6 +185,7 @@
     <ClInclude Include="..\..\asio2\base\session_mgr.hpp" />
     <ClInclude Include="..\..\asio2\base\session_mgr_impl.hpp" />
     <ClInclude Include="..\..\asio2\base\socket_helper.hpp" />
+    <ClInclude Include="..\..\asio2\base\transmitter_impl.hpp" />
     <ClInclude Include="..\..\asio2\base\url_parser.hpp" />
     <ClInclude Include="..\..\asio2\client.hpp" />
     <ClInclude Include="..\..\asio2\http\http_acceptor_impl.hpp" />
@@ -232,6 +237,7 @@
     <ClInclude Include="..\..\asio2\udp\udp_sender_impl.hpp" />
     <ClInclude Include="..\..\asio2\udp\udp_server_impl.hpp" />
     <ClInclude Include="..\..\asio2\udp\udp_session_impl.hpp" />
+    <ClInclude Include="..\..\asio2\udp\udp_transmitter_impl.hpp" />
     <ClInclude Include="..\..\asio2\util\buffer.hpp" />
     <ClInclude Include="..\..\asio2\util\def.hpp" />
     <ClInclude Include="..\..\asio2\util\helper.hpp" />

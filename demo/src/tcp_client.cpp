@@ -51,14 +51,18 @@ int main(int argc, char *argv[])
 			}).bind_connect([&tcp_client, i](int error)
 			{
 				if (error == 0)
-					std::printf("connect to tcp server successed : %s - %u\n", tcp_client[i]->get_remote_address().c_str(), tcp_client[i]->get_remote_port());
+					std::printf("connect to tcp server successed : %s - %u\n", tcp_client[i]->get_remote_address().data(), tcp_client[i]->get_remote_port());
 				else
-					std::printf("connect to tcp server failed : %d - %s\n", asio2::get_last_error(), asio2::get_last_error_desc().c_str());
-			}).bind_close([](int error)
+				{
+					std::printf("connect to tcp server failed : %d - %s\n", asio2::get_last_error(), asio2::get_last_error_desc().data());
+					tcp_client[i]->start();
+				}
+			}).bind_close([&tcp_client,i](int error)
 			{
+				std::printf("connection is disconnected : %d - %s\n", asio2::get_last_error(), asio2::get_last_error_desc().data());
 			});
 			if (!tcp_client[i]->start(false))
-				std::printf("connect to tcp server failed : %d - %s\n", asio2::get_last_error(), asio2::get_last_error_desc().c_str());
+				std::printf("connect to tcp server failed : %d - %s\n", asio2::get_last_error(), asio2::get_last_error_desc().data());
 		}
 
 		//-----------------------------------------------------------------------------------------
@@ -81,7 +85,7 @@ int main(int argc, char *argv[])
 					s += '>';
 					len += 3;
 
-					tcp_client[i]->send(s.c_str());
+					tcp_client[i]->send(s.data());
 				}
 			}
 		}).join();

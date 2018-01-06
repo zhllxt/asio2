@@ -14,6 +14,11 @@
 #pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
+#if !defined(NDEBUG) && !defined(DEBUG) && !defined(_DEBUG)
+#	define NDEBUG
+#endif
+
+#include <cassert>
 #include <vector>
 #include <memory>
 #include <thread>
@@ -45,14 +50,9 @@ namespace asio2
 				pool_size = std::thread::hardware_concurrency();
 			}
 
-			// Give all the io_contexts work to do so that their run() functions will not 
-			// exit until they are explicitly stopped. 
 			for (std::size_t i = 0; i < pool_size; ++i)
 			{
-				auto io_context_ptr = std::make_shared<boost::asio::io_context>();
-				auto work_ptr = std::make_shared<io_context_work>(io_context_ptr->get_executor());
-				m_io_contexts.emplace_back(std::move(io_context_ptr));
-				m_works.emplace_back(std::move(work_ptr));
+				m_io_contexts.emplace_back(std::make_shared<boost::asio::io_context>());
 			}
 		}
 
@@ -68,9 +68,15 @@ namespace asio2
 		 */
 		void run()
 		{
+			assert(m_works.size() == 0 && m_threads.size() == 0);
 			// Create a pool of threads to run all of the io_contexts. 
 			for (auto & io_context_ptr : m_io_contexts)
 			{
+				// Give all the io_contexts work to do so that their run() functions will not 
+				// exit until they are explicitly stopped. 
+				m_works.emplace_back(std::make_shared<io_context_work>(io_context_ptr->get_executor()));
+
+				// start work thread
 				m_threads.emplace_back(
 					// when bind a override function,should use static_cast to convert the function to correct function version
 					std::bind(static_cast<std::size_t(boost::asio::io_context::*)()>(
@@ -83,23 +89,25 @@ namespace asio2
 		 */
 		void stop()
 		{
-			//// Explicitly stop all io_contexts. 
-			//for (auto & io_context_ptr : m_io_contexts)
-			//{
-			//	io_context_ptr->stop();
-			//}
-
+			// call work reset,and then the io_context working thread will be exited.
 			for (auto & work_ptr : m_works)
 			{
 				work_ptr->reset();
 			}
+			m_works.clear();
 			// Wait for all threads to exit. 
 			for (auto & thread : m_threads)
 			{
+				assert(thread.get_id() != std::this_thread::get_id());
 				if (thread.joinable())
 					thread.join();
 			}
 			m_threads.clear();
+			// Reset the io_context in preparation for a subsequent run() invocation.
+			for (auto & io_context_ptr : m_io_contexts)
+			{
+				io_context_ptr->restart();
+			}
 		}
 
 		/**
@@ -123,6 +131,7 @@ namespace asio2
 
 		/// The next io_context to use for a connection. 
 		std::size_t m_next_io_context = 0;
+
 	};
 
 }

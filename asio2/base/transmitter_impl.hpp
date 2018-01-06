@@ -7,8 +7,8 @@
  * 
  */
 
-#ifndef __ASIO2_CONNECTION_IMPL_HPP__
-#define __ASIO2_CONNECTION_IMPL_HPP__
+#ifndef __ASIO2_TRANSMITTER_IMPL_HPP__
+#define __ASIO2_TRANSMITTER_IMPL_HPP__
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1200)
 #pragma once
@@ -48,22 +48,22 @@
 namespace asio2
 {
 
-	class connection_impl : public std::enable_shared_from_this<connection_impl>
+	class transmitter_impl : public std::enable_shared_from_this<transmitter_impl>
 	{
-		friend class client_impl;
+		friend class sender_impl;
 
 	public:
 		/**
 		 * @construct
 		 */
-		connection_impl(
+		transmitter_impl(
 			std::shared_ptr<url_parser>              url_parser_ptr,
 			std::shared_ptr<listener_mgr>            listener_mgr_ptr,
 			std::shared_ptr<boost::asio::io_context> send_io_context_ptr,
 			std::shared_ptr<boost::asio::io_context> recv_io_context_ptr
 		)
-			: m_url_parser_ptr     (url_parser_ptr)
-			, m_listener_mgr_ptr   (listener_mgr_ptr)
+			: m_url_parser_ptr(url_parser_ptr)
+			, m_listener_mgr_ptr(listener_mgr_ptr)
 			, m_send_io_context_ptr(send_io_context_ptr)
 			, m_recv_io_context_ptr(recv_io_context_ptr)
 		{
@@ -80,50 +80,83 @@ namespace asio2
 		/**
 		 * @destruct
 		 */
-		virtual ~connection_impl()
+		virtual ~transmitter_impl()
 		{
 		}
 
 		/**
-		 * @function : start session
+		 * @function : start the transmitter
+		 * @param    : async_connect - asynchronous connect to the server or sync
+		 * @return   : true  - start successed , false - start failed
 		 */
-		virtual bool start(bool async_connect = true) = 0;
+		virtual bool start() = 0;
 
 		/**
-		 * @function : stop session
-		 * note : this function must be noblocking,if it's blocking,will cause circle lock in session_mgr's function stop_all and stop
+		 * @function : stop the transmitter
 		 */
 		virtual void stop() = 0;
 
 		/**
-		 * @function : check whether the connection is started
+		 * @function : check whether the transmitter is started
 		 */
 		virtual bool is_started() = 0;
 
 		/**
-		 * @function : check whether the connection is stopped
+		 * @function : check whether the transmitter is stopped
 		 */
 		virtual bool is_stopped() = 0;
 
 		/**
 		 * @function : send data
 		 */
-		virtual bool send(std::shared_ptr<buffer<uint8_t>> buf_ptr) = 0;
-
-		/**
-		 * @function : send data
-		 */
-		virtual bool send(const uint8_t * buf, std::size_t len)
+		virtual bool send(const std::string & ip, unsigned short port, std::shared_ptr<buffer<uint8_t>> buf_ptr)
 		{
-			return (buf ? this->send(std::make_shared<buffer<uint8_t>>(len, malloc_send_buffer(len), buf, len)) : false);
+			auto sport = format("%u", port);
+			return ((!ip.empty() && buf_ptr) ?
+				this->send(ip, sport, buf_ptr) : false);
 		}
 
 		/**
 		 * @function : send data
 		 */
-		virtual bool send(const char * buf)
+		virtual bool send(const std::string & ip, const std::string & port, std::shared_ptr<buffer<uint8_t>> buf_ptr) = 0;
+
+		/**
+		 * @function : send data
+		 */
+		virtual bool send(const std::string & ip, unsigned short port, const uint8_t * buf, std::size_t len)
 		{
-			return (buf ? this->send(reinterpret_cast<const uint8_t *>(buf), std::strlen(buf)) : false);
+			auto sport = format("%u", port);
+			return ((!ip.empty() && buf) ?
+				this->send(ip, sport, buf, len) : false);
+		}
+
+		/**
+		 * @function : send data
+		 */
+		virtual bool send(const std::string & ip, const std::string & port, const uint8_t * buf, std::size_t len)
+		{
+			return ((!ip.empty() && !port.empty() && buf) ?
+				this->send(ip, port, std::make_shared<buffer<uint8_t>>(len, malloc_send_buffer(len), buf, len)) : false);
+		}
+
+		/**
+		 * @function : send data
+		 */
+		virtual bool send(const std::string & ip, unsigned short port, const char * buf)
+		{
+			auto sport = format("%u", port);
+			return ((!ip.empty() && buf) ?
+				this->send(ip, sport, reinterpret_cast<const uint8_t *>(buf), std::strlen(buf)) : false);
+		}
+
+		/**
+		 * @function : send data
+		 */
+		virtual bool send(const std::string & ip, const std::string & port, const char * buf)
+		{
+			return ((!ip.empty() && !port.empty() && buf) ?
+				this->send(ip, port, reinterpret_cast<const uint8_t *>(buf), std::strlen(buf)) : false);
 		}
 
 	public:
@@ -146,7 +179,7 @@ namespace asio2
 		 * @function : get the remote port
 		 */
 		virtual unsigned short get_remote_port() = 0;
-		
+
 		/**
 		 * @function : get user data 
 		 */
@@ -189,12 +222,6 @@ namespace asio2
 		}
 
 	protected:
-		/// asio::strand ,used to ensure socket multi thread safe,we must ensure that only one operator
-		/// can operate the same socket at the same time,and strand can enuser that the event will
-		/// be processed in the order of post, eg : strand.post(1);strand.post(2); the 2 will processed
-		/// certaion after the 1,if 1 is block,the 2 won't be processed,util the 1 is processed completed
-		/// more details see : http://bbs.csdn.net/topics/390931471
-
 		/// url parser
 		std::shared_ptr<url_parser>                        m_url_parser_ptr;
 
@@ -223,6 +250,9 @@ namespace asio2
 		std::chrono::time_point<std::chrono::system_clock> m_last_active_time = std::chrono::system_clock::now();
 
 	};
+
+	using transer     = transmitter_impl;
+	using transer_ptr = std::shared_ptr<transmitter_impl>;
 }
 
-#endif // !__ASIO2_CONNECTION_IMPL_HPP__
+#endif // !__ASIO2_TRANSMITTER_IMPL_HPP__

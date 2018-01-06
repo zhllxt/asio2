@@ -22,6 +22,8 @@ namespace asio2
 
 	class acceptor_impl : public std::enable_shared_from_this<acceptor_impl>
 	{
+		friend class server_impl;
+
 	public:
 		/**
 		 * @construct
@@ -58,9 +60,14 @@ namespace asio2
 		virtual void stop() = 0;
 
 		/**
-		 * @function : test whether the acceptor is started
+		 * @function : check whether the acceptor is started
 		 */
-		virtual bool is_start() = 0;
+		virtual bool is_started() = 0;
+
+		/**
+		 * @function : check whether the acceptor is stopped
+		 */
+		virtual bool is_stopped() = 0;
 
 		/**
 		 * @function : get the listen address

@@ -83,9 +83,9 @@ int main(int argc, char *argv[])
 		}).set_pack_parser(std::bind(pack_parser, std::placeholders::_1));
 
 		if (!tcp_pack_server.start())
-			std::printf("start tcp server failed : %d - %s.\n", asio2::get_last_error(), asio2::get_last_error_desc().c_str());
+			std::printf("start tcp server failed : %d - %s.\n", asio2::get_last_error(), asio2::get_last_error_desc().data());
 		else
-			std::printf("start tcp server successed : %s - %u\n", tcp_pack_server.get_listen_address().c_str(), tcp_pack_server.get_listen_port());
+			std::printf("start tcp server successed : %s - %u\n", tcp_pack_server.get_listen_address().data(), tcp_pack_server.get_listen_port());
 
 
 		//-----------------------------------------------------------------------------------------

@@ -14,36 +14,7 @@
 #pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
-#if !defined(NDEBUG) && !defined(DEBUG) && !defined(_DEBUG)
-#	define NDEBUG
-#endif
-
-#include <cassert>
-#include <memory>
-#include <chrono>
-#include <future>
-#include <functional>
-#include <thread>
-#include <mutex>
-#include <atomic>
-
-#include <boost/asio.hpp>
-#include <boost/system/system_error.hpp>
-
-#include <asio2/util/buffer.hpp>
-#include <asio2/util/def.hpp>
-#include <asio2/util/helper.hpp>
-#include <asio2/util/logger.hpp>
-#include <asio2/util/pool.hpp>
-#include <asio2/util/rwlock.hpp>
-#include <asio2/util/spin_lock.hpp>
-
-#include <asio2/base/socket_helper.hpp>
-#include <asio2/base/io_context_pool.hpp>
-#include <asio2/base/error.hpp>
-#include <asio2/base/def.hpp>
-#include <asio2/base/listener_mgr.hpp>
-#include <asio2/base/url_parser.hpp>
+#include <asio2/base/transmitter_impl.hpp>
 
 namespace asio2
 {
@@ -62,18 +33,6 @@ namespace asio2
 			, m_listener_mgr_ptr   (listener_mgr_ptr)
 		{
 			m_io_context_pool_ptr = std::make_shared<io_context_pool>(_get_io_context_pool_size());
-
-			m_send_io_context_ptr = m_io_context_pool_ptr->get_io_context_ptr();
-			m_recv_io_context_ptr = m_io_context_pool_ptr->get_io_context_ptr();
-
-			if (m_send_io_context_ptr)
-			{
-				m_send_strand_ptr = std::make_shared<boost::asio::io_context::strand>(*m_send_io_context_ptr);
-			}
-			if (m_recv_io_context_ptr)
-			{
-				m_recv_strand_ptr = std::make_shared<boost::asio::io_context::strand>(*m_recv_io_context_ptr);
-			}
 		}
 
 		/**
@@ -92,17 +51,21 @@ namespace asio2
 		{
 			try
 			{
-				// check if started and not stoped
-				if (this->is_start())
+				// check if started and not stopped
+				if (this->m_transmitter_impl_ptr->m_state >= state::starting)
 				{
 					assert(false);
 					return false;
 				}
 
-				// startup the io service thread 
-				m_io_context_pool_ptr->run();
+				// call stop before start
+				this->stop();
 
-				return true;
+				// startup the io service thread 
+				this->m_io_context_pool_ptr->run();
+
+				// start connect
+				return this->m_transmitter_impl_ptr->start();
 			}
 			catch (boost::system::system_error & e)
 			{
@@ -117,6 +80,9 @@ namespace asio2
 		 */
 		virtual void stop()
 		{
+			// first close the transmitter
+			m_transmitter_impl_ptr->stop();
+
 			// stop the io_context
 			m_io_context_pool_ptr->stop();
 		}
@@ -124,31 +90,41 @@ namespace asio2
 		/**
 		 * @function : check whether the sender is started
 		 */
-		virtual bool is_start() = 0;
+		virtual bool is_started()
+		{
+			return m_transmitter_impl_ptr->is_started();
+		}
+
+		/**
+		 * @function : check whether the sender is stopped
+		 */
+		virtual bool is_stopped()
+		{
+			return m_transmitter_impl_ptr->is_stopped();
+		}
 
 		/**
 		 * @function : send data
 		 */
 		virtual bool send(const std::string & ip, unsigned short port, std::shared_ptr<buffer<uint8_t>> buf_ptr)
 		{
-			auto sport = format("%u", port);
-			return ((!ip.empty() && buf_ptr) ?
-				this->send(ip, sport, buf_ptr) : false);
+			return m_transmitter_impl_ptr->send(ip, port, buf_ptr);
 		}
 
 		/**
 		 * @function : send data
 		 */
-		virtual bool send(const std::string & ip, const std::string & port, std::shared_ptr<buffer<uint8_t>> buf_ptr) = 0;
+		virtual bool send(const std::string & ip, const std::string & port, std::shared_ptr<buffer<uint8_t>> buf_ptr)
+		{
+			return m_transmitter_impl_ptr->send(ip, port, buf_ptr);
+		}
 
 		/**
 		 * @function : send data
 		 */
 		virtual bool send(const std::string & ip, unsigned short port, const uint8_t * buf, std::size_t len)
 		{
-			auto sport = format("%u", port);
-			return ((!ip.empty() && buf) ?
-				this->send(ip, sport, buf, len) : false);
+			return m_transmitter_impl_ptr->send(ip, port, buf, len);
 		}
 
 		/**
@@ -156,8 +132,7 @@ namespace asio2
 		 */
 		virtual bool send(const std::string & ip, const std::string & port, const uint8_t * buf, std::size_t len)
 		{
-			return ((!ip.empty() && !port.empty() && buf) ?
-				this->send(ip, port, std::make_shared<buffer<uint8_t>>(len, malloc_send_buffer(len), buf, len)) : false);
+			return m_transmitter_impl_ptr->send(ip, port, buf, len);
 		}
 
 		/**
@@ -165,9 +140,7 @@ namespace asio2
 		 */
 		virtual bool send(const std::string & ip, unsigned short port, const char * buf)
 		{
-			auto sport = format("%u", port);
-			return ((!ip.empty() && buf) ?
-				this->send(ip, sport, reinterpret_cast<const uint8_t *>(buf), std::strlen(buf)) : false);
+			return m_transmitter_impl_ptr->send(ip, port, buf);
 		}
 
 		/**
@@ -175,54 +148,40 @@ namespace asio2
 		 */
 		virtual bool send(const std::string & ip, const std::string & port, const char * buf)
 		{
-			return ((!ip.empty() && !port.empty() && buf) ?
-				this->send(ip, port, reinterpret_cast<const uint8_t *>(buf), std::strlen(buf)) : false);
+			return m_transmitter_impl_ptr->send(ip, port, buf);
 		}
 
 	public:
 		/**
 		 * @function : get the local address
 		 */
-		virtual std::string get_local_address() = 0;
+		virtual std::string get_local_address()
+		{
+			return m_transmitter_impl_ptr->get_local_address();
+		}
 
 		/**
 		 * @function : get the local port
 		 */
-		virtual unsigned short get_local_port() = 0;
+		virtual unsigned short get_local_port()
+		{
+			return m_transmitter_impl_ptr->get_local_port();
+		}
 
 		/**
 		 * @function : get the remote address
 		 */
-		virtual std::string get_remote_address() = 0;
+		virtual std::string get_remote_address()
+		{
+			return m_transmitter_impl_ptr->get_remote_address();
+		}
 
 		/**
 		 * @function : get the remote port
 		 */
-		virtual unsigned short get_remote_port() = 0;
-
-	public:
-		/**
-		 * @function : get last active time 
-		 */
-		std::chrono::time_point<std::chrono::system_clock> get_last_active_time()
+		virtual unsigned short get_remote_port()
 		{
-			return m_last_active_time;
-		}
-
-		/**
-		 * @function : reset last active time 
-		 */
-		void reset_last_active_time()
-		{
-			m_last_active_time = std::chrono::system_clock::now();
-		}
-
-		/**
-		 * @function : get silence duration of milliseconds
-		 */
-		std::chrono::milliseconds::rep get_silence_duration()
-		{
-			return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - m_last_active_time).count();
+			return m_transmitter_impl_ptr->get_remote_port();
 		}
 
 	protected:
@@ -248,23 +207,8 @@ namespace asio2
 		/// the io_context_pool for socket event
 		std::shared_ptr<io_context_pool>                   m_io_context_pool_ptr;
 
-		/// The io_context used to handle the socket event.
-		std::shared_ptr<boost::asio::io_context>           m_send_io_context_ptr;
-
-		/// The io_context used to handle the socket event.
-		std::shared_ptr<boost::asio::io_context>           m_recv_io_context_ptr;
-
-		/// The strand used to handle the socket event.
-		std::shared_ptr<boost::asio::io_context::strand>   m_send_strand_ptr;
-
-		/// The strand used to handle the socket event.
-		std::shared_ptr<boost::asio::io_context::strand>   m_recv_strand_ptr;
-
-		/// use to check whether the user call stop in the listener
-		volatile state                                     m_state = state::stopped;
-
-		/// last active time 
-		std::chrono::time_point<std::chrono::system_clock> m_last_active_time = std::chrono::system_clock::now();
+		/// acceptor_impl pointer,this object must be created after server has created
+		std::shared_ptr<transmitter_impl>                  m_transmitter_impl_ptr;
 
 	};
 }

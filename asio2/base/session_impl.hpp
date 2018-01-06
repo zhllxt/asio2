@@ -96,7 +96,12 @@ namespace asio2
 		/**
 		 * @function : check whether the session is started
 		 */
-		virtual bool is_start() = 0;
+		virtual bool is_started() = 0;
+
+		/**
+		 * @function : check whether the server is stopped
+		 */
+		virtual bool is_stopped() = 0;
 
 		/**
 		 * @function : send data
@@ -242,7 +247,7 @@ namespace asio2
 
 	};
 
-	using session = session_impl;
+	using session     = session_impl;
 	using session_ptr = std::shared_ptr<session_impl>;
 
 

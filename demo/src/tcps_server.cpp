@@ -93,9 +93,9 @@ int main(int argc, char *argv[])
 		{
 		});
 		if (!tcps_server.start())
-			std::printf("start tcps server failed : %d - %s.\n", asio2::get_last_error(), asio2::get_last_error_desc().c_str());
+			std::printf("start tcps server failed : %d - %s.\n", asio2::get_last_error(), asio2::get_last_error_desc().data());
 		else
-			std::printf("start tcps server successed : %s - %u\n", tcps_server.get_listen_address().c_str(), tcps_server.get_listen_port());
+			std::printf("start tcps server successed : %s - %u\n", tcps_server.get_listen_address().data(), tcps_server.get_listen_port());
 
 		std::thread([&]()
 		{

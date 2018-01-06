@@ -139,7 +139,7 @@ namespace asio2
 
 				// don't allow put after stopping the pool
 				if (_is_stop)
-					throw std::runtime_error("put a task into thread pool but the pool is stoped");
+					throw std::runtime_error("put a task into thread pool but the pool is stopped");
 
 				_tasks.emplace([task]() { (*task)(); });
 			}
@@ -296,7 +296,7 @@ namespace asio2
 
 				// don't allow put after stopping the pool
 				if (_is_stop)
-					throw std::runtime_error("put a task into thread pool but the pool is stoped");
+					throw std::runtime_error("put a task into thread pool but the pool is stopped");
 
 				_tasks[thread_index]->emplace([task]() { (*task)(); });
 			}

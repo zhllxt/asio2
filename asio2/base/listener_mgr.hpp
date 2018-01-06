@@ -85,7 +85,7 @@ namespace asio2
 		 * @function : bind listener - 
 		 * @param    : listener_sptr - a listener object shared_ptr
 		 */
-		server_listener_mgr & bind_listener(std::shared_ptr<_listener_t> & listener_sptr)
+		server_listener_mgr & bind_listener(const std::shared_ptr<_listener_t> & listener_sptr)
 		{
 			m_listener_ptr = std::move(listener_sptr);
 			return (*this);
@@ -107,42 +107,42 @@ namespace asio2
 		 * @param    : listener - a callback function
 		 */
 		template<typename _listener>
-		server_listener_mgr & bind_send(_listener & listener)
+		server_listener_mgr & bind_send(const _listener & listener)
 		{
 			m_send_listener = listener;
 			return (*this);
 		}
 
 		template<typename _listener>
-		server_listener_mgr & bind_recv(_listener & listener)
+		server_listener_mgr & bind_recv(const _listener & listener)
 		{
 			m_recv_listener = listener;
 			return (*this);
 		}
 
 		template<typename _listener>
-		server_listener_mgr & bind_listen(_listener & listener)
+		server_listener_mgr & bind_listen(const _listener & listener)
 		{
 			m_lisn_listener = listener;
 			return (*this);
 		}
 
 		template<typename _listener>
-		server_listener_mgr & bind_accept(_listener & listener)
+		server_listener_mgr & bind_accept(const _listener & listener)
 		{
 			m_acpt_listener = listener;
 			return (*this);
 		}
 
 		template<typename _listener>
-		server_listener_mgr & bind_close(_listener & listener)
+		server_listener_mgr & bind_close(const _listener & listener)
 		{
 			m_clos_listener = listener;
 			return (*this);
 		}
 
 		template<typename _listener>
-		server_listener_mgr & bind_shutdown(_listener & listener)
+		server_listener_mgr & bind_shutdown(const _listener & listener)
 		{
 			m_shut_listener = listener;
 			return (*this);
@@ -252,7 +252,7 @@ namespace asio2
 		 * @function : bind listener - 
 		 * @param    : listener_sptr - a listener object shared_ptr
 		 */
-		client_listener_mgr & bind_listener(std::shared_ptr<_listener_t> & listener_sptr)
+		client_listener_mgr & bind_listener(const std::shared_ptr<_listener_t> & listener_sptr)
 		{
 			m_listener_ptr = std::move(listener_sptr);
 			return (*this);
@@ -274,28 +274,28 @@ namespace asio2
 		 * @param    : listener - a callback function
 		 */
 		template<typename _listener>
-		client_listener_mgr & bind_send(_listener & listener)
+		client_listener_mgr & bind_send(const _listener & listener)
 		{
 			m_send_listener = listener;
 			return (*this);
 		}
 
 		template<typename _listener>
-		client_listener_mgr & bind_recv(_listener & listener)
+		client_listener_mgr & bind_recv(const _listener & listener)
 		{
 			m_recv_listener = listener;
 			return (*this);
 		}
 
 		template<typename _listener>
-		client_listener_mgr & bind_close(_listener & listener)
+		client_listener_mgr & bind_close(const _listener & listener)
 		{
 			m_clos_listener = listener;
 			return (*this);
 		}
 
 		template<typename _listener>
-		client_listener_mgr & bind_connect(_listener & listener)
+		client_listener_mgr & bind_connect(const _listener & listener)
 		{
 			m_conn_listener = listener;
 			return (*this);
@@ -384,7 +384,7 @@ namespace asio2
 		 * @function : bind listener - 
 		 * @param    : listener_sptr - a listener object shared_ptr
 		 */
-		sender_listener_mgr & bind_listener(std::shared_ptr<_listener_t> & listener_sptr)
+		sender_listener_mgr & bind_listener(const std::shared_ptr<_listener_t> & listener_sptr)
 		{
 			m_listener_ptr = std::move(listener_sptr);
 			return (*this);
@@ -406,21 +406,21 @@ namespace asio2
 		 * @param    : listener - a callback function
 		 */
 		template<typename _listener>
-		sender_listener_mgr & bind_send(_listener & listener)
+		sender_listener_mgr & bind_send(const _listener & listener)
 		{
 			m_send_listener = listener;
 			return (*this);
 		}
 
 		template<typename _listener>
-		sender_listener_mgr & bind_recv(_listener & listener)
+		sender_listener_mgr & bind_recv(const _listener & listener)
 		{
 			m_recv_listener = listener;
 			return (*this);
 		}
 
 		template<typename _listener>
-		sender_listener_mgr & bind_close(_listener & listener)
+		sender_listener_mgr & bind_close(const _listener & listener)
 		{
 			m_clos_listener = listener;
 			return (*this);
@@ -503,7 +503,7 @@ namespace asio2
 		 * @function : bind listener - 
 		 * @param    : listener_sptr - a listener object shared_ptr
 		 */
-		http_server_listener_mgr & bind_listener(std::shared_ptr<_listener_t> & listener_sptr)
+		http_server_listener_mgr & bind_listener(const std::shared_ptr<_listener_t> & listener_sptr)
 		{
 			m_listener_ptr = std::move(listener_sptr);
 			return (*this);
@@ -525,42 +525,42 @@ namespace asio2
 		 * @param    : listener - a callback function
 		 */
 		template<typename _listener>
-		http_server_listener_mgr & bind_send(_listener & listener)
+		http_server_listener_mgr & bind_send(const _listener & listener)
 		{
 			m_send_listener = listener;
 			return (*this);
 		}
 
 		template<typename _listener>
-		http_server_listener_mgr & bind_recv(_listener & listener)
+		http_server_listener_mgr & bind_recv(const _listener & listener)
 		{
 			m_recv_listener = listener;
 			return (*this);
 		}
 
 		template<typename _listener>
-		http_server_listener_mgr & bind_listen(_listener & listener)
+		http_server_listener_mgr & bind_listen(const _listener & listener)
 		{
 			m_lisn_listener = listener;
 			return (*this);
 		}
 
 		template<typename _listener>
-		http_server_listener_mgr & bind_accept(_listener & listener)
+		http_server_listener_mgr & bind_accept(const _listener & listener)
 		{
 			m_acpt_listener = listener;
 			return (*this);
 		}
 
 		template<typename _listener>
-		http_server_listener_mgr & bind_close(_listener & listener)
+		http_server_listener_mgr & bind_close(const _listener & listener)
 		{
 			m_clos_listener = listener;
 			return (*this);
 		}
 
 		template<typename _listener>
-		http_server_listener_mgr & bind_shutdown(_listener & listener)
+		http_server_listener_mgr & bind_shutdown(const _listener & listener)
 		{
 			m_shut_listener = listener;
 			return (*this);
@@ -670,7 +670,7 @@ namespace asio2
 		 * @function : bind listener - 
 		 * @param    : listener_sptr - a listener object shared_ptr
 		 */
-		http_client_listener_mgr & bind_listener(std::shared_ptr<_listener_t> & listener_sptr)
+		http_client_listener_mgr & bind_listener(const std::shared_ptr<_listener_t> & listener_sptr)
 		{
 			m_listener_ptr = std::move(listener_sptr);
 			return (*this);
@@ -692,28 +692,28 @@ namespace asio2
 		 * @param    : listener - a callback function
 		 */
 		template<typename _listener>
-		http_client_listener_mgr & bind_send(_listener & listener)
+		http_client_listener_mgr & bind_send(const _listener & listener)
 		{
 			m_send_listener = listener;
 			return (*this);
 		}
 
 		template<typename _listener>
-		http_client_listener_mgr & bind_recv(_listener & listener)
+		http_client_listener_mgr & bind_recv(const _listener & listener)
 		{
 			m_recv_listener = listener;
 			return (*this);
 		}
 
 		template<typename _listener>
-		http_client_listener_mgr & bind_close(_listener & listener)
+		http_client_listener_mgr & bind_close(const _listener & listener)
 		{
 			m_clos_listener = listener;
 			return (*this);
 		}
 
 		template<typename _listener>
-		http_client_listener_mgr & bind_connect(_listener & listener)
+		http_client_listener_mgr & bind_connect(const _listener & listener)
 		{
 			m_conn_listener = listener;
 			return (*this);

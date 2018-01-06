@@ -67,12 +67,12 @@ int main(int argc, char *argv[])
 			}).bind_connect([&tcps_client](int error)
 			{
 				if (error == 0)
-					std::printf("start tcps client successed : %s - %u\n", tcps_client.get_remote_address().c_str(), tcps_client.get_remote_port());
+					std::printf("start tcps client successed : %s - %u\n", tcps_client.get_remote_address().data(), tcps_client.get_remote_port());
 				else
-					std::printf("start tcps client failed : %d - %s.\n", asio2::get_last_error(), asio2::get_last_error_desc().c_str());
+					std::printf("start tcps client failed : %d - %s.\n", asio2::get_last_error(), asio2::get_last_error_desc().data());
 			});
 			if (!tcps_client.start(false))
-				std::printf("start tcps client failed : %d - %s.\n", asio2::get_last_error(), asio2::get_last_error_desc().c_str());
+				std::printf("start tcps client failed : %d - %s.\n", asio2::get_last_error(), asio2::get_last_error_desc().data());
 
 			std::string s;
 			s += '<';
@@ -83,7 +83,7 @@ int main(int argc, char *argv[])
 			}
 			s += '>';
 
-			tcps_client.send(s.c_str());
+			tcps_client.send(s.data());
 
 			std::this_thread::sleep_for(std::chrono::milliseconds(10));
 		}
@@ -104,7 +104,7 @@ int main(int argc, char *argv[])
 				//}
 				//s += '>';
 
-				//tcps_client.send(s.c_str());
+				//tcps_client.send(s.data());
 			}
 		}).join();
 

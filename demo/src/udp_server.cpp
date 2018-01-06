@@ -64,9 +64,13 @@ int main(int argc, char *argv[])
 		asio2::server udp_server("udp://*:9010/?so_sndbuf=256m&so_rcvbuf=256m&recv_buffer_size=1024");
 		udp_server.bind_listener(std::make_shared<user_udp_server_listener>());
 		if (!udp_server.start())
-			std::printf("start udp server failed : %d - %s.\n", asio2::get_last_error(), asio2::get_last_error_desc().c_str());
+			std::printf("start udp server failed : %d - %s.\n", asio2::get_last_error(), asio2::get_last_error_desc().data());
 		else
-			std::printf("start udp server successed : %s - %u\n", udp_server.get_listen_address().c_str(), udp_server.get_listen_port());
+			std::printf("start udp server successed : %s - %u\n", udp_server.get_listen_address().data(), udp_server.get_listen_port());
+
+
+		//asio2::sender udp_sender("udp://*:0");
+		//udp_sender.start();
 
 		//-----------------------------------------------------------------------------------------
 		std::thread([&]()
@@ -74,6 +78,7 @@ int main(int argc, char *argv[])
 			while (run_flag)
 			{
 				std::this_thread::sleep_for(std::chrono::milliseconds(100));
+				//udp_sender.send("127.0.0.1", "40001", "abc");
 			}
 		}).join();
 

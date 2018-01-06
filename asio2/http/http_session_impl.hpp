@@ -74,7 +74,7 @@ namespace asio2
 					)));
 			}
 
-			return is_start();
+			return is_started();
 		}
 
 		virtual void stop() override

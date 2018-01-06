@@ -191,7 +191,7 @@ std::size_t pack_parser(asio2::buffer_ptr & buf_ptr)
 //*/
 //int HttpParser::HttpParseRequest(const std::string &inbuf)
 //{
-//	int nparsed = http_parser_execute(&parser, &settings, inbuf.c_str(), inbuf.size());
+//	int nparsed = http_parser_execute(&parser, &settings, inbuf.data(), inbuf.size());
 //
 //	if (parser.http_errno != HPE_OK)
 //	{
@@ -395,63 +395,63 @@ int main(int argc, char *argv[])
 		{
 		});
 		if(!http_server.start())
-			std::printf("start http server failed : %d - %s.\n", asio2::get_last_error(), asio2::get_last_error_desc().c_str());
+			std::printf("start http server failed : %d - %s.\n", asio2::get_last_error(), asio2::get_last_error_desc().data());
 		else
-			std::printf("start http server successed : %s - %u\n", http_server.get_listen_address().c_str(), http_server.get_listen_port());
+			std::printf("start http server successed : %s - %u\n", http_server.get_listen_address().data(), http_server.get_listen_port());
 
 		asio2::server tcps_server("tcps://*:9443");
 		tcps_server.bind_recv([](asio2::session_ptr & session_ptr, asio2::buffer_ptr & buf_ptr)
 		{
 		});
 		if (!tcps_server.start())
-			std::printf("start tcps server failed : %d - %s.\n", asio2::get_last_error(), asio2::get_last_error_desc().c_str());
+			std::printf("start tcps server failed : %d - %s.\n", asio2::get_last_error(), asio2::get_last_error_desc().data());
 		else
-			std::printf("start tcps server successed : %s - %u\n", tcps_server.get_listen_address().c_str(), tcps_server.get_listen_port());
+			std::printf("start tcps server successed : %s - %u\n", tcps_server.get_listen_address().data(), tcps_server.get_listen_port());
 
 		asio2::client tcps_client("tcps://127.0.0.1:9443");
 		tcps_client.bind_recv([] (asio2::buffer_ptr & buf_ptr)
 		{
 		});
 		if(!tcps_client.start())
-			std::printf("start tcps client failed : %d - %s.\n", asio2::get_last_error(), asio2::get_last_error_desc().c_str());
+			std::printf("start tcps client failed : %d - %s.\n", asio2::get_last_error(), asio2::get_last_error_desc().data());
 		else
-			std::printf("start tcps client successed : %s - %u\n", tcps_client.get_remote_address().c_str(), tcps_client.get_remote_port());
+			std::printf("start tcps client successed : %s - %u\n", tcps_client.get_remote_address().data(), tcps_client.get_remote_port());
 
 		asio2::server tcps_auto_server("tcps://*:9445/auto");
 		tcps_auto_server.bind_recv([](asio2::session_ptr & session_ptr, asio2::buffer_ptr & buf_ptr)
 		{
 		});
 		if (!tcps_auto_server.start())
-			std::printf("start tcps auto server failed : %d - %s.\n", asio2::get_last_error(), asio2::get_last_error_desc().c_str());
+			std::printf("start tcps auto server failed : %d - %s.\n", asio2::get_last_error(), asio2::get_last_error_desc().data());
 		else
-			std::printf("start tcps auto server successed : %s - %u\n", tcps_auto_server.get_listen_address().c_str(), tcps_auto_server.get_listen_port());
+			std::printf("start tcps auto server successed : %s - %u\n", tcps_auto_server.get_listen_address().data(), tcps_auto_server.get_listen_port());
 
 		asio2::client tcps_auto_client("tcps://127.0.0.1:9445/auto");
 		tcps_auto_client.bind_recv([] (asio2::buffer_ptr & buf_ptr)
 		{
 		});
 		if(!tcps_auto_client.start())
-			std::printf("start tcps auto client failed : %d - %s.\n", asio2::get_last_error(), asio2::get_last_error_desc().c_str());
+			std::printf("start tcps auto client failed : %d - %s.\n", asio2::get_last_error(), asio2::get_last_error_desc().data());
 		else
-			std::printf("start tcps auto client successed : %s - %u\n", tcps_auto_client.get_remote_address().c_str(), tcps_auto_client.get_remote_port());
+			std::printf("start tcps auto client successed : %s - %u\n", tcps_auto_client.get_remote_address().data(), tcps_auto_client.get_remote_port());
 
 		asio2::server tcps_pack_server("tcps://*:9447/pack");
 		tcps_pack_server.bind_recv([](asio2::session_ptr & session_ptr, asio2::buffer_ptr & buf_ptr)
 		{
 		}).set_pack_parser(std::bind(pack_parser, std::placeholders::_1));
 		if (!tcps_pack_server.start())
-			std::printf("start tcps pack server failed : %d - %s.\n", asio2::get_last_error(), asio2::get_last_error_desc().c_str());
+			std::printf("start tcps pack server failed : %d - %s.\n", asio2::get_last_error(), asio2::get_last_error_desc().data());
 		else
-			std::printf("start tcps pack server successed : %s - %u\n", tcps_pack_server.get_listen_address().c_str(), tcps_pack_server.get_listen_port());
+			std::printf("start tcps pack server successed : %s - %u\n", tcps_pack_server.get_listen_address().data(), tcps_pack_server.get_listen_port());
 
 		asio2::client tcps_pack_client("tcps://127.0.0.1:9447/pack");
 		tcps_pack_client.bind_recv([] (asio2::buffer_ptr & buf_ptr)
 		{
 		}).set_pack_parser(std::bind(pack_parser, std::placeholders::_1));
 		if(!tcps_pack_client.start())
-			std::printf("start tcps pack client failed : %d - %s.\n", asio2::get_last_error(), asio2::get_last_error_desc().c_str());
+			std::printf("start tcps pack client failed : %d - %s.\n", asio2::get_last_error(), asio2::get_last_error_desc().data());
 		else
-			std::printf("start tcps pack client successed : %s - %u\n", tcps_pack_client.get_remote_address().c_str(), tcps_pack_client.get_remote_port());
+			std::printf("start tcps pack client successed : %s - %u\n", tcps_pack_client.get_remote_address().data(), tcps_pack_client.get_remote_port());
 
 		//-----------------------------------------------------------------------------------------
 		std::shared_ptr<asio2::server> tcp_auto_server = std::make_shared<asio2::server>(" tcp://*:8088/auto?send_buffer_size=1024k & recv_buffer_size=1024K & pool_buffer_size=1024 & io_context_pool_size=3 ");
@@ -464,9 +464,9 @@ int main(int argc, char *argv[])
 		{
 		});
 		if(!tcp_auto_server->start())
-			std::printf("start tcp server failed : %d - %s.\n", asio2::get_last_error(), asio2::get_last_error_desc().c_str());
+			std::printf("start tcp server failed : %d - %s.\n", asio2::get_last_error(), asio2::get_last_error_desc().data());
 		else
-			std::printf("start tcp server successed : %s - %u\n", tcp_auto_server->get_listen_address().c_str(), tcp_auto_server->get_listen_port());
+			std::printf("start tcp server successed : %s - %u\n", tcp_auto_server->get_listen_address().data(), tcp_auto_server->get_listen_port());
 
 		std::shared_ptr<asio2::client> tcp_auto_client_ptr[client_count];
 		for (i = 0; i < client_count; i++)
@@ -476,9 +476,9 @@ int main(int argc, char *argv[])
 			{
 			});
 			if (!tcp_auto_client_ptr[i]->start(false))
-				std::printf("connect to tcp server failed : %d - %s. %d\n", asio2::get_last_error(), asio2::get_last_error_desc().c_str(), i);
+				std::printf("connect to tcp server failed : %d - %s. %d\n", asio2::get_last_error(), asio2::get_last_error_desc().data(), i);
 			//else
-			//	std::printf("connect to tcp server successed : %s - %u\n", tcp_auto_client[i].get_remote_address().c_str(), tcp_auto_client[i].get_remote_port());
+			//	std::printf("connect to tcp server successed : %s - %u\n", tcp_auto_client[i].get_remote_address().data(), tcp_auto_client[i].get_remote_port());
 		}
 
 
@@ -489,8 +489,8 @@ int main(int argc, char *argv[])
 			char * p = (char*)buf_ptr->data();
 			std::string s;
 			s.resize(buf_ptr->size());
-			std::memcpy((void*)s.c_str(), (const void *)p, buf_ptr->size());
-			//std::printf("tcp_pack_server recv : %s\n", s.c_str());
+			std::memcpy((void*)s.data(), (const void *)p, buf_ptr->size());
+			//std::printf("tcp_pack_server recv : %s\n", s.data());
 
 			int send_len = std::rand() % ((int)buf_ptr->size() / 2);
 			int already_send_len = 0;
@@ -509,9 +509,9 @@ int main(int argc, char *argv[])
 			
 		}).set_pack_parser(std::bind(pack_parser, std::placeholders::_1));
 		if (!tcp_pack_server.start())
-			std::printf("start tcp server failed : %d - %s.\n", asio2::get_last_error(), asio2::get_last_error_desc().c_str());
+			std::printf("start tcp server failed : %d - %s.\n", asio2::get_last_error(), asio2::get_last_error_desc().data());
 		else
-			std::printf("start tcp server successed : %s - %u\n", tcp_pack_server.get_listen_address().c_str(), tcp_pack_server.get_listen_port());
+			std::printf("start tcp server successed : %s - %u\n", tcp_pack_server.get_listen_address().data(), tcp_pack_server.get_listen_port());
 
 		std::shared_ptr<asio2::client> tcp_pack_client[client_count];
 		for (i = 0; i < client_count; i++)
@@ -522,21 +522,21 @@ int main(int argc, char *argv[])
 				char * p = (char*)buf_ptr->data();
 				std::string s;
 				s.resize(buf_ptr->size());
-				std::memcpy((void*)s.c_str(), (const void *)p, buf_ptr->size());
-				//std::printf("tcp_pack_client recv : %s\n", s.c_str());
+				std::memcpy((void*)s.data(), (const void *)p, buf_ptr->size());
+				//std::printf("tcp_pack_client recv : %s\n", s.data());
 
 			}).bind_send([&tcp_pack_client](asio2::buffer_ptr & buf_ptr, int error)
 			{
 				//char * p = (char*)buf_ptr->data();
 				//std::string s;
 				//s.resize(len);
-				//std::memcpy((void*)s.c_str(), (const void*)buf_ptr->data(), len);
-				//std::printf("tcp client send : %s\n", s.c_str());
+				//std::memcpy((void*)s.data(), (const void*)buf_ptr->data(), len);
+				//std::printf("tcp client send : %s\n", s.data());
 			}).set_pack_parser(std::bind(pack_parser, std::placeholders::_1));
 			if (!tcp_pack_client[i]->start(false))
-				std::printf("connect to tcp server failed : %d - %s. %d\n", asio2::get_last_error(), asio2::get_last_error_desc().c_str(), i);
+				std::printf("connect to tcp server failed : %d - %s. %d\n", asio2::get_last_error(), asio2::get_last_error_desc().data(), i);
 			//else
-			//	std::printf("connect to tcp server successed : %s - %u\n", tcp_pack_client[i].get_remote_address().c_str(), tcp_pack_client[i].get_remote_port());
+			//	std::printf("connect to tcp server successed : %s - %u\n", tcp_pack_client[i].get_remote_address().data(), tcp_pack_client[i].get_remote_port());
 		}
 
 		asio2::spin_lock lock;
@@ -580,15 +580,15 @@ int main(int argc, char *argv[])
 		{
 			g_session_count++;
 			//static int i = 1;
-			//std::printf("udp session enter %2d: %s %d\n", i++, session_ptr->get_remote_address().c_str(), session_ptr->get_remote_port());
+			//std::printf("udp session enter %2d: %s %d\n", i++, session_ptr->get_remote_address().data(), session_ptr->get_remote_port());
 		}).bind_close([](asio2::session_ptr & session_ptr, int error)
 		{
 			g_session_count--;
 		});
 		if(!udp_server.start())
-			std::printf("start udp server failed : %d - %s.\n", asio2::get_last_error(), asio2::get_last_error_desc().c_str());
+			std::printf("start udp server failed : %d - %s.\n", asio2::get_last_error(), asio2::get_last_error_desc().data());
 		else
-			std::printf("start udp server successed : %s - %u\n", udp_server.get_listen_address().c_str(), udp_server.get_listen_port());
+			std::printf("start udp server successed : %s - %u\n", udp_server.get_listen_address().data(), udp_server.get_listen_port());
 
 		std::shared_ptr<asio2::client> udp_client[client_count];
 		for (i = 0; i < client_count; i++)
@@ -608,10 +608,10 @@ int main(int argc, char *argv[])
 			if (!udp_client[i]->start(false))
 			{
 				if (asio2::get_last_error() != 24)
-					std::printf("connect to udp server failed : %d - %s.\n %d", asio2::get_last_error(), asio2::get_last_error_desc().c_str(), i);
+					std::printf("connect to udp server failed : %d - %s.\n %d", asio2::get_last_error(), asio2::get_last_error_desc().data(), i);
 			}
 			//else
-			//	std::printf("connect to udp server successed : %s - %u\n", udp_client[i].get_remote_address().c_str(), udp_client[i].get_remote_port());
+			//	std::printf("connect to udp server successed : %s - %u\n", udp_client[i].get_remote_address().data(), udp_client[i].get_remote_port());
 		}
 
 

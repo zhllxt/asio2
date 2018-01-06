@@ -269,5 +269,11 @@
     <ClInclude Include="..\..\asio2\base\session_mgr_impl.hpp">
       <Filter>asio2\base</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\asio2\base\transmitter_impl.hpp">
+      <Filter>asio2\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\udp\udp_transmitter_impl.hpp">
+      <Filter>asio2\udp</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

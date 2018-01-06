@@ -272,12 +272,12 @@ namespace asio2
 
 			if ((content_encoding == "gzip" || content_encoding == "deflate")) {
 				//#ifdef HAVE_LIBZ
-				//				DEBUG(10) ("%s: detected zlib content, decompressing", output_path.c_str());
+				//				DEBUG(10) ("%s: detected zlib content, decompressing", output_path.data());
 				//				unzip = true;
 				//#else
 				//				/* We can't decompress, so just give it a .gz */
 				//				output_path.append(".gz");
-				//				DEBUG(5) ("%s: refusing to decompress since zlib is unavailable", output_path.c_str());
+				//				DEBUG(5) ("%s: refusing to decompress since zlib is unavailable", output_path.data());
 				//#endif
 			}
 

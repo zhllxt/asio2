@@ -110,7 +110,7 @@ namespace asio2
 					_handle_connect(ec, shared_from_this());
 
 					// if error code is not 0,then connect failed,return false
-					return (ec == 0 && is_start());
+					return (ec == 0 && is_started());
 				}
 			}
 			catch (std::exception &) {}
@@ -125,6 +125,7 @@ namespace asio2
 		{
 			if (m_state >= state::starting)
 			{
+				auto prev_state = m_state;
 				m_state = state::stopping;
 
 				// call socket's close function to notify the _handle_recv function response with error > 0 ,then the socket 
@@ -138,20 +139,20 @@ namespace asio2
 					try
 					{
 						auto self(shared_from_this());
-						m_recv_strand_ptr->post([this, self]()
+						m_recv_strand_ptr->post([this, self, prev_state]()
 						{
 							try
 							{
 								// if the client socket is not closed forever,this async_shutdown callback also can't be called forever,
 								// so we use a timer to force close the socket,then the async_shutdown callback will return.
 								m_timer.expires_from_now(boost::posix_time::seconds(DEFAULT_SSL_SHUTDOWN_TIMEOUT));
-								m_timer.async_wait(m_recv_strand_ptr->wrap([this, self](const boost::system::error_code & ec)
+								m_timer.async_wait(m_recv_strand_ptr->wrap([this, self, prev_state](const boost::system::error_code & ec)
 								{
 									if (ec)
 										set_last_error(ec.value());
 									try
 									{
-										if (m_state == state::running)
+										if (prev_state == state::running)
 											_fire_close(get_last_error());
 
 										// when the lowest socket is closed,the ssl stream shutdown will returned.
@@ -191,9 +192,17 @@ namespace asio2
 		/**
 		 * @function : whether the client is started
 		 */
-		virtual bool is_start()
+		virtual bool is_started()
 		{
 			return ((m_state >= state::started) && m_socket.lowest_layer().is_open());
+		}
+
+		/**
+		 * @function : check whether the connection is stopped
+		 */
+		virtual bool is_stopped() override
+		{
+			return ((m_state == state::stopped) && !m_socket.lowest_layer().is_open());
 		}
 
 		/**
@@ -204,13 +213,17 @@ namespace asio2
 			// must use strand.post to send data.why we should do it like this ? see udp_session._post_send.
 			try
 			{
-				if (is_start() && buf_ptr)
+				if (is_started() && buf_ptr)
 				{
 					m_send_strand_ptr->post(std::bind(&tcps_connection_impl::_post_send, this,
 						shared_from_this(),
 						std::move(buf_ptr)
 					));
 					return true;
+				}
+				else if (!m_socket.lowest_layer().is_open())
+				{
+					set_last_error((int)errcode::socket_not_ready);
 				}
 			}
 			catch (std::exception &) {}
@@ -390,7 +403,7 @@ namespace asio2
 
 		virtual void _post_recv(std::shared_ptr<connection_impl> this_ptr, std::shared_ptr<buffer<uint8_t>> buf_ptr)
 		{
-			if (this->is_start())
+			if (this->is_started())
 			{
 				if (buf_ptr->remain() > 0)
 				{
@@ -460,7 +473,7 @@ namespace asio2
 
 		virtual void _post_send(std::shared_ptr<connection_impl> this_ptr, std::shared_ptr<buffer<uint8_t>> buf_ptr)
 		{
-			if (is_start())
+			if (is_started())
 			{
 				boost::system::error_code ec;
 				boost::asio::write(m_socket, boost::asio::buffer(buf_ptr->read_begin(), buf_ptr->size()), ec);

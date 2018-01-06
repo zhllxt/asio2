@@ -55,7 +55,7 @@ int main(int argc, char *argv[])
 			printf("http_client is closed %d\n", std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - t1).count());
 		});
 		if (!http_client.start(false))
-			std::printf("connect to http server failed : %d - %s\n", asio2::get_last_error(), asio2::get_last_error_desc().c_str());
+			std::printf("connect to http server failed : %d - %s\n", asio2::get_last_error(), asio2::get_last_error_desc().data());
 		{
 			asio2::http_request req;
 			req

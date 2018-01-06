@@ -109,7 +109,7 @@ namespace asio2
 		 */
 		virtual void stop() override
 		{
-			if (this->is_start())
+			if (this->is_started())
 			{
 				if (m_acceptor.is_open())
 				{
@@ -155,9 +155,17 @@ namespace asio2
 		/**
 		 * @function : test whether the acceptor is opened
 		 */
-		virtual bool is_start() override
+		virtual bool is_started() override
 		{
 			return (m_acceptor.is_open());
+		}
+
+		/**
+		 * @function : check whether the acceptor is stopped
+		 */
+		virtual bool is_stopped() override
+		{
+			return (!m_acceptor.is_open());
 		}
 
 		/**
@@ -209,7 +217,7 @@ namespace asio2
 	protected:
 		virtual void _post_recv(std::shared_ptr<acceptor_impl> this_ptr, std::shared_ptr<buffer<uint8_t>> buf_ptr)
 		{
-			if (is_start())
+			if (is_started())
 			{
 				if (buf_ptr->remain() > 0)
 				{
@@ -235,56 +243,50 @@ namespace asio2
 
 		virtual void _handle_recv(const boost::system::error_code& ec, std::size_t bytes_recvd, std::shared_ptr<acceptor_impl> this_ptr, std::shared_ptr<buffer<uint8_t>> buf_ptr)
 		{
-			if (is_start())
+			if (is_started())
 			{
+				auto use_count = buf_ptr.use_count();
 				if (!ec)
 				{
-					if (bytes_recvd == 0)
-					{
-						// recvd data len is 0,may be heartbeat packet.
-					}
-					else if (bytes_recvd > 0)
-					{
-						buf_ptr->write_bytes(bytes_recvd);
-					}
+					buf_ptr->write_bytes(bytes_recvd);
 
-					if (is_start())
-					{
-						// first we find whether the session is in the session_mgr pool already,if not ,we new a session and put it into the session_mgr
-						// pool
-						auto & session_ptr = m_session_mgr_ptr->find_session(static_cast<void *>(&m_sender_endpoint));
+					// first we find whether the session is in the session_mgr pool already,if not ,we new a session and put it into the session_mgr pool
+					auto & session_ptr = m_session_mgr_ptr->find_session(static_cast<void *>(&m_sender_endpoint));
 
-						if (!session_ptr)
+					if (!session_ptr)
+					{
+						std::shared_ptr<session_impl> new_session_ptr = _handle_accept();
+						if (new_session_ptr)
 						{
-							std::shared_ptr<session_impl> new_session_ptr = _handle_accept();
-							if (new_session_ptr)
-							{
-								static_cast<_session_impl_t *>(new_session_ptr.get())->_post_recv(new_session_ptr, buf_ptr);
-							}
+							static_cast<_session_impl_t *>(new_session_ptr.get())->_post_recv(new_session_ptr, buf_ptr);
 						}
-						else
-						{
-							static_cast<_session_impl_t *>(session_ptr.get())->_post_recv(session_ptr, buf_ptr);
-						}
+					}
+					else
+					{
+						static_cast<_session_impl_t *>(session_ptr.get())->_post_recv(session_ptr, buf_ptr);
 					}
 				}
 				else
 				{
 					set_last_error(ec.value());
 
-					// may be user pressed the CTRL + C to exit application.
+					// may be user exit application.
 					// if user call stop to stop server,the socket is closed,then _handle_recv will be called,and with error,so when appear error,we check 
 					// the socket status,if closed,don't _post_recv again.
 					if (ec == boost::asio::error::operation_aborted)
 						return;
-
-					PRINT_EXCEPTION;
 				}
 
-				// continue post next recv request.
-				auto recv_buf = std::make_shared<buffer<uint8_t>>(m_url_parser_ptr->get_recv_buffer_size(), malloc_recv_buffer(m_url_parser_ptr->get_recv_buffer_size()), 0);
-
-				_post_recv(std::move(this_ptr), std::move(recv_buf));
+				if (use_count == buf_ptr.use_count())
+				{
+					buf_ptr->reset();
+					this->_post_recv(std::move(this_ptr), std::move(buf_ptr));
+				}
+				else
+				{
+					this->_post_recv(std::move(this_ptr), std::make_shared<buffer<uint8_t>>(
+						m_url_parser_ptr->get_recv_buffer_size(), malloc_recv_buffer(m_url_parser_ptr->get_recv_buffer_size()), 0));
+				}
 			}
 		}
 

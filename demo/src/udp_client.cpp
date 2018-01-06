@@ -55,9 +55,9 @@ int main(int argc, char *argv[])
 			udp_client[i]->bind_recv(std::bind(&main_frame::on_recv, &_main_frame, std::placeholders::_1, 100));
 
 			if (!udp_client[i]->start(false))
-				std::printf("connect to udp server failed : %d - %s.\n %d", asio2::get_last_error(), asio2::get_last_error_desc().c_str(), i);
+				std::printf("connect to udp server failed : %d - %s.\n %d", asio2::get_last_error(), asio2::get_last_error_desc().data(), i);
 			else
-				std::printf("connect to udp server successed : %s - %u\n", udp_client[i]->get_remote_address().c_str(), udp_client[i]->get_local_port());
+				std::printf("connect to udp server successed : %s - %u\n", udp_client[i]->get_remote_address().data(), udp_client[i]->get_local_port());
 		}
 
 
@@ -81,7 +81,7 @@ int main(int argc, char *argv[])
 					s += '>';
 					len += 3;
 
-					udp_client[i]->send(s.c_str());
+					udp_client[i]->send(s.data());
 				}
 			}
 		}).join();

@@ -123,9 +123,17 @@ namespace asio2
 		/**
 		 * @function : check whether the acceptor is opened
 		 */
-		virtual bool is_start() override
+		virtual bool is_started() override
 		{
 			return (m_acceptor.is_open());
+		}
+
+		/**
+		 * @function : check whether the acceptor is stopped
+		 */
+		virtual bool is_stopped() override
+		{
+			return (!m_acceptor.is_open());
 		}
 
 		/**
@@ -198,7 +206,7 @@ namespace asio2
 
 		virtual void _post_accept(std::shared_ptr<acceptor_impl> this_ptr)
 		{
-			if (is_start())
+			if (is_started())
 			{
 				auto session_ptr = _make_session();
 				if (session_ptr)
@@ -227,7 +235,7 @@ namespace asio2
 
 		virtual void _handle_accept(const boost::system::error_code & ec, std::shared_ptr<acceptor_impl> this_ptr, std::shared_ptr<session_impl> session_ptr)
 		{
-			if (is_start())
+			if (is_started())
 			{
 				if (!ec)
 				{

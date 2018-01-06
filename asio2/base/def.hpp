@@ -39,7 +39,7 @@ namespace asio2
 	//---------------------------------------------------------------------------------------------
 
 	#if defined(ASIO2_WRITE_LOG)
-		#define PRINT_EXCEPTION asio2::logger::get().log_trace("fatal exception (code - %d) : \"%s\" %s %d\n", get_last_error(), get_last_error_desc().data(), __FILE__, __LINE__);
+		#define PRINT_EXCEPTION asio2::logger::get().log_trace("exception (errno - %d) : \"%s\" %s %d\n", get_last_error(), get_last_error_desc().data(), __FILE__, __LINE__);
 	#else
 		#define PRINT_EXCEPTION 
 	#endif

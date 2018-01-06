@@ -76,9 +76,9 @@ int main(int argc, char *argv[])
 				}).set_pack_parser(std::bind(pack_parser, std::placeholders::_1));
 
 				if (!tcp_pack_client[i]->start(false))
-					std::printf("connect to tcp server failed : %d - %s. %d\n", asio2::get_last_error(), asio2::get_last_error_desc().c_str(), i);
+					std::printf("connect to tcp server failed : %d - %s. %d\n", asio2::get_last_error(), asio2::get_last_error_desc().data(), i);
 				else
-					std::printf("connect to tcp server successed : %s - %u\n", tcp_pack_client[i]->get_remote_address().c_str(), tcp_pack_client[i]->get_remote_port());
+					std::printf("connect to tcp server successed : %s - %u\n", tcp_pack_client[i]->get_remote_address().data(), tcp_pack_client[i]->get_remote_port());
 			}
 			for (i = 0; i < client_count; i++)
 			{
@@ -99,7 +99,7 @@ int main(int argc, char *argv[])
 				while (true)
 				{
 					packet_send_times++;
-					tcp_pack_client[i]->send((const uint8_t *)(s.c_str() + already_send_len), (std::size_t)send_len);
+					tcp_pack_client[i]->send((const uint8_t *)(s.data() + already_send_len), (std::size_t)send_len);
 					already_send_len += send_len;
 
 					if (already_send_len >= len)
@@ -144,7 +144,7 @@ int main(int argc, char *argv[])
 				//	while (true)
 				//	{
 				//		packet_send_times++;
-				//		tcp_pack_client[i]->send((const uint8_t *)(s.c_str() + already_send_len), (std::size_t)send_len);
+				//		tcp_pack_client[i]->send((const uint8_t *)(s.data() + already_send_len), (std::size_t)send_len);
 				//		already_send_len += send_len;
 
 				//		if (already_send_len >= len)
