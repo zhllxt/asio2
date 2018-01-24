@@ -33,9 +33,9 @@ namespace asio2
 		 * @construct
 		 */
 		tcp_acceptor_impl(
-			std::shared_ptr<url_parser>                    url_parser_ptr,
-			std::shared_ptr<listener_mgr>                  listener_mgr_ptr,
-			std::shared_ptr<io_context_pool>               io_context_pool_ptr
+			std::shared_ptr<url_parser>       url_parser_ptr,
+			std::shared_ptr<listener_mgr>     listener_mgr_ptr,
+			std::shared_ptr<io_context_pool>  io_context_pool_ptr
 		)
 			: acceptor_impl(url_parser_ptr, listener_mgr_ptr, io_context_pool_ptr)
 			, m_acceptor(*m_io_context_ptr)
@@ -58,9 +58,9 @@ namespace asio2
 			try
 			{
 				// parse address and port
-				boost::asio::ip::tcp::resolver resolver(*m_io_context_ptr);
-				boost::asio::ip::tcp::resolver::query query(m_url_parser_ptr->get_ip(), m_url_parser_ptr->get_port());
-				boost::asio::ip::tcp::endpoint endpoint = *resolver.resolve(query);
+				asio::ip::tcp::resolver resolver(*m_io_context_ptr);
+				asio::ip::tcp::resolver::query query(m_url_parser_ptr->get_ip(), m_url_parser_ptr->get_port());
+				asio::ip::tcp::endpoint endpoint = *resolver.resolve(query);
 
 				m_acceptor.open(endpoint.protocol());
 
@@ -68,20 +68,20 @@ namespace asio2
 				// and bind is failed,but i'm suer i close the socket correct already before,why does this happen? the reasion is 
 				// the socket option "TIME_WAIT",although you close the socket,but the system not release the socket,util 2~4 
 				// seconds later,so we can use the SO_REUSEADDR option to avoid this problem,like below
-				m_acceptor.set_option(boost::asio::ip::tcp::acceptor::reuse_address(true)); // set port reuse
+				m_acceptor.set_option(asio::ip::tcp::acceptor::reuse_address(true)); // set port reuse
 				m_acceptor.bind(endpoint);
 
-				m_acceptor.listen(boost::asio::socket_base::max_connections);
+				m_acceptor.listen(asio::socket_base::max_listen_connections);
 
 				_fire_listen();
 
 				_post_accept(shared_from_this());
 			}
-			catch (boost::system::system_error & e)
+			catch (asio::system_error & e)
 			{
 				set_last_error(e.code().value());
 
-				boost::system::error_code ec;
+				asio::error_code ec;
 				m_acceptor.close(ec);
 			}
 
@@ -109,7 +109,7 @@ namespace asio2
 						m_acceptor.cancel();
 						m_acceptor.close();
 					}
-					catch (boost::system::system_error & e)
+					catch (asio::system_error & e)
 					{
 						set_last_error(e.code().value());
 					}
@@ -148,7 +148,7 @@ namespace asio2
 					return m_acceptor.local_endpoint().address().to_string();
 				}
 			}
-			catch (boost::system::system_error & e)
+			catch (asio::system_error & e)
 			{
 				set_last_error(e.code().value());
 			}
@@ -167,7 +167,7 @@ namespace asio2
 					return m_acceptor.local_endpoint().port();
 				}
 			}
-			catch (boost::system::system_error & e)
+			catch (asio::system_error & e)
 			{
 				set_last_error(e.code().value());
 			}
@@ -177,7 +177,7 @@ namespace asio2
 		/**
 		 * @function : get the acceptor shared_ptr
 		 */
-		inline boost::asio::ip::tcp::acceptor & get_acceptor()
+		inline asio::ip::tcp::acceptor & get_acceptor()
 		{
 			return m_acceptor;
 		}
@@ -195,7 +195,7 @@ namespace asio2
 					);
 			}
 			// handle exception,may be is the exception "Too many open files" (exception code : 24)
-			catch (boost::system::system_error & e)
+			catch (asio::system_error & e)
 			{
 				set_last_error(e.code().value());
 
@@ -233,7 +233,7 @@ namespace asio2
 			}
 		}
 
-		virtual void _handle_accept(const boost::system::error_code & ec, std::shared_ptr<acceptor_impl> this_ptr, std::shared_ptr<session_impl> session_ptr)
+		virtual void _handle_accept(const asio::error_code & ec, std::shared_ptr<acceptor_impl> this_ptr, std::shared_ptr<session_impl> session_ptr)
 		{
 			if (is_started())
 			{
@@ -246,7 +246,7 @@ namespace asio2
 					set_last_error(ec.value());
 					// may be user pressed the CTRL + C to exit application.
 					// the acceptor status,if closed,don't call _post_accept again.
-					if (ec == boost::asio::error::operation_aborted)
+					if (ec == asio::error::operation_aborted)
 						return;
 
 					PRINT_EXCEPTION;
@@ -268,7 +268,7 @@ namespace asio2
 
 	protected:
 		/// acceptor to accept client connection
-		boost::asio::ip::tcp::acceptor       m_acceptor;
+		asio::ip::tcp::acceptor       m_acceptor;
 
 	};
 

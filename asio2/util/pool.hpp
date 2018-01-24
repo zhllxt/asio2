@@ -22,75 +22,75 @@
 #include <memory>
 #include <atomic>
 
-#include <boost/pool/pool.hpp>
+//#include <boost/pool/pool.hpp>
 
 
 namespace asio2
 {
 
-	/**
-	 * no thread safed and no locked buffer pool based on boost::pool,just used for thread_local
-	 */
-	template<class T>
-	class pool : public boost::pool<>, public std::enable_shared_from_this<pool<T>>
-	{
-	public:
-		/**
-		 * @construct
-		 */
-		pool(std::size_t requested_size) : boost::pool<>(requested_size)
-		{
-		}
+	///**
+	// * no thread safed and no locked buffer pool based on boost::pool,just used for thread_local
+	// */
+	//template<class T>
+	//class pool : public boost::pool<>, public std::enable_shared_from_this<pool<T>>
+	//{
+	//public:
+	//	/**
+	//	 * @construct
+	//	 */
+	//	pool(std::size_t requested_size) : boost::pool<>(requested_size)
+	//	{
+	//	}
 
-		/**
-		 * @destruct
-		 */
-		virtual ~pool() noexcept
-		{
-		}
+	//	/**
+	//	 * @destruct
+	//	 */
+	//	virtual ~pool() noexcept
+	//	{
+	//	}
 
-		/**
-		 * @function : get a buf for use from pool, return a shared_ptr object contain the buf,
-		 *             when the shared_ptr invalid,will enter the custom deleter,and put the buf
-		 *             into the pool again for next use.
-		 */
-		std::shared_ptr<T> malloc()
-		{
-			// use "this->shared_from_this()", don't use "shared_from_this()", otherwise will cause [-fpermissive] error when compiler with gcc.
-			auto zhis = this->shared_from_this();
-			auto deleter = [this, zhis](void * buffer)
-			{
-				assert(is_from(buffer));
-				free(buffer);
-			};
+	//	/**
+	//	 * @function : get a buf for use from pool, return a shared_ptr object contain the buf,
+	//	 *             when the shared_ptr invalid,will enter the custom deleter,and put the buf
+	//	 *             into the pool again for next use.
+	//	 */
+	//	std::shared_ptr<T> malloc()
+	//	{
+	//		// use "this->shared_from_this()", don't use "shared_from_this()", otherwise will cause [-fpermissive] error when compiler with gcc.
+	//		auto zhis = this->shared_from_this();
+	//		auto deleter = [this, zhis](void * buffer)
+	//		{
+	//			assert(is_from(buffer));
+	//			free(buffer);
+	//		};
 
-			return std::move(std::shared_ptr<T>(reinterpret_cast<T *>(boost::pool<>::malloc()), std::move(deleter)));
-		}
+	//		return std::move(std::shared_ptr<T>(reinterpret_cast<T *>(boost::pool<>::malloc()), std::move(deleter)));
+	//	}
 
-		/**
-		 * @function : get the allocated memory size
-		 */
-		inline std::size_t alloc_size()
-		{
-			return boost::pool<>::alloc_size();
-		}
+	//	/**
+	//	 * @function : get the allocated memory size
+	//	 */
+	//	inline std::size_t alloc_size()
+	//	{
+	//		return boost::pool<>::alloc_size();
+	//	}
 
-		/**
-		 * @function : get the requested chunk size
-		 */
-		inline std::size_t get_requested_size()
-		{
-			return boost::pool<>::get_requested_size();
-		}
+	//	/**
+	//	 * @function : get the requested chunk size
+	//	 */
+	//	inline std::size_t get_requested_size()
+	//	{
+	//		return boost::pool<>::get_requested_size();
+	//	}
 
-	private:
-		/// no copy construct function
-		pool(const pool&) = delete;
+	//private:
+	//	/// no copy construct function
+	//	pool(const pool&) = delete;
 
-		/// no operator equal function
-		pool& operator=(const pool&) = delete;
+	//	/// no operator equal function
+	//	pool& operator=(const pool&) = delete;
 
-	};
+	//};
 
 	// use anonymous namespace to resolve global function redefinition problem 
 	namespace

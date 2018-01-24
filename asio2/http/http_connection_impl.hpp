@@ -28,10 +28,10 @@ namespace asio2
 		 * @construct
 		 */
 		explicit http_connection_impl(
-			std::shared_ptr<url_parser>              url_parser_ptr,
-			std::shared_ptr<listener_mgr>            listener_mgr_ptr,
-			std::shared_ptr<boost::asio::io_context> send_io_context_ptr,
-			std::shared_ptr<boost::asio::io_context> recv_io_context_ptr
+			std::shared_ptr<url_parser>       url_parser_ptr,
+			std::shared_ptr<listener_mgr>     listener_mgr_ptr,
+			std::shared_ptr<asio::io_context> send_io_context_ptr,
+			std::shared_ptr<asio::io_context> recv_io_context_ptr
 		)
 			: tcp_connection_impl(
 				url_parser_ptr,
@@ -62,7 +62,7 @@ namespace asio2
 		}
 
 	protected:
-		virtual void _handle_recv(const boost::system::error_code & ec, std::size_t bytes_recvd, std::shared_ptr<connection_impl> this_ptr, std::shared_ptr<buffer<uint8_t>> buf_ptr) override
+		virtual void _handle_recv(const asio::error_code & ec, std::size_t bytes_recvd, std::shared_ptr<connection_impl> this_ptr, std::shared_ptr<buffer<uint8_t>> buf_ptr) override
 		{
 			if (!ec)
 			{

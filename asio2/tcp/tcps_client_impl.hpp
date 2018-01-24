@@ -30,21 +30,21 @@ namespace asio2
 		explicit tcps_client_impl(
 			std::shared_ptr<url_parser>        url_parser_ptr,
 			std::shared_ptr<listener_mgr>      listener_mgr_ptr,
-			boost::asio::ssl::context::method  method,
-			boost::asio::ssl::context::options options
+			asio::ssl::context::method  method,
+			asio::ssl::context::options options
 		)
 			: tcp_client_impl<_connection_impl_t>(url_parser_ptr, nullptr)
 		{
 			this->m_listener_mgr_ptr = listener_mgr_ptr;
 			try
 			{
-				this->m_ssl_context_ptr = std::make_shared<boost::asio::ssl::context>(method);
+				this->m_ssl_context_ptr = std::make_shared<asio::ssl::context>(method);
 				this->m_ssl_context_ptr->set_options(options);
 
 				this->m_connection_impl_ptr = std::make_shared<_connection_impl_t>(url_parser_ptr, listener_mgr_ptr,
 					nullptr, this->m_io_context_pool_ptr->get_io_context_ptr(), this->m_ssl_context_ptr);
 			}
-			catch (boost::system::system_error & e)
+			catch (asio::system_error & e)
 			{
 				set_last_error(e.code().value());
 				PRINT_EXCEPTION;
@@ -69,11 +69,11 @@ namespace asio2
 			tcp_client_impl<_connection_impl_t>::stop();
 		}
 
-		inline std::shared_ptr<boost::asio::ssl::context> get_ssl_context() { return this->m_ssl_context_ptr; }
+		inline std::shared_ptr<asio::ssl::context> get_ssl_context() { return this->m_ssl_context_ptr; }
 
 	protected:
 		/// ssl context 
-		std::shared_ptr<boost::asio::ssl::context> m_ssl_context_ptr;
+		std::shared_ptr<asio::ssl::context> m_ssl_context_ptr;
 
 	};
 

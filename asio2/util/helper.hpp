@@ -333,7 +333,7 @@ namespace asio2
 		/**
 		 * std::string format
 		 */
-		std::string format(const char * format, va_list args)
+		std::string formatv(const char * format, va_list args)
 		{
 			std::string s;
 
@@ -360,7 +360,7 @@ namespace asio2
 		/**
 		 * std::wstring format
 		 */
-		std::wstring format(const wchar_t * format, va_list args)
+		std::wstring formatv(const wchar_t * format, va_list args)
 		{
 			std::wstring s;
 
@@ -401,18 +401,10 @@ namespace asio2
 			if (format && *format)
 			{
 				// under windows and linux system,std::vsnprintf(nullptr, 0, format, args) can get the need buffer len for the output,
-				va_list args, args_copy;
+				va_list args;
 				va_start(args, format);
 
-				va_copy(args_copy, args);
-				int len = std::vsnprintf(nullptr, 0, format, args_copy);
-				if (len > 0)
-				{
-					s.resize(len);
-
-					va_copy(args_copy, args);
-					std::vsprintf((char*)(&s[0]), format, args_copy);
-				}
+				s = std::move(formatv(format, args));
 
 				va_end(args);
 			}
@@ -429,27 +421,11 @@ namespace asio2
 
 			if (format && *format)
 			{
-				va_list args, args_copy;
+				va_list args;
 				va_start(args, format);
 
-				while (true)
-				{
-					s.resize(s.capacity());
+				s = std::move(formatv(format, args));
 
-					va_copy(args_copy, args);
-
-					// if provided buffer size is less than required size,vswprintf will return -1
-					// so if len equal -1,we increase the buffer size again, and has to use a loop 
-					// to get the correct output buffer len,
-					int len = std::vswprintf((wchar_t*)(&s[0]), s.size(), format, args_copy);
-					if (len == -1)
-						s.reserve(s.capacity() * 2);
-					else
-					{
-						s.resize(len);
-						break;
-					}
-				}
 				va_end(args);
 			}
 

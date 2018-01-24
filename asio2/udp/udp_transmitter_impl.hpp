@@ -26,10 +26,10 @@ namespace asio2
 		 * @construct
 		 */
 		explicit udp_transmitter_impl(
-			std::shared_ptr<url_parser>              url_parser_ptr,
-			std::shared_ptr<listener_mgr>            listener_mgr_ptr,
-			std::shared_ptr<boost::asio::io_context> send_io_context_ptr,
-			std::shared_ptr<boost::asio::io_context> recv_io_context_ptr
+			std::shared_ptr<url_parser>       url_parser_ptr,
+			std::shared_ptr<listener_mgr>     listener_mgr_ptr,
+			std::shared_ptr<asio::io_context> send_io_context_ptr,
+			std::shared_ptr<asio::io_context> recv_io_context_ptr
 		)
 			: transmitter_impl(url_parser_ptr, listener_mgr_ptr, send_io_context_ptr, recv_io_context_ptr)
 			, m_socket(*m_recv_io_context_ptr)
@@ -58,23 +58,23 @@ namespace asio2
 				m_fire_close_is_called.clear(std::memory_order_release);
 
 				// parse address and port
-				boost::asio::ip::udp::resolver resolver(*m_recv_io_context_ptr);
-				boost::asio::ip::udp::resolver::query query(m_url_parser_ptr->get_ip(), m_url_parser_ptr->get_port());
-				boost::asio::ip::udp::endpoint endpoint = *resolver.resolve(query);
+				asio::ip::udp::resolver resolver(*m_recv_io_context_ptr);
+				asio::ip::udp::resolver::query query(m_url_parser_ptr->get_ip(), m_url_parser_ptr->get_port());
+				asio::ip::udp::endpoint endpoint = *resolver.resolve(query);
 
 				m_socket.open(endpoint.protocol());
 
 				// setsockopt SO_SNDBUF from url params
 				if (m_url_parser_ptr->get_so_sndbuf_size() > 0)
 				{
-					boost::asio::socket_base::send_buffer_size option(m_url_parser_ptr->get_so_sndbuf_size());
+					asio::socket_base::send_buffer_size option(m_url_parser_ptr->get_so_sndbuf_size());
 					m_socket.set_option(option);
 				}
 
 				// setsockopt SO_RCVBUF from url params
 				if (m_url_parser_ptr->get_so_rcvbuf_size() > 0)
 				{
-					boost::asio::socket_base::receive_buffer_size option(m_url_parser_ptr->get_so_rcvbuf_size());
+					asio::socket_base::receive_buffer_size option(m_url_parser_ptr->get_so_rcvbuf_size());
 					m_socket.set_option(option);
 				}
 
@@ -82,7 +82,7 @@ namespace asio2
 				// and bind is failed,but i'm suer i close the socket correct already before,why does this happen? the reasion is 
 				// the socket option "TIME_WAIT",although you close the socket,but the system not release the socket,util 2~4 
 				// seconds later,so we can use the SO_REUSEADDR option to avoid this problem,like below
-				m_socket.set_option(boost::asio::ip::tcp::acceptor::reuse_address(true)); // set port reuse
+				m_socket.set_option(asio::ip::tcp::acceptor::reuse_address(true)); // set port reuse
 				m_socket.bind(endpoint);
 
 				m_state = state::started;
@@ -94,7 +94,7 @@ namespace asio2
 
 				return (m_socket.is_open());
 			}
-			catch (boost::system::system_error & e)
+			catch (asio::system_error & e)
 			{
 				set_last_error(e.code().value());
 			}
@@ -141,10 +141,10 @@ namespace asio2
 								if (prev_state == state::running)
 									_fire_close(get_last_error());
 
-								m_socket.shutdown(boost::asio::socket_base::shutdown_both);
+								m_socket.shutdown(asio::socket_base::shutdown_both);
 								m_socket.close();
 							}
-							catch (boost::system::system_error & e)
+							catch (asio::system_error & e)
 							{
 								set_last_error(e.code().value());
 							}
@@ -182,9 +182,9 @@ namespace asio2
 			{
 				if (is_started() && !ip.empty() && buf_ptr)
 				{
-					boost::asio::ip::udp::resolver resolver(*m_recv_io_context_ptr);
-					boost::asio::ip::udp::resolver::query query(ip, port);
-					boost::asio::ip::udp::endpoint endpoint = *resolver.resolve(query);
+					asio::ip::udp::resolver resolver(*m_recv_io_context_ptr);
+					asio::ip::udp::resolver::query query(ip, port);
+					asio::ip::udp::endpoint endpoint = *resolver.resolve(query);
 
 					// must use strand.post to send data.why we should do it like this ? see udp_session._post_send.
 					m_send_strand_ptr->post(std::bind(&udp_transmitter_impl::_post_send, this,
@@ -199,7 +199,7 @@ namespace asio2
 					set_last_error((int)errcode::socket_not_ready);
 				}
 			}
-			catch (boost::system::system_error & e)
+			catch (asio::system_error & e)
 			{
 				set_last_error(e.code().value());
 			}
@@ -210,7 +210,7 @@ namespace asio2
 		/**
 		 * @function : get the socket shared_ptr
 		 */
-		inline boost::asio::ip::udp::socket & get_socket()
+		inline asio::ip::udp::socket & get_socket()
 		{
 			return m_socket;
 		}
@@ -227,7 +227,7 @@ namespace asio2
 					return m_socket.local_endpoint().address().to_string();
 				}
 			}
-			catch (boost::system::system_error & e)
+			catch (asio::system_error & e)
 			{
 				set_last_error(e.code().value());
 			}
@@ -246,7 +246,7 @@ namespace asio2
 					return m_socket.local_endpoint().port();
 				}
 			}
-			catch (boost::system::system_error & e)
+			catch (asio::system_error & e)
 			{
 				set_last_error(e.code().value());
 			}
@@ -265,7 +265,7 @@ namespace asio2
 					return m_socket.remote_endpoint().address().to_string();
 				}
 			}
-			catch (boost::system::system_error & e)
+			catch (asio::system_error & e)
 			{
 				set_last_error(e.code().value());
 			}
@@ -284,7 +284,7 @@ namespace asio2
 					return m_socket.remote_endpoint().port();
 				}
 			}
-			catch (boost::system::system_error & e)
+			catch (asio::system_error & e)
 			{
 				set_last_error(e.code().value());
 			}
@@ -298,7 +298,7 @@ namespace asio2
 			{
 				if (buf_ptr->remain() > 0)
 				{
-					const auto & buffer = boost::asio::buffer(buf_ptr->write_begin(), buf_ptr->remain());
+					const auto & buffer = asio::buffer(buf_ptr->write_begin(), buf_ptr->remain());
 					this->m_socket.async_receive_from(buffer, m_sender_endpoint,
 						this->m_recv_strand_ptr->wrap(std::bind(&udp_transmitter_impl::_handle_recv, this,
 							std::placeholders::_1, // error_code
@@ -317,7 +317,7 @@ namespace asio2
 			}
 		}
 
-		virtual void _handle_recv(const boost::system::error_code & ec, std::size_t bytes_recvd, std::shared_ptr<transmitter_impl> this_ptr, std::shared_ptr<buffer<uint8_t>> buf_ptr)
+		virtual void _handle_recv(const asio::error_code & ec, std::size_t bytes_recvd, std::shared_ptr<transmitter_impl> this_ptr, std::shared_ptr<buffer<uint8_t>> buf_ptr)
 		{
 			if (is_started())
 			{
@@ -335,7 +335,7 @@ namespace asio2
 				{
 					set_last_error(ec.value());
 
-					if (ec == boost::asio::error::operation_aborted)
+					if (ec == asio::error::operation_aborted)
 						return;
 				}
 
@@ -352,12 +352,12 @@ namespace asio2
 			}
 		}
 
-		virtual void _post_send(std::shared_ptr<transmitter_impl> this_ptr, boost::asio::ip::udp::endpoint endpoint, std::shared_ptr<buffer<uint8_t>> buf_ptr)
+		virtual void _post_send(std::shared_ptr<transmitter_impl> this_ptr, asio::ip::udp::endpoint endpoint, std::shared_ptr<buffer<uint8_t>> buf_ptr)
 		{
 			if (is_started())
 			{
-				boost::system::error_code ec;
-				m_socket.send_to(boost::asio::buffer(buf_ptr->read_begin(), buf_ptr->size()), endpoint, 0, ec);
+				asio::error_code ec;
+				m_socket.send_to(asio::buffer(buf_ptr->read_begin(), buf_ptr->size()), endpoint, 0, ec);
 				set_last_error(ec.value());
 				this->_fire_send(endpoint, buf_ptr, ec.value());
 				if (ec)
@@ -372,13 +372,13 @@ namespace asio2
 			}
 		}
 
-		virtual void _fire_recv(boost::asio::ip::udp::endpoint & endpoint, std::shared_ptr<buffer<uint8_t>> & buf_ptr)
+		virtual void _fire_recv(asio::ip::udp::endpoint & endpoint, std::shared_ptr<buffer<uint8_t>> & buf_ptr)
 		{
 			auto ip = endpoint.address().to_string();
 			static_cast<sender_listener_mgr *>(m_listener_mgr_ptr.get())->notify_recv(ip, endpoint.port(), buf_ptr);
 		}
 
-		virtual void _fire_send(boost::asio::ip::udp::endpoint & endpoint, std::shared_ptr<buffer<uint8_t>> & buf_ptr, int error)
+		virtual void _fire_send(asio::ip::udp::endpoint & endpoint, std::shared_ptr<buffer<uint8_t>> & buf_ptr, int error)
 		{
 			auto ip = endpoint.address().to_string();
 			static_cast<sender_listener_mgr *>(m_listener_mgr_ptr.get())->notify_send(ip, endpoint.port(), buf_ptr, error);
@@ -394,13 +394,13 @@ namespace asio2
 
 	protected:
 		/// socket
-		boost::asio::ip::udp::socket m_socket;
+		asio::ip::udp::socket m_socket;
 
 		/// use to avoid call _fire_close twice
 		std::atomic_flag m_fire_close_is_called = ATOMIC_FLAG_INIT;
 
 		/// endpoint for udp 
-		boost::asio::ip::udp::endpoint m_sender_endpoint;
+		asio::ip::udp::endpoint m_sender_endpoint;
 
 	};
 }

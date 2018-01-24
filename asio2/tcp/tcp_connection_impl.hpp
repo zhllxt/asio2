@@ -28,10 +28,10 @@ namespace asio2
 		 * @construct
 		 */
 		explicit tcp_connection_impl(
-			std::shared_ptr<url_parser>              url_parser_ptr,
-			std::shared_ptr<listener_mgr>            listener_mgr_ptr,
-			std::shared_ptr<boost::asio::io_context> send_io_context_ptr,
-			std::shared_ptr<boost::asio::io_context> recv_io_context_ptr
+			std::shared_ptr<url_parser>       url_parser_ptr,
+			std::shared_ptr<listener_mgr>     listener_mgr_ptr,
+			std::shared_ptr<asio::io_context> send_io_context_ptr,
+			std::shared_ptr<asio::io_context> recv_io_context_ptr
 		)
 			: connection_impl(
 				url_parser_ptr,
@@ -64,10 +64,10 @@ namespace asio2
 
 			try
 			{
-				boost::asio::ip::tcp::endpoint local_endpoint(boost::asio::ip::address_v4::any(), 0);
+				asio::ip::tcp::endpoint local_endpoint(asio::ip::address_v4::any(), 0);
 
 				m_socket.open(local_endpoint.protocol());
-				m_socket.set_option(boost::asio::ip::tcp::acceptor::reuse_address(true)); // set port reuse
+				m_socket.set_option(asio::ip::tcp::acceptor::reuse_address(true)); // set port reuse
 				m_socket.bind(local_endpoint);
 
 				// Connect succeeded. set the keeplive values
@@ -76,23 +76,23 @@ namespace asio2
 				// setsockopt SO_SNDBUF from url params
 				if (m_url_parser_ptr->get_so_sndbuf_size() > 0)
 				{
-					boost::asio::socket_base::send_buffer_size option(m_url_parser_ptr->get_so_sndbuf_size());
+					asio::socket_base::send_buffer_size option(m_url_parser_ptr->get_so_sndbuf_size());
 					m_socket.set_option(option);
 				}
 
 				// setsockopt SO_RCVBUF from url params
 				if (m_url_parser_ptr->get_so_rcvbuf_size() > 0)
 				{
-					boost::asio::socket_base::receive_buffer_size option(m_url_parser_ptr->get_so_rcvbuf_size());
+					asio::socket_base::receive_buffer_size option(m_url_parser_ptr->get_so_rcvbuf_size());
 					m_socket.set_option(option);
 				}
 
-				boost::asio::ip::tcp::resolver resolver(*m_recv_io_context_ptr);
-				boost::asio::ip::tcp::resolver::query query(m_url_parser_ptr->get_ip(), m_url_parser_ptr->get_port());
-				boost::asio::ip::tcp::endpoint server_endpoint = *resolver.resolve(query);
+				asio::ip::tcp::resolver resolver(*m_recv_io_context_ptr);
+				asio::ip::tcp::resolver::query query(m_url_parser_ptr->get_ip(), m_url_parser_ptr->get_port());
+				asio::ip::tcp::endpoint server_endpoint = *resolver.resolve(query);
 
-				//boost::asio::ip::tcp::resolver::iterator endpoint_iterator = resolver.resolve(query);
-				//boost::asio::connect(socket, endpoint_iterator);
+				//asio::ip::tcp::resolver::iterator endpoint_iterator = resolver.resolve(query);
+				//asio::connect(socket, endpoint_iterator);
 
 				if (async_connect)
 				{
@@ -106,16 +106,16 @@ namespace asio2
 				}
 				else
 				{
-					boost::system::error_code ec;
+					asio::error_code ec;
 					m_socket.connect(server_endpoint, ec);
 
 					_handle_connect(ec, shared_from_this());
 
 					// if error code is not 0,then connect failed,return false
-					return (ec == 0 && is_started());
+					return (!ec && is_started());
 				}
 			}
-			catch (boost::system::system_error & e)
+			catch (asio::system_error & e)
 			{
 				set_last_error(e.code().value());
 			}
@@ -162,10 +162,10 @@ namespace asio2
 								if (prev_state == state::running)
 									_fire_close(get_last_error());
 
-								m_socket.shutdown(boost::asio::socket_base::shutdown_both);
+								m_socket.shutdown(asio::socket_base::shutdown_both);
 								m_socket.close();
 							}
-							catch (boost::system::system_error & e)
+							catch (asio::system_error & e)
 							{
 								set_last_error(e.code().value());
 							}
@@ -225,7 +225,7 @@ namespace asio2
 		/**
 		 * @function : get the socket shared_ptr
 		 */
-		inline boost::asio::ip::tcp::socket & get_socket()
+		inline asio::ip::tcp::socket & get_socket()
 		{
 			return m_socket;
 		}
@@ -242,7 +242,7 @@ namespace asio2
 					return m_socket.local_endpoint().address().to_string();
 				}
 			}
-			catch (boost::system::system_error & e)
+			catch (asio::system_error & e)
 			{
 				set_last_error(e.code().value());
 			}
@@ -261,7 +261,7 @@ namespace asio2
 					return m_socket.local_endpoint().port();
 				}
 			}
-			catch (boost::system::system_error & e)
+			catch (asio::system_error & e)
 			{
 				set_last_error(e.code().value());
 			}
@@ -280,7 +280,7 @@ namespace asio2
 					return m_socket.remote_endpoint().address().to_string();
 				}
 			}
-			catch (boost::system::system_error & e)
+			catch (asio::system_error & e)
 			{
 				set_last_error(e.code().value());
 			}
@@ -299,7 +299,7 @@ namespace asio2
 					return m_socket.remote_endpoint().port();
 				}
 			}
-			catch (boost::system::system_error & e)
+			catch (asio::system_error & e)
 			{
 				set_last_error(e.code().value());
 			}
@@ -307,17 +307,20 @@ namespace asio2
 		}
 
 	protected:
-		virtual void _handle_connect(const boost::system::error_code & ec, std::shared_ptr<connection_impl> this_ptr)
+		virtual void _handle_connect(const asio::error_code & ec, std::shared_ptr<connection_impl> this_ptr)
 		{
 			set_last_error(ec.value());
 
-			if (ec == 0)
+			if (!ec)
 				m_state = state::started;
+
+			m_last_active_time = std::chrono::system_clock::now();
+			m_connect_time     = std::chrono::system_clock::now();
 
 			_fire_connect(ec.value());
 
 			// Connect succeeded.
-			if (ec == 0 && m_state == state::started)
+			if (!ec && m_state == state::started)
 			{
 				// to avlid the user call stop in another thread,then it may be m_socket.async_read_some and m_socket.close be called at the same time
 				this->m_recv_strand_ptr->post([this, this_ptr]()
@@ -337,7 +340,7 @@ namespace asio2
 			{
 				if (buf_ptr->remain() > 0)
 				{
-					const auto & buffer = boost::asio::buffer(buf_ptr->write_begin(), buf_ptr->remain());
+					const auto & buffer = asio::buffer(buf_ptr->write_begin(), buf_ptr->remain());
 					this->m_socket.async_read_some(buffer,
 						this->m_recv_strand_ptr->wrap(std::bind(&tcp_connection_impl::_handle_recv, this,
 							std::placeholders::_1, // error_code
@@ -356,7 +359,7 @@ namespace asio2
 			}
 		}
 
-		virtual void _handle_recv(const boost::system::error_code & ec, std::size_t bytes_recvd, std::shared_ptr<connection_impl> this_ptr, std::shared_ptr<buffer<uint8_t>> buf_ptr)
+		virtual void _handle_recv(const asio::error_code & ec, std::size_t bytes_recvd, std::shared_ptr<connection_impl> this_ptr, std::shared_ptr<buffer<uint8_t>> buf_ptr)
 		{
 			if (!ec)
 			{
@@ -405,8 +408,8 @@ namespace asio2
 		{
 			if (is_started())
 			{
-				boost::system::error_code ec;
-				boost::asio::write(m_socket, boost::asio::buffer((void *)buf_ptr->read_begin(), buf_ptr->size()), ec);
+				asio::error_code ec;
+				asio::write(m_socket, asio::buffer((void *)buf_ptr->read_begin(), buf_ptr->size()), ec);
 				set_last_error(ec.value());
 				this->_fire_send(buf_ptr, ec.value());
 				if (ec)
@@ -447,7 +450,7 @@ namespace asio2
 
 	protected:
 		/// tcp socket
-		boost::asio::ip::tcp::socket m_socket;
+		asio::ip::tcp::socket m_socket;
 
 		/// use to avoid call _fire_close twice
 		std::atomic_flag m_fire_close_is_called = ATOMIC_FLAG_INIT;

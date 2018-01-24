@@ -27,8 +27,8 @@
 #include <mutex>
 #include <atomic>
 
-#include <boost/asio.hpp>
-#include <boost/system/system_error.hpp>
+#include <asio/asio.hpp>
+#include <asio/system_error.hpp>
 
 #include <asio2/util/buffer.hpp>
 #include <asio2/util/def.hpp>
@@ -57,10 +57,10 @@ namespace asio2
 		 * @construct
 		 */
 		connection_impl(
-			std::shared_ptr<url_parser>              url_parser_ptr,
-			std::shared_ptr<listener_mgr>            listener_mgr_ptr,
-			std::shared_ptr<boost::asio::io_context> send_io_context_ptr,
-			std::shared_ptr<boost::asio::io_context> recv_io_context_ptr
+			std::shared_ptr<url_parser>       url_parser_ptr,
+			std::shared_ptr<listener_mgr>     listener_mgr_ptr,
+			std::shared_ptr<asio::io_context> send_io_context_ptr,
+			std::shared_ptr<asio::io_context> recv_io_context_ptr
 		)
 			: m_url_parser_ptr     (url_parser_ptr)
 			, m_listener_mgr_ptr   (listener_mgr_ptr)
@@ -69,11 +69,11 @@ namespace asio2
 		{
 			if (m_send_io_context_ptr)
 			{
-				m_send_strand_ptr = std::make_shared<boost::asio::io_context::strand>(*m_send_io_context_ptr);
+				m_send_strand_ptr = std::make_shared<asio::io_context::strand>(*m_send_io_context_ptr);
 			}
 			if (m_recv_io_context_ptr)
 			{
-				m_recv_strand_ptr = std::make_shared<boost::asio::io_context::strand>(*m_recv_io_context_ptr);
+				m_recv_strand_ptr = std::make_shared<asio::io_context::strand>(*m_recv_io_context_ptr);
 			}
 		}
 
@@ -188,6 +188,22 @@ namespace asio2
 			return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - m_last_active_time).count();
 		}
 
+		/**
+		 * @function : get build connection time 
+		 */
+		inline std::chrono::time_point<std::chrono::system_clock> get_connect_time()
+		{
+			return m_connect_time;
+		}
+
+		/**
+		 * @function : get connection duration of milliseconds
+		 */
+		inline std::chrono::milliseconds::rep get_connect_duration()
+		{
+			return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - m_connect_time).count();
+		}
+
 	protected:
 		/// asio::strand ,used to ensure socket multi thread safe,we must ensure that only one operator
 		/// can operate the same socket at the same time,and strand can enuser that the event will
@@ -202,25 +218,28 @@ namespace asio2
 		std::shared_ptr<listener_mgr>                      m_listener_mgr_ptr;
 
 		/// The io_context used to handle the socket event.
-		std::shared_ptr<boost::asio::io_context>           m_send_io_context_ptr;
+		std::shared_ptr<asio::io_context>                  m_send_io_context_ptr;
 
 		/// The io_context used to handle the socket event.
-		std::shared_ptr<boost::asio::io_context>           m_recv_io_context_ptr;
+		std::shared_ptr<asio::io_context>                  m_recv_io_context_ptr;
 
 		/// The strand used to handle the socket event.
-		std::shared_ptr<boost::asio::io_context::strand>   m_send_strand_ptr;
+		std::shared_ptr<asio::io_context::strand>          m_send_strand_ptr;
 
 		/// The strand used to handle the socket event.
-		std::shared_ptr<boost::asio::io_context::strand>   m_recv_strand_ptr;
+		std::shared_ptr<asio::io_context::strand>          m_recv_strand_ptr;
 
 		/// use to check whether the user call stop in the listener
-		volatile state                                     m_state = state::stopped;
+		volatile state                                     m_state     = state::stopped;
 
 		/// user data
 		std::size_t                                        m_user_data = 0;
 
 		/// last active time 
 		std::chrono::time_point<std::chrono::system_clock> m_last_active_time = std::chrono::system_clock::now();
+
+		/// build connection time
+		std::chrono::time_point<std::chrono::system_clock> m_connect_time     = std::chrono::system_clock::now();
 
 	};
 }

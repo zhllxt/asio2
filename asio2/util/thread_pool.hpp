@@ -49,6 +49,8 @@
 #include <future>
 #include <unordered_map>
 
+#include <asio2/util/spin_lock.hpp>
+
 namespace asio2
 {
 
@@ -56,7 +58,7 @@ namespace asio2
 	 * the thread pool interface , this pool is multi thread safed,if you want use the special thread 
 	 * index to put a task into the thread pool,you should use the thread_pool<true> template class
 	 */
-	template<bool _specify_thread> class thread_pool {};
+	template<bool _specify_thread = false> class thread_pool {};
 
 	template<>
 	class thread_pool<false>
@@ -79,21 +81,25 @@ namespace asio2
 				{
 					for (;;)
 					{
-						std::function<void()> task;
+						std::unique_lock<std::mutex> lock(_mtx);
+						_cv.wait(lock, [this] { return (_is_stop || !_tasks.empty()); });
 
+						if (_is_stop && _tasks.empty())
+							return;
+
+						while (!_tasks.empty())
 						{
-							std::unique_lock<std::mutex> lock(_mtx);
-							_cv.wait(lock, [this] { return (_is_stop || !_tasks.empty()); });
+							std::function<void()> task;
 
-							if (_is_stop && _tasks.empty())
-								return;
+							{
+								std::lock_guard<spin_lock> lock(_task_lock);
+								task = std::move(_tasks.front());
+								_tasks.pop();
+							}
 
-							task = std::move(_tasks.front());
-							_tasks.pop();
+							// execute user function
+							task();
 						}
-
-						// execute user function
-						task();
 					}
 				}
 				);
@@ -135,7 +141,7 @@ namespace asio2
 			std::future<return_type> future = task->get_future();
 
 			{
-				std::unique_lock<std::mutex> lock(_mtx);
+				std::lock_guard<spin_lock> lock(_task_lock);
 
 				// don't allow put after stopping the pool
 				if (_is_stop)
@@ -180,6 +186,9 @@ namespace asio2
 		// the task queue
 		std::queue<std::function<void()>> _tasks;
 
+		// the task lock
+		spin_lock _task_lock;
+
 		// synchronization
 		std::mutex _mtx;
 		std::condition_variable _cv;
@@ -208,32 +217,38 @@ namespace asio2
 				std::mutex * mtx = new std::mutex();
 				std::condition_variable * cv = new std::condition_variable();
 				std::queue<std::function<void()>> * que = new std::queue<std::function<void()>>();
+				spin_lock * task_lock = new spin_lock();
 
 				_mtx.emplace_back(mtx);
 				_cv.emplace_back(cv);
 				_tasks.emplace_back(que);
+				_task_lock.emplace_back(task_lock);
 
 				// emplace_back can use the parameters to construct the std::thread object automictly
 				// use lambda function as the thread proc function,lambda can has no parameters list
-				_workers.emplace_back([this, mtx, cv, que]
+				_workers.emplace_back([this, mtx, cv, que, task_lock]
 				{
 					for (;;)
 					{
-						std::function<void()> task;
+						std::unique_lock<std::mutex> lock(*mtx);
+						cv->wait(lock, [this, que] { return (_is_stop || !que->empty()); });
 
+						if (_is_stop && que->empty())
+							return;
+
+						while (!que->empty())
 						{
-							std::unique_lock<std::mutex> lock(*mtx);
-							cv->wait(lock, [this, que] { return (_is_stop || !que->empty()); });
+							std::function<void()> task;
 
-							if (_is_stop && que->empty())
-								return;
+							{
+								std::lock_guard<spin_lock> lock(*task_lock);
+								task = std::move(que->front());
+								que->pop();
+							}
 
-							task = std::move(que->front());
-							que->pop();
+							// execute user function
+							task();
 						}
-
-						// execute user function
-						task();
 					}
 				}
 				);
@@ -270,19 +285,21 @@ namespace asio2
 
 			for (auto & task : _tasks)
 				delete task;
+
+			for (auto & lock : _task_lock)
+				delete lock;
 		}
 
 		/**
 		 * @function : put a task into the thread pool,the task can be
 		 * global function,static function,lambda function,member function
-		 * @param : thread_index - if thread_index is large than pool size,the thread_index will be a rand num
+		 * @param : thread_index - if thread_index is large than pool size,the thread_index will be equal to thread_index % pool_size
 		 * @return : std::future<...>
 		 */
 		template<class Fun, class... Args>
 		auto put(std::size_t thread_index, Fun&& fun, Args&&... args) -> std::future<typename std::result_of<Fun(Args...)>::type>
 		{
-			if (thread_index >= _workers.size())
-				thread_index = static_cast<std::size_t>(std::rand()) % _workers.size();
+			thread_index = thread_index % _workers.size();
 
 			using return_type = typename std::result_of<Fun(Args...)>::type;
 
@@ -292,7 +309,7 @@ namespace asio2
 			std::future<return_type> future = task->get_future();
 
 			{
-				std::unique_lock<std::mutex> lock(*_mtx[thread_index]);
+				std::lock_guard<spin_lock> lock(*_task_lock[thread_index]);
 
 				// don't allow put after stopping the pool
 				if (_is_stop)
@@ -346,6 +363,9 @@ namespace asio2
 
 		// the task queue
 		std::vector<std::queue<std::function<void()>> *> _tasks;
+
+		// the task lock
+		std::vector<spin_lock *> _task_lock;
 
 		// synchronization
 		std::vector<std::mutex *> _mtx;

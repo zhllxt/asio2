@@ -19,6 +19,7 @@
 #endif
 
 #include <cassert>
+#include <cstring>
 #include <memory>
 
 // 

@@ -33,10 +33,10 @@ namespace asio2
 		 * @construct
 		 */
 		tcps_acceptor_impl(
-			std::shared_ptr<url_parser>                    url_parser_ptr,
-			std::shared_ptr<listener_mgr>                  listener_mgr_ptr,
-			std::shared_ptr<io_context_pool>               io_context_pool_ptr,
-			std::shared_ptr<boost::asio::ssl::context>     ssl_context_ptr = nullptr
+			std::shared_ptr<url_parser>             url_parser_ptr,
+			std::shared_ptr<listener_mgr>           listener_mgr_ptr,
+			std::shared_ptr<io_context_pool>        io_context_pool_ptr,
+			std::shared_ptr<asio::ssl::context>     ssl_context_ptr = nullptr
 		)
 			: tcp_acceptor_impl<_session_impl_t>(
 				url_parser_ptr,
@@ -68,7 +68,7 @@ namespace asio2
 					);
 			}
 			// handle exception,may be is the exception "Too many open files" (exception code : 24)
-			catch (boost::system::system_error & e)
+			catch (asio::system_error & e)
 			{
 				set_last_error(e.code().value());
 
@@ -79,7 +79,7 @@ namespace asio2
 
 	protected:
 		/// ssl context 
-		std::shared_ptr<boost::asio::ssl::context> m_ssl_context_ptr;
+		std::shared_ptr<asio::ssl::context> m_ssl_context_ptr;
 
 	};
 

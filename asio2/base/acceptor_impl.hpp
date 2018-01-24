@@ -38,7 +38,7 @@ namespace asio2
 			, m_io_context_pool_ptr(io_context_pool_ptr)
 		{
 			m_io_context_ptr = m_io_context_pool_ptr->get_io_context_ptr();
-			m_strand_ptr     = std::make_shared<boost::asio::io_context::strand>(*m_io_context_ptr);
+			m_strand_ptr     = std::make_shared<asio::io_context::strand>(*m_io_context_ptr);
 		}
 
 		/**
@@ -92,10 +92,10 @@ namespace asio2
 		std::shared_ptr<listener_mgr>                      m_listener_mgr_ptr;
 
 		/// The io_context used to handle the socket event.
-		std::shared_ptr<boost::asio::io_context>           m_io_context_ptr;
+		std::shared_ptr<asio::io_context>                  m_io_context_ptr;
 
 		/// The strand used to handle the socket event.
-		std::shared_ptr<boost::asio::io_context::strand>   m_strand_ptr;
+		std::shared_ptr<asio::io_context::strand>          m_strand_ptr;
 
 		/// the io_context_pool reference for socket event
 		std::shared_ptr<io_context_pool>                   m_io_context_pool_ptr;

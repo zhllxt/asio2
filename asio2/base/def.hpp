@@ -24,7 +24,7 @@ namespace asio2
 	#define DEFAULT_SEND_BUFFER_SIZE             (1024)
 	#define DEFAULT_RECV_BUFFER_SIZE             (1024)
 
-	enum class state
+	enum class state : int8_t
 	{
 		stopped,
 		stopping,

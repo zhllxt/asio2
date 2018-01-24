@@ -20,8 +20,8 @@
 
 #include <cassert>
 
-#include <boost/asio.hpp>
-#include <boost/system/system_error.hpp>
+#include <asio/asio.hpp>
+#include <asio/system_error.hpp>
 
 #if   defined(LINUX)
 #elif defined(__OSX__)
@@ -59,7 +59,7 @@ namespace asio2
 			return false;
 		}
 
-		boost::asio::socket_base::keep_alive option(onoff);
+		asio::socket_base::keep_alive option(onoff);
 		socket.set_option(option);
 
 		auto native_fd = socket.native_handle();

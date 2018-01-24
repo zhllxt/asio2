@@ -27,11 +27,11 @@ namespace asio2
 		 * @construct
 		 */
 		explicit tcps_auto_connection_impl(
-			std::shared_ptr<url_parser>              url_parser_ptr,
-			std::shared_ptr<listener_mgr>            listener_mgr_ptr,
-			std::shared_ptr<boost::asio::io_context> send_io_context_ptr,
-			std::shared_ptr<boost::asio::io_context> recv_io_context_ptr,
-			std::shared_ptr<boost::asio::ssl::context> ssl_context_ptr = nullptr
+			std::shared_ptr<url_parser>         url_parser_ptr,
+			std::shared_ptr<listener_mgr>       listener_mgr_ptr,
+			std::shared_ptr<asio::io_context>   send_io_context_ptr,
+			std::shared_ptr<asio::io_context>   recv_io_context_ptr,
+			std::shared_ptr<asio::ssl::context> ssl_context_ptr = nullptr
 		)
 			: tcps_connection_impl(
 				url_parser_ptr,
@@ -69,8 +69,8 @@ namespace asio2
 				{
 					m_header = 0;
 					// This function is used to asynchronously read a certain number of bytes of data from a stream.
-					boost::asio::async_read(this->m_socket,
-						boost::asio::buffer((void *)(&m_header), sizeof(m_header)),
+					asio::async_read(this->m_socket,
+						asio::buffer((void *)(&m_header), sizeof(m_header)),
 						this->m_recv_strand_ptr->wrap(std::bind(&tcps_auto_connection_impl::_handle_recv, this,
 							std::placeholders::_1, // error_code
 							std::placeholders::_2, // bytes_recvd
@@ -82,9 +82,9 @@ namespace asio2
 				{
 					if (buf_ptr->remain() >= static_cast<std::size_t>(m_body_len))
 					{
-						const auto & buffer = boost::asio::buffer(buf_ptr->write_begin(), m_body_len);
+						const auto & buffer = asio::buffer(buf_ptr->write_begin(), m_body_len);
 						// This function is used to asynchronously read a certain number of bytes of data from a stream.
-						boost::asio::async_read(this->m_socket, buffer,
+						asio::async_read(this->m_socket, buffer,
 							this->m_recv_strand_ptr->wrap(std::bind(&tcps_auto_connection_impl::_handle_recv, this,
 								std::placeholders::_1, // error_code
 								std::placeholders::_2, // bytes_recvd
@@ -103,7 +103,7 @@ namespace asio2
 			}
 		}
 
-		virtual void _handle_recv(const boost::system::error_code & ec, std::size_t bytes_recvd, std::shared_ptr<connection_impl> this_ptr, std::shared_ptr<buffer<uint8_t>> buf_ptr) override
+		virtual void _handle_recv(const asio::error_code & ec, std::size_t bytes_recvd, std::shared_ptr<connection_impl> this_ptr, std::shared_ptr<buffer<uint8_t>> buf_ptr) override
 		{
 			if (!ec)
 			{
@@ -196,8 +196,8 @@ namespace asio2
 
 			uint32_t header = static_cast<uint32_t>(((buf_ptr->size() << HEADER_FLAG_BITS) & ((uint32_t)(~HEADER_FLAG_MASK))) | m_url_parser_ptr->get_packet_header_flag());
 
-			boost::system::error_code ec;
-			std::size_t bytes_sent = boost::asio::write(this->m_socket, boost::asio::buffer((void *)&header, sizeof(header)), ec);
+			asio::error_code ec;
+			std::size_t bytes_sent = asio::write(this->m_socket, asio::buffer((void *)&header, sizeof(header)), ec);
 
 			set_last_error(ec.value());
 

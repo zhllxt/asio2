@@ -19,8 +19,6 @@
 #include <thread>
 #include <deque>
 
-#include <boost/asio.hpp>
-
 #include <asio2/base/session_impl.hpp>
 #include <asio2/base/session_mgr.hpp>
 #include <asio2/base/listener_mgr.hpp>
@@ -37,15 +35,15 @@ namespace asio2
 		 * @construct
 		 */
 		explicit udp_session_impl(
-			std::shared_ptr<url_parser>                      url_parser_ptr,
-			std::shared_ptr<listener_mgr>                    listener_mgr_ptr,
-			std::shared_ptr<boost::asio::io_context>         io_context_ptr,
-			std::shared_ptr<boost::asio::io_context::strand> strand_ptr,
-			boost::asio::ip::udp::socket                   & socket,
-			std::shared_ptr<boost::asio::io_context>         send_io_context_ptr,
-			std::shared_ptr<boost::asio::io_context::strand> send_strand_ptr,
-			boost::asio::ip::udp::endpoint                   endpoint,
-			std::shared_ptr<session_mgr>                     session_mgr_ptr
+			std::shared_ptr<url_parser>               url_parser_ptr,
+			std::shared_ptr<listener_mgr>             listener_mgr_ptr,
+			std::shared_ptr<asio::io_context>         io_context_ptr,
+			std::shared_ptr<asio::io_context::strand> strand_ptr,
+			asio::ip::udp::socket                   & socket,
+			std::shared_ptr<asio::io_context>         send_io_context_ptr,
+			std::shared_ptr<asio::io_context::strand> send_strand_ptr,
+			asio::ip::udp::endpoint                   endpoint,
+			std::shared_ptr<session_mgr>              session_mgr_ptr
 		)
 			: session_impl(url_parser_ptr, listener_mgr_ptr, io_context_ptr, session_mgr_ptr)
 			, m_socket(socket)
@@ -72,6 +70,8 @@ namespace asio2
 
 			// reset the variable to default status
 			m_fire_close_is_called.clear(std::memory_order_release);
+			m_last_active_time = std::chrono::system_clock::now();
+			m_connect_time     = std::chrono::system_clock::now();
 
 			m_state = state::started;
 
@@ -95,7 +95,7 @@ namespace asio2
 			// if has't pass a shared_from_this object to the io_context worker,will cause this udp session shared_ptr disapperd
 			// immediately,and the udp session_mgr will never has any udp session object.then if we use this timer,and pass
 			// the shared_from_this object to the timer's io_context worker,so this udp session shared_ptr can alived.
-			m_timer.expires_from_now(boost::posix_time::seconds(m_url_parser_ptr->get_silence_timeout()));
+			m_timer.expires_from_now(std::chrono::seconds(m_url_parser_ptr->get_silence_timeout()));
 			m_timer.async_wait(
 				m_strand_ptr->wrap(std::bind(&udp_session_impl::_handle_timer, this,
 					std::placeholders::_1, // error_code
@@ -129,7 +129,7 @@ namespace asio2
 
 							m_timer.cancel();
 						}
-						catch (boost::system::system_error & e)
+						catch (asio::system_error & e)
 						{
 							set_last_error(e.code().value());
 						}
@@ -189,7 +189,7 @@ namespace asio2
 		/**
 		 * @function : get the socket shared_ptr
 		 */
-		inline boost::asio::ip::udp::socket & get_socket()
+		inline asio::ip::udp::socket & get_socket()
 		{
 			return m_socket;
 		}
@@ -206,7 +206,7 @@ namespace asio2
 					return m_socket.local_endpoint().address().to_string();
 				}
 			}
-			catch (boost::system::system_error & e)
+			catch (asio::system_error & e)
 			{
 				set_last_error(e.code().value());
 			}
@@ -225,7 +225,7 @@ namespace asio2
 					return m_socket.local_endpoint().port();
 				}
 			}
-			catch (boost::system::system_error & e)
+			catch (asio::system_error & e)
 			{
 				set_last_error(e.code().value());
 			}
@@ -241,7 +241,7 @@ namespace asio2
 			{
 				return m_remote_endpoint.address().to_string();
 			}
-			catch (boost::system::system_error & e)
+			catch (asio::system_error & e)
 			{
 				set_last_error(e.code().value());
 			}
@@ -281,7 +281,7 @@ namespace asio2
 			_fire_recv(this_ptr, buf_ptr);
 		}
 
-		virtual void _handle_timer(const boost::system::error_code & ec, std::shared_ptr<session_impl> this_ptr)
+		virtual void _handle_timer(const asio::error_code & ec, std::shared_ptr<session_impl> this_ptr)
 		{
 			if (!ec)
 			{
@@ -295,7 +295,7 @@ namespace asio2
 				if (get_silence_duration() < m_url_parser_ptr->get_silence_timeout() * 1000)
 				{
 					auto remain = (m_url_parser_ptr->get_silence_timeout() * 1000) - get_silence_duration();
-					m_timer.expires_from_now(boost::posix_time::milliseconds(remain));
+					m_timer.expires_from_now(std::chrono::milliseconds(remain));
 					m_timer.async_wait(
 						m_strand_ptr->wrap(std::bind(&udp_session_impl::_handle_timer, this,
 							std::placeholders::_1,
@@ -320,8 +320,8 @@ namespace asio2
 		{
 			if (is_started())
 			{
-				boost::system::error_code ec;
-				m_socket.send_to(boost::asio::buffer((void *)buf_ptr->read_begin(), buf_ptr->size()), m_remote_endpoint, 0, ec);
+				asio::error_code ec;
+				m_socket.send_to(asio::buffer((void *)buf_ptr->read_begin(), buf_ptr->size()), m_remote_endpoint, 0, ec);
 				set_last_error(ec.value());
 				this->_fire_send(this_ptr, buf_ptr, ec.value());
 				if (ec)
@@ -362,9 +362,9 @@ namespace asio2
 	public:
 		struct _hasher // calc hash value 
 		{
-			std::size_t operator()(const boost::asio::ip::udp::endpoint * endpoint) const
+			std::size_t operator()(const asio::ip::udp::endpoint * endpoint) const
 			{
-				return asio2::string_hash((const unsigned char *)endpoint, sizeof(boost::asio::ip::udp::endpoint));
+				return asio2::string_hash((const unsigned char *)endpoint, sizeof(asio::ip::udp::endpoint));
 				//std::hash<std::string> hasher;
 				//const auto & addr = endpoint->address();
 				//auto port = endpoint->port();
@@ -392,7 +392,7 @@ namespace asio2
 
 		struct _equaler // compare func
 		{
-			bool operator()(const boost::asio::ip::udp::endpoint * a, const boost::asio::ip::udp::endpoint * b) const
+			bool operator()(const asio::ip::udp::endpoint * a, const asio::ip::udp::endpoint * b) const
 			{
 				return ((*a) == (*b));
 			}
@@ -400,16 +400,16 @@ namespace asio2
 
 	protected:
 		/// 
-		boost::asio::ip::udp::socket    & m_socket;
+		asio::ip::udp::socket    & m_socket;
 
 		/// send io_context
-		std::shared_ptr<boost::asio::io_context>           m_send_ioservice_ptr;
+		std::shared_ptr<asio::io_context>           m_send_ioservice_ptr;
 
 		/// asio's strand to ensure asio.socket multi thread safe
-		std::shared_ptr<boost::asio::io_context::strand>   m_send_strand_ptr;
+		std::shared_ptr<asio::io_context::strand>   m_send_strand_ptr;
 
 		/// used for session_mgr's session unordered_map key
-		boost::asio::ip::udp::endpoint                     m_remote_endpoint;
+		asio::ip::udp::endpoint                     m_remote_endpoint;
 
 		/// use to avoid call _fire_close twice
 		std::atomic_flag m_fire_close_is_called = ATOMIC_FLAG_INIT;

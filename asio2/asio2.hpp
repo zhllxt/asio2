@@ -1,12 +1,14 @@
 /*
  * COPYRIGHT (C) 2017, zhllxt
  * 
- * date     : 2018-01-06
- * version  : 1.2
+ * date     : 2018-01-24
+ * version  : 1.3
  * 
  * author   : zhllxt
  * qq       : 37792738
  * email    : 37792738@qq.com
+ * 
+ * current asio version is 1.11.0 
  *
  * if you find some bugs,or have any troubles or questions on using this library,please contact me.
  * 
@@ -22,6 +24,11 @@
 #if !defined(NDEBUG) && !defined(DEBUG) && !defined(_DEBUG)
 #	define NDEBUG
 #endif
+
+
+// ASIO2_VERSION / 100 is the major version
+// ASIO2_VERSION % 100 is the minor version
+#define ASIO2_VERSION 103 // 1.3
 
 
 // if ASIO2_WRITE_LOG is defined,when important exception occured,it will print the exception msg.

@@ -14,9 +14,8 @@
 #pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
-#include <boost/asio.hpp>
-#include <boost/asio/ssl.hpp>
-#include <boost/asio/ssl/error.hpp>
+#include <asio/ssl.hpp>
+#include <asio/ssl/error.hpp>
 
 #include <asio2/base/connection_impl.hpp>
 
@@ -32,11 +31,11 @@ namespace asio2
 		 * @construct
 		 */
 		explicit tcps_connection_impl(
-			std::shared_ptr<url_parser>              url_parser_ptr,
-			std::shared_ptr<listener_mgr>            listener_mgr_ptr,
-			std::shared_ptr<boost::asio::io_context> send_io_context_ptr,
-			std::shared_ptr<boost::asio::io_context> recv_io_context_ptr,
-			std::shared_ptr<boost::asio::ssl::context> ssl_context_ptr = nullptr
+			std::shared_ptr<url_parser>         url_parser_ptr,
+			std::shared_ptr<listener_mgr>       listener_mgr_ptr,
+			std::shared_ptr<asio::io_context>   send_io_context_ptr,
+			std::shared_ptr<asio::io_context>   recv_io_context_ptr,
+			std::shared_ptr<asio::ssl::context> ssl_context_ptr = nullptr
 		)
 			: connection_impl(
 				url_parser_ptr,
@@ -46,7 +45,7 @@ namespace asio2
 			)
 			, m_socket(*recv_io_context_ptr, *ssl_context_ptr)
 			, m_ssl_context_ptr(ssl_context_ptr)
-			, m_timer(*recv_io_context_ptr)
+			, m_force_close_timer(*recv_io_context_ptr)
 		{
 			// ssl socket is half duplex, don't support send and recv at the same time
 			assert(!m_send_io_context_ptr);
@@ -77,24 +76,24 @@ namespace asio2
 
 			try
 			{
-				m_socket.set_verify_mode(boost::asio::ssl::verify_peer);
+				m_socket.set_verify_mode(asio::ssl::verify_peer);
 				m_socket.set_verify_callback(
 					std::bind(&tcps_connection_impl::_verify_certificate,
 						this,
 						std::placeholders::_1, // preverified
-						std::placeholders::_2, // boost::asio::ssl::verify_context
+						std::placeholders::_2, // asio::ssl::verify_context
 						// can't use shared_ptr,otherwise this function will hold the shared_ptr forever,
 						// and cause the shared_ptr of "this" never disappeared.
 						std::weak_ptr<connection_impl>(shared_from_this())
 					));
 
-				boost::asio::ip::tcp::resolver resolver(*m_recv_io_context_ptr);
-				boost::asio::ip::tcp::resolver::query query(m_url_parser_ptr->get_ip(), m_url_parser_ptr->get_port());
-				boost::asio::ip::tcp::resolver::iterator iterator = resolver.resolve(query);
+				asio::ip::tcp::resolver resolver(*m_recv_io_context_ptr);
+				asio::ip::tcp::resolver::query query(m_url_parser_ptr->get_ip(), m_url_parser_ptr->get_port());
+				asio::ip::tcp::resolver::iterator iterator = resolver.resolve(query);
 
 				if (async_connect)
 				{
-					boost::asio::async_connect(m_socket.lowest_layer(), iterator,
+					asio::async_connect(m_socket.lowest_layer(), iterator,
 						m_recv_strand_ptr->wrap(std::bind(&tcps_connection_impl::_handle_connect, this,
 							std::placeholders::_1, // error_code
 							shared_from_this()
@@ -104,13 +103,13 @@ namespace asio2
 				}
 				else
 				{
-					boost::system::error_code ec;
-					boost::asio::connect(m_socket.lowest_layer(), iterator, ec);
+					asio::error_code ec;
+					asio::connect(m_socket.lowest_layer(), iterator, ec);
 
 					_handle_connect(ec, shared_from_this());
 
 					// if error code is not 0,then connect failed,return false
-					return (ec == 0 && is_started());
+					return (!ec && is_started());
 				}
 			}
 			catch (std::exception &) {}
@@ -145,8 +144,8 @@ namespace asio2
 							{
 								// if the client socket is not closed forever,this async_shutdown callback also can't be called forever,
 								// so we use a timer to force close the socket,then the async_shutdown callback will return.
-								m_timer.expires_from_now(boost::posix_time::seconds(DEFAULT_SSL_SHUTDOWN_TIMEOUT));
-								m_timer.async_wait(m_recv_strand_ptr->wrap([this, self, prev_state](const boost::system::error_code & ec)
+								m_force_close_timer.expires_from_now(std::chrono::seconds(DEFAULT_SSL_SHUTDOWN_TIMEOUT));
+								m_force_close_timer.async_wait(m_recv_strand_ptr->wrap([this, self, prev_state](const asio::error_code & ec)
 								{
 									if (ec)
 										set_last_error(ec.value());
@@ -156,10 +155,10 @@ namespace asio2
 											_fire_close(get_last_error());
 
 										// when the lowest socket is closed,the ssl stream shutdown will returned.
-										m_socket.lowest_layer().shutdown(boost::asio::socket_base::shutdown_both);
+										m_socket.lowest_layer().shutdown(asio::socket_base::shutdown_both);
 										m_socket.lowest_layer().close();
 									}
-									catch (boost::system::system_error & e)
+									catch (asio::system_error & e)
 									{
 										set_last_error(e.code().value());
 									}
@@ -169,16 +168,16 @@ namespace asio2
 
 								// when client call ssl stream sync shutdown first,if the server socket is not closed forever,then here sync shutdowm will blocking forever.
 								// so we use async shutdown,and use a timer to check whether timeout,if timeout,we force close the socket.
-								m_socket.async_shutdown(m_recv_strand_ptr->wrap([this, self](const boost::system::error_code & ec)
+								m_socket.async_shutdown(m_recv_strand_ptr->wrap([this, self](const asio::error_code & ec)
 								{
 									// clost the timer
-									m_timer.cancel();
+									m_force_close_timer.cancel();
 
 									if (ec)
 										set_last_error(ec.value());
 								}));
 							}
-							catch (boost::system::system_error & e)
+							catch (asio::system_error & e)
 							{
 								set_last_error(e.code().value());
 							}
@@ -234,7 +233,7 @@ namespace asio2
 		/**
 		 * @function : get the socket shared_ptr
 		 */
-		inline boost::asio::ssl::stream<boost::asio::ip::tcp::socket> & get_socket()
+		inline asio::ssl::stream<asio::ip::tcp::socket> & get_socket()
 		{
 			return m_socket;
 		}
@@ -251,7 +250,7 @@ namespace asio2
 					return m_socket.lowest_layer().local_endpoint().address().to_string();
 				}
 			}
-			catch (boost::system::system_error & e)
+			catch (asio::system_error & e)
 			{
 				set_last_error(e.code().value());
 			}
@@ -270,7 +269,7 @@ namespace asio2
 					return m_socket.lowest_layer().local_endpoint().port();
 				}
 			}
-			catch (boost::system::system_error & e)
+			catch (asio::system_error & e)
 			{
 				set_last_error(e.code().value());
 			}
@@ -289,7 +288,7 @@ namespace asio2
 					return m_socket.lowest_layer().remote_endpoint().address().to_string();
 				}
 			}
-			catch (boost::system::system_error & e)
+			catch (asio::system_error & e)
 			{
 				set_last_error(e.code().value());
 			}
@@ -308,7 +307,7 @@ namespace asio2
 					return m_socket.lowest_layer().remote_endpoint().port();
 				}
 			}
-			catch (boost::system::system_error & e)
+			catch (asio::system_error & e)
 			{
 				set_last_error(e.code().value());
 			}
@@ -316,7 +315,7 @@ namespace asio2
 		}
 
 	protected:
-		virtual bool _verify_certificate(bool preverified, boost::asio::ssl::verify_context & ctx, std::weak_ptr<connection_impl> weak_ptr)
+		virtual bool _verify_certificate(bool preverified, asio::ssl::verify_context & ctx, std::weak_ptr<connection_impl> weak_ptr)
 		{
 			auto self(weak_ptr.lock());
 			// The verify callback can be used to check whether the certificate that is
@@ -337,14 +336,14 @@ namespace asio2
 			return preverified;
 		}
 
-		virtual void _handle_connect(const boost::system::error_code & ec, std::shared_ptr<connection_impl> this_ptr)
+		virtual void _handle_connect(const asio::error_code & ec, std::shared_ptr<connection_impl> this_ptr)
 		{
 			set_last_error(ec.value());
 
 			if (!ec)
 			{
 				// set port reuse
-				m_socket.lowest_layer().set_option(boost::asio::ip::tcp::acceptor::reuse_address(true));
+				m_socket.lowest_layer().set_option(asio::ip::tcp::acceptor::reuse_address(true));
 
 				// set keeplive
 				set_keepalive_vals(m_socket.lowest_layer());
@@ -352,19 +351,19 @@ namespace asio2
 				// setsockopt SO_SNDBUF from url params
 				if (m_url_parser_ptr->get_so_sndbuf_size() > 0)
 				{
-					boost::asio::socket_base::send_buffer_size option(m_url_parser_ptr->get_so_sndbuf_size());
+					asio::socket_base::send_buffer_size option(m_url_parser_ptr->get_so_sndbuf_size());
 					m_socket.lowest_layer().set_option(option);
 				}
 
 				// setsockopt SO_RCVBUF from url params
 				if (m_url_parser_ptr->get_so_rcvbuf_size() > 0)
 				{
-					boost::asio::socket_base::receive_buffer_size option(m_url_parser_ptr->get_so_rcvbuf_size());
+					asio::socket_base::receive_buffer_size option(m_url_parser_ptr->get_so_rcvbuf_size());
 					m_socket.lowest_layer().set_option(option);
 				}
 
-				boost::system::error_code err;
-				m_socket.handshake(boost::asio::ssl::stream_base::client, err);
+				asio::error_code err;
+				m_socket.handshake(asio::ssl::stream_base::client, err);
 
 				_handle_handshake(err, this_ptr);
 			}
@@ -374,17 +373,20 @@ namespace asio2
 			}
 		}
 
-		virtual void _handle_handshake(const boost::system::error_code & ec, std::shared_ptr<connection_impl> & this_ptr)
+		virtual void _handle_handshake(const asio::error_code & ec, std::shared_ptr<connection_impl> & this_ptr)
 		{
 			set_last_error(ec.value());
 
-			if (ec == 0)
+			if (!ec)
 				m_state = state::started;
+
+			m_last_active_time = std::chrono::system_clock::now();
+			m_connect_time     = std::chrono::system_clock::now();
 
 			_fire_connect(ec.value());
 
 			// Connect succeeded.
-			if (ec == 0 && m_state == state::started)
+			if (!ec && m_state == state::started)
 			{
 				// to avlid the user call stop in another thread,then it may be m_socket.async_read_some and m_socket.close be called at the same time
 				this->m_recv_strand_ptr->post([this, this_ptr]()
@@ -407,7 +409,7 @@ namespace asio2
 			{
 				if (buf_ptr->remain() > 0)
 				{
-					const auto & buffer = boost::asio::buffer(buf_ptr->write_begin(), buf_ptr->remain());
+					const auto & buffer = asio::buffer(buf_ptr->write_begin(), buf_ptr->remain());
 					this->m_socket.async_read_some(buffer,
 						this->m_recv_strand_ptr->wrap(std::bind(&tcps_connection_impl::_handle_recv, this,
 							std::placeholders::_1, // error_code
@@ -426,7 +428,7 @@ namespace asio2
 			}
 		}
 
-		virtual void _handle_recv(const boost::system::error_code & ec, std::size_t bytes_recvd, std::shared_ptr<connection_impl> this_ptr, std::shared_ptr<buffer<uint8_t>> buf_ptr)
+		virtual void _handle_recv(const asio::error_code & ec, std::size_t bytes_recvd, std::shared_ptr<connection_impl> this_ptr, std::shared_ptr<buffer<uint8_t>> buf_ptr)
 		{
 			if (!ec)
 			{
@@ -475,8 +477,8 @@ namespace asio2
 		{
 			if (is_started())
 			{
-				boost::system::error_code ec;
-				boost::asio::write(m_socket, boost::asio::buffer(buf_ptr->read_begin(), buf_ptr->size()), ec);
+				asio::error_code ec;
+				asio::write(m_socket, asio::buffer(buf_ptr->read_begin(), buf_ptr->size()), ec);
 				set_last_error(ec.value());
 				_fire_send(buf_ptr, ec.value());
 				if (ec)
@@ -517,13 +519,13 @@ namespace asio2
 
 	protected:
 		/// ssl socket
-		boost::asio::ssl::stream<boost::asio::ip::tcp::socket> m_socket;
+		asio::ssl::stream<asio::ip::tcp::socket> m_socket;
 
 		/// ssl context 
-		std::shared_ptr<boost::asio::ssl::context> m_ssl_context_ptr;
+		std::shared_ptr<asio::ssl::context>      m_ssl_context_ptr;
 
 		/// timer for session silence time out
-		boost::asio::deadline_timer                        m_timer;
+		asio::steady_timer                       m_force_close_timer;
 
 		/// use to avoid call _fire_close twice
 		std::atomic_flag m_fire_close_is_called = ATOMIC_FLAG_INIT;

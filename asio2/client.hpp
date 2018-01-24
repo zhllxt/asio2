@@ -74,11 +74,11 @@ namespace asio2
 		 */
 		client(std::string url
 #if defined(ASIO2_USE_SSL)
-			, boost::asio::ssl::context::method  method  = boost::asio::ssl::context::sslv23
-			, boost::asio::ssl::context::options options =
-														   boost::asio::ssl::context::default_workarounds |
-														   boost::asio::ssl::context::no_sslv2 |
-														   boost::asio::ssl::context::single_dh_use
+			, asio::ssl::context::method  method  = asio::ssl::context::sslv23
+			, asio::ssl::context::options options =
+														   asio::ssl::context::default_workarounds |
+														   asio::ssl::context::no_sslv2 |
+														   asio::ssl::context::single_dh_use
 #endif
 		)
 		{
@@ -182,9 +182,9 @@ namespace asio2
 			try
 			{
 				std::static_pointer_cast<tcps_client>(m_client_impl_ptr)->get_ssl_context()->add_certificate_authority(
-					boost::asio::const_buffer(buffer.data(), buffer.size()));
+					asio::const_buffer(buffer.data(), buffer.size()));
 			}
-			catch (boost::system::system_error & e)
+			catch (asio::system_error & e)
 			{
 				set_last_error(e.code().value());
 				assert(false);
@@ -197,7 +197,7 @@ namespace asio2
 			{
 				std::static_pointer_cast<tcps_client>(m_client_impl_ptr)->get_ssl_context()->load_verify_file(file);
 			}
-			catch (boost::system::system_error & e)
+			catch (asio::system_error & e)
 			{
 				set_last_error(e.code().value());
 				assert(false);
@@ -433,8 +433,8 @@ namespace asio2
 	protected:
 		void _init(std::string & url
 #if defined(ASIO2_USE_SSL)
-			, boost::asio::ssl::context::method  method
-			, boost::asio::ssl::context::options options
+			, asio::ssl::context::method  method
+			, asio::ssl::context::options options
 #endif
 		)
 		{

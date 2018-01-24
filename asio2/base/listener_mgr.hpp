@@ -16,8 +16,8 @@
 
 #include <memory>
 
-#include <boost/asio.hpp>
-#include <boost/system/system_error.hpp>
+#include <asio/asio.hpp>
+#include <asio/system_error.hpp>
 
 #include <asio2/util/buffer.hpp>
 

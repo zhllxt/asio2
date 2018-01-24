@@ -34,8 +34,8 @@ namespace asio2
 		tcps_pack_server_impl(
 			std::shared_ptr<url_parser>        url_parser_ptr,
 			std::shared_ptr<listener_mgr>      listener_mgr_ptr,
-			boost::asio::ssl::context::method  method,
-			boost::asio::ssl::context::options options
+			asio::ssl::context::method  method,
+			asio::ssl::context::options options
 		)
 			: tcps_server_impl<_acceptor_impl_t>(url_parser_ptr, listener_mgr_ptr, method, options)
 		{

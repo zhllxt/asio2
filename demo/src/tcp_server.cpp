@@ -33,7 +33,7 @@ int main(int argc, char *argv[])
 	asio2::session_ptr session;
 	while (run_flag)
 	{
-		std::string url(" tcp://*:9001/auto?so_sndbuf=1024k & so_rcvbuf=1024K & recv_buffer_size=1024 & io_context_pool_size=4 ");
+		std::string url(" tcp://*:9001/auto?so_sndbuf=1024k & so_rcvbuf=1024K & recv_buffer_size=1024 & io_context_pool_size=4 &auto_reconnect=true");
 		asio2::server tcp_server(url);
 		tcp_server.bind_recv([&tcp_server](asio2::session_ptr & session_ptr, asio2::buffer_ptr & buf_ptr)
 		{

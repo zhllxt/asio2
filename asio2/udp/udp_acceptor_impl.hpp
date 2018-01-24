@@ -41,8 +41,8 @@ namespace asio2
 			, m_acceptor(*m_io_context_ptr)
 			, m_send_ioservice_ptr(io_context_pool_ptr->get_io_context_ptr())
 		{
-			m_send_strand_ptr = std::make_shared<boost::asio::io_context::strand>(*m_send_ioservice_ptr);
-			m_session_mgr_ptr = std::make_shared<session_mgr_t<boost::asio::ip::udp::endpoint *, hasher, equaler>>();
+			m_send_strand_ptr = std::make_shared<asio::io_context::strand>(*m_send_ioservice_ptr);
+			m_session_mgr_ptr = std::make_shared<session_mgr_t<asio::ip::udp::endpoint *, hasher, equaler>>();
 		}
 
 		/**
@@ -60,23 +60,23 @@ namespace asio2
 			try
 			{
 				// parse address and port
-				boost::asio::ip::udp::resolver resolver(*m_io_context_ptr);
-				boost::asio::ip::udp::resolver::query query(m_url_parser_ptr->get_ip(), m_url_parser_ptr->get_port());
-				boost::asio::ip::udp::endpoint endpoint = *resolver.resolve(query);
+				asio::ip::udp::resolver resolver(*m_io_context_ptr);
+				asio::ip::udp::resolver::query query(m_url_parser_ptr->get_ip(), m_url_parser_ptr->get_port());
+				asio::ip::udp::endpoint endpoint = *resolver.resolve(query);
 
 				m_acceptor.open(endpoint.protocol());
 
 				// setsockopt SO_SNDBUF from url params
 				if (m_url_parser_ptr->get_so_sndbuf_size() > 0)
 				{
-					boost::asio::socket_base::send_buffer_size option(m_url_parser_ptr->get_so_sndbuf_size());
+					asio::socket_base::send_buffer_size option(m_url_parser_ptr->get_so_sndbuf_size());
 					m_acceptor.set_option(option);
 				}
 
 				// setsockopt SO_RCVBUF from url params
 				if (m_url_parser_ptr->get_so_rcvbuf_size() > 0)
 				{
-					boost::asio::socket_base::receive_buffer_size option(m_url_parser_ptr->get_so_rcvbuf_size());
+					asio::socket_base::receive_buffer_size option(m_url_parser_ptr->get_so_rcvbuf_size());
 					m_acceptor.set_option(option);
 				}
 
@@ -84,7 +84,7 @@ namespace asio2
 				// and bind is failed,but i'm suer i close the socket correct already before,why does this happen? the reasion is 
 				// the socket option "TIME_WAIT",although you close the socket,but the system not release the socket,util 2~4 
 				// seconds later,so we can use the SO_REUSEADDR option to avoid this problem,like below
-				m_acceptor.set_option(boost::asio::ip::tcp::acceptor::reuse_address(true)); // set port reuse
+				m_acceptor.set_option(asio::ip::tcp::acceptor::reuse_address(true)); // set port reuse
 				m_acceptor.bind(endpoint);
 
 				_fire_listen();
@@ -93,11 +93,11 @@ namespace asio2
 
 				_post_recv(shared_from_this(), std::move(recv_buf));
 			}
-			catch (boost::system::system_error & e)
+			catch (asio::system_error & e)
 			{
 				set_last_error(e.code().value());
 
-				boost::system::error_code ec;
+				asio::error_code ec;
 				m_acceptor.close(ec);
 			}
 
@@ -135,10 +135,10 @@ namespace asio2
 							{
 								_fire_shutdown(get_last_error());
 
-								m_acceptor.shutdown(boost::asio::socket_base::shutdown_both);
+								m_acceptor.shutdown(asio::socket_base::shutdown_both);
 								m_acceptor.close();
 							}
-							catch (boost::system::system_error & e)
+							catch (asio::system_error & e)
 							{
 								set_last_error(e.code().value());
 							}
@@ -180,7 +180,7 @@ namespace asio2
 					return m_acceptor.local_endpoint().address().to_string();
 				}
 			}
-			catch (boost::system::system_error & e)
+			catch (asio::system_error & e)
 			{
 				set_last_error(e.code().value());
 			}
@@ -199,7 +199,7 @@ namespace asio2
 					return m_acceptor.local_endpoint().port();
 				}
 			}
-			catch (boost::system::system_error & e)
+			catch (asio::system_error & e)
 			{
 				set_last_error(e.code().value());
 			}
@@ -209,7 +209,7 @@ namespace asio2
 		/**
 		 * @function : get the acceptor shared_ptr
 		 */
-		inline boost::asio::ip::udp::socket & get_acceptor()
+		inline asio::ip::udp::socket & get_acceptor()
 		{
 			return m_acceptor;
 		}
@@ -221,7 +221,7 @@ namespace asio2
 			{
 				if (buf_ptr->remain() > 0)
 				{
-					const auto & buffer = boost::asio::buffer(buf_ptr->write_begin(), buf_ptr->remain());
+					const auto & buffer = asio::buffer(buf_ptr->write_begin(), buf_ptr->remain());
 					m_acceptor.async_receive_from(buffer,
 						m_sender_endpoint,
 						m_strand_ptr->wrap(std::bind(&udp_acceptor_impl::_handle_recv, this,
@@ -241,7 +241,7 @@ namespace asio2
 			}
 		}
 
-		virtual void _handle_recv(const boost::system::error_code& ec, std::size_t bytes_recvd, std::shared_ptr<acceptor_impl> this_ptr, std::shared_ptr<buffer<uint8_t>> buf_ptr)
+		virtual void _handle_recv(const asio::error_code& ec, std::size_t bytes_recvd, std::shared_ptr<acceptor_impl> this_ptr, std::shared_ptr<buffer<uint8_t>> buf_ptr)
 		{
 			if (is_started())
 			{
@@ -273,7 +273,7 @@ namespace asio2
 					// may be user exit application.
 					// if user call stop to stop server,the socket is closed,then _handle_recv will be called,and with error,so when appear error,we check 
 					// the socket status,if closed,don't _post_recv again.
-					if (ec == boost::asio::error::operation_aborted)
+					if (ec == asio::error::operation_aborted)
 						return;
 				}
 
@@ -306,7 +306,7 @@ namespace asio2
 					this->m_session_mgr_ptr
 					);
 			}
-			catch (boost::system::system_error & e)
+			catch (asio::system_error & e)
 			{
 				set_last_error(e.code().value());
 
@@ -340,16 +340,16 @@ namespace asio2
 
 	protected:
 		/// acceptor to accept client connection
-		boost::asio::ip::udp::socket   m_acceptor;
+		asio::ip::udp::socket   m_acceptor;
 
 		/// endpoint for udp 
-		boost::asio::ip::udp::endpoint m_sender_endpoint;
+		asio::ip::udp::endpoint m_sender_endpoint;
 
 		/// send io_context
-		std::shared_ptr<boost::asio::io_context>           m_send_ioservice_ptr;
+		std::shared_ptr<asio::io_context>           m_send_ioservice_ptr;
 
 		/// asio's strand to ensure asio.socket multi thread safe
-		std::shared_ptr<boost::asio::io_context::strand>   m_send_strand_ptr;
+		std::shared_ptr<asio::io_context::strand>   m_send_strand_ptr;
 
 	};
 

@@ -21,6 +21,7 @@
 #include <cassert>
 #include <ctime>
 #include <cstring>
+#include <cstdint>
 
 #include <memory>
 #include <mutex>
@@ -64,7 +65,7 @@ namespace asio2
 	{
 	public:
 		// We define our own severity levels
-		enum severity_level
+		enum class severity_level : uint8_t
 		{
 			trace,
 			debug,
@@ -85,7 +86,7 @@ namespace asio2
 
 		explicit logger(
 			const char *   filename  = "",
-			severity_level level     = trace,
+			severity_level level     = severity_level::trace,
 			unsigned int   dest      = console | file,
 			std::size_t    roll_size = 1024 * 1024 * 1024
 		)
@@ -95,8 +96,8 @@ namespace asio2
 				m_filename = filename;
 			if (m_roll_size < 1024)
 				m_roll_size = 1024;
-			if (m_level < trace || m_level > report)
-				m_level = debug;
+			if (m_level < severity_level::trace || m_level > severity_level::report)
+				m_level = severity_level::debug;
 
 #if defined(ASIO2_LOGGER_MULTI_MODULE)
 			_thread.swap(std::thread([this]()
@@ -150,13 +151,13 @@ namespace asio2
 		{
 			switch (level)
 			{
-			case trace:  return "TRACE";
-			case debug:  return "DEBUG";
-			case info:   return "INFOR";
-			case warn:   return "WARNG";
-			case error:  return "ERROR";
-			case fatal:  return "FATAL";
-			case report: return "REPOT";
+			case severity_level::trace:  return "TRACE";
+			case severity_level::debug:  return "DEBUG";
+			case severity_level::info:   return "INFOR";
+			case severity_level::warn:   return "WARNG";
+			case severity_level::error:  return "ERROR";
+			case severity_level::fatal:  return "FATAL";
+			case severity_level::report: return "REPOT";
 			}
 			return "";
 		}
@@ -167,8 +168,8 @@ namespace asio2
 		void set_level(severity_level level)
 		{
 			m_level = level;
-			if (m_level < trace || m_level > report)
-				m_level = debug;
+			if (m_level < severity_level::trace || m_level > severity_level::report)
+				m_level = severity_level::debug;
 		}
 
 		severity_level get_level()
@@ -193,13 +194,13 @@ namespace asio2
 		{
 			switch (level)
 			{
-			case trace:  return "trace";
-			case debug:  return "debug";
-			case info:   return "info";
-			case warn:   return "warn";
-			case error:  return "error";
-			case fatal:  return "fatal";
-			case report: return "report";
+			case severity_level::trace:  return "trace";
+			case severity_level::debug:  return "debug";
+			case severity_level::info:   return "info";
+			case severity_level::warn:   return "warn";
+			case severity_level::error:  return "error";
+			case severity_level::fatal:  return "fatal";
+			case severity_level::report: return "report";
 			}
 			return "";
 		}
@@ -211,7 +212,7 @@ namespace asio2
 				va_list args;
 				va_start(args, format);
 
-				write(logger::severity_level::trace, format, args);
+				logv(logger::severity_level::trace, format, args);
 
 				va_end(args);
 			}
@@ -224,7 +225,7 @@ namespace asio2
 				va_list args;
 				va_start(args, format);
 
-				write(logger::severity_level::debug, format, args);
+				logv(logger::severity_level::debug, format, args);
 
 				va_end(args);
 			}
@@ -237,7 +238,7 @@ namespace asio2
 				va_list args;
 				va_start(args, format);
 
-				write(logger::severity_level::info, format, args);
+				logv(logger::severity_level::info, format, args);
 
 				va_end(args);
 			}
@@ -250,7 +251,7 @@ namespace asio2
 				va_list args;
 				va_start(args, format);
 
-				write(logger::severity_level::warn, format, args);
+				logv(logger::severity_level::warn, format, args);
 
 				va_end(args);
 			}
@@ -263,7 +264,7 @@ namespace asio2
 				va_list args;
 				va_start(args, format);
 
-				write(logger::severity_level::error, format, args);
+				logv(logger::severity_level::error, format, args);
 
 				va_end(args);
 			}
@@ -276,7 +277,7 @@ namespace asio2
 				va_list args;
 				va_start(args, format);
 
-				write(logger::severity_level::fatal, format, args);
+				logv(logger::severity_level::fatal, format, args);
 
 				va_end(args);
 			}
@@ -289,136 +290,103 @@ namespace asio2
 				va_list args;
 				va_start(args, format);
 
-				write(logger::severity_level::report, format, args);
+				logv(logger::severity_level::report, format, args);
 
 				va_end(args);
 			}
 		}
 
-		/**
-		 * write log
-		 */
-		logger & write(severity_level level, const char * format, ...)
+		void log(severity_level level, const char * format, ...)
 		{
-			if (level >= m_level && format && *format)
+			if (format && *format)
 			{
 				va_list args;
 				va_start(args, format);
 
-				write(level, format, args);
+				logv(level, format, args);
 
 				va_end(args);
 			}
-			return (*this);
 		}
 
-		/**
-		 * write log
-		 */
-		logger & write(severity_level level, const char * format, va_list args)
+		void logv(severity_level level, const char * format, va_list args)
 		{
 			if (level >= m_level && format && *format && m_dest != 0)
 			{
-				static const size_t head_len = std::strlen("[") + std::strlen(level2severity(level)) + std::strlen("]") + std::strlen(" [YYYY-mm-dd HH:MM:SS] ") + std::strlen(LN);
-
 				va_list args_copy;
 				va_copy(args_copy, args);
-				int body_len = std::vsnprintf(nullptr, 0, format, args_copy);
 
-				if (body_len > 0)
-				{
-					size_t msg_len = head_len + body_len;
-					char * buf = new char[msg_len + 1]; // + 1 : terminating null character
+				auto s = asio2::formatv(format, args_copy);
 
-					time_t t;
-					time(&t);                 /* Get time in seconds */
-					struct tm * tm = localtime(&t);  /* Convert time to struct */
-					char tmbuf[20] = { 0 };
-					strftime(tmbuf, 20, "%Y-%m-%d %H:%M:%S", tm);
-
-					size_t offset = 0, size = 0;
-					const char * data = nullptr;
-
-					data = "[";
-					size = std::strlen(data);
-					std::memcpy((void *)(buf + offset), (const char *)data, size);
-					offset += size;
-
-					data = level2severity(level);
-					size = std::strlen(data);
-					std::memcpy((void *)(buf + offset), (const char *)data, size);
-					offset += size;
-
-					data = "] [";
-					size = std::strlen(data);
-					std::memcpy((void *)(buf + offset), (const char *)data, size);
-					offset += size;
-
-					data = tmbuf;
-					size = std::strlen(data);
-					std::memcpy((void *)(buf + offset), (const char *)data, size);
-					offset += size;
-
-					data = "] ";
-					size = std::strlen(data);
-					std::memcpy((void *)(buf + offset), (const char *)data, size);
-					offset += size;
-
-					va_copy(args_copy, args);
-					std::vsprintf((char*)(buf + offset), format, args_copy);
-					offset += body_len;
-
-					data = LN;
-					size = std::strlen(data);
-					std::memcpy((void *)(buf + offset), (const char *)data, size);
-					offset += size;
-
-					std::lock_guard<std::mutex> g(m_lock);
-					// print log into the console window
-					if ((m_dest & dest::dest_mask) & console)
-					{
-						std::printf("%.*s", static_cast<int>(msg_len), buf);
-					}
-					// save log into the file
-					if ((m_dest & dest::dest_mask) & file)
-					{
-						if (m_file.is_open())
-						{
-							m_file.write(buf, msg_len);
-							m_size += msg_len;
-
-							// if file size is too large,close this file,and create a new file.
-							if (m_size > m_roll_size)
-							{
-#if defined(ASIO2_LOGGER_MULTI_MODULE)
-								_mkflag = true;
-
-								while (_mkflag)
-								{
-									std::this_thread::sleep_for(std::chrono::milliseconds(1));
-
-									_cv.notify_one();
-								}
-#endif
-								mkfile();
-							}
-						}
-					}
-					SAFE_DELETE(buf);
-				}
+				log(level, s);
 			}
-			return (*this);
 		}
 
-		logger & flush()
+		void log(severity_level level, const std::string & s)
+		{
+			if (level >= m_level)
+			{
+				static const size_t head_len = std::strlen("[") + std::strlen(level2severity(level)) + std::strlen("]") + std::strlen(" [YYYY-mm-dd HH:MM:SS] ") + std::strlen(LN);
+
+				std::string content;
+				
+				content.reserve(head_len + s.size());
+
+				time_t t;
+				time(&t);                 /* Get time in seconds */
+				struct tm * tm = localtime(&t);  /* Convert time to struct */
+				char tmbuf[20] = { 0 };
+				strftime(tmbuf, 20, "%Y-%m-%d %H:%M:%S", tm);
+
+				content += "[";
+				content += level2severity(level);
+				content += "] [";
+				content += tmbuf;
+				content += "] ";
+				content += s;
+				content += LN;
+
+				std::lock_guard<std::mutex> g(m_lock);
+				// print log into the console window
+				if ((m_dest & dest::dest_mask) & console)
+				{
+					std::printf("%.*s", static_cast<int>(content.size()), content.data());
+				}
+				// save log into the file
+				if ((m_dest & dest::dest_mask) & file)
+				{
+					if (m_file.is_open())
+					{
+						m_file.write(content.data(), content.size());
+						m_size += content.size();
+
+						// if file size is too large,close this file,and create a new file.
+						if (m_size > m_roll_size)
+						{
+#if defined(ASIO2_LOGGER_MULTI_MODULE)
+							_mkflag = true;
+
+							while (_mkflag)
+							{
+								std::this_thread::sleep_for(std::chrono::milliseconds(1));
+
+								_cv.notify_one();
+							}
+#endif
+							mkfile();
+						}
+					}
+				}
+			}
+		}
+
+		void flush()
 		{
 			std::lock_guard<std::mutex> g(m_lock);
 			if (m_file.is_open())
 			{
 				m_file.flush();
 			}
-
-			return (*this);
 		}
 
 	protected:

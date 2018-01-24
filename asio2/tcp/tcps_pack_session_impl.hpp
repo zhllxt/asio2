@@ -30,12 +30,12 @@ namespace asio2
 		 * @construct
 		 */
 		explicit tcps_pack_session_impl(
-			std::shared_ptr<url_parser>                    url_parser_ptr,
-			std::shared_ptr<listener_mgr>                  listener_mgr_ptr,
-			std::shared_ptr<boost::asio::io_context>       io_context_ptr,
-			std::shared_ptr<session_mgr>                   session_mgr_ptr,
-			std::shared_ptr<boost::asio::ssl::context>     ssl_context_ptr = nullptr,
-			std::function<parser_callback>                 pack_parser = nullptr
+			std::shared_ptr<url_parser>             url_parser_ptr,
+			std::shared_ptr<listener_mgr>           listener_mgr_ptr,
+			std::shared_ptr<asio::io_context>       io_context_ptr,
+			std::shared_ptr<session_mgr>            session_mgr_ptr,
+			std::shared_ptr<asio::ssl::context>     ssl_context_ptr = nullptr,
+			std::function<parser_callback>          pack_parser = nullptr
 		)
 			: tcps_session_impl(
 				url_parser_ptr,
@@ -56,7 +56,7 @@ namespace asio2
 		}
 
 	protected:
-		virtual void _handle_recv(const boost::system::error_code & ec, std::size_t bytes_recvd, std::shared_ptr<session_impl> this_ptr, std::shared_ptr<buffer<uint8_t>> buf_ptr) override
+		virtual void _handle_recv(const asio::error_code & ec, std::size_t bytes_recvd, std::shared_ptr<session_impl> this_ptr, std::shared_ptr<buffer<uint8_t>> buf_ptr) override
 		{
 			if (!ec)
 			{

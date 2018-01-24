@@ -20,7 +20,8 @@
 #include <condition_variable>
 #include <chrono>
 
-#include <boost/asio.hpp>
+#include <asio/asio.hpp>
+#include <asio/system_error.hpp>
 
 #include <asio2/util/rwlock.hpp>
 

@@ -33,10 +33,10 @@ namespace asio2
 		 * @construct
 		 */
 		explicit http_session_impl(
-			std::shared_ptr<url_parser>                    url_parser_ptr,
-			std::shared_ptr<listener_mgr>                  listener_mgr_ptr,
-			std::shared_ptr<boost::asio::io_context>       io_context_ptr,
-			std::shared_ptr<session_mgr>                   session_mgr_ptr
+			std::shared_ptr<url_parser>             url_parser_ptr,
+			std::shared_ptr<listener_mgr>           listener_mgr_ptr,
+			std::shared_ptr<asio::io_context>       io_context_ptr,
+			std::shared_ptr<session_mgr>            session_mgr_ptr
 		)
 			: tcp_session_impl(
 				url_parser_ptr,
@@ -66,7 +66,7 @@ namespace asio2
 			if (tcp_session_impl::start())
 			{
 				// start the keep-alive timeout timer
-				m_keepalive_timer.expires_from_now(boost::posix_time::seconds(m_keepalive_timeout));
+				m_keepalive_timer.expires_from_now(std::chrono::seconds(m_keepalive_timeout));
 				m_keepalive_timer.async_wait(
 					m_strand_ptr->wrap(std::bind(&http_session_impl::_handle_keepalive_timeout, this,
 						std::placeholders::_1, // error_code
@@ -85,14 +85,14 @@ namespace asio2
 			{
 				m_keepalive_timer.cancel();
 			}
-			catch (boost::system::system_error & e)
+			catch (asio::system_error & e)
 			{
 				set_last_error(e.code().value());
 			}
 		}
 
 	protected:
-		virtual void _handle_keepalive_timeout(const boost::system::error_code& ec, std::shared_ptr<session_impl> this_ptr)
+		virtual void _handle_keepalive_timeout(const asio::error_code& ec, std::shared_ptr<session_impl> this_ptr)
 		{
 			if (!ec)
 			{
@@ -102,7 +102,7 @@ namespace asio2
 				{
 					if (get_silence_duration() < 100)
 					{
-						m_keepalive_timer.expires_from_now(boost::posix_time::milliseconds(m_keepalive_timeout * 10));
+						m_keepalive_timer.expires_from_now(std::chrono::milliseconds(m_keepalive_timeout * 10));
 						m_keepalive_timer.async_wait(
 							m_strand_ptr->wrap(std::bind(&http_session_impl::_handle_keepalive_timeout, this,
 								std::placeholders::_1, // error_code
@@ -122,7 +122,7 @@ namespace asio2
 			}
 		}
 
-		virtual void _handle_recv(const boost::system::error_code & ec, std::size_t bytes_recvd, std::shared_ptr<session_impl> this_ptr, std::shared_ptr<buffer<uint8_t>> buf_ptr) override
+		virtual void _handle_recv(const asio::error_code & ec, std::size_t bytes_recvd, std::shared_ptr<session_impl> this_ptr, std::shared_ptr<buffer<uint8_t>> buf_ptr) override
 		{
 			if (!ec)
 			{
@@ -143,7 +143,7 @@ namespace asio2
 
 				//	_fire_recv(this_ptr, m_request_ptr);
 
-				//	if (get_keepalive_duration() > m_keepalive_timeout || m_request_count > m_max_request_count)
+				//	if (get_connect_duration() > m_keepalive_timeout || m_request_count > m_max_request_count)
 				//	{
 				//		this->stop();
 
@@ -214,7 +214,7 @@ namespace asio2
 		std::shared_ptr<http_request> m_request_ptr;
 
 		/// timer for session keep-alive time out
-		boost::asio::deadline_timer   m_keepalive_timer;
+		asio::steady_timer            m_keepalive_timer;
 
 		/// keep-alive timeout value,unit : seconds,if time out value is elapsed,then this session will be closed.
 		long   m_keepalive_timeout = DEFAULT_HTTP_KEEPALIVE_TIMEOUT;

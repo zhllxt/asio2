@@ -30,10 +30,10 @@ namespace asio2
 		 * @construct
 		 */
 		explicit tcp_session_impl(
-			std::shared_ptr<url_parser>                    url_parser_ptr,
-			std::shared_ptr<listener_mgr>                  listener_mgr_ptr,
-			std::shared_ptr<boost::asio::io_context>       io_context_ptr,
-			std::shared_ptr<session_mgr>                   session_mgr_ptr
+			std::shared_ptr<url_parser>             url_parser_ptr,
+			std::shared_ptr<listener_mgr>           listener_mgr_ptr,
+			std::shared_ptr<asio::io_context>       io_context_ptr,
+			std::shared_ptr<session_mgr>            session_mgr_ptr
 		)
 			: session_impl(url_parser_ptr, listener_mgr_ptr, io_context_ptr, session_mgr_ptr)
 			, m_socket(*io_context_ptr)
@@ -56,6 +56,8 @@ namespace asio2
 
 			// reset the variable to default status
 			m_fire_close_is_called.clear(std::memory_order_release);
+			m_last_active_time = std::chrono::system_clock::now();
+			m_connect_time     = std::chrono::system_clock::now();
 
 			m_state = state::started;
 
@@ -75,18 +77,18 @@ namespace asio2
 				// setsockopt SO_SNDBUF from url params
 				if (m_url_parser_ptr->get_so_sndbuf_size() > 0)
 				{
-					boost::asio::socket_base::send_buffer_size option(m_url_parser_ptr->get_so_sndbuf_size());
+					asio::socket_base::send_buffer_size option(m_url_parser_ptr->get_so_sndbuf_size());
 					m_socket.set_option(option);
 				}
 
 				// setsockopt SO_RCVBUF from url params
 				if (m_url_parser_ptr->get_so_rcvbuf_size() > 0)
 				{
-					boost::asio::socket_base::receive_buffer_size option(m_url_parser_ptr->get_so_rcvbuf_size());
+					asio::socket_base::receive_buffer_size option(m_url_parser_ptr->get_so_rcvbuf_size());
 					m_socket.set_option(option);
 				}
 			}
-			catch (boost::system::system_error & e)
+			catch (asio::system_error & e)
 			{
 				set_last_error(e.code().value());
 			}
@@ -102,7 +104,7 @@ namespace asio2
 			// start the timer of check silence timeout
 			if (m_url_parser_ptr->get_silence_timeout() > 0)
 			{
-				m_timer.expires_from_now(boost::posix_time::seconds(m_url_parser_ptr->get_silence_timeout()));
+				m_timer.expires_from_now(std::chrono::seconds(m_url_parser_ptr->get_silence_timeout()));
 				m_timer.async_wait(
 					m_strand_ptr->wrap(std::bind(&tcp_session_impl::_handle_timer, this,
 						std::placeholders::_1, // error_code
@@ -151,13 +153,13 @@ namespace asio2
 									_fire_close(this_ptr, get_last_error());
 
 								// close the socket
-								m_socket.shutdown(boost::asio::socket_base::shutdown_both);
+								m_socket.shutdown(asio::socket_base::shutdown_both);
 								m_socket.close();
 
 								// clost the timer
 								m_timer.cancel();
 							}
-							catch (boost::system::system_error & e)
+							catch (asio::system_error & e)
 							{
 								set_last_error(e.code().value());
 							}
@@ -220,7 +222,7 @@ namespace asio2
 		/**
 		 * @function : get the socket refrence
 		 */
-		inline boost::asio::ip::tcp::socket & get_socket()
+		inline asio::ip::tcp::socket & get_socket()
 		{
 			return m_socket;
 		}
@@ -237,7 +239,7 @@ namespace asio2
 					return m_socket.local_endpoint().address().to_string();
 				}
 			}
-			catch (boost::system::system_error & e)
+			catch (asio::system_error & e)
 			{
 				set_last_error(e.code().value());
 			}
@@ -256,7 +258,7 @@ namespace asio2
 					return m_socket.local_endpoint().port();
 				}
 			}
-			catch (boost::system::system_error & e)
+			catch (asio::system_error & e)
 			{
 				set_last_error(e.code().value());
 			}
@@ -275,7 +277,7 @@ namespace asio2
 					return m_socket.remote_endpoint().address().to_string();
 				}
 			}
-			catch (boost::system::system_error & e)
+			catch (asio::system_error & e)
 			{
 				set_last_error(e.code().value());
 			}
@@ -294,7 +296,7 @@ namespace asio2
 					return m_socket.remote_endpoint().port();
 				}
 			}
-			catch (boost::system::system_error & e)
+			catch (asio::system_error & e)
 			{
 				set_last_error(e.code().value());
 			}
@@ -307,7 +309,7 @@ namespace asio2
 			return static_cast<void *>(this);
 		}
 
-		virtual void _handle_timer(const boost::system::error_code & ec, std::shared_ptr<session_impl> this_ptr)
+		virtual void _handle_timer(const asio::error_code & ec, std::shared_ptr<session_impl> this_ptr)
 		{
 			if (!ec)
 			{
@@ -316,7 +318,7 @@ namespace asio2
 				if (get_silence_duration() < m_url_parser_ptr->get_silence_timeout() * 1000)
 				{
 					auto remain = (m_url_parser_ptr->get_silence_timeout() * 1000) - get_silence_duration();
-					m_timer.expires_from_now(boost::posix_time::milliseconds(remain));
+					m_timer.expires_from_now(std::chrono::milliseconds(remain));
 					m_timer.async_wait(
 						m_strand_ptr->wrap(std::bind(&tcp_session_impl::_handle_timer, this,
 							std::placeholders::_1,
@@ -343,7 +345,7 @@ namespace asio2
 			{
 				if (buf_ptr->remain() > 0)
 				{
-					const auto & buffer = boost::asio::buffer(buf_ptr->write_begin(), buf_ptr->remain());
+					const auto & buffer = asio::buffer(buf_ptr->write_begin(), buf_ptr->remain());
 					this->m_socket.async_read_some(buffer,
 						this->m_strand_ptr->wrap(std::bind(&tcp_session_impl::_handle_recv, this,
 							std::placeholders::_1, // error_code
@@ -362,7 +364,7 @@ namespace asio2
 			}
 		}
 
-		virtual void _handle_recv(const boost::system::error_code & ec, std::size_t bytes_recvd, std::shared_ptr<session_impl> this_ptr, std::shared_ptr<buffer<uint8_t>> buf_ptr)
+		virtual void _handle_recv(const asio::error_code & ec, std::size_t bytes_recvd, std::shared_ptr<session_impl> this_ptr, std::shared_ptr<buffer<uint8_t>> buf_ptr)
 		{
 			if (!ec)
 			{
@@ -403,8 +405,8 @@ namespace asio2
 		{
 			if (is_started())
 			{
-				boost::system::error_code ec;
-				boost::asio::write(m_socket, boost::asio::buffer((void *)buf_ptr->read_begin(), buf_ptr->size()), ec);
+				asio::error_code ec;
+				asio::write(m_socket, asio::buffer((void *)buf_ptr->read_begin(), buf_ptr->size()), ec);
 				set_last_error(ec.value());
 				this->_fire_send(this_ptr, buf_ptr, ec.value());
 				if (ec)
@@ -445,7 +447,7 @@ namespace asio2
 
 	protected:
 		/// tcp socket
-		boost::asio::ip::tcp::socket m_socket;
+		asio::ip::tcp::socket m_socket;
 
 		/// use to avoid call _fire_close twice
 		std::atomic_flag m_fire_close_is_called = ATOMIC_FLAG_INIT;

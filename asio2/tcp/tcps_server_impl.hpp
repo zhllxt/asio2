@@ -34,20 +34,20 @@ namespace asio2
 		tcps_server_impl(
 			std::shared_ptr<url_parser>        url_parser_ptr,
 			std::shared_ptr<listener_mgr>      listener_mgr_ptr,
-			boost::asio::ssl::context::method  method,
-			boost::asio::ssl::context::options options
+			asio::ssl::context::method  method,
+			asio::ssl::context::options options
 		)
 			: tcp_server_impl<_acceptor_impl_t>(url_parser_ptr, nullptr)
 		{
 			this->m_listener_mgr_ptr = listener_mgr_ptr;
 			try
 			{
-				this->m_ssl_context_ptr = std::make_shared<boost::asio::ssl::context>(method);
+				this->m_ssl_context_ptr = std::make_shared<asio::ssl::context>(method);
 				this->m_ssl_context_ptr->set_options(options);
 
 				this->m_acceptor_impl_ptr = std::make_shared<_acceptor_impl_t>(url_parser_ptr, listener_mgr_ptr, this->m_io_context_pool_ptr, this->m_ssl_context_ptr);
 			}
-			catch (boost::system::system_error & e)
+			catch (asio::system_error & e)
 			{
 				set_last_error(e.code().value());
 				PRINT_EXCEPTION;
@@ -91,12 +91,12 @@ namespace asio2
 			//CRYPTO_cleanup_all_ex_data();
 		}
 
-		inline std::shared_ptr<boost::asio::ssl::context> get_ssl_context() { return this->m_ssl_context_ptr; }
+		inline std::shared_ptr<asio::ssl::context> get_ssl_context() { return this->m_ssl_context_ptr; }
 
 		tcps_server_impl & set_password(std::string password)
 		{
 			this->m_ssl_context_ptr->set_password_callback([password]
-			(std::size_t max_length, boost::asio::ssl::context_base::password_purpose purpose) -> std::string
+			(std::size_t max_length, asio::ssl::context_base::password_purpose purpose) -> std::string
 			{
 				return password;
 			});
@@ -105,7 +105,7 @@ namespace asio2
 
 	protected:
 		/// ssl context 
-		std::shared_ptr<boost::asio::ssl::context> m_ssl_context_ptr;
+		std::shared_ptr<asio::ssl::context> m_ssl_context_ptr;
 
 	};
 

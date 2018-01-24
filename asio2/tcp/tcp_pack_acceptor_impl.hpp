@@ -66,7 +66,7 @@ namespace asio2
 					);
 			}
 			// handle exception,may be is the exception "Too many open files" (exception code : 24)
-			catch (boost::system::system_error & e)
+			catch (asio::system_error & e)
 			{
 				set_last_error(e.code().value());
 

@@ -126,11 +126,11 @@ namespace asio2
 		 */
 		server(std::string url
 #if defined(ASIO2_USE_SSL)
-			, boost::asio::ssl::context::method  method  = boost::asio::ssl::context::sslv23
-			, boost::asio::ssl::context::options options =
-														   boost::asio::ssl::context::default_workarounds |
-														   boost::asio::ssl::context::no_sslv2 |
-														   boost::asio::ssl::context::single_dh_use
+			, asio::ssl::context::method  method  = asio::ssl::context::sslv23
+			, asio::ssl::context::options options =
+														   asio::ssl::context::default_workarounds |
+														   asio::ssl::context::no_sslv2 |
+														   asio::ssl::context::single_dh_use
 #endif
 		)
 		{
@@ -308,14 +308,14 @@ namespace asio2
 				{
 					static_cast<tcps_server *>(m_server_impl_ptr.get())->set_password(password);
 					static_cast<tcps_server *>(m_server_impl_ptr.get())->get_ssl_context()->use_certificate_chain(
-						boost::asio::const_buffer(certificate.data(), certificate.size()));
+						asio::const_buffer(certificate.data(), certificate.size()));
 					static_cast<tcps_server *>(m_server_impl_ptr.get())->get_ssl_context()->use_private_key(
-						boost::asio::const_buffer(key.data(), key.size()), boost::asio::ssl::context::pem);
+						asio::const_buffer(key.data(), key.size()), asio::ssl::context::pem);
 					static_cast<tcps_server *>(m_server_impl_ptr.get())->get_ssl_context()->use_tmp_dh(
-						boost::asio::const_buffer(dh.data(), dh.size()));
+						asio::const_buffer(dh.data(), dh.size()));
 				}
 			}
-			catch (boost::system::system_error & e)
+			catch (asio::system_error & e)
 			{
 				set_last_error(e.code().value());
 				assert(false);
@@ -331,11 +331,11 @@ namespace asio2
 				{
 					static_cast<tcps_server *>(m_server_impl_ptr.get())->set_password(password);
 					static_cast<tcps_server *>(m_server_impl_ptr.get())->get_ssl_context()->use_certificate_chain_file(certificate);
-					static_cast<tcps_server *>(m_server_impl_ptr.get())->get_ssl_context()->use_private_key_file(key, boost::asio::ssl::context::pem);
+					static_cast<tcps_server *>(m_server_impl_ptr.get())->get_ssl_context()->use_private_key_file(key, asio::ssl::context::pem);
 					static_cast<tcps_server *>(m_server_impl_ptr.get())->get_ssl_context()->use_tmp_dh_file(dh);
 				}
 			}
-			catch (boost::system::system_error & e)
+			catch (asio::system_error & e)
 			{
 				set_last_error(e.code().value());
 				assert(false);
@@ -581,8 +581,8 @@ namespace asio2
 	protected:
 		void _init(std::string & url
 #if defined(ASIO2_USE_SSL)
-			, boost::asio::ssl::context::method  method
-			, boost::asio::ssl::context::options options
+			, asio::ssl::context::method  method
+			, asio::ssl::context::options options
 #endif
 		)
 		{

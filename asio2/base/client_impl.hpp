@@ -67,7 +67,7 @@ namespace asio2
 				// start connect
 				return this->m_connection_impl_ptr->start(async_connect);
 			}
-			catch (boost::system::system_error & e)
+			catch (asio::system_error & e)
 			{
 				set_last_error(e.code().value());
 			}

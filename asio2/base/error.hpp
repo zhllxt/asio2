@@ -19,11 +19,11 @@
 #include <memory>
 #include <string>
 
-#include <boost/asio.hpp>
-#include <boost/system/system_error.hpp>
+#include <asio/asio.hpp>
+#include <asio/system_error.hpp>
 
 #if defined(ASIO2_USE_SSL)
-#include <boost/asio/ssl.hpp>
+#include <asio/ssl.hpp>
 #endif
 
 #include <asio2/base/def.hpp>
@@ -122,7 +122,7 @@ namespace asio2
 			// 1.must check ssl_category first 
 #if defined(ASIO2_USE_SSL)
 			if (err_num & 0xff000000)
-				return boost::system::error_code(err_num, boost::asio::error::detail::ssl_category()).message();
+				return asio::error_code(err_num, asio::error::detail::ssl_category()).message();
 #endif
 
 			// 2.check asio2_category
@@ -133,7 +133,7 @@ namespace asio2
 			if (err_num & HTTP_ERROR_CODE_MASK)
 				return http::http_errno_description((enum http::http_errno)(err_num & (~HTTP_ERROR_CODE_MASK)));
 
-			return boost::system::error_code(err_num, boost::system::system_category()).message();
+			return asio::error_code(err_num, asio::system_category()).message();
 		}
 
 		/**

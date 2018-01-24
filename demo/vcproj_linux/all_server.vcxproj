@@ -85,6 +85,7 @@
     <ClInclude Include="..\..\asio2\base\session_mgr.hpp" />
     <ClInclude Include="..\..\asio2\base\session_mgr_impl.hpp" />
     <ClInclude Include="..\..\asio2\base\socket_helper.hpp" />
+    <ClInclude Include="..\..\asio2\base\transmitter_impl.hpp" />
     <ClInclude Include="..\..\asio2\base\url_parser.hpp" />
     <ClInclude Include="..\..\asio2\client.hpp" />
     <ClInclude Include="..\..\asio2\http\http_acceptor_impl.hpp" />
@@ -138,6 +139,7 @@
     <ClInclude Include="..\..\asio2\udp\udp_sender_impl.hpp" />
     <ClInclude Include="..\..\asio2\udp\udp_server_impl.hpp" />
     <ClInclude Include="..\..\asio2\udp\udp_session_impl.hpp" />
+    <ClInclude Include="..\..\asio2\udp\udp_transmitter_impl.hpp" />
     <ClInclude Include="..\..\asio2\util\buffer.hpp" />
     <ClInclude Include="..\..\asio2\util\def.hpp" />
     <ClInclude Include="..\..\asio2\util\helper.hpp" />

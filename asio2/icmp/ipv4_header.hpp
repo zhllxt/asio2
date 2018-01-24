@@ -16,7 +16,7 @@
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
 #include <algorithm>
-#include <boost/asio/ip/address_v4.hpp>
+#include <asio/ip/address_v4.hpp>
 
 // Packet header for IPv4.
 //
@@ -77,16 +77,16 @@ namespace asio2
 		unsigned char  protocol()        const { return rep_[9]; }
 		unsigned short header_checksum() const { return decode(10, 11); }
 
-		boost::asio::ip::address_v4 source_address() const
+		asio::ip::address_v4 source_address() const
 		{
-			boost::asio::ip::address_v4::bytes_type bytes = { { rep_[12], rep_[13], rep_[14], rep_[15] } };
-			return boost::asio::ip::address_v4(bytes);
+			asio::ip::address_v4::bytes_type bytes = { { rep_[12], rep_[13], rep_[14], rep_[15] } };
+			return asio::ip::address_v4(bytes);
 		}
 
-		boost::asio::ip::address_v4 destination_address() const
+		asio::ip::address_v4 destination_address() const
 		{
-			boost::asio::ip::address_v4::bytes_type bytes = { { rep_[16], rep_[17], rep_[18], rep_[19] } };
-			return boost::asio::ip::address_v4(bytes);
+			asio::ip::address_v4::bytes_type bytes = { { rep_[16], rep_[17], rep_[18], rep_[19] } };
+			return asio::ip::address_v4(bytes);
 		}
 
 		friend std::istream& operator>>(std::istream& is, ipv4_header& header)

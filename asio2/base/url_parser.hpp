@@ -65,6 +65,7 @@ namespace asio2
 				_set_silence_timeout_from_url();
 				_set_max_packet_size();
 				_set_packet_header_flag();
+				_set_auto_reconnect();
 			}
 		}
 		virtual ~url_parser()
@@ -99,6 +100,7 @@ namespace asio2
 		inline long        get_silence_timeout()    { return m_silence_timeout;    }
 		inline uint8_t     get_packet_header_flag() { return m_packet_header_flag; }
 		inline uint32_t    get_max_packet_size()    { return m_max_packet_size;    }
+		inline long        get_auto_reconnect()     { return m_auto_reconnect;     }
 
 	protected:
 		/**
@@ -218,6 +220,30 @@ namespace asio2
 				m_packet_header_flag = static_cast<uint8_t>(std::atoi(val.data()));
 			if (m_packet_header_flag == 0 || m_packet_header_flag > MAX_HEADER_FLAG)
 				m_packet_header_flag = DEFAULT_HEADER_FLAG;
+		}
+
+		void _set_auto_reconnect()
+		{
+			// set packet_header_flag from the url
+			auto val = get_param_value("auto_reconnect");
+			if (!val.empty())
+			{
+				if /**/ (val == "true")
+					m_auto_reconnect = 0;
+				else if (val == "false")
+					m_auto_reconnect = -1;
+				else
+				{
+					auto interval = std::strtol(val.data(), nullptr, 10);
+					if /**/ (val.find("s") != std::string::npos)
+						interval *= 1000;
+					else if (val.find("m") != std::string::npos)
+						interval *= 1000 * 60;
+					else if (val.find("h") != std::string::npos)
+						interval *= 1000 * 60 * 60;
+					m_auto_reconnect = interval;
+				}
+			}
 		}
 
 	protected:
@@ -346,6 +372,7 @@ namespace asio2
 		long        m_silence_timeout    = 0;
 		uint8_t     m_packet_header_flag = DEFAULT_HEADER_FLAG;
 		uint32_t    m_max_packet_size    = MAX_PACKET_SIZE;
+		long        m_auto_reconnect     = -1;
 	};
 
 }

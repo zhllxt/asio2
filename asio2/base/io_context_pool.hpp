@@ -24,7 +24,8 @@
 #include <thread>
 #include <mutex>
 
-#include <boost/asio.hpp>
+#include <asio/asio.hpp>
+#include <asio/system_error.hpp>
 
 namespace asio2
 {
@@ -37,7 +38,7 @@ namespace asio2
 	class io_context_pool
 	{
 	public:
-		typedef boost::asio::executor_work_guard<boost::asio::io_context::executor_type> io_context_work;
+		typedef asio::executor_work_guard<asio::io_context::executor_type> io_context_work;
 
 		/**
 		 * @construct
@@ -52,7 +53,7 @@ namespace asio2
 
 			for (std::size_t i = 0; i < pool_size; ++i)
 			{
-				m_io_contexts.emplace_back(std::make_shared<boost::asio::io_context>());
+				m_io_contexts.emplace_back(std::make_shared<asio::io_context>());
 			}
 		}
 
@@ -79,8 +80,8 @@ namespace asio2
 				// start work thread
 				m_threads.emplace_back(
 					// when bind a override function,should use static_cast to convert the function to correct function version
-					std::bind(static_cast<std::size_t(boost::asio::io_context::*)()>(
-						&boost::asio::io_context::run), io_context_ptr));
+					std::bind(static_cast<std::size_t(asio::io_context::*)()>(
+						&asio::io_context::run), io_context_ptr));
 			}
 		}
 
@@ -113,7 +114,7 @@ namespace asio2
 		/**
 		 * @function : get an io_context to use
 		 */
-		std::shared_ptr<boost::asio::io_context> get_io_context_ptr()
+		std::shared_ptr<asio::io_context> get_io_context_ptr()
 		{
 			// Use a round-robin scheme to choose the next io_context to use. 
 			return m_io_contexts[(m_next_io_context++) % m_io_contexts.size()];
@@ -124,7 +125,7 @@ namespace asio2
 		std::vector<std::thread> m_threads;
 
 		/// The pool of io_contexts. 
-		std::vector<std::shared_ptr<boost::asio::io_context>> m_io_contexts;
+		std::vector<std::shared_ptr<asio::io_context>> m_io_contexts;
 
 		/// The work that keeps the io_contexts running. 
 		std::vector<std::shared_ptr<io_context_work>> m_works;
