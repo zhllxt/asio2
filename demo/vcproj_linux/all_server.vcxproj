@@ -143,6 +143,7 @@
     <ClInclude Include="..\..\asio2\util\buffer.hpp" />
     <ClInclude Include="..\..\asio2\util\def.hpp" />
     <ClInclude Include="..\..\asio2\util\helper.hpp" />
+    <ClInclude Include="..\..\asio2\util\ini.hpp" />
     <ClInclude Include="..\..\asio2\util\logger.hpp" />
     <ClInclude Include="..\..\asio2\util\pool.hpp" />
     <ClInclude Include="..\..\asio2\util\rwlock.hpp" />

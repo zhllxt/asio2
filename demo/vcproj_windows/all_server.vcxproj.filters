@@ -275,5 +275,8 @@
     <ClInclude Include="..\..\asio2\udp\udp_transmitter_impl.hpp">
       <Filter>asio2\udp</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\asio2\util\ini.hpp">
+      <Filter>asio2\util</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
