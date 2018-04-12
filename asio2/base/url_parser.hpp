@@ -194,11 +194,11 @@ namespace asio2
 			else
 			{
 				if /**/ (m_protocol == "tcp")
-					this->m_silence_timeout = DEFAULT_TCP_SILENCE_TIMEOUT;
+					this->m_silence_timeout = ASIO2_DEFAULT_TCP_SILENCE_TIMEOUT;
 				else if (m_protocol == "tcps")
-					this->m_silence_timeout = DEFAULT_TCP_SILENCE_TIMEOUT;
+					this->m_silence_timeout = ASIO2_DEFAULT_TCP_SILENCE_TIMEOUT;
 				else if (m_protocol == "udp")
-					this->m_silence_timeout = DEFAULT_UDP_SILENCE_TIMEOUT;
+					this->m_silence_timeout = ASIO2_DEFAULT_UDP_SILENCE_TIMEOUT;
 			}
 		}
 
@@ -208,8 +208,8 @@ namespace asio2
 			auto val = get_param_value("max_packet_size");
 			if (!val.empty())
 				m_max_packet_size = static_cast<uint32_t>(std::atoi(val.data()));
-			if (m_max_packet_size < 8 || m_max_packet_size > MAX_PACKET_SIZE)
-				m_max_packet_size = MAX_PACKET_SIZE;
+			if (m_max_packet_size < 8 || m_max_packet_size > ASIO2_MAX_PACKET_SIZE)
+				m_max_packet_size = ASIO2_MAX_PACKET_SIZE;
 		}
 
 		void _set_packet_header_flag()
@@ -218,8 +218,8 @@ namespace asio2
 			auto val = get_param_value("packet_header_flag");
 			if (!val.empty())
 				m_packet_header_flag = static_cast<uint8_t>(std::atoi(val.data()));
-			if (m_packet_header_flag == 0 || m_packet_header_flag > MAX_HEADER_FLAG)
-				m_packet_header_flag = DEFAULT_HEADER_FLAG;
+			if (m_packet_header_flag == 0 || m_packet_header_flag > ASIO2_MAX_HEADER_FLAG)
+				m_packet_header_flag = ASIO2_DEFAULT_HEADER_FLAG;
 		}
 
 		void _set_auto_reconnect()
@@ -256,7 +256,7 @@ namespace asio2
 			}
 
 			// erase the invalid character : space \t \r \n and so on
-			trim(m_url);
+			trim_all(m_url);
 
 			// tolower
 			std::transform(m_url.begin(), m_url.end(), m_url.begin(), ::tolower);
@@ -367,11 +367,11 @@ namespace asio2
 
 		int         m_so_sndbuf_size     = 0;
 		int         m_so_rcvbuf_size     = 0;
-		std::size_t m_send_buffer_size   = DEFAULT_SEND_BUFFER_SIZE;
-		std::size_t m_recv_buffer_size   = DEFAULT_RECV_BUFFER_SIZE;
+		std::size_t m_send_buffer_size   = ASIO2_DEFAULT_SEND_BUFFER_SIZE;
+		std::size_t m_recv_buffer_size   = ASIO2_DEFAULT_RECV_BUFFER_SIZE;
 		long        m_silence_timeout    = 0;
-		uint8_t     m_packet_header_flag = DEFAULT_HEADER_FLAG;
-		uint32_t    m_max_packet_size    = MAX_PACKET_SIZE;
+		uint8_t     m_packet_header_flag = ASIO2_DEFAULT_HEADER_FLAG;
+		uint32_t    m_max_packet_size    = ASIO2_MAX_PACKET_SIZE;
 		long        m_auto_reconnect     = -1;
 	};
 

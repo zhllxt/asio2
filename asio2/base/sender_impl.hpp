@@ -151,6 +151,22 @@ namespace asio2
 			return m_transmitter_impl_ptr->send(ip, port, buf);
 		}
 
+		/**
+		 * @function : send data
+		 */
+		virtual bool send(const std::string & ip, unsigned short port, const std::string & s)
+		{
+			return m_transmitter_impl_ptr->send(ip, port, s);
+		}
+
+		/**
+		 * @function : send data
+		 */
+		virtual bool send(const std::string & ip, const std::string & port, const std::string & s)
+		{
+			return m_transmitter_impl_ptr->send(ip, port, s);
+		}
+
 	public:
 		/**
 		 * @function : get the local address

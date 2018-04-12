@@ -55,6 +55,8 @@ namespace asio2
 		 */
 		virtual bool start() override
 		{
+			m_state = state::starting;
+
 			try
 			{
 				// parse address and port
@@ -73,9 +75,17 @@ namespace asio2
 
 				m_acceptor.listen(asio::socket_base::max_listen_connections);
 
+				m_state = state::started;
+
 				_fire_listen();
 
+				// user has called stop in the listener function,so we can't start continue.
+				if (m_state != state::started)
+					return false;
+
 				_post_accept(shared_from_this());
+
+				m_state = state::running;
 			}
 			catch (asio::system_error & e)
 			{
@@ -93,30 +103,47 @@ namespace asio2
 		 */
 		virtual void stop() override
 		{
-			// call acceptor's close function to notify the _handle_accept function response with error > 0 ,then the listen socket 
-			// can get notify to exit
-			if (m_acceptor.is_open())
+			if (m_state >= state::starting)
 			{
-				// asio don't allow operate the same socket in multi thread,if you close socket in one thread and another thread is 
-				// calling socket's async_... function,it will crash.so we must care for operate the socket.when need close the
-				// socket ,we use the strand to post a event,make sure the socket's close operation is in the same thread.
-				m_strand_ptr->post([this]()
+				auto prev_state = m_state;
+				m_state = state::stopping;
+
+				if (m_acceptor.is_open())
 				{
-					try
+					// asio don't allow operate the same socket in multi thread,if you close socket in one thread and another thread is 
+					// calling socket's async_... function,it will crash.so we must care for operate the socket.when need close the
+					// socket ,we use the strand to post a event,make sure the socket's close operation is in the same thread.
+					m_strand_ptr->post([this, prev_state]()
 					{
-						_fire_shutdown(get_last_error());
+						try
+						{
+							auto promise_ptr = std::make_shared<std::promise<void>>();
 
-						m_acceptor.cancel();
-						m_acceptor.close();
-					}
-					catch (asio::system_error & e)
-					{
-						set_last_error(e.code().value());
-					}
+							// then stop all the sessions, the session::stop must be no blocking,otherwise it may be cause loop lock.
+							m_session_mgr_ptr->destroy([this, promise_ptr]()
+							{
+								promise_ptr->set_value();
+							});
 
-					// stop all the sessions, the session::stop must be no blocking,otherwise it may be cause loop lock.
-					m_session_mgr_ptr->stop_all();
-				});
+							// wait util all session has closed already
+							promise_ptr->get_future().wait();
+
+							if (prev_state == state::running)
+								_fire_shutdown(get_last_error());
+
+							// call acceptor's close function to notify the _handle_accept function response with error > 0 ,
+							// then the listen socket can get notify to exit
+							m_acceptor.cancel();
+							m_acceptor.close();
+
+							m_state = state::stopped;
+						}
+						catch (asio::system_error & e)
+						{
+							set_last_error(e.code().value());
+						}
+					});
+				}
 			}
 		}
 
@@ -125,7 +152,7 @@ namespace asio2
 		 */
 		virtual bool is_started() override
 		{
-			return (m_acceptor.is_open());
+			return ((m_state >= state::started) && m_acceptor.is_open());
 		}
 
 		/**
@@ -133,7 +160,7 @@ namespace asio2
 		 */
 		virtual bool is_stopped() override
 		{
-			return (!m_acceptor.is_open());
+			return ((m_state == state::stopped) && !m_acceptor.is_open());
 		}
 
 		/**
@@ -199,7 +226,7 @@ namespace asio2
 			{
 				set_last_error(e.code().value());
 
-				PRINT_EXCEPTION;
+				ASIO2_DUMP_EXCEPTION_LOG_IMPL;
 			}
 			return nullptr;
 		}
@@ -231,6 +258,10 @@ namespace asio2
 					m_strand_ptr->post(std::bind(&tcp_acceptor_impl::_post_accept, this, std::move(this_ptr)));
 				}
 			}
+			else
+			{
+				set_last_error(asio::error::operation_aborted);
+			}
 		}
 
 		virtual void _handle_accept(const asio::error_code & ec, std::shared_ptr<acceptor_impl> this_ptr, std::shared_ptr<session_impl> session_ptr)
@@ -249,10 +280,14 @@ namespace asio2
 					if (ec == asio::error::operation_aborted)
 						return;
 
-					PRINT_EXCEPTION;
+					ASIO2_DUMP_EXCEPTION_LOG_IMPL;
 				}
 
 				_post_accept(std::move(this_ptr));
+			}
+			else
+			{
+				set_last_error(asio::error::operation_aborted);
 			}
 		}
 

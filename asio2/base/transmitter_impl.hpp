@@ -111,9 +111,7 @@ namespace asio2
 		 */
 		virtual bool send(const std::string & ip, unsigned short port, std::shared_ptr<buffer<uint8_t>> buf_ptr)
 		{
-			auto sport = format("%u", port);
-			return ((!ip.empty() && buf_ptr) ?
-				this->send(ip, sport, buf_ptr) : false);
+			return this->send(ip, format("%u", port), buf_ptr);
 		}
 
 		/**
@@ -126,9 +124,7 @@ namespace asio2
 		 */
 		virtual bool send(const std::string & ip, unsigned short port, const uint8_t * buf, std::size_t len)
 		{
-			auto sport = format("%u", port);
-			return ((!ip.empty() && buf) ?
-				this->send(ip, sport, buf, len) : false);
+			return this->send(ip, format("%u", port), buf, len);
 		}
 
 		/**
@@ -145,9 +141,7 @@ namespace asio2
 		 */
 		virtual bool send(const std::string & ip, unsigned short port, const char * buf)
 		{
-			auto sport = format("%u", port);
-			return ((!ip.empty() && buf) ?
-				this->send(ip, sport, reinterpret_cast<const uint8_t *>(buf), std::strlen(buf)) : false);
+			return (buf ? this->send(ip, format("%u", port), reinterpret_cast<const uint8_t *>(buf), std::strlen(buf)) : false);
 		}
 
 		/**
@@ -155,8 +149,23 @@ namespace asio2
 		 */
 		virtual bool send(const std::string & ip, const std::string & port, const char * buf)
 		{
-			return ((!ip.empty() && !port.empty() && buf) ?
-				this->send(ip, port, reinterpret_cast<const uint8_t *>(buf), std::strlen(buf)) : false);
+			return (buf ? this->send(ip, port, reinterpret_cast<const uint8_t *>(buf), std::strlen(buf)) : false);
+		}
+
+		/**
+		 * @function : send data
+		 */
+		virtual bool send(const std::string & ip, unsigned short port, const std::string & s)
+		{
+			return this->send(ip, format("%u", port), reinterpret_cast<const uint8_t *>(s.data()), s.size());
+		}
+
+		/**
+		 * @function : send data
+		 */
+		virtual bool send(const std::string & ip, const std::string & port, const std::string & s)
+		{
+			return this->send(ip, port, reinterpret_cast<const uint8_t *>(s.data()), s.size());
 		}
 
 	public:
@@ -181,7 +190,7 @@ namespace asio2
 		virtual unsigned short get_remote_port() = 0;
 
 		/**
-		 * @function : get user data 
+		 * @function : get std::size_t user data 
 		 */
 		inline std::size_t get_user_data()
 		{
@@ -189,11 +198,27 @@ namespace asio2
 		}
 
 		/**
-		 * @function : set user data
+		 * @function : set std::size_t user data
 		 */
 		inline void set_user_data(std::size_t user_data)
 		{
 			m_user_data = user_data;
+		}
+		
+		/**
+		 * @function : get std::shared_ptr user data 
+		 */
+		inline std::shared_ptr<void> get_user_data_ptr()
+		{
+			return m_user_data_ptr;
+		}
+
+		/**
+		 * @function : set std::shared_ptr user data
+		 */
+		inline void set_user_data(std::shared_ptr<void> user_data_ptr)
+		{
+			m_user_data_ptr = user_data_ptr;
 		}
 
 	public:
@@ -245,6 +270,7 @@ namespace asio2
 
 		/// user data
 		std::size_t                                        m_user_data = 0;
+		std::shared_ptr<void>                              m_user_data_ptr;
 
 		/// last active time 
 		std::chrono::time_point<std::chrono::system_clock> m_last_active_time = std::chrono::system_clock::now();

@@ -53,6 +53,7 @@ namespace asio2
 		recvd_data_invalid         = 0x800003,
 		send_data_failed           = 0x800004,
 		socket_not_ready           = 0x800005,
+		invalid_parameter          = 0x800006,
 	};
 
 
@@ -80,6 +81,7 @@ namespace asio2
 				("the received data is invalid"),
 				("send data failed"),
 				("the socket is closed or not ready"),
+				("the parameter is incorrect"),
 				("null"),
 			};
 
@@ -130,8 +132,8 @@ namespace asio2
 				return std::error_code(err_num, asio2_category()).message();
 			
 			// 3.check http_errno
-			if (err_num & HTTP_ERROR_CODE_MASK)
-				return http::http_errno_description((enum http::http_errno)(err_num & (~HTTP_ERROR_CODE_MASK)));
+			if (err_num & ASIO2_HTTP_ERROR_CODE_MASK)
+				return http::http_errno_description((enum http::http_errno)(err_num & (~ASIO2_HTTP_ERROR_CODE_MASK)));
 
 			return asio::error_code(err_num, asio::system_category()).message();
 		}

@@ -79,11 +79,6 @@ namespace asio2
 		 */
 		virtual unsigned short get_listen_port() = 0;
 
-		/**
-		 * @function : get the session_mgr pointer
-		 */
-		inline std::shared_ptr<session_mgr> get_session_mgr() { return m_session_mgr_ptr; }
-
 	protected:
 		/// url parser
 		std::shared_ptr<url_parser>                        m_url_parser_ptr;
@@ -102,6 +97,9 @@ namespace asio2
 
 		/// session_mgr interface pointer,this object must be created after acceptor has created
 		std::shared_ptr<session_mgr>                       m_session_mgr_ptr;
+
+		/// acceptor state
+		volatile state                                     m_state             = state::stopped;
 
 	};
 }

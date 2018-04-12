@@ -217,15 +217,15 @@ namespace asio2
 		asio::steady_timer            m_keepalive_timer;
 
 		/// keep-alive timeout value,unit : seconds,if time out value is elapsed,then this session will be closed.
-		long   m_keepalive_timeout = DEFAULT_HTTP_KEEPALIVE_TIMEOUT;
+		long   m_keepalive_timeout = ASIO2_DEFAULT_HTTP_KEEPALIVE_TIMEOUT;
 
 		/// silence timeout value,unit : seconds,if time out value is elapsed,then this session will be closed.
-		long   m_silence_timeout   = DEFAULT_HTTP_SILENCE_TIMEOUT;
+		long   m_silence_timeout   = ASIO2_DEFAULT_HTTP_SILENCE_TIMEOUT;
 
 		/// request times count,if the client send request more than max count,then this session will be closed
 		size_t m_request_count     = 0;
 
-		size_t m_max_request_count = DEFAULT_HTTP_MAX_REQUEST_COUNT;
+		size_t m_max_request_count = ASIO2_DEFAULT_HTTP_MAX_REQUEST_COUNT;
 
 	};
 

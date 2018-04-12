@@ -127,6 +127,14 @@ namespace asio2
 			return m_connection_impl_ptr->send(buf);
 		}
 
+		/**
+		 * @function : send data
+		 */
+		virtual bool send(const std::string & s)
+		{
+			return m_connection_impl_ptr->send(s);
+		}
+
 	public:
 		/**
 		 * @function : get the local address

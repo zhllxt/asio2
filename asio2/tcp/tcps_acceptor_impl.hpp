@@ -72,7 +72,7 @@ namespace asio2
 			{
 				set_last_error(e.code().value());
 
-				PRINT_EXCEPTION;
+				ASIO2_DUMP_EXCEPTION_LOG_IMPL;
 			}
 			return nullptr;
 		}

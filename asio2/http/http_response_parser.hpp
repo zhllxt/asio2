@@ -70,7 +70,7 @@ namespace asio2
 
 		inline int get_http_errno()
 		{
-			return (((int)m_parser.http_errno) | HTTP_ERROR_CODE_MASK);
+			return (((int)m_parser.http_errno) | ASIO2_HTTP_ERROR_CODE_MASK);
 		}
 
 		inline status get_status()

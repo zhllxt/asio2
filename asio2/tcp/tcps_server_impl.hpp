@@ -50,7 +50,7 @@ namespace asio2
 			catch (asio::system_error & e)
 			{
 				set_last_error(e.code().value());
-				PRINT_EXCEPTION;
+				ASIO2_DUMP_EXCEPTION_LOG_IMPL;
 				m_ssl_context_ptr.reset();
 			}
 		}

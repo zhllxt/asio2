@@ -103,7 +103,7 @@ namespace asio2
 		{
 			if (this->is_started())
 			{
-				this->m_acceptor_impl_ptr->get_session_mgr()->for_each_session([&](std::shared_ptr<session_impl> & session_ptr)
+				this->m_acceptor_impl_ptr->m_session_mgr_ptr->for_each_session([&](std::shared_ptr<session_impl> & session_ptr)
 				{
 					session_ptr->send(buf_ptr);
 				});
@@ -129,6 +129,14 @@ namespace asio2
 		}
 
 		/**
+		 * @function : send data
+		 */
+		virtual bool send(const std::string & s)
+		{
+			return this->send(reinterpret_cast<const uint8_t *>(s.data()), s.size());
+		}
+
+		/**
 		 * @function : get the acceptor_impl shared_ptr
 		 */
 		inline std::shared_ptr<acceptor_impl> get_acceptor_impl() { return m_acceptor_impl_ptr; }
@@ -146,7 +154,7 @@ namespace asio2
 		/**
 		 * @function : get connected session count
 		 */
-		virtual std::size_t get_session_count()  { return this->m_acceptor_impl_ptr->get_session_mgr()->get_session_count(); }
+		virtual std::size_t get_session_count()  { return this->m_acceptor_impl_ptr->m_session_mgr_ptr->get_session_count(); }
 
 		/**
 		 * @function : 
@@ -157,10 +165,26 @@ namespace asio2
 		{
 			if (this->is_started())
 			{
-				this->m_acceptor_impl_ptr->get_session_mgr()->for_each_session(handler);
+				this->m_acceptor_impl_ptr->m_session_mgr_ptr->for_each_session(handler);
 				return true;
 			}
 			return false;
+		}
+
+		/**
+		 * @function : find the session_impl by user custom role
+		 * @param    : a user custom function like this : bool fun(std::shared_ptr<session_impl> & session_ptr){ if(...) return true; return false; } 
+		 *             or a lambda [](std::shared_ptr<session_impl> & session_ptr){ if(...) return true; return false; }
+		 * @return   : session_impl shared_ptr
+		 */
+		virtual std::shared_ptr<session_impl> find_session_if(const std::function<bool(std::shared_ptr<session_impl> & session_ptr)> & handler)
+		{
+			std::shared_ptr<session_impl> session_ptr;
+			if (this->is_started())
+			{
+				session_ptr = this->m_acceptor_impl_ptr->m_session_mgr_ptr->find_session_if(handler);
+			}
+			return session_ptr;
 		}
 
 	protected:

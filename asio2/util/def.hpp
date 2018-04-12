@@ -23,13 +23,13 @@
 // environment macro
 //---------------------------------------------------------------------------------------------
 #ifndef WINDOWS
-#	if defined(WIN32) || defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS_)
+#	if defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS_) || defined(WIN32)
 #		define WINDOWS
 #	endif
 #endif
 
 #ifndef WIN_X86
-#	if !defined(_WIN64) && (defined(WIN32) || defined(_WIN32) || defined(_WINDOWS_))
+#	if !defined(_WIN64) && (defined(_WIN32) || defined(_WINDOWS_) || defined(WIN32))
 #		define WIN_X86
 #	endif
 #endif
@@ -59,15 +59,21 @@
 #endif
 
 #ifndef X86
-#	if defined(WIN_X86) || defined(LINUX_X86)
+#	if defined(WIN_X86) || defined(LINUX_X86) || defined(_M_IX86)
 #		define X86
 #	endif
 #endif
 
 #ifndef X64
-#	if defined(WIN_X64) || defined(LINUX_X64)
+#	if defined(WIN_X64) || defined(LINUX_X64) || defined(_M_X64)
 #		define X64
 #	endif
+#endif
+
+#if defined( _M_ARM )
+#	define A32
+#elif defined( _M_ARM64 )
+#	define A64
 #endif
 
 /// separator of folder

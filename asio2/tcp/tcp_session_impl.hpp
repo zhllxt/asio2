@@ -143,10 +143,9 @@ namespace asio2
 					// socket ,we use the strand to post a event,make sure the socket's close operation is in the same thread.
 					try
 					{
-						auto self(shared_from_this());
-						m_strand_ptr->post([this, self, prev_state]()
+						auto this_ptr(shared_from_this());
+						m_strand_ptr->post([this, this_ptr, prev_state]() mutable
 						{
-							auto this_ptr = std::const_pointer_cast<session_impl>(self);
 							try
 							{
 								if (prev_state == state::running)
@@ -214,6 +213,10 @@ namespace asio2
 			else if (!m_socket.is_open())
 			{
 				set_last_error((int)errcode::socket_not_ready);
+			}
+			else
+			{
+				set_last_error((int)errcode::invalid_parameter);
 			}
 			return false;
 		}
@@ -357,7 +360,7 @@ namespace asio2
 				else
 				{
 					set_last_error((int)errcode::recv_buffer_size_too_small);
-					PRINT_EXCEPTION;
+					ASIO2_DUMP_EXCEPTION_LOG_IMPL;
 					this->stop();
 					assert(false);
 				}
@@ -411,7 +414,7 @@ namespace asio2
 				this->_fire_send(this_ptr, buf_ptr, ec.value());
 				if (ec)
 				{
-					PRINT_EXCEPTION;
+					ASIO2_DUMP_EXCEPTION_LOG_IMPL;
 					this->stop();
 				}
 			}

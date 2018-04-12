@@ -180,7 +180,7 @@ namespace asio2
 		{
 			try
 			{
-				if (is_started() && !ip.empty() && buf_ptr)
+				if (is_started() && !ip.empty() && !port.empty() && buf_ptr)
 				{
 					asio::ip::udp::resolver resolver(*m_recv_io_context_ptr);
 					asio::ip::udp::resolver::query query(ip, port);
@@ -197,6 +197,10 @@ namespace asio2
 				else if (!m_socket.is_open())
 				{
 					set_last_error((int)errcode::socket_not_ready);
+				}
+				else
+				{
+					set_last_error((int)errcode::invalid_parameter);
 				}
 			}
 			catch (asio::system_error & e)
@@ -310,7 +314,7 @@ namespace asio2
 				else
 				{
 					set_last_error((int)errcode::recv_buffer_size_too_small);
-					PRINT_EXCEPTION;
+					ASIO2_DUMP_EXCEPTION_LOG_IMPL;
 					this->stop();
 					assert(false);
 				}
@@ -362,7 +366,7 @@ namespace asio2
 				this->_fire_send(endpoint, buf_ptr, ec.value());
 				if (ec)
 				{
-					PRINT_EXCEPTION;
+					ASIO2_DUMP_EXCEPTION_LOG_IMPL;
 				}
 			}
 			else

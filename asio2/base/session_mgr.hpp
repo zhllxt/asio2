@@ -32,6 +32,17 @@ namespace asio2
 
 	class session_mgr
 	{
+		friend class server_impl;
+		friend class acceptor_impl;
+		friend class session_impl;
+
+		friend class tcp_session_impl;
+		friend class tcps_session_impl;
+		friend class udp_session_impl;
+
+		template<class _session_impl_t> friend class tcp_acceptor_impl;
+		template<class _session_impl_t> friend class udp_acceptor_impl;
+
 	public:
 		/**
 		 * @construct
@@ -47,6 +58,7 @@ namespace asio2
 		{
 		}
 
+	protected:
 		/**
 		 * @function : start and emplace session_impl
 		 */
@@ -58,9 +70,10 @@ namespace asio2
 		virtual void stop(const std::shared_ptr<session_impl> & session_ptr) = 0;
 
 		/**
-		 * @function : stop all sessions
+		 * @function : call destroy will stop all sessions
+		 * @param : callback - when all sessions has closed already, the callback will be called
 		 */
-		virtual void stop_all() = 0;
+		virtual void destroy(const std::function<void()> & callback) = 0;
 
 		/**
 		 * @function : call user custom function for every session_impl in the session_impl map
@@ -74,6 +87,12 @@ namespace asio2
 		 * @return   : session_impl shared_ptr reference
 		 */
 		virtual std::shared_ptr<session_impl> & find_session(void * key) = 0;
+
+		/**
+		 * @function : find the session_impl by user custom role
+		 * @return   : session_impl shared_ptr
+		 */
+		virtual std::shared_ptr<session_impl> find_session_if(const std::function<bool(std::shared_ptr<session_impl> & session_ptr)> & handler) = 0;
 
 		/**
 		 * @function : get session_impl count

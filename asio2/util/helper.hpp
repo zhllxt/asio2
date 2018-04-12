@@ -129,9 +129,15 @@ namespace asio2
 			std::string dir(MAX_PATH, '\0');
 			dir.resize(::GetModuleFileNameA(NULL, (LPSTR)dir.data(), MAX_PATH));
 #endif
-			size_t pos = dir.find_last_of(SLASH);
+			auto pos = dir.find_last_of(SLASH);
 			if (pos != std::string::npos)
 				dir.resize(pos + 1);
+
+			//std::string fullpath1 = boost::filesystem::initial_path<boost::filesystem::path>().string();
+			//std::string fullpath2 = boost::filesystem::current_path().string();
+			//auto path3 = boost::dll::program_location().parent_path();
+			//auto path4 = boost::dll::program_location().filename();
+			//auto path5 = boost::filesystem::system_complete(argv[0]);
 
 			return std::move(dir);
 		}
@@ -550,7 +556,7 @@ namespace asio2
 		/**
 		 * @function : trim the space character : space \t \r \n and so on
 		 */
-		std::string & trim(std::string & s)
+		std::string & trim_all(std::string & s)
 		{
 			for (std::size_t i = s.size() - 1; i != (size_t)-1; i--)
 			{
@@ -559,6 +565,31 @@ namespace asio2
 					s.erase(i, 1);
 				}
 			}
+			return s;
+		}
+
+		std::string & trim_left(std::string & s)
+		{
+			if (!s.empty())
+			{
+				s.erase(0, s.find_first_not_of(" \n\r\t"));
+			}
+			return s;
+		}
+
+		std::string & trim_right(std::string & s)
+		{
+			if (!s.empty())
+			{
+				s.erase(s.find_last_not_of(" \n\r\t") + 1);
+			}
+			return s;
+		}
+
+		std::string & trim_both(std::string & s)
+		{
+			trim_left(s);
+			trim_right(s);
 			return s;
 		}
 

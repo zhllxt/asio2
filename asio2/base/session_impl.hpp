@@ -51,6 +51,7 @@ namespace asio2
 
 	class session_impl : public std::enable_shared_from_this<session_impl>
 	{
+		friend class session_mgr;
 		template<class _key, class _hasher, class _equaler> friend class session_mgr_t;
 
 	public:
@@ -124,6 +125,14 @@ namespace asio2
 			return (buf ? this->send(reinterpret_cast<const uint8_t *>(buf), std::strlen(buf)) : false);
 		}
 
+		/**
+		 * @function : send data
+		 */
+		virtual bool send(const std::string & s)
+		{
+			return this->send(reinterpret_cast<const uint8_t *>(s.data()), s.size());
+		}
+
 	public:
 		/**
 		 * @function : get the local address
@@ -146,7 +155,7 @@ namespace asio2
 		virtual unsigned short get_remote_port() = 0;
 		
 		/**
-		 * @function : get user data 
+		 * @function : get std::size_t user data 
 		 */
 		inline std::size_t get_user_data()
 		{
@@ -154,11 +163,27 @@ namespace asio2
 		}
 
 		/**
-		 * @function : set user data
+		 * @function : set std::size_t user data
 		 */
 		inline void set_user_data(std::size_t user_data)
 		{
 			m_user_data = user_data;
+		}
+		
+		/**
+		 * @function : get std::shared_ptr user data 
+		 */
+		inline std::shared_ptr<void> get_user_data_ptr()
+		{
+			return m_user_data_ptr;
+		}
+
+		/**
+		 * @function : set std::shared_ptr user data
+		 */
+		inline void set_user_data(std::shared_ptr<void> user_data_ptr)
+		{
+			m_user_data_ptr = user_data_ptr;
 		}
 
 	public:
@@ -232,6 +257,7 @@ namespace asio2
 
 		/// user data
 		std::size_t                                        m_user_data         = 0;
+		std::shared_ptr<void>                              m_user_data_ptr;
 
 		/// use to check whether the user call stop in the listener
 		volatile state                                     m_state             = state::stopped;

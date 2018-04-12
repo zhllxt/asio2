@@ -95,7 +95,7 @@ namespace asio2
 					else
 					{
 						set_last_error((int)errcode::recv_buffer_size_too_small);
-						PRINT_EXCEPTION;
+						ASIO2_DUMP_EXCEPTION_LOG_IMPL;
 						this->stop();
 						assert(false);
 					}
@@ -114,14 +114,14 @@ namespace asio2
 
 				if (m_recv_is_header)
 				{
-					uint8_t header_flag = (m_header & HEADER_FLAG_MASK);
+					uint8_t header_flag = (m_header & ASIO2_HEADER_FLAG_MASK);
 					if (bytes_recvd == sizeof(m_header) && header_flag == m_url_parser_ptr->get_packet_header_flag())
 					{
-						m_body_len = (m_header >> HEADER_FLAG_BITS) & MAX_PACKET_SIZE;
+						m_body_len = (m_header >> ASIO2_HEADER_FLAG_BITS) & ASIO2_MAX_PACKET_SIZE;
 						if (m_body_len > m_url_parser_ptr->get_recv_buffer_size() || m_body_len > m_url_parser_ptr->get_max_packet_size())
 						{
 							set_last_error((int)errcode::recv_buffer_size_too_small);
-							PRINT_EXCEPTION;
+							ASIO2_DUMP_EXCEPTION_LOG_IMPL;
 							this->stop();
 							assert(false);
 							return;
@@ -130,7 +130,7 @@ namespace asio2
 					else
 					{
 						set_last_error((int)errcode::recvd_data_invalid);
-						PRINT_EXCEPTION;
+						ASIO2_DUMP_EXCEPTION_LOG_IMPL;
 						this->stop();
 						return;
 					}
@@ -146,7 +146,7 @@ namespace asio2
 					else
 					{
 						set_last_error((int)errcode::recvd_data_invalid);
-						PRINT_EXCEPTION;
+						ASIO2_DUMP_EXCEPTION_LOG_IMPL;
 						this->stop();
 						return;
 					}
@@ -194,7 +194,7 @@ namespace asio2
 				return;
 			}
 
-			uint32_t header = static_cast<uint32_t>(((buf_ptr->size() << HEADER_FLAG_BITS) & ((uint32_t)(~HEADER_FLAG_MASK))) | m_url_parser_ptr->get_packet_header_flag());
+			uint32_t header = static_cast<uint32_t>(((buf_ptr->size() << ASIO2_HEADER_FLAG_BITS) & ((uint32_t)(~ASIO2_HEADER_FLAG_MASK))) | m_url_parser_ptr->get_packet_header_flag());
 
 			asio::error_code ec;
 			std::size_t bytes_sent = asio::write(this->m_socket, asio::buffer((void *)&header, sizeof(header)), ec);
@@ -203,7 +203,7 @@ namespace asio2
 
 			if (ec || bytes_sent != sizeof(header))
 			{
-				PRINT_EXCEPTION;
+				ASIO2_DUMP_EXCEPTION_LOG_IMPL;
 
 				this->stop();
 

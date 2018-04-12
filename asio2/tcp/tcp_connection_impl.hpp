@@ -352,7 +352,7 @@ namespace asio2
 				else
 				{
 					set_last_error((int)errcode::recv_buffer_size_too_small);
-					PRINT_EXCEPTION;
+					ASIO2_DUMP_EXCEPTION_LOG_IMPL;
 					this->stop();
 					assert(false);
 				}
@@ -414,7 +414,7 @@ namespace asio2
 				this->_fire_send(buf_ptr, ec.value());
 				if (ec)
 				{
-					PRINT_EXCEPTION;
+					ASIO2_DUMP_EXCEPTION_LOG_IMPL;
 					this->stop();
 				}
 			}

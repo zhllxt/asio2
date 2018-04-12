@@ -119,7 +119,7 @@ namespace asio2
 					if (buf_ptr->remain() == 0)
 					{
 						set_last_error((int)errcode::recv_buffer_size_too_small);
-						PRINT_EXCEPTION;
+						ASIO2_DUMP_EXCEPTION_LOG_IMPL;
 						this->stop();
 						assert(false);
 					}
@@ -141,7 +141,7 @@ namespace asio2
 			else// if (ret == asio2::invalid_data || ret <= 0 || ret > buf_ptr->size())
 			{
 				set_last_error((int)errcode::recvd_data_invalid);
-				PRINT_EXCEPTION;
+				ASIO2_DUMP_EXCEPTION_LOG_IMPL;
 				this->stop();
 				assert(false);
 			}

@@ -28,11 +28,11 @@
 
 // ASIO2_VERSION / 100 is the major version
 // ASIO2_VERSION % 100 is the minor version
-#define ASIO2_VERSION 103 // 1.3
+#define ASIO2_VERSION 104 // 1.4
 
 
-// if ASIO2_WRITE_LOG is defined,when important exception occured,it will print the exception msg.
-#define ASIO2_WRITE_LOG
+// if ASIO2_DUMP_EXCEPTION_LOG is defined,when important exception occured,it will print and dump the exception msg.
+#define ASIO2_DUMP_EXCEPTION_LOG
 
 
 #if defined(__GNUC__) || defined(__GNUG__)
@@ -44,6 +44,7 @@
 #include <asio2/util/buffer.hpp>
 #include <asio2/util/def.hpp>
 #include <asio2/util/helper.hpp>
+#include <asio2/util/ini.hpp>
 #include <asio2/util/logger.hpp>
 #include <asio2/util/pool.hpp>
 #include <asio2/util/rwlock.hpp>

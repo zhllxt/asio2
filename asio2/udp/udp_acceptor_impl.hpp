@@ -57,6 +57,8 @@ namespace asio2
 		 */
 		virtual bool start() override
 		{
+			m_state = state::starting;
+
 			try
 			{
 				// parse address and port
@@ -87,11 +89,19 @@ namespace asio2
 				m_acceptor.set_option(asio::ip::tcp::acceptor::reuse_address(true)); // set port reuse
 				m_acceptor.bind(endpoint);
 
+				m_state = state::started;
+
 				_fire_listen();
+
+				// user has called stop in the listener function,so we can't start continue.
+				if (m_state != state::started)
+					return false;
 
 				auto recv_buf = std::make_shared<buffer<uint8_t>>(m_url_parser_ptr->get_recv_buffer_size(), malloc_recv_buffer(m_url_parser_ptr->get_recv_buffer_size()), 0);
 
 				_post_recv(shared_from_this(), std::move(recv_buf));
+
+				m_state = state::running;
 			}
 			catch (asio::system_error & e)
 			{
@@ -109,45 +119,45 @@ namespace asio2
 		 */
 		virtual void stop() override
 		{
-			if (this->is_started())
+			if (m_state >= state::starting)
 			{
+				auto prev_state = m_state;
+				m_state = state::stopping;
+
 				if (m_acceptor.is_open())
 				{
-					try
+					// asio don't allow operate the same socket in multi thread,if you close socket in one thread and another thread is 
+					// calling socket's async_... function,it will crash.so we must care for operate the socket.when need close the
+					// socket ,we use the strand to post a event,make sure the socket's close operation is in the same thread.
+					m_strand_ptr->post([this, prev_state]()
 					{
-						auto self(shared_from_this());
-
-						// first wait for the acceptor finished
-						auto promise_ptr = std::make_shared<std::promise<void>>();
-						m_strand_ptr->post([this, self, promise_ptr]()
+						try
 						{
-							promise_ptr->set_value();
-						});
+							auto promise_ptr = std::make_shared<std::promise<void>>();
 
-						// second wait for all send event finished
-						m_send_strand_ptr->post([this, self, promise_ptr]()
-						{
-							// wait util the acceptor is finished compelted
+							// then stop all the sessions, the session::stop must be no blocking,otherwise it may be cause loop lock.
+							m_session_mgr_ptr->destroy([this, promise_ptr]()
+							{
+								promise_ptr->set_value();
+							});
+
+							// wait util all session has closed already
 							promise_ptr->get_future().wait();
 
-							// close the socket
-							try
-							{
+							if (prev_state == state::running)
 								_fire_shutdown(get_last_error());
 
-								m_acceptor.shutdown(asio::socket_base::shutdown_both);
-								m_acceptor.close();
-							}
-							catch (asio::system_error & e)
-							{
-								set_last_error(e.code().value());
-							}
+							// close the socket
+							m_acceptor.shutdown(asio::socket_base::shutdown_both);
+							m_acceptor.close();
 
-							// stop all sessions, the session::stop must be no blocking,otherwise it may be cause loop lock.
-							m_session_mgr_ptr->stop_all();
-						});
-					}
-					catch (std::exception &) {}
+							m_state = state::stopped;
+						}
+						catch (asio::system_error & e)
+						{
+							set_last_error(e.code().value());
+						}
+					});
 				}
 			}
 		}
@@ -157,7 +167,7 @@ namespace asio2
 		 */
 		virtual bool is_started() override
 		{
-			return (m_acceptor.is_open());
+			return ((m_state >= state::started) && m_acceptor.is_open());
 		}
 
 		/**
@@ -165,7 +175,7 @@ namespace asio2
 		 */
 		virtual bool is_stopped() override
 		{
-			return (!m_acceptor.is_open());
+			return ((m_state == state::stopped) && !m_acceptor.is_open());
 		}
 
 		/**
@@ -234,10 +244,14 @@ namespace asio2
 				else
 				{
 					set_last_error((int)errcode::recv_buffer_size_too_small);
-					PRINT_EXCEPTION;
+					ASIO2_DUMP_EXCEPTION_LOG_IMPL;
 					this->stop();
 					assert(false);
 				}
+			}
+			else
+			{
+				set_last_error(asio::error::operation_aborted);
 			}
 		}
 
@@ -288,6 +302,10 @@ namespace asio2
 						m_url_parser_ptr->get_recv_buffer_size(), malloc_recv_buffer(m_url_parser_ptr->get_recv_buffer_size()), 0));
 				}
 			}
+			else
+			{
+				set_last_error(asio::error::operation_aborted);
+			}
 		}
 
 		virtual std::shared_ptr<session_impl> _make_session()
@@ -310,7 +328,7 @@ namespace asio2
 			{
 				set_last_error(e.code().value());
 
-				PRINT_EXCEPTION;
+				ASIO2_DUMP_EXCEPTION_LOG_IMPL;
 			}
 
 			return nullptr;

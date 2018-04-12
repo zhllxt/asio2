@@ -144,7 +144,7 @@ namespace asio2
 							{
 								// if the client socket is not closed forever,this async_shutdown callback also can't be called forever,
 								// so we use a timer to force close the socket,then the async_shutdown callback will return.
-								m_force_close_timer.expires_from_now(std::chrono::seconds(DEFAULT_SSL_SHUTDOWN_TIMEOUT));
+								m_force_close_timer.expires_from_now(std::chrono::seconds(ASIO2_DEFAULT_SSL_SHUTDOWN_TIMEOUT));
 								m_force_close_timer.async_wait(m_recv_strand_ptr->wrap([this, self, prev_state](const asio::error_code & ec)
 								{
 									if (ec)
@@ -421,7 +421,7 @@ namespace asio2
 				else
 				{
 					set_last_error((int)errcode::recv_buffer_size_too_small);
-					PRINT_EXCEPTION;
+					ASIO2_DUMP_EXCEPTION_LOG_IMPL;
 					this->stop();
 					assert(false);
 				}
@@ -483,7 +483,7 @@ namespace asio2
 				_fire_send(buf_ptr, ec.value());
 				if (ec)
 				{
-					PRINT_EXCEPTION;
+					ASIO2_DUMP_EXCEPTION_LOG_IMPL;
 					this->stop();
 				}
 			}

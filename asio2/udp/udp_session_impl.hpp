@@ -118,10 +118,20 @@ namespace asio2
 
 				try
 				{
-					auto self(shared_from_this());
-					m_strand_ptr->post([this, self, prev_state]()
+					auto this_ptr(shared_from_this());
+
+					auto promise_ptr = std::make_shared<std::promise<void>>();
+					// first post a event into the send event procedure to ensure there has no send event.
+					m_send_strand_ptr->post([this, promise_ptr]()
 					{
-						auto this_ptr = std::const_pointer_cast<session_impl>(self);
+						promise_ptr->set_value();
+					});
+
+					m_strand_ptr->post([this, this_ptr, prev_state, promise_ptr]() mutable
+					{
+						// wait util the send event is finished
+						promise_ptr->get_future().wait();
+
 						try
 						{
 							if (prev_state == state::running)
@@ -182,6 +192,10 @@ namespace asio2
 			else if (!m_socket.is_open())
 			{
 				set_last_error((int)errcode::socket_not_ready);
+			}
+			else
+			{
+				set_last_error((int)errcode::invalid_parameter);
 			}
 			return false;
 		}
@@ -326,7 +340,7 @@ namespace asio2
 				this->_fire_send(this_ptr, buf_ptr, ec.value());
 				if (ec)
 				{
-					PRINT_EXCEPTION;
+					ASIO2_DUMP_EXCEPTION_LOG_IMPL;
 				}
 			}
 			else

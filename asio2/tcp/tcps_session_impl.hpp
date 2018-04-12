@@ -112,15 +112,15 @@ namespace asio2
 					// socket ,we use the strand to post a event,make sure the socket's close operation is in the same thread.
 					try
 					{
-						auto self(shared_from_this());
-						m_strand_ptr->post([this, self, prev_state]()
+						auto this_ptr(shared_from_this());
+						m_strand_ptr->post([this, this_ptr, prev_state]() mutable
 						{
 							try
 							{
 								// if the client socket is not closed forever,this async_shutdown callback also can't be called forever,
 								// so we use a timer to force close the socket,then the async_shutdown callback will be called.
-								m_timer.expires_from_now(std::chrono::seconds(DEFAULT_SSL_SHUTDOWN_TIMEOUT));
-								m_timer.async_wait(m_strand_ptr->wrap([this, self, prev_state](const asio::error_code & ec)
+								m_timer.expires_from_now(std::chrono::seconds(ASIO2_DEFAULT_SSL_SHUTDOWN_TIMEOUT));
+								m_timer.async_wait(m_strand_ptr->wrap([this, this_ptr, prev_state](const asio::error_code & ec) mutable
 								{
 									if (ec)
 										set_last_error(ec.value());
@@ -128,7 +128,6 @@ namespace asio2
 									{
 										if (prev_state == state::running)
 										{
-											auto this_ptr = std::const_pointer_cast<session_impl>(self);
 											_fire_close(this_ptr, get_last_error());
 										}
 
@@ -145,7 +144,7 @@ namespace asio2
 								}));
 
 								// when server call ssl stream sync shutdown first,if the client socket is not closed forever,then here shutdowm will blocking forever.
-								m_socket.async_shutdown(m_strand_ptr->wrap([this, self](const asio::error_code & ec)
+								m_socket.async_shutdown(m_strand_ptr->wrap([this, this_ptr](const asio::error_code & ec)
 								{
 									// clost the timer
 									m_timer.cancel();
@@ -160,7 +159,7 @@ namespace asio2
 							}
 
 							// remove this session from the session map
-							m_session_mgr_ptr->stop(self);
+							m_session_mgr_ptr->stop(this_ptr);
 						});
 					}
 					catch (std::exception &) {}
@@ -205,6 +204,10 @@ namespace asio2
 			else if (!m_socket.lowest_layer().is_open())
 			{
 				set_last_error((int)errcode::socket_not_ready);
+			}
+			else
+			{
+				set_last_error((int)errcode::invalid_parameter);
 			}
 			return false;
 		}
@@ -399,7 +402,7 @@ namespace asio2
 				else
 				{
 					set_last_error((int)errcode::recv_buffer_size_too_small);
-					PRINT_EXCEPTION;
+					ASIO2_DUMP_EXCEPTION_LOG_IMPL;
 					this->stop();
 					assert(false);
 				}
@@ -453,7 +456,7 @@ namespace asio2
 				this->_fire_send(this_ptr, buf_ptr, ec.value());
 				if (ec)
 				{
-					PRINT_EXCEPTION;
+					ASIO2_DUMP_EXCEPTION_LOG_IMPL;
 					this->stop();
 				}
 			}

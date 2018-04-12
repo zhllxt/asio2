@@ -6,6 +6,23 @@
  * email    : 37792738@qq.com
  * referenced from : http://blog.csdn.net/10km/article/details/49641691
  * 
+ * note : you should't call lock_read twice in the same thread, because it may be cause dead lock. see below:
+ * void thread1()
+ * {
+ *      lock_read();  // 1
+ *      work();       // 2
+ *      lock_read();  // 3
+ * }
+ * void thread2()
+ * {
+ *      lock_write(); // 4
+ * }
+ * 
+ * code run to 1,lock_read is successed and return.
+ * code run to 2,long time working.
+ * code run to 4,lock_write will block,becuse 1 lock_read hold the lock.
+ * code run to 3,lock_read will block,because m_write_wait_count is equal 1.
+ * then dead lock is occurred.
  */
 
 #ifndef __ASIO2_RWLOCK_HPP__
