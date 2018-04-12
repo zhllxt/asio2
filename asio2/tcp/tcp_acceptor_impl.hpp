@@ -117,16 +117,16 @@ namespace asio2
 					{
 						try
 						{
-							auto promise_ptr = std::make_shared<std::promise<void>>();
+							std::promise<void> promise;
 
 							// then stop all the sessions, the session::stop must be no blocking,otherwise it may be cause loop lock.
-							m_session_mgr_ptr->destroy([this, promise_ptr]()
+							m_session_mgr_ptr->destroy([this, &promise]()
 							{
-								promise_ptr->set_value();
+								promise.set_value();
 							});
 
 							// wait util all session has closed already
-							promise_ptr->get_future().wait();
+							promise.get_future().wait();
 
 							if (prev_state == state::running)
 								_fire_shutdown(get_last_error());
