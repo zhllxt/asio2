@@ -120,34 +120,28 @@ namespace asio2
 				{
 					auto this_ptr(shared_from_this());
 
-					auto promise_ptr = std::make_shared<std::promise<void>>();
 					// first post a event into the send event procedure to ensure there has no send event.
-					m_send_strand_ptr->post([this, promise_ptr]()
+					m_send_strand_ptr->post([this, this_ptr, prev_state]()
 					{
-						promise_ptr->set_value();
-					});
-
-					m_strand_ptr->post([this, this_ptr, prev_state, promise_ptr]() mutable
-					{
-						// wait util the send event is finished
-						promise_ptr->get_future().wait();
-
-						try
+						m_strand_ptr->post([this, this_ptr, prev_state]() mutable
 						{
-							if (prev_state == state::running)
-								_fire_close(this_ptr, get_last_error());
+							try
+							{
+								if (prev_state == state::running)
+									_fire_close(this_ptr, get_last_error());
 
-							m_timer.cancel();
-						}
-						catch (asio::system_error & e)
-						{
-							set_last_error(e.code().value());
-						}
+								m_timer.cancel();
+							}
+							catch (asio::system_error & e)
+							{
+								set_last_error(e.code().value());
+							}
 
-						m_state = state::stopped;
+							m_state = state::stopped;
 
-						// remove this session from the session map
-						m_session_mgr_ptr->stop(this_ptr);
+							// remove this session from the session map
+							m_session_mgr_ptr->stop(this_ptr);
+						});
 					});
 				}
 				catch (std::exception &) {}

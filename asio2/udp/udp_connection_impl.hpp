@@ -127,36 +127,30 @@ namespace asio2
 			{
 				m_state = state::stopping;
 
-				// call socket's close function to notify the _handle_recv function response with error > 0 ,then the socket 
-				// can get notify to exit
-				if (m_socket.is_open())
+				try
 				{
-					try
+					auto self(shared_from_this());
+
+					// first wait for the send event finished
+					m_send_strand_ptr->post([this, self]()
 					{
-						auto self(shared_from_this());
-
-						// first wait for the send event finished
-						auto promise_ptr = std::make_shared<std::promise<void>>();
-						m_send_strand_ptr->post([this, self, promise_ptr]()
-						{
-							promise_ptr->set_value();
-						});
-
 						// asio don't allow operate the same socket in multi thread,if you close socket in one thread and another thread is 
 						// calling socket's async_... function,it will crash.so we must care for operate the socket.when need close the
 						// socket ,we use the strand to post a event,make sure the socket's close operation is in the same thread.
-						m_recv_strand_ptr->post([this, self, promise_ptr]()
+						m_recv_strand_ptr->post([this, self]()
 						{
-							// wait util the send event is finished compelted
-							promise_ptr->get_future().wait();
-
 							// close the socket
 							try
 							{
 								_fire_close(get_last_error());
 
-								m_socket.shutdown(asio::socket_base::shutdown_both);
-								m_socket.close();
+								// call socket's close function to notify the _handle_recv function response with error > 0 ,then the socket 
+								// can get notify to exit
+								if (m_socket.is_open())
+								{
+									m_socket.shutdown(asio::socket_base::shutdown_both);
+									m_socket.close();
+								}
 							}
 							catch (asio::system_error & e)
 							{
@@ -165,9 +159,9 @@ namespace asio2
 
 							m_state = state::stopped;
 						});
-					}
-					catch (std::exception &) {}
+					});
 				}
+				catch (std::exception &) {}
 			}
 		}
 

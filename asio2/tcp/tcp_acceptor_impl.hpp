@@ -108,7 +108,8 @@ namespace asio2
 				auto prev_state = m_state;
 				m_state = state::stopping;
 
-				if (m_acceptor.is_open())
+				// stop all the sessions, the session::stop must be no blocking,otherwise it may be cause loop lock.
+				m_session_mgr_ptr->destroy([this, prev_state]()
 				{
 					// asio don't allow operate the same socket in multi thread,if you close socket in one thread and another thread is 
 					// calling socket's async_... function,it will crash.so we must care for operate the socket.when need close the
@@ -117,33 +118,24 @@ namespace asio2
 					{
 						try
 						{
-							std::promise<void> promise;
-
-							// then stop all the sessions, the session::stop must be no blocking,otherwise it may be cause loop lock.
-							m_session_mgr_ptr->destroy([this, &promise]()
-							{
-								promise.set_value();
-							});
-
-							// wait util all session has closed already
-							promise.get_future().wait();
-
 							if (prev_state == state::running)
 								_fire_shutdown(get_last_error());
 
-							// call acceptor's close function to notify the _handle_accept function response with error > 0 ,
-							// then the listen socket can get notify to exit
-							m_acceptor.cancel();
-							m_acceptor.close();
-
-							m_state = state::stopped;
+							if (m_acceptor.is_open())
+							{
+								// call acceptor's close function to notify the _handle_accept function response with error > 0 , then the listen socket can get notify to exit
+								m_acceptor.cancel();
+								m_acceptor.close();
+							}
 						}
 						catch (asio::system_error & e)
 						{
 							set_last_error(e.code().value());
 						}
+
+						m_state = state::stopped;
 					});
-				}
+				});
 			}
 		}
 

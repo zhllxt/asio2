@@ -127,45 +127,51 @@ namespace asio2
 				auto prev_state = m_state;
 				m_state = state::stopping;
 
-				// call socket's close function to notify the _handle_recv function response with error > 0 ,then the socket 
-				// can get notify to exit
-				if (m_socket.lowest_layer().is_open())
+				// close the socket by post a event
+				// asio don't allow operate the same socket in multi thread,if you close socket in one thread and another thread is 
+				// calling socket's async_... function,it will crash.so we must care for operate the socket.when need close the
+				// socket ,we use the strand to post a event,make sure the socket's close operation is in the same thread.
+				try
 				{
-					// close the socket by post a event
-					// asio don't allow operate the same socket in multi thread,if you close socket in one thread and another thread is 
-					// calling socket's async_... function,it will crash.so we must care for operate the socket.when need close the
-					// socket ,we use the strand to post a event,make sure the socket's close operation is in the same thread.
-					try
+					auto self(shared_from_this());
+					m_recv_strand_ptr->post([this, self, prev_state]()
 					{
-						auto self(shared_from_this());
-						m_recv_strand_ptr->post([this, self, prev_state]()
+						try
 						{
-							try
+							// if the client socket is not closed forever,this async_shutdown callback also can't be called forever,
+							// so we use a timer to force close the socket,then the async_shutdown callback will return.
+							m_force_close_timer.expires_from_now(std::chrono::seconds(ASIO2_DEFAULT_SSL_SHUTDOWN_TIMEOUT));
+							m_force_close_timer.async_wait(m_recv_strand_ptr->wrap([this, self, prev_state](const asio::error_code & ec)
 							{
-								// if the client socket is not closed forever,this async_shutdown callback also can't be called forever,
-								// so we use a timer to force close the socket,then the async_shutdown callback will return.
-								m_force_close_timer.expires_from_now(std::chrono::seconds(ASIO2_DEFAULT_SSL_SHUTDOWN_TIMEOUT));
-								m_force_close_timer.async_wait(m_recv_strand_ptr->wrap([this, self, prev_state](const asio::error_code & ec)
-								{
-									if (ec)
-										set_last_error(ec.value());
-									try
-									{
-										if (prev_state == state::running)
-											_fire_close(get_last_error());
+								if (ec)
+									set_last_error(ec.value());
 
+								try
+								{
+									if (prev_state == state::running)
+										_fire_close(get_last_error());
+
+									// call socket's close function to notify the _handle_recv function response with error > 0 ,then the socket 
+									// can get notify to exit
+									if (m_socket.lowest_layer().is_open())
+									{
 										// when the lowest socket is closed,the ssl stream shutdown will returned.
 										m_socket.lowest_layer().shutdown(asio::socket_base::shutdown_both);
 										m_socket.lowest_layer().close();
 									}
-									catch (asio::system_error & e)
-									{
-										set_last_error(e.code().value());
-									}
+								}
+								catch (asio::system_error & e)
+								{
+									set_last_error(e.code().value());
+								}
 
-									m_state = state::stopped;
-								}));
+								m_state = state::stopped;
+							}));
 
+							// call socket's close function to notify the _handle_recv function response with error > 0 ,then the socket 
+							// can get notify to exit
+							if (m_socket.lowest_layer().is_open())
+							{
 								// when client call ssl stream sync shutdown first,if the server socket is not closed forever,then here sync shutdowm will blocking forever.
 								// so we use async shutdown,and use a timer to check whether timeout,if timeout,we force close the socket.
 								m_socket.async_shutdown(m_recv_strand_ptr->wrap([this, self](const asio::error_code & ec)
@@ -177,14 +183,14 @@ namespace asio2
 										set_last_error(ec.value());
 								}));
 							}
-							catch (asio::system_error & e)
-							{
-								set_last_error(e.code().value());
-							}
-						});
-					}
-					catch (std::exception &) {}
+						}
+						catch (asio::system_error & e)
+						{
+							set_last_error(e.code().value());
+						}
+					});
 				}
+				catch (std::exception &) {}
 			}
 		}
 

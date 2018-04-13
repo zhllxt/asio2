@@ -66,16 +66,17 @@ namespace asio2
 		 */
 		virtual void stop(const std::shared_ptr<session_impl> & session_ptr) override
 		{
+			wlock_guard g(m_rwlock);
 			if (session_ptr)
 			{
-				wlock_guard g(m_rwlock);
 				m_sessions.erase(static_cast<_key>(session_ptr->_get_key()));
+			}
 
-				// notify the caller all sessions has closed already
-				if (m_destroyed && m_sessions.empty() && m_callback)
-				{
-					(m_callback)();
-				}
+			// notify the caller all sessions has closed already
+			if (m_destroyed && m_sessions.empty() && m_callback)
+			{
+				(m_callback)();
+				m_callback = nullptr;
 			}
 		}
 
@@ -91,6 +92,7 @@ namespace asio2
 			if (m_sessions.empty())
 			{
 				(m_callback)();
+				m_callback = nullptr;
 			}
 			else
 			{

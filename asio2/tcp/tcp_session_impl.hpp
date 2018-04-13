@@ -133,44 +133,44 @@ namespace asio2
 				auto prev_state = m_state;
 				m_state = state::stopping;
 
-				// call socket's close function to notify the _handle_recv function response with error > 0 ,then the socket 
-				// can get notify to exit
-				if (m_socket.is_open())
+				// close the socket by post a event
+				// asio don't allow operate the same socket in multi thread,if you close socket in one thread and another thread is 
+				// calling socket's async_... function,it will crash.so we must care for operate the socket.when need close the
+				// socket ,we use the strand to post a event,make sure the socket's close operation is in the same thread.
+				try
 				{
-					// close the socket by post a event
-					// asio don't allow operate the same socket in multi thread,if you close socket in one thread and another thread is 
-					// calling socket's async_... function,it will crash.so we must care for operate the socket.when need close the
-					// socket ,we use the strand to post a event,make sure the socket's close operation is in the same thread.
-					try
+					auto this_ptr(shared_from_this());
+					m_strand_ptr->post([this, this_ptr, prev_state]() mutable
 					{
-						auto this_ptr(shared_from_this());
-						m_strand_ptr->post([this, this_ptr, prev_state]() mutable
+						try
 						{
-							try
-							{
-								if (prev_state == state::running)
-									_fire_close(this_ptr, get_last_error());
+							if (prev_state == state::running)
+								_fire_close(this_ptr, get_last_error());
 
+							// call socket's close function to notify the _handle_recv function response with error > 0 ,then the socket 
+							// can get notify to exit
+							if (m_socket.is_open())
+							{
 								// close the socket
 								m_socket.shutdown(asio::socket_base::shutdown_both);
 								m_socket.close();
-
-								// clost the timer
-								m_timer.cancel();
-							}
-							catch (asio::system_error & e)
-							{
-								set_last_error(e.code().value());
 							}
 
-							m_state = state::stopped;
+							// clost the timer
+							m_timer.cancel();
+						}
+						catch (asio::system_error & e)
+						{
+							set_last_error(e.code().value());
+						}
 
-							// remove this session from the session map
-							m_session_mgr_ptr->stop(this_ptr);
-						});
-					}
-					catch (std::exception &) {}
+						m_state = state::stopped;
+
+						// remove this session from the session map
+						m_session_mgr_ptr->stop(this_ptr);
+					});
 				}
+				catch (std::exception &) {}
 			}
 		}
 
