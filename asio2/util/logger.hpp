@@ -207,7 +207,7 @@ namespace asio2
 
 		void log_trace(const char * format, ...)
 		{
-			if (format && *format)
+			if (logger::severity_level::trace >= m_level && format && *format)
 			{
 				va_list args;
 				va_start(args, format);
@@ -220,7 +220,7 @@ namespace asio2
 
 		void log_debug(const char * format, ...)
 		{
-			if (format && *format)
+			if (logger::severity_level::debug >= m_level && format && *format)
 			{
 				va_list args;
 				va_start(args, format);
@@ -233,7 +233,7 @@ namespace asio2
 
 		void log_info(const char * format, ...)
 		{
-			if (format && *format)
+			if (logger::severity_level::info >= m_level && format && *format)
 			{
 				va_list args;
 				va_start(args, format);
@@ -246,7 +246,7 @@ namespace asio2
 
 		void log_warn(const char * format, ...)
 		{
-			if (format && *format)
+			if (logger::severity_level::warn >= m_level && format && *format)
 			{
 				va_list args;
 				va_start(args, format);
@@ -259,7 +259,7 @@ namespace asio2
 
 		void log_error(const char * format, ...)
 		{
-			if (format && *format)
+			if (logger::severity_level::error >= m_level && format && *format)
 			{
 				va_list args;
 				va_start(args, format);
@@ -272,7 +272,7 @@ namespace asio2
 
 		void log_fatal(const char * format, ...)
 		{
-			if (format && *format)
+			if (logger::severity_level::fatal >= m_level && format && *format)
 			{
 				va_list args;
 				va_start(args, format);
@@ -285,7 +285,7 @@ namespace asio2
 
 		void log_report(const char * format, ...)
 		{
-			if (format && *format)
+			if (logger::severity_level::report >= m_level && format && *format)
 			{
 				va_list args;
 				va_start(args, format);
@@ -298,7 +298,7 @@ namespace asio2
 
 		void log(severity_level level, const char * format, ...)
 		{
-			if (format && *format)
+			if (level >= m_level && format && *format)
 			{
 				va_list args;
 				va_start(args, format);
