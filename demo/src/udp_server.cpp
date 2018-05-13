@@ -61,7 +61,7 @@ int main(int argc, char *argv[])
 
 	while (run_flag)
 	{
-		asio2::server udp_server("udp://*:9010/?so_sndbuf=256m&so_rcvbuf=256m&recv_buffer_size=1024");
+		asio2::server udp_server("udp://*:9010/?so_sndbuf=2m&so_rcvbuf=3m&recv_buffer_size=1024");
 		udp_server.bind_listener(std::make_shared<user_udp_server_listener>());
 		if (!udp_server.start())
 			std::printf("start udp server failed : %d - %s.\n", asio2::get_last_error(), asio2::get_last_error_desc().data());
