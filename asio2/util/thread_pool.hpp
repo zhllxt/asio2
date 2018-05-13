@@ -49,8 +49,6 @@
 #include <future>
 #include <unordered_map>
 
-#include <asio2/util/spin_lock.hpp>
-
 namespace asio2
 {
 
@@ -77,32 +75,26 @@ namespace asio2
 			{
 				// emplace_back can use the parameters to construct the std::thread object automictly
 				// use lambda function as the thread proc function,lambda can has no parameters list
-				_workers.emplace_back([this]
+				this->_workers.emplace_back([this]
 				{
 					for (;;)
 					{
-						std::unique_lock<std::mutex> lock(_mtx);
-						_cv.wait(lock, [this] { return (_is_stop || !_tasks.empty()); });
+						std::function<void()> task;
 
-						if (_is_stop && _tasks.empty())
-							return;
-
-						while (!_tasks.empty())
 						{
-							std::function<void()> task;
+							std::unique_lock<std::mutex> lock(this->_mtx);
+							this->_cv.wait(lock, [this] { return (this->_is_stop || !this->_tasks.empty()); });
 
-							{
-								std::lock_guard<spin_lock> lock(_task_lock);
-								task = std::move(_tasks.front());
-								_tasks.pop();
-							}
+							if (this->_is_stop && this->_tasks.empty())
+								return;
 
-							// execute user function
-							task();
+							task = std::move(this->_tasks.front());
+							this->_tasks.pop();
 						}
+
+						task();
 					}
-				}
-				);
+				});
 			}
 		}
 
@@ -112,13 +104,13 @@ namespace asio2
 		virtual ~thread_pool()
 		{
 			{
-				std::unique_lock<std::mutex> lock(_mtx);
-				_is_stop = true;
+				std::unique_lock<std::mutex> lock(this->_mtx);
+				this->_is_stop = true;
 			}
 
-			_cv.notify_all();
+			this->_cv.notify_all();
 
-			for (auto & worker : _workers)
+			for (auto & worker : this->_workers)
 			{
 				if (worker.joinable())
 					worker.join();
@@ -141,16 +133,16 @@ namespace asio2
 			std::future<return_type> future = task->get_future();
 
 			{
-				std::lock_guard<spin_lock> lock(_task_lock);
+				std::unique_lock<std::mutex> lock(this->_mtx);
 
 				// don't allow put after stopping the pool
-				if (_is_stop)
+				if (this->_is_stop)
 					throw std::runtime_error("put a task into thread pool but the pool is stopped");
 
-				_tasks.emplace([task]() { (*task)(); });
+				this->_tasks.emplace([task]() { (*task)(); });
 			}
 
-			_cv.notify_one();
+			this->_cv.notify_one();
 
 			return future;
 		}
@@ -160,7 +152,7 @@ namespace asio2
 		 */
 		inline std::size_t get_pool_size()
 		{
-			return _workers.size();
+			return this->_workers.size();
 		}
 
 		/**
@@ -168,7 +160,7 @@ namespace asio2
 		 */
 		inline std::size_t get_task_size()
 		{
-			return _tasks.size();
+			return this->_tasks.size();
 		}
 
 	private:
@@ -186,14 +178,11 @@ namespace asio2
 		// the task queue
 		std::queue<std::function<void()>> _tasks;
 
-		// the task lock
-		spin_lock _task_lock;
-
 		// synchronization
 		std::mutex _mtx;
 		std::condition_variable _cv;
 
-		// 
+		// flag indicate the pool is stoped
 		volatile bool _is_stop = false;
 
 	};
@@ -217,41 +206,33 @@ namespace asio2
 				std::mutex * mtx = new std::mutex();
 				std::condition_variable * cv = new std::condition_variable();
 				std::queue<std::function<void()>> * que = new std::queue<std::function<void()>>();
-				spin_lock * task_lock = new spin_lock();
 
-				_mtx.emplace_back(mtx);
-				_cv.emplace_back(cv);
-				_tasks.emplace_back(que);
-				_task_lock.emplace_back(task_lock);
+				this->_mtx.emplace_back(mtx);
+				this->_cv.emplace_back(cv);
+				this->_tasks.emplace_back(que);
 
 				// emplace_back can use the parameters to construct the std::thread object automictly
 				// use lambda function as the thread proc function,lambda can has no parameters list
-				_workers.emplace_back([this, mtx, cv, que, task_lock]
+				this->_workers.emplace_back([this, mtx, cv, que]
 				{
 					for (;;)
 					{
-						std::unique_lock<std::mutex> lock(*mtx);
-						cv->wait(lock, [this, que] { return (_is_stop || !que->empty()); });
+						std::function<void()> task;
 
-						if (_is_stop && que->empty())
-							return;
-
-						while (!que->empty())
 						{
-							std::function<void()> task;
+							std::unique_lock<std::mutex> lock(*mtx);
+							cv->wait(lock, [this, que] { return (this->_is_stop || !que->empty()); });
 
-							{
-								std::lock_guard<spin_lock> lock(*task_lock);
-								task = std::move(que->front());
-								que->pop();
-							}
+							if (this->_is_stop && que->empty())
+								return;
 
-							// execute user function
-							task();
+							task = std::move(que->front());
+							que->pop();
 						}
+
+						task();
 					}
-				}
-				);
+				});
 			}
 		}
 
@@ -261,33 +242,30 @@ namespace asio2
 		virtual ~thread_pool()
 		{
 			{
-				for (auto & mtx : _mtx)
+				for (auto & mtx : this->_mtx)
 					mtx->lock();
-				_is_stop = true;
-				for (auto & mtx : _mtx)
+				this->_is_stop = true;
+				for (auto & mtx : this->_mtx)
 					mtx->unlock();
 			}
 
-			for (auto & cv : _cv)
+			for (auto & cv : this->_cv)
 				cv->notify_all();
 
-			for (auto & worker : _workers)
+			for (auto & worker : this->_workers)
 			{
 				if (worker.joinable())
 					worker.join();
 			}
 
-			for (auto & mtx : _mtx)
+			for (auto & mtx : this->_mtx)
 				delete mtx;
 
-			for (auto & cv : _cv)
+			for (auto & cv : this->_cv)
 				delete cv;
 
-			for (auto & task : _tasks)
+			for (auto & task : this->_tasks)
 				delete task;
-
-			for (auto & lock : _task_lock)
-				delete lock;
 		}
 
 		/**
@@ -299,7 +277,7 @@ namespace asio2
 		template<class Fun, class... Args>
 		auto put(std::size_t thread_index, Fun&& fun, Args&&... args) -> std::future<typename std::result_of<Fun(Args...)>::type>
 		{
-			thread_index = thread_index % _workers.size();
+			thread_index = thread_index % this->_workers.size();
 
 			using return_type = typename std::result_of<Fun(Args...)>::type;
 
@@ -309,16 +287,16 @@ namespace asio2
 			std::future<return_type> future = task->get_future();
 
 			{
-				std::lock_guard<spin_lock> lock(*_task_lock[thread_index]);
+				std::unique_lock<std::mutex> lock(*(this->_mtx[thread_index]));
 
 				// don't allow put after stopping the pool
-				if (_is_stop)
+				if (this->_is_stop)
 					throw std::runtime_error("put a task into thread pool but the pool is stopped");
 
-				_tasks[thread_index]->emplace([task]() { (*task)(); });
+				this->_tasks[thread_index]->emplace([task]() { (*task)(); });
 			}
 
-			_cv[thread_index]->notify_one();
+			this->_cv[thread_index]->notify_one();
 
 			return future;
 		}
@@ -328,7 +306,7 @@ namespace asio2
 		 */
 		inline std::size_t get_pool_size()
 		{
-			return _workers.size();
+			return this->_workers.size();
 		}
 
 		/**
@@ -337,14 +315,14 @@ namespace asio2
 		inline std::size_t get_task_size(std::size_t thread_index = -1)
 		{
 			std::size_t size = 0;
-			if (thread_index >= _workers.size())
+			if (thread_index >= this->_workers.size())
 			{			
-				for (auto & que : _tasks)
+				for (auto & que : this->_tasks)
 					size += que->size();
 			}
 			else
 			{
-				size = _tasks[thread_index]->size();
+				size = this->_tasks[thread_index]->size();
 			}
 			return size;
 		}
@@ -364,14 +342,11 @@ namespace asio2
 		// the task queue
 		std::vector<std::queue<std::function<void()>> *> _tasks;
 
-		// the task lock
-		std::vector<spin_lock *> _task_lock;
-
 		// synchronization
 		std::vector<std::mutex *> _mtx;
 		std::vector<std::condition_variable *> _cv;
 
-		// 
+		// flag indicate the pool is stoped
 		volatile bool _is_stop = false;
 
 	};

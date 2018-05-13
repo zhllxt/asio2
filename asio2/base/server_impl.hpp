@@ -191,12 +191,12 @@ namespace asio2
 		virtual std::size_t _get_io_context_pool_size()
 		{
 			// get io_context_pool_size from the url
-			std::size_t size = std::thread::hardware_concurrency();
+			std::size_t size = std::thread::hardware_concurrency() * 2;
 			auto val = m_url_parser_ptr->get_param_value("io_context_pool_size");
 			if (!val.empty())
 				size = static_cast<std::size_t>(std::strtoull(val.data(), nullptr, 10));
 			if (size == 0)
-				size = std::thread::hardware_concurrency();
+				size = std::thread::hardware_concurrency() * 2;
 			return size;
 		}
 

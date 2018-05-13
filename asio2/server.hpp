@@ -104,7 +104,7 @@ namespace asio2
 		 * # auto - only useful to tcp, asio2 will help you handle the tcp sticky bag by add a 4 bytes header at the packet beginning,
 		 *        and every times packet passed to your recv listener,the packet must be a completed packet,under auto model,you
 		 *        need to set the max packet length,you can also set the packet header flag,if you don't set the packet header flag,
-		 *        asio2 will use the default packet header flag 0b011101,the header flag is 1~63 (1 to 63),the max packet length
+		 *        asio2 will use the default packet header flag 0b011101,the header flag is 0~63 (0 to 63),the max packet length
 		 *        is 0x03ffffff(64M),the max_packet_size and packet_header_flag is only useful to auto model
 		 * # pack - only useful to tcp, you need to set up a data format parser,when recved data,asio2 will call the parser to judge
 		 *        whether the data is valid,if valid and completed,the recv listener will be notifyed.if data length is not enough

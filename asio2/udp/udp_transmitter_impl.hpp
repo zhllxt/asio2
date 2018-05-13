@@ -176,14 +176,11 @@ namespace asio2
 			{
 				if (is_started() && !ip.empty() && !port.empty() && buf_ptr)
 				{
-					asio::ip::udp::resolver resolver(*m_recv_io_context_ptr);
-					asio::ip::udp::resolver::query query(ip, port);
-					asio::ip::udp::endpoint endpoint = *resolver.resolve(query);
-
 					// must use strand.post to send data.why we should do it like this ? see udp_session._post_send.
 					m_send_strand_ptr->post(std::bind(&udp_transmitter_impl::_post_send, this,
 						shared_from_this(),
-						endpoint,
+						ip,
+						port,
 						buf_ptr
 					));
 					return true;
@@ -350,11 +347,24 @@ namespace asio2
 			}
 		}
 
-		virtual void _post_send(std::shared_ptr<transmitter_impl> this_ptr, asio::ip::udp::endpoint endpoint, std::shared_ptr<buffer<uint8_t>> buf_ptr)
+		virtual void _post_send(std::shared_ptr<transmitter_impl> this_ptr, const std::string & ip, const std::string & port, std::shared_ptr<buffer<uint8_t>> buf_ptr)
 		{
+			// the resolve function is a time-consuming operation,so we put the resolve in this work thread.
+			asio::error_code ec;
+			asio::ip::udp::resolver resolver(*m_recv_io_context_ptr);
+			asio::ip::udp::resolver::query query(ip, port);
+			asio::ip::udp::endpoint endpoint = *resolver.resolve(query, ec);
+
+			if (ec)
+			{
+				set_last_error(ec.value());
+				this->_fire_send(endpoint, buf_ptr, ec.value());
+				ASIO2_DUMP_EXCEPTION_LOG_IMPL;
+				return;
+			}
+
 			if (is_started())
 			{
-				asio::error_code ec;
 				m_socket.send_to(asio::buffer(buf_ptr->read_begin(), buf_ptr->size()), endpoint, 0, ec);
 				set_last_error(ec.value());
 				this->_fire_send(endpoint, buf_ptr, ec.value());

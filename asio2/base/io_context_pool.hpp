@@ -44,11 +44,11 @@ namespace asio2
 		 * @construct
 		 * @param    : pool_size - the new pool size,default is equal to the cpu kernel count
 		 */
-		explicit io_context_pool(std::size_t pool_size = std::thread::hardware_concurrency())
+		explicit io_context_pool(std::size_t pool_size = std::thread::hardware_concurrency() * 2)
 		{
 			if (pool_size == 0)
 			{
-				pool_size = std::thread::hardware_concurrency();
+				pool_size = std::thread::hardware_concurrency() * 2;
 			}
 
 			for (std::size_t i = 0; i < pool_size; ++i)

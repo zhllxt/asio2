@@ -116,8 +116,6 @@ namespace asio2
 					size *= 1024;
 				else if (val.find_last_of('m') != std::string::npos)
 					size *= 1024 * 1024;
-				if (size < 1024)
-					size = 1024;
 				this->m_so_sndbuf_size = size;
 			}
 		}
@@ -135,8 +133,6 @@ namespace asio2
 					size *= 1024;
 				else if (val.find_last_of('m') != std::string::npos)
 					size *= 1024 * 1024;
-				if (size < 1024)
-					size = 1024;
 				this->m_so_rcvbuf_size = size;
 			}
 		}
