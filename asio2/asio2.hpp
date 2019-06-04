@@ -1,0 +1,51 @@
+/*
+ * COPYRIGHT (C) 2017-2019, zhllxt
+ * 
+ * author   : zhllxt
+ * email    : 37792738@qq.com
+ *
+ */
+
+#ifndef __ASIO2_HPP__
+#define __ASIO2_HPP__
+
+#if defined(_MSC_VER) && (_MSC_VER >= 1200)
+#pragma once
+#endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
+
+
+#include <asio2/version.hpp>
+#include <asio2/config.hpp>
+
+#include <asio2/base/timer.hpp>
+#include <asio2/tcp/tcp_client.hpp>
+#include <asio2/tcp/tcp_server.hpp>
+#include <asio2/udp/udp_client.hpp>
+#include <asio2/udp/udp_server.hpp>
+#include <asio2/udp/udp_cast.hpp>
+#include <asio2/rpc/rpc_client.hpp>
+#include <asio2/rpc/rpc_server.hpp>
+#include <asio2/icmp/ping.hpp>
+#include <asio2/scp/scp.hpp>
+
+#if defined(ASIO2_USE_SSL)
+	#include <asio2/tcp/tcps_client.hpp>
+	#include <asio2/tcp/tcps_server.hpp>
+#endif
+
+#ifndef ASIO_STANDALONE
+	#include <asio2/http/http_client.hpp>
+	#include <asio2/http/http_server.hpp>
+	#include <asio2/http/ws_client.hpp>
+	#include <asio2/http/ws_server.hpp>
+	#include <asio2/http/httpws_server.hpp>
+	#if defined(ASIO2_USE_SSL)
+		#include <asio2/http/https_client.hpp>
+		#include <asio2/http/https_server.hpp>
+		#include <asio2/http/wss_client.hpp>
+		#include <asio2/http/wss_server.hpp>
+		#include <asio2/http/httpwss_server.hpp>
+	#endif
+#endif // ASIO_STANDALONE
+
+#endif // !__ASIO2_HPP__
