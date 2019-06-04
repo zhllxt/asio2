@@ -140,6 +140,9 @@ client.async_call([](asio::error_code ec)
 
 ```
 
+## HTTP and WEBSOCKET:
+##### See the sample code http and websocket section
+
 ## ICMP:
 ##### See the sample code ping test section
 

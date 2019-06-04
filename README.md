@@ -142,6 +142,9 @@ client.async_call([](asio::error_code ec)
 
 ```
 
+## HTTP和WEBSOCKET:
+##### 请查看demo示例代码http websocket部分
+
 ## ICMP:
 ##### 请查看demo示例代码ping test 部分
 
