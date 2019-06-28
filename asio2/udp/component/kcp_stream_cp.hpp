@@ -65,7 +65,10 @@ namespace asio2::detail
 		inline void _kcp_start(std::shared_ptr<derived_t> this_ptr, std::uint32_t conv)
 		{
 			if (this->kcp_)
+			{
+				ASIO2_ASSERT(false);
 				return;
+			}
 
 			this->kcp_ = kcp::ikcp_create(conv, (void*)this);
 			this->kcp_->output = &kcp_stream_cp<derived_t, isSession>::_kcp_output;

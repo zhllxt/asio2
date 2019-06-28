@@ -35,6 +35,9 @@ namespace asio2
 	/**
 	 * std::string format
 	 */
+	#if defined(__GNUC__) || defined(__GNUG__)
+		__attribute__((unused))
+	#endif
 	std::string formatv(const char * format, va_list args)
 	{
 		std::string s;
@@ -62,6 +65,9 @@ namespace asio2
 	/**
 	 * std::wstring format
 	 */
+	#if defined(__GNUC__) || defined(__GNUG__)
+		__attribute__((unused))
+	#endif
 	std::wstring formatv(const wchar_t * format, va_list args)
 	{
 		std::wstring s;
@@ -96,6 +102,9 @@ namespace asio2
 	/**
 	 * std::string format
 	 */
+	#if defined(__GNUC__) || defined(__GNUG__)
+		__attribute__((unused))
+	#endif
 	std::string format(const char * format, ...)
 	{
 		std::string s;
@@ -117,6 +126,9 @@ namespace asio2
 	/**
 	 * std::wstring format
 	 */
+	#if defined(__GNUC__) || defined(__GNUG__)
+		__attribute__((unused))
+	#endif
 	std::wstring format(const wchar_t * format, ...)
 	{
 		std::wstring s;
@@ -144,8 +156,8 @@ namespace asio2
 	>
 		std::basic_string<CharT, Traits, Allocator>& trim_all(std::basic_string<CharT, Traits, Allocator>& s)
 	{
-		for (std::basic_string<CharT, Traits, Allocator>::size_type i = s.size() - 1;
-			i != std::basic_string<CharT, Traits, Allocator>::size_type(-1); i--)
+		using size_type = typename std::basic_string<CharT, Traits, Allocator>::size_type;
+		for (size_type i = s.size() - 1; i != size_type(-1); i--)
 		{
 			if (std::isspace(static_cast<unsigned char>(s[i])))
 			{
@@ -165,7 +177,8 @@ namespace asio2
 	>
 		std::basic_string<CharT, Traits, Allocator>& trim_left(std::basic_string<CharT, Traits, Allocator>& s)
 	{
-		std::basic_string<CharT, Traits, Allocator>::size_type pos = 0;
+		using size_type = typename std::basic_string<CharT, Traits, Allocator>::size_type;
+		size_type pos = 0;
 		for (; pos < s.size(); ++pos)
 		{
 			if (!std::isspace(static_cast<unsigned char>(s[pos])))
@@ -185,8 +198,9 @@ namespace asio2
 	>
 		std::basic_string<CharT, Traits, Allocator>& trim_right(std::basic_string<CharT, Traits, Allocator>& s)
 	{
-		std::basic_string<CharT, Traits, Allocator>::size_type pos = s.size() - 1;
-		for (; pos != std::basic_string<CharT, Traits, Allocator>::size_type(-1); pos--)
+		using size_type = typename std::basic_string<CharT, Traits, Allocator>::size_type;
+		size_type pos = s.size() - 1;
+		for (; pos != size_type(-1); pos--)
 		{
 			if (!std::isspace(static_cast<unsigned char>(s[pos])))
 				break;

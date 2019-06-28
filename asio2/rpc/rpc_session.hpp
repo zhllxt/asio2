@@ -154,6 +154,7 @@ namespace asio2::detail
 
 namespace asio2
 {
+#if 1
 	/// Using tcp dgram mode as the underlying communication support
 	class rpc_session : public detail::rpc_session_impl_t<rpc_session,
 		detail::tcp_session_impl_t<rpc_session, asio::ip::tcp::socket, asio::streambuf>>
@@ -163,7 +164,7 @@ namespace asio2
 			detail::tcp_session_impl_t<rpc_session, asio::ip::tcp::socket, asio::streambuf>>::rpc_session_impl_t;
 	};
 
-#if defined(ASIO2_USE_SSL)
+	#if defined(ASIO2_USE_SSL)
 	class rpcs_session : public detail::rpc_session_impl_t<rpcs_session,
 		detail::tcps_session_impl_t<rpcs_session, asio::ip::tcp::socket, asio::streambuf>>
 	{
@@ -171,29 +172,29 @@ namespace asio2
 		using detail::rpc_session_impl_t<rpcs_session,
 			detail::tcps_session_impl_t<rpcs_session, asio::ip::tcp::socket, asio::streambuf>>::rpc_session_impl_t;
 	};
-#endif
-
-
+	#endif
+#else
 	/// Using websocket as the underlying communication support
-//#ifndef ASIO_STANDALONE
-//	class rpc_session : public detail::rpc_session_impl_t<rpc_session, detail::ws_session_impl_t<rpc_session, asio::ip::tcp::socket,
-//		websocket::stream<asio::ip::tcp::socket&>, http::string_body, beast::flat_buffer>>
-//	{
-//	public:
-//		using detail::rpc_session_impl_t<rpc_session, detail::ws_session_impl_t<rpc_session, asio::ip::tcp::socket,
-//			websocket::stream<asio::ip::tcp::socket&>, http::string_body, beast::flat_buffer>>::rpc_session_impl_t;
-//	};
-//
-//#if defined(ASIO2_USE_SSL)
-//	class rpcs_session : public detail::rpc_session_impl_t<rpcs_session, detail::wss_session_impl_t<rpcs_session, asio::ip::tcp::socket,
-//		websocket::stream<asio::ssl::stream<asio::ip::tcp::socket&>&>, http::string_body, beast::flat_buffer>>
-//	{
-//	public:
-//		using detail::rpc_session_impl_t<rpcs_session, detail::wss_session_impl_t<rpcs_session, asio::ip::tcp::socket,
-//			websocket::stream<asio::ssl::stream<asio::ip::tcp::socket&>&>, http::string_body, beast::flat_buffer>>::rpc_session_impl_t;
-//	};
-//#endif
-//#endif
+	#ifndef ASIO_STANDALONE
+	class rpc_session : public detail::rpc_session_impl_t<rpc_session, detail::ws_session_impl_t<rpc_session, asio::ip::tcp::socket,
+		websocket::stream<asio::ip::tcp::socket&>, http::string_body, beast::flat_buffer>>
+	{
+	public:
+		using detail::rpc_session_impl_t<rpc_session, detail::ws_session_impl_t<rpc_session, asio::ip::tcp::socket,
+			websocket::stream<asio::ip::tcp::socket&>, http::string_body, beast::flat_buffer>>::rpc_session_impl_t;
+	};
+
+	#if defined(ASIO2_USE_SSL)
+	class rpcs_session : public detail::rpc_session_impl_t<rpcs_session, detail::wss_session_impl_t<rpcs_session, asio::ip::tcp::socket,
+		websocket::stream<asio::ssl::stream<asio::ip::tcp::socket&>&>, http::string_body, beast::flat_buffer>>
+	{
+	public:
+		using detail::rpc_session_impl_t<rpcs_session, detail::wss_session_impl_t<rpcs_session, asio::ip::tcp::socket,
+			websocket::stream<asio::ssl::stream<asio::ip::tcp::socket&>&>, http::string_body, beast::flat_buffer>>::rpc_session_impl_t;
+	};
+	#endif
+	#endif
+#endif
 }
 
 #endif // !__ASIO2_RPC_SESSION_HPP__

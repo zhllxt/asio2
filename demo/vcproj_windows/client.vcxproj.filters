@@ -333,6 +333,15 @@
     <ClInclude Include="..\..\asio2\rpc\impl\rpc_recv_op.hpp">
       <Filter>asio2\rpc\impl</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\asio2\base\detail\function_traits.hpp">
+      <Filter>asio2\base\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\base\session_mgr.hpp">
+      <Filter>asio2\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\base\timer.hpp">
+      <Filter>asio2\base</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\client.cpp" />

@@ -1,5 +1,10 @@
+# 2019-06-28 version 2.1:
+
+  * Fixed some bugs.
+
 # 2019-06-04 version 2.0:
 
+  * ##### [BIG Update!!!]
   * Rewrite all code with template metaprogramming mode.
   * Version 1.x code will no longer be maintained.
 

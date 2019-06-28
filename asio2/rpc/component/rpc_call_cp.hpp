@@ -133,7 +133,7 @@ namespace asio2::detail
 		inline void async_call(Callback&& fn, std::string const& name, Args&&... args)
 		{
 			using fun_traits_type = function_traits<Callback>;
-			derive.template _do_async_call<fun_traits_type::arity>(std::forward<Callback>(fn), derive.timeout(), name, std::forward<Args>(args)...);
+			derive.template _do_async_call<fun_traits_type::argc>(std::forward<Callback>(fn), derive.timeout(), name, std::forward<Args>(args)...);
 		}
 
 		/**
@@ -148,7 +148,7 @@ namespace asio2::detail
 		inline void async_call(Callback&& fn, std::chrono::duration<Rep, Period> timeout, std::string const& name, Args&&... args)
 		{
 			using fun_traits_type = function_traits<Callback>;
-			derive.template _do_async_call<fun_traits_type::arity>(std::forward<Callback>(fn), timeout, name, std::forward<Args>(args)...);
+			derive.template _do_async_call<fun_traits_type::argc>(std::forward<Callback>(fn), timeout, name, std::forward<Args>(args)...);
 		}
 
 		/**
@@ -284,21 +284,21 @@ namespace asio2::detail
 		}
 
 	protected:
-		template<std::size_t Arity, class Callback, class Rep, class Period, class ...Args>
-		typename std::enable_if_t<Arity == 1>
+		template<std::size_t Argc, class Callback, class Rep, class Period, class ...Args>
+		typename std::enable_if_t<Argc == 1>
 			inline _do_async_call(Callback&& fn, std::chrono::duration<Rep, Period> timeout, std::string const& name, Args&&... args)
 		{
-			using result_type = void;
-			derive.template _do_async_call<result_type>(std::forward<Callback>(fn), timeout, name, std::forward<Args>(args)...);
+			using return_type = void;
+			derive.template _do_async_call<return_type>(std::forward<Callback>(fn), timeout, name, std::forward<Args>(args)...);
 		}
 
-		template<std::size_t Arity, class Callback, class Rep, class Period, class ...Args>
-		typename std::enable_if_t<Arity == 2>
+		template<std::size_t Argc, class Callback, class Rep, class Period, class ...Args>
+		typename std::enable_if_t<Argc == 2>
 			inline _do_async_call(Callback&& fn, std::chrono::duration<Rep, Period> timeout, std::string const& name, Args&&... args)
 		{
 			using fun_traits_type = function_traits<Callback>;
-			using result_type = typename fun_traits_type::template args<1>::type;
-			derive.template _do_async_call<result_type>(std::forward<Callback>(fn), timeout, name, std::forward<Args>(args)...);
+			using return_type = typename fun_traits_type::template args<1>::type;
+			derive.template _do_async_call<return_type>(std::forward<Callback>(fn), timeout, name, std::forward<Args>(args)...);
 		}
 
 		template<class T, class Callback, class Rep, class Period, class ...Args>

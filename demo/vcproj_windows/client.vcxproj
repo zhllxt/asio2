@@ -190,6 +190,7 @@
     <ClInclude Include="..\..\asio2\base\detail\allocator.hpp" />
     <ClInclude Include="..\..\asio2\base\detail\buffer_wrap.hpp" />
     <ClInclude Include="..\..\asio2\base\detail\condition_wrap.hpp" />
+    <ClInclude Include="..\..\asio2\base\detail\function_traits.hpp" />
     <ClInclude Include="..\..\asio2\base\detail\linear_buffer.hpp" />
     <ClInclude Include="..\..\asio2\base\detail\object.hpp" />
     <ClInclude Include="..\..\asio2\base\detail\util.hpp" />
@@ -199,6 +200,8 @@
     <ClInclude Include="..\..\asio2\base\selector.hpp" />
     <ClInclude Include="..\..\asio2\base\server.hpp" />
     <ClInclude Include="..\..\asio2\base\session.hpp" />
+    <ClInclude Include="..\..\asio2\base\session_mgr.hpp" />
+    <ClInclude Include="..\..\asio2\base\timer.hpp" />
     <ClInclude Include="..\..\asio2\config.hpp" />
     <ClInclude Include="..\..\asio2\http\component\http_send_cp.hpp" />
     <ClInclude Include="..\..\asio2\http\component\ws_stream_cp.hpp" />

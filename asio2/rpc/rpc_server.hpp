@@ -56,7 +56,6 @@ namespace asio2::detail
 			: super(std::forward<Args>(args)...)
 			, invoker()
 		{
-			this->iopool_.start();
 		}
 
 		/**
@@ -148,6 +147,7 @@ namespace asio2::detail
 
 namespace asio2
 {
+#if 1
 	/// Using tcp dgram mode as the underlying communication support
 	class rpc_server : public detail::rpc_server_impl_t<rpc_server, detail::tcp_server_impl_t<rpc_server, rpc_session>>
 	{
@@ -155,31 +155,31 @@ namespace asio2
 		using detail::rpc_server_impl_t<rpc_server, detail::tcp_server_impl_t<rpc_server, rpc_session>>::rpc_server_impl_t;
 	};
 
-#if defined(ASIO2_USE_SSL)
+	#if defined(ASIO2_USE_SSL)
 	class rpcs_server : public detail::rpc_server_impl_t<rpcs_server, detail::tcps_server_impl_t<rpcs_server, rpcs_session>>
 	{
 	public:
 		using detail::rpc_server_impl_t<rpcs_server, detail::tcps_server_impl_t<rpcs_server, rpcs_session>>::rpc_server_impl_t;
 	};
-#endif
-
-
+	#endif
+#else
 	/// Using websocket as the underlying communication support
-//#ifndef ASIO_STANDALONE
-//	class rpc_server : public detail::rpc_server_impl_t<rpc_server, detail::ws_server_impl_t<rpc_server, rpc_session>>
-//	{
-//	public:
-//		using detail::rpc_server_impl_t<rpc_server, detail::ws_server_impl_t<rpc_server, rpc_session>>::rpc_server_impl_t;
-//	};
-//
-//#if defined(ASIO2_USE_SSL)
-//	class rpcs_server : public detail::rpc_server_impl_t<rpcs_server, detail::wss_server_impl_t<rpcs_server, rpcs_session>>
-//	{
-//	public:
-//		using detail::rpc_server_impl_t<rpcs_server, detail::wss_server_impl_t<rpcs_server, rpcs_session>>::rpc_server_impl_t;
-//	};
-//#endif
-//#endif
+	#ifndef ASIO_STANDALONE
+	class rpc_server : public detail::rpc_server_impl_t<rpc_server, detail::ws_server_impl_t<rpc_server, rpc_session>>
+	{
+	public:
+		using detail::rpc_server_impl_t<rpc_server, detail::ws_server_impl_t<rpc_server, rpc_session>>::rpc_server_impl_t;
+	};
+
+	#if defined(ASIO2_USE_SSL)
+	class rpcs_server : public detail::rpc_server_impl_t<rpcs_server, detail::wss_server_impl_t<rpcs_server, rpcs_session>>
+	{
+	public:
+		using detail::rpc_server_impl_t<rpcs_server, detail::wss_server_impl_t<rpcs_server, rpcs_session>>::rpc_server_impl_t;
+	};
+	#endif
+	#endif
+#endif
 }
 
 #endif // !__ASIO2_RPC_SERVER_HPP__

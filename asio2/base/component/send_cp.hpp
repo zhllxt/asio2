@@ -24,6 +24,7 @@
 #include <asio2/base/error.hpp>
 
 #include <asio2/base/detail/util.hpp>
+#include <asio2/base/detail/function_traits.hpp>
 
 namespace asio2::detail
 {
@@ -71,11 +72,25 @@ namespace asio2::detail
 				// Make sure we run on the strand
 				if (!this->wio_.strand().running_in_this_thread())
 				{
-					asio::post(this->wio_.strand(), make_allocator(derive.wallocator(),
-						[this, p = this->_mkptr(), d = std::forward<T>(data)]()
+					if constexpr (
+						std::is_move_assignable_v<std::remove_cv_t<std::remove_reference_t<T>>> ||
+						std::is_trivially_move_assignable_v<std::remove_cv_t<std::remove_reference_t<T>>> ||
+						std::is_nothrow_move_assignable_v<std::remove_cv_t<std::remove_reference_t<T>>>)
 					{
-						derive._do_send(asio::buffer(d));
-					}));
+						asio::post(this->wio_.strand(), make_allocator(derive.wallocator(),
+							[this, p = this->_mkptr(), d = std::forward<T>(data)]()
+						{
+							derive._do_send(asio::buffer(d));
+						}));
+					}
+					else
+					{
+						asio::post(this->wio_.strand(), make_allocator(derive.wallocator(),
+							[this, p = this->_mkptr(), data]()
+						{
+							derive._do_send(asio::buffer(data));
+						}));
+					}
 					return true;
 				}
 
@@ -97,12 +112,12 @@ namespace asio2::detail
 		 * if you want use synchronous send data,you can do it like this (example):
 		 * asio::write(session_ptr->stream(), asio::buffer(std::string("abc")));
 		 */
-		template<class CharT, class Traits = std::char_traits<CharT>, class Allocator = std::allocator<CharT>>
+		template<class CharT, class Traits = std::char_traits<CharT>>
 		inline typename std::enable_if_t<
-			std::is_same_v<CharT, char> ||
-			std::is_same_v<CharT, wchar_t> ||
-			std::is_same_v<CharT, char16_t> ||
-			std::is_same_v<CharT, char32_t>, bool> send(const CharT * s)
+			std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, char> ||
+			std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, wchar_t> ||
+			std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, char16_t> ||
+			std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, char32_t>, bool> send(CharT * s)
 		{
 			return this->send(s, s ? Traits::length(s) : 0);
 		}
@@ -118,8 +133,9 @@ namespace asio2::detail
 		 * if you want use synchronous send data,you can do it like this (example):
 		 * asio::write(session_ptr->stream(), asio::buffer(std::string("abc")));
 		 */
-		template<class CharT, class Traits = std::char_traits<CharT>, class Allocator = std::allocator<CharT>>
-		inline bool send(const CharT * s, const std::size_t count)
+		template<class CharT, class SizeT>
+		inline typename std::enable_if_t<std::is_integral_v<std::remove_cv_t<std::remove_reference_t<SizeT>>>, bool>
+			send(CharT * s, SizeT count)
 		{
 			// We must ensure that there is only one operation to send data
 			// at the same time,otherwise may be cause crash.
@@ -137,12 +153,12 @@ namespace asio2::detail
 					asio::post(this->wio_.strand(), make_allocator(derive.wallocator(),
 						[this, p = this->_mkptr(), s, count]()
 					{
-						derive._do_send(asio::buffer(s, count * sizeof(CharT)));
+						derive._do_send(asio::buffer(s, static_cast<std::size_t>(count) * sizeof(CharT)));
 					}));
 					return true;
 				}
 
-				return derive._do_send(asio::buffer(s, count * sizeof(CharT)));
+				return derive._do_send(asio::buffer(s, static_cast<std::size_t>(count) * sizeof(CharT)));
 			}
 			catch (system_error & e) { set_last_error(e); }
 			catch (std::exception &) { set_last_error(asio::error::eof); }
@@ -179,11 +195,25 @@ namespace asio2::detail
 				// Make sure we run on the strand
 				if (!this->wio_.strand().running_in_this_thread())
 				{
-					asio::post(this->wio_.strand(), make_allocator(derive.wallocator(),
-						[this, p = this->_mkptr(), d = std::forward<T>(data), pm = std::move(promise)]() mutable
+					if constexpr (
+						std::is_move_assignable_v<std::remove_cv_t<std::remove_reference_t<T>>> ||
+						std::is_trivially_move_assignable_v<std::remove_cv_t<std::remove_reference_t<T>>> ||
+						std::is_nothrow_move_assignable_v<std::remove_cv_t<std::remove_reference_t<T>>>)
 					{
-						derive._do_send(asio::buffer(d), pm);
-					}));
+						asio::post(this->wio_.strand(), make_allocator(derive.wallocator(),
+							[this, p = this->_mkptr(), d = std::forward<T>(data), pm = std::move(promise)]() mutable
+						{
+							derive._do_send(asio::buffer(d), pm);
+						}));
+					}
+					else
+					{
+						asio::post(this->wio_.strand(), make_allocator(derive.wallocator(),
+							[this, p = this->_mkptr(), data, pm = std::move(promise)]() mutable
+						{
+							derive._do_send(asio::buffer(data), pm);
+						}));
+					}
 					return future;
 				}
 
@@ -213,13 +243,14 @@ namespace asio2::detail
 		 * never return.
 		 * PodType * : send("abc");
 		 */
-		template<class CharT, class Traits = std::char_traits<CharT>, class Allocator = std::allocator<CharT>>
+		template<class CharT, class Traits = std::char_traits<CharT>>
 		inline typename std::enable_if_t<
-			std::is_same_v<CharT, char> ||
-			std::is_same_v<CharT, wchar_t> ||
-			std::is_same_v<CharT, char16_t> ||
-			std::is_same_v<CharT, char32_t>, std::future<std::pair<error_code, std::size_t>>>
-			send(const CharT * s, asio::use_future_t<> flag)
+			std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, char> ||
+			std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, wchar_t> ||
+			std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, char16_t> ||
+			std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, char32_t>,
+			std::future<std::pair<error_code, std::size_t>>>
+			send(CharT * s, asio::use_future_t<> flag)
 		{
 			return this->send(s, s ? Traits::length(s) : 0, std::move(flag));
 		}
@@ -235,9 +266,10 @@ namespace asio2::detail
 		 * never return.
 		 * PodType (&data)[N] : double m[10]; send(m,5);
 		 */
-		template<class CharT, class Traits = std::char_traits<CharT>, class Allocator = std::allocator<CharT>>
-		inline std::future<std::pair<error_code, std::size_t>> send(
-			const CharT * s, const std::size_t count, asio::use_future_t<> flag)
+		template<class CharT, class SizeT>
+		inline typename std::enable_if_t<std::is_integral_v<std::remove_cv_t<std::remove_reference_t<SizeT>>>,
+			std::future<std::pair<error_code, std::size_t>>>
+			send(CharT * s, SizeT count, asio::use_future_t<> flag)
 		{
 			std::ignore = flag;
 			std::promise<std::pair<error_code, std::size_t>> promise;
@@ -256,12 +288,12 @@ namespace asio2::detail
 					asio::post(this->wio_.strand(), make_allocator(derive.wallocator(),
 						[this, p = this->_mkptr(), s, count, pm = std::move(promise)]() mutable
 					{
-						derive._do_send(asio::buffer(s, count * sizeof(CharT)), pm);
+						derive._do_send(asio::buffer(s, static_cast<std::size_t>(count) * sizeof(CharT)), pm);
 					}));
 					return future;
 				}
 
-				derive._do_send(asio::buffer(s, count * sizeof(CharT)), promise);
+				derive._do_send(asio::buffer(s, static_cast<std::size_t>(count) * sizeof(CharT)), promise);
 			}
 			catch (system_error & e)
 			{
@@ -291,9 +323,10 @@ namespace asio2::detail
 		 * We do not provide synchronous send function,because the synchronous send code is very simple,
 		 * if you want use synchronous send data,you can do it like this (example):
 		 * asio::write(session_ptr->stream(), asio::buffer(std::string("abc")));
+		 * Callback signature : void() or void(std::size_t bytes_sent)
 		 */
 		template<class T, class Callback>
-		inline bool send(T&& data, Callback&& fn)
+		inline typename std::enable_if_t<is_callable_v<Callback>, bool> send(T&& data, Callback&& fn)
 		{
 			// We must ensure that there is only one operation to send data
 			// at the same time,otherwise may be cause crash.
@@ -305,11 +338,25 @@ namespace asio2::detail
 				// Make sure we run on the strand
 				if (!this->wio_.strand().running_in_this_thread())
 				{
-					asio::post(this->wio_.strand(), make_allocator(derive.wallocator(),
-						[this, p = this->_mkptr(), d = std::forward<T>(data), f = std::forward<Callback>(fn)]()
+					if constexpr (
+						std::is_move_assignable_v<std::remove_cv_t<std::remove_reference_t<T>>> ||
+						std::is_trivially_move_assignable_v<std::remove_cv_t<std::remove_reference_t<T>>> ||
+						std::is_nothrow_move_assignable_v<std::remove_cv_t<std::remove_reference_t<T>>>)
 					{
-						derive._do_send(asio::buffer(d), f);
-					}));
+						asio::post(this->wio_.strand(), make_allocator(derive.wallocator(),
+							[this, p = this->_mkptr(), d = std::forward<T>(data), f = std::forward<Callback>(fn)]()
+						{
+							derive._do_send(asio::buffer(d), f);
+						}));
+					}
+					else
+					{
+						asio::post(this->wio_.strand(), make_allocator(derive.wallocator(),
+							[this, p = this->_mkptr(), data, f = std::forward<Callback>(fn)]()
+						{
+							derive._do_send(asio::buffer(data), f);
+						}));
+					}
 					return true;
 				}
 
@@ -330,13 +377,14 @@ namespace asio2::detail
 		 * We do not provide synchronous send function,because the synchronous send code is very simple,
 		 * if you want use synchronous send data,you can do it like this (example):
 		 * asio::write(session_ptr->stream(), asio::buffer(std::string("abc")));
+		 * Callback signature : void() or void(std::size_t bytes_sent)
 		 */
-		template<class Callback, class CharT, class Traits = std::char_traits<CharT>, class Allocator = std::allocator<CharT>>
-		inline typename std::enable_if_t<
-			std::is_same_v<CharT, char> ||
-			std::is_same_v<CharT, wchar_t> ||
-			std::is_same_v<CharT, char16_t> ||
-			std::is_same_v<CharT, char32_t>, bool> send(const CharT * s, Callback&& fn)
+		template<class Callback, class CharT, class Traits = std::char_traits<CharT>>
+		inline typename std::enable_if_t<is_callable_v<Callback> && (
+			std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, char> ||
+			std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, wchar_t> ||
+			std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, char16_t> ||
+			std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, char32_t>), bool> send(CharT * s, Callback&& fn)
 		{
 			return this->send(s, s ? Traits::length(s) : 0, std::forward<Callback>(fn));
 		}
@@ -351,9 +399,12 @@ namespace asio2::detail
 		 * We do not provide synchronous send function,because the synchronous send code is very simple,
 		 * if you want use synchronous send data,you can do it like this (example):
 		 * asio::write(session_ptr->stream(), asio::buffer(std::string("abc")));
+		 * Callback signature : void() or void(std::size_t bytes_sent)
 		 */
-		template<class Callback, class CharT, class Traits = std::char_traits<CharT>, class Allocator = std::allocator<CharT>>
-		inline bool send(const CharT * s, const std::size_t count, Callback&& fn)
+		template<class Callback, class CharT, class SizeT>
+		inline typename std::enable_if_t<is_callable_v<Callback> &&
+			std::is_integral_v<std::remove_cv_t<std::remove_reference_t<SizeT>>>, bool>
+			send(CharT * s, SizeT count, Callback&& fn)
 		{
 			// We must ensure that there is only one operation to send data
 			// at the same time,otherwise may be cause crash.
@@ -371,12 +422,12 @@ namespace asio2::detail
 					asio::post(this->wio_.strand(), make_allocator(derive.wallocator(),
 						[this, p = this->_mkptr(), s, count, f = std::forward<Callback>(fn)]()
 					{
-						derive._do_send(asio::buffer(s, count * sizeof(CharT)), f);
+						derive._do_send(asio::buffer(s, static_cast<std::size_t>(count) * sizeof(CharT)), f);
 					}));
 					return true;
 				}
 
-				return derive._do_send(asio::buffer(s, count * sizeof(CharT)), fn);
+				return derive._do_send(asio::buffer(s, static_cast<std::size_t>(count) * sizeof(CharT)), fn);
 			}
 			catch (system_error & e) { set_last_error(e); }
 			catch (std::exception &) { set_last_error(asio::error::eof); }

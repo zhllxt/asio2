@@ -50,7 +50,6 @@ namespace asio2::detail
 			: super(1, init_buffer_size, max_buffer_size)
 			, udp_send_op<derived_t, false>()
 		{
-			this->iopool_.start();
 		}
 
 		/**

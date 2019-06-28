@@ -306,10 +306,6 @@ namespace asio2::detail
 			{
 				clear_last_error();
 
-				// startup the io_context pool first
-				if (!this->iopool_.start())
-					asio::detail::throw_error(asio::error::already_started);
-
 				this->seq_ = 0;
 				this->total_send_ = 0;
 				this->total_recv_ = 0;

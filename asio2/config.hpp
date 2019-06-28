@@ -20,7 +20,7 @@
 
 // If you want to use the ssl, you need to define ASIO2_USE_SSL.
 // When use ssl,you need linker "libssl.lib;libcrypto.lib;Crypt32.lib;"
-#define ASIO2_USE_SSL
+//#define ASIO2_USE_SSL
 
 
 // the tests trigger deprecation warnings when compiled with msvc in C++17 mode
@@ -28,6 +28,7 @@
 // warning STL4009: std::allocator<void> is deprecated in C++17
 #define _SILENCE_CXX17_ALLOCATOR_VOID_DEPRECATION_WARNING
 #define _SILENCE_CXX17_ITERATOR_BASE_CLASS_DEPRECATION_WARNING
+#define _SILENCE_CXX17_ADAPTOR_TYPEDEFS_DEPRECATION_WARNING
 //#define _SILENCE_ALL_CXX17_DEPRECATION_WARNINGS
 #endif
 

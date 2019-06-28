@@ -35,6 +35,24 @@ public:
 	}
 };
 
+struct info
+{
+	int id;
+	char name[20];
+	int8_t age;
+};
+
+#ifdef ASIO_STANDALONE
+namespace asio {
+#else
+namespace boost::asio {
+#endif
+	inline asio::const_buffer buffer(const info& u) noexcept
+	{
+		return asio::const_buffer(&u, sizeof(info));
+	}
+} // namespace asio
+
 void run_tcp_client(std::string_view host, std::string_view port)
 {
 	//while (1) // use infinite loop and sleep 2 seconds to test start and stop
@@ -67,8 +85,25 @@ void run_tcp_client(std::string_view host, std::string_view port)
 				s += char(1);
 				s += 'a';
 
-				client.send(std::move(s));
-				//client.send("<abcdefghijklmnopqrstovuxyz0123456789>");
+				// All of the following ways of send operation are correct, because the send
+				// operation is running in the io.strand thread, the content will be sent directly.
+				client.send(s);
+				client.send(s, []() {});
+				client.send((uint8_t*)"<abcdefghijklmnopqrstovuxyz0123456789>", 10);
+				client.send((const uint8_t*)"<abcdefghijklmnopqrstovuxyz0123456789>", 10);
+				client.send(s.data(), 5); // Correct, s.data() will be sent directly.
+				client.send(s.data(), []() {}); // Correct, s.data() will be sent directly.
+				client.send(s.c_str(), size_t(5)); // Correct, s.c_str() will be sent directly.
+				client.send(s, asio::use_future);
+				client.send("<abcdefghijklmnopqrstovuxyz0123456789>", asio::use_future);
+				client.send(s.data(), asio::use_future);
+				client.send(s.c_str(), asio::use_future);
+				int narys[2] = { 1,2 };
+				client.send(narys);
+				client.send(narys, []() {});
+				client.send(narys, [](std::size_t bytes) {});
+				client.send(narys, asio::use_future);
+
 				//asio::write(client.socket(), asio::buffer(s));
 			}).bind_disconnect([](asio::error_code ec)
 			{
@@ -111,6 +146,29 @@ void run_tcp_client(std::string_view host, std::string_view port)
 			//client.async_start(host, port, asio::transfer_exactly(100));
 			//client.start(host, port, asio2::use_dgram);
 
+
+			// ##### Important #####
+			std::string msg("0123456789");
+			// ##Correct (send operation is not running in the io.strand thread, the msg will be sent asynchronous)
+			client.send(msg, [](std::size_t bytes_sent) {});
+
+			// ##Wrong   (send operation is not running in the io.strand thread, the msg.data() will be sent asynchronous)
+			// When the asynchronous send operation executes, the msg object may be invalid already.
+			//client.send(msg.data(), [](std::size_t bytes_sent) {});
+
+			// ##Correct (send operation is not running in the io.strand thread, the "0123456789" will be sent asynchronous)
+			// because "0123456789" is static.
+			client.send("0123456789", [](std::size_t bytes_sent) {});
+
+			// ##Example how to send a struct directly:
+			info u;
+			client.send(u);
+
+			// ##Thread-safe send operation example:
+			client.post([&client]()
+			{
+				asio::write(client.stream(), asio::buffer(std::string("abcdefghijklmn")));
+			});
 		}
 
 		while (std::getchar() != '\n');
@@ -261,13 +319,19 @@ void run_http_client(std::string_view host, std::string_view port)
 	//req3.set(http::field::timeout, 5000); // Used to Setting Read Timeout, 5000 milliseconds, default is 3000 milliseconds
 	//auto req4 = http::make_request("GET / HTTP/1.1\r\nHost: 127.0.0.1\r\n\r\n");
 	//auto rep1 = asio2::http_client::execute("http://www.baidu.com/get_user?name=a", ec);
+	//auto path = asio2::http::url_to_path("/get_user?name=a");
 	//auto rep2 = asio2::http_client::execute("127.0.0.1", "8080", req3);
 	//auto rep3 = asio2::http_client::execute("http://127.0.0.1:8080/get_user?name=a", ec);
 	//if (ec) std::cout << ec.message() << std::endl;
 	//std::cout << rep3 << std::endl;
 
-	//auto rep = asio2::http_client::execute(host, port, "/api/get_user?name=zhl");
-	//std::cout << rep << std::endl << "--------------------\n";
+	auto rep = asio2::http_client::execute(host, port, "/api/get_user?name=zhl");
+	std::cout << rep << std::endl << "--------------------\n";
+
+	std::string en = http::url_encode("http://www.baidu.com/get_user?name=zhl");
+	std::cout << en << std::endl;
+	std::string de = http::url_decode(en);
+	std::cout << de << std::endl;
 
 	asio2::http_client client;
 	client.bind_recv([&](http::response<http::string_body>& rep)
@@ -612,7 +676,7 @@ void run_udp_cast(std::string_view host, std::string_view port)
 {
 	//while (1)
 	{
-		host = "0.0.0.0", port = "8088";
+		host = "0.0.0.0"; port = "8088";
 		printf("\n");
 		asio2::udp_cast sender;
 		sender.bind_recv([&](asio::ip::udp::endpoint& endpoint, std::string_view sv)
@@ -643,6 +707,41 @@ void run_udp_cast(std::string_view host, std::string_view port)
 		{
 			printf("send : %s\n", asio2::last_error_msg().c_str());
 		});
+
+		std::string shost("239.255.0.1"), sport("8080");
+
+		int narys[2] = { 1,2 };
+		sender.send(shost, sport, s);
+		sender.send(shost, sport, s, []() {});
+		sender.send(shost, sport, (uint8_t*)"<abcdefghijklmnopqrstovuxyz0123456789>", 10);
+		sender.send(shost, sport, (const uint8_t*)"<abcdefghijklmnopqrstovuxyz0123456789>", 10);
+		sender.send(shost, sport, s.data(), 5);
+		sender.send(shost, sport, s.data(), []() {});
+		sender.send(shost, sport, s.c_str(), size_t(5));
+		sender.send(shost, sport, s, asio::use_future);
+		sender.send(shost, sport, "<abcdefghijklmnopqrstovuxyz0123456789>", asio::use_future);
+		sender.send(shost, sport, s.data(), asio::use_future);
+		sender.send(shost, sport, s.c_str(), asio::use_future);
+		sender.send(shost, sport, narys);
+		sender.send(shost, sport, narys, []() {});
+		sender.send(shost, sport, narys, [](std::size_t bytes) {});
+		sender.send(shost, sport, narys, asio::use_future);
+
+		sender.send(ep1, s);
+		sender.send(ep1, s, []() {});
+		sender.send(ep1, (uint8_t*)"<abcdefghijklmnopqrstovuxyz0123456789>", 10);
+		sender.send(ep1, (const uint8_t*)"<abcdefghijklmnopqrstovuxyz0123456789>", 10);
+		sender.send(ep1, s.data(), 5);
+		sender.send(ep1, s.data(), []() {});
+		sender.send(ep1, s.c_str(), size_t(5));
+		sender.send(ep1, s, asio::use_future);
+		sender.send(ep1, "<abcdefghijklmnopqrstovuxyz0123456789>", asio::use_future);
+		sender.send(ep1, s.data(), asio::use_future);
+		sender.send(ep1, s.c_str(), asio::use_future);
+		sender.send(ep1, narys);
+		sender.send(ep1, narys, []() {});
+		sender.send(ep1, narys, [](std::size_t bytes) {});
+		sender.send(ep1, narys, asio::use_future);
 
 		// the resolve function is a time-consuming operation
 		//asio::ip::udp::resolver resolver(sender.io().context());
@@ -702,10 +801,16 @@ void run_rpc_client(std::string_view host, std::string_view port)
 
 			client.bind("sub", [](int a, int b) { return a - b; });
 
-			//client.start(host, port, asio2::use_dgram);
-			client.start(host, port);
+			// Using tcp dgram mode as the underlying communication support(This is the default setting)
+			// Then must use "use_dgram" parameter.
+			client.start(host, port, asio2::use_dgram);
 
-			for (;;)
+			// Using websocket as the underlying communication support.
+			// Need to goto the tail of the (rpc_client.hpp rpc_server.hpp rpc_session.hpp) files,
+			// and modified to use websocket.
+			//client.start(host, port);
+
+			//for (;;)
 			{
 				asio::error_code ec;
 				int sum = client.call<int>(ec, std::chrono::seconds(3), "add", 11, 2);
@@ -781,19 +886,19 @@ int main(int argc, char *argv[])
 
 	std::string_view host = "127.0.0.1", port = "8080";
 	//std::string_view host = "192.168.1.146", port = "8080"; 
-	port = argv[1];
-	run_tcp_client(host, port);
-	run_tcp_client_group(host, port);
-	run_udp_client(host, port);
-	run_http_client(host, port);
-	run_ws_client(host, port);
-	run_tcps_client(host, port);
-	run_https_client(host, port);
-	run_wss_client(host, port);
-	run_ping_test();
-	run_serial_port("COM1", 9600);
-	run_serial_port("/dev/ttyS0", 9600);
-	run_udp_cast(host, port);
+	//port = argv[1];
+	//run_tcp_client(host, port);
+	//run_tcp_client_group(host, port);
+	//run_udp_client(host, port);
+	//run_http_client(host, port);
+	//run_ws_client(host, port);
+	//run_tcps_client(host, port);
+	//run_https_client(host, port);
+	//run_wss_client(host, port);
+	//run_ping_test();
+	//run_serial_port("COM1", 9600);
+	//run_serial_port("/dev/ttyS0", 9600);
+	//run_udp_cast(host, port);
 	run_rpc_client(host, port);
 
 #if defined(WIN32) || defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS_)

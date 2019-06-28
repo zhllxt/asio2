@@ -1065,6 +1065,9 @@ parse_url_char(enum state s, const char ch)
 
         case '#':
           return s_req_fragment_start;
+
+		default:
+          return s;
       }
 
       break;
@@ -1082,6 +1085,9 @@ parse_url_char(enum state s, const char ch)
 
         case '#':
           return s_req_fragment_start;
+
+		default:
+          return s_req_query_string;
       }
 
       break;
@@ -1097,6 +1103,9 @@ parse_url_char(enum state s, const char ch)
 
         case '#':
           return s;
+
+		default:
+          return s_req_fragment;
       }
 
       break;
@@ -1109,6 +1118,8 @@ parse_url_char(enum state s, const char ch)
       switch (ch) {
         case '?':
         case '#':
+          return s;
+		default:
           return s;
       }
 

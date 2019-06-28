@@ -56,7 +56,6 @@ namespace asio2::detail
 			, tcp_send_op<derived_t, false>()
 			, tcp_recv_op<derived_t, false>()
 		{
-			this->iopool_.start();
 		}
 
 		/**

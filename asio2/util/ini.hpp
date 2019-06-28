@@ -40,6 +40,13 @@ namespace asio2
 	struct convert;
 
 	template<>
+	struct convert<bool>
+	{
+		template<class ...Args>
+		inline static bool stov(Args&&... args) { return (!(std::stoi(std::forward<Args>(args)...) == 0)); }
+	};
+
+	template<>
 	struct convert<char>
 	{
 		template<class ...Args>
@@ -230,7 +237,7 @@ namespace asio2
 
 	public:
 		template<class R, class Sec, class Key, class Traits = std::char_traits<char_type>>
-		typename std::enable_if_t<std::is_same_v<decltype(
+		inline typename std::enable_if_t<std::is_same_v<decltype(
 			std::basic_string_view<char_type, Traits>(std::declval<Sec>()),
 			std::basic_string_view<char_type, Traits>(std::declval<Key>()),
 			std::true_type()), std::true_type>, R>
@@ -243,7 +250,7 @@ namespace asio2
 		}
 
 		template<class R, class Traits = std::char_traits<char_type>, class Allocator = std::allocator<char_type>>
-		typename std::enable_if_t<std::is_same_v<decltype(
+		inline typename std::enable_if_t<std::is_same_v<decltype(
 			asio2::convert<R>::stov(std::basic_string<char_type, Traits, Allocator>()),
 			std::true_type()), std::true_type>, R>
 			get(std::basic_string_view<char_type, Traits> sec, std::basic_string_view<char_type, Traits> key, R default_val = R())
@@ -259,7 +266,7 @@ namespace asio2
 		}
 
 		template<class R, class Sec, class Key, class Traits = std::char_traits<char_type>>
-		typename std::enable_if_t<std::is_same_v<decltype(
+		inline typename std::enable_if_t<std::is_same_v<decltype(
 			std::basic_string_view<char_type, Traits>(std::declval<Sec>()),
 			std::basic_string_view<char_type, Traits>(std::declval<Key>()),
 			std::true_type()), std::true_type>, R>
@@ -272,7 +279,7 @@ namespace asio2
 		}
 
 		template<class R, class Traits = std::char_traits<char_type>, class Allocator = std::allocator<char_type>>
-		typename std::enable_if_t<std::is_same_v<decltype(
+		inline typename std::enable_if_t<std::is_same_v<decltype(
 			asio2::convert<R>::stov(std::basic_string<char_type, Traits, Allocator>()),
 			std::true_type()), std::true_type>, R>
 			get(std::basic_string_view<char_type, Traits> sec, std::basic_string_view<char_type, Traits> key,
@@ -300,7 +307,7 @@ namespace asio2
 		}
 
 		template<class Sec, class Key, class Val, class Traits = std::char_traits<char_type>>
-		typename std::enable_if_t<std::is_same_v<decltype(
+		inline typename std::enable_if_t<std::is_same_v<decltype(
 			std::basic_string_view<char_type, Traits>(std::declval<Sec>()),
 			std::basic_string_view<char_type, Traits>(std::declval<Key>()),
 			std::basic_string_view<char_type, Traits>(std::declval<Val>()),
@@ -314,12 +321,13 @@ namespace asio2
 		}
 
 		template<class Sec, class Key, class Val, class Traits = std::char_traits<char_type>>
-		typename std::enable_if_t<std::is_same_v<decltype(
+		inline typename std::enable_if_t<std::is_same_v<decltype(
 			std::basic_string_view<char_type, Traits>(std::declval<Sec>()),
 			std::basic_string_view<char_type, Traits>(std::declval<Key>()),
+			!std::basic_string_view<char_type, Traits>(std::declval<Val>()),
 			std::to_string(std::declval<Val>()),
 			std::true_type()), std::true_type>, bool>
-			set(const Sec& sec, const Key& key, const Val& val)
+			set(const Sec& sec, const Key& key, Val val)
 		{
 			std::basic_string<char_type, Traits> v = std::to_string(val);
 			return this->set(

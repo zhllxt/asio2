@@ -69,6 +69,7 @@ namespace asio2::detail
 		~https_client_impl_t()
 		{
 			this->stop();
+			this->iopool_.stop();
 		}
 
 		inline derived_t & set_cert(std::string_view cert)

@@ -230,10 +230,6 @@ namespace asio2::detail
 			{
 				clear_last_error();
 
-				// startup the io_context pool first
-				if (!this->iopool_.start())
-					asio::detail::throw_error(asio::error::already_started);
-
 				this->socket_.close(ec_ignore);
 
 				// parse address and port
@@ -396,6 +392,7 @@ namespace asio2::detail
 				return this->derived()._do_send(to_endpoint(host, port), buffer, promise);
 			}
 			catch (system_error & e) { set_last_error(e); }
+			return false;
 		}
 
 		template<class ConstBufferSequence>

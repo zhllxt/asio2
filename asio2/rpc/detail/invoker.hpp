@@ -142,7 +142,7 @@ namespace asio2::detail
 		{
 			using fun_traits_type = function_traits<F>;
 			using fun_args_tuple = typename fun_traits_type::pod_tuple_type;
-			using fun_ret_type = typename fun_traits_type::result_type;
+			using fun_ret_type = typename fun_traits_type::return_type;
 
 			fun_args_tuple tp;
 			dr >> tp;
@@ -154,7 +154,7 @@ namespace asio2::detail
 		{
 			using fun_traits_type = function_traits<F>;
 			using fun_args_tuple = typename fun_traits_type::pod_tuple_type;
-			using fun_ret_type = typename fun_traits_type::result_type;
+			using fun_ret_type = typename fun_traits_type::return_type;
 
 			fun_args_tuple tp;
 			dr >> tp;

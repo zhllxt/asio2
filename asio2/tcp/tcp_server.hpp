@@ -44,7 +44,6 @@ namespace asio2::detail
 			, init_buffer_size_(init_buffer_size)
 			, max_buffer_size_(max_buffer_size)
 		{
-			this->iopool_.start();
 		}
 
 		/**

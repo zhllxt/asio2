@@ -70,6 +70,7 @@ namespace asio2::detail
 		~http_client_impl_t()
 		{
 			this->stop();
+			this->iopool_.stop();
 		}
 
 		/**
@@ -112,8 +113,8 @@ namespace asio2::detail
 				if (!this->state_.compare_exchange_strong(expected, state_t::stopped))
 					asio::detail::throw_error(asio::error::already_started);
 
-				std::string_view host, port;
-				http::url_to_hostport(url, host, port);
+				std::string_view host = http::url_to_host(url);
+				std::string_view port = http::url_to_port(url);
 
 				if (host.empty())
 					asio::detail::throw_error(asio::error::invalid_argument);
@@ -178,8 +179,8 @@ namespace asio2::detail
 					if (!this->state_.compare_exchange_strong(expected, state_t::stopped))
 						asio::detail::throw_error(asio::error::already_started);
 
-					std::string_view host, port;
-					http::url_to_hostport(url, host, port);
+					std::string_view host = http::url_to_host(url);
+					std::string_view port = http::url_to_port(url);
 
 					if (host.empty())
 						asio::detail::throw_error(asio::error::invalid_argument);
@@ -284,9 +285,8 @@ namespace asio2::detail
 			ec.clear();
 			http::request<body_t> req = http::make_request<body_t>(url, ec);
 			if (ec) return http::response<body_t>{};
-			std::string_view host, port;
-			http::url_to_hostport(url, host, port, ec);
-			if (ec) return http::response<body_t>{};
+			std::string_view host = http::url_to_host(url);
+			std::string_view port = http::url_to_port(url);
 			return execute<body_t>(host, port, req, ec);
 		}
 

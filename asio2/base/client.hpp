@@ -104,6 +104,7 @@ namespace asio2::detail
 			, io_(iopool_.get(0))
 			, buffer_(init_buffer_size, max_buffer_size)
 		{
+			this->iopool_.start();
 		}
 
 		/**
@@ -111,6 +112,7 @@ namespace asio2::detail
 		 */
 		~client_impl_t()
 		{
+			this->iopool_.stop();
 		}
 
 		/**

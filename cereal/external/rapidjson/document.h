@@ -955,14 +955,14 @@ public:
             uint64_t u = GetUint64();
             volatile double d = static_cast<double>(u);
             return (d >= 0.0)
-                && (d < static_cast<double>(std::numeric_limits<uint64_t>::max()))
+                && (d < static_cast<double>((std::numeric_limits<uint64_t>::max)()))
                 && (u == static_cast<uint64_t>(d));
         }
         if (IsInt64()) {
             int64_t i = GetInt64();
             volatile double d = static_cast<double>(i);
-            return (d >= static_cast<double>(std::numeric_limits<int64_t>::min()))
-                && (d < static_cast<double>(std::numeric_limits<int64_t>::max()))
+            return (d >= static_cast<double>((std::numeric_limits<int64_t>::min)()))
+                && (d < static_cast<double>((std::numeric_limits<int64_t>::max)()))
                 && (i == static_cast<int64_t>(d));
         }
         return true; // double, int, uint are always lossless
@@ -979,8 +979,8 @@ public:
     bool IsLosslessFloat() const {
         if (!IsNumber()) return false;
         double a = GetDouble();
-        if (a < static_cast<double>(-std::numeric_limits<float>::max())
-                || a > static_cast<double>(std::numeric_limits<float>::max()))
+        if (a < static_cast<double>(-(std::numeric_limits<float>::max)())
+                || a > static_cast<double>((std::numeric_limits<float>::max)()))
             return false;
         double b = static_cast<double>(static_cast<float>(a));
         return a >= b && a <= b;    // Prevent -Wfloat-equal

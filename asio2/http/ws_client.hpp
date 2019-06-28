@@ -67,6 +67,7 @@ namespace asio2::detail
 		~ws_client_impl_t()
 		{
 			this->stop();
+			this->iopool_.stop();
 		}
 
 		/**

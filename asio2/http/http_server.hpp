@@ -50,6 +50,7 @@ namespace asio2::detail
 		~http_server_impl_t()
 		{
 			this->stop();
+			this->iopool_.stop();
 		}
 
 		/**

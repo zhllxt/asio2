@@ -110,6 +110,7 @@ namespace asio2::detail
 		/**
 		 * @function : Asynchronous send data,supporting multi data formats,see asio::buffer(...) in /asio/buffer.hpp
 		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
+		 * Callback signature : void() or void(std::size_t bytes_sent)
 		 */
 		template<class Callback, bool isRequest, class Body, class Fields = http::fields>
 		inline bool send(http::message<isRequest, Body, Fields>& msg, Callback&& fn)
@@ -140,6 +141,7 @@ namespace asio2::detail
 		/**
 		 * @function : Asynchronous send data,supporting multi data formats,see asio::buffer(...) in /asio/buffer.hpp
 		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
+		 * Callback signature : void() or void(std::size_t bytes_sent)
 		 */
 		template<class Callback, bool isRequest, class Body, class Fields = http::fields>
 		inline bool send(http::message<isRequest, Body, Fields>&& msg, Callback&& fn)

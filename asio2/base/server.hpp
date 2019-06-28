@@ -70,6 +70,7 @@ namespace asio2::detail
 			, io_(iopool_.get(0))
 			, sessions_(io_)
 		{
+			this->iopool_.start();
 		}
 
 		/**
@@ -77,6 +78,7 @@ namespace asio2::detail
 		 */
 		~server_impl_t()
 		{
+			this->iopool_.stop();
 		}
 
 		/**
@@ -146,12 +148,12 @@ namespace asio2::detail
 		 * asio::write(session_ptr->socket(), asio::buffer(std::string("abc")));
 		 * PodType * : send("abc");
 		 */
-		template<class CharT, class Traits = std::char_traits<CharT>, class Allocator = std::allocator<CharT>>
+		template<class CharT, class Traits = std::char_traits<CharT>>
 		inline typename std::enable_if_t<
-			std::is_same_v<CharT, char> ||
-			std::is_same_v<CharT, wchar_t> ||
-			std::is_same_v<CharT, char16_t> ||
-			std::is_same_v<CharT, char32_t>, derived_t &> send(const CharT * s)
+			std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, char> ||
+			std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, wchar_t> ||
+			std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, char16_t> ||
+			std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, char32_t>, derived_t&> send(CharT * s)
 		{
 			return this->send(s, s ? Traits::length(s) : 0);
 		}
@@ -164,8 +166,9 @@ namespace asio2::detail
 		 * asio::write(session_ptr->socket(), asio::buffer(std::string("abc")));
 		 * PodType (&data)[N] : double m[10]; send(m,5);
 		 */
-		template<class CharT, class Traits = std::char_traits<CharT>, class Allocator = std::allocator<CharT>>
-		inline derived_t & send(const CharT * s, const std::size_t count)
+		template<class CharT, class SizeT>
+		inline typename std::enable_if_t<std::is_integral_v<std::remove_cv_t<std::remove_reference_t<SizeT>>>, derived_t&>
+			send(CharT * s, SizeT count)
 		{
 			if (s)
 			{

@@ -76,20 +76,40 @@ void run_tcp_server(std::string_view host, std::string_view port)
 				return;
 			}
 
-			session_ptr->no_delay(true);
+			printf("recv : %u %.*s\n", (unsigned)s.size(), (int)s.size(), s.data());
 
-			//printf("recv : %u %.*s\n", (unsigned)s.size(), (int)s.size(), s.data());
+			// ##### Important #####
+			// ##Correct (send operation is running in the io.strand thread, the s will be sent directly)
 			session_ptr->send(s, [](std::size_t bytes_sent) {});
-			//session_ptr->send(s, asio::use_future);
-			//int narys[2] = { 1,2 };
-			//session_ptr->send(narys);
-			//session_ptr->post([session_ptr]()
+
+			//std::thread([session_ptr, s, str = std::string(s)]()
 			//{
-			//	asio::write(session_ptr->stream(), asio::buffer(std::string("abcdefghijklmn")));
-			//});
+			//	// ##Wrong   (send operation is not running in the io.strand thread, the s will be sent asynchronous)
+			//	// the content of "s" is invalid.
+			//	//session_ptr->send(s, [](std::size_t bytes_sent) {});
+
+			//	// ##Correct (send operation is not running in the io.strand thread, the s will be sent asynchronous)
+			//	// the "str" has hold the content of "s".
+			//	session_ptr->send(str, [](std::size_t bytes_sent) {});
+			//	session_ptr->send(std::move(str), [](std::size_t bytes_sent) {});
+
+			//	// ##Thread-safe send operation example:
+			//	//session_ptr->post([session_ptr]()
+			//	//{
+			//	//	asio::write(session_ptr->stream(), asio::buffer(std::string("abcdefghijklmn")));
+			//	//});
+
+			//	// ##Use this to check whether the send operation is running in current thread.
+			//	//if (session_ptr->io().strand().running_in_this_thread())
+			//	//{
+			//	//}
+			//}).detach();
+
 		}).bind_connect([&server](auto & session_ptr)
 		{
-			//session_ptr->stop();
+			session_ptr->no_delay(true);
+			//session_ptr->start_timer(1, std::chrono::seconds(1), []() {});
+			//session_ptr->stop(); // You can close the connection directly here.
 			printf("client enter : %s %u %s %u\n",
 				session_ptr->remote_address().c_str(), session_ptr->remote_port(),
 				session_ptr->local_address().c_str(), session_ptr->local_port());
@@ -719,8 +739,14 @@ void run_rpc_server(std::string_view host, std::string_view port)
 		server.bind("get_user", &A::get_user, a);
 		server.bind("del_user", &A::del_user, &a);
 
-		//server.start(host, port, asio2::use_dgram);
-		server.start(host, port);
+		// Using tcp dgram mode as the underlying communication support(This is the default setting)
+		// Then must use "use_dgram" parameter.
+		server.start(host, port, asio2::use_dgram);
+
+		// Using websocket as the underlying communication support.
+		// Need to goto the tail of the (rpc_client.hpp rpc_server.hpp rpc_session.hpp) files,
+		// and modified to use websocket.
+		//server.start(host, port);
 
 		while (std::getchar() != '\n');
 		//std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -754,15 +780,15 @@ int main(int argc, char *argv[])
 
 	std::string_view host = "0.0.0.0", port = "8080";
 	//port = argv[1];
-	run_tcp_server(host, port);
-	run_udp_server(host, port);
-	run_http_server(host, port);
-	run_ws_server(host, port);
-	run_httpws_server(host, port); 
-	run_tcps_server(host, port);
-	run_https_server(host, port);
-	run_wss_server(host, port);
-	run_udp_cast(host, port);
+	//run_tcp_server(host, port);
+	//run_udp_server(host, port);
+	//run_http_server(host, port);
+	//run_ws_server(host, port);
+	//run_httpws_server(host, port); 
+	//run_tcps_server(host, port);
+	//run_https_server(host, port);
+	//run_wss_server(host, port);
+	//run_udp_cast(host, port);
 	run_rpc_server(host, port);
 
 #if defined(WIN32) || defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS_)

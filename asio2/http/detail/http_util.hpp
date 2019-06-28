@@ -32,116 +32,170 @@ namespace boost::beast::http
 	{
 		// Percent-encoding : https://en.wikipedia.org/wiki/Percent-encoding
 
-		#if defined(__GNUC__) || defined(__GNUG__)
-			__attribute__((unused))
-		#endif
-		bool url_decode(std::string & url)
+		template<
+			class CharT = char,
+			class Traits = std::char_traits<CharT>,
+			class Allocator = std::allocator<CharT>
+		>
+			std::basic_string<CharT, Traits, Allocator> url_decode(std::string_view url)
 		{
-			std::size_t index = 0, size = url.size();
-			for (std::size_t i = 0; i < size; ++i)
+			std::basic_string<CharT, Traits, Allocator> r;
+			r.reserve(url.size());
+			using size_type = typename std::string_view::size_type;
+			using value_type = typename std::string_view::value_type;
+			using rvalue_type = typename std::basic_string<CharT, Traits, Allocator>::value_type;
+			for (size_type i = 0; i < url.size(); ++i)
 			{
-				if (url[i] == '%')
+				if (url[i] == static_cast<value_type>('%'))
 				{
-					if (i + 3 <= size)
+					if (i + 3 <= url.size())
 					{
-						using type = std::string::value_type;
+						value_type h = url[i + 1];
+						value_type l = url[i + 2];
 
-						type h = url[i + 1];
-						type l = url[i + 2];
+						if /**/ (h >= static_cast<value_type>('0') && h <= static_cast<value_type>('9')) h = value_type(h - '0'     );
+						else if (h >= static_cast<value_type>('a') && h <= static_cast<value_type>('f')) h = value_type(h - 'a' + 10);
+						else if (h >= static_cast<value_type>('A') && h <= static_cast<value_type>('F')) h = value_type(h - 'A' + 10);
+						else asio::detail::throw_error(asio::error::invalid_argument);
 
-						if /**/ (h >= '0' && h <= '9') h = type(h - '0'     );
-						else if (h >= 'a' && h <= 'f') h = type(h - 'a' + 10);
-						else if (h >= 'A' && h <= 'F') h = type(h - 'A' + 10);
-						else return false;
+						if /**/ (l >= static_cast<value_type>('0') && l <= static_cast<value_type>('9')) l = value_type(l - '0'     );
+						else if (l >= static_cast<value_type>('a') && l <= static_cast<value_type>('f')) l = value_type(l - 'a' + 10);
+						else if (l >= static_cast<value_type>('A') && l <= static_cast<value_type>('F')) l = value_type(l - 'A' + 10);
+						else asio::detail::throw_error(asio::error::invalid_argument);
 
-						if /**/ (l >= '0' && l <= '9') l = type(l - '0'     );
-						else if (l >= 'a' && l <= 'f') l = type(l - 'a' + 10);
-						else if (l >= 'A' && l <= 'F') l = type(l - 'A' + 10);
-						else return false;
-
-						url[index++] = static_cast<std::string::value_type>(h * 16 + l);
+						r += static_cast<rvalue_type>(h * 16 + l);
 						i += 2;
 					}
 					else
-						return false;
+						asio::detail::throw_error(asio::error::invalid_argument);
 				}
-				else if (url[i] == '+')
-					url[index++] = ' ';
+				else if (url[i] == static_cast<value_type>('+'))
+					r += static_cast<rvalue_type>(' ');
 				else
-					url[index++] = url[i];
+					r += static_cast<rvalue_type>(url[i]);
 			}
-			url.resize(index);
-			return true;
+			return r;
+		}
+
+		template<
+			class CharT = char,
+			class Traits = std::char_traits<CharT>,
+			class Allocator = std::allocator<CharT>
+		>
+			std::basic_string<CharT, Traits, Allocator> url_encode(std::string_view url)
+		{
+			std::basic_string<CharT, Traits, Allocator> r;
+			r.reserve(url.size() * 2);
+			using size_type = typename std::string_view::size_type;
+			using value_type = typename std::string_view::value_type;
+			using rvalue_type = typename std::basic_string<CharT, Traits, Allocator>::value_type;
+			size_type i = 0;
+
+			http::cparser::http_parser_url u;
+			if (0 == http::cparser::http_parser_parse_url(url.data(), url.size(), 0, &u))
+			{
+				if (u.field_set & (1 << http::cparser::UF_PATH))
+				{
+					i = u.field_data[http::cparser::UF_PATH].off;
+					for (size_type n = 0; n < i; ++n)
+					{
+						r += static_cast<rvalue_type>(url[n]);
+					}
+					if (i < url.size() && url[i] == static_cast<value_type>('/'))
+					{
+						r += static_cast<rvalue_type>(url[i++]);
+					}
+				}
+			}
+
+			for (; i < url.size(); ++i)
+			{
+				value_type c = url[i];
+				if (std::isalnum(static_cast<unsigned char>(c)) ||
+					(c == static_cast<value_type>('-')) ||
+					(c == static_cast<value_type>('_')) ||
+					(c == static_cast<value_type>('.')) ||
+					(c == static_cast<value_type>('~')))
+					r += static_cast<rvalue_type>(c);
+				else if (c == static_cast<value_type>(' '))
+					r += static_cast<rvalue_type>('+');
+				else
+				{
+					r += static_cast<rvalue_type>('%');
+					rvalue_type h = rvalue_type(static_cast<unsigned char>(c) >> 4);
+					r += h > rvalue_type(9) ? rvalue_type(h + 55) : rvalue_type(h + 48);
+					rvalue_type l = rvalue_type(static_cast<unsigned char>(c) % 16);
+					r += l > rvalue_type(9) ? rvalue_type(l + 55) : rvalue_type(l + 48);
+				}
+			}
+			return r;
 		}
 
 		#if defined(__GNUC__) || defined(__GNUG__)
 			__attribute__((unused))
 		#endif
-		std::string url_encode(std::string_view url)
+		std::string_view url_to_host(std::string_view url)
 		{
-			std::string s;
-			std::size_t size = url.size();
-			for (std::size_t i = 0; i < size; i++)
-			{
-				using type = std::string_view::value_type;
-				type c = url[i];
-				if (std::isalnum(static_cast<unsigned char>(c)) ||
-					(c == '-') || (c == '_') || (c == '.') || (c == '~'))
-					s += c;
-				else if (c == ' ')
-					s += '+';
-				else
-				{
-					s += '%';
-					type h = type(static_cast<unsigned char>(c) >> 4);
-					s += h > 9 ? type(h + 55) : type(h + 48);
-					type l = type(static_cast<unsigned char>(c) % 16);
-					s += l > 9 ? type(l + 55) : type(l + 48);
-				}
-			}
-			return s;
-		}
-		
-		bool url_to_hostport(std::string_view url, std::string_view& host, std::string_view& port, error_code& ec)
-		{
-			try
-			{
-				ec.clear();
+			http::cparser::http_parser_url u;
+			if (0 != http::cparser::http_parser_parse_url(url.data(), url.size(), 0, &u))
+				return std::string_view{};
 
-				http::cparser::http_parser_url u;
-				if (0 != http::cparser::http_parser_parse_url(url.data(), url.size(), 0, &u))
-					asio::detail::throw_error(asio::error::invalid_argument);
+			if (!(u.field_set & (1 << http::cparser::UF_HOST)))
+				return std::string_view{};
 
-				std::string_view schema{ "http" };
-
-				if (u.field_set & (1 << http::cparser::UF_SCHEMA))
-					schema = { &url[u.field_data[http::cparser::UF_SCHEMA].off],u.field_data[http::cparser::UF_SCHEMA].len };
-				if (u.field_set & (1 << http::cparser::UF_HOST))
-					host = { &url[u.field_data[http::cparser::UF_HOST].off],u.field_data[http::cparser::UF_HOST].len };
-				if (u.field_set & (1 << http::cparser::UF_PORT))
-					port = { &url[u.field_data[http::cparser::UF_PORT].off],u.field_data[http::cparser::UF_PORT].len };
-
-				if (port.empty())
-				{
-					std::string h(schema);
-					std::transform(h.begin(), h.end(), h.begin(), [](std::string::value_type c) { return std::tolower(c); });
-					port = h == "https" ? "443" : "80";
-				}
-				return true;
-			}
-			catch (system_error & e)
-			{
-				ec = e.code();
-			}
-			return false;
+			return std::string_view{ &url[u.field_data[http::cparser::UF_HOST].off],u.field_data[http::cparser::UF_HOST].len };
 		}
 
-		bool url_to_hostport(std::string_view url, std::string_view& host, std::string_view& port)
+		#if defined(__GNUC__) || defined(__GNUG__)
+			__attribute__((unused))
+		#endif
+		std::string_view url_to_port(std::string_view url)
 		{
-			error_code ec;
-			bool ret = url_to_hostport(url, host, port, ec);
-			asio::detail::throw_error(ec);
-			return ret;
+			http::cparser::http_parser_url u;
+			if (0 != http::cparser::http_parser_parse_url(url.data(), url.size(), 0, &u))
+				return std::string_view{};
+
+			if (u.field_set & (1 << http::cparser::UF_PORT))
+				return std::string_view{ &url[u.field_data[http::cparser::UF_PORT].off],u.field_data[http::cparser::UF_PORT].len };
+
+			if (u.field_set & (1 << http::cparser::UF_SCHEMA))
+			{
+				std::string schema(&url[u.field_data[http::cparser::UF_SCHEMA].off], u.field_data[http::cparser::UF_SCHEMA].len);
+				std::transform(schema.begin(), schema.end(), schema.begin(), [](std::string::value_type c) { return std::tolower(c); });
+				return (schema == "https" ? std::string_view{ "443" } : std::string_view{ "80" });
+			}
+
+			return std::string_view{ "80" };
+		}
+
+		#if defined(__GNUC__) || defined(__GNUG__)
+			__attribute__((unused))
+		#endif
+		std::string_view url_to_path(std::string_view url)
+		{
+			http::cparser::http_parser_url u;
+			if (0 != http::cparser::http_parser_parse_url(url.data(), url.size(), 0, &u))
+				return std::string_view{};
+
+			if (!(u.field_set & (1 << http::cparser::UF_PATH)))
+				return std::string_view{};
+
+			return std::string_view{ &url[u.field_data[http::cparser::UF_PATH].off],u.field_data[http::cparser::UF_PATH].len };
+		}
+
+		#if defined(__GNUC__) || defined(__GNUG__)
+			__attribute__((unused))
+		#endif
+		std::string_view url_to_query(std::string_view url)
+		{
+			http::cparser::http_parser_url u;
+			if (0 != http::cparser::http_parser_parse_url(url.data(), url.size(), 0, &u))
+				return std::string_view{};
+
+			if (!(u.field_set & (1 << http::cparser::UF_QUERY)))
+				return std::string_view{};
+
+			return std::string_view{ &url[u.field_data[http::cparser::UF_QUERY].off],u.field_data[http::cparser::UF_QUERY].len };
 		}
 
 		template<class Body = string_body, class Fields = fields>

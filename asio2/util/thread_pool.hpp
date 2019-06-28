@@ -181,16 +181,17 @@ namespace asio2
 
 
 	/**
-	 * indexed thread pool interface, this pool is multi thread safed.
-	 * when you put a task into the thread pool, you can specify which thread to execute the task by thread index.
+	 * ordered thread pool interface, this pool is multi thread safed.
+	 * when you put a task into the thread pool, you can specify which
+	 * thread to execute the task by thread index.
 	 */
-	class indexed_thread_pool
+	class ordered_thread_pool
 	{
 	public:
 		/**
 		 * @constructor
 		 */
-		explicit indexed_thread_pool(std::size_t thread_count = std::thread::hardware_concurrency())
+		explicit ordered_thread_pool(std::size_t thread_count = std::thread::hardware_concurrency())
 		{
 			if (thread_count < 1)
 				thread_count = 1;
@@ -235,7 +236,7 @@ namespace asio2
 		/**
 		 * @destructor
 		 */
-		~indexed_thread_pool()
+		~ordered_thread_pool()
 		{
 			{
 				for (auto & mtx : this->mtx_)
@@ -316,10 +317,10 @@ namespace asio2
 
 	private:
 		/// no copy construct function
-		indexed_thread_pool(const indexed_thread_pool&) = delete;
+		ordered_thread_pool(const ordered_thread_pool&) = delete;
 
 		/// no operator equal function
-		indexed_thread_pool& operator=(const indexed_thread_pool&) = delete;
+		ordered_thread_pool& operator=(const ordered_thread_pool&) = delete;
 
 	protected:
 		// need to keep track of threads so we can join them

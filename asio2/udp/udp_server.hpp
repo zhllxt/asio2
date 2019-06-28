@@ -42,7 +42,6 @@ namespace asio2::detail
 			, remote_endpoint_()
 			, buffer_(init_buffer_size, max_buffer_size)
 		{
-			this->iopool_.start();
 		}
 
 		/**
