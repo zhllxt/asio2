@@ -189,7 +189,7 @@ namespace asio2::detail
 		std::basic_string_view<typename T::value_type, typename T::traits_type>>>>> : std::true_type {};
 
 	template<class T>
-	constexpr bool is_string_view_v = is_string_view<std::remove_cv_t<std::remove_reference_t<T>>>::value;
+	inline constexpr bool is_string_view_v = is_string_view<std::remove_cv_t<std::remove_reference_t<T>>>::value;
 }
 
 // custom specialization of std::hash can be injected in namespace std
