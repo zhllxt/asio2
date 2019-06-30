@@ -85,15 +85,15 @@ void run_tcp_client(std::string_view host, std::string_view port)
 				s += char(1);
 				s += 'a';
 
-				// All of the following ways of send operation are correct, because the send
-				// operation is running in the io.strand thread, the content will be sent directly.
+				// ## All of the following ways of send operation are correct.
+				// (send operation is running in the io.strand thread, the content will be sent directly)
 				client.send(s);
 				client.send(s, []() {});
 				client.send((uint8_t*)"<abcdefghijklmnopqrstovuxyz0123456789>", 10);
 				client.send((const uint8_t*)"<abcdefghijklmnopqrstovuxyz0123456789>", 10);
-				client.send(s.data(), 5); // Correct, s.data() will be sent directly.
-				client.send(s.data(), []() {}); // Correct, s.data() will be sent directly.
-				client.send(s.c_str(), size_t(5)); // Correct, s.c_str() will be sent directly.
+				client.send(s.data(), int(s.size()));
+				client.send(s.data(), []() {});
+				client.send(s.c_str(), size_t(s.size()));
 				client.send(s, asio::use_future);
 				client.send("<abcdefghijklmnopqrstovuxyz0123456789>", asio::use_future);
 				client.send(s.data(), asio::use_future);
@@ -103,6 +103,16 @@ void run_tcp_client(std::string_view host, std::string_view port)
 				client.send(narys, []() {});
 				client.send(narys, [](std::size_t bytes) {});
 				client.send(narys, asio::use_future);
+
+				// ##Example how to send a struct directly:
+				info u;
+				client.send(u);
+
+				// ##Thread-safe send operation example:
+				client.post([&client]()
+				{
+					asio::write(client.stream(), asio::buffer(std::string("abcdefghijklmn")));
+				});
 
 				//asio::write(client.socket(), asio::buffer(s));
 			}).bind_disconnect([](asio::error_code ec)
@@ -127,18 +137,18 @@ void run_tcp_client(std::string_view host, std::string_view port)
 				{
 					s += (char)((std::rand() % 26) + 'a');
 				}
+				// demo of force a packet of data to be sent twice in "use_dgram" mode
 				client.send(s.substr(0, s.size() / 2), []() {});
 				std::this_thread::sleep_for(std::chrono::milliseconds(10));
 				client.send(s.substr(s.size() / 2), [](std::size_t bytes_sent) {});
-
 			})
 				//.bind_recv(on_recv)//bind global function
 				//.bind_recv(std::bind(&listener::on_recv, &lis, std::placeholders::_1))//bind member function
 				//.bind_recv(&listener::on_recv, lis)//bind member function
 				//.bind_recv(&listener::on_recv, &lis)//bind member function
 				;
-			client.async_start(host, port);
-			//client.start(host, port);
+			//client.async_start(host, port);
+			client.start(host, port);
 			//client.async_start(host, port, '>');
 			//client.async_start(host, port, "\r\n");
 			//client.async_start(host, port, match_role);
@@ -146,29 +156,38 @@ void run_tcp_client(std::string_view host, std::string_view port)
 			//client.async_start(host, port, asio::transfer_exactly(100));
 			//client.start(host, port, asio2::use_dgram);
 
+			// ##Use this to check whether the send operation is running in current thread.
+			//if (client.io().strand().running_in_this_thread())
+			//{
+			//}
 
-			// ##### Important #####
-			std::string msg("0123456789");
-			// ##Correct (send operation is not running in the io.strand thread, the msg will be sent asynchronous)
-			client.send(msg, [](std::size_t bytes_sent) {});
-
-			// ##Wrong   (send operation is not running in the io.strand thread, the msg.data() will be sent asynchronous)
-			// When the asynchronous send operation executes, the msg object may be invalid already.
-			//client.send(msg.data(), [](std::size_t bytes_sent) {});
-
-			// ##Correct (send operation is not running in the io.strand thread, the "0123456789" will be sent asynchronous)
-			// because "0123456789" is static.
-			client.send("0123456789", [](std::size_t bytes_sent) {});
-
-			// ##Example how to send a struct directly:
-			info u;
-			client.send(u);
-
-			// ##Thread-safe send operation example:
-			client.post([&client]()
+			// ## All of the following ways of send operation are correct.
+			// (send operation is not running in the io.strand thread, the content will be sent asynchronous)
+			std::string s;
+			s += '#';
+			s += char(1);
+			s += 'a';
+			if (client.is_started())
 			{
-				asio::write(client.stream(), asio::buffer(std::string("abcdefghijklmn")));
-			});
+				client.send(s);
+				client.send(s, []() {});
+				client.send((uint8_t*)"<abcdefghijklmnopqrstovuxyz0123456789>", 10);
+				client.send((const uint8_t*)"<abcdefghijklmnopqrstovuxyz0123456789>", 10);
+				client.send(s.data(), int(s.size()));
+				client.send(s.data(), []() {});
+				client.send(s.c_str(), size_t(s.size()));
+				client.send(s, asio::use_future);
+				client.send("<abcdefghijklmnopqrstovuxyz0123456789>", asio::use_future);
+				client.send(s.data(), asio::use_future);
+				client.send(s.c_str(), asio::use_future);
+				int narys[2] = { 1,2 };
+				client.send(narys);
+				client.send(narys, []() {});
+				client.send(narys, [](std::size_t bytes) {});
+				client.send(narys, asio::use_future);
+				info u;
+				client.send(u);
+			}
 		}
 
 		while (std::getchar() != '\n');
@@ -887,7 +906,7 @@ int main(int argc, char *argv[])
 	std::string_view host = "127.0.0.1", port = "8080";
 	//std::string_view host = "192.168.1.146", port = "8080"; 
 	//port = argv[1];
-	//run_tcp_client(host, port);
+	run_tcp_client(host, port);
 	//run_tcp_client_group(host, port);
 	//run_udp_client(host, port);
 	//run_http_client(host, port);
@@ -899,7 +918,7 @@ int main(int argc, char *argv[])
 	//run_serial_port("COM1", 9600);
 	//run_serial_port("/dev/ttyS0", 9600);
 	//run_udp_cast(host, port);
-	run_rpc_client(host, port);
+	//run_rpc_client(host, port);
 
 #if defined(WIN32) || defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS_)
 	//system("pause");

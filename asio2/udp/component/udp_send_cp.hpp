@@ -46,9 +46,6 @@ namespace asio2::detail
 		/**
 		 * @function : Asynchronous send data,supporting multi data formats,see asio::buffer(...) in /asio/buffer.hpp
 		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
-		 * Although the data object may be copied as necessary, ownership of the
-		 * underlying memory blocks is retained by the caller, which must guarantee
-		 * that they remain valid until the send operation is called.
 		 * use like this : std::string m; send(std::move(m)); can reducing memory allocation.
 		 * PodType * : send("abc");
 		 * PodType (&data)[N] : double m[10]; send(m);
@@ -77,11 +74,24 @@ namespace asio2::detail
 						std::is_trivially_move_assignable_v<std::remove_cv_t<std::remove_reference_t<T>>> ||
 						std::is_nothrow_move_assignable_v<std::remove_cv_t<std::remove_reference_t<T>>>)
 					{
-						asio::post(this->wio_.strand(), make_allocator(derive.wallocator(),
-							[this, p = this->_mkptr(), host, port, d = std::forward<T>(data)]()
+						if constexpr (is_string_view_v<T>)
 						{
-							derive._do_send(host, port, asio::buffer(d));
-						}));
+							using type = typename std::remove_cv_t<std::remove_reference_t<T>>::value_type;
+							asio::post(this->wio_.strand(), make_allocator(derive.wallocator(),
+								[this, p = this->_mkptr(), host, port,
+								d = std::vector<type>(data.data(), data.data() + data.size())]()
+							{
+								derive._do_send(host, port, asio::buffer(d));
+							}));
+						}
+						else
+						{
+							asio::post(this->wio_.strand(), make_allocator(derive.wallocator(),
+								[this, p = this->_mkptr(), host, port, d = std::forward<T>(data)]()
+							{
+								derive._do_send(host, port, asio::buffer(d));
+							}));
+						}
 					}
 					else
 					{
@@ -104,9 +114,6 @@ namespace asio2::detail
 		/**
 		 * @function : Asynchronous send data
 		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
-		 * Although the data object may be copied as necessary, ownership of the
-		 * underlying memory blocks is retained by the caller, which must guarantee
-		 * that they remain valid until the send operation is called.
 		 * PodType * : send("abc");
 		 * We do not provide synchronous send function,because the synchronous send code is very simple,
 		 * if you want use synchronous send data,you can do it like this (example):
@@ -126,9 +133,6 @@ namespace asio2::detail
 		/**
 		 * @function : Asynchronous send data
 		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
-		 * Although the data object may be copied as necessary, ownership of the
-		 * underlying memory blocks is retained by the caller, which must guarantee
-		 * that they remain valid until the send operation is called.
 		 * PodType (&data)[N] : double m[10]; send(m,5);
 		 * We do not provide synchronous send function,because the synchronous send code is very simple,
 		 * if you want use synchronous send data,you can do it like this (example):
@@ -151,10 +155,11 @@ namespace asio2::detail
 				// Make sure we run on the strand
 				if (!this->wio_.strand().running_in_this_thread())
 				{
+					using type = typename std::remove_cv_t<std::remove_reference_t<CharT>>;
 					asio::post(this->wio_.strand(), make_allocator(derive.wallocator(),
-						[this, p = this->_mkptr(), host, port, s, count]()
+						[this, p = this->_mkptr(), host, port, data = std::vector<type>(s, s + count)]()
 					{
-						derive._do_send(host, port, asio::buffer(s, static_cast<std::size_t>(count) * sizeof(CharT)));
+						derive._do_send(host, port, asio::buffer(data));
 					}));
 					return true;
 				}
@@ -168,9 +173,6 @@ namespace asio2::detail
 
 		/**
 		 * @function : Asynchronous send data,supporting multi data formats,see asio::buffer(...) in /asio/buffer.hpp
-		 * Although the data object may be copied as necessary, ownership of the
-		 * underlying memory blocks is retained by the caller, which must guarantee
-		 * that they remain valid until the send operation is called.
 		 * use like this : std::string m; send(std::move(m)); can reducing memory allocation.
 		 * the pair.first save the send result error_code,the pair.second save the sent_bytes.
 		 * note : Do not call this function in any listener callback function like this:
@@ -202,12 +204,26 @@ namespace asio2::detail
 						std::is_trivially_move_assignable_v<std::remove_cv_t<std::remove_reference_t<T>>> ||
 						std::is_nothrow_move_assignable_v<std::remove_cv_t<std::remove_reference_t<T>>>)
 					{
-						asio::post(this->wio_.strand(), make_allocator(derive.wallocator(),
-							[this, p = this->_mkptr(), host, port, d = std::forward<T>(data),
-							pm = std::move(promise)]() mutable
+						if constexpr (is_string_view_v<T>)
 						{
-							derive._do_send(host, port, asio::buffer(d), pm);
-						}));
+							using type = typename std::remove_cv_t<std::remove_reference_t<T>>::value_type;
+							asio::post(this->wio_.strand(), make_allocator(derive.wallocator(),
+								[this, p = this->_mkptr(), host, port,
+								d = std::vector<type>(data.data(), data.data() + data.size()),
+								pm = std::move(promise)]() mutable
+							{
+								derive._do_send(host, port, asio::buffer(d), pm);
+							}));
+						}
+						else
+						{
+							asio::post(this->wio_.strand(), make_allocator(derive.wallocator(),
+								[this, p = this->_mkptr(), host, port, d = std::forward<T>(data),
+								pm = std::move(promise)]() mutable
+							{
+								derive._do_send(host, port, asio::buffer(d), pm);
+							}));
+						}
 					}
 					else
 					{
@@ -238,9 +254,6 @@ namespace asio2::detail
 
 		/**
 		 * @function : Asynchronous send data
-		 * Although the data object may be copied as necessary, ownership of the
-		 * underlying memory blocks is retained by the caller, which must guarantee
-		 * that they remain valid until the send operation is called.
 		 * the pair.first save the send result error_code,the pair.second save the sent_bytes.
 		 * note : Do not call this function in any listener callback function like this:
 		 * auto future = send(msg,asio::use_future); future.get(); it will cause deadlock,the future.get() will
@@ -261,9 +274,6 @@ namespace asio2::detail
 
 		/**
 		 * @function : Asynchronous send data
-		 * Although the data object may be copied as necessary, ownership of the
-		 * underlying memory blocks is retained by the caller, which must guarantee
-		 * that they remain valid until the send operation is called.
 		 * the pair.first save the send result error_code,the pair.second save the sent_bytes.
 		 * note : Do not call this function in any listener callback function like this:
 		 * auto future = send(msg,asio::use_future); future.get(); it will cause deadlock,the future.get() will
@@ -289,11 +299,12 @@ namespace asio2::detail
 				// Make sure we run on the strand
 				if (!this->wio_.strand().running_in_this_thread())
 				{
+					using type = typename std::remove_cv_t<std::remove_reference_t<CharT>>;
 					asio::post(this->wio_.strand(), make_allocator(derive.wallocator(),
-						[this, p = this->_mkptr(), host, port, s, count,
+						[this, p = this->_mkptr(), host, port, data = std::vector<type>(s, s + count),
 						pm = std::move(promise)]() mutable
 					{
-						derive._do_send(host, port, asio::buffer(s, static_cast<std::size_t>(count) * sizeof(CharT)), pm);
+						derive._do_send(host, port, asio::buffer(data), pm);
 					}));
 					return future;
 				}
@@ -316,9 +327,6 @@ namespace asio2::detail
 		/**
 		 * @function : Asynchronous send data,supporting multi data formats,see asio::buffer(...) in /asio/buffer.hpp
 		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
-		 * Although the data object may be copied as necessary, ownership of the
-		 * underlying memory blocks is retained by the caller, which must guarantee
-		 * that they remain valid until the send operation is called.
 		 * use like this : std::string m; send(std::move(m)); can reducing memory allocation.
 		 * PodType * : send("abc");
 		 * PodType (&data)[N] : double m[10]; send(m);
@@ -349,12 +357,26 @@ namespace asio2::detail
 						std::is_trivially_move_assignable_v<std::remove_cv_t<std::remove_reference_t<T>>> ||
 						std::is_nothrow_move_assignable_v<std::remove_cv_t<std::remove_reference_t<T>>>)
 					{
-						asio::post(this->wio_.strand(), make_allocator(derive.wallocator(),
-							[this, p = this->_mkptr(), host, port, d = std::forward<T>(data),
-							f = std::forward<Callback>(fn)]()
+						if constexpr (is_string_view_v<T>)
 						{
-							derive._do_send(host, port, asio::buffer(d), f);
-						}));
+							using type = typename std::remove_cv_t<std::remove_reference_t<T>>::value_type;
+							asio::post(this->wio_.strand(), make_allocator(derive.wallocator(),
+								[this, p = this->_mkptr(), host, port,
+								d = std::vector<type>(data.data(), data.data() + data.size()),
+								f = std::forward<Callback>(fn)]()
+							{
+								derive._do_send(host, port, asio::buffer(d), f);
+							}));
+						}
+						else
+						{
+							asio::post(this->wio_.strand(), make_allocator(derive.wallocator(),
+								[this, p = this->_mkptr(), host, port, d = std::forward<T>(data),
+								f = std::forward<Callback>(fn)]()
+							{
+								derive._do_send(host, port, asio::buffer(d), f);
+							}));
+						}
 					}
 					else
 					{
@@ -378,9 +400,6 @@ namespace asio2::detail
 		/**
 		 * @function : Asynchronous send data
 		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
-		 * Although the data object may be copied as necessary, ownership of the
-		 * underlying memory blocks is retained by the caller, which must guarantee
-		 * that they remain valid until the send operation is called.
 		 * PodType * : send("abc");
 		 * We do not provide synchronous send function,because the synchronous send code is very simple,
 		 * if you want use synchronous send data,you can do it like this (example):
@@ -401,9 +420,6 @@ namespace asio2::detail
 		/**
 		 * @function : Asynchronous send data
 		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
-		 * Although the data object may be copied as necessary, ownership of the
-		 * underlying memory blocks is retained by the caller, which must guarantee
-		 * that they remain valid until the send operation is called.
 		 * PodType (&data)[N] : double m[10]; send(m,5);
 		 * We do not provide synchronous send function,because the synchronous send code is very simple,
 		 * if you want use synchronous send data,you can do it like this (example):
@@ -428,10 +444,12 @@ namespace asio2::detail
 				// Make sure we run on the strand
 				if (!this->wio_.strand().running_in_this_thread())
 				{
+					using type = typename std::remove_cv_t<std::remove_reference_t<CharT>>;
 					asio::post(this->wio_.strand(), make_allocator(derive.wallocator(),
-						[this, p = this->_mkptr(), host, port, s, count, f = std::forward<Callback>(fn)]()
+						[this, p = this->_mkptr(), host, port, data = std::vector<type>(s, s + count),
+						f = std::forward<Callback>(fn)]()
 					{
-						derive._do_send(host, port, asio::buffer(s, static_cast<std::size_t>(count) * sizeof(CharT)), f);
+						derive._do_send(host, port, asio::buffer(data), f);
 					}));
 					return true;
 				}
@@ -447,9 +465,6 @@ namespace asio2::detail
 		/**
 		 * @function : Asynchronous send data,supporting multi data formats,see asio::buffer(...) in /asio/buffer.hpp
 		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
-		 * Although the data object may be copied as necessary, ownership of the
-		 * underlying memory blocks is retained by the caller, which must guarantee
-		 * that they remain valid until the send operation is called.
 		 * use like this : std::string m; send(std::move(m)); can reducing memory allocation.
 		 * PodType * : send("abc");
 		 * PodType (&data)[N] : double m[10]; send(m);
@@ -478,11 +493,24 @@ namespace asio2::detail
 						std::is_trivially_move_assignable_v<std::remove_cv_t<std::remove_reference_t<T>>> ||
 						std::is_nothrow_move_assignable_v<std::remove_cv_t<std::remove_reference_t<T>>>)
 					{
-						asio::post(this->wio_.strand(), make_allocator(derive.wallocator(),
-							[this, p = this->_mkptr(), endpoint, d = std::forward<T>(data)]()
+						if constexpr (is_string_view_v<T>)
 						{
-							derive._do_send(endpoint, asio::buffer(d));
-						}));
+							using type = typename std::remove_cv_t<std::remove_reference_t<T>>::value_type;
+							asio::post(this->wio_.strand(), make_allocator(derive.wallocator(),
+								[this, p = this->_mkptr(), endpoint,
+								d = std::vector<type>(data.data(), data.data() + data.size())]()
+							{
+								derive._do_send(endpoint, asio::buffer(d));
+							}));
+						}
+						else
+						{
+							asio::post(this->wio_.strand(), make_allocator(derive.wallocator(),
+								[this, p = this->_mkptr(), endpoint, d = std::forward<T>(data)]()
+							{
+								derive._do_send(endpoint, asio::buffer(d));
+							}));
+						}
 					}
 					else
 					{
@@ -505,9 +533,6 @@ namespace asio2::detail
 		/**
 		 * @function : Asynchronous send data
 		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
-		 * Although the data object may be copied as necessary, ownership of the
-		 * underlying memory blocks is retained by the caller, which must guarantee
-		 * that they remain valid until the send operation is called.
 		 * PodType * : send("abc");
 		 * We do not provide synchronous send function,because the synchronous send code is very simple,
 		 * if you want use synchronous send data,you can do it like this (example):
@@ -527,9 +552,6 @@ namespace asio2::detail
 		/**
 		 * @function : Asynchronous send data
 		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
-		 * Although the data object may be copied as necessary, ownership of the
-		 * underlying memory blocks is retained by the caller, which must guarantee
-		 * that they remain valid until the send operation is called.
 		 * PodType (&data)[N] : double m[10]; send(m,5);
 		 * We do not provide synchronous send function,because the synchronous send code is very simple,
 		 * if you want use synchronous send data,you can do it like this (example):
@@ -552,10 +574,11 @@ namespace asio2::detail
 				// Make sure we run on the strand
 				if (!this->wio_.strand().running_in_this_thread())
 				{
+					using type = typename std::remove_cv_t<std::remove_reference_t<CharT>>;
 					asio::post(this->wio_.strand(), make_allocator(derive.wallocator(),
-						[this, p = this->_mkptr(), endpoint, s, count]()
+						[this, p = this->_mkptr(), endpoint, data = std::vector<type>(s, s + count)]()
 					{
-						derive._do_send(endpoint, asio::buffer(s, static_cast<std::size_t>(count) * sizeof(CharT)));
+						derive._do_send(endpoint, asio::buffer(data));
 					}));
 					return true;
 				}
@@ -569,9 +592,6 @@ namespace asio2::detail
 
 		/**
 		 * @function : Asynchronous send data,supporting multi data formats,see asio::buffer(...) in /asio/buffer.hpp
-		 * Although the data object may be copied as necessary, ownership of the
-		 * underlying memory blocks is retained by the caller, which must guarantee
-		 * that they remain valid until the send operation is called.
 		 * use like this : std::string m; send(std::move(m)); can reducing memory allocation.
 		 * the pair.first save the send result error_code,the pair.second save the sent_bytes.
 		 * note : Do not call this function in any listener callback function like this:
@@ -603,12 +623,26 @@ namespace asio2::detail
 						std::is_trivially_move_assignable_v<std::remove_cv_t<std::remove_reference_t<T>>> ||
 						std::is_nothrow_move_assignable_v<std::remove_cv_t<std::remove_reference_t<T>>>)
 					{
-						asio::post(this->wio_.strand(), make_allocator(derive.wallocator(),
-							[this, p = this->_mkptr(), endpoint, d = std::forward<T>(data),
-							pm = std::move(promise)]() mutable
+						if constexpr (is_string_view_v<T>)
 						{
-							derive._do_send(endpoint, asio::buffer(d), pm);
-						}));
+							using type = typename std::remove_cv_t<std::remove_reference_t<T>>::value_type;
+							asio::post(this->wio_.strand(), make_allocator(derive.wallocator(),
+								[this, p = this->_mkptr(), endpoint,
+								d = std::vector<type>(data.data(), data.data() + data.size()),
+								pm = std::move(promise)]() mutable
+							{
+								derive._do_send(endpoint, asio::buffer(d), pm);
+							}));
+						}
+						else
+						{
+							asio::post(this->wio_.strand(), make_allocator(derive.wallocator(),
+								[this, p = this->_mkptr(), endpoint, d = std::forward<T>(data),
+								pm = std::move(promise)]() mutable
+							{
+								derive._do_send(endpoint, asio::buffer(d), pm);
+							}));
+						}
 					}
 					else
 					{
@@ -639,9 +673,6 @@ namespace asio2::detail
 
 		/**
 		 * @function : Asynchronous send data
-		 * Although the data object may be copied as necessary, ownership of the
-		 * underlying memory blocks is retained by the caller, which must guarantee
-		 * that they remain valid until the send operation is called.
 		 * the pair.first save the send result error_code,the pair.second save the sent_bytes.
 		 * note : Do not call this function in any listener callback function like this:
 		 * auto future = send(msg,asio::use_future); future.get(); it will cause deadlock,the future.get() will
@@ -662,9 +693,6 @@ namespace asio2::detail
 
 		/**
 		 * @function : Asynchronous send data
-		 * Although the data object may be copied as necessary, ownership of the
-		 * underlying memory blocks is retained by the caller, which must guarantee
-		 * that they remain valid until the send operation is called.
 		 * the pair.first save the send result error_code,the pair.second save the sent_bytes.
 		 * note : Do not call this function in any listener callback function like this:
 		 * auto future = send(msg,asio::use_future); future.get(); it will cause deadlock,the future.get() will
@@ -690,10 +718,12 @@ namespace asio2::detail
 				// Make sure we run on the strand
 				if (!this->wio_.strand().running_in_this_thread())
 				{
+					using type = typename std::remove_cv_t<std::remove_reference_t<CharT>>;
 					asio::post(this->wio_.strand(), make_allocator(derive.wallocator(),
-						[this, p = this->_mkptr(), endpoint, s, count, pm = std::move(promise)]() mutable
+						[this, p = this->_mkptr(), endpoint, data = std::vector<type>(s, s + count),
+						pm = std::move(promise)]() mutable
 					{
-						derive._do_send(endpoint, asio::buffer(s, static_cast<std::size_t>(count) * sizeof(CharT)), pm);
+						derive._do_send(endpoint, asio::buffer(data), pm);
 					}));
 					return future;
 				}
@@ -716,9 +746,6 @@ namespace asio2::detail
 		/**
 		 * @function : Asynchronous send data,supporting multi data formats,see asio::buffer(...) in /asio/buffer.hpp
 		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
-		 * Although the data object may be copied as necessary, ownership of the
-		 * underlying memory blocks is retained by the caller, which must guarantee
-		 * that they remain valid until the send operation is called.
 		 * use like this : std::string m; send(std::move(m)); can reducing memory allocation.
 		 * PodType * : send("abc");
 		 * PodType (&data)[N] : double m[10]; send(m);
@@ -749,12 +776,26 @@ namespace asio2::detail
 						std::is_trivially_move_assignable_v<std::remove_cv_t<std::remove_reference_t<T>>> ||
 						std::is_nothrow_move_assignable_v<std::remove_cv_t<std::remove_reference_t<T>>>)
 					{
-						asio::post(this->wio_.strand(), make_allocator(derive.wallocator(),
-							[this, p = this->_mkptr(), endpoint, d = std::forward<T>(data),
-							f = std::forward<Callback>(fn)]()
+						if constexpr (is_string_view_v<T>)
 						{
-							derive._do_send(endpoint, asio::buffer(d), f);
-						}));
+							using type = typename std::remove_cv_t<std::remove_reference_t<T>>::value_type;
+							asio::post(this->wio_.strand(), make_allocator(derive.wallocator(),
+								[this, p = this->_mkptr(), endpoint,
+								d = std::vector<type>(data.data(), data.data() + data.size()),
+								f = std::forward<Callback>(fn)]()
+							{
+								derive._do_send(endpoint, asio::buffer(d), f);
+							}));
+						}
+						else
+						{
+							asio::post(this->wio_.strand(), make_allocator(derive.wallocator(),
+								[this, p = this->_mkptr(), endpoint, d = std::forward<T>(data),
+								f = std::forward<Callback>(fn)]()
+							{
+								derive._do_send(endpoint, asio::buffer(d), f);
+							}));
+						}
 					}
 					else
 					{
@@ -778,9 +819,6 @@ namespace asio2::detail
 		/**
 		 * @function : Asynchronous send data
 		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
-		 * Although the data object may be copied as necessary, ownership of the
-		 * underlying memory blocks is retained by the caller, which must guarantee
-		 * that they remain valid until the send operation is called.
 		 * PodType * : send("abc");
 		 * We do not provide synchronous send function,because the synchronous send code is very simple,
 		 * if you want use synchronous send data,you can do it like this (example):
@@ -801,9 +839,6 @@ namespace asio2::detail
 		/**
 		 * @function : Asynchronous send data
 		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
-		 * Although the data object may be copied as necessary, ownership of the
-		 * underlying memory blocks is retained by the caller, which must guarantee
-		 * that they remain valid until the send operation is called.
 		 * PodType (&data)[N] : double m[10]; send(m,5);
 		 * We do not provide synchronous send function,because the synchronous send code is very simple,
 		 * if you want use synchronous send data,you can do it like this (example):
@@ -828,10 +863,12 @@ namespace asio2::detail
 				// Make sure we run on the strand
 				if (!this->wio_.strand().running_in_this_thread())
 				{
+					using type = typename std::remove_cv_t<std::remove_reference_t<CharT>>;
 					asio::post(this->wio_.strand(), make_allocator(derive.wallocator(),
-						[this, p = this->_mkptr(), s, count, f = std::forward<Callback>(fn), endpoint]()
+						[this, p = this->_mkptr(), data = std::vector<type>(s, s + count),
+						f = std::forward<Callback>(fn), endpoint]()
 					{
-						derive._do_send(endpoint, asio::buffer(s, static_cast<std::size_t>(count) * sizeof(CharT)), f);
+						derive._do_send(endpoint, asio::buffer(data), f);
 					}));
 					return true;
 				}

@@ -78,32 +78,18 @@ void run_tcp_server(std::string_view host, std::string_view port)
 
 			printf("recv : %u %.*s\n", (unsigned)s.size(), (int)s.size(), s.data());
 
-			// ##### Important #####
-			// ##Correct (send operation is running in the io.strand thread, the s will be sent directly)
 			session_ptr->send(s, [](std::size_t bytes_sent) {});
 
-			//std::thread([session_ptr, s, str = std::string(s)]()
+			// ##Thread-safe send operation example:
+			//session_ptr->post([session_ptr]()
 			//{
-			//	// ##Wrong   (send operation is not running in the io.strand thread, the s will be sent asynchronous)
-			//	// the content of "s" is invalid.
-			//	//session_ptr->send(s, [](std::size_t bytes_sent) {});
+			//	asio::write(session_ptr->stream(), asio::buffer(std::string("abcdefghijklmn")));
+			//});
 
-			//	// ##Correct (send operation is not running in the io.strand thread, the s will be sent asynchronous)
-			//	// the "str" has hold the content of "s".
-			//	session_ptr->send(str, [](std::size_t bytes_sent) {});
-			//	session_ptr->send(std::move(str), [](std::size_t bytes_sent) {});
-
-			//	// ##Thread-safe send operation example:
-			//	//session_ptr->post([session_ptr]()
-			//	//{
-			//	//	asio::write(session_ptr->stream(), asio::buffer(std::string("abcdefghijklmn")));
-			//	//});
-
-			//	// ##Use this to check whether the send operation is running in current thread.
-			//	//if (session_ptr->io().strand().running_in_this_thread())
-			//	//{
-			//	//}
-			//}).detach();
+			// ##Use this to check whether the send operation is running in current thread.
+			//if (session_ptr->io().strand().running_in_this_thread())
+			//{
+			//}
 
 		}).bind_connect([&server](auto & session_ptr)
 		{
@@ -780,7 +766,7 @@ int main(int argc, char *argv[])
 
 	std::string_view host = "0.0.0.0", port = "8080";
 	//port = argv[1];
-	//run_tcp_server(host, port);
+	run_tcp_server(host, port);
 	//run_udp_server(host, port);
 	//run_http_server(host, port);
 	//run_ws_server(host, port);
@@ -789,7 +775,7 @@ int main(int argc, char *argv[])
 	//run_https_server(host, port);
 	//run_wss_server(host, port);
 	//run_udp_cast(host, port);
-	run_rpc_server(host, port);
+	//run_rpc_server(host, port);
 
 #if defined(WIN32) || defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS_)
 	//system("pause");
