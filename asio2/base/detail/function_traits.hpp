@@ -134,7 +134,7 @@ namespace asio2::detail
 
 	// functor lambda
 	template<typename Callable>
-	struct function_traits<Callable, std::void_t<decltype(&Callable::operator(), char())>> : function_traits<decltype(&Callable::operator())> {};
+	struct function_traits<Callable, std::void_t<decltype(&Callable::operator()), char>> : function_traits<decltype(&Callable::operator())> {};
 
 	// std::function
 	template <typename Ret, typename... Args>

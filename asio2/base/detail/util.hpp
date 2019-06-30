@@ -184,14 +184,9 @@ namespace asio2::detail
 	struct is_string_view : std::false_type {};
 
 	template<typename T>
-	struct is_string_view<T, std::void_t<
-		decltype(
-			typename T::value_type(),
-			typename T::traits_type(),
-			std::enable_if<std::is_same_v<T,
-			std::basic_string_view<typename T::value_type, typename T::traits_type>>>::type(),
-			char()
-			)>> : std::true_type{};
+	struct is_string_view<T, std::void_t<typename T::value_type, typename T::traits_type,
+		typename std::enable_if_t<std::is_same_v<T,
+		std::basic_string_view<typename T::value_type, typename T::traits_type>>>>> : std::true_type {};
 
 	template<class T>
 	constexpr bool is_string_view_v = is_string_view<std::remove_cv_t<std::remove_reference_t<T>>>::value;

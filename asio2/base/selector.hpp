@@ -45,15 +45,15 @@
 
 namespace asio2
 {
-	namespace http = ::boost::beast::http;
-	namespace websocket = ::boost::beast::websocket;
-
 #ifdef ASIO_STANDALONE
 	using error_code = ::asio::error_code;
 	using system_error = ::asio::system_error;
 #else
 	using error_code = ::boost::system::error_code;
 	using system_error = ::boost::system::system_error;
+
+	namespace http = ::boost::beast::http;
+	namespace websocket = ::boost::beast::websocket;
 #endif // ASIO_STANDALONE
 }
 

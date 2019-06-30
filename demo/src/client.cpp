@@ -35,23 +35,23 @@ public:
 	}
 };
 
-struct info
-{
-	int id;
-	char name[20];
-	int8_t age;
-};
-
-#ifdef ASIO_STANDALONE
-namespace asio {
-#else
-namespace boost::asio {
-#endif
-	inline asio::const_buffer buffer(const info& u) noexcept
-	{
-		return asio::const_buffer(&u, sizeof(info));
-	}
-} // namespace asio
+//struct info
+//{
+//	int id;
+//	char name[20];
+//	int8_t age;
+//};
+//
+//#ifdef ASIO_STANDALONE
+//namespace asio {
+//#else
+//namespace boost::asio {
+//#endif
+//	inline asio::const_buffer buffer(const info& u) noexcept
+//	{
+//		return asio::const_buffer(&u, sizeof(info));
+//	}
+//} // namespace asio
 
 void run_tcp_client(std::string_view host, std::string_view port)
 {
@@ -104,9 +104,9 @@ void run_tcp_client(std::string_view host, std::string_view port)
 				client.send(narys, [](std::size_t bytes) {});
 				client.send(narys, asio::use_future);
 
-				// ##Example how to send a struct directly:
-				info u;
-				client.send(u);
+				//// ##Example how to send a struct directly:
+				//info u;
+				//client.send(u);
 
 				// ##Thread-safe send operation example:
 				client.post([&client]()
@@ -185,8 +185,6 @@ void run_tcp_client(std::string_view host, std::string_view port)
 				client.send(narys, []() {});
 				client.send(narys, [](std::size_t bytes) {});
 				client.send(narys, asio::use_future);
-				info u;
-				client.send(u);
 			}
 		}
 
