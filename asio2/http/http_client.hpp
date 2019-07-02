@@ -209,6 +209,9 @@ namespace asio2::detail
 			http::response<Body, Fields> rep;
 			try
 			{
+				// set default result to unknown
+				rep.result(http::status::unknown);
+
 				// First assign default value timed_out to ec
 				ec = asio::error::timed_out;
 

@@ -977,15 +977,15 @@ http_should_keep_alive (const http_parser *parser)
 static enum state
 parse_url_char(enum state s, const char ch)
 {
-  if (ch == ' ' || ch == '\r' || ch == '\n') {
-    return s_dead;
-  }
-
-#if HTTP_PARSER_STRICT
-  if (ch == '\t' || ch == '\f') {
-    return s_dead;
-  }
-#endif
+//  if (ch == ' ' || ch == '\r' || ch == '\n') {
+//    return s_dead;
+//  }
+//
+//#if HTTP_PARSER_STRICT
+//  if (ch == '\t' || ch == '\f') {
+//    return s_dead;
+//  }
+//#endif
 
   switch (s) {
     case s_req_spaces_before_url:

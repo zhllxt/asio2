@@ -206,8 +206,8 @@ namespace boost::beast::http
 			{
 				ec.clear();
 
-				// If a space or \r\n character is found, it is not a URL
-				if (uri.find(' ') != std::string_view::npos || uri.find("\r\n") != std::string_view::npos)
+				// If a \r\n string is found, it is not a URL
+				if (uri.find("\r\n") != std::string_view::npos)
 				{
 					request_parser<Body> parser;
 					parser.eager(true);

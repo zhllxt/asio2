@@ -15,18 +15,42 @@
 
 #include <cstring>
 #include <cctype>
-#include <locale>
 #include <cstdarg>
+#include <clocale>
+#include <climits>
+#include <cstddef>
+#include <cstdint>
+#include <cstdlib>
 
 #include <memory>
 #include <string>
+#include <locale>
 #include <string_view>
 #include <vector>
 #include <mutex>
 #include <shared_mutex>
 #include <fstream>
 #include <sstream>
+#include <type_traits>
 #include <system_error>
+#include <limits>
+#include <algorithm>
+#include <tuple>
+
+#if defined(__unix__) || defined(__linux__)
+	#include <unistd.h>
+	#include <sys/types.h>
+	#include <sys/stat.h>
+	#include <dirent.h>
+#elif defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS_) || defined(WIN32)
+	#ifndef WIN32_LEAN_AND_MEAN
+		#define WIN32_LEAN_AND_MEAN
+	#endif
+	#include <Windows.h>
+	#include <tchar.h>
+	#include <io.h>
+	#include <direct.h>
+#endif
 
 /*
  * mutex:
@@ -35,7 +59,6 @@
 
 namespace asio2
 {
-
 	template<class T>
 	struct convert;
 
@@ -152,11 +175,48 @@ namespace asio2
 		inline static std::basic_string_view<CharT, Traits> stov(Args&&... args)
 		{ return std::basic_string_view<CharT, Traits>(std::forward<Args>(args)...); }
 	};
-
 }
 
 namespace asio2
 {
+	namespace detail
+	{
+		template<typename, typename = void>
+		struct is_fstream : std::false_type {};
+
+		template<typename T>
+		struct is_fstream<T, std::void_t<typename T::char_type, typename T::traits_type,
+			typename std::enable_if_t<std::is_same_v<T,
+			std::basic_fstream<typename T::char_type, typename T::traits_type>>>>> : std::true_type {};
+
+		template<class T>
+		inline constexpr bool is_fstream_v = is_fstream<std::remove_cv_t<std::remove_reference_t<T>>>::value;
+
+		template<typename, typename = void>
+		struct is_ifstream : std::false_type {};
+
+		template<typename T>
+		struct is_ifstream<T, std::void_t<typename T::char_type, typename T::traits_type,
+			typename std::enable_if_t<std::is_same_v<T,
+			std::basic_ifstream<typename T::char_type, typename T::traits_type>>>>> : std::true_type {};
+
+		template<class T>
+		inline constexpr bool is_ifstream_v = is_ifstream<std::remove_cv_t<std::remove_reference_t<T>>>::value;
+
+		template<typename, typename = void>
+		struct is_ofstream : std::false_type {};
+
+		template<typename T>
+		struct is_ofstream<T, std::void_t<typename T::char_type, typename T::traits_type,
+			typename std::enable_if_t<std::is_same_v<T,
+			std::basic_ofstream<typename T::char_type, typename T::traits_type>>>>> : std::true_type {};
+
+		template<class T>
+		inline constexpr bool is_ofstream_v = is_ofstream<std::remove_cv_t<std::remove_reference_t<T>>>::value;
+
+		template<class T>
+		inline constexpr bool is_file_stream_v = is_fstream_v<T> || is_ifstream_v<T> || is_ofstream_v<T>;
+	}
 
 	/**
 	 * ini operator class
@@ -177,6 +237,48 @@ namespace asio2
 #elif defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS_) || defined(WIN32)
 			this->endl_ = { '\r','\n' };
 #	endif
+
+			if constexpr (sizeof...(Args) == 0 && detail::is_file_stream_v<Stream>)
+			{
+#if defined(__unix__) || defined(__linux__)
+				std::string filepath(PATH_MAX, '\0');
+				readlink("/proc/self/exe", (char *)filepath.data(), PATH_MAX);
+#elif defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS_) || defined(WIN32)
+				std::string filepath(MAX_PATH, '\0');
+				filepath.resize(::GetModuleFileNameA(NULL, (LPSTR)filepath.data(), MAX_PATH));
+#endif
+				typename std::string::size_type pos = filepath.rfind('.');
+				if (pos != std::string::npos)
+				{
+					filepath.erase(pos);
+				}
+
+				filepath += ".ini";
+
+				if constexpr /**/ (detail::is_fstream_v<Stream>)
+				{
+					Stream f(filepath, std::ios_base::in | std::ios_base::out | std::ios_base::binary);
+					Stream::swap(f);
+				}
+				else if constexpr (detail::is_ifstream_v<Stream>)
+				{
+					Stream f(filepath, std::ios_base::in | std::ios_base::binary);
+					Stream::swap(f);
+				}
+				else if constexpr (detail::is_ofstream_v<Stream>)
+				{
+					Stream f(filepath, std::ios_base::out | std::ios_base::binary);
+					Stream::swap(f);
+				}
+				else
+				{
+					std::ignore = true;
+				}
+			}
+			else
+			{
+				std::ignore = true;
+			}
 		}
 
 	protected:
@@ -618,7 +720,6 @@ namespace asio2
 
 		std::basic_string<char_type> endl_;
 	};
-
 }
 
 #endif // !__ASIO2_INI_HPP__
