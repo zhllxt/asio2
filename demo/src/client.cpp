@@ -342,7 +342,7 @@ void run_http_client(std::string_view host, std::string_view port)
 	//if (ec) std::cout << ec.message() << std::endl;
 	//std::cout << rep3 << std::endl;
 
-	auto rep = asio2::http_client::execute(host, port, "/api/get_user?name=zhl");
+	auto rep = asio2::http_client::execute(host, port, "/api/get_user?name=zhl", ec);
 	std::cout << rep << std::endl << "--------------------\n";
 
 	std::string en = http::url_encode("http://www.baidu.com/get_user?name=zhl");
@@ -904,10 +904,10 @@ int main(int argc, char *argv[])
 	std::string_view host = "127.0.0.1", port = "8080";
 	//std::string_view host = "192.168.1.146", port = "8080"; 
 	//port = argv[1];
-	run_tcp_client(host, port);
+	//run_tcp_client(host, port);
 	//run_tcp_client_group(host, port);
 	//run_udp_client(host, port);
-	//run_http_client(host, port);
+	run_http_client(host, port);
 	//run_ws_client(host, port);
 	//run_tcps_client(host, port);
 	//run_https_client(host, port);
