@@ -48,7 +48,6 @@
 
 namespace asio2
 {
-
 	/**
 	 * thread pool interface, this pool is multi thread safed.
 	 */
@@ -112,12 +111,14 @@ namespace asio2
 		}
 
 		/**
-		 * @function : put a task into the thread pool,the task can be 
-		 * global function,static function,lambda function,member function
+		 * @function : post a function object into the thread pool, then return immediately,
+		 * the function object will never be executed inside this function. Instead, it will
+		 * be executed asynchronously in the thread pool.
+		 * @param : fun - global function,static function,lambda,member function,std::function
 		 * @return : std::future<...>
 		 */
 		template<class Fun, class... Args>
-		auto put(Fun&& fun, Args&&... args) -> std::future<std::invoke_result_t<Fun, Args...>>
+		auto post(Fun&& fun, Args&&... args) -> std::future<std::invoke_result_t<Fun, Args...>>
 		{
 			using return_type = std::invoke_result_t<Fun, Args...>;
 
@@ -129,9 +130,9 @@ namespace asio2
 			{
 				std::unique_lock<std::mutex> lock(this->mtx_);
 
-				// don't allow put after stopping the pool
+				// don't allow post after stopping the pool
 				if (this->stop_)
-					throw std::runtime_error("put a task into thread pool but the pool is stopped");
+					throw std::runtime_error("post a task into thread pool but the pool is stopped");
 
 				this->tasks_.emplace(std::move(task));
 			}
@@ -176,168 +177,8 @@ namespace asio2
 		std::condition_variable cv_;
 
 		// flag indicate the pool is stoped
-		volatile bool stop_ = false;
+		bool stop_ = false;
 	};
-
-
-	/**
-	 * ordered thread pool interface, this pool is multi thread safed.
-	 * when you put a task into the thread pool, you can specify which
-	 * thread to execute the task by thread index.
-	 */
-	class ordered_thread_pool
-	{
-	public:
-		/**
-		 * @constructor
-		 */
-		explicit ordered_thread_pool(std::size_t thread_count = std::thread::hardware_concurrency())
-		{
-			if (thread_count < 1)
-				thread_count = 1;
-
-			this->workers_.reserve(thread_count);
-
-			this->mtx_ = std::vector<std::mutex>(thread_count);
-			this->cv_ = std::vector<std::condition_variable>(thread_count);
-			this->tasks_ = std::vector<std::queue<std::packaged_task<void()>>>(thread_count);
-
-			for (std::size_t i = 0; i < thread_count; ++i)
-			{
-				// emplace_back can use the parameters to construct the std::thread object automictly
-				// use lambda function as the thread proc function,lambda can has no parameters list
-				this->workers_.emplace_back([this, i]
-				{
-					auto & mtx = this->mtx_[i];
-					auto & cv  = this->cv_[i];
-					auto & que = this->tasks_[i];
-
-					for (;;)
-					{
-						std::packaged_task<void()> task;
-
-						{
-							std::unique_lock<std::mutex> lock(mtx);
-							cv.wait(lock, [this, &que] { return (this->stop_ || !que.empty()); });
-
-							if (this->stop_ && que.empty())
-								return;
-
-							task = std::move(que.front());
-							que.pop();
-						}
-
-						task();
-					}
-				});
-			}
-		}
-
-		/**
-		 * @destructor
-		 */
-		~ordered_thread_pool()
-		{
-			{
-				for (auto & mtx : this->mtx_)
-					mtx.lock();
-				this->stop_ = true;
-				for (auto & mtx : this->mtx_)
-					mtx.unlock();
-			}
-
-			for (auto & cv : this->cv_)
-				cv.notify_all();
-
-			for (auto & worker : this->workers_)
-			{
-				if (worker.joinable())
-					worker.join();
-			}
-		}
-
-		/**
-		 * @function : put a task into the thread pool,the task can be
-		 * global function,static function,lambda function,member function
-		 * @param : thread_index - if thread_index is large than pool size,the thread_index will be equal to thread_index % pool_size
-		 * @return : std::future<...>
-		 */
-		template<class Fun, class... Args>
-		auto put(std::size_t thread_index, Fun&& fun, Args&&... args) -> std::future<std::invoke_result_t<Fun, Args...>>
-		{
-			thread_index %= this->workers_.size();
-
-			using return_type = std::invoke_result_t<Fun, Args...>;
-
-			std::packaged_task<return_type()> task(
-				std::bind(std::forward<Fun>(fun), std::forward<Args>(args)...));
-
-			std::future<return_type> future = task.get_future();
-
-			{
-				std::unique_lock<std::mutex> lock(this->mtx_[thread_index]);
-
-				// don't allow put after stopping the pool
-				if (this->stop_)
-					throw std::runtime_error("put a task into thread pool but the pool is stopped");
-
-				this->tasks_[thread_index].emplace(std::move(task));
-			}
-
-			this->cv_[thread_index].notify_one();
-
-			return future;
-		}
-
-		/**
-		 * @function : get thread count of the thread pool
-		 */
-		inline std::size_t pool_size()
-		{
-			return this->workers_.size();
-		}
-
-		/**
-		 * @function : get remain task size
-		 */
-		inline std::size_t task_size(std::size_t thread_index = -1)
-		{
-			std::size_t size = 0;
-			if (thread_index >= this->workers_.size())
-			{			
-				for (auto & que : this->tasks_)
-					size += que.size();
-			}
-			else
-			{
-				size = this->tasks_[thread_index].size();
-			}
-			return size;
-		}
-
-	private:
-		/// no copy construct function
-		ordered_thread_pool(const ordered_thread_pool&) = delete;
-
-		/// no operator equal function
-		ordered_thread_pool& operator=(const ordered_thread_pool&) = delete;
-
-	protected:
-		// need to keep track of threads so we can join them
-		std::vector<std::thread> workers_;
-
-		// the task queue
-		std::vector<std::queue<std::packaged_task<void()>>> tasks_;
-
-		// synchronization
-		std::vector<std::mutex> mtx_;
-		std::vector<std::condition_variable> cv_;
-
-		// flag indicate the pool is stoped
-		volatile bool stop_ = false;
-	};
-
-
 }
 
 #endif // !__ASIO2_THREAD_POOL_HPP__

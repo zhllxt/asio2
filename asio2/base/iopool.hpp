@@ -249,7 +249,7 @@ namespace asio2::detail
 		std::mutex  mutex_;
 
 		/// 
-		volatile bool stopped_ = true;
+		bool stopped_ = true;
 
 		/// The next io_context to use for a connection. 
 		std::size_t next_ = 0;
