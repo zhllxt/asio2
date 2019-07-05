@@ -111,6 +111,13 @@ namespace asio2::detail
 			return false;
 		}
 
+		template<class T, class IntegerT>
+		inline typename std::enable_if_t<std::is_integral_v<std::remove_cv_t<std::remove_reference_t<IntegerT>>>, bool>
+			send(const std::string& host, IntegerT port, T&& data)
+		{
+			return this->send(host, std::to_string(port), std::forward<T>(data));
+		}
+
 		/**
 		 * @function : Asynchronous send data
 		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
@@ -128,6 +135,17 @@ namespace asio2::detail
 			send(const std::string& host, const std::string& port, CharT * s)
 		{
 			return this->send(host, port, s, s ? Traits::length(s) : 0);
+		}
+
+		template<class IntegerT, class CharT, class Traits = std::char_traits<CharT>>
+		inline typename std::enable_if_t<std::is_integral_v<std::remove_cv_t<std::remove_reference_t<IntegerT>>> && (
+			std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, char> ||
+			std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, wchar_t> ||
+			std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, char16_t> ||
+			std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, char32_t>), bool>
+			send(const std::string& host, IntegerT port, CharT * s)
+		{
+			return this->send(host, std::to_string(port), s, s ? Traits::length(s) : 0);
 		}
 
 		/**
@@ -169,6 +187,14 @@ namespace asio2::detail
 			catch (system_error & e) { set_last_error(e); }
 			catch (std::exception &) { set_last_error(asio::error::eof); }
 			return false;
+		}
+
+		template<class CharT, class SizeT, class IntegerT>
+		inline typename std::enable_if_t<std::is_integral_v<std::remove_cv_t<std::remove_reference_t<SizeT>>> &&
+			std::is_integral_v<std::remove_cv_t<std::remove_reference_t<IntegerT>>>, bool>
+			send(const std::string& host, IntegerT port, CharT * s, SizeT count)
+		{
+			return this->send(host, std::to_string(port), s, count);
 		}
 
 		/**
@@ -252,6 +278,14 @@ namespace asio2::detail
 			return future;
 		}
 
+		template<class T, class IntegerT>
+		inline typename std::enable_if_t<std::is_integral_v<std::remove_cv_t<std::remove_reference_t<IntegerT>>>,
+			std::future<std::pair<error_code, std::size_t>>>
+			send(const std::string& host, IntegerT port, T&& data, asio::use_future_t<> flag)
+		{
+			return this->send(host, std::to_string(port), std::forward<T>(data), std::move(flag));
+		}
+
 		/**
 		 * @function : Asynchronous send data
 		 * the pair.first save the send result error_code,the pair.second save the sent_bytes.
@@ -270,6 +304,18 @@ namespace asio2::detail
 			send(const std::string& host, const std::string& port, CharT * s, asio::use_future_t<> flag)
 		{
 			return this->send(host, port, s, s ? Traits::length(s) : 0, std::move(flag));
+		}
+
+		template<class IntegerT, class CharT, class Traits = std::char_traits<CharT>>
+		inline typename std::enable_if_t<std::is_integral_v<std::remove_cv_t<std::remove_reference_t<IntegerT>>> && (
+			std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, char> ||
+			std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, wchar_t> ||
+			std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, char16_t> ||
+			std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, char32_t>),
+			std::future<std::pair<error_code, std::size_t>>>
+			send(const std::string& host, IntegerT port, CharT * s, asio::use_future_t<> flag)
+		{
+			return this->send(host, std::to_string(port), s, s ? Traits::length(s) : 0, std::move(flag));
 		}
 
 		/**
@@ -322,6 +368,15 @@ namespace asio2::detail
 				promise.set_value(std::pair<error_code, std::size_t>(asio::error::eof, 0));
 			}
 			return future;
+		}
+
+		template<class CharT, class SizeT, class IntegerT>
+		inline typename std::enable_if_t<std::is_integral_v<std::remove_cv_t<std::remove_reference_t<SizeT>>> &&
+			std::is_integral_v<std::remove_cv_t<std::remove_reference_t<IntegerT>>>,
+			std::future<std::pair<error_code, std::size_t>>>
+			send(const std::string& host, IntegerT port, CharT * s, SizeT count, asio::use_future_t<> flag)
+		{
+			return this->send(host, std::to_string(port), s, count, std::move(flag));
 		}
 
 		/**
@@ -397,6 +452,14 @@ namespace asio2::detail
 			return false;
 		}
 
+		template<class T, class Callback, class IntegerT>
+		inline typename std::enable_if_t<is_callable_v<Callback> &&
+			std::is_integral_v<std::remove_cv_t<std::remove_reference_t<IntegerT>>>, bool>
+			send(const std::string& host, IntegerT port, T&& data, Callback&& fn)
+		{
+			return this->send(host, std::to_string(port), std::forward<T>(data), std::forward<Callback>(fn));
+		}
+
 		/**
 		 * @function : Asynchronous send data
 		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
@@ -415,6 +478,18 @@ namespace asio2::detail
 			send(const std::string& host, const std::string& port, CharT * s, Callback&& fn)
 		{
 			return this->send(host, port, s, s ? Traits::length(s) : 0, std::forward<Callback>(fn));
+		}
+
+		template<class Callback, class IntegerT, class CharT, class Traits = std::char_traits<CharT>>
+		inline typename std::enable_if_t<is_callable_v<Callback> &&
+			std::is_integral_v<std::remove_cv_t<std::remove_reference_t<IntegerT>>> && (
+				std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, char> ||
+				std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, wchar_t> ||
+				std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, char16_t> ||
+				std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, char32_t>), bool>
+			send(const std::string& host, IntegerT port, CharT * s, Callback&& fn)
+		{
+			return this->send(host, std::to_string(port), s, s ? Traits::length(s) : 0, std::forward<Callback>(fn));
 		}
 
 		/**
@@ -459,6 +534,15 @@ namespace asio2::detail
 			catch (system_error & e) { set_last_error(e); }
 			catch (std::exception &) { set_last_error(asio::error::eof); }
 			return false;
+		}
+
+		template<class Callback, class IntegerT, class CharT, class SizeT>
+		inline typename std::enable_if_t<is_callable_v<Callback> &&
+			std::is_integral_v<std::remove_cv_t<std::remove_reference_t<SizeT>>> &&
+			std::is_integral_v<std::remove_cv_t<std::remove_reference_t<IntegerT>>>, bool>
+			send(const std::string& host, IntegerT port, CharT * s, SizeT count, Callback&& fn)
+		{
+			return this->send(host, std::to_string(port), s, count, std::forward<Callback>(fn));
 		}
 
 	public:
