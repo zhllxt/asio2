@@ -149,6 +149,9 @@ namespace asio2::detail
 
 			// destroy user data, maybe the user data is self shared_ptr, if don't destroy it, will cause loop refrence.
 			this->user_data_.reset();
+
+			// destroy the counter
+			this->counter_ptr_.reset();
 		}
 
 		/**

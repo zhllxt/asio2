@@ -26,9 +26,7 @@ namespace boost::beast::http
 {
 	namespace
 	{
-		#if defined(__GNUC__) || defined(__GNUG__)
-			__attribute__((unused))
-		#endif
+		template<typename = void>
 		std::string_view mimetype_to_extension(std::string_view mime_type)
 		{
 			static std::unordered_map<std::string_view, std::string_view> mime_map =
@@ -744,9 +742,7 @@ namespace boost::beast::http
 			//return { "application/text" };
 		}
 
-		#if defined(__GNUC__) || defined(__GNUG__)
-			__attribute__((unused))
-		#endif
+		template<typename = void>
 		std::string_view extension_to_mimetype(std::string_view extension)
 		{
 			static std::unordered_map<std::string_view, std::string_view> extension_map =

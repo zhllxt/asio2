@@ -364,6 +364,7 @@ constexpr static IUINT32 IKCP_PROBE_LIMIT = 120000;	// up to 120 secs to probe w
 //---------------------------------------------------------------------
 
 /* encode 8 bits unsigned int */
+template<typename = void>
 static inline char *ikcp_encode8u(char *p, unsigned char c)
 {
 	*(unsigned char*)p++ = c;
@@ -371,6 +372,7 @@ static inline char *ikcp_encode8u(char *p, unsigned char c)
 }
 
 /* decode 8 bits unsigned int */
+template<typename = void>
 static inline const char *ikcp_decode8u(const char *p, unsigned char *c)
 {
 	*c = *(unsigned char*)p++;
@@ -378,6 +380,7 @@ static inline const char *ikcp_decode8u(const char *p, unsigned char *c)
 }
 
 /* encode 16 bits unsigned int (lsb) */
+template<typename = void>
 static inline char *ikcp_encode16u(char *p, unsigned short w)
 {
 #if IWORDS_BIG_ENDIAN
@@ -391,6 +394,7 @@ static inline char *ikcp_encode16u(char *p, unsigned short w)
 }
 
 /* decode 16 bits unsigned int (lsb) */
+template<typename = void>
 static inline const char *ikcp_decode16u(const char *p, unsigned short *w)
 {
 #if IWORDS_BIG_ENDIAN
@@ -404,6 +408,7 @@ static inline const char *ikcp_decode16u(const char *p, unsigned short *w)
 }
 
 /* encode 32 bits unsigned int (lsb) */
+template<typename = void>
 static inline char *ikcp_encode32u(char *p, IUINT32 l)
 {
 #if IWORDS_BIG_ENDIAN
@@ -419,6 +424,7 @@ static inline char *ikcp_encode32u(char *p, IUINT32 l)
 }
 
 /* encode 64 bits unsigned int (lsb) */
+template<typename = void>
 static inline char *ikcp_encode64u(char *p, std::uint64_t l)
 {
 #if IWORDS_BIG_ENDIAN
@@ -438,6 +444,7 @@ static inline char *ikcp_encode64u(char *p, std::uint64_t l)
 }
 
 /* decode 32 bits unsigned int (lsb) */
+template<typename = void>
 static inline const char *ikcp_decode32u(const char *p, IUINT32 *l)
 {
 #if IWORDS_BIG_ENDIAN
@@ -453,6 +460,7 @@ static inline const char *ikcp_decode32u(const char *p, IUINT32 *l)
 }
 
 /* decode 64 bits unsigned int (lsb) */
+template<typename = void>
 static inline const char *ikcp_decode64u(const char *p, std::uint64_t *l)
 {
 #if IWORDS_BIG_ENDIAN
@@ -471,19 +479,23 @@ static inline const char *ikcp_decode64u(const char *p, std::uint64_t *l)
 	return p;
 }
 
+template<typename = void>
 static inline IUINT32 _imin_(IUINT32 a, IUINT32 b) {
 	return a <= b ? a : b;
 }
 
+template<typename = void>
 static inline IUINT32 _imax_(IUINT32 a, IUINT32 b) {
 	return a >= b ? a : b;
 }
 
+template<typename = void>
 static inline IUINT32 _ibound_(IUINT32 lower, IUINT32 middle, IUINT32 upper) 
 {
 	return _imin_(_imax_(lower, middle), upper);
 }
 
+template<typename = void>
 static inline long _itimediff(IUINT32 later, IUINT32 earlier) 
 {
 	return ((IINT32)(later - earlier));
@@ -498,6 +510,7 @@ static void* (*ikcp_malloc_hook)(size_t) = NULL;
 static void (*ikcp_free_hook)(void *) = NULL;
 
 // internal malloc
+template<typename = void>
 static inline void* ikcp_malloc(size_t size) {
 	if (ikcp_malloc_hook) 
 		return ikcp_malloc_hook(size);
@@ -505,6 +518,7 @@ static inline void* ikcp_malloc(size_t size) {
 }
 
 // internal free
+template<typename = void>
 static inline void ikcp_free(void *ptr) {
 	if (ikcp_free_hook) {
 		ikcp_free_hook(ptr);
@@ -513,6 +527,7 @@ static inline void ikcp_free(void *ptr) {
 	}
 }
 
+template<typename = void>
 inline void ikcp_log(ikcpcb *kcp, int mask, const char *fmt, ...)
 {
 	char buffer[1024];
@@ -525,6 +540,7 @@ inline void ikcp_log(ikcpcb *kcp, int mask, const char *fmt, ...)
 }
 
 // setup allocator
+template<typename = void>
 inline void ikcp_allocator(void* (*new_malloc)(size_t), void (*new_free)(void*))
 {
 	ikcp_malloc_hook = new_malloc;
@@ -534,6 +550,7 @@ inline void ikcp_allocator(void* (*new_malloc)(size_t), void (*new_free)(void*))
 //---------------------------------------------------------------------
 // ikcp_encode_seg
 //---------------------------------------------------------------------
+template<typename = void>
 static inline char *ikcp_encode_seg(char *ptr, const IKCPSEG *seg)
 {
 	ptr = ikcp_encode32u(ptr, seg->conv);
@@ -547,6 +564,7 @@ static inline char *ikcp_encode_seg(char *ptr, const IKCPSEG *seg)
 	return ptr;
 }
 
+template<typename = void>
 static inline int ikcp_wnd_unused(const ikcpcb *kcp)
 {
 	if (kcp->nrcv_que < kcp->rcv_wnd) {
@@ -558,6 +576,7 @@ static inline int ikcp_wnd_unused(const ikcpcb *kcp)
 //---------------------------------------------------------------------
 // ack append
 //---------------------------------------------------------------------
+template<typename = void>
 static inline void ikcp_ack_push(ikcpcb *kcp, IUINT32 sn, IUINT32 ts)
 {
 	size_t newsize = kcp->ackcount + 1;
@@ -594,6 +613,7 @@ static inline void ikcp_ack_push(ikcpcb *kcp, IUINT32 sn, IUINT32 ts)
 	kcp->ackcount++;
 }
 
+template<typename = void>
 static inline void ikcp_ack_get(const ikcpcb *kcp, int p, IUINT32 *sn, IUINT32 *ts)
 {
 	if (sn) sn[0] = kcp->acklist[p * 2 + 0];
@@ -601,6 +621,7 @@ static inline void ikcp_ack_get(const ikcpcb *kcp, int p, IUINT32 *sn, IUINT32 *
 }
 
 // check log mask
+template<typename = void>
 static inline int ikcp_canlog(const ikcpcb *kcp, int mask)
 {
 	if ((mask & kcp->logmask) == 0 || kcp->writelog == NULL) return 0;
@@ -608,6 +629,7 @@ static inline int ikcp_canlog(const ikcpcb *kcp, int mask)
 }
 
 // output segment
+template<typename = void>
 static inline int ikcp_output(ikcpcb *kcp, const void *data, int size)
 {
 	assert(kcp);
@@ -620,6 +642,7 @@ static inline int ikcp_output(ikcpcb *kcp, const void *data, int size)
 }
 
 // output queue
+template<typename = void>
 inline void ikcp_qprint(const char *name, const struct IQUEUEHEAD *head)
 {
 #if 0
@@ -635,12 +658,14 @@ inline void ikcp_qprint(const char *name, const struct IQUEUEHEAD *head)
 }
 
 // allocate a new kcp segment
+template<typename = void>
 static inline IKCPSEG* ikcp_segment_new(ikcpcb *kcp, int size)
 {
 	return (IKCPSEG*)ikcp_malloc(sizeof(IKCPSEG) + size);
 }
 
 // delete a segment
+template<typename = void>
 static inline void ikcp_segment_delete(ikcpcb *kcp, IKCPSEG *seg)
 {
 	ikcp_free(seg);
@@ -649,6 +674,7 @@ static inline void ikcp_segment_delete(ikcpcb *kcp, IKCPSEG *seg)
 //---------------------------------------------------------------------
 // parse ack
 //---------------------------------------------------------------------
+template<typename = void>
 static inline void ikcp_update_ack(ikcpcb *kcp, IINT32 rtt)
 {
 	IINT32 rto = 0;
@@ -666,6 +692,7 @@ static inline void ikcp_update_ack(ikcpcb *kcp, IINT32 rtt)
 	kcp->rx_rto = _ibound_(kcp->rx_minrto, rto, IKCP_RTO_MAX);
 }
 
+template<typename = void>
 static inline void ikcp_shrink_buf(ikcpcb *kcp)
 {
 	struct IQUEUEHEAD *p = kcp->snd_buf.next;
@@ -677,6 +704,7 @@ static inline void ikcp_shrink_buf(ikcpcb *kcp)
 	}
 }
 
+template<typename = void>
 static inline void ikcp_parse_ack(ikcpcb *kcp, IUINT32 sn)
 {
 	struct IQUEUEHEAD *p, *next;
@@ -699,6 +727,7 @@ static inline void ikcp_parse_ack(ikcpcb *kcp, IUINT32 sn)
 	}
 }
 
+template<typename = void>
 static inline void ikcp_parse_una(ikcpcb *kcp, IUINT32 una)
 {
 	struct IQUEUEHEAD *p, *next;
@@ -715,6 +744,7 @@ static inline void ikcp_parse_una(ikcpcb *kcp, IUINT32 una)
 	}
 }
 
+template<typename = void>
 static inline void ikcp_parse_fastack(ikcpcb *kcp, IUINT32 sn)
 {
 	struct IQUEUEHEAD *p, *next;
@@ -735,6 +765,7 @@ static inline void ikcp_parse_fastack(ikcpcb *kcp, IUINT32 sn)
 }
 
 // check the size of next message in the recv queue
+template<typename = void>
 inline int ikcp_peeksize(const ikcpcb *kcp)
 {
 	struct IQUEUEHEAD *p;
@@ -760,6 +791,7 @@ inline int ikcp_peeksize(const ikcpcb *kcp)
 }
 
 // change MTU size, default is 1400
+template<typename = void>
 inline int ikcp_setmtu(ikcpcb *kcp, int mtu)
 {
 	char *buffer;
@@ -776,6 +808,7 @@ inline int ikcp_setmtu(ikcpcb *kcp, int mtu)
 }
 
 // set maximum window size: sndwnd=32, rcvwnd=32 by default
+template<typename = void>
 inline int ikcp_wndsize(ikcpcb *kcp, int sndwnd, int rcvwnd)
 {
 	if (kcp) {
@@ -790,11 +823,13 @@ inline int ikcp_wndsize(ikcpcb *kcp, int sndwnd, int rcvwnd)
 }
 
 // get how many packet is waiting to be sent
+template<typename = void>
 inline int ikcp_waitsnd(const ikcpcb *kcp)
 {
 	return kcp->nsnd_buf + kcp->nsnd_que;
 }
 
+template<typename = void>
 inline int ikcp_interval(ikcpcb *kcp, int interval)
 {
 	if (interval > 5000) interval = 5000;
@@ -808,6 +843,7 @@ inline int ikcp_interval(ikcpcb *kcp, int interval)
 // interval: internal update timer interval in millisec, default is 100ms 
 // resend: 0:disable fast resend(default), 1:enable fast resend
 // nc: 0:normal congestion control(default), 1:disable congestion control
+template<typename = void>
 inline int ikcp_nodelay(ikcpcb *kcp, int nodelay, int interval, int resend, int nc)
 {
 	if (nodelay >= 0) {
@@ -834,6 +870,7 @@ inline int ikcp_nodelay(ikcpcb *kcp, int nodelay, int interval, int resend, int 
 }
 
 // read conv
+template<typename = void>
 inline IUINT32 ikcp_getconv(const void *ptr)
 {
 	IUINT32 conv;
@@ -844,6 +881,7 @@ inline IUINT32 ikcp_getconv(const void *ptr)
 //---------------------------------------------------------------------
 // parse data
 //---------------------------------------------------------------------
+template<typename = void>
 void ikcp_parse_data(ikcpcb *kcp, IKCPSEG *newseg)
 {
 	struct IQUEUEHEAD *p, *prev;
@@ -910,6 +948,7 @@ void ikcp_parse_data(ikcpcb *kcp, IKCPSEG *newseg)
 // create a new kcp control object, 'conv' must equal in two endpoint
 // from the same connection. 'user' will be passed to the output callback
 // output callback can be setup like this: 'kcp->output = my_udp_output'
+template<typename = void>
 ikcpcb* ikcp_create(IUINT32 conv, void *user)
 {
 	ikcpcb *kcp = (ikcpcb*)ikcp_malloc(sizeof(struct IKCPCB));
@@ -973,6 +1012,7 @@ ikcpcb* ikcp_create(IUINT32 conv, void *user)
 }
 
 // release kcp control object
+template<typename = void>
 void ikcp_release(ikcpcb *kcp)
 {
 	assert(kcp);
@@ -1017,6 +1057,7 @@ void ikcp_release(ikcpcb *kcp)
 }
 
 // set output callback, which will be invoked by kcp
+template<typename = void>
 inline void ikcp_setoutput(ikcpcb *kcp, int (*output)(const char *buf, int len,
 	ikcpcb *kcp, void *user))
 {
@@ -1024,6 +1065,7 @@ inline void ikcp_setoutput(ikcpcb *kcp, int (*output)(const char *buf, int len,
 }
 
 // flush pending data
+template<typename = void>
 void ikcp_flush(ikcpcb *kcp)
 {
 	IUINT32 current = kcp->current;
@@ -1229,6 +1271,7 @@ void ikcp_flush(ikcpcb *kcp)
 }
 
 // user/upper level recv: returns size, returns below zero for EAGAIN
+template<typename = void>
 int ikcp_recv(ikcpcb *kcp, char *buffer, int len)
 {
 	struct IQUEUEHEAD *p;
@@ -1309,6 +1352,7 @@ int ikcp_recv(ikcpcb *kcp, char *buffer, int len)
 }
 
 // user/upper level send, returns below zero for error
+template<typename = void>
 int ikcp_send(ikcpcb *kcp, const char *buffer, int len)
 {
 	IKCPSEG *seg;
@@ -1382,6 +1426,7 @@ int ikcp_send(ikcpcb *kcp, const char *buffer, int len)
 // update state (call it repeatedly, every 10ms-100ms), or you can ask 
 // ikcp_check when to call it again (without ikcp_input/_send calling).
 // 'current' - current timestamp in millisec. 
+template<typename = void>
 void ikcp_update(ikcpcb *kcp, IUINT32 current)
 {
 	IINT32 slap;
@@ -1416,6 +1461,7 @@ void ikcp_update(ikcpcb *kcp, IUINT32 current)
 // Important to reduce unnacessary ikcp_update invoking. use it to 
 // schedule ikcp_update (eg. implementing an epoll-like mechanism, 
 // or optimize ikcp_update when handling massive kcp connections)
+template<typename = void>
 IUINT32 ikcp_check(const ikcpcb *kcp, IUINT32 current)
 {
 	IUINT32 ts_flush = kcp->ts_flush;
@@ -1455,6 +1501,7 @@ IUINT32 ikcp_check(const ikcpcb *kcp, IUINT32 current)
 }
 
 // when you received a low level packet (eg. UDP packet), call it
+template<typename = void>
 int ikcp_input(ikcpcb *kcp, const char *data, long size)
 {
 	IUINT32 una = kcp->snd_una;

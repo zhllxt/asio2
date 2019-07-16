@@ -90,6 +90,7 @@ namespace asio2::detail::kcp
 	#undef __KCPHDR_ONEBYTE_ALIGN__
 #endif
 
+	template<typename = void>
 	unsigned short checksum(unsigned short * addr, int count)
 	{
 		long sum = 0;
@@ -109,6 +110,7 @@ namespace asio2::detail::kcp
 		return static_cast<unsigned short>(~sum);
 	}
 
+	template<typename = void>
 	inline bool is_kcphdr_syn(std::string_view s)
 	{
 		if (s.size() != sizeof(kcphdr))
@@ -122,6 +124,7 @@ namespace asio2::detail::kcp
 			static_cast<int>(sizeof(kcphdr) - sizeof(kcphdr::th_sum))));
 	}
 
+	template<typename = void>
 	inline bool is_kcphdr_synack(std::string_view s, std::uint32_t seq)
 	{
 		if (s.size() != sizeof(kcphdr))
@@ -138,6 +141,7 @@ namespace asio2::detail::kcp
 			static_cast<int>(sizeof(kcphdr) - sizeof(kcphdr::th_sum))));
 	}
 
+	template<typename = void>
 	inline bool is_kcphdr_ack(std::string_view s, std::uint32_t seq)
 	{
 		if (s.size() != sizeof(kcphdr))
@@ -154,6 +158,7 @@ namespace asio2::detail::kcp
 			static_cast<int>(sizeof(kcphdr) - sizeof(kcphdr::th_sum))));
 	}
 
+	template<typename = void>
 	inline bool is_kcphdr_fin(std::string_view s)
 	{
 		if (s.size() != sizeof(kcphdr))
@@ -167,6 +172,7 @@ namespace asio2::detail::kcp
 			static_cast<int>(sizeof(kcphdr) - sizeof(kcphdr::th_sum))));
 	}
 
+	template<typename = void>
 	inline kcphdr make_kcphdr_syn(std::uint32_t seq)
 	{
 		kcphdr hdr = { 0 };
@@ -178,6 +184,7 @@ namespace asio2::detail::kcp
 		return hdr;
 	}
 
+	template<typename = void>
 	inline kcphdr make_kcphdr_synack(std::uint32_t seq, std::uint32_t ack)
 	{
 		kcphdr hdr = { 0 };
@@ -191,6 +198,7 @@ namespace asio2::detail::kcp
 		return hdr;
 	}
 
+	template<typename = void>
 	inline kcphdr make_kcphdr_ack(std::uint32_t ack)
 	{
 		kcphdr hdr = { 0 };
@@ -202,6 +210,7 @@ namespace asio2::detail::kcp
 		return hdr;
 	}
 
+	template<typename = void>
 	inline kcphdr make_kcphdr_fin(std::uint32_t seq)
 	{
 		kcphdr hdr = { 0 };

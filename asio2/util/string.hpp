@@ -35,9 +35,7 @@ namespace asio2
 	/**
 	 * std::string format
 	 */
-	#if defined(__GNUC__) || defined(__GNUG__)
-		__attribute__((unused))
-	#endif
+	template<typename = void>
 	std::string formatv(const char * format, va_list args)
 	{
 		std::string s;
@@ -65,9 +63,7 @@ namespace asio2
 	/**
 	 * std::wstring format
 	 */
-	#if defined(__GNUC__) || defined(__GNUG__)
-		__attribute__((unused))
-	#endif
+	template<typename = void>
 	std::wstring formatv(const wchar_t * format, va_list args)
 	{
 		std::wstring s;
@@ -102,9 +98,7 @@ namespace asio2
 	/**
 	 * std::string format
 	 */
-	#if defined(__GNUC__) || defined(__GNUG__)
-		__attribute__((unused))
-	#endif
+	template<typename = void>
 	std::string format(const char * format, ...)
 	{
 		std::string s;
@@ -126,9 +120,7 @@ namespace asio2
 	/**
 	 * std::wstring format
 	 */
-	#if defined(__GNUC__) || defined(__GNUG__)
-		__attribute__((unused))
-	#endif
+	template<typename = void>
 	std::wstring format(const wchar_t * format, ...)
 	{
 		std::wstring s;

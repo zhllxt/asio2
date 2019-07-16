@@ -94,9 +94,9 @@ namespace boost::beast::http
 			http::cparser::http_parser_url u;
 			if (0 == http::cparser::http_parser_parse_url(url.data(), url.size(), 0, &u))
 			{
-				if (u.field_set & (1 << http::cparser::UF_PATH))
+				if (u.field_set & (1 << (int)http::cparser::url_fields::UF_PATH))
 				{
-					i = u.field_data[http::cparser::UF_PATH].off;
+					i = u.field_data[(int)http::cparser::url_fields::UF_PATH].off;
 					for (size_type n = 0; n < i; ++n)
 					{
 						r += static_cast<rvalue_type>(url[n]);
@@ -131,36 +131,35 @@ namespace boost::beast::http
 			return r;
 		}
 
-		#if defined(__GNUC__) || defined(__GNUG__)
-			__attribute__((unused))
-		#endif
+		template<typename = void>
 		std::string_view url_to_host(std::string_view url)
 		{
 			http::cparser::http_parser_url u;
 			if (0 != http::cparser::http_parser_parse_url(url.data(), url.size(), 0, &u))
 				return std::string_view{};
 
-			if (!(u.field_set & (1 << http::cparser::UF_HOST)))
+			if (!(u.field_set & (1 << (int)http::cparser::url_fields::UF_HOST)))
 				return std::string_view{};
 
-			return std::string_view{ &url[u.field_data[http::cparser::UF_HOST].off],u.field_data[http::cparser::UF_HOST].len };
+			return std::string_view{ &url[u.field_data[(int)http::cparser::url_fields::UF_HOST].off],
+				u.field_data[(int)http::cparser::url_fields::UF_HOST].len };
 		}
 
-		#if defined(__GNUC__) || defined(__GNUG__)
-			__attribute__((unused))
-		#endif
+		template<typename = void>
 		std::string_view url_to_port(std::string_view url)
 		{
 			http::cparser::http_parser_url u;
 			if (0 != http::cparser::http_parser_parse_url(url.data(), url.size(), 0, &u))
 				return std::string_view{};
 
-			if (u.field_set & (1 << http::cparser::UF_PORT))
-				return std::string_view{ &url[u.field_data[http::cparser::UF_PORT].off],u.field_data[http::cparser::UF_PORT].len };
+			if (u.field_set & (1 << (int)http::cparser::url_fields::UF_PORT))
+				return std::string_view{ &url[u.field_data[(int)http::cparser::url_fields::UF_PORT].off],
+				u.field_data[(int)http::cparser::url_fields::UF_PORT].len };
 
-			if (u.field_set & (1 << http::cparser::UF_SCHEMA))
+			if (u.field_set & (1 << (int)http::cparser::url_fields::UF_SCHEMA))
 			{
-				std::string schema(&url[u.field_data[http::cparser::UF_SCHEMA].off], u.field_data[http::cparser::UF_SCHEMA].len);
+				std::string schema(&url[u.field_data[(int)http::cparser::url_fields::UF_SCHEMA].off],
+					u.field_data[(int)http::cparser::url_fields::UF_SCHEMA].len);
 				std::transform(schema.begin(), schema.end(), schema.begin(), [](std::string::value_type c) { return std::tolower(c); });
 				return (schema == "https" ? std::string_view{ "443" } : std::string_view{ "80" });
 			}
@@ -168,34 +167,32 @@ namespace boost::beast::http
 			return std::string_view{ "80" };
 		}
 
-		#if defined(__GNUC__) || defined(__GNUG__)
-			__attribute__((unused))
-		#endif
+		template<typename = void>
 		std::string_view url_to_path(std::string_view url)
 		{
 			http::cparser::http_parser_url u;
 			if (0 != http::cparser::http_parser_parse_url(url.data(), url.size(), 0, &u))
 				return std::string_view{};
 
-			if (!(u.field_set & (1 << http::cparser::UF_PATH)))
+			if (!(u.field_set & (1 << (int)http::cparser::url_fields::UF_PATH)))
 				return std::string_view{};
 
-			return std::string_view{ &url[u.field_data[http::cparser::UF_PATH].off],u.field_data[http::cparser::UF_PATH].len };
+			return std::string_view{ &url[u.field_data[(int)http::cparser::url_fields::UF_PATH].off],
+				u.field_data[(int)http::cparser::url_fields::UF_PATH].len };
 		}
 
-		#if defined(__GNUC__) || defined(__GNUG__)
-			__attribute__((unused))
-		#endif
+		template<typename = void>
 		std::string_view url_to_query(std::string_view url)
 		{
 			http::cparser::http_parser_url u;
 			if (0 != http::cparser::http_parser_parse_url(url.data(), url.size(), 0, &u))
 				return std::string_view{};
 
-			if (!(u.field_set & (1 << http::cparser::UF_QUERY)))
+			if (!(u.field_set & (1 << (int)http::cparser::url_fields::UF_QUERY)))
 				return std::string_view{};
 
-			return std::string_view{ &url[u.field_data[http::cparser::UF_QUERY].off],u.field_data[http::cparser::UF_QUERY].len };
+			return std::string_view{ &url[u.field_data[(int)http::cparser::url_fields::UF_QUERY].off],
+				u.field_data[(int)http::cparser::url_fields::UF_QUERY].len };
 		}
 
 		template<class Body = string_body, class Fields = fields>
@@ -226,21 +223,29 @@ namespace boost::beast::http
 
 					std::string_view /*schema{ "http" }, */host, port, target{ "/" }/*, userinfo, path, query, fragment*/;
 
-					//if (u.field_set & (1 << cparser::UF_SCHEMA))
-					//	schema = { &uri[u.field_data[cparser::UF_SCHEMA].off],u.field_data[cparser::UF_SCHEMA].len };
-					if (u.field_set & (1 << cparser::UF_HOST))
-						host = { &uri[u.field_data[cparser::UF_HOST].off],u.field_data[cparser::UF_HOST].len };
-					if (u.field_set & (1 << cparser::UF_PORT))
-						port = { &uri[u.field_data[cparser::UF_PORT].off],u.field_data[cparser::UF_PORT].len };
-					if (u.field_set & (1 << cparser::UF_PATH))
-						target = { &uri[u.field_data[cparser::UF_PATH].off],uri.size() - u.field_data[cparser::UF_PATH].off };
-					//	path = target = { &uri[u.field_data[cparser::UF_PATH].off],u.field_data[cparser::UF_PATH].len };
-					//if (u.field_set & (1 << cparser::UF_USERINFO))
-					//	userinfo = { &uri[u.field_data[cparser::UF_USERINFO].off],u.field_data[cparser::UF_USERINFO].len };
-					//if (u.field_set & (1 << cparser::UF_QUERY))
-					//	query = { &uri[u.field_data[cparser::UF_QUERY].off],u.field_data[cparser::UF_QUERY].len };
-					//if (u.field_set & (1 << cparser::UF_FRAGMENT))
-					//	fragment = { &uri[u.field_data[cparser::UF_FRAGMENT].off],u.field_data[cparser::UF_FRAGMENT].len };
+					//if (u.field_set & (1 << (int)cparser::url_fields::UF_SCHEMA))
+					//	schema = { &uri[u.field_data[(int)cparser::url_fields::UF_SCHEMA].off],
+					//	u.field_data[(int)cparser::url_fields::UF_SCHEMA].len };
+					if (u.field_set & (1 << (int)cparser::url_fields::UF_HOST))
+						host = { &uri[u.field_data[(int)cparser::url_fields::UF_HOST].off],
+						u.field_data[(int)cparser::url_fields::UF_HOST].len };
+					if (u.field_set & (1 << (int)cparser::url_fields::UF_PORT))
+						port = { &uri[u.field_data[(int)cparser::url_fields::UF_PORT].off],
+						u.field_data[(int)cparser::url_fields::UF_PORT].len };
+					if (u.field_set & (1 << (int)cparser::url_fields::UF_PATH))
+						target = { &uri[u.field_data[(int)cparser::url_fields::UF_PATH].off],
+						uri.size() - u.field_data[(int)cparser::url_fields::UF_PATH].off };
+					//	path = target = { &uri[u.field_data[(int)cparser::url_fields::UF_PATH].off],
+					//	u.field_data[(int)cparser::url_fields::UF_PATH].len };
+					//if (u.field_set & (1 << (int)cparser::url_fields::UF_USERINFO))
+					//	userinfo = { &uri[u.field_data[(int)cparser::url_fields::UF_USERINFO].off],
+					//	u.field_data[(int)cparser::url_fields::UF_USERINFO].len };
+					//if (u.field_set & (1 << (int)cparser::url_fields::UF_QUERY))
+					//	query = { &uri[u.field_data[(int)cparser::url_fields::UF_QUERY].off],
+					//	u.field_data[(int)cparser::url_fields::UF_QUERY].len };
+					//if (u.field_set & (1 << (int)cparser::url_fields::UF_FRAGMENT))
+					//	fragment = { &uri[u.field_data[(int)cparser::url_fields::UF_FRAGMENT].off],
+					//	u.field_data[(int)cparser::url_fields::UF_FRAGMENT].len };
 
 					// Set up an HTTP GET request message
 					req.method(verb::get);

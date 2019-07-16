@@ -200,9 +200,6 @@ namespace asio2::detail
 
 		/// state
 		std::atomic<state_t>                        state_ = state_t::stopped;
-
-		/// Save the host and port of the server
-		std::string                                 host_, port_;
 	};
 }
 
