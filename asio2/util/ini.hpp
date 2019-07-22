@@ -222,7 +222,7 @@ namespace asio2
 	 * ini operator class
 	 */
 	template<class Stream = std::fstream>
-	class ini : protected Stream
+	class ini : public Stream
 	{
 	public:
 		using char_type = typename Stream::char_type;
@@ -289,6 +289,7 @@ namespace asio2
 			std::basic_string<char_type, Traits, Allocator> & val)
 		{
 			std::shared_lock<std::shared_mutex> guard(this->mutex_);
+			Stream::clear();
 			if (this->operator bool())
 			{
 				std::basic_string<char_type, Traits, Allocator> line;
@@ -426,7 +427,6 @@ namespace asio2
 		inline typename std::enable_if_t<std::is_same_v<decltype(
 			std::basic_string_view<char_type, Traits>(std::declval<Sec>()),
 			std::basic_string_view<char_type, Traits>(std::declval<Key>()),
-			!std::basic_string_view<char_type, Traits>(std::declval<Val>()),
 			std::to_string(std::declval<Val>()),
 			std::true_type()), std::true_type>, bool>
 			set(const Sec& sec, const Key& key, Val val)
@@ -445,6 +445,7 @@ namespace asio2
 			std::basic_string_view<char_type, Traits> val)
 		{
 			std::unique_lock<std::shared_mutex> guard(this->mutex_);
+			Stream::clear();
 			if (this->operator bool())
 			{
 				std::basic_string<char_type, Traits, Allocator> line;
@@ -627,11 +628,10 @@ namespace asio2
 			std::basic_string<char_type, Traits, Allocator> & val,
 			pos_type & posg)
 		{
+			Stream::clear();
 			if (Stream::good() && !Stream::eof())
 			{
 				posg = Stream::tellg();
-
-				Stream::clear();
 
 				static auto trim_left = [](std::basic_string<char_type, Traits, Allocator> & s)
 				{
