@@ -38,6 +38,18 @@ namespace asio2::detail
 			: id(Id), timer(context), task(std::move(t)) {}
 	};
 
+	template<typename T>
+	struct has_mfn_is_started
+	{
+	private:
+		template<typename U>
+		static auto check(bool) -> decltype(std::declval<U>().is_started(), std::true_type());
+		template<typename U>
+		static std::false_type check(...);
+	public:
+		static constexpr bool value = std::is_same_v<decltype(check<T>(true)), std::true_type>;
+	};
+
 	template<class derived_t, bool isSession>
 	class user_timer_cp
 	{
@@ -58,12 +70,18 @@ namespace asio2::detail
 
 	public:
 		template<class Rep, class Period, class Fun, class... Args>
-		inline bool start_timer(std::size_t timer_id, std::chrono::duration<Rep, Period> duration, Fun&& fun, Args&&... args)
+		inline void start_timer(std::size_t timer_id, std::chrono::duration<Rep, Period> duration, Fun&& fun, Args&&... args)
 		{
 			std::function<void()> t = std::bind(std::forward<Fun>(fun), std::forward<Args>(args)...);
 
 			auto fn = [this, this_ptr = this->_mkptr(), timer_id, duration, task = std::move(t)]()
 			{
+				if constexpr (has_mfn_is_started<derived_t>::value)
+				{
+					if (!derive.is_started())
+						return;
+				}
+
 				auto pair = this->user_timers_.try_emplace(timer_id, timer_id, this->user_timer_io_.context(), std::move(task));
 				if (pair.second == false)
 					pair.first->second.task = std::move(task);
@@ -76,8 +94,6 @@ namespace asio2::detail
 				asio::post(this->user_timer_io_.strand(), std::move(fn));
 			else
 				fn();
-
-			return true;
 		}
 
 		inline void stop_timer(std::size_t timer_id)
