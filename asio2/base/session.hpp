@@ -214,7 +214,7 @@ namespace asio2::detail
 		std::atomic<state_t>        state_ = state_t::stopped;
 
 		/// Is it successful to insert the current session to the session map
-		volatile bool               in_sessions = false;
+		bool						in_sessions = false;
 
 		/// use this to ensure that server stop only after all sessions are closed
 		std::shared_ptr<void>       counter_ptr_;

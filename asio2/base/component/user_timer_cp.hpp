@@ -32,7 +32,6 @@ namespace asio2::detail
 		asio::steady_timer timer;
 		std::function<void()> task;
 		handler_memory<> allocator;
-		volatile bool stopped = false;
 
 		user_timer_obj(std::size_t Id, asio::io_context & context, std::function<void()> t)
 			: id(Id), timer(context), task(std::move(t)) {}
@@ -82,9 +81,12 @@ namespace asio2::detail
 						return;
 				}
 
-				auto pair = this->user_timers_.try_emplace(timer_id, timer_id, this->user_timer_io_.context(), std::move(task));
+				std::shared_ptr<user_timer_obj> timer_obj_ptr = std::make_shared<user_timer_obj>(
+					timer_id, this->user_timer_io_.context(), std::move(task));
+
+				auto pair = this->user_timers_.try_emplace(timer_id, std::move(timer_obj_ptr));
 				if (pair.second == false)
-					pair.first->second.task = std::move(task);
+					pair.first->second->task = std::move(timer_obj_ptr->task);
 
 				derive._post_user_timers(pair.first->second, duration, std::move(this_ptr));
 			};
@@ -109,9 +111,8 @@ namespace asio2::detail
 			auto iter = this->user_timers_.find(timer_id);
 			if (iter != this->user_timers_.end())
 			{
-				user_timer_obj & timer_obj = iter->second;
-				timer_obj.stopped = true;
-				timer_obj.timer.cancel();
+				iter->second->timer.cancel();
+				this->user_timers_.erase(iter);
 			}
 		}
 
@@ -129,41 +130,46 @@ namespace asio2::detail
 			});
 
 			// close user custom timers
-			for (auto &[id, timer_obj] : this->user_timers_)
+			for (auto &[id, timer_obj_ptr] : this->user_timers_)
 			{
-				timer_obj.stopped = true;
-				timer_obj.timer.cancel();
+				timer_obj_ptr->timer.cancel();
 			}
+			this->user_timers_.clear();
 		}
 
 	protected:
 		template<class Rep, class Period>
-		inline void _post_user_timers(user_timer_obj & timer_obj, std::chrono::duration<Rep, Period> duration, std::shared_ptr<derived_t> this_ptr)
+		inline void _post_user_timers(std::shared_ptr<user_timer_obj> timer_obj_ptr,
+			std::chrono::duration<Rep, Period> duration, std::shared_ptr<derived_t> this_ptr)
 		{
-			timer_obj.timer.expires_after(duration);
-			timer_obj.timer.async_wait(asio::bind_executor(this->user_timer_io_.strand(),
-				make_allocator(timer_obj.allocator,
-					[this, &timer_obj, duration, self_ptr = std::move(this_ptr)](const error_code & ec)
+			auto iter = this->user_timers_.find(timer_obj_ptr->id);
+			if (iter == this->user_timers_.end())
+				return;
+
+			asio::steady_timer& timer = timer_obj_ptr->timer;
+			handler_memory<>& allocator = timer_obj_ptr->allocator;
+
+			timer.expires_after(duration);
+			timer.async_wait(asio::bind_executor(this->user_timer_io_.strand(),
+				make_allocator(allocator, [this, timer_ptr = std::move(timer_obj_ptr), duration,
+					self_ptr = std::move(this_ptr)](const error_code & ec)
 			{
-				derive._handle_user_timers(ec, timer_obj, duration, std::move(self_ptr));
+				derive._handle_user_timers(ec, std::move(timer_ptr), duration, std::move(self_ptr));
 			})));
 		}
 
 		template<class Rep, class Period>
-		inline void _handle_user_timers(const error_code & ec, user_timer_obj & timer_obj,
+		inline void _handle_user_timers(const error_code & ec, std::shared_ptr<user_timer_obj> timer_obj_ptr,
 			std::chrono::duration<Rep, Period> duration, std::shared_ptr<derived_t> this_ptr)
 		{
 			set_last_error(ec);
 
-			if (timer_obj.stopped)
-			{
-				this->user_timers_.erase(timer_obj.id);
+			(timer_obj_ptr->task)();
+
+			if (ec == asio::error::operation_aborted)
 				return;
-			}
 
-			(timer_obj.task)();
-
-			derive._post_user_timers(timer_obj, duration, std::move(this_ptr));
+			derive._post_user_timers(std::move(timer_obj_ptr), duration, std::move(this_ptr));
 		}
 
 	protected:
@@ -182,7 +188,7 @@ namespace asio2::detail
 		io_t                                          & user_timer_io_;
 
 		/// user-defined timer
-		std::unordered_map<std::size_t, user_timer_obj> user_timers_;
+		std::unordered_map<std::size_t, std::shared_ptr<user_timer_obj>> user_timers_;
 	};
 }
 

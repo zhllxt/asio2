@@ -528,8 +528,8 @@ namespace asio2
 		std::thread    thread_;
 		std::mutex     mtx_;
 		std::condition_variable cv_;
-		volatile bool is_stop_ = false;
-		volatile bool mkflag_  = false;
+		bool           is_stop_ = false;
+		bool           mkflag_  = false;
 #endif
 
 	};
