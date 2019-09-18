@@ -60,9 +60,10 @@ namespace asio2::detail
 		 * @param service A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
 		 */
-		inline bool start(std::string_view service)
+		template<typename StringOrInt>
+		inline bool start(StringOrInt&& service)
 		{
-			return this->start(std::string_view{}, service);
+			return this->start(std::string_view{}, to_string_port(std::forward<StringOrInt>(service)));
 		}
 
 		/**
@@ -72,10 +73,11 @@ namespace asio2::detail
 		 * @param service A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
 		 */
-		inline bool start(std::string_view host, std::string_view service)
+		template<typename StringOrInt>
+		inline bool start(std::string_view host, StringOrInt&& service)
 		{
-			return this->derived()._do_start(host, service, condition_wrap<
-				asio::detail::transfer_at_least_t>{asio::transfer_at_least(1)});
+			return this->derived()._do_start(host, to_string_port(std::forward<StringOrInt>(service)),
+				condition_wrap<asio::detail::transfer_at_least_t>{asio::transfer_at_least(1)});
 		}
 
 		/**
@@ -88,10 +90,10 @@ namespace asio2::detail
 		 * asio::transfer_at_least,asio::transfer_exactly
 		 * more details see asio::read_until
 		 */
-		template<typename MatchCondition>
-		inline bool start(std::string_view service, MatchCondition condition)
+		template<typename StringOrInt, typename MatchCondition>
+		inline bool start(StringOrInt&& service, MatchCondition condition)
 		{
-			return this->start(std::string_view{}, service, condition);
+			return this->start(std::string_view{}, to_string_port(std::forward<StringOrInt>(service)), condition);
 		}
 
 		/**
@@ -106,10 +108,11 @@ namespace asio2::detail
 		 * asio::transfer_at_least,asio::transfer_exactly
 		 * more details see asio::read_until
 		 */
-		template<typename MatchCondition>
-		inline bool start(std::string_view host, std::string_view service, MatchCondition condition)
+		template<typename StringOrInt, typename MatchCondition>
+		inline bool start(std::string_view host, StringOrInt&& service, MatchCondition condition)
 		{
-			return this->derived()._do_start(host, service, condition_wrap<MatchCondition>(condition));
+			return this->derived()._do_start(host, to_string_port(std::forward<StringOrInt>(service)),
+				condition_wrap<MatchCondition>(condition));
 		}
 
 		/**

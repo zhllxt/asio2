@@ -16,10 +16,11 @@
 // If you don't want to use boost in your project,you need to define ASIO_STANDALONE.
 // But you can't use http and websocket at the same time.If you want to use http and 
 // websocket, you must use boost, and then you have to turn ASIO_STANDALONE off.
-//#define ASIO_STANDALONE
+#define ASIO_STANDALONE
 
 // If you want to use the ssl, you need to define ASIO2_USE_SSL.
-// When use ssl,you need linker "libssl.lib;libcrypto.lib;Crypt32.lib;"
+// When use ssl,on windows need linker "libssl.lib;libcrypto.lib;Crypt32.lib;", on 
+// linux need linker "ssl;crypto;"
 //#define ASIO2_USE_SSL
 
 

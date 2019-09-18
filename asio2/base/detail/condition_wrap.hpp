@@ -59,7 +59,7 @@ namespace asio2::detail
 				case 255: // If 255, the following 8 bytes interpreted as a 64-bit unsigned integer (the most significant bit MUST be 0) are the payload length.
 					if (total >= 1 + 8)
 					{
-						payload_size = *(reinterpret_cast<std::uint64_t*>(const_cast<unsigned char*>(p + 1)));
+						payload_size = std::size_t(*(reinterpret_cast<std::uint64_t*>(const_cast<unsigned char*>(p + 1))));
 						if (total - 1 - 8 >= payload_size)
 						{
 							payload_data = p + 1 + 8;

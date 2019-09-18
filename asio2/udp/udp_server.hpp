@@ -58,9 +58,11 @@ namespace asio2::detail
 		 * @param service A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
 		 */
-		inline bool start(std::string_view service)
+		template<typename StringOrInt>
+		inline bool start(StringOrInt&& service)
 		{
-			return this->derived()._do_start(std::string_view{}, service, condition_wrap<void>{});
+			return this->derived()._do_start(std::string_view{},
+				to_string_port(std::forward<StringOrInt>(service)), condition_wrap<void>{});
 		}
 
 		/**
@@ -70,9 +72,11 @@ namespace asio2::detail
 		 * @param service A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
 		 */
-		inline bool start(std::string_view host, std::string_view service)
+		template<typename StringOrInt>
+		inline bool start(std::string_view host, StringOrInt&& service)
 		{
-			return this->derived()._do_start(host, service, condition_wrap<void>{});
+			return this->derived()._do_start(host,
+				to_string_port(std::forward<StringOrInt>(service)), condition_wrap<void>{});
 		}
 
 		/**
@@ -80,9 +84,11 @@ namespace asio2::detail
 		 * @param service A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
 		 */
-		inline bool start(std::string_view service, use_kcp_t c)
+		template<typename StringOrInt>
+		inline bool start(StringOrInt&& service, use_kcp_t c)
 		{
-			return this->derived()._do_start(std::string_view{}, service, condition_wrap<use_kcp_t>(c));
+			return this->derived()._do_start(std::string_view{},
+				to_string_port(std::forward<StringOrInt>(service)), condition_wrap<use_kcp_t>(c));
 		}
 
 		/**
@@ -92,9 +98,11 @@ namespace asio2::detail
 		 * @param service A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
 		 */
-		inline bool start(std::string_view host, std::string_view service, use_kcp_t c)
+		template<typename StringOrInt>
+		inline bool start(std::string_view host, StringOrInt&& service, use_kcp_t c)
 		{
-			return this->derived()._do_start(host, service, condition_wrap<use_kcp_t>(c));
+			return this->derived()._do_start(host,
+				to_string_port(std::forward<StringOrInt>(service)), condition_wrap<use_kcp_t>(c));
 		}
 
 		/**

@@ -26,14 +26,18 @@
 
 namespace asio2::detail
 {
+#ifndef ASIO2_USER_TIMER_ID_TYPE
+#define ASIO2_USER_TIMER_ID_TYPE std::size_t
+#endif
+
 	struct user_timer_obj
 	{
-		std::size_t id;
+		ASIO2_USER_TIMER_ID_TYPE id;
 		asio::steady_timer timer;
 		std::function<void()> task;
 		handler_memory<> allocator;
 
-		user_timer_obj(std::size_t Id, asio::io_context & context, std::function<void()> t)
+		user_timer_obj(ASIO2_USER_TIMER_ID_TYPE Id, asio::io_context & context, std::function<void()> t)
 			: id(Id), timer(context), task(std::move(t)) {}
 	};
 
@@ -69,7 +73,7 @@ namespace asio2::detail
 
 	public:
 		template<class Rep, class Period, class Fun, class... Args>
-		inline void start_timer(std::size_t timer_id, std::chrono::duration<Rep, Period> duration, Fun&& fun, Args&&... args)
+		inline void start_timer(ASIO2_USER_TIMER_ID_TYPE timer_id, std::chrono::duration<Rep, Period> duration, Fun&& fun, Args&&... args)
 		{
 			std::function<void()> t = std::bind(std::forward<Fun>(fun), std::forward<Args>(args)...);
 
@@ -98,7 +102,7 @@ namespace asio2::detail
 				fn();
 		}
 
-		inline void stop_timer(std::size_t timer_id)
+		inline void stop_timer(ASIO2_USER_TIMER_ID_TYPE timer_id)
 		{
 			// Make sure we run on the strand
 			if (!this->user_timer_io_.strand().running_in_this_thread())
@@ -188,7 +192,7 @@ namespace asio2::detail
 		io_t                                          & user_timer_io_;
 
 		/// user-defined timer
-		std::unordered_map<std::size_t, std::shared_ptr<user_timer_obj>> user_timers_;
+		std::unordered_map<ASIO2_USER_TIMER_ID_TYPE, std::shared_ptr<user_timer_obj>> user_timers_;
 	};
 }
 

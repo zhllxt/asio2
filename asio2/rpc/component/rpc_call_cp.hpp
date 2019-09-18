@@ -83,10 +83,10 @@ namespace asio2::detail
 		 * @function : call a rpc function
 		 */
 		template<class T, class Rep, class Period, class ...Args>
-		inline T call(std::chrono::duration<Rep, Period> timeout, std::string const& name, Args&&... args)
+		inline T call(std::chrono::duration<Rep, Period> timeout, std::string name, Args&&... args)
 		{
 			error_code ec;
-			T v = derive.template _do_call<T>(ec, timeout, name, std::forward<Args>(args)...);
+			T v = derive.template _do_call<T>(ec, timeout, std::move(name), std::forward<Args>(args)...);
 			asio::detail::throw_error(ec);
 			return v;
 		}
@@ -95,19 +95,19 @@ namespace asio2::detail
 		 * @function : call a rpc function
 		 */
 		template<class T, class ...Args>
-		inline T call(error_code& ec, std::string const& name, Args&&... args)
+		inline T call(error_code& ec, std::string name, Args&&... args)
 		{
-			return derive.template _do_call<T>(ec, derive.timeout(), name, std::forward<Args>(args)...);
+			return derive.template _do_call<T>(ec, derive.timeout(), std::move(name), std::forward<Args>(args)...);
 		}
 
 		/**
 		 * @function : call a rpc function
 		 */
 		template<class T, class ...Args>
-		inline T call(std::string const& name, Args&&... args)
+		inline T call(std::string name, Args&&... args)
 		{
 			error_code ec;
-			T v = derive.template _do_call<T>(ec, derive.timeout(), name, std::forward<Args>(args)...);
+			T v = derive.template _do_call<T>(ec, derive.timeout(), std::move(name), std::forward<Args>(args)...);
 			asio::detail::throw_error(ec);
 			return v;
 		}
@@ -116,9 +116,9 @@ namespace asio2::detail
 		 * @function : call a rpc function
 		 */
 		template<class T, class Rep, class Period, class ...Args>
-		inline T call(error_code& ec, std::chrono::duration<Rep, Period> timeout, std::string const& name, Args&&... args)
+		inline T call(error_code& ec, std::chrono::duration<Rep, Period> timeout, std::string name, Args&&... args)
 		{
-			return derive.template _do_call<T>(ec, timeout, name, std::forward<Args>(args)...);
+			return derive.template _do_call<T>(ec, timeout, std::move(name), std::forward<Args>(args)...);
 		}
 
 		/**
@@ -130,10 +130,11 @@ namespace asio2::detail
 		 * You must guarantee that the parameter args remain valid until the send operation is called.
 		 */
 		template<class Callback, class ...Args>
-		inline void async_call(Callback&& fn, std::string const& name, Args&&... args)
+		inline void async_call(Callback&& fn, std::string name, Args&&... args)
 		{
 			using fun_traits_type = function_traits<Callback>;
-			derive.template _do_async_call<fun_traits_type::argc>(std::forward<Callback>(fn), derive.timeout(), name, std::forward<Args>(args)...);
+			derive.template _do_async_call<fun_traits_type::argc>(std::forward<Callback>(fn),
+				derive.timeout(), std::move(name), std::forward<Args>(args)...);
 		}
 
 		/**
@@ -145,10 +146,11 @@ namespace asio2::detail
 		 * You must guarantee that the parameter args remain valid until the send operation is called.
 		 */
 		template<class Callback, class Rep, class Period, class ...Args>
-		inline void async_call(Callback&& fn, std::chrono::duration<Rep, Period> timeout, std::string const& name, Args&&... args)
+		inline void async_call(Callback&& fn, std::chrono::duration<Rep, Period> timeout, std::string name, Args&&... args)
 		{
 			using fun_traits_type = function_traits<Callback>;
-			derive.template _do_async_call<fun_traits_type::argc>(std::forward<Callback>(fn), timeout, name, std::forward<Args>(args)...);
+			derive.template _do_async_call<fun_traits_type::argc>(std::forward<Callback>(fn), timeout,
+				std::move(name), std::forward<Args>(args)...);
 		}
 
 		/**
@@ -158,9 +160,10 @@ namespace asio2::detail
 		 * You must guarantee that the parameter args remain valid until the send operation is called.
 		 */
 		template<class T, class Callback, class ...Args>
-		inline void async_call(Callback&& fn, std::string const& name, Args&&... args)
+		inline void async_call(Callback&& fn, std::string name, Args&&... args)
 		{
-			derive.template _do_async_call<T>(std::forward<Callback>(fn), derive.timeout(), name, std::forward<Args>(args)...);
+			derive.template _do_async_call<T>(std::forward<Callback>(fn), derive.timeout(),
+				std::move(name), std::forward<Args>(args)...);
 		}
 
 		/**
@@ -170,14 +173,14 @@ namespace asio2::detail
 		 * You must guarantee that the parameter args remain valid until the send operation is called.
 		 */
 		template<class T, class Callback, class Rep, class Period, class ...Args>
-		inline void async_call(Callback&& fn, std::chrono::duration<Rep, Period> timeout, std::string const& name, Args&&... args)
+		inline void async_call(Callback&& fn, std::chrono::duration<Rep, Period> timeout, std::string name, Args&&... args)
 		{
-			derive.template _do_async_call<T>(std::forward<Callback>(fn), timeout, name, std::forward<Args>(args)...);
+			derive.template _do_async_call<T>(std::forward<Callback>(fn), timeout, std::move(name), std::forward<Args>(args)...);
 		}
 
 	protected:
 		template<class T, class Rep, class Period, class ...Args>
-		inline T _do_call(error_code& ec, std::chrono::duration<Rep, Period> timeout, std::string const& name, Args&&... args)
+		inline T _do_call(error_code& ec, std::chrono::duration<Rep, Period> timeout, std::string name, Args&&... args)
 		{
 			std::shared_ptr<typename result_t<T>::type> v = std::make_shared<typename result_t<T>::type>();
 			try
@@ -186,7 +189,7 @@ namespace asio2::detail
 					asio::detail::throw_error(asio::error::not_connected);
 
 				header::id_type id = derive.mkid();
-				request<Args...> req(id, name, std::forward<Args>(args)...);
+				request<Args...> req(id, std::move(name), std::forward<Args>(args)...);
 
 				std::shared_ptr<std::promise<error_code>> promise = std::make_shared<std::promise<error_code>>();
 				std::future<error_code> future = promise->get_future();
@@ -286,24 +289,24 @@ namespace asio2::detail
 	protected:
 		template<std::size_t Argc, class Callback, class Rep, class Period, class ...Args>
 		typename std::enable_if_t<Argc == 1>
-			inline _do_async_call(Callback&& fn, std::chrono::duration<Rep, Period> timeout, std::string const& name, Args&&... args)
+			inline _do_async_call(Callback&& fn, std::chrono::duration<Rep, Period> timeout, std::string name, Args&&... args)
 		{
 			using return_type = void;
-			derive.template _do_async_call<return_type>(std::forward<Callback>(fn), timeout, name, std::forward<Args>(args)...);
+			derive.template _do_async_call<return_type>(std::forward<Callback>(fn), timeout, std::move(name), std::forward<Args>(args)...);
 		}
 
 		template<std::size_t Argc, class Callback, class Rep, class Period, class ...Args>
 		typename std::enable_if_t<Argc == 2>
-			inline _do_async_call(Callback&& fn, std::chrono::duration<Rep, Period> timeout, std::string const& name, Args&&... args)
+			inline _do_async_call(Callback&& fn, std::chrono::duration<Rep, Period> timeout, std::string name, Args&&... args)
 		{
 			using fun_traits_type = function_traits<Callback>;
 			using return_type = typename fun_traits_type::template args<1>::type;
-			derive.template _do_async_call<return_type>(std::forward<Callback>(fn), timeout, name, std::forward<Args>(args)...);
+			derive.template _do_async_call<return_type>(std::forward<Callback>(fn), timeout, std::move(name), std::forward<Args>(args)...);
 		}
 
 		template<class T, class Callback, class Rep, class Period, class ...Args>
 		inline void _do_async_call(Callback&& fn, std::chrono::duration<Rep, Period> timeout,
-			std::string const& name, Args&&... args)
+			std::string name, Args&&... args)
 		{
 			error_code ec;
 
@@ -354,7 +357,7 @@ namespace asio2::detail
 				if (!derive.is_started())
 					asio::detail::throw_error(asio::error::not_connected);
 
-				request<Args...> req(id, name, std::forward<Args>(args)...);
+				request<Args...> req(id, std::move(name), std::forward<Args>(args)...);
 
 				auto task = [this, p = this->_mkptr(), req = std::move(req), cb = std::move(cb)]() mutable
 				{

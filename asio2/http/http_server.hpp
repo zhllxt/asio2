@@ -58,9 +58,10 @@ namespace asio2::detail
 		 * @param service A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
 		 */
-		bool start(std::string_view service)
+		template<typename StringOrInt>
+		bool start(StringOrInt&& service)
 		{
-			return this->start(std::string_view{}, service);
+			return this->start(std::string_view{}, to_string_port(std::forward<StringOrInt>(service)));
 		}
 
 		/**
@@ -70,9 +71,11 @@ namespace asio2::detail
 		 * @param service A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
 		 */
-		bool start(std::string_view host, std::string_view service)
+		template<typename StringOrInt>
+		bool start(std::string_view host, StringOrInt&& service)
 		{
-			return this->derived()._do_start(host, service, condition_wrap<void>{});
+			return this->derived()._do_start(host, to_string_port(std::forward<StringOrInt>(service)),
+				condition_wrap<void>{});
 		}
 
 	public:

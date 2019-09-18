@@ -49,7 +49,7 @@ namespace asio2::detail
 	static long constexpr  udp_silence_timeout = 60 * 1000;
 	static long constexpr http_silence_timeout = 85 * 1000;
 
-	static long constexpr http_execute_timeout = 5 * 1000;
+	static long constexpr http_execute_timeout = 3 * 1000;
 
 	static long constexpr ssl_shutdown_timeout = 1500;
 	static long constexpr  ws_shutdown_timeout = 1500;
@@ -67,6 +67,31 @@ namespace asio2::detail
 
 namespace asio2::detail
 {
+	inline std::string to_string(char * s)
+	{
+		return (s ? std::string(s) : std::string{});
+	}
+	inline std::string to_string(const char * s)
+	{
+		return (s ? std::string(s) : std::string{});
+	}
+	inline std::string to_string(const std::string_view& sv)
+	{
+		return std::string(sv);
+	}
+	inline std::string to_string(std::string_view&& sv)
+	{
+		return std::string(sv);
+	}
+	inline std::string to_string(const std::string& s)
+	{
+		return s;
+	}
+	inline std::string to_string(std::string&& s)
+	{
+		return std::move(s);
+	}
+
 	/**
 	 * BKDR Hash Function
 	 */
@@ -181,6 +206,18 @@ namespace asio2::detail
 
 
 	template<typename, typename = void>
+	struct is_string : std::false_type {};
+
+	template<typename T>
+	struct is_string<T, std::void_t<typename T::value_type, typename T::traits_type, typename T::allocator_type,
+		typename std::enable_if_t<std::is_same_v<T,
+		std::basic_string<typename T::value_type, typename T::traits_type, typename T::allocator_type>>>>> : std::true_type {};
+
+	template<class T>
+	inline constexpr bool is_string_v = is_string<std::remove_cv_t<std::remove_reference_t<T>>>::value;
+
+
+	template<typename, typename = void>
 	struct is_string_view : std::false_type {};
 
 	template<typename T>
@@ -190,6 +227,49 @@ namespace asio2::detail
 
 	template<class T>
 	inline constexpr bool is_string_view_v = is_string_view<std::remove_cv_t<std::remove_reference_t<T>>>::value;
+
+
+	template<typename String>
+	inline std::string to_string_host(String&& host)
+	{
+		std::string h;
+		if constexpr (is_string_view_v<String>)
+		{
+			h = { host.data(),host.size() };
+		}
+		else if constexpr (std::is_pointer_v<String>)
+		{
+			if (host) h = host;
+		}
+		else
+		{
+			h = std::forward<String>(host);
+		}
+		return h;
+	}
+
+	template<typename StringOrInt>
+	inline std::string to_string_port(StringOrInt&& port)
+	{
+		std::string p;
+		if constexpr (is_string_view_v<StringOrInt>)
+		{
+			p = { port.data(),port.size() };
+		}
+		else if constexpr (std::is_integral_v<StringOrInt>)
+		{
+			p = std::to_string(port);
+		}
+		else if constexpr (std::is_pointer_v<StringOrInt>)
+		{
+			if (port) p = port;
+		}
+		else
+		{
+			p = std::forward<StringOrInt>(port);
+		}
+		return p;
+	}
 }
 
 // custom specialization of std::hash can be injected in namespace std

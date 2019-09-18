@@ -81,14 +81,13 @@ namespace asio2::detail
 		inline std::future<error_code> _post_timeout_timer(std::chrono::duration<Rep, Period> duration,
 			std::shared_ptr<derived_t> this_ptr, Fn&& fn)
 		{
-			std::ignore = this_ptr;
-
 			std::promise<error_code> promise;
 			std::future<error_code> future = promise.get_future();
 
 			this->timeout_timer_.expires_after(duration);
 			this->timeout_timer_.async_wait(asio::bind_executor(this->timeout_timer_io_.strand(),
-				[this, p = std::move(promise), f = std::forward<Fn>(fn)](const error_code & ec) mutable
+				[this, self_ptr = std::move(this_ptr), p = std::move(promise), f = std::forward<Fn>(fn)]
+			(const error_code & ec) mutable
 			{
 				f(ec);
 				p.set_value(ec);

@@ -80,7 +80,8 @@ namespace asio2::detail
 		 * @param port A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
 		 */
-		bool start(std::string_view host, std::string_view port, std::string_view target = {},
+		template<typename StringOrInt>
+		bool start(std::string_view host, StringOrInt&& port, std::string_view target = {},
 			http::verb method = http::verb::get, unsigned version = 11)
 		{
 			try
@@ -89,11 +90,13 @@ namespace asio2::detail
 				if (!this->state_.compare_exchange_strong(expected, state_t::stopped))
 					asio::detail::throw_error(asio::error::already_started);
 
+				std::string p = to_string_port(std::forward<StringOrInt>(port));
+
 				this->first_req_ = !target.empty();
 				if (this->first_req_)
-					this->req_ = http::make_request(host, port, target, method, version);
+					this->req_ = http::make_request(host, p, target, method, version);
 
-				return this->derived().template _do_connect<false>(host, port, condition_wrap<void>{});
+				return this->derived().template _do_connect<false>(std::move(host), std::move(p), condition_wrap<void>{});
 			}
 			catch (system_error & e)
 			{
@@ -129,7 +132,8 @@ namespace asio2::detail
 				else
 					this->req_.set(http::field::host, host);
 
-				return this->derived().template _do_connect<false>(host, port, condition_wrap<void>{});
+				return this->derived().template _do_connect<false>(std::move(host), std::move(port),
+					condition_wrap<void>{});
 			}
 			catch (system_error & e)
 			{
@@ -145,10 +149,16 @@ namespace asio2::detail
 		 * @param port A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
 		 */
-		void async_start(std::string_view host, std::string_view port, std::string_view target = {},
+		template<typename String, typename StringOrInt>
+		void async_start(String&& host, StringOrInt&& port, String&& target = String{},
 			http::verb method = http::verb::get, unsigned version = 11)
 		{
-			asio::post(this->io_.strand(), [=]()
+			std::string h = to_string_host(std::forward<String>(host));
+			std::string p = to_string_port(std::forward<StringOrInt>(port));
+			std::string t = to_string(std::forward<String>(target));
+
+			asio::post(this->io_.strand(), [this, host = std::move(h), port = std::move(p),
+				target = std::move(t), method, version]()
 			{
 				try
 				{
@@ -169,9 +179,12 @@ namespace asio2::detail
 		/**
 		 * @function : start the client, asynchronous connect to server
 		 */
-		void async_start(std::string_view url, http::verb method = http::verb::get, unsigned version = 11)
+		template<typename String, typename StringOrInt>
+		void async_start(String&& url, http::verb method = http::verb::get, unsigned version = 11)
 		{
-			asio::post(this->io_.strand(), [=]()
+			std::string u = to_string(std::forward<String>(url));
+
+			asio::post(this->io_.strand(), [this, url = std::move(u), method, version]()
 			{
 				try
 				{

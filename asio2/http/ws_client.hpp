@@ -77,9 +77,11 @@ namespace asio2::detail
 		 * @param port A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
 		 */
-		bool start(std::string_view host, std::string_view port)
+		template<typename StringOrInt>
+		bool start(std::string_view host, StringOrInt&& port)
 		{
-			return this->derived().template _do_connect<false>(host, port, condition_wrap<void>{});
+			return this->derived().template _do_connect<false>(host, to_string_port(std::forward<StringOrInt>(port)),
+				condition_wrap<void>{});
 		}
 
 		/**
@@ -89,11 +91,13 @@ namespace asio2::detail
 		 * @param port A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
 		 */
-		void async_start(std::string_view host, std::string_view port)
+		template<typename String, typename StringOrInt>
+		void async_start(String&& host, StringOrInt&& port)
 		{
-			asio::post(this->io_.strand(), [this, host, port]()
+			asio::post(this->io_.strand(), [this, h = to_string_host(std::forward<String>(host)),
+				p = to_string_port(std::forward<StringOrInt>(port))]()
 			{
-				this->derived().template _do_connect<true>(host, port, condition_wrap<void>{});
+				this->derived().template _do_connect<true>(h, p, condition_wrap<void>{});
 			});
 		}
 
