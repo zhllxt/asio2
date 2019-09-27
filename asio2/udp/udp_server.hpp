@@ -111,6 +111,8 @@ namespace asio2::detail
 		inline void stop()
 		{
 			this->derived()._do_stop(asio::error::operation_aborted);
+
+			this->iopool_.wait_iothreads();
 		}
 
 		/**

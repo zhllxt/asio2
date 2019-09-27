@@ -156,6 +156,8 @@ namespace asio2::detail
 			// If you don't do this, you may end up closing the connection while the other side is still sending data.
 			// This will result in an ungraceful close.
 			this->derived()._do_stop(asio::error::operation_aborted);
+
+			this->iopool_.wait_iothreads();
 		}
 
 	public:

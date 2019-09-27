@@ -188,22 +188,49 @@ namespace asio2::detail
 		 */
 		void wait_iothreads()
 		{
+			std::lock_guard<std::mutex> guard(this->mutex_);
+
+			if (this->running_in_iopool_threads())
+				return;
+
 			/*________ Solution A ________*/
 			// first reset the acceptor io_context work guard
-			this->works_[0].reset();
+			if (!this->works_.empty())
+				this->works_[0].reset();
 
 			constexpr auto max = std::chrono::milliseconds(10);
 			constexpr auto min = std::chrono::milliseconds(1);
 
 			// second wait indefinitely until the acceptor io_context is stopped
-			auto t1 = std::chrono::steady_clock::now();
-			asio::io_context & ioc = this->ios_.front().context();
-			while (!ioc.stopped())
+			if (!this->ios_.empty())
 			{
-				auto t2 = std::chrono::steady_clock::now();
-				std::this_thread::sleep_for(
-					(std::max<std::chrono::steady_clock::duration>)(
-					(std::min<std::chrono::steady_clock::duration>)(t2 - t1, max), min));
+				auto t1 = std::chrono::steady_clock::now();
+				asio::io_context & ioc = this->ios_.front().context();
+				while (!ioc.stopped())
+				{
+					auto t2 = std::chrono::steady_clock::now();
+					std::this_thread::sleep_for(
+						(std::max<std::chrono::steady_clock::duration>)(
+						(std::min<std::chrono::steady_clock::duration>)(t2 - t1, max), min));
+				}
+			}
+
+			for (std::size_t i = 1; i < this->works_.size(); ++i)
+			{
+				this->works_[i].reset();
+			}
+
+			for (std::size_t i = 1; i < this->ios_.size(); ++i)
+			{
+				auto t1 = std::chrono::steady_clock::now();
+				asio::io_context & ioc = this->ios_.at(i).context();
+				while (!ioc.stopped())
+				{
+					auto t2 = std::chrono::steady_clock::now();
+					std::this_thread::sleep_for(
+						(std::max<std::chrono::steady_clock::duration>)(
+						(std::min<std::chrono::steady_clock::duration>)(t2 - t1, max), min));
+				}
 			}
 
 			/*________ Solution B ________*/
