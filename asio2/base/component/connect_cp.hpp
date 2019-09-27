@@ -85,7 +85,7 @@ namespace asio2::detail
 					}
 				});
 
-				std::shared_ptr<resolver_type> resolver_ptr = std::make_shared<resolver_type>(socket.get_io_context());
+				std::shared_ptr<resolver_type> resolver_ptr = std::make_shared<resolver_type>(socket.get_executor().context());
 				//typename resolver_type::query query(std::string{ host }, std::string{ port });
 
 				// Before async_resolve execution is complete, we must hold the resolver object.

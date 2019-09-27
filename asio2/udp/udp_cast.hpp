@@ -237,7 +237,7 @@ namespace asio2::detail
 				this->socket_.close(ec_ignore);
 
 				// parse address and port
-				asio::ip::udp::resolver resolver(this->socket_.get_io_context());
+				asio::ip::udp::resolver resolver(this->socket_.get_executor().context());
 				//asio::ip::udp::resolver::query query(host, service,
 				//	asio::ip::resolver_base::flags::passive | asio::ip::resolver_base::flags::address_configured);
 				asio::ip::udp::endpoint endpoint = *resolver.resolve(host, service,
