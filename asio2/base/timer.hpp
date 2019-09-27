@@ -33,6 +33,7 @@
 #include <asio2/base/detail/util.hpp>
 
 #include <asio2/base/component/user_timer_cp.hpp>
+#include <asio2/base/component/post_cp.hpp>
 
 namespace asio2::detail
 {
@@ -41,6 +42,7 @@ namespace asio2::detail
 		: public object_t<derived_t>
 		, public iopool_cp
 		, public user_timer_cp<derived_t, false>
+		, public post_cp<derived_t>
 	{
 		template <class, bool>  friend class user_timer_cp;
 
