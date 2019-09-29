@@ -27,6 +27,9 @@
 		#include <boost/asio/ssl.hpp>
 		#include <boost/beast/websocket/ssl.hpp>
 	#endif
+	#ifndef ASIO_VERSION
+		#define ASIO_VERSION BOOST_ASIO_VERSION
+	#endif
 #endif // ASIO_STANDALONE
 
 

@@ -291,7 +291,11 @@ namespace asio2::detail
 				this->acceptor_.close(ec_ignore);
 
 				// parse address and port
-				asio::ip::tcp::resolver resolver(this->acceptor_.get_executor().context());
+#if defined(ASIO_VERSION) && (ASIO_VERSION > 101202)
+				asio::ip::tcp::resolver resolver(this->acceptor_.get_executor());
+#else
+				asio::ip::tcp::resolver resolver(this->acceptor_.get_io_context());
+#endif
 				//asio::ip::tcp::resolver::query query(host, service,
 				//	asio::ip::resolver_base::flags::passive | asio::ip::resolver_base::flags::address_configured);
 				asio::ip::tcp::endpoint endpoint = *resolver.resolve(host, service,

@@ -239,7 +239,12 @@ namespace asio2::detail
 				this->socket_.close(ec_ignore);
 
 				// parse address and port
-				asio::ip::udp::resolver resolver(this->socket_.get_executor().context());
+#if defined(ASIO_VERSION) && (ASIO_VERSION > 101202)
+				asio::ip::udp::resolver resolver(this->socket_.get_executor());
+#else
+				asio::ip::udp::resolver resolver(this->socket_.get_io_context());
+#endif
+
 				//asio::ip::udp::resolver::query query(host, service,
 				//	asio::ip::resolver_base::flags::passive | asio::ip::resolver_base::flags::address_configured);
 				asio::ip::udp::endpoint endpoint = *resolver.resolve(host, service,
@@ -362,8 +367,8 @@ namespace asio2::detail
 		{
 			// the resolve function is a time-consuming operation
 			asio::ip::udp::resolver resolver(this->io_.context());
-			asio::ip::udp::resolver::query query(host, port);
-			asio::ip::udp::endpoint endpoint = *resolver.resolve(query);
+			asio::ip::udp::endpoint endpoint = *resolver.resolve(host, port,
+				asio::ip::resolver_base::flags::address_configured);
 			return endpoint;
 		}
 
