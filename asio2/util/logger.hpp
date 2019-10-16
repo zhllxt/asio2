@@ -27,6 +27,10 @@
 #include <string>
 #include <filesystem>
 
+#define FMT_HEADER_ONLY
+#include <fmt/format.h>
+#include <fmt/chrono.h>
+
 /*
  * mutex,thread:
  * Linux platform needs to add -lpthread option in link libraries
@@ -227,192 +231,128 @@ namespace asio2
 			return "";
 		}
 
-		inline void log_trace(const char * format, ...)
+		template <typename S, typename... Args>
+		inline void log_trace(const S& format_str, Args&&... args)
 		{
-			if (logger::severity_level::trace >= this->level_ && format && *format)
+			if (logger::severity_level::trace >= this->level_)
 			{
-				va_list args;
-				va_start(args, format);
-
-				this->logv(logger::severity_level::trace, format, args);
-
-				va_end(args);
+				this->log(logger::severity_level::trace, format_str, std::forward<Args>(args)...);
 			}
 		}
 
-		inline void log_debug(const char * format, ...)
+		template <typename S, typename... Args>
+		inline void log_debug(const S& format_str, Args&&... args)
 		{
-			if (logger::severity_level::debug >= this->level_ && format && *format)
+			if (logger::severity_level::debug >= this->level_)
 			{
-				va_list args;
-				va_start(args, format);
-
-				this->logv(logger::severity_level::debug, format, args);
-
-				va_end(args);
+				this->log(logger::severity_level::debug, format_str, std::forward<Args>(args)...);
 			}
 		}
 
-		inline void log_info(const char * format, ...)
+		template <typename S, typename... Args>
+		inline void log_info(const S& format_str, Args&&... args)
 		{
-			if (logger::severity_level::info >= this->level_ && format && *format)
+			if (logger::severity_level::info >= this->level_)
 			{
-				va_list args;
-				va_start(args, format);
-
-				this->logv(logger::severity_level::info, format, args);
-
-				va_end(args);
+				this->log(logger::severity_level::info, format_str, std::forward<Args>(args)...);
 			}
 		}
 
-		inline void log_warn(const char * format, ...)
+		template <typename S, typename... Args>
+		inline void log_warn(const S& format_str, Args&&... args)
 		{
-			if (logger::severity_level::warn >= this->level_ && format && *format)
+			if (logger::severity_level::warn >= this->level_)
 			{
-				va_list args;
-				va_start(args, format);
-
-				this->logv(logger::severity_level::warn, format, args);
-
-				va_end(args);
+				this->log(logger::severity_level::warn, format_str, std::forward<Args>(args)...);
 			}
 		}
 
-		inline void log_error(const char * format, ...)
+		template <typename S, typename... Args>
+		inline void log_error(const S& format_str, Args&&... args)
 		{
-			if (logger::severity_level::error >= this->level_ && format && *format)
+			if (logger::severity_level::error >= this->level_)
 			{
-				va_list args;
-				va_start(args, format);
-
-				this->logv(logger::severity_level::error, format, args);
-
-				va_end(args);
+				this->log(logger::severity_level::error, format_str, std::forward<Args>(args)...);
 			}
 		}
 
-		inline void log_fatal(const char * format, ...)
+		template <typename S, typename... Args>
+		inline void log_fatal(const S& format_str, Args&&... args)
 		{
-			if (logger::severity_level::fatal >= this->level_ && format && *format)
+			if (logger::severity_level::fatal >= this->level_)
 			{
-				va_list args;
-				va_start(args, format);
-
-				this->logv(logger::severity_level::fatal, format, args);
-
-				va_end(args);
+				this->log(logger::severity_level::fatal, format_str, std::forward<Args>(args)...);
 			}
 		}
 
-		inline void log_report(const char * format, ...)
+		template <typename S, typename... Args>
+		inline void log_report(const S& format_str, Args&&... args)
 		{
-			if (logger::severity_level::report >= this->level_ && format && *format)
+			if (logger::severity_level::report >= this->level_)
 			{
-				va_list args;
-				va_start(args, format);
-
-				this->logv(logger::severity_level::report, format, args);
-
-				va_end(args);
+				this->log(logger::severity_level::report, format_str, std::forward<Args>(args)...);
 			}
 		}
 
-		inline void log(severity_level level, const char * format, ...)
+		template <typename S, typename... Args>
+		void log(severity_level level, const S& format_str, Args&&... args)
 		{
-			if (level >= this->level_ && format && *format)
+			if (level < this->level_)
+				return;
+
+			std::time_t t = std::time(nullptr);
+			std::string content;
+			if constexpr (sizeof...(Args) == 0)
 			{
-				va_list args;
-				va_start(args, format);
-
-				this->logv(level, format, args);
-
-				va_end(args);
+				content =
+					fmt::format("[{}] [{:%Y-%m-%d %H:%M:%S}] ", level2severity(level), *std::localtime(&t)) +
+					fmt::format("{}", format_str) +
+					this->endl_;
 			}
-		}
-
-		inline void logv(severity_level level, const char * format, va_list args)
-		{
-			if (level >= this->level_ && format && *format && this->dest_ != 0)
+			else
 			{
-				va_list args_copy;
-				va_copy(args_copy, args);
+				content =
+					fmt::format("[{}] [{:%Y-%m-%d %H:%M:%S}] ", level2severity(level), *std::localtime(&t)) +
+					fmt::format(format_str, std::forward<Args>(args)...) +
+					this->endl_;
+			}
 
-				std::string s;
-				int len = std::vsnprintf(nullptr, 0, format, args_copy);
-				if (len > 0)
+			std::lock_guard<std::mutex> g(this->lock_);
+			// call user defined target function
+			if (this->target_)
+			{
+				this->target_(content);
+			}
+			// print log into the console window
+			if ((this->dest_ & dest::dest_mask) & console)
+			{
+				// don't use std::cout and printf together.
+				//std::cout << content << std::endl;
+				//std::printf("%.*s", static_cast<int>(content.size()), content.data());
+				fmt::print("{}", content);
+			}
+			// save log into the file
+			if ((this->dest_ & dest::dest_mask) & file)
+			{
+				if (this->file_.is_open())
 				{
-					s.resize(len);
+					this->file_.write(content.data(), content.size());
+					this->size_ += content.size();
 
-					va_copy(args_copy, args);
-					std::vsprintf((char*)s.data(), format, args_copy);
-
-					this->log(level, s);
-				}
-			}
-		}
-
-		void log(severity_level level, const std::string & s)
-		{
-			if (level >= this->level_)
-			{
-				static const std::size_t head_len = std::strlen("[") + std::strlen(level2severity(level)) +
-					std::strlen("]") + std::strlen(" [YYYY-mm-dd HH:MM:SS] ") + this->endl_.size();
-
-				std::string content;
-				
-				content.reserve(head_len + s.size());
-
-				time_t t;
-				time(&t);                 /* Get time in seconds */
-				struct tm tm = *localtime(&t);  /* Convert time to struct */
-				char tmbuf[20] = { 0 };
-				strftime(tmbuf, 20, "%Y-%m-%d %H:%M:%S", &tm);
-
-				content += "[";
-				content += level2severity(level);
-				content += "] [";
-				content += tmbuf;
-				content += "] ";
-				content += s;
-				content += this->endl_;
-
-				std::lock_guard<std::mutex> g(this->lock_);
-				// call user defined target function
-				if (this->target_)
-				{
-					this->target_(content);
-				}
-				// print log into the console window
-				if ((this->dest_ & dest::dest_mask) & console)
-				{
-					// don't use std::cout and printf together.
-					//std::cout << content << std::endl;
-					std::printf("%.*s", static_cast<int>(content.size()), content.data());
-				}
-				// save log into the file
-				if ((this->dest_ & dest::dest_mask) & file)
-				{
-					if (this->file_.is_open())
+					// if file size is too large,close this file,and create a new file.
+					if (this->size_ > this->roll_size_)
 					{
-						this->file_.write(content.data(), content.size());
-						this->size_ += content.size();
-
-						// if file size is too large,close this file,and create a new file.
-						if (this->size_ > this->roll_size_)
-						{
 #if defined(ASIO2_LOGGER_MULTI_MODULE)
-							this->mkflag_ = true;
+						this->mkflag_ = true;
 
-							while (this->mkflag_)
-							{
-								std::this_thread::sleep_for(std::chrono::milliseconds(1));
+						while (this->mkflag_)
+						{
+							std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
-								this->cv_.notify_one();
-							}
-#endif
-							this->mkfile();
+							this->cv_.notify_one();
 						}
+#endif
+						this->mkfile();
 					}
 				}
 			}
