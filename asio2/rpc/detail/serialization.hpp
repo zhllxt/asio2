@@ -30,6 +30,7 @@ namespace asio2::detail
 	{
 	public:
 		using string_type = std::basic_string<char_type, traits_type>;
+		using size_type = typename string_type::size_type;
 
 		strbuf() {}
 		~strbuf() = default;
@@ -57,7 +58,7 @@ namespace asio2::detail
 	protected:
 		virtual std::streamsize xsputn(const char_type* s, std::streamsize count) override
 		{
-			this->str_.append(s, count);
+			this->str_.append(s, size_type(count));
 			return count;
 		}
 		//virtual int_type overflow(int_type ch = traits_type::eof()) override

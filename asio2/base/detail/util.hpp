@@ -232,12 +232,13 @@ namespace asio2::detail
 	template<typename String>
 	inline std::string to_string_host(String&& host)
 	{
+		using type = std::remove_cv_t<std::remove_reference_t<String>>;
 		std::string h;
-		if constexpr (is_string_view_v<String>)
+		if constexpr (is_string_view_v<type>)
 		{
 			h = { host.data(),host.size() };
 		}
-		else if constexpr (std::is_pointer_v<String>)
+		else if constexpr (std::is_pointer_v<type>)
 		{
 			if (host) h = host;
 		}
@@ -251,16 +252,17 @@ namespace asio2::detail
 	template<typename StringOrInt>
 	inline std::string to_string_port(StringOrInt&& port)
 	{
+		using type = std::remove_cv_t<std::remove_reference_t<StringOrInt>>;
 		std::string p;
-		if constexpr (is_string_view_v<StringOrInt>)
+		if constexpr (is_string_view_v<type>)
 		{
 			p = { port.data(),port.size() };
 		}
-		else if constexpr (std::is_integral_v<StringOrInt>)
+		else if constexpr (std::is_integral_v<type>)
 		{
 			p = std::to_string(port);
 		}
-		else if constexpr (std::is_pointer_v<StringOrInt>)
+		else if constexpr (std::is_pointer_v<type>)
 		{
 			if (port) p = port;
 		}

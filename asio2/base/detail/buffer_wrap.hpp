@@ -9,6 +9,10 @@
 #ifndef __ASIO2_BUFFER_WRAP_HPP__
 #define __ASIO2_BUFFER_WRAP_HPP__
 
+#if defined(_MSC_VER) && (_MSC_VER >= 1200)
+#pragma once
+#endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
+
 #include <cstddef>
 #include <limits>
 #include <memory>
