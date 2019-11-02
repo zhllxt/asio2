@@ -218,7 +218,7 @@ namespace asio2::detail
 				if (!this->wio_.strand().running_in_this_thread())
 				{
 					asio::post(this->wio_.strand(), make_allocator(derive.wallocator(),
-						[this, p = this->_mkptr(), req = std::move(req), cb = std::move(cb)]() mutable
+						[this, p = derive.selfptr(), req = std::move(req), cb = std::move(cb)]() mutable
 					{
 						if (derive.send((sr_.reset() << req).str()))
 						{
@@ -238,7 +238,7 @@ namespace asio2::detail
 					{
 						ec = asio::error::timed_out;
 						asio::post(this->wio_.strand(), make_allocator(derive.wallocator(),
-							[this, p = this->_mkptr(), id]()
+							[this, p = derive.selfptr(), id]()
 						{
 							this->reqs_.erase(id);
 						}));
@@ -313,7 +313,7 @@ namespace asio2::detail
 			header::id_type id = derive.mkid();
 
 			std::shared_ptr<asio::steady_timer> timer = mktimer(this->wio_, timeout,
-				[this, p = this->_mkptr(), id](const error_code& ec)
+				[this, p = derive.selfptr(), id](const error_code& ec)
 			{
 				if (ec == asio::error::operation_aborted)
 					return false;
@@ -328,7 +328,13 @@ namespace asio2::detail
 
 			auto cb = [this, id, timer, fn = std::forward<Callback>(fn)](error_code ec, std::string_view s) mutable
 			{
-				timer->cancel(ec_ignore);
+				try
+				{
+					timer->cancel();
+				}
+				catch (system_error &) {}
+				catch (std::exception &) {}
+
 				typename result_t<T>::type v{};
 				if (!ec)
 				{
@@ -359,7 +365,7 @@ namespace asio2::detail
 
 				request<Args...> req(id, std::move(name), std::forward<Args>(args)...);
 
-				auto task = [this, p = this->_mkptr(), req = std::move(req), cb = std::move(cb)]() mutable
+				auto task = [this, p = derive.selfptr(), req = std::move(req), cb = std::move(cb)]() mutable
 				{
 					if (derive.send((sr_.reset() << req).str()))
 					{
@@ -386,15 +392,6 @@ namespace asio2::detail
 			set_last_error(ec);
 
 			cb(ec, std::string_view{});
-		}
-
-	protected:
-		inline std::shared_ptr<derived_t> _mkptr()
-		{
-			if constexpr (isSession)
-				return derive.shared_from_this();
-			else
-				return std::shared_ptr<derived_t>{};
 		}
 
 	protected:

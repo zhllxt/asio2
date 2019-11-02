@@ -425,9 +425,6 @@ namespace asio2::detail
 
 		void _post_send()
 		{
-			if (!this->is_started())
-				return;
-
 			// if ncount_ is equal to max, infinite send
 			if (this->ncount_ != std::size_t(-1))
 			{
@@ -591,6 +588,7 @@ namespace asio2::detail
 		inline handler_memory<> & rallocator() { return this->rallocator_; }
 		inline listener_t                 & listener() { return this->listener_; }
 		inline std::atomic<state_t>       & state()    { return this->state_;    }
+		inline std::shared_ptr<derived_t>   selfptr()  { return std::shared_ptr<derived_t>{}; }
 
 	protected:
 		/// socket 

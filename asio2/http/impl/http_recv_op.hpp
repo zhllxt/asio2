@@ -27,7 +27,7 @@
 
 namespace asio2::detail
 {
-	template<class derived_t, class body_t, class buffer_t, bool isRequest>
+	template<class derived_t, class body_t, class buffer_t, bool isSession>
 	class http_recv_op
 	{
 	public:
@@ -49,7 +49,7 @@ namespace asio2::detail
 			{
 				try
 				{
-					if constexpr (isRequest)
+					if constexpr (isSession)
 					{
 						// Make the request empty before reading,
 						// otherwise the operation behavior is undefined.
@@ -100,7 +100,7 @@ namespace asio2::detail
 				// every times recv data,we update the last active time.
 				derive.reset_active_time();
 
-				if constexpr (isRequest)
+				if constexpr (isSession)
 				{
 					derive._fire_recv(this_ptr, derive.req_);
 					if (derive.req_.need_eof() || !derive.req_.keep_alive())

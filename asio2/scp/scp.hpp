@@ -66,9 +66,10 @@ namespace asio2::detail
 		, public tcp_send_op<derived_t, false>
 		, public tcp_recv_op<derived_t, false>
 	{
-		template <class, bool> friend class user_timer_cp;
-		template <class> friend class post_cp;
-		template <class, bool> friend class send_cp;
+		template <class, bool>         friend class user_timer_cp;
+		template <class>               friend class post_cp;
+		template <class, bool>         friend class send_queue_cp;
+		template <class, bool>         friend class send_cp;
 		template <class, bool>         friend class tcp_send_op;
 		template <class, bool>         friend class tcp_recv_op;
 
@@ -376,22 +377,10 @@ namespace asio2::detail
 			});
 		}
 
-		template<class ConstBufferSequence>
-		inline bool _do_send(ConstBufferSequence buffer)
+		template<class Data, class Callback>
+		inline bool _do_send(Data& data, Callback&& callback)
 		{
-			return this->derived()._tcp_send(buffer);
-		}
-
-		template<class ConstBufferSequence, class Callback>
-		inline bool _do_send(ConstBufferSequence buffer, Callback& fn)
-		{
-			return this->derived()._tcp_send(buffer, fn);
-		}
-
-		template<class ConstBufferSequence>
-		inline bool _do_send(ConstBufferSequence buffer, std::promise<std::pair<error_code, std::size_t>>& promise)
-		{
-			return this->derived()._tcp_send(buffer, promise);
+			return this->derived()._tcp_send(data, std::forward<Callback>(callback));
 		}
 
 	protected:
@@ -448,6 +437,7 @@ namespace asio2::detail
 
 		inline listener_t                 & listener() { return this->listener_; }
 		inline std::atomic<state_t>       & state()    { return this->state_;    }
+		inline std::shared_ptr<derived_t>   selfptr()  { return std::shared_ptr<derived_t>{}; }
 
 	protected:
 		/// socket 

@@ -45,145 +45,31 @@ namespace asio2::detail
 		~http_send_op() = default;
 
 	protected:
-		template<bool isRequest, class Stream, class ConstBufferSequence>
-		inline bool _http_send(Stream& stream, ConstBufferSequence buffer)
+		template<bool isRequest, class Stream, class Data, class Callback>
+		inline bool _http_send(Stream& stream, Data& data, Callback&& callback)
 		{
-			http::message<isRequest, body_type> msg{};
-			if (!derive.is_started())
-			{
-				set_last_error(asio::error::not_connected);
-				return false;
-			}
-			error_code ec;
-			if constexpr (isRequest)
-				msg = http::make_request<body_type>(std::string_view(
-					reinterpret_cast<std::string_view::const_pointer>(buffer.data()), buffer.size()), ec);
-			else
-				msg = http::make_response<body_type>(std::string_view(
-					reinterpret_cast<std::string_view::const_pointer>(buffer.data()), buffer.size()), ec);
-			if (ec)
+			using msg_type = std::remove_cv_t<std::remove_reference_t<decltype(data())>>;
+#if defined(ASIO2_SEND_CORE_ASYNC)
+			http::async_write(stream, const_cast<msg_type&>(data()), asio::bind_executor(derive.io().strand(),
+				make_allocator(derive.wallocator(),
+					[this, p = derive.selfptr(), callback = std::forward<Callback>(callback)]
+			(const error_code& ec, std::size_t bytes_sent) mutable
 			{
 				set_last_error(ec);
-				return false;
-			}
-			http::serializer<isRequest, body_type> sr{ msg };
-			http::write(stream, sr, ec);
-			set_last_error(ec);
-			return (!ec.operator bool());
-		}
 
-		template<bool isRequest, class Stream, class ConstBufferSequence, class Callback>
-		inline bool _http_send(Stream& stream, ConstBufferSequence buffer, Callback& fn)
-		{
-			http::message<isRequest, body_type> msg{};
-			if (!derive.is_started())
-			{
-				set_last_error(asio::error::not_connected);
-				callback_helper::call(fn, 0);
-				return false;
-			}
-			error_code ec;
-			if constexpr (isRequest)
-				msg = http::make_request<body_type>(std::string_view(
-					reinterpret_cast<std::string_view::const_pointer>(buffer.data()), buffer.size()), ec);
-			else
-				msg = http::make_response<body_type>(std::string_view(
-					reinterpret_cast<std::string_view::const_pointer>(buffer.data()), buffer.size()), ec);
-			if (ec)
-			{
-				set_last_error(ec);
-				callback_helper::call(fn, 0);
-				return false;
-			}
-			http::serializer<isRequest, body_type> sr{ msg };
-			std::size_t sent_bytes = http::write(stream, sr, ec);
-			set_last_error(ec);
-			callback_helper::call(fn, sent_bytes);
-			return (!ec.operator bool());
-		}
+				callback(ec, bytes_sent);
 
-		template<bool isRequest, class Stream, class ConstBufferSequence>
-		inline bool _http_send(Stream& stream, ConstBufferSequence buffer,
-			std::promise<std::pair<error_code, std::size_t>>& promise)
-		{
-			http::message<isRequest, body_type> msg{};
-			if (!derive.is_started())
-			{
-				set_last_error(asio::error::not_connected);
-				promise.set_value(std::pair<error_code, std::size_t>(asio::error::not_connected, 0));
-				return false;
-			}
-			error_code ec;
-			if constexpr (isRequest)
-				msg = http::make_request<body_type>(std::string_view(
-					reinterpret_cast<std::string_view::const_pointer>(buffer.data()), buffer.size()), ec);
-			else
-				msg = http::make_response<body_type>(std::string_view(
-					reinterpret_cast<std::string_view::const_pointer>(buffer.data()), buffer.size()), ec);
-			if (ec)
-			{
-				set_last_error(ec);
-				promise.set_value(std::pair<error_code, std::size_t>(ec, 0));
-				return false;
-			}
-			http::serializer<isRequest, body_type> sr{ msg };
-			std::size_t sent_bytes = http::write(stream, sr, ec);
-			set_last_error(ec);
-			promise.set_value(std::pair<error_code, std::size_t>(ec, sent_bytes));
-			return (!ec.operator bool());
-		}
-
-		template<bool isRequest, class Body, class Fields, class Stream>
-		inline bool _http_send(Stream& stream, http::message<isRequest, Body, Fields>& msg)
-		{
-			if (!derive.is_started())
-			{
-				set_last_error(asio::error::not_connected);
-				return false;
-			}
+				derive._send_dequeue();
+			})));
+			return true;
+#else
 			error_code ec;
 			// Write the response
-			http::serializer<isRequest, Body, Fields> sr{ msg };
-			http::write(stream, sr, ec);
+			std::size_t bytes_sent = http::write(stream, const_cast<msg_type&>(data()), ec);
 			set_last_error(ec);
-			return (!ec.operator bool());
-		}
-
-		template<bool isRequest, class Body, class Fields, class Stream, class Callback>
-		inline bool _http_send(Stream& stream, http::message<isRequest, Body, Fields>& msg, Callback& fn)
-		{
-			if (!derive.is_started())
-			{
-				set_last_error(asio::error::not_connected);
-				callback_helper::call(fn, 0);
-				return false;
-			}
-			error_code ec;
-			// Write the response
-			http::serializer<isRequest, Body, Fields> sr{ msg };
-			std::size_t sent_bytes = http::write(stream, sr, ec);
-			set_last_error(ec);
-			callback_helper::call(fn, sent_bytes);
-			return (!ec.operator bool());
-		}
-
-		template<bool isRequest, class Body, class Fields, class Stream>
-		inline bool _http_send(Stream& stream, http::message<isRequest, Body, Fields>& msg,
-			std::promise<std::pair<error_code, std::size_t>>& promise)
-		{
-			if (!derive.is_started())
-			{
-				set_last_error(asio::error::not_connected);
-				promise.set_value(std::pair<error_code, std::size_t>(asio::error::not_connected, 0));
-				return false;
-			}
-			error_code ec;
-			// Write the response
-			http::serializer<isRequest, Body, Fields> sr{ msg };
-			std::size_t sent_bytes = http::write(stream, sr, ec);
-			set_last_error(ec);
-			promise.set_value(std::pair<error_code, std::size_t>(ec, sent_bytes));
-			return (!ec.operator bool());
+			callback(ec, bytes_sent);
+			return (!bool(ec));
+#endif
 		}
 
 	protected:

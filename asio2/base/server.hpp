@@ -251,6 +251,7 @@ namespace asio2::detail
 		inline session_mgr_t<session_t> & sessions() { return this->sessions_; }
 		inline listener_t               & listener() { return this->listener_; }
 		inline std::atomic<state_t>     & state()    { return this->state_;    }
+		inline std::shared_ptr<derived_t> selfptr()  { return std::shared_ptr<derived_t>{}; }
 
 	protected:
 		// The memory to use for handler-based custom memory allocation. used for acceptor.

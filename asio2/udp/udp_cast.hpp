@@ -60,10 +60,11 @@ namespace asio2::detail
 		, public udp_send_cp<derived_t, false>
 		, public udp_send_op<derived_t, false>
 	{
-		template <class, bool> friend class user_timer_cp;
-		template <class, bool> friend class udp_send_cp;
-		template <class, bool> friend class udp_send_op;
-		template <class> friend class post_cp;
+		template <class, bool>         friend class user_timer_cp;
+		template <class, bool>         friend class send_queue_cp;
+		template <class, bool>         friend class udp_send_cp;
+		template <class, bool>         friend class udp_send_op;
+		template <class>               friend class post_cp;
 
 	public:
 		using self = udp_cast_impl_t<derived_t, socket_t, buffer_t>;
@@ -109,11 +110,11 @@ namespace asio2::detail
 		 * @param service A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
 		 */
-		template<typename StringOrInt>
-		inline bool start(StringOrInt&& service)
+		template<typename StrOrInt>
+		inline bool start(StrOrInt&& service)
 		{
 			return this->derived()._do_start(std::string_view{},
-				to_string_port(std::forward<StringOrInt>(service)), condition_wrap<void>{});
+				to_string_port(std::forward<StrOrInt>(service)), condition_wrap<void>{});
 		}
 
 		/**
@@ -123,11 +124,11 @@ namespace asio2::detail
 		 * @param service A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
 		 */
-		template<typename StringOrInt>
-		inline bool start(std::string_view host, StringOrInt&& service)
+		template<typename StrOrInt>
+		inline bool start(std::string_view host, StrOrInt&& service)
 		{
 			return this->derived()._do_start(host,
-				to_string_port(std::forward<StringOrInt>(service)), condition_wrap<void>{});
+				to_string_port(std::forward<StrOrInt>(service)), condition_wrap<void>{});
 		}
 
 		/**
@@ -239,14 +240,7 @@ namespace asio2::detail
 				this->socket_.close(ec_ignore);
 
 				// parse address and port
-#if defined(ASIO_VERSION) && (ASIO_VERSION > 101202)
-				asio::ip::udp::resolver resolver(this->socket_.get_executor());
-#else
-				asio::ip::udp::resolver resolver(this->socket_.get_io_context());
-#endif
-
-				//asio::ip::udp::resolver::query query(host, service,
-				//	asio::ip::resolver_base::flags::passive | asio::ip::resolver_base::flags::address_configured);
+				asio::ip::udp::resolver resolver(this->io_.context());
 				asio::ip::udp::endpoint endpoint = *resolver.resolve(host, service,
 					asio::ip::resolver_base::flags::passive | asio::ip::resolver_base::flags::address_configured).begin();
 
@@ -363,66 +357,10 @@ namespace asio2::detail
 		}
 
 	protected:
-		inline asio::ip::udp::endpoint to_endpoint(const std::string& host, const std::string& port)
+		template<class Endpoint, class Data, class Callback>
+		inline bool _do_send(Endpoint& endpoint, Data& data, Callback&& callback)
 		{
-			// the resolve function is a time-consuming operation
-			asio::ip::udp::resolver resolver(this->io_.context());
-			asio::ip::udp::endpoint endpoint = *resolver.resolve(host, port,
-				asio::ip::resolver_base::flags::address_configured);
-			return endpoint;
-		}
-
-		template<class ConstBufferSequence>
-		inline bool _do_send(const std::string& host, const std::string& port, ConstBufferSequence buffer)
-		{
-			try
-			{
-				return this->derived()._do_send(to_endpoint(host, port), buffer);
-			}
-			catch (system_error & e) { set_last_error(e); }
-			return false;
-		}
-
-		template<class ConstBufferSequence, class Callback>
-		inline bool _do_send(const std::string& host, const std::string& port, ConstBufferSequence buffer, Callback& fn)
-		{
-			try
-			{
-				return this->derived()._do_send(to_endpoint(host, port), buffer, fn);
-			}
-			catch (system_error & e) { set_last_error(e); }
-			return false;
-		}
-
-		template<class ConstBufferSequence>
-		inline bool _do_send(const std::string& host, const std::string& port,
-			ConstBufferSequence buffer, std::promise<std::pair<error_code, std::size_t>>& promise)
-		{
-			try
-			{
-				return this->derived()._do_send(to_endpoint(host, port), buffer, promise);
-			}
-			catch (system_error & e) { set_last_error(e); }
-			return false;
-		}
-
-		template<class ConstBufferSequence>
-		inline bool _do_send(const asio::ip::udp::endpoint& endpoint, ConstBufferSequence buffer)
-		{
-			return this->derived()._udp_send_to(endpoint, buffer);
-		}
-
-		template<class ConstBufferSequence, class Callback>
-		inline bool _do_send(const asio::ip::udp::endpoint& endpoint, ConstBufferSequence buffer, Callback& fn)
-		{
-			return this->derived()._udp_send_to(endpoint, buffer, fn);
-		}
-
-		template<class ConstBufferSequence>
-		inline bool _do_send(const asio::ip::udp::endpoint& endpoint,
-			ConstBufferSequence buffer, std::promise<std::pair<error_code, std::size_t>>& promise)
-		{
-			return this->derived()._udp_send_to(endpoint, buffer, promise);
+			return this->derived()._udp_send_to(endpoint, data, std::forward<Callback>(callback));
 		}
 
 	protected:
@@ -518,7 +456,8 @@ namespace asio2::detail
 		inline auto & wallocator() { return this->wallocator_; }
 
 		inline listener_t                 & listener() { return this->listener_; }
-		inline std::atomic<state_t>       & state() { return this->state_; }
+		inline std::atomic<state_t>       & state()    { return this->state_; }
+		inline std::shared_ptr<derived_t>   selfptr()  { return std::shared_ptr<derived_t>{}; }
 
 	protected:
 		/// The memory to use for handler-based custom memory allocation. used fo recv/read.

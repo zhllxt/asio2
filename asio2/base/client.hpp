@@ -65,11 +65,12 @@ namespace asio2::detail
 		, public send_cp<derived_t, false>
 		, public post_cp<derived_t>
 	{
-		template <class, bool>  friend class user_timer_cp;
-		template <class, bool>  friend class connect_timeout_cp;
-		template <class, class> friend class connect_cp;
-		template <class, bool>  friend class send_cp;
-		template <class> friend class post_cp;
+		template <class, bool>         friend class user_timer_cp;
+		template <class, bool>         friend class connect_timeout_cp;
+		template <class, class>        friend class connect_cp;
+		template <class, bool>         friend class send_queue_cp;
+		template <class, bool>         friend class send_cp;
+		template <class>               friend class post_cp;
 
 	public:
 		using self = client_impl_t<derived_t, socket_t, buffer_t>;
@@ -181,6 +182,7 @@ namespace asio2::detail
 
 		inline listener_t                 & listener() { return this->listener_; }
 		inline std::atomic<state_t>       & state()    { return this->state_;    }
+		inline std::shared_ptr<derived_t>   selfptr()  { return std::shared_ptr<derived_t>{}; }
 
 	protected:
 		/// The memory to use for handler-based custom memory allocation. used fo recv/read.

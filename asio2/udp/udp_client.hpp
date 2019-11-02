@@ -26,13 +26,14 @@ namespace asio2::detail
 		: public client_impl_t<derived_t, socket_t, buffer_t>
 		, public udp_send_op<derived_t, false>
 	{
-		template <class, bool>  friend class user_timer_cp;
-		template <class, bool>  friend class connect_timeout_cp;
-		template <class, class> friend class connect_cp;
-		template <class, bool>  friend class send_cp;
-		template <class, bool>  friend class udp_send_op;
-		template <class, bool>  friend class kcp_stream_cp;
-		template <class, class, class> friend class client_impl_t;
+		template <class, bool>                friend class user_timer_cp;
+		template <class, bool>                friend class connect_timeout_cp;
+		template <class, class>               friend class connect_cp;
+		template <class, bool>                friend class send_queue_cp;
+		template <class, bool>                friend class send_cp;
+		template <class, bool>                friend class udp_send_op;
+		template <class, bool>                friend class kcp_stream_cp;
+		template <class, class, class>        friend class client_impl_t;
 
 	public:
 		using self = udp_client_impl_t<derived_t, socket_t, buffer_t>;
@@ -68,11 +69,11 @@ namespace asio2::detail
 		 * @param port A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
 		 */
-		template<typename StringOrInt>
-		bool start(std::string_view host, StringOrInt&& port)
+		template<typename StrOrInt>
+		bool start(std::string_view host, StrOrInt&& port)
 		{
 			return this->derived().template _do_connect<false>(host,
-				to_string_port(std::forward<StringOrInt>(port)), condition_wrap<void>{});
+				to_string_port(std::forward<StrOrInt>(port)), condition_wrap<void>{});
 		}
 
 		/**
@@ -82,11 +83,11 @@ namespace asio2::detail
 		 * @param port A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
 		 */
-		template<typename StringOrInt>
-		bool start(std::string_view host, StringOrInt&& port, use_kcp_t c)
+		template<typename StrOrInt>
+		bool start(std::string_view host, StrOrInt&& port, use_kcp_t c)
 		{
 			return this->derived().template _do_connect<false>(host,
-				to_string_port(std::forward<StringOrInt>(port)), condition_wrap<use_kcp_t>(c));
+				to_string_port(std::forward<StrOrInt>(port)), condition_wrap<use_kcp_t>(c));
 		}
 
 		/**
@@ -96,11 +97,11 @@ namespace asio2::detail
 		 * @param port A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
 		 */
-		template<typename String, typename StringOrInt>
-		void async_start(String&& host, StringOrInt&& port)
+		template<typename String, typename StrOrInt>
+		void async_start(String&& host, StrOrInt&& port)
 		{
 			asio::post(this->io_.strand(), [this, h = to_string_host(std::forward<String>(host)),
-				p = to_string_port(std::forward<StringOrInt>(port))]()
+				p = to_string_port(std::forward<StrOrInt>(port))]()
 			{
 				this->derived().template _do_connect<true>(h, p, condition_wrap<void>{});
 			});
@@ -113,11 +114,11 @@ namespace asio2::detail
 		 * @param port A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
 		 */
-		template<typename String, typename StringOrInt>
-		void async_start(String&& host, StringOrInt&& port, use_kcp_t c)
+		template<typename String, typename StrOrInt>
+		void async_start(String&& host, StrOrInt&& port, use_kcp_t c)
 		{
 			asio::post(this->io_.strand(), [this, h = to_string_host(std::forward<String>(host)),
-				p = to_string_port(std::forward<StringOrInt>(port)), c]()
+				p = to_string_port(std::forward<StrOrInt>(port)), c]()
 			{
 				this->derived().template _do_connect<true>(h, p, condition_wrap<use_kcp_t>(c));
 			});
@@ -362,28 +363,12 @@ namespace asio2::detail
 			});
 		}
 
-		template<class ConstBufferSequence>
-		inline bool _do_send(ConstBufferSequence buffer)
+		template<class Data, class Callback>
+		inline bool _do_send(Data& data, Callback&& callback)
 		{
 			if (!this->kcp_)
-				return this->derived()._udp_send(buffer);
-			return this->kcp_->_kcp_send(buffer);
-		}
-
-		template<class ConstBufferSequence, class Callback>
-		inline bool _do_send(ConstBufferSequence buffer, Callback& fn)
-		{
-			if (!this->kcp_)
-				return this->derived()._udp_send(buffer, fn);
-			return this->kcp_->_kcp_send(buffer, fn);
-		}
-
-		template<class ConstBufferSequence>
-		inline bool _do_send(ConstBufferSequence buffer, std::promise<std::pair<error_code, std::size_t>>& promise)
-		{
-			if (!this->kcp_)
-				return this->derived()._udp_send(buffer, promise);
-			return this->kcp_->_kcp_send(buffer, promise);
+				return this->derived()._udp_send(data, std::forward<Callback>(callback));
+			return this->kcp_->_kcp_send(data, std::forward<Callback>(callback));
 		}
 
 	protected:

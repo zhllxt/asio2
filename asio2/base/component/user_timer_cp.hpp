@@ -77,7 +77,7 @@ namespace asio2::detail
 		{
 			std::function<void()> t = std::bind(std::forward<Fun>(fun), std::forward<Args>(args)...);
 
-			auto fn = [this, this_ptr = this->_mkptr(), timer_id, duration, task = std::move(t)]()
+			auto fn = [this, this_ptr = derive.selfptr(), timer_id, duration, task = std::move(t)]()
 			{
 				if constexpr (has_mfn_is_started<derived_t>::value)
 				{
@@ -107,7 +107,7 @@ namespace asio2::detail
 			// Make sure we run on the strand
 			if (!this->user_timer_io_.strand().running_in_this_thread())
 				return asio::post(this->user_timer_io_.strand(),
-					[this, this_ptr = this->_mkptr(), timer_id]()
+					[this, this_ptr = derive.selfptr(), timer_id]()
 			{
 				this->stop_timer(timer_id);
 			});
@@ -128,7 +128,7 @@ namespace asio2::detail
 		{
 			if (!this->user_timer_io_.strand().running_in_this_thread())
 				return asio::post(this->user_timer_io_.strand(),
-					[this, this_ptr = this->_mkptr()]()
+					[this, this_ptr = derive.selfptr()]()
 			{
 				this->stop_all_timers();
 			});
@@ -174,15 +174,6 @@ namespace asio2::detail
 				return;
 
 			derive._post_user_timers(std::move(timer_obj_ptr), duration, std::move(this_ptr));
-		}
-
-	protected:
-		inline std::shared_ptr<derived_t> _mkptr()
-		{
-			if constexpr (isSession)
-				return derive.shared_from_this();
-			else
-				return std::shared_ptr<derived_t>{};
 		}
 
 	protected:

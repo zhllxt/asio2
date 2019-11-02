@@ -60,10 +60,10 @@ namespace asio2::detail
 		 * @param service A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
 		 */
-		template<typename StringOrInt>
-		inline bool start(StringOrInt&& service)
+		template<typename StrOrInt>
+		inline bool start(StrOrInt&& service)
 		{
-			return this->start(std::string_view{}, to_string_port(std::forward<StringOrInt>(service)));
+			return this->start(std::string_view{}, to_string_port(std::forward<StrOrInt>(service)));
 		}
 
 		/**
@@ -73,10 +73,10 @@ namespace asio2::detail
 		 * @param service A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
 		 */
-		template<typename StringOrInt>
-		inline bool start(std::string_view host, StringOrInt&& service)
+		template<typename StrOrInt>
+		inline bool start(std::string_view host, StrOrInt&& service)
 		{
-			return this->derived()._do_start(host, to_string_port(std::forward<StringOrInt>(service)),
+			return this->derived()._do_start(host, to_string_port(std::forward<StrOrInt>(service)),
 				condition_wrap<asio::detail::transfer_at_least_t>{asio::transfer_at_least(1)});
 		}
 
@@ -90,10 +90,10 @@ namespace asio2::detail
 		 * asio::transfer_at_least,asio::transfer_exactly
 		 * more details see asio::read_until
 		 */
-		template<typename StringOrInt, typename MatchCondition>
-		inline bool start(StringOrInt&& service, MatchCondition condition)
+		template<typename StrOrInt, typename MatchCondition>
+		inline bool start(StrOrInt&& service, MatchCondition condition)
 		{
-			return this->start(std::string_view{}, to_string_port(std::forward<StringOrInt>(service)), condition);
+			return this->start(std::string_view{}, to_string_port(std::forward<StrOrInt>(service)), condition);
 		}
 
 		/**
@@ -108,10 +108,10 @@ namespace asio2::detail
 		 * asio::transfer_at_least,asio::transfer_exactly
 		 * more details see asio::read_until
 		 */
-		template<typename StringOrInt, typename MatchCondition>
-		inline bool start(std::string_view host, StringOrInt&& service, MatchCondition condition)
+		template<typename StrOrInt, typename MatchCondition>
+		inline bool start(std::string_view host, StrOrInt&& service, MatchCondition condition)
 		{
-			return this->derived()._do_start(host, to_string_port(std::forward<StringOrInt>(service)),
+			return this->derived()._do_start(host, to_string_port(std::forward<StrOrInt>(service)),
 				condition_wrap<MatchCondition>(condition));
 		}
 
@@ -291,13 +291,7 @@ namespace asio2::detail
 				this->acceptor_.close(ec_ignore);
 
 				// parse address and port
-#if defined(ASIO_VERSION) && (ASIO_VERSION > 101202)
-				asio::ip::tcp::resolver resolver(this->acceptor_.get_executor());
-#else
-				asio::ip::tcp::resolver resolver(this->acceptor_.get_io_context());
-#endif
-				//asio::ip::tcp::resolver::query query(host, service,
-				//	asio::ip::resolver_base::flags::passive | asio::ip::resolver_base::flags::address_configured);
+				asio::ip::tcp::resolver resolver(this->io_.context());
 				asio::ip::tcp::endpoint endpoint = *resolver.resolve(host, service,
 					asio::ip::resolver_base::flags::passive | asio::ip::resolver_base::flags::address_configured).begin();
 
@@ -401,8 +395,13 @@ namespace asio2::detail
 
 			this->derived()._fire_stop(ec);
 
-			this->acceptor_timer_.cancel(ec_ignore);
-			this->counter_timer_.cancel(ec_ignore);
+			try
+			{
+				this->acceptor_timer_.cancel();
+				this->counter_timer_.cancel();
+			}
+			catch (system_error &) {}
+			catch (std::exception &) {}
 
 			// call the base class stop function
 			super::stop();

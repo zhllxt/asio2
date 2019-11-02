@@ -15,13 +15,22 @@
 #pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
+#include <cstdint>
 #include <memory>
+#include <functional>
+#include <string>
 #include <future>
+#include <queue>
+#include <tuple>
 #include <utility>
 #include <string_view>
 
 #include <asio2/base/selector.hpp>
 #include <asio2/base/error.hpp>
+
+#include <asio2/base/detail/util.hpp>
+#include <asio2/base/detail/function_traits.hpp>
+#include <asio2/base/detail/buffer_wrap.hpp>
 
 #include <asio2/http/detail/http_util.hpp>
 
@@ -54,23 +63,21 @@ namespace asio2::detail
 		template<bool isRequest, class Body, class Fields = http::fields>
 		inline bool send(http::message<isRequest, Body, Fields>& msg)
 		{
+			return derive.send(const_cast<const http::message<isRequest, Body, Fields>&>(msg));
+		}
+
+		template<bool isRequest, class Body, class Fields = http::fields>
+		inline bool send(const http::message<isRequest, Body, Fields>& msg)
+		{
 			try
 			{
 				if (!derive.is_started())
 					asio::detail::throw_error(asio::error::not_connected);
 
-				// Make sure we run on the strand
-				if (!this->wio_.strand().running_in_this_thread())
+				return derive._send_enqueue([this, data = derive._data_persistence(msg)]() mutable
 				{
-					asio::post(this->wio_.strand(), make_allocator(derive.wallocator(),
-						[this, p = this->_mkptr(), msg]() mutable
-					{
-						derive._do_send(msg);
-					}));
-					return true;
-				}
-
-				return derive._do_send(msg);
+					return derive._do_send(data, [](const error_code&, std::size_t) {});
+				});
 			}
 			catch (system_error & e) { set_last_error(e); }
 			catch (std::exception &) { set_last_error(asio::error::eof); }
@@ -89,18 +96,10 @@ namespace asio2::detail
 				if (!derive.is_started())
 					asio::detail::throw_error(asio::error::not_connected);
 
-				// Make sure we run on the strand
-				if (!this->wio_.strand().running_in_this_thread())
+				return derive._send_enqueue([this, data = derive._data_persistence(std::move(msg))]() mutable
 				{
-					asio::post(this->wio_.strand(), make_allocator(derive.wallocator(),
-						[this, p = this->_mkptr(), d = std::move(msg)]() mutable
-					{
-						derive._do_send(d);
-					}));
-					return true;
-				}
-
-				return derive._do_send(msg);
+					return derive._do_send(data, [](const error_code&, std::size_t) {});
+				});
 			}
 			catch (system_error & e) { set_last_error(e); }
 			catch (std::exception &) { set_last_error(asio::error::eof); }
@@ -115,23 +114,25 @@ namespace asio2::detail
 		template<class Callback, bool isRequest, class Body, class Fields = http::fields>
 		inline bool send(http::message<isRequest, Body, Fields>& msg, Callback&& fn)
 		{
+			return derive.send(const_cast<const http::message<isRequest, Body, Fields>&>(msg), std::forward<Callback>(fn));
+		}
+
+		template<class Callback, bool isRequest, class Body, class Fields = http::fields>
+		inline bool send(const http::message<isRequest, Body, Fields>& msg, Callback&& fn)
+		{
 			try
 			{
 				if (!derive.is_started())
 					asio::detail::throw_error(asio::error::not_connected);
 
-				// Make sure we run on the strand
-				if (!this->wio_.strand().running_in_this_thread())
+				return derive._send_enqueue([this, data = derive._data_persistence(msg),
+					fn = std::forward<Callback>(fn)]() mutable
 				{
-					asio::post(this->wio_.strand(), make_allocator(derive.wallocator(),
-						[this, p = this->_mkptr(), msg, f = std::forward<Callback>(fn)]() mutable
+					return derive._do_send(data, [&fn](const error_code&, std::size_t bytes_sent)
 					{
-						derive._do_send(msg, f);
-					}));
-					return true;
-				}
-
-				return derive._do_send(msg, fn);
+						callback_helper::call(fn, bytes_sent);
+					});
+				});
 			}
 			catch (system_error & e) { set_last_error(e); }
 			catch (std::exception &) { set_last_error(asio::error::eof); }
@@ -151,18 +152,14 @@ namespace asio2::detail
 				if (!derive.is_started())
 					asio::detail::throw_error(asio::error::not_connected);
 
-				// Make sure we run on the strand
-				if (!this->wio_.strand().running_in_this_thread())
+				return derive._send_enqueue([this, data = derive._data_persistence(std::move(msg)),
+					fn = std::forward<Callback>(fn)]() mutable
 				{
-					asio::post(this->wio_.strand(), make_allocator(derive.wallocator(),
-						[this, p = this->_mkptr(), d = std::move(msg), f = std::forward<Callback>(fn)]() mutable
+					return derive._do_send(data, [&fn](const error_code&, std::size_t bytes_sent)
 					{
-						derive._do_send(d, f);
-					}));
-					return true;
-				}
-
-				return derive._do_send(msg, fn);
+						callback_helper::call(fn, bytes_sent);
+					});
+				});
 			}
 			catch (system_error & e) { set_last_error(e); }
 			catch (std::exception &) { set_last_error(asio::error::eof); }
@@ -177,35 +174,39 @@ namespace asio2::detail
 		inline std::future<std::pair<error_code, std::size_t>> send(
 			http::message<isRequest, Body, Fields>& msg, asio::use_future_t<> flag)
 		{
-			std::promise<std::pair<error_code, std::size_t>> promise;
-			std::future <std::pair<error_code, std::size_t>> future = promise.get_future();
+			return derive.send(const_cast<const http::message<isRequest, Body, Fields>&>(msg), std::move(flag));
+		}
+
+		template<bool isRequest, class Body, class Fields = http::fields>
+		inline std::future<std::pair<error_code, std::size_t>> send(
+			const http::message<isRequest, Body, Fields>& msg, asio::use_future_t<> flag)
+		{
+			std::ignore = flag;
+			copyable_wrapper<std::promise<std::pair<error_code, std::size_t>>> promise;
+			std::future<std::pair<error_code, std::size_t>> future = promise().get_future();
 			try
 			{
 				if (!derive.is_started())
 					asio::detail::throw_error(asio::error::not_connected);
 
-				// Make sure we run on the strand
-				if (!this->wio_.strand().running_in_this_thread())
+				derive._send_enqueue([this, data = derive._data_persistence(msg),
+					promise = std::move(promise)]() mutable
 				{
-					asio::post(this->wio_.strand(), make_allocator(derive.wallocator(),
-						[this, p = this->_mkptr(), msg, pm = std::move(promise)]() mutable
+					return derive._do_send(data, [&promise](const error_code& ec, std::size_t bytes_sent)
 					{
-						derive._do_send(msg, pm);
-					}));
-					return future;
-				}
-
-				derive._do_send(msg, promise);
+						promise().set_value(std::pair<error_code, std::size_t>(ec, bytes_sent));
+					});
+				});
 			}
 			catch (system_error & e)
 			{
 				set_last_error(e);
-				promise.set_value(std::pair<error_code, std::size_t>(e.code(), 0));
+				promise().set_value(std::pair<error_code, std::size_t>(e.code(), 0));
 			}
 			catch (std::exception &)
 			{
 				set_last_error(asio::error::eof);
-				promise.set_value(std::pair<error_code, std::size_t>(asio::error::eof, 0));
+				promise().set_value(std::pair<error_code, std::size_t>(asio::error::eof, 0));
 			}
 			return future;
 		}
@@ -218,46 +219,34 @@ namespace asio2::detail
 		inline std::future<std::pair<error_code, std::size_t>> send(
 			http::message<isRequest, Body, Fields>&& msg, asio::use_future_t<> flag)
 		{
-			std::promise<std::pair<error_code, std::size_t>> promise;
-			std::future <std::pair<error_code, std::size_t>> future = promise.get_future();
+			std::ignore = flag;
+			copyable_wrapper<std::promise<std::pair<error_code, std::size_t>>> promise;
+			std::future <std::pair<error_code, std::size_t>> future = promise().get_future();
 			try
 			{
 				if (!derive.is_started())
 					asio::detail::throw_error(asio::error::not_connected);
 
-				// Make sure we run on the strand
-				if (!this->wio_.strand().running_in_this_thread())
+				derive._send_enqueue([this, data = derive._data_persistence(std::move(msg)),
+					promise = std::move(promise)]() mutable
 				{
-					asio::post(this->wio_.strand(), make_allocator(derive.wallocator(),
-						[this, p = this->_mkptr(), d = std::move(msg), pm = std::move(promise)]() mutable
+					return derive._do_send(data, [&promise](const error_code& ec, std::size_t bytes_sent)
 					{
-						derive._do_send(d, pm);
-					}));
-					return future;
-				}
-
-				derive._do_send(msg, promise);
+						promise().set_value(std::pair<error_code, std::size_t>(ec, bytes_sent));
+					});
+				});
 			}
 			catch (system_error & e)
 			{
 				set_last_error(e);
-				promise.set_value(std::pair<error_code, std::size_t>(e.code(), 0));
+				promise().set_value(std::pair<error_code, std::size_t>(e.code(), 0));
 			}
 			catch (std::exception &)
 			{
 				set_last_error(asio::error::eof);
-				promise.set_value(std::pair<error_code, std::size_t>(asio::error::eof, 0));
+				promise().set_value(std::pair<error_code, std::size_t>(asio::error::eof, 0));
 			}
 			return future;
-		}
-
-	protected:
-		inline std::shared_ptr<derived_t> _mkptr()
-		{
-			if constexpr (isSession)
-				return derive.shared_from_this();
-			else
-				return std::shared_ptr<derived_t>{};
 		}
 
 	protected:

@@ -21,36 +21,37 @@
 #include <asio2/base/selector.hpp>
 #include <asio2/base/error.hpp>
 #include <asio2/base/detail/condition_wrap.hpp>
+#include <asio2/base/detail/buffer_wrap.hpp>
 
 namespace asio2::detail
 {
-	template<typename T>
-	struct has_member_dgram
-	{
-		typedef char(&yes)[1];
-		typedef char(&no)[2];
-
-		// this creates an ambiguous &Derived::dgram_ if T has got member dgram_
-
-		struct Fallback { char dgram_; };
-		struct Derived : T, Fallback { };
-
-		template<typename U, U>
-		struct Check;
-
-		template<typename U>
-		static no test(Check<char Fallback::*, &U::dgram_>*);
-
-		template<typename U>
-		static yes test(...);
-
-		static constexpr bool value = sizeof(test<Derived>(0)) == sizeof(yes);
-	};
-
-
 	template<class derived_t, bool isSession>
 	class tcp_send_op
 	{
+	protected:
+		template<typename T>
+		struct has_member_dgram
+		{
+			typedef char(&yes)[1];
+			typedef char(&no)[2];
+
+			// this creates an ambiguous &Derived::dgram_ if T has got member dgram_
+
+			struct Fallback { char dgram_; };
+			struct Derived : T, Fallback { };
+
+			template<typename U, U>
+			struct Check;
+
+			template<typename U>
+			static no test(Check<char Fallback::*, &U::dgram_>*);
+
+			template<typename U>
+			static yes test(...);
+
+			static constexpr bool value = sizeof(test<Derived>(0)) == sizeof(yes);
+		};
+
 	public:
 		/**
 		 * @constructor
@@ -63,122 +64,134 @@ namespace asio2::detail
 		~tcp_send_op() = default;
 
 	protected:
-		template<class ConstBufferSequence>
-		inline bool _tcp_send(ConstBufferSequence buffer)
+		template<class Data, class Callback>
+		inline bool _tcp_send(Data& data, Callback&& callback)
 		{
-			if (!derive.is_started())
-			{
-				set_last_error(asio::error::not_connected);
-				return false;
-			}
-
-			error_code ec;
-
 			if constexpr (has_member_dgram<derived_t>::value)
 			{
 				if (derive.dgram_)
 				{
-					std::size_t sent_bytes = dgram_send_head_op()(derive.stream(), buffer, ec);
-					set_last_error(ec);
-					if (ec)
-					{
-						// must stop, otherwise re-sending will cause header confusion
-						if (sent_bytes > 0)
-							derive._do_stop(ec);
-					}
+					return derive._tcp_send_head(asio::buffer(data), std::forward<Callback>(callback));
 				}
 			}
 			else
-				std::ignore = true;
-
-			if (!ec)
 			{
-				asio::write(derive.stream(), buffer, ec);
-				set_last_error(ec);
+				std::ignore = true;
 			}
 
-			return (!ec.operator bool());
+			return derive._tcp_send_body(asio::buffer(data), std::forward<Callback>(callback));
 		}
 
-		template<class ConstBufferSequence, class Callback>
-		inline bool _tcp_send(ConstBufferSequence buffer, Callback& fn)
+		template<class BufferSequence, class Callback>
+		inline bool _tcp_send_head(BufferSequence&& buffer, Callback&& callback)
 		{
-			if (!derive.is_started())
+			std::unique_ptr<std::uint8_t[]> head;
+
+			std::size_t bytes = 0;
+			if (buffer.size() > (std::numeric_limits<std::uint16_t>::max)())
 			{
-				set_last_error(asio::error::not_connected);
-				callback_helper::call(fn, 0);
-				return false;
+				bytes = 9;
+				head = std::make_unique<std::uint8_t[]>(bytes);
+				head[0] = static_cast<std::uint8_t>(255);
+				std::uint64_t size = buffer.size();
+				std::memcpy(&head[1], reinterpret_cast<const void*>(&size), sizeof(std::uint64_t));
 			}
-
-			error_code ec;
-
-			if constexpr (has_member_dgram<derived_t>::value)
+			else if (buffer.size() > 253)
 			{
-				if (derive.dgram_)
-				{
-					std::size_t sent_bytes = dgram_send_head_op()(derive.stream(), buffer, ec);
-					set_last_error(ec);
-					if (ec)
-					{
-						callback_helper::call(fn, 0);
-						// must stop, otherwise re-sending will cause header confusion
-						if (sent_bytes > 0)
-							derive._do_stop(ec);
-					}
-				}
+				bytes = 3;
+				head = std::make_unique<std::uint8_t[]>(bytes);
+				head[0] = static_cast<std::uint8_t>(254);
+				std::uint16_t size = static_cast<std::uint16_t>(buffer.size());
+				std::memcpy(&head[1], reinterpret_cast<const void*>(&size), sizeof(std::uint16_t));
 			}
 			else
-				std::ignore = true;
-
-			if (!ec)
 			{
-				std::size_t sent_bytes = asio::write(derive.stream(), buffer, ec);
-				set_last_error(ec);
-				callback_helper::call(fn, sent_bytes);
+				bytes = 1;
+				head = std::make_unique<std::uint8_t[]>(bytes);
+				head[0] = static_cast<std::uint8_t>(buffer.size());
 			}
 
-			return (!ec.operator bool());
+			auto head_buffer = asio::buffer(reinterpret_cast<void*>(head.get()), bytes);
+
+#if defined(ASIO2_SEND_CORE_ASYNC)
+			asio::async_write(derive.stream(), head_buffer, asio::bind_executor(derive.io().strand(),
+				make_allocator(derive.wallocator(),
+					[this, p = derive.selfptr(),
+					head = std::move(head),
+					buffer = std::forward<BufferSequence>(buffer),
+					callback = std::forward<Callback>(callback)]
+			(const error_code& ec, std::size_t bytes_sent) mutable
+			{
+				set_last_error(ec);
+
+				if (ec)
+				{
+					callback(ec, 0);
+
+					// must stop, otherwise re-sending will cause header confusion
+					if (bytes_sent > 0)
+					{
+						derive._do_stop(ec);
+					}
+				}
+				else
+				{
+					derive._tcp_send_body(std::move(buffer), std::move(callback));
+				}
+			})));
+			return true;
+#else
+			error_code ec;
+			std::size_t bytes_sent = asio::write(derive.stream(), head_buffer, ec);
+			set_last_error(ec);
+			if (ec)
+			{
+				callback(ec, 0);
+				// must stop, otherwise re-sending will cause header confusion
+				if (bytes_sent > 0)
+					derive._do_stop(ec);
+				return false;
+			}
+			return derive._tcp_send_body(std::forward<BufferSequence>(buffer), std::forward<Callback>(callback));
+#endif
 		}
 
-		template<class ConstBufferSequence>
-		inline bool _tcp_send(ConstBufferSequence buffer, std::promise<std::pair<error_code, std::size_t>>& promise)
+		template<class BufferSequence, class Callback>
+		inline bool _tcp_send_body(BufferSequence&& buffer, Callback&& callback)
 		{
-			if (!derive.is_started())
+#if defined(ASIO2_SEND_CORE_ASYNC)
+			asio::async_write(derive.stream(), buffer, asio::bind_executor(derive.io().strand(),
+				make_allocator(derive.wallocator(),
+					[this, p = derive.selfptr(), callback = std::forward<Callback>(callback)]
+			(const error_code& ec, std::size_t bytes_sent) mutable
 			{
-				set_last_error(asio::error::not_connected);
-				promise.set_value(std::pair<error_code, std::size_t>(asio::error::not_connected, 0));
-				return false;
-			}
-
-			error_code ec;
-
-			if constexpr (has_member_dgram<derived_t>::value)
-			{
-				if (derive.dgram_)
-				{
-					std::size_t sent_bytes = dgram_send_head_op()(derive.stream(), buffer, ec);
-					set_last_error(ec);
-					if (ec)
-					{
-						// must stop, otherwise re-sending will cause header confusion
-						if (sent_bytes > 0)
-							derive._do_stop(ec);
-					}
-				}
-			}
-			else
-				std::ignore = true;
-
-			if (!ec)
-			{
-				std::size_t sent_bytes = asio::write(derive.stream(), buffer, ec);
 				set_last_error(ec);
-				promise.set_value(std::pair<error_code, std::size_t>(ec, sent_bytes));
-			}
-			else
-				promise.set_value(std::pair<error_code, std::size_t>(ec, 0));
 
-			return (!ec.operator bool());
+				callback(ec, bytes_sent);
+
+				if (ec)
+				{
+					// must stop, otherwise re-sending will cause body confusion
+					derive._do_stop(ec);
+				}
+				else
+				{
+					derive._send_dequeue();
+				}
+			})));
+			return true;
+#else
+			error_code ec;
+			std::size_t bytes_sent = asio::write(derive.stream(), buffer, ec);
+			set_last_error(ec);
+			callback(ec, bytes_sent);
+			if (ec)
+			{
+				// must stop, otherwise re-sending will cause header confusion
+				derive._do_stop(ec);
+			}
+			return (!bool(ec));
+#endif
 		}
 
 	protected:

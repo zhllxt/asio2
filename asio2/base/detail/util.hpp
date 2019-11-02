@@ -32,6 +32,7 @@
 
 #include <asio2/base/selector.hpp>
 #include <asio2/base/iopool.hpp>
+#include <asio2/base/error.hpp>
 
 namespace asio2::detail
 {
@@ -144,6 +145,39 @@ namespace asio2::detail
 		static inline constexpr const void unused(Args&&...) noexcept {}
 	};
 
+	template<class T>
+	class copyable_wrapper
+	{
+	public:
+		using value_type = T;
+
+		copyable_wrapper() { }
+		copyable_wrapper(T&& o) : raw(std::move(o)) { }
+
+		copyable_wrapper(copyable_wrapper&&) = default;
+		copyable_wrapper& operator=(copyable_wrapper&&) = default;
+
+		copyable_wrapper(copyable_wrapper const& r) : raw(const_cast<T&&>(r.raw)) { throw 0; }
+		copyable_wrapper& operator=(copyable_wrapper const& r) { raw = const_cast<T&&>(r.raw); throw 0; }
+
+		T& operator()() noexcept { return raw; }
+
+	protected:
+		T raw;
+	};
+
+	template<typename, typename = void>
+	struct is_copyable_wrapper : std::false_type {};
+
+	template<typename T>
+	struct is_copyable_wrapper<T, std::void_t<typename T::value_type,
+		typename std::enable_if_t<std::is_same_v<T,
+		copyable_wrapper<typename T::value_type>>>>> : std::true_type {};
+
+	template<class T>
+	inline constexpr bool is_copyable_wrapper_v = is_copyable_wrapper<T>::value;
+
+
 	template<class Rep, class Period, class Fn>
 	std::shared_ptr<asio::steady_timer> mktimer(io_t& io, std::chrono::duration<Rep, Period> duration, Fn&& fn)
 	{
@@ -214,7 +248,7 @@ namespace asio2::detail
 		std::basic_string<typename T::value_type, typename T::traits_type, typename T::allocator_type>>>>> : std::true_type {};
 
 	template<class T>
-	inline constexpr bool is_string_v = is_string<std::remove_cv_t<std::remove_reference_t<T>>>::value;
+	inline constexpr bool is_string_v = is_string<T>::value;
 
 
 	template<typename, typename = void>
@@ -226,7 +260,7 @@ namespace asio2::detail
 		std::basic_string_view<typename T::value_type, typename T::traits_type>>>>> : std::true_type {};
 
 	template<class T>
-	inline constexpr bool is_string_view_v = is_string_view<std::remove_cv_t<std::remove_reference_t<T>>>::value;
+	inline constexpr bool is_string_view_v = is_string_view<T>::value;
 
 
 	template<typename String>
@@ -249,10 +283,10 @@ namespace asio2::detail
 		return h;
 	}
 
-	template<typename StringOrInt>
-	inline std::string to_string_port(StringOrInt&& port)
+	template<typename StrOrInt>
+	inline std::string to_string_port(StrOrInt&& port)
 	{
-		using type = std::remove_cv_t<std::remove_reference_t<StringOrInt>>;
+		using type = std::remove_cv_t<std::remove_reference_t<StrOrInt>>;
 		std::string p;
 		if constexpr (is_string_view_v<type>)
 		{
@@ -268,9 +302,37 @@ namespace asio2::detail
 		}
 		else
 		{
-			p = std::forward<StringOrInt>(port);
+			p = std::forward<StrOrInt>(port);
 		}
 		return p;
+	}
+
+	template<typename Protocol, typename String, typename StrOrInt>
+	inline Protocol to_endpoint(String&& host, StrOrInt&& port)
+	{
+		std::string h = to_string_host(std::forward<String>(host));
+		std::string p = to_string_port(std::forward<StrOrInt>(port));
+
+		asio::io_context ioc;
+		// the resolve function is a time-consuming operation
+		if /**/ constexpr (std::is_same_v<asio::ip::udp::endpoint, Protocol>)
+		{
+			asio::ip::udp::resolver resolver(ioc);
+			asio::ip::udp::endpoint endpoint = *resolver.resolve(h, p,
+				asio::ip::resolver_base::flags::address_configured);
+			return endpoint;
+		}
+		else if constexpr (std::is_same_v<asio::ip::tcp::endpoint, Protocol>)
+		{
+			asio::ip::tcp::resolver resolver(ioc);
+			asio::ip::tcp::endpoint endpoint = *resolver.resolve(h, p,
+				asio::ip::resolver_base::flags::address_configured);
+			return endpoint;
+		}
+		else
+		{
+			ASIO2_ASSERT(false);
+		}
 	}
 }
 

@@ -58,11 +58,11 @@ namespace asio2::detail
 		 * @param service A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
 		 */
-		template<typename StringOrInt>
-		inline bool start(StringOrInt&& service)
+		template<typename StrOrInt>
+		inline bool start(StrOrInt&& service)
 		{
 			return this->derived()._do_start(std::string_view{},
-				to_string_port(std::forward<StringOrInt>(service)), condition_wrap<void>{});
+				to_string_port(std::forward<StrOrInt>(service)), condition_wrap<void>{});
 		}
 
 		/**
@@ -72,11 +72,11 @@ namespace asio2::detail
 		 * @param service A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
 		 */
-		template<typename StringOrInt>
-		inline bool start(std::string_view host, StringOrInt&& service)
+		template<typename StrOrInt>
+		inline bool start(std::string_view host, StrOrInt&& service)
 		{
 			return this->derived()._do_start(host,
-				to_string_port(std::forward<StringOrInt>(service)), condition_wrap<void>{});
+				to_string_port(std::forward<StrOrInt>(service)), condition_wrap<void>{});
 		}
 
 		/**
@@ -84,11 +84,11 @@ namespace asio2::detail
 		 * @param service A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
 		 */
-		template<typename StringOrInt>
-		inline bool start(StringOrInt&& service, use_kcp_t c)
+		template<typename StrOrInt>
+		inline bool start(StrOrInt&& service, use_kcp_t c)
 		{
 			return this->derived()._do_start(std::string_view{},
-				to_string_port(std::forward<StringOrInt>(service)), condition_wrap<use_kcp_t>(c));
+				to_string_port(std::forward<StrOrInt>(service)), condition_wrap<use_kcp_t>(c));
 		}
 
 		/**
@@ -98,11 +98,11 @@ namespace asio2::detail
 		 * @param service A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
 		 */
-		template<typename StringOrInt>
-		inline bool start(std::string_view host, StringOrInt&& service, use_kcp_t c)
+		template<typename StrOrInt>
+		inline bool start(std::string_view host, StrOrInt&& service, use_kcp_t c)
 		{
 			return this->derived()._do_start(host,
-				to_string_port(std::forward<StringOrInt>(service)), condition_wrap<use_kcp_t>(c));
+				to_string_port(std::forward<StrOrInt>(service)), condition_wrap<use_kcp_t>(c));
 		}
 
 		/**
@@ -277,13 +277,7 @@ namespace asio2::detail
 				this->acceptor_.close(ec_ignore);
 
 				// parse address and port
-#if defined(ASIO_VERSION) && (ASIO_VERSION > 101202)
-				asio::ip::udp::resolver resolver(this->acceptor_.get_executor());
-#else
-				asio::ip::udp::resolver resolver(this->acceptor_.get_io_context());
-#endif
-				//asio::ip::udp::resolver::query query(host, service,
-				//	asio::ip::resolver_base::flags::passive | asio::ip::resolver_base::flags::address_configured);
+				asio::ip::udp::resolver resolver(this->io_.context());
 				asio::ip::udp::endpoint endpoint = *resolver.resolve(host, service,
 					asio::ip::resolver_base::flags::passive | asio::ip::resolver_base::flags::address_configured).begin();
 

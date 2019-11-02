@@ -105,36 +105,21 @@ namespace asio2::detail
 			return sent_bytes;
 		}
 
-		template<class ConstBufferSequence>
-		inline bool _kcp_send(ConstBufferSequence buffer)
+		template<class Data, class Callback>
+		inline bool _kcp_send(Data& data, Callback&& callback)
 		{
-			int ret = kcp::ikcp_send(this->kcp_, (const char *)buffer.data(), (int)buffer.size());
-			set_last_error(ret);
-			if (ret == 0)
-				kcp::ikcp_flush(this->kcp_);
-			return (ret == 0);
-		}
+			auto buffer = asio::buffer(data);
 
-		template<class ConstBufferSequence, class Callback>
-		inline bool _kcp_send(ConstBufferSequence buffer, Callback& fn)
-		{
 			int ret = kcp::ikcp_send(this->kcp_, (const char *)buffer.data(), (int)buffer.size());
 			set_last_error(ret);
 			if (ret == 0)
 				kcp::ikcp_flush(this->kcp_);
-			callback_helper::call(fn, ret < 0 ? 0 : buffer.size());
-			return (ret == 0);
-		}
+			callback(get_last_error(), ret < 0 ? 0 : buffer.size());
 
-		template<class ConstBufferSequence>
-		inline bool _kcp_send(ConstBufferSequence buffer, std::promise<std::pair<error_code, std::size_t>>& promise)
-		{
-			int ret = kcp::ikcp_send(this->kcp_, (const char *)buffer.data(), (int)buffer.size());
-			set_last_error(ret);
-			if (ret == 0)
-				kcp::ikcp_flush(this->kcp_);
-			promise.set_value(std::pair<error_code, std::size_t>(error_code(ret,
-				asio::error::get_system_category()), ret < 0 ? 0 : buffer.size()));
+#if defined(ASIO2_SEND_CORE_ASYNC)
+			derive.send_queue_.pop();
+#endif
+
 			return (ret == 0);
 		}
 
@@ -248,7 +233,12 @@ namespace asio2::detail
 							[this, this_ptr = std::move(self_ptr), condition, timer = std::move(timer)]
 					(const error_code & ec, std::size_t bytes_recvd) mutable
 					{
-						timer->cancel(ec_ignore);
+						try
+						{
+							timer->cancel();
+						}
+						catch (system_error &) {}
+						catch (std::exception &) {}
 
 						if (ec)
 						{
@@ -321,9 +311,6 @@ namespace asio2::detail
 			kcp_stream_cp * zhis = ((kcp_stream_cp*)user);
 
 			derived_t & derive = zhis->derive;
-
-			if (!derive.is_started())
-				return 0;
 
 			error_code ec;
 			if constexpr (isSession)

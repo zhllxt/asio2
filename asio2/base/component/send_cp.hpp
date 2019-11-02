@@ -18,6 +18,10 @@
 #include <functional>
 #include <string>
 #include <future>
+#include <queue>
+#include <tuple>
+#include <utility>
+#include <string_view>
 
 #include <asio2/base/selector.hpp>
 #include <asio2/base/iopool.hpp>
@@ -25,17 +29,22 @@
 
 #include <asio2/base/detail/util.hpp>
 #include <asio2/base/detail/function_traits.hpp>
+#include <asio2/base/detail/buffer_wrap.hpp>
+
+#include <asio2/base/component/send_queue_cp.hpp>
 
 namespace asio2::detail
 {
 	template<class derived_t, bool isSession>
-	class send_cp
+	class send_cp : public send_queue_cp<derived_t, isSession>
 	{
+		template <class, bool>         friend class send_queue_cp;
+
 	public:
 		/**
 		 * @constructor
 		 */
-		send_cp(io_t & wio) : derive(static_cast<derived_t&>(*this)), wio_(wio) {}
+		send_cp(io_t & wio) : send_queue_cp<derived_t, isSession>(wio) {}
 
 		/**
 		 * @destructor
@@ -63,47 +72,14 @@ namespace asio2::detail
 			// at the same time,otherwise may be cause crash.
 			try
 			{
-				if (!derive.is_started())
+				if (!this->derive.is_started())
 					asio::detail::throw_error(asio::error::not_connected);
 
-				// Make sure we run on the strand
-				if (!this->wio_.strand().running_in_this_thread())
+				return this->derive._send_enqueue([this,
+					data = this->derive._data_persistence(std::forward<T>(data))]() mutable
 				{
-					if constexpr (
-						std::is_move_assignable_v<std::remove_cv_t<std::remove_reference_t<T>>> ||
-						std::is_trivially_move_assignable_v<std::remove_cv_t<std::remove_reference_t<T>>> ||
-						std::is_nothrow_move_assignable_v<std::remove_cv_t<std::remove_reference_t<T>>>)
-					{
-						if constexpr (is_string_view_v<T>)
-						{
-							using type = typename std::remove_cv_t<std::remove_reference_t<T>>::value_type;
-							asio::post(this->wio_.strand(), make_allocator(derive.wallocator(),
-								[this, p = this->_mkptr(), d = std::vector<type>(data.data(), data.data() + data.size())]()
-							{
-								derive._do_send(asio::buffer(d));
-							}));
-						}
-						else
-						{
-							asio::post(this->wio_.strand(), make_allocator(derive.wallocator(),
-								[this, p = this->_mkptr(), d = std::forward<T>(data)]()
-							{
-								derive._do_send(asio::buffer(d));
-							}));
-						}
-					}
-					else
-					{
-						asio::post(this->wio_.strand(), make_allocator(derive.wallocator(),
-							[this, p = this->_mkptr(), data]()
-						{
-							derive._do_send(asio::buffer(data));
-						}));
-					}
-					return true;
-				}
-
-				return derive._do_send(asio::buffer(data));
+					return this->derive._do_send(data, [](const error_code&, std::size_t) {});
+				});
 			}
 			catch (system_error & e) { set_last_error(e); }
 			catch (std::exception &) { set_last_error(asio::error::eof); }
@@ -144,25 +120,16 @@ namespace asio2::detail
 			// at the same time,otherwise may be cause crash.
 			try
 			{
-				if (!derive.is_started())
+				if (!this->derive.is_started())
 					asio::detail::throw_error(asio::error::not_connected);
 
 				if (!s)
 					asio::detail::throw_error(asio::error::invalid_argument);
 
-				// Make sure we run on the strand
-				if (!this->wio_.strand().running_in_this_thread())
+				return this->derive._send_enqueue([this, data = this->derive._data_persistence(s, count)]() mutable
 				{
-					using type = typename std::remove_cv_t<std::remove_reference_t<CharT>>;
-					asio::post(this->wio_.strand(), make_allocator(derive.wallocator(),
-						[this, p = this->_mkptr(), data = std::vector<type>(s, s + count)]()
-					{
-						derive._do_send(asio::buffer(data));
-					}));
-					return true;
-				}
-
-				return derive._do_send(asio::buffer(s, static_cast<std::size_t>(count) * sizeof(CharT)));
+					return this->derive._do_send(data, [](const error_code&, std::size_t) {});
+				});
 			}
 			catch (system_error & e) { set_last_error(e); }
 			catch (std::exception &) { set_last_error(asio::error::eof); }
@@ -185,63 +152,34 @@ namespace asio2::detail
 		template<class T>
 		inline std::future<std::pair<error_code, std::size_t>> send(T&& data, asio::use_future_t<> flag)
 		{
+			// why use copyable_wrapper? beacuse std::promise is moveable-only, but
+			// std::function is copyable-only
 			std::ignore = flag;
-			std::promise<std::pair<error_code, std::size_t>> promise;
-			std::future <std::pair<error_code, std::size_t>> future = promise.get_future();
+			copyable_wrapper<std::promise<std::pair<error_code, std::size_t>>> promise;
+			std::future<std::pair<error_code, std::size_t>> future = promise().get_future();
 			try
 			{
-				if (!derive.is_started())
+				if (!this->derive.is_started())
 					asio::detail::throw_error(asio::error::not_connected);
 
-				// Make sure we run on the strand
-				if (!this->wio_.strand().running_in_this_thread())
+				this->derive._send_enqueue([this, data = this->derive._data_persistence(std::forward<T>(data)),
+					promise = std::move(promise)]() mutable
 				{
-					if constexpr (
-						std::is_move_assignable_v<std::remove_cv_t<std::remove_reference_t<T>>> ||
-						std::is_trivially_move_assignable_v<std::remove_cv_t<std::remove_reference_t<T>>> ||
-						std::is_nothrow_move_assignable_v<std::remove_cv_t<std::remove_reference_t<T>>>)
+					return this->derive._do_send(data, [&promise](const error_code& ec, std::size_t bytes_sent)
 					{
-						if constexpr (is_string_view_v<T>)
-						{
-							using type = typename std::remove_cv_t<std::remove_reference_t<T>>::value_type;
-							asio::post(this->wio_.strand(), make_allocator(derive.wallocator(),
-								[this, p = this->_mkptr(), d = std::vector<type>(data.data(), data.data() + data.size()),
-								pm = std::move(promise)]() mutable
-							{
-								derive._do_send(asio::buffer(d), pm);
-							}));
-						}
-						else
-						{
-							asio::post(this->wio_.strand(), make_allocator(derive.wallocator(),
-								[this, p = this->_mkptr(), d = std::forward<T>(data), pm = std::move(promise)]() mutable
-							{
-								derive._do_send(asio::buffer(d), pm);
-							}));
-						}
-					}
-					else
-					{
-						asio::post(this->wio_.strand(), make_allocator(derive.wallocator(),
-							[this, p = this->_mkptr(), data, pm = std::move(promise)]() mutable
-						{
-							derive._do_send(asio::buffer(data), pm);
-						}));
-					}
-					return future;
-				}
-
-				derive._do_send(asio::buffer(data), promise);
+						promise().set_value(std::pair<error_code, std::size_t>(ec, bytes_sent));
+					});
+				});
 			}
 			catch (system_error & e)
 			{
 				set_last_error(e);
-				promise.set_value(std::pair<error_code, std::size_t>(e.code(), 0));
+				promise().set_value(std::pair<error_code, std::size_t>(e.code(), 0));
 			}
 			catch (std::exception &)
 			{
 				set_last_error(asio::error::eof);
-				promise.set_value(std::pair<error_code, std::size_t>(asio::error::eof, 0));
+				promise().set_value(std::pair<error_code, std::size_t>(asio::error::eof, 0));
 			}
 			return future;
 		}
@@ -280,40 +218,34 @@ namespace asio2::detail
 			send(CharT * s, SizeT count, asio::use_future_t<> flag)
 		{
 			std::ignore = flag;
-			std::promise<std::pair<error_code, std::size_t>> promise;
-			std::future <std::pair<error_code, std::size_t>> future = promise.get_future();
+			copyable_wrapper<std::promise<std::pair<error_code, std::size_t>>> promise;
+			std::future<std::pair<error_code, std::size_t>> future = promise().get_future();
 			try
 			{
-				if (!derive.is_started())
+				if (!this->derive.is_started())
 					asio::detail::throw_error(asio::error::not_connected);
 
 				if (!s)
 					asio::detail::throw_error(asio::error::invalid_argument);
 
-				// Make sure we run on the strand
-				if (!this->wio_.strand().running_in_this_thread())
+				this->derive._send_enqueue([this, data = this->derive._data_persistence(s, count),
+					promise = std::move(promise)]() mutable
 				{
-					using type = typename std::remove_cv_t<std::remove_reference_t<CharT>>;
-					asio::post(this->wio_.strand(), make_allocator(derive.wallocator(),
-						[this, p = this->_mkptr(), data = std::vector<type>(s, s + count),
-						pm = std::move(promise)]() mutable
+					return this->derive._do_send(data, [&promise](const error_code& ec, std::size_t bytes_sent)
 					{
-						derive._do_send(asio::buffer(data), pm);
-					}));
-					return future;
-				}
-
-				derive._do_send(asio::buffer(s, static_cast<std::size_t>(count) * sizeof(CharT)), promise);
+						promise().set_value(std::pair<error_code, std::size_t>(ec, bytes_sent));
+					});
+				});
 			}
 			catch (system_error & e)
 			{
 				set_last_error(e);
-				promise.set_value(std::pair<error_code, std::size_t>(e.code(), 0));
+				promise().set_value(std::pair<error_code, std::size_t>(e.code(), 0));
 			}
 			catch (std::exception &)
 			{
 				set_last_error(asio::error::eof);
-				promise.set_value(std::pair<error_code, std::size_t>(asio::error::eof, 0));
+				promise().set_value(std::pair<error_code, std::size_t>(asio::error::eof, 0));
 			}
 			return future;
 		}
@@ -339,48 +271,17 @@ namespace asio2::detail
 			// at the same time,otherwise may be cause crash.
 			try
 			{
-				if (!derive.is_started())
+				if (!this->derive.is_started())
 					asio::detail::throw_error(asio::error::not_connected);
 
-				// Make sure we run on the strand
-				if (!this->wio_.strand().running_in_this_thread())
+				return this->derive._send_enqueue([this, data = this->derive._data_persistence(std::forward<T>(data)),
+					fn = std::forward<Callback>(fn)]() mutable
 				{
-					if constexpr (
-						std::is_move_assignable_v<std::remove_cv_t<std::remove_reference_t<T>>> ||
-						std::is_trivially_move_assignable_v<std::remove_cv_t<std::remove_reference_t<T>>> ||
-						std::is_nothrow_move_assignable_v<std::remove_cv_t<std::remove_reference_t<T>>>)
+					return this->derive._do_send(data, [&fn](const error_code&, std::size_t bytes_sent)
 					{
-						if constexpr (is_string_view_v<T>)
-						{
-							using type = typename std::remove_cv_t<std::remove_reference_t<T>>::value_type;
-							asio::post(this->wio_.strand(), make_allocator(derive.wallocator(),
-								[this, p = this->_mkptr(), d = std::vector<type>(data.data(), data.data() + data.size()),
-								f = std::forward<Callback>(fn)]()
-							{
-								derive._do_send(asio::buffer(d), f);
-							}));
-						}
-						else
-						{
-							asio::post(this->wio_.strand(), make_allocator(derive.wallocator(),
-								[this, p = this->_mkptr(), d = std::forward<T>(data), f = std::forward<Callback>(fn)]()
-							{
-								derive._do_send(asio::buffer(d), f);
-							}));
-						}
-					}
-					else
-					{
-						asio::post(this->wio_.strand(), make_allocator(derive.wallocator(),
-							[this, p = this->_mkptr(), data, f = std::forward<Callback>(fn)]()
-						{
-							derive._do_send(asio::buffer(data), f);
-						}));
-					}
-					return true;
-				}
-
-				return derive._do_send(asio::buffer(data), fn);
+						callback_helper::call(fn, bytes_sent);
+					});
+				});
 			}
 			catch (system_error & e) { set_last_error(e); }
 			catch (std::exception &) { set_last_error(asio::error::eof); }
@@ -424,45 +325,25 @@ namespace asio2::detail
 			// at the same time,otherwise may be cause crash.
 			try
 			{
-				if (!derive.is_started())
+				if (!this->derive.is_started())
 					asio::detail::throw_error(asio::error::not_connected);
 
 				if (!s)
 					asio::detail::throw_error(asio::error::invalid_argument);
 
-				// Make sure we run on the strand
-				if (!this->wio_.strand().running_in_this_thread())
+				return this->derive._send_enqueue([this, data = this->derive._data_persistence(s, count),
+					fn = std::forward<Callback>(fn)]() mutable
 				{
-					using type = typename std::remove_cv_t<std::remove_reference_t<CharT>>;
-					asio::post(this->wio_.strand(), make_allocator(derive.wallocator(),
-						[this, p = this->_mkptr(), data = std::vector<type>(s, s + count),
-						f = std::forward<Callback>(fn)]()
+					return this->derive._do_send(data, [&fn](const error_code&, std::size_t bytes_sent)
 					{
-						derive._do_send(asio::buffer(data), f);
-					}));
-					return true;
-				}
-
-				return derive._do_send(asio::buffer(s, static_cast<std::size_t>(count) * sizeof(CharT)), fn);
+						callback_helper::call(fn, bytes_sent);
+					});
+				});
 			}
 			catch (system_error & e) { set_last_error(e); }
 			catch (std::exception &) { set_last_error(asio::error::eof); }
 			return false;
 		}
-
-	protected:
-		inline std::shared_ptr<derived_t> _mkptr()
-		{
-			if constexpr (isSession)
-				return derive.shared_from_this();
-			else
-				return std::shared_ptr<derived_t>{};
-		}
-
-	protected:
-		derived_t & derive;
-
-		io_t      & wio_;
 	};
 }
 

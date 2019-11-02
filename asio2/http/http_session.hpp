@@ -30,20 +30,21 @@ namespace asio2::detail
 		, public http_send_op<derived_t, body_t, buffer_t, true>
 		, public http_recv_op<derived_t, body_t, buffer_t, true>
 	{
-		template <class, bool>  friend class user_timer_cp;
-		template <class, bool>  friend class send_cp;
-		template <class, bool>  friend class silence_timer_cp;
-		template <class, bool>  friend class connect_timeout_cp;
-		template <class, bool>         friend class tcp_send_op;
-		template <class, bool>         friend class tcp_recv_op;
-		template <class, class, class, bool> friend class http_send_cp;
-		template <class, class, class, bool> friend class http_send_op;
-		template <class, class, class, bool> friend class http_recv_op;
-		template <class>               friend class session_mgr_t;
-		template <class, class, class> friend class session_impl_t;
-		template <class, class, class> friend class tcp_session_impl_t;
-		template <class, class>        friend class tcp_server_impl_t;
-		template <class, class>        friend class http_server_impl_t;
+		template <class, bool>                friend class user_timer_cp;
+		template <class, bool>                friend class send_queue_cp;
+		template <class, bool>                friend class send_cp;
+		template <class, bool>                friend class silence_timer_cp;
+		template <class, bool>                friend class connect_timeout_cp;
+		template <class, bool>                friend class tcp_send_op;
+		template <class, bool>                friend class tcp_recv_op;
+		template <class, class, class, bool>  friend class http_send_cp;
+		template <class, class, class, bool>  friend class http_send_op;
+		template <class, class, class, bool>  friend class http_recv_op;
+		template <class>                      friend class session_mgr_t;
+		template <class, class, class>        friend class session_impl_t;
+		template <class, class, class>        friend class tcp_session_impl_t;
+		template <class, class>               friend class tcp_server_impl_t;
+		template <class, class>               friend class http_server_impl_t;
 
 	public:
 		using self = http_session_impl_t<derived_t, socket_t, body_t, buffer_t>;
@@ -53,6 +54,7 @@ namespace asio2::detail
 		using buffer_type = buffer_t;
 		using super::send;
 		using http_send_cp<derived_t, body_t, buffer_t, true>::send;
+		using send_queue_cp<derived_t, true>::_data_persistence;
 
 		/**
 		 * @constructor
@@ -88,40 +90,48 @@ namespace asio2::detail
 		}
 
 	protected:
-		template<class ConstBufferSequence>
-		inline bool _do_send(ConstBufferSequence buffer)
+		template<class T>
+		inline auto _data_persistence(T&& data)
 		{
-			return this->derived().template _http_send<false>(this->derived().stream(), buffer);
+			return this->derived()._data_persistence(asio::buffer(data));
 		}
 
-		template<class ConstBufferSequence, class Callback>
-		inline bool _do_send(ConstBufferSequence buffer, Callback& fn)
+		template<class CharT, class SizeT>
+		inline auto _data_persistence(CharT * s, SizeT count)
 		{
-			return this->derived().template _http_send<false>(this->derived().stream(), buffer, fn);
+			return this->derived()._data_persistence(asio::buffer((const void*)s, count * sizeof(CharT)));
 		}
 
-		template<class ConstBufferSequence>
-		inline bool _do_send(ConstBufferSequence buffer, std::promise<std::pair<error_code, std::size_t>>& promise)
+		template<typename = void>
+		inline auto _data_persistence(asio::const_buffer&& data)
 		{
-			return this->derived().template _http_send<false>(this->derived().stream(), buffer, promise);
+			return copyable_wrapper(http::make_response<body_type>(std::string_view(
+				reinterpret_cast<std::string_view::const_pointer>(data.data()), data.size())));
 		}
 
-		template<bool isRequest, class Body, class Fields>
-		inline bool _do_send(http::message<isRequest, Body, Fields>& msg)
+		template<bool isRequest, class Body, class Fields = http::fields>
+		inline auto _data_persistence(http::message<isRequest, Body, Fields>& msg)
 		{
-			return this->derived()._http_send(this->derived().stream(), msg);
+			return this->derived()._data_persistence(const_cast<const http::message<isRequest, Body, Fields>&>(msg));
 		}
 
-		template<bool isRequest, class Body, class Fields, class Callback>
-		inline bool _do_send(http::message<isRequest, Body, Fields>& msg, Callback& fn)
+		template<bool isRequest, class Body, class Fields = http::fields>
+		inline auto _data_persistence(const http::message<isRequest, Body, Fields>& msg)
 		{
-			return this->derived()._http_send(this->derived().stream(), msg, fn);
+			return copyable_wrapper(std::move(msg));
 		}
 
-		template<bool isRequest, class Body, class Fields>
-		inline bool _do_send(http::message<isRequest, Body, Fields>& msg, std::promise<std::pair<error_code, std::size_t>>& promise)
+		template<bool isRequest, class Body, class Fields = http::fields>
+		inline auto _data_persistence(http::message<isRequest, Body, Fields>&& msg)
 		{
-			return this->derived()._http_send(this->derived().stream(), msg, promise);
+			return copyable_wrapper(std::move(msg));
+		}
+
+		template<class Data, class Callback>
+		inline bool _do_send(Data& data, Callback&& callback)
+		{
+			return this->derived().template _http_send<false>(this->derived().stream(),
+				data, std::forward<Callback>(callback));
 		}
 
 	protected:

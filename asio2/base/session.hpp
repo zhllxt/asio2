@@ -63,11 +63,12 @@ namespace asio2::detail
 		, public send_cp<derived_t, true>
 		, public post_cp<derived_t>
 	{
-		template <class, bool>  friend class user_timer_cp;
-		template <class, bool>  friend class silence_timer_cp;
-		template <class, bool>  friend class connect_timeout_cp;
-		template <class, bool>  friend class send_cp;
-		template <class>        friend class post_cp;
+		template <class, bool>         friend class user_timer_cp;
+		template <class, bool>         friend class silence_timer_cp;
+		template <class, bool>         friend class connect_timeout_cp;
+		template <class, bool>         friend class send_queue_cp;
+		template <class, bool>         friend class send_cp;
+		template <class>               friend class post_cp;
 
 	public:
 		using self = session_impl_t<derived_t, socket_t, buffer_t>;
@@ -190,6 +191,7 @@ namespace asio2::detail
 		inline session_mgr_t<derived_t> & sessions() { return this->sessions_; }
 		inline listener_t               & listener() { return this->listener_; }
 		inline std::atomic<state_t>     & state()    { return this->state_;    }
+		inline std::shared_ptr<derived_t> selfptr()  { return this->derived().shared_from_this(); }
 
 	protected:
 		/// asio::strand ,used to ensure socket multi thread safe,we must ensure that only one operator

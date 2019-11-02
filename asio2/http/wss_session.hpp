@@ -27,22 +27,23 @@ namespace asio2::detail
 		, public ws_stream_cp<derived_t, stream_t, true>
 		, public ws_send_op<derived_t, true>
 	{
-		template <class, bool>  friend class user_timer_cp;
-		template <class, bool>  friend class send_cp;
-		template <class, bool>  friend class silence_timer_cp;
-		template <class, bool>  friend class connect_timeout_cp;
-		template <class, bool>         friend class tcp_send_op;
-		template <class, bool>         friend class tcp_recv_op;
-		template <class, class, bool>  friend class ws_stream_cp;
-		template <class, bool>         friend class ws_send_op;
-		template <class, class, bool>  friend class ssl_stream_cp;
-		template <class>               friend class session_mgr_t;
-		template <class, class, class> friend class session_impl_t;
-		template <class, class, class> friend class tcp_session_impl_t;
-		template <class, class, class> friend class tcps_session_impl_t;
-		template <class, class>        friend class tcp_server_impl_t;
-		template <class, class>        friend class ws_server_impl_t;
-		template <class, class>        friend class wss_server_impl_t;
+		template <class, bool>                friend class user_timer_cp;
+		template <class, bool>                friend class send_queue_cp;
+		template <class, bool>                friend class send_cp;
+		template <class, bool>                friend class silence_timer_cp;
+		template <class, bool>                friend class connect_timeout_cp;
+		template <class, bool>                friend class tcp_send_op;
+		template <class, bool>                friend class tcp_recv_op;
+		template <class, class, bool>         friend class ws_stream_cp;
+		template <class, bool>                friend class ws_send_op;
+		template <class, class, bool>         friend class ssl_stream_cp;
+		template <class>                      friend class session_mgr_t;
+		template <class, class, class>        friend class session_impl_t;
+		template <class, class, class>        friend class tcp_session_impl_t;
+		template <class, class, class>        friend class tcps_session_impl_t;
+		template <class, class>               friend class tcp_server_impl_t;
+		template <class, class>               friend class ws_server_impl_t;
+		template <class, class>               friend class wss_server_impl_t;
 
 	public:
 		using self = wss_session_impl_t<derived_t, socket_t, stream_t, body_t, buffer_t>;
@@ -136,22 +137,10 @@ namespace asio2::detail
 			});
 		}
 
-		template<class ConstBufferSequence>
-		inline bool _do_send(ConstBufferSequence buffer)
+		template<class Data, class Callback>
+		inline bool _do_send(Data& data, Callback&& callback)
 		{
-			return this->derived()._ws_send(buffer);
-		}
-
-		template<class ConstBufferSequence, class Callback>
-		inline bool _do_send(ConstBufferSequence buffer, Callback& fn)
-		{
-			return this->derived()._ws_send(buffer, fn);
-		}
-
-		template<class ConstBufferSequence>
-		inline bool _do_send(ConstBufferSequence buffer, std::promise<std::pair<error_code, std::size_t>>& promise)
-		{
-			return this->derived()._ws_send(buffer, promise);
+			return this->derived()._ws_send(data, std::forward<Callback>(callback));
 		}
 
 	protected:

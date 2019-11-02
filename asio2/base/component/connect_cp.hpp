@@ -85,18 +85,14 @@ namespace asio2::detail
 					}
 				});
 
-#if defined(ASIO_VERSION) && (ASIO_VERSION > 101202)
-				std::shared_ptr<resolver_type> resolver_ptr = std::make_shared<resolver_type>(socket.get_executor());
-#else
-				std::shared_ptr<resolver_type> resolver_ptr = std::make_shared<resolver_type>(socket.get_io_context());
-#endif
-
-				//typename resolver_type::query query(std::string{ host }, std::string{ port });
+				std::unique_ptr<resolver_type> resolver_ptr = std::make_unique<resolver_type>(derive.io().context());
 
 				// Before async_resolve execution is complete, we must hold the resolver object.
 				// so we captured the resolver_ptr into the lambda callback function.
-				resolver_ptr->async_resolve(host, port, asio::bind_executor(derive.io().strand(),
-					[this, this_ptr, condition, resolver_ptr](const error_code& ec, const endpoints_type& endpoints)
+				resolver_type * resolver_pointer = resolver_ptr.get();
+				resolver_pointer->async_resolve(host, port, asio::bind_executor(derive.io().strand(),
+					[this, this_ptr, condition, resolver_ptr = std::move(resolver_ptr)]
+				(const error_code& ec, const endpoints_type& endpoints)
 				{
 					set_last_error(ec);
 

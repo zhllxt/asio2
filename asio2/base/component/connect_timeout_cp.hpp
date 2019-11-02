@@ -107,7 +107,12 @@ namespace asio2::detail
 		inline void _stop_timeout_timer()
 		{
 			this->timer_canceled_.test_and_set();
-			this->timeout_timer_.cancel(ec_ignore);
+			try
+			{
+				this->timeout_timer_.cancel();
+			}
+			catch (system_error &) {}
+			catch (std::exception &) {}
 		}
 
 	protected:

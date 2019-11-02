@@ -30,17 +30,18 @@ namespace asio2::detail
 		, public http_send_op<derived_t, body_t, buffer_t, false>
 		, public http_recv_op<derived_t, body_t, buffer_t, false>
 	{
-		template <class, bool>  friend class user_timer_cp;
-		template <class, bool>  friend class connect_timeout_cp;
-		template <class, class> friend class connect_cp;
-		template <class, bool>  friend class send_cp;
-		template <class, bool>         friend class tcp_send_op;
-		template <class, bool>         friend class tcp_recv_op;
-		template <class, class, class, bool> friend class http_send_cp;
-		template <class, class, class, bool> friend class http_send_op;
-		template <class, class, class, bool> friend class http_recv_op;
-		template <class, class, class> friend class client_impl_t;
-		template <class, class, class> friend class tcp_client_impl_t;
+		template <class, bool>                friend class user_timer_cp;
+		template <class, bool>                friend class connect_timeout_cp;
+		template <class, class>               friend class connect_cp;
+		template <class, bool>                friend class send_queue_cp;
+		template <class, bool>                friend class send_cp;
+		template <class, bool>                friend class tcp_send_op;
+		template <class, bool>                friend class tcp_recv_op;
+		template <class, class, class, bool>  friend class http_send_cp;
+		template <class, class, class, bool>  friend class http_send_op;
+		template <class, class, class, bool>  friend class http_recv_op;
+		template <class, class, class>        friend class client_impl_t;
+		template <class, class, class>        friend class tcp_client_impl_t;
 
 	public:
 		using self = http_client_impl_t<derived_t, socket_t, body_t, buffer_t>;
@@ -49,6 +50,7 @@ namespace asio2::detail
 		using buffer_type = buffer_t;
 		using super::send;
 		using http_send_cp<derived_t, body_t, buffer_t, false>::send;
+		using send_queue_cp<derived_t, false>::_data_persistence;
 
 	public:
 		/**
@@ -80,8 +82,8 @@ namespace asio2::detail
 		 * @param port A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
 		 */
-		template<typename StringOrInt>
-		bool start(std::string_view host, StringOrInt&& port, std::string_view target = {},
+		template<typename StrOrInt>
+		bool start(std::string_view host, StrOrInt&& port, std::string_view target = {},
 			http::verb method = http::verb::get, unsigned version = 11)
 		{
 			try
@@ -90,7 +92,7 @@ namespace asio2::detail
 				if (!this->state_.compare_exchange_strong(expected, state_t::stopped))
 					asio::detail::throw_error(asio::error::already_started);
 
-				std::string p = to_string_port(std::forward<StringOrInt>(port));
+				std::string p = to_string_port(std::forward<StrOrInt>(port));
 
 				this->first_req_ = !target.empty();
 				if (this->first_req_)
@@ -149,12 +151,12 @@ namespace asio2::detail
 		 * @param port A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
 		 */
-		template<typename String, typename StringOrInt>
-		void async_start(String&& host, StringOrInt&& port, String&& target = String{},
+		template<typename String, typename StrOrInt>
+		void async_start(String&& host, StrOrInt&& port, String&& target = String{},
 			http::verb method = http::verb::get, unsigned version = 11)
 		{
 			std::string h = to_string_host(std::forward<String>(host));
-			std::string p = to_string_port(std::forward<StringOrInt>(port));
+			std::string p = to_string_port(std::forward<StrOrInt>(port));
 			std::string t = to_string(std::forward<String>(target));
 
 			asio::post(this->io_.strand(), [this, host = std::move(h), port = std::move(p),
@@ -179,7 +181,7 @@ namespace asio2::detail
 		/**
 		 * @function : start the client, asynchronous connect to server
 		 */
-		template<typename String, typename StringOrInt>
+		template<typename String>
 		void async_start(String&& url, http::verb method = http::verb::get, unsigned version = 11)
 		{
 			std::string u = to_string(std::forward<String>(url));
@@ -346,42 +348,50 @@ namespace asio2::detail
 		}
 
 	protected:
-		template<class ConstBufferSequence>
-		inline bool _do_send(ConstBufferSequence buffer)
+		template<class T>
+		inline auto _data_persistence(T&& data)
 		{
-			return this->derived().template _http_send<true>(this->derived().stream(), buffer);
+			return this->derived()._data_persistence(asio::buffer(data));
 		}
 
-		template<class ConstBufferSequence, class Callback>
-		inline bool _do_send(ConstBufferSequence buffer, Callback& fn)
+		template<class CharT, class SizeT>
+		inline auto _data_persistence(CharT * s, SizeT count)
 		{
-			return this->derived().template _http_send<true>(this->derived().stream(), buffer, fn);
+			return this->derived()._data_persistence(asio::buffer((const void*)s, count * sizeof(CharT)));
 		}
 
-		template<class ConstBufferSequence>
-		inline bool _do_send(ConstBufferSequence buffer,
-			std::promise<std::pair<error_code, std::size_t>>& promise)
+		template<typename = void>
+		inline auto _data_persistence(asio::const_buffer&& data)
 		{
-			return this->derived().template _http_send<true>(this->derived().stream(), buffer, promise);
+			return copyable_wrapper(http::make_request<body_type>(std::string_view(
+				reinterpret_cast<std::string_view::const_pointer>(data.data()), data.size())));
 		}
 
-		template<bool isRequest, class Body, class Fields>
-		inline bool _do_send(http::message<isRequest, Body, Fields>& msg)
+		template<bool isRequest, class Body, class Fields = http::fields>
+		inline auto _data_persistence(http::message<isRequest, Body, Fields>& msg)
 		{
-			return this->derived()._http_send(this->derived().stream(), msg);
+			return this->derived()._data_persistence(const_cast<const http::message<isRequest, Body, Fields>&>(msg));
 		}
 
-		template<bool isRequest, class Body, class Fields, class Callback>
-		inline bool _do_send(http::message<isRequest, Body, Fields>& msg, Callback& fn)
+		template<bool isRequest, class Body, class Fields = http::fields>
+		inline auto _data_persistence(const http::message<isRequest, Body, Fields>& msg)
 		{
-			return this->derived()._http_send(this->derived().stream(), msg, fn);
+			return copyable_wrapper(std::move(msg));
 		}
 
-		template<bool isRequest, class Body, class Fields>
-		inline bool _do_send(http::message<isRequest, Body, Fields>& msg,
-			std::promise<std::pair<error_code, std::size_t>>& promise)
+		template<bool isRequest, class Body, class Fields = http::fields>
+		inline auto _data_persistence(http::message<isRequest, Body, Fields>&& msg)
 		{
-			return this->derived()._http_send(this->derived().stream(), msg, promise);
+			// why use copyable_wrapper? beacuse http::message<isRequest, http::file_body> is moveable-only, but
+			// std::function is copyable-only
+			return copyable_wrapper(std::move(msg));
+		}
+
+		template<class Data, class Callback>
+		inline bool _do_send(Data& data, Callback&& callback)
+		{
+			return this->derived().template _http_send<true>(this->derived().stream(),
+				data, std::forward<Callback>(callback));
 		}
 
 	protected:

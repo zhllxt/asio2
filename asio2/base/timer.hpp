@@ -78,6 +78,9 @@ namespace asio2::detail
 		inline io_t & io() { return this->io_; }
 
 	protected:
+		inline std::shared_ptr<derived_t>   selfptr()  { return std::shared_ptr<derived_t>{}; }
+
+	protected:
 		/// The io (include io_context and strand) used to handle the accept event.
 		io_t        & io_;
 	};

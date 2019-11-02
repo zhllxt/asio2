@@ -28,16 +28,17 @@ namespace asio2::detail
 		, public ws_stream_cp<derived_t, stream_t, false>
 		, public ws_send_op<derived_t, false>
 	{
-		template <class, bool>  friend class user_timer_cp;
-		template <class, bool>  friend class connect_timeout_cp;
-		template <class, class> friend class connect_cp;
-		template <class, bool>  friend class send_cp;
-		template <class, bool>         friend class tcp_send_op;
-		template <class, bool>         friend class tcp_recv_op;
-		template <class, class, bool>  friend class ws_stream_cp;
-		template <class, bool>         friend class ws_send_op;
-		template <class, class, class>        friend class client_impl_t;
-		template <class, class, class>        friend class tcp_client_impl_t;
+		template <class, bool>                       friend class user_timer_cp;
+		template <class, bool>                       friend class connect_timeout_cp;
+		template <class, class>                      friend class connect_cp;
+		template <class, bool>                       friend class send_queue_cp;
+		template <class, bool>                       friend class send_cp;
+		template <class, bool>                       friend class tcp_send_op;
+		template <class, bool>                       friend class tcp_recv_op;
+		template <class, class, bool>                friend class ws_stream_cp;
+		template <class, bool>                       friend class ws_send_op;
+		template <class, class, class>               friend class client_impl_t;
+		template <class, class, class>               friend class tcp_client_impl_t;
 
 	public:
 		using self = ws_client_impl_t<derived_t, socket_t, stream_t, body_t, buffer_t>;
@@ -77,10 +78,10 @@ namespace asio2::detail
 		 * @param port A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
 		 */
-		template<typename StringOrInt>
-		bool start(std::string_view host, StringOrInt&& port)
+		template<typename StrOrInt>
+		bool start(std::string_view host, StrOrInt&& port)
 		{
-			return this->derived().template _do_connect<false>(host, to_string_port(std::forward<StringOrInt>(port)),
+			return this->derived().template _do_connect<false>(host, to_string_port(std::forward<StrOrInt>(port)),
 				condition_wrap<void>{});
 		}
 
@@ -91,11 +92,11 @@ namespace asio2::detail
 		 * @param port A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
 		 */
-		template<typename String, typename StringOrInt>
-		void async_start(String&& host, StringOrInt&& port)
+		template<typename String, typename StrOrInt>
+		void async_start(String&& host, StrOrInt&& port)
 		{
 			asio::post(this->io_.strand(), [this, h = to_string_host(std::forward<String>(host)),
-				p = to_string_port(std::forward<StringOrInt>(port))]()
+				p = to_string_port(std::forward<StrOrInt>(port))]()
 			{
 				this->derived().template _do_connect<true>(h, p, condition_wrap<void>{});
 			});
@@ -144,22 +145,10 @@ namespace asio2::detail
 			this->derived()._post_upgrade(std::move(this_ptr), std::move(condition));
 		}
 
-		template<class ConstBufferSequence>
-		inline bool _do_send(ConstBufferSequence buffer)
+		template<class Data, class Callback>
+		inline bool _do_send(Data& data, Callback&& callback)
 		{
-			return this->derived()._ws_send(buffer);
-		}
-
-		template<class ConstBufferSequence, class Callback>
-		inline bool _do_send(ConstBufferSequence buffer, Callback& fn)
-		{
-			return this->derived()._ws_send(buffer, fn);
-		}
-
-		template<class ConstBufferSequence>
-		inline bool _do_send(ConstBufferSequence buffer, std::promise<std::pair<error_code, std::size_t>>& promise)
-		{
-			return this->derived()._ws_send(buffer, promise);
+			return this->derived()._ws_send(data, std::forward<Callback>(callback));
 		}
 
 	protected:

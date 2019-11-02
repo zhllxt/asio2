@@ -29,13 +29,14 @@ namespace asio2::detail
 		, public tcp_send_op<derived_t, false>
 		, public tcp_recv_op<derived_t, false>
 	{
-		template <class, bool>  friend class user_timer_cp;
-		template <class, bool>  friend class connect_timeout_cp;
-		template <class, class> friend class connect_cp;
-		template <class, bool>  friend class send_cp;
-		template <class, bool>         friend class tcp_send_op;
-		template <class, bool>         friend class tcp_recv_op;
-		template <class, class, class> friend class client_impl_t;
+		template <class, bool>                friend class user_timer_cp;
+		template <class, bool>                friend class connect_timeout_cp;
+		template <class, class>               friend class connect_cp;
+		template <class, bool>                friend class send_queue_cp;
+		template <class, bool>                friend class send_cp;
+		template <class, bool>                friend class tcp_send_op;
+		template <class, bool>                friend class tcp_recv_op;
+		template <class, class, class>        friend class client_impl_t;
 
 	public:
 		using self = tcp_client_impl_t<derived_t, socket_t, buffer_t>;
@@ -74,10 +75,10 @@ namespace asio2::detail
 		 * @param port A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
 		 */
-		template<typename StringOrInt>
-		bool start(std::string_view host, StringOrInt&& port)
+		template<typename StrOrInt>
+		bool start(std::string_view host, StrOrInt&& port)
 		{
-			return this->derived().template _do_connect<false>(host, to_string_port(std::forward<StringOrInt>(port)),
+			return this->derived().template _do_connect<false>(host, to_string_port(std::forward<StrOrInt>(port)),
 				condition_wrap<asio::detail::transfer_at_least_t>{asio::transfer_at_least(1)});
 		}
 
@@ -93,10 +94,10 @@ namespace asio2::detail
 		 * asio::transfer_at_least,asio::transfer_exactly
 		 * more details see asio::read_until
 		 */
-		template<typename StringOrInt, typename MatchCondition>
-		bool start(std::string_view host, StringOrInt&& port, MatchCondition condition)
+		template<typename StrOrInt, typename MatchCondition>
+		bool start(std::string_view host, StrOrInt&& port, MatchCondition condition)
 		{
-			return this->derived().template _do_connect<false>(host, to_string_port(std::forward<StringOrInt>(port)),
+			return this->derived().template _do_connect<false>(host, to_string_port(std::forward<StrOrInt>(port)),
 				condition_wrap<MatchCondition>(condition));
 		}
 
@@ -107,11 +108,11 @@ namespace asio2::detail
 		 * @param port A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
 		 */
-		template<typename String, typename StringOrInt>
-		void async_start(String&& host, StringOrInt&& port)
+		template<typename String, typename StrOrInt>
+		void async_start(String&& host, StrOrInt&& port)
 		{
 			asio::post(this->io_.strand(), [this, h = to_string_host(std::forward<String>(host)),
-				p = to_string_port(std::forward<StringOrInt>(port))]()
+				p = to_string_port(std::forward<StrOrInt>(port))]()
 			{
 				this->derived().template _do_connect<true>(h, p,
 					condition_wrap<asio::detail::transfer_at_least_t>{asio::transfer_at_least(1)});
@@ -130,11 +131,11 @@ namespace asio2::detail
 		 * asio::transfer_at_least,asio::transfer_exactly
 		 * more details see asio::read_until
 		 */
-		template<typename String, typename StringOrInt, typename MatchCondition>
-		void async_start(String&& host, StringOrInt&& port, MatchCondition condition)
+		template<typename String, typename StrOrInt, typename MatchCondition>
+		void async_start(String&& host, StrOrInt&& port, MatchCondition condition)
 		{
 			asio::post(this->io_.strand(), [this, h = to_string_host(std::forward<String>(host)),
-				p = to_string_port(std::forward<StringOrInt>(port)), condition]()
+				p = to_string_port(std::forward<StrOrInt>(port)), condition]()
 			{
 				this->derived().template _do_connect<true>(h, p,
 					condition_wrap<MatchCondition>(condition));
@@ -330,28 +331,16 @@ namespace asio2::detail
 		inline void _start_recv(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
 		{
 			// Connect succeeded. post recv request.
-			asio::post(this->io_.strand(), [this, this_ptr, condition]()
+			asio::post(this->io_.strand(), [this, self_ptr = std::move(this_ptr), condition]()
 			{
-				this->derived()._post_recv(std::move(this_ptr), std::move(condition));
+				this->derived()._post_recv(std::move(self_ptr), std::move(condition));
 			});
 		}
 
-		template<class ConstBufferSequence>
-		inline bool _do_send(ConstBufferSequence buffer)
+		template<class Data, class Callback>
+		inline bool _do_send(Data& data, Callback&& callback)
 		{
-			return this->derived()._tcp_send(buffer);
-		}
-
-		template<class ConstBufferSequence, class Callback>
-		inline bool _do_send(ConstBufferSequence buffer, Callback& fn)
-		{
-			return this->derived()._tcp_send(buffer, fn);
-		}
-
-		template<class ConstBufferSequence>
-		inline bool _do_send(ConstBufferSequence buffer, std::promise<std::pair<error_code, std::size_t>>& promise)
-		{
-			return this->derived()._tcp_send(buffer, promise);
+			return this->derived()._tcp_send(data, std::forward<Callback>(callback));
 		}
 
 	protected:

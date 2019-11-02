@@ -18,6 +18,8 @@
 #include <cctype>
 #include <sstream>
 
+#include <memory>
+
 #include <asio2/base/selector.hpp>
 #include <asio2/base/error.hpp>
 
@@ -335,6 +337,19 @@ namespace boost::beast::http
 			return make_response(http::int_to_status(code), body);
 		}
 	}
+
+	template<typename, typename = void>
+	struct is_http_message : std::false_type {};
+
+	template<typename T>
+	struct is_http_message<T, std::void_t<typename T::header_type, typename T::body_type,
+		typename std::enable_if_t<std::is_same_v<T, message<
+		T::header_type::is_request::value,
+		typename T::body_type,
+		typename T::header_type::fields_type>>>>> : std::true_type {};
+
+	template<class T>
+	inline constexpr bool is_http_message_v = is_http_message<T>::value;
 }
 
 #endif // !__ASIO2_HTTP_UTIL_HPP__

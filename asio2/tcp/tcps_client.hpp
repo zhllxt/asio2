@@ -26,15 +26,16 @@ namespace asio2::detail
 		, public tcp_client_impl_t<derived_t, socket_t, buffer_t>
 		, public ssl_stream_cp<derived_t, socket_t, false>
 	{
-		template <class, bool>  friend class user_timer_cp;
-		template <class, bool>  friend class connect_timeout_cp;
-		template <class, class> friend class connect_cp;
-		template <class, bool>  friend class send_cp;
-		template <class, bool>         friend class tcp_send_op;
-		template <class, bool>         friend class tcp_recv_op;
-		template <class, class, bool>  friend class ssl_stream_cp;
-		template <class, class, class> friend class client_impl_t;
-		template <class, class, class> friend class tcp_client_impl_t;
+		template <class, bool>                friend class user_timer_cp;
+		template <class, bool>                friend class connect_timeout_cp;
+		template <class, class>               friend class connect_cp;
+		template <class, bool>                friend class send_queue_cp;
+		template <class, bool>                friend class send_cp;
+		template <class, bool>                friend class tcp_send_op;
+		template <class, bool>                friend class tcp_recv_op;
+		template <class, class, bool>         friend class ssl_stream_cp;
+		template <class, class, class>        friend class client_impl_t;
+		template <class, class, class>        friend class tcp_client_impl_t;
 
 	public:
 		using self = tcps_client_impl_t<derived_t, socket_t, buffer_t>;

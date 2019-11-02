@@ -40,55 +40,29 @@ namespace asio2::detail
 		~ws_send_op() = default;
 
 	protected:
-		template<class ConstBufferSequence>
-		inline bool _ws_send(ConstBufferSequence buffer)
+		template<class Data, class Callback>
+		inline bool _ws_send(Data& data, Callback&& callback)
 		{
-			if (!derive.is_started())
+#if defined(ASIO2_SEND_CORE_ASYNC)
+			derive.ws_stream().async_write(asio::buffer(data), asio::bind_executor(derive.io().strand(),
+				make_allocator(derive.wallocator(),
+					[this, p = derive.selfptr(), callback = std::forward<Callback>(callback)]
+			(const error_code& ec, std::size_t bytes_sent) mutable
 			{
-				set_last_error(asio::error::not_connected);
-				return false;
-			}
+				set_last_error(ec);
 
+				callback(ec, bytes_sent);
+
+				derive._send_dequeue();
+			})));
+			return true;
+#else
 			error_code ec;
-			derive.ws_stream().write(buffer, ec);
+			std::size_t bytes_sent = derive.ws_stream().write(asio::buffer(data), ec);
 			set_last_error(ec);
-			return (!ec.operator bool());
-		}
-
-		template<class ConstBufferSequence, class Callback>
-		inline bool _ws_send(ConstBufferSequence buffer, Callback& fn)
-		{
-			if (!derive.is_started())
-			{
-				set_last_error(asio::error::not_connected);
-				callback_helper::call(fn, 0);
-				return false;
-			}
-
-			error_code ec;
-			std::size_t sent_bytes = derive.ws_stream().write(buffer, ec);
-			set_last_error(ec);
-			callback_helper::call(fn, sent_bytes);
-
-			return (!ec.operator bool());
-		}
-
-		template<class ConstBufferSequence>
-		inline bool _ws_send(ConstBufferSequence buffer, std::promise<std::pair<error_code, std::size_t>>& promise)
-		{
-			if (!derive.is_started())
-			{
-				set_last_error(asio::error::not_connected);
-				promise.set_value(std::pair<error_code, std::size_t>(asio::error::not_connected, 0));
-				return false;
-			}
-
-			error_code ec;
-			std::size_t sent_bytes = derive.ws_stream().write(buffer, ec);
-			set_last_error(ec);
-			promise.set_value(std::pair<error_code, std::size_t>(ec, sent_bytes));
-
-			return (!ec.operator bool());
+			callback(ec, bytes_sent);
+			return (!bool(ec));
+#endif
 		}
 
 	protected:

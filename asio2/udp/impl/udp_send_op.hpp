@@ -39,97 +39,54 @@ namespace asio2::detail
 		~udp_send_op() = default;
 
 	protected:
-		template<class ConstBufferSequence>
-		inline bool _udp_send(ConstBufferSequence buffer)
+		template<class Data, class Callback>
+		inline bool _udp_send(Data& data, Callback&& callback)
 		{
-			if (!derive.is_started())
+#if defined(ASIO2_SEND_CORE_ASYNC)
+			derive.stream().async_send(asio::buffer(data), asio::bind_executor(derive.io().strand(),
+				make_allocator(derive.wallocator(),
+					[this, p = derive.selfptr(), callback = std::forward<Callback>(callback)]
+			(const error_code& ec, std::size_t bytes_sent) mutable
 			{
-				set_last_error(asio::error::not_connected);
-				return false;
-			}
+				set_last_error(ec);
+
+				callback(ec, bytes_sent);
+
+				derive._send_dequeue();
+			})));
+			return true;
+#else
 			error_code ec;
-			derive.stream().send(buffer, 0, ec);
+			std::size_t bytes_sent = derive.stream().send(asio::buffer(data), 0, ec);
 			set_last_error(ec);
-			return (!ec.operator bool());
+			callback(ec, bytes_sent);
+			return (!bool(ec));
+#endif
 		}
 
-		template<class ConstBufferSequence, class Callback>
-		inline bool _udp_send(ConstBufferSequence buffer, Callback& fn)
+		template<class Endpoint, class Data, class Callback>
+		inline bool _udp_send_to(Endpoint& endpoint, Data& data, Callback&& callback)
 		{
-			if (!derive.is_started())
+#if defined(ASIO2_SEND_CORE_ASYNC)
+			derive.stream().async_send_to(asio::buffer(data), endpoint, asio::bind_executor(derive.io().strand(),
+				make_allocator(derive.wallocator(),
+					[this, p = derive.selfptr(), callback = std::forward<Callback>(callback)]
+			(const error_code& ec, std::size_t bytes_sent) mutable
 			{
-				set_last_error(asio::error::not_connected);
-				callback_helper::call(fn, 0);
-				return false;
-			}
-			error_code ec;
-			std::size_t sent_bytes = derive.stream().send(buffer, 0, ec);
-			set_last_error(ec);
-			callback_helper::call(fn, sent_bytes);
-			return (!ec.operator bool());
-		}
+				set_last_error(ec);
 
-		template<class ConstBufferSequence>
-		inline bool _udp_send(ConstBufferSequence buffer, std::promise<std::pair<error_code, std::size_t>>& promise)
-		{
-			if (!derive.is_started())
-			{
-				set_last_error(asio::error::not_connected);
-				promise.set_value(std::pair<error_code, std::size_t>(asio::error::not_connected, 0));
-				return false;
-			}
-			error_code ec;
-			std::size_t sent_bytes = derive.stream().send(buffer, 0, ec);
-			set_last_error(ec);
-			promise.set_value(std::pair<error_code, std::size_t>(ec, sent_bytes));
-			return (!ec.operator bool());
-		}
+				callback(ec, bytes_sent);
 
-		template<class ConstBufferSequence>
-		inline bool _udp_send_to(const asio::ip::udp::endpoint& endpoint, ConstBufferSequence buffer)
-		{
-			if (!derive.is_started())
-			{
-				set_last_error(asio::error::not_connected);
-				return false;
-			}
+				derive._send_dequeue();
+			})));
+			return true;
+#else
 			error_code ec;
-			derive.stream().send_to(buffer, endpoint, 0, ec);
+			std::size_t bytes_sent = derive.stream().send_to(asio::buffer(data), endpoint, 0, ec);
 			set_last_error(ec);
-			return (!ec.operator bool());
-		}
-
-		template<class ConstBufferSequence, class Callback>
-		inline bool _udp_send_to(const asio::ip::udp::endpoint& endpoint, ConstBufferSequence buffer, Callback& fn)
-		{
-			if (!derive.is_started())
-			{
-				set_last_error(asio::error::not_connected);
-				callback_helper::call(fn, 0);
-				return false;
-			}
-			error_code ec;
-			std::size_t sent_bytes = derive.stream().send_to(buffer, endpoint, 0, ec);
-			set_last_error(ec);
-			callback_helper::call(fn, sent_bytes);
-			return (!ec.operator bool());
-		}
-
-		template<class ConstBufferSequence>
-		inline bool _udp_send_to(const asio::ip::udp::endpoint& endpoint, ConstBufferSequence buffer,
-			std::promise<std::pair<error_code, std::size_t>>& promise)
-		{
-			if (!derive.is_started())
-			{
-				set_last_error(asio::error::not_connected);
-				promise.set_value(std::pair<error_code, std::size_t>(asio::error::not_connected, 0));
-				return false;
-			}
-			error_code ec;
-			std::size_t sent_bytes = derive.stream().send_to(buffer, endpoint, 0, ec);
-			set_last_error(ec);
-			promise.set_value(std::pair<error_code, std::size_t>(ec, sent_bytes));
-			return (!ec.operator bool());
+			callback(ec, bytes_sent);
+			return (!bool(ec));
+#endif
 		}
 
 	protected:

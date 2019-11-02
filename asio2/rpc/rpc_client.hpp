@@ -33,20 +33,21 @@ namespace asio2::detail
 		, public rpc_recv_op<derived_t, false>
 		, protected id_maker<typename header::id_type>
 	{
-		template <class, bool>  friend class user_timer_cp;
-		template <class, bool>  friend class connect_timeout_cp;
-		template <class, class> friend class connect_cp;
-		template <class, bool>  friend class send_cp;
-		template <class, bool>         friend class tcp_send_op;
-		template <class, bool>         friend class tcp_recv_op;
-		template <class, class, bool>  friend class ssl_stream_cp;
-		template <class, class, bool>  friend class ws_stream_cp;
-		template <class, bool>         friend class ws_send_op;
-		template <class, bool>         friend class rpc_call_cp;
-		template <class, bool>         friend class rpc_recv_op;
-		template <class, class, class> friend class client_impl_t;
-		template <class, class, class> friend class tcp_client_impl_t;
-		template <class, class, class> friend class tcps_client_impl_t;
+		template <class, bool>                       friend class user_timer_cp;
+		template <class, bool>                       friend class connect_timeout_cp;
+		template <class, class>                      friend class connect_cp;
+		template <class, bool>                       friend class send_queue_cp;
+		template <class, bool>                       friend class send_cp;
+		template <class, bool>                       friend class tcp_send_op;
+		template <class, bool>                       friend class tcp_recv_op;
+		template <class, class, bool>                friend class ssl_stream_cp;
+		template <class, class, bool>                friend class ws_stream_cp;
+		template <class, bool>                       friend class ws_send_op;
+		template <class, bool>                       friend class rpc_call_cp;
+		template <class, bool>                       friend class rpc_recv_op;
+		template <class, class, class>               friend class client_impl_t;
+		template <class, class, class>               friend class tcp_client_impl_t;
+		template <class, class, class>               friend class tcps_client_impl_t;
 		template <class, class, class, class, class> friend class ws_client_impl_t;
 		template <class, class, class, class, class> friend class wss_client_impl_t;
 
