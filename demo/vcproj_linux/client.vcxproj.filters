@@ -1,9 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="..\src\client.cpp" />
-  </ItemGroup>
-  <ItemGroup>
     <Filter Include="asio2">
       <UniqueIdentifier>{5786c013-da0e-4d27-bd95-784918e58263}</UniqueIdentifier>
     </Filter>
@@ -69,6 +66,15 @@
     </Filter>
     <Filter Include="asio2\3rd">
       <UniqueIdentifier>{ac710a53-bd68-4542-9eee-d60128d6f4f2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\3rd\fmt">
+      <UniqueIdentifier>{0fb884c6-aa59-4162-a3d2-acb303a9114a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\3rd\openssl">
+      <UniqueIdentifier>{48f78b75-f6ac-4bf9-b9d3-6dd63accb3ac}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="demo">
+      <UniqueIdentifier>{c18921a0-913a-42cd-af35-f3711b4f4883}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -357,5 +363,319 @@
     <ClInclude Include="..\..\asio2\3rd\cereal.hpp">
       <Filter>asio2\3rd</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\fmt\chrono.h">
+      <Filter>asio2\3rd\fmt</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\fmt\color.h">
+      <Filter>asio2\3rd\fmt</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\fmt\compile.h">
+      <Filter>asio2\3rd\fmt</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\fmt\core.h">
+      <Filter>asio2\3rd\fmt</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\fmt\format.h">
+      <Filter>asio2\3rd\fmt</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\fmt\format-inl.h">
+      <Filter>asio2\3rd\fmt</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\fmt\locale.h">
+      <Filter>asio2\3rd\fmt</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\fmt\ostream.h">
+      <Filter>asio2\3rd\fmt</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\fmt\posix.h">
+      <Filter>asio2\3rd\fmt</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\fmt\printf.h">
+      <Filter>asio2\3rd\fmt</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\fmt\ranges.h">
+      <Filter>asio2\3rd\fmt</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\fmt\safe-duration-cast.h">
+      <Filter>asio2\3rd\fmt</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\__DECC_INCLUDE_EPILOGUE.H">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\__DECC_INCLUDE_PROLOGUE.H">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\aes.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\asn1.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\asn1_mac.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\asn1t.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\async.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\bio.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\blowfish.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\bn.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\buffer.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\camellia.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\cast.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\cmac.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\cms.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\comp.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\conf.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\conf_api.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\crypto.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\ct.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\des.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\dh.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\dsa.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\dtls1.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\e_os2.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\ebcdic.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\ec.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\ecdh.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\ecdsa.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\engine.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\err.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\evp.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\hmac.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\idea.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\kdf.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\lhash.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\md2.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\md4.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\md5.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\mdc2.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\modes.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\obj_mac.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\objects.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\ocsp.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\opensslconf.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\opensslconf_linux64.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\opensslconf_win32.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\opensslconf_win64.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\opensslv.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\ossl_typ.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\pem.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\pem2.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\pkcs7.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\pkcs12.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\rand.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\rc2.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\rc4.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\rc5.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\ripemd.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\rsa.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\safestack.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\seed.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\sha.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\srp.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\srtp.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\ssl.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\ssl2.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\ssl3.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\stack.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\symhacks.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\tls1.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\ts.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\txt_db.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\ui.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\whrlpool.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\x509.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\x509_vfy.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\openssl\x509v3.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\base\component\send_queue_cp.hpp">
+      <Filter>asio2\base\component</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\http_client.hpp">
+      <Filter>demo</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\ping_test.hpp">
+      <Filter>demo</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\rpc_client.hpp">
+      <Filter>demo</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\serial_port.hpp">
+      <Filter>demo</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\tcp_client.hpp">
+      <Filter>demo</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\tcp_client_character.hpp">
+      <Filter>demo</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\tcp_client_dgram.hpp">
+      <Filter>demo</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\tcp_client_match_role.hpp">
+      <Filter>demo</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\udp_cast.hpp">
+      <Filter>demo</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\udp_client.hpp">
+      <Filter>demo</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\udp_client_kcp.hpp">
+      <Filter>demo</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\websocket_client.hpp">
+      <Filter>demo</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\client.cpp">
+      <Filter>demo</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

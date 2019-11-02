@@ -93,14 +93,14 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>../../;E:\Work\项目\Engine\开发库\03_开发阶段\源代码\third_party\boost;E:\boost;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../;E:\Work\项目\Engine\开发库\03_开发阶段\源代码\third_party\boost2;E:\develop\3rd\boost\boost_1_70_0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-      <AdditionalLibraryDirectories>E:\Work\项目\Engine\开发库\03_开发阶段\源代码\third_party\boost\stage\lib;E:\boost\stage\lib;../../lib/x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>E:\Work\项目\Engine\开发库\03_开发阶段\源代码\third_party\boost\stage\lib;E:\develop\3rd\boost\boost_1_70_0\stage\lib;../../lib/x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>libssl.lib;libcrypto.lib;Crypt32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/ignore:4099 %(AdditionalOptions)</AdditionalOptions>
     </Link>
@@ -112,14 +112,14 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>../../;E:\Work\项目\Engine\开发库\03_开发阶段\源代码\third_party\boost;E:\boost;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../;E:\Work\项目\Engine\开发库\03_开发阶段\源代码\third_party\boost;E:\develop\3rd\boost\boost_1_70_0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-      <AdditionalLibraryDirectories>E:\Work\项目\Engine\开发库\03_开发阶段\源代码\third_party\boost\stage\lib;E:\boost\stage\lib;../../lib/x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>E:\Work\项目\Engine\开发库\03_开发阶段\源代码\third_party\boost\stage\lib;E:\develop\3rd\boost\boost_1_70_0\stage\lib;../../lib/x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>libssl.lib;libcrypto.lib;Crypt32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/ignore:4099 %(AdditionalOptions)</AdditionalOptions>
     </Link>
@@ -133,7 +133,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>../../;E:\Work\项目\Engine\开发库\03_开发阶段\源代码\third_party\boost;E:\boost;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../;E:\Work\项目\Engine\开发库\03_开发阶段\源代码\third_party\boost2;E:\develop\3rd\boost\boost_1_70_0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -142,7 +142,7 @@
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>E:\Work\项目\Engine\开发库\03_开发阶段\源代码\third_party\boost\stage\lib;E:\boost\stage\lib;../../lib/x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>E:\Work\项目\Engine\开发库\03_开发阶段\源代码\third_party\boost\stage\lib;E:\develop\3rd\boost\boost_1_70_0\stage\lib;../../lib/x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>libssl.lib;libcrypto.lib;Crypt32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/ignore:4099 %(AdditionalOptions)</AdditionalOptions>
     </Link>
@@ -156,7 +156,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>../../;E:\Work\项目\Engine\开发库\03_开发阶段\源代码\third_party\boost;E:\boost;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../;E:\Work\项目\Engine\开发库\03_开发阶段\源代码\third_party\boost;E:\develop\3rd\boost\boost_1_70_0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -165,7 +165,7 @@
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>E:\Work\项目\Engine\开发库\03_开发阶段\源代码\third_party\boost\stage\lib;E:\boost\stage\lib;../../lib/x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>E:\Work\项目\Engine\开发库\03_开发阶段\源代码\third_party\boost\stage\lib;E:\develop\3rd\boost\boost_1_70_0\stage\lib;../../lib/x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>libssl.lib;libcrypto.lib;Crypt32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/ignore:4099 %(AdditionalOptions)</AdditionalOptions>
     </Link>
@@ -174,6 +174,7 @@
     <ClCompile Include="..\src\client.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\asio2\3rd\cereal.hpp" />
     <ClInclude Include="..\..\asio2\asio2.hpp" />
     <ClInclude Include="..\..\asio2\base\client.hpp" />
     <ClInclude Include="..\..\asio2\base\component\active_time_cp.hpp" />
@@ -263,8 +264,111 @@
     <ClInclude Include="..\..\asio2\util\md5.hpp" />
     <ClInclude Include="..\..\asio2\util\noncopyable.hpp" />
     <ClInclude Include="..\..\asio2\util\spin_lock.hpp" />
+    <ClInclude Include="..\..\asio2\util\string.hpp" />
     <ClInclude Include="..\..\asio2\util\thread_pool.hpp" />
     <ClInclude Include="..\..\asio2\version.hpp" />
+    <ClInclude Include="..\..\fmt\chrono.h" />
+    <ClInclude Include="..\..\fmt\color.h" />
+    <ClInclude Include="..\..\fmt\compile.h" />
+    <ClInclude Include="..\..\fmt\core.h" />
+    <ClInclude Include="..\..\fmt\format-inl.h" />
+    <ClInclude Include="..\..\fmt\format.h" />
+    <ClInclude Include="..\..\fmt\locale.h" />
+    <ClInclude Include="..\..\fmt\ostream.h" />
+    <ClInclude Include="..\..\fmt\posix.h" />
+    <ClInclude Include="..\..\fmt\printf.h" />
+    <ClInclude Include="..\..\fmt\ranges.h" />
+    <ClInclude Include="..\..\fmt\safe-duration-cast.h" />
+    <ClInclude Include="..\..\openssl\aes.h" />
+    <ClInclude Include="..\..\openssl\asn1.h" />
+    <ClInclude Include="..\..\openssl\asn1t.h" />
+    <ClInclude Include="..\..\openssl\asn1_mac.h" />
+    <ClInclude Include="..\..\openssl\async.h" />
+    <ClInclude Include="..\..\openssl\bio.h" />
+    <ClInclude Include="..\..\openssl\blowfish.h" />
+    <ClInclude Include="..\..\openssl\bn.h" />
+    <ClInclude Include="..\..\openssl\buffer.h" />
+    <ClInclude Include="..\..\openssl\camellia.h" />
+    <ClInclude Include="..\..\openssl\cast.h" />
+    <ClInclude Include="..\..\openssl\cmac.h" />
+    <ClInclude Include="..\..\openssl\cms.h" />
+    <ClInclude Include="..\..\openssl\comp.h" />
+    <ClInclude Include="..\..\openssl\conf.h" />
+    <ClInclude Include="..\..\openssl\conf_api.h" />
+    <ClInclude Include="..\..\openssl\crypto.h" />
+    <ClInclude Include="..\..\openssl\ct.h" />
+    <ClInclude Include="..\..\openssl\des.h" />
+    <ClInclude Include="..\..\openssl\dh.h" />
+    <ClInclude Include="..\..\openssl\dsa.h" />
+    <ClInclude Include="..\..\openssl\dtls1.h" />
+    <ClInclude Include="..\..\openssl\ebcdic.h" />
+    <ClInclude Include="..\..\openssl\ec.h" />
+    <ClInclude Include="..\..\openssl\ecdh.h" />
+    <ClInclude Include="..\..\openssl\ecdsa.h" />
+    <ClInclude Include="..\..\openssl\engine.h" />
+    <ClInclude Include="..\..\openssl\err.h" />
+    <ClInclude Include="..\..\openssl\evp.h" />
+    <ClInclude Include="..\..\openssl\e_os2.h" />
+    <ClInclude Include="..\..\openssl\hmac.h" />
+    <ClInclude Include="..\..\openssl\idea.h" />
+    <ClInclude Include="..\..\openssl\kdf.h" />
+    <ClInclude Include="..\..\openssl\lhash.h" />
+    <ClInclude Include="..\..\openssl\md2.h" />
+    <ClInclude Include="..\..\openssl\md4.h" />
+    <ClInclude Include="..\..\openssl\md5.h" />
+    <ClInclude Include="..\..\openssl\mdc2.h" />
+    <ClInclude Include="..\..\openssl\modes.h" />
+    <ClInclude Include="..\..\openssl\objects.h" />
+    <ClInclude Include="..\..\openssl\obj_mac.h" />
+    <ClInclude Include="..\..\openssl\ocsp.h" />
+    <ClInclude Include="..\..\openssl\opensslconf.h" />
+    <ClInclude Include="..\..\openssl\opensslconf_linux64.h" />
+    <ClInclude Include="..\..\openssl\opensslconf_win32.h" />
+    <ClInclude Include="..\..\openssl\opensslconf_win64.h" />
+    <ClInclude Include="..\..\openssl\opensslv.h" />
+    <ClInclude Include="..\..\openssl\ossl_typ.h" />
+    <ClInclude Include="..\..\openssl\pem.h" />
+    <ClInclude Include="..\..\openssl\pem2.h" />
+    <ClInclude Include="..\..\openssl\pkcs12.h" />
+    <ClInclude Include="..\..\openssl\pkcs7.h" />
+    <ClInclude Include="..\..\openssl\rand.h" />
+    <ClInclude Include="..\..\openssl\rc2.h" />
+    <ClInclude Include="..\..\openssl\rc4.h" />
+    <ClInclude Include="..\..\openssl\rc5.h" />
+    <ClInclude Include="..\..\openssl\ripemd.h" />
+    <ClInclude Include="..\..\openssl\rsa.h" />
+    <ClInclude Include="..\..\openssl\safestack.h" />
+    <ClInclude Include="..\..\openssl\seed.h" />
+    <ClInclude Include="..\..\openssl\sha.h" />
+    <ClInclude Include="..\..\openssl\srp.h" />
+    <ClInclude Include="..\..\openssl\srtp.h" />
+    <ClInclude Include="..\..\openssl\ssl.h" />
+    <ClInclude Include="..\..\openssl\ssl2.h" />
+    <ClInclude Include="..\..\openssl\ssl3.h" />
+    <ClInclude Include="..\..\openssl\stack.h" />
+    <ClInclude Include="..\..\openssl\symhacks.h" />
+    <ClInclude Include="..\..\openssl\tls1.h" />
+    <ClInclude Include="..\..\openssl\ts.h" />
+    <ClInclude Include="..\..\openssl\txt_db.h" />
+    <ClInclude Include="..\..\openssl\ui.h" />
+    <ClInclude Include="..\..\openssl\whrlpool.h" />
+    <ClInclude Include="..\..\openssl\x509.h" />
+    <ClInclude Include="..\..\openssl\x509v3.h" />
+    <ClInclude Include="..\..\openssl\x509_vfy.h" />
+    <ClInclude Include="..\..\openssl\__DECC_INCLUDE_EPILOGUE.H" />
+    <ClInclude Include="..\..\openssl\__DECC_INCLUDE_PROLOGUE.H" />
+    <ClInclude Include="..\src\http_client.hpp" />
+    <ClInclude Include="..\src\ping_test.hpp" />
+    <ClInclude Include="..\src\rpc_client.hpp" />
+    <ClInclude Include="..\src\serial_port.hpp" />
+    <ClInclude Include="..\src\tcp_client.hpp" />
+    <ClInclude Include="..\src\tcp_client_character.hpp" />
+    <ClInclude Include="..\src\tcp_client_dgram.hpp" />
+    <ClInclude Include="..\src\tcp_client_match_role.hpp" />
+    <ClInclude Include="..\src\udp_cast.hpp" />
+    <ClInclude Include="..\src\udp_client.hpp" />
+    <ClInclude Include="..\src\udp_client_kcp.hpp" />
+    <ClInclude Include="..\src\websocket_client.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

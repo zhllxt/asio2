@@ -1,3 +1,7 @@
+# 2019-11-02 version 2.2:
+
+  * Change internal send mode from synchronous to asynchronous.
+
 # 2019-06-28 version 2.1:
 
   * Fixed some bugs.
