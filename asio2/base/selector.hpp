@@ -16,13 +16,11 @@
 #include <asio2/config.hpp>
 
 #ifdef ASIO_STANDALONE
-	#define ASIO_NO_DEPRECATED
 	#include <asio/asio.hpp>
 	#if defined(ASIO2_USE_SSL)
 		#include <asio/ssl.hpp>
 	#endif
 #else
-	#define BOOST_ASIO_NO_DEPRECATED
 	#include <boost/asio.hpp>
 	#include <boost/beast.hpp>
 	#if defined(ASIO2_USE_SSL)

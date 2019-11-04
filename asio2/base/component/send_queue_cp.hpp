@@ -182,6 +182,44 @@ namespace asio2::detail
 			return derive._data_persistence(asio::const_buffer(std::move(data)));
 		}
 
+#if !defined(ASIO_NO_DEPRECATED) && !defined(BOOST_ASIO_NO_DEPRECATED)
+		template<typename = void>
+		inline auto _data_persistence(asio::const_buffers_1& data)
+		{
+			return derive._data_persistence(asio::const_buffer(data));
+		}
+
+		template<typename = void>
+		inline auto _data_persistence(const asio::const_buffers_1& data)
+		{
+			return derive._data_persistence(asio::const_buffer(data));
+		}
+
+		template<typename = void>
+		inline auto _data_persistence(asio::const_buffers_1&& data)
+		{
+			return derive._data_persistence(asio::const_buffer(std::move(data)));
+		}
+
+		template<typename = void>
+		inline auto _data_persistence(asio::mutable_buffers_1& data)
+		{
+			return derive._data_persistence(asio::const_buffer(data));
+		}
+
+		template<typename = void>
+		inline auto _data_persistence(const asio::mutable_buffers_1& data)
+		{
+			return derive._data_persistence(asio::const_buffer(data));
+		}
+
+		template<typename = void>
+		inline auto _data_persistence(asio::mutable_buffers_1&& data)
+		{
+			return derive._data_persistence(asio::const_buffer(std::move(data)));
+		}
+#endif
+
 	protected:
 		derived_t                        & derive;
 
