@@ -280,6 +280,9 @@ namespace asio2::detail
 			asio::post(this->io_.strand(), make_allocator(this->rallocator_,
 				[this, self_ptr = std::move(this_ptr), condition]()
 			{
+				// start the timer of check silence timeout
+				this->derived()._post_silence_timer(this->silence_timeout_, self_ptr);
+
 				this->derived()._post_recv(std::move(self_ptr), std::move(condition));
 			}));
 		}

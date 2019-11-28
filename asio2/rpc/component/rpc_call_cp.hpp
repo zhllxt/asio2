@@ -377,11 +377,12 @@ namespace asio2::detail
 					}
 				};
 
+				// 2019-11-28 fixed the bug of issue #6 : task() cannot be called directly
 				// Make sure we run on the strand
-				if (!this->wio_.strand().running_in_this_thread())
+				//if (!this->wio_.strand().running_in_this_thread())
 					asio::post(this->wio_.strand(), make_allocator(derive.wallocator(), std::move(task)));
-				else
-					task();
+				//else
+				//	task();
 
 				return;
 			}

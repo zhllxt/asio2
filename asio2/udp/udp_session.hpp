@@ -311,6 +311,9 @@ namespace asio2::detail
 		template<typename MatchCondition>
 		inline void _start_recv(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
 		{
+			// start the timer of check silence timeout
+			this->derived()._post_silence_timer(this->silence_timeout_, this_ptr);
+
 			if constexpr (std::is_same_v<MatchCondition, use_kcp_t>)
 				std::ignore = true;
 			else

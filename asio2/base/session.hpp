@@ -121,9 +121,6 @@ namespace asio2::detail
 			if (!this->io_.strand().running_in_this_thread())
 				return asio::post(this->io_.strand(), std::bind(&self::start, this->shared_from_this()));
 
-			// start the timer of check silence timeout
-			this->derived()._post_silence_timer(this->silence_timeout_, this->shared_from_this());
-
 			// start the timer of check connect timeout
 			this->derived()._post_timeout_timer(this->connect_timeout_, this->shared_from_this());
 		}

@@ -41,16 +41,21 @@
 
 #include <asio2/icmp/detail/icmp_header.hpp>
 #include <asio2/icmp/detail/ipv4_header.hpp>
+#include <asio2/icmp/detail/ipv6_header.hpp>
 
 namespace asio2
 {
-	class icmp_rep : public detail::ipv4_header, public detail::icmp_header
+	class icmp_rep : public detail::ipv4_header, /*public detail::ipv6_header,*/ public detail::icmp_header
 	{
 	public:
 		std::chrono::steady_clock::duration lag;
 
 		detail::ipv4_header& base_ipv4() { return static_cast<detail::ipv4_header&>(*this); }
+		//detail::ipv6_header& base_ipv6() { return static_cast<detail::ipv6_header&>(*this); }
 		detail::icmp_header& base_icmp() { return static_cast<detail::icmp_header&>(*this); }
+
+	protected:
+
 	};
 }
 
@@ -246,6 +251,8 @@ namespace asio2::detail
 		inline derived_t & body(std::string_view body)
 		{
 			this->body_ = body;
+			if (this->body_.size() > 65500)
+				this->body_.resize(65500);
 			return (this->derived());
 		}
 
@@ -318,10 +325,10 @@ namespace asio2::detail
 				this->identifier_ = static_cast<unsigned short>(::getpid());
 #endif
 				asio::ip::icmp::resolver resolver(this->io_.context());
-				this->destination_ = *resolver.resolve(asio::ip::icmp::v4(), host, "").begin();
+				this->destination_ = *resolver.resolve(host, "").begin();
 
 				this->socket_.close(ec_ignore);
-				this->socket_.open(asio::ip::icmp::v4());
+				this->socket_.open(this->destination_.protocol());
 
 				this->derived()._fire_init();
 
@@ -508,6 +515,12 @@ namespace asio2::detail
 			set_last_error(ec);
 
 			if (ec == asio::error::operation_aborted)
+			{
+				this->derived()._do_stop(ec);
+				return;
+			}
+
+			if (ec && bytes_recvd == 0)
 			{
 				this->derived()._do_stop(ec);
 				return;
