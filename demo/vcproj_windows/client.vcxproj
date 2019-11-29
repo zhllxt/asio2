@@ -226,8 +226,9 @@
     <ClInclude Include="..\..\asio2\http\ws_client.hpp" />
     <ClInclude Include="..\..\asio2\http\ws_server.hpp" />
     <ClInclude Include="..\..\asio2\http\ws_session.hpp" />
-    <ClInclude Include="..\..\asio2\icmp\icmp_header.hpp" />
-    <ClInclude Include="..\..\asio2\icmp\ipv4_header.hpp" />
+    <ClInclude Include="..\..\asio2\icmp\detail\icmp_header.hpp" />
+    <ClInclude Include="..\..\asio2\icmp\detail\ipv4_header.hpp" />
+    <ClInclude Include="..\..\asio2\icmp\detail\ipv6_header.hpp" />
     <ClInclude Include="..\..\asio2\icmp\ping.hpp" />
     <ClInclude Include="..\..\asio2\rpc\component\rpc_call_cp.hpp" />
     <ClInclude Include="..\..\asio2\rpc\detail\invoker.hpp" />

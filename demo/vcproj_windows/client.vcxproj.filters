@@ -102,12 +102,6 @@
     <ClInclude Include="..\..\asio2\udp\udp_session.hpp">
       <Filter>asio2\udp</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\asio2\icmp\icmp_header.hpp">
-      <Filter>asio2\icmp</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\asio2\icmp\ipv4_header.hpp">
-      <Filter>asio2\icmp</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\asio2\util\defer.hpp">
       <Filter>asio2\util</Filter>
     </ClInclude>
@@ -665,6 +659,15 @@
     </ClInclude>
     <ClInclude Include="..\src\rpc_client.hpp">
       <Filter>demo</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\icmp\detail\icmp_header.hpp">
+      <Filter>asio2\icmp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\icmp\detail\ipv4_header.hpp">
+      <Filter>asio2\icmp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\icmp\detail\ipv6_header.hpp">
+      <Filter>asio2\icmp</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

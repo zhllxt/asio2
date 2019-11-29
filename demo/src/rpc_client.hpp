@@ -32,6 +32,8 @@ void run_rpc_client(std::string_view host, std::string_view port)
 			client.bind_connect([&](asio::error_code ec)
 			{
 				printf("connect : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
+				// the type of the callback's second parameter is auto, so you have to specify 
+				// the return type in the template function like 'async_call<int>'
 				client.async_call<int>([](asio::error_code ec, auto v)
 				{
 					printf("sum : %d err : %d %s\n", v, ec.value(), ec.message().c_str());
@@ -62,6 +64,8 @@ void run_rpc_client(std::string_view host, std::string_view port)
 				int sum = client.call<int>(ec, std::chrono::seconds(3), "add", 11, 2);
 				printf("sum : %d err : %d %s\n", sum, ec.value(), ec.message().c_str());
 
+				// the type of the callback's second parameter is int, so you have't to specify 
+				// the return type in the template function
 				client.async_call([](asio::error_code ec, int v)
 				{
 					printf("sum : %d err : %d %s\n", v, ec.value(), ec.message().c_str());
@@ -72,6 +76,8 @@ void run_rpc_client(std::string_view host, std::string_view port)
 					printf("no_exists_fn : %d err : %d %s\n", v, ec.value(), ec.message().c_str());
 				}, "no_exists_fn", 10, 20);
 
+				// the type of the callback's second parameter is auto, so you have to specify 
+				// the return type in the template function like 'async_call<int>'
 				client.async_call<int>([](asio::error_code ec, auto v)
 				{
 					printf("sum : %d err : %d %s\n", v, ec.value(), ec.message().c_str());

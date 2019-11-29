@@ -6,11 +6,11 @@ class ping_test
 {
 	asio2::ping ping;
 public:
-	ping_test() : ping(10)
+	ping_test() : ping(1000)
 	{
 		ping.timeout(std::chrono::seconds(3));
 		ping.interval(std::chrono::seconds(1));
-		ping.body("0123456789abcdefghijklmnopqrstovuxyz");
+		ping.body("");
 		ping.bind_recv(&ping_test::on_recv, this)
 			.bind_start(std::bind(&ping_test::on_start, this, std::placeholders::_1))
 			.bind_stop([this](asio::error_code ec) { this->on_stop(ec); });
@@ -37,7 +37,7 @@ public:
 	}
 	void run()
 	{
-		if (!ping.start("127.0.0.1"))
+		if (!ping.start("fe80::59f9:25af:4427:fab7"))
 			//if (!ping.start("123.45.67.89"))
 			//if (!ping.start("stackoverflow.com"))
 			printf("start failure : %s\n", asio2::last_error_msg().c_str());

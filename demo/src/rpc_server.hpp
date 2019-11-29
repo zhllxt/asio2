@@ -31,7 +31,9 @@ public:
 		return a * b;
 	}
 
-	user get_user()
+	// If you want to know which client called this function, set the first parameter
+	// to std::shared_ptr<asio2::rpc_session>& session_ptr
+	user get_user(std::shared_ptr<asio2::rpc_session>& session_ptr)
 	{
 		user u;
 		u.name = "lilei";
@@ -40,9 +42,11 @@ public:
 		return u;
 	}
 
-	void del_user(const user& u)
+	// If you want to know which client called this function, set the first parameter
+	// to std::shared_ptr<asio2::rpc_session>& session_ptr
+	void del_user(std::shared_ptr<asio2::rpc_session>& session_ptr, const user& u)
 	{
-		printf("%s %d ", u.name.c_str(), u.age);
+		printf("del_user is called by %s : %s %d ", session_ptr->remote_address().c_str(), u.name.c_str(), u.age);
 		for (auto &[k, v] : u.purview)
 		{
 			printf("%d %s ", k, v.c_str());
@@ -56,6 +60,7 @@ void run_rpc_server(std::string_view host, std::string_view port)
 	asio2::rpc_server server;
 	//while (1) // use infinite loop and sleep 2 seconds to test start and stop
 	{
+		std::shared_ptr<asio2::rpc_session> client_ptr;
 		printf("\n");
 		server.start_timer(1, std::chrono::seconds(1), []() {});
 		server.bind_recv([&server](auto & session_ptr, std::string_view s)
@@ -63,17 +68,18 @@ void run_rpc_server(std::string_view host, std::string_view port)
 			//printf("recv : %u %.*s\n", (unsigned)s.size(), (int)s.size(), s.data());
 		}).bind_send([&](auto & session_ptr, std::string_view s)
 		{
-		}).bind_connect([&server](auto & session_ptr)
+		}).bind_connect([&server,&client_ptr](auto & session_ptr)
 		{
 			//session_ptr->stop();
 			printf("client enter : %s %u %s %u\n",
 				session_ptr->remote_address().c_str(), session_ptr->remote_port(),
 				session_ptr->local_address().c_str(), session_ptr->local_port());
-
+			client_ptr = session_ptr;
 			session_ptr->async_call([](asio::error_code ec, int v)
 			{
 				printf("sub : %d err : %d %s\n", v, ec.value(), ec.message().c_str());
 			}, std::chrono::seconds(10), "sub", 15, 8);
+			
 		}).bind_disconnect([&server](auto & session_ptr)
 		{
 			printf("client leave : %s %u %s\n",
@@ -91,7 +97,15 @@ void run_rpc_server(std::string_view host, std::string_view port)
 		A a;
 		server.bind("add", add);
 		server.bind("mul", &A::mul, a);
-		server.bind("cat", [&](const std::string& a, const std::string& b) { return a + b; });
+		server.bind("cat", [&](const std::string& a, const std::string& b)
+		{
+			// Nested call rpc function in business function is ok.
+			client_ptr->async_call([](asio::error_code ec, int v)
+			{
+				printf("sub : %d err : %d %s\n", v, ec.value(), ec.message().c_str());
+			}, std::chrono::seconds(10), "sub", 15, 8);
+			return a + b;
+		});
 		server.bind("get_user", &A::get_user, a);
 		server.bind("del_user", &A::del_user, &a);
 

@@ -663,6 +663,9 @@
     <ClInclude Include="..\src\websocket_server.hpp">
       <Filter>demo</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\asio2\icmp\detail\ipv6_header.hpp">
+      <Filter>asio2\icmp</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\server.cpp">
