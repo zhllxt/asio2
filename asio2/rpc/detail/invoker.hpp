@@ -49,6 +49,7 @@ namespace asio2::detail
 		using type = std::int8_t;
 	};
 
+	template<typename CallerT>
 	class invoker
 	{
 	public:
@@ -98,7 +99,7 @@ namespace asio2::detail
 		/**
 		 * @function : find binded rpc function by name
 		 */
-		inline std::function<void(serializer&, deserializer&)>* find(std::string const& name)
+		inline std::function<void(std::shared_ptr<CallerT>&, serializer&, deserializer&)>* find(std::string const& name)
 		{
 			//std::shared_lock<std::shared_mutex> guard(this->mutex_);
 			auto iter = this->invokers_.find(name);
@@ -118,7 +119,7 @@ namespace asio2::detail
 		{
 			//std::unique_lock<std::shared_mutex> guard(this->mutex_);
 			this->invokers_[name] = std::bind(&self::template _proxy<F>, this, std::move(f),
-				std::placeholders::_1, std::placeholders::_2);
+				std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
 		}
 
 		template<class F, class C>
@@ -126,7 +127,7 @@ namespace asio2::detail
 		{
 			//std::unique_lock<std::shared_mutex> guard(this->mutex_);
 			this->invokers_[name] = std::bind(&self::template _proxy<F, C>, this, std::move(f), &c,
-				std::placeholders::_1, std::placeholders::_2);
+				std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
 		}
 
 		template<class F, class C>
@@ -134,11 +135,28 @@ namespace asio2::detail
 		{
 			//std::unique_lock<std::shared_mutex> guard(this->mutex_);
 			this->invokers_[name] = std::bind(&self::template _proxy<F, C>, this, std::move(f), c,
-				std::placeholders::_1, std::placeholders::_2);
+				std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
 		}
 
 		template<class F>
-		inline void _proxy(F f, serializer& sr, deserializer& dr)
+		inline void _proxy(F f, std::shared_ptr<CallerT>& caller, serializer& sr, deserializer& dr)
+		{
+			using fun_traits_type = function_traits<F>;
+
+			_argc_proxy<fun_traits_type::argc>(f, caller, sr, dr);
+		}
+
+		template<class F, class C>
+		inline void _proxy(F f, C* c, std::shared_ptr<CallerT>& caller, serializer& sr, deserializer& dr)
+		{
+			using fun_traits_type = function_traits<F>;
+
+			_argc_proxy<fun_traits_type::argc>(f, c, caller, sr, dr);
+		}
+
+		template<std::size_t Argc, class F>
+		typename std::enable_if_t<Argc == 0>
+			inline _argc_proxy(const F& f, std::shared_ptr<CallerT>&, serializer& sr, deserializer& dr)
 		{
 			using fun_traits_type = function_traits<F>;
 			using fun_args_tuple = typename fun_traits_type::pod_tuple_type;
@@ -149,8 +167,9 @@ namespace asio2::detail
 			_invoke<fun_ret_type>(f, sr, dr, tp);
 		}
 
-		template<class F, class C>
-		inline void _proxy(F f, C* c, serializer& sr, deserializer& dr)
+		template<std::size_t Argc, class F, class C>
+		typename std::enable_if_t<Argc == 0>
+			inline _argc_proxy(const F& f, C* c, std::shared_ptr<CallerT>&, serializer& sr, deserializer& dr)
 		{
 			using fun_traits_type = function_traits<F>;
 			using fun_args_tuple = typename fun_traits_type::pod_tuple_type;
@@ -159,6 +178,64 @@ namespace asio2::detail
 			fun_args_tuple tp;
 			dr >> tp;
 			_invoke<fun_ret_type>(f, c, sr, dr, tp);
+		}
+
+		template<std::size_t Argc, class F>
+		typename std::enable_if_t<Argc != 0>
+			inline _argc_proxy(const F& f, std::shared_ptr<CallerT>& caller, serializer& sr, deserializer& dr)
+		{
+			using fun_traits_type = function_traits<F>;
+			using fun_args_tuple = typename fun_traits_type::pod_tuple_type;
+			using fun_ret_type = typename fun_traits_type::return_type;
+			using arg0_type = typename std::remove_cv_t<std::remove_reference_t<typename fun_traits_type::template args<0>::type>>;
+
+			if constexpr (std::is_same_v<std::shared_ptr<CallerT>, arg0_type>)
+			{
+				auto tp = _body_args_tuple((fun_args_tuple*)0);
+				dr >> tp;
+				_invoke<fun_ret_type>(f, sr, dr, std::tuple_cat(std::tuple<std::shared_ptr<CallerT>&>(caller), tp));
+			}
+			else
+			{
+				fun_args_tuple tp;
+				dr >> tp;
+				_invoke<fun_ret_type>(f, sr, dr, tp);
+			}
+		}
+
+		template<std::size_t Argc, class F, class C>
+		typename std::enable_if_t<Argc != 0>
+			inline _argc_proxy(const F& f, C* c, std::shared_ptr<CallerT>& caller, serializer& sr, deserializer& dr)
+		{
+			using fun_traits_type = function_traits<F>;
+			using fun_args_tuple = typename fun_traits_type::pod_tuple_type;
+			using fun_ret_type = typename fun_traits_type::return_type;
+			using arg0_type = typename std::remove_cv_t<std::remove_reference_t<typename fun_traits_type::template args<0>::type>>;
+
+			if constexpr (std::is_same_v<std::shared_ptr<CallerT>, arg0_type>)
+			{
+				auto tp = _body_args_tuple((fun_args_tuple*)0);
+				dr >> tp;
+				_invoke<fun_ret_type>(f, c, sr, dr, std::tuple_cat(std::tuple<std::shared_ptr<CallerT>&>(caller), tp));
+			}
+			else
+			{
+				fun_args_tuple tp;
+				dr >> tp;
+				_invoke<fun_ret_type>(f, c, sr, dr, tp);
+			}
+		}
+
+		template<typename... Args>
+		inline decltype(auto) _body_args_tuple(std::tuple<Args...>* tp)
+		{
+			return (_body_args_tuple_impl(std::make_index_sequence<sizeof...(Args) - 1>{}, tp));
+		}
+
+		template<size_t... I, typename... Args>
+		inline decltype(auto) _body_args_tuple_impl(const std::index_sequence<I...>&, std::tuple<Args...>*)
+		{
+			return (std::tuple<typename std::tuple_element<I + 1, std::tuple<Args...>>::type...>{});
 		}
 
 		template<typename R, typename F, typename... Args>
@@ -212,7 +289,7 @@ namespace asio2::detail
 	protected:
 		//std::shared_mutex                           mutex_;
 
-		std::unordered_map<std::string, std::function<void(serializer&, deserializer&)>> invokers_;
+		std::unordered_map<std::string, std::function<void(std::shared_ptr<CallerT>&, serializer&, deserializer&)>> invokers_;
 	};
 }
 

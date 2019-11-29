@@ -25,10 +25,10 @@ namespace asio2::detail
 	template<class derived_t, class executor_t>
 	class rpc_server_impl_t
 		: public executor_t
-		, public invoker
+		, public invoker<typename executor_t::session_type>
 	{
 		friend executor_t;
-		friend class invoker;
+		template <class>        friend class invoker;
 		template <class, bool>  friend class user_timer_cp;
 		template <class, class> friend class server_impl_t;
 		template <class, class> friend class tcp_server_impl_t;
@@ -54,7 +54,7 @@ namespace asio2::detail
 			Args&&... args
 		)
 			: super(std::forward<Args>(args)...)
-			, invoker()
+			, invoker<typename executor_t::session_type>()
 		{
 		}
 

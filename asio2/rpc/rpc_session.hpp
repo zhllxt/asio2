@@ -112,13 +112,13 @@ namespace asio2::detail
 		}
 
 	protected:
-		inline derived_t& _invoker(invoker* invoke)
+		inline derived_t& _invoker(invoker<derived_t>* invoke)
 		{
 			this->invoker_ = invoke;
 			return (this->derived());
 		}
 
-		inline invoker& _invoker()
+		inline invoker<derived_t>& _invoker()
 		{
 			return (*(this->invoker_));
 		}
@@ -149,7 +149,7 @@ namespace asio2::detail
 		deserializer deserializer_;
 		header header_;
 		std::chrono::steady_clock::duration timeout_ = std::chrono::milliseconds(http_execute_timeout);
-		invoker* invoker_ = nullptr;
+		invoker<derived_t>* invoker_ = nullptr;
 	};
 }
 

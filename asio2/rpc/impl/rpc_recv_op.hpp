@@ -69,9 +69,9 @@ namespace asio2::detail
 					head.type(rpc_type_rep);
 					sr.reset();
 					sr << head;
-					std::function<void(serializer&, deserializer&)>* fn = derive._invoker().find(head.name());
+					auto* fn = derive._invoker().find(head.name());
 					if (fn)
-						(*fn)(sr, dr);
+						(*fn)(this_ptr, sr, dr);
 					else
 						sr << error_code{ asio::error::not_found };
 				}

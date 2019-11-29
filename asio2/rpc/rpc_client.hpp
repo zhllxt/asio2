@@ -28,11 +28,12 @@ namespace asio2::detail
 	template<class derived_t, class executor_t>
 	class rpc_client_impl_t
 		: public executor_t
-		, public invoker
+		, public invoker<derived_t>
 		, public rpc_call_cp<derived_t, false>
 		, public rpc_recv_op<derived_t, false>
 		, protected id_maker<typename header::id_type>
 	{
+		template <class>                             friend class invoker;
 		template <class, bool>                       friend class user_timer_cp;
 		template <class, bool>                       friend class connect_timeout_cp;
 		template <class, class>                      friend class connect_cp;
@@ -69,7 +70,7 @@ namespace asio2::detail
 			Args&&... args
 		)
 			: super(std::forward<Args>(args)...)
-			, invoker()
+			, invoker<derived_t>()
 			, rpc_call_cp<derived_t, false>(this->io_, this->serializer_, this->deserializer_)
 			, rpc_recv_op<derived_t, false>()
 			, id_maker<typename header::id_type>()
