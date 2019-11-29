@@ -107,6 +107,12 @@ client.start("0.0.0.0", "8080");
 ## RPC:
 ##### 服务端:
 ```c++
+// 全局函数示例，当服务端的RPC被调用时，如果想知道是哪个客户端调用的，将这个业务函数的第一个参数
+// 设置为连接对象的智能指针即可（如果不关心是哪个客户端调用的，删除这第一个参数即可），如下：
+int add(std::shared_ptr<asio2::rpc_session>& session_ptr, int a, int b)
+{
+	return a + b;
+}
 asio2::rpc_server server;
 // ... 绑定监听器(请查看demo代码)
 A a; // A的定义请查看demo代码
@@ -115,16 +121,16 @@ server.bind("mul", &A::mul, a); // 绑定RPC成员函数
 server.bind("cat", [&](const std::string& a, const std::string& b) { return a + b; }); // 绑定lambda表达式
 server.bind("get_user", &A::get_user, a); // 绑定成员函数(按引用)
 server.bind("del_user", &A::del_user, &a); // 绑定成员函数(按指针)
-//server.start("0.0.0.0", "8080", asio2::use_dgram); // 使用TCP数据报模式作为RPC通信底层支撑,启动服务端时必须要使用use_dgram参数
-server.start("0.0.0.0", "8080"); // 使用websocket作为RPC通信底层支撑(需要到rcp_server.hpp文件末尾代码中选择使用websocket)
+server.start("0.0.0.0", "8080", asio2::use_dgram); // 使用TCP数据报模式作为RPC通信底层支撑,启动服务端时必须要使用use_dgram参数
+//server.start("0.0.0.0", "8080"); // 使用websocket作为RPC通信底层支撑(需要到rcp_server.hpp文件末尾代码中选择使用websocket)
 ```
 ##### 客户端:
 ```c++
 asio2::rpc_client client;
 // ... 绑定监听器(请查看demo代码)
 // 不仅server可以绑定RPC函数给client调用，同时client也可以绑定RPC函数给server调用。请参考demo代码。
-//client.start("0.0.0.0", "8080", asio2::use_dgram); // 使用TCP数据报模式作为RPC通信底层支撑,启动服务端时必须要使用use_dgram参数
-client.start("0.0.0.0", "8080"); // 使用websocket作为RPC通信底层支撑
+client.start("0.0.0.0", "8080", asio2::use_dgram); // 使用TCP数据报模式作为RPC通信底层支撑,启动服务端时必须要使用use_dgram参数
+//client.start("0.0.0.0", "8080"); // 使用websocket作为RPC通信底层支撑
 asio::error_code ec;
 // 同步调用RPC函数
 int sum = client.call<int>(ec, std::chrono::seconds(3), "add", 11, 2);
