@@ -4,6 +4,8 @@
  * author   : zhllxt
  * email    : 37792738@qq.com
  *
+ * Distributed under the GNU GENERAL PUBLIC LICENSE Version 3, 29 June 2007
+ * (See accompanying file LICENSE or see <http://www.gnu.org/licenses/>)
  */
 
 #ifndef ASIO_STANDALONE
@@ -23,6 +25,10 @@
 
 namespace asio2::detail
 {
+	template <class>                      class session_mgr_t;
+	template <class, class>               class tcp_server_impl_t;
+	template <class, class>               class http_server_impl_t;
+
 	template<class derived_t, class socket_t, class body_t, class buffer_t>
 	class http_session_impl_t
 		: public tcp_session_impl_t<derived_t, socket_t, buffer_t>

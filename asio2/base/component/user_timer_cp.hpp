@@ -4,6 +4,8 @@
  * author   : zhllxt
  * email    : 37792738@qq.com
  * 
+ * Distributed under the GNU GENERAL PUBLIC LICENSE Version 3, 29 June 2007
+ * (See accompanying file LICENSE or see <http://www.gnu.org/licenses/>)
  */
 
 #ifndef __ASIO2_USER_TIMER_COMPONENT_HPP__
@@ -136,6 +138,7 @@ namespace asio2::detail
 			// close user custom timers
 			for (auto &[id, timer_obj_ptr] : this->user_timers_)
 			{
+				std::ignore = id;
 				timer_obj_ptr->timer.cancel();
 			}
 			this->user_timers_.clear();

@@ -4,6 +4,9 @@
  * author   : zhllxt
  * email    : 37792738@qq.com
  * 
+ * Distributed under the GNU GENERAL PUBLIC LICENSE Version 3, 29 June 2007
+ * (See accompanying file LICENSE or see <http://www.gnu.org/licenses/>)
+ *
  * C++0x : Storing any type of std::function in a std::map
  * https://stackoverflow.com/questions/7624017/c0x-storing-any-type-of-stdfunction-in-a-stdmap
  */

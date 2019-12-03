@@ -4,9 +4,11 @@
  * author   : zhllxt
  * email    : 37792738@qq.com
  * 
+ * Distributed under the GNU GENERAL PUBLIC LICENSE Version 3, 29 June 2007
+ * (See accompanying file LICENSE or see <http://www.gnu.org/licenses/>)
+ *
  * The cost of dynamic (virtual calls) vs. static (CRTP) dispatch in C++
  * https://eli.thegreenplace.net/2013/12/05/the-cost-of-dynamic-virtual-calls-vs-static-crtp-dispatch-in-c/
- *
  */
 
 #ifndef __ASIO2_OBJECT_HPP__

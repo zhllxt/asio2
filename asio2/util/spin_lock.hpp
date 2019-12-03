@@ -3,8 +3,11 @@
  *
  * author   : zhllxt
  * email    : 37792738@qq.com
- * referenced from boost/smart_ptr/detail/spinlock_std_atomic.hpp
  *
+ * Distributed under the GNU GENERAL PUBLIC LICENSE Version 3, 29 June 2007
+ * (See accompanying file LICENSE or see <http://www.gnu.org/licenses/>)
+ *
+ * referenced from boost/smart_ptr/detail/spinlock_std_atomic.hpp
  */
 
 

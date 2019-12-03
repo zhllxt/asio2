@@ -4,6 +4,8 @@
  * author   : zhllxt
  * email    : 37792738@qq.com
  * 
+ * Distributed under the GNU GENERAL PUBLIC LICENSE Version 3, 29 June 2007
+ * (See accompanying file LICENSE or see <http://www.gnu.org/licenses/>)
  */
 
 #ifndef __ASIO2_RPC_RECV_OP_HPP__
@@ -81,7 +83,7 @@ namespace asio2::detail
 
 				const std::string& str = sr.str();
 				derive.send(str);
-				derive._fire_send(this_ptr, std::string_view{ str });
+				derive._fire_send(this_ptr, std::string_view{ str.c_str(), str.size() });
 			}
 			else if (head.is_response())
 			{

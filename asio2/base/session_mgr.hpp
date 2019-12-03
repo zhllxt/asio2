@@ -4,6 +4,8 @@
  * author   : zhllxt
  * email    : 37792738@qq.com
  * 
+ * Distributed under the GNU GENERAL PUBLIC LICENSE Version 3, 29 June 2007
+ * (See accompanying file LICENSE or see <http://www.gnu.org/licenses/>)
  */
 
 #ifndef __ASIO2_SESSION_MGR_HPP__
@@ -114,6 +116,7 @@ namespace asio2::detail
 			std::shared_lock<std::shared_mutex> guard(this->mutex_);
 			for (auto &[k, session_ptr] : this->sessions_)
 			{
+				std::ignore = k;
 				fn(session_ptr);
 			}
 		}
