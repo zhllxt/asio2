@@ -46,7 +46,7 @@ int main(int argc, char *argv[])
 
 	//run_tcp_server(host, port);
 	//run_tcp_server_character(host, port);
-	//run_tcp_ps_server(host, port);server_dgram(host, port);
+	//run_tcp_server_dgram(host, port);
 	//run_tcp_server_match_role(host, port);
 	//run_udp_server(host, port);
 	//run_udp_server_kcp(host, port);
@@ -56,7 +56,7 @@ int main(int argc, char *argv[])
 	run_rpc_server(host, port);
 
 	//run_tcps_server(host, port);
-	//run_htt
+	//run_https_server(host, port);
 	//run_wss_server(host, port);
 	//run_httpwss_server(host, port);
 
