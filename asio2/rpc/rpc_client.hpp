@@ -30,12 +30,12 @@ namespace asio2::detail
 	template<class derived_t, class executor_t>
 	class rpc_client_impl_t
 		: public executor_t
-		, public invoker<derived_t>
+		, public invoker_t<derived_t>
 		, public rpc_call_cp<derived_t, false>
 		, public rpc_recv_op<derived_t, false>
 		, protected id_maker<typename header::id_type>
 	{
-		template <class>                             friend class invoker;
+		template <class>                             friend class invoker_t;
 		template <class, bool>                       friend class user_timer_cp;
 		template <class, bool>                       friend class connect_timeout_cp;
 		template <class, class>                      friend class connect_cp;
@@ -72,7 +72,7 @@ namespace asio2::detail
 			Args&&... args
 		)
 			: super(std::forward<Args>(args)...)
-			, invoker<derived_t>()
+			, invoker_t<derived_t>()
 			, rpc_call_cp<derived_t, false>(this->io_, this->serializer_, this->deserializer_)
 			, rpc_recv_op<derived_t, false>()
 			, id_maker<typename header::id_type>()
@@ -86,59 +86,6 @@ namespace asio2::detail
 		{
 			this->stop();
 			this->iopool_.stop();
-		}
-
-		/**
-		 * @function : start the client, blocking connect to server
-		 * @param args The arguments to be passed to start the underlying worker.
-		 */
-		template<class ...Args>
-		inline bool start(Args&&... args)
-		{
-			try
-			{
-				state_t expected = state_t::stopped;
-				if (!this->state_.compare_exchange_strong(expected, state_t::stopped))
-					asio::detail::throw_error(asio::error::already_started);
-
-				if (!this->listener_.find(event::recv))
-				{
-					super::bind_recv([this](std::string_view s)
-					{
-						this->derived()._handle_recv(std::shared_ptr<derived_t>{}, s);
-					});
-				}
-
-				return super::start(std::forward<Args>(args)...);
-			}
-			catch (system_error & e) { set_last_error(e); }
-			return false;
-		}
-
-		/**
-		 * @function : start the client, asynchronous connect to server
-		 * @param args The arguments to be passed to async_start the underlying worker.
-		 */
-		template<class ...Args>
-		inline void async_start(Args&&... args)
-		{
-			try
-			{
-				state_t expected = state_t::stopped;
-				if (!this->state_.compare_exchange_strong(expected, state_t::stopped))
-					asio::detail::throw_error(asio::error::already_started);
-
-				if (!this->listener_.find(event::recv))
-				{
-					super::bind_recv([this](std::string_view s)
-					{
-						this->derived()._handle_recv(std::shared_ptr<derived_t>{}, s);
-					});
-				}
-
-				super::async_start(std::forward<Args>(args)...);
-			}
-			catch (system_error & e) { set_last_error(e); }
 		}
 
 		/**
@@ -159,44 +106,6 @@ namespace asio2::detail
 			return this->timeout_;
 		}
 
-	public:
-		/**
-		 * @function : bind recv listener
-		 * @param    : fun - a user defined callback function
-		 * @param    : obj - a pointer or reference to a class object, this parameter can be none
-		 * if fun is nonmember function, the obj param must be none, otherwise the obj must be the
-		 * the class object's pointer or refrence.
-		 * Function signature : void(std::string_view s)
-		 */
-		template<class F, class ...C>
-		inline derived_t & bind_recv(F&& fun, C&&... obj)
-		{
-			auto user_fn = std::move(observer_t<std::string_view>(
-				std::forward<F>(fun), std::forward<C>(obj)...).move());
-			auto fn = [this, user_fun = std::move(user_fn)](std::string_view s)
-			{
-				user_fun(s);
-				this->derived()._handle_recv(std::shared_ptr<derived_t>{}, s);
-			};
-			return super::bind_recv(std::move(fn));
-		}
-
-		/**
-		 * @function : bind send listener
-		 * @param    : fun - a user defined callback function
-		 * @param    : obj - a pointer or reference to a class object, this parameter can be none
-		 * if fun is nonmember function, the obj param must be none, otherwise the obj must be the
-		 * the class object's pointer or refrence.
-		 * Function signature : void(std::string_view s)
-		 */
-		template<class F, class ...C>
-		inline derived_t & bind_send(F&& fun, C&&... obj)
-		{
-			this->listener_.bind(event::send,
-				observer_t<std::string_view>(std::forward<F>(fun), std::forward<C>(obj)...));
-			return (this->derived());
-		}
-
 	protected:
 		inline void _handle_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
 		{
@@ -209,20 +118,17 @@ namespace asio2::detail
 			super::_handle_stop(ec, std::move(this_ptr));
 		}
 
-		inline void _handle_recv(std::shared_ptr<derived_t> this_ptr, std::string_view s)
+		inline void _fire_recv(std::shared_ptr<derived_t> this_ptr, std::string_view s)
 		{
+			this->listener_.notify(event::recv, s);
+
 			this->derived()._rpc_handle_recv(this_ptr, s);
 		}
 
-		inline void _fire_send(detail::ignore, std::string_view s)
-		{
-			this->listener_.notify(event::send, s);
-		}
-
 	protected:
-		detail::serializer serializer_;
-		detail::deserializer deserializer_;
-		detail::header header_;
+		detail::serializer                  serializer_;
+		detail::deserializer                deserializer_;
+		detail::header                      header_;
 		std::chrono::steady_clock::duration timeout_ = std::chrono::milliseconds(http_execute_timeout);
 	};
 }

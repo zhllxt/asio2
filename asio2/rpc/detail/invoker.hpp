@@ -52,22 +52,22 @@ namespace asio2::detail
 	};
 
 	template<typename CallerT>
-	class invoker
+	class invoker_t
 	{
 	public:
-		using self = invoker;
+		using self = invoker_t<CallerT>;
 
 		/**
 		 * @constructor
 		 */
-		invoker()
+		invoker_t()
 		{
 		}
 
 		/**
 		 * @destructor
 		 */
-		~invoker() = default;
+		~invoker_t() = default;
 
 		/**
 		 * @function : bind a rpc function
@@ -78,7 +78,7 @@ namespace asio2::detail
 		 * the class object's pointer or refrence.
 		 */
 		template<class F, class ...C>
-		inline void bind(std::string const& name, F&& fun, C&&... obj)
+		inline self& bind(std::string const& name, F&& fun, C&&... obj)
 		{
 #if defined(_DEBUG) || defined(DEBUG)
 			{
@@ -87,15 +87,19 @@ namespace asio2::detail
 			}
 #endif
 			this->_bind(name, std::forward<F>(fun), std::forward<C>(obj)...);
+
+			return (*this);
 		}
 
 		/**
 		 * @function : unbind a rpc function
 		 */
-		inline void unbind(std::string const& name)
+		inline self& unbind(std::string const& name)
 		{
 			//std::unique_lock<std::shared_mutex> guard(this->mutex_);
 			this->invokers_.erase(name);
+
+			return (*this);
 		}
 
 		/**
@@ -111,7 +115,7 @@ namespace asio2::detail
 		}
 
 	protected:
-		inline invoker& _invoker()
+		inline self& _invoker()
 		{
 			return (*this);
 		}

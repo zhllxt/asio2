@@ -128,10 +128,10 @@ namespace asio2::detail
 		}
 
 	protected:
-		inline std::shared_ptr<session_t> _make_session()
+		template<typename... Args>
+		inline std::shared_ptr<session_t> _make_session(Args&&... args)
 		{
-			return std::make_shared<session_t>(this->sessions_, this->listener_,
-				this->iopool_.get(), tcp_frame_size, this->max_buffer_size_, *this);
+			return super::_make_session(*this, std::forward<Args>(args)...);
 		}
 
 	};

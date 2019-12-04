@@ -27,10 +27,10 @@ namespace asio2::detail
 	template<class derived_t, class executor_t>
 	class rpc_server_impl_t
 		: public executor_t
-		, public invoker<typename executor_t::session_type>
+		, public invoker_t<typename executor_t::session_type>
 	{
 		friend executor_t;
-		template <class>        friend class invoker;
+		template <class>        friend class invoker_t;
 		template <class, bool>  friend class user_timer_cp;
 		template <class, class> friend class server_impl_t;
 		template <class, class> friend class tcp_server_impl_t;
@@ -56,7 +56,7 @@ namespace asio2::detail
 			Args&&... args
 		)
 			: super(std::forward<Args>(args)...)
-			, invoker<typename executor_t::session_type>()
+			, invoker_t<typename executor_t::session_type>()
 		{
 		}
 
@@ -69,78 +69,11 @@ namespace asio2::detail
 			this->iopool_.stop();
 		}
 
-		/**
-		 * @function : start the server
-		 * @param args The arguments to be passed to start the underlying worker.
-		 */
-		template<class ...Args>
-		inline bool start(Args&&... args)
-		{
-			try
-			{
-				state_t expected = state_t::stopped;
-				if (!this->state_.compare_exchange_strong(expected, state_t::stopped))
-					asio::detail::throw_error(asio::error::already_started);
-
-				if (!this->listener_.find(event::recv))
-				{
-					super::bind_recv([this](std::shared_ptr<session_type>& session_ptr, std::string_view s)
-					{
-						session_ptr->_handle_recv(session_ptr, s);
-					});
-				}
-
-				return super::start(std::forward<Args>(args)...);
-			}
-			catch (system_error & e) { set_last_error(e); }
-			return false;
-		}
-
-	public:
-		/**
-		 * @function : bind recv listener
-		 * @param    : fun - a user defined callback function
-		 * @param    : obj - a pointer or reference to a class object, this parameter can be none
-		 * if fun is nonmember function, the obj param must be none, otherwise the obj must be the
-		 * the class object's pointer or refrence.
-		 * Function signature : void(auto& session_ptr, std::string_view s)
-		 */
-		template<class F, class ...C>
-		inline derived_t & bind_recv(F&& fun, C&&... obj)
-		{
-			auto user_fn = std::move(observer_t<std::shared_ptr<session_type>&, std::string_view>(
-				std::forward<F>(fun), std::forward<C>(obj)...).move());
-			auto fn = [this, user_fun = std::move(user_fn)]
-			(std::shared_ptr<session_type>& session_ptr, std::string_view s)
-			{
-				user_fun(session_ptr, s);
-				session_ptr->_handle_recv(session_ptr, s);
-			};
-			return super::bind_recv(std::move(fn));
-		}
-
-		/**
-		 * @function : bind send listener
-		 * @param    : fun - a user defined callback function
-		 * @param    : obj - a pointer or reference to a class object, this parameter can be none
-		 * if fun is nonmember function, the obj param must be none, otherwise the obj must be the
-		 * the class object's pointer or refrence.
-		 * Function signature : void(auto& session_ptr, std::string_view s)
-		 */
-		template<class F, class ...C>
-		inline derived_t & bind_send(F&& fun, C&&... obj)
-		{
-			this->listener_.bind(event::send,
-				observer_t<std::shared_ptr<session_type>&, std::string_view>(std::forward<F>(fun), std::forward<C>(obj)...));
-			return (this->derived());
-		}
-
 	protected:
-		inline std::shared_ptr<session_type> _make_session()
+		template<typename... Args>
+		inline std::shared_ptr<session_type> _make_session(Args&&... args)
 		{
-			std::shared_ptr<session_type> ptr = super::_make_session();
-			ptr->_invoker(this);
-			return ptr;
+			return super::_make_session(*this, std::forward<Args>(args)...);
 		}
 
 	protected:

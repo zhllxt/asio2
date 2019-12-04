@@ -83,14 +83,12 @@ namespace asio2::detail
 
 				const std::string& str = sr.str();
 				derive.send(str);
-				derive._fire_send(this_ptr, std::string_view{ str.c_str(), str.size() });
 			}
 			else if (head.is_response())
 			{
 				auto iter = derive.reqs_.find(head.id());
 				if (iter == derive.reqs_.end())
 					return;
-				//head.type(rpc_type_req);
 				std::function<void(error_code, std::string_view)>& cb = iter->second;
 				cb(error_code{}, s);
 			}

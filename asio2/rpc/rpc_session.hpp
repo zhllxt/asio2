@@ -88,12 +88,14 @@ namespace asio2::detail
 		 */
 		template<class ...Args>
 		explicit rpc_session_impl_t(
+			invoker_t<derived_t>& invoker,
 			Args&&... args
 		)
 			: super(std::forward<Args>(args)...)
 			, rpc_call_cp<derived_t, true>(this->io_, this->serializer_, this->deserializer_)
 			, rpc_recv_op<derived_t, true>()
 			, id_maker<typename header::id_type>()
+			, invoker_(invoker)
 		{
 		}
 
@@ -123,15 +125,9 @@ namespace asio2::detail
 		}
 
 	protected:
-		inline derived_t& _invoker(invoker<derived_t>* invoke)
+		inline invoker_t<derived_t>& _invoker()
 		{
-			this->invoker_ = invoke;
-			return (this->derived());
-		}
-
-		inline invoker<derived_t>& _invoker()
-		{
-			return (*(this->invoker_));
+			return (this->invoker_);
 		}
 
 		inline void _handle_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
@@ -145,22 +141,19 @@ namespace asio2::detail
 			super::_handle_stop(ec, std::move(this_ptr));
 		}
 
-		inline void _handle_recv(std::shared_ptr<derived_t>& this_ptr, std::string_view s)
+		inline void _fire_recv(std::shared_ptr<derived_t> & this_ptr, std::string_view s)
 		{
+			this->listener_.notify(event::recv, this_ptr, s);
+
 			this->derived()._rpc_handle_recv(this_ptr, s);
 		}
 
-		inline void _fire_send(std::shared_ptr<derived_t>& this_ptr, std::string_view s)
-		{
-			this->listener_.notify(event::send, this_ptr, s);
-		}
-
 	protected:
-		serializer serializer_;
-		deserializer deserializer_;
-		header header_;
+		serializer                          serializer_;
+		deserializer                        deserializer_;
+		header                              header_;
+		invoker_t<derived_t>              & invoker_;
 		std::chrono::steady_clock::duration timeout_ = std::chrono::milliseconds(http_execute_timeout);
-		invoker<derived_t>* invoker_ = nullptr;
 	};
 }
 

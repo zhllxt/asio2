@@ -414,9 +414,10 @@ namespace asio2::detail
 			this->acceptor_.close(ec_ignore);
 		}
 
-		inline std::shared_ptr<session_t> _make_session()
+		template<typename... Args>
+		inline std::shared_ptr<session_t> _make_session(Args&&... args)
 		{
-			return std::make_shared<session_t>(this->sessions_, this->listener_,
+			return std::make_shared<session_t>(std::forward<Args>(args)..., this->sessions_, this->listener_,
 				this->iopool_.get(), tcp_frame_size, this->max_buffer_size_);
 		}
 

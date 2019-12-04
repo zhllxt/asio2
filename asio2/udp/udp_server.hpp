@@ -456,9 +456,11 @@ namespace asio2::detail
 			this->derived()._post_recv(condition);
 		}
 
-		inline std::shared_ptr<session_t> _make_session()
+		template<typename... Args>
+		inline std::shared_ptr<session_t> _make_session(Args&&... args)
 		{
 			return std::make_shared<session_t>(
+				std::forward<Args>(args)...,
 				this->sessions_,
 				this->listener_,
 				this->io_,

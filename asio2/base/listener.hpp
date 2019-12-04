@@ -37,15 +37,15 @@ namespace asio2::detail
 	enum class event : std::int8_t
 	{
 		recv,
-		send,
-		accept,
 		connect,
 		disconnect,
+		accept,
 		handshake,
 		upgrade,
 		init,
 		start,
 		stop,
+		//send,
 		max
 	};
 

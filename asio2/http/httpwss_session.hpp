@@ -66,14 +66,14 @@ namespace asio2::detail
 		 * @constructor
 		 */
 		explicit httpwss_session_impl_t(
+			asio::ssl::context & ctx,
 			session_mgr_t<derived_t> & sessions,
 			listener_t & listener,
 			io_t & rwio,
 			std::size_t init_buffer_size,
-			std::size_t max_buffer_size,
-			asio::ssl::context & ctx
+			std::size_t max_buffer_size
 		)
-			: super(sessions, listener, rwio, init_buffer_size, max_buffer_size, ctx)
+			: super(ctx, sessions, listener, rwio, init_buffer_size, max_buffer_size)
 			, ws_stream_comp(this->ssl_stream_)
 			, ws_send_op<derived_t, true>()
 		{
