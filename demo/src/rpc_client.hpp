@@ -43,8 +43,6 @@ void run_rpc_client(std::string_view host, std::string_view port)
 				printf("disconnect : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
 			}).bind_recv([&](std::string_view sv)
 			{
-			}).bind_send([&](std::string_view sv)
-			{
 			});
 
 			client.bind("sub", [](int a, int b) { return a - b; });
@@ -78,10 +76,11 @@ void run_rpc_client(std::string_view host, std::string_view port)
 
 				// the type of the callback's second parameter is auto, so you have to specify 
 				// the return type in the template function like 'async_call<int>'
+				// of course you can set the timeout like : std::chrono::seconds(3)
 				client.async_call<int>([](asio::error_code ec, auto v)
 				{
 					printf("sum : %d err : %d %s\n", v, ec.value(), ec.message().c_str());
-				}, "add", 12, 21);
+				}, std::chrono::seconds(3), "add", 12, 21);
 
 				try
 				{

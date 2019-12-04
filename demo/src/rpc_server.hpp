@@ -46,7 +46,9 @@ public:
 	// to std::shared_ptr<asio2::rpc_session>& session_ptr
 	void del_user(std::shared_ptr<asio2::rpc_session>& session_ptr, const user& u)
 	{
-		printf("del_user is called by %s : %s %d ", session_ptr->remote_address().c_str(), u.name.c_str(), u.age);
+		printf("del_user is called by %s %u : %s %d ",
+			session_ptr->remote_address().c_str(), session_ptr->remote_port(),
+			u.name.c_str(), u.age);
 		for (auto &[k, v] : u.purview)
 		{
 			printf("%d %s ", k, v.c_str());
@@ -65,9 +67,7 @@ void run_rpc_server(std::string_view host, std::string_view port)
 		server.start_timer(1, std::chrono::seconds(1), []() {});
 		server.bind_recv([&server](auto & session_ptr, std::string_view s)
 		{
-			//printf("recv : %u %.*s\n", (unsigned)s.size(), (int)s.size(), s.data());
-		}).bind_send([&](auto & session_ptr, std::string_view s)
-		{
+			printf("recv : %u %.*s\n", (unsigned)s.size(), (int)s.size(), s.data());
 		}).bind_connect([&server,&client_ptr](auto & session_ptr)
 		{
 			//session_ptr->stop();
@@ -95,8 +95,9 @@ void run_rpc_server(std::string_view host, std::string_view port)
 		});
 
 		A a;
-		server.bind("add", add);
-		server.bind("mul", &A::mul, a);
+		server
+			.bind("add", add)
+			.bind("mul", &A::mul, a);
 		server.bind("cat", [&](const std::string& a, const std::string& b)
 		{
 			// Nested call rpc function in business function is ok.
