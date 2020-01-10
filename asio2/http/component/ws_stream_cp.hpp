@@ -36,29 +36,38 @@ namespace asio2::detail
 		/**
 		 * @constructor
 		 */
-		template<typename Arg>
-		ws_stream_cp(Arg & arg) : derive(static_cast<derived_t&>(*this)), ws_stream_(arg)
-		{
-		}
+		ws_stream_cp() : derive(static_cast<derived_t&>(*this)) {}
 
 		/**
 		 * @destructor
 		 */
 		~ws_stream_cp() = default;
 
-		inline stream_t & ws_stream() { return this->ws_stream_; }
+		inline stream_t & ws_stream()
+		{
+			ASIO2_ASSERT(bool(this->ws_stream_));
+			return (*(this->ws_stream_));
+		}
 
 	protected:
-		template<typename MatchCondition>
-		inline void _ws_start(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		template<typename MatchCondition, typename Socket>
+		inline void _ws_start(
+			const std::shared_ptr<derived_t>& this_ptr,
+			const condition_wrap<MatchCondition>& condition, Socket& socket)
 		{
+			detail::ignore::unused(this_ptr, condition);
+
+			this->ws_stream_ = std::make_unique<stream_t>(socket);
 		}
 
 		template<typename Fn>
 		inline void _ws_stop(std::shared_ptr<derived_t> this_ptr, Fn&& fn)
 		{
+			if (!this->ws_stream_)
+				return;
+
 			// Close the WebSocket connection
-			this->ws_stream_.async_close(websocket::close_code::normal,
+			this->ws_stream_->async_close(websocket::close_code::normal,
 				asio::bind_executor(derive.io().strand(),
 					[this, self_ptr = std::move(this_ptr), f = std::forward<Fn>(fn)](error_code ec)
 			{
@@ -69,7 +78,7 @@ namespace asio2::detail
 
 				// must Reset the control frame callback. the control frame callback hold the self shared_ptr,
 				// if don't reset it, will cause memory leaks.
-				this->ws_stream_.control_callback();
+				this->ws_stream_->control_callback();
 
 				(f)();
 			}));
@@ -84,8 +93,9 @@ namespace asio2::detail
 				{
 					if constexpr (std::is_same_v<MatchCondition, void>)
 					{
+						ASIO2_ASSERT(bool(this->ws_stream_));
 						// Read a message into our buffer
-						this->ws_stream_.async_read(derive.buffer().base(),
+						this->ws_stream_->async_read(derive.buffer().base(),
 							asio::bind_executor(derive.io().strand(),
 								make_allocator(derive.rallocator(),
 									[this, self_ptr = std::move(this_ptr), condition]
@@ -103,7 +113,7 @@ namespace asio2::detail
 				{
 					set_last_error(e);
 
-					derive._do_stop(e.code());
+					derive._do_disconnect(e.code());
 				}
 			}
 		}
@@ -111,9 +121,10 @@ namespace asio2::detail
 		template<typename MatchCondition>
 		inline void _post_control_callback(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
 		{
+			ASIO2_ASSERT(bool(this->ws_stream_));
 			// Set the control callback. This will be called
 			// on every incoming ping, pong, and close frame.
-			this->ws_stream_.control_callback(asio::bind_executor(derive.io().strand(),
+			this->ws_stream_->control_callback(asio::bind_executor(derive.io().strand(),
 				[this, self_ptr = std::move(this_ptr), condition]
 			(websocket::frame_type kind, beast::string_view payload)
 			{
@@ -131,7 +142,7 @@ namespace asio2::detail
 
 			if (kind == websocket::frame_type::close)
 			{
-				derive._do_stop(websocket::error::closed);
+				derive._do_disconnect(websocket::error::closed);
 				return;
 			}
 
@@ -149,10 +160,11 @@ namespace asio2::detail
 		template<typename MatchCondition>
 		inline void _post_upgrade(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
 		{
+			ASIO2_ASSERT(bool(this->ws_stream_));
 			if constexpr (isSession)
 			{
 				// Accept the websocket handshake
-				this->ws_stream_.async_accept(asio::bind_executor(derive.io().strand(),
+				this->ws_stream_->async_accept(asio::bind_executor(derive.io().strand(),
 					make_allocator(derive.rallocator(),
 						[this, self_ptr = std::move(this_ptr), condition](error_code ec)
 				{
@@ -162,7 +174,7 @@ namespace asio2::detail
 			else
 			{
 				// Perform the websocket handshake
-				this->ws_stream_.async_handshake(derive.upgrade_rep_, derive.host_, "/",
+				this->ws_stream_->async_handshake(derive.upgrade_rep_, derive.host_, "/",
 					asio::bind_executor(derive.io().strand(), make_allocator(derive.rallocator(),
 						[this, self_ptr = std::move(this_ptr), condition](error_code const& ec)
 				{
@@ -175,9 +187,10 @@ namespace asio2::detail
 		inline void _post_upgrade(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition,
 			Request const& req)
 		{
+			ASIO2_ASSERT(bool(this->ws_stream_));
 			static_assert(isSession, "This function must be invoked on the server side.");
 			// Accept the websocket handshake
-			this->ws_stream_.async_accept(req, asio::bind_executor(derive.io().strand(),
+			this->ws_stream_->async_accept(req, asio::bind_executor(derive.io().strand(),
 				make_allocator(derive.rallocator(),
 					[this, self_ptr = std::move(this_ptr), condition](error_code ec)
 			{
@@ -188,7 +201,9 @@ namespace asio2::detail
 		template<typename MatchCondition>
 		inline void _handle_upgrade(const error_code & ec, std::shared_ptr<derived_t> self_ptr, condition_wrap<MatchCondition> condition)
 		{
-			this->ws_stream_.binary(true); // Setting the message type to binary.
+			ASIO2_ASSERT(bool(this->ws_stream_));
+
+			this->ws_stream_->binary(true); // Setting the message type to binary.
 
 			if constexpr (isSession)
 			{
@@ -207,7 +222,7 @@ namespace asio2::detail
 					catch (system_error & e)
 					{
 						set_last_error(e);
-						derive._do_stop(e.code());
+						derive._do_disconnect(e.code());
 					}
 				});
 			}
@@ -222,9 +237,9 @@ namespace asio2::detail
 		}
 
 	protected:
-		derived_t      & derive;
+		derived_t                    & derive;
 
-		stream_t         ws_stream_;
+		std::unique_ptr<stream_t>      ws_stream_;
 	};
 }
 

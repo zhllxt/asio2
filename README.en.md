@@ -12,6 +12,11 @@ A open source cross-platform c++ library for network programming based on asio,s
 ##### server:
 ```c++
 asio2::tcp_server server;
+// The client will automatically reconnect when it disconnects
+//// [ default reconnect option is "enable" ]
+//client.reconnect(false); // disable auto reconnect
+//client.reconnect(true); // enable auto reconnect and use the default delay
+client.reconnect(true, std::chrono::milliseconds(100)); // enable auto reconnect and use custom delay
 server.bind_recv([&server](std::shared_ptr<asio2::tcp_session> & session_ptr, std::string_view s)
 {
 	session_ptr->no_delay(true);

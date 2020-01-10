@@ -73,14 +73,16 @@ namespace asio2::detail
 					[this, self_ptr = std::move(this_ptr)](const error_code & ec)
 				{
 					derive._handle_silence_timer(ec, std::move(self_ptr));
-					this->timer_canceled_.clear();
 				}));
 			}
 		}
 
 		inline void _handle_silence_timer(const error_code & ec, std::shared_ptr<derived_t> this_ptr)
 		{
-			if (ec == asio::error::operation_aborted || this->timer_canceled_.test_and_set()) return;
+			if (ec == asio::error::operation_aborted || this->silence_timer_canceled_.test_and_set())
+				return;
+
+			this->silence_timer_canceled_.clear();
 
 			// silence duration seconds not exceed the silence timeout,post a timer event agagin to
 			// avoid this session shared_ptr object disappear.
@@ -94,15 +96,15 @@ namespace asio2::detail
 				// silence timeout has elasped,but has't data trans,don't post a timer event again,so this session
 				// shared_ptr will disappear and the object will be destroyed automatically after this handler returns.
 				set_last_error(asio::error::timed_out);
-				derive._do_stop(asio::error::timed_out);
+				derive._do_disconnect(asio::error::timed_out);
 			}
 		}
 
 		inline void _stop_silence_timer()
 		{
-			this->timer_canceled_.test_and_set();
 			try
 			{
+				this->silence_timer_canceled_.test_and_set();
 				this->silence_timer_.cancel();
 			}
 			catch (system_error &) {}
@@ -119,7 +121,7 @@ namespace asio2::detail
 		asio::steady_timer                          silence_timer_;
 
 		/// 
-		std::atomic_flag                            timer_canceled_ = ATOMIC_FLAG_INIT;
+		std::atomic_flag                            silence_timer_canceled_ = ATOMIC_FLAG_INIT;
 
 		/// if there has no data transfer for a long time,the session will be disconnect
 		std::chrono::milliseconds                   silence_timeout_ = std::chrono::minutes(60);

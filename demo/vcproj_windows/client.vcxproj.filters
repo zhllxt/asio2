@@ -669,6 +669,15 @@
     <ClInclude Include="..\..\asio2\icmp\detail\ipv6_header.hpp">
       <Filter>asio2\icmp</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\asio2\base\component\data_persistence_cp.hpp">
+      <Filter>asio2\base\component</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\base\component\event_queue_cp.hpp">
+      <Filter>asio2\base\component</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\base\component\reconnect_timer_cp.hpp">
+      <Filter>asio2\base\component</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\client.cpp">

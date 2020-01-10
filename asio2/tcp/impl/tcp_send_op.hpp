@@ -133,8 +133,10 @@ namespace asio2::detail
 					// must stop, otherwise re-sending will cause header confusion
 					if (bytes_sent > 0)
 					{
-						derive._do_stop(ec);
+						derive._do_disconnect(ec);
 					}
+
+					derive.next_event();
 				}
 				else
 				{
@@ -151,7 +153,7 @@ namespace asio2::detail
 				callback(ec, 0);
 				// must stop, otherwise re-sending will cause header confusion
 				if (bytes_sent > 0)
-					derive._do_stop(ec);
+					derive._do_disconnect(ec);
 				return false;
 			}
 			return derive._tcp_send_body(std::forward<BufferSequence>(buffer), std::forward<Callback>(callback));
@@ -174,12 +176,10 @@ namespace asio2::detail
 				if (ec)
 				{
 					// must stop, otherwise re-sending will cause body confusion
-					derive._do_stop(ec);
+					derive._do_disconnect(ec);
 				}
-				else
-				{
-					derive._send_dequeue();
-				}
+
+				derive.next_event();
 			})));
 			return true;
 #else
@@ -190,7 +190,7 @@ namespace asio2::detail
 			if (ec)
 			{
 				// must stop, otherwise re-sending will cause header confusion
-				derive._do_stop(ec);
+				derive._do_disconnect(ec);
 			}
 			return (!bool(ec));
 #endif

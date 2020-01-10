@@ -402,9 +402,6 @@
     <ClInclude Include="..\..\fmt\safe-duration-cast.h">
       <Filter>asio2\3rd\fmt</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\asio2\base\component\send_queue_cp.hpp">
-      <Filter>asio2\base\component</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\openssl\__DECC_INCLUDE_EPILOGUE.H">
       <Filter>asio2\3rd\openssl</Filter>
     </ClInclude>
@@ -668,6 +665,15 @@
     </ClInclude>
     <ClInclude Include="..\src\websocket_server.hpp">
       <Filter>demo</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\base\component\data_persistence_cp.hpp">
+      <Filter>asio2\base\component</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\base\component\event_queue_cp.hpp">
+      <Filter>asio2\base\component</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\base\component\reconnect_timer_cp.hpp">
+      <Filter>asio2\base\component</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -40,7 +40,7 @@ void run_http_server(std::string_view host, std::string_view port)
 	bool flag = true;
 	server.bind_recv([&](std::shared_ptr<asio2::http_session> & session_ptr, http::request<http::string_body>& req)
 	{
-		if (0) // test send file
+		//if (0) // test send file
 		{
 			// Request path must be absolute and not contain "..".
 			if (req.target().empty() ||
@@ -58,7 +58,7 @@ void run_http_server(std::string_view host, std::string_view port)
 			if (req.target().back() == '/')
 				path.append("index.html");
 #if defined(WIN32) || defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS_)
-			path = "D:/test.zip";
+			path = "D:/nlohmann_json.hpp";
 #else 
 			path = "/usr/local/lib/libsqlite3.so";
 #endif
@@ -104,14 +104,16 @@ void run_http_server(std::string_view host, std::string_view port)
 				std::make_tuple(std::move(body)),
 				std::make_tuple(http::status::ok, req.version()) };
 			res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
-			res.set(http::field::content_type, http::extension_to_mimetype(path));
+			//res.set(http::field::content_type, http::extension_to_mimetype(path));
 			res.content_length(size);
-			res.keep_alive(req.keep_alive()); 
-			res.chunked(true);
+			res.keep_alive(req.keep_alive());
+			//res.set(http::field::transfer_encoding, "chunked");
+			//res.chunked(true);
 			// Specify a callback function when sending
 			session_ptr->send(std::move(res), [](std::size_t bytes_sent)
 			{
-				auto err = asio2::get_last_error(); std::ignore = err;
+				auto err = asio2::get_last_error();
+				if (err) printf("%s\n", err.message().c_str());
 			});
 			//session_ptr->send(std::move(res));
 			//session_ptr->send(std::move(res), asio::use_future);

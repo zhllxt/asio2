@@ -76,10 +76,11 @@ namespace asio2::detail
 				if (!derive.is_started())
 					asio::detail::throw_error(asio::error::not_connected);
 
-				return derive._send_enqueue([this, data = derive._data_persistence(msg)]() mutable
+				derive.push_event([this, data = derive._data_persistence(msg)]() mutable
 				{
 					return derive._do_send(data, [](const error_code&, std::size_t) {});
 				});
+				return true;
 			}
 			catch (system_error & e) { set_last_error(e); }
 			catch (std::exception &) { set_last_error(asio::error::eof); }
@@ -98,10 +99,11 @@ namespace asio2::detail
 				if (!derive.is_started())
 					asio::detail::throw_error(asio::error::not_connected);
 
-				return derive._send_enqueue([this, data = derive._data_persistence(std::move(msg))]() mutable
+				derive.push_event([this, data = derive._data_persistence(std::move(msg))]() mutable
 				{
 					return derive._do_send(data, [](const error_code&, std::size_t) {});
 				});
+				return true;
 			}
 			catch (system_error & e) { set_last_error(e); }
 			catch (std::exception &) { set_last_error(asio::error::eof); }
@@ -127,7 +129,7 @@ namespace asio2::detail
 				if (!derive.is_started())
 					asio::detail::throw_error(asio::error::not_connected);
 
-				return derive._send_enqueue([this, data = derive._data_persistence(msg),
+				derive.push_event([this, data = derive._data_persistence(msg),
 					fn = std::forward<Callback>(fn)]() mutable
 				{
 					return derive._do_send(data, [&fn](const error_code&, std::size_t bytes_sent)
@@ -135,6 +137,7 @@ namespace asio2::detail
 						callback_helper::call(fn, bytes_sent);
 					});
 				});
+				return true;
 			}
 			catch (system_error & e) { set_last_error(e); }
 			catch (std::exception &) { set_last_error(asio::error::eof); }
@@ -154,7 +157,7 @@ namespace asio2::detail
 				if (!derive.is_started())
 					asio::detail::throw_error(asio::error::not_connected);
 
-				return derive._send_enqueue([this, data = derive._data_persistence(std::move(msg)),
+				derive.push_event([this, data = derive._data_persistence(std::move(msg)),
 					fn = std::forward<Callback>(fn)]() mutable
 				{
 					return derive._do_send(data, [&fn](const error_code&, std::size_t bytes_sent)
@@ -162,6 +165,7 @@ namespace asio2::detail
 						callback_helper::call(fn, bytes_sent);
 					});
 				});
+				return true;
 			}
 			catch (system_error & e) { set_last_error(e); }
 			catch (std::exception &) { set_last_error(asio::error::eof); }
@@ -191,7 +195,7 @@ namespace asio2::detail
 				if (!derive.is_started())
 					asio::detail::throw_error(asio::error::not_connected);
 
-				derive._send_enqueue([this, data = derive._data_persistence(msg),
+				derive.push_event([this, data = derive._data_persistence(msg),
 					promise = std::move(promise)]() mutable
 				{
 					return derive._do_send(data, [&promise](const error_code& ec, std::size_t bytes_sent)
@@ -229,7 +233,7 @@ namespace asio2::detail
 				if (!derive.is_started())
 					asio::detail::throw_error(asio::error::not_connected);
 
-				derive._send_enqueue([this, data = derive._data_persistence(std::move(msg)),
+				derive.push_event([this, data = derive._data_persistence(std::move(msg)),
 					promise = std::move(promise)]() mutable
 				{
 					return derive._do_send(data, [&promise](const error_code& ec, std::size_t bytes_sent)

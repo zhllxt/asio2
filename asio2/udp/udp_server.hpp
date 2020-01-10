@@ -52,7 +52,6 @@ namespace asio2::detail
 		~udp_server_impl_t()
 		{
 			this->stop();
-			this->iopool_.stop();
 		}
 
 		/**
@@ -63,8 +62,7 @@ namespace asio2::detail
 		template<typename StrOrInt>
 		inline bool start(StrOrInt&& service)
 		{
-			return this->derived()._do_start(std::string_view{},
-				to_string_port(std::forward<StrOrInt>(service)), condition_wrap<void>{});
+			return this->start(std::string_view{}, std::forward<StrOrInt>(service));
 		}
 
 		/**
@@ -74,23 +72,12 @@ namespace asio2::detail
 		 * @param service A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
 		 */
-		template<typename StrOrInt>
-		inline bool start(std::string_view host, StrOrInt&& service)
+		template<typename String, typename StrOrInt>
+		inline bool start(String&& host, StrOrInt&& service)
 		{
-			return this->derived()._do_start(host,
-				to_string_port(std::forward<StrOrInt>(service)), condition_wrap<void>{});
-		}
-
-		/**
-		 * @function : start the server
-		 * @param service A string identifying the requested service. This may be a
-		 * descriptive name or a numeric string corresponding to a port number.
-		 */
-		template<typename StrOrInt>
-		inline bool start(StrOrInt&& service, use_kcp_t c)
-		{
-			return this->derived()._do_start(std::string_view{},
-				to_string_port(std::forward<StrOrInt>(service)), condition_wrap<use_kcp_t>(c));
+			return this->derived()._do_start(
+				std::forward<String>(host), std::forward<StrOrInt>(service),
+				condition_wrap<void>{});
 		}
 
 		/**
@@ -100,11 +87,12 @@ namespace asio2::detail
 		 * @param service A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
 		 */
-		template<typename StrOrInt>
-		inline bool start(std::string_view host, StrOrInt&& service, use_kcp_t c)
+		template<typename String, typename StrOrInt>
+		inline bool start(String&& host, StrOrInt&& service, use_kcp_t c)
 		{
-			return this->derived()._do_start(host,
-				to_string_port(std::forward<StrOrInt>(service)), condition_wrap<use_kcp_t>(c));
+			return this->derived()._do_start(
+				std::forward<String>(host), std::forward<StrOrInt>(service),
+				condition_wrap<use_kcp_t>(c));
 		}
 
 		/**
@@ -114,7 +102,7 @@ namespace asio2::detail
 		{
 			this->derived()._do_stop(asio::error::operation_aborted);
 
-			this->iopool_.wait_iothreads();
+			this->iopool_.stop();
 		}
 
 		/**
@@ -250,8 +238,8 @@ namespace asio2::detail
 		inline asio::ip::udp::socket & acceptor() { return this->acceptor_; }
 
 	protected:
-		template<typename MatchCondition>
-		bool _do_start(std::string_view host, std::string_view service, condition_wrap<MatchCondition> condition)
+		template<typename String, typename StrOrInt, typename MatchCondition>
+		bool _do_start(String&& host, StrOrInt&& service, condition_wrap<MatchCondition> condition)
 		{
 			state_t expected = state_t::stopped;
 			if (!this->state_.compare_exchange_strong(expected, state_t::starting))
@@ -263,6 +251,14 @@ namespace asio2::detail
 			try
 			{
 				clear_last_error();
+
+				this->iopool_.start();
+
+				if (this->iopool_.is_stopped())
+				{
+					set_last_error(asio::error::shut_down);
+					return false;
+				}
 
 				this->counter_ptr_ = std::shared_ptr<void>((void*)1, [this](void*)
 				{
@@ -278,9 +274,12 @@ namespace asio2::detail
 
 				this->acceptor_.close(ec_ignore);
 
+				std::string h = to_string(std::forward<String>(host));
+				std::string p = to_string(std::forward<StrOrInt>(service));
+
 				// parse address and port
 				asio::ip::udp::resolver resolver(this->io_.context());
-				asio::ip::udp::endpoint endpoint = *resolver.resolve(host, service,
+				asio::ip::udp::endpoint endpoint = *resolver.resolve(h, p,
 					asio::ip::resolver_base::flags::passive | asio::ip::resolver_base::flags::address_configured).begin();
 
 				this->acceptor_.open(endpoint.protocol());
@@ -308,9 +307,7 @@ namespace asio2::detail
 			}
 			catch (system_error & e)
 			{
-				set_last_error(e);
 				this->derived()._handle_start(e.code(), std::move(condition));
-				this->derived()._do_stop(e.code());
 			}
 			return false;
 		}
@@ -339,6 +336,8 @@ namespace asio2::detail
 
 				asio::post(this->io_.strand(), [this, condition]()
 				{
+					this->buffer_.consume(this->buffer_.size());
+
 					this->derived()._post_recv(std::move(condition));
 				});
 			}

@@ -52,7 +52,6 @@ namespace asio2::detail
 		~ws_server_impl_t()
 		{
 			this->stop();
-			this->iopool_.stop();
 		}
 
 		/**
@@ -63,7 +62,7 @@ namespace asio2::detail
 		template<typename StrOrInt>
 		bool start(StrOrInt&& service)
 		{
-			return this->start(std::string_view{}, to_string_port(std::forward<StrOrInt>(service)));
+			return this->start(std::string_view{}, std::forward<StrOrInt>(service));
 		}
 
 		/**
@@ -73,10 +72,11 @@ namespace asio2::detail
 		 * @param service A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
 		 */
-		template<typename StrOrInt>
-		bool start(std::string_view host, StrOrInt&& service)
+		template<typename String, typename StrOrInt>
+		bool start(String&& host, StrOrInt&& service)
 		{
-			return this->derived()._do_start(host, to_string_port(std::forward<StrOrInt>(service)),
+			return this->derived()._do_start(
+				std::forward<String>(host), std::forward<StrOrInt>(service),
 				condition_wrap<void>{});
 		}
 
@@ -89,7 +89,8 @@ namespace asio2::detail
 		template<class F, class ...C>
 		inline derived_t & bind_upgrade(F&& fun, C&&... obj)
 		{
-			this->listener_.bind(event::upgrade, observer_t<std::shared_ptr<session_t>&, error_code>(std::forward<F>(fun), std::forward<C>(obj)...));
+			this->listener_.bind(event::upgrade, observer_t<std::shared_ptr<session_t>&, error_code>
+				(std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
 		}
 

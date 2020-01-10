@@ -104,7 +104,6 @@ namespace asio2::detail
 			, timer_(iopool_.get(0).context())
 			, ncount_(send_count)
 		{
-			this->iopool_.start(); // start the io_context pool
 		}
 
 		/**
@@ -113,7 +112,6 @@ namespace asio2::detail
 		~ping_impl_t()
 		{
 			this->stop();
-			this->iopool_.stop(); // stop the io_context pool
 		}
 
 		/**
@@ -133,7 +131,7 @@ namespace asio2::detail
 		{
 			this->derived()._do_stop(asio::error::operation_aborted);
 
-			this->iopool_.wait_iothreads();
+			this->iopool_.stop();
 		}
 
 		/**
@@ -317,6 +315,14 @@ namespace asio2::detail
 			{
 				clear_last_error();
 
+				this->iopool_.start();
+
+				if (this->iopool_.is_stopped())
+				{
+					set_last_error(asio::error::shut_down);
+					return false;
+				}
+
 				this->seq_ = 0;
 				this->total_send_ = 0;
 				this->total_recv_ = 0;
@@ -340,9 +346,7 @@ namespace asio2::detail
 			}
 			catch (system_error & e)
 			{
-				set_last_error(e);
 				this->derived()._handle_start(e.code());
-				this->derived()._do_stop(e.code());
 			}
 			return false;
 		}
@@ -370,6 +374,7 @@ namespace asio2::detail
 
 				asio::post(this->io_.strand(), [this]()
 				{
+					this->buffer_.consume(this->buffer_.size());
 					this->derived()._post_send();
 					this->derived()._post_recv();
 				});

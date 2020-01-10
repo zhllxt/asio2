@@ -47,7 +47,8 @@ namespace asio2::detail
 		friend executor_t;
 
 		template <class, bool>         friend class user_timer_cp;
-		template <class, bool>         friend class send_queue_cp;
+		template <class>               friend class data_persistence_cp;
+		template <class>               friend class event_queue_cp;
 		template <class, bool>         friend class send_cp;
 		template <class, bool>         friend class silence_timer_cp;
 		template <class, bool>         friend class connect_timeout_cp;
@@ -130,7 +131,7 @@ namespace asio2::detail
 			return (this->invoker_);
 		}
 
-		inline void _handle_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
+		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
 		{
 			while (!this->reqs_.empty())
 			{
@@ -138,7 +139,7 @@ namespace asio2::detail
 				fn(asio::error::operation_aborted, std::string_view{});
 			}
 
-			super::_handle_stop(ec, std::move(this_ptr));
+			super::_handle_disconnect(ec, std::move(this_ptr));
 		}
 
 		inline void _fire_recv(std::shared_ptr<derived_t> & this_ptr, std::string_view s)

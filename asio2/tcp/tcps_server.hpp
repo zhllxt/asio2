@@ -75,7 +75,6 @@ namespace asio2::detail
 		~tcps_server_impl_t()
 		{
 			this->stop();
-			this->iopool_.stop();
 		}
 
 		inline derived_t & set_cert(const std::string& password,

@@ -44,6 +44,7 @@
 #include <asio2/base/component/user_timer_cp.hpp>
 #include <asio2/base/component/post_cp.hpp>
 #include <asio2/base/component/send_cp.hpp>
+#include <asio2/base/component/event_queue_cp.hpp>
 
 #include <asio2/icmp/detail/icmp_header.hpp>
 #include <asio2/icmp/detail/ipv4_header.hpp>
@@ -60,6 +61,7 @@ namespace asio2::detail
 	class scp_impl_t
 		: public object_t<derived_t>
 		, public iopool_cp
+		, public event_queue_cp<derived_t>
 		, public user_data_cp<derived_t>
 		, public active_time_cp<derived_t>
 		, public user_timer_cp<derived_t, false>
@@ -70,7 +72,8 @@ namespace asio2::detail
 	{
 		template <class, bool>         friend class user_timer_cp;
 		template <class>               friend class post_cp;
-		template <class, bool>         friend class send_queue_cp;
+		template <class>               friend class data_persistence_cp;
+		template <class>               friend class event_queue_cp;
 		template <class, bool>         friend class send_cp;
 		template <class, bool>         friend class tcp_send_op;
 		template <class, bool>         friend class tcp_recv_op;
@@ -89,6 +92,7 @@ namespace asio2::detail
 		)
 			: super()
 			, iopool_cp(1)
+			, event_queue_cp<derived_t>()
 			, user_data_cp<derived_t>()
 			, active_time_cp<derived_t>()
 			, user_timer_cp<derived_t, false>(iopool_.get(0))
@@ -103,7 +107,6 @@ namespace asio2::detail
 			, io_(iopool_.get(0))
 			, buffer_(init_buffer_size, max_buffer_size)
 		{
-			this->iopool_.start();
 		}
 
 		/**
@@ -112,7 +115,6 @@ namespace asio2::detail
 		~scp_impl_t()
 		{
 			this->stop();
-			this->iopool_.stop();
 		}
 
 		/**
@@ -149,7 +151,7 @@ namespace asio2::detail
 		{
 			this->derived()._do_stop(asio::error::operation_aborted);
 
-			this->iopool_.wait_iothreads();
+			this->iopool_.stop();
 		}
 
 		/**
@@ -261,6 +263,14 @@ namespace asio2::detail
 			{
 				clear_last_error();
 
+				this->iopool_.start();
+
+				if (this->iopool_.is_stopped())
+				{
+					set_last_error(asio::error::shut_down);
+					return false;
+				}
+
 				this->socket_.close(ec_ignore);
 				this->socket_.open(device);
 				this->socket_.set_option(asio::serial_port::baud_rate(baud_rate));
@@ -278,9 +288,7 @@ namespace asio2::detail
 			}
 			catch (system_error & e)
 			{
-				set_last_error(e);
 				this->derived()._handle_start(e.code(), std::move(condition));
-				this->derived()._do_stop(e.code());
 			}
 			return false;
 		}
@@ -317,6 +325,11 @@ namespace asio2::detail
 				set_last_error(e);
 				this->derived()._do_stop(e.code());
 			}
+		}
+
+		inline void _do_disconnect(const error_code& ec)
+		{
+			this->derived()._do_stop(ec);
 		}
 
 		inline void _do_stop(const error_code& ec)
@@ -375,6 +388,8 @@ namespace asio2::detail
 			// Connect succeeded. post recv request.
 			asio::post(this->io_.strand(), [this, condition]()
 			{
+				this->derived().buffer().consume(this->derived().buffer().size());
+
 				this->derived()._post_recv(std::shared_ptr<derived_t>{}, condition);
 			});
 		}

@@ -6,7 +6,7 @@ g++ -o "/root/projects/client/bin/x64/Debug/client.out" -Wl,--no-undefined -Wl,-
 #include <asio2/asio2.hpp>
 #include <iostream>
 
-//#include "tcp_client.hpp"
+#include "tcp_client.hpp"
 //#include "tcp_client_character.hpp"
 //#include "tcp_client_dgram.hpp"
 //#include "tcp_client_match_role.hpp"
@@ -15,7 +15,7 @@ g++ -o "/root/projects/client/bin/x64/Debug/client.out" -Wl,--no-undefined -Wl,-
 //#include "udp_cast.hpp"
 //#include "http_client.hpp"
 //#include "websocket_client.hpp"
-#include "rpc_client.hpp"
+//#include "rpc_client.hpp"
 //#include "ping_test.hpp"
 //#include "serial_port.hpp"
 
@@ -30,7 +30,7 @@ int main(int argc, char *argv[])
 	//std::string_view host = "192.168.1.146", port = "8080"; 
 	//port = argv[1];
 
-	//run_tcp_client(host, port);
+	run_tcp_client(host, port);
 	//run_tcp_client_character(host, port);
 	//run_tcp_client_dgram(host, port);
 	//run_tcp_client_match_role(host, port);
@@ -38,7 +38,7 @@ int main(int argc, char *argv[])
 	//run_udp_client_kcp(host, port);
 	//run_http_client(host, port);
 	//run_ws_client(host, port);
-	run_rpc_client(host, port);
+	//run_rpc_client(host, port);
 
 	//run_tcps_client(host, port);
 	//run_https_client(host, port);

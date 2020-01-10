@@ -32,7 +32,8 @@ namespace asio2::detail
 		, public ssl_stream_cp<derived_t, socket_t, true>
 	{
 		template <class, bool>                       friend class user_timer_cp;
-		template <class, bool>                       friend class send_queue_cp;
+		template <class>                             friend class data_persistence_cp;
+		template <class>                             friend class event_queue_cp;
 		template <class, bool>                       friend class send_cp;
 		template <class, bool>                       friend class silence_timer_cp;
 		template <class, bool>                       friend class connect_timeout_cp;
@@ -70,7 +71,8 @@ namespace asio2::detail
 			std::size_t max_buffer_size
 		)
 			: super(sessions, listener, rwio, init_buffer_size, max_buffer_size)
-			, ssl_stream_comp(this->io_, this->socket_, ctx, asio::ssl::stream_base::server)
+			, ssl_stream_comp(this->io_, asio::ssl::stream_base::server)
+			, ctx_(ctx)
 		{
 		}
 
@@ -86,7 +88,8 @@ namespace asio2::detail
 		 */
 		inline typename ssl_stream_comp::stream_type & stream()
 		{
-			return this->ssl_stream_;
+			ASIO2_ASSERT(bool(this->ssl_stream_));
+			return (*(this->ssl_stream_));
 		}
 
 	public:
@@ -105,15 +108,17 @@ namespace asio2::detail
 			asio::post(this->io_.strand(), make_allocator(this->wallocator_,
 				[this, self_ptr = std::move(this_ptr), condition]()
 			{
+				this->derived()._ssl_start(self_ptr, condition, this->socket_, this->ctx_);
+
 				this->derived()._post_handshake(std::move(self_ptr), std::move(condition));
 			}));
 		}
 
-		inline void _handle_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
+		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
 		{
 			this->derived()._ssl_stop(this_ptr, [this, ec, this_ptr]()
 			{
-				super::_handle_stop(ec, std::move(this_ptr));
+				super::_handle_disconnect(ec, std::move(this_ptr));
 			});
 		}
 
@@ -123,6 +128,7 @@ namespace asio2::detail
 		}
 
 	protected:
+		asio::ssl::context & ctx_;
 	};
 }
 

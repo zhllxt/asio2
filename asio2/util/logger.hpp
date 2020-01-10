@@ -164,17 +164,10 @@ namespace asio2
 
 		inline const char * level2severity(severity_level level)
 		{
-			switch (level)
-			{
-			case severity_level::trace:  return "TRACE";
-			case severity_level::debug:  return "DEBUG";
-			case severity_level::info:   return "INFOR";
-			case severity_level::warn:   return "WARNG";
-			case severity_level::error:  return "ERROR";
-			case severity_level::fatal:  return "FATAL";
-			case severity_level::report: return "REPOT";
-			}
-			return "";
+			static const char * name[]{ "TRACE","DEBUG","INFOR","WARNS","ERROR","FATAL","REPOT", };
+
+			return ((level >= severity_level::trace && level <= severity_level::report) ?
+				name[static_cast<typename std::underlying_type<severity_level>::type>(level)] : "");
 		}
 
 		/**
@@ -220,17 +213,10 @@ namespace asio2
 		 */
 		inline const char * level2string(severity_level level)
 		{
-			switch (level)
-			{
-			case severity_level::trace:  return "trace";
-			case severity_level::debug:  return "debug";
-			case severity_level::info:   return "info";
-			case severity_level::warn:   return "warn";
-			case severity_level::error:  return "error";
-			case severity_level::fatal:  return "fatal";
-			case severity_level::report: return "report";
-			}
-			return "";
+			static const char * name[]{ "trace","debug","info","warn","error","fatal","report", };
+
+			return ((level >= severity_level::trace && level <= severity_level::report) ?
+				name[static_cast<typename std::underlying_type<severity_level>::type>(level)] : "");
 		}
 
 		template <typename S, typename... Args>

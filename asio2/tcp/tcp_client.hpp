@@ -32,9 +32,11 @@ namespace asio2::detail
 		, public tcp_recv_op<derived_t, false>
 	{
 		template <class, bool>                friend class user_timer_cp;
+		template <class, bool>                friend class reconnect_timer_cp;
 		template <class, bool>                friend class connect_timeout_cp;
 		template <class, class>               friend class connect_cp;
-		template <class, bool>                friend class send_queue_cp;
+		template <class>                      friend class data_persistence_cp;
+		template <class>                      friend class event_queue_cp;
 		template <class, bool>                friend class send_cp;
 		template <class, bool>                friend class tcp_send_op;
 		template <class, bool>                friend class tcp_recv_op;
@@ -67,7 +69,6 @@ namespace asio2::detail
 		~tcp_client_impl_t()
 		{
 			this->stop();
-			this->iopool_.stop();
 		}
 
 		/**
@@ -77,10 +78,11 @@ namespace asio2::detail
 		 * @param port A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
 		 */
-		template<typename StrOrInt>
-		bool start(std::string_view host, StrOrInt&& port)
+		template<typename String, typename StrOrInt>
+		bool start(String&& host, StrOrInt&& port)
 		{
-			return this->derived().template _do_connect<false>(host, to_string_port(std::forward<StrOrInt>(port)),
+			return this->derived().template _do_connect<false>(
+				std::forward<String>(host), std::forward<StrOrInt>(port),
 				condition_wrap<asio::detail::transfer_at_least_t>{asio::transfer_at_least(1)});
 		}
 
@@ -96,10 +98,11 @@ namespace asio2::detail
 		 * asio::transfer_at_least,asio::transfer_exactly
 		 * more details see asio::read_until
 		 */
-		template<typename StrOrInt, typename MatchCondition>
-		bool start(std::string_view host, StrOrInt&& port, MatchCondition condition)
+		template<typename String, typename StrOrInt, typename MatchCondition>
+		bool start(String&& host, StrOrInt&& port, MatchCondition condition)
 		{
-			return this->derived().template _do_connect<false>(host, to_string_port(std::forward<StrOrInt>(port)),
+			return this->derived().template _do_connect<false>(
+				std::forward<String>(host), std::forward<StrOrInt>(port),
 				condition_wrap<MatchCondition>(condition));
 		}
 
@@ -111,14 +114,11 @@ namespace asio2::detail
 		 * descriptive name or a numeric string corresponding to a port number.
 		 */
 		template<typename String, typename StrOrInt>
-		void async_start(String&& host, StrOrInt&& port)
+		bool async_start(String&& host, StrOrInt&& port)
 		{
-			asio::post(this->io_.strand(), [this, h = to_string_host(std::forward<String>(host)),
-				p = to_string_port(std::forward<StrOrInt>(port))]()
-			{
-				this->derived().template _do_connect<true>(h, p,
-					condition_wrap<asio::detail::transfer_at_least_t>{asio::transfer_at_least(1)});
-			});
+			return this->derived().template _do_connect<true>(
+				std::forward<String>(host), std::forward<StrOrInt>(port),
+				condition_wrap<asio::detail::transfer_at_least_t>{asio::transfer_at_least(1)});
 		}
 
 		/**
@@ -134,14 +134,11 @@ namespace asio2::detail
 		 * more details see asio::read_until
 		 */
 		template<typename String, typename StrOrInt, typename MatchCondition>
-		void async_start(String&& host, StrOrInt&& port, MatchCondition condition)
+		bool async_start(String&& host, StrOrInt&& port, MatchCondition condition)
 		{
-			asio::post(this->io_.strand(), [this, h = to_string_host(std::forward<String>(host)),
-				p = to_string_port(std::forward<StrOrInt>(port)), condition]()
-			{
-				this->derived().template _do_connect<true>(h, p,
-					condition_wrap<MatchCondition>(condition));
-			});
+			return this->derived().template _do_connect<true>(
+				std::forward<String>(host), std::forward<StrOrInt>(port),
+				condition_wrap<MatchCondition>(condition));
 		}
 
 		/**
@@ -150,6 +147,8 @@ namespace asio2::detail
 		 */
 		inline void stop()
 		{
+			this->derived()._do_disconnect(asio::error::operation_aborted);
+
 			// Asio end socket functions: cancel, shutdown, close, release :
 			// https://stackoverflow.com/questions/51468848/asio-end-socket-functions-cancel-shutdown-close-release
 			// The proper steps are:
@@ -160,7 +159,7 @@ namespace asio2::detail
 			// This will result in an ungraceful close.
 			this->derived()._do_stop(asio::error::operation_aborted);
 
-			this->iopool_.wait_iothreads();
+			this->iopool_.stop();
 		}
 
 	public:
@@ -228,8 +227,8 @@ namespace asio2::detail
 		}
 
 	protected:
-		template<bool isAsync, typename MatchCondition>
-		bool _do_connect(std::string_view host, std::string_view port, condition_wrap<MatchCondition> condition)
+		template<bool isAsync, typename String, typename StrOrInt, typename MatchCondition>
+		bool _do_connect(String&& host, StrOrInt&& port, condition_wrap<MatchCondition> condition)
 		{
 			state_t expected = state_t::stopped;
 			if (!this->state_.compare_exchange_strong(expected, state_t::starting))
@@ -242,19 +241,53 @@ namespace asio2::detail
 			{
 				clear_last_error();
 
-				this->once_flag_ = std::make_unique<std::once_flag>();
+				this->iopool_.start();
+
+				if (this->iopool_.is_stopped())
+				{
+					set_last_error(asio::error::shut_down);
+					return false;
+				}
+
+				this->derived()._make_reconnect_timer(std::shared_ptr<derived_t>{},
+					[this, h = to_string(host), p = to_string(port), condition]()
+				{
+					state_t expected = state_t::stopped;
+					if (this->state_.compare_exchange_strong(expected, state_t::starting))
+					{
+						auto task = [this, h, p, condition]()
+						{
+							this->derived().template _start_connect<true>(h, p,
+								std::shared_ptr<derived_t>{}, condition);
+						};
+#if defined(ASIO2_SEND_CORE_ASYNC)
+						this->derived().push_event([this, t = std::move(task)]() mutable
+						{
+							auto task = [this, t = std::move(t)]() mutable
+							{
+								t();
+								this->derived().next_event();
+							};
+							asio::post(this->io_.strand(), std::move(task));
+							return true;
+						});
+#else
+						asio::post(this->io_.strand(), std::move(task));
+#endif
+					}
+				});
 
 				this->derived()._do_init(condition);
 
 				super::start();
 
-				return this->derived().template _start_connect<isAsync>(host, port, std::shared_ptr<derived_t>{}, condition);
+				return this->derived().template _start_connect<isAsync>(
+					std::forward<String>(host), std::forward<StrOrInt>(port),
+					std::shared_ptr<derived_t>{}, condition);
 			}
 			catch (system_error & e)
 			{
-				set_last_error(e);
 				this->derived().template _handle_connect<isAsync>(e.code(), std::shared_ptr<derived_t>{}, condition);
-				this->derived()._do_stop(e.code());
 			}
 			return false;
 		}
@@ -279,42 +312,36 @@ namespace asio2::detail
 
 		inline void _do_stop(const error_code& ec)
 		{
-			state_t expected = state_t::starting;
-			if (this->state_.compare_exchange_strong(expected, state_t::stopping))
-				return this->derived()._post_stop(ec, std::shared_ptr<derived_t>{}, expected);
-
-			expected = state_t::started;
-			if (this->state_.compare_exchange_strong(expected, state_t::stopping))
-				return this->derived()._post_stop(ec, std::shared_ptr<derived_t>{}, expected);
+			this->derived()._post_stop(ec, std::shared_ptr<derived_t>{});
 		}
 
-		inline void _post_stop(const error_code& ec, std::shared_ptr<derived_t> self_ptr, state_t old_state)
+		inline void _post_stop(const error_code& ec, std::shared_ptr<derived_t> self_ptr)
 		{
 			// All pending sending events will be cancelled after enter the send strand below.
-			asio::post(this->io_.strand(), [this, ec, this_ptr = std::move(self_ptr), old_state]()
+			auto task = [this, ec, this_ptr = std::move(self_ptr)]()
 			{
 				set_last_error(ec);
 
-				state_t expected = state_t::stopping;
-				if (this->state_.compare_exchange_strong(expected, state_t::stopped))
-				{
-					// close the socket by post a event
-					// asio don't allow operate the same socket in multi thread,if you close socket in one thread and another thread is 
-					// calling socket's async_... function,it will crash.so we must care for operate the socket.when need close the
-					// socket ,we use the strand to post a event,make sure the socket's close operation is in the same thread.
-					this->derived()._fire_disconnect(this_ptr, ec);
+				// call the base class stop function
+				super::stop();
 
-					// call the base class stop function
-					super::stop();
-
-					// call CRTP polymorphic stop
-					this->derived()._handle_stop(ec, std::move(this_ptr));
-				}
-				else
+				// call CRTP polymorphic stop
+				this->derived()._handle_stop(ec, std::move(this_ptr));
+			};
+#if defined(ASIO2_SEND_CORE_ASYNC)
+			this->derived().push_event([this, t = std::move(task)]() mutable
+			{
+				auto task = [this, t = std::move(t)]() mutable
 				{
-					ASIO2_ASSERT(false);
-				}
+					t();
+					this->derived().next_event();
+				};
+				asio::post(this->io_.strand(), std::move(task));
+				return true;
 			});
+#else
+			asio::post(this->io_.strand(), std::move(task));
+#endif
 		}
 
 		inline void _handle_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
@@ -335,6 +362,8 @@ namespace asio2::detail
 			// Connect succeeded. post recv request.
 			asio::post(this->io_.strand(), [this, self_ptr = std::move(this_ptr), condition]()
 			{
+				this->derived().buffer().consume(this->derived().buffer().size());
+
 				this->derived()._post_recv(std::move(self_ptr), std::move(condition));
 			});
 		}

@@ -53,6 +53,10 @@ server.start("0.0.0.0", "8080");
 ##### 客户端:
 ```c++
 asio2::tcp_client client;
+// 客户端在断开时默认会自动重连
+//client.reconnect(false); // 禁止自动重连
+//client.reconnect(true); // 启用自动重连 默认在断开连接后延时1秒就会开始重连
+client.reconnect(true, std::chrono::milliseconds(100)); // 启用自动重连 并设置自定义的延时
 client.bind_connect([&](asio::error_code ec)
 {
 	if (asio2::get_last_error())

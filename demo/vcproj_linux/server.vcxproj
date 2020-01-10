@@ -95,10 +95,12 @@
     <ClInclude Include="..\..\asio2\base\component\connect_cp.hpp" />
     <ClInclude Include="..\..\asio2\base\component\connect_timeout_cp.hpp" />
     <ClInclude Include="..\..\asio2\base\component\connect_time_cp.hpp" />
+    <ClInclude Include="..\..\asio2\base\component\data_persistence_cp.hpp" />
+    <ClInclude Include="..\..\asio2\base\component\event_queue_cp.hpp" />
     <ClInclude Include="..\..\asio2\base\component\local_endpoint_cp.hpp" />
     <ClInclude Include="..\..\asio2\base\component\post_cp.hpp" />
+    <ClInclude Include="..\..\asio2\base\component\reconnect_timer_cp.hpp" />
     <ClInclude Include="..\..\asio2\base\component\send_cp.hpp" />
-    <ClInclude Include="..\..\asio2\base\component\send_queue_cp.hpp" />
     <ClInclude Include="..\..\asio2\base\component\silence_timer_cp.hpp" />
     <ClInclude Include="..\..\asio2\base\component\socket_cp.hpp" />
     <ClInclude Include="..\..\asio2\base\component\user_data_cp.hpp" />
@@ -337,7 +339,7 @@
     </ClCompile>
     <Link>
       <AdditionalLibraryDirectories>/usr/local/lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <LibraryDependencies>boost_system;ssl;crypto;stdc++fs%(LibraryDependencies)</LibraryDependencies>
+      <LibraryDependencies>stdc++fs%(LibraryDependencies)</LibraryDependencies>
       <AdditionalOptions>-lpthread -lrt -ldl %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
@@ -348,7 +350,7 @@
     </ClCompile>
     <Link>
       <AdditionalLibraryDirectories>/usr/local/lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <LibraryDependencies>boost_system;ssl;crypto;stdc++fs%(LibraryDependencies)</LibraryDependencies>
+      <LibraryDependencies>stdc++fs%(LibraryDependencies)</LibraryDependencies>
       <AdditionalOptions>-lpthread -lrt -ldl %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>

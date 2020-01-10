@@ -8,8 +8,8 @@
  * (See accompanying file LICENSE or see <http://www.gnu.org/licenses/>)
  */
 
-#ifndef __ASIO2_SEND_QUEUE_COMPONENT_HPP__
-#define __ASIO2_SEND_QUEUE_COMPONENT_HPP__
+#ifndef __ASIO2_DATA_PERSISTENCE_COMPONENT_HPP__
+#define __ASIO2_DATA_PERSISTENCE_COMPONENT_HPP__
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1200)
 #pragma once
@@ -35,85 +35,21 @@
 
 namespace asio2::detail
 {
-	template<class derived_t, bool isSession>
-	class send_queue_cp
+	template<class derived_t>
+	class data_persistence_cp
 	{
 	public:
 		/**
 		 * @constructor
 		 */
-		send_queue_cp(io_t & wio) : derive(static_cast<derived_t&>(*this)), wio_(wio) {}
+		data_persistence_cp() : derive(static_cast<derived_t&>(*this)) {}
 
 		/**
 		 * @destructor
 		 */
-		~send_queue_cp() = default;
+		~data_persistence_cp() = default;
 
 	protected:
-		template<class Callback>
-		inline bool _send_enqueue(Callback&& f)
-		{
-#if defined(ASIO2_SEND_CORE_ASYNC)
-			// Make sure we run on the strand
-			if (this->wio_.strand().running_in_this_thread())
-			{
-				bool empty = this->send_queue_.empty();
-				this->send_queue_.emplace(std::forward<Callback>(f));
-				if (empty)
-				{
-					return (this->send_queue_.front())();
-				}
-				return true;
-			}
-
-			asio::post(this->wio_.strand(), make_allocator(derive.wallocator(),
-				[this, p = derive.selfptr(), f = std::forward<Callback>(f)]() mutable
-			{
-				bool empty = this->send_queue_.empty();
-				this->send_queue_.emplace(std::move(f));
-				if (empty)
-				{
-					(this->send_queue_.front())();
-				}
-			}));
-
-			return true;
-#else
-			// Make sure we run on the strand
-			if (this->wio_.strand().running_in_this_thread())
-			{
-				return f();
-			}
-
-			asio::post(this->wio_.strand(), make_allocator(derive.wallocator(),
-				[this, p = derive.selfptr(), f = std::forward<Callback>(f)]() mutable
-			{
-				f();
-			}));
-
-			return true;
-#endif
-		}
-
-		template<typename = void>
-		inline void _send_dequeue()
-		{
-#if defined(ASIO2_SEND_CORE_ASYNC)
-			ASIO2_ASSERT(this->wio_.strand().running_in_this_thread());
-
-			if (!this->send_queue_.empty())
-			{
-				this->send_queue_.pop();
-
-				if (!this->send_queue_.empty())
-				{
-					(this->send_queue_.front())();
-				}
-			}
-#else
-#endif
-		}
-
 		template<class T>
 		inline auto _data_persistence(T&& data)
 		{
@@ -223,15 +159,8 @@ namespace asio2::detail
 #endif
 
 	protected:
-		derived_t                        & derive;
-
-		io_t                             & wio_;
-
-#if defined(ASIO2_SEND_CORE_ASYNC)
-		/// data queue to be sent, used for async_write 
-		std::queue<std::function<bool()>>  send_queue_;
-#endif
+		derived_t                     & derive;
 	};
 }
 
-#endif // !__ASIO2_SEND_QUEUE_COMPONENT_HPP__
+#endif // !__ASIO2_DATA_PERSISTENCE_COMPONENT_HPP__

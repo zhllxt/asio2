@@ -76,7 +76,7 @@ namespace asio2::detail
 
 			if (ec == asio::error::operation_aborted || this->timer_canceled_.test_and_set()) return;
 
-			derive._do_stop(asio::error::timed_out);
+			derive._do_disconnect(asio::error::timed_out);
 		}
 
 		template<class Rep, class Period, class Fn>

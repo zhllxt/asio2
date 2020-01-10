@@ -33,20 +33,21 @@
 #include <asio2/base/detail/function_traits.hpp>
 #include <asio2/base/detail/buffer_wrap.hpp>
 
-#include <asio2/base/component/send_queue_cp.hpp>
+#include <asio2/base/component/data_persistence_cp.hpp>
 
 namespace asio2::detail
 {
 	template<class derived_t, bool isSession>
-	class udp_send_cp : public send_queue_cp<derived_t, isSession>
+	class udp_send_cp : public data_persistence_cp<derived_t>
 	{
-		template <class, bool>         friend class send_queue_cp;
+		template <class>               friend class data_persistence_cp;
+		template <class>               friend class event_queue_cp;
 
 	public:
 		/**
 		 * @constructor
 		 */
-		udp_send_cp(io_t & wio) : send_queue_cp<derived_t, isSession>(wio) {}
+		udp_send_cp(io_t&) {}
 
 		/**
 		 * @destructor
@@ -374,12 +375,13 @@ namespace asio2::detail
 				if (!this->derive.is_started())
 					asio::detail::throw_error(asio::error::not_connected);
 
-				return this->derive._send_enqueue([this,
+				this->derive.push_event([this,
 					endpoint = std::forward<Endpoint>(endpoint),
 					data = this->derive._data_persistence(std::forward<T>(data))]() mutable
 				{
 					return this->derive._do_send(endpoint, data, [](const error_code&, std::size_t) {});
 				});
+				return true;
 			}
 			catch (system_error & e) { set_last_error(e); }
 			catch (std::exception &) { set_last_error(asio::error::eof); }
@@ -429,12 +431,13 @@ namespace asio2::detail
 				if (!s)
 					asio::detail::throw_error(asio::error::invalid_argument);
 
-				return this->derive._send_enqueue([this,
+				this->derive.push_event([this,
 					endpoint = std::forward<Endpoint>(endpoint),
 					data = this->derive._data_persistence(s, count)]() mutable
 				{
 					return this->derive._do_send(endpoint, data, [](const error_code&, std::size_t) {});
 				});
+				return true;
 			}
 			catch (system_error & e) { set_last_error(e); }
 			catch (std::exception &) { set_last_error(asio::error::eof); }
@@ -468,7 +471,7 @@ namespace asio2::detail
 				if (!this->derive.is_started())
 					asio::detail::throw_error(asio::error::not_connected);
 
-				this->derive._send_enqueue([this, endpoint = std::forward<Endpoint>(endpoint),
+				this->derive.push_event([this, endpoint = std::forward<Endpoint>(endpoint),
 					data = this->derive._data_persistence(std::forward<T>(data)),
 					promise = std::move(promise)]() mutable
 				{
@@ -537,7 +540,7 @@ namespace asio2::detail
 				if (!s)
 					asio::detail::throw_error(asio::error::invalid_argument);
 
-				this->derive._send_enqueue([this, endpoint = std::forward<Endpoint>(endpoint),
+				this->derive.push_event([this, endpoint = std::forward<Endpoint>(endpoint),
 					data = this->derive._data_persistence(s, count),
 					promise = std::move(promise)]() mutable
 				{
@@ -586,7 +589,7 @@ namespace asio2::detail
 				if (!this->derive.is_started())
 					asio::detail::throw_error(asio::error::not_connected);
 
-				return this->derive._send_enqueue([this, endpoint = std::forward<Endpoint>(endpoint),
+				this->derive.push_event([this, endpoint = std::forward<Endpoint>(endpoint),
 					data = this->derive._data_persistence(std::forward<T>(data)),
 					fn = std::forward<Callback>(fn)]() mutable
 				{
@@ -595,6 +598,7 @@ namespace asio2::detail
 						callback_helper::call(fn, bytes_sent);
 					});
 				});
+				return true;
 			}
 			catch (system_error & e) { set_last_error(e); }
 			catch (std::exception &) { set_last_error(asio::error::eof); }
@@ -647,7 +651,7 @@ namespace asio2::detail
 				if (!s)
 					asio::detail::throw_error(asio::error::invalid_argument);
 
-				return this->derive._send_enqueue([this, endpoint = std::forward<Endpoint>(endpoint),
+				this->derive.push_event([this, endpoint = std::forward<Endpoint>(endpoint),
 					data = this->derive._data_persistence(s, count),
 					fn = std::forward<Callback>(fn)]() mutable
 				{
@@ -656,6 +660,7 @@ namespace asio2::detail
 						callback_helper::call(fn, bytes_sent);
 					});
 				});
+				return true;
 			}
 			catch (system_error & e) { set_last_error(e); }
 			catch (std::exception &) { set_last_error(asio::error::eof); }
@@ -670,14 +675,15 @@ namespace asio2::detail
 			using endpoints_type = typename resolver_type::results_type;
 			//using endpoints_iterator = typename endpoints_type::iterator;
 
-			std::unique_ptr<resolver_type> resolver_ptr = std::make_unique<resolver_type>(this->wio_.context());
+			std::unique_ptr<resolver_type> resolver_ptr = std::make_unique<resolver_type>(
+				this->derive.io().context());
 
 			// Before async_resolve execution is complete, we must hold the resolver object.
 			// so we captured the resolver_ptr into the lambda callback function.
 			resolver_type * resolver_pointer = resolver_ptr.get();
 			resolver_pointer->async_resolve(
-				to_string_host(std::forward<String>(host)),
-				to_string_port(std::forward<StrOrInt>(port)),
+				to_string(std::forward<String>(host)),
+				to_string(std::forward<StrOrInt>(port)),
 				asio::bind_executor(this->derive.io().strand(),
 					[this, p = this->derive.selfptr(), resolver_ptr = std::move(resolver_ptr),
 					data = std::forward<Data>(data), callback = std::forward<Callback>(callback)]
@@ -694,7 +700,7 @@ namespace asio2::detail
 					decltype(endpoints.size()) i = 1;
 					for (auto iter = endpoints.begin(); iter != endpoints.end(); ++iter, ++i)
 					{
-						this->derive._send_enqueue([this, endpoint = iter->endpoint(),
+						this->derive.push_event([this, endpoint = iter->endpoint(),
 							data = (endpoints.size() == i ? std::move(data) : data),
 							callback = (endpoints.size() == i ? std::move(callback) : callback)
 						]() mutable

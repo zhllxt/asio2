@@ -49,12 +49,14 @@
 #include <asio2/base/component/post_cp.hpp>
 #include <asio2/base/component/send_cp.hpp>
 #include <asio2/base/component/connect_timeout_cp.hpp>
+#include <asio2/base/component/event_queue_cp.hpp>
 
 namespace asio2::detail
 {
 	template<class derived_t, class socket_t, class buffer_t>
 	class session_impl_t
 		: public object_t<derived_t>
+		, public event_queue_cp<derived_t>
 		, public user_data_cp<derived_t>
 		, public connect_time_cp<derived_t>
 		, public active_time_cp<derived_t>
@@ -68,7 +70,8 @@ namespace asio2::detail
 		template <class, bool>         friend class user_timer_cp;
 		template <class, bool>         friend class silence_timer_cp;
 		template <class, bool>         friend class connect_timeout_cp;
-		template <class, bool>         friend class send_queue_cp;
+		template <class>               friend class data_persistence_cp;
+		template <class>               friend class event_queue_cp;
 		template <class, bool>         friend class send_cp;
 		template <class>               friend class post_cp;
 
@@ -91,6 +94,7 @@ namespace asio2::detail
 			Args&&... args
 		)
 			: super()
+			, event_queue_cp<derived_t>()
 			, user_data_cp<derived_t>()
 			, connect_time_cp<derived_t>()
 			, active_time_cp<derived_t>()

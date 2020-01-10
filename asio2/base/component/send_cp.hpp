@@ -33,20 +33,21 @@
 #include <asio2/base/detail/function_traits.hpp>
 #include <asio2/base/detail/buffer_wrap.hpp>
 
-#include <asio2/base/component/send_queue_cp.hpp>
+#include <asio2/base/component/data_persistence_cp.hpp>
 
 namespace asio2::detail
 {
 	template<class derived_t, bool isSession>
-	class send_cp : public send_queue_cp<derived_t, isSession>
+	class send_cp : public data_persistence_cp<derived_t>
 	{
-		template <class, bool>         friend class send_queue_cp;
+		template <class>               friend class data_persistence_cp;
+		template <class>               friend class event_queue_cp;
 
 	public:
 		/**
 		 * @constructor
 		 */
-		send_cp(io_t & wio) : send_queue_cp<derived_t, isSession>(wio) {}
+		send_cp(io_t&) : derive(static_cast<derived_t&>(*this)) {}
 
 		/**
 		 * @destructor
@@ -77,11 +78,12 @@ namespace asio2::detail
 				if (!this->derive.is_started())
 					asio::detail::throw_error(asio::error::not_connected);
 
-				return this->derive._send_enqueue([this,
+				this->derive.push_event([this,
 					data = this->derive._data_persistence(std::forward<T>(data))]() mutable
 				{
 					return this->derive._do_send(data, [](const error_code&, std::size_t) {});
 				});
+				return true;
 			}
 			catch (system_error & e) { set_last_error(e); }
 			catch (std::exception &) { set_last_error(asio::error::eof); }
@@ -128,10 +130,11 @@ namespace asio2::detail
 				if (!s)
 					asio::detail::throw_error(asio::error::invalid_argument);
 
-				return this->derive._send_enqueue([this, data = this->derive._data_persistence(s, count)]() mutable
+				this->derive.push_event([this, data = this->derive._data_persistence(s, count)]() mutable
 				{
 					return this->derive._do_send(data, [](const error_code&, std::size_t) {});
 				});
+				return true;
 			}
 			catch (system_error & e) { set_last_error(e); }
 			catch (std::exception &) { set_last_error(asio::error::eof); }
@@ -164,7 +167,7 @@ namespace asio2::detail
 				if (!this->derive.is_started())
 					asio::detail::throw_error(asio::error::not_connected);
 
-				this->derive._send_enqueue([this, data = this->derive._data_persistence(std::forward<T>(data)),
+				this->derive.push_event([this, data = this->derive._data_persistence(std::forward<T>(data)),
 					promise = std::move(promise)]() mutable
 				{
 					return this->derive._do_send(data, [&promise](const error_code& ec, std::size_t bytes_sent)
@@ -230,7 +233,7 @@ namespace asio2::detail
 				if (!s)
 					asio::detail::throw_error(asio::error::invalid_argument);
 
-				this->derive._send_enqueue([this, data = this->derive._data_persistence(s, count),
+				this->derive.push_event([this, data = this->derive._data_persistence(s, count),
 					promise = std::move(promise)]() mutable
 				{
 					return this->derive._do_send(data, [&promise](const error_code& ec, std::size_t bytes_sent)
@@ -276,7 +279,7 @@ namespace asio2::detail
 				if (!this->derive.is_started())
 					asio::detail::throw_error(asio::error::not_connected);
 
-				return this->derive._send_enqueue([this, data = this->derive._data_persistence(std::forward<T>(data)),
+				this->derive.push_event([this, data = this->derive._data_persistence(std::forward<T>(data)),
 					fn = std::forward<Callback>(fn)]() mutable
 				{
 					return this->derive._do_send(data, [&fn](const error_code&, std::size_t bytes_sent)
@@ -284,6 +287,7 @@ namespace asio2::detail
 						callback_helper::call(fn, bytes_sent);
 					});
 				});
+				return true;
 			}
 			catch (system_error & e) { set_last_error(e); }
 			catch (std::exception &) { set_last_error(asio::error::eof); }
@@ -333,7 +337,7 @@ namespace asio2::detail
 				if (!s)
 					asio::detail::throw_error(asio::error::invalid_argument);
 
-				return this->derive._send_enqueue([this, data = this->derive._data_persistence(s, count),
+				this->derive.push_event([this, data = this->derive._data_persistence(s, count),
 					fn = std::forward<Callback>(fn)]() mutable
 				{
 					return this->derive._do_send(data, [&fn](const error_code&, std::size_t bytes_sent)
@@ -341,11 +345,15 @@ namespace asio2::detail
 						callback_helper::call(fn, bytes_sent);
 					});
 				});
+				return true;
 			}
 			catch (system_error & e) { set_last_error(e); }
 			catch (std::exception &) { set_last_error(asio::error::eof); }
 			return false;
 		}
+
+	protected:
+		derived_t                     & derive;
 	};
 }
 

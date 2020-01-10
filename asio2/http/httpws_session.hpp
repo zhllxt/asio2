@@ -34,7 +34,8 @@ namespace asio2::detail
 		, public ws_send_op<derived_t, true>
 	{
 		template <class, bool>                       friend class user_timer_cp;
-		template <class, bool>                       friend class send_queue_cp;
+		template <class>                             friend class data_persistence_cp;
+		template <class>                             friend class event_queue_cp;
 		template <class, bool>                       friend class send_cp;
 		template <class, bool>                       friend class silence_timer_cp;
 		template <class, bool>                       friend class connect_timeout_cp;
@@ -60,7 +61,7 @@ namespace asio2::detail
 		using buffer_type = buffer_t;
 		using ws_stream_comp = ws_stream_cp<derived_t, stream_t, true>;
 		using super::send;
-		using send_queue_cp<derived_t, true>::_data_persistence;
+		using data_persistence_cp<derived_t>::_data_persistence;
 
 		/**
 		 * @constructor
@@ -73,7 +74,7 @@ namespace asio2::detail
 			std::size_t max_buffer_size
 		)
 			: super(sessions, listener, rwio, init_buffer_size, max_buffer_size)
-			, ws_stream_comp(this->socket_)
+			, ws_stream_comp()
 			, ws_send_op<derived_t, true>()
 		{
 		}
@@ -99,22 +100,35 @@ namespace asio2::detail
 		 */
 		inline typename ws_stream_comp::stream_type & stream()
 		{
-			return this->ws_stream_;
+			ASIO2_ASSERT(bool(this->ws_stream_));
+			return (*(this->ws_stream_));
 		}
 
 		inline bool is_websocket() { return (this->is_ws_); }
 		inline bool is_http() { return (!this->is_ws_); }
 
 	protected:
-		inline void _handle_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
+		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
 		{
 			if (this->is_http())
-				return super::_handle_stop(ec, std::move(this_ptr));
+				return super::_handle_disconnect(ec, std::move(this_ptr));
 
 			this->derived()._ws_stop(this_ptr, [this, ec, this_ptr]()
 			{
-				super::_handle_stop(ec, std::move(this_ptr));
+				super::_handle_disconnect(ec, std::move(this_ptr));
 			});
+		}
+
+		template<typename MatchCondition>
+		inline void _handle_connect(const error_code& ec, std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		{
+			asio::post(this->io_.strand(), make_allocator(this->wallocator_,
+				[this, ec, self_ptr = std::move(this_ptr), condition]()
+			{
+				this->derived()._ws_start(self_ptr, condition, this->socket_);
+
+				super::_handle_connect(ec, self_ptr, condition);
+			}));
 		}
 
 		template<class T>
@@ -280,8 +294,9 @@ namespace asio2::detail
 				}
 				else
 				{
+					ASIO2_ASSERT(bool(this->ws_stream_));
 					// Read a message into our buffer
-					this->ws_stream_.async_read(this->buffer_.base(),
+					this->ws_stream_->async_read(this->buffer_.base(),
 						asio::bind_executor(this->io_.strand(), make_allocator(this->rallocator_,
 							[this, self_ptr = std::move(this_ptr), condition](const error_code & ec, std::size_t bytes_recvd)
 					{
@@ -292,7 +307,7 @@ namespace asio2::detail
 			catch (system_error & e)
 			{
 				set_last_error(e);
-				this->derived()._do_stop(e.code());
+				this->derived()._do_disconnect(e.code());
 			}
 		}
 
@@ -328,7 +343,7 @@ namespace asio2::detail
 			{
 				// This means they closed the connection
 				//if (ec == http::error::end_of_stream)
-				this->derived()._do_stop(ec);
+				this->derived()._do_disconnect(ec);
 			}
 		}
 
@@ -350,7 +365,7 @@ namespace asio2::detail
 				catch (system_error & e)
 				{
 					set_last_error(e);
-					this->derived()._do_stop(e.code());
+					this->derived()._do_disconnect(e.code());
 				}
 			});
 		}

@@ -37,9 +37,9 @@ public:
 	}
 	void run()
 	{
-		if (!ping.start("123.45.67.89"))
+		//if (!ping.start("123.45.67.89"))
 			//if (!ping.start("fe80::59f9:25af:4427:fab7"))
-			//if (!ping.start("stackoverflow.com"))
+			if (!ping.start("stackoverflow.com"))
 			printf("start failure : %s\n", asio2::last_error_msg().c_str());
 
 		while (std::getchar() != '\n');

@@ -44,7 +44,7 @@ void run_serial_port(const std::string& device, unsigned int baud_rate)
 		//sp.start(device, baud_rate, asio::transfer_at_least(1));
 		//sp.start(device, baud_rate, asio::transfer_exactly(10));
 		sp.send("abc", [](std::size_t bytes_sent) {
-			printf("%u %d %s\n", (unsigned)bytes_sent, asio2::last_error_val(), asio2::last_error_msg().c_str()); });
+			printf("send : %u %d %s\n", (unsigned)bytes_sent, asio2::last_error_val(), asio2::last_error_msg().c_str()); });
 
 		while (std::getchar() != '\n');
 		//std::this_thread::sleep_for(std::chrono::seconds(2));

@@ -54,7 +54,6 @@ namespace asio2::detail
 		~tcp_server_impl_t()
 		{
 			this->stop();
-			this->iopool_.stop();
 		}
 
 		/**
@@ -65,7 +64,7 @@ namespace asio2::detail
 		template<typename StrOrInt>
 		inline bool start(StrOrInt&& service)
 		{
-			return this->start(std::string_view{}, to_string_port(std::forward<StrOrInt>(service)));
+			return this->start(std::string_view{}, std::forward<StrOrInt>(service));
 		}
 
 		/**
@@ -75,31 +74,16 @@ namespace asio2::detail
 		 * @param service A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
 		 */
-		template<typename StrOrInt>
-		inline bool start(std::string_view host, StrOrInt&& service)
+		template<typename String, typename StrOrInt>
+		inline bool start(String&& host, StrOrInt&& service)
 		{
-			return this->derived()._do_start(host, to_string_port(std::forward<StrOrInt>(service)),
+			return this->derived()._do_start(
+				std::forward<String>(host), std::forward<StrOrInt>(service),
 				condition_wrap<asio::detail::transfer_at_least_t>{asio::transfer_at_least(1)});
 		}
 
 		/**
 		 * @function : start the server
-		 * @param service A string identifying the requested service. This may be a
-		 * descriptive name or a numeric string corresponding to a port number.
-		 * @param condition The delimiter condition.Valid value types include the following:
-		 * char,std::string,std::string_view,
-		 * function:std::pair<iterator, bool> match_condition(iterator begin, iterator end),
-		 * asio::transfer_at_least,asio::transfer_exactly
-		 * more details see asio::read_until
-		 */
-		template<typename StrOrInt, typename MatchCondition>
-		inline bool start(StrOrInt&& service, MatchCondition condition)
-		{
-			return this->start(std::string_view{}, to_string_port(std::forward<StrOrInt>(service)), condition);
-		}
-
-		/**
-		 * @function : start the server
 		 * @param host A string identifying a location. May be a descriptive name or
 		 * a numeric address string.
 		 * @param service A string identifying the requested service. This may be a
@@ -110,10 +94,11 @@ namespace asio2::detail
 		 * asio::transfer_at_least,asio::transfer_exactly
 		 * more details see asio::read_until
 		 */
-		template<typename StrOrInt, typename MatchCondition>
-		inline bool start(std::string_view host, StrOrInt&& service, MatchCondition condition)
+		template<typename String, typename StrOrInt, typename MatchCondition>
+		inline bool start(String&& host, StrOrInt&& service, MatchCondition condition)
 		{
-			return this->derived()._do_start(host, to_string_port(std::forward<StrOrInt>(service)),
+			return this->derived()._do_start(
+				std::forward<String>(host), std::forward<StrOrInt>(service),
 				condition_wrap<MatchCondition>(condition));
 		}
 
@@ -125,7 +110,7 @@ namespace asio2::detail
 		{
 			this->derived()._do_stop(asio::error::operation_aborted);
 
-			this->iopool_.wait_iothreads();
+			this->iopool_.stop();
 		}
 
 		/**
@@ -264,8 +249,8 @@ namespace asio2::detail
 		inline asio::ip::tcp::acceptor & acceptor() { return this->acceptor_; }
 
 	protected:
-		template<typename MatchCondition>
-		bool _do_start(std::string_view host, std::string_view service, condition_wrap<MatchCondition> condition)
+		template<typename String, typename StrOrInt, typename MatchCondition>
+		bool _do_start(String&& host, StrOrInt&& service, condition_wrap<MatchCondition> condition)
 		{
 			state_t expected = state_t::stopped;
 			if (!this->state_.compare_exchange_strong(expected, state_t::starting))
@@ -277,6 +262,14 @@ namespace asio2::detail
 			try
 			{
 				clear_last_error();
+
+				this->iopool_.start();
+
+				if (this->iopool_.is_stopped())
+				{
+					set_last_error(asio::error::shut_down);
+					return false;
+				}
 
 				this->counter_ptr_ = std::shared_ptr<void>((void*)1, [this](void*)
 				{
@@ -292,9 +285,12 @@ namespace asio2::detail
 
 				this->acceptor_.close(ec_ignore);
 
+				std::string h = to_string(std::forward<String>(host));
+				std::string p = to_string(std::forward<StrOrInt>(service));
+
 				// parse address and port
 				asio::ip::tcp::resolver resolver(this->io_.context());
-				asio::ip::tcp::endpoint endpoint = *resolver.resolve(host, service,
+				asio::ip::tcp::endpoint endpoint = *resolver.resolve(h, p,
 					asio::ip::resolver_base::flags::passive | asio::ip::resolver_base::flags::address_configured).begin();
 
 				this->acceptor_.open(endpoint.protocol());
@@ -316,9 +312,7 @@ namespace asio2::detail
 			}
 			catch (system_error & e)
 			{
-				set_last_error(e);
 				this->derived()._handle_start(e.code(), std::move(condition));
-				this->derived()._do_stop(e.code());
 			}
 			return false;
 		}

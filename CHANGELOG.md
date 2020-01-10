@@ -1,3 +1,8 @@
+# 2020-01-10 version 2.3:
+
+  * Add automatic reconnection mechanism in the client when disconnection occurs.
+  * Bug fix : Fix the problem that data cannot be sent when the client is restarted in some cases(By adding event queue mechanism).
+
 # 2019-11-02 version 2.2:
 
   * Change internal send mode from synchronous to asynchronous.

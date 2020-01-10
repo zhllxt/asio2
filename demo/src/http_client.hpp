@@ -30,10 +30,10 @@ void run_http_client(std::string_view host, std::string_view port)
 	auto rep = asio2::http_client::execute(host, port, "/api/get_user?name=zhl", ec);
 	std::cout << rep << std::endl << "--------------------\n";
 
-	std::string en = http::url_encode("http://www.baidu.com/get_user?name=zhl");
-	std::cout << en << std::endl;
-	std::string de = http::url_decode(en);
-	std::cout << de << std::endl;
+	//std::string en = http::url_encode("http://www.baidu.com/get_user?name=zhl");
+	//std::cout << en << std::endl;
+	//std::string de = http::url_decode(en);
+	//std::cout << de << std::endl;
 
 	asio2::http_client client;
 

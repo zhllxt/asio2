@@ -33,9 +33,11 @@ namespace asio2::detail
 		, public http_recv_op<derived_t, body_t, buffer_t, false>
 	{
 		template <class, bool>                friend class user_timer_cp;
+		template <class, bool>                friend class reconnect_timer_cp;
 		template <class, bool>                friend class connect_timeout_cp;
 		template <class, class>               friend class connect_cp;
-		template <class, bool>                friend class send_queue_cp;
+		template <class>                      friend class data_persistence_cp;
+		template <class>                      friend class event_queue_cp;
 		template <class, bool>                friend class send_cp;
 		template <class, bool>                friend class tcp_send_op;
 		template <class, bool>                friend class tcp_recv_op;
@@ -52,7 +54,7 @@ namespace asio2::detail
 		using buffer_type = buffer_t;
 		using super::send;
 		using http_send_cp<derived_t, body_t, buffer_t, false>::send;
-		using send_queue_cp<derived_t, false>::_data_persistence;
+		using data_persistence_cp<derived_t>::_data_persistence;
 
 	public:
 		/**
@@ -74,7 +76,6 @@ namespace asio2::detail
 		~http_client_impl_t()
 		{
 			this->stop();
-			this->iopool_.stop();
 		}
 
 		/**
@@ -84,8 +85,8 @@ namespace asio2::detail
 		 * @param port A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
 		 */
-		template<typename StrOrInt>
-		bool start(std::string_view host, StrOrInt&& port, std::string_view target = {},
+		template<typename String, typename StrOrInt>
+		bool start(String&& host, StrOrInt&& port, std::string_view target = {},
 			http::verb method = http::verb::get, unsigned version = 11)
 		{
 			try
@@ -94,13 +95,14 @@ namespace asio2::detail
 				if (!this->state_.compare_exchange_strong(expected, state_t::stopped))
 					asio::detail::throw_error(asio::error::already_started);
 
-				std::string p = to_string_port(std::forward<StrOrInt>(port));
+				std::string h = to_string(std::forward<String>(host));
+				std::string p = to_string(std::forward<StrOrInt>(port));
 
 				this->first_req_ = !target.empty();
 				if (this->first_req_)
-					this->req_ = http::make_request(host, p, target, method, version);
+					this->req_ = http::make_request(h, p, target, method, version);
 
-				return this->derived().template _do_connect<false>(std::move(host), std::move(p), condition_wrap<void>{});
+				return this->derived().template _do_connect<false>(std::move(h), std::move(p), condition_wrap<void>{});
 			}
 			catch (system_error & e)
 			{
@@ -154,68 +156,67 @@ namespace asio2::detail
 		 * descriptive name or a numeric string corresponding to a port number.
 		 */
 		template<typename String, typename StrOrInt>
-		void async_start(String&& host, StrOrInt&& port, String&& target = String{},
+		bool async_start(String&& host, StrOrInt&& port, String&& target = String{},
 			http::verb method = http::verb::get, unsigned version = 11)
 		{
-			std::string h = to_string_host(std::forward<String>(host));
-			std::string p = to_string_port(std::forward<StrOrInt>(port));
-			std::string t = to_string(std::forward<String>(target));
-
-			asio::post(this->io_.strand(), [this, host = std::move(h), port = std::move(p),
-				target = std::move(t), method, version]()
+			try
 			{
-				try
-				{
-					state_t expected = state_t::stopped;
-					if (!this->state_.compare_exchange_strong(expected, state_t::stopped))
-						asio::detail::throw_error(asio::error::already_started);
+				state_t expected = state_t::stopped;
+				if (!this->state_.compare_exchange_strong(expected, state_t::stopped))
+					asio::detail::throw_error(asio::error::already_started);
 
-					this->first_req_ = !target.empty();
-					if (this->first_req_)
-						this->req_ = http::make_request(host, port, target, method, version);
+				std::string h = to_string(std::forward<String>(host));
+				std::string p = to_string(std::forward<StrOrInt>(port));
 
-					this->derived().template _do_connect<true>(host, port, condition_wrap<void>{});
-				}
-				catch (system_error & e) { set_last_error(e); }
-			});
+				this->first_req_ = !target.empty();
+				if (this->first_req_)
+					this->req_ = http::make_request(h, p, target, method, version);
+
+				return this->derived().template _do_connect<true>(std::move(h), std::move(p), condition_wrap<void>{});
+			}
+			catch (system_error & e)
+			{
+				set_last_error(e);
+			}
+			return false;
 		}
 
 		/**
 		 * @function : start the client, asynchronous connect to server
 		 */
 		template<typename String>
-		void async_start(String&& url, http::verb method = http::verb::get, unsigned version = 11)
+		bool async_start(String&& url, http::verb method = http::verb::get, unsigned version = 11)
 		{
-			std::string u = to_string(std::forward<String>(url));
-
-			asio::post(this->io_.strand(), [this, url = std::move(u), method, version]()
+			try
 			{
-				try
-				{
-					state_t expected = state_t::stopped;
-					if (!this->state_.compare_exchange_strong(expected, state_t::stopped))
-						asio::detail::throw_error(asio::error::already_started);
+				state_t expected = state_t::stopped;
+				if (!this->state_.compare_exchange_strong(expected, state_t::stopped))
+					asio::detail::throw_error(asio::error::already_started);
 
-					std::string_view host = http::url_to_host(url);
-					std::string_view port = http::url_to_port(url);
+				std::string_view host = http::url_to_host(url);
+				std::string_view port = http::url_to_port(url);
 
-					if (host.empty())
-						asio::detail::throw_error(asio::error::invalid_argument);
+				if (host.empty())
+					asio::detail::throw_error(asio::error::invalid_argument);
 
-					this->first_req_ = true;
-					this->req_ = http::make_request<body_t, buffer_t>(url);
-					this->req_.method(method);
-					this->req_.version(version);
+				this->first_req_ = true;
+				this->req_ = http::make_request<body_t, buffer_t>(url);
+				this->req_.method(method);
+				this->req_.version(version);
 
-					if (!port.empty() && port != "443" && port != "80")
-						this->req_.set(http::field::host, std::string(host) + ":" + std::string(port));
-					else
-						this->req_.set(http::field::host, host);
+				if (!port.empty() && port != "443" && port != "80")
+					this->req_.set(http::field::host, std::string(host) + ":" + std::string(port));
+				else
+					this->req_.set(http::field::host, host);
 
-					this->derived().template _do_connect<true>(host, port, condition_wrap<void>{});
-				}
-				catch (system_error & e) { set_last_error(e); }
-			});
+				return this->derived().template _do_connect<true>(std::move(host), std::move(port),
+					condition_wrap<void>{});
+			}
+			catch (system_error & e)
+			{
+				set_last_error(e);
+			}
+			return false;
 		}
 
 	public:

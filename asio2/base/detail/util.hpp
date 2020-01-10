@@ -70,31 +70,6 @@ namespace asio2::detail
 
 namespace asio2::detail
 {
-	inline std::string to_string(char * s)
-	{
-		return (s ? std::string(s) : std::string{});
-	}
-	inline std::string to_string(const char * s)
-	{
-		return (s ? std::string(s) : std::string{});
-	}
-	inline std::string to_string(const std::string_view& sv)
-	{
-		return std::string(sv);
-	}
-	inline std::string to_string(std::string_view&& sv)
-	{
-		return std::string(sv);
-	}
-	inline std::string to_string(const std::string& s)
-	{
-		return s;
-	}
-	inline std::string to_string(std::string&& s)
-	{
-		return std::move(s);
-	}
-
 	/**
 	 * BKDR Hash Function
 	 */
@@ -265,55 +240,35 @@ namespace asio2::detail
 	inline constexpr bool is_string_view_v = is_string_view<T>::value;
 
 
-	template<typename String>
-	inline std::string to_string_host(String&& host)
+	template<typename T>
+	inline std::string to_string(T&& v)
 	{
-		using type = std::remove_cv_t<std::remove_reference_t<String>>;
-		std::string h;
+		using type = std::remove_cv_t<std::remove_reference_t<T>>;
+		std::string s;
 		if constexpr (is_string_view_v<type>)
 		{
-			h = { host.data(),host.size() };
-		}
-		else if constexpr (std::is_pointer_v<type>)
-		{
-			if (host) h = host;
-		}
-		else
-		{
-			h = std::forward<String>(host);
-		}
-		return h;
-	}
-
-	template<typename StrOrInt>
-	inline std::string to_string_port(StrOrInt&& port)
-	{
-		using type = std::remove_cv_t<std::remove_reference_t<StrOrInt>>;
-		std::string p;
-		if constexpr (is_string_view_v<type>)
-		{
-			p = { port.data(),port.size() };
+			s = { v.data(),v.size() };
 		}
 		else if constexpr (std::is_integral_v<type>)
 		{
-			p = std::to_string(port);
+			s = std::to_string(v);
 		}
 		else if constexpr (std::is_pointer_v<type>)
 		{
-			if (port) p = port;
+			if (v) s = v;
 		}
 		else
 		{
-			p = std::forward<StrOrInt>(port);
+			s = std::forward<T>(v);
 		}
-		return p;
+		return s;
 	}
 
 	template<typename Protocol, typename String, typename StrOrInt>
 	inline Protocol to_endpoint(String&& host, StrOrInt&& port)
 	{
-		std::string h = to_string_host(std::forward<String>(host));
-		std::string p = to_string_port(std::forward<StrOrInt>(port));
+		std::string h = to_string(std::forward<String>(host));
+		std::string p = to_string(std::forward<StrOrInt>(port));
 
 		asio::io_context ioc;
 		// the resolve function is a time-consuming operation

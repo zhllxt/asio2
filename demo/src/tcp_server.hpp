@@ -4,10 +4,10 @@
 
 void run_tcp_server(std::string_view host, std::string_view port)
 {
-	asio2::tcp_server server;
-
 	//while (1) // use infinite loop and sleep 1 seconds to test start and stop
+	//for (int i = 0; i < 1000; i++)
 	{
+		asio2::tcp_server server;
 		printf("\n");
 		server.start_timer(1, std::chrono::seconds(1), []() {}); // test timer
 		server.bind_recv([&server](std::shared_ptr<asio2::tcp_session> & session_ptr, std::string_view s)
@@ -54,7 +54,7 @@ void run_tcp_server(std::string_view host, std::string_view port)
 		//server.start(host, port, asio::transfer_exactly(100));
 
 		while (std::getchar() != '\n');  // press enter to exit this program
-		//std::this_thread::sleep_for(std::chrono::seconds(1));
+		//std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
 		server.stop();
 	}
@@ -108,6 +108,7 @@ void run_tcps_server(std::string_view host, std::string_view port)
 		"-----END DH PARAMETERS-----\r\n";
 
 	//while (1)
+	//for (int i = 0; i < 1000; i++)
 	{
 		printf("\n");
 		bool stopped = false;
@@ -154,7 +155,7 @@ void run_tcps_server(std::string_view host, std::string_view port)
 		server.start(host, port);
 
 		while (std::getchar() != '\n');
-		//std::this_thread::sleep_for(std::chrono::seconds(2));
+		std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
 		server.stop();
 	}

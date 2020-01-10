@@ -321,10 +321,10 @@ namespace boost::beast::http
 
 		template<class Body = string_body, class Fields = fields>
 		inline typename std::enable_if_t<std::is_same_v<Body, string_body>, response<Body, Fields>>
-			make_response(status code, std::string_view body)
+			make_response(status code, std::string_view body, unsigned version = 11)
 		{
 			response<Body, Fields> rep;
-			rep.version(11);
+			rep.version(version);
 			rep.set(field::server, BOOST_BEAST_VERSION_STRING);
 			rep.result(code);
 			rep.body() = body;
@@ -334,9 +334,9 @@ namespace boost::beast::http
 
 		template<class Body = string_body, class Fields = fields>
 		inline typename std::enable_if_t<std::is_same_v<Body, string_body>, response<Body, Fields>>
-			make_response(unsigned code, std::string_view body)
+			make_response(unsigned code, std::string_view body, unsigned version = 11)
 		{
-			return make_response(http::int_to_status(code), body);
+			return make_response(http::int_to_status(code), body, version);
 		}
 	}
 

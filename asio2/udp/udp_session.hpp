@@ -32,7 +32,8 @@ namespace asio2::detail
 		template <class, bool>                friend class user_timer_cp;
 		template <class, bool>                friend class silence_timer_cp;
 		template <class, bool>                friend class connect_timeout_cp;
-		template <class, bool>                friend class send_queue_cp;
+		template <class>                      friend class data_persistence_cp;
+		template <class>                      friend class event_queue_cp;
 		template <class, bool>                friend class send_cp;
 		template <class, bool>                friend class udp_send_op;
 		template <class, bool>                friend class kcp_stream_cp;
@@ -101,7 +102,7 @@ namespace asio2::detail
 			catch (system_error & e)
 			{
 				set_last_error(e);
-				this->derived()._do_stop(e.code());
+				this->derived()._do_disconnect(e.code());
 			}
 		}
 
@@ -113,7 +114,7 @@ namespace asio2::detail
 		 */
 		inline void stop()
 		{
-			this->derived()._do_stop(asio::error::operation_aborted);
+			this->derived()._do_disconnect(asio::error::operation_aborted);
 		}
 
 	public:
@@ -190,7 +191,7 @@ namespace asio2::detail
 				{
 					set_last_error(asio::error::no_protocol_option);
 					this->derived()._fire_handshake(this_ptr, asio::error::no_protocol_option);
-					this->derived()._do_stop(asio::error::no_protocol_option);
+					this->derived()._do_disconnect(asio::error::no_protocol_option);
 					return;
 				}
 				this->kcp_ = std::make_unique<kcp_stream_cp<derived_t, true>>(this->derived(), this->io_);
@@ -234,7 +235,7 @@ namespace asio2::detail
 			catch (system_error & e)
 			{
 				set_last_error(e);
-				this->derived()._do_stop(e.code());
+				this->derived()._do_disconnect(e.code());
 			}
 		}
 
@@ -244,22 +245,21 @@ namespace asio2::detail
 			this->derived()._join_session(std::move(this_ptr), condition);
 		}
 
-		inline void _do_stop(const error_code& ec)
+		inline void _do_disconnect(const error_code& ec)
 		{
 			state_t expected = state_t::starting;
 			if (this->state_.compare_exchange_strong(expected, state_t::stopping))
-				return this->derived()._post_stop(ec, this->shared_from_this(), expected);
+				return this->derived()._post_disconnect(ec, this->shared_from_this(), expected);
 
 			expected = state_t::started;
 			if (this->state_.compare_exchange_strong(expected, state_t::stopping))
-				return this->derived()._post_stop(ec, this->shared_from_this(), expected);
+				return this->derived()._post_disconnect(ec, this->shared_from_this(), expected);
 		}
 
-		inline void _post_stop(const error_code& ec, std::shared_ptr<derived_t> self_ptr, state_t old_state)
+		inline void _post_disconnect(const error_code& ec, std::shared_ptr<derived_t> self_ptr, state_t old_state)
 		{
 			// First ensure that all send and recv events are not executed again
-			asio::post(this->io_.strand(), make_allocator(this->wallocator_,
-				[this, ec, this_ptr = std::move(self_ptr), old_state]()
+			auto task = [this, ec, this_ptr = std::move(self_ptr), old_state]()
 			{
 				// All pending sending events will be cancelled after enter the strand below.
 
@@ -287,13 +287,31 @@ namespace asio2::detail
 						super::stop();
 
 						// call CRTP polymorphic stop
-						this->derived()._handle_stop(ec, std::move(self_ptr));
+						this->derived()._handle_disconnect(ec, std::move(self_ptr));
 					}));
 				});
-			}));
+			};
+#if defined(ASIO2_SEND_CORE_ASYNC)
+			this->derived().push_event([this, t = std::move(task)]() mutable
+			{
+				auto task = [this, t = std::move(t)]() mutable
+				{
+					t();
+					this->derived().next_event();
+				};
+				// We must use the asio::post function to execute the task, otherwise :
+				// when the server acceptor thread is same as this session thread,
+				// when the server stop, will call sessions_.foreach -> session_ptr->stop() ->
+				// derived().push_event -> sessions_.erase => this can leads to a dead lock
+				asio::post(this->io_.strand(), make_allocator(this->wallocator_, std::move(task)));
+				return true;
+			});
+#else
+			asio::post(this->io_.strand(), make_allocator(this->wallocator_, std::move(task)));
+#endif
 		}
 
-		inline void _handle_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
+		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
 		{
 			detail::ignore::unused(ec);
 
@@ -309,7 +327,7 @@ namespace asio2::detail
 				if (inserted)
 					this->derived()._start_recv(std::move(this_ptr), condition);
 				else
-					this->derived()._do_stop(asio::error::address_in_use);
+					this->derived()._do_disconnect(asio::error::address_in_use);
 			});
 		}
 
@@ -355,7 +373,7 @@ namespace asio2::detail
 					if /**/ (kcp::is_kcphdr_fin(s))
 					{
 						this->kcp_->send_fin_ = false;
-						this->derived()._do_stop(asio::error::eof);
+						this->derived()._do_disconnect(asio::error::eof);
 					}
 					// Check whether the packet is SYN handshake
 					// It is possible that the client did not receive the synack package, then the client
@@ -369,7 +387,7 @@ namespace asio2::detail
 						error_code ed;
 						this->kcp_->_kcp_send_hdr(synack, ed);
 						if (ed)
-							this->derived()._do_stop(ed);
+							this->derived()._do_disconnect(ed);
 					}
 				}
 				else

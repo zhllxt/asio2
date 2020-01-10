@@ -29,9 +29,11 @@ namespace asio2::detail
 		, public ssl_stream_cp<derived_t, socket_t, false>
 	{
 		template <class, bool>                       friend class user_timer_cp;
+		template <class, bool>                       friend class reconnect_timer_cp;
 		template <class, bool>                       friend class connect_timeout_cp;
 		template <class, class>                      friend class connect_cp;
-		template <class, bool>                       friend class send_queue_cp;
+		template <class>                             friend class data_persistence_cp;
+		template <class>                             friend class event_queue_cp;
 		template <class, bool>                       friend class send_cp;
 		template <class, bool>                       friend class tcp_send_op;
 		template <class, bool>                       friend class tcp_recv_op;
@@ -62,7 +64,7 @@ namespace asio2::detail
 		)
 			: asio::ssl::context(method)
 			, super(init_buffer_size, max_buffer_size)
-			, ssl_stream_comp(this->io_, this->socket_, *this, asio::ssl::stream_base::client)
+			, ssl_stream_comp(this->io_, asio::ssl::stream_base::client)
 		{
 		}
 
@@ -72,7 +74,6 @@ namespace asio2::detail
 		~https_client_impl_t()
 		{
 			this->stop();
-			this->iopool_.stop();
 		}
 
 		inline derived_t & set_cert(std::string_view cert)
@@ -92,7 +93,8 @@ namespace asio2::detail
 		 */
 		inline typename ssl_stream_comp::stream_type & stream()
 		{
-			return this->ssl_stream_;
+			ASIO2_ASSERT(bool(this->ssl_stream_));
+			return (*(this->ssl_stream_));
 		}
 
 	public:
@@ -109,11 +111,11 @@ namespace asio2::detail
 		}
 
 	protected:
-		inline void _handle_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
+		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
 		{
 			this->derived()._ssl_stop(this_ptr, [this, ec, this_ptr]()
 			{
-				super::_handle_stop(ec, std::move(this_ptr));
+				super::_handle_disconnect(ec, std::move(this_ptr));
 			});
 		}
 
@@ -124,6 +126,8 @@ namespace asio2::detail
 
 			if (ec)
 				return this->derived()._done_connect(ec, std::move(this_ptr), std::move(condition));
+
+			this->derived()._ssl_start(this_ptr, condition, this->socket_, *this);
 
 			this->derived()._post_handshake(std::move(this_ptr), std::move(condition));
 		}

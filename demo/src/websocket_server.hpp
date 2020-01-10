@@ -41,7 +41,7 @@ void run_ws_server(std::string_view host, std::string_view port)
 void run_wss_server(std::string_view host, std::string_view port)
 {
 #if !defined(ASIO_STANDALONE) && defined(ASIO2_USE_SSL)
-	//while (1)
+	while (1)
 	{
 		asio2::wss_server server;
 		server.set_cert_file("test", "server.crt", "server.key", "dh512.pem");
@@ -74,8 +74,8 @@ void run_wss_server(std::string_view host, std::string_view port)
 			printf("stop : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
 		});
 		server.start(host, port);
-		while (std::getchar() != '\n');
-		//std::this_thread::sleep_for(std::chrono::seconds(2));
+		//while (std::getchar() != '\n');
+		std::this_thread::sleep_for(std::chrono::milliseconds(200));
 	}
 #endif // ASIO2_USE_SSL
 }

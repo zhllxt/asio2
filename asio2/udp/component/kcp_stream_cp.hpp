@@ -68,8 +68,8 @@ namespace asio2::detail
 		{
 			if (this->kcp_)
 			{
-				ASIO2_ASSERT(false);
-				return;
+				kcp::ikcp_release(this->kcp_);
+				this->kcp_ = nullptr;
 			}
 
 			this->kcp_ = kcp::ikcp_create(conv, (void*)this);
@@ -119,7 +119,7 @@ namespace asio2::detail
 			callback(get_last_error(), ret < 0 ? 0 : buffer.size());
 
 #if defined(ASIO2_SEND_CORE_ASYNC)
-			derive.send_queue_.pop();
+			derive.next_event();
 #endif
 
 			return (ret == 0);
@@ -159,7 +159,7 @@ namespace asio2::detail
 			if (len != 0)
 			{
 				set_last_error(asio::error::no_data);
-				derive._do_stop(asio::error::no_data);
+				derive._do_disconnect(asio::error::no_data);
 				return;
 			}
 			for (;;)
@@ -223,7 +223,7 @@ namespace asio2::detail
 						if (ec)
 						{
 							set_last_error(ec);
-							derive._do_stop(ec);
+							derive._do_disconnect(ec);
 							return false;
 						}
 						return true;
@@ -272,7 +272,7 @@ namespace asio2::detail
 			catch (system_error & e)
 			{
 				set_last_error(e);
-				derive._do_stop(e.code());
+				derive._do_disconnect(e.code());
 			}
 		}
 
@@ -302,7 +302,7 @@ namespace asio2::detail
 			catch (system_error & e)
 			{
 				set_last_error(e);
-				derive._do_stop(e.code());
+				derive._do_disconnect(e.code());
 			}
 		}
 

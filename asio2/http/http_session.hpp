@@ -37,7 +37,8 @@ namespace asio2::detail
 		, public http_recv_op<derived_t, body_t, buffer_t, true>
 	{
 		template <class, bool>                friend class user_timer_cp;
-		template <class, bool>                friend class send_queue_cp;
+		template <class>                      friend class data_persistence_cp;
+		template <class>                      friend class event_queue_cp;
 		template <class, bool>                friend class send_cp;
 		template <class, bool>                friend class silence_timer_cp;
 		template <class, bool>                friend class connect_timeout_cp;
@@ -60,7 +61,7 @@ namespace asio2::detail
 		using buffer_type = buffer_t;
 		using super::send;
 		using http_send_cp<derived_t, body_t, buffer_t, true>::send;
-		using send_queue_cp<derived_t, true>::_data_persistence;
+		using data_persistence_cp<derived_t>::_data_persistence;
 
 		/**
 		 * @constructor

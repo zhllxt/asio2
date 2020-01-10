@@ -43,6 +43,7 @@
 #include <asio2/base/component/socket_cp.hpp>
 #include <asio2/base/component/user_timer_cp.hpp>
 #include <asio2/base/component/post_cp.hpp>
+#include <asio2/base/component/event_queue_cp.hpp>
 
 #include <asio2/base/detail/linear_buffer.hpp>
 #include <asio2/udp/component/udp_send_cp.hpp>
@@ -54,6 +55,7 @@ namespace asio2::detail
 	class udp_cast_impl_t
 		: public object_t<derived_t>
 		, public iopool_cp
+		, public event_queue_cp<derived_t>
 		, public user_data_cp<derived_t>
 		, public active_time_cp<derived_t>
 		, public socket_cp<derived_t, socket_t>
@@ -63,7 +65,8 @@ namespace asio2::detail
 		, public udp_send_op<derived_t, false>
 	{
 		template <class, bool>         friend class user_timer_cp;
-		template <class, bool>         friend class send_queue_cp;
+		template <class>               friend class data_persistence_cp;
+		template <class>               friend class event_queue_cp;
 		template <class, bool>         friend class udp_send_cp;
 		template <class, bool>         friend class udp_send_op;
 		template <class>               friend class post_cp;
@@ -82,6 +85,7 @@ namespace asio2::detail
 		)
 			: super()
 			, iopool_cp(1)
+			, event_queue_cp<derived_t>()
 			, user_data_cp<derived_t>()
 			, active_time_cp<derived_t>()
 			, socket_cp<derived_t, socket_t>(iopool_.get(0).context())
@@ -95,7 +99,6 @@ namespace asio2::detail
 			, io_(iopool_.get(0))
 			, buffer_(init_buffer_size, max_buffer_size)
 		{
-			this->iopool_.start();
 		}
 
 		/**
@@ -104,7 +107,6 @@ namespace asio2::detail
 		~udp_cast_impl_t()
 		{
 			this->stop();
-			this->iopool_.stop();
 		}
 
 		/**
@@ -115,8 +117,7 @@ namespace asio2::detail
 		template<typename StrOrInt>
 		inline bool start(StrOrInt&& service)
 		{
-			return this->derived()._do_start(std::string_view{},
-				to_string_port(std::forward<StrOrInt>(service)), condition_wrap<void>{});
+			return this->start(std::string_view{}, std::forward<StrOrInt>(service));
 		}
 
 		/**
@@ -126,11 +127,12 @@ namespace asio2::detail
 		 * @param service A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
 		 */
-		template<typename StrOrInt>
-		inline bool start(std::string_view host, StrOrInt&& service)
+		template<typename String, typename StrOrInt>
+		inline bool start(String&& host, StrOrInt&& service)
 		{
-			return this->derived()._do_start(host,
-				to_string_port(std::forward<StrOrInt>(service)), condition_wrap<void>{});
+			return this->derived()._do_start(
+				std::forward<String>(host), std::forward<StrOrInt>(service),
+				condition_wrap<void>{});
 		}
 
 		/**
@@ -141,7 +143,7 @@ namespace asio2::detail
 		{
 			this->derived()._do_stop(asio::error::operation_aborted);
 
-			this->iopool_.wait_iothreads();
+			this->iopool_.stop();
 		}
 
 		/**
@@ -225,8 +227,8 @@ namespace asio2::detail
 		}
 
 	protected:
-		template<typename MatchCondition>
-		bool _do_start(std::string_view host, std::string_view service, condition_wrap<MatchCondition> condition)
+		template<typename String, typename StrOrInt, typename MatchCondition>
+		bool _do_start(String&& host, StrOrInt&& service, condition_wrap<MatchCondition> condition)
 		{
 			state_t expected = state_t::stopped;
 			if (!this->state_.compare_exchange_strong(expected, state_t::starting))
@@ -239,11 +241,22 @@ namespace asio2::detail
 			{
 				clear_last_error();
 
+				this->iopool_.start();
+
+				if (this->iopool_.is_stopped())
+				{
+					set_last_error(asio::error::shut_down);
+					return false;
+				}
+
 				this->socket_.close(ec_ignore);
+
+				std::string h = to_string(std::forward<String>(host));
+				std::string p = to_string(std::forward<StrOrInt>(service));
 
 				// parse address and port
 				asio::ip::udp::resolver resolver(this->io_.context());
-				asio::ip::udp::endpoint endpoint = *resolver.resolve(host, service,
+				asio::ip::udp::endpoint endpoint = *resolver.resolve(h, p,
 					asio::ip::resolver_base::flags::passive | asio::ip::resolver_base::flags::address_configured).begin();
 
 				this->socket_.open(endpoint.protocol());
@@ -264,9 +277,7 @@ namespace asio2::detail
 			}
 			catch (system_error & e)
 			{
-				set_last_error(e);
 				this->derived()._handle_start(e.code(), std::move(condition));
-				this->derived()._do_stop(e.code());
 			}
 			return false;
 		}
@@ -295,6 +306,8 @@ namespace asio2::detail
 
 				asio::post(this->io_.strand(), [this, condition]()
 				{
+					this->buffer_.consume(this->buffer_.size());
+
 					this->derived()._post_recv(std::move(condition));
 				});
 			}

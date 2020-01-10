@@ -53,7 +53,6 @@ namespace asio2::detail
 		~httpws_server_impl_t()
 		{
 			this->stop();
-			this->iopool_.stop();
 		}
 
 	public:
@@ -79,7 +78,8 @@ namespace asio2::detail
 		template<class F, class ...C>
 		inline derived_t & bind_upgrade(F&& fun, C&&... obj)
 		{
-			this->listener_.bind(event::upgrade, observer_t<std::shared_ptr<session_t>&, error_code>(std::forward<F>(fun), std::forward<C>(obj)...));
+			this->listener_.bind(event::upgrade, observer_t<std::shared_ptr<session_t>&, error_code>
+				(std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
 		}
 

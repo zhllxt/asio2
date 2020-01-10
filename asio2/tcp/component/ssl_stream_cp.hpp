@@ -39,10 +39,9 @@ namespace asio2::detail
 	public:
 		using stream_type = asio::ssl::stream<socket_t&>;
 
-		ssl_stream_cp(io_t & ssl_io, socket_t & socket, asio::ssl::context & ctx, handshake_type type)
+		ssl_stream_cp(io_t & ssl_io, handshake_type type)
 			: derive(static_cast<derived_t&>(*this))
 			, ssl_io_(ssl_io)
-			, ssl_stream_(socket, ctx)
 			, ssl_timer_(ssl_io.context())
 			, ssl_type_(type)
 		{
@@ -50,17 +49,30 @@ namespace asio2::detail
 
 		~ssl_stream_cp() = default;
 
-		inline stream_type & ssl_stream() { return this->ssl_stream_; }
+		inline stream_type & ssl_stream()
+		{
+			ASIO2_ASSERT(bool(this->ssl_stream_));
+			return (*(this->ssl_stream_));
+		}
 
 	protected:
 		template<typename MatchCondition>
-		inline void _ssl_start(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		inline void _ssl_start(
+			const std::shared_ptr<derived_t>& this_ptr,
+			const condition_wrap<MatchCondition>& condition,
+			socket_t & socket, asio::ssl::context & ctx)
 		{
+			detail::ignore::unused(this_ptr, condition);
+
+			this->ssl_stream_ = std::make_unique<stream_type>(socket, ctx);
 		}
 
 		template<typename Fn>
 		inline void _ssl_stop(std::shared_ptr<derived_t> this_ptr, Fn&& fn)
 		{
+			if (!this->ssl_stream_)
+				return;
+
 			// if the client socket is not closed forever,this async_shutdown callback also can't be called forever,
 			// so we use a timer to force close the socket,then the async_shutdown callback will be called.
 			this->ssl_timer_.expires_after(std::chrono::milliseconds(ssl_shutdown_timeout));
@@ -74,7 +86,7 @@ namespace asio2::detail
 
 			// when server call ssl stream sync shutdown first,if the client socket is
 			// not closed forever,then here shutdowm will blocking forever.
-			this->ssl_stream_.async_shutdown(asio::bind_executor(this->ssl_io_.strand(),
+			this->ssl_stream_->async_shutdown(asio::bind_executor(this->ssl_io_.strand(),
 				[this, self_ptr = std::move(this_ptr)](const error_code & ec)
 			{
 				set_last_error(ec);
@@ -87,7 +99,8 @@ namespace asio2::detail
 		template<typename MatchCondition>
 		inline void _post_handshake(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
 		{
-			this->ssl_stream_.async_handshake(this->ssl_type_,
+			ASIO2_ASSERT(bool(this->ssl_stream_));
+			this->ssl_stream_->async_handshake(this->ssl_type_,
 				asio::bind_executor(this->ssl_io_.strand(), make_allocator(derive.rallocator(),
 					[this, self_ptr = std::move(this_ptr), condition](const error_code & ec)
 			{
@@ -115,7 +128,7 @@ namespace asio2::detail
 					catch (system_error & e)
 					{
 						set_last_error(e);
-						derive._do_stop(e.code());
+						derive._do_disconnect(e.code());
 					}
 				});
 			}
@@ -130,16 +143,16 @@ namespace asio2::detail
 		}
 
 	protected:
-		derived_t                  & derive;
+		derived_t                    & derive;
 
-		io_t                       & ssl_io_;
-
-		stream_type                  ssl_stream_;
+		io_t                         & ssl_io_;
 
 		/// timer for close ssl timeout
-		asio::steady_timer           ssl_timer_;
+		asio::steady_timer             ssl_timer_;
 
-		handshake_type               ssl_type_;
+		handshake_type                 ssl_type_;
+
+		std::unique_ptr<stream_type>   ssl_stream_;
 	};
 }
 

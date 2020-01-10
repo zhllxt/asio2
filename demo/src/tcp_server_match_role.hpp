@@ -32,7 +32,7 @@ public:
 			i++;
 			if (i == end) break;
 
-			int length = int(*i); // get content length
+			int length = std::uint8_t(*i); // get content length
 
 			i++;
 			if (i == end) break;
@@ -107,7 +107,7 @@ void run_tcp_server_match_role(std::string_view host, std::string_view port)
 		server.start(host, port, match_role('#'));
 
 		while (std::getchar() != '\n');
-		//std::this_thread::sleep_for(std::chrono::seconds(1));
+		//std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
 		server.stop();
 	}

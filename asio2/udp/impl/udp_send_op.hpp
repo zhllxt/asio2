@@ -54,7 +54,7 @@ namespace asio2::detail
 
 				callback(ec, bytes_sent);
 
-				derive._send_dequeue();
+				derive.next_event();
 			})));
 			return true;
 #else
@@ -79,7 +79,7 @@ namespace asio2::detail
 
 				callback(ec, bytes_sent);
 
-				derive._send_dequeue();
+				derive.next_event();
 			})));
 			return true;
 #else

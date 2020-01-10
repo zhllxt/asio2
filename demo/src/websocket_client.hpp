@@ -97,7 +97,7 @@ void run_wss_client(std::string_view host, std::string_view port)
 		});
 		client.async_start(host, port);
 		while (std::getchar() != '\n');
-		//std::this_thread::sleep_for(std::chrono::seconds(2));
+		std::this_thread::sleep_for(std::chrono::milliseconds(200));
 		//client.stop();
 	}
 #endif // ASIO2_USE_SSL

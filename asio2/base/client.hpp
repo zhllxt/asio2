@@ -49,6 +49,8 @@
 #include <asio2/base/component/post_cp.hpp>
 #include <asio2/base/component/send_cp.hpp>
 #include <asio2/base/component/connect_timeout_cp.hpp>
+#include <asio2/base/component/event_queue_cp.hpp>
+#include <asio2/base/component/reconnect_timer_cp.hpp>
 
 namespace asio2::detail
 {
@@ -56,21 +58,25 @@ namespace asio2::detail
 	class client_impl_t
 		: public object_t<derived_t>
 		, public iopool_cp
+		, public event_queue_cp<derived_t>
 		, public user_data_cp<derived_t>
 		, public connect_time_cp<derived_t>
 		, public active_time_cp<derived_t>
 		, public socket_cp<derived_t, socket_t>
 		, public connect_cp<derived_t, socket_t>
 		, public local_endpoint_cp<derived_t, typename socket_t::lowest_layer_type::endpoint_type>
+		, public reconnect_timer_cp<derived_t, false>
 		, public user_timer_cp<derived_t, false>
 		, public connect_timeout_cp<derived_t, false>
 		, public send_cp<derived_t, false>
 		, public post_cp<derived_t>
 	{
 		template <class, bool>         friend class user_timer_cp;
+		template <class, bool>         friend class reconnect_timer_cp;
 		template <class, bool>         friend class connect_timeout_cp;
 		template <class, class>        friend class connect_cp;
-		template <class, bool>         friend class send_queue_cp;
+		template <class>               friend class data_persistence_cp;
+		template <class>               friend class event_queue_cp;
 		template <class, bool>         friend class send_cp;
 		template <class>               friend class post_cp;
 
@@ -91,12 +97,14 @@ namespace asio2::detail
 		)
 			: super()
 			, iopool_cp(concurrency)
+			, event_queue_cp<derived_t>()
 			, user_data_cp<derived_t>()
 			, connect_time_cp<derived_t>()
 			, active_time_cp<derived_t>()
 			, socket_cp<derived_t, socket_t>(iopool_.get(0).context(), std::forward<Args>(args)...)
 			, connect_cp<derived_t, socket_t>()
 			, local_endpoint_cp<derived_t, typename socket_t::lowest_layer_type::endpoint_type>()
+			, reconnect_timer_cp<derived_t, false>(iopool_.get(0))
 			, user_timer_cp<derived_t, false>(iopool_.get(0))
 			, connect_timeout_cp<derived_t, false>(iopool_.get(0))
 			, send_cp<derived_t, false>(iopool_.get(0))
@@ -107,7 +115,6 @@ namespace asio2::detail
 			, io_(iopool_.get(0))
 			, buffer_(init_buffer_size, max_buffer_size)
 		{
-			this->iopool_.start();
 		}
 
 		/**
@@ -115,7 +122,6 @@ namespace asio2::detail
 		 */
 		~client_impl_t()
 		{
-			this->iopool_.stop();
 		}
 
 		/**
@@ -135,6 +141,9 @@ namespace asio2::detail
 		{
 			if (!this->io_.strand().running_in_this_thread())
 				return asio::post(this->io_.strand(), std::bind(&self::stop, this));
+
+			// close reconnect timer
+			this->_stop_reconnect_timer();
 
 			// close timeout timer
 			this->_stop_timeout_timer();

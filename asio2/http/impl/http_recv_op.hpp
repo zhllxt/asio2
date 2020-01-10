@@ -84,7 +84,7 @@ namespace asio2::detail
 				{
 					set_last_error(e);
 
-					derive._do_stop(e.code());
+					derive._do_disconnect(e.code());
 				}
 			}
 		}
@@ -107,7 +107,7 @@ namespace asio2::detail
 					derive._fire_recv(this_ptr, derive.req_);
 					if (derive.req_.need_eof() || !derive.req_.keep_alive())
 					{
-						derive._do_stop(asio::error::operation_aborted);
+						derive._do_disconnect(asio::error::operation_aborted);
 						return;
 					}
 				}
@@ -122,7 +122,7 @@ namespace asio2::detail
 			{
 				// This means they closed the connection
 				//if (ec == http::error::end_of_stream)
-				derive._do_stop(ec);
+				derive._do_disconnect(ec);
 			}
 			// If an error occurs then no new asynchronous operations are started. This
 			// means that all shared_ptr references to the connection object will

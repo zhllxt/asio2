@@ -36,15 +36,20 @@ namespace boost::asio {
 
 void run_tcp_client(std::string_view host, std::string_view port)
 {
+	int count = 1;
+	std::unique_ptr<asio2::tcp_client[]> clients = std::make_unique<asio2::tcp_client[]>(count);
 	//while (1) // use infinite loop and sleep 2 seconds to test start and stop
+	//for (int i = 0; i < 1000; i++)
 	{
 		//listener lis;
-		int count = 1;
-		std::unique_ptr<asio2::tcp_client[]> clients = std::make_unique<asio2::tcp_client[]>(count);
 		for (int i = 0; i < count; ++i)
 		{
 			auto & client = clients[i];
-			client.start_timer(1, std::chrono::seconds(1), []() {});
+			//// == default reconnect option is "enable" ==
+			//client.reconnect(false); // disable auto reconnect
+			//client.reconnect(true); // enable auto reconnect and use the default delay
+			client.reconnect(true, std::chrono::milliseconds(100)); // enable auto reconnect and use custom delay
+			client.start_timer(1, std::chrono::seconds(1), []() {}); // test timer
 			client.bind_connect([&](asio::error_code ec)
 			{
 				if (asio2::get_last_error())
@@ -85,7 +90,7 @@ void run_tcp_client(std::string_view host, std::string_view port)
 				client.send(narys, asio::use_future);
 
 				//asio::write(client.socket(), asio::buffer(s));
-			}).bind_disconnect([](asio::error_code ec)
+			}).bind_disconnect([&](asio::error_code ec)
 			{
 				printf("disconnect : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
 			}).bind_recv([&](std::string_view sv)
@@ -109,8 +114,8 @@ void run_tcp_client(std::string_view host, std::string_view port)
 				//.bind_recv(&listener::on_recv, lis)//bind member function
 				//.bind_recv(&listener::on_recv, &lis)//bind member function
 				;
-			client.async_start(host, port);
-			//client.start(host, port);
+			//client.async_start(host, port);
+			client.start(host, port);
 
 			// ##Use this to check whether the send operation is running in current thread.
 			//if (client.io().strand().running_in_this_thread())
@@ -157,8 +162,8 @@ void run_tcp_client(std::string_view host, std::string_view port)
 		}
 
 		while (std::getchar() != '\n');
-		//std::this_thread::sleep_for(std::chrono::seconds(2));
-
+		//std::this_thread::sleep_for(std::chrono::milliseconds(500));
+		
 		for (int i = 0; i < count; ++i)
 		{
 			auto & client = clients[i];
@@ -188,6 +193,7 @@ void run_tcps_client(std::string_view host, std::string_view port)
 		"EstmrAs=\r\n"\
 		"-----END CERTIFICATE-----\r\n";
 	//while (1)
+	for (int i = 0; i < 1000; i++)
 	{
 		size_t count = 1;
 		std::unique_ptr<asio2::tcps_client[]> clients = std::make_unique<asio2::tcps_client[]>(count);
@@ -196,6 +202,7 @@ void run_tcps_client(std::string_view host, std::string_view port)
 			auto & client = clients[i];
 			client.set_cert(cer);
 			client.connect_timeout(std::chrono::seconds(10));
+			client.reconnect(true, std::chrono::milliseconds(100));
 			//client.set_cert_file("server.crt");
 			client.start_timer(1, std::chrono::seconds(1), []() {});
 			client.bind_connect([&](asio::error_code ec)
@@ -219,7 +226,7 @@ void run_tcps_client(std::string_view host, std::string_view port)
 				printf("disconnect : %d %s\n", ec.value(), ec.message().c_str());
 			}).bind_recv([&](std::string_view sv)
 			{
-				printf("recv : %u %.*s\n", (unsigned)sv.size(), (int)sv.size(), sv.data());
+				//printf("recv : %u %.*s\n", (unsigned)sv.size(), (int)sv.size(), sv.data());
 
 				client.send(sv);
 			}).bind_handshake([&](asio::error_code ec)
@@ -235,8 +242,8 @@ void run_tcps_client(std::string_view host, std::string_view port)
 			//client.async_start(host, port, asio::transfer_exactly(100));
 			//client.async_start(host, port, asio2::use_dgram);
 		}
-		while (std::getchar() != '\n');
-		//std::this_thread::sleep_for(std::chrono::seconds(2));
+		//while (std::getchar() != '\n');
+		std::this_thread::sleep_for(std::chrono::milliseconds(200));
 		for (size_t i = 0; i < count; i++)
 		{
 			auto & client = clients[i];

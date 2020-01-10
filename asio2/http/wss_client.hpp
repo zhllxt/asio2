@@ -31,9 +31,11 @@ namespace asio2::detail
 		, public ws_send_op<derived_t, false>
 	{
 		template <class, bool>                friend class user_timer_cp;
+		template <class, bool>                friend class reconnect_timer_cp;
 		template <class, bool>                friend class connect_timeout_cp;
 		template <class, class>               friend class connect_cp;
-		template <class, bool>                friend class send_queue_cp;
+		template <class>                      friend class data_persistence_cp;
+		template <class>                      friend class event_queue_cp;
 		template <class, bool>                friend class send_cp;
 		template <class, bool>                friend class tcp_send_op;
 		template <class, bool>                friend class tcp_recv_op;
@@ -62,7 +64,7 @@ namespace asio2::detail
 			std::size_t max_buffer_size = (std::numeric_limits<std::size_t>::max)()
 		)
 			: super(method, init_buffer_size, max_buffer_size)
-			, ws_stream_comp(this->ssl_stream_)
+			, ws_stream_comp()
 			, ws_send_op<derived_t, false>()
 		{
 		}
@@ -73,7 +75,6 @@ namespace asio2::detail
 		~wss_client_impl_t()
 		{
 			this->stop();
-			this->iopool_.stop();
 		}
 
 		/**
@@ -83,10 +84,11 @@ namespace asio2::detail
 		 * @param port A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
 		 */
-		template<typename StrOrInt>
-		bool start(std::string_view host, StrOrInt&& port)
+		template<typename String, typename StrOrInt>
+		bool start(String&& host, StrOrInt&& port)
 		{
-			return this->derived().template _do_connect<false>(host, to_string_port(std::forward<StrOrInt>(port)),
+			return this->derived().template _do_connect<false>(
+				std::forward<String>(host), std::forward<StrOrInt>(port),
 				condition_wrap<void>{});
 		}
 
@@ -98,13 +100,11 @@ namespace asio2::detail
 		 * descriptive name or a numeric string corresponding to a port number.
 		 */
 		template<typename String, typename StrOrInt>
-		void async_start(String&& host, StrOrInt&& port)
+		bool async_start(String&& host, StrOrInt&& port)
 		{
-			asio::post(this->io_.strand(), [this, h = to_string_host(std::forward<String>(host)),
-				p = to_string_port(std::forward<StrOrInt>(port))]()
-			{
-				this->derived().template _do_connect<true>(h, p, condition_wrap<void>{});
-			});
+			return this->derived().template _do_connect<true>(
+				std::forward<String>(host), std::forward<StrOrInt>(port),
+				condition_wrap<void>{});
 		}
 
 		/**
@@ -112,7 +112,8 @@ namespace asio2::detail
 		 */
 		inline typename ws_stream_comp::stream_type & stream()
 		{
-			return this->ws_stream_;
+			ASIO2_ASSERT(bool(this->ws_stream_));
+			return (*(this->ws_stream_));
 		}
 
 		inline http::response<body_t>& upgrade_response() { return this->upgrade_rep_; }
@@ -131,11 +132,11 @@ namespace asio2::detail
 		}
 
 	protected:
-		inline void _handle_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
+		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
 		{
 			this->derived()._ws_stop(this_ptr, [this, ec, this_ptr]()
 			{
-				super::_handle_stop(ec, std::move(this_ptr));
+				super::_handle_disconnect(ec, std::move(this_ptr));
 			});
 		}
 
@@ -146,6 +147,10 @@ namespace asio2::detail
 
 			if (ec)
 				return this->derived()._done_connect(ec, std::move(this_ptr), std::move(condition));
+
+			this->derived()._ssl_start(this_ptr, condition, this->socket_, *this);
+
+			this->derived()._ws_start(this_ptr, condition, this->ssl_stream());
 
 			this->derived()._post_handshake(std::move(this_ptr), std::move(condition));
 		}

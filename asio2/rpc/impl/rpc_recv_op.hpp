@@ -60,7 +60,7 @@ namespace asio2::detail
 			catch (cereal::exception&)
 			{
 				set_last_error(asio::error::no_data);
-				derive._do_stop(asio::error::no_data);
+				derive._do_disconnect(asio::error::no_data);
 				return;
 			}
 
@@ -95,7 +95,7 @@ namespace asio2::detail
 			else
 			{
 				set_last_error(asio::error::no_data);
-				derive._do_stop(asio::error::no_data);
+				derive._do_disconnect(asio::error::no_data);
 			}
 		}
 

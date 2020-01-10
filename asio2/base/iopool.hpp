@@ -59,7 +59,10 @@ namespace asio2::detail
 		/**
 		 * @destructor
 		 */
-		~iopool() = default;
+		~iopool()
+		{
+			this->stop();
+		}
 
 		/**
 		 * @function : run all io_context objects in the pool.
@@ -68,13 +71,13 @@ namespace asio2::detail
 		{
 			std::lock_guard<std::mutex> guard(this->mutex_);
 
-			if (!stopped_)
+			if (!this->stopped_)
 				return false;
 
 			if (!this->works_.empty() || !this->threads_.empty())
 				return false;
 
-			// Restart the io_context in preparation for a subsequent run() invocation.
+			// Create a pool of threads to run all of the io_contexts. 
 			for (auto & io : this->ios_)
 			{
 				/// Restart the io_context in preparation for a subsequent run() invocation.
@@ -89,11 +92,7 @@ namespace asio2::detail
 				 * the run(), run_one(), poll() or poll_one() functions.
 				 */
 				io.context().restart();
-			}
 
-			// Create a pool of threads to run all of the io_contexts. 
-			for (auto & io : this->ios_)
-			{
 				this->works_.emplace_back(io.context().get_executor());
 
 				// start work thread
@@ -103,7 +102,7 @@ namespace asio2::detail
 				});
 			}
 
-			stopped_ = false;
+			this->stopped_ = false;
 
 			return true;
 		}
@@ -124,7 +123,7 @@ namespace asio2::detail
 			{
 				std::lock_guard<std::mutex> guard(this->mutex_);
 
-				if (stopped_)
+				if (this->stopped_)
 					return;
 
 				if (this->works_.empty() && this->threads_.empty())
@@ -133,7 +132,7 @@ namespace asio2::detail
 				if (this->running_in_iopool_threads())
 					return;
 
-				stopped_ = true;
+				this->stopped_ = true;
 			}
 
 			// Waiting for all nested events to complete.
@@ -146,9 +145,9 @@ namespace asio2::detail
 				std::lock_guard<std::mutex> guard(this->mutex_);
 
 				// call work reset,and then the io_context working thread will be exited.
-				for (std::size_t i = 1; i < this->works_.size(); ++i)
+				for (auto & work : this->works_)
 				{
-					this->works_[i].reset();
+					work.reset();
 				}
 
 				// Wait for all threads to exit. 
@@ -160,6 +159,22 @@ namespace asio2::detail
 				this->works_.clear();
 				this->threads_.clear();
 			}
+		}
+
+		/**
+		 * @function : check whether the iopool is started
+		 */
+		inline bool is_started() const
+		{
+			return (!this->stopped_);
+		}
+
+		/**
+		 * @function : check whether the iopool is stopped
+		 */
+		inline bool is_stopped() const
+		{
+			return (this->stopped_);
 		}
 
 		/**
@@ -190,15 +205,16 @@ namespace asio2::detail
 		 */
 		void wait_iothreads()
 		{
-			std::lock_guard<std::mutex> guard(this->mutex_);
+			{
+				std::lock_guard<std::mutex> guard(this->mutex_);
 
-			if (this->running_in_iopool_threads())
-				return;
+				if (this->running_in_iopool_threads())
+					return;
 
-			/*________ Solution A ________*/
-			// first reset the acceptor io_context work guard
-			if (!this->works_.empty())
-				this->works_[0].reset();
+				// first reset the acceptor io_context work guard
+				if (!this->works_.empty())
+					this->works_.front().reset();
+			}
 
 			constexpr auto max = std::chrono::milliseconds(10);
 			constexpr auto min = std::chrono::milliseconds(1);
@@ -217,15 +233,19 @@ namespace asio2::detail
 				}
 			}
 
-			for (std::size_t i = 1; i < this->works_.size(); ++i)
 			{
-				this->works_[i].reset();
+				std::lock_guard<std::mutex> guard(this->mutex_);
+
+				for (std::size_t i = 1; i < this->works_.size(); ++i)
+				{
+					this->works_[i].reset();
+				}
 			}
 
 			for (std::size_t i = 1; i < this->ios_.size(); ++i)
 			{
 				auto t1 = std::chrono::steady_clock::now();
-				asio::io_context & ioc = this->ios_.at(i).context();
+				asio::io_context & ioc = this->ios_[i].context();
 				while (!ioc.stopped())
 				{
 					auto t2 = std::chrono::steady_clock::now();
@@ -234,54 +254,27 @@ namespace asio2::detail
 						(std::min<std::chrono::steady_clock::duration>)(t2 - t1, max), min));
 				}
 			}
-
-			/*________ Solution B ________*/
-			// Must first open the following files to change private to public,
-			// otherwise, the outstanding_work_ variable will not be accessible.
-
-			// row 130 asio/detail/scheduler.hpp 
-			// row 209 asio/detail/win_iocp_io_context.hpp 
-			// row 596 asio/io_context.hpp 
-
-			//for (;;)
-			//{
-			//	long ms = 0;
-			//	bool idle = true;
-			//	for (auto & io : this->ios_)
-			//	{
-			//		if (io.context().impl_.outstanding_work_ > 1)
-			//		{
-			//			idle = false;
-			//			ms += io.context().impl_.outstanding_work_ - 1;
-			//		}
-			//	}
-			//	if (idle) break;
-			//	std::this_thread::sleep_for(std::chrono::milliseconds(
-			//		(std::max<long>)((std::min<long>)(ms, 10), 1)));
-			//}
-
-			//this->works_[0].reset();
 		}
 
 	protected:
 		/// threads to run all of the io_context
-		std::vector<std::thread> threads_;
+		std::vector<std::thread>       threads_;
 
 		/// The pool of io_context. 
-		std::vector<io_t> ios_;
+		std::vector<io_t>              ios_;
+
+		/// 
+		std::mutex                     mutex_;
+
+		/// Flag whether the io_context pool has stopped already
+		bool                           stopped_  = true;
+
+		/// The next io_context to use for a connection. 
+		std::size_t                    next_     = 0;
 
 		// Give all the io_contexts work to do so that their run() functions will not 
 		// exit until they are explicitly stopped. 
 		std::vector<asio::executor_work_guard<asio::io_context::executor_type>> works_;
-
-		/// 
-		std::mutex  mutex_;
-
-		/// 
-		bool stopped_ = true;
-
-		/// The next io_context to use for a connection. 
-		std::size_t next_ = 0;
 	};
 
 	class iopool_cp

@@ -72,7 +72,6 @@ namespace asio2::detail
 			, io_(iopool_.get(0))
 			, sessions_(io_)
 		{
-			this->iopool_.start();
 		}
 
 		/**
@@ -80,7 +79,6 @@ namespace asio2::detail
 		 */
 		~server_impl_t()
 		{
-			this->iopool_.stop();
 		}
 
 		/**

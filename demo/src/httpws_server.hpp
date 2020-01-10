@@ -44,6 +44,7 @@ void run_httpws_server(std::string_view host, std::string_view port)
 	});
 	server.start(host, port);
 	while (std::getchar() != '\n');
+	server.stop();
 #endif
 }
 

@@ -75,7 +75,7 @@ namespace asio2::detail
 			catch (system_error & e)
 			{
 				set_last_error(e);
-				derive._do_stop(e.code());
+				derive._do_disconnect(e.code());
 			}
 		}
 
@@ -112,7 +112,7 @@ namespace asio2::detail
 			}
 			else
 			{
-				derive._do_stop(ec);
+				derive._do_disconnect(ec);
 			}
 			// If an error occurs then no new asynchronous operations are started. This
 			// means that all shared_ptr references to the connection object will

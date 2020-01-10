@@ -93,7 +93,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>../../;E:\Work\项目\Engine\开发库\03_开发阶段\源代码\third_party\boost2;E:\develop\3rd\boost\boost_1_70_0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../;E:\Work\项目\Engine\开发库\03_开发阶段\源代码\third_party\boost;E:\develop\3rd\boost\boost_1_70_0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -133,7 +133,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>../../;E:\Work\项目\Engine\开发库\03_开发阶段\源代码\third_party\boost2;E:\develop\3rd\boost\boost_1_70_0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../;E:\Work\项目\Engine\开发库\03_开发阶段\源代码\third_party\boost;E:\develop\3rd\boost\boost_1_70_0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -181,8 +181,11 @@
     <ClInclude Include="..\..\asio2\base\component\connect_cp.hpp" />
     <ClInclude Include="..\..\asio2\base\component\connect_timeout_cp.hpp" />
     <ClInclude Include="..\..\asio2\base\component\connect_time_cp.hpp" />
+    <ClInclude Include="..\..\asio2\base\component\data_persistence_cp.hpp" />
+    <ClInclude Include="..\..\asio2\base\component\event_queue_cp.hpp" />
     <ClInclude Include="..\..\asio2\base\component\local_endpoint_cp.hpp" />
     <ClInclude Include="..\..\asio2\base\component\post_cp.hpp" />
+    <ClInclude Include="..\..\asio2\base\component\reconnect_timer_cp.hpp" />
     <ClInclude Include="..\..\asio2\base\component\send_cp.hpp" />
     <ClInclude Include="..\..\asio2\base\component\silence_timer_cp.hpp" />
     <ClInclude Include="..\..\asio2\base\component\socket_cp.hpp" />

@@ -43,18 +43,6 @@ namespace asio2::detail
 			: id(Id), timer(context), task(std::move(t)) {}
 	};
 
-	template<typename T>
-	struct has_mfn_is_started
-	{
-	private:
-		template<typename U>
-		static auto check(bool) -> decltype(std::declval<U>().is_started(), std::true_type());
-		template<typename U>
-		static std::false_type check(...);
-	public:
-		static constexpr bool value = std::is_same_v<decltype(check<T>(true)), std::true_type>;
-	};
-
 	template<class derived_t, bool isSession>
 	class user_timer_cp
 	{
@@ -81,20 +69,12 @@ namespace asio2::detail
 
 			auto fn = [this, this_ptr = derive.selfptr(), timer_id, duration, task = std::move(t)]()
 			{
-				if constexpr (has_mfn_is_started<derived_t>::value)
-				{
-					if (!derive.is_started())
-						return;
-				}
-
 				std::shared_ptr<user_timer_obj> timer_obj_ptr = std::make_shared<user_timer_obj>(
 					timer_id, this->user_timer_io_.context(), std::move(task));
 
-				auto pair = this->user_timers_.try_emplace(timer_id, std::move(timer_obj_ptr));
-				if (pair.second == false)
-					pair.first->second->task = std::move(timer_obj_ptr->task);
+				this->user_timers_[timer_id] = timer_obj_ptr;
 
-				derive._post_user_timers(pair.first->second, duration, std::move(this_ptr));
+				derive._post_user_timers(std::move(timer_obj_ptr), duration, std::move(this_ptr));
 			};
 
 			// Make sure we run on the strand
@@ -149,6 +129,8 @@ namespace asio2::detail
 		inline void _post_user_timers(std::shared_ptr<user_timer_obj> timer_obj_ptr,
 			std::chrono::duration<Rep, Period> duration, std::shared_ptr<derived_t> this_ptr)
 		{
+			// must detect whether the timer is still exists, in some cases, after erase and
+			// cancel a timer, the steady_timer is still exist
 			auto iter = this->user_timers_.find(timer_obj_ptr->id);
 			if (iter == this->user_timers_.end())
 				return;
@@ -171,7 +153,8 @@ namespace asio2::detail
 		{
 			set_last_error(ec);
 
-			(timer_obj_ptr->task)();
+			if (!ec)
+				(timer_obj_ptr->task)();
 
 			if (ec == asio::error::operation_aborted)
 				return;

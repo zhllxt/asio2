@@ -14,7 +14,7 @@ std::pair<iterator, bool> match_role(iterator begin, iterator end)
 		i++;
 		if (i == end) break;
 
-		int length = int(*i); // get content length
+		int length = std::uint8_t(*i); // get content length
 
 		i++;
 		if (i == end) break;
@@ -76,7 +76,7 @@ void run_tcp_client_match_role(std::string_view host, std::string_view port)
 		}
 
 		while (std::getchar() != '\n');
-		//std::this_thread::sleep_for(std::chrono::seconds(2));
+		//std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
 		for (int i = 0; i < count; ++i)
 		{

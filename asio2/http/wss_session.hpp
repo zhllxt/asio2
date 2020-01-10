@@ -35,7 +35,8 @@ namespace asio2::detail
 		, public ws_send_op<derived_t, true>
 	{
 		template <class, bool>                friend class user_timer_cp;
-		template <class, bool>                friend class send_queue_cp;
+		template <class>                      friend class data_persistence_cp;
+		template <class>                      friend class event_queue_cp;
 		template <class, bool>                friend class send_cp;
 		template <class, bool>                friend class silence_timer_cp;
 		template <class, bool>                friend class connect_timeout_cp;
@@ -73,7 +74,7 @@ namespace asio2::detail
 			std::size_t max_buffer_size
 		)
 			: super(ctx, sessions, listener, rwio, init_buffer_size, max_buffer_size)
-			, ws_stream_comp(this->ssl_stream_)
+			, ws_stream_comp()
 			, ws_send_op<derived_t, true>()
 		{
 		}
@@ -90,7 +91,8 @@ namespace asio2::detail
 		 */
 		inline typename ws_stream_comp::stream_type & stream()
 		{
-			return this->ws_stream_;
+			ASIO2_ASSERT(bool(this->ws_stream_));
+			return (*(this->ws_stream_));
 		}
 
 	public:
@@ -103,11 +105,11 @@ namespace asio2::detail
 		}
 
 	protected:
-		inline void _handle_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
+		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
 		{
 			this->derived()._ws_stop(this_ptr, [this, ec, this_ptr]()
 			{
-				super::_handle_stop(ec, std::move(this_ptr));
+				super::_handle_disconnect(ec, std::move(this_ptr));
 			});
 		}
 
@@ -117,6 +119,10 @@ namespace asio2::detail
 			asio::post(this->io_.strand(), make_allocator(this->rallocator_,
 				[this, self_ptr = std::move(this_ptr), condition]()
 			{
+				this->derived()._ssl_start(self_ptr, condition, this->socket_, this->ctx_);
+
+				this->derived()._ws_start(self_ptr, condition, this->ssl_stream());
+
 				this->derived()._post_handshake(std::move(self_ptr), std::move(condition));
 			}));
 		}
@@ -139,7 +145,7 @@ namespace asio2::detail
 				catch (system_error & e)
 				{
 					set_last_error(e);
-					this->derived()._do_stop(e.code());
+					this->derived()._do_disconnect(e.code());
 				}
 			});
 		}
