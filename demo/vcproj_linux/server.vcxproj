@@ -152,6 +152,7 @@
     <ClInclude Include="..\..\asio2\rpc\component\rpc_call_cp.hpp" />
     <ClInclude Include="..\..\asio2\rpc\detail\invoker.hpp" />
     <ClInclude Include="..\..\asio2\rpc\detail\protocol.hpp" />
+    <ClInclude Include="..\..\asio2\rpc\detail\rpc_portable_binary.hpp" />
     <ClInclude Include="..\..\asio2\rpc\detail\serialization.hpp" />
     <ClInclude Include="..\..\asio2\rpc\impl\rpc_recv_op.hpp" />
     <ClInclude Include="..\..\asio2\rpc\rpc_client.hpp" />

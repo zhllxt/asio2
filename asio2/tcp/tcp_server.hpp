@@ -111,6 +111,12 @@ namespace asio2::detail
 			this->derived()._do_stop(asio::error::operation_aborted);
 
 			this->iopool_.stop();
+
+			// asio bug , see : https://www.boost.org/users/history/version_1_72_0.html
+			// Fixed a lost "outstanding work count" that can occur when an asynchronous 
+			// accept operation is automatically restarted.
+			// Using boost 1.72.0 or above version can avoid this problem (asio 1.16.0)
+			ASIO2_ASSERT(this->state_ == state_t::stopped);
 		}
 
 		/**
@@ -372,7 +378,7 @@ namespace asio2::detail
 				set_last_error(ec);
 
 				// start timer to hold the acceptor io_context
-				this->counter_timer_.expires_after(std::chrono::hours(24 * 365 * 100));
+				this->counter_timer_.expires_after((std::chrono::nanoseconds::max)());
 				this->counter_timer_.async_wait(asio::bind_executor(this->io_.strand(), [](const error_code&) {}));
 
 				// stop all the sessions, the session::stop must be no blocking,otherwise it may be cause loop lock.
@@ -412,7 +418,7 @@ namespace asio2::detail
 		inline std::shared_ptr<session_t> _make_session(Args&&... args)
 		{
 			return std::make_shared<session_t>(std::forward<Args>(args)..., this->sessions_, this->listener_,
-				this->iopool_.get(), tcp_frame_size, this->max_buffer_size_);
+				this->iopool_.get(), this->init_buffer_size_, this->max_buffer_size_);
 		}
 
 		template<typename MatchCondition>

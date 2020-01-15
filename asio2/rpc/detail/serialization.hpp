@@ -26,65 +26,87 @@
 #include <asio2/base/selector.hpp>
 #include <asio2/base/error.hpp>
 
+#include <asio2/rpc/detail/rpc_portable_binary.hpp>
+
 namespace asio2::detail
 {
-	class strbuf : public std::streambuf
+	class ostrbuf : public std::streambuf
 	{
 	public:
 		using string_type = std::basic_string<char_type, traits_type>;
 		using size_type = typename string_type::size_type;
 
-		strbuf() {}
-		~strbuf() = default;
+		ostrbuf() {}
+		virtual ~ostrbuf() {}
 
 		inline const string_type& str() const
 		{
 			return this->str_;
 		}
-		inline void str(const string_type& s)
+
+		inline void clear()
 		{
-			this->str_ = s;
-		}
-		inline strbuf& setbuf(std::string_view s)
-		{
-			this->setbuf(const_cast<char_type*>(s.data()), s.size());
-			return (*this);
-		}
-		virtual std::streambuf* setbuf(char_type* s, std::streamsize n) override
-		{
-			this->setp(s, s + n);
-			this->setg(s, s, s + n);
-			return this;
+			this->str_.clear();
+
+			this->setp(this->str_.data(), this->str_.data() + this->str_.size());
 		}
 
 	protected:
 		virtual std::streamsize xsputn(const char_type* s, std::streamsize count) override
 		{
 			this->str_.append(s, size_type(count));
+
+			this->setp(this->str_.data(), this->str_.data() + this->str_.size());
+
 			return count;
 		}
-		//virtual int_type overflow(int_type ch = traits_type::eof()) override
-		//{
-		//	return ch;
-		//}
-		//virtual int_type underflow() override
-		//{
-		//	return traits_type::eof();
-		//}
-		//virtual int_type uflow() override
-		//{
-		//	return traits_type::eof();
-		//}
+
 	protected:
 		string_type str_;
+	};
+
+	class istrbuf : public std::streambuf
+	{
+	public:
+		using string_type = std::basic_string<char_type, traits_type>;
+		using size_type = typename string_type::size_type;
+
+		istrbuf() {}
+		virtual ~istrbuf() {}
+
+		inline void setbuf(std::string_view s)
+		{
+			this->setbuf(const_cast<char_type*>(s.data()), std::streamsize(s.size()));
+		}
+
+		virtual std::streambuf* setbuf(char_type* s, std::streamsize n) override
+		{
+			this->setg(s, s, s + n);
+			return this;
+		}
+
+	protected:
+		virtual std::streamsize xsgetn(char_type* s, std::streamsize count) override
+		{
+			if (std::streamsize(this->egptr() - this->gptr()) < count)
+				return std::streamsize(0);
+
+			std::memcpy((void*)s, (const void*)(this->gptr()), size_type(count));
+
+			this->setg(this->eback(), this->gptr() + count, this->egptr());
+
+			return count;
+		}
 	};
 
 	class serializer
 	{
 	public:
+		using oarchive = cereal::RPCPortableBinaryOutputArchive;
+
 		serializer()
-			: buffer_()
-			, ostream_(&buffer_)
+			: obuffer_()
+			, ostream_(&obuffer_)
 			, oarchive_(ostream_)
 		{}
 		~serializer() = default;
@@ -109,31 +131,34 @@ namespace asio2::detail
 			return (*this);
 		}
 
-		inline serializer& reset(const strbuf::string_type& s = "")
+		inline serializer& reset()
 		{
-			this->buffer_.str(s);
+			this->obuffer_.clear();
+			this->oarchive_.save_endian();
 			return (*this);
 		}
 
 		inline const auto& str() const
 		{
-			return this->buffer_.str();
+			return this->obuffer_.str();
 		}
 
-		inline strbuf& buffer() { return this->buffer_; }
+		inline ostrbuf& buffer() { return this->obuffer_; }
 
 	protected:
-		strbuf buffer_;
-		std::ostream ostream_;
-		cereal::binary_oarchive oarchive_;
+		ostrbuf         obuffer_;
+		std::ostream    ostream_;
+		oarchive        oarchive_;
 	};
 
 	class deserializer
 	{
 	public:
+		using iarchive = cereal::RPCPortableBinaryInputArchive;
+
 		deserializer()
-			: buffer_()
-			, istream_(&buffer_)
+			: ibuffer_()
+			, istream_(&ibuffer_)
 			, iarchive_(istream_)
 		{}
 		~deserializer() = default;
@@ -162,21 +187,17 @@ namespace asio2::detail
 
 		inline deserializer& reset(std::string_view s)
 		{
-			this->buffer_.setbuf(s);
+			this->ibuffer_.setbuf(s);
+			this->iarchive_.load_endian();
 			return (*this);
 		}
 
-		inline const auto& str() const
-		{
-			return this->buffer_.str();
-		}
-
-		inline strbuf& buffer() { return this->buffer_; }
+		inline istrbuf& buffer() { return this->ibuffer_; }
 
 	protected:
-		strbuf buffer_;
-		std::istream istream_;
-		cereal::binary_iarchive iarchive_;
+		istrbuf         ibuffer_;
+		std::istream    istream_;
+		iarchive        iarchive_;
 	};
 }
 

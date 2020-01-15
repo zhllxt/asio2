@@ -57,6 +57,7 @@ namespace asio2::detail
 		template<class Callback>
 		inline derived_t & push_event(Callback&& f)
 		{
+#if defined(ASIO2_SEND_CORE_ASYNC)
 			// Make sure we run on the strand
 			if (derive.io().strand().running_in_this_thread())
 			{
@@ -66,7 +67,7 @@ namespace asio2::detail
 				{
 					(this->events_.front())();
 				}
-				return (static_cast<derived_t &>(*this));
+				return (derive);
 			}
 
 			asio::post(derive.io().strand(), make_allocator(derive.wallocator(),
@@ -80,7 +81,23 @@ namespace asio2::detail
 				}
 			}));
 
-			return (static_cast<derived_t &>(*this));
+			return (derive);
+#else
+			// Make sure we run on the strand
+			if (derive.io().strand().running_in_this_thread())
+			{
+				f();
+				return (derive);
+			}
+
+			asio::post(derive.io().strand(), make_allocator(derive.wallocator(),
+				[this, p = derive.selfptr(), f = std::forward<Callback>(f)]() mutable
+			{
+				f();
+			}));
+
+			return (derive);
+#endif
 		}
 
 		/**
@@ -90,6 +107,7 @@ namespace asio2::detail
 		template<typename = void>
 		inline derived_t & next_event()
 		{
+#if defined(ASIO2_SEND_CORE_ASYNC)
 			// Make sure we run on the strand
 			if (derive.io().strand().running_in_this_thread())
 			{
@@ -102,7 +120,7 @@ namespace asio2::detail
 						(this->events_.front())();
 					}
 				}
-				return (static_cast<derived_t &>(*this));
+				return (derive);
 			}
 
 			asio::post(derive.io().strand(), make_allocator(derive.wallocator(),
@@ -119,7 +137,11 @@ namespace asio2::detail
 				}
 			}));
 
-			return (static_cast<derived_t &>(*this));
+			return (derive);
+#else
+			ASIO2_ASSERT(false);
+			return (derive);
+#endif
 		}
 
 	protected:

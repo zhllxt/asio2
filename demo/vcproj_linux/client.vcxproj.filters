@@ -681,6 +681,9 @@
     <ClInclude Include="..\..\asio2\base\component\user_timer_cp.hpp">
       <Filter>asio2\base\component</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\asio2\rpc\detail\rpc_portable_binary.hpp">
+      <Filter>asio2\rpc</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\client.cpp">

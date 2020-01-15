@@ -99,7 +99,10 @@ namespace asio2
 		buffer_wrap() = default;
 
 		buffer_wrap(size_type max) : buffer_t(max) {}
-		buffer_wrap(size_type pre, size_type max) : buffer_t(max), pre_(pre) {}
+		buffer_wrap(size_type pre, size_type max) : buffer_t(max), pre_(pre)
+		{
+			buffer_t::prepare(this->pre_);
+		}
 
 		buffer_wrap(buffer_wrap&& other) = default;
 		buffer_wrap(buffer_wrap const& other) = default;
@@ -138,7 +141,10 @@ namespace asio2
 		buffer_wrap() = default;
 
 		buffer_wrap(size_type max) : buffer_t(), max_(max) {}
-		buffer_wrap(size_type pre, size_type max) : buffer_t(), pre_(pre), max_(max) {}
+		buffer_wrap(size_type pre, size_type max) : buffer_t(), pre_(pre), max_(max)
+		{
+			buffer_t::prepare(this->pre_);
+		}
 
 		buffer_wrap(buffer_wrap&& other) = default;
 		buffer_wrap(buffer_wrap const& other) = default;
