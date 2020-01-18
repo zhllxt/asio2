@@ -14,6 +14,11 @@ A open source cross-platform c++ library for network programming based on asio,s
 * 代码采用hpp头文件方式,以源码级链入,无需编译,只需在工程的Include包含目录中添加asio2路径,然后在源码中#include <asio2/asio2.hpp>包含头文件即可;
 * demo目录包含大量的示例工程(工程基于VS2017创建),各种使用方法请参考示例代码;
 
+## 一点简单的性能测试:
+测试办法:本机127.0.0.1,和rest_rpc进行对比(rest_rpc请github搜索).
+测试qps,只测了单连接:rest_rpc的qps约为30000/秒,asio2的qps约为37000/秒,asio2比rest_rpc性能约高19%.
+rpc测试的代码请看:[rpc性能测试代码](https://github.com/zhllxt/asio2/wiki/rpc%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95%E4%BB%A3%E7%A0%81)
+
 ## TCP:
 ##### 服务端:
 ```c++
