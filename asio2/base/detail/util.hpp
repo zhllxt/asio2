@@ -128,7 +128,9 @@ namespace asio2::detail
 	public:
 		using value_type = T;
 
-		copyable_wrapper() { }
+		template<typename ...Args>
+		copyable_wrapper(Args&&... args) : raw(std::forward<Args>(args)...) { }
+		template<typename = void>
 		copyable_wrapper(T&& o) : raw(std::move(o)) { }
 
 		copyable_wrapper(copyable_wrapper&&) = default;
@@ -290,6 +292,25 @@ namespace asio2::detail
 		{
 			ASIO2_ASSERT(false);
 		}
+	}
+
+	// Returns true if the current machine is little endian
+	inline bool is_little_endian()
+	{
+		static std::int32_t test = 1;
+		return (*reinterpret_cast<std::int8_t*>(&test) == 1);
+	}
+
+	/**
+	 * Swaps the order of bytes for some chunk of memory
+	 * @param data The data as a uint8_t pointer
+	 * @tparam DataSize The true size of the data
+	 */
+	template <std::size_t DataSize>
+	inline void swap_bytes(std::uint8_t * data)
+	{
+		for (std::size_t i = 0, end = DataSize / 2; i < end; ++i)
+			std::swap(data[i], data[DataSize - i - 1]);
 	}
 }
 

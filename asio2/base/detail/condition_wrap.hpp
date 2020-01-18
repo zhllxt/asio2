@@ -27,108 +27,77 @@ namespace asio2::detail
 	struct use_kcp_t {};
 	struct use_dgram_t {};
 
-	struct dgram_parse_recv_op
+	using iterator = asio::buffers_iterator<asio::streambuf::const_buffers_type>;
+	std::pair<iterator, bool> dgram_match_role(iterator begin, iterator end)
 	{
-		template<class DynamicBuffer, class Handler>
-		std::size_t operator()(DynamicBuffer & buffer, Handler && handler)
+		iterator i = begin;
+		while (i != end)
 		{
-			std::size_t minimum = 1;
-			while (buffer.size() > 0)
+			// If 0~254, current byte are the payload length.
+			if (std::uint8_t(*i) < std::uint8_t(254))
 			{
-				const unsigned char* payload_data = nullptr;
-				std::size_t payload_size = 0;
-				std::size_t consumed = 0, total = buffer.size();
+				std::uint8_t payload_size = std::uint8_t(*i);
 
-				const unsigned char* p = static_cast<const unsigned char*>(buffer.data().data());
-				switch (p[0])
+				++i;
+
+				if (end - i < int(payload_size))
+					break;
+
+				return std::pair(i + payload_size, true);
+			}
+
+			// If 254, the following 2 bytes interpreted as a 16-bit unsigned integer
+			// (the most significant bit MUST be 0) are the payload length.
+			if (std::uint8_t(*i) == std::uint8_t(254))
+			{
+				++i;
+
+				if (end - i < 2)
+					break;
+
+				std::uint16_t payload_size = *(reinterpret_cast<const std::uint16_t*>(i.operator->()));
+
+				// use little endian
+				if (!is_little_endian())
 				{
-				case 254: // If 254, the following 2 bytes interpreted as a 16-bit unsigned integer (the most significant bit MUST be 0) are the payload length.
-					if (total >= 1 + 2)
-					{
-						payload_size = *(reinterpret_cast<std::uint16_t*>(const_cast<unsigned char*>(p + 1)));
-						if (total - 1 - 2 >= payload_size)
-						{
-							payload_data = p + 1 + 2;
-							consumed = 1 + 2 + payload_size;
-							minimum = 1;
-						}
-						else
-							minimum = payload_size - (total - 1 - 2);
-					}
-					else
-						minimum = 1 + 2 - total;
-					break;
-				case 255: // If 255, the following 8 bytes interpreted as a 64-bit unsigned integer (the most significant bit MUST be 0) are the payload length.
-					if (total >= 1 + 8)
-					{
-						payload_size = std::size_t(*(reinterpret_cast<std::uint64_t*>(const_cast<unsigned char*>(p + 1))));
-						if (total - 1 - 8 >= payload_size)
-						{
-							payload_data = p + 1 + 8;
-							consumed = 1 + 8 + payload_size;
-							minimum = 1;
-						}
-						else
-							minimum = payload_size - (total - 1 - 8);
-					}
-					else
-						minimum = 1 + 8 - total;
-					break;
-				default:  // If 0~254, current byte are the payload length.
-					payload_size = p[0];
-					if (total - 1 >= payload_size)
-					{
-						payload_data = p + 1;
-						consumed = 1 + payload_size;
-						minimum = 1;
-					}
-					else
-						minimum = payload_size - (total - 1);
-					break;
+					swap_bytes<sizeof(std::uint16_t)>(reinterpret_cast<std::uint8_t*>(&payload_size));
 				}
 
-				if (consumed == 0)
+				i += 2;
+				if (end - i < int(payload_size))
 					break;
 
-				handler(payload_data, payload_size);
+				return std::pair(i + payload_size, true);
+			}
+				
+			// If 255, the following 8 bytes interpreted as a 64-bit unsigned integer
+			// (the most significant bit MUST be 0) are the payload length.
+			if (std::uint8_t(*i) == 255)
+			{
+				++i;
 
-				buffer.consume(consumed);
-			}
-			return minimum;
-		}
-	};
+				if (end - i < 8)
+					break;
 
-	struct dgram_send_head_op
-	{
-		template<class DynamicBuffer, class Stream>
-		std::size_t operator()(Stream & stream, DynamicBuffer & buffer, error_code & ec)
-		{
-			std::size_t sent_bytes = 0;
-			if (buffer.size() > (std::numeric_limits<std::uint16_t>::max)())
-			{
-				std::uint8_t head[9];
-				head[0] = static_cast<std::uint8_t>(255);
-				std::uint64_t size = buffer.size();
-				std::memcpy(&head[1], reinterpret_cast<const void*>(&size), sizeof(std::uint64_t));
-				sent_bytes = asio::write(stream, asio::buffer(head), ec);
+				std::uint64_t payload_size = *(reinterpret_cast<const std::uint64_t*>(i.operator->()));
+
+				// use little endian
+				if (!is_little_endian())
+				{
+					swap_bytes<sizeof(std::uint64_t)>(reinterpret_cast<std::uint8_t*>(&payload_size));
+				}
+
+				i += 8;
+				if (std::uint64_t(end - i) < payload_size)
+					break;
+
+				return std::pair(i + payload_size, true);
 			}
-			else if (buffer.size() > 253)
-			{
-				std::uint8_t head[3];
-				head[0] = static_cast<std::uint8_t>(254);
-				std::uint16_t size = static_cast<std::uint16_t>(buffer.size());
-				std::memcpy(&head[1], reinterpret_cast<const void*>(&size), sizeof(std::uint16_t));
-				sent_bytes = asio::write(stream, asio::buffer(head), ec);
-			}
-			else
-			{
-				std::uint8_t head[1];
-				head[0] = static_cast<std::uint8_t>(buffer.size());
-				sent_bytes = asio::write(stream, asio::buffer(head), ec);
-			}
-			return sent_bytes;
+
+			ASIO2_ASSERT(false);
 		}
-	};
+		return std::pair(begin, false);
+	}
 }
 
 namespace asio2::detail
@@ -201,10 +170,8 @@ namespace asio2::detail
 	public:
 		using type = use_dgram_t;
 		condition_wrap(use_dgram_t) {}
-		inline asio::detail::transfer_at_least_t operator()() { return asio::transfer_at_least(this->minimum_); }
-		inline void need(std::size_t size) { this->minimum_ = size; }
+		inline auto& operator()() { return dgram_match_role; }
 	protected:
-		std::size_t minimum_ = 1;
 	};
 
 	template<>

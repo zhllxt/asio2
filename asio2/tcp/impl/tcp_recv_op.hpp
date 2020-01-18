@@ -52,8 +52,7 @@ namespace asio2::detail
 				if constexpr (
 					std::is_same_v<MatchCondition, asio::detail::transfer_all_t> ||
 					std::is_same_v<MatchCondition, asio::detail::transfer_at_least_t> ||
-					std::is_same_v<MatchCondition, asio::detail::transfer_exactly_t> ||
-					std::is_same_v<MatchCondition, use_dgram_t>)
+					std::is_same_v<MatchCondition, asio::detail::transfer_exactly_t>)
 				{
 					asio::async_read(derive.stream(), derive.buffer().base(), condition(),
 						asio::bind_executor(derive.io().strand(), make_allocator(derive.rallocator(),
@@ -93,20 +92,31 @@ namespace asio2::detail
 
 				if constexpr (std::is_same_v<MatchCondition, use_dgram_t>)
 				{
-					condition.need(dgram_parse_recv_op()(derive.buffer(), [this, &this_ptr]
-					(const unsigned char* payload_data, std::size_t payload_size) mutable
+					const std::uint8_t* buffer = static_cast<const std::uint8_t*>(derive.buffer().data().data());
+					if /**/ (std::uint8_t(buffer[0]) < std::uint8_t(254))
 					{
 						derive._fire_recv(this_ptr, std::string_view(reinterpret_cast<
-							std::string_view::const_pointer>(payload_data), payload_size));
-					}));
+							std::string_view::const_pointer>(buffer + 1), bytes_recvd - 1));
+					}
+					else if (std::uint8_t(buffer[0]) == std::uint8_t(254))
+					{
+						derive._fire_recv(this_ptr, std::string_view(reinterpret_cast<
+							std::string_view::const_pointer>(buffer + 1 + 2), bytes_recvd - 1 - 2));
+					}
+					else
+					{
+						ASIO2_ASSERT(std::uint8_t(buffer[0]) == std::uint8_t(255));
+						derive._fire_recv(this_ptr, std::string_view(reinterpret_cast<
+							std::string_view::const_pointer>(buffer + 1 + 8), bytes_recvd - 1 - 8));
+					}
 				}
 				else
 				{
 					derive._fire_recv(this_ptr, std::string_view(reinterpret_cast<
 						std::string_view::const_pointer>(derive.buffer().data().data()), bytes_recvd));
-
-					derive.buffer().consume(bytes_recvd);
 				}
+
+				derive.buffer().consume(bytes_recvd);
 
 				derive._post_recv(std::move(this_ptr), std::move(condition));
 			}

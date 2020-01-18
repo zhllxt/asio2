@@ -73,7 +73,7 @@ namespace asio2::detail
 			{
 				if (derive.dgram_)
 				{
-					return derive._tcp_send_head(asio::buffer(data), std::forward<Callback>(callback));
+					return derive._tcp_send_dgram(asio::buffer(data), std::forward<Callback>(callback));
 				}
 			}
 			else
@@ -81,46 +81,61 @@ namespace asio2::detail
 				std::ignore = true;
 			}
 
-			return derive._tcp_send_body(asio::buffer(data), std::forward<Callback>(callback));
+			return derive._tcp_send_general(asio::buffer(data), std::forward<Callback>(callback));
 		}
 
 		template<class BufferSequence, class Callback>
-		inline bool _tcp_send_head(BufferSequence&& buffer, Callback&& callback)
+		inline bool _tcp_send_dgram(BufferSequence&& buffer, Callback&& callback)
 		{
+			int bytes = 0;
 			std::unique_ptr<std::uint8_t[]> head;
 
-			std::size_t bytes = 0;
-			if (buffer.size() > (std::numeric_limits<std::uint16_t>::max)())
+			// note : need ensure big endian and little endian
+			if (buffer.size() < std::size_t(254))
 			{
-				bytes = 9;
+				bytes = 1;
 				head = std::make_unique<std::uint8_t[]>(bytes);
-				head[0] = static_cast<std::uint8_t>(255);
-				std::uint64_t size = buffer.size();
-				std::memcpy(&head[1], reinterpret_cast<const void*>(&size), sizeof(std::uint64_t));
+				head[0] = static_cast<std::uint8_t>(buffer.size());
 			}
-			else if (buffer.size() > 253)
+			else if (buffer.size() <= (std::numeric_limits<std::uint16_t>::max)())
 			{
 				bytes = 3;
 				head = std::make_unique<std::uint8_t[]>(bytes);
 				head[0] = static_cast<std::uint8_t>(254);
 				std::uint16_t size = static_cast<std::uint16_t>(buffer.size());
 				std::memcpy(&head[1], reinterpret_cast<const void*>(&size), sizeof(std::uint16_t));
+				// use little endian
+				if (!is_little_endian())
+				{
+					swap_bytes<sizeof(std::uint16_t)>(&head[1]);
+				}
 			}
 			else
 			{
-				bytes = 1;
+				ASIO2_ASSERT(buffer.size() > (std::numeric_limits<std::uint16_t>::max)());
+				bytes = 9;
 				head = std::make_unique<std::uint8_t[]>(bytes);
-				head[0] = static_cast<std::uint8_t>(buffer.size());
+				head[0] = static_cast<std::uint8_t>(255);
+				std::uint64_t size = buffer.size();
+				std::memcpy(&head[1], reinterpret_cast<const void*>(&size), sizeof(std::uint64_t));
+				// use little endian
+				if (!is_little_endian())
+				{
+					swap_bytes<sizeof(std::uint64_t)>(&head[1]);
+				}
 			}
 
-			auto head_buffer = asio::buffer(reinterpret_cast<void*>(head.get()), bytes);
+			std::array<asio::const_buffer, 2> buffers
+			{
+				asio::buffer(reinterpret_cast<const void*>(head.get()), bytes),
+				std::forward<BufferSequence>(buffer)
+			};
 
 #if defined(ASIO2_SEND_CORE_ASYNC)
-			asio::async_write(derive.stream(), head_buffer, asio::bind_executor(derive.io().strand(),
+			asio::async_write(derive.stream(), buffers, asio::bind_executor(derive.io().strand(),
 				make_allocator(derive.wallocator(),
 					[this, p = derive.selfptr(),
-					head = std::move(head),
-					buffer = std::forward<BufferSequence>(buffer),
+					bytes, head = std::move(head),
 					callback = std::forward<Callback>(callback)]
 			(const error_code& ec, std::size_t bytes_sent) mutable
 			{
@@ -128,40 +143,37 @@ namespace asio2::detail
 
 				if (ec)
 				{
-					callback(ec, 0);
+					callback(ec, bytes_sent);
 
 					// must stop, otherwise re-sending will cause header confusion
-					if (bytes_sent > 0)
-					{
-						derive._do_disconnect(ec);
-					}
-
-					derive.next_event();
+					derive._do_disconnect(ec);
 				}
 				else
 				{
-					derive._tcp_send_body(std::move(buffer), std::move(callback));
+					callback(ec, bytes_sent - bytes);
 				}
+
+				derive.next_event();
 			})));
 			return true;
 #else
 			error_code ec;
-			std::size_t bytes_sent = asio::write(derive.stream(), head_buffer, ec);
+			std::size_t bytes_sent = asio::write(derive.stream(), buffers, ec);
 			set_last_error(ec);
 			if (ec)
 			{
-				callback(ec, 0);
+				callback(ec, bytes_sent);
 				// must stop, otherwise re-sending will cause header confusion
-				if (bytes_sent > 0)
-					derive._do_disconnect(ec);
+				derive._do_disconnect(ec);
 				return false;
 			}
-			return derive._tcp_send_body(std::forward<BufferSequence>(buffer), std::forward<Callback>(callback));
+			callback(ec, bytes_sent - bytes);
+			return true;
 #endif
 		}
 
 		template<class BufferSequence, class Callback>
-		inline bool _tcp_send_body(BufferSequence&& buffer, Callback&& callback)
+		inline bool _tcp_send_general(BufferSequence&& buffer, Callback&& callback)
 		{
 #if defined(ASIO2_SEND_CORE_ASYNC)
 			asio::async_write(derive.stream(), buffer, asio::bind_executor(derive.io().strand(),

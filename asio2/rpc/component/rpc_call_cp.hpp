@@ -314,25 +314,26 @@ namespace asio2::detail
 
 			header::id_type id = derive.mkid();
 
-			std::shared_ptr<asio::steady_timer> timer = mktimer(this->wio_, timeout,
-				[this, p = derive.selfptr(), id](const error_code& ec)
+			copyable_wrapper<asio::steady_timer> timer(this->wio_.context());
+			timer().expires_after(timeout);
+			timer().async_wait(asio::bind_executor(this->wio_.strand(), [this, id](const error_code & ec)
 			{
 				if (ec == asio::error::operation_aborted)
-					return false;
+					return;
 				auto iter = this->reqs_.find(id);
 				if (iter != this->reqs_.end())
 				{
 					auto& cb = iter->second;
 					cb(asio::error::timed_out, std::string_view{});
 				}
-				return false;
-			});
+			}));
 
-			auto cb = [this, id, timer, fn = std::forward<Callback>(fn)](error_code ec, std::string_view s) mutable
+			auto cb = [this, id, timer = std::move(timer), fn = std::forward<Callback>(fn)]
+			(error_code ec, std::string_view s) mutable
 			{
 				try
 				{
-					timer->cancel();
+					timer().cancel();
 				}
 				catch (system_error &) {}
 				catch (std::exception &) {}
