@@ -14,6 +14,20 @@ A open source cross-platform c++ library for network programming based on asio,s
 * 代码采用hpp头文件方式,以源码级链入,无需编译,只需在工程的Include包含目录中添加asio2路径,然后在源码中#include <asio2/asio2.hpp>包含头文件即可;
 * demo目录包含大量的示例工程(工程基于VS2017创建),各种使用方法请参考示例代码;
 
+## 与其它框架的一点区别:
+```c++
+目前看到的基于asio的框架的模式大都如下:
+tcp_server server; // 声明一个server
+server.run();      // 调用run函数,run函数是阻塞的
+这种模式需要用户自己去处理程序退出后的逻辑,包括连接的正常关闭,
+资源释放等问题,而这些问题自己处理起来是很烦琐的.
+asio2框架就处理过了这些问题,只需要server.start(...)即可,
+start(...)函数是非阻塞的,你可以在如MFC的OnInitDialog等地方调用,
+什么时候想退出了只需要server.stop()即可.stop时如果有未发送完的数据,
+会保证一定在数据发送完之后才会退出,tcp下也会保证所有连接都正常关闭以后才会退出.
+你不用考虑资源的正确释放等一系列琐碎的问题.
+```
+
 ## 一点简单的性能测试:
 ```c++
 测试办法:本机127.0.0.1,和rest_rpc进行对比.测试rpc的qps,只测了单连接.
