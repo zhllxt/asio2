@@ -3,9 +3,9 @@ A open source cross-platform c++ library for network programming based on asio,s
 
 * Support TCP,UDP,HTTP,WEBSOCKET,RPC,ICMP,SERIAL_PORT;
 * Support reliable UDP (based on KCP), support SSL, support loading SSL certificates from memory strings;
-* TCP supports data unpacking (automatically unpacking data according to specified delimiters to ensure that the data received by users is a complete data package), and implements the datagram mode of TCP (similar to WEBSOCKET);
+* TCP supports data unpacking (character or string or user defined protocol), and implements the datagram mode of TCP (similar to WEBSOCKET);
 * Support windows, linux, 32 bits, 64 bits;
-* Dependence on asio (boost::asio or asio standalone). If HTTP functions are required, can only use boost::asio, dependence on C++ 17.
+* Dependence on C++ 17,dependence on asio (boost::asio or asio standalone). If HTTP functions are required, can only use boost::asio.
 * The demo directory contains a large number of sample projects (projects based on VS2017 creation), and a variety of use methods refer to the sample code.
 
 ## TCP:
