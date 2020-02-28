@@ -27,76 +27,79 @@ namespace asio2::detail
 	struct use_kcp_t {};
 	struct use_dgram_t {};
 
-	using iterator = asio::buffers_iterator<asio::streambuf::const_buffers_type>;
-	std::pair<iterator, bool> dgram_match_role(iterator begin, iterator end)
+	namespace
 	{
-		iterator i = begin;
-		while (i != end)
+		using iterator = asio::buffers_iterator<asio::streambuf::const_buffers_type>;
+		std::pair<iterator, bool> dgram_match_role(iterator begin, iterator end)
 		{
-			// If 0~254, current byte are the payload length.
-			if (std::uint8_t(*i) < std::uint8_t(254))
+			iterator i = begin;
+			while (i != end)
 			{
-				std::uint8_t payload_size = std::uint8_t(*i);
-
-				++i;
-
-				if (end - i < int(payload_size))
-					break;
-
-				return std::pair(i + payload_size, true);
-			}
-
-			// If 254, the following 2 bytes interpreted as a 16-bit unsigned integer
-			// (the most significant bit MUST be 0) are the payload length.
-			if (std::uint8_t(*i) == std::uint8_t(254))
-			{
-				++i;
-
-				if (end - i < 2)
-					break;
-
-				std::uint16_t payload_size = *(reinterpret_cast<const std::uint16_t*>(i.operator->()));
-
-				// use little endian
-				if (!is_little_endian())
+				// If 0~254, current byte are the payload length.
+				if (std::uint8_t(*i) < std::uint8_t(254))
 				{
-					swap_bytes<sizeof(std::uint16_t)>(reinterpret_cast<std::uint8_t*>(&payload_size));
+					std::uint8_t payload_size = std::uint8_t(*i);
+
+					++i;
+
+					if (end - i < int(payload_size))
+						break;
+
+					return std::pair(i + payload_size, true);
 				}
 
-				i += 2;
-				if (end - i < int(payload_size))
-					break;
-
-				return std::pair(i + payload_size, true);
-			}
-				
-			// If 255, the following 8 bytes interpreted as a 64-bit unsigned integer
-			// (the most significant bit MUST be 0) are the payload length.
-			if (std::uint8_t(*i) == 255)
-			{
-				++i;
-
-				if (end - i < 8)
-					break;
-
-				std::uint64_t payload_size = *(reinterpret_cast<const std::uint64_t*>(i.operator->()));
-
-				// use little endian
-				if (!is_little_endian())
+				// If 254, the following 2 bytes interpreted as a 16-bit unsigned integer
+				// (the most significant bit MUST be 0) are the payload length.
+				if (std::uint8_t(*i) == std::uint8_t(254))
 				{
-					swap_bytes<sizeof(std::uint64_t)>(reinterpret_cast<std::uint8_t*>(&payload_size));
+					++i;
+
+					if (end - i < 2)
+						break;
+
+					std::uint16_t payload_size = *(reinterpret_cast<const std::uint16_t*>(i.operator->()));
+
+					// use little endian
+					if (!is_little_endian())
+					{
+						swap_bytes<sizeof(std::uint16_t)>(reinterpret_cast<std::uint8_t*>(&payload_size));
+					}
+
+					i += 2;
+					if (end - i < int(payload_size))
+						break;
+
+					return std::pair(i + payload_size, true);
 				}
 
-				i += 8;
-				if (std::uint64_t(end - i) < payload_size)
-					break;
+				// If 255, the following 8 bytes interpreted as a 64-bit unsigned integer
+				// (the most significant bit MUST be 0) are the payload length.
+				if (std::uint8_t(*i) == 255)
+				{
+					++i;
 
-				return std::pair(i + payload_size, true);
+					if (end - i < 8)
+						break;
+
+					std::uint64_t payload_size = *(reinterpret_cast<const std::uint64_t*>(i.operator->()));
+
+					// use little endian
+					if (!is_little_endian())
+					{
+						swap_bytes<sizeof(std::uint64_t)>(reinterpret_cast<std::uint8_t*>(&payload_size));
+					}
+
+					i += 8;
+					if (std::uint64_t(end - i) < payload_size)
+						break;
+
+					return std::pair(i + payload_size, true);
+				}
+
+				ASIO2_ASSERT(false);
 			}
-
-			ASIO2_ASSERT(false);
+			return std::pair(begin, false);
 		}
-		return std::pair(begin, false);
 	}
 }
 
