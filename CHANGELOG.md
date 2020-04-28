@@ -1,3 +1,10 @@
+# 2020-04-28 version 2.4:
+
+  * Add call and async_call for rpc_server.
+  * Add async call version without callback function.
+  * Other general enhancements.
+  * Bug fix : Fix the rpc bug of calling parameters is raw pointer or object refrence.
+
 # 2020-01-10 version 2.3:
 
   * Add automatic reconnection mechanism in the client when disconnection occurs.

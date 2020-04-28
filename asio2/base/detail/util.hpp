@@ -30,7 +30,6 @@
 #include <functional>
 #include <tuple>
 #include <atomic>
-#include <type_traits>
 
 #include <asio2/base/selector.hpp>
 #include <asio2/base/iopool.hpp>
@@ -218,6 +217,28 @@ namespace asio2::detail
 	};
 
 
+	// example : static_assert(is_template_instantiable_v<std::vector, double>);
+	//           static_assert(is_template_instantiable_v<std::optional, int, int>);
+	template<template<typename...> typename T, typename AlwaysVoid, typename... Args>
+	struct is_template_instantiable : std::false_type {};
+
+	template<template<typename...> typename T, typename... Args>
+	struct is_template_instantiable<T, std::void_t<T<Args...>>, Args...> : std::true_type {};
+
+	template<template<typename...> typename T, typename... Args>
+	inline constexpr bool is_template_instantiable_v = is_template_instantiable<T, void, Args...>::value;
+
+
+	// example : static_assert(is_template_instance_of<std::vector, std::vector<int>>);
+	template<template<typename...> class U, typename T> struct is_template_instance_of : std::false_type {};
+	template<template<typename...> class U, typename...Args> struct is_template_instance_of<U, U<Args...>> : std::true_type {};
+
+	template<template<typename...> class U, typename...Args>
+	inline constexpr bool is_template_instance_of_v = is_template_instance_of<U, Args...>::value;
+
+	template<typename T> struct is_tuple : is_template_instance_of<std::tuple, T> {};
+
+
 	template<typename, typename = void>
 	struct is_string : std::false_type {};
 
@@ -258,6 +279,10 @@ namespace asio2::detail
 		else if constexpr (std::is_pointer_v<type>)
 		{
 			if (v) s = v;
+		}
+		else if constexpr (std::is_array_v<type>)
+		{
+			s = std::forward<T>(v);
 		}
 		else
 		{

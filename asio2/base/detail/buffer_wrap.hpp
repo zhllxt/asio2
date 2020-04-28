@@ -28,29 +28,41 @@ namespace asio2
 	{
 		static std::size_t constexpr min_size = 512;
 
-		template<typename T>
-		struct buffer_has_limit
-		{
-		private:
-			template<typename U>
-			static auto check(bool) -> decltype(U(std::size_t(0)), std::true_type());
-			template<typename U>
-			static std::false_type check(...);
-		public:
-			static constexpr bool value = std::is_same_v<decltype(check<T>(true)), std::true_type>;
-		};
+		template<class, class = std::void_t<>>
+		struct buffer_has_limit : std::false_type {};
 
-		template<typename T>
-		struct buffer_has_max_size
-		{
-		private:
-			template<typename U>
-			static auto check(bool) -> decltype(std::declval<U>().max_size(), std::true_type());
-			template<typename U>
-			static std::false_type check(...);
-		public:
-			static constexpr bool value = std::is_same_v<decltype(check<T>(true)), std::true_type>;
-		};
+		template<class T>
+		struct buffer_has_limit<T, std::void_t<decltype(T(std::size_t(0)))>> : std::true_type {};
+
+		template<class, class = std::void_t<>>
+		struct buffer_has_max_size : std::false_type {};
+
+		template<class T>
+		struct buffer_has_max_size<T, std::void_t<decltype(std::declval<T>().max_size())>> : std::true_type {};
+
+		//template<typename T>
+		//struct buffer_has_limit
+		//{
+		//private:
+		//	template<typename U>
+		//	static auto check(bool) -> decltype(U(std::size_t(0)), std::true_type());
+		//	template<typename U>
+		//	static std::false_type check(...);
+		//public:
+		//	static constexpr bool value = std::is_same_v<decltype(check<T>(true)), std::true_type>;
+		//};
+
+		//template<typename T>
+		//struct buffer_has_max_size
+		//{
+		//private:
+		//	template<typename U>
+		//	static auto check(bool) -> decltype(std::declval<U>().max_size(), std::true_type());
+		//	template<typename U>
+		//	static std::false_type check(...);
+		//public:
+		//	static constexpr bool value = std::is_same_v<decltype(check<T>(true)), std::true_type>;
+		//};
 
 		// send callback indirect
 		struct callback_helper

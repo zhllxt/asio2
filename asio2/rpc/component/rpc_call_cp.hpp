@@ -88,18 +88,33 @@ namespace asio2::detail
 		inline T call(std::chrono::duration<Rep, Period> timeout, std::string name, Args&&... args)
 		{
 			error_code ec;
-			T v = derive.template _do_call<T>(ec, timeout, std::move(name), std::forward<Args>(args)...);
-			asio::detail::throw_error(ec);
-			return v;
+			if constexpr (std::is_void_v<T>)
+			{
+				derive.template _do_call<T>(ec, timeout, std::move(name), std::forward<Args>(args)...);
+				asio::detail::throw_error(ec);
+			}
+			else
+			{
+				T v = derive.template _do_call<T>(ec, timeout, std::move(name), std::forward<Args>(args)...);
+				asio::detail::throw_error(ec);
+				return v;
+			}
 		}
 
 		/**
 		 * @function : call a rpc function
 		 */
-		template<class T, class ...Args>
-		inline T call(error_code& ec, std::string name, Args&&... args)
+		template<class T, class Rep, class Period, class ...Args>
+		inline T call(error_code& ec, std::chrono::duration<Rep, Period> timeout, std::string name, Args&&... args)
 		{
-			return derive.template _do_call<T>(ec, derive.timeout(), std::move(name), std::forward<Args>(args)...);
+			if constexpr (std::is_void_v<T>)
+			{
+				derive.template _do_call<T>(ec, timeout, std::move(name), std::forward<Args>(args)...);
+			}
+			else
+			{
+				return derive.template _do_call<T>(ec, timeout, std::move(name), std::forward<Args>(args)...);
+			}
 		}
 
 		/**
@@ -109,18 +124,33 @@ namespace asio2::detail
 		inline T call(std::string name, Args&&... args)
 		{
 			error_code ec;
-			T v = derive.template _do_call<T>(ec, derive.timeout(), std::move(name), std::forward<Args>(args)...);
-			asio::detail::throw_error(ec);
-			return v;
+			if constexpr (std::is_void_v<T>)
+			{
+				derive.template _do_call<T>(ec, derive.timeout(), std::move(name), std::forward<Args>(args)...);
+				asio::detail::throw_error(ec);
+			}
+			else
+			{
+				T v = derive.template _do_call<T>(ec, derive.timeout(), std::move(name), std::forward<Args>(args)...);
+				asio::detail::throw_error(ec);
+				return v;
+			}
 		}
 
 		/**
 		 * @function : call a rpc function
 		 */
-		template<class T, class Rep, class Period, class ...Args>
-		inline T call(error_code& ec, std::chrono::duration<Rep, Period> timeout, std::string name, Args&&... args)
+		template<class T, class ...Args>
+		inline T call(error_code& ec, std::string name, Args&&... args)
 		{
-			return derive.template _do_call<T>(ec, timeout, std::move(name), std::forward<Args>(args)...);
+			if constexpr (std::is_void_v<T>)
+			{
+				derive.template _do_call<T>(ec, derive.timeout(), std::move(name), std::forward<Args>(args)...);
+			}
+			else
+			{
+				return derive.template _do_call<T>(ec, derive.timeout(), std::move(name), std::forward<Args>(args)...);
+			}
 		}
 
 		/**
@@ -132,9 +162,10 @@ namespace asio2::detail
 		 * You must guarantee that the parameter args remain valid until the send operation is called.
 		 */
 		template<class Callback, class ...Args>
-		inline void async_call(Callback&& fn, std::string name, Args&&... args)
+		inline typename std::enable_if_t<is_callable_v<Callback>, void>
+		async_call(Callback&& fn, std::string name, Args&&... args)
 		{
-			using fun_traits_type = function_traits<Callback>;
+			using fun_traits_type = function_traits<std::remove_cv_t<std::remove_reference_t<Callback>>>;
 			derive.template _do_async_call<fun_traits_type::argc>(std::forward<Callback>(fn),
 				derive.timeout(), std::move(name), std::forward<Args>(args)...);
 		}
@@ -148,9 +179,10 @@ namespace asio2::detail
 		 * You must guarantee that the parameter args remain valid until the send operation is called.
 		 */
 		template<class Callback, class Rep, class Period, class ...Args>
-		inline void async_call(Callback&& fn, std::chrono::duration<Rep, Period> timeout, std::string name, Args&&... args)
+		inline typename std::enable_if_t<is_callable_v<Callback>, void>
+		async_call(Callback&& fn, std::chrono::duration<Rep, Period> timeout, std::string name, Args&&... args)
 		{
-			using fun_traits_type = function_traits<Callback>;
+			using fun_traits_type = function_traits<std::remove_cv_t<std::remove_reference_t<Callback>>>;
 			derive.template _do_async_call<fun_traits_type::argc>(std::forward<Callback>(fn), timeout,
 				std::move(name), std::forward<Args>(args)...);
 		}
@@ -180,6 +212,17 @@ namespace asio2::detail
 			derive.template _do_async_call<T>(std::forward<Callback>(fn), timeout, std::move(name), std::forward<Args>(args)...);
 		}
 
+		/**
+		 * @function : asynchronous call a rpc function
+		 * Don't care whether the call succeeds
+		 */
+		template<class String, class ...Args>
+		inline typename std::enable_if_t<!is_callable_v<String>, void>
+		async_call(String&& name, Args&&... args)
+		{
+			derive._do_async_call(to_string(std::forward<String>(name)), std::forward<Args>(args)...);
+		}
+
 	protected:
 		template<class T, class Rep, class Period, class ...Args>
 		inline T _do_call(error_code& ec, std::chrono::duration<Rep, Period> timeout, std::string name, Args&&... args)
@@ -203,8 +246,15 @@ namespace asio2::detail
 						try
 						{
 							this->dr_ >> ec;
-							if (!ec)
-								this->dr_ >> (*v);
+							if constexpr (!std::is_void_v<T>)
+							{
+								if (!ec)
+									this->dr_ >> (*v);
+							}
+							else
+							{
+								std::ignore = v;
+							}
 						}
 						catch (cereal::exception&) { ec = asio::error::no_data; }
 						catch (system_error & e) { ec = e.code(); }
@@ -301,7 +351,7 @@ namespace asio2::detail
 		typename std::enable_if_t<Argc == 2>
 			inline _do_async_call(Callback&& fn, std::chrono::duration<Rep, Period> timeout, std::string name, Args&&... args)
 		{
-			using fun_traits_type = function_traits<Callback>;
+			using fun_traits_type = function_traits<std::remove_cv_t<std::remove_reference_t<Callback>>>;
 			using return_type = typename fun_traits_type::template args<1>::type;
 			derive.template _do_async_call<return_type>(std::forward<Callback>(fn), timeout, std::move(name), std::forward<Args>(args)...);
 		}
@@ -344,8 +394,15 @@ namespace asio2::detail
 					try
 					{
 						this->dr_ >> ec;
-						if (!ec)
-							this->dr_ >> v;
+						if constexpr (!std::is_void_v<T>)
+						{
+							if (!ec)
+								this->dr_ >> v;
+						}
+						else
+						{
+							std::ignore = v;
+						}
 					}
 					catch (cereal::exception&) { ec = asio::error::no_data; }
 					catch (system_error & e) { ec = e.code(); }
@@ -354,9 +411,13 @@ namespace asio2::detail
 				set_last_error(ec);
 
 				if constexpr (std::is_void_v<T>)
+				{
 					fn(ec);
+				}
 				else
+				{
 					fn(ec, std::move(v));
+				}
 
 				this->reqs_.erase(id);
 			};
@@ -396,6 +457,34 @@ namespace asio2::detail
 			set_last_error(ec);
 
 			cb(ec, std::string_view{});
+		}
+
+		template<class ...Args>
+		inline void _do_async_call(std::string name, Args&&... args)
+		{
+			error_code ec;
+
+			try
+			{
+				if (!derive.is_started())
+					asio::detail::throw_error(asio::error::not_connected);
+
+				request<Args...> req(header::id_type(0), std::move(name), std::forward<Args>(args)...);
+
+				auto task = [this, p = derive.selfptr(), req = std::move(req)]() mutable
+				{
+					derive.send((sr_.reset() << req).str());
+				};
+
+				asio::post(this->wio_.strand(), make_allocator(derive.wallocator(), std::move(task)));
+
+				return;
+			}
+			catch (cereal::exception&) { ec = asio::error::no_data; }
+			catch (system_error & e) { ec = e.code(); }
+			catch (std::exception &) { ec = asio::error::eof; }
+
+			set_last_error(ec);
 		}
 
 	protected:

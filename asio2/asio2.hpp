@@ -15,6 +15,15 @@
 #pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
+#if defined(_MSC_VER) && !defined(NOMINMAX)
+#  define ASIO2_NOMINMAX
+#  define NOMINMAX
+#endif
+
+#if defined(_MSC_VER)
+#  pragma warning(push)
+#  pragma warning(disable:4191) // asio inner : from FARPROC to cancel_io_ex_t is unsafe
+#endif
 
 #include <asio2/version.hpp>
 #include <asio2/config.hpp>
@@ -49,5 +58,14 @@
 		#include <asio2/http/httpwss_server.hpp>
 	#endif
 #endif // ASIO_STANDALONE
+
+#if defined(_MSC_VER)
+#  pragma warning(pop)
+#endif
+
+#if defined(_MSC_VER) && defined(NOMINMAX) && defined(ASIO2_NOMINMAX)
+#  undef NOMINMAX
+#  undef ASIO2_NOMINMAX
+#endif
 
 #endif // !__ASIO2_HPP__

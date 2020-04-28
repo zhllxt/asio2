@@ -68,6 +68,151 @@ namespace asio2::detail
 			this->stop();
 		}
 
+	public:
+		/**
+		 * @function : call a rpc function for each session
+		 */
+		template<class T, class Rep, class Period, class ...Args>
+		inline T call(std::chrono::duration<Rep, Period> timeout, const std::string& name, const Args&... args)
+		{
+			this->sessions_.foreach([&](std::shared_ptr<session_type>& session_ptr) mutable
+			{
+				session_ptr->template call<T>(timeout, name, args...);
+			});
+			if constexpr (std::is_void_v<T>)
+				std::ignore = true;
+			else
+				return T{};
+		}
+
+		/**
+		 * @function : call a rpc function for each session
+		 */
+		template<class T, class Rep, class Period, class ...Args>
+		inline T call(error_code& ec, std::chrono::duration<Rep, Period> timeout, std::string name, const Args&... args)
+		{
+			this->sessions_.foreach([&](std::shared_ptr<session_type>& session_ptr) mutable
+			{
+				session_ptr->template call<T>(ec, timeout, name, args...);
+			});
+			if constexpr (std::is_void_v<T>)
+				std::ignore = true;
+			else
+				return T{};
+		}
+
+		/**
+		 * @function : call a rpc function for each session
+		 */
+		template<class T, class ...Args>
+		inline T call(std::string name, const Args&... args)
+		{
+			this->sessions_.foreach([&](std::shared_ptr<session_type>& session_ptr) mutable
+			{
+				session_ptr->template call<T>(name, args...);
+			});
+			if constexpr (std::is_void_v<T>)
+				std::ignore = true;
+			else
+				return T{};
+		}
+
+		/**
+		 * @function : call a rpc function for each session
+		 */
+		template<class T, class ...Args>
+		inline T call(error_code& ec, std::string name, const Args&... args)
+		{
+			this->sessions_.foreach([&](std::shared_ptr<session_type>& session_ptr) mutable
+			{
+				session_ptr->template call<T>(ec, name, args...);
+			});
+			if constexpr (std::is_void_v<T>)
+				std::ignore = true;
+			else
+				return T{};
+		}
+
+		/**
+		 * @function : asynchronous call a rpc function for each session
+		 * Callback signature : void(error_code ec, int result)
+		 * if result type is void, the Callback signature is : void(error_code ec)
+		 * Because the result value type is not specified in the first template parameter,
+		 * so the result value type must be specified in the Callback lambda.
+		 * You must guarantee that the parameter args remain valid until the send operation is called.
+		 */
+		template<class Callback, class ...Args>
+		inline typename std::enable_if_t<is_callable_v<Callback>, void>
+			async_call(const Callback& fn, std::string name, const Args&... args)
+		{
+			this->sessions_.foreach([&](std::shared_ptr<session_type>& session_ptr) mutable
+			{
+				session_ptr->async_call(fn, name, args...);
+			});
+		}
+
+		/**
+		 * @function : asynchronous call a rpc function for each session
+		 * Callback signature : void(error_code ec, int result)
+		 * if result type is void, the Callback signature is : void(error_code ec)
+		 * Because the result value type is not specified in the first template parameter,
+		 * so the result value type must be specified in the Callback lambda
+		 * You must guarantee that the parameter args remain valid until the send operation is called.
+		 */
+		template<class Callback, class Rep, class Period, class ...Args>
+		inline typename std::enable_if_t<is_callable_v<Callback>, void>
+		async_call(const Callback& fn, std::chrono::duration<Rep, Period> timeout, std::string name, const Args&... args)
+		{
+			this->sessions_.foreach([&](std::shared_ptr<session_type>& session_ptr) mutable
+			{
+				session_ptr->async_call(fn, timeout, name, args...);
+			});
+		}
+
+		/**
+		 * @function : asynchronous call a rpc function for each session
+		 * Callback signature : void(error_code ec, T result) the T is the first template parameter.
+		 * if result type is void, the Callback signature is : void(error_code ec)
+		 * You must guarantee that the parameter args remain valid until the send operation is called.
+		 */
+		template<class T, class Callback, class ...Args>
+		inline void async_call(const Callback& fn, std::string name, const Args&... args)
+		{
+			this->sessions_.foreach([&](std::shared_ptr<session_type>& session_ptr) mutable
+			{
+				session_ptr->template async_call<T>(fn, name, args...);
+			});
+		}
+
+		/**
+		 * @function : asynchronous call a rpc function for each session
+		 * Callback signature : void(error_code ec, T result) the T is the first template parameter.
+		 * if result type is void, the Callback signature is : void(error_code ec)
+		 * You must guarantee that the parameter args remain valid until the send operation is called.
+		 */
+		template<class T, class Callback, class Rep, class Period, class ...Args>
+		inline void async_call(const Callback& fn, std::chrono::duration<Rep, Period> timeout, std::string name, const Args&... args)
+		{
+			this->sessions_.foreach([&](std::shared_ptr<session_type>& session_ptr) mutable
+			{
+				session_ptr->template async_call<T>(fn, timeout, name, args...);
+			});
+		}
+
+		/**
+		 * @function : asynchronous call a rpc function for each session
+		 * Don't care whether the call succeeds
+		 */
+		template<class String, class ...Args>
+		inline typename std::enable_if_t<!is_callable_v<String>, void>
+		async_call(const String& name, const Args&... args)
+		{
+			this->sessions_.foreach([&](std::shared_ptr<session_type>& session_ptr) mutable
+			{
+				session_ptr->async_call(name, args...);
+			});
+		}
+
 	protected:
 		template<typename... Args>
 		inline std::shared_ptr<session_type> _make_session(Args&&... args)

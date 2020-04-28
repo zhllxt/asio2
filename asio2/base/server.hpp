@@ -131,9 +131,9 @@ namespace asio2::detail
 		 * std::basic_string<Elem, Traits, Allocator> : std::string m; send(m);
 		 */
 		template<class T>
-		inline derived_t & send(T&& data)
+		inline derived_t & send(const T& data)
 		{
-			this->sessions_.foreach([&data](std::shared_ptr<session_t>& session_ptr)
+			this->sessions_.foreach([&data](std::shared_ptr<session_t>& session_ptr) mutable
 			{
 				session_ptr->send(data);
 			});

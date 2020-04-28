@@ -88,7 +88,7 @@ namespace asio2::detail
 	protected:
 		virtual std::streamsize xsgetn(char_type* s, std::streamsize count) override
 		{
-			if (std::streamsize(this->egptr() - this->gptr()) < count)
+			if (this->in_avail() < count)
 				return std::streamsize(0);
 
 			std::memcpy((void*)s, (const void*)(this->gptr()), size_type(count));

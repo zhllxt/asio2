@@ -88,10 +88,27 @@ namespace asio2::detail
 	template<class ...Args>
 	class request : public header
 	{
+	protected:
+		template<class T>
+		struct result_t
+		{
+			// if the parameters of rpc calling is raw pointer like char* , must convert it to std::string
+			// if the parameters of rpc calling is refrence like std::string& , must remove it's refrence to std::string
+			using ptype = std::remove_cv_t<std::remove_reference_t<T>>;
+			using ctype = std::remove_all_extents_t<std::remove_pointer_t<ptype>>;
+			using type = std::conditional_t<(std::is_pointer_v<ptype> || std::is_array_v<ptype>) && (
+				std::is_same_v<ctype, std::string::value_type> ||
+				std::is_same_v<ctype, std::wstring::value_type> ||
+				std::is_same_v<ctype, std::u16string::value_type> ||
+				std::is_same_v<ctype, std::u32string::value_type>)
+				, std::basic_string<ctype>
+				, std::remove_reference_t<T>>;
+		};
+
 	public:
 		request() : header() { this->type_ = rpc_type_req; }
 		request(id_type id, std::string_view name, Args&&... args)
-			: header(rpc_type_req, id, name), tp_(std::forward_as_tuple(std::forward<Args>(args)...)) {}
+			: header(rpc_type_req, id, name), tp_(std::forward_as_tuple(std::forward<typename result_t<Args>::type>(args)...)) {}
 		~request() = default;
 
 		request(const request& r) : header(r), tp_(r.tp_) {}
@@ -118,7 +135,7 @@ namespace asio2::detail
 		}
 
 	protected:
-		std::tuple<Args...> tp_;
+		std::tuple<typename result_t<Args>::type...> tp_;
 	};
 
 	template<class T>

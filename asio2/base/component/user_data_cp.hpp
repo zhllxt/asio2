@@ -46,16 +46,20 @@ namespace asio2::detail
 
 		/**
 		 * @function : get user data
+		 * example : MyStruct my = user_data<MyStruct>(); MyStruct* my = user_data<MyStruct*>();
 		 */
 		template<class DataT>
 		inline DataT user_data()
 		{
 			try
 			{
-				return std::any_cast<DataT>(this->user_data_);
+				if constexpr (std::is_pointer_v<DataT>)
+					return std::any_cast<std::remove_pointer_t<DataT>>(&(this->user_data_));
+				else
+					return std::any_cast<DataT>(this->user_data_);
 			}
 			catch (const std::bad_any_cast&) {}
-			return DataT();
+			return DataT{};
 		}
 
 	protected:

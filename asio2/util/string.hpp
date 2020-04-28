@@ -23,6 +23,8 @@
 #include <cstring>
 
 #include <string>
+#include <string_view>
+#include <vector>
 #include <type_traits>
 
 #ifdef _MSC_VER
@@ -214,6 +216,25 @@ namespace asio2
 		trim_left(s);
 		trim_right(s);
 		return s;
+	}
+
+	/**
+	 * @function : Splits the string into multiple strings with the specified delimiters
+	 */
+	template<class String, class Delimiter>
+	inline std::vector<String> split(const String& s, const Delimiter& delimiters = " ")
+	{
+		using size_type = typename String::size_type;
+		std::vector<String> tokens;
+		size_type last_pos = s.find_first_not_of(delimiters, 0);
+		size_type pos = s.find_first_of(delimiters, last_pos);
+		while (String::npos != pos || String::npos != last_pos)
+		{
+			tokens.emplace_back(s.substr(last_pos, pos - last_pos));
+			last_pos = s.find_first_not_of(delimiters, pos);
+			pos = s.find_first_of(delimiters, last_pos);
+		}
+		return tokens;
 	}
 }
 

@@ -1,5 +1,5 @@
 /*
- * COPYRIGHT (C) 2017-2019, zhllxt
+ * COPYRIGHT (C) 2017-2020, zhllxt
  *
  * author   : zhllxt
  * email    : 37792738@qq.com
@@ -7,7 +7,7 @@
  * Distributed under the GNU GENERAL PUBLIC LICENSE Version 3, 29 June 2007
  * (See accompanying file LICENSE or see <http://www.gnu.org/licenses/>)
  *
- * code come from : @github https://github.com/JieweiWei
+ * code come from : boost/uuid/detail/md5.hpp
  */
 
 #ifndef __ASIO2_MD5_IMPL_HPP__
@@ -23,335 +23,360 @@
 
 #include <string>
 
-	/* Parameters of MD5. */
-	#define MD5_S11 7
-	#define MD5_S12 12
-	#define MD5_S13 17
-	#define MD5_S14 22
-	#define MD5_S21 5
-	#define MD5_S22 9
-	#define MD5_S23 14
-	#define MD5_S24 20
-	#define MD5_S31 4
-	#define MD5_S32 11
-	#define MD5_S33 16
-	#define MD5_S34 23
-	#define MD5_S41 6
-	#define MD5_S42 10
-	#define MD5_S43 15
-	#define MD5_S44 21
-
-	/**
-	 * @Basic MD5 functions.
-	 *
-	 * @param there unsigned int.
-	 *
-	 * @return one unsigned int.
-	 */
-	#define MD5_F(x, y, z) (((x) & (y)) | ((~x) & (z)))
-	#define MD5_G(x, y, z) (((x) & (z)) | ((y) & (~z)))
-	#define MD5_H(x, y, z) ((x) ^ (y) ^ (z))
-	#define MD5_I(x, y, z) ((y) ^ ((x) | (~z)))
-
-	/**
-	 * @Rotate Left.
-	 *
-	 * @param {num} the raw number.
-	 *
-	 * @param {n} rotate left n.
-	 *
-	 * @return the number after rotated left.
-	 */
-	#define MD5_ROTATELEFT(num, n) (((num) << (n)) | ((num) >> (32-(n))))
-
-	/**
-	 * @Transformations for rounds 1, 2, 3, and 4.
-	 */
-	#define MD5_FF(a, b, c, d, x, s, ac) { \
-	  (a) += MD5_F ((b), (c), (d)) + (x) + ac; \
-	  (a) = MD5_ROTATELEFT ((a), (s)); \
-	  (a) += (b); \
-	}
-	#define MD5_GG(a, b, c, d, x, s, ac) { \
-	  (a) += MD5_G ((b), (c), (d)) + (x) + ac; \
-	  (a) = MD5_ROTATELEFT ((a), (s)); \
-	  (a) += (b); \
-	}
-	#define MD5_HH(a, b, c, d, x, s, ac) { \
-	  (a) += MD5_H ((b), (c), (d)) + (x) + ac; \
-	  (a) = MD5_ROTATELEFT ((a), (s)); \
-	  (a) += (b); \
-	}
-	#define MD5_II(a, b, c, d, x, s, ac) { \
-	  (a) += MD5_I ((b), (c), (d)) + (x) + ac; \
-	  (a) = MD5_ROTATELEFT ((a), (s)); \
-	  (a) += (b); \
-	}
-
+namespace asio2
+{
 	class md5
 	{
 	public:
+		md5()
+		{
+			MD5_Init(&ctx_);
+		}
+
 		/**
 		 * @construct Construct a MD5 object with a std::string.
 		 */
-		md5(const std::string & message)
+		md5(const std::string & message) : md5()
 		{
-			/* Initialization the object according to message. */
-			this->init((const unsigned char*)message.data(), message.length());
+			MD5_Update(&ctx_, (const void*)message.data(), static_cast<unsigned long>(message.length()));
 		}
 
 		/**
 		 * @construct Construct a MD5 object with a char pointer.
 		 */
-		md5(const char * message)
+		md5(const char * message) : md5()
 		{
-			/* Initialization the object according to message. */
-			this->init((const unsigned char*)message, std::strlen(message));
+			MD5_Update(&ctx_, (const void*)message, static_cast<unsigned long>(std::strlen(message)));
 		}
 
 		/**
 		 * @construct Construct a MD5 object with a unsigned char pointer.
 		 */
-		md5(const unsigned char * message, size_t size)
+		md5(const void * message, std::size_t size) : md5()
 		{
-			/* Initialization the object according to message. */
-			this->init(message, size);
-		}
-
-		/**
-		 * @destruct
-		 */
-		virtual ~md5()
-		{
-		}
-
-		/* Generate md5 digest. */
-		const unsigned char* get_digest()
-		{
-			if (!finished)
-			{
-				finished = true;
-
-				unsigned char bits[8];
-				unsigned int oldState[4];
-				unsigned int oldCount[2];
-				unsigned int index, padLen;
-
-				/* Save current state and count. */
-				std::memcpy(oldState, state, 16);
-				std::memcpy(oldCount, count, 8);
-
-				/* Save number of bits */
-				encode(count, bits, 8);
-
-				/* Pad out to 56 mod 64. */
-				index = (unsigned int)((count[0] >> 3) & 0x3f);
-				padLen = (index < 56) ? (56 - index) : (120 - index);
-				this->init(PADDING, padLen);
-
-				/* Append length (before padding) */
-				this->init(bits, 8);
-
-				/* Store state in digest */
-				encode(state, digest, 16);
-
-				/* Restore current state and count. */
-				std::memcpy(state, oldState, 16);
-				std::memcpy(count, oldCount, 8);
-			}
-			return digest;
+			MD5_Update(&ctx_, message, static_cast<unsigned long>(size));
 		}
 
 		/* Convert digest to std::string value */
-		std::string str()
+		std::string str(bool upper = false)
 		{
-			const unsigned char* digest_ = get_digest();
+			/* Hex numbers. */
+			char hex_upper[16] = {
+				'0', '1', '2', '3',
+				'4', '5', '6', '7',
+				'8', '9', 'a', 'b',
+				'c', 'd', 'e', 'f'
+			};
+			char hex_lower[16] = {
+				'0', '1', '2', '3',
+				'4', '5', '6', '7',
+				'8', '9', 'a', 'b',
+				'c', 'd', 'e', 'f'
+			};
+
+			std::uint8_t digest[16];
+			get_digest(digest);
 			std::string str;
 			str.reserve(16 << 1);
-			for (size_t i = 0; i < 16; ++i)
+			for (std::size_t i = 0; i < 16; ++i)
 			{
-				int t = digest_[i];
+				int t = digest[i];
 				int a = t / 16;
 				int b = t % 16;
-				str.append(1, HEX_NUMBERS[a]);
-				str.append(1, HEX_NUMBERS[b]);
+				str.append(1, upper ? hex_upper[a] : hex_lower[a]);
+				str.append(1, upper ? hex_upper[b] : hex_lower[b]);
 			}
 			return str;
 		}
 
-	private:
-		/* Initialization the md5 object, processing another message block,
-		 * and updating the context.*/
-		void init(const unsigned char* input, size_t len)
+		void process_byte(unsigned char byte)
 		{
-			unsigned int i, index, partLen;
+			MD5_Update(&ctx_, &byte, 1);
+		}
 
-			finished = false;
+		void process_bytes(void const* buffer, std::size_t byte_count)
+		{
+			MD5_Update(&ctx_, buffer, static_cast<unsigned long>(byte_count));
+		}
 
-			/* Compute number of bytes mod 64 */
-			index = (unsigned int)((count[0] >> 3) & 0x3f);
+		void get_digest(std::uint8_t digest[16])
+		{
+			MD5_Final(reinterpret_cast<unsigned char *>(&digest[0]), &ctx_);
+		}
 
-			/* update number of bits */
-			if ((count[0] += ((unsigned int)len << 3)) < ((unsigned int)len << 3)) {
-				++count[1];
-			}
-			count[1] += ((unsigned int)len >> 29);
+		unsigned char get_version() const
+		{
+			// RFC 4122 Section 4.1.3
+			//return uuid::version_name_based_md5;
+			return static_cast<unsigned char>(3);
+		}
 
-			partLen = 64 - index;
+	private:
 
-			/* transform as many times as possible. */
-			if (len >= partLen) {
+		/* Any 32-bit or wider unsigned integer data type will do */
+		typedef uint32_t MD5_u32plus;
 
-				std::memcpy(&buffer[index], input, partLen);
-				transform(buffer);
+		typedef struct {
+			MD5_u32plus lo, hi;
+			MD5_u32plus a, b, c, d;
+			unsigned char buffer[64];
+			MD5_u32plus block[16];
+		} MD5_CTX;
 
-				for (i = partLen; i + 63 < len; i += 64) {
-					transform(&input[i]);
+		/*
+		 * The basic MD5 functions.
+		 *
+		 * F and G are optimized compared to their RFC 1321 definitions for
+		 * architectures that lack an AND-NOT instruction, just like in Colin Plumb's
+		 * implementation.
+		 */
+		inline MD5_u32plus BOOST_UUID_DETAIL_MD5_F(MD5_u32plus x, MD5_u32plus y, MD5_u32plus z) { return ((z) ^ ((x) & ((y) ^ (z)))); }
+		inline MD5_u32plus BOOST_UUID_DETAIL_MD5_G(MD5_u32plus x, MD5_u32plus y, MD5_u32plus z) { return ((y) ^ ((z) & ((x) ^ (y)))); }
+		inline MD5_u32plus BOOST_UUID_DETAIL_MD5_H(MD5_u32plus x, MD5_u32plus y, MD5_u32plus z) { return (((x) ^ (y)) ^ (z)); }
+		inline MD5_u32plus BOOST_UUID_DETAIL_MD5_H2(MD5_u32plus x, MD5_u32plus y, MD5_u32plus z) { return ((x) ^ ((y) ^ (z))); }
+		inline MD5_u32plus BOOST_UUID_DETAIL_MD5_I(MD5_u32plus x, MD5_u32plus y, MD5_u32plus z) { return ((y) ^ ((x) | ~(z))); }
+
+		/*
+		 * The MD5 transformation for all four rounds.
+		 */
+#define BOOST_UUID_DETAIL_MD5_STEP(f, a, b, c, d, x, t, s) \
+        (a) += f((b), (c), (d)) + (x) + (t); \
+        (a) = (((a) << (s)) | (((a) & 0xffffffff) >> (32 - (s)))); \
+        (a) += (b);
+
+		 /*
+		  * SET reads 4 input bytes in little-endian byte order and stores them in a
+		  * properly aligned word in host byte order.
+		  *
+		  * The check for little-endian architectures that tolerate unaligned memory
+		  * accesses is just an optimization.  Nothing will break if it fails to detect
+		  * a suitable architecture.
+		  *
+		  * Unfortunately, this optimization may be a C strict aliasing rules violation
+		  * if the caller's data buffer has effective type that cannot be aliased by
+		  * MD5_u32plus.  In practice, this problem may occur if these MD5 routines are
+		  * inlined into a calling function, or with future and dangerously advanced
+		  * link-time optimizations.  For the time being, keeping these MD5 routines in
+		  * their own translation unit avoids the problem.
+		  */
+#if defined(__i386__) || defined(__x86_64__) || defined(__vax__)
+#define BOOST_UUID_DETAIL_MD5_SET(n) \
+        (*(MD5_u32plus *)&ptr[(n) * 4])
+#define BOOST_UUID_DETAIL_MD5_GET(n) \
+        BOOST_UUID_DETAIL_MD5_SET(n)
+#else
+#define BOOST_UUID_DETAIL_MD5_SET(n) \
+        (ctx->block[(n)] = \
+        (MD5_u32plus)ptr[(n) * 4] | \
+        ((MD5_u32plus)ptr[(n) * 4 + 1] << 8) | \
+        ((MD5_u32plus)ptr[(n) * 4 + 2] << 16) | \
+        ((MD5_u32plus)ptr[(n) * 4 + 3] << 24))
+#define BOOST_UUID_DETAIL_MD5_GET(n) \
+        (ctx->block[(n)])
+#endif
+
+		  /*
+		   * This processes one or more 64-byte data blocks, but does NOT update the bit
+		   * counters.  There are no alignment requirements.
+		   */
+		const void *body(MD5_CTX *ctx, const void *data, unsigned long size)
+		{
+			const unsigned char *ptr;
+			MD5_u32plus a, b, c, d;
+			MD5_u32plus saved_a, saved_b, saved_c, saved_d;
+
+			ptr = (const unsigned char *)data;
+
+			a = ctx->a;
+			b = ctx->b;
+			c = ctx->c;
+			d = ctx->d;
+
+			do {
+				saved_a = a;
+				saved_b = b;
+				saved_c = c;
+				saved_d = d;
+
+				/* Round 1 */
+				BOOST_UUID_DETAIL_MD5_STEP(BOOST_UUID_DETAIL_MD5_F, a, b, c, d, BOOST_UUID_DETAIL_MD5_SET(0), 0xd76aa478, 7)
+					BOOST_UUID_DETAIL_MD5_STEP(BOOST_UUID_DETAIL_MD5_F, d, a, b, c, BOOST_UUID_DETAIL_MD5_SET(1), 0xe8c7b756, 12)
+					BOOST_UUID_DETAIL_MD5_STEP(BOOST_UUID_DETAIL_MD5_F, c, d, a, b, BOOST_UUID_DETAIL_MD5_SET(2), 0x242070db, 17)
+					BOOST_UUID_DETAIL_MD5_STEP(BOOST_UUID_DETAIL_MD5_F, b, c, d, a, BOOST_UUID_DETAIL_MD5_SET(3), 0xc1bdceee, 22)
+					BOOST_UUID_DETAIL_MD5_STEP(BOOST_UUID_DETAIL_MD5_F, a, b, c, d, BOOST_UUID_DETAIL_MD5_SET(4), 0xf57c0faf, 7)
+					BOOST_UUID_DETAIL_MD5_STEP(BOOST_UUID_DETAIL_MD5_F, d, a, b, c, BOOST_UUID_DETAIL_MD5_SET(5), 0x4787c62a, 12)
+					BOOST_UUID_DETAIL_MD5_STEP(BOOST_UUID_DETAIL_MD5_F, c, d, a, b, BOOST_UUID_DETAIL_MD5_SET(6), 0xa8304613, 17)
+					BOOST_UUID_DETAIL_MD5_STEP(BOOST_UUID_DETAIL_MD5_F, b, c, d, a, BOOST_UUID_DETAIL_MD5_SET(7), 0xfd469501, 22)
+					BOOST_UUID_DETAIL_MD5_STEP(BOOST_UUID_DETAIL_MD5_F, a, b, c, d, BOOST_UUID_DETAIL_MD5_SET(8), 0x698098d8, 7)
+					BOOST_UUID_DETAIL_MD5_STEP(BOOST_UUID_DETAIL_MD5_F, d, a, b, c, BOOST_UUID_DETAIL_MD5_SET(9), 0x8b44f7af, 12)
+					BOOST_UUID_DETAIL_MD5_STEP(BOOST_UUID_DETAIL_MD5_F, c, d, a, b, BOOST_UUID_DETAIL_MD5_SET(10), 0xffff5bb1, 17)
+					BOOST_UUID_DETAIL_MD5_STEP(BOOST_UUID_DETAIL_MD5_F, b, c, d, a, BOOST_UUID_DETAIL_MD5_SET(11), 0x895cd7be, 22)
+					BOOST_UUID_DETAIL_MD5_STEP(BOOST_UUID_DETAIL_MD5_F, a, b, c, d, BOOST_UUID_DETAIL_MD5_SET(12), 0x6b901122, 7)
+					BOOST_UUID_DETAIL_MD5_STEP(BOOST_UUID_DETAIL_MD5_F, d, a, b, c, BOOST_UUID_DETAIL_MD5_SET(13), 0xfd987193, 12)
+					BOOST_UUID_DETAIL_MD5_STEP(BOOST_UUID_DETAIL_MD5_F, c, d, a, b, BOOST_UUID_DETAIL_MD5_SET(14), 0xa679438e, 17)
+					BOOST_UUID_DETAIL_MD5_STEP(BOOST_UUID_DETAIL_MD5_F, b, c, d, a, BOOST_UUID_DETAIL_MD5_SET(15), 0x49b40821, 22)
+
+					/* Round 2 */
+					BOOST_UUID_DETAIL_MD5_STEP(BOOST_UUID_DETAIL_MD5_G, a, b, c, d, BOOST_UUID_DETAIL_MD5_GET(1), 0xf61e2562, 5)
+					BOOST_UUID_DETAIL_MD5_STEP(BOOST_UUID_DETAIL_MD5_G, d, a, b, c, BOOST_UUID_DETAIL_MD5_GET(6), 0xc040b340, 9)
+					BOOST_UUID_DETAIL_MD5_STEP(BOOST_UUID_DETAIL_MD5_G, c, d, a, b, BOOST_UUID_DETAIL_MD5_GET(11), 0x265e5a51, 14)
+					BOOST_UUID_DETAIL_MD5_STEP(BOOST_UUID_DETAIL_MD5_G, b, c, d, a, BOOST_UUID_DETAIL_MD5_GET(0), 0xe9b6c7aa, 20)
+					BOOST_UUID_DETAIL_MD5_STEP(BOOST_UUID_DETAIL_MD5_G, a, b, c, d, BOOST_UUID_DETAIL_MD5_GET(5), 0xd62f105d, 5)
+					BOOST_UUID_DETAIL_MD5_STEP(BOOST_UUID_DETAIL_MD5_G, d, a, b, c, BOOST_UUID_DETAIL_MD5_GET(10), 0x02441453, 9)
+					BOOST_UUID_DETAIL_MD5_STEP(BOOST_UUID_DETAIL_MD5_G, c, d, a, b, BOOST_UUID_DETAIL_MD5_GET(15), 0xd8a1e681, 14)
+					BOOST_UUID_DETAIL_MD5_STEP(BOOST_UUID_DETAIL_MD5_G, b, c, d, a, BOOST_UUID_DETAIL_MD5_GET(4), 0xe7d3fbc8, 20)
+					BOOST_UUID_DETAIL_MD5_STEP(BOOST_UUID_DETAIL_MD5_G, a, b, c, d, BOOST_UUID_DETAIL_MD5_GET(9), 0x21e1cde6, 5)
+					BOOST_UUID_DETAIL_MD5_STEP(BOOST_UUID_DETAIL_MD5_G, d, a, b, c, BOOST_UUID_DETAIL_MD5_GET(14), 0xc33707d6, 9)
+					BOOST_UUID_DETAIL_MD5_STEP(BOOST_UUID_DETAIL_MD5_G, c, d, a, b, BOOST_UUID_DETAIL_MD5_GET(3), 0xf4d50d87, 14)
+					BOOST_UUID_DETAIL_MD5_STEP(BOOST_UUID_DETAIL_MD5_G, b, c, d, a, BOOST_UUID_DETAIL_MD5_GET(8), 0x455a14ed, 20)
+					BOOST_UUID_DETAIL_MD5_STEP(BOOST_UUID_DETAIL_MD5_G, a, b, c, d, BOOST_UUID_DETAIL_MD5_GET(13), 0xa9e3e905, 5)
+					BOOST_UUID_DETAIL_MD5_STEP(BOOST_UUID_DETAIL_MD5_G, d, a, b, c, BOOST_UUID_DETAIL_MD5_GET(2), 0xfcefa3f8, 9)
+					BOOST_UUID_DETAIL_MD5_STEP(BOOST_UUID_DETAIL_MD5_G, c, d, a, b, BOOST_UUID_DETAIL_MD5_GET(7), 0x676f02d9, 14)
+					BOOST_UUID_DETAIL_MD5_STEP(BOOST_UUID_DETAIL_MD5_G, b, c, d, a, BOOST_UUID_DETAIL_MD5_GET(12), 0x8d2a4c8a, 20)
+
+					/* Round 3 */
+					BOOST_UUID_DETAIL_MD5_STEP(BOOST_UUID_DETAIL_MD5_H, a, b, c, d, BOOST_UUID_DETAIL_MD5_GET(5), 0xfffa3942, 4)
+					BOOST_UUID_DETAIL_MD5_STEP(BOOST_UUID_DETAIL_MD5_H2, d, a, b, c, BOOST_UUID_DETAIL_MD5_GET(8), 0x8771f681, 11)
+					BOOST_UUID_DETAIL_MD5_STEP(BOOST_UUID_DETAIL_MD5_H, c, d, a, b, BOOST_UUID_DETAIL_MD5_GET(11), 0x6d9d6122, 16)
+					BOOST_UUID_DETAIL_MD5_STEP(BOOST_UUID_DETAIL_MD5_H2, b, c, d, a, BOOST_UUID_DETAIL_MD5_GET(14), 0xfde5380c, 23)
+					BOOST_UUID_DETAIL_MD5_STEP(BOOST_UUID_DETAIL_MD5_H, a, b, c, d, BOOST_UUID_DETAIL_MD5_GET(1), 0xa4beea44, 4)
+					BOOST_UUID_DETAIL_MD5_STEP(BOOST_UUID_DETAIL_MD5_H2, d, a, b, c, BOOST_UUID_DETAIL_MD5_GET(4), 0x4bdecfa9, 11)
+					BOOST_UUID_DETAIL_MD5_STEP(BOOST_UUID_DETAIL_MD5_H, c, d, a, b, BOOST_UUID_DETAIL_MD5_GET(7), 0xf6bb4b60, 16)
+					BOOST_UUID_DETAIL_MD5_STEP(BOOST_UUID_DETAIL_MD5_H2, b, c, d, a, BOOST_UUID_DETAIL_MD5_GET(10), 0xbebfbc70, 23)
+					BOOST_UUID_DETAIL_MD5_STEP(BOOST_UUID_DETAIL_MD5_H, a, b, c, d, BOOST_UUID_DETAIL_MD5_GET(13), 0x289b7ec6, 4)
+					BOOST_UUID_DETAIL_MD5_STEP(BOOST_UUID_DETAIL_MD5_H2, d, a, b, c, BOOST_UUID_DETAIL_MD5_GET(0), 0xeaa127fa, 11)
+					BOOST_UUID_DETAIL_MD5_STEP(BOOST_UUID_DETAIL_MD5_H, c, d, a, b, BOOST_UUID_DETAIL_MD5_GET(3), 0xd4ef3085, 16)
+					BOOST_UUID_DETAIL_MD5_STEP(BOOST_UUID_DETAIL_MD5_H2, b, c, d, a, BOOST_UUID_DETAIL_MD5_GET(6), 0x04881d05, 23)
+					BOOST_UUID_DETAIL_MD5_STEP(BOOST_UUID_DETAIL_MD5_H, a, b, c, d, BOOST_UUID_DETAIL_MD5_GET(9), 0xd9d4d039, 4)
+					BOOST_UUID_DETAIL_MD5_STEP(BOOST_UUID_DETAIL_MD5_H2, d, a, b, c, BOOST_UUID_DETAIL_MD5_GET(12), 0xe6db99e5, 11)
+					BOOST_UUID_DETAIL_MD5_STEP(BOOST_UUID_DETAIL_MD5_H, c, d, a, b, BOOST_UUID_DETAIL_MD5_GET(15), 0x1fa27cf8, 16)
+					BOOST_UUID_DETAIL_MD5_STEP(BOOST_UUID_DETAIL_MD5_H2, b, c, d, a, BOOST_UUID_DETAIL_MD5_GET(2), 0xc4ac5665, 23)
+
+					/* Round 4 */
+					BOOST_UUID_DETAIL_MD5_STEP(BOOST_UUID_DETAIL_MD5_I, a, b, c, d, BOOST_UUID_DETAIL_MD5_GET(0), 0xf4292244, 6)
+					BOOST_UUID_DETAIL_MD5_STEP(BOOST_UUID_DETAIL_MD5_I, d, a, b, c, BOOST_UUID_DETAIL_MD5_GET(7), 0x432aff97, 10)
+					BOOST_UUID_DETAIL_MD5_STEP(BOOST_UUID_DETAIL_MD5_I, c, d, a, b, BOOST_UUID_DETAIL_MD5_GET(14), 0xab9423a7, 15)
+					BOOST_UUID_DETAIL_MD5_STEP(BOOST_UUID_DETAIL_MD5_I, b, c, d, a, BOOST_UUID_DETAIL_MD5_GET(5), 0xfc93a039, 21)
+					BOOST_UUID_DETAIL_MD5_STEP(BOOST_UUID_DETAIL_MD5_I, a, b, c, d, BOOST_UUID_DETAIL_MD5_GET(12), 0x655b59c3, 6)
+					BOOST_UUID_DETAIL_MD5_STEP(BOOST_UUID_DETAIL_MD5_I, d, a, b, c, BOOST_UUID_DETAIL_MD5_GET(3), 0x8f0ccc92, 10)
+					BOOST_UUID_DETAIL_MD5_STEP(BOOST_UUID_DETAIL_MD5_I, c, d, a, b, BOOST_UUID_DETAIL_MD5_GET(10), 0xffeff47d, 15)
+					BOOST_UUID_DETAIL_MD5_STEP(BOOST_UUID_DETAIL_MD5_I, b, c, d, a, BOOST_UUID_DETAIL_MD5_GET(1), 0x85845dd1, 21)
+					BOOST_UUID_DETAIL_MD5_STEP(BOOST_UUID_DETAIL_MD5_I, a, b, c, d, BOOST_UUID_DETAIL_MD5_GET(8), 0x6fa87e4f, 6)
+					BOOST_UUID_DETAIL_MD5_STEP(BOOST_UUID_DETAIL_MD5_I, d, a, b, c, BOOST_UUID_DETAIL_MD5_GET(15), 0xfe2ce6e0, 10)
+					BOOST_UUID_DETAIL_MD5_STEP(BOOST_UUID_DETAIL_MD5_I, c, d, a, b, BOOST_UUID_DETAIL_MD5_GET(6), 0xa3014314, 15)
+					BOOST_UUID_DETAIL_MD5_STEP(BOOST_UUID_DETAIL_MD5_I, b, c, d, a, BOOST_UUID_DETAIL_MD5_GET(13), 0x4e0811a1, 21)
+					BOOST_UUID_DETAIL_MD5_STEP(BOOST_UUID_DETAIL_MD5_I, a, b, c, d, BOOST_UUID_DETAIL_MD5_GET(4), 0xf7537e82, 6)
+					BOOST_UUID_DETAIL_MD5_STEP(BOOST_UUID_DETAIL_MD5_I, d, a, b, c, BOOST_UUID_DETAIL_MD5_GET(11), 0xbd3af235, 10)
+					BOOST_UUID_DETAIL_MD5_STEP(BOOST_UUID_DETAIL_MD5_I, c, d, a, b, BOOST_UUID_DETAIL_MD5_GET(2), 0x2ad7d2bb, 15)
+					BOOST_UUID_DETAIL_MD5_STEP(BOOST_UUID_DETAIL_MD5_I, b, c, d, a, BOOST_UUID_DETAIL_MD5_GET(9), 0xeb86d391, 21)
+
+					a += saved_a;
+				b += saved_b;
+				c += saved_c;
+				d += saved_d;
+
+				ptr += 64;
+			} while (size -= 64);
+
+			ctx->a = a;
+			ctx->b = b;
+			ctx->c = c;
+			ctx->d = d;
+
+			return ptr;
+		}
+
+		void MD5_Init(MD5_CTX *ctx)
+		{
+			ctx->a = 0x67452301;
+			ctx->b = 0xefcdab89;
+			ctx->c = 0x98badcfe;
+			ctx->d = 0x10325476;
+
+			ctx->lo = 0;
+			ctx->hi = 0;
+		}
+
+		void MD5_Update(MD5_CTX *ctx, const void *data, unsigned long size)
+		{
+			MD5_u32plus saved_lo;
+			unsigned long used, available;
+
+			saved_lo = ctx->lo;
+			if ((ctx->lo = (saved_lo + size) & 0x1fffffff) < saved_lo)
+				ctx->hi++;
+			ctx->hi += size >> 29;
+
+			used = saved_lo & 0x3f;
+
+			if (used) {
+				available = 64 - used;
+
+				if (size < available) {
+					memcpy(&ctx->buffer[used], data, size);
+					return;
 				}
-				index = 0;
 
-			}
-			else {
-				i = 0;
+				memcpy(&ctx->buffer[used], data, available);
+				data = (const unsigned char *)data + available;
+				size -= available;
+				body(ctx, ctx->buffer, 64);
 			}
 
-			/* Buffer remaining input */
-			std::memcpy(&buffer[index], &input[i], len - i);
+			if (size >= 64) {
+				data = body(ctx, data, size & ~(unsigned long)0x3f);
+				size &= 0x3f;
+			}
+
+			memcpy(ctx->buffer, data, size);
 		}
 
-		/* MD5 basic transformation. Transforms state based on block. */
-		void transform(const unsigned char block[64])
+#define BOOST_UUID_DETAIL_MD5_OUT(dst, src) \
+        (dst)[0] = (unsigned char)(src); \
+        (dst)[1] = (unsigned char)((src) >> 8); \
+        (dst)[2] = (unsigned char)((src) >> 16); \
+        (dst)[3] = (unsigned char)((src) >> 24);
+
+		void MD5_Final(unsigned char *result, MD5_CTX *ctx)
 		{
+			unsigned long used, available;
 
-			unsigned int a = state[0], b = state[1], c = state[2], d = state[3], x[16];
+			used = ctx->lo & 0x3f;
 
-			decode(block, x, 64);
+			ctx->buffer[used++] = 0x80;
 
-			/* Round 1 */
-			MD5_FF(a, b, c, d, x[0], MD5_S11, 0xd76aa478);
-			MD5_FF(d, a, b, c, x[1], MD5_S12, 0xe8c7b756);
-			MD5_FF(c, d, a, b, x[2], MD5_S13, 0x242070db);
-			MD5_FF(b, c, d, a, x[3], MD5_S14, 0xc1bdceee);
-			MD5_FF(a, b, c, d, x[4], MD5_S11, 0xf57c0faf);
-			MD5_FF(d, a, b, c, x[5], MD5_S12, 0x4787c62a);
-			MD5_FF(c, d, a, b, x[6], MD5_S13, 0xa8304613);
-			MD5_FF(b, c, d, a, x[7], MD5_S14, 0xfd469501);
-			MD5_FF(a, b, c, d, x[8], MD5_S11, 0x698098d8);
-			MD5_FF(d, a, b, c, x[9], MD5_S12, 0x8b44f7af);
-			MD5_FF(c, d, a, b, x[10], MD5_S13, 0xffff5bb1);
-			MD5_FF(b, c, d, a, x[11], MD5_S14, 0x895cd7be);
-			MD5_FF(a, b, c, d, x[12], MD5_S11, 0x6b901122);
-			MD5_FF(d, a, b, c, x[13], MD5_S12, 0xfd987193);
-			MD5_FF(c, d, a, b, x[14], MD5_S13, 0xa679438e);
-			MD5_FF(b, c, d, a, x[15], MD5_S14, 0x49b40821);
+			available = 64 - used;
 
-			/* Round 2 */
-			MD5_GG(a, b, c, d, x[1], MD5_S21, 0xf61e2562);
-			MD5_GG(d, a, b, c, x[6], MD5_S22, 0xc040b340);
-			MD5_GG(c, d, a, b, x[11], MD5_S23, 0x265e5a51);
-			MD5_GG(b, c, d, a, x[0], MD5_S24, 0xe9b6c7aa);
-			MD5_GG(a, b, c, d, x[5], MD5_S21, 0xd62f105d);
-			MD5_GG(d, a, b, c, x[10], MD5_S22, 0x2441453);
-			MD5_GG(c, d, a, b, x[15], MD5_S23, 0xd8a1e681);
-			MD5_GG(b, c, d, a, x[4], MD5_S24, 0xe7d3fbc8);
-			MD5_GG(a, b, c, d, x[9], MD5_S21, 0x21e1cde6);
-			MD5_GG(d, a, b, c, x[14], MD5_S22, 0xc33707d6);
-			MD5_GG(c, d, a, b, x[3], MD5_S23, 0xf4d50d87);
-			MD5_GG(b, c, d, a, x[8], MD5_S24, 0x455a14ed);
-			MD5_GG(a, b, c, d, x[13], MD5_S21, 0xa9e3e905);
-			MD5_GG(d, a, b, c, x[2], MD5_S22, 0xfcefa3f8);
-			MD5_GG(c, d, a, b, x[7], MD5_S23, 0x676f02d9);
-			MD5_GG(b, c, d, a, x[12], MD5_S24, 0x8d2a4c8a);
-
-			/* Round 3 */
-			MD5_HH(a, b, c, d, x[5], MD5_S31, 0xfffa3942);
-			MD5_HH(d, a, b, c, x[8], MD5_S32, 0x8771f681);
-			MD5_HH(c, d, a, b, x[11], MD5_S33, 0x6d9d6122);
-			MD5_HH(b, c, d, a, x[14], MD5_S34, 0xfde5380c);
-			MD5_HH(a, b, c, d, x[1], MD5_S31, 0xa4beea44);
-			MD5_HH(d, a, b, c, x[4], MD5_S32, 0x4bdecfa9);
-			MD5_HH(c, d, a, b, x[7], MD5_S33, 0xf6bb4b60);
-			MD5_HH(b, c, d, a, x[10], MD5_S34, 0xbebfbc70);
-			MD5_HH(a, b, c, d, x[13], MD5_S31, 0x289b7ec6);
-			MD5_HH(d, a, b, c, x[0], MD5_S32, 0xeaa127fa);
-			MD5_HH(c, d, a, b, x[3], MD5_S33, 0xd4ef3085);
-			MD5_HH(b, c, d, a, x[6], MD5_S34, 0x4881d05);
-			MD5_HH(a, b, c, d, x[9], MD5_S31, 0xd9d4d039);
-			MD5_HH(d, a, b, c, x[12], MD5_S32, 0xe6db99e5);
-			MD5_HH(c, d, a, b, x[15], MD5_S33, 0x1fa27cf8);
-			MD5_HH(b, c, d, a, x[2], MD5_S34, 0xc4ac5665);
-
-			/* Round 4 */
-			MD5_II(a, b, c, d, x[0], MD5_S41, 0xf4292244);
-			MD5_II(d, a, b, c, x[7], MD5_S42, 0x432aff97);
-			MD5_II(c, d, a, b, x[14], MD5_S43, 0xab9423a7);
-			MD5_II(b, c, d, a, x[5], MD5_S44, 0xfc93a039);
-			MD5_II(a, b, c, d, x[12], MD5_S41, 0x655b59c3);
-			MD5_II(d, a, b, c, x[3], MD5_S42, 0x8f0ccc92);
-			MD5_II(c, d, a, b, x[10], MD5_S43, 0xffeff47d);
-			MD5_II(b, c, d, a, x[1], MD5_S44, 0x85845dd1);
-			MD5_II(a, b, c, d, x[8], MD5_S41, 0x6fa87e4f);
-			MD5_II(d, a, b, c, x[15], MD5_S42, 0xfe2ce6e0);
-			MD5_II(c, d, a, b, x[6], MD5_S43, 0xa3014314);
-			MD5_II(b, c, d, a, x[13], MD5_S44, 0x4e0811a1);
-			MD5_II(a, b, c, d, x[4], MD5_S41, 0xf7537e82);
-			MD5_II(d, a, b, c, x[11], MD5_S42, 0xbd3af235);
-			MD5_II(c, d, a, b, x[2], MD5_S43, 0x2ad7d2bb);
-			MD5_II(b, c, d, a, x[9], MD5_S44, 0xeb86d391);
-
-			state[0] += a;
-			state[1] += b;
-			state[2] += c;
-			state[3] += d;
-		}
-
-		/* Encodes input (usigned long) into output (unsigned char). */
-		void encode(const unsigned int* input, unsigned char* output, size_t length)
-		{
-
-			for (size_t i = 0, j = 0; j < length; ++i, j += 4) {
-				output[j] = (unsigned char)(input[i] & 0xff);
-				output[j + 1] = (unsigned char)((input[i] >> 8) & 0xff);
-				output[j + 2] = (unsigned char)((input[i] >> 16) & 0xff);
-				output[j + 3] = (unsigned char)((input[i] >> 24) & 0xff);
+			if (available < 8) {
+				memset(&ctx->buffer[used], 0, available);
+				body(ctx, ctx->buffer, 64);
+				used = 0;
+				available = 64;
 			}
+
+			memset(&ctx->buffer[used], 0, available - 8);
+
+			ctx->lo <<= 3;
+			BOOST_UUID_DETAIL_MD5_OUT(&ctx->buffer[56], ctx->lo)
+				BOOST_UUID_DETAIL_MD5_OUT(&ctx->buffer[60], ctx->hi)
+
+				body(ctx, ctx->buffer, 64);
+
+			BOOST_UUID_DETAIL_MD5_OUT(&result[0], ctx->a)
+				BOOST_UUID_DETAIL_MD5_OUT(&result[4], ctx->b)
+				BOOST_UUID_DETAIL_MD5_OUT(&result[8], ctx->c)
+				BOOST_UUID_DETAIL_MD5_OUT(&result[12], ctx->d)
+
+				memset(ctx, 0, sizeof(*ctx));
 		}
 
-		/* Decodes input (unsigned char) into output (usigned long). */
-		void decode(const unsigned char* input, unsigned int* output, size_t length)
-		{
-			for (size_t i = 0, j = 0; j < length; ++i, j += 4) {
-				output[i] = ((unsigned int)input[j]) | (((unsigned int)input[j + 1]) << 8) |
-					(((unsigned int)input[j + 2]) << 16) | (((unsigned int)input[j + 3]) << 24);
-			}
-		}
+#undef BOOST_UUID_DETAIL_MD5_OUT
+#undef BOOST_UUID_DETAIL_MD5_SET
+#undef BOOST_UUID_DETAIL_MD5_GET
+#undef BOOST_UUID_DETAIL_MD5_STEP
 
-	private:
-		/* Flag for mark whether calculate finished. */
-		bool finished = false;
-
-		/* state (ABCD). */
-		unsigned int state[4] = { 0x67452301 ,0xefcdab89 ,0x98badcfe ,0x10325476 };
-
-		/* number of bits, low-order word first. */
-		unsigned int count[2] = { 0 };
-
-		/* input buffer. */
-		unsigned char buffer[64] = { 0 };
-
-		/* message digest. */
-		unsigned char digest[16] = { 0 };
-
-		/* padding for calculate. */
-		const unsigned char PADDING[64] = { 0x80 };
-
-		/* Hex numbers. */
-		const char HEX_NUMBERS[16] = {
-			'0', '1', '2', '3',
-			'4', '5', '6', '7',
-			'8', '9', 'a', 'b',
-			'c', 'd', 'e', 'f'
-		};
+		MD5_CTX ctx_;
 	};
+}
 
 #endif // !__ASIO2_MD5_IMPL_HPP__

@@ -238,7 +238,7 @@ namespace asio2::detail
 			return (_body_args_tuple_impl(std::make_index_sequence<sizeof...(Args) - 1>{}, tp));
 		}
 
-		template<size_t... I, typename... Args>
+		template<std::size_t... I, typename... Args>
 		inline decltype(auto) _body_args_tuple_impl(const std::index_sequence<I...>&, std::tuple<Args...>*)
 		{
 			return (std::tuple<typename std::tuple_element<I + 1, std::tuple<Args...>>::type...>{});
@@ -250,7 +250,14 @@ namespace asio2::detail
 			ignore::unused(dr);
 			typename result_t<R>::type r = _invoke_impl<R>(f, std::make_index_sequence<sizeof...(Args)>{}, tp);
 			sr << error_code{};
-			sr << r;
+			if constexpr (!std::is_same_v<R, void>)
+			{
+				sr << r;
+			}
+			else
+			{
+				std::ignore = r;
+			}
 		}
 
 		template<typename R, typename F, typename C, typename... Args>
@@ -259,17 +266,24 @@ namespace asio2::detail
 			ignore::unused(dr);
 			typename result_t<R>::type r = _invoke_impl<R>(f, c, std::make_index_sequence<sizeof...(Args)>{}, tp);
 			sr << error_code{};
-			sr << r;
+			if constexpr (!std::is_same_v<R, void>)
+			{
+				sr << r;
+			}
+			else
+			{
+				std::ignore = r;
+			}
 		}
 
-		template<typename R, typename F, size_t... I, typename... Args>
+		template<typename R, typename F, std::size_t... I, typename... Args>
 		typename std::enable_if_t<!std::is_same_v<R, void>, typename result_t<R>::type>
 			inline _invoke_impl(const F& f, const std::index_sequence<I...>&, const std::tuple<Args...>& tp)
 		{
 			return f(std::get<I>(tp)...);
 		}
 
-		template<typename R, typename F, size_t... I, typename... Args>
+		template<typename R, typename F, std::size_t... I, typename... Args>
 		typename std::enable_if_t<std::is_same_v<R, void>, typename result_t<R>::type>
 			inline _invoke_impl(const F& f, const std::index_sequence<I...>&, const std::tuple<Args...>& tp)
 		{
@@ -277,14 +291,14 @@ namespace asio2::detail
 			return 1;
 		}
 
-		template<typename R, typename F, typename C, size_t... I, typename... Args>
+		template<typename R, typename F, typename C, std::size_t... I, typename... Args>
 		typename std::enable_if_t<!std::is_same_v<R, void>, typename result_t<R>::type>
 			inline _invoke_impl(const F& f, C* c, const std::index_sequence<I...>&, const std::tuple<Args...>& tp)
 		{
 			return (c->*f)(std::get<I>(tp)...);
 		}
 
-		template<typename R, typename F, typename C, size_t... I, typename... Args>
+		template<typename R, typename F, typename C, std::size_t... I, typename... Args>
 		typename std::enable_if_t<std::is_same_v<R, void>, typename result_t<R>::type>
 			inline _invoke_impl(const F& f, C* c, const std::index_sequence<I...>&, const std::tuple<Args...>& tp)
 		{

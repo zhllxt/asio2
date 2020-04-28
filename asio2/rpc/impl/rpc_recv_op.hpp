@@ -73,16 +73,35 @@ namespace asio2::detail
 					sr << head;
 					auto* fn = derive._invoker().find(head.name());
 					if (fn)
+					{
 						(*fn)(this_ptr, sr, dr);
+
+						// The number of parameters passed in when calling rpc function exceeds 
+						// the number of parameters of local function
+						if (dr.buffer().in_avail() != 0 && head.id() != header::id_type(0))
+						{
+							sr.reset();
+							sr << head;
+							asio::detail::throw_error(asio::error::invalid_argument);
+						}
+					}
 					else
-						sr << error_code{ asio::error::not_found };
+					{
+						if (head.id() != header::id_type(0))
+						{
+							sr << error_code{ asio::error::not_found };
+						}
+					}
 				}
 				catch (cereal::exception&) { sr << error_code{ asio::error::no_data }; }
 				catch (system_error& e) { sr << e.code(); }
 				catch (std::exception&) { sr << error_code{ asio::error::eof }; }
 
-				const std::string& str = sr.str();
-				derive.send(str);
+				if (head.id() != header::id_type(0))
+				{
+					const std::string& str = sr.str();
+					derive.send(str);
+				}
 			}
 			else if (head.is_response())
 			{
