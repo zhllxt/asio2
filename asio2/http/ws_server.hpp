@@ -26,6 +26,7 @@ namespace asio2::detail
 	class ws_server_impl_t : public tcp_server_impl_t<derived_t, session_t>
 	{
 		template <class, bool>  friend class user_timer_cp;
+		template <class>        friend class post_cp;
 		template <class, class> friend class server_impl_t;
 		template <class, class> friend class tcp_server_impl_t;
 

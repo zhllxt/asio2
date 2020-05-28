@@ -23,6 +23,7 @@
 #if defined(_MSC_VER)
 #  pragma warning(push)
 #  pragma warning(disable:4191) // asio inner : from FARPROC to cancel_io_ex_t is unsafe
+#  pragma warning(disable:4996) // warning STL4009: std::allocator<void> is deprecated in C++17, _SILENCE_ALL_CXX17_DEPRECATION_WARNINGS
 #endif
 
 #include <asio2/version.hpp>

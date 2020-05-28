@@ -33,6 +33,7 @@ namespace asio2::detail
 		, public http_recv_op<derived_t, body_t, buffer_t, false>
 	{
 		template <class, bool>                friend class user_timer_cp;
+		template <class>                      friend class post_cp;
 		template <class, bool>                friend class reconnect_timer_cp;
 		template <class, bool>                friend class connect_timeout_cp;
 		template <class, class>               friend class connect_cp;
@@ -301,6 +302,10 @@ namespace asio2::detail
 			return rep;
 		}
 
+		/**
+		 * @function : blocking execute the http request until it is returned on success or failure
+		 * You need to encode the "url"(by url_encode) before calling this function
+		 */
 		static inline http::response<body_t> execute(std::string_view url, error_code& ec)
 		{
 			ec.clear();
@@ -311,6 +316,10 @@ namespace asio2::detail
 			return execute<body_t>(host, port, req, ec);
 		}
 
+		/**
+		 * @function : blocking execute the http request until it is returned on success or failure
+		 * You need to encode the "url"(by url_encode) before calling this function
+		 */
 		static inline http::response<body_t> execute(std::string_view url)
 		{
 			error_code ec;
@@ -319,6 +328,10 @@ namespace asio2::detail
 			return rep;
 		}
 
+		/**
+		 * @function : blocking execute the http request until it is returned on success or failure
+		 * You need to encode the "target"(by url_encode) before calling this function
+		 */
 		static inline http::response<body_t> execute(std::string_view host, std::string_view port,
 			std::string_view target, error_code& ec)
 		{
@@ -327,6 +340,10 @@ namespace asio2::detail
 			return execute<body_t>(host, port, req, ec);
 		}
 
+		/**
+		 * @function : blocking execute the http request until it is returned on success or failure
+		 * You need to encode the "target"(by url_encode) before calling this function
+		 */
 		static inline http::response<body_t> execute(std::string_view host, std::string_view port,
 			std::string_view target)
 		{

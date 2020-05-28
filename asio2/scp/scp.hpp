@@ -446,11 +446,11 @@ namespace asio2::detail
 		/**
 		 * @function : get the recv/read allocator object refrence
 		 */
-		inline handler_memory<> & rallocator() { return this->rallocator_; }
+		inline auto & rallocator() { return this->rallocator_; }
 		/**
 		 * @function : get the send/write allocator object refrence
 		 */
-		inline handler_memory<size_op<>, std::true_type> & wallocator() { return this->wallocator_; }
+		inline auto & wallocator() { return this->wallocator_; }
 
 		inline listener_t                 & listener() { return this->listener_; }
 		inline std::atomic<state_t>       & state()    { return this->state_;    }

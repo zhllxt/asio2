@@ -34,6 +34,7 @@ namespace asio2::detail
 		, public ws_send_op<derived_t, true>
 	{
 		template <class, bool>                       friend class user_timer_cp;
+		template <class>                             friend class post_cp;
 		template <class>                             friend class data_persistence_cp;
 		template <class>                             friend class event_queue_cp;
 		template <class, bool>                       friend class send_cp;

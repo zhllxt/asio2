@@ -24,6 +24,7 @@ namespace asio2::detail
 	class tcp_server_impl_t : public server_impl_t<derived_t, session_t>
 	{
 		template <class, bool>  friend class user_timer_cp;
+		template <class>        friend class post_cp;
 		template <class, class> friend class server_impl_t;
 
 	public:
@@ -433,7 +434,7 @@ namespace asio2::detail
 
 				auto & socket = session_ptr->socket().lowest_layer();
 				this->acceptor_.async_accept(socket, asio::bind_executor(this->io_.strand(),
-					make_allocator(this->allocator_,
+					make_allocator(this->rallocator_,
 						[this, sptr = std::move(session_ptr), condition](const error_code & ec)
 				{
 					this->derived()._handle_accept(ec, std::move(sptr), std::move(condition));
@@ -446,11 +447,11 @@ namespace asio2::detail
 
 				this->acceptor_timer_.expires_after(std::chrono::seconds(1));
 				this->acceptor_timer_.async_wait(asio::bind_executor(this->io_.strand(),
-					make_allocator(this->allocator_, [this, condition](const error_code & ec)
+					make_allocator(this->rallocator_, [this, condition](const error_code & ec)
 				{
 					set_last_error(ec);
 					if (ec) return;
-					asio::post(this->io_.strand(), make_allocator(this->allocator_, [this, condition]()
+					asio::post(this->io_.strand(), make_allocator(this->rallocator_, [this, condition]()
 					{
 						this->derived()._post_accept(std::move(condition));
 					}));

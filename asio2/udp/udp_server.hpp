@@ -25,6 +25,7 @@ namespace asio2::detail
 	class udp_server_impl_t : public server_impl_t<derived_t, session_t>
 	{
 		template <class, bool>  friend class user_timer_cp;
+		template <class>        friend class post_cp;
 		template <class, class> friend class server_impl_t;
 
 	public:
@@ -407,7 +408,7 @@ namespace asio2::detail
 			{
 				this->acceptor_.async_receive_from(
 					this->buffer_.prepare(this->buffer_.pre_size()), this->remote_endpoint_,
-					asio::bind_executor(this->io_.strand(), make_allocator(this->allocator_,
+					asio::bind_executor(this->io_.strand(), make_allocator(this->rallocator_,
 						[this, condition](const error_code& ec, std::size_t bytes_recvd)
 				{
 					this->derived()._handle_recv(ec, bytes_recvd, condition);
@@ -445,9 +446,41 @@ namespace asio2::detail
 				// we new a session and put it into the session_mgr pool
 				std::shared_ptr<session_t> session_ptr = this->sessions_.find(this->remote_endpoint_);
 				if (!session_ptr)
+				{
 					this->derived()._handle_accept(ec, s, session_ptr, condition);
+				}
 				else
-					session_ptr->_handle_recv(ec, s, session_ptr, condition);
+				{
+					if constexpr (std::is_same_v<MatchCondition, use_kcp_t>)
+					{
+						if (s.size() == sizeof(kcp::kcphdr))
+						{
+							if /**/ (kcp::is_kcphdr_syn(s))
+							{
+								if (session_ptr->kcp_)
+									session_ptr->kcp_->send_fin_ = false;
+								session_ptr->stop();
+								asio::post(this->io_.strand(), make_allocator(this->wallocator_,
+									[this, ec, condition, session_ptr, syn = std::string{ s.data(),s.size() }]() mutable
+								{
+									this->derived()._handle_accept(ec, std::string_view{ syn }, session_ptr, condition);
+								}));
+							}
+							else
+							{
+								std::ignore = true;
+							}
+						}
+						else
+						{
+							session_ptr->_handle_recv(ec, s, session_ptr, condition);
+						}
+					}
+					else
+					{
+						session_ptr->_handle_recv(ec, s, session_ptr, condition);
+					}
+				}
 			}
 
 			this->buffer_.consume(this->buffer_.size());

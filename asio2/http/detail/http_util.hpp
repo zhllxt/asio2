@@ -73,8 +73,6 @@ namespace boost::beast::http
 					else
 						asio::detail::throw_error(asio::error::invalid_argument);
 				}
-				else if (url[i] == static_cast<value_type>('+'))
-					r += static_cast<rvalue_type>(' ');
 				else
 					r += static_cast<rvalue_type>(url[i]);
 			}
@@ -112,17 +110,14 @@ namespace boost::beast::http
 				}
 			}
 
+			using namespace std::literals;
+			std::string_view reserve = "!*();:@&=$,/?[]-_.~"sv;
+
 			for (; i < url.size(); ++i)
 			{
 				value_type c = url[i];
-				if (std::isalnum(static_cast<unsigned char>(c)) ||
-					(c == static_cast<value_type>('-')) ||
-					(c == static_cast<value_type>('_')) ||
-					(c == static_cast<value_type>('.')) ||
-					(c == static_cast<value_type>('~')))
+				if (std::isalnum(static_cast<char>(c)) || reserve.find(static_cast<char>(c)) != std::string_view::npos)
 					r += static_cast<rvalue_type>(c);
-				else if (c == static_cast<value_type>(' '))
-					r += static_cast<rvalue_type>('+');
 				else
 				{
 					r += static_cast<rvalue_type>('%');
@@ -133,6 +128,24 @@ namespace boost::beast::http
 				}
 			}
 			return r;
+		}
+
+		template<typename = void>
+		bool has_unencode_char(std::string_view s)
+		{
+			using namespace std::literals;
+			std::string_view reserve = "!*();:@&=$,/?[]-_.~"sv;
+			std::string_view invalid = " `#{}'\"\\|^+<>"sv;
+
+			for (auto c : s)
+			{
+				if (invalid.find(c) != std::string_view::npos)
+					return true;
+
+				if (c != '%' && !std::isalnum(c) && reserve.find(c) == std::string_view::npos)
+					return true;
+			}
+			return false;
 		}
 
 		template<typename = void>
@@ -199,6 +212,10 @@ namespace boost::beast::http
 				u.field_data[(int)http::cparser::url_fields::UF_QUERY].len };
 		}
 
+		/**
+		 * @function : make A typical HTTP request struct from the uri
+		 * You need to encode the "uri"(by url_encode) before calling this function
+		 */
 		template<class Body = string_body, class Fields = fields>
 		request<Body, Fields> make_request(std::string_view uri, error_code& ec)
 		{
@@ -207,8 +224,11 @@ namespace boost::beast::http
 			{
 				ec.clear();
 
+				cparser::http_parser_url u;
+				int state = cparser::http_parser_parse_url(uri.data(), uri.size(), 0, &u);
+
 				// If a \r\n string is found, it is not a URL
-				if (uri.find("\r\n") != std::string_view::npos)
+				if (uri.find("\r\n") != std::string_view::npos && 0 != state)
 				{
 					request_parser<Body> parser;
 					parser.eager(true);
@@ -219,8 +239,9 @@ namespace boost::beast::http
 				// It is a URL
 				else
 				{
-					cparser::http_parser_url u;
-					if (0 != cparser::http_parser_parse_url(uri.data(), uri.size(), 0, &u))
+					ASIO2_ASSERT(!has_unencode_char(uri));
+
+					if (0 != state)
 						asio::detail::throw_error(asio::error::invalid_argument);
 
 					/* <scheme>://<user>:<password>@<host>:<port>/<path>;<params>?<query>#<fragment> */
@@ -273,6 +294,10 @@ namespace boost::beast::http
 			return req;
 		}
 
+		/**
+		 * @function : make A typical HTTP request struct from the uri
+		 * You need to encode the "uri"(by url_encode) before calling this function
+		 */
 		template<class Body = string_body, class Fields = fields>
 		inline request<Body, Fields> make_request(std::string_view uri)
 		{
@@ -282,10 +307,15 @@ namespace boost::beast::http
 			return req;
 		}
 
+		/**
+		 * @function : make A typical HTTP request struct from the uri
+		 * You need to encode the "target"(by url_encode) before calling this function
+		 */
 		template<class Body = string_body, class Fields = fields>
 		inline request<Body, Fields> make_request(std::string_view host, std::string_view port,
 			std::string_view target, verb method = verb::get, unsigned version = 11)
 		{
+			ASIO2_ASSERT(!has_unencode_char(target));
 			request<Body, Fields> req;
 			// Set up an HTTP GET request message
 			req.method(method);

@@ -71,8 +71,8 @@ namespace asio2::detail
 		, public user_timer_cp<derived_t, false>
 		, public post_cp<derived_t>
 	{
-		template <class, bool> friend class user_timer_cp;
-		template <class> friend class post_cp;
+		template <class, bool>         friend class user_timer_cp;
+		template <class>               friend class post_cp;
 
 	public:
 		using self = ping_impl_t<derived_t, socket_t, buffer_t>;
@@ -97,7 +97,7 @@ namespace asio2::detail
 			, post_cp<derived_t>()
 			, socket_(iopool_.get(0).context())
 			, rallocator_()
-			, tallocator_()
+			, wallocator_()
 			, listener_()
 			, io_(iopool_.get(0))
 			, buffer_(init_buffer_size, max_buffer_size)
@@ -474,7 +474,7 @@ namespace asio2::detail
 			this->replies_ = 0;
 			this->timer_.expires_after(this->timeout_);
 			this->timer_.async_wait(asio::bind_executor(this->io_.strand(),
-				make_allocator(this->tallocator_,
+				make_allocator(this->wallocator_,
 					std::bind(&self::_handle_timer, this, std::placeholders::_1))));
 		}
 
@@ -493,7 +493,7 @@ namespace asio2::detail
 			{
 				this->timer_.expires_after(this->interval_);
 				this->timer_.async_wait(asio::bind_executor(this->io_.strand(),
-					make_allocator(this->tallocator_,
+					make_allocator(this->wallocator_,
 						std::bind(&self::_post_send, this))));
 			}
 		}
@@ -602,52 +602,58 @@ namespace asio2::detail
 		 * @function : get the io object refrence
 		 */
 		inline io_t & io() { return this->io_; }
+
 		/**
 		 * @function : get the recv/read allocator object refrence
 		 */
-		inline handler_memory<> & rallocator() { return this->rallocator_; }
+		inline auto & rallocator() { return this->rallocator_; }
+		/**
+		 * @function : get the timer/post allocator object refrence
+		 */
+		inline auto & wallocator() { return this->wallocator_; }
+
 		inline listener_t                 & listener() { return this->listener_; }
 		inline std::atomic<state_t>       & state()    { return this->state_;    }
 		inline std::shared_ptr<derived_t>   selfptr()  { return std::shared_ptr<derived_t>{}; }
 
 	protected:
 		/// socket 
-		socket_t                  socket_;
+		socket_t                                    socket_;
 
 		/// The memory to use for handler-based custom memory allocation. used fo recv/read.
-		handler_memory<>          rallocator_;
+		handler_memory<>                            rallocator_;
 
-		/// The memory to use for handler-based custom memory allocation. used fo timer.
-		handler_memory<>          tallocator_;
+		/// The memory to use for handler-based custom memory allocation. used fo timer/post.
+		handler_memory<size_op<>, std::true_type>   wallocator_;
 
 		/// listener
-		listener_t                listener_;
+		listener_t                                  listener_;
 
 		/// The io (include io_context and strand) used to handle the accept event.
-		io_t                    & io_;
+		io_t                                      & io_;
 
 		/// buffer
-		buffer_wrap<buffer_t>     buffer_;
+		buffer_wrap<buffer_t>                       buffer_;
 
 		/// state
-		std::atomic<state_t>      state_ = state_t::stopped;
+		std::atomic<state_t>                        state_ = state_t::stopped;
 
-		asio::steady_timer        timer_;
-		std::string               body_{ R"("Hello!" from Asio ping.)" };
-		unsigned short            seq_ = 0;
-		std::size_t               replies_ = 0;
-		icmp_rep                  rep_;
-		asio::ip::icmp::endpoint  destination_;
-		unsigned short            identifier_;
+		asio::steady_timer                          timer_;
+		std::string                                 body_{ R"("Hello!" from Asio ping.)" };
+		unsigned short                              seq_ = 0;
+		std::size_t                                 replies_ = 0;
+		icmp_rep                                    rep_;
+		asio::ip::icmp::endpoint                    destination_;
+		unsigned short                              identifier_;
 
-		std::size_t                           ncount_{ -1 };
-		std::size_t                           total_send_{ 0 };
-		std::size_t                           total_recv_{ 0 };
-		std::chrono::steady_clock::duration   total_time_{ 0 };
+		std::size_t                                 ncount_{ -1 };
+		std::size_t                                 total_send_{ 0 };
+		std::size_t                                 total_recv_{ 0 };
+		std::chrono::steady_clock::duration         total_time_{ 0 };
 
-		std::chrono::steady_clock::duration   timeout_  = std::chrono::seconds(3);
-		std::chrono::steady_clock::duration   interval_ = std::chrono::seconds(1);
-		std::chrono::steady_clock::time_point time_sent_;
+		std::chrono::steady_clock::duration         timeout_  = std::chrono::seconds(3);
+		std::chrono::steady_clock::duration         interval_ = std::chrono::seconds(1);
+		std::chrono::steady_clock::time_point       time_sent_;
 	};
 }
 

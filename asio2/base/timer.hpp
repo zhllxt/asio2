@@ -46,7 +46,8 @@ namespace asio2::detail
 		, public user_timer_cp<derived_t, false>
 		, public post_cp<derived_t>
 	{
-		template <class, bool>  friend class user_timer_cp;
+		template <class, bool>         friend class user_timer_cp;
+		template <class>               friend class post_cp;
 
 	public:
 		using self = timer_impl_t<derived_t>;
@@ -80,11 +81,23 @@ namespace asio2::detail
 		inline io_t & io() { return this->io_; }
 
 	protected:
+		/**
+		 * @function : get the recv/read allocator object refrence
+		 */
+		inline auto & rallocator() { return this->wallocator_; }
+		/**
+		 * @function : get the send/write allocator object refrence
+		 */
+		inline auto & wallocator() { return this->wallocator_; }
+
 		inline std::shared_ptr<derived_t>   selfptr()  { return std::shared_ptr<derived_t>{}; }
 
 	protected:
 		/// The io (include io_context and strand) used to handle the accept event.
-		io_t        & io_;
+		io_t                                          & io_;
+
+		/// The memory to use for handler-based custom memory allocation. used fo send/write.
+		handler_memory<size_op<>, std::true_type>       wallocator_;
 	};
 }
 

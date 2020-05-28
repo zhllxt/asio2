@@ -52,7 +52,7 @@ namespace asio2::detail
 		, public post_cp<derived_t>
 	{
 		template <class, bool>  friend class user_timer_cp;
-		template <class> friend class post_cp;
+		template <class>        friend class post_cp;
 
 	public:
 		using self = server_impl_t<derived_t, session_t>;
@@ -67,7 +67,8 @@ namespace asio2::detail
 			, user_data_cp<derived_t>()
 			, user_timer_cp<derived_t, false>(iopool_.get(0))
 			, post_cp<derived_t>()
-			, allocator_()
+			, rallocator_()
+			, wallocator_()
 			, listener_()
 			, io_(iopool_.get(0))
 			, sessions_(io_)
@@ -248,6 +249,15 @@ namespace asio2::detail
 		inline io_t & io() { return this->io_; }
 
 	protected:
+		/**
+		 * @function : get the recv/read allocator object refrence
+		 */
+		inline auto & rallocator() { return this->rallocator_; }
+		/**
+		 * @function : get the send/write/post allocator object refrence
+		 */
+		inline auto & wallocator() { return this->wallocator_; }
+
 		inline session_mgr_t<session_t> & sessions() { return this->sessions_; }
 		inline listener_t               & listener() { return this->listener_; }
 		inline std::atomic<state_t>     & state()    { return this->state_;    }
@@ -255,22 +265,25 @@ namespace asio2::detail
 
 	protected:
 		// The memory to use for handler-based custom memory allocation. used for acceptor.
-		handler_memory<>          allocator_;
+		handler_memory<>                            rallocator_;
+
+		/// The memory to use for handler-based custom memory allocation. used fo send/write/post.
+		handler_memory<size_op<>, std::true_type>   wallocator_;
 
 		/// listener
-		listener_t                listener_;
+		listener_t                                  listener_;
 
 		/// The io (include io_context and strand) used to handle the accept event.
-		io_t                    & io_;
+		io_t                                      & io_;
 
 		/// session_mgr
-		session_mgr_t<session_t>  sessions_;
+		session_mgr_t<session_t>                    sessions_;
 
 		/// state
-		std::atomic<state_t>      state_ = state_t::stopped;
+		std::atomic<state_t>                        state_ = state_t::stopped;
 
 		/// use this to ensure that server stop only after all sessions are closed
-		std::shared_ptr<void>     counter_ptr_;
+		std::shared_ptr<void>                       counter_ptr_;
 	};
 }
 

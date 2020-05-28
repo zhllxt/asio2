@@ -29,6 +29,7 @@ namespace asio2::detail
 		, public udp_send_op<derived_t, false>
 	{
 		template <class, bool>                friend class user_timer_cp;
+		template <class>                      friend class post_cp;
 		template <class, bool>                friend class reconnect_timer_cp;
 		template <class, bool>                friend class connect_timeout_cp;
 		template <class, class>               friend class connect_cp;
@@ -438,7 +439,7 @@ namespace asio2::detail
 		{
 			set_last_error(ec);
 
-			if (ec == asio::error::operation_aborted)
+			if (ec == asio::error::operation_aborted || ec == asio::error::connection_refused)
 			{
 				this->derived()._do_disconnect(ec);
 				return;

@@ -32,6 +32,7 @@ namespace asio2::detail
 		friend executor_t;
 		template <class>        friend class invoker_t;
 		template <class, bool>  friend class user_timer_cp;
+		template <class>        friend class post_cp;
 		template <class, class> friend class server_impl_t;
 		template <class, class> friend class tcp_server_impl_t;
 		template <class, class> friend class tcps_server_impl_t;

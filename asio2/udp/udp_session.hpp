@@ -30,6 +30,7 @@ namespace asio2::detail
 		, public udp_send_op<derived_t, true>
 	{
 		template <class, bool>                friend class user_timer_cp;
+		template <class>                      friend class post_cp;
 		template <class, bool>                friend class silence_timer_cp;
 		template <class, bool>                friend class connect_timeout_cp;
 		template <class>                      friend class data_persistence_cp;
@@ -162,12 +163,6 @@ namespace asio2::detail
 		{
 			return (this->kcp_ ? this->kcp_->kcp_ : nullptr);
 		}
-
-	protected:
-		/**
-		 * @function : get the send/write allocator object refrence
-		 */
-		inline auto & wallocator() { return this->wallocator_; }
 
 	protected:
 		template<typename MatchCondition>
@@ -414,6 +409,16 @@ namespace asio2::detail
 		{
 			this->listener_.notify(event::disconnect, this_ptr);
 		}
+
+	protected:
+		/**
+		 * @function : get the recv/read allocator object refrence
+		 */
+		inline auto & rallocator() { return this->wallocator_; }
+		/**
+		 * @function : get the send/write allocator object refrence
+		 */
+		inline auto & wallocator() { return this->wallocator_; }
 
 	protected:
 		/// buffer

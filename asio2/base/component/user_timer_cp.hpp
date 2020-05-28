@@ -37,7 +37,6 @@ namespace asio2::detail
 		ASIO2_USER_TIMER_ID_TYPE id;
 		asio::steady_timer timer;
 		std::function<void()> task;
-		handler_memory<> allocator;
 
 		user_timer_obj(ASIO2_USER_TIMER_ID_TYPE Id, asio::io_context & context, std::function<void()> t)
 			: id(Id), timer(context), task(std::move(t)) {}
@@ -69,17 +68,27 @@ namespace asio2::detail
 
 			auto fn = [this, this_ptr = derive.selfptr(), timer_id, duration, task = std::move(t)]()
 			{
-				std::shared_ptr<user_timer_obj> timer_obj_ptr = std::make_shared<user_timer_obj>(
-					timer_id, this->user_timer_io_.context(), std::move(task));
+				std::shared_ptr<user_timer_obj> timer_obj_ptr;
 
-				this->user_timers_[timer_id] = timer_obj_ptr;
+				auto iter = this->user_timers_.find(timer_id);
+				if (iter != this->user_timers_.end())
+				{
+					timer_obj_ptr = iter->second;
+					timer_obj_ptr->task = std::move(task);
+				}
+				else
+				{
+					timer_obj_ptr = std::make_shared<user_timer_obj>(timer_id, this->user_timer_io_.context(), std::move(task));
+
+					this->user_timers_[timer_id] = timer_obj_ptr;
+				}
 
 				derive._post_user_timers(std::move(timer_obj_ptr), duration, std::move(this_ptr));
 			};
 
 			// Make sure we run on the strand
 			if (!this->user_timer_io_.strand().running_in_this_thread())
-				asio::post(this->user_timer_io_.strand(), std::move(fn));
+				asio::post(this->user_timer_io_.strand(), make_allocator(derive.wallocator(), std::move(fn)));
 			else
 				fn();
 		}
@@ -88,11 +97,11 @@ namespace asio2::detail
 		{
 			// Make sure we run on the strand
 			if (!this->user_timer_io_.strand().running_in_this_thread())
-				return asio::post(this->user_timer_io_.strand(),
+				return asio::post(this->user_timer_io_.strand(), make_allocator(derive.wallocator(),
 					[this, this_ptr = derive.selfptr(), timer_id]()
 			{
 				this->stop_timer(timer_id);
-			});
+			}));
 
 			auto iter = this->user_timers_.find(timer_id);
 			if (iter != this->user_timers_.end())
@@ -109,11 +118,11 @@ namespace asio2::detail
 		inline void stop_all_timers()
 		{
 			if (!this->user_timer_io_.strand().running_in_this_thread())
-				return asio::post(this->user_timer_io_.strand(),
+				return asio::post(this->user_timer_io_.strand(), make_allocator(derive.wallocator(),
 					[this, this_ptr = derive.selfptr()]()
 			{
 				this->stop_all_timers();
-			});
+			}));
 
 			// close user custom timers
 			for (auto &[id, timer_obj_ptr] : this->user_timers_)
@@ -136,11 +145,10 @@ namespace asio2::detail
 				return;
 
 			asio::steady_timer& timer = timer_obj_ptr->timer;
-			handler_memory<>& allocator = timer_obj_ptr->allocator;
 
 			timer.expires_after(duration);
 			timer.async_wait(asio::bind_executor(this->user_timer_io_.strand(),
-				make_allocator(allocator, [this, timer_ptr = std::move(timer_obj_ptr), duration,
+				make_allocator(derive.wallocator(), [this, timer_ptr = std::move(timer_obj_ptr), duration,
 					self_ptr = std::move(this_ptr)](const error_code & ec)
 			{
 				derive._handle_user_timers(ec, std::move(timer_ptr), duration, std::move(self_ptr));

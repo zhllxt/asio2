@@ -41,6 +41,7 @@ namespace asio2::detail
 	{
 		template <class, class, class> friend class udp_session_impl_t;
 		template <class, class, class> friend class udp_client_impl_t;
+		template <class, class       > friend class udp_server_impl_t;
 
 	public:
 		/**
