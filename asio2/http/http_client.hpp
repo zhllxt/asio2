@@ -221,9 +221,20 @@ namespace asio2::detail
 		}
 
 	public:
-		template<class Body = http::string_body, class Fields = http::fields, class Buffer = beast::flat_buffer>
+		/**
+		 * @function : get the request object
+		 */
+		inline const http::request<body_t>& request() { return this->req_; }
+
+		/**
+		 * @function : get the response object
+		 */
+		inline const http::response<body_t>& response() { return this->rep_; }
+
+	public:
+		template<class Rep, class Period, class Body = http::string_body, class Fields = http::fields, class Buffer = beast::flat_buffer>
 		static inline http::response<Body, Fields> execute(std::string_view host, std::string_view port,
-			http::request<Body, Fields>& req, error_code& ec)
+			http::request<Body, Fields>& req, std::chrono::duration<Rep, Period> timeout, error_code& ec)
 		{
 			http::response<Body, Fields> rep;
 			try
@@ -233,16 +244,6 @@ namespace asio2::detail
 
 				// First assign default value timed_out to ec
 				ec = asio::error::timed_out;
-
-				// Get and Set the read timeout.
-				std::chrono::steady_clock::duration timeout{ std::chrono::milliseconds(http_execute_timeout) };
-				auto iter = req.find(http::field::timeout);
-				if (iter != req.end())
-				{
-					auto sv = iter->value();
-					std::string s(sv.data(), sv.size());
-					timeout = std::chrono::milliseconds(std::stol(s));
-				}
 
 				// The io_context is required for all I/O
 				asio::io_context ioc;
@@ -294,10 +295,19 @@ namespace asio2::detail
 		}
 
 		template<class Body = http::string_body, class Fields = http::fields, class Buffer = beast::flat_buffer>
+		static inline http::response<Body, Fields> execute(std::string_view host, std::string_view port, http::request<Body, Fields>& req, error_code& ec)
+		{
+			using Rep = std::chrono::milliseconds::rep;
+			using Period = std::chrono::milliseconds::period;
+			ec.clear();
+			return execute<Rep, Period, Body, Fields, Buffer>(host, port, req, std::chrono::milliseconds(http_execute_timeout), ec);
+		}
+
+		template<class Body = http::string_body, class Fields = http::fields, class Buffer = beast::flat_buffer>
 		static inline http::response<Body, Fields> execute(std::string_view host, std::string_view port, http::request<Body, Fields>& req)
 		{
 			error_code ec;
-			http::response<Body, Fields> rep = execute<Body, Fields, Buffer>(host, port, req, ec);
+			http::response<body_t> rep = execute(host, port, req, ec);
 			asio::detail::throw_error(ec);
 			return rep;
 		}
@@ -308,12 +318,14 @@ namespace asio2::detail
 		 */
 		static inline http::response<body_t> execute(std::string_view url, error_code& ec)
 		{
+			using Rep = std::chrono::milliseconds::rep;
+			using Period = std::chrono::milliseconds::period;
 			ec.clear();
 			http::request<body_t> req = http::make_request<body_t>(url, ec);
-			if (ec) return http::response<body_t>{};
+			if (ec) return http::response<body_t>{ http::status::unknown, 11};
 			std::string_view host = http::url_to_host(url);
 			std::string_view port = http::url_to_port(url);
-			return execute<body_t>(host, port, req, ec);
+			return execute<Rep, Period, body_t>(host, port, req, std::chrono::milliseconds(http_execute_timeout), ec);
 		}
 
 		/**
@@ -335,9 +347,11 @@ namespace asio2::detail
 		static inline http::response<body_t> execute(std::string_view host, std::string_view port,
 			std::string_view target, error_code& ec)
 		{
+			using Rep = std::chrono::milliseconds::rep;
+			using Period = std::chrono::milliseconds::period;
 			ec.clear();
 			http::request<body_t> req = http::make_request<body_t>(host, port, target);
-			return execute<body_t>(host, port, req, ec);
+			return execute<Rep, Period, body_t>(host, port, req, std::chrono::milliseconds(http_execute_timeout), ec);
 		}
 
 		/**

@@ -97,6 +97,11 @@ namespace asio2::detail
 			return reinterpret_cast<key_type>(this);
 		}
 
+		/**
+		 * @function : get the request object
+		 */
+		inline const http::request<body_t>& request() { return this->req_; }
+
 	protected:
 		template<class T>
 		inline auto _data_persistence(T&& data)

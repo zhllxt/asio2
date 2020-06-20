@@ -39,12 +39,13 @@ namespace asio2::detail
 	public:
 		using stream_type = asio::ssl::stream<socket_t&>;
 
-		ssl_stream_cp(io_t & ssl_io, handshake_type type)
+		ssl_stream_cp(io_t & ssl_io, asio::ssl::context & ctx, handshake_type type)
 			: derive(static_cast<derived_t&>(*this))
 			, ssl_io_(ssl_io)
 			, ssl_timer_(ssl_io.context())
 			, ssl_type_(type)
 		{
+			this->ssl_stream_ = std::make_unique<stream_type>(derive.socket(), ctx);
 		}
 
 		~ssl_stream_cp() = default;
@@ -62,9 +63,7 @@ namespace asio2::detail
 			const condition_wrap<MatchCondition>& condition,
 			socket_t & socket, asio::ssl::context & ctx)
 		{
-			detail::ignore::unused(this_ptr, condition);
-
-			this->ssl_stream_ = std::make_unique<stream_type>(socket, ctx);
+			detail::ignore::unused(this_ptr, condition, socket, ctx);
 		}
 
 		template<typename Fn>
@@ -93,6 +92,12 @@ namespace asio2::detail
 
 				// clost the ssl timer
 				this->ssl_timer_.cancel();
+
+				// SSL_clear : 
+				// Reset ssl to allow another connection. All settings (method, ciphers, BIOs) are kept.
+
+				// When the client auto reconnect, SSL_clear must be called, otherwise the SSL handshake will failed.
+				SSL_clear(this->ssl_stream_->native_handle());
 			}));
 		}
 

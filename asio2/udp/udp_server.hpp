@@ -460,11 +460,25 @@ namespace asio2::detail
 								if (session_ptr->kcp_)
 									session_ptr->kcp_->send_fin_ = false;
 								session_ptr->stop();
-								asio::post(this->io_.strand(), make_allocator(this->wallocator_,
-									[this, ec, condition, session_ptr, syn = std::string{ s.data(),s.size() }]() mutable
+
+								auto task = [this, ec, condition, session_ptr, syn = std::string{ s.data(),s.size() }]() mutable
 								{
 									this->derived()._handle_accept(ec, std::string_view{ syn }, session_ptr, condition);
-								}));
+								};
+#if defined(ASIO2_SEND_CORE_ASYNC)
+								session_ptr->push_event([this, &session_ptr, t = std::move(task)]() mutable
+								{
+									auto task = [this, &session_ptr, t = std::move(t)]() mutable
+									{
+										t();
+										session_ptr->next_event();
+									};
+									asio::post(this->io_.strand(), make_allocator(this->wallocator_, std::move(task)));
+									return true;
+								});
+#else
+								asio::post(this->io_.strand(), make_allocator(this->wallocator_, std::move(task)));
+#endif
 							}
 							else
 							{

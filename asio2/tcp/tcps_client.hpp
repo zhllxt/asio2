@@ -59,7 +59,7 @@ namespace asio2::detail
 		)
 			: asio::ssl::context(method)
 			, super(init_buffer_size, max_buffer_size)
-			, ssl_stream_comp(this->io_, asio::ssl::stream_base::client)
+			, ssl_stream_comp(this->io_, *this, asio::ssl::stream_base::client)
 		{
 		}
 

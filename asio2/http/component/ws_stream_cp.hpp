@@ -36,7 +36,11 @@ namespace asio2::detail
 		/**
 		 * @constructor
 		 */
-		ws_stream_cp() : derive(static_cast<derived_t&>(*this)) {}
+		template<typename Socket>
+		ws_stream_cp(Socket& socket) : derive(static_cast<derived_t&>(*this))
+		{
+			this->ws_stream_ = std::make_unique<stream_t>(socket);
+		}
 
 		/**
 		 * @destructor
@@ -55,9 +59,7 @@ namespace asio2::detail
 			const std::shared_ptr<derived_t>& this_ptr,
 			const condition_wrap<MatchCondition>& condition, Socket& socket)
 		{
-			detail::ignore::unused(this_ptr, condition);
-
-			this->ws_stream_ = std::make_unique<stream_t>(socket);
+			detail::ignore::unused(this_ptr, condition, socket);
 		}
 
 		template<typename Fn>
@@ -202,8 +204,6 @@ namespace asio2::detail
 		inline void _handle_upgrade(const error_code & ec, std::shared_ptr<derived_t> self_ptr, condition_wrap<MatchCondition> condition)
 		{
 			ASIO2_ASSERT(bool(this->ws_stream_));
-
-			this->ws_stream_->binary(true); // Setting the message type to binary.
 
 			if constexpr (isSession)
 			{

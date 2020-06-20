@@ -65,7 +65,7 @@ namespace asio2::detail
 			std::size_t max_buffer_size = (std::numeric_limits<std::size_t>::max)()
 		)
 			: super(method, init_buffer_size, max_buffer_size)
-			, ws_stream_comp()
+			, ws_stream_comp(this->ssl_stream())
 			, ws_send_op<derived_t, false>()
 		{
 		}
@@ -117,7 +117,7 @@ namespace asio2::detail
 			return (*(this->ws_stream_));
 		}
 
-		inline http::response<body_t>& upgrade_response() { return this->upgrade_rep_; }
+		inline const http::response<body_t>& upgrade_response() { return this->upgrade_rep_; }
 
 	public:
 		/**

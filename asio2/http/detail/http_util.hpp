@@ -73,6 +73,8 @@ namespace boost::beast::http
 					else
 						asio::detail::throw_error(asio::error::invalid_argument);
 				}
+				else if (url[i] == static_cast<value_type>('+'))
+					r += static_cast<rvalue_type>(' ');
 				else
 					r += static_cast<rvalue_type>(url[i]);
 			}

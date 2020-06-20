@@ -70,7 +70,7 @@ namespace asio2::detail
 			std::size_t max_buffer_size
 		)
 			: super(sessions, listener, rwio, init_buffer_size, max_buffer_size)
-			, ws_stream_comp()
+			, ws_stream_comp(this->socket_)
 			, ws_send_op<derived_t, true>()
 		{
 		}

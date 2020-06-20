@@ -67,7 +67,7 @@ namespace asio2::detail
 			std::size_t max_buffer_size
 		)
 			: super(sessions, listener, rwio, init_buffer_size, max_buffer_size)
-			, ssl_stream_comp(this->io_, asio::ssl::stream_base::server)
+			, ssl_stream_comp(this->io_, ctx, asio::ssl::stream_base::server)
 			, ctx_(ctx)
 		{
 		}

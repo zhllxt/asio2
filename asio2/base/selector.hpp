@@ -27,6 +27,10 @@
 	#include <boost/beast.hpp>
 	#if defined(ASIO2_USE_SSL)
 		#include <boost/asio/ssl.hpp>
+		// boost 1.72(107200) BOOST_BEAST_VERSION 277
+		#if defined(BOOST_BEAST_VERSION) && (BOOST_BEAST_VERSION >= 277)
+			#include <boost/beast/ssl.hpp>
+		#endif
 		#include <boost/beast/websocket/ssl.hpp>
 	#endif
 	#ifndef ASIO_VERSION
