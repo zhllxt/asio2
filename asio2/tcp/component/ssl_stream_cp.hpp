@@ -39,13 +39,13 @@ namespace asio2::detail
 	public:
 		using stream_type = asio::ssl::stream<socket_t&>;
 
-		ssl_stream_cp(io_t & ssl_io, asio::ssl::context & ctx, handshake_type type)
+		ssl_stream_cp(io_t& ssl_io, asio::ssl::context& ctx, handshake_type type)
 			: derive(static_cast<derived_t&>(*this))
 			, ssl_io_(ssl_io)
+			, ssl_ctx_(ctx)
 			, ssl_timer_(ssl_io.context())
 			, ssl_type_(type)
 		{
-			this->ssl_stream_ = std::make_unique<stream_type>(derive.socket(), ctx);
 		}
 
 		~ssl_stream_cp() = default;
@@ -58,10 +58,29 @@ namespace asio2::detail
 
 	protected:
 		template<typename MatchCondition>
+		inline void _ssl_init(
+			const condition_wrap<MatchCondition>& condition,
+			socket_t& socket, asio::ssl::context& ctx)
+		{
+			detail::ignore::unused(condition, socket, ctx);
+
+			// Why put the initialization code of ssl stream here ?
+			// Why not put it in the constructor ?
+			// -----------------------------------------------------------------------
+			// Beacuse SSL_CTX_use_certificate_chain_file,SSL_CTX_use_PrivateKey and
+			// other SSL_CTX_... functions must be called before SSL_new, otherwise,
+			// those SSL_CTX_... function calls have no effect.
+			// When construct a tcps_client object, beacuse the tcps_client is derived
+			// from ssl_stream_cp, so the ssl_stream_cp's constructor will be called,
+			// but at this time, the SSL_CTX_... function has not been called.
+			this->ssl_stream_ = std::make_unique<stream_type>(socket, ctx);
+		}
+
+		template<typename MatchCondition>
 		inline void _ssl_start(
 			const std::shared_ptr<derived_t>& this_ptr,
 			const condition_wrap<MatchCondition>& condition,
-			socket_t & socket, asio::ssl::context & ctx)
+			socket_t& socket, asio::ssl::context& ctx)
 		{
 			detail::ignore::unused(this_ptr, condition, socket, ctx);
 		}
@@ -76,7 +95,7 @@ namespace asio2::detail
 			// so we use a timer to force close the socket,then the async_shutdown callback will be called.
 			this->ssl_timer_.expires_after(std::chrono::milliseconds(ssl_shutdown_timeout));
 			this->ssl_timer_.async_wait(asio::bind_executor(this->ssl_io_.strand(),
-				[this, this_ptr, f = std::forward<Fn>(fn)](const error_code & ec)
+				[this, this_ptr, f = std::forward<Fn>(fn)](const error_code & ec) mutable
 			{
 				set_last_error(ec);
 
@@ -86,7 +105,7 @@ namespace asio2::detail
 			// when server call ssl stream sync shutdown first,if the client socket is
 			// not closed forever,then here shutdowm will blocking forever.
 			this->ssl_stream_->async_shutdown(asio::bind_executor(this->ssl_io_.strand(),
-				[this, self_ptr = std::move(this_ptr)](const error_code & ec)
+				[this, self_ptr = std::move(this_ptr)](const error_code & ec) mutable
 			{
 				set_last_error(ec);
 
@@ -151,6 +170,8 @@ namespace asio2::detail
 		derived_t                    & derive;
 
 		io_t                         & ssl_io_;
+
+		asio::ssl::context           & ssl_ctx_;
 
 		/// timer for close ssl timeout
 		asio::steady_timer             ssl_timer_;

@@ -75,7 +75,7 @@ namespace asio2::detail
 			std::size_t max_buffer_size
 		)
 			: super(ctx, sessions, listener, rwio, init_buffer_size, max_buffer_size)
-			, ws_stream_comp(this->ssl_stream())
+			, ws_stream_comp()
 			, ws_send_op<derived_t, true>()
 		{
 		}
@@ -106,6 +106,14 @@ namespace asio2::detail
 		}
 
 	protected:
+		template<typename MatchCondition>
+		inline void _do_init(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		{
+			super::_do_init(std::move(this_ptr), condition);
+
+			this->derived()._ws_init(condition, this->ssl_stream());
+		}
+
 		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
 		{
 			this->derived()._ws_stop(this_ptr, [this, ec, this_ptr]()

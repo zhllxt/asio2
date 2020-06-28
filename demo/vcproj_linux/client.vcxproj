@@ -159,6 +159,7 @@
     <ClInclude Include="..\..\asio2\rpc\rpc_server.hpp" />
     <ClInclude Include="..\..\asio2\rpc\rpc_session.hpp" />
     <ClInclude Include="..\..\asio2\scp\scp.hpp" />
+    <ClInclude Include="..\..\asio2\tcp\component\ssl_context_cp.hpp" />
     <ClInclude Include="..\..\asio2\tcp\component\ssl_stream_cp.hpp" />
     <ClInclude Include="..\..\asio2\tcp\component\tcp_keepalive_cp.hpp" />
     <ClInclude Include="..\..\asio2\tcp\impl\tcp_recv_op.hpp" />
@@ -320,7 +321,7 @@
     </ClCompile>
     <Link>
       <AdditionalLibraryDirectories>/usr/local/lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <LibraryDependencies>boost_system;ssl;crypto;%(LibraryDependencies)</LibraryDependencies>
+      <LibraryDependencies>boost_system;:libssl.a;:libcrypto.a;%(LibraryDependencies)</LibraryDependencies>
       <AdditionalOptions>-lpthread -lrt -ldl %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
@@ -331,7 +332,7 @@
     </ClCompile>
     <Link>
       <AdditionalLibraryDirectories>/usr/local/lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <LibraryDependencies>boost_system;ssl;crypto;%(LibraryDependencies)</LibraryDependencies>
+      <LibraryDependencies>boost_system;:libssl.a;:libcrypto.a;%(LibraryDependencies)</LibraryDependencies>
       <AdditionalOptions>-lpthread -lrt -ldl %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>

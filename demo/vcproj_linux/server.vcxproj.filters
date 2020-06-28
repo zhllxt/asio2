@@ -675,6 +675,21 @@
     <ClInclude Include="..\..\asio2\rpc\detail\rpc_portable_binary.hpp">
       <Filter>asio2\rpc</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\asio2\util\aes.hpp">
+      <Filter>asio2\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\util\base64.hpp">
+      <Filter>asio2\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\util\sha1.hpp">
+      <Filter>asio2\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\util\uuid.hpp">
+      <Filter>asio2\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\tcp\component\ssl_context_cp.hpp">
+      <Filter>asio2\tcp\component</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\server.cpp">

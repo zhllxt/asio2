@@ -18,7 +18,6 @@ void run_http_client(std::string_view host, std::string_view port)
 	//auto req1 = http::make_request("http://www.baidu.com/get_user?name=a");
 	//auto req2 = http::make_request("http://www.baidu.com");
 	//auto req3 = http::make_request("GET / HTTP/1.1\r\nHost: 127.0.0.1:8443\r\n\r\n");
-	//req3.set(http::field::timeout, 5000); // Used to Setting Read Timeout, 5000 milliseconds, default is 3000 milliseconds
 	//auto req4 = http::make_request("GET / HTTP/1.1\r\nHost: 127.0.0.1\r\n\r\n");
 	//auto rep1 = asio2::http_client::execute("http://www.baidu.com/get_user?name=a", ec);
 	//auto path = asio2::http::url_to_path("/get_user?name=a");
@@ -88,11 +87,41 @@ void run_http_client(std::string_view host, std::string_view port)
 void run_https_client(std::string_view host, std::string_view port)
 {
 #if !defined(ASIO_STANDALONE) && defined(ASIO2_USE_SSL)
-	//auto rep = asio2::http_client::execute(host, port, "/api/get_user?name=zhl");
-	//std::cout << rep << std::endl << "--------------------\n";
+	
+	asio2::error_code ec;
+	auto rep2 = asio2::https_client::execute("127.0.0.1", "8080", "/get_user?name=a", ec);
+	std::cout << rep2 << std::endl;
+	std::cout << "--------------------execute 2---------------------\n" << std::endl;
+
+	std::string url = R"(http://127.0.0.1:8080/get_user?json={"cmd":"mode = 10"})";
+	url = asio2::http::url_encode(url);
+	auto rep3 = asio2::https_client::execute(url, ec);
+	std::cout << rep3 << std::endl;
+	std::cout << "--------------------execute 3---------------------\n" << std::endl;
+
+	http::request<http::string_body> req;
+	req.version(11);
+	req.target("/token");
+	req.method(http::verb::post);
+	req.set(http::field::accept, "*/*");
+	req.set(http::field::accept_encoding, "gzip, deflate");
+	req.set(http::field::accept_language, "zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2");
+	req.set(http::field::connection, "keep-alive");
+	req.set(http::field::content_length, "435");
+	req.set(http::field::content_type, "application/x-www-form-urlencoded");
+	req.set(http::field::host, host);
+	req.set(http::field::user_agent, "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:75.0) Gecko/20100101 Firefox/75.0");
+	req.body() = "scope=all&client_id=gateway&client_secret=gateway";
+	req.prepare_payload();
+	auto rep4 = asio2::https_client::execute("127.0.0.1", "8080", req, ec);
+	std::cout << rep4 << std::endl;
+	std::cout << "--------------------execute 4---------------------\n" << std::endl;
+
 
 	asio2::https_client client;
-	client.set_cert_file("server.crt");
+	client.set_verify_mode(asio::ssl::verify_peer);
+	//client.set_cert_buffer(ca_crt, client_crt, client_key, "client");
+	client.set_cert_file("ca.crt", "client.crt", "client.key", "client");
 	client.connect_timeout(std::chrono::seconds(10));
 	client.bind_recv([&](http::response<http::string_body>& rep)
 	{
@@ -113,6 +142,7 @@ void run_https_client(std::string_view host, std::string_view port)
 	{
 		printf("handshake : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
 	});
+	client.post([]() {});
 	client.start(host, port, "/api/get_user?name=zhl");
 	while (std::getchar() != '\n');
 	client.stop();

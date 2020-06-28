@@ -1,3 +1,10 @@
+# 2020-06-28 version 2.5:
+
+  * Improved SSL and certificate loading capabilities.
+  * Fix url_decode bug.
+  * Enhanced user_data() function.
+  * Other general enhancements.
+
 # 2020-04-28 version 2.4:
 
   * Add call and async_call for rpc_server.

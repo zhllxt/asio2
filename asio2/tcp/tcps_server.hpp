@@ -24,7 +24,7 @@ namespace asio2::detail
 {
 	template<class derived_t, class session_t>
 	class tcps_server_impl_t
-		: public asio::ssl::context
+		: public ssl_context_cp<derived_t, true>
 		, public tcp_server_impl_t<derived_t, session_t>
 	{
 		template <class, bool>  friend class user_timer_cp;
@@ -46,28 +46,9 @@ namespace asio2::detail
 			std::size_t max_buffer_size = (std::numeric_limits<std::size_t>::max)(),
 			std::size_t concurrency = std::thread::hardware_concurrency() * 2
 		)
-			: asio::ssl::context(method)
+			: ssl_context_cp<derived_t, true>(method)
 			, super(init_buffer_size, max_buffer_size, concurrency)
 		{
-			// default_workarounds : SSL_OP_ALL
-			//	All of the above bug workarounds.
-			//	It is usually safe to use SSL_OP_ALL to enable the bug workaround options if compatibility with
-			//  somewhat broken implementations is desired.
-
-			// single_dh_use : SSL_OP_SINGLE_DH_USE
-			//	Always create a new key when using temporary / ephemeral DH parameters(see ssl_ctx_set_tmp_dh_callback(3)).
-			//  This option must be used to prevent small subgroup attacks, when the DH parameters were not generated using
-			//  "strong" primes(e.g.when using DSA - parameters, see dhparam(1)).If "strong" primes were used, it is not
-			//  strictly necessary to generate a new DH key during each handshake but it is also recommended.SSL_OP_SINGLE_DH_USE
-			//  should therefore be enabled whenever temporary / ephemeral DH parameters are used.
-
-			// set default options
-			this->set_options(
-				asio::ssl::context::default_workarounds |
-				asio::ssl::context::no_sslv2 |
-				asio::ssl::context::no_sslv3 |
-				asio::ssl::context::single_dh_use
-			);
 		}
 
 		/**
@@ -76,38 +57,6 @@ namespace asio2::detail
 		~tcps_server_impl_t()
 		{
 			this->stop();
-		}
-
-		inline derived_t & set_cert(const std::string& password,
-			std::string_view certificate, std::string_view key, std::string_view dh)
-		{
-			this->set_password_callback([password]
-			(std::size_t max_length, asio::ssl::context_base::password_purpose purpose) -> std::string
-			{
-				return password;
-			});
-
-			this->use_certificate_chain(asio::buffer(certificate));
-			this->use_private_key(asio::buffer(key), asio::ssl::context::pem);
-			this->use_tmp_dh(asio::buffer(dh));
-
-			return (this->derived());
-		}
-
-		inline derived_t & set_cert_file(const std::string& password,
-			const std::string& certificate, const std::string& key, const std::string& dh)
-		{
-			this->set_password_callback([password]
-			(std::size_t max_length, asio::ssl::context_base::password_purpose purpose) -> std::string
-			{
-				return password;
-			});
-
-			this->use_certificate_chain_file(certificate);
-			this->use_private_key_file(key, asio::ssl::context::pem);
-			this->use_tmp_dh_file(dh);
-
-			return (this->derived());
 		}
 
 	public:
@@ -133,7 +82,6 @@ namespace asio2::detail
 		{
 			return super::_make_session(*this, std::forward<Args>(args)...);
 		}
-
 	};
 }
 

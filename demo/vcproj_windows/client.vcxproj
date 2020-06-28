@@ -112,14 +112,14 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>../../;E:\Work\项目\Engine\开发库\03_开发阶段\源代码\third_party\boost;E:\develop\3rd\boost\boost_1_70_0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../;E:\Work\项目\Engine\开发库\03_开发阶段\源代码\third_party\boost;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-      <AdditionalLibraryDirectories>E:\Work\项目\Engine\开发库\03_开发阶段\源代码\third_party\boost\stage\lib;E:\develop\3rd\boost\boost_1_70_0\stage\lib;../../lib/x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>E:\Work\项目\Engine\开发库\03_开发阶段\源代码\third_party\boost\stage\lib;../../lib/x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>libssl.lib;libcrypto.lib;Crypt32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/ignore:4099 %(AdditionalOptions)</AdditionalOptions>
     </Link>
@@ -215,6 +215,8 @@
     <ClInclude Include="..\..\asio2\http\https_client.hpp" />
     <ClInclude Include="..\..\asio2\http\https_server.hpp" />
     <ClInclude Include="..\..\asio2\http\https_session.hpp" />
+    <ClInclude Include="..\..\asio2\http\httpwss_server.hpp" />
+    <ClInclude Include="..\..\asio2\http\httpwss_session.hpp" />
     <ClInclude Include="..\..\asio2\http\httpws_server.hpp" />
     <ClInclude Include="..\..\asio2\http\httpws_session.hpp" />
     <ClInclude Include="..\..\asio2\http\http_client.hpp" />

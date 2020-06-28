@@ -236,6 +236,65 @@ namespace asio2
 		}
 		return tokens;
 	}
+
+	/**
+	 * @function : Replaces all old_str characters that appear in the string with new_str characters.
+	 */
+	template<class String, class OldStr, class NewStr>
+	inline String& replace(String& s, const OldStr& old_str, const NewStr& new_str)
+	{
+		using size_type = typename String::size_type;
+		using old_str_type = std::remove_reference_t<std::remove_cv_t<OldStr>>;
+		using new_str_type = std::remove_reference_t<std::remove_cv_t<NewStr>>;
+		using old_raw_type = std::remove_pointer_t<std::remove_all_extents_t<old_str_type>>;
+		using new_raw_type = std::remove_pointer_t<std::remove_all_extents_t<new_str_type>>;
+
+		size_type old_str_size = 0;
+		size_type new_str_size = 0;
+
+		// char* char[] char
+		if constexpr (std::is_trivial_v<old_raw_type>)
+		{
+			// char* char[]
+			if constexpr (std::is_pointer_v<old_str_type> || std::is_array_v<old_str_type>)
+				old_str_size = std::basic_string_view<old_raw_type>{ old_str }.size();
+			// char
+			else
+				old_str_size = sizeof(old_str) / sizeof(old_raw_type);
+		}
+		// std::string
+		else
+		{
+			old_str_size = old_str.size();
+		}
+
+		if constexpr (std::is_trivial_v<new_raw_type>)
+		{
+			if constexpr (std::is_pointer_v<new_str_type> || std::is_array_v<new_str_type>)
+				new_str_size = std::basic_string_view<new_raw_type>{ new_str }.size();
+			else
+				new_str_size = sizeof(new_str) / sizeof(new_raw_type);
+		}
+		else
+		{
+			new_str_size = new_str.size();
+		}
+
+		for (size_type pos(0); pos != String::npos; pos += new_str_size)
+		{
+			pos = s.find(old_str, pos);
+			if (pos != String::npos)
+			{
+				if constexpr (std::is_pointer_v<new_str_type> || std::is_array_v<new_str_type>)
+					s.replace(pos, old_str_size, new_str);
+				else
+					s.replace(pos, old_str_size, new_str_size, new_str);
+			}
+			else
+				break;
+		}
+		return s;
+	}
 }
 
 #ifdef _MSC_VER

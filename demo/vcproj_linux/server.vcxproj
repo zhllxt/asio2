@@ -159,6 +159,7 @@
     <ClInclude Include="..\..\asio2\rpc\rpc_server.hpp" />
     <ClInclude Include="..\..\asio2\rpc\rpc_session.hpp" />
     <ClInclude Include="..\..\asio2\scp\scp.hpp" />
+    <ClInclude Include="..\..\asio2\tcp\component\ssl_context_cp.hpp" />
     <ClInclude Include="..\..\asio2\tcp\component\ssl_stream_cp.hpp" />
     <ClInclude Include="..\..\asio2\tcp\component\tcp_keepalive_cp.hpp" />
     <ClInclude Include="..\..\asio2\tcp\impl\tcp_recv_op.hpp" />
@@ -178,15 +179,19 @@
     <ClInclude Include="..\..\asio2\udp\udp_client.hpp" />
     <ClInclude Include="..\..\asio2\udp\udp_server.hpp" />
     <ClInclude Include="..\..\asio2\udp\udp_session.hpp" />
+    <ClInclude Include="..\..\asio2\util\aes.hpp" />
+    <ClInclude Include="..\..\asio2\util\base64.hpp" />
     <ClInclude Include="..\..\asio2\util\defer.hpp" />
     <ClInclude Include="..\..\asio2\util\des.hpp" />
     <ClInclude Include="..\..\asio2\util\ini.hpp" />
     <ClInclude Include="..\..\asio2\util\logger.hpp" />
     <ClInclude Include="..\..\asio2\util\md5.hpp" />
     <ClInclude Include="..\..\asio2\util\noncopyable.hpp" />
+    <ClInclude Include="..\..\asio2\util\sha1.hpp" />
     <ClInclude Include="..\..\asio2\util\spin_lock.hpp" />
     <ClInclude Include="..\..\asio2\util\string.hpp" />
     <ClInclude Include="..\..\asio2\util\thread_pool.hpp" />
+    <ClInclude Include="..\..\asio2\util\uuid.hpp" />
     <ClInclude Include="..\..\asio2\version.hpp" />
     <ClInclude Include="..\..\fmt\chrono.h" />
     <ClInclude Include="..\..\fmt\color.h" />
@@ -318,7 +323,7 @@
     </ClCompile>
     <Link>
       <AdditionalLibraryDirectories>/usr/local/lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <LibraryDependencies>boost_system;ssl;crypto;stdc++fs%(LibraryDependencies)</LibraryDependencies>
+      <LibraryDependencies>stdc++fs;boost_system;:libssl.a;:libcrypto.a;%(LibraryDependencies)</LibraryDependencies>
       <AdditionalOptions>-lpthread -lrt -ldl %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>

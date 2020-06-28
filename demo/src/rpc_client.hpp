@@ -109,6 +109,12 @@ void run_rpc_client(std::string_view host, std::string_view port)
 				{
 				}, "del_user", std::move(u));
 
+				// just call rpc function, don't need the rpc result
+				client.async_call("del_user", std::move(u));
+				client.async_call("del_user", "del_user");
+				client.async_call("del_user", "del_user", 1);
+				client.async_call("del_user", std::string("del_user"), 1);
+
 				//std::this_thread::sleep_for(std::chrono::milliseconds(100));
 			}
 		}

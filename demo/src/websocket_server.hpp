@@ -44,7 +44,11 @@ void run_wss_server(std::string_view host, std::string_view port)
 	while (1)
 	{
 		asio2::wss_server server;
-		server.set_cert_file("test", "server.crt", "server.key", "dh512.pem");
+		server.set_verify_mode(asio::ssl::verify_peer | asio::ssl::verify_fail_if_no_peer_cert);
+		//server.set_cert_buffer(ca_crt, server_crt, server_key, "server"); // use memory string for cert
+		//server.set_dh_buffer(dh);
+		server.set_cert_file("ca.crt", "server.crt", "server.key", "server"); // use file for cert
+		server.set_dh_file("dh1024.pem");
 		server.bind_recv([](std::shared_ptr<asio2::wss_session> & session_ptr, std::string_view s)
 		{
 			printf("recv : %u %.*s\n", (unsigned)s.size(), (int)s.size(), s.data());

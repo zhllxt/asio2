@@ -681,6 +681,12 @@
     <ClInclude Include="..\..\asio2\rpc\detail\rpc_portable_binary.hpp">
       <Filter>asio2\rpc\detail</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\asio2\http\httpwss_server.hpp">
+      <Filter>asio2\http</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\asio2\http\httpwss_session.hpp">
+      <Filter>asio2\http</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\client.cpp">

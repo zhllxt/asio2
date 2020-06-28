@@ -36,11 +36,7 @@ namespace asio2::detail
 		/**
 		 * @constructor
 		 */
-		template<typename Socket>
-		ws_stream_cp(Socket& socket) : derive(static_cast<derived_t&>(*this))
-		{
-			this->ws_stream_ = std::make_unique<stream_t>(socket);
-		}
+		ws_stream_cp() : derive(static_cast<derived_t&>(*this)) {}
 
 		/**
 		 * @destructor
@@ -54,6 +50,14 @@ namespace asio2::detail
 		}
 
 	protected:
+		template<typename MatchCondition, typename Socket>
+		inline void _ws_init(const condition_wrap<MatchCondition>& condition, Socket& socket)
+		{
+			detail::ignore::unused(condition, socket);
+
+			this->ws_stream_ = std::make_unique<stream_t>(socket);
+		}
+
 		template<typename MatchCondition, typename Socket>
 		inline void _ws_start(
 			const std::shared_ptr<derived_t>& this_ptr,

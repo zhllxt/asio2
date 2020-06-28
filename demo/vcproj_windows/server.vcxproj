@@ -116,14 +116,14 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>../../;E:\develop\3rd\boost\boost_1_72_0;E:\Work\项目\Engine\开发库\03_开发阶段\源代码\third_party\boost;E:\develop\3rd\boost\boost_1_70_0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../;E:\Work\项目\Engine\开发库\03_开发阶段\源代码\third_party\boost;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-      <AdditionalLibraryDirectories>E:\Work\项目\Engine\开发库\03_开发阶段\源代码\third_party\boost\stage\lib;E:\develop\3rd\boost\boost_1_70_0\stage\lib;../../lib/x64;E:\develop\3rd\boost\boost_1_72_0\stage\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>E:\Work\项目\Engine\开发库\03_开发阶段\源代码\third_party\boost\stage\lib;../../lib/x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>libssl.lib;libcrypto.lib;Crypt32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/ignore:4099 %(AdditionalOptions)</AdditionalOptions>
     </Link>
@@ -248,6 +248,7 @@
     <ClInclude Include="..\..\asio2\rpc\rpc_server.hpp" />
     <ClInclude Include="..\..\asio2\rpc\rpc_session.hpp" />
     <ClInclude Include="..\..\asio2\scp\scp.hpp" />
+    <ClInclude Include="..\..\asio2\tcp\component\ssl_context_cp.hpp" />
     <ClInclude Include="..\..\asio2\tcp\component\ssl_stream_cp.hpp" />
     <ClInclude Include="..\..\asio2\tcp\component\tcp_keepalive_cp.hpp" />
     <ClInclude Include="..\..\asio2\tcp\impl\tcp_recv_op.hpp" />
@@ -267,14 +268,19 @@
     <ClInclude Include="..\..\asio2\udp\udp_client.hpp" />
     <ClInclude Include="..\..\asio2\udp\udp_server.hpp" />
     <ClInclude Include="..\..\asio2\udp\udp_session.hpp" />
+    <ClInclude Include="..\..\asio2\util\aes.hpp" />
+    <ClInclude Include="..\..\asio2\util\base64.hpp" />
     <ClInclude Include="..\..\asio2\util\defer.hpp" />
     <ClInclude Include="..\..\asio2\util\des.hpp" />
     <ClInclude Include="..\..\asio2\util\ini.hpp" />
     <ClInclude Include="..\..\asio2\util\logger.hpp" />
     <ClInclude Include="..\..\asio2\util\md5.hpp" />
     <ClInclude Include="..\..\asio2\util\noncopyable.hpp" />
+    <ClInclude Include="..\..\asio2\util\sha1.hpp" />
     <ClInclude Include="..\..\asio2\util\spin_lock.hpp" />
+    <ClInclude Include="..\..\asio2\util\string.hpp" />
     <ClInclude Include="..\..\asio2\util\thread_pool.hpp" />
+    <ClInclude Include="..\..\asio2\util\uuid.hpp" />
     <ClInclude Include="..\..\asio2\version.hpp" />
     <ClInclude Include="..\..\fmt\chrono.h" />
     <ClInclude Include="..\..\fmt\color.h" />

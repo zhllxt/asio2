@@ -17,6 +17,8 @@
 
 #include <any>
 
+#include <asio2/base/error.hpp>
+
 namespace asio2::detail
 {
 	template<class derived_t>
@@ -54,13 +56,30 @@ namespace asio2::detail
 			try
 			{
 				if constexpr (std::is_pointer_v<DataT>)
+				{
+					// user_data_ is pointer, and DataT is pointer too.
+					if (this->user_data_.type() == typeid(DataT))
+						return std::any_cast<DataT>(this->user_data_);
+
+					// user_data_ is not pointer, but DataT is pointer.
 					return std::any_cast<std::remove_pointer_t<DataT>>(&(this->user_data_));
+				}
 				else
+				{
 					return std::any_cast<DataT>(this->user_data_);
+				}
 			}
-			catch (const std::bad_any_cast&) {}
+			catch (const std::bad_any_cast&)
+			{
+				if (this->user_data_.has_value())
+				{
+					ASIO2_ASSERT(false);
+				}
+			}
 			return DataT{};
 		}
+
+		inline std::any& user_data_any() { return this->user_data_; }
 
 	protected:
 		/// user data

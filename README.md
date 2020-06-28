@@ -18,7 +18,7 @@ A open source cross-platform c++ library for network programming based on asio,s
 ```c++
 目前看到的很多基于asio的框架的模式大都如下:
 tcp_server server; // 声明一个server
-server.run();      // 调用run函数,run函数是阻塞的
+server.run();      // 调用run函数,run函数是阻塞的,run之后怎么退出却不知道.
 这种模式需要用户自己去处理程序退出后的逻辑,包括连接的正常关闭,
 资源释放等问题,而这些问题自己处理起来是很烦琐的.
 asio2框架已经处理过了这些问题,你可以在如MFC的OnInitDialog等地方调用server.start(...),
@@ -75,9 +75,9 @@ server.start("0.0.0.0", "8080");
 ```c++
 asio2::tcp_client client;
 // 客户端在断开时默认会自动重连
-//client.reconnect(false); // 禁止自动重连
-//client.reconnect(true); // 启用自动重连 默认在断开连接后延时1秒就会开始重连
-client.reconnect(true, std::chrono::milliseconds(100)); // 启用自动重连 并设置自定义的延时
+//client.auto_reconnect(false); // 禁止自动重连
+//client.auto_reconnect(true); // 启用自动重连 默认在断开连接后延时1秒就会开始重连
+client.auto_reconnect(true, std::chrono::milliseconds(100)); // 启用自动重连 并设置自定义的延时
 client.bind_connect([&](asio::error_code ec)
 {
 	if (asio2::get_last_error())
@@ -188,6 +188,8 @@ u.purview = { {10,"get"},{20,"set"} };
 client.async_call([](asio::error_code ec)
 {
 }, "del_user", std::move(u));
+// 只调用rpc函数，不需要返回结果
+client.async_call("del_user", std::move(u));
 
 ```
 
@@ -286,7 +288,6 @@ server.start(host, port);
 asio2::error_code ec;
 auto req1 = http::make_request("http://www.baidu.com/get_user?name=a"); // 通过URL字符串生成一个http请求对象
 auto req2 = http::make_request("GET / HTTP/1.1\r\nHost: 127.0.0.1:8443\r\n\r\n"); // 通过http协议字符串生成一个http请求对象
-req2.set(http::field::timeout, 5000); // 给请求设置一个超时时间
 auto rep1 = asio2::http_client::execute("http://www.baidu.com/get_user?name=a", ec); // 通过URL字符串直接请求某个网址,返回结果在rep1中,如果有错误,错误码保存在ec中
 auto rep2 = asio2::http_client::execute("127.0.0.1", "8080", req2); // 通过IP端口以及前面生成的req2请求对象来发送一个http请求
 std::cout << rep2 << std::endl; // 显示http请求结果
@@ -351,10 +352,37 @@ public:
 ##### TCP/HTTP/WEBSOCKET均支持SSL功能(需要在config.hpp中将#define ASIO2_USE_SSL宏定义放开)
 ```c++
 asio2::tcps_server server;
-// 从内存字符串加载SSL证书(具体请查看demo代码)
-server.set_cert("test", cer, key, dh); // cer,key,dh这三个字符串的定义请查看demo代码
-// 从文件加载SSL证书
-//server.set_cert_file("test", "server.crt", "server.key", "dh512.pem");
+// 设置证书模式
+// 如果是 verify_peer | verify_fail_if_no_peer_cert 则客户端必须要使用证书否则握手失败
+// 如果是 verify_peer 或者是 verify_fail_if_no_peer_cert 则客户端用不用证书都可以
+server.set_verify_mode(asio::ssl::verify_peer | asio::ssl::verify_fail_if_no_peer_cert);
+// 从内存字符串加载SSL证书(具体请查看demo代码) 字符串的具体定义请查看demo代码
+server.set_cert_buffer(ca_crt, server_crt, server_key, "server"); // use memory string for cert
+server.set_dh_buffer(dh);
+// 从文件加载SSL证书(注意编译后把demo/cert目录下的证书拷贝到exe目录下 否则会提示加载证书失败)
+server.set_cert_file("ca.crt", "server.crt", "server.key", "server"); // use file for cert
+server.set_dh_file("dh1024.pem");
+// 如何制作自己的证书：
+// 1. 生成服务端私有密钥
+// openssl genrsa -des3 -out server.key 1024
+// 2. 生成服务端证书请求文件
+// openssl req -new -key server.key -out server.csr -config openssl.cnf
+// 3. 生成客户端私有密钥
+// openssl genrsa -des3 -out client.key 1024
+// 4. 生成客户端证书请求文件
+// openssl req -new -key client.key -out client.csr -config openssl.cnf
+// 5. 生成CA私有密钥
+// openssl genrsa -des3 -out ca.key 2048
+// 6. 生成CA证书文件
+// openssl req -new -x509 -key ca.key -out ca.crt -days 3650 -config openssl.cnf
+// 7. 生成服务端证书
+// openssl ca -in server.csr -out server.crt -cert ca.crt -keyfile ca.key -config openssl.cnf
+// 8. 生成客户端证书
+// openssl ca -in client.csr -out client.crt -cert ca.crt -keyfile ca.key -config openssl.cnf
+// 9. 生成dh文件
+// openssl dhparam -out dh1024.pem 1024
+// 说明:openssl是个exe文件,在tool/openssl/x64/bin目录下 openssl.cnf在tool/openssl/x64/ssl目录下
+// 生成证书过程中的其它细节百度搜索即可找到相关说明
 ```
 ##### TCP/HTTP/WEBSOCKET服务端、客户端等SSL功能请到DEMO代码中查看。
 

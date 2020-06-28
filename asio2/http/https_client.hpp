@@ -19,12 +19,13 @@
 
 #include <asio2/http/http_client.hpp>
 #include <asio2/tcp/component/ssl_stream_cp.hpp>
+#include <asio2/tcp/component/ssl_context_cp.hpp>
 
 namespace asio2::detail
 {
 	template<class derived_t, class socket_t, class body_t, class buffer_t>
 	class https_client_impl_t
-		: public asio::ssl::context
+		: public ssl_context_cp<derived_t, false>
 		, public http_client_impl_t<derived_t, socket_t, body_t, buffer_t>
 		, public ssl_stream_cp<derived_t, socket_t, false>
 	{
@@ -41,6 +42,7 @@ namespace asio2::detail
 		template <class, class, class, bool>         friend class http_send_cp;
 		template <class, class, class, bool>         friend class http_send_op;
 		template <class, class, class, bool>         friend class http_recv_op;
+		template <class, bool>						 friend class ssl_context_cp;
 		template <class, class, bool>                friend class ssl_stream_cp;
 		template <class, class, class>               friend class client_impl_t;
 		template <class, class, class>               friend class tcp_client_impl_t;
@@ -51,6 +53,7 @@ namespace asio2::detail
 		using super = http_client_impl_t<derived_t, socket_t, body_t, buffer_t>;
 		using body_type = body_t;
 		using buffer_type = buffer_t;
+		using ssl_context_comp = ssl_context_cp<derived_t, false>;
 		using ssl_stream_comp = ssl_stream_cp<derived_t, socket_t, false>;
 		using super::send;
 
@@ -63,7 +66,7 @@ namespace asio2::detail
 			std::size_t init_buffer_size = tcp_frame_size,
 			std::size_t max_buffer_size = (std::numeric_limits<std::size_t>::max)()
 		)
-			: asio::ssl::context(method)
+			: ssl_context_comp(method)
 			, super(init_buffer_size, max_buffer_size)
 			, ssl_stream_comp(this->io_, *this, asio::ssl::stream_base::client)
 		{
@@ -75,18 +78,6 @@ namespace asio2::detail
 		~https_client_impl_t()
 		{
 			this->stop();
-		}
-
-		inline derived_t & set_cert(std::string_view cert)
-		{
-			this->add_certificate_authority(asio::buffer(cert));
-			return (this->derived());
-		}
-
-		inline derived_t & set_cert_file(const std::string& file)
-		{
-			this->load_verify_file(file);
-			return (this->derived());
 		}
 
 		/**
@@ -260,6 +251,14 @@ namespace asio2::detail
 		}
 
 	protected:
+		template<typename MatchCondition>
+		inline void _do_init(condition_wrap<MatchCondition> condition)
+		{
+			super::_do_init(condition);
+
+			this->derived()._ssl_init(condition, this->socket_, *this);
+		}
+
 		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
 		{
 			this->derived()._ssl_stop(this_ptr, [this, ec, this_ptr]()

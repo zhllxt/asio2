@@ -684,6 +684,9 @@
     <ClInclude Include="..\..\asio2\rpc\detail\rpc_portable_binary.hpp">
       <Filter>asio2\rpc</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\asio2\tcp\component\ssl_context_cp.hpp">
+      <Filter>asio2\tcp\component</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\client.cpp">

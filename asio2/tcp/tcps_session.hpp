@@ -19,6 +19,7 @@
 
 #include <asio2/tcp/tcp_session.hpp>
 #include <asio2/tcp/component/ssl_stream_cp.hpp>
+#include <asio2/tcp/component/ssl_context_cp.hpp>
 
 namespace asio2::detail
 {
@@ -98,6 +99,14 @@ namespace asio2::detail
 		}
 
 	protected:
+		template<typename MatchCondition>
+		inline void _do_init(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		{
+			super::_do_init(std::move(this_ptr), condition);
+
+			this->derived()._ssl_init(condition, this->socket_, this->ctx_);
+		}
+
 		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
 		{
 			this->derived()._ssl_stop(this_ptr, [this, ec, this_ptr]()
