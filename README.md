@@ -78,7 +78,7 @@ server.start("0.0.0.0", "8080");
 //server.start("0.0.0.0", "8080", "\r\n");
 
 // 按自定义规则自动拆包(match_role请参考example代码)(用于对用户自定义的协议拆包)
-// 对自定义协议拆包时,match_role如何使用的详细说明请看:[自定义协议如何拆包](https://blog.csdn.net/zhllxt/article/details/104772948)
+// 对自定义协议拆包时,match_role如何使用的详细说明请看:https://blog.csdn.net/zhllxt/article/details/104772948
 //server.start("0.0.0.0", "8080", match_role('#'));
 
 // 每次接收固定的100字节
@@ -140,7 +140,7 @@ client.async_start("0.0.0.0", "8080");
 //client.async_start("0.0.0.0", "8080", "\r\n"); 
 
 // 按自定义规则自动拆包(match_role请参考example代码)(用于对用户自定义的协议拆包)
-// 对自定义协议拆包时,match_role如何使用的详细说明请看:[自定义协议如何拆包](https://blog.csdn.net/zhllxt/article/details/104772948)
+// 对自定义协议拆包时,match_role如何使用的详细说明请看:https://blog.csdn.net/zhllxt/article/details/104772948
 //client.async_start("0.0.0.0", "8080", match_role); 
 
 // 每次接收固定的100字节
@@ -364,7 +364,7 @@ server.bind("/ws", websocket::listener<asio2::http_session>{}.
 {
 	printf("ws open\n");
 
-	// 打印websocket的httu请求头
+	// 打印websocket的http请求头
 	std::cout << session_ptr->request() << std::endl;
 
 	// 如何给websocket响应头填充额外信息
