@@ -18,10 +18,16 @@
 #include <string>
 #include <string_view>
 
+#include <asio2/base/detail/util.hpp>
+
 #include <asio2/rpc/detail/serialization.hpp>
 
 namespace asio2::detail
 {
+	struct use_tcp {};
+	struct use_websocket {};
+
+
 	/*
 	 * request  : message type + request id + function name + parameters value...
 	 * response : message type + request id + function name + error code + result value
@@ -90,25 +96,44 @@ namespace asio2::detail
 	{
 	protected:
 		template<class T>
+		struct value_t
+		{
+			using type = T;
+		};
+		template<class... Ts>
+		struct value_t<std::basic_string_view<Ts...>>
+		{
+			using type = typename std::basic_string_view<Ts...>::value_type;
+		};
+
+		template<class T>
 		struct result_t
 		{
 			// if the parameters of rpc calling is raw pointer like char* , must convert it to std::string
-			// if the parameters of rpc calling is refrence like std::string& , must remove it's refrence to std::string
-			using ptype = std::remove_cv_t<std::remove_reference_t<T>>;
-			using ctype = std::remove_all_extents_t<std::remove_pointer_t<ptype>>;
-			using type = std::conditional_t<(std::is_pointer_v<ptype> || std::is_array_v<ptype>) && (
-				std::is_same_v<ctype, std::string::value_type> ||
-				std::is_same_v<ctype, std::wstring::value_type> ||
-				std::is_same_v<ctype, std::u16string::value_type> ||
-				std::is_same_v<ctype, std::u32string::value_type>)
-				, std::basic_string<ctype>
-				, std::remove_reference_t<T>>;
+			// if the parameters of rpc calling is std::string_view , must convert it to std::string
+			// if the parameters of rpc calling is refrence like std::string& , must remove it's 
+			//   refrence to std::string
+			using ncvr_type = std::remove_cv_t<std::remove_reference_t<T>>;
+			using char_type = std::remove_cv_t<std::remove_reference_t<
+				std::remove_all_extents_t<std::remove_pointer_t<ncvr_type>>>>;
+			using type = std::conditional_t<
+				(std::is_pointer_v<ncvr_type> || std::is_array_v<ncvr_type>) && (
+					std::is_same_v<char_type, std::string::value_type> ||
+					std::is_same_v<char_type, std::wstring::value_type> ||
+					std::is_same_v<char_type, std::u16string::value_type> ||
+					std::is_same_v<char_type, std::u32string::value_type>)
+				, std::basic_string<char_type>
+				, std::conditional_t<is_template_instance_of_v<std::basic_string_view, ncvr_type>
+				, std::basic_string<typename value_t<ncvr_type>::type>
+				, ncvr_type>>;
 		};
 
 	public:
 		request() : header() { this->type_ = rpc_type_req; }
+		request(std::string_view name, Args&&... args)
+			: header(rpc_type_req,  0, name), tp_(std::forward_as_tuple(std::forward<Args>(args)...)) {}
 		request(id_type id, std::string_view name, Args&&... args)
-			: header(rpc_type_req, id, name), tp_(std::forward_as_tuple(std::forward<typename result_t<Args>::type>(args)...)) {}
+			: header(rpc_type_req, id, name), tp_(std::forward_as_tuple(std::forward<Args>(args)...)) {}
 		~request() = default;
 
 		request(const request& r) : header(r), tp_(r.tp_) {}

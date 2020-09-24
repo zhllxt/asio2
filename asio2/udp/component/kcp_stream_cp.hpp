@@ -82,16 +82,14 @@ namespace asio2::detail
 			this->_post_kcp_timer(std::move(this_ptr));
 		}
 
-		inline void _kcp_stop(std::shared_ptr<derived_t> this_ptr)
+		inline void _kcp_stop()
 		{
-			detail::ignore::unused(this_ptr);
-
 			error_code ec;
 			// if is kcp mode, send FIN handshake before close
 			if (this->send_fin_)
 				this->_kcp_send_hdr(kcp::make_kcphdr_fin(0), ec);
 
-			this->kcp_timer_.cancel();
+			this->kcp_timer_.cancel(ec_ignore);
 		}
 
 	protected:
@@ -119,10 +117,6 @@ namespace asio2::detail
 				kcp::ikcp_flush(this->kcp_);
 			callback(get_last_error(), ret < 0 ? 0 : buffer.size());
 
-#if defined(ASIO2_SEND_CORE_ASYNC)
-			derive.next_event();
-#endif
-
 			return (ret == 0);
 		}
 
@@ -135,7 +129,7 @@ namespace asio2::detail
 			this->kcp_timer_.expires_after(std::chrono::milliseconds(clock2 - clock1));
 			this->kcp_timer_.async_wait(asio::bind_executor(this->kcp_io_.strand(),
 				make_allocator(this->tallocator_,
-					[this, self_ptr = std::move(this_ptr)](const error_code & ec)
+					[this, self_ptr = std::move(this_ptr)](const error_code & ec) mutable
 			{
 				this->_handle_kcp_timer(ec, std::move(self_ptr));
 			})));
@@ -184,7 +178,8 @@ namespace asio2::detail
 		}
 
 		template<typename MatchCondition>
-		inline void _post_handshake(std::shared_ptr<derived_t> self_ptr, condition_wrap<MatchCondition> condition)
+		inline void _post_handshake(std::shared_ptr<derived_t> self_ptr,
+			condition_wrap<MatchCondition> condition)
 		{
 			try
 			{
@@ -209,14 +204,16 @@ namespace asio2::detail
 				else
 				{
 					// step 1 : client send syn to server
-					this->seq_ = static_cast<std::uint32_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+					this->seq_ = static_cast<std::uint32_t>(
+						std::chrono::duration_cast<std::chrono::milliseconds>(
 						std::chrono::system_clock::now().time_since_epoch()).count());
 					kcp::kcphdr syn = kcp::make_kcphdr_syn(this->seq_);
 					this->_kcp_send_hdr(syn, ec);
 					asio::detail::throw_error(ec);
 
-					std::shared_ptr<asio::steady_timer> timer = mktimer(derive.io(), std::chrono::milliseconds(500),
-						[this, syn](error_code ec)
+					std::shared_ptr<asio::steady_timer> timer =
+						mktimer(derive.io(), std::chrono::milliseconds(500),
+						[this, syn](error_code ec) mutable
 					{
 						if (ec == asio::error::operation_aborted)
 							return false;
@@ -227,6 +224,8 @@ namespace asio2::detail
 							derive._do_disconnect(ec);
 							return false;
 						}
+						// return true  : let the timer continue execute.
+						// return false : kill the timer.
 						return true;
 					});
 
@@ -236,16 +235,14 @@ namespace asio2::detail
 							[this, this_ptr = std::move(self_ptr), condition, timer = std::move(timer)]
 					(const error_code & ec, std::size_t bytes_recvd) mutable
 					{
-						try
-						{
-							timer->cancel();
-						}
-						catch (system_error &) {}
-						catch (std::exception &) {}
+						timer->cancel(ec_ignore);
 
 						if (ec)
 						{
-							this->_handle_handshake(ec, std::move(this_ptr), condition);
+							this->_handle_handshake(
+								derive._is_connect_timeout() ? asio::error::timed_out :
+								(derive._connect_error_code() ? derive._connect_error_code() : ec),
+								std::move(this_ptr), condition);
 							return;
 						}
 
@@ -263,7 +260,8 @@ namespace asio2::detail
 						}
 						else
 						{
-							this->_handle_handshake(asio::error::no_protocol_option, std::move(this_ptr), condition);
+							this->_handle_handshake(asio::error::no_protocol_option,
+								std::move(this_ptr), condition);
 						}
 
 						derive.buffer().consume(bytes_recvd);
@@ -273,6 +271,7 @@ namespace asio2::detail
 			catch (system_error & e)
 			{
 				set_last_error(e);
+
 				derive._do_disconnect(e.code());
 			}
 		}
@@ -303,6 +302,7 @@ namespace asio2::detail
 			catch (system_error & e)
 			{
 				set_last_error(e);
+
 				derive._do_disconnect(e.code());
 			}
 		}

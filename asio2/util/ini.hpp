@@ -68,98 +68,112 @@ namespace asio2
 	struct convert<bool>
 	{
 		template<class ...Args>
-		inline static bool stov(Args&&... args) { return (!(std::stoi(std::forward<Args>(args)...) == 0)); }
+		inline static bool stov(Args&&... args)
+		{ return (!(std::stoi(std::forward<Args>(args)...) == 0)); }
 	};
 
 	template<>
 	struct convert<char>
 	{
 		template<class ...Args>
-		inline static char stov(Args&&... args) { return static_cast<char>(std::stoi(std::forward<Args>(args)...)); }
+		inline static char stov(Args&&... args)
+		{ return static_cast<char>(std::stoi(std::forward<Args>(args)...)); }
 	};
 
 	template<>
 	struct convert<unsigned char>
 	{
 		template<class ...Args>
-		inline static unsigned char stov(Args&&... args) { return static_cast<unsigned char>(std::stoul(std::forward<Args>(args)...)); }
+		inline static unsigned char stov(Args&&... args)
+		{ return static_cast<unsigned char>(std::stoul(std::forward<Args>(args)...)); }
 	};
 
 	template<>
 	struct convert<short>
 	{
 		template<class ...Args>
-		inline static short stov(Args&&... args) { return static_cast<short>(std::stoi(std::forward<Args>(args)...)); }
+		inline static short stov(Args&&... args)
+		{ return static_cast<short>(std::stoi(std::forward<Args>(args)...)); }
 	};
 
 	template<>
 	struct convert<unsigned short>
 	{
 		template<class ...Args>
-		inline static unsigned short stov(Args&&... args) { return static_cast<unsigned short>(std::stoul(std::forward<Args>(args)...)); }
+		inline static unsigned short stov(Args&&... args)
+		{ return static_cast<unsigned short>(std::stoul(std::forward<Args>(args)...)); }
 	};
 
 	template<>
 	struct convert<int>
 	{
 		template<class ...Args>
-		inline static int stov(Args&&... args) { return std::stoi(std::forward<Args>(args)...); }
+		inline static int stov(Args&&... args)
+		{ return std::stoi(std::forward<Args>(args)...); }
 	};
 
 	template<>
 	struct convert<unsigned int>
 	{
 		template<class ...Args>
-		inline static unsigned int stov(Args&&... args) { return static_cast<unsigned int>(std::stoul(std::forward<Args>(args)...)); }
+		inline static unsigned int stov(Args&&... args)
+		{ return static_cast<unsigned int>(std::stoul(std::forward<Args>(args)...)); }
 	};
 
 	template<>
 	struct convert<long>
 	{
 		template<class ...Args>
-		inline static long stov(Args&&... args) { return std::stol(std::forward<Args>(args)...); }
+		inline static long stov(Args&&... args)
+		{ return std::stol(std::forward<Args>(args)...); }
 	};
 
 	template<>
 	struct convert<unsigned long>
 	{
 		template<class ...Args>
-		inline static unsigned long stov(Args&&... args) { return std::stoul(std::forward<Args>(args)...); }
+		inline static unsigned long stov(Args&&... args)
+		{ return std::stoul(std::forward<Args>(args)...); }
 	};
 
 	template<>
 	struct convert<long long>
 	{
 		template<class ...Args>
-		inline static long long stov(Args&&... args) { return std::stoll(std::forward<Args>(args)...); }
+		inline static long long stov(Args&&... args)
+		{ return std::stoll(std::forward<Args>(args)...); }
 	};
 
 	template<>
 	struct convert<unsigned long long>
 	{
 		template<class ...Args>
-		inline static unsigned long long stov(Args&&... args) { return std::stoull(std::forward<Args>(args)...); }
+		inline static unsigned long long stov(Args&&... args)
+		{ return std::stoull(std::forward<Args>(args)...); }
 	};
 
 	template<>
 	struct convert<float>
 	{
 		template<class ...Args>
-		inline static float stov(Args&&... args) { return std::stof(std::forward<Args>(args)...); }
+		inline static float stov(Args&&... args)
+		{ return std::stof(std::forward<Args>(args)...); }
 	};
 
 	template<>
 	struct convert<double>
 	{
 		template<class ...Args>
-		inline static double stov(Args&&... args) { return std::stod(std::forward<Args>(args)...); }
+		inline static double stov(Args&&... args)
+		{ return std::stod(std::forward<Args>(args)...); }
 	};
 
 	template<>
 	struct convert<long double>
 	{
 		template<class ...Args>
-		inline static long double stov(Args&&... args) { return std::stold(std::forward<Args>(args)...); }
+		inline static long double stov(Args&&... args)
+		{ return std::stold(std::forward<Args>(args)...); }
 	};
 
 	template<class CharT, class Traits, class Allocator>
@@ -354,11 +368,13 @@ namespace asio2
 				default_val);
 		}
 
-		template<class R, class Traits = std::char_traits<char_type>, class Allocator = std::allocator<char_type>>
+		template<class R, class Traits = std::char_traits<char_type>,
+			class Allocator = std::allocator<char_type>>
 		inline typename std::enable_if_t<std::is_same_v<decltype(
 			asio2::convert<R>::stov(std::basic_string<char_type, Traits, Allocator>()),
 			std::true_type()), std::true_type>, R>
-			get(std::basic_string_view<char_type, Traits> sec, std::basic_string_view<char_type, Traits> key, R default_val = R())
+			get(std::basic_string_view<char_type, Traits> sec,
+				std::basic_string_view<char_type, Traits> key, R default_val = R())
 		{
 			try
 			{
@@ -383,11 +399,13 @@ namespace asio2
 				ec, default_val);
 		}
 
-		template<class R, class Traits = std::char_traits<char_type>, class Allocator = std::allocator<char_type>>
+		template<class R, class Traits = std::char_traits<char_type>,
+			class Allocator = std::allocator<char_type>>
 		inline typename std::enable_if_t<std::is_same_v<decltype(
 			asio2::convert<R>::stov(std::basic_string<char_type, Traits, Allocator>()),
 			std::true_type()), std::true_type>, R>
-			get(std::basic_string_view<char_type, Traits> sec, std::basic_string_view<char_type, Traits> key,
+			get(std::basic_string_view<char_type, Traits> sec,
+				std::basic_string_view<char_type, Traits> key,
 				std::error_code & ec, R default_val = R())
 		{
 			try
@@ -486,8 +504,12 @@ namespace asio2
 
 							if (pos_diff > 0) buffer.append(pos_diff, ' ');
 
-							while (!buffer.empty() && (pos_type(buffer.size()) + posg > filesize) && buffer.back() == ' ')
+							while (!buffer.empty() &&
+								(pos_type(buffer.size()) + posg > filesize) &&
+								buffer.back() == ' ')
+							{
 								buffer.erase(buffer.size() - 1);
+							}
 
 							Stream::clear();
 							Stream::seekp(posg);

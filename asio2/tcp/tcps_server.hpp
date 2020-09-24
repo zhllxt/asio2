@@ -72,7 +72,8 @@ namespace asio2::detail
 		inline derived_t & bind_handshake(F&& fun, C&&... obj)
 		{
 			this->listener_.bind(event::handshake,
-				observer_t<std::shared_ptr<session_t>&, error_code>(std::forward<F>(fun), std::forward<C>(obj)...));
+				observer_t<std::shared_ptr<session_t>&, error_code>(
+					std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
 		}
 
@@ -80,7 +81,7 @@ namespace asio2::detail
 		template<typename... Args>
 		inline std::shared_ptr<session_t> _make_session(Args&&... args)
 		{
-			return super::_make_session(*this, std::forward<Args>(args)...);
+			return super::_make_session(std::forward<Args>(args)..., *this);
 		}
 	};
 }

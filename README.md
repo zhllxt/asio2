@@ -1,18 +1,23 @@
 # asio2
 ### [README in English](https://github.com/zhllxt/asio2/blob/master/README.en.md) 
-A open source cross-platform c++ library for network programming based on asio,support for tcp,udp,http,rpc,ssl and so on.
+Header only c++ network library, based on asio,support tcp,udp,http,websocket,rpc,ssl,icmp,serial_port.
 
 <a href="https://996.icu"><img src="https://img.shields.io/badge/link-996.icu-red.svg" alt="996.icu" /></a>
 [![996.icu](https://img.shields.io/badge/link-996.icu-red.svg)](https://996.icu)
 [![LICENSE](https://img.shields.io/badge/license-Anti%20996-blue.svg)](https://github.com/996icu/996.ICU/blob/master/LICENSE)
 
-* 支持TCP,UDP,HTTP,WEBSOCKET,RPC,ICMP,SERIAL_PORT等;
+* header only,不依赖boost库,不需要单独编译,在工程的Include目录中添加asio2路径,在源码中#include <asio2/asio2.hpp>即可使用;
+* 支持tcp, udp, http, websocket, rpc, ssl, icmp, serial_port;
 * 支持可靠UDP(基于KCP),支持SSL,支持从内存字符串加载SSL证书;
-* TCP支持各种数据拆包功能(单个字符或字符串或用户自定义协议等);实现了TCP的数据报模式(类似WEBSOCKET);
-* 支持windows,linux,32位,64位;
-* 基于C++17,基于asio(boost::asio或独立asio均可,若需要HTTP功能必须使用boost::asio);
-* header only 方式,无需编译,只需在工程的Include包含目录中添加asio2路径,然后在源码中#include <asio2/asio2.hpp>包含头文件即可;
-* demo目录包含大量的示例工程(工程基于VS2017创建),各种使用方法请参考示例代码;
+* TCP支持各种数据拆包功能(单个字符或字符串或用户自定义协议等);实现了数据报模式的TCP(类似WEBSOCKET);
+* 跨平台,支持windows,linux,32位,64位;在msvc(vs2017 vs2019 ) gcc8 clang10 下编译通过;
+* 基于C++17,基于asio (asio 的 standalone 版本);
+* example目录包含大量的示例工程(工程基于VS2017创建),各种使用方法请参考示例代码;
+
+## v2.6重要更新:
+* 完全移除对boost库的依赖,以前使用http和websocket时需要依赖boost库,现在所有功能都不需要boost了;
+* rpc组件添加了链式调用功能,以前版本中调用rpc函数时,"用户回调函数,超时时长,rpc函数名,rpc函数参数"这些参数都要写在同一个函数中,很容易搞糊涂,现在支持链式调用可避免这个问题了;
+* 重写了http接口,http接口更简单易用了;
 
 ## 与其它框架的一点区别:
 ```c++
@@ -29,9 +34,9 @@ tcp下也会保证所有连接都正常关闭以后才会退出,你不用考虑�
 
 ## 一点简单的性能测试:
 ```c++
-测试办法:本机127.0.0.1,和rest_rpc进行对比.测试rpc的qps,只测了单连接.
-字符串大小为128时:rest_rpc的qps约为30000/秒,asio2的qps约为37000/秒,此时asio2比rest_rpc性能约高19%.
-字符串越来越大时(测试了16K和64K),两者性能基本相同.
+测试办法:本机127.0.0.1,和rest_rpc进行对比.测试rpc的qps,只测了单连接.字符串
+大小为128时:rest_rpc的qps约为30000/秒,asio2的qps约为37000/秒,此时asio2
+比rest_rpc性能约高19%.字符串越来越大时(测试了16K和64K),两者性能基本相同.
 ```
 rpc测试的和说明代码请看:[rpc性能测试代码](https://github.com/zhllxt/asio2/wiki/rpc%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95%E4%BB%A3%E7%A0%81)
 
@@ -39,7 +44,7 @@ rpc测试的和说明代码请看:[rpc性能测试代码](https://github.com/zhl
 ##### 服务端:
 ```c++
 asio2::tcp_server server;
-server.bind_recv([&server](std::shared_ptr<asio2::tcp_session> & session_ptr, std::string_view s)
+server.bind_recv([&](std::shared_ptr<asio2::tcp_session> & session_ptr, std::string_view s)
 {
 	printf("recv : %u %.*s\n", (unsigned)s.size(), (int)s.size(), s.data());
 	// 异步发送(所有发送操作都是异步且线程安全的)
@@ -47,7 +52,7 @@ server.bind_recv([&server](std::shared_ptr<asio2::tcp_session> & session_ptr, st
 	// 发送时指定一个回调函数,当发送完成后会调用此回调函数,bytes_sent表示实际发送的字节数,
 	// 发送是否有错误可以用asio2::get_last_error()函数来获取错误码
 	// session_ptr->send(s, [](std::size_t bytes_sent) {});
-}).bind_connect([&server](auto & session_ptr)
+}).bind_connect([&](auto & session_ptr)
 {
 	session_ptr->no_delay(true);
 	printf("client enter : %s %u %s %u\n",
@@ -58,26 +63,44 @@ server.bind_recv([&server](std::shared_ptr<asio2::tcp_session> & session_ptr, st
 	// 时需要在数据处理过程中使用一个定时器来延时做某些操作,而且这个定时器还需要和数据处理
 	// 在同一个线程中安全触发)
 	//session_ptr->start_timer(1, std::chrono::seconds(1), []() {});
-}).bind_disconnect([&server](auto & session_ptr)
+}).bind_disconnect([&](auto & session_ptr)
 {
 	printf("client leave : %s %u %s\n",
 		session_ptr->remote_address().c_str(),
 		session_ptr->remote_port(), asio2::last_error_msg().c_str());
 });
 server.start("0.0.0.0", "8080");
-//server.start("0.0.0.0", "8080", '\n'); // 按\n自动拆包(可以指定任意字符)
-//server.start("0.0.0.0", "8080", "\r\n"); // 按\r\n自动拆包(可以指定任意字符串)
-//server.start("0.0.0.0", "8080", match_role('#')); // 按match_role指定的规则自动拆包(match_role请参考demo代码)(用于对用户自定义的协议拆包)
-//server.start("0.0.0.0", "8080", asio::transfer_exactly(100)); // 每次接收固定的100字节
-//server.start("0.0.0.0", "8080", asio2::use_dgram); // 数据报模式的TCP,无论发送多长的数据,双方接收的一定是相应长度的整包数据
+
+// 按\n自动拆包(可以指定任意字符)
+//server.start("0.0.0.0", "8080", '\n');
+
+// 按\r\n自动拆包(可以指定任意字符串)
+//server.start("0.0.0.0", "8080", "\r\n");
+
+// 按自定义规则自动拆包(match_role请参考example代码)(用于对用户自定义的协议拆包)
+// 对自定义协议拆包时,match_role如何使用的详细说明请看:[自定义协议如何拆包](https://blog.csdn.net/zhllxt/article/details/104772948)
+//server.start("0.0.0.0", "8080", match_role('#'));
+
+// 每次接收固定的100字节
+//server.start("0.0.0.0", "8080", asio::transfer_exactly(100));
+
+// 数据报模式的TCP,无论发送多长的数据,双方接收的一定是相应长度的整包数据
+//server.start("0.0.0.0", "8080", asio2::use_dgram);
 ```
 ##### 客户端:
 ```c++
 asio2::tcp_client client;
 // 客户端在断开时默认会自动重连
-//client.auto_reconnect(false); // 禁止自动重连
-//client.auto_reconnect(true); // 启用自动重连 默认在断开连接后延时1秒就会开始重连
-client.auto_reconnect(true, std::chrono::milliseconds(100)); // 启用自动重连 并设置自定义的延时
+
+// 禁止自动重连
+//client.auto_reconnect(false);
+
+// 启用自动重连 默认在断开连接后延时1秒就会开始重连
+//client.auto_reconnect(true);
+
+// 启用自动重连 并设置自定义的延时
+client.auto_reconnect(true, std::chrono::seconds(3));
+
 client.bind_connect([&](asio::error_code ec)
 {
 	if (asio2::get_last_error())
@@ -95,18 +118,36 @@ client.bind_connect([&](asio::error_code ec)
 
 	client.send(sv);
 })
-	//.bind_recv(on_recv) // 绑定全局函数
-	//.bind_recv(std::bind(&listener::on_recv, &lis, std::placeholders::_1)) // 绑定成员函数(具体请查看demo代码)
-	//.bind_recv(&listener::on_recv, lis) // 按lis对象的引用来绑定成员函数(具体请查看demo代码)
-	//.bind_recv(&listener::on_recv, &lis) // 按lis对象的指针来绑定成员函数(具体请查看demo代码)
+	//// 绑定全局函数
+	//.bind_recv(on_recv)
+	//// 绑定成员函数(具体请查看example代码)
+	//.bind_recv(std::bind(&listener::on_recv, &lis, std::placeholders::_1)) 
+	//// 按lis对象的引用来绑定成员函数(具体请查看example代码)
+	//.bind_recv(&listener::on_recv, lis) 
+	//// 按lis对象的指针来绑定成员函数(具体请查看example代码)
+	//.bind_recv(&listener::on_recv, &lis) 
 	;
-client.async_start("0.0.0.0", "8080"); // 异步连接服务端
-//client.start("0.0.0.0", "8080"); // 同步连接服务端
-//client.async_start("0.0.0.0", "8080", '\n'); // 按\n自动拆包(可以指定任意字符)
-//client.async_start("0.0.0.0", "8080", "\r\n"); // 按\r\n自动拆包(可以指定任意字符串)
-//client.async_start("0.0.0.0", "8080", match_role); // 按match_role指定的规则自动拆包(match_role请参考demo代码)(用于对用户自定义的协议拆包)
-//client.async_start("0.0.0.0", "8080", asio::transfer_exactly(100)); // 每次接收固定的100字节
-//client.start("0.0.0.0", "8080", asio2::use_dgram); // 数据报模式的TCP,无论发送多长的数据,双方接收的一定是相应长度的整包数据
+// 异步连接服务端
+client.async_start("0.0.0.0", "8080");
+
+// 同步连接服务端
+//client.start("0.0.0.0", "8080");
+
+// 按\n自动拆包(可以指定任意字符)
+//client.async_start("0.0.0.0", "8080", '\n');
+
+// 按\r\n自动拆包(可以指定任意字符串)
+//client.async_start("0.0.0.0", "8080", "\r\n"); 
+
+// 按自定义规则自动拆包(match_role请参考example代码)(用于对用户自定义的协议拆包)
+// 对自定义协议拆包时,match_role如何使用的详细说明请看:[自定义协议如何拆包](https://blog.csdn.net/zhllxt/article/details/104772948)
+//client.async_start("0.0.0.0", "8080", match_role); 
+
+// 每次接收固定的100字节
+//client.async_start("0.0.0.0", "8080", asio::transfer_exactly(100)); 
+
+// 数据报模式的TCP,无论发送多长的数据,双方接收的一定是相应长度的整包数据
+//client.start("0.0.0.0", "8080", asio2::use_dgram); 
 
 // 发送时也可以指定use_future参数,然后通过返回值future来阻塞等待直到发送完成,发送结果的错误码和发送字节数
 // 保存在返回值future中(注意,不能在通信线程中用future去等待,这会阻塞通信线程进而导致死锁)
@@ -117,14 +158,14 @@ client.async_start("0.0.0.0", "8080"); // 异步连接服务端
 ##### 服务端:
 ```c++
 asio2::udp_server server;
-// ... 绑定监听器(请查看demo代码)
+// ... 绑定监听器(请查看example代码)
 server.start("0.0.0.0", "8080"); // 常规UDP
 //server.start("0.0.0.0", "8080", asio2::use_kcp); // 可靠UDP
 ```
 ##### 客户端:
 ```c++
 asio2::udp_client client;
-// ... 绑定监听器(请查看demo代码)
+// ... 绑定监听器(请查看example代码)
 client.start("0.0.0.0", "8080");
 //client.async_start("0.0.0.0", "8080", asio2::use_kcp); // 可靠UDP
 ```
@@ -132,47 +173,79 @@ client.start("0.0.0.0", "8080");
 ## RPC:
 ##### 服务端:
 ```c++
-// 全局函数示例，当服务端的RPC函数被调用时，如果想知道是哪个客户端调用的，将这个RPC函数的第一个参数
-// 设置为连接对象的智能指针即可（如果不关心是哪个客户端调用的，删除这第一个参数即可），如下：
+// 全局函数示例，当服务端的RPC函数被调用时，如果想知道是哪个客户端调用的，将这个RPC函数的第一
+// 个参数设置为连接对象的智能指针即可(如果不关心是哪个客户端调用的,第一个参数可以不要),如下:
 int add(std::shared_ptr<asio2::rpc_session>& session_ptr, int a, int b)
 {
 	return a + b;
 }
-asio2::rpc_server server;
-// ... 绑定监听器(请查看demo代码)
-A a; // A的定义请查看demo代码
-server.bind("add", add); // 绑定RPC全局函数
-server.bind("mul", &A::mul, a); // 绑定RPC成员函数
-server.bind("cat", [&](const std::string& a, const std::string& b) { return a + b; }); // 绑定lambda表达式
-server.bind("get_user", &A::get_user, a); // 绑定成员函数(按引用)
-server.bind("del_user", &A::del_user, &a); // 绑定成员函数(按指针)
-server.start("0.0.0.0", "8080", asio2::use_dgram); // 使用TCP数据报模式作为RPC通信底层支撑,启动服务端时必须要使用use_dgram参数
-//server.start("0.0.0.0", "8080"); // 使用websocket作为RPC通信底层支撑(需要到rcp_server.hpp文件末尾代码中选择使用websocket)
+
+// rpc默认是按照"数据长度+数据内容"的格式来发送数据的,因此客户端可能会恶意组包,导致解析出的
+// "数据长度"非常长,此时就会分配大量内存来接收完整数据包.避免此问题的办法就是是指定缓冲区最
+// 大值,如果发送的数据超过缓冲区最大值,就会将该连接直接关闭.所有tcp udp http websocket,server
+// client 等均支持这个功能.
+asio2::rpc_server server(
+	512,  // 接收缓冲区的初始大小
+	1024, // 接收缓冲区的最大大小
+	4     // 多少个并发线程
+);
+
+// ... 绑定监听器(请查看example代码)
+
+// 绑定RPC全局函数
+server.bind("add", add);
+
+// 绑定RPC成员函数
+server.bind("mul", &A::mul, a);
+
+// 绑定lambda表达式
+server.bind("cat", [&](const std::string& a, const std::string& b) { return a + b; });
+
+// 绑定成员函数(按引用) a的定义请查看example代码
+server.bind("get_user", &A::get_user, a);
+
+// 绑定成员函数(按指针) a的定义请查看example代码
+server.bind("del_user", &A::del_user, &a);
+
+// 服务端也可以调用客户端的RPC函数(通过连接对象session_ptr)
+session_ptr->async_call([](asio::error_code ec, int v)
+{
+	printf("sub : %d err : %d %s\n", v, ec.value(), ec.message().c_str());
+}, std::chrono::seconds(10), "sub", 15, 6);
+
+//server.start("0.0.0.0", "8080");
 ```
 ##### 客户端:
 ```c++
 asio2::rpc_client client;
-// ... 绑定监听器(请查看demo代码)
-// 不仅server可以绑定RPC函数给client调用，同时client也可以绑定RPC函数给server调用。请参考demo代码。
-client.start("0.0.0.0", "8080", asio2::use_dgram); // 使用TCP数据报模式作为RPC通信底层支撑,启动服务端时必须要使用use_dgram参数
-//client.start("0.0.0.0", "8080"); // 使用websocket作为RPC通信底层支撑
+// ... 绑定监听器(请查看example代码)
+// 不仅server可以绑定RPC函数给client调用，同时client也可以绑定RPC函数给server调用。请参考example代码。
+client.start("0.0.0.0", "8080");
+
 asio::error_code ec;
+
 // 同步调用RPC函数
 int sum = client.call<int>(ec, std::chrono::seconds(3), "add", 11, 2);
 printf("sum : %d err : %d %s\n", sum, ec.value(), ec.message().c_str());
-// 异步调用RPC函数,第一个参数是回调函数,当调用完成或超时会自动调用该回调函数,如果超时或其它错误,
-// 错误码保存在ec中,这里async_call没有指定返回值类型,则lambda表达式的第二个参数必须要指定类型
+
+// 异步调用RPC函数,
+// 第一个参数是回调函数,当调用完成或超时会自动调用该回调函数,如果超时或其它错误,错误码保存在ec中
+// 第二个参数是调用超时,可以不填,如果不填则使用默认超时
+// 第三个参数是rpc函数名,之后的参数是rpc函数的参数
 client.async_call([](asio::error_code ec, int v)
 {
 	printf("sum : %d err : %d %s\n", v, ec.value(), ec.message().c_str());
 }, "add", 10, 20);
-// 这里async_call指定了返回值类型,则lambda表达式的第二个参数可以为auto类型
-// 也可以指定异步RPC的超时，如下：std::chrono::seconds(3)
-client.async_call<int>([](asio::error_code ec, auto v)
+
+// 上面的调用方式的参数位置很容易搞混,因此也支持链式调用,如下(其它示例请查看example):
+client.timeout(std::chrono::seconds(5)).async_call("mul", 2.5, 2.5).response(
+	[](asio::error_code ec, double v)
 {
-	printf("sum : %d err : %d %s\n", v, ec.value(), ec.message().c_str());
-}, std::chrono::seconds(3),  "add", 12, 21);
-// 返回值为用户自定义数据类型(user类型的定义请查看demo代码)
+	std::cout << "mul1 " << v << std::endl;
+});
+int sum = client.timeout(std::chrono::seconds(3)).errcode(ec).call<int>("add", 11, 32);
+
+// 返回值为用户自定义数据类型(user类型的定义请查看example代码)
 user u = client.call<user>(ec, "get_user");
 printf("%s %d ", u.name.c_str(), u.age);
 for (auto &[k, v] : u.purview)
@@ -184,10 +257,12 @@ printf("\n");
 u.name = "hanmeimei";
 u.age = ((int)time(nullptr)) % 100;
 u.purview = { {10,"get"},{20,"set"} };
-// 如果RPC函数的返回值为void,则用户回调函数只有一个参数即可
+
+// 如果RPC函数的返回值为void,则用户回调函数只有一个参数ec即可
 client.async_call([](asio::error_code ec)
 {
 }, "del_user", std::move(u));
+
 // 只调用rpc函数，不需要返回结果
 client.async_call("del_user", std::move(u));
 
@@ -196,156 +271,192 @@ client.async_call("del_user", std::move(u));
 ## HTTP:
 ##### 服务端:
 ```c++
-asio2::http_server server;
-server.bind_recv([&](std::shared_ptr<asio2::http_session> & session_ptr, http::request<http::string_body>& req)
+// http 请求拦截器
+struct aop_log
 {
-	// 在收到http请求时尝试发送一个文件到对端
+	bool before(http::request& req, http::response& rep)
 	{
-		// 如果请求是非法的,直接发送错误信息到对端并返回
-		if (req.target().empty() ||
-			req.target()[0] != '/' ||
-			req.target().find("..") != beast::string_view::npos)
-		{
-			session_ptr->send(http::make_response(http::status::bad_request, "Illegal request-target"));
-			session_ptr->stop(); // 同时直接断开这个连接
-			return;
-		}
-
-		// Build the path to the requested file
-		std::string path(req.target().data(), req.target().size());
-		path.insert(0, std::filesystem::current_path().string());
-		if (req.target().back() == '/')
-			path.append("index.html");
-
-		// 打开文件
-		beast::error_code ec;
-		http::file_body::value_type body;
-		body.open(path.c_str(), beast::file_mode::scan, ec);
-
-		// 如果打开文件失败,直接发送错误信息到对端并直接返回
-		if (ec == beast::errc::no_such_file_or_directory)
-		{
-			session_ptr->send(http::make_response(http::status::not_found,
-				std::string_view{ req.target().data(), req.target().size() }));
-			return;
-		}
-
-		// Cache the size since we need it after the move
-		auto const size = body.size();
-
-		// 生成一个文件形式的http响应对象,然后发送给对端
-		http::response<http::file_body> res{
-			std::piecewise_construct,
-			std::make_tuple(std::move(body)),
-			std::make_tuple(http::status::ok, req.version()) };
-		res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
-		res.set(http::field::content_type, http::extension_to_mimetype(path));
-		res.content_length(size);
-		res.keep_alive(req.keep_alive()); 
-		res.chunked(true);
-		// Specify a callback function when sending
-		//session_ptr->send(std::move(res));
-		session_ptr->send(std::move(res), [&res](std::size_t bytes_sent)
-		{
-			auto opened = res.body().is_open(); std::ignore = opened;
-			auto err = asio2::get_last_error(); std::ignore = err;
-		});
-		//session_ptr->send(std::move(res), asio::use_future);
-		return;
+		asio2::detail::ignore_unused(rep);
+		printf("aop_log before %s\n", req.method_string().data());
+		// 返回true则后续的拦截器会接着调用,返回false则后续的拦截器不会被调用
+		return true;
 	}
-
-	std::cout << req << std::endl;
-	if (true)
+	bool after(std::shared_ptr<asio2::http_session>& session_ptr, http::request& req, http::response& rep)
 	{
-		// 用make_response生成一个http响应对象,状态码200表示操作成功,"suceess"是HTTP消息的body部分内容
-		auto rep = http::make_response(200, "suceess");
-		session_ptr->send(rep, []()
-		{
-			auto err = asio2::get_last_error(); std::ignore = err;
-		});
+		asio2::detail::ignore_unused(session_ptr, req, rep);
+		printf("aop_log after\n");
+		return true;
 	}
-	else
+};
+
+struct aop_check
+{
+	bool before(std::shared_ptr<asio2::http_session>& session_ptr, http::request& req, http::response& rep)
 	{
-		// 也可以直接发送一个http标准响应字符串,内部会将这个字符串自动转换为http响应对象再发送出去
-		std::string_view rep =
-			"HTTP/1.1 404 Not Found\r\n"\
-			"Server: Boost.Beast/181\r\n"\
-			"Content-Length: 7\r\n"\
-			"\r\n"\
-			"failure";
-		// test send string sequence, the string will automatically parsed into a standard http request
-		session_ptr->send(rep, [](std::size_t bytes_sent)
-		{
-			auto err = asio2::get_last_error(); std::ignore = err;
-		});
+		asio2::detail::ignore_unused(session_ptr, req, rep);
+		printf("aop_check before\n");
+		return true;
 	}
+	bool after(http::request& req, http::response& rep)
+	{
+		asio2::detail::ignore_unused(req, rep);
+		printf("aop_check after\n");
+		return true;
+	}
+};
+
+asio2::http_server server;
+
+server.bind<http::verb::get, http::verb::post>("/index.*", [](http::request& req, http::response& rep)
+{
+	std::cout << req.path() << std::endl;
+	std::cout << req.query() << std::endl;
+
+	rep.fill_file("../../../index.html");
+	rep.chunked(true);
+
+}, aop_log{});
+
+server.bind<http::verb::get>("/del_user",
+	[](std::shared_ptr<asio2::http_session>& session_ptr, http::request& req, http::response& rep)
+{
+	// 回调函数的第一个参数可以是会话指针session_ptr(这个参数也可以不要)
+	printf("del_user ip : %s\n", session_ptr->remote_address().data());
+
+	// fill_page函数用给定的错误代码构造一个简单的标准错误页,<html>...</html>这样
+	rep.fill_page(http::status::ok, "del_user successed.");
+
+}, aop_check{});
+
+server.bind<http::verb::get>("/api/user/*", [](http::request& req, http::response& rep)
+{
+	rep.fill_text("the user name is hanmeimei, .....");
+
+}, aop_log{}, aop_check{});
+
+server.bind<http::verb::get>("/defer", [](http::request& req, http::response& rep)
+{
+	// 使用defer让http响应延迟发送,defer的智能指针销毁时,才会自动发送response
+	std::shared_ptr<http::response_defer> rep_defer = rep.defer();
+
+	std::thread([rep_defer, &rep]() mutable
+	{
+		std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+
+		asio::error_code ec;
+		auto newrep = asio2::http_client::execute("http://www.baidu.com", ec);
+
+		rep = std::move(newrep);
+
+	}).detach();
+
+}, aop_log{}, aop_check{});
+
+// 对websocket的支持
+server.bind("/ws", websocket::listener<asio2::http_session>{}.
+	on("message", [](std::shared_ptr<asio2::http_session>& session_ptr, std::string_view data)
+{
+	printf("ws msg : %u %.*s\n", (unsigned)data.size(), (int)data.size(), data.data());
+
+	session_ptr->send(data);
+
+}).on("open", [](std::shared_ptr<asio2::http_session>& session_ptr)
+{
+	printf("ws open\n");
+
+	// 打印websocket的httu请求头
+	std::cout << session_ptr->request() << std::endl;
+
+	// 如何给websocket响应头填充额外信息
+	session_ptr->ws_stream().set_option(websocket::stream_base::decorator(
+		[](websocket::response_type& rep)
+	{
+		rep.set(http::field::authorization, " http-server-coro");
+	}));
+
+}).on("close", [](std::shared_ptr<asio2::http_session>& session_ptr)
+{
+	printf("ws close\n");
+
+}));
+
+server.bind_not_found([](http::request& req, http::response& rep)
+{
+	// fill_page函数可以构造一个简单的标准错误页
+	rep.fill_page(http::status::not_found);
 });
-server.start(host, port);
-
 ```
 ##### 客户端:
 ```c++
 asio2::error_code ec;
-auto req1 = http::make_request("http://www.baidu.com/get_user?name=a"); // 通过URL字符串生成一个http请求对象
-auto req2 = http::make_request("GET / HTTP/1.1\r\nHost: 127.0.0.1:8443\r\n\r\n"); // 通过http协议字符串生成一个http请求对象
-auto rep1 = asio2::http_client::execute("http://www.baidu.com/get_user?name=a", ec); // 通过URL字符串直接请求某个网址,返回结果在rep1中,如果有错误,错误码保存在ec中
-auto rep2 = asio2::http_client::execute("127.0.0.1", "8080", req2); // 通过IP端口以及前面生成的req2请求对象来发送一个http请求
-std::cout << rep2 << std::endl; // 显示http请求结果
+
+// 通过URL字符串生成一个http请求对象
+auto req1 = http::make_request("http://www.baidu.com/get_user?name=abc");
+// 通过URL字符串直接请求某个网址,返回结果在rep1中,如果有错误,错误码保存在ec中
+auto rep1 = asio2::http_client::execute("http://www.baidu.com/get_user?name=abc", ec);
+if (ec)
+	std::cout << ec.message() << std::endl;
+else
+	std::cout << rep1 << std::endl; // 打印http请求结果
+
+// 通过http协议字符串生成一个http请求对象
+auto req2 = http::make_request("GET / HTTP/1.1\r\nHost: 192.168.0.1\r\n\r\n");
+// 通过请求对象发送http请求
+auto rep2 = asio2::http_client::execute("www.baidu.com", "80", req2, std::chrono::seconds(3), ec);
+if (ec)
+	std::cout << ec.message() << std::endl;
+else
+	std::cout << rep2 << std::endl;
+
 std::stringstream ss;
 ss << rep2;
 std::string result = ss.str(); // 通过这种方式将http请求结果转换为字符串
+
+// 获取url中的path部分的值
+auto path = asio2::http::url_to_path("/get_user?name=abc");
+std::cout << path << std::endl;
+
+// 获取url中的query部分的值
+auto query = asio2::http::url_to_query("/get_user?name=abc");
+std::cout << query << std::endl;
+
+std::cout << std::endl;
+
+auto rep3 = asio2::http_client::execute("www.baidu.com", "80", "/api/get_user?name=abc", ec);
+if (ec)
+	std::cout << ec.message() << std::endl;
+else
+	std::cout << rep3 << std::endl;
+
+// URL编解码
+std::string en = http::url_encode(R"(http://www.baidu.com/json={"qeury":"name like '%abc%'","id":1})");
+std::cout << en << std::endl;
+std::string de = http::url_decode(en);
+std::cout << de << std::endl;
+
+// 其它的更多用法请查看example示例代码
+
 ```
 
-##### 其它的HTTP使用方式以及WEBSOCKET使用方式请参考demo代码
+##### 其它的HTTP使用方式以及WEBSOCKET使用方式请参考example代码
 
 ## ICMP:
 ```c++
-class ping_test // 模拟在一个类对象中使用ping组件(其它所有如TCP/UDP/HTTP等组件一样可以在类对象中使用)
+asio2::ping ping;
+ping.timeout(std::chrono::seconds(3))  // 设置ping超时 默认3秒
+	.interval(std::chrono::seconds(1)) // 设置ping间隔 默认1秒
+	.bind_recv([](asio2::icmp_rep& rep)
 {
-	asio2::ping ping;
-public:
-	ping_test() : ping(10) // 构造函数传入的10表示只ping 10次后就结束,传入-1表示一直ping
-	{
-		ping.timeout(std::chrono::seconds(3)); // 设置ping超时
-		ping.interval(std::chrono::seconds(1)); // 设置ping间隔
-		ping.body("0123456789abcdefghijklmnopqrstovuxyz");
-		ping.bind_recv(&ping_test::on_recv, this) // 绑定当前这个类的成员函数作为监听器
-			.bind_start(std::bind(&ping_test::on_start, this, std::placeholders::_1)) // 也是绑定成员函数
-			.bind_stop([this](asio::error_code ec) { this->on_stop(ec); }); // 绑定lambda
-	}
-	void on_recv(asio2::icmp_rep& rep)
-	{
-		if (rep.lag.count() == -1) // 如果延时的值等于-1表示超时了
-			std::cout << "request timed out" << std::endl;
-		else
-			std::cout << rep.total_length() - rep.header_length()
-			<< " bytes from " << rep.source_address()
-			<< ": icmp_seq=" << rep.sequence_number()
-			<< ", ttl=" << rep.time_to_live()
-			<< ", time=" << std::chrono::duration_cast<std::chrono::milliseconds>(rep.lag).count() << "ms"
-			<< std::endl;
-	}
-	void on_start(asio::error_code ec)
-	{
-		printf("start : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
-	}
-	void on_stop(asio::error_code ec)
-	{
-		printf("stop : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
-	}
-	void run()
-	{
-		if (!ping.start("127.0.0.1"))
-			//if (!ping.start("123.45.67.89"))
-			//if (!ping.start("stackoverflow.com"))
-			printf("start failure : %s\n", asio2::last_error_msg().c_str());
-		while (std::getchar() != '\n');
-		ping.stop();
-		// ping结束后可以输出统计信息,包括丢包率,平均延时时长等
-		printf("loss rate : %.0lf%% average time : %lldms\n", ping.plp(),
-			std::chrono::duration_cast<std::chrono::milliseconds>(ping.avg_lag()).count());
-	}
-};
+	if (rep.is_timeout())
+		std::cout << "request timed out" << std::endl;
+	else
+		std::cout << rep.total_length() - rep.header_length()
+		<< " bytes from " << rep.source_address()
+		<< ": icmp_seq=" << rep.sequence_number()
+		<< ", ttl=" << rep.time_to_live()
+		<< ", time=" << std::chrono::duration_cast<std::chrono::milliseconds>(rep.lag).count() << "ms"
+		<< std::endl;
+}).start("151.101.193.69");
 ```
 
 ## SSL:
@@ -356,10 +467,10 @@ asio2::tcps_server server;
 // 如果是 verify_peer | verify_fail_if_no_peer_cert 则客户端必须要使用证书否则握手失败
 // 如果是 verify_peer 或者是 verify_fail_if_no_peer_cert 则客户端用不用证书都可以
 server.set_verify_mode(asio::ssl::verify_peer | asio::ssl::verify_fail_if_no_peer_cert);
-// 从内存字符串加载SSL证书(具体请查看demo代码) 字符串的具体定义请查看demo代码
+// 从内存字符串加载SSL证书(具体请查看example代码) 字符串的具体定义请查看example代码
 server.set_cert_buffer(ca_crt, server_crt, server_key, "server"); // use memory string for cert
 server.set_dh_buffer(dh);
-// 从文件加载SSL证书(注意编译后把demo/cert目录下的证书拷贝到exe目录下 否则会提示加载证书失败)
+// 从文件加载SSL证书(注意编译后把example/cert目录下的证书拷贝到exe目录下 否则会提示加载证书失败)
 server.set_cert_file("ca.crt", "server.crt", "server.key", "server"); // use file for cert
 server.set_dh_file("dh1024.pem");
 // 如何制作自己的证书：
@@ -384,10 +495,56 @@ server.set_dh_file("dh1024.pem");
 // 说明:openssl是个exe文件,在tool/openssl/x64/bin目录下 openssl.cnf在tool/openssl/x64/ssl目录下
 // 生成证书过程中的其它细节百度搜索即可找到相关说明
 ```
-##### TCP/HTTP/WEBSOCKET服务端、客户端等SSL功能请到DEMO代码中查看。
+##### TCP/HTTP/WEBSOCKET服务端、客户端等SSL功能请到example代码中查看。
 
 ## 串口:
-##### 请查看demo示例代码serial port 部分
+```c++
+std::string_view device = "COM1"; // windows
+//std::string_view device = "/dev/ttyS0"; // linux
+std::string_view baud_rate = "9600";
+
+asio2::scp sp;
+sp.bind_init([&]()
+{
+	// 设置串口参数
+	sp.socket().set_option(asio::serial_port::flow_control(asio::serial_port::flow_control::type::none));
+	sp.socket().set_option(asio::serial_port::parity(asio::serial_port::parity::type::none));
+	sp.socket().set_option(asio::serial_port::stop_bits(asio::serial_port::stop_bits::type::one));
+	sp.socket().set_option(asio::serial_port::character_size(8));
+
+}).bind_recv([&](std::string_view sv)
+{
+	printf("recv : %u %.*s\n", (unsigned)sv.size(), (int)sv.size(), sv.data());
+
+	// 接收串口数据
+	std::string s;
+	uint8_t len = uint8_t(10 + (std::rand() % 20));
+	s += '<';
+	for (uint8_t i = 0; i < len; i++)
+	{
+		s += (char)((std::rand() % 26) + 'a');
+	}
+	s += '>';
+
+	sp.send(s, []() {});
+
+});
+
+// 没有指定如何解析串口数据,需要用户自己去解析串口数据
+//sp.start(device, baud_rate);
+
+// 按照单个字符'>'作为数据分隔符自动解析串口数据
+sp.start(device, baud_rate, '>');
+
+// 按照字符串"\r\n"作为数据分隔符自动解析串口数据
+//sp.start(device, baud_rate, "\r\n");
+
+// 按照用户自定义的协议自动解析,关于match_role如何使用请参考tcp部分说明
+//sp.start(device, baud_rate, match_role);
+
+//sp.start(device, baud_rate, asio::transfer_at_least(1));
+//sp.start(device, baud_rate, asio::transfer_exactly(10));
+```
 
 ## 其它:
 ##### 定时器

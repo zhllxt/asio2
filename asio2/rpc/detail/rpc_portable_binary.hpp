@@ -29,6 +29,29 @@
 #ifndef __ASIO2_RPC_CEREAL_ARCHIVES_PORTABLE_BINARY_HPP__
 #define __ASIO2_RPC_CEREAL_ARCHIVES_PORTABLE_BINARY_HPP__
 
+#ifdef _MSC_VER
+#  pragma warning(push) 
+#  pragma warning(disable:4311)
+#  pragma warning(disable:4312)
+#  pragma warning(disable:4996)
+#endif
+
+#if defined(__GNUC__) || defined(__GNUG__)
+#  pragma GCC diagnostic push
+#  pragma GCC diagnostic ignored "-Wunused-variable"
+#  pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
+#if defined(__clang__)
+#  pragma clang diagnostic push
+#  pragma clang diagnostic ignored "-Wunused-variable"
+#  pragma clang diagnostic ignored "-Wexceptions"
+#  pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#  pragma clang diagnostic ignored "-Wunused-private-field"
+#  pragma clang diagnostic ignored "-Wunused-local-typedef"
+#  pragma clang diagnostic ignored "-Wunknown-warning-option"
+#endif
+
 #include <cereal/cereal.hpp>
 
 #include <sstream>
@@ -153,6 +176,8 @@ namespace cereal
           throw Exception("Failed to write " + std::to_string(size) + " bytes to output stream! Wrote " + std::to_string(writtenSize));
       }
 
+	  inline std::ostream & stream() { return this->itsStream; }
+
     private:
       std::ostream & itsStream;
       const uint8_t itsConvertEndianness; //!< If set to true, we will need to swap bytes upon saving
@@ -241,6 +266,8 @@ namespace cereal
       {
         uint8_t streamLittleEndian;
         this->operator()( streamLittleEndian );
+		if (streamLittleEndian > uint8_t(1))
+		  throw Exception("Illegal data");
         itsConvertEndianness = options_.is_little_endian() ^ streamLittleEndian;
 		return (*this);
       }
@@ -266,6 +293,8 @@ namespace cereal
             rpc_portable_binary_detail::swap_bytes<DataSize>( ptr + i );
         }
       }
+
+	  inline std::istream & stream() { return this->itsStream; }
 
     private:
       std::istream & itsStream;
@@ -337,6 +366,27 @@ namespace cereal
 
     ar.template loadBinary<sizeof(TT)>( bd.data, static_cast<std::streamsize>( bd.size ) );
   }
+
+  // ######################################################################
+  //! Epilogue for SizeTags for RPCPortableBinary archives
+  template <class T> inline
+  void epilogue( RPCPortableBinaryOutputArchive & ar, SizeTag<T> const & sz)
+  {
+	  std::ignore = ar;
+	  std::ignore = sz;
+  }
+
+  //! Epilogue for SizeTags for RPCPortableBinary archives
+  template <class T> inline
+  void epilogue( RPCPortableBinaryInputArchive & ar, SizeTag<T> const & sz)
+  {
+	  std::streambuf* buff = ar.stream().rdbuf();
+	  std::streamsize need = std::streamsize(sz.size);
+	  std::streamsize have = buff ? buff->in_avail() : std::streamsize(0);
+	  if (need < 0 || need > have)
+		  throw Exception("Illegal data");
+  }
+
 } // namespace cereal
 
 // register archives for polymorphic support
@@ -345,5 +395,17 @@ CEREAL_REGISTER_ARCHIVE(cereal::RPCPortableBinaryInputArchive)
 
 // tie input and output archives together
 CEREAL_SETUP_ARCHIVE_TRAITS(cereal::RPCPortableBinaryInputArchive, cereal::RPCPortableBinaryOutputArchive)
+
+#if defined(__clang__)
+#  pragma clang diagnostic pop
+#endif
+
+#if defined(__GNUC__) || defined(__GNUG__)
+#  pragma GCC diagnostic pop
+#endif
+
+#if defined(_MSC_VER)
+#  pragma warning(pop) 
+#endif
 
 #endif // __ASIO2_RPC_CEREAL_ARCHIVES_PORTABLE_BINARY_HPP__

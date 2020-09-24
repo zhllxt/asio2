@@ -52,6 +52,8 @@ namespace asio2
 	public:
 		std::chrono::steady_clock::duration lag;
 
+		inline bool is_timeout() { return (this->lag.count() == -1); }
+
 		detail::ipv4_header& base_ipv4() { return static_cast<detail::ipv4_header&>(*this); }
 		//detail::ipv6_header& base_ipv6() { return static_cast<detail::ipv6_header&>(*this); }
 		detail::icmp_header& base_icmp() { return static_cast<detail::icmp_header&>(*this); }
@@ -161,7 +163,8 @@ namespace asio2::detail
 		template<class F, class ...C>
 		inline derived_t & bind_recv(F&& fun, C&&... obj)
 		{
-			this->listener_.bind(event::recv, observer_t<icmp_rep&>(std::forward<F>(fun), std::forward<C>(obj)...));
+			this->listener_.bind(event::recv,
+				observer_t<icmp_rep&>(std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
 		}
 
@@ -175,7 +178,8 @@ namespace asio2::detail
 		template<class F, class ...C>
 		inline derived_t & bind_init(F&& fun, C&&... obj)
 		{
-			this->listener_.bind(event::init, observer_t<>(std::forward<F>(fun), std::forward<C>(obj)...));
+			this->listener_.bind(event::init,
+				observer_t<>(std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
 		}
 
@@ -188,7 +192,8 @@ namespace asio2::detail
 		template<class F, class ...C>
 		inline derived_t & bind_start(F&& fun, C&&... obj)
 		{
-			this->listener_.bind(event::start, observer_t<error_code>(std::forward<F>(fun), std::forward<C>(obj)...));
+			this->listener_.bind(event::start,
+				observer_t<error_code>(std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
 		}
 
@@ -201,7 +206,8 @@ namespace asio2::detail
 		template<class F, class ...C>
 		inline derived_t & bind_stop(F&& fun, C&&... obj)
 		{
-			this->listener_.bind(event::stop, observer_t<error_code>(std::forward<F>(fun), std::forward<C>(obj)...));
+			this->listener_.bind(event::stop,
+				observer_t<error_code>(std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
 		}
 
@@ -246,7 +252,8 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : set icmp body
+		 * @function : set icmp payload body
+		 * This function is the same as the "payload()" function
 		 */
 		inline derived_t & body(std::string_view body)
 		{
@@ -254,6 +261,15 @@ namespace asio2::detail
 			if (this->body_.size() > 65500)
 				this->body_.resize(65500);
 			return (this->derived());
+		}
+
+		/**
+		 * @function : set icmp payload body
+		 * This function is the same as the "body()" function
+		 */
+		inline derived_t & payload(std::string_view body)
+		{
+			return this->derived().body(std::move(body));
 		}
 
 		/**
@@ -390,20 +406,25 @@ namespace asio2::detail
 		{
 			state_t expected = state_t::starting;
 			if (this->state_.compare_exchange_strong(expected, state_t::stopping))
-				return this->derived()._post_stop(ec, std::shared_ptr<derived_t>{}, expected);
+				return this->derived()._post_stop(ec, this->derived().selfptr(), expected);
 
 			expected = state_t::started;
 			if (this->state_.compare_exchange_strong(expected, state_t::stopping))
-				return this->derived()._post_stop(ec, std::shared_ptr<derived_t>{}, expected);
+				return this->derived()._post_stop(ec, this->derived().selfptr(), expected);
 		}
 
 		inline void _post_stop(const error_code& ec, std::shared_ptr<derived_t> self_ptr, state_t old_state)
 		{
-			// asio don't allow operate the same socket in multi thread,if you close socket in one thread and another thread is 
-			// calling socket's async_... function,it will crash.so we must care for operate the socket.when need close the
-			// socket ,we use the strand to post a event,make sure the socket's close operation is in the same thread.
+			// asio don't allow operate the same socket in multi thread,
+			// if you close socket in one thread and another thread is 
+			// calling socket's async_... function,it will crash.so we
+			// must care for operate the socket.when need close the 
+			// socket ,we use the strand to post a event,make sure the
+			// socket's close operation is in the same thread.
 			asio::post(this->io_.strand(), [this, ec, this_ptr = std::move(self_ptr), old_state]()
 			{
+				detail::ignore::unused(old_state);
+
 				set_last_error(ec);
 
 				state_t expected = state_t::stopping;
@@ -428,10 +449,11 @@ namespace asio2::detail
 			// close user custom timers
 			this->stop_all_timers();
 
-			// destroy user data, maybe the user data is self shared_ptr, if don't destroy it, will cause loop refrence.
+			// destroy user data, maybe the user data is self shared_ptr,
+			// if don't destroy it, will cause loop refrence.
 			this->user_data_.reset();
 
-			this->timer_.cancel();
+			this->timer_.cancel(ec_ignore);
 
 			// Call close,otherwise the _handle_recv will never return
 			this->socket_.close(ec_ignore);
@@ -558,7 +580,7 @@ namespace asio2::detail
 			{
 				// If this is the first reply, interrupt the five second timeout.
 				if (this->replies_++ == 0)
-					this->timer_.cancel();
+					this->timer_.cancel(ec_ignore);
 
 				this->total_recv_++;
 				this->rep_.lag = std::chrono::steady_clock::now() - this->time_sent_;
@@ -646,7 +668,7 @@ namespace asio2::detail
 		asio::ip::icmp::endpoint                    destination_;
 		unsigned short                              identifier_;
 
-		std::size_t                                 ncount_{ -1 };
+		std::size_t                                 ncount_    { std::size_t(-1) };
 		std::size_t                                 total_send_{ 0 };
 		std::size_t                                 total_recv_{ 0 };
 		std::chrono::steady_clock::duration         total_time_{ 0 };

@@ -25,17 +25,20 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef ASIO_STANDALONE
-
 #ifndef __ASIO2_HTTP_PARSER_H__
 #define __ASIO2_HTTP_PARSER_H__
 
 #if defined(__GNUC__) || defined(__GNUG__)
-#	pragma GCC diagnostic push
-#	pragma GCC diagnostic ignored "-Wconversion"
+#  pragma GCC diagnostic push
+#  pragma GCC diagnostic ignored "-Wunused-variable"
+#  pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
 
-namespace boost::beast::http::cparser {
+#ifdef BEAST_HEADER_ONLY
+namespace beast::http::nginx_parser {
+#else
+namespace boost::beast::http::nginx_parser {
+#endif
 //#ifdef __cplusplus
 //extern "C" {
 //#endif
@@ -2853,7 +2856,7 @@ http_parser_parse_url(const char *buf, size_t buflen, int is_connect,
     u->field_data[(int)uf].off = static_cast<uint16_t>(p - buf);
     u->field_data[(int)uf].len = 1;
 
-    u->field_set |= (1 << (int)uf);
+    u->field_set |= uint16_t(1 << (int)uf);
     old_uf = uf;
   }
 
@@ -2887,7 +2890,7 @@ http_parser_parse_url(const char *buf, size_t buflen, int is_connect,
     end = buf + off + len;
 
     /* NOTE: The characters are already validated and are in the [0-9] range */
-    assert(off + len <= buflen && "Port number overflow");
+    assert(size_t(off + len) <= buflen && "Port number overflow");
     v = 0;
     for (p = buf + off; p < end; ++p) {
       v *= 10;
@@ -2941,8 +2944,6 @@ http_parser_version(void) {
 
 #if defined(__GNUC__) || defined(__GNUG__)
 #	pragma GCC diagnostic pop
-#endif
-
 #endif
 
 #endif

@@ -43,18 +43,21 @@ namespace asio2::detail
 	static long constexpr  udp_handshake_timeout = 5 * 1000;
 	static long constexpr http_handshake_timeout = 5 * 1000;
 
-	static long constexpr  tcp_connect_timeout = 5 * 1000;
-	static long constexpr  udp_connect_timeout = 5 * 1000;
-	static long constexpr http_connect_timeout = 5 * 1000;
+	static long constexpr  tcp_connect_timeout   = 5 * 1000;
+	static long constexpr  udp_connect_timeout   = 5 * 1000;
+	static long constexpr http_connect_timeout   = 5 * 1000;
 
-	static long constexpr  tcp_silence_timeout = 60 * 60 * 1000;
-	static long constexpr  udp_silence_timeout = 60 * 1000;
-	static long constexpr http_silence_timeout = 85 * 1000;
+	static long constexpr  tcp_silence_timeout   = 60 * 60 * 1000;
+	static long constexpr  udp_silence_timeout   = 60 * 1000;
+	static long constexpr http_silence_timeout   = 85 * 1000;
 
-	static long constexpr http_execute_timeout = 3 * 1000;
+	static long constexpr http_execute_timeout   = 5 * 1000;
 
-	static long constexpr ssl_shutdown_timeout = 1500;
-	static long constexpr  ws_shutdown_timeout = 1500;
+	static long constexpr ssl_shutdown_timeout   = 5 * 1000;
+	static long constexpr  ws_shutdown_timeout   = 5 * 1000;
+
+	static long constexpr ssl_handshake_timeout  = 5 * 1000;
+	static long constexpr  ws_handshake_timeout  = 5 * 1000;
 
 	/*
 	 * The read buffer has to be at least as large
@@ -69,6 +72,13 @@ namespace asio2::detail
 
 namespace asio2::detail
 {
+	template <typename Enumeration>
+	inline constexpr auto enum_to_int(Enumeration const value) ->
+		typename std::underlying_type<Enumeration>::type
+	{
+		return static_cast<typename std::underlying_type<Enumeration>::type>(value);
+	}
+
 	/**
 	 * BKDR Hash Function
 	 */
@@ -109,7 +119,7 @@ namespace asio2::detail
 	// struct that ignores assignments
 	struct ignore
 	{
-		template<class ...Args> ignore(Args&&...) {}
+		template<class ...Args> ignore(const Args&...) {}
 
 		template<class T>
 		constexpr const ignore& operator=(const T&) const noexcept	// strengthened
@@ -118,8 +128,14 @@ namespace asio2::detail
 		}
 
 		template<class ...Args>
-		static inline constexpr const void unused(Args&&...) noexcept {}
+		static inline constexpr const void unused(const Args&...) noexcept {}
 	};
+
+	template <typename... Ts>
+	inline constexpr void ignore_unused(Ts const& ...) {}
+
+	template <typename... Ts>
+	inline constexpr void ignore_unused() {}
 
 	template<class T>
 	class copyable_wrapper
@@ -162,10 +178,12 @@ namespace asio2::detail
 		std::shared_ptr<asio::steady_timer> timer =
 			std::make_shared<asio::steady_timer>(io.context());
 		auto post = std::make_shared<std::unique_ptr<std::function<void()>>>();
-		*post = std::make_unique<std::function<void()>>([&io, duration, f = std::forward<Fn>(fn), timer, post]()
+		*post = std::make_unique<std::function<void()>>(
+			[&io, duration, f = std::forward<Fn>(fn), timer, post]() mutable
 		{
 			timer->expires_after(duration);
-			timer->async_wait(asio::bind_executor(io.strand(), [&f, &post](const error_code & ec) mutable
+			timer->async_wait(asio::bind_executor(io.strand(), [&f, &post]
+			(const error_code & ec) mutable
 			{
 				if (f(ec))
 					(**post)();
@@ -230,8 +248,11 @@ namespace asio2::detail
 
 
 	// example : static_assert(is_template_instance_of<std::vector, std::vector<int>>);
-	template<template<typename...> class U, typename T> struct is_template_instance_of : std::false_type {};
-	template<template<typename...> class U, typename...Args> struct is_template_instance_of<U, U<Args...>> : std::true_type {};
+	template<template<typename...> class U, typename T>
+	struct is_template_instance_of : std::false_type {};
+
+	template<template<typename...> class U, typename...Args>
+	struct is_template_instance_of<U, U<Args...>> : std::true_type {};
 
 	template<template<typename...> class U, typename...Args>
 	inline constexpr bool is_template_instance_of_v = is_template_instance_of<U, Args...>::value;
@@ -245,7 +266,8 @@ namespace asio2::detail
 	template<typename T>
 	struct is_string<T, std::void_t<typename T::value_type, typename T::traits_type, typename T::allocator_type,
 		typename std::enable_if_t<std::is_same_v<T,
-		std::basic_string<typename T::value_type, typename T::traits_type, typename T::allocator_type>>>>> : std::true_type {};
+		std::basic_string<typename T::value_type, typename T::traits_type, typename T::allocator_type>>>>>
+		: std::true_type {};
 
 	template<class T>
 	inline constexpr bool is_string_v = is_string<T>::value;
@@ -289,6 +311,16 @@ namespace asio2::detail
 			s = std::forward<T>(v);
 		}
 		return s;
+	}
+
+	template<typename IntegerType, typename T>
+	inline IntegerType to_integer(T&& v)
+	{
+		using type = std::remove_cv_t<std::remove_reference_t<T>>;
+		if constexpr (std::is_integral_v<type>)
+			return static_cast<IntegerType>(v);
+		else
+			return static_cast<IntegerType>(std::stoull(to_string(std::forward<T>(v))));
 	}
 
 	template<typename Protocol, typename String, typename StrOrInt>

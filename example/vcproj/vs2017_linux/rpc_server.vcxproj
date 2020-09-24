@@ -1,0 +1,384 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|ARM">
+      <Configuration>Debug</Configuration>
+      <Platform>ARM</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|ARM">
+      <Configuration>Release</Configuration>
+      <Platform>ARM</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x86">
+      <Configuration>Debug</Configuration>
+      <Platform>x86</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x86">
+      <Configuration>Release</Configuration>
+      <Platform>x86</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{28AE6265-240C-49E8-9E9C-A7030D468843}</ProjectGuid>
+    <Keyword>Linux</Keyword>
+    <RootNamespace>server</RootNamespace>
+    <MinimumVisualStudioVersion>15.0</MinimumVisualStudioVersion>
+    <ApplicationType>Linux</ApplicationType>
+    <ApplicationTypeRevision>1.0</ApplicationTypeRevision>
+    <TargetLinuxPlatform>Generic</TargetLinuxPlatform>
+    <LinuxProjectType>{2238F9CD-F817-4ECC-BD14-2524D2669B35}</LinuxProjectType>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'" Label="Configuration">
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <UseOfStl>libstdc++_static</UseOfStl>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'" Label="Configuration">
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <UseOfStl>libstdc++_static</UseOfStl>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'" Label="Configuration">
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <UseOfStl>libstdc++_static</UseOfStl>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'" Label="Configuration">
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <UseOfStl>libstdc++_static</UseOfStl>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <UseOfStl>libstdc++_static</UseOfStl>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <UseOfStl>libstdc++_static</UseOfStl>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings" />
+  <ImportGroup Label="Shared" />
+  <ImportGroup Label="PropertySheets" />
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
+    <IntDir>$(SolutionDir)obj\linux\$(PlatformTarget)\$(Configuration)\$(ProjectName)\</IntDir>
+    <OutDir>$(SolutionDir)bin\linux\$(PlatformTarget)\$(Configuration)\</OutDir>
+    <RemoteProjectDir>$(RemoteRootDir)/asio2/example/$(ProjectName)</RemoteProjectDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
+    <IntDir>$(SolutionDir)obj\linux\$(PlatformTarget)\$(Configuration)\$(ProjectName)\</IntDir>
+    <OutDir>$(SolutionDir)bin\linux\$(PlatformTarget)\$(Configuration)\</OutDir>
+    <RemoteProjectDir>$(RemoteRootDir)/asio2/example/$(ProjectName)</RemoteProjectDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <IntDir>$(SolutionDir)obj\linux\$(PlatformTarget)\$(Configuration)\$(ProjectName)\</IntDir>
+    <OutDir>$(SolutionDir)bin\linux\$(PlatformTarget)\$(Configuration)\</OutDir>
+    <RemoteProjectDir>$(RemoteRootDir)/asio2/example/$(ProjectName)</RemoteProjectDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <IntDir>$(SolutionDir)obj\linux\$(PlatformTarget)\$(Configuration)\$(ProjectName)\</IntDir>
+    <OutDir>$(SolutionDir)bin\linux\$(PlatformTarget)\$(Configuration)\</OutDir>
+    <RemoteProjectDir>$(RemoteRootDir)/asio2/example/$(ProjectName)</RemoteProjectDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
+    <IntDir>$(SolutionDir)obj\linux\$(PlatformTarget)\$(Configuration)\$(ProjectName)\</IntDir>
+    <OutDir>$(SolutionDir)bin\linux\$(PlatformTarget)\$(Configuration)\</OutDir>
+    <RemoteProjectDir>$(RemoteRootDir)/asio2/example/$(ProjectName)</RemoteProjectDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
+    <IntDir>$(SolutionDir)obj\linux\$(PlatformTarget)\$(Configuration)\$(ProjectName)\</IntDir>
+    <OutDir>$(SolutionDir)bin\linux\$(PlatformTarget)\$(Configuration)\</OutDir>
+    <RemoteProjectDir>$(RemoteRootDir)/asio2/example/$(ProjectName)</RemoteProjectDir>
+  </PropertyGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\asio2\3rd\cereal.hpp" />
+    <ClInclude Include="..\..\..\asio2\asio2.hpp" />
+    <ClInclude Include="..\..\..\asio2\base\client.hpp" />
+    <ClInclude Include="..\..\..\asio2\base\component\alive_time_cp.hpp" />
+    <ClInclude Include="..\..\..\asio2\base\component\connect_cp.hpp" />
+    <ClInclude Include="..\..\..\asio2\base\component\connect_timeout_cp.hpp" />
+    <ClInclude Include="..\..\..\asio2\base\component\connect_time_cp.hpp" />
+    <ClInclude Include="..\..\..\asio2\base\component\data_persistence_cp.hpp" />
+    <ClInclude Include="..\..\..\asio2\base\component\disconnect_cp.hpp" />
+    <ClInclude Include="..\..\..\asio2\base\component\event_queue_cp.hpp" />
+    <ClInclude Include="..\..\..\asio2\base\component\local_endpoint_cp.hpp" />
+    <ClInclude Include="..\..\..\asio2\base\component\post_cp.hpp" />
+    <ClInclude Include="..\..\..\asio2\base\component\reconnect_timer_cp.hpp" />
+    <ClInclude Include="..\..\..\asio2\base\component\send_cp.hpp" />
+    <ClInclude Include="..\..\..\asio2\base\component\silence_timer_cp.hpp" />
+    <ClInclude Include="..\..\..\asio2\base\component\socket_cp.hpp" />
+    <ClInclude Include="..\..\..\asio2\base\component\user_data_cp.hpp" />
+    <ClInclude Include="..\..\..\asio2\base\component\user_timer_cp.hpp" />
+    <ClInclude Include="..\..\..\asio2\base\detail\allocator.hpp" />
+    <ClInclude Include="..\..\..\asio2\base\detail\buffer_wrap.hpp" />
+    <ClInclude Include="..\..\..\asio2\base\detail\condition_wrap.hpp" />
+    <ClInclude Include="..\..\..\asio2\base\detail\function_traits.hpp" />
+    <ClInclude Include="..\..\..\asio2\base\detail\linear_buffer.hpp" />
+    <ClInclude Include="..\..\..\asio2\base\detail\object.hpp" />
+    <ClInclude Include="..\..\..\asio2\base\detail\util.hpp" />
+    <ClInclude Include="..\..\..\asio2\base\error.hpp" />
+    <ClInclude Include="..\..\..\asio2\base\iopool.hpp" />
+    <ClInclude Include="..\..\..\asio2\base\listener.hpp" />
+    <ClInclude Include="..\..\..\asio2\base\selector.hpp" />
+    <ClInclude Include="..\..\..\asio2\base\server.hpp" />
+    <ClInclude Include="..\..\..\asio2\base\session.hpp" />
+    <ClInclude Include="..\..\..\asio2\base\session_mgr.hpp" />
+    <ClInclude Include="..\..\..\asio2\base\timer.hpp" />
+    <ClInclude Include="..\..\..\asio2\config.hpp" />
+    <ClInclude Include="..\..\..\asio2\http\component\http_send_cp.hpp" />
+    <ClInclude Include="..\..\..\asio2\http\component\ws_stream_cp.hpp" />
+    <ClInclude Include="..\..\..\asio2\http\detail\flex_body.hpp" />
+    <ClInclude Include="..\..\..\asio2\http\detail\http_parser.h" />
+    <ClInclude Include="..\..\..\asio2\http\detail\http_util.hpp" />
+    <ClInclude Include="..\..\..\asio2\http\detail\mime_types.hpp" />
+    <ClInclude Include="..\..\..\asio2\http\detail\router.hpp" />
+    <ClInclude Include="..\..\..\asio2\http\https_client.hpp" />
+    <ClInclude Include="..\..\..\asio2\http\https_server.hpp" />
+    <ClInclude Include="..\..\..\asio2\http\https_session.hpp" />
+    <ClInclude Include="..\..\..\asio2\http\http_client.hpp" />
+    <ClInclude Include="..\..\..\asio2\http\http_server.hpp" />
+    <ClInclude Include="..\..\..\asio2\http\http_session.hpp" />
+    <ClInclude Include="..\..\..\asio2\http\impl\http_recv_op.hpp" />
+    <ClInclude Include="..\..\..\asio2\http\impl\http_send_op.hpp" />
+    <ClInclude Include="..\..\..\asio2\http\impl\ws_send_op.hpp" />
+    <ClInclude Include="..\..\..\asio2\http\request.hpp" />
+    <ClInclude Include="..\..\..\asio2\http\response.hpp" />
+    <ClInclude Include="..\..\..\asio2\http\wss_client.hpp" />
+    <ClInclude Include="..\..\..\asio2\http\wss_server.hpp" />
+    <ClInclude Include="..\..\..\asio2\http\wss_session.hpp" />
+    <ClInclude Include="..\..\..\asio2\http\ws_client.hpp" />
+    <ClInclude Include="..\..\..\asio2\http\ws_server.hpp" />
+    <ClInclude Include="..\..\..\asio2\http\ws_session.hpp" />
+    <ClInclude Include="..\..\..\asio2\icmp\detail\icmp_header.hpp" />
+    <ClInclude Include="..\..\..\asio2\icmp\detail\ipv4_header.hpp" />
+    <ClInclude Include="..\..\..\asio2\icmp\detail\ipv6_header.hpp" />
+    <ClInclude Include="..\..\..\asio2\icmp\ping.hpp" />
+    <ClInclude Include="..\..\..\asio2\rpc\component\rpc_call_cp.hpp" />
+    <ClInclude Include="..\..\..\asio2\rpc\detail\invoker.hpp" />
+    <ClInclude Include="..\..\..\asio2\rpc\detail\protocol.hpp" />
+    <ClInclude Include="..\..\..\asio2\rpc\detail\rpc_portable_binary.hpp" />
+    <ClInclude Include="..\..\..\asio2\rpc\detail\serialization.hpp" />
+    <ClInclude Include="..\..\..\asio2\rpc\impl\rpc_recv_op.hpp" />
+    <ClInclude Include="..\..\..\asio2\rpc\rpc_client.hpp" />
+    <ClInclude Include="..\..\..\asio2\rpc\rpc_server.hpp" />
+    <ClInclude Include="..\..\..\asio2\rpc\rpc_session.hpp" />
+    <ClInclude Include="..\..\..\asio2\scp\scp.hpp" />
+    <ClInclude Include="..\..\..\asio2\tcp\component\ssl_context_cp.hpp" />
+    <ClInclude Include="..\..\..\asio2\tcp\component\ssl_stream_cp.hpp" />
+    <ClInclude Include="..\..\..\asio2\tcp\component\tcp_keepalive_cp.hpp" />
+    <ClInclude Include="..\..\..\asio2\tcp\impl\tcp_recv_op.hpp" />
+    <ClInclude Include="..\..\..\asio2\tcp\impl\tcp_send_op.hpp" />
+    <ClInclude Include="..\..\..\asio2\tcp\tcps_client.hpp" />
+    <ClInclude Include="..\..\..\asio2\tcp\tcps_server.hpp" />
+    <ClInclude Include="..\..\..\asio2\tcp\tcps_session.hpp" />
+    <ClInclude Include="..\..\..\asio2\tcp\tcp_client.hpp" />
+    <ClInclude Include="..\..\..\asio2\tcp\tcp_server.hpp" />
+    <ClInclude Include="..\..\..\asio2\tcp\tcp_session.hpp" />
+    <ClInclude Include="..\..\..\asio2\udp\component\kcp_stream_cp.hpp" />
+    <ClInclude Include="..\..\..\asio2\udp\component\udp_send_cp.hpp" />
+    <ClInclude Include="..\..\..\asio2\udp\detail\ikcp.h" />
+    <ClInclude Include="..\..\..\asio2\udp\detail\kcp_util.hpp" />
+    <ClInclude Include="..\..\..\asio2\udp\impl\udp_send_op.hpp" />
+    <ClInclude Include="..\..\..\asio2\udp\udp_cast.hpp" />
+    <ClInclude Include="..\..\..\asio2\udp\udp_client.hpp" />
+    <ClInclude Include="..\..\..\asio2\udp\udp_server.hpp" />
+    <ClInclude Include="..\..\..\asio2\udp\udp_session.hpp" />
+    <ClInclude Include="..\..\..\asio2\util\aes.hpp" />
+    <ClInclude Include="..\..\..\asio2\util\base64.hpp" />
+    <ClInclude Include="..\..\..\asio2\util\defer.hpp" />
+    <ClInclude Include="..\..\..\asio2\util\des.hpp" />
+    <ClInclude Include="..\..\..\asio2\util\ini.hpp" />
+    <ClInclude Include="..\..\..\asio2\util\logger.hpp" />
+    <ClInclude Include="..\..\..\asio2\util\md5.hpp" />
+    <ClInclude Include="..\..\..\asio2\util\noncopyable.hpp" />
+    <ClInclude Include="..\..\..\asio2\util\sha1.hpp" />
+    <ClInclude Include="..\..\..\asio2\util\spin_lock.hpp" />
+    <ClInclude Include="..\..\..\asio2\util\string.hpp" />
+    <ClInclude Include="..\..\..\asio2\util\thread_pool.hpp" />
+    <ClInclude Include="..\..\..\asio2\util\uuid.hpp" />
+    <ClInclude Include="..\..\..\asio2\version.hpp" />
+    <ClInclude Include="..\..\..\openssl\aes.h" />
+    <ClInclude Include="..\..\..\openssl\asn1.h" />
+    <ClInclude Include="..\..\..\openssl\asn1t.h" />
+    <ClInclude Include="..\..\..\openssl\asn1_mac.h" />
+    <ClInclude Include="..\..\..\openssl\async.h" />
+    <ClInclude Include="..\..\..\openssl\bio.h" />
+    <ClInclude Include="..\..\..\openssl\blowfish.h" />
+    <ClInclude Include="..\..\..\openssl\bn.h" />
+    <ClInclude Include="..\..\..\openssl\buffer.h" />
+    <ClInclude Include="..\..\..\openssl\camellia.h" />
+    <ClInclude Include="..\..\..\openssl\cast.h" />
+    <ClInclude Include="..\..\..\openssl\cmac.h" />
+    <ClInclude Include="..\..\..\openssl\cms.h" />
+    <ClInclude Include="..\..\..\openssl\comp.h" />
+    <ClInclude Include="..\..\..\openssl\conf.h" />
+    <ClInclude Include="..\..\..\openssl\conf_api.h" />
+    <ClInclude Include="..\..\..\openssl\crypto.h" />
+    <ClInclude Include="..\..\..\openssl\ct.h" />
+    <ClInclude Include="..\..\..\openssl\des.h" />
+    <ClInclude Include="..\..\..\openssl\dh.h" />
+    <ClInclude Include="..\..\..\openssl\dsa.h" />
+    <ClInclude Include="..\..\..\openssl\dtls1.h" />
+    <ClInclude Include="..\..\..\openssl\ebcdic.h" />
+    <ClInclude Include="..\..\..\openssl\ec.h" />
+    <ClInclude Include="..\..\..\openssl\ecdh.h" />
+    <ClInclude Include="..\..\..\openssl\ecdsa.h" />
+    <ClInclude Include="..\..\..\openssl\engine.h" />
+    <ClInclude Include="..\..\..\openssl\err.h" />
+    <ClInclude Include="..\..\..\openssl\evp.h" />
+    <ClInclude Include="..\..\..\openssl\e_os2.h" />
+    <ClInclude Include="..\..\..\openssl\hmac.h" />
+    <ClInclude Include="..\..\..\openssl\idea.h" />
+    <ClInclude Include="..\..\..\openssl\kdf.h" />
+    <ClInclude Include="..\..\..\openssl\lhash.h" />
+    <ClInclude Include="..\..\..\openssl\md2.h" />
+    <ClInclude Include="..\..\..\openssl\md4.h" />
+    <ClInclude Include="..\..\..\openssl\md5.h" />
+    <ClInclude Include="..\..\..\openssl\mdc2.h" />
+    <ClInclude Include="..\..\..\openssl\modes.h" />
+    <ClInclude Include="..\..\..\openssl\objects.h" />
+    <ClInclude Include="..\..\..\openssl\obj_mac.h" />
+    <ClInclude Include="..\..\..\openssl\ocsp.h" />
+    <ClInclude Include="..\..\..\openssl\opensslconf.h" />
+    <ClInclude Include="..\..\..\openssl\opensslconf_linux64.h" />
+    <ClInclude Include="..\..\..\openssl\opensslconf_win32.h" />
+    <ClInclude Include="..\..\..\openssl\opensslconf_win64.h" />
+    <ClInclude Include="..\..\..\openssl\opensslv.h" />
+    <ClInclude Include="..\..\..\openssl\ossl_typ.h" />
+    <ClInclude Include="..\..\..\openssl\pem.h" />
+    <ClInclude Include="..\..\..\openssl\pem2.h" />
+    <ClInclude Include="..\..\..\openssl\pkcs12.h" />
+    <ClInclude Include="..\..\..\openssl\pkcs7.h" />
+    <ClInclude Include="..\..\..\openssl\rand.h" />
+    <ClInclude Include="..\..\..\openssl\rc2.h" />
+    <ClInclude Include="..\..\..\openssl\rc4.h" />
+    <ClInclude Include="..\..\..\openssl\rc5.h" />
+    <ClInclude Include="..\..\..\openssl\ripemd.h" />
+    <ClInclude Include="..\..\..\openssl\rsa.h" />
+    <ClInclude Include="..\..\..\openssl\safestack.h" />
+    <ClInclude Include="..\..\..\openssl\seed.h" />
+    <ClInclude Include="..\..\..\openssl\sha.h" />
+    <ClInclude Include="..\..\..\openssl\srp.h" />
+    <ClInclude Include="..\..\..\openssl\srtp.h" />
+    <ClInclude Include="..\..\..\openssl\ssl.h" />
+    <ClInclude Include="..\..\..\openssl\ssl2.h" />
+    <ClInclude Include="..\..\..\openssl\ssl3.h" />
+    <ClInclude Include="..\..\..\openssl\stack.h" />
+    <ClInclude Include="..\..\..\openssl\symhacks.h" />
+    <ClInclude Include="..\..\..\openssl\tls1.h" />
+    <ClInclude Include="..\..\..\openssl\ts.h" />
+    <ClInclude Include="..\..\..\openssl\txt_db.h" />
+    <ClInclude Include="..\..\..\openssl\ui.h" />
+    <ClInclude Include="..\..\..\openssl\whrlpool.h" />
+    <ClInclude Include="..\..\..\openssl\x509.h" />
+    <ClInclude Include="..\..\..\openssl\x509v3.h" />
+    <ClInclude Include="..\..\..\openssl\x509_vfy.h" />
+    <ClInclude Include="..\..\..\openssl\__DECC_INCLUDE_EPILOGUE.H" />
+    <ClInclude Include="..\..\..\openssl\__DECC_INCLUDE_PROLOGUE.H" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\src\rpc\server\rpc_server.cpp" />
+  </ItemGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>/usr/local/include;/root/projects/asio2/example/$(ProjectName);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <CppLanguageStandard>c++17</CppLanguageStandard>
+    </ClCompile>
+    <Link>
+      <AdditionalLibraryDirectories>/usr/local/lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <LibraryDependencies>stdc++fs;%(LibraryDependencies)</LibraryDependencies>
+      <AdditionalOptions>-lpthread -lrt -ldl %(AdditionalOptions)</AdditionalOptions>
+    </Link>
+    <PreBuildEvent>
+      <Command>
+      </Command>
+    </PreBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>/usr/local/include;/root/projects/asio2/example/$(ProjectName);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <CppLanguageStandard>c++17</CppLanguageStandard>
+    </ClCompile>
+    <Link>
+      <AdditionalLibraryDirectories>/usr/local/lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <LibraryDependencies>stdc++fs;%(LibraryDependencies)</LibraryDependencies>
+      <AdditionalOptions>-lpthread -lrt -ldl %(AdditionalOptions)</AdditionalOptions>
+    </Link>
+    <PreBuildEvent>
+      <Command>
+      </Command>
+    </PreBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>/usr/local/include;/root/projects/asio2/example/$(ProjectName);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <CppLanguageStandard>c++17</CppLanguageStandard>
+    </ClCompile>
+    <Link>
+      <AdditionalLibraryDirectories>/usr/local/lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <LibraryDependencies>stdc++fs;%(LibraryDependencies)</LibraryDependencies>
+      <AdditionalOptions>-lpthread -lrt -ldl %(AdditionalOptions)</AdditionalOptions>
+    </Link>
+    <PreBuildEvent>
+      <Command>
+      </Command>
+    </PreBuildEvent>
+    <RemotePreBuildEvent>
+      <Command>
+      </Command>
+    </RemotePreBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>/usr/local/include;/root/projects/asio2/example/$(ProjectName);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <CppLanguageStandard>c++17</CppLanguageStandard>
+    </ClCompile>
+    <Link>
+      <AdditionalLibraryDirectories>/usr/local/lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <LibraryDependencies>stdc++fs;%(LibraryDependencies)</LibraryDependencies>
+      <AdditionalOptions>-lpthread -lrt -ldl %(AdditionalOptions)</AdditionalOptions>
+    </Link>
+    <PreBuildEvent>
+      <Command>
+      </Command>
+    </PreBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>/usr/local/include;/root/projects/asio2/example/$(ProjectName);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <CppLanguageStandard>c++17</CppLanguageStandard>
+    </ClCompile>
+    <Link>
+      <AdditionalLibraryDirectories>/usr/local/lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <LibraryDependencies>stdc++fs;%(LibraryDependencies)</LibraryDependencies>
+      <AdditionalOptions>-lpthread -lrt -ldl %(AdditionalOptions)</AdditionalOptions>
+    </Link>
+    <PreBuildEvent>
+      <Command>
+      </Command>
+    </PreBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>/usr/local/include;/root/projects/asio2/example/$(ProjectName);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <CppLanguageStandard>c++17</CppLanguageStandard>
+    </ClCompile>
+    <Link>
+      <AdditionalLibraryDirectories>/usr/local/lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <LibraryDependencies>stdc++fs;%(LibraryDependencies)</LibraryDependencies>
+      <AdditionalOptions>-lpthread -lrt -ldl %(AdditionalOptions)</AdditionalOptions>
+    </Link>
+    <PreBuildEvent>
+      <Command>
+      </Command>
+    </PreBuildEvent>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets" />
+</Project>

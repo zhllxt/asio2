@@ -93,8 +93,8 @@ namespace asio2::detail
 
 				DWORD bytes_returned = 0;
 
-				if (SOCKET_ERROR == ::WSAIoctl(native_fd, SIO_KEEPALIVE_VALS, (LPVOID)&keepalive_options, (DWORD)sizeof(keepalive_options),
-					nullptr, 0, (LPDWORD)&bytes_returned, nullptr, nullptr))
+				if (SOCKET_ERROR == ::WSAIoctl(native_fd, SIO_KEEPALIVE_VALS, (LPVOID)&keepalive_options,
+					(DWORD)sizeof(keepalive_options), nullptr, 0, (LPDWORD)&bytes_returned, nullptr, nullptr))
 				{
 					if (::WSAGetLastError() != WSAEWOULDBLOCK)
 					{

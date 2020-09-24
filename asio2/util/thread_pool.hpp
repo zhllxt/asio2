@@ -13,20 +13,28 @@
  * 
  * note :
  * 
- * 1 : when declare an global thread_pool object in dll,when enter the constructor to create std::thread,it will blocking forever.
- * 2 : when declare an global thread_pool object in dll and when dll is released,the code will run into thread_pool
- *     destructor,then call notify_all in the destructor, but the notify_all calling will blocking forever.
+ * 1 : when declare an global thread_pool object in dll,when enter the 
+ *     constructor to create std::thread,it will blocking forever.
+ * 2 : when declare an global thread_pool object in dll and when dll is
+ *     released,the code will run into thread_pool destructor,then call
+ *     notify_all in the destructor, but the notify_all calling will
+ *     blocking forever.
  * 
- * one resolve method is add a start and stop function,and move the notify_all into the stop inner,and tell user call the 
- * start and stop function manual.
+ * one resolve method is add a start and stop function,and move the
+ * notify_all into the stop inner,and tell user call the start and 
+ * stop function manual.
  *  
- * but in order to keep the interface simple,we don't add stop function,you can use "new" "delete" way to avoid above problems,you 
- * can delete thread_pool pointer object before exit.
+ * but in order to keep the interface simple,we don't add stop function,
+ * you can use "new" "delete" way to avoid above problems,you can delete
+ * thread_pool pointer object before exit.
  * 
  * std::thread cause deadlock in DLLMain : 
- * The constructor for the std::thread cannot return until the new thread starts executing the thread procedure. When a new thread 
- * is created, before the thread procedure is invoked, the entry point of each loaded DLL is invoked for DLL_THREAD_ATTACH. To do 
- * this, the new thread must acquire the loader lock. Unfortunately, your existing thread already holds the loader lock.
+ * The constructor for the std::thread cannot return until the new thread
+ * starts executing the thread procedure. When a new thread is created, 
+ * before the thread procedure is invoked, the entry point of each loaded
+ * DLL is invoked for DLL_THREAD_ATTACH. To do this, the new thread must
+ * acquire the loader lock. Unfortunately, your existing thread already
+ * holds the loader lock.
  * 
  */
 

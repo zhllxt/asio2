@@ -30,6 +30,7 @@ namespace asio2::detail
 	namespace
 	{
 		using iterator = asio::buffers_iterator<asio::streambuf::const_buffers_type>;
+		using diff_type = typename iterator::difference_type;
 		std::pair<iterator, bool> dgram_match_role(iterator begin, iterator end)
 		{
 			iterator i = begin;
@@ -42,14 +43,14 @@ namespace asio2::detail
 
 					++i;
 
-					if (end - i < int(payload_size))
+					if (end - i < static_cast<diff_type>(payload_size))
 						break;
 
-					return std::pair(i + payload_size, true);
+					return std::pair(i + static_cast<diff_type>(payload_size), true);
 				}
 
 				// If 254, the following 2 bytes interpreted as a 16-bit unsigned integer
-				// (the most significant bit MUST be 0) are the payload length.
+				// are the payload length.
 				if (std::uint8_t(*i) == std::uint8_t(254))
 				{
 					++i;
@@ -66,10 +67,10 @@ namespace asio2::detail
 					}
 
 					i += 2;
-					if (end - i < int(payload_size))
+					if (end - i < static_cast<diff_type>(payload_size))
 						break;
 
-					return std::pair(i + payload_size, true);
+					return std::pair(i + static_cast<diff_type>(payload_size), true);
 				}
 
 				// If 255, the following 8 bytes interpreted as a 64-bit unsigned integer
@@ -90,10 +91,10 @@ namespace asio2::detail
 					}
 
 					i += 8;
-					if (std::uint64_t(end - i) < payload_size)
+					if (end - i < static_cast<diff_type>(payload_size))
 						break;
 
-					return std::pair(i + payload_size, true);
+					return std::pair(i + static_cast<diff_type>(payload_size), true);
 				}
 
 				ASIO2_ASSERT(false);

@@ -15,10 +15,16 @@
 #pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
-// If you don't want to use boost in your project,you need to define ASIO_STANDALONE.
-// But you can't use http and websocket at the same time.If you want to use http and 
-// websocket, you must use boost, and then you have to turn ASIO_STANDALONE off.
+// Note : Version 2.6 only supports asio standalone, does not support boost::asio, because
+// boost::optional and other boost classes are used in boost::beast, while std::optional is
+// used in beast standalone. to make the two compatible, it requires too much work. so,
+// boost::asio is not supported for current version.
+
+// Must define ASIO_STANDALONE, otherwise compilation fails.
 #define ASIO_STANDALONE
+
+// Must define BEAST_HEADER_ONLY, otherwise compilation fails.
+#define BEAST_HEADER_ONLY 1
 
 // If you want to use the ssl, you need to define ASIO2_USE_SSL.
 // When use ssl,on windows need linker "libssl.lib;libcrypto.lib;Crypt32.lib;", on 
@@ -26,18 +32,9 @@
 // ssl must be before crypto.
 //#define ASIO2_USE_SSL
 
-
-// the tests trigger deprecation warnings when compiled with msvc in C++17 mode
-#if defined(_MSVC_LANG) && _MSVC_LANG > 201402
-// warning STL4009: std::allocator<void> is deprecated in C++17
-#define _SILENCE_CXX17_ALLOCATOR_VOID_DEPRECATION_WARNING
-#define _SILENCE_CXX17_ITERATOR_BASE_CLASS_DEPRECATION_WARNING
-#define _SILENCE_CXX17_ADAPTOR_TYPEDEFS_DEPRECATION_WARNING
-//#define _SILENCE_ALL_CXX17_DEPRECATION_WARNINGS
-#endif
-
-#ifdef ASIO_STANDALONE
-#define ASIO_HEADER_ONLY
-#endif
+// RPC component is using tcp dgram mode as the underlying communication support by default,
+// If you want to using websocket as the underlying communication support, open the macro 
+// definition below
+#define ASIO2_USE_WEBSOCKET_RPC
 
 #endif // !__ASIO2_CONFIG_HPP__

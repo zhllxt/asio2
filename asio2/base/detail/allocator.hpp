@@ -99,7 +99,7 @@ namespace asio2::detail
 	class handler_memory<SizeN, std::true_type>
 	{
 	public:
-		handler_memory() {}
+		handler_memory() { in_use_.clear(); }
 
 		handler_memory(const handler_memory&) = delete;
 		handler_memory& operator=(const handler_memory&) = delete;
@@ -134,7 +134,7 @@ namespace asio2::detail
 		typename std::aligned_storage<SizeN::size>::type storage_;
 
 		// Whether the handler-based custom allocation storage has been used.
-		std::atomic_flag in_use_{ ATOMIC_FLAG_INIT };
+		std::atomic_flag in_use_;
 	};
 
 	// The allocator to be associated with the handler objects. This allocator only

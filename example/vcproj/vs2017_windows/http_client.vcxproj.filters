@@ -1,0 +1,83 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="asio2">
+      <UniqueIdentifier>{830a9a3f-7db9-4018-83c8-e0cd9d528fa5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\util">
+      <UniqueIdentifier>{8ce517cf-9906-4458-9ee1-f97e16790b09}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\base">
+      <UniqueIdentifier>{6002fb7e-f11f-43ed-a403-e667f4cec7e3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\udp">
+      <UniqueIdentifier>{1e274046-ed63-41c5-b5e0-ecd1eed8e7eb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\tcp">
+      <UniqueIdentifier>{ac709bbb-e482-4c40-a5c8-53daeaf2a48a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\rpc">
+      <UniqueIdentifier>{a2751212-5189-473a-b931-e2bf28edab28}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\icmp">
+      <UniqueIdentifier>{46fe98d4-b9e1-4ba6-8416-644fdb02c5be}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\http">
+      <UniqueIdentifier>{804dd2de-781e-4769-9f3b-0b4957eeb86d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\base\component">
+      <UniqueIdentifier>{3f0b6e4f-e0fb-4db7-b2d8-e829802c50b5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\base\detail">
+      <UniqueIdentifier>{823059f4-ff2d-4392-ad0f-e07e7b8ab496}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\http\component">
+      <UniqueIdentifier>{fffe2c06-5b75-46e6-93c8-099c8e200c1a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\http\detail">
+      <UniqueIdentifier>{a7a6ccae-0d93-4f07-9565-f4226e2d8862}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\http\impl">
+      <UniqueIdentifier>{c20036bd-90ee-48f0-a4cf-926caee91d8e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\tcp\component">
+      <UniqueIdentifier>{15a84c7d-da9e-429d-af56-ed41616640d6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\tcp\impl">
+      <UniqueIdentifier>{437bed39-4e03-4854-a51e-4281a01c7aff}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\scp">
+      <UniqueIdentifier>{2a9d1bb3-1de5-409f-b9c1-ca4796a0734f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\udp\component">
+      <UniqueIdentifier>{a410c8c3-b117-49fc-bc45-ea4636561ca1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\udp\detail">
+      <UniqueIdentifier>{cfba0274-de7b-429b-bdf7-117858bb5515}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\udp\impl">
+      <UniqueIdentifier>{67b71161-06c3-4e32-8b8d-8adafef75834}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\rpc\component">
+      <UniqueIdentifier>{a588030e-8427-4c10-9e64-eb5c9b74ecac}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\rpc\detail">
+      <UniqueIdentifier>{5bd9ee28-3377-409a-809d-4f862b507265}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\rpc\impl">
+      <UniqueIdentifier>{49be7d6e-4790-46d5-9787-e8b6d8a7be33}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\3rd">
+      <UniqueIdentifier>{1cd64b38-f07e-4321-a086-b5ea679c9cc9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\3rd\fmt">
+      <UniqueIdentifier>{9b49f093-9f5f-41e4-a8fd-59c94954b4d9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\3rd\openssl">
+      <UniqueIdentifier>{bd975937-b093-43be-8799-6b1b4ae0d919}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\src\http\client\http_client.cpp" />
+  </ItemGroup>
+</Project>

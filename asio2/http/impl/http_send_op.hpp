@@ -8,8 +8,6 @@
  * (See accompanying file LICENSE or see <http://www.gnu.org/licenses/>)
  */
 
-#ifndef ASIO_STANDALONE
-
 #ifndef __ASIO2_HTTP_SEND_OP_HPP__
 #define __ASIO2_HTTP_SEND_OP_HPP__
 
@@ -47,13 +45,20 @@ namespace asio2::detail
 		~http_send_op() = default;
 
 	protected:
-		template<bool isRequest, class Stream, class Data, class Callback>
-		inline bool _http_send(Stream& stream, Data& data, Callback&& callback)
+		template<class Data, class Callback>
+		inline bool _http_send(Data& data, Callback&& callback)
+		{
+			return derive._tcp_send(data, std::forward<Callback>(callback));
+		}
+
+		template<bool isRequest, class Body, class Fields, class Callback>
+		inline bool _http_send(copyable_wrapper<http::message<isRequest, Body, Fields>>& data,
+			Callback&& callback)
 		{
 			using msg_type = std::remove_cv_t<std::remove_reference_t<decltype(data())>>;
-#if defined(ASIO2_SEND_CORE_ASYNC)
-			http::async_write(stream, const_cast<msg_type&>(data()), asio::bind_executor(derive.io().strand(),
-				make_allocator(derive.wallocator(),
+
+			http::async_write(derive.stream(), const_cast<msg_type&>(data()),
+				asio::bind_executor(derive.io().strand(), make_allocator(derive.wallocator(),
 					[this, p = derive.selfptr(), callback = std::forward<Callback>(callback)]
 			(const error_code& ec, std::size_t bytes_sent) mutable
 			{
@@ -61,17 +66,13 @@ namespace asio2::detail
 
 				callback(ec, bytes_sent);
 
-				derive.next_event();
+				if (ec)
+				{
+					// must stop, otherwise re-sending will cause body confusion
+					derive._do_disconnect(ec);
+				}
 			})));
 			return true;
-#else
-			error_code ec;
-			// Write the response
-			std::size_t bytes_sent = http::write(stream, const_cast<msg_type&>(data()), ec);
-			set_last_error(ec);
-			callback(ec, bytes_sent);
-			return (!bool(ec));
-#endif
 		}
 
 	protected:
@@ -80,5 +81,3 @@ namespace asio2::detail
 }
 
 #endif // !__ASIO2_HTTP_SEND_OP_HPP__
-
-#endif

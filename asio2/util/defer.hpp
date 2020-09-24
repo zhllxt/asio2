@@ -21,7 +21,6 @@
 
 namespace asio2
 {
-
 	class defer
 	{
 	public:

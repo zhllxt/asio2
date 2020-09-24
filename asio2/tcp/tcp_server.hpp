@@ -143,7 +143,8 @@ namespace asio2::detail
 		inline derived_t & bind_recv(F&& fun, C&&... obj)
 		{
 			this->listener_.bind(event::recv,
-				observer_t<std::shared_ptr<session_t>&, std::string_view>(std::forward<F>(fun), std::forward<C>(obj)...));
+				observer_t<std::shared_ptr<session_t>&, std::string_view>(
+					std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
 		}
 
@@ -160,7 +161,8 @@ namespace asio2::detail
 		inline derived_t & bind_accept(F&& fun, C&&... obj)
 		{
 			this->listener_.bind(event::accept,
-				observer_t<std::shared_ptr<session_t>&>(std::forward<F>(fun), std::forward<C>(obj)...));
+				observer_t<std::shared_ptr<session_t>&>(
+					std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
 		}
 
@@ -178,7 +180,8 @@ namespace asio2::detail
 		inline derived_t & bind_connect(F&& fun, C&&... obj)
 		{
 			this->listener_.bind(event::connect,
-				observer_t<std::shared_ptr<session_t>&>(std::forward<F>(fun), std::forward<C>(obj)...));
+				observer_t<std::shared_ptr<session_t>&>(
+					std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
 		}
 
@@ -196,7 +199,8 @@ namespace asio2::detail
 		inline derived_t & bind_disconnect(F&& fun, C&&... obj)
 		{
 			this->listener_.bind(event::disconnect,
-				observer_t<std::shared_ptr<session_t>&>(std::forward<F>(fun), std::forward<C>(obj)...));
+				observer_t<std::shared_ptr<session_t>&>(
+					std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
 		}
 
@@ -213,7 +217,8 @@ namespace asio2::detail
 		template<class F, class ...C>
 		inline derived_t & bind_init(F&& fun, C&&... obj)
 		{
-			this->listener_.bind(event::init, observer_t<>(std::forward<F>(fun), std::forward<C>(obj)...));
+			this->listener_.bind(event::init, observer_t<>(
+				std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
 		}
 
@@ -229,7 +234,8 @@ namespace asio2::detail
 		template<class F, class ...C>
 		inline derived_t & bind_start(F&& fun, C&&... obj)
 		{
-			this->listener_.bind(event::start, observer_t<error_code>(std::forward<F>(fun), std::forward<C>(obj)...));
+			this->listener_.bind(event::start, observer_t<error_code>(
+				std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
 		}
 
@@ -245,7 +251,8 @@ namespace asio2::detail
 		template<class F, class ...C>
 		inline derived_t & bind_stop(F&& fun, C&&... obj)
 		{
-			this->listener_.bind(event::stop, observer_t<error_code>(std::forward<F>(fun), std::forward<C>(obj)...));
+			this->listener_.bind(event::stop, observer_t<error_code>(
+				std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
 		}
 
@@ -280,11 +287,12 @@ namespace asio2::detail
 
 				this->counter_ptr_ = std::shared_ptr<void>((void*)1, [this](void*)
 				{
-					asio::post(this->io_.strand(), [this]()
+					this->derived().post([this]() mutable
 					{
 						state_t expected = state_t::stopping;
 						if (this->state_.compare_exchange_strong(expected, state_t::stopped))
-							this->derived()._handle_stop(asio::error::operation_aborted, std::shared_ptr<derived_t>{});
+							this->derived()._handle_stop(
+								asio::error::operation_aborted, this->derived().selfptr());
 						else
 							ASIO2_ASSERT(false);
 					});
@@ -298,15 +306,22 @@ namespace asio2::detail
 				// parse address and port
 				asio::ip::tcp::resolver resolver(this->io_.context());
 				asio::ip::tcp::endpoint endpoint = *resolver.resolve(h, p,
-					asio::ip::resolver_base::flags::passive | asio::ip::resolver_base::flags::address_configured).begin();
+					asio::ip::resolver_base::flags::passive |
+					asio::ip::resolver_base::flags::address_configured).begin();
 
 				this->acceptor_.open(endpoint.protocol());
 
-				// when you close socket in linux system,and start socket immediate,you will get like this "the address is in use",
-				// and bind is failed,but i'm suer i close the socket correct already before,why does this happen? the reasion is 
-				// the socket option "TIME_WAIT",although you close the socket,but the system not release the socket,util 2~4 
-				// seconds later,so we can use the SO_REUSEADDR option to avoid this problem,like below
-				this->acceptor_.set_option(asio::ip::tcp::acceptor::reuse_address(true)); // set port reuse
+				// when you close socket in linux system,and start socket
+				// immediate,you will get like this "the address is in use",
+				// and bind is failed,but i'm suer i close the socket correct
+				// already before,why does this happen? the reasion is the 
+				// socket option "TIME_WAIT",although you close the socket,
+				// but the system not release the socket,util 2~4 seconds 
+				// later,so we can use the SO_REUSEADDR option to avoid this
+				// problem,like below
+				
+				// set port reuse
+				this->acceptor_.set_option(asio::ip::tcp::acceptor::reuse_address(true));
 
 				this->derived()._fire_init();
 
@@ -346,7 +361,7 @@ namespace asio2::detail
 
 				asio::detail::throw_error(ec);
 
-				asio::post(this->io_.strand(), [this, condition]()
+				this->derived().post([this, condition]() mutable
 				{
 					this->derived()._post_accept(std::move(condition));
 				});
@@ -362,28 +377,35 @@ namespace asio2::detail
 		{
 			state_t expected = state_t::starting;
 			if (this->state_.compare_exchange_strong(expected, state_t::stopping))
-				return this->derived()._post_stop(ec, std::shared_ptr<derived_t>{}, expected);
+				return this->derived()._post_stop(ec, this->derived().selfptr(), expected);
 
 			expected = state_t::started;
 			if (this->state_.compare_exchange_strong(expected, state_t::stopping))
-				return this->derived()._post_stop(ec, std::shared_ptr<derived_t>{}, expected);
+				return this->derived()._post_stop(ec, this->derived().selfptr(), expected);
 		}
 
 		inline void _post_stop(const error_code& ec, std::shared_ptr<derived_t> self_ptr, state_t old_state)
 		{
-			// asio don't allow operate the same socket in multi thread,if you close socket in one thread and another thread is 
-			// calling socket's async_... function,it will crash.so we must care for operate the socket.when need close the
-			// socket ,we use the strand to post a event,make sure the socket's close operation is in the same thread.
-			asio::post(this->io_.strand(), [this, ec, this_ptr = std::move(self_ptr), old_state]()
+			// asio don't allow operate the same socket in multi thread,
+			// if you close socket in one thread and another thread is
+			// calling socket's async_... function,it will crash.so we
+			// must care for operate the socket. when need close the 
+			// socket ,we use the strand to post a event,make sure the
+			// socket's close operation is in the same thread.
+			this->derived().post([this, ec, this_ptr = std::move(self_ptr), old_state]() mutable
 			{
+				detail::ignore::unused(this, old_state);
+
 				set_last_error(ec);
 
 				// start timer to hold the acceptor io_context
 				this->counter_timer_.expires_after((std::chrono::nanoseconds::max)());
-				this->counter_timer_.async_wait(asio::bind_executor(this->io_.strand(), [](const error_code&) {}));
+				this->counter_timer_.async_wait(asio::bind_executor(
+					this->io_.strand(), [](const error_code&) {}));
 
-				// stop all the sessions, the session::stop must be no blocking,otherwise it may be cause loop lock.
-				this->sessions_.foreach([this](std::shared_ptr<session_t> & session_ptr)
+				// stop all the sessions, the session::stop must be no blocking,
+				// otherwise it may be cause loop lock.
+				this->sessions_.foreach([](std::shared_ptr<session_t> & session_ptr) mutable
 				{
 					session_ptr->stop();
 				});
@@ -398,28 +420,25 @@ namespace asio2::detail
 
 			this->derived()._fire_stop(ec);
 
-			try
-			{
-				this->acceptor_timer_.cancel();
-				this->counter_timer_.cancel();
-			}
-			catch (system_error &) {}
-			catch (std::exception &) {}
+			this->acceptor_timer_.cancel(ec_ignore);
+			this->counter_timer_.cancel(ec_ignore);
 
 			// call the base class stop function
 			super::stop();
 
-			// call acceptor's close function to notify the _handle_accept function response with error > 0 ,
-			// then the listen socket can get notify to exit
-			// must ensure the close function has been called,otherwise the _handle_accept will never return
+			// call acceptor's close function to notify the _handle_accept
+			// function response with error > 0 , then the listen socket
+			// can get notify to exit must ensure the close function has 
+			// been called,otherwise the _handle_accept will never return
 			this->acceptor_.close(ec_ignore);
 		}
 
 		template<typename... Args>
 		inline std::shared_ptr<session_t> _make_session(Args&&... args)
 		{
-			return std::make_shared<session_t>(std::forward<Args>(args)..., this->sessions_, this->listener_,
-				this->iopool_.get(), this->init_buffer_size_, this->max_buffer_size_);
+			return std::make_shared<session_t>(std::forward<Args>(args)...,
+				this->sessions_, this->listener_, this->iopool_.get(),
+				this->init_buffer_size_, this->max_buffer_size_);
 		}
 
 		template<typename MatchCondition>
@@ -432,10 +451,11 @@ namespace asio2::detail
 			{
 				std::shared_ptr<session_t> session_ptr = this->derived()._make_session();
 
-				auto & socket = session_ptr->socket().lowest_layer();
+				auto& socket = session_ptr->socket().lowest_layer();
 				this->acceptor_.async_accept(socket, asio::bind_executor(this->io_.strand(),
 					make_allocator(this->rallocator_,
-						[this, sptr = std::move(session_ptr), condition](const error_code & ec)
+						[this, sptr = std::move(session_ptr), condition]
+				(const error_code& ec) mutable
 				{
 					this->derived()._handle_accept(ec, std::move(sptr), std::move(condition));
 				})));
@@ -447,11 +467,13 @@ namespace asio2::detail
 
 				this->acceptor_timer_.expires_after(std::chrono::seconds(1));
 				this->acceptor_timer_.async_wait(asio::bind_executor(this->io_.strand(),
-					make_allocator(this->rallocator_, [this, condition](const error_code & ec)
+					make_allocator(this->rallocator_, [this, condition]
+					(const error_code& ec) mutable
 				{
 					set_last_error(ec);
 					if (ec) return;
-					asio::post(this->io_.strand(), make_allocator(this->rallocator_, [this, condition]()
+					asio::post(this->io_.strand(), make_allocator(this->rallocator_,
+						[this, condition]() mutable
 					{
 						this->derived()._post_accept(std::move(condition));
 					}));

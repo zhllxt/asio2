@@ -34,6 +34,8 @@ namespace asio2::detail
 	{
 		template <class, bool>                friend class user_timer_cp;
 		template <class>                      friend class post_cp;
+		template <class, class, bool>         friend class connect_cp;
+		template <class, class, bool>         friend class disconnect_cp;
 		template <class>                      friend class data_persistence_cp;
 		template <class>                      friend class event_queue_cp;
 		template <class, bool>                friend class send_cp;
@@ -60,12 +62,12 @@ namespace asio2::detail
 		 * @constructor
 		 */
 		explicit tcps_session_impl_t(
-			asio::ssl::context & ctx,
+			asio::ssl::context       & ctx,
 			session_mgr_t<derived_t> & sessions,
-			listener_t & listener,
-			io_t & rwio,
-			std::size_t init_buffer_size,
-			std::size_t max_buffer_size
+			listener_t               & listener,
+			io_t                     & rwio,
+			std::size_t                init_buffer_size,
+			std::size_t                max_buffer_size
 		)
 			: super(sessions, listener, rwio, init_buffer_size, max_buffer_size)
 			, ssl_stream_comp(this->io_, ctx, asio::ssl::stream_base::server)
@@ -109,22 +111,22 @@ namespace asio2::detail
 
 		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
 		{
-			this->derived()._ssl_stop(this_ptr, [this, ec, this_ptr]()
+			this->derived()._ssl_stop(this_ptr, [this, ec, this_ptr]() mutable
 			{
 				super::_handle_disconnect(ec, std::move(this_ptr));
 			});
 		}
 
 		template<typename MatchCondition>
-		inline void _handle_connect(const error_code& ec, std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		inline void _handle_connect(const error_code& ec, std::shared_ptr<derived_t> this_ptr,
+			condition_wrap<MatchCondition> condition)
 		{
-			asio::post(this->io_.strand(), make_allocator(this->wallocator_,
-				[this, self_ptr = std::move(this_ptr), condition]()
+			this->derived().post([this, self_ptr = std::move(this_ptr), condition]() mutable
 			{
 				this->derived()._ssl_start(self_ptr, condition, this->socket_, this->ctx_);
 
 				this->derived()._post_handshake(std::move(self_ptr), std::move(condition));
-			}));
+			});
 		}
 
 		inline void _fire_handshake(std::shared_ptr<derived_t>& this_ptr, error_code ec)

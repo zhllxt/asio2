@@ -23,8 +23,8 @@
 #include <asio2/rpc/detail/serialization.hpp>
 #include <asio2/rpc/detail/protocol.hpp>
 #include <asio2/rpc/detail/invoker.hpp>
-#include <asio2/rpc/component/rpc_call_cp.hpp>
 #include <asio2/rpc/impl/rpc_recv_op.hpp>
+#include <asio2/rpc/component/rpc_call_cp.hpp>
 
 namespace asio2::detail
 {
@@ -48,6 +48,8 @@ namespace asio2::detail
 
 		template <class, bool>         friend class user_timer_cp;
 		template <class>               friend class post_cp;
+		template <class, class, bool>  friend class connect_cp;
+		template <class, class, bool>  friend class disconnect_cp;
 		template <class>               friend class data_persistence_cp;
 		template <class>               friend class event_queue_cp;
 		template <class, bool>         friend class send_cp;
@@ -109,19 +111,19 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : set call rpc function timeout duration value
+		 * @function : set the default timeout for calling rpc functions
 		 */
 		template<class Rep, class Period>
-		inline derived_t & timeout(std::chrono::duration<Rep, Period> duration)
+		inline derived_t & default_timeout(std::chrono::duration<Rep, Period> duration)
 		{
 			this->timeout_ = duration;
 			return (this->derived());
 		}
 
 		/**
-		 * @function : get call rpc function timeout duration value
+		 * @function : get the default timeout for calling rpc functions
 		 */
-		inline std::chrono::steady_clock::duration timeout()
+		inline std::chrono::steady_clock::duration default_timeout()
 		{
 			return this->timeout_;
 		}
@@ -130,6 +132,16 @@ namespace asio2::detail
 		inline invoker_t<derived_t>& _invoker()
 		{
 			return (this->invoker_);
+		}
+
+		template<typename MatchCondition, typename Socket>
+		inline void _ws_start(
+			const std::shared_ptr<derived_t>& this_ptr,
+			const condition_wrap<MatchCondition>& condition, Socket& socket)
+		{
+			super::_ws_start(this_ptr, condition, socket);
+
+			this->derived().ws_stream().binary(true);
 		}
 
 		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
@@ -161,46 +173,73 @@ namespace asio2::detail
 
 namespace asio2
 {
-#if 1
+	template<class>
+	class rpc_session_t;
+
 	/// Using tcp dgram mode as the underlying communication support
-	class rpc_session : public detail::rpc_session_impl_t<rpc_session,
-		detail::tcp_session_impl_t<rpc_session, asio::ip::tcp::socket, asio::streambuf>>
+	template<>
+	class rpc_session_t<detail::use_tcp> : public detail::rpc_session_impl_t<rpc_session_t<detail::use_tcp>,
+		detail::tcp_session_impl_t<rpc_session_t<detail::use_tcp>, asio::ip::tcp::socket, asio::streambuf>>
 	{
 	public:
-		using detail::rpc_session_impl_t<rpc_session,
-			detail::tcp_session_impl_t<rpc_session, asio::ip::tcp::socket, asio::streambuf>>::rpc_session_impl_t;
+		using detail::rpc_session_impl_t<rpc_session_t<detail::use_tcp>, detail::tcp_session_impl_t<
+			rpc_session_t<detail::use_tcp>, asio::ip::tcp::socket, asio::streambuf>>::rpc_session_impl_t;
 	};
 
-	#if defined(ASIO2_USE_SSL)
-	class rpcs_session : public detail::rpc_session_impl_t<rpcs_session,
-		detail::tcps_session_impl_t<rpcs_session, asio::ip::tcp::socket, asio::streambuf>>
-	{
-	public:
-		using detail::rpc_session_impl_t<rpcs_session,
-			detail::tcps_session_impl_t<rpcs_session, asio::ip::tcp::socket, asio::streambuf>>::rpc_session_impl_t;
-	};
-	#endif
-#else
 	/// Using websocket as the underlying communication support
-	#ifndef ASIO_STANDALONE
-	class rpc_session : public detail::rpc_session_impl_t<rpc_session, detail::ws_session_impl_t<rpc_session, asio::ip::tcp::socket,
+	template<>
+	class rpc_session_t<detail::use_websocket> : public detail::rpc_session_impl_t<
+		rpc_session_t<detail::use_websocket>,
+		detail::ws_session_impl_t<rpc_session_t<detail::use_websocket>, asio::ip::tcp::socket,
 		websocket::stream<asio::ip::tcp::socket&>, http::string_body, beast::flat_buffer>>
 	{
 	public:
-		using detail::rpc_session_impl_t<rpc_session, detail::ws_session_impl_t<rpc_session, asio::ip::tcp::socket,
-			websocket::stream<asio::ip::tcp::socket&>, http::string_body, beast::flat_buffer>>::rpc_session_impl_t;
+		using detail::rpc_session_impl_t<rpc_session_t<detail::use_websocket>,
+			detail::ws_session_impl_t<rpc_session_t<detail::use_websocket>,
+			asio::ip::tcp::socket, websocket::stream<asio::ip::tcp::socket&>,
+			http::string_body, beast::flat_buffer>>::rpc_session_impl_t;
 	};
 
-	#if defined(ASIO2_USE_SSL)
-	class rpcs_session : public detail::rpc_session_impl_t<rpcs_session, detail::wss_session_impl_t<rpcs_session, asio::ip::tcp::socket,
-		websocket::stream<asio::ssl::stream<asio::ip::tcp::socket&>&>, http::string_body, beast::flat_buffer>>
+#if !defined(ASIO2_USE_WEBSOCKET_RPC)
+	using rpc_session = rpc_session_t<detail::use_tcp>;
+#else
+	using rpc_session = rpc_session_t<detail::use_websocket>;
+#endif
+
+#if defined(ASIO2_USE_SSL)
+	template<class>
+	class rpcs_session_t;
+
+	template<>
+	class rpcs_session_t<detail::use_tcp> : public detail::rpc_session_impl_t<rpcs_session_t<detail::use_tcp>,
+		detail::tcps_session_impl_t<rpcs_session_t<detail::use_tcp>, asio::ip::tcp::socket, asio::streambuf>>
 	{
 	public:
-		using detail::rpc_session_impl_t<rpcs_session, detail::wss_session_impl_t<rpcs_session, asio::ip::tcp::socket,
-			websocket::stream<asio::ssl::stream<asio::ip::tcp::socket&>&>, http::string_body, beast::flat_buffer>>::rpc_session_impl_t;
+		using detail::rpc_session_impl_t<rpcs_session_t<detail::use_tcp>, detail::tcps_session_impl_t<
+			rpcs_session_t<detail::use_tcp>, asio::ip::tcp::socket, asio::streambuf>>::rpc_session_impl_t;
 	};
-	#endif
-	#endif
+
+	template<>
+	class rpcs_session_t<detail::use_websocket> : public detail::rpc_session_impl_t<
+		rpcs_session_t<detail::use_websocket>,
+		detail::wss_session_impl_t<rpcs_session_t<detail::use_websocket>,
+		asio::ip::tcp::socket,
+		websocket::stream<asio::ssl::stream<asio::ip::tcp::socket&>&>,
+		http::string_body, beast::flat_buffer>>
+	{
+	public:
+		using detail::rpc_session_impl_t<rpcs_session_t<detail::use_websocket>,
+			detail::wss_session_impl_t<rpcs_session_t<detail::use_websocket>,
+			asio::ip::tcp::socket, websocket::stream<asio::ssl::stream<
+			asio::ip::tcp::socket&>&>, http::string_body,
+			beast::flat_buffer>>::rpc_session_impl_t;
+	};
+
+#if !defined(ASIO2_USE_WEBSOCKET_RPC)
+	using rpcs_session = rpcs_session_t<detail::use_tcp>;
+#else
+	using rpcs_session = rpcs_session_t<detail::use_websocket>;
+#endif
 #endif
 }
 

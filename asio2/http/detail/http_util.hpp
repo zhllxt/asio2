@@ -8,8 +8,6 @@
  * (See accompanying file LICENSE or see <http://www.gnu.org/licenses/>)
  */
 
-#ifndef ASIO_STANDALONE
-
 #ifndef __ASIO2_HTTP_UTIL_HPP__
 #define __ASIO2_HTTP_UTIL_HPP__
 
@@ -30,7 +28,13 @@
 #include <asio2/http/detail/http_parser.h>
 #include <asio2/http/detail/mime_types.hpp>
 
+#include <asio2/util/string.hpp>
+
+#ifdef BEAST_HEADER_ONLY
+namespace beast::http
+#else
 namespace boost::beast::http
+#endif
 {
 	namespace
 	{
@@ -95,12 +99,12 @@ namespace boost::beast::http
 			using rvalue_type = typename std::basic_string<CharT, Traits, Allocator>::value_type;
 			size_type i = 0;
 
-			http::cparser::http_parser_url u;
-			if (0 == http::cparser::http_parser_parse_url(url.data(), url.size(), 0, &u))
+			http::nginx_parser::http_parser_url u;
+			if (0 == http::nginx_parser::http_parser_parse_url(url.data(), url.size(), 0, &u))
 			{
-				if (u.field_set & (1 << (int)http::cparser::url_fields::UF_PATH))
+				if (u.field_set & (1 << (int)http::nginx_parser::url_fields::UF_PATH))
 				{
-					i = u.field_data[(int)http::cparser::url_fields::UF_PATH].off;
+					i = u.field_data[(int)http::nginx_parser::url_fields::UF_PATH].off;
 					for (size_type n = 0; n < i; ++n)
 					{
 						r += static_cast<rvalue_type>(url[n]);
@@ -118,7 +122,7 @@ namespace boost::beast::http
 			for (; i < url.size(); ++i)
 			{
 				value_type c = url[i];
-				if (std::isalnum(static_cast<char>(c)) || reserve.find(static_cast<char>(c)) != std::string_view::npos)
+				if (std::isalnum(static_cast<unsigned char>(c)) || reserve.find(c) != std::string_view::npos)
 					r += static_cast<rvalue_type>(c);
 				else
 				{
@@ -144,7 +148,8 @@ namespace boost::beast::http
 				if (invalid.find(c) != std::string_view::npos)
 					return true;
 
-				if (c != '%' && !std::isalnum(c) && reserve.find(c) == std::string_view::npos)
+				if (c != '%' && !std::isalnum(static_cast<unsigned char>(c)) &&
+					reserve.find(c) == std::string_view::npos)
 					return true;
 			}
 			return false;
@@ -153,33 +158,36 @@ namespace boost::beast::http
 		template<typename = void>
 		std::string_view url_to_host(std::string_view url)
 		{
-			http::cparser::http_parser_url u;
-			if (0 != http::cparser::http_parser_parse_url(url.data(), url.size(), 0, &u))
+			http::nginx_parser::http_parser_url u;
+			if (0 != http::nginx_parser::http_parser_parse_url(url.data(), url.size(), 0, &u))
 				return std::string_view{};
 
-			if (!(u.field_set & (1 << (int)http::cparser::url_fields::UF_HOST)))
+			if (!(u.field_set & (1 << (int)http::nginx_parser::url_fields::UF_HOST)))
 				return std::string_view{};
 
-			return std::string_view{ &url[u.field_data[(int)http::cparser::url_fields::UF_HOST].off],
-				u.field_data[(int)http::cparser::url_fields::UF_HOST].len };
+			return std::string_view{ &url[u.field_data[(int)http::nginx_parser::url_fields::UF_HOST].off],
+				u.field_data[(int)http::nginx_parser::url_fields::UF_HOST].len };
 		}
 
 		template<typename = void>
 		std::string_view url_to_port(std::string_view url)
 		{
-			http::cparser::http_parser_url u;
-			if (0 != http::cparser::http_parser_parse_url(url.data(), url.size(), 0, &u))
+			http::nginx_parser::http_parser_url u;
+			if (0 != http::nginx_parser::http_parser_parse_url(url.data(), url.size(), 0, &u))
 				return std::string_view{};
 
-			if (u.field_set & (1 << (int)http::cparser::url_fields::UF_PORT))
-				return std::string_view{ &url[u.field_data[(int)http::cparser::url_fields::UF_PORT].off],
-				u.field_data[(int)http::cparser::url_fields::UF_PORT].len };
+			if (u.field_set & (1 << (int)http::nginx_parser::url_fields::UF_PORT))
+				return std::string_view{ &url[u.field_data[(int)http::nginx_parser::url_fields::UF_PORT].off],
+				u.field_data[(int)http::nginx_parser::url_fields::UF_PORT].len };
 
-			if (u.field_set & (1 << (int)http::cparser::url_fields::UF_SCHEMA))
+			if (u.field_set & (1 << (int)http::nginx_parser::url_fields::UF_SCHEMA))
 			{
-				std::string schema(&url[u.field_data[(int)http::cparser::url_fields::UF_SCHEMA].off],
-					u.field_data[(int)http::cparser::url_fields::UF_SCHEMA].len);
-				std::transform(schema.begin(), schema.end(), schema.begin(), [](std::string::value_type c) { return std::tolower(c); });
+				std::string schema(&url[u.field_data[(int)http::nginx_parser::url_fields::UF_SCHEMA].off],
+					u.field_data[(int)http::nginx_parser::url_fields::UF_SCHEMA].len);
+				std::transform(schema.begin(), schema.end(), schema.begin(), [](std::string::value_type c)
+				{
+					return std::tolower(c);
+				});
 				return (schema == "https" ? std::string_view{ "443" } : std::string_view{ "80" });
 			}
 
@@ -189,50 +197,50 @@ namespace boost::beast::http
 		template<typename = void>
 		std::string_view url_to_path(std::string_view url)
 		{
-			http::cparser::http_parser_url u;
-			if (0 != http::cparser::http_parser_parse_url(url.data(), url.size(), 0, &u))
+			http::nginx_parser::http_parser_url u;
+			if (0 != http::nginx_parser::http_parser_parse_url(url.data(), url.size(), 0, &u))
 				return std::string_view{};
 
-			if (!(u.field_set & (1 << (int)http::cparser::url_fields::UF_PATH)))
+			if (!(u.field_set & (1 << (int)http::nginx_parser::url_fields::UF_PATH)))
 				return std::string_view{};
 
-			return std::string_view{ &url[u.field_data[(int)http::cparser::url_fields::UF_PATH].off],
-				u.field_data[(int)http::cparser::url_fields::UF_PATH].len };
+			return std::string_view{ &url[u.field_data[(int)http::nginx_parser::url_fields::UF_PATH].off],
+				u.field_data[(int)http::nginx_parser::url_fields::UF_PATH].len };
 		}
 
 		template<typename = void>
 		std::string_view url_to_query(std::string_view url)
 		{
-			http::cparser::http_parser_url u;
-			if (0 != http::cparser::http_parser_parse_url(url.data(), url.size(), 0, &u))
+			http::nginx_parser::http_parser_url u;
+			if (0 != http::nginx_parser::http_parser_parse_url(url.data(), url.size(), 0, &u))
 				return std::string_view{};
 
-			if (!(u.field_set & (1 << (int)http::cparser::url_fields::UF_QUERY)))
+			if (!(u.field_set & (1 << (int)http::nginx_parser::url_fields::UF_QUERY)))
 				return std::string_view{};
 
-			return std::string_view{ &url[u.field_data[(int)http::cparser::url_fields::UF_QUERY].off],
-				u.field_data[(int)http::cparser::url_fields::UF_QUERY].len };
+			return std::string_view{ &url[u.field_data[(int)http::nginx_parser::url_fields::UF_QUERY].off],
+				u.field_data[(int)http::nginx_parser::url_fields::UF_QUERY].len };
 		}
 
 		/**
 		 * @function : make A typical HTTP request struct from the uri
 		 * You need to encode the "uri"(by url_encode) before calling this function
 		 */
-		template<class Body = string_body, class Fields = fields>
-		request<Body, Fields> make_request(std::string_view uri, error_code& ec)
+		template<class Body = http::string_body, class Fields = http::fields>
+		http::request_t<Body, Fields> make_request(std::string_view uri, error_code& ec)
 		{
-			request<Body, Fields> req;
+			http::request_t<Body, Fields> req;
 			try
 			{
 				ec.clear();
 
-				cparser::http_parser_url u;
-				int state = cparser::http_parser_parse_url(uri.data(), uri.size(), 0, &u);
+				nginx_parser::http_parser_url u;
+				int state = nginx_parser::http_parser_parse_url(uri.data(), uri.size(), 0, &u);
 
 				// If a \r\n string is found, it is not a URL
 				if (uri.find("\r\n") != std::string_view::npos && 0 != state)
 				{
-					request_parser<Body> parser;
+					http::request_parser<Body> parser;
 					parser.eager(true);
 					parser.put(asio::buffer(uri), ec);
 					req = parser.get();
@@ -250,40 +258,40 @@ namespace boost::beast::http
 
 					std::string_view /*schema{ "http" }, */host, port, target{ "/" }/*, userinfo, path, query, fragment*/;
 
-					//if (u.field_set & (1 << (int)cparser::url_fields::UF_SCHEMA))
-					//	schema = { &uri[u.field_data[(int)cparser::url_fields::UF_SCHEMA].off],
-					//	u.field_data[(int)cparser::url_fields::UF_SCHEMA].len };
-					if (u.field_set & (1 << (int)cparser::url_fields::UF_HOST))
-						host = { &uri[u.field_data[(int)cparser::url_fields::UF_HOST].off],
-						u.field_data[(int)cparser::url_fields::UF_HOST].len };
-					if (u.field_set & (1 << (int)cparser::url_fields::UF_PORT))
-						port = { &uri[u.field_data[(int)cparser::url_fields::UF_PORT].off],
-						u.field_data[(int)cparser::url_fields::UF_PORT].len };
-					if (u.field_set & (1 << (int)cparser::url_fields::UF_PATH))
-						target = { &uri[u.field_data[(int)cparser::url_fields::UF_PATH].off],
-						uri.size() - u.field_data[(int)cparser::url_fields::UF_PATH].off };
-					//	path = target = { &uri[u.field_data[(int)cparser::url_fields::UF_PATH].off],
-					//	u.field_data[(int)cparser::url_fields::UF_PATH].len };
-					//if (u.field_set & (1 << (int)cparser::url_fields::UF_USERINFO))
-					//	userinfo = { &uri[u.field_data[(int)cparser::url_fields::UF_USERINFO].off],
-					//	u.field_data[(int)cparser::url_fields::UF_USERINFO].len };
-					//if (u.field_set & (1 << (int)cparser::url_fields::UF_QUERY))
-					//	query = { &uri[u.field_data[(int)cparser::url_fields::UF_QUERY].off],
-					//	u.field_data[(int)cparser::url_fields::UF_QUERY].len };
-					//if (u.field_set & (1 << (int)cparser::url_fields::UF_FRAGMENT))
-					//	fragment = { &uri[u.field_data[(int)cparser::url_fields::UF_FRAGMENT].off],
-					//	u.field_data[(int)cparser::url_fields::UF_FRAGMENT].len };
+					//if (u.field_set & (1 << (int)nginx_parser::url_fields::UF_SCHEMA))
+					//	schema = { &uri[u.field_data[(int)nginx_parser::url_fields::UF_SCHEMA].off],
+					//	u.field_data[(int)nginx_parser::url_fields::UF_SCHEMA].len };
+					if (u.field_set & (1 << (int)nginx_parser::url_fields::UF_HOST))
+						host = { &uri[u.field_data[(int)nginx_parser::url_fields::UF_HOST].off],
+						u.field_data[(int)nginx_parser::url_fields::UF_HOST].len };
+					if (u.field_set & (1 << (int)nginx_parser::url_fields::UF_PORT))
+						port = { &uri[u.field_data[(int)nginx_parser::url_fields::UF_PORT].off],
+						u.field_data[(int)nginx_parser::url_fields::UF_PORT].len };
+					if (u.field_set & (1 << (int)nginx_parser::url_fields::UF_PATH))
+						target = { &uri[u.field_data[(int)nginx_parser::url_fields::UF_PATH].off],
+						uri.size() - u.field_data[(int)nginx_parser::url_fields::UF_PATH].off };
+					//	path = target = { &uri[u.field_data[(int)nginx_parser::url_fields::UF_PATH].off],
+					//	u.field_data[(int)nginx_parser::url_fields::UF_PATH].len };
+					//if (u.field_set & (1 << (int)nginx_parser::url_fields::UF_USERINFO))
+					//	userinfo = { &uri[u.field_data[(int)nginx_parser::url_fields::UF_USERINFO].off],
+					//	u.field_data[(int)nginx_parser::url_fields::UF_USERINFO].len };
+					//if (u.field_set & (1 << (int)nginx_parser::url_fields::UF_QUERY))
+					//	query = { &uri[u.field_data[(int)nginx_parser::url_fields::UF_QUERY].off],
+					//	u.field_data[(int)nginx_parser::url_fields::UF_QUERY].len };
+					//if (u.field_set & (1 << (int)nginx_parser::url_fields::UF_FRAGMENT))
+					//	fragment = { &uri[u.field_data[(int)nginx_parser::url_fields::UF_FRAGMENT].off],
+					//	u.field_data[(int)nginx_parser::url_fields::UF_FRAGMENT].len };
 
 					// Set up an HTTP GET request message
-					req.method(verb::get);
+					req.method(http::verb::get);
 					req.version(11);
 					req.target(beast::string_view(target.data(), target.size()));
-					req.set(field::server, BOOST_BEAST_VERSION_STRING);
+					req.set(http::field::server, BEAST_VERSION_STRING);
 
 					if (port.empty())
-						req.set(field::host, host);
+						req.set(http::field::host, host);
 					else
-						req.set(field::host, std::string(host) + ":" + std::string(port));
+						req.set(http::field::host, std::string(host) + ":" + std::string(port));
 
 					if (host.empty())
 						asio::detail::throw_error(asio::error::invalid_argument);
@@ -300,11 +308,11 @@ namespace boost::beast::http
 		 * @function : make A typical HTTP request struct from the uri
 		 * You need to encode the "uri"(by url_encode) before calling this function
 		 */
-		template<class Body = string_body, class Fields = fields>
-		inline request<Body, Fields> make_request(std::string_view uri)
+		template<class Body = http::string_body, class Fields = http::fields>
+		inline http::request_t<Body, Fields> make_request(std::string_view uri)
 		{
 			error_code ec;
-			request<Body, Fields> req = make_request<Body, Fields>(uri, ec);
+			http::request_t<Body, Fields> req = make_request<Body, Fields>(uri, ec);
 			asio::detail::throw_error(ec);
 			return req;
 		}
@@ -313,62 +321,109 @@ namespace boost::beast::http
 		 * @function : make A typical HTTP request struct from the uri
 		 * You need to encode the "target"(by url_encode) before calling this function
 		 */
-		template<class Body = string_body, class Fields = fields>
-		inline request<Body, Fields> make_request(std::string_view host, std::string_view port,
-			std::string_view target, verb method = verb::get, unsigned version = 11)
+		template<class Body = http::string_body, class Fields = http::fields>
+		inline http::request_t<Body, Fields> make_request(std::string_view host, std::string_view port,
+			std::string_view target, http::verb method = http::verb::get, unsigned version = 11)
 		{
 			ASIO2_ASSERT(!has_unencode_char(target));
-			request<Body, Fields> req;
+			http::request_t<Body, Fields> req;
 			// Set up an HTTP GET request message
 			req.method(method);
 			req.version(version);
-			req.target(target.empty() ? beast::string_view{ "/" } : beast::string_view(target.data(), target.size()));
+			req.target(target.empty() ? beast::string_view{ "/" } :
+				beast::string_view(target.data(), target.size()));
 			if (!port.empty() && port != "443" && port != "80")
 				req.set(http::field::host, std::string(host) + ":" + std::string(port));
 			else
 				req.set(http::field::host, host);
-			req.set(http::field::server, BOOST_BEAST_VERSION_STRING);
+			req.set(http::field::server, BEAST_VERSION_STRING);
 			return req;
 		}
 
-		template<class Body = string_body, class Fields = fields>
-		inline response<Body, Fields> make_response(std::string_view uri, error_code& ec)
+		template<class Body = http::string_body, class Fields = http::fields>
+		inline http::response_t<Body, Fields> make_response(std::string_view uri, error_code& ec)
 		{
 			ec.clear();
-			response_parser<Body> parser;
+			http::response_parser<Body> parser;
 			parser.eager(true);
 			parser.put(asio::buffer(uri), ec);
-			response<Body, Fields> rep = parser.get();
+			http::response_t<Body, Fields> rep = parser.get();
 			return rep;
 		}
 
-		template<class Body = string_body, class Fields = fields>
-		inline response<Body, Fields> make_response(std::string_view uri)
+		template<class Body = http::string_body, class Fields = http::fields>
+		inline http::response_t<Body, Fields> make_response(std::string_view uri)
 		{
 			error_code ec;
-			response<Body, Fields> rep = make_response<Body, Fields>(uri, ec);
+			http::response_t<Body, Fields> rep = make_response<Body, Fields>(uri, ec);
 			asio::detail::throw_error(ec);
 			return rep;
 		}
 
-		template<class Body = string_body, class Fields = fields>
-		inline typename std::enable_if_t<std::is_same_v<Body, string_body>, response<Body, Fields>>
-			make_response(status code, std::string_view body, unsigned version = 11)
+		template<class Body = http::string_body, class Fields = http::fields>
+		inline typename std::enable_if_t<std::is_same_v<Body, http::string_body>, http::response_t<Body, Fields>>
+			make_response(http::status code, std::string_view body, unsigned version = 11)
 		{
-			response<Body, Fields> rep;
+			http::response_t<Body, Fields> rep;
 			rep.version(version);
-			rep.set(field::server, BOOST_BEAST_VERSION_STRING);
+			rep.set(http::field::server, BEAST_VERSION_STRING);
 			rep.result(code);
 			rep.body() = body;
 			rep.prepare_payload();
 			return rep;
 		}
 
-		template<class Body = string_body, class Fields = fields>
-		inline typename std::enable_if_t<std::is_same_v<Body, string_body>, response<Body, Fields>>
+		template<class Body = http::string_body, class Fields = http::fields>
+		inline typename std::enable_if_t<std::is_same_v<Body, http::string_body>, http::response_t<Body, Fields>>
 			make_response(unsigned code, std::string_view body, unsigned version = 11)
 		{
 			return make_response(http::int_to_status(code), body, version);
+		}
+
+		template<typename = void>
+		inline bool url_match(std::string_view pattern, std::string_view url)
+		{
+			if (pattern == "/*")
+				return true;
+			std::vector<std::string_view> fragments = asio2::split(pattern, "*");
+			std::size_t index = 0;
+			while (!url.empty())
+			{
+				if (index == fragments.size())
+					return (pattern.back() == '*');
+				std::string_view fragment = fragments[index++];
+				std::size_t pos = url.find(fragment);
+				if (pos == std::string_view::npos)
+					return false;
+				url = url.substr(pos + fragment.size());
+			}
+			return true;
+		}
+
+		template<typename = void>
+		inline std::string error_page(http::status result, std::string desc = {})
+		{
+			std::string_view reason = http::obsolete_reason(result);
+			std::string content;
+			if (desc.empty())
+				content.reserve(reason.size() * 2 + 67);
+			else
+				content.reserve(reason.size() * 2 + 67 + desc.size() + 21);
+			content += "<html><head><title>";
+			content += reason;
+			content += "</title></head><body><h1>";
+			content += std::to_string(asio2::detail::enum_to_int(result));
+			content += " ";
+			content += reason;
+			content += "</h1>";
+			if (!desc.empty())
+			{
+				content += "<p>Description : ";
+				content += std::move(desc);
+				content += "</p>";
+			}
+			content += "</body></html>";
+			return content;
 		}
 	}
 
@@ -377,7 +432,7 @@ namespace boost::beast::http
 
 	template<typename T>
 	struct is_http_message<T, std::void_t<typename T::header_type, typename T::body_type,
-		typename std::enable_if_t<std::is_same_v<T, message<
+		typename std::enable_if_t<std::is_same_v<T, http::message<
 		T::header_type::is_request::value,
 		typename T::body_type,
 		typename T::header_type::fields_type>>>>> : std::true_type {};
@@ -386,6 +441,29 @@ namespace boost::beast::http
 	inline constexpr bool is_http_message_v = is_http_message<T>::value;
 }
 
-#endif // !__ASIO2_HTTP_UTIL_HPP__
-
+#ifdef BEAST_HEADER_ONLY
+namespace beast::websocket
+#else
+namespace boost::beast::websocket
 #endif
+{
+	enum class frame
+	{
+		/// A message frame was received
+		message,
+
+		/// A ping frame was received
+		ping,
+
+		/// A pong frame was received
+		pong,
+
+		/// http is upgrade to websocket
+		open,
+
+		/// A close frame was received
+		close
+	};
+}
+
+#endif // !__ASIO2_HTTP_UTIL_HPP__

@@ -69,82 +69,100 @@ namespace asio2::detail
 			this->stop();
 		}
 
+		/**
+		 * @function : start the server
+		 * @param service A string identifying the requested service. This may be a
+		 * descriptive name or a numeric string corresponding to a port number.
+		 */
+		template<typename StrOrInt>
+		inline bool start(StrOrInt&& service)
+		{
+			if constexpr (is_websocket_server<executor_t>::value)
+				return executor_t::template start(
+					std::string_view{}, std::forward<StrOrInt>(service));
+			else
+				return executor_t::template start(
+					std::string_view{}, std::forward<StrOrInt>(service), asio2::use_dgram);
+		}
+
+		/**
+		 * @function : start the server
+		 * @param host A string identifying a location. May be a descriptive name or
+		 * a numeric address string.
+		 * @param service A string identifying the requested service. This may be a
+		 * descriptive name or a numeric string corresponding to a port number.
+		 */
+		template<typename String, typename StrOrInt>
+		inline bool start(String&& host, StrOrInt&& service)
+		{
+			if constexpr (is_websocket_server<executor_t>::value)
+				return executor_t::template start(
+					std::forward<String>(host), std::forward<StrOrInt>(service));
+			else
+				return executor_t::template start(
+					std::forward<String>(host), std::forward<StrOrInt>(service), asio2::use_dgram);
+		}
+
 	public:
 		/**
 		 * @function : call a rpc function for each session
 		 */
-		template<class T, class Rep, class Period, class ...Args>
-		inline T call(std::chrono::duration<Rep, Period> timeout, const std::string& name, const Args&... args)
+		template<class return_t, class Rep, class Period, class ...Args>
+		inline void call(std::chrono::duration<Rep, Period> timeout, const std::string& name, const Args&... args)
 		{
 			this->sessions_.foreach([&](std::shared_ptr<session_type>& session_ptr) mutable
 			{
-				session_ptr->template call<T>(timeout, name, args...);
+				session_ptr->template call<return_t>(timeout, name, args...);
 			});
-			if constexpr (std::is_void_v<T>)
-				std::ignore = true;
-			else
-				return T{};
 		}
 
 		/**
 		 * @function : call a rpc function for each session
 		 */
-		template<class T, class Rep, class Period, class ...Args>
-		inline T call(error_code& ec, std::chrono::duration<Rep, Period> timeout, std::string name, const Args&... args)
+		template<class return_t, class Rep, class Period, class ...Args>
+		inline void call(error_code& ec, std::chrono::duration<Rep, Period> timeout,
+			const std::string& name, const Args&... args)
 		{
 			this->sessions_.foreach([&](std::shared_ptr<session_type>& session_ptr) mutable
 			{
-				session_ptr->template call<T>(ec, timeout, name, args...);
+				session_ptr->template call<return_t>(ec, timeout, name, args...);
 			});
-			if constexpr (std::is_void_v<T>)
-				std::ignore = true;
-			else
-				return T{};
 		}
 
 		/**
 		 * @function : call a rpc function for each session
 		 */
-		template<class T, class ...Args>
-		inline T call(std::string name, const Args&... args)
+		template<class return_t, class ...Args>
+		inline void call(const std::string& name, const Args&... args)
 		{
 			this->sessions_.foreach([&](std::shared_ptr<session_type>& session_ptr) mutable
 			{
-				session_ptr->template call<T>(name, args...);
+				session_ptr->template call<return_t>(name, args...);
 			});
-			if constexpr (std::is_void_v<T>)
-				std::ignore = true;
-			else
-				return T{};
 		}
 
 		/**
 		 * @function : call a rpc function for each session
 		 */
-		template<class T, class ...Args>
-		inline T call(error_code& ec, std::string name, const Args&... args)
+		template<class return_t, class ...Args>
+		inline void call(error_code& ec, const std::string& name, const Args&... args)
 		{
 			this->sessions_.foreach([&](std::shared_ptr<session_type>& session_ptr) mutable
 			{
-				session_ptr->template call<T>(ec, name, args...);
+				session_ptr->template call<return_t>(ec, name, args...);
 			});
-			if constexpr (std::is_void_v<T>)
-				std::ignore = true;
-			else
-				return T{};
 		}
 
 		/**
 		 * @function : asynchronous call a rpc function for each session
-		 * Callback signature : void(error_code ec, int result)
-		 * if result type is void, the Callback signature is : void(error_code ec)
+		 * Callback signature : void(asio::error_code ec, int result)
+		 * if result type is void, the Callback signature is : void(asio::error_code ec)
 		 * Because the result value type is not specified in the first template parameter,
 		 * so the result value type must be specified in the Callback lambda.
-		 * You must guarantee that the parameter args remain valid until the send operation is called.
 		 */
 		template<class Callback, class ...Args>
 		inline typename std::enable_if_t<is_callable_v<Callback>, void>
-			async_call(const Callback& fn, std::string name, const Args&... args)
+		async_call(const Callback& fn, const std::string& name, const Args&... args)
 		{
 			this->sessions_.foreach([&](std::shared_ptr<session_type>& session_ptr) mutable
 			{
@@ -154,15 +172,15 @@ namespace asio2::detail
 
 		/**
 		 * @function : asynchronous call a rpc function for each session
-		 * Callback signature : void(error_code ec, int result)
-		 * if result type is void, the Callback signature is : void(error_code ec)
+		 * Callback signature : void(asio::error_code ec, int result)
+		 * if result type is void, the Callback signature is : void(asio::error_code ec)
 		 * Because the result value type is not specified in the first template parameter,
 		 * so the result value type must be specified in the Callback lambda
-		 * You must guarantee that the parameter args remain valid until the send operation is called.
 		 */
 		template<class Callback, class Rep, class Period, class ...Args>
 		inline typename std::enable_if_t<is_callable_v<Callback>, void>
-		async_call(const Callback& fn, std::chrono::duration<Rep, Period> timeout, std::string name, const Args&... args)
+		async_call(const Callback& fn, std::chrono::duration<Rep, Period> timeout,
+			const std::string& name, const Args&... args)
 		{
 			this->sessions_.foreach([&](std::shared_ptr<session_type>& session_ptr) mutable
 			{
@@ -172,31 +190,32 @@ namespace asio2::detail
 
 		/**
 		 * @function : asynchronous call a rpc function for each session
-		 * Callback signature : void(error_code ec, T result) the T is the first template parameter.
-		 * if result type is void, the Callback signature is : void(error_code ec)
-		 * You must guarantee that the parameter args remain valid until the send operation is called.
+		 * Callback signature : void(asio::error_code ec, return_t result) the return_t
+		 * is the first template parameter.
+		 * if result type is void, the Callback signature is : void(asio::error_code ec)
 		 */
-		template<class T, class Callback, class ...Args>
-		inline void async_call(const Callback& fn, std::string name, const Args&... args)
+		template<class return_t, class Callback, class ...Args>
+		inline void async_call(const Callback& fn, const std::string& name, const Args&... args)
 		{
 			this->sessions_.foreach([&](std::shared_ptr<session_type>& session_ptr) mutable
 			{
-				session_ptr->template async_call<T>(fn, name, args...);
+				session_ptr->template async_call<return_t>(fn, name, args...);
 			});
 		}
 
 		/**
 		 * @function : asynchronous call a rpc function for each session
-		 * Callback signature : void(error_code ec, T result) the T is the first template parameter.
-		 * if result type is void, the Callback signature is : void(error_code ec)
-		 * You must guarantee that the parameter args remain valid until the send operation is called.
+		 * Callback signature : void(asio::error_code ec, return_t result) the return_t
+		 * is the first template parameter.
+		 * if result type is void, the Callback signature is : void(asio::error_code ec)
 		 */
-		template<class T, class Callback, class Rep, class Period, class ...Args>
-		inline void async_call(const Callback& fn, std::chrono::duration<Rep, Period> timeout, std::string name, const Args&... args)
+		template<class return_t, class Callback, class Rep, class Period, class ...Args>
+		inline void async_call(const Callback& fn, std::chrono::duration<Rep, Period> timeout,
+			const std::string& name, const Args&... args)
 		{
 			this->sessions_.foreach([&](std::shared_ptr<session_type>& session_ptr) mutable
 			{
-				session_ptr->template async_call<T>(fn, timeout, name, args...);
+				session_ptr->template async_call<return_t>(fn, timeout, name, args...);
 			});
 		}
 
@@ -204,9 +223,8 @@ namespace asio2::detail
 		 * @function : asynchronous call a rpc function for each session
 		 * Don't care whether the call succeeds
 		 */
-		template<class String, class ...Args>
-		inline typename std::enable_if_t<!is_callable_v<String>, void>
-		async_call(const String& name, const Args&... args)
+		template<class ...Args>
+		inline void async_call(const std::string& name, const Args&... args)
 		{
 			this->sessions_.foreach([&](std::shared_ptr<session_type>& session_ptr) mutable
 			{
@@ -218,7 +236,7 @@ namespace asio2::detail
 		template<typename... Args>
 		inline std::shared_ptr<session_type> _make_session(Args&&... args)
 		{
-			return super::_make_session(*this, std::forward<Args>(args)...);
+			return super::_make_session(std::forward<Args>(args)..., *this);
 		}
 
 	protected:
@@ -227,38 +245,66 @@ namespace asio2::detail
 
 namespace asio2
 {
-#if 1
+	template<class>
+	class rpc_server_t;
+
 	/// Using tcp dgram mode as the underlying communication support
-	class rpc_server : public detail::rpc_server_impl_t<rpc_server, detail::tcp_server_impl_t<rpc_server, rpc_session>>
+	template<>
+	class rpc_server_t<detail::use_tcp> : public detail::rpc_server_impl_t<rpc_server_t<detail::use_tcp>,
+		detail::tcp_server_impl_t<rpc_server_t<detail::use_tcp>, rpc_session>>
 	{
 	public:
-		using detail::rpc_server_impl_t<rpc_server, detail::tcp_server_impl_t<rpc_server, rpc_session>>::rpc_server_impl_t;
+		using detail::rpc_server_impl_t<rpc_server_t<detail::use_tcp>, detail::tcp_server_impl_t<
+			rpc_server_t<detail::use_tcp>, rpc_session>>::rpc_server_impl_t;
 	};
 
-	#if defined(ASIO2_USE_SSL)
-	class rpcs_server : public detail::rpc_server_impl_t<rpcs_server, detail::tcps_server_impl_t<rpcs_server, rpcs_session>>
-	{
-	public:
-		using detail::rpc_server_impl_t<rpcs_server, detail::tcps_server_impl_t<rpcs_server, rpcs_session>>::rpc_server_impl_t;
-	};
-	#endif
-#else
 	/// Using websocket as the underlying communication support
-	#ifndef ASIO_STANDALONE
-	class rpc_server : public detail::rpc_server_impl_t<rpc_server, detail::ws_server_impl_t<rpc_server, rpc_session>>
+	template<>
+	class rpc_server_t<detail::use_websocket> : public detail::rpc_server_impl_t<
+		rpc_server_t<detail::use_websocket>,
+		detail::ws_server_impl_t<rpc_server_t<detail::use_websocket>, rpc_session>>
 	{
 	public:
-		using detail::rpc_server_impl_t<rpc_server, detail::ws_server_impl_t<rpc_server, rpc_session>>::rpc_server_impl_t;
+		using detail::rpc_server_impl_t<rpc_server_t<detail::use_websocket>,
+			detail::ws_server_impl_t<rpc_server_t<detail::use_websocket>,
+			rpc_session>>::rpc_server_impl_t;
 	};
 
-	#if defined(ASIO2_USE_SSL)
-	class rpcs_server : public detail::rpc_server_impl_t<rpcs_server, detail::wss_server_impl_t<rpcs_server, rpcs_session>>
+#if !defined(ASIO2_USE_WEBSOCKET_RPC)
+	using rpc_server = rpc_server_t<detail::use_tcp>;
+#else
+	using rpc_server = rpc_server_t<detail::use_websocket>;
+#endif
+
+#if defined(ASIO2_USE_SSL)
+	template<class>
+	class rpcs_server_t;
+
+	template<>
+	class rpcs_server_t<detail::use_tcp> : public detail::rpc_server_impl_t<rpcs_server_t<detail::use_tcp>,
+		detail::tcps_server_impl_t<rpcs_server_t<detail::use_tcp>, rpcs_session>>
 	{
 	public:
-		using detail::rpc_server_impl_t<rpcs_server, detail::wss_server_impl_t<rpcs_server, rpcs_session>>::rpc_server_impl_t;
+		using detail::rpc_server_impl_t<rpcs_server_t<detail::use_tcp>, detail::tcps_server_impl_t<
+			rpcs_server_t<detail::use_tcp>, rpcs_session>>::rpc_server_impl_t;
 	};
-	#endif
-	#endif
+
+	template<>
+	class rpcs_server_t<detail::use_websocket> : public detail::rpc_server_impl_t<
+		rpcs_server_t<detail::use_websocket>,
+		detail::wss_server_impl_t<rpcs_server_t<detail::use_websocket>, rpcs_session>>
+	{
+	public:
+		using detail::rpc_server_impl_t<rpcs_server_t<detail::use_websocket>,
+			detail::wss_server_impl_t<rpcs_server_t<detail::use_websocket>,
+			rpcs_session>>::rpc_server_impl_t;
+	};
+
+#if !defined(ASIO2_USE_WEBSOCKET_RPC)
+	using rpcs_server = rpcs_server_t<detail::use_tcp>;
+#else
+	using rpcs_server = rpcs_server_t<detail::use_websocket>;
+#endif
 #endif
 }
 

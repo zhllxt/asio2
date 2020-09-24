@@ -8,8 +8,6 @@
  * (See accompanying file LICENSE or see <http://www.gnu.org/licenses/>)
  */
 
-#ifndef ASIO_STANDALONE
-
 #ifndef __ASIO2_WS_SERVER_HPP__
 #define __ASIO2_WS_SERVER_HPP__
 
@@ -113,5 +111,3 @@ namespace asio2
 }
 
 #endif // !__ASIO2_WS_SERVER_HPP__
-
-#endif

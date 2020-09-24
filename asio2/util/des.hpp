@@ -29,7 +29,8 @@ namespace asio2
 			keygen(key);
 		}
 		/*
-		 * key.size() should be 8,if less than 8,key will be padded with '\0',if greater than 8,key will be truncate to 8
+		 * key.size() should be 8,if less than 8,key will be padded with '\0',
+		 * if greater than 8,key will be truncate to 8
 		 */
 		des(std::string key)
 		{

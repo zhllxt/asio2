@@ -26,14 +26,20 @@
 #include <asio2/base/listener.hpp>
 #include <asio2/base/detail/condition_wrap.hpp>
 
+#include <asio2/base/component/event_queue_cp.hpp>
+
 namespace asio2::detail
 {
+	template<class derived_t, class socket_t, bool isSession>
+	class connect_cp;
+
 	template<class derived_t, class socket_t>
-	class connect_cp
+	class connect_cp<derived_t, socket_t, false>
 	{
 	public:
-		using self = connect_cp<derived_t, socket_t>;
-		using resolver_type = typename asio::ip::basic_resolver<typename socket_t::protocol_type>;
+		using self = connect_cp<derived_t, socket_t, false>;
+		using raw_socket_t = typename std::remove_reference_t<socket_t>;
+		using resolver_type = typename asio::ip::basic_resolver<typename raw_socket_t::protocol_type>;
 		using endpoints_type = typename resolver_type::results_type;
 		using endpoints_iterator = typename endpoints_type::iterator;
 
@@ -64,8 +70,6 @@ namespace asio2::detail
 				this->host_ = to_string(std::forward<String>(host));
 				this->port_ = to_string(std::forward<StrOrInt>(port));
 
-				this->fire_connect_flag_.clear();
-
 				auto & socket = derive.socket().lowest_layer();
 
 				socket.close(ec_ignore);
@@ -73,64 +77,130 @@ namespace asio2::detail
 				socket.open(derive.local_endpoint().protocol());
 
 				// Connect succeeded. set the keeplive values
-				socket.set_option(typename socket_t::reuse_address(true)); // set port reuse
+				socket.set_option(typename raw_socket_t::reuse_address(true)); // set port reuse
 
-				if constexpr (std::is_same_v<typename socket_t::protocol_type, asio::ip::tcp>)
+				if constexpr (std::is_same_v<typename raw_socket_t::protocol_type, asio::ip::tcp>)
+				{
 					derive.keep_alive_options();
+				}
 				else
+				{
 					std::ignore = true;
+				}
 
 				derive._fire_init();
 
 				socket.bind(derive.local_endpoint());
 
-				// start the timeout timer
-				std::future<error_code> future = derive._post_timeout_timer(derive.connect_timeout(),
-					this_ptr, [this, this_ptr, condition](error_code ec) mutable
-				{
-					if (!ec)
-					{
-						ec = asio::error::timed_out;
-						derive.template _handle_connect<isAsync>(ec, std::move(this_ptr), std::move(condition));
-					}
-				});
-
-				std::unique_ptr<resolver_type> resolver_ptr = std::make_unique<resolver_type>(derive.io().context());
-
-				// Before async_resolve execution is complete, we must hold the resolver object.
-				// so we captured the resolver_ptr into the lambda callback function.
-				resolver_type * resolver_pointer = resolver_ptr.get();
-				resolver_pointer->async_resolve(this->host_, this->port_, asio::bind_executor(derive.io().strand(),
-					[this, this_ptr, condition, resolver_ptr = std::move(resolver_ptr)]
-				(const error_code& ec, const endpoints_type& endpoints)
-				{
-					set_last_error(ec);
-
-					this->endpoints_ = endpoints;
-
-					if (ec)
-						derive.template _handle_connect<isAsync>(ec, std::move(this_ptr), std::move(condition));
-					else
-						derive.template _post_connect<isAsync>(ec, this->endpoints_.begin(), std::move(this_ptr), std::move(condition));
-				}));
-
 				if constexpr (isAsync)
+				{
+					// start the timeout timer
+					derive.post([this, this_ptr, condition]() mutable
+					{
+						derive._post_connect_timeout_timer(derive.connect_timeout(), this_ptr,
+							[this, this_ptr, condition]
+						(const error_code& ec) mutable
+						{
+							detail::ignore_unused(this_ptr, condition);
+
+							// no errors indicating that the connection timed out
+							if (!ec)
+							{
+								// we close the socket, so the async_connect will returned 
+								// with operation_aborted.
+								derive.socket().lowest_layer().close(ec_ignore);
+							}
+						});
+					});
+
+					derive._post_resolve(std::move(this_ptr), std::move(condition));
+
 					return true;
+				}
 				else
 				{
-					derive._wait_timeout_timer(future);
+					std::promise<error_code> promise;
+					std::future<error_code> future = promise.get_future();
+
+					// start the timeout timer
+					derive.post([this, this_ptr, condition, promise = std::move(promise)]() mutable
+					{
+						derive._post_connect_timeout_timer(derive.connect_timeout(), this_ptr,
+							[this, this_ptr, condition, promise = std::move(promise)]
+						(const error_code& ec) mutable
+						{
+							detail::ignore_unused(this_ptr, condition);
+
+							// no errors indicating that the connection timed out
+							if (!ec)
+							{
+								// we close the socket, so the async_connect will returned 
+								// with operation_aborted.
+								derive.socket().lowest_layer().close(ec_ignore);
+							}
+
+							promise.set_value(derive._connect_error_code() ?
+								derive._connect_error_code() : (ec ? ec : asio::error::timed_out));
+						});
+					});
+
+					derive._post_resolve(std::move(this_ptr), std::move(condition));
+
+					if (!derive.io().strand().running_in_this_thread())
+					{
+						set_last_error(future.get());
+					}
+					else
+					{
+						ASIO2_ASSERT(false);
+					}
+
 					return derive.is_started();
 				}
 			}
 			catch (system_error & e)
 			{
 				set_last_error(e);
-				derive.template _handle_connect<isAsync>(e.code(), std::move(this_ptr), std::move(condition));
+
+				derive._handle_connect(e.code(), std::move(this_ptr), std::move(condition));
 			}
+
 			return false;
 		}
 
-		template<bool isAsync, typename MatchCondition>
+		template<typename MatchCondition>
+		inline void _post_resolve(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		{
+			derive.post([this, this_ptr = std::move(this_ptr), condition = std::move(condition)]() mutable
+			{
+				// resolve the server address.
+				std::unique_ptr<resolver_type> resolver_ptr = std::make_unique<resolver_type>(
+					derive.io().context());
+
+				resolver_type* resolver_rptr = resolver_ptr.get();
+
+				// Before async_resolve execution is complete, we must hold the resolver object.
+				// so we captured the resolver_ptr into the lambda callback function.
+				resolver_rptr->async_resolve(this->host_, this->port_,
+					asio::bind_executor(derive.io().strand(),
+						[this, this_ptr = std::move(this_ptr), condition = std::move(condition),
+						resolver_ptr = std::move(resolver_ptr)]
+				(const error_code& ec, const endpoints_type& endpoints) mutable
+				{
+					set_last_error(ec);
+
+					this->endpoints_ = endpoints;
+
+					if (ec)
+						derive._handle_connect(ec, std::move(this_ptr), std::move(condition));
+					else
+						derive._post_connect(ec, this->endpoints_.begin(),
+							std::move(this_ptr), std::move(condition));
+				}));
+			});
+		}
+
+		template<typename MatchCondition>
 		inline void _post_connect(error_code ec, endpoints_iterator iter,
 			std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
 		{
@@ -139,7 +209,7 @@ namespace asio2::detail
 				if (iter == this->endpoints_.end())
 				{
 					// There are no more endpoints to try. Shut down the client.
-					derive.template _handle_connect<isAsync>(ec ? ec : asio::error::host_unreachable,
+					derive._handle_connect(ec ? ec : asio::error::host_unreachable,
 						std::move(this_ptr), std::move(condition));
 
 					return;
@@ -153,21 +223,22 @@ namespace asio2::detail
 					set_last_error(ec);
 
 					if (ec && ec != asio::error::operation_aborted)
-						derive.template _post_connect<isAsync>(ec, ++iter, std::move(this_ptr), std::move(condition));
+						derive._post_connect(ec, ++iter, std::move(this_ptr), std::move(condition));
 					else
-						derive.template _handle_connect<isAsync>(ec, std::move(this_ptr), std::move(condition));
+						derive._handle_connect(ec, std::move(this_ptr), std::move(condition));
 				})));
 			}
 			catch (system_error & e)
 			{
 				set_last_error(e);
 
-				derive.template _handle_connect<isAsync>(e.code(), std::move(this_ptr), std::move(condition));
+				derive._handle_connect(e.code(), std::move(this_ptr), std::move(condition));
 			}
 		}
 
-		template<bool isAsync, typename MatchCondition>
-		inline void _handle_connect(const error_code & ec, std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		template<typename MatchCondition>
+		inline void _handle_connect(const error_code& ec, std::shared_ptr<derived_t> this_ptr,
+			condition_wrap<MatchCondition> condition)
 		{
 			set_last_error(ec);
 
@@ -175,39 +246,55 @@ namespace asio2::detail
 		}
 
 		template<typename MatchCondition>
-		inline void _done_connect(error_code ec, std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		inline void _done_connect(error_code ec, std::shared_ptr<derived_t> this_ptr,
+			condition_wrap<MatchCondition> condition)
 		{
 			try
 			{
-				// Whatever of connection success or failure or timeout, cancel the timeout timer.
-				derive._stop_timeout_timer();
+				// if connect timeout is true, reset the error to timed_out.
+				if (derive._is_connect_timeout())
+				{
+					ec = asio::error::timed_out;
+				}
 
-				// Whether the connection succeeds or fails, always call fire_connect notification
+				// Whatever of connection success or failure or timeout, cancel the timeout timer.
+				derive._stop_connect_timeout_timer(ec);
+
+				state_t expected;
 
 				// Set the state to started before fire_connect because the user may send data in
 				// fire_connect and fail if the state is not set to started.
 				if (!ec)
 				{
-					state_t expected = state_t::starting;
+					expected = state_t::starting;
 					if (!derive.state().compare_exchange_strong(expected, state_t::started))
 						ec = asio::error::operation_aborted;
 				}
 
 				set_last_error(ec);
 
-				if (!this->fire_connect_flag_.test_and_set())
+				// Whether the connection succeeds or fails, always call fire_connect notification
 				{
-					derive._fire_connect(this_ptr, ec);
-
-					if (ec)
+					expected = state_t::starting;
+					if (derive.state().compare_exchange_strong(expected, state_t::starting))
 					{
-						derive._wake_reconnect_timer();
+						ASIO2_ASSERT(ec);
+						derive._fire_connect(this_ptr, ec);
+					}
+					else
+					{
+						expected = state_t::started;
+						if (derive.state().compare_exchange_strong(expected, state_t::started))
+						{
+							ASIO2_ASSERT(!ec);
+							derive._fire_connect(this_ptr, ec);
+						}
 					}
 				}
 
 				if (!ec)
 				{
-					state_t expected = state_t::started;
+					expected = state_t::started;
 					if (!derive.state().compare_exchange_strong(expected, state_t::started))
 						asio::detail::throw_error(asio::error::operation_aborted);
 				}
@@ -224,65 +311,6 @@ namespace asio2::detail
 			}
 		}
 
-		inline void _do_disconnect(const error_code& ec)
-		{
-			state_t expected = state_t::started;
-			if (derive.state().compare_exchange_strong(expected, state_t::stopping))
-				return derive._post_disconnect(ec, std::shared_ptr<derived_t>{}, expected);
-
-			expected = state_t::starting;
-			if (derive.state().compare_exchange_strong(expected, state_t::stopping))
-				return derive._post_disconnect(ec, std::shared_ptr<derived_t>{}, expected);
-		}
-
-		inline void _post_disconnect(const error_code& ec, std::shared_ptr<derived_t> self_ptr, state_t old_state)
-		{
-			auto task = [this, ec, this_ptr = std::move(self_ptr), old_state]()
-			{
-				set_last_error(ec);
-
-				state_t expected = state_t::stopping;
-				if (derive.state().compare_exchange_strong(expected, state_t::stopped))
-				{
-					if (old_state == state_t::started)
-					{
-						derive._fire_disconnect(this_ptr, ec);
-
-						if (ec)
-						{
-							derive._wake_reconnect_timer();
-						}
-					}
-
-					derive._handle_disconnect(ec, std::move(this_ptr));
-				}
-				else
-				{
-					ASIO2_ASSERT(false);
-				}
-			};
-			// All pending sending events will be cancelled after enter the send strand below.
-#if defined(ASIO2_SEND_CORE_ASYNC)
-			derive.push_event([this, t = std::move(task)]() mutable
-			{
-				auto task = [this, t = std::move(t)]() mutable
-				{
-					t();
-					derive.next_event();
-				};
-				asio::post(derive.io().strand(), std::move(task));
-				return true;
-			});
-#else
-			asio::post(derive.io().strand(), std::move(task));
-#endif
-		}
-
-		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
-		{
-			detail::ignore::unused(ec, this_ptr);
-		}
-
 	protected:
 		derived_t                     & derive;
 
@@ -291,9 +319,107 @@ namespace asio2::detail
 
 		/// the endpoints which parsed from host and port
 		endpoints_type                  endpoints_;
+	};
 
-		/// Used to avoid multiple calls to fire_connect due to connection timeout
-		std::atomic_flag                fire_connect_flag_;
+	template<class derived_t, class socket_t>
+	class connect_cp<derived_t, socket_t, true>
+	{
+	public:
+		using self = connect_cp<derived_t, socket_t, true>;
+		using raw_socket_t = typename std::remove_reference_t<socket_t>;
+		using resolver_type = typename asio::ip::basic_resolver<typename raw_socket_t::protocol_type>;
+		using endpoints_type = typename resolver_type::results_type;
+		using endpoints_iterator = typename endpoints_type::iterator;
+
+	public:
+		/**
+		 * @constructor
+		 */
+		connect_cp() : derive(static_cast<derived_t&>(*this)) {}
+
+		/**
+		 * @destructor
+		 */
+		~connect_cp() = default;
+
+	protected:
+		template<typename MatchCondition>
+		inline void _handle_connect(const error_code& ec, std::shared_ptr<derived_t> this_ptr,
+			condition_wrap<MatchCondition> condition)
+		{
+			set_last_error(ec);
+
+			derive._done_connect(ec, std::move(this_ptr), std::move(condition));
+		}
+
+		template<typename MatchCondition>
+		inline void _done_connect(error_code ec, std::shared_ptr<derived_t> this_ptr,
+			condition_wrap<MatchCondition> condition)
+		{
+			try
+			{
+				// if connect timeout is true, reset the error to timed_out.
+				if (derive._is_connect_timeout())
+				{
+					ec = asio::error::timed_out;
+				}
+
+				// Whatever of connection success or failure or timeout, cancel the timeout timer.
+				derive._stop_connect_timeout_timer(ec);
+
+				state_t expected;
+
+				// Set the state to started before fire_connect because the user may send data in
+				// fire_connect and fail if the state is not set to started.
+				if (!ec)
+				{
+					expected = state_t::starting;
+					if (!derive.state().compare_exchange_strong(expected, state_t::started))
+						ec = asio::error::operation_aborted;
+				}
+
+				set_last_error(ec);
+
+				// Whether the connection succeeds or fails, always call fire_connect notification
+				{
+					expected = state_t::starting;
+					if (derive.state().compare_exchange_strong(expected, state_t::starting))
+					{
+						ASIO2_ASSERT(ec);
+						derive._fire_connect(this_ptr);
+					}
+					else
+					{
+						expected = state_t::started;
+						if (derive.state().compare_exchange_strong(expected, state_t::started))
+						{
+							ASIO2_ASSERT(!ec);
+							derive._fire_connect(this_ptr);
+						}
+					}
+				}
+
+				if (!ec)
+				{
+					expected = state_t::started;
+					if (!derive.state().compare_exchange_strong(expected, state_t::started))
+						asio::detail::throw_error(asio::error::operation_aborted);
+				}
+
+				asio::detail::throw_error(ec);
+
+				derive._do_start(std::move(this_ptr), std::move(condition));
+			}
+			catch (system_error & e)
+			{
+				set_last_error(e);
+
+				derive._do_disconnect(e.code());
+			}
+		}
+
+	protected:
+		derived_t                     & derive;
 	};
 }
 

@@ -8,8 +8,6 @@
  * (See accompanying file LICENSE or see <http://www.gnu.org/licenses/>)
  */
 
-#ifndef ASIO_STANDALONE
-
 #ifndef __ASIO2_HTTP_RECV_OP_HPP__
 #define __ASIO2_HTTP_RECV_OP_HPP__
 
@@ -47,45 +45,61 @@ namespace asio2::detail
 		template<typename MatchCondition>
 		void _http_post_recv(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
 		{
-			if (derive.is_started())
+			if (!derive.is_started())
+				return;
+
+			try
 			{
-				try
+				if constexpr (isSession)
 				{
-					if constexpr (isSession)
+					if (derive.is_http())
 					{
 						// Make the request empty before reading,
 						// otherwise the operation behavior is undefined.
-						derive.req_ = {};
+						derive.req_.reset();
 
 						// Read a request
 						http::async_read(derive.stream(), derive.buffer().base(), derive.req_,
 							asio::bind_executor(derive.io().strand(), make_allocator(derive.rallocator(),
-								[this, self_ptr = std::move(this_ptr), condition](const error_code & ec, std::size_t bytes_recvd)
+								[this, self_ptr = std::move(this_ptr), condition]
+						(const error_code & ec, std::size_t bytes_recvd) mutable
 						{
 							derive._handle_recv(ec, bytes_recvd, std::move(self_ptr), condition);
 						})));
 					}
 					else
 					{
-						// Make the request empty before reading,
-						// otherwise the operation behavior is undefined.
-						derive.rep_ = {};
-
-						// Receive the HTTP response
-						http::async_read(derive.stream(), derive.buffer().base(), derive.rep_,
+						// Read a message into our buffer
+						derive.ws_stream().async_read(derive.buffer().base(),
 							asio::bind_executor(derive.io().strand(), make_allocator(derive.rallocator(),
-								[this, self_ptr = std::move(this_ptr), condition](const error_code & ec, std::size_t bytes_recvd)
+								[this, self_ptr = std::move(this_ptr), condition]
+						(const error_code & ec, std::size_t bytes_recvd) mutable
 						{
 							derive._handle_recv(ec, bytes_recvd, std::move(self_ptr), condition);
 						})));
 					}
 				}
-				catch (system_error & e)
+				else
 				{
-					set_last_error(e);
+					// Make the request empty before reading,
+					// otherwise the operation behavior is undefined.
+					derive.rep_.reset();
 
-					derive._do_disconnect(e.code());
+					// Receive the HTTP response
+					http::async_read(derive.stream(), derive.buffer().base(), derive.rep_,
+						asio::bind_executor(derive.io().strand(), make_allocator(derive.rallocator(),
+							[this, self_ptr = std::move(this_ptr), condition]
+					(const error_code & ec, std::size_t bytes_recvd) mutable
+					{
+						derive._handle_recv(ec, bytes_recvd, std::move(self_ptr), condition);
+					})));
 				}
+			}
+			catch (system_error & e)
+			{
+				set_last_error(e);
+
+				derive._do_disconnect(e.code());
 			}
 		}
 
@@ -99,24 +113,49 @@ namespace asio2::detail
 
 			if (!ec)
 			{
-				// every times recv data,we update the last active time.
-				derive.reset_active_time();
+				// every times recv data,we update the last alive time.
+				derive.update_alive_time();
 
 				if constexpr (isSession)
 				{
-					derive._fire_recv(this_ptr, derive.req_);
-					if (derive.req_.need_eof() || !derive.req_.keep_alive())
-					{
-						derive._do_disconnect(asio::error::operation_aborted);
+					if (derive._check_upgrade(this_ptr, condition))
 						return;
+
+					if (derive.is_http())
+					{
+						derive.rep_.result(http::status::unknown);
+						derive.rep_.keep_alive(derive.req_.keep_alive());
+					}
+					else
+					{
+						derive.req_.ws_frame_type_ = websocket::frame::message;
+						derive.req_.ws_frame_data_ = { reinterpret_cast<std::string_view::const_pointer>(
+							derive.buffer().data().data()), bytes_recvd };
+					}
+
+					derive._fire_recv(this_ptr, condition);
+
+					if (derive.is_http())
+					{
+						if (derive.req_.need_eof() || !derive.req_.keep_alive())
+						{
+							derive._do_disconnect(asio::error::operation_aborted);
+							return;
+						}
+					}
+					else
+					{
+						derive.buffer().consume(derive.buffer().size());
+
+						derive._post_recv(std::move(this_ptr), condition);
 					}
 				}
 				else
 				{
-					derive._fire_recv(this_ptr, derive.rep_);
-				}
+					derive._fire_recv(this_ptr, condition);
 
-				derive._post_recv(std::move(this_ptr), condition);
+					derive._post_recv(std::move(this_ptr), condition);
+				}
 			}
 			else
 			{
@@ -136,5 +175,3 @@ namespace asio2::detail
 }
 
 #endif // !__ASIO2_HTTP_RECV_OP_HPP__
-
-#endif

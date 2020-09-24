@@ -31,29 +31,6 @@ namespace asio2::detail
 	class tcp_send_op
 	{
 	protected:
-		//template<typename T>
-		//struct has_member_dgram
-		//{
-		//	typedef char(&yes)[1];
-		//	typedef char(&no)[2];
-
-		//	// this creates an ambiguous &Derived::dgram_ if T has got member dgram_
-
-		//	struct Fallback { char dgram_; };
-		//	struct Derived : T, Fallback { };
-
-		//	template<typename U, U>
-		//	struct Check;
-
-		//	template<typename U>
-		//	static no test(Check<char Fallback::*, &U::dgram_>*);
-
-		//	template<typename U>
-		//	static yes test(...);
-
-		//	static constexpr bool value = sizeof(test<Derived>(0)) == sizeof(yes);
-		//};
-
 		template<class, class = std::void_t<>>
 		struct has_member_dgram : std::false_type {};
 
@@ -61,8 +38,8 @@ namespace asio2::detail
 		struct has_member_dgram<T, std::void_t<decltype(T::dgram_)>> : std::true_type {};
 
 		//template<class T>
-		//struct has_member_dgram<T, std::void_t<decltype(T::dgram_), std::enable_if_t<std::is_same_v<decltype(T::dgram_), bool>>>>
-		//	: std::true_type {};
+		//struct has_member_dgram<T, std::void_t<decltype(T::dgram_), std::enable_if_t<
+		//	std::is_same_v<decltype(T::dgram_), bool>>>> : std::true_type {};
 
 	public:
 		/**
@@ -141,7 +118,6 @@ namespace asio2::detail
 				std::forward<BufferSequence>(buffer)
 			};
 
-#if defined(ASIO2_SEND_CORE_ASYNC)
 			asio::async_write(derive.stream(), buffers, asio::bind_executor(derive.io().strand(),
 				make_allocator(derive.wallocator(),
 					[this, p = derive.selfptr(),
@@ -162,30 +138,13 @@ namespace asio2::detail
 				{
 					callback(ec, bytes_sent - bytes);
 				}
-
-				derive.next_event();
 			})));
 			return true;
-#else
-			error_code ec;
-			std::size_t bytes_sent = asio::write(derive.stream(), buffers, ec);
-			set_last_error(ec);
-			if (ec)
-			{
-				callback(ec, bytes_sent);
-				// must stop, otherwise re-sending will cause header confusion
-				derive._do_disconnect(ec);
-				return false;
-			}
-			callback(ec, bytes_sent - bytes);
-			return true;
-#endif
 		}
 
 		template<class BufferSequence, class Callback>
 		inline bool _tcp_send_general(BufferSequence&& buffer, Callback&& callback)
 		{
-#if defined(ASIO2_SEND_CORE_ASYNC)
 			asio::async_write(derive.stream(), buffer, asio::bind_executor(derive.io().strand(),
 				make_allocator(derive.wallocator(),
 					[this, p = derive.selfptr(), callback = std::forward<Callback>(callback)]
@@ -200,22 +159,8 @@ namespace asio2::detail
 					// must stop, otherwise re-sending will cause body confusion
 					derive._do_disconnect(ec);
 				}
-
-				derive.next_event();
 			})));
 			return true;
-#else
-			error_code ec;
-			std::size_t bytes_sent = asio::write(derive.stream(), buffer, ec);
-			set_last_error(ec);
-			callback(ec, bytes_sent);
-			if (ec)
-			{
-				// must stop, otherwise re-sending will cause header confusion
-				derive._do_disconnect(ec);
-			}
-			return (!bool(ec));
-#endif
 		}
 
 	protected:

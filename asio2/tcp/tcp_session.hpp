@@ -36,6 +36,8 @@ namespace asio2::detail
 	{
 		template <class, bool>                friend class user_timer_cp;
 		template <class>                      friend class post_cp;
+		template <class, class, bool>         friend class connect_cp;
+		template <class, class, bool>         friend class disconnect_cp;
 		template <class>                      friend class data_persistence_cp;
 		template <class>                      friend class event_queue_cp;
 		template <class, bool>                friend class send_cp;
@@ -59,10 +61,10 @@ namespace asio2::detail
 		 */
 		explicit tcp_session_impl_t(
 			session_mgr_t<derived_t> & sessions,
-			listener_t & listener,
-			io_t & rwio,
-			std::size_t init_buffer_size,
-			std::size_t max_buffer_size
+			listener_t               & listener,
+			io_t                     & rwio,
+			std::size_t                init_buffer_size,
+			std::size_t                max_buffer_size
 		)
 			: super(sessions, listener, rwio, init_buffer_size, max_buffer_size, rwio.context())
 			, tcp_keepalive_cp<socket_t>(this->socket_)
@@ -72,6 +74,7 @@ namespace asio2::detail
 			, wallocator_()
 		{
 			this->silence_timeout(std::chrono::milliseconds(tcp_silence_timeout));
+			this->connect_timeout(std::chrono::milliseconds(tcp_connect_timeout));
 		}
 
 		/**
@@ -88,13 +91,19 @@ namespace asio2::detail
 		template<typename MatchCondition>
 		inline void start(condition_wrap<MatchCondition> condition)
 		{
+			// Used to test whether the behavior of different compilers is consistent
+			static_assert(tcp_send_op<derived_t, true>::template has_member_dgram<self>::value,
+				"The behavior of different compilers is not consistent");
+
 			try
 			{
 				state_t expected = state_t::stopped;
 				if (!this->state_.compare_exchange_strong(expected, state_t::starting))
 					asio::detail::throw_error(asio::error::already_started);
 
-				std::shared_ptr<derived_t> this_ptr = this->shared_from_this();
+				std::shared_ptr<derived_t> this_ptr = this->derived().selfptr();
+
+				this->derived()._do_init(this_ptr, condition);
 
 				this->derived()._fire_accept(this_ptr);
 
@@ -102,16 +111,16 @@ namespace asio2::detail
 				if (!this->state_.compare_exchange_strong(expected, state_t::starting))
 					asio::detail::throw_error(asio::error::already_started);
 
-				this->derived()._do_init(std::shared_ptr<derived_t>{}, condition);
-
 				// First call the base class start function
 				super::start();
 
-				this->derived()._handle_connect(error_code{}, std::move(this_ptr), std::move(condition));
+				this->derived()._handle_connect(error_code{},
+					std::move(this_ptr), std::move(condition));
 			}
 			catch (system_error & e)
 			{
 				set_last_error(e);
+
 				this->derived()._do_disconnect(e.code());
 			}
 		}
@@ -143,7 +152,7 @@ namespace asio2::detail
 
 			// reset the variable to default status
 			this->reset_connect_time();
-			this->reset_active_time();
+			this->update_alive_time();
 
 			if constexpr (std::is_same_v<MatchCondition, use_dgram_t>)
 				this->dgram_ = true;
@@ -155,129 +164,28 @@ namespace asio2::detail
 		}
 
 		template<typename MatchCondition>
-		inline void _handle_connect(const error_code& ec, std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
-		{
-			this->derived()._done_connect(ec, std::move(this_ptr), std::move(condition));
-		}
-
-		template<typename MatchCondition>
-		inline void _done_connect(const error_code& ec, std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
-		{
-			set_last_error(ec);
-			try
-			{
-				// Whatever of connection success or failure or timeout, cancel the timeout timer.
-				this->_stop_timeout_timer();
-
-				// Set the state to started before fire_connect because the user may send data in
-				// fire_connect and fail if the state is not set to started.
-				state_t expected = state_t::starting;
-				if (!ec)
-					if (!this->state_.compare_exchange_strong(expected, state_t::started))
-						asio::detail::throw_error(asio::error::operation_aborted);
-
-				this->derived()._fire_connect(this_ptr);
-
-				// may be user has called stop in the listener function,so we can't start continue.
-				expected = state_t::started;
-				if (!ec)
-					if (!this->state_.compare_exchange_strong(expected, state_t::started))
-						asio::detail::throw_error(asio::error::operation_aborted);
-
-				asio::detail::throw_error(ec);
-
-				this->derived()._do_start(std::move(this_ptr), std::move(condition));
-			}
-			catch (system_error & e)
-			{
-				set_last_error(e);
-				this->derived()._do_disconnect(e.code());
-			}
-		}
-
-		template<typename MatchCondition>
-		inline void _do_start(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		inline void _do_start(std::shared_ptr<derived_t> this_ptr,
+			condition_wrap<MatchCondition> condition)
 		{
 			this->derived()._join_session(std::move(this_ptr), std::move(condition));
-		}
-
-		inline void _do_disconnect(const error_code& ec)
-		{
-			state_t expected = state_t::starting;
-			if (this->state_.compare_exchange_strong(expected, state_t::stopping))
-				return this->derived()._post_disconnect(ec, this->shared_from_this(), expected);
-
-			expected = state_t::started;
-			if (this->state_.compare_exchange_strong(expected, state_t::stopping))
-				return this->derived()._post_disconnect(ec, this->shared_from_this(), expected);
-		}
-
-		inline void _post_disconnect(const error_code& ec, std::shared_ptr<derived_t> self_ptr, state_t old_state)
-		{
-			// close the socket by post a event
-			// asio don't allow operate the same socket in multi thread,if you close socket in one thread and another thread is 
-			// calling socket's async_... function,it will crash.so we must care for operate the socket.when need close the
-			// socket ,we use the strand to post a event,make sure the socket's close operation is in the same thread.
-
-			// First ensure that all send and recv events are not executed again
-			auto task = [this, ec, this_ptr = std::move(self_ptr), old_state]()
-			{
-				// All pending sending events will be cancelled when code run to here.
-
-				// Second ensure that this session has removed from the session map.
-				this->sessions_.erase(this_ptr, [this, ec, this_ptr, old_state](bool)
-				{
-					set_last_error(ec);
-
-					state_t expected = state_t::stopping;
-					if (this->state_.compare_exchange_strong(expected, state_t::stopped))
-					{
-						if (old_state == state_t::started)
-							this->derived()._fire_disconnect(const_cast<std::shared_ptr<derived_t>&>(this_ptr));
-					}
-					else
-					{
-						ASIO2_ASSERT(false);
-					}
-
-					// Third we can stop this session and close this socket now.
-					asio::post(this->io_.strand(), make_allocator(this->wallocator_,
-						[this, ec, self_ptr = std::move(this_ptr)]()
-					{
-						// call the base class stop function
-						super::stop();
-
-						// call CRTP polymorphic stop
-						this->derived()._handle_disconnect(ec, std::move(self_ptr));
-					}));
-				});
-			};
-#if defined(ASIO2_SEND_CORE_ASYNC)
-			this->derived().push_event([this, t = std::move(task)]() mutable
-			{
-				auto task = [this, t = std::move(t)]() mutable
-				{
-					t();
-					this->derived().next_event();
-				};
-				// We must use the asio::post function to execute the task, otherwise :
-				// when the server acceptor thread is same as this session thread,
-				// when the server stop, will call sessions_.foreach -> session_ptr->stop() ->
-				// derived().push_event -> sessions_.erase => this can leads to a dead lock
-				asio::post(this->io_.strand(), make_allocator(this->wallocator_, std::move(task)));
-				return true;
-			});
-#else
-			asio::post(this->io_.strand(), make_allocator(this->wallocator_, std::move(task)));
-#endif
 		}
 
 		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
 		{
 			detail::ignore::unused(ec, this_ptr);
 
-			// call socket's close function to notify the _handle_recv function response with error > 0 ,then the socket 
-			// can get notify to exit
+			this->derived()._do_stop(ec);
+		}
+
+		inline void _do_stop(const error_code& ec)
+		{
+			detail::ignore::unused(ec);
+
+			// call the base class stop function
+			super::stop();
+
+			// call socket's close function to notify the _handle_recv function response with error > 0 ,
+			// then the socket can get notify to exit
 			// Call shutdown() to indicate that you will not write any more data to the socket.
 			this->socket_.lowest_layer().shutdown(asio::socket_base::shutdown_both, ec_ignore);
 			// Call close,otherwise the _handle_recv will never return
@@ -285,9 +193,10 @@ namespace asio2::detail
 		}
 
 		template<typename MatchCondition>
-		inline void _join_session(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		inline void _join_session(std::shared_ptr<derived_t> this_ptr,
+			condition_wrap<MatchCondition> condition)
 		{
-			this->sessions_.emplace(this_ptr, [this, this_ptr, condition](bool inserted)
+			this->sessions_.emplace(this_ptr, [this, this_ptr, condition](bool inserted) mutable
 			{
 				if (inserted)
 					this->derived()._start_recv(std::move(this_ptr), std::move(condition));
@@ -297,12 +206,13 @@ namespace asio2::detail
 		}
 
 		template<typename MatchCondition>
-		inline void _start_recv(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		inline void _start_recv(std::shared_ptr<derived_t> this_ptr,
+			condition_wrap<MatchCondition> condition)
 		{
 			// to avlid the user call stop in another thread,then it may be socket_.async_read_some
 			// and socket_.close be called at the same time
 			asio::post(this->io_.strand(), make_allocator(this->rallocator_,
-				[this, self_ptr = std::move(this_ptr), condition]()
+				[this, self_ptr = std::move(this_ptr), condition]() mutable
 			{
 				this->derived().buffer().consume(this->derived().buffer().size());
 
@@ -321,7 +231,8 @@ namespace asio2::detail
 
 	protected:
 		template<typename MatchCondition>
-		inline void _post_recv(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		inline void _post_recv(std::shared_ptr<derived_t> this_ptr,
+			condition_wrap<MatchCondition> condition)
 		{
 			this->derived()._tcp_post_recv(std::move(this_ptr), std::move(condition));
 		}
@@ -330,7 +241,8 @@ namespace asio2::detail
 		inline void _handle_recv(const error_code & ec, std::size_t bytes_recvd,
 			std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
 		{
-			this->derived()._tcp_handle_recv(ec, bytes_recvd, std::move(this_ptr), std::move(condition));
+			this->derived()._tcp_handle_recv(ec, bytes_recvd,
+				std::move(this_ptr), std::move(condition));
 		}
 
 		inline void _fire_recv(std::shared_ptr<derived_t> & this_ptr, std::string_view s)

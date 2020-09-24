@@ -35,6 +35,43 @@
 
 namespace asio2::detail
 {
+	template <class>                      class event_queue_cp;
+
+	template<class derived_t>
+	class event_guard
+	{
+		template <class>           friend class event_queue_cp;
+	protected:
+		event_guard(derived_t & d, bool valid = true)
+			: derive(d), derive_ptr_(d.selfptr()), valid_(valid)
+		{
+		}
+	public:
+		inline event_guard(event_guard&& o)
+			: derive(o.derive), derive_ptr_(std::move(o.derive_ptr_)), valid_(o.valid_)
+		{
+			o.valid_ = !o.valid_;
+		}
+		inline event_guard(const event_guard& o)
+			: derive(o.derive), derive_ptr_(std::move(o.derive_ptr_)), valid_(o.valid_)
+		{
+			const_cast<event_guard&>(o).valid_ = !o.valid_;
+		}
+		inline void operator=(event_guard&& o) = delete;
+		inline void operator=(const event_guard& o) = delete;
+
+		~event_guard()
+		{
+			if (this->valid_)
+				derive.next_event();
+		}
+
+	protected:
+		derived_t                    & derive;
+		std::shared_ptr<derived_t>     derive_ptr_;
+		bool                           valid_;
+	};
+
 	template<class derived_t>
 	class event_queue_cp
 	{
@@ -57,7 +94,6 @@ namespace asio2::detail
 		template<class Callback>
 		inline derived_t & push_event(Callback&& f)
 		{
-#if defined(ASIO2_SEND_CORE_ASYNC)
 			// Make sure we run on the strand
 			if (derive.io().strand().running_in_this_thread())
 			{
@@ -65,41 +101,25 @@ namespace asio2::detail
 				this->events_.emplace(std::forward<Callback>(f));
 				if (empty)
 				{
-					(this->events_.front())();
+					(this->events_.front())(event_guard<derived_t>{derive});
 				}
 				return (derive);
 			}
 
-			asio::post(derive.io().strand(), make_allocator(derive.wallocator(),
-				[this, p = derive.selfptr(), f = std::forward<Callback>(f)]() mutable
+			derive.post([this, p = derive.selfptr(), f = std::forward<Callback>(f)]() mutable
 			{
 				bool empty = this->events_.empty();
 				this->events_.emplace(std::move(f));
 				if (empty)
 				{
-					(this->events_.front())();
+					(this->events_.front())(event_guard<derived_t>{derive});
 				}
-			}));
+			});
 
 			return (derive);
-#else
-			// Make sure we run on the strand
-			if (derive.io().strand().running_in_this_thread())
-			{
-				f();
-				return (derive);
-			}
-
-			asio::post(derive.io().strand(), make_allocator(derive.wallocator(),
-				[this, p = derive.selfptr(), f = std::forward<Callback>(f)]() mutable
-			{
-				f();
-			}));
-
-			return (derive);
-#endif
 		}
 
+	protected:
 		/**
 		 * Removes an element from the front of the event queue.
 		 * and then execute the next element of the queue.
@@ -107,47 +127,43 @@ namespace asio2::detail
 		template<typename = void>
 		inline derived_t & next_event()
 		{
-#if defined(ASIO2_SEND_CORE_ASYNC)
 			// Make sure we run on the strand
 			if (derive.io().strand().running_in_this_thread())
 			{
+				ASIO2_ASSERT(!this->events_.empty());
 				if (!this->events_.empty())
 				{
 					this->events_.pop();
 
 					if (!this->events_.empty())
 					{
-						(this->events_.front())();
+						(this->events_.front())(event_guard<derived_t>{derive});
 					}
 				}
 				return (derive);
 			}
 
-			asio::post(derive.io().strand(), make_allocator(derive.wallocator(),
-				[this, p = derive.selfptr()]() mutable
+			derive.post([this, p = derive.selfptr()]() mutable
 			{
+				ASIO2_ASSERT(!this->events_.empty());
 				if (!this->events_.empty())
 				{
 					this->events_.pop();
 
 					if (!this->events_.empty())
 					{
-						(this->events_.front())();
+						(this->events_.front())(event_guard<derived_t>{derive});
 					}
 				}
-			}));
+			});
 
 			return (derive);
-#else
-			ASIO2_ASSERT(false);
-			return (derive);
-#endif
 		}
 
 	protected:
-		derived_t                         & derive;
+		derived_t                                               & derive;
 
-		std::queue<std::function<bool()>>   events_;
+		std::queue<std::function<bool(event_guard<derived_t>&&)>> events_;
 	};
 }
 

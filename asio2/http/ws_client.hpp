@@ -8,8 +8,6 @@
  * (See accompanying file LICENSE or see <http://www.gnu.org/licenses/>)
  */
 
-#ifndef ASIO_STANDALONE
-
 #ifndef __ASIO2_WS_CLIENT_HPP__
 #define __ASIO2_WS_CLIENT_HPP__
 
@@ -34,7 +32,8 @@ namespace asio2::detail
 		template <class>                             friend class post_cp;
 		template <class, bool>                       friend class reconnect_timer_cp;
 		template <class, bool>                       friend class connect_timeout_cp;
-		template <class, class>                      friend class connect_cp;
+		template <class, class, bool>                friend class connect_cp;
+		template <class, class, bool>                friend class disconnect_cp;
 		template <class>                             friend class data_persistence_cp;
 		template <class>                             friend class event_queue_cp;
 		template <class, bool>                       friend class send_cp;
@@ -106,15 +105,23 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get the stream object refrence
+		 * @function : get the websocket upgraged response object
 		 */
-		inline typename ws_stream_comp::stream_type & stream()
-		{
-			ASIO2_ASSERT(bool(this->ws_stream_));
-			return (*(this->ws_stream_));
-		}
+		inline const http::response_t<body_t>& upgrade_response() { return this->upgrade_rep_; }
 
-		inline const http::response<body_t>& upgrade_response() { return this->upgrade_rep_; }
+		/**
+		 * @function : get the websocket upgraged target
+		 */
+		inline const std::string& upgrade_target() { return this->upgrade_target_; }
+
+		/**
+		 * @function : set the websocket upgraged target
+		 */
+		inline derived_t & upgrade_target(std::string target)
+		{
+			this->upgrade_target_ = std::move(target);
+			return (this->derived());
+		}
 
 	public:
 		/**
@@ -125,7 +132,8 @@ namespace asio2::detail
 		template<class F, class ...C>
 		inline derived_t & bind_upgrade(F&& fun, C&&... obj)
 		{
-			this->listener_.bind(event::upgrade, observer_t<error_code>(std::forward<F>(fun), std::forward<C>(obj)...));
+			this->listener_.bind(event::upgrade,
+				observer_t<error_code>(std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
 		}
 
@@ -146,8 +154,9 @@ namespace asio2::detail
 			});
 		}
 
-		template<bool isAsync, typename MatchCondition>
-		inline void _handle_connect(const error_code & ec, std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		template<typename MatchCondition>
+		inline void _handle_connect(const error_code & ec, std::shared_ptr<derived_t> this_ptr,
+			condition_wrap<MatchCondition> condition)
 		{
 			set_last_error(ec);
 
@@ -156,7 +165,8 @@ namespace asio2::detail
 
 			this->derived()._ws_start(this_ptr, condition, this->socket_);
 
-			this->derived()._post_upgrade(std::move(this_ptr), std::move(condition));
+			this->derived()._post_control_callback(this_ptr, condition);
+			this->derived()._post_upgrade(std::move(this_ptr), std::move(condition), this->upgrade_rep_);
 		}
 
 		template<class Data, class Callback>
@@ -167,7 +177,8 @@ namespace asio2::detail
 
 	protected:
 		template<typename MatchCondition>
-		inline void _post_recv(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		inline void _post_recv(std::shared_ptr<derived_t> this_ptr,
+			condition_wrap<MatchCondition> condition)
 		{
 			this->derived()._ws_post_recv(std::move(this_ptr), std::move(condition));
 		}
@@ -178,7 +189,9 @@ namespace asio2::detail
 		}
 
 	protected:
-		http::response<body_t> upgrade_rep_;
+		http::response_t<body_t> upgrade_rep_;
+
+		std::string              upgrade_target_ = "/";
 	};
 }
 
@@ -188,11 +201,10 @@ namespace asio2
 		websocket::stream<asio::ip::tcp::socket&>, http::string_body, beast::flat_buffer>
 	{
 	public:
-		using ws_client_impl_t<ws_client, asio::ip::tcp::socket, websocket::stream<asio::ip::tcp::socket&>,
+		using ws_client_impl_t<ws_client, asio::ip::tcp::socket,
+			websocket::stream<asio::ip::tcp::socket&>,
 			http::string_body, beast::flat_buffer>::ws_client_impl_t;
 	};
 }
 
 #endif // !__ASIO2_WS_CLIENT_HPP__
-
-#endif

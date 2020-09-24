@@ -7,8 +7,6 @@
  *
  */
 
-#ifndef ASIO_STANDALONE
-
 #ifndef __ASIO2_MIME_TYPES_HPP__
 #define __ASIO2_MIME_TYPES_HPP__
 
@@ -22,7 +20,11 @@
 #include <unordered_map>
 #include <string_view>
 
+#ifdef BEAST_HEADER_ONLY
+namespace beast::http
+#else
 namespace boost::beast::http
+#endif
 {
 	namespace
 	{
@@ -1468,5 +1470,3 @@ namespace boost::beast::http
 }
 
 #endif // !__ASIO2_MIME_TYPES_HPP__
-
-#endif

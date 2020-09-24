@@ -25,15 +25,10 @@
 #include <type_traits>
 
 #include <asio2/base/error.hpp>
+#include <asio2/base/detail/util.hpp>
 
 namespace asio2::detail
 {
-	template <typename Enumeration>
-	inline constexpr auto to_int(Enumeration const value) -> typename std::underlying_type<Enumeration>::type
-	{
-		return static_cast<typename std::underlying_type<Enumeration>::type>(value);
-	}
-
 	enum class event : std::int8_t
 	{
 		recv,
@@ -45,7 +40,6 @@ namespace asio2::detail
 		init,
 		start,
 		stop,
-		//send,
 		max
 	};
 
@@ -86,14 +80,14 @@ namespace asio2::detail
 		{
 			if constexpr /**/ (std::is_pointer_v<C>)
 			{
-				this->fn_ = [this, fn = std::forward<F>(f), s = std::forward<C>(c)](Args&&... args) mutable
+				this->fn_ = [fn = std::forward<F>(f), s = std::forward<C>(c)](Args&&... args) mutable
 				{
 					(s->*fn)(std::forward<Args>(args)...);
 				};
 			}
 			else if constexpr (std::is_reference_v<C>)
 			{
-				this->fn_ = [this, fn = std::forward<F>(f), s = std::forward<C>(c)](Args&&... args) mutable
+				this->fn_ = [fn = std::forward<F>(f), s = std::forward<C>(c)](Args&&... args) mutable
 				{
 					(s.*fn)(std::forward<Args>(args)...);
 				};
@@ -127,14 +121,14 @@ namespace asio2::detail
 		template<class T>
 		inline void bind(event e, T&& observer)
 		{
-			this->observers_[to_int(e)] = std::unique_ptr<base_observer>(new T(std::forward<T>(observer)));
+			this->observers_[enum_to_int(e)] = std::unique_ptr<base_observer>(new T(std::forward<T>(observer)));
 		}
 
 		template<class... Args>
 		inline void notify(event e, Args&&... args)
 		{
 			using observer_type = observer_t<Args...>;
-			observer_type * observer_ptr = static_cast<observer_type *>(this->observers_[to_int(e)].get());
+			observer_type * observer_ptr = static_cast<observer_type *>(this->observers_[enum_to_int(e)].get());
 			if (observer_ptr)
 			{
 				(*observer_ptr)(std::forward<Args>(args)...);
@@ -143,11 +137,11 @@ namespace asio2::detail
 
 		inline std::unique_ptr<base_observer>& find(event e)
 		{
-			return this->observers_[to_int(e)];
+			return this->observers_[enum_to_int(e)];
 		}
 
 	protected:
-		std::array<std::unique_ptr<base_observer>, to_int(event::max)> observers_;
+		std::array<std::unique_ptr<base_observer>, enum_to_int(event::max)> observers_;
 	};
 }
 

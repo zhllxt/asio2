@@ -48,7 +48,8 @@ namespace asio2::detail
 		template<typename Function>
 		inline derived_t & post(Function&& f)
 		{
-			asio::post(derive.io().strand(), make_allocator(derive.wallocator(), std::forward<Function>(f)));
+			asio::post(derive.io().strand(), make_allocator(
+				derive.wallocator(), std::forward<Function>(f)));
 			return (derive);
 		}
 
@@ -61,10 +62,13 @@ namespace asio2::detail
 		template<typename Function, typename Rep, typename Period>
 		inline derived_t & post(Function&& f, std::chrono::duration<Rep, Period> delay)
 		{
-			std::unique_ptr<asio::steady_timer> timer = std::make_unique<asio::steady_timer>(derive.io().context());
+			std::unique_ptr<asio::steady_timer> timer = std::make_unique<
+				asio::steady_timer>(derive.io().context());
 			timer->expires_after(delay);
-			timer->async_wait(asio::bind_executor(derive.io().strand(), make_allocator(derive.wallocator(),
-				[timer = std::move(timer), f = std::forward<Function>(f)](const error_code & ec) mutable
+			timer->async_wait(asio::bind_executor(derive.io().strand(),
+				make_allocator(derive.wallocator(),
+					[timer = std::move(timer), f = std::forward<Function>(f)]
+			(const error_code& ec) mutable
 			{
 				f();
 			})));
@@ -80,7 +84,8 @@ namespace asio2::detail
 		 * thread, it will cause dead lock;
 		 */
 		template<typename Function, typename Allocator>
-		inline auto post(Function&& f, asio::use_future_t<Allocator>) -> std::future<std::invoke_result_t<Function>>
+		inline auto post(Function&& f, asio::use_future_t<Allocator>) ->
+			std::future<std::invoke_result_t<Function>>
 		{
 			using return_type = std::invoke_result_t<Function>;
 
@@ -88,7 +93,8 @@ namespace asio2::detail
 
 			std::future<return_type> future = task.get_future();
 
-			asio::post(derive.io().strand(), make_allocator(derive.wallocator(), [t = std::move(task)]() mutable
+			asio::post(derive.io().strand(), make_allocator(derive.wallocator(),
+				[t = std::move(task)]() mutable
 			{
 				t();
 			}));
@@ -114,10 +120,12 @@ namespace asio2::detail
 
 			std::future<return_type> future = task.get_future();
 
-			std::unique_ptr<asio::steady_timer> timer = std::make_unique<asio::steady_timer>(derive.io().context());
+			std::unique_ptr<asio::steady_timer> timer = std::make_unique<
+				asio::steady_timer>(derive.io().context());
 			timer->expires_after(delay);
-			timer->async_wait(asio::bind_executor(derive.io().strand(), make_allocator(derive.wallocator(),
-				[timer = std::move(timer), t = std::move(task)](const error_code & ec) mutable
+			timer->async_wait(asio::bind_executor(derive.io().strand(),
+				make_allocator(derive.wallocator(),
+					[timer = std::move(timer), t = std::move(task)](const error_code& ec) mutable
 			{
 				t();
 			})));
@@ -139,7 +147,8 @@ namespace asio2::detail
 			if (derive.io().strand().running_in_this_thread())
 				f();
 			else
-				asio::post(derive.io().strand(), make_allocator(derive.wallocator(), std::forward<Function>(f)));
+				asio::post(derive.io().strand(), make_allocator(
+					derive.wallocator(), std::forward<Function>(f)));
 			return (derive);
 		}
 
@@ -153,7 +162,8 @@ namespace asio2::detail
 		 * thread, it will cause dead lock;
 		 */
 		template<typename Function, typename Allocator>
-		inline auto dispatch(Function&& f, asio::use_future_t<Allocator>) -> std::future<std::invoke_result_t<Function>>
+		inline auto dispatch(Function&& f, asio::use_future_t<Allocator>) ->
+			std::future<std::invoke_result_t<Function>>
 		{
 			using return_type = std::invoke_result_t<Function>;
 
@@ -168,7 +178,8 @@ namespace asio2::detail
 			}
 			else
 			{
-				asio::post(derive.io().strand(), make_allocator(derive.wallocator(), [t = std::move(task)]() mutable
+				asio::post(derive.io().strand(), make_allocator(derive.wallocator(),
+					[t = std::move(task)]() mutable
 				{
 					t();
 				}));

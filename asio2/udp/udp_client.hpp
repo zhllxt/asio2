@@ -32,7 +32,8 @@ namespace asio2::detail
 		template <class>                      friend class post_cp;
 		template <class, bool>                friend class reconnect_timer_cp;
 		template <class, bool>                friend class connect_timeout_cp;
-		template <class, class>               friend class connect_cp;
+		template <class, class, bool>         friend class connect_cp;
+		template <class, class, bool>         friend class disconnect_cp;
 		template <class>                      friend class data_persistence_cp;
 		template <class>                      friend class event_queue_cp;
 		template <class, bool>                friend class send_cp;
@@ -56,6 +57,7 @@ namespace asio2::detail
 			: super(1, init_buffer_size, max_buffer_size)
 			, udp_send_op<derived_t, false>()
 		{
+			this->connect_timeout(std::chrono::milliseconds(udp_connect_timeout));
 		}
 
 		/**
@@ -132,17 +134,16 @@ namespace asio2::detail
 		 */
 		inline void stop()
 		{
-			this->derived()._do_disconnect(asio::error::operation_aborted);
+			this->derived().post([this]() mutable
+			{
+				// first close reconnect timer
+				this->_stop_reconnect_timer();
+			});
 
-			// Asio end socket functions: cancel, shutdown, close, release :
-			// https://stackoverflow.com/questions/51468848/asio-end-socket-functions-cancel-shutdown-close-release
-			// The proper steps are:
-			// 1.Call shutdown() to indicate that you will not write any more data to the socket.
-			// 2.Continue to (async-) read from the socket until you get either an error or the connection is closed.
-			// 3.Now close() the socket (in the async read handler).
-			// If you don't do this, you may end up closing the connection while the other side is still sending data.
-			// This will result in an ungraceful close.
-			this->derived()._do_stop(asio::error::operation_aborted);
+			this->derived()._do_disconnect(asio::error::operation_aborted, std::make_shared<defer>([this]()
+			{
+				this->derived()._do_stop(asio::error::operation_aborted);
+			}));
 
 			this->iopool_.stop();
 		}
@@ -188,7 +189,8 @@ namespace asio2::detail
 		template<class F, class ...C>
 		inline derived_t & bind_connect(F&& fun, C&&... obj)
 		{
-			this->listener_.bind(event::connect, observer_t<error_code>(std::forward<F>(fun), std::forward<C>(obj)...));
+			this->listener_.bind(event::connect,
+				observer_t<error_code>(std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
 		}
 
@@ -204,7 +206,8 @@ namespace asio2::detail
 		template<class F, class ...C>
 		inline derived_t & bind_disconnect(F&& fun, C&&... obj)
 		{
-			this->listener_.bind(event::disconnect, observer_t<error_code>(std::forward<F>(fun), std::forward<C>(obj)...));
+			this->listener_.bind(event::disconnect,
+				observer_t<error_code>(std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
 		}
 
@@ -219,7 +222,8 @@ namespace asio2::detail
 		template<class F, class ...C>
 		inline derived_t & bind_init(F&& fun, C&&... obj)
 		{
-			this->listener_.bind(event::init, observer_t<>(std::forward<F>(fun), std::forward<C>(obj)...));
+			this->listener_.bind(event::init,
+				observer_t<>(std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
 		}
 
@@ -234,7 +238,8 @@ namespace asio2::detail
 		template<class F, class ...C>
 		inline derived_t & bind_handshake(F&& fun, C&&... obj)
 		{
-			this->listener_.bind(event::handshake, observer_t<error_code>(std::forward<F>(fun), std::forward<C>(obj)...));
+			this->listener_.bind(event::handshake,
+				observer_t<error_code>(std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
 		}
 
@@ -261,31 +266,28 @@ namespace asio2::detail
 					return false;
 				}
 
-				this->derived()._make_reconnect_timer(std::shared_ptr<derived_t>{},
-					[this, h = to_string(host), p = to_string(port), condition]()
+				this->derived()._make_reconnect_timer(this->derived().selfptr(),
+					[this, h = to_string(host), p = to_string(port), condition]() mutable
 				{
 					state_t expected = state_t::stopped;
 					if (this->state_.compare_exchange_strong(expected, state_t::starting))
 					{
-						auto task = [this, h, p, condition]()
+						auto task = [this, h, p, condition](event_guard<derived_t>&& g) mutable
 						{
 							this->derived().template _start_connect<true>(h, p,
-								std::shared_ptr<derived_t>{}, condition);
+								this->derived().selfptr(), condition);
 						};
-#if defined(ASIO2_SEND_CORE_ASYNC)
-						this->derived().push_event([this, t = std::move(task)]() mutable
+
+						this->derived().push_event([this, t = std::move(task)]
+						(event_guard<derived_t>&& g) mutable
 						{
-							auto task = [this, t = std::move(t)]() mutable
+							auto task = [g = std::move(g), t = std::move(t)]() mutable
 							{
-								t();
-								this->derived().next_event();
+								t(std::move(g));
 							};
-							asio::post(this->io_.strand(), std::move(task));
+							this->derived().post(std::move(task));
 							return true;
 						});
-#else
-						asio::post(this->io_.strand(), std::move(task));
-#endif
 					}
 				});
 
@@ -295,11 +297,11 @@ namespace asio2::detail
 
 				return this->derived().template _start_connect<isAsync>(
 					std::forward<String>(host), std::forward<StrOrInt>(port),
-					std::shared_ptr<derived_t>{}, condition);
+					this->derived().selfptr(), condition);
 			}
 			catch (system_error & e)
 			{
-				this->derived().template _handle_connect<isAsync>(e.code(), std::shared_ptr<derived_t>{}, condition);
+				this->derived()._handle_connect(e.code(), this->derived().selfptr(), condition);
 			}
 			return false;
 		}
@@ -313,8 +315,9 @@ namespace asio2::detail
 				this->kcp_.reset();
 		}
 
-		template<bool isAsync, typename MatchCondition>
-		inline void _handle_connect(const error_code & ec, std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		template<typename MatchCondition>
+		inline void _handle_connect(const error_code & ec, std::shared_ptr<derived_t> this_ptr,
+			condition_wrap<MatchCondition> condition)
 		{
 			set_last_error(ec);
 
@@ -327,18 +330,10 @@ namespace asio2::detail
 				this->derived()._done_connect(ec, std::move(this_ptr), std::move(condition));
 		}
 
-		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
-		{
-			detail::ignore::unused(ec);
-
-			if (this->kcp_)
-				this->kcp_->_kcp_stop(std::move(this_ptr));
-		}
-
 		template<typename MatchCondition>
 		inline void _do_start(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
 		{
-			this->reset_active_time();
+			this->update_alive_time();
 			this->reset_connect_time();
 
 			this->derived()._start_recv(std::move(this_ptr), std::move(condition));
@@ -346,13 +341,13 @@ namespace asio2::detail
 
 		inline void _do_stop(const error_code& ec)
 		{
-			this->derived()._post_stop(ec, std::shared_ptr<derived_t>{});
+			this->derived()._post_stop(ec, this->derived().selfptr());
 		}
 
 		inline void _post_stop(const error_code& ec, std::shared_ptr<derived_t> self_ptr)
 		{
 			// All pending sending events will be cancelled after enter the send strand below.
-			auto task = [this, ec, this_ptr = std::move(self_ptr)]()
+			auto task = [this, ec, this_ptr = std::move(self_ptr)](event_guard<derived_t>&& g) mutable
 			{
 				set_last_error(ec);
 
@@ -362,25 +357,24 @@ namespace asio2::detail
 				// call CRTP polymorphic stop
 				this->derived()._handle_stop(ec, std::move(this_ptr));
 			};
-#if defined(ASIO2_SEND_CORE_ASYNC)
-			this->derived().push_event([this, t = std::move(task)]() mutable
+
+			this->derived().push_event([this, t = std::move(task)](event_guard<derived_t>&& g) mutable
 			{
-				auto task = [this, t = std::move(t)]() mutable
+				auto task = [g = std::move(g), t = std::move(t)]() mutable
 				{
-					t();
-					this->derived().next_event();
+					t(std::move(g));
 				};
-				asio::post(this->io_.strand(), std::move(task));
+				this->derived().post(std::move(task));
 				return true;
 			});
-#else
-			asio::post(this->io_.strand(), std::move(task));
-#endif
 		}
 
 		inline void _handle_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
 		{
 			detail::ignore::unused(ec, this_ptr);
+
+			if (this->kcp_)
+				this->kcp_->_kcp_stop();
 
 			// call socket's close function to notify the _handle_recv function response with 
 			// error > 0 ,then the socket can get notify to exit
@@ -394,7 +388,7 @@ namespace asio2::detail
 		inline void _start_recv(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
 		{
 			// Connect succeeded. post recv request.
-			asio::post(this->io_.strand(), [this, this_ptr, condition]()
+			this->derived().post([this, this_ptr, condition]() mutable
 			{
 				this->derived().buffer().consume(this->derived().buffer().size());
 
@@ -421,7 +415,8 @@ namespace asio2::detail
 			{
 				this->socket_.async_receive(this->buffer_.prepare(this->buffer_.pre_size()),
 					asio::bind_executor(this->io_.strand(), make_allocator(this->rallocator_,
-						[this, self_ptr = std::move(this_ptr), condition](const error_code & ec, std::size_t bytes_recvd)
+						[this, self_ptr = std::move(this_ptr), condition]
+				(const error_code & ec, std::size_t bytes_recvd) mutable
 				{
 					this->derived()._handle_recv(ec, bytes_recvd, std::move(self_ptr), condition);
 				})));
@@ -452,7 +447,7 @@ namespace asio2::detail
 
 			if (!ec)
 			{
-				this->reset_active_time();
+				this->update_alive_time();
 
 				std::string_view s = std::string_view(static_cast<std::string_view::const_pointer>
 					(this->buffer_.data().data()), bytes_recvd);

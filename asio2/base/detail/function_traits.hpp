@@ -44,6 +44,31 @@ namespace asio2::detail
 		typedef Ret return_type;
 		using stl_function_type = std::function<function_type>;
 		typedef Ret(*pointer)(Args...);
+		using class_type = void;
+
+		template<std::size_t I>
+		struct args
+		{
+			static_assert(I < argc, "index is out of range, index must less than sizeof Args");
+			using type = typename std::tuple_element<I, std::tuple<Args...>>::type;
+		};
+
+		typedef std::tuple<Args...> tuple_type;
+		typedef std::tuple<std::remove_cv_t<std::remove_reference_t<Args>>...> pod_tuple_type;
+	};
+
+	template<typename Class, typename Ret, typename... Args>
+	struct function_traits<Class, Ret(Args...)>
+	{
+	public:
+		static constexpr std::size_t argc = sizeof...(Args);
+		static constexpr bool is_callable = true;
+
+		typedef Ret function_type(Args...);
+		typedef Ret return_type;
+		using stl_function_type = std::function<function_type>;
+		typedef Ret(*pointer)(Args...);
+		using class_type = Class;
 
 		template<std::size_t I>
 		struct args
@@ -62,81 +87,84 @@ namespace asio2::detail
 
 	// non-static member function pointer
 	template <typename Ret, typename Class, typename... Args>
-	struct function_traits<Ret(Class::*)(Args...)> : function_traits<Ret(Args...)> {};
+	struct function_traits<Ret(Class::*)(Args...)> : function_traits<Class, Ret(Args...)> {};
 
 	template <typename Ret, typename Class, typename... Args>
-	struct function_traits<Ret(Class::*)(Args...) const> : function_traits<Ret(Args...)> {};
+	struct function_traits<Ret(Class::*)(Args...) const> : function_traits<Class, Ret(Args...)> {};
 
 	template <typename Ret, typename Class, typename... Args>
-	struct function_traits<Ret(Class::*)(Args...) volatile> : function_traits<Ret(Args...)> {};
+	struct function_traits<Ret(Class::*)(Args...) volatile> : function_traits<Class, Ret(Args...)> {};
 
 	template <typename Ret, typename Class, typename... Args>
-	struct function_traits<Ret(Class::*)(Args...) const volatile> : function_traits<Ret(Args...)> {};
+	struct function_traits<Ret(Class::*)(Args...) const volatile> : function_traits<Class, Ret(Args...)> {};
 
 	template <typename Ret, typename Class, typename... Args>
-	struct function_traits<Ret(Class::*)(Args...) &> : function_traits<Ret(Args...)> {};
+	struct function_traits<Ret(Class::*)(Args...) &> : function_traits<Class, Ret(Args...)> {};
 
 	template <typename Ret, typename Class, typename... Args>
-	struct function_traits<Ret(Class::*)(Args...) const &> : function_traits<Ret(Args...)> {};
+	struct function_traits<Ret(Class::*)(Args...) const &> : function_traits<Class, Ret(Args...)> {};
 
 	template <typename Ret, typename Class, typename... Args>
-	struct function_traits<Ret(Class::*)(Args...) volatile &> : function_traits<Ret(Args...)> {};
+	struct function_traits<Ret(Class::*)(Args...) volatile &> : function_traits<Class, Ret(Args...)> {};
 
 	template <typename Ret, typename Class, typename... Args>
-	struct function_traits<Ret(Class::*)(Args...) const volatile &> : function_traits<Ret(Args...)> {};
+	struct function_traits<Ret(Class::*)(Args...) const volatile &> : function_traits<Class, Ret(Args...)> {};
 
 	template <typename Ret, typename Class, typename... Args>
-	struct function_traits<Ret(Class::*)(Args...) && > : function_traits<Ret(Args...)> {};
+	struct function_traits<Ret(Class::*)(Args...) && > : function_traits<Class, Ret(Args...)> {};
 
 	template <typename Ret, typename Class, typename... Args>
-	struct function_traits<Ret(Class::*)(Args...) const &&> : function_traits<Ret(Args...)> {};
+	struct function_traits<Ret(Class::*)(Args...) const &&> : function_traits<Class, Ret(Args...)> {};
 
 	template <typename Ret, typename Class, typename... Args>
-	struct function_traits<Ret(Class::*)(Args...) volatile &&> : function_traits<Ret(Args...)> {};
+	struct function_traits<Ret(Class::*)(Args...) volatile &&> : function_traits<Class, Ret(Args...)> {};
 
 	template <typename Ret, typename Class, typename... Args>
-	struct function_traits<Ret(Class::*)(Args...) const volatile &&> : function_traits<Ret(Args...)> {};
+	struct function_traits<Ret(Class::*)(Args...) const volatile &&> : function_traits<Class, Ret(Args...)> {};
 
 	// non-static member function pointer -- noexcept versions for (C++17 and later)
 	template <typename Ret, typename Class, typename... Args>
-	struct function_traits<Ret(Class::*)(Args...) noexcept> : function_traits<Ret(Args...)> {};
+	struct function_traits<Ret(Class::*)(Args...) noexcept> : function_traits<Class, Ret(Args...)> {};
 
 	template <typename Ret, typename Class, typename... Args>
-	struct function_traits<Ret(Class::*)(Args...) const noexcept> : function_traits<Ret(Args...)> {};
+	struct function_traits<Ret(Class::*)(Args...) const noexcept> : function_traits<Class, Ret(Args...)> {};
 
 	template <typename Ret, typename Class, typename... Args>
-	struct function_traits<Ret(Class::*)(Args...) volatile noexcept> : function_traits<Ret(Args...)> {};
+	struct function_traits<Ret(Class::*)(Args...) volatile noexcept> : function_traits<Class, Ret(Args...)> {};
 
 	template <typename Ret, typename Class, typename... Args>
-	struct function_traits<Ret(Class::*)(Args...) const volatile noexcept> : function_traits<Ret(Args...)> {};
+	struct function_traits<Ret(Class::*)(Args...) const volatile noexcept> : function_traits<Class, Ret(Args...)> {};
 
 	template <typename Ret, typename Class, typename... Args>
-	struct function_traits<Ret(Class::*)(Args...) & noexcept> : function_traits<Ret(Args...)> {};
+	struct function_traits<Ret(Class::*)(Args...) & noexcept> : function_traits<Class, Ret(Args...)> {};
 
 	template <typename Ret, typename Class, typename... Args>
-	struct function_traits<Ret(Class::*)(Args...) const & noexcept> : function_traits<Ret(Args...)> {};
+	struct function_traits<Ret(Class::*)(Args...) const & noexcept> : function_traits<Class, Ret(Args...)> {};
 
 	template <typename Ret, typename Class, typename... Args>
-	struct function_traits<Ret(Class::*)(Args...) volatile & noexcept> : function_traits<Ret(Args...)> {};
+	struct function_traits<Ret(Class::*)(Args...) volatile & noexcept> : function_traits<Class, Ret(Args...)> {};
 
 	template <typename Ret, typename Class, typename... Args>
-	struct function_traits<Ret(Class::*)(Args...) const volatile & noexcept> : function_traits<Ret(Args...)> {};
+	struct function_traits<Ret(Class::*)(Args...) const volatile& noexcept>
+		: function_traits<Class, Ret(Args...)> {};
 
 	template <typename Ret, typename Class, typename... Args>
-	struct function_traits<Ret(Class::*)(Args...) && noexcept> : function_traits<Ret(Args...)> {};
+	struct function_traits<Ret(Class::*)(Args...) && noexcept> : function_traits<Class, Ret(Args...)> {};
 
 	template <typename Ret, typename Class, typename... Args>
-	struct function_traits<Ret(Class::*)(Args...) const && noexcept> : function_traits<Ret(Args...)> {};
+	struct function_traits<Ret(Class::*)(Args...) const && noexcept> : function_traits<Class, Ret(Args...)> {};
 
 	template <typename Ret, typename Class, typename... Args>
-	struct function_traits<Ret(Class::*)(Args...) volatile && noexcept> : function_traits<Ret(Args...)> {};
+	struct function_traits<Ret(Class::*)(Args...) volatile && noexcept> : function_traits<Class, Ret(Args...)> {};
 
 	template <typename Ret, typename Class, typename... Args>
-	struct function_traits<Ret(Class::*)(Args...) const volatile && noexcept> : function_traits<Ret(Args...)> {};
+	struct function_traits<Ret(Class::*)(Args...) const volatile&& noexcept>
+		: function_traits<Class, Ret(Args...)> {};
 
 	// functor lambda
 	template<typename Callable>
-	struct function_traits<Callable, std::void_t<decltype(&Callable::operator()), char>> : function_traits<decltype(&Callable::operator())> {};
+	struct function_traits<Callable, std::void_t<decltype(&Callable::operator()), char>>
+		: function_traits<decltype(&Callable::operator())> {};
 
 	// std::function
 	template <typename Ret, typename... Args>
@@ -156,8 +184,19 @@ namespace asio2::detail
 	}
 
 
-	template< class T >
-	inline constexpr bool is_callable_v = function_traits<std::decay_t<T>>::is_callable;
+	template< class F >
+	inline constexpr bool is_callable_v = function_traits<std::decay_t<F>>::is_callable;
+
+
+	template<typename F, typename Void, typename... Args>
+	struct is_template_callable : std::false_type {};
+
+	template<typename F, typename... Args>
+	struct is_template_callable<F, std::void_t<decltype(std::declval<std::decay_t<F>&>()
+		((std::declval<Args>())...)), char>, Args...> : std::true_type {};
+
+	template<typename F, typename... Args>
+	inline constexpr bool is_template_callable_v = is_template_callable<F, void, Args...>::value;
 }
 
 #endif // !__ASIO2_FUNCTION_TRAITS_HPP__

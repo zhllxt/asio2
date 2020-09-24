@@ -23,10 +23,13 @@
 
 namespace asio2
 {
-
 	class spin_lock
 	{
 	public:
+		spin_lock()
+		{
+			v_.clear();
+		}
 
 		bool try_lock()
 		{
@@ -58,10 +61,8 @@ namespace asio2
 		}
 
 	public:
-		std::atomic_flag v_ = ATOMIC_FLAG_INIT;
-
+		std::atomic_flag v_;
 	};
-
 }
 
 #endif // !__ASIO2_SPIN_LOCK_HPP__

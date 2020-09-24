@@ -1,12 +1,18 @@
 # asio2
-A open source cross-platform c++ library for network programming based on asio,support for tcp,udp,http,rpc,ssl and so on.
+Header only c++ network library, based on asio,support tcp,udp,http,websocket,rpc,ssl,icmp,serial_port.
 
-* Support TCP,UDP,HTTP,WEBSOCKET,RPC,ICMP,SERIAL_PORT;
-* Support reliable UDP (based on KCP), support SSL, support loading SSL certificates from memory strings;
+* header only, do not rely on the Boost library;
+* Support tcp, udp, http, websocket, rpc, ssl, icmp, serial_port;
+* Support reliable udp (based on KCP), support SSL, support loading SSL certificates from memory strings;
 * TCP supports data unpacking (character or string or user defined protocol), and implements the datagram mode of TCP (similar to WEBSOCKET);
-* Support windows, linux, 32 bits, 64 bits;
-* Dependence on C++ 17,dependence on asio (boost::asio or asio standalone). If HTTP functions are required, can only use boost::asio.
-* The demo directory contains a large number of sample projects (projects based on VS2017 creation), and a variety of use methods refer to the sample code.
+* Support windows, linux, 32 bits, 64 bits;Compiled under msvc (vs2017 vs2019) gcc8 clang10;
+* Dependence on C++ 17,dependence on asio (asio standalone). 
+* The example directory contains a large number of sample projects (projects based on VS2017 creation), and a variety of use methods refer to the sample code.
+
+## v2.6 big update:
+* Remove the dependence on the Boost library completely. Before using http and websocket, you need to rely on the boost library. Now all functionalitys do not need boost;
+* RPC component adds chain call capabilitie. When calling RPC function in previous version, the "user callback function, timeout duration, RPC function name and RPC function parameter" are all written inner the same function, so it is easy to get confused. Now, support chain calls can avoid this problem.
+* Rewriting the HTTP interface, the HTTP interface is more simple and easy to use;
 
 ## TCP:
 ##### server:
@@ -30,20 +36,40 @@ server.bind_recv([&server](std::shared_ptr<asio2::tcp_session> & session_ptr, st
 		session_ptr->remote_port(), asio2::last_error_msg().c_str());
 });
 server.start("0.0.0.0", 8080);
-//server.start("0.0.0.0", 8080, '\n'); // Automatic unpacking by \n (arbitrary characters can be specified)
-//server.start("0.0.0.0", 8080, "\r\n"); // Automatic unpacking by \r\n (arbitrary string can be specified)
-//server.start("0.0.0.0", 8080, match_role('#')); // Automatic unpacking according to the rules specified by match_role (see demo code for match_role) (for user-defined protocol unpacking)
-//server.start("0.0.0.0", 8080, asio::transfer_exactly(100)); // Receive a fixed 100 bytes at a time
-//server.start("0.0.0.0", 8080, asio2::use_dgram); // TCP in datagram mode, no matter how long the data is sent, the whole package data of the corresponding length must be received by both sides.
+
+// Automatic unpacking by \n (arbitrary characters can be specified)
+//server.start("0.0.0.0", 8080, '\n');
+
+// Automatic unpacking by \r\n (arbitrary string can be specified)
+//server.start("0.0.0.0", 8080, "\r\n"); 
+
+// Automatic unpacking according to the rules specified by match_role
+// (see demo code for match_role) (for user-defined protocol unpacking)
+//server.start("0.0.0.0", 8080, match_role('#')); 
+
+// Receive a fixed 100 bytes at a time
+//server.start("0.0.0.0", 8080, asio::transfer_exactly(100)); 
+
+// TCP in datagram mode, no matter how long the data is sent, the whole 
+// package data of the corresponding length must be received by both sides.
+//server.start("0.0.0.0", 8080, asio2::use_dgram); 
 ```
 ##### client:
 ```c++
 asio2::tcp_client client;
+
 // The client will automatically reconnect when it disconnects
-//// [ default reconnect option is "enable" ]
-//client.auto_reconnect(false); // disable auto reconnect
-//client.auto_reconnect(true); // enable auto reconnect and use the default delay
-client.auto_reconnect(true, std::chrono::milliseconds(100)); // enable auto reconnect and use custom delay
+// [ default reconnect option is "enable" ]
+
+// disable auto reconnect
+//client.auto_reconnect(false); 
+
+// enable auto reconnect and use the default delay
+//client.auto_reconnect(true); 
+
+// enable auto reconnect and use custom delay
+client.auto_reconnect(true, std::chrono::seconds(3));
+
 client.bind_connect([&](asio::error_code ec)
 {
 	if (asio2::get_last_error())
@@ -61,13 +87,21 @@ client.bind_connect([&](asio::error_code ec)
 
 	client.send(sv);
 })
-	//.bind_recv(on_recv) // Binding global functions
-	//.bind_recv(std::bind(&listener::on_recv, &lis, std::placeholders::_1)) // Binding member functions (see demo code for details)
-	//.bind_recv(&listener::on_recv, lis) // Bind member functions by reference to lis object (see demo code for details)
-	//.bind_recv(&listener::on_recv, &lis) // Bind member functions by pointers to lis object (see demo code for details)
+	//// Binding global functions
+	//.bind_recv(on_recv) 
+	//// Binding member functions (see demo code for details)
+	//.bind_recv(std::bind(&listener::on_recv, &lis, std::placeholders::_1))
+	//// Bind member functions by reference to lis object (see demo code for details)
+	//.bind_recv(&listener::on_recv, lis) 
+	//// Bind member functions by pointers to lis object (see demo code for details)
+	//.bind_recv(&listener::on_recv, &lis) 
 	;
-client.async_start("0.0.0.0", 8080); // Asynchronous connection to server
-//client.start("0.0.0.0", 8080); // Synchronized connection to server
+// Asynchronous connection to server
+client.async_start("0.0.0.0", 8080); 
+
+// Synchronized connection to server
+//client.start("0.0.0.0", 8080); 
+
 //client.async_start("0.0.0.0", 8080, '\n');
 //client.async_start("0.0.0.0", 8080, "\r\n");
 //client.async_start("0.0.0.0", 8080, match_role);
@@ -94,38 +128,61 @@ client.start("0.0.0.0", 8080);
 ## RPC:
 ##### server:
 ```c++
-asio2::rpc_server server;
+// If you want to know which client called this function, set the first parameter
+// to std::shared_ptr<asio2::rpc_session>& session_ptr, If you don't want to,keep 
+// it empty is ok.
+int add(std::shared_ptr<asio2::rpc_session>& session_ptr, int a, int b)
+{
+	return a + b;
+}
+
+// Specify the "max recv buffer size" to avoid malicious packets, if some client
+// sent data packets size is too long to the "max recv buffer size", then the
+// client will be disconnect automatic .
+asio2::rpc_server server(
+	512,  // the initialize recv buffer size : 
+	1024, // the max recv buffer size :
+	4     // the thread count : 
+);
+
 // ... Binding listener (see demo code)
+
 A a; // For the definition of A, see the demo code
-server.bind("add", add); // Binding RPC global functions
-server.bind("mul", &A::mul, a); // Binding RPC member functions
-server.bind("cat", [&](const std::string& a, const std::string& b) { return a + b; }); // Binding lambda
-server.bind("get_user", &A::get_user, a); // Binding member functions (by reference)
-server.bind("del_user", &A::del_user, &a); // Binding member functions (by pointer)
-//server.start("0.0.0.0", 8080, asio2::use_dgram); // Using TCP datagram mode as the underlying support of RPC communication, the use_dgram parameter must be used when starting the server.
-server.start("0.0.0.0", 8080); // Using websocket as the underlying support of RPC communication(You need to go to the end code of the rcp_server.hpp file and choose to use websocket)
+
+// Binding RPC global functions
+server.bind("add", add);
+
+// Binding RPC member functions
+server.bind("mul", &A::mul, a);
+
+// Binding lambda
+server.bind("cat", [&](const std::string& a, const std::string& b) { return a + b; });
+
+// Binding member functions (by reference)
+server.bind("get_user", &A::get_user, a);
+
+// Binding member functions (by pointer)
+server.bind("del_user", &A::del_user, &a);
+
+server.start("0.0.0.0", 8080);
 ```
 ##### client:
 ```c++
 asio2::rpc_client client;
 // ... Binding listener (see demo code)
-//client.start("0.0.0.0", 8080, asio2::use_dgram);
 client.start("0.0.0.0", 8080);
 asio::error_code ec;
 // Synchronized invoke RPC functions
 int sum = client.call<int>(ec, std::chrono::seconds(3), "add", 11, 2);
 printf("sum : %d err : %d %s\n", sum, ec.value(), ec.message().c_str());
-// Asynchronous invocation of RPC function, the first parameter is the callback function, when the call is completed or timeout, the callback function automatically called, if timeout or other errors,
-// error codes are stored in ec, where async_call does not specify the result value type, the second parameter of the lambda expression must specify the type.
+// Asynchronous invocation of RPC function, the first parameter is the callback function,
+// when the call is completed or timeout, the callback function automatically called, if
+// timeout or other errors, error codes are stored in ec.
 client.async_call([](asio::error_code ec, int v)
 {
 	printf("sum : %d err : %d %s\n", v, ec.value(), ec.message().c_str());
 }, "add", 10, 20);
-// Here async_call specifies the result value type, the second parameter of the lambda expression can be auto type.
-client.async_call<int>([](asio::error_code ec, auto v)
-{
-	printf("sum : %d err : %d %s\n", v, ec.value(), ec.message().c_str());
-}, "add", 12, 21);
+
 // Result value is user-defined data type (see demo code for the definition of user type)
 user u = client.call<user>(ec, "get_user");
 printf("%s %d ", u.name.c_str(), u.age);
@@ -138,7 +195,8 @@ printf("\n");
 u.name = "hanmeimei";
 u.age = ((int)time(nullptr)) % 100;
 u.purview = { {10,"get"},{20,"set"} };
-// If the result value of the RPC function is void, then the user callback function has only one parameter.
+// If the result value of the RPC function is void, then the user callback 
+// function has only one parameter.
 client.async_call([](asio::error_code ec)
 {
 }, "del_user", std::move(u));
@@ -147,55 +205,206 @@ client.async_call("del_user", std::move(u));
 ```
 
 ## HTTP and WEBSOCKET:
-##### See the sample code http and websocket section
+##### server:
+```c++
+
+struct aop_log
+{
+	bool before(http::request& req, http::response& rep)
+	{
+		asio2::detail::ignore_unused(rep);
+		printf("aop_log before %s\n", req.method_string().data());
+		return true;
+	}
+	bool after(std::shared_ptr<asio2::http_session>& session_ptr,
+		http::request& req, http::response& rep)
+	{
+		asio2::detail::ignore_unused(session_ptr, req, rep);
+		printf("aop_log after\n");
+		return true;
+	}
+};
+
+struct aop_check
+{
+	bool before(std::shared_ptr<asio2::http_session>& session_ptr,
+		http::request& req, http::response& rep)
+	{
+		asio2::detail::ignore_unused(session_ptr, req, rep);
+		printf("aop_check before\n");
+		return true;
+	}
+	bool after(http::request& req, http::response& rep)
+	{
+		asio2::detail::ignore_unused(req, rep);
+		printf("aop_check after\n");
+		return true;
+	}
+};
+
+asio2::http_server server;
+
+server.bind_recv([&](http::request& req, http::response& rep)
+{
+	std::cout << req.path() << std::endl;
+	std::cout << req.query() << std::endl;
+
+}).bind_connect([](auto & session_ptr)
+{
+	printf("client enter : %s %u %s %u\n",
+	session_ptr->remote_address().c_str(), session_ptr->remote_port(),
+		session_ptr->local_address().c_str(), session_ptr->local_port());
+}).bind_disconnect([](auto & session_ptr)
+{
+	printf("client leave : %s %u %s\n", session_ptr->remote_address().c_str(),
+		session_ptr->remote_port(), asio2::last_error_msg().c_str());
+}).bind_start([&](asio::error_code ec)
+{
+	printf("start http server : %s %u %d %s\n",
+	server.listen_address().c_str(), server.listen_port(),
+		ec.value(), ec.message().c_str());
+}).bind_stop([&](asio::error_code ec)
+{
+	printf("stop : %d %s\n", ec.value(), ec.message().c_str());
+});
+
+server.bind<http::verb::get, http::verb::post>("/index.*",
+ [](http::request& req, http::response& rep)
+{
+	rep.fill_file("../../../index.html");
+	rep.chunked(true);
+
+}, aop_log{});
+
+server.bind<http::verb::get>("/del_user",
+	[](std::shared_ptr<asio2::http_session>& session_ptr,
+		http::request& req, http::response& rep)
+{
+	printf("del_user ip : %s\n", session_ptr->remote_address().data());
+
+	rep.fill_page(http::status::ok, "del_user successed.");
+
+}, aop_check{});
+
+server.bind<http::verb::get>("/api/user/*", [](http::request& req, http::response& rep)
+{
+	rep.fill_text("the user name is hanmeimei, .....");
+
+}, aop_log{}, aop_check{});
+
+server.bind<http::verb::get>("/defer", [](http::request& req, http::response& rep)
+{
+	// use defer to make the reponse not send immediately, util the derfer shared_ptr
+	// is destroyed, then the response will be sent.
+	std::shared_ptr<http::response_defer> rep_defer = rep.defer();
+
+	std::thread([rep_defer, &rep]() mutable
+	{
+		std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+
+		asio::error_code ec;
+		auto newrep = asio2::http_client::execute("http://www.baidu.com", ec);
+
+		rep = std::move(newrep);
+
+	}).detach();
+
+}, aop_log{}, aop_check{});
+
+server.bind("/ws", websocket::listener<asio2::http_session>{}.
+	on("message", [](std::shared_ptr<asio2::http_session>& session_ptr, std::string_view data)
+{
+	printf("ws msg : %u %.*s\n", (unsigned)data.size(), (int)data.size(), data.data());
+
+	session_ptr->send(data);
+
+}).on("open", [](std::shared_ptr<asio2::http_session>& session_ptr)
+{
+	printf("ws open\n");
+
+	// print the websocket request header.
+	std::cout << session_ptr->request() << std::endl;
+
+	// how to set custom websocket response data : 
+	session_ptr->ws_stream().set_option(websocket::stream_base::decorator(
+		[](websocket::response_type& rep)
+	{
+		rep.set(http::field::authorization, " http-server-coro");
+	}));
+
+}).on("close", [](std::shared_ptr<asio2::http_session>& session_ptr)
+{
+	printf("ws close\n");
+
+}));
+
+server.bind_not_found([](http::request& req, http::response& rep)
+{
+	rep.fill_page(http::status::not_found);
+});
+
+server.start(host, port);
+```
+##### client:
+```c++
+asio2::error_code ec;
+
+auto req1 = http::make_request("http://www.baidu.com/get_user?name=abc");
+auto rep1 = asio2::http_client::execute("http://www.baidu.com/get_user?name=abc", ec);
+if (ec)
+	std::cout << ec.message() << std::endl;
+else
+	std::cout << rep1 << std::endl;
+
+
+auto req2 = http::make_request("GET / HTTP/1.1\r\nHost: 192.168.0.1\r\n\r\n");
+auto rep2 = asio2::http_client::execute("www.baidu.com", "80", req2, std::chrono::seconds(3), ec);
+if (ec)
+	std::cout << ec.message() << std::endl;
+else
+	std::cout << rep2 << std::endl;
+
+
+auto path = asio2::http::url_to_path("/get_user?name=abc");
+std::cout << path << std::endl;
+
+auto query = asio2::http::url_to_query("/get_user?name=abc");
+std::cout << query << std::endl;
+
+std::cout << std::endl;
+
+auto rep3 = asio2::http_client::execute("www.baidu.com", "80", "/api/get_user?name=abc", ec);
+if (ec)
+	std::cout << ec.message() << std::endl;
+else
+	std::cout << rep3 << std::endl;
+
+std::string en = http::url_encode(R"(http://www.baidu.com/json={"qeury":"name like '%abc%'","id":1})");
+std::cout << en << std::endl;
+std::string de = http::url_decode(en);
+std::cout << de << std::endl;
+
+```
+
 
 ## ICMP:
 ```c++
-class ping_test
+asio2::ping ping;
+ping.timeout(std::chrono::seconds(3))
+	.interval(std::chrono::seconds(1))
+	.body("abc")
+	.bind_recv([](asio2::icmp_rep& rep)
 {
-	asio2::ping ping;
-public:
-	ping_test() : ping(10) // ping 10 times, -1 means ping forever
-	{
-		ping.timeout(std::chrono::seconds(3)); // ping timeout
-		ping.interval(std::chrono::seconds(1)); // ping interval
-		ping.body("0123456789abcdefghijklmnopqrstovuxyz");
-		ping.bind_recv(&ping_test::on_recv, this) // 
-			.bind_start(std::bind(&ping_test::on_start, this, std::placeholders::_1)) // 
-			.bind_stop([this](asio::error_code ec) { this->on_stop(ec); }); // 
-	}
-	void on_recv(asio2::icmp_rep& rep)
-	{
-		if (rep.lag.count() == -1) // -1 means timeout
-			std::cout << "request timed out" << std::endl;
-		else
-			std::cout << rep.total_length() - rep.header_length()
-			<< " bytes from " << rep.source_address()
-			<< ": icmp_seq=" << rep.sequence_number()
-			<< ", ttl=" << rep.time_to_live()
-			<< ", time=" << std::chrono::duration_cast<std::chrono::milliseconds>(rep.lag).count() << "ms"
-			<< std::endl;
-	}
-	void on_start(asio::error_code ec)
-	{
-		printf("start : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
-	}
-	void on_stop(asio::error_code ec)
-	{
-		printf("stop : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
-	}
-	void run()
-	{
-		if (!ping.start("127.0.0.1"))
-			//if (!ping.start("123.45.67.89"))
-			//if (!ping.start("stackoverflow.com"))
-			printf("start failure : %s\n", asio2::last_error_msg().c_str());
-		while (std::getchar() != '\n');
-		ping.stop();
-		printf("loss rate : %.0lf%% average time : %lldms\n", ping.plp(),
-			std::chrono::duration_cast<std::chrono::milliseconds>(ping.avg_lag()).count());
-	}
-};
+	if (rep.is_timeout())
+		std::cout << "request timed out" << std::endl;
+	else
+		std::cout << rep.total_length() - rep.header_length()
+		<< " bytes from " << rep.source_address()
+		<< ": icmp_seq=" << rep.sequence_number()
+		<< ", ttl=" << rep.time_to_live()
+		<< ", time=" << std::chrono::duration_cast<std::chrono::milliseconds>(rep.lag).count() << "ms"
+		<< std::endl;
+}).start("151.101.193.69");
 ```
 ## SSL:
 ##### TCP/HTTP/WEBSOCKET all support SSL(config.hpp uncomment #define ASIO2_USE_SSL)
@@ -241,7 +450,47 @@ server.set_dh_file("dh1024.pem");
 ```
 
 ## serial port:
-##### See the sample code serial port section
+```c++
+std::string_view device = "COM1"; // for windows
+//std::string_view device = "/dev/ttyS0"; // for linux
+std::string_view baud_rate = "9600";
+
+asio2::scp sp;
+
+sp.bind_init([&]()
+{
+	// Set other serial port parameters at here
+	sp.socket().set_option(asio::serial_port::flow_control(asio::serial_port::flow_control::type::none));
+	sp.socket().set_option(asio::serial_port::parity(asio::serial_port::parity::type::none));
+	sp.socket().set_option(asio::serial_port::stop_bits(asio::serial_port::stop_bits::type::one));
+	sp.socket().set_option(asio::serial_port::character_size(8));
+
+}).bind_recv([&](std::string_view sv)
+{
+	printf("recv : %u %.*s\n", (unsigned)sv.size(), (int)sv.size(), sv.data());
+
+	std::string s;
+	uint8_t len = uint8_t(10 + (std::rand() % 20));
+	s += '<';
+	for (uint8_t i = 0; i < len; i++)
+	{
+		s += (char)((std::rand() % 26) + 'a');
+	}
+	s += '>';
+
+	sp.send(s, []() {});
+
+});
+
+//sp.start(device, baud_rate);
+sp.start(device, baud_rate, '>');
+//sp.start(device, baud_rate, "\r\n");
+//sp.start(device, baud_rate, match_role);
+//sp.start(device, baud_rate, asio::transfer_at_least(1));
+//sp.start(device, baud_rate, asio::transfer_exactly(10));
+
+```
+
 
 ##### timer
 ```c++

@@ -35,6 +35,7 @@ namespace asio2::detail
 			, silence_timer_io_(timer_io)
 			, silence_timer_(timer_io.context())
 		{
+			this->silence_timer_canceled_.clear();
 		}
 
 		/**
@@ -63,7 +64,8 @@ namespace asio2::detail
 
 	protected:
 		template<class Rep, class Period>
-		inline void _post_silence_timer(std::chrono::duration<Rep, Period> duration, std::shared_ptr<derived_t> this_ptr)
+		inline void _post_silence_timer(std::chrono::duration<Rep, Period> duration,
+			std::shared_ptr<derived_t> this_ptr)
 		{
 			// start the timer of check silence timeout
 			if (duration > std::chrono::milliseconds(0))
@@ -84,8 +86,8 @@ namespace asio2::detail
 
 			this->silence_timer_canceled_.clear();
 
-			// silence duration seconds not exceed the silence timeout,post a timer event agagin to
-			// avoid this session shared_ptr object disappear.
+			// silence duration seconds not exceed the silence timeout,post a timer
+			// event agagin to avoid this session shared_ptr object disappear.
 			if (derive.silence_duration() < this->silence_timeout_)
 			{
 				derive._post_silence_timer(this->silence_timeout_ -
@@ -93,8 +95,9 @@ namespace asio2::detail
 			}
 			else
 			{
-				// silence timeout has elasped,but has't data trans,don't post a timer event again,so this session
-				// shared_ptr will disappear and the object will be destroyed automatically after this handler returns.
+				// silence timeout has elasped,but has't data trans,don't post
+				// a timer event again,so this session, shared_ptr will disappear 
+				// and the object will be destroyed automatically after this handler returns.
 				set_last_error(asio::error::timed_out);
 				derive._do_disconnect(asio::error::timed_out);
 			}
@@ -102,13 +105,8 @@ namespace asio2::detail
 
 		inline void _stop_silence_timer()
 		{
-			try
-			{
-				this->silence_timer_canceled_.test_and_set();
-				this->silence_timer_.cancel();
-			}
-			catch (system_error &) {}
-			catch (std::exception &) {}
+			this->silence_timer_canceled_.test_and_set();
+			this->silence_timer_.cancel(ec_ignore);
 		}
 
 	protected:
@@ -121,7 +119,7 @@ namespace asio2::detail
 		asio::steady_timer                          silence_timer_;
 
 		/// 
-		std::atomic_flag                            silence_timer_canceled_ = ATOMIC_FLAG_INIT;
+		std::atomic_flag                            silence_timer_canceled_;
 
 		/// if there has no data transfer for a long time,the session will be disconnect
 		std::chrono::milliseconds                   silence_timeout_ = std::chrono::minutes(60);

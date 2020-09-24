@@ -27,7 +27,6 @@
 #include <asio2/rpc/detail/serialization.hpp>
 #include <asio2/rpc/detail/protocol.hpp>
 #include <asio2/rpc/detail/invoker.hpp>
-#include <asio2/rpc/component/rpc_call_cp.hpp>
 
 namespace asio2::detail
 {
@@ -59,8 +58,22 @@ namespace asio2::detail
 			}
 			catch (cereal::exception&)
 			{
-				set_last_error(asio::error::no_data);
-				derive._do_disconnect(asio::error::no_data);
+				set_last_error(asio::error::message_size);
+				derive._do_disconnect(asio::error::message_size);
+				return;
+			}
+			// bug fixed : illegal data being parsed into string object fails to allocate
+			// memory due to excessively long data
+			catch (std::bad_alloc&)
+			{
+				set_last_error(asio::error::message_size);
+				derive._do_disconnect(asio::error::message_size);
+				return;
+			}
+			catch (std::exception&)
+			{
+				set_last_error(asio::error::message_size);
+				derive._do_disconnect(asio::error::message_size);
 				return;
 			}
 
@@ -78,7 +91,7 @@ namespace asio2::detail
 
 						// The number of parameters passed in when calling rpc function exceeds 
 						// the number of parameters of local function
-						if (dr.buffer().in_avail() != 0 && head.id() != header::id_type(0))
+						if (dr.buffer().in_avail() != 0 && head.id() != static_cast<header::id_type>(0))
 						{
 							sr.reset();
 							sr << head;
@@ -87,17 +100,17 @@ namespace asio2::detail
 					}
 					else
 					{
-						if (head.id() != header::id_type(0))
+						if (head.id() != static_cast<header::id_type>(0))
 						{
 							sr << error_code{ asio::error::not_found };
 						}
 					}
 				}
-				catch (cereal::exception&) { sr << error_code{ asio::error::no_data }; }
-				catch (system_error& e) { sr << e.code(); }
-				catch (std::exception&) { sr << error_code{ asio::error::eof }; }
+				catch (cereal::exception&  ) { sr << error_code{ asio::error::no_data          }; }
+				catch (system_error     & e) { sr << e.code();                                    }
+				catch (std::exception   &  ) { sr << error_code{ asio::error::invalid_argument }; }
 
-				if (head.id() != header::id_type(0))
+				if (head.id() != static_cast<header::id_type>(0))
 				{
 					const std::string& str = sr.str();
 					derive.send(str);

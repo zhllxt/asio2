@@ -35,6 +35,8 @@ namespace asio2::detail
 			, reconnect_timer_io_(timer_io)
 			, reconnect_timer_(timer_io.context())
 		{
+			this->reconnect_timer_canceled_.clear();
+			this->reconnect_is_running_.clear();
 		}
 
 		/**
@@ -81,8 +83,7 @@ namespace asio2::detail
 		inline derived_t& auto_reconnect(bool enable, std::chrono::duration<Rep, Period> delay)
 		{
 			this->reconnect_enable_ = enable;
-			if (this->reconnect_enable_)
-				this->reconnect_delay_ = delay;
+			this->reconnect_delay_  = delay;
 			return (derive);
 		}
 
@@ -123,7 +124,8 @@ namespace asio2::detail
 		}
 
 		template<class Callback>
-		inline void _handle_reconnect_timer(const error_code & ec, std::shared_ptr<derived_t> this_ptr, Callback&& f)
+		inline void _handle_reconnect_timer(const error_code& ec,
+			std::shared_ptr<derived_t> this_ptr, Callback&& f)
 		{
 			if (this->reconnect_timer_canceled_.test_and_set())
 			{
@@ -135,7 +137,8 @@ namespace asio2::detail
 
 			if (ec == asio::error::operation_aborted)
 			{
-				derive._post_reconnect_timer(std::move(this_ptr), std::forward<Callback>(f), this->reconnect_delay_);
+				derive._post_reconnect_timer(std::move(this_ptr),
+					std::forward<Callback>(f), this->reconnect_delay_);
 			}
 			else
 			{
@@ -151,24 +154,14 @@ namespace asio2::detail
 
 		inline void _stop_reconnect_timer()
 		{
-			try
-			{
-				this->reconnect_timer_canceled_.test_and_set();
-				this->reconnect_timer_.cancel();
-			}
-			catch (system_error &) {}
-			catch (std::exception &) {}
+			this->reconnect_timer_canceled_.test_and_set();
+			this->reconnect_timer_.cancel(ec_ignore);
 		}
 
 		inline void _wake_reconnect_timer()
 		{
-			try
-			{
-				if (this->reconnect_enable_)
-					this->reconnect_timer_.cancel();
-			}
-			catch (system_error &) {}
-			catch (std::exception &) {}
+			if (this->reconnect_enable_)
+				this->reconnect_timer_.cancel(ec_ignore);
 		}
 
 	protected:
@@ -181,7 +174,7 @@ namespace asio2::detail
 		asio::steady_timer                          reconnect_timer_;
 
 		/// 
-		std::atomic_flag                            reconnect_timer_canceled_  = ATOMIC_FLAG_INIT;
+		std::atomic_flag                            reconnect_timer_canceled_;
 
 		/// if there has no data transfer for a long time,the session will be disconnect
 		std::chrono::milliseconds                   reconnect_delay_           = std::chrono::seconds(1);
@@ -190,7 +183,7 @@ namespace asio2::detail
 		bool                                        reconnect_enable_          = true;
 
 		/// Used to chech whether the reconnect timer has started already
-		std::atomic_flag                            reconnect_is_running_      = ATOMIC_FLAG_INIT;
+		std::atomic_flag                            reconnect_is_running_;
 	};
 }
 

@@ -32,9 +32,10 @@ namespace asio2::detail
 		 */
 		explicit connect_timeout_cp(io_t & timer_io)
 			: derive(static_cast<derived_t&>(*this))
-			, timeout_timer_io_(timer_io)
-			, timeout_timer_(timer_io.context())
+			, connect_timeout_timer_io_(timer_io)
+			, connect_timeout_timer_(timer_io.context())
 		{
+			this->connect_timer_canceled_.clear();
 		}
 
 		/**
@@ -59,74 +60,116 @@ namespace asio2::detail
 
 	protected:
 		template<class Rep, class Period>
-		inline void _post_timeout_timer(std::chrono::duration<Rep, Period> duration, std::shared_ptr<derived_t> this_ptr)
+		inline void _post_connect_timeout_timer(std::chrono::duration<Rep, Period> duration,
+			std::shared_ptr<derived_t> this_ptr)
 		{
-			this->timeout_timer_.expires_after(duration);
-			this->timeout_timer_.async_wait(asio::bind_executor(this->timeout_timer_io_.strand(),
-				[this, self_ptr = std::move(this_ptr)](const error_code & ec) mutable
+			this->connect_error_code_.clear();
+			this->connect_timeout_flag_.store(false);
+
+			this->connect_timeout_timer_.expires_after(duration);
+			this->connect_timeout_timer_.async_wait(
+				asio::bind_executor(this->connect_timeout_timer_io_.strand(),
+					[this, self_ptr = std::move(this_ptr)](const error_code& ec) mutable
 			{
-				derive._handle_timeout_timer(ec, std::move(self_ptr));
-				this->timer_canceled_.clear();
+				// bug fixed : 
+				// note : after call derive._handle_connect_timeout_timer(ec, std::move(self_ptr)); 
+				// the pointer of "this" can no longer be used immediately, beacuse when 
+				// self_ptr's reference counter is 1, after call 
+				// derive._handle_connect_timeout_timer(ec, std::move(self_ptr)); the self_ptr's 
+				// object will be destroyed, then below code "this->..." will cause crash.
+				derive._handle_connect_timeout_timer(ec, std::move(self_ptr));
 			}));
 		}
 
-		inline void _handle_timeout_timer(const error_code & ec, std::shared_ptr<derived_t> this_ptr)
+		inline void _handle_connect_timeout_timer(const error_code& ec,
+			std::shared_ptr<derived_t> this_ptr)
 		{
 			std::ignore = this_ptr;
 
-			if (ec == asio::error::operation_aborted || this->timer_canceled_.test_and_set()) return;
+			if (!ec)
+			{
+				this->connect_timeout_flag_.store(true);
+			}
 
-			derive._do_disconnect(asio::error::timed_out);
+			if (ec == asio::error::operation_aborted || this->connect_timer_canceled_.test_and_set())
+			{
+				this->connect_timer_canceled_.clear();
+				return;
+			}
+
+			this->connect_timer_canceled_.clear();
+
+			if (!ec)
+			{
+				derive._do_disconnect(asio::error::timed_out);
+			}
+			else
+			{
+				derive._do_disconnect(this->connect_error_code_ ? this->connect_error_code_ : ec);
+			}
 		}
 
 		template<class Rep, class Period, class Fn>
-		inline std::future<error_code> _post_timeout_timer(std::chrono::duration<Rep, Period> duration,
+		inline void _post_connect_timeout_timer(std::chrono::duration<Rep, Period> duration,
 			std::shared_ptr<derived_t> this_ptr, Fn&& fn)
 		{
-			std::promise<error_code> promise;
-			std::future<error_code> future = promise.get_future();
+			this->connect_error_code_.clear();
+			this->connect_timeout_flag_.store(false);
 
-			this->timeout_timer_.expires_after(duration);
-			this->timeout_timer_.async_wait(asio::bind_executor(this->timeout_timer_io_.strand(),
-				[this, self_ptr = std::move(this_ptr), p = std::move(promise), f = std::forward<Fn>(fn)]
-			(const error_code & ec) mutable
+			this->connect_timeout_timer_.expires_after(duration);
+			this->connect_timeout_timer_.async_wait(
+				asio::bind_executor(this->connect_timeout_timer_io_.strand(),
+					[this, self_ptr = std::move(this_ptr), f = std::forward<Fn>(fn)]
+			(const error_code& ec) mutable
 			{
+				if (!ec)
+				{
+					this->connect_timeout_flag_.store(true);
+				}
+
+				this->connect_timer_canceled_.clear();
+
 				f(ec);
-				p.set_value(ec);
-				this->timer_canceled_.clear();
 			}));
-
-			return future;
 		}
 
-		template<class Future>
-		inline void _wait_timeout_timer(Future&& future)
+		inline void _stop_connect_timeout_timer(asio::error_code ec)
 		{
-			if (!this->timeout_timer_io_.strand().running_in_this_thread())
-				future.wait();
-		}
-
-		inline void _stop_timeout_timer()
-		{
-			this->timer_canceled_.test_and_set();
 			try
 			{
-				this->timeout_timer_.cancel();
+				this->connect_error_code_ = ec;
+				this->connect_timer_canceled_.test_and_set();
+				this->connect_timeout_timer_.cancel(ec_ignore);
 			}
-			catch (system_error &) {}
-			catch (std::exception &) {}
+			catch (system_error&) {}
+			catch (std::exception&) {}
+		}
+
+		inline bool _is_connect_timeout()
+		{
+			return this->connect_timeout_flag_.load();
+		}
+
+		inline asio::error_code _connect_error_code()
+		{
+			return this->connect_error_code_;
 		}
 
 	protected:
 		derived_t                                 & derive;
 
-		io_t                                      & timeout_timer_io_;
+		io_t                                      & connect_timeout_timer_io_;
 
-		asio::steady_timer                          timeout_timer_;
+		asio::steady_timer                          connect_timeout_timer_;
 
-		std::atomic_flag                            timer_canceled_ = ATOMIC_FLAG_INIT;
+		std::atomic_flag                            connect_timer_canceled_;
 
-		std::chrono::milliseconds                   connect_timeout_ = std::chrono::seconds(5);
+		std::chrono::milliseconds                   connect_timeout_         = std::chrono::seconds(5);
+
+		asio::error_code                            connect_error_code_;
+
+		/// Used to check the error_code is connection timeout or others.
+		std::atomic_bool                            connect_timeout_flag_    = false;
 	};
 }
 

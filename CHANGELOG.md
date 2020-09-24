@@ -1,3 +1,23 @@
+# 2020-09-24 version 2.6:
+
+  * Fixed a bug in the connect_timeout_cp class that caused the program to crash.
+  * Fixed a bug in the ws_stream_cp class that causes program assertions to fail under debug mode.
+  * Fixed a bug in the rpc module that caused the program to crash after receiving illegal data.
+  * Rewrote the rpc_call_cp class code to support chained calls.
+  * Rewrote the api of http and websocket class.
+  * Rewrote the example code.
+  * Fixed and optimized the code for auto reconnection.
+  * A standalone version of Beast was added to support headonly http and websocket capabilities,now all functionality is no longer dependent on the Boost library.
+  * Rename the timeout function of rpc_client and rpc_session class to default_timeout function.
+  * Fixed compile warnings and errors under clang. Compiled under msvc(vs2017 vs2019) gcc8.2.0 clang10.
+  * Add event_guard class to enhance the reliability of event handle.
+  * Remove some class, the files is : httpws_server.hpp,httpws_session.hpp,httpwss_server.hpphttpwss_session.hpp;
+  * Various code fixes and improvements.
+  * Upgrade the asio library to version 1.16.1
+  * Upgrade the beast library to version 290 (boost-1.73.0)
+  * Upgrade the cereal library to version 1.3.0
+  * Upgrade the fmt library to version 7.0.3
+
 # 2020-06-28 version 2.5:
 
   * Improved SSL and certificate loading capabilities.

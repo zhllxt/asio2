@@ -220,10 +220,26 @@ typedef struct IQUEUEHEAD iqueue_head;
 
 
 #ifdef _MSC_VER
-#pragma warning(push) 
-#pragma warning(disable:4311)
-#pragma warning(disable:4312)
-#pragma warning(disable:4996)
+#  pragma warning(push) 
+#  pragma warning(disable:4311)
+#  pragma warning(disable:4312)
+#  pragma warning(disable:4996)
+#endif
+
+#if defined(__GNUC__) || defined(__GNUG__)
+#  pragma GCC diagnostic push
+#  pragma GCC diagnostic ignored "-Wunused-variable"
+#  pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
+#if defined(__clang__)
+#  pragma clang diagnostic push
+#  pragma clang diagnostic ignored "-Wunused-variable"
+#  pragma clang diagnostic ignored "-Wexceptions"
+#  pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#  pragma clang diagnostic ignored "-Wunused-private-field"
+#  pragma clang diagnostic ignored "-Wunused-local-typedef"
+#  pragma clang diagnostic ignored "-Wunknown-warning-option"
 #endif
 
 #endif
@@ -1646,8 +1662,16 @@ int ikcp_input(ikcpcb *kcp, const char *data, long size)
 //}
 //#endif
 
+#if defined(__clang__)
+#  pragma clang diagnostic pop
+#endif
+
+#if defined(__GNUC__) || defined(__GNUG__)
+#  pragma GCC diagnostic pop
+#endif
+
 #if defined(_MSC_VER)
-#pragma warning(pop) 
+#  pragma warning(pop) 
 #endif
 
 }

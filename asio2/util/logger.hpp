@@ -46,16 +46,20 @@
 // #define ASIO2_LOGGER_MULTI_MODULE
 
 /*
- # don't use "FILE fwrite ..." to handle the file,because if you declare a logger object,when call "fopen" in exe module,
-   and call "fwite" in dll module,it will crash.use std::ofstream can avoid this problem.
+ # don't use "FILE fwrite ..." to handle the file,because if you declare a logger object,
+   when call "fopen" in exe module, and call "fwite" in dll module,it will crash. use 
+   std::ofstream can avoid this problem.
  
- # why use "ASIO2_LOGGER_MULTI_MODULE" and create the file in a thread ? when call std::ofstream::open in exe module,and close file in
-   dll module,it will crash.we should ensure that which module create the object,the object must destroy by the same module.
-   so we create a thread,when need recreate the file,we post a notify event to the thread,and the thread will create the 
-   file in the module which create the file.
+ # why use "ASIO2_LOGGER_MULTI_MODULE" and create the file in a thread ? when call 
+   std::ofstream::open in exe module,and close file in dll module,it will crash.
+   we should ensure that which module create the object,the object must destroy by
+   the same module. so we create a thread,when need recreate the file,we post a 
+   notify event to the thread,and the thread will create the file in the module
+   which create the file.
  
- # why don't use boost::log ? beacuse if you want use boost::log on multi module(eg:exe and dll),the boost::log must be 
-   compilered by shared link(a dll),and when the exe is compilered with MT/MTd,there will be a lot of compilation problems.
+ # why don't use boost::log ? beacuse if you want use boost::log on multi module
+   (eg:exe and dll),the boost::log must be compilered by shared link(a dll),and
+   when the exe is compilered with MT/MTd,there will be a lot of compilation problems.
 */
 
 namespace asio2
@@ -407,7 +411,8 @@ namespace asio2
 				// D:\log\abc.log // /usr/log/abc.log
 				else
 				{
-					std::filesystem::create_directories(std::filesystem::path(this->filename_.substr(0, slash)));
+					std::filesystem::create_directories(
+						std::filesystem::path(this->filename_.substr(0, slash)));
 				}
 			}
 
@@ -419,7 +424,8 @@ namespace asio2
 
 			this->size_ = 0;
 
-			this->file_.open(this->filename_, std::ofstream::binary | std::ofstream::out | std::ofstream::app);
+			this->file_.open(this->filename_,
+				std::ofstream::binary | std::ofstream::out | std::ofstream::app);
 
 			return (*this);
 		}

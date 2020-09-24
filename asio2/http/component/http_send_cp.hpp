@@ -8,8 +8,6 @@
  * (See accompanying file LICENSE or see <http://www.gnu.org/licenses/>)
  */
 
-#ifndef ASIO_STANDALONE
-
 #ifndef __ASIO2_HTTP_SEND_COMPONENT_HPP__
 #define __ASIO2_HTTP_SEND_COMPONENT_HPP__
 
@@ -35,6 +33,8 @@
 #include <asio2/base/detail/buffer_wrap.hpp>
 
 #include <asio2/http/detail/http_util.hpp>
+#include <asio2/http/request.hpp>
+#include <asio2/http/response.hpp>
 
 namespace asio2::detail
 {
@@ -59,7 +59,8 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @function : Asynchronous send data,supporting multi data formats,see asio::buffer(...) in /asio/buffer.hpp
+		 * @function : Asynchronous send data,supporting multi data formats,
+		 *             see asio::buffer(...) in /asio/buffer.hpp
 		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
 		 */
 		template<bool isRequest, class Body, class Fields = http::fields>
@@ -76,9 +77,11 @@ namespace asio2::detail
 				if (!derive.is_started())
 					asio::detail::throw_error(asio::error::not_connected);
 
-				derive.push_event([this, data = derive._data_persistence(msg)]() mutable
+				derive.push_event([this, data = derive._data_persistence(msg)]
+				(event_guard<derived_t>&& g) mutable
 				{
-					return derive._do_send(data, [](const error_code&, std::size_t) {});
+					return derive._do_send(data,
+						[g = std::move(g)](const error_code&, std::size_t) mutable {});
 				});
 				return true;
 			}
@@ -88,7 +91,8 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Asynchronous send data,supporting multi data formats,see asio::buffer(...) in /asio/buffer.hpp
+		 * @function : Asynchronous send data,supporting multi data formats,
+		 *             see asio::buffer(...) in /asio/buffer.hpp
 		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
 		 */
 		template<bool isRequest, class Body, class Fields = http::fields>
@@ -99,9 +103,11 @@ namespace asio2::detail
 				if (!derive.is_started())
 					asio::detail::throw_error(asio::error::not_connected);
 
-				derive.push_event([this, data = derive._data_persistence(std::move(msg))]() mutable
+				derive.push_event([this, data = derive._data_persistence(std::move(msg))]
+				(event_guard<derived_t>&& g) mutable
 				{
-					return derive._do_send(data, [](const error_code&, std::size_t) {});
+					return derive._do_send(data,
+						[g = std::move(g)](const error_code&, std::size_t) mutable {});
 				});
 				return true;
 			}
@@ -111,14 +117,16 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Asynchronous send data,supporting multi data formats,see asio::buffer(...) in /asio/buffer.hpp
+		 * @function : Asynchronous send data,supporting multi data formats,
+		 *             see asio::buffer(...) in /asio/buffer.hpp
 		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
 		 * Callback signature : void() or void(std::size_t bytes_sent)
 		 */
 		template<class Callback, bool isRequest, class Body, class Fields = http::fields>
 		inline bool send(http::message<isRequest, Body, Fields>& msg, Callback&& fn)
 		{
-			return derive.send(const_cast<const http::message<isRequest, Body, Fields>&>(msg), std::forward<Callback>(fn));
+			return derive.send(const_cast<const http::message<isRequest, Body, Fields>&>(msg),
+				std::forward<Callback>(fn));
 		}
 
 		template<class Callback, bool isRequest, class Body, class Fields = http::fields>
@@ -130,9 +138,10 @@ namespace asio2::detail
 					asio::detail::throw_error(asio::error::not_connected);
 
 				derive.push_event([this, data = derive._data_persistence(msg),
-					fn = std::forward<Callback>(fn)]() mutable
+					fn = std::forward<Callback>(fn)](event_guard<derived_t>&& g) mutable
 				{
-					return derive._do_send(data, [&fn](const error_code&, std::size_t bytes_sent)
+					return derive._do_send(data, [&fn, g = std::move(g)]
+					(const error_code&, std::size_t bytes_sent) mutable
 					{
 						callback_helper::call(fn, bytes_sent);
 					});
@@ -145,7 +154,8 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Asynchronous send data,supporting multi data formats,see asio::buffer(...) in /asio/buffer.hpp
+		 * @function : Asynchronous send data,supporting multi data formats,
+		 *             see asio::buffer(...) in /asio/buffer.hpp
 		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
 		 * Callback signature : void() or void(std::size_t bytes_sent)
 		 */
@@ -158,9 +168,10 @@ namespace asio2::detail
 					asio::detail::throw_error(asio::error::not_connected);
 
 				derive.push_event([this, data = derive._data_persistence(std::move(msg)),
-					fn = std::forward<Callback>(fn)]() mutable
+					fn = std::forward<Callback>(fn)](event_guard<derived_t>&& g) mutable
 				{
-					return derive._do_send(data, [&fn](const error_code&, std::size_t bytes_sent)
+					return derive._do_send(data, [&fn, g = std::move(g)]
+					(const error_code&, std::size_t bytes_sent) mutable
 					{
 						callback_helper::call(fn, bytes_sent);
 					});
@@ -173,7 +184,8 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Asynchronous send data,supporting multi data formats,see asio::buffer(...) in /asio/buffer.hpp
+		 * @function : Asynchronous send data,supporting multi data formats,
+		 *             see asio::buffer(...) in /asio/buffer.hpp
 		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
 		 */
 		template<bool isRequest, class Body, class Fields = http::fields>
@@ -196,9 +208,10 @@ namespace asio2::detail
 					asio::detail::throw_error(asio::error::not_connected);
 
 				derive.push_event([this, data = derive._data_persistence(msg),
-					promise = std::move(promise)]() mutable
+					promise = std::move(promise)](event_guard<derived_t>&& g) mutable
 				{
-					return derive._do_send(data, [&promise](const error_code& ec, std::size_t bytes_sent)
+					return derive._do_send(data, [&promise, g = std::move(g)]
+					(const error_code& ec, std::size_t bytes_sent) mutable
 					{
 						promise().set_value(std::pair<error_code, std::size_t>(ec, bytes_sent));
 					});
@@ -218,7 +231,8 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Asynchronous send data,supporting multi data formats,see asio::buffer(...) in /asio/buffer.hpp
+		 * @function : Asynchronous send data,supporting multi data formats,
+		 *             see asio::buffer(...) in /asio/buffer.hpp
 		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
 		 */
 		template<bool isRequest, class Body, class Fields = http::fields>
@@ -234,9 +248,10 @@ namespace asio2::detail
 					asio::detail::throw_error(asio::error::not_connected);
 
 				derive.push_event([this, data = derive._data_persistence(std::move(msg)),
-					promise = std::move(promise)]() mutable
+					promise = std::move(promise)](event_guard<derived_t>&& g) mutable
 				{
-					return derive._do_send(data, [&promise](const error_code& ec, std::size_t bytes_sent)
+					return derive._do_send(data, [&promise, g = std::move(g)]
+					(const error_code& ec, std::size_t bytes_sent) mutable
 					{
 						promise().set_value(std::pair<error_code, std::size_t>(ec, bytes_sent));
 					});
@@ -255,6 +270,184 @@ namespace asio2::detail
 			return future;
 		}
 
+		/**
+		 * @function : Asynchronous send data,supporting multi data formats,
+		 *             see asio::buffer(...) in /asio/buffer.hpp
+		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
+		 */
+		template<bool isRequest, class Body, class Fields = http::fields>
+		inline bool send(http_request_impl_t<isRequest, Body, Fields>& msg)
+		{
+			return derive.send(msg.base());
+		}
+
+		template<bool isRequest, class Body, class Fields = http::fields>
+		inline bool send(const http_request_impl_t<isRequest, Body, Fields>& msg)
+		{
+			return derive.send(msg.base());
+		}
+
+		/**
+		 * @function : Asynchronous send data,supporting multi data formats,
+		 *             see asio::buffer(...) in /asio/buffer.hpp
+		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
+		 */
+		template<bool isRequest, class Body, class Fields = http::fields>
+		inline bool send(http_request_impl_t<isRequest, Body, Fields>&& msg)
+		{
+			return derive.send(std::move(msg.base()));
+		}
+
+		/**
+		 * @function : Asynchronous send data,supporting multi data formats,
+		 *             see asio::buffer(...) in /asio/buffer.hpp
+		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
+		 * Callback signature : void() or void(std::size_t bytes_sent)
+		 */
+		template<class Callback, bool isRequest, class Body, class Fields = http::fields>
+		inline bool send(http_request_impl_t<isRequest, Body, Fields>& msg, Callback&& fn)
+		{
+			return derive.send(msg.base(), std::forward<Callback>(fn));
+		}
+
+		template<class Callback, bool isRequest, class Body, class Fields = http::fields>
+		inline bool send(const http_request_impl_t<isRequest, Body, Fields>& msg, Callback&& fn)
+		{
+			return derive.send(msg.base(), std::forward<Callback>(fn));
+		}
+
+		/**
+		 * @function : Asynchronous send data,supporting multi data formats,
+		 *             see asio::buffer(...) in /asio/buffer.hpp
+		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
+		 * Callback signature : void() or void(std::size_t bytes_sent)
+		 */
+		template<class Callback, bool isRequest, class Body, class Fields = http::fields>
+		inline bool send(http_request_impl_t<isRequest, Body, Fields>&& msg, Callback&& fn)
+		{
+			return derive.send(std::move(msg.base()), std::forward<Callback>(fn));
+		}
+
+		/**
+		 * @function : Asynchronous send data,supporting multi data formats,
+		 *             see asio::buffer(...) in /asio/buffer.hpp
+		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
+		 */
+		template<bool isRequest, class Body, class Fields = http::fields>
+		inline std::future<std::pair<error_code, std::size_t>> send(
+			http_request_impl_t<isRequest, Body, Fields>& msg, asio::use_future_t<> flag)
+		{
+			return derive.send(msg.base(), std::move(flag));
+		}
+
+		template<bool isRequest, class Body, class Fields = http::fields>
+		inline std::future<std::pair<error_code, std::size_t>> send(
+			const http_request_impl_t<isRequest, Body, Fields>& msg, asio::use_future_t<> flag)
+		{
+			return derive.send(msg.base(), std::move(flag));
+		}
+
+		/**
+		 * @function : Asynchronous send data,supporting multi data formats,
+		 *             see asio::buffer(...) in /asio/buffer.hpp
+		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
+		 */
+		template<bool isRequest, class Body, class Fields = http::fields>
+		inline std::future<std::pair<error_code, std::size_t>> send(
+			http_request_impl_t<isRequest, Body, Fields>&& msg, asio::use_future_t<> flag)
+		{
+			return derive.send(std::move(msg.base()), std::move(flag));
+		}
+
+		/**
+		 * @function : Asynchronous send data,supporting multi data formats,
+		 *             see asio::buffer(...) in /asio/buffer.hpp
+		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
+		 */
+		template<bool isRequest, class Body, class Fields = http::fields>
+		inline bool send(http_response_impl_t<isRequest, Body, Fields>& msg)
+		{
+			return derive.send(msg.base());
+		}
+
+		template<bool isRequest, class Body, class Fields = http::fields>
+		inline bool send(const http_response_impl_t<isRequest, Body, Fields>& msg)
+		{
+			return derive.send(msg.base());
+		}
+
+		/**
+		 * @function : Asynchronous send data,supporting multi data formats,
+		 *             see asio::buffer(...) in /asio/buffer.hpp
+		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
+		 */
+		template<bool isRequest, class Body, class Fields = http::fields>
+		inline bool send(http_response_impl_t<isRequest, Body, Fields>&& msg)
+		{
+			return derive.send(std::move(msg.base()));
+		}
+
+		/**
+		 * @function : Asynchronous send data,supporting multi data formats,
+		 *             see asio::buffer(...) in /asio/buffer.hpp
+		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
+		 * Callback signature : void() or void(std::size_t bytes_sent)
+		 */
+		template<class Callback, bool isRequest, class Body, class Fields = http::fields>
+		inline bool send(http_response_impl_t<isRequest, Body, Fields>& msg, Callback&& fn)
+		{
+			return derive.send(msg.base(), std::forward<Callback>(fn));
+		}
+
+		template<class Callback, bool isRequest, class Body, class Fields = http::fields>
+		inline bool send(const http_response_impl_t<isRequest, Body, Fields>& msg, Callback&& fn)
+		{
+			return derive.send(msg.base(), std::forward<Callback>(fn));
+		}
+
+		/**
+		 * @function : Asynchronous send data,supporting multi data formats,
+		 *             see asio::buffer(...) in /asio/buffer.hpp
+		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
+		 * Callback signature : void() or void(std::size_t bytes_sent)
+		 */
+		template<class Callback, bool isRequest, class Body, class Fields = http::fields>
+		inline bool send(http_response_impl_t<isRequest, Body, Fields>&& msg, Callback&& fn)
+		{
+			return derive.send(std::move(msg.base()), std::forward<Callback>(fn));
+		}
+
+		/**
+		 * @function : Asynchronous send data,supporting multi data formats,
+		 *             see asio::buffer(...) in /asio/buffer.hpp
+		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
+		 */
+		template<bool isRequest, class Body, class Fields = http::fields>
+		inline std::future<std::pair<error_code, std::size_t>> send(
+			http_response_impl_t<isRequest, Body, Fields>& msg, asio::use_future_t<> flag)
+		{
+			return derive.send(msg.base(), std::move(flag));
+		}
+
+		template<bool isRequest, class Body, class Fields = http::fields>
+		inline std::future<std::pair<error_code, std::size_t>> send(
+			const http_response_impl_t<isRequest, Body, Fields>& msg, asio::use_future_t<> flag)
+		{
+			return derive.send(msg.base(), std::move(flag));
+		}
+
+		/**
+		 * @function : Asynchronous send data,supporting multi data formats,
+		 *             see asio::buffer(...) in /asio/buffer.hpp
+		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
+		 */
+		template<bool isRequest, class Body, class Fields = http::fields>
+		inline std::future<std::pair<error_code, std::size_t>> send(
+			http_response_impl_t<isRequest, Body, Fields>&& msg, asio::use_future_t<> flag)
+		{
+			return derive.send(std::move(msg.base()), std::move(flag));
+		}
+
 	protected:
 		derived_t & derive;
 
@@ -263,5 +456,3 @@ namespace asio2::detail
 }
 
 #endif // !__ASIO2_HTTP_SEND_COMPONENT_HPP__
-
-#endif

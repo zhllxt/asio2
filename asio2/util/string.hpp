@@ -28,8 +28,26 @@
 #include <type_traits>
 
 #ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable:4996)
+#  pragma warning(push) 
+#  pragma warning(disable:4311)
+#  pragma warning(disable:4312)
+#  pragma warning(disable:4996)
+#endif
+
+#if defined(__GNUC__) || defined(__GNUG__)
+#  pragma GCC diagnostic push
+#  pragma GCC diagnostic ignored "-Wunused-variable"
+#  pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
+#if defined(__clang__)
+#  pragma clang diagnostic push
+#  pragma clang diagnostic ignored "-Wunused-variable"
+#  pragma clang diagnostic ignored "-Wexceptions"
+#  pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#  pragma clang diagnostic ignored "-Wunused-private-field"
+#  pragma clang diagnostic ignored "-Wunused-local-typedef"
+#  pragma clang diagnostic ignored "-Wunknown-warning-option"
 #endif
 
 namespace asio2
@@ -44,7 +62,8 @@ namespace asio2
 
 		if (format && *format)
 		{
-			// under windows and linux system,std::vsnprintf(nullptr, 0, format, args) can get the need buffer len for the output,
+			// under windows and linux system,std::vsnprintf(nullptr, 0, format, args)
+			// can get the need buffer len for the output,
 			va_list args_copy;
 
 			va_copy(args_copy, args);
@@ -107,7 +126,8 @@ namespace asio2
 
 		if (format && *format)
 		{
-			// under windows and linux system,std::vsnprintf(nullptr, 0, format, args) can get the need buffer len for the output,
+			// under windows and linux system,std::vsnprintf(nullptr, 0, format, args)
+			// can get the need buffer len for the output,
 			va_list args;
 			va_start(args, format);
 
@@ -148,7 +168,8 @@ namespace asio2
 		class Traits = std::char_traits<CharT>,
 		class Allocator = std::allocator<CharT>
 	>
-		std::basic_string<CharT, Traits, Allocator>& trim_all(std::basic_string<CharT, Traits, Allocator>& s)
+		std::basic_string<CharT, Traits, Allocator>& trim_all(
+			std::basic_string<CharT, Traits, Allocator>& s)
 	{
 		using size_type = typename std::basic_string<CharT, Traits, Allocator>::size_type;
 		for (size_type i = s.size() - 1; i != size_type(-1); i--)
@@ -169,7 +190,8 @@ namespace asio2
 		class Traits = std::char_traits<CharT>,
 		class Allocator = std::allocator<CharT>
 	>
-		std::basic_string<CharT, Traits, Allocator>& trim_left(std::basic_string<CharT, Traits, Allocator>& s)
+		std::basic_string<CharT, Traits, Allocator>& trim_left(
+			std::basic_string<CharT, Traits, Allocator>& s)
 	{
 		using size_type = typename std::basic_string<CharT, Traits, Allocator>::size_type;
 		size_type pos = 0;
@@ -190,7 +212,8 @@ namespace asio2
 		class Traits = std::char_traits<CharT>,
 		class Allocator = std::allocator<CharT>
 	>
-		std::basic_string<CharT, Traits, Allocator>& trim_right(std::basic_string<CharT, Traits, Allocator>& s)
+		std::basic_string<CharT, Traits, Allocator>& trim_right(
+			std::basic_string<CharT, Traits, Allocator>& s)
 	{
 		using size_type = typename std::basic_string<CharT, Traits, Allocator>::size_type;
 		size_type pos = s.size() - 1;
@@ -211,7 +234,8 @@ namespace asio2
 		class Traits = std::char_traits<CharT>,
 		class Allocator = std::allocator<CharT>
 	>
-		std::basic_string<CharT, Traits, Allocator>& trim_both(std::basic_string<CharT, Traits, Allocator>& s)
+		std::basic_string<CharT, Traits, Allocator>& trim_both(
+			std::basic_string<CharT, Traits, Allocator>& s)
 	{
 		trim_left(s);
 		trim_right(s);
@@ -297,8 +321,16 @@ namespace asio2
 	}
 }
 
-#ifdef _MSC_VER
-#pragma warning(pop)
+#if defined(__clang__)
+#  pragma clang diagnostic pop
+#endif
+
+#if defined(__GNUC__) || defined(__GNUG__)
+#  pragma GCC diagnostic pop
+#endif
+
+#if defined(_MSC_VER)
+#  pragma warning(pop) 
 #endif
 
 #endif // !__ASIO2_STRING_HPP__

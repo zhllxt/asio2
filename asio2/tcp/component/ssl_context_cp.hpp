@@ -19,6 +19,7 @@
 
 #include <string>
 #include <string_view>
+#include <filesystem>
 
 #include <asio2/base/selector.hpp>
 #include <asio2/base/error.hpp>
@@ -39,11 +40,16 @@ namespace asio2::detail
 			//  compatibility with somewhat broken implementations is desired.
 
 			// single_dh_use : SSL_OP_SINGLE_DH_USE
-			//	Always create a new key when using temporary / ephemeral DH parameters(see ssl_ctx_set_tmp_dh_callback(3)).
-			//  This option must be used to prevent small subgroup attacks, when the DH parameters were not generated using
-			//  "strong" primes(e.g.when using DSA - parameters, see dhparam(1)).If "strong" primes were used, it is not
-			//  strictly necessary to generate a new DH key during each handshake but it is also recommended.SSL_OP_SINGLE_DH_USE
-			//  should therefore be enabled whenever temporary / ephemeral DH parameters are used.
+			//	Always create a new key when using temporary / ephemeral
+			//  DH parameters(see ssl_ctx_set_tmp_dh_callback(3)).
+			//  This option must be used to prevent small subgroup attacks,
+			//  when the DH parameters were not generated using "strong" 
+			//  primes(e.g.when using DSA - parameters, see dhparam(1)).
+			//  If "strong" primes were used, it is not strictly necessary
+			//  to generate a new DH key during each handshake but it is 
+			//  also recommended.
+			//  SSL_OP_SINGLE_DH_USE should therefore be enabled whenever
+			//  temporary / ephemeral DH parameters are used.
 
 			if constexpr (isServer)
 			{
@@ -147,6 +153,15 @@ namespace asio2::detail
 			const std::string& private_password
 		)
 		{
+			std::error_code ec;
+			if (!std::filesystem::exists(ca_cert_file, ec) ||
+				!std::filesystem::exists(private_cert_file, ec) ||
+				!std::filesystem::exists(private_key_file, ec))
+			{
+				ASIO2_ASSERT(false && "The cert files is not exists.");
+				return (static_cast<derived_t&>(*this));
+			}
+
 			this->set_password_callback([password = private_password]
 			(std::size_t max_length, asio::ssl::context_base::password_purpose purpose)->std::string
 			{
@@ -180,6 +195,13 @@ namespace asio2::detail
 		 */
 		inline derived_t& set_dh_file(const std::string& dh_file)
 		{
+			std::error_code ec;
+			if (!std::filesystem::exists(dh_file, ec))
+			{
+				ASIO2_ASSERT(false && "The dh file is not exists.");
+				return (static_cast<derived_t&>(*this));
+			}
+
 			if (!dh_file.empty())
 				this->use_tmp_dh_file(dh_file);
 

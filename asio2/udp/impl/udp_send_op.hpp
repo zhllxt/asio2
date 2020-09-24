@@ -44,51 +44,32 @@ namespace asio2::detail
 		template<class Data, class Callback>
 		inline bool _udp_send(Data& data, Callback&& callback)
 		{
-#if defined(ASIO2_SEND_CORE_ASYNC)
 			derive.stream().async_send(asio::buffer(data), asio::bind_executor(derive.io().strand(),
 				make_allocator(derive.wallocator(),
-					[this, p = derive.selfptr(), callback = std::forward<Callback>(callback)]
+					[p = derive.selfptr(), callback = std::forward<Callback>(callback)]
 			(const error_code& ec, std::size_t bytes_sent) mutable
 			{
 				set_last_error(ec);
 
 				callback(ec, bytes_sent);
-
-				derive.next_event();
 			})));
 			return true;
-#else
-			error_code ec;
-			std::size_t bytes_sent = derive.stream().send(asio::buffer(data), 0, ec);
-			set_last_error(ec);
-			callback(ec, bytes_sent);
-			return (!bool(ec));
-#endif
 		}
 
 		template<class Endpoint, class Data, class Callback>
 		inline bool _udp_send_to(Endpoint& endpoint, Data& data, Callback&& callback)
 		{
-#if defined(ASIO2_SEND_CORE_ASYNC)
-			derive.stream().async_send_to(asio::buffer(data), endpoint, asio::bind_executor(derive.io().strand(),
-				make_allocator(derive.wallocator(),
-					[this, p = derive.selfptr(), callback = std::forward<Callback>(callback)]
+			derive.stream().async_send_to(asio::buffer(data), endpoint,
+				asio::bind_executor(derive.io().strand(),
+					make_allocator(derive.wallocator(),
+						[p = derive.selfptr(), callback = std::forward<Callback>(callback)]
 			(const error_code& ec, std::size_t bytes_sent) mutable
 			{
 				set_last_error(ec);
 
 				callback(ec, bytes_sent);
-
-				derive.next_event();
 			})));
 			return true;
-#else
-			error_code ec;
-			std::size_t bytes_sent = derive.stream().send_to(asio::buffer(data), endpoint, 0, ec);
-			set_last_error(ec);
-			callback(ec, bytes_sent);
-			return (!bool(ec));
-#endif
 		}
 
 	protected:

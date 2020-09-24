@@ -8,8 +8,6 @@
  * (See accompanying file LICENSE or see <http://www.gnu.org/licenses/>)
  */
 
-#ifndef ASIO_STANDALONE
-
 #ifndef __ASIO2_WS_SESSION_HPP__
 #define __ASIO2_WS_SESSION_HPP__
 
@@ -20,6 +18,8 @@
 #include <asio2/tcp/tcp_session.hpp>
 #include <asio2/http/component/ws_stream_cp.hpp>
 #include <asio2/http/impl/ws_send_op.hpp>
+#include <asio2/http/request.hpp>
+#include <asio2/http/response.hpp>
 
 namespace asio2::detail
 {
@@ -35,6 +35,8 @@ namespace asio2::detail
 	{
 		template <class, bool>                       friend class user_timer_cp;
 		template <class>                             friend class post_cp;
+		template <class, class, bool>                friend class connect_cp;
+		template <class, class, bool>                friend class disconnect_cp;
 		template <class>                             friend class data_persistence_cp;
 		template <class>                             friend class event_queue_cp;
 		template <class, bool>                       friend class send_cp;
@@ -82,15 +84,6 @@ namespace asio2::detail
 		{
 		}
 
-		/**
-		 * @function : get the stream object refrence
-		 */
-		inline typename ws_stream_comp::stream_type & stream()
-		{
-			ASIO2_ASSERT(bool(this->ws_stream_));
-			return (*(this->ws_stream_));
-		}
-
 	public:
 		/**
 		 * @function : get this object hash key,used for session map
@@ -102,7 +95,8 @@ namespace asio2::detail
 
 	protected:
 		template<typename MatchCondition>
-		inline void _do_init(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		inline void _do_init(std::shared_ptr<derived_t> this_ptr,
+			condition_wrap<MatchCondition> condition)
 		{
 			super::_do_init(std::move(this_ptr), condition);
 
@@ -118,13 +112,15 @@ namespace asio2::detail
 		}
 
 		template<typename MatchCondition>
-		inline void _handle_connect(const error_code& ec, std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		inline void _handle_connect(const error_code& ec, std::shared_ptr<derived_t> this_ptr,
+			condition_wrap<MatchCondition> condition)
 		{
 			asio::post(this->io_.strand(), make_allocator(this->rallocator_,
-				[this, self_ptr = std::move(this_ptr), condition]()
+				[this, self_ptr = std::move(this_ptr), condition]() mutable
 			{
 				this->derived()._ws_start(self_ptr, condition, this->socket_);
 
+				this->derived()._post_control_callback(self_ptr, condition);
 				this->derived()._post_upgrade(std::move(self_ptr), std::move(condition));
 			}));
 		}
@@ -137,7 +133,8 @@ namespace asio2::detail
 
 	protected:
 		template<typename MatchCondition>
-		inline void _post_recv(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		inline void _post_recv(std::shared_ptr<derived_t> this_ptr,
+			condition_wrap<MatchCondition> condition)
 		{
 			this->derived()._ws_post_recv(std::move(this_ptr), std::move(condition));
 		}
@@ -164,5 +161,3 @@ namespace asio2
 }
 
 #endif // !__ASIO2_WS_SESSION_HPP__
-
-#endif

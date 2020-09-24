@@ -96,12 +96,19 @@ namespace asio2::detail
 		inline void stop()
 		{
 			if (!this->io_.strand().running_in_this_thread())
-				return asio::post(this->io_.strand(), std::bind(&self::stop, this));
+			{
+				this->derived().post([this, this_ptr = this->derived().selfptr()]() mutable
+				{
+					this->stop();
+				});
+				return;
+			}
 
 			// close user custom timers
 			this->stop_all_timers();
 
-			// destroy user data, maybe the user data is self shared_ptr, if don't destroy it, will cause loop refrence.
+			// destroy user data, maybe the user data is self shared_ptr, 
+			// if don't destroy it, will cause loop refrence.
 			this->user_data_.reset();
 		}
 
@@ -168,8 +175,9 @@ namespace asio2::detail
 		 * PodType (&data)[N] : double m[10]; send(m,5);
 		 */
 		template<class CharT, class SizeT>
-		inline typename std::enable_if_t<std::is_integral_v<std::remove_cv_t<std::remove_reference_t<SizeT>>>, derived_t&>
-			send(CharT * s, SizeT count)
+		inline typename std::enable_if_t<std::is_integral_v<std::remove_cv_t<
+			std::remove_reference_t<SizeT>>>, derived_t&>
+			send(CharT* s, SizeT count)
 		{
 			if (s)
 			{
@@ -238,7 +246,8 @@ namespace asio2::detail
 		 * bool(std::shared_ptr<asio2::xxx_session>& session_ptr)
 		 * @return   : std::shared_ptr<asio2::xxx_session>
 		 */
-		inline std::shared_ptr<session_t> find_session_if(const std::function<bool(std::shared_ptr<session_t>&)> & fn)
+		inline std::shared_ptr<session_t> find_session_if(
+			const std::function<bool(std::shared_ptr<session_t>&)> & fn)
 		{
 			return std::shared_ptr<session_t>(this->sessions_.find_if(fn));
 		}

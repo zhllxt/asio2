@@ -38,7 +38,7 @@
 #include <asio2/base/detail/buffer_wrap.hpp>
 #include <asio2/base/detail/condition_wrap.hpp>
 
-#include <asio2/base/component/active_time_cp.hpp>
+#include <asio2/base/component/alive_time_cp.hpp>
 #include <asio2/base/component/user_data_cp.hpp>
 #include <asio2/base/component/socket_cp.hpp>
 #include <asio2/base/component/user_timer_cp.hpp>
@@ -63,7 +63,7 @@ namespace asio2::detail
 		, public iopool_cp
 		, public event_queue_cp<derived_t>
 		, public user_data_cp<derived_t>
-		, public active_time_cp<derived_t>
+		, public alive_time_cp<derived_t>
 		, public user_timer_cp<derived_t, false>
 		, public send_cp<derived_t, false>
 		, public post_cp<derived_t>
@@ -77,6 +77,7 @@ namespace asio2::detail
 		template <class, bool>         friend class send_cp;
 		template <class, bool>         friend class tcp_send_op;
 		template <class, bool>         friend class tcp_recv_op;
+		template <class>               friend class event_guard;
 
 	public:
 		using self = scp_impl_t<derived_t, socket_t, buffer_t>;
@@ -94,7 +95,7 @@ namespace asio2::detail
 			, iopool_cp(1)
 			, event_queue_cp<derived_t>()
 			, user_data_cp<derived_t>()
-			, active_time_cp<derived_t>()
+			, alive_time_cp<derived_t>()
 			, user_timer_cp<derived_t, false>(iopool_.get(0))
 			, send_cp<derived_t, false>(iopool_.get(0))
 			, post_cp<derived_t>()
@@ -122,10 +123,12 @@ namespace asio2::detail
 		 * @param device The platform-specific device name for this serial, example "/dev/ttyS0" or "COM1"
 		 * @param baud_rate Communication speed, example 9600 or 115200
 		 */
-		inline bool start(const std::string& device, unsigned int baud_rate)
+		template<typename String, typename StrOrInt>
+		inline bool start(String&& device, StrOrInt&& baud_rate)
 		{
-			return this->derived()._do_start(device, baud_rate, condition_wrap<
-				asio::detail::transfer_at_least_t>{asio::transfer_at_least(1)});
+			return this->derived()._do_start(
+				std::forward<String>(device), std::forward<StrOrInt>(baud_rate),
+				condition_wrap<asio::detail::transfer_at_least_t>{asio::transfer_at_least(1)});
 		}
 
 		/**
@@ -138,10 +141,12 @@ namespace asio2::detail
 		 * asio::transfer_at_least,asio::transfer_exactly
 		 * more details see asio::read_until
 		 */
-		template<typename MatchCondition>
-		inline bool start(const std::string& device, unsigned int baud_rate, MatchCondition condition)
+		template<typename String, typename StrOrInt, typename MatchCondition>
+		inline bool start(String&& device, StrOrInt&& baud_rate, MatchCondition condition)
 		{
-			return this->derived()._do_start(device, baud_rate, condition_wrap<MatchCondition>(condition));
+			return this->derived()._do_start(
+				std::forward<String>(device), std::forward<StrOrInt>(baud_rate),
+				condition_wrap<MatchCondition>(condition));
 		}
 
 		/**
@@ -184,7 +189,8 @@ namespace asio2::detail
 		template<class F, class ...C>
 		inline derived_t & bind_recv(F&& fun, C&&... obj)
 		{
-			this->listener_.bind(event::recv, observer_t<std::string_view>(std::forward<F>(fun), std::forward<C>(obj)...));
+			this->listener_.bind(event::recv,
+				observer_t<std::string_view>(std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
 		}
 
@@ -201,7 +207,8 @@ namespace asio2::detail
 		template<class F, class ...C>
 		inline derived_t & bind_init(F&& fun, C&&... obj)
 		{
-			this->listener_.bind(event::init, observer_t<>(std::forward<F>(fun), std::forward<C>(obj)...));
+			this->listener_.bind(event::init,
+				observer_t<>(std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
 		}
 
@@ -217,7 +224,8 @@ namespace asio2::detail
 		template<class F, class ...C>
 		inline derived_t & bind_start(F&& fun, C&&... obj)
 		{
-			this->listener_.bind(event::start, observer_t<error_code>(std::forward<F>(fun), std::forward<C>(obj)...));
+			this->listener_.bind(event::start,
+				observer_t<error_code>(std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
 		}
 
@@ -233,7 +241,8 @@ namespace asio2::detail
 		template<class F, class ...C>
 		inline derived_t & bind_stop(F&& fun, C&&... obj)
 		{
-			this->listener_.bind(event::stop, observer_t<error_code>(std::forward<F>(fun), std::forward<C>(obj)...));
+			this->listener_.bind(event::stop,
+				observer_t<error_code>(std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
 		}
 
@@ -249,8 +258,8 @@ namespace asio2::detail
 		inline socket_t & stream() { return this->socket_; }
 
 	protected:
-		template<typename MatchCondition>
-		bool _do_start(const std::string& device, unsigned int baud_rate, condition_wrap<MatchCondition> condition)
+		template<typename String, typename StrOrInt, typename MatchCondition>
+		bool _do_start(String&& device, StrOrInt&& baud_rate, condition_wrap<MatchCondition> condition)
 		{
 			state_t expected = state_t::stopped;
 			if (!this->state_.compare_exchange_strong(expected, state_t::starting))
@@ -272,8 +281,8 @@ namespace asio2::detail
 				}
 
 				this->socket_.close(ec_ignore);
-				this->socket_.open(device);
-				this->socket_.set_option(asio::serial_port::baud_rate(baud_rate));
+				this->socket_.open(to_string(device));
+				this->socket_.set_option(asio::serial_port::baud_rate(to_integer<unsigned int>(baud_rate)));
 
 				this->derived()._fire_init();
 				// You can set other serial port parameters in on_init(bind_init) callback function like this:
@@ -315,7 +324,7 @@ namespace asio2::detail
 
 				asio::detail::throw_error(ec);
 
-				asio::post(this->io_.strand(), [this, condition]()
+				asio::post(this->io_.strand(), [this, condition]() mutable
 				{
 					this->derived()._start_recv(std::move(condition));
 				});
@@ -327,7 +336,7 @@ namespace asio2::detail
 			}
 		}
 
-		inline void _do_disconnect(const error_code& ec)
+		inline void _do_disconnect(const error_code& ec, std::shared_ptr<defer> defer_task = {})
 		{
 			this->derived()._do_stop(ec);
 		}
@@ -336,18 +345,20 @@ namespace asio2::detail
 		{
 			state_t expected = state_t::starting;
 			if (this->state_.compare_exchange_strong(expected, state_t::stopping))
-				return this->derived()._post_stop(ec, std::shared_ptr<derived_t>{}, expected);
+				return this->derived()._post_stop(ec, this->derived().selfptr(), expected);
 
 			expected = state_t::started;
 			if (this->state_.compare_exchange_strong(expected, state_t::stopping))
-				return this->derived()._post_stop(ec, std::shared_ptr<derived_t>{}, expected);
+				return this->derived()._post_stop(ec, this->derived().selfptr(), expected);
 		}
 
 		inline void _post_stop(const error_code& ec, std::shared_ptr<derived_t> self_ptr, state_t old_state)
 		{
 			// All pending sending events will be cancelled after enter the send strand below.
-			asio::post(this->io_.strand(), [this, ec, this_ptr = std::move(self_ptr), old_state]()
+			asio::post(this->io_.strand(), [this, ec, this_ptr = std::move(self_ptr), old_state]() mutable
 			{
+				detail::ignore::unused(old_state);
+
 				set_last_error(ec);
 
 				state_t expected = state_t::stopping;
@@ -372,7 +383,8 @@ namespace asio2::detail
 			// close user custom timers
 			this->stop_all_timers();
 
-			// destroy user data, maybe the user data is self shared_ptr, if don't destroy it, will cause loop refrence.
+			// destroy user data, maybe the user data is self shared_ptr,
+			// if don't destroy it, will cause loop refrence.
 			this->user_data_.reset();
 
 			// Call close,otherwise the _handle_recv will never return
@@ -386,11 +398,11 @@ namespace asio2::detail
 		inline void _start_recv(condition_wrap<MatchCondition> condition)
 		{
 			// Connect succeeded. post recv request.
-			asio::post(this->io_.strand(), [this, condition]()
+			asio::post(this->io_.strand(), [this, condition]() mutable
 			{
 				this->derived().buffer().consume(this->derived().buffer().size());
 
-				this->derived()._post_recv(std::shared_ptr<derived_t>{}, condition);
+				this->derived()._post_recv(this->derived().selfptr(), condition);
 			});
 		}
 
@@ -402,7 +414,8 @@ namespace asio2::detail
 
 	protected:
 		template<typename MatchCondition>
-		inline void _post_recv(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		inline void _post_recv(std::shared_ptr<derived_t> this_ptr,
+			condition_wrap<MatchCondition> condition)
 		{
 			this->derived()._tcp_post_recv(std::move(this_ptr), condition);
 		}

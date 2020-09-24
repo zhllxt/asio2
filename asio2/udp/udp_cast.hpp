@@ -38,7 +38,7 @@
 #include <asio2/base/detail/util.hpp>
 #include <asio2/base/detail/buffer_wrap.hpp>
 
-#include <asio2/base/component/active_time_cp.hpp>
+#include <asio2/base/component/alive_time_cp.hpp>
 #include <asio2/base/component/user_data_cp.hpp>
 #include <asio2/base/component/socket_cp.hpp>
 #include <asio2/base/component/user_timer_cp.hpp>
@@ -57,7 +57,7 @@ namespace asio2::detail
 		, public iopool_cp
 		, public event_queue_cp<derived_t>
 		, public user_data_cp<derived_t>
-		, public active_time_cp<derived_t>
+		, public alive_time_cp<derived_t>
 		, public socket_cp<derived_t, socket_t>
 		, public user_timer_cp<derived_t, false>
 		, public post_cp<derived_t>
@@ -70,6 +70,7 @@ namespace asio2::detail
 		template <class, bool>         friend class udp_send_cp;
 		template <class, bool>         friend class udp_send_op;
 		template <class>               friend class post_cp;
+		template <class>               friend class event_guard;
 
 	public:
 		using self = udp_cast_impl_t<derived_t, socket_t, buffer_t>;
@@ -87,7 +88,7 @@ namespace asio2::detail
 			, iopool_cp(1)
 			, event_queue_cp<derived_t>()
 			, user_data_cp<derived_t>()
-			, active_time_cp<derived_t>()
+			, alive_time_cp<derived_t>()
 			, socket_cp<derived_t, socket_t>(iopool_.get(0).context())
 			, user_timer_cp<derived_t, false>(iopool_.get(0))
 			, post_cp<derived_t>()
@@ -175,7 +176,8 @@ namespace asio2::detail
 		inline derived_t & bind_recv(F&& fun, C&&... obj)
 		{
 			this->listener_.bind(event::recv,
-				observer_t<asio::ip::udp::endpoint&, std::string_view>(std::forward<F>(fun), std::forward<C>(obj)...));
+				observer_t<asio::ip::udp::endpoint&, std::string_view>(
+					std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
 		}
 
@@ -190,7 +192,8 @@ namespace asio2::detail
 		template<class F, class ...C>
 		inline derived_t & bind_init(F&& fun, C&&... obj)
 		{
-			this->listener_.bind(event::init, observer_t<>(std::forward<F>(fun), std::forward<C>(obj)...));
+			this->listener_.bind(event::init,
+				observer_t<>(std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
 		}
 
@@ -206,7 +209,8 @@ namespace asio2::detail
 		template<class F, class ...C>
 		inline derived_t & bind_start(F&& fun, C&&... obj)
 		{
-			this->listener_.bind(event::start, observer_t<error_code>(std::forward<F>(fun), std::forward<C>(obj)...));
+			this->listener_.bind(event::start, observer_t<error_code>(
+				std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
 		}
 
@@ -222,7 +226,8 @@ namespace asio2::detail
 		template<class F, class ...C>
 		inline derived_t & bind_stop(F&& fun, C&&... obj)
 		{
-			this->listener_.bind(event::stop, observer_t<error_code>(std::forward<F>(fun), std::forward<C>(obj)...));
+			this->listener_.bind(event::stop, observer_t<error_code>(
+				std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
 		}
 
@@ -257,15 +262,22 @@ namespace asio2::detail
 				// parse address and port
 				asio::ip::udp::resolver resolver(this->io_.context());
 				asio::ip::udp::endpoint endpoint = *resolver.resolve(h, p,
-					asio::ip::resolver_base::flags::passive | asio::ip::resolver_base::flags::address_configured).begin();
+					asio::ip::resolver_base::flags::passive |
+					asio::ip::resolver_base::flags::address_configured).begin();
 
 				this->socket_.open(endpoint.protocol());
 
-				// when you close socket in linux system,and start socket immediate,you will get like this "the address is in use",
-				// and bind is failed,but i'm suer i close the socket correct already before,why does this happen? the reasion is 
-				// the socket option "TIME_WAIT",although you close the socket,but the system not release the socket,util 2~4 
-				// seconds later,so we can use the SO_REUSEADDR option to avoid this problem,like below
-				this->socket_.set_option(asio::ip::udp::socket::reuse_address(true)); // set port reuse
+				// when you close socket in linux system,and start socket
+				// immediate,you will get like this "the address is in use",
+				// and bind is failed,but i'm suer i close the socket correct
+				// already before,why does this happen? the reasion is the
+				// socket option "TIME_WAIT",although you close the socket,
+				// but the system not release the socket,util 2~4 seconds later,
+				// so we can use the SO_REUSEADDR option to avoid this problem,
+				// like below
+
+				// set port reuse
+				this->socket_.set_option(asio::ip::udp::socket::reuse_address(true));
 
 				this->derived()._fire_init();
 
@@ -304,7 +316,7 @@ namespace asio2::detail
 
 				asio::detail::throw_error(ec);
 
-				asio::post(this->io_.strand(), [this, condition]()
+				this->derived().post([this, condition]()
 				{
 					this->buffer_.consume(this->buffer_.size());
 
@@ -322,20 +334,23 @@ namespace asio2::detail
 		{
 			state_t expected = state_t::starting;
 			if (this->state_.compare_exchange_strong(expected, state_t::stopping))
-				return this->derived()._post_stop(ec, std::shared_ptr<derived_t>{}, expected);
+				return this->derived()._post_stop(ec, this->derived().selfptr(), expected);
 
 			expected = state_t::started;
 			if (this->state_.compare_exchange_strong(expected, state_t::stopping))
-				return this->derived()._post_stop(ec, std::shared_ptr<derived_t>{}, expected);
+				return this->derived()._post_stop(ec, this->derived().selfptr(), expected);
 		}
 
 		inline void _post_stop(const error_code& ec, std::shared_ptr<derived_t> self_ptr, state_t old_state)
 		{
 			// psot a recv signal to ensure that all recv events has finished already.
-			asio::post(this->io_.strand(), [this, ec, this_ptr = std::move(self_ptr), old_state]()
+			this->derived().post([this, ec, this_ptr = std::move(self_ptr), old_state]()
 			{
+				detail::ignore::unused(old_state);
+
 				// When the code runs here,no new session can be emplace or erase to session_mgr.
-				// stop all the sessions, the session::stop must be no blocking,otherwise it may be cause loop lock.
+				// stop all the sessions, the session::stop must be no blocking,
+				// otherwise it may be cause loop lock.
 				set_last_error(ec);
 
 				state_t expected = state_t::stopping;
@@ -360,11 +375,12 @@ namespace asio2::detail
 			// close user custom timers
 			this->stop_all_timers();
 
-			// destroy user data, maybe the user data is self shared_ptr, if don't destroy it, will cause loop refrence.
+			// destroy user data, maybe the user data is self shared_ptr,
+			// if don't destroy it, will cause loop refrence.
 			this->user_data_.reset();
 
-			// call socket's close function to notify the _handle_recv function response with error > 0 ,then the socket 
-			// can get notify to exit
+			// call socket's close function to notify the _handle_recv function
+			// response with error > 0 ,then the socket can get notify to exit
 			// Call shutdown() to indicate that you will not write any more data to the socket.
 			this->socket_.shutdown(asio::socket_base::shutdown_both, ec_ignore);
 			// Call close,otherwise the _handle_recv will never return
@@ -403,7 +419,8 @@ namespace asio2::detail
 		}
 
 		template<typename MatchCondition>
-		void _handle_recv(const error_code& ec, std::size_t bytes_recvd, condition_wrap<MatchCondition> condition)
+		void _handle_recv(const error_code& ec, std::size_t bytes_recvd,
+			condition_wrap<MatchCondition> condition)
 		{
 			set_last_error(ec);
 
@@ -420,8 +437,9 @@ namespace asio2::detail
 
 			if (!ec)
 			{
-				this->derived()._fire_recv(std::shared_ptr<derived_t>{}, std::string_view(
-					static_cast<std::string_view::const_pointer>(this->buffer_.data().data()), bytes_recvd));
+				this->derived()._fire_recv(this->derived().selfptr(),
+					std::string_view(static_cast<std::string_view::const_pointer>(
+						this->buffer_.data().data()), bytes_recvd));
 			}
 
 			this->buffer_.consume(this->buffer_.size());

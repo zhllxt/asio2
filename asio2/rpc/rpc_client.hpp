@@ -22,8 +22,8 @@
 
 #include <asio2/rpc/detail/protocol.hpp>
 #include <asio2/rpc/detail/invoker.hpp>
-#include <asio2/rpc/component/rpc_call_cp.hpp>
 #include <asio2/rpc/impl/rpc_recv_op.hpp>
+#include <asio2/rpc/component/rpc_call_cp.hpp>
 
 namespace asio2::detail
 {
@@ -40,7 +40,8 @@ namespace asio2::detail
 		template <class>                             friend class post_cp;
 		template <class, bool>                       friend class reconnect_timer_cp;
 		template <class, bool>                       friend class connect_timeout_cp;
-		template <class, class>                      friend class connect_cp;
+		template <class, class, bool>                friend class connect_cp;
+		template <class, class, bool>                friend class disconnect_cp;
 		template <class>                             friend class data_persistence_cp;
 		template <class>                             friend class event_queue_cp;
 		template <class, bool>                       friend class send_cp;
@@ -63,7 +64,7 @@ namespace asio2::detail
 		using executor_type = executor_t;
 
 	protected:
-		using super::send;
+		//using super::send;
 		using super::_handle_recv;
 
 	public:
@@ -91,24 +92,70 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : set call rpc function timeout duration value
+		 * @function : start the client, blocking connect to server
+		 * @param host A string identifying a location. May be a descriptive name or
+		 * a numeric address string.
+		 * @param port A string identifying the requested service. This may be a
+		 * descriptive name or a numeric string corresponding to a port number.
+		 */
+		template<typename String, typename StrOrInt>
+		bool start(String&& host, StrOrInt&& port)
+		{
+			if constexpr (is_websocket_client<executor_t>::value)
+				return executor_t::template start(
+					std::forward<String>(host), std::forward<StrOrInt>(port));
+			else
+				return executor_t::template start(
+					std::forward<String>(host), std::forward<StrOrInt>(port), asio2::use_dgram);
+		}
+
+		/**
+		 * @function : start the client, asynchronous connect to server
+		 * @param host A string identifying a location. May be a descriptive name or
+		 * a numeric address string.
+		 * @param port A string identifying the requested service. This may be a
+		 * descriptive name or a numeric string corresponding to a port number.
+		 */
+		template<typename String, typename StrOrInt>
+		bool async_start(String&& host, StrOrInt&& port)
+		{
+			if constexpr (is_websocket_client<executor_t>::value)
+				return executor_t::template async_start(
+					std::forward<String>(host), std::forward<StrOrInt>(port));
+			else
+				return executor_t::template async_start(
+					std::forward<String>(host), std::forward<StrOrInt>(port), asio2::use_dgram);
+		}
+
+		/**
+		 * @function : set the default timeout for calling rpc functions
 		 */
 		template<class Rep, class Period>
-		inline derived_t & timeout(std::chrono::duration<Rep, Period> duration)
+		inline derived_t & default_timeout(std::chrono::duration<Rep, Period> duration)
 		{
 			this->timeout_ = duration;
 			return (this->derived());
 		}
 
 		/**
-		 * @function : get call rpc function timeout duration value
+		 * @function : get the default timeout for calling rpc functions
 		 */
-		inline std::chrono::steady_clock::duration timeout()
+		inline std::chrono::steady_clock::duration default_timeout()
 		{
 			return this->timeout_;
 		}
 
 	protected:
+		template<typename MatchCondition, typename Socket>
+		inline void _ws_start(
+			const std::shared_ptr<derived_t>& this_ptr,
+			const condition_wrap<MatchCondition>& condition, Socket& socket)
+		{
+			super::_ws_start(this_ptr, condition, socket);
+
+			this->derived().ws_stream().binary(true);
+		}
+
 		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
 		{
 			while (!this->reqs_.empty())
@@ -137,50 +184,76 @@ namespace asio2::detail
 
 namespace asio2
 {
-#if 1
+	template<class>
+	class rpc_client_t;
+
 	/// Using tcp dgram mode as the underlying communication support
-	class rpc_client : public detail::rpc_client_impl_t<rpc_client,
-		detail::tcp_client_impl_t<rpc_client, asio::ip::tcp::socket, asio::streambuf>>
+	template<>
+	class rpc_client_t<detail::use_tcp> : public detail::rpc_client_impl_t<rpc_client_t<detail::use_tcp>,
+		detail::tcp_client_impl_t<rpc_client_t<detail::use_tcp>, asio::ip::tcp::socket, asio::streambuf>>
 	{
 	public:
-		using detail::rpc_client_impl_t<rpc_client, detail::tcp_client_impl_t<rpc_client,
-			asio::ip::tcp::socket, asio::streambuf>>::rpc_client_impl_t;
+		using detail::rpc_client_impl_t<rpc_client_t<detail::use_tcp>, detail::tcp_client_impl_t<
+			rpc_client_t<detail::use_tcp>, asio::ip::tcp::socket, asio::streambuf>>::rpc_client_impl_t;
 	};
 
-	#if defined(ASIO2_USE_SSL)
-	class rpcs_client : public detail::rpc_client_impl_t<rpcs_client,
-		detail::tcps_client_impl_t<rpcs_client, asio::ip::tcp::socket, asio::streambuf>>
-	{
-	public:
-		using detail::rpc_client_impl_t<rpcs_client, detail::tcps_client_impl_t<rpcs_client,
-			asio::ip::tcp::socket, asio::streambuf>>::rpc_client_impl_t;
-	};
-	#endif
-#else
 	/// Using websocket as the underlying communication support
-	#ifndef ASIO_STANDALONE
-	class rpc_client : public detail::rpc_client_impl_t<rpc_client,
-		detail::ws_client_impl_t<rpc_client, asio::ip::tcp::socket,
+	template<>
+	class rpc_client_t<detail::use_websocket> : public detail::rpc_client_impl_t<
+		rpc_client_t<detail::use_websocket>,
+		detail::ws_client_impl_t<rpc_client_t<detail::use_websocket>, asio::ip::tcp::socket,
 		websocket::stream<asio::ip::tcp::socket&>, http::string_body, beast::flat_buffer>>
 	{
 	public:
-		using detail::rpc_client_impl_t<rpc_client, detail::ws_client_impl_t<rpc_client,
+		using detail::rpc_client_impl_t<rpc_client_t<detail::use_websocket>,
+			detail::ws_client_impl_t<rpc_client_t<detail::use_websocket>,
 			asio::ip::tcp::socket, websocket::stream<asio::ip::tcp::socket&>,
 			http::string_body, beast::flat_buffer>>::rpc_client_impl_t;
 	};
 
-	#if defined(ASIO2_USE_SSL)
-	class rpcs_client : public detail::rpc_client_impl_t<rpcs_client,
-		detail::wss_client_impl_t<rpcs_client, asio::ip::tcp::socket,
-		websocket::stream<asio::ssl::stream<asio::ip::tcp::socket&>&>, http::string_body, beast::flat_buffer>>
+#if !defined(ASIO2_USE_WEBSOCKET_RPC)
+	using rpc_client = rpc_client_t<detail::use_tcp>;
+#else
+	using rpc_client = rpc_client_t<detail::use_websocket>;
+#endif
+
+#if defined(ASIO2_USE_SSL)
+	template<class>
+	class rpcs_client_t;
+
+	template<>
+	class rpcs_client_t<detail::use_tcp> : public detail::rpc_client_impl_t<
+		rpcs_client_t<detail::use_tcp>,
+		detail::tcps_client_impl_t<rpcs_client_t<detail::use_tcp>,
+		asio::ip::tcp::socket, asio::streambuf>>
 	{
 	public:
-		using detail::rpc_client_impl_t<rpcs_client, detail::wss_client_impl_t<rpcs_client,
-			asio::ip::tcp::socket, websocket::stream<asio::ssl::stream<asio::ip::tcp::socket&>&>,
+		using detail::rpc_client_impl_t<rpcs_client_t<detail::use_tcp>,
+			detail::tcps_client_impl_t<rpcs_client_t<detail::use_tcp>,
+			asio::ip::tcp::socket, asio::streambuf>>::rpc_client_impl_t;
+	};
+
+	template<>
+	class rpcs_client_t<detail::use_websocket> : public detail::rpc_client_impl_t<
+		rpcs_client_t<detail::use_websocket>,
+		detail::wss_client_impl_t<rpcs_client_t<detail::use_websocket>,
+		asio::ip::tcp::socket,
+		websocket::stream<asio::ssl::stream<asio::ip::tcp::socket&>&>,
+		http::string_body, beast::flat_buffer>>
+	{
+	public:
+		using detail::rpc_client_impl_t<rpcs_client_t<detail::use_websocket>,
+			detail::wss_client_impl_t<rpcs_client_t<
+			detail::use_websocket>, asio::ip::tcp::socket,
+			websocket::stream<asio::ssl::stream<asio::ip::tcp::socket&>&>,
 			http::string_body, beast::flat_buffer>>::rpc_client_impl_t;
 	};
-	#endif
-	#endif
+
+#if !defined(ASIO2_USE_WEBSOCKET_RPC)
+	using rpcs_client = rpcs_client_t<detail::use_tcp>;
+#else
+	using rpcs_client = rpcs_client_t<detail::use_websocket>;
+#endif
 #endif
 }
 

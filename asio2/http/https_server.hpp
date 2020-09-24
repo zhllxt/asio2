@@ -8,7 +8,7 @@
  * (See accompanying file LICENSE or see <http://www.gnu.org/licenses/>)
  */
 
-#if !defined(ASIO_STANDALONE) && defined(ASIO2_USE_SSL)
+#if defined(ASIO2_USE_SSL)
 
 #ifndef __ASIO2_HTTPS_SERVER_HPP__
 #define __ASIO2_HTTPS_SERVER_HPP__
@@ -23,11 +23,14 @@
 namespace asio2::detail
 {
 	template<class derived_t, class session_t>
-	class https_server_impl_t : public tcps_server_impl_t<derived_t, session_t>
+	class https_server_impl_t
+		: public tcps_server_impl_t<derived_t, session_t>
+		, public http_router_t<session_t>
 	{
 		template <class, bool>  friend class user_timer_cp;
 		template <class>        friend class post_cp;
 		template <class, class> friend class server_impl_t;
+		template <class, class> friend class tcp_server_impl_t;
 		template <class, class> friend class tcps_server_impl_t;
 
 	public:
@@ -62,7 +65,7 @@ namespace asio2::detail
 		 * descriptive name or a numeric string corresponding to a port number.
 		 */
 		template<typename StrOrInt>
-		bool start(StrOrInt&& service)
+		inline bool start(StrOrInt&& service)
 		{
 			return this->start(std::string_view{}, std::forward<StrOrInt>(service));
 		}
@@ -75,7 +78,7 @@ namespace asio2::detail
 		 * descriptive name or a numeric string corresponding to a port number.
 		 */
 		template<typename String, typename StrOrInt>
-		bool start(String&& host, StrOrInt&& service)
+		inline bool start(String&& host, StrOrInt&& service)
 		{
 			return this->derived()._do_start(std::forward<String>(host), std::forward<StrOrInt>(service),
 				condition_wrap<void>{});
@@ -85,18 +88,52 @@ namespace asio2::detail
 		/**
 		 * @function : bind recv listener
 		 * @param    : fun - a user defined callback function
-		 * Function signature : void(std::shared_ptr<asio2::https_session>& session_ptr, http::request<http::string_body>& req)
+		 * Function signature : void(std::shared_ptr<asio2::https_session>& session_ptr,
+		 *                           http::request& req, http::response& rep)
+		 * or                 : void(http::request& req, http::response& rep)
 		 */
 		template<class F, class ...C>
 		inline derived_t & bind_recv(F&& fun, C&&... obj)
 		{
-			this->listener_.bind(event::recv, observer_t<std::shared_ptr<session_t>&,
-				http::request<typename session_t::body_type>&>(std::forward<F>(fun), std::forward<C>(obj)...));
+			if constexpr (is_template_callable_v<F,
+				std::shared_ptr<session_t>&, http::request&, http::response&>)
+			{
+				this->is_arg0_session_ = true;
+				this->listener_.bind(event::recv, observer_t<std::shared_ptr<session_t>&,
+					http::request&, http::response&>(std::forward<F>(fun), std::forward<C>(obj)...));
+			}
+			else
+			{
+				this->is_arg0_session_ = false;
+				this->listener_.bind(event::recv, observer_t<
+					http::request&, http::response&>(std::forward<F>(fun), std::forward<C>(obj)...));
+			}
+			return (this->derived());
+		}
+
+		/**
+		 * @function : bind websocket upgrade listener
+		 * @param    : fun - a user defined callback function
+		 * Function signature : void(std::shared_ptr<asio2::http_session>& session_ptr, asio::error_code ec)
+		 */
+		template<class F, class ...C>
+		inline derived_t & bind_upgrade(F&& fun, C&&... obj)
+		{
+			this->listener_.bind(event::upgrade, observer_t<std::shared_ptr<session_t>&, error_code>
+				(std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
 		}
 
 	protected:
+		template<typename... Args>
+		inline std::shared_ptr<session_t> _make_session(Args&&... args)
+		{
+			return super::_make_session(std::forward<Args>(args)..., *this,
+				this->root_directory_, this->is_arg0_session_, this->support_websocket_);
+		}
 
+	protected:
+		bool                      is_arg0_session_    = false;
 	};
 }
 

@@ -56,7 +56,8 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @function : Asynchronous send data,supporting multi data formats,see asio::buffer(...) in /asio/buffer.hpp
+		 * @function : Asynchronous send data,supporting multi data formats,
+		 *             see asio::buffer(...) in /asio/buffer.hpp
 		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
 		 * use like this : std::string m; send(std::move(m)); can reducing memory allocation.
 		 * PodType * : send("abc");
@@ -79,9 +80,11 @@ namespace asio2::detail
 					asio::detail::throw_error(asio::error::not_connected);
 
 				this->derive.push_event([this,
-					data = this->derive._data_persistence(std::forward<T>(data))]() mutable
+					data = this->derive._data_persistence(std::forward<T>(data))]
+					(event_guard<derived_t>&& g) mutable
 				{
-					return this->derive._do_send(data, [](const error_code&, std::size_t) {});
+					return this->derive._do_send(data,
+						[g = std::move(g)](const error_code&, std::size_t) mutable {});
 				});
 				return true;
 			}
@@ -117,8 +120,9 @@ namespace asio2::detail
 		 * asio::write(session_ptr->stream(), asio::buffer(std::string("abc")));
 		 */
 		template<class CharT, class SizeT>
-		inline typename std::enable_if_t<std::is_integral_v<std::remove_cv_t<std::remove_reference_t<SizeT>>>, bool>
-			send(CharT * s, SizeT count)
+		inline typename std::enable_if_t<std::is_integral_v<std::remove_cv_t<
+			std::remove_reference_t<SizeT>>>, bool>
+			send(CharT* s, SizeT count)
 		{
 			// We must ensure that there is only one operation to send data
 			// at the same time,otherwise may be cause crash.
@@ -130,9 +134,11 @@ namespace asio2::detail
 				if (!s)
 					asio::detail::throw_error(asio::error::invalid_argument);
 
-				this->derive.push_event([this, data = this->derive._data_persistence(s, count)]() mutable
+				this->derive.push_event([this, data = this->derive._data_persistence(s, count)]
+				(event_guard<derived_t>&& g) mutable
 				{
-					return this->derive._do_send(data, [](const error_code&, std::size_t) {});
+					return this->derive._do_send(data,
+						[g = std::move(g)](const error_code&, std::size_t) mutable {});
 				});
 				return true;
 			}
@@ -142,12 +148,13 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Asynchronous send data,supporting multi data formats,see asio::buffer(...) in /asio/buffer.hpp
+		 * @function : Asynchronous send data,supporting multi data formats,
+		 *             see asio::buffer(...) in /asio/buffer.hpp
 		 * use like this : std::string m; send(std::move(m)); can reducing memory allocation.
 		 * the pair.first save the send result error_code,the pair.second save the sent_bytes.
 		 * note : Do not call this function in any listener callback function like this:
-		 * auto future = send(msg,asio::use_future); future.get(); it will cause deadlock,the future.get() will
-		 * never return.
+		 * auto future = send(msg,asio::use_future); future.get(); it will cause deadlock,
+		 * the future.get() will never return.
 		 * PodType * : send("abc");
 		 * PodType (&data)[N] : double m[10]; send(m);
 		 * std::array<PodType, N> : std::array<int,10> m; send(m);
@@ -168,9 +175,10 @@ namespace asio2::detail
 					asio::detail::throw_error(asio::error::not_connected);
 
 				this->derive.push_event([this, data = this->derive._data_persistence(std::forward<T>(data)),
-					promise = std::move(promise)]() mutable
+					promise = std::move(promise)](event_guard<derived_t>&& g) mutable
 				{
-					return this->derive._do_send(data, [&promise](const error_code& ec, std::size_t bytes_sent)
+					return this->derive._do_send(data, [&promise, g = std::move(g)]
+					(const error_code& ec, std::size_t bytes_sent) mutable
 					{
 						promise().set_value(std::pair<error_code, std::size_t>(ec, bytes_sent));
 					});
@@ -193,8 +201,8 @@ namespace asio2::detail
 		 * @function : Asynchronous send data
 		 * the pair.first save the send result error_code,the pair.second save the sent_bytes.
 		 * note : Do not call this function in any listener callback function like this:
-		 * auto future = send(msg,asio::use_future); future.get(); it will cause deadlock,the future.get() will
-		 * never return.
+		 * auto future = send(msg,asio::use_future); future.get(); it will cause deadlock,
+		 * the future.get() will never return.
 		 * PodType * : send("abc");
 		 */
 		template<class CharT, class Traits = std::char_traits<CharT>>
@@ -213,8 +221,8 @@ namespace asio2::detail
 		 * @function : Asynchronous send data
 		 * the pair.first save the send result error_code,the pair.second save the sent_bytes.
 		 * note : Do not call this function in any listener callback function like this:
-		 * auto future = send(msg,asio::use_future); future.get(); it will cause deadlock,the future.get() will
-		 * never return.
+		 * auto future = send(msg,asio::use_future); future.get(); it will cause deadlock,
+		 * the future.get() will never return.
 		 * PodType (&data)[N] : double m[10]; send(m,5);
 		 */
 		template<class CharT, class SizeT>
@@ -234,9 +242,10 @@ namespace asio2::detail
 					asio::detail::throw_error(asio::error::invalid_argument);
 
 				this->derive.push_event([this, data = this->derive._data_persistence(s, count),
-					promise = std::move(promise)]() mutable
+					promise = std::move(promise)](event_guard<derived_t>&& g) mutable
 				{
-					return this->derive._do_send(data, [&promise](const error_code& ec, std::size_t bytes_sent)
+					return this->derive._do_send(data, [&promise, g = std::move(g)]
+					(const error_code& ec, std::size_t bytes_sent) mutable
 					{
 						promise().set_value(std::pair<error_code, std::size_t>(ec, bytes_sent));
 					});
@@ -256,7 +265,8 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Asynchronous send data,supporting multi data formats,see asio::buffer(...) in /asio/buffer.hpp
+		 * @function : Asynchronous send data,supporting multi data formats,
+		 *             see asio::buffer(...) in /asio/buffer.hpp
 		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
 		 * use like this : std::string m; send(std::move(m)); can reducing memory allocation.
 		 * PodType * : send("abc");
@@ -280,9 +290,10 @@ namespace asio2::detail
 					asio::detail::throw_error(asio::error::not_connected);
 
 				this->derive.push_event([this, data = this->derive._data_persistence(std::forward<T>(data)),
-					fn = std::forward<Callback>(fn)]() mutable
+					fn = std::forward<Callback>(fn)](event_guard<derived_t>&& g) mutable
 				{
-					return this->derive._do_send(data, [&fn](const error_code&, std::size_t bytes_sent)
+					return this->derive._do_send(data, [&fn, g = std::move(g)]
+					(const error_code&, std::size_t bytes_sent) mutable
 					{
 						callback_helper::call(fn, bytes_sent);
 					});
@@ -308,7 +319,8 @@ namespace asio2::detail
 			std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, char> ||
 			std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, wchar_t> ||
 			std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, char16_t> ||
-			std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, char32_t>), bool> send(CharT * s, Callback&& fn)
+			std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, char32_t>), bool>
+			send(CharT * s, Callback&& fn)
 		{
 			return this->send(s, s ? Traits::length(s) : 0, std::forward<Callback>(fn));
 		}
@@ -338,9 +350,10 @@ namespace asio2::detail
 					asio::detail::throw_error(asio::error::invalid_argument);
 
 				this->derive.push_event([this, data = this->derive._data_persistence(s, count),
-					fn = std::forward<Callback>(fn)]() mutable
+					fn = std::forward<Callback>(fn)](event_guard<derived_t>&& g) mutable
 				{
-					return this->derive._do_send(data, [&fn](const error_code&, std::size_t bytes_sent)
+					return this->derive._do_send(data, [&fn, g = std::move(g)]
+					(const error_code&, std::size_t bytes_sent) mutable
 					{
 						callback_helper::call(fn, bytes_sent);
 					});

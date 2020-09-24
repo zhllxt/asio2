@@ -8,7 +8,7 @@
  * (See accompanying file LICENSE or see <http://www.gnu.org/licenses/>)
  */
 
-#if !defined(ASIO_STANDALONE) && defined(ASIO2_USE_SSL)
+#if defined(ASIO2_USE_SSL)
 
 #ifndef __ASIO2_WSS_SERVER_HPP__
 #define __ASIO2_WSS_SERVER_HPP__

@@ -1,0 +1,1324 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="asio2">
+      <UniqueIdentifier>{324edb2d-342e-41a5-aae6-5e389707c0b5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\base">
+      <UniqueIdentifier>{971273b5-9ee4-43e4-952d-cb584a770fc9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\icmp">
+      <UniqueIdentifier>{6d42ffbf-2b32-46ea-a43f-a6705c252745}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\http">
+      <UniqueIdentifier>{d3a51f6b-da8d-4778-9529-719c32143941}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\tcp">
+      <UniqueIdentifier>{a081d113-35e7-4356-90b0-304203a04ea7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\rpc">
+      <UniqueIdentifier>{bae4b10d-8f3d-4d84-8387-d5d62c8e20fa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\udp">
+      <UniqueIdentifier>{8d31bb7e-8be1-4dca-9298-c46e50c186a7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\util">
+      <UniqueIdentifier>{4e858230-4f00-4c2b-bdfd-9246aaca43d8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\base\component">
+      <UniqueIdentifier>{e363edbb-39f7-45c4-9048-457184a70b17}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\http\component">
+      <UniqueIdentifier>{6af8c455-fb89-47d1-a641-55a9bd1c5726}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\http\impl">
+      <UniqueIdentifier>{10817ff2-21d7-4448-a011-c7d1fffbfa24}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\tcp\component">
+      <UniqueIdentifier>{75bec524-91f5-44bb-91a2-c0b31639b23a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\tcp\impl">
+      <UniqueIdentifier>{17162bb0-aaab-4615-aa8f-b49315e1ed30}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\base\detail">
+      <UniqueIdentifier>{ce96ea71-b61d-4ecf-ac86-c97bca9a5ee9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\http\detail">
+      <UniqueIdentifier>{1c8a1dbf-66f2-4a2f-8686-075825da731e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\udp\detail">
+      <UniqueIdentifier>{32249f74-cee3-47e1-8082-b779a9a0bc55}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\udp\impl">
+      <UniqueIdentifier>{83779696-f6a7-4193-a152-480751496fee}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\udp\component">
+      <UniqueIdentifier>{48330577-0cfc-4d75-a7fe-aa0243eaeb8a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\icmp\detail">
+      <UniqueIdentifier>{f067041f-d254-49c4-a650-016908b3b4df}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\scp">
+      <UniqueIdentifier>{0f482f6d-fe40-48cd-98ec-abd92d94349c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\rpc\detail">
+      <UniqueIdentifier>{d766de4b-ad4e-49bd-ae07-60b3629a23a5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\3rd">
+      <UniqueIdentifier>{c61dd6ea-a9bd-4416-8150-7e349de305d4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\rpc\component">
+      <UniqueIdentifier>{7190e768-5d84-48e4-8171-dfd42da7d364}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\rpc\impl">
+      <UniqueIdentifier>{1acce63e-a916-467f-b167-eb7aaff629f6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\3rd\openssl">
+      <UniqueIdentifier>{14e291e1-37b9-4fba-aa0e-ce2549f66adc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\beast">
+      <UniqueIdentifier>{552b1ab2-f127-4652-a1d8-f5f34793c387}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\beast\core">
+      <UniqueIdentifier>{7c4cfa53-1a27-4976-85ec-b1f7456a858e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\beast\core\detail">
+      <UniqueIdentifier>{77124039-c4ba-476e-b2f9-60be0184bf9f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\beast\core\impl">
+      <UniqueIdentifier>{427841bc-4499-49dc-949d-c3cf70060392}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\beast\websocket">
+      <UniqueIdentifier>{25178954-d938-45e4-a331-b8ac38900e7d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\beast\websocket\impl">
+      <UniqueIdentifier>{25fc4650-2135-4956-9809-858bc4d8e37a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\beast\core\detail\impl">
+      <UniqueIdentifier>{fe750da6-5eaa-4be6-9833-362c0816c6d4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\beast\http">
+      <UniqueIdentifier>{eb27827b-9baa-4de7-bb93-98447162ca8d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\beast\http\impl">
+      <UniqueIdentifier>{0c102534-0b1c-4305-b267-7f3ff1e413a8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\beast\http\detail">
+      <UniqueIdentifier>{cf533c25-affc-47ce-bf57-c97dec689ad2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\beast\ssl">
+      <UniqueIdentifier>{6b9355d8-565a-44f6-a2ed-bc918db8dab0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\beast\websocket\detail">
+      <UniqueIdentifier>{0d14a5e2-fc26-4aea-8321-4dc42c29a3c0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\beast\zlib">
+      <UniqueIdentifier>{f8787bf6-ecf4-4af8-92ad-963fc7d5da0c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\beast\zlib\impl">
+      <UniqueIdentifier>{f29416eb-090f-4143-b6ab-85164abe86a4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="asio2\beast\zlib\detail">
+      <UniqueIdentifier>{885c6218-fb8e-46ee-b6e2-183314fb683c}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\asio2\util\logger.hpp">
+      <Filter>asio2\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\util\spin_lock.hpp">
+      <Filter>asio2\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\util\thread_pool.hpp">
+      <Filter>asio2\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\asio2.hpp">
+      <Filter>asio2</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\util\ini.hpp">
+      <Filter>asio2\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\config.hpp">
+      <Filter>asio2</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\udp\udp_server.hpp">
+      <Filter>asio2\udp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\udp\udp_session.hpp">
+      <Filter>asio2\udp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\udp\udp_client.hpp">
+      <Filter>asio2\udp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\util\defer.hpp">
+      <Filter>asio2\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\util\des.hpp">
+      <Filter>asio2\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\util\md5.hpp">
+      <Filter>asio2\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\util\noncopyable.hpp">
+      <Filter>asio2\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\base\component\connect_time_cp.hpp">
+      <Filter>asio2\base\component</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\base\component\silence_timer_cp.hpp">
+      <Filter>asio2\base\component</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\base\component\socket_cp.hpp">
+      <Filter>asio2\base\component</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\base\component\user_data_cp.hpp">
+      <Filter>asio2\base\component</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\base\component\user_timer_cp.hpp">
+      <Filter>asio2\base\component</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\base\detail\allocator.hpp">
+      <Filter>asio2\base\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\base\detail\buffer_wrap.hpp">
+      <Filter>asio2\base\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\base\detail\condition_wrap.hpp">
+      <Filter>asio2\base\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\base\detail\linear_buffer.hpp">
+      <Filter>asio2\base\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\base\detail\object.hpp">
+      <Filter>asio2\base\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\base\detail\util.hpp">
+      <Filter>asio2\base\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\base\client.hpp">
+      <Filter>asio2\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\base\error.hpp">
+      <Filter>asio2\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\base\iopool.hpp">
+      <Filter>asio2\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\base\listener.hpp">
+      <Filter>asio2\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\base\server.hpp">
+      <Filter>asio2\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\base\session.hpp">
+      <Filter>asio2\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\base\session_mgr.hpp">
+      <Filter>asio2\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\http\component\ws_stream_cp.hpp">
+      <Filter>asio2\http\component</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\http\impl\http_send_op.hpp">
+      <Filter>asio2\http\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\http\impl\ws_send_op.hpp">
+      <Filter>asio2\http\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\http\detail\http_parser.h">
+      <Filter>asio2\http\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\http\detail\http_util.hpp">
+      <Filter>asio2\http\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\http\detail\mime_types.hpp">
+      <Filter>asio2\http\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\http\http_client.hpp">
+      <Filter>asio2\http</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\http\http_server.hpp">
+      <Filter>asio2\http</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\http\http_session.hpp">
+      <Filter>asio2\http</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\http\https_client.hpp">
+      <Filter>asio2\http</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\http\https_server.hpp">
+      <Filter>asio2\http</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\http\https_session.hpp">
+      <Filter>asio2\http</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\http\ws_client.hpp">
+      <Filter>asio2\http</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\http\ws_server.hpp">
+      <Filter>asio2\http</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\http\ws_session.hpp">
+      <Filter>asio2\http</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\http\wss_client.hpp">
+      <Filter>asio2\http</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\http\wss_server.hpp">
+      <Filter>asio2\http</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\http\wss_session.hpp">
+      <Filter>asio2\http</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\tcp\tcp_client.hpp">
+      <Filter>asio2\tcp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\tcp\tcp_server.hpp">
+      <Filter>asio2\tcp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\tcp\tcp_session.hpp">
+      <Filter>asio2\tcp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\tcp\tcps_client.hpp">
+      <Filter>asio2\tcp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\tcp\tcps_server.hpp">
+      <Filter>asio2\tcp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\tcp\tcps_session.hpp">
+      <Filter>asio2\tcp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\tcp\component\ssl_stream_cp.hpp">
+      <Filter>asio2\tcp\component</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\tcp\impl\tcp_recv_op.hpp">
+      <Filter>asio2\tcp\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\tcp\impl\tcp_send_op.hpp">
+      <Filter>asio2\tcp\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\base\selector.hpp">
+      <Filter>asio2\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\base\component\local_endpoint_cp.hpp">
+      <Filter>asio2\base\component</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\base\component\post_cp.hpp">
+      <Filter>asio2\base\component</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\http\impl\http_recv_op.hpp">
+      <Filter>asio2\http\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\udp\detail\ikcp.h">
+      <Filter>asio2\udp\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\udp\impl\udp_send_op.hpp">
+      <Filter>asio2\udp\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\udp\detail\kcp_util.hpp">
+      <Filter>asio2\udp\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\udp\component\kcp_stream_cp.hpp">
+      <Filter>asio2\udp\component</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\icmp\detail\icmp_header.hpp">
+      <Filter>asio2\icmp\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\icmp\detail\ipv4_header.hpp">
+      <Filter>asio2\icmp\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\icmp\ping.hpp">
+      <Filter>asio2\icmp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\scp\scp.hpp">
+      <Filter>asio2\scp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\base\component\send_cp.hpp">
+      <Filter>asio2\base\component</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\http\component\http_send_cp.hpp">
+      <Filter>asio2\http\component</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\tcp\component\tcp_keepalive_cp.hpp">
+      <Filter>asio2\tcp\component</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\udp\udp_cast.hpp">
+      <Filter>asio2\udp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\udp\component\udp_send_cp.hpp">
+      <Filter>asio2\udp\component</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\base\component\connect_cp.hpp">
+      <Filter>asio2\base\component</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\base\component\connect_timeout_cp.hpp">
+      <Filter>asio2\base\component</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\base\timer.hpp">
+      <Filter>asio2\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\rpc\rpc_client.hpp">
+      <Filter>asio2\rpc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\rpc\rpc_server.hpp">
+      <Filter>asio2\rpc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\rpc\detail\invoker.hpp">
+      <Filter>asio2\rpc\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\rpc\detail\protocol.hpp">
+      <Filter>asio2\rpc\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\base\detail\function_traits.hpp">
+      <Filter>asio2\base\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\3rd\cereal.hpp">
+      <Filter>asio2\3rd</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\rpc\component\rpc_call_cp.hpp">
+      <Filter>asio2\rpc\component</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\rpc\detail\serialization.hpp">
+      <Filter>asio2\rpc\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\rpc\rpc_session.hpp">
+      <Filter>asio2\rpc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\rpc\impl\rpc_recv_op.hpp">
+      <Filter>asio2\rpc\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\__DECC_INCLUDE_EPILOGUE.H">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\__DECC_INCLUDE_PROLOGUE.H">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\aes.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\asn1.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\asn1_mac.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\asn1t.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\async.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\bio.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\blowfish.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\bn.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\buffer.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\camellia.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\cast.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\cmac.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\cms.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\comp.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\conf.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\conf_api.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\crypto.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\ct.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\des.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\dh.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\dsa.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\dtls1.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\e_os2.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\ebcdic.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\ec.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\ecdh.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\ecdsa.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\engine.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\err.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\evp.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\hmac.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\idea.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\kdf.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\lhash.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\md2.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\md4.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\md5.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\mdc2.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\modes.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\obj_mac.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\objects.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\ocsp.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\opensslconf.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\opensslconf_linux64.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\opensslconf_win32.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\opensslconf_win64.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\opensslv.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\ossl_typ.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\pem.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\pem2.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\pkcs7.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\pkcs12.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\rand.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\rc2.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\rc4.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\rc5.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\ripemd.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\rsa.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\safestack.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\seed.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\sha.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\srp.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\srtp.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\ssl.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\ssl2.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\ssl3.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\stack.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\symhacks.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\tls1.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\ts.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\txt_db.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\ui.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\whrlpool.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\x509.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\x509_vfy.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\openssl\x509v3.h">
+      <Filter>asio2\3rd\openssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\base\component\data_persistence_cp.hpp">
+      <Filter>asio2\base\component</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\base\component\event_queue_cp.hpp">
+      <Filter>asio2\base\component</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\base\component\reconnect_timer_cp.hpp">
+      <Filter>asio2\base\component</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\rpc\detail\rpc_portable_binary.hpp">
+      <Filter>asio2\rpc\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\util\aes.hpp">
+      <Filter>asio2\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\util\base64.hpp">
+      <Filter>asio2\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\util\sha1.hpp">
+      <Filter>asio2\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\util\string.hpp">
+      <Filter>asio2\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\util\uuid.hpp">
+      <Filter>asio2\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\tcp\component\ssl_context_cp.hpp">
+      <Filter>asio2\tcp\component</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\type_traits.hpp">
+      <Filter>asio2\beast\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\detail\is_invocable.hpp">
+      <Filter>asio2\beast\core\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\string_type.hpp">
+      <Filter>asio2\beast\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\detail\config.hpp">
+      <Filter>asio2\beast\core\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\string.hpp">
+      <Filter>asio2\beast\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\impl\string.ipp">
+      <Filter>asio2\beast\core\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\detail\string.hpp">
+      <Filter>asio2\beast\core\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\string_param.hpp">
+      <Filter>asio2\beast\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\static_string.hpp">
+      <Filter>asio2\beast\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\detail\static_string.hpp">
+      <Filter>asio2\beast\core\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\impl\static_string.hpp">
+      <Filter>asio2\beast\core\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\detail\static_ostream.hpp">
+      <Filter>asio2\beast\core\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\impl\string_param.hpp">
+      <Filter>asio2\beast\core\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\static_buffer.hpp">
+      <Filter>asio2\beast\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\detail\buffers_pair.hpp">
+      <Filter>asio2\beast\core\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\impl\static_buffer.hpp">
+      <Filter>asio2\beast\core\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\impl\static_buffer.ipp">
+      <Filter>asio2\beast\core\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\role.hpp">
+      <Filter>asio2\beast\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\stream_traits.hpp">
+      <Filter>asio2\beast\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\detail\static_const.hpp">
+      <Filter>asio2\beast\core\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\detail\stream_traits.hpp">
+      <Filter>asio2\beast\core\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\error.hpp">
+      <Filter>asio2\beast\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\impl\error.hpp">
+      <Filter>asio2\beast\core\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\impl\error.ipp">
+      <Filter>asio2\beast\core\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\span.hpp">
+      <Filter>asio2\beast\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\detail\type_traits.hpp">
+      <Filter>asio2\beast\core\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\saved_handler.hpp">
+      <Filter>asio2\beast\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\impl\saved_handler.hpp">
+      <Filter>asio2\beast\core\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\impl\saved_handler.ipp">
+      <Filter>asio2\beast\core\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\detail\allocator.hpp">
+      <Filter>asio2\beast\core\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\empty_value.hpp">
+      <Filter>asio2\beast\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\read_size.hpp">
+      <Filter>asio2\beast\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\impl\read_size.hpp">
+      <Filter>asio2\beast\core\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\rate_policy.hpp">
+      <Filter>asio2\beast\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\ostream.hpp">
+      <Filter>asio2\beast\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\detail\ostream.hpp">
+      <Filter>asio2\beast\core\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\buffers_prefix.hpp">
+      <Filter>asio2\beast\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\buffers_range.hpp">
+      <Filter>asio2\beast\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\buffers_suffix.hpp">
+      <Filter>asio2\beast\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\buffer_traits.hpp">
+      <Filter>asio2\beast\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\detail\buffer_traits.hpp">
+      <Filter>asio2\beast\core\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\impl\buffers_prefix.hpp">
+      <Filter>asio2\beast\core\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\impl\buffers_suffix.hpp">
+      <Filter>asio2\beast\core\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\detail\buffers_range_adaptor.hpp">
+      <Filter>asio2\beast\core\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\make_printable.hpp">
+      <Filter>asio2\beast\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\multi_buffer.hpp">
+      <Filter>asio2\beast\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\impl\multi_buffer.hpp">
+      <Filter>asio2\beast\core\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\type_with_alignment.hpp">
+      <Filter>asio2\beast\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\util.hpp">
+      <Filter>asio2\beast\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\handler_ptr.hpp">
+      <Filter>asio2\beast\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\impl\handler_ptr.hpp">
+      <Filter>asio2\beast\core\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\flat_buffer.hpp">
+      <Filter>asio2\beast\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\impl\flat_buffer.hpp">
+      <Filter>asio2\beast\core\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\flat_static_buffer.hpp">
+      <Filter>asio2\beast\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\impl\flat_static_buffer.hpp">
+      <Filter>asio2\beast\core\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\impl\flat_static_buffer.ipp">
+      <Filter>asio2\beast\core\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\flat_stream.hpp">
+      <Filter>asio2\beast\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\impl\flat_stream.hpp">
+      <Filter>asio2\beast\core\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\websocket\teardown.hpp">
+      <Filter>asio2\beast\websocket</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\websocket\impl\teardown.hpp">
+      <Filter>asio2\beast\websocket\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\async_base.hpp">
+      <Filter>asio2\beast\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\impl\async_base.hpp">
+      <Filter>asio2\beast\core\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\detail\async_base.hpp">
+      <Filter>asio2\beast\core\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\bind_handler.hpp">
+      <Filter>asio2\beast\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\detail\bind_handler.hpp">
+      <Filter>asio2\beast\core\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\detail\tuple.hpp">
+      <Filter>asio2\beast\core\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\detail\bind_continuation.hpp">
+      <Filter>asio2\beast\core\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\detail\remap_post_to_defer.hpp">
+      <Filter>asio2\beast\core\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\detail\flat_stream.hpp">
+      <Filter>asio2\beast\core\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\basic_stream.hpp">
+      <Filter>asio2\beast\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\detail\stream_base.hpp">
+      <Filter>asio2\beast\core\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\impl\basic_stream.hpp">
+      <Filter>asio2\beast\core\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\buffers_adapter.hpp">
+      <Filter>asio2\beast\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\buffers_adaptor.hpp">
+      <Filter>asio2\beast\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\impl\buffers_adaptor.hpp">
+      <Filter>asio2\beast\core\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\buffered_read_stream.hpp">
+      <Filter>asio2\beast\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\impl\buffered_read_stream.hpp">
+      <Filter>asio2\beast\core\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\buffers_cat.hpp">
+      <Filter>asio2\beast\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\impl\buffers_cat.hpp">
+      <Filter>asio2\beast\core\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\detail\variant.hpp">
+      <Filter>asio2\beast\core\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\detail\varint.hpp">
+      <Filter>asio2\beast\core\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\buffers_to_string.hpp">
+      <Filter>asio2\beast\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\detect_ssl.hpp">
+      <Filter>asio2\beast\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\tribool.hpp">
+      <Filter>asio2\beast\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\file.hpp">
+      <Filter>asio2\beast\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\file_base.hpp">
+      <Filter>asio2\beast\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\file_stdio.hpp">
+      <Filter>asio2\beast\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\impl\file_stdio.ipp">
+      <Filter>asio2\beast\core\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\tcp_stream.hpp">
+      <Filter>asio2\beast\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\detail\base64.hpp">
+      <Filter>asio2\beast\core\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\detail\base64.ipp">
+      <Filter>asio2\beast\core\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\detail\bind_default_executor.hpp">
+      <Filter>asio2\beast\core\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\detail\buffer.hpp">
+      <Filter>asio2\beast\core\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\detail\buffers_ref.hpp">
+      <Filter>asio2\beast\core\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\detail\chacha.hpp">
+      <Filter>asio2\beast\core\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\detail\char_buffer.hpp">
+      <Filter>asio2\beast\core\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\detail\clamp.hpp">
+      <Filter>asio2\beast\core\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\detail\cpu_info.hpp">
+      <Filter>asio2\beast\core\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\detail\get_io_context.hpp">
+      <Filter>asio2\beast\core\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\detail\pcg.hpp">
+      <Filter>asio2\beast\core\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\detail\read.hpp">
+      <Filter>asio2\beast\core\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\detail\impl\read.hpp">
+      <Filter>asio2\beast\core\detail\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\detail\impl\temporary_buffer.ipp">
+      <Filter>asio2\beast\core\detail\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\detail\temporary_buffer.hpp">
+      <Filter>asio2\beast\core\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\detail\service_base.hpp">
+      <Filter>asio2\beast\core\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\detail\sha1.hpp">
+      <Filter>asio2\beast\core\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\detail\sha1.ipp">
+      <Filter>asio2\beast\core\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\http\basic_dynamic_body.hpp">
+      <Filter>asio2\beast\http</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\http\basic_file_body.hpp">
+      <Filter>asio2\beast\http</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\http\basic_parser.hpp">
+      <Filter>asio2\beast\http</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\http\error.hpp">
+      <Filter>asio2\beast\http</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\http\message.hpp">
+      <Filter>asio2\beast\http</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\http\impl\error.hpp">
+      <Filter>asio2\beast\http\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\http\impl\error.ipp">
+      <Filter>asio2\beast\http\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\http\impl\message.hpp">
+      <Filter>asio2\beast\http\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\http\field.hpp">
+      <Filter>asio2\beast\http</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\http\fields.hpp">
+      <Filter>asio2\beast\http</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\http\impl\field.ipp">
+      <Filter>asio2\beast\http\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\http\impl\fields.hpp">
+      <Filter>asio2\beast\http\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\http\impl\fields.ipp">
+      <Filter>asio2\beast\http\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\http\chunk_encode.hpp">
+      <Filter>asio2\beast\http</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\http\rfc7230.hpp">
+      <Filter>asio2\beast\http</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\http\status.hpp">
+      <Filter>asio2\beast\http</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\http\verb.hpp">
+      <Filter>asio2\beast\http</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\http\impl\chunk_encode.hpp">
+      <Filter>asio2\beast\http\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\http\detail\chunk_encode.hpp">
+      <Filter>asio2\beast\http\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\http\detail\rfc7230.hpp">
+      <Filter>asio2\beast\http\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\http\detail\rfc7230.ipp">
+      <Filter>asio2\beast\http\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\http\detail\type_traits.hpp">
+      <Filter>asio2\beast\http\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\http\type_traits.hpp">
+      <Filter>asio2\beast\http</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\http\impl\basic_parser.hpp">
+      <Filter>asio2\beast\http\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\http\impl\basic_parser.ipp">
+      <Filter>asio2\beast\http\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\http\buffer_body.hpp">
+      <Filter>asio2\beast\http</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\http\impl\status.ipp">
+      <Filter>asio2\beast\http\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\http\impl\verb.ipp">
+      <Filter>asio2\beast\http\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\http\impl\rfc7230.hpp">
+      <Filter>asio2\beast\http\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\http\impl\rfc7230.ipp">
+      <Filter>asio2\beast\http\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\http\detail\basic_parsed_list.hpp">
+      <Filter>asio2\beast\http\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\http\dynamic_body.hpp">
+      <Filter>asio2\beast\http</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\http\empty_body.hpp">
+      <Filter>asio2\beast\http</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\http\file_body.hpp">
+      <Filter>asio2\beast\http</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\http\parser.hpp">
+      <Filter>asio2\beast\http</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\http\read.hpp">
+      <Filter>asio2\beast\http</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\http\impl\read.hpp">
+      <Filter>asio2\beast\http\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\http\impl\parser.hpp">
+      <Filter>asio2\beast\http\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\http\serializer.hpp">
+      <Filter>asio2\beast\http</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\http\impl\serializer.hpp">
+      <Filter>asio2\beast\http\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\http\span_body.hpp">
+      <Filter>asio2\beast\http</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\http\string_body.hpp">
+      <Filter>asio2\beast\http</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\http\vector_body.hpp">
+      <Filter>asio2\beast\http</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\http\write.hpp">
+      <Filter>asio2\beast\http</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\http\impl\write.hpp">
+      <Filter>asio2\beast\http\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\http\detail\basic_parser.hpp">
+      <Filter>asio2\beast\http\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\http\detail\basic_parser.ipp">
+      <Filter>asio2\beast\http\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\ssl\ssl_stream.hpp">
+      <Filter>asio2\beast\ssl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\websocket\ssl.hpp">
+      <Filter>asio2\beast\websocket</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\websocket\impl\ssl.hpp">
+      <Filter>asio2\beast\websocket\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\websocket\error.hpp">
+      <Filter>asio2\beast\websocket</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\websocket\impl\error.hpp">
+      <Filter>asio2\beast\websocket\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\websocket\impl\error.ipp">
+      <Filter>asio2\beast\websocket\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\websocket\option.hpp">
+      <Filter>asio2\beast\websocket</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\websocket\rfc6455.hpp">
+      <Filter>asio2\beast\websocket</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\websocket\impl\rfc6455.hpp">
+      <Filter>asio2\beast\websocket\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\websocket\role.hpp">
+      <Filter>asio2\beast\websocket</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\websocket\stream.hpp">
+      <Filter>asio2\beast\websocket</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\websocket\stream_base.hpp">
+      <Filter>asio2\beast\websocket</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\websocket\stream_fwd.hpp">
+      <Filter>asio2\beast\websocket</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\websocket\detail\hybi13.hpp">
+      <Filter>asio2\beast\websocket\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\websocket\detail\hybi13.ipp">
+      <Filter>asio2\beast\websocket\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\websocket\detail\impl_base.hpp">
+      <Filter>asio2\beast\websocket\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\websocket\detail\decorator.hpp">
+      <Filter>asio2\beast\websocket\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\websocket\detail\frame.hpp">
+      <Filter>asio2\beast\websocket\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\websocket\detail\utf8_checker.hpp">
+      <Filter>asio2\beast\websocket\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\websocket\detail\utf8_checker.ipp">
+      <Filter>asio2\beast\websocket\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\websocket\detail\pmd_extension.hpp">
+      <Filter>asio2\beast\websocket\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\websocket\detail\pmd_extension.ipp">
+      <Filter>asio2\beast\websocket\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\websocket\detail\prng.hpp">
+      <Filter>asio2\beast\websocket\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\websocket\detail\prng.ipp">
+      <Filter>asio2\beast\websocket\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\zlib\deflate_stream.hpp">
+      <Filter>asio2\beast\zlib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\zlib\error.hpp">
+      <Filter>asio2\beast\zlib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\zlib\inflate_stream.hpp">
+      <Filter>asio2\beast\zlib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\zlib\zlib.hpp">
+      <Filter>asio2\beast\zlib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\zlib\impl\error.hpp">
+      <Filter>asio2\beast\zlib\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\zlib\impl\error.ipp">
+      <Filter>asio2\beast\zlib\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\zlib\detail\bitstream.hpp">
+      <Filter>asio2\beast\zlib\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\zlib\detail\deflate_stream.hpp">
+      <Filter>asio2\beast\zlib\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\zlib\detail\deflate_stream.ipp">
+      <Filter>asio2\beast\zlib\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\zlib\detail\inflate_stream.hpp">
+      <Filter>asio2\beast\zlib\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\zlib\detail\inflate_stream.ipp">
+      <Filter>asio2\beast\zlib\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\zlib\detail\ranges.hpp">
+      <Filter>asio2\beast\zlib\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\zlib\detail\window.hpp">
+      <Filter>asio2\beast\zlib\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\websocket\impl\accept.hpp">
+      <Filter>asio2\beast\websocket\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\websocket\impl\close.hpp">
+      <Filter>asio2\beast\websocket\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\websocket\impl\handshake.hpp">
+      <Filter>asio2\beast\websocket\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\websocket\impl\ping.hpp">
+      <Filter>asio2\beast\websocket\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\websocket\impl\read.hpp">
+      <Filter>asio2\beast\websocket\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\websocket\impl\stream.hpp">
+      <Filter>asio2\beast\websocket\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\websocket\impl\stream_impl.hpp">
+      <Filter>asio2\beast\websocket\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\websocket\impl\write.hpp">
+      <Filter>asio2\beast\websocket\impl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\websocket\detail\mask.hpp">
+      <Filter>asio2\beast\websocket\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\websocket\detail\mask.ipp">
+      <Filter>asio2\beast\websocket\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\websocket\detail\service.hpp">
+      <Filter>asio2\beast\websocket\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\websocket\detail\service.ipp">
+      <Filter>asio2\beast\websocket\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\websocket\detail\soft_mutex.hpp">
+      <Filter>asio2\beast\websocket\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\websocket\detail\type_traits.hpp">
+      <Filter>asio2\beast\websocket\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core.hpp">
+      <Filter>asio2\beast</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\http.hpp">
+      <Filter>asio2\beast</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\src.hpp">
+      <Filter>asio2\beast</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\ssl.hpp">
+      <Filter>asio2\beast</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\version.hpp">
+      <Filter>asio2\beast</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\websocket.hpp">
+      <Filter>asio2\beast</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\zlib.hpp">
+      <Filter>asio2\beast</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\beast.hpp">
+      <Filter>asio2\beast</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\mp_with_index.hpp">
+      <Filter>asio2\beast\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\beast\core\mp_integral.hpp">
+      <Filter>asio2\beast\core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\http\request.hpp">
+      <Filter>asio2\http</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\http\response.hpp">
+      <Filter>asio2\http</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\http\detail\flex_body.hpp">
+      <Filter>asio2\http\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\http\detail\router.hpp">
+      <Filter>asio2\http\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\base\component\alive_time_cp.hpp">
+      <Filter>asio2\base\component</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\base\component\disconnect_cp.hpp">
+      <Filter>asio2\base\component</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\version.hpp">
+      <Filter>asio2</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\src\http\server\http_server.cpp" />
+  </ItemGroup>
+</Project>

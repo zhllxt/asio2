@@ -56,7 +56,8 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @function : Asynchronous send data,supporting multi data formats,see asio::buffer(...) in /asio/buffer.hpp
+		 * @function : Asynchronous send data,supporting multi data formats,
+		 *             see asio::buffer(...) in /asio/buffer.hpp
 		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
 		 * use like this : std::string m; send(std::move(m)); can reducing memory allocation.
 		 * PodType * : send("abc");
@@ -69,8 +70,8 @@ namespace asio2::detail
 		 * asio::write(session_ptr->stream(), asio::buffer(std::string("abc")));
 		 */
 		template<typename String, typename StrOrInt, class T>
-		inline typename std::enable_if_t<
-			!std::is_same_v<std::remove_cv_t<std::remove_reference_t<String>>, asio::ip::udp::endpoint>, bool>
+		inline typename std::enable_if_t<!std::is_same_v<std::remove_cv_t<
+			std::remove_reference_t<String>>, asio::ip::udp::endpoint>, bool>
 			send(String&& host, StrOrInt&& port, T&& data)
 		{
 			// We must ensure that there is only one operation to send data
@@ -80,8 +81,10 @@ namespace asio2::detail
 				if (!this->derive.is_started())
 					asio::detail::throw_error(asio::error::not_connected);
 
-				return this->derive._do_resolve(std::forward<String>(host), std::forward<StrOrInt>(port),
-					this->derive._data_persistence(std::forward<T>(data)), [](const error_code&, std::size_t) {});
+				return this->derive._do_resolve(
+					std::forward<String>(host), std::forward<StrOrInt>(port),
+					this->derive._data_persistence(std::forward<T>(data)),
+					[](const error_code&, std::size_t) {});
 			}
 			catch (system_error & e) { set_last_error(e); }
 			catch (std::exception &) { set_last_error(asio::error::eof); }
@@ -97,15 +100,16 @@ namespace asio2::detail
 		 * asio::write(session_ptr->stream(), asio::buffer(std::string("abc")));
 		 */
 		template<typename String, typename StrOrInt, class CharT, class Traits = std::char_traits<CharT>>
-		inline typename std::enable_if_t<
-			!std::is_same_v<std::remove_cv_t<std::remove_reference_t<String>>, asio::ip::udp::endpoint> && (
+		inline typename std::enable_if_t<!std::is_same_v<std::remove_cv_t<std::remove_reference_t<String>>,
+			asio::ip::udp::endpoint> && (
 				std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, char> ||
 				std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, wchar_t> ||
 				std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, char16_t> ||
 				std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, char32_t>), bool>
-			send(String&& host, StrOrInt&& port, CharT * s)
+			send(String&& host, StrOrInt&& port, CharT* s)
 		{
-			return this->send(std::forward<String>(host), std::forward<StrOrInt>(port), s, s ? Traits::length(s) : 0);
+			return this->send(std::forward<String>(host),
+				std::forward<StrOrInt>(port), s, s ? Traits::length(s) : 0);
 		}
 
 		/**
@@ -140,12 +144,13 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Asynchronous send data,supporting multi data formats,see asio::buffer(...) in /asio/buffer.hpp
+		 * @function : Asynchronous send data,supporting multi data formats,
+		 *             see asio::buffer(...) in /asio/buffer.hpp
 		 * use like this : std::string m; send(std::move(m)); can reducing memory allocation.
 		 * the pair.first save the send result error_code,the pair.second save the sent_bytes.
 		 * note : Do not call this function in any listener callback function like this:
-		 * auto future = send(msg,asio::use_future); future.get(); it will cause deadlock,the future.get() will
-		 * never return.
+		 * auto future = send(msg,asio::use_future); future.get(); it will cause deadlock,
+		 * the future.get() will never return.
 		 * PodType * : send("abc");
 		 * PodType (&data)[N] : double m[10]; send(m);
 		 * std::array<PodType, N> : std::array<int,10> m; send(m);
@@ -190,8 +195,8 @@ namespace asio2::detail
 		 * @function : Asynchronous send data
 		 * the pair.first save the send result error_code,the pair.second save the sent_bytes.
 		 * note : Do not call this function in any listener callback function like this:
-		 * auto future = send(msg,asio::use_future); future.get(); it will cause deadlock,the future.get() will
-		 * never return.
+		 * auto future = send(msg,asio::use_future); future.get(); it will cause deadlock,
+		 * the future.get() will never return.
 		 * PodType * : send("abc");
 		 */
 		template<typename String, typename StrOrInt, class CharT, class Traits = std::char_traits<CharT>>
@@ -204,15 +209,16 @@ namespace asio2::detail
 			std::future<std::pair<error_code, std::size_t>>>
 			send(String&& host, StrOrInt&& port, CharT * s, asio::use_future_t<> flag)
 		{
-			return this->send(std::forward<String>(host), std::forward<StrOrInt>(port), s, s ? Traits::length(s) : 0, std::move(flag));
+			return this->send(std::forward<String>(host), std::forward<StrOrInt>(port), s,
+				s ? Traits::length(s) : 0, std::move(flag));
 		}
 
 		/**
 		 * @function : Asynchronous send data
 		 * the pair.first save the send result error_code,the pair.second save the sent_bytes.
 		 * note : Do not call this function in any listener callback function like this:
-		 * auto future = send(msg,asio::use_future); future.get(); it will cause deadlock,the future.get() will
-		 * never return.
+		 * auto future = send(msg,asio::use_future); future.get(); it will cause deadlock,
+		 * the future.get() will never return.
 		 * PodType (&data)[N] : double m[10]; send(m,5);
 		 */
 		template<typename String, typename StrOrInt, class CharT, class SizeT>
@@ -253,7 +259,8 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Asynchronous send data,supporting multi data formats,see asio::buffer(...) in /asio/buffer.hpp
+		 * @function : Asynchronous send data,supporting multi data formats,
+		 *             see asio::buffer(...) in /asio/buffer.hpp
 		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
 		 * use like this : std::string m; send(std::move(m)); can reducing memory allocation.
 		 * PodType * : send("abc");
@@ -299,7 +306,8 @@ namespace asio2::detail
 		 * asio::write(session_ptr->stream(), asio::buffer(std::string("abc")));
 		 * Callback signature : void() or void(std::size_t bytes_sent)
 		 */
-		template<typename String, typename StrOrInt, class Callback, class CharT, class Traits = std::char_traits<CharT>>
+		template<typename String, typename StrOrInt, class Callback, class CharT,
+			class Traits = std::char_traits<CharT>>
 		inline typename std::enable_if_t<is_callable_v<Callback> &&
 			!std::is_same_v<std::remove_cv_t<std::remove_reference_t<String>>, asio::ip::udp::endpoint> && (
 				std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, char> ||
@@ -308,7 +316,8 @@ namespace asio2::detail
 				std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, char32_t>), bool>
 			send(String&& host, StrOrInt&& port, CharT * s, Callback&& fn)
 		{
-			return this->send(std::forward<String>(host), std::forward<StrOrInt>(port), s, s ? Traits::length(s) : 0,
+			return this->send(std::forward<String>(host),
+				std::forward<StrOrInt>(port), s, s ? Traits::length(s) : 0,
 				std::forward<Callback>(fn));
 		}
 
@@ -351,7 +360,8 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @function : Asynchronous send data,supporting multi data formats,see asio::buffer(...) in /asio/buffer.hpp
+		 * @function : Asynchronous send data,supporting multi data formats,
+		 *             see asio::buffer(...) in /asio/buffer.hpp
 		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
 		 * use like this : std::string m; send(std::move(m)); can reducing memory allocation.
 		 * PodType * : send("abc");
@@ -375,11 +385,12 @@ namespace asio2::detail
 				if (!this->derive.is_started())
 					asio::detail::throw_error(asio::error::not_connected);
 
-				this->derive.push_event([this,
-					endpoint = std::forward<Endpoint>(endpoint),
-					data = this->derive._data_persistence(std::forward<T>(data))]() mutable
+				this->derive.push_event([this, endpoint = std::forward<Endpoint>(endpoint),
+					data = this->derive._data_persistence(std::forward<T>(data))]
+					(event_guard<derived_t>&& g) mutable
 				{
-					return this->derive._do_send(endpoint, data, [](const error_code&, std::size_t) {});
+					return this->derive._do_send(endpoint, data,
+						[g = std::move(g)](const error_code&, std::size_t) mutable {});
 				});
 				return true;
 			}
@@ -431,11 +442,11 @@ namespace asio2::detail
 				if (!s)
 					asio::detail::throw_error(asio::error::invalid_argument);
 
-				this->derive.push_event([this,
-					endpoint = std::forward<Endpoint>(endpoint),
-					data = this->derive._data_persistence(s, count)]() mutable
+				this->derive.push_event([this, endpoint = std::forward<Endpoint>(endpoint),
+					data = this->derive._data_persistence(s, count)](event_guard<derived_t>&& g) mutable
 				{
-					return this->derive._do_send(endpoint, data, [](const error_code&, std::size_t) {});
+					return this->derive._do_send(endpoint, data,
+						[g = std::move(g)](const error_code&, std::size_t) mutable {});
 				});
 				return true;
 			}
@@ -445,12 +456,13 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Asynchronous send data,supporting multi data formats,see asio::buffer(...) in /asio/buffer.hpp
+		 * @function : Asynchronous send data,supporting multi data formats,
+		 *             see asio::buffer(...) in /asio/buffer.hpp
 		 * use like this : std::string m; send(std::move(m)); can reducing memory allocation.
 		 * the pair.first save the send result error_code,the pair.second save the sent_bytes.
 		 * note : Do not call this function in any listener callback function like this:
-		 * auto future = send(msg,asio::use_future); future.get(); it will cause deadlock,the future.get() will
-		 * never return.
+		 * auto future = send(msg,asio::use_future); future.get(); it will cause deadlock,
+		 * the future.get() will never return.
 		 * PodType * : send("abc");
 		 * PodType (&data)[N] : double m[10]; send(m);
 		 * std::array<PodType, N> : std::array<int,10> m; send(m);
@@ -473,9 +485,10 @@ namespace asio2::detail
 
 				this->derive.push_event([this, endpoint = std::forward<Endpoint>(endpoint),
 					data = this->derive._data_persistence(std::forward<T>(data)),
-					promise = std::move(promise)]() mutable
+					promise = std::move(promise)](event_guard<derived_t>&& g) mutable
 				{
-					return this->derive._do_send(endpoint, data, [&promise](const error_code& ec, std::size_t bytes_sent)
+					return this->derive._do_send(endpoint, data, [&promise, g = std::move(g)]
+					(const error_code& ec, std::size_t bytes_sent) mutable
 					{
 						promise().set_value(std::pair<error_code, std::size_t>(ec, bytes_sent));
 					});
@@ -498,8 +511,8 @@ namespace asio2::detail
 		 * @function : Asynchronous send data
 		 * the pair.first save the send result error_code,the pair.second save the sent_bytes.
 		 * note : Do not call this function in any listener callback function like this:
-		 * auto future = send(msg,asio::use_future); future.get(); it will cause deadlock,the future.get() will
-		 * never return.
+		 * auto future = send(msg,asio::use_future); future.get(); it will cause deadlock,
+		 * the future.get() will never return.
 		 * PodType * : send("abc");
 		 */
 		template<class Endpoint, class CharT, class Traits = std::char_traits<CharT>>
@@ -512,15 +525,16 @@ namespace asio2::detail
 			std::future<std::pair<error_code, std::size_t>>>
 			send(Endpoint&& endpoint, CharT * s, asio::use_future_t<> flag)
 		{
-			return this->send(std::forward<Endpoint>(endpoint), s, s ? Traits::length(s) : 0, std::move(flag));
+			return this->send(std::forward<Endpoint>(endpoint), s,
+				s ? Traits::length(s) : 0, std::move(flag));
 		}
 
 		/**
 		 * @function : Asynchronous send data
 		 * the pair.first save the send result error_code,the pair.second save the sent_bytes.
 		 * note : Do not call this function in any listener callback function like this:
-		 * auto future = send(msg,asio::use_future); future.get(); it will cause deadlock,the future.get() will
-		 * never return.
+		 * auto future = send(msg,asio::use_future); future.get(); it will cause deadlock,
+		 * the future.get() will never return.
 		 * PodType (&data)[N] : double m[10]; send(m,5);
 		 */
 		template<class Endpoint, class CharT, class SizeT>
@@ -542,9 +556,10 @@ namespace asio2::detail
 
 				this->derive.push_event([this, endpoint = std::forward<Endpoint>(endpoint),
 					data = this->derive._data_persistence(s, count),
-					promise = std::move(promise)]() mutable
+					promise = std::move(promise)](event_guard<derived_t>&& g) mutable
 				{
-					return this->derive._do_send(endpoint, data, [&promise](const error_code& ec, std::size_t bytes_sent)
+					return this->derive._do_send(endpoint, data, [&promise, g = std::move(g)]
+					(const error_code& ec, std::size_t bytes_sent) mutable
 					{
 						promise().set_value(std::pair<error_code, std::size_t>(ec, bytes_sent));
 					});
@@ -564,7 +579,8 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Asynchronous send data,supporting multi data formats,see asio::buffer(...) in /asio/buffer.hpp
+		 * @function : Asynchronous send data,supporting multi data formats,
+		 *             see asio::buffer(...) in /asio/buffer.hpp
 		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
 		 * use like this : std::string m; send(std::move(m)); can reducing memory allocation.
 		 * PodType * : send("abc");
@@ -591,9 +607,10 @@ namespace asio2::detail
 
 				this->derive.push_event([this, endpoint = std::forward<Endpoint>(endpoint),
 					data = this->derive._data_persistence(std::forward<T>(data)),
-					fn = std::forward<Callback>(fn)]() mutable
+					fn = std::forward<Callback>(fn)](event_guard<derived_t>&& g) mutable
 				{
-					return this->derive._do_send(endpoint, data, [&fn](const error_code&, std::size_t bytes_sent)
+					return this->derive._do_send(endpoint, data, [&fn, g = std::move(g)]
+					(const error_code&, std::size_t bytes_sent) mutable
 					{
 						callback_helper::call(fn, bytes_sent);
 					});
@@ -623,7 +640,8 @@ namespace asio2::detail
 			std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, char32_t>), bool>
 			send(Endpoint&& endpoint, CharT * s, Callback&& fn)
 		{
-			return this->send(std::forward<Endpoint>(endpoint), s, s ? Traits::length(s) : 0, std::forward<Callback>(fn));
+			return this->send(std::forward<Endpoint>(endpoint), s,
+				s ? Traits::length(s) : 0, std::forward<Callback>(fn));
 		}
 
 		/**
@@ -653,9 +671,10 @@ namespace asio2::detail
 
 				this->derive.push_event([this, endpoint = std::forward<Endpoint>(endpoint),
 					data = this->derive._data_persistence(s, count),
-					fn = std::forward<Callback>(fn)]() mutable
+					fn = std::forward<Callback>(fn)](event_guard<derived_t>&& g) mutable
 				{
-					return this->derive._do_send(endpoint, data, [&fn](const error_code&, std::size_t bytes_sent)
+					return this->derive._do_send(endpoint, data, [&fn, g = std::move(g)]
+					(const error_code&, std::size_t bytes_sent) mutable
 					{
 						callback_helper::call(fn, bytes_sent);
 					});
@@ -703,9 +722,14 @@ namespace asio2::detail
 						this->derive.push_event([this, endpoint = iter->endpoint(),
 							data = (endpoints.size() == i ? std::move(data) : data),
 							callback = (endpoints.size() == i ? std::move(callback) : callback)
-						]() mutable
+						](event_guard<derived_t>&& g) mutable
 						{
-							return this->derive._do_send(endpoint, data, std::move(callback));
+							return this->derive._do_send(endpoint, data,
+								[g = std::move(g), f = std::move(callback)]
+							(const error_code& ec, std::size_t bytes_sent) mutable
+							{
+								f(ec, bytes_sent);
+							});
 						});
 					}
 				}

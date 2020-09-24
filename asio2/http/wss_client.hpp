@@ -8,7 +8,7 @@
  * (See accompanying file LICENSE or see <http://www.gnu.org/licenses/>)
  */
 
-#if !defined(ASIO_STANDALONE) && defined(ASIO2_USE_SSL)
+#if defined(ASIO2_USE_SSL)
 
 #ifndef __ASIO2_WSS_CLIENT_HPP__
 #define __ASIO2_WSS_CLIENT_HPP__
@@ -34,7 +34,8 @@ namespace asio2::detail
 		template <class>                      friend class post_cp;
 		template <class, bool>                friend class reconnect_timer_cp;
 		template <class, bool>                friend class connect_timeout_cp;
-		template <class, class>               friend class connect_cp;
+		template <class, class, bool>         friend class connect_cp;
+		template <class, class, bool>         friend class disconnect_cp;
 		template <class>                      friend class data_persistence_cp;
 		template <class>                      friend class event_queue_cp;
 		template <class, bool>                friend class send_cp;
@@ -109,15 +110,23 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get the stream object refrence
+		 * @function : get the websocket upgraged response object
 		 */
-		inline typename ws_stream_comp::stream_type & stream()
-		{
-			ASIO2_ASSERT(bool(this->ws_stream_));
-			return (*(this->ws_stream_));
-		}
+		inline const http::response_t<body_t>& upgrade_response() { return this->upgrade_rep_; }
 
-		inline const http::response<body_t>& upgrade_response() { return this->upgrade_rep_; }
+		/**
+		 * @function : get the websocket upgraged target
+		 */
+		inline const std::string& upgrade_target() { return this->upgrade_target_; }
+
+		/**
+		 * @function : set the websocket upgraged target
+		 */
+		inline derived_t & upgrade_target(std::string target)
+		{
+			this->upgrade_target_ = std::move(target);
+			return (this->derived());
+		}
 
 	public:
 		/**
@@ -128,7 +137,8 @@ namespace asio2::detail
 		template<class F, class ...C>
 		inline derived_t & bind_upgrade(F&& fun, C&&... obj)
 		{
-			this->listener_.bind(event::upgrade, observer_t<error_code>(std::forward<F>(fun), std::forward<C>(obj)...));
+			this->listener_.bind(event::upgrade,
+				observer_t<error_code>(std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
 		}
 
@@ -149,8 +159,9 @@ namespace asio2::detail
 			});
 		}
 
-		template<bool isAsync, typename MatchCondition>
-		inline void _handle_connect(const error_code & ec, std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		template<typename MatchCondition>
+		inline void _handle_connect(const error_code & ec, std::shared_ptr<derived_t> this_ptr,
+			condition_wrap<MatchCondition> condition)
 		{
 			set_last_error(ec);
 
@@ -165,7 +176,8 @@ namespace asio2::detail
 		}
 
 		template<typename MatchCondition>
-		inline void _handle_handshake(const error_code & ec, std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		inline void _handle_handshake(const error_code & ec, std::shared_ptr<derived_t> this_ptr,
+			condition_wrap<MatchCondition> condition)
 		{
 			set_last_error(ec);
 
@@ -174,7 +186,8 @@ namespace asio2::detail
 			if (ec)
 				return this->derived()._done_connect(ec, std::move(this_ptr), std::move(condition));
 
-			this->derived()._post_upgrade(std::move(this_ptr), std::move(condition));
+			this->derived()._post_control_callback(this_ptr, condition);
+			this->derived()._post_upgrade(std::move(this_ptr), std::move(condition), this->upgrade_rep_);
 		}
 
 		template<class Data, class Callback>
@@ -196,7 +209,9 @@ namespace asio2::detail
 		}
 
 	protected:
-		http::response<body_t> upgrade_rep_;
+		http::response_t<body_t> upgrade_rep_;
+
+		std::string              upgrade_target_ = "/";
 	};
 }
 

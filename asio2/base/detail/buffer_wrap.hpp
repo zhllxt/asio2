@@ -68,14 +68,16 @@ namespace asio2
 		struct callback_helper
 		{
 			template<class F>
-			typename std::enable_if_t<std::is_same_v<decltype(std::declval<F>()(std::size_t(0)), std::true_type()), std::true_type>>
+			typename std::enable_if_t<std::is_same_v<decltype(std::declval<F>()(
+				std::size_t(0)), std::true_type()), std::true_type>>
 				static inline call(F& f, std::size_t bytes_sent)
 			{
 				f(bytes_sent);
 			}
 
 			template<class F>
-			typename std::enable_if_t<std::is_same_v<decltype(std::declval<F>()(), std::true_type()), std::true_type>>
+			typename std::enable_if_t<std::is_same_v<decltype(std::declval<F>()(),
+				std::true_type()), std::true_type>>
 				static inline call(F& f, std::size_t)
 			{
 				f();
@@ -96,7 +98,8 @@ namespace asio2
 		};
 	}
 
-	template<class buffer_t, bool has_limit = detail::buffer_has_limit<buffer_t>::value> class buffer_wrap;
+	template<class buffer_t, bool has_limit = detail::buffer_has_limit<buffer_t>::value>
+	class buffer_wrap;
 
 	template<class buffer_t>
 	class buffer_wrap<buffer_t, true> : public buffer_t

@@ -56,7 +56,8 @@ namespace asio2::detail
 				{
 					asio::async_read(derive.stream(), derive.buffer().base(), condition(),
 						asio::bind_executor(derive.io().strand(), make_allocator(derive.rallocator(),
-							[this, self_ptr = std::move(this_ptr), condition](const error_code & ec, std::size_t bytes_recvd)
+							[this, self_ptr = std::move(this_ptr), condition]
+					(const error_code & ec, std::size_t bytes_recvd) mutable
 					{
 						derive._handle_recv(ec, bytes_recvd, std::move(self_ptr), std::move(condition));
 					})));
@@ -65,7 +66,8 @@ namespace asio2::detail
 				{
 					asio::async_read_until(derive.stream(), derive.buffer().base(), condition(),
 						asio::bind_executor(derive.io().strand(), make_allocator(derive.rallocator(),
-							[this, self_ptr = std::move(this_ptr), condition](const error_code & ec, std::size_t bytes_recvd)
+							[this, self_ptr = std::move(this_ptr), condition]
+					(const error_code & ec, std::size_t bytes_recvd) mutable
 					{
 						derive._handle_recv(ec, bytes_recvd, std::move(self_ptr), std::move(condition));
 					})));
@@ -87,8 +89,8 @@ namespace asio2::detail
 			// bytes_recvd : The number of bytes in the streambuf's get area up to and including the delimiter.
 			if (!ec)
 			{
-				// every times recv data,we update the last active time.
-				derive.reset_active_time();
+				// every times recv data,we update the last alive time.
+				derive.update_alive_time();
 
 				if constexpr (std::is_same_v<MatchCondition, use_dgram_t>)
 				{
@@ -122,7 +124,7 @@ namespace asio2::detail
 			}
 			else
 			{
-				derive._do_disconnect(ec);
+				derive._do_disconnect(ec, {});
 			}
 			// If an error occurs then no new asynchronous operations are started. This
 			// means that all shared_ptr references to the connection object will

@@ -33,6 +33,8 @@ namespace asio2::detail
 		template <class>                      friend class post_cp;
 		template <class, bool>                friend class silence_timer_cp;
 		template <class, bool>                friend class connect_timeout_cp;
+		template <class, class, bool>         friend class connect_cp;
+		template <class, class, bool>         friend class disconnect_cp;
 		template <class>                      friend class data_persistence_cp;
 		template <class>                      friend class event_queue_cp;
 		template <class, bool>                friend class send_cp;
@@ -68,7 +70,8 @@ namespace asio2::detail
 			, remote_endpoint_(endpoint)
 			, wallocator_()
 		{
-			this->silence_timeout_ = std::chrono::milliseconds(udp_silence_timeout);
+			this->silence_timeout(std::chrono::milliseconds(udp_silence_timeout));
+			this->connect_timeout(std::chrono::milliseconds(udp_connect_timeout));
 		}
 
 		/**
@@ -91,9 +94,9 @@ namespace asio2::detail
 				if (!this->state_.compare_exchange_strong(expected, state_t::starting))
 					asio::detail::throw_error(asio::error::already_started);
 
-				std::shared_ptr<derived_t> this_ptr = this->shared_from_this();
+				std::shared_ptr<derived_t> this_ptr = this->derived().selfptr();
 
-				this->derived()._do_init(std::shared_ptr<derived_t>{}, condition);
+				this->derived()._do_init(this_ptr, condition);
 
 				// First call the base class start function
 				super::start();
@@ -172,11 +175,12 @@ namespace asio2::detail
 
 			// reset the variable to default status
 			this->reset_connect_time();
-			this->reset_active_time();
+			this->update_alive_time();
 		}
 
 		template<typename MatchCondition>
-		inline void _handle_connect(const error_code& ec, std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		inline void _handle_connect(const error_code& ec, std::shared_ptr<derived_t> this_ptr,
+			condition_wrap<MatchCondition> condition)
 		{
 			if constexpr (std::is_same_v<MatchCondition, use_kcp_t>)
 			{
@@ -200,118 +204,27 @@ namespace asio2::detail
 		}
 
 		template<typename MatchCondition>
-		inline void _done_connect(const error_code& ec, std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
-		{
-			set_last_error(ec);
-			try
-			{
-				// Whatever of connection success or failure or timeout, cancel the timeout timer.
-				this->_stop_timeout_timer();
-
-				// Set the state to started before fire_connect because the user may send data in
-				// fire_connect and fail if the state is not set to started.
-				state_t expected = state_t::starting;
-				if (!ec)
-					if (!this->state_.compare_exchange_strong(expected, state_t::started))
-						asio::detail::throw_error(asio::error::operation_aborted);
-
-				this->derived()._fire_connect(this_ptr);
-
-				// may be user has called stop in the listener function,so we can't start continue.
-				expected = state_t::started;
-				if (!ec)
-					if (!this->state_.compare_exchange_strong(expected, state_t::started))
-						asio::detail::throw_error(asio::error::operation_aborted);
-
-				asio::detail::throw_error(ec);
-
-				this->derived()._do_start(std::move(this_ptr), condition);
-			}
-			catch (system_error & e)
-			{
-				set_last_error(e);
-				this->derived()._do_disconnect(e.code());
-			}
-		}
-
-		template<typename MatchCondition>
 		inline void _do_start(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
 		{
 			this->derived()._join_session(std::move(this_ptr), condition);
 		}
 
-		inline void _do_disconnect(const error_code& ec)
-		{
-			state_t expected = state_t::starting;
-			if (this->state_.compare_exchange_strong(expected, state_t::stopping))
-				return this->derived()._post_disconnect(ec, this->shared_from_this(), expected);
-
-			expected = state_t::started;
-			if (this->state_.compare_exchange_strong(expected, state_t::stopping))
-				return this->derived()._post_disconnect(ec, this->shared_from_this(), expected);
-		}
-
-		inline void _post_disconnect(const error_code& ec, std::shared_ptr<derived_t> self_ptr, state_t old_state)
-		{
-			// First ensure that all send and recv events are not executed again
-			auto task = [this, ec, this_ptr = std::move(self_ptr), old_state]()
-			{
-				// All pending sending events will be cancelled after enter the strand below.
-
-				// Second ensure that this session has removed from the session map.
-				this->sessions_.erase(this_ptr, [this, ec, this_ptr, old_state](bool)
-				{
-					set_last_error(ec);
-
-					state_t expected = state_t::stopping;
-					if (this->state_.compare_exchange_strong(expected, state_t::stopped))
-					{
-						if (old_state == state_t::started)
-							this->derived()._fire_disconnect(const_cast<std::shared_ptr<derived_t>&>(this_ptr));
-					}
-					else
-					{
-						ASIO2_ASSERT(false);
-					}
-
-					// Third we can stop this session and close this socket now.
-					asio::post(this->io_.strand(), make_allocator(this->wallocator_,
-						[this, ec, self_ptr = std::move(this_ptr)]()
-					{
-						// call the base class stop function
-						super::stop();
-
-						// call CRTP polymorphic stop
-						this->derived()._handle_disconnect(ec, std::move(self_ptr));
-					}));
-				});
-			};
-#if defined(ASIO2_SEND_CORE_ASYNC)
-			this->derived().push_event([this, t = std::move(task)]() mutable
-			{
-				auto task = [this, t = std::move(t)]() mutable
-				{
-					t();
-					this->derived().next_event();
-				};
-				// We must use the asio::post function to execute the task, otherwise :
-				// when the server acceptor thread is same as this session thread,
-				// when the server stop, will call sessions_.foreach -> session_ptr->stop() ->
-				// derived().push_event -> sessions_.erase => this can leads to a dead lock
-				asio::post(this->io_.strand(), make_allocator(this->wallocator_, std::move(task)));
-				return true;
-			});
-#else
-			asio::post(this->io_.strand(), make_allocator(this->wallocator_, std::move(task)));
-#endif
-		}
-
 		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
+		{
+			detail::ignore::unused(ec, this_ptr);
+
+			this->derived()._do_stop(ec);
+		}
+
+		inline void _do_stop(const error_code& ec)
 		{
 			detail::ignore::unused(ec);
 
+			// call the base class stop function
+			super::stop();
+
 			if (this->kcp_)
-				this->kcp_->_kcp_stop(std::move(this_ptr));
+				this->kcp_->_kcp_stop();
 		}
 
 		template<typename MatchCondition>
@@ -343,7 +256,8 @@ namespace asio2::detail
 		inline bool _do_send(Data& data, Callback&& callback)
 		{
 			if (!this->kcp_)
-				return this->derived()._udp_send_to(this->remote_endpoint_, data, std::forward<Callback>(callback));
+				return this->derived()._udp_send_to(
+					this->remote_endpoint_, data, std::forward<Callback>(callback));
 			return this->kcp_->_kcp_send(data, std::forward<Callback>(callback));
 		}
 
@@ -355,7 +269,7 @@ namespace asio2::detail
 			if (!this->is_started())
 				return;
 
-			this->reset_active_time();
+			this->update_alive_time();
 
 			if constexpr (!std::is_same_v<MatchCondition, use_kcp_t>)
 			{

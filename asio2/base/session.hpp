@@ -41,9 +41,11 @@
 #include <asio2/base/detail/buffer_wrap.hpp>
 
 #include <asio2/base/component/connect_time_cp.hpp>
-#include <asio2/base/component/active_time_cp.hpp>
+#include <asio2/base/component/alive_time_cp.hpp>
 #include <asio2/base/component/user_data_cp.hpp>
 #include <asio2/base/component/socket_cp.hpp>
+#include <asio2/base/component/connect_cp.hpp>
+#include <asio2/base/component/disconnect_cp.hpp>
 #include <asio2/base/component/user_timer_cp.hpp>
 #include <asio2/base/component/silence_timer_cp.hpp>
 #include <asio2/base/component/post_cp.hpp>
@@ -59,8 +61,10 @@ namespace asio2::detail
 		, public event_queue_cp<derived_t>
 		, public user_data_cp<derived_t>
 		, public connect_time_cp<derived_t>
-		, public active_time_cp<derived_t>
+		, public alive_time_cp<derived_t>
 		, public socket_cp<derived_t, socket_t>
+		, public connect_cp<derived_t, socket_t, true>
+		, public disconnect_cp<derived_t, socket_t, true>
 		, public user_timer_cp<derived_t, true>
 		, public silence_timer_cp<derived_t, true>
 		, public connect_timeout_cp<derived_t, true>
@@ -70,10 +74,13 @@ namespace asio2::detail
 		template <class, bool>         friend class user_timer_cp;
 		template <class, bool>         friend class silence_timer_cp;
 		template <class, bool>         friend class connect_timeout_cp;
+		template <class, class, bool>  friend class connect_cp;
+		template <class, class, bool>  friend class disconnect_cp;
 		template <class>               friend class data_persistence_cp;
 		template <class>               friend class event_queue_cp;
 		template <class, bool>         friend class send_cp;
 		template <class>               friend class post_cp;
+		template <class>               friend class event_guard;
 
 	public:
 		using self = session_impl_t<derived_t, socket_t, buffer_t>;
@@ -97,8 +104,9 @@ namespace asio2::detail
 			, event_queue_cp<derived_t>()
 			, user_data_cp<derived_t>()
 			, connect_time_cp<derived_t>()
-			, active_time_cp<derived_t>()
+			, alive_time_cp<derived_t>()
 			, socket_cp<derived_t, socket_t>(std::forward<Args>(args)...)
+			, disconnect_cp<derived_t, socket_t, true>()
 			, user_timer_cp<derived_t, true>(rwio)
 			, silence_timer_cp<derived_t, true>(rwio)
 			, connect_timeout_cp<derived_t, true>(rwio)
@@ -125,33 +133,47 @@ namespace asio2::detail
 		inline void start()
 		{
 			if (!this->io_.strand().running_in_this_thread())
-				return asio::post(this->io_.strand(), std::bind(&self::start, this->shared_from_this()));
+			{
+				this->derived().post([this, this_ptr = this->derived().selfptr()]() mutable
+				{
+					this->start();
+				});
+				return;
+			}
 
 			// start the timer of check connect timeout
-			this->derived()._post_timeout_timer(this->connect_timeout_, this->shared_from_this());
+			this->derived()._post_connect_timeout_timer(
+				this->connect_timeout_, this->derived().selfptr());
 		}
 
 	public:
 		/**
 		 * @function : stop session
-		 * note : this function must be noblocking,if it's blocking,will cause circle lock in session_mgr::stop function
+		 * note : this function must be noblocking,if it's blocking,
+		 *        will cause circle lock in session_mgr::stop function
 		 */
 		inline void stop()
 		{
 			if (!this->io_.strand().running_in_this_thread())
-				return asio::post(this->io_.strand(),
-					std::bind(&self::stop, this->shared_from_this()));
+			{
+				this->derived().post([this, this_ptr = this->derived().selfptr()]() mutable
+				{
+					this->stop();
+				});
+				return;
+			}
 
 			// close silence timer
 			this->_stop_silence_timer();
 
-			// close timeout timer
-			this->_stop_timeout_timer();
+			// close connect timeout timer
+			this->_stop_connect_timeout_timer(asio::error::operation_aborted);
 
 			// close user custom timers
 			this->stop_all_timers();
 
-			// destroy user data, maybe the user data is self shared_ptr, if don't destroy it, will cause loop refrence.
+			// destroy user data, maybe the user data is self shared_ptr, 
+			// if don't destroy it, will cause loop refrence.
 			this->user_data_.reset();
 
 			// destroy the counter
@@ -194,7 +216,23 @@ namespace asio2::detail
 		inline session_mgr_t<derived_t> & sessions() { return this->sessions_; }
 		inline listener_t               & listener() { return this->listener_; }
 		inline std::atomic<state_t>     & state()    { return this->state_;    }
-		inline std::shared_ptr<derived_t> selfptr()  { return this->derived().shared_from_this(); }
+		inline std::shared_ptr<derived_t> selfptr()
+		{
+			try
+			{
+				return this->derived().shared_from_this();
+			}
+			catch (const std::bad_weak_ptr&)
+			{
+				ASIO2_ASSERT(false);
+			}
+			catch (const std::exception&)
+			{
+				ASIO2_ASSERT(false);
+			}
+
+			throw std::bad_weak_ptr{};
+		}
 
 	protected:
 		/// asio::strand ,used to ensure socket multi thread safe,we must ensure that only one operator
