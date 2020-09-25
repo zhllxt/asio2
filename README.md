@@ -14,6 +14,8 @@ Header only c++ network library, based on asio,support tcp,udp,http,websocket,rp
 * 基于C++17,基于asio (asio 的 standalone 版本);
 * example目录包含大量的示例工程(工程基于VS2017创建),各种使用方法请参考示例代码;
 
+##### QQ交流群：833425075
+
 ## v2.6重要更新:
 * 完全移除对boost库的依赖,以前使用http和websocket时需要依赖boost库,现在所有功能都不需要boost了;
 * rpc组件添加了链式调用功能,以前版本中调用rpc函数时,"用户回调函数,超时时长,rpc函数名,rpc函数参数"这些参数都要写在同一个函数中,很容易搞糊涂,现在支持链式调用可避免这个问题了;
