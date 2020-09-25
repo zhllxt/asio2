@@ -35,6 +35,6 @@
 // RPC component is using tcp dgram mode as the underlying communication support by default,
 // If you want to using websocket as the underlying communication support, open the macro 
 // definition below
-#define ASIO2_USE_WEBSOCKET_RPC
+//#define ASIO2_USE_WEBSOCKET_RPC
 
 #endif // !__ASIO2_CONFIG_HPP__
