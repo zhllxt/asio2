@@ -124,7 +124,7 @@ namespace asio2::detail
 			}
 			else
 			{
-				derive._do_disconnect(ec, {});
+				derive._do_disconnect(ec);
 			}
 			// If an error occurs then no new asynchronous operations are started. This
 			// means that all shared_ptr references to the connection object will

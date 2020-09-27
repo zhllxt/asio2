@@ -143,12 +143,8 @@ namespace asio2::detail
 		template<typename Function>
 		inline derived_t & dispatch(Function&& f)
 		{
-			// Make sure we run on the strand
-			if (derive.io().strand().running_in_this_thread())
-				f();
-			else
-				asio::post(derive.io().strand(), make_allocator(
-					derive.wallocator(), std::forward<Function>(f)));
+			asio::dispatch(derive.io().strand(), make_allocator(
+				derive.wallocator(), std::forward<Function>(f)));
 			return (derive);
 		}
 

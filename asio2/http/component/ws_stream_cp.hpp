@@ -110,6 +110,13 @@ namespace asio2::detail
 			// don't use "this_ptr = std::move(this_ptr)" in lambda capture below.
 			auto task = [this, this_ptr, fn = std::forward<Fn>(fn)](event_guard<derived_t>&& g) mutable
 			{
+				// Set the timeout to none to cancel the websocket timeout timer, otherwise
+				// we'll have to wait a lot of seconds util the timer is timeout.
+				websocket::stream_base::timeout opt{};
+				opt.handshake_timeout = websocket::stream_base::none();
+				opt.idle_timeout      = websocket::stream_base::none();
+				this->ws_stream_->set_option(opt);
+
 				// Can't call close twice
 				// TODO return a custom error code
 				// BEAST_ASSERT(! impl.wr_close);

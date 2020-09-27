@@ -50,7 +50,61 @@ namespace asio2::detail
 		~disconnect_cp() = default;
 
 	protected:
-		inline void _do_disconnect(const error_code& ec, std::shared_ptr<defer> defer_task = {})
+		template<bool IsSession = isSession>
+		typename std::enable_if_t<!IsSession, void>
+		inline _check_reconnect(const error_code& ec, std::shared_ptr<defer>& defer_task)
+		{
+			if (defer_task)
+				return;
+
+			// Enhance the reliability of auto reconnection
+			defer_task = std::make_shared<defer>([this, ec, this_ptr = derive.selfptr()]() mutable
+			{
+				auto task = [this, ec, this_ptr = std::move(this_ptr)](event_guard<derived_t>&& g) mutable
+				{
+					detail::ignore_unused(this, ec, this_ptr, g);
+
+					derive._wake_reconnect_timer();
+				};
+
+				// Use push_event to ensure that reconnection will not exxcuted until
+				// all events are completed.
+				derive.push_event([this, t = std::move(task)](event_guard<derived_t>&& g) mutable
+				{
+					auto task = [g = std::move(g), t = std::move(t)]() mutable
+					{
+						t(std::move(g));
+					};
+					derive.post(std::move(task));
+					return true;
+				});
+			});
+		}
+
+		template<bool IsSession = isSession>
+		typename std::enable_if_t<!IsSession, void>
+		inline _do_disconnect(const error_code& ec, std::shared_ptr<defer> defer_task = {})
+		{
+			state_t expected = state_t::started;
+			if (derive.state().compare_exchange_strong(expected, state_t::stopping))
+			{
+				derive._check_reconnect(ec, defer_task);
+
+				return derive._post_disconnect(ec, derive.selfptr(), expected, std::move(defer_task));
+			}
+
+			expected = state_t::starting;
+			if (derive.state().compare_exchange_strong(expected, state_t::stopping))
+			{
+				derive._check_reconnect(ec, defer_task);
+
+				return derive._post_disconnect(ec, derive.selfptr(), expected, std::move(defer_task));
+			}
+		}
+
+		template<bool IsSession = isSession>
+		typename std::enable_if_t<IsSession, void>
+		inline _do_disconnect(const error_code& ec, std::shared_ptr<defer> defer_task = {})
 		{
 			state_t expected = state_t::started;
 			if (derive.state().compare_exchange_strong(expected, state_t::stopping))
@@ -80,11 +134,6 @@ namespace asio2::detail
 					}
 
 					derive._handle_disconnect(ec, std::move(this_ptr));
-
-					if (ec && ec != asio::error::operation_aborted)
-					{
-						derive._wake_reconnect_timer();
-					}
 				}
 				else
 				{
