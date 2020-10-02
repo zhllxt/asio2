@@ -32,11 +32,11 @@ template<class T>
 class is_header_impl
 {
     template<bool b, class F>
-    static std::true_type check(
+    static std::true_type (check)(
         header<b, F> const*);
-    static std::false_type check(...);
+    static std::false_type (check)(...);
 public:
-    using type = decltype(check((T*)0));
+    using type = decltype((check)((T*)0));
 };
 
 template<class T>

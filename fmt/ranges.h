@@ -78,9 +78,9 @@ OutputIterator copy(char ch, OutputIterator out) {
 /// Return true value if T has std::string interface, like std::string_view.
 template <typename T> class is_like_std_string {
   template <typename U>
-  static auto check(U* p)
+  static auto (check)(U* p)
       -> decltype((void)p->find('a'), p->length(), (void)p->data(), int());
-  template <typename> static void check(...);
+  template <typename> static void (check)(...);
 
  public:
   static FMT_CONSTEXPR_DECL const bool value =
@@ -106,8 +106,8 @@ struct is_range_<
 /// tuple_size and tuple_element check.
 template <typename T> class is_tuple_like_ {
   template <typename U>
-  static auto check(U* p) -> decltype(std::tuple_size<U>::value, int());
-  template <typename> static void check(...);
+  static auto (check)(U* p) -> decltype(std::tuple_size<U>::value, int());
+  template <typename> static void (check)(...);
 
  public:
   static FMT_CONSTEXPR_DECL const bool value =
