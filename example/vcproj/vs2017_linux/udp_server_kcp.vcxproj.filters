@@ -285,13 +285,13 @@
     <ClInclude Include="..\..\..\asio2\rpc\impl\rpc_recv_op.hpp">
       <Filter>asio2\rpc</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\asio2\rpc\detail\invoker.hpp">
+    <ClInclude Include="..\..\..\asio2\rpc\detail\rpc_invoker.hpp">
       <Filter>asio2\rpc</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\asio2\rpc\detail\protocol.hpp">
+    <ClInclude Include="..\..\..\asio2\rpc\detail\rpc_protocol.hpp">
       <Filter>asio2\rpc</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\asio2\rpc\detail\serialization.hpp">
+    <ClInclude Include="..\..\..\asio2\rpc\detail\rpc_serialization.hpp">
       <Filter>asio2\rpc</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\asio2\rpc\component\rpc_call_cp.hpp">
@@ -615,7 +615,7 @@
     <ClInclude Include="..\..\..\asio2\http\detail\flex_body.hpp">
       <Filter>asio2\http\detail</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\asio2\http\detail\router.hpp">
+    <ClInclude Include="..\..\..\asio2\http\detail\http_router.hpp">
       <Filter>asio2\http\detail</Filter>
     </ClInclude>
   </ItemGroup>

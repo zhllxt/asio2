@@ -27,14 +27,17 @@
 
 namespace asio2::detail
 {
-	template<class derived_t, class body_t, class buffer_t, bool isSession>
+	template<class derived_t, class args_t>
 	class http_recv_op
 	{
 	public:
+		using body_type   = typename args_t::body_t;
+		using buffer_type = typename args_t::buffer_t;
+
 		/**
 		 * @constructor
 		 */
-		http_recv_op() : derive(static_cast<derived_t&>(*this)) {}
+		http_recv_op() {}
 
 		/**
 		 * @destructor
@@ -45,12 +48,14 @@ namespace asio2::detail
 		template<typename MatchCondition>
 		void _http_post_recv(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			if (!derive.is_started())
 				return;
 
 			try
 			{
-				if constexpr (isSession)
+				if constexpr (args_t::is_session)
 				{
 					if (derive.is_http())
 					{
@@ -61,7 +66,7 @@ namespace asio2::detail
 						// Read a request
 						http::async_read(derive.stream(), derive.buffer().base(), derive.req_,
 							asio::bind_executor(derive.io().strand(), make_allocator(derive.rallocator(),
-								[this, self_ptr = std::move(this_ptr), condition]
+								[&derive, self_ptr = std::move(this_ptr), condition]
 						(const error_code & ec, std::size_t bytes_recvd) mutable
 						{
 							derive._handle_recv(ec, bytes_recvd, std::move(self_ptr), condition);
@@ -72,7 +77,7 @@ namespace asio2::detail
 						// Read a message into our buffer
 						derive.ws_stream().async_read(derive.buffer().base(),
 							asio::bind_executor(derive.io().strand(), make_allocator(derive.rallocator(),
-								[this, self_ptr = std::move(this_ptr), condition]
+								[&derive, self_ptr = std::move(this_ptr), condition]
 						(const error_code & ec, std::size_t bytes_recvd) mutable
 						{
 							derive._handle_recv(ec, bytes_recvd, std::move(self_ptr), condition);
@@ -88,7 +93,7 @@ namespace asio2::detail
 					// Receive the HTTP response
 					http::async_read(derive.stream(), derive.buffer().base(), derive.rep_,
 						asio::bind_executor(derive.io().strand(), make_allocator(derive.rallocator(),
-							[this, self_ptr = std::move(this_ptr), condition]
+							[&derive, self_ptr = std::move(this_ptr), condition]
 					(const error_code & ec, std::size_t bytes_recvd) mutable
 					{
 						derive._handle_recv(ec, bytes_recvd, std::move(self_ptr), condition);
@@ -107,6 +112,8 @@ namespace asio2::detail
 		void _http_handle_recv(const error_code & ec, std::size_t bytes_recvd,
 			std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			set_last_error(ec);
 
 			std::ignore = bytes_recvd;
@@ -116,13 +123,16 @@ namespace asio2::detail
 				// every times recv data,we update the last alive time.
 				derive.update_alive_time();
 
-				if constexpr (isSession)
+				if constexpr (args_t::is_session)
 				{
-					if (derive._check_upgrade(this_ptr, condition))
-						return;
-
 					if (derive.is_http())
 					{
+						std::string_view target = derive.req_.target();
+						http::http_parser_ns::http_parser_parse_url(target.data(), target.size(), 0, &(derive.req_.url_parser_));
+
+						if (derive._check_upgrade(this_ptr, condition))
+							return;
+
 						derive.rep_.result(http::status::unknown);
 						derive.rep_.keep_alive(derive.req_.keep_alive());
 					}
@@ -170,7 +180,6 @@ namespace asio2::detail
 		}
 
 	protected:
-		derived_t & derive;
 	};
 }
 

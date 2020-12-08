@@ -22,19 +22,23 @@
 
 namespace asio2::detail
 {
+	ASIO2_CLASS_FORWARD_DECLARE_BASE;
+	ASIO2_CLASS_FORWARD_DECLARE_TCP_BASE;
+	ASIO2_CLASS_FORWARD_DECLARE_TCP_SERVER;
+
 	template<class derived_t, class session_t>
 	class tcps_server_impl_t
-		: public ssl_context_cp<derived_t, true>
+		: public ssl_context_cp   <derived_t, true     >
 		, public tcp_server_impl_t<derived_t, session_t>
 	{
-		template <class, bool>  friend class user_timer_cp;
-		template <class>        friend class post_cp;
-		template <class, class> friend class server_impl_t;
-		template <class, class> friend class tcp_server_impl_t;
+		ASIO2_CLASS_FRIEND_DECLARE_BASE;
+		ASIO2_CLASS_FRIEND_DECLARE_TCP_BASE;
+		ASIO2_CLASS_FRIEND_DECLARE_TCP_SERVER;
 
 	public:
-		using self = tcps_server_impl_t<derived_t, session_t>;
-		using super = tcp_server_impl_t<derived_t, session_t>;
+		using super = tcp_server_impl_t <derived_t, session_t>;
+		using self  = tcps_server_impl_t<derived_t, session_t>;
+
 		using session_type = session_t;
 
 		/**
@@ -42,9 +46,9 @@ namespace asio2::detail
 		 */
 		explicit tcps_server_impl_t(
 			asio::ssl::context::method method = asio::ssl::context::sslv23,
-			std::size_t init_buffer_size = tcp_frame_size,
-			std::size_t max_buffer_size = (std::numeric_limits<std::size_t>::max)(),
-			std::size_t concurrency = std::thread::hardware_concurrency() * 2
+			std::size_t init_buffer_size      = tcp_frame_size,
+			std::size_t max_buffer_size       = (std::numeric_limits<std::size_t>::max)(),
+			std::size_t concurrency           = std::thread::hardware_concurrency() * 2
 		)
 			: ssl_context_cp<derived_t, true>(method)
 			, super(init_buffer_size, max_buffer_size, concurrency)
@@ -71,7 +75,7 @@ namespace asio2::detail
 		template<class F, class ...C>
 		inline derived_t & bind_handshake(F&& fun, C&&... obj)
 		{
-			this->listener_.bind(event::handshake,
+			this->listener_.bind(event_type::handshake,
 				observer_t<std::shared_ptr<session_t>&, error_code>(
 					std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());

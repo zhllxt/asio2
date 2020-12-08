@@ -29,6 +29,7 @@
 #include <asio2/base/selector.hpp>
 #include <asio2/base/iopool.hpp>
 #include <asio2/base/error.hpp>
+#include <asio2/base/define.hpp>
 
 #include <asio2/base/detail/object.hpp>
 #include <asio2/base/detail/allocator.hpp>
@@ -36,31 +37,34 @@
 
 #include <asio2/base/component/user_timer_cp.hpp>
 #include <asio2/base/component/post_cp.hpp>
+#include <asio2/base/component/async_event_cp.hpp>
 
 namespace asio2::detail
 {
+	ASIO2_CLASS_FORWARD_DECLARE_BASE;
+
 	template<class derived_t>
 	class timer_impl_t
-		: public object_t<derived_t>
+		: public object_t      <derived_t>
 		, public iopool_cp
-		, public user_timer_cp<derived_t, false>
-		, public post_cp<derived_t>
+		, public user_timer_cp <derived_t>
+		, public post_cp       <derived_t>
+		, public async_event_cp<derived_t>
 	{
-		template <class, bool>         friend class user_timer_cp;
-		template <class>               friend class post_cp;
+		ASIO2_CLASS_FRIEND_DECLARE_BASE;
 
 	public:
-		using self = timer_impl_t<derived_t>;
-		using super = object_t<derived_t>;
+		using super = object_t    <derived_t>;
+		using self  = timer_impl_t<derived_t>;
 
 		/**
 		 * @constructor
 		 */
 		timer_impl_t()
-			: object_t<derived_t>()
-			, iopool_cp(1)
-			, user_timer_cp<derived_t, false>(iopool_.get(0))
-			, io_(iopool_.get(0))
+			: object_t     <derived_t>()
+			, iopool_cp               (1)
+			, user_timer_cp<derived_t>(iopool_.get(0))
+			, io_                     (iopool_.get(0))
 		{
 			this->iopool_.start(); // start the io_context pool
 		}
@@ -70,7 +74,15 @@ namespace asio2::detail
 		 */
 		~timer_impl_t()
 		{
+			// close user custom timers
 			this->stop_all_timers();
+
+			// close all posted timed tasks
+			this->stop_all_timed_tasks();
+
+			// close all async_events
+			this->notify_all_events();
+
 			this->iopool_.stop(); // stop the io_context pool
 		}
 

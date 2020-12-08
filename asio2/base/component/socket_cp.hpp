@@ -21,11 +21,11 @@
 
 namespace asio2::detail
 {
-	template<class derived_t, class socket_t>
+	template<class derived_t, class args_t>
 	class socket_cp
 	{
 	public:
-		using socket_type = std::remove_cv_t<std::remove_reference_t<socket_t>>;
+		using socket_type = std::remove_cv_t<std::remove_reference_t<typename args_t::socket_t>>;
 
 		/**
 		 * @constructor
@@ -311,7 +311,7 @@ namespace asio2::detail
 
 	protected:
 		/// socket 
-		socket_t socket_;
+		typename args_t::socket_t socket_;
 	};
 }
 

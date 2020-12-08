@@ -49,11 +49,59 @@ int main()
 
 	asio2::http_server server;
 
+	server.post([]()
+	{
+		printf("delay test\n");
+	}, std::chrono::seconds(30));
+
+	auto event_ptr = server.post_event([]()
+	{
+		printf("post_event test\n");
+	});
+
+	event_ptr->notify();
+
 	server.bind_recv([&](http::request& req, http::response& rep)
 	{
 		// all http and websocket request will goto here first.
 		std::cout << req.path() << std::endl;
 		std::cout << req.query() << std::endl;
+
+		auto& body = req.body();
+		auto target = req.target();
+
+		asio2::detail::ignore_unused(body, target);
+
+		if (req.has_multipart())
+		{
+			http::multipart_fields multipart_body = req.multipart();
+
+			auto& field_username = multipart_body["username"];
+			auto username = field_username.value();
+
+			auto& field_password = multipart_body["password"];
+			auto password = field_password.value();
+
+			std::string str = http::to_string(multipart_body);
+
+			std::string type = "multipart/form-data; boundary="; type += multipart_body.boundary();
+
+			rep.fill_text(str, http::status::ok, type);
+
+			http::request_t<http::string_body> re;
+			re.method(http::verb::post);
+			re.set(http::field::content_type, type);
+			re.keep_alive(true);
+			re.target("/api/user/");
+			re.body() = str;
+			re.prepare_payload();
+
+			std::stringstream ss;
+			ss << re;
+			auto restr = ss.str();
+
+			asio2::detail::ignore_unused(username, password, restr);
+		}
 
 	}).bind_connect([](auto & session_ptr)
 	{
@@ -88,9 +136,10 @@ int main()
 
 	}, aop_check{});
 
-	server.bind<http::verb::get>("/api/user/*", [](http::request& req, http::response& rep)
+	server.bind<http::verb::get, http::verb::post>("/api/user/*", [](http::request& req, http::response& rep)
 	{
-		rep.fill_text("the user name is hanmeimei, .....");
+		//rep.fill_text("the user name is hanmeimei, .....");
+		std::ignore = rep;
 
 	}, aop_log{}, aop_check{});
 

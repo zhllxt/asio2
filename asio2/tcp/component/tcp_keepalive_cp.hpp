@@ -26,11 +26,11 @@
 
 namespace asio2::detail
 {
-	template<class socket_t>
+	template<class derived_t, class args_t>
 	class tcp_keepalive_cp
 	{
 	public:
-		tcp_keepalive_cp(socket_t & socket) : socket_ref_(socket) {}
+		tcp_keepalive_cp(typename args_t::socket_t& socket) : socket_ref_(socket) {}
 		~tcp_keepalive_cp() = default;
 
 		/**
@@ -113,7 +113,7 @@ namespace asio2::detail
 		}
 
 	private:
-		socket_t & socket_ref_;
+		typename args_t::socket_t& socket_ref_;
 	};
 }
 

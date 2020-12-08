@@ -27,7 +27,7 @@
 
 namespace asio2::detail
 {
-	template<class derived_t, bool isSession>
+	template<class derived_t, class args_t = void>
 	class tcp_send_op
 	{
 	protected:
@@ -45,7 +45,7 @@ namespace asio2::detail
 		/**
 		 * @constructor
 		 */
-		tcp_send_op() : derive(static_cast<derived_t&>(*this)) {}
+		tcp_send_op() {}
 
 		/**
 		 * @destructor
@@ -56,6 +56,8 @@ namespace asio2::detail
 		template<class Data, class Callback>
 		inline bool _tcp_send(Data& data, Callback&& callback)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			if constexpr (has_member_dgram<derived_t>::value)
 			{
 				if (derive.dgram_)
@@ -74,6 +76,8 @@ namespace asio2::detail
 		template<class BufferSequence, class Callback>
 		inline bool _tcp_send_dgram(BufferSequence&& buffer, Callback&& callback)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			int bytes = 0;
 			std::unique_ptr<std::uint8_t[]> head;
 
@@ -120,7 +124,7 @@ namespace asio2::detail
 
 			asio::async_write(derive.stream(), buffers, asio::bind_executor(derive.io().strand(),
 				make_allocator(derive.wallocator(),
-					[this, p = derive.selfptr(),
+					[&derive, p = derive.selfptr(),
 					bytes, head = std::move(head),
 					callback = std::forward<Callback>(callback)]
 			(const error_code& ec, std::size_t bytes_sent) mutable
@@ -145,9 +149,11 @@ namespace asio2::detail
 		template<class BufferSequence, class Callback>
 		inline bool _tcp_send_general(BufferSequence&& buffer, Callback&& callback)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			asio::async_write(derive.stream(), buffer, asio::bind_executor(derive.io().strand(),
 				make_allocator(derive.wallocator(),
-					[this, p = derive.selfptr(), callback = std::forward<Callback>(callback)]
+					[&derive, p = derive.selfptr(), callback = std::forward<Callback>(callback)]
 			(const error_code& ec, std::size_t bytes_sent) mutable
 			{
 				set_last_error(ec);
@@ -164,7 +170,6 @@ namespace asio2::detail
 		}
 
 	protected:
-		derived_t & derive;
 	};
 }
 

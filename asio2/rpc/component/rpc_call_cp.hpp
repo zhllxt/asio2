@@ -58,21 +58,21 @@ auto f(Args&& ... args){
 #include <asio2/base/error.hpp>
 #include <asio2/base/detail/function_traits.hpp>
 
-#include <asio2/rpc/detail/serialization.hpp>
-#include <asio2/rpc/detail/protocol.hpp>
-#include <asio2/rpc/detail/invoker.hpp>
+#include <asio2/rpc/detail/rpc_serialization.hpp>
+#include <asio2/rpc/detail/rpc_protocol.hpp>
+#include <asio2/rpc/detail/rpc_invoker.hpp>
 
 namespace asio2::detail
 {
-	template<class derived_t, bool isSession>
+	template<class derived_t, class args_t = void>
 	class rpc_call_cp
 	{
 	public:
 		/**
 		 * @constructor
 		 */
-		rpc_call_cp(io_t&, serializer& sr, deserializer& dr)
-			: derive(static_cast<derived_t&>(*this)), sr_(sr), dr_(dr)
+		rpc_call_cp(io_t&, rpc_serializer& sr, rpc_deserializer& dr)
+			: sr_(sr), dr_(dr)
 		{
 		}
 
@@ -91,21 +91,21 @@ namespace asio2::detail
 				std::string name, Args&&... args)
 			{
 				error_code ec;
-				std::shared_ptr<typename result_t<return_t>::type> v =
-					std::make_shared<typename result_t<return_t>::type>();
+				std::shared_ptr<typename rpc_result_t<return_t>::type> result =
+					std::make_shared<typename rpc_result_t<return_t>::type>();
 				try
 				{
 					if (!derive.is_started())
 						asio::detail::throw_error(asio::error::not_connected);
 
-					header::id_type id = derive.mkid();
-					request<Args...> req(id, std::move(name), std::forward<Args>(args)...);
+					rpc_header::id_type id = derive.mkid();
+					rpc_request<Args...> req(id, std::move(name), std::forward<Args>(args)...);
 
 					std::shared_ptr<std::promise<error_code>> promise =
 						std::make_shared<std::promise<error_code>>();
 					std::future<error_code> future = promise->get_future();
 
-					auto ex = [&derive, v, id, pm = std::move(promise)]
+					auto ex = [&derive, result, id, pm = std::move(promise)]
 					(error_code ec, std::string_view s) mutable
 					{
 						ASIO2_ASSERT(derive.io().strand().running_in_this_thread());
@@ -118,11 +118,11 @@ namespace asio2::detail
 								if constexpr (!std::is_void_v<return_t>)
 								{
 									if (!ec)
-										derive.dr_ >> (*v);
+										derive.dr_ >> (*result);
 								}
 								else
 								{
-									std::ignore = v;
+									std::ignore = result;
 								}
 							}
 							catch (cereal::exception&  ) { ec = asio::error::no_data; }
@@ -135,7 +135,7 @@ namespace asio2::detail
 						derive.reqs_.erase(id);
 					};
 
-					// Make sure we run on the strand
+					// Make sure we not run on the strand
 					if (!derive.io().strand().running_in_this_thread())
 					{
 						derive.post([&derive, p = derive.selfptr(),
@@ -150,6 +150,7 @@ namespace asio2::detail
 								ex(get_last_error(), std::string_view{});
 							}
 						});
+
 						std::future_status status = future.wait_for(timeout);
 						if (status == std::future_status::ready)
 						{
@@ -213,7 +214,7 @@ namespace asio2::detail
 
 				if constexpr (!std::is_void_v<return_t>)
 				{
-					return std::move(*v);
+					return std::move(*result);
 				}
 				else
 				{
@@ -295,7 +296,7 @@ namespace asio2::detail
 				{
 					[&derive, cb = std::forward<Callback>(cb)](auto ec, std::string_view s) mutable
 					{
-						typename result_t<return_t>::type v{};
+						typename rpc_result_t<return_t>::type result{};
 
 						try
 						{
@@ -303,7 +304,7 @@ namespace asio2::detail
 								derive.dr_ >> ec;
 
 							if (!ec)
-								derive.dr_ >> v;
+								derive.dr_ >> result;
 						}
 						catch (cereal::exception&  ) { ec = asio::error::no_data; }
 						catch (system_error     & e) { ec = e.code();             }
@@ -311,7 +312,7 @@ namespace asio2::detail
 
 						set_last_error(ec);
 
-						cb(ec, std::move(v));
+						cb(ec, std::move(result));
 					}
 				};
 			}
@@ -345,7 +346,7 @@ namespace asio2::detail
 			}
 
 			template<class Callback, class Rep, class Period, class Req>
-			inline static void exec(derive_t& derive, header::id_type id,
+			inline static void exec(derive_t& derive, rpc_header::id_type id,
 				std::chrono::duration<Rep, Period> timeout, Callback&& cb, Req&& req)
 			{
 				ASIO2_ASSERT(id);
@@ -354,27 +355,18 @@ namespace asio2::detail
 
 				req.id(id);
 
-				copyable_wrapper<asio::steady_timer> timer(derive.io().context());
-				timer().expires_after(timeout);
-				timer().async_wait(asio::bind_executor(derive.io().strand(), [&derive, id]
-				(const error_code & ec) mutable
-				{
-					if (ec == asio::error::operation_aborted)
-						return;
-					auto iter = derive.reqs_.find(id);
-					if (iter != derive.reqs_.end())
-					{
-						auto& ex = iter->second;
-						ex(asio::error::timed_out, std::string_view{});
-					}
-				}));
+				// 2020-12-03 Fix possible bug: move the "timer->async_wait" into the io_context thread.
+				// otherwise the "derive.send" maybe has't called, the "timer->async_wait" has called
+				// already.
+				std::shared_ptr<asio::steady_timer> timer =
+					std::make_shared<asio::steady_timer>(derive.io().context());
 
-				auto ex = [&derive, id, timer = std::move(timer), cb = std::forward<Callback>(cb)]
+				auto ex = [&derive, id, timer, cb = std::forward<Callback>(cb)]
 				(error_code ec, std::string_view s) mutable
 				{
 					ASIO2_ASSERT(derive.io().strand().running_in_this_thread());
 
-					timer().cancel(ec_ignore);
+					timer->cancel(ec_ignore);
 
 					if (cb) { cb(ec, s); }
 
@@ -386,12 +378,26 @@ namespace asio2::detail
 					if (!derive.is_started())
 						asio::detail::throw_error(asio::error::not_connected);
 
-					auto task = [&derive, p = derive.selfptr(),
+					auto task = [&derive, this_ptr = derive.selfptr(), timer = std::move(timer), timeout,
 						req = std::move(req), ex = std::move(ex)]() mutable
 					{
 						if (derive.send((derive.sr_.reset() << req).str()))
 						{
 							derive.reqs_.emplace(req.id(), std::move(ex));
+
+							timer->expires_after(timeout);
+							timer->async_wait(asio::bind_executor(derive.io().strand(),
+								[&derive, this_ptr, id = req.id()](const error_code & ec) mutable
+							{
+								if (ec == asio::error::operation_aborted)
+									return;
+								auto iter = derive.reqs_.find(id);
+								if (iter != derive.reqs_.end())
+								{
+									auto& ex = iter->second;
+									ex(asio::error::timed_out, std::string_view{});
+								}
+							}));
 						}
 						else
 						{
@@ -428,7 +434,7 @@ namespace asio2::detail
 		template<class derive_t>
 		class sync_caller
 		{
-			template <class, bool>                       friend class rpc_call_cp;
+			template <class, class>                       friend class rpc_call_cp;
 		protected:
 			sync_caller(derive_t& d) : derive(d), id_(0), tm_(d.default_timeout()) {}
 			sync_caller(sync_caller&& o) : derive(o.derive)
@@ -462,7 +468,7 @@ namespace asio2::detail
 
 		protected:
 			derive_t&                                           derive;
-			header::id_type                                     id_;
+			rpc_header::id_type                                 id_;
 			asio::steady_timer::duration                        tm_;
 			error_code*                                         ec_       = nullptr;
 		};
@@ -470,7 +476,7 @@ namespace asio2::detail
 		template<class derive_t>
 		class async_caller
 		{
-			template <class, bool>                       friend class rpc_call_cp;
+			template <class, class>                       friend class rpc_call_cp;
 		protected:
 			async_caller(derive_t& d) : derive(d), id_(0), tm_(d.default_timeout()) {}
 			async_caller(async_caller&& o) : derive(o.derive)
@@ -480,7 +486,7 @@ namespace asio2::detail
 			async_caller& operator=(async_caller&&) = delete;
 			async_caller& operator=(const async_caller&) = delete;
 
-			using defer_fn = std::function<void(header::id_type, asio::steady_timer::duration,
+			using defer_fn = std::function<void(rpc_header::id_type, asio::steady_timer::duration,
 				std::function<void(error_code, std::string_view)>)>;
 
 		public:
@@ -512,8 +518,8 @@ namespace asio2::detail
 			inline async_caller& async_call(std::string name, Args&&... args)
 			{
 				derive_t& deriv = derive;
-				this->fn_ = [&deriv, req = request<Args...>{ std::move(name),std::forward<Args>(args)... }]
-				(header::id_type id, asio::steady_timer::duration timeout,
+				this->fn_ = [&deriv, req = rpc_request<Args...>{ std::move(name),std::forward<Args>(args)... }]
+				(rpc_header::id_type id, asio::steady_timer::duration timeout,
 					std::function<void(error_code, std::string_view)> cb) mutable
 				{
 					if (!id)
@@ -532,7 +538,7 @@ namespace asio2::detail
 
 		protected:
 			derive_t&                                                derive;
-			header::id_type                                          id_;
+			rpc_header::id_type                                      id_;
 			asio::steady_timer::duration                             tm_;
 			std::function<void(error_code, std::string_view)>        cb_;
 			defer_fn                                                 fn_;
@@ -541,7 +547,7 @@ namespace asio2::detail
 		template<class derive_t>
 		class base_caller
 		{
-			template <class, bool>                       friend class rpc_call_cp;
+			template <class, class>                       friend class rpc_call_cp;
 		protected:
 			base_caller(derive_t& d) : derive(d), tm_(d.default_timeout()) {}
 			base_caller(base_caller&& o) : derive(o.derive), tm_(std::move(o.tm_)), ec_(std::move(o.ec_)) {}
@@ -605,6 +611,8 @@ namespace asio2::detail
 		template<class return_t, class Rep, class Period, class ...Args>
 		inline return_t call(std::chrono::duration<Rep, Period> timeout, std::string name, Args&&... args)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			return sync_call_op<derived_t>::template exec<return_t>(derive, nullptr, timeout,
 				std::move(name), std::forward<Args>(args)...);
 		}
@@ -616,6 +624,8 @@ namespace asio2::detail
 		inline return_t call(error_code& ec, std::chrono::duration<Rep, Period> timeout,
 			std::string name, Args&&... args)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			return sync_call_op<derived_t>::template exec<return_t>(derive, &ec, timeout,
 				std::move(name), std::forward<Args>(args)...);
 		}
@@ -626,6 +636,8 @@ namespace asio2::detail
 		template<class return_t, class ...Args>
 		inline return_t call(std::string name, Args&&... args)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			return sync_call_op<derived_t>::template exec<return_t>(derive, nullptr,
 				derive.default_timeout(), std::move(name), std::forward<Args>(args)...);
 		}
@@ -636,6 +648,8 @@ namespace asio2::detail
 		template<class return_t, class ...Args>
 		inline return_t call(error_code& ec, std::string name, Args&&... args)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			return sync_call_op<derived_t>::template exec<return_t>(derive, &ec,
 				derive.default_timeout(), std::move(name), std::forward<Args>(args)...);
 		}
@@ -651,9 +665,11 @@ namespace asio2::detail
 		inline typename std::enable_if_t<is_callable_v<Callback>, void>
 			async_call(Callback&& cb, std::string name, Args&&... args)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			async_call_op<derived_t>::template exec(derive, derive.mkid(), derive.default_timeout(),
 				async_call_op<derived_t>::template make_callback(derive, std::forward<Callback>(cb)),
-				request<Args...>{ std::move(name), std::forward<Args>(args)... });
+				rpc_request<Args...>{ std::move(name), std::forward<Args>(args)... });
 		}
 
 		/**
@@ -667,9 +683,11 @@ namespace asio2::detail
 		inline typename std::enable_if_t<is_callable_v<Callback>, void>
 		async_call(Callback&& cb, std::chrono::duration<Rep, Period> timeout, std::string name, Args&&... args)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			async_call_op<derived_t>::template exec(derive, derive.mkid(), timeout,
 				async_call_op<derived_t>::template make_callback(derive, std::forward<Callback>(cb)),
-				request<Args...>{ std::move(name), std::forward<Args>(args)... });
+				rpc_request<Args...>{ std::move(name), std::forward<Args>(args)... });
 		}
 
 		/**
@@ -682,10 +700,12 @@ namespace asio2::detail
 		inline typename std::enable_if_t<is_template_callable_v<Callback, error_code, return_t>, void>
 		async_call(Callback&& cb, std::string name, Args&&... args)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			async_call_op<derived_t>::template exec(derive, derive.mkid(), derive.default_timeout(),
 				async_call_op<derived_t>::template make_callback<return_t>(
 					derive, std::forward<Callback>(cb)),
-				request<Args...>{ std::move(name), std::forward<Args>(args)... });
+				rpc_request<Args...>{ std::move(name), std::forward<Args>(args)... });
 		}
 
 		/**
@@ -699,10 +719,12 @@ namespace asio2::detail
 		async_call(Callback&& cb, std::chrono::duration<Rep, Period> timeout,
 			std::string name, Args&&... args)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			async_call_op<derived_t>::template exec(derive, derive.mkid(), timeout,
 				async_call_op<derived_t>::template make_callback<return_t>(
 					derive, std::forward<Callback>(cb)),
-				request<Args...>{ std::move(name), std::forward<Args>(args)... });
+				rpc_request<Args...>{ std::move(name), std::forward<Args>(args)... });
 		}
 
 		/**
@@ -711,7 +733,7 @@ namespace asio2::detail
 		template<class ...Args>
 		inline async_caller<derived_t> async_call(std::string name, Args&&... args)
 		{
-			async_caller<derived_t> caller{ derive };
+			async_caller<derived_t> caller{ static_cast<derived_t&>(*this) };
 			caller.async_call(std::move(name), std::forward<Args>(args)...);
 			return std::move(caller);
 		}
@@ -719,14 +741,14 @@ namespace asio2::detail
 		template<class Rep, class Period>
 		inline base_caller<derived_t> timeout(std::chrono::duration<Rep, Period> timeout)
 		{
-			base_caller<derived_t> caller{ derive };
+			base_caller<derived_t> caller{ static_cast<derived_t&>(*this) };
 			caller.timeout(timeout);
 			return std::move(caller);
 		}
 
 		inline sync_caller<derived_t> errcode(error_code& ec)
 		{
-			sync_caller<derived_t> caller{ derive };
+			sync_caller<derived_t> caller{ static_cast<derived_t&>(*this) };
 			caller.errcode(ec);
 			return std::move(caller);
 		}
@@ -734,18 +756,16 @@ namespace asio2::detail
 		template<class Callback>
 		inline async_caller<derived_t> response(Callback&& cb)
 		{
-			async_caller<derived_t> caller{ derive };
+			async_caller<derived_t> caller{ static_cast<derived_t&>(*this) };
 			caller.response(std::forward<Callback>(cb));
 			return std::move(caller);
 		}
 
 	protected:
-		derived_t     & derive;
+		rpc_serializer    & sr_;
+		rpc_deserializer  & dr_;
 
-		serializer    & sr_;
-		deserializer  & dr_;
-
-		std::map<header::id_type, std::function<void(error_code, std::string_view)>> reqs_;
+		std::map<rpc_header::id_type, std::function<void(error_code, std::string_view)>> reqs_;
 	};
 }
 

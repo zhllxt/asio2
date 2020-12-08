@@ -23,39 +23,30 @@
 
 namespace asio2::detail
 {
-	template<class derived_t, class socket_t, class body_t, class buffer_t>
+	ASIO2_CLASS_FORWARD_DECLARE_BASE;
+	ASIO2_CLASS_FORWARD_DECLARE_TCP_BASE;
+	ASIO2_CLASS_FORWARD_DECLARE_TCP_CLIENT;
+
+	template<class derived_t, class args_t>
 	class https_client_impl_t
-		: public ssl_context_cp<derived_t, false>
-		, public http_client_impl_t<derived_t, socket_t, body_t, buffer_t>
-		, public ssl_stream_cp<derived_t, socket_t, false>
+		: public ssl_context_cp    <derived_t, false >
+		, public http_client_impl_t<derived_t, args_t>
+		, public ssl_stream_cp     <derived_t, args_t>
 	{
-		template <class, bool>                       friend class user_timer_cp;
-		template <class>                             friend class post_cp;
-		template <class, bool>                       friend class reconnect_timer_cp;
-		template <class, bool>                       friend class connect_timeout_cp;
-		template <class, class, bool>                friend class connect_cp;
-		template <class, class, bool>                friend class disconnect_cp;
-		template <class>                             friend class data_persistence_cp;
-		template <class>                             friend class event_queue_cp;
-		template <class, bool>                       friend class send_cp;
-		template <class, bool>                       friend class tcp_send_op;
-		template <class, bool>                       friend class tcp_recv_op;
-		template <class, class, class, bool>         friend class http_send_cp;
-		template <class, class, class, bool>         friend class http_send_op;
-		template <class, class, class, bool>         friend class http_recv_op;
-		template <class, bool>						 friend class ssl_context_cp;
-		template <class, class, bool>                friend class ssl_stream_cp;
-		template <class, class, class>               friend class client_impl_t;
-		template <class, class, class>               friend class tcp_client_impl_t;
-		template <class, class, class, class>        friend class http_client_impl_t;
+		ASIO2_CLASS_FRIEND_DECLARE_BASE;
+		ASIO2_CLASS_FRIEND_DECLARE_TCP_BASE;
+		ASIO2_CLASS_FRIEND_DECLARE_TCP_CLIENT;
 
 	public:
-		using self = https_client_impl_t<derived_t, socket_t, body_t, buffer_t>;
-		using super = http_client_impl_t<derived_t, socket_t, body_t, buffer_t>;
-		using body_type = body_t;
-		using buffer_type = buffer_t;
-		using ssl_context_comp = ssl_context_cp<derived_t, false>;
-		using ssl_stream_comp = ssl_stream_cp<derived_t, socket_t, false>;
+		using super = http_client_impl_t <derived_t, args_t>;
+		using self  = https_client_impl_t<derived_t, args_t>;
+
+		using body_type   = typename args_t::body_t;
+		using buffer_type = typename args_t::buffer_t;
+
+		using ssl_context_comp = ssl_context_cp<derived_t, false >;
+		using ssl_stream_comp  = ssl_stream_cp <derived_t, args_t>;
+
 		using super::send;
 		using super::_data_persistence;
 
@@ -65,8 +56,8 @@ namespace asio2::detail
 		 */
 		explicit https_client_impl_t(
 			asio::ssl::context::method method = asio::ssl::context::sslv23,
-			std::size_t init_buffer_size = tcp_frame_size,
-			std::size_t max_buffer_size = (std::numeric_limits<std::size_t>::max)()
+			std::size_t init_buffer_size      = tcp_frame_size,
+			std::size_t max_buffer_size       = (std::numeric_limits<std::size_t>::max)()
 		)
 			: ssl_context_comp(method)
 			, super(init_buffer_size, max_buffer_size)
@@ -92,17 +83,17 @@ namespace asio2::detail
 		}
 
 	public:
-		template<class Rep, class Period, class Body = http::string_body, class Fields = http::fields,
-			class Buffer = beast::flat_buffer>
-		static inline http::response_t<Body, Fields> execute(asio::ssl::context ctx, std::string_view host,
-			std::string_view port, http::request_t<Body, Fields>& req, std::chrono::duration<Rep, Period> timeout,
-			error_code& ec)
+		template<typename String, typename StrOrInt, class Rep, class Period,
+			class Body = http::string_body, class Fields = http::fields, class Buffer = beast::flat_buffer>
+		static inline http::response_t<Body, Fields> execute(const asio::ssl::context& ctx, String&& host, StrOrInt&& port,
+			http::request_t<Body, Fields>& req, std::chrono::duration<Rep, Period> timeout, error_code& ec)
 		{
-			http::response_t<Body, Fields> rep;
+			http::parser<false, Body, typename Fields::allocator_type> parser;
 			try
 			{
 				// set default result to unknown
-				rep.result(http::status::unknown);
+				parser.get().result(http::status::unknown);
+				parser.eager(true);
 
 				// First assign default value timed_out to ec
 				ec = asio::error::timed_out;
@@ -113,20 +104,22 @@ namespace asio2::detail
 				// These objects perform our I/O
 				asio::ip::tcp::resolver resolver{ ioc };
 				asio::ip::tcp::socket socket{ ioc };
-				asio::ssl::stream<asio::ip::tcp::socket&> stream(socket, ctx);
+				asio::ssl::stream<asio::ip::tcp::socket&> stream(socket, const_cast<asio::ssl::context&>(ctx));
 
 				// This buffer is used for reading and must be persisted
 				Buffer buffer;
 
 				// Look up the domain name
-				resolver.async_resolve(host, port, [&](const error_code& ec1,
-					const asio::ip::tcp::resolver::results_type& endpoints)
+				resolver.async_resolve(
+					to_string(std::forward<String>(host)),
+					to_string(std::forward<StrOrInt>(port)),
+					[&](const error_code& ec1, const asio::ip::tcp::resolver::results_type& endpoints)
 				{
 					if (ec1) { ec = ec1; return; }
 
 					// Make the connection on the IP address we get from a lookup
-					asio::async_connect(socket, endpoints, [&](const error_code & ec2,
-						const asio::ip::tcp::endpoint&)
+					asio::async_connect(socket, endpoints,
+						[&](const error_code & ec2, const asio::ip::tcp::endpoint&)
 					{
 						if (ec2) { ec = ec2; return; }
 
@@ -135,19 +128,21 @@ namespace asio2::detail
 						{
 							if (ec3) { ec = ec3; return; }
 
-							http::async_write(stream, req,
-								[&](const error_code& ec4, std::size_t)
+							http::async_write(stream, req, [&](const error_code& ec4, std::size_t)
 							{
-								if (ec4) { ec = ec4; return; }
+								// can't use stream.shutdown(),in some case the shutdowm will blocking forever.
+								if (ec4) { ec = ec4; stream.async_shutdown([](const error_code&) {}); return; }
 
 								// Then start asynchronous reading
-								http::async_read(stream, buffer, rep,
+								http::async_read(stream, buffer, parser,
 									[&](const error_code& ec5, std::size_t)
 								{
 									// Reading completed, assign the read the result to ec
 									// If the code does not execute into here, the ec value
 									// is the default value timed_out.
 									ec = ec5;
+
+									stream.async_shutdown([](const error_code&) {});
 								});
 							});
 						});
@@ -157,9 +152,6 @@ namespace asio2::detail
 				// timedout run
 				ioc.run_for(timeout);
 
-				// close ssl stream
-				stream.shutdown(ec_ignore);
-
 				// Gracefully close the socket
 				socket.shutdown(asio::ip::tcp::socket::shutdown_both, ec_ignore);
 				socket.close(ec_ignore);
@@ -168,26 +160,39 @@ namespace asio2::detail
 			{
 				ec = e.code();
 			}
+
+			return parser.release();
+		}
+
+		template<typename String, typename StrOrInt, class Rep, class Period,
+			class Body = http::string_body, class Fields = http::fields, class Buffer = beast::flat_buffer>
+		static inline http::response_t<Body, Fields> execute(const asio::ssl::context& ctx, String&& host, StrOrInt&& port,
+			http::request_t<Body, Fields>& req, std::chrono::duration<Rep, Period> timeout)
+		{
+			error_code ec;
+			http::response_t<Body, Fields> rep = execute(ctx,
+				std::forward<String>(host), std::forward<StrOrInt>(port), req, timeout, ec);
+			asio::detail::throw_error(ec);
 			return rep;
 		}
 
-		template<class Body = http::string_body, class Fields = http::fields, class Buffer = beast::flat_buffer>
-		static inline http::response_t<Body, Fields> execute(std::string_view host, std::string_view port,
+		template<typename String, typename StrOrInt, class Body = http::string_body, class Fields = http::fields>
+		static inline http::response_t<Body, Fields> execute(String&& host, StrOrInt&& port,
 			http::request_t<Body, Fields>& req, error_code& ec)
 		{
-			using Rep = std::chrono::milliseconds::rep;
-			using Period = std::chrono::milliseconds::period;
 			ec.clear();
-			return execute<Rep, Period, Body, Fields, Buffer>(asio::ssl::context{ asio::ssl::context::sslv23 },
-				host, port, req, std::chrono::milliseconds(http_execute_timeout), ec);
+			return execute(asio::ssl::context{ asio::ssl::context::sslv23 },
+				std::forward<String>(host), std::forward<StrOrInt>(port),
+				req, std::chrono::milliseconds(http_execute_timeout), ec);
 		}
 
-		template<class Body = http::string_body, class Fields = http::fields, class Buffer = beast::flat_buffer>
-		static inline http::response_t<Body, Fields> execute(std::string_view host, std::string_view port,
+		template<typename String, typename StrOrInt, class Body = http::string_body, class Fields = http::fields>
+		static inline http::response_t<Body, Fields> execute(String&& host, StrOrInt&& port,
 			http::request_t<Body, Fields>& req)
 		{
 			error_code ec;
-			http::response_t<body_t> rep = execute(host, port, req, ec);
+			http::response_t<Body, Fields> rep = execute(
+				std::forward<String>(host), std::forward<StrOrInt>(port), req, ec);
 			asio::detail::throw_error(ec);
 			return rep;
 		}
@@ -196,27 +201,78 @@ namespace asio2::detail
 		 * @function : blocking execute the http request until it is returned on success or failure
 		 * You need to encode the "url"(by url_encode) before calling this function
 		 */
-		static inline http::response_t<body_t> execute(std::string_view url, error_code& ec)
+		template<class Body = http::string_body, class Fields = http::fields>
+		static inline http::response_t<Body, Fields> execute(std::string_view url, error_code& ec)
 		{
-			using Rep = std::chrono::milliseconds::rep;
-			using Period = std::chrono::milliseconds::period;
-			ec.clear();
-			http::request_t<body_t> req = http::make_request<body_t>(url, ec);
-			if (ec) return http::response_t<body_t>{ http::status::unknown, 11};
-			std::string_view host = http::url_to_host(url);
-			std::string_view port = http::url_to_port(url);
-			return execute<Rep, Period, body_t>(asio::ssl::context{ asio::ssl::context::sslv23 }, host, port, req,
-				std::chrono::milliseconds(http_execute_timeout), ec);
+			return execute(url, std::chrono::milliseconds(http_execute_timeout), ec);
 		}
 
 		/**
 		 * @function : blocking execute the http request until it is returned on success or failure
 		 * You need to encode the "url"(by url_encode) before calling this function
 		 */
-		static inline http::response_t<body_t> execute(std::string_view url)
+		template<class Body = http::string_body, class Fields = http::fields>
+		static inline http::response_t<Body, Fields> execute(std::string_view url)
 		{
 			error_code ec;
-			http::response_t<body_t> rep = execute(url, ec);
+			http::response_t<Body, Fields> rep = execute(url, ec);
+			asio::detail::throw_error(ec);
+			return rep;
+		}
+
+		/**
+		 * @function : blocking execute the http request until it is returned on success or failure
+		 * You need to encode the "url"(by url_encode) before calling this function
+		 */
+		template<class Rep, class Period, class Body = http::string_body, class Fields = http::fields>
+		static inline http::response_t<Body, Fields> execute(std::string_view url,
+			std::chrono::duration<Rep, Period> timeout, error_code& ec)
+		{
+			return execute(asio::ssl::context{ asio::ssl::context::sslv23 },
+				url, timeout, ec);
+		}
+
+		/**
+		 * @function : blocking execute the http request until it is returned on success or failure
+		 * You need to encode the "url"(by url_encode) before calling this function
+		 */
+		template<class Rep, class Period, class Body = http::string_body, class Fields = http::fields>
+		static inline http::response_t<Body, Fields> execute(std::string_view url,
+			std::chrono::duration<Rep, Period> timeout)
+		{
+			error_code ec;
+			http::response_t<Body, Fields> rep = execute(url, timeout, ec);
+			asio::detail::throw_error(ec);
+			return rep;
+		}
+
+		/**
+		 * @function : blocking execute the http request until it is returned on success or failure
+		 * You need to encode the "url"(by url_encode) before calling this function
+		 */
+		template<class Rep, class Period, class Body = http::string_body, class Fields = http::fields>
+		static inline http::response_t<Body, Fields> execute(const asio::ssl::context& ctx, std::string_view url,
+			std::chrono::duration<Rep, Period> timeout, error_code& ec)
+		{
+			ec.clear();
+			http::request_t<Body, Fields> req = http::make_request<Body, Fields>(url, ec);
+			if (ec) return http::response_t<Body, Fields>{ http::status::unknown, 11};
+			std::string_view host = http::url_to_host(url);
+			std::string_view port = http::url_to_port(url);
+			return execute(ctx,
+				host, port, req, timeout, ec);
+		}
+
+		/**
+		 * @function : blocking execute the http request until it is returned on success or failure
+		 * You need to encode the "url"(by url_encode) before calling this function
+		 */
+		template<class Rep, class Period, class Body = http::string_body, class Fields = http::fields>
+		static inline http::response_t<Body, Fields> execute(const asio::ssl::context& ctx, std::string_view url,
+			std::chrono::duration<Rep, Period> timeout)
+		{
+			error_code ec;
+			http::response_t<Body, Fields> rep = execute(ctx, url, timeout, ec);
 			asio::detail::throw_error(ec);
 			return rep;
 		}
@@ -225,26 +281,63 @@ namespace asio2::detail
 		 * @function : blocking execute the http request until it is returned on success or failure
 		 * You need to encode the "target"(by url_encode) before calling this function
 		 */
-		static inline http::response_t<body_t> execute(std::string_view host, std::string_view port,
+		template<typename String, typename StrOrInt, class Body = http::string_body, class Fields = http::fields>
+		static inline http::response_t<Body, Fields> execute(String&& host, StrOrInt&& port,
 			std::string_view target, error_code& ec)
 		{
-			using Rep = std::chrono::milliseconds::rep;
-			using Period = std::chrono::milliseconds::period;
-			ec.clear();
-			http::request_t<body_t> req = http::make_request<body_t>(host, port, target);
-			return execute<Rep, Period, body_t>(asio::ssl::context{ asio::ssl::context::sslv23 }, host, port, req,
-				std::chrono::milliseconds(http_execute_timeout), ec);
+			return execute(
+				std::forward<String>(host), std::forward<StrOrInt>(port),
+				target, std::chrono::milliseconds(http_execute_timeout), ec);
 		}
 
 		/**
 		 * @function : blocking execute the http request until it is returned on success or failure
 		 * You need to encode the "target"(by url_encode) before calling this function
 		 */
-		static inline http::response_t<body_t> execute(std::string_view host, std::string_view port,
+		template<typename String, typename StrOrInt, class Body = http::string_body, class Fields = http::fields>
+		static inline http::response_t<Body, Fields> execute(String&& host, StrOrInt&& port,
 			std::string_view target)
 		{
 			error_code ec;
-			http::response_t<body_t> rep = execute(host, port, target, ec);
+			http::response_t<Body, Fields> rep = execute(
+				std::forward<String>(host), std::forward<StrOrInt>(port), target, ec);
+			asio::detail::throw_error(ec);
+			return rep;
+		}
+
+		/**
+		 * @function : blocking execute the http request until it is returned on success or failure
+		 * You need to encode the "target"(by url_encode) before calling this function
+		 */
+		template<typename String, typename StrOrInt, class Rep, class Period,
+			class Body = http::string_body, class Fields = http::fields>
+		static inline http::response_t<Body, Fields> execute(String&& host, StrOrInt&& port,
+			std::string_view target, std::chrono::duration<Rep, Period> timeout, error_code& ec)
+		{
+			using host_type = std::remove_cv_t<std::remove_reference_t<String>>;
+			using port_type = std::remove_cv_t<std::remove_reference_t<StrOrInt>>;
+			ec.clear();
+			http::request_t<Body, Fields> req = http::make_request<
+				const host_type&, const port_type&, Body, Fields>(
+					const_cast<const host_type&>(host), const_cast<const port_type&>(port),
+					target);
+			return execute(asio::ssl::context{ asio::ssl::context::sslv23 },
+				std::forward<String>(host), std::forward<StrOrInt>(port),
+				req, timeout, ec);
+		}
+
+		/**
+		 * @function : blocking execute the http request until it is returned on success or failure
+		 * You need to encode the "target"(by url_encode) before calling this function
+		 */
+		template<typename String, typename StrOrInt, class Rep, class Period,
+			class Body = http::string_body, class Fields = http::fields>
+		static inline http::response_t<Body, Fields> execute(String&& host, StrOrInt&& port,
+			std::string_view target, std::chrono::duration<Rep, Period> timeout)
+		{
+			error_code ec;
+			http::response_t<Body, Fields> rep = execute(
+				std::forward<String>(host), std::forward<StrOrInt>(port), target, timeout, ec);
 			asio::detail::throw_error(ec);
 			return rep;
 		}
@@ -258,7 +351,7 @@ namespace asio2::detail
 		template<class F, class ...C>
 		inline derived_t & bind_handshake(F&& fun, C&&... obj)
 		{
-			this->listener_.bind(event::handshake,
+			this->listener_.bind(event_type::handshake,
 				observer_t<error_code>(std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
 		}
@@ -294,9 +387,11 @@ namespace asio2::detail
 			this->derived()._post_handshake(std::move(this_ptr), std::move(condition));
 		}
 
-		inline void _fire_handshake(detail::ignore, error_code ec)
+		inline void _fire_handshake(std::shared_ptr<derived_t>& this_ptr, error_code ec)
 		{
-			this->listener_.notify(event::handshake, ec);
+			detail::ignore_unused(this_ptr);
+
+			this->listener_.notify(event_type::handshake, ec);
 		}
 
 	protected:
@@ -305,12 +400,10 @@ namespace asio2::detail
 
 namespace asio2
 {
-	class https_client : public detail::https_client_impl_t<https_client,
-		asio::ip::tcp::socket, http::string_body, beast::flat_buffer>
+	class https_client : public detail::https_client_impl_t<https_client, detail::template_args_http_client>
 	{
 	public:
-		using https_client_impl_t<https_client, asio::ip::tcp::socket,
-			http::string_body, beast::flat_buffer>::https_client_impl_t;
+		using https_client_impl_t<https_client, detail::template_args_http_client>::https_client_impl_t;
 	};
 }
 

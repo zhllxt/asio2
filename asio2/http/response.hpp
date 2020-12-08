@@ -46,20 +46,20 @@ namespace boost::beast::http
 
 namespace asio2::detail
 {
-	template <class, class, class, class, class> class http_session_impl_t;
-
+	ASIO2_CLASS_FORWARD_DECLARE_BASE;
+	ASIO2_CLASS_FORWARD_DECLARE_TCP_BASE;
+	ASIO2_CLASS_FORWARD_DECLARE_TCP_CLIENT;
+	ASIO2_CLASS_FORWARD_DECLARE_TCP_SESSION;
 
 	template<bool isRequest, class Body, class Fields = http::fields>
 	class http_response_impl_t
 		: public http::message<isRequest, Body, Fields>
 		, public user_data_cp<http_response_impl_t<isRequest, Body, Fields>>
 	{
-		template <class, class, class, bool>		 friend class http_send_cp;
-		template <class, class, class, bool>		 friend class http_send_op;
-		template <class, class, class, bool>		 friend class http_recv_op;
-		template <class, class, class>				 friend class client_impl_t;
-		template <class, class, class>				 friend class tcp_client_impl_t;
-		template <class, class, class, class, class> friend class http_session_impl_t;
+		ASIO2_CLASS_FRIEND_DECLARE_BASE;
+		ASIO2_CLASS_FRIEND_DECLARE_TCP_BASE;
+		ASIO2_CLASS_FRIEND_DECLARE_TCP_CLIENT;
+		ASIO2_CLASS_FRIEND_DECLARE_TCP_SESSION;
 
 	public:
 		using self = http_response_impl_t<isRequest, Body, Fields>;
@@ -158,6 +158,13 @@ namespace asio2::detail
 		inline super& base()
 		{
 			return *this;
+		}
+
+		inline void reset()
+		{
+			static_cast<super&>(*this) = {};
+
+			this->result(http::status::unknown);
 		}
 
 		/**
@@ -277,11 +284,20 @@ namespace asio2::detail
 			return (*this);
 		}
 
-		inline void reset()
+		/**
+		 * @function : Returns `true` if this HTTP response's Content-Type is "multipart/form-data";
+		 */
+		inline bool has_multipart()
 		{
-			static_cast<super&>(*this) = {};
+			return http::has_multipart(*this);
+		}
 
-			this->result(http::status::unknown);
+		/**
+		 * @function : Get the "multipart/form-data" body content.
+		 */
+		inline decltype(auto) multipart()
+		{
+			return http::multipart(*this);
 		}
 
 	protected:

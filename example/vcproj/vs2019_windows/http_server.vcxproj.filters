@@ -366,12 +366,6 @@
     <ClInclude Include="..\..\..\asio2\rpc\rpc_server.hpp">
       <Filter>asio2\rpc</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\asio2\rpc\detail\invoker.hpp">
-      <Filter>asio2\rpc\detail</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\asio2\rpc\detail\protocol.hpp">
-      <Filter>asio2\rpc\detail</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\asio2\base\detail\function_traits.hpp">
       <Filter>asio2\base\detail</Filter>
     </ClInclude>
@@ -380,9 +374,6 @@
     </ClInclude>
     <ClInclude Include="..\..\..\asio2\rpc\component\rpc_call_cp.hpp">
       <Filter>asio2\rpc\component</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\asio2\rpc\detail\serialization.hpp">
-      <Filter>asio2\rpc\detail</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\asio2\rpc\rpc_session.hpp">
       <Filter>asio2\rpc</Filter>
@@ -668,9 +659,6 @@
     </ClInclude>
     <ClInclude Include="..\..\..\asio2\base\component\reconnect_timer_cp.hpp">
       <Filter>asio2\base\component</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\asio2\rpc\detail\rpc_portable_binary.hpp">
-      <Filter>asio2\rpc\detail</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\asio2\util\aes.hpp">
       <Filter>asio2\util</Filter>
@@ -1344,9 +1332,6 @@
     <ClInclude Include="..\..\..\asio2\http\detail\flex_body.hpp">
       <Filter>asio2\http\detail</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\asio2\http\detail\router.hpp">
-      <Filter>asio2\http\detail</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\asio2\base\component\alive_time_cp.hpp">
       <Filter>asio2\base\component</Filter>
     </ClInclude>
@@ -1355,6 +1340,36 @@
     </ClInclude>
     <ClInclude Include="..\..\..\asio2\version.hpp">
       <Filter>asio2</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\base\component\async_event_cp.hpp">
+      <Filter>asio2\base\component</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\base\define.hpp">
+      <Filter>asio2\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\http\multipart.hpp">
+      <Filter>asio2\http</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\base\component\rdc_call_cp.hpp">
+      <Filter>asio2\base\component</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\base\detail\rdc_invoker.hpp">
+      <Filter>asio2\base\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\rpc\detail\rpc_invoker.hpp">
+      <Filter>asio2\rpc\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\rpc\detail\rpc_portable_binary.hpp">
+      <Filter>asio2\rpc\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\rpc\detail\rpc_protocol.hpp">
+      <Filter>asio2\rpc\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\rpc\detail\rpc_serialization.hpp">
+      <Filter>asio2\rpc\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\asio2\http\detail\http_router.hpp">
+      <Filter>asio2\http\detail</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

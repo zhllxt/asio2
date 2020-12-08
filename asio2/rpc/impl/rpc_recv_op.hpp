@@ -24,20 +24,20 @@
 #include <asio2/base/error.hpp>
 #include <asio2/base/detail/condition_wrap.hpp>
 
-#include <asio2/rpc/detail/serialization.hpp>
-#include <asio2/rpc/detail/protocol.hpp>
-#include <asio2/rpc/detail/invoker.hpp>
+#include <asio2/rpc/detail/rpc_serialization.hpp>
+#include <asio2/rpc/detail/rpc_protocol.hpp>
+#include <asio2/rpc/detail/rpc_invoker.hpp>
 
 namespace asio2::detail
 {
-	template<class derived_t, bool isSession>
+	template<class derived_t, class args_t = void>
 	class rpc_recv_op
 	{
 	public:
 		/**
 		 * @constructor
 		 */
-		rpc_recv_op() : derive(static_cast<derived_t&>(*this)) {}
+		rpc_recv_op() {}
 
 		/**
 		 * @destructor
@@ -45,18 +45,24 @@ namespace asio2::detail
 		~rpc_recv_op() = default;
 
 	protected:
-		inline void _rpc_handle_recv(std::shared_ptr<derived_t>& this_ptr, std::string_view s)
+		template<typename MatchCondition>
+		inline void _rpc_handle_recv(std::shared_ptr<derived_t>& this_ptr, std::string_view s,
+			condition_wrap<MatchCondition>& condition)
 		{
-			serializer& sr = derive.serializer_;
-			deserializer& dr = derive.deserializer_;
-			header& head = derive.header_;
+			detail::ignore_unused(condition);
+
+			derived_t& derive = static_cast<derived_t&>(*this);
+
+			rpc_serializer   & sr   = derive.serializer_;
+			rpc_deserializer & dr   = derive.deserializer_;
+			rpc_header       & head = derive.header_;
 
 			try
 			{
 				dr.reset(s);
 				dr >> head;
 			}
-			catch (cereal::exception&)
+			catch (cereal::exception const&)
 			{
 				set_last_error(asio::error::message_size);
 				derive._do_disconnect(asio::error::message_size);
@@ -64,13 +70,13 @@ namespace asio2::detail
 			}
 			// bug fixed : illegal data being parsed into string object fails to allocate
 			// memory due to excessively long data
-			catch (std::bad_alloc&)
+			catch (std::bad_alloc const&)
 			{
 				set_last_error(asio::error::message_size);
 				derive._do_disconnect(asio::error::message_size);
 				return;
 			}
-			catch (std::exception&)
+			catch (std::exception const&)
 			{
 				set_last_error(asio::error::message_size);
 				derive._do_disconnect(asio::error::message_size);
@@ -91,7 +97,7 @@ namespace asio2::detail
 
 						// The number of parameters passed in when calling rpc function exceeds 
 						// the number of parameters of local function
-						if (dr.buffer().in_avail() != 0 && head.id() != static_cast<header::id_type>(0))
+						if (dr.buffer().in_avail() != 0 && head.id() != static_cast<rpc_header::id_type>(0))
 						{
 							sr.reset();
 							sr << head;
@@ -100,17 +106,17 @@ namespace asio2::detail
 					}
 					else
 					{
-						if (head.id() != static_cast<header::id_type>(0))
+						if (head.id() != static_cast<rpc_header::id_type>(0))
 						{
 							sr << error_code{ asio::error::not_found };
 						}
 					}
 				}
-				catch (cereal::exception&  ) { sr << error_code{ asio::error::no_data          }; }
-				catch (system_error     & e) { sr << e.code();                                    }
-				catch (std::exception   &  ) { sr << error_code{ asio::error::invalid_argument }; }
+				catch (cereal::exception const&  ) { sr << error_code{ asio::error::no_data          }; }
+				catch (system_error      const& e) { sr << e.code();                                    }
+				catch (std::exception    const&  ) { sr << error_code{ asio::error::invalid_argument }; }
 
-				if (head.id() != static_cast<header::id_type>(0))
+				if (head.id() != static_cast<rpc_header::id_type>(0))
 				{
 					const std::string& str = sr.str();
 					derive.send(str);
@@ -119,10 +125,11 @@ namespace asio2::detail
 			else if (head.is_response())
 			{
 				auto iter = derive.reqs_.find(head.id());
-				if (iter == derive.reqs_.end())
-					return;
-				std::function<void(error_code, std::string_view)>& cb = iter->second;
-				cb(error_code{}, s);
+				if (iter != derive.reqs_.end())
+				{
+					std::function<void(error_code, std::string_view)>& cb = iter->second;
+					cb(error_code{}, s);
+				}
 			}
 			else
 			{
@@ -132,7 +139,6 @@ namespace asio2::detail
 		}
 
 	protected:
-		derived_t & derive;
 	};
 }
 

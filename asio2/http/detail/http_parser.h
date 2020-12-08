@@ -35,10 +35,11 @@
 #endif
 
 #ifdef BEAST_HEADER_ONLY
-namespace beast::http::nginx_parser {
+namespace beast::http::http_parser_ns
 #else
-namespace boost::beast::http::nginx_parser {
+namespace boost::beast::http::http_parser_ns
 #endif
+{
 //#ifdef __cplusplus
 //extern "C" {
 //#endif
@@ -2936,6 +2937,62 @@ http_parser_version(void) {
          HTTP_PARSER_VERSION_MINOR * 0x00100 |
          HTTP_PARSER_VERSION_PATCH * 0x00001;
 }
+
+#undef HTTP_CR
+#undef HTTP_LF
+#undef HTTP_LOWER
+#undef HTTP_IS_ALPHA
+#undef HTTP_IS_NUM
+#undef HTTP_IS_ALPHANUM
+#undef HTTP_IS_HEX
+#undef HTTP_IS_MARK
+#undef HTTP_IS_USERINFO_CHAR
+#undef HTTP_STRICT_TOKEN
+#undef HTTP_TOKEN
+#undef HTTP_IS_URL_CHAR
+#undef HTTP_IS_HOST_CHAR
+#undef HTTP_IS_HEADER_CHAR
+#undef start_state
+#undef HTTP_STRICT_CHECK
+#undef HTTP_NEW_MESSAGE
+#undef HTTP_STRERROR_GEN
+#undef HTTP_PARSING_HEADER
+#undef T
+#undef HTTP_PROXY_CONNECTION
+#undef HTTP_CONNECTION
+#undef HTTP_CONTENT_LENGTH
+#undef HTTP_TRANSFER_ENCODING
+#undef HTTP_UPGRADE
+#undef HTTP_CHUNKED
+#undef HTTP_KEEP_ALIVE
+#undef HTTP_CLOSE
+#undef HTTP_COUNT_HEADER_SIZE
+#undef HTTP_MARK
+#undef HTTP_CALLBACK_DATA_NOADVANCE
+#undef HTTP_CALLBACK_DATA
+#undef HTTP_CALLBACK_DATA_
+#undef HTTP_CALLBACK_NOTIFY_NOADVANCE
+#undef HTTP_CALLBACK_NOTIFY
+#undef HTTP_CALLBACK_NOTIFY_
+#undef HTTP_UNLIKELY
+#undef HTTP_LIKELY
+#undef HTTP_REEXECUTE
+#undef HTTP_RETURN
+#undef HTTP_UPDATE_STATE
+#undef HTTP_CURRENT_STATE
+#undef HTTP_SET_ERRNO
+#undef HTTP_ELEM_AT
+#undef HTTP_BIT_AT
+#undef HTTP_ARRAY_SIZE
+#undef HTTP_MIN
+#undef HTTP_ULLONG_MAX
+#undef HTTP_PARSER_ERRNO
+#undef HTTP_ERRNO_GEN
+#undef HTTP_ERRNO_MAP
+#undef HTTP_XX
+#undef HTTP_STATUS_MAP
+#undef HTTP_MAX_HEADER_SIZE
+#undef HTTP_PARSER_STRICT
 
 //#ifdef __cplusplus
 //}

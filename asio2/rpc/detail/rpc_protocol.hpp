@@ -20,7 +20,7 @@
 
 #include <asio2/base/detail/util.hpp>
 
-#include <asio2/rpc/detail/serialization.hpp>
+#include <asio2/rpc/detail/rpc_serialization.hpp>
 
 namespace asio2::detail
 {
@@ -40,27 +40,27 @@ namespace asio2::detail
 	static constexpr char rpc_type_req = 'q';
 	static constexpr char rpc_type_rep = 'p';
 
-	class header
+	class rpc_header
 	{
 	public:
 		using id_type = std::uint64_t;
 
-		header() {}
-		header(char type, id_type id, std::string_view name)
+		rpc_header() {}
+		rpc_header(char type, id_type id, std::string_view name)
 			: type_(type), id_(id), name_(name) {}
-		~header() = default;
+		~rpc_header() = default;
 
-		header(const header& r) : type_(r.type_), id_(r.id_), name_(r.name_) {}
-		header(header&& r) : type_(r.type_), id_(r.id_), name_(std::move(r.name_)) {}
+		rpc_header(const rpc_header& r) : type_(r.type_), id_(r.id_), name_(r.name_) {}
+		rpc_header(rpc_header&& r) : type_(r.type_), id_(r.id_), name_(std::move(r.name_)) {}
 
-		inline header& operator=(const header& r)
+		inline rpc_header& operator=(const rpc_header& r)
 		{
 			type_ = r.type_;
 			id_ = r.id_;
 			name_ = r.name_;
 			return (*this);
 		}
-		inline header& operator=(header&& r)
+		inline rpc_header& operator=(rpc_header&& r)
 		{
 			type_ = r.type_;
 			id_ = r.id_;
@@ -81,9 +81,9 @@ namespace asio2::detail
 		inline bool is_request()  { return this->type_ == rpc_type_req; }
 		inline bool is_response() { return this->type_ == rpc_type_rep; }
 
-		inline header& type(char type            ) { this->type_ = type; return (*this); }
-		inline header& id  (id_type id           ) { this->id_   = id  ; return (*this); }
-		inline header& name(std::string_view name) { this->name_ = name; return (*this); }
+		inline rpc_header& type(char type            ) { this->type_ = type; return (*this); }
+		inline rpc_header& id  (id_type id           ) { this->id_   = id  ; return (*this); }
+		inline rpc_header& name(std::string_view name) { this->name_ = name; return (*this); }
 
 	protected:
 		char           type_;
@@ -92,7 +92,7 @@ namespace asio2::detail
 	};
 
 	template<class ...Args>
-	class request : public header
+	class rpc_request : public rpc_header
 	{
 	protected:
 		template<class T>
@@ -129,25 +129,25 @@ namespace asio2::detail
 		};
 
 	public:
-		request() : header() { this->type_ = rpc_type_req; }
-		request(std::string_view name, Args&&... args)
-			: header(rpc_type_req,  0, name), tp_(std::forward_as_tuple(std::forward<Args>(args)...)) {}
-		request(id_type id, std::string_view name, Args&&... args)
-			: header(rpc_type_req, id, name), tp_(std::forward_as_tuple(std::forward<Args>(args)...)) {}
-		~request() = default;
+		rpc_request() : rpc_header() { this->type_ = rpc_type_req; }
+		rpc_request(std::string_view name, Args&&... args)
+			: rpc_header(rpc_type_req,  0, name), tp_(std::forward_as_tuple(std::forward<Args>(args)...)) {}
+		rpc_request(id_type id, std::string_view name, Args&&... args)
+			: rpc_header(rpc_type_req, id, name), tp_(std::forward_as_tuple(std::forward<Args>(args)...)) {}
+		~rpc_request() = default;
 
-		request(const request& r) : header(r), tp_(r.tp_) {}
-		request(request&& r) : header(std::move(r)), tp_(std::move(r.tp_)) {}
+		rpc_request(const rpc_request& r) : rpc_header(r), tp_(r.tp_) {}
+		rpc_request(rpc_request&& r) : rpc_header(std::move(r)), tp_(std::move(r.tp_)) {}
 
-		inline request& operator=(const request& r)
+		inline rpc_request& operator=(const rpc_request& r)
 		{
-			static_cast<header&>(*this) = r;
+			static_cast<rpc_header&>(*this) = r;
 			tp_ = r.tp_;
 			return (*this);
 		}
-		inline request& operator=(request&& r)
+		inline rpc_request& operator=(rpc_request&& r)
 		{
-			static_cast<header&>(*this) = std::move(r);
+			static_cast<rpc_header&>(*this) = std::move(r);
 			tp_ = std::move(r.tp_);
 			return (*this);
 		}
@@ -155,7 +155,7 @@ namespace asio2::detail
 		template <class Archive>
 		void serialize(Archive & ar)
 		{
-			ar(cereal::base_class<header>(this));
+			ar(cereal::base_class<rpc_header>(this));
 			ar(tp_);
 		}
 
@@ -164,28 +164,28 @@ namespace asio2::detail
 	};
 
 	template<class T>
-	class response : public header
+	class rpc_response : public rpc_header
 	{
 	public:
-		response() : header() { this->type_ = rpc_type_rep; }
-		response(id_type id, std::string_view name) : header(rpc_type_rep, id, name) {}
-		response(id_type id, std::string_view name, const error_code& ec, T&& ret)
-			: header(rpc_type_rep, id, name), ec_(ec), ret_(std::forward<T>(ret)) {}
-		~response() = default;
+		rpc_response() : rpc_header() { this->type_ = rpc_type_rep; }
+		rpc_response(id_type id, std::string_view name) : rpc_header(rpc_type_rep, id, name) {}
+		rpc_response(id_type id, std::string_view name, const error_code& ec, T&& ret)
+			: rpc_header(rpc_type_rep, id, name), ec_(ec), ret_(std::forward<T>(ret)) {}
+		~rpc_response() = default;
 
-		response(const response& r) : header(r), ec_(r.ec_), ret_(r.ret_) {}
-		response(response&& r) : header(std::move(r)), ec_(std::move(r.ec_)), ret_(std::move(r.ret_)) {}
+		rpc_response(const rpc_response& r) : rpc_header(r), ec_(r.ec_), ret_(r.ret_) {}
+		rpc_response(rpc_response&& r) : rpc_header(std::move(r)), ec_(std::move(r.ec_)), ret_(std::move(r.ret_)) {}
 
-		inline response& operator=(const response& r)
+		inline rpc_response& operator=(const rpc_response& r)
 		{
-			static_cast<header&>(*this) = r;
+			static_cast<rpc_header&>(*this) = r;
 			ec_ = r.ec_;
 			ret_ = r.ret_;
 			return (*this);
 		}
-		inline response& operator=(response&& r)
+		inline rpc_response& operator=(rpc_response&& r)
 		{
-			static_cast<header&>(*this) = std::move(r);
+			static_cast<rpc_header&>(*this) = std::move(r);
 			ec_ = std::move(r.ec_);
 			ret_ = std::move(r.ret_);
 			return (*this);
@@ -194,14 +194,14 @@ namespace asio2::detail
 		template <class Archive>
 		void serialize(Archive & ar)
 		{
-			ar(cereal::base_class<header>(this));
+			ar(cereal::base_class<rpc_header>(this));
 			ar(ec_.value());
 			ar(ret_);
 		}
 
 	protected:
 		error_code ec_;
-		T ret_;
+		T          ret_;
 	};
 }
 

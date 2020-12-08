@@ -29,7 +29,7 @@
 
 namespace asio2::detail
 {
-	enum class event : std::int8_t
+	enum class event_type : std::int8_t
 	{
 		recv,
 		connect,
@@ -119,13 +119,13 @@ namespace asio2::detail
 		~listener_t() = default;
 
 		template<class T>
-		inline void bind(event e, T&& observer)
+		inline void bind(event_type e, T&& observer)
 		{
 			this->observers_[enum_to_int(e)] = std::unique_ptr<base_observer>(new T(std::forward<T>(observer)));
 		}
 
 		template<class... Args>
-		inline void notify(event e, Args&&... args)
+		inline void notify(event_type e, Args&&... args)
 		{
 			using observer_type = observer_t<Args...>;
 			observer_type * observer_ptr = static_cast<observer_type *>(this->observers_[enum_to_int(e)].get());
@@ -135,13 +135,13 @@ namespace asio2::detail
 			}
 		}
 
-		inline std::unique_ptr<base_observer>& find(event e)
+		inline std::unique_ptr<base_observer>& find(event_type e)
 		{
 			return this->observers_[enum_to_int(e)];
 		}
 
 	protected:
-		std::array<std::unique_ptr<base_observer>, enum_to_int(event::max)> observers_;
+		std::array<std::unique_ptr<base_observer>, enum_to_int(event_type::max)> observers_;
 	};
 }
 

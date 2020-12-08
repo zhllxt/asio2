@@ -30,25 +30,29 @@
 
 namespace asio2::detail
 {
+	ASIO2_CLASS_FORWARD_DECLARE_UDP_CLIENT;
+	ASIO2_CLASS_FORWARD_DECLARE_UDP_SERVER;
+	ASIO2_CLASS_FORWARD_DECLARE_UDP_SESSION;
+
 	/*
 	 * because udp is connectionless, in order to simplify the code logic, KCP shakes
 	 * hands only twice (compared with TCP handshakes three times)
 	 * 1 : client send syn to server
 	 * 2 : server send synack to client
 	 */
-	template<class derived_t, bool isSession>
+	template<class derived_t, class args_t>
 	class kcp_stream_cp
 	{
-		template <class, class, class> friend class udp_session_impl_t;
-		template <class, class, class> friend class udp_client_impl_t;
-		template <class, class       > friend class udp_server_impl_t;
+		ASIO2_CLASS_FRIEND_DECLARE_UDP_CLIENT;
+		ASIO2_CLASS_FRIEND_DECLARE_UDP_SERVER;
+		ASIO2_CLASS_FRIEND_DECLARE_UDP_SESSION;
 
 	public:
 		/**
 		 * @constructor
 		 */
-		kcp_stream_cp(derived_t & d, io_t & io)
-			: derive(d), kcp_io_(io), kcp_timer_(io.context())
+		kcp_stream_cp(derived_t& d, io_t& io)
+			: derive(d), kcp_timer_(io.context())
 		{
 		}
 
@@ -74,7 +78,7 @@ namespace asio2::detail
 			}
 
 			this->kcp_ = kcp::ikcp_create(conv, (void*)this);
-			this->kcp_->output = &kcp_stream_cp<derived_t, isSession>::_kcp_output;
+			this->kcp_->output = &kcp_stream_cp<derived_t, args_t>::_kcp_output;
 
 			kcp::ikcp_nodelay(this->kcp_, 1, 10, 2, 1);
 			kcp::ikcp_wndsize(this->kcp_, 128, 512);
@@ -96,7 +100,7 @@ namespace asio2::detail
 		inline std::size_t _kcp_send_hdr(kcp::kcphdr hdr, error_code& ec)
 		{
 			std::size_t sent_bytes = 0;
-			if constexpr (isSession)
+			if constexpr (args_t::is_session)
 				sent_bytes = derive.stream().send_to(
 					asio::buffer((const void*)&hdr, sizeof(kcp::kcphdr)),
 					derive.remote_endpoint_, 0, ec);
@@ -127,7 +131,7 @@ namespace asio2::detail
 			std::uint32_t clock2 = kcp::ikcp_check(this->kcp_, clock1);
 
 			this->kcp_timer_.expires_after(std::chrono::milliseconds(clock2 - clock1));
-			this->kcp_timer_.async_wait(asio::bind_executor(this->kcp_io_.strand(),
+			this->kcp_timer_.async_wait(asio::bind_executor(derive.io().strand(),
 				make_allocator(this->tallocator_,
 					[this, self_ptr = std::move(this_ptr)](const error_code & ec) mutable
 			{
@@ -146,8 +150,9 @@ namespace asio2::detail
 				this->_post_kcp_timer(std::move(this_ptr));
 		}
 
-		template<class buffer_t>
-		inline void _kcp_recv(std::shared_ptr<derived_t>& this_ptr, std::string_view s, buffer_t& buffer)
+		template<class buffer_t, typename MatchCondition>
+		inline void _kcp_recv(std::shared_ptr<derived_t>& this_ptr, std::string_view s, buffer_t& buffer,
+			condition_wrap<MatchCondition>& condition)
 		{
 			int len = kcp::ikcp_input(this->kcp_, (const char *)s.data(), (long)s.size());
 			buffer.consume(buffer.size());
@@ -165,7 +170,7 @@ namespace asio2::detail
 				{
 					buffer.commit(len);
 					derive._fire_recv(this_ptr, std::string_view(static_cast
-						<std::string_view::const_pointer>(buffer.data().data()), len));
+						<std::string_view::const_pointer>(buffer.data().data()), len), condition);
 					buffer.consume(len);
 				}
 				else if (len == -3)
@@ -184,7 +189,7 @@ namespace asio2::detail
 			try
 			{
 				error_code ec;
-				if constexpr (isSession)
+				if constexpr (args_t::is_session)
 				{
 					// step 3 : server recvd syn from client (the first_ is the syn)
 
@@ -284,7 +289,7 @@ namespace asio2::detail
 
 			try
 			{
-				if constexpr (isSession)
+				if constexpr (args_t::is_session)
 				{
 					derive._fire_handshake(this_ptr, ec);
 
@@ -316,7 +321,7 @@ namespace asio2::detail
 			derived_t & derive = zhis->derive;
 
 			error_code ec;
-			if constexpr (isSession)
+			if constexpr (args_t::is_session)
 				derive.stream().send_to(asio::buffer(buf, len),
 					derive.remote_endpoint_, 0, ec);
 			else
@@ -327,8 +332,6 @@ namespace asio2::detail
 
 	protected:
 		derived_t                   & derive;
-
-		io_t                        & kcp_io_;
 
 		kcp::ikcpcb                 * kcp_ = nullptr;
 

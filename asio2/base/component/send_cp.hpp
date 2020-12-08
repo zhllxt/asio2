@@ -28,6 +28,7 @@
 #include <asio2/base/selector.hpp>
 #include <asio2/base/iopool.hpp>
 #include <asio2/base/error.hpp>
+#include <asio2/base/define.hpp>
 
 #include <asio2/base/detail/util.hpp>
 #include <asio2/base/detail/function_traits.hpp>
@@ -37,17 +38,18 @@
 
 namespace asio2::detail
 {
-	template<class derived_t, bool isSession>
-	class send_cp : public data_persistence_cp<derived_t>
+	ASIO2_CLASS_FORWARD_DECLARE_BASE;
+
+	template<class derived_t, class args_t = void>
+	class send_cp : public data_persistence_cp<derived_t, args_t>
 	{
-		template <class>               friend class data_persistence_cp;
-		template <class>               friend class event_queue_cp;
+		ASIO2_CLASS_FRIEND_DECLARE_BASE;
 
 	public:
 		/**
 		 * @constructor
 		 */
-		send_cp(io_t&) : derive(static_cast<derived_t&>(*this)) {}
+		send_cp(io_t&) {}
 
 		/**
 		 * @destructor
@@ -69,21 +71,23 @@ namespace asio2::detail
 		 * if you want use synchronous send data,you can do it like this (example):
 		 * asio::write(session_ptr->stream(), asio::buffer(std::string("abc")));
 		 */
-		template<class T>
-		inline bool send(T&& data)
+		template<class DataT>
+		inline bool send(DataT&& data)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			// We must ensure that there is only one operation to send data
 			// at the same time,otherwise may be cause crash.
 			try
 			{
-				if (!this->derive.is_started())
+				if (!derive.is_started())
 					asio::detail::throw_error(asio::error::not_connected);
 
-				this->derive.push_event([this,
-					data = this->derive._data_persistence(std::forward<T>(data))]
-					(event_guard<derived_t>&& g) mutable
+				derive.push_event([&derive,
+					data = derive._data_persistence(std::forward<DataT>(data))]
+					(event_queue_guard<derived_t>&& g) mutable
 				{
-					return this->derive._do_send(data,
+					return derive._do_send(data,
 						[g = std::move(g)](const error_code&, std::size_t) mutable {});
 				});
 				return true;
@@ -124,20 +128,22 @@ namespace asio2::detail
 			std::remove_reference_t<SizeT>>>, bool>
 			send(CharT* s, SizeT count)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			// We must ensure that there is only one operation to send data
 			// at the same time,otherwise may be cause crash.
 			try
 			{
-				if (!this->derive.is_started())
+				if (!derive.is_started())
 					asio::detail::throw_error(asio::error::not_connected);
 
 				if (!s)
 					asio::detail::throw_error(asio::error::invalid_argument);
 
-				this->derive.push_event([this, data = this->derive._data_persistence(s, count)]
-				(event_guard<derived_t>&& g) mutable
+				derive.push_event([&derive, data = derive._data_persistence(s, count)]
+				(event_queue_guard<derived_t>&& g) mutable
 				{
-					return this->derive._do_send(data,
+					return derive._do_send(data,
 						[g = std::move(g)](const error_code&, std::size_t) mutable {});
 				});
 				return true;
@@ -161,9 +167,11 @@ namespace asio2::detail
 		 * std::vector<PodType, Allocator> : std::vector<float> m; send(m);
 		 * std::basic_string<Elem, Traits, Allocator> : std::string m; send(m);
 		 */
-		template<class T>
-		inline std::future<std::pair<error_code, std::size_t>> send(T&& data, asio::use_future_t<> flag)
+		template<class DataT>
+		inline std::future<std::pair<error_code, std::size_t>> send(DataT&& data, asio::use_future_t<> flag)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			// why use copyable_wrapper? beacuse std::promise is moveable-only, but
 			// std::function is copyable-only
 			std::ignore = flag;
@@ -171,13 +179,13 @@ namespace asio2::detail
 			std::future<std::pair<error_code, std::size_t>> future = promise().get_future();
 			try
 			{
-				if (!this->derive.is_started())
+				if (!derive.is_started())
 					asio::detail::throw_error(asio::error::not_connected);
 
-				this->derive.push_event([this, data = this->derive._data_persistence(std::forward<T>(data)),
-					promise = std::move(promise)](event_guard<derived_t>&& g) mutable
+				derive.push_event([&derive, data = derive._data_persistence(std::forward<DataT>(data)),
+					promise = std::move(promise)](event_queue_guard<derived_t>&& g) mutable
 				{
-					return this->derive._do_send(data, [&promise, g = std::move(g)]
+					return derive._do_send(data, [&promise, g = std::move(g)]
 					(const error_code& ec, std::size_t bytes_sent) mutable
 					{
 						promise().set_value(std::pair<error_code, std::size_t>(ec, bytes_sent));
@@ -230,21 +238,23 @@ namespace asio2::detail
 			std::future<std::pair<error_code, std::size_t>>>
 			send(CharT * s, SizeT count, asio::use_future_t<> flag)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			std::ignore = flag;
 			copyable_wrapper<std::promise<std::pair<error_code, std::size_t>>> promise;
 			std::future<std::pair<error_code, std::size_t>> future = promise().get_future();
 			try
 			{
-				if (!this->derive.is_started())
+				if (!derive.is_started())
 					asio::detail::throw_error(asio::error::not_connected);
 
 				if (!s)
 					asio::detail::throw_error(asio::error::invalid_argument);
 
-				this->derive.push_event([this, data = this->derive._data_persistence(s, count),
-					promise = std::move(promise)](event_guard<derived_t>&& g) mutable
+				derive.push_event([&derive, data = derive._data_persistence(s, count),
+					promise = std::move(promise)](event_queue_guard<derived_t>&& g) mutable
 				{
-					return this->derive._do_send(data, [&promise, g = std::move(g)]
+					return derive._do_send(data, [&promise, g = std::move(g)]
 					(const error_code& ec, std::size_t bytes_sent) mutable
 					{
 						promise().set_value(std::pair<error_code, std::size_t>(ec, bytes_sent));
@@ -279,20 +289,22 @@ namespace asio2::detail
 		 * asio::write(session_ptr->stream(), asio::buffer(std::string("abc")));
 		 * Callback signature : void() or void(std::size_t bytes_sent)
 		 */
-		template<class T, class Callback>
-		inline typename std::enable_if_t<is_callable_v<Callback>, bool> send(T&& data, Callback&& fn)
+		template<class DataT, class Callback>
+		inline typename std::enable_if_t<is_callable_v<Callback>, bool> send(DataT&& data, Callback&& fn)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			// We must ensure that there is only one operation to send data
 			// at the same time,otherwise may be cause crash.
 			try
 			{
-				if (!this->derive.is_started())
+				if (!derive.is_started())
 					asio::detail::throw_error(asio::error::not_connected);
 
-				this->derive.push_event([this, data = this->derive._data_persistence(std::forward<T>(data)),
-					fn = std::forward<Callback>(fn)](event_guard<derived_t>&& g) mutable
+				derive.push_event([&derive, data = derive._data_persistence(std::forward<DataT>(data)),
+					fn = std::forward<Callback>(fn)](event_queue_guard<derived_t>&& g) mutable
 				{
-					return this->derive._do_send(data, [&fn, g = std::move(g)]
+					return derive._do_send(data, [&fn, g = std::move(g)]
 					(const error_code&, std::size_t bytes_sent) mutable
 					{
 						callback_helper::call(fn, bytes_sent);
@@ -339,20 +351,22 @@ namespace asio2::detail
 			std::is_integral_v<std::remove_cv_t<std::remove_reference_t<SizeT>>>, bool>
 			send(CharT * s, SizeT count, Callback&& fn)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			// We must ensure that there is only one operation to send data
 			// at the same time,otherwise may be cause crash.
 			try
 			{
-				if (!this->derive.is_started())
+				if (!derive.is_started())
 					asio::detail::throw_error(asio::error::not_connected);
 
 				if (!s)
 					asio::detail::throw_error(asio::error::invalid_argument);
 
-				this->derive.push_event([this, data = this->derive._data_persistence(s, count),
-					fn = std::forward<Callback>(fn)](event_guard<derived_t>&& g) mutable
+				derive.push_event([&derive, data = derive._data_persistence(s, count),
+					fn = std::forward<Callback>(fn)](event_queue_guard<derived_t>&& g) mutable
 				{
-					return this->derive._do_send(data, [&fn, g = std::move(g)]
+					return derive._do_send(data, [&fn, g = std::move(g)]
 					(const error_code&, std::size_t bytes_sent) mutable
 					{
 						callback_helper::call(fn, bytes_sent);
@@ -366,7 +380,6 @@ namespace asio2::detail
 		}
 
 	protected:
-		derived_t                     & derive;
 	};
 }
 

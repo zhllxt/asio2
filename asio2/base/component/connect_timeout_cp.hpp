@@ -23,17 +23,15 @@
 
 namespace asio2::detail
 {
-	template<class derived_t, bool isSession>
+	template<class derived_t, class args_t = void>
 	class connect_timeout_cp
 	{
 	public:
 		/**
 		 * @constructor
 		 */
-		explicit connect_timeout_cp(io_t & timer_io)
-			: derive(static_cast<derived_t&>(*this))
-			, connect_timeout_timer_io_(timer_io)
-			, connect_timeout_timer_(timer_io.context())
+		explicit connect_timeout_cp(io_t & io)
+			: connect_timeout_timer_(io.context())
 		{
 			this->connect_timer_canceled_.clear();
 		}
@@ -46,7 +44,7 @@ namespace asio2::detail
 		/**
 		 * @function : get the connect timeout
 		 */
-		inline std::chrono::milliseconds connect_timeout() { return this->connect_timeout_; }
+		inline std::chrono::steady_clock::duration connect_timeout() { return this->connect_timeout_; }
 
 		/**
 		 * @function : set the connect timeout
@@ -55,7 +53,7 @@ namespace asio2::detail
 		inline derived_t& connect_timeout(std::chrono::duration<Rep, Period> timeout)
 		{
 			this->connect_timeout_ = timeout;
-			return (this->derive);
+			return static_cast<derived_t&>(*this);
 		}
 
 	protected:
@@ -63,13 +61,15 @@ namespace asio2::detail
 		inline void _post_connect_timeout_timer(std::chrono::duration<Rep, Period> duration,
 			std::shared_ptr<derived_t> this_ptr)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			this->connect_error_code_.clear();
 			this->connect_timeout_flag_.store(false);
 
 			this->connect_timeout_timer_.expires_after(duration);
 			this->connect_timeout_timer_.async_wait(
-				asio::bind_executor(this->connect_timeout_timer_io_.strand(),
-					[this, self_ptr = std::move(this_ptr)](const error_code& ec) mutable
+				asio::bind_executor(derive.io().strand(),
+					[&derive, self_ptr = std::move(this_ptr)](const error_code& ec) mutable
 			{
 				// bug fixed : 
 				// note : after call derive._handle_connect_timeout_timer(ec, std::move(self_ptr)); 
@@ -84,6 +84,8 @@ namespace asio2::detail
 		inline void _handle_connect_timeout_timer(const error_code& ec,
 			std::shared_ptr<derived_t> this_ptr)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			std::ignore = this_ptr;
 
 			if (!ec)
@@ -113,12 +115,14 @@ namespace asio2::detail
 		inline void _post_connect_timeout_timer(std::chrono::duration<Rep, Period> duration,
 			std::shared_ptr<derived_t> this_ptr, Fn&& fn)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			this->connect_error_code_.clear();
 			this->connect_timeout_flag_.store(false);
 
 			this->connect_timeout_timer_.expires_after(duration);
 			this->connect_timeout_timer_.async_wait(
-				asio::bind_executor(this->connect_timeout_timer_io_.strand(),
+				asio::bind_executor(derive.io().strand(),
 					[this, self_ptr = std::move(this_ptr), f = std::forward<Fn>(fn)]
 			(const error_code& ec) mutable
 			{
@@ -156,15 +160,11 @@ namespace asio2::detail
 		}
 
 	protected:
-		derived_t                                 & derive;
-
-		io_t                                      & connect_timeout_timer_io_;
-
 		asio::steady_timer                          connect_timeout_timer_;
 
 		std::atomic_flag                            connect_timer_canceled_;
 
-		std::chrono::milliseconds                   connect_timeout_         = std::chrono::seconds(5);
+		std::chrono::steady_clock::duration         connect_timeout_         = std::chrono::seconds(5);
 
 		asio::error_code                            connect_error_code_;
 

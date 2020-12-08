@@ -52,6 +52,29 @@
 
 namespace asio2
 {
+	namespace detail
+	{
+		template<class T, bool Flag = std::is_trivial_v<T>>
+		struct char_type;
+
+		template<class T>
+		struct char_type<T, true>
+		{
+			using type = T;
+		};
+
+		template<class T>
+		struct char_type<T, false>
+		{
+			using type = typename T::value_type;
+		};
+
+		inline char ascii_tolower(char c)
+		{
+			return char(((static_cast<unsigned>(c) - 65U) < 26) ? c + 'a' - 'A' : c);
+		}
+	}
+
 	/**
 	 * std::string format
 	 */
@@ -171,6 +194,8 @@ namespace asio2
 		std::basic_string<CharT, Traits, Allocator>& trim_all(
 			std::basic_string<CharT, Traits, Allocator>& s)
 	{
+		if (s.empty())
+			return s;
 		using size_type = typename std::basic_string<CharT, Traits, Allocator>::size_type;
 		for (size_type i = s.size() - 1; i != size_type(-1); i--)
 		{
@@ -193,6 +218,8 @@ namespace asio2
 		std::basic_string<CharT, Traits, Allocator>& trim_left(
 			std::basic_string<CharT, Traits, Allocator>& s)
 	{
+		if (s.empty())
+			return s;
 		using size_type = typename std::basic_string<CharT, Traits, Allocator>::size_type;
 		size_type pos = 0;
 		for (; pos < s.size(); ++pos)
@@ -215,6 +242,8 @@ namespace asio2
 		std::basic_string<CharT, Traits, Allocator>& trim_right(
 			std::basic_string<CharT, Traits, Allocator>& s)
 	{
+		if (s.empty())
+			return s;
 		using size_type = typename std::basic_string<CharT, Traits, Allocator>::size_type;
 		size_type pos = s.size() - 1;
 		for (; pos != size_type(-1); pos--)
@@ -236,6 +265,55 @@ namespace asio2
 	>
 		std::basic_string<CharT, Traits, Allocator>& trim_both(
 			std::basic_string<CharT, Traits, Allocator>& s)
+	{
+		trim_left(s);
+		trim_right(s);
+		return s;
+	}
+
+	/**
+	 * @function : trim left space character of the string: space \t \r \n and so on
+	 */
+	template<class CharT, class Traits = std::char_traits<CharT>>
+	std::basic_string_view<CharT, Traits>& trim_left(std::basic_string_view<CharT, Traits>& s)
+	{
+		if (s.empty())
+			return s;
+		using size_type = typename std::basic_string_view<CharT, Traits>::size_type;
+		size_type pos = 0;
+		for (; pos < s.size(); ++pos)
+		{
+			if (!std::isspace(static_cast<unsigned char>(s[pos])))
+				break;
+		}
+		s.remove_prefix(pos);
+		return s;
+	}
+
+	/**
+	 * @function : trim right space character of the string: space \t \r \n and so on
+	 */
+	template<class CharT, class Traits = std::char_traits<CharT>>
+	std::basic_string_view<CharT, Traits>& trim_right(std::basic_string_view<CharT, Traits>& s)
+	{
+		if (s.empty())
+			return s;
+		using size_type = typename std::basic_string_view<CharT, Traits>::size_type;
+		size_type pos = s.size() - 1;
+		for (; pos != size_type(-1); pos--)
+		{
+			if (!std::isspace(static_cast<unsigned char>(s[pos])))
+				break;
+		}
+		s.remove_suffix(s.size() - pos - 1);
+		return s;
+	}
+
+	/**
+	 * @function : trim left and right space character of the string: space \t \r \n and so on
+	 */
+	template<class CharT, class Traits = std::char_traits<CharT>>
+	std::basic_string_view<CharT, Traits>& trim_both(std::basic_string_view<CharT, Traits>& s)
 	{
 		trim_left(s);
 		trim_right(s);
@@ -318,6 +396,67 @@ namespace asio2
 				break;
 		}
 		return s;
+	}
+
+	template<class String1, class String2>
+	inline std::size_t ifind(const String1& src, const String2& dest, typename String1::size_type pos = 0)
+	{
+		using str2_type = std::remove_reference_t<std::remove_cv_t<String2>>;
+		using raw2_type = std::remove_pointer_t<std::remove_all_extents_t<str2_type>>;
+
+		std::basic_string_view<typename detail::char_type<raw2_type>::type> des{ dest };
+
+		if (pos >= src.size() || des.empty())
+			return String1::npos;
+
+		// Outer loop
+		for (auto OuterIt = std::next(src.begin(), pos); OuterIt != src.end(); ++OuterIt)
+		{
+			auto InnerIt = OuterIt;
+			auto SubstrIt = des.begin();
+			for (; InnerIt != src.end() && SubstrIt != des.end(); ++InnerIt, ++SubstrIt)
+			{
+				if (std::tolower(*InnerIt) != std::tolower(*SubstrIt))
+					break;
+			}
+
+			// Substring matching succeeded
+			if (SubstrIt == des.end())
+				return std::distance(src.begin(), OuterIt);
+		}
+
+		return String1::npos;
+	}
+
+	/** 
+	 * @function : Returns `true` if two strings are equal, using a case-insensitive comparison.
+	 */
+	inline bool iequals(std::string_view lhs, std::string_view rhs)
+	{
+		auto n = lhs.size();
+		if (rhs.size() != n)
+			return false;
+		auto p1 = lhs.data();
+		auto p2 = rhs.data();
+		char a, b;
+		// fast loop
+		while (n--)
+		{
+			a = *p1++;
+			b = *p2++;
+			if (a != b)
+				goto slow;
+		}
+		return true;
+	slow:
+		do
+		{
+			if (detail::ascii_tolower(a) != detail::ascii_tolower(b))
+				return false;
+			a = *p1++;
+			b = *p2++;
+		} while (n--);
+		return true;
 	}
 }
 

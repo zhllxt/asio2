@@ -34,40 +34,41 @@
 #include <asio2/base/error.hpp>
 
 #include <asio2/base/detail/function_traits.hpp>
-#include <asio2/rpc/detail/serialization.hpp>
-#include <asio2/rpc/detail/protocol.hpp>
+
+#include <asio2/rpc/detail/rpc_serialization.hpp>
+#include <asio2/rpc/detail/rpc_protocol.hpp>
 
 #include <asio2/util/string.hpp>
 
 namespace asio2::detail
 {
 	template<class T>
-	struct result_t
+	struct rpc_result_t
 	{
 		using type = T;
 	};
 
 	template<>
-	struct result_t<void>
+	struct rpc_result_t<void>
 	{
 		using type = std::int8_t;
 	};
 
 	template<typename CallerT>
-	class invoker_t
+	class rpc_invoker_t
 	{
 	public:
-		using self = invoker_t<CallerT>;
+		using self = rpc_invoker_t<CallerT>;
 
 		/**
 		 * @constructor
 		 */
-		invoker_t() = default;
+		rpc_invoker_t() = default;
 
 		/**
 		 * @destructor
 		 */
-		~invoker_t() = default;
+		~rpc_invoker_t() = default;
 
 		/**
 		 * @function : bind a rpc function
@@ -111,7 +112,7 @@ namespace asio2::detail
 		/**
 		 * @function : find binded rpc function by name
 		 */
-		inline std::function<void(std::shared_ptr<CallerT>&, serializer&, deserializer&)>*
+		inline std::function<void(std::shared_ptr<CallerT>&, rpc_serializer&, rpc_deserializer&)>*
 			find(std::string const& name)
 		{
 			//std::shared_lock<std::shared_mutex> guard(this->mutex_);
@@ -152,7 +153,7 @@ namespace asio2::detail
 		}
 
 		template<class F>
-		inline void _proxy(F& f, std::shared_ptr<CallerT>& caller, serializer& sr, deserializer& dr)
+		inline void _proxy(F& f, std::shared_ptr<CallerT>& caller, rpc_serializer& sr, rpc_deserializer& dr)
 		{
 			using fun_traits_type = function_traits<F>;
 
@@ -160,7 +161,7 @@ namespace asio2::detail
 		}
 
 		template<class F, class C>
-		inline void _proxy(F& f, C* c, std::shared_ptr<CallerT>& caller, serializer& sr, deserializer& dr)
+		inline void _proxy(F& f, C* c, std::shared_ptr<CallerT>& caller, rpc_serializer& sr, rpc_deserializer& dr)
 		{
 			using fun_traits_type = function_traits<F>;
 
@@ -169,7 +170,7 @@ namespace asio2::detail
 
 		template<std::size_t Argc, class F>
 		typename std::enable_if_t<Argc == 0>
-			inline _argc_proxy(F& f, std::shared_ptr<CallerT>&, serializer& sr, deserializer& dr)
+			inline _argc_proxy(F& f, std::shared_ptr<CallerT>&, rpc_serializer& sr, rpc_deserializer& dr)
 		{
 			using fun_traits_type = function_traits<F>;
 			using fun_args_tuple = typename fun_traits_type::pod_tuple_type;
@@ -182,7 +183,7 @@ namespace asio2::detail
 
 		template<std::size_t Argc, class F, class C>
 		typename std::enable_if_t<Argc == 0>
-			inline _argc_proxy(F& f, C* c, std::shared_ptr<CallerT>&, serializer& sr, deserializer& dr)
+			inline _argc_proxy(F& f, C* c, std::shared_ptr<CallerT>&, rpc_serializer& sr, rpc_deserializer& dr)
 		{
 			using fun_traits_type = function_traits<F>;
 			using fun_args_tuple = typename fun_traits_type::pod_tuple_type;
@@ -195,7 +196,7 @@ namespace asio2::detail
 
 		template<std::size_t Argc, class F>
 		typename std::enable_if_t<Argc != 0>
-			inline _argc_proxy(F& f, std::shared_ptr<CallerT>& caller, serializer& sr, deserializer& dr)
+			inline _argc_proxy(F& f, std::shared_ptr<CallerT>& caller, rpc_serializer& sr, rpc_deserializer& dr)
 		{
 			using fun_traits_type = function_traits<F>;
 			using fun_args_tuple = typename fun_traits_type::pod_tuple_type;
@@ -220,7 +221,7 @@ namespace asio2::detail
 
 		template<std::size_t Argc, class F, class C>
 		typename std::enable_if_t<Argc != 0>
-			inline _argc_proxy(F& f, C* c, std::shared_ptr<CallerT>& caller, serializer& sr, deserializer& dr)
+			inline _argc_proxy(F& f, C* c, std::shared_ptr<CallerT>& caller, rpc_serializer& sr, rpc_deserializer& dr)
 		{
 			using fun_traits_type = function_traits<F>;
 			using fun_args_tuple = typename fun_traits_type::pod_tuple_type;
@@ -256,10 +257,10 @@ namespace asio2::detail
 		}
 
 		template<typename R, typename F, typename... Args>
-		inline void _invoke(F& f, serializer& sr, deserializer& dr, const std::tuple<Args...>& tp)
+		inline void _invoke(F& f, rpc_serializer& sr, rpc_deserializer& dr, const std::tuple<Args...>& tp)
 		{
-			ignore::unused(dr);
-			typename result_t<R>::type r = _invoke_impl<R>(f,
+			ignore_unused(dr);
+			typename rpc_result_t<R>::type r = _invoke_impl<R>(f,
 				std::make_index_sequence<sizeof...(Args)>{}, tp);
 			sr << error_code{};
 			if constexpr (!std::is_same_v<R, void>)
@@ -273,10 +274,10 @@ namespace asio2::detail
 		}
 
 		template<typename R, typename F, typename C, typename... Args>
-		inline void _invoke(F& f, C* c, serializer& sr, deserializer& dr, const std::tuple<Args...>& tp)
+		inline void _invoke(F& f, C* c, rpc_serializer& sr, rpc_deserializer& dr, const std::tuple<Args...>& tp)
 		{
-			ignore::unused(dr);
-			typename result_t<R>::type r = _invoke_impl<R>(f, c,
+			ignore_unused(dr);
+			typename rpc_result_t<R>::type r = _invoke_impl<R>(f, c,
 				std::make_index_sequence<sizeof...(Args)>{}, tp);
 			sr << error_code{};
 			if constexpr (!std::is_same_v<R, void>)
@@ -290,14 +291,14 @@ namespace asio2::detail
 		}
 
 		template<typename R, typename F, std::size_t... I, typename... Args>
-		typename std::enable_if_t<!std::is_same_v<R, void>, typename result_t<R>::type>
+		typename std::enable_if_t<!std::is_same_v<R, void>, typename rpc_result_t<R>::type>
 			inline _invoke_impl(F& f, const std::index_sequence<I...>&, const std::tuple<Args...>& tp)
 		{
 			return f(std::get<I>(tp)...);
 		}
 
 		template<typename R, typename F, std::size_t... I, typename... Args>
-		typename std::enable_if_t<std::is_same_v<R, void>, typename result_t<R>::type>
+		typename std::enable_if_t<std::is_same_v<R, void>, typename rpc_result_t<R>::type>
 			inline _invoke_impl(F& f, const std::index_sequence<I...>&, const std::tuple<Args...>& tp)
 		{
 			f(std::get<I>(tp)...);
@@ -305,14 +306,14 @@ namespace asio2::detail
 		}
 
 		template<typename R, typename F, typename C, std::size_t... I, typename... Args>
-		typename std::enable_if_t<!std::is_same_v<R, void>, typename result_t<R>::type>
+		typename std::enable_if_t<!std::is_same_v<R, void>, typename rpc_result_t<R>::type>
 			inline _invoke_impl(F& f, C* c, const std::index_sequence<I...>&, const std::tuple<Args...>& tp)
 		{
 			return (c->*f)(std::get<I>(tp)...);
 		}
 
 		template<typename R, typename F, typename C, std::size_t... I, typename... Args>
-		typename std::enable_if_t<std::is_same_v<R, void>, typename result_t<R>::type>
+		typename std::enable_if_t<std::is_same_v<R, void>, typename rpc_result_t<R>::type>
 			inline _invoke_impl(F& f, C* c, const std::index_sequence<I...>&, const std::tuple<Args...>& tp)
 		{
 			(c->*f)(std::get<I>(tp)...);
@@ -323,7 +324,7 @@ namespace asio2::detail
 		//std::shared_mutex                           mutex_;
 
 		std::unordered_map<std::string, std::function<void(
-			std::shared_ptr<CallerT>&, serializer&, deserializer&)>> invokers_;
+			std::shared_ptr<CallerT>&, rpc_serializer&, rpc_deserializer&)>> invokers_;
 	};
 }
 

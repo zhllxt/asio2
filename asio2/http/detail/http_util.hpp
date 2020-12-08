@@ -27,6 +27,7 @@
 #include <asio2/base/detail/buffer_wrap.hpp>
 #include <asio2/http/detail/http_parser.h>
 #include <asio2/http/detail/mime_types.hpp>
+#include <asio2/http/multipart.hpp>
 
 #include <asio2/util/string.hpp>
 
@@ -99,12 +100,12 @@ namespace boost::beast::http
 			using rvalue_type = typename std::basic_string<CharT, Traits, Allocator>::value_type;
 			size_type i = 0;
 
-			http::nginx_parser::http_parser_url u;
-			if (0 == http::nginx_parser::http_parser_parse_url(url.data(), url.size(), 0, &u))
+			http::http_parser_ns::http_parser_url u;
+			if (0 == http::http_parser_ns::http_parser_parse_url(url.data(), url.size(), 0, &u))
 			{
-				if (u.field_set & (1 << (int)http::nginx_parser::url_fields::UF_PATH))
+				if (u.field_set & (1 << (int)http::http_parser_ns::url_fields::UF_PATH))
 				{
-					i = u.field_data[(int)http::nginx_parser::url_fields::UF_PATH].off;
+					i = u.field_data[(int)http::http_parser_ns::url_fields::UF_PATH].off;
 					for (size_type n = 0; n < i; ++n)
 					{
 						r += static_cast<rvalue_type>(url[n]);
@@ -158,32 +159,32 @@ namespace boost::beast::http
 		template<typename = void>
 		std::string_view url_to_host(std::string_view url)
 		{
-			http::nginx_parser::http_parser_url u;
-			if (0 != http::nginx_parser::http_parser_parse_url(url.data(), url.size(), 0, &u))
+			http::http_parser_ns::http_parser_url u;
+			if (0 != http::http_parser_ns::http_parser_parse_url(url.data(), url.size(), 0, &u))
 				return std::string_view{};
 
-			if (!(u.field_set & (1 << (int)http::nginx_parser::url_fields::UF_HOST)))
+			if (!(u.field_set & (1 << (int)http::http_parser_ns::url_fields::UF_HOST)))
 				return std::string_view{};
 
-			return std::string_view{ &url[u.field_data[(int)http::nginx_parser::url_fields::UF_HOST].off],
-				u.field_data[(int)http::nginx_parser::url_fields::UF_HOST].len };
+			return std::string_view{ &url[u.field_data[(int)http::http_parser_ns::url_fields::UF_HOST].off],
+				u.field_data[(int)http::http_parser_ns::url_fields::UF_HOST].len };
 		}
 
 		template<typename = void>
 		std::string_view url_to_port(std::string_view url)
 		{
-			http::nginx_parser::http_parser_url u;
-			if (0 != http::nginx_parser::http_parser_parse_url(url.data(), url.size(), 0, &u))
+			http::http_parser_ns::http_parser_url u;
+			if (0 != http::http_parser_ns::http_parser_parse_url(url.data(), url.size(), 0, &u))
 				return std::string_view{};
 
-			if (u.field_set & (1 << (int)http::nginx_parser::url_fields::UF_PORT))
-				return std::string_view{ &url[u.field_data[(int)http::nginx_parser::url_fields::UF_PORT].off],
-				u.field_data[(int)http::nginx_parser::url_fields::UF_PORT].len };
+			if (u.field_set & (1 << (int)http::http_parser_ns::url_fields::UF_PORT))
+				return std::string_view{ &url[u.field_data[(int)http::http_parser_ns::url_fields::UF_PORT].off],
+				u.field_data[(int)http::http_parser_ns::url_fields::UF_PORT].len };
 
-			if (u.field_set & (1 << (int)http::nginx_parser::url_fields::UF_SCHEMA))
+			if (u.field_set & (1 << (int)http::http_parser_ns::url_fields::UF_SCHEMA))
 			{
-				std::string schema(&url[u.field_data[(int)http::nginx_parser::url_fields::UF_SCHEMA].off],
-					u.field_data[(int)http::nginx_parser::url_fields::UF_SCHEMA].len);
+				std::string schema(&url[u.field_data[(int)http::http_parser_ns::url_fields::UF_SCHEMA].off],
+					u.field_data[(int)http::http_parser_ns::url_fields::UF_SCHEMA].len);
 				std::transform(schema.begin(), schema.end(), schema.begin(), [](std::string::value_type c)
 				{
 					return std::tolower(c);
@@ -197,29 +198,29 @@ namespace boost::beast::http
 		template<typename = void>
 		std::string_view url_to_path(std::string_view url)
 		{
-			http::nginx_parser::http_parser_url u;
-			if (0 != http::nginx_parser::http_parser_parse_url(url.data(), url.size(), 0, &u))
+			http::http_parser_ns::http_parser_url u;
+			if (0 != http::http_parser_ns::http_parser_parse_url(url.data(), url.size(), 0, &u))
 				return std::string_view{};
 
-			if (!(u.field_set & (1 << (int)http::nginx_parser::url_fields::UF_PATH)))
+			if (!(u.field_set & (1 << (int)http::http_parser_ns::url_fields::UF_PATH)))
 				return std::string_view{};
 
-			return std::string_view{ &url[u.field_data[(int)http::nginx_parser::url_fields::UF_PATH].off],
-				u.field_data[(int)http::nginx_parser::url_fields::UF_PATH].len };
+			return std::string_view{ &url[u.field_data[(int)http::http_parser_ns::url_fields::UF_PATH].off],
+				u.field_data[(int)http::http_parser_ns::url_fields::UF_PATH].len };
 		}
 
 		template<typename = void>
 		std::string_view url_to_query(std::string_view url)
 		{
-			http::nginx_parser::http_parser_url u;
-			if (0 != http::nginx_parser::http_parser_parse_url(url.data(), url.size(), 0, &u))
+			http::http_parser_ns::http_parser_url u;
+			if (0 != http::http_parser_ns::http_parser_parse_url(url.data(), url.size(), 0, &u))
 				return std::string_view{};
 
-			if (!(u.field_set & (1 << (int)http::nginx_parser::url_fields::UF_QUERY)))
+			if (!(u.field_set & (1 << (int)http::http_parser_ns::url_fields::UF_QUERY)))
 				return std::string_view{};
 
-			return std::string_view{ &url[u.field_data[(int)http::nginx_parser::url_fields::UF_QUERY].off],
-				u.field_data[(int)http::nginx_parser::url_fields::UF_QUERY].len };
+			return std::string_view{ &url[u.field_data[(int)http::http_parser_ns::url_fields::UF_QUERY].off],
+				u.field_data[(int)http::http_parser_ns::url_fields::UF_QUERY].len };
 		}
 
 		/**
@@ -234,8 +235,8 @@ namespace boost::beast::http
 			{
 				ec.clear();
 
-				nginx_parser::http_parser_url u;
-				int state = nginx_parser::http_parser_parse_url(uri.data(), uri.size(), 0, &u);
+				http_parser_ns::http_parser_url u;
+				int state = http_parser_ns::http_parser_parse_url(uri.data(), uri.size(), 0, &u);
 
 				// If a \r\n string is found, it is not a URL
 				if (uri.find("\r\n") != std::string_view::npos && 0 != state)
@@ -258,29 +259,29 @@ namespace boost::beast::http
 
 					std::string_view /*schema{ "http" }, */host, port, target{ "/" }/*, userinfo, path, query, fragment*/;
 
-					//if (u.field_set & (1 << (int)nginx_parser::url_fields::UF_SCHEMA))
-					//	schema = { &uri[u.field_data[(int)nginx_parser::url_fields::UF_SCHEMA].off],
-					//	u.field_data[(int)nginx_parser::url_fields::UF_SCHEMA].len };
-					if (u.field_set & (1 << (int)nginx_parser::url_fields::UF_HOST))
-						host = { &uri[u.field_data[(int)nginx_parser::url_fields::UF_HOST].off],
-						u.field_data[(int)nginx_parser::url_fields::UF_HOST].len };
-					if (u.field_set & (1 << (int)nginx_parser::url_fields::UF_PORT))
-						port = { &uri[u.field_data[(int)nginx_parser::url_fields::UF_PORT].off],
-						u.field_data[(int)nginx_parser::url_fields::UF_PORT].len };
-					if (u.field_set & (1 << (int)nginx_parser::url_fields::UF_PATH))
-						target = { &uri[u.field_data[(int)nginx_parser::url_fields::UF_PATH].off],
-						uri.size() - u.field_data[(int)nginx_parser::url_fields::UF_PATH].off };
-					//	path = target = { &uri[u.field_data[(int)nginx_parser::url_fields::UF_PATH].off],
-					//	u.field_data[(int)nginx_parser::url_fields::UF_PATH].len };
-					//if (u.field_set & (1 << (int)nginx_parser::url_fields::UF_USERINFO))
-					//	userinfo = { &uri[u.field_data[(int)nginx_parser::url_fields::UF_USERINFO].off],
-					//	u.field_data[(int)nginx_parser::url_fields::UF_USERINFO].len };
-					//if (u.field_set & (1 << (int)nginx_parser::url_fields::UF_QUERY))
-					//	query = { &uri[u.field_data[(int)nginx_parser::url_fields::UF_QUERY].off],
-					//	u.field_data[(int)nginx_parser::url_fields::UF_QUERY].len };
-					//if (u.field_set & (1 << (int)nginx_parser::url_fields::UF_FRAGMENT))
-					//	fragment = { &uri[u.field_data[(int)nginx_parser::url_fields::UF_FRAGMENT].off],
-					//	u.field_data[(int)nginx_parser::url_fields::UF_FRAGMENT].len };
+					//if (u.field_set & (1 << (int)http_parser_ns::url_fields::UF_SCHEMA))
+					//	schema = { &uri[u.field_data[(int)http_parser_ns::url_fields::UF_SCHEMA].off],
+					//	u.field_data[(int)http_parser_ns::url_fields::UF_SCHEMA].len };
+					if (u.field_set & (1 << (int)http_parser_ns::url_fields::UF_HOST))
+						host = { &uri[u.field_data[(int)http_parser_ns::url_fields::UF_HOST].off],
+						u.field_data[(int)http_parser_ns::url_fields::UF_HOST].len };
+					if (u.field_set & (1 << (int)http_parser_ns::url_fields::UF_PORT))
+						port = { &uri[u.field_data[(int)http_parser_ns::url_fields::UF_PORT].off],
+						u.field_data[(int)http_parser_ns::url_fields::UF_PORT].len };
+					if (u.field_set & (1 << (int)http_parser_ns::url_fields::UF_PATH))
+						target = { &uri[u.field_data[(int)http_parser_ns::url_fields::UF_PATH].off],
+						uri.size() - u.field_data[(int)http_parser_ns::url_fields::UF_PATH].off };
+					//	path = target = { &uri[u.field_data[(int)http_parser_ns::url_fields::UF_PATH].off],
+					//	u.field_data[(int)http_parser_ns::url_fields::UF_PATH].len };
+					//if (u.field_set & (1 << (int)http_parser_ns::url_fields::UF_USERINFO))
+					//	userinfo = { &uri[u.field_data[(int)http_parser_ns::url_fields::UF_USERINFO].off],
+					//	u.field_data[(int)http_parser_ns::url_fields::UF_USERINFO].len };
+					//if (u.field_set & (1 << (int)http_parser_ns::url_fields::UF_QUERY))
+					//	query = { &uri[u.field_data[(int)http_parser_ns::url_fields::UF_QUERY].off],
+					//	u.field_data[(int)http_parser_ns::url_fields::UF_QUERY].len };
+					//if (u.field_set & (1 << (int)http_parser_ns::url_fields::UF_FRAGMENT))
+					//	fragment = { &uri[u.field_data[(int)http_parser_ns::url_fields::UF_FRAGMENT].off],
+					//	u.field_data[(int)http_parser_ns::url_fields::UF_FRAGMENT].len };
 
 					// Set up an HTTP GET request message
 					req.method(http::verb::get);
@@ -321,8 +322,8 @@ namespace boost::beast::http
 		 * @function : make A typical HTTP request struct from the uri
 		 * You need to encode the "target"(by url_encode) before calling this function
 		 */
-		template<class Body = http::string_body, class Fields = http::fields>
-		inline http::request_t<Body, Fields> make_request(std::string_view host, std::string_view port,
+		template<typename String, typename StrOrInt, class Body = http::string_body, class Fields = http::fields>
+		inline http::request_t<Body, Fields> make_request(String&& host, StrOrInt&& port,
 			std::string_view target, http::verb method = http::verb::get, unsigned version = 11)
 		{
 			ASIO2_ASSERT(!has_unencode_char(target));
@@ -330,12 +331,17 @@ namespace boost::beast::http
 			// Set up an HTTP GET request message
 			req.method(method);
 			req.version(version);
-			req.target(target.empty() ? beast::string_view{ "/" } :
-				beast::string_view(target.data(), target.size()));
-			if (!port.empty() && port != "443" && port != "80")
-				req.set(http::field::host, std::string(host) + ":" + std::string(port));
+			req.target(target.empty() ? beast::string_view{ "/" } : beast::string_view(target.data(), target.size()));
+			std::string sport = asio2::detail::to_string(std::forward<StrOrInt>(port));
+			asio2::trim_both(sport);
+			if (!sport.empty() && sport != "443" && sport != "80")
+			{
+				req.set(http::field::host, std::string(std::forward<String>(host)) + ":" + sport);
+			}
 			else
-				req.set(http::field::host, host);
+			{
+				req.set(http::field::host, std::forward<String>(host));
+			}
 			req.set(http::field::server, BEAST_VERSION_STRING);
 			return req;
 		}
@@ -392,6 +398,12 @@ namespace boost::beast::http
 				if (index == fragments.size())
 					return (pattern.back() == '*');
 				std::string_view fragment = fragments[index++];
+				if (fragment.empty())
+					continue;
+				while (fragment.size() > static_cast<std::string_view::size_type>(1) && fragment.back() == '/')
+				{
+					fragment.remove_suffix(1);
+				}
 				std::size_t pos = url.find(fragment);
 				if (pos == std::string_view::npos)
 					return false;
@@ -424,6 +436,24 @@ namespace boost::beast::http
 			}
 			content += "</body></html>";
 			return content;
+		}
+
+		/**
+		 * @function : Returns `true` if the HTTP message's Content-Type is "multipart/form-data";
+		 */
+		template<bool isRequest, class Body, class Fields>
+		inline bool has_multipart(const http::message<isRequest, Body, Fields>& msg)
+		{
+			return (asio2::ifind(msg[http::field::content_type], "multipart/form-data") != std::string_view::npos);
+		}
+
+		/**
+		 * @function : Get the "multipart/form-data" body content.
+		 */
+		template<bool isRequest, class Body, class Fields, class String = std::string_view>
+		inline basic_multipart_fields<String> multipart(const http::message<isRequest, Body, Fields>& msg)
+		{
+			return multipart_parser_execute(msg);
 		}
 	}
 

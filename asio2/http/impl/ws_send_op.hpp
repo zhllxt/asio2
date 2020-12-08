@@ -25,7 +25,7 @@
 
 namespace asio2::detail
 {
-	template<class derived_t, bool isSession>
+	template<class derived_t, class args_t>
 	class ws_send_op
 	{
 	public:

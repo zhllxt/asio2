@@ -26,14 +26,14 @@
 
 namespace asio2::detail
 {
-	template<class derived_t, bool isSession>
+	template<class derived_t, class args_t = void>
 	class udp_send_op
 	{
 	public:
 		/**
 		 * @constructor
 		 */
-		udp_send_op() : derive(static_cast<derived_t&>(*this)) {}
+		udp_send_op() {}
 
 		/**
 		 * @destructor
@@ -44,6 +44,8 @@ namespace asio2::detail
 		template<class Data, class Callback>
 		inline bool _udp_send(Data& data, Callback&& callback)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			derive.stream().async_send(asio::buffer(data), asio::bind_executor(derive.io().strand(),
 				make_allocator(derive.wallocator(),
 					[p = derive.selfptr(), callback = std::forward<Callback>(callback)]
@@ -59,6 +61,8 @@ namespace asio2::detail
 		template<class Endpoint, class Data, class Callback>
 		inline bool _udp_send_to(Endpoint& endpoint, Data& data, Callback&& callback)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			derive.stream().async_send_to(asio::buffer(data), endpoint,
 				asio::bind_executor(derive.io().strand(),
 					make_allocator(derive.wallocator(),
@@ -73,7 +77,6 @@ namespace asio2::detail
 		}
 
 	protected:
-		derived_t & derive;
 	};
 }
 

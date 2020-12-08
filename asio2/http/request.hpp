@@ -30,20 +30,22 @@ namespace boost::beast::websocket
 
 namespace asio2::detail
 {
-	template <class, class, class, class, class> class http_session_impl_t;
+	ASIO2_CLASS_FORWARD_DECLARE_BASE;
+	ASIO2_CLASS_FORWARD_DECLARE_TCP_BASE;
+	ASIO2_CLASS_FORWARD_DECLARE_TCP_CLIENT;
+	ASIO2_CLASS_FORWARD_DECLARE_TCP_SESSION;
 
 	template<bool isRequest, class Body, class Fields = http::fields>
 	class http_request_impl_t
 		: public http::message<isRequest, Body, Fields>
 		, public user_data_cp<http_request_impl_t<isRequest, Body, Fields>>
 	{
-		template <class, class, class, bool>		 friend class http_send_cp;
-		template <class, class, class, bool>		 friend class http_send_op;
-		template <class, class, class, bool>		 friend class http_recv_op;
-		template <class, class, class>				 friend class client_impl_t;
-		template <class, class, class>				 friend class tcp_client_impl_t;
-		template <class, class, class, class, class> friend class http_session_impl_t;
 		template <class>                             friend class beast::websocket::listener;
+
+		ASIO2_CLASS_FRIEND_DECLARE_BASE;
+		ASIO2_CLASS_FRIEND_DECLARE_TCP_BASE;
+		ASIO2_CLASS_FRIEND_DECLARE_TCP_CLIENT;
+		ASIO2_CLASS_FRIEND_DECLARE_TCP_SESSION;
 
 	public:
 		using self = http_request_impl_t<isRequest, Body, Fields>;
@@ -59,6 +61,7 @@ namespace asio2::detail
 		explicit http_request_impl_t(Args&&... args)
 			: super(std::forward<Args>(args)...)
 		{
+			std::memset((void*)(&url_parser_), 0, sizeof(http::http_parser_ns::http_parser_url));
 		}
 
 		http_request_impl_t(const http_request_impl_t& o)
@@ -132,6 +135,11 @@ namespace asio2::detail
 			return *this;
 		}
 
+		inline void reset()
+		{
+			static_cast<super&>(*this) = {};
+		}
+
 	public:
 		/**
 		 * @function : Returns `true` if this HTTP request is a WebSocket Upgrade.
@@ -142,22 +150,52 @@ namespace asio2::detail
 		 * @function : Gets the content of the "path" section of the target
 		 * <scheme>://<user>:<password>@<host>:<port>/<path>;<params>?<query>#<fragment>
 		 */
-		inline std::string_view path() { return http::url_to_path(this->target()); }
+		inline std::string_view path()
+		{
+			if (!(url_parser_.field_set & (1 << (int)http::http_parser_ns::url_fields::UF_PATH)))
+				return std::string_view{};
+
+			std::string_view url = this->target();
+
+			return std::string_view{ &url[url_parser_.field_data[(int)http::http_parser_ns::url_fields::UF_PATH].off],
+				url_parser_.field_data[(int)http::http_parser_ns::url_fields::UF_PATH].len };
+		}
 
 		/**
 		 * @function : Gets the content of the "query" section of the target
 		 * <scheme>://<user>:<password>@<host>:<port>/<path>;<params>?<query>#<fragment>
 		 */
-		inline std::string_view query() { return http::url_to_query(this->target()); }
-
-		inline void reset()
+		inline std::string_view query()
 		{
-			static_cast<super&>(*this) = {};
+			if (!(url_parser_.field_set & (1 << (int)http::http_parser_ns::url_fields::UF_QUERY)))
+				return std::string_view{};
+
+			std::string_view url = this->target();
+
+			return std::string_view{ &url[url_parser_.field_data[(int)http::http_parser_ns::url_fields::UF_QUERY].off],
+				url_parser_.field_data[(int)http::http_parser_ns::url_fields::UF_QUERY].len };
+		}
+
+		/**
+		 * @function : Returns `true` if this HTTP request's Content-Type is "multipart/form-data";
+		 */
+		inline bool has_multipart()
+		{
+			return http::has_multipart(*this);
+		}
+
+		/**
+		 * @function : Get the "multipart/form-data" body content.
+		 */
+		inline decltype(auto) multipart()
+		{
+			return http::multipart(*this);
 		}
 
 	protected:
-		websocket::frame ws_frame_type_;
-		std::string_view ws_frame_data_;
+		http::http_parser_ns::http_parser_url url_parser_;
+		websocket::frame                      ws_frame_type_;
+		std::string_view                      ws_frame_data_;
 	};
 }
 

@@ -20,9 +20,10 @@
 
 #include <memory>
 
+#include <asio2/base/error.hpp>
+
 namespace asio2::detail
 {
-
 	/**
 	 * the lowest based class used fo CRTP
 	 * see : CRTP and multilevel inheritance 
@@ -59,6 +60,23 @@ namespace asio2::detail
 			return static_cast<derived_t &>(*this);
 		}
 
+		inline std::shared_ptr<derived_t> selfptr()
+		{
+			try
+			{
+				return this->derived().shared_from_this();
+			}
+			catch (const std::bad_weak_ptr&)
+			{
+				ASIO2_ASSERT(false);
+			}
+			catch (const std::exception&)
+			{
+				ASIO2_ASSERT(false);
+			}
+
+			throw std::bad_weak_ptr{};
+		}
 	};
 
 	template<class derived_t>
@@ -92,8 +110,11 @@ namespace asio2::detail
 			return static_cast<derived_t &>(*this);
 		}
 
+		inline std::shared_ptr<derived_t> selfptr()
+		{
+			return std::shared_ptr<derived_t>{};
+		}
 	};
-
 }
 
 #endif // !__ASIO2_OBJECT_HPP__

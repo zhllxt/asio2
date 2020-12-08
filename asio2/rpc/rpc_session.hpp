@@ -20,66 +20,37 @@
 #include <asio2/http/ws_session.hpp>
 #include <asio2/http/wss_session.hpp>
 
-#include <asio2/rpc/detail/serialization.hpp>
-#include <asio2/rpc/detail/protocol.hpp>
-#include <asio2/rpc/detail/invoker.hpp>
+#include <asio2/rpc/detail/rpc_serialization.hpp>
+#include <asio2/rpc/detail/rpc_protocol.hpp>
+#include <asio2/rpc/detail/rpc_invoker.hpp>
 #include <asio2/rpc/impl/rpc_recv_op.hpp>
 #include <asio2/rpc/component/rpc_call_cp.hpp>
 
 namespace asio2::detail
 {
-	template <class>                      class session_mgr_t;
-	template <class, class>               class server_impl_t;
-	template <class, class>               class tcp_server_impl_t;
-	template <class, class>               class tcps_server_impl_t;
-	template <class, class>               class ws_server_impl_t;
-	template <class, class>               class wss_server_impl_t;
-	template <class, class>               class rpc_server_impl_t;
-	template <class, class>               class rpcs_server_impl_t;
+	ASIO2_CLASS_FORWARD_DECLARE_BASE;
+	ASIO2_CLASS_FORWARD_DECLARE_TCP_BASE;
+	ASIO2_CLASS_FORWARD_DECLARE_TCP_SERVER;
+	ASIO2_CLASS_FORWARD_DECLARE_TCP_SESSION;
 
 	template<class derived_t, class executor_t>
 	class rpc_session_impl_t
 		: public executor_t
-		, public rpc_call_cp<derived_t, true>
-		, public rpc_recv_op<derived_t, true>
-		, protected id_maker<typename header::id_type>
+		, public rpc_call_cp<derived_t>
+		, public rpc_recv_op<derived_t>
+		, protected id_maker<typename rpc_header::id_type>
 	{
 		friend executor_t;
 
-		template <class, bool>         friend class user_timer_cp;
-		template <class>               friend class post_cp;
-		template <class, class, bool>  friend class connect_cp;
-		template <class, class, bool>  friend class disconnect_cp;
-		template <class>               friend class data_persistence_cp;
-		template <class>               friend class event_queue_cp;
-		template <class, bool>         friend class send_cp;
-		template <class, bool>         friend class silence_timer_cp;
-		template <class, bool>         friend class connect_timeout_cp;
-		template <class, bool>         friend class tcp_send_op;
-		template <class, bool>         friend class tcp_recv_op;
-		template <class, class, bool>  friend class ws_stream_cp;
-		template <class, bool>         friend class ws_send_op;
-		template <class, bool>         friend class rpc_call_cp;
-		template <class, bool>         friend class rpc_recv_op;
-		template <class>               friend class session_mgr_t;
-
-		template <class, class, class>               friend class session_impl_t;
-		template <class, class, class>               friend class tcp_session_impl_t;
-		template <class, class, class>               friend class tcps_session_impl_t;
-		template <class, class, class, class, class> friend class ws_session_impl_t;
-		template <class, class, class, class, class> friend class wss_session_impl_t;
-
-		template <class, class> friend class server_impl_t;
-		template <class, class> friend class tcp_server_impl_t;
-		template <class, class> friend class tcps_server_impl_t;
-		template <class, class> friend class ws_server_impl_t;
-		template <class, class> friend class wss_server_impl_t;
-		template <class, class> friend class rpc_server_impl_t;
-		template <class, class> friend class rpcs_server_impl_t;
+		ASIO2_CLASS_FRIEND_DECLARE_BASE;
+		ASIO2_CLASS_FRIEND_DECLARE_TCP_BASE;
+		ASIO2_CLASS_FRIEND_DECLARE_TCP_SERVER;
+		ASIO2_CLASS_FRIEND_DECLARE_TCP_SESSION;
 
 	public:
-		using self = rpc_session_impl_t<derived_t, executor_t>;
 		using super = executor_t;
+		using self  = rpc_session_impl_t<derived_t, executor_t>;
+
 		using executor_type = executor_t;
 
 	protected:
@@ -92,13 +63,13 @@ namespace asio2::detail
 		 */
 		template<class ...Args>
 		explicit rpc_session_impl_t(
-			invoker_t<derived_t>& invoker,
+			rpc_invoker_t<derived_t>& invoker,
 			Args&&... args
 		)
 			: super(std::forward<Args>(args)...)
-			, rpc_call_cp<derived_t, true>(this->io_, this->serializer_, this->deserializer_)
-			, rpc_recv_op<derived_t, true>()
-			, id_maker<typename header::id_type>()
+			, rpc_call_cp<derived_t>(this->io_, this->serializer_, this->deserializer_)
+			, rpc_recv_op<derived_t>()
+			, id_maker<typename rpc_header::id_type>()
 			, invoker_(invoker)
 		{
 		}
@@ -110,26 +81,8 @@ namespace asio2::detail
 		{
 		}
 
-		/**
-		 * @function : set the default timeout for calling rpc functions
-		 */
-		template<class Rep, class Period>
-		inline derived_t & default_timeout(std::chrono::duration<Rep, Period> duration)
-		{
-			this->timeout_ = duration;
-			return (this->derived());
-		}
-
-		/**
-		 * @function : get the default timeout for calling rpc functions
-		 */
-		inline std::chrono::steady_clock::duration default_timeout()
-		{
-			return this->timeout_;
-		}
-
 	protected:
-		inline invoker_t<derived_t>& _invoker()
+		inline rpc_invoker_t<derived_t>& _invoker()
 		{
 			return (this->invoker_);
 		}
@@ -155,49 +108,61 @@ namespace asio2::detail
 			super::_handle_disconnect(ec, std::move(this_ptr));
 		}
 
-		inline void _fire_recv(std::shared_ptr<derived_t> & this_ptr, std::string_view s)
+		template<typename MatchCondition>
+		inline void _fire_recv(std::shared_ptr<derived_t>& this_ptr, std::string_view s,
+			condition_wrap<MatchCondition>& condition)
 		{
-			this->listener_.notify(event::recv, this_ptr, s);
+			this->listener_.notify(event_type::recv, this_ptr, s);
 
-			this->derived()._rpc_handle_recv(this_ptr, s);
+			this->derived()._rpc_handle_recv(this_ptr, s, condition);
 		}
 
 	protected:
-		serializer                          serializer_;
-		deserializer                        deserializer_;
-		header                              header_;
-		invoker_t<derived_t>              & invoker_;
-		std::chrono::steady_clock::duration timeout_ = std::chrono::milliseconds(http_execute_timeout);
+		rpc_serializer                          serializer_;
+		rpc_deserializer                        deserializer_;
+		rpc_header                              header_;
+		rpc_invoker_t<derived_t>              & invoker_;
 	};
 }
 
 namespace asio2
 {
+	namespace detail
+	{
+		struct template_args_rpc_tcp_session : public template_args_tcp_session
+		{
+			static constexpr bool rdc_call_cp_enabled = false;
+		};
+
+		struct template_args_rpc_ws_session : public template_args_ws_session
+		{
+			static constexpr bool rdc_call_cp_enabled = false;
+		};
+	}
+
 	template<class>
 	class rpc_session_t;
 
 	/// Using tcp dgram mode as the underlying communication support
 	template<>
 	class rpc_session_t<detail::use_tcp> : public detail::rpc_session_impl_t<rpc_session_t<detail::use_tcp>,
-		detail::tcp_session_impl_t<rpc_session_t<detail::use_tcp>, asio::ip::tcp::socket, asio::streambuf>>
+		detail::tcp_session_impl_t<rpc_session_t<detail::use_tcp>, detail::template_args_rpc_tcp_session>>
 	{
 	public:
 		using detail::rpc_session_impl_t<rpc_session_t<detail::use_tcp>, detail::tcp_session_impl_t<
-			rpc_session_t<detail::use_tcp>, asio::ip::tcp::socket, asio::streambuf>>::rpc_session_impl_t;
+			rpc_session_t<detail::use_tcp>, detail::template_args_rpc_tcp_session>>::rpc_session_impl_t;
 	};
 
 	/// Using websocket as the underlying communication support
 	template<>
 	class rpc_session_t<detail::use_websocket> : public detail::rpc_session_impl_t<
-		rpc_session_t<detail::use_websocket>,
-		detail::ws_session_impl_t<rpc_session_t<detail::use_websocket>, asio::ip::tcp::socket,
-		websocket::stream<asio::ip::tcp::socket&>, http::string_body, beast::flat_buffer>>
+		rpc_session_t<detail::use_websocket>, detail::ws_session_impl_t<
+		rpc_session_t<detail::use_websocket>, detail::template_args_rpc_ws_session>>
 	{
 	public:
 		using detail::rpc_session_impl_t<rpc_session_t<detail::use_websocket>,
 			detail::ws_session_impl_t<rpc_session_t<detail::use_websocket>,
-			asio::ip::tcp::socket, websocket::stream<asio::ip::tcp::socket&>,
-			http::string_body, beast::flat_buffer>>::rpc_session_impl_t;
+			detail::template_args_rpc_ws_session>>::rpc_session_impl_t;
 	};
 
 #if !defined(ASIO2_USE_WEBSOCKET_RPC)
@@ -207,32 +172,36 @@ namespace asio2
 #endif
 
 #if defined(ASIO2_USE_SSL)
+	namespace detail
+	{
+		struct template_args_rpc_wss_session : public template_args_wss_session
+		{
+			static constexpr bool rdc_call_cp_enabled = false;
+		};
+	}
+
 	template<class>
 	class rpcs_session_t;
 
 	template<>
 	class rpcs_session_t<detail::use_tcp> : public detail::rpc_session_impl_t<rpcs_session_t<detail::use_tcp>,
-		detail::tcps_session_impl_t<rpcs_session_t<detail::use_tcp>, asio::ip::tcp::socket, asio::streambuf>>
+		detail::tcps_session_impl_t<rpcs_session_t<detail::use_tcp>, detail::template_args_rpc_tcp_session>>
 	{
 	public:
 		using detail::rpc_session_impl_t<rpcs_session_t<detail::use_tcp>, detail::tcps_session_impl_t<
-			rpcs_session_t<detail::use_tcp>, asio::ip::tcp::socket, asio::streambuf>>::rpc_session_impl_t;
+			rpcs_session_t<detail::use_tcp>, detail::template_args_rpc_tcp_session>>::rpc_session_impl_t;
 	};
 
 	template<>
 	class rpcs_session_t<detail::use_websocket> : public detail::rpc_session_impl_t<
 		rpcs_session_t<detail::use_websocket>,
 		detail::wss_session_impl_t<rpcs_session_t<detail::use_websocket>,
-		asio::ip::tcp::socket,
-		websocket::stream<asio::ssl::stream<asio::ip::tcp::socket&>&>,
-		http::string_body, beast::flat_buffer>>
+		detail::template_args_rpc_wss_session>>
 	{
 	public:
 		using detail::rpc_session_impl_t<rpcs_session_t<detail::use_websocket>,
 			detail::wss_session_impl_t<rpcs_session_t<detail::use_websocket>,
-			asio::ip::tcp::socket, websocket::stream<asio::ssl::stream<
-			asio::ip::tcp::socket&>&>, http::string_body,
-			beast::flat_buffer>>::rpc_session_impl_t;
+			detail::template_args_rpc_wss_session>>::rpc_session_impl_t;
 	};
 
 #if !defined(ASIO2_USE_WEBSOCKET_RPC)

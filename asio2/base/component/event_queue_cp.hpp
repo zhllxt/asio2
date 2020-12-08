@@ -35,32 +35,32 @@
 
 namespace asio2::detail
 {
-	template <class>                      class event_queue_cp;
+	template <class, class>                      class event_queue_cp;
 
-	template<class derived_t>
-	class event_guard
+	template<class derived_t, class args_t = void>
+	class event_queue_guard
 	{
-		template <class>           friend class event_queue_cp;
+		template <class, class>           friend class event_queue_cp;
 	protected:
-		event_guard(derived_t & d, bool valid = true)
+		event_queue_guard(derived_t & d, bool valid = true)
 			: derive(d), derive_ptr_(d.selfptr()), valid_(valid)
 		{
 		}
 	public:
-		inline event_guard(event_guard&& o)
+		inline event_queue_guard(event_queue_guard&& o)
 			: derive(o.derive), derive_ptr_(std::move(o.derive_ptr_)), valid_(o.valid_)
 		{
 			o.valid_ = !o.valid_;
 		}
-		inline event_guard(const event_guard& o)
+		inline event_queue_guard(const event_queue_guard& o)
 			: derive(o.derive), derive_ptr_(std::move(o.derive_ptr_)), valid_(o.valid_)
 		{
-			const_cast<event_guard&>(o).valid_ = !o.valid_;
+			const_cast<event_queue_guard&>(o).valid_ = !o.valid_;
 		}
-		inline void operator=(event_guard&& o) = delete;
-		inline void operator=(const event_guard& o) = delete;
+		inline void operator=(event_queue_guard&& o) = delete;
+		inline void operator=(const event_queue_guard& o) = delete;
 
-		~event_guard()
+		~event_queue_guard()
 		{
 			if (this->valid_)
 				derive.next_event();
@@ -72,14 +72,14 @@ namespace asio2::detail
 		bool                           valid_;
 	};
 
-	template<class derived_t>
+	template<class derived_t, class args_t = void>
 	class event_queue_cp
 	{
 	public:
 		/**
 		 * @constructor
 		 */
-		event_queue_cp() : derive(static_cast<derived_t&>(*this)) {}
+		event_queue_cp() {}
 
 		/**
 		 * @destructor
@@ -94,6 +94,8 @@ namespace asio2::detail
 		template<class Callback>
 		inline derived_t & push_event(Callback&& f)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			// Make sure we run on the strand
 			if (derive.io().strand().running_in_this_thread())
 			{
@@ -101,18 +103,18 @@ namespace asio2::detail
 				this->events_.emplace(std::forward<Callback>(f));
 				if (empty)
 				{
-					(this->events_.front())(event_guard<derived_t>{derive});
+					(this->events_.front())(event_queue_guard<derived_t>{derive});
 				}
 				return (derive);
 			}
 
-			derive.post([this, p = derive.selfptr(), f = std::forward<Callback>(f)]() mutable
+			derive.post([this, &derive, p = derive.selfptr(), f = std::forward<Callback>(f)]() mutable
 			{
 				bool empty = this->events_.empty();
 				this->events_.emplace(std::move(f));
 				if (empty)
 				{
-					(this->events_.front())(event_guard<derived_t>{derive});
+					(this->events_.front())(event_queue_guard<derived_t>{derive});
 				}
 			});
 
@@ -127,6 +129,8 @@ namespace asio2::detail
 		template<typename = void>
 		inline derived_t & next_event()
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			// Make sure we run on the strand
 			if (derive.io().strand().running_in_this_thread())
 			{
@@ -137,13 +141,13 @@ namespace asio2::detail
 
 					if (!this->events_.empty())
 					{
-						(this->events_.front())(event_guard<derived_t>{derive});
+						(this->events_.front())(event_queue_guard<derived_t>{derive});
 					}
 				}
 				return (derive);
 			}
 
-			derive.post([this, p = derive.selfptr()]() mutable
+			derive.post([this, &derive, p = derive.selfptr()]() mutable
 			{
 				ASIO2_ASSERT(!this->events_.empty());
 				if (!this->events_.empty())
@@ -152,7 +156,7 @@ namespace asio2::detail
 
 					if (!this->events_.empty())
 					{
-						(this->events_.front())(event_guard<derived_t>{derive});
+						(this->events_.front())(event_queue_guard<derived_t>{derive});
 					}
 				}
 			});
@@ -161,9 +165,7 @@ namespace asio2::detail
 		}
 
 	protected:
-		derived_t                                               & derive;
-
-		std::queue<std::function<bool(event_guard<derived_t>&&)>> events_;
+		std::queue<std::function<bool(event_queue_guard<derived_t>&&)>> events_;
 	};
 }
 

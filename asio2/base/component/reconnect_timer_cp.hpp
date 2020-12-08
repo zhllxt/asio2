@@ -23,17 +23,15 @@
 
 namespace asio2::detail
 {
-	template<class derived_t, bool isSession>
+	template<class derived_t, class args_t = void>
 	class reconnect_timer_cp
 	{
 	public:
 		/**
 		 * @constructor
 		 */
-		explicit reconnect_timer_cp(io_t & timer_io)
-			: derive(static_cast<derived_t&>(*this))
-			, reconnect_timer_io_(timer_io)
-			, reconnect_timer_(timer_io.context())
+		explicit reconnect_timer_cp(io_t & io)
+			: reconnect_timer_(io.context())
 		{
 			this->reconnect_timer_canceled_.clear();
 			this->reconnect_is_running_.clear();
@@ -58,7 +56,7 @@ namespace asio2::detail
 			this->reconnect_enable_ = enable;
 			if (this->reconnect_enable_)
 				this->reconnect_delay_ = delay;
-			return (derive);
+			return static_cast<derived_t&>(*this);
 		}
 
 		/**
@@ -70,7 +68,7 @@ namespace asio2::detail
 		inline derived_t& reconnect(bool enable)
 		{
 			this->reconnect_enable_ = enable;
-			return (derive);
+			return static_cast<derived_t&>(*this);
 		}
 
 		/**
@@ -84,7 +82,7 @@ namespace asio2::detail
 		{
 			this->reconnect_enable_ = enable;
 			this->reconnect_delay_  = delay;
-			return (derive);
+			return static_cast<derived_t&>(*this);
 		}
 
 		/**
@@ -95,7 +93,7 @@ namespace asio2::detail
 		inline derived_t& auto_reconnect(bool enable)
 		{
 			this->reconnect_enable_ = enable;
-			return (derive);
+			return static_cast<derived_t&>(*this);
 		}
 
 	private:
@@ -103,9 +101,11 @@ namespace asio2::detail
 		inline void _post_reconnect_timer(std::shared_ptr<derived_t> this_ptr, Callback&& f,
 			std::chrono::duration<Rep, Period> delay)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			this->reconnect_timer_.expires_after(delay);
-			this->reconnect_timer_.async_wait(asio::bind_executor(this->reconnect_timer_io_.strand(),
-				[this, self_ptr = std::move(this_ptr), f = std::forward<Callback>(f)]
+			this->reconnect_timer_.async_wait(asio::bind_executor(derive.io().strand(),
+				[&derive, self_ptr = std::move(this_ptr), f = std::forward<Callback>(f)]
 			(const error_code & ec) mutable
 			{
 				derive._handle_reconnect_timer(ec, std::move(self_ptr), std::move(f));
@@ -116,6 +116,8 @@ namespace asio2::detail
 		template<class Callback>
 		inline void _make_reconnect_timer(std::shared_ptr<derived_t> this_ptr, Callback&& f)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			if (this->reconnect_is_running_.test_and_set())
 				return;
 
@@ -127,6 +129,8 @@ namespace asio2::detail
 		inline void _handle_reconnect_timer(const error_code& ec,
 			std::shared_ptr<derived_t> this_ptr, Callback&& f)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			if (this->reconnect_timer_canceled_.test_and_set())
 			{
 				this->reconnect_is_running_.clear();
@@ -165,11 +169,6 @@ namespace asio2::detail
 		}
 
 	protected:
-		derived_t                                 & derive;
-
-		/// The io (include io_context and strand) used to handle the recv/send event.
-		io_t                                      & reconnect_timer_io_;
-
 		/// timer for client reconnect
 		asio::steady_timer                          reconnect_timer_;
 
@@ -177,7 +176,7 @@ namespace asio2::detail
 		std::atomic_flag                            reconnect_timer_canceled_;
 
 		/// if there has no data transfer for a long time,the session will be disconnect
-		std::chrono::milliseconds                   reconnect_delay_           = std::chrono::seconds(1);
+		std::chrono::steady_clock::duration         reconnect_delay_           = std::chrono::seconds(1);
 
 		/// flag of whether reconnect when disconnect
 		bool                                        reconnect_enable_          = true;

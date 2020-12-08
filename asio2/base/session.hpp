@@ -26,6 +26,7 @@
 #include <any>
 #include <future>
 #include <tuple>
+#include <map>
 #include <unordered_map>
 #include <type_traits>
 
@@ -34,6 +35,7 @@
 #include <asio2/base/error.hpp>
 #include <asio2/base/listener.hpp>
 #include <asio2/base/session_mgr.hpp>
+#include <asio2/base/define.hpp>
 
 #include <asio2/base/detail/object.hpp>
 #include <asio2/base/detail/allocator.hpp>
@@ -52,41 +54,50 @@
 #include <asio2/base/component/send_cp.hpp>
 #include <asio2/base/component/connect_timeout_cp.hpp>
 #include <asio2/base/component/event_queue_cp.hpp>
+#include <asio2/base/component/async_event_cp.hpp>
+#include <asio2/base/component/rdc_call_cp.hpp>
 
 namespace asio2::detail
 {
-	template<class derived_t, class socket_t, class buffer_t>
-	class session_impl_t
-		: public object_t<derived_t>
-		, public event_queue_cp<derived_t>
-		, public user_data_cp<derived_t>
-		, public connect_time_cp<derived_t>
-		, public alive_time_cp<derived_t>
-		, public socket_cp<derived_t, socket_t>
-		, public connect_cp<derived_t, socket_t, true>
-		, public disconnect_cp<derived_t, socket_t, true>
-		, public user_timer_cp<derived_t, true>
-		, public silence_timer_cp<derived_t, true>
-		, public connect_timeout_cp<derived_t, true>
-		, public send_cp<derived_t, true>
-		, public post_cp<derived_t>
+	struct wait_response_key
 	{
-		template <class, bool>         friend class user_timer_cp;
-		template <class, bool>         friend class silence_timer_cp;
-		template <class, bool>         friend class connect_timeout_cp;
-		template <class, class, bool>  friend class connect_cp;
-		template <class, class, bool>  friend class disconnect_cp;
-		template <class>               friend class data_persistence_cp;
-		template <class>               friend class event_queue_cp;
-		template <class, bool>         friend class send_cp;
-		template <class>               friend class post_cp;
-		template <class>               friend class event_guard;
+		std::function<bool(wait_response_key const&, wait_response_key const&)> id_comparer;
+
+		bool operator<(const wait_response_key& rhs) const
+		{
+			return (id_comparer(*this, rhs));
+		}
+	};
+
+	ASIO2_CLASS_FORWARD_DECLARE_BASE;
+
+	template<class derived_t, class args_t>
+	class session_impl_t
+		: public object_t              <derived_t        >
+		, public event_queue_cp        <derived_t, args_t>
+		, public user_data_cp          <derived_t, args_t>
+		, public connect_time_cp       <derived_t, args_t>
+		, public alive_time_cp         <derived_t, args_t>
+		, public socket_cp             <derived_t, args_t>
+		, public connect_cp            <derived_t, args_t>
+		, public disconnect_cp         <derived_t, args_t>
+		, public user_timer_cp         <derived_t, args_t>
+		, public silence_timer_cp      <derived_t, args_t>
+		, public connect_timeout_cp    <derived_t, args_t>
+		, public send_cp               <derived_t, args_t>
+		, public post_cp               <derived_t, args_t>
+		, public async_event_cp        <derived_t, args_t>
+		, public rdc_call_cp           <derived_t, args_t>
+	{
+		ASIO2_CLASS_FRIEND_DECLARE_BASE;
 
 	public:
-		using self = session_impl_t<derived_t, socket_t, buffer_t>;
-		using super = object_t<derived_t>;
-		using buffer_type = buffer_t;
-		using send_cp<derived_t, true>::send;
+		using super       = object_t      <derived_t        >;
+		using self        = session_impl_t<derived_t, args_t>;
+
+		using buffer_type = typename args_t::buffer_t;
+
+		using send_cp<derived_t, args_t>::send;
 
 		/**
 		 * @constructor
@@ -94,28 +105,31 @@ namespace asio2::detail
 		template<class ...Args>
 		explicit session_impl_t(
 			session_mgr_t<derived_t> & sessions,
-			listener_t & listener,
-			io_t & rwio,
-			std::size_t init_buffer_size,
-			std::size_t max_buffer_size,
-			Args&&... args
+			listener_t               & listener,
+			io_t                     & rwio,
+			std::size_t                init_buffer_size,
+			std::size_t                max_buffer_size,
+			Args&&...                  args
 		)
 			: super()
-			, event_queue_cp<derived_t>()
-			, user_data_cp<derived_t>()
-			, connect_time_cp<derived_t>()
-			, alive_time_cp<derived_t>()
-			, socket_cp<derived_t, socket_t>(std::forward<Args>(args)...)
-			, disconnect_cp<derived_t, socket_t, true>()
-			, user_timer_cp<derived_t, true>(rwio)
-			, silence_timer_cp<derived_t, true>(rwio)
-			, connect_timeout_cp<derived_t, true>(rwio)
-			, send_cp<derived_t, true>(rwio)
-			, post_cp<derived_t>()
+			, event_queue_cp      <derived_t, args_t>()
+			, user_data_cp        <derived_t, args_t>()
+			, connect_time_cp     <derived_t, args_t>()
+			, alive_time_cp       <derived_t, args_t>()
+			, socket_cp           <derived_t, args_t>(std::forward<Args>(args)...)
+			, connect_cp          <derived_t, args_t>()
+			, disconnect_cp       <derived_t, args_t>()
+			, user_timer_cp       <derived_t, args_t>(rwio)
+			, silence_timer_cp    <derived_t, args_t>(rwio)
+			, connect_timeout_cp  <derived_t, args_t>(rwio)
+			, send_cp             <derived_t, args_t>(rwio)
+			, post_cp             <derived_t, args_t>()
+			, async_event_cp      <derived_t, args_t>()
+			, rdc_call_cp         <derived_t, args_t>()
 			, sessions_(sessions)
 			, listener_(listener)
-			, io_(rwio)
-			, buffer_(init_buffer_size, max_buffer_size)
+			, io_      (rwio)
+			, buffer_  (init_buffer_size, max_buffer_size)
 		{
 		}
 
@@ -172,6 +186,12 @@ namespace asio2::detail
 			// close user custom timers
 			this->stop_all_timers();
 
+			// close all posted timed tasks
+			this->stop_all_timed_tasks();
+
+			// close all async_events
+			this->notify_all_events();
+
 			// destroy user data, maybe the user data is self shared_ptr, 
 			// if don't destroy it, will cause loop refrence.
 			this->user_data_.reset();
@@ -199,7 +219,7 @@ namespace asio2::detail
 		/**
 		 * @function : get the buffer object refrence
 		 */
-		inline buffer_wrap<buffer_t> & buffer()
+		inline buffer_wrap<buffer_type> & buffer()
 		{
 			return this->buffer_;
 		}
@@ -212,27 +232,28 @@ namespace asio2::detail
 			return this->io_;
 		}
 
+		/**
+		 * @function : set the default remote call timeout for rpc/rdc
+		 */
+		template<class Rep, class Period>
+		inline derived_t & default_timeout(std::chrono::duration<Rep, Period> duration)
+		{
+			this->rc_timeout_ = duration;
+			return (this->derived());
+		}
+
+		/**
+		 * @function : get the default remote call timeout for rpc/rdc
+		 */
+		inline std::chrono::steady_clock::duration default_timeout()
+		{
+			return this->rc_timeout_;
+		}
+
 	protected:
 		inline session_mgr_t<derived_t> & sessions() { return this->sessions_; }
 		inline listener_t               & listener() { return this->listener_; }
 		inline std::atomic<state_t>     & state()    { return this->state_;    }
-		inline std::shared_ptr<derived_t> selfptr()
-		{
-			try
-			{
-				return this->derived().shared_from_this();
-			}
-			catch (const std::bad_weak_ptr&)
-			{
-				ASIO2_ASSERT(false);
-			}
-			catch (const std::exception&)
-			{
-				ASIO2_ASSERT(false);
-			}
-
-			throw std::bad_weak_ptr{};
-		}
 
 	protected:
 		/// asio::strand ,used to ensure socket multi thread safe,we must ensure that only one operator
@@ -242,25 +263,28 @@ namespace asio2::detail
 		/// more details see : http://bbs.csdn.net/topics/390931471
 
 		/// session_mgr
-		session_mgr_t<derived_t>  & sessions_;
+		session_mgr_t<derived_t>           & sessions_;
 
 		/// listener
-		listener_t                & listener_;
+		listener_t                         & listener_;
 
 		/// The io (include io_context and strand) used to handle the recv/send event.
-		io_t                      & io_;
+		io_t                               & io_;
 
 		/// buffer
-		buffer_wrap<buffer_t>       buffer_;
+		buffer_wrap<buffer_type>             buffer_;
 
 		/// use to check whether the user call stop in the listener
-		std::atomic<state_t>        state_ = state_t::stopped;
+		std::atomic<state_t>                 state_        = state_t::stopped;
 
 		/// Is it successful to insert the current session to the session map
-		bool						in_sessions = false;
+		bool						         in_sessions_  = false;
 
 		/// use this to ensure that server stop only after all sessions are closed
-		std::shared_ptr<void>       counter_ptr_;
+		std::shared_ptr<void>                counter_ptr_;
+
+		/// Remote call (rpc/rdc) response timeout.
+		std::chrono::steady_clock::duration  rc_timeout_   = std::chrono::milliseconds(http_execute_timeout);
 	};
 }
 

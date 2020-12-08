@@ -19,7 +19,7 @@
 
 namespace asio2::detail
 {
-	template<class derived_t>
+	template<class derived_t, class args_t = void>
 	class connect_time_cp
 	{
 	public:
@@ -54,9 +54,9 @@ namespace asio2::detail
 		/**
 		 * @function : get connection duration of std::chrono::duration
 		 */
-		inline std::chrono::milliseconds connect_duration() const
+		inline std::chrono::system_clock::duration connect_duration() const
 		{
-			return std::chrono::duration_cast<std::chrono::milliseconds>(
+			return std::chrono::duration_cast<std::chrono::system_clock::duration>(
 				std::chrono::system_clock::now() - this->connect_time_);
 		}
 

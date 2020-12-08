@@ -137,7 +137,7 @@
     <ClInclude Include="..\..\..\asio2\http\detail\http_parser.h" />
     <ClInclude Include="..\..\..\asio2\http\detail\http_util.hpp" />
     <ClInclude Include="..\..\..\asio2\http\detail\mime_types.hpp" />
-    <ClInclude Include="..\..\..\asio2\http\detail\router.hpp" />
+    <ClInclude Include="..\..\..\asio2\http\detail\http_router.hpp" />
     <ClInclude Include="..\..\..\asio2\http\https_client.hpp" />
     <ClInclude Include="..\..\..\asio2\http\https_server.hpp" />
     <ClInclude Include="..\..\..\asio2\http\https_session.hpp" />
@@ -160,10 +160,10 @@
     <ClInclude Include="..\..\..\asio2\icmp\detail\ipv6_header.hpp" />
     <ClInclude Include="..\..\..\asio2\icmp\ping.hpp" />
     <ClInclude Include="..\..\..\asio2\rpc\component\rpc_call_cp.hpp" />
-    <ClInclude Include="..\..\..\asio2\rpc\detail\invoker.hpp" />
-    <ClInclude Include="..\..\..\asio2\rpc\detail\protocol.hpp" />
+    <ClInclude Include="..\..\..\asio2\rpc\detail\rpc_invoker.hpp" />
+    <ClInclude Include="..\..\..\asio2\rpc\detail\rpc_protocol.hpp" />
     <ClInclude Include="..\..\..\asio2\rpc\detail\rpc_portable_binary.hpp" />
-    <ClInclude Include="..\..\..\asio2\rpc\detail\serialization.hpp" />
+    <ClInclude Include="..\..\..\asio2\rpc\detail\rpc_serialization.hpp" />
     <ClInclude Include="..\..\..\asio2\rpc\impl\rpc_recv_op.hpp" />
     <ClInclude Include="..\..\..\asio2\rpc\rpc_client.hpp" />
     <ClInclude Include="..\..\..\asio2\rpc\rpc_server.hpp" />

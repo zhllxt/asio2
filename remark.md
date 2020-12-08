@@ -32,6 +32,16 @@ public:
 };
 ```
 
+##### Modify file /beast/http/basic_parser.hpp
+```c++
+// change the body and header limit to no limit.
+// line 71
+std::uint64_t body_limit_ = (std::numeric_limits<std::uint64_t>::max)();
+    //default_body_limit(is_request{});   // max payload body
+// line 78
+std::uint32_t header_limit_ = (std::numeric_limits<std::uint32_t>::max)();     // max header size
+```
+
 ## Modify the code to be compatible with the mysql "IS_NUM" macro
 
 ##### Modify file /asio2/http/detail/http_parser.h

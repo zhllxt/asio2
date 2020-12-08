@@ -19,14 +19,16 @@
 
 namespace asio2::detail
 {
-	template<class derived_t, class endpoint_type>
+	template<class derived_t, class args_t>
 	class local_endpoint_cp
 	{
 	public:
+		using endpoint_type = typename args_t::socket_t::lowest_layer_type::endpoint_type;
+
 		/**
 		 * @constructor
 		 */
-		local_endpoint_cp() : derive(static_cast<derived_t&>(*this)), local_endpoint_() {}
+		local_endpoint_cp() : local_endpoint_() {}
 
 		/**
 		 * @destructor
@@ -47,7 +49,7 @@ namespace asio2::detail
 		inline derived_t & local_endpoint(const InternetProtocol& internet_protocol, unsigned short port_num)
 		{
 			this->local_endpoint_ = endpoint_type(internet_protocol, port_num);
-			return (derive);
+			return static_cast<derived_t&>(*this);
 		}
 
 		/**
@@ -62,7 +64,7 @@ namespace asio2::detail
 		inline derived_t & local_endpoint(const asio::ip::address& addr, unsigned short port_num)
 		{
 			this->local_endpoint_ = endpoint_type(addr, port_num);
-			return (derive);
+			return static_cast<derived_t&>(*this);
 		}
 
 		/**
@@ -71,8 +73,6 @@ namespace asio2::detail
 		inline endpoint_type& local_endpoint() { return this->local_endpoint_; }
 
 	protected:
-		derived_t   & derive;
-
 		/// local bind endpoint
 		endpoint_type local_endpoint_;
 	};

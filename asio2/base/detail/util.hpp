@@ -128,6 +128,7 @@ namespace asio2::detail
 		}
 
 		template<class ...Args>
+		[[deprecated("Replace unused with ignore_unused")]]
 		static inline constexpr const void unused(const Args&...) noexcept {}
 	};
 
@@ -151,8 +152,8 @@ namespace asio2::detail
 		copyable_wrapper(copyable_wrapper&&) = default;
 		copyable_wrapper& operator=(copyable_wrapper&&) = default;
 
-		copyable_wrapper(copyable_wrapper const& r) : raw(const_cast<T&&>(r.raw)) { throw 0; }
-		copyable_wrapper& operator=(copyable_wrapper const& r) { raw = const_cast<T&&>(r.raw); throw 0; }
+		copyable_wrapper(copyable_wrapper const& r) : raw(const_cast<T&&>(r.raw)) { }
+		copyable_wrapper& operator=(copyable_wrapper const& r) { raw = const_cast<T&&>(r.raw); }
 
 		T& operator()() noexcept { return raw; }
 

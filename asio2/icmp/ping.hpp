@@ -31,6 +31,7 @@
 #include <asio2/base/iopool.hpp>
 #include <asio2/base/error.hpp>
 #include <asio2/base/listener.hpp>
+#include <asio2/base/define.hpp>
 
 #include <asio2/base/detail/object.hpp>
 #include <asio2/base/detail/allocator.hpp>
@@ -40,6 +41,7 @@
 #include <asio2/base/component/socket_cp.hpp>
 #include <asio2/base/component/user_timer_cp.hpp>
 #include <asio2/base/component/post_cp.hpp>
+#include <asio2/base/component/async_event_cp.hpp>
 
 #include <asio2/icmp/detail/icmp_header.hpp>
 #include <asio2/icmp/detail/ipv4_header.hpp>
@@ -65,21 +67,31 @@ namespace asio2
 
 namespace asio2::detail
 {
-	template<class derived_t, class socket_t, class buffer_t>
-	class ping_impl_t
-		: public object_t<derived_t>
-		, public iopool_cp
-		, public user_data_cp<derived_t>
-		, public user_timer_cp<derived_t, false>
-		, public post_cp<derived_t>
+	struct template_args_icmp
 	{
-		template <class, bool>         friend class user_timer_cp;
-		template <class>               friend class post_cp;
+		using socket_t = asio::ip::icmp::socket;
+		using buffer_t = asio::streambuf;
+	};
+
+	ASIO2_CLASS_FORWARD_DECLARE_BASE;
+
+	template<class derived_t, class args_t>
+	class ping_impl_t
+		: public object_t       <derived_t        >
+		, public iopool_cp
+		, public user_data_cp   <derived_t, args_t>
+		, public user_timer_cp  <derived_t, args_t>
+		, public post_cp        <derived_t, args_t>
+		, public async_event_cp <derived_t, args_t>
+	{
+		ASIO2_CLASS_FRIEND_DECLARE_BASE;
 
 	public:
-		using self = ping_impl_t<derived_t, socket_t, buffer_t>;
-		using super = object_t<derived_t>;
-		using buffer_type = buffer_t;
+		using super = object_t   <derived_t        >;
+		using self  = ping_impl_t<derived_t, args_t>;
+
+		using socket_type = typename args_t::socket_t;
+		using buffer_type = typename args_t::buffer_t;
 
 		/**
 		 * @constructor
@@ -88,23 +100,23 @@ namespace asio2::detail
 		 * Other parameters should use default values.
 		 */
 		ping_impl_t(
-			std::size_t send_count = -1,
+			std::size_t send_count       = -1,
 			std::size_t init_buffer_size = 64 * 1024, // We prepare the buffer to receive up to 64KB.
-			std::size_t max_buffer_size = (std::numeric_limits<std::size_t>::max)()
+			std::size_t max_buffer_size  = (std::numeric_limits<std::size_t>::max)()
 		)
 			: super()
 			, iopool_cp(1)
-			, user_data_cp<derived_t>()
-			, user_timer_cp<derived_t, false>(iopool_.get(0))
-			, post_cp<derived_t>()
-			, socket_(iopool_.get(0).context())
+			, user_data_cp <derived_t, args_t>()
+			, user_timer_cp<derived_t, args_t>(iopool_.get(0))
+			, post_cp      <derived_t, args_t>()
+			, socket_    (iopool_.get(0).context())
 			, rallocator_()
 			, wallocator_()
-			, listener_()
-			, io_(iopool_.get(0))
-			, buffer_(init_buffer_size, max_buffer_size)
-			, timer_(iopool_.get(0).context())
-			, ncount_(send_count)
+			, listener_  ()
+			, io_        (iopool_.get(0))
+			, buffer_    (init_buffer_size, max_buffer_size)
+			, timer_     (iopool_.get(0).context())
+			, ncount_    (send_count)
 		{
 		}
 
@@ -163,7 +175,7 @@ namespace asio2::detail
 		template<class F, class ...C>
 		inline derived_t & bind_recv(F&& fun, C&&... obj)
 		{
-			this->listener_.bind(event::recv,
+			this->listener_.bind(event_type::recv,
 				observer_t<icmp_rep&>(std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
 		}
@@ -178,7 +190,7 @@ namespace asio2::detail
 		template<class F, class ...C>
 		inline derived_t & bind_init(F&& fun, C&&... obj)
 		{
-			this->listener_.bind(event::init,
+			this->listener_.bind(event_type::init,
 				observer_t<>(std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
 		}
@@ -192,7 +204,7 @@ namespace asio2::detail
 		template<class F, class ...C>
 		inline derived_t & bind_start(F&& fun, C&&... obj)
 		{
-			this->listener_.bind(event::start,
+			this->listener_.bind(event_type::start,
 				observer_t<error_code>(std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
 		}
@@ -206,7 +218,7 @@ namespace asio2::detail
 		template<class F, class ...C>
 		inline derived_t & bind_stop(F&& fun, C&&... obj)
 		{
-			this->listener_.bind(event::stop,
+			this->listener_.bind(event_type::stop,
 				observer_t<error_code>(std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
 		}
@@ -215,12 +227,12 @@ namespace asio2::detail
 		/**
 		 * @function : get the socket object refrence
 		 */
-		inline socket_t & socket() { return this->socket_; }
+		inline socket_type & socket() { return this->socket_; }
 
 		/**
 		 * @function : get the stream object refrence
 		 */
-		inline socket_t & stream() { return this->socket_; }
+		inline socket_type & stream() { return this->socket_; }
 
 	public:
 		/**
@@ -423,7 +435,7 @@ namespace asio2::detail
 			// socket's close operation is in the same thread.
 			asio::post(this->io_.strand(), [this, ec, this_ptr = std::move(self_ptr), old_state]()
 			{
-				detail::ignore::unused(old_state);
+				detail::ignore_unused(old_state);
 
 				set_last_error(ec);
 
@@ -444,10 +456,16 @@ namespace asio2::detail
 
 		inline void _handle_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
 		{
-			detail::ignore::unused(ec, this_ptr);
+			detail::ignore_unused(ec, this_ptr);
 
 			// close user custom timers
 			this->stop_all_timers();
+
+			// close all posted timed tasks
+			this->stop_all_timed_tasks();
+
+			// close all async_events
+			this->notify_all_events();
 
 			// destroy user data, maybe the user data is self shared_ptr,
 			// if don't destroy it, will cause loop refrence.
@@ -502,12 +520,13 @@ namespace asio2::detail
 
 		void _handle_timer(const error_code & ec)
 		{
-			detail::ignore::unused(ec);
+			detail::ignore_unused(ec);
 
 			if (this->replies_ == 0)
 			{
+				detail::condition_wrap<void> dummy{};
 				this->rep_.lag = std::chrono::steady_clock::duration(-1);
-				this->derived()._fire_recv(this->rep_);
+				this->derived()._fire_recv(this->rep_, dummy);
 			}
 
 			// Requests must be sent no less than one second apart.
@@ -586,7 +605,8 @@ namespace asio2::detail
 				this->rep_.lag = std::chrono::steady_clock::now() - this->time_sent_;
 				this->total_time_ += this->rep_.lag;
 
-				this->derived()._fire_recv(this->rep_);
+				detail::condition_wrap<void> dummy{};
+				this->derived()._fire_recv(this->rep_, dummy);
 			}
 
 			// Discard any data already in the buffer.
@@ -597,29 +617,32 @@ namespace asio2::detail
 
 		inline void _fire_init()
 		{
-			this->listener_.notify(event::init);
+			this->listener_.notify(event_type::init);
 		}
 
 		inline void _fire_start(error_code ec)
 		{
-			this->listener_.notify(event::start, ec);
+			this->listener_.notify(event_type::start, ec);
 		}
 
 		inline void _fire_stop(error_code ec)
 		{
-			this->listener_.notify(event::stop, ec);
+			this->listener_.notify(event_type::stop, ec);
 		}
 
-		inline void _fire_recv(icmp_rep& rep)
+		template<typename MatchCondition>
+		inline void _fire_recv(icmp_rep& rep, condition_wrap<MatchCondition>& condition)
 		{
-			this->listener_.notify(event::recv, rep);
+			detail::ignore_unused(condition);
+
+			this->listener_.notify(event_type::recv, rep);
 		}
 
 	protected:
 		/**
 		 * @function : get the buffer object refrence
 		 */
-		inline buffer_wrap<buffer_t> & buffer() { return this->buffer_; }
+		inline buffer_wrap<buffer_type> & buffer() { return this->buffer_; }
 		/**
 		 * @function : get the io object refrence
 		 */
@@ -640,7 +663,7 @@ namespace asio2::detail
 
 	protected:
 		/// socket 
-		socket_t                                    socket_;
+		socket_type                                 socket_;
 
 		/// The memory to use for handler-based custom memory allocation. used fo recv/read.
 		handler_memory<>                            rallocator_;
@@ -655,7 +678,7 @@ namespace asio2::detail
 		io_t                                      & io_;
 
 		/// buffer
-		buffer_wrap<buffer_t>                       buffer_;
+		buffer_wrap<buffer_type>                    buffer_;
 
 		/// state
 		std::atomic<state_t>                        state_ = state_t::stopped;
@@ -687,10 +710,10 @@ namespace asio2
 	 * send_count equals -1 for infinite send
 	 * Other parameters should use default values.
 	 */
-	class ping : public detail::ping_impl_t<ping, asio::ip::icmp::socket, asio::streambuf>
+	class ping : public detail::ping_impl_t<ping, detail::template_args_icmp>
 	{
 	public:
-		using ping_impl_t<ping, asio::ip::icmp::socket, asio::streambuf>::ping_impl_t;
+		using ping_impl_t<ping, detail::template_args_icmp>::ping_impl_t;
 	};
 }
 

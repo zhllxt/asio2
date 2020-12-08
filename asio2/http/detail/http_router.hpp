@@ -133,33 +133,18 @@ namespace boost::beast::websocket
 
 namespace asio2::detail
 {
-	template <class>                      class session_mgr_t;
-	template <class, class>               class tcp_server_impl_t;
-	template <class, class>               class http_server_impl_t;
+	ASIO2_CLASS_FORWARD_DECLARE_BASE;
+	ASIO2_CLASS_FORWARD_DECLARE_TCP_BASE;
+	ASIO2_CLASS_FORWARD_DECLARE_TCP_SERVER;
+	ASIO2_CLASS_FORWARD_DECLARE_TCP_SESSION;
 
 	template<class CallerT>
 	class http_router_t
 	{
-		template <class, bool>							friend class user_timer_cp;
-		template <class>								friend class post_cp;
-		template <class>								friend class data_persistence_cp;
-		template <class>								friend class event_queue_cp;
-		template <class, bool>							friend class send_cp;
-		template <class, bool>							friend class silence_timer_cp;
-		template <class, bool>							friend class connect_timeout_cp;
-		template <class, bool>							friend class tcp_send_op;
-		template <class, bool>							friend class tcp_recv_op;
-		template <class, class, class, bool>			friend class http_send_cp;
-		template <class, class, class, bool>			friend class http_send_op;
-		template <class, class, class, bool>			friend class http_recv_op;
-		template <class, class, bool>					friend class ws_stream_cp;
-		template <class, bool>							friend class ws_send_op;
-		template <class>								friend class session_mgr_t;
-		template <class, class, class>					friend class session_impl_t;
-		template <class, class, class>					friend class tcp_session_impl_t;
-		template <class, class>							friend class tcp_server_impl_t;
-		template <class, class>							friend class http_server_impl_t;
-		template <class, class, class, class, class>	friend class http_session_impl_t;
+		ASIO2_CLASS_FRIEND_DECLARE_BASE;
+		ASIO2_CLASS_FRIEND_DECLARE_TCP_BASE;
+		ASIO2_CLASS_FRIEND_DECLARE_TCP_SERVER;
+		ASIO2_CLASS_FRIEND_DECLARE_TCP_SESSION;
 
 		template<class T, class R, class... Args>
 		struct has_member_before : std::false_type {};
@@ -567,17 +552,17 @@ namespace asio2::detail
 			return continued;
 		}
 
-		inline std::string _make_uri(std::string_view root, std::string_view target)
+		inline std::string _make_uri(std::string_view root, std::string_view path)
 		{
-			while (target.size() > static_cast<std::string_view::size_type>(1) && target.back() == '/')
+			while (path.size() > static_cast<std::string_view::size_type>(1) && path.back() == '/')
 			{
-				target.remove_suffix(1);
+				path.remove_suffix(1);
 			}
 
 			std::string uri;
-			uri.reserve(root.size() + target.size());
+			uri.reserve(root.size() + path.size());
 			uri += root;
-			uri += target;
+			uri += path;
 
 			return uri;
 		}
@@ -591,11 +576,11 @@ namespace asio2::detail
 
 			if constexpr (IsHttp)
 			{
-				uri = this->_make_uri(this->_to_char(req.method()), req.target());
+				uri = this->_make_uri(this->_to_char(req.method()), req.path());
 			}
 			else
 			{
-				uri = this->_make_uri(std::string_view{ "Z" }, req.target());
+				uri = this->_make_uri(std::string_view{ "Z" }, req.path());
 			}
 
 			{
@@ -607,14 +592,17 @@ namespace asio2::detail
 			}
 
 			// Find the best match url from tail to head
-			for (auto it = std::prev(this->wildcard_routers_.end()); it != this->wildcard_routers_.end(); --it)
+			if (!wildcard_routers_.empty())
 			{
-				auto& k = it->first;
-				ASIO2_ASSERT(k.size() >= std::size_t(3));
-				if (uri.front() == k.front() && uri.size() >= k.size() - 2 &&
-					uri[k.size() - 3] == k[k.size() - 3] && http::url_match(k, uri))
+				for (auto it = std::prev(this->wildcard_routers_.end()); it != this->wildcard_routers_.end(); --it)
 				{
-					return (it->second);
+					auto& k = it->first;
+					ASIO2_ASSERT(k.size() >= std::size_t(3));
+					if (uri.front() == k.front() && uri.size() >= k.size() - 2 &&
+						uri[k.size() - 3] == k[k.size() - 3] && http::url_match(k, uri))
+					{
+						return (it->second);
+					}
 				}
 			}
 

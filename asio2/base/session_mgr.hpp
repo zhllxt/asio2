@@ -20,6 +20,7 @@
 #include <shared_mutex>
 #include <memory>
 #include <functional>
+#include <unordered_map>
 #include <type_traits>
 
 #include <asio2/base/selector.hpp>
@@ -36,7 +37,7 @@ namespace asio2::detail
 	class session_mgr_t
 	{
 	public:
-		using self = session_mgr_t<session_t>;
+		using self     = session_mgr_t<session_t>;
 		using key_type = typename session_t::key_type;
 
 		/**
@@ -69,7 +70,7 @@ namespace asio2::detail
 			{
 				std::unique_lock<std::shared_mutex> guard(this->mutex_);
 				inserted = this->sessions_.try_emplace(session_ptr->hash_key(), session_ptr).second;
-				session_ptr->in_sessions = inserted;
+				session_ptr->in_sessions_ = inserted;
 			}
 
 			(callback)(inserted);
@@ -91,7 +92,7 @@ namespace asio2::detail
 
 			{
 				std::unique_lock<std::shared_mutex> guard(this->mutex_);
-				if (session_ptr->in_sessions)
+				if (session_ptr->in_sessions_)
 					erased = (this->sessions_.erase(session_ptr->hash_key()) > 0);
 			}
 

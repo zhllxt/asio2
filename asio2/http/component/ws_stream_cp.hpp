@@ -38,23 +38,23 @@ namespace asio2::detail
 	struct is_websocket_server<T, std::void_t<decltype(std::declval<typename T::session_type&>().
 		ws_stream())>> : std::true_type {};
 
-	template<class derived_t, class stream_t, bool isSession>
+	template<class derived_t, class args_t>
 	class ws_stream_cp
 	{
 	public:
-		using stream_type = stream_t;
+		using stream_type = typename args_t::stream_t;
 
 		/**
 		 * @constructor
 		 */
-		ws_stream_cp() : derive(static_cast<derived_t&>(*this)) {}
+		ws_stream_cp() {}
 
 		/**
 		 * @destructor
 		 */
 		~ws_stream_cp() = default;
 
-		inline stream_t & ws_stream()
+		inline stream_type & ws_stream()
 		{
 			ASIO2_ASSERT(bool(this->ws_stream_));
 			return (*(this->ws_stream_));
@@ -64,12 +64,12 @@ namespace asio2::detail
 		template<typename MatchCondition, typename Socket>
 		inline void _ws_init(const condition_wrap<MatchCondition>& condition, Socket& socket)
 		{
-			detail::ignore::unused(condition, socket);
+			detail::ignore_unused(condition, socket);
 
-			this->ws_stream_ = std::make_unique<stream_t>(socket);
+			this->ws_stream_ = std::make_unique<stream_type>(socket);
 
 			// Set suggested timeout settings for the websocket
-			if constexpr (isSession)
+			if constexpr (args_t::is_session)
 			{
 				this->ws_stream_->set_option(websocket::stream_base::timeout::suggested(
 					beast::role_type::server));
@@ -86,12 +86,14 @@ namespace asio2::detail
 			const std::shared_ptr<derived_t>& this_ptr,
 			const condition_wrap<MatchCondition>& condition, Socket& socket)
 		{
-			detail::ignore::unused(this_ptr, condition, socket);
+			detail::ignore_unused(this_ptr, condition, socket);
 		}
 
 		template<typename Fn>
 		inline void _ws_stop(std::shared_ptr<derived_t> this_ptr, Fn&& fn)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			if (!this->ws_stream_)
 			{
 				(fn)();
@@ -108,7 +110,8 @@ namespace asio2::detail
 			// async_read.
 			//
 			// don't use "this_ptr = std::move(this_ptr)" in lambda capture below.
-			auto task = [this, this_ptr, fn = std::forward<Fn>(fn)](event_guard<derived_t>&& g) mutable
+			auto task = [this, &derive, this_ptr, fn = std::forward<Fn>(fn)]
+			(event_queue_guard<derived_t>&& g) mutable
 			{
 				// Set the timeout to none to cancel the websocket timeout timer, otherwise
 				// we'll have to wait a lot of seconds util the timer is timeout.
@@ -150,7 +153,7 @@ namespace asio2::detail
 				}));
 			};
 
-			derive.push_event([this, t = std::move(task)](event_guard<derived_t>&& g) mutable
+			derive.push_event([&derive, t = std::move(task)](event_queue_guard<derived_t>&& g) mutable
 			{
 				auto task = [g = std::move(g), t = std::move(t)]() mutable
 				{
@@ -164,6 +167,8 @@ namespace asio2::detail
 		template<typename MatchCondition>
 		inline void _ws_post_recv(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			if (derive.is_started())
 			{
 				try
@@ -175,7 +180,7 @@ namespace asio2::detail
 						this->ws_stream_->async_read(derive.buffer().base(),
 							asio::bind_executor(derive.io().strand(),
 								make_allocator(derive.rallocator(),
-									[this, this_ptr = std::move(this_ptr), condition]
+									[&derive, this_ptr = std::move(this_ptr), condition]
 						(const error_code & ec, std::size_t bytes_recvd) mutable
 						{
 							derive._handle_recv(ec, bytes_recvd, std::move(this_ptr), condition);
@@ -199,16 +204,18 @@ namespace asio2::detail
 		inline void _post_control_callback(std::shared_ptr<derived_t> this_ptr,
 			condition_wrap<MatchCondition> condition)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			ASIO2_ASSERT(bool(this->ws_stream_));
 			// Set the control callback. This will be called
 			// on every incoming ping, pong, and close frame.
 			// can't use push_event, just only use asio::post, beacuse the callback handler
 			// will not be called immediately, it is called only when it receives an event 
 			// on the another side.
-			derive.post([this, this_ptr = std::move(this_ptr), condition]() mutable
+			derive.post([this, &derive, this_ptr = std::move(this_ptr), condition]() mutable
 			{
 				this->ws_stream_->control_callback(asio::bind_executor(derive.io().strand(),
-					[this, this_ptr = std::move(this_ptr), condition]
+					[&derive, this_ptr = std::move(this_ptr), condition]
 				(websocket::frame_type kind, beast::string_view payload) mutable
 				{
 					// bug fixed : can't use "std::move(this_ptr)" below, otherwise 
@@ -222,7 +229,9 @@ namespace asio2::detail
 		inline void _handle_control_callback(websocket::frame_type kind, beast::string_view payload,
 			std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
 		{
-			detail::ignore::unused(payload, this_ptr, condition);
+			derived_t& derive = static_cast<derived_t&>(*this);
+
+			detail::ignore_unused(payload, this_ptr, condition);
 
 			// Note that the connection is alive
 			derive.update_alive_time();
@@ -246,45 +255,49 @@ namespace asio2::detail
 		inline void _handle_control_ping(beast::string_view payload,
 			std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
 		{
-			detail::ignore::unused(payload, this_ptr, condition);
+			detail::ignore_unused(payload, this_ptr, condition);
 		}
 
 		template<typename MatchCondition>
 		inline void _handle_control_pong(beast::string_view payload,
 			std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
 		{
-			detail::ignore::unused(payload, this_ptr, condition);
+			detail::ignore_unused(payload, this_ptr, condition);
 		}
 
 		template<typename MatchCondition>
 		inline void _handle_control_close(beast::string_view payload,
 			std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
 		{
-			detail::ignore::unused(payload, this_ptr, condition);
+			derived_t& derive = static_cast<derived_t&>(*this);
+
+			detail::ignore_unused(payload, this_ptr, condition);
 
 			derive._do_disconnect(websocket::error::closed);
 		}
 
-		template<typename MatchCondition, typename Response, bool IsSession = isSession>
+		template<typename MatchCondition, typename Response, bool IsSession = args_t::is_session>
 		typename std::enable_if_t<!IsSession, void>
 		inline _post_upgrade(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition,
 			Response& rep)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			ASIO2_ASSERT(bool(this->ws_stream_));
 
-			auto task = [this, this_ptr, condition, &rep](event_guard<derived_t>&& g) mutable
+			auto task = [this, &derive, this_ptr, condition, &rep](event_queue_guard<derived_t>&& g) mutable
 			{
 				// Perform the websocket handshake
 				this->ws_stream_->async_handshake(rep, derive.host_, derive.upgrade_target(),
 					asio::bind_executor(derive.io().strand(), make_allocator(derive.rallocator(),
-						[this, this_ptr = std::move(this_ptr), g = std::move(g), condition]
+						[&derive, this_ptr = std::move(this_ptr), g = std::move(g), condition]
 				(error_code const& ec) mutable
 				{
 					derive._handle_upgrade(ec, std::move(this_ptr), condition);
 				})));
 			};
 
-			derive.push_event([this, t = std::move(task)](event_guard<derived_t>&& g) mutable
+			derive.push_event([&derive, t = std::move(task)](event_queue_guard<derived_t>&& g) mutable
 			{
 				auto task = [g = std::move(g), t = std::move(t)]() mutable
 				{
@@ -295,26 +308,28 @@ namespace asio2::detail
 			});
 		}
 
-		template<typename MatchCondition, typename Request, bool IsSession = isSession>
+		template<typename MatchCondition, typename Request, bool IsSession = args_t::is_session>
 		typename std::enable_if_t<IsSession, void>
 		inline _post_upgrade(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition,
 			Request const& req)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			ASIO2_ASSERT(bool(this->ws_stream_));
 
-			auto task = [this, this_ptr, condition, &req](event_guard<derived_t>&& g) mutable
+			auto task = [this, &derive, this_ptr, condition, &req](event_queue_guard<derived_t>&& g) mutable
 			{
 				// Accept the websocket handshake
 				this->ws_stream_->async_accept(req, asio::bind_executor(derive.io().strand(),
 					make_allocator(derive.rallocator(),
-						[this, this_ptr = std::move(this_ptr), g = std::move(g), condition]
+						[&derive, this_ptr = std::move(this_ptr), g = std::move(g), condition]
 				(error_code ec) mutable
 				{
 					derive._handle_upgrade(ec, std::move(this_ptr), condition);
 				})));
 			};
 
-			derive.push_event([this, t = std::move(task)](event_guard<derived_t>&& g) mutable
+			derive.push_event([&derive, t = std::move(task)](event_queue_guard<derived_t>&& g) mutable
 			{
 				auto task = [g = std::move(g), t = std::move(t)]() mutable
 				{
@@ -325,25 +340,27 @@ namespace asio2::detail
 			});
 		}
 
-		template<typename MatchCondition, bool IsSession = isSession>
+		template<typename MatchCondition, bool IsSession = args_t::is_session>
 		typename std::enable_if_t<IsSession, void>
 		inline _post_upgrade(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			ASIO2_ASSERT(bool(this->ws_stream_));
 
-			auto task = [this, this_ptr, condition](event_guard<derived_t>&& g) mutable
+			auto task = [this, &derive, this_ptr, condition](event_queue_guard<derived_t>&& g) mutable
 			{
 				// Accept the websocket handshake
 				this->ws_stream_->async_accept(asio::bind_executor(derive.io().strand(),
 					make_allocator(derive.rallocator(),
-						[this, this_ptr = std::move(this_ptr), g = std::move(g), condition]
+						[&derive, this_ptr = std::move(this_ptr), g = std::move(g), condition]
 				(error_code ec) mutable
 				{
 					derive._handle_upgrade(ec, std::move(this_ptr), condition);
 				})));
 			};
 
-			derive.push_event([this, t = std::move(task)](event_guard<derived_t>&& g) mutable
+			derive.push_event([&derive, t = std::move(task)](event_queue_guard<derived_t>&& g) mutable
 			{
 				auto task = [g = std::move(g), t = std::move(t)]() mutable
 				{
@@ -358,13 +375,15 @@ namespace asio2::detail
 		inline void _handle_upgrade(const error_code & ec, std::shared_ptr<derived_t> this_ptr,
 			condition_wrap<MatchCondition> condition)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			ASIO2_ASSERT(bool(this->ws_stream_));
 
-			if constexpr (isSession)
+			if constexpr (args_t::is_session)
 			{
 				// Use "sessions().post" to ensure that the _fire_accept function and the _fire_upgrade
 				// function are fired in the same thread
-				derive.sessions().post([this, ec, this_ptr = std::move(this_ptr), condition]() mutable
+				derive.sessions().post([&derive, ec, this_ptr = std::move(this_ptr), condition]() mutable
 				{
 					try
 					{
@@ -395,9 +414,7 @@ namespace asio2::detail
 		}
 
 	protected:
-		derived_t                    & derive;
-
-		std::unique_ptr<stream_t>      ws_stream_;
+		std::unique_ptr<stream_type>   ws_stream_;
 	};
 }
 

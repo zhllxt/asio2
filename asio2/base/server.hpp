@@ -31,6 +31,7 @@
 #include <asio2/base/error.hpp>
 #include <asio2/base/listener.hpp>
 #include <asio2/base/session_mgr.hpp>
+#include <asio2/base/define.hpp>
 
 #include <asio2/base/detail/object.hpp>
 #include <asio2/base/detail/allocator.hpp>
@@ -40,38 +41,41 @@
 #include <asio2/base/component/user_data_cp.hpp>
 #include <asio2/base/component/user_timer_cp.hpp>
 #include <asio2/base/component/post_cp.hpp>
+#include <asio2/base/component/async_event_cp.hpp>
 
 namespace asio2::detail
 {
+	ASIO2_CLASS_FORWARD_DECLARE_BASE;
+
 	template<class derived_t, class session_t>
 	class server_impl_t
-		: public object_t<derived_t>
+		: public object_t       <derived_t>
 		, public iopool_cp
-		, public user_data_cp<derived_t>
-		, public user_timer_cp<derived_t, false>
-		, public post_cp<derived_t>
+		, public user_data_cp   <derived_t>
+		, public user_timer_cp  <derived_t>
+		, public post_cp        <derived_t>
+		, public async_event_cp <derived_t>
 	{
-		template <class, bool>  friend class user_timer_cp;
-		template <class>        friend class post_cp;
+		ASIO2_CLASS_FRIEND_DECLARE_BASE;
 
 	public:
-		using self = server_impl_t<derived_t, session_t>;
-		using super = object_t<derived_t>;
+		using super = object_t     <derived_t>;
+		using self  = server_impl_t<derived_t, session_t>;
 
 		/**
 		 * @constructor
 		 */
 		explicit server_impl_t(std::size_t concurrency = std::thread::hardware_concurrency() * 2)
-			: object_t<derived_t>()
-			, iopool_cp(concurrency)
-			, user_data_cp<derived_t>()
-			, user_timer_cp<derived_t, false>(iopool_.get(0))
-			, post_cp<derived_t>()
+			: object_t     <derived_t>()
+			, iopool_cp               (concurrency)
+			, user_data_cp <derived_t>()
+			, user_timer_cp<derived_t>(iopool_.get(0))
+			, post_cp      <derived_t>()
 			, rallocator_()
 			, wallocator_()
-			, listener_()
-			, io_(iopool_.get(0))
-			, sessions_(io_)
+			, listener_  ()
+			, io_        (iopool_.get(0))
+			, sessions_  (io_)
 		{
 		}
 
@@ -106,6 +110,12 @@ namespace asio2::detail
 
 			// close user custom timers
 			this->stop_all_timers();
+
+			// close all posted timed tasks
+			this->stop_all_timed_tasks();
+
+			// close all async_events
+			this->notify_all_events();
 
 			// destroy user data, maybe the user data is self shared_ptr, 
 			// if don't destroy it, will cause loop refrence.

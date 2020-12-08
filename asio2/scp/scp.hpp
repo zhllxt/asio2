@@ -31,6 +31,7 @@
 #include <asio2/base/iopool.hpp>
 #include <asio2/base/error.hpp>
 #include <asio2/base/listener.hpp>
+#include <asio2/base/define.hpp>
 
 #include <asio2/base/detail/object.hpp>
 #include <asio2/base/detail/allocator.hpp>
@@ -45,6 +46,7 @@
 #include <asio2/base/component/post_cp.hpp>
 #include <asio2/base/component/send_cp.hpp>
 #include <asio2/base/component/event_queue_cp.hpp>
+#include <asio2/base/component/async_event_cp.hpp>
 
 #include <asio2/icmp/detail/icmp_header.hpp>
 #include <asio2/icmp/detail/ipv4_header.hpp>
@@ -54,59 +56,68 @@
 
 namespace asio2::detail
 {
+	struct template_args_serial_port
+	{
+		using socket_t    = asio::serial_port;
+		using buffer_t    = asio::streambuf;
+		using send_data_t = std::string_view;
+		using recv_data_t = std::string_view;
+	};
+
+	ASIO2_CLASS_FORWARD_DECLARE_BASE;
+	ASIO2_CLASS_FORWARD_DECLARE_TCP_BASE;
+
 	/**
 	 * The serial_port class provides a wrapper over serial port functionality.
 	 */
-	template<class derived_t, class socket_t, class buffer_t>
+	template<class derived_t, class args_t>
 	class scp_impl_t
-		: public object_t<derived_t>
+		: public object_t       <derived_t        >
 		, public iopool_cp
-		, public event_queue_cp<derived_t>
-		, public user_data_cp<derived_t>
-		, public alive_time_cp<derived_t>
-		, public user_timer_cp<derived_t, false>
-		, public send_cp<derived_t, false>
-		, public post_cp<derived_t>
-		, public tcp_send_op<derived_t, false>
-		, public tcp_recv_op<derived_t, false>
+		, public event_queue_cp <derived_t, args_t>
+		, public user_data_cp   <derived_t, args_t>
+		, public alive_time_cp  <derived_t, args_t>
+		, public user_timer_cp  <derived_t, args_t>
+		, public send_cp        <derived_t, args_t>
+		, public tcp_send_op    <derived_t, args_t>
+		, public tcp_recv_op    <derived_t, args_t>
+		, public post_cp        <derived_t, args_t>
+		, public async_event_cp <derived_t, args_t>
 	{
-		template <class, bool>         friend class user_timer_cp;
-		template <class>               friend class post_cp;
-		template <class>               friend class data_persistence_cp;
-		template <class>               friend class event_queue_cp;
-		template <class, bool>         friend class send_cp;
-		template <class, bool>         friend class tcp_send_op;
-		template <class, bool>         friend class tcp_recv_op;
-		template <class>               friend class event_guard;
+		ASIO2_CLASS_FRIEND_DECLARE_BASE;
+		ASIO2_CLASS_FRIEND_DECLARE_TCP_BASE;
 
 	public:
-		using self = scp_impl_t<derived_t, socket_t, buffer_t>;
-		using super = object_t<derived_t>;
-		using buffer_type = buffer_t;
+		using super = object_t  <derived_t        >;
+		using self  = scp_impl_t<derived_t, args_t>;
+
+		using socket_type = typename args_t::socket_t;
+		using buffer_type = typename args_t::buffer_t;
 
 		/**
 		 * @constructor
 		 */
 		scp_impl_t(
 			std::size_t init_buffer_size = 1024,
-			std::size_t max_buffer_size = (std::numeric_limits<std::size_t>::max)()
+			std::size_t max_buffer_size  = (std::numeric_limits<std::size_t>::max)()
 		)
 			: super()
 			, iopool_cp(1)
-			, event_queue_cp<derived_t>()
-			, user_data_cp<derived_t>()
-			, alive_time_cp<derived_t>()
-			, user_timer_cp<derived_t, false>(iopool_.get(0))
-			, send_cp<derived_t, false>(iopool_.get(0))
-			, post_cp<derived_t>()
-			, tcp_send_op<derived_t, false>()
-			, tcp_recv_op<derived_t, false>()
-			, socket_(iopool_.get(0).context())
+			, event_queue_cp <derived_t, args_t>()
+			, user_data_cp   <derived_t, args_t>()
+			, alive_time_cp  <derived_t, args_t>()
+			, user_timer_cp  <derived_t, args_t>(iopool_.get(0))
+			, send_cp        <derived_t, args_t>(iopool_.get(0))
+			, tcp_send_op    <derived_t, args_t>()
+			, tcp_recv_op    <derived_t, args_t>()
+			, post_cp        <derived_t, args_t>()
+			, async_event_cp <derived_t, args_t>()
+			, socket_    (iopool_.get(0).context())
 			, rallocator_()
 			, wallocator_()
-			, listener_()
-			, io_(iopool_.get(0))
-			, buffer_(init_buffer_size, max_buffer_size)
+			, listener_  ()
+			, io_        (iopool_.get(0))
+			, buffer_    (init_buffer_size, max_buffer_size)
 		{
 		}
 
@@ -189,7 +200,7 @@ namespace asio2::detail
 		template<class F, class ...C>
 		inline derived_t & bind_recv(F&& fun, C&&... obj)
 		{
-			this->listener_.bind(event::recv,
+			this->listener_.bind(event_type::recv,
 				observer_t<std::string_view>(std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
 		}
@@ -207,7 +218,7 @@ namespace asio2::detail
 		template<class F, class ...C>
 		inline derived_t & bind_init(F&& fun, C&&... obj)
 		{
-			this->listener_.bind(event::init,
+			this->listener_.bind(event_type::init,
 				observer_t<>(std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
 		}
@@ -224,7 +235,7 @@ namespace asio2::detail
 		template<class F, class ...C>
 		inline derived_t & bind_start(F&& fun, C&&... obj)
 		{
-			this->listener_.bind(event::start,
+			this->listener_.bind(event_type::start,
 				observer_t<error_code>(std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
 		}
@@ -241,7 +252,7 @@ namespace asio2::detail
 		template<class F, class ...C>
 		inline derived_t & bind_stop(F&& fun, C&&... obj)
 		{
-			this->listener_.bind(event::stop,
+			this->listener_.bind(event_type::stop,
 				observer_t<error_code>(std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
 		}
@@ -250,12 +261,12 @@ namespace asio2::detail
 		/**
 		 * @function : get the socket object refrence
 		 */
-		inline socket_t & socket() { return this->socket_; }
+		inline socket_type & socket() { return this->socket_; }
 
 		/**
 		 * @function : get the stream object refrence
 		 */
-		inline socket_t & stream() { return this->socket_; }
+		inline socket_type & stream() { return this->socket_; }
 
 	protected:
 		template<typename String, typename StrOrInt, typename MatchCondition>
@@ -357,7 +368,7 @@ namespace asio2::detail
 			// All pending sending events will be cancelled after enter the send strand below.
 			asio::post(this->io_.strand(), [this, ec, this_ptr = std::move(self_ptr), old_state]() mutable
 			{
-				detail::ignore::unused(old_state);
+				detail::ignore_unused(old_state);
 
 				set_last_error(ec);
 
@@ -378,10 +389,16 @@ namespace asio2::detail
 
 		inline void _handle_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
 		{
-			detail::ignore::unused(ec, this_ptr);
+			detail::ignore_unused(ec, this_ptr);
 
 			// close user custom timers
 			this->stop_all_timers();
+
+			// close all posted timed tasks
+			this->stop_all_timed_tasks();
+
+			// close all async_events
+			this->notify_all_events();
 
 			// destroy user data, maybe the user data is self shared_ptr,
 			// if don't destroy it, will cause loop refrence.
@@ -400,7 +417,14 @@ namespace asio2::detail
 			// Connect succeeded. post recv request.
 			asio::post(this->io_.strand(), [this, condition]() mutable
 			{
-				this->derived().buffer().consume(this->derived().buffer().size());
+				if constexpr (!std::is_same_v<MatchCondition, asio2::detail::hook_buffer_t>)
+				{
+					this->derived().buffer().consume(this->derived().buffer().size());
+				}
+				else
+				{
+					std::ignore = true;
+				}
 
 				this->derived()._post_recv(this->derived().selfptr(), condition);
 			});
@@ -429,29 +453,33 @@ namespace asio2::detail
 
 		inline void _fire_init()
 		{
-			this->listener_.notify(event::init);
+			this->listener_.notify(event_type::init);
 		}
 
 		inline void _fire_start(error_code ec)
 		{
-			this->listener_.notify(event::start, ec);
+			this->listener_.notify(event_type::start, ec);
 		}
 
 		inline void _fire_stop(error_code ec)
 		{
-			this->listener_.notify(event::stop, ec);
+			this->listener_.notify(event_type::stop, ec);
 		}
 
-		inline void _fire_recv(ignore, std::string_view s)
+		template<typename MatchCondition>
+		inline void _fire_recv(std::shared_ptr<derived_t>& this_ptr, std::string_view s,
+			condition_wrap<MatchCondition>& condition)
 		{
-			this->listener_.notify(event::recv, s);
+			detail::ignore_unused(this_ptr, condition);
+
+			this->listener_.notify(event_type::recv, s);
 		}
 
 	protected:
 		/**
 		 * @function : get the buffer object refrence
 		 */
-		inline buffer_wrap<buffer_t> & buffer() { return this->buffer_; }
+		inline buffer_wrap<buffer_type> & buffer() { return this->buffer_; }
 		/**
 		 * @function : get the io object refrence
 		 */
@@ -471,7 +499,7 @@ namespace asio2::detail
 
 	protected:
 		/// socket 
-		socket_t                                  socket_;
+		socket_type                               socket_;
 
 		/// The memory to use for handler-based custom memory allocation. used fo recv/read.
 		handler_memory<>                          rallocator_;
@@ -486,7 +514,7 @@ namespace asio2::detail
 		io_t                                    & io_;
 
 		/// buffer
-		buffer_wrap<buffer_t>                     buffer_;
+		buffer_wrap<buffer_type>                  buffer_;
 
 		/// state
 		std::atomic<state_t>                      state_ = state_t::stopped;
@@ -500,10 +528,10 @@ namespace asio2
 	 * You can use the following commands to query the serial device under Linux:
 	 * cat /proc/tty/driver/serial
 	 */
-	class scp : public detail::scp_impl_t<scp, asio::serial_port, asio::streambuf>
+	class scp : public detail::scp_impl_t<scp, detail::template_args_serial_port>
 	{
 	public:
-		using scp_impl_t<scp, asio::serial_port, asio::streambuf>::scp_impl_t;
+		using scp_impl_t<scp, detail::template_args_serial_port>::scp_impl_t;
 	};
 }
 

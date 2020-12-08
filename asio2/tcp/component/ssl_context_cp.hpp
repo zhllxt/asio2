@@ -26,7 +26,7 @@
 
 namespace asio2::detail
 {
-	template<class derived_t, bool isServer>
+	template<class derived_t, bool IsServer>
 	class ssl_context_cp : public asio::ssl::context
 	{
 	public:
@@ -51,7 +51,7 @@ namespace asio2::detail
 			//  SSL_OP_SINGLE_DH_USE should therefore be enabled whenever
 			//  temporary / ephemeral DH parameters are used.
 
-			if constexpr (isServer)
+			if constexpr (IsServer)
 			{
 				// set default options
 				this->set_options(

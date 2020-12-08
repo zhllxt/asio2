@@ -27,17 +27,17 @@
 
 namespace asio2::detail
 {
-	template<class derived_t, class body_t, class buffer_t, bool isSession>
+	template<class derived_t, class args_t>
 	class http_send_op
 	{
 	public:
-		using body_type = body_t;
-		using buffer_type = buffer_t;
+		using body_type   = typename args_t::body_t;
+		using buffer_type = typename args_t::buffer_t;
 
 		/**
 		 * @constructor
 		 */
-		http_send_op() : derive(static_cast<derived_t&>(*this)) {}
+		http_send_op() {}
 
 		/**
 		 * @destructor
@@ -48,6 +48,8 @@ namespace asio2::detail
 		template<class Data, class Callback>
 		inline bool _http_send(Data& data, Callback&& callback)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			return derive._tcp_send(data, std::forward<Callback>(callback));
 		}
 
@@ -57,9 +59,11 @@ namespace asio2::detail
 		{
 			using msg_type = std::remove_cv_t<std::remove_reference_t<decltype(data())>>;
 
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			http::async_write(derive.stream(), const_cast<msg_type&>(data()),
 				asio::bind_executor(derive.io().strand(), make_allocator(derive.wallocator(),
-					[this, p = derive.selfptr(), callback = std::forward<Callback>(callback)]
+					[&derive, p = derive.selfptr(), callback = std::forward<Callback>(callback)]
 			(const error_code& ec, std::size_t bytes_sent) mutable
 			{
 				set_last_error(ec);
@@ -76,7 +80,6 @@ namespace asio2::detail
 		}
 
 	protected:
-		derived_t & derive;
 	};
 }
 

@@ -21,54 +21,60 @@
 
 namespace asio2::detail
 {
-	template <class>                      class session_mgr_t;
-	template <class, class>               class udp_server_impl_t;
-
-	template<class derived_t, class socket_t, class buffer_t>
-	class udp_session_impl_t
-		: public session_impl_t<derived_t, socket_t, buffer_t>
-		, public udp_send_op<derived_t, true>
+	struct template_args_udp_session
 	{
-		template <class, bool>                friend class user_timer_cp;
-		template <class>                      friend class post_cp;
-		template <class, bool>                friend class silence_timer_cp;
-		template <class, bool>                friend class connect_timeout_cp;
-		template <class, class, bool>         friend class connect_cp;
-		template <class, class, bool>         friend class disconnect_cp;
-		template <class>                      friend class data_persistence_cp;
-		template <class>                      friend class event_queue_cp;
-		template <class, bool>                friend class send_cp;
-		template <class, bool>                friend class udp_send_op;
-		template <class, bool>                friend class kcp_stream_cp;
-		template <class>                      friend class session_mgr_t;
-		template <class, class, class>        friend class session_impl_t;
-		template <class, class>               friend class udp_server_impl_t;
+		static constexpr bool is_session = true;
+		static constexpr bool is_client  = false;
+
+		using socket_t    = asio::ip::udp::socket&;
+		using buffer_t    = detail::empty_buffer;
+		using send_data_t = std::string_view;
+		using recv_data_t = std::string_view;
+	};
+
+	ASIO2_CLASS_FORWARD_DECLARE_BASE;
+	ASIO2_CLASS_FORWARD_DECLARE_UDP_BASE;
+	ASIO2_CLASS_FORWARD_DECLARE_UDP_SERVER;
+	ASIO2_CLASS_FORWARD_DECLARE_UDP_SESSION;
+
+	template<class derived_t, class args_t>
+	class udp_session_impl_t
+		: public session_impl_t<derived_t, args_t>
+		, public udp_send_op   <derived_t, args_t>
+	{
+		ASIO2_CLASS_FRIEND_DECLARE_BASE;
+		ASIO2_CLASS_FRIEND_DECLARE_UDP_BASE;
+		ASIO2_CLASS_FRIEND_DECLARE_UDP_SERVER;
+		ASIO2_CLASS_FRIEND_DECLARE_UDP_SESSION;
 
 	public:
-		using self = udp_session_impl_t<derived_t, socket_t, buffer_t>;
-		using super = session_impl_t<derived_t, socket_t, buffer_t>;
+		using super = session_impl_t    <derived_t, args_t>;
+		using self  = udp_session_impl_t<derived_t, args_t>;
+
 		using key_type = asio::ip::udp::endpoint;
-		using buffer_type = buffer_t;
+
+		using buffer_type = typename args_t::buffer_t;
+
 		using super::send;
 
 		/**
 		 * @constructor
 		 */
 		explicit udp_session_impl_t(
-			session_mgr_t<derived_t> & sessions,
-			listener_t & listener,
-			io_t & rwio,
-			std::size_t init_buffer_size,
-			std::size_t max_buffer_size,
+			session_mgr_t<derived_t>                 & sessions,
+			listener_t                               & listener,
+			io_t                                     & rwio,
+			std::size_t                                init_buffer_size,
+			std::size_t                                max_buffer_size,
 			asio2::buffer_wrap<asio2::linear_buffer> & buffer,
-			socket_t socket,
-			asio::ip::udp::endpoint & endpoint
+			typename args_t::socket_t                  socket,
+			asio::ip::udp::endpoint                  & endpoint
 		)
 			: super(sessions, listener, rwio, init_buffer_size, max_buffer_size, socket)
-			, udp_send_op<derived_t, true>()
-			, buffer_ref_(buffer)
+			, udp_send_op<derived_t, args_t>()
+			, buffer_ref_     (buffer)
 			, remote_endpoint_(endpoint)
-			, wallocator_()
+			, wallocator_     ()
 		{
 			this->silence_timeout(std::chrono::milliseconds(udp_silence_timeout));
 			this->connect_timeout(std::chrono::milliseconds(udp_connect_timeout));
@@ -171,7 +177,7 @@ namespace asio2::detail
 		template<typename MatchCondition>
 		inline void _do_init(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
 		{
-			detail::ignore::unused(this_ptr, condition);
+			detail::ignore_unused(this_ptr, condition);
 
 			// reset the variable to default status
 			this->reset_connect_time();
@@ -193,7 +199,7 @@ namespace asio2::detail
 					this->derived()._do_disconnect(asio::error::no_protocol_option);
 					return;
 				}
-				this->kcp_ = std::make_unique<kcp_stream_cp<derived_t, true>>(this->derived(), this->io_);
+				this->kcp_ = std::make_unique<kcp_stream_cp<derived_t, args_t>>(this->derived(), this->io_);
 				this->kcp_->_post_handshake(std::move(this_ptr), std::move(condition));
 			}
 			else
@@ -211,14 +217,14 @@ namespace asio2::detail
 
 		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
 		{
-			detail::ignore::unused(ec, this_ptr);
+			detail::ignore_unused(ec, this_ptr);
 
 			this->derived()._do_stop(ec);
 		}
 
 		inline void _do_stop(const error_code& ec)
 		{
-			detail::ignore::unused(ec);
+			detail::ignore_unused(ec);
 
 			// call the base class stop function
 			super::stop();
@@ -273,7 +279,7 @@ namespace asio2::detail
 
 			if constexpr (!std::is_same_v<MatchCondition, use_kcp_t>)
 			{
-				this->derived()._fire_recv(this_ptr, std::move(s));
+				this->derived()._fire_recv(this_ptr, std::move(s), condition);
 			}
 			else
 			{
@@ -300,28 +306,34 @@ namespace asio2::detail
 					}
 				}
 				else
-					this->kcp_->_kcp_recv(this_ptr, s, this->buffer_ref_);
+					this->kcp_->_kcp_recv(this_ptr, s, this->buffer_ref_, condition);
 			}
 		}
 
-		inline void _fire_recv(std::shared_ptr<derived_t>& this_ptr, std::string_view s)
+		template<typename MatchCondition>
+		inline void _fire_recv(std::shared_ptr<derived_t>& this_ptr, std::string_view s,
+			condition_wrap<MatchCondition>& condition)
 		{
-			this->listener_.notify(event::recv, this_ptr, std::move(s));
+			detail::ignore_unused(this_ptr, condition);
+
+			this->listener_.notify(event_type::recv, this_ptr, std::move(s));
 		}
 
 		inline void _fire_handshake(std::shared_ptr<derived_t>& this_ptr, error_code ec)
 		{
-			this->listener_.notify(event::handshake, this_ptr, ec);
+			this->listener_.notify(event_type::handshake, this_ptr, ec);
 		}
 
-		inline void _fire_connect(std::shared_ptr<derived_t>& this_ptr)
+		template<typename MatchCondition>
+		inline void _fire_connect(std::shared_ptr<derived_t>& this_ptr,
+			condition_wrap<MatchCondition>& condition)
 		{
-			this->listener_.notify(event::connect, this_ptr);
+			this->listener_.notify(event_type::connect, this_ptr);
 		}
 
 		inline void _fire_disconnect(std::shared_ptr<derived_t>& this_ptr)
 		{
-			this->listener_.notify(event::disconnect, this_ptr);
+			this->listener_.notify(event_type::disconnect, this_ptr);
 		}
 
 	protected:
@@ -336,27 +348,27 @@ namespace asio2::detail
 
 	protected:
 		/// buffer
-		asio2::buffer_wrap<asio2::linear_buffer>      & buffer_ref_;
+		asio2::buffer_wrap<asio2::linear_buffer>        & buffer_ref_;
 
 		/// used for session_mgr's session unordered_map key
-		asio::ip::udp::endpoint                         remote_endpoint_;
+		asio::ip::udp::endpoint                           remote_endpoint_;
 
 		/// The memory to use for handler-based custom memory allocation. used fo send/write.
-		handler_memory<size_op<>, std::true_type>       wallocator_;
+		handler_memory<size_op<>, std::true_type>         wallocator_;
 
-		std::unique_ptr<kcp_stream_cp<derived_t, true>> kcp_;
+		std::unique_ptr<kcp_stream_cp<derived_t, args_t>> kcp_;
 
 		/// first recvd data packet
-		std::string_view                                first_;
+		std::string_view                                  first_;
 	};
 }
 
 namespace asio2
 {
-	class udp_session : public detail::udp_session_impl_t<udp_session, asio::ip::udp::socket&, detail::empty_buffer>
+	class udp_session : public detail::udp_session_impl_t<udp_session, detail::template_args_udp_session>
 	{
 	public:
-		using udp_session_impl_t<udp_session, asio::ip::udp::socket&, detail::empty_buffer>::udp_session_impl_t;
+		using udp_session_impl_t<udp_session, detail::template_args_udp_session>::udp_session_impl_t;
 	};
 }
 

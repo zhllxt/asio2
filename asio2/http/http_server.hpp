@@ -20,19 +20,23 @@
 
 namespace asio2::detail
 {
+	ASIO2_CLASS_FORWARD_DECLARE_BASE;
+	ASIO2_CLASS_FORWARD_DECLARE_TCP_BASE;
+	ASIO2_CLASS_FORWARD_DECLARE_TCP_SERVER;
+
 	template<class derived_t, class session_t>
 	class http_server_impl_t
 		: public tcp_server_impl_t<derived_t, session_t>
-		, public http_router_t<session_t>
+		, public http_router_t    <session_t           >
 	{
-		template <class, bool>  friend class user_timer_cp;
-		template <class>        friend class post_cp;
-		template <class, class> friend class server_impl_t;
-		template <class, class> friend class tcp_server_impl_t;
+		ASIO2_CLASS_FRIEND_DECLARE_BASE;
+		ASIO2_CLASS_FRIEND_DECLARE_TCP_BASE;
+		ASIO2_CLASS_FRIEND_DECLARE_TCP_SERVER;
 
 	public:
-		using self = http_server_impl_t<derived_t, session_t>;
-		using super = tcp_server_impl_t<derived_t, session_t>;
+		using super = tcp_server_impl_t <derived_t, session_t>;
+		using self  = http_server_impl_t<derived_t, session_t>;
+
 		using session_type = session_t;
 
 		/**
@@ -40,8 +44,8 @@ namespace asio2::detail
 		 */
 		explicit http_server_impl_t(
 			std::size_t init_buffer_size = tcp_frame_size,
-			std::size_t max_buffer_size = (std::numeric_limits<std::size_t>::max)(),
-			std::size_t concurrency = std::thread::hardware_concurrency() * 2
+			std::size_t max_buffer_size  = (std::numeric_limits<std::size_t>::max)(),
+			std::size_t concurrency      = std::thread::hardware_concurrency() * 2
 		)
 			: super(init_buffer_size, max_buffer_size, concurrency)
 		{
@@ -95,13 +99,13 @@ namespace asio2::detail
 				std::shared_ptr<session_t>&, http::request&, http::response&>)
 			{
 				this->is_arg0_session_ = true;
-				this->listener_.bind(event::recv, observer_t<std::shared_ptr<session_t>&,
+				this->listener_.bind(event_type::recv, observer_t<std::shared_ptr<session_t>&,
 					http::request&, http::response&>(std::forward<F>(fun), std::forward<C>(obj)...));
 			}
 			else
 			{
 				this->is_arg0_session_ = false;
-				this->listener_.bind(event::recv, observer_t<
+				this->listener_.bind(event_type::recv, observer_t<
 					http::request&, http::response&>(std::forward<F>(fun), std::forward<C>(obj)...));
 			}
 			return (this->derived());
@@ -115,7 +119,7 @@ namespace asio2::detail
 		template<class F, class ...C>
 		inline derived_t & bind_upgrade(F&& fun, C&&... obj)
 		{
-			this->listener_.bind(event::upgrade, observer_t<std::shared_ptr<session_t>&, error_code>
+			this->listener_.bind(event_type::upgrade, observer_t<std::shared_ptr<session_t>&, error_code>
 				(std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
 		}

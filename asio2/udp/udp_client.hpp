@@ -23,28 +23,36 @@
 
 namespace asio2::detail
 {
-	template<class derived_t, class socket_t, class buffer_t>
-	class udp_client_impl_t
-		: public client_impl_t<derived_t, socket_t, buffer_t>
-		, public udp_send_op<derived_t, false>
+	struct template_args_udp_client
 	{
-		template <class, bool>                friend class user_timer_cp;
-		template <class>                      friend class post_cp;
-		template <class, bool>                friend class reconnect_timer_cp;
-		template <class, bool>                friend class connect_timeout_cp;
-		template <class, class, bool>         friend class connect_cp;
-		template <class, class, bool>         friend class disconnect_cp;
-		template <class>                      friend class data_persistence_cp;
-		template <class>                      friend class event_queue_cp;
-		template <class, bool>                friend class send_cp;
-		template <class, bool>                friend class udp_send_op;
-		template <class, bool>                friend class kcp_stream_cp;
-		template <class, class, class>        friend class client_impl_t;
+		static constexpr bool is_session = false;
+		static constexpr bool is_client  = true;
+
+		using socket_t    = asio::ip::udp::socket;
+		using buffer_t    = asio2::linear_buffer;
+		using send_data_t = std::string_view;
+		using recv_data_t = std::string_view;
+	};
+
+	ASIO2_CLASS_FORWARD_DECLARE_BASE;
+	ASIO2_CLASS_FORWARD_DECLARE_UDP_BASE;
+	ASIO2_CLASS_FORWARD_DECLARE_UDP_CLIENT;
+
+	template<class derived_t, class args_t>
+	class udp_client_impl_t
+		: public client_impl_t<derived_t, args_t>
+		, public udp_send_op  <derived_t, args_t>
+	{
+		ASIO2_CLASS_FRIEND_DECLARE_BASE;
+		ASIO2_CLASS_FRIEND_DECLARE_UDP_BASE;
+		ASIO2_CLASS_FRIEND_DECLARE_UDP_CLIENT;
 
 	public:
-		using self = udp_client_impl_t<derived_t, socket_t, buffer_t>;
-		using super = client_impl_t<derived_t, socket_t, buffer_t>;
-		using buffer_type = buffer_t;
+		using super = client_impl_t    <derived_t, args_t>;
+		using self  = udp_client_impl_t<derived_t, args_t>;
+
+		using buffer_type = typename args_t::buffer_t;
+
 		using super::send;
 
 		/**
@@ -52,10 +60,10 @@ namespace asio2::detail
 		 */
 		explicit udp_client_impl_t(
 			std::size_t init_buffer_size = udp_frame_size,
-			std::size_t max_buffer_size = (std::numeric_limits<std::size_t>::max)()
+			std::size_t max_buffer_size  = (std::numeric_limits<std::size_t>::max)()
 		)
 			: super(1, init_buffer_size, max_buffer_size)
-			, udp_send_op<derived_t, false>()
+			, udp_send_op<derived_t, args_t>()
 		{
 			this->connect_timeout(std::chrono::milliseconds(udp_connect_timeout));
 		}
@@ -172,7 +180,7 @@ namespace asio2::detail
 		template<class F, class ...C>
 		inline derived_t & bind_recv(F&& fun, C&&... obj)
 		{
-			this->listener_.bind(event::recv,
+			this->listener_.bind(event_type::recv,
 				observer_t<std::string_view>(std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
 		}
@@ -189,7 +197,7 @@ namespace asio2::detail
 		template<class F, class ...C>
 		inline derived_t & bind_connect(F&& fun, C&&... obj)
 		{
-			this->listener_.bind(event::connect,
+			this->listener_.bind(event_type::connect,
 				observer_t<error_code>(std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
 		}
@@ -206,7 +214,7 @@ namespace asio2::detail
 		template<class F, class ...C>
 		inline derived_t & bind_disconnect(F&& fun, C&&... obj)
 		{
-			this->listener_.bind(event::disconnect,
+			this->listener_.bind(event_type::disconnect,
 				observer_t<error_code>(std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
 		}
@@ -222,7 +230,7 @@ namespace asio2::detail
 		template<class F, class ...C>
 		inline derived_t & bind_init(F&& fun, C&&... obj)
 		{
-			this->listener_.bind(event::init,
+			this->listener_.bind(event_type::init,
 				observer_t<>(std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
 		}
@@ -238,7 +246,7 @@ namespace asio2::detail
 		template<class F, class ...C>
 		inline derived_t & bind_handshake(F&& fun, C&&... obj)
 		{
-			this->listener_.bind(event::handshake,
+			this->listener_.bind(event_type::handshake,
 				observer_t<error_code>(std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
 		}
@@ -266,38 +274,17 @@ namespace asio2::detail
 					return false;
 				}
 
-				this->derived()._make_reconnect_timer(this->derived().selfptr(),
-					[this, h = to_string(host), p = to_string(port), condition]() mutable
-				{
-					state_t expected = state_t::stopped;
-					if (this->state_.compare_exchange_strong(expected, state_t::starting))
-					{
-						auto task = [this, h, p, condition](event_guard<derived_t>&& g) mutable
-						{
-							this->derived().template _start_connect<true>(h, p,
-								this->derived().selfptr(), condition);
-						};
-
-						this->derived().push_event([this, t = std::move(task)]
-						(event_guard<derived_t>&& g) mutable
-						{
-							auto task = [g = std::move(g), t = std::move(t)]() mutable
-							{
-								t(std::move(g));
-							};
-							this->derived().post(std::move(task));
-							return true;
-						});
-					}
-				});
+				this->derived()._load_reconnect_timer(host, port, condition);
 
 				this->derived()._do_init(condition);
 
 				super::start();
 
+				this->derived()._rdc_init(condition);
+
 				return this->derived().template _start_connect<isAsync>(
 					std::forward<String>(host), std::forward<StrOrInt>(port),
-					this->derived().selfptr(), condition);
+					this->derived().selfptr(), std::move(condition));
 			}
 			catch (system_error & e)
 			{
@@ -306,11 +293,42 @@ namespace asio2::detail
 			return false;
 		}
 
+		template<typename String, typename StrOrInt, typename MatchCondition>
+		void _load_reconnect_timer(String&& host, StrOrInt&& port, condition_wrap<MatchCondition> condition)
+		{
+			this->derived()._make_reconnect_timer(this->derived().selfptr(),
+				[this, h = to_string(host), p = to_string(port), condition]() mutable
+			{
+				state_t expected = state_t::stopped;
+				if (this->state_.compare_exchange_strong(expected, state_t::starting))
+				{
+					// can't use h = std::move(h), p = std::move(p); Otherwise, the value of h,p will
+					// be empty the next time the code goto here.
+					auto task = [this, h, p, condition](event_queue_guard<derived_t>&& g) mutable
+					{
+						this->derived().template _start_connect<true>(std::move(h), std::move(p),
+							this->derived().selfptr(), std::move(condition));
+					};
+
+					this->derived().push_event([this, t = std::move(task)]
+					(event_queue_guard<derived_t>&& g) mutable
+					{
+						auto task = [g = std::move(g), t = std::move(t)]() mutable
+						{
+							t(std::move(g));
+						};
+						this->derived().post(std::move(task));
+						return true;
+					});
+				}
+			});
+		}
+
 		template<typename MatchCondition>
 		inline void _do_init(condition_wrap<MatchCondition>)
 		{
 			if constexpr (std::is_same_v<MatchCondition, use_kcp_t>)
-				this->kcp_ = std::make_unique<kcp_stream_cp<derived_t, false>>(this->derived(), this->io_);
+				this->kcp_ = std::make_unique<kcp_stream_cp<derived_t, args_t>>(this->derived(), this->io_);
 			else
 				this->kcp_.reset();
 		}
@@ -347,7 +365,7 @@ namespace asio2::detail
 		inline void _post_stop(const error_code& ec, std::shared_ptr<derived_t> self_ptr)
 		{
 			// All pending sending events will be cancelled after enter the send strand below.
-			auto task = [this, ec, this_ptr = std::move(self_ptr)](event_guard<derived_t>&& g) mutable
+			auto task = [this, ec, this_ptr = std::move(self_ptr)](event_queue_guard<derived_t>&& g) mutable
 			{
 				set_last_error(ec);
 
@@ -358,7 +376,7 @@ namespace asio2::detail
 				this->derived()._handle_stop(ec, std::move(this_ptr));
 			};
 
-			this->derived().push_event([this, t = std::move(task)](event_guard<derived_t>&& g) mutable
+			this->derived().push_event([this, t = std::move(task)](event_queue_guard<derived_t>&& g) mutable
 			{
 				auto task = [g = std::move(g), t = std::move(t)]() mutable
 				{
@@ -371,7 +389,7 @@ namespace asio2::detail
 
 		inline void _handle_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
 		{
-			detail::ignore::unused(ec, this_ptr);
+			detail::ignore_unused(ec, this_ptr);
 
 			if (this->kcp_)
 				this->kcp_->_kcp_stop();
@@ -454,7 +472,7 @@ namespace asio2::detail
 
 				if constexpr (!std::is_same_v<MatchCondition, use_kcp_t>)
 				{
-					this->derived()._fire_recv(this_ptr, std::move(s));
+					this->derived()._fire_recv(this_ptr, std::move(s), condition);
 				}
 				else
 				{
@@ -471,7 +489,7 @@ namespace asio2::detail
 						}
 					}
 					else
-						this->kcp_->_kcp_recv(this_ptr, s, this->buffer_);
+						this->kcp_->_kcp_recv(this_ptr, s, this->buffer_, condition);
 				}
 			}
 
@@ -482,40 +500,52 @@ namespace asio2::detail
 
 		inline void _fire_init()
 		{
-			this->listener_.notify(event::init);
+			this->listener_.notify(event_type::init);
 		}
 
-		inline void _fire_recv(detail::ignore, std::string_view s)
+		template<typename MatchCondition>
+		inline void _fire_recv(std::shared_ptr<derived_t>& this_ptr, std::string_view s,
+			condition_wrap<MatchCondition>& condition)
 		{
-			this->listener_.notify(event::recv, std::move(s));
+			detail::ignore_unused(this_ptr, condition);
+
+			this->listener_.notify(event_type::recv, std::move(s));
 		}
 
-		inline void _fire_handshake(detail::ignore, error_code ec)
+		inline void _fire_handshake(std::shared_ptr<derived_t>& this_ptr, error_code ec)
 		{
-			this->listener_.notify(event::handshake, ec);
+			detail::ignore_unused(this_ptr);
+
+			this->listener_.notify(event_type::handshake, ec);
 		}
 
-		inline void _fire_connect(detail::ignore, error_code ec)
+		template<typename MatchCondition>
+		inline void _fire_connect(std::shared_ptr<derived_t>& this_ptr, error_code ec,
+			condition_wrap<MatchCondition>& condition)
 		{
-			this->listener_.notify(event::connect, ec);
+			detail::ignore_unused(this_ptr);
+
+			this->listener_.notify(event_type::connect, ec);
 		}
 
-		inline void _fire_disconnect(detail::ignore, error_code ec)
+		inline void _fire_disconnect(std::shared_ptr<derived_t>& this_ptr, error_code ec)
 		{
-			this->listener_.notify(event::disconnect, ec);
+			detail::ignore_unused(this_ptr);
+
+			this->listener_.notify(event_type::disconnect, ec);
 		}
 
 	protected:
-		std::unique_ptr<kcp_stream_cp<derived_t, false>> kcp_;
+		std::unique_ptr<kcp_stream_cp<derived_t, args_t>> kcp_;
 	};
 }
 
 namespace asio2
 {
-	class udp_client : public detail::udp_client_impl_t<udp_client, asio::ip::udp::socket, asio2::linear_buffer>
+	class udp_client : public detail::udp_client_impl_t<udp_client, detail::template_args_udp_client>
 	{
 	public:
-		using udp_client_impl_t<udp_client, asio::ip::udp::socket, asio2::linear_buffer>::udp_client_impl_t;
+		using udp_client_impl_t<udp_client, detail::template_args_udp_client>::udp_client_impl_t;
 	};
 }
 

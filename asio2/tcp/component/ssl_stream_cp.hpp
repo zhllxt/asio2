@@ -31,18 +31,16 @@
 
 namespace asio2::detail
 {
-	template<class derived_t, class socket_t, bool isSession>
+	template<class derived_t, class args_t>
 	class ssl_stream_cp
 	{
+	public:
+		using socket_type    = typename args_t::socket_t;
+		using stream_type    = asio::ssl::stream<socket_type&>;
 		using handshake_type = typename asio::ssl::stream_base::handshake_type;
 
-	public:
-		using stream_type = asio::ssl::stream<socket_t&>;
-
 		ssl_stream_cp(io_t& ssl_io, asio::ssl::context& ctx, handshake_type type)
-			: derive(static_cast<derived_t&>(*this))
-			, ssl_io_(ssl_io)
-			, ssl_ctx_(ctx)
+			: ssl_ctx_(ctx)
 			, ssl_type_(type)
 		{
 		}
@@ -59,9 +57,9 @@ namespace asio2::detail
 		template<typename MatchCondition>
 		inline void _ssl_init(
 			const condition_wrap<MatchCondition>& condition,
-			socket_t& socket, asio::ssl::context& ctx)
+			socket_type& socket, asio::ssl::context& ctx)
 		{
-			detail::ignore::unused(condition, socket, ctx);
+			detail::ignore_unused(condition, socket, ctx);
 
 			// Why put the initialization code of ssl stream here ?
 			// Why not put it in the constructor ?
@@ -79,21 +77,23 @@ namespace asio2::detail
 		inline void _ssl_start(
 			const std::shared_ptr<derived_t>& this_ptr,
 			const condition_wrap<MatchCondition>& condition,
-			socket_t& socket, asio::ssl::context& ctx)
+			socket_type& socket, asio::ssl::context& ctx)
 		{
-			detail::ignore::unused(this_ptr, condition, socket, ctx);
+			detail::ignore_unused(this_ptr, condition, socket, ctx);
 		}
 
 		template<typename Fn>
 		inline void _ssl_stop(std::shared_ptr<derived_t> this_ptr, Fn&& fn)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			if (!this->ssl_stream_)
 			{
 				fn();
 				return;
 			}
 
-			auto task = [this, this_ptr, fn = std::forward<Fn>(fn)](event_guard<derived_t>&& g) mutable
+			auto task = [this, &derive, this_ptr, fn = std::forward<Fn>(fn)](event_queue_guard<derived_t>&& g) mutable
 			{
 				// if the client socket is not closed forever,this async_shutdown
 				// callback also can't be called forever, so we use a timer to 
@@ -101,10 +101,10 @@ namespace asio2::detail
 				// be called.
 
 				std::shared_ptr<asio::steady_timer> timer =
-					mktimer(this->ssl_io_, std::chrono::milliseconds(ssl_shutdown_timeout),
+					mktimer(derive.io(), std::chrono::milliseconds(ssl_shutdown_timeout),
 						[this, this_ptr, f = std::move(fn), g = std::move(g)](const error_code& ec) mutable
 				{
-					detail::ignore::unused(this, this_ptr);
+					detail::ignore_unused(this, this_ptr);
 
 					set_last_error(ec);
 
@@ -117,7 +117,7 @@ namespace asio2::detail
 
 				// when server call ssl stream sync shutdown first,if the client socket is
 				// not closed forever,then here shutdowm will blocking forever.
-				this->ssl_stream_->async_shutdown(asio::bind_executor(this->ssl_io_.strand(),
+				this->ssl_stream_->async_shutdown(asio::bind_executor(derive.io().strand(),
 					[this, this_ptr = std::move(this_ptr), timer = std::move(timer)]
 				(const error_code& ec) mutable
 				{
@@ -135,7 +135,7 @@ namespace asio2::detail
 				}));
 			};
 
-			derive.push_event([this, t = std::move(task)](event_guard<derived_t>&& g) mutable
+			derive.push_event([&derive, t = std::move(task)](event_queue_guard<derived_t>&& g) mutable
 			{
 				auto task = [g = std::move(g), t = std::move(t)]() mutable
 				{
@@ -150,9 +150,11 @@ namespace asio2::detail
 		inline void _post_handshake(std::shared_ptr<derived_t> this_ptr,
 			condition_wrap<MatchCondition> condition)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			ASIO2_ASSERT(bool(this->ssl_stream_));
 
-			auto task = [this, this_ptr, condition](event_guard<derived_t>&& g) mutable
+			auto task = [this, &derive, this_ptr, condition](event_queue_guard<derived_t>&& g) mutable
 			{
 				// Used to chech whether the ssl handshake is timeout
 				std::shared_ptr<std::atomic_flag> flag_ptr = std::make_shared<std::atomic_flag>();
@@ -160,8 +162,8 @@ namespace asio2::detail
 				flag_ptr->clear();
 
 				std::shared_ptr<asio::steady_timer> timer =
-					mktimer(this->ssl_io_, std::chrono::milliseconds(ssl_handshake_timeout),
-						[this, this_ptr, flag_ptr](const error_code& ec) mutable
+					mktimer(derive.io(), std::chrono::milliseconds(ssl_handshake_timeout),
+						[&derive, this_ptr, flag_ptr](const error_code& ec) mutable
 				{
 					// no errors indicating timed out
 					if (!ec)
@@ -179,8 +181,8 @@ namespace asio2::detail
 				});
 
 				this->ssl_stream_->async_handshake(this->ssl_type_,
-					asio::bind_executor(this->ssl_io_.strand(), make_allocator(derive.rallocator(),
-						[this, self_ptr = std::move(this_ptr), g = std::move(g), condition,
+					asio::bind_executor(derive.io().strand(), make_allocator(derive.rallocator(),
+						[&derive, self_ptr = std::move(this_ptr), g = std::move(g), condition,
 						flag_ptr = std::move(flag_ptr), timer = std::move(timer)]
 				(const error_code& ec) mutable
 				{
@@ -195,7 +197,7 @@ namespace asio2::detail
 				})));
 			};
 
-			derive.push_event([this, t = std::move(task)](event_guard<derived_t>&& g) mutable
+			derive.push_event([&derive, t = std::move(task)](event_queue_guard<derived_t>&& g) mutable
 			{
 				auto task = [g = std::move(g), t = std::move(t)]() mutable
 				{
@@ -210,9 +212,11 @@ namespace asio2::detail
 		inline void _handle_handshake(const error_code & ec, std::shared_ptr<derived_t> self_ptr,
 			condition_wrap<MatchCondition> condition)
 		{
-			if constexpr (isSession)
+			derived_t& derive = static_cast<derived_t&>(*this);
+
+			if constexpr (args_t::is_session)
 			{
-				derive.sessions().post([this, ec, this_ptr = std::move(self_ptr), condition]() mutable
+				derive.sessions().post([&derive, ec, this_ptr = std::move(self_ptr), condition]() mutable
 				{
 					try
 					{
@@ -243,10 +247,6 @@ namespace asio2::detail
 		}
 
 	protected:
-		derived_t                    & derive;
-
-		io_t                         & ssl_io_;
-
 		asio::ssl::context           & ssl_ctx_;
 
 		handshake_type                 ssl_type_;

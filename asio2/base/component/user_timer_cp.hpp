@@ -146,7 +146,7 @@ namespace asio2::detail
 			: id(std::move(Id)), timer(context), task(std::move(t)) {}
 	};
 
-	template<class derived_t, bool isSession>
+	template<class derived_t, class args_t = void>
 	class user_timer_cp
 	{
 	public:
@@ -156,9 +156,7 @@ namespace asio2::detail
 		/**
 		 * @constructor
 		 */
-		explicit user_timer_cp(io_t & timer_io)
-			: derive(static_cast<derived_t&>(*this))
-			, user_timer_io_(timer_io)
+		explicit user_timer_cp(io_t&)
 		{
 		}
 
@@ -174,9 +172,15 @@ namespace asio2::detail
 		inline void start_timer(TimerId&& timer_id, std::chrono::duration<Rep, Period> duration,
 			Fun&& fun, Args&&... args)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			std::function<void()> t = std::bind(std::forward<Fun>(fun), std::forward<Args>(args)...);
 
-			auto fn = [this, this_ptr = derive.selfptr(),
+			// Whether or not we run on the strand, We all start the timer by post an asynchronous 
+			// event, in order to avoid unexpected problems caused by the user start or stop the 
+			// timer again in the timer callback function.
+			asio::post(derive.io().strand(), make_allocator(derive.wallocator(),
+				[this, &derive, this_ptr = derive.selfptr(),
 				timer_handle = user_timer_handle(std::forward<TimerId>(timer_id)),
 				duration, task = std::move(t)]() mutable
 			{
@@ -191,28 +195,23 @@ namespace asio2::detail
 				else
 				{
 					timer_obj_ptr = std::make_shared<user_timer_obj>(timer_handle,
-						this->user_timer_io_.context(), std::move(task));
+						derive.io().context(), std::move(task));
 
 					this->user_timers_[std::move(timer_handle)] = timer_obj_ptr;
 				}
 
 				derive._post_user_timers(std::move(timer_obj_ptr), duration, std::move(this_ptr));
-			};
-
-			// Make sure we run on the strand
-			if (!this->user_timer_io_.strand().running_in_this_thread())
-				asio::post(this->user_timer_io_.strand(),
-					make_allocator(derive.wallocator(), std::move(fn)));
-			else
-				fn();
+			}));
 		}
 
 		template<class TimerId>
 		inline void stop_timer(TimerId&& timer_id)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			// Make sure we run on the strand
-			if (!this->user_timer_io_.strand().running_in_this_thread())
-				return asio::post(this->user_timer_io_.strand(),
+			if (!derive.io().strand().running_in_this_thread())
+				return asio::post(derive.io().strand(),
 					make_allocator(derive.wallocator(),
 						[this, this_ptr = derive.selfptr(),
 						timer_id = std::forward<TimerId>(timer_id)]() mutable
@@ -236,10 +235,13 @@ namespace asio2::detail
 		 */
 		inline void stop_all_timers()
 		{
-			if (!this->user_timer_io_.strand().running_in_this_thread())
-				return asio::post(this->user_timer_io_.strand(),
+			derived_t& derive = static_cast<derived_t&>(*this);
+
+			// Make sure we run on the strand
+			if (!derive.io().strand().running_in_this_thread())
+				return asio::post(derive.io().strand(),
 					make_allocator(derive.wallocator(),
-						[this, this_ptr = derive.selfptr()]()
+						[this, this_ptr = derive.selfptr()]() mutable
 			{
 				this->stop_all_timers();
 			}));
@@ -259,6 +261,8 @@ namespace asio2::detail
 		inline void _post_user_timers(std::shared_ptr<user_timer_obj> timer_obj_ptr,
 			std::chrono::duration<Rep, Period> duration, std::shared_ptr<derived_t> this_ptr)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			// detect whether the timer is still exists, in some cases, after erase and
 			// cancel a timer, the steady_timer is still exist
 			if (timer_obj_ptr->exited)
@@ -267,9 +271,10 @@ namespace asio2::detail
 			asio::steady_timer& timer = timer_obj_ptr->timer;
 
 			timer.expires_after(duration);
-			timer.async_wait(asio::bind_executor(this->user_timer_io_.strand(),
-				make_allocator(derive.wallocator(), [this, timer_ptr = std::move(timer_obj_ptr), duration,
-					self_ptr = std::move(this_ptr)](const error_code & ec)
+			timer.async_wait(asio::bind_executor(derive.io().strand(),
+				make_allocator(derive.wallocator(),
+					[&derive, timer_ptr = std::move(timer_obj_ptr), duration,
+					self_ptr = std::move(this_ptr)](const error_code& ec) mutable
 			{
 				derive._handle_user_timers(ec, std::move(timer_ptr), duration, std::move(self_ptr));
 			})));
@@ -279,9 +284,16 @@ namespace asio2::detail
 		inline void _handle_user_timers(const error_code & ec, std::shared_ptr<user_timer_obj> timer_obj_ptr,
 			std::chrono::duration<Rep, Period> duration, std::shared_ptr<derived_t> this_ptr)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			set_last_error(ec);
 
-			if (!ec)
+			// Should the callback function also be called if there is an error in the timer ?
+			// It made me difficult to choose.After many adjustments and the requirements of the
+			// actual project, it is more reasonable to still call the callback function when 
+			// there are some errors.
+
+			//if (!ec)
 				(timer_obj_ptr->task)();
 
 			if (ec == asio::error::operation_aborted)
@@ -291,11 +303,6 @@ namespace asio2::detail
 		}
 
 	protected:
-		derived_t                                     & derive;
-
-		/// The io (include io_context and strand) 
-		io_t                                          & user_timer_io_;
-
 		/// user-defined timer
 		user_timer_map                                  user_timers_;
 	};

@@ -32,17 +32,17 @@
 
 namespace asio2::detail
 {
-	template<class derived_t, class socket_t, bool isSession>
+	template<class derived_t, class args_t>
 	class disconnect_cp
 	{
 	public:
-		using self = disconnect_cp<derived_t, socket_t, isSession>;
+		using self = disconnect_cp<derived_t, args_t>;
 
 	public:
 		/**
 		 * @constructor
 		 */
-		disconnect_cp() : derive(static_cast<derived_t&>(*this)) {}
+		disconnect_cp() {}
 
 		/**
 		 * @destructor
@@ -50,26 +50,28 @@ namespace asio2::detail
 		~disconnect_cp() = default;
 
 	protected:
-		template<bool IsSession = isSession>
+		template<bool IsSession = args_t::is_session>
 		typename std::enable_if_t<!IsSession, void>
 		inline _check_reconnect(const error_code& ec, std::shared_ptr<defer>& defer_task)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			if (defer_task)
 				return;
 
 			// Enhance the reliability of auto reconnection
-			defer_task = std::make_shared<defer>([this, ec, this_ptr = derive.selfptr()]() mutable
+			defer_task = std::make_shared<defer>([&derive, ec, this_ptr = derive.selfptr()]() mutable
 			{
-				auto task = [this, ec, this_ptr = std::move(this_ptr)](event_guard<derived_t>&& g) mutable
+				auto task = [&derive, ec, this_ptr = std::move(this_ptr)](event_queue_guard<derived_t>&& g) mutable
 				{
-					detail::ignore_unused(this, ec, this_ptr, g);
+					detail::ignore_unused(ec, this_ptr, g);
 
 					derive._wake_reconnect_timer();
 				};
 
 				// Use push_event to ensure that reconnection will not exxcuted until
 				// all events are completed.
-				derive.push_event([this, t = std::move(task)](event_guard<derived_t>&& g) mutable
+				derive.push_event([&derive, t = std::move(task)](event_queue_guard<derived_t>&& g) mutable
 				{
 					auto task = [g = std::move(g), t = std::move(t)]() mutable
 					{
@@ -81,10 +83,12 @@ namespace asio2::detail
 			});
 		}
 
-		template<bool IsSession = isSession>
+		template<bool IsSession = args_t::is_session>
 		typename std::enable_if_t<!IsSession, void>
 		inline _do_disconnect(const error_code& ec, std::shared_ptr<defer> defer_task = {})
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			state_t expected = state_t::started;
 			if (derive.state().compare_exchange_strong(expected, state_t::stopping))
 			{
@@ -102,10 +106,12 @@ namespace asio2::detail
 			}
 		}
 
-		template<bool IsSession = isSession>
+		template<bool IsSession = args_t::is_session>
 		typename std::enable_if_t<IsSession, void>
 		inline _do_disconnect(const error_code& ec, std::shared_ptr<defer> defer_task = {})
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			state_t expected = state_t::started;
 			if (derive.state().compare_exchange_strong(expected, state_t::stopping))
 				return derive._post_disconnect(ec, derive.selfptr(), expected, std::move(defer_task));
@@ -115,13 +121,15 @@ namespace asio2::detail
 				return derive._post_disconnect(ec, derive.selfptr(), expected, std::move(defer_task));
 		}
 
-		template<bool IsSession = isSession>
+		template<bool IsSession = args_t::is_session>
 		typename std::enable_if_t<!IsSession, void>
 		inline _post_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr,
 			state_t old_state, std::shared_ptr<defer> defer_task = {})
 		{
-			auto task = [this, ec, this_ptr, old_state, defer_task = std::move(defer_task)]
-			(event_guard<derived_t>&& g) mutable
+			derived_t& derive = static_cast<derived_t&>(*this);
+
+			auto task = [&derive, ec, this_ptr, old_state, defer_task = std::move(defer_task)]
+			(event_queue_guard<derived_t>&& g) mutable
 			{
 				set_last_error(ec);
 
@@ -146,7 +154,7 @@ namespace asio2::detail
 			};
 
 			// All pending sending events will be cancelled after enter the send strand below.
-			derive.push_event([this, t = std::move(task)](event_guard<derived_t>&& g) mutable
+			derive.push_event([&derive, t = std::move(task)](event_queue_guard<derived_t>&& g) mutable
 			{
 				auto task = [g = std::move(g), t = std::move(t)]() mutable
 				{
@@ -157,11 +165,13 @@ namespace asio2::detail
 			});
 		}
 
-		template<bool IsSession = isSession>
+		template<bool IsSession = args_t::is_session>
 		typename std::enable_if_t<IsSession, void>
 		inline _post_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr,
 			state_t old_state, std::shared_ptr<defer> defer_task = {})
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			// close the socket by post a event
 			// asio don't allow operate the same socket in multi thread,if you close socket
 			// in one thread and another thread is calling socket's async_... function,it 
@@ -170,13 +180,13 @@ namespace asio2::detail
 			// operation is in the same thread.
 
 			// First ensure that all send and recv events are not executed again
-			auto task = [this, this_ptr = std::move(this_ptr), defer_task = std::move(defer_task),
-				ec, old_state](event_guard<derived_t>&& g) mutable
+			auto task = [&derive, this_ptr = std::move(this_ptr), defer_task = std::move(defer_task),
+				ec, old_state](event_queue_guard<derived_t>&& g) mutable
 			{
 				// All pending sending events will be cancelled when code run to here.
 
 				// Second ensure that this session has removed from the session map.
-				derive.sessions_.erase(this_ptr, [this, this_ptr, g = std::move(g),
+				derive.sessions_.erase(this_ptr, [&derive, this_ptr, g = std::move(g),
 					defer_task = std::move(defer_task), ec, old_state](bool) mutable
 				{
 					set_last_error(ec);
@@ -193,7 +203,7 @@ namespace asio2::detail
 					}
 
 					// Third we can stop this session and close this socket now.
-					derive.post([this, self_ptr = std::move(this_ptr), g = std::move(g),
+					derive.post([&derive, self_ptr = std::move(this_ptr), g = std::move(g),
 						defer_task = std::move(defer_task), ec]() mutable
 					{
 						// call CRTP polymorphic stop
@@ -202,7 +212,7 @@ namespace asio2::detail
 				});
 			};
 
-			derive.push_event([this, t = std::move(task)](event_guard<derived_t>&& g) mutable
+			derive.push_event([&derive, t = std::move(task)](event_queue_guard<derived_t>&& g) mutable
 			{
 				auto task = [g = std::move(g), t = std::move(t)]() mutable
 				{
@@ -219,11 +229,10 @@ namespace asio2::detail
 
 		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
 		{
-			detail::ignore::unused(ec, this_ptr);
+			detail::ignore_unused(ec, this_ptr);
 		}
 
 	protected:
-		derived_t                     & derive;
 	};
 }
 

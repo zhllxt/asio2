@@ -51,54 +51,59 @@
 
 namespace asio2::detail
 {
-	template<class derived_t, class socket_t, class buffer_t>
-	class udp_cast_impl_t
-		: public object_t<derived_t>
-		, public iopool_cp
-		, public event_queue_cp<derived_t>
-		, public user_data_cp<derived_t>
-		, public alive_time_cp<derived_t>
-		, public socket_cp<derived_t, socket_t>
-		, public user_timer_cp<derived_t, false>
-		, public post_cp<derived_t>
-		, public udp_send_cp<derived_t, false>
-		, public udp_send_op<derived_t, false>
+	struct template_args_udp_cast
 	{
-		template <class, bool>         friend class user_timer_cp;
-		template <class>               friend class data_persistence_cp;
-		template <class>               friend class event_queue_cp;
-		template <class, bool>         friend class udp_send_cp;
-		template <class, bool>         friend class udp_send_op;
-		template <class>               friend class post_cp;
-		template <class>               friend class event_guard;
+		using socket_t = asio::ip::udp::socket;
+		using buffer_t = asio2::linear_buffer;
+	};
+
+	ASIO2_CLASS_FORWARD_DECLARE_BASE;
+	ASIO2_CLASS_FORWARD_DECLARE_UDP_BASE;
+
+	template<class derived_t, class args_t>
+	class udp_cast_impl_t
+		: public object_t       <derived_t        >
+		, public iopool_cp
+		, public event_queue_cp <derived_t, args_t>
+		, public user_data_cp   <derived_t, args_t>
+		, public alive_time_cp  <derived_t, args_t>
+		, public socket_cp      <derived_t, args_t>
+		, public user_timer_cp  <derived_t, args_t>
+		, public post_cp        <derived_t, args_t>
+		, public udp_send_cp    <derived_t, args_t>
+		, public udp_send_op    <derived_t, args_t>
+	{
+		ASIO2_CLASS_FRIEND_DECLARE_BASE;
+		ASIO2_CLASS_FRIEND_DECLARE_UDP_BASE;
 
 	public:
-		using self = udp_cast_impl_t<derived_t, socket_t, buffer_t>;
-		using super = object_t<derived_t>;
-		using buffer_type = buffer_t;
+		using super = object_t       <derived_t        >;
+		using self  = udp_cast_impl_t<derived_t, args_t>;
+
+		using buffer_type = typename args_t::buffer_t;
 
 		/**
 		 * @constructor
 		 */
 		explicit udp_cast_impl_t(
 			std::size_t init_buffer_size = udp_frame_size,
-			std::size_t max_buffer_size = (std::numeric_limits<std::size_t>::max)()
+			std::size_t max_buffer_size  = (std::numeric_limits<std::size_t>::max)()
 		)
 			: super()
 			, iopool_cp(1)
-			, event_queue_cp<derived_t>()
-			, user_data_cp<derived_t>()
-			, alive_time_cp<derived_t>()
-			, socket_cp<derived_t, socket_t>(iopool_.get(0).context())
-			, user_timer_cp<derived_t, false>(iopool_.get(0))
-			, post_cp<derived_t>()
-			, udp_send_cp<derived_t, false>(iopool_.get(0))
-			, udp_send_op<derived_t, false>()
+			, event_queue_cp <derived_t, args_t>()
+			, user_data_cp   <derived_t, args_t>()
+			, alive_time_cp  <derived_t, args_t>()
+			, socket_cp      <derived_t, args_t>(iopool_.get(0).context())
+			, user_timer_cp  <derived_t, args_t>(iopool_.get(0))
+			, post_cp        <derived_t, args_t>()
+			, udp_send_cp    <derived_t, args_t>(iopool_.get(0))
+			, udp_send_op    <derived_t, args_t>()
 			, rallocator_()
 			, wallocator_()
-			, listener_()
-			, io_(iopool_.get(0))
-			, buffer_(init_buffer_size, max_buffer_size)
+			, listener_  ()
+			, io_        (iopool_.get(0))
+			, buffer_    (init_buffer_size, max_buffer_size)
 		{
 		}
 
@@ -175,7 +180,7 @@ namespace asio2::detail
 		template<class F, class ...C>
 		inline derived_t & bind_recv(F&& fun, C&&... obj)
 		{
-			this->listener_.bind(event::recv,
+			this->listener_.bind(event_type::recv,
 				observer_t<asio::ip::udp::endpoint&, std::string_view>(
 					std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
@@ -192,7 +197,7 @@ namespace asio2::detail
 		template<class F, class ...C>
 		inline derived_t & bind_init(F&& fun, C&&... obj)
 		{
-			this->listener_.bind(event::init,
+			this->listener_.bind(event_type::init,
 				observer_t<>(std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
 		}
@@ -209,7 +214,7 @@ namespace asio2::detail
 		template<class F, class ...C>
 		inline derived_t & bind_start(F&& fun, C&&... obj)
 		{
-			this->listener_.bind(event::start, observer_t<error_code>(
+			this->listener_.bind(event_type::start, observer_t<error_code>(
 				std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
 		}
@@ -226,7 +231,7 @@ namespace asio2::detail
 		template<class F, class ...C>
 		inline derived_t & bind_stop(F&& fun, C&&... obj)
 		{
-			this->listener_.bind(event::stop, observer_t<error_code>(
+			this->listener_.bind(event_type::stop, observer_t<error_code>(
 				std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
 		}
@@ -346,7 +351,7 @@ namespace asio2::detail
 			// psot a recv signal to ensure that all recv events has finished already.
 			this->derived().post([this, ec, this_ptr = std::move(self_ptr), old_state]()
 			{
-				detail::ignore::unused(old_state);
+				detail::ignore_unused(old_state);
 
 				// When the code runs here,no new session can be emplace or erase to session_mgr.
 				// stop all the sessions, the session::stop must be no blocking,
@@ -370,7 +375,7 @@ namespace asio2::detail
 
 		inline void _handle_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
 		{
-			detail::ignore::unused(ec, this_ptr);
+			detail::ignore_unused(ec, this_ptr);
 
 			// close user custom timers
 			this->stop_all_timers();
@@ -439,7 +444,7 @@ namespace asio2::detail
 			{
 				this->derived()._fire_recv(this->derived().selfptr(),
 					std::string_view(static_cast<std::string_view::const_pointer>(
-						this->buffer_.data().data()), bytes_recvd));
+						this->buffer_.data().data()), bytes_recvd), condition);
 			}
 
 			this->buffer_.consume(this->buffer_.size());
@@ -449,29 +454,33 @@ namespace asio2::detail
 
 		inline void _fire_init()
 		{
-			this->listener_.notify(event::init);
+			this->listener_.notify(event_type::init);
 		}
 
-		inline void _fire_recv(std::shared_ptr<derived_t>, std::string_view s)
+		template<typename MatchCondition>
+		inline void _fire_recv(std::shared_ptr<derived_t> this_ptr, std::string_view s,
+			condition_wrap<MatchCondition>& condition)
 		{
-			this->listener_.notify(event::recv, this->remote_endpoint_, s);
+			detail::ignore_unused(this_ptr, condition);
+
+			this->listener_.notify(event_type::recv, this->remote_endpoint_, s);
 		}
 
 		inline void _fire_start(error_code ec)
 		{
-			this->listener_.notify(event::start, ec);
+			this->listener_.notify(event_type::start, ec);
 		}
 
 		inline void _fire_stop(error_code ec)
 		{
-			this->listener_.notify(event::stop, ec);
+			this->listener_.notify(event_type::stop, ec);
 		}
 
 	public:
 		/**
 		 * @function : get the buffer object refrence
 		 */
-		inline buffer_wrap<buffer_t> & buffer() { return this->buffer_; }
+		inline buffer_wrap<buffer_type> & buffer() { return this->buffer_; }
 
 		/**
 		 * @function : get the io object refrence
@@ -506,7 +515,7 @@ namespace asio2::detail
 		io_t                                      & io_;
 
 		/// buffer
-		buffer_wrap<buffer_t>                       buffer_;
+		buffer_wrap<buffer_type>                    buffer_;
 
 		/// state
 		std::atomic<state_t>                        state_ = state_t::stopped;
@@ -521,10 +530,10 @@ namespace asio2
 	/*
 	 * udp unicast/multicast/broadcast
 	 */
-	class udp_cast : public detail::udp_cast_impl_t<udp_cast, asio::ip::udp::socket, asio2::linear_buffer>
+	class udp_cast : public detail::udp_cast_impl_t<udp_cast, detail::template_args_udp_cast>
 	{
 	public:
-		using udp_cast_impl_t<udp_cast, asio::ip::udp::socket, asio2::linear_buffer>::udp_cast_impl_t;
+		using udp_cast_impl_t<udp_cast, detail::template_args_udp_cast>::udp_cast_impl_t;
 	};
 }
 

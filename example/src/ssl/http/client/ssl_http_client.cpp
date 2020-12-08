@@ -22,6 +22,117 @@ int main()
 
 	asio2::error_code ec;
 
+	auto reprss = asio2::https_client::execute("https://github.com/freefq/free", std::chrono::seconds(60), ec);
+	std::cout << reprss << std::endl;
+
+	{
+		std::fstream file;
+		file.open("abcrss.txt", std::ios::in | std::ios::out | std::ios::binary | std::ios::trunc);
+		file.write(reprss.body().data(), reprss.body().size());
+	}
+	{
+		auto req1 = http::make_request("http://www.baidu.com/get_user?name=abc");
+
+		std::cout << asio2::https_client::execute("www.baidu.com", "443",req1);
+		system("clear");
+		std::cout << asio2::https_client::execute("www.baidu.com", "443",req1, ec);
+
+		system("clear");
+		std::cout << asio2::https_client::execute("www.baidu.com", 443,req1);
+		system("clear");
+		std::cout << asio2::https_client::execute("www.baidu.com", 443,req1, ec);
+
+		std::string shost = "www.baidu.com";
+		std::string sport = "443";
+
+		system("clear");
+		std::cout << asio2::https_client::execute(shost, sport,req1);
+		system("clear");
+		std::cout << asio2::https_client::execute(shost, sport,req1, ec);
+
+		system("clear");
+		std::cout << asio2::https_client::execute(host, sport,req1);
+		system("clear");
+		std::cout << asio2::https_client::execute(host, sport,req1, ec);
+
+
+		system("clear");
+		std::cout << asio2::https_client::execute(shost, 443,req1);
+		system("clear");
+		std::cout << asio2::https_client::execute(shost, 443,req1, ec);
+
+		system("clear");
+		std::cout << asio2::https_client::execute(host, 443,req1);
+		system("clear");
+		std::cout << asio2::https_client::execute(host, 443,req1, ec);
+
+		system("clear");
+		std::cout << asio2::https_client::execute(shost, "443",req1);
+		system("clear");
+		std::cout << asio2::https_client::execute(shost, "443",req1, ec);
+
+		system("clear");
+		std::cout << asio2::https_client::execute(host, "443",req1);
+		system("clear");
+		std::cout << asio2::https_client::execute(host, "443",req1, ec);
+
+		int nport = 443;
+
+		system("clear");
+		std::cout << asio2::https_client::execute(shost, nport,req1);
+		system("clear");
+		std::cout << asio2::https_client::execute(shost, nport,req1, ec);
+
+		system("clear");
+		std::cout << asio2::https_client::execute(host, nport,req1);
+		system("clear");
+		std::cout << asio2::https_client::execute(host, nport,req1, ec);
+
+		auto rep1 = asio2::https_client::execute("http://www.baidu.com/get_user?name=abc", ec);
+		if (ec)
+			std::cout << ec.message() << std::endl;
+		else
+			std::cout << rep1 << std::endl;
+
+
+		auto req2 = http::make_request("GET / HTTP/1.1\r\nHost: 192.168.0.1\r\n\r\n");
+		auto rep2 = asio2::https_client::execute(asio::ssl::context{ asio::ssl::context::sslv23 },"www.baidu.com", "443", req2, std::chrono::seconds(3), ec);
+		if (ec)
+			std::cout << ec.message() << std::endl;
+		else
+			std::cout << rep2 << std::endl;
+
+
+		auto path = asio2::http::url_to_path("/get_user?name=abc");
+		std::cout << path << std::endl;
+
+		auto query = asio2::http::url_to_query("/get_user?name=abc");
+		std::cout << query << std::endl;
+
+		std::cout << std::endl;
+
+		system("clear");
+		std::cout << asio2::https_client::execute("http://www.baidu.com/get_user?name=abc", ec);
+		system("clear");
+		std::cout << asio2::https_client::execute("http://www.baidu.com/get_user?name=abc", ec);
+		system("clear");
+		std::cout << asio2::https_client::execute("www.baidu.com", "443", "/api/get_user?name=abc");
+		system("clear");
+		std::cout << asio2::https_client::execute(shost, sport, "/api/get_user?name=abc");
+		system("clear");
+		std::cout << asio2::https_client::execute(host, port, "/api/get_user?name=abc");
+		system("clear");
+		std::cout << asio2::https_client::execute(shost, nport, "/api/get_user?name=abc");
+		system("clear");
+		std::cout << asio2::https_client::execute(host, nport, "/api/get_user?name=abc");
+		system("clear");
+		auto rep3 = asio2::https_client::execute("www.baidu.com", "443", "/api/get_user?name=abc", ec);
+		if (ec)
+			std::cout << ec.message() << std::endl;
+		else
+			std::cout << rep3 << std::endl;
+	}
+
 	auto rep1 = asio2::https_client::execute("https://www.baidu.com", ec);
 	if (ec)
 		std::cout << ec.message() << std::endl;

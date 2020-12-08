@@ -37,9 +37,9 @@ namespace asio2
 		uuid()
 		{
 			unsigned long random_value = random();
-			for (int i = 0, it = 0; it < sizeof(data); ++it, ++i)
+			for (int i = 0, it = 0; it < int(sizeof(data)); ++it, ++i)
 			{
-				if (i == sizeof(unsigned long))
+				if (i == int(sizeof(unsigned long)))
 				{
 					random_value = random();
 					i = 0;
@@ -72,7 +72,7 @@ namespace asio2
 			std::string result;
 			result.reserve(32);
 
-			for (int it = 0; it < sizeof(data); ++it)
+			for (int it = 0; it < int(sizeof(data)); ++it)
 			{
 				const int hi = ((*(data + it)) >> 4) & 0x0F;
 				result += to_char(hi, upper);
@@ -87,7 +87,7 @@ namespace asio2
 		inline std::size_t hash() noexcept
 		{
 			std::size_t seed = 0;
-			for (int it = 0; it < sizeof(data); ++it)
+			for (int it = 0; it < int(sizeof(data)); ++it)
 			{
 				seed ^= static_cast<std::size_t>(*(data + it)) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
 			}

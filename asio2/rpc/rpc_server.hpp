@@ -24,26 +24,27 @@
 
 namespace asio2::detail
 {
+	ASIO2_CLASS_FORWARD_DECLARE_BASE;
+	ASIO2_CLASS_FORWARD_DECLARE_TCP_BASE;
+	ASIO2_CLASS_FORWARD_DECLARE_TCP_SERVER;
+
 	template<class derived_t, class executor_t>
 	class rpc_server_impl_t
 		: public executor_t
-		, public invoker_t<typename executor_t::session_type>
+		, public rpc_invoker_t<typename executor_t::session_type>
 	{
 		friend executor_t;
-		template <class>        friend class invoker_t;
-		template <class, bool>  friend class user_timer_cp;
-		template <class>        friend class post_cp;
-		template <class, class> friend class server_impl_t;
-		template <class, class> friend class tcp_server_impl_t;
-		template <class, class> friend class tcps_server_impl_t;
-		template <class, class> friend class ws_server_impl_t;
-		template <class, class> friend class wss_server_impl_t;
+
+		ASIO2_CLASS_FRIEND_DECLARE_BASE;
+		ASIO2_CLASS_FRIEND_DECLARE_TCP_BASE;
+		ASIO2_CLASS_FRIEND_DECLARE_TCP_SERVER;
 
 	public:
-		using self = rpc_server_impl_t<derived_t, executor_t>;
 		using super = executor_t;
+		using self  = rpc_server_impl_t<derived_t, executor_t>;
+
 		using executor_type = executor_t;
-		using session_type = typename super::session_type;
+		using session_type  = typename super::session_type;
 
 	protected:
 		using super::send;
@@ -57,7 +58,7 @@ namespace asio2::detail
 			Args&&... args
 		)
 			: super(std::forward<Args>(args)...)
-			, invoker_t<typename executor_t::session_type>()
+			, rpc_invoker_t<typename executor_t::session_type>()
 		{
 		}
 

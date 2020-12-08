@@ -23,17 +23,15 @@
 
 namespace asio2::detail
 {
-	template<class derived_t, bool isSession>
+	template<class derived_t, class args_t = void>
 	class silence_timer_cp
 	{
 	public:
 		/**
 		 * @constructor
 		 */
-		explicit silence_timer_cp(io_t & timer_io)
-			: derive(static_cast<derived_t&>(*this))
-			, silence_timer_io_(timer_io)
-			, silence_timer_(timer_io.context())
+		explicit silence_timer_cp(io_t & io)
+			: silence_timer_(io.context())
 		{
 			this->silence_timer_canceled_.clear();
 		}
@@ -47,7 +45,7 @@ namespace asio2::detail
 		/**
 		 * @function : get silence timeout value ,unit : second
 		 */
-		inline std::chrono::milliseconds silence_timeout() const
+		inline std::chrono::steady_clock::duration silence_timeout() const
 		{
 			return this->silence_timeout_;
 		}
@@ -59,7 +57,7 @@ namespace asio2::detail
 		inline derived_t & silence_timeout(std::chrono::duration<Rep, Period> duration)
 		{
 			this->silence_timeout_ = duration;
-			return (derive);
+			return static_cast<derived_t&>(*this);
 		}
 
 	protected:
@@ -67,12 +65,14 @@ namespace asio2::detail
 		inline void _post_silence_timer(std::chrono::duration<Rep, Period> duration,
 			std::shared_ptr<derived_t> this_ptr)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			// start the timer of check silence timeout
 			if (duration > std::chrono::milliseconds(0))
 			{
 				this->silence_timer_.expires_after(duration);
-				this->silence_timer_.async_wait(asio::bind_executor(this->silence_timer_io_.strand(),
-					[this, self_ptr = std::move(this_ptr)](const error_code & ec)
+				this->silence_timer_.async_wait(asio::bind_executor(derive.io().strand(),
+					[&derive, self_ptr = std::move(this_ptr)](const error_code & ec)
 				{
 					derive._handle_silence_timer(ec, std::move(self_ptr));
 				}));
@@ -81,6 +81,8 @@ namespace asio2::detail
 
 		inline void _handle_silence_timer(const error_code & ec, std::shared_ptr<derived_t> this_ptr)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			if (ec == asio::error::operation_aborted || this->silence_timer_canceled_.test_and_set())
 				return;
 
@@ -110,11 +112,6 @@ namespace asio2::detail
 		}
 
 	protected:
-		derived_t                                 & derive;
-
-		/// The io (include io_context and strand) used to handle the recv/send event.
-		io_t                                      & silence_timer_io_;
-
 		/// timer for session silence time out
 		asio::steady_timer                          silence_timer_;
 
@@ -122,7 +119,7 @@ namespace asio2::detail
 		std::atomic_flag                            silence_timer_canceled_;
 
 		/// if there has no data transfer for a long time,the session will be disconnect
-		std::chrono::milliseconds                   silence_timeout_ = std::chrono::minutes(60);
+		std::chrono::steady_clock::duration         silence_timeout_ = std::chrono::minutes(60);
 	};
 }
 

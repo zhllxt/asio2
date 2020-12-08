@@ -38,17 +38,17 @@
 
 namespace asio2::detail
 {
-	template<class derived_t, class body_t, class buffer_t, bool isSession>
+	template<class derived_t, class args_t>
 	class http_send_cp
 	{
 	public:
-		using body_type = body_t;
-		using buffer_type = buffer_t;
+		using body_type   = typename args_t::body_t;
+		using buffer_type = typename args_t::buffer_t;
 
 		/**
 		 * @constructor
 		 */
-		http_send_cp(io_t & wio) : derive(static_cast<derived_t&>(*this)), wio_(wio)
+		http_send_cp(io_t&)
 		{
 		}
 
@@ -66,19 +66,23 @@ namespace asio2::detail
 		template<bool isRequest, class Body, class Fields = http::fields>
 		inline bool send(http::message<isRequest, Body, Fields>& msg)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			return derive.send(const_cast<const http::message<isRequest, Body, Fields>&>(msg));
 		}
 
 		template<bool isRequest, class Body, class Fields = http::fields>
 		inline bool send(const http::message<isRequest, Body, Fields>& msg)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			try
 			{
 				if (!derive.is_started())
 					asio::detail::throw_error(asio::error::not_connected);
 
-				derive.push_event([this, data = derive._data_persistence(msg)]
-				(event_guard<derived_t>&& g) mutable
+				derive.push_event([&derive, data = derive._data_persistence(msg)]
+				(event_queue_guard<derived_t>&& g) mutable
 				{
 					return derive._do_send(data,
 						[g = std::move(g)](const error_code&, std::size_t) mutable {});
@@ -98,13 +102,15 @@ namespace asio2::detail
 		template<bool isRequest, class Body, class Fields = http::fields>
 		inline bool send(http::message<isRequest, Body, Fields>&& msg)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			try
 			{
 				if (!derive.is_started())
 					asio::detail::throw_error(asio::error::not_connected);
 
-				derive.push_event([this, data = derive._data_persistence(std::move(msg))]
-				(event_guard<derived_t>&& g) mutable
+				derive.push_event([&derive, data = derive._data_persistence(std::move(msg))]
+				(event_queue_guard<derived_t>&& g) mutable
 				{
 					return derive._do_send(data,
 						[g = std::move(g)](const error_code&, std::size_t) mutable {});
@@ -125,6 +131,8 @@ namespace asio2::detail
 		template<class Callback, bool isRequest, class Body, class Fields = http::fields>
 		inline bool send(http::message<isRequest, Body, Fields>& msg, Callback&& fn)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			return derive.send(const_cast<const http::message<isRequest, Body, Fields>&>(msg),
 				std::forward<Callback>(fn));
 		}
@@ -132,13 +140,15 @@ namespace asio2::detail
 		template<class Callback, bool isRequest, class Body, class Fields = http::fields>
 		inline bool send(const http::message<isRequest, Body, Fields>& msg, Callback&& fn)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			try
 			{
 				if (!derive.is_started())
 					asio::detail::throw_error(asio::error::not_connected);
 
-				derive.push_event([this, data = derive._data_persistence(msg),
-					fn = std::forward<Callback>(fn)](event_guard<derived_t>&& g) mutable
+				derive.push_event([&derive, data = derive._data_persistence(msg),
+					fn = std::forward<Callback>(fn)](event_queue_guard<derived_t>&& g) mutable
 				{
 					return derive._do_send(data, [&fn, g = std::move(g)]
 					(const error_code&, std::size_t bytes_sent) mutable
@@ -162,13 +172,15 @@ namespace asio2::detail
 		template<class Callback, bool isRequest, class Body, class Fields = http::fields>
 		inline bool send(http::message<isRequest, Body, Fields>&& msg, Callback&& fn)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			try
 			{
 				if (!derive.is_started())
 					asio::detail::throw_error(asio::error::not_connected);
 
-				derive.push_event([this, data = derive._data_persistence(std::move(msg)),
-					fn = std::forward<Callback>(fn)](event_guard<derived_t>&& g) mutable
+				derive.push_event([&derive, data = derive._data_persistence(std::move(msg)),
+					fn = std::forward<Callback>(fn)](event_queue_guard<derived_t>&& g) mutable
 				{
 					return derive._do_send(data, [&fn, g = std::move(g)]
 					(const error_code&, std::size_t bytes_sent) mutable
@@ -192,6 +204,8 @@ namespace asio2::detail
 		inline std::future<std::pair<error_code, std::size_t>> send(
 			http::message<isRequest, Body, Fields>& msg, asio::use_future_t<> flag)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			return derive.send(const_cast<const http::message<isRequest, Body, Fields>&>(msg), std::move(flag));
 		}
 
@@ -199,6 +213,8 @@ namespace asio2::detail
 		inline std::future<std::pair<error_code, std::size_t>> send(
 			const http::message<isRequest, Body, Fields>& msg, asio::use_future_t<> flag)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			std::ignore = flag;
 			copyable_wrapper<std::promise<std::pair<error_code, std::size_t>>> promise;
 			std::future<std::pair<error_code, std::size_t>> future = promise().get_future();
@@ -207,8 +223,8 @@ namespace asio2::detail
 				if (!derive.is_started())
 					asio::detail::throw_error(asio::error::not_connected);
 
-				derive.push_event([this, data = derive._data_persistence(msg),
-					promise = std::move(promise)](event_guard<derived_t>&& g) mutable
+				derive.push_event([&derive, data = derive._data_persistence(msg),
+					promise = std::move(promise)](event_queue_guard<derived_t>&& g) mutable
 				{
 					return derive._do_send(data, [&promise, g = std::move(g)]
 					(const error_code& ec, std::size_t bytes_sent) mutable
@@ -239,6 +255,8 @@ namespace asio2::detail
 		inline std::future<std::pair<error_code, std::size_t>> send(
 			http::message<isRequest, Body, Fields>&& msg, asio::use_future_t<> flag)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			std::ignore = flag;
 			copyable_wrapper<std::promise<std::pair<error_code, std::size_t>>> promise;
 			std::future <std::pair<error_code, std::size_t>> future = promise().get_future();
@@ -247,8 +265,8 @@ namespace asio2::detail
 				if (!derive.is_started())
 					asio::detail::throw_error(asio::error::not_connected);
 
-				derive.push_event([this, data = derive._data_persistence(std::move(msg)),
-					promise = std::move(promise)](event_guard<derived_t>&& g) mutable
+				derive.push_event([&derive, data = derive._data_persistence(std::move(msg)),
+					promise = std::move(promise)](event_queue_guard<derived_t>&& g) mutable
 				{
 					return derive._do_send(data, [&promise, g = std::move(g)]
 					(const error_code& ec, std::size_t bytes_sent) mutable
@@ -278,12 +296,16 @@ namespace asio2::detail
 		template<bool isRequest, class Body, class Fields = http::fields>
 		inline bool send(http_request_impl_t<isRequest, Body, Fields>& msg)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			return derive.send(msg.base());
 		}
 
 		template<bool isRequest, class Body, class Fields = http::fields>
 		inline bool send(const http_request_impl_t<isRequest, Body, Fields>& msg)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			return derive.send(msg.base());
 		}
 
@@ -295,6 +317,8 @@ namespace asio2::detail
 		template<bool isRequest, class Body, class Fields = http::fields>
 		inline bool send(http_request_impl_t<isRequest, Body, Fields>&& msg)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			return derive.send(std::move(msg.base()));
 		}
 
@@ -307,12 +331,16 @@ namespace asio2::detail
 		template<class Callback, bool isRequest, class Body, class Fields = http::fields>
 		inline bool send(http_request_impl_t<isRequest, Body, Fields>& msg, Callback&& fn)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			return derive.send(msg.base(), std::forward<Callback>(fn));
 		}
 
 		template<class Callback, bool isRequest, class Body, class Fields = http::fields>
 		inline bool send(const http_request_impl_t<isRequest, Body, Fields>& msg, Callback&& fn)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			return derive.send(msg.base(), std::forward<Callback>(fn));
 		}
 
@@ -325,6 +353,8 @@ namespace asio2::detail
 		template<class Callback, bool isRequest, class Body, class Fields = http::fields>
 		inline bool send(http_request_impl_t<isRequest, Body, Fields>&& msg, Callback&& fn)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			return derive.send(std::move(msg.base()), std::forward<Callback>(fn));
 		}
 
@@ -337,6 +367,8 @@ namespace asio2::detail
 		inline std::future<std::pair<error_code, std::size_t>> send(
 			http_request_impl_t<isRequest, Body, Fields>& msg, asio::use_future_t<> flag)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			return derive.send(msg.base(), std::move(flag));
 		}
 
@@ -344,6 +376,8 @@ namespace asio2::detail
 		inline std::future<std::pair<error_code, std::size_t>> send(
 			const http_request_impl_t<isRequest, Body, Fields>& msg, asio::use_future_t<> flag)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			return derive.send(msg.base(), std::move(flag));
 		}
 
@@ -356,6 +390,8 @@ namespace asio2::detail
 		inline std::future<std::pair<error_code, std::size_t>> send(
 			http_request_impl_t<isRequest, Body, Fields>&& msg, asio::use_future_t<> flag)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			return derive.send(std::move(msg.base()), std::move(flag));
 		}
 
@@ -367,12 +403,16 @@ namespace asio2::detail
 		template<bool isRequest, class Body, class Fields = http::fields>
 		inline bool send(http_response_impl_t<isRequest, Body, Fields>& msg)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			return derive.send(msg.base());
 		}
 
 		template<bool isRequest, class Body, class Fields = http::fields>
 		inline bool send(const http_response_impl_t<isRequest, Body, Fields>& msg)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			return derive.send(msg.base());
 		}
 
@@ -384,6 +424,8 @@ namespace asio2::detail
 		template<bool isRequest, class Body, class Fields = http::fields>
 		inline bool send(http_response_impl_t<isRequest, Body, Fields>&& msg)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			return derive.send(std::move(msg.base()));
 		}
 
@@ -396,12 +438,16 @@ namespace asio2::detail
 		template<class Callback, bool isRequest, class Body, class Fields = http::fields>
 		inline bool send(http_response_impl_t<isRequest, Body, Fields>& msg, Callback&& fn)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			return derive.send(msg.base(), std::forward<Callback>(fn));
 		}
 
 		template<class Callback, bool isRequest, class Body, class Fields = http::fields>
 		inline bool send(const http_response_impl_t<isRequest, Body, Fields>& msg, Callback&& fn)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			return derive.send(msg.base(), std::forward<Callback>(fn));
 		}
 
@@ -414,6 +460,8 @@ namespace asio2::detail
 		template<class Callback, bool isRequest, class Body, class Fields = http::fields>
 		inline bool send(http_response_impl_t<isRequest, Body, Fields>&& msg, Callback&& fn)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			return derive.send(std::move(msg.base()), std::forward<Callback>(fn));
 		}
 
@@ -426,6 +474,8 @@ namespace asio2::detail
 		inline std::future<std::pair<error_code, std::size_t>> send(
 			http_response_impl_t<isRequest, Body, Fields>& msg, asio::use_future_t<> flag)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			return derive.send(msg.base(), std::move(flag));
 		}
 
@@ -433,6 +483,8 @@ namespace asio2::detail
 		inline std::future<std::pair<error_code, std::size_t>> send(
 			const http_response_impl_t<isRequest, Body, Fields>& msg, asio::use_future_t<> flag)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			return derive.send(msg.base(), std::move(flag));
 		}
 
@@ -445,13 +497,12 @@ namespace asio2::detail
 		inline std::future<std::pair<error_code, std::size_t>> send(
 			http_response_impl_t<isRequest, Body, Fields>&& msg, asio::use_future_t<> flag)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			return derive.send(std::move(msg.base()), std::move(flag));
 		}
 
 	protected:
-		derived_t & derive;
-
-		io_t      & wio_;
 	};
 }
 

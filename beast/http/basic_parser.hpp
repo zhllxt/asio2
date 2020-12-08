@@ -68,14 +68,14 @@ template<bool isRequest>
 class basic_parser
     : private detail::basic_parser_base
 {
-    std::uint64_t body_limit_ =
-        default_body_limit(is_request{});   // max payload body
+    std::uint64_t body_limit_ = (std::numeric_limits<std::uint64_t>::max)();
+        //default_body_limit(is_request{});   // max payload body
     std::uint64_t len_ = 0;                 // size of chunk or body
     std::uint64_t len0_ = 0;                // content length if known
     std::unique_ptr<char[]> buf_;           // temp storage
     std::size_t buf_len_ = 0;               // size of buf_
     std::size_t skip_ = 0;                  // resume search here
-    std::uint32_t header_limit_ = 8192;     // max header size
+    std::uint32_t header_limit_ = (std::numeric_limits<std::uint32_t>::max)();     // max header size
     unsigned short status_ = 0;             // response status
     state state_ = state::nothing_yet;      // initial state
     unsigned f_ = 0;                        // flags

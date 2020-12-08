@@ -26,14 +26,14 @@
 
 namespace asio2::detail
 {
-	template<class derived_t, bool isSession>
+	template<class derived_t, class args_t = void>
 	class tcp_recv_op
 	{
 	public:
 		/**
 		 * @constructor
 		 */
-		tcp_recv_op() : derive(static_cast<derived_t&>(*this)) {}
+		tcp_recv_op() {}
 
 		/**
 		 * @destructor
@@ -44,6 +44,8 @@ namespace asio2::detail
 		template<typename MatchCondition>
 		void _tcp_post_recv(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			if (!derive.is_started())
 				return;
 
@@ -52,12 +54,13 @@ namespace asio2::detail
 				if constexpr (
 					std::is_same_v<MatchCondition, asio::detail::transfer_all_t> ||
 					std::is_same_v<MatchCondition, asio::detail::transfer_at_least_t> ||
-					std::is_same_v<MatchCondition, asio::detail::transfer_exactly_t>)
+					std::is_same_v<MatchCondition, asio::detail::transfer_exactly_t> ||
+					std::is_same_v<MatchCondition, asio2::detail::hook_buffer_t>)
 				{
 					asio::async_read(derive.stream(), derive.buffer().base(), condition(),
 						asio::bind_executor(derive.io().strand(), make_allocator(derive.rallocator(),
-							[this, self_ptr = std::move(this_ptr), condition]
-					(const error_code & ec, std::size_t bytes_recvd) mutable
+							[&derive, self_ptr = std::move(this_ptr), condition]
+					(const error_code& ec, std::size_t bytes_recvd) mutable
 					{
 						derive._handle_recv(ec, bytes_recvd, std::move(self_ptr), std::move(condition));
 					})));
@@ -66,8 +69,8 @@ namespace asio2::detail
 				{
 					asio::async_read_until(derive.stream(), derive.buffer().base(), condition(),
 						asio::bind_executor(derive.io().strand(), make_allocator(derive.rallocator(),
-							[this, self_ptr = std::move(this_ptr), condition]
-					(const error_code & ec, std::size_t bytes_recvd) mutable
+							[&derive, self_ptr = std::move(this_ptr), condition]
+					(const error_code& ec, std::size_t bytes_recvd) mutable
 					{
 						derive._handle_recv(ec, bytes_recvd, std::move(self_ptr), std::move(condition));
 					})));
@@ -84,6 +87,8 @@ namespace asio2::detail
 		void _tcp_handle_recv(const error_code & ec, std::size_t bytes_recvd,
 			std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			set_last_error(ec);
 
 			// bytes_recvd : The number of bytes in the streambuf's get area up to and including the delimiter.
@@ -98,27 +103,43 @@ namespace asio2::detail
 					if /**/ (std::uint8_t(buffer[0]) < std::uint8_t(254))
 					{
 						derive._fire_recv(this_ptr, std::string_view(reinterpret_cast<
-							std::string_view::const_pointer>(buffer + 1), bytes_recvd - 1));
+							std::string_view::const_pointer>(buffer + 1), bytes_recvd - 1), condition);
 					}
 					else if (std::uint8_t(buffer[0]) == std::uint8_t(254))
 					{
 						derive._fire_recv(this_ptr, std::string_view(reinterpret_cast<
-							std::string_view::const_pointer>(buffer + 1 + 2), bytes_recvd - 1 - 2));
+							std::string_view::const_pointer>(buffer + 1 + 2), bytes_recvd - 1 - 2), condition);
 					}
 					else
 					{
 						ASIO2_ASSERT(std::uint8_t(buffer[0]) == std::uint8_t(255));
 						derive._fire_recv(this_ptr, std::string_view(reinterpret_cast<
-							std::string_view::const_pointer>(buffer + 1 + 8), bytes_recvd - 1 - 8));
+							std::string_view::const_pointer>(buffer + 1 + 8), bytes_recvd - 1 - 8), condition);
 					}
 				}
 				else
 				{
-					derive._fire_recv(this_ptr, std::string_view(reinterpret_cast<
-						std::string_view::const_pointer>(derive.buffer().data().data()), bytes_recvd));
+					if constexpr (!std::is_same_v<MatchCondition, asio2::detail::hook_buffer_t>)
+					{
+						derive._fire_recv(this_ptr, std::string_view(reinterpret_cast<
+							std::string_view::const_pointer>(derive.buffer().data().data()), bytes_recvd), condition);
+					}
+					else
+					{
+						derive._fire_recv(this_ptr, std::string_view(reinterpret_cast<
+							std::string_view::const_pointer>(derive.buffer().data().data()),
+							derive.buffer().size()), condition);
+					}
 				}
 
-				derive.buffer().consume(bytes_recvd);
+				if constexpr (!std::is_same_v<MatchCondition, asio2::detail::hook_buffer_t>)
+				{
+					derive.buffer().consume(bytes_recvd);
+				}
+				else
+				{
+					std::ignore = true;
+				}
 
 				derive._post_recv(std::move(this_ptr), std::move(condition));
 			}
@@ -133,7 +154,6 @@ namespace asio2::detail
 		}
 
 	protected:
-		derived_t & derive;
 	};
 }
 

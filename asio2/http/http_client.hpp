@@ -23,38 +23,39 @@
 
 namespace asio2::detail
 {
-	template<class derived_t, class socket_t, class body_t, class buffer_t>
-	class http_client_impl_t
-		: public tcp_client_impl_t<derived_t, socket_t, buffer_t>
-		, public http_send_cp<derived_t, body_t, buffer_t, false>
-		, public http_send_op<derived_t, body_t, buffer_t, false>
-		, public http_recv_op<derived_t, body_t, buffer_t, false>
+	struct template_args_http_client : public template_args_tcp_client
 	{
-		template <class, bool>                friend class user_timer_cp;
-		template <class>                      friend class post_cp;
-		template <class, bool>                friend class reconnect_timer_cp;
-		template <class, bool>                friend class connect_timeout_cp;
-		template <class, class, bool>         friend class connect_cp;
-		template <class, class, bool>         friend class disconnect_cp;
-		template <class>                      friend class data_persistence_cp;
-		template <class>                      friend class event_queue_cp;
-		template <class, bool>                friend class send_cp;
-		template <class, bool>                friend class tcp_send_op;
-		template <class, bool>                friend class tcp_recv_op;
-		template <class, class, class, bool>  friend class http_send_cp;
-		template <class, class, class, bool>  friend class http_send_op;
-		template <class, class, class, bool>  friend class http_recv_op;
-		template <class, class, class>        friend class client_impl_t;
-		template <class, class, class>        friend class tcp_client_impl_t;
+		using body_t      = http::string_body;
+		using buffer_t    = beast::flat_buffer;
+		using send_data_t = http::request&;
+		using recv_data_t = http::response&;
+	};
+
+	ASIO2_CLASS_FORWARD_DECLARE_BASE;
+	ASIO2_CLASS_FORWARD_DECLARE_TCP_BASE;
+	ASIO2_CLASS_FORWARD_DECLARE_TCP_CLIENT;
+
+	template<class derived_t, class args_t>
+	class http_client_impl_t
+		: public tcp_client_impl_t<derived_t, args_t>
+		, public http_send_cp     <derived_t, args_t>
+		, public http_send_op     <derived_t, args_t>
+		, public http_recv_op     <derived_t, args_t>
+	{
+		ASIO2_CLASS_FRIEND_DECLARE_BASE;
+		ASIO2_CLASS_FRIEND_DECLARE_TCP_BASE;
+		ASIO2_CLASS_FRIEND_DECLARE_TCP_CLIENT;
 
 	public:
-		using self = http_client_impl_t<derived_t, socket_t, body_t, buffer_t>;
-		using super = tcp_client_impl_t<derived_t, socket_t, buffer_t>;
-		using body_type = body_t;
-		using buffer_type = buffer_t;
+		using super = tcp_client_impl_t <derived_t, args_t>;
+		using self  = http_client_impl_t<derived_t, args_t>;
+
+		using body_type   = typename args_t::body_t;
+		using buffer_type = typename args_t::buffer_t;
+
 		using super::send;
-		using http_send_cp<derived_t, body_t, buffer_t, false>::send;
-		using data_persistence_cp<derived_t>::_data_persistence;
+		using http_send_cp       <derived_t, args_t>::send;
+		using data_persistence_cp<derived_t, args_t>::_data_persistence;
 
 	public:
 		/**
@@ -62,11 +63,11 @@ namespace asio2::detail
 		 */
 		explicit http_client_impl_t(
 			std::size_t init_buffer_size = tcp_frame_size,
-			std::size_t max_buffer_size = (std::numeric_limits<std::size_t>::max)()
+			std::size_t max_buffer_size  = (std::numeric_limits<std::size_t>::max)()
 		)
 			: super(init_buffer_size, max_buffer_size)
-			, http_send_cp<derived_t, body_t, buffer_t, false>(this->io_)
-			, http_send_op<derived_t, body_t, buffer_t, false>()
+			, http_send_cp<derived_t, args_t>(this->io_)
+			, http_send_op<derived_t, args_t>()
 			, req_()
 			, rep_()
 		{
@@ -95,6 +96,33 @@ namespace asio2::detail
 				condition_wrap<void>{});
 		}
 
+		///**
+		// * @function : start the client, blocking connect to server
+		// * @param host A string identifying a location. May be a descriptive name or
+		// * a numeric address string.
+		// * @param port A string identifying the requested service. This may be a
+		// * descriptive name or a numeric string corresponding to a port number.
+		// */
+		//template<typename String, typename StrOrInt, typename SendParserFun, typename RecvParserFun>
+		//bool start(String&& host, StrOrInt&& port, SendParserFun&& send_parser, RecvParserFun&& recv_parser)
+		//{
+		//	using send_fun_traits_type = function_traits<std::remove_cv_t<std::remove_reference_t<SendParserFun>>>;
+		//	using recv_fun_traits_type = function_traits<std::remove_cv_t<std::remove_reference_t<RecvParserFun>>>;
+		//	using SendIdT = typename send_fun_traits_type::return_type;
+		//	using RecvIdT = typename recv_fun_traits_type::return_type;
+		//	using SendDataT = typename send_fun_traits_type::template args<0>::type;
+		//	using RecvDataT = typename recv_fun_traits_type::template args<0>::type;
+
+		//	static_assert(std::is_same_v<SendIdT, RecvIdT>);
+
+		//	return this->derived().template _do_connect<false>(
+		//		std::forward<String>(host), std::forward<StrOrInt>(port),
+		//		condition_wrap<use_rdc_t<void, SendIdT, SendDataT, RecvDataT>>(
+		//			std::in_place,
+		//			std::forward<SendParserFun>(send_parser),
+		//			std::forward<RecvParserFun>(recv_parser)));
+		//}
+
 		/**
 		 * @function : start the client, asynchronous connect to server
 		 * @param host A string identifying a location. May be a descriptive name or
@@ -110,6 +138,33 @@ namespace asio2::detail
 				condition_wrap<void>{});
 		}
 
+		///**
+		// * @function : start the client, asynchronous connect to server
+		// * @param host A string identifying a location. May be a descriptive name or
+		// * a numeric address string.
+		// * @param port A string identifying the requested service. This may be a
+		// * descriptive name or a numeric string corresponding to a port number.
+		// */
+		//template<typename String, typename StrOrInt, typename SendParserFun, typename RecvParserFun>
+		//bool async_start(String&& host, StrOrInt&& port, SendParserFun&& send_parser, RecvParserFun&& recv_parser)
+		//{
+		//	using send_fun_traits_type = function_traits<std::remove_cv_t<std::remove_reference_t<SendParserFun>>>;
+		//	using recv_fun_traits_type = function_traits<std::remove_cv_t<std::remove_reference_t<RecvParserFun>>>;
+		//	using SendIdT = typename send_fun_traits_type::return_type;
+		//	using RecvIdT = typename recv_fun_traits_type::return_type;
+		//	using SendDataT = typename send_fun_traits_type::template args<0>::type;
+		//	using RecvDataT = typename recv_fun_traits_type::template args<0>::type;
+
+		//	static_assert(std::is_same_v<SendIdT, RecvIdT>);
+
+		//	return this->derived().template _do_connect<true>(
+		//		std::forward<String>(host), std::forward<StrOrInt>(port),
+		//		condition_wrap<use_rdc_t<void, SendIdT, SendDataT, RecvDataT>>(
+		//			std::in_place,
+		//			std::forward<SendParserFun>(send_parser),
+		//			std::forward<RecvParserFun>(recv_parser)));
+		//}
+
 	public:
 		/**
 		 * @function : get the request object
@@ -122,16 +177,17 @@ namespace asio2::detail
 		inline const http::response& response() { return this->rep_; }
 
 	public:
-		template<class Rep, class Period, class Body = http::string_body, class Fields = http::fields,
-			class Buffer = beast::flat_buffer>
-		static inline http::response_t<Body, Fields> execute(std::string_view host, std::string_view port,
+		template<typename String, typename StrOrInt, class Rep, class Period,
+			class Body = http::string_body, class Fields = http::fields, class Buffer = beast::flat_buffer>
+		static inline http::response_t<Body, Fields> execute(String&& host, StrOrInt&& port,
 			http::request_t<Body, Fields>& req, std::chrono::duration<Rep, Period> timeout, error_code& ec)
 		{
-			http::response_t<Body, Fields> rep;
+			http::parser<false, Body, typename Fields::allocator_type> parser;
 			try
 			{
 				// set default result to unknown
-				rep.result(http::status::unknown);
+				parser.get().result(http::status::unknown);
+				parser.eager(true);
 
 				// First assign default value timed_out to ec
 				ec = asio::error::timed_out;
@@ -147,8 +203,10 @@ namespace asio2::detail
 				Buffer buffer;
 
 				// Look up the domain name
-				resolver.async_resolve(host, port, [&]
-				(const error_code& ec1, const asio::ip::tcp::resolver::results_type& endpoints)
+				resolver.async_resolve(
+					to_string(std::forward<String>(host)),
+					to_string(std::forward<StrOrInt>(port)),
+					[&](const error_code& ec1, const asio::ip::tcp::resolver::results_type& endpoints)
 				{
 					if (ec1) { ec = ec1; return; }
 
@@ -163,7 +221,7 @@ namespace asio2::detail
 							if (ec3) { ec = ec3; return; }
 
 							// Then start asynchronous reading
-							http::async_read(socket, buffer, rep,
+							http::async_read(socket, buffer, parser,
 								[&](const error_code& ec4, std::size_t)
 							{
 								// Reading completed, assign the read the result to ec
@@ -186,26 +244,39 @@ namespace asio2::detail
 			{
 				ec = e.code();
 			}
+
+			return parser.release();
+		}
+
+		template<typename String, typename StrOrInt, class Rep, class Period,
+			class Body = http::string_body, class Fields = http::fields, class Buffer = beast::flat_buffer>
+		static inline http::response_t<Body, Fields> execute(String&& host, StrOrInt&& port,
+			http::request_t<Body, Fields>& req, std::chrono::duration<Rep, Period> timeout)
+		{
+			error_code ec;
+			http::response_t<Body, Fields> rep = execute(
+				std::forward<String>(host), std::forward<StrOrInt>(port), req, timeout, ec);
+			asio::detail::throw_error(ec);
 			return rep;
 		}
 
-		template<class Body = http::string_body, class Fields = http::fields, class Buffer = beast::flat_buffer>
-		static inline http::response_t<Body, Fields> execute(std::string_view host, std::string_view port,
+		template<typename String, typename StrOrInt, class Body = http::string_body, class Fields = http::fields>
+		static inline http::response_t<Body, Fields> execute(String&& host, StrOrInt&& port,
 			http::request_t<Body, Fields>& req, error_code& ec)
 		{
-			using Rep = std::chrono::milliseconds::rep;
-			using Period = std::chrono::milliseconds::period;
 			ec.clear();
-			return execute<Rep, Period, Body, Fields, Buffer>(host, port, req,
-				std::chrono::milliseconds(http_execute_timeout), ec);
+			return execute(
+				std::forward<String>(host), std::forward<StrOrInt>(port),
+				req, std::chrono::milliseconds(http_execute_timeout), ec);
 		}
 
-		template<class Body = http::string_body, class Fields = http::fields, class Buffer = beast::flat_buffer>
-		static inline http::response_t<Body, Fields> execute(std::string_view host, std::string_view port,
+		template<typename String, typename StrOrInt, class Body = http::string_body, class Fields = http::fields>
+		static inline http::response_t<Body, Fields> execute(String&& host, StrOrInt&& port,
 			http::request_t<Body, Fields>& req)
 		{
 			error_code ec;
-			http::response_t<body_t> rep = execute(host, port, req, ec);
+			http::response_t<Body, Fields> rep = execute(
+				std::forward<String>(host), std::forward<StrOrInt>(port), req, ec);
 			asio::detail::throw_error(ec);
 			return rep;
 		}
@@ -214,27 +285,52 @@ namespace asio2::detail
 		 * @function : blocking execute the http request until it is returned on success or failure
 		 * You need to encode the "url"(by url_encode) before calling this function
 		 */
-		static inline http::response_t<body_t> execute(std::string_view url, error_code& ec)
+		template<class Body = http::string_body, class Fields = http::fields>
+		static inline http::response_t<Body, Fields> execute(std::string_view url, error_code& ec)
 		{
-			using Rep = std::chrono::milliseconds::rep;
-			using Period = std::chrono::milliseconds::period;
-			ec.clear();
-			http::request_t<body_t> req = http::make_request<body_t>(url, ec);
-			if (ec) return http::response_t<body_t>{ http::status::unknown, 11};
-			std::string_view host = http::url_to_host(url);
-			std::string_view port = http::url_to_port(url);
-			return execute<Rep, Period, body_t>(host, port, req,
-				std::chrono::milliseconds(http_execute_timeout), ec);
+			return execute(url, std::chrono::milliseconds(http_execute_timeout), ec);
 		}
 
 		/**
 		 * @function : blocking execute the http request until it is returned on success or failure
 		 * You need to encode the "url"(by url_encode) before calling this function
 		 */
-		static inline http::response_t<body_t> execute(std::string_view url)
+		template<class Body = http::string_body, class Fields = http::fields>
+		static inline http::response_t<Body, Fields> execute(std::string_view url)
 		{
 			error_code ec;
-			http::response_t<body_t> rep = execute(url, ec);
+			http::response_t<Body, Fields> rep = execute(url, ec);
+			asio::detail::throw_error(ec);
+			return rep;
+		}
+
+		/**
+		 * @function : blocking execute the http request until it is returned on success or failure
+		 * You need to encode the "url"(by url_encode) before calling this function
+		 */
+		template<class Rep, class Period, class Body = http::string_body, class Fields = http::fields>
+		static inline http::response_t<Body, Fields> execute(std::string_view url,
+			std::chrono::duration<Rep, Period> timeout, error_code& ec)
+		{
+			ec.clear();
+			http::request_t<Body, Fields> req = http::make_request<Body, Fields>(url, ec);
+			if (ec) return http::response_t<Body, Fields>{ http::status::unknown, 11};
+			std::string_view host = http::url_to_host(url);
+			std::string_view port = http::url_to_port(url);
+			return execute(
+				host, port, req, timeout, ec);
+		}
+
+		/**
+		 * @function : blocking execute the http request until it is returned on success or failure
+		 * You need to encode the "url"(by url_encode) before calling this function
+		 */
+		template<class Rep, class Period, class Body = http::string_body, class Fields = http::fields>
+		static inline http::response_t<Body, Fields> execute(std::string_view url,
+			std::chrono::duration<Rep, Period> timeout)
+		{
+			error_code ec;
+			http::response_t<Body, Fields> rep = execute(url, timeout, ec);
 			asio::detail::throw_error(ec);
 			return rep;
 		}
@@ -243,26 +339,63 @@ namespace asio2::detail
 		 * @function : blocking execute the http request until it is returned on success or failure
 		 * You need to encode the "target"(by url_encode) before calling this function
 		 */
-		static inline http::response_t<body_t> execute(std::string_view host, std::string_view port,
+		template<typename String, typename StrOrInt, class Body = http::string_body, class Fields = http::fields>
+		static inline http::response_t<Body, Fields> execute(String&& host, StrOrInt&& port,
 			std::string_view target, error_code& ec)
 		{
-			using Rep = std::chrono::milliseconds::rep;
-			using Period = std::chrono::milliseconds::period;
-			ec.clear();
-			http::request_t<body_t> req = http::make_request<body_t>(host, port, target);
-			return execute<Rep, Period, body_t>(host, port, req,
-				std::chrono::milliseconds(http_execute_timeout), ec);
+			return execute(
+				std::forward<String>(host), std::forward<StrOrInt>(port),
+				target, std::chrono::milliseconds(http_execute_timeout), ec);
 		}
 
 		/**
 		 * @function : blocking execute the http request until it is returned on success or failure
 		 * You need to encode the "target"(by url_encode) before calling this function
 		 */
-		static inline http::response_t<body_t> execute(std::string_view host, std::string_view port,
+		template<typename String, typename StrOrInt, class Body = http::string_body, class Fields = http::fields>
+		static inline http::response_t<Body, Fields> execute(String&& host, StrOrInt&& port,
 			std::string_view target)
 		{
 			error_code ec;
-			http::response_t<body_t> rep = execute(host, port, target, ec);
+			http::response_t<Body, Fields> rep = execute(
+				std::forward<String>(host), std::forward<StrOrInt>(port), target, ec);
+			asio::detail::throw_error(ec);
+			return rep;
+		}
+
+		/**
+		 * @function : blocking execute the http request until it is returned on success or failure
+		 * You need to encode the "target"(by url_encode) before calling this function
+		 */
+		template<typename String, typename StrOrInt, class Rep, class Period,
+			class Body = http::string_body, class Fields = http::fields>
+		static inline http::response_t<Body, Fields> execute(String&& host, StrOrInt&& port,
+			std::string_view target, std::chrono::duration<Rep, Period> timeout, error_code& ec)
+		{
+			using host_type = std::remove_cv_t<std::remove_reference_t<String>>;
+			using port_type = std::remove_cv_t<std::remove_reference_t<StrOrInt>>;
+			ec.clear();
+			http::request_t<Body, Fields> req = http::make_request<
+				const host_type&, const port_type&, Body, Fields>(
+					const_cast<const host_type&>(host), const_cast<const port_type&>(port),
+					target);
+			return execute(
+				std::forward<String>(host), std::forward<StrOrInt>(port),
+				req, timeout, ec);
+		}
+
+		/**
+		 * @function : blocking execute the http request until it is returned on success or failure
+		 * You need to encode the "target"(by url_encode) before calling this function
+		 */
+		template<typename String, typename StrOrInt, class Rep, class Period,
+			class Body = http::string_body, class Fields = http::fields>
+		static inline http::response_t<Body, Fields> execute(String&& host, StrOrInt&& port,
+			std::string_view target, std::chrono::duration<Rep, Period> timeout)
+		{
+			error_code ec;
+			http::response_t<Body, Fields> rep = execute(
+				std::forward<String>(host), std::forward<StrOrInt>(port), target, timeout, ec);
 			asio::detail::throw_error(ec);
 			return rep;
 		}
@@ -276,7 +409,7 @@ namespace asio2::detail
 		template<class F, class ...C>
 		inline derived_t & bind_recv(F&& fun, C&&... obj)
 		{
-			this->listener_.bind(event::recv,
+			this->listener_.bind(event_type::recv,
 				observer_t<http::request&, http::response&>(std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
 		}
@@ -309,6 +442,32 @@ namespace asio2::detail
 			return this->derived()._http_send(data, std::forward<Callback>(callback));
 		}
 
+		//template<class Data>
+		//inline send_data_t _rdc_convert_to_send_data(Data& data)
+		//{
+		//	auto buffer = asio::buffer(data);
+		//	return send_data_t{ reinterpret_cast<
+		//		std::string_view::const_pointer>(buffer.data()),buffer.size() };
+		//}
+
+		//template<class Invoker>
+		//inline void _rdc_invoke_with_none(const error_code& ec, Invoker& invoker)
+		//{
+		//	invoker(ec, send_data_t{}, recv_data_t{});
+		//}
+
+		//template<class Invoker>
+		//inline void _rdc_invoke_with_recv(const error_code& ec, Invoker& invoker, recv_data_t data)
+		//{
+		//	invoker(ec, send_data_t{}, data);
+		//}
+
+		//template<class Invoker, class FnData>
+		//inline void _rdc_invoke_with_send(const error_code& ec, Invoker& invoker, FnData& fn_data)
+		//{
+		//	invoker(ec, fn_data(), recv_data_t{});
+		//}
+
 	protected:
 		template<typename MatchCondition>
 		inline void _post_recv(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
@@ -326,9 +485,9 @@ namespace asio2::detail
 		template<typename MatchCondition>
 		inline void _fire_recv(std::shared_ptr<derived_t>& this_ptr, condition_wrap<MatchCondition>& condition)
 		{
-			detail::ignore::unused(this_ptr, condition);
+			detail::ignore_unused(this_ptr, condition);
 
-			this->listener_.notify(event::recv, this->req_, this->rep_);
+			this->listener_.notify(event_type::recv, this->req_, this->rep_);
 		}
 
 	protected:
@@ -340,12 +499,10 @@ namespace asio2::detail
 
 namespace asio2
 {
-	class http_client : public detail::http_client_impl_t<http_client,
-		asio::ip::tcp::socket, http::string_body, beast::flat_buffer>
+	class http_client : public detail::http_client_impl_t<http_client, detail::template_args_http_client>
 	{
 	public:
-		using http_client_impl_t<http_client, asio::ip::tcp::socket,
-			http::string_body, beast::flat_buffer>::http_client_impl_t;
+		using http_client_impl_t<http_client, detail::template_args_http_client>::http_client_impl_t;
 	};
 }
 

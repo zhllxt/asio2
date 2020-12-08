@@ -23,34 +23,29 @@
 
 namespace asio2::detail
 {
-	template<class derived_t, class socket_t, class buffer_t>
+	ASIO2_CLASS_FORWARD_DECLARE_BASE;
+	ASIO2_CLASS_FORWARD_DECLARE_TCP_BASE;
+	ASIO2_CLASS_FORWARD_DECLARE_TCP_CLIENT;
+
+	template<class derived_t, class args_t>
 	class tcps_client_impl_t
-		: public ssl_context_cp<derived_t, false>
-		, public tcp_client_impl_t<derived_t, socket_t, buffer_t>
-		, public ssl_stream_cp<derived_t, socket_t, false>
+		: public ssl_context_cp    <derived_t, false >
+		, public tcp_client_impl_t <derived_t, args_t>
+		, public ssl_stream_cp     <derived_t, args_t>
 	{
-		template <class, bool>                friend class user_timer_cp;
-		template <class>                      friend class post_cp;
-		template <class, bool>                friend class reconnect_timer_cp;
-		template <class, bool>                friend class connect_timeout_cp;
-		template <class, class, bool>         friend class connect_cp;
-		template <class, class, bool>         friend class disconnect_cp;
-		template <class>                      friend class data_persistence_cp;
-		template <class>                      friend class event_queue_cp;
-		template <class, bool>                friend class send_cp;
-		template <class, bool>                friend class tcp_send_op;
-		template <class, bool>                friend class tcp_recv_op;
-		template <class, bool>				  friend class ssl_context_cp;
-		template <class, class, bool>         friend class ssl_stream_cp;
-		template <class, class, class>        friend class client_impl_t;
-		template <class, class, class>        friend class tcp_client_impl_t;
+		ASIO2_CLASS_FRIEND_DECLARE_BASE;
+		ASIO2_CLASS_FRIEND_DECLARE_TCP_BASE;
+		ASIO2_CLASS_FRIEND_DECLARE_TCP_CLIENT;
 
 	public:
-		using self = tcps_client_impl_t<derived_t, socket_t, buffer_t>;
-		using super = tcp_client_impl_t<derived_t, socket_t, buffer_t>;
-		using buffer_type = buffer_t;
-		using ssl_context_comp = ssl_context_cp<derived_t, false>;
-		using ssl_stream_comp = ssl_stream_cp<derived_t, socket_t, false>;
+		using super = tcp_client_impl_t <derived_t, args_t>;
+		using self  = tcps_client_impl_t<derived_t, args_t>;
+
+		using buffer_type = typename args_t::buffer_t;
+
+		using ssl_context_comp = ssl_context_cp<derived_t, false >;
+		using ssl_stream_comp  = ssl_stream_cp <derived_t, args_t>;
+
 		using super::send;
 
 		/**
@@ -58,8 +53,8 @@ namespace asio2::detail
 		 */
 		explicit tcps_client_impl_t(
 			asio::ssl::context::method method = asio::ssl::context::sslv23,
-			std::size_t init_buffer_size = tcp_frame_size,
-			std::size_t max_buffer_size = (std::numeric_limits<std::size_t>::max)()
+			std::size_t init_buffer_size      = tcp_frame_size,
+			std::size_t max_buffer_size       = (std::numeric_limits<std::size_t>::max)()
 		)
 			: ssl_context_comp(method)
 			, super(init_buffer_size, max_buffer_size)
@@ -97,7 +92,7 @@ namespace asio2::detail
 		template<class F, class ...C>
 		inline derived_t & bind_handshake(F&& fun, C&&... obj)
 		{
-			this->listener_.bind(event::handshake,
+			this->listener_.bind(event_type::handshake,
 				observer_t<error_code>(std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
 		}
@@ -133,9 +128,11 @@ namespace asio2::detail
 			this->derived()._post_handshake(std::move(this_ptr), std::move(condition));
 		}
 
-		inline void _fire_handshake(detail::ignore, error_code ec)
+		inline void _fire_handshake(std::shared_ptr<derived_t>& this_ptr, error_code ec)
 		{
-			this->listener_.notify(event::handshake, ec);
+			detail::ignore_unused(this_ptr);
+
+			this->listener_.notify(event_type::handshake, ec);
 		}
 
 	protected:
@@ -144,10 +141,10 @@ namespace asio2::detail
 
 namespace asio2
 {
-	class tcps_client : public detail::tcps_client_impl_t<tcps_client, asio::ip::tcp::socket, asio::streambuf>
+	class tcps_client : public detail::tcps_client_impl_t<tcps_client, detail::template_args_tcp_client>
 	{
 	public:
-		using tcps_client_impl_t<tcps_client, asio::ip::tcp::socket, asio::streambuf>::tcps_client_impl_t;
+		using tcps_client_impl_t<tcps_client, detail::template_args_tcp_client>::tcps_client_impl_t;
 	};
 }
 

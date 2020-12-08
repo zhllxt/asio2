@@ -33,6 +33,7 @@
 #include <asio2/base/iopool.hpp>
 #include <asio2/base/error.hpp>
 #include <asio2/base/listener.hpp>
+#include <asio2/base/define.hpp>
 
 #include <asio2/base/detail/object.hpp>
 #include <asio2/base/detail/allocator.hpp>
@@ -52,42 +53,40 @@
 #include <asio2/base/component/connect_timeout_cp.hpp>
 #include <asio2/base/component/event_queue_cp.hpp>
 #include <asio2/base/component/reconnect_timer_cp.hpp>
+#include <asio2/base/component/async_event_cp.hpp>
+#include <asio2/base/component/rdc_call_cp.hpp>
 
 namespace asio2::detail
 {
-	template<class derived_t, class socket_t, class buffer_t>
+	ASIO2_CLASS_FORWARD_DECLARE_BASE;
+
+	template<class derived_t, class args_t>
 	class client_impl_t
-		: public object_t<derived_t>
+		: public object_t              <derived_t        >
 		, public iopool_cp
-		, public event_queue_cp<derived_t>
-		, public user_data_cp<derived_t>
-		, public connect_time_cp<derived_t>
-		, public alive_time_cp<derived_t>
-		, public socket_cp<derived_t, socket_t>
-		, public connect_cp<derived_t, socket_t, false>
-		, public disconnect_cp<derived_t, socket_t, false>
-		, public local_endpoint_cp<derived_t, typename socket_t::lowest_layer_type::endpoint_type>
-		, public reconnect_timer_cp<derived_t, false>
-		, public user_timer_cp<derived_t, false>
-		, public connect_timeout_cp<derived_t, false>
-		, public send_cp<derived_t, false>
-		, public post_cp<derived_t>
+		, public event_queue_cp        <derived_t, args_t>
+		, public user_data_cp          <derived_t, args_t>
+		, public connect_time_cp       <derived_t, args_t>
+		, public alive_time_cp         <derived_t, args_t>
+		, public socket_cp             <derived_t, args_t>
+		, public connect_cp            <derived_t, args_t>
+		, public disconnect_cp         <derived_t, args_t>
+		, public local_endpoint_cp     <derived_t, args_t>
+		, public reconnect_timer_cp    <derived_t, args_t>
+		, public user_timer_cp         <derived_t, args_t>
+		, public connect_timeout_cp    <derived_t, args_t>
+		, public send_cp               <derived_t, args_t>
+		, public post_cp               <derived_t, args_t>
+		, public async_event_cp        <derived_t, args_t>
+		, public rdc_call_cp           <derived_t, args_t>
 	{
-		template <class, bool>         friend class user_timer_cp;
-		template <class, bool>         friend class reconnect_timer_cp;
-		template <class, bool>         friend class connect_timeout_cp;
-		template <class, class, bool>  friend class connect_cp;
-		template <class, class, bool>  friend class disconnect_cp;
-		template <class>               friend class data_persistence_cp;
-		template <class>               friend class event_queue_cp;
-		template <class, bool>         friend class send_cp;
-		template <class>               friend class post_cp;
-		template <class>               friend class event_guard;
+		ASIO2_CLASS_FRIEND_DECLARE_BASE;
 
 	public:
-		using self = client_impl_t<derived_t, socket_t, buffer_t>;
-		using super = object_t<derived_t>;
-		using buffer_type = buffer_t;
+		using super = object_t     <derived_t        >;
+		using self  = client_impl_t<derived_t, args_t>;
+
+		using buffer_type = typename args_t::buffer_t;
 
 		/**
 		 * @constructor
@@ -97,28 +96,30 @@ namespace asio2::detail
 			std::size_t concurrency,
 			std::size_t init_buffer_size,
 			std::size_t max_buffer_size,
-			Args&&... args
+			Args&&...   args
 		)
 			: super()
 			, iopool_cp(concurrency)
-			, event_queue_cp<derived_t>()
-			, user_data_cp<derived_t>()
-			, connect_time_cp<derived_t>()
-			, alive_time_cp<derived_t>()
-			, socket_cp<derived_t, socket_t>(iopool_.get(0).context(), std::forward<Args>(args)...)
-			, connect_cp<derived_t, socket_t, false>()
-			, disconnect_cp<derived_t, socket_t, false>()
-			, local_endpoint_cp<derived_t, typename socket_t::lowest_layer_type::endpoint_type>()
-			, reconnect_timer_cp<derived_t, false>(iopool_.get(0))
-			, user_timer_cp<derived_t, false>(iopool_.get(0))
-			, connect_timeout_cp<derived_t, false>(iopool_.get(0))
-			, send_cp<derived_t, false>(iopool_.get(0))
-			, post_cp<derived_t>()
+			, event_queue_cp      <derived_t, args_t>()
+			, user_data_cp        <derived_t, args_t>()
+			, connect_time_cp     <derived_t, args_t>()
+			, alive_time_cp       <derived_t, args_t>()
+			, socket_cp           <derived_t, args_t>(iopool_.get(0).context(), std::forward<Args>(args)...)
+			, connect_cp          <derived_t, args_t>()
+			, disconnect_cp       <derived_t, args_t>()
+			, local_endpoint_cp   <derived_t, args_t>()
+			, reconnect_timer_cp  <derived_t, args_t>(iopool_.get(0))
+			, user_timer_cp       <derived_t, args_t>(iopool_.get(0))
+			, connect_timeout_cp  <derived_t, args_t>(iopool_.get(0))
+			, send_cp             <derived_t, args_t>(iopool_.get(0))
+			, post_cp             <derived_t, args_t>()
+			, async_event_cp      <derived_t, args_t>()
+			, rdc_call_cp         <derived_t, args_t>()
 			, rallocator_()
 			, wallocator_()
-			, listener_()
-			, io_(iopool_.get(0))
-			, buffer_(init_buffer_size, max_buffer_size)
+			, listener_  ()
+			, io_        (iopool_.get(0))
+			, buffer_    (init_buffer_size, max_buffer_size)
 		{
 		}
 
@@ -162,6 +163,12 @@ namespace asio2::detail
 			// close user custom timers
 			this->stop_all_timers();
 
+			// close all posted timed tasks
+			this->stop_all_timed_tasks();
+
+			// close all async_events
+			this->notify_all_events();
+
 			// destroy user data, maybe the user data is self shared_ptr, if don't destroy it,
 			// will cause loop refrence.
 			this->user_data_.reset();
@@ -186,12 +193,30 @@ namespace asio2::detail
 		/**
 		 * @function : get the buffer object refrence
 		 */
-		inline buffer_wrap<buffer_t> & buffer() { return this->buffer_; }
+		inline buffer_wrap<buffer_type> & buffer() { return this->buffer_; }
 
 		/**
 		 * @function : get the io object refrence
 		 */
 		inline io_t & io() { return this->io_; }
+
+		/**
+		 * @function : set the default remote call timeout for rpc/rdc
+		 */
+		template<class Rep, class Period>
+		inline derived_t & default_timeout(std::chrono::duration<Rep, Period> duration)
+		{
+			this->rc_timeout_ = duration;
+			return (this->derived());
+		}
+
+		/**
+		 * @function : get the default remote call timeout for rpc/rdc
+		 */
+		inline std::chrono::steady_clock::duration default_timeout()
+		{
+			return this->rc_timeout_;
+		}
 
 	protected:
 		/**
@@ -221,10 +246,13 @@ namespace asio2::detail
 		io_t                                      & io_;
 
 		/// buffer
-		buffer_wrap<buffer_t>                       buffer_;
+		buffer_wrap<buffer_type>                    buffer_;
 
 		/// state
-		std::atomic<state_t>                        state_ = state_t::stopped;
+		std::atomic<state_t>                        state_      = state_t::stopped;
+
+		/// Remote call (rpc/rdc) response timeout.
+		std::chrono::steady_clock::duration         rc_timeout_ = std::chrono::milliseconds(http_execute_timeout);
 	};
 }
 

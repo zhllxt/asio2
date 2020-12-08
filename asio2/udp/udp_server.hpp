@@ -21,16 +21,21 @@
 
 namespace asio2::detail
 {
+	ASIO2_CLASS_FORWARD_DECLARE_BASE;
+	ASIO2_CLASS_FORWARD_DECLARE_UDP_BASE;
+	ASIO2_CLASS_FORWARD_DECLARE_UDP_SERVER;
+
 	template<class derived_t, class session_t>
 	class udp_server_impl_t : public server_impl_t<derived_t, session_t>
 	{
-		template <class, bool>  friend class user_timer_cp;
-		template <class>        friend class post_cp;
-		template <class, class> friend class server_impl_t;
+		ASIO2_CLASS_FRIEND_DECLARE_BASE;
+		ASIO2_CLASS_FRIEND_DECLARE_UDP_BASE;
+		ASIO2_CLASS_FRIEND_DECLARE_UDP_SERVER;
 
 	public:
-		using self = udp_server_impl_t<derived_t, session_t>;
-		using super = server_impl_t<derived_t, session_t>;
+		using super = server_impl_t    <derived_t, session_t>;
+		using self  = udp_server_impl_t<derived_t, session_t>;
+
 		using session_type = session_t;
 
 		/**
@@ -128,7 +133,7 @@ namespace asio2::detail
 		template<class F, class ...C>
 		inline derived_t & bind_recv(F&& fun, C&&... obj)
 		{
-			this->listener_.bind(event::recv,
+			this->listener_.bind(event_type::recv,
 				observer_t<std::shared_ptr<session_t>&, std::string_view>(
 					std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
@@ -147,7 +152,7 @@ namespace asio2::detail
 		template<class F, class ...C>
 		inline derived_t & bind_connect(F&& fun, C&&... obj)
 		{
-			this->listener_.bind(event::connect,
+			this->listener_.bind(event_type::connect,
 				observer_t<std::shared_ptr<session_t>&>(
 					std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
@@ -166,7 +171,7 @@ namespace asio2::detail
 		template<class F, class ...C>
 		inline derived_t & bind_disconnect(F&& fun, C&&... obj)
 		{
-			this->listener_.bind(event::disconnect,
+			this->listener_.bind(event_type::disconnect,
 				observer_t<std::shared_ptr<session_t>&>(
 					std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
@@ -183,7 +188,7 @@ namespace asio2::detail
 		template<class F, class ...C>
 		inline derived_t & bind_init(F&& fun, C&&... obj)
 		{
-			this->listener_.bind(event::init, observer_t<>(
+			this->listener_.bind(event_type::init, observer_t<>(
 				std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
 		}
@@ -200,7 +205,7 @@ namespace asio2::detail
 		template<class F, class ...C>
 		inline derived_t & bind_start(F&& fun, C&&... obj)
 		{
-			this->listener_.bind(event::start, observer_t<error_code>(
+			this->listener_.bind(event_type::start, observer_t<error_code>(
 				std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
 		}
@@ -217,7 +222,7 @@ namespace asio2::detail
 		template<class F, class ...C>
 		inline derived_t & bind_stop(F&& fun, C&&... obj)
 		{
-			this->listener_.bind(event::stop, observer_t<error_code>(
+			this->listener_.bind(event_type::stop, observer_t<error_code>(
 				std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
 		}
@@ -233,7 +238,7 @@ namespace asio2::detail
 		template<class F, class ...C>
 		inline derived_t & bind_handshake(F&& fun, C&&... obj)
 		{
-			this->listener_.bind(event::handshake,
+			this->listener_.bind(event_type::handshake,
 				observer_t<std::shared_ptr<session_t>&, error_code>(
 					std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
@@ -387,7 +392,7 @@ namespace asio2::detail
 			// psot a recv signal to ensure that all recv events has finished already.
 			this->derived().post([this, ec, this_ptr = std::move(self_ptr), old_state]() mutable
 			{
-				detail::ignore::unused(this, old_state);
+				detail::ignore_unused(this, old_state);
 
 				// When the code runs here,no new session can be emplace or erase to session_mgr.
 				// stop all the sessions, the session::stop must be no blocking,
@@ -407,7 +412,7 @@ namespace asio2::detail
 
 		inline void _handle_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
 		{
-			detail::ignore::unused(ec, this_ptr);
+			detail::ignore_unused(ec, this_ptr);
 
 			this->derived()._fire_stop(ec);
 
@@ -486,14 +491,14 @@ namespace asio2::detail
 
 								auto task = [this, ec, condition, session_ptr,
 									syn = std::string{ s.data(),s.size() }]
-									(event_guard<session_t>&& g) mutable
+									(event_queue_guard<session_t>&& g) mutable
 								{
 									this->derived()._handle_accept(ec,
 										std::string_view{ syn }, session_ptr, condition);
 								};
 
 								session_ptr->push_event([this, t = std::move(task)]
-								(event_guard<session_t>&& g) mutable
+								(event_queue_guard<session_t>&& g) mutable
 								{
 									auto task = [g = std::move(g), t = std::move(t)]() mutable
 									{
@@ -552,17 +557,17 @@ namespace asio2::detail
 
 		inline void _fire_init()
 		{
-			this->listener_.notify(event::init);
+			this->listener_.notify(event_type::init);
 		}
 
 		inline void _fire_start(error_code ec)
 		{
-			this->listener_.notify(event::start, ec);
+			this->listener_.notify(event_type::start, ec);
 		}
 
 		inline void _fire_stop(error_code ec)
 		{
-			this->listener_.notify(event::stop, ec);
+			this->listener_.notify(event_type::stop, ec);
 		}
 
 	protected:

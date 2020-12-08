@@ -564,9 +564,9 @@ insert(field name,
     auto& e = new_element(name, sname,
         static_cast<string_view>(value));
 
-	auto iter = set_.emplace(sname, &e);
+	auto iter = set_.emplace(e.name_string(), &e);
 	auto itel = list_.insert(std::next(list_.begin(), std::distance(set_.begin(), iter)), e);
-
+	beast::ignore_unused(iter, itel);
 	BEAST_ASSERT(std::distance(set_.begin(), iter) == std::distance(list_.begin(), itel));
 }
 
@@ -599,8 +599,8 @@ erase(const_iterator pos) ->
 	BEAST_ASSERT(std::next(set_.begin(), std::distance(list_.begin(), pos))->second->self_ == pos->self_);
     auto next = pos;
     auto& e = *next++;
-	auto iter = set_.erase(std::next(set_.begin(), std::distance(list_.begin(), pos)));
-    auto itel = list_.erase(pos);
+	set_.erase(std::next(set_.begin(), std::distance(list_.begin(), pos)));
+    list_.erase(pos);
     delete_element(const_cast<element&>(e));
     return next;
 }
@@ -990,6 +990,7 @@ set_element(element& e)
 	erase(e.name_string());
 	auto iter = set_.emplace(e.name_string(), &e);
 	auto itel = list_.insert(std::next(list_.begin(), std::distance(set_.begin(), iter)), e);
+	beast::ignore_unused(iter, itel);
 	BEAST_ASSERT(std::distance(set_.begin(), iter) == std::distance(list_.begin(), itel));
 }
 

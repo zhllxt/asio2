@@ -37,11 +37,12 @@
 
 namespace asio2::detail
 {
-	template<class derived_t, bool isSession>
-	class udp_send_cp : public data_persistence_cp<derived_t>
+	ASIO2_CLASS_FORWARD_DECLARE_BASE;
+
+	template<class derived_t, class args_t = void>
+	class udp_send_cp : public data_persistence_cp<derived_t, args_t>
 	{
-		template <class>               friend class data_persistence_cp;
-		template <class>               friend class event_queue_cp;
+		ASIO2_CLASS_FRIEND_DECLARE_BASE;
 
 	public:
 		/**
@@ -69,21 +70,23 @@ namespace asio2::detail
 		 * if you want use synchronous send data,you can do it like this (example):
 		 * asio::write(session_ptr->stream(), asio::buffer(std::string("abc")));
 		 */
-		template<typename String, typename StrOrInt, class T>
+		template<typename String, typename StrOrInt, class DataT>
 		inline typename std::enable_if_t<!std::is_same_v<std::remove_cv_t<
 			std::remove_reference_t<String>>, asio::ip::udp::endpoint>, bool>
-			send(String&& host, StrOrInt&& port, T&& data)
+			send(String&& host, StrOrInt&& port, DataT&& data)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			// We must ensure that there is only one operation to send data
 			// at the same time,otherwise may be cause crash.
 			try
 			{
-				if (!this->derive.is_started())
+				if (!derive.is_started())
 					asio::detail::throw_error(asio::error::not_connected);
 
-				return this->derive._do_resolve(
+				return derive._do_resolve(
 					std::forward<String>(host), std::forward<StrOrInt>(port),
-					this->derive._data_persistence(std::forward<T>(data)),
+					derive._data_persistence(std::forward<DataT>(data)),
 					[](const error_code&, std::size_t) {});
 			}
 			catch (system_error & e) { set_last_error(e); }
@@ -125,18 +128,20 @@ namespace asio2::detail
 			!std::is_same_v<std::remove_cv_t<std::remove_reference_t<String>>, asio::ip::udp::endpoint>, bool>
 			send(String&& host, StrOrInt&& port, CharT * s, SizeT count)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			// We must ensure that there is only one operation to send data
 			// at the same time,otherwise may be cause crash.
 			try
 			{
-				if (!this->derive.is_started())
+				if (!derive.is_started())
 					asio::detail::throw_error(asio::error::not_connected);
 
 				if (!s)
 					asio::detail::throw_error(asio::error::invalid_argument);
 
-				return this->derive._do_resolve(std::forward<String>(host), std::forward<StrOrInt>(port),
-					this->derive._data_persistence(s, count), [](const error_code&, std::size_t) {});
+				return derive._do_resolve(std::forward<String>(host), std::forward<StrOrInt>(port),
+					derive._data_persistence(s, count), [](const error_code&, std::size_t) {});
 			}
 			catch (system_error & e) { set_last_error(e); }
 			catch (std::exception &) { set_last_error(asio::error::eof); }
@@ -157,36 +162,39 @@ namespace asio2::detail
 		 * std::vector<PodType, Allocator> : std::vector<float> m; send(m);
 		 * std::basic_string<Elem, Traits, Allocator> : std::string m; send(m);
 		 */
-		template<typename String, typename StrOrInt, class T>
+		template<typename String, typename StrOrInt, class DataT>
 		inline typename std::enable_if_t<
 			!std::is_same_v<std::remove_cv_t<std::remove_reference_t<String>>, asio::ip::udp::endpoint>,
 			std::future<std::pair<error_code, std::size_t>>>
-			send(String&& host, StrOrInt&& port, T&& data, asio::use_future_t<> flag)
+			send(String&& host, StrOrInt&& port, DataT&& data, asio::use_future_t<> flag)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			std::ignore = flag;
-			copyable_wrapper<std::promise<std::pair<error_code, std::size_t>>> promise;
-			std::future<std::pair<error_code, std::size_t>> future = promise().get_future();
+			std::shared_ptr<std::promise<std::pair<error_code, std::size_t>>> promise =
+				std::make_shared<std::promise<std::pair<error_code, std::size_t>>>();
+			std::future<std::pair<error_code, std::size_t>> future = promise->get_future();
 			try
 			{
-				if (!this->derive.is_started())
+				if (!derive.is_started())
 					asio::detail::throw_error(asio::error::not_connected);
 
-				this->derive._do_resolve(std::forward<String>(host), std::forward<StrOrInt>(port),
-					this->derive._data_persistence(std::forward<T>(data)),
+				derive._do_resolve(std::forward<String>(host), std::forward<StrOrInt>(port),
+					derive._data_persistence(std::forward<DataT>(data)),
 					[promise = std::move(promise)](const error_code& ec, std::size_t bytes_sent) mutable
 				{
-					promise().set_value(std::pair<error_code, std::size_t>(ec, bytes_sent));
+					promise->set_value(std::pair<error_code, std::size_t>(ec, bytes_sent));
 				});
 			}
 			catch (system_error & e)
 			{
 				set_last_error(e);
-				promise().set_value(std::pair<error_code, std::size_t>(e.code(), 0));
+				promise->set_value(std::pair<error_code, std::size_t>(e.code(), 0));
 			}
 			catch (std::exception &)
 			{
 				set_last_error(asio::error::eof);
-				promise().set_value(std::pair<error_code, std::size_t>(asio::error::eof, 0));
+				promise->set_value(std::pair<error_code, std::size_t>(asio::error::eof, 0));
 			}
 			return future;
 		}
@@ -227,33 +235,36 @@ namespace asio2::detail
 			std::future<std::pair<error_code, std::size_t>>>
 			send(String&& host, StrOrInt&& port, CharT * s, SizeT count, asio::use_future_t<> flag)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			std::ignore = flag;
-			copyable_wrapper<std::promise<std::pair<error_code, std::size_t>>> promise;
-			std::future<std::pair<error_code, std::size_t>> future = promise().get_future();
+			std::shared_ptr<std::promise<std::pair<error_code, std::size_t>>> promise =
+				std::make_shared<std::promise<std::pair<error_code, std::size_t>>>();
+			std::future<std::pair<error_code, std::size_t>> future = promise->get_future();
 			try
 			{
-				if (!this->derive.is_started())
+				if (!derive.is_started())
 					asio::detail::throw_error(asio::error::not_connected);
 
 				if (!s)
 					asio::detail::throw_error(asio::error::invalid_argument);
 
-				this->derive._do_resolve(std::forward<String>(host), std::forward<StrOrInt>(port),
-					this->derive._data_persistence(s, count),
+				derive._do_resolve(std::forward<String>(host), std::forward<StrOrInt>(port),
+					derive._data_persistence(s, count),
 					[promise = std::move(promise)](const error_code& ec, std::size_t bytes_sent) mutable
 				{
-					promise().set_value(std::pair<error_code, std::size_t>(ec, bytes_sent));
+					promise->set_value(std::pair<error_code, std::size_t>(ec, bytes_sent));
 				});
 			}
 			catch (system_error & e)
 			{
 				set_last_error(e);
-				promise().set_value(std::pair<error_code, std::size_t>(e.code(), 0));
+				promise->set_value(std::pair<error_code, std::size_t>(e.code(), 0));
 			}
 			catch (std::exception &)
 			{
 				set_last_error(asio::error::eof);
-				promise().set_value(std::pair<error_code, std::size_t>(asio::error::eof, 0));
+				promise->set_value(std::pair<error_code, std::size_t>(asio::error::eof, 0));
 			}
 			return future;
 		}
@@ -273,20 +284,22 @@ namespace asio2::detail
 		 * asio::write(session_ptr->stream(), asio::buffer(std::string("abc")));
 		 * Callback signature : void() or void(std::size_t bytes_sent)
 		 */
-		template<typename String, typename StrOrInt, class T, class Callback>
+		template<typename String, typename StrOrInt, class DataT, class Callback>
 		inline typename std::enable_if_t<is_callable_v<Callback> &&
 			!std::is_same_v<std::remove_cv_t<std::remove_reference_t<String>>, asio::ip::udp::endpoint>, bool>
-			send(String&& host, StrOrInt&& port, T&& data, Callback&& fn)
+			send(String&& host, StrOrInt&& port, DataT&& data, Callback&& fn)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			// We must ensure that there is only one operation to send data
 			// at the same time,otherwise may be cause crash.
 			try
 			{
-				if (!this->derive.is_started())
+				if (!derive.is_started())
 					asio::detail::throw_error(asio::error::not_connected);
 
-				return this->derive._do_resolve(std::forward<String>(host), std::forward<StrOrInt>(port),
-					this->derive._data_persistence(std::forward<T>(data)),
+				return derive._do_resolve(std::forward<String>(host), std::forward<StrOrInt>(port),
+					derive._data_persistence(std::forward<DataT>(data)),
 					[fn = std::forward<Callback>(fn)](const error_code&, std::size_t bytes_sent) mutable
 				{
 					callback_helper::call(fn, bytes_sent);
@@ -336,18 +349,20 @@ namespace asio2::detail
 			std::is_integral_v<std::remove_cv_t<std::remove_reference_t<SizeT>>>, bool>
 			send(String&& host, StrOrInt&& port, CharT * s, SizeT count, Callback&& fn)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			// We must ensure that there is only one operation to send data
 			// at the same time,otherwise may be cause crash.
 			try
 			{
-				if (!this->derive.is_started())
+				if (!derive.is_started())
 					asio::detail::throw_error(asio::error::not_connected);
 
 				if (!s)
 					asio::detail::throw_error(asio::error::invalid_argument);
 
-				return this->derive._do_resolve(std::forward<String>(host), std::forward<StrOrInt>(port),
-					this->derive._data_persistence(s, count),
+				return derive._do_resolve(std::forward<String>(host), std::forward<StrOrInt>(port),
+					derive._data_persistence(s, count),
 					[fn = std::forward<Callback>(fn)](const error_code&, std::size_t bytes_sent) mutable
 				{
 					callback_helper::call(fn, bytes_sent);
@@ -373,23 +388,25 @@ namespace asio2::detail
 		 * if you want use synchronous send data,you can do it like this (example):
 		 * asio::write(session_ptr->stream(), asio::buffer(std::string("abc")));
 		 */
-		template<class Endpoint, class T>
+		template<class Endpoint, class DataT>
 		inline typename std::enable_if_t<
 			std::is_same_v<std::remove_cv_t<std::remove_reference_t<Endpoint>>, asio::ip::udp::endpoint>, bool>
-			send(Endpoint&& endpoint, T&& data)
+			send(Endpoint&& endpoint, DataT&& data)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			// We must ensure that there is only one operation to send data
 			// at the same time,otherwise may be cause crash.
 			try
 			{
-				if (!this->derive.is_started())
+				if (!derive.is_started())
 					asio::detail::throw_error(asio::error::not_connected);
 
-				this->derive.push_event([this, endpoint = std::forward<Endpoint>(endpoint),
-					data = this->derive._data_persistence(std::forward<T>(data))]
-					(event_guard<derived_t>&& g) mutable
+				derive.push_event([&derive, endpoint = std::forward<Endpoint>(endpoint),
+					data = derive._data_persistence(std::forward<DataT>(data))]
+					(event_queue_guard<derived_t>&& g) mutable
 				{
-					return this->derive._do_send(endpoint, data,
+					return derive._do_send(endpoint, data,
 						[g = std::move(g)](const error_code&, std::size_t) mutable {});
 				});
 				return true;
@@ -432,20 +449,22 @@ namespace asio2::detail
 			std::is_same_v<std::remove_cv_t<std::remove_reference_t<Endpoint>>, asio::ip::udp::endpoint>, bool>
 			send(Endpoint&& endpoint, CharT * s, SizeT count)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			// We must ensure that there is only one operation to send data
 			// at the same time,otherwise may be cause crash.
 			try
 			{
-				if (!this->derive.is_started())
+				if (!derive.is_started())
 					asio::detail::throw_error(asio::error::not_connected);
 
 				if (!s)
 					asio::detail::throw_error(asio::error::invalid_argument);
 
-				this->derive.push_event([this, endpoint = std::forward<Endpoint>(endpoint),
-					data = this->derive._data_persistence(s, count)](event_guard<derived_t>&& g) mutable
+				derive.push_event([&derive, endpoint = std::forward<Endpoint>(endpoint),
+					data = derive._data_persistence(s, count)](event_queue_guard<derived_t>&& g) mutable
 				{
-					return this->derive._do_send(endpoint, data,
+					return derive._do_send(endpoint, data,
 						[g = std::move(g)](const error_code&, std::size_t) mutable {});
 				});
 				return true;
@@ -469,40 +488,43 @@ namespace asio2::detail
 		 * std::vector<PodType, Allocator> : std::vector<float> m; send(m);
 		 * std::basic_string<Elem, Traits, Allocator> : std::string m; send(m);
 		 */
-		template<class Endpoint, class T>
+		template<class Endpoint, class DataT>
 		inline typename std::enable_if_t<
 			std::is_same_v<std::remove_cv_t<std::remove_reference_t<Endpoint>>, asio::ip::udp::endpoint>,
 			std::future<std::pair<error_code, std::size_t>>>
-			send(Endpoint&& endpoint, T&& data, asio::use_future_t<> flag)
+			send(Endpoint&& endpoint, DataT&& data, asio::use_future_t<> flag)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			std::ignore = flag;
-			copyable_wrapper<std::promise<std::pair<error_code, std::size_t>>> promise;
-			std::future<std::pair<error_code, std::size_t>> future = promise().get_future();
+			std::shared_ptr<std::promise<std::pair<error_code, std::size_t>>> promise =
+				std::make_shared<std::promise<std::pair<error_code, std::size_t>>>();
+			std::future<std::pair<error_code, std::size_t>> future = promise->get_future();
 			try
 			{
-				if (!this->derive.is_started())
+				if (!derive.is_started())
 					asio::detail::throw_error(asio::error::not_connected);
 
-				this->derive.push_event([this, endpoint = std::forward<Endpoint>(endpoint),
-					data = this->derive._data_persistence(std::forward<T>(data)),
-					promise = std::move(promise)](event_guard<derived_t>&& g) mutable
+				derive.push_event([&derive, endpoint = std::forward<Endpoint>(endpoint),
+					data = derive._data_persistence(std::forward<DataT>(data)),
+					promise = std::move(promise)](event_queue_guard<derived_t>&& g) mutable
 				{
-					return this->derive._do_send(endpoint, data, [&promise, g = std::move(g)]
+					return derive._do_send(endpoint, data, [&promise, g = std::move(g)]
 					(const error_code& ec, std::size_t bytes_sent) mutable
 					{
-						promise().set_value(std::pair<error_code, std::size_t>(ec, bytes_sent));
+						promise->set_value(std::pair<error_code, std::size_t>(ec, bytes_sent));
 					});
 				});
 			}
 			catch (system_error & e)
 			{
 				set_last_error(e);
-				promise().set_value(std::pair<error_code, std::size_t>(e.code(), 0));
+				promise->set_value(std::pair<error_code, std::size_t>(e.code(), 0));
 			}
 			catch (std::exception &)
 			{
 				set_last_error(asio::error::eof);
-				promise().set_value(std::pair<error_code, std::size_t>(asio::error::eof, 0));
+				promise->set_value(std::pair<error_code, std::size_t>(asio::error::eof, 0));
 			}
 			return future;
 		}
@@ -543,37 +565,40 @@ namespace asio2::detail
 			std::future<std::pair<error_code, std::size_t>>>
 			send(Endpoint&& endpoint, CharT * s, SizeT count, asio::use_future_t<> flag)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			std::ignore = flag;
-			copyable_wrapper<std::promise<std::pair<error_code, std::size_t>>> promise;
-			std::future<std::pair<error_code, std::size_t>> future = promise().get_future();
+			std::shared_ptr<std::promise<std::pair<error_code, std::size_t>>> promise =
+				std::make_shared<std::promise<std::pair<error_code, std::size_t>>>();
+			std::future<std::pair<error_code, std::size_t>> future = promise->get_future();
 			try
 			{
-				if (!this->derive.is_started())
+				if (!derive.is_started())
 					asio::detail::throw_error(asio::error::not_connected);
 
 				if (!s)
 					asio::detail::throw_error(asio::error::invalid_argument);
 
-				this->derive.push_event([this, endpoint = std::forward<Endpoint>(endpoint),
-					data = this->derive._data_persistence(s, count),
-					promise = std::move(promise)](event_guard<derived_t>&& g) mutable
+				derive.push_event([&derive, endpoint = std::forward<Endpoint>(endpoint),
+					data = derive._data_persistence(s, count),
+					promise = std::move(promise)](event_queue_guard<derived_t>&& g) mutable
 				{
-					return this->derive._do_send(endpoint, data, [&promise, g = std::move(g)]
+					return derive._do_send(endpoint, data, [&promise, g = std::move(g)]
 					(const error_code& ec, std::size_t bytes_sent) mutable
 					{
-						promise().set_value(std::pair<error_code, std::size_t>(ec, bytes_sent));
+						promise->set_value(std::pair<error_code, std::size_t>(ec, bytes_sent));
 					});
 				});
 			}
 			catch (system_error & e)
 			{
 				set_last_error(e);
-				promise().set_value(std::pair<error_code, std::size_t>(e.code(), 0));
+				promise->set_value(std::pair<error_code, std::size_t>(e.code(), 0));
 			}
 			catch (std::exception &)
 			{
 				set_last_error(asio::error::eof);
-				promise().set_value(std::pair<error_code, std::size_t>(asio::error::eof, 0));
+				promise->set_value(std::pair<error_code, std::size_t>(asio::error::eof, 0));
 			}
 			return future;
 		}
@@ -593,23 +618,25 @@ namespace asio2::detail
 		 * asio::write(session_ptr->stream(), asio::buffer(std::string("abc")));
 		 * Callback signature : void() or void(std::size_t bytes_sent)
 		 */
-		template<class Endpoint, class T, class Callback>
+		template<class Endpoint, class DataT, class Callback>
 		inline typename std::enable_if_t<is_callable_v<Callback> &&
 			std::is_same_v<std::remove_cv_t<std::remove_reference_t<Endpoint>>, asio::ip::udp::endpoint>, bool>
-			send(Endpoint&& endpoint, T&& data, Callback&& fn)
+			send(Endpoint&& endpoint, DataT&& data, Callback&& fn)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			// We must ensure that there is only one operation to send data
 			// at the same time,otherwise may be cause crash.
 			try
 			{
-				if (!this->derive.is_started())
+				if (!derive.is_started())
 					asio::detail::throw_error(asio::error::not_connected);
 
-				this->derive.push_event([this, endpoint = std::forward<Endpoint>(endpoint),
-					data = this->derive._data_persistence(std::forward<T>(data)),
-					fn = std::forward<Callback>(fn)](event_guard<derived_t>&& g) mutable
+				derive.push_event([&derive, endpoint = std::forward<Endpoint>(endpoint),
+					data = derive._data_persistence(std::forward<DataT>(data)),
+					fn = std::forward<Callback>(fn)](event_queue_guard<derived_t>&& g) mutable
 				{
-					return this->derive._do_send(endpoint, data, [&fn, g = std::move(g)]
+					return derive._do_send(endpoint, data, [&fn, g = std::move(g)]
 					(const error_code&, std::size_t bytes_sent) mutable
 					{
 						callback_helper::call(fn, bytes_sent);
@@ -659,21 +686,23 @@ namespace asio2::detail
 			std::is_integral_v<std::remove_cv_t<std::remove_reference_t<SizeT>>>, bool>
 			send(Endpoint&& endpoint, CharT * s, SizeT count, Callback&& fn)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			// We must ensure that there is only one operation to send data
 			// at the same time,otherwise may be cause crash.
 			try
 			{
-				if (!this->derive.is_started())
+				if (!derive.is_started())
 					asio::detail::throw_error(asio::error::not_connected);
 
 				if (!s)
 					asio::detail::throw_error(asio::error::invalid_argument);
 
-				this->derive.push_event([this, endpoint = std::forward<Endpoint>(endpoint),
-					data = this->derive._data_persistence(s, count),
-					fn = std::forward<Callback>(fn)](event_guard<derived_t>&& g) mutable
+				derive.push_event([&derive, endpoint = std::forward<Endpoint>(endpoint),
+					data = derive._data_persistence(s, count),
+					fn = std::forward<Callback>(fn)](event_queue_guard<derived_t>&& g) mutable
 				{
-					return this->derive._do_send(endpoint, data, [&fn, g = std::move(g)]
+					return derive._do_send(endpoint, data, [&fn, g = std::move(g)]
 					(const error_code&, std::size_t bytes_sent) mutable
 					{
 						callback_helper::call(fn, bytes_sent);
@@ -690,12 +719,14 @@ namespace asio2::detail
 		template<typename String, typename StrOrInt, typename Data, typename Callback>
 		inline bool _do_resolve(String&& host, StrOrInt&& port, Data&& data, Callback&& callback)
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			using resolver_type = asio::ip::udp::resolver;
 			using endpoints_type = typename resolver_type::results_type;
 			//using endpoints_iterator = typename endpoints_type::iterator;
 
 			std::unique_ptr<resolver_type> resolver_ptr = std::make_unique<resolver_type>(
-				this->derive.io().context());
+				derive.io().context());
 
 			// Before async_resolve execution is complete, we must hold the resolver object.
 			// so we captured the resolver_ptr into the lambda callback function.
@@ -703,8 +734,8 @@ namespace asio2::detail
 			resolver_pointer->async_resolve(
 				to_string(std::forward<String>(host)),
 				to_string(std::forward<StrOrInt>(port)),
-				asio::bind_executor(this->derive.io().strand(),
-					[this, p = this->derive.selfptr(), resolver_ptr = std::move(resolver_ptr),
+				asio::bind_executor(derive.io().strand(),
+					[&derive, p = derive.selfptr(), resolver_ptr = std::move(resolver_ptr),
 					data = std::forward<Data>(data), callback = std::forward<Callback>(callback)]
 			(const error_code& ec, const endpoints_type& endpoints) mutable
 			{
@@ -719,12 +750,12 @@ namespace asio2::detail
 					decltype(endpoints.size()) i = 1;
 					for (auto iter = endpoints.begin(); iter != endpoints.end(); ++iter, ++i)
 					{
-						this->derive.push_event([this, endpoint = iter->endpoint(),
+						derive.push_event([&derive, endpoint = iter->endpoint(),
 							data = (endpoints.size() == i ? std::move(data) : data),
 							callback = (endpoints.size() == i ? std::move(callback) : callback)
-						](event_guard<derived_t>&& g) mutable
+						](event_queue_guard<derived_t>&& g) mutable
 						{
-							return this->derive._do_send(endpoint, data,
+							return derive._do_send(endpoint, data,
 								[g = std::move(g), f = std::move(callback)]
 							(const error_code& ec, std::size_t bytes_sent) mutable
 							{

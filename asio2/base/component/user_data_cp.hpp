@@ -21,7 +21,7 @@
 
 namespace asio2::detail
 {
-	template<class derived_t>
+	template<class derived_t, class args_t = void>
 	class user_data_cp
 	{
 	public:

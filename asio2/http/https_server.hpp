@@ -22,20 +22,23 @@
 
 namespace asio2::detail
 {
+	ASIO2_CLASS_FORWARD_DECLARE_BASE;
+	ASIO2_CLASS_FORWARD_DECLARE_TCP_BASE;
+	ASIO2_CLASS_FORWARD_DECLARE_TCP_SERVER;
+
 	template<class derived_t, class session_t>
 	class https_server_impl_t
 		: public tcps_server_impl_t<derived_t, session_t>
-		, public http_router_t<session_t>
+		, public http_router_t     <session_t           >
 	{
-		template <class, bool>  friend class user_timer_cp;
-		template <class>        friend class post_cp;
-		template <class, class> friend class server_impl_t;
-		template <class, class> friend class tcp_server_impl_t;
-		template <class, class> friend class tcps_server_impl_t;
+		ASIO2_CLASS_FRIEND_DECLARE_BASE;
+		ASIO2_CLASS_FRIEND_DECLARE_TCP_BASE;
+		ASIO2_CLASS_FRIEND_DECLARE_TCP_SERVER;
 
 	public:
-		using self = https_server_impl_t<derived_t, session_t>;
-		using super = tcps_server_impl_t<derived_t, session_t>;
+		using super = tcps_server_impl_t <derived_t, session_t>;
+		using self  = https_server_impl_t<derived_t, session_t>;
+
 		using session_type = session_t;
 
 		/**
@@ -99,13 +102,13 @@ namespace asio2::detail
 				std::shared_ptr<session_t>&, http::request&, http::response&>)
 			{
 				this->is_arg0_session_ = true;
-				this->listener_.bind(event::recv, observer_t<std::shared_ptr<session_t>&,
+				this->listener_.bind(event_type::recv, observer_t<std::shared_ptr<session_t>&,
 					http::request&, http::response&>(std::forward<F>(fun), std::forward<C>(obj)...));
 			}
 			else
 			{
 				this->is_arg0_session_ = false;
-				this->listener_.bind(event::recv, observer_t<
+				this->listener_.bind(event_type::recv, observer_t<
 					http::request&, http::response&>(std::forward<F>(fun), std::forward<C>(obj)...));
 			}
 			return (this->derived());
@@ -119,7 +122,7 @@ namespace asio2::detail
 		template<class F, class ...C>
 		inline derived_t & bind_upgrade(F&& fun, C&&... obj)
 		{
-			this->listener_.bind(event::upgrade, observer_t<std::shared_ptr<session_t>&, error_code>
+			this->listener_.bind(event_type::upgrade, observer_t<std::shared_ptr<session_t>&, error_code>
 				(std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
 		}

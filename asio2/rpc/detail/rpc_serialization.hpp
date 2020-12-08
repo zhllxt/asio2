@@ -99,39 +99,39 @@ namespace asio2::detail
 		}
 	};
 
-	class serializer
+	class rpc_serializer
 	{
 	public:
 		using oarchive = cereal::RPCPortableBinaryOutputArchive;
 
-		serializer()
+		rpc_serializer()
 			: obuffer_()
 			, ostream_(&obuffer_)
 			, oarchive_(ostream_)
 		{}
-		~serializer() = default;
+		~rpc_serializer() = default;
 
 		template<typename T>
-		inline serializer& operator<<(const T& v)
+		inline rpc_serializer& operator<<(const T& v)
 		{
 			this->oarchive_ << v;
 			return (*this);
 		}
 
-		inline serializer& operator<<(const error_code& ec)
+		inline rpc_serializer& operator<<(const error_code& ec)
 		{
 			this->oarchive_ << ec.value();
 			return (*this);
 		}
 
 		template<class ...Args>
-		inline serializer& save(const Args&... args)
+		inline rpc_serializer& save(const Args&... args)
 		{
 			((this->oarchive_ << args), ...);
 			return (*this);
 		}
 
-		inline serializer& reset()
+		inline rpc_serializer& reset()
 		{
 			this->obuffer_.clear();
 			this->oarchive_.save_endian();
@@ -151,26 +151,26 @@ namespace asio2::detail
 		oarchive        oarchive_;
 	};
 
-	class deserializer
+	class rpc_deserializer
 	{
 	public:
 		using iarchive = cereal::RPCPortableBinaryInputArchive;
 
-		deserializer()
+		rpc_deserializer()
 			: ibuffer_()
 			, istream_(&ibuffer_)
 			, iarchive_(istream_)
 		{}
-		~deserializer() = default;
+		~rpc_deserializer() = default;
 
 		template<typename T>
-		inline deserializer& operator>>(T& v)
+		inline rpc_deserializer& operator>>(T& v)
 		{
 			this->iarchive_ >> v;
 			return (*this);
 		}
 
-		inline deserializer& operator>>(error_code& ec)
+		inline rpc_deserializer& operator>>(error_code& ec)
 		{
 			decltype(ec.value()) v;
 			this->iarchive_ >> v;
@@ -179,13 +179,13 @@ namespace asio2::detail
 		}
 
 		template<class ...Args>
-		inline deserializer& load(Args&... args)
+		inline rpc_deserializer& load(Args&... args)
 		{
 			((this->iarchive_ >> args), ...);
 			return (*this);
 		}
 
-		inline deserializer& reset(std::string_view s)
+		inline rpc_deserializer& reset(std::string_view s)
 		{
 			this->ibuffer_.setbuf(s);
 			this->iarchive_.load_endian();
