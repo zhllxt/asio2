@@ -39,6 +39,8 @@
 #include <asio2/base/component/post_cp.hpp>
 #include <asio2/base/component/async_event_cp.hpp>
 
+#include <asio2/util/defer.hpp>
+
 namespace asio2::detail
 {
 	ASIO2_CLASS_FORWARD_DECLARE_BASE;
@@ -63,7 +65,7 @@ namespace asio2::detail
 		timer_impl_t()
 			: object_t     <derived_t>()
 			, iopool_cp               (1)
-			, user_timer_cp<derived_t>(iopool_.get(0))
+			, user_timer_cp<derived_t>()
 			, io_                     (iopool_.get(0))
 		{
 			this->iopool_.start(); // start the io_context pool

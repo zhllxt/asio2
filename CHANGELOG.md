@@ -1,3 +1,8 @@
+# 2020-12-23 version 2.7:
+
+  * Add remote data call ability.
+  * Other general enhancements.
+
 # 2020-09-24 version 2.6:
 
   * Fixed a bug in the connect_timeout_cp class that caused the program to crash.

@@ -207,7 +207,8 @@ namespace asio2::detail
 		inline void _join_session(std::shared_ptr<derived_t> this_ptr,
 			condition_wrap<MatchCondition> condition)
 		{
-			this->sessions_.emplace(this_ptr, [this, this_ptr, condition](bool inserted) mutable
+			this->sessions_.emplace(this_ptr, [this, this_ptr, condition = std::move(condition)]
+			(bool inserted) mutable
 			{
 				if (inserted)
 					this->derived()._start_recv(std::move(this_ptr), std::move(condition));
@@ -223,7 +224,7 @@ namespace asio2::detail
 			// to avlid the user call stop in another thread,then it may be socket_.async_read_some
 			// and socket_.close be called at the same time
 			asio::post(this->io_.strand(), make_allocator(this->rallocator_,
-				[this, self_ptr = std::move(this_ptr), condition]() mutable
+				[this, self_ptr = std::move(this_ptr), condition = std::move(condition)]() mutable
 			{
 				if constexpr (!std::is_same_v<MatchCondition, asio2::detail::hook_buffer_t>)
 				{
@@ -294,14 +295,7 @@ namespace asio2::detail
 		{
 			this->listener_.notify(event_type::recv, this_ptr, s);
 
-			if constexpr (is_template_instance_of_v<use_rdc_t, MatchCondition>)
-			{
-				this->derived()._rdc_handle_recv(this_ptr, s, condition);
-			}
-			else
-			{
-				std::ignore = true;
-			}
+			this->derived()._rdc_handle_recv(this_ptr, s, condition);
 		}
 
 		inline void _fire_accept(std::shared_ptr<derived_t>& this_ptr)

@@ -110,32 +110,30 @@ namespace asio2::detail
 				Buffer buffer;
 
 				// Look up the domain name
-				resolver.async_resolve(
-					to_string(std::forward<String>(host)),
-					to_string(std::forward<StrOrInt>(port)),
-					[&](const error_code& ec1, const asio::ip::tcp::resolver::results_type& endpoints)
+				resolver.async_resolve(std::forward<String>(host), to_string(std::forward<StrOrInt>(port)),
+					[&](const error_code& ec1, const asio::ip::tcp::resolver::results_type& endpoints) mutable
 				{
 					if (ec1) { ec = ec1; return; }
 
 					// Make the connection on the IP address we get from a lookup
 					asio::async_connect(socket, endpoints,
-						[&](const error_code & ec2, const asio::ip::tcp::endpoint&)
+						[&](const error_code & ec2, const asio::ip::tcp::endpoint&) mutable
 					{
 						if (ec2) { ec = ec2; return; }
 
 						stream.async_handshake(asio::ssl::stream_base::client,
-							[&](const error_code& ec3)
+							[&](const error_code& ec3) mutable
 						{
 							if (ec3) { ec = ec3; return; }
 
-							http::async_write(stream, req, [&](const error_code& ec4, std::size_t)
+							http::async_write(stream, req, [&](const error_code& ec4, std::size_t) mutable
 							{
 								// can't use stream.shutdown(),in some case the shutdowm will blocking forever.
 								if (ec4) { ec = ec4; stream.async_shutdown([](const error_code&) {}); return; }
 
 								// Then start asynchronous reading
 								http::async_read(stream, buffer, parser,
-									[&](const error_code& ec5, std::size_t)
+									[&](const error_code& ec5, std::size_t) mutable
 								{
 									// Reading completed, assign the read the result to ec
 									// If the code does not execute into here, the ec value
@@ -367,6 +365,8 @@ namespace asio2::detail
 
 		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
 		{
+			this->derived()._rdc_stop();
+
 			this->derived()._ssl_stop(this_ptr, [this, ec, this_ptr]()
 			{
 				super::_handle_disconnect(ec, std::move(this_ptr));

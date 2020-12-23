@@ -102,6 +102,8 @@ namespace asio2::detail
 
 		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
 		{
+			this->derived()._rdc_stop();
+
 			this->derived()._ws_stop(this_ptr, [this, ec, this_ptr]()
 			{
 				super::_handle_disconnect(ec, std::move(this_ptr));
@@ -113,7 +115,7 @@ namespace asio2::detail
 			condition_wrap<MatchCondition> condition)
 		{
 			asio::post(this->io_.strand(), make_allocator(this->rallocator_,
-				[this, self_ptr = std::move(this_ptr), condition]() mutable
+				[this, self_ptr = std::move(this_ptr), condition = std::move(condition)]() mutable
 			{
 				this->derived()._ws_start(self_ptr, condition, this->socket_);
 
@@ -134,6 +136,13 @@ namespace asio2::detail
 			condition_wrap<MatchCondition> condition)
 		{
 			this->derived()._ws_post_recv(std::move(this_ptr), std::move(condition));
+		}
+
+		template<typename MatchCondition>
+		inline void _handle_recv(const error_code& ec, std::size_t bytes_recvd,
+			std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		{
+			this->derived()._ws_handle_recv(ec, bytes_recvd, std::move(this_ptr), std::move(condition));
 		}
 
 		inline void _fire_upgrade(std::shared_ptr<derived_t>& this_ptr, error_code ec)

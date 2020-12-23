@@ -71,17 +71,25 @@ namespace asio2::detail
 			template<class return_t>
 			inline static void convert_recv_data_to_result(std::shared_ptr<return_t>& result, recv_data_t recv_data)
 			{
-				if constexpr (has_stream_operator<return_t, recv_data_t>::value)
+				if constexpr (std::is_reference_v<recv_data_t> &&
+					has_equal_operator<return_t, std::remove_reference_t<recv_data_t>>::value)
 				{
-					*result << recv_data;
-				}
-				else if constexpr (has_equal_operator<return_t, recv_data_t>::value)
-				{
-					*result = recv_data;
+					*result = std::move(recv_data);
 				}
 				else
 				{
-					::new (result.get()) return_t(recv_data);
+					if constexpr (has_stream_operator<return_t, recv_data_t>::value)
+					{
+						*result << recv_data;
+					}
+					else if constexpr (has_equal_operator<return_t, recv_data_t>::value)
+					{
+						*result = recv_data;
+					}
+					else
+					{
+						::new (result.get()) return_t(recv_data);
+					}
 				}
 			}
 
@@ -95,7 +103,8 @@ namespace asio2::detail
 
 				ASIO2_ASSERT(derive._rdc_send_event_ptr_ && "This function is only available in rdc mode");
 
-				auto fn_data = [&derive, data = derive._data_persistence(std::forward<DataT>(data))]() mutable
+				decltype(auto) fn_data = [&derive, data = derive._data_persistence(std::forward<DataT>(data))]
+				() mutable->send_data_t
 				{
 					return derive._rdc_convert_to_send_data(data);
 				};
@@ -204,7 +213,8 @@ namespace asio2::detail
 
 				ASIO2_ASSERT(derive._rdc_send_event_ptr_ && "This function is only available in rdc mode");
 
-				auto fn_data = [&derive, data = derive._data_persistence(std::forward<DataT>(data))]() mutable
+				decltype(auto) fn_data = [&derive, data = derive._data_persistence(std::forward<DataT>(data))]
+				() mutable->send_data_t
 				{
 					return derive._rdc_convert_to_send_data(data);
 				};
@@ -706,17 +716,24 @@ namespace asio2::detail
 		inline void _rdc_handle_recv(std::shared_ptr<derived_t>& this_ptr, recv_data_t data,
 			condition_wrap<MatchCondition>& condition)
 		{
-			derived_t& derive = static_cast<derived_t&>(*this);
-
-			auto id = (condition.recv_parser())(data);
-
-			auto iter = condition.invoker().find(id);
-			if (iter != condition.invoker().end())
+			if constexpr (is_template_instance_of_v<use_rdc_t, MatchCondition>)
 			{
-				auto& [timer, invoker] = iter->second;
-				timer->cancel(ec_ignore);
-				derive._rdc_invoke_with_recv(error_code{}, invoker, data);
-				condition.invoker().erase(iter);
+				derived_t& derive = static_cast<derived_t&>(*this);
+
+				auto id = (condition.recv_parser())(data);
+
+				auto iter = condition.invoker().find(id);
+				if (iter != condition.invoker().end())
+				{
+					auto&[timer, invoker] = iter->second;
+					timer->cancel(ec_ignore);
+					derive._rdc_invoke_with_recv(error_code{}, invoker, data);
+					condition.invoker().erase(iter);
+				}
+			}
+			else
+			{
+				std::ignore = true;
 			}
 		}
 
@@ -767,10 +784,12 @@ namespace asio2::detail
 	{
 	protected:
 		// just placeholders
-		template<typename MatchCondition>
-		inline void _rdc_init(condition_wrap<MatchCondition>&) {}
+		template<typename... Args> 
+		inline void _rdc_init(Args const& ...) {}
 		inline void _rdc_start() {}
 		inline void _rdc_stop() {}
+		template<typename... Args>
+		inline void _rdc_handle_recv(Args const& ...) {}
 	};
 
 	template<class derived_t, class args_t>

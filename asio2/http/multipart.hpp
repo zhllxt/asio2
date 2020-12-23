@@ -496,33 +496,6 @@ namespace multipart_parser
 	}
 }
 
-template<bool isRequest, class Body, class Fields, class String = std::string_view>
-basic_multipart_fields<String> multipart_parser_execute(const http::message<isRequest, Body, Fields>& msg)
-{
-	std::string_view type = msg[http::field::content_type];
-
-	std::size_t pos1 = asio2::ifind(type, "multipart/form-data");
-	if (pos1 == std::string_view::npos)
-		return {};
-	pos1 += 19; // std::strlen("multipart/form-data");
-
-	pos1 = asio2::ifind(type, "boundary", pos1);
-	if (pos1 == std::string_view::npos)
-		return {};
-	pos1 += 8; // std::strlen("boundary");
-
-	pos1 = type.find('=', pos1);
-	if (pos1 == std::string_view::npos)
-		return {};
-	pos1 += 1;
-
-	std::size_t pos2 = type.find_first_of("\r;", pos1);
-
-	std::string_view boundary = type.substr(pos1, pos2 == std::string_view::npos ? pos2 : pos2 - pos1);
-
-	return multipart_parser_execute<String>(msg.body(), boundary);
-}
-
 template<class String = std::string_view>
 basic_multipart_fields<String> multipart_parser_execute(std::string_view body, std::string_view boundary)
 {
@@ -584,6 +557,33 @@ basic_multipart_fields<String> multipart_parser_execute(std::string_view body, s
 	}
 
 	return fields;
+}
+
+template<bool isRequest, class Body, class Fields, class String = std::string_view>
+basic_multipart_fields<String> multipart_parser_execute(const http::message<isRequest, Body, Fields>& msg)
+{
+	std::string_view type = msg[http::field::content_type];
+
+	std::size_t pos1 = asio2::ifind(type, "multipart/form-data");
+	if (pos1 == std::string_view::npos)
+		return {};
+	pos1 += 19; // std::strlen("multipart/form-data");
+
+	pos1 = asio2::ifind(type, "boundary", pos1);
+	if (pos1 == std::string_view::npos)
+		return {};
+	pos1 += 8; // std::strlen("boundary");
+
+	pos1 = type.find('=', pos1);
+	if (pos1 == std::string_view::npos)
+		return {};
+	pos1 += 1;
+
+	std::size_t pos2 = type.find_first_of("\r;", pos1);
+
+	std::string_view boundary = type.substr(pos1, pos2 == std::string_view::npos ? pos2 : pos2 - pos1);
+
+	return multipart_parser_execute<String>(msg.body(), boundary);
 }
 
 #undef CRLF

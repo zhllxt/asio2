@@ -1,48 +1,48 @@
-opensslµÄ±àÒë·½·¨¿ÉÒÔÖ±½Ó¿´ÏÂÔØµÄopenssl°üÖĞµÄINSTALLÎÄ¼ş,²»¹ÜÊÇÏë±àÒë³É¾²Ì¬¿â¶¯Ì¬¿âµÈµÈ¶¼¿ÉÒÔÍ¨¹ı¸ÃÎÄ¼şµÄËµÃ÷×Ô¼ºÈ¥±àÒëÊÊºÏ×Ô¼ºËùÓÃµÄ.
+opensslçš„ç¼–è¯‘æ–¹æ³•å¯ä»¥ç›´æ¥çœ‹ä¸‹è½½çš„opensslåŒ…ä¸­çš„INSTALLæ–‡ä»¶,ä¸ç®¡æ˜¯æƒ³ç¼–è¯‘æˆé™æ€åº“åŠ¨æ€åº“ç­‰ç­‰éƒ½å¯ä»¥é€šè¿‡è¯¥æ–‡ä»¶çš„è¯´æ˜è‡ªå·±å»ç¼–è¯‘é€‚åˆè‡ªå·±æ‰€ç”¨çš„.
 
-## WindowsÏÂ±àÒëopenssl²½Öè
+## Windowsä¸‹ç¼–è¯‘opensslæ­¥éª¤
 
-ÏÈ°²×°ActivePerl http://www.activestate.com/activeperl/downloads/
-Èç¹û°²×°Ä¿Â¼ÊÇC:\Perl64\ ½«perlµÄbinÂ·¾¶·Åµ½µçÄÔµÄ»·¾³±äÁ¿PATH
+å…ˆå®‰è£…ActivePerl http://www.activestate.com/activeperl/downloads/
+å¦‚æœå®‰è£…ç›®å½•æ˜¯C:\Perl64\ å°†perlçš„binè·¯å¾„æ”¾åˆ°ç”µè„‘çš„ç¯å¢ƒå˜é‡PATH
 
-1.µ½https://github.com/openssl/opensslÏÂÔØopensslÔ´Âë,±ÈÈçÏÂÔØµÄÔ´Âë°üÎªopenssl-OpenSSL_1_1_1h.zip
-2.´ò¿ª ÊÊÓÃÓÚ VS 2017 µÄ x64 ±¾»ú¹¤¾ßÃüÁîÌáÊ¾(Èç¹ûÒª±àÒë32Î»µÄÔò´ò¿ªVS 2017µÄ¿ª·¢ÈËÔ±ÃüÁîÌáÊ¾·û¼´¿É)
+1.åˆ°https://github.com/openssl/opensslä¸‹è½½opensslæºç ,æ¯”å¦‚ä¸‹è½½çš„æºç åŒ…ä¸ºopenssl-OpenSSL_1_1_1h.zip
+2.æ‰“å¼€ é€‚ç”¨äº VS 2017 çš„ x64 æœ¬æœºå·¥å…·å‘½ä»¤æç¤º(å¦‚æœè¦ç¼–è¯‘32ä½çš„åˆ™æ‰“å¼€VS 2017çš„å¼€å‘äººå‘˜å‘½ä»¤æç¤ºç¬¦å³å¯)
 3.perl Configure VC-WIN64A no-shared
 4.nmake
 5.nmake test
 6.nmake install
-7.ÒÔÉÏ±àÒë²½ÖèÊµ¼Ê²Î¿¼×ÔÏÂÔØµÄÔ´Âë°üÖĞµÄopenssl/INSTALLÎÄ¼ş
+7.ä»¥ä¸Šç¼–è¯‘æ­¥éª¤å®é™…å‚è€ƒè‡ªä¸‹è½½çš„æºç åŒ…ä¸­çš„openssl/INSTALLæ–‡ä»¶
 
-¸½:32Î»±àÒë·½·¨ºÍÉÏÃæ²½ÖèÏàÍ¬,Ö»²»¹ıÄ³Ğ©±àÒë²ÎÊı²»Í¬¶øÒÑ,Èçperl Configure VC-WIN32 no-shared
+é™„:32ä½ç¼–è¯‘æ–¹æ³•å’Œä¸Šé¢æ­¥éª¤ç›¸åŒ,åªä¸è¿‡æŸäº›ç¼–è¯‘å‚æ•°ä¸åŒè€Œå·²,å¦‚perl Configure VC-WIN32 no-shared
 
-## LinuxÏÂ±àÒëopenssl²½Öè
+## Linuxä¸‹ç¼–è¯‘opensslæ­¥éª¤
 
-¿´INSTALLÎÄ¼ş¼´¿É,ºÜ¼òµ¥
+çœ‹INSTALLæ–‡ä»¶å³å¯,å¾ˆç®€å•
 
-## ArmÏÂµÄopenssl½»²æ±àÒë²½Öè
+## Armä¸‹çš„openssläº¤å‰ç¼–è¯‘æ­¥éª¤
 
-1.ÏÂÔØarm gcc±àÒëÆ÷
-  ´ò¿ªhttps://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-a/downloads
-  Ò³ÃæÉÏÏÔÊ¾ÓĞGNU-AºÍGNU-RM
-  ÏÂÔØGNU-AÕâ¸öÒ³ÃæÀïÃæµÄarm gcc±àÒëÆ÷:gcc-arm-8.3-2019.03-x86_64-arm-linux-gnueabihf.tar.xz
-  Èç¹ûÏÂÔØµÄÆäËüµÄ±àÒëÆ÷°ü,ÔÚ±àÒëÊ±¿ÉÄÜ»áÌáÊ¾ÎŞ·¨Ê¶±ğµÄÖ¸Áî"-pthread",ÕâÀïÄãµ½Õâ¸ö°üÀïÃæËÑË÷Ò»ÏÂ,¿´ÓĞÃ»ÓĞpthreadµÄ¾²Ì¬¿â,Èç¹ûÃ»ÓĞ,ÄÇÕâ¸ö°ü¿ÉÄÜ¾Í²»ÄÜÓÃ
-  Áí:Ãû×ÖÖĞ´øÓĞnone-linuxµÄ°üËÆºõÊÇÖ»ÄÜ±àÒë²Ù×÷ÏµÍ³ÄÚºË²»ÄÜ±àÒëapplication ËùÒÔÓÅÏÈÕÒÄÇĞ©²»´ønone-linuxµÄÏÂÔØ
-2.½âÑ¹gcc-arm-8.3-2019.03-x86_64-arm-linux-gnueabihf.tar.xz°üµ½Ä³¸öÎÄ¼ş¼Ğ,Èç/usr/local/gcc-arm-8.3-2019.03-x86_64-arm-linux-gnueabihf
-3.vim /etc/profile (½«°Ñ½»²æ±àÒë¹¤¾ßÁ´µÄÂ·¾¶Ìí¼Óµ½ÏµÍ³»·¾³±äÁ¿PATHÖĞÈ¥)
-4.ÔÚprofileÖĞ×îºóÒ»ĞĞÌí¼Ó export PATH=$PATH:/usr/local/gcc-arm-8.3-2019.03-x86_64-arm-linux-gnueabihf/bin
-5.ÖØÆôÏµÍ³
-6.arm-linux-gnueabihf-gcc -v ²é¿´°æ±¾,Èç¹ûÏÔÊ¾Õı³£ËµÃ÷arm gcc±àÒëÆ÷°²×°³É¹¦
-7.ÏÂÔØ²¢½âÑ¹openssl-OpenSSL_1_1_1h.zip°ü
-8.½øÈëµ½½âÑ¹ºóµÄÄ¿Â¼ÖĞ,Ö´ĞĞÃüÁî
+1.ä¸‹è½½arm gccç¼–è¯‘å™¨
+  æ‰“å¼€https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-a/downloads
+  é¡µé¢ä¸Šæ˜¾ç¤ºæœ‰GNU-Aå’ŒGNU-RM
+  ä¸‹è½½GNU-Aè¿™ä¸ªé¡µé¢é‡Œé¢çš„arm gccç¼–è¯‘å™¨:gcc-arm-8.3-2019.03-x86_64-arm-linux-gnueabihf.tar.xz
+  å¦‚æœä¸‹è½½çš„å…¶å®ƒçš„ç¼–è¯‘å™¨åŒ…,åœ¨ç¼–è¯‘æ—¶å¯èƒ½ä¼šæç¤ºæ— æ³•è¯†åˆ«çš„æŒ‡ä»¤"-pthread",è¿™é‡Œä½ åˆ°è¿™ä¸ªåŒ…é‡Œé¢æœç´¢ä¸€ä¸‹,çœ‹æœ‰æ²¡æœ‰pthreadçš„é™æ€åº“,å¦‚æœæ²¡æœ‰,é‚£è¿™ä¸ªåŒ…å¯èƒ½å°±ä¸èƒ½ç”¨
+  å¦:åå­—ä¸­å¸¦æœ‰none-linuxçš„åŒ…ä¼¼ä¹æ˜¯åªèƒ½ç¼–è¯‘æ“ä½œç³»ç»Ÿå†…æ ¸ä¸èƒ½ç¼–è¯‘application æ‰€ä»¥ä¼˜å…ˆæ‰¾é‚£äº›ä¸å¸¦none-linuxçš„ä¸‹è½½
+2.è§£å‹gcc-arm-8.3-2019.03-x86_64-arm-linux-gnueabihf.tar.xzåŒ…åˆ°æŸä¸ªæ–‡ä»¶å¤¹,å¦‚/usr/local/gcc-arm-8.3-2019.03-x86_64-arm-linux-gnueabihf
+3.vim /etc/profile (å°†æŠŠäº¤å‰ç¼–è¯‘å·¥å…·é“¾çš„è·¯å¾„æ·»åŠ åˆ°ç³»ç»Ÿç¯å¢ƒå˜é‡PATHä¸­å»)
+4.åœ¨profileä¸­æœ€åä¸€è¡Œæ·»åŠ  export PATH=$PATH:/usr/local/gcc-arm-8.3-2019.03-x86_64-arm-linux-gnueabihf/bin
+5.é‡å¯ç³»ç»Ÿ
+6.arm-linux-gnueabihf-gcc -v æŸ¥çœ‹ç‰ˆæœ¬,å¦‚æœæ˜¾ç¤ºæ­£å¸¸è¯´æ˜arm gccç¼–è¯‘å™¨å®‰è£…æˆåŠŸ
+7.ä¸‹è½½å¹¶è§£å‹openssl-OpenSSL_1_1_1h.zipåŒ…
+8.è¿›å…¥åˆ°è§£å‹åçš„ç›®å½•ä¸­,æ‰§è¡Œå‘½ä»¤
   ./config no-asm no-shared --api=0.9.8 --prefix=/opt/openssl --openssldir=/usr/local/ssl CROSS_COMPILE=arm-linux-gnueabihf- CC=gcc
-  ÃüÁîÖĞµÄ--api=0.9.8±íÊ¾±àÒëºóÀÏ°æ±¾ÖĞÒÑ·ÏÆúµÄAPIÈÔÈ»¿ÉÒÔÊ¹ÓÃ,Èç¹û²»¼ÓÕâ¸öÑ¡Ïî,¿ÉÄÜÔÚÊ¹ÓÃÕâĞ©¿âÊ±»áÌáÊ¾±¨´í
-  Èç¹ûÌáÊ¾ÎŞ·¨Ê¶±ğµÄÖ¸Áî"-m64",ÄÇ¾Í±à¼­Ä¿Â¼ÏÂµÄMakefileÎÄ¼ş,ÕÒµ½ËùÓĞ-m64Ñ¡ÏîÈ»ºóÖ±½ÓÉ¾µô¼´¿É
-  Ô´ÂëÍ·ÎÄ¼şÌí¼Ó(ÔÚ°üº¬opensslÍ·ÎÄ¼şÖ®Ç°)#define OPENSSL_API_COMPAT 0x00908000L
+  å‘½ä»¤ä¸­çš„--api=0.9.8è¡¨ç¤ºç¼–è¯‘åè€ç‰ˆæœ¬ä¸­å·²åºŸå¼ƒçš„APIä»ç„¶å¯ä»¥ä½¿ç”¨,å¦‚æœä¸åŠ è¿™ä¸ªé€‰é¡¹,å¯èƒ½åœ¨ä½¿ç”¨è¿™äº›åº“æ—¶ä¼šæç¤ºæŠ¥é”™
+  å¦‚æœæç¤ºæ— æ³•è¯†åˆ«çš„æŒ‡ä»¤"-m64",é‚£å°±ç¼–è¾‘ç›®å½•ä¸‹çš„Makefileæ–‡ä»¶,æ‰¾åˆ°æ‰€æœ‰-m64é€‰é¡¹ç„¶åç›´æ¥åˆ æ‰å³å¯
+  æºç å¤´æ–‡ä»¶æ·»åŠ (åœ¨åŒ…å«opensslå¤´æ–‡ä»¶ä¹‹å‰)#define OPENSSL_API_COMPAT 0x00908000L
 9.make
 10.make install
-11.±àÒëÆäËü´úÂëµÄÖ¸ÁîºÍ±ê×¼linuxÏÂµÄgcc±àÒëÖ¸ÁîÒ»Ñù,Èç
-// ±àÒë
+11.ç¼–è¯‘å…¶å®ƒä»£ç çš„æŒ‡ä»¤å’Œæ ‡å‡†linuxä¸‹çš„gccç¼–è¯‘æŒ‡ä»¤ä¸€æ ·,å¦‚
+// ç¼–è¯‘
 arm-linux-gnueabihf-g++ -c -x c++ main.cpp -I /usr/local/include  -I /opt/openssl/include -g2 -gdwarf-2 -o main.o -Wall -Wswitch -W"no-deprecated-declarations" -W"empty-body" -Wconversion -W"return-type" -Wparentheses -W"no-format" -Wuninitialized -W"unreachable-code" -W"unused-function" -W"unused-value" -W"unused-variable" -O3 -fno-strict-aliasing -fno-omit-frame-pointer -fthreadsafe-statics -fexceptions -frtti -std=c++17
-// Á´½Ó
+// é“¾æ¥
 arm-linux-gnueabihf-g++ -o main.out -Wl,--no-undefined -Wl,-L/opt/openssl/lib -Wl,-z,relro -Wl,-z,now -Wl,-z,noexecstack -pthread -lrt -ldl -Wl,-rpath=. main.o -lstdc++fs -l:libssl.a -l:libcrypto.a
-¸½:¾­¹ı²âÊÔ,ÓÃ´Ë±àÒëÆ÷±àÒëµÄ¿ÉÖ´ĞĞÎÄ¼şÔÚÊ÷İ®ÅÉ4ÏÂ¿ÉÒÔÕı³£ÔËĞĞ,¿ÉÓÃ¹Ø¼ü×Ö"Ê÷İ®ÅÉ½»²æ±àÒë"À´²éÑ¯Ïà¹Ø½á¹û
+é™„:ç»è¿‡æµ‹è¯•,ç”¨æ­¤ç¼–è¯‘å™¨ç¼–è¯‘çš„å¯æ‰§è¡Œæ–‡ä»¶åœ¨æ ‘è“æ´¾4ä¸‹å¯ä»¥æ­£å¸¸è¿è¡Œ,å¯ç”¨å…³é”®å­—"æ ‘è“æ´¾äº¤å‰ç¼–è¯‘"æ¥æŸ¥è¯¢ç›¸å…³ç»“æœ

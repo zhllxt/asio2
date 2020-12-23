@@ -65,12 +65,12 @@ namespace asio2::detail
 		}
 
 		template<bool isRequest, class Body, class Fields, class Callback>
-		inline bool _ws_send(copyable_wrapper<http::message<isRequest, Body, Fields>>& data, Callback&& callback)
+		inline bool _ws_send(http::message<isRequest, Body, Fields>& data, Callback&& callback)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
 			std::ostringstream oss;
-			oss << data();
+			oss << data;
 			std::unique_ptr<std::string> str = std::make_unique<std::string>(oss.str());
 
 			auto buffer = asio::buffer(*str);

@@ -38,7 +38,9 @@ namespace asio2::detail
 	template<bool isRequest, class Body, class Fields = http::fields>
 	class http_request_impl_t
 		: public http::message<isRequest, Body, Fields>
+#ifndef ASIO2_DISABLE_HTTP_REQUEST_USER_DATA_CP
 		, public user_data_cp<http_request_impl_t<isRequest, Body, Fields>>
+#endif
 	{
 		template <class>                             friend class beast::websocket::listener;
 
@@ -94,23 +96,23 @@ namespace asio2::detail
 			return *this;
 		}
 
-		http_request_impl_t(const http::request_t<http::string_body>& req)
+		http_request_impl_t(const http::message<isRequest, Body, Fields>& req)
 		{
 			this->base() = req;
 		}
 
-		http_request_impl_t(http::request_t<http::string_body>&& req)
+		http_request_impl_t(http::message<isRequest, Body, Fields>&& req)
 		{
 			this->base() = std::move(req);
 		}
 
-		self& operator=(const http::request_t<http::string_body>& req)
+		self& operator=(const http::message<isRequest, Body, Fields>& req)
 		{
 			this->base() = req;
 			return *this;
 		}
 
-		self& operator=(http::request_t<http::string_body>&& req)
+		self& operator=(http::message<isRequest, Body, Fields>&& req)
 		{
 			this->base() = std::move(req);
 			return *this;
@@ -194,7 +196,7 @@ namespace asio2::detail
 
 	protected:
 		http::http_parser_ns::http_parser_url url_parser_;
-		websocket::frame                      ws_frame_type_;
+		websocket::frame                      ws_frame_type_ = websocket::frame::unknown;
 		std::string_view                      ws_frame_data_;
 	};
 }

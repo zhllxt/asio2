@@ -173,23 +173,16 @@ namespace asio2::detail
 			{
 				try
 				{
-					if constexpr (std::is_same_v<MatchCondition, void>)
+					ASIO2_ASSERT(bool(this->ws_stream_));
+					// Read a message into our buffer
+					this->ws_stream_->async_read(derive.buffer().base(),
+						asio::bind_executor(derive.io().strand(),
+							make_allocator(derive.rallocator(),
+								[&derive, this_ptr = std::move(this_ptr), condition = std::move(condition)]
+					(const error_code & ec, std::size_t bytes_recvd) mutable
 					{
-						ASIO2_ASSERT(bool(this->ws_stream_));
-						// Read a message into our buffer
-						this->ws_stream_->async_read(derive.buffer().base(),
-							asio::bind_executor(derive.io().strand(),
-								make_allocator(derive.rallocator(),
-									[&derive, this_ptr = std::move(this_ptr), condition]
-						(const error_code & ec, std::size_t bytes_recvd) mutable
-						{
-							derive._handle_recv(ec, bytes_recvd, std::move(this_ptr), condition);
-						})));
-					}
-					else
-					{
-						std::ignore = true;
-					}
+						derive._handle_recv(ec, bytes_recvd, std::move(this_ptr), std::move(condition));
+					})));
 				}
 				catch (system_error & e)
 				{
@@ -198,6 +191,37 @@ namespace asio2::detail
 					derive._do_disconnect(e.code());
 				}
 			}
+		}
+
+		template<typename MatchCondition>
+		void _ws_handle_recv(const error_code & ec, std::size_t bytes_recvd,
+			std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
+			set_last_error(ec);
+
+			// bytes_recvd : The number of bytes in the streambuf's get area up to and including the delimiter.
+			if (!ec)
+			{
+				// every times recv data,we update the last alive time.
+				derive.update_alive_time();
+
+				derive._fire_recv(this_ptr, std::string_view(reinterpret_cast<
+					std::string_view::const_pointer>(derive.buffer().data().data()), bytes_recvd), condition);
+
+				derive.buffer().consume(bytes_recvd);
+
+				derive._post_recv(std::move(this_ptr), std::move(condition));
+			}
+			else
+			{
+				derive._do_disconnect(ec);
+			}
+			// If an error occurs then no new asynchronous operations are started. This
+			// means that all shared_ptr references to the connection object will
+			// disappear and the object will be destroyed automatically after this
+			// handler returns. The connection class's destructor closes the socket.
 		}
 
 		template<typename MatchCondition>
@@ -290,10 +314,10 @@ namespace asio2::detail
 				// Perform the websocket handshake
 				this->ws_stream_->async_handshake(rep, derive.host_, derive.upgrade_target(),
 					asio::bind_executor(derive.io().strand(), make_allocator(derive.rallocator(),
-						[&derive, this_ptr = std::move(this_ptr), g = std::move(g), condition]
+						[&derive, this_ptr = std::move(this_ptr), condition = std::move(condition), g = std::move(g)]
 				(error_code const& ec) mutable
 				{
-					derive._handle_upgrade(ec, std::move(this_ptr), condition);
+					derive._handle_upgrade(ec, std::move(this_ptr), std::move(condition));
 				})));
 			};
 
@@ -322,10 +346,10 @@ namespace asio2::detail
 				// Accept the websocket handshake
 				this->ws_stream_->async_accept(req, asio::bind_executor(derive.io().strand(),
 					make_allocator(derive.rallocator(),
-						[&derive, this_ptr = std::move(this_ptr), g = std::move(g), condition]
+						[&derive, this_ptr = std::move(this_ptr), condition = std::move(condition), g = std::move(g)]
 				(error_code ec) mutable
 				{
-					derive._handle_upgrade(ec, std::move(this_ptr), condition);
+					derive._handle_upgrade(ec, std::move(this_ptr), std::move(condition));
 				})));
 			};
 
@@ -353,10 +377,10 @@ namespace asio2::detail
 				// Accept the websocket handshake
 				this->ws_stream_->async_accept(asio::bind_executor(derive.io().strand(),
 					make_allocator(derive.rallocator(),
-						[&derive, this_ptr = std::move(this_ptr), g = std::move(g), condition]
+						[&derive, this_ptr = std::move(this_ptr), condition = std::move(condition), g = std::move(g)]
 				(error_code ec) mutable
 				{
-					derive._handle_upgrade(ec, std::move(this_ptr), condition);
+					derive._handle_upgrade(ec, std::move(this_ptr), std::move(condition));
 				})));
 			};
 

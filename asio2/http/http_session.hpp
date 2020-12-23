@@ -30,8 +30,8 @@ namespace asio2::detail
 		using stream_t    = websocket::stream<asio::ip::tcp::socket&>;
 		using body_t      = http::string_body;
 		using buffer_t    = beast::flat_buffer;
-		using send_data_t = http::response&;
-		using recv_data_t = http::request&;
+		using send_data_t = std::string_view;
+		using recv_data_t = std::string_view;
 	};
 
 	ASIO2_CLASS_FORWARD_DECLARE_BASE;
@@ -60,6 +60,8 @@ namespace asio2::detail
 		using key_type    = std::size_t;
 		using body_type   = typename args_t::body_t;
 		using buffer_type = typename args_t::buffer_t;
+		using send_data_t = typename args_t::send_data_t;
+		using recv_data_t = typename args_t::recv_data_t;
 
 		using ws_stream_comp = ws_stream_cp<derived_t, args_t>;
 
@@ -117,7 +119,7 @@ namespace asio2::detail
 				std::shared_ptr<derived_t> this_ptr = wptr.lock();
 				if (this_ptr)
 				{
-					this->derived()._send_response(std::move(this_ptr), condition);
+					this->derived()._send_response(std::move(this_ptr), std::move(condition));
 				}
 			};
 
@@ -154,6 +156,8 @@ namespace asio2::detail
 
 		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
 		{
+			this->derived()._rdc_stop();
+
 			if (this->is_http())
 			{
 				super::_handle_disconnect(ec, std::move(this_ptr));
@@ -184,7 +188,7 @@ namespace asio2::detail
 
 			if (!this->derived().io().strand().running_in_this_thread())
 			{
-				this->derived().post([this, this_ptr = std::move(this_ptr), condition]() mutable
+				this->derived().post([this, this_ptr = std::move(this_ptr), condition = std::move(condition)]() mutable
 				{
 					this->derived()._send_response(std::move(this_ptr), std::move(condition));
 				});
@@ -195,32 +199,13 @@ namespace asio2::detail
 				return;
 
 			this->derived().send(std::move(this->rep_.base()),
-				[this, this_ptr = std::move(this_ptr), condition]() mutable
+				[this, this_ptr = std::move(this_ptr), condition = std::move(condition)]() mutable
 			{
 				this->derived()._post_recv(std::move(this_ptr), std::move(condition));
 			});
 		}
 
 	protected:
-		template<bool isRequest, class Body, class Fields = http::fields>
-		inline auto _data_persistence(http::message<isRequest, Body, Fields>& msg)
-		{
-			return this->derived()._data_persistence(
-				const_cast<const http::message<isRequest, Body, Fields>&>(msg));
-		}
-
-		template<bool isRequest, class Body, class Fields = http::fields>
-		inline auto _data_persistence(const http::message<isRequest, Body, Fields>& msg)
-		{
-			return copyable_wrapper(std::move(msg));
-		}
-
-		template<bool isRequest, class Body, class Fields = http::fields>
-		inline auto _data_persistence(http::message<isRequest, Body, Fields>&& msg)
-		{
-			return copyable_wrapper(std::move(msg));
-		}
-
 		template<class Data, class Callback>
 		inline bool _do_send(Data& data, Callback&& callback)
 		{
@@ -230,18 +215,55 @@ namespace asio2::detail
 			return this->derived()._http_send(data, std::forward<Callback>(callback));
 		}
 
+		template<class Data>
+		inline send_data_t _rdc_convert_to_send_data(Data& data)
+		{
+			ASIO2_ASSERT(this->websocket_router_ && "Only available in websocket mode");
+			//if (!this->is_websocket())
+			//{
+			//	asio::detail::throw_error(asio::error::operation_not_supported);
+			//}
+			auto buffer = asio::buffer(data);
+			return send_data_t{ reinterpret_cast<
+				std::string_view::const_pointer>(buffer.data()),buffer.size() };
+		}
+
+		template<class Invoker>
+		inline void _rdc_invoke_with_none(const error_code& ec, Invoker& invoker)
+		{
+			ASIO2_ASSERT(this->websocket_router_ && "Only available in websocket mode");
+			if (this->is_websocket())
+				invoker(ec, send_data_t{}, recv_data_t{});
+		}
+
+		template<class Invoker>
+		inline void _rdc_invoke_with_recv(const error_code& ec, Invoker& invoker, recv_data_t data)
+		{
+			ASIO2_ASSERT(this->websocket_router_ && "Only available in websocket mode");
+			if (this->is_websocket())
+				invoker(ec, send_data_t{}, data);
+		}
+
+		template<class Invoker, class FnData>
+		inline void _rdc_invoke_with_send(const error_code& ec, Invoker& invoker, FnData& fn_data)
+		{
+			ASIO2_ASSERT(this->websocket_router_ && "Only available in websocket mode");
+			if (this->is_websocket())
+				invoker(ec, fn_data(), recv_data_t{});
+		}
+
 	protected:
 		template<typename MatchCondition>
 		inline void _post_recv(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
 		{
-			this->derived()._http_post_recv(std::move(this_ptr), condition);
+			this->derived()._http_post_recv(std::move(this_ptr), std::move(condition));
 		}
 
 		template<typename MatchCondition>
 		inline void _handle_recv(const error_code& ec, std::size_t bytes_recvd,
 			std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
 		{
-			this->derived()._http_handle_recv(ec, bytes_recvd, std::move(this_ptr), condition);
+			this->derived()._http_handle_recv(ec, bytes_recvd, std::move(this_ptr), std::move(condition));
 		}
 
 		template<typename MatchCondition>
@@ -249,7 +271,7 @@ namespace asio2::detail
 			condition_wrap<MatchCondition> condition)
 		{
 			this->derived().sessions().post(
-				[this, ec, this_ptr = std::move(self_ptr), condition]() mutable
+				[this, ec, this_ptr = std::move(self_ptr), condition = std::move(condition)]() mutable
 			{
 				try
 				{
@@ -259,9 +281,9 @@ namespace asio2::detail
 
 					asio::detail::throw_error(ec);
 
-					this->derived().post([this, this_ptr = std::move(this_ptr), condition]() mutable
+					this->derived().post([this, this_ptr = std::move(this_ptr), condition = std::move(condition)]() mutable
 					{
-						this->derived()._post_recv(std::move(this_ptr), condition);
+						this->derived()._post_recv(std::move(this_ptr), std::move(condition));
 					});
 				}
 				catch (system_error & e)
@@ -358,8 +380,13 @@ namespace asio2::detail
 
 			this->router_._route(this_ptr, this->req_, this->rep_);
 
+			if (this->is_websocket())
+				this->derived()._rdc_handle_recv(this_ptr, this->req_.ws_frame_data_, condition);
+
 			if (this->rep_.defer_guard_)
+			{
 				this->rep_.defer_guard_.reset();
+			}
 			else
 			{
 				if (this->is_http())

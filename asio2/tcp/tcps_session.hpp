@@ -102,6 +102,8 @@ namespace asio2::detail
 
 		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
 		{
+			this->derived()._rdc_stop();
+
 			this->derived()._ssl_stop(this_ptr, [this, ec, this_ptr]() mutable
 			{
 				super::_handle_disconnect(ec, std::move(this_ptr));
@@ -112,7 +114,7 @@ namespace asio2::detail
 		inline void _handle_connect(const error_code& ec, std::shared_ptr<derived_t> this_ptr,
 			condition_wrap<MatchCondition> condition)
 		{
-			this->derived().post([this, self_ptr = std::move(this_ptr), condition]() mutable
+			this->derived().post([this, self_ptr = std::move(this_ptr), condition = std::move(condition)]() mutable
 			{
 				this->derived()._ssl_start(self_ptr, condition, this->socket_, this->ctx_);
 

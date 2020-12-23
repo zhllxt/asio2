@@ -14,12 +14,22 @@ Header only c++ network library, based on asio,support tcp,udp,http,websocket,rp
 * 基于C++17,基于asio (asio 的 standalone 版本);
 * example目录包含大量的示例工程(工程基于VS2017创建),各种使用方法请参考示例代码;
 
-##### QQ交流群：833425075
+#### QQ交流群：833425075
+
+## 一些基础用法文章教程:
+ - 1、基本概念和使用说明 [https://editor.csdn.net/md/?articleId=108850090](https://editor.csdn.net/md/?articleId=108850090)
+ - 2、各个回调函数的触发顺序和执行流程 [https://editor.csdn.net/md/?articleId=108850715](https://editor.csdn.net/md/?articleId=108850715)
+ - 3、各个回调函数的触发线程以及多线程总结 [https://editor.csdn.net/md/?articleId=108868559](https://editor.csdn.net/md/?articleId=108868559)
+ - 4、使用tcp客户端发送数据时,如何在发送数据的代码处直接获取到服务端返回的结果数据 [https://editor.csdn.net/md/?articleId=110881015](https://editor.csdn.net/md/?articleId=110881015)
+ - asio做tcp的自动拆包时，asio的match condition如何使用的详细说明 [https://mp.csdn.net/console/editor/html/104772948](https://mp.csdn.net/console/editor/html/104772948)
 
 ## v2.6重要更新:
 * 完全移除对boost库的依赖,以前使用http和websocket时需要依赖boost库,现在所有功能都不需要boost了;
 * rpc组件添加了链式调用功能,以前版本中调用rpc函数时,"用户回调函数,超时时长,rpc函数名,rpc函数参数"这些参数都要写在同一个函数中,很容易搞糊涂,现在支持链式调用可避免这个问题了;
 * 重写了http接口,http接口更简单易用了;
+
+## v2.7重要更新:
+* 添加了远程数据调用功能,详见:[使用tcp客户端发送数据时,如何在发送数据的代码处直接获取到服务端返回的结果数据](https://blog.csdn.net/zhllxt/article/details/110881015);
 
 ## 与其它框架的一点区别:
 ```c++
@@ -41,6 +51,8 @@ tcp下也会保证所有连接都正常关闭以后才会退出,你不用考虑�
 比rest_rpc性能约高19%.字符串越来越大时(测试了16K和64K),两者性能基本相同.
 ```
 rpc测试的和说明代码请看:[rpc性能测试代码](https://github.com/zhllxt/asio2/wiki/rpc%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95%E4%BB%A3%E7%A0%81)
+
+###### 对asio2的udp做了一个简单的qps测试,数据大小64字节,测试结果比asio自带的示例中的udp的qps低了约1%
 
 ## TCP:
 ##### 服务端:
@@ -460,6 +472,15 @@ ping.timeout(std::chrono::seconds(3))  // 设置ping超时 默认3秒
 		<< std::endl;
 }).start("151.101.193.69");
 ```
+```c++
+// 直接发送icmp包并同步获取网络延迟的时长
+asio::error_code ec;
+std::cout << asio2::ping::execute("www.baidu.com", std::chrono::seconds(3), "icmp body string", ec).milliseconds() << std::endl;
+std::cout << asio2::ping::execute("www.baidu.com").milliseconds() << std::endl;
+std::cout << asio2::ping::execute("www.baidu.com", std::chrono::seconds(3)).milliseconds() << std::endl;
+std::cout << asio2::ping::execute("www.baidu.com", std::chrono::seconds(3), ec).milliseconds() << std::endl;
+std::cout << asio2::ping::execute("www.baidu.com", ec).milliseconds() << std::endl;
+```
 
 ## SSL:
 ##### TCP/HTTP/WEBSOCKET均支持SSL功能(需要在config.hpp中将#define ASIO2_USE_SSL宏定义放开)
@@ -561,5 +582,24 @@ timer.start_timer(1, std::chrono::seconds(1), [&]()
 		timer.stop_timer(1);
 });
 ```
+##### 手动触发的事件
+```c++
+asio2::tcp_client client;
 
+// 投递一个异步事件,除非这个事件被主动触发,否则永远不会执行
+std::shared_ptr<asio2::async_event> event_ptr = client.post_event([]()
+{
+	// do something.
+});
+
+client.bind_recv([&](std::string_view data)
+{
+	// 比如达到某个条件
+	if (data == "some_condition")
+	{
+		// 触发事件让事件开始执行
+		event_ptr->notify();
+	}
+});
+```
 

@@ -479,6 +479,9 @@ namespace boost::beast::websocket
 {
 	enum class frame
 	{
+		/// 
+		unknown,
+
 		/// A message frame was received
 		message,
 

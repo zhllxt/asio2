@@ -47,14 +47,22 @@
 #include <asio2/icmp/detail/ipv4_header.hpp>
 #include <asio2/icmp/detail/ipv6_header.hpp>
 
+#include <asio2/util/defer.hpp>
+
 namespace asio2
 {
 	class icmp_rep : public detail::ipv4_header, /*public detail::ipv6_header,*/ public detail::icmp_header
 	{
 	public:
-		std::chrono::steady_clock::duration lag;
+		std::chrono::steady_clock::duration lag{ std::chrono::steady_clock::duration(-1) };
 
 		inline bool is_timeout() { return (this->lag.count() == -1); }
+
+		inline auto milliseconds()
+		{
+			return this->lag.count() == -1 ? -1 :
+				std::chrono::duration_cast<std::chrono::milliseconds>(this->lag).count();
+		}
 
 		detail::ipv4_header& base_ipv4() { return static_cast<detail::ipv4_header&>(*this); }
 		//detail::ipv6_header& base_ipv6() { return static_cast<detail::ipv6_header&>(*this); }
@@ -106,9 +114,10 @@ namespace asio2::detail
 		)
 			: super()
 			, iopool_cp(1)
-			, user_data_cp <derived_t, args_t>()
-			, user_timer_cp<derived_t, args_t>(iopool_.get(0))
-			, post_cp      <derived_t, args_t>()
+			, user_data_cp   <derived_t, args_t>()
+			, user_timer_cp  <derived_t, args_t>()
+			, post_cp        <derived_t, args_t>()
+			, async_event_cp <derived_t, args_t>()
 			, socket_    (iopool_.get(0).context())
 			, rallocator_()
 			, wallocator_()
@@ -131,7 +140,7 @@ namespace asio2::detail
 		/**
 		 * @function : start
 		 * @param host A string identifying a location. May be a descriptive name or
-		 * a numeric address string.
+		 * a numeric address string.  example : "151.101.193.69" or "www.google.com"
 		 */
 		inline bool start(std::string_view host)
 		{
@@ -162,6 +171,179 @@ namespace asio2::detail
 		inline bool is_stopped() const
 		{
 			return (this->state_ == state_t::stopped && !this->socket_.lowest_layer().is_open());
+		}
+	public:
+		template<class Rep, class Period>
+		static inline icmp_rep execute(std::string_view host, std::chrono::duration<Rep, Period> timeout,
+			std::string body, error_code& ec)
+		{
+			icmp_rep rep;
+			try
+			{
+				// First assign default value timed_out to ec
+				ec = asio::error::timed_out;
+
+				// The io_context is required for all I/O
+				asio::io_context ioc;
+
+				// These objects perform our I/O
+				asio::ip::icmp::resolver resolver{ ioc };
+				asio::ip::icmp::socket socket{ ioc };
+
+				asio::streambuf request_buffer;
+				asio::streambuf reply_buffer;
+
+				std::ostream os(&request_buffer);
+				std::istream is(&reply_buffer);
+
+				icmp_header echo_request;
+
+				unsigned short id = static_cast<unsigned short>(0);
+				unsigned short sequence_number = static_cast<unsigned short>(0);
+
+				decltype(std::chrono::steady_clock::now()) time_sent;
+
+				// Look up the domain name
+				resolver.async_resolve(host, "",
+					[&](const error_code& ec1, const asio::ip::icmp::resolver::results_type& endpoints) mutable
+				{
+					if (ec1) { ec = ec1; return; }
+
+					for (auto& dest : endpoints)
+					{
+						struct socket_guard
+						{
+							socket_guard(
+								asio::ip::icmp::socket& s,
+								const asio::ip::basic_resolver_entry<asio::ip::icmp>& d
+							) : socket(s), dest(d)
+							{
+								socket.close(ec_ignore);
+								socket.open(dest.endpoint().protocol());
+							}
+							~socket_guard()
+							{
+								// Gracefully close the socket
+								socket.shutdown(asio::ip::tcp::socket::shutdown_both, ec_ignore);
+								socket.close(ec_ignore);
+							}
+							asio::ip::icmp::socket& socket;
+							const asio::ip::basic_resolver_entry<asio::ip::icmp>& dest;
+						};
+
+						std::unique_ptr<socket_guard> guarder = std::make_unique<socket_guard>(socket, dest);
+
+						// Create an ICMP header for an echo request.
+						echo_request.type(icmp_header::echo_request);
+						echo_request.code(0);
+#if defined(WIN32) || defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS_)
+						id = static_cast<unsigned short>(::GetCurrentProcessId());
+#else
+						id = static_cast<unsigned short>(::getpid());
+#endif
+						echo_request.identifier(id);
+						auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+							std::chrono::steady_clock::now().time_since_epoch()).count();
+						sequence_number = static_cast<unsigned short>(ms % (std::numeric_limits<unsigned short>::max)());
+						echo_request.sequence_number(sequence_number);
+						compute_checksum(echo_request, body.begin(), body.end());
+
+						// Encode the request packet.
+						os << echo_request << body;
+
+						// Send the request.
+						time_sent = std::chrono::steady_clock::now();
+
+						socket.async_send_to(request_buffer.data(), dest, [&, guarder = std::move(guarder)]
+						(const error_code& ec2, std::size_t) mutable
+						{
+							if (ec2) { ec = ec2; return; }
+
+							// Discard any data already in the buffer.
+							reply_buffer.consume(reply_buffer.size());
+
+							std::size_t length = sizeof(ipv4_header) + sizeof(icmp_header) + body.size();
+
+							// Wait for a reply. We prepare the buffer to receive up to 64KB.
+							socket.async_receive(reply_buffer.prepare(length), [&, guarder = std::move(guarder)]
+							(const error_code& ec3, std::size_t bytes_recvd) mutable
+							{
+								ec = ec3;
+
+								// The actual number of bytes received is committed to the buffer so that we
+								// can extract it using a std::istream object.
+								reply_buffer.commit(bytes_recvd);
+
+								// Decode the reply packet.
+								ipv4_header& ipv4_hdr = rep.base_ipv4();
+								icmp_header& icmp_hdr = rep.base_icmp();
+								is >> ipv4_hdr >> icmp_hdr;
+
+								ASIO2_ASSERT(ipv4_hdr.total_length() == bytes_recvd);
+
+								// We can receive all ICMP packets received by the host, so we need to
+								// filter out only the echo replies that match the our identifier and
+								// expected sequence number.
+								if (is && icmp_hdr.type() == icmp_header::echo_reply
+									&& icmp_hdr.identifier() == id
+									&& icmp_hdr.sequence_number() == sequence_number)
+								{
+									// Print out some information about the reply packet.
+									rep.lag = std::chrono::steady_clock::now() - time_sent;
+								}
+							});
+						});
+
+						break;
+					}
+				});
+
+				// timedout run
+				ioc.run_for(timeout);
+			}
+			catch (system_error & e)
+			{
+				ec = e.code();
+			}
+
+			return rep;
+		}
+
+		template<class Rep, class Period>
+		static inline icmp_rep execute(std::string_view host, std::chrono::duration<Rep, Period> timeout, std::string body)
+		{
+			error_code ec;
+			icmp_rep rep = execute(host, timeout, std::move(body), ec);
+			asio::detail::throw_error(ec);
+			return rep;
+		}
+
+		template<class Rep, class Period>
+		static inline icmp_rep execute(std::string_view host, std::chrono::duration<Rep, Period> timeout)
+		{
+			error_code ec;
+			icmp_rep rep = execute(host, timeout, R"("Hello!" from Asio ping.)", ec);
+			asio::detail::throw_error(ec);
+			return rep;
+		}
+
+		static inline icmp_rep execute(std::string_view host)
+		{
+			error_code ec;
+			icmp_rep rep = execute(host, std::chrono::seconds(3), R"("Hello!" from Asio ping.)", ec);
+			asio::detail::throw_error(ec);
+			return rep;
+		}
+
+		static inline icmp_rep execute(std::string_view host, error_code& ec)
+		{
+			return execute(host, std::chrono::seconds(3), R"("Hello!" from Asio ping.)", ec);
+		}
+
+		template<class Rep, class Period>
+		static inline icmp_rep execute(std::string_view host, std::chrono::duration<Rep, Period> timeout, error_code& ec)
+		{
+			return execute(host, timeout, R"("Hello!" from Asio ping.)", ec);
 		}
 
 	public:
@@ -638,7 +820,7 @@ namespace asio2::detail
 			this->listener_.notify(event_type::recv, rep);
 		}
 
-	protected:
+	public:
 		/**
 		 * @function : get the buffer object refrence
 		 */
@@ -648,6 +830,7 @@ namespace asio2::detail
 		 */
 		inline io_t & io() { return this->io_; }
 
+	protected:
 		/**
 		 * @function : get the recv/read allocator object refrence
 		 */

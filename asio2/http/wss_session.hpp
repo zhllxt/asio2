@@ -101,6 +101,8 @@ namespace asio2::detail
 
 		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
 		{
+			this->derived()._rdc_stop();
+
 			this->derived()._ws_stop(this_ptr, [this, ec, this_ptr]()
 			{
 				super::_handle_disconnect(ec, std::move(this_ptr));
@@ -111,7 +113,7 @@ namespace asio2::detail
 		inline void _handle_connect(const error_code& ec, std::shared_ptr<derived_t> this_ptr,
 			condition_wrap<MatchCondition> condition)
 		{
-			this->derived().post([this, self_ptr = std::move(this_ptr), condition]() mutable
+			this->derived().post([this, self_ptr = std::move(this_ptr), condition = std::move(condition)]() mutable
 			{
 				this->derived()._ssl_start(self_ptr, condition, this->socket_, this->ctx_);
 
@@ -125,7 +127,7 @@ namespace asio2::detail
 		inline void _handle_handshake(const error_code & ec, std::shared_ptr<derived_t> self_ptr,
 			condition_wrap<MatchCondition> condition)
 		{
-			this->sessions().post([this, ec, this_ptr = std::move(self_ptr), condition]() mutable
+			this->sessions().post([this, ec, this_ptr = std::move(self_ptr), condition = std::move(condition)]() mutable
 			{
 				try
 				{
@@ -158,6 +160,13 @@ namespace asio2::detail
 		inline void _post_recv(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
 		{
 			this->derived()._ws_post_recv(std::move(this_ptr), std::move(condition));
+		}
+
+		template<typename MatchCondition>
+		inline void _handle_recv(const error_code& ec, std::size_t bytes_recvd,
+			std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		{
+			this->derived()._ws_handle_recv(ec, bytes_recvd, std::move(this_ptr), std::move(condition));
 		}
 
 		inline void _fire_upgrade(std::shared_ptr<derived_t>& this_ptr, error_code ec)

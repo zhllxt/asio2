@@ -128,7 +128,7 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			auto task = [&derive, ec, this_ptr, old_state, defer_task = std::move(defer_task)]
+			auto task = [&derive, ec, this_ptr = std::move(this_ptr), old_state, defer_task = std::move(defer_task)]
 			(event_queue_guard<derived_t>&& g) mutable
 			{
 				set_last_error(ec);

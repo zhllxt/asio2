@@ -204,7 +204,7 @@ namespace asio2::detail
 					asio::detail::throw_error(ec);
 
 					this->_kcp_start(self_ptr, this->seq_);
-					this->_handle_handshake(ec, std::move(self_ptr), condition);
+					this->_handle_handshake(ec, std::move(self_ptr), std::move(condition));
 				}
 				else
 				{
@@ -237,7 +237,8 @@ namespace asio2::detail
 					// step 2 : client wait for recv synack util connect timeout or recvd some data
 					derive.socket().async_receive(derive.buffer().prepare(derive.buffer().pre_size()),
 						asio::bind_executor(derive.io().strand(), make_allocator(derive.rallocator(),
-							[this, this_ptr = std::move(self_ptr), condition, timer = std::move(timer)]
+							[this, this_ptr = std::move(self_ptr), condition = std::move(condition),
+							timer = std::move(timer)]
 					(const error_code & ec, std::size_t bytes_recvd) mutable
 					{
 						timer->cancel(ec_ignore);
@@ -247,7 +248,7 @@ namespace asio2::detail
 							this->_handle_handshake(
 								derive._is_connect_timeout() ? asio::error::timed_out :
 								(derive._connect_error_code() ? derive._connect_error_code() : ec),
-								std::move(this_ptr), condition);
+								std::move(this_ptr), std::move(condition));
 							return;
 						}
 
@@ -261,12 +262,12 @@ namespace asio2::detail
 						{
 							std::uint32_t conv = ((kcp::kcphdr*)(s.data()))->th_seq;
 							this->_kcp_start(this_ptr, conv);
-							this->_handle_handshake(ec, std::move(this_ptr), condition);
+							this->_handle_handshake(ec, std::move(this_ptr), std::move(condition));
 						}
 						else
 						{
 							this->_handle_handshake(asio::error::no_protocol_option,
-								std::move(this_ptr), condition);
+								std::move(this_ptr), std::move(condition));
 						}
 
 						derive.buffer().consume(bytes_recvd);

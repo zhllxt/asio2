@@ -93,12 +93,112 @@ namespace asio2::detail
 		 * @param service A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
 		 */
+		template<typename String, typename StrOrInt, typename ParserFun>
+		inline bool start(String&& host, StrOrInt&& service, ParserFun&& parser)
+		{
+			using fun_traits_type = function_traits<std::remove_cv_t<std::remove_reference_t<ParserFun>>>;
+			using IdT = typename fun_traits_type::return_type;
+			using SendDataT = typename fun_traits_type::template args<0>::type;
+			using RecvDataT = typename fun_traits_type::template args<0>::type;
+
+			return this->derived()._do_start(
+				std::forward<String>(host), std::forward<StrOrInt>(service),
+				condition_wrap<use_rdc_t<void, IdT, SendDataT, RecvDataT>>(
+					std::in_place,
+					std::forward<ParserFun>(parser)));
+		}
+
+		/**
+		 * @function : start the server
+		 * @param host A string identifying a location. May be a descriptive name or
+		 * a numeric address string.
+		 * @param service A string identifying the requested service. This may be a
+		 * descriptive name or a numeric string corresponding to a port number.
+		 */
+		template<typename String, typename StrOrInt, typename SendParserFun, typename RecvParserFun>
+		inline bool start(String&& host, StrOrInt&& service, SendParserFun&& send_parser, RecvParserFun&& recv_parser)
+		{
+			using send_fun_traits_type = function_traits<std::remove_cv_t<std::remove_reference_t<SendParserFun>>>;
+			using recv_fun_traits_type = function_traits<std::remove_cv_t<std::remove_reference_t<RecvParserFun>>>;
+			using SendIdT = typename send_fun_traits_type::return_type;
+			using RecvIdT = typename recv_fun_traits_type::return_type;
+			using SendDataT = typename send_fun_traits_type::template args<0>::type;
+			using RecvDataT = typename recv_fun_traits_type::template args<0>::type;
+
+			static_assert(std::is_same_v<SendIdT, RecvIdT>);
+
+			return this->derived()._do_start(
+				std::forward<String>(host), std::forward<StrOrInt>(service),
+				condition_wrap<use_rdc_t<void, SendIdT, SendDataT, RecvDataT>>(
+					std::in_place,
+					std::forward<SendParserFun>(send_parser),
+					std::forward<RecvParserFun>(recv_parser)));
+		}
+
+		/**
+		 * @function : start the server
+		 * @param host A string identifying a location. May be a descriptive name or
+		 * a numeric address string.
+		 * @param service A string identifying the requested service. This may be a
+		 * descriptive name or a numeric string corresponding to a port number.
+		 */
 		template<typename String, typename StrOrInt>
 		inline bool start(String&& host, StrOrInt&& service, use_kcp_t c)
 		{
 			return this->derived()._do_start(
 				std::forward<String>(host), std::forward<StrOrInt>(service),
 				condition_wrap<use_kcp_t>(c));
+		}
+
+		/**
+		 * @function : start the server
+		 * @param host A string identifying a location. May be a descriptive name or
+		 * a numeric address string.
+		 * @param service A string identifying the requested service. This may be a
+		 * descriptive name or a numeric string corresponding to a port number.
+		 */
+		template<typename String, typename StrOrInt, typename ParserFun>
+		inline bool start(String&& host, StrOrInt&& service, use_kcp_t c, ParserFun&& parser)
+		{
+			using fun_traits_type = function_traits<std::remove_cv_t<std::remove_reference_t<ParserFun>>>;
+			using IdT = typename fun_traits_type::return_type;
+			using SendDataT = typename fun_traits_type::template args<0>::type;
+			using RecvDataT = typename fun_traits_type::template args<0>::type;
+
+			return this->derived()._do_start(
+				std::forward<String>(host), std::forward<StrOrInt>(service),
+				condition_wrap<use_rdc_t<use_kcp_t, IdT, SendDataT, RecvDataT>>(
+					std::in_place,
+					std::move(c),
+					std::forward<ParserFun>(parser)));
+		}
+
+		/**
+		 * @function : start the server
+		 * @param host A string identifying a location. May be a descriptive name or
+		 * a numeric address string.
+		 * @param service A string identifying the requested service. This may be a
+		 * descriptive name or a numeric string corresponding to a port number.
+		 */
+		template<typename String, typename StrOrInt, typename SendParserFun, typename RecvParserFun>
+		inline bool start(String&& host, StrOrInt&& service, use_kcp_t c, SendParserFun&& send_parser, RecvParserFun&& recv_parser)
+		{
+			using send_fun_traits_type = function_traits<std::remove_cv_t<std::remove_reference_t<SendParserFun>>>;
+			using recv_fun_traits_type = function_traits<std::remove_cv_t<std::remove_reference_t<RecvParserFun>>>;
+			using SendIdT = typename send_fun_traits_type::return_type;
+			using RecvIdT = typename recv_fun_traits_type::return_type;
+			using SendDataT = typename send_fun_traits_type::template args<0>::type;
+			using RecvDataT = typename recv_fun_traits_type::template args<0>::type;
+
+			static_assert(std::is_same_v<SendIdT, RecvIdT>);
+
+			return this->derived()._do_start(
+				std::forward<String>(host), std::forward<StrOrInt>(service),
+				condition_wrap<use_rdc_t<use_kcp_t, SendIdT, SendDataT, RecvDataT>>(
+					std::in_place,
+					std::move(c),
+					std::forward<SendParserFun>(send_parser),
+					std::forward<RecvParserFun>(recv_parser)));
 		}
 
 		/**
@@ -355,7 +455,7 @@ namespace asio2::detail
 
 				asio::detail::throw_error(ec);
 
-				this->derived().post([this, condition]() mutable
+				this->derived().post([this, condition = std::move(condition)]() mutable
 				{
 					this->buffer_.consume(this->buffer_.size());
 
@@ -436,9 +536,10 @@ namespace asio2::detail
 				this->acceptor_.async_receive_from(
 					this->buffer_.prepare(this->buffer_.pre_size()), this->remote_endpoint_,
 					asio::bind_executor(this->io_.strand(), make_allocator(this->rallocator_,
-						[this, condition](const error_code& ec, std::size_t bytes_recvd) mutable
+						[this, condition = std::move(condition)]
+				(const error_code& ec, std::size_t bytes_recvd) mutable
 				{
-					this->derived()._handle_recv(ec, bytes_recvd, condition);
+					this->derived()._handle_recv(ec, bytes_recvd, std::move(condition));
 				})));
 			}
 			catch (system_error & e)
@@ -494,7 +595,7 @@ namespace asio2::detail
 									(event_queue_guard<session_t>&& g) mutable
 								{
 									this->derived()._handle_accept(ec,
-										std::string_view{ syn }, session_ptr, condition);
+										std::string_view{ syn }, session_ptr, std::move(condition));
 								};
 
 								session_ptr->push_event([this, t = std::move(task)]
@@ -527,7 +628,7 @@ namespace asio2::detail
 
 			this->buffer_.consume(this->buffer_.size());
 
-			this->derived()._post_recv(condition);
+			this->derived()._post_recv(std::move(condition));
 		}
 
 		template<typename... Args>
@@ -552,7 +653,7 @@ namespace asio2::detail
 			session_ptr = this->derived()._make_session();
 			session_ptr->counter_ptr_ = this->counter_ptr_;
 			session_ptr->first_ = first;
-			session_ptr->start(condition);
+			session_ptr->start(std::move(condition));
 		}
 
 		inline void _fire_init()

@@ -54,6 +54,8 @@ namespace asio2::detail
 		using key_type = asio::ip::udp::endpoint;
 
 		using buffer_type = typename args_t::buffer_t;
+		using send_data_t = typename args_t::send_data_t;
+		using recv_data_t = typename args_t::recv_data_t;
 
 		using super::send;
 
@@ -106,6 +108,9 @@ namespace asio2::detail
 
 				// First call the base class start function
 				super::start();
+
+				// if the match condition is remote data call mode,do some thing.
+				this->derived()._rdc_init(condition);
 
 				this->derived()._handle_connect(error_code{}, std::move(this_ptr), std::move(condition));
 			}
@@ -212,12 +217,14 @@ namespace asio2::detail
 		template<typename MatchCondition>
 		inline void _do_start(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
 		{
-			this->derived()._join_session(std::move(this_ptr), condition);
+			this->derived()._join_session(std::move(this_ptr), std::move(condition));
 		}
 
 		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
 		{
 			detail::ignore_unused(ec, this_ptr);
+
+			this->derived()._rdc_stop();
 
 			this->derived()._do_stop(ec);
 		}
@@ -236,10 +243,10 @@ namespace asio2::detail
 		template<typename MatchCondition>
 		inline void _join_session(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
 		{
-			this->sessions_.emplace(this_ptr, [this, this_ptr, condition](bool inserted) mutable
+			this->sessions_.emplace(this_ptr, [this, this_ptr, condition = std::move(condition)](bool inserted) mutable
 			{
 				if (inserted)
-					this->derived()._start_recv(std::move(this_ptr), condition);
+					this->derived()._start_recv(std::move(this_ptr), std::move(condition));
 				else
 					this->derived()._do_disconnect(asio::error::address_in_use);
 			});
@@ -254,7 +261,7 @@ namespace asio2::detail
 			if constexpr (std::is_same_v<MatchCondition, use_kcp_t>)
 				std::ignore = true;
 			else
-				this->derived()._handle_recv(error_code{}, this->first_, this_ptr, condition);
+				this->derived()._handle_recv(error_code{}, this->first_, this_ptr, std::move(condition));
 		}
 
 	protected:
@@ -265,6 +272,32 @@ namespace asio2::detail
 				return this->derived()._udp_send_to(
 					this->remote_endpoint_, data, std::forward<Callback>(callback));
 			return this->kcp_->_kcp_send(data, std::forward<Callback>(callback));
+		}
+
+		template<class Data>
+		inline send_data_t _rdc_convert_to_send_data(Data& data)
+		{
+			auto buffer = asio::buffer(data);
+			return send_data_t{ reinterpret_cast<
+				std::string_view::const_pointer>(buffer.data()),buffer.size() };
+		}
+
+		template<class Invoker>
+		inline void _rdc_invoke_with_none(const error_code& ec, Invoker& invoker)
+		{
+			invoker(ec, send_data_t{}, recv_data_t{});
+		}
+
+		template<class Invoker>
+		inline void _rdc_invoke_with_recv(const error_code& ec, Invoker& invoker, recv_data_t data)
+		{
+			invoker(ec, send_data_t{}, data);
+		}
+
+		template<class Invoker, class FnData>
+		inline void _rdc_invoke_with_send(const error_code& ec, Invoker& invoker, FnData& fn_data)
+		{
+			invoker(ec, fn_data(), recv_data_t{});
 		}
 
 	protected:
@@ -314,9 +347,9 @@ namespace asio2::detail
 		inline void _fire_recv(std::shared_ptr<derived_t>& this_ptr, std::string_view s,
 			condition_wrap<MatchCondition>& condition)
 		{
-			detail::ignore_unused(this_ptr, condition);
+			this->listener_.notify(event_type::recv, this_ptr, s);
 
-			this->listener_.notify(event_type::recv, this_ptr, std::move(s));
+			this->derived()._rdc_handle_recv(this_ptr, s, condition);
 		}
 
 		inline void _fire_handshake(std::shared_ptr<derived_t>& this_ptr, error_code ec)
@@ -328,6 +361,16 @@ namespace asio2::detail
 		inline void _fire_connect(std::shared_ptr<derived_t>& this_ptr,
 			condition_wrap<MatchCondition>& condition)
 		{
+			if constexpr (is_template_instance_of_v<use_rdc_t, MatchCondition>)
+			{
+				this->derived()._rdc_start();
+				this->derived()._rdc_post_wait(this_ptr, condition);
+			}
+			else
+			{
+				std::ignore = true;
+			}
+
 			this->listener_.notify(event_type::connect, this_ptr);
 		}
 

@@ -42,6 +42,11 @@ std::uint64_t body_limit_ = (std::numeric_limits<std::uint64_t>::max)();
 std::uint32_t header_limit_ = (std::numeric_limits<std::uint32_t>::max)();     // max header size
 ```
 
+##### Modify file /beast/http/basic_file_body.hpp
+```c++
+// to support copyable
+```
+
 ## Modify the code to be compatible with the mysql "IS_NUM" macro
 
 ##### Modify file /asio2/http/detail/http_parser.h

@@ -52,6 +52,8 @@ namespace asio2::detail
 
 		using body_type   = typename args_t::body_t;
 		using buffer_type = typename args_t::buffer_t;
+		using send_data_t = typename args_t::send_data_t;
+		using recv_data_t = typename args_t::recv_data_t;
 
 		using super::send;
 		using http_send_cp       <derived_t, args_t>::send;
@@ -96,32 +98,32 @@ namespace asio2::detail
 				condition_wrap<void>{});
 		}
 
-		///**
-		// * @function : start the client, blocking connect to server
-		// * @param host A string identifying a location. May be a descriptive name or
-		// * a numeric address string.
-		// * @param port A string identifying the requested service. This may be a
-		// * descriptive name or a numeric string corresponding to a port number.
-		// */
-		//template<typename String, typename StrOrInt, typename SendParserFun, typename RecvParserFun>
-		//bool start(String&& host, StrOrInt&& port, SendParserFun&& send_parser, RecvParserFun&& recv_parser)
-		//{
-		//	using send_fun_traits_type = function_traits<std::remove_cv_t<std::remove_reference_t<SendParserFun>>>;
-		//	using recv_fun_traits_type = function_traits<std::remove_cv_t<std::remove_reference_t<RecvParserFun>>>;
-		//	using SendIdT = typename send_fun_traits_type::return_type;
-		//	using RecvIdT = typename recv_fun_traits_type::return_type;
-		//	using SendDataT = typename send_fun_traits_type::template args<0>::type;
-		//	using RecvDataT = typename recv_fun_traits_type::template args<0>::type;
+		/**
+		 * @function : start the client, blocking connect to server
+		 * @param host A string identifying a location. May be a descriptive name or
+		 * a numeric address string.
+		 * @param port A string identifying the requested service. This may be a
+		 * descriptive name or a numeric string corresponding to a port number.
+		 */
+		template<typename String, typename StrOrInt, typename SendParserFun, typename RecvParserFun>
+		bool start(String&& host, StrOrInt&& port, SendParserFun&& send_parser, RecvParserFun&& recv_parser)
+		{
+			using send_fun_traits_type = function_traits<std::remove_cv_t<std::remove_reference_t<SendParserFun>>>;
+			using recv_fun_traits_type = function_traits<std::remove_cv_t<std::remove_reference_t<RecvParserFun>>>;
+			using SendIdT = typename send_fun_traits_type::return_type;
+			using RecvIdT = typename recv_fun_traits_type::return_type;
+			using SendDataT = typename send_fun_traits_type::template args<0>::type;
+			using RecvDataT = typename recv_fun_traits_type::template args<0>::type;
 
-		//	static_assert(std::is_same_v<SendIdT, RecvIdT>);
+			static_assert(std::is_same_v<SendIdT, RecvIdT>);
 
-		//	return this->derived().template _do_connect<false>(
-		//		std::forward<String>(host), std::forward<StrOrInt>(port),
-		//		condition_wrap<use_rdc_t<void, SendIdT, SendDataT, RecvDataT>>(
-		//			std::in_place,
-		//			std::forward<SendParserFun>(send_parser),
-		//			std::forward<RecvParserFun>(recv_parser)));
-		//}
+			return this->derived().template _do_connect<false>(
+				std::forward<String>(host), std::forward<StrOrInt>(port),
+				condition_wrap<use_rdc_t<void, SendIdT, SendDataT, RecvDataT>>(
+					std::in_place,
+					std::forward<SendParserFun>(send_parser),
+					std::forward<RecvParserFun>(recv_parser)));
+		}
 
 		/**
 		 * @function : start the client, asynchronous connect to server
@@ -138,32 +140,32 @@ namespace asio2::detail
 				condition_wrap<void>{});
 		}
 
-		///**
-		// * @function : start the client, asynchronous connect to server
-		// * @param host A string identifying a location. May be a descriptive name or
-		// * a numeric address string.
-		// * @param port A string identifying the requested service. This may be a
-		// * descriptive name or a numeric string corresponding to a port number.
-		// */
-		//template<typename String, typename StrOrInt, typename SendParserFun, typename RecvParserFun>
-		//bool async_start(String&& host, StrOrInt&& port, SendParserFun&& send_parser, RecvParserFun&& recv_parser)
-		//{
-		//	using send_fun_traits_type = function_traits<std::remove_cv_t<std::remove_reference_t<SendParserFun>>>;
-		//	using recv_fun_traits_type = function_traits<std::remove_cv_t<std::remove_reference_t<RecvParserFun>>>;
-		//	using SendIdT = typename send_fun_traits_type::return_type;
-		//	using RecvIdT = typename recv_fun_traits_type::return_type;
-		//	using SendDataT = typename send_fun_traits_type::template args<0>::type;
-		//	using RecvDataT = typename recv_fun_traits_type::template args<0>::type;
+		/**
+		 * @function : start the client, asynchronous connect to server
+		 * @param host A string identifying a location. May be a descriptive name or
+		 * a numeric address string.
+		 * @param port A string identifying the requested service. This may be a
+		 * descriptive name or a numeric string corresponding to a port number.
+		 */
+		template<typename String, typename StrOrInt, typename SendParserFun, typename RecvParserFun>
+		bool async_start(String&& host, StrOrInt&& port, SendParserFun&& send_parser, RecvParserFun&& recv_parser)
+		{
+			using send_fun_traits_type = function_traits<std::remove_cv_t<std::remove_reference_t<SendParserFun>>>;
+			using recv_fun_traits_type = function_traits<std::remove_cv_t<std::remove_reference_t<RecvParserFun>>>;
+			using SendIdT = typename send_fun_traits_type::return_type;
+			using RecvIdT = typename recv_fun_traits_type::return_type;
+			using SendDataT = typename send_fun_traits_type::template args<0>::type;
+			using RecvDataT = typename recv_fun_traits_type::template args<0>::type;
 
-		//	static_assert(std::is_same_v<SendIdT, RecvIdT>);
+			static_assert(std::is_same_v<SendIdT, RecvIdT>);
 
-		//	return this->derived().template _do_connect<true>(
-		//		std::forward<String>(host), std::forward<StrOrInt>(port),
-		//		condition_wrap<use_rdc_t<void, SendIdT, SendDataT, RecvDataT>>(
-		//			std::in_place,
-		//			std::forward<SendParserFun>(send_parser),
-		//			std::forward<RecvParserFun>(recv_parser)));
-		//}
+			return this->derived().template _do_connect<true>(
+				std::forward<String>(host), std::forward<StrOrInt>(port),
+				condition_wrap<use_rdc_t<void, SendIdT, SendDataT, RecvDataT>>(
+					std::in_place,
+					std::forward<SendParserFun>(send_parser),
+					std::forward<RecvParserFun>(recv_parser)));
+		}
 
 	public:
 		/**
@@ -203,26 +205,24 @@ namespace asio2::detail
 				Buffer buffer;
 
 				// Look up the domain name
-				resolver.async_resolve(
-					to_string(std::forward<String>(host)),
-					to_string(std::forward<StrOrInt>(port)),
-					[&](const error_code& ec1, const asio::ip::tcp::resolver::results_type& endpoints)
+				resolver.async_resolve(std::forward<String>(host), to_string(std::forward<StrOrInt>(port)),
+					[&](const error_code& ec1, const asio::ip::tcp::resolver::results_type& endpoints) mutable
 				{
 					if (ec1) { ec = ec1; return; }
 
 					// Make the connection on the IP address we get from a lookup
 					asio::async_connect(socket, endpoints,
-						[&](const error_code& ec2, const asio::ip::tcp::endpoint&)
+						[&](const error_code& ec2, const asio::ip::tcp::endpoint&) mutable
 					{
 						if (ec2) { ec = ec2; return; }
 
-						http::async_write(socket, req, [&](const error_code & ec3, std::size_t)
+						http::async_write(socket, req, [&](const error_code & ec3, std::size_t) mutable
 						{
 							if (ec3) { ec = ec3; return; }
 
 							// Then start asynchronous reading
 							http::async_read(socket, buffer, parser,
-								[&](const error_code& ec4, std::size_t)
+								[&](const error_code& ec4, std::size_t) mutable
 							{
 								// Reading completed, assign the read the result to ec
 								// If the code does not execute into here, the ec value
@@ -415,79 +415,56 @@ namespace asio2::detail
 		}
 
 	protected:
-		template<bool isRequest, class Body, class Fields = http::fields>
-		inline auto _data_persistence(http::message<isRequest, Body, Fields>& msg)
-		{
-			return this->derived()._data_persistence(
-				const_cast<const http::message<isRequest, Body, Fields>&>(msg));
-		}
-
-		template<bool isRequest, class Body, class Fields = http::fields>
-		inline auto _data_persistence(const http::message<isRequest, Body, Fields>& msg)
-		{
-			return copyable_wrapper(std::move(msg));
-		}
-
-		template<bool isRequest, class Body, class Fields = http::fields>
-		inline auto _data_persistence(http::message<isRequest, Body, Fields>&& msg)
-		{
-			// why use copyable_wrapper? beacuse http::message<isRequest, http::file_body>
-			// is moveable-only, but std::function is copyable-only
-			return copyable_wrapper(std::move(msg));
-		}
-
 		template<class Data, class Callback>
 		inline bool _do_send(Data& data, Callback&& callback)
 		{
 			return this->derived()._http_send(data, std::forward<Callback>(callback));
 		}
 
-		//template<class Data>
-		//inline send_data_t _rdc_convert_to_send_data(Data& data)
-		//{
-		//	auto buffer = asio::buffer(data);
-		//	return send_data_t{ reinterpret_cast<
-		//		std::string_view::const_pointer>(buffer.data()),buffer.size() };
-		//}
+		template<class Data>
+		inline send_data_t _rdc_convert_to_send_data(Data& data)
+		{
+			return data;
+		}
 
-		//template<class Invoker>
-		//inline void _rdc_invoke_with_none(const error_code& ec, Invoker& invoker)
-		//{
-		//	invoker(ec, send_data_t{}, recv_data_t{});
-		//}
+		template<class Invoker>
+		inline void _rdc_invoke_with_none(const error_code& ec, Invoker& invoker)
+		{
+			invoker(ec, this->req_, this->rep_);
+		}
 
-		//template<class Invoker>
-		//inline void _rdc_invoke_with_recv(const error_code& ec, Invoker& invoker, recv_data_t data)
-		//{
-		//	invoker(ec, send_data_t{}, data);
-		//}
+		template<class Invoker>
+		inline void _rdc_invoke_with_recv(const error_code& ec, Invoker& invoker, recv_data_t data)
+		{
+			invoker(ec, this->req_, this->rep_);
+		}
 
-		//template<class Invoker, class FnData>
-		//inline void _rdc_invoke_with_send(const error_code& ec, Invoker& invoker, FnData& fn_data)
-		//{
-		//	invoker(ec, fn_data(), recv_data_t{});
-		//}
+		template<class Invoker, class FnData>
+		inline void _rdc_invoke_with_send(const error_code& ec, Invoker& invoker, FnData& fn_data)
+		{
+			invoker(ec, fn_data(), this->rep_);
+		}
 
 	protected:
 		template<typename MatchCondition>
 		inline void _post_recv(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
 		{
-			this->derived()._http_post_recv(std::move(this_ptr), condition);
+			this->derived()._http_post_recv(std::move(this_ptr), std::move(condition));
 		}
 
 		template<typename MatchCondition>
 		inline void _handle_recv(const error_code & ec, std::size_t bytes_recvd,
 			std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
 		{
-			this->derived()._http_handle_recv(ec, bytes_recvd, std::move(this_ptr), condition);
+			this->derived()._http_handle_recv(ec, bytes_recvd, std::move(this_ptr), std::move(condition));
 		}
 
 		template<typename MatchCondition>
 		inline void _fire_recv(std::shared_ptr<derived_t>& this_ptr, condition_wrap<MatchCondition>& condition)
 		{
-			detail::ignore_unused(this_ptr, condition);
-
 			this->listener_.notify(event_type::recv, this->req_, this->rep_);
+
+			this->derived()._rdc_handle_recv(this_ptr, this->rep_, condition);
 		}
 
 	protected:

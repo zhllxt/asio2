@@ -69,6 +69,7 @@ namespace asio2
 			using type = typename T::value_type;
 		};
 
+		template<typename = void>
 		inline char ascii_tolower(char c)
 		{
 			return char(((static_cast<unsigned>(c) - 65U) < 26) ? c + 'a' - 'A' : c);
@@ -431,6 +432,7 @@ namespace asio2
 	/** 
 	 * @function : Returns `true` if two strings are equal, using a case-insensitive comparison.
 	 */
+	template<typename = void>
 	inline bool iequals(std::string_view lhs, std::string_view rhs)
 	{
 		auto n = lhs.size();

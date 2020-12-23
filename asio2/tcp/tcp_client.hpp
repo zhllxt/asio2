@@ -530,7 +530,7 @@ namespace asio2::detail
 		inline void _start_recv(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
 		{
 			// Connect succeeded. post recv request.
-			this->derived().post([this, self_ptr = std::move(this_ptr), condition]() mutable
+			this->derived().post([this, self_ptr = std::move(this_ptr), condition = std::move(condition)]() mutable
 			{
 				if constexpr (!std::is_same_v<MatchCondition, asio2::detail::hook_buffer_t>)
 				{
@@ -602,14 +602,7 @@ namespace asio2::detail
 		{
 			this->listener_.notify(event_type::recv, s);
 
-			if constexpr (is_template_instance_of_v<use_rdc_t, MatchCondition>)
-			{
-				this->derived()._rdc_handle_recv(this_ptr, s, condition);
-			}
-			else
-			{
-				std::ignore = true;
-			}
+			this->derived()._rdc_handle_recv(this_ptr, s, condition);
 		}
 
 		template<typename MatchCondition>

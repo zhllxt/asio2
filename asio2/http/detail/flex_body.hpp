@@ -87,6 +87,12 @@ public:
     value_type() = default;
 
     /// Constructor
+    value_type(value_type const&) = default;
+
+    /// Assignment
+    value_type& operator=(value_type const&) = default;
+
+    /// Constructor
     value_type(value_type&& other) = default;
 
     /// Move assignment

@@ -154,7 +154,8 @@ namespace asio2::detail
 
 			ASIO2_ASSERT(bool(this->ssl_stream_));
 
-			auto task = [this, &derive, this_ptr, condition](event_queue_guard<derived_t>&& g) mutable
+			auto task = [this, &derive, this_ptr, condition = std::move(condition)]
+			(event_queue_guard<derived_t>&& g) mutable
 			{
 				// Used to chech whether the ssl handshake is timeout
 				std::shared_ptr<std::atomic_flag> flag_ptr = std::make_shared<std::atomic_flag>();
@@ -182,7 +183,7 @@ namespace asio2::detail
 
 				this->ssl_stream_->async_handshake(this->ssl_type_,
 					asio::bind_executor(derive.io().strand(), make_allocator(derive.rallocator(),
-						[&derive, self_ptr = std::move(this_ptr), g = std::move(g), condition,
+						[&derive, self_ptr = std::move(this_ptr), g = std::move(g), condition = std::move(condition),
 						flag_ptr = std::move(flag_ptr), timer = std::move(timer)]
 				(const error_code& ec) mutable
 				{
@@ -216,7 +217,8 @@ namespace asio2::detail
 
 			if constexpr (args_t::is_session)
 			{
-				derive.sessions().post([&derive, ec, this_ptr = std::move(self_ptr), condition]() mutable
+				derive.sessions().post([&derive, ec, this_ptr = std::move(self_ptr),
+					condition = std::move(condition)]() mutable
 				{
 					try
 					{

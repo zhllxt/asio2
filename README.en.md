@@ -406,6 +406,14 @@ ping.timeout(std::chrono::seconds(3))
 		<< std::endl;
 }).start("151.101.193.69");
 ```
+```c++
+asio::error_code ec;
+std::cout << asio2::ping::execute("www.google.com", std::chrono::seconds(3), "icmp body string", ec).milliseconds() << std::endl;
+std::cout << asio2::ping::execute("www.google.com").milliseconds() << std::endl;
+std::cout << asio2::ping::execute("www.google.com", std::chrono::seconds(3)).milliseconds() << std::endl;
+std::cout << asio2::ping::execute("www.google.com", std::chrono::seconds(3), ec).milliseconds() << std::endl;
+std::cout << asio2::ping::execute("www.google.com", ec).milliseconds() << std::endl;
+```
 ## SSL:
 ##### TCP/HTTP/WEBSOCKET all support SSL(config.hpp uncomment #define ASIO2_USE_SSL)
 ```c++
@@ -500,5 +508,25 @@ timer.start_timer(1, std::chrono::seconds(1), [&]()
 	printf("timer 1\n");
 	if (true)
 		timer.stop_timer(1);
+});
+```
+##### Manually triggered events
+```c++
+asio2::tcp_client client;
+
+// Post an asynchronous event that is never executed unless it is manually triggered
+std::shared_ptr<asio2::async_event> event_ptr = client.post_event([]()
+{
+	// do something.
+});
+
+client.bind_recv([&](std::string_view data)
+{
+	// For example, to achieve a certain condition
+	if (data == "some_condition")
+	{
+		// Trigger the event to start execution
+		event_ptr->notify();
+	}
 });
 ```

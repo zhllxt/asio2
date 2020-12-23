@@ -67,9 +67,61 @@ namespace asio2
 	template<>
 	struct convert<bool>
 	{
+		template<typename = void>
+		inline static char ascii_tolower(char c)
+		{
+			return char(((static_cast<unsigned>(c) - 65U) < 26) ? c + 'a' - 'A' : c);
+		}
+
+		/**
+		 * @function : Returns `true` if two strings are equal, using a case-insensitive comparison.
+		 */
+		template<typename = void>
+		inline static bool iequals(std::string_view lhs, std::string_view rhs)
+		{
+			auto n = lhs.size();
+			if (rhs.size() != n)
+				return false;
+			auto p1 = lhs.data();
+			auto p2 = rhs.data();
+			char a, b;
+			// fast loop
+			while (n--)
+			{
+				a = *p1++;
+				b = *p2++;
+				if (a != b)
+					goto slow;
+			}
+			return true;
+		slow:
+			do
+			{
+				if (detail::ascii_tolower(a) != detail::ascii_tolower(b))
+					return false;
+				a = *p1++;
+				b = *p2++;
+			} while (n--);
+			return true;
+		}
+
 		template<class ...Args>
 		inline static bool stov(Args&&... args)
 		{ return (!(std::stoi(std::forward<Args>(args)...) == 0)); }
+
+		template<
+			class CharT,
+			class Traits = std::char_traits<CharT>,
+			class Allocator = std::allocator<CharT>
+		>
+		inline static bool stov(std::basic_string<CharT, Traits, Allocator>&& val)
+		{
+			if (iequals(val, "true"))
+				return true;
+			if (iequals(val, "false"))
+				return false;
+			return (!(std::stoi(val) == 0));
+		}
 	};
 
 	template<>
@@ -235,10 +287,10 @@ namespace asio2
 	}
 
 	/**
-	 * ini operator class
+	 * basic_ini operator class
 	 */
 	template<class Stream = std::fstream>
-	class ini : public Stream
+	class basic_ini : public Stream
 	{
 	public:
 		using char_type = typename Stream::char_type;
@@ -246,7 +298,7 @@ namespace asio2
 		using size_type = typename std::basic_string<char_type>::size_type;
 
 		template<class ...Args>
-		ini(Args&&... args) : Stream(std::forward<Args>(args)...)
+		basic_ini(Args&&... args) : Stream(std::forward<Args>(args)...)
 		{
 #if defined(__unix__) || defined(__linux__)
 			this->endl_ = { '\n' };
@@ -328,7 +380,7 @@ namespace asio2
 								ret = this->_getline(line, s, k, v, posg);
 								if (ret == 'k' && k == key)
 								{
-									val = v;
+									val = std::move(v);
 									return true;
 								}
 							} while (ret == 'k' || ret == 'a' || ret == 'o');
@@ -341,7 +393,7 @@ namespace asio2
 						{
 							if (k == key)
 							{
-								val = v;
+								val = std::move(v);
 								return true;
 							}
 						}
@@ -380,7 +432,7 @@ namespace asio2
 			{
 				std::basic_string<char_type, Traits, Allocator> val;
 				if (this->_get(sec, key, val))
-					default_val = asio2::convert<R>::stov(val);
+					default_val = asio2::convert<R>::stov(std::move(val));
 			}
 			catch (std::exception &) {}
 			return default_val;
@@ -412,7 +464,7 @@ namespace asio2
 			{
 				std::basic_string<char_type, Traits, Allocator> val;
 				if (this->_get(sec, key, val))
-					default_val = asio2::convert<R>::stov(val);
+					default_val = asio2::convert<R>::stov(std::move(val));
 			}
 			catch (std::invalid_argument &)
 			{
@@ -744,6 +796,8 @@ namespace asio2
 
 		std::basic_string<char_type> endl_;
 	};
+
+	using ini     = basic_ini<std::fstream>;
 }
 
 #endif // !__ASIO2_INI_HPP__

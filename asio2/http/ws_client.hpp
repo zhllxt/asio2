@@ -92,6 +92,55 @@ namespace asio2::detail
 		}
 
 		/**
+		 * @function : start the client, blocking connect to server
+		 * @param host A string identifying a location. May be a descriptive name or
+		 * a numeric address string.
+		 * @param port A string identifying the requested service. This may be a
+		 * descriptive name or a numeric string corresponding to a port number.
+		 */
+		template<typename String, typename StrOrInt, typename ParserFun>
+		bool start(String&& host, StrOrInt&& port, ParserFun&& parser)
+		{
+			using fun_traits_type = function_traits<std::remove_cv_t<std::remove_reference_t<ParserFun>>>;
+			using IdT = typename fun_traits_type::return_type;
+			using SendDataT = typename fun_traits_type::template args<0>::type;
+			using RecvDataT = typename fun_traits_type::template args<0>::type;
+
+			return this->derived().template _do_connect<false>(
+				std::forward<String>(host), std::forward<StrOrInt>(port),
+				condition_wrap<use_rdc_t<void, IdT, SendDataT, RecvDataT>>(
+					std::in_place,
+					std::forward<ParserFun>(parser)));
+		}
+
+		/**
+		 * @function : start the client, blocking connect to server
+		 * @param host A string identifying a location. May be a descriptive name or
+		 * a numeric address string.
+		 * @param port A string identifying the requested service. This may be a
+		 * descriptive name or a numeric string corresponding to a port number.
+		 */
+		template<typename String, typename StrOrInt, typename SendParserFun, typename RecvParserFun>
+		bool start(String&& host, StrOrInt&& port, SendParserFun&& send_parser, RecvParserFun&& recv_parser)
+		{
+			using send_fun_traits_type = function_traits<std::remove_cv_t<std::remove_reference_t<SendParserFun>>>;
+			using recv_fun_traits_type = function_traits<std::remove_cv_t<std::remove_reference_t<RecvParserFun>>>;
+			using SendIdT = typename send_fun_traits_type::return_type;
+			using RecvIdT = typename recv_fun_traits_type::return_type;
+			using SendDataT = typename send_fun_traits_type::template args<0>::type;
+			using RecvDataT = typename recv_fun_traits_type::template args<0>::type;
+
+			static_assert(std::is_same_v<SendIdT, RecvIdT>);
+
+			return this->derived().template _do_connect<false>(
+				std::forward<String>(host), std::forward<StrOrInt>(port),
+				condition_wrap<use_rdc_t<void, SendIdT, SendDataT, RecvDataT>>(
+					std::in_place,
+					std::forward<SendParserFun>(send_parser),
+					std::forward<RecvParserFun>(recv_parser)));
+		}
+
+		/**
 		 * @function : start the client, asynchronous connect to server
 		 * @param host A string identifying a location. May be a descriptive name or
 		 * a numeric address string.
@@ -104,6 +153,55 @@ namespace asio2::detail
 			return this->derived().template _do_connect<true>(
 				std::forward<String>(host), std::forward<StrOrInt>(port),
 				condition_wrap<void>{});
+		}
+
+		/**
+		 * @function : start the client, asynchronous connect to server
+		 * @param host A string identifying a location. May be a descriptive name or
+		 * a numeric address string.
+		 * @param port A string identifying the requested service. This may be a
+		 * descriptive name or a numeric string corresponding to a port number.
+		 */
+		template<typename String, typename StrOrInt, typename ParserFun>
+		bool async_start(String&& host, StrOrInt&& port, ParserFun&& parser)
+		{
+			using fun_traits_type = function_traits<std::remove_cv_t<std::remove_reference_t<ParserFun>>>;
+			using IdT = typename fun_traits_type::return_type;
+			using SendDataT = typename fun_traits_type::template args<0>::type;
+			using RecvDataT = typename fun_traits_type::template args<0>::type;
+
+			return this->derived().template _do_connect<true>(
+				std::forward<String>(host), std::forward<StrOrInt>(port),
+				condition_wrap<use_rdc_t<void, IdT, SendDataT, RecvDataT>>(
+					std::in_place,
+					std::forward<ParserFun>(parser)));
+		}
+
+		/**
+		 * @function : start the client, asynchronous connect to server
+		 * @param host A string identifying a location. May be a descriptive name or
+		 * a numeric address string.
+		 * @param port A string identifying the requested service. This may be a
+		 * descriptive name or a numeric string corresponding to a port number.
+		 */
+		template<typename String, typename StrOrInt, typename SendParserFun, typename RecvParserFun>
+		bool async_start(String&& host, StrOrInt&& port, SendParserFun&& send_parser, RecvParserFun&& recv_parser)
+		{
+			using send_fun_traits_type = function_traits<std::remove_cv_t<std::remove_reference_t<SendParserFun>>>;
+			using recv_fun_traits_type = function_traits<std::remove_cv_t<std::remove_reference_t<RecvParserFun>>>;
+			using SendIdT = typename send_fun_traits_type::return_type;
+			using RecvIdT = typename recv_fun_traits_type::return_type;
+			using SendDataT = typename send_fun_traits_type::template args<0>::type;
+			using RecvDataT = typename recv_fun_traits_type::template args<0>::type;
+
+			static_assert(std::is_same_v<SendIdT, RecvIdT>);
+
+			return this->derived().template _do_connect<true>(
+				std::forward<String>(host), std::forward<StrOrInt>(port),
+				condition_wrap<use_rdc_t<void, SendIdT, SendDataT, RecvDataT>>(
+					std::in_place,
+					std::forward<SendParserFun>(send_parser),
+					std::forward<RecvParserFun>(recv_parser)));
 		}
 
 		/**
@@ -183,6 +281,13 @@ namespace asio2::detail
 			condition_wrap<MatchCondition> condition)
 		{
 			this->derived()._ws_post_recv(std::move(this_ptr), std::move(condition));
+		}
+
+		template<typename MatchCondition>
+		inline void _handle_recv(const error_code & ec, std::size_t bytes_recvd,
+			std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		{
+			this->derived()._ws_handle_recv(ec, bytes_recvd, std::move(this_ptr), std::move(condition));
 		}
 
 		inline void _fire_upgrade(std::shared_ptr<derived_t>& this_ptr, error_code ec)

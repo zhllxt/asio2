@@ -24,6 +24,8 @@
 #include <asio2/base/error.hpp>
 
 #include <asio2/http/detail/http_util.hpp>
+#include <asio2/http/request.hpp>
+#include <asio2/http/response.hpp>
 
 namespace asio2::detail
 {
@@ -54,14 +56,57 @@ namespace asio2::detail
 		}
 
 		template<bool isRequest, class Body, class Fields, class Callback>
-		inline bool _http_send(copyable_wrapper<http::message<isRequest, Body, Fields>>& data,
-			Callback&& callback)
+		inline bool _http_send(http::message<isRequest, Body, Fields>& data, Callback&& callback)
 		{
-			using msg_type = std::remove_cv_t<std::remove_reference_t<decltype(data())>>;
-
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			http::async_write(derive.stream(), const_cast<msg_type&>(data()),
+			http::async_write(derive.stream(), data,
+				asio::bind_executor(derive.io().strand(), make_allocator(derive.wallocator(),
+					[&derive, p = derive.selfptr(), callback = std::forward<Callback>(callback)]
+			(const error_code& ec, std::size_t bytes_sent) mutable
+			{
+				set_last_error(ec);
+
+				callback(ec, bytes_sent);
+
+				if (ec)
+				{
+					// must stop, otherwise re-sending will cause body confusion
+					derive._do_disconnect(ec);
+				}
+			})));
+			return true;
+		}
+
+		template<bool isRequest, class Body, class Fields, class Callback>
+		inline bool _http_send(detail::http_request_impl_t<isRequest, Body, Fields>& data, Callback&& callback)
+		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
+			http::async_write(derive.stream(), data.base(),
+				asio::bind_executor(derive.io().strand(), make_allocator(derive.wallocator(),
+					[&derive, p = derive.selfptr(), callback = std::forward<Callback>(callback)]
+			(const error_code& ec, std::size_t bytes_sent) mutable
+			{
+				set_last_error(ec);
+
+				callback(ec, bytes_sent);
+
+				if (ec)
+				{
+					// must stop, otherwise re-sending will cause body confusion
+					derive._do_disconnect(ec);
+				}
+			})));
+			return true;
+		}
+
+		template<bool isRequest, class Body, class Fields, class Callback>
+		inline bool _http_send(detail::http_response_impl_t<isRequest, Body, Fields>& data, Callback&& callback)
+		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
+			http::async_write(derive.stream(), data.base(),
 				asio::bind_executor(derive.io().strand(), make_allocator(derive.wallocator(),
 					[&derive, p = derive.selfptr(), callback = std::forward<Callback>(callback)]
 			(const error_code& ec, std::size_t bytes_sent) mutable

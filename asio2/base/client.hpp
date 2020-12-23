@@ -56,6 +56,8 @@
 #include <asio2/base/component/async_event_cp.hpp>
 #include <asio2/base/component/rdc_call_cp.hpp>
 
+#include <asio2/util/defer.hpp>
+
 namespace asio2::detail
 {
 	ASIO2_CLASS_FORWARD_DECLARE_BASE;
@@ -109,9 +111,9 @@ namespace asio2::detail
 			, disconnect_cp       <derived_t, args_t>()
 			, local_endpoint_cp   <derived_t, args_t>()
 			, reconnect_timer_cp  <derived_t, args_t>(iopool_.get(0))
-			, user_timer_cp       <derived_t, args_t>(iopool_.get(0))
+			, user_timer_cp       <derived_t, args_t>()
 			, connect_timeout_cp  <derived_t, args_t>(iopool_.get(0))
-			, send_cp             <derived_t, args_t>(iopool_.get(0))
+			, send_cp             <derived_t, args_t>()
 			, post_cp             <derived_t, args_t>()
 			, async_event_cp      <derived_t, args_t>()
 			, rdc_call_cp         <derived_t, args_t>()

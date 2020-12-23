@@ -65,6 +65,7 @@ namespace asio2::detail
 	 * the frame header.
 	 * refrenced from beast stream.hpp
 	 */
+	// udp MTU : https://zhuanlan.zhihu.com/p/301276548
 	static std::size_t constexpr  tcp_frame_size = 1536;
 	static std::size_t constexpr  udp_frame_size = 1024;
 	static std::size_t constexpr http_frame_size = 1536;

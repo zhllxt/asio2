@@ -92,25 +92,38 @@ namespace asio2::detail
 			ignore_unused(send_data);
 
 			using fun_traits_type = function_traits<F>;
-			using arg1_type = typename std::remove_cv_t<std::remove_reference_t<
-				typename fun_traits_type::template args<1>::type>>;
+			using arg1_type = typename std::remove_cv_t<typename fun_traits_type::template args<1>::type>;
 
-			if constexpr (has_stream_operator<arg1_type, RecvDataT>::value)
+			if constexpr (std::is_reference_v<arg1_type>)
 			{
-				arg1_type result;
-				result << recv_data;
-				f(ec, result);
-			}
-			else if constexpr (has_equal_operator<arg1_type, RecvDataT>::value)
-			{
-				arg1_type result;
-				result = recv_data;
-				f(ec, result);
+				f(ec, recv_data);
 			}
 			else
 			{
-				arg1_type result{ recv_data };
-				f(ec, result);
+				if (ec)
+				{
+					arg1_type result;
+					f(ec, std::move(result));
+					return;
+				}
+
+				if constexpr (has_stream_operator<arg1_type, RecvDataT>::value)
+				{
+					arg1_type result;
+					result << recv_data;
+					f(ec, std::move(result));
+				}
+				else if constexpr (has_equal_operator<arg1_type, RecvDataT>::value)
+				{
+					arg1_type result;
+					result = recv_data;
+					f(ec, std::move(result));
+				}
+				else
+				{
+					arg1_type result{ recv_data };
+					f(ec, std::move(result));
+				}
 			}
 		}
 
@@ -120,25 +133,38 @@ namespace asio2::detail
 			ignore_unused(send_data);
 
 			using fun_traits_type = function_traits<F>;
-			using arg1_type = typename std::remove_cv_t<std::remove_reference_t<
-				typename fun_traits_type::template args<1>::type>>;
+			using arg1_type = typename std::remove_cv_t<typename fun_traits_type::template args<1>::type>;
 
-			if constexpr (has_stream_operator<arg1_type, RecvDataT>::value)
+			if constexpr (std::is_reference_v<arg1_type>)
 			{
-				arg1_type result;
-				result << recv_data;
-				(c->*f)(ec, result);
-			}
-			else if constexpr (has_equal_operator<arg1_type, RecvDataT>::value)
-			{
-				arg1_type result;
-				result = recv_data;
-				(c->*f)(ec, result);
+				f(ec, recv_data);
 			}
 			else
 			{
-				arg1_type result{ recv_data };
-				(c->*f)(ec, result);
+				if (ec)
+				{
+					arg1_type result;
+					(c->*f)(ec, std::move(result));
+					return;
+				}
+
+				if constexpr (has_stream_operator<arg1_type, RecvDataT>::value)
+				{
+					arg1_type result;
+					result << recv_data;
+					(c->*f)(ec, std::move(result));
+				}
+				else if constexpr (has_equal_operator<arg1_type, RecvDataT>::value)
+				{
+					arg1_type result;
+					result = recv_data;
+					(c->*f)(ec, std::move(result));
+				}
+				else
+				{
+					arg1_type result{ recv_data };
+					(c->*f)(ec, std::move(result));
+				}
 			}
 		}
 	};

@@ -43,6 +43,8 @@
 #include <asio2/base/component/post_cp.hpp>
 #include <asio2/base/component/async_event_cp.hpp>
 
+#include <asio2/util/defer.hpp>
+
 namespace asio2::detail
 {
 	ASIO2_CLASS_FORWARD_DECLARE_BASE;
@@ -69,7 +71,7 @@ namespace asio2::detail
 			: object_t     <derived_t>()
 			, iopool_cp               (concurrency)
 			, user_data_cp <derived_t>()
-			, user_timer_cp<derived_t>(iopool_.get(0))
+			, user_timer_cp<derived_t>()
 			, post_cp      <derived_t>()
 			, rallocator_()
 			, wallocator_()

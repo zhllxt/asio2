@@ -54,7 +54,9 @@ namespace asio2::detail
 	template<bool isRequest, class Body, class Fields = http::fields>
 	class http_response_impl_t
 		: public http::message<isRequest, Body, Fields>
+#ifndef ASIO2_DISABLE_HTTP_RESPONSE_USER_DATA_CP
 		, public user_data_cp<http_response_impl_t<isRequest, Body, Fields>>
+#endif
 	{
 		ASIO2_CLASS_FRIEND_DECLARE_BASE;
 		ASIO2_CLASS_FRIEND_DECLARE_TCP_BASE;
@@ -111,21 +113,49 @@ namespace asio2::detail
 			return *this;
 		}
 
-		http_response_impl_t(const http::response_t<http::string_body>& rep)
+		template<class BodyT = Body>
+		http_response_impl_t(const http::message<isRequest, BodyT, Fields>& rep)
+		{
+			this->base() = rep;
+		}
+
+		template<class BodyT = Body>
+		http_response_impl_t(http::message<isRequest, BodyT, Fields>&& rep)
+		{
+			this->base() = std::move(rep);
+		}
+
+		template<class BodyT = Body>
+		self& operator=(const http::message<isRequest, BodyT, Fields>& rep)
+		{
+			this->base() = rep;
+			return *this;
+		}
+
+		template<class BodyT = Body>
+		self& operator=(http::message<isRequest, BodyT, Fields>&& rep)
+		{
+			this->base() = std::move(rep);
+			return *this;
+		}
+
+		//-------------------------------------------------
+
+		http_response_impl_t(const http::message<isRequest, http::string_body, Fields>& rep)
 		{
 			this->base().base() = rep.base();
 			this->body().text() = rep.body();
 			this->prepare_payload();
 		}
 
-		http_response_impl_t(http::response_t<http::string_body>&& rep)
+		http_response_impl_t(http::message<isRequest, http::string_body, Fields>&& rep)
 		{
 			this->base().base() = std::move(rep.base());
 			this->body().text() = std::move(rep.body());
 			this->prepare_payload();
 		}
 
-		self& operator=(const http::response_t<http::string_body>& rep)
+		self& operator=(const http::message<isRequest, http::string_body, Fields>& rep)
 		{
 			this->base().base() = rep.base();
 			this->body().text() = rep.body();
@@ -133,10 +163,42 @@ namespace asio2::detail
 			return *this;
 		}
 
-		self& operator=(http::response_t<http::string_body>&& rep)
+		self& operator=(http::message<isRequest, http::string_body, Fields>&& rep)
 		{
 			this->base().base() = std::move(rep.base());
 			this->body().text() = std::move(rep.body());
+			this->prepare_payload();
+			return *this;
+		}
+
+		//-------------------------------------------------
+
+		http_response_impl_t(const http::message<isRequest, http::file_body, Fields>& rep)
+		{
+			this->base().base() = rep.base();
+			this->body().file() = rep.body();
+			this->prepare_payload();
+		}
+
+		http_response_impl_t(http::message<isRequest, http::file_body, Fields>&& rep)
+		{
+			this->base().base() = std::move(rep.base());
+			this->body().file() = std::move(rep.body());
+			this->prepare_payload();
+		}
+
+		self& operator=(const http::message<isRequest, http::file_body, Fields>& rep)
+		{
+			this->base().base() = rep.base();
+			this->body().file() = rep.body();
+			this->prepare_payload();
+			return *this;
+		}
+
+		self& operator=(http::message<isRequest, http::file_body, Fields>&& rep)
+		{
+			this->base().base() = std::move(rep.base());
+			this->body().file() = std::move(rep.body());
 			this->prepare_payload();
 			return *this;
 		}

@@ -26,7 +26,7 @@
 
 // ASIO2_VERSION / 100 is the major version
 // ASIO2_VERSION % 100 is the minor version
-#define ASIO2_VERSION 206 // 2.6
+#define ASIO2_VERSION 207 // 2.7
 
 
 

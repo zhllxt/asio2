@@ -47,12 +47,15 @@
 #include <asio2/base/component/send_cp.hpp>
 #include <asio2/base/component/event_queue_cp.hpp>
 #include <asio2/base/component/async_event_cp.hpp>
+#include <asio2/base/component/rdc_call_cp.hpp>
 
 #include <asio2/icmp/detail/icmp_header.hpp>
 #include <asio2/icmp/detail/ipv4_header.hpp>
 
 #include <asio2/tcp/impl/tcp_send_op.hpp>
 #include <asio2/tcp/impl/tcp_recv_op.hpp>
+
+#include <asio2/util/defer.hpp>
 
 namespace asio2::detail
 {
@@ -83,6 +86,7 @@ namespace asio2::detail
 		, public tcp_recv_op    <derived_t, args_t>
 		, public post_cp        <derived_t, args_t>
 		, public async_event_cp <derived_t, args_t>
+		, public rdc_call_cp    <derived_t, args_t>
 	{
 		ASIO2_CLASS_FRIEND_DECLARE_BASE;
 		ASIO2_CLASS_FRIEND_DECLARE_TCP_BASE;
@@ -93,6 +97,8 @@ namespace asio2::detail
 
 		using socket_type = typename args_t::socket_t;
 		using buffer_type = typename args_t::buffer_t;
+		using send_data_t = typename args_t::send_data_t;
+		using recv_data_t = typename args_t::recv_data_t;
 
 		/**
 		 * @constructor
@@ -106,12 +112,13 @@ namespace asio2::detail
 			, event_queue_cp <derived_t, args_t>()
 			, user_data_cp   <derived_t, args_t>()
 			, alive_time_cp  <derived_t, args_t>()
-			, user_timer_cp  <derived_t, args_t>(iopool_.get(0))
-			, send_cp        <derived_t, args_t>(iopool_.get(0))
+			, user_timer_cp  <derived_t, args_t>()
+			, send_cp        <derived_t, args_t>()
 			, tcp_send_op    <derived_t, args_t>()
 			, tcp_recv_op    <derived_t, args_t>()
 			, post_cp        <derived_t, args_t>()
 			, async_event_cp <derived_t, args_t>()
+			, rdc_call_cp    <derived_t, args_t>()
 			, socket_    (iopool_.get(0).context())
 			, rallocator_()
 			, wallocator_()
@@ -161,11 +168,70 @@ namespace asio2::detail
 		}
 
 		/**
+		 * @function : start
+		 * @param device The platform-specific device name for this serial, example "/dev/ttyS0" or "COM1"
+		 * @param baud_rate Communication speed, example 9600 or 115200
+		 * @param condition The delimiter condition.Valid value types include the following:
+		 * char,std::string,std::string_view,
+		 * function:std::pair<iterator, bool> match_condition(iterator begin, iterator end),
+		 * asio::transfer_at_least,asio::transfer_exactly
+		 * more details see asio::read_until
+		 */
+		template<typename String, typename StrOrInt, typename MatchCondition, typename ParserFun>
+		inline bool start(String&& device, StrOrInt&& baud_rate, MatchCondition condition, ParserFun&& parser)
+		{
+			using fun_traits_type = function_traits<std::remove_cv_t<std::remove_reference_t<ParserFun>>>;
+			using IdT = typename fun_traits_type::return_type;
+			using SendDataT = typename fun_traits_type::template args<0>::type;
+			using RecvDataT = typename fun_traits_type::template args<0>::type;
+
+			return this->derived()._do_start(
+				std::forward<String>(device), std::forward<StrOrInt>(baud_rate),
+				condition_wrap<use_rdc_t<MatchCondition, IdT, SendDataT, RecvDataT>>(
+					std::in_place,
+					std::move(condition),
+					std::forward<ParserFun>(parser)));
+		}
+
+		/**
+		 * @function : start
+		 * @param device The platform-specific device name for this serial, example "/dev/ttyS0" or "COM1"
+		 * @param baud_rate Communication speed, example 9600 or 115200
+		 * @param condition The delimiter condition.Valid value types include the following:
+		 * char,std::string,std::string_view,
+		 * function:std::pair<iterator, bool> match_condition(iterator begin, iterator end),
+		 * asio::transfer_at_least,asio::transfer_exactly
+		 * more details see asio::read_until
+		 */
+		template<typename String, typename StrOrInt, typename MatchCondition,
+			typename SendParserFun, typename RecvParserFun>
+		inline bool start(String&& device, StrOrInt&& baud_rate, MatchCondition condition,
+			SendParserFun&& send_parser, RecvParserFun&& recv_parser)
+		{
+			using send_fun_traits_type = function_traits<std::remove_cv_t<std::remove_reference_t<SendParserFun>>>;
+			using recv_fun_traits_type = function_traits<std::remove_cv_t<std::remove_reference_t<RecvParserFun>>>;
+			using SendIdT = typename send_fun_traits_type::return_type;
+			using RecvIdT = typename recv_fun_traits_type::return_type;
+			using SendDataT = typename send_fun_traits_type::template args<0>::type;
+			using RecvDataT = typename recv_fun_traits_type::template args<0>::type;
+
+			static_assert(std::is_same_v<SendIdT, RecvIdT>);
+
+			return this->derived()._do_start(
+				std::forward<String>(device), std::forward<StrOrInt>(baud_rate),
+				condition_wrap<use_rdc_t<MatchCondition, SendIdT, SendDataT, RecvDataT>>(
+					std::in_place,
+					std::move(condition),
+					std::forward<SendParserFun>(send_parser),
+					std::forward<RecvParserFun>(recv_parser)));
+		}
+
+		/**
 		 * @function : stop
 		 */
 		inline void stop()
 		{
-			this->derived()._do_stop(asio::error::operation_aborted);
+			this->derived()._do_disconnect(asio::error::operation_aborted);
 
 			this->iopool_.stop();
 		}
@@ -295,6 +361,9 @@ namespace asio2::detail
 				this->socket_.open(to_string(device));
 				this->socket_.set_option(asio::serial_port::baud_rate(to_integer<unsigned int>(baud_rate)));
 
+				// if the match condition is remote data call mode,do some thing.
+				this->derived()._rdc_init(condition);
+
 				this->derived()._fire_init();
 				// You can set other serial port parameters in on_init(bind_init) callback function like this:
 				// sp.socket().set_option(asio::serial_port::flow_control(serial_port::flow_control::type(flow_control)));
@@ -326,7 +395,7 @@ namespace asio2::detail
 
 				set_last_error(ec);
 
-				this->derived()._fire_start(ec);
+				this->derived()._fire_start(ec, condition);
 
 				expected = state_t::started;
 				if (!ec)
@@ -335,7 +404,7 @@ namespace asio2::detail
 
 				asio::detail::throw_error(ec);
 
-				asio::post(this->io_.strand(), [this, condition]() mutable
+				asio::post(this->io_.strand(), [this, condition = std::move(condition)]() mutable
 				{
 					this->derived()._start_recv(std::move(condition));
 				});
@@ -349,27 +418,63 @@ namespace asio2::detail
 
 		inline void _do_disconnect(const error_code& ec, std::shared_ptr<defer> defer_task = {})
 		{
+			state_t expected = state_t::started;
+			if (this->state_.compare_exchange_strong(expected, state_t::stopping))
+			{
+				return this->derived()._post_disconnect(ec, this->derived().selfptr(), expected, std::move(defer_task));
+			}
+
+			expected = state_t::starting;
+			if (this->state_.compare_exchange_strong(expected, state_t::stopping))
+			{
+				return this->derived()._post_disconnect(ec, this->derived().selfptr(), expected, std::move(defer_task));
+			}
+		}
+
+		inline void _post_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr,
+			state_t old_state, std::shared_ptr<defer> defer_task = {})
+		{
+			auto task = [this, ec, this_ptr = std::move(this_ptr), old_state, defer_task = std::move(defer_task)]
+			(event_queue_guard<derived_t>&& g) mutable
+			{
+				detail::ignore_unused(old_state);
+
+				set_last_error(ec);
+
+				this->derived()._handle_disconnect(ec, std::move(this_ptr));
+			};
+
+			// All pending sending events will be cancelled after enter the send strand below.
+			this->derived().push_event([this, t = std::move(task)](event_queue_guard<derived_t>&& g) mutable
+			{
+				auto task = [g = std::move(g), t = std::move(t)]() mutable
+				{
+					t(std::move(g));
+				};
+				this->derived().post(std::move(task));
+				return true;
+			});
+		}
+
+		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
+		{
+			detail::ignore_unused(this_ptr);
+
+			this->derived()._rdc_stop();
+
 			this->derived()._do_stop(ec);
 		}
 
 		inline void _do_stop(const error_code& ec)
 		{
-			state_t expected = state_t::starting;
-			if (this->state_.compare_exchange_strong(expected, state_t::stopping))
-				return this->derived()._post_stop(ec, this->derived().selfptr(), expected);
-
-			expected = state_t::started;
-			if (this->state_.compare_exchange_strong(expected, state_t::stopping))
-				return this->derived()._post_stop(ec, this->derived().selfptr(), expected);
+			this->derived()._post_stop(ec, this->derived().selfptr());
 		}
 
-		inline void _post_stop(const error_code& ec, std::shared_ptr<derived_t> self_ptr, state_t old_state)
+		inline void _post_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
 		{
 			// All pending sending events will be cancelled after enter the send strand below.
-			asio::post(this->io_.strand(), [this, ec, this_ptr = std::move(self_ptr), old_state]() mutable
+			auto task = [this, ec, this_ptr = std::move(this_ptr)](event_queue_guard<derived_t>&& g) mutable
 			{
-				detail::ignore_unused(old_state);
-
 				set_last_error(ec);
 
 				state_t expected = state_t::stopping;
@@ -384,6 +489,16 @@ namespace asio2::detail
 				{
 					ASIO2_ASSERT(false);
 				}
+			};
+
+			this->derived().push_event([this, t = std::move(task)](event_queue_guard<derived_t>&& g) mutable
+			{
+				auto task = [g = std::move(g), t = std::move(t)]() mutable
+				{
+					t(std::move(g));
+				};
+				this->derived().post(std::move(task));
+				return true;
 			});
 		}
 
@@ -415,7 +530,7 @@ namespace asio2::detail
 		inline void _start_recv(condition_wrap<MatchCondition> condition)
 		{
 			// Connect succeeded. post recv request.
-			asio::post(this->io_.strand(), [this, condition]() mutable
+			asio::post(this->io_.strand(), [this, condition = std::move(condition)]() mutable
 			{
 				if constexpr (!std::is_same_v<MatchCondition, asio2::detail::hook_buffer_t>)
 				{
@@ -426,7 +541,7 @@ namespace asio2::detail
 					std::ignore = true;
 				}
 
-				this->derived()._post_recv(this->derived().selfptr(), condition);
+				this->derived()._post_recv(this->derived().selfptr(), std::move(condition));
 			});
 		}
 
@@ -436,19 +551,45 @@ namespace asio2::detail
 			return this->derived()._tcp_send(data, std::forward<Callback>(callback));
 		}
 
+		template<class Data>
+		inline send_data_t _rdc_convert_to_send_data(Data& data)
+		{
+			auto buffer = asio::buffer(data);
+			return send_data_t{ reinterpret_cast<
+				std::string_view::const_pointer>(buffer.data()),buffer.size() };
+		}
+
+		template<class Invoker>
+		inline void _rdc_invoke_with_none(const error_code& ec, Invoker& invoker)
+		{
+			invoker(ec, send_data_t{}, recv_data_t{});
+		}
+
+		template<class Invoker>
+		inline void _rdc_invoke_with_recv(const error_code& ec, Invoker& invoker, recv_data_t data)
+		{
+			invoker(ec, send_data_t{}, data);
+		}
+
+		template<class Invoker, class FnData>
+		inline void _rdc_invoke_with_send(const error_code& ec, Invoker& invoker, FnData& fn_data)
+		{
+			invoker(ec, fn_data(), recv_data_t{});
+		}
+
 	protected:
 		template<typename MatchCondition>
 		inline void _post_recv(std::shared_ptr<derived_t> this_ptr,
 			condition_wrap<MatchCondition> condition)
 		{
-			this->derived()._tcp_post_recv(std::move(this_ptr), condition);
+			this->derived()._tcp_post_recv(std::move(this_ptr), std::move(condition));
 		}
 
 		template<typename MatchCondition>
 		inline void _handle_recv(const error_code & ec, std::size_t bytes_recvd,
 			std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
 		{
-			this->derived()._tcp_handle_recv(ec, bytes_recvd, std::move(this_ptr), condition);
+			this->derived()._tcp_handle_recv(ec, bytes_recvd, std::move(this_ptr), std::move(condition));
 		}
 
 		inline void _fire_init()
@@ -456,8 +597,22 @@ namespace asio2::detail
 			this->listener_.notify(event_type::init);
 		}
 
-		inline void _fire_start(error_code ec)
+		template<typename MatchCondition>
+		inline void _fire_start(error_code ec, condition_wrap<MatchCondition>& condition)
 		{
+			if constexpr (is_template_instance_of_v<use_rdc_t, MatchCondition>)
+			{
+				if (!ec)
+				{
+					this->derived()._rdc_start();
+					this->derived()._rdc_post_wait(this->derived().selfptr(), condition);
+				}
+			}
+			else
+			{
+				std::ignore = true;
+			}
+
 			this->listener_.notify(event_type::start, ec);
 		}
 
@@ -470,12 +625,30 @@ namespace asio2::detail
 		inline void _fire_recv(std::shared_ptr<derived_t>& this_ptr, std::string_view s,
 			condition_wrap<MatchCondition>& condition)
 		{
-			detail::ignore_unused(this_ptr, condition);
-
 			this->listener_.notify(event_type::recv, s);
+
+			this->derived()._rdc_handle_recv(this_ptr, s, condition);
 		}
 
-	protected:
+	public:
+		/**
+		 * @function : set the default remote call timeout for rpc/rdc
+		 */
+		template<class Rep, class Period>
+		inline derived_t & default_timeout(std::chrono::duration<Rep, Period> duration)
+		{
+			this->rc_timeout_ = duration;
+			return (this->derived());
+		}
+
+		/**
+		 * @function : get the default remote call timeout for rpc/rdc
+		 */
+		inline std::chrono::steady_clock::duration default_timeout()
+		{
+			return this->rc_timeout_;
+		}
+
 		/**
 		 * @function : get the buffer object refrence
 		 */
@@ -484,6 +657,8 @@ namespace asio2::detail
 		 * @function : get the io object refrence
 		 */
 		inline io_t & io() { return this->io_; }
+	
+	protected:
 		/**
 		 * @function : get the recv/read allocator object refrence
 		 */
@@ -518,6 +693,9 @@ namespace asio2::detail
 
 		/// state
 		std::atomic<state_t>                      state_ = state_t::stopped;
+
+		/// Remote call (rpc/rdc) response timeout.
+		std::chrono::steady_clock::duration       rc_timeout_ = std::chrono::milliseconds(http_execute_timeout);
 	};
 }
 

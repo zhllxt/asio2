@@ -20,6 +20,7 @@
 #include <cstdio>
 #include <cstdint>
 #include <utility>
+#include <memory>
 
 namespace beast {
 namespace http {
@@ -89,7 +90,7 @@ class basic_file_body<File>::value_type
     friend struct basic_file_body;
 
     // This represents the open file
-    File file_;
+    std::shared_ptr<File> file_ = std::make_shared<File>();
 
     // The cached file size
     std::uint64_t file_size_ = 0;
@@ -105,13 +106,37 @@ public:
     value_type() = default;
 
     /// Constructor
-    value_type(value_type&& other) = default;
+    value_type(value_type const&) = default;
+
+    /// Assignment
+    value_type& operator=(value_type const&) = default;
+
+    /// Constructor
+	value_type(value_type&& other)
+		: file_(std::move(other.file_)), file_size_(std::move(other.file_size_))
+	{
+		other.file_ = std::make_shared<File>();
+		other.file_size_ = 0;
+	}
 
     /// Move assignment
-    value_type& operator=(value_type&& other) = default;
+	value_type& operator=(value_type&& other)
+	{
+		file_ = std::move(other.file_);
+		file_size_ = std::move(other.file_size_);
+		other.file_ = std::make_shared<File>();
+		other.file_size_ = 0;
+		return *this;
+	}
 
     /// Return the file
     File& file()
+    {
+        return *file_;
+    }
+
+    /// Return the file shared_ptr
+    std::shared_ptr<File> file_ptr()
     {
         return file_;
     }
@@ -120,7 +145,7 @@ public:
     bool
     is_open() const
     {
-        return file_.is_open();
+        return file_->is_open();
     }
 
     /// Returns the size of the file if open
@@ -157,6 +182,9 @@ public:
     */
     void
     reset(File&& file, error_code& ec);
+
+    void
+    reset(std::shared_ptr<File> file, error_code& ec);
 };
 
 template<class File>
@@ -166,7 +194,7 @@ value_type::
 close()
 {
     error_code ignored;
-    file_.close(ignored);
+    file_->close(ignored);
 }
 
 template<class File>
@@ -176,12 +204,12 @@ value_type::
 open(char const* path, file_mode mode, error_code& ec)
 {
     // Open the file
-    file_.open(path, mode, ec);
+    file_->open(path, mode, ec);
     if(ec)
         return;
 
     // Cache the size
-    file_size_ = file_.size(ec);
+    file_size_ = file_->size(ec);
     if(ec)
     {
         close();
@@ -196,17 +224,37 @@ value_type::
 reset(File&& file, error_code& ec)
 {
     // First close the file if open
-    if(file_.is_open())
+    if(file_->is_open())
     {
         error_code ignored;
-        file_.close(ignored);
+        file_->close(ignored);
+    }
+
+    // Take ownership of the new file
+    *file_ = std::move(file);
+
+    // Cache the size
+    file_size_ = file_->size(ec);
+}
+
+template<class File>
+void
+basic_file_body<File>::
+value_type::
+reset(std::shared_ptr<File> file, error_code& ec)
+{
+    // First close the file if open
+    if(file_->is_open())
+    {
+        error_code ignored;
+        file_->close(ignored);
     }
 
     // Take ownership of the new file
     file_ = std::move(file);
 
     // Cache the size
-    file_size_ = file_.size(ec);
+    file_size_ = file_->size(ec);
 }
 
 // This is called from message::payload_size
@@ -313,17 +361,20 @@ writer::
 init(error_code& ec)
 {
     // The file must already be open
-    BEAST_ASSERT(body_.file_.is_open());
+    BEAST_ASSERT(body_.file_->is_open());
+
+	body_.file_->seek(0, ec);
 
     // Get the size of the file
-    remain_ = body_.file_size_;
+    remain_ = ec ? 0 : body_.file_size_;
 
     // The error_code specification requires that we
     // either set the error to some value, or set it
     // to indicate no error.
     //
     // We don't do anything fancy so set "no error"
-    ec = {};
+    //ec = {};
+
 }
 
 // This function is called repeatedly by the serializer to
@@ -358,7 +409,7 @@ get(error_code& ec) ->
     }
 
     // Now read the next buffer
-    auto const nread = body_.file_.read(buf_, amount, ec);
+    auto const nread = body_.file_->read(buf_, amount, ec);
     if(ec)
         return std::nullopt;
 
@@ -472,7 +523,7 @@ init(
     error_code& ec)
 {
     // The file must already be open for writing
-	BEAST_ASSERT(body_.file_.is_open());
+	BEAST_ASSERT(body_.file_->is_open());
 
     // We don't do anything with this but a sophisticated
     // application might check available space on the device
@@ -507,7 +558,7 @@ put(ConstBufferSequence const& buffers, error_code& ec)
     {
         // Write this buffer to the file
         net::const_buffer buffer = *it;
-        nwritten += body_.file_.write(
+        nwritten += body_.file_->write(
             buffer.data(), buffer.size(), ec);
         if(ec)
             return nwritten;

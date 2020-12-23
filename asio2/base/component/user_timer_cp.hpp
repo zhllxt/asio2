@@ -156,16 +156,12 @@ namespace asio2::detail
 		/**
 		 * @constructor
 		 */
-		explicit user_timer_cp(io_t&)
-		{
-		}
+		user_timer_cp() {}
 
 		/**
 		 * @destructor
 		 */
-		~user_timer_cp()
-		{
-		}
+		~user_timer_cp() {}
 
 	public:
 		template<class TimerId, class Rep, class Period, class Fun, class... Args>
