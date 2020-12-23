@@ -128,7 +128,7 @@ namespace asio2::detail
 					{
 						ASIO2_ASSERT(derive.io().strand().running_in_this_thread());
 
-						detail::ignore_unused(s);
+						detail::ignore_unused(derive, s);
 
 						if (!ec)
 						{

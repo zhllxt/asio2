@@ -52,8 +52,6 @@ tcp下也会保证所有连接都正常关闭以后才会退出,你不用考虑�
 ```
 rpc测试的和说明代码请看:[rpc性能测试代码](https://github.com/zhllxt/asio2/wiki/rpc%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95%E4%BB%A3%E7%A0%81)
 
-###### 对asio2的udp做了一个简单的qps测试,数据大小64字节,测试结果比asio自带的示例中的udp的qps低了约1%
-
 ## TCP:
 ##### 服务端:
 ```c++
