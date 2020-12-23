@@ -17,11 +17,11 @@ Header only c++ network library, based on asio,support tcp,udp,http,websocket,rp
 #### QQ交流群：833425075
 
 ## 一些基础用法文章教程:
- - 1、基本概念和使用说明 [https://editor.csdn.net/md/?articleId=108850090](https://editor.csdn.net/md/?articleId=108850090)
- - 2、各个回调函数的触发顺序和执行流程 [https://editor.csdn.net/md/?articleId=108850715](https://editor.csdn.net/md/?articleId=108850715)
- - 3、各个回调函数的触发线程以及多线程总结 [https://editor.csdn.net/md/?articleId=108868559](https://editor.csdn.net/md/?articleId=108868559)
- - 4、使用tcp客户端发送数据时,如何在发送数据的代码处直接获取到服务端返回的结果数据 [https://editor.csdn.net/md/?articleId=110881015](https://editor.csdn.net/md/?articleId=110881015)
- - asio做tcp的自动拆包时，asio的match condition如何使用的详细说明 [https://mp.csdn.net/console/editor/html/104772948](https://mp.csdn.net/console/editor/html/104772948)
+ - 1、基本概念和使用说明 [https://blog.csdn.net/zhllxt/article/details/108850090](https://blog.csdn.net/zhllxt/article/details/108850090)
+ - 2、各个回调函数的触发顺序和执行流程 [https://blog.csdn.net/zhllxt/article/details/108850715](https://blog.csdn.net/zhllxt/article/details/108850715)
+ - 3、各个回调函数的触发线程以及多线程总结 [https://blog.csdn.net/zhllxt/article/details/108868559](https://blog.csdn.net/zhllxt/article/details/108868559)
+ - 4、使用tcp客户端发送数据时,如何在发送数据的代码处直接获取到服务端返回的结果数据 [https://blog.csdn.net/zhllxt/article/details/110881015](https://blog.csdn.net/zhllxt/article/details/110881015)
+ - asio做tcp的自动拆包时，asio的match condition如何使用的详细说明 [https://blog.csdn.net/zhllxt/article/details/104772948](https://blog.csdn.net/zhllxt/article/details/104772948)
 
 ## v2.6重要更新:
 * 完全移除对boost库的依赖,以前使用http和websocket时需要依赖boost库,现在所有功能都不需要boost了;
