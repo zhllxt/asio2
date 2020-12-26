@@ -114,7 +114,7 @@ namespace asio2
 				buf += 8;
 			}
 
-			return std::move(msg);
+			return msg;
 		}
 		std::string decrypt(std::string msg)
 		{
@@ -152,7 +152,7 @@ namespace asio2
 			while (!msg.empty() && msg.back() == '\0')
 				msg.erase(msg.size() - 1);
 
-			return std::move(msg);
+			return msg;
 		}
 
 	protected:

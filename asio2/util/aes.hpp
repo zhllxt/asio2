@@ -132,7 +132,7 @@ namespace asio2
 
 			AES_CBC_encrypt_buffer((uint8_t*)msg.data(), uint32_t(msg.size()));
 
-			return std::move(msg);
+			return msg;
 		}
 
 		std::string decrypt_with_cbc(std::string msg)
@@ -141,7 +141,7 @@ namespace asio2
 
 			AES_CBC_decrypt_buffer((uint8_t*)msg.data(), uint32_t(msg.size()));
 
-			return std::move(msg);
+			return msg;
 		}
 
 		std::string encrypt_with_ecb(std::string msg)
@@ -156,7 +156,7 @@ namespace asio2
 				buf += AES_BLOCKLEN;
 			}
 
-			return std::move(msg);
+			return msg;
 		}
 
 		std::string decrypt_with_ecb(std::string msg)
@@ -171,7 +171,7 @@ namespace asio2
 				buf += AES_BLOCKLEN;
 			}
 
-			return std::move(msg);
+			return msg;
 		}
 
 		std::string encrypt_with_ctr(std::string msg)
@@ -180,7 +180,7 @@ namespace asio2
 
 			AES_CTR_xcrypt_buffer((uint8_t*)msg.data(), uint32_t(msg.size()));
 
-			return std::move(msg);
+			return msg;
 		}
 
 		std::string decrypt_with_ctr(std::string msg)
@@ -189,7 +189,7 @@ namespace asio2
 
 			AES_CTR_xcrypt_buffer((uint8_t*)msg.data(), uint32_t(msg.size()));
 
-			return std::move(msg);
+			return msg;
 		}
 
 	protected:

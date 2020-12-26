@@ -103,6 +103,8 @@ namespace asio2::detail
 
 				ASIO2_ASSERT(derive._rdc_send_event_ptr_ && "This function is only available in rdc mode");
 
+				if (ec_ptr) { ec_ptr->clear(); }
+
 				decltype(auto) fn_data = [&derive, data = derive._data_persistence(std::forward<DataT>(data))]
 				() mutable->send_data_t
 				{

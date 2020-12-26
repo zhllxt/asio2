@@ -90,6 +90,8 @@ namespace asio2::detail
 				std::chrono::duration<Rep, Period> timeout,
 				std::string name, Args&&... args)
 			{
+				if (ec_ptr) { ec_ptr->clear(); }
+
 				error_code ec;
 				std::shared_ptr<typename rpc_result_t<return_t>::type> result =
 					std::make_shared<typename rpc_result_t<return_t>::type>();

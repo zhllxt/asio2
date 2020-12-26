@@ -38,6 +38,7 @@
 #include <limits>
 #include <algorithm>
 #include <tuple>
+#include <filesystem>
 
 #if defined(__unix__) || defined(__linux__)
 	#include <unistd.h>
@@ -286,67 +287,172 @@ namespace asio2
 		inline constexpr bool is_file_stream_v = is_fstream_v<T> || is_ifstream_v<T> || is_ofstream_v<T>;
 	}
 
+	namespace detail
+	{
+		template<class Stream>
+		class basic_file_ini_impl : public Stream
+		{
+		public:
+			template<class ...Args>
+			basic_file_ini_impl(Args&&... args)
+			{
+				std::ios_base::openmode mode{};
+
+				if constexpr /**/ (sizeof...(Args) == 0)
+				{
+#if defined(__unix__) || defined(__linux__)
+					filepath_.resize(PATH_MAX);
+					readlink("/proc/self/exe", (char *)filepath_.data(), PATH_MAX);
+#elif defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS_) || defined(WIN32)
+					filepath_.resize(MAX_PATH);
+					filepath_.resize(::GetModuleFileNameA(NULL, (LPSTR)filepath_.data(), MAX_PATH));
+#endif
+					auto pos = filepath_.rfind('.');
+					if (pos != std::string::npos)
+					{
+						filepath_.erase(pos);
+					}
+
+					filepath_ += ".ini";
+				}
+				else if constexpr (sizeof...(Args) == 1)
+				{
+					filepath_ = std::move(std::get<0>(std::make_tuple(std::forward<Args>(args)...)));
+				}
+				else if constexpr (sizeof...(Args) == 2)
+				{
+					auto t = std::make_tuple(std::forward<Args>(args)...);
+
+					filepath_ = std::move(std::get<0>(t));
+					mode |= std::get<1>(t);
+				}
+				else
+				{
+					std::ignore = true;
+				}
+
+				try
+				{
+					// if file is not exists, create it
+					if (!std::filesystem::exists(filepath_))
+					{
+						Stream f(filepath_, std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
+					}
+
+					if constexpr /**/ (detail::is_fstream_v<Stream>)
+					{
+						mode |= std::ios_base::in | std::ios_base::out | std::ios_base::binary;
+					}
+					else if constexpr (detail::is_ifstream_v<Stream>)
+					{
+						mode |= std::ios_base::in | std::ios_base::binary;
+					}
+					else if constexpr (detail::is_ofstream_v<Stream>)
+					{
+						mode |= std::ios_base::out | std::ios_base::binary;
+					}
+					else
+					{
+						mode |= std::ios_base::in | std::ios_base::out | std::ios_base::binary;
+					}
+
+					Stream::open(filepath_, mode);
+				}
+				catch (std::exception const&) {}
+			}
+
+			~basic_file_ini_impl()
+			{
+				using pos_type = typename Stream::pos_type;
+
+				Stream::clear();
+				Stream::seekg(0, std::ios::end);
+				auto filesize = Stream::tellg();
+
+				if (filesize)
+				{
+					pos_type spaces = pos_type(0);
+
+					do
+					{
+						Stream::clear();
+						Stream::seekg(filesize - spaces - pos_type(1));
+
+						char c;
+						if (!Stream::get(c))
+							break;
+
+						if (c == ' ' || c == '\0')
+							spaces = spaces + pos_type(1);
+						else
+							break;
+
+					} while (true);
+
+					if (spaces)
+					{
+						std::error_code ec;
+						std::filesystem::resize_file(filepath_, filesize - spaces, ec);
+					}
+				}
+			}
+
+		protected:
+			std::string                  filepath_;
+		};
+
+		template<class Stream>
+		class basic_ini_impl : public Stream
+		{
+		public:
+			template<class ...Args>
+			basic_ini_impl(Args&&... args) : Stream(std::forward<Args>(args)...) {}
+		};
+
+		template<class... Ts>
+		class basic_ini_impl<std::basic_fstream<Ts...>> : public basic_file_ini_impl<std::basic_fstream<Ts...>>
+		{
+		public:
+			template<class ...Args>
+			basic_ini_impl(Args&&... args) : basic_file_ini_impl<std::basic_fstream<Ts...>>(std::forward<Args>(args)...) {}
+		};
+
+		template<class... Ts>
+		class basic_ini_impl<std::basic_ifstream<Ts...>> : public basic_file_ini_impl<std::basic_ifstream<Ts...>>
+		{
+		public:
+			template<class ...Args>
+			basic_ini_impl(Args&&... args) : basic_file_ini_impl<std::basic_ifstream<Ts...>>(std::forward<Args>(args)...) {}
+		};
+
+		template<class... Ts>
+		class basic_ini_impl<std::basic_ofstream<Ts...>> : public basic_file_ini_impl<std::basic_ofstream<Ts...>>
+		{
+		public:
+			template<class ...Args>
+			basic_ini_impl(Args&&... args) : basic_file_ini_impl<std::basic_ofstream<Ts...>>(std::forward<Args>(args)...) {}
+		};
+	}
+
 	/**
 	 * basic_ini operator class
 	 */
-	template<class Stream = std::fstream>
-	class basic_ini : public Stream
+	template<class Stream>
+	class basic_ini : public detail::basic_ini_impl<Stream>
 	{
 	public:
 		using char_type = typename Stream::char_type;
-		using pos_type = typename Stream::pos_type;
+		using pos_type  = typename Stream::pos_type;
 		using size_type = typename std::basic_string<char_type>::size_type;
 
 		template<class ...Args>
-		basic_ini(Args&&... args) : Stream(std::forward<Args>(args)...)
+		basic_ini(Args&&... args) : detail::basic_ini_impl<Stream>(std::forward<Args>(args)...)
 		{
 #if defined(__unix__) || defined(__linux__)
 			this->endl_ = { '\n' };
 #elif defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS_) || defined(WIN32)
 			this->endl_ = { '\r','\n' };
 #	endif
-
-			if constexpr (sizeof...(Args) == 0 && detail::is_file_stream_v<Stream>)
-			{
-#if defined(__unix__) || defined(__linux__)
-				std::string filepath(PATH_MAX, '\0');
-				readlink("/proc/self/exe", (char *)filepath.data(), PATH_MAX);
-#elif defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS_) || defined(WIN32)
-				std::string filepath(MAX_PATH, '\0');
-				filepath.resize(::GetModuleFileNameA(NULL, (LPSTR)filepath.data(), MAX_PATH));
-#endif
-				typename std::string::size_type pos = filepath.rfind('.');
-				if (pos != std::string::npos)
-				{
-					filepath.erase(pos);
-				}
-
-				filepath += ".ini";
-
-				if constexpr /**/ (detail::is_fstream_v<Stream>)
-				{
-					Stream f(filepath, std::ios_base::in | std::ios_base::out | std::ios_base::binary);
-					Stream::swap(f);
-				}
-				else if constexpr (detail::is_ifstream_v<Stream>)
-				{
-					Stream f(filepath, std::ios_base::in | std::ios_base::binary);
-					Stream::swap(f);
-				}
-				else if constexpr (detail::is_ofstream_v<Stream>)
-				{
-					Stream f(filepath, std::ios_base::out | std::ios_base::binary);
-					Stream::swap(f);
-				}
-				else
-				{
-					std::ignore = true;
-				}
-			}
-			else
-			{
-				std::ignore = true;
-			}
 		}
 
 	protected:
@@ -358,7 +464,7 @@ namespace asio2
 		{
 			std::shared_lock<std::shared_mutex> guard(this->mutex_);
 			Stream::clear();
-			if (this->operator bool())
+			if (Stream::operator bool())
 			{
 				std::basic_string<char_type, Traits, Allocator> line;
 				std::basic_string<char_type, Traits, Allocator> s, k, v;
@@ -518,7 +624,7 @@ namespace asio2
 		{
 			std::unique_lock<std::shared_mutex> guard(this->mutex_);
 			Stream::clear();
-			if (this->operator bool())
+			if (Stream::operator bool())
 			{
 				std::basic_string<char_type, Traits, Allocator> line;
 				std::basic_string<char_type, Traits, Allocator> s, k, v;
@@ -535,38 +641,40 @@ namespace asio2
 							Stream::seekg(0, std::ios::end);
 							auto filesize = Stream::tellg();
 
-							std::basic_string<char_type, Traits, Allocator> buffer;
+							std::basic_string<char_type, Traits, Allocator> content;
 							auto pos = line.find_first_of('=');
 							++pos;
 							while (pos < line.size() && (line[pos] == ' ' || line[pos] == '\t'))
 								++pos;
-							buffer += line.substr(0, pos);
-							buffer += val;
-							buffer += this->endl_;
+							content += line.substr(0, pos);
+							content += val;
+							content += this->endl_;
 
-							int pos_diff = int(line.size() + 1 - buffer.size());
+							int pos_diff = int(line.size() + 1 - content.size());
 
 							Stream::clear();
 							Stream::seekg(posg + pos_type(line.size() + 1));
-							char c;
-							while (Stream::get(c))
+
+							int remain = int(filesize - (posg + pos_type(line.size() + 1)));
+							if (remain > 0)
 							{
-								buffer += c;
+								content.resize(size_type(content.size() + remain));
+								Stream::read(content.data() + content.size() - remain, remain);
 							}
 
-							if (pos_diff > 0) buffer.append(pos_diff, ' ');
+							if (pos_diff > 0) content.append(pos_diff, ' ');
 
-							while (!buffer.empty() &&
-								(pos_type(buffer.size()) + posg > filesize) &&
-								buffer.back() == ' ')
+							while (!content.empty() &&
+								(pos_type(content.size()) + posg > filesize) &&
+								content.back() == ' ')
 							{
-								buffer.erase(buffer.size() - 1);
+								content.erase(content.size() - 1);
 							}
 
 							Stream::clear();
 							Stream::seekp(posg);
-							*this << buffer;
-							//Stream::write(buffer.data(), buffer.size());
+							//*this << content;
+							Stream::write(content.data(), content.size());
 							Stream::flush();
 						}
 						return true;
@@ -594,34 +702,47 @@ namespace asio2
 								}
 							} while (ret == 'k' || ret == 'a' || ret == 'o');
 
-							std::basic_string<char_type, Traits, Allocator> buffer;
+							// can't find the key, add a new key
+							std::basic_string<char_type, Traits, Allocator> content;
 
 							if (posg == pos_type(-1))
 							{
-								buffer += this->endl_;
-
 								Stream::clear();
 								Stream::seekg(0, std::ios::end);
 								posg = Stream::tellg();
 							}
 
-							buffer += key;
-							buffer += '=';
-							buffer += val;
-							buffer += this->endl_;
+							content += this->endl_;
+							content += key;
+							content += '=';
+							content += val;
+							content += this->endl_;
+
+							Stream::clear();
+							Stream::seekg(0, std::ios::end);
+							auto filesize = Stream::tellg();
 
 							Stream::clear();
 							Stream::seekg(posg);
-							char c;
-							while (Stream::get(c))
+
+							int remain = int(filesize - posg);
+							if (remain > 0)
 							{
-								buffer += c;
+								content.resize(size_type(content.size() + remain));
+								Stream::read(content.data() + content.size() - remain, remain);
+							}
+
+							while (!content.empty() &&
+								(pos_type(content.size()) + posg > filesize) &&
+								content.back() == ' ')
+							{
+								content.erase(content.size() - 1);
 							}
 
 							Stream::clear();
 							Stream::seekp(posg);
-							//Stream::write(buffer.data(), buffer.size());
-							*this << buffer;
+							//*this << content;
+							Stream::write(content.data(), content.size());
 							Stream::flush();
 
 							return true;
@@ -641,15 +762,17 @@ namespace asio2
 					}
 				}
 
+				// can't find the sec and key, add a new sec and key.
 				std::basic_string<char_type, Traits, Allocator> content;
 
 				Stream::clear();
+				Stream::seekg(0, std::ios::end);
+				auto filesize = Stream::tellg();
+				content.resize(size_type(filesize));
+
+				Stream::clear();
 				Stream::seekg(0, std::ios::beg);
-				char c;
-				while (Stream::get(c))
-				{
-					content += c;
-				}
+				Stream::read(content.data(), content.size());
 
 				if (!content.empty() && content.back() == '\n') content.erase(content.size() - 1);
 				if (!content.empty() && content.back() == '\r') content.erase(content.size() - 1);
@@ -676,6 +799,7 @@ namespace asio2
 					else
 						content = content + this->endl_ + buffer;
 				}
+				// if the sec is empty ( mean global), must add the key at the begin.
 				else
 				{
 					if (content.empty())
@@ -684,10 +808,17 @@ namespace asio2
 						content = buffer + content;
 				}
 
+				while (!content.empty() &&
+					(pos_type(content.size()) > filesize) &&
+					content.back() == ' ')
+				{
+					content.erase(content.size() - 1);
+				}
+
 				Stream::clear();
 				Stream::seekp(0, std::ios::beg);
-				//Stream::write(content.data(), content.size());
-				*this << content;
+				//*this << content;
+				Stream::write(content.data(), content.size());
 				Stream::flush();
 
 				return true;
@@ -709,34 +840,17 @@ namespace asio2
 			{
 				posg = Stream::tellg();
 
-				static auto trim_left = [](std::basic_string<char_type, Traits, Allocator> & s)
-				{
-					size_type pos = 0;
-					for (; pos < s.size(); ++pos)
-					{
-						if (!std::isspace(static_cast<unsigned char>(s[pos])))
-							break;
-					}
-					s.erase(0, pos);
-				};
-
-				static auto trim_right = [](std::basic_string<char_type, Traits, Allocator> & s)
-				{
-					size_type pos = s.size() - 1;
-					for (; pos != size_type(-1); pos--)
-					{
-						if (!std::isspace(static_cast<unsigned char>(s[pos])))
-							break;
-					}
-					s.erase(pos + 1);
-				};
-
-				if (posg != pos_type(-1) && std::getline(*this, line))
+				if (posg != pos_type(-1) && std::getline(*this, line, this->endl_.back()))
 				{
 					auto trim_line = line;
 
 					trim_left(trim_line);
 					trim_right(trim_line);
+
+					if (trim_line.empty())
+					{
+						return 'o'; // other
+					}
 
 					// current line is code annotation
 					if (
@@ -791,8 +905,48 @@ namespace asio2
 			return 'n'; // null
 		}
 
+		template<
+			class CharT,
+			class Traits = std::char_traits<CharT>,
+			class Allocator = std::allocator<CharT>
+		>
+		std::basic_string<CharT, Traits, Allocator>& trim_left(std::basic_string<CharT, Traits, Allocator>& s)
+		{
+			if (s.empty())
+				return s;
+			using size_type = typename std::basic_string<CharT, Traits, Allocator>::size_type;
+			size_type pos = 0;
+			for (; pos < s.size(); ++pos)
+			{
+				if (!std::isspace(static_cast<unsigned char>(s[pos])))
+					break;
+			}
+			s.erase(0, pos);
+			return s;
+		}
+
+		template<
+			class CharT,
+			class Traits = std::char_traits<CharT>,
+			class Allocator = std::allocator<CharT>
+		>
+		std::basic_string<CharT, Traits, Allocator>& trim_right(std::basic_string<CharT, Traits, Allocator>& s)
+		{
+			if (s.empty())
+				return s;
+			using size_type = typename std::basic_string<CharT, Traits, Allocator>::size_type;
+			size_type pos = s.size() - 1;
+			for (; pos != size_type(-1); pos--)
+			{
+				if (!std::isspace(static_cast<unsigned char>(s[pos])))
+					break;
+			}
+			s.erase(pos + 1);
+			return s;
+		}
+
 	protected:
-		std::shared_mutex mutex_;
+		std::shared_mutex            mutex_;
 
 		std::basic_string<char_type> endl_;
 	};
