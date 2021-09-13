@@ -80,7 +80,7 @@ namespace asio2
 		 */
 		inline std::size_t notify()
 		{
-			return event_timer_.cancel(detail::ec_ignore);
+			return event_timer_.cancel(detail::ec_ignore());
 		}
 
 	private:

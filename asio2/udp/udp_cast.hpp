@@ -259,7 +259,7 @@ namespace asio2::detail
 					return false;
 				}
 
-				this->socket_.close(ec_ignore);
+				this->socket_.close(ec_ignore());
 
 				std::string h = to_string(std::forward<String>(host));
 				std::string p = to_string(std::forward<StrOrInt>(service));
@@ -387,9 +387,9 @@ namespace asio2::detail
 			// call socket's close function to notify the _handle_recv function
 			// response with error > 0 ,then the socket can get notify to exit
 			// Call shutdown() to indicate that you will not write any more data to the socket.
-			this->socket_.shutdown(asio::socket_base::shutdown_both, ec_ignore);
+			this->socket_.shutdown(asio::socket_base::shutdown_both, ec_ignore());
 			// Call close,otherwise the _handle_recv will never return
-			this->socket_.close(ec_ignore);
+			this->socket_.close(ec_ignore());
 		}
 
 	protected:

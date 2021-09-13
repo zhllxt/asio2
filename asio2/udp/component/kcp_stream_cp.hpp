@@ -93,7 +93,7 @@ namespace asio2::detail
 			if (this->send_fin_)
 				this->_kcp_send_hdr(kcp::make_kcphdr_fin(0), ec);
 
-			this->kcp_timer_.cancel(ec_ignore);
+			this->kcp_timer_.cancel(ec_ignore());
 		}
 
 	protected:
@@ -241,7 +241,7 @@ namespace asio2::detail
 							timer = std::move(timer)]
 					(const error_code & ec, std::size_t bytes_recvd) mutable
 					{
-						timer->cancel(ec_ignore);
+						timer->cancel(ec_ignore());
 
 						if (ec)
 						{

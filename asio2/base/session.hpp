@@ -41,6 +41,7 @@
 #include <asio2/base/detail/allocator.hpp>
 #include <asio2/base/detail/util.hpp>
 #include <asio2/base/detail/buffer_wrap.hpp>
+#include <asio2/base/detail/condition_wrap.hpp>
 
 #include <asio2/base/component/connect_time_cp.hpp>
 #include <asio2/base/component/alive_time_cp.hpp>
@@ -51,26 +52,16 @@
 #include <asio2/base/component/user_timer_cp.hpp>
 #include <asio2/base/component/silence_timer_cp.hpp>
 #include <asio2/base/component/post_cp.hpp>
-#include <asio2/base/component/send_cp.hpp>
 #include <asio2/base/component/connect_timeout_cp.hpp>
 #include <asio2/base/component/event_queue_cp.hpp>
 #include <asio2/base/component/async_event_cp.hpp>
+#include <asio2/base/component/send_cp.hpp>
 #include <asio2/base/component/rdc_call_cp.hpp>
 
 #include <asio2/util/defer.hpp>
 
 namespace asio2::detail
 {
-	struct wait_response_key
-	{
-		std::function<bool(wait_response_key const&, wait_response_key const&)> id_comparer;
-
-		bool operator<(const wait_response_key& rhs) const
-		{
-			return (id_comparer(*this, rhs));
-		}
-	};
-
 	ASIO2_CLASS_FORWARD_DECLARE_BASE;
 
 	template<class derived_t, class args_t>
@@ -255,7 +246,11 @@ namespace asio2::detail
 	protected:
 		inline session_mgr_t<derived_t> & sessions() { return this->sessions_; }
 		inline listener_t               & listener() { return this->listener_; }
-		inline std::atomic<state_t>     & state()    { return this->state_;    }
+		inline std::atomic<state_t>     & state   () { return this->state_;    }
+
+		inline constexpr static bool is_session() { return args_t::is_session; }
+		inline constexpr static bool is_client () { return args_t::is_client ; }
+		inline constexpr static bool is_server () { return false             ; }
 
 	protected:
 		/// asio::strand ,used to ensure socket multi thread safe,we must ensure that only one operator

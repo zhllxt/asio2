@@ -143,7 +143,7 @@ namespace asio2::detail
 			{
 				this->connect_error_code_ = ec;
 				this->connect_timer_canceled_.test_and_set();
-				this->connect_timeout_timer_.cancel(ec_ignore);
+				this->connect_timeout_timer_.cancel(ec_ignore());
 			}
 			catch (system_error&) {}
 			catch (std::exception&) {}

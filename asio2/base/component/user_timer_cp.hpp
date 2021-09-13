@@ -219,7 +219,7 @@ namespace asio2::detail
 			if (iter != this->user_timers_.end())
 			{
 				iter->second->exited = true;
-				iter->second->timer.cancel(ec_ignore);
+				iter->second->timer.cancel(ec_ignore());
 				this->user_timers_.erase(iter);
 			}
 		}
@@ -247,7 +247,7 @@ namespace asio2::detail
 			{
 				std::ignore = id;
 				timer_obj_ptr->exited = true;
-				timer_obj_ptr->timer.cancel(ec_ignore);
+				timer_obj_ptr->timer.cancel(ec_ignore());
 			}
 			this->user_timers_.clear();
 		}

@@ -108,7 +108,7 @@ namespace asio2::detail
 		inline void _stop_silence_timer()
 		{
 			this->silence_timer_canceled_.test_and_set();
-			this->silence_timer_.cancel(ec_ignore);
+			this->silence_timer_.cancel(ec_ignore());
 		}
 
 	protected:

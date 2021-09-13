@@ -368,7 +368,7 @@ namespace asio2::detail
 				{
 					ASIO2_ASSERT(derive.io().strand().running_in_this_thread());
 
-					timer->cancel(ec_ignore);
+					timer->cancel(ec_ignore());
 
 					if (cb) { cb(ec, s); }
 

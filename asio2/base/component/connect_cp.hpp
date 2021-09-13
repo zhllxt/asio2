@@ -101,7 +101,7 @@ namespace asio2::detail
 
 				auto & socket = derive.socket().lowest_layer();
 
-				socket.close(ec_ignore);
+				socket.close(ec_ignore());
 
 				socket.open(derive.local_endpoint().protocol());
 
@@ -137,7 +137,7 @@ namespace asio2::detail
 							{
 								// we close the socket, so the async_connect will returned 
 								// with operation_aborted.
-								derive.socket().lowest_layer().close(ec_ignore);
+								derive.socket().lowest_layer().close(ec_ignore());
 							}
 						});
 					});
@@ -165,7 +165,7 @@ namespace asio2::detail
 							{
 								// we close the socket, so the async_connect will returned 
 								// with operation_aborted.
-								derive.socket().lowest_layer().close(ec_ignore);
+								derive.socket().lowest_layer().close(ec_ignore());
 							}
 
 							promise.set_value(derive._connect_error_code() ?

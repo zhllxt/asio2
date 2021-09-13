@@ -357,7 +357,7 @@ namespace asio2::detail
 					return false;
 				}
 
-				this->socket_.close(ec_ignore);
+				this->socket_.close(ec_ignore());
 				this->socket_.open(to_string(device));
 				this->socket_.set_option(asio::serial_port::baud_rate(to_integer<unsigned int>(baud_rate)));
 
@@ -520,7 +520,7 @@ namespace asio2::detail
 			this->user_data_.reset();
 
 			// Call close,otherwise the _handle_recv will never return
-			this->socket_.close(ec_ignore);
+			this->socket_.close(ec_ignore());
 
 			// set the state to stopped
 			this->state_.store(state_t::stopped);

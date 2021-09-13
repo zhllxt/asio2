@@ -218,14 +218,14 @@ namespace asio2::detail
 								const asio::ip::basic_resolver_entry<asio::ip::icmp>& d
 							) : socket(s), dest(d)
 							{
-								socket.close(ec_ignore);
+								socket.close(ec_ignore());
 								socket.open(dest.endpoint().protocol());
 							}
 							~socket_guard()
 							{
 								// Gracefully close the socket
-								socket.shutdown(asio::ip::tcp::socket::shutdown_both, ec_ignore);
-								socket.close(ec_ignore);
+								socket.shutdown(asio::ip::tcp::socket::shutdown_both, ec_ignore());
+								socket.close(ec_ignore());
 							}
 							asio::ip::icmp::socket& socket;
 							const asio::ip::basic_resolver_entry<asio::ip::icmp>& dest;
@@ -545,7 +545,7 @@ namespace asio2::detail
 				asio::ip::icmp::resolver resolver(this->io_.context());
 				this->destination_ = *resolver.resolve(host, "").begin();
 
-				this->socket_.close(ec_ignore);
+				this->socket_.close(ec_ignore());
 				this->socket_.open(this->destination_.protocol());
 
 				this->derived()._fire_init();
@@ -653,10 +653,10 @@ namespace asio2::detail
 			// if don't destroy it, will cause loop refrence.
 			this->user_data_.reset();
 
-			this->timer_.cancel(ec_ignore);
+			this->timer_.cancel(ec_ignore());
 
 			// Call close,otherwise the _handle_recv will never return
-			this->socket_.close(ec_ignore);
+			this->socket_.close(ec_ignore());
 		}
 
 		void _post_send()
@@ -781,7 +781,7 @@ namespace asio2::detail
 			{
 				// If this is the first reply, interrupt the five second timeout.
 				if (this->replies_++ == 0)
-					this->timer_.cancel(ec_ignore);
+					this->timer_.cancel(ec_ignore());
 
 				this->total_recv_++;
 				this->rep_.lag = std::chrono::steady_clock::now() - this->time_sent_;

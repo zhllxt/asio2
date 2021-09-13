@@ -159,13 +159,13 @@ namespace asio2::detail
 		inline void _stop_reconnect_timer()
 		{
 			this->reconnect_timer_canceled_.test_and_set();
-			this->reconnect_timer_.cancel(ec_ignore);
+			this->reconnect_timer_.cancel(ec_ignore());
 		}
 
 		inline void _wake_reconnect_timer()
 		{
 			if (this->reconnect_enable_)
-				this->reconnect_timer_.cancel(ec_ignore);
+				this->reconnect_timer_.cancel(ec_ignore());
 		}
 
 	protected:

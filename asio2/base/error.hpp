@@ -26,19 +26,18 @@
 
 #include <asio2/base/selector.hpp>
 
+#ifdef ASIO2_ASSERT
+	static_assert(false, "Unknown ASIO2_ASSERT definition will affect the relevant functions of this program.");
+#else
+	#if defined(_DEBUG) || defined(DEBUG)
+		#define ASIO2_ASSERT(x) assert(x)
+	#else
+		#define ASIO2_ASSERT(x) ((void)0)
+	#endif
+#endif
+
 namespace asio2
 {
-
-	#ifdef ASIO2_ASSERT
-		static_assert(false, "Unknown ASIO2_ASSERT definition will affect the relevant functions of this program.");
-	#else
-		#if defined(_DEBUG) || defined(DEBUG)
-			#define ASIO2_ASSERT(x) assert(x);
-		#else
-			#define ASIO2_ASSERT(x) (void)0;
-		#endif
-	#endif
-
 	/**
 	 * ssl error code is a unsigned int value,the highest 8 bits is the library code(more details,see openssl/err.h)
 	 * 
@@ -58,14 +57,20 @@ namespace asio2
 	{
 		/**
 		 * thread local variable of error_code
+		 * In vs2017, sometimes the "namespace's thread_local error_code" will cause crash at
+		 * system_category() -> (_Immortalize<_System_error_category>())-> _Execute_once(...),
+		 * and the crash happens before the "main" function.
 		 */
-		thread_local static error_code ec_last;
+		//thread_local static error_code ec_last;
 
 		/**
 		 * @function : get last error_code
 		 */
 		inline error_code & get_last_error()
 		{
+			// thread local variable of error_code
+			thread_local static error_code ec_last{};
+
 			return ec_last;
 		}
 
@@ -74,7 +79,7 @@ namespace asio2
 		 */
 		inline void set_last_error(int ec)
 		{
-			ec_last.assign(ec, asio::error::get_system_category());
+			get_last_error().assign(ec, asio::error::get_system_category());
 		}
 
 		/**
@@ -83,7 +88,7 @@ namespace asio2
 		template<typename T>
 		inline void set_last_error(int ec, const T& ecat)
 		{
-			ec_last.assign(ec, ecat);
+			get_last_error().assign(ec, ecat);
 		}
 
 		/**
@@ -91,7 +96,7 @@ namespace asio2
 		 */
 		inline void set_last_error(const error_code & ec)
 		{
-			ec_last = ec;
+			get_last_error() = ec;
 		}
 
 		/**
@@ -99,7 +104,7 @@ namespace asio2
 		 */
 		inline void set_last_error(const system_error & e)
 		{
-			ec_last = e.code();
+			get_last_error() = e.code();
 		}
 
 		/**
@@ -107,7 +112,7 @@ namespace asio2
 		 */
 		inline void clear_last_error()
 		{
-			ec_last.clear();
+			get_last_error().clear();
 		}
 
 		/**
@@ -115,7 +120,7 @@ namespace asio2
 		 */
 		inline auto last_error_val()
 		{
-			return ec_last.value();
+			return get_last_error().value();
 		}
 
 		/**
@@ -123,9 +128,8 @@ namespace asio2
 		 */
 		inline auto last_error_msg()
 		{
-			return ec_last.message();
+			return get_last_error().message();
 		}
-
 	}
 
 	namespace detail
@@ -133,7 +137,12 @@ namespace asio2
 		/**
 		 * thread local variable of error_code, just used for placeholders.
 		 */
-		thread_local static error_code ec_ignore;
+		inline error_code & ec_ignore()
+		{
+			thread_local static error_code ec_ignore_{};
+
+			return ec_ignore_;
+		}
 	}
 }
 

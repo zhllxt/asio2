@@ -237,8 +237,8 @@ namespace asio2::detail
 				ioc.run_for(timeout);
 
 				// Gracefully close the socket
-				socket.shutdown(asio::ip::tcp::socket::shutdown_both, ec_ignore);
-				socket.close(ec_ignore);
+				socket.shutdown(asio::ip::tcp::socket::shutdown_both, ec_ignore());
+				socket.close(ec_ignore());
 			}
 			catch (system_error & e)
 			{

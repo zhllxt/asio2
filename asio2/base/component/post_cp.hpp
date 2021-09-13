@@ -232,7 +232,7 @@ namespace asio2::detail
 
 			for (asio::steady_timer* timer : this->timed_tasks_)
 			{
-				timer->cancel(ec_ignore);
+				timer->cancel(ec_ignore());
 			}
 
 			return (derive);

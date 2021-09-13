@@ -37,6 +37,7 @@
 #include <asio2/base/detail/allocator.hpp>
 #include <asio2/base/detail/util.hpp>
 #include <asio2/base/detail/buffer_wrap.hpp>
+#include <asio2/base/detail/condition_wrap.hpp>
 
 #include <asio2/base/component/user_data_cp.hpp>
 #include <asio2/base/component/user_timer_cp.hpp>
@@ -77,7 +78,7 @@ namespace asio2::detail
 			, wallocator_()
 			, listener_  ()
 			, io_        (iopool_.get(0))
-			, sessions_  (io_)
+			, sessions_  (io_, this->state_)
 		{
 		}
 
@@ -153,7 +154,7 @@ namespace asio2::detail
 		template<class T>
 		inline derived_t & send(const T& data)
 		{
-			this->sessions_.foreach([&data](std::shared_ptr<session_t>& session_ptr) mutable
+			this->sessions_.for_each([&data](std::shared_ptr<session_t>& session_ptr) mutable
 			{
 				session_ptr->send(data);
 			});
@@ -193,7 +194,7 @@ namespace asio2::detail
 		{
 			if (s)
 			{
-				this->sessions_.foreach([s, count](std::shared_ptr<session_t>& session_ptr)
+				this->sessions_.for_each([s, count](std::shared_ptr<session_t>& session_ptr)
 				{
 					session_ptr->send(s, count);
 				});
@@ -245,10 +246,20 @@ namespace asio2::detail
 		 * Function signature :
 		 * void(std::shared_ptr<asio2::xxx_session>& session_ptr)
 		 */
-		inline derived_t & foreach_session(const std::function<void(std::shared_ptr<session_t>&)> & fn)
+		template<class Fun>
+		inline derived_t & foreach_session(Fun&& fn)
 		{
-			this->sessions_.foreach(fn);
+			this->sessions_.for_each(std::forward<Fun>(fn));
 			return this->derived();
+		}
+
+		/**
+		 * @function : find the session by session's hash key
+		 */
+		template<class KeyType>
+		inline std::shared_ptr<session_t> find_session(const KeyType& key)
+		{
+			return this->sessions_.find(key);
 		}
 
 		/**
@@ -258,10 +269,10 @@ namespace asio2::detail
 		 * bool(std::shared_ptr<asio2::xxx_session>& session_ptr)
 		 * @return   : std::shared_ptr<asio2::xxx_session>
 		 */
-		inline std::shared_ptr<session_t> find_session_if(
-			const std::function<bool(std::shared_ptr<session_t>&)> & fn)
+		template<class Fun>
+		inline std::shared_ptr<session_t> find_session_if(Fun&& fn)
 		{
-			return std::shared_ptr<session_t>(this->sessions_.find_if(fn));
+			return std::shared_ptr<session_t>(this->sessions_.find_if(std::forward<Fun>(fn)));
 		}
 
 		/**
@@ -281,8 +292,12 @@ namespace asio2::detail
 
 		inline session_mgr_t<session_t> & sessions() { return this->sessions_; }
 		inline listener_t               & listener() { return this->listener_; }
-		inline std::atomic<state_t>     & state()    { return this->state_;    }
-		inline std::shared_ptr<derived_t> selfptr()  { return std::shared_ptr<derived_t>{}; }
+		inline std::atomic<state_t>     & state   () { return this->state_;    }
+		inline std::shared_ptr<derived_t> selfptr () { return std::shared_ptr<derived_t>{}; }
+
+		inline constexpr static bool is_session() { return false; }
+		inline constexpr static bool is_client () { return false; }
+		inline constexpr static bool is_server () { return true ; }
 
 	protected:
 		// The memory to use for handler-based custom memory allocation. used for acceptor.
@@ -297,11 +312,11 @@ namespace asio2::detail
 		/// The io (include io_context and strand) used to handle the accept event.
 		io_t                                      & io_;
 
-		/// session_mgr
-		session_mgr_t<session_t>                    sessions_;
-
 		/// state
 		std::atomic<state_t>                        state_ = state_t::stopped;
+
+		/// session_mgr
+		session_mgr_t<session_t>                    sessions_;
 
 		/// use this to ensure that server stop only after all sessions are closed
 		std::shared_ptr<void>                       counter_ptr_;

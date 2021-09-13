@@ -124,7 +124,7 @@ namespace asio2::detail
 					set_last_error(ec);
 
 					// clost the timer
-					timer->cancel(ec_ignore);
+					timer->cancel(ec_ignore());
 
 					// SSL_clear : 
 					// Reset ssl to allow another connection. All settings (method, ciphers, BIOs) are kept.
@@ -173,8 +173,8 @@ namespace asio2::detail
 
 						// we close the socket, so the async_handshake will returned 
 						// with operation_aborted.
-						derive.socket().lowest_layer().shutdown(asio::socket_base::shutdown_both, ec_ignore);
-						derive.socket().lowest_layer().close(ec_ignore);
+						derive.socket().lowest_layer().shutdown(asio::socket_base::shutdown_both, ec_ignore());
+						derive.socket().lowest_layer().close(ec_ignore());
 					}
 					// return true  : let the timer continue execute.
 					// return false : kill the timer.
@@ -188,7 +188,7 @@ namespace asio2::detail
 				(const error_code& ec) mutable
 				{
 					// clost the timer
-					timer->cancel(ec_ignore);
+					timer->cancel(ec_ignore());
 
 					if (flag_ptr->test_and_set())
 						derive._handle_handshake(asio::error::timed_out,

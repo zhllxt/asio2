@@ -111,7 +111,7 @@ namespace asio2::detail
 		template<class return_t, class Rep, class Period, class ...Args>
 		inline void call(std::chrono::duration<Rep, Period> timeout, const std::string& name, const Args&... args)
 		{
-			this->sessions_.foreach([&](std::shared_ptr<session_type>& session_ptr) mutable
+			this->sessions_.for_each([&](std::shared_ptr<session_type>& session_ptr) mutable
 			{
 				session_ptr->template call<return_t>(timeout, name, args...);
 			});
@@ -124,7 +124,7 @@ namespace asio2::detail
 		inline void call(error_code& ec, std::chrono::duration<Rep, Period> timeout,
 			const std::string& name, const Args&... args)
 		{
-			this->sessions_.foreach([&](std::shared_ptr<session_type>& session_ptr) mutable
+			this->sessions_.for_each([&](std::shared_ptr<session_type>& session_ptr) mutable
 			{
 				session_ptr->template call<return_t>(ec, timeout, name, args...);
 			});
@@ -136,7 +136,7 @@ namespace asio2::detail
 		template<class return_t, class ...Args>
 		inline void call(const std::string& name, const Args&... args)
 		{
-			this->sessions_.foreach([&](std::shared_ptr<session_type>& session_ptr) mutable
+			this->sessions_.for_each([&](std::shared_ptr<session_type>& session_ptr) mutable
 			{
 				session_ptr->template call<return_t>(name, args...);
 			});
@@ -148,7 +148,7 @@ namespace asio2::detail
 		template<class return_t, class ...Args>
 		inline void call(error_code& ec, const std::string& name, const Args&... args)
 		{
-			this->sessions_.foreach([&](std::shared_ptr<session_type>& session_ptr) mutable
+			this->sessions_.for_each([&](std::shared_ptr<session_type>& session_ptr) mutable
 			{
 				session_ptr->template call<return_t>(ec, name, args...);
 			});
@@ -165,7 +165,7 @@ namespace asio2::detail
 		inline typename std::enable_if_t<is_callable_v<Callback>, void>
 		async_call(const Callback& fn, const std::string& name, const Args&... args)
 		{
-			this->sessions_.foreach([&](std::shared_ptr<session_type>& session_ptr) mutable
+			this->sessions_.for_each([&](std::shared_ptr<session_type>& session_ptr) mutable
 			{
 				session_ptr->async_call(fn, name, args...);
 			});
@@ -183,7 +183,7 @@ namespace asio2::detail
 		async_call(const Callback& fn, std::chrono::duration<Rep, Period> timeout,
 			const std::string& name, const Args&... args)
 		{
-			this->sessions_.foreach([&](std::shared_ptr<session_type>& session_ptr) mutable
+			this->sessions_.for_each([&](std::shared_ptr<session_type>& session_ptr) mutable
 			{
 				session_ptr->async_call(fn, timeout, name, args...);
 			});
@@ -198,7 +198,7 @@ namespace asio2::detail
 		template<class return_t, class Callback, class ...Args>
 		inline void async_call(const Callback& fn, const std::string& name, const Args&... args)
 		{
-			this->sessions_.foreach([&](std::shared_ptr<session_type>& session_ptr) mutable
+			this->sessions_.for_each([&](std::shared_ptr<session_type>& session_ptr) mutable
 			{
 				session_ptr->template async_call<return_t>(fn, name, args...);
 			});
@@ -214,7 +214,7 @@ namespace asio2::detail
 		inline void async_call(const Callback& fn, std::chrono::duration<Rep, Period> timeout,
 			const std::string& name, const Args&... args)
 		{
-			this->sessions_.foreach([&](std::shared_ptr<session_type>& session_ptr) mutable
+			this->sessions_.for_each([&](std::shared_ptr<session_type>& session_ptr) mutable
 			{
 				session_ptr->template async_call<return_t>(fn, timeout, name, args...);
 			});
@@ -227,7 +227,7 @@ namespace asio2::detail
 		template<class ...Args>
 		inline void async_call(const std::string& name, const Args&... args)
 		{
-			this->sessions_.foreach([&](std::shared_ptr<session_type>& session_ptr) mutable
+			this->sessions_.for_each([&](std::shared_ptr<session_type>& session_ptr) mutable
 			{
 				session_ptr->async_call(name, args...);
 			});

@@ -1,5 +1,5 @@
 /*
- * COPYRIGHT (C) 2017-2019, zhllxt
+ * COPYRIGHT (C) 2017-2021, zhllxt
  *
  * author   : zhllxt
  * email    : 37792738@qq.com
@@ -16,8 +16,6 @@
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
 #include <algorithm>
-#include <mutex>
-#include <shared_mutex>
 #include <memory>
 #include <functional>
 #include <unordered_map>
@@ -25,17 +23,30 @@
 
 #include <asio2/base/selector.hpp>
 #include <asio2/base/iopool.hpp>
+#include <asio2/base/define.hpp>
 
 #include <asio2/base/detail/allocator.hpp>
 
 namespace asio2::detail
 {
+	ASIO2_CLASS_FORWARD_DECLARE_TCP_SERVER;
+	ASIO2_CLASS_FORWARD_DECLARE_TCP_SESSION;
+	ASIO2_CLASS_FORWARD_DECLARE_UDP_SERVER;
+	ASIO2_CLASS_FORWARD_DECLARE_UDP_SESSION;
+
 	/**
 	 * the session manager interface
 	 */
 	template<class session_t>
 	class session_mgr_t
 	{
+		friend session_t; // C++11
+
+		ASIO2_CLASS_FRIEND_DECLARE_TCP_SERVER;
+		ASIO2_CLASS_FRIEND_DECLARE_TCP_SESSION;
+		ASIO2_CLASS_FRIEND_DECLARE_UDP_SERVER;
+		ASIO2_CLASS_FRIEND_DECLARE_UDP_SESSION;
+
 	public:
 		using self     = session_mgr_t<session_t>;
 		using key_type = typename session_t::key_type;
@@ -43,7 +54,9 @@ namespace asio2::detail
 		/**
 		 * @constructor
 		 */
-		explicit session_mgr_t(io_t & acceptor_io) : io_(acceptor_io)
+		explicit session_mgr_t(io_t& acceptor_io, std::atomic<state_t>& server_state)
+			: io_   (acceptor_io )
+			, state_(server_state)
 		{
 			this->sessions_.reserve(64);
 		}
@@ -55,20 +68,29 @@ namespace asio2::detail
 
 		/**
 		 * @function : emplace the session
+		 * @callback : void(bool inserted);
 		 */
-		inline void emplace(std::shared_ptr<session_t> session_ptr, std::function<void(bool)> callback)
+		template<class Fun>
+		inline void emplace(std::shared_ptr<session_t> session_ptr, Fun&& callback)
 		{
 			if (!session_ptr)
 				return;
 
 			if (!this->io_.strand().running_in_this_thread())
-				return asio::post(this->io_.strand(), make_allocator(this->allocator_,
-					std::bind(&self::emplace, this, std::move(session_ptr), std::move(callback))));
+			{
+				asio::post(this->io_.strand(), make_allocator(this->allocator_,
+				[this, session_ptr = std::move(session_ptr), callback = std::forward<Fun>(callback)]
+				() mutable
+				{
+					this->emplace(std::move(session_ptr), std::move(callback));
+				}));
+				return;
+			}
 
 			bool inserted = false;
 
 			{
-				std::unique_lock<std::shared_mutex> guard(this->mutex_);
+				asio2_unique_lock guard(this->mutex_);
 				inserted = this->sessions_.try_emplace(session_ptr->hash_key(), session_ptr).second;
 				session_ptr->in_sessions_ = inserted;
 			}
@@ -78,20 +100,29 @@ namespace asio2::detail
 
 		/**
 		 * @function : erase the session
+		 * @callback : void(bool erased);
 		 */
-		inline void erase(std::shared_ptr<session_t> session_ptr, std::function<void(bool)> callback)
+		template<class Fun>
+		inline void erase(std::shared_ptr<session_t> session_ptr, Fun&& callback)
 		{
 			if (!session_ptr)
 				return;
 
 			if (!this->io_.strand().running_in_this_thread())
-				return asio::post(this->io_.strand(), make_allocator(this->allocator_,
-					std::bind(&self::erase, this, std::move(session_ptr), std::move(callback))));
+			{
+				asio::post(this->io_.strand(), make_allocator(this->allocator_,
+				[this, session_ptr = std::move(session_ptr), callback = std::forward<Fun>(callback)]
+				() mutable
+				{
+					this->erase(std::move(session_ptr), std::move(callback));
+				}));
+				return;
+			}
 
 			bool erased = false;
 
 			{
-				std::unique_lock<std::shared_mutex> guard(this->mutex_);
+				asio2_unique_lock guard(this->mutex_);
 				if (session_ptr->in_sessions_)
 					erased = (this->sessions_.erase(session_ptr->hash_key()) > 0);
 			}
@@ -101,10 +132,12 @@ namespace asio2::detail
 
 		/**
 		 * @function : Submits a completion token or function object for execution.
+		 * @task : void();
 		 */
-		inline void post(std::function<void()> task)
+		template<class Fun>
+		inline void post(Fun&& task)
 		{
-			asio::post(this->io_.strand(), make_allocator(this->allocator_, std::move(task)));
+			asio::post(this->io_.strand(), make_allocator(this->allocator_, std::forward<Fun>(task)));
 		}
 
 		/**
@@ -112,12 +145,14 @@ namespace asio2::detail
 		 * the custom callback function is like this :
 		 * void on_callback(std::shared_ptr<tcp_session> & session_ptr)
 		 */
-		inline void foreach(const std::function<void(std::shared_ptr<session_t> &)> & fn)
+		template<class Fun>
+		inline void for_each(Fun&& fn)
 		{
-			std::shared_lock<std::shared_mutex> guard(this->mutex_);
+			asio2_shared_lock guard(this->mutex_);
 			for (auto &[k, session_ptr] : this->sessions_)
 			{
 				std::ignore = k;
+
 				fn(session_ptr);
 			}
 		}
@@ -127,19 +162,21 @@ namespace asio2::detail
 		 */
 		inline std::shared_ptr<session_t> find(const key_type & key)
 		{
-			std::shared_lock<std::shared_mutex> guard(this->mutex_);
+			asio2_shared_lock guard(this->mutex_);
 			auto iter = this->sessions_.find(key);
 			return (iter == this->sessions_.end() ? std::shared_ptr<session_t>() : iter->second);
 		}
 
 		/**
 		 * @function : find the session by user custom role
+		 * bool on_callback(std::shared_ptr<tcp_session> & session_ptr)
 		 */
-		inline std::shared_ptr<session_t> find_if(const std::function<bool(std::shared_ptr<session_t> &)> & fn)
+		template<class Fun>
+		inline std::shared_ptr<session_t> find_if(Fun&& fn)
 		{
-			std::shared_lock<std::shared_mutex> guard(this->mutex_);
+			asio2_shared_lock guard(this->mutex_);
 			auto iter = std::find_if(this->sessions_.begin(), this->sessions_.end(),
-				[this, &fn](auto &pair)
+			[this, &fn](auto &pair) mutable
 			{
 				return fn(pair.second);
 			});
@@ -167,12 +204,16 @@ namespace asio2::detail
 		std::unordered_map<key_type, std::shared_ptr<session_t>> sessions_;
 
 		/// use rwlock to make this session map thread safe
-		std::shared_mutex mutex_;
+		asio2_shared_mutex                        mutex_;
 
-		io_t & io_;
+		/// the zero io_context refrence in the iopool
+		io_t                                    & io_;
 
 		/// The memory to use for handler-based custom memory allocation.
 		handler_memory<size_op<>, std::true_type> allocator_;
+
+		/// server state refrence
+		std::atomic<state_t>                    & state_;
 	};
 }
 

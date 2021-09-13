@@ -1,5 +1,5 @@
 /*
- * COPYRIGHT (C) 2017-2019, zhllxt
+ * COPYRIGHT (C) 2017-2021, zhllxt
  *
  * author   : zhllxt
  * email    : 37792738@qq.com
@@ -39,6 +39,30 @@
 #include <algorithm>
 #include <tuple>
 #include <filesystem>
+
+// when compiled with "Visual Studio 2017 - Windows XP (v141_xp)"
+// there is hasn't shared_mutex
+#ifndef ASIO2_HAS_SHARED_MUTEX
+	#if defined(_MSC_VER)
+		#if _HAS_SHARED_MUTEX
+			#define ASIO2_HAS_SHARED_MUTEX 1
+			#define asio2_shared_mutex std::shared_mutex
+			#define asio2_shared_lock  std::shared_lock
+			#define asio2_unique_lock  std::unique_lock
+		#else
+			#define ASIO2_HAS_SHARED_MUTEX 0
+			#define asio2_shared_mutex std::mutex
+			#define asio2_shared_lock  std::lock_guard
+			#define asio2_unique_lock  std::lock_guard
+		#endif
+	#else
+			#define ASIO2_HAS_SHARED_MUTEX 1
+			#define asio2_shared_mutex std::shared_mutex
+			#define asio2_shared_lock  std::shared_lock
+			#define asio2_unique_lock  std::unique_lock
+	#endif
+#endif
+
 
 #if defined(__unix__) || defined(__linux__)
 	#include <unistd.h>
@@ -98,7 +122,7 @@ namespace asio2
 		slow:
 			do
 			{
-				if (detail::ascii_tolower(a) != detail::ascii_tolower(b))
+				if (ascii_tolower(a) != ascii_tolower(b))
 					return false;
 				a = *p1++;
 				b = *p2++;
@@ -248,7 +272,9 @@ namespace asio2
 
 namespace asio2
 {
-	namespace detail
+	// use namespace asio2::detail::util to avoid conflict with asio2::detail in file "asio2/base/detail/util.hpp"
+	// is_string_view ...
+	namespace detail::util
 	{
 		template<typename, typename = void>
 		struct is_fstream : std::false_type {};
@@ -285,6 +311,75 @@ namespace asio2
 
 		template<class T>
 		inline constexpr bool is_file_stream_v = is_fstream_v<T> || is_ifstream_v<T> || is_ofstream_v<T>;
+
+
+		template<typename, typename = void>
+		struct is_string_view : std::false_type {};
+
+		template<typename T>
+		struct is_string_view<T, std::void_t<typename T::value_type, typename T::traits_type,
+			typename std::enable_if_t<std::is_same_v<T,
+			std::basic_string_view<typename T::value_type, typename T::traits_type>>>>> : std::true_type {};
+
+		template<class T>
+		inline constexpr bool is_string_view_v = is_string_view<T>::value;
+
+
+		template<typename, typename = void>
+		struct is_char_pointer : std::false_type {};
+
+		// char const * 
+		// std::remove_cv_t<std::remove_pointer_t<std::remove_cv_t<std::remove_reference_t<T>>>
+		// char
+		template<typename T>
+		struct is_char_pointer<T, std::void_t<typename std::enable_if_t <
+			 std::is_pointer_v<                      std::remove_cv_t<std::remove_reference_t<T>>>  &&
+			!std::is_pointer_v<std::remove_pointer_t<std::remove_cv_t<std::remove_reference_t<T>>>> &&
+			(
+				std::is_same_v<std::remove_cv_t<std::remove_pointer_t<std::remove_cv_t<std::remove_reference_t<T>>>>, char    > ||
+				std::is_same_v<std::remove_cv_t<std::remove_pointer_t<std::remove_cv_t<std::remove_reference_t<T>>>>, wchar_t > ||
+				std::is_same_v<std::remove_cv_t<std::remove_pointer_t<std::remove_cv_t<std::remove_reference_t<T>>>>, char16_t> ||
+				std::is_same_v<std::remove_cv_t<std::remove_pointer_t<std::remove_cv_t<std::remove_reference_t<T>>>>, char32_t>
+			)
+			>>> : std::true_type {};
+
+		template<class T>
+		inline constexpr bool is_char_pointer_v = is_char_pointer<T>::value;
+
+
+		template<typename, typename = void>
+		struct is_char_array : std::false_type {};
+
+		template<typename T>
+		struct is_char_array<T, std::void_t<typename std::enable_if_t <
+			std::is_array_v<std::remove_cv_t<std::remove_reference_t<T>>>  &&
+			(
+				std::is_same_v<std::remove_cv_t<std::remove_all_extents_t<std::remove_cv_t<std::remove_reference_t<T>>>>, char    > ||
+				std::is_same_v<std::remove_cv_t<std::remove_all_extents_t<std::remove_cv_t<std::remove_reference_t<T>>>>, wchar_t > ||
+				std::is_same_v<std::remove_cv_t<std::remove_all_extents_t<std::remove_cv_t<std::remove_reference_t<T>>>>, char16_t> ||
+				std::is_same_v<std::remove_cv_t<std::remove_all_extents_t<std::remove_cv_t<std::remove_reference_t<T>>>>, char32_t>
+			)
+			>>> : std::true_type {};
+
+		template<class T>
+		inline constexpr bool is_char_array_v = is_char_array<T>::value;
+
+
+		template<class R>
+		struct return_type
+		{
+			template<class T, bool> struct string_view_traits { using type = T; };
+
+			template<class T> struct string_view_traits<T, true>
+			{
+				using type = std::basic_string<typename std::remove_cv_t<std::remove_reference_t<R>>::value_type>;
+			};
+
+			using type = typename std::conditional_t<is_char_pointer_v<R> || is_char_array_v<R>,
+				std::basic_string<std::remove_cv_t<std::remove_all_extents_t<
+				std::remove_pointer_t<std::remove_cv_t<std::remove_reference_t<R>>>>>>,
+				typename string_view_traits<R, is_string_view_v<R>>::type>;
+		};
 	}
 
 	namespace detail
@@ -307,13 +402,18 @@ namespace asio2
 					filepath_.resize(MAX_PATH);
 					filepath_.resize(::GetModuleFileNameA(NULL, (LPSTR)filepath_.data(), MAX_PATH));
 #endif
-					auto pos = filepath_.rfind('.');
-					if (pos != std::string::npos)
-					{
-						filepath_.erase(pos);
-					}
+					if (std::string::size_type pos = filepath_.find('\0'); pos != std::string::npos)
+						filepath_.resize(pos);
 
-					filepath_ += ".ini";
+					std::filesystem::path path{ filepath_ };
+
+					std::string name = path.filename().string();
+
+					std::string ext = path.extension().string();
+
+					name.resize(name.size() - ext.size());
+
+					filepath_ = path.parent_path().append(name).string() + ".ini";
 				}
 				else if constexpr (sizeof...(Args) == 1)
 				{
@@ -339,15 +439,15 @@ namespace asio2
 						Stream f(filepath_, std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
 					}
 
-					if constexpr /**/ (detail::is_fstream_v<Stream>)
+					if constexpr /**/ (detail::util::is_fstream_v<Stream>)
 					{
 						mode |= std::ios_base::in | std::ios_base::out | std::ios_base::binary;
 					}
-					else if constexpr (detail::is_ifstream_v<Stream>)
+					else if constexpr (detail::util::is_ifstream_v<Stream>)
 					{
 						mode |= std::ios_base::in | std::ios_base::binary;
 					}
-					else if constexpr (detail::is_ofstream_v<Stream>)
+					else if constexpr (detail::util::is_ofstream_v<Stream>)
 					{
 						mode |= std::ios_base::out | std::ios_base::binary;
 					}
@@ -396,6 +496,8 @@ namespace asio2
 					}
 				}
 			}
+
+			inline std::string filepath() { return filepath_; }
 
 		protected:
 			std::string                  filepath_;
@@ -462,7 +564,8 @@ namespace asio2
 			std::basic_string_view<char_type, Traits> key,
 			std::basic_string<char_type, Traits, Allocator> & val)
 		{
-			std::shared_lock<std::shared_mutex> guard(this->mutex_);
+			asio2_shared_lock guard(this->mutex_);
+
 			Stream::clear();
 			if (Stream::operator bool())
 			{
@@ -513,64 +616,68 @@ namespace asio2
 		}
 
 	public:
-		template<class R, class Sec, class Key, class Traits = std::char_traits<char_type>>
-		inline typename std::enable_if_t<std::is_same_v<decltype(
-			std::basic_string_view<char_type, Traits>(std::declval<Sec>()),
-			std::basic_string_view<char_type, Traits>(std::declval<Key>()),
-			std::true_type()), std::true_type>, R>
-			get(const Sec& sec, const Key& key, R default_val = R())
+		/**
+		 * get the value associated with a key in the specified section of an ini file.
+		 * This function does not throw an exception.
+		 * example : 
+		 * asio2::ini ini("config.ini");
+		 * std::string   host = ini.get("main", "host", "127.0.0.1");
+		 * std::uint16_t port = ini.get("main", "port", 8080);
+		 * or : 
+		 * std::string   host = ini.get<std::string  >("main", "host");
+		 * std::uint16_t port = ini.get<std::uint16_t>("main", "port");
+		 */
+		template<class R, class Sec, class Key, class Traits = std::char_traits<char_type>,
+			class Allocator = std::allocator<char_type>>
+		inline typename detail::util::return_type<R>::type get(const Sec& sec, const Key& key, R default_val = R())
 		{
-			return this->get<R>(
-				std::basic_string_view<char_type, Traits>(sec),
-				std::basic_string_view<char_type, Traits>(key),
-				default_val);
+			std::error_code ec;
+
+			return this->get(sec, key, ec, std::move(default_val));
 		}
 
-		template<class R, class Traits = std::char_traits<char_type>,
+		/**
+		 * get the value associated with a key in the specified section of an ini file.
+		 * This function does not throw an exception.
+		 * example : 
+		 * asio2::ini ini("config.ini");
+		 * std::error_code ec;
+		 * std::string   host = ini.get("main", "host", ec, "127.0.0.1");
+		 * std::uint16_t port = ini.get("main", "port", ec, 8080);
+		 * or : 
+		 * std::string   host = ini.get<std::string  >("main", "host", ec);
+		 * std::uint16_t port = ini.get<std::uint16_t>("main", "port", ec);
+		 */
+		template<class R, class Sec, class Key, class Traits = std::char_traits<char_type>,
 			class Allocator = std::allocator<char_type>>
-		inline typename std::enable_if_t<std::is_same_v<decltype(
-			asio2::convert<R>::stov(std::basic_string<char_type, Traits, Allocator>()),
-			std::true_type()), std::true_type>, R>
-			get(std::basic_string_view<char_type, Traits> sec,
-				std::basic_string_view<char_type, Traits> key, R default_val = R())
+		inline typename detail::util::return_type<R>::type
+			get(const Sec& sec, const Key& key, std::error_code& ec, R default_val = R())
 		{
+			using return_t = typename detail::util::return_type<R>::type;
+
 			try
 			{
-				std::basic_string<char_type, Traits, Allocator> val;
-				if (this->_get(sec, key, val))
-					default_val = asio2::convert<R>::stov(std::move(val));
-			}
-			catch (std::exception &) {}
-			return default_val;
-		}
+				ec.clear();
 
-		template<class R, class Sec, class Key, class Traits = std::char_traits<char_type>>
-		inline typename std::enable_if_t<std::is_same_v<decltype(
-			std::basic_string_view<char_type, Traits>(std::declval<Sec>()),
-			std::basic_string_view<char_type, Traits>(std::declval<Key>()),
-			std::true_type()), std::true_type>, R>
-			get(const Sec& sec, const Key& key, std::error_code & ec, R default_val = R())
-		{
-			return this->get<R>(
-				std::basic_string_view<char_type, Traits>(sec),
-				std::basic_string_view<char_type, Traits>(key),
-				ec, default_val);
-		}
-
-		template<class R, class Traits = std::char_traits<char_type>,
-			class Allocator = std::allocator<char_type>>
-		inline typename std::enable_if_t<std::is_same_v<decltype(
-			asio2::convert<R>::stov(std::basic_string<char_type, Traits, Allocator>()),
-			std::true_type()), std::true_type>, R>
-			get(std::basic_string_view<char_type, Traits> sec,
-				std::basic_string_view<char_type, Traits> key,
-				std::error_code & ec, R default_val = R())
-		{
-			try
-			{
 				std::basic_string<char_type, Traits, Allocator> val;
-				if (this->_get(sec, key, val))
-					default_val = asio2::convert<R>::stov(std::move(val));
+
+				bool flag = this->_get(
+					std::basic_string_view<char_type, Traits>(sec),
+					std::basic_string_view<char_type, Traits>(key),
+					val);
+
+				if constexpr (detail::util::is_char_pointer_v<R> || detail::util::is_char_array_v<R>)
+				{
+					return (flag ? val : return_t{ default_val });
+				}
+				else if constexpr (detail::util::is_string_view_v<R>)
+				{
+					return (flag ? val : return_t{ default_val });
+				}
+				else
+				{
+					return (flag ? asio2::convert<R>::stov(val) : default_val);
+				}
 			}
 			catch (std::invalid_argument &)
 			{
@@ -584,9 +691,17 @@ namespace asio2
 			{
 				ec = std::make_error_code(std::errc::invalid_argument);
 			}
-			return default_val;
+
+			return return_t{ default_val };
 		}
 
+		/**
+		 * set the value associated with a key in the specified section of an ini file.
+		 * example :
+		 * asio2::ini ini("config.ini");
+		 * ini.set("main", "host", "127.0.0.1");
+		 * ini.set("main", "port", 8080);
+		 */
 		template<class Sec, class Key, class Val, class Traits = std::char_traits<char_type>>
 		inline typename std::enable_if_t<std::is_same_v<decltype(
 			std::basic_string_view<char_type, Traits>(std::declval<Sec>()),
@@ -601,6 +716,13 @@ namespace asio2
 				std::basic_string_view<char_type, Traits>(val));
 		}
 
+		/**
+		 * set the value associated with a key in the specified section of an ini file.
+		 * example :
+		 * asio2::ini ini("config.ini");
+		 * ini.set("main", "host", "127.0.0.1");
+		 * ini.set("main", "port", 8080);
+		 */
 		template<class Sec, class Key, class Val, class Traits = std::char_traits<char_type>>
 		inline typename std::enable_if_t<std::is_same_v<decltype(
 			std::basic_string_view<char_type, Traits>(std::declval<Sec>()),
@@ -616,13 +738,21 @@ namespace asio2
 				std::basic_string_view<char_type, Traits>(v));
 		}
 
+		/**
+		 * set the value associated with a key in the specified section of an ini file.
+		 * example :
+		 * asio2::ini ini("config.ini");
+		 * ini.set("main", "host", "127.0.0.1");
+		 * ini.set("main", "port", 8080);
+		 */
 		template<class Traits = std::char_traits<char_type>, class Allocator = std::allocator<char_type>>
 		bool set(
 			std::basic_string_view<char_type, Traits> sec,
 			std::basic_string_view<char_type, Traits> key,
 			std::basic_string_view<char_type, Traits> val)
 		{
-			std::unique_lock<std::shared_mutex> guard(this->mutex_);
+			asio2_unique_lock guard(this->mutex_);
+
 			Stream::clear();
 			if (Stream::operator bool())
 			{
@@ -631,7 +761,7 @@ namespace asio2
 				pos_type posg = 0;
 				char ret;
 
-				auto update_v = [&]() -> bool
+				auto update_v = [&]() mutable -> bool
 				{
 					try
 					{
@@ -946,7 +1076,7 @@ namespace asio2
 		}
 
 	protected:
-		std::shared_mutex            mutex_;
+		asio2_shared_mutex           mutex_;
 
 		std::basic_string<char_type> endl_;
 	};

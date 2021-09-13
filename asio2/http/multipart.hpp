@@ -421,76 +421,91 @@ namespace multipart_parser
 			return false;
 
 		std::string_view header = content.substr(0, split);
-		std::string_view value = content.substr(split + 4);
+		std::string_view value  = content.substr(split + 4);
 
-		// find the header type name.
-		auto pos1 = header.find(':');
-		if (pos1 == std::string_view::npos)
-			return false;
+		std::string_view::size_type pos_row_1 = static_cast<std::string_view::size_type>( 0);
+		std::string_view::size_type pos_row_2 = static_cast<std::string_view::size_type>(-2);
 
-		field.value(value);
-
-		// get the header type value.
-		std::string_view type = header.substr(0, pos1);
-		asio2::trim_both(type);
-
-		++pos1;
-
-		if /**/(beast::iequals(type, "Content-Disposition"))
+		for(;;)
 		{
-			auto pos2 = header.find(';', pos1);
+			pos_row_1 = pos_row_2 + 2;
+			pos_row_2 = header.find("\r\n", pos_row_1);
 
-			std::string_view disposition = header.substr(pos1, pos2 == std::string_view::npos ? pos2 : pos2 - pos1);
-			asio2::trim_both(disposition);
-			field.content_disposition(disposition);
+			std::string_view header_row = header.substr(pos_row_1,
+				pos_row_2 == std::string_view::npos ? pos_row_2 : pos_row_2 - pos_row_1);
 
-			if (pos2 != std::string_view::npos)
+			// find the header type name.
+			auto pos1 = header_row.find(':');
+			if (pos1 == std::string_view::npos)
+				return false;
+
+			// get the header type value.
+			std::string_view type = header_row.substr(0, pos1);
+			asio2::trim_both(type);
+
+			++pos1;
+
+			if /**/(beast::iequals(type, "Content-Disposition"))
 			{
-				std::string_view kvs = header.substr(pos2 + 1);
+				auto pos2 = header_row.find(';', pos1);
 
-				for (pos2 = 0;;)
+				std::string_view disposition = header_row.substr(pos1, pos2 == std::string_view::npos ? pos2 : pos2 - pos1);
+				asio2::trim_both(disposition);
+				field.content_disposition(disposition);
+
+				if (pos2 != std::string_view::npos)
 				{
-					auto pos3 = kvs.find(';', pos2);
+					std::string_view kvs = header_row.substr(pos2 + 1);
 
-					std::string_view kv = kvs.substr(pos2, pos3 == std::string_view::npos ? pos3 : pos3 - pos2);
+					for (pos2 = 0;;)
+					{
+						auto pos3 = kvs.find(';', pos2);
 
-					auto pos4 = kv.find('=');
-					if (pos4 == std::string_view::npos)
-						return false;
+						std::string_view kv = kvs.substr(pos2, pos3 == std::string_view::npos ? pos3 : pos3 - pos2);
 
-					std::string_view k = kv.substr(0, pos4);
-					std::string_view v = kv.substr(pos4 + 1);
+						auto pos4 = kv.find('=');
+						if (pos4 == std::string_view::npos)
+							return false;
 
-					asio2::trim_both(k);
-					asio2::trim_both(v);
+						std::string_view k = kv.substr(0, pos4);
+						std::string_view v = kv.substr(pos4 + 1);
 
-					if (!v.empty() && v.front() == '\"') v.remove_prefix(1);
-					if (!v.empty() && v.back()  == '\"') v.remove_suffix(1);
+						asio2::trim_both(k);
+						asio2::trim_both(v);
 
-					if /**/ (beast::iequals(k, "name"))
-						field.name(v);
-					else if (beast::iequals(k, "filename"))
-						field.filename(v);
+						if (!v.empty() && v.front() == '\"') v.remove_prefix(1);
+						if (!v.empty() && v.back()  == '\"') v.remove_suffix(1);
 
-					if (pos3 == std::string_view::npos)
-						break;
+						if /**/ (beast::iequals(k, "name"))
+							field.name(v);
+						else if (beast::iequals(k, "filename"))
+							field.filename(v);
 
-					pos2 = pos3 + 1;
+						if (pos3 == std::string_view::npos)
+							break;
+
+						pos2 = pos3 + 1;
+					}
 				}
 			}
+			else if (beast::iequals(type, "Content-Type"))
+			{
+				field.content_type(header_row.substr(pos1 + 1));
+			}
+			else if (beast::iequals(type, "Content-Transfer-Encoding"))
+			{
+				field.content_transfer_encoding(header_row.substr(pos1 + 1));
+			}
+			else
+			{
+				ASIO2_ASSERT(false);
+			}
+
+			if (pos_row_2 == std::string_view::npos)
+				break;
 		}
-		else if (beast::iequals(type, "Content-Type"))
-		{
-			field.content_type(header.substr(pos1 + 1));
-		}
-		else if (beast::iequals(type, "Content-Transfer-Encoding"))
-		{
-			field.content_transfer_encoding(header.substr(pos1 + 1));
-		}
-		else
-		{
-			ASIO2_ASSERT(false);
-		}
+
+		field.value(value);
 
 		return true;
 	}

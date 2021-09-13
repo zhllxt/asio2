@@ -386,7 +386,7 @@ namespace asio2::detail
 					});
 				});
 
-				this->acceptor_.close(ec_ignore);
+				this->acceptor_.close(ec_ignore());
 
 				std::string h = to_string(std::forward<String>(host));
 				std::string p = to_string(std::forward<StrOrInt>(service));
@@ -501,7 +501,7 @@ namespace asio2::detail
 
 				// stop all the sessions, the session::stop must be no blocking,
 				// otherwise it may be cause loop lock.
-				this->sessions_.foreach([](std::shared_ptr<session_t> & session_ptr) mutable
+				this->sessions_.for_each([](std::shared_ptr<session_t> & session_ptr) mutable
 				{
 					session_ptr->stop();
 				});
@@ -520,9 +520,9 @@ namespace asio2::detail
 			super::stop();
 
 			// Call shutdown() to indicate that you will not write any more data to the socket.
-			this->acceptor_.shutdown(asio::socket_base::shutdown_both, ec_ignore);
+			this->acceptor_.shutdown(asio::socket_base::shutdown_both, ec_ignore());
 			// Call close,otherwise the _handle_recv will never return
-			this->acceptor_.close(ec_ignore);
+			this->acceptor_.close(ec_ignore());
 		}
 
 		template<typename MatchCondition>

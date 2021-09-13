@@ -15,6 +15,34 @@
 #pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
+#include <mutex>
+#include <shared_mutex>
+
+
+// when compiled with "Visual Studio 2017 - Windows XP (v141_xp)"
+// there is hasn't shared_mutex
+#ifndef ASIO2_HAS_SHARED_MUTEX
+	#if defined(_MSC_VER)
+		#if _HAS_SHARED_MUTEX
+			#define ASIO2_HAS_SHARED_MUTEX 1
+			#define asio2_shared_mutex std::shared_mutex
+			#define asio2_shared_lock  std::shared_lock
+			#define asio2_unique_lock  std::unique_lock
+		#else
+			#define ASIO2_HAS_SHARED_MUTEX 0
+			#define asio2_shared_mutex std::mutex
+			#define asio2_shared_lock  std::lock_guard
+			#define asio2_unique_lock  std::lock_guard
+		#endif
+	#else
+			#define ASIO2_HAS_SHARED_MUTEX 1
+			#define asio2_shared_mutex std::shared_mutex
+			#define asio2_shared_lock  std::shared_lock
+			#define asio2_unique_lock  std::unique_lock
+	#endif
+#endif
+
+
 #define ASIO2_CLASS_DECLARE_BASE(KEYWORD)                                           \
 	template <class, class>                      KEYWORD alive_time_cp;             \
 	template <class, class>                      KEYWORD async_event_cp;            \

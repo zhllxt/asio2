@@ -198,9 +198,9 @@ namespace asio2::detail
 			// call socket's close function to notify the _handle_recv function response with error > 0 ,
 			// then the socket can get notify to exit
 			// Call shutdown() to indicate that you will not write any more data to the socket.
-			this->socket_.lowest_layer().shutdown(asio::socket_base::shutdown_both, ec_ignore);
+			this->socket_.lowest_layer().shutdown(asio::socket_base::shutdown_both, ec_ignore());
 			// Call close,otherwise the _handle_recv will never return
-			this->socket_.lowest_layer().close(ec_ignore);
+			this->socket_.lowest_layer().close(ec_ignore());
 		}
 
 		template<typename MatchCondition>
@@ -210,10 +210,28 @@ namespace asio2::detail
 			this->sessions_.emplace(this_ptr, [this, this_ptr, condition = std::move(condition)]
 			(bool inserted) mutable
 			{
-				if (inserted)
+				// when run to here, the server state maybe started or stopping or stopped, 
+				// if server state is not started, must can't push the session to the map
+				// again, so we need disconnect the session directly, otherwise the server
+				// maybe stopping, and the iopool's wait_iothreas is running in the "sleep"
+				// this will cause the server.stop() never return;
+				if (inserted && this->sessions_.state_ == state_t::started)
+				{
+				#if (defined(_DEBUG) || defined(DEBUG)) && defined(ASIO2_ENABLE_LOG)
+					// this thread is same as the server thread, so the judgment statement
+					// here must be reliable,
+					if (this->sessions_.state_ != state_t::started)
+					{
+						ASIO2_ASSERT(false);
+					}
+				#endif
+
 					this->derived()._start_recv(std::move(this_ptr), std::move(condition));
+				}
 				else
+				{
 					this->derived()._do_disconnect(asio::error::address_in_use);
+				}
 			});
 		}
 

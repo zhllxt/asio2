@@ -368,7 +368,7 @@ namespace asio2::detail
 					});
 				});
 
-				this->acceptor_.close(ec_ignore);
+				this->acceptor_.close(ec_ignore());
 
 				std::string h = to_string(std::forward<String>(host));
 				std::string p = to_string(std::forward<StrOrInt>(service));
@@ -475,7 +475,7 @@ namespace asio2::detail
 
 				// stop all the sessions, the session::stop must be no blocking,
 				// otherwise it may be cause loop lock.
-				this->sessions_.foreach([](std::shared_ptr<session_t> & session_ptr) mutable
+				this->sessions_.for_each([](std::shared_ptr<session_t> & session_ptr) mutable
 				{
 					session_ptr->stop();
 				});
@@ -490,8 +490,8 @@ namespace asio2::detail
 
 			this->derived()._fire_stop(ec);
 
-			this->acceptor_timer_.cancel(ec_ignore);
-			this->counter_timer_.cancel(ec_ignore);
+			this->acceptor_timer_.cancel(ec_ignore());
+			this->counter_timer_.cancel(ec_ignore());
 
 			// call the base class stop function
 			super::stop();
@@ -500,7 +500,7 @@ namespace asio2::detail
 			// function response with error > 0 , then the listen socket
 			// can get notify to exit must ensure the close function has 
 			// been called,otherwise the _handle_accept will never return
-			this->acceptor_.close(ec_ignore);
+			this->acceptor_.close(ec_ignore());
 		}
 
 		template<typename... Args>

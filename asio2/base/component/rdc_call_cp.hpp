@@ -639,7 +639,7 @@ namespace asio2::detail
 					{
 						detail::ignore_unused(id);
 						auto&[timer, invoker] = tup;
-						timer->cancel(ec_ignore);
+						timer->cancel(ec_ignore());
 						derive._rdc_invoke_with_none(asio::error::operation_aborted, invoker);
 					}
 					condition.invoker().reqs().clear();
@@ -697,7 +697,7 @@ namespace asio2::detail
 							if (iter != condition.invoker().end())
 							{
 								auto&[tmer, cb] = iter->second;
-								tmer->cancel(ec_ignore);
+								tmer->cancel(ec_ignore());
 								derive._rdc_invoke_with_none(asio::error::timed_out, cb);
 								condition.invoker().erase(iter);
 							}
@@ -728,7 +728,7 @@ namespace asio2::detail
 				if (iter != condition.invoker().end())
 				{
 					auto&[timer, invoker] = iter->second;
-					timer->cancel(ec_ignore);
+					timer->cancel(ec_ignore());
 					derive._rdc_invoke_with_recv(error_code{}, invoker, data);
 					condition.invoker().erase(iter);
 				}

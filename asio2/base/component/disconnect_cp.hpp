@@ -220,7 +220,7 @@ namespace asio2::detail
 				};
 				// We must use the asio::post function to execute the task, otherwise :
 				// when the server acceptor thread is same as this session thread,
-				// when the server stop, will call sessions_.foreach -> session_ptr->stop() ->
+				// when the server stop, will call sessions_.for_each -> session_ptr->stop() ->
 				// derived().push_event -> sessions_.erase => this can leads to a dead lock
 				derive.post(std::move(task));
 				return true;

@@ -486,9 +486,9 @@ namespace asio2::detail
 			// call socket's close function to notify the _handle_recv function response with 
 			// error > 0 ,then the socket can get notify to exit
 			// Call shutdown() to indicate that you will not write any more data to the socket.
-			this->socket_.lowest_layer().shutdown(asio::socket_base::shutdown_both, ec_ignore);
+			this->socket_.lowest_layer().shutdown(asio::socket_base::shutdown_both, ec_ignore());
 			// Call close,otherwise the _handle_recv will never return
-			this->socket_.lowest_layer().close(ec_ignore);
+			this->socket_.lowest_layer().close(ec_ignore());
 		}
 
 		inline void _do_stop(const error_code& ec)
