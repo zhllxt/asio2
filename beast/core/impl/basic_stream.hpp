@@ -266,6 +266,8 @@ class transfer_op
                 std::move(*this));
     }
 
+    static bool never_pending_;
+
 public:
     template<class Handler_>
     transfer_op(
@@ -275,10 +277,25 @@ public:
         : async_base<Handler, Executor>(
             std::forward<Handler_>(h), s.get_executor())
         , impl_(s.impl_)
-        , pg_(state().pending)
+        , pg_()
         , b_(b)
     {
-        (*this)({});
+        if (buffer_bytes(b_) == 0 && state().pending)
+        {
+            // Workaround:
+            // Corner case discovered in https://github.com/boostorg/beast/issues/2065
+            // Enclosing SSL stream wishes to complete a 0-length write early by
+            // executing a 0-length read against the underlying stream.
+            // This can occur even if an existing async_read is in progress.
+            // In this specific case, we will complete the async op with no error
+            // in order to prevent assertions and/or internal corruption of the basic_stream
+            this->complete(false, error_code(), 0);
+        }
+        else
+        {
+            pg_.assign(state().pending);
+            (*this)({});
+        }
     }
 
     void
@@ -293,7 +310,14 @@ public:
             {
                 // make sure we perform the no-op
                 ASIO_CORO_YIELD
-                async_perform(0, is_read{});
+                {
+                    ASIO_HANDLER_LOCATION((
+                        __FILE__, __LINE__,
+                        (isRead ? "basic_stream::async_read_some"
+                            : "basic_stream::async_write_some")));
+
+                    async_perform(0, is_read{});
+                }
                 // apply the timeout manually, otherwise
                 // behavior varies across platforms.
                 if(state().timer.expiry() <= clock_type::now())
@@ -306,12 +330,19 @@ public:
 
             // if a timeout is active, wait on the timer
             if(state().timer.expiry() != never())
+            {
+                ASIO_HANDLER_LOCATION((
+                    __FILE__, __LINE__,
+                    (isRead ? "basic_stream::async_read_some"
+                        : "basic_stream::async_write_some")));
+
                 state().timer.async_wait(
                     timeout_handler<decltype(this->get_executor())>{
                         state(),
                         impl_,
                         state().tick,
                         this->get_executor()});
+            }
 
             // check rate limit, maybe wait
             std::size_t amount;
@@ -320,7 +351,14 @@ public:
             {
                 ++impl_->waiting;
                 ASIO_CORO_YIELD
-                impl_->timer.async_wait(std::move(*this));
+                {
+                    ASIO_HANDLER_LOCATION((
+                        __FILE__, __LINE__,
+                        (isRead ? "basic_stream::async_read_some"
+                            : "basic_stream::async_write_some")));
+
+                    impl_->timer.async_wait(std::move(*this));
+                }
                 if(ec)
                 {
                     // socket was closed, or a timeout
@@ -344,7 +382,14 @@ public:
             }
 
             ASIO_CORO_YIELD
-            async_perform(amount, is_read{});
+            {
+                ASIO_HANDLER_LOCATION((
+                    __FILE__, __LINE__,
+                    (isRead ? "basic_stream::async_read_some"
+                        : "basic_stream::async_write_some")));
+
+                async_perform(amount, is_read{});
+            }
 
             if(state().timer.expiry() != never())
             {
@@ -405,12 +450,22 @@ public:
         , pg1_(impl_->write.pending)
     {
         if(state().timer.expiry() != stream_base::never())
+        {
+            ASIO_HANDLER_LOCATION((
+                __FILE__, __LINE__,
+                "basic_stream::async_connect"));
+
             impl_->write.timer.async_wait(
                 timeout_handler<decltype(this->get_executor())>{
                     state(),
                     impl_,
                     state().tick,
                     this->get_executor()});
+        }
+
+        ASIO_HANDLER_LOCATION((
+            __FILE__, __LINE__,
+            "basic_stream::async_connect"));
 
         impl_->socket.async_connect(
             ep, std::move(*this));
@@ -432,12 +487,22 @@ public:
         , pg1_(impl_->write.pending)
     {
         if(state().timer.expiry() != stream_base::never())
+        {
+            ASIO_HANDLER_LOCATION((
+                __FILE__, __LINE__,
+                "basic_stream::async_connect"));
+
             impl_->write.timer.async_wait(
                 timeout_handler<decltype(this->get_executor())>{
                     state(),
                     impl_,
                     state().tick,
                     this->get_executor()});
+        }
+
+        ASIO_HANDLER_LOCATION((
+            __FILE__, __LINE__,
+            "basic_stream::async_connect"));
 
         net::async_connect(impl_->socket,
             eps, cond, std::move(*this));
@@ -459,12 +524,22 @@ public:
         , pg1_(impl_->write.pending)
     {
         if(state().timer.expiry() != stream_base::never())
+        {
+            ASIO_HANDLER_LOCATION((
+                __FILE__, __LINE__,
+                "basic_stream::async_connect"));
+
             impl_->write.timer.async_wait(
                 timeout_handler<decltype(this->get_executor())>{
                     state(),
                     impl_,
                     state().tick,
                     this->get_executor()});
+        }
+
+        ASIO_HANDLER_LOCATION((
+            __FILE__, __LINE__,
+            "basic_stream::async_connect"));
 
         net::async_connect(impl_->socket,
             begin, end, cond, std::move(*this));
@@ -678,7 +753,12 @@ basic_stream(basic_stream&& other)
     : impl_(std::make_shared<impl_type>(
         std::move(*other.impl_)))
 {
-    // VFALCO I'm not sure this implementation is correct...
+    // Explainer: Asio's sockets provide the guarantee that a moved-from socket
+    // will be in a state as-if newly created. i.e.:
+    // * having the same (valid) executor
+    // * the socket shall not be open
+    // We provide the same guarantee by moving the impl rather than the pointer
+    // controlling its lifetime.
 }
 
 //------------------------------------------------------------------------------
@@ -696,7 +776,7 @@ release_socket() ->
 template<class Protocol, class Executor, class RatePolicy>
 void
 basic_stream<Protocol, Executor, RatePolicy>::
-expires_after(std::chrono::nanoseconds expiry_time)
+expires_after(net::steady_timer::duration expiry_time)
 {
     // If assert goes off, it means that there are
     // already read or write (or connect) operations
@@ -773,7 +853,7 @@ close()
 //------------------------------------------------------------------------------
 
 template<class Protocol, class Executor, class RatePolicy>
-template<class ConnectHandler>
+template<BEAST_ASYNC_TPARAM1 ConnectHandler>
 BEAST_ASYNC_RESULT1(ConnectHandler)
 basic_stream<Protocol, Executor, RatePolicy>::
 async_connect(
@@ -792,7 +872,7 @@ async_connect(
 template<class Protocol, class Executor, class RatePolicy>
 template<
     class EndpointSequence,
-    class RangeConnectHandler,
+    ASIO_COMPLETION_TOKEN_FOR(void(error_code, typename Protocol::endpoint)) RangeConnectHandler,
     class>
 ASIO_INITFN_RESULT_TYPE(RangeConnectHandler,void(error_code, typename Protocol::endpoint))
 basic_stream<Protocol, Executor, RatePolicy>::
@@ -814,7 +894,7 @@ template<class Protocol, class Executor, class RatePolicy>
 template<
     class EndpointSequence,
     class ConnectCondition,
-    class RangeConnectHandler,
+    ASIO_COMPLETION_TOKEN_FOR(void(error_code, typename Protocol::endpoint)) RangeConnectHandler,
     class>
 ASIO_INITFN_RESULT_TYPE(RangeConnectHandler,void (error_code, typename Protocol::endpoint))
 basic_stream<Protocol, Executor, RatePolicy>::
@@ -836,7 +916,7 @@ async_connect(
 template<class Protocol, class Executor, class RatePolicy>
 template<
     class Iterator,
-    class IteratorConnectHandler>
+    ASIO_COMPLETION_TOKEN_FOR(void(error_code, Iterator)) IteratorConnectHandler>
 ASIO_INITFN_RESULT_TYPE(IteratorConnectHandler,void (error_code, Iterator))
 basic_stream<Protocol, Executor, RatePolicy>::
 async_connect(
@@ -857,7 +937,7 @@ template<class Protocol, class Executor, class RatePolicy>
 template<
     class Iterator,
     class ConnectCondition,
-    class IteratorConnectHandler>
+    ASIO_COMPLETION_TOKEN_FOR(void(error_code, Iterator)) IteratorConnectHandler>
 ASIO_INITFN_RESULT_TYPE(IteratorConnectHandler,void (error_code, Iterator))
 basic_stream<Protocol, Executor, RatePolicy>::
 async_connect(
@@ -878,7 +958,7 @@ async_connect(
 //------------------------------------------------------------------------------
 
 template<class Protocol, class Executor, class RatePolicy>
-template<class MutableBufferSequence, class ReadHandler>
+template<class MutableBufferSequence, BEAST_ASYNC_TPARAM2 ReadHandler>
 BEAST_ASYNC_RESULT2(ReadHandler)
 basic_stream<Protocol, Executor, RatePolicy>::
 async_read_some(
@@ -898,7 +978,7 @@ async_read_some(
 }
 
 template<class Protocol, class Executor, class RatePolicy>
-template<class ConstBufferSequence, class WriteHandler>
+template<class ConstBufferSequence, BEAST_ASYNC_TPARAM2 WriteHandler>
 BEAST_ASYNC_RESULT2(WriteHandler)
 basic_stream<Protocol, Executor, RatePolicy>::
 async_write_some(

@@ -213,7 +213,7 @@ template<
     class AsyncReadStream,
     class DynamicBuffer,
     class CompletionCondition,
-    class ReadHandler,
+    BEAST_ASYNC_TPARAM2 ReadHandler,
     class>
 BEAST_ASYNC_RESULT2(ReadHandler)
 async_read(

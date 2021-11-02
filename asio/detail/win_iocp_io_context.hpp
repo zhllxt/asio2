@@ -2,7 +2,7 @@
 // detail/win_iocp_io_context.hpp
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 //
-// Copyright (c) 2003-2020 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+// Copyright (c) 2003-2021 Christopher M. Kohlhoff (chris at kohlhoff dot com)
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -109,10 +109,10 @@ public:
   }
 
   // Return whether a handler can be dispatched immediately.
-  bool can_dispatch()
-  {
-    return thread_call_stack::contains(this) != 0;
-  }
+  ASIO_DECL bool can_dispatch();
+
+  /// Capture the current exception so it can be rethrown from a run function.
+  ASIO_DECL void capture_current_exception();
 
   // Request invocation of the given operation and return immediately. Assumes
   // that work_started() has not yet been called for the operation.
@@ -221,7 +221,8 @@ private:
   // Dequeues at most one operation from the I/O completion port, and then
   // executes it. Returns the number of operations that were dequeued (i.e.
   // either 0 or 1).
-  ASIO_DECL size_t do_one(DWORD msec, asio::error_code& ec);
+  ASIO_DECL size_t do_one(DWORD msec,
+      win_iocp_thread_info& this_thread, asio::error_code& ec);
 
   // Helper to calculate the GetQueuedCompletionStatus timeout.
   ASIO_DECL static DWORD get_gqcs_timeout();

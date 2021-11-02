@@ -2,7 +2,7 @@
 // impl/awaitable.hpp
 // ~~~~~~~~~~~~~~~~~~
 //
-// Copyright (c) 2003-2020 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+// Copyright (c) 2003-2021 Christopher M. Kohlhoff (chris at kohlhoff dot com)
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -77,7 +77,7 @@ public:
   {
     return asio::detail::thread_info_base::allocate(
         asio::detail::thread_info_base::awaitable_frame_tag(),
-        asio::detail::thread_context::thread_call_stack::top(),
+        asio::detail::thread_context::top_of_thread_call_stack(),
         size);
   }
 
@@ -85,7 +85,7 @@ public:
   {
     asio::detail::thread_info_base::deallocate(
         asio::detail::thread_info_base::awaitable_frame_tag(),
-        asio::detail::thread_context::thread_call_stack::top(),
+        asio::detail::thread_context::top_of_thread_call_stack(),
         pointer, size);
   }
 #endif // !defined(ASIO_DISABLE_AWAITABLE_FRAME_RECYCLING)
@@ -111,7 +111,7 @@ public:
 
       void await_suspend(coroutine_handle<void>) noexcept
       {
-        this_->pop_frame();
+        this->this_->pop_frame();
       }
 
       void await_resume() const noexcept
@@ -404,6 +404,19 @@ protected:
 } // namespace asio
 
 #if !defined(GENERATING_DOCUMENTATION)
+# if defined(ASIO_HAS_STD_COROUTINE)
+
+namespace std {
+
+template <typename T, typename Executor, typename... Args>
+struct coroutine_traits<asio::awaitable<T, Executor>, Args...>
+{
+  typedef asio::detail::awaitable_frame<T, Executor> promise_type;
+};
+
+} // namespace std
+
+# else // defined(ASIO_HAS_STD_COROUTINE)
 
 namespace std { namespace experimental {
 
@@ -415,6 +428,7 @@ struct coroutine_traits<asio::awaitable<T, Executor>, Args...>
 
 }} // namespace std::experimental
 
+# endif // defined(ASIO_HAS_STD_COROUTINE)
 #endif // !defined(GENERATING_DOCUMENTATION)
 
 #include "asio/detail/pop_options.hpp"

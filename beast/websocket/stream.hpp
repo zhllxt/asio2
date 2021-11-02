@@ -80,7 +80,7 @@ class frame_test;
     To declare the @ref stream object with a @ref tcp_stream in a
     multi-threaded asynchronous program using a strand, you may write:
     @code
-    websocket::stream<tcp_stream> ws{net::io_context::strand(ioc)};
+    websocket::stream<tcp_stream> ws{net::make_strand(ioc)};
     @endcode
     Alternatively, for a single-threaded or synchronous application
     you may write:
@@ -2534,134 +2534,6 @@ public:
         WriteHandler&& handler =
             net::default_completion_token_t<
                 executor_type>{});
-
-    //
-    // Deprecated
-    //
-
-#if ! BEAST_DOXYGEN
-    template<class RequestDecorator>
-    void
-    handshake_ex(
-        string_view host,
-        string_view target,
-        RequestDecorator const& decorator);
-
-    template<class RequestDecorator>
-    void
-    handshake_ex(
-        response_type& res,
-        string_view host,
-        string_view target,
-        RequestDecorator const& decorator);
-
-    template<class RequestDecorator>
-    void
-    handshake_ex(
-        string_view host,
-        string_view target,
-        RequestDecorator const& decorator,
-        error_code& ec);
-
-    template<class RequestDecorator>
-    void
-    handshake_ex(
-        response_type& res,
-        string_view host,
-        string_view target,
-        RequestDecorator const& decorator,
-        error_code& ec);
-
-    template<class RequestDecorator, class HandshakeHandler>
-    BEAST_ASYNC_RESULT1(HandshakeHandler)
-    async_handshake_ex(
-        string_view host,
-        string_view target,
-        RequestDecorator const& decorator,
-        HandshakeHandler&& handler);
-
-    template<class RequestDecorator, class HandshakeHandler>
-    BEAST_ASYNC_RESULT1(HandshakeHandler)
-    async_handshake_ex(
-        response_type& res,
-        string_view host,
-        string_view target,
-        RequestDecorator const& decorator,
-        HandshakeHandler&& handler);
-
-    template<class ResponseDecorator>
-    void
-    accept_ex(ResponseDecorator const& decorator);
-
-    template<class ResponseDecorator>
-    void
-    accept_ex(
-        ResponseDecorator const& decorator,
-        error_code& ec);
-
-    template<class ConstBufferSequence,
-        class ResponseDecorator>
-    typename std::enable_if<! http::detail::is_header<
-        ConstBufferSequence>::value>::type
-    accept_ex(
-        ConstBufferSequence const& buffers,
-        ResponseDecorator const& decorator);
-
-    template<class ConstBufferSequence, class ResponseDecorator>
-    typename std::enable_if<! http::detail::is_header<
-        ConstBufferSequence>::value>::type
-    accept_ex(
-        ConstBufferSequence const& buffers,
-        ResponseDecorator const& decorator,
-        error_code& ec);
-
-    template<class Body, class Allocator,
-        class ResponseDecorator>
-    void
-    accept_ex(http::request_t<Body,
-        http::basic_fields<Allocator>> const& req,
-            ResponseDecorator const& decorator);
-
-    template<class Body, class Allocator,
-        class ResponseDecorator>
-    void
-    accept_ex(http::request_t<Body,
-        http::basic_fields<Allocator>> const& req,
-            ResponseDecorator const& decorator,
-                error_code& ec);
-
-    template<
-        class ResponseDecorator,
-        class AcceptHandler>
-    BEAST_ASYNC_RESULT1(AcceptHandler)
-    async_accept_ex(
-        ResponseDecorator const& decorator,
-        AcceptHandler&& handler);
-
-    template<
-        class ConstBufferSequence,
-        class ResponseDecorator,
-        class AcceptHandler>
-    BEAST_ASYNC_RESULT1(AcceptHandler)
-    async_accept_ex(
-        ConstBufferSequence const& buffers,
-        ResponseDecorator const& decorator,
-        AcceptHandler&& handler,
-        typename std::enable_if<
-            ! http::detail::is_header<
-            ConstBufferSequence>::value>::type* = 0);
-
-    template<
-        class Body, class Allocator,
-        class ResponseDecorator,
-        class AcceptHandler>
-    BEAST_ASYNC_RESULT1(AcceptHandler)
-    async_accept_ex(
-        http::request_t<Body,
-            http::basic_fields<Allocator>> const& req,
-        ResponseDecorator const& decorator,
-        AcceptHandler&& handler);
-#endif
 
 private:
     template<class, class>  class accept_op;

@@ -2,7 +2,7 @@
 // basic_datagram_socket.hpp
 // ~~~~~~~~~~~~~~~~~~~~~~~~~
 //
-// Copyright (c) 2003-2020 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+// Copyright (c) 2003-2021 Christopher M. Kohlhoff (chris at kohlhoff dot com)
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -32,7 +32,7 @@ namespace asio {
 #define ASIO_BASIC_DATAGRAM_SOCKET_FWD_DECL
 
 // Forward declaration with defaulted arguments.
-template <typename Protocol, typename Executor = executor>
+template <typename Protocol, typename Executor = any_io_executor>
 class basic_datagram_socket;
 
 #endif // !defined(ASIO_BASIC_DATAGRAM_SOCKET_FWD_DECL)
@@ -45,6 +45,13 @@ class basic_datagram_socket;
  * @par Thread Safety
  * @e Distinct @e objects: Safe.@n
  * @e Shared @e objects: Unsafe.
+ *
+ * Synchronous @c send, @c send_to, @c receive, @c receive_from, and @c connect
+ * operations are thread safe with respect to each other, if the underlying
+ * operating system calls are also thread safe. This means that it is permitted
+ * to perform concurrent calls to these synchronous operations on a single
+ * socket object. Other synchronous operations, such as @c open or @c close, are
+ * not thread safe.
  */
 template <typename Protocol, typename Executor>
 class basic_datagram_socket
@@ -100,9 +107,9 @@ public:
    */
   template <typename ExecutionContext>
   explicit basic_datagram_socket(ExecutionContext& context,
-      typename enable_if<
+      typename constraint<
         is_convertible<ExecutionContext&, execution_context&>::value
-      >::type* = 0)
+      >::type = 0)
     : basic_socket<Protocol, Executor>(context)
   {
   }
@@ -138,9 +145,10 @@ public:
   template <typename ExecutionContext>
   basic_datagram_socket(ExecutionContext& context,
       const protocol_type& protocol,
-      typename enable_if<
-        is_convertible<ExecutionContext&, execution_context&>::value
-      >::type* = 0)
+      typename constraint<
+        is_convertible<ExecutionContext&, execution_context&>::value,
+        defaulted_constraint
+      >::type = defaulted_constraint())
     : basic_socket<Protocol, Executor>(context, protocol)
   {
   }
@@ -184,9 +192,9 @@ public:
   template <typename ExecutionContext>
   basic_datagram_socket(ExecutionContext& context,
       const endpoint_type& endpoint,
-      typename enable_if<
+      typename constraint<
         is_convertible<ExecutionContext&, execution_context&>::value
-      >::type* = 0)
+      >::type = 0)
     : basic_socket<Protocol, Executor>(context, endpoint)
   {
   }
@@ -229,9 +237,9 @@ public:
   template <typename ExecutionContext>
   basic_datagram_socket(ExecutionContext& context,
       const protocol_type& protocol, const native_handle_type& native_socket,
-      typename enable_if<
+      typename constraint<
         is_convertible<ExecutionContext&, execution_context&>::value
-      >::type* = 0)
+      >::type = 0)
     : basic_socket<Protocol, Executor>(context, protocol, native_socket)
   {
   }
@@ -285,10 +293,10 @@ public:
    */
   template <typename Protocol1, typename Executor1>
   basic_datagram_socket(basic_datagram_socket<Protocol1, Executor1>&& other,
-      typename enable_if<
+      typename constraint<
         is_convertible<Protocol1, Protocol>::value
           && is_convertible<Executor1, Executor>::value
-      >::type* = 0)
+      >::type = 0)
     : basic_socket<Protocol, Executor>(std::move(other))
   {
   }
@@ -307,7 +315,7 @@ public:
    * constructor.
    */
   template <typename Protocol1, typename Executor1>
-  typename enable_if<
+  typename constraint<
     is_convertible<Protocol1, Protocol>::value
       && is_convertible<Executor1, Executor>::value,
     basic_datagram_socket&
@@ -1066,6 +1074,11 @@ public:
   }
 
 private:
+  // Disallow copying and assignment.
+  basic_datagram_socket(const basic_datagram_socket&) ASIO_DELETED;
+  basic_datagram_socket& operator=(
+      const basic_datagram_socket&) ASIO_DELETED;
+
   class initiate_async_send
   { 
   public:
@@ -1093,7 +1106,7 @@ private:
       detail::non_const_lvalue<WriteHandler> handler2(handler);
       self_->impl_.get_service().async_send(
           self_->impl_.get_implementation(), buffers, flags,
-          handler2.value, self_->impl_.get_implementation_executor());
+          handler2.value, self_->impl_.get_executor());
     }
 
   private:
@@ -1126,8 +1139,8 @@ private:
 
       detail::non_const_lvalue<WriteHandler> handler2(handler);
       self_->impl_.get_service().async_send_to(
-          self_->impl_.get_implementation(), buffers, destination, flags,
-          handler2.value, self_->impl_.get_implementation_executor());
+          self_->impl_.get_implementation(), buffers, destination,
+          flags, handler2.value, self_->impl_.get_executor());
     }
 
   private:
@@ -1161,7 +1174,7 @@ private:
       detail::non_const_lvalue<ReadHandler> handler2(handler);
       self_->impl_.get_service().async_receive(
           self_->impl_.get_implementation(), buffers, flags,
-          handler2.value, self_->impl_.get_implementation_executor());
+          handler2.value, self_->impl_.get_executor());
     }
 
   private:
@@ -1194,8 +1207,8 @@ private:
 
       detail::non_const_lvalue<ReadHandler> handler2(handler);
       self_->impl_.get_service().async_receive_from(
-          self_->impl_.get_implementation(), buffers, *sender_endpoint, flags,
-          handler2.value, self_->impl_.get_implementation_executor());
+          self_->impl_.get_implementation(), buffers, *sender_endpoint,
+          flags, handler2.value, self_->impl_.get_executor());
     }
 
   private:

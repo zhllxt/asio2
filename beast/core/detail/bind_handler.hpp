@@ -137,37 +137,40 @@ public:
 
     template<class Function>
     friend
-    void asio_handler_invoke(
+    asio::asio_handler_invoke_is_deprecated
+    asio_handler_invoke(
         Function&& f, bind_wrapper* op)
     {
-        using net::asio_handler_invoke;
-        asio_handler_invoke(f, std::addressof(op->h_));
+        using asio::asio_handler_invoke;
+        return asio_handler_invoke(f, std::addressof(op->h_));
     }
 
     friend
     bool asio_handler_is_continuation(
         bind_wrapper* op)
     {
-        using net::asio_handler_is_continuation;
+        using asio::asio_handler_is_continuation;
         return asio_handler_is_continuation(
                 std::addressof(op->h_));
     }
 
     friend
-    void* asio_handler_allocate(
+    asio::asio_handler_allocate_is_deprecated
+    asio_handler_allocate(
         std::size_t size, bind_wrapper* op)
     {
-        using net::asio_handler_allocate;
+        using asio::asio_handler_allocate;
         return asio_handler_allocate(
             size, std::addressof(op->h_));
     }
 
     friend
-    void asio_handler_deallocate(
+    asio::asio_handler_deallocate_is_deprecated
+    asio_handler_deallocate(
         void* p, std::size_t size, bind_wrapper* op)
     {
-        using net::asio_handler_deallocate;
-        asio_handler_deallocate(
+        using asio::asio_handler_deallocate;
+        return asio_handler_deallocate(
             p, size, std::addressof(op->h_));
     }
 };
@@ -247,37 +250,40 @@ public:
 
     template<class Function>
     friend
-    void asio_handler_invoke(
+    asio::asio_handler_invoke_is_deprecated
+    asio_handler_invoke(
         Function&& f, bind_front_wrapper* op)
     {
-        using net::asio_handler_invoke;
-        asio_handler_invoke(f, std::addressof(op->h_));
+        using asio::asio_handler_invoke;
+        return asio_handler_invoke(f, std::addressof(op->h_));
     }
 
     friend
     bool asio_handler_is_continuation(
         bind_front_wrapper* op)
     {
-        using net::asio_handler_is_continuation;
+        using asio::asio_handler_is_continuation;
         return asio_handler_is_continuation(
             std::addressof(op->h_));
     }
 
     friend
-    void* asio_handler_allocate(
+    asio::asio_handler_allocate_is_deprecated
+    asio_handler_allocate(
         std::size_t size, bind_front_wrapper* op)
     {
-        using net::asio_handler_allocate;
+        using asio::asio_handler_allocate;
         return asio_handler_allocate(
             size, std::addressof(op->h_));
     }
 
     friend
-    void asio_handler_deallocate(
+    asio::asio_handler_deallocate_is_deprecated
+    asio_handler_deallocate(
         void* p, std::size_t size, bind_front_wrapper* op)
     {
-        using net::asio_handler_deallocate;
-        asio_handler_deallocate(
+        using asio::asio_handler_deallocate;
+        return asio_handler_deallocate(
             p, size, std::addressof(op->h_));
     }
 };

@@ -54,19 +54,25 @@ struct stream_base
 
     class pending_guard
     {
-        bool& b_;
+        bool* b_ = nullptr;
         bool clear_ = true;
 
     public:
         ~pending_guard()
         {
-            if(clear_)
-                b_ = false;
+            if(clear_ && b_)
+                *b_ = false;
+        }
+
+        pending_guard()
+        : b_(nullptr)
+        , clear_(true)
+        {
         }
 
         explicit
         pending_guard(bool& b)
-            : b_(b)
+            : b_(&b)
         {
             // If this assert goes off, it means you are attempting
             // to issue two of the same asynchronous I/O operation
@@ -75,8 +81,8 @@ struct stream_base
             // calls to async_read_some. Only one pending call of
             // each I/O type (read and write) is permitted.
             //
-            BEAST_ASSERT(! b_);
-            b_ = true;
+            BEAST_ASSERT(! *b_);
+            *b_ = true;
         }
 
         pending_guard(
@@ -87,11 +93,29 @@ struct stream_base
         {
         }
 
+        void assign(bool& b)
+        {
+            BEAST_ASSERT(!b_);
+            BEAST_ASSERT(clear_);
+            b_ = &b;
+
+            // If this assert goes off, it means you are attempting
+            // to issue two of the same asynchronous I/O operation
+            // at the same time, without waiting for the first one
+            // to complete. For example, attempting two simultaneous
+            // calls to async_read_some. Only one pending call of
+            // each I/O type (read and write) is permitted.
+            //
+            BEAST_ASSERT(! *b_);
+            *b_ = true;
+        }
+
         void
         reset()
         {
 			BEAST_ASSERT(clear_);
-            b_ = false;
+            if (b_)
+                *b_ = false;
             clear_ = false;
         }
     };

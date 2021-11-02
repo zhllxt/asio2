@@ -64,7 +64,7 @@ operator=(file_stdio&& other)
 
 void
 file_stdio::
-native_handle(FILE* f)
+native_handle(std::FILE* f)
 {
     if(f_)
         fclose(f_);

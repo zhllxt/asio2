@@ -10,6 +10,7 @@
 #ifndef BEAST_DETAIL_IS_INVOCABLE_HPP
 #define BEAST_DETAIL_IS_INVOCABLE_HPP
 
+#include <asio/async_result.hpp>
 #include <type_traits>
 #include <utility>
 
@@ -49,6 +50,26 @@ struct is_invocable<C, R(A...)>
 {
 };
 /** @} */
+
+template<class CompletionToken, class Signature, class = void>
+struct is_completion_token_for : std::false_type
+{
+};
+
+struct any_initiation
+{
+    template<class...AnyArgs>
+    void operator()(AnyArgs&&...);
+};
+
+template<class CompletionToken, class R, class...Args>
+struct is_completion_token_for<
+    CompletionToken, R(Args...), std::void_t<decltype(
+        asio::async_initiate<CompletionToken, R(Args...)>(
+            any_initiation(), std::declval<CompletionToken&>())
+        )>> : std::true_type
+{
+};
 
 } // detail
 } // beast

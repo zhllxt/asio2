@@ -91,31 +91,10 @@ public:
     void
     clear() noexcept;
 
-#ifdef BEAST_ALLOW_DEPRECATED
-    /// Change the number of readable and writable bytes to zero.
-    void
-    reset() noexcept
-    {
-        clear();
-    }
-#elif ! BEAST_DOXYGEN
-    template<std::size_t I = 0>
-    void
-    reset() noexcept
-    {
-        static_assert(I != 0,
-            BEAST_DEPRECATION_STRING);
-    }
-#endif
-
     //--------------------------------------------------------------------------
 
     /// The ConstBufferSequence used to represent the readable bytes.
     using const_buffers_type = net::const_buffer;
-
-#ifdef BEAST_ALLOW_DEPRECATED
-    using mutable_data_type = net::mutable_buffer;
-#endif
 
     /// The MutableBufferSequence used to represent the writable bytes.
     using mutable_buffers_type = net::mutable_buffer;

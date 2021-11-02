@@ -554,7 +554,7 @@ public:
         need to ensure that all data is written before the asynchronous operation
         completes.
     */
-    template<class ConstBufferSequence, class WriteHandler>
+    template<class ConstBufferSequence, BEAST_ASYNC_TPARAM2 WriteHandler>
     ASIO_INITFN_RESULT_TYPE(WriteHandler, void(beast::error_code, std::size_t))
     async_write_some(ConstBufferSequence const& buffers,
         ASIO_MOVE_ARG(WriteHandler) handler)
@@ -635,7 +635,7 @@ public:
         if you need to ensure that the requested amount of data is read before
         the asynchronous operation completes.
     */
-    template<class MutableBufferSequence, class ReadHandler>
+    template<class MutableBufferSequence, BEAST_ASYNC_TPARAM2 ReadHandler>
     ASIO_INITFN_RESULT_TYPE(ReadHandler, void(beast::error_code, std::size_t))
     async_read_some(MutableBufferSequence const& buffers,
         ASIO_MOVE_ARG(ReadHandler) handler)

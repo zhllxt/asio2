@@ -59,6 +59,10 @@ class write_some_op
             error_code& ec,
             ConstBufferSequence const& buffers)
         {
+            ASIO_HANDLER_LOCATION((
+                __FILE__, __LINE__,
+                "http::async_write_some"));
+
             invoked = true;
             ec = {};
             op_.s_.async_write_some(
@@ -92,6 +96,11 @@ public:
             if(ec)
             {
                 BEAST_ASSERT(! f.invoked);
+
+                ASIO_HANDLER_LOCATION((
+                    __FILE__, __LINE__,
+                    "http::async_write_some"));
+
                 return net::post(
                     s_.get_executor(),
                     beast::bind_front_handler(
@@ -105,6 +114,10 @@ public:
             // What else could it be?
             BEAST_ASSERT(sr_.is_done());
         }
+
+        ASIO_HANDLER_LOCATION((
+            __FILE__, __LINE__,
+            "http::async_write_some"));
 
         return net::post(
             s_.get_executor(),
@@ -190,16 +203,28 @@ public:
             if(Predicate{}(sr_))
             {
                 ASIO_CORO_YIELD
-                net::post(
-                    s_.get_executor(),
-                    std::move(*this));
+                {
+                    ASIO_HANDLER_LOCATION((
+                        __FILE__, __LINE__,
+                        "http::async_write"));
+
+                    net::post(
+                        s_.get_executor(),
+                        std::move(*this));
+                }
                 goto upcall;
             }
             for(;;)
             {
                 ASIO_CORO_YIELD
-                beast::http::async_write_some(
-                    s_, sr_, std::move(*this));
+                {
+                    ASIO_HANDLER_LOCATION((
+                        __FILE__, __LINE__,
+                        "http::async_write"));
+
+                    beast::http::async_write_some(
+                        s_, sr_, std::move(*this));
+                }
                 bytes_transferred_ += bytes_transferred;
                 if(ec)
                     goto upcall;
@@ -247,6 +272,10 @@ public:
     void
     operator()()
     {
+        ASIO_HANDLER_LOCATION((
+            __FILE__, __LINE__,
+            "http::async_write(msg)"));
+
         async_write(s_, sr_, std::move(*this));
     }
 
@@ -462,7 +491,7 @@ write_some_impl(
 template<
     class AsyncWriteStream,
     bool isRequest, class Body, class Fields,
-    class WriteHandler>
+    BEAST_ASYNC_TPARAM2 WriteHandler>
 BEAST_ASYNC_RESULT2(WriteHandler)
 async_write_some_impl(
     AsyncWriteStream& stream,
@@ -525,7 +554,7 @@ write_some(
 template<
     class AsyncWriteStream,
     bool isRequest, class Body, class Fields,
-    class WriteHandler>
+    BEAST_ASYNC_TPARAM2 WriteHandler>
 BEAST_ASYNC_RESULT2(WriteHandler)
 async_write_some(
     AsyncWriteStream& stream,
@@ -607,7 +636,7 @@ write_header(
 template<
     class AsyncWriteStream,
     bool isRequest, class Body, class Fields,
-    class WriteHandler>
+    BEAST_ASYNC_TPARAM2 WriteHandler>
 BEAST_ASYNC_RESULT2(WriteHandler)
 async_write_header(
     AsyncWriteStream& stream,
@@ -680,7 +709,7 @@ write(
 template<
     class AsyncWriteStream,
     bool isRequest, class Body, class Fields,
-    class WriteHandler>
+    BEAST_ASYNC_TPARAM2 WriteHandler>
 BEAST_ASYNC_RESULT2(WriteHandler)
 async_write(
     AsyncWriteStream& stream,
@@ -800,7 +829,7 @@ write(
 template<
     class AsyncWriteStream,
     bool isRequest, class Body, class Fields,
-    class WriteHandler>
+    BEAST_ASYNC_TPARAM2 WriteHandler>
 BEAST_ASYNC_RESULT2(WriteHandler)
 async_write(
     AsyncWriteStream& stream,
@@ -829,7 +858,7 @@ async_write(
 template<
     class AsyncWriteStream,
     bool isRequest, class Body, class Fields,
-    class WriteHandler>
+    BEAST_ASYNC_TPARAM2 WriteHandler>
 BEAST_ASYNC_RESULT2(WriteHandler)
 async_write(
     AsyncWriteStream& stream,

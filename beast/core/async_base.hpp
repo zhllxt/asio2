@@ -14,10 +14,10 @@
 #include <beast/core/bind_handler.hpp>
 #include <beast/core/detail/allocator.hpp>
 #include <beast/core/detail/async_base.hpp>
+#include <beast/core/detail/work_guard.hpp>
 #include <asio/associated_allocator.hpp>
 #include <asio/associated_executor.hpp>
 #include <asio/bind_executor.hpp>
-#include <asio/executor_work_guard.hpp>
 #include <asio/handler_alloc_hook.hpp>
 #include <asio/handler_continuation_hook.hpp>
 #include <asio/handler_invoke_hook.hpp>
@@ -180,11 +180,31 @@ class async_base
 #endif
 {
     static_assert(
-        net::is_executor<Executor1>::value,
+        net::is_executor<Executor1>::value || net::execution::is_executor<Executor1>::value,
         "Executor type requirements not met");
 
     Handler h_;
-    net::executor_work_guard<Executor1> wg1_;
+    detail::select_work_guard_t<Executor1> wg1_;
+
+public:
+    /** The type of executor associated with this object.
+
+    If a class derived from @ref async_base is a completion
+    handler, then the associated executor of the derived class will
+    be this type.
+*/
+    using executor_type =
+#if BEAST_DOXYGEN
+        __implementation_defined__;
+#else
+        typename
+        net::associated_executor<
+            Handler,
+            typename detail::select_work_guard_t<Executor1>::executor_type
+                >::type;
+#endif
+
+private:
 
     virtual
     void
@@ -227,7 +247,7 @@ public:
         Handler_&& handler,
         Executor1 const& ex1)
         : h_(std::forward<Handler_>(handler))
-        , wg1_(ex1)
+        , wg1_(detail::make_work_guard(ex1))
     {
     }
 
@@ -259,15 +279,6 @@ public:
     */
     using allocator_type =
         net::associated_allocator_t<Handler, Allocator>;
-
-    /** The type of executor associated with this object.
-
-        If a class derived from @ref async_base is a completion
-        handler, then the associated executor of the derived class will
-        be this type.
-    */
-    using executor_type =
-        net::associated_executor_t<Handler, Executor1>;
 
     /** Returns the allocator associated with this object.
 

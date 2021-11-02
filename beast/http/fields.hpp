@@ -11,7 +11,6 @@
 #define BEAST_HTTP_FIELDS_HPP
 
 #include <beast/core/detail/config.hpp>
-#include <beast/core/string_param.hpp>
 #include <beast/core/string.hpp>
 #include <beast/core/detail/allocator.hpp>
 #include <beast/http/field.hpp>
@@ -427,10 +426,15 @@ public:
 
         @param name The field name.
 
-        @param value The value of the field, as a @ref string_param
+        @param value The value of the field, as a @ref string_view
     */
     void
-    insert(field name, string_param const& value);
+    insert(field name, string_view const& value);
+
+    /* Set a field from a null pointer (deleted).
+    */
+    void
+    insert(field, std::nullptr_t) = delete;
 
     /** Insert a field.
 
@@ -440,10 +444,15 @@ public:
 
         @param name The field name.
 
-        @param value The value of the field, as a @ref string_param
+        @param value The value of the field, as a @ref string_view
     */
     void
-    insert(string_view name, string_param const& value);
+    insert(string_view name, string_view const& value);
+
+    /* Insert a field from a null pointer (deleted).
+    */
+    void
+    insert(string_view, std::nullptr_t) = delete;
 
     /** Insert a field.
 
@@ -458,11 +467,14 @@ public:
         must be equal to `to_string(name)` using a case-insensitive
         comparison, otherwise the behavior is undefined.
 
-        @param value The value of the field, as a @ref string_param
+        @param value The value of the field, as a @ref string_view
     */
     void
     insert(field name, string_view name_string,
-        string_param const& value);
+        string_view const& value);
+
+    void
+    insert(field, string_view, std::nullptr_t) = delete;
 
     /** Set a field value, removing any other instances of that field.
 
@@ -471,12 +483,15 @@ public:
 
         @param name The field name.
 
-        @param value The value of the field, as a @ref string_param
+        @param value The value of the field, as a @ref string_view
 
         @return The field value.
     */
     void
-    set(field name, string_param const& value);
+    set(field name, string_view const& value);
+
+    void
+    set(field, std::nullptr_t) = delete;
 
     /** Set a field value, removing any other instances of that field.
 
@@ -485,10 +500,13 @@ public:
 
         @param name The field name.
 
-        @param value The value of the field, as a @ref string_param
+        @param value The value of the field, as a @ref string_view
     */
     void
-    set(string_view name, string_param const& value);
+    set(string_view name, string_view const& value);
+
+    void
+    set(string_view, std::nullptr_t) = delete;
 
     /** Remove a field.
 

@@ -2,7 +2,7 @@
 // windows/basic_stream_handle.hpp
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 //
-// Copyright (c) 2003-2020 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+// Copyright (c) 2003-2021 Christopher M. Kohlhoff (chris at kohlhoff dot com)
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -38,7 +38,7 @@ namespace windows {
  * @par Concepts:
  * AsyncReadStream, AsyncWriteStream, Stream, SyncReadStream, SyncWriteStream.
  */
-template <typename Executor = executor>
+template <typename Executor = any_io_executor>
 class basic_stream_handle
   : public basic_overlapped_handle<Executor>
 {
@@ -86,10 +86,10 @@ public:
    */
   template <typename ExecutionContext>
   explicit basic_stream_handle(ExecutionContext& context,
-      typename enable_if<
+      typename constraint<
         is_convertible<ExecutionContext&, execution_context&>::value,
-        basic_stream_handle
-      >::type* = 0)
+        defaulted_constraint
+      >::type = defaulted_constraint())
     : basic_overlapped_handle<Executor>(context)
   {
   }
@@ -128,9 +128,9 @@ public:
   template <typename ExecutionContext>
   basic_stream_handle(ExecutionContext& context,
       const native_handle_type& handle,
-      typename enable_if<
+      typename constraint<
         is_convertible<ExecutionContext&, execution_context&>::value
-      >::type* = 0)
+      >::type = 0)
     : basic_overlapped_handle<Executor>(context, handle)
   {
   }
@@ -421,8 +421,8 @@ private:
 
       detail::non_const_lvalue<WriteHandler> handler2(handler);
       self_->impl_.get_service().async_write_some(
-          self_->impl_.get_implementation(), buffers, handler2.value,
-          self_->impl_.get_implementation_executor());
+          self_->impl_.get_implementation(), buffers,
+          handler2.value, self_->impl_.get_executor());
     }
 
   private:
@@ -454,8 +454,8 @@ private:
 
       detail::non_const_lvalue<ReadHandler> handler2(handler);
       self_->impl_.get_service().async_read_some(
-          self_->impl_.get_implementation(), buffers, handler2.value,
-          self_->impl_.get_implementation_executor());
+          self_->impl_.get_implementation(), buffers,
+          handler2.value, self_->impl_.get_executor());
     }
 
   private:

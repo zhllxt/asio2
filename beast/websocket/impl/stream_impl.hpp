@@ -30,7 +30,6 @@
 #include <beast/core/static_buffer.hpp>
 #include <beast/core/stream_traits.hpp>
 #include <beast/core/detail/clamp.hpp>
-#include <beast/version.hpp>
 #include <asio/steady_timer.hpp>
 #include <beast/core/empty_value.hpp>
 #include <optional>
@@ -126,7 +125,8 @@ struct stream<NextLayer, deflateSupported>::impl_type
 			beast::empty_init_t{},
             std::forward<Args>(args)...)
         , detail::service::impl_type(
-            this->beast::empty_value<NextLayer>::get().get_executor().context())
+            this->get_context(
+                this->beast::empty_value<NextLayer>::get().get_executor()))
         , timer(this->beast::empty_value<NextLayer>::get().get_executor())
     {
         timeout_opt.handshake_timeout = none();
@@ -417,6 +417,12 @@ struct stream<NextLayer, deflateSupported>::impl_type
             {
                 timer.expires_after(
                     timeout_opt.handshake_timeout);
+
+                ASIO_HANDLER_LOCATION((
+                    __FILE__, __LINE__,
+                    "websocket::check_stop_now"
+                    ));
+
                 timer.async_wait(
                     timeout_handler<Executor>(
                         ex, this->weak_from_this()));
@@ -433,6 +439,12 @@ struct stream<NextLayer, deflateSupported>::impl_type
                 else
                     timer.expires_after(
                         timeout_opt.idle_timeout);
+
+                ASIO_HANDLER_LOCATION((
+                    __FILE__, __LINE__,
+                    "websocket::check_stop_now"
+                    ));
+
                 timer.async_wait(
                     timeout_handler<Executor>(
                         ex, this->weak_from_this()));
@@ -450,6 +462,12 @@ struct stream<NextLayer, deflateSupported>::impl_type
                 idle_counter = 0;
                 timer.expires_after(
                     timeout_opt.handshake_timeout);
+
+                ASIO_HANDLER_LOCATION((
+                    __FILE__, __LINE__,
+                    "websocket::check_stop_now"
+                    ));
+
                 timer.async_wait(
                     timeout_handler<Executor>(
                         ex, this->weak_from_this()));
@@ -474,6 +492,22 @@ struct stream<NextLayer, deflateSupported>::impl_type
     }
 
 private:
+    template<class Executor>
+    static net::execution_context&
+    get_context(Executor const& ex,
+        typename std::enable_if< net::execution::is_executor<Executor>::value >::type* = 0)
+    {
+        return net::query(ex, net::execution::context);
+    }
+
+    template<class Executor>
+    static net::execution_context&
+    get_context(Executor const& ex,
+        typename std::enable_if< !net::execution::is_executor<Executor>::value >::type* = 0)
+    {
+        return ex.context();
+    }
+
     bool
     is_timer_set() const
     {
@@ -532,12 +566,26 @@ private:
                 if( impl.timeout_opt.keep_alive_pings &&
                     impl.idle_counter < 1)
                 {
-                    idle_ping_op<Executor>(sp, get_executor());
+                    {
+                        ASIO_HANDLER_LOCATION((
+                            __FILE__, __LINE__,
+                            "websocket::timeout_handler"
+                            ));
 
+                        idle_ping_op<Executor>(sp, get_executor());
+                    }
                     ++impl.idle_counter;
                     impl.timer.expires_after(
                         impl.timeout_opt.idle_timeout / 2);
-                    impl.timer.async_wait(std::move(*this));
+
+                    {
+                        ASIO_HANDLER_LOCATION((
+                            __FILE__, __LINE__,
+                            "websocket::timeout_handler"
+                            ));
+
+                        impl.timer.async_wait(std::move(*this));
+                    }
                     return;
                 }
 
@@ -585,9 +633,6 @@ build_request(
     this->build_request_pmd(req);
     decorator_opt(req);
     decorator(req);
-    if(! req.count(http::field::user_agent))
-        req.set(http::field::user_agent,
-            BEAST_VERSION_STRING);
     return req;
 }
 

@@ -877,19 +877,21 @@ prepare(size_type n) ->
         destroy(reuse);
         if(n > 0)
         {
-            auto const growth_factor = 2.0f;
+            std::size_t const growth_factor = 2;
+            std::size_t altn = in_size_ * growth_factor;
+	    // Overflow detection:
+            if(in_size_ > altn)
+                altn = (std::numeric_limits<std::size_t>::max)();
+            else
+                altn = (std::max<std::size_t>)(512, altn);
             auto const size =
                 (std::min<std::size_t>)(
                     max_ - total,
-                    (std::max<std::size_t>)({
-                        static_cast<std::size_t>(
-                            in_size_ * growth_factor - in_size_),
-                        512,
-                        n}));
+                    (std::max<std::size_t>)(n, altn));
             auto& e = alloc(size);
-            list_.push_back(&e);
+            list_.push_back(e);
             if(out_ == list_.end())
-                out_ = std::prev(list_.end(), 1);
+                out_ = list_.iterator_to(e);
             out_end_ = n;
         #if BEAST_MULTI_BUFFER_DEBUG_CHECK
             debug_check();

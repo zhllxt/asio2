@@ -43,7 +43,6 @@
 #include <beast/core/static_string.hpp>
 #include <beast/core/stream_traits.hpp>
 #include <beast/core/string.hpp>
-#include <beast/core/string_param.hpp>
 #include <beast/core/tcp_stream.hpp>
 
 #endif

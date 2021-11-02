@@ -54,7 +54,7 @@ public:
 
 #if defined(_MSC_VER) && ! defined(__clang__)
 # define BEAST_UNREACHABLE() __assume(false)
-# define BEAST_UNREACHABLE_RETURN(v) __assume(false)
+# define BEAST_UNREACHABLE_RETURN(v) return v
 #else
 # define BEAST_UNREACHABLE() __builtin_unreachable()
 # define BEAST_UNREACHABLE_RETURN(v) \

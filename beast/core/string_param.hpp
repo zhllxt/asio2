@@ -10,6 +10,8 @@
 #ifndef BEAST_STRING_PARAM_HPP
 #define BEAST_STRING_PARAM_HPP
 
+#if defined(BEAST_ALLOW_DEPRECATED) && !defined(BEAST_DOXYGEN)
+
 #include <beast/core/detail/config.hpp>
 #include <beast/core/string.hpp>
 #include <beast/core/static_string.hpp>
@@ -123,5 +125,7 @@ public:
 } // beast
 
 #include <beast/core/impl/string_param.hpp>
+
+#endif // defined(BEAST_ALLOW_DEPRECATED) && !BEAST_DOXYGEN
 
 #endif

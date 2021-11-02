@@ -22,11 +22,11 @@ namespace beast {
 		static_assert(false, "Unknown BEAST_ASSERT definition will affect the relevant functions of this program.");
 	#else
 		#if defined(_DEBUG) || defined(DEBUG)
-			#define BEAST_ASSERT(expr) assert(expr)
+			#define BEAST_ASSERT(expr) assert(expr);
 			#define BEAST_ASSERT_MSG(expr, msg) assert((expr)&&(msg))
 		#else
-			#define BEAST_ASSERT(expr) ((void)0)
-			#define BEAST_ASSERT_MSG(expr, msg) ((void)0)
+			#define BEAST_ASSERT(expr) ((void)0);
+			#define BEAST_ASSERT_MSG(expr, msg) ((void)0);
 		#endif
 	#endif
 
