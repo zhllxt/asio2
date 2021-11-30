@@ -1,5 +1,5 @@
 /*
- * COPYRIGHT (C) 2017-2019, zhllxt
+ * COPYRIGHT (C) 2017-2021, zhllxt
  *
  * author   : zhllxt
  * email    : 37792738@qq.com
@@ -15,10 +15,15 @@
 #pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
-#include <asio2/tcp/tcp_client.hpp>
-#include <asio2/tcp/tcps_client.hpp>
-#include <asio2/http/ws_client.hpp>
-#include <asio2/http/wss_client.hpp>
+#include <asio2/base/detail/push_options.hpp>
+
+#if !defined(ASIO2_USE_WEBSOCKET_RPC)
+#  include <asio2/tcp/tcp_client.hpp>
+#  include <asio2/tcp/tcps_client.hpp>
+#else
+#  include <asio2/http/ws_client.hpp>
+#  include <asio2/http/wss_client.hpp>
+#endif
 
 #include <asio2/rpc/detail/rpc_protocol.hpp>
 #include <asio2/rpc/detail/rpc_invoker.hpp>
@@ -51,7 +56,7 @@ namespace asio2::detail
 
 	protected:
 		using super::send;
-		using super::_handle_recv;
+		using super::async_send;
 
 	public:
 		/**
@@ -87,12 +92,14 @@ namespace asio2::detail
 		template<typename String, typename StrOrInt>
 		bool start(String&& host, StrOrInt&& port)
 		{
-			if constexpr (is_websocket_client<executor_t>::value)
-				return executor_t::template start(
-					std::forward<String>(host), std::forward<StrOrInt>(port));
-			else
-				return executor_t::template start(
-					std::forward<String>(host), std::forward<StrOrInt>(port), asio2::use_dgram);
+#if !defined(ASIO2_USE_WEBSOCKET_RPC)
+			return executor_t::template start(
+				std::forward<String>(host), std::forward<StrOrInt>(port), asio2::use_dgram);
+#else
+			static_assert(is_websocket_client<executor_t>::value);
+			return executor_t::template start(
+				std::forward<String>(host), std::forward<StrOrInt>(port));
+#endif
 		}
 
 		/**
@@ -105,12 +112,14 @@ namespace asio2::detail
 		template<typename String, typename StrOrInt>
 		bool async_start(String&& host, StrOrInt&& port)
 		{
-			if constexpr (is_websocket_client<executor_t>::value)
-				return executor_t::template async_start(
-					std::forward<String>(host), std::forward<StrOrInt>(port));
-			else
-				return executor_t::template async_start(
-					std::forward<String>(host), std::forward<StrOrInt>(port), asio2::use_dgram);
+#if !defined(ASIO2_USE_WEBSOCKET_RPC)
+			return executor_t::template async_start(
+				std::forward<String>(host), std::forward<StrOrInt>(port), asio2::use_dgram);
+#else
+			static_assert(is_websocket_client<executor_t>::value);
+			return executor_t::template async_start(
+				std::forward<String>(host), std::forward<StrOrInt>(port));
+#endif
 		}
 
 	protected:
@@ -136,12 +145,12 @@ namespace asio2::detail
 		}
 
 		template<typename MatchCondition>
-		inline void _fire_recv(std::shared_ptr<derived_t>& this_ptr, std::string_view s,
+		inline void _fire_recv(std::shared_ptr<derived_t>& this_ptr, std::string_view data,
 			condition_wrap<MatchCondition>& condition)
 		{
-			this->listener_.notify(event_type::recv, s);
+			this->listener_.notify(event_type::recv, data);
 
-			this->derived()._rpc_handle_recv(this_ptr, s, condition);
+			this->derived()._rpc_handle_recv(this_ptr, data, condition);
 		}
 
 	protected:
@@ -153,92 +162,73 @@ namespace asio2::detail
 
 namespace asio2
 {
+#if !defined(ASIO2_USE_WEBSOCKET_RPC)
 	namespace detail
 	{
-		struct template_args_rpc_tcp_client : public template_args_tcp_client
-		{
-			static constexpr bool rdc_call_cp_enabled = false;
-		};
-
-		struct template_args_rpc_ws_client : public template_args_ws_client
+		struct template_args_rpc_client : public template_args_tcp_client
 		{
 			static constexpr bool rdc_call_cp_enabled = false;
 		};
 	}
-
-	template<class>
-	class rpc_client_t;
 
 	/// Using tcp dgram mode as the underlying communication support
-	template<>
-	class rpc_client_t<detail::use_tcp> : public detail::rpc_client_impl_t<rpc_client_t<detail::use_tcp>,
-		detail::tcp_client_impl_t<rpc_client_t<detail::use_tcp>, detail::template_args_rpc_tcp_client>>
+	class rpc_client : public detail::rpc_client_impl_t<rpc_client,
+		detail::tcp_client_impl_t<rpc_client, detail::template_args_rpc_client>>
 	{
 	public:
-		using detail::rpc_client_impl_t<rpc_client_t<detail::use_tcp>, detail::tcp_client_impl_t<
-			rpc_client_t<detail::use_tcp>, detail::template_args_rpc_tcp_client>>::rpc_client_impl_t;
+		using detail::rpc_client_impl_t<rpc_client, detail::tcp_client_impl_t<
+			rpc_client, detail::template_args_rpc_client>>::rpc_client_impl_t;
 	};
 
-	/// Using websocket as the underlying communication support
-	template<>
-	class rpc_client_t<detail::use_websocket> : public detail::rpc_client_impl_t<
-		rpc_client_t<detail::use_websocket>, detail::ws_client_impl_t<
-		rpc_client_t<detail::use_websocket>, detail::template_args_rpc_ws_client>>
+	#if defined(ASIO2_USE_SSL)
+	class rpcs_client : public detail::rpc_client_impl_t<rpcs_client,
+		detail::tcps_client_impl_t<rpcs_client, detail::template_args_rpc_client>>
 	{
 	public:
-		using detail::rpc_client_impl_t<rpc_client_t<detail::use_websocket>,
-			detail::ws_client_impl_t<rpc_client_t<detail::use_websocket>,
-			detail::template_args_rpc_ws_client>>::rpc_client_impl_t;
+		using detail::rpc_client_impl_t<rpcs_client, detail::tcps_client_impl_t<rpcs_client,
+			detail::template_args_rpc_client>>::rpc_client_impl_t;
 	};
+	#endif
 
-#if !defined(ASIO2_USE_WEBSOCKET_RPC)
-	using rpc_client = rpc_client_t<detail::use_tcp>;
 #else
-	using rpc_client = rpc_client_t<detail::use_websocket>;
-#endif
-
-#if defined(ASIO2_USE_SSL)
 	namespace detail
 	{
-		struct template_args_rpc_wss_client : public template_args_wss_client
+		struct template_args_rpc_client : public template_args_ws_client
 		{
 			static constexpr bool rdc_call_cp_enabled = false;
 		};
 	}
 
-	template<class>
-	class rpcs_client_t;
-
-	template<>
-	class rpcs_client_t<detail::use_tcp> : public detail::rpc_client_impl_t<
-		rpcs_client_t<detail::use_tcp>,
-		detail::tcps_client_impl_t<rpcs_client_t<detail::use_tcp>,
-		detail::template_args_rpc_tcp_client>>
+	/// Using websocket as the underlying communication support
+	class rpc_client : public detail::rpc_client_impl_t<rpc_client,
+		detail::ws_client_impl_t<rpc_client, detail::template_args_rpc_client>>
 	{
 	public:
-		using detail::rpc_client_impl_t<rpcs_client_t<detail::use_tcp>,
-			detail::tcps_client_impl_t<rpcs_client_t<detail::use_tcp>,
-			detail::template_args_rpc_tcp_client>>::rpc_client_impl_t;
+		using detail::rpc_client_impl_t<rpc_client, detail::ws_client_impl_t<rpc_client,
+			detail::template_args_rpc_client>>::rpc_client_impl_t;
 	};
 
-	template<>
-	class rpcs_client_t<detail::use_websocket> : public detail::rpc_client_impl_t<
-		rpcs_client_t<detail::use_websocket>,
-		detail::wss_client_impl_t<rpcs_client_t<detail::use_websocket>,
-		detail::template_args_rpc_wss_client>>
+	#if defined(ASIO2_USE_SSL)
+	namespace detail
+	{
+		struct template_args_rpcs_client : public template_args_wss_client
+		{
+			static constexpr bool rdc_call_cp_enabled = false;
+		};
+	}
+
+	class rpcs_client : public detail::rpc_client_impl_t<rpcs_client,
+		detail::wss_client_impl_t<rpcs_client, detail::template_args_rpcs_client>>
 	{
 	public:
-		using detail::rpc_client_impl_t<rpcs_client_t<detail::use_websocket>,
-			detail::wss_client_impl_t<rpcs_client_t<
-			detail::use_websocket>, detail::template_args_rpc_wss_client>>::rpc_client_impl_t;
+		using detail::rpc_client_impl_t<rpcs_client, detail::wss_client_impl_t<
+			rpcs_client, detail::template_args_rpcs_client>>::rpc_client_impl_t;
 	};
-
-#if !defined(ASIO2_USE_WEBSOCKET_RPC)
-	using rpcs_client = rpcs_client_t<detail::use_tcp>;
-#else
-	using rpcs_client = rpcs_client_t<detail::use_websocket>;
 #endif
+
 #endif
 }
+
+#include <asio2/base/detail/pop_options.hpp>
 
 #endif // !__ASIO2_RPC_CLIENT_HPP__

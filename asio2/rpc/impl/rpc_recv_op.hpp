@@ -1,5 +1,5 @@
 /*
- * COPYRIGHT (C) 2017-2019, zhllxt
+ * COPYRIGHT (C) 2017-2021, zhllxt
  *
  * author   : zhllxt
  * email    : 37792738@qq.com
@@ -20,7 +20,7 @@
 #include <utility>
 #include <string_view>
 
-#include <asio2/base/selector.hpp>
+#include <asio2/3rd/asio.hpp>
 #include <asio2/base/error.hpp>
 #include <asio2/base/detail/condition_wrap.hpp>
 
@@ -46,7 +46,7 @@ namespace asio2::detail
 
 	protected:
 		template<typename MatchCondition>
-		inline void _rpc_handle_recv(std::shared_ptr<derived_t>& this_ptr, std::string_view s,
+		inline void _rpc_handle_recv(std::shared_ptr<derived_t>& this_ptr, std::string_view data,
 			condition_wrap<MatchCondition>& condition)
 		{
 			detail::ignore_unused(condition);
@@ -59,7 +59,7 @@ namespace asio2::detail
 
 			try
 			{
-				dr.reset(s);
+				dr.reset(data);
 				dr >> head;
 			}
 			catch (cereal::exception const&)
@@ -93,7 +93,12 @@ namespace asio2::detail
 					auto* fn = derive._invoker().find(head.name());
 					if (fn)
 					{
-						(*fn)(this_ptr, sr, dr);
+						// async - return true, sync - return false
+						// call this function will deserialize data, so it maybe throw some exception,
+						// and it will call user function inner, the user function maybe throw some 
+						// exception also.
+						if ((*fn)(this_ptr, &derive, sr, dr))
+							return;
 
 						// The number of parameters passed in when calling rpc function exceeds 
 						// the number of parameters of local function
@@ -112,14 +117,13 @@ namespace asio2::detail
 						}
 					}
 				}
-				catch (cereal::exception const&  ) { sr << error_code{ asio::error::no_data          }; }
+				catch (cereal::exception const&  ) { sr << error_code{ asio::error::invalid_argument }; }
 				catch (system_error      const& e) { sr << e.code();                                    }
-				catch (std::exception    const&  ) { sr << error_code{ asio::error::invalid_argument }; }
+				catch (std::exception    const&  ) { sr << error_code{ asio::error::no_data          }; }
 
 				if (head.id() != static_cast<rpc_header::id_type>(0))
 				{
-					const std::string& str = sr.str();
-					derive.send(str);
+					derive.async_send(sr.str());
 				}
 			}
 			else if (head.is_response())
@@ -128,7 +132,7 @@ namespace asio2::detail
 				if (iter != derive.reqs_.end())
 				{
 					std::function<void(error_code, std::string_view)>& cb = iter->second;
-					cb(error_code{}, s);
+					cb(error_code{}, data);
 				}
 			}
 			else

@@ -1,5 +1,5 @@
 /*
- * COPYRIGHT (C) 2017-2019, zhllxt
+ * COPYRIGHT (C) 2017-2021, zhllxt
  *
  * author   : zhllxt
  * email    : 37792738@qq.com
@@ -23,9 +23,10 @@
 
 namespace asio2::detail
 {
-	//static std::size_t max_size_ = 0;
 	//inline void log_max_size(std::size_t size)
 	//{
+	//	static std::size_t max_size_ = 0;
+
 	//	if (size > max_size_)
 	//	{
 	//		max_size_ = size;
@@ -36,6 +37,10 @@ namespace asio2::detail
 	//}
 
 	/// see : boost\libs\asio\example\cpp11\allocation\server.cpp
+
+	// after test, in general situation:
+	// debug   mode : the max allocator_size is 1304 and has very many times.
+	// release mode : the max allocator_size is 456  and has very many times.
 
 	static constexpr std::size_t allocator_size = 1024;
 
@@ -64,6 +69,7 @@ namespace asio2::detail
 		inline void* allocate(std::size_t size)
 		{
 			//log_max_size(size);
+
 			if (!in_use_ && size < sizeof(storage_))
 			{
 				in_use_ = true;
@@ -107,6 +113,7 @@ namespace asio2::detail
 		inline void* allocate(std::size_t size)
 		{
 			//log_max_size(size);
+
 			if (!in_use_.test_and_set() && size < sizeof(storage_))
 			{
 				return &storage_;

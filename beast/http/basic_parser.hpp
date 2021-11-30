@@ -289,10 +289,12 @@ public:
         Setting the limit after any body octets have been parsed
         results in undefined behavior.
 
-        The default limit is 1MB for requests and 8MB for responses.
+        [[ The default limit is 1MB for requests and 8MB for responses. ]]
+		The default limit is no limit. -- beacuse the default limit is 
+		modifyed by asio2.
 
         @param v An optional integral value representing the body limit.
-        If this is equal to `boost::none`, then the body limit is disabled.
+        If this is equal to `std::nullopt`, then the body limit is disabled.
     */
     void
     body_limit(std::optional<std::uint64_t> v)

@@ -10,6 +10,8 @@
 #ifndef __ASIO2_HTTP_FLEX_BODY_HPP__
 #define __ASIO2_HTTP_FLEX_BODY_HPP__
 
+#include <asio2/3rd/beast.hpp>
+
 #include <beast/http/string_body.hpp>
 #include <beast/http/file_body.hpp>
 #include <asio2/http/detail/http_util.hpp>

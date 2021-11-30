@@ -1,5 +1,5 @@
 /*
- * COPYRIGHT (C) 2017-2019, zhllxt
+ * COPYRIGHT (C) 2017-2021, zhllxt
  *
  * author   : zhllxt
  * email    : 37792738@qq.com
@@ -24,7 +24,7 @@
 #include <string>
 #include <system_error>
 
-#include <asio2/base/selector.hpp>
+#include <asio2/3rd/asio.hpp>
 
 #ifdef ASIO2_ASSERT
 	static_assert(false, "Unknown ASIO2_ASSERT definition will affect the relevant functions of this program.");
@@ -38,19 +38,8 @@
 
 namespace asio2
 {
-	/**
-	 * ssl error code is a unsigned int value,the highest 8 bits is the library code(more details,see openssl/err.h)
-	 * 
-	 * the asio2 custom error code rule : the highest 8 bits is 0,the 23 bit is 1,
-	 *
-	 * the http_parser error code rule : the highest 9 bits is 0,the 22 bit is 1,
-	 *
-	 * we check the error_category like this : 
-	 * if the 23 bit is 1,it is asio2_category.
-	 * if the 22 bit is 1,it is http_parser error code.
-	 * if the error number's highest 8 bits is more than 0,it is ssl ssl_category.
-	 * otherwise it is system_category.
-	 */
+	// Very important features:
+	// One Definition Rule : https://en.wikipedia.org/wiki/One_Definition_Rule
 
 	// use anonymous namespace to resolve global function redefinition problem
 	namespace
@@ -129,19 +118,6 @@ namespace asio2
 		inline auto last_error_msg()
 		{
 			return get_last_error().message();
-		}
-	}
-
-	namespace detail
-	{
-		/**
-		 * thread local variable of error_code, just used for placeholders.
-		 */
-		inline error_code & ec_ignore()
-		{
-			thread_local static error_code ec_ignore_{};
-
-			return ec_ignore_;
 		}
 	}
 }

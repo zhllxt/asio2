@@ -1,5 +1,5 @@
 /*
- * COPYRIGHT (C) 2017-2019, zhllxt
+ * COPYRIGHT (C) 2017-2021, zhllxt
  *
  * author   : zhllxt
  * email    : 37792738@qq.com
@@ -15,9 +15,10 @@
 #pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
+#include <asio2/base/detail/push_options.hpp>
+
 #include <asio2/base/session.hpp>
 
-#include <asio2/base/detail/condition_wrap.hpp>
 #include <asio2/tcp/component/tcp_keepalive_cp.hpp>
 #include <asio2/tcp/impl/tcp_send_op.hpp>
 #include <asio2/tcp/impl/tcp_recv_op.hpp>
@@ -28,6 +29,7 @@ namespace asio2::detail
 	{
 		static constexpr bool is_session = true;
 		static constexpr bool is_client  = false;
+		static constexpr bool is_server  = false;
 
 		using socket_t    = asio::ip::tcp::socket;
 		using buffer_t    = asio::streambuf;
@@ -61,8 +63,7 @@ namespace asio2::detail
 		using send_data_t = typename args_t::send_data_t;
 		using recv_data_t = typename args_t::recv_data_t;
 
-		using super::send;
-
+	public:
 		/**
 		 * @constructor
 		 */
@@ -116,7 +117,7 @@ namespace asio2::detail
 
 				expected = state_t::starting;
 				if (!this->state_.compare_exchange_strong(expected, state_t::starting))
-					asio::detail::throw_error(asio::error::already_started);
+					asio::detail::throw_error(asio::error::operation_aborted);
 
 				// First call the base class start function
 				super::start();
@@ -148,7 +149,7 @@ namespace asio2::detail
 		/**
 		 * @function : get this object hash key,used for session map
 		 */
-		inline const key_type hash_key() const
+		inline key_type hash_key() const
 		{
 			return reinterpret_cast<key_type>(this);
 		}
@@ -163,7 +164,7 @@ namespace asio2::detail
 			this->reset_connect_time();
 			this->update_alive_time();
 
-			if constexpr (std::is_same_v<MatchCondition, use_dgram_t>)
+			if constexpr (std::is_same_v<typename condition_wrap<MatchCondition>::condition_type, use_dgram_t>)
 				this->dgram_ = true;
 			else
 				this->dgram_ = false;
@@ -173,78 +174,80 @@ namespace asio2::detail
 		}
 
 		template<typename MatchCondition>
-		inline void _do_start(std::shared_ptr<derived_t> this_ptr,
-			condition_wrap<MatchCondition> condition)
+		inline void _do_start(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
 		{
 			this->derived()._join_session(std::move(this_ptr), std::move(condition));
 		}
 
 		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
 		{
-			detail::ignore_unused(ec, this_ptr);
+			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
+
+			set_last_error(ec);
 
 			this->derived()._rdc_stop();
 
-			this->derived()._do_stop(ec);
-		}
-
-		inline void _do_stop(const error_code& ec)
-		{
-			detail::ignore_unused(ec);
-
-			// call the base class stop function
-			super::stop();
+			error_code ec_ignore{};
 
 			// call socket's close function to notify the _handle_recv function response with error > 0 ,
 			// then the socket can get notify to exit
 			// Call shutdown() to indicate that you will not write any more data to the socket.
-			this->socket_.lowest_layer().shutdown(asio::socket_base::shutdown_both, ec_ignore());
+			this->socket_.lowest_layer().shutdown(asio::socket_base::shutdown_both, ec_ignore);
 			// Call close,otherwise the _handle_recv will never return
-			this->socket_.lowest_layer().close(ec_ignore());
+			this->socket_.lowest_layer().close(ec_ignore);
+
+			this->derived()._do_stop(ec, std::move(this_ptr));
+		}
+
+		inline void _do_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
+		{
+			this->derived()._post_stop(ec, std::move(this_ptr));
+		}
+
+		inline void _post_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
+		{
+			// call the base class stop function
+			super::stop();
+
+			// call CRTP polymorphic stop
+			this->derived()._handle_stop(ec, std::move(this_ptr));
+		}
+
+		inline void _handle_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
+		{
+			detail::ignore_unused(ec, this_ptr);
+
+			state_t expected = state_t::stopping;
+			if (!this->state_.compare_exchange_strong(expected, state_t::stopped))
+			{
+				ASIO2_ASSERT(false);
+			}
 		}
 
 		template<typename MatchCondition>
-		inline void _join_session(std::shared_ptr<derived_t> this_ptr,
-			condition_wrap<MatchCondition> condition)
+		inline void _join_session(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
 		{
 			this->sessions_.emplace(this_ptr, [this, this_ptr, condition = std::move(condition)]
 			(bool inserted) mutable
 			{
-				// when run to here, the server state maybe started or stopping or stopped, 
-				// if server state is not started, must can't push the session to the map
-				// again, so we need disconnect the session directly, otherwise the server
-				// maybe stopping, and the iopool's wait_iothreas is running in the "sleep"
-				// this will cause the server.stop() never return;
-				if (inserted && this->sessions_.state_ == state_t::started)
-				{
-				#if (defined(_DEBUG) || defined(DEBUG)) && defined(ASIO2_ENABLE_LOG)
-					// this thread is same as the server thread, so the judgment statement
-					// here must be reliable,
-					if (this->sessions_.state_ != state_t::started)
-					{
-						ASIO2_ASSERT(false);
-					}
-				#endif
-
+				if (inserted)
 					this->derived()._start_recv(std::move(this_ptr), std::move(condition));
-				}
 				else
-				{
 					this->derived()._do_disconnect(asio::error::address_in_use);
-				}
 			});
 		}
 
 		template<typename MatchCondition>
-		inline void _start_recv(std::shared_ptr<derived_t> this_ptr,
-			condition_wrap<MatchCondition> condition)
+		inline void _start_recv(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
 		{
 			// to avlid the user call stop in another thread,then it may be socket_.async_read_some
 			// and socket_.close be called at the same time
-			asio::post(this->io_.strand(), make_allocator(this->rallocator_,
-				[this, self_ptr = std::move(this_ptr), condition = std::move(condition)]() mutable
+			asio::dispatch(this->io_.strand(), make_allocator(this->rallocator_,
+			[this, this_ptr = std::move(this_ptr), condition = std::move(condition)]() mutable
 			{
-				if constexpr (!std::is_same_v<MatchCondition, asio2::detail::hook_buffer_t>)
+				using condition_type = typename condition_wrap<MatchCondition>::condition_type;
+
+				if constexpr (!std::is_same_v<condition_type, asio2::detail::hook_buffer_t>)
 				{
 					this->derived().buffer().consume(this->derived().buffer().size());
 				}
@@ -254,9 +257,9 @@ namespace asio2::detail
 				}
 
 				// start the timer of check silence timeout
-				this->derived()._post_silence_timer(this->silence_timeout_, self_ptr);
+				this->derived()._post_silence_timer(this->silence_timeout_, this_ptr);
 
-				this->derived()._post_recv(std::move(self_ptr), std::move(condition));
+				this->derived()._post_recv(std::move(this_ptr), std::move(condition));
 			}));
 		}
 
@@ -277,25 +280,27 @@ namespace asio2::detail
 		template<class Invoker>
 		inline void _rdc_invoke_with_none(const error_code& ec, Invoker& invoker)
 		{
-			invoker(ec, send_data_t{}, recv_data_t{});
+			if (invoker)
+				invoker(ec, send_data_t{}, recv_data_t{});
 		}
 
 		template<class Invoker>
 		inline void _rdc_invoke_with_recv(const error_code& ec, Invoker& invoker, recv_data_t data)
 		{
-			invoker(ec, send_data_t{}, data);
+			if (invoker)
+				invoker(ec, send_data_t{}, data);
 		}
 
 		template<class Invoker, class FnData>
 		inline void _rdc_invoke_with_send(const error_code& ec, Invoker& invoker, FnData& fn_data)
 		{
-			invoker(ec, fn_data(), recv_data_t{});
+			if (invoker)
+				invoker(ec, fn_data(), recv_data_t{});
 		}
 
 	protected:
 		template<typename MatchCondition>
-		inline void _post_recv(std::shared_ptr<derived_t> this_ptr,
-			condition_wrap<MatchCondition> condition)
+		inline void _post_recv(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
 		{
 			this->derived()._tcp_post_recv(std::move(this_ptr), std::move(condition));
 		}
@@ -308,38 +313,46 @@ namespace asio2::detail
 		}
 
 		template<typename MatchCondition>
-		inline void _fire_recv(std::shared_ptr<derived_t>& this_ptr, std::string_view s,
+		inline void _fire_recv(std::shared_ptr<derived_t>& this_ptr, std::string_view data,
 			condition_wrap<MatchCondition>& condition)
 		{
-			this->listener_.notify(event_type::recv, this_ptr, s);
+			this->listener_.notify(event_type::recv, this_ptr, data);
 
-			this->derived()._rdc_handle_recv(this_ptr, s, condition);
+			this->derived()._rdc_handle_recv(this_ptr, data, condition);
 		}
 
 		inline void _fire_accept(std::shared_ptr<derived_t>& this_ptr)
 		{
+			// the _fire_accept must be executed in the thread 0.
+			ASIO2_ASSERT(this->sessions().io().strand().running_in_this_thread());
+
 			this->listener_.notify(event_type::accept, this_ptr);
 		}
 
 		template<typename MatchCondition>
-		inline void _fire_connect(std::shared_ptr<derived_t>& this_ptr,
-			condition_wrap<MatchCondition>& condition)
+		inline void _fire_connect(std::shared_ptr<derived_t>& this_ptr, condition_wrap<MatchCondition>& condition)
 		{
-			if constexpr (is_template_instance_of_v<use_rdc_t, MatchCondition>)
-			{
-				this->derived()._rdc_start();
-				this->derived()._rdc_post_wait(this_ptr, condition);
-			}
-			else
-			{
-				std::ignore = true;
-			}
+			// the _fire_connect must be executed in the thread 0.
+			ASIO2_ASSERT(this->sessions().io().strand().running_in_this_thread());
+
+		#if defined(ASIO2_ENABLE_LOG)
+			ASIO2_ASSERT(this->is_disconnect_called_ == false);
+		#endif
+
+			this->derived()._rdc_start(this_ptr, condition);
 
 			this->listener_.notify(event_type::connect, this_ptr);
 		}
 
 		inline void _fire_disconnect(std::shared_ptr<derived_t>& this_ptr)
 		{
+			// the _fire_disconnect must be executed in the thread 0.
+			ASIO2_ASSERT(this->sessions().io().strand().running_in_this_thread());
+
+		#if defined(ASIO2_ENABLE_LOG)
+			this->is_disconnect_called_ = true;
+		#endif
+
 			this->listener_.notify(event_type::disconnect, this_ptr);
 		}
 
@@ -362,6 +375,10 @@ namespace asio2::detail
 
 		/// Does it have the same datagram mechanism as udp?
 		bool                                      dgram_ = false;
+
+	#if defined(ASIO2_ENABLE_LOG)
+		bool                                      is_disconnect_called_ = false;
+	#endif
 	};
 }
 
@@ -373,5 +390,7 @@ namespace asio2
 		using tcp_session_impl_t<tcp_session, detail::template_args_tcp_session>::tcp_session_impl_t;
 	};
 }
+
+#include <asio2/base/detail/pop_options.hpp>
 
 #endif // !__ASIO2_TCP_SESSION_HPP__

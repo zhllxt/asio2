@@ -701,7 +701,7 @@ parse_chunk_header(char const*& p0,
         BEAST_ASSERT(n >= 5);
         if(f_ & flagExpectCRLF)
             BEAST_VERIFY(parse_crlf(p));
-		std::uint64_t size; std::ignore = size;
+        std::uint64_t size{}; std::ignore = size;
         BEAST_VERIFY(parse_hex(p, size));
         eol = find_eol(p, pend, ec);
         BEAST_ASSERT(! ec);

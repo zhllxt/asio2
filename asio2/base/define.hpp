@@ -1,5 +1,5 @@
 /*
- * COPYRIGHT (C) 2017-2019, zhllxt
+ * COPYRIGHT (C) 2017-2021, zhllxt
  *
  * author   : zhllxt
  * email    : 37792738@qq.com
@@ -64,15 +64,16 @@
 	template <class, class>                      KEYWORD user_data_cp;              \
 	template <class, class>                      KEYWORD user_timer_cp;             \
 	template <class       >                      KEYWORD session_mgr_t;             \
+	template <class, class>                      KEYWORD socks5_client_impl;        \
+	template <class, class, class>               KEYWORD socks5_client_connect_op;  \
 
 
 #define ASIO2_CLASS_DECLARE_TCP_BASE(KEYWORD)                                       \
-	template <class, bool >                      KEYWORD ssl_context_cp;            \
+	template <class, class>                      KEYWORD ssl_context_cp;            \
 	template <class, class>                      KEYWORD ssl_stream_cp;             \
 	template <class, class>                      KEYWORD tcp_keepalive_cp;          \
 	template <class, class>                      KEYWORD tcp_recv_op;               \
 	template <class, class>                      KEYWORD tcp_send_op;               \
-	template <class, class>                      KEYWORD http_send_cp;              \
 	template <class, class>                      KEYWORD ws_stream_cp;              \
 	template <class, class>                      KEYWORD http_recv_op;              \
 	template <class, class>                      KEYWORD http_send_op;              \
@@ -81,6 +82,9 @@
 	template <class, class>                      KEYWORD rpc_recv_op;               \
 	template <class       >                      KEYWORD http_router_t;             \
 	template <class       >                      KEYWORD rpc_invoker_t;             \
+	template <class, class>                      KEYWORD mqtt_send_op;              \
+	template <class       >                      KEYWORD mqtt_handler_t;            \
+	template <class       >                      KEYWORD mqtt_invoker_t;            \
 
 
 #define ASIO2_CLASS_DECLARE_TCP_CLIENT(KEYWORD)                                     \
@@ -92,6 +96,7 @@
 	template <class, class>                      KEYWORD ws_client_impl_t;          \
 	template <class, class>                      KEYWORD wss_client_impl_t;         \
 	template <class, class>                      KEYWORD rpc_client_impl_t;         \
+	template <class, class>                      KEYWORD mqtt_client_impl_t;        \
 
 
 #define ASIO2_CLASS_DECLARE_TCP_SERVER(KEYWORD)                                     \
@@ -103,6 +108,7 @@
 	template <class, class>                      KEYWORD ws_server_impl_t;          \
 	template <class, class>                      KEYWORD wss_server_impl_t;         \
 	template <class, class>                      KEYWORD rpc_server_impl_t;         \
+	template <class, class>                      KEYWORD mqtt_server_impl_t;        \
 
 
 #define ASIO2_CLASS_DECLARE_TCP_SESSION(KEYWORD)                                    \
@@ -114,6 +120,7 @@
 	template <class, class>                      KEYWORD ws_session_impl_t;         \
 	template <class, class>                      KEYWORD wss_session_impl_t;        \
 	template <class, class>                      KEYWORD rpc_session_impl_t;        \
+	template <class, class>                      KEYWORD mqtt_session_impl_t;       \
 
 
 #define ASIO2_CLASS_DECLARE_UDP_BASE(KEYWORD)                                       \

@@ -1,5 +1,5 @@
 /*
- * COPYRIGHT (C) 2017-2019, zhllxt
+ * COPYRIGHT (C) 2017-2021, zhllxt
  *
  * author   : zhllxt
  * email    : 37792738@qq.com
@@ -20,7 +20,8 @@
 
 #include <memory>
 
-#include <asio2/base/selector.hpp>
+#include <asio2/3rd/asio.hpp>
+#include <asio2/3rd/beast.hpp>
 #include <asio2/base/error.hpp>
 
 #include <asio2/base/detail/util.hpp>
@@ -138,13 +139,13 @@ namespace boost::beast::http
 		}
 
 		template<typename = void>
-		bool has_unencode_char(std::string_view s)
+		bool has_unencode_char(std::string_view uri)
 		{
 			using namespace std::literals;
 			std::string_view reserve = "!*();:@&=$,/?[]-_.~"sv;
 			std::string_view invalid = " `#{}'\"\\|^+<>"sv;
 
-			for (auto c : s)
+			for (auto c : uri)
 			{
 				if (invalid.find(c) != std::string_view::npos)
 					return true;
@@ -187,7 +188,7 @@ namespace boost::beast::http
 					u.field_data[(int)http::http_parser_ns::url_fields::UF_SCHEMA].len);
 				std::transform(schema.begin(), schema.end(), schema.begin(), [](std::string::value_type c)
 				{
-					return std::tolower(c);
+					return static_cast<std::string::value_type>(std::tolower(c));
 				});
 				return (schema == "https" ? std::string_view{ "443" } : std::string_view{ "80" });
 			}
@@ -424,7 +425,7 @@ namespace boost::beast::http
 			content += "<html><head><title>";
 			content += reason;
 			content += "</title></head><body><h1>";
-			content += std::to_string(asio2::detail::enum_to_int(result));
+			content += std::to_string(asio2::detail::to_underlying(result));
 			content += " ";
 			content += reason;
 			content += "</h1>";
@@ -441,8 +442,8 @@ namespace boost::beast::http
 		/**
 		 * @function : Returns `true` if the HTTP message's Content-Type is "multipart/form-data";
 		 */
-		template<bool isRequest, class Body, class Fields>
-		inline bool has_multipart(const http::message<isRequest, Body, Fields>& msg)
+		template<class HttpMessage>
+		inline bool has_multipart(const HttpMessage& msg)
 		{
 			return (asio2::ifind(msg[http::field::content_type], "multipart/form-data") != std::string_view::npos);
 		}
@@ -450,8 +451,8 @@ namespace boost::beast::http
 		/**
 		 * @function : Get the "multipart/form-data" body content.
 		 */
-		template<bool isRequest, class Body, class Fields, class String = std::string_view>
-		inline basic_multipart_fields<String> multipart(const http::message<isRequest, Body, Fields>& msg)
+		template<class HttpMessage, class String = std::string_view>
+		inline basic_multipart_fields<String> multipart(const HttpMessage& msg)
 		{
 			return multipart_parser_execute(msg);
 		}

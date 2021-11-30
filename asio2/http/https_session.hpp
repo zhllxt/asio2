@@ -1,5 +1,5 @@
 /*
- * COPYRIGHT (C) 2017-2019, zhllxt
+ * COPYRIGHT (C) 2017-2021, zhllxt
  *
  * author   : zhllxt
  * email    : 37792738@qq.com
@@ -16,6 +16,8 @@
 #if defined(_MSC_VER) && (_MSC_VER >= 1200)
 #pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
+
+#include <asio2/base/detail/push_options.hpp>
 
 #include <asio2/http/http_session.hpp>
 #include <asio2/tcp/component/ssl_stream_cp.hpp>
@@ -54,8 +56,9 @@ namespace asio2::detail
 		using ssl_stream_comp = ssl_stream_cp<derived_t, args_t>;
 
 		using super::send;
-		using super::_data_persistence;
+		using super::async_send;
 
+	public:
 		/**
 		 * @constructor
 		 */
@@ -98,7 +101,7 @@ namespace asio2::detail
 		/**
 		 * @function : get this object hash key,used for session map
 		 */
-		inline const key_type hash_key() const
+		inline key_type hash_key() const
 		{
 			return reinterpret_cast<key_type>(this);
 		}
@@ -116,12 +119,16 @@ namespace asio2::detail
 		inline void _handle_connect(const error_code& ec, std::shared_ptr<derived_t> this_ptr,
 			condition_wrap<MatchCondition> condition)
 		{
-			this->derived().post([this, self_ptr = std::move(this_ptr), condition = std::move(condition)]() mutable
+			detail::ignore_unused(ec);
+
+			asio::dispatch(this->derived().io().strand(), make_allocator(this->derived().wallocator(),
+			[this, self_ptr = std::move(this_ptr), condition = std::move(condition)]
+			() mutable
 			{
 				this->derived()._ssl_start(self_ptr, condition, this->socket_, this->ctx_);
 
 				this->derived()._post_handshake(std::move(self_ptr), std::move(condition));
-			});
+			}));
 		}
 
 		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
@@ -139,7 +146,7 @@ namespace asio2::detail
 			{
 				this->derived()._ws_stop(this_ptr, [this, ec, this_ptr]() mutable
 				{
-					this->derived()._ssl_stop(this_ptr, [this, ec, this_ptr]()
+					this->derived()._ssl_stop(this_ptr, [this, ec, this_ptr]() mutable
 					{
 						super::super::_handle_disconnect(ec, std::move(this_ptr));
 					});
@@ -149,6 +156,9 @@ namespace asio2::detail
 
 		inline void _fire_handshake(std::shared_ptr<derived_t>& this_ptr, error_code ec)
 		{
+			// the _fire_handshake must be executed in the thread 0.
+			ASIO2_ASSERT(this->sessions().io().strand().running_in_this_thread());
+
 			this->listener_.notify(event_type::handshake, this_ptr, ec);
 		}
 
@@ -165,6 +175,8 @@ namespace asio2
 		using https_session_impl_t<https_session, detail::template_args_https_session>::https_session_impl_t;
 	};
 }
+
+#include <asio2/base/detail/pop_options.hpp>
 
 #endif // !__ASIO2_HTTPS_SESSION_HPP__
 

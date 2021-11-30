@@ -1,5 +1,5 @@
 /*
- * COPYRIGHT (C) 2017-2019, zhllxt
+ * COPYRIGHT (C) 2017-2021, zhllxt
  *
  * author   : zhllxt
  * email    : 37792738@qq.com
@@ -17,9 +17,11 @@
 #pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
+#include <asio2/base/detail/push_options.hpp>
+
 #include <asio2/tcp/tcps_session.hpp>
-#include <asio2/http/component/ws_stream_cp.hpp>
-#include <asio2/http/impl/ws_send_op.hpp>
+
+#include <asio2/http/ws_session.hpp>
 
 namespace asio2::detail
 {
@@ -55,7 +57,9 @@ namespace asio2::detail
 		using ws_stream_comp = ws_stream_cp<derived_t, args_t>;
 
 		using super::send;
+		using super::async_send;
 
+	public:
 		/**
 		 * @constructor
 		 */
@@ -84,7 +88,7 @@ namespace asio2::detail
 		/**
 		 * @function : get this object hash key,used for session map
 		 */
-		inline const key_type hash_key() const
+		inline key_type hash_key() const
 		{
 			return reinterpret_cast<key_type>(this);
 		}
@@ -103,7 +107,7 @@ namespace asio2::detail
 		{
 			this->derived()._rdc_stop();
 
-			this->derived()._ws_stop(this_ptr, [this, ec, this_ptr]()
+			this->derived()._ws_stop(this_ptr, [this, ec, this_ptr]() mutable
 			{
 				super::_handle_disconnect(ec, std::move(this_ptr));
 			});
@@ -113,22 +117,34 @@ namespace asio2::detail
 		inline void _handle_connect(const error_code& ec, std::shared_ptr<derived_t> this_ptr,
 			condition_wrap<MatchCondition> condition)
 		{
-			this->derived().post([this, self_ptr = std::move(this_ptr), condition = std::move(condition)]() mutable
+			detail::ignore_unused(ec);
+
+			ASIO2_ASSERT(this->derived().sessions().io().strand().running_in_this_thread());
+
+			asio::dispatch(this->derived().io().strand(), make_allocator(this->derived().wallocator(),
+			[this, this_ptr = std::move(this_ptr), condition = std::move(condition)]() mutable
 			{
-				this->derived()._ssl_start(self_ptr, condition, this->socket_, this->ctx_);
+				this->derived()._ssl_start(this_ptr, condition, this->socket_, this->ctx_);
 
-				this->derived()._ws_start(self_ptr, condition, this->ssl_stream());
+				this->derived()._ws_start(this_ptr, condition, this->ssl_stream());
 
-				this->derived()._post_handshake(std::move(self_ptr), std::move(condition));
-			});
+				this->derived()._post_handshake(std::move(this_ptr), std::move(condition));
+			}));
 		}
 
 		template<typename MatchCondition>
-		inline void _handle_handshake(const error_code & ec, std::shared_ptr<derived_t> self_ptr,
+		inline void _handle_handshake(const error_code & ec, std::shared_ptr<derived_t> this_ptr,
 			condition_wrap<MatchCondition> condition)
 		{
-			this->sessions().post([this, ec, this_ptr = std::move(self_ptr), condition = std::move(condition)]() mutable
+			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
+
+			// Use "sessions().dispatch" to ensure that the _fire_accept function and the _fire_handshake
+			// function are fired in the same thread
+			this->sessions().dispatch(
+			[this, ec, this_ptr = std::move(this_ptr), condition = std::move(condition)]() mutable
 			{
+				ASIO2_ASSERT(this->derived().sessions().io().strand().running_in_this_thread());
+
 				try
 				{
 					set_last_error(ec);
@@ -137,8 +153,14 @@ namespace asio2::detail
 
 					asio::detail::throw_error(ec);
 
-					this->derived()._post_control_callback(this_ptr, condition);
-					this->derived()._post_upgrade(std::move(this_ptr), std::move(condition));
+					asio::dispatch(this->io_.strand(), make_allocator(this->rallocator_,
+					[this, this_ptr = std::move(this_ptr), condition = std::move(condition)]() mutable
+					{
+						ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
+
+						this->derived()._post_control_callback(this_ptr, condition);
+						this->derived()._post_upgrade(std::move(this_ptr), std::move(condition));
+					}));
 				}
 				catch (system_error & e)
 				{
@@ -171,6 +193,9 @@ namespace asio2::detail
 
 		inline void _fire_upgrade(std::shared_ptr<derived_t>& this_ptr, error_code ec)
 		{
+			// the _fire_upgrade must be executed in the thread 0.
+			ASIO2_ASSERT(this->sessions().io().strand().running_in_this_thread());
+
 			this->listener_.notify(event_type::upgrade, this_ptr, ec);
 		}
 
@@ -186,6 +211,8 @@ namespace asio2
 		using wss_session_impl_t<wss_session, detail::template_args_wss_session>::wss_session_impl_t;
 	};
 }
+
+#include <asio2/base/detail/pop_options.hpp>
 
 #endif // !__ASIO2_WSS_SESSION_HPP__
 

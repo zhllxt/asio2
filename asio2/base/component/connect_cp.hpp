@@ -1,5 +1,5 @@
 /*
- * COPYRIGHT (C) 2017-2019, zhllxt
+ * COPYRIGHT (C) 2017-2021, zhllxt
  *
  * author   : zhllxt
  * email    : 37792738@qq.com
@@ -20,7 +20,7 @@
 #include <utility>
 #include <string_view>
 
-#include <asio2/base/selector.hpp>
+#include <asio2/3rd/asio.hpp>
 #include <asio2/base/iopool.hpp>
 #include <asio2/base/error.hpp>
 #include <asio2/base/listener.hpp>
@@ -30,7 +30,7 @@
 
 namespace asio2::detail
 {
-	template<class derived_t, class args_t, bool is_session>
+	template<class derived_t, class args_t, bool IsSession>
 	class connect_cp_member_variables;
 
 	template<class derived_t, class args_t>
@@ -56,6 +56,12 @@ namespace asio2::detail
 		endpoints_type                  endpoints_;
 	};
 
+	/*
+	 * can't use "derived_t::is_session()" as the third template parameter of connect_cp_member_variables,
+	 * must use "args_t::is_session", beacuse "tcp_session" is derived from "connect_cp", when the 
+	 * "connect_cp" is contructed, the "tcp_session" has't contructed yet, then it will can't find the 
+	 * "derived_t::is_session()" function, and compile failure.
+	 */
 	template<class derived_t, class args_t>
 	class connect_cp : public connect_cp_member_variables<derived_t, args_t, args_t::is_session>
 	{
@@ -80,32 +86,42 @@ namespace asio2::detail
 		~connect_cp() = default;
 
 	protected:
-		template<bool isAsync, typename String, typename StrOrInt, typename MatchCondition,
-			bool IsSession = args_t::is_session>
-		typename std::enable_if_t<!IsSession, bool>
-		inline _start_connect(String&& host, StrOrInt&& port,
-			std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		template<bool IsAsync, typename MatchCondition, typename DeferEvent, bool IsSession = args_t::is_session>
+		typename std::enable_if_t<!IsSession, void>
+		inline _start_connect(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition,
+			DeferEvent&& set_promise)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
+			ASIO2_ASSERT(derive.io().strand().running_in_this_thread());
+
 			try
 			{
-				if (derive.iopool_.is_stopped())
-				{
-					set_last_error(asio::error::shut_down);
-					return false;
-				}
+				clear_last_error();
 
-				this->host_ = to_string(std::forward<String>(host));
-				this->port_ = to_string(std::forward<StrOrInt>(port));
+			#if defined(ASIO2_ENABLE_LOG)
+				derive.is_disconnect_called_ = false;
+			#endif
+
+				ASIO2_LOG(spdlog::level::debug, "call connect : {}",
+					magic_enum::enum_name(derive.state_.load()));
+
+				state_t expected = state_t::starting;
+				if (!derive.state_.compare_exchange_strong(expected, state_t::starting))
+				{
+					ASIO2_ASSERT(false);
+					asio::detail::throw_error(asio::error::operation_aborted);
+				}
 
 				auto & socket = derive.socket().lowest_layer();
 
-				socket.close(ec_ignore());
+				error_code ec_ignore{};
+
+				socket.close(ec_ignore);
 
 				socket.open(derive.local_endpoint().protocol());
 
-				// Connect succeeded. set the keeplive values
+				// open succeeded. set the keeplive values
 				socket.set_option(typename raw_socket_t::reuse_address(true)); // set port reuse
 
 				if constexpr (std::is_same_v<typename raw_socket_t::protocol_type, asio::ip::tcp>)
@@ -121,80 +137,42 @@ namespace asio2::detail
 
 				socket.bind(derive.local_endpoint());
 
-				if constexpr (isAsync)
+				// start the timeout timer
+				derive._post_connect_timeout_timer(derive.connect_timeout(), this_ptr,
+				[&derive, set_promise = std::move(set_promise)]
+				(const error_code& ec) mutable
 				{
-					// start the timeout timer
-					derive.post([&derive, this_ptr, condition]() mutable
+					// no errors indicating that the connection timed out
+					if (!ec)
 					{
-						derive._post_connect_timeout_timer(derive.connect_timeout(), this_ptr,
-							[&derive, this_ptr, condition]
-						(const error_code& ec) mutable
-						{
-							detail::ignore_unused(this_ptr, condition);
-
-							// no errors indicating that the connection timed out
-							if (!ec)
-							{
-								// we close the socket, so the async_connect will returned 
-								// with operation_aborted.
-								derive.socket().lowest_layer().close(ec_ignore());
-							}
-						});
-					});
-
-					derive._post_resolve(std::move(this_ptr), std::move(condition));
-
-					return true;
-				}
-				else
-				{
-					std::promise<error_code> promise;
-					std::future<error_code> future = promise.get_future();
-
-					// start the timeout timer
-					derive.post([&derive, this_ptr, condition, promise = std::move(promise)]() mutable
-					{
-						derive._post_connect_timeout_timer(derive.connect_timeout(), this_ptr,
-							[&derive, this_ptr, condition, promise = std::move(promise)]
-						(const error_code& ec) mutable
-						{
-							detail::ignore_unused(this_ptr, condition);
-
-							// no errors indicating that the connection timed out
-							if (!ec)
-							{
-								// we close the socket, so the async_connect will returned 
-								// with operation_aborted.
-								derive.socket().lowest_layer().close(ec_ignore());
-							}
-
-							promise.set_value(derive._connect_error_code() ?
-								derive._connect_error_code() : (ec ? ec : asio::error::timed_out));
-						});
-					});
-
-					derive._post_resolve(std::move(this_ptr), std::move(condition));
-
-					if (!derive.io().strand().running_in_this_thread())
-					{
-						set_last_error(future.get());
-					}
-					else
-					{
-						ASIO2_ASSERT(false);
+						// we close the socket, so the async_connect will returned 
+						// with operation_aborted.
+						error_code ec_ignore{};
+						derive.socket().lowest_layer().close(ec_ignore);
 					}
 
-					return derive.is_started();
-				}
+					error_code connect_ec = derive._connect_error_code();
+
+					set_last_error(connect_ec ? connect_ec :
+						(ec == asio::error::operation_aborted ? error_code{} : ec));
+				});
+
+				derive._post_resolve(std::move(this_ptr), std::move(condition));
 			}
-			catch (system_error & e)
+			catch (system_error const& e)
 			{
 				set_last_error(e);
 
 				derive._handle_connect(e.code(), std::move(this_ptr), std::move(condition));
 			}
+			catch (std::exception const&)
+			{
+				error_code ec = asio::error::invalid_argument;
 
-			return false;
+				set_last_error(ec);
+
+				derive._handle_connect(ec, std::move(this_ptr), std::move(condition));
+			}
 		}
 
 		template<typename MatchCondition, bool IsSession = args_t::is_session>
@@ -203,39 +181,50 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			derive.post([this, &derive, this_ptr = std::move(this_ptr), condition = std::move(condition)]() mutable
+			std::string_view host, port;
+
+			if constexpr (condition_helper::has_socks5<MatchCondition>())
 			{
-				// resolve the server address.
-				std::unique_ptr<resolver_type> resolver_ptr = std::make_unique<resolver_type>(
-					derive.io().context());
+				auto& sock5 = condition.impl_->socks5_option(std::in_place);
 
-				resolver_type* resolver_rptr = resolver_ptr.get();
+				host = sock5.host();
+				port = sock5.port();
+			}
+			else
+			{
+				host = this->host_;
+				port = this->port_;
+			}
 
-				// Before async_resolve execution is complete, we must hold the resolver object.
-				// so we captured the resolver_ptr into the lambda callback function.
-				resolver_rptr->async_resolve(this->host_, this->port_,
-					asio::bind_executor(derive.io().strand(),
-						[this, &derive, this_ptr = std::move(this_ptr), condition = std::move(condition),
-						resolver_ptr = std::move(resolver_ptr)]
-				(const error_code& ec, const endpoints_type& endpoints) mutable
-				{
-					set_last_error(ec);
+			// resolve the server address.
+			std::unique_ptr<resolver_type> resolver_ptr = std::make_unique<resolver_type>(
+				derive.io().context());
 
-					this->endpoints_ = endpoints;
+			resolver_type* resolver_rptr = resolver_ptr.get();
 
-					if (ec)
-						derive._handle_connect(ec, std::move(this_ptr), std::move(condition));
-					else
-						derive._post_connect(ec, this->endpoints_.begin(),
-							std::move(this_ptr), std::move(condition));
-				}));
-			});
+			// Before async_resolve execution is complete, we must hold the resolver object.
+			// so we captured the resolver_ptr into the lambda callback function.
+			resolver_rptr->async_resolve(host, port, asio::bind_executor(derive.io().strand(),
+			[this, &derive, this_ptr = std::move(this_ptr), condition = std::move(condition),
+				resolver_ptr = std::move(resolver_ptr)]
+			(const error_code& ec, const endpoints_type& endpoints) mutable
+			{
+				set_last_error(ec);
+
+				this->endpoints_ = endpoints;
+
+				if (ec)
+					derive._handle_connect(ec, std::move(this_ptr), std::move(condition));
+				else
+					derive._post_connect(ec, this->endpoints_.begin(),
+						std::move(this_ptr), std::move(condition));
+			}));
 		}
 
 		template<typename MatchCondition, bool IsSession = args_t::is_session>
 		typename std::enable_if_t<!IsSession, void>
-		inline _post_connect(error_code ec, endpoints_iterator iter,
-			std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		inline _post_connect(error_code ec, endpoints_iterator iter, std::shared_ptr<derived_t> this_ptr,
+			condition_wrap<MatchCondition> condition)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
@@ -253,14 +242,16 @@ namespace asio2::detail
 				// Start the asynchronous connect operation.
 				derive.socket().lowest_layer().async_connect(iter->endpoint(),
 					asio::bind_executor(derive.io().strand(), make_allocator(derive.rallocator(),
-						[&derive, iter, this_ptr, condition](const error_code & ec) mutable
+				[&derive, iter, this_ptr = std::move(this_ptr), condition = std::move(condition)]
+				(const error_code & ec) mutable
 				{
 					set_last_error(ec);
 
 					if (ec && ec != asio::error::operation_aborted)
-						derive._post_connect(ec, ++iter, std::move(this_ptr), std::move(condition));
+						derive._post_connect(ec, ++iter,
+							std::move(this_ptr), std::move(condition));
 					else
-						derive._handle_connect(ec, std::move(this_ptr), std::move(condition));
+						derive._post_proxy(ec, std::move(this_ptr), std::move(condition));
 				})));
 			}
 			catch (system_error & e)
@@ -272,12 +263,69 @@ namespace asio2::detail
 		}
 
 		template<typename MatchCondition>
+		inline void _post_proxy(const error_code& ec, std::shared_ptr<derived_t> this_ptr,
+			condition_wrap<MatchCondition> condition)
+		{
+			set_last_error(ec);
+
+			derived_t& derive = static_cast<derived_t&>(*this);
+
+			if constexpr (is_template_instance_of_v<ecs_t, MatchCondition>)
+			{
+				if (ec)
+					return derive._handle_proxy(ec, std::move(this_ptr), std::move(condition));
+
+				//// Traverse each component in order, and if it is a proxy component, start it
+				//detail::for_each_tuple(condition.impl_->components_, [&](auto& component) mutable
+				//{
+				//	using type = detail::remove_cvref_t<decltype(component)>;
+
+				//	if constexpr (std::is_base_of_v<asio2::socks5::detail::option_base, type>)
+				//		derive._socks5_start(this_ptr, condition);
+				//	else
+				//	{
+				//		std::ignore = true;
+				//	}
+				//});
+
+				if constexpr (MatchCondition::has_socks5())
+					derive._socks5_start(std::move(this_ptr), std::move(condition));
+				else
+					derive._handle_proxy(ec, std::move(this_ptr), std::move(condition));
+			}
+			else
+			{
+				derive._handle_proxy(ec, std::move(this_ptr), std::move(condition));
+			}
+		}
+
+		template<typename MatchCondition>
+		inline void _handle_proxy(const error_code& ec, std::shared_ptr<derived_t> this_ptr,
+			condition_wrap<MatchCondition> condition)
+		{
+			set_last_error(ec);
+
+			derived_t& derive = static_cast<derived_t&>(*this);
+
+			derive._handle_connect(ec, std::move(this_ptr), std::move(condition));
+		}
+
+		template<typename MatchCondition>
 		inline void _handle_connect(const error_code& ec, std::shared_ptr<derived_t> this_ptr,
 			condition_wrap<MatchCondition> condition)
 		{
+			set_last_error(ec);
+
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			set_last_error(ec);
+			if constexpr (args_t::is_session)
+			{
+				ASIO2_ASSERT(derive.sessions().io().strand().running_in_this_thread());
+			}
+			else
+			{
+				ASIO2_ASSERT(derive.io().strand().running_in_this_thread());
+			}
 
 			derive._done_connect(ec, std::move(this_ptr), std::move(condition));
 		}
@@ -287,6 +335,12 @@ namespace asio2::detail
 			condition_wrap<MatchCondition> condition)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
+
+			ASIO2_LOG(spdlog::level::debug, "enter _done_connect : {}",
+				magic_enum::enum_name(derive.state_.load()));
+
+			// code run to here, the state must not be stopped( stopping is possible but stopped is impossible )
+			//ASIO2_ASSERT(derive.state() != state_t::stopped);
 
 			try
 			{
@@ -315,6 +369,8 @@ namespace asio2::detail
 				// Is session : Only call fire_connect notification when the connection is succeed.
 				if constexpr (args_t::is_session)
 				{
+					ASIO2_ASSERT(derive.sessions().io().strand().running_in_this_thread());
+
 					if (!ec)
 					{
 						expected = state_t::started;
@@ -327,20 +383,13 @@ namespace asio2::detail
 				// Is client : Whether the connection succeeds or fails, always call fire_connect notification
 				else
 				{
-					expected = state_t::starting;
-					if (derive.state().compare_exchange_strong(expected, state_t::starting))
+					ASIO2_ASSERT(derive.io().strand().running_in_this_thread());
+
+					// if state is not stopped, call _fire_connect
+					expected = state_t::stopped;
+					if (!derive.state().compare_exchange_strong(expected, state_t::stopped))
 					{
-						ASIO2_ASSERT(ec);
 						derive._fire_connect(this_ptr, ec, condition);
-					}
-					else
-					{
-						expected = state_t::started;
-						if (derive.state().compare_exchange_strong(expected, state_t::started))
-						{
-							ASIO2_ASSERT(!ec);
-							derive._fire_connect(this_ptr, ec, condition);
-						}
 					}
 				}
 
@@ -358,6 +407,9 @@ namespace asio2::detail
 			catch (system_error & e)
 			{
 				set_last_error(e);
+
+				ASIO2_LOG(spdlog::level::debug, "call _do_disconnect by _done_connect error : {} {} {}",
+					magic_enum::enum_name(derive.state_.load()), e.code().value(), e.what());
 
 				derive._do_disconnect(e.code());
 			}

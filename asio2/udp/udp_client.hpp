@@ -1,5 +1,5 @@
 /*
- * COPYRIGHT (C) 2017-2019, zhllxt
+ * COPYRIGHT (C) 2017-2021, zhllxt
  *
  * author   : zhllxt
  * email    : 37792738@qq.com
@@ -15,6 +15,8 @@
 #pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
+#include <asio2/base/detail/push_options.hpp>
+
 #include <asio2/base/client.hpp>
 #include <asio2/base/detail/linear_buffer.hpp>
 #include <asio2/udp/impl/udp_send_op.hpp>
@@ -27,6 +29,7 @@ namespace asio2::detail
 	{
 		static constexpr bool is_session = false;
 		static constexpr bool is_client  = true;
+		static constexpr bool is_server  = false;
 
 		using socket_t    = asio::ip::udp::socket;
 		using buffer_t    = asio2::linear_buffer;
@@ -55,8 +58,7 @@ namespace asio2::detail
 		using send_data_t = typename args_t::send_data_t;
 		using recv_data_t = typename args_t::recv_data_t;
 
-		using super::send;
-
+	public:
 		/**
 		 * @constructor
 		 */
@@ -85,257 +87,27 @@ namespace asio2::detail
 		 * @param port A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
 		 */
-		template<typename String, typename StrOrInt>
-		bool start(String&& host, StrOrInt&& port)
+		template<typename String, typename StrOrInt, typename... Args>
+		inline bool start(String&& host, StrOrInt&& port, Args&&... args)
 		{
 			return this->derived().template _do_connect<false>(
 				std::forward<String>(host), std::forward<StrOrInt>(port),
-				condition_wrap<void>{});
+				condition_helper::make_condition('0', std::forward<Args>(args)...));
 		}
 
 		/**
-		 * @function : start the client, blocking connect to server
+		 * @function : start the client, asynchronous connect to server
 		 * @param host A string identifying a location. May be a descriptive name or
 		 * a numeric address string.
 		 * @param port A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
 		 */
-		template<typename String, typename StrOrInt, typename ParserFun>
-		bool start(String&& host, StrOrInt&& port, ParserFun&& parser)
-		{
-			using fun_traits_type = function_traits<std::remove_cv_t<std::remove_reference_t<ParserFun>>>;
-			using IdT = typename fun_traits_type::return_type;
-			using SendDataT = typename fun_traits_type::template args<0>::type;
-			using RecvDataT = typename fun_traits_type::template args<0>::type;
-
-			return this->derived().template _do_connect<false>(
-				std::forward<String>(host), std::forward<StrOrInt>(port),
-				condition_wrap<use_rdc_t<void, IdT, SendDataT, RecvDataT>>(
-					std::in_place,
-					std::forward<ParserFun>(parser)));
-		}
-
-		/**
-		 * @function : start the client, blocking connect to server
-		 * @param host A string identifying a location. May be a descriptive name or
-		 * a numeric address string.
-		 * @param port A string identifying the requested service. This may be a
-		 * descriptive name or a numeric string corresponding to a port number.
-		 */
-		template<typename String, typename StrOrInt, typename SendParserFun, typename RecvParserFun>
-		bool start(String&& host, StrOrInt&& port, SendParserFun&& send_parser, RecvParserFun&& recv_parser)
-		{
-			using send_fun_traits_type = function_traits<std::remove_cv_t<std::remove_reference_t<SendParserFun>>>;
-			using recv_fun_traits_type = function_traits<std::remove_cv_t<std::remove_reference_t<RecvParserFun>>>;
-			using SendIdT = typename send_fun_traits_type::return_type;
-			using RecvIdT = typename recv_fun_traits_type::return_type;
-			using SendDataT = typename send_fun_traits_type::template args<0>::type;
-			using RecvDataT = typename recv_fun_traits_type::template args<0>::type;
-
-			static_assert(std::is_same_v<SendIdT, RecvIdT>);
-
-			return this->derived().template _do_connect<false>(
-				std::forward<String>(host), std::forward<StrOrInt>(port),
-				condition_wrap<use_rdc_t<void, SendIdT, SendDataT, RecvDataT>>(
-					std::in_place,
-					std::forward<SendParserFun>(send_parser),
-					std::forward<RecvParserFun>(recv_parser)));
-		}
-
-		/**
-		 * @function : start the client, blocking connect to server
-		 * @param host A string identifying a location. May be a descriptive name or
-		 * a numeric address string.
-		 * @param port A string identifying the requested service. This may be a
-		 * descriptive name or a numeric string corresponding to a port number.
-		 */
-		template<typename String, typename StrOrInt>
-		bool start(String&& host, StrOrInt&& port, use_kcp_t c)
-		{
-			return this->derived().template _do_connect<false>(
-				std::forward<String>(host), std::forward<StrOrInt>(port),
-				condition_wrap<use_kcp_t>(c));
-		}
-
-		/**
-		 * @function : start the client, blocking connect to server
-		 * @param host A string identifying a location. May be a descriptive name or
-		 * a numeric address string.
-		 * @param port A string identifying the requested service. This may be a
-		 * descriptive name or a numeric string corresponding to a port number.
-		 */
-		template<typename String, typename StrOrInt, typename ParserFun>
-		bool start(String&& host, StrOrInt&& port, use_kcp_t c, ParserFun&& parser)
-		{
-			using fun_traits_type = function_traits<std::remove_cv_t<std::remove_reference_t<ParserFun>>>;
-			using IdT = typename fun_traits_type::return_type;
-			using SendDataT = typename fun_traits_type::template args<0>::type;
-			using RecvDataT = typename fun_traits_type::template args<0>::type;
-
-			return this->derived().template _do_connect<false>(
-				std::forward<String>(host), std::forward<StrOrInt>(port),
-				condition_wrap<use_rdc_t<use_kcp_t, IdT, SendDataT, RecvDataT>>(
-					std::in_place,
-					std::move(c),
-					std::forward<ParserFun>(parser)));
-		}
-
-		/**
-		 * @function : start the client, blocking connect to server
-		 * @param host A string identifying a location. May be a descriptive name or
-		 * a numeric address string.
-		 * @param port A string identifying the requested service. This may be a
-		 * descriptive name or a numeric string corresponding to a port number.
-		 */
-		template<typename String, typename StrOrInt, typename SendParserFun, typename RecvParserFun>
-		bool start(String&& host, StrOrInt&& port, use_kcp_t c, SendParserFun&& send_parser, RecvParserFun&& recv_parser)
-		{
-			using send_fun_traits_type = function_traits<std::remove_cv_t<std::remove_reference_t<SendParserFun>>>;
-			using recv_fun_traits_type = function_traits<std::remove_cv_t<std::remove_reference_t<RecvParserFun>>>;
-			using SendIdT = typename send_fun_traits_type::return_type;
-			using RecvIdT = typename recv_fun_traits_type::return_type;
-			using SendDataT = typename send_fun_traits_type::template args<0>::type;
-			using RecvDataT = typename recv_fun_traits_type::template args<0>::type;
-
-			static_assert(std::is_same_v<SendIdT, RecvIdT>);
-
-			return this->derived().template _do_connect<false>(
-				std::forward<String>(host), std::forward<StrOrInt>(port),
-				condition_wrap<use_rdc_t<use_kcp_t, SendIdT, SendDataT, RecvDataT>>(
-					std::in_place,
-					std::move(c),
-					std::forward<SendParserFun>(send_parser),
-					std::forward<RecvParserFun>(recv_parser)));
-		}
-
-		/**
-		 * @function : start the client, blocking connect to server
-		 * @param host A string identifying a location. May be a descriptive name or
-		 * a numeric address string.
-		 * @param port A string identifying the requested service. This may be a
-		 * descriptive name or a numeric string corresponding to a port number.
-		 */
-		template<typename String, typename StrOrInt>
-		bool async_start(String&& host, StrOrInt&& port)
+		template<typename String, typename StrOrInt, typename... Args>
+		inline bool async_start(String&& host, StrOrInt&& port, Args&&... args)
 		{
 			return this->derived().template _do_connect<true>(
 				std::forward<String>(host), std::forward<StrOrInt>(port),
-				condition_wrap<void>{});
-		}
-
-		/**
-		 * @function : start the client, blocking connect to server
-		 * @param host A string identifying a location. May be a descriptive name or
-		 * a numeric address string.
-		 * @param port A string identifying the requested service. This may be a
-		 * descriptive name or a numeric string corresponding to a port number.
-		 */
-		template<typename String, typename StrOrInt, typename ParserFun>
-		bool async_start(String&& host, StrOrInt&& port, ParserFun&& parser)
-		{
-			using fun_traits_type = function_traits<std::remove_cv_t<std::remove_reference_t<ParserFun>>>;
-			using IdT = typename fun_traits_type::return_type;
-			using SendDataT = typename fun_traits_type::template args<0>::type;
-			using RecvDataT = typename fun_traits_type::template args<0>::type;
-
-			return this->derived().template _do_connect<true>(
-				std::forward<String>(host), std::forward<StrOrInt>(port),
-				condition_wrap<use_rdc_t<void, IdT, SendDataT, RecvDataT>>(
-					std::in_place,
-					std::forward<ParserFun>(parser)));
-		}
-
-		/**
-		 * @function : start the client, blocking connect to server
-		 * @param host A string identifying a location. May be a descriptive name or
-		 * a numeric address string.
-		 * @param port A string identifying the requested service. This may be a
-		 * descriptive name or a numeric string corresponding to a port number.
-		 */
-		template<typename String, typename StrOrInt, typename SendParserFun, typename RecvParserFun>
-		bool async_start(String&& host, StrOrInt&& port, SendParserFun&& send_parser, RecvParserFun&& recv_parser)
-		{
-			using send_fun_traits_type = function_traits<std::remove_cv_t<std::remove_reference_t<SendParserFun>>>;
-			using recv_fun_traits_type = function_traits<std::remove_cv_t<std::remove_reference_t<RecvParserFun>>>;
-			using SendIdT = typename send_fun_traits_type::return_type;
-			using RecvIdT = typename recv_fun_traits_type::return_type;
-			using SendDataT = typename send_fun_traits_type::template args<0>::type;
-			using RecvDataT = typename recv_fun_traits_type::template args<0>::type;
-
-			static_assert(std::is_same_v<SendIdT, RecvIdT>);
-
-			return this->derived().template _do_connect<true>(
-				std::forward<String>(host), std::forward<StrOrInt>(port),
-				condition_wrap<use_rdc_t<void, SendIdT, SendDataT, RecvDataT>>(
-					std::in_place,
-					std::forward<SendParserFun>(send_parser),
-					std::forward<RecvParserFun>(recv_parser)));
-		}
-
-		/**
-		 * @function : start the client, blocking connect to server
-		 * @param host A string identifying a location. May be a descriptive name or
-		 * a numeric address string.
-		 * @param port A string identifying the requested service. This may be a
-		 * descriptive name or a numeric string corresponding to a port number.
-		 */
-		template<typename String, typename StrOrInt>
-		bool async_start(String&& host, StrOrInt&& port, use_kcp_t c)
-		{
-			return this->derived().template _do_connect<true>(
-				std::forward<String>(host), std::forward<StrOrInt>(port),
-				condition_wrap<use_kcp_t>(c));
-		}
-
-		/**
-		 * @function : start the client, blocking connect to server
-		 * @param host A string identifying a location. May be a descriptive name or
-		 * a numeric address string.
-		 * @param port A string identifying the requested service. This may be a
-		 * descriptive name or a numeric string corresponding to a port number.
-		 */
-		template<typename String, typename StrOrInt, typename ParserFun>
-		bool async_start(String&& host, StrOrInt&& port, use_kcp_t c, ParserFun&& parser)
-		{
-			using fun_traits_type = function_traits<std::remove_cv_t<std::remove_reference_t<ParserFun>>>;
-			using IdT = typename fun_traits_type::return_type;
-			using SendDataT = typename fun_traits_type::template args<0>::type;
-			using RecvDataT = typename fun_traits_type::template args<0>::type;
-
-			return this->derived().template _do_connect<true>(
-				std::forward<String>(host), std::forward<StrOrInt>(port),
-				condition_wrap<use_rdc_t<use_kcp_t, IdT, SendDataT, RecvDataT>>(
-					std::in_place,
-					std::move(c),
-					std::forward<ParserFun>(parser)));
-		}
-
-		/**
-		 * @function : start the client, blocking connect to server
-		 * @param host A string identifying a location. May be a descriptive name or
-		 * a numeric address string.
-		 * @param port A string identifying the requested service. This may be a
-		 * descriptive name or a numeric string corresponding to a port number.
-		 */
-		template<typename String, typename StrOrInt, typename SendParserFun, typename RecvParserFun>
-		bool async_start(String&& host, StrOrInt&& port, use_kcp_t c, SendParserFun&& send_parser, RecvParserFun&& recv_parser)
-		{
-			using send_fun_traits_type = function_traits<std::remove_cv_t<std::remove_reference_t<SendParserFun>>>;
-			using recv_fun_traits_type = function_traits<std::remove_cv_t<std::remove_reference_t<RecvParserFun>>>;
-			using SendIdT = typename send_fun_traits_type::return_type;
-			using RecvIdT = typename recv_fun_traits_type::return_type;
-			using SendDataT = typename send_fun_traits_type::template args<0>::type;
-			using RecvDataT = typename recv_fun_traits_type::template args<0>::type;
-
-			static_assert(std::is_same_v<SendIdT, RecvIdT>);
-
-			return this->derived().template _do_connect<true>(
-				std::forward<String>(host), std::forward<StrOrInt>(port),
-				condition_wrap<use_rdc_t<use_kcp_t, SendIdT, SendDataT, RecvDataT>>(
-					std::in_place,
-					std::move(c),
-					std::forward<SendParserFun>(send_parser),
-					std::forward<RecvParserFun>(recv_parser)));
+				condition_helper::make_condition('0', std::forward<Args>(args)...));
 		}
 
 		/**
@@ -344,18 +116,34 @@ namespace asio2::detail
 		 */
 		inline void stop()
 		{
-			this->derived().post([this]() mutable
+			if (this->iopool_.is_stopped())
+				return;
+
+			ASIO2_LOG(spdlog::level::debug, "enter stop : {}",
+				magic_enum::enum_name(this->state_.load()));
+
+			this->derived().dispatch([this]() mutable
 			{
-				// first close reconnect timer
+				ASIO2_LOG(spdlog::level::debug, "exec stop : {}",
+					magic_enum::enum_name(this->state_.load()));
+
+				// first close the reconnect timer
 				this->_stop_reconnect_timer();
+
+				this->derived()._do_disconnect(asio::error::operation_aborted,
+					defer_event
+					{
+						[this]() mutable
+						{
+							this->derived()._do_stop(asio::error::operation_aborted);
+						}
+					}
+				);
 			});
 
-			this->derived()._do_disconnect(asio::error::operation_aborted, std::make_shared<defer>([this]()
-			{
-				this->derived()._do_stop(asio::error::operation_aborted);
-			}));
-
 			this->iopool_.stop();
+
+			ASIO2_ASSERT(this->state_ == state_t::stopped);
 		}
 
 	public:
@@ -377,7 +165,7 @@ namespace asio2::detail
 		 * @param    : obj - a pointer or reference to a class object, this parameter can be none
 		 * if fun is nonmember function, the obj param must be none, otherwise the obj must be the
 		 * the class object's pointer or refrence.
-		 * Function signature : void(std::string_view s)
+		 * Function signature : void(std::string_view data)
 		 */
 		template<class F, class ...C>
 		inline derived_t & bind_recv(F&& fun, C&&... obj)
@@ -454,83 +242,157 @@ namespace asio2::detail
 		}
 
 	protected:
-		template<bool isAsync, typename String, typename StrOrInt, typename MatchCondition>
-		bool _do_connect(String&& host, StrOrInt&& port, condition_wrap<MatchCondition> condition)
+		template<bool IsAsync, typename String, typename StrOrInt, typename MatchCondition>
+		inline bool _do_connect(String&& host, StrOrInt&& port, condition_wrap<MatchCondition> condition)
 		{
-			state_t expected = state_t::stopped;
-			if (!this->state_.compare_exchange_strong(expected, state_t::starting))
+			derived_t& derive = this->derived();
+
+			derive.iopool_.start();
+
+			if (derive.iopool_.is_stopped())
 			{
-				set_last_error(asio::error::already_started);
+				ASIO2_ASSERT(false);
+				set_last_error(asio::error::operation_aborted);
 				return false;
 			}
 
-			try
+			ASIO2_LOG(spdlog::level::debug, "enter _do_connect : {}",
+				magic_enum::enum_name(derive.state_.load()));
+
+			// use promise to get the result of async connect
+			std::promise<error_code> promise;
+			std::future<error_code> future = promise.get_future();
+
+			// use derfer to ensure the promise's value must be seted.
+			detail::defer_event set_promise
 			{
-				clear_last_error();
+				[promise = std::move(promise)]() mutable { promise.set_value(get_last_error()); }
+			};
 
-				this->iopool_.start();
+			derive.push_event(
+			[this, &derive, host = std::forward<String>(host), port = std::forward<StrOrInt>(port),
+				condition = std::move(condition), set_promise = std::move(set_promise)]
+			(event_queue_guard<derived_t>&& g) mutable
+			{
+				detail::ignore_unused(g);
 
-				if (this->iopool_.is_stopped())
+				state_t expected = state_t::stopped;
+				if (!derive.state_.compare_exchange_strong(expected, state_t::starting))
 				{
-					set_last_error(asio::error::shut_down);
-					return false;
+					// if the state is not stopped, set the last error to already_started
+					set_last_error(asio::error::already_started);
+
+					return;
 				}
 
-				this->derived()._load_reconnect_timer(host, port, condition);
+				try
+				{
+					clear_last_error();
 
-				this->derived()._do_init(condition);
+					// convert to string maybe throw some exception.
+					this->host_ = detail::to_string(std::move(host));
+					this->port_ = detail::to_string(std::move(port));
 
-				super::start();
+					super::start();
 
-				// if the match condition is remote data call mode,do some thing.
-				this->derived()._rdc_init(condition);
+					derive._do_init(condition);
 
-				return this->derived().template _start_connect<isAsync>(
-					std::forward<String>(host), std::forward<StrOrInt>(port),
-					this->derived().selfptr(), std::move(condition));
-			}
-			catch (system_error & e)
+					// ecs init
+					derive._rdc_init(condition);
+					derive._socks5_init(condition);
+
+					derive._load_reconnect_timer(condition);
+
+					derive.template _start_connect<IsAsync>(
+						derive.selfptr(), std::move(condition), std::move(set_promise));
+
+					return;
+				}
+				catch (system_error const& e)
+				{
+					ASIO2_ASSERT(false);
+					set_last_error(e);
+				}
+				catch (std::exception const&)
+				{
+					ASIO2_ASSERT(false);
+					set_last_error(asio::error::invalid_argument);
+				}
+
+				derive._do_disconnect(get_last_error());
+			});
+
+			if constexpr (IsAsync)
 			{
-				this->derived()._handle_connect(e.code(), this->derived().selfptr(), std::move(condition));
+				set_last_error(asio::error::in_progress);
+
+				return true;
 			}
-			return false;
+			else
+			{
+				if (!derive.io().strand().running_in_this_thread())
+				{
+					set_last_error(future.get());
+				}
+				else
+				{
+					ASIO2_ASSERT(false);
+
+					set_last_error(asio::error::in_progress);
+				}
+
+				// if the state is stopped , the return value is "is_started()".
+				// if the state is stopping, the return value is false, the last error is already_started
+				// if the state is starting, the return value is false, the last error is already_started
+				// if the state is started , the return value is true , the last error is already_started
+				return derive.is_started();
+			}
 		}
 
-		template<typename String, typename StrOrInt, typename MatchCondition>
-		void _load_reconnect_timer(String&& host, StrOrInt&& port, condition_wrap<MatchCondition> condition)
+		template<typename MatchCondition>
+		inline void _load_reconnect_timer(condition_wrap<MatchCondition> condition)
 		{
-			this->derived()._make_reconnect_timer(this->derived().selfptr(),
-				[this, h = to_string(host), p = to_string(port), condition]() mutable
-			{
-				state_t expected = state_t::stopped;
-				if (this->state_.compare_exchange_strong(expected, state_t::starting))
-				{
-					// can't use h = std::move(h), p = std::move(p); Otherwise, the value of h,p will
-					// be empty the next time the code goto here.
-					auto task = [this, h, p, condition](event_queue_guard<derived_t>&& g) mutable
-					{
-						this->derived().template _start_connect<true>(std::move(h), std::move(p),
-							this->derived().selfptr(), std::move(condition));
-					};
+			derived_t& derive = static_cast<derived_t&>(*this);
 
-					this->derived().push_event([this, t = std::move(task)]
-					(event_queue_guard<derived_t>&& g) mutable
+			derive._make_reconnect_timer(derive.selfptr(),
+			[this, &derive, condition = std::move(condition)]() mutable
+			{
+				ASIO2_LOG(spdlog::level::debug, "enter reconnect timer : {}",
+					magic_enum::enum_name(derive.state_.load()));
+
+				// can't use condition = std::move(condition), Otherwise, the value of condition will
+				// be empty the next time the code goto here.
+				derive.push_event([this, &derive, this_ptr = derive.selfptr(), condition]
+				(event_queue_guard<derived_t>&& g) mutable
+				{
+					detail::ignore_unused(this, g);
+
+					if (derive.reconnect_timer_canceled_.test_and_set())
 					{
-						auto task = [g = std::move(g), t = std::move(t)]() mutable
-						{
-							t(std::move(g));
-						};
-						this->derived().post(std::move(task));
-						return true;
-					});
-				}
+						ASIO2_LOG(spdlog::level::debug, "exec reconnect timer, but timer has canceled : {}",
+							magic_enum::enum_name(derive.state_.load()));
+						return;
+					}
+
+					derive.reconnect_timer_canceled_.clear();
+
+					state_t expected = state_t::stopping;
+					if (derive.state_.compare_exchange_strong(expected, state_t::starting))
+					{
+						ASIO2_LOG(spdlog::level::debug, "call _start_connect by reconnect timer : {}",
+							magic_enum::enum_name(derive.state_.load()));
+
+						derive.template _start_connect<true>(std::move(this_ptr), std::move(condition),
+							defer_event{ nullptr });
+					}
+				});
 			});
 		}
 
 		template<typename MatchCondition>
 		inline void _do_init(condition_wrap<MatchCondition>)
 		{
-			if constexpr (std::is_same_v<MatchCondition, use_kcp_t>)
+			if constexpr (std::is_same_v<typename condition_wrap<MatchCondition>::condition_type, use_kcp_t>)
 				this->kcp_ = std::make_unique<kcp_stream_cp<derived_t, args_t>>(this->derived(), this->io_);
 			else
 				this->kcp_.reset();
@@ -545,7 +407,7 @@ namespace asio2::detail
 			if (ec)
 				return this->derived()._done_connect(ec, std::move(this_ptr), std::move(condition));
 
-			if constexpr (std::is_same_v<MatchCondition, use_kcp_t>)
+			if constexpr (std::is_same_v<typename condition_wrap<MatchCondition>::condition_type, use_kcp_t>)
 				this->kcp_->_post_handshake(std::move(this_ptr), std::move(condition));
 			else
 				this->derived()._done_connect(ec, std::move(this_ptr), std::move(condition));
@@ -557,26 +419,73 @@ namespace asio2::detail
 			this->update_alive_time();
 			this->reset_connect_time();
 
+			if constexpr (std::is_same_v<typename condition_wrap<MatchCondition>::condition_type, use_kcp_t>)
+			{
+				ASIO2_ASSERT(this->kcp_);
+
+				if (this->kcp_)
+					this->kcp_->send_fin_ = true;
+			}
+
 			this->derived()._start_recv(std::move(this_ptr), std::move(condition));
 		}
 
 		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
 		{
+			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
+
+			//ASIO2_ASSERT(this->state_ == state_t::stopping);
+
+		#if defined(ASIO2_ENABLE_LOG)
+			if (this->state_ != state_t::stopping)
+			{
+				detail::has_unexpected_behavior() = true;
+			}
+		#endif
+
+			ASIO2_LOG(spdlog::level::debug, "enter _handle_disconnect : {}",
+				magic_enum::enum_name(this->state_.load()));
+
 			detail::ignore_unused(ec, this_ptr);
 
 			this->derived()._rdc_stop();
+
+			if (this->kcp_)
+				this->kcp_->_kcp_stop();
+
+			error_code ec_ignore{};
+
+			// call socket's close function to notify the _handle_recv function response with 
+			// error > 0 ,then the socket can get notify to exit
+			// Call shutdown() to indicate that you will not write any more data to the socket.
+			this->socket_.shutdown(asio::socket_base::shutdown_both, ec_ignore);
+			// Call close,otherwise the _handle_recv will never return
+			this->socket_.close(ec_ignore);
 		}
 
 		inline void _do_stop(const error_code& ec)
 		{
+			ASIO2_LOG(spdlog::level::debug, "enter _do_stop : {}",
+				magic_enum::enum_name(this->state_.load()));
+
+		#if defined(ASIO2_ENABLE_LOG)
+			if (this->state_ != state_t::stopping)
+			{
+				detail::has_unexpected_behavior() = true;
+			}
+		#endif
+
 			this->derived()._post_stop(ec, this->derived().selfptr());
 		}
 
 		inline void _post_stop(const error_code& ec, std::shared_ptr<derived_t> self_ptr)
 		{
 			// All pending sending events will be cancelled after enter the send strand below.
-			auto task = [this, ec, this_ptr = std::move(self_ptr)](event_queue_guard<derived_t>&& g) mutable
+			this->derived().push_event([this, ec, this_ptr = std::move(self_ptr)]
+			(event_queue_guard<derived_t>&& g) mutable
 			{
+				detail::ignore_unused(g);
+
 				set_last_error(ec);
 
 				// call the base class stop function
@@ -584,44 +493,40 @@ namespace asio2::detail
 
 				// call CRTP polymorphic stop
 				this->derived()._handle_stop(ec, std::move(this_ptr));
-			};
-
-			this->derived().push_event([this, t = std::move(task)](event_queue_guard<derived_t>&& g) mutable
-			{
-				auto task = [g = std::move(g), t = std::move(t)]() mutable
-				{
-					t(std::move(g));
-				};
-				this->derived().post(std::move(task));
-				return true;
 			});
 		}
 
 		inline void _handle_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
 		{
+			ASIO2_LOG(spdlog::level::debug, "enter _handle_stop : {}",
+				magic_enum::enum_name(this->state_.load()));
+
 			detail::ignore_unused(ec, this_ptr);
 
-			if (this->kcp_)
-				this->kcp_->_kcp_stop();
+			state_t expected = state_t::stopping;
+			if (!this->state_.compare_exchange_strong(expected, state_t::stopped))
+			{
+				ASIO2_LOG(spdlog::level::debug, "_handle_stop -> state is not stopped : {}",
+					magic_enum::enum_name(this->state_.load()));
 
-			// call socket's close function to notify the _handle_recv function response with 
-			// error > 0 ,then the socket can get notify to exit
-			// Call shutdown() to indicate that you will not write any more data to the socket.
-			this->socket_.shutdown(asio::socket_base::shutdown_both, ec_ignore());
-			// Call close,otherwise the _handle_recv will never return
-			this->socket_.close(ec_ignore());
+			#if defined(ASIO2_ENABLE_LOG)
+				detail::has_unexpected_behavior() = true;
+			#endif
+				//ASIO2_ASSERT(false);
+			}
 		}
 
 		template<typename MatchCondition>
 		inline void _start_recv(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
 		{
 			// Connect succeeded. post recv request.
-			this->derived().post([this, this_ptr, condition = std::move(condition)]() mutable
+			asio::dispatch(this->derived().io().strand(), make_allocator(this->derived().wallocator(),
+			[this, this_ptr = std::move(this_ptr), condition = std::move(condition)]() mutable
 			{
 				this->derived().buffer().consume(this->derived().buffer().size());
 
 				this->derived()._post_recv(std::move(this_ptr), std::move(condition));
-			});
+			}));
 		}
 
 		template<class Data, class Callback>
@@ -643,24 +548,27 @@ namespace asio2::detail
 		template<class Invoker>
 		inline void _rdc_invoke_with_none(const error_code& ec, Invoker& invoker)
 		{
-			invoker(ec, send_data_t{}, recv_data_t{});
+			if (invoker)
+				invoker(ec, send_data_t{}, recv_data_t{});
 		}
 
 		template<class Invoker>
 		inline void _rdc_invoke_with_recv(const error_code& ec, Invoker& invoker, recv_data_t data)
 		{
-			invoker(ec, send_data_t{}, data);
+			if (invoker)
+				invoker(ec, send_data_t{}, data);
 		}
 
 		template<class Invoker, class FnData>
 		inline void _rdc_invoke_with_send(const error_code& ec, Invoker& invoker, FnData& fn_data)
 		{
-			invoker(ec, fn_data(), recv_data_t{});
+			if (invoker)
+				invoker(ec, fn_data(), recv_data_t{});
 		}
 
 	protected:
 		template<typename MatchCondition>
-		void _post_recv(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		inline void _post_recv(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
 		{
 			if (!this->is_started())
 				return;
@@ -683,7 +591,7 @@ namespace asio2::detail
 		}
 
 		template<typename MatchCondition>
-		void _handle_recv(const error_code & ec, std::size_t bytes_recvd,
+		inline void _handle_recv(const error_code & ec, std::size_t bytes_recvd,
 			std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
 		{
 			set_last_error(ec);
@@ -703,53 +611,66 @@ namespace asio2::detail
 			{
 				this->update_alive_time();
 
-				std::string_view s = std::string_view(static_cast<std::string_view::const_pointer>
+				std::string_view data = std::string_view(static_cast<std::string_view::const_pointer>
 					(this->buffer_.data().data()), bytes_recvd);
 
-				if constexpr (!std::is_same_v<MatchCondition, use_kcp_t>)
+				if constexpr (!std::is_same_v<typename condition_wrap<MatchCondition>::condition_type, use_kcp_t>)
 				{
-					this->derived()._fire_recv(this_ptr, std::move(s), condition);
+					this->derived()._fire_recv(this_ptr, std::move(data), condition);
 				}
 				else
 				{
-					if (s.size() == sizeof(kcp::kcphdr))
+					if (data.size() == kcp::kcphdr::required_size())
 					{
-						if /**/ (kcp::is_kcphdr_fin(s))
+						if /**/ (kcp::is_kcphdr_fin(data))
 						{
 							this->kcp_->send_fin_ = false;
-							this->derived()._do_disconnect(asio::error::eof);
+							this->derived()._do_disconnect(asio::error::connection_reset);
 						}
-						else if (kcp::is_kcphdr_synack(s, this->kcp_->seq_))
+						else if (kcp::is_kcphdr_synack(data, this->kcp_->seq_))
 						{
 							ASIO2_ASSERT(false);
 						}
 					}
 					else
-						this->kcp_->_kcp_recv(this_ptr, s, this->buffer_, condition);
+					{
+						this->kcp_->_kcp_recv(this_ptr, data, this->buffer_, condition);
+					}
 				}
 			}
 
 			this->buffer_.consume(this->buffer_.size());
+
+			if (bytes_recvd == this->buffer_.pre_size())
+			{
+				this->buffer_.pre_size((std::min)(this->buffer_.pre_size() * 2, this->buffer_.max_size()));
+			}
 
 			this->derived()._post_recv(std::move(this_ptr), std::move(condition));
 		}
 
 		inline void _fire_init()
 		{
+			// the _fire_init must be executed in the thread 0.
+			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
+
 			this->listener_.notify(event_type::init);
 		}
 
 		template<typename MatchCondition>
-		inline void _fire_recv(std::shared_ptr<derived_t>& this_ptr, std::string_view s,
+		inline void _fire_recv(std::shared_ptr<derived_t>& this_ptr, std::string_view data,
 			condition_wrap<MatchCondition>& condition)
 		{
-			this->listener_.notify(event_type::recv, s);
+			this->listener_.notify(event_type::recv, data);
 
-			this->derived()._rdc_handle_recv(this_ptr, s, condition);
+			this->derived()._rdc_handle_recv(this_ptr, data, condition);
 		}
 
 		inline void _fire_handshake(std::shared_ptr<derived_t>& this_ptr, error_code ec)
 		{
+			// the _fire_handshake must be executed in the thread 0.
+			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
+
 			detail::ignore_unused(this_ptr);
 
 			this->listener_.notify(event_type::handshake, ec);
@@ -759,17 +680,16 @@ namespace asio2::detail
 		inline void _fire_connect(std::shared_ptr<derived_t>& this_ptr, error_code ec,
 			condition_wrap<MatchCondition>& condition)
 		{
-			if constexpr (is_template_instance_of_v<use_rdc_t, MatchCondition>)
+			// the _fire_connect must be executed in the thread 0.
+			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
+
+		#if defined(ASIO2_ENABLE_LOG)
+			ASIO2_ASSERT(this->is_disconnect_called_ == false);
+		#endif
+
+			if (!ec)
 			{
-				if (!ec)
-				{
-					this->derived()._rdc_start();
-					this->derived()._rdc_post_wait(this_ptr, condition);
-				}
-			}
-			else
-			{
-				std::ignore = true;
+				this->derived()._rdc_start(this_ptr, condition);
 			}
 
 			this->listener_.notify(event_type::connect, ec);
@@ -777,6 +697,13 @@ namespace asio2::detail
 
 		inline void _fire_disconnect(std::shared_ptr<derived_t>& this_ptr, error_code ec)
 		{
+			// the _fire_disconnect must be executed in the thread 0.
+			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
+
+		#if defined(ASIO2_ENABLE_LOG)
+			this->is_disconnect_called_ = true;
+		#endif
+
 			detail::ignore_unused(this_ptr);
 
 			this->listener_.notify(event_type::disconnect, ec);
@@ -784,6 +711,10 @@ namespace asio2::detail
 
 	protected:
 		std::unique_ptr<kcp_stream_cp<derived_t, args_t>> kcp_;
+
+	#if defined(ASIO2_ENABLE_LOG)
+		bool is_disconnect_called_ = false;
+	#endif
 	};
 }
 
@@ -795,5 +726,7 @@ namespace asio2
 		using udp_client_impl_t<udp_client, detail::template_args_udp_client>::udp_client_impl_t;
 	};
 }
+
+#include <asio2/base/detail/pop_options.hpp>
 
 #endif // !__ASIO2_UDP_CLIENT_HPP__

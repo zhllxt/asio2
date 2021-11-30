@@ -1,5 +1,5 @@
 /*
- * COPYRIGHT (C) 2017-2019, zhllxt
+ * COPYRIGHT (C) 2017-2021, zhllxt
  *
  * author   : zhllxt
  * email    : 37792738@qq.com
@@ -15,6 +15,8 @@
 #pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
+#include <asio2/base/detail/push_options.hpp>
+
 #include <cstdint>
 #include <memory>
 #include <chrono>
@@ -26,9 +28,12 @@
 #include <unordered_map>
 #include <type_traits>
 
-#include <asio2/base/selector.hpp>
+#include <asio2/3rd/asio.hpp>
+#include <asio2/3rd/magic_enum.hpp>
+
 #include <asio2/base/iopool.hpp>
 #include <asio2/base/error.hpp>
+#include <asio2/base/log.hpp>
 #include <asio2/base/define.hpp>
 
 #include <asio2/base/detail/object.hpp>
@@ -38,8 +43,6 @@
 #include <asio2/base/component/user_timer_cp.hpp>
 #include <asio2/base/component/post_cp.hpp>
 #include <asio2/base/component/async_event_cp.hpp>
-
-#include <asio2/util/defer.hpp>
 
 namespace asio2::detail
 {
@@ -63,10 +66,12 @@ namespace asio2::detail
 		 * @constructor
 		 */
 		timer_impl_t()
-			: object_t     <derived_t>()
-			, iopool_cp               (1)
-			, user_timer_cp<derived_t>()
-			, io_                     (iopool_.get(0))
+			: object_t       <derived_t>()
+			, iopool_cp                 (1)
+			, user_timer_cp  <derived_t>()
+			, post_cp        <derived_t>()
+			, async_event_cp <derived_t>()
+			, io_                       (iopool_.get(0))
 		{
 			this->iopool_.start(); // start the io_context pool
 		}
@@ -76,6 +81,9 @@ namespace asio2::detail
 		 */
 		~timer_impl_t()
 		{
+			if (this->iopool_.is_stopped())
+				return;
+
 			// close user custom timers
 			this->stop_all_timers();
 
@@ -123,5 +131,7 @@ namespace asio2
 		using detail::timer_impl_t<timer>::timer_impl_t;
 	};
 }
+
+#include <asio2/base/detail/pop_options.hpp>
 
 #endif // !__ASIO2_TIMER_HPP__

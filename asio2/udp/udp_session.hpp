@@ -1,5 +1,5 @@
 /*
- * COPYRIGHT (C) 2017-2019, zhllxt
+ * COPYRIGHT (C) 2017-2021, zhllxt
  *
  * author   : zhllxt
  * email    : 37792738@qq.com
@@ -15,9 +15,13 @@
 #pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
+#include <asio2/base/detail/push_options.hpp>
+
 #include <asio2/base/session.hpp>
+#include <asio2/base/detail/linear_buffer.hpp>
 #include <asio2/udp/impl/udp_send_op.hpp>
 #include <asio2/udp/detail/kcp_util.hpp>
+#include <asio2/udp/component/kcp_stream_cp.hpp>
 
 namespace asio2::detail
 {
@@ -25,6 +29,7 @@ namespace asio2::detail
 	{
 		static constexpr bool is_session = true;
 		static constexpr bool is_client  = false;
+		static constexpr bool is_server  = false;
 
 		using socket_t    = asio::ip::udp::socket&;
 		using buffer_t    = detail::empty_buffer;
@@ -57,8 +62,7 @@ namespace asio2::detail
 		using send_data_t = typename args_t::send_data_t;
 		using recv_data_t = typename args_t::recv_data_t;
 
-		using super::send;
-
+	public:
 		/**
 		 * @constructor
 		 */
@@ -117,6 +121,7 @@ namespace asio2::detail
 			catch (system_error & e)
 			{
 				set_last_error(e);
+
 				this->derived()._do_disconnect(e.code());
 			}
 		}
@@ -193,15 +198,17 @@ namespace asio2::detail
 		inline void _handle_connect(const error_code& ec, std::shared_ptr<derived_t> this_ptr,
 			condition_wrap<MatchCondition> condition)
 		{
-			if constexpr (std::is_same_v<MatchCondition, use_kcp_t>)
+			detail::ignore_unused(ec);
+
+			if constexpr (std::is_same_v<typename condition_wrap<MatchCondition>::condition_type, use_kcp_t>)
 			{
 				// step 3 : server recvd syn from client (the first_ is syn)
 				// Check whether the first_ packet is SYN handshake
 				if (!kcp::is_kcphdr_syn(this->first_))
 				{
-					set_last_error(asio::error::no_protocol_option);
-					this->derived()._fire_handshake(this_ptr, asio::error::no_protocol_option);
-					this->derived()._do_disconnect(asio::error::no_protocol_option);
+					set_last_error(asio::error::address_family_not_supported);
+					this->derived()._fire_handshake(this_ptr, asio::error::address_family_not_supported);
+					this->derived()._do_disconnect(asio::error::address_family_not_supported);
 					return;
 				}
 				this->kcp_ = std::make_unique<kcp_stream_cp<derived_t, args_t>>(this->derived(), this->io_);
@@ -217,27 +224,60 @@ namespace asio2::detail
 		template<typename MatchCondition>
 		inline void _do_start(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
 		{
+			if constexpr (std::is_same_v<typename condition_wrap<MatchCondition>::condition_type, use_kcp_t>)
+			{
+				ASIO2_ASSERT(this->kcp_);
+
+				if (this->kcp_)
+					this->kcp_->send_fin_ = true;
+			}
+
 			this->derived()._join_session(std::move(this_ptr), std::move(condition));
 		}
 
 		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
 		{
-			detail::ignore_unused(ec, this_ptr);
+			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
+
+			set_last_error(ec);
 
 			this->derived()._rdc_stop();
 
-			this->derived()._do_stop(ec);
+			this->derived()._do_stop(ec, std::move(this_ptr));
 		}
 
-		inline void _do_stop(const error_code& ec)
+		inline void _do_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
 		{
-			detail::ignore_unused(ec);
+			this->derived()._post_stop(ec, std::move(this_ptr));
+		}
+
+		inline void _post_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
+		{
+			// if we use asio::dispatch in server's _exec_stop, then we need:
+			// put _kcp_stop in front of super::stop, othwise the super::stop will execute
+			// "counter_ptr_.reset()", it will cause the udp server's _exec_stop is called,
+			// and the _handle_stop is called, and the socket will be closed, then the 
+			// _kcp_stop send kcphdr will failed.
+			// but if we use asio::post in server's _exec_stop, there is no such problem.
+			if (this->kcp_)
+				this->kcp_->_kcp_stop();
 
 			// call the base class stop function
 			super::stop();
 
-			if (this->kcp_)
-				this->kcp_->_kcp_stop();
+			// call CRTP polymorphic stop
+			this->derived()._handle_stop(ec, std::move(this_ptr));
+		}
+
+		inline void _handle_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
+		{
+			detail::ignore_unused(ec, this_ptr);
+
+			state_t expected = state_t::stopping;
+			if (!this->state_.compare_exchange_strong(expected, state_t::stopped))
+			{
+				ASIO2_ASSERT(false);
+			}
 		}
 
 		template<typename MatchCondition>
@@ -246,41 +286,31 @@ namespace asio2::detail
 			this->sessions_.emplace(this_ptr, [this, this_ptr, condition = std::move(condition)]
 			(bool inserted) mutable
 			{
-				// when run to here, the server state maybe started or stopping or stopped, 
-				// if server state is not started, must can't push the session to the map
-				// again, so we need disconnect the session directly, otherwise the server
-				// maybe stopping, and the iopool's wait_iothreas is running in the "sleep"
-				// this will cause the server.stop() never return;
-				if (inserted && this->sessions_.state_ == state_t::started)
-				{
-				#if (defined(_DEBUG) || defined(DEBUG)) && defined(ASIO2_ENABLE_LOG)
-					// this thread is same as the server thread, so the judgment statement
-					// here must be reliable,
-					if (this->sessions_.state_ != state_t::started)
-					{
-						ASIO2_ASSERT(false);
-					}
-				#endif
-
+				if (inserted)
 					this->derived()._start_recv(std::move(this_ptr), std::move(condition));
-				}
 				else
-				{
 					this->derived()._do_disconnect(asio::error::address_in_use);
-				}
 			});
 		}
 
 		template<typename MatchCondition>
 		inline void _start_recv(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
 		{
-			// start the timer of check silence timeout
-			this->derived()._post_silence_timer(this->silence_timeout_, this_ptr);
+			// to avlid the user call stop in another thread,then it may be socket_.async_read_some
+			// and socket_.close be called at the same time
+			asio::dispatch(this->io_.strand(), make_allocator(this->wallocator_,
+			[this, this_ptr = std::move(this_ptr), condition = std::move(condition)]() mutable
+			{
+				using condition_type = typename condition_wrap<MatchCondition>::condition_type;
 
-			if constexpr (std::is_same_v<MatchCondition, use_kcp_t>)
-				std::ignore = true;
-			else
-				this->derived()._handle_recv(error_code{}, this->first_, this_ptr, std::move(condition));
+				// start the timer of check silence timeout
+				this->derived()._post_silence_timer(this->silence_timeout_, this_ptr);
+
+				if constexpr (std::is_same_v<condition_type, asio2::detail::use_kcp_t>)
+					detail::ignore_unused(this_ptr, condition);
+				else
+					this->derived()._handle_recv(error_code{}, this->first_, this_ptr, std::move(condition));
+			}));
 		}
 
 	protected:
@@ -304,53 +334,59 @@ namespace asio2::detail
 		template<class Invoker>
 		inline void _rdc_invoke_with_none(const error_code& ec, Invoker& invoker)
 		{
-			invoker(ec, send_data_t{}, recv_data_t{});
+			if (invoker)
+				invoker(ec, send_data_t{}, recv_data_t{});
 		}
 
 		template<class Invoker>
 		inline void _rdc_invoke_with_recv(const error_code& ec, Invoker& invoker, recv_data_t data)
 		{
-			invoker(ec, send_data_t{}, data);
+			if (invoker)
+				invoker(ec, send_data_t{}, data);
 		}
 
 		template<class Invoker, class FnData>
 		inline void _rdc_invoke_with_send(const error_code& ec, Invoker& invoker, FnData& fn_data)
 		{
-			invoker(ec, fn_data(), recv_data_t{});
+			if (invoker)
+				invoker(ec, fn_data(), recv_data_t{});
 		}
 
 	protected:
 		template<typename MatchCondition>
-		inline void _handle_recv(const error_code& ec, std::string_view s,
+		inline void _handle_recv(const error_code& ec, std::string_view data,
 			std::shared_ptr<derived_t>& this_ptr, condition_wrap<MatchCondition> condition)
 		{
+			detail::ignore_unused(ec);
+
 			if (!this->is_started())
 				return;
 
 			this->update_alive_time();
 
-			if constexpr (!std::is_same_v<MatchCondition, use_kcp_t>)
+			if constexpr (!std::is_same_v<typename condition_wrap<MatchCondition>::condition_type, use_kcp_t>)
 			{
-				this->derived()._fire_recv(this_ptr, std::move(s), condition);
+				this->derived()._fire_recv(this_ptr, std::move(data), condition);
 			}
 			else
 			{
-				if (s.size() == sizeof(kcp::kcphdr))
+				if (data.size() == kcp::kcphdr::required_size())
 				{
-					if /**/ (kcp::is_kcphdr_fin(s))
+					if /**/ (kcp::is_kcphdr_fin(data))
 					{
 						this->kcp_->send_fin_ = false;
-						this->derived()._do_disconnect(asio::error::eof);
+						this->derived()._do_disconnect(asio::error::connection_reset);
 					}
 					// Check whether the packet is SYN handshake
 					// It is possible that the client did not receive the synack package, then the client
 					// will resend the syn package, so we just need to reply to the syncack package directly.
-					else if (kcp::is_kcphdr_syn(s))
+					else if (kcp::is_kcphdr_syn(data))
 					{
+						// beacuse the server has handled the syn already, so this code will never executed.
 						ASIO2_ASSERT(this->kcp_ && this->kcp_->kcp_);
 						// step 4 : server send synack to client
-						kcp::kcphdr * hdr = (kcp::kcphdr*)(s.data());
-						kcp::kcphdr synack = kcp::make_kcphdr_synack(this->kcp_->seq_, hdr->th_seq);
+						kcp::kcphdr hdr    = kcp::to_kcphdr(data);
+						kcp::kcphdr synack = kcp::make_kcphdr_synack(this->kcp_->seq_, hdr.th_seq);
 						error_code ed;
 						this->kcp_->_kcp_send_hdr(synack, ed);
 						if (ed)
@@ -358,43 +394,53 @@ namespace asio2::detail
 					}
 				}
 				else
-					this->kcp_->_kcp_recv(this_ptr, s, this->buffer_ref_, condition);
+				{
+					this->kcp_->_kcp_recv(this_ptr, data, this->buffer_ref_, condition);
+				}
 			}
 		}
 
 		template<typename MatchCondition>
-		inline void _fire_recv(std::shared_ptr<derived_t>& this_ptr, std::string_view s,
+		inline void _fire_recv(std::shared_ptr<derived_t>& this_ptr, std::string_view data,
 			condition_wrap<MatchCondition>& condition)
 		{
-			this->listener_.notify(event_type::recv, this_ptr, s);
+			this->listener_.notify(event_type::recv, this_ptr, data);
 
-			this->derived()._rdc_handle_recv(this_ptr, s, condition);
+			this->derived()._rdc_handle_recv(this_ptr, data, condition);
 		}
 
 		inline void _fire_handshake(std::shared_ptr<derived_t>& this_ptr, error_code ec)
 		{
+			// the _fire_handshake must be executed in the thread 0.
+			ASIO2_ASSERT(this->sessions().io().strand().running_in_this_thread());
+
 			this->listener_.notify(event_type::handshake, this_ptr, ec);
 		}
 
 		template<typename MatchCondition>
-		inline void _fire_connect(std::shared_ptr<derived_t>& this_ptr,
-			condition_wrap<MatchCondition>& condition)
+		inline void _fire_connect(std::shared_ptr<derived_t>& this_ptr, condition_wrap<MatchCondition>& condition)
 		{
-			if constexpr (is_template_instance_of_v<use_rdc_t, MatchCondition>)
-			{
-				this->derived()._rdc_start();
-				this->derived()._rdc_post_wait(this_ptr, condition);
-			}
-			else
-			{
-				std::ignore = true;
-			}
+			// the _fire_connect must be executed in the thread 0.
+			ASIO2_ASSERT(this->sessions().io().strand().running_in_this_thread());
+
+		#if defined(ASIO2_ENABLE_LOG)
+			ASIO2_ASSERT(this->is_disconnect_called_ == false);
+		#endif
+
+			this->derived()._rdc_start(this_ptr, condition);
 
 			this->listener_.notify(event_type::connect, this_ptr);
 		}
 
 		inline void _fire_disconnect(std::shared_ptr<derived_t>& this_ptr)
 		{
+			// the _fire_disconnect must be executed in the thread 0.
+			ASIO2_ASSERT(this->sessions().io().strand().running_in_this_thread());
+
+		#if defined(ASIO2_ENABLE_LOG)
+			this->is_disconnect_called_ = true;
+		#endif
+
 			this->listener_.notify(event_type::disconnect, this_ptr);
 		}
 
@@ -422,6 +468,10 @@ namespace asio2::detail
 
 		/// first recvd data packet
 		std::string_view                                  first_;
+
+	#if defined(ASIO2_ENABLE_LOG)
+		bool                                              is_disconnect_called_ = false;
+	#endif
 	};
 }
 
@@ -433,5 +483,7 @@ namespace asio2
 		using udp_session_impl_t<udp_session, detail::template_args_udp_session>::udp_session_impl_t;
 	};
 }
+
+#include <asio2/base/detail/pop_options.hpp>
 
 #endif // !__ASIO2_UDP_SESSION_HPP__

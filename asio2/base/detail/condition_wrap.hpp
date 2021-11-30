@@ -1,5 +1,5 @@
 /*
- * COPYRIGHT (C) 2017-2019, zhllxt
+ * COPYRIGHT (C) 2017-2021, zhllxt
  *
  * author   : zhllxt
  * email    : 37792738@qq.com
@@ -20,8 +20,12 @@
 #include <regex>
 #include <map>
 #include <memory>
+#include <tuple>
+#include <type_traits>
+#include <functional>
 
-#include <asio2/base/detail/rdc_invoker.hpp>
+#include <asio2/ecs/rdc/rdc_option.hpp>
+#include <asio2/ecs/socks/socks5_option.hpp>
 
 namespace asio2::detail
 {
@@ -31,32 +35,31 @@ namespace asio2::detail
 		using diff_type = typename iterator::difference_type;
 		std::pair<iterator, bool> dgram_match_role(iterator begin, iterator end)
 		{
-			iterator i = begin;
-			while (i != end)
+			for (iterator p = begin; p < end;)
 			{
 				// If 0~254, current byte are the payload length.
-				if (std::uint8_t(*i) < std::uint8_t(254))
+				if (std::uint8_t(*p) < std::uint8_t(254))
 				{
-					std::uint8_t payload_size = std::uint8_t(*i);
+					std::uint8_t payload_size = std::uint8_t(*p);
 
-					++i;
+					++p;
 
-					if (end - i < static_cast<diff_type>(payload_size))
+					if (end - p < static_cast<diff_type>(payload_size))
 						break;
 
-					return std::pair(i + static_cast<diff_type>(payload_size), true);
+					return std::pair(p + static_cast<diff_type>(payload_size), true);
 				}
 
 				// If 254, the following 2 bytes interpreted as a 16-bit unsigned integer
 				// are the payload length.
-				if (std::uint8_t(*i) == std::uint8_t(254))
+				if (std::uint8_t(*p) == std::uint8_t(254))
 				{
-					++i;
+					++p;
 
-					if (end - i < 2)
+					if (end - p < 2)
 						break;
 
-					std::uint16_t payload_size = *(reinterpret_cast<const std::uint16_t*>(i.operator->()));
+					std::uint16_t payload_size = *(reinterpret_cast<const std::uint16_t*>(p.operator->()));
 
 					// use little endian
 					if (!is_little_endian())
@@ -64,23 +67,23 @@ namespace asio2::detail
 						swap_bytes<sizeof(std::uint16_t)>(reinterpret_cast<std::uint8_t*>(&payload_size));
 					}
 
-					i += 2;
-					if (end - i < static_cast<diff_type>(payload_size))
+					p += 2;
+					if (end - p < static_cast<diff_type>(payload_size))
 						break;
 
-					return std::pair(i + static_cast<diff_type>(payload_size), true);
+					return std::pair(p + static_cast<diff_type>(payload_size), true);
 				}
 
 				// If 255, the following 8 bytes interpreted as a 64-bit unsigned integer
 				// (the most significant bit MUST be 0) are the payload length.
-				if (std::uint8_t(*i) == 255)
+				if (std::uint8_t(*p) == 255)
 				{
-					++i;
+					++p;
 
-					if (end - i < 8)
+					if (end - p < 8)
 						break;
 
-					std::uint64_t payload_size = *(reinterpret_cast<const std::uint64_t*>(i.operator->()));
+					std::uint64_t payload_size = *(reinterpret_cast<const std::uint64_t*>(p.operator->()));
 
 					// use little endian
 					if (!is_little_endian())
@@ -88,11 +91,11 @@ namespace asio2::detail
 						swap_bytes<sizeof(std::uint64_t)>(reinterpret_cast<std::uint8_t*>(&payload_size));
 					}
 
-					i += 8;
-					if (end - i < static_cast<diff_type>(payload_size))
+					p += 8;
+					if (end - p < static_cast<diff_type>(payload_size))
 						break;
 
-					return std::pair(i + static_cast<diff_type>(payload_size), true);
+					return std::pair(p + static_cast<diff_type>(payload_size), true);
 				}
 
 				ASIO2_ASSERT(false);
@@ -123,11 +126,20 @@ namespace asio2::detail
 		condition_traits& operator=(condition_traits&&) = default;
 		condition_traits& operator=(condition_traits const&) = default;
 
-		condition_traits(T c) : condition_(std::move(c)) {}
-		inline T & operator()() { return this->condition_; }
+		// must use explicit, Otherwise, there will be an error when there are the following
+		// statements: condition_traits<char> c1; auto c2 = c1;
+		template<class MT>
+		explicit condition_traits(MT c) : condition_(std::move(c)) {}
+
+		inline T& operator()() { return this->condition_; }
+
 	protected:
 		T condition_;
 	};
+
+	// C++17 class template argument deduction guides
+	template<class T>
+	condition_traits(T)->condition_traits<std::remove_reference_t<T>>;
 
 	template<>
 	class condition_traits<void>
@@ -141,56 +153,9 @@ namespace asio2::detail
 		condition_traits& operator=(condition_traits const&) = default;
 
 		condition_traits() = default;
+
+		inline void operator()() {}
 	};
-
-	template<>
-	class condition_traits<char>
-	{
-	public:
-		using type = char;
-
-		condition_traits(condition_traits&&) = default;
-		condition_traits(condition_traits const&) = default;
-		condition_traits& operator=(condition_traits&&) = default;
-		condition_traits& operator=(condition_traits const&) = default;
-
-		condition_traits(char c) : condition_(c) {}
-		inline char operator()() { return this->condition_; }
-	protected:
-		char condition_ = '\0';
-	};
-
-	//template<>
-	//class condition_traits<std::string>
-	//{
-	//public:
-	//	using type = std::string;
-	//	condition_traits(const std::string & c) : condition_(c) {}
-	//	condition_traits(std::string && c) : condition_(std::move(c)) {}
-	//protected:
-	//	std::string condition_;
-	//};
-
-	//template<>
-	//class condition_traits<std::string_view>
-	//{
-	//public:
-	//	using type = std::string_view;
-	//	condition_traits(std::string_view c) : condition_(c) {}
-	//protected:
-	//	std::string_view condition_;
-	//};
-
-	//template<>
-	//class condition_traits<std::regex>
-	//{
-	//public:
-	//	using type = std::regex;
-	//	condition_traits(const std::regex & c) : condition_(c) {}
-	//	condition_traits(std::regex && c) : condition_(std::move(c)) {}
-	//protected:
-	//	std::regex condition_;
-	//};
 
 	template<>
 	class condition_traits<use_dgram_t>
@@ -203,8 +168,10 @@ namespace asio2::detail
 		condition_traits& operator=(condition_traits&&) = default;
 		condition_traits& operator=(condition_traits const&) = default;
 
-		condition_traits(use_dgram_t) {}
+		explicit condition_traits(use_dgram_t) {}
+
 		inline auto& operator()() { return dgram_match_role; }
+
 	protected:
 	};
 
@@ -219,8 +186,10 @@ namespace asio2::detail
 		condition_traits& operator=(condition_traits&&) = default;
 		condition_traits& operator=(condition_traits const&) = default;
 
-		condition_traits(use_kcp_t) {}
+		explicit condition_traits(use_kcp_t) {}
+
 		inline asio::detail::transfer_at_least_t operator()() { return asio::transfer_at_least(1); }
+
 	protected:
 	};
 
@@ -235,85 +204,116 @@ namespace asio2::detail
 		condition_traits& operator=(condition_traits&&) = default;
 		condition_traits& operator=(condition_traits const&) = default;
 
-		condition_traits(hook_buffer_t) {}
+		explicit condition_traits(hook_buffer_t) {}
+
 		inline asio::detail::transfer_at_least_t operator()() { return asio::transfer_at_least(1); }
+
 	protected:
 	};
 }
 
 namespace asio2::detail
 {
-	// rdc : remote data call
-	template<class ConditionT, class IdT, class SendDataT, class RecvDataT>
-	struct use_rdc_t
+	template<class ConditionT, class... Args>
+	struct ecs_t
 	{
-		using type = ConditionT;
-		using send_parser_fun = std::function<IdT(SendDataT)>;
-		using recv_parser_fun = std::function<IdT(RecvDataT)>;
+		static constexpr std::size_t componentc = sizeof...(Args);
 
-		use_rdc_t(use_rdc_t&&) = default;
-		use_rdc_t(use_rdc_t const&) = delete;
-		use_rdc_t& operator=(use_rdc_t&&) = default;
-		use_rdc_t& operator=(use_rdc_t const&) = delete;
+		using type       = ConditionT;
+		using tuple_type = std::tuple<Args...>;
 
-		template<class ParserFun>
-		use_rdc_t(ConditionT c, ParserFun&& parser)
-			: condition_  (std::move(c))
-			, send_parser_(std::forward<ParserFun>(parser))
-			, recv_parser_(send_parser_)
+		template<std::size_t I>
+		struct components
+		{
+			static_assert(I < componentc, "index is out of range, index must less than sizeof Args");
+			using type = typename std::tuple_element<I, tuple_type>::type;
+		};
+
+		ecs_t(ecs_t&&) = default;
+		ecs_t(ecs_t const&) = delete;
+		ecs_t& operator=(ecs_t&&) = default;
+		ecs_t& operator=(ecs_t const&) = delete;
+
+		template<class Condition, class... Ts>
+		explicit ecs_t(Condition&& c, Ts&&... ts)
+			: condition_(std::forward<Condition>(c))
+			, components_(std::forward<Ts>(ts)...)
 		{
 		}
-		template<class SendParserFun, class RecvParserFun>
-		use_rdc_t(ConditionT c, SendParserFun&& send_parser, RecvParserFun&& recv_parser)
-			: condition_  (std::move(c))
-			, send_parser_(std::forward<SendParserFun>(send_parser))
-			, recv_parser_(std::forward<RecvParserFun>(recv_parser))
+
+		inline decltype(auto) operator()() { return condition_(); }
+
+		template<typename = void>
+		static constexpr bool has_rdc()
 		{
+			return (is_template_instance_of_v<asio2::rdc::option, Args> || ...);
 		}
-		inline decltype(auto)    operator()() { return condition_(); }
-		inline send_parser_fun& send_parser() { return send_parser_; }
-		inline recv_parser_fun& recv_parser() { return recv_parser_; }
-		inline rdc_invoker_t<IdT, SendDataT, RecvDataT>& invoker() { return invoker_; }
-	protected:
-		condition_traits<ConditionT>                    condition_;
-		send_parser_fun                                 send_parser_;
-		recv_parser_fun                                 recv_parser_;
-		rdc_invoker_t<IdT, SendDataT, RecvDataT>        invoker_;
+
+		template<std::size_t I, typename T1, typename... TN>
+		static constexpr std::size_t rdc_index_helper()
+		{
+			if constexpr (is_template_instance_of_v<asio2::rdc::option, T1>)
+				return I;
+			else
+			{
+				if constexpr (sizeof...(TN) == 0)
+					return std::size_t(0);
+				else
+					return rdc_index_helper<I + 1, TN...>();
+			}
+		}
+
+		template<typename = void>
+		static constexpr std::size_t rdc_index()
+		{
+			return rdc_index_helper<0, Args...>();
+		}
+
+		template<class Tag, std::enable_if_t<std::is_same_v<Tag, std::in_place_t>, int> = 0>
+		typename components<rdc_index()>::type& rdc_option(Tag)
+		{
+			return std::get<rdc_index()>(components_);
+		}
+
+		template<typename = void>
+		static constexpr bool has_socks5()
+		{
+			return (std::is_base_of_v<asio2::socks5::detail::option_base, Args> || ...);
+		}
+
+		template<std::size_t I, typename T1, typename... TN>
+		static constexpr std::size_t socks5_index_helper()
+		{
+			if constexpr (std::is_base_of_v<asio2::socks5::detail::option_base, T1>)
+				return I;
+			else
+			{
+				if constexpr (sizeof...(TN) == 0)
+					return std::size_t(0);
+				else
+					return socks5_index_helper<I + 1, TN...>();
+			}
+		}
+
+		template<typename = void>
+		static constexpr std::size_t socks5_index()
+		{
+			return socks5_index_helper<0, Args...>();
+		}
+
+		template<class Tag, std::enable_if_t<std::is_same_v<Tag, std::in_place_t>, int> = 0>
+		typename components<socks5_index()>::type& socks5_option(Tag)
+		{
+			return std::get<socks5_index()>(components_);
+		}
+
+		condition_traits<type>           condition_;
+		tuple_type                       components_;
 	};
 
-	template<class IdT, class SendDataT, class RecvDataT>
-	struct use_rdc_t<void, IdT, SendDataT, RecvDataT>
-	{
-		using type = void;
-		using send_parser_fun = std::function<IdT(SendDataT)>;
-		using recv_parser_fun = std::function<IdT(RecvDataT)>;
-
-		use_rdc_t(use_rdc_t&&) = default;
-		use_rdc_t(use_rdc_t const&) = delete;
-		use_rdc_t& operator=(use_rdc_t&&) = default;
-		use_rdc_t& operator=(use_rdc_t const&) = delete;
-
-		template<class ParserFun>
-		use_rdc_t(ParserFun&& parser)
-			: send_parser_(std::forward<ParserFun>(parser))
-			, recv_parser_(send_parser_)
-		{
-		}
-		template<class SendParserFun, class RecvParserFun>
-		use_rdc_t(SendParserFun&& send_parser, RecvParserFun&& recv_parser)
-			: send_parser_(std::forward<SendParserFun>(send_parser))
-			, recv_parser_(std::forward<RecvParserFun>(recv_parser))
-		{
-		}
-		inline send_parser_fun& send_parser() { return send_parser_; }
-		inline recv_parser_fun& recv_parser() { return recv_parser_; }
-		inline rdc_invoker_t<IdT, SendDataT, RecvDataT>& invoker() { return invoker_; }
-	protected:
-		condition_traits<void>                          condition_;
-		send_parser_fun                                 send_parser_;
-		recv_parser_fun                                 recv_parser_;
-		rdc_invoker_t<IdT, SendDataT, RecvDataT>        invoker_;
-	};
+	// C++17 class template argument deduction guides
+	template<class C, class... Ts>
+	ecs_t(C, Ts...)->ecs_t<C, Ts...>;
 }
 
 namespace asio2::detail
@@ -330,11 +330,18 @@ namespace asio2::detail
 		condition_wrap& operator=(condition_wrap&&) = default;
 		condition_wrap& operator=(condition_wrap const&) = default;
 
-		condition_wrap(T c) : condition_(std::move(c)) {}
-		inline decltype(auto) operator()() { return condition_(); }
+		template<class MT>
+		explicit condition_wrap(MT c) : impl_(std::move(c)) {}
+
+		inline decltype(auto) operator()() { return impl_(); }
+
 	protected:
-		traits_type condition_;
+		traits_type impl_;
 	};
+
+	// C++17 class template argument deduction guides
+	template<class T>
+	condition_wrap(T)->condition_wrap<std::remove_reference_t<T>>;
 
 	template<>
 	class condition_wrap<void>
@@ -351,32 +358,102 @@ namespace asio2::detail
 		condition_wrap() = default;
 	};
 
-	template<class ConditionT, class IdT, class SendDataT, class RecvDataT>
-	class condition_wrap<use_rdc_t<ConditionT, IdT, SendDataT, RecvDataT>>
+	template<class ConditionT, class... Args>
+	class condition_wrap<ecs_t<ConditionT, Args...>>
 	{
 	public:
-		using traits_type = use_rdc_t<ConditionT, IdT, SendDataT, RecvDataT>;
+		using traits_type = ecs_t<ConditionT, Args...>;
 		using condition_type = typename traits_type::type;
-		using send_parser_fun = typename traits_type::send_parser_fun;
-		using recv_parser_fun = typename traits_type::recv_parser_fun;
 
 		condition_wrap(condition_wrap&&) = default;
 		condition_wrap(condition_wrap const&) = default;
 		condition_wrap& operator=(condition_wrap&&) = default;
 		condition_wrap& operator=(condition_wrap const&) = default;
 
-		template<class... Args>
-		condition_wrap(std::in_place_t, Args&&... args)
+		template<class ECST>
+		explicit condition_wrap(ECST c)
+			: impl_(std::make_shared<detail::remove_cvref_t<ECST>>(std::move(c))) {}
+
+		inline decltype(auto) operator()() { return (*impl_)(); }
+
+		std::shared_ptr<traits_type> impl_;
+	};
+}
+
+namespace asio2::detail
+{
+	struct condition_helper
+	{
+		template<class T>
+		static constexpr bool is_component()
 		{
-			condition_ = std::make_shared<traits_type>(std::forward<Args>(args)...);
+			using type = detail::remove_cvref_t<T>;
+
+			if constexpr /**/ (is_template_instance_of_v<asio2::rdc::option, type>)
+				return true;
+			else if constexpr (std::is_base_of_v<asio2::socks5::detail::option_base, type>)
+				return true;
+			else
+				return false;
 		}
 
-		inline decltype(auto)    operator()() { return (*condition_)(); }
-		inline send_parser_fun& send_parser() { return condition_->send_parser(); }
-		inline recv_parser_fun& recv_parser() { return condition_->recv_parser(); }
-		inline rdc_invoker_t<IdT, SendDataT, RecvDataT>& invoker() { return condition_->invoker(); }
-	protected:
-		std::shared_ptr<traits_type> condition_;
+		template<class... Args>
+		static constexpr bool has_match_condition()
+		{
+			if constexpr (sizeof...(Args) == std::size_t(0))
+				return false;
+			else
+				return (!(condition_helper::is_component<Args>() && ...));
+		}
+
+		// use "DefaultConditionT c, Args... args", not use "DefaultConditionT&& c, Args&&... args"
+		// to avoid the "c and args..." variables being references
+		template<class DefaultConditionT, class... Args>
+		static constexpr auto make_condition(DefaultConditionT c, Args... args)
+		{
+			detail::ignore_unused(c);
+
+			if constexpr (condition_helper::has_match_condition<Args...>())
+			{
+				if constexpr (sizeof...(Args) == std::size_t(1))
+					return condition_wrap{ std::move(args)... };
+				else
+					return condition_wrap{ ecs_t{std::move(args)...} };
+			}
+			else
+			{
+				if constexpr (sizeof...(Args) == std::size_t(0))
+					return condition_wrap{ std::move(c), std::move(args)... };
+				else
+					return condition_wrap{ ecs_t{std::move(c), std::move(args)...} };
+			}
+		}
+
+		template<typename MatchCondition>
+		static constexpr bool has_rdc()
+		{
+			if constexpr (is_template_instance_of_v<ecs_t, MatchCondition>)
+			{
+				return MatchCondition::has_rdc();
+			}
+			else
+			{
+				return false;
+			}
+		}
+
+		template<typename MatchCondition>
+		static constexpr bool has_socks5()
+		{
+			if constexpr (is_template_instance_of_v<ecs_t, MatchCondition>)
+			{
+				return MatchCondition::has_socks5();
+			}
+			else
+			{
+				return false;
+			}
+		}
 	};
 }
 

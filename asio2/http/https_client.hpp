@@ -1,5 +1,5 @@
 /*
- * COPYRIGHT (C) 2017-2019, zhllxt
+ * COPYRIGHT (C) 2017-2021, zhllxt
  *
  * author   : zhllxt
  * email    : 37792738@qq.com
@@ -17,6 +17,8 @@
 #pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
+#include <asio2/base/detail/push_options.hpp>
+
 #include <asio2/http/http_client.hpp>
 #include <asio2/tcp/component/ssl_stream_cp.hpp>
 #include <asio2/tcp/component/ssl_context_cp.hpp>
@@ -29,7 +31,7 @@ namespace asio2::detail
 
 	template<class derived_t, class args_t>
 	class https_client_impl_t
-		: public ssl_context_cp    <derived_t, false >
+		: public ssl_context_cp    <derived_t, args_t>
 		, public http_client_impl_t<derived_t, args_t>
 		, public ssl_stream_cp     <derived_t, args_t>
 	{
@@ -44,11 +46,11 @@ namespace asio2::detail
 		using body_type   = typename args_t::body_t;
 		using buffer_type = typename args_t::buffer_t;
 
-		using ssl_context_comp = ssl_context_cp<derived_t, false >;
+		using ssl_context_comp = ssl_context_cp<derived_t, args_t>;
 		using ssl_stream_comp  = ssl_stream_cp <derived_t, args_t>;
 
 		using super::send;
-		using super::_data_persistence;
+		using super::async_send;
 
 	public:
 		/**
@@ -111,18 +113,18 @@ namespace asio2::detail
 
 				// Look up the domain name
 				resolver.async_resolve(std::forward<String>(host), to_string(std::forward<StrOrInt>(port)),
-					[&](const error_code& ec1, const asio::ip::tcp::resolver::results_type& endpoints) mutable
+				[&](const error_code& ec1, const asio::ip::tcp::resolver::results_type& endpoints) mutable
 				{
 					if (ec1) { ec = ec1; return; }
 
 					// Make the connection on the IP address we get from a lookup
 					asio::async_connect(socket, endpoints,
-						[&](const error_code & ec2, const asio::ip::tcp::endpoint&) mutable
+					[&](const error_code & ec2, const asio::ip::tcp::endpoint&) mutable
 					{
 						if (ec2) { ec = ec2; return; }
 
 						stream.async_handshake(asio::ssl::stream_base::client,
-							[&](const error_code& ec3) mutable
+						[&](const error_code& ec3) mutable
 						{
 							if (ec3) { ec = ec3; return; }
 
@@ -133,14 +135,14 @@ namespace asio2::detail
 
 								// Then start asynchronous reading
 								http::async_read(stream, buffer, parser,
-									[&](const error_code& ec5, std::size_t) mutable
+								[&](const error_code& ec5, std::size_t) mutable
 								{
 									// Reading completed, assign the read the result to ec
 									// If the code does not execute into here, the ec value
 									// is the default value timed_out.
 									ec = ec5;
 
-									stream.async_shutdown([](const error_code&) {});
+									stream.async_shutdown([](const error_code&) mutable {});
 								});
 							});
 						});
@@ -150,9 +152,11 @@ namespace asio2::detail
 				// timedout run
 				ioc.run_for(timeout);
 
+				error_code ec_ignore{};
+
 				// Gracefully close the socket
-				socket.shutdown(asio::ip::tcp::socket::shutdown_both, ec_ignore());
-				socket.close(ec_ignore());
+				socket.shutdown(asio::ip::tcp::socket::shutdown_both, ec_ignore);
+				socket.close(ec_ignore);
 			}
 			catch (system_error & e)
 			{
@@ -340,6 +344,8 @@ namespace asio2::detail
 			return rep;
 		}
 
+		// ----------------------------------------------------------------------------------------
+
 	public:
 		/**
 		 * @function : bind ssl handshake listener
@@ -367,7 +373,7 @@ namespace asio2::detail
 		{
 			this->derived()._rdc_stop();
 
-			this->derived()._ssl_stop(this_ptr, [this, ec, this_ptr]()
+			this->derived()._ssl_stop(this_ptr, [this, ec, this_ptr]() mutable
 			{
 				super::_handle_disconnect(ec, std::move(this_ptr));
 			});
@@ -389,6 +395,9 @@ namespace asio2::detail
 
 		inline void _fire_handshake(std::shared_ptr<derived_t>& this_ptr, error_code ec)
 		{
+			// the _fire_handshake must be executed in the thread 0.
+			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
+
 			detail::ignore_unused(this_ptr);
 
 			this->listener_.notify(event_type::handshake, ec);
@@ -406,6 +415,8 @@ namespace asio2
 		using https_client_impl_t<https_client, detail::template_args_http_client>::https_client_impl_t;
 	};
 }
+
+#include <asio2/base/detail/pop_options.hpp>
 
 #endif // !__ASIO2_HTTPS_CLIENT_HPP__
 

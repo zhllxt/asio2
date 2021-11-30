@@ -154,6 +154,7 @@ struct stream<NextLayer, deflateSupported>::impl_type
         timed_out = false;
         cr.code = close_code::none;
         role = role_;
+		BEAST_ASSERT(status_ != status::open);
         status_ = status::open;
         rd_remain = 0;
         rd_cont = false;

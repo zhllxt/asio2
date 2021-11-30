@@ -1,5 +1,5 @@
 /*
- * COPYRIGHT (C) 2017-2019, zhllxt
+ * COPYRIGHT (C) 2017-2021, zhllxt
  *
  * author   : zhllxt
  * email    : 37792738@qq.com
@@ -20,7 +20,8 @@
 #include <utility>
 #include <string_view>
 
-#include <asio2/base/selector.hpp>
+#include <asio2/3rd/asio.hpp>
+#include <asio2/3rd/beast.hpp>
 #include <asio2/base/error.hpp>
 
 namespace asio2::detail
@@ -52,7 +53,7 @@ namespace asio2::detail
 		/**
 		 * @destructor
 		 */
-		~ws_stream_cp() = default;
+		~ws_stream_cp() {}
 
 		inline stream_type & ws_stream()
 		{
@@ -64,7 +65,23 @@ namespace asio2::detail
 		template<typename MatchCondition, typename Socket>
 		inline void _ws_init(const condition_wrap<MatchCondition>& condition, Socket& socket)
 		{
-			detail::ignore_unused(condition, socket);
+			derived_t& derive = static_cast<derived_t&>(*this);
+
+			detail::ignore_unused(derive, condition, socket);
+
+			// In previous versions, "_ws_init" maybe called multi times, when "_ws_init" was called,
+			// the "_ws_stop" maybe called at the same time, but "_ws_init" and "_ws_stop" was called
+			// at different threads, this will cause the diffrent threads "read, write" the "ws_stream_"
+			// variable, and then cause crash.
+
+			if constexpr (args_t::is_client)
+			{
+				ASIO2_ASSERT(derive.io().strand().running_in_this_thread());
+			}
+			else
+			{
+				ASIO2_ASSERT(derive.sessions().io().strand().running_in_this_thread());
+			}
 
 			this->ws_stream_ = std::make_unique<stream_type>(socket);
 
@@ -86,7 +103,11 @@ namespace asio2::detail
 			const std::shared_ptr<derived_t>& this_ptr,
 			const condition_wrap<MatchCondition>& condition, Socket& socket)
 		{
-			detail::ignore_unused(this_ptr, condition, socket);
+			derived_t& derive = static_cast<derived_t&>(*this);
+
+			detail::ignore_unused(derive, this_ptr, condition, socket);
+
+			ASIO2_ASSERT(derive.io().strand().running_in_this_thread());
 		}
 
 		template<typename Fn>
@@ -94,11 +115,16 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
+			ASIO2_ASSERT(derive.io().strand().running_in_this_thread());
+
 			if (!this->ws_stream_)
 			{
 				(fn)();
 				return;
 			}
+
+			ASIO2_LOG(spdlog::level::debug, "enter _ws_stop : {}",
+				magic_enum::enum_name(derive.state_.load()));
 
 			// bug fixed : resolve beast::websocket::detail::soft_mutex 
 			// BEAST_ASSERT(id_ != T::id); failed (line 89).
@@ -108,17 +134,25 @@ namespace asio2::detail
 			// operation, which is not allowed. For example, you must wait
 			// for an async_read to complete before performing another
 			// async_read.
-			//
-			// don't use "this_ptr = std::move(this_ptr)" in lambda capture below.
-			auto task = [this, &derive, this_ptr, fn = std::forward<Fn>(fn)]
+			derive.push_event([this, &derive, this_ptr = std::move(this_ptr), fn = std::forward<Fn>(fn)]
 			(event_queue_guard<derived_t>&& g) mutable
 			{
-				// Set the timeout to none to cancel the websocket timeout timer, otherwise
-				// we'll have to wait a lot of seconds util the timer is timeout.
-				websocket::stream_base::timeout opt{};
-				opt.handshake_timeout = websocket::stream_base::none();
-				opt.idle_timeout      = websocket::stream_base::none();
-				this->ws_stream_->set_option(opt);
+				ASIO2_LOG(spdlog::level::debug, "exec _ws_stream close : {}",
+					magic_enum::enum_name(derive.state_.load()));
+
+				try
+				{
+					// Set the timeout to none to cancel the websocket timeout timer, otherwise
+					// we'll have to wait a lot of seconds util the timer is timeout.
+					websocket::stream_base::timeout opt{};
+					opt.handshake_timeout = websocket::stream_base::none();
+					opt.idle_timeout      = websocket::stream_base::none();
+					this->ws_stream_->set_option(opt);
+				}
+				catch (system_error const& e)
+				{
+					set_last_error(e);
+				}
 
 				// Can't call close twice
 				// TODO return a custom error code
@@ -137,9 +171,11 @@ namespace asio2::detail
 				// Close the WebSocket connection
 				this->ws_stream_->async_close(websocket::close_code::normal,
 					asio::bind_executor(derive.io().strand(),
-						[this, this_ptr = std::move(this_ptr), g = std::move(g), f = std::move(fn)]
+				[this, this_ptr = std::move(this_ptr), g = std::move(g), f = std::move(fn)]
 				(error_code ec) mutable
 				{
+					detail::ignore_unused(ec);
+
 					//if (ec)
 					//	return;
 
@@ -151,16 +187,6 @@ namespace asio2::detail
 
 					(f)();
 				}));
-			};
-
-			derive.push_event([&derive, t = std::move(task)](event_queue_guard<derived_t>&& g) mutable
-			{
-				auto task = [g = std::move(g), t = std::move(t)]() mutable
-				{
-					t(std::move(g));
-				};
-				derive.post(std::move(task));
-				return true;
 			});
 		}
 
@@ -169,27 +195,30 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			if (derive.is_started())
-			{
-				try
-				{
-					ASIO2_ASSERT(bool(this->ws_stream_));
-					// Read a message into our buffer
-					this->ws_stream_->async_read(derive.buffer().base(),
-						asio::bind_executor(derive.io().strand(),
-							make_allocator(derive.rallocator(),
-								[&derive, this_ptr = std::move(this_ptr), condition = std::move(condition)]
-					(const error_code & ec, std::size_t bytes_recvd) mutable
-					{
-						derive._handle_recv(ec, bytes_recvd, std::move(this_ptr), std::move(condition));
-					})));
-				}
-				catch (system_error & e)
-				{
-					set_last_error(e);
+			if (!derive.is_started())
+				return;
 
-					derive._do_disconnect(e.code());
-				}
+			try
+			{
+				ASIO2_ASSERT(bool(this->ws_stream_));
+				// Read a message into our buffer
+				this->ws_stream_->async_read(derive.buffer().base(),
+					asio::bind_executor(derive.io().strand(),
+						make_allocator(derive.rallocator(),
+							[&derive, this_ptr = std::move(this_ptr), condition = std::move(condition)]
+				(const error_code & ec, std::size_t bytes_recvd) mutable
+				{
+					derive._handle_recv(ec, bytes_recvd, std::move(this_ptr), std::move(condition));
+				})));
+			}
+			catch (system_error & e)
+			{
+				set_last_error(e);
+
+				ASIO2_LOG(spdlog::level::debug, "call _do_disconnect by _ws_post_recv error : {} {} {}",
+					magic_enum::enum_name(derive.state_.load()), e.code().value(), e.what());
+
+				derive._do_disconnect(e.code());
 			}
 		}
 
@@ -216,6 +245,9 @@ namespace asio2::detail
 			}
 			else
 			{
+				ASIO2_LOG(spdlog::level::debug, "call _do_disconnect by _ws_handle_recv error : {} {} {}",
+					magic_enum::enum_name(derive.state_.load()), ec.value(), ec.message());
+
 				derive._do_disconnect(ec);
 			}
 			// If an error occurs then no new asynchronous operations are started. This
@@ -236,17 +268,18 @@ namespace asio2::detail
 			// can't use push_event, just only use asio::post, beacuse the callback handler
 			// will not be called immediately, it is called only when it receives an event 
 			// on the another side.
-			derive.post([this, &derive, this_ptr = std::move(this_ptr), condition]() mutable
+			asio::post(derive.io().strand(), make_allocator(derive.wallocator(),
+			[this, &derive, this_ptr = std::move(this_ptr), condition = std::move(condition)]() mutable
 			{
-				this->ws_stream_->control_callback(asio::bind_executor(derive.io().strand(),
-					[&derive, this_ptr = std::move(this_ptr), condition]
+				this->ws_stream_->control_callback(
+				[&derive, this_ptr = std::move(this_ptr), condition = std::move(condition)]
 				(websocket::frame_type kind, beast::string_view payload) mutable
 				{
 					// bug fixed : can't use "std::move(this_ptr)" below, otherwise 
 					// when enter this lambda next time, the "this_ptr" is nullptr.
 					derive._handle_control_callback(kind, payload, this_ptr, condition);
-				}));
-			});
+				});
+			}));
 		}
 
 		template<typename MatchCondition>
@@ -297,6 +330,9 @@ namespace asio2::detail
 
 			detail::ignore_unused(payload, this_ptr, condition);
 
+			ASIO2_LOG(spdlog::level::debug, "call _do_disconnect by _handle_control_close error : {}",
+				magic_enum::enum_name(derive.state_.load()));
+
 			derive._do_disconnect(websocket::error::closed);
 		}
 
@@ -309,27 +345,14 @@ namespace asio2::detail
 
 			ASIO2_ASSERT(bool(this->ws_stream_));
 
-			auto task = [this, &derive, this_ptr, condition, &rep](event_queue_guard<derived_t>&& g) mutable
+			// Perform the websocket handshake
+			this->ws_stream_->async_handshake(rep, derive.host_, derive.upgrade_target(),
+				asio::bind_executor(derive.io().strand(), make_allocator(derive.rallocator(),
+			[&derive, this_ptr = std::move(this_ptr), condition = std::move(condition)]
+			(error_code const& ec) mutable
 			{
-				// Perform the websocket handshake
-				this->ws_stream_->async_handshake(rep, derive.host_, derive.upgrade_target(),
-					asio::bind_executor(derive.io().strand(), make_allocator(derive.rallocator(),
-						[&derive, this_ptr = std::move(this_ptr), condition = std::move(condition), g = std::move(g)]
-				(error_code const& ec) mutable
-				{
-					derive._handle_upgrade(ec, std::move(this_ptr), std::move(condition));
-				})));
-			};
-
-			derive.push_event([&derive, t = std::move(task)](event_queue_guard<derived_t>&& g) mutable
-			{
-				auto task = [g = std::move(g), t = std::move(t)]() mutable
-				{
-					t(std::move(g));
-				};
-				derive.post(std::move(task));
-				return true;
-			});
+				derive._handle_upgrade(ec, std::move(this_ptr), std::move(condition));
+			})));
 		}
 
 		template<typename MatchCondition, typename Request, bool IsSession = args_t::is_session>
@@ -341,27 +364,14 @@ namespace asio2::detail
 
 			ASIO2_ASSERT(bool(this->ws_stream_));
 
-			auto task = [this, &derive, this_ptr, condition, &req](event_queue_guard<derived_t>&& g) mutable
+			// Accept the websocket handshake
+			this->ws_stream_->async_accept(req, 
+				asio::bind_executor(derive.io().strand(), make_allocator(derive.rallocator(),
+			[&derive, this_ptr = std::move(this_ptr), condition = std::move(condition)]
+			(error_code ec) mutable
 			{
-				// Accept the websocket handshake
-				this->ws_stream_->async_accept(req, asio::bind_executor(derive.io().strand(),
-					make_allocator(derive.rallocator(),
-						[&derive, this_ptr = std::move(this_ptr), condition = std::move(condition), g = std::move(g)]
-				(error_code ec) mutable
-				{
-					derive._handle_upgrade(ec, std::move(this_ptr), std::move(condition));
-				})));
-			};
-
-			derive.push_event([&derive, t = std::move(task)](event_queue_guard<derived_t>&& g) mutable
-			{
-				auto task = [g = std::move(g), t = std::move(t)]() mutable
-				{
-					t(std::move(g));
-				};
-				derive.post(std::move(task));
-				return true;
-			});
+				derive._handle_upgrade(ec, std::move(this_ptr), std::move(condition));
+			})));
 		}
 
 		template<typename MatchCondition, bool IsSession = args_t::is_session>
@@ -372,27 +382,14 @@ namespace asio2::detail
 
 			ASIO2_ASSERT(bool(this->ws_stream_));
 
-			auto task = [this, &derive, this_ptr, condition](event_queue_guard<derived_t>&& g) mutable
+			// Accept the websocket handshake
+			this->ws_stream_->async_accept(
+				asio::bind_executor(derive.io().strand(), make_allocator(derive.rallocator(),
+			[&derive, this_ptr = std::move(this_ptr), condition = std::move(condition)]
+			(error_code ec) mutable
 			{
-				// Accept the websocket handshake
-				this->ws_stream_->async_accept(asio::bind_executor(derive.io().strand(),
-					make_allocator(derive.rallocator(),
-						[&derive, this_ptr = std::move(this_ptr), condition = std::move(condition), g = std::move(g)]
-				(error_code ec) mutable
-				{
-					derive._handle_upgrade(ec, std::move(this_ptr), std::move(condition));
-				})));
-			};
-
-			derive.push_event([&derive, t = std::move(task)](event_queue_guard<derived_t>&& g) mutable
-			{
-				auto task = [g = std::move(g), t = std::move(t)]() mutable
-				{
-					t(std::move(g));
-				};
-				derive.post(std::move(task));
-				return true;
-			});
+				derive._handle_upgrade(ec, std::move(this_ptr), std::move(condition));
+			})));
 		}
 
 		template<typename MatchCondition>
@@ -405,9 +402,11 @@ namespace asio2::detail
 
 			if constexpr (args_t::is_session)
 			{
-				// Use "sessions().post" to ensure that the _fire_accept function and the _fire_upgrade
+				// Use "sessions().dispatch" to ensure that the _fire_accept function and the _fire_upgrade
 				// function are fired in the same thread
-				derive.sessions().post([&derive, ec, this_ptr = std::move(this_ptr), condition]() mutable
+				derive.sessions().dispatch(
+				[&derive, ec, this_ptr = std::move(this_ptr), condition = std::move(condition)]
+				() mutable
 				{
 					try
 					{
@@ -422,6 +421,9 @@ namespace asio2::detail
 					catch (system_error & e)
 					{
 						set_last_error(e);
+
+						ASIO2_LOG(spdlog::level::debug, "call _do_disconnect by _handle_upgrade error : {} {} {}",
+							magic_enum::enum_name(derive.state_.load()), e.code().value(), e.what());
 
 						derive._do_disconnect(e.code());
 					}

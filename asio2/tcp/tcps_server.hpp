@@ -1,5 +1,5 @@
 /*
- * COPYRIGHT (C) 2017-2019, zhllxt
+ * COPYRIGHT (C) 2017-2021, zhllxt
  *
  * author   : zhllxt
  * email    : 37792738@qq.com
@@ -17,18 +17,27 @@
 #pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
+#include <asio2/base/detail/push_options.hpp>
+
 #include <asio2/tcp/tcp_server.hpp>
 #include <asio2/tcp/tcps_session.hpp>
 
 namespace asio2::detail
 {
+	struct template_args_tcps_server
+	{
+		static constexpr bool is_session = false;
+		static constexpr bool is_client  = false;
+		static constexpr bool is_server  = true;
+	};
+
 	ASIO2_CLASS_FORWARD_DECLARE_BASE;
 	ASIO2_CLASS_FORWARD_DECLARE_TCP_BASE;
 	ASIO2_CLASS_FORWARD_DECLARE_TCP_SERVER;
 
 	template<class derived_t, class session_t>
 	class tcps_server_impl_t
-		: public ssl_context_cp   <derived_t, true     >
+		: public ssl_context_cp   <derived_t, template_args_tcps_server>
 		, public tcp_server_impl_t<derived_t, session_t>
 	{
 		ASIO2_CLASS_FRIEND_DECLARE_BASE;
@@ -41,6 +50,7 @@ namespace asio2::detail
 
 		using session_type = session_t;
 
+	public:
 		/**
 		 * @constructor
 		 */
@@ -50,7 +60,7 @@ namespace asio2::detail
 			std::size_t max_buffer_size       = (std::numeric_limits<std::size_t>::max)(),
 			std::size_t concurrency           = std::thread::hardware_concurrency() * 2
 		)
-			: ssl_context_cp<derived_t, true>(method)
+			: ssl_context_cp<derived_t, template_args_tcps_server>(method)
 			, super(init_buffer_size, max_buffer_size, concurrency)
 		{
 		}
@@ -101,6 +111,8 @@ namespace asio2
 
 	using tcps_server = tcps_server_t<tcps_session>;
 }
+
+#include <asio2/base/detail/pop_options.hpp>
 
 #endif // !__ASIO2_TCPS_SERVER_HPP__
 

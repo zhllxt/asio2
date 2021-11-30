@@ -1,5 +1,5 @@
 /*
- * COPYRIGHT (C) 2017-2019, zhllxt
+ * COPYRIGHT (C) 2017-2021, zhllxt
  *
  * author   : zhllxt
  * email    : 37792738@qq.com
@@ -20,7 +20,7 @@
 #include <utility>
 #include <string_view>
 
-#include <asio2/base/selector.hpp>
+#include <asio2/3rd/asio.hpp>
 #include <asio2/base/error.hpp>
 #include <asio2/base/detail/condition_wrap.hpp>
 #include <asio2/base/detail/buffer_wrap.hpp>
@@ -73,13 +73,19 @@ namespace asio2::detail
 			return derive._tcp_send_general(asio::buffer(data), std::forward<Callback>(callback));
 		}
 
-		template<class BufferSequence, class Callback>
-		inline bool _tcp_send_dgram(BufferSequence&& buffer, Callback&& callback)
+		template<class Buffer, class Callback>
+		inline bool _tcp_send_dgram(Buffer&& buffer, Callback&& callback)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
 			int bytes = 0;
 			std::unique_ptr<std::uint8_t[]> head;
+
+			// why don't use std::string for "head"?
+			// beacuse std::string has a SSO(Small String Optimization) mechanism
+			// https://stackoverflow.com/questions/34788789/disable-stdstrings-sso
+			// std::string str;
+			// str.reserve(sizeof(str) + 1);
 
 			// note : need ensure big endian and little endian
 			if (buffer.size() < std::size_t(254))
@@ -119,7 +125,7 @@ namespace asio2::detail
 			std::array<asio::const_buffer, 2> buffers
 			{
 				asio::buffer(reinterpret_cast<const void*>(head.get()), bytes),
-				std::forward<BufferSequence>(buffer)
+				std::forward<Buffer>(buffer)
 			};
 
 			asio::async_write(derive.stream(), buffers, asio::bind_executor(derive.io().strand(),
@@ -146,8 +152,8 @@ namespace asio2::detail
 			return true;
 		}
 
-		template<class BufferSequence, class Callback>
-		inline bool _tcp_send_general(BufferSequence&& buffer, Callback&& callback)
+		template<class Buffer, class Callback>
+		inline bool _tcp_send_general(Buffer&& buffer, Callback&& callback)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 

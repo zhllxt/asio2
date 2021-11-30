@@ -1,5 +1,5 @@
 /*
- * COPYRIGHT (C) 2017-2019, zhllxt
+ * COPYRIGHT (C) 2017-2021, zhllxt
  *
  * author   : zhllxt
  * email    : 37792738@qq.com
@@ -17,9 +17,10 @@
 
 #include <chrono>
 
-#include <asio2/base/selector.hpp>
+#include <asio2/3rd/asio.hpp>
 #include <asio2/base/iopool.hpp>
 #include <asio2/base/error.hpp>
+#include <asio2/base/log.hpp>
 
 namespace asio2::detail
 {
@@ -121,6 +122,13 @@ namespace asio2::detail
 			if (this->reconnect_is_running_.test_and_set())
 				return;
 
+			// reset the "canceled" flag to false, otherwise after "client.stop();" then call client.start(...)
+			// again, this reconnect timer will doesn't work .
+			// can't put this "clear" code into the _handle_reconnect_timer, beacuse the _stop_reconnect_timer
+			// maybe called many times. if do so, when the "canceled" flag is set false in the _handle_reconnect_timer
+			// and the _stop_reconnect_timer is called later, then the "canceled" flag will be set true again .
+			this->reconnect_timer_canceled_.clear();
+
 			derive._post_reconnect_timer(std::move(this_ptr), std::forward<Callback>(f),
 				(std::chrono::nanoseconds::max)()); // 292 yeas
 		}
@@ -130,6 +138,13 @@ namespace asio2::detail
 			std::shared_ptr<derived_t> this_ptr, Callback&& f)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
+
+		#if defined(ASIO2_ENABLE_LOG)
+			if (ec && ec != asio::error::operation_aborted)
+			{
+				ASIO2_LOG(spdlog::level::info, "reconnect_timer error : [{}] {}", ec.value(), ec.message());
+			}
+		#endif
 
 			if (this->reconnect_timer_canceled_.test_and_set())
 			{
@@ -141,8 +156,8 @@ namespace asio2::detail
 
 			if (ec == asio::error::operation_aborted)
 			{
-				derive._post_reconnect_timer(std::move(this_ptr),
-					std::forward<Callback>(f), this->reconnect_delay_);
+				derive._post_reconnect_timer(std::move(this_ptr), std::forward<Callback>(f),
+					this->reconnect_delay_);
 			}
 			else
 			{
@@ -158,14 +173,19 @@ namespace asio2::detail
 
 		inline void _stop_reconnect_timer()
 		{
+			error_code ec_ignore{};
+
 			this->reconnect_timer_canceled_.test_and_set();
-			this->reconnect_timer_.cancel(ec_ignore());
+			this->reconnect_timer_.cancel(ec_ignore);
 		}
 
 		inline void _wake_reconnect_timer()
 		{
 			if (this->reconnect_enable_)
-				this->reconnect_timer_.cancel(ec_ignore());
+			{
+				error_code ec_ignore{};
+				this->reconnect_timer_.cancel(ec_ignore);
+			}
 		}
 
 	protected:

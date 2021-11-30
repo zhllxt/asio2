@@ -1,5 +1,5 @@
 /*
- * COPYRIGHT (C) 2017-2019, zhllxt
+ * COPYRIGHT (C) 2017-2021, zhllxt
  *
  * author   : zhllxt
  * email    : 37792738@qq.com
@@ -118,7 +118,7 @@ namespace asio2
 #	endif
 
 #if defined(ASIO2_LOGGER_MULTI_MODULE)
-			std::thread t([this]()
+			std::thread t([this]() mutable
 			{
 				while (true)
 				{
@@ -201,9 +201,13 @@ namespace asio2
 			return this->dest_;
 		}
 
-		inline logger & target(const std::function<void(const std::string & text)> & target)
+		/**
+		 * @Fun : void(const std::string & text)
+		 */
+		template<class Fun>
+		inline logger & target(Fun&& target)
 		{
-			this->target_ = target;
+			this->target_ = std::forward<Fun>(target);
 			return (*this);
 		}
 

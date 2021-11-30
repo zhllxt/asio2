@@ -1,5 +1,5 @@
 /*
- * COPYRIGHT (C) 2017-2019, zhllxt
+ * COPYRIGHT (C) 2017-2021, zhllxt
  *
  * author   : zhllxt
  * email    : 37792738@qq.com
@@ -22,9 +22,10 @@
 #include <string>
 #include <string_view>
 
-#include <asio2/base/selector.hpp>
+#include <asio2/3rd/asio.hpp>
 #include <asio2/base/iopool.hpp>
 #include <asio2/base/error.hpp>
+#include <asio2/base/log.hpp>
 
 #include <asio2/base/detail/util.hpp>
 #include <asio2/base/detail/allocator.hpp>
@@ -207,19 +208,22 @@ namespace asio2::detail
 
 			// Make sure we run on the strand
 			if (!derive.io().strand().running_in_this_thread())
-				return asio::post(derive.io().strand(),
-					make_allocator(derive.wallocator(),
-						[this, this_ptr = derive.selfptr(),
-						timer_id = std::forward<TimerId>(timer_id)]() mutable
 			{
-				this->stop_timer(std::move(timer_id));
-			}));
+				return asio::post(derive.io().strand(), make_allocator(derive.wallocator(),
+				[this, this_ptr = derive.selfptr(), timer_id = std::forward<TimerId>(timer_id)]
+				() mutable
+				{
+					this->stop_timer(std::move(timer_id));
+				}));
+			}
 
 			auto iter = this->user_timers_.find(timer_id);
 			if (iter != this->user_timers_.end())
 			{
+				error_code ec_ignore{};
+
 				iter->second->exited = true;
-				iter->second->timer.cancel(ec_ignore());
+				iter->second->timer.cancel(ec_ignore);
 				this->user_timers_.erase(iter);
 			}
 		}
@@ -235,19 +239,22 @@ namespace asio2::detail
 
 			// Make sure we run on the strand
 			if (!derive.io().strand().running_in_this_thread())
-				return asio::post(derive.io().strand(),
-					make_allocator(derive.wallocator(),
-						[this, this_ptr = derive.selfptr()]() mutable
 			{
-				this->stop_all_timers();
-			}));
+				return asio::post(derive.io().strand(), make_allocator(derive.wallocator(),
+				[this, this_ptr = derive.selfptr()]() mutable
+				{
+					this->stop_all_timers();
+				}));
+			}
+
+			error_code ec_ignore{};
 
 			// close user custom timers
 			for (auto &[id, timer_obj_ptr] : this->user_timers_)
 			{
 				std::ignore = id;
 				timer_obj_ptr->exited = true;
-				timer_obj_ptr->timer.cancel(ec_ignore());
+				timer_obj_ptr->timer.cancel(ec_ignore);
 			}
 			this->user_timers_.clear();
 		}
@@ -281,6 +288,13 @@ namespace asio2::detail
 			std::chrono::duration<Rep, Period> duration, std::shared_ptr<derived_t> this_ptr)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
+
+		#if defined(ASIO2_ENABLE_LOG)
+			if (ec && ec != asio::error::operation_aborted)
+			{
+				ASIO2_LOG(spdlog::level::info, "user_timer error : [{}] {}", ec.value(), ec.message());
+			}
+		#endif
 
 			set_last_error(ec);
 

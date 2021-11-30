@@ -1,5 +1,5 @@
 /*
- * COPYRIGHT (C) 2017-2019, zhllxt
+ * COPYRIGHT (C) 2017-2021, zhllxt
  *
  * author   : zhllxt
  * email    : 37792738@qq.com
@@ -19,7 +19,7 @@
 #include <future>
 #include <functional>
 
-#include <asio2/base/selector.hpp>
+#include <asio2/3rd/asio.hpp>
 #include <asio2/base/iopool.hpp>
 #include <asio2/base/detail/allocator.hpp>
 
@@ -51,8 +51,17 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			asio::post(derive.io().strand(), make_allocator(
-				derive.wallocator(), std::forward<Function>(f)));
+			// if use call post, but the user callback "f" has't hold the session_ptr,
+			// it maybe cause crash, so we need hold the session_ptr again at here.
+			// if the session_ptr is already destroyed, the selfptr() will cause crash.
+			asio::post(derive.io().strand(), make_allocator(derive.wallocator(),
+			[p = derive.selfptr(), f = std::forward<Function>(f)]() mutable
+			{
+				detail::ignore_unused(p);
+
+				f();
+			}));
+
 			return (derive);
 		}
 
@@ -67,20 +76,29 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
+			// note : need test.
+			// has't check where the server or client is stopped, if the server is stopping, but the 
+			// iopool's wait_iothreads() has't compelete and just at sleep, then user call post
+			// but don't call stop_all_timed_tasks, it maybe cause the wait_iothreads() can't compelete
+			// forever,and the server.stop or client.stop never compeleted.
+
 			std::unique_ptr<asio::steady_timer> timer = std::make_unique<
 				asio::steady_timer>(derive.io().context());
 
 			asio::dispatch(derive.io().strand(), make_allocator(derive.wallocator(),
-				[this, self = derive.selfptr(), key = timer.get()]() mutable
+			[this, p = derive.selfptr(), key = timer.get()]() mutable
 			{
+				detail::ignore_unused(p);
+
 				this->timed_tasks_.emplace(key);
 			}));
 
 			timer->expires_after(delay);
 			timer->async_wait(asio::bind_executor(derive.io().strand(),
-				make_allocator(derive.wallocator(), [this, self = derive.selfptr(),
+				make_allocator(derive.wallocator(), [this, p = derive.selfptr(),
 					timer = std::move(timer), f = std::forward<Function>(f)](const error_code& ec) mutable
 			{
+				detail::ignore_unused(p, ec);
 				f();
 				this->timed_tasks_.erase(timer.get());
 			})));
@@ -108,8 +126,10 @@ namespace asio2::detail
 			std::future<return_type> future = task.get_future();
 
 			asio::post(derive.io().strand(), make_allocator(derive.wallocator(),
-				[t = std::move(task)]() mutable
+			[p = derive.selfptr(), t = std::move(task)]() mutable
 			{
+				detail::ignore_unused(p);
+
 				t();
 			}));
 
@@ -140,16 +160,19 @@ namespace asio2::detail
 				asio::steady_timer>(derive.io().context());
 
 			asio::dispatch(derive.io().strand(), make_allocator(derive.wallocator(),
-				[this, self = derive.selfptr(), key = timer.get()]() mutable
+			[this, p = derive.selfptr(), key = timer.get()]() mutable
 			{
+				detail::ignore_unused(p);
+
 				this->timed_tasks_.emplace(key);
 			}));
 
 			timer->expires_after(delay);
 			timer->async_wait(asio::bind_executor(derive.io().strand(),
-				make_allocator(derive.wallocator(), [this, self = derive.selfptr(),
+				make_allocator(derive.wallocator(), [this, p = derive.selfptr(),
 					timer = std::move(timer), t = std::move(task)](const error_code& ec) mutable
 			{
+				detail::ignore_unused(p, ec);
 				t();
 				this->timed_tasks_.erase(timer.get());
 			})));
@@ -169,8 +192,13 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			asio::dispatch(derive.io().strand(), make_allocator(
-				derive.wallocator(), std::forward<Function>(f)));
+			asio::dispatch(derive.io().strand(), make_allocator(derive.wallocator(),
+			[p = derive.selfptr(), f = std::forward<Function>(f)]() mutable
+			{
+				detail::ignore_unused(p);
+
+				f();
+			}));
 			return (derive);
 		}
 
@@ -203,8 +231,10 @@ namespace asio2::detail
 			else
 			{
 				asio::post(derive.io().strand(), make_allocator(derive.wallocator(),
-					[t = std::move(task)]() mutable
+				[p = derive.selfptr(), t = std::move(task)]() mutable
 				{
+					detail::ignore_unused(p);
+
 					t();
 				}));
 			}
@@ -219,12 +249,16 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
+			error_code ec_ignore{};
+
 			// Make sure we run on the strand
 			if (!derive.io().strand().running_in_this_thread())
 			{
 				asio::post(derive.io().strand(), make_allocator(derive.wallocator(),
-					[this, this_ptr = derive.selfptr()]() mutable
+				[this, p = derive.selfptr()]() mutable
 				{
+					detail::ignore_unused(p);
+
 					this->stop_all_timed_tasks();
 				}));
 				return (derive);
@@ -232,7 +266,7 @@ namespace asio2::detail
 
 			for (asio::steady_timer* timer : this->timed_tasks_)
 			{
-				timer->cancel(ec_ignore());
+				timer->cancel(ec_ignore);
 			}
 
 			return (derive);

@@ -1,5 +1,5 @@
 /*
- * COPYRIGHT (C) 2017-2019, zhllxt
+ * COPYRIGHT (C) 2017-2021, zhllxt
  *
  * author   : zhllxt
  * email    : 37792738@qq.com
@@ -14,6 +14,8 @@
 #if defined(_MSC_VER) && (_MSC_VER >= 1200)
 #pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
+
+#include <asio2/base/detail/push_options.hpp>
 
 #include <filesystem>
 
@@ -51,11 +53,11 @@ namespace asio2::detail
 	ASIO2_CLASS_FORWARD_DECLARE_TCP_CLIENT;
 	ASIO2_CLASS_FORWARD_DECLARE_TCP_SESSION;
 
-	template<bool isRequest, class Body, class Fields = http::fields>
+	template<class Body, class Fields = http::fields>
 	class http_response_impl_t
-		: public http::message<isRequest, Body, Fields>
+		: public http::message<false, Body, Fields>
 #ifndef ASIO2_DISABLE_HTTP_RESPONSE_USER_DATA_CP
-		, public user_data_cp<http_response_impl_t<isRequest, Body, Fields>>
+		, public user_data_cp<http_response_impl_t<Body, Fields>>
 #endif
 	{
 		ASIO2_CLASS_FRIEND_DECLARE_BASE;
@@ -64,8 +66,8 @@ namespace asio2::detail
 		ASIO2_CLASS_FRIEND_DECLARE_TCP_SESSION;
 
 	public:
-		using self = http_response_impl_t<isRequest, Body, Fields>;
-		using super = http::message<isRequest, Body, Fields>;
+		using self  = http_response_impl_t<Body, Fields>;
+		using super = http::message<false, Body, Fields>;
 		using header_type = typename super::header_type;
 		using body_type = typename super::body_type;
 
@@ -114,26 +116,26 @@ namespace asio2::detail
 		}
 
 		template<class BodyT = Body>
-		http_response_impl_t(const http::message<isRequest, BodyT, Fields>& rep)
+		http_response_impl_t(const http::message<false, BodyT, Fields>& rep)
 		{
 			this->base() = rep;
 		}
 
 		template<class BodyT = Body>
-		http_response_impl_t(http::message<isRequest, BodyT, Fields>&& rep)
+		http_response_impl_t(http::message<false, BodyT, Fields>&& rep)
 		{
 			this->base() = std::move(rep);
 		}
 
 		template<class BodyT = Body>
-		self& operator=(const http::message<isRequest, BodyT, Fields>& rep)
+		self& operator=(const http::message<false, BodyT, Fields>& rep)
 		{
 			this->base() = rep;
 			return *this;
 		}
 
 		template<class BodyT = Body>
-		self& operator=(http::message<isRequest, BodyT, Fields>&& rep)
+		self& operator=(http::message<false, BodyT, Fields>&& rep)
 		{
 			this->base() = std::move(rep);
 			return *this;
@@ -141,21 +143,21 @@ namespace asio2::detail
 
 		//-------------------------------------------------
 
-		http_response_impl_t(const http::message<isRequest, http::string_body, Fields>& rep)
+		http_response_impl_t(const http::message<false, http::string_body, Fields>& rep)
 		{
 			this->base().base() = rep.base();
 			this->body().text() = rep.body();
 			this->prepare_payload();
 		}
 
-		http_response_impl_t(http::message<isRequest, http::string_body, Fields>&& rep)
+		http_response_impl_t(http::message<false, http::string_body, Fields>&& rep)
 		{
 			this->base().base() = std::move(rep.base());
 			this->body().text() = std::move(rep.body());
 			this->prepare_payload();
 		}
 
-		self& operator=(const http::message<isRequest, http::string_body, Fields>& rep)
+		self& operator=(const http::message<false, http::string_body, Fields>& rep)
 		{
 			this->base().base() = rep.base();
 			this->body().text() = rep.body();
@@ -163,7 +165,7 @@ namespace asio2::detail
 			return *this;
 		}
 
-		self& operator=(http::message<isRequest, http::string_body, Fields>&& rep)
+		self& operator=(http::message<false, http::string_body, Fields>&& rep)
 		{
 			this->base().base() = std::move(rep.base());
 			this->body().text() = std::move(rep.body());
@@ -173,21 +175,21 @@ namespace asio2::detail
 
 		//-------------------------------------------------
 
-		http_response_impl_t(const http::message<isRequest, http::file_body, Fields>& rep)
+		http_response_impl_t(const http::message<false, http::file_body, Fields>& rep)
 		{
 			this->base().base() = rep.base();
 			this->body().file() = rep.body();
 			this->prepare_payload();
 		}
 
-		http_response_impl_t(http::message<isRequest, http::file_body, Fields>&& rep)
+		http_response_impl_t(http::message<false, http::file_body, Fields>&& rep)
 		{
 			this->base().base() = std::move(rep.base());
 			this->body().file() = std::move(rep.body());
 			this->prepare_payload();
 		}
 
-		self& operator=(const http::message<isRequest, http::file_body, Fields>& rep)
+		self& operator=(const http::message<false, http::file_body, Fields>& rep)
 		{
 			this->base().base() = rep.base();
 			this->body().file() = rep.body();
@@ -195,7 +197,7 @@ namespace asio2::detail
 			return *this;
 		}
 
-		self& operator=(http::message<isRequest, http::file_body, Fields>&& rep)
+		self& operator=(http::message<false, http::file_body, Fields>&& rep)
 		{
 			this->base().base() = std::move(rep.base());
 			this->body().file() = std::move(rep.body());
@@ -377,7 +379,9 @@ namespace beast::http
 namespace boost::beast::http
 #endif
 {
-	using response = asio2::detail::http_response_impl_t<false, http::flex_body>;
+	using response = asio2::detail::http_response_impl_t<http::flex_body>;
 }
+
+#include <asio2/base/detail/pop_options.hpp>
 
 #endif // !__ASIO2_HTTP_RESPONSE_IMPL_HPP__

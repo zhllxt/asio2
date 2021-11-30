@@ -1,5 +1,5 @@
 /*
- * COPYRIGHT (C) 2017-2019, zhllxt
+ * COPYRIGHT (C) 2017-2021, zhllxt
  *
  * author   : zhllxt
  * email    : 37792738@qq.com
@@ -15,10 +15,15 @@
 #pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
-#include <asio2/tcp/tcp_server.hpp>
-#include <asio2/tcp/tcps_server.hpp>
-#include <asio2/http/ws_server.hpp>
-#include <asio2/http/wss_server.hpp>
+#include <asio2/base/detail/push_options.hpp>
+
+#if !defined(ASIO2_USE_WEBSOCKET_RPC)
+#  include <asio2/tcp/tcp_server.hpp>
+#  include <asio2/tcp/tcps_server.hpp>
+#else
+#  include <asio2/http/ws_server.hpp>
+#  include <asio2/http/wss_server.hpp>
+#endif
 
 #include <asio2/rpc/rpc_session.hpp>
 
@@ -47,8 +52,8 @@ namespace asio2::detail
 		using session_type  = typename super::session_type;
 
 	protected:
-		using super::send;
-
+		using super::async_send;
+	
 	public:
 		/**
 		 * @constructor
@@ -72,36 +77,23 @@ namespace asio2::detail
 
 		/**
 		 * @function : start the server
-		 * @param service A string identifying the requested service. This may be a
-		 * descriptive name or a numeric string corresponding to a port number.
-		 */
-		template<typename StrOrInt>
-		inline bool start(StrOrInt&& service)
-		{
-			if constexpr (is_websocket_server<executor_t>::value)
-				return executor_t::template start(
-					std::string_view{}, std::forward<StrOrInt>(service));
-			else
-				return executor_t::template start(
-					std::string_view{}, std::forward<StrOrInt>(service), asio2::use_dgram);
-		}
-
-		/**
-		 * @function : start the server
 		 * @param host A string identifying a location. May be a descriptive name or
 		 * a numeric address string.
 		 * @param service A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
 		 */
-		template<typename String, typename StrOrInt>
-		inline bool start(String&& host, StrOrInt&& service)
+		template<typename String, typename StrOrInt, typename... Args>
+		inline bool start(String&& host, StrOrInt&& service, Args&&... args)
 		{
-			if constexpr (is_websocket_server<executor_t>::value)
-				return executor_t::template start(
-					std::forward<String>(host), std::forward<StrOrInt>(service));
-			else
-				return executor_t::template start(
-					std::forward<String>(host), std::forward<StrOrInt>(service), asio2::use_dgram);
+#if !defined(ASIO2_USE_WEBSOCKET_RPC)
+			return executor_t::template start(
+				std::forward<String>(host), std::forward<StrOrInt>(service),
+				condition_helper::make_condition(asio2::use_dgram, std::forward<Args>(args)...));
+#else
+			static_assert(is_websocket_server<executor_t>::value);
+			return executor_t::template start(
+				std::forward<String>(host), std::forward<StrOrInt>(service));
+#endif
 		}
 
 	public:
@@ -246,67 +238,61 @@ namespace asio2::detail
 
 namespace asio2
 {
-	template<class>
-	class rpc_server_t;
-
+#if !defined(ASIO2_USE_WEBSOCKET_RPC)
 	/// Using tcp dgram mode as the underlying communication support
-	template<>
-	class rpc_server_t<detail::use_tcp> : public detail::rpc_server_impl_t<rpc_server_t<detail::use_tcp>,
-		detail::tcp_server_impl_t<rpc_server_t<detail::use_tcp>, rpc_session>>
+	template<class session_t>
+	class rpc_server_t : public detail::rpc_server_impl_t<rpc_server_t<session_t>,
+		detail::tcp_server_impl_t<rpc_server_t<session_t>, session_t>>
 	{
 	public:
-		using detail::rpc_server_impl_t<rpc_server_t<detail::use_tcp>, detail::tcp_server_impl_t<
-			rpc_server_t<detail::use_tcp>, rpc_session>>::rpc_server_impl_t;
+		using detail::rpc_server_impl_t<rpc_server_t<session_t>, detail::tcp_server_impl_t<
+			rpc_server_t<session_t>, session_t>>::rpc_server_impl_t;
 	};
 
+	using rpc_server = rpc_server_t<rpc_session>;
+
+	#if defined(ASIO2_USE_SSL)
+	template<class session_t>
+	class rpcs_server_t : public detail::rpc_server_impl_t<rpcs_server_t<session_t>,
+		detail::tcps_server_impl_t<rpcs_server_t<session_t>, session_t>>
+	{
+	public:
+		using detail::rpc_server_impl_t<rpcs_server_t<session_t>, detail::tcps_server_impl_t<
+			rpcs_server_t<session_t>, session_t>>::rpc_server_impl_t;
+	};
+
+	using rpcs_server = rpcs_server_t<rpcs_session>;
+	#endif
+
+#else
 	/// Using websocket as the underlying communication support
-	template<>
-	class rpc_server_t<detail::use_websocket> : public detail::rpc_server_impl_t<
-		rpc_server_t<detail::use_websocket>,
-		detail::ws_server_impl_t<rpc_server_t<detail::use_websocket>, rpc_session>>
+	template<class session_t>
+	class rpc_server_t : public detail::rpc_server_impl_t<rpc_server_t<session_t>,
+		detail::ws_server_impl_t<rpc_server_t<session_t>, session_t>>
 	{
 	public:
-		using detail::rpc_server_impl_t<rpc_server_t<detail::use_websocket>,
-			detail::ws_server_impl_t<rpc_server_t<detail::use_websocket>,
-			rpc_session>>::rpc_server_impl_t;
+		using detail::rpc_server_impl_t<rpc_server_t<session_t>, detail::ws_server_impl_t<
+			rpc_server_t<session_t>, session_t>>::rpc_server_impl_t;
 	};
 
-#if !defined(ASIO2_USE_WEBSOCKET_RPC)
-	using rpc_server = rpc_server_t<detail::use_tcp>;
-#else
-	using rpc_server = rpc_server_t<detail::use_websocket>;
-#endif
+	using rpc_server = rpc_server_t<rpc_session>;
 
-#if defined(ASIO2_USE_SSL)
-	template<class>
-	class rpcs_server_t;
-
-	template<>
-	class rpcs_server_t<detail::use_tcp> : public detail::rpc_server_impl_t<rpcs_server_t<detail::use_tcp>,
-		detail::tcps_server_impl_t<rpcs_server_t<detail::use_tcp>, rpcs_session>>
+	#if defined(ASIO2_USE_SSL)
+	template<class session_t>
+	class rpcs_server_t : public detail::rpc_server_impl_t<rpcs_server_t<session_t>,
+		detail::wss_server_impl_t<rpcs_server_t<session_t>, session_t>>
 	{
 	public:
-		using detail::rpc_server_impl_t<rpcs_server_t<detail::use_tcp>, detail::tcps_server_impl_t<
-			rpcs_server_t<detail::use_tcp>, rpcs_session>>::rpc_server_impl_t;
+		using detail::rpc_server_impl_t<rpcs_server_t<session_t>, detail::wss_server_impl_t<
+			rpcs_server_t<session_t>, session_t>>::rpc_server_impl_t;
 	};
 
-	template<>
-	class rpcs_server_t<detail::use_websocket> : public detail::rpc_server_impl_t<
-		rpcs_server_t<detail::use_websocket>,
-		detail::wss_server_impl_t<rpcs_server_t<detail::use_websocket>, rpcs_session>>
-	{
-	public:
-		using detail::rpc_server_impl_t<rpcs_server_t<detail::use_websocket>,
-			detail::wss_server_impl_t<rpcs_server_t<detail::use_websocket>,
-			rpcs_session>>::rpc_server_impl_t;
-	};
+	using rpcs_server = rpcs_server_t<rpcs_session>;
+	#endif
 
-#if !defined(ASIO2_USE_WEBSOCKET_RPC)
-	using rpcs_server = rpcs_server_t<detail::use_tcp>;
-#else
-	using rpcs_server = rpcs_server_t<detail::use_websocket>;
-#endif
 #endif
 }
+
+#include <asio2/base/detail/pop_options.hpp>
 
 #endif // !__ASIO2_RPC_SERVER_HPP__

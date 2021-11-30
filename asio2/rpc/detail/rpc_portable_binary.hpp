@@ -29,28 +29,7 @@
 #ifndef __ASIO2_RPC_CEREAL_ARCHIVES_PORTABLE_BINARY_HPP__
 #define __ASIO2_RPC_CEREAL_ARCHIVES_PORTABLE_BINARY_HPP__
 
-#ifdef _MSC_VER
-#  pragma warning(push) 
-#  pragma warning(disable:4311)
-#  pragma warning(disable:4312)
-#  pragma warning(disable:4996)
-#endif
-
-#if defined(__GNUC__) || defined(__GNUG__)
-#  pragma GCC diagnostic push
-#  pragma GCC diagnostic ignored "-Wunused-variable"
-#  pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
-
-#if defined(__clang__)
-#  pragma clang diagnostic push
-#  pragma clang diagnostic ignored "-Wunused-variable"
-#  pragma clang diagnostic ignored "-Wexceptions"
-#  pragma clang diagnostic ignored "-Wdeprecated-declarations"
-#  pragma clang diagnostic ignored "-Wunused-private-field"
-#  pragma clang diagnostic ignored "-Wunused-local-typedef"
-#  pragma clang diagnostic ignored "-Wunknown-warning-option"
-#endif
+#include <asio2/base/detail/push_options.hpp>
 
 #include <cereal/cereal.hpp>
 
@@ -136,6 +115,13 @@ namespace cereal
           friend class RPCPortableBinaryOutputArchive;
           Endianness itsOutputEndianness;
       };
+
+      template <class T> inline
+      RPCPortableBinaryOutputArchive & operator<<( T && arg )
+      {
+        OutputArchive<RPCPortableBinaryOutputArchive, AllowEmptyClassElision>::operator<<(std::forward<T>(arg));
+        return (*this);
+      }
 
       //! Construct, outputting to the provided stream
       /*! @param stream The stream to output to. Should be opened with std::ios::binary flag.
@@ -247,6 +233,13 @@ namespace cereal
           friend class RPCPortableBinaryInputArchive;
           Endianness itsInputEndianness;
       };
+
+      template <class T> inline
+      RPCPortableBinaryInputArchive & operator>>( T && arg )
+      {
+        InputArchive<RPCPortableBinaryInputArchive, AllowEmptyClassElision>::operator>>(std::forward<T>(arg));
+        return (*this);
+      }
 
       //! Construct, loading from the provided stream
       /*! @param stream The stream to read from. Should be opened with std::ios::binary flag.
@@ -387,6 +380,9 @@ namespace cereal
 		  throw Exception("Illegal data");
   }
 
+  using rpc_oarchive = RPCPortableBinaryOutputArchive;
+  using rpc_iarchive = RPCPortableBinaryInputArchive;
+
 } // namespace cereal
 
 // register archives for polymorphic support
@@ -396,16 +392,6 @@ CEREAL_REGISTER_ARCHIVE(cereal::RPCPortableBinaryInputArchive)
 // tie input and output archives together
 CEREAL_SETUP_ARCHIVE_TRAITS(cereal::RPCPortableBinaryInputArchive, cereal::RPCPortableBinaryOutputArchive)
 
-#if defined(__clang__)
-#  pragma clang diagnostic pop
-#endif
-
-#if defined(__GNUC__) || defined(__GNUG__)
-#  pragma GCC diagnostic pop
-#endif
-
-#if defined(_MSC_VER)
-#  pragma warning(pop) 
-#endif
+#include <asio2/base/detail/pop_options.hpp>
 
 #endif // __ASIO2_RPC_CEREAL_ARCHIVES_PORTABLE_BINARY_HPP__

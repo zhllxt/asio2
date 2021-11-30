@@ -17,7 +17,7 @@
 
 #include <algorithm>
 
-#include <asio2/base/selector.hpp>
+#include <asio2/3rd/asio.hpp>
 
 // Packet header for IPv4.
 //
@@ -61,7 +61,7 @@ namespace asio2::detail
 	public:
 		ipv4_header()
 		{ 
-			std::fill(rep_, rep_ + sizeof(rep_), 0);
+			std::fill(rep_, rep_ + sizeof(rep_), static_cast<unsigned char>(0));
 		}
 
 		inline unsigned char  version()         const { return (rep_[0] >> 4) & 0xF; }

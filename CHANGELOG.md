@@ -1,3 +1,33 @@
+# [indeterminate]
+
+  * Upgrade the asio library to version 1.18.2
+  * Upgrade the beast library to version 318 (boost-1.77.0)
+  * Upgrade the fmt library to version 8.0.1
+  * Add CMake to build the example projects
+  * Add mqtt, support mqtt v3.1 v3.1.1 v5.0
+  * Add async_send interface function, modify the "send" interface function, if "send" is called in the communication thread, it will degenerates into async_send.
+  * Change the "_fire_init, _fire_start, _fire_stop" triggered thread from thread main to thread 0.
+  * Change the rpc's "call" interface function, before if it is called in the communication thread, it will do nothing, now it will degenerates into async_call and the return value is empty.
+  * Change the file "asio2/base/selector.hpp" to "asio2/3rd/asio.hpp and asio2/3rd/beast.hpp", used to separate asio and beast header file, previously "included tcp_lient.hpp" will contain both asio and beast, but now "included tcp_lient.hpp" will only contain asio.
+  * Modify "push_event, next_event" function, to optimized the problem where session_ptr would be copied multiple times.
+  * Modify "post, dispatch" function in post_cp.hpp, add "derive.selfptr()" to ensure that the asio::post callback function must hold the session_ptr.
+  * Modify the behavior of the async_send function with the callback parameter, whenever async_send function called fails, such as an exception, the callback will be called, the callback was called only when write data failed previously.
+  * Remove "thread_local static error_code ec_ignore;" in asio2/base/error.hpp.
+  * Resolve compiling errors under "Visual Studio 2017 - Windows XP (v141_xp)", changed the std::shared_mutex to asio2_shared_mutex marco.
+  * Fixed bug : after call server.stop(); in some cases, the server still accept session and the session can "recv send data" normaly. This will cause the server to never exit.
+  * Fixed bug : in asio2/base/error.hpp : thread_local static error_code ec_last; In vs2017 and some cases, this maybe cause crash before the "main" function.
+  * fixed bug : The reconnect_timer will be invalid when "client.start(...);client.stop();client.start(...);".
+  * fixed bug : the _fire_init() notify is not called always in thread 0.
+  * fixed bug : Incorrect parsing of filename and content_type in asio2/http/multipart.hpp.
+  * fixed bug : asio2/util/ini.hpp, When the exe file name does not contain dot "." , The automatically generated ini file name is incorrect.
+  * fixed bug : when call "start" with some exception, the "state" will be "starting", this will cause "start" failed next time forever.
+  * fixed bug : it will cause crash when call "client.start" multi times, all "ssl client" and "websocket client" will be affected by this bug, This is because multithreading reads and writes "ws_stream_".
+  * fixed bug : The code error traversing "http_router's wildcard_routers_" causes crash.
+  * Fixed the problem where kcp server and client did not send fin frame correctly.
+  * Fixed the problem where the endian of the KCP handshake data header was not handled correctly.
+  * Various code fixes and improvements.
+  * Other general enhancements.
+
 # 2020-12-23 version 2.7:
 
   * Add remote data call ability.

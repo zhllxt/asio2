@@ -53,3 +53,19 @@ std::uint32_t header_limit_ = (std::numeric_limits<std::uint32_t>::max)();     /
 ```c++
 // Append "HTTP_" before all macro definitions.
 ```
+
+##### Modify file /spdlog/spdlog.h
+```c++
+// Add header only define.
+#ifndef SPDLOG_HEADER_ONLY
+#  define SPDLOG_HEADER_ONLY
+#endif
+```
+
+##### Modify file /fmt/format.h
+```c++
+// Add header only define.
+#ifndef FMT_HEADER_ONLY
+#  define FMT_HEADER_ONLY
+#endif
+```

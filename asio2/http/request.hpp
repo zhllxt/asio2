@@ -1,5 +1,5 @@
 /*
- * COPYRIGHT (C) 2017-2019, zhllxt
+ * COPYRIGHT (C) 2017-2021, zhllxt
  *
  * author   : zhllxt
  * email    : 37792738@qq.com
@@ -14,6 +14,8 @@
 #if defined(_MSC_VER) && (_MSC_VER >= 1200)
 #pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
+
+#include <asio2/base/detail/push_options.hpp>
 
 #include <asio2/base/component/user_data_cp.hpp>
 
@@ -35,11 +37,11 @@ namespace asio2::detail
 	ASIO2_CLASS_FORWARD_DECLARE_TCP_CLIENT;
 	ASIO2_CLASS_FORWARD_DECLARE_TCP_SESSION;
 
-	template<bool isRequest, class Body, class Fields = http::fields>
+	template<class Body, class Fields = http::fields>
 	class http_request_impl_t
-		: public http::message<isRequest, Body, Fields>
+		: public http::message<true, Body, Fields>
 #ifndef ASIO2_DISABLE_HTTP_REQUEST_USER_DATA_CP
-		, public user_data_cp<http_request_impl_t<isRequest, Body, Fields>>
+		, public user_data_cp<http_request_impl_t<Body, Fields>>
 #endif
 	{
 		template <class>                             friend class beast::websocket::listener;
@@ -50,8 +52,8 @@ namespace asio2::detail
 		ASIO2_CLASS_FRIEND_DECLARE_TCP_SESSION;
 
 	public:
-		using self = http_request_impl_t<isRequest, Body, Fields>;
-		using super = http::message<isRequest, Body, Fields>;
+		using self  = http_request_impl_t<Body, Fields>;
+		using super = http::message<true, Body, Fields>;
 		using header_type = typename super::header_type;
 		using body_type = typename super::body_type;
 
@@ -96,23 +98,23 @@ namespace asio2::detail
 			return *this;
 		}
 
-		http_request_impl_t(const http::message<isRequest, Body, Fields>& req)
+		http_request_impl_t(const http::message<true, Body, Fields>& req)
 		{
 			this->base() = req;
 		}
 
-		http_request_impl_t(http::message<isRequest, Body, Fields>&& req)
+		http_request_impl_t(http::message<true, Body, Fields>&& req)
 		{
 			this->base() = std::move(req);
 		}
 
-		self& operator=(const http::message<isRequest, Body, Fields>& req)
+		self& operator=(const http::message<true, Body, Fields>& req)
 		{
 			this->base() = req;
 			return *this;
 		}
 
-		self& operator=(http::message<isRequest, Body, Fields>&& req)
+		self& operator=(http::message<true, Body, Fields>&& req)
 		{
 			this->base() = std::move(req);
 			return *this;
@@ -207,7 +209,9 @@ namespace beast::http
 namespace boost::beast::http
 #endif
 {
-	using request = asio2::detail::http_request_impl_t<true, http::string_body>;
+	using request = asio2::detail::http_request_impl_t<http::string_body>;
 }
+
+#include <asio2/base/detail/pop_options.hpp>
 
 #endif // !__ASIO2_HTTP_REQUEST_IMPL_HPP__

@@ -10,7 +10,7 @@ Header only c++ network library, based on asio,support tcp,udp,http,websocket,rp
 * 支持tcp, udp, http, websocket, rpc, ssl, icmp, serial_port;
 * 支持可靠UDP(基于KCP),支持SSL,支持从内存字符串加载SSL证书;
 * TCP支持各种数据拆包功能(单个字符或字符串或用户自定义协议等);实现了数据报模式的TCP(类似WEBSOCKET);
-* 跨平台,支持windows,linux,32位,64位;在msvc(vs2017 vs2019 ) gcc8 clang10 下编译通过;
+* 跨平台,支持windows,linux,arm,android,32位,64位等;在msvc(vs2017 vs2019) gcc8 clang10 ndk-r22b下编译通过;
 * 基于C++17,基于asio (asio 的 standalone 版本);
 * example目录包含大量的示例工程(工程基于VS2017创建),各种使用方法请参考示例代码;
 
@@ -60,10 +60,10 @@ server.bind_recv([&](std::shared_ptr<asio2::tcp_session> & session_ptr, std::str
 {
 	printf("recv : %u %.*s\n", (unsigned)s.size(), (int)s.size(), s.data());
 	// 异步发送(所有发送操作都是异步且线程安全的)
-	session_ptr->send(s);
+	session_ptr->async_send(s);
 	// 发送时指定一个回调函数,当发送完成后会调用此回调函数,bytes_sent表示实际发送的字节数,
 	// 发送是否有错误可以用asio2::get_last_error()函数来获取错误码
-	// session_ptr->send(s, [](std::size_t bytes_sent) {});
+	// session_ptr->async_send(s, [](std::size_t bytes_sent) {});
 }).bind_connect([&](auto & session_ptr)
 {
 	session_ptr->no_delay(true);
@@ -120,7 +120,13 @@ client.bind_connect([&](asio::error_code ec)
 	else
 		printf("connect success : %s %u\n", client.local_address().c_str(), client.local_port());
 
-	client.send("<abcdefghijklmnopqrstovuxyz0123456789>");
+	// 如果连接成功 就可以调用异步发送函数发送数据了
+	if (!asio2::get_last_error())
+		client.async_send("<abcdefghijklmnopqrstovuxyz0123456789>");
+
+	// 如果在通信线程中调用同步发送函数会退化为异步调用(这里的bind_connect的回调函数就位于通信线程中)
+	// client.send("abc");
+
 }).bind_disconnect([](asio::error_code ec)
 {
 	printf("disconnect : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
@@ -128,7 +134,7 @@ client.bind_connect([&](asio::error_code ec)
 {
 	printf("recv : %u %.*s\n", (unsigned)sv.size(), (int)sv.size(), sv.data());
 
-	client.send(sv);
+	client.async_send(sv);
 })
 	//// 绑定全局函数
 	//.bind_recv(on_recv)
@@ -140,10 +146,19 @@ client.bind_connect([&](asio::error_code ec)
 	//.bind_recv(&listener::on_recv, &lis) 
 	;
 // 异步连接服务端
-client.async_start("0.0.0.0", "8080");
+//client.async_start("0.0.0.0", "8080");
 
 // 同步连接服务端
-//client.start("0.0.0.0", "8080");
+client.start("0.0.0.0", "8080");
+
+// 连接成功后,可以调用发送函数(这里是主线程不在通信线程中)
+// 同步发送和异步发送可以混用,是线程安全的(一定会在A发送完之后才会发送B)
+std::size_t bytes_sent = client.send("abc");
+// 同步发送函数的返回值为发送的字节数 可以用get_last_error()查看是否发生错误
+if(asio2::get_last_error())
+{
+	printf("同步发送数据失败:%s\n", asio2::last_error_msg().data());
+}
 
 // 按\n自动拆包(可以指定任意字符)
 //client.async_start("0.0.0.0", "8080", '\n');
@@ -163,7 +178,7 @@ client.async_start("0.0.0.0", "8080");
 
 // 发送时也可以指定use_future参数,然后通过返回值future来阻塞等待直到发送完成,发送结果的错误码和发送字节数
 // 保存在返回值future中(注意,不能在通信线程中用future去等待,这会阻塞通信线程进而导致死锁)
-// std::future<std::pair<asio::error_code, std::size_t>> future = client.send("abc", asio::use_future); 
+// std::future<std::pair<asio::error_code, std::size_t>> future = client.async_send("abc", asio::use_future); 
 ```
 
 ## UDP:
@@ -370,7 +385,7 @@ server.bind("/ws", websocket::listener<asio2::http_session>{}.
 {
 	printf("ws msg : %u %.*s\n", (unsigned)data.size(), (int)data.size(), data.data());
 
-	session_ptr->send(data);
+	session_ptr->async_send(data);
 
 }).on("open", [](std::shared_ptr<asio2::http_session>& session_ptr)
 {
@@ -547,7 +562,7 @@ sp.bind_init([&]()
 	}
 	s += '>';
 
-	sp.send(s, []() {});
+	sp.async_send(s, []() {});
 
 });
 

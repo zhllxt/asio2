@@ -1,5 +1,5 @@
 /*
- * COPYRIGHT (C) 2017-2019, zhllxt
+ * COPYRIGHT (C) 2017-2021, zhllxt
  *
  * author   : zhllxt
  * email    : 37792738@qq.com
@@ -54,7 +54,7 @@ auto f(Args&& ... args){
 #include <type_traits>
 #include <map>
 
-#include <asio2/base/selector.hpp>
+#include <asio2/3rd/asio.hpp>
 #include <asio2/base/error.hpp>
 #include <asio2/base/detail/function_traits.hpp>
 
@@ -108,8 +108,10 @@ namespace asio2::detail
 					std::future<error_code> future = promise->get_future();
 
 					auto ex = [&derive, result, id, pm = std::move(promise)]
-					(error_code ec, std::string_view s) mutable
+					(error_code ec, std::string_view data) mutable
 					{
+						detail::ignore_unused(data);
+
 						ASIO2_ASSERT(derive.io().strand().running_in_this_thread());
 
 						if (!ec)
@@ -137,22 +139,25 @@ namespace asio2::detail
 						derive.reqs_.erase(id);
 					};
 
-					// Make sure we not run on the strand
-					if (!derive.io().strand().running_in_this_thread())
+					derive.post([&derive, req = std::move(req), ex = std::move(ex)]() mutable
 					{
-						derive.post([&derive, p = derive.selfptr(),
-							req = std::move(req), ex = std::move(ex)]() mutable
+						derive.async_send((derive.sr_.reset() << req).str(),
+						[&derive, id = req.id(), ex = std::move(ex)]() mutable
 						{
-							if (derive.send((derive.sr_.reset() << req).str()))
-							{
-								derive.reqs_.emplace(req.id(), std::move(ex));
-							}
-							else
+							if (get_last_error())
 							{
 								ex(get_last_error(), std::string_view{});
 							}
+							else
+							{
+								derive.reqs_.emplace(id, std::move(ex));
+							}
 						});
+					});
 
+					// Whether we run on the strand
+					if (!derive.io().strand().running_in_this_thread())
+					{
 						std::future_status status = future.wait_for(timeout);
 						if (status == std::future_status::ready)
 						{
@@ -161,7 +166,8 @@ namespace asio2::detail
 						else
 						{
 							ec = asio::error::timed_out;
-							derive.post([&derive, p = derive.selfptr(), id]() mutable
+
+							derive.post([&derive, id]() mutable
 							{
 								derive.reqs_.erase(id);
 							});
@@ -169,34 +175,15 @@ namespace asio2::detail
 					}
 					else
 					{
-						// Unable to invoke synchronization rpc call function in communication thread
-						ASIO2_ASSERT(false);
-						ec = asio::error::operation_not_supported;
+						// If invoke synchronization rpc call function in communication thread, it will degenerates
+						// into async_call and the return value is empty.
 
-						//if (derive.send((derive.sr_.reset() << req).str()))
-						//{
-						//	// Set ec a default value of timed_out first
-						//	ec = asio::error::timed_out;
-						//	std::future_status status = std::future_status::timeout;
-						//	derive.reqs_.emplace(req.id(), std::move(ex));
-						//	auto t1 = std::chrono::steady_clock::now();
-						//	for (auto elapsed = t1 - t1; elapsed < timeout; elapsed = std::chrono::steady_clock::now() - t1)
-						//	{
-						//		derive.io().context().run_for(timeout - elapsed);
-						//		status = future.wait_for(std::chrono::nanoseconds(0));
-						//		if (status == std::future_status::ready)
-						//		{
-						//			ec = future.get();
-						//			break;
-						//		}
-						//	}
-						//	if (status != std::future_status::ready)
-						//		derive.reqs_.erase(req.id());
-						//}
-						//else
-						//{
-						//	ec = get_last_error();
-						//}
+						derive.post([&derive, id]() mutable
+						{
+							derive.reqs_.erase(id);
+						});
+
+						ec = asio::error::in_progress;
 					}
 				}
 				catch (cereal::exception&  ) { ec = asio::error::no_data; }
@@ -211,7 +198,9 @@ namespace asio2::detail
 				}
 				else
 				{
-					asio::detail::throw_error(ec);
+					// [20210818] don't throw an error, you can use get_last_error() to check
+					// is there any exception.
+					//asio::detail::throw_error(ec);
 				}
 
 				if constexpr (!std::is_void_v<return_t>)
@@ -296,8 +285,10 @@ namespace asio2::detail
 			{
 				return std::function<void(error_code, std::string_view)>
 				{
-					[&derive, cb = std::forward<Callback>(cb)](auto ec, std::string_view s) mutable
+					[&derive, cb = std::forward<Callback>(cb)](auto ec, std::string_view data) mutable
 					{
+						detail::ignore_unused(data);
+
 						typename rpc_result_t<return_t>::type result{};
 
 						try
@@ -331,12 +322,10 @@ namespace asio2::detail
 					if (!derive.is_started())
 						asio::detail::throw_error(asio::error::not_connected);
 
-					auto task = [&derive, p = derive.selfptr(), req = std::move(req)]() mutable
+					derive.post([&derive, req = std::move(req)]() mutable
 					{
-						derive.send((derive.sr_.reset() << req).str());
-					};
-
-					derive.post(std::move(task));
+						derive.async_send((derive.sr_.reset() << req).str());
+					});
 
 					return;
 				}
@@ -364,13 +353,15 @@ namespace asio2::detail
 					std::make_shared<asio::steady_timer>(derive.io().context());
 
 				auto ex = [&derive, id, timer, cb = std::forward<Callback>(cb)]
-				(error_code ec, std::string_view s) mutable
+				(error_code ec, std::string_view data) mutable
 				{
 					ASIO2_ASSERT(derive.io().strand().running_in_this_thread());
 
-					timer->cancel(ec_ignore());
+					error_code ec_ignore{};
 
-					if (cb) { cb(ec, s); }
+					timer->cancel(ec_ignore);
+
+					if (cb) { cb(ec, data); }
 
 					derive.reqs_.erase(id);
 				};
@@ -380,39 +371,42 @@ namespace asio2::detail
 					if (!derive.is_started())
 						asio::detail::throw_error(asio::error::not_connected);
 
-					auto task = [&derive, this_ptr = derive.selfptr(), timer = std::move(timer), timeout,
-						req = std::move(req), ex = std::move(ex)]() mutable
-					{
-						if (derive.send((derive.sr_.reset() << req).str()))
-						{
-							derive.reqs_.emplace(req.id(), std::move(ex));
-
-							timer->expires_after(timeout);
-							timer->async_wait(asio::bind_executor(derive.io().strand(),
-								[&derive, this_ptr, id = req.id()](const error_code & ec) mutable
-							{
-								if (ec == asio::error::operation_aborted)
-									return;
-								auto iter = derive.reqs_.find(id);
-								if (iter != derive.reqs_.end())
-								{
-									auto& ex = iter->second;
-									ex(asio::error::timed_out, std::string_view{});
-								}
-							}));
-						}
-						else
-						{
-							ex(get_last_error(), std::string_view{});
-						}
-					};
-
 					// 2019-11-28 fixed the bug of issue #6 : task() cannot be called directly
-					// Make sure we run on the strand
-					//if (!derive.io().strand().running_in_this_thread())
-					derive.post(std::move(task));
-					//else
-					//	task();
+
+					derive.post(
+					[&derive, timer = std::move(timer), timeout, req = std::move(req), ex = std::move(ex)]
+					() mutable
+					{
+						derive.async_send((derive.sr_.reset() << req).str(),
+						[&derive, timer = std::move(timer), timeout, id = req.id(), ex = std::move(ex)]
+						() mutable
+						{
+							if (get_last_error())
+							{
+								ex(get_last_error(), std::string_view{});
+							}
+							else
+							{
+								derive.reqs_.emplace(id, std::move(ex));
+
+								auto this_ptr = derive.selfptr();
+
+								timer->expires_after(timeout);
+								timer->async_wait(asio::bind_executor(derive.io().strand(),
+								[&derive, this_ptr = std::move(this_ptr), id](const error_code& ec) mutable
+								{
+									if (ec == asio::error::operation_aborted)
+										return;
+									auto iter = derive.reqs_.find(id);
+									if (iter != derive.reqs_.end())
+									{
+										auto& ex = iter->second;
+										ex(asio::error::timed_out, std::string_view{});
+									}
+								}));
+							}
+						});
+					});
 
 					return;
 				}
@@ -424,7 +418,7 @@ namespace asio2::detail
 
 				// bug fixed : can't call ex(...) directly, it will 
 				// cause "reqs_.erase(id)" be called in multithread 
-				derive.post([ec, p = derive.selfptr(), ex = std::move(ex)]() mutable
+				derive.post([ec, ex = std::move(ex)]() mutable
 				{
 					set_last_error(ec);
 
@@ -461,6 +455,8 @@ namespace asio2::detail
 				return (*this);
 			}
 
+			// If invoke synchronization rpc call function in communication thread, it will degenerates
+			// into async_call and the return value is empty.
 			template<class return_t, class ...Args>
 			inline return_t call(std::string name, Args&&... args)
 			{
@@ -584,6 +580,8 @@ namespace asio2::detail
 				return std::move(caller);
 			}
 
+			// If invoke synchronization rpc call function in communication thread, it will degenerates
+			// into async_call and the return value is empty.
 			template<class return_t, class ...Args>
 			inline return_t call(std::string name, Args&&... args)
 			{
@@ -609,6 +607,8 @@ namespace asio2::detail
 	public:
 		/**
 		 * @function : call a rpc function
+		 * If invoke synchronization rpc call function in communication thread, it will degenerates
+		 * into async_call and the return value is empty.
 		 */
 		template<class return_t, class Rep, class Period, class ...Args>
 		inline return_t call(std::chrono::duration<Rep, Period> timeout, std::string name, Args&&... args)
@@ -621,6 +621,8 @@ namespace asio2::detail
 
 		/**
 		 * @function : call a rpc function
+		 * If invoke synchronization rpc call function in communication thread, it will degenerates
+		 * into async_call and the return value is empty.
 		 */
 		template<class return_t, class Rep, class Period, class ...Args>
 		inline return_t call(error_code& ec, std::chrono::duration<Rep, Period> timeout,
@@ -634,6 +636,8 @@ namespace asio2::detail
 
 		/**
 		 * @function : call a rpc function
+		 * If invoke synchronization rpc call function in communication thread, it will degenerates
+		 * into async_call and the return value is empty.
 		 */
 		template<class return_t, class ...Args>
 		inline return_t call(std::string name, Args&&... args)
@@ -646,6 +650,8 @@ namespace asio2::detail
 
 		/**
 		 * @function : call a rpc function
+		 * If invoke synchronization rpc call function in communication thread, it will degenerates
+		 * into async_call and the return value is empty.
 		 */
 		template<class return_t, class ...Args>
 		inline return_t call(error_code& ec, std::string name, Args&&... args)

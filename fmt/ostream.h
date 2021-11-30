@@ -49,16 +49,26 @@ template <class Char> class formatbuf : public std::basic_streambuf<Char> {
   }
 };
 
+struct converter {
+  template <typename T, FMT_ENABLE_IF(is_integral<T>::value)> converter(T);
+};
+
 template <typename Char> struct test_stream : std::basic_ostream<Char> {
  private:
-  // Hide all operator<< from std::basic_ostream<Char>.
-  void_t<> operator<<(null<>);
-  void_t<> operator<<(const Char*);
-
-  template <typename T, FMT_ENABLE_IF(std::is_convertible<T, int>::value &&
-                                      !std::is_enum<T>::value)>
-  void_t<> operator<<(T);
+  void_t<> operator<<(converter);
 };
+
+// Hide insertion operators for built-in types.
+template <typename Char, typename Traits>
+void_t<> operator<<(std::basic_ostream<Char, Traits>&, Char);
+template <typename Char, typename Traits>
+void_t<> operator<<(std::basic_ostream<Char, Traits>&, char);
+template <typename Traits>
+void_t<> operator<<(std::basic_ostream<char, Traits>&, char);
+template <typename Traits>
+void_t<> operator<<(std::basic_ostream<char, Traits>&, signed char);
+template <typename Traits>
+void_t<> operator<<(std::basic_ostream<char, Traits>&, unsigned char);
 
 // Checks if T has a user-defined operator<< (e.g. not a member of
 // std::ostream).
@@ -75,6 +85,8 @@ template <typename T, typename Char> class is_streamable {
   using result = decltype(test<T>(0));
 
  public:
+  is_streamable() = default;
+
   static const bool value = result::value;
 };
 
@@ -103,7 +115,7 @@ void format_value(buffer<Char>& buf, const T& value,
 #endif
   output << value;
   output.exceptions(std::ios_base::failbit | std::ios_base::badbit);
-  buf.resize(buf.size());
+  buf.try_resize(buf.size());
 }
 
 // Formats an object of type T that has an overloaded ostream operator<<.
@@ -139,6 +151,7 @@ struct fallback_formatter<T, Char, enable_if_t<is_streamable<T, Char>::value>>
 };
 }  // namespace detail
 
+FMT_MODULE_EXPORT
 template <typename Char>
 void vprint(std::basic_ostream<Char>& os, basic_string_view<Char> format_str,
             basic_format_args<buffer_context<type_identity_t<Char>>> args) {
@@ -156,11 +169,12 @@ void vprint(std::basic_ostream<Char>& os, basic_string_view<Char> format_str,
     fmt::print(cerr, "Don't {}!", "panic");
   \endrst
  */
+FMT_MODULE_EXPORT
 template <typename S, typename... Args,
           typename Char = enable_if_t<detail::is_string<S>::value, char_t<S>>>
 void print(std::basic_ostream<Char>& os, const S& format_str, Args&&... args) {
   vprint(os, to_string_view(format_str),
-         detail::make_args_checked<Args...>(format_str, args...));
+         fmt::make_args_checked<Args...>(format_str, args...));
 }
 FMT_END_NAMESPACE
 

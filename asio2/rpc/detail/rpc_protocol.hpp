@@ -1,5 +1,5 @@
 /*
- * COPYRIGHT (C) 2017-2019, zhllxt
+ * COPYRIGHT (C) 2017-2021, zhllxt
  *
  * author   : zhllxt
  * email    : 37792738@qq.com
@@ -68,14 +68,26 @@ namespace asio2::detail
 			return (*this);
 		}
 
+		//template <class Archive>
+		//inline void serialize(Archive & ar)
+		//{
+		//	ar(type_, id_, name_);
+		//}
+
 		template <class Archive>
-		inline void serialize(Archive & ar)
+		void save(Archive & ar) const
 		{
 			ar(type_, id_, name_);
 		}
 
-		inline const char         type() const { return this->type_; }
-		inline const id_type      id()   const { return this->id_;   }
+		template <class Archive>
+		void load(Archive & ar)
+		{
+			ar(type_, id_, name_);
+		}
+
+		inline       char         type() const { return this->type_; }
+		inline       id_type      id()   const { return this->id_;   }
 		inline const std::string& name() const { return this->name_; }
 
 		inline bool is_request()  { return this->type_ == rpc_type_req; }
@@ -152,11 +164,37 @@ namespace asio2::detail
 			return (*this);
 		}
 
+		//template <class Archive>
+		//void serialize(Archive & ar)
+		//{
+		//	ar(cereal::base_class<rpc_header>(this));
+
+		//	detail::for_each_tuple(tp_, [&ar](auto& elem) mutable
+		//	{
+		//		ar(elem);
+		//	});
+		//}
+
 		template <class Archive>
-		void serialize(Archive & ar)
+		void save(Archive & ar) const
 		{
 			ar(cereal::base_class<rpc_header>(this));
-			ar(tp_);
+
+			detail::for_each_tuple(tp_, [&ar](const auto& elem) mutable
+			{
+				ar << elem;
+			});
+		}
+
+		template <class Archive>
+		void load(Archive & ar)
+		{
+			ar(cereal::base_class<rpc_header>(this));
+
+			detail::for_each_tuple(tp_, [&ar](auto& elem) mutable
+			{
+				ar >> elem;
+			});
 		}
 
 	protected:
@@ -191,12 +229,28 @@ namespace asio2::detail
 			return (*this);
 		}
 
+		//template <class Archive>
+		//void serialize(Archive & ar)
+		//{
+		//	ar(cereal::base_class<rpc_header>(this));
+		//	ar(ec_.value());
+		//	ar(ret_);
+		//}
+
 		template <class Archive>
-		void serialize(Archive & ar)
+		void save(Archive & ar) const
 		{
-			ar(cereal::base_class<rpc_header>(this));
-			ar(ec_.value());
-			ar(ret_);
+			ar << cereal::base_class<rpc_header>(this);
+			ar << ec_.value();
+			ar << ret_;
+		}
+
+		template <class Archive>
+		void load(Archive & ar)
+		{
+			ar >> cereal::base_class<rpc_header>(this);
+			ar >> ec_.value();
+			ar >> ret_;
 		}
 
 	protected:

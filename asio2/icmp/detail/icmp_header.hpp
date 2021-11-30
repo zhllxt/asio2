@@ -57,7 +57,7 @@ namespace asio2::detail
 
 		icmp_header()
 		{
-			std::fill(rep_, rep_ + sizeof(rep_), 0);
+			std::fill(rep_, rep_ + sizeof(rep_), static_cast<unsigned char>(0));
 		}
 
 		inline unsigned char  type()            const { return rep_[0]; }
@@ -72,11 +72,19 @@ namespace asio2::detail
 		inline void identifier(unsigned short n)      { encode(4, 5, n); }
 		inline void sequence_number(unsigned short n) { encode(6, 7, n); }
 
+		// if you overloads cereal's operator>>(...) like this:
+		// void operator>>(cereal::BinaryInputArchive& dr, nlohmann::json& j)
+		// then the cereal's operator>>(...) will doesn't work.
+		// if you want the cereal's operator>>(...) work properly, you should't include the "icmp_header.hpp"
 		inline friend std::istream& operator>>(std::istream& is, icmp_header& header)
 		{
 			return is.read(reinterpret_cast<char*>(header.rep_), 8);
 		}
 
+		// if you overloads cereal's operator<<(...) like this:
+		// void operator<<(cereal::BinaryOutputArchive& sr, nlohmann::json& j)
+		// then the cereal's operator<<(...) will doesn't work.
+		// if you want the cereal's operator<<(...) work properly, you should't include the "icmp_header.hpp"
 		inline friend std::ostream& operator<<(std::ostream& os, const icmp_header& header)
 		{
 			return os.write(reinterpret_cast<const char*>(header.rep_), 8);

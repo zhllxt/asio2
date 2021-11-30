@@ -1,5 +1,5 @@
 /*
- * COPYRIGHT (C) 2017-2019, zhllxt
+ * COPYRIGHT (C) 2017-2021, zhllxt
  *
  * author   : zhllxt
  * email    : 37792738@qq.com
@@ -22,7 +22,7 @@
 #include <utility>
 #include <string_view>
 
-#include <asio2/base/selector.hpp>
+#include <asio2/3rd/asio.hpp>
 #include <asio2/base/error.hpp>
 #include <asio2/base/iopool.hpp>
 
@@ -43,6 +43,7 @@ namespace asio2::detail
 			: ssl_ctx_(ctx)
 			, ssl_type_(type)
 		{
+			detail::ignore_unused(ssl_io);
 		}
 
 		~ssl_stream_cp() = default;
@@ -59,7 +60,18 @@ namespace asio2::detail
 			const condition_wrap<MatchCondition>& condition,
 			socket_type& socket, asio::ssl::context& ctx)
 		{
-			detail::ignore_unused(condition, socket, ctx);
+			derived_t& derive = static_cast<derived_t&>(*this);
+
+			detail::ignore_unused(derive, condition, socket, ctx);
+
+			if constexpr (args_t::is_client)
+			{
+				ASIO2_ASSERT(derive.io().strand().running_in_this_thread());
+			}
+			else
+			{
+				ASIO2_ASSERT(derive.sessions().io().strand().running_in_this_thread());
+			}
 
 			// Why put the initialization code of ssl stream here ?
 			// Why not put it in the constructor ?
@@ -79,7 +91,11 @@ namespace asio2::detail
 			const condition_wrap<MatchCondition>& condition,
 			socket_type& socket, asio::ssl::context& ctx)
 		{
-			detail::ignore_unused(this_ptr, condition, socket, ctx);
+			derived_t& derive = static_cast<derived_t&>(*this);
+
+			detail::ignore_unused(derive, this_ptr, condition, socket, ctx);
+
+			ASIO2_ASSERT(derive.io().strand().running_in_this_thread());
 		}
 
 		template<typename Fn>
@@ -87,126 +103,126 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
+			ASIO2_ASSERT(derive.io().strand().running_in_this_thread());
+
 			if (!this->ssl_stream_)
 			{
 				fn();
 				return;
 			}
 
-			auto task = [this, &derive, this_ptr, fn = std::forward<Fn>(fn)](event_queue_guard<derived_t>&& g) mutable
+			derive.push_event([this, &derive, this_ptr = std::move(this_ptr), fn = std::forward<Fn>(fn)]
+			(event_queue_guard<derived_t>&& g) mutable
 			{
-				// if the client socket is not closed forever,this async_shutdown
-				// callback also can't be called forever, so we use a timer to 
-				// force close the socket,then the async_shutdown callback will
-				// be called.
-
-				std::shared_ptr<asio::steady_timer> timer =
-					mktimer(derive.io(), std::chrono::milliseconds(ssl_shutdown_timeout),
-						[this, this_ptr, f = std::move(fn), g = std::move(g)](const error_code& ec) mutable
+				struct SSL_clear_op
 				{
-					detail::ignore_unused(this, this_ptr);
-
-					set_last_error(ec);
-
-					(f)();
-
-					// return true  : let the timer continue execute.
-					// return false : kill the timer.
-					return false;
-				});
-
-				// when server call ssl stream sync shutdown first,if the client socket is
-				// not closed forever,then here shutdowm will blocking forever.
-				this->ssl_stream_->async_shutdown(asio::bind_executor(derive.io().strand(),
-					[this, this_ptr = std::move(this_ptr), timer = std::move(timer)]
-				(const error_code& ec) mutable
-				{
-					set_last_error(ec);
-
-					// clost the timer
-					timer->cancel(ec_ignore());
+					stream_type* s{};
 
 					// SSL_clear : 
 					// Reset ssl to allow another connection. All settings (method, ciphers, BIOs) are kept.
 
 					// When the client auto reconnect, SSL_clear must be called,
 					// otherwise the SSL handshake will failed.
-					SSL_clear(this->ssl_stream_->native_handle());
-				}));
-			};
 
-			derive.push_event([&derive, t = std::move(task)](event_queue_guard<derived_t>&& g) mutable
-			{
-				auto task = [g = std::move(g), t = std::move(t)]() mutable
-				{
-					t(std::move(g));
+					SSL_clear_op(stream_type* p) : s(p) {}
+					~SSL_clear_op() { if (s) SSL_clear(s->native_handle()); }
 				};
-				derive.post(std::move(task));
-				return true;
+
+				// use "std::shared_ptr<SSL_clear_op>" to enusre that the SSL_clear(...) function is 
+				// called after "socket.shutdown, socket.close, ssl_stream.async_shutdown".
+				std::shared_ptr<SSL_clear_op> SSL_clear_ptr =
+					std::make_shared<SSL_clear_op>(this->ssl_stream_.get());
+
+				// if the client socket is not closed forever,this async_shutdown
+				// callback also can't be called forever, so we use a timer to 
+				// force close the socket,then the async_shutdown callback will
+				// be called.
+				std::shared_ptr<asio::steady_timer> timer = 
+					std::make_shared<asio::steady_timer>(derive.io().context());
+				timer->expires_after(std::chrono::milliseconds(ssl_shutdown_timeout));
+				timer->async_wait(asio::bind_executor(derive.io().strand(), [this_ptr,
+					f = std::move(fn), g = std::move(g), SSL_clear_ptr](const error_code& ec) mutable
+				{
+					// note : lambda [g = std::move(g), SSL_clear_ptr]
+					// SSL_clear_ptr will destroyed first
+					// g will destroyed second after SSL_clear_ptr.
+
+					detail::ignore_unused(this_ptr, g, SSL_clear_ptr);
+
+					set_last_error(ec);
+
+					(f)();
+				}));
+
+				// when server call ssl stream sync shutdown first,if the client socket is
+				// not closed forever,then here shutdowm will blocking forever.
+				this->ssl_stream_->async_shutdown(asio::bind_executor(derive.io().strand(),
+					[this_ptr = std::move(this_ptr), timer = std::move(timer), SSL_clear_ptr = std::move(SSL_clear_ptr)]
+				(const error_code& ec) mutable
+				{
+					detail::ignore_unused(this_ptr, SSL_clear_ptr);
+
+					set_last_error(ec);
+
+					error_code ec_ignore{};
+
+					// clost the timer
+					timer->cancel(ec_ignore);
+				}));
 			});
 		}
 
 		template<typename MatchCondition>
-		inline void _post_handshake(std::shared_ptr<derived_t> this_ptr,
-			condition_wrap<MatchCondition> condition)
+		inline void _post_handshake(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
 			ASIO2_ASSERT(bool(this->ssl_stream_));
+			ASIO2_ASSERT(derive.io().strand().running_in_this_thread());
 
-			auto task = [this, &derive, this_ptr, condition = std::move(condition)]
-			(event_queue_guard<derived_t>&& g) mutable
+			// Used to chech whether the ssl handshake is timeout
+			std::shared_ptr<std::atomic_flag> flag_ptr = std::make_shared<std::atomic_flag>();
+
+			flag_ptr->clear();
+
+			std::shared_ptr<asio::steady_timer> timer =
+				std::make_shared<asio::steady_timer>(derive.io().context());
+			timer->expires_after(std::chrono::milliseconds(ssl_handshake_timeout));
+			timer->async_wait(asio::bind_executor(derive.io().strand(),
+				[&derive, this_ptr, flag_ptr](const error_code& ec) mutable
 			{
-				// Used to chech whether the ssl handshake is timeout
-				std::shared_ptr<std::atomic_flag> flag_ptr = std::make_shared<std::atomic_flag>();
+				detail::ignore_unused(this_ptr);
 
-				flag_ptr->clear();
-
-				std::shared_ptr<asio::steady_timer> timer =
-					mktimer(derive.io(), std::chrono::milliseconds(ssl_handshake_timeout),
-						[&derive, this_ptr, flag_ptr](const error_code& ec) mutable
+				// no errors indicating timed out
+				if (!ec)
 				{
-					// no errors indicating timed out
-					if (!ec)
-					{
-						flag_ptr->test_and_set();
+					flag_ptr->test_and_set();
 
-						// we close the socket, so the async_handshake will returned 
-						// with operation_aborted.
-						derive.socket().lowest_layer().shutdown(asio::socket_base::shutdown_both, ec_ignore());
-						derive.socket().lowest_layer().close(ec_ignore());
-					}
-					// return true  : let the timer continue execute.
-					// return false : kill the timer.
-					return false;
-				});
+					error_code ec_ignore{};
 
-				this->ssl_stream_->async_handshake(this->ssl_type_,
-					asio::bind_executor(derive.io().strand(), make_allocator(derive.rallocator(),
-						[&derive, self_ptr = std::move(this_ptr), g = std::move(g), condition = std::move(condition),
-						flag_ptr = std::move(flag_ptr), timer = std::move(timer)]
-				(const error_code& ec) mutable
-				{
-					// clost the timer
-					timer->cancel(ec_ignore());
+					// we close the socket, so the async_handshake will returned 
+					// with operation_aborted.
+					derive.socket().lowest_layer().shutdown(asio::socket_base::shutdown_both, ec_ignore);
+					derive.socket().lowest_layer().close(ec_ignore);
+				}
+			}));
 
-					if (flag_ptr->test_and_set())
-						derive._handle_handshake(asio::error::timed_out,
-							std::move(self_ptr), std::move(condition));
-					else
-						derive._handle_handshake(ec, std::move(self_ptr), std::move(condition));
-				})));
-			};
-
-			derive.push_event([&derive, t = std::move(task)](event_queue_guard<derived_t>&& g) mutable
+			this->ssl_stream_->async_handshake(this->ssl_type_,
+				asio::bind_executor(derive.io().strand(), make_allocator(derive.rallocator(),
+			[&derive, self_ptr = std::move(this_ptr), condition = std::move(condition),
+					flag_ptr = std::move(flag_ptr), timer = std::move(timer)]
+			(const error_code& ec) mutable
 			{
-				auto task = [g = std::move(g), t = std::move(t)]() mutable
-				{
-					t(std::move(g));
-				};
-				derive.post(std::move(task));
-				return true;
-			});
+				error_code ec_ignore{};
+
+				// clost the timer
+				timer->cancel(ec_ignore);
+
+				if (flag_ptr->test_and_set())
+					derive._handle_handshake(asio::error::timed_out, std::move(self_ptr), std::move(condition));
+				else
+					derive._handle_handshake(ec, std::move(self_ptr), std::move(condition));
+			})));
 		}
 
 		template<typename MatchCondition>
@@ -217,8 +233,11 @@ namespace asio2::detail
 
 			if constexpr (args_t::is_session)
 			{
-				derive.sessions().post([&derive, ec, this_ptr = std::move(self_ptr),
-					condition = std::move(condition)]() mutable
+				// Use "sessions().dispatch" to ensure that the _fire_accept function and the _fire_handshake
+				// function are fired in the same thread
+				derive.sessions().dispatch(
+				[&derive, ec, this_ptr = std::move(self_ptr), condition = std::move(condition)]
+				() mutable
 				{
 					try
 					{

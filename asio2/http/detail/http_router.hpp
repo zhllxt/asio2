@@ -1,5 +1,5 @@
 /*
- * COPYRIGHT (C) 2017-2019, zhllxt
+ * COPYRIGHT (C) 2017-2021, zhllxt
  *
  * author   : zhllxt
  * email    : 37792738@qq.com
@@ -14,6 +14,8 @@
 #if defined(_MSC_VER) && (_MSC_VER >= 1200)
 #pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
+
+#include <asio2/base/detail/push_options.hpp>
 
 #include <cstdint>
 #include <memory>
@@ -31,7 +33,8 @@
 #include <type_traits>
 #include <filesystem>
 
-#include <asio2/base/selector.hpp>
+#include <asio2/3rd/asio.hpp>
+#include <asio2/3rd/beast.hpp>
 #include <asio2/base/iopool.hpp>
 #include <asio2/base/error.hpp>
 
@@ -55,13 +58,13 @@ namespace beast::websocket
 namespace boost::beast::websocket
 #endif
 {
-	template<class CallerT>
+	template<class caller_t>
 	class listener
 	{
 		template<class> friend class asio2::detail::http_router_t;
 
 	public:
-		using self = listener<CallerT>;
+		using self = listener<caller_t>;
 
 		listener() = default;
 		listener(listener&&) = default;
@@ -97,25 +100,27 @@ namespace boost::beast::websocket
 		}
 
 	protected:
-		inline void operator()(std::shared_ptr<CallerT>& caller, http::request& req, http::response&)
+		inline void operator()(std::shared_ptr<caller_t>& caller, http::request& req, http::response&)
 		{
 			ASIO2_ASSERT(caller->is_websocket());
 
-			auto& f = cbs_[asio2::detail::enum_to_int(req.ws_frame_type_)];
+			auto& f = cbs_[asio2::detail::to_underlying(req.ws_frame_type_)];
 
 			if (f) f(caller, req.ws_frame_data_);
 		}
 		template<class F>
 		inline void _bind(websocket::frame type, F&& f)
 		{
-			this->cbs_[asio2::detail::enum_to_int(type)] = std::bind(
+			this->cbs_[asio2::detail::to_underlying(type)] = std::bind(
 				&self::template _proxy<F>, this, std::forward<F>(f),
 				std::placeholders::_1, std::placeholders::_2);
 		}
 		template<class F>
-		inline void _proxy(F& f, std::shared_ptr<CallerT>& caller, std::string_view data)
+		inline void _proxy(F& f, std::shared_ptr<caller_t>& caller, std::string_view data)
 		{
-			if constexpr (asio2::detail::is_template_callable_v<F, std::shared_ptr<CallerT>&, std::string_view>)
+			asio2::detail::ignore_unused(data);
+
+			if constexpr (asio2::detail::is_template_callable_v<F, std::shared_ptr<caller_t>&, std::string_view>)
 			{
 				f(caller, data);
 			}
@@ -126,8 +131,8 @@ namespace boost::beast::websocket
 		}
 
 	protected:
-		std::array<std::function<void(std::shared_ptr<CallerT>&, std::string_view)>,
-			asio2::detail::enum_to_int(frame::close) + 1> cbs_;
+		std::array<std::function<void(std::shared_ptr<caller_t>&, std::string_view)>,
+			asio2::detail::to_underlying(frame::close) + 1> cbs_;
 	};
 }
 
@@ -138,9 +143,11 @@ namespace asio2::detail
 	ASIO2_CLASS_FORWARD_DECLARE_TCP_SERVER;
 	ASIO2_CLASS_FORWARD_DECLARE_TCP_SESSION;
 
-	template<class CallerT>
+	template<class caller_t>
 	class http_router_t
 	{
+		friend caller_t;
+
 		ASIO2_CLASS_FRIEND_DECLARE_BASE;
 		ASIO2_CLASS_FRIEND_DECLARE_TCP_BASE;
 		ASIO2_CLASS_FRIEND_DECLARE_TCP_SERVER;
@@ -161,8 +168,8 @@ namespace asio2::detail
 			after((std::declval<Args>())...)), Args...> : std::true_type {};
 
 	public:
-		using self = http_router_t<CallerT>;
-		using optype = std::function<void(std::shared_ptr<CallerT>&, http::request&, http::response&)>;
+		using self = http_router_t<caller_t>;
+		using optype = std::function<void(std::shared_ptr<caller_t>&, http::request&, http::response&)>;
 
 		/**
 		 * @constructor
@@ -170,7 +177,7 @@ namespace asio2::detail
 		http_router_t()
 		{
 			this->not_found_router_ = std::make_shared<optype>(
-				[](std::shared_ptr<CallerT>&, http::request& req, http::response& rep) mutable
+				[](std::shared_ptr<caller_t>&, http::request& req, http::response& rep) mutable
 			{
 				std::string desc;
 				desc.reserve(64);
@@ -219,7 +226,7 @@ namespace asio2::detail
 		 * @param    : aop - aop object list.
 		 */
 		template<class ...AOP>
-		inline self& bind(std::string name, websocket::listener<CallerT> listener, AOP&&... aop)
+		inline self& bind(std::string name, websocket::listener<caller_t> listener, AOP&&... aop)
 		{
 			asio2::trim_both(name);
 
@@ -329,7 +336,7 @@ namespace asio2::detail
 		}
 
 		template<class... AOP>
-		inline void _bind(std::string name, websocket::listener<CallerT> listener, AOP&&... aop)
+		inline void _bind(std::string name, websocket::listener<caller_t> listener, AOP&&... aop)
 		{
 			using Tup = std::tuple<AOP...>;
 
@@ -363,7 +370,7 @@ namespace asio2::detail
 
 		template<class F, class Tup>
 		inline void _proxy(F& f, Tup& aops, 
-			std::shared_ptr<CallerT>& caller, http::request& req, http::response& rep)
+			std::shared_ptr<caller_t>& caller, http::request& req, http::response& rep)
 		{
 			using fun_traits_type = function_traits<F>;
 			using arg0_type = typename std::remove_cv_t<std::remove_reference_t<
@@ -372,7 +379,7 @@ namespace asio2::detail
 			if (!_call_aop_before(aops, caller, req, rep))
 				return;
 
-			if constexpr (std::is_same_v<std::shared_ptr<CallerT>, arg0_type>)
+			if constexpr (std::is_same_v<std::shared_ptr<caller_t>, arg0_type>)
 			{
 				f(caller, req, rep);
 			}
@@ -386,7 +393,7 @@ namespace asio2::detail
 
 		template<class F, class C, class Tup>
 		inline void _proxy(F& f, C* c, Tup& aops, 
-			std::shared_ptr<CallerT>& caller, http::request& req, http::response& rep)
+			std::shared_ptr<caller_t>& caller, http::request& req, http::response& rep)
 		{
 			using fun_traits_type = function_traits<F>;
 			using arg0_type = typename std::remove_cv_t<std::remove_reference_t<
@@ -395,7 +402,7 @@ namespace asio2::detail
 			if (!_call_aop_before(aops, caller, req, rep))
 				return;
 
-			if constexpr (std::is_same_v<std::shared_ptr<CallerT>, arg0_type>)
+			if constexpr (std::is_same_v<std::shared_ptr<caller_t>, arg0_type>)
 			{
 				if (c) (c->*f)(caller, req, rep);
 			}
@@ -408,8 +415,8 @@ namespace asio2::detail
 		}
 
 		template<class Tup>
-		inline void _proxy(websocket::listener<CallerT>& listener, Tup& aops,
-			std::shared_ptr<CallerT>& caller, http::request& req, http::response& rep)
+		inline void _proxy(websocket::listener<caller_t>& listener, Tup& aops,
+			std::shared_ptr<caller_t>& caller, http::request& req, http::response& rep)
 		{
 			if (!_call_aop_before(aops, caller, req, rep))
 				return;
@@ -442,10 +449,12 @@ namespace asio2::detail
 		}
 
 		template<class F>
-		inline void _not_found_proxy(F& f, std::shared_ptr<CallerT>& caller,
+		inline void _not_found_proxy(F& f, std::shared_ptr<caller_t>& caller,
 			http::request& req, http::response& rep)
 		{
-			if constexpr (is_template_callable_v<F, std::shared_ptr<CallerT>&, http::request&, http::response&>)
+			asio2::detail::ignore_unused(caller);
+
+			if constexpr (is_template_callable_v<F, std::shared_ptr<caller_t>&, http::request&, http::response&>)
 			{
 				f(caller, req, rep);
 			}
@@ -456,10 +465,12 @@ namespace asio2::detail
 		}
 
 		template<class F, class C>
-		inline void _not_found_proxy(F& f, C* c, std::shared_ptr<CallerT>& caller,
+		inline void _not_found_proxy(F& f, C* c, std::shared_ptr<caller_t>& caller,
 			http::request& req, http::response& rep)
 		{
-			if constexpr (is_template_callable_v<F, std::shared_ptr<CallerT>&,
+			asio2::detail::ignore_unused(caller);
+
+			if constexpr (is_template_callable_v<F, std::shared_ptr<caller_t>&,
 				http::request&, http::response&>)
 			{
 				if (c) (c->*f)(caller, req, rep);
@@ -477,9 +488,11 @@ namespace asio2::detail
 		}
 
 		template<class Tup>
-		inline bool _call_aop_before(Tup& aops, std::shared_ptr<CallerT>& caller,
+		inline bool _call_aop_before(Tup& aops, std::shared_ptr<caller_t>& caller,
 			http::request& req, http::response& rep)
 		{
+			asio2::detail::ignore_unused(aops, caller, req, rep);
+
 			if constexpr (!std::tuple_size_v<Tup>)
 			{
 				return true;
@@ -488,15 +501,17 @@ namespace asio2::detail
 			{
 				std::ignore = true;
 			}
-
+			
 			bool continued = true;
 			_for_each_tuple(aops, [&continued, &caller, &req, &rep](auto& aop)
 			{
+				asio2::detail::ignore_unused(caller, req, rep);
+
 				if (!continued)
 					return;
 
 				if constexpr (has_member_before<decltype(aop), bool,
-					std::shared_ptr<CallerT>&, http::request&, http::response&>::value)
+					std::shared_ptr<caller_t>&, http::request&, http::response&>::value)
 				{
 					continued = aop.before(caller, req, rep);
 				}
@@ -515,7 +530,7 @@ namespace asio2::detail
 		}
 
 		template<class Tup>
-		inline bool _call_aop_after(Tup& aops, std::shared_ptr<CallerT>& caller,
+		inline bool _call_aop_after(Tup& aops, std::shared_ptr<caller_t>& caller,
 			http::request& req, http::response& rep)
 		{
 			if constexpr (!std::tuple_size_v<Tup>)
@@ -526,15 +541,17 @@ namespace asio2::detail
 			{
 				std::ignore = true;
 			}
-
+			
 			bool continued = true;
 			_for_each_tuple(aops, [&continued, &caller, &req, &rep](auto& aop)
 			{
+				asio2::detail::ignore_unused(caller, req, rep);
+
 				if (!continued)
 					return;
 
 				if constexpr (has_member_after<decltype(aop), bool,
-					std::shared_ptr<CallerT>&, http::request&, http::response&>::value)
+					std::shared_ptr<caller_t>&, http::request&, http::response&>::value)
 				{
 					continued = aop.after(caller, req, rep);
 				}
@@ -570,7 +587,7 @@ namespace asio2::detail
 		template<bool IsHttp>
 		inline std::shared_ptr<optype>& _find(http::request& req, http::response& rep)
 		{
-			detail::ignore_unused(rep);
+			asio2::detail::ignore_unused(rep);
 
 			std::string uri;
 
@@ -594,12 +611,12 @@ namespace asio2::detail
 			// Find the best match url from tail to head
 			if (!wildcard_routers_.empty())
 			{
-				for (auto it = std::prev(this->wildcard_routers_.end()); it != this->wildcard_routers_.end(); --it)
+				for (auto it = this->wildcard_routers_.rbegin(); it != this->wildcard_routers_.rend(); ++it)
 				{
 					auto& k = it->first;
 					ASIO2_ASSERT(k.size() >= std::size_t(3));
-					if (uri.front() == k.front() && uri.size() >= k.size() - 2 &&
-						uri[k.size() - 3] == k[k.size() - 3] && http::url_match(k, uri))
+					if (!uri.empty() && !k.empty() && uri.front() == k.front() && uri.size() >= (k.size() - 2)
+						&& uri[k.size() - 3] == k[k.size() - 3] && http::url_match(k, uri))
 					{
 						return (it->second);
 					}
@@ -609,7 +626,7 @@ namespace asio2::detail
 			return this->dummy_router_;
 		}
 
-		inline bool _route(std::shared_ptr<CallerT>& caller, http::request& req, http::response& rep)
+		inline bool _route(std::shared_ptr<caller_t>& caller, http::request& req, http::response& rep)
 		{
 			if (caller->websocket_router_)
 			{
@@ -635,7 +652,7 @@ namespace asio2::detail
 		{
 			using namespace std::literals;
 			constexpr std::string_view chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"sv;
-			return chars.substr(enum_to_int(method), 1);
+			return chars.substr(detail::to_underlying(method), 1);
 		}
 
 	protected:
@@ -652,5 +669,7 @@ namespace asio2::detail
 		std::shared_ptr<optype>                                  dummy_router_;
 	};
 }
+
+#include <asio2/base/detail/pop_options.hpp>
 
 #endif // !__ASIO2_HTTP_ROUTER_HPP__

@@ -1,5 +1,5 @@
 /*
- * COPYRIGHT (C) 2017-2019, zhllxt
+ * COPYRIGHT (C) 2017-2021, zhllxt
  *
  * author   : zhllxt
  * email    : 37792738@qq.com
@@ -21,7 +21,8 @@
 #include <chrono>
 #include <type_traits>
 
-#include <asio2/base/selector.hpp>
+#include <asio2/3rd/asio.hpp>
+#include <asio2/base/error.hpp>
 
 namespace asio2::detail
 {
@@ -96,7 +97,7 @@ namespace asio2::detail
 				this->works_.emplace_back(io.context().get_executor());
 
 				// start work thread
-				this->threads_.emplace_back([&io]()
+				this->threads_.emplace_back([&io]() mutable
 				{
 					io.context().run();
 				});

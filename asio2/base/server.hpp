@@ -1,5 +1,5 @@
 /*
- * COPYRIGHT (C) 2017-2019, zhllxt
+ * COPYRIGHT (C) 2017-2021, zhllxt
  *
  * author   : zhllxt
  * email    : 37792738@qq.com
@@ -15,6 +15,8 @@
 #pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
+#include <asio2/base/detail/push_options.hpp>
+
 #include <cstdint>
 #include <memory>
 #include <chrono>
@@ -26,9 +28,12 @@
 #include <unordered_map>
 #include <type_traits>
 
-#include <asio2/base/selector.hpp>
+#include <asio2/3rd/asio.hpp>
+#include <asio2/3rd/magic_enum.hpp>
+
 #include <asio2/base/iopool.hpp>
 #include <asio2/base/error.hpp>
+#include <asio2/base/log.hpp>
 #include <asio2/base/listener.hpp>
 #include <asio2/base/session_mgr.hpp>
 #include <asio2/base/define.hpp>
@@ -43,8 +48,6 @@
 #include <asio2/base/component/user_timer_cp.hpp>
 #include <asio2/base/component/post_cp.hpp>
 #include <asio2/base/component/async_event_cp.hpp>
-
-#include <asio2/util/defer.hpp>
 
 namespace asio2::detail
 {
@@ -65,6 +68,9 @@ namespace asio2::detail
 		using super = object_t     <derived_t>;
 		using self  = server_impl_t<derived_t, session_t>;
 
+		using key_type = std::size_t;
+
+	public:
 		/**
 		 * @constructor
 		 */
@@ -102,9 +108,11 @@ namespace asio2::detail
 		 */
 		inline void stop()
 		{
+			ASIO2_ASSERT(this->io_.strand().running_in_this_thread());
+
 			if (!this->io_.strand().running_in_this_thread())
 			{
-				this->derived().post([this, this_ptr = this->derived().selfptr()]() mutable
+				this->derived().post([this]() mutable
 				{
 					this->stop();
 				});
@@ -142,21 +150,29 @@ namespace asio2::detail
 		}
 
 		/**
+		 * @function : get this object hash key
+		 */
+		inline key_type hash_key() const
+		{
+			return reinterpret_cast<key_type>(this);
+		}
+
+		/**
 		 * @function : Asynchronous send data for each session
 		 * supporting multi data formats,see asio::buffer(...) in /asio/buffer.hpp
 		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
-		 * PodType * : send("abc");
-		 * PodType (&data)[N] : double m[10]; send(m);
-		 * std::array<PodType, N> : std::array<int,10> m; send(m);
-		 * std::vector<PodType, Allocator> : std::vector<float> m; send(m);
-		 * std::basic_string<Elem, Traits, Allocator> : std::string m; send(m);
+		 * PodType * : async_send("abc");
+		 * PodType (&data)[N] : double m[10]; async_send(m);
+		 * std::array<PodType, N> : std::array<int,10> m; async_send(m);
+		 * std::vector<PodType, Allocator> : std::vector<float> m; async_send(m);
+		 * std::basic_string<Elem, Traits, Allocator> : std::string m; async_send(m);
 		 */
 		template<class T>
-		inline derived_t & send(const T& data)
+		inline derived_t & async_send(const T& data)
 		{
 			this->sessions_.for_each([&data](std::shared_ptr<session_t>& session_ptr) mutable
 			{
-				session_ptr->send(data);
+				session_ptr->async_send(data);
 			});
 			return this->derived();
 		}
@@ -164,39 +180,32 @@ namespace asio2::detail
 		/**
 		 * @function : Asynchronous send data for each session
 		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
-		 * We do not provide synchronous send function,because the synchronous send code is very simple,
-		 * if you want use synchronous send data,you can do it like this (example):
-		 * asio::write(session_ptr->socket(), asio::buffer(std::string("abc")));
-		 * PodType * : send("abc");
+		 * PodType * : async_send("abc");
 		 */
 		template<class CharT, class Traits = std::char_traits<CharT>>
 		inline typename std::enable_if_t<
-			std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, char> ||
-			std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, wchar_t> ||
-			std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, char16_t> ||
-			std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, char32_t>, derived_t&> send(CharT * s)
+			std::is_same_v<detail::remove_cvref_t<CharT>, char> ||
+			std::is_same_v<detail::remove_cvref_t<CharT>, wchar_t> ||
+			std::is_same_v<detail::remove_cvref_t<CharT>, char16_t> ||
+			std::is_same_v<detail::remove_cvref_t<CharT>, char32_t>, derived_t&> async_send(CharT * s)
 		{
-			return this->send(s, s ? Traits::length(s) : 0);
+			return this->async_send(s, s ? Traits::length(s) : 0);
 		}
 
 		/**
 		 * @function : Asynchronous send data for each session
 		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
-		 * We do not provide synchronous send function,because the synchronous send code is very simple,
-		 * if you want use synchronous send data,you can do it like this (example):
-		 * asio::write(session_ptr->socket(), asio::buffer(std::string("abc")));
-		 * PodType (&data)[N] : double m[10]; send(m,5);
+		 * PodType (&data)[N] : double m[10]; async_send(m,5);
 		 */
 		template<class CharT, class SizeT>
-		inline typename std::enable_if_t<std::is_integral_v<std::remove_cv_t<
-			std::remove_reference_t<SizeT>>>, derived_t&>
-			send(CharT* s, SizeT count)
+		inline typename std::enable_if_t<std::is_integral_v<detail::remove_cvref_t<SizeT>>, derived_t&>
+			async_send(CharT* s, SizeT count)
 		{
 			if (s)
 			{
-				this->sessions_.for_each([s, count](std::shared_ptr<session_t>& session_ptr)
+				this->sessions_.for_each([s, count](std::shared_ptr<session_t>& session_ptr) mutable
 				{
-					session_ptr->send(s, count);
+					session_ptr->async_send(s, count);
 				});
 			}
 			return this->derived();
@@ -322,5 +331,7 @@ namespace asio2::detail
 		std::shared_ptr<void>                       counter_ptr_;
 	};
 }
+
+#include <asio2/base/detail/pop_options.hpp>
 
 #endif // !__ASIO2_SERVER_HPP__

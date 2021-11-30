@@ -1,5 +1,5 @@
 /*
- * COPYRIGHT (C) 2017-2019, zhllxt
+ * COPYRIGHT (C) 2017-2021, zhllxt
  * 
  * author   : zhllxt
  * email    : 37792738@qq.com
@@ -36,5 +36,11 @@
 // If you want to using websocket as the underlying communication support, open the macro 
 // definition below
 //#define ASIO2_USE_WEBSOCKET_RPC
+
+// Whether to detect the validity of UTF8 string of mqtt
+#define ASIO2_CHECK_UTF8
+
+// Whether enable internal logging of asio2
+//#define ASIO2_ENABLE_LOG
 
 #endif // !__ASIO2_CONFIG_HPP__

@@ -21,9 +21,12 @@
 #include <unordered_map>
 #include <type_traits>
 
-#include <asio2/base/selector.hpp>
+#include <asio2/3rd/asio.hpp>
+#include <asio2/3rd/magic_enum.hpp>
+
 #include <asio2/base/iopool.hpp>
 #include <asio2/base/define.hpp>
+#include <asio2/base/log.hpp>
 
 #include <asio2/base/detail/allocator.hpp>
 
@@ -89,10 +92,49 @@ namespace asio2::detail
 
 			bool inserted = false;
 
+			// when run to here, the server state maybe started or stopping or stopped, 
+			// if server state is not started, must can't push the session to the map
+			// again, and we need disconnect the session directly, otherwise the server
+			// maybe stopping, and the iopool's wait_iothreas is running in the "sleep"
+			// this will cause the server.stop() never return;
+			if (this->state_ == state_t::started)
 			{
+				// when code run to here, user maybe call server.stop() at other thread,
+				// if user do this, at this time, the state_ is not started already( it
+				// will be stopping ), but beacuase the server's sessions_.for_each -> 
+				// session_ptr->stop(); is execute in the thread 0, and this code is 
+				// executed in thread 0 too, so when code run to here, beacuse we have
+				// " if (this->state_ == state_t::started) " judgment statement, so the
+				// server's sessions_.for_each -> session_ptr->stop(); must not be
+				// executed yet, so even if we put the session in the map here, it will
+				// not have a problem, beacuse the server's sessions_.for_each -> 
+				// session_ptr->stop(); will be called a later, and this session will be 
+				// stopped at there.
+
+				// we use a assert to check the server's sessions_.for_each -> 
+				// session_ptr->stop(); must not be executed yet.
+			#if defined(ASIO2_ENABLE_LOG)
+				if (is_all_session_stop_called_)
+				{
+					ASIO2_LOG(spdlog::level::critical, "server's sessions stop is called already. 1");
+				}
+				ASIO2_ASSERT(is_all_session_stop_called_ == false);
+			#endif
+
+				// this thread is same as the server's io thread, when code run to here,
+				// the server's _post_stop must not be executed, so the server's sessions_.for_each
+				// -> session_ptr->stop() must not be executed.
 				asio2_unique_lock guard(this->mutex_);
 				inserted = this->sessions_.try_emplace(session_ptr->hash_key(), session_ptr).second;
 				session_ptr->in_sessions_ = inserted;
+
+			#if defined(ASIO2_ENABLE_LOG)
+				if (is_all_session_stop_called_)
+				{
+					ASIO2_LOG(spdlog::level::critical, "server's sessions stop is called already. 2");
+				}
+				ASIO2_ASSERT(is_all_session_stop_called_ == false);
+			#endif
 			}
 
 			(callback)(inserted);
@@ -138,6 +180,16 @@ namespace asio2::detail
 		inline void post(Fun&& task)
 		{
 			asio::post(this->io_.strand(), make_allocator(this->allocator_, std::forward<Fun>(task)));
+		}
+
+		/**
+		 * @function : Submits a completion token or function object for execution.
+		 * @task : void();
+		 */
+		template<class Fun>
+		inline void dispatch(Fun&& task)
+		{
+			asio::dispatch(this->io_.strand(), make_allocator(this->allocator_, std::forward<Fun>(task)));
 		}
 
 		/**
@@ -199,6 +251,14 @@ namespace asio2::detail
 			return this->sessions_.empty();
 		}
 
+		/**
+		 * @function : get the io object refrence
+		 */
+		inline io_t & io()
+		{
+			return this->io_;
+		}
+
 	protected:
 		/// session unorder map,these session is already connected session 
 		std::unordered_map<key_type, std::shared_ptr<session_t>> sessions_;
@@ -214,6 +274,10 @@ namespace asio2::detail
 
 		/// server state refrence
 		std::atomic<state_t>                    & state_;
+
+	#if defined(ASIO2_ENABLE_LOG)
+		bool                                      is_all_session_stop_called_ = false;
+	#endif
 	};
 }
 

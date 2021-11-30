@@ -117,8 +117,7 @@ public:
                 }
                 BEAST_ASSERT(impl.rd_block.is_locked(this));
 
-                // VFALCO Is this check correct here?
-                BEAST_ASSERT(! ec && impl.check_stop_now(ec));
+				BEAST_ASSERT(!ec);
                 if(impl.check_stop_now(ec))
                 {
                     BEAST_ASSERT(ec == net::error::operation_aborted);

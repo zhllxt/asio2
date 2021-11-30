@@ -1,5 +1,5 @@
 /*
- * COPYRIGHT (C) 2017-2019, zhllxt
+ * COPYRIGHT (C) 2017-2021, zhllxt
  *
  * author   : zhllxt
  * email    : 37792738@qq.com
@@ -32,6 +32,7 @@ namespace asio2::detail
 	enum class event_type : std::int8_t
 	{
 		recv,
+		send,
 		connect,
 		disconnect,
 		accept,
@@ -121,14 +122,14 @@ namespace asio2::detail
 		template<class T>
 		inline void bind(event_type e, T&& observer)
 		{
-			this->observers_[enum_to_int(e)] = std::unique_ptr<base_observer>(new T(std::forward<T>(observer)));
+			this->observers_[detail::to_underlying(e)] = std::unique_ptr<base_observer>(new T(std::forward<T>(observer)));
 		}
 
 		template<class... Args>
 		inline void notify(event_type e, Args&&... args)
 		{
 			using observer_type = observer_t<Args...>;
-			observer_type * observer_ptr = static_cast<observer_type *>(this->observers_[enum_to_int(e)].get());
+			observer_type * observer_ptr = static_cast<observer_type *>(this->observers_[detail::to_underlying(e)].get());
 			if (observer_ptr)
 			{
 				(*observer_ptr)(std::forward<Args>(args)...);
@@ -137,11 +138,11 @@ namespace asio2::detail
 
 		inline std::unique_ptr<base_observer>& find(event_type e)
 		{
-			return this->observers_[enum_to_int(e)];
+			return this->observers_[detail::to_underlying(e)];
 		}
 
 	protected:
-		std::array<std::unique_ptr<base_observer>, enum_to_int(event_type::max)> observers_;
+		std::array<std::unique_ptr<base_observer>, detail::to_underlying(event_type::max)> observers_;
 	};
 }
 

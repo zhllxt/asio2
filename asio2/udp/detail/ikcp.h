@@ -219,28 +219,7 @@ typedef struct IQUEUEHEAD iqueue_head;
 	iqueue_splice(list, head);	iqueue_init(list); } while (0)
 
 
-#ifdef _MSC_VER
-#  pragma warning(push) 
-#  pragma warning(disable:4311)
-#  pragma warning(disable:4312)
-#  pragma warning(disable:4996)
-#endif
-
-#if defined(__GNUC__) || defined(__GNUG__)
-#  pragma GCC diagnostic push
-#  pragma GCC diagnostic ignored "-Wunused-variable"
-#  pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
-
-#if defined(__clang__)
-#  pragma clang diagnostic push
-#  pragma clang diagnostic ignored "-Wunused-variable"
-#  pragma clang diagnostic ignored "-Wexceptions"
-#  pragma clang diagnostic ignored "-Wdeprecated-declarations"
-#  pragma clang diagnostic ignored "-Wunused-private-field"
-#  pragma clang diagnostic ignored "-Wunused-local-typedef"
-#  pragma clang diagnostic ignored "-Wunknown-warning-option"
-#endif
+#include <asio2/base/detail/push_options.hpp>
 
 #endif
 
@@ -677,6 +656,7 @@ inline void ikcp_qprint(const char *name, const struct IQUEUEHEAD *head)
 template<typename = void>
 static inline IKCPSEG* ikcp_segment_new(ikcpcb *kcp, int size)
 {
+	(void)kcp;
 	return (IKCPSEG*)ikcp_malloc(sizeof(IKCPSEG) + size);
 }
 
@@ -684,6 +664,7 @@ static inline IKCPSEG* ikcp_segment_new(ikcpcb *kcp, int size)
 template<typename = void>
 static inline void ikcp_segment_delete(ikcpcb *kcp, IKCPSEG *seg)
 {
+	(void)kcp;
 	ikcp_free(seg);
 }
 
@@ -1230,16 +1211,16 @@ void ikcp_flush(ikcpcb *kcp)
 		}
 
 		if (needsend) {
-			int size, need;
+			int sizen, need;
 			segment->ts = current;
 			segment->wnd = seg.wnd;
 			segment->una = kcp->rcv_nxt;
 
-			size = (int)(ptr - buffer);
+			sizen = (int)(ptr - buffer);
 			need = IKCP_OVERHEAD + segment->len;
 
-			if (size + need > (int)kcp->mtu) {
-				ikcp_output(kcp, buffer, size);
+			if (sizen + need > (int)kcp->mtu) {
+				ikcp_output(kcp, buffer, sizen);
 				ptr = buffer;
 			}
 
@@ -1251,7 +1232,7 @@ void ikcp_flush(ikcpcb *kcp)
 			}
 
 			if (segment->xmit >= kcp->dead_link) {
-				kcp->state = -1;
+				kcp->state = (IUINT32)(-1);
 			}
 		}
 	}
@@ -1345,11 +1326,11 @@ int ikcp_recv(ikcpcb *kcp, char *buffer, int len)
 
 	// move available data from rcv_buf -> rcv_queue
 	while (! iqueue_is_empty(&kcp->rcv_buf)) {
-		IKCPSEG *seg = iqueue_entry(kcp->rcv_buf.next, IKCPSEG, node);
-		if (seg->sn == kcp->rcv_nxt && kcp->nrcv_que < kcp->rcv_wnd) {
-			iqueue_del(&seg->node);
+		IKCPSEG *segx = iqueue_entry(kcp->rcv_buf.next, IKCPSEG, node);
+		if (segx->sn == kcp->rcv_nxt && kcp->nrcv_que < kcp->rcv_wnd) {
+			iqueue_del(&segx->node);
 			kcp->nrcv_buf--;
-			iqueue_add_tail(&seg->node, &kcp->rcv_queue);
+			iqueue_add_tail(&segx->node, &kcp->rcv_queue);
 			kcp->nrcv_que++;
 			kcp->rcv_nxt++;
 		}	else {
@@ -1531,7 +1512,7 @@ int ikcp_input(ikcpcb *kcp, const char *data, long size)
 	if (data == NULL || (int)size < (int)IKCP_OVERHEAD) return -1;
 
 	while (1) {
-		IUINT32 ts, sn, len, una, conv;
+		IUINT32 ts, sn, len, unax, conv;
 		IUINT16 wnd;
 		IUINT8 cmd, frg;
 		IKCPSEG *seg;
@@ -1546,7 +1527,7 @@ int ikcp_input(ikcpcb *kcp, const char *data, long size)
 		data = ikcp_decode16u(data, &wnd);
 		data = ikcp_decode32u(data, &ts);
 		data = ikcp_decode32u(data, &sn);
-		data = ikcp_decode32u(data, &una);
+		data = ikcp_decode32u(data, &unax);
 		data = ikcp_decode32u(data, &len);
 
 		size -= IKCP_OVERHEAD;
@@ -1558,7 +1539,7 @@ int ikcp_input(ikcpcb *kcp, const char *data, long size)
 			return -3;
 
 		kcp->rmt_wnd = wnd;
-		ikcp_parse_una(kcp, una);
+		ikcp_parse_una(kcp, unax);
 		ikcp_shrink_buf(kcp);
 
 		if (cmd == IKCP_CMD_ACK) {
@@ -1597,7 +1578,7 @@ int ikcp_input(ikcpcb *kcp, const char *data, long size)
 					seg->wnd = wnd;
 					seg->ts = ts;
 					seg->sn = sn;
-					seg->una = una;
+					seg->una = unax;
 					seg->len = len;
 
 					if (len > 0) {
@@ -1662,17 +1643,7 @@ int ikcp_input(ikcpcb *kcp, const char *data, long size)
 //}
 //#endif
 
-#if defined(__clang__)
-#  pragma clang diagnostic pop
-#endif
-
-#if defined(__GNUC__) || defined(__GNUG__)
-#  pragma GCC diagnostic pop
-#endif
-
-#if defined(_MSC_VER)
-#  pragma warning(pop) 
-#endif
+#include <asio2/base/detail/pop_options.hpp>
 
 }
 

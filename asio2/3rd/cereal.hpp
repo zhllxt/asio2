@@ -1,5 +1,5 @@
 /*
- * COPYRIGHT (C) 2017-2019, zhllxt
+ * COPYRIGHT (C) 2017-2021, zhllxt
  *
  * author   : zhllxt
  * email    : 37792738@qq.com
@@ -15,28 +15,7 @@
 #pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
-#ifdef _MSC_VER
-#  pragma warning(push) 
-#  pragma warning(disable:4311)
-#  pragma warning(disable:4312)
-#  pragma warning(disable:4996)
-#endif
-
-#if defined(__GNUC__) || defined(__GNUG__)
-#  pragma GCC diagnostic push
-#  pragma GCC diagnostic ignored "-Wunused-variable"
-#  pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
-
-#if defined(__clang__)
-#  pragma clang diagnostic push
-#  pragma clang diagnostic ignored "-Wunused-variable"
-#  pragma clang diagnostic ignored "-Wexceptions"
-#  pragma clang diagnostic ignored "-Wdeprecated-declarations"
-#  pragma clang diagnostic ignored "-Wunused-private-field"
-#  pragma clang diagnostic ignored "-Wunused-local-typedef"
-#  pragma clang diagnostic ignored "-Wunknown-warning-option"
-#endif
+#include <asio2/base/detail/push_options.hpp>
 
 #include <sstream>
 
@@ -71,27 +50,17 @@
 
 namespace cereal
 {
-	using binary_oarchive = BinaryOutputArchive;
-	using binary_iarchive = BinaryInputArchive;
-	using json_oarchive = JSONOutputArchive;
-	using json_iarchive = JSONInputArchive;
-	using xml_oarchive = XMLOutputArchive;
-	using xml_iarchive = XMLInputArchive;
+	using binary_oarchive  = BinaryOutputArchive;
+	using binary_iarchive  = BinaryInputArchive;
+	using json_oarchive    = JSONOutputArchive;
+	using json_iarchive    = JSONInputArchive;
+	using xml_oarchive     = XMLOutputArchive;
+	using xml_iarchive     = XMLInputArchive;
 	using pbinary_oarchive = PortableBinaryOutputArchive;
 	using pbinary_iarchive = PortableBinaryInputArchive;
-	using exception = Exception;
+	using exception        = Exception;
 }
 
-#if defined(__clang__)
-#  pragma clang diagnostic pop
-#endif
-
-#if defined(__GNUC__) || defined(__GNUG__)
-#  pragma GCC diagnostic pop
-#endif
-
-#if defined(_MSC_VER)
-#  pragma warning(pop) 
-#endif
+#include <asio2/base/detail/pop_options.hpp>
 
 #endif // !__ASIO2_3RD_CEREAL_HPP__

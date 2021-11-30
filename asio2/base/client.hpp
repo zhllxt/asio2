@@ -1,5 +1,5 @@
 /*
- * COPYRIGHT (C) 2017-2019, zhllxt
+ * COPYRIGHT (C) 2017-2021, zhllxt
  *
  * author   : zhllxt
  * email    : 37792738@qq.com
@@ -15,6 +15,8 @@
 #pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
+#include <asio2/base/detail/push_options.hpp>
+
 #include <cstdint>
 #include <memory>
 #include <chrono>
@@ -29,9 +31,12 @@
 #include <unordered_map>
 #include <type_traits>
 
-#include <asio2/base/selector.hpp>
+#include <asio2/3rd/asio.hpp>
+#include <asio2/3rd/magic_enum.hpp>
+
 #include <asio2/base/iopool.hpp>
 #include <asio2/base/error.hpp>
+#include <asio2/base/log.hpp>
 #include <asio2/base/listener.hpp>
 #include <asio2/base/define.hpp>
 
@@ -55,9 +60,9 @@
 #include <asio2/base/component/async_event_cp.hpp>
 #include <asio2/base/component/reconnect_timer_cp.hpp>
 #include <asio2/base/component/send_cp.hpp>
-#include <asio2/base/component/rdc_call_cp.hpp>
 
-#include <asio2/util/defer.hpp>
+#include <asio2/ecs/rdc/rdc_call_cp.hpp>
+#include <asio2/ecs/socks/socks5_client.hpp>
 
 namespace asio2::detail
 {
@@ -82,6 +87,7 @@ namespace asio2::detail
 		, public post_cp               <derived_t, args_t>
 		, public async_event_cp        <derived_t, args_t>
 		, public rdc_call_cp           <derived_t, args_t>
+		, public socks5_client_impl    <derived_t, args_t>
 	{
 		ASIO2_CLASS_FRIEND_DECLARE_BASE;
 
@@ -89,8 +95,13 @@ namespace asio2::detail
 		using super = object_t     <derived_t        >;
 		using self  = client_impl_t<derived_t, args_t>;
 
+		using key_type    = std::size_t;
 		using buffer_type = typename args_t::buffer_t;
 
+		using send_cp<derived_t, args_t>::send;
+		using send_cp<derived_t, args_t>::async_send;
+
+	public:
 		/**
 		 * @constructor
 		 */
@@ -135,10 +146,16 @@ namespace asio2::detail
 
 		/**
 		 * @function : start the client
-		 * @param    : async_connect - asynchronous connect to the server or sync
-		 * @return   : true  - start successed , false - start failed
 		 */
-		inline bool start(bool async_connect = true)
+		inline bool start()
+		{
+			return true;
+		}
+
+		/**
+		 * @function : async start the client
+		 */
+		inline bool async_start()
 		{
 			return true;
 		}
@@ -148,9 +165,11 @@ namespace asio2::detail
 		 */
 		inline void stop()
 		{
+			ASIO2_ASSERT(this->io_.strand().running_in_this_thread());
+
 			if (!this->io_.strand().running_in_this_thread())
 			{
-				this->derived().post([this, this_ptr = this->derived().selfptr()]() mutable
+				this->derived().post([this]() mutable
 				{
 					this->stop();
 				});
@@ -191,6 +210,14 @@ namespace asio2::detail
 		inline bool is_stopped() const
 		{
 			return (this->state_ == state_t::stopped && !this->socket_.lowest_layer().is_open());
+		}
+
+		/**
+		 * @function : get this object hash key
+		 */
+		inline key_type hash_key() const
+		{
+			return reinterpret_cast<key_type>(this);
 		}
 
 		/**
@@ -235,9 +262,9 @@ namespace asio2::detail
 		inline std::atomic<state_t>       & state   () { return this->state_;    }
 		inline std::shared_ptr<derived_t>   selfptr () { return std::shared_ptr<derived_t>{}; }
 
-		inline constexpr static bool is_session() { return args_t::is_session; }
-		inline constexpr static bool is_client () { return args_t::is_client ; }
-		inline constexpr static bool is_server () { return false             ; }
+		inline constexpr static bool is_session() { return false; }
+		inline constexpr static bool is_client () { return true ; }
+		inline constexpr static bool is_server () { return false; }
 
 	protected:
 		/// The memory to use for handler-based custom memory allocation. used fo recv/read.
@@ -262,5 +289,7 @@ namespace asio2::detail
 		std::chrono::steady_clock::duration         rc_timeout_ = std::chrono::milliseconds(http_execute_timeout);
 	};
 }
+
+#include <asio2/base/detail/pop_options.hpp>
 
 #endif // !__ASIO2_CLIENT_HPP__

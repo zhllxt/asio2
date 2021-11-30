@@ -1,5 +1,5 @@
 /*
- * COPYRIGHT (C) 2017-2019, zhllxt
+ * COPYRIGHT (C) 2017-2021, zhllxt
  *
  * author   : zhllxt
  * email    : 37792738@qq.com
@@ -17,11 +17,13 @@
 
 #include <tuple>
 
-#include <asio2/base/selector.hpp>
+#include <asio2/3rd/asio.hpp>
 #include <asio2/base/error.hpp>
 
 #if defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS_) || defined(WIN32)
-#include <Mstcpip.h> // tcp_keepalive struct
+#	if __has_include(<Mstcpip.h>)
+#		include <Mstcpip.h> // tcp_keepalive struct
+#	endif
 #endif
 
 namespace asio2::detail

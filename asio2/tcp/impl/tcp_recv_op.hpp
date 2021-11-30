@@ -1,5 +1,5 @@
 /*
- * COPYRIGHT (C) 2017-2019, zhllxt
+ * COPYRIGHT (C) 2017-2021, zhllxt
  *
  * author   : zhllxt
  * email    : 37792738@qq.com
@@ -20,7 +20,7 @@
 #include <utility>
 #include <string_view>
 
-#include <asio2/base/selector.hpp>
+#include <asio2/3rd/asio.hpp>
 #include <asio2/base/error.hpp>
 #include <asio2/base/detail/condition_wrap.hpp>
 
@@ -44,6 +44,8 @@ namespace asio2::detail
 		template<typename MatchCondition>
 		void _tcp_post_recv(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
 		{
+			using condition_type = typename condition_wrap<MatchCondition>::condition_type;
+
 			derived_t& derive = static_cast<derived_t&>(*this);
 
 			if (!derive.is_started())
@@ -52,10 +54,10 @@ namespace asio2::detail
 			try
 			{
 				if constexpr (
-					std::is_same_v<MatchCondition, asio::detail::transfer_all_t> ||
-					std::is_same_v<MatchCondition, asio::detail::transfer_at_least_t> ||
-					std::is_same_v<MatchCondition, asio::detail::transfer_exactly_t> ||
-					std::is_same_v<MatchCondition, asio2::detail::hook_buffer_t>)
+					std::is_same_v<condition_type, asio::detail::transfer_all_t> ||
+					std::is_same_v<condition_type, asio::detail::transfer_at_least_t> ||
+					std::is_same_v<condition_type, asio::detail::transfer_exactly_t> ||
+					std::is_same_v<condition_type, asio2::detail::hook_buffer_t>)
 				{
 					asio::async_read(derive.stream(), derive.buffer().base(), condition(),
 						asio::bind_executor(derive.io().strand(), make_allocator(derive.rallocator(),
@@ -79,6 +81,7 @@ namespace asio2::detail
 			catch (system_error & e)
 			{
 				set_last_error(e);
+
 				derive._do_disconnect(e.code());
 			}
 		}
@@ -87,6 +90,8 @@ namespace asio2::detail
 		void _tcp_handle_recv(const error_code & ec, std::size_t bytes_recvd,
 			std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
 		{
+			using condition_type = typename condition_wrap<MatchCondition>::condition_type;
+
 			derived_t& derive = static_cast<derived_t&>(*this);
 
 			set_last_error(ec);
@@ -97,7 +102,7 @@ namespace asio2::detail
 				// every times recv data,we update the last alive time.
 				derive.update_alive_time();
 
-				if constexpr (std::is_same_v<MatchCondition, use_dgram_t>)
+				if constexpr (std::is_same_v<condition_type, use_dgram_t>)
 				{
 					const std::uint8_t* buffer = static_cast<const std::uint8_t*>(derive.buffer().data().data());
 					if /**/ (std::uint8_t(buffer[0]) < std::uint8_t(254))
@@ -119,7 +124,7 @@ namespace asio2::detail
 				}
 				else
 				{
-					if constexpr (!std::is_same_v<MatchCondition, asio2::detail::hook_buffer_t>)
+					if constexpr (!std::is_same_v<condition_type, asio2::detail::hook_buffer_t>)
 					{
 						derive._fire_recv(this_ptr, std::string_view(reinterpret_cast<
 							std::string_view::const_pointer>(derive.buffer().data().data()), bytes_recvd), condition);
@@ -132,7 +137,7 @@ namespace asio2::detail
 					}
 				}
 
-				if constexpr (!std::is_same_v<MatchCondition, asio2::detail::hook_buffer_t>)
+				if constexpr (!std::is_same_v<condition_type, asio2::detail::hook_buffer_t>)
 				{
 					derive.buffer().consume(bytes_recvd);
 				}

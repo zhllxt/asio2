@@ -1,5 +1,5 @@
 /*
- * COPYRIGHT (C) 2017-2019, zhllxt
+ * COPYRIGHT (C) 2017-2021, zhllxt
  *
  * author   : zhllxt
  * email    : 37792738@qq.com
@@ -15,10 +15,15 @@
 #pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
-#include <asio2/tcp/tcp_session.hpp>
-#include <asio2/tcp/tcps_session.hpp>
-#include <asio2/http/ws_session.hpp>
-#include <asio2/http/wss_session.hpp>
+#include <asio2/base/detail/push_options.hpp>
+
+#if !defined(ASIO2_USE_WEBSOCKET_RPC)
+#  include <asio2/tcp/tcp_session.hpp>
+#  include <asio2/tcp/tcps_session.hpp>
+#else
+#  include <asio2/http/ws_session.hpp>
+#  include <asio2/http/wss_session.hpp>
+#endif
 
 #include <asio2/rpc/detail/rpc_serialization.hpp>
 #include <asio2/rpc/detail/rpc_protocol.hpp>
@@ -55,7 +60,7 @@ namespace asio2::detail
 
 	protected:
 		using super::send;
-		using super::_handle_recv;
+		using super::async_send;
 
 	public:
 		/**
@@ -109,12 +114,12 @@ namespace asio2::detail
 		}
 
 		template<typename MatchCondition>
-		inline void _fire_recv(std::shared_ptr<derived_t>& this_ptr, std::string_view s,
+		inline void _fire_recv(std::shared_ptr<derived_t>& this_ptr, std::string_view data,
 			condition_wrap<MatchCondition>& condition)
 		{
-			this->listener_.notify(event_type::recv, this_ptr, s);
+			this->listener_.notify(event_type::recv, this_ptr, data);
 
-			this->derived()._rpc_handle_recv(this_ptr, s, condition);
+			this->derived()._rpc_handle_recv(this_ptr, data, condition);
 		}
 
 	protected:
@@ -127,89 +132,73 @@ namespace asio2::detail
 
 namespace asio2
 {
+#if !defined(ASIO2_USE_WEBSOCKET_RPC)
 	namespace detail
 	{
-		struct template_args_rpc_tcp_session : public template_args_tcp_session
-		{
-			static constexpr bool rdc_call_cp_enabled = false;
-		};
-
-		struct template_args_rpc_ws_session : public template_args_ws_session
+		struct template_args_rpc_session : public template_args_tcp_session
 		{
 			static constexpr bool rdc_call_cp_enabled = false;
 		};
 	}
-
-	template<class>
-	class rpc_session_t;
 
 	/// Using tcp dgram mode as the underlying communication support
-	template<>
-	class rpc_session_t<detail::use_tcp> : public detail::rpc_session_impl_t<rpc_session_t<detail::use_tcp>,
-		detail::tcp_session_impl_t<rpc_session_t<detail::use_tcp>, detail::template_args_rpc_tcp_session>>
+	class rpc_session : public detail::rpc_session_impl_t<rpc_session,
+		detail::tcp_session_impl_t<rpc_session, detail::template_args_rpc_session>>
 	{
 	public:
-		using detail::rpc_session_impl_t<rpc_session_t<detail::use_tcp>, detail::tcp_session_impl_t<
-			rpc_session_t<detail::use_tcp>, detail::template_args_rpc_tcp_session>>::rpc_session_impl_t;
+		using detail::rpc_session_impl_t<rpc_session, detail::tcp_session_impl_t<
+			rpc_session, detail::template_args_rpc_session>>::rpc_session_impl_t;
 	};
 
-	/// Using websocket as the underlying communication support
-	template<>
-	class rpc_session_t<detail::use_websocket> : public detail::rpc_session_impl_t<
-		rpc_session_t<detail::use_websocket>, detail::ws_session_impl_t<
-		rpc_session_t<detail::use_websocket>, detail::template_args_rpc_ws_session>>
+	#if defined(ASIO2_USE_SSL)
+	class rpcs_session : public detail::rpc_session_impl_t<rpcs_session,
+		detail::tcps_session_impl_t<rpcs_session, detail::template_args_rpc_session>>
 	{
 	public:
-		using detail::rpc_session_impl_t<rpc_session_t<detail::use_websocket>,
-			detail::ws_session_impl_t<rpc_session_t<detail::use_websocket>,
-			detail::template_args_rpc_ws_session>>::rpc_session_impl_t;
+		using detail::rpc_session_impl_t<rpcs_session, detail::tcps_session_impl_t<
+			rpcs_session, detail::template_args_rpc_session>>::rpc_session_impl_t;
 	};
+	#endif
 
-#if !defined(ASIO2_USE_WEBSOCKET_RPC)
-	using rpc_session = rpc_session_t<detail::use_tcp>;
 #else
-	using rpc_session = rpc_session_t<detail::use_websocket>;
-#endif
-
-#if defined(ASIO2_USE_SSL)
 	namespace detail
 	{
-		struct template_args_rpc_wss_session : public template_args_wss_session
+		struct template_args_rpc_session : public template_args_ws_session
 		{
 			static constexpr bool rdc_call_cp_enabled = false;
 		};
 	}
 
-	template<class>
-	class rpcs_session_t;
-
-	template<>
-	class rpcs_session_t<detail::use_tcp> : public detail::rpc_session_impl_t<rpcs_session_t<detail::use_tcp>,
-		detail::tcps_session_impl_t<rpcs_session_t<detail::use_tcp>, detail::template_args_rpc_tcp_session>>
+	/// Using websocket as the underlying communication support
+	class rpc_session : public detail::rpc_session_impl_t<rpc_session,
+		detail::ws_session_impl_t<rpc_session, detail::template_args_rpc_session>>
 	{
 	public:
-		using detail::rpc_session_impl_t<rpcs_session_t<detail::use_tcp>, detail::tcps_session_impl_t<
-			rpcs_session_t<detail::use_tcp>, detail::template_args_rpc_tcp_session>>::rpc_session_impl_t;
+		using detail::rpc_session_impl_t<rpc_session, detail::ws_session_impl_t<
+			rpc_session, detail::template_args_rpc_session>>::rpc_session_impl_t;
 	};
 
-	template<>
-	class rpcs_session_t<detail::use_websocket> : public detail::rpc_session_impl_t<
-		rpcs_session_t<detail::use_websocket>,
-		detail::wss_session_impl_t<rpcs_session_t<detail::use_websocket>,
-		detail::template_args_rpc_wss_session>>
+	#if defined(ASIO2_USE_SSL)
+	namespace detail
+	{
+		struct template_args_rpcs_session : public template_args_wss_session
+		{
+			static constexpr bool rdc_call_cp_enabled = false;
+		};
+	}
+
+	class rpcs_session : public detail::rpc_session_impl_t<rpcs_session,
+		detail::wss_session_impl_t<rpcs_session, detail::template_args_rpcs_session>>
 	{
 	public:
-		using detail::rpc_session_impl_t<rpcs_session_t<detail::use_websocket>,
-			detail::wss_session_impl_t<rpcs_session_t<detail::use_websocket>,
-			detail::template_args_rpc_wss_session>>::rpc_session_impl_t;
+		using detail::rpc_session_impl_t<rpcs_session, detail::wss_session_impl_t<
+			rpcs_session, detail::template_args_rpcs_session>>::rpc_session_impl_t;
 	};
+	#endif
 
-#if !defined(ASIO2_USE_WEBSOCKET_RPC)
-	using rpcs_session = rpcs_session_t<detail::use_tcp>;
-#else
-	using rpcs_session = rpcs_session_t<detail::use_websocket>;
-#endif
 #endif
 }
+
+#include <asio2/base/detail/pop_options.hpp>
 
 #endif // !__ASIO2_RPC_SESSION_HPP__

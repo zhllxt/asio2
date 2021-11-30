@@ -1,5 +1,5 @@
 /*
- * COPYRIGHT (C) 2017-2019, zhllxt
+ * COPYRIGHT (C) 2017-2021, zhllxt
  *
  * author   : zhllxt
  * email    : 37792738@qq.com
@@ -14,6 +14,8 @@
 #ifndef __ASIO2_HTTP_MULTIPART_HPP__
 #define __ASIO2_HTTP_MULTIPART_HPP__
 
+#include <asio2/base/detail/push_options.hpp>
+
 #include <stdlib.h>
 #include <ctype.h>
 #include <stdio.h>
@@ -27,7 +29,8 @@
 #include <algorithm>
 #include <type_traits>
 
-#include <asio2/base/selector.hpp>
+#include <asio2/3rd/asio.hpp>
+#include <asio2/3rd/beast.hpp>
 
 #include <asio2/util/string.hpp>
 
@@ -606,5 +609,7 @@ basic_multipart_fields<String> multipart_parser_execute(const http::message<isRe
 #undef CR
 
 }
+
+#include <asio2/base/detail/pop_options.hpp>
 
 #endif

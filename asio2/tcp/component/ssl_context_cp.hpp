@@ -1,5 +1,5 @@
 /*
- * COPYRIGHT (C) 2017-2019, zhllxt
+ * COPYRIGHT (C) 2017-2021, zhllxt
  *
  * author   : zhllxt
  * email    : 37792738@qq.com
@@ -19,14 +19,15 @@
 
 #include <string>
 #include <string_view>
-#include <filesystem>
 
-#include <asio2/base/selector.hpp>
+#include <asio2/3rd/asio.hpp>
+
 #include <asio2/base/error.hpp>
+#include <asio2/base/log.hpp>
 
 namespace asio2::detail
 {
-	template<class derived_t, bool IsServer>
+	template<class derived_t, class args_t>
 	class ssl_context_cp : public asio::ssl::context
 	{
 	public:
@@ -51,7 +52,7 @@ namespace asio2::detail
 			//  SSL_OP_SINGLE_DH_USE should therefore be enabled whenever
 			//  temporary / ephemeral DH parameters are used.
 
-			if constexpr (IsServer)
+			if constexpr (args_t::is_server)
 			{
 				// set default options
 				this->set_options(
@@ -115,19 +116,40 @@ namespace asio2::detail
 			std::string_view private_password
 		)
 		{
-			this->set_password_callback([password = std::string{ private_password }]
-			(std::size_t max_length, asio::ssl::context_base::password_purpose purpose)->std::string
+			try
 			{
-				return password;
-			});
+				this->set_password_callback([password = std::string{ private_password }]
+				(std::size_t max_length, asio::ssl::context_base::password_purpose purpose)->std::string
+				{
+					detail::ignore_unused(max_length, purpose);
 
-			ASIO2_ASSERT(!private_cert_buffer.empty() && !private_key_buffer.empty());
+					return password;
+				});
 
-			this->use_certificate(asio::buffer(private_cert_buffer), asio::ssl::context::pem);
-			this->use_private_key(asio::buffer(private_key_buffer), asio::ssl::context::pem);
+				ASIO2_ASSERT(!private_cert_buffer.empty() && !private_key_buffer.empty());
 
-			if (!ca_cert_buffer.empty())
-				this->add_certificate_authority(asio::buffer(ca_cert_buffer));
+				this->use_certificate(asio::buffer(private_cert_buffer), asio::ssl::context::pem);
+				this->use_private_key(asio::buffer(private_key_buffer), asio::ssl::context::pem);
+
+				if (!ca_cert_buffer.empty())
+					this->add_certificate_authority(asio::buffer(ca_cert_buffer));
+			}
+			catch (system_error const& e)
+			{
+				ASIO2_LOG(spdlog::level::critical, "set_cert_buffer exception : {} - {}",
+					e.code().value(), e.what());
+				ASIO2_ASSERT(false);
+				set_last_error(e);
+				asio::detail::throw_error(get_last_error());
+			}
+			catch (std::exception const& e)
+			{
+				detail::ignore_unused(e);
+				ASIO2_LOG(spdlog::level::critical, "set_cert_buffer exception : {}", e.what());
+				ASIO2_ASSERT(false);
+				set_last_error(asio::error::invalid_argument);
+				asio::detail::throw_error(get_last_error());
+			}
 
 			return (static_cast<derived_t&>(*this));
 		}
@@ -153,28 +175,40 @@ namespace asio2::detail
 			const std::string& private_password
 		)
 		{
-			std::error_code ec;
-			if (!std::filesystem::exists(ca_cert_file, ec) ||
-				!std::filesystem::exists(private_cert_file, ec) ||
-				!std::filesystem::exists(private_key_file, ec))
+			try
 			{
-				ASIO2_ASSERT(false && "The cert files is not exists.");
-				return (static_cast<derived_t&>(*this));
+				this->set_password_callback([password = private_password]
+				(std::size_t max_length, asio::ssl::context_base::password_purpose purpose)->std::string
+				{
+					detail::ignore_unused(max_length, purpose);
+
+					return password;
+				});
+
+				ASIO2_ASSERT(!private_cert_file.empty() && !private_key_file.empty());
+
+				this->use_certificate_chain_file(private_cert_file);
+				this->use_private_key_file(private_key_file, asio::ssl::context::pem);
+
+				if (!ca_cert_file.empty())
+					this->load_verify_file(ca_cert_file);
 			}
-
-			this->set_password_callback([password = private_password]
-			(std::size_t max_length, asio::ssl::context_base::password_purpose purpose)->std::string
+			catch (system_error const& e)
 			{
-				return password;
-			});
-
-			ASIO2_ASSERT(!private_cert_file.empty() && !private_key_file.empty());
-
-			this->use_certificate_chain_file(private_cert_file);
-			this->use_private_key_file(private_key_file, asio::ssl::context::pem);
-
-			if (!ca_cert_file.empty())
-				this->load_verify_file(ca_cert_file);
+				ASIO2_LOG(spdlog::level::critical, "set_cert_file exception : {} - {}",
+					e.code().value(), e.what());
+				ASIO2_ASSERT(false);
+				set_last_error(e);
+				asio::detail::throw_error(get_last_error());
+			}
+			catch (std::exception const& e)
+			{
+				detail::ignore_unused(e);
+				ASIO2_LOG(spdlog::level::critical, "set_cert_file exception : {}", e.what());
+				ASIO2_ASSERT(false);
+				set_last_error(asio::error::invalid_argument);
+				asio::detail::throw_error(get_last_error());
+			}
 
 			return (static_cast<derived_t&>(*this));
 		}
@@ -184,8 +218,27 @@ namespace asio2::detail
 		 */
 		inline derived_t& set_dh_buffer(std::string_view dh_buffer)
 		{
-			if (!dh_buffer.empty())
-				this->use_tmp_dh(asio::buffer(dh_buffer));
+			try
+			{
+				if (!dh_buffer.empty())
+					this->use_tmp_dh(asio::buffer(dh_buffer));
+			}
+			catch (system_error const& e)
+			{
+				ASIO2_LOG(spdlog::level::critical, "set_dh_buffer exception : {} - {}",
+					e.code().value(), e.what());
+				ASIO2_ASSERT(false);
+				set_last_error(e);
+				asio::detail::throw_error(get_last_error());
+			}
+			catch (std::exception const& e)
+			{
+				detail::ignore_unused(e);
+				ASIO2_LOG(spdlog::level::critical, "set_dh_buffer exception : {}", e.what());
+				ASIO2_ASSERT(false);
+				set_last_error(asio::error::invalid_argument);
+				asio::detail::throw_error(get_last_error());
+			}
 
 			return (static_cast<derived_t&>(*this));
 		}
@@ -195,15 +248,27 @@ namespace asio2::detail
 		 */
 		inline derived_t& set_dh_file(const std::string& dh_file)
 		{
-			std::error_code ec;
-			if (!std::filesystem::exists(dh_file, ec))
+			try
 			{
-				ASIO2_ASSERT(false && "The dh file is not exists.");
-				return (static_cast<derived_t&>(*this));
+				if (!dh_file.empty())
+					this->use_tmp_dh_file(dh_file);
 			}
-
-			if (!dh_file.empty())
-				this->use_tmp_dh_file(dh_file);
+			catch (system_error const& e)
+			{
+				ASIO2_LOG(spdlog::level::critical, "set_dh_file exception : {} - {}",
+					e.code().value(), e.what());
+				ASIO2_ASSERT(false);
+				set_last_error(e);
+				asio::detail::throw_error(get_last_error());
+			}
+			catch (std::exception const& e)
+			{
+				detail::ignore_unused(e);
+				ASIO2_LOG(spdlog::level::critical, "set_dh_file exception : {}", e.what());
+				ASIO2_ASSERT(false);
+				set_last_error(asio::error::invalid_argument);
+				asio::detail::throw_error(get_last_error());
+			}
 
 			return (static_cast<derived_t&>(*this));
 		}

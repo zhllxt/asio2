@@ -1,5 +1,5 @@
 /*
- * COPYRIGHT (C) 2017-2019, zhllxt
+ * COPYRIGHT (C) 2017-2021, zhllxt
  *
  * author   : zhllxt
  * email    : 37792738@qq.com
@@ -22,7 +22,7 @@
 #include <type_traits>
 #include <chrono>
 
-#include <asio2/base/selector.hpp>
+#include <asio2/3rd/asio.hpp>
 #include <asio2/base/iopool.hpp>
 #include <asio2/base/error.hpp>
 
@@ -49,9 +49,9 @@ namespace asio2
 
 			// bind is used to adapt the user provided handler to the 
 			// timer's wait handler type requirement.
+			// the "handler" has hold the session_ptr already, so this lambda don't need hold it again.
 			event_timer_.async_wait(asio::bind_executor(event_timer_io_.strand(),
-				[handler = std::forward<WaitHandler>(handler),
-				this_ptr = this->derived().selfptr()](const error_code&) mutable
+			[handler = std::forward<WaitHandler>(handler)](const error_code&) mutable
 			{
 				handler();
 			}));
@@ -66,9 +66,10 @@ namespace asio2
 
 			// bind is used to adapt the user provided handler to the 
 			// timer's wait handler type requirement.
+			// the "handler" has hold the session_ptr already, so this lambda don't need hold it again.
 			event_timer_.async_wait(asio::bind_executor(event_timer_io_.strand(),
-				detail::make_allocator(allocator, [handler = std::forward<WaitHandler>(handler),
-					this_ptr = this->derived().selfptr()](const error_code&) mutable
+				detail::make_allocator(allocator,
+			[handler = std::forward<WaitHandler>(handler)](const error_code&) mutable
 			{
 				handler();
 			})));
@@ -80,7 +81,8 @@ namespace asio2
 		 */
 		inline std::size_t notify()
 		{
-			return event_timer_.cancel(detail::ec_ignore());
+			error_code ec_ignore{};
+			return event_timer_.cancel(ec_ignore);
 		}
 
 	private:
@@ -119,22 +121,29 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
+			// note : need test.
+			// has't check where the server or client is stopped, if the server is stopping, but the 
+			// iopool's wait_iothreads() has't compelete and just at sleep, then user call post_event
+			// but don't call notify, it maybe cause the wait_iothreads() can't compelete forever,
+			// and the server.stop or client.stop never compeleted.
+
 			std::shared_ptr<async_event> event_ptr = std::make_shared<async_event>(derive.io());
 
 			asio::dispatch(derive.io().strand(), make_allocator(derive.wallocator(),
-				[this, self = derive.selfptr(), event_ptr]() mutable
+			[this, &derive, this_ptr = derive.selfptr(), event_ptr, f = std::forward<Function>(f)]() mutable
 			{
-				this->async_events_.emplace(event_ptr.get(), std::move(event_ptr));
+				async_event* evt = event_ptr.get();
+
+				this->async_events_.emplace(evt, std::move(event_ptr));
+
+				evt->async_wait([this, this_ptr = std::move(this_ptr), key = evt, f = std::move(f)]() mutable
+				{
+					f();
+
+					this->async_events_.erase(key);
+
+				}, derive.wallocator());
 			}));
-
-			event_ptr->async_wait([this, self = derive.selfptr(), key = event_ptr.get(),
-				f = std::forward<Function>(f)]() mutable
-			{
-				f();
-
-				this->async_events_.erase(key);
-
-			}, derive.wallocator());
 
 			return event_ptr;
 		}
@@ -150,7 +159,7 @@ namespace asio2::detail
 			if (!derive.io().strand().running_in_this_thread())
 			{
 				asio::post(derive.io().strand(), make_allocator(derive.wallocator(),
-					[this, this_ptr = derive.selfptr()]() mutable
+				[this, this_ptr = derive.selfptr()]() mutable
 				{
 					this->notify_all_events();
 				}));
@@ -159,7 +168,7 @@ namespace asio2::detail
 
 			for (auto&[key, event_ptr] : this->async_events_)
 			{
-				asio2::detail::ignore_unused(key);
+				detail::ignore_unused(key);
 				event_ptr->notify();
 			}
 

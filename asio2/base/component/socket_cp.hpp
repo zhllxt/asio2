@@ -1,5 +1,5 @@
 /*
- * COPYRIGHT (C) 2017-2019, zhllxt
+ * COPYRIGHT (C) 2017-2021, zhllxt
  *
  * author   : zhllxt
  * email    : 37792738@qq.com
@@ -17,7 +17,7 @@
 
 #include <string>
 
-#include <asio2/base/selector.hpp>
+#include <asio2/3rd/asio.hpp>
 
 namespace asio2::detail
 {
@@ -298,7 +298,7 @@ namespace asio2::detail
 				}
 				else
 				{
-					std::ignore = true;
+					std::ignore = val;
 					//static_assert(false, "Only tcp socket has the no_delay option");
 				}
 			}

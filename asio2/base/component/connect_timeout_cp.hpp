@@ -1,5 +1,5 @@
 /*
- * COPYRIGHT (C) 2017-2019, zhllxt
+ * COPYRIGHT (C) 2017-2021, zhllxt
  *
  * author   : zhllxt
  * email    : 37792738@qq.com
@@ -17,9 +17,10 @@
 
 #include <chrono>
 
-#include <asio2/base/selector.hpp>
+#include <asio2/3rd/asio.hpp>
 #include <asio2/base/iopool.hpp>
 #include <asio2/base/error.hpp>
+#include <asio2/base/log.hpp>
 
 namespace asio2::detail
 {
@@ -66,10 +67,12 @@ namespace asio2::detail
 			this->connect_error_code_.clear();
 			this->connect_timeout_flag_.store(false);
 
+			// reset the "canceled" flag to false, see reconnect_timer_cp.hpp -> _make_reconnect_timer
+			this->connect_timer_canceled_.clear();
+
 			this->connect_timeout_timer_.expires_after(duration);
-			this->connect_timeout_timer_.async_wait(
-				asio::bind_executor(derive.io().strand(),
-					[&derive, self_ptr = std::move(this_ptr)](const error_code& ec) mutable
+			this->connect_timeout_timer_.async_wait(asio::bind_executor(derive.io().strand(),
+			[&derive, self_ptr = std::move(this_ptr)](const error_code& ec) mutable
 			{
 				// bug fixed : 
 				// note : after call derive._handle_connect_timeout_timer(ec, std::move(self_ptr)); 
@@ -78,13 +81,22 @@ namespace asio2::detail
 				// derive._handle_connect_timeout_timer(ec, std::move(self_ptr)); the self_ptr's 
 				// object will be destroyed, then below code "this->..." will cause crash.
 				derive._handle_connect_timeout_timer(ec, std::move(self_ptr));
+
+				// can't do it like below, beacuse "this" maybe deleted already.
+				// this->...
 			}));
 		}
 
-		inline void _handle_connect_timeout_timer(const error_code& ec,
-			std::shared_ptr<derived_t> this_ptr)
+		inline void _handle_connect_timeout_timer(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
+
+		#if defined(ASIO2_ENABLE_LOG)
+			if (ec && ec != asio::error::operation_aborted)
+			{
+				ASIO2_LOG(spdlog::level::info, "connect_timeout_timer error : [{}] {}", ec.value(), ec.message());
+			}
+		#endif
 
 			std::ignore = this_ptr;
 
@@ -94,10 +106,7 @@ namespace asio2::detail
 			}
 
 			if (ec == asio::error::operation_aborted || this->connect_timer_canceled_.test_and_set())
-			{
-				this->connect_timer_canceled_.clear();
 				return;
-			}
 
 			this->connect_timer_canceled_.clear();
 
@@ -120,12 +129,21 @@ namespace asio2::detail
 			this->connect_error_code_.clear();
 			this->connect_timeout_flag_.store(false);
 
+			// reset the "canceled" flag to false, see reconnect_timer_cp.hpp -> _make_reconnect_timer
+			this->connect_timer_canceled_.clear();
+
 			this->connect_timeout_timer_.expires_after(duration);
-			this->connect_timeout_timer_.async_wait(
-				asio::bind_executor(derive.io().strand(),
-					[this, self_ptr = std::move(this_ptr), f = std::forward<Fn>(fn)]
+			this->connect_timeout_timer_.async_wait(asio::bind_executor(derive.io().strand(),
+			[this, self_ptr = std::move(this_ptr), f = std::forward<Fn>(fn)]
 			(const error_code& ec) mutable
 			{
+			#if defined(ASIO2_ENABLE_LOG)
+				if (ec && ec != asio::error::operation_aborted)
+				{
+					ASIO2_LOG(spdlog::level::info, "connect_timeout_timer error : [{}] {}", ec.value(), ec.message());
+				}
+			#endif
+
 				if (!ec)
 				{
 					this->connect_timeout_flag_.store(true);
@@ -139,11 +157,12 @@ namespace asio2::detail
 
 		inline void _stop_connect_timeout_timer(asio::error_code ec)
 		{
+			error_code ec_ignore{};
 			try
 			{
 				this->connect_error_code_ = ec;
 				this->connect_timer_canceled_.test_and_set();
-				this->connect_timeout_timer_.cancel(ec_ignore());
+				this->connect_timeout_timer_.cancel(ec_ignore);
 			}
 			catch (system_error&) {}
 			catch (std::exception&) {}

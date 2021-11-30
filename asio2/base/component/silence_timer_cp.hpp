@@ -1,5 +1,5 @@
 /*
- * COPYRIGHT (C) 2017-2019, zhllxt
+ * COPYRIGHT (C) 2017-2021, zhllxt
  *
  * author   : zhllxt
  * email    : 37792738@qq.com
@@ -17,9 +17,10 @@
 
 #include <chrono>
 
-#include <asio2/base/selector.hpp>
+#include <asio2/3rd/asio.hpp>
 #include <asio2/base/iopool.hpp>
 #include <asio2/base/error.hpp>
+#include <asio2/base/log.hpp>
 
 namespace asio2::detail
 {
@@ -67,12 +68,15 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
+			// reset the "canceled" flag to false, see reconnect_timer_cp.hpp -> _make_reconnect_timer
+			this->silence_timer_canceled_.clear();
+
 			// start the timer of check silence timeout
-			if (duration > std::chrono::milliseconds(0))
+			if (duration > std::chrono::duration<Rep, Period>::zero())
 			{
 				this->silence_timer_.expires_after(duration);
 				this->silence_timer_.async_wait(asio::bind_executor(derive.io().strand(),
-					[&derive, self_ptr = std::move(this_ptr)](const error_code & ec)
+				[&derive, self_ptr = std::move(this_ptr)](const error_code & ec) mutable
 				{
 					derive._handle_silence_timer(ec, std::move(self_ptr));
 				}));
@@ -83,6 +87,13 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
+		#if defined(ASIO2_ENABLE_LOG)
+			if (ec && ec != asio::error::operation_aborted)
+			{
+				ASIO2_LOG(spdlog::level::info, "silence_timer error : [{}] {}", ec.value(), ec.message());
+			}
+		#endif
+
 			if (ec == asio::error::operation_aborted || this->silence_timer_canceled_.test_and_set())
 				return;
 
@@ -90,10 +101,12 @@ namespace asio2::detail
 
 			// silence duration seconds not exceed the silence timeout,post a timer
 			// event agagin to avoid this session shared_ptr object disappear.
-			if (derive.silence_duration() < this->silence_timeout_)
+
+			std::chrono::system_clock::duration silence = derive.silence_duration();
+
+			if (silence < this->silence_timeout_)
 			{
-				derive._post_silence_timer(this->silence_timeout_ -
-					derive.silence_duration(), std::move(this_ptr));
+				derive._post_silence_timer(this->silence_timeout_ - silence, std::move(this_ptr));
 			}
 			else
 			{
@@ -101,14 +114,17 @@ namespace asio2::detail
 				// a timer event again,so this session, shared_ptr will disappear 
 				// and the object will be destroyed automatically after this handler returns.
 				set_last_error(asio::error::timed_out);
+
 				derive._do_disconnect(asio::error::timed_out);
 			}
 		}
 
 		inline void _stop_silence_timer()
 		{
+			error_code ec_ignore{};
+
 			this->silence_timer_canceled_.test_and_set();
-			this->silence_timer_.cancel(ec_ignore());
+			this->silence_timer_.cancel(ec_ignore);
 		}
 
 	protected:

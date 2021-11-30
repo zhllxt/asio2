@@ -1,5 +1,5 @@
 /*
- * COPYRIGHT (C) 2017-2019, zhllxt
+ * COPYRIGHT (C) 2017-2021, zhllxt
  *
  * author   : zhllxt
  * email    : 37792738@qq.com
@@ -25,7 +25,7 @@
 #include <utility>
 #include <string_view>
 
-#include <asio2/base/selector.hpp>
+#include <asio2/3rd/asio.hpp>
 #include <asio2/base/iopool.hpp>
 #include <asio2/base/error.hpp>
 
@@ -55,15 +55,22 @@ namespace asio2::detail
 		{
 			using data_type = std::remove_cv_t<std::remove_reference_t<T>>;
 			if constexpr (
-				std::is_move_assignable_v<data_type> ||
+				std::is_move_assignable_v          <data_type> ||
 				std::is_trivially_move_assignable_v<data_type> ||
-				std::is_nothrow_move_assignable_v<data_type>)
+				std::is_nothrow_move_assignable_v  <data_type>)
 			{
-				if constexpr (is_string_view_v<data_type>)
+				// std::string_view
+				if constexpr /**/ (is_string_view_v<data_type>)
 				{
 					using value_type = typename data_type::value_type;
 					return std::basic_string<value_type>(data.data(), data.size());
 				}
+				// char* , const char* 
+				else if constexpr (is_char_pointer_v<data_type>)
+				{
+					return std::basic_string<std::remove_cv_t<std::remove_pointer_t<data_type>>>(std::forward<T>(data));
+				}
+				// object like : std::string, std::vector
 				else
 				{
 					return std::forward<T>(data);
@@ -71,6 +78,7 @@ namespace asio2::detail
 			}
 			else
 			{
+				// PodType (&data)[N] like : char buf[5], int buf[5], double buf[5]
 				auto buffer = asio::buffer(data);
 				return std::string(reinterpret_cast<const std::string::value_type*>(
 					const_cast<const void*>(buffer.data())), buffer.size());

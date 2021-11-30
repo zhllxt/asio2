@@ -1,5 +1,5 @@
 /*
- * COPYRIGHT (C) 2017-2019, zhllxt
+ * COPYRIGHT (C) 2017-2021, zhllxt
  *
  * author   : zhllxt
  * email    : 37792738@qq.com
@@ -23,7 +23,7 @@
 
 #include <asio2/3rd/cereal.hpp>
 
-#include <asio2/base/selector.hpp>
+#include <asio2/3rd/asio.hpp>
 #include <asio2/base/error.hpp>
 
 #include <asio2/rpc/detail/rpc_portable_binary.hpp>
@@ -199,6 +199,15 @@ namespace asio2::detail
 		std::istream    istream_;
 		iarchive        iarchive_;
 	};
+}
+
+namespace asio2::rpc
+{
+	// for serializer
+	using oarchive = cereal::RPCPortableBinaryOutputArchive;
+
+	// for deserializer
+	using iarchive = cereal::RPCPortableBinaryInputArchive;
 }
 
 #endif // !__ASIO2_RPC_SERIALIZATION_HPP__

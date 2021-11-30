@@ -1,5 +1,5 @@
 /*
- * COPYRIGHT (C) 2017-2019, zhllxt
+ * COPYRIGHT (C) 2017-2021, zhllxt
  *
  * author   : zhllxt
  * email    : 37792738@qq.com
@@ -14,6 +14,8 @@
 #if defined(_MSC_VER) && (_MSC_VER >= 1200)
 #pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
+
+#include <asio2/base/detail/push_options.hpp>
 
 #include <cstdint>
 #include <memory>
@@ -30,9 +32,12 @@
 #include <unordered_map>
 #include <type_traits>
 
-#include <asio2/base/selector.hpp>
+#include <asio2/3rd/asio.hpp>
+#include <asio2/3rd/magic_enum.hpp>
+
 #include <asio2/base/iopool.hpp>
 #include <asio2/base/error.hpp>
+#include <asio2/base/log.hpp>
 #include <asio2/base/listener.hpp>
 #include <asio2/base/session_mgr.hpp>
 #include <asio2/base/define.hpp>
@@ -56,9 +61,8 @@
 #include <asio2/base/component/event_queue_cp.hpp>
 #include <asio2/base/component/async_event_cp.hpp>
 #include <asio2/base/component/send_cp.hpp>
-#include <asio2/base/component/rdc_call_cp.hpp>
 
-#include <asio2/util/defer.hpp>
+#include <asio2/ecs/rdc/rdc_call_cp.hpp>
 
 namespace asio2::detail
 {
@@ -91,7 +95,9 @@ namespace asio2::detail
 		using buffer_type = typename args_t::buffer_t;
 
 		using send_cp<derived_t, args_t>::send;
+		using send_cp<derived_t, args_t>::async_send;
 
+	public:
 		/**
 		 * @constructor
 		 */
@@ -131,6 +137,20 @@ namespace asio2::detail
 		 */
 		~session_impl_t()
 		{
+			// Previously "counter_ptr_.reset()" was in the "stop" function, I don't remember
+			// why I put "counter_ptr_.reset()" in "stop" function before, but now, i find 
+			// some problem if put "counter_ptr_.reset()" in "stop" function, It looks like 
+			// this:
+			// when use async rpc user function, when code run to 
+			// "asio::dispatch(caller->io().strand(), make_allocator(caller->wallocator(),"
+			// ( the code is in the rpc_invoker.hpp, line 405 ), the server maybe stopped 
+			// already ( beacuse server.stop will call all session's stop, and session.stop
+			// will call "counter_ptr_.reset()", so the server's counter_ptr_'s destructor
+			// can be called, so the iopool.stop can be returned in the server's stop function)
+			// after the iopool is stopped, the all io_context will be invalid, so when the 
+			// rpc_invoker call "caller->io().strand()", it will be crashed.
+			// destroy the counter
+			this->counter_ptr_.reset();
 		}
 
 	protected:
@@ -141,7 +161,7 @@ namespace asio2::detail
 		{
 			if (!this->io_.strand().running_in_this_thread())
 			{
-				this->derived().post([this, this_ptr = this->derived().selfptr()]() mutable
+				this->derived().post([this]() mutable
 				{
 					this->start();
 				});
@@ -161,9 +181,11 @@ namespace asio2::detail
 		 */
 		inline void stop()
 		{
+			ASIO2_ASSERT(this->io_.strand().running_in_this_thread());
+
 			if (!this->io_.strand().running_in_this_thread())
 			{
-				this->derived().post([this, this_ptr = this->derived().selfptr()]() mutable
+				this->derived().post([this]() mutable
 				{
 					this->stop();
 				});
@@ -188,9 +210,6 @@ namespace asio2::detail
 			// destroy user data, maybe the user data is self shared_ptr, 
 			// if don't destroy it, will cause loop refrence.
 			this->user_data_.reset();
-
-			// destroy the counter
-			this->counter_ptr_.reset();
 		}
 
 		/**
@@ -248,9 +267,9 @@ namespace asio2::detail
 		inline listener_t               & listener() { return this->listener_; }
 		inline std::atomic<state_t>     & state   () { return this->state_;    }
 
-		inline constexpr static bool is_session() { return args_t::is_session; }
-		inline constexpr static bool is_client () { return args_t::is_client ; }
-		inline constexpr static bool is_server () { return false             ; }
+		inline constexpr static bool is_session() { return true ; }
+		inline constexpr static bool is_client () { return false; }
+		inline constexpr static bool is_server () { return false; }
 
 	protected:
 		/// asio::strand ,used to ensure socket multi thread safe,we must ensure that only one operator
@@ -284,5 +303,7 @@ namespace asio2::detail
 		std::chrono::steady_clock::duration  rc_timeout_   = std::chrono::milliseconds(http_execute_timeout);
 	};
 }
+
+#include <asio2/base/detail/pop_options.hpp>
 
 #endif // !__ASIO2_SESSION_HPP__

@@ -1,5 +1,5 @@
 /*
- * COPYRIGHT (C) 2017-2019, zhllxt
+ * COPYRIGHT (C) 2017-2021, zhllxt
  *
  * author   : zhllxt
  * email    : 37792738@qq.com
@@ -17,6 +17,8 @@
 #pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
+#include <asio2/base/detail/push_options.hpp>
+
 #include <asio2/tcp/tcp_client.hpp>
 #include <asio2/tcp/component/ssl_stream_cp.hpp>
 #include <asio2/tcp/component/ssl_context_cp.hpp>
@@ -29,7 +31,7 @@ namespace asio2::detail
 
 	template<class derived_t, class args_t>
 	class tcps_client_impl_t
-		: public ssl_context_cp    <derived_t, false >
+		: public ssl_context_cp    <derived_t, args_t>
 		, public tcp_client_impl_t <derived_t, args_t>
 		, public ssl_stream_cp     <derived_t, args_t>
 	{
@@ -43,11 +45,10 @@ namespace asio2::detail
 
 		using buffer_type = typename args_t::buffer_t;
 
-		using ssl_context_comp = ssl_context_cp<derived_t, false >;
+		using ssl_context_comp = ssl_context_cp<derived_t, args_t>;
 		using ssl_stream_comp  = ssl_stream_cp <derived_t, args_t>;
 
-		using super::send;
-
+	public:
 		/**
 		 * @constructor
 		 */
@@ -130,12 +131,13 @@ namespace asio2::detail
 
 		inline void _fire_handshake(std::shared_ptr<derived_t>& this_ptr, error_code ec)
 		{
+			// the _fire_handshake must be executed in the thread 0.
+			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
+
 			detail::ignore_unused(this_ptr);
 
 			this->listener_.notify(event_type::handshake, ec);
 		}
-
-	protected:
 	};
 }
 
@@ -147,6 +149,8 @@ namespace asio2
 		using tcps_client_impl_t<tcps_client, detail::template_args_tcp_client>::tcps_client_impl_t;
 	};
 }
+
+#include <asio2/base/detail/pop_options.hpp>
 
 #endif // !__ASIO2_TCPS_CLIENT_HPP__
 

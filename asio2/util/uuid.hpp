@@ -34,31 +34,7 @@ namespace asio2
 	class uuid
 	{
 	public:
-		uuid()
-		{
-			unsigned long random_value = random();
-			for (int i = 0, it = 0; it < int(sizeof(data)); ++it, ++i)
-			{
-				if (i == int(sizeof(unsigned long)))
-				{
-					random_value = random();
-					i = 0;
-				}
-
-				// static_cast gets rid of warnings of converting unsigned long to std::uint8_t
-				data[it] = static_cast<std::uint8_t>((random_value >> (i * 8)) & 0xFF);
-			}
-
-			// set variant
-			// must be 0b10xxxxxx
-			*(data + 8) &= 0xBF;
-			*(data + 8) |= 0x80;
-
-			// set version
-			// must be 0b0100xxxx
-			*(data + 6) &= 0x4F; //0b01001111
-			*(data + 6) |= 0x40; //0b01000000
-		}
+		uuid() = default;
 		~uuid() = default;
 
 		uuid(const uuid&) = default;
@@ -66,6 +42,20 @@ namespace asio2
 
 		uuid& operator=(const uuid&) = default;
 		uuid& operator=(uuid&&) = default;
+
+		inline uuid& operator()()
+		{
+			gen();
+
+			return (*this);
+		}
+
+		inline uuid& next()
+		{
+			gen();
+
+			return (*this);
+		}
 
 		inline std::string str(bool upper = false) noexcept
 		{
@@ -102,7 +92,7 @@ namespace asio2
 			variant_microsoft, // Microsoft Corporation backward compatibility
 			variant_future // future definition
 		};
-		variant_type variant() const noexcept
+		inline variant_type variant() const noexcept
 		{
 			// variant is stored in octet 7
 			// which is index 8, since indexes count backwards
@@ -131,7 +121,7 @@ namespace asio2
 			version_random_number_based = 4,
 			version_name_based_sha1 = 5
 		};
-		version_type version() const noexcept
+		inline version_type version() const noexcept
 		{
 			// version is stored in octet 9
 			// which is index 6, since indexes count backwards
@@ -156,7 +146,7 @@ namespace asio2
 			}
 		}
 
-		static inline std::string short_uuid(int bytes)
+		inline std::string short_uuid(int bytes)
 		{
 			char keys[]
 			{
@@ -177,14 +167,12 @@ namespace asio2
 			return s;
 		}
 
-		static inline unsigned long random(
+		inline unsigned long random(
 			unsigned long mini = (std::numeric_limits<unsigned long>::min)(),
 			unsigned long maxi = (std::numeric_limits<unsigned long>::max)())
 		{
-			std::random_device rd;
-			std::mt19937 gen(rd());
-			std::uniform_int_distribution<unsigned long> dis(mini, maxi);
-			return dis(gen);
+			std::uniform_int_distribution<unsigned long> distribution(mini, maxi);
+			return distribution(random_enginer_);
 		}
 
 	protected:
@@ -200,8 +188,38 @@ namespace asio2
 			}
 		}
 
+		inline void gen()
+		{
+			unsigned long random_value = random();
+			for (int i = 0, it = 0; it < int(sizeof(data)); ++it, ++i)
+			{
+				if (i == int(sizeof(unsigned long)))
+				{
+					random_value = random();
+					i = 0;
+				}
+
+				// static_cast gets rid of warnings of converting unsigned long to std::uint8_t
+				data[it] = static_cast<std::uint8_t>((random_value >> (i * 8)) & 0xFF);
+			}
+
+			// set variant
+			// must be 0b10xxxxxx
+			*(data + 8) &= 0xBF;
+			*(data + 8) |= 0x80;
+
+			// set version
+			// must be 0b0100xxxx
+			*(data + 6) &= 0x4F; //0b01001111
+			*(data + 6) |= 0x40; //0b01000000
+		}
+
 	public:
 		std::uint8_t data[16];
+
+	protected:
+		//std::default_random_engine random_enginer_{ std::random_device{}() };
+		std::mt19937               random_enginer_{ std::random_device{}() };
 	};
 }
 

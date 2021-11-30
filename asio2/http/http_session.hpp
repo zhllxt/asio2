@@ -1,5 +1,5 @@
 /*
- * COPYRIGHT (C) 2017-2019, zhllxt
+ * COPYRIGHT (C) 2017-2021, zhllxt
  *
  * author   : zhllxt
  * email    : 37792738@qq.com
@@ -15,8 +15,9 @@
 #pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
+#include <asio2/base/detail/push_options.hpp>
+
 #include <asio2/tcp/tcp_session.hpp>
-#include <asio2/http/component/http_send_cp.hpp>
 #include <asio2/http/component/ws_stream_cp.hpp>
 #include <asio2/http/impl/http_send_op.hpp>
 #include <asio2/http/impl/http_recv_op.hpp>
@@ -42,7 +43,6 @@ namespace asio2::detail
 	template<class derived_t, class args_t>
 	class http_session_impl_t
 		: public tcp_session_impl_t<derived_t, args_t>
-		, public http_send_cp      <derived_t, args_t>
 		, public http_send_op      <derived_t, args_t>
 		, public http_recv_op      <derived_t, args_t>
 		, public ws_stream_cp      <derived_t, args_t>
@@ -66,9 +66,9 @@ namespace asio2::detail
 		using ws_stream_comp = ws_stream_cp<derived_t, args_t>;
 
 		using super::send;
-		using http_send_cp       <derived_t, args_t>::send;
-		using data_persistence_cp<derived_t, args_t>::_data_persistence;
+		using super::async_send;
 
+	public:
 		/**
 		 * @constructor
 		 */
@@ -84,7 +84,6 @@ namespace asio2::detail
 			std::size_t                max_buffer_size
 		)
 			: super(sessions, listener, rwio, init_buffer_size, max_buffer_size)
-			, http_send_cp<derived_t, args_t>(rwio)
 			, http_send_op<derived_t, args_t>()
 			, ws_stream_cp<derived_t, args_t>()
 			, ws_send_op  <derived_t, args_t>()
@@ -130,7 +129,7 @@ namespace asio2::detail
 		/**
 		 * @function : get this object hash key,used for session map
 		 */
-		inline const key_type hash_key() const
+		inline key_type hash_key() const
 		{
 			return reinterpret_cast<key_type>(this);
 		}
@@ -171,10 +170,10 @@ namespace asio2::detail
 			}
 		}
 
-		inline void _do_stop(const error_code& ec)
+		inline void _do_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
 		{
 			// call the base class _do_stop function
-			super::_do_stop(ec);
+			super::_do_stop(ec, std::move(this_ptr));
 
 			// reset the callback shared_ptr, to avoid the callback owned this self shared_ptr.
 			this->websocket_router_.reset();
@@ -188,17 +187,18 @@ namespace asio2::detail
 
 			if (!this->derived().io().strand().running_in_this_thread())
 			{
-				this->derived().post([this, this_ptr = std::move(this_ptr), condition = std::move(condition)]() mutable
+				asio::post(this->derived().io().strand(), make_allocator(this->derived().wallocator(),
+				[this, this_ptr = std::move(this_ptr), condition = std::move(condition)]() mutable
 				{
 					this->derived()._send_response(std::move(this_ptr), std::move(condition));
-				});
+				}));
 				return;
 			}
 
 			if (this->is_websocket())
 				return;
 
-			this->derived().send(std::move(this->rep_.base()),
+			this->derived().async_send(std::move(this->rep_.base()),
 				[this, this_ptr = std::move(this_ptr), condition = std::move(condition)]() mutable
 			{
 				this->derived()._post_recv(std::move(this_ptr), std::move(condition));
@@ -232,7 +232,7 @@ namespace asio2::detail
 		inline void _rdc_invoke_with_none(const error_code& ec, Invoker& invoker)
 		{
 			ASIO2_ASSERT(this->websocket_router_ && "Only available in websocket mode");
-			if (this->is_websocket())
+			if (this->is_websocket() && invoker)
 				invoker(ec, send_data_t{}, recv_data_t{});
 		}
 
@@ -240,7 +240,7 @@ namespace asio2::detail
 		inline void _rdc_invoke_with_recv(const error_code& ec, Invoker& invoker, recv_data_t data)
 		{
 			ASIO2_ASSERT(this->websocket_router_ && "Only available in websocket mode");
-			if (this->is_websocket())
+			if (this->is_websocket() && invoker)
 				invoker(ec, send_data_t{}, data);
 		}
 
@@ -248,7 +248,7 @@ namespace asio2::detail
 		inline void _rdc_invoke_with_send(const error_code& ec, Invoker& invoker, FnData& fn_data)
 		{
 			ASIO2_ASSERT(this->websocket_router_ && "Only available in websocket mode");
-			if (this->is_websocket())
+			if (this->is_websocket() && invoker)
 				invoker(ec, fn_data(), recv_data_t{});
 		}
 
@@ -271,7 +271,8 @@ namespace asio2::detail
 			condition_wrap<MatchCondition> condition)
 		{
 			this->derived().sessions().post(
-				[this, ec, this_ptr = std::move(self_ptr), condition = std::move(condition)]() mutable
+			[this, ec, this_ptr = std::move(self_ptr), condition = std::move(condition)]
+			() mutable
 			{
 				try
 				{
@@ -281,10 +282,12 @@ namespace asio2::detail
 
 					asio::detail::throw_error(ec);
 
-					this->derived().post([this, this_ptr = std::move(this_ptr), condition = std::move(condition)]() mutable
+					asio::post(this->derived().io().strand(), make_allocator(this->derived().wallocator(),
+					[this, this_ptr = std::move(this_ptr), condition = std::move(condition)]
+					() mutable
 					{
 						this->derived()._post_recv(std::move(this_ptr), std::move(condition));
-					});
+					}));
 				}
 				catch (system_error & e)
 				{
@@ -315,7 +318,15 @@ namespace asio2::detail
 					if (this->router_._route(this_ptr, this->req_, this->rep_))
 					{
 						this->derived()._post_control_callback(this_ptr, condition);
-						this->derived()._post_upgrade(this_ptr, condition, this->req_.base());
+						this->derived().push_event(
+						[this, this_ptr = std::move(this_ptr), condition = std::move(condition)]
+						(event_queue_guard<derived_t>&& g) mutable
+						{
+							detail::ignore_unused(g);
+
+							this->derived()._post_upgrade(
+								std::move(this_ptr), std::move(condition), this->req_.base());
+						});
 						return true;
 					}
 					else
@@ -367,6 +378,9 @@ namespace asio2::detail
 
 		inline void _fire_upgrade(std::shared_ptr<derived_t>& this_ptr, error_code ec)
 		{
+			// the _fire_upgrade must be executed in the thread 0.
+			ASIO2_ASSERT(this->sessions().io().strand().running_in_this_thread());
+
 			this->listener_.notify(event_type::upgrade, this_ptr, ec);
 		}
 
@@ -419,5 +433,7 @@ namespace asio2
 		using http_session_impl_t<http_session, detail::template_args_http_session>::http_session_impl_t;
 	};
 }
+
+#include <asio2/base/detail/pop_options.hpp>
 
 #endif // !__ASIO2_HTTP_SESSION_HPP__

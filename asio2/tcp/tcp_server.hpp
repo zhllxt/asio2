@@ -1,5 +1,5 @@
 /*
- * COPYRIGHT (C) 2017-2019, zhllxt
+ * COPYRIGHT (C) 2017-2021, zhllxt
  *
  * author   : zhllxt
  * email    : 37792738@qq.com
@@ -14,6 +14,8 @@
 #if defined(_MSC_VER) && (_MSC_VER >= 1200)
 #pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
+
+#include <asio2/base/detail/push_options.hpp>
 
 #include <asio2/base/server.hpp>
 #include <asio2/tcp/tcp_session.hpp>
@@ -37,6 +39,7 @@ namespace asio2::detail
 
 		using session_type = session_t;
 
+	public:
 		/**
 		 * @constructor
 		 */
@@ -64,113 +67,22 @@ namespace asio2::detail
 
 		/**
 		 * @function : start the server
-		 * @param service A string identifying the requested service. This may be a
-		 * descriptive name or a numeric string corresponding to a port number.
-		 */
-		template<typename StrOrInt>
-		inline bool start(StrOrInt&& service)
-		{
-			return this->start(std::string_view{}, std::forward<StrOrInt>(service));
-		}
-
-		/**
-		 * @function : start the server
 		 * @param host A string identifying a location. May be a descriptive name or
 		 * a numeric address string.
 		 * @param service A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
-		 */
-		template<typename String, typename StrOrInt>
-		inline bool start(String&& host, StrOrInt&& service)
-		{
-			return this->derived()._do_start(
-				std::forward<String>(host), std::forward<StrOrInt>(service),
-				condition_wrap<asio::detail::transfer_at_least_t>{asio::transfer_at_least(1)});
-		}
-
-		/**
-		 * @function : start the server
-		 * @param host A string identifying a location. May be a descriptive name or
-		 * a numeric address string.
-		 * @param service A string identifying the requested service. This may be a
-		 * descriptive name or a numeric string corresponding to a port number.
-		 * @param condition The delimiter condition.Valid value types include the following:
+		 * @param args The delimiter condition.Valid value types include the following:
 		 * char,std::string,std::string_view,
 		 * function:std::pair<iterator, bool> match_condition(iterator begin, iterator end),
 		 * asio::transfer_at_least,asio::transfer_exactly
 		 * more details see asio::read_until
 		 */
-		template<typename String, typename StrOrInt, typename MatchCondition>
-		inline bool start(String&& host, StrOrInt&& service, MatchCondition condition)
+		template<typename String, typename StrOrInt, typename... Args>
+		inline bool start(String&& host, StrOrInt&& service, Args&&... args)
 		{
 			return this->derived()._do_start(
 				std::forward<String>(host), std::forward<StrOrInt>(service),
-				condition_wrap<MatchCondition>(condition));
-		}
-
-		/**
-		 * @function : start the server
-		 * @param host A string identifying a location. May be a descriptive name or
-		 * a numeric address string.
-		 * @param service A string identifying the requested service. This may be a
-		 * descriptive name or a numeric string corresponding to a port number.
-		 * @param condition The delimiter condition.Valid value types include the following:
-		 * char,std::string,std::string_view,
-		 * function:std::pair<iterator, bool> match_condition(iterator begin, iterator end),
-		 * asio::transfer_at_least,asio::transfer_exactly
-		 * more details see asio::read_until
-		 * @param parser 
-		 */
-		template<typename String, typename StrOrInt, typename MatchCondition, typename ParserFun>
-		inline bool start(String&& host, StrOrInt&& service, MatchCondition condition, ParserFun&& parser)
-		{
-			using fun_traits_type = function_traits<std::remove_cv_t<std::remove_reference_t<ParserFun>>>;
-			using IdT = typename fun_traits_type::return_type;
-			using SendDataT = typename fun_traits_type::template args<0>::type;
-			using RecvDataT = typename fun_traits_type::template args<0>::type;
-
-			return this->derived()._do_start(
-				std::forward<String>(host), std::forward<StrOrInt>(service),
-				condition_wrap<use_rdc_t<MatchCondition, IdT, SendDataT, RecvDataT>>(
-					std::in_place,
-					std::move(condition),
-					std::forward<ParserFun>(parser)));
-		}
-
-		/**
-		 * @function : start the server
-		 * @param host A string identifying a location. May be a descriptive name or
-		 * a numeric address string.
-		 * @param service A string identifying the requested service. This may be a
-		 * descriptive name or a numeric string corresponding to a port number.
-		 * @param condition The delimiter condition.Valid value types include the following:
-		 * char,std::string,std::string_view,
-		 * function:std::pair<iterator, bool> match_condition(iterator begin, iterator end),
-		 * asio::transfer_at_least,asio::transfer_exactly
-		 * more details see asio::read_until
-		 * @param parser 
-		 */
-		template<typename String, typename StrOrInt, typename MatchCondition,
-			typename SendParserFun, typename RecvParserFun>
-		inline bool start(String&& host, StrOrInt&& service, MatchCondition condition,
-			SendParserFun&& send_parser, RecvParserFun&& recv_parser)
-		{
-			using send_fun_traits_type = function_traits<std::remove_cv_t<std::remove_reference_t<SendParserFun>>>;
-			using recv_fun_traits_type = function_traits<std::remove_cv_t<std::remove_reference_t<RecvParserFun>>>;
-			using SendIdT = typename send_fun_traits_type::return_type;
-			using RecvIdT = typename recv_fun_traits_type::return_type;
-			using SendDataT = typename send_fun_traits_type::template args<0>::type;
-			using RecvDataT = typename recv_fun_traits_type::template args<0>::type;
-
-			static_assert(std::is_same_v<SendIdT, RecvIdT>);
-
-			return this->derived()._do_start(
-				std::forward<String>(host), std::forward<StrOrInt>(service),
-				condition_wrap<use_rdc_t<MatchCondition, SendIdT, SendDataT, RecvDataT>>(
-					std::in_place,
-					std::move(condition),
-					std::forward<SendParserFun>(send_parser),
-					std::forward<RecvParserFun>(recv_parser)));
+				condition_helper::make_condition(asio::transfer_at_least(1), std::forward<Args>(args)...));
 		}
 
 		/**
@@ -179,7 +91,13 @@ namespace asio2::detail
 		 */
 		inline void stop()
 		{
-			this->derived()._do_stop(asio::error::operation_aborted);
+			if (this->iopool_.is_stopped())
+				return;
+
+			this->derived().dispatch([this]() mutable
+			{
+				this->derived()._do_stop(asio::error::operation_aborted);
+			});
 
 			this->iopool_.stop();
 
@@ -191,7 +109,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : check whether the server is started 
+		 * @function : check whether the server is started
 		 */
 		inline bool is_started() { return (super::is_started() && this->acceptor_.is_open()); }
 
@@ -207,7 +125,7 @@ namespace asio2::detail
 		 * @param    : obj - a pointer or reference to a class object, this parameter can be none
 		 * if fun is nonmember function, the obj param must be none, otherwise the obj must be the
 		 * the class object's pointer or refrence.
-		 * Function signature : void(std::shared_ptr<asio2::tcp_session>& session_ptr, std::string_view s)
+		 * Function signature : void(std::shared_ptr<asio2::tcp_session>& session_ptr, std::string_view data)
 		 */
 		template<class F, class ...C>
 		inline derived_t & bind_recv(F&& fun, C&&... obj)
@@ -334,84 +252,132 @@ namespace asio2::detail
 
 	protected:
 		template<typename String, typename StrOrInt, typename MatchCondition>
-		bool _do_start(String&& host, StrOrInt&& service, condition_wrap<MatchCondition> condition)
+		inline bool _do_start(String&& host, StrOrInt&& port, condition_wrap<MatchCondition> condition)
 		{
-			state_t expected = state_t::stopped;
-			if (!this->state_.compare_exchange_strong(expected, state_t::starting))
+			this->iopool_.start();
+
+			if (this->iopool_.is_stopped())
 			{
-				set_last_error(asio::error::already_started);
+				ASIO2_ASSERT(false);
+				set_last_error(asio::error::operation_aborted);
 				return false;
 			}
 
-			try
+			// use promise to get the result of async accept
+			std::promise<error_code> promise;
+			std::future<error_code> future = promise.get_future();
+
+			// use derfer to ensure the promise's value must be seted.
+			detail::defer_event set_promise
 			{
-				clear_last_error();
+				[promise = std::move(promise)]() mutable { promise.set_value(get_last_error()); }
+			};
 
-				this->iopool_.start();
-
-				if (this->iopool_.is_stopped())
+			this->derived().post(
+			[this, host = std::forward<String>(host), port = std::forward<StrOrInt>(port),
+				condition = std::move(condition), set_promise = std::move(set_promise)]
+			() mutable
+			{
+				state_t expected = state_t::stopped;
+				if (!this->state_.compare_exchange_strong(expected, state_t::starting))
 				{
-					set_last_error(asio::error::shut_down);
-					return false;
+					// if the state is not stopped, set the last error to already_started
+					set_last_error(asio::error::already_started);
+
+					return;
 				}
 
-				this->counter_ptr_ = std::shared_ptr<void>((void*)1, [this](void*)
+				try
 				{
-					this->derived().post([this]() mutable
+					clear_last_error();
+
+					// convert to string maybe throw some exception.
+					std::string h = detail::to_string(std::move(host));
+					std::string p = detail::to_string(std::move(port));
+
+					expected = state_t::starting;
+					if (!this->state_.compare_exchange_strong(expected, state_t::starting))
 					{
-						state_t expected = state_t::stopping;
-						if (this->state_.compare_exchange_strong(expected, state_t::stopped))
-							this->derived()._handle_stop(
-								asio::error::operation_aborted, this->derived().selfptr());
-						else
-							ASIO2_ASSERT(false);
+						ASIO2_ASSERT(false);
+						asio::detail::throw_error(asio::error::operation_aborted);
+					}
+
+				#if defined(ASIO2_ENABLE_LOG)
+					this->sessions_.is_all_session_stop_called_ = false;
+					this->is_stop_called_ = false;
+				#endif
+
+					super::start();
+
+					this->counter_ptr_ = std::shared_ptr<void>((void*)1, [this](void*) mutable
+					{
+						this->derived()._exec_stop(asio::error::operation_aborted, this->derived().selfptr());
 					});
-				});
 
-				this->acceptor_.close(ec_ignore());
+					error_code ec_ignore{};
 
-				std::string h = to_string(std::forward<String>(host));
-				std::string p = to_string(std::forward<StrOrInt>(service));
+					this->acceptor_.close(ec_ignore);
 
-				// parse address and port
-				asio::ip::tcp::resolver resolver(this->io_.context());
-				asio::ip::tcp::endpoint endpoint = *resolver.resolve(h, p,
-					asio::ip::resolver_base::flags::passive |
-					asio::ip::resolver_base::flags::address_configured).begin();
+					// parse address and port
+					asio::ip::tcp::resolver resolver(this->io_.context());
+					asio::ip::tcp::endpoint endpoint = *resolver.resolve(h, p,
+						asio::ip::resolver_base::flags::passive |
+						asio::ip::resolver_base::flags::address_configured).begin();
 
-				this->acceptor_.open(endpoint.protocol());
+					this->acceptor_.open(endpoint.protocol());
 
-				// when you close socket in linux system,and start socket
-				// immediate,you will get like this "the address is in use",
-				// and bind is failed,but i'm suer i close the socket correct
-				// already before,why does this happen? the reasion is the 
-				// socket option "TIME_WAIT",although you close the socket,
-				// but the system not release the socket,util 2~4 seconds 
-				// later,so we can use the SO_REUSEADDR option to avoid this
-				// problem,like below
+					// when you close socket in linux system,and start socket
+					// immediate,you will get like this "the address is in use",
+					// and bind is failed,but i'm suer i close the socket correct
+					// already before,why does this happen? the reasion is the 
+					// socket option "TIME_WAIT",although you close the socket,
+					// but the system not release the socket,util 2~4 seconds 
+					// later,so we can use the SO_REUSEADDR option to avoid this
+					// problem,like below
 				
-				// set port reuse
-				this->acceptor_.set_option(asio::ip::tcp::acceptor::reuse_address(true));
+					// set port reuse
+					this->acceptor_.set_option(asio::ip::tcp::acceptor::reuse_address(true));
 
-				this->derived()._fire_init();
+					this->derived()._fire_init();
 
-				this->acceptor_.bind(endpoint);
-				this->acceptor_.listen();
+					this->acceptor_.bind(endpoint);
+					this->acceptor_.listen();
+				}
+				catch (system_error const& e)
+				{
+					set_last_error(e.code());
+				}
+				catch (std::exception const&)
+				{
+					set_last_error(asio::error::invalid_argument);
+				}
 
-				this->derived()._handle_start(error_code{}, std::move(condition));
+				this->derived()._handle_start(get_last_error(), std::move(condition));
+			});
 
-				return (this->is_started());
-			}
-			catch (system_error & e)
+			if (!this->derived().io().strand().running_in_this_thread())
 			{
-				this->derived()._handle_start(e.code(), std::move(condition));
+				set_last_error(future.get());
 			}
-			return false;
+			else
+			{
+				ASIO2_ASSERT(false);
+
+				set_last_error(asio::error::in_progress);
+			}
+
+			// if the state is stopped , the return value is "is_started()".
+			// if the state is stopping, the return value is false, the last error is already_started
+			// if the state is starting, the return value is false, the last error is already_started
+			// if the state is started , the return value is true , the last error is already_started
+			return this->derived().is_started();
 		}
 
 		template<typename MatchCondition>
-		void _handle_start(error_code ec, condition_wrap<MatchCondition> condition)
+		inline void _handle_start(error_code ec, condition_wrap<MatchCondition> condition)
 		{
+			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
+
 			try
 			{
 				// Whether the startup succeeds or fails, always call fire_start notification
@@ -431,20 +397,20 @@ namespace asio2::detail
 
 				asio::detail::throw_error(ec);
 
-				this->derived().post([this, condition]() mutable
-				{
-					this->derived()._post_accept(std::move(condition));
-				});
+				this->derived()._post_accept(std::move(condition));
 			}
 			catch (system_error & e)
 			{
 				set_last_error(e);
+
 				this->derived()._do_stop(e.code());
 			}
 		}
 
 		inline void _do_stop(const error_code& ec)
 		{
+			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
+
 			state_t expected = state_t::starting;
 			if (this->state_.compare_exchange_strong(expected, state_t::stopping))
 				return this->derived()._post_stop(ec, this->derived().selfptr(), expected);
@@ -454,7 +420,7 @@ namespace asio2::detail
 				return this->derived()._post_stop(ec, this->derived().selfptr(), expected);
 		}
 
-		inline void _post_stop(const error_code& ec, std::shared_ptr<derived_t> self_ptr, state_t old_state)
+		inline void _post_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr, state_t old_state)
 		{
 			// asio don't allow operate the same socket in multi thread,
 			// if you close socket in one thread and another thread is
@@ -462,9 +428,10 @@ namespace asio2::detail
 			// must care for operate the socket. when need close the 
 			// socket ,we use the strand to post a event,make sure the
 			// socket's close operation is in the same thread.
-			this->derived().post([this, ec, this_ptr = std::move(self_ptr), old_state]() mutable
+			asio::dispatch(this->derived().io().strand(), make_allocator(this->derived().wallocator(),
+			[this, ec, old_state, this_ptr = std::move(this_ptr)]() mutable
 			{
-				detail::ignore_unused(this, old_state);
+				detail::ignore_unused(this, ec, old_state, this_ptr);
 
 				set_last_error(ec);
 
@@ -480,18 +447,51 @@ namespace asio2::detail
 					session_ptr->stop();
 				});
 
-				this->counter_ptr_.reset();
-			});
+			#if defined(ASIO2_ENABLE_LOG)
+				this->sessions_.is_all_session_stop_called_ = true;
+			#endif
+
+				if (this->counter_ptr_)
+				{
+					this->counter_ptr_.reset();
+				}
+				else
+				{
+					this->derived()._exec_stop(ec, std::move(this_ptr));
+				}
+			}));
+		}
+
+		inline void _exec_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
+		{
+			// use asio::post to ensure this server's _handle_stop is called must be after 
+			// all sessions _handle_stop has been called already.
+			// is use asio::dispatch, session's _handle_stop maybe called first.
+			asio::post(this->derived().io().strand(), make_allocator(this->derived().wallocator(),
+			[this, ec, this_ptr = std::move(this_ptr)]() mutable
+			{
+				state_t expected = state_t::stopping;
+				if (this->state_.compare_exchange_strong(expected, state_t::stopped))
+				{
+					this->derived()._handle_stop(ec, std::move(this_ptr));
+				}
+				else
+				{
+					ASIO2_ASSERT(false);
+				}
+			}));
 		}
 
 		inline void _handle_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
 		{
 			detail::ignore_unused(ec, this_ptr);
 
+			error_code ec_ignore{};
+
 			this->derived()._fire_stop(ec);
 
-			this->acceptor_timer_.cancel(ec_ignore());
-			this->counter_timer_.cancel(ec_ignore());
+			this->acceptor_timer_.cancel(ec_ignore);
+			this->counter_timer_.cancel(ec_ignore);
 
 			// call the base class stop function
 			super::stop();
@@ -500,7 +500,7 @@ namespace asio2::detail
 			// function response with error > 0 , then the listen socket
 			// can get notify to exit must ensure the close function has 
 			// been called,otherwise the _handle_accept will never return
-			this->acceptor_.close(ec_ignore());
+			this->acceptor_.close(ec_ignore);
 		}
 
 		template<typename... Args>
@@ -514,6 +514,8 @@ namespace asio2::detail
 		template<typename MatchCondition>
 		inline void _post_accept(condition_wrap<MatchCondition> condition)
 		{
+			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
+
 			if (!this->is_started())
 				return;
 
@@ -543,7 +545,7 @@ namespace asio2::detail
 					set_last_error(ec);
 					if (ec) return;
 					asio::post(this->io_.strand(), make_allocator(this->rallocator_,
-						[this, condition]() mutable
+					[this, condition]() mutable
 					{
 						this->derived()._post_accept(std::move(condition));
 					}));
@@ -578,16 +580,33 @@ namespace asio2::detail
 
 		inline void _fire_init()
 		{
+			// the _fire_init must be executed in the thread 0.
+			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
+
 			this->listener_.notify(event_type::init);
 		}
 
 		inline void _fire_start(error_code ec)
 		{
+			// the _fire_start must be executed in the thread 0.
+			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
+
+		#if defined(ASIO2_ENABLE_LOG)
+			ASIO2_ASSERT(this->is_stop_called_ == false);
+		#endif
+
 			this->listener_.notify(event_type::start, ec);
 		}
 
 		inline void _fire_stop(error_code ec)
 		{
+			// the _fire_stop must be executed in the thread 0.
+			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
+
+		#if defined(ASIO2_ENABLE_LOG)
+			this->is_stop_called_ = true;
+		#endif
+
 			this->listener_.notify(event_type::stop, ec);
 		}
 
@@ -604,6 +623,10 @@ namespace asio2::detail
 		std::size_t             init_buffer_size_ = tcp_frame_size;
 
 		std::size_t             max_buffer_size_ = (std::numeric_limits<std::size_t>::max)();
+
+	#if defined(ASIO2_ENABLE_LOG)
+		bool                    is_stop_called_  = false;
+	#endif
 	};
 }
 
@@ -618,5 +641,7 @@ namespace asio2
 
 	using tcp_server = tcp_server_t<tcp_session>;
 }
+
+#include <asio2/base/detail/pop_options.hpp>
 
 #endif // !__ASIO2_TCP_SERVER_HPP__

@@ -28,11 +28,7 @@
 #ifndef __ASIO2_HTTP_PARSER_H__
 #define __ASIO2_HTTP_PARSER_H__
 
-#if defined(__GNUC__) || defined(__GNUG__)
-#  pragma GCC diagnostic push
-#  pragma GCC diagnostic ignored "-Wunused-variable"
-#  pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
+#include <asio2/base/detail/push_options.hpp>
 
 #ifdef BEAST_HEADER_ONLY
 namespace beast::http::http_parser_ns
@@ -2999,8 +2995,6 @@ http_parser_version(void) {
 //#endif
 }
 
-#if defined(__GNUC__) || defined(__GNUG__)
-#	pragma GCC diagnostic pop
-#endif
+#include <asio2/base/detail/pop_options.hpp>
 
 #endif

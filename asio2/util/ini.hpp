@@ -65,18 +65,34 @@
 
 
 #if defined(__unix__) || defined(__linux__)
-	#include <unistd.h>
-	#include <sys/types.h>
-	#include <sys/stat.h>
-	#include <dirent.h>
+#	if __has_include(<unistd.h>)
+#		include <unistd.h>
+#	endif
+#	if __has_include(<sys/types.h>)
+#		include <sys/types.h>
+#	endif
+#	if __has_include(<sys/stat.h>)
+#		include <sys/stat.h>
+#	endif
+#	if __has_include(<dirent.h>)
+#		include <dirent.h>
+#	endif
 #elif defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS_) || defined(WIN32)
-	#ifndef WIN32_LEAN_AND_MEAN
-		#define WIN32_LEAN_AND_MEAN
-	#endif
-	#include <Windows.h>
-	#include <tchar.h>
-	#include <io.h>
-	#include <direct.h>
+#	ifndef WIN32_LEAN_AND_MEAN
+#		define WIN32_LEAN_AND_MEAN
+#	endif
+#	if __has_include(<Windows.h>)
+#		include <Windows.h>
+#	endif
+#	if __has_include(<tchar.h>)
+#		include <tchar.h>
+#	endif
+#	if __has_include(<io.h>)
+#		include <io.h>
+#	endif
+#	if __has_include(<direct.h>)
+#		include <direct.h>
+#	endif
 #endif
 
 /*

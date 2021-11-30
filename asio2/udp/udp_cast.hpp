@@ -1,5 +1,5 @@
 /*
- * COPYRIGHT (C) 2017-2019, zhllxt
+ * COPYRIGHT (C) 2017-2021, zhllxt
  *
  * author   : zhllxt
  * email    : 37792738@qq.com
@@ -15,6 +15,8 @@
 #pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
+#include <asio2/base/detail/push_options.hpp>
+
 #include <cstdint>
 #include <memory>
 #include <chrono>
@@ -28,7 +30,7 @@
 #include <tuple>
 #include <unordered_map>
 
-#include <asio2/base/selector.hpp>
+#include <asio2/3rd/asio.hpp>
 #include <asio2/base/iopool.hpp>
 #include <asio2/base/error.hpp>
 #include <asio2/base/listener.hpp>
@@ -44,6 +46,7 @@
 #include <asio2/base/component/user_timer_cp.hpp>
 #include <asio2/base/component/post_cp.hpp>
 #include <asio2/base/component/event_queue_cp.hpp>
+#include <asio2/base/component/async_event_cp.hpp>
 
 #include <asio2/base/detail/linear_buffer.hpp>
 #include <asio2/udp/component/udp_send_cp.hpp>
@@ -70,6 +73,7 @@ namespace asio2::detail
 		, public socket_cp      <derived_t, args_t>
 		, public user_timer_cp  <derived_t, args_t>
 		, public post_cp        <derived_t, args_t>
+		, public async_event_cp <derived_t, args_t>
 		, public udp_send_cp    <derived_t, args_t>
 		, public udp_send_op    <derived_t, args_t>
 	{
@@ -97,6 +101,7 @@ namespace asio2::detail
 			, socket_cp      <derived_t, args_t>(iopool_.get(0).context())
 			, user_timer_cp  <derived_t, args_t>()
 			, post_cp        <derived_t, args_t>()
+			, async_event_cp <derived_t, args_t>()
 			, udp_send_cp    <derived_t, args_t>(iopool_.get(0))
 			, udp_send_op    <derived_t, args_t>()
 			, rallocator_()
@@ -116,44 +121,41 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : start the server
-		 * @param service A string identifying the requested service. This may be a
-		 * descriptive name or a numeric string corresponding to a port number.
-		 */
-		template<typename StrOrInt>
-		inline bool start(StrOrInt&& service)
-		{
-			return this->start(std::string_view{}, std::forward<StrOrInt>(service));
-		}
-
-		/**
-		 * @function : start the server
+		 * @function : start the udp cast
 		 * @param host A string identifying a location. May be a descriptive name or
 		 * a numeric address string.
 		 * @param service A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
 		 */
-		template<typename String, typename StrOrInt>
-		inline bool start(String&& host, StrOrInt&& service)
+		template<typename String, typename StrOrInt, typename... Args>
+		inline bool start(String&& host, StrOrInt&& service, Args&&... args)
 		{
 			return this->derived()._do_start(
 				std::forward<String>(host), std::forward<StrOrInt>(service),
-				condition_wrap<void>{});
+				condition_helper::make_condition('0', std::forward<Args>(args)...));
 		}
 
 		/**
-		 * @function : stop the client
-		 * You can call this function on the communication thread and anywhere to stop the client.
+		 * @function : stop the udp cast
+		 * You can call this function on the communication thread and anywhere to stop the udp cast.
 		 */
 		inline void stop()
 		{
-			this->derived()._do_stop(asio::error::operation_aborted);
+			if (this->iopool_.is_stopped())
+				return;
+
+			this->derived().dispatch([this]() mutable
+			{
+				this->derived()._do_stop(asio::error::operation_aborted);
+			});
 
 			this->iopool_.stop();
+
+			ASIO2_ASSERT(this->state_ == state_t::stopped);
 		}
 
 		/**
-		 * @function : check whether the client is started
+		 * @function : check whether the udp cast is started
 		 */
 		inline bool is_started() const
 		{
@@ -161,7 +163,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : check whether the client is stopped
+		 * @function : check whether the udp cast is stopped
 		 */
 		inline bool is_stopped() const
 		{
@@ -175,7 +177,7 @@ namespace asio2::detail
 		 * @param    : obj - a pointer or reference to a class object, this parameter can be none
 		 * if fun is nonmember function, the obj param must be none, otherwise the obj must be the
 		 * the class object's pointer or refrence.
-		 * Function signature : void(asio::ip::udp::endpoint& endpoint, std::string_view s)
+		 * Function signature : void(asio::ip::udp::endpoint& endpoint, std::string_view data)
 		 */
 		template<class F, class ...C>
 		inline derived_t & bind_recv(F&& fun, C&&... obj)
@@ -238,70 +240,125 @@ namespace asio2::detail
 
 	protected:
 		template<typename String, typename StrOrInt, typename MatchCondition>
-		bool _do_start(String&& host, StrOrInt&& service, condition_wrap<MatchCondition> condition)
+		bool _do_start(String&& host, StrOrInt&& port, condition_wrap<MatchCondition> condition)
 		{
-			state_t expected = state_t::stopped;
-			if (!this->state_.compare_exchange_strong(expected, state_t::starting))
+			this->iopool_.start();
+
+			if (this->iopool_.is_stopped())
 			{
-				set_last_error(asio::error::already_started);
+				ASIO2_ASSERT(false);
+				set_last_error(asio::error::operation_aborted);
 				return false;
 			}
 
-			try
+			// use promise to get the result of async connect
+			std::promise<error_code> promise;
+			std::future<error_code> future = promise.get_future();
+
+			// use derfer to ensure the promise's value must be seted.
+			detail::defer_event set_promise
 			{
-				clear_last_error();
+				[promise = std::move(promise)]() mutable { promise.set_value(get_last_error()); }
+			};
 
-				this->iopool_.start();
+			this->derived().push_event(
+			[this, host = std::forward<String>(host), port = std::forward<StrOrInt>(port),
+				condition = std::move(condition), set_promise = std::move(set_promise)]
+			(event_queue_guard<derived_t>&& g) mutable
+			{
+				detail::ignore_unused(g);
 
-				if (this->iopool_.is_stopped())
+				state_t expected = state_t::stopped;
+				if (!this->state_.compare_exchange_strong(expected, state_t::starting))
 				{
-					set_last_error(asio::error::shut_down);
-					return false;
+					// if the state is not stopped, set the last error to already_started
+					set_last_error(asio::error::already_started);
+
+					return;
 				}
 
-				this->socket_.close(ec_ignore());
+				try
+				{
+					clear_last_error();
 
-				std::string h = to_string(std::forward<String>(host));
-				std::string p = to_string(std::forward<StrOrInt>(service));
+					// convert to string maybe throw some exception.
+					std::string h = detail::to_string(std::move(host));
+					std::string p = detail::to_string(std::move(port));
 
-				// parse address and port
-				asio::ip::udp::resolver resolver(this->io_.context());
-				asio::ip::udp::endpoint endpoint = *resolver.resolve(h, p,
-					asio::ip::resolver_base::flags::passive |
-					asio::ip::resolver_base::flags::address_configured).begin();
+					expected = state_t::starting;
+					if (!this->state_.compare_exchange_strong(expected, state_t::starting))
+					{
+						ASIO2_ASSERT(false);
+						asio::detail::throw_error(asio::error::operation_aborted);
+					}
 
-				this->socket_.open(endpoint.protocol());
+				#if defined(ASIO2_ENABLE_LOG)
+					this->is_stop_called_ = false;
+				#endif
 
-				// when you close socket in linux system,and start socket
-				// immediate,you will get like this "the address is in use",
-				// and bind is failed,but i'm suer i close the socket correct
-				// already before,why does this happen? the reasion is the
-				// socket option "TIME_WAIT",although you close the socket,
-				// but the system not release the socket,util 2~4 seconds later,
-				// so we can use the SO_REUSEADDR option to avoid this problem,
-				// like below
+					error_code ec_ignore{};
 
-				// set port reuse
-				this->socket_.set_option(asio::ip::udp::socket::reuse_address(true));
+					this->socket_.close(ec_ignore);
 
-				this->derived()._fire_init();
+					// parse address and port
+					asio::ip::udp::resolver resolver(this->io_.context());
+					asio::ip::udp::endpoint endpoint = *resolver.resolve(h, p,
+						asio::ip::resolver_base::flags::passive |
+						asio::ip::resolver_base::flags::address_configured).begin();
 
-				this->socket_.bind(endpoint);
+					this->socket_.open(endpoint.protocol());
 
-				this->derived()._handle_start(error_code{}, std::move(condition));
+					// when you close socket in linux system,and start socket
+					// immediate,you will get like this "the address is in use",
+					// and bind is failed,but i'm suer i close the socket correct
+					// already before,why does this happen? the reasion is the
+					// socket option "TIME_WAIT",although you close the socket,
+					// but the system not release the socket,util 2~4 seconds later,
+					// so we can use the SO_REUSEADDR option to avoid this problem,
+					// like below
 
-				return (this->is_started());
-			}
-			catch (system_error & e)
+					// set port reuse
+					this->socket_.set_option(asio::ip::udp::socket::reuse_address(true));
+
+					this->derived()._fire_init();
+
+					this->socket_.bind(endpoint);
+				}
+				catch (system_error const& e)
+				{
+					set_last_error(e.code());
+				}
+				catch (std::exception const&)
+				{
+					set_last_error(asio::error::invalid_argument);
+				}
+
+				this->derived()._handle_start(get_last_error(), std::move(condition));
+			});
+
+			if (!this->derived().io().strand().running_in_this_thread())
 			{
-				this->derived()._handle_start(e.code(), std::move(condition));
+				set_last_error(future.get());
 			}
-			return false;
+			else
+			{
+				ASIO2_ASSERT(false);
+
+				set_last_error(asio::error::in_progress);
+			}
+
+			// if the state is stopped , the return value is "is_started()".
+			// if the state is stopping, the return value is false, the last error is already_started
+			// if the state is starting, the return value is false, the last error is already_started
+			// if the state is started , the return value is true , the last error is already_started
+			return this->derived().is_started();
 		}
 
 		template<typename MatchCondition>
 		void _handle_start(error_code ec, condition_wrap<MatchCondition> condition)
 		{
+			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
+
 			try
 			{
 				// Whether the startup succeeds or fails, always call fire_start notification
@@ -321,22 +378,22 @@ namespace asio2::detail
 
 				asio::detail::throw_error(ec);
 
-				this->derived().post([this, condition = std::move(condition)]()
-				{
-					this->buffer_.consume(this->buffer_.size());
+				this->buffer_.consume(this->buffer_.size());
 
-					this->derived()._post_recv(std::move(condition));
-				});
+				this->derived()._post_recv(std::move(condition));
 			}
 			catch (system_error & e)
 			{
 				set_last_error(e);
+
 				this->derived()._do_stop(e.code());
 			}
 		}
 
 		inline void _do_stop(const error_code& ec)
 		{
+			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
+
 			state_t expected = state_t::starting;
 			if (this->state_.compare_exchange_strong(expected, state_t::stopping))
 				return this->derived()._post_stop(ec, this->derived().selfptr(), expected);
@@ -349,7 +406,8 @@ namespace asio2::detail
 		inline void _post_stop(const error_code& ec, std::shared_ptr<derived_t> self_ptr, state_t old_state)
 		{
 			// psot a recv signal to ensure that all recv events has finished already.
-			this->derived().post([this, ec, this_ptr = std::move(self_ptr), old_state]()
+			asio::dispatch(this->derived().io().strand(), make_allocator(this->derived().wallocator(),
+			[this, ec, this_ptr = std::move(self_ptr), old_state]() mutable
 			{
 				detail::ignore_unused(old_state);
 
@@ -370,15 +428,23 @@ namespace asio2::detail
 				{
 					ASIO2_ASSERT(false);
 				}
-			});
+			}));
 		}
 
 		inline void _handle_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
 		{
 			detail::ignore_unused(ec, this_ptr);
 
+			error_code ec_ignore{};
+
 			// close user custom timers
 			this->stop_all_timers();
+
+			// close all posted timed tasks
+			this->stop_all_timed_tasks();
+
+			// close all async_events
+			this->notify_all_events();
 
 			// destroy user data, maybe the user data is self shared_ptr,
 			// if don't destroy it, will cause loop refrence.
@@ -387,9 +453,9 @@ namespace asio2::detail
 			// call socket's close function to notify the _handle_recv function
 			// response with error > 0 ,then the socket can get notify to exit
 			// Call shutdown() to indicate that you will not write any more data to the socket.
-			this->socket_.shutdown(asio::socket_base::shutdown_both, ec_ignore());
+			this->socket_.shutdown(asio::socket_base::shutdown_both, ec_ignore);
 			// Call close,otherwise the _handle_recv will never return
-			this->socket_.close(ec_ignore());
+			this->socket_.close(ec_ignore);
 		}
 
 	protected:
@@ -411,7 +477,7 @@ namespace asio2::detail
 				this->socket_.async_receive_from(
 					this->buffer_.prepare(this->buffer_.pre_size()), this->remote_endpoint_,
 					asio::bind_executor(this->io_.strand(), make_allocator(this->rallocator_,
-						[this, condition = std::move(condition)](const error_code& ec, std::size_t bytes_recvd)
+					[this, condition = std::move(condition)](const error_code& ec, std::size_t bytes_recvd) mutable
 				{
 					this->derived()._handle_recv(ec, bytes_recvd, std::move(condition));
 				})));
@@ -419,6 +485,7 @@ namespace asio2::detail
 			catch (system_error & e)
 			{
 				set_last_error(e);
+
 				this->derived()._do_stop(e.code());
 			}
 		}
@@ -454,25 +521,42 @@ namespace asio2::detail
 
 		inline void _fire_init()
 		{
+			// the _fire_init must be executed in the thread 0.
+			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
+
 			this->listener_.notify(event_type::init);
 		}
 
 		template<typename MatchCondition>
-		inline void _fire_recv(std::shared_ptr<derived_t> this_ptr, std::string_view s,
+		inline void _fire_recv(std::shared_ptr<derived_t> this_ptr, std::string_view data,
 			condition_wrap<MatchCondition>& condition)
 		{
 			detail::ignore_unused(this_ptr, condition);
 
-			this->listener_.notify(event_type::recv, this->remote_endpoint_, s);
+			this->listener_.notify(event_type::recv, this->remote_endpoint_, data);
 		}
 
 		inline void _fire_start(error_code ec)
 		{
+			// the _fire_start must be executed in the thread 0.
+			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
+
+		#if defined(ASIO2_ENABLE_LOG)
+			ASIO2_ASSERT(this->is_stop_called_ == false);
+		#endif
+
 			this->listener_.notify(event_type::start, ec);
 		}
 
 		inline void _fire_stop(error_code ec)
 		{
+			// the _fire_stop must be executed in the thread 0.
+			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
+
+		#if defined(ASIO2_ENABLE_LOG)
+			this->is_stop_called_ = true;
+		#endif
+
 			this->listener_.notify(event_type::stop, ec);
 		}
 
@@ -522,6 +606,10 @@ namespace asio2::detail
 
 		/// endpoint for udp 
 		asio::ip::udp::endpoint                     remote_endpoint_;
+
+	#if defined(ASIO2_ENABLE_LOG)
+		bool                                        is_stop_called_  = false;
+	#endif
 	};
 }
 
@@ -536,5 +624,7 @@ namespace asio2
 		using udp_cast_impl_t<udp_cast, detail::template_args_udp_cast>::udp_cast_impl_t;
 	};
 }
+
+#include <asio2/base/detail/pop_options.hpp>
 
 #endif // !__ASIO2_UDP_CAST_HPP__
