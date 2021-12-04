@@ -115,6 +115,7 @@ namespace asio2::detail::kcp
 		}
 	};
 
+	template<typename = void>
 	std::string to_string(kcphdr& hdr)
 	{
 		std::string s/*{ kcphdr::required_size(), '\0' }*/;
@@ -132,6 +133,7 @@ namespace asio2::detail::kcp
 		return s;
 	}
 
+	template<typename = void>
 	kcphdr to_kcphdr(std::string_view s)
 	{
 		kcphdr hdr{};
