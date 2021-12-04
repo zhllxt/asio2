@@ -44,13 +44,33 @@ namespace asio2::detail
 		 * @constructor
 		 */
 		explicit udp_server_impl_t(
-			std::size_t init_buffer_size = udp_frame_size,
-			std::size_t max_buffer_size = (std::numeric_limits<std::size_t>::max)()
+			std::size_t init_buf_size = udp_frame_size,
+			std::size_t max_buf_size  = max_buffer_size,
+			std::size_t concurrency   = 1
 		)
-			: super(1)
+			: super(concurrency)
 			, acceptor_(this->io_.context())
 			, remote_endpoint_()
-			, buffer_(init_buffer_size, max_buffer_size)
+			, buffer_(init_buf_size, max_buf_size)
+		{
+		}
+
+		template<class Scheduler, std::enable_if_t<!std::is_integral_v<detail::remove_cvref_t<Scheduler>>, int> = 0>
+		explicit udp_server_impl_t(
+			std::size_t init_buf_size,
+			std::size_t max_buf_size,
+			Scheduler&& scheduler
+		)
+			: super(std::forward<Scheduler>(scheduler))
+			, acceptor_(this->io_.context())
+			, remote_endpoint_()
+			, buffer_(init_buf_size, max_buf_size)
+		{
+		}
+
+		template<class Scheduler, std::enable_if_t<!std::is_integral_v<detail::remove_cvref_t<Scheduler>>, int> = 0>
+		explicit udp_server_impl_t(Scheduler&& scheduler)
+			: udp_server_impl_t(udp_frame_size, max_buffer_size, std::forward<Scheduler>(scheduler))
 		{
 		}
 
@@ -83,7 +103,7 @@ namespace asio2::detail
 		 */
 		inline void stop()
 		{
-			if (this->iopool_.is_stopped())
+			if (this->iopool_->stopped())
 				return;
 
 			this->derived().dispatch([this]() mutable
@@ -91,9 +111,12 @@ namespace asio2::detail
 				this->derived()._do_stop(asio::error::operation_aborted);
 			});
 
-			this->iopool_.stop();
+			this->iopool_->stop();
 
-			ASIO2_ASSERT(this->state_ == state_t::stopped);
+			if (dynamic_cast<asio2::detail::default_iopool*>(this->iopool_.get()))
+			{
+				ASIO2_ASSERT(this->state_ == state_t::stopped);
+			}
 		}
 
 		/**
@@ -241,9 +264,9 @@ namespace asio2::detail
 		template<typename String, typename StrOrInt, typename MatchCondition>
 		inline bool _do_start(String&& host, StrOrInt&& port, condition_wrap<MatchCondition> condition)
 		{
-			this->iopool_.start();
+			this->iopool_->start();
 
-			if (this->iopool_.is_stopped())
+			if (this->iopool_->stopped())
 			{
 				ASIO2_ASSERT(false);
 				set_last_error(asio::error::operation_aborted);

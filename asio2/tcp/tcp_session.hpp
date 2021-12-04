@@ -71,10 +71,10 @@ namespace asio2::detail
 			session_mgr_t<derived_t> & sessions,
 			listener_t               & listener,
 			io_t                     & rwio,
-			std::size_t                init_buffer_size,
-			std::size_t                max_buffer_size
+			std::size_t                init_buf_size,
+			std::size_t                max_buf_size
 		)
-			: super(sessions, listener, rwio, init_buffer_size, max_buffer_size, rwio.context())
+			: super(sessions, listener, rwio, init_buf_size, max_buf_size, rwio.context())
 			, tcp_keepalive_cp<derived_t, args_t>(this->socket_)
 			, tcp_send_op<derived_t, args_t>()
 			, tcp_recv_op<derived_t, args_t>()

@@ -218,7 +218,7 @@ namespace asio2::detail
 					// use a loop timer to execute "client send syn to server" until the server
 					// has recvd the syn packet and this client recvd reply.
 					std::shared_ptr<asio::steady_timer> timer =
-						mktimer(derive.io(), std::chrono::milliseconds(500),
+						mktimer(derive.io().context(), derive.io().strand(), std::chrono::milliseconds(500),
 						[this, syn](error_code ec) mutable
 					{
 						if (ec == asio::error::operation_aborted)

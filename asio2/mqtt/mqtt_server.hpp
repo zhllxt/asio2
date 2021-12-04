@@ -50,13 +50,31 @@ namespace asio2::detail
 		 * @constructor
 		 */
 		explicit mqtt_server_impl_t(
-			std::size_t init_buffer_size = tcp_frame_size,
-			std::size_t max_buffer_size  = mqtt::max_payload,
-			std::size_t concurrency      = std::thread::hardware_concurrency() * 2
+			std::size_t init_buf_size = tcp_frame_size,
+			std::size_t max_buf_size  = mqtt::max_payload,
+			std::size_t concurrency   = default_concurrency()
 		)
-			: super(init_buffer_size, max_buffer_size, concurrency)
+			: super(init_buf_size, max_buf_size, concurrency)
 			, mqtt_options                           ()
 			, mqtt_invoker_t   <session_t           >()
+		{
+		}
+
+		template<class Scheduler, std::enable_if_t<!std::is_integral_v<detail::remove_cvref_t<Scheduler>>, int> = 0>
+		explicit mqtt_server_impl_t(
+			std::size_t init_buf_size,
+			std::size_t max_buf_size,
+			Scheduler&& scheduler
+		)
+			: super(init_buf_size, max_buf_size, std::forward<Scheduler>(scheduler))
+			, mqtt_options                           ()
+			, mqtt_invoker_t   <session_t           >()
+		{
+		}
+
+		template<class Scheduler, std::enable_if_t<!std::is_integral_v<detail::remove_cvref_t<Scheduler>>, int> = 0>
+		explicit mqtt_server_impl_t(Scheduler&& scheduler)
+			: mqtt_server_impl_t(tcp_frame_size, mqtt::max_payload, std::forward<Scheduler>(scheduler))
 		{
 		}
 

@@ -165,6 +165,11 @@ namespace asio2::detail
 		~user_timer_cp() {}
 
 	public:
+		/**
+		 * @function : start a timer
+		 * the timer id can be integer or string, example : 1,2,3 or "id1" "id2"
+		 * the callback function signature : [](){}
+		 */
 		template<class TimerId, class Rep, class Period, class Fun, class... Args>
 		inline void start_timer(TimerId&& timer_id, std::chrono::duration<Rep, Period> duration,
 			Fun&& fun, Args&&... args)
@@ -201,6 +206,9 @@ namespace asio2::detail
 			}));
 		}
 
+		/**
+		 * @function : stop the timer by timer id
+		 */
 		template<class TimerId>
 		inline void stop_timer(TimerId&& timer_id)
 		{
@@ -229,9 +237,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : stop session
-		 * note : this function must be noblocking,if it's blocking,will 
-		 *        cause circle lock in session_mgr::stop function
+		 * @function : stop all timers
 		 */
 		inline void stop_all_timers()
 		{

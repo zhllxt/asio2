@@ -63,11 +63,9 @@ namespace asio2::detail
 		/**
 		 * @constructor
 		 */
-		explicit http_client_impl_t(
-			std::size_t init_buffer_size = tcp_frame_size,
-			std::size_t max_buffer_size  = (std::numeric_limits<std::size_t>::max)()
-		)
-			: super(init_buffer_size, max_buffer_size)
+		template<class... Args>
+		explicit http_client_impl_t(Args&&... args)
+			: super(std::forward<Args>(args)...)
 			, http_send_op<derived_t, args_t>()
 			, req_()
 			, rep_()

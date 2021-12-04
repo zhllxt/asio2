@@ -105,26 +105,26 @@ namespace asio2::detail
 		/**
 		 * @constructor
 		 */
-		template<class ...Args>
+		template<class ThreadCountOrScheduler, class ...Args>
 		explicit client_impl_t(
-			std::size_t concurrency,
-			std::size_t init_buffer_size,
-			std::size_t max_buffer_size,
+			std::size_t init_buf_size,
+			std::size_t  max_buf_size,
+			ThreadCountOrScheduler&& tcos,
 			Args&&...   args
 		)
 			: super()
-			, iopool_cp(concurrency)
+			, iopool_cp(std::forward<ThreadCountOrScheduler>(tcos))
 			, event_queue_cp      <derived_t, args_t>()
 			, user_data_cp        <derived_t, args_t>()
 			, connect_time_cp     <derived_t, args_t>()
 			, alive_time_cp       <derived_t, args_t>()
-			, socket_cp           <derived_t, args_t>(iopool_.get(0).context(), std::forward<Args>(args)...)
+			, socket_cp           <derived_t, args_t>(iopool_cp::_get_io(0).context(), std::forward<Args>(args)...)
 			, connect_cp          <derived_t, args_t>()
 			, disconnect_cp       <derived_t, args_t>()
 			, local_endpoint_cp   <derived_t, args_t>()
-			, reconnect_timer_cp  <derived_t, args_t>(iopool_.get(0))
+			, reconnect_timer_cp  <derived_t, args_t>(iopool_cp::_get_io(0))
 			, user_timer_cp       <derived_t, args_t>()
-			, connect_timeout_cp  <derived_t, args_t>(iopool_.get(0))
+			, connect_timeout_cp  <derived_t, args_t>(iopool_cp::_get_io(0))
 			, send_cp             <derived_t, args_t>()
 			, post_cp             <derived_t, args_t>()
 			, async_event_cp      <derived_t, args_t>()
@@ -132,8 +132,8 @@ namespace asio2::detail
 			, rallocator_()
 			, wallocator_()
 			, listener_  ()
-			, io_        (iopool_.get(0))
-			, buffer_    (init_buffer_size, max_buffer_size)
+			, io_        (iopool_cp::_get_io(0))
+			, buffer_    (init_buf_size, max_buf_size)
 		{
 		}
 

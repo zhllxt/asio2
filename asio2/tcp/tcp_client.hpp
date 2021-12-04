@@ -65,16 +65,55 @@ namespace asio2::detail
 		 * @constructor
 		 */
 		explicit tcp_client_impl_t(
-			std::size_t init_buffer_size = tcp_frame_size,
-			std::size_t max_buffer_size = (std::numeric_limits<std::size_t>::max)()
+			std::size_t init_buf_size = tcp_frame_size,
+			std::size_t  max_buf_size = max_buffer_size,
+			std::size_t   concurrency = 1
 		)
-			: super(1, init_buffer_size, max_buffer_size)
+			: super(init_buf_size, max_buf_size, concurrency)
 			, tcp_keepalive_cp<derived_t, args_t>(this->socket_)
 			, tcp_send_op<derived_t, args_t>()
 			, tcp_recv_op<derived_t, args_t>()
 		{
 			this->connect_timeout(std::chrono::milliseconds(tcp_connect_timeout));
 		}
+
+		template<class Scheduler, std::enable_if_t<!std::is_integral_v<detail::remove_cvref_t<Scheduler>>, int> = 0>
+		explicit tcp_client_impl_t(
+			std::size_t init_buf_size,
+			std::size_t  max_buf_size,
+			Scheduler&& scheduler
+		)
+			: super(init_buf_size, max_buf_size, std::forward<Scheduler>(scheduler))
+			, tcp_keepalive_cp<derived_t, args_t>(this->socket_)
+			, tcp_send_op<derived_t, args_t>()
+			, tcp_recv_op<derived_t, args_t>()
+		{
+			this->connect_timeout(std::chrono::milliseconds(tcp_connect_timeout));
+		}
+
+		template<class Scheduler, std::enable_if_t<!std::is_integral_v<detail::remove_cvref_t<Scheduler>>, int> = 0>
+		explicit tcp_client_impl_t(Scheduler&& scheduler)
+			: tcp_client_impl_t(tcp_frame_size, max_buffer_size, std::forward<Scheduler>(scheduler))
+		{
+		}
+
+		// -- Support initializer_list causes the code of inherited classes to be not concised
+
+		//template<class Scheduler, std::enable_if_t<!std::is_integral_v<detail::remove_cvref_t<Scheduler>>, int> = 0>
+		//explicit tcp_client_impl_t(
+		//	std::size_t init_buf_size,
+		//	std::size_t  max_buf_size,
+		//	std::initializer_list<Scheduler> scheduler
+		//)
+		//	: tcp_client_impl_t(init_buf_size, max_buf_size, std::vector<Scheduler>{std::move(scheduler)})
+		//{
+		//}
+
+		//template<class Scheduler, std::enable_if_t<!std::is_integral_v<detail::remove_cvref_t<Scheduler>>, int> = 0>
+		//explicit tcp_client_impl_t(std::initializer_list<Scheduler> scheduler)
+		//	: tcp_client_impl_t(tcp_frame_size, max_buffer_size, std::move(scheduler))
+		//{
+		//}
 
 		/**
 		 * @destructor
@@ -130,7 +169,7 @@ namespace asio2::detail
 		 */
 		inline void stop()
 		{
-			if (this->iopool_.is_stopped())
+			if (this->iopool_->stopped())
 				return;
 
 			ASIO2_LOG(spdlog::level::debug, "enter stop : {}",
@@ -164,9 +203,12 @@ namespace asio2::detail
 				);
 			});
 
-			this->iopool_.stop();
+			this->iopool_->stop();
 
-			ASIO2_ASSERT(this->state_ == state_t::stopped);
+			if (dynamic_cast<asio2::detail::default_iopool*>(this->iopool_.get()))
+			{
+				ASIO2_ASSERT(this->state_ == state_t::stopped);
+			}
 		}
 
 	public:
@@ -242,9 +284,9 @@ namespace asio2::detail
 		{
 			derived_t& derive = this->derived();
 
-			derive.iopool_.start();
+			derive.iopool_->start();
 
-			if (derive.iopool_.is_stopped())
+			if (derive.iopool_->stopped())
 			{
 				ASIO2_ASSERT(false);
 				set_last_error(asio::error::operation_aborted);
@@ -484,8 +526,8 @@ namespace asio2::detail
 			state_t expected = state_t::stopping;
 			if (!this->state_.compare_exchange_strong(expected, state_t::stopped))
 			{
-				ASIO2_LOG(spdlog::level::debug, "_handle_stop -> state is not stopped : {}",
-					magic_enum::enum_name(this->state_.load()));
+				ASIO2_LOG(spdlog::level::debug, "_handle_stop -> state is not stopping : {}",
+					magic_enum::enum_name(expected));
 
 			#if defined(ASIO2_ENABLE_LOG)
 				detail::has_unexpected_behavior() = true;

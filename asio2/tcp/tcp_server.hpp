@@ -44,18 +44,57 @@ namespace asio2::detail
 		 * @constructor
 		 */
 		explicit tcp_server_impl_t(
-			std::size_t init_buffer_size = tcp_frame_size,
-			std::size_t max_buffer_size  = (std::numeric_limits<std::size_t>::max)(),
-			std::size_t concurrency      = std::thread::hardware_concurrency() * 2
+			std::size_t init_buf_size = tcp_frame_size,
+			std::size_t  max_buf_size = max_buffer_size,
+			std::size_t   concurrency = default_concurrency()
 		)
 			: super(concurrency)
 			, acceptor_        (this->io_.context())
 			, acceptor_timer_  (this->io_.context())
 			, counter_timer_   (this->io_.context())
-			, init_buffer_size_(init_buffer_size)
-			, max_buffer_size_ (max_buffer_size)
+			, init_buffer_size_(init_buf_size)
+			, max_buffer_size_ ( max_buf_size)
 		{
 		}
+
+		template<class Scheduler, std::enable_if_t<!std::is_integral_v<detail::remove_cvref_t<Scheduler>>, int> = 0>
+		explicit tcp_server_impl_t(
+			std::size_t init_buf_size,
+			std::size_t  max_buf_size,
+			Scheduler&& scheduler
+		)
+			: super(std::forward<Scheduler>(scheduler))
+			, acceptor_        (this->io_.context())
+			, acceptor_timer_  (this->io_.context())
+			, counter_timer_   (this->io_.context())
+			, init_buffer_size_(init_buf_size)
+			, max_buffer_size_ ( max_buf_size)
+		{
+		}
+
+		template<class Scheduler, std::enable_if_t<!std::is_integral_v<detail::remove_cvref_t<Scheduler>>, int> = 0>
+		explicit tcp_server_impl_t(Scheduler&& scheduler)
+			: tcp_server_impl_t(tcp_frame_size, max_buffer_size, std::forward<Scheduler>(scheduler))
+		{
+		}
+
+		// -- Support initializer_list causes the code of inherited classes to be not concised
+
+		//template<class Scheduler, std::enable_if_t<!std::is_integral_v<detail::remove_cvref_t<Scheduler>>, int> = 0>
+		//explicit tcp_server_impl_t(
+		//	std::size_t init_buf_size,
+		//	std::size_t  max_buf_size,
+		//	std::initializer_list<Scheduler> scheduler
+		//)
+		//	: tcp_server_impl_t(init_buf_size, max_buf_size, std::vector<Scheduler>{std::move(scheduler)})
+		//{
+		//}
+
+		//template<class Scheduler, std::enable_if_t<!std::is_integral_v<detail::remove_cvref_t<Scheduler>>, int> = 0>
+		//explicit tcp_server_impl_t(std::initializer_list<Scheduler> scheduler)
+		//	: tcp_server_impl_t(tcp_frame_size, max_buffer_size, std::move(scheduler))
+		//{
+		//}
 
 		/**
 		 * @destructor
@@ -91,7 +130,7 @@ namespace asio2::detail
 		 */
 		inline void stop()
 		{
-			if (this->iopool_.is_stopped())
+			if (this->iopool_->stopped())
 				return;
 
 			this->derived().dispatch([this]() mutable
@@ -99,13 +138,16 @@ namespace asio2::detail
 				this->derived()._do_stop(asio::error::operation_aborted);
 			});
 
-			this->iopool_.stop();
+			this->iopool_->stop();
 
 			// asio bug , see : https://www.boost.org/users/history/version_1_72_0.html
 			// Fixed a lost "outstanding work count" that can occur when an asynchronous 
 			// accept operation is automatically restarted.
 			// Using boost 1.72.0 or above version can avoid this problem (asio 1.16.0)
-			ASIO2_ASSERT(this->state_ == state_t::stopped);
+			if (dynamic_cast<asio2::detail::default_iopool*>(this->iopool_.get()))
+			{
+				ASIO2_ASSERT(this->state_ == state_t::stopped);
+			}
 		}
 
 		/**
@@ -254,9 +296,9 @@ namespace asio2::detail
 		template<typename String, typename StrOrInt, typename MatchCondition>
 		inline bool _do_start(String&& host, StrOrInt&& port, condition_wrap<MatchCondition> condition)
 		{
-			this->iopool_.start();
+			this->iopool_->start();
 
-			if (this->iopool_.is_stopped())
+			if (this->iopool_->stopped())
 			{
 				ASIO2_ASSERT(false);
 				set_last_error(asio::error::operation_aborted);
@@ -471,7 +513,7 @@ namespace asio2::detail
 			[this, ec, this_ptr = std::move(this_ptr)]() mutable
 			{
 				state_t expected = state_t::stopping;
-				if (this->state_.compare_exchange_strong(expected, state_t::stopped))
+				if (this->state_.compare_exchange_strong(expected, state_t::stopping))
 				{
 					this->derived()._handle_stop(ec, std::move(this_ptr));
 				}
@@ -501,13 +543,25 @@ namespace asio2::detail
 			// can get notify to exit must ensure the close function has 
 			// been called,otherwise the _handle_accept will never return
 			this->acceptor_.close(ec_ignore);
+
+			state_t expected = state_t::stopping;
+			if (!this->state_.compare_exchange_strong(expected, state_t::stopped))
+			{
+				ASIO2_LOG(spdlog::level::debug, "_handle_stop -> state is not stopping : {}",
+					magic_enum::enum_name(expected));
+
+			#if defined(ASIO2_ENABLE_LOG)
+				detail::has_unexpected_behavior() = true;
+			#endif
+				//ASIO2_ASSERT(false);
+			}
 		}
 
 		template<typename... Args>
 		inline std::shared_ptr<session_t> _make_session(Args&&... args)
 		{
 			return std::make_shared<session_t>(std::forward<Args>(args)...,
-				this->sessions_, this->listener_, this->iopool_.get(),
+				this->sessions_, this->listener_, this->_get_io(),
 				this->init_buffer_size_, this->max_buffer_size_);
 		}
 
@@ -622,7 +676,7 @@ namespace asio2::detail
 
 		std::size_t             init_buffer_size_ = tcp_frame_size;
 
-		std::size_t             max_buffer_size_ = (std::numeric_limits<std::size_t>::max)();
+		std::size_t             max_buffer_size_  = max_buffer_size;
 
 	#if defined(ASIO2_ENABLE_LOG)
 		bool                    is_stop_called_  = false;

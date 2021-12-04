@@ -54,14 +54,13 @@ namespace asio2::detail
 		/**
 		 * @constructor
 		 */
+		template<class... Args>
 		explicit tcps_server_impl_t(
 			asio::ssl::context::method method = asio::ssl::context::sslv23,
-			std::size_t init_buffer_size      = tcp_frame_size,
-			std::size_t max_buffer_size       = (std::numeric_limits<std::size_t>::max)(),
-			std::size_t concurrency           = std::thread::hardware_concurrency() * 2
+			Args&&... args
 		)
 			: ssl_context_cp<derived_t, template_args_tcps_server>(method)
-			, super(init_buffer_size, max_buffer_size, concurrency)
+			, super(std::forward<Args>(args)...)
 		{
 		}
 

@@ -74,16 +74,17 @@ namespace asio2::detail
 		/**
 		 * @constructor
 		 */
-		explicit server_impl_t(std::size_t concurrency = std::thread::hardware_concurrency() * 2)
+		template<class ThreadCountOrScheduler>
+		explicit server_impl_t(ThreadCountOrScheduler&& tcos)
 			: object_t     <derived_t>()
-			, iopool_cp               (concurrency)
+			, iopool_cp               (std::forward<ThreadCountOrScheduler>(tcos))
 			, user_data_cp <derived_t>()
 			, user_timer_cp<derived_t>()
 			, post_cp      <derived_t>()
 			, rallocator_()
 			, wallocator_()
 			, listener_  ()
-			, io_        (iopool_.get(0))
+			, io_        (iopool_cp::_get_io(0))
 			, sessions_  (io_, this->state_)
 		{
 		}

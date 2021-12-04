@@ -61,11 +61,9 @@ namespace asio2::detail
 		/**
 		 * @constructor
 		 */
-		explicit ws_client_impl_t(
-			std::size_t init_buffer_size = tcp_frame_size,
-			std::size_t max_buffer_size  = (std::numeric_limits<std::size_t>::max)()
-		)
-			: super(init_buffer_size, max_buffer_size)
+		template<class... Args>
+		explicit ws_client_impl_t(Args&&... args)
+			: super(std::forward<Args>(args)...)
 			, ws_stream_cp<derived_t, args_t>()
 			, ws_send_op  <derived_t, args_t>()
 		{

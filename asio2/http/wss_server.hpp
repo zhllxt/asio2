@@ -45,13 +45,12 @@ namespace asio2::detail
 		/**
 		 * @constructor
 		 */
+		template<class... Args>
 		explicit wss_server_impl_t(
 			asio::ssl::context::method method = asio::ssl::context::sslv23,
-			std::size_t init_buffer_size      = tcp_frame_size,
-			std::size_t max_buffer_size       = (std::numeric_limits<std::size_t>::max)(),
-			std::size_t concurrency           = std::thread::hardware_concurrency() * 2
+			Args&&... args
 		)
-			: super(method, init_buffer_size, max_buffer_size, concurrency)
+			: super(method, std::forward<Args>(args)...)
 		{
 		}
 

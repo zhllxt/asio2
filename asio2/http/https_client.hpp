@@ -56,13 +56,13 @@ namespace asio2::detail
 		/**
 		 * @constructor
 		 */
+		template<class... Args>
 		explicit https_client_impl_t(
 			asio::ssl::context::method method = asio::ssl::context::sslv23,
-			std::size_t init_buffer_size      = tcp_frame_size,
-			std::size_t max_buffer_size       = (std::numeric_limits<std::size_t>::max)()
+			Args&&... args
 		)
 			: ssl_context_comp(method)
-			, super(init_buffer_size, max_buffer_size)
+			, super(std::forward<Args>(args)...)
 			, ssl_stream_comp(this->io_, *this, asio::ssl::stream_base::client)
 		{
 		}

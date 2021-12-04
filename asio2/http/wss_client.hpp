@@ -60,12 +60,12 @@ namespace asio2::detail
 		/**
 		 * @constructor
 		 */
+		template<class... Args>
 		explicit wss_client_impl_t(
 			asio::ssl::context::method method = asio::ssl::context::sslv23,
-			std::size_t init_buffer_size      = tcp_frame_size,
-			std::size_t max_buffer_size       = (std::numeric_limits<std::size_t>::max)()
+			Args&&... args
 		)
-			: super(method, init_buffer_size, max_buffer_size)
+			: super(method, std::forward<Args>(args)...)
 			, ws_stream_cp<derived_t, args_t>()
 			, ws_send_op  <derived_t, args_t>()
 		{

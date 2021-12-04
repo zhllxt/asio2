@@ -68,10 +68,10 @@ namespace asio2::detail
 			session_mgr_t<derived_t> & sessions,
 			listener_t               & listener,
 			io_t                     & rwio,
-			std::size_t                init_buffer_size,
-			std::size_t                max_buffer_size
+			std::size_t                init_buf_size,
+			std::size_t                max_buf_size
 		)
-			: super(ctx, sessions, listener, rwio, init_buffer_size, max_buffer_size)
+			: super(ctx, sessions, listener, rwio, init_buf_size, max_buf_size)
 			, ws_stream_cp<derived_t, args_t>()
 			, ws_send_op  <derived_t, args_t>()
 		{

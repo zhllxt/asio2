@@ -31,9 +31,10 @@
 #include <tuple>
 #include <utility>
 #include <atomic>
+#include <limits>
+#include <thread>
 
 #include <asio2/3rd/asio.hpp>
-#include <asio2/base/iopool.hpp>
 #include <asio2/base/error.hpp>
 
 namespace asio2::detail
@@ -71,6 +72,11 @@ namespace asio2::detail
 	static std::size_t constexpr  tcp_frame_size = 1536;
 	static std::size_t constexpr  udp_frame_size = 1024;
 	static std::size_t constexpr http_frame_size = 1536;
+
+	static std::size_t constexpr max_buffer_size = (std::numeric_limits<std::size_t>::max)();
+
+	// std::thread::hardware_concurrency() is not constexpr, so use it with function form
+	inline std::size_t default_concurrency() { return std::thread::hardware_concurrency() * 2; }
 }
 
 namespace asio2::detail
@@ -192,16 +198,16 @@ namespace asio2::detail
 
 
 	template<class Rep, class Period, class Fn>
-	std::shared_ptr<asio::steady_timer> mktimer(io_t& io, std::chrono::duration<Rep, Period> duration, Fn&& fn)
+	std::shared_ptr<asio::steady_timer> mktimer(asio::io_context& ioc, asio::io_context::strand& strand,
+		std::chrono::duration<Rep, Period> duration, Fn&& fn)
 	{
-		std::shared_ptr<asio::steady_timer> timer =
-			std::make_shared<asio::steady_timer>(io.context());
+		std::shared_ptr<asio::steady_timer> timer = std::make_shared<asio::steady_timer>(ioc);
 		auto post = std::make_shared<std::unique_ptr<std::function<void()>>>();
 		*post = std::make_unique<std::function<void()>>(
-			[&io, duration, f = std::forward<Fn>(fn), timer, post]() mutable
+		[&strand, duration, f = std::forward<Fn>(fn), timer, post]() mutable
 		{
 			timer->expires_after(duration);
-			timer->async_wait(asio::bind_executor(io.strand(), [&f, &post]
+			timer->async_wait(asio::bind_executor(strand, [&f, &post]
 			(const error_code & ec) mutable
 			{
 				if (f(ec))

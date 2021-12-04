@@ -106,8 +106,8 @@ namespace asio2::detail
 			session_mgr_t<derived_t> & sessions,
 			listener_t               & listener,
 			io_t                     & rwio,
-			std::size_t                init_buffer_size,
-			std::size_t                max_buffer_size,
+			std::size_t                init_buf_size,
+			std::size_t                max_buf_size,
 			Args&&...                  args
 		)
 			: super()
@@ -128,7 +128,7 @@ namespace asio2::detail
 			, sessions_(sessions)
 			, listener_(listener)
 			, io_      (rwio)
-			, buffer_  (init_buffer_size, max_buffer_size)
+			, buffer_  (init_buf_size, max_buf_size)
 		{
 		}
 

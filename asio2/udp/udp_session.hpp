@@ -70,13 +70,13 @@ namespace asio2::detail
 			session_mgr_t<derived_t>                 & sessions,
 			listener_t                               & listener,
 			io_t                                     & rwio,
-			std::size_t                                init_buffer_size,
-			std::size_t                                max_buffer_size,
+			std::size_t                                init_buf_size,
+			std::size_t                                max_buf_size,
 			asio2::buffer_wrap<asio2::linear_buffer> & buffer,
 			typename args_t::socket_t                  socket,
 			asio::ip::udp::endpoint                  & endpoint
 		)
-			: super(sessions, listener, rwio, init_buffer_size, max_buffer_size, socket)
+			: super(sessions, listener, rwio, init_buf_size, max_buf_size, socket)
 			, udp_send_op<derived_t, args_t>()
 			, buffer_ref_     (buffer)
 			, remote_endpoint_(endpoint)

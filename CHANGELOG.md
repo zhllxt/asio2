@@ -9,6 +9,7 @@
   * Change the "_fire_init, _fire_start, _fire_stop" triggered thread from thread main to thread 0.
   * Change the rpc's "call" interface function, before if it is called in the communication thread, it will do nothing, now it will degenerates into async_call and the return value is empty.
   * Change the file "asio2/base/selector.hpp" to "asio2/3rd/asio.hpp and asio2/3rd/beast.hpp", used to separate asio and beast header file, previously "included tcp_lient.hpp" will contain both asio and beast, but now "included tcp_lient.hpp" will only contain asio.
+  * Change the serial port component which named "scp" to "serial_port".
   * Modify "push_event, next_event" function, to optimized the problem where session_ptr would be copied multiple times.
   * Modify "post, dispatch" function in post_cp.hpp, add "derive.selfptr()" to ensure that the asio::post callback function must hold the session_ptr.
   * Modify the behavior of the async_send function with the callback parameter, whenever async_send function called fails, such as an exception, the callback will be called, the callback was called only when write data failed previously.

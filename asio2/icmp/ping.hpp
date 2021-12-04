@@ -110,25 +110,56 @@ namespace asio2::detail
 		 * send_count equals -1 for infinite send
 		 * Other parameters should use default values.
 		 */
-		ping_impl_t(
+		explicit ping_impl_t(
 			std::size_t send_count       = -1,
-			std::size_t init_buffer_size = 64 * 1024, // We prepare the buffer to receive up to 64KB.
-			std::size_t max_buffer_size  = (std::numeric_limits<std::size_t>::max)()
+			std::size_t init_buf_size = 64 * 1024, // We prepare the buffer to receive up to 64KB.
+			std::size_t max_buf_size  = max_buffer_size,
+			std::size_t concurrency   = 1
 		)
 			: super()
-			, iopool_cp(1)
+			, iopool_cp(concurrency)
 			, user_data_cp   <derived_t, args_t>()
 			, user_timer_cp  <derived_t, args_t>()
 			, post_cp        <derived_t, args_t>()
 			, async_event_cp <derived_t, args_t>()
-			, socket_    (iopool_.get(0).context())
+			, socket_    (iopool_cp::_get_io(0).context())
 			, rallocator_()
 			, wallocator_()
 			, listener_  ()
-			, io_        (iopool_.get(0))
-			, buffer_    (init_buffer_size, max_buffer_size)
-			, timer_     (iopool_.get(0).context())
+			, io_        (iopool_cp::_get_io(0))
+			, buffer_    (init_buf_size, max_buf_size)
+			, timer_     (iopool_cp::_get_io(0).context())
 			, ncount_    (send_count)
+		{
+		}
+
+		template<class Scheduler, std::enable_if_t<!std::is_integral_v<detail::remove_cvref_t<Scheduler>>, int> = 0>
+		explicit ping_impl_t(
+			std::size_t send_count,
+			std::size_t init_buf_size,
+			std::size_t max_buf_size,
+			Scheduler&& scheduler
+		)
+			: super()
+			, iopool_cp(std::forward<Scheduler>(scheduler))
+			, user_data_cp   <derived_t, args_t>()
+			, user_timer_cp  <derived_t, args_t>()
+			, post_cp        <derived_t, args_t>()
+			, async_event_cp <derived_t, args_t>()
+			, socket_    (iopool_cp::_get_io(0).context())
+			, rallocator_()
+			, wallocator_()
+			, listener_  ()
+			, io_        (iopool_cp::_get_io(0))
+			, buffer_    (init_buf_size, max_buf_size)
+			, timer_     (iopool_cp::_get_io(0).context())
+			, ncount_    (send_count)
+		{
+		}
+
+		template<class Scheduler, std::enable_if_t<!std::is_integral_v<detail::remove_cvref_t<Scheduler>>, int> = 0>
+		explicit ping_impl_t(Scheduler&& scheduler)
+			: ping_impl_t(std::size_t(-1), 64 * 1024, max_buffer_size, std::forward<Scheduler>(scheduler))
 		{
 		}
 
@@ -156,7 +187,7 @@ namespace asio2::detail
 		 */
 		inline void stop()
 		{
-			if (this->iopool_.is_stopped())
+			if (this->iopool_->stopped())
 				return;
 
 			this->derived().dispatch([this]() mutable
@@ -164,9 +195,12 @@ namespace asio2::detail
 				this->derived()._do_stop(asio::error::operation_aborted);
 			});
 
-			this->iopool_.stop();
+			this->iopool_->stop();
 
-			ASIO2_ASSERT(this->state_ == state_t::stopped);
+			if (dynamic_cast<asio2::detail::default_iopool*>(this->iopool_.get()))
+			{
+				ASIO2_ASSERT(this->state_ == state_t::stopped);
+			}
 		}
 
 		/**
@@ -530,9 +564,9 @@ namespace asio2::detail
 		template<typename String>
 		bool _do_start(String&& host)
 		{
-			this->iopool_.start();
+			this->iopool_->start();
 
-			if (this->iopool_.is_stopped())
+			if (this->iopool_->stopped())
 			{
 				ASIO2_ASSERT(false);
 				set_last_error(asio::error::operation_aborted);

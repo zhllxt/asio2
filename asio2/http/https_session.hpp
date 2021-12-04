@@ -71,11 +71,11 @@ namespace asio2::detail
 			session_mgr_t<derived_t> & sessions,
 			listener_t               & listener,
 			io_t                     & rwio,
-			std::size_t                init_buffer_size,
-			std::size_t                max_buffer_size
+			std::size_t                init_buf_size,
+			std::size_t                max_buf_size
 		)
 			: super(router, root_directory, is_arg0_session, support_websocket,
-				sessions, listener, rwio, init_buffer_size, max_buffer_size)
+				sessions, listener, rwio, init_buf_size, max_buf_size)
 			, ssl_stream_comp(this->io_, ctx, asio::ssl::stream_base::server)
 			, ctx_(ctx)
 		{

@@ -69,10 +69,11 @@ namespace asio2::detail
 		 * @constructor
 		 */
 		explicit mqtt_client_impl_t(
-			std::size_t init_buffer_size = tcp_frame_size,
-			std::size_t max_buffer_size  = mqtt::max_payload
+			std::size_t init_buf_size = tcp_frame_size,
+			std::size_t max_buf_size  = mqtt::max_payload,
+			std::size_t concurrency   = 1
 		)
-			: super(init_buffer_size, max_buffer_size)
+			: super(init_buf_size, max_buf_size, concurrency)
 			, mqtt_options                         ()
 			, mqtt_handler_t    <derived_t        >()
 			, mqtt_invoker_t    <derived_t        >()
@@ -84,6 +85,32 @@ namespace asio2::detail
 			mqtt::v4::connect connect{};
 			connect.client_id(asio2::uuid{}().str());
 			connect_message_ = std::move(connect);
+		}
+
+		template<class Scheduler, std::enable_if_t<!std::is_integral_v<detail::remove_cvref_t<Scheduler>>, int> = 0>
+		explicit mqtt_client_impl_t(
+			std::size_t init_buf_size,
+			std::size_t max_buf_size,
+			Scheduler&& scheduler
+		)
+			: super(init_buf_size, max_buf_size, std::forward<Scheduler>(scheduler))
+			, mqtt_options                         ()
+			, mqtt_handler_t    <derived_t        >()
+			, mqtt_invoker_t    <derived_t        >()
+			, mqtt_topic_alias_t<derived_t        >()
+			, mqtt_send_op      <derived_t, args_t>()
+			, pingreq_timer_(this->io_.context())
+		{
+			// default mqtt version is v4, default client_id is a uuid string
+			mqtt::v4::connect connect{};
+			connect.client_id(asio2::uuid{}().str());
+			connect_message_ = std::move(connect);
+		}
+
+		template<class Scheduler, std::enable_if_t<!std::is_integral_v<detail::remove_cvref_t<Scheduler>>, int> = 0>
+		explicit mqtt_client_impl_t(Scheduler&& scheduler)
+			: mqtt_client_impl_t(tcp_frame_size, mqtt::max_payload, std::forward<Scheduler>(scheduler))
+		{
 		}
 
 		/**
