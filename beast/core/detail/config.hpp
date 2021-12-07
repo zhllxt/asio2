@@ -31,6 +31,7 @@ namespace beast {
 # if _MSC_FULL_VER < 190024210
 #  error Beast requires C++11: Visual Studio 2015 Update 3 or later needed
 # endif
+#elif defined(__ANDROID__)
 #elif defined(__GNUC__)
 # if((__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__) < 40801)
 #  error Beast requires C++11: gcc version 4.8 or later needed
