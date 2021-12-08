@@ -1,9 +1,8 @@
 #include <asio2/rpc/rpc_client.hpp>
 #include <nlohmann/json.hpp>
 
-class userinfo
+struct userinfo
 {
-public:
 	std::string name;
 	int age;
 	std::map<int, std::string> purview;
@@ -18,16 +17,38 @@ public:
 	}
 };
 
-void operator<<(asio2::rpc::oarchive& sr, const nlohmann::json& j)
+// -- method 1
+namespace nlohmann
 {
-	sr << j.dump();
+	void operator<<(asio2::rpc::oarchive& sr, const nlohmann::json& j)
+	{
+		sr << j.dump();
+	}
+	
+	void operator>>(asio2::rpc::iarchive& dr, nlohmann::json& j)
+	{
+		std::string v;
+		dr >> v;
+		j = nlohmann::json::parse(v);
+	}
 }
 
-void operator>>(asio2::rpc::iarchive& dr, nlohmann::json& j)
+// -- method 2
+namespace nlohmann
 {
-	std::string v;
-	dr >> v;
-	j = nlohmann::json::parse(v);
+	//template<class Archive>
+	//void save(Archive& ar, nlohmann::json const& j)
+	//{
+	//	ar << j.dump();
+	//}
+
+	//template<class Archive>
+	//void load(Archive& ar, nlohmann::json& j)
+	//{
+	//	std::string v;
+	//	ar >> v;
+	//	j = nlohmann::json::parse(v);
+	//}
 }
 
 rpc::future<int> async_add(int a, int b)

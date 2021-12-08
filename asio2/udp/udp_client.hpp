@@ -529,7 +529,7 @@ namespace asio2::detail
 			if (!this->state_.compare_exchange_strong(expected, state_t::stopped))
 			{
 				ASIO2_LOG(spdlog::level::debug, "_handle_stop -> state is not stopped : {}",
-					magic_enum::enum_name(this->state_.load()));
+					magic_enum::enum_name(expected));
 
 			#if defined(ASIO2_ENABLE_LOG)
 				detail::has_unexpected_behavior() = true;

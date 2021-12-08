@@ -1,9 +1,8 @@
 #include <asio2/rpc/rpc_server.hpp>
 #include <nlohmann/json.hpp>
 
-class userinfo
+struct userinfo
 {
-public:
 	std::string name;
 	int age;
 	std::map<int, std::string> purview;
@@ -18,16 +17,38 @@ public:
 	}
 };
 
-void operator<<(asio2::rpc::oarchive& sr, const nlohmann::json& j)
+// -- method 1
+namespace nlohmann
 {
-	sr << j.dump();
+	void operator<<(asio2::rpc::oarchive& sr, const nlohmann::json& j)
+	{
+		sr << j.dump();
+	}
+
+	void operator>>(asio2::rpc::iarchive& dr, nlohmann::json& j)
+	{
+		std::string v;
+		dr >> v;
+		j = nlohmann::json::parse(v);
+	}
 }
 
-void operator>>(asio2::rpc::iarchive& dr, nlohmann::json& j)
+// -- method 2
+namespace nlohmann
 {
-	std::string v;
-	dr >> v;
-	j = nlohmann::json::parse(v);
+	//template<class Archive>
+	//void save(Archive& ar, nlohmann::json const& j)
+	//{
+	//	ar << j.dump();
+	//}
+
+	//template<class Archive>
+	//void load(Archive& ar, nlohmann::json& j)
+	//{
+	//	std::string v;
+	//	ar >> v;
+	//	j = nlohmann::json::parse(v);
+	//}
 }
 
 int add(int a, int b)
@@ -43,7 +64,7 @@ rpc::future<int> async_add(int a, int b)
 	std::thread([a, b, promise = std::move(promise)]() mutable
 	{
 		std::this_thread::sleep_for(std::chrono::seconds(1));
-		asio2::ignore_unused(a, b);
+
 		promise.set_value(a + b);
 	}).detach();
 

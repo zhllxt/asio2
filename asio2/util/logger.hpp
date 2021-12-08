@@ -393,15 +393,8 @@ namespace asio2
 				// abc.log
 				// D:\log\abc.log
 				// /usr/log/abc.log
-				std::string::size_type slash = this->filename_.find_last_of("\\/");
-
-				// abc.log
-				if (slash == std::string::npos)
+				if (std::filesystem::is_directory(filename_))
 				{
-					std::string name = this->filename_;
-
-					this->filename_ = std::filesystem::current_path().string();
-
 					if (this->filename_.back() != '\\' && this->filename_.back() != '/')
 						this->filename_ += this->preferred_;
 
@@ -410,13 +403,42 @@ namespace asio2
 
 					std::filesystem::create_directories(std::filesystem::path(this->filename_));
 
-					this->filename_ += name;
+					time_t t;
+					time(&t);                 /* Get time in seconds */
+					struct tm tm = *localtime(&t);  /* Convert time to struct */
+					char tmbuf[20] = { 0 };
+					strftime(tmbuf, 20, "%Y-%m-%d %H.%M.%S", &tm);
+
+					this->filename_ += tmbuf;
+					this->filename_ += ".log";
 				}
-				// D:\log\abc.log // /usr/log/abc.log
 				else
 				{
-					std::filesystem::create_directories(
-						std::filesystem::path(this->filename_.substr(0, slash)));
+					std::string::size_type slash = this->filename_.find_last_of("\\/");
+
+					// abc.log
+					if (slash == std::string::npos)
+					{
+						std::string name = this->filename_;
+
+						this->filename_ = std::filesystem::current_path().string();
+
+						if (this->filename_.back() != '\\' && this->filename_.back() != '/')
+							this->filename_ += this->preferred_;
+
+						this->filename_ += "log";
+						this->filename_ += this->preferred_;
+
+						std::filesystem::create_directories(std::filesystem::path(this->filename_));
+
+						this->filename_ += name;
+					}
+					// D:\log\abc.log // /usr/log/abc.log
+					else
+					{
+						std::filesystem::create_directories(
+							std::filesystem::path(this->filename_.substr(0, slash)));
+					}
 				}
 			}
 

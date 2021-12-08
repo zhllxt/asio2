@@ -11,6 +11,7 @@
 GroupSources (asio2 "/")
 GroupSources (asio "/")
 #GroupSources (beast "/")
+GroupSources (cereal "/")
 
 aux_source_directory(. SRC_FILES)
 
@@ -20,7 +21,7 @@ set(TARGET_NAME rpc_client)
 
 add_executable (
     ${TARGET_NAME}
-    ${ASIO2_FILES} ${SRC_FILES}
+    ${ASIO2_FILES} ${CEREAL_FILES} ${SRC_FILES}
     ${TARGET_NAME}.cpp
 )
 
