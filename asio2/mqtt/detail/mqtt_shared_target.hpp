@@ -35,9 +35,10 @@ namespace asio2::mqtt
 {
 	// v is shared_entry
 	template<typename Value>
-	auto round_shared_target_method(Value& v)
+	typename std::add_pointer_t<typename asio2::detail::remove_cvref_t<Value>::session_type>
+	round_shared_target_method(Value& v)
 	{
-		using session_type = typename Value::session_type;
+		using session_type = typename asio2::detail::remove_cvref_t<Value>::session_type;
 
 		session_type* session = nullptr;
 
@@ -65,7 +66,7 @@ namespace asio2::mqtt
 	public:
 		shared_target()
 		{
-			set_policy(round_shared_target_method<Value>);
+			set_policy(std::bind(round_shared_target_method<Value>, std::placeholders::_1));
 		}
 		~shared_target() = default;
 

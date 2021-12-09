@@ -36,7 +36,7 @@ namespace asio2::mqtt::v4
 	};
 
 	/**
-	 * CONNECT 每 Client requests a connection to a Server
+	 * CONNECT - Client requests a connection to a Server
 	 * 
 	 * After a Network Connection is established by a Client to a Server, the first packet sent from the
 	 * Client to the Server MUST be a CONNECT packet [MQTT-3.1.0-1].
@@ -199,7 +199,7 @@ namespace asio2::mqtt::v4
 		}
 
 	protected:
-		// The Protocol Name is a UTF-8 Encoded String that represents the protocol name ※MQTT§. 
+		// The Protocol Name is a UTF-8 Encoded String that represents the protocol name "MQTT". 
 		// The string, its offset and length will not be changed by future versions of the MQTT specification.
 		utf8_string      protocol_name_{ "MQTT" };
 
@@ -257,7 +257,7 @@ namespace asio2::mqtt::v4
 	};
 
 	/**
-	 * CONNACK 每 Acknowledge connection request
+	 * CONNACK - Acknowledge connection request
 	 * 
 	 * http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/os/mqtt-v3.1.1-os.html#_Toc398718033
 	 */
@@ -357,7 +357,7 @@ namespace asio2::mqtt::v4
 	};
 
 	/**
-	 * PUBLISH 每 Publish message
+	 * PUBLISH - Publish message
 	 * 
 	 * A PUBLISH packet is sent from a Client to a Server or from a Server to a Client to transport an Application Message.
 	 * 
@@ -475,7 +475,7 @@ namespace asio2::mqtt::v4
 	};
 
 	/**
-	 * PUBACK 每 Publish acknowledgement
+	 * PUBACK - Publish acknowledgement
 	 * 
 	 * A PUBACK Packet is the response to a PUBLISH Packet with QoS level 1.
 	 * 
@@ -543,7 +543,7 @@ namespace asio2::mqtt::v4
 	};
 
 	/**
-	 * PUBREC 每 Publish received (QoS 2 publish received, part 1)
+	 * PUBREC - Publish received (QoS 2 publish received, part 1)
 	 * 
 	 * A PUBREC Packet is the response to a PUBLISH Packet with QoS 2.
 	 * It is the second packet of the QoS 2 protocol exchange.
@@ -612,7 +612,7 @@ namespace asio2::mqtt::v4
 	};
 
 	/**
-	 * PUBREL 每 Publish release (QoS 2 publish received, part 2)
+	 * PUBREL - Publish release (QoS 2 publish received, part 2)
 	 * 
 	 * A PUBREL Packet is the response to a PUBREC Packet.
 	 * It is the third packet of the QoS 2 protocol exchange.
@@ -688,7 +688,7 @@ namespace asio2::mqtt::v4
 	};
 
 	/**
-	 * PUBCOMP 每 Publish complete (QoS 2 publish received, part 3)
+	 * PUBCOMP - Publish complete (QoS 2 publish received, part 3)
 	 * 
 	 * The PUBCOMP Packet is the response to a PUBREL Packet.
 	 * It is the fourth and final packet of the QoS 2 protocol exchange.
@@ -760,7 +760,7 @@ namespace asio2::mqtt::v4
 	 * SUBSCRIBE - Subscribe to topics
 	 * 
 	 * The SUBSCRIBE Packet is sent from the Client to the Server to create one or more Subscriptions.
-	 * Each Subscription registers a Client＊s interest in one or more Topics.
+	 * Each Subscription registers a Client's interest in one or more Topics.
 	 * The Server sends PUBLISH Packets to the Client in order to forward Application Messages that were
 	 * published to Topics that match these Subscriptions.
 	 * The SUBSCRIBE Packet also specifies (for each Subscription) the maximum QoS with which the Server
@@ -868,7 +868,7 @@ namespace asio2::mqtt::v4
 	};
 
 	/**
-	 * SUBACK 每 Subscribe acknowledgement
+	 * SUBACK - Subscribe acknowledgement
 	 * 
 	 * A SUBACK Packet is sent by the Server to the Client to confirm receipt and processing of a SUBSCRIBE Packet.
 	 * 
@@ -963,7 +963,7 @@ namespace asio2::mqtt::v4
 	};
 
 	/**
-	 * UNSUBSCRIBE 每 Unsubscribe from topics
+	 * UNSUBSCRIBE - Unsubscribe from topics
 	 * 
 	 * An UNSUBSCRIBE Packet is sent by the Client to the Server, to unsubscribe from topics.
 	 * 
@@ -1065,7 +1065,7 @@ namespace asio2::mqtt::v4
 	};
 
 	/**
-	 * UNSUBACK 每 Unsubscribe acknowledgement
+	 * UNSUBACK - Unsubscribe acknowledgement
 	 * 
 	 * The UNSUBACK packet is sent by the Server to the Client to confirm receipt of an UNSUBSCRIBE packet.
 	 * 
@@ -1135,7 +1135,7 @@ namespace asio2::mqtt::v4
 	};
 
 	/**
-	 * PINGREQ 每 PING request
+	 * PINGREQ - PING request
 	 * 
 	 * The PINGREQ packet is sent from a Client to the Server.
 	 * 
@@ -1188,7 +1188,7 @@ namespace asio2::mqtt::v4
 	};
 
 	/**
-	 * PINGRESP 每 PING response
+	 * PINGRESP - PING response
 	 * 
 	 * A PINGRESP Packet is sent by the Server to the Client in response to a PINGREQ packet.
 	 * It indicates that the Server is alive.
@@ -1242,7 +1242,7 @@ namespace asio2::mqtt::v4
 	};
 
 	/**
-	 * DISCONNECT 每 Disconnect notification
+	 * DISCONNECT - Disconnect notification
 	 * 
 	 * The DISCONNECT Packet is the final Control Packet sent from the Client to the Server.
 	 * It indicates that the Client is disconnecting cleanly.

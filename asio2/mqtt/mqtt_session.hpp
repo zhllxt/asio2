@@ -233,18 +233,7 @@ namespace asio2::detail
 			// parse the connect message to get the mqtt version
 			mqtt::version ver = mqtt::version_from_connect_data(data);
 
-			bool valid_version = false;
-
-			for (auto v : magic_enum::enum_values<mqtt::version>())
-			{
-				if (ver == v)
-				{
-					valid_version = true;
-					break;
-				}
-			}
-
-			if (!valid_version)
+			if (!(ver == mqtt::version::v3 || ver == mqtt::version::v4 || ver == mqtt::version::v5))
 			{
 				ec = mqtt::make_error_code(mqtt::error::unsupported_protocol_version);
 				super::_handle_connect(ec, std::move(this_ptr), std::move(condition));

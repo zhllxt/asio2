@@ -17,11 +17,17 @@
 
 #include <asio2/base/detail/push_options.hpp>
 
+#if defined(_MSC_VER)
+#  pragma warning(disable:4389) // Signed / unsigned mismatch
+#  pragma warning(disable:4018) // Signed / unsigned mismatch
+#endif
+
 #include <sstream>
 
 #include <cereal/cereal.hpp>
 
 #include <cereal/types/array.hpp>
+#include <cereal/types/atomic.hpp>
 #include <cereal/types/bitset.hpp>
 #include <cereal/types/chrono.hpp>
 #include <cereal/types/complex.hpp>
@@ -31,6 +37,7 @@
 #include <cereal/types/list.hpp>
 #include <cereal/types/map.hpp>
 #include <cereal/types/memory.hpp>
+#include <cereal/types/optional.hpp>
 #include <cereal/types/polymorphic.hpp>
 #include <cereal/types/queue.hpp>
 #include <cereal/types/set.hpp>
@@ -41,6 +48,7 @@
 #include <cereal/types/unordered_set.hpp>
 #include <cereal/types/utility.hpp>
 #include <cereal/types/valarray.hpp>
+#include <cereal/types/variant.hpp>
 #include <cereal/types/vector.hpp>
 
 #include <cereal/archives/binary.hpp>

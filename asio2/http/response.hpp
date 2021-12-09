@@ -81,7 +81,7 @@ namespace asio2::detail
 		{
 		}
 
-		http_response_impl_t(const http_response_impl_t& o)
+		http_response_impl_t(const http_response_impl_t& o) : super()
 		{
 			this->base() = o.base();
 			this->root_directory_ = o.root_directory_;
@@ -89,7 +89,7 @@ namespace asio2::detail
 			this->defer_guard_    = o.defer_guard_;
 		}
 
-		http_response_impl_t(http_response_impl_t&& o)
+		http_response_impl_t(http_response_impl_t&& o) : super()
 		{
 			this->base() = std::move(o.base());
 			this->root_directory_ = o.root_directory_;
@@ -116,13 +116,13 @@ namespace asio2::detail
 		}
 
 		template<class BodyT = Body>
-		http_response_impl_t(const http::message<false, BodyT, Fields>& rep)
+		http_response_impl_t(const http::message<false, BodyT, Fields>& rep) : super()
 		{
 			this->base() = rep;
 		}
 
 		template<class BodyT = Body>
-		http_response_impl_t(http::message<false, BodyT, Fields>&& rep)
+		http_response_impl_t(http::message<false, BodyT, Fields>&& rep) : super()
 		{
 			this->base() = std::move(rep);
 		}
@@ -143,14 +143,14 @@ namespace asio2::detail
 
 		//-------------------------------------------------
 
-		http_response_impl_t(const http::message<false, http::string_body, Fields>& rep)
+		http_response_impl_t(const http::message<false, http::string_body, Fields>& rep) : super()
 		{
 			this->base().base() = rep.base();
 			this->body().text() = rep.body();
 			this->prepare_payload();
 		}
 
-		http_response_impl_t(http::message<false, http::string_body, Fields>&& rep)
+		http_response_impl_t(http::message<false, http::string_body, Fields>&& rep) : super()
 		{
 			this->base().base() = std::move(rep.base());
 			this->body().text() = std::move(rep.body());
@@ -175,14 +175,14 @@ namespace asio2::detail
 
 		//-------------------------------------------------
 
-		http_response_impl_t(const http::message<false, http::file_body, Fields>& rep)
+		http_response_impl_t(const http::message<false, http::file_body, Fields>& rep) : super()
 		{
 			this->base().base() = rep.base();
 			this->body().file() = rep.body();
 			this->prepare_payload();
 		}
 
-		http_response_impl_t(http::message<false, http::file_body, Fields>&& rep)
+		http_response_impl_t(http::message<false, http::file_body, Fields>&& rep) : super()
 		{
 			this->base().base() = std::move(rep.base());
 			this->body().file() = std::move(rep.body());

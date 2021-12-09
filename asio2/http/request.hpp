@@ -68,14 +68,14 @@ namespace asio2::detail
 			std::memset((void*)(&url_parser_), 0, sizeof(http::http_parser_ns::http_parser_url));
 		}
 
-		http_request_impl_t(const http_request_impl_t& o)
+		http_request_impl_t(const http_request_impl_t& o) : super()
 		{
 			this->base() = o.base();
 			this->ws_frame_type_ = o.ws_frame_type_;
 			this->ws_frame_data_ = o.ws_frame_data_;
 		}
 
-		http_request_impl_t(http_request_impl_t&& o)
+		http_request_impl_t(http_request_impl_t&& o) : super()
 		{
 			this->base() = std::move(o.base());
 			this->ws_frame_type_ = o.ws_frame_type_;
@@ -98,12 +98,12 @@ namespace asio2::detail
 			return *this;
 		}
 
-		http_request_impl_t(const http::message<true, Body, Fields>& req)
+		http_request_impl_t(const http::message<true, Body, Fields>& req) : super()
 		{
 			this->base() = req;
 		}
 
-		http_request_impl_t(http::message<true, Body, Fields>&& req)
+		http_request_impl_t(http::message<true, Body, Fields>&& req) : super()
 		{
 			this->base() = std::move(req);
 		}

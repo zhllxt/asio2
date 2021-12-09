@@ -8,6 +8,8 @@
  * (See accompanying file LICENSE or see <http://www.gnu.org/licenses/>)
  */
 
+// No header guard
+
 // the tests trigger deprecation warnings when compiled with msvc in C++17 mode
 // warning STL4009: std::allocator<void> is deprecated in C++17
 #if defined(_MSVC_LANG) && _MSVC_LANG > 201402
@@ -40,6 +42,7 @@
 #  pragma GCC diagnostic push
 #  pragma GCC diagnostic ignored "-Wunused-variable"
 #  pragma GCC diagnostic ignored "-Wunused-function"
+#  pragma GCC diagnostic ignored "-Wunused-local-typedefs"
 #  pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #  pragma GCC diagnostic ignored "-Wpedantic"
 #  pragma GCC diagnostic ignored "-Wmissing-field-initializers"

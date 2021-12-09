@@ -157,7 +157,7 @@ namespace asio2::mqtt
 			}
 			else
 			{
-				std::ignore = ioc;
+				asio2::ignore_unused(ioc, msg, it);
 			}
 		}
 

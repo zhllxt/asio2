@@ -360,7 +360,7 @@ namespace asio2::mqtt::v3
 	};
 
 	/**
-	 * PUBLISH 每 Publish message
+	 * PUBLISH - Publish message
 	 * 
 	 * A PUBLISH message is sent by a client to a server for distribution to interested subscribers.
 	 * Each PUBLISH message is associated with a topic name (also known as the Subject or Channel).
@@ -483,7 +483,7 @@ namespace asio2::mqtt::v3
 	};
 
 	/**
-	 * PUBACK 每 Publish acknowledgement
+	 * PUBACK - Publish acknowledgement
 	 * 
 	 * A PUBACK message is the response to a PUBLISH message with QoS level 1.
 	 * A PUBACK message is sent by a server in response to a PUBLISH message from a publishing client, 
@@ -1137,7 +1137,7 @@ namespace asio2::mqtt::v3
 	};
 
 	/**
-	 * PINGREQ 每 PING request
+	 * PINGREQ - PING request
 	 * 
 	 * The PINGREQ message is an "are you alive?" message that is sent from a connected client to the server.
 	 * 
@@ -1190,7 +1190,7 @@ namespace asio2::mqtt::v3
 	};
 
 	/**
-	 * PINGRESP 每 PING response
+	 * PINGRESP - PING response
 	 * 
 	 * A PINGRESP message is the response sent by a server to a PINGREQ message and means "yes I am alive".
 	 * 
@@ -1243,7 +1243,7 @@ namespace asio2::mqtt::v3
 	};
 
 	/**
-	 * DISCONNECT 每 Disconnect notification
+	 * DISCONNECT - Disconnect notification
 	 * 
 	 * The DISCONNECT message is sent from the client to the server to indicate that it is about to close
 	 * its TCP/IP connection. This allows for a clean disconnection, rather than just dropping the line.

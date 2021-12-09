@@ -8,6 +8,8 @@
  * (See accompanying file LICENSE or see <http://www.gnu.org/licenses/>)
  */
 
+// No header guard
+
 #if defined(__clang__)
 #  pragma clang diagnostic pop
 #endif

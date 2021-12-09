@@ -34,9 +34,9 @@ namespace std
 		inline result_type operator()(argument_type const& pair) const noexcept
 		{
 			std::size_t v = asio2::detail::fnv1a_hash<std::size_t>(
-				(const unsigned char * const)(&(pair.first)), sizeof(std::size_t));
+				(const unsigned char *)(&(pair.first)), sizeof(std::size_t));
 			return asio2::detail::fnv1a_hash_combine<std::size_t>(v,
-				(const unsigned char * const)(pair.second.data()), pair.second.size());
+				(const unsigned char *)(pair.second.data()), pair.second.size());
 		}
 	};
 	template<> struct hash<std::pair<std::size_t, std::string>>
@@ -46,9 +46,9 @@ namespace std
 		inline result_type operator()(argument_type const& pair) const noexcept
 		{
 			std::size_t v = asio2::detail::fnv1a_hash<std::size_t>(
-				(const unsigned char * const)(&(pair.first)), sizeof(std::size_t));
+				(const unsigned char *)(&(pair.first)), sizeof(std::size_t));
 			return asio2::detail::fnv1a_hash_combine<std::size_t>(v,
-				(const unsigned char * const)(pair.second.data()), pair.second.size());
+				(const unsigned char *)(pair.second.data()), pair.second.size());
 		}
 	};
 	template<> struct hash<std::pair<std::string_view, std::string_view>>
@@ -58,9 +58,9 @@ namespace std
 		inline result_type operator()(argument_type const& pair) const noexcept
 		{
 			std::size_t v = asio2::detail::fnv1a_hash<std::size_t>(
-				(const unsigned char * const)(pair.first.data()), pair.first.size());
+				(const unsigned char *)(pair.first.data()), pair.first.size());
 			return asio2::detail::fnv1a_hash_combine<std::size_t>(v,
-				(const unsigned char * const)(pair.second.data()), pair.second.size());
+				(const unsigned char *)(pair.second.data()), pair.second.size());
 		}
 	};
 }

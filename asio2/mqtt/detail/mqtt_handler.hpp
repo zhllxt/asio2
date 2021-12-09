@@ -15,6 +15,8 @@
 #pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
+#include <asio2/base/detail/push_options.hpp>
+
 #include <asio2/3rd/asio.hpp>
 #include <asio2/base/iopool.hpp>
 #include <asio2/base/error.hpp>
@@ -178,7 +180,7 @@ namespace asio2::detail
 				if (session_ptr->is_started())
 				{
 					// send will message
-					std::visit([this, caller_ptr, caller](auto& conn)
+					std::visit([this, caller_ptr, caller](auto& conn) mutable
 					{
 						if (conn.will_flag())
 						{
@@ -194,7 +196,7 @@ namespace asio2::detail
 							{
 								detail::ignore_unused(g);
 
-								this->_multicast_publish(caller_ptr, caller, std::move(pub));
+								this->_multicast_publish(caller_ptr, caller, std::move(pub), std::string{});
 							});
 						}
 					}, session_ptr->connect_message_);
@@ -530,7 +532,7 @@ namespace asio2::detail
 		}
 
 		template<class Message>
-		inline void _multicast_publish(std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, Message&& msg, std::string topic_name = {})
+		inline void _multicast_publish(std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, Message&& msg, std::string topic_name)
 		{
 			detail::ignore_unused(caller_ptr, caller, msg);
 
@@ -1621,5 +1623,7 @@ namespace asio2::detail
 		}
 	};
 }
+
+#include <asio2/base/detail/pop_options.hpp>
 
 #endif // !__ASIO2_MQTT_HANDLER_HPP__

@@ -198,7 +198,9 @@ namespace asio2::mqtt::v5
 		: public basic_property<property_type::payload_format_indicator>
 		, public property_ops<payload_format_indicator>
 	{
-		template<class> friend struct property_ops; friend class properties_set;
+		// template<class> friend struct property_ops; friend class properties_set;
+		// can't use the code previous line, it will cause compile error under gcc 8.2.0.
+		friend struct property_ops<payload_format_indicator>; friend class properties_set;
 
 		enum class format : std::uint8_t
 		{
@@ -231,7 +233,7 @@ namespace asio2::mqtt::v5
 		: public basic_property<property_type::message_expiry_interval>
 		, public property_ops<message_expiry_interval>
 	{
-		template<class> friend struct property_ops; friend class properties_set;
+		friend struct property_ops<message_expiry_interval>; friend class properties_set;
 
 		message_expiry_interval() = default;
 		message_expiry_interval(std::uint32_t v) : value_(v) {}
@@ -251,7 +253,7 @@ namespace asio2::mqtt::v5
 		: public basic_property<property_type::content_type>
 		, public property_ops<content_type>
 	{
-		template<class> friend struct property_ops; friend class properties_set;
+		friend struct property_ops<content_type>; friend class properties_set;
 
 		content_type() = default;
 
@@ -276,7 +278,7 @@ namespace asio2::mqtt::v5
 		: public basic_property<property_type::response_topic>
 		, public property_ops<response_topic>
 	{
-		template<class> friend struct property_ops; friend class properties_set;
+		friend struct property_ops<response_topic>; friend class properties_set;
 
 		response_topic() = default;
 
@@ -302,7 +304,7 @@ namespace asio2::mqtt::v5
 		: public basic_property<property_type::correlation_data>
 		, public property_ops<correlation_data>
 	{
-		template<class> friend struct property_ops; friend class properties_set;
+		friend struct property_ops<correlation_data>; friend class properties_set;
 
 		correlation_data() = default;
 
@@ -332,7 +334,7 @@ namespace asio2::mqtt::v5
 		: public basic_property<property_type::subscription_identifier>
 		, public property_ops<subscription_identifier>
 	{
-		template<class> friend struct property_ops; friend class properties_set;
+		friend struct property_ops<subscription_identifier>; friend class properties_set;
 
 		subscription_identifier() = default;
 		subscription_identifier(std::int32_t v) : value_(v) {}
@@ -355,7 +357,7 @@ namespace asio2::mqtt::v5
 		: public basic_property<property_type::session_expiry_interval>
 		, public property_ops<session_expiry_interval>
 	{
-		template<class> friend struct property_ops; friend class properties_set;
+		friend struct property_ops<session_expiry_interval>; friend class properties_set;
 
 		session_expiry_interval() = default;
 		session_expiry_interval(std::uint32_t v) : value_(v) {}
@@ -376,7 +378,7 @@ namespace asio2::mqtt::v5
 		: public basic_property<property_type::assigned_client_identifier>
 		, public property_ops<assigned_client_identifier>
 	{
-		template<class> friend struct property_ops; friend class properties_set;
+		friend struct property_ops<assigned_client_identifier>; friend class properties_set;
 
 		assigned_client_identifier() = default;
 
@@ -399,7 +401,7 @@ namespace asio2::mqtt::v5
 		: public basic_property<property_type::server_keep_alive>
 		, public property_ops<server_keep_alive>
 	{
-		template<class> friend struct property_ops; friend class properties_set;
+		friend struct property_ops<server_keep_alive>; friend class properties_set;
 
 		server_keep_alive() = default;
 		server_keep_alive(std::uint16_t v) : value_(v) {}
@@ -424,7 +426,7 @@ namespace asio2::mqtt::v5
 		: public basic_property<property_type::authentication_method>
 		, public property_ops<authentication_method>
 	{
-		template<class> friend struct property_ops; friend class properties_set;
+		friend struct property_ops<authentication_method>; friend class properties_set;
 
 		authentication_method() = default;
 
@@ -449,7 +451,7 @@ namespace asio2::mqtt::v5
 		: public basic_property<property_type::authentication_data>
 		, public property_ops<authentication_data>
 	{
-		template<class> friend struct property_ops; friend class properties_set;
+		friend struct property_ops<authentication_data>; friend class properties_set;
 
 		authentication_data() = default;
 
@@ -473,7 +475,7 @@ namespace asio2::mqtt::v5
 		: public basic_property<property_type::request_problem_information>
 		, public property_ops<request_problem_information>
 	{
-		template<class> friend struct property_ops; friend class properties_set;
+		friend struct property_ops<request_problem_information>; friend class properties_set;
 
 		request_problem_information() = default;
 		request_problem_information(std::uint8_t v) : value_(v) {}
@@ -495,7 +497,7 @@ namespace asio2::mqtt::v5
 		: public basic_property<property_type::will_delay_interval>
 		, public property_ops<will_delay_interval>
 	{
-		template<class> friend struct property_ops; friend class properties_set;
+		friend struct property_ops<will_delay_interval>; friend class properties_set;
 
 		will_delay_interval() = default;
 		will_delay_interval(std::uint32_t v) : value_(v) {}
@@ -518,7 +520,7 @@ namespace asio2::mqtt::v5
 		: public basic_property<property_type::request_response_information>
 		, public property_ops<request_response_information>
 	{
-		template<class> friend struct property_ops; friend class properties_set;
+		friend struct property_ops<request_response_information>; friend class properties_set;
 
 		request_response_information() = default;
 		request_response_information(std::uint8_t v) : value_(v) {}
@@ -540,7 +542,7 @@ namespace asio2::mqtt::v5
 		: public basic_property<property_type::response_information>
 		, public property_ops<response_information>
 	{
-		template<class> friend struct property_ops; friend class properties_set;
+		friend struct property_ops<response_information>; friend class properties_set;
 
 		response_information() = default;
 
@@ -565,7 +567,7 @@ namespace asio2::mqtt::v5
 		: public basic_property<property_type::server_reference>
 		, public property_ops<server_reference>
 	{
-		template<class> friend struct property_ops; friend class properties_set;
+		friend struct property_ops<server_reference>; friend class properties_set;
 
 		server_reference() = default;
 
@@ -588,7 +590,7 @@ namespace asio2::mqtt::v5
 		: public basic_property<property_type::reason_string>
 		, public property_ops<reason_string>
 	{
-		template<class> friend struct property_ops; friend class properties_set;
+		friend struct property_ops<reason_string>; friend class properties_set;
 
 		reason_string() = default;
 
@@ -612,7 +614,7 @@ namespace asio2::mqtt::v5
 		: public basic_property<property_type::receive_maximum>
 		, public property_ops<receive_maximum>
 	{
-		template<class> friend struct property_ops; friend class properties_set;
+		friend struct property_ops<receive_maximum>; friend class properties_set;
 
 		receive_maximum() = default;
 		receive_maximum(std::uint16_t v) : value_(v) {}
@@ -632,7 +634,7 @@ namespace asio2::mqtt::v5
 		: public basic_property<property_type::topic_alias_maximum>
 		, public property_ops<topic_alias_maximum>
 	{
-		template<class> friend struct property_ops; friend class properties_set;
+		friend struct property_ops<topic_alias_maximum>; friend class properties_set;
 
 		topic_alias_maximum() = default;
 		topic_alias_maximum(std::uint16_t v) : value_(v) {}
@@ -653,7 +655,7 @@ namespace asio2::mqtt::v5
 		: public basic_property<property_type::topic_alias>
 		, public property_ops<topic_alias>
 	{
-		template<class> friend struct property_ops; friend class properties_set;
+		friend struct property_ops<topic_alias>; friend class properties_set;
 
 		topic_alias() = default;
 		topic_alias(std::uint16_t v) : value_(v) {}
@@ -673,7 +675,7 @@ namespace asio2::mqtt::v5
 		: public basic_property<property_type::maximum_qos>
 		, public property_ops<maximum_qos>
 	{
-		template<class> friend struct property_ops; friend class properties_set;
+		friend struct property_ops<maximum_qos>; friend class properties_set;
 
 		maximum_qos() = default;
 		maximum_qos(std::uint8_t v) : value_(v) {}
@@ -694,7 +696,7 @@ namespace asio2::mqtt::v5
 		: public basic_property<property_type::retain_available>
 		, public property_ops<retain_available>
 	{
-		template<class> friend struct property_ops; friend class properties_set;
+		friend struct property_ops<retain_available>; friend class properties_set;
 
 		retain_available() = default;
 		retain_available(std::uint8_t v) : value_(v) {}
@@ -718,7 +720,7 @@ namespace asio2::mqtt::v5
 		: public basic_property<property_type::user_property>
 		, public property_ops<user_property>
 	{
-		template<class> friend struct property_ops; friend class properties_set;
+		friend struct property_ops<user_property>; friend class properties_set;
 
 		user_property() = default;
 
@@ -742,7 +744,7 @@ namespace asio2::mqtt::v5
 		: public basic_property<property_type::maximum_packet_size>
 		, public property_ops<maximum_packet_size>
 	{
-		template<class> friend struct property_ops; friend class properties_set;
+		friend struct property_ops<maximum_packet_size>; friend class properties_set;
 
 		maximum_packet_size() = default;
 		maximum_packet_size(std::uint32_t v) : value_(v) {}
@@ -763,7 +765,7 @@ namespace asio2::mqtt::v5
 		: public basic_property<property_type::wildcard_subscription_available>
 		, public property_ops<wildcard_subscription_available>
 	{
-		template<class> friend struct property_ops; friend class properties_set;
+		friend struct property_ops<wildcard_subscription_available>; friend class properties_set;
 
 		wildcard_subscription_available() = default;
 		wildcard_subscription_available(std::uint8_t v) : value_(v) {}
@@ -788,7 +790,7 @@ namespace asio2::mqtt::v5
 		: public basic_property<property_type::subscription_identifier_available>
 		, public property_ops<subscription_identifier_available>
 	{
-		template<class> friend struct property_ops; friend class properties_set;
+		friend struct property_ops<subscription_identifier_available>; friend class properties_set;
 
 		subscription_identifier_available() = default;
 		subscription_identifier_available(std::uint8_t v) : value_(v) {}
@@ -813,7 +815,7 @@ namespace asio2::mqtt::v5
 		: public basic_property<property_type::shared_subscription_available>
 		, public property_ops<shared_subscription_available>
 	{
-		template<class> friend struct property_ops; friend class properties_set;
+		friend struct property_ops<shared_subscription_available>; friend class properties_set;
 
 		shared_subscription_available() = default;
 		shared_subscription_available(std::uint8_t v) : value_(v) {}
@@ -1150,7 +1152,7 @@ namespace asio2::mqtt::v5
 	}
 
 	/**
-	 * CONNECT 每 Connection Request
+	 * CONNECT - Connection Request
 	 * 
 	 * After a Network Connection is established by a Client to a Server, the first packet sent from the
 	 * Client to the Server MUST be a CONNECT packet [MQTT-3.1.0-1].
@@ -1337,7 +1339,7 @@ namespace asio2::mqtt::v5
 		}
 
 	protected:
-		// The Protocol Name is a UTF-8 Encoded String that represents the protocol name ※MQTT§. 
+		// The Protocol Name is a UTF-8 Encoded String that represents the protocol name "MQTT". 
 		// The string, its offset and length will not be changed by future versions of the MQTT specification.
 		utf8_string      protocol_name_{ "MQTT" };
 
@@ -1401,7 +1403,7 @@ namespace asio2::mqtt::v5
 	};
 
 	/**
-	 * CONNACK 每 Connect acknowledgement
+	 * CONNACK - Connect acknowledgement
 	 * 
 	 * The CONNACK packet is the packet sent by the Server in response to a CONNECT packet received from a Client.
 	 * The Server MUST send a CONNACK with a 0x00 (Success) Reason Code before sending any Packet other than AUTH [MQTT-3.2.0-1].
@@ -1518,7 +1520,7 @@ namespace asio2::mqtt::v5
 	};
 
 	/**
-	 * PUBLISH 每 Publish message
+	 * PUBLISH - Publish message
 	 * 
 	 * A PUBLISH packet is sent from a Client to a Server or from a Server to a Client to transport an Application Message.
 	 * 
@@ -1654,7 +1656,7 @@ namespace asio2::mqtt::v5
 	};
 
 	/**
-	 * PUBACK 每 Publish acknowledgement
+	 * PUBACK - Publish acknowledgement
 	 * 
 	 * A PUBACK packet is the response to a PUBLISH packet with QoS 1.
 	 * 
@@ -1760,7 +1762,7 @@ namespace asio2::mqtt::v5
 	};
 
 	/**
-	 * PUBREC 每 Publish received (QoS 2 delivery part 1)
+	 * PUBREC - Publish received (QoS 2 delivery part 1)
 	 * 
 	 * A PUBREC packet is the response to a PUBLISH packet with QoS 2.
 	 * It is the second packet of the QoS 2 protocol exchange.
@@ -1867,7 +1869,7 @@ namespace asio2::mqtt::v5
 	};
 
 	/**
-	 * PUBREL 每 Publish release (QoS 2 delivery part 2)
+	 * PUBREL - Publish release (QoS 2 delivery part 2)
 	 * 
 	 * A PUBREL packet is the response to a PUBREC packet.
 	 * It is the third packet of the QoS 2 protocol exchange.
@@ -1981,7 +1983,7 @@ namespace asio2::mqtt::v5
 	};
 
 	/**
-	 * PUBCOMP 每 Publish complete (QoS 2 delivery part 3)
+	 * PUBCOMP - Publish complete (QoS 2 delivery part 3)
 	 * 
 	 * The PUBCOMP packet is the response to a PUBREL packet.
 	 * It is the fourth and final packet of the QoS 2 protocol exchange.
@@ -2091,7 +2093,7 @@ namespace asio2::mqtt::v5
 	 * SUBSCRIBE - Subscribe request
 	 * 
 	 * The SUBSCRIBE packet is sent from the Client to the Server to create one or more Subscriptions.
-	 * Each Subscription registers a Client＊s interest in one or more Topics.
+	 * Each Subscription registers a Client's interest in one or more Topics.
 	 * The Server sends PUBLISH packets to the Client to forward Application Messages that were published
 	 * to Topics that match these Subscriptions.
 	 * The SUBSCRIBE packet also specifies (for each Subscription) the maximum QoS with which the Server
@@ -2211,7 +2213,7 @@ namespace asio2::mqtt::v5
 	};
 
 	/**
-	 * SUBACK 每 Subscribe acknowledgement
+	 * SUBACK - Subscribe acknowledgement
 	 * 
 	 * A SUBACK packet is sent by the Server to the Client to confirm receipt and processing of a SUBSCRIBE packet.
 	 * 
@@ -2322,7 +2324,7 @@ namespace asio2::mqtt::v5
 	};
 
 	/**
-	 * UNSUBSCRIBE 每 Unsubscribe request
+	 * UNSUBSCRIBE - Unsubscribe request
 	 * 
 	 * An UNSUBSCRIBE packet is sent by the Client to the Server, to unsubscribe from topics.
 	 * 
@@ -2441,7 +2443,7 @@ namespace asio2::mqtt::v5
 	};
 
 	/**
-	 * UNSUBACK 每 Unsubscribe acknowledgement
+	 * UNSUBACK - Unsubscribe acknowledgement
 	 * 
 	 * The UNSUBACK packet is sent by the Server to the Client to confirm receipt of an UNSUBSCRIBE packet.
 	 * 
@@ -2551,7 +2553,7 @@ namespace asio2::mqtt::v5
 	};
 
 	/**
-	 * PINGREQ 每 PING request
+	 * PINGREQ - PING request
 	 * 
 	 * The PINGREQ packet is sent from a Client to the Server.
 	 * 
@@ -2604,7 +2606,7 @@ namespace asio2::mqtt::v5
 	};
 
 	/**
-	 * PINGRESP 每 PING response
+	 * PINGRESP - PING response
 	 * 
 	 * A PINGRESP Packet is sent by the Server to the Client in response to a PINGREQ packet.
 	 * It indicates that the Server is alive.
@@ -2658,7 +2660,7 @@ namespace asio2::mqtt::v5
 	};
 
 	/**
-	 * DISCONNECT 每 Disconnect notification
+	 * DISCONNECT - Disconnect notification
 	 * 
 	 * The DISCONNECT packet is the final MQTT Control Packet sent from the Client or the Server.
 	 * It indicates the reason why the Network Connection is being closed.
@@ -2760,7 +2762,7 @@ namespace asio2::mqtt::v5
 	};
 
 	/**
-	 * AUTH 每 Authentication exchange
+	 * AUTH - Authentication exchange
 	 * 
 	 * An AUTH packet is sent from Client to Server or Server to Client as part of an extended
 	 * authentication exchange, such as challenge / response authentication.

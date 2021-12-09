@@ -28,7 +28,8 @@ int main()
 
 	//-----------------------------------------------------------------------------------
 
-	asio2::tcp_server server(std::vector{ &iopool.get(0), &iopool.get(1), &iopool.get(2), &iopool.get(3) });
+	asio2::tcp_server server(std::vector<asio::io_context*>{ 
+		&iopool.get(0), &iopool.get(1), &iopool.get(2), &iopool.get(3) });
 
 	int index = 0;
 
@@ -48,8 +49,8 @@ int main()
 	asio2::tcp_server server6(1024, 65535, std::list{ &iopool.get(0), &iopool.get(1) });
 	asio2::rpc_server server7(1024, 65535, &iopool.get(0));
 	asio2::http_server server8(1024, 65535, iopool.get(0));
-	asio2::udp_server servera(std::vector{ &iopool.get(0), &iopool.get(1) });
-	asio2::ws_server serverb(std::list{ &iopool.get(0), &iopool.get(1) });
+	asio2::udp_server servera(std::vector<asio::io_context*>{ &iopool.get(0), &iopool.get(1) });
+	asio2::ws_server  serverb(std::list  <asio::io_context*>{ &iopool.get(0), &iopool.get(1) });
 	asio2::tcp_server serverc(&iopool.get(0));
 	asio2::tcp_server serverd(iopool.get(0));
 
@@ -120,8 +121,8 @@ int main()
 	asio2::tcp_client client6(1024, 65535, std::list{ &iopool.get(0) });
 	asio2::tcp_client client7(1024, 65535, &iopool.get(0));
 	asio2::tcp_client client8(1024, 65535, iopool.get(0));
-	asio2::http_client clienta(std::vector{ &iopool.get(0) });
-	asio2::ws_client clientb(std::list{ &iopool.get(0) });
+	asio2::http_client clienta(std::vector<asio::io_context*>{ &iopool.get(0) });
+	asio2::ws_client   clientb(std::list  <asio::io_context*>{ &iopool.get(0) });
 	asio2::udp_client clientc(&iopool.get(0));
 	asio2::rpc_client clientd(iopool.get(0));
 
