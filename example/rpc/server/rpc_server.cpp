@@ -218,9 +218,7 @@ int main()
 
 	auto sec = 1 + std::rand() % 2;
 
-	printf("enter %d\n", sec);
 	std::this_thread::sleep_for(std::chrono::seconds(sec));
-	printf("leave %d\n", sec);
 
 	server.start(host, port);
 

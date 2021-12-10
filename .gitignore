@@ -30,6 +30,8 @@ demo/bin/
 demo/vcproj_linux/bin
 demo/vcproj_linux/obj
 
+#########################################################
+
 example/bin/
 example/obj/
 
@@ -78,6 +80,27 @@ example/server/Debug
 example/server/Release
 example/server/out
 
+#########################################################
+
+test/bin/
+test/obj/
+
+test/.vs
+test/asio2_test_project
+test/CMakeFiles
+test/bin
+test/x64
+test/x86
+test/Win32
+test/ARM64
+test/ARM
+test/Debug
+test/Release
+test/out
+
+test/bench/rpc/rest_rpc-master
+
+#########################################################
 
 CMakeCache.txt
 cmake_install.cmake
@@ -93,7 +116,9 @@ asio2_example.sln
 asio2_client_example.sln
 asio2_server_example.sln
 
+asio2_test.sln
 
+#########################################################
 
 # Visual Studio 2015 cache/options directory
 .vs/

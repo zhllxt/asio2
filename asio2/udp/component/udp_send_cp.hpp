@@ -303,7 +303,13 @@ namespace asio2::detail
 			catch (system_error & e) { set_last_error(e); }
 			catch (std::exception &) { set_last_error(asio::error::eof); }
 
-			callback_helper::call(fn, 0);
+			// we should ensure that the callback must be called in the io_context thread.
+			derive.dispatch([ec = get_last_error(), fn = std::forward<Callback>(fn)]() mutable
+			{
+				set_last_error(ec);
+
+				callback_helper::call(fn, 0);
+			});
 		}
 
 		/**
@@ -362,7 +368,13 @@ namespace asio2::detail
 			catch (system_error & e) { set_last_error(e); }
 			catch (std::exception &) { set_last_error(asio::error::eof); }
 
-			callback_helper::call(fn, 0);
+			// we should ensure that the callback must be called in the io_context thread.
+			derive.dispatch([ec = get_last_error(), fn = std::forward<Callback>(fn)]() mutable
+			{
+				set_last_error(ec);
+
+				callback_helper::call(fn, 0);
+			});
 		}
 
 	public:
@@ -629,7 +641,13 @@ namespace asio2::detail
 			catch (system_error & e) { set_last_error(e); }
 			catch (std::exception &) { set_last_error(asio::error::eof); }
 
-			callback_helper::call(fn, 0);
+			// we should ensure that the callback must be called in the io_context thread.
+			derive.dispatch([ec = get_last_error(), fn = std::forward<Callback>(fn)]() mutable
+			{
+				set_last_error(ec);
+
+				callback_helper::call(fn, 0);
+			});
 		}
 
 		/**
@@ -692,7 +710,13 @@ namespace asio2::detail
 			catch (system_error & e) { set_last_error(e); }
 			catch (std::exception &) { set_last_error(asio::error::eof); }
 
-			callback_helper::call(fn, 0);
+			// we should ensure that the callback must be called in the io_context thread.
+			derive.dispatch([ec = get_last_error(), fn = std::forward<Callback>(fn)]() mutable
+			{
+				set_last_error(ec);
+
+				callback_helper::call(fn, 0);
+			});
 		}
 
 	public:

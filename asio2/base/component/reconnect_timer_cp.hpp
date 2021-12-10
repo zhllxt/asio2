@@ -104,6 +104,20 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
+			if (!derive.io().strand().running_in_this_thread())
+			{
+				asio::post(derive.io().strand(), make_allocator(derive.wallocator(),
+				[this, this_ptr = std::move(this_ptr), f = std::forward<Callback>(f), delay]() mutable
+				{
+					this->_post_reconnect_timer(std::move(this_ptr), std::move(f), delay);
+				}));
+				return;
+			}
+
+		#if defined(ASIO2_ENABLE_LOG)
+			this->is_reconnect_timer_posted_ = true;
+		#endif
+
 			this->reconnect_timer_.expires_after(delay);
 			this->reconnect_timer_.async_wait(asio::bind_executor(derive.io().strand(),
 				[&derive, self_ptr = std::move(this_ptr), f = std::forward<Callback>(f)]
@@ -118,6 +132,16 @@ namespace asio2::detail
 		inline void _make_reconnect_timer(std::shared_ptr<derived_t> this_ptr, Callback&& f)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
+
+			if (!derive.io().strand().running_in_this_thread())
+			{
+				asio::post(derive.io().strand(), make_allocator(derive.wallocator(),
+				[this, this_ptr = std::move(this_ptr), f = std::forward<Callback>(f)]() mutable
+				{
+					this->_make_reconnect_timer(std::move(this_ptr), std::move(f));
+				}));
+				return;
+			}
 
 			if (this->reconnect_is_running_.test_and_set())
 				return;
@@ -173,6 +197,21 @@ namespace asio2::detail
 
 		inline void _stop_reconnect_timer()
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
+			if (!derive.io().strand().running_in_this_thread())
+			{
+				derive.post([this]() mutable
+				{
+					this->_stop_reconnect_timer();
+				});
+				return;
+			}
+
+		#if defined(ASIO2_ENABLE_LOG)
+			ASIO2_ASSERT(this->is_reconnect_timer_posted_ == true);
+		#endif
+
 			error_code ec_ignore{};
 
 			this->reconnect_timer_canceled_.test_and_set();
@@ -181,6 +220,21 @@ namespace asio2::detail
 
 		inline void _wake_reconnect_timer()
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
+			if (!derive.io().strand().running_in_this_thread())
+			{
+				derive.post([this]() mutable
+				{
+					this->_wake_reconnect_timer();
+				});
+				return;
+			}
+
+		#if defined(ASIO2_ENABLE_LOG)
+			ASIO2_ASSERT(this->is_reconnect_timer_posted_ == true);
+		#endif
+
 			if (this->reconnect_enable_)
 			{
 				error_code ec_ignore{};
@@ -203,6 +257,10 @@ namespace asio2::detail
 
 		/// Used to chech whether the reconnect timer has started already
 		std::atomic_flag                            reconnect_is_running_;
+
+	#if defined(ASIO2_ENABLE_LOG)
+		bool is_reconnect_timer_posted_ = false;
+	#endif
 	};
 }
 

@@ -68,6 +68,20 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
+			if (!derive.io().strand().running_in_this_thread())
+			{
+				asio::post(derive.io().strand(), make_allocator(derive.wallocator(),
+				[this, this_ptr = std::move(this_ptr), duration]() mutable
+				{
+					this->_post_silence_timer(duration, std::move(this_ptr));
+				}));
+				return;
+			}
+
+		#if defined(ASIO2_ENABLE_LOG)
+			this->is_silence_timer_posted_ = true;
+		#endif
+
 			// reset the "canceled" flag to false, see reconnect_timer_cp.hpp -> _make_reconnect_timer
 			this->silence_timer_canceled_.clear();
 
@@ -121,6 +135,21 @@ namespace asio2::detail
 
 		inline void _stop_silence_timer()
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
+			if (!derive.io().strand().running_in_this_thread())
+			{
+				derive.post([this]() mutable
+				{
+					this->_stop_silence_timer();
+				});
+				return;
+			}
+
+		#if defined(ASIO2_ENABLE_LOG)
+			ASIO2_ASSERT(this->is_silence_timer_posted_ == true);
+		#endif
+
 			error_code ec_ignore{};
 
 			this->silence_timer_canceled_.test_and_set();
@@ -136,6 +165,10 @@ namespace asio2::detail
 
 		/// if there has no data transfer for a long time,the session will be disconnect
 		std::chrono::steady_clock::duration         silence_timeout_ = std::chrono::minutes(60);
+
+	#if defined(ASIO2_ENABLE_LOG)
+		bool is_silence_timer_posted_ = false;
+	#endif
 	};
 }
 

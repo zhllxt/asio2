@@ -64,6 +64,20 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
+			if (!derive.io().strand().running_in_this_thread())
+			{
+				asio::post(derive.io().strand(), make_allocator(derive.wallocator(),
+				[this, this_ptr = std::move(this_ptr), duration]() mutable
+				{
+					this->_post_connect_timeout_timer(duration, std::move(this_ptr));
+				}));
+				return;
+			}
+
+		#if defined(ASIO2_ENABLE_LOG)
+			this->is_connect_timeout_timer_posted_ = true;
+		#endif
+
 			this->connect_error_code_.clear();
 			this->connect_timeout_flag_.store(false);
 
@@ -126,6 +140,20 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
+			if (!derive.io().strand().running_in_this_thread())
+			{
+				asio::post(derive.io().strand(), make_allocator(derive.wallocator(),
+				[this, this_ptr = std::move(this_ptr), duration, fn = std::forward<Fn>(fn)]() mutable
+				{
+					this->_post_connect_timeout_timer(duration, std::move(this_ptr), std::move(fn));
+				}));
+				return;
+			}
+
+		#if defined(ASIO2_ENABLE_LOG)
+			this->is_connect_timeout_timer_posted_ = true;
+		#endif
+
 			this->connect_error_code_.clear();
 			this->connect_timeout_flag_.store(false);
 
@@ -157,6 +185,31 @@ namespace asio2::detail
 
 		inline void _stop_connect_timeout_timer(asio::error_code ec)
 		{
+			// 2021-12-10 bug fix : when a client connected, the tcp_session::start will be 
+			// called, and super::start will be called in tcp_session::start, so session::start
+			// will be called, and session::start will call _post_connect_timeout_timer, but
+			// session::start is not running in the io thread, so it will post a event, then
+			// tcp_session::_handle_connect will be called, and tcp_session::_done_connect
+			// will be called, and _stop_connect_timeout_timer will be called, but at this 
+			// time, the _post_connect_timeout_timer in the session::start has't called yet,
+			// this will cause the client to be fore disconnect with timeout error.
+			// so we should ensure the _stop_connect_timeout_timer and _post_connect_timeout_timer
+			// was called in the io thread.
+			derived_t& derive = static_cast<derived_t&>(*this);
+
+			if (!derive.io().strand().running_in_this_thread())
+			{
+				derive.post([this, ec]() mutable
+				{
+					this->_stop_connect_timeout_timer(ec);
+				});
+				return;
+			}
+
+		#if defined(ASIO2_ENABLE_LOG)
+			ASIO2_ASSERT(this->is_connect_timeout_timer_posted_ == true);
+		#endif
+
 			error_code ec_ignore{};
 			try
 			{
@@ -189,6 +242,10 @@ namespace asio2::detail
 
 		/// Used to check the error_code is connection timeout or others.
 		std::atomic_bool                            connect_timeout_flag_    = false;
+
+	#if defined(ASIO2_ENABLE_LOG)
+		bool is_connect_timeout_timer_posted_ = false;
+	#endif
 	};
 }
 

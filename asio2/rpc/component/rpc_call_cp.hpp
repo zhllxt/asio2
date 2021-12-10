@@ -141,16 +141,19 @@ namespace asio2::detail
 
 					derive.post([&derive, req = std::move(req), ex = std::move(ex)]() mutable
 					{
+						derive.reqs_.emplace(req.id(), std::move(ex));
+
 						derive.async_send((derive.sr_.reset() << req).str(),
-						[&derive, id = req.id(), ex = std::move(ex)]() mutable
+						[&derive, id = req.id()]() mutable
 						{
-							if (get_last_error())
+							if (get_last_error()) // send data failed with error
 							{
-								ex(get_last_error(), std::string_view{});
-							}
-							else
-							{
-								derive.reqs_.emplace(id, std::move(ex));
+								auto iter = derive.reqs_.find(id);
+								if (iter != derive.reqs_.end())
+								{
+									auto& ex = iter->second;
+									ex(get_last_error(), std::string_view{});
+								}
 							}
 						});
 					});
@@ -322,7 +325,7 @@ namespace asio2::detail
 					if (!derive.is_started())
 						asio::detail::throw_error(asio::error::not_connected);
 
-					derive.post([&derive, req = std::move(req)]() mutable
+					derive.post([&derive, req = std::forward<Req>(req)]() mutable
 					{
 						derive.async_send((derive.sr_.reset() << req).str());
 					});
@@ -373,37 +376,62 @@ namespace asio2::detail
 
 					// 2019-11-28 fixed the bug of issue #6 : task() cannot be called directly
 
+					// 2021-12-10 : can't save the request id in async_send's callback.
+					// The following will occurs when using async_send with callback :
+					// 1. call async_send with callback
+					// 2. recv response by rpc_recv_op
+					// 3. the callback was called
+					// It means that : The callback function of async_send may be called after 
+					// recved response data.
+
 					derive.post(
-					[&derive, timer = std::move(timer), timeout, req = std::move(req), ex = std::move(ex)]
+					[&derive, timer = std::move(timer), timeout, req = std::forward<Req>(req), ex = std::move(ex)]
 					() mutable
 					{
-						derive.async_send((derive.sr_.reset() << req).str(),
-						[&derive, timer = std::move(timer), timeout, id = req.id(), ex = std::move(ex)]
-						() mutable
+						// 1. first, save the request id
+						derive.reqs_.emplace(req.id(), std::move(ex));
+
+						// 2. second, start the timeout timer.
+						// note : cannot put "start timer" after "async_send", beacust the async_send
+						// maybe failed immediately with the "derive.is_started() == false", then the
+						// callback of async_send will be called immediately, and the "ex" will be called,
+						// and the timer will be canceled, but at this time, the timer has't start yet,
+						// when async_send is return, the timer will be begin "async_wait", but the timer
+						// "cancel" is called already, so this will cause some small problem.
+
+						// must start a timeout timer, othwise if not recved response, it will cause the
+						// request id in the map forever.
+
+						auto this_ptr = derive.selfptr();
+
+						timer->expires_after(timeout);
+						timer->async_wait(asio::bind_executor(derive.io().strand(),
+						[this_ptr = std::move(this_ptr), &derive, id = req.id()]
+						(const error_code& ec) mutable
 						{
-							if (get_last_error())
+							if (ec == asio::error::operation_aborted)
+								return;
+
+							auto iter = derive.reqs_.find(id);
+							if (iter != derive.reqs_.end())
 							{
-								ex(get_last_error(), std::string_view{});
+								auto& ex = iter->second;
+								ex(asio::error::timed_out, std::string_view{});
 							}
-							else
+						}));
+
+						// 3. third, send request.
+						derive.async_send((derive.sr_.reset() << req).str(),
+						[&derive, id = req.id()]() mutable
+						{
+							if (get_last_error()) // send data failed with error
 							{
-								derive.reqs_.emplace(id, std::move(ex));
-
-								auto this_ptr = derive.selfptr();
-
-								timer->expires_after(timeout);
-								timer->async_wait(asio::bind_executor(derive.io().strand(),
-								[&derive, this_ptr = std::move(this_ptr), id](const error_code& ec) mutable
+								auto iter = derive.reqs_.find(id);
+								if (iter != derive.reqs_.end())
 								{
-									if (ec == asio::error::operation_aborted)
-										return;
-									auto iter = derive.reqs_.find(id);
-									if (iter != derive.reqs_.end())
-									{
-										auto& ex = iter->second;
-										ex(asio::error::timed_out, std::string_view{});
-									}
-								}));
+									auto& ex = iter->second;
+									ex(get_last_error(), std::string_view{});
+								}
 							}
 						});
 					});

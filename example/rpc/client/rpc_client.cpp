@@ -284,23 +284,16 @@ int main()
 		std::cout << "del_user lilei failed : " << ec.message() << std::endl;
 	});
 
-	try
+	// Chain calls : 
+	int sum = client.timeout(std::chrono::seconds(13)).call<int>("add", 11, 12);
+	printf("sum5 : %d err : %d %s\n", sum, asio2::last_error_val(), asio2::last_error_msg().c_str());
+	if (!asio2::get_last_error())
 	{
-		// Chain calls : 
-		int sum = client.timeout(std::chrono::seconds(13)).call<int>("add", 11, 12);
-		printf("sum5 : %d err : %d %s\n", sum, ec.value(), ec.message().c_str());
-		if (!asio2::get_last_error())
-		{
-			ASIO2_ASSERT(sum == 11 + 12);
-		}
-	}
-	catch (std::exception& e)
-	{
-		printf("error : %s\n", e.what());
+		ASIO2_ASSERT(sum == 11 + 12);
 	}
 
 	// Chain calls : 
-	int sum = client.timeout(std::chrono::seconds(13)).errcode(ec).call<int>("add", 11, 32);
+	sum = client.timeout(std::chrono::seconds(13)).errcode(ec).call<int>("add", 11, 32);
 	printf("sum6 : %d err : %d %s\n", sum, ec.value(), ec.message().c_str());
 	if (!ec)
 	{
