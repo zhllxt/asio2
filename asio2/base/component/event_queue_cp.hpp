@@ -49,7 +49,7 @@ namespace asio2::detail
 
 		defer_event(std::nullptr_t) : f(defer_event_dummy{}), valid_(false) {}
 
-		inline defer_event(defer_event&& o) : f(std::move(o.f)), valid_(o.valid_)
+		inline defer_event(defer_event&& o) noexcept : f(std::move(o.f)), valid_(o.valid_)
 		{
 			o.valid_ = false;
 		};
@@ -108,7 +108,7 @@ namespace asio2::detail
 		event_queue_guard(derived_t& d) : derive(d), derive_ptr_(d.selfptr()) {}
 
 	public:
-		inline event_queue_guard(event_queue_guard&& o)
+		inline event_queue_guard(event_queue_guard&& o) noexcept
 			: derive(o.derive), derive_ptr_(std::move(o.derive_ptr_)), valid_(o.valid_)
 		{
 			ASIO2_ASSERT(o.valid_ == true);

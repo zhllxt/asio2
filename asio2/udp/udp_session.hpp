@@ -102,6 +102,12 @@ namespace asio2::detail
 		{
 			try
 			{
+			#if defined(ASIO2_ENABLE_LOG)
+				this->is_stop_silence_timer_called_ = false;
+				this->is_stop_connect_timeout_timer_called_ = false;
+				this->is_disconnect_called_ = false;
+			#endif
+
 				state_t expected = state_t::stopped;
 				if (!this->state_.compare_exchange_strong(expected, state_t::starting))
 					asio::detail::throw_error(asio::error::already_started);

@@ -115,7 +115,8 @@ namespace asio2::detail
 			}
 
 		#if defined(ASIO2_ENABLE_LOG)
-			this->is_reconnect_timer_posted_ = true;
+			this->is_post_reconnect_timer_called_ = true;
+			ASIO2_ASSERT(this->is_stop_reconnect_timer_called_ == false);
 		#endif
 
 			this->reconnect_timer_.expires_after(delay);
@@ -209,7 +210,7 @@ namespace asio2::detail
 			}
 
 		#if defined(ASIO2_ENABLE_LOG)
-			ASIO2_ASSERT(this->is_reconnect_timer_posted_ == true);
+			this->is_stop_reconnect_timer_called_ = true;
 		#endif
 
 			error_code ec_ignore{};
@@ -232,7 +233,7 @@ namespace asio2::detail
 			}
 
 		#if defined(ASIO2_ENABLE_LOG)
-			ASIO2_ASSERT(this->is_reconnect_timer_posted_ == true);
+			ASIO2_ASSERT(this->is_post_reconnect_timer_called_ == true);
 		#endif
 
 			if (this->reconnect_enable_)
@@ -259,7 +260,8 @@ namespace asio2::detail
 		std::atomic_flag                            reconnect_is_running_;
 
 	#if defined(ASIO2_ENABLE_LOG)
-		bool is_reconnect_timer_posted_ = false;
+		bool                                        is_stop_reconnect_timer_called_ = false;
+		bool                                        is_post_reconnect_timer_called_ = false;
 	#endif
 	};
 }

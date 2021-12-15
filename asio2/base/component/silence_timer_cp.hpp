@@ -79,7 +79,7 @@ namespace asio2::detail
 			}
 
 		#if defined(ASIO2_ENABLE_LOG)
-			this->is_silence_timer_posted_ = true;
+			ASIO2_ASSERT(this->is_stop_silence_timer_called_ == false);
 		#endif
 
 			// reset the "canceled" flag to false, see reconnect_timer_cp.hpp -> _make_reconnect_timer
@@ -147,7 +147,7 @@ namespace asio2::detail
 			}
 
 		#if defined(ASIO2_ENABLE_LOG)
-			ASIO2_ASSERT(this->is_silence_timer_posted_ == true);
+			this->is_stop_silence_timer_called_ = true;
 		#endif
 
 			error_code ec_ignore{};
@@ -167,7 +167,7 @@ namespace asio2::detail
 		std::chrono::steady_clock::duration         silence_timeout_ = std::chrono::minutes(60);
 
 	#if defined(ASIO2_ENABLE_LOG)
-		bool is_silence_timer_posted_ = false;
+		bool                                        is_stop_silence_timer_called_ = false;
 	#endif
 	};
 }

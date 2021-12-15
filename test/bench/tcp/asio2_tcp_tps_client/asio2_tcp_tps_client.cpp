@@ -13,7 +13,8 @@ int main()
 
 	}).bind_recv([&](std::string_view data)
 	{
-		client.async_send(data);
+		client.async_send(asio::buffer(data)); // no allocate memory
+		//client.async_send(data); // allocate memory
 	});
 
 	client.start("127.0.0.1", "8080");

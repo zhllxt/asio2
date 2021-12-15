@@ -116,6 +116,11 @@ int main()
 			printf("sum1 : %d err : %d %s\n", v, ec.value(), ec.message().c_str());
 		}, std::chrono::seconds(13), "add", 12, 11);
 
+		client.async_call([](asio::error_code ec)
+		{
+			printf("heartbeat err : %d %s\n", ec.value(), ec.message().c_str());
+		}, std::chrono::seconds(3), "heartbeat");
+
 		nlohmann::json j = nlohmann::json::object();
 
 		j["name"] = "lilei";

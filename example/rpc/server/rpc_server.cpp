@@ -127,6 +127,11 @@ public:
 	}
 };
 
+void heartbeat(std::shared_ptr<asio2::rpc_session>& session_ptr)
+{
+	printf("heartbeat %s\n", session_ptr->remote_address().c_str());
+}
+
 int main()
 {
 #if defined(WIN32) || defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS_)
@@ -187,6 +192,7 @@ int main()
 	server.bind("async_test", async_test);
 
 	server.bind("test_json", test_json);
+	server.bind("heartbeat", heartbeat);
 
 	server.bind("cat", [&](std::shared_ptr<asio2::rpc_session>& session_ptr,
 		const std::string& a, const std::string& b)

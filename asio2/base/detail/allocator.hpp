@@ -95,10 +95,10 @@ namespace asio2::detail
 
 	private:
 		// Storage space used for handler-based custom memory allocation.
-		typename std::aligned_storage<SizeN::size>::type storage_;
+		typename std::aligned_storage<SizeN::size>::type storage_{};
 
 		// Whether the handler-based custom allocation storage has been used.
-		bool in_use_;
+		bool in_use_{};
 	};
 
 	template<typename SizeN>
@@ -138,10 +138,10 @@ namespace asio2::detail
 
 	private:
 		// Storage space used for handler-based custom memory allocation.
-		typename std::aligned_storage<SizeN::size>::type storage_;
+		typename std::aligned_storage<SizeN::size>::type storage_{};
 
 		// Whether the handler-based custom allocation storage has been used.
-		std::atomic_flag in_use_;
+		std::atomic_flag in_use_{};
 	};
 
 	// The allocator to be associated with the handler objects. This allocator only
@@ -187,7 +187,7 @@ namespace asio2::detail
 		template <typename, typename, typename> friend class handler_allocator;
 
 		// The underlying memory.
-		handler_memory<N, B>& memory_;
+		handler_memory<N, B>& memory_{};
 	};
 
 	// Wrapper class template for handler objects to allow handler memory
@@ -218,7 +218,7 @@ namespace asio2::detail
 		}
 
 	private:
-		handler_memory<N, B>& memory_;
+		handler_memory<N, B>& memory_{};
 		Handler handler_;
 	};
 

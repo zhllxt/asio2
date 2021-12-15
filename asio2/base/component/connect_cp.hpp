@@ -100,6 +100,8 @@ namespace asio2::detail
 				clear_last_error();
 
 			#if defined(ASIO2_ENABLE_LOG)
+				derive.is_stop_reconnect_timer_called_ = false;
+				derive.is_stop_connect_timeout_timer_called_ = false;
 				derive.is_disconnect_called_ = false;
 			#endif
 

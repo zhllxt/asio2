@@ -348,6 +348,10 @@ namespace asio2::detail
 				{
 					clear_last_error();
 
+				#if defined(ASIO2_ENABLE_LOG)
+					this->is_stop_called_ = false;
+				#endif
+
 					// convert to string maybe throw some exception.
 					std::string  d = detail::to_string(std::move(device));
 					unsigned int b = detail::to_integer<unsigned int>(std::move(baud_rate));
@@ -358,10 +362,6 @@ namespace asio2::detail
 						ASIO2_ASSERT(false);
 						asio::detail::throw_error(asio::error::operation_aborted);
 					}
-
-				#if defined(ASIO2_ENABLE_LOG)
-					this->is_stop_called_ = false;
-				#endif
 
 					error_code ec_ignore{};
 

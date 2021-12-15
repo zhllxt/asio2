@@ -4,6 +4,8 @@ del /f /s /q *.vcxproj.user
 del /f /s /q *.sln
 del /f /s /q cmake_install.cmake
 del /f /s /q CMakeCache.txt
+del /f /s /q *.vsp
+del /f /s /q *.psess
 
 rmdir /s /q .vs
 rmdir /s /q asio2_example_project

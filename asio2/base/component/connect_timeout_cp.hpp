@@ -75,7 +75,7 @@ namespace asio2::detail
 			}
 
 		#if defined(ASIO2_ENABLE_LOG)
-			this->is_connect_timeout_timer_posted_ = true;
+			ASIO2_ASSERT(this->is_stop_connect_timeout_timer_called_ == false);
 		#endif
 
 			this->connect_error_code_.clear();
@@ -151,7 +151,7 @@ namespace asio2::detail
 			}
 
 		#if defined(ASIO2_ENABLE_LOG)
-			this->is_connect_timeout_timer_posted_ = true;
+			ASIO2_ASSERT(this->is_stop_connect_timeout_timer_called_ == false);
 		#endif
 
 			this->connect_error_code_.clear();
@@ -207,7 +207,7 @@ namespace asio2::detail
 			}
 
 		#if defined(ASIO2_ENABLE_LOG)
-			ASIO2_ASSERT(this->is_connect_timeout_timer_posted_ == true);
+			this->is_stop_connect_timeout_timer_called_ = true;
 		#endif
 
 			error_code ec_ignore{};
@@ -244,7 +244,7 @@ namespace asio2::detail
 		std::atomic_bool                            connect_timeout_flag_    = false;
 
 	#if defined(ASIO2_ENABLE_LOG)
-		bool is_connect_timeout_timer_posted_ = false;
+		bool                                        is_stop_connect_timeout_timer_called_ = false;
 	#endif
 	};
 }

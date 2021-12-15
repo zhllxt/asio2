@@ -311,6 +311,13 @@ namespace asio2::detail
 				{
 					clear_last_error();
 
+				#if defined(ASIO2_ENABLE_LOG)
+					this->is_stop_reconnect_timer_called_ = false;
+					this->is_post_reconnect_timer_called_ = false;
+					this->is_stop_connect_timeout_timer_called_ = false;
+					this->is_disconnect_called_ = false;
+				#endif
+
 					// convert to string maybe throw some exception.
 					this->host_ = detail::to_string(std::move(host));
 					this->port_ = detail::to_string(std::move(port));

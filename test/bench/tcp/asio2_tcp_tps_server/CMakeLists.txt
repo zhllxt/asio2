@@ -16,7 +16,7 @@ aux_source_directory(. SRC_FILES)
 
 source_group("" FILES ${SRC_FILES})
 
-set(TARGET_NAME asio2_tcp_speed_server)
+set(TARGET_NAME asio2_tcp_tps_server)
 
 add_executable (
     ${TARGET_NAME}
@@ -24,7 +24,7 @@ add_executable (
     ${TARGET_NAME}.cpp
 )
 
-set_property(TARGET ${TARGET_NAME} PROPERTY FOLDER "bench")
+set_property(TARGET ${TARGET_NAME} PROPERTY FOLDER "bench/tcp")
 
 #SET_TARGET_PROPERTIES(${TARGET_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${ASIO2_EXES_DIR})
 

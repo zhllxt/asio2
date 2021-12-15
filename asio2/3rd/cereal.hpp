@@ -24,6 +24,16 @@
 
 #include <sstream>
 
+#ifndef CEREAL_RAPIDJSON_NAMESPACE
+#define CEREAL_RAPIDJSON_NAMESPACE cereal::rapidjson
+#endif
+#ifndef CEREAL_RAPIDJSON_NAMESPACE_BEGIN
+#define CEREAL_RAPIDJSON_NAMESPACE_BEGIN namespace CEREAL_RAPIDJSON_NAMESPACE {
+#endif
+#ifndef CEREAL_RAPIDJSON_NAMESPACE_END
+#define CEREAL_RAPIDJSON_NAMESPACE_END }
+#endif
+
 #include <cereal/cereal.hpp>
 
 #include <cereal/types/array.hpp>

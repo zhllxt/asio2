@@ -600,16 +600,16 @@ namespace asio2::detail
 				{
 					clear_last_error();
 
+				#if defined(ASIO2_ENABLE_LOG)
+					this->is_stop_called_ = false;
+				#endif
+
 					expected = state_t::starting;
 					if (!this->state_.compare_exchange_strong(expected, state_t::starting))
 					{
 						ASIO2_ASSERT(false);
 						asio::detail::throw_error(asio::error::operation_aborted);
 					}
-
-				#if defined(ASIO2_ENABLE_LOG)
-					this->is_stop_called_ = false;
-				#endif
 
 					this->seq_ = 0;
 					this->total_send_ = 0;

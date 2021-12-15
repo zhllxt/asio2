@@ -30,7 +30,8 @@ int main()
 			printf("%.1lf MByte/Sec\n", speed);
 		}
 
-		session_ptr->async_send(data);
+		session_ptr->async_send(asio::buffer(data)); // no allocate memory
+		//session_ptr->async_send(data); // allocate memory
 	});
 
 	server.start("0.0.0.0", "8080");

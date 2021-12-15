@@ -8,8 +8,8 @@
 # (See accompanying file LICENSE or see <http://www.gnu.org/licenses/>)
 #
 
-add_subdirectory (asio_tcp_speed_client)
-add_subdirectory (asio_tcp_speed_server)
+add_subdirectory (asio_tcp_tps_client)
+add_subdirectory (asio_tcp_tps_server)
 
-add_subdirectory (asio2_tcp_speed_client)
-add_subdirectory (asio2_tcp_speed_server)
+add_subdirectory (asio2_tcp_tps_client)
+add_subdirectory (asio2_tcp_tps_server)
