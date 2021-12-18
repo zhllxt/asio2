@@ -183,7 +183,7 @@ include_directories (${ASIO2_ROOT_DIR})
 
 file (GLOB_RECURSE  ASIO2_FILES  ${ASIO2_ROOT_DIR}/asio2/*.*)
 file (GLOB_RECURSE   ASIO_FILES  ${ASIO2_ROOT_DIR}/asio/*.*)
-file (GLOB_RECURSE  BEAST_FILES  ${ASIO2_ROOT_DIR}/beast/*.*)
+file (GLOB_RECURSE    BHO_FILES  ${ASIO2_ROOT_DIR}/bho/*.*)
 file (GLOB_RECURSE CEREAL_FILES  ${ASIO2_ROOT_DIR}/cereal/*.*)
 
 # exclude : asio/impl/src.cpp

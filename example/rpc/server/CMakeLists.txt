@@ -10,7 +10,7 @@
 
 GroupSources (asio2 "/")
 GroupSources (asio "/")
-#GroupSources (beast "/")
+#GroupSources (bho "/")
 GroupSources (cereal "/")
 
 aux_source_directory(. SRC_FILES)

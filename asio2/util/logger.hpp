@@ -109,15 +109,16 @@ namespace asio2
 			if (this->level_ < severity_level::trace || this->level_ > severity_level::report)
 				this->level_ = severity_level::debug;
 
-#if defined(__unix__) || defined(__linux__)
+		#if defined(unix) || defined(__unix) || defined(_XOPEN_SOURCE) || defined(_POSIX_SOURCE) || \
+			defined(linux) || defined(__linux) || defined(__linux__) || defined(__gnu_linux__)
 			this->endl_ = { '\n' };
 			this->preferred_ = { '/' };
-#elif defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS_) || defined(WIN32)
+		#elif defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS_) || defined(WIN32)
 			this->endl_ = { '\r','\n' };
 			this->preferred_ = { '\\' };
-#	endif
+		#endif
 
-#if defined(ASIO2_LOGGER_MULTI_MODULE)
+		#if defined(ASIO2_LOGGER_MULTI_MODULE)
 			std::thread t([this]() mutable
 			{
 				while (true)
@@ -137,14 +138,14 @@ namespace asio2
 				}
 			});
 			this->thread_.swap(t);
-#endif
+		#endif
 
 			this->mkfile();
 		}
 
 		~logger()
 		{
-#if defined(ASIO2_LOGGER_MULTI_MODULE)
+		#if defined(ASIO2_LOGGER_MULTI_MODULE)
 			{
 				std::unique_lock<std::mutex> lock(this->mtx_);
 				this->is_stop_ = true;
@@ -154,7 +155,7 @@ namespace asio2
 
 			if (this->thread_.joinable())
 				this->thread_.join();
-#endif
+		#endif
 
 			std::lock_guard<std::mutex> g(this->lock_);
 			if (this->file_.is_open())
@@ -338,7 +339,7 @@ namespace asio2
 					// if file size is too large,close this file,and create a new file.
 					if (this->size_ > this->roll_size_)
 					{
-#if defined(ASIO2_LOGGER_MULTI_MODULE)
+					#if defined(ASIO2_LOGGER_MULTI_MODULE)
 						this->mkflag_ = true;
 
 						while (this->mkflag_)
@@ -347,7 +348,7 @@ namespace asio2
 
 							this->cv_.notify_one();
 						}
-#endif
+					#endif
 						this->mkfile();
 					}
 				}
@@ -484,13 +485,13 @@ namespace asio2
 
 		std::function<void(const std::string & text)> target_;
 
-#if defined(ASIO2_LOGGER_MULTI_MODULE)
+	#if defined(ASIO2_LOGGER_MULTI_MODULE)
 		std::thread    thread_;
 		std::mutex     mtx_;
 		std::condition_variable cv_;
 		bool           is_stop_ = false;
 		bool           mkflag_  = false;
-#endif
+	#endif
 
 	};
 

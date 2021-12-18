@@ -153,7 +153,7 @@ namespace asio2::detail
 
 					asio::detail::throw_error(ec);
 
-					asio::dispatch(this->io_.strand(), make_allocator(this->rallocator_,
+					asio::dispatch(this->io_.strand(), make_allocator(this->wallocator_,
 					[this, this_ptr = std::move(this_ptr), condition = std::move(condition)]() mutable
 					{
 						ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());

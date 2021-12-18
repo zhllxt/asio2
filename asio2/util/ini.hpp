@@ -64,7 +64,8 @@
 #endif
 
 
-#if defined(__unix__) || defined(__linux__)
+#if defined(unix) || defined(__unix) || defined(_XOPEN_SOURCE) || defined(_POSIX_SOURCE) || \
+	defined(linux) || defined(__linux) || defined(__linux__) || defined(__gnu_linux__)
 #	if __has_include(<unistd.h>)
 #		include <unistd.h>
 #	endif
@@ -411,13 +412,14 @@ namespace asio2
 
 				if constexpr /**/ (sizeof...(Args) == 0)
 				{
-#if defined(__unix__) || defined(__linux__)
+				#if defined(unix) || defined(__unix) || defined(_XOPEN_SOURCE) || defined(_POSIX_SOURCE) || \
+					defined(linux) || defined(__linux) || defined(__linux__) || defined(__gnu_linux__)
 					filepath_.resize(PATH_MAX);
 					readlink("/proc/self/exe", (char *)filepath_.data(), PATH_MAX);
-#elif defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS_) || defined(WIN32)
+				#elif defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS_) || defined(WIN32)
 					filepath_.resize(MAX_PATH);
 					filepath_.resize(::GetModuleFileNameA(NULL, (LPSTR)filepath_.data(), MAX_PATH));
-#endif
+				#endif
 					if (std::string::size_type pos = filepath_.find('\0'); pos != std::string::npos)
 						filepath_.resize(pos);
 
@@ -566,11 +568,12 @@ namespace asio2
 		template<class ...Args>
 		basic_ini(Args&&... args) : detail::basic_ini_impl<Stream>(std::forward<Args>(args)...)
 		{
-#if defined(__unix__) || defined(__linux__)
+		#if defined(unix) || defined(__unix) || defined(_XOPEN_SOURCE) || defined(_POSIX_SOURCE) || \
+			defined(linux) || defined(__linux) || defined(__linux__) || defined(__gnu_linux__)
 			this->endl_ = { '\n' };
-#elif defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS_) || defined(WIN32)
+		#elif defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS_) || defined(WIN32)
 			this->endl_ = { '\r','\n' };
-#	endif
+		#	endif
 		}
 
 	protected:

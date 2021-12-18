@@ -20,7 +20,9 @@
 #include <asio2/3rd/asio.hpp>
 #include <asio2/base/error.hpp>
 
-#if defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS_) || defined(WIN32)
+#include <bho/predef.h>
+
+#if BHO_OS_WINDOWS
 #	if __has_include(<Mstcpip.h>)
 #		include <Mstcpip.h> // tcp_keepalive struct
 #	endif
@@ -65,20 +67,22 @@ namespace asio2::detail
 
 				auto native_fd = socket.native_handle();
 
-#if defined(__unix__) || defined(__linux__)
+			#if BHO_OS_LINUX
 				// For *n*x systems
-				int ret_keepidle = setsockopt(native_fd, SOL_TCP, TCP_KEEPIDLE, (void*)&idle, sizeof(unsigned int));
+				int ret_keepidle  = setsockopt(native_fd, SOL_TCP, TCP_KEEPIDLE , (void*)&idle    , sizeof(unsigned int));
 				int ret_keepintvl = setsockopt(native_fd, SOL_TCP, TCP_KEEPINTVL, (void*)&interval, sizeof(unsigned int));
-				int ret_keepinit = setsockopt(native_fd, SOL_TCP, TCP_KEEPCNT, (void*)&count, sizeof(unsigned int));
+				int ret_keepinit  = setsockopt(native_fd, SOL_TCP, TCP_KEEPCNT  , (void*)&count   , sizeof(unsigned int));
 
 				if (ret_keepidle || ret_keepintvl || ret_keepinit)
 				{
 					set_last_error(errno);
 					return false;
 				}
-#elif defined(__OSX__)
+			#elif BHO_OS_UNIX
+				// be pending
+			#elif BHO_OS_MACOS
 				//// Set the timeout before the first keep alive message
-				//int ret_tcpkeepalive = setsockopt(native_fd, IPPROTO_TCP, TCP_KEEPALIVE, (void*)&idle, sizeof(unsigned int));
+				//int ret_tcpkeepalive = setsockopt(native_fd, IPPROTO_TCP, TCP_KEEPALIVE        , (void*)&idle    , sizeof(unsigned int));
 				//int ret_tcpkeepintvl = setsockopt(native_fd, IPPROTO_TCP, TCP_CONNECTIONTIMEOUT, (void*)&interval, sizeof(unsigned int));
 
 				//if (ret_tcpkeepalive || ret_tcpkeepintvl)
@@ -86,7 +90,9 @@ namespace asio2::detail
 				//	set_last_error(errno);
 				//	return false;
 				//}
-#elif defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS_) || defined(WIN32)
+			#elif BHO_OS_IOS
+				// be pending
+			#elif BHO_OS_WINDOWS
 				// Partially supported on windows
 				tcp_keepalive keepalive_options;
 				keepalive_options.onoff = onoff;
@@ -104,7 +110,7 @@ namespace asio2::detail
 						return false;
 					}
 				}
-#endif
+			#endif
 				return true;
 			}
 			catch (system_error & e)

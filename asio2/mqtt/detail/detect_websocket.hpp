@@ -23,12 +23,12 @@
 #include <asio2/3rd/asio.hpp>
 #include <asio2/base/error.hpp>
 
-#include <beast/core/detail/config.hpp>
-#include <beast/core/async_base.hpp>
-#include <beast/core/error.hpp>
-#include <beast/core/read_size.hpp>
-#include <beast/core/stream_traits.hpp>
-#include <beast/core/tribool.hpp>
+#include <bho/beast/core/detail/config.hpp>
+#include <bho/beast/core/async_base.hpp>
+#include <bho/beast/core/error.hpp>
+#include <bho/beast/core/read_size.hpp>
+#include <bho/beast/core/stream_traits.hpp>
+#include <bho/beast/core/tribool.hpp>
 #include <asio/async_result.hpp>
 #include <asio/coroutine.hpp>
 #include <type_traits>

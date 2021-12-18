@@ -805,8 +805,7 @@ namespace asio2::detail
 			{
 				this->timer_.expires_after(this->timeout_);
 				this->timer_.async_wait(asio::bind_executor(this->io_.strand(),
-					make_allocator(this->wallocator_,
-						std::bind(&self::_handle_timer, this, std::placeholders::_1))));
+					std::bind(&self::_handle_timer, this, std::placeholders::_1)));
 			}
 		}
 
@@ -829,9 +828,7 @@ namespace asio2::detail
 			if (this->is_started())
 			{
 				this->timer_.expires_after(this->interval_);
-				this->timer_.async_wait(asio::bind_executor(this->io_.strand(),
-					make_allocator(this->wallocator_,
-						std::bind(&self::_post_send, this))));
+				this->timer_.async_wait(asio::bind_executor(this->io_.strand(), std::bind(&self::_post_send, this)));
 			}
 		}
 
@@ -839,6 +836,7 @@ namespace asio2::detail
 		{
 			if (!this->is_started())
 				return;
+
 			try
 			{
 				// Wait for a reply. We prepare the buffer to receive up to 64KB.

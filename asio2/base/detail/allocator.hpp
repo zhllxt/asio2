@@ -21,8 +21,11 @@
 #include <atomic>
 #include <fstream>
 
+#include <asio2/base/log.hpp>
+
 namespace asio2::detail
 {
+	//template<typename = void>
 	//inline void log_max_size(std::size_t size)
 	//{
 	//	static std::size_t max_size_ = 0;
@@ -31,27 +34,55 @@ namespace asio2::detail
 	//	{
 	//		max_size_ = size;
 
-	//		std::fstream file("e:/maxsize/" + std::to_string(max_size_) + ".txt", std::ios::out | std::ios::binary);
-	//		file << ' ';
+	//		ASIO2_LOG(spdlog::level::critical, "max_size : {}", max_size_);
 	//	}
 	//}
 
 	/// see : boost\libs\asio\example\cpp11\allocation\server.cpp
 
 	// after test, in general situation:
-	// debug   mode : the max allocator_size is 1304 and has very many times.
-	// release mode : the max allocator_size is 456  and has very many times.
+	// 32 bit exe:
+	// debug   mode : the max allocated size is 1304 and has very many times. 163 * 8 = 1304
+	// release mode : the max allocated size is 456  and has very many times. 57  * 8 = 456
+	// 64 bit exe:
+	// debug   mode : the max allocated size is 2200 and has very many times. 275 * 8 = 2200
+	// release mode : the max allocated size is 856  and has very many times. 107 * 8 = 856
 
-	static constexpr std::size_t allocator_size = 1024;
+#if defined(_DEBUG) || defined(DEBUG)
+	template<typename = void>
+	inline constexpr std::size_t allocator_size()
+	{
+		if constexpr (sizeof(void *) == sizeof(std::uint32_t))
+			return std::size_t(1304 + 8);
+		else
+			return std::size_t(2200 + 8);
+	}
+#else
+	template<typename = void>
+	inline constexpr std::size_t allocator_size()
+	{
+		if constexpr (sizeof(void *) == sizeof(std::uint32_t))
+			return std::size_t(456 + 64);
+		else
+			return std::size_t(856 + 64);
+	}
+#endif
 
-	template<std::size_t N = allocator_size>
+	template<std::size_t N = allocator_size()>
 	struct size_op
 	{
 		static constexpr std::size_t size = N;
 	};
 
-	template<typename SizeN = size_op<allocator_size>, typename IsAtomicUse = std::false_type>
+	template<typename SizeN = size_op<allocator_size()>, typename IsAtomicUse = std::false_type>
 	class handler_memory;
+
+#if defined(ASIO2_ENABLE_LOG) && (defined(_DEBUG) || defined(DEBUG))
+	std::size_t __unlock_use_counter__ = 0;
+	std::size_t __unlock_new_counter__ = 0;
+	std::size_t __atomic_use_counter__ = 0;
+	std::size_t __atomic_new_counter__ = 0;
+#endif
 
 	// Class to manage the memory to be used for handler-based custom allocation.
 	// It contains a single block of memory which may be returned for allocation
@@ -72,11 +103,19 @@ namespace asio2::detail
 
 			if (!in_use_ && size < sizeof(storage_))
 			{
+			#if defined(ASIO2_ENABLE_LOG) && (defined(_DEBUG) || defined(DEBUG))
+				__unlock_use_counter__++;
+			#endif
+
 				in_use_ = true;
 				return &storage_;
 			}
 			else
 			{
+			#if defined(ASIO2_ENABLE_LOG) && (defined(_DEBUG) || defined(DEBUG))
+				__unlock_new_counter__++;
+			#endif
+
 				return ::operator new(size);
 			}
 		}
@@ -114,12 +153,20 @@ namespace asio2::detail
 		{
 			//log_max_size(size);
 
-			if (!in_use_.test_and_set() && size < sizeof(storage_))
+			if (size < sizeof(storage_) && (!in_use_.test_and_set()))
 			{
+			#if defined(ASIO2_ENABLE_LOG) && (defined(_DEBUG) || defined(DEBUG))
+				__atomic_use_counter__++;
+			#endif
+
 				return &storage_;
 			}
 			else
 			{
+			#if defined(ASIO2_ENABLE_LOG) && (defined(_DEBUG) || defined(DEBUG))
+				__atomic_new_counter__++;
+			#endif
+
 				return ::operator new(size);
 			}
 		}

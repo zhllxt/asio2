@@ -25,8 +25,8 @@
 #include <asio2/3rd/asio.hpp>
 #include <asio2/base/error.hpp>
 
-#include <beast/zlib/deflate_stream.hpp>
-#include <beast/zlib/inflate_stream.hpp>
+#include <bho/beast/zlib/deflate_stream.hpp>
+#include <bho/beast/zlib/inflate_stream.hpp>
 
 namespace beast::zlib
 {

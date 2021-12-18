@@ -479,8 +479,7 @@ namespace asio2::detail
 
 				// start timer to hold the acceptor io_context
 				this->counter_timer_.expires_after((std::chrono::nanoseconds::max)());
-				this->counter_timer_.async_wait(asio::bind_executor(
-					this->io_.strand(), [](const error_code&) {}));
+				this->counter_timer_.async_wait(asio::bind_executor(this->io_.strand(), [](const error_code&) {}));
 
 				// stop all the sessions, the session::stop must be no blocking,
 				// otherwise it may be cause loop lock.

@@ -230,6 +230,8 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
+			ASIO2_ASSERT(derive.io().strand().running_in_this_thread());
+
 			try
 			{
 				if (iter == this->endpoints_.end())

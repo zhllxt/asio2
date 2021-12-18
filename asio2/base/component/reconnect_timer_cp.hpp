@@ -121,7 +121,7 @@ namespace asio2::detail
 
 			this->reconnect_timer_.expires_after(delay);
 			this->reconnect_timer_.async_wait(asio::bind_executor(derive.io().strand(),
-				[&derive, self_ptr = std::move(this_ptr), f = std::forward<Callback>(f)]
+			[&derive, self_ptr = std::move(this_ptr), f = std::forward<Callback>(f)]
 			(const error_code & ec) mutable
 			{
 				derive._handle_reconnect_timer(ec, std::move(self_ptr), std::move(f));

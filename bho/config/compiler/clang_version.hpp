@@ -1,0 +1,77 @@
+// Copyright 2021 Peter Dimov
+// Distributed under the Boost Software License, Version 1.0.
+// https://www.boost.org/LICENSE_1_0.txt)
+
+#if !defined(__APPLE__)
+
+# define BHO_CLANG_VERSION (__clang_major__ * 10000 + __clang_minor__ * 100 + __clang_patchlevel__)
+
+#else
+# define BHO_CLANG_REPORTED_VERSION (__clang_major__ * 10000 + __clang_minor__ * 100 + __clang_patchlevel__)
+
+// https://en.wikipedia.org/wiki/Xcode#Toolchain_versions
+
+# if BHO_CLANG_REPORTED_VERSION >= 130000
+#   define BHO_CLANG_VERSION 120000
+
+# elif BHO_CLANG_REPORTED_VERSION >= 120005
+#   define BHO_CLANG_VERSION 110100
+
+# elif BHO_CLANG_REPORTED_VERSION >= 120000
+#   define BHO_CLANG_VERSION 100000
+
+# elif BHO_CLANG_REPORTED_VERSION >= 110003
+#   define BHO_CLANG_VERSION 90000
+
+# elif BHO_CLANG_REPORTED_VERSION >= 110000
+#   define BHO_CLANG_VERSION 80000
+
+# elif BHO_CLANG_REPORTED_VERSION >= 100001
+#   define BHO_CLANG_VERSION 70000
+
+# elif BHO_CLANG_REPORTED_VERSION >= 100000
+#   define BHO_CLANG_VERSION 60001
+
+# elif BHO_CLANG_REPORTED_VERSION >= 90100
+#   define BHO_CLANG_VERSION 50002
+
+# elif BHO_CLANG_REPORTED_VERSION >= 90000
+#   define BHO_CLANG_VERSION 40000
+
+# elif BHO_CLANG_REPORTED_VERSION >= 80000
+#   define BHO_CLANG_VERSION 30900
+
+# elif BHO_CLANG_REPORTED_VERSION >= 70300
+#   define BHO_CLANG_VERSION 30800
+
+# elif BHO_CLANG_REPORTED_VERSION >= 70000
+#   define BHO_CLANG_VERSION 30700
+
+# elif BHO_CLANG_REPORTED_VERSION >= 60100
+#   define BHO_CLANG_VERSION 30600
+
+# elif BHO_CLANG_REPORTED_VERSION >= 60000
+#   define BHO_CLANG_VERSION 30500
+
+# elif BHO_CLANG_REPORTED_VERSION >= 50100
+#   define BHO_CLANG_VERSION 30400
+
+# elif BHO_CLANG_REPORTED_VERSION >= 50000
+#   define BHO_CLANG_VERSION 30300
+
+# elif BHO_CLANG_REPORTED_VERSION >= 40200
+#   define BHO_CLANG_VERSION 30200
+
+# elif BHO_CLANG_REPORTED_VERSION >= 30100
+#   define BHO_CLANG_VERSION 30100
+
+# elif BHO_CLANG_REPORTED_VERSION >= 20100
+#   define BHO_CLANG_VERSION 30000
+
+# else
+#   define BHO_CLANG_VERSION 20900
+
+# endif
+
+# undef BHO_CLANG_REPORTED_VERSION
+#endif

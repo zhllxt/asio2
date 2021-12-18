@@ -27,10 +27,11 @@
 #include <asio2/3rd/asio.hpp>
 #include <asio2/base/error.hpp>
 #include <asio2/base/detail/condition_wrap.hpp>
-#include <asio2/base/detail/endian.hpp>
 #include <asio2/base/detail/util.hpp>
 
 #include <asio2/udp/detail/ikcp.h>
+
+#include <bho/predef/other/endian.h>
 
 namespace asio2::detail::kcp
 {
@@ -76,7 +77,7 @@ namespace asio2::detail::kcp
 		union
 		{
 			std::uint8_t      byte{};
-		#if ASIO2_BIG_ENDIAN
+		#if BHO_ENDIAN_BIG_BYTE
 			struct
 			{
 				std::uint8_t  urg     : 1;

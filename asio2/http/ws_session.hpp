@@ -120,7 +120,9 @@ namespace asio2::detail
 		{
 			detail::ignore_unused(ec);
 
-			asio::dispatch(this->io_.strand(), make_allocator(this->rallocator_,
+			ASIO2_ASSERT(this->derived().sessions().io().strand().running_in_this_thread());
+
+			asio::dispatch(this->io_.strand(), make_allocator(this->wallocator_,
 			[this, self_ptr = std::move(this_ptr), condition = std::move(condition)]() mutable
 			{
 				this->derived()._ws_start(self_ptr, condition, this->socket_);

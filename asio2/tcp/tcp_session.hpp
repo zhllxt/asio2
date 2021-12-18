@@ -248,7 +248,7 @@ namespace asio2::detail
 		{
 			// to avlid the user call stop in another thread,then it may be socket_.async_read_some
 			// and socket_.close be called at the same time
-			asio::dispatch(this->io_.strand(), make_allocator(this->rallocator_,
+			asio::dispatch(this->io_.strand(), make_allocator(this->wallocator_,
 			[this, this_ptr = std::move(this_ptr), condition = std::move(condition)]() mutable
 			{
 				using condition_type = typename condition_wrap<MatchCondition>::condition_type;

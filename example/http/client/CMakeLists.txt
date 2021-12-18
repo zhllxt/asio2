@@ -10,7 +10,7 @@
 
 GroupSources (asio2 "/")
 GroupSources (asio "/")
-GroupSources (beast "/")
+GroupSources (bho "/")
 
 aux_source_directory(. SRC_FILES)
 
@@ -20,7 +20,7 @@ set(TARGET_NAME http_client)
 
 add_executable (
     ${TARGET_NAME}
-    ${ASIO2_FILES} ${ASIO_FILES} ${BEAST_FILES} ${SRC_FILES}
+    ${ASIO2_FILES} ${SRC_FILES}
     ${TARGET_NAME}.cpp
 )
 
@@ -38,7 +38,7 @@ target_link_libraries(${TARGET_NAME} ${GENERAL_LIBS})
 
 #GroupSources (asio2 "/")
 #GroupSources (asio "/")
-#GroupSources (beast "/")
+#GroupSources (bho "/")
 #
 #aux_source_directory(. SRC_FILES)
 #
@@ -62,7 +62,7 @@ target_link_libraries(${TARGET_NAME} ${GENERAL_LIBS})
 #
 #add_executable (
 #    ${TARGET_NAME}
-#    ${ASIO2_FILES} ${FMT_FILES} ${JSON_FILES} ${PFR_FILES} ${SPDLOG_FILES} ${CEREAL_FILES} ${ASIO_FILES} ${BEAST_FILES} ${SRC_FILES}
+#    ${ASIO2_FILES} ${FMT_FILES} ${JSON_FILES} ${PFR_FILES} ${SPDLOG_FILES} ${CEREAL_FILES} ${ASIO_FILES} ${BHO_FILES} ${SRC_FILES}
 #    ${TARGET_NAME}.cpp
 #)
 #

@@ -347,7 +347,7 @@ namespace asio2::detail
 
 			// Perform the websocket handshake
 			this->ws_stream_->async_handshake(rep, derive.host_, derive.upgrade_target(),
-				asio::bind_executor(derive.io().strand(), make_allocator(derive.rallocator(),
+				asio::bind_executor(derive.io().strand(), make_allocator(derive.wallocator(),
 			[&derive, this_ptr = std::move(this_ptr), condition = std::move(condition)]
 			(error_code const& ec) mutable
 			{
@@ -366,7 +366,7 @@ namespace asio2::detail
 
 			// Accept the websocket handshake
 			this->ws_stream_->async_accept(req, 
-				asio::bind_executor(derive.io().strand(), make_allocator(derive.rallocator(),
+				asio::bind_executor(derive.io().strand(), make_allocator(derive.wallocator(),
 			[&derive, this_ptr = std::move(this_ptr), condition = std::move(condition)]
 			(error_code ec) mutable
 			{
@@ -384,7 +384,7 @@ namespace asio2::detail
 
 			// Accept the websocket handshake
 			this->ws_stream_->async_accept(
-				asio::bind_executor(derive.io().strand(), make_allocator(derive.rallocator(),
+				asio::bind_executor(derive.io().strand(), make_allocator(derive.wallocator(),
 			[&derive, this_ptr = std::move(this_ptr), condition = std::move(condition)]
 			(error_code ec) mutable
 			{

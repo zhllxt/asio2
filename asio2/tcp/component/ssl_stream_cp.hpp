@@ -140,8 +140,9 @@ namespace asio2::detail
 				std::shared_ptr<asio::steady_timer> timer = 
 					std::make_shared<asio::steady_timer>(derive.io().context());
 				timer->expires_after(std::chrono::milliseconds(ssl_shutdown_timeout));
-				timer->async_wait(asio::bind_executor(derive.io().strand(), [this_ptr,
-					f = std::move(fn), g = std::move(g), SSL_clear_ptr](const error_code& ec) mutable
+				timer->async_wait(asio::bind_executor(derive.io().strand(),
+				[this_ptr, f = std::move(fn), g = std::move(g), SSL_clear_ptr]
+				(const error_code& ec) mutable
 				{
 					// note : lambda [g = std::move(g), SSL_clear_ptr]
 					// SSL_clear_ptr will destroyed first
@@ -189,7 +190,7 @@ namespace asio2::detail
 				std::make_shared<asio::steady_timer>(derive.io().context());
 			timer->expires_after(std::chrono::milliseconds(ssl_handshake_timeout));
 			timer->async_wait(asio::bind_executor(derive.io().strand(),
-				[&derive, this_ptr, flag_ptr](const error_code& ec) mutable
+			[&derive, this_ptr, flag_ptr](const error_code& ec) mutable
 			{
 				detail::ignore_unused(this_ptr);
 
@@ -208,7 +209,7 @@ namespace asio2::detail
 			}));
 
 			this->ssl_stream_->async_handshake(this->ssl_type_,
-				asio::bind_executor(derive.io().strand(), make_allocator(derive.rallocator(),
+				asio::bind_executor(derive.io().strand(), make_allocator(derive.wallocator(),
 			[&derive, self_ptr = std::move(this_ptr), condition = std::move(condition),
 					flag_ptr = std::move(flag_ptr), timer = std::move(timer)]
 			(const error_code& ec) mutable

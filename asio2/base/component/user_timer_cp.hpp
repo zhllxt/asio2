@@ -281,12 +281,11 @@ namespace asio2::detail
 
 			timer.expires_after(duration);
 			timer.async_wait(asio::bind_executor(derive.io().strand(),
-				make_allocator(derive.wallocator(),
-					[&derive, timer_ptr = std::move(timer_obj_ptr), duration,
-					self_ptr = std::move(this_ptr)](const error_code& ec) mutable
+			[&derive, timer_ptr = std::move(timer_obj_ptr), duration, self_ptr = std::move(this_ptr)]
+			(const error_code& ec) mutable
 			{
 				derive._handle_user_timers(ec, std::move(timer_ptr), duration, std::move(self_ptr));
-			})));
+			}));
 		}
 
 		template<class Rep, class Period>

@@ -22,7 +22,8 @@
 #include <asio2/config.hpp>
 
 #if defined(ASIO2_ENABLE_LOG)
-	#if defined(__unix__) || defined(__linux__)
+	#if defined(unix) || defined(__unix) || defined(_XOPEN_SOURCE) || defined(_POSIX_SOURCE) || \
+		defined(linux) || defined(__linux) || defined(__linux__) || defined(__gnu_linux__)
 		#if __has_include(<unistd.h>)
 			#include <unistd.h>
 		#endif
@@ -58,7 +59,8 @@ namespace asio2::detail
 			{
 				std::string                  filepath;
 
-			#if defined(__unix__) || defined(__linux__)
+			#if defined(unix) || defined(__unix) || defined(_XOPEN_SOURCE) || defined(_POSIX_SOURCE) || \
+				defined(linux) || defined(__linux) || defined(__linux__) || defined(__gnu_linux__)
 				filepath.resize(PATH_MAX);
 				readlink("/proc/self/exe", (char *)filepath.data(), PATH_MAX);
 			#elif defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS_) || defined(WIN32)

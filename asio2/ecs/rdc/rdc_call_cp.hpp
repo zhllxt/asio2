@@ -624,8 +624,8 @@ namespace asio2::detail
 				if (!this->rdc_fields_)
 					return;
 
-				this->rdc_fields_->send_event_->async_wait([&derive, this, this_ptr = std::move(this_ptr),
-					condition = std::move(condition)]() mutable
+				this->rdc_fields_->send_event_->async_wait(
+				[&derive, this, this_ptr = std::move(this_ptr), condition = std::move(condition)]() mutable
 				{
 					while (!this->rdc_fields_->pending_datas_.empty())
 					{

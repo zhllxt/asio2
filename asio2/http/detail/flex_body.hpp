@@ -12,8 +12,8 @@
 
 #include <asio2/3rd/beast.hpp>
 
-#include <beast/http/string_body.hpp>
-#include <beast/http/file_body.hpp>
+#include <bho/beast/http/string_body.hpp>
+#include <bho/beast/http/file_body.hpp>
 #include <asio2/http/detail/http_util.hpp>
 
 namespace beast {

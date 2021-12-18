@@ -10,7 +10,7 @@
 
 GroupSources (asio2 "/")
 GroupSources (asio "/")
-GroupSources (beast "/")
+GroupSources (bho "/")
 
 aux_source_directory(. SRC_FILES)
 
@@ -22,7 +22,7 @@ link_directories    (${ASIO2_LIBS_DIR})
 
 add_executable (
     ${TARGET_NAME}
-    ${ASIO2_FILES} ${BEAST_FILES} ${SRC_FILES}
+    ${ASIO2_FILES} ${SRC_FILES}
     ${TARGET_NAME}.cpp
 )
 

@@ -38,10 +38,10 @@
 #include <tuple>
 #include <type_traits>
 
-#include <asio2/base/detail/endian.hpp>
+#include <bho/predef/other/endian.h>
 #include <asio2/base/detail/util.hpp>
 
-#include <beast/websocket/detail/utf8_checker.hpp>
+#include <bho/beast/websocket/detail/utf8_checker.hpp>
 
 #include <asio2/mqtt/mqtt_error.hpp>
 #include <asio2/mqtt/detail/mqtt_topic_util.hpp>
@@ -392,7 +392,7 @@ namespace asio2::mqtt
 
 		inline std::uint16_t value() const noexcept
 		{
-		#if ASIO2_BIG_ENDIAN
+		#if BHO_ENDIAN_BIG_BYTE
 			return value_;
 		#else
 			return (((value_ >> 8) & 0x00ff) | ((value_ << 8) & 0xff00));
@@ -403,7 +403,7 @@ namespace asio2::mqtt
 
 		inline two_byte_integer& operator=(std::uint16_t v)
 		{
-		#if ASIO2_BIG_ENDIAN
+		#if BHO_ENDIAN_BIG_BYTE
 			value_ = v;
 		#else
 			value_ = ((v >> 8) & 0x00ff) | ((v << 8) & 0xff00);
@@ -480,7 +480,7 @@ namespace asio2::mqtt
 
 		inline std::uint32_t value() const noexcept
 		{
-		#if ASIO2_BIG_ENDIAN
+		#if BHO_ENDIAN_BIG_BYTE
 			return value_;
 		#else
 			return (
@@ -495,7 +495,7 @@ namespace asio2::mqtt
 
 		inline four_byte_integer& operator=(std::uint32_t v)
 		{
-		#if ASIO2_BIG_ENDIAN
+		#if BHO_ENDIAN_BIG_BYTE
 			value_ = v;
 		#else
 			value_ = ((v >> 24) & 0x000000ff) | ((v << 24) & 0xff000000) | ((v >> 8) & 0x0000ff00) | ((v << 8) & 0x00ff0000);
@@ -1525,7 +1525,7 @@ namespace asio2::mqtt
 		union type_and_flags
 		{
 			one_byte_integer byte{ 0 };  // the whole byte
-		#if ASIO2_BIG_ENDIAN
+		#if BHO_ENDIAN_BIG_BYTE
 			struct
 			{
 				std::uint8_t type   : 4; // MQTT Control Packet type
@@ -1698,7 +1698,7 @@ namespace asio2::mqtt
 		union
 		{
 			one_byte_integer byte{ 0 };  // the whole byte
-		#if ASIO2_BIG_ENDIAN
+		#if BHO_ENDIAN_BIG_BYTE
 			struct
 			{
 				std::uint8_t reserved        : 2; // reserved for future use

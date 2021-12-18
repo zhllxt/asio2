@@ -130,7 +130,7 @@ namespace asio2::detail
 			std::shared_ptr<async_event> event_ptr = std::make_shared<async_event>(derive.io());
 
 			asio::dispatch(derive.io().strand(), make_allocator(derive.wallocator(),
-			[this, &derive, this_ptr = derive.selfptr(), event_ptr, f = std::forward<Function>(f)]() mutable
+			[this, this_ptr = derive.selfptr(), event_ptr, f = std::forward<Function>(f)]() mutable
 			{
 				async_event* evt = event_ptr.get();
 
@@ -141,8 +141,7 @@ namespace asio2::detail
 					f();
 
 					this->async_events_.erase(key);
-
-				}, derive.wallocator());
+				});
 			}));
 
 			return event_ptr;

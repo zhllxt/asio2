@@ -20,13 +20,13 @@
 #include <asio2/base/detail/push_options.hpp>
 
 #ifdef BEAST_HEADER_ONLY
-	#include <beast/beast.hpp>
+	#include <bho/beast.hpp>
 	#if defined(ASIO2_USE_SSL)
 		// boost 1.72(107200) BOOST_BEAST_VERSION 277
 		#if defined(BEAST_VERSION) && (BEAST_VERSION >= 277)
-			#include <beast/ssl.hpp>
+			#include <bho/beast/ssl.hpp>
 		#endif
-		#include <beast/websocket/ssl.hpp>
+		#include <bho/beast/websocket/ssl.hpp>
 	#endif
 	#ifndef BOOST_BEAST_VERSION
 		#define BOOST_BEAST_VERSION BEAST_VERSION
