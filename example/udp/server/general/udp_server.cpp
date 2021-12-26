@@ -21,6 +21,7 @@ int main()
 	}).bind_connect([](auto & session_ptr)
 	{
 		session_ptr->no_delay(true); // No effect
+		session_ptr->post([]() {}, std::chrono::seconds(3));
 
 		printf("client enter : %s %u %s %u\n", session_ptr->remote_address().c_str(), session_ptr->remote_port(),
 			session_ptr->local_address().c_str(), session_ptr->local_port());

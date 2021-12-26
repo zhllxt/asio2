@@ -33,6 +33,8 @@ int main()
 			rep.set(http::field::authorization, " ssl-websocket-server-coro");
 		}));
 
+		session_ptr->post([]() {}, std::chrono::seconds(3));
+
 	}).bind_recv([](std::shared_ptr<asio2::wss_session> & session_ptr, std::string_view data)
 	{
 		printf("recv : %u %.*s\n", (unsigned)data.size(), (int)data.size(), data.data());

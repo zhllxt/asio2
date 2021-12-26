@@ -123,9 +123,9 @@ namespace asio2::detail
 
 			// note : need test.
 			// has't check where the server or client is stopped, if the server is stopping, but the 
-			// iopool's wait_iothreads() has't compelete and just at sleep, then user call post_event
-			// but don't call notify, it maybe cause the wait_iothreads() can't compelete forever,
-			// and the server.stop or client.stop never compeleted.
+			// iopool's wait_for_io_context_stopped() has't compelete and just at sleep, then user
+			// call post_event but don't call notify, it maybe cause the wait_for_io_context_stopped()
+			// can't compelete forever, and the server.stop or client.stop never compeleted.
 
 			std::shared_ptr<async_event> event_ptr = std::make_shared<async_event>(derive.io());
 

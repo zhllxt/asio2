@@ -14,6 +14,7 @@ int main()
 	asio2::serial_port sp;
 
 	sp.start_timer(1, std::chrono::seconds(1), []() {});
+	sp.post([]() {}, std::chrono::seconds(3));
 
 	sp.bind_init([&]()
 	{

@@ -17,6 +17,8 @@
 
 #include <asio2/base/detail/push_options.hpp>
 
+#include <asio2/config.hpp>
+
 #if !defined(ASIO2_USE_WEBSOCKET_RPC)
 #  include <asio2/tcp/tcp_session.hpp>
 #  include <asio2/tcp/tcps_session.hpp>
@@ -141,22 +143,36 @@ namespace asio2
 		};
 	}
 
-	/// Using tcp dgram mode as the underlying communication support
-	class rpc_session : public detail::rpc_session_impl_t<rpc_session,
-		detail::tcp_session_impl_t<rpc_session, detail::template_args_rpc_session>>
+	template<class derived_t>
+	class rpc_session_t : public detail::rpc_session_impl_t<derived_t,
+		detail::tcp_session_impl_t<derived_t, detail::template_args_rpc_session>>
 	{
 	public:
-		using detail::rpc_session_impl_t<rpc_session, detail::tcp_session_impl_t<
-			rpc_session, detail::template_args_rpc_session>>::rpc_session_impl_t;
+		using detail::rpc_session_impl_t<derived_t, detail::tcp_session_impl_t<
+			derived_t, detail::template_args_rpc_session>>::rpc_session_impl_t;
+	};
+
+	/// Using tcp dgram mode as the underlying communication support
+	class rpc_session : public rpc_session_t<rpc_session>
+	{
+	public:
+		using rpc_session_t<rpc_session>::rpc_session_t;
 	};
 
 	#if defined(ASIO2_USE_SSL)
-	class rpcs_session : public detail::rpc_session_impl_t<rpcs_session,
-		detail::tcps_session_impl_t<rpcs_session, detail::template_args_rpc_session>>
+	template<class derived_t>
+	class rpcs_session_t : public detail::rpc_session_impl_t<derived_t,
+		detail::tcps_session_impl_t<derived_t, detail::template_args_rpc_session>>
 	{
 	public:
-		using detail::rpc_session_impl_t<rpcs_session, detail::tcps_session_impl_t<
-			rpcs_session, detail::template_args_rpc_session>>::rpc_session_impl_t;
+		using detail::rpc_session_impl_t<derived_t, detail::tcps_session_impl_t<
+			derived_t, detail::template_args_rpc_session>>::rpc_session_impl_t;
+	};
+
+	class rpcs_session : public rpcs_session_t<rpcs_session>
+	{
+	public:
+		using rpcs_session_t<rpcs_session>::rpcs_session_t;
 	};
 	#endif
 
@@ -169,13 +185,20 @@ namespace asio2
 		};
 	}
 
-	/// Using websocket as the underlying communication support
-	class rpc_session : public detail::rpc_session_impl_t<rpc_session,
-		detail::ws_session_impl_t<rpc_session, detail::template_args_rpc_session>>
+	template<class derived_t>
+	class rpc_session_t : public detail::rpc_session_impl_t<derived_t,
+		detail::ws_session_impl_t<derived_t, detail::template_args_rpc_session>>
 	{
 	public:
-		using detail::rpc_session_impl_t<rpc_session, detail::ws_session_impl_t<
-			rpc_session, detail::template_args_rpc_session>>::rpc_session_impl_t;
+		using detail::rpc_session_impl_t<derived_t, detail::ws_session_impl_t<
+			derived_t, detail::template_args_rpc_session>>::rpc_session_impl_t;
+	};
+
+	/// Using websocket as the underlying communication support
+	class rpc_session : public rpc_session_t<rpc_session>
+	{
+	public:
+		using rpc_session_t<rpc_session>::rpc_session_t;
 	};
 
 	#if defined(ASIO2_USE_SSL)
@@ -187,12 +210,19 @@ namespace asio2
 		};
 	}
 
-	class rpcs_session : public detail::rpc_session_impl_t<rpcs_session,
-		detail::wss_session_impl_t<rpcs_session, detail::template_args_rpcs_session>>
+	template<class derived_t>
+	class rpcs_session_t : public detail::rpc_session_impl_t<derived_t,
+		detail::wss_session_impl_t<derived_t, detail::template_args_rpcs_session>>
 	{
 	public:
-		using detail::rpc_session_impl_t<rpcs_session, detail::wss_session_impl_t<
-			rpcs_session, detail::template_args_rpcs_session>>::rpc_session_impl_t;
+		using detail::rpc_session_impl_t<derived_t, detail::wss_session_impl_t<
+			derived_t, detail::template_args_rpcs_session>>::rpc_session_impl_t;
+	};
+
+	class rpcs_session : public rpcs_session_t<rpcs_session>
+	{
+	public:
+		using rpcs_session_t<rpcs_session>::rpcs_session_t;
 	};
 	#endif
 

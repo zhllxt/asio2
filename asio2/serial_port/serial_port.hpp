@@ -71,7 +71,7 @@ namespace asio2::detail
 	/**
 	 * The serial_port class provides a wrapper over serial port functionality.
 	 */
-	template<class derived_t, class args_t>
+	template<class derived_t, class args_t = template_args_serial_port>
 	class serial_port_impl_t
 		: public object_t       <derived_t        >
 		, public iopool_cp
@@ -749,15 +749,22 @@ namespace asio2
 	//{
 	//};
 
+	template<class derived_t>
+	class serial_port_t : public detail::serial_port_impl_t<derived_t, detail::template_args_serial_port>
+	{
+	public:
+		using detail::serial_port_impl_t<derived_t, detail::template_args_serial_port>::serial_port_impl_t;
+	};
+
 	/**
 	 * The serial_port class provides a wrapper over serial port functionality.
 	 * You can use the following commands to query the serial device under Linux:
 	 * cat /proc/tty/driver/serial
 	 */
-	class serial_port : public detail::serial_port_impl_t<serial_port, detail::template_args_serial_port>
+	class serial_port : public serial_port_t<serial_port>
 	{
 	public:
-		using serial_port_impl_t<serial_port, detail::template_args_serial_port>::serial_port_impl_t;
+		using serial_port_t<serial_port>::serial_port_t;
 	};
 }
 

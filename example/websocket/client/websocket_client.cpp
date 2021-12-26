@@ -26,6 +26,8 @@ int main()
 
 			client.connect_timeout(std::chrono::seconds(10));
 
+			client.post([]() {}, std::chrono::seconds(3));
+
 			client.bind_init([&]()
 			{
 				client.ws_stream().set_option(websocket::stream_base::decorator(

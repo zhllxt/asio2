@@ -13,6 +13,9 @@ std::pair<buffer_iterator, bool> match_role(buffer_iterator begin, buffer_iterat
 	buffer_iterator p = begin;
 	while (p != end)
 	{
+		// how to convert the Iterator to char* 
+		[[maybe_unused]] const char * buf = &(*p);
+
 		if (*p != '#')
 			return std::pair(begin, true); // head character is not #, return and kill the client
 

@@ -58,6 +58,7 @@ int main()
 		client.auto_reconnect(true, std::chrono::milliseconds(1000)); // enable auto reconnect and use custom delay
 
 		client.start_timer(1, std::chrono::seconds(1), []() {}); // test timer
+		client.post([]() {}, std::chrono::seconds(3));
 
 		client.bind_connect([&](asio::error_code ec)
 		{
@@ -203,7 +204,7 @@ int main()
 			// "async_send" use asio::buffer to avoid memory allocation, the underlying
 			// buffer must be persistent, like the static pointer "msg" below
 			const char * msg = "<abcdefghijklmnopqrstovuxyz0123456789>";
-			asio::const_buffer buffer = asio::buffer(std::string_view{ msg });
+			asio::const_buffer buffer = asio::buffer(msg);
 			client.async_send(buffer);
 
 			// Example for Synchronous send data. The return value is the sent bytes.
@@ -235,6 +236,10 @@ int main()
 
 			//// ##Example how to send a struct directly:
 			userinfo u;
+			u.id = 11;
+			memset(u.name, 0, sizeof(u.name));
+			memcpy(u.name, "abc", 3);
+			u.age = 20;
 			client.async_send(u);
 		}
 

@@ -24,6 +24,9 @@ public:
 		Iterator p = begin;
 		while (p != end)
 		{
+			// how to convert the Iterator to char* 
+			[[maybe_unused]] const char * buf = &(*p);
+
 			// eg : How to close illegal clients
 			// If the first byte is not # indicating that the client is illegal, we return
 			// the matching success here and then determine the number of bytes received

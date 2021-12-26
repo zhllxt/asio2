@@ -37,7 +37,7 @@ namespace asio2::detail
 	ASIO2_CLASS_FORWARD_DECLARE_TCP_BASE;
 	ASIO2_CLASS_FORWARD_DECLARE_TCP_CLIENT;
 
-	template<class derived_t, class args_t>
+	template<class derived_t, class args_t = template_args_http_client>
 	class http_client_impl_t
 		: public tcp_client_impl_t<derived_t, args_t>
 		, public http_send_op     <derived_t, args_t>
@@ -640,10 +640,17 @@ namespace asio2::detail
 
 namespace asio2
 {
-	class http_client : public detail::http_client_impl_t<http_client, detail::template_args_http_client>
+	template<class derived_t>
+	class http_client_t : public detail::http_client_impl_t<derived_t, detail::template_args_http_client>
 	{
 	public:
-		using http_client_impl_t<http_client, detail::template_args_http_client>::http_client_impl_t;
+		using detail::http_client_impl_t<derived_t, detail::template_args_http_client>::http_client_impl_t;
+	};
+
+	class http_client : public http_client_t<http_client>
+	{
+	public:
+		using http_client_t<http_client>::http_client_t;
 	};
 }
 

@@ -17,6 +17,8 @@
 
 #include <asio2/base/define.hpp>
 
+#include <asio2/base/detail/util.hpp>
+
 #include <asio2/mqtt/mqtt_protocol_util.hpp>
 
 namespace asio2

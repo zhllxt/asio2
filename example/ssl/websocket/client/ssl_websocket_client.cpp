@@ -29,6 +29,8 @@ int main()
 		"../../cert/client.key",
 		"123456");
 
+	client.post([]() {}, std::chrono::seconds(3));
+
 	client.bind_init([&]()
 	{
 		// how to set custom websocket request data : 

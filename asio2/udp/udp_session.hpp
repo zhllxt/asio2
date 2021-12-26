@@ -42,7 +42,7 @@ namespace asio2::detail
 	ASIO2_CLASS_FORWARD_DECLARE_UDP_SERVER;
 	ASIO2_CLASS_FORWARD_DECLARE_UDP_SESSION;
 
-	template<class derived_t, class args_t>
+	template<class derived_t, class args_t = template_args_udp_session>
 	class udp_session_impl_t
 		: public session_impl_t<derived_t, args_t>
 		, public udp_send_op   <derived_t, args_t>
@@ -483,10 +483,17 @@ namespace asio2::detail
 
 namespace asio2
 {
-	class udp_session : public detail::udp_session_impl_t<udp_session, detail::template_args_udp_session>
+	template<class derived_t>
+	class udp_session_t : public detail::udp_session_impl_t<derived_t, detail::template_args_udp_session>
 	{
 	public:
-		using udp_session_impl_t<udp_session, detail::template_args_udp_session>::udp_session_impl_t;
+		using detail::udp_session_impl_t<derived_t, detail::template_args_udp_session>::udp_session_impl_t;
+	};
+
+	class udp_session : public udp_session_t<udp_session>
+	{
+	public:
+		using udp_session_t<udp_session>::udp_session_t;
 	};
 }
 

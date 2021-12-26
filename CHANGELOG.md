@@ -24,8 +24,10 @@
   * fixed bug : when call "start" with some exception, the "state" will be "starting", this will cause "start" failed next time forever.
   * fixed bug : it will cause crash when call "client.start" multi times, all "ssl client" and "websocket client" will be affected by this bug, This is because multithreading reads and writes "ws_stream_".
   * fixed bug : The code error traversing "http_router's wildcard_routers_" causes crash.
+  * fixed bug : When the timer is stopped immediately after it is started in the io_context thread, the timer will stop fails.
   * Fixed the problem where kcp server and client did not send fin frame correctly.
   * Fixed the problem where the endian of the KCP handshake data header was not handled correctly.
+  * Fixed unnecessary memory allocation problems in allocator to reduce the number of memory allocation. Now all timers do not use customized allocator to allocate memory, but use asio to allocate memory automatically.
   * Various code fixes and improvements.
   * Other general enhancements.
 

@@ -585,24 +585,23 @@ namespace asio2::detail
 					this->derived()._handle_accept(ec, std::move(sptr), std::move(condition));
 				})));
 			}
-			// handle exception,may be is the exception "Too many open files" (exception code : 24)
+			// handle exception, may be is the exception "Too many open files" (exception code : 24)
+			// asio::error::no_descriptors - Too many open files
 			catch (system_error & e)
 			{
 				set_last_error(e);
 
 				this->acceptor_timer_.expires_after(std::chrono::seconds(1));
 				this->acceptor_timer_.async_wait(asio::bind_executor(this->io_.strand(),
-					make_allocator(this->rallocator_, [this, condition]
-					(const error_code& ec) mutable
+				[this, condition](const error_code& ec) mutable
 				{
 					set_last_error(ec);
 					if (ec) return;
-					asio::post(this->io_.strand(), make_allocator(this->rallocator_,
-					[this, condition]() mutable
+					this->derived().post([this, condition]() mutable
 					{
 						this->derived()._post_accept(std::move(condition));
-					}));
-				})));
+					});
+				}));
 			}
 		}
 
@@ -614,10 +613,7 @@ namespace asio2::detail
 
 			// if the acceptor status is closed,don't call _post_accept again.
 			if (ec == asio::error::operation_aborted)
-			{
-				this->derived()._do_stop(ec);
 				return;
-			}
 
 			if (!ec)
 			{

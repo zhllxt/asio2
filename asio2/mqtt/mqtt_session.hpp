@@ -42,7 +42,7 @@ namespace asio2::detail
 	ASIO2_CLASS_FORWARD_DECLARE_TCP_SERVER;
 	ASIO2_CLASS_FORWARD_DECLARE_TCP_SESSION;
 
-	template<class derived_t, class args_t>
+	template<class derived_t, class args_t = template_args_mqtt_session>
 	class mqtt_session_impl_t
 		: public tcp_session_impl_t<derived_t, args_t>
 		, public mqtt_options
@@ -334,10 +334,17 @@ namespace asio2::detail
 
 namespace asio2
 {
-	class mqtt_session : public detail::mqtt_session_impl_t<mqtt_session, detail::template_args_mqtt_session>
+	template<class derived_t>
+	class mqtt_session_t : public detail::mqtt_session_impl_t<derived_t, detail::template_args_mqtt_session>
 	{
 	public:
-		using mqtt_session_impl_t<mqtt_session, detail::template_args_mqtt_session>::mqtt_session_impl_t;
+		using detail::mqtt_session_impl_t<derived_t, detail::template_args_mqtt_session>::mqtt_session_impl_t;
+	};
+
+	class mqtt_session : public mqtt_session_t<mqtt_session>
+	{
+	public:
+		using mqtt_session_t<mqtt_session>::mqtt_session_t;
 	};
 }
 

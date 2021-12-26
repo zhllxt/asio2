@@ -20,6 +20,8 @@
 #include <asio2/base/error.hpp>
 #include <asio2/base/define.hpp>
 
+#include <asio2/base/detail/util.hpp>
+
 #include <asio2/mqtt/mqtt_core.hpp>
 
 namespace asio2::detail

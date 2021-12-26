@@ -90,6 +90,8 @@ int main()
 	client.bind_connect([&](asio::error_code ec)
 	{
 		asio2::detail::ignore_unused(ec);
+		
+		client.post([]() {}, std::chrono::seconds(3));
 
 		//------------------------------------------------------------------
 		// this thread is a commucation thread. like bind_recv,bind_connect,

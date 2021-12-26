@@ -41,7 +41,7 @@ namespace asio2::detail
 	ASIO2_CLASS_FORWARD_DECLARE_UDP_BASE;
 	ASIO2_CLASS_FORWARD_DECLARE_UDP_CLIENT;
 
-	template<class derived_t, class args_t>
+	template<class derived_t, class args_t = template_args_udp_client>
 	class udp_client_impl_t
 		: public client_impl_t<derived_t, args_t>
 		, public udp_send_op  <derived_t, args_t>
@@ -749,10 +749,17 @@ namespace asio2::detail
 
 namespace asio2
 {
-	class udp_client : public detail::udp_client_impl_t<udp_client, detail::template_args_udp_client>
+	template<class derived_t>
+	class udp_client_t : public detail::udp_client_impl_t<derived_t, detail::template_args_udp_client>
 	{
 	public:
-		using udp_client_impl_t<udp_client, detail::template_args_udp_client>::udp_client_impl_t;
+		using detail::udp_client_impl_t<derived_t, detail::template_args_udp_client>::udp_client_impl_t;
+	};
+
+	class udp_client : public udp_client_t<udp_client>
+	{
+	public:
+		using udp_client_t<udp_client>::udp_client_t;
 	};
 }
 

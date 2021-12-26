@@ -65,17 +65,18 @@ namespace asio2::detail
 		{
 			using type = std::remove_cv_t<std::remove_reference_t<T>>;
 			using rtype = std::remove_pointer_t<std::remove_all_extents_t<type>>;
-			if constexpr /**/ (std::is_same_v<std::string, type>)
+
+			if /**/ constexpr (std::is_same_v<std::string, type>)
 			{
 				handle = std::forward<T>(id);
 			}
-			else if constexpr (is_string_view_v<type>)
+			else if constexpr (detail::is_string_view_v<type>)
 			{
 				handle.resize(sizeof(typename type::value_type) * id.size());
 				std::memcpy((void*)handle.data(), (const void*)id.data(),
 					sizeof(typename type::value_type) * id.size());
 			}
-			else if constexpr (is_string_v<type>)
+			else if constexpr (detail::is_string_v<type>)
 			{
 				handle.resize(sizeof(typename type::value_type) * id.size());
 				std::memcpy((void*)handle.data(), (const void*)id.data(),
@@ -91,7 +92,7 @@ namespace asio2::detail
 				handle.resize(sizeof(type));
 				std::memcpy((void*)handle.data(), (const void*)&id, sizeof(type));
 			}
-			else if constexpr (std::is_pointer_v<type>)
+			else if constexpr (detail::is_char_pointer_v<type>)
 			{
 				ASIO2_ASSERT(id && (*id));
 				if (id)
@@ -101,11 +102,19 @@ namespace asio2::detail
 					std::memcpy((void*)handle.data(), (const void*)sv.data(), sizeof(rtype) * sv.size());
 				}
 			}
-			else if constexpr (std::is_array_v<type>)
+			else if constexpr (detail::is_char_array_v<type>)
 			{
 				std::basic_string_view<rtype> sv{ id };
 				handle.resize(sizeof(rtype) * sv.size());
 				std::memcpy((void*)handle.data(), (const void*)sv.data(), sizeof(rtype) * sv.size());
+			}
+			else if constexpr (std::is_pointer_v<type>)
+			{
+				handle = std::to_string(std::size_t(id));
+			}
+			else if constexpr (std::is_array_v<type>)
+			{
+				ASIO2_ASSERT(false);
 			}
 			else if constexpr (std::is_same_v<user_timer_handle, type>)
 			{
@@ -182,25 +191,24 @@ namespace asio2::detail
 			// event, in order to avoid unexpected problems caused by the user start or stop the 
 			// timer again in the timer callback function.
 			asio::post(derive.io().strand(), make_allocator(derive.wallocator(),
-				[this, &derive, this_ptr = derive.selfptr(),
+			[this, &derive, this_ptr = derive.selfptr(),
 				timer_handle = user_timer_handle(std::forward<TimerId>(timer_id)),
 				duration, task = std::move(t)]() mutable
 			{
-				std::shared_ptr<user_timer_obj> timer_obj_ptr;
-
+				// if the timer is already exists, cancel it first.
 				auto iter = this->user_timers_.find(timer_handle);
 				if (iter != this->user_timers_.end())
 				{
-					timer_obj_ptr = iter->second;
-					timer_obj_ptr->task = std::move(task);
-				}
-				else
-				{
-					timer_obj_ptr = std::make_shared<user_timer_obj>(timer_handle,
-						derive.io().context(), std::move(task));
+					error_code ec_ignore{};
 
-					this->user_timers_[std::move(timer_handle)] = timer_obj_ptr;
+					iter->second->exited = true;
+					iter->second->timer.cancel(ec_ignore);
 				}
+
+				std::shared_ptr<user_timer_obj> timer_obj_ptr = std::make_shared<user_timer_obj>(
+					timer_handle, derive.io().context(), std::move(task));
+
+				this->user_timers_[std::move(timer_handle)] = timer_obj_ptr;
 
 				derive._post_user_timers(std::move(timer_obj_ptr), duration, std::move(this_ptr));
 			}));
@@ -214,26 +222,30 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			// Make sure we run on the strand
-			if (!derive.io().strand().running_in_this_thread())
+			// must use post, otherwise when call stop_timer immediately after start_timer
+			// will cause the stop_timer has no effect.
+			// can't use dispatch, otherwise if call stop_timer in timer callback, it will 
+			// cause this : the stop_timer will cancel the timer, after stop_timer, the callback
+			// will executed continue, then it will post next timer, beacuse the cancel is 
+			// before the post next timer, so the cancel will has no effect. (so there was 
+			// a flag "exit" to ensure this : even if use dispatch, the timer also can be
+			// canceled success)
+			asio::post(derive.io().strand(), make_allocator(derive.wallocator(),
+			[this, this_ptr = derive.selfptr(), timer_id = std::forward<TimerId>(timer_id)]
+			() mutable
 			{
-				return asio::post(derive.io().strand(), make_allocator(derive.wallocator(),
-				[this, this_ptr = derive.selfptr(), timer_id = std::forward<TimerId>(timer_id)]
-				() mutable
+				asio2::ignore_unused(this_ptr);
+
+				auto iter = this->user_timers_.find(timer_id);
+				if (iter != this->user_timers_.end())
 				{
-					this->stop_timer(std::move(timer_id));
-				}));
-			}
+					error_code ec_ignore{};
 
-			auto iter = this->user_timers_.find(timer_id);
-			if (iter != this->user_timers_.end())
-			{
-				error_code ec_ignore{};
-
-				iter->second->exited = true;
-				iter->second->timer.cancel(ec_ignore);
-				this->user_timers_.erase(iter);
-			}
+					iter->second->exited = true;
+					iter->second->timer.cancel(ec_ignore);
+					this->user_timers_.erase(iter);
+				}
+			}));
 		}
 
 		/**
@@ -243,26 +255,24 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			// Make sure we run on the strand
-			if (!derive.io().strand().running_in_this_thread())
+			// must use post, otherwise when call stop_all_timers immediately after start_timer
+			// will cause the stop_all_timers has no effect.
+			asio::post(derive.io().strand(), make_allocator(derive.wallocator(),
+			[this, this_ptr = derive.selfptr()]() mutable
 			{
-				return asio::post(derive.io().strand(), make_allocator(derive.wallocator(),
-				[this, this_ptr = derive.selfptr()]() mutable
+				asio2::ignore_unused(this_ptr);
+
+				error_code ec_ignore{};
+
+				// close user custom timers
+				for (auto &[id, timer_obj_ptr] : this->user_timers_)
 				{
-					this->stop_all_timers();
-				}));
-			}
-
-			error_code ec_ignore{};
-
-			// close user custom timers
-			for (auto &[id, timer_obj_ptr] : this->user_timers_)
-			{
-				std::ignore = id;
-				timer_obj_ptr->exited = true;
-				timer_obj_ptr->timer.cancel(ec_ignore);
-			}
-			this->user_timers_.clear();
+					std::ignore = id;
+					timer_obj_ptr->exited = true;
+					timer_obj_ptr->timer.cancel(ec_ignore);
+				}
+				this->user_timers_.clear();
+			}));
 		}
 
 	protected:
@@ -307,6 +317,9 @@ namespace asio2::detail
 			// It made me difficult to choose.After many adjustments and the requirements of the
 			// actual project, it is more reasonable to still call the callback function when 
 			// there are some errors.
+			// eg. user call start_timer, then call stop_timer after a later, but the timer's 
+			// timeout is not reached, perhaps the user wants the timer callback function also 
+			// can be called even if the timer is aborted by stop_timer.
 
 			//if (!ec)
 				(timer_obj_ptr->task)();

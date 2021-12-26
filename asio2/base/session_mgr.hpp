@@ -29,6 +29,7 @@
 #include <asio2/base/log.hpp>
 
 #include <asio2/base/detail/allocator.hpp>
+#include <asio2/base/detail/util.hpp>
 
 namespace asio2::detail
 {

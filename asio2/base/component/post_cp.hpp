@@ -78,30 +78,31 @@ namespace asio2::detail
 
 			// note : need test.
 			// has't check where the server or client is stopped, if the server is stopping, but the 
-			// iopool's wait_iothreads() has't compelete and just at sleep, then user call post
-			// but don't call stop_all_timed_tasks, it maybe cause the wait_iothreads() can't compelete
-			// forever,and the server.stop or client.stop never compeleted.
+			// iopool's wait_for_io_context_stopped() has't compelete and just at sleep, then user
+			// call post but don't call stop_all_timed_tasks, it maybe cause the
+			// wait_for_io_context_stopped() can't compelete forever,and the server.stop or client.stop
+			// never compeleted.
 
-			std::unique_ptr<asio::steady_timer> timer = std::make_unique<
-				asio::steady_timer>(derive.io().context());
-
-			asio::dispatch(derive.io().strand(), make_allocator(derive.wallocator(),
-			[this, p = derive.selfptr(), key = timer.get()]() mutable
+			asio::post(derive.io().strand(), make_allocator(derive.wallocator(),
+			[this, &derive, p = derive.selfptr(), f = std::forward<Function>(f), delay]() mutable
 			{
-				detail::ignore_unused(p);
+				std::unique_ptr<asio::steady_timer> timer = std::make_unique<
+					asio::steady_timer>(derive.io().context());
 
-				this->timed_tasks_.emplace(key);
+				this->timed_tasks_.emplace(timer.get());
+
+				timer->expires_after(delay);
+				timer->async_wait(asio::bind_executor(derive.io().strand(),
+				[this, p = std::move(p), timer = std::move(timer), f = std::move(f)]
+				(const error_code& ec) mutable
+				{
+					detail::ignore_unused(p);
+					set_last_error(ec);
+					f();
+					this->timed_tasks_.erase(timer.get());
+				}));
 			}));
 
-			timer->expires_after(delay);
-			timer->async_wait(asio::bind_executor(derive.io().strand(),
-			[this, p = derive.selfptr(), timer = std::move(timer), f = std::forward<Function>(f)]
-			(const error_code& ec) mutable
-			{
-				detail::ignore_unused(p, ec);
-				f();
-				this->timed_tasks_.erase(timer.get());
-			}));
 			return (derive);
 		}
 
@@ -156,25 +157,24 @@ namespace asio2::detail
 
 			std::future<return_type> future = task.get_future();
 
-			std::unique_ptr<asio::steady_timer> timer = std::make_unique<
-				asio::steady_timer>(derive.io().context());
-
-			asio::dispatch(derive.io().strand(), make_allocator(derive.wallocator(),
-			[this, p = derive.selfptr(), key = timer.get()]() mutable
+			asio::post(derive.io().strand(), make_allocator(derive.wallocator(),
+			[this, &derive, p = derive.selfptr(), t = std::move(task), delay]() mutable
 			{
-				detail::ignore_unused(p);
+				std::unique_ptr<asio::steady_timer> timer = std::make_unique<
+					asio::steady_timer>(derive.io().context());
 
-				this->timed_tasks_.emplace(key);
-			}));
+				this->timed_tasks_.emplace(timer.get());
 
-			timer->expires_after(delay);
-			timer->async_wait(asio::bind_executor(derive.io().strand(),
-			[this, p = derive.selfptr(), timer = std::move(timer), t = std::move(task)]
-			(const error_code& ec) mutable
-			{
-				detail::ignore_unused(p, ec);
-				t();
-				this->timed_tasks_.erase(timer.get());
+				timer->expires_after(delay);
+				timer->async_wait(asio::bind_executor(derive.io().strand(),
+				[this, p = std::move(p), timer = std::move(timer), t = std::move(t)]
+				(const error_code& ec) mutable
+				{
+					detail::ignore_unused(p);
+					set_last_error(ec);
+					t();
+					this->timed_tasks_.erase(timer.get());
+				}));
 			}));
 
 			return future;
@@ -249,25 +249,18 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			error_code ec_ignore{};
-
-			// Make sure we run on the strand
-			if (!derive.io().strand().running_in_this_thread())
+			asio::post(derive.io().strand(), make_allocator(derive.wallocator(),
+			[this, p = derive.selfptr()]() mutable
 			{
-				asio::post(derive.io().strand(), make_allocator(derive.wallocator(),
-				[this, p = derive.selfptr()]() mutable
+				detail::ignore_unused(p);
+
+				error_code ec_ignore{};
+
+				for (asio::steady_timer* timer : this->timed_tasks_)
 				{
-					detail::ignore_unused(p);
-
-					this->stop_all_timed_tasks();
-				}));
-				return (derive);
-			}
-
-			for (asio::steady_timer* timer : this->timed_tasks_)
-			{
-				timer->cancel(ec_ignore);
-			}
+					timer->cancel(ec_ignore);
+				}
+			}));
 
 			return (derive);
 		}

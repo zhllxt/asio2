@@ -40,7 +40,7 @@ namespace asio2::detail
 	ASIO2_CLASS_FORWARD_DECLARE_TCP_BASE;
 	ASIO2_CLASS_FORWARD_DECLARE_TCP_CLIENT;
 
-	template<class derived_t, class args_t>
+	template<class derived_t, class args_t = template_args_mqtt_client>
 	class mqtt_client_impl_t
 		: public tcp_client_impl_t <derived_t, args_t>
 		, public mqtt_options
@@ -622,10 +622,17 @@ namespace asio2::detail
 
 namespace asio2
 {
-	class mqtt_client : public detail::mqtt_client_impl_t<mqtt_client, detail::template_args_mqtt_client>
+	template<class derived_t>
+	class mqtt_client_t : public detail::mqtt_client_impl_t<derived_t, detail::template_args_mqtt_client>
 	{
 	public:
-		using mqtt_client_impl_t<mqtt_client, detail::template_args_mqtt_client>::mqtt_client_impl_t;
+		using detail::mqtt_client_impl_t<derived_t, detail::template_args_mqtt_client>::mqtt_client_impl_t;
+	};
+
+	class mqtt_client : public mqtt_client_t<mqtt_client>
+	{
+	public:
+		using mqtt_client_t<mqtt_client>::mqtt_client_t;
 	};
 }
 

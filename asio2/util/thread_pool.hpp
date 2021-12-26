@@ -168,6 +168,31 @@ namespace asio2
 			return this->tasks_.size();
 		}
 
+		/**
+		 * @function : Determine whether current code is running in the pool's threads.
+		 */
+		inline bool running_in_threads() const
+		{
+			std::thread::id curr_tid = std::this_thread::get_id();
+			for (auto & thread : this->workers_)
+			{
+				if (curr_tid == thread.get_id())
+					return true;
+			}
+			return false;
+		}
+
+		/**
+		 * @function : Determine whether current code is running in the thread by index
+		 */
+		inline bool running_in_thread(std::size_t index) const
+		{
+			if (!(index < this->workers_.size()))
+				return false;
+
+			return (std::this_thread::get_id() == this->workers_[index].get_id());
+		}
+
 	private:
 		/// no copy construct function
 		thread_pool(const thread_pool&) = delete;

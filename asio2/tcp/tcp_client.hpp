@@ -41,7 +41,7 @@ namespace asio2::detail
 	ASIO2_CLASS_FORWARD_DECLARE_TCP_BASE;
 	ASIO2_CLASS_FORWARD_DECLARE_TCP_CLIENT;
 
-	template<class derived_t, class args_t>
+	template<class derived_t, class args_t = template_args_tcp_client>
 	class tcp_client_impl_t
 		: public client_impl_t         <derived_t, args_t>
 		, public tcp_keepalive_cp      <derived_t, args_t>
@@ -675,10 +675,17 @@ namespace asio2::detail
 
 namespace asio2
 {
-	class tcp_client : public detail::tcp_client_impl_t<tcp_client, detail::template_args_tcp_client>
+	template<class derived_t>
+	class tcp_client_t : public detail::tcp_client_impl_t<derived_t, detail::template_args_tcp_client>
 	{
 	public:
-		using tcp_client_impl_t<tcp_client, detail::template_args_tcp_client>::tcp_client_impl_t;
+		using detail::tcp_client_impl_t<derived_t, detail::template_args_tcp_client>::tcp_client_impl_t;
+	};
+
+	class tcp_client : public tcp_client_t<tcp_client>
+	{
+	public:
+		using tcp_client_t<tcp_client>::tcp_client_t;
 	};
 }
 

@@ -31,6 +31,7 @@ int main()
 		session_ptr->no_delay(true);
 
 		session_ptr->start_timer(2, std::chrono::seconds(1), []() {}); // test timer
+		session_ptr->post([]() {}, std::chrono::seconds(3));
 
 		//session_ptr->stop(); // You can close the connection directly here.
 
@@ -56,14 +57,6 @@ int main()
 	server.start(host, port);
 	//server.start(host, port, asio::transfer_at_least(100));
 	//server.start(host, port, asio::transfer_exactly(100));
-
-	while (std::getchar() != '\n');  // press enter to exit this program
-
-	server.stop();
-
-	while (std::getchar() != '\n');  // press enter to exit this program
-
-	server.start(host, port);
 
 	while (std::getchar() != '\n');  // press enter to exit this program
 

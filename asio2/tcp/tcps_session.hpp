@@ -30,7 +30,7 @@ namespace asio2::detail
 	ASIO2_CLASS_FORWARD_DECLARE_TCP_SERVER;
 	ASIO2_CLASS_FORWARD_DECLARE_TCP_SESSION;
 
-	template<class derived_t, class args_t>
+	template<class derived_t, class args_t = template_args_tcp_session>
 	class tcps_session_impl_t
 		: public tcp_session_impl_t<derived_t, args_t>
 		, public ssl_stream_cp     <derived_t, args_t>
@@ -144,10 +144,17 @@ namespace asio2::detail
 
 namespace asio2
 {
-	class tcps_session : public detail::tcps_session_impl_t<tcps_session, detail::template_args_tcp_session>
+	template<class derived_t>
+	class tcps_session_t : public detail::tcps_session_impl_t<derived_t, detail::template_args_tcp_session>
 	{
 	public:
-		using tcps_session_impl_t<tcps_session, detail::template_args_tcp_session>::tcps_session_impl_t;
+		using detail::tcps_session_impl_t<derived_t, detail::template_args_tcp_session>::tcps_session_impl_t;
+	};
+
+	class tcps_session : public tcps_session_t<tcps_session>
+	{
+	public:
+		using tcps_session_t<tcps_session>::tcps_session_t;
 	};
 }
 

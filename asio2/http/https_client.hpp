@@ -29,7 +29,7 @@ namespace asio2::detail
 	ASIO2_CLASS_FORWARD_DECLARE_TCP_BASE;
 	ASIO2_CLASS_FORWARD_DECLARE_TCP_CLIENT;
 
-	template<class derived_t, class args_t>
+	template<class derived_t, class args_t = template_args_http_client>
 	class https_client_impl_t
 		: public ssl_context_cp    <derived_t, args_t>
 		, public http_client_impl_t<derived_t, args_t>
@@ -409,10 +409,17 @@ namespace asio2::detail
 
 namespace asio2
 {
-	class https_client : public detail::https_client_impl_t<https_client, detail::template_args_http_client>
+	template<class derived_t>
+	class https_client_t : public detail::https_client_impl_t<derived_t, detail::template_args_http_client>
 	{
 	public:
-		using https_client_impl_t<https_client, detail::template_args_http_client>::https_client_impl_t;
+		using detail::https_client_impl_t<derived_t, detail::template_args_http_client>::https_client_impl_t;
+	};
+
+	class https_client : public https_client_t<https_client>
+	{
+	public:
+		using https_client_t<https_client>::https_client_t;
 	};
 }
 

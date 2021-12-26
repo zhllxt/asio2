@@ -29,7 +29,7 @@ namespace asio2::detail
 	ASIO2_CLASS_FORWARD_DECLARE_TCP_BASE;
 	ASIO2_CLASS_FORWARD_DECLARE_TCP_CLIENT;
 
-	template<class derived_t, class args_t>
+	template<class derived_t, class args_t = template_args_tcp_client>
 	class tcps_client_impl_t
 		: public ssl_context_cp    <derived_t, args_t>
 		, public tcp_client_impl_t <derived_t, args_t>
@@ -143,10 +143,17 @@ namespace asio2::detail
 
 namespace asio2
 {
-	class tcps_client : public detail::tcps_client_impl_t<tcps_client, detail::template_args_tcp_client>
+	template<class derived_t>
+	class tcps_client_t : public detail::tcps_client_impl_t<derived_t, detail::template_args_tcp_client>
 	{
 	public:
-		using tcps_client_impl_t<tcps_client, detail::template_args_tcp_client>::tcps_client_impl_t;
+		using detail::tcps_client_impl_t<derived_t, detail::template_args_tcp_client>::tcps_client_impl_t;
+	};
+
+	class tcps_client : public tcps_client_t<tcps_client>
+	{
+	public:
+		using tcps_client_t<tcps_client>::tcps_client_t;
 	};
 }
 

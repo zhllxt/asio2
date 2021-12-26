@@ -29,6 +29,7 @@ class ping_test
 public:
 	ping_test() : ping(1000)
 	{
+		ping.post([]() {}, std::chrono::seconds(3));
 		ping.timeout(std::chrono::seconds(3));
 		ping.interval(std::chrono::seconds(1));
 		ping.body("");

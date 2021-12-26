@@ -63,7 +63,7 @@ namespace asio2::detail
 	ASIO2_CLASS_FORWARD_DECLARE_BASE;
 	ASIO2_CLASS_FORWARD_DECLARE_UDP_BASE;
 
-	template<class derived_t, class args_t>
+	template<class derived_t, class args_t = template_args_udp_cast>
 	class udp_cast_impl_t
 		: public object_t       <derived_t        >
 		, public iopool_cp
@@ -650,13 +650,20 @@ namespace asio2::detail
 
 namespace asio2
 {
+	template<class derived_t>
+	class udp_cast_t : public detail::udp_cast_impl_t<derived_t, detail::template_args_udp_cast>
+	{
+	public:
+		using detail::udp_cast_impl_t<derived_t, detail::template_args_udp_cast>::udp_cast_impl_t;
+	};
+
 	/*
 	 * udp unicast/multicast/broadcast
 	 */
-	class udp_cast : public detail::udp_cast_impl_t<udp_cast, detail::template_args_udp_cast>
+	class udp_cast : public udp_cast_t<udp_cast>
 	{
 	public:
-		using udp_cast_impl_t<udp_cast, detail::template_args_udp_cast>::udp_cast_impl_t;
+		using udp_cast_t<udp_cast>::udp_cast_t;
 	};
 }
 

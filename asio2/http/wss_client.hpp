@@ -34,7 +34,7 @@ namespace asio2::detail
 	ASIO2_CLASS_FORWARD_DECLARE_TCP_BASE;
 	ASIO2_CLASS_FORWARD_DECLARE_TCP_CLIENT;
 
-	template<class derived_t, class args_t>
+	template<class derived_t, class args_t = template_args_wss_client>
 	class wss_client_impl_t
 		: public tcps_client_impl_t<derived_t, args_t>
 		, public ws_stream_cp      <derived_t, args_t>
@@ -259,10 +259,17 @@ namespace asio2::detail
 
 namespace asio2
 {
-	class wss_client : public detail::wss_client_impl_t<wss_client, detail::template_args_wss_client>
+	template<class derived_t>
+	class wss_client_t : public detail::wss_client_impl_t<derived_t, detail::template_args_wss_client>
 	{
 	public:
-		using wss_client_impl_t<wss_client, detail::template_args_wss_client>::wss_client_impl_t;
+		using detail::wss_client_impl_t<derived_t, detail::template_args_wss_client>::wss_client_impl_t;
+	};
+
+	class wss_client : public wss_client_t<wss_client>
+	{
+	public:
+		using wss_client_t<wss_client>::wss_client_t;
 	};
 }
 

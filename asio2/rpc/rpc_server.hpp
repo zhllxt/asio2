@@ -17,6 +17,8 @@
 
 #include <asio2/base/detail/push_options.hpp>
 
+#include <asio2/config.hpp>
+
 #if !defined(ASIO2_USE_WEBSOCKET_RPC)
 #  include <asio2/tcp/tcp_server.hpp>
 #  include <asio2/tcp/tcps_server.hpp>

@@ -86,7 +86,7 @@ namespace asio2::detail
 
 	ASIO2_CLASS_FORWARD_DECLARE_BASE;
 
-	template<class derived_t, class args_t>
+	template<class derived_t, class args_t = template_args_icmp>
 	class ping_impl_t
 		: public object_t       <derived_t        >
 		, public iopool_cp
@@ -1024,16 +1024,23 @@ namespace asio2::detail
 
 namespace asio2
 {
+	template<class derived_t>
+	class ping_t : public detail::ping_impl_t<derived_t, detail::template_args_icmp>
+	{
+	public:
+		using detail::ping_impl_t<derived_t, detail::template_args_icmp>::ping_impl_t;
+	};
+
 	/**
 	 * @constructor Parameter description
 	 * @param send_count Total number of echo packets you want to send
 	 * send_count equals -1 for infinite send
 	 * Other parameters should use default values.
 	 */
-	class ping : public detail::ping_impl_t<ping, detail::template_args_icmp>
+	class ping : public ping_t<ping>
 	{
 	public:
-		using ping_impl_t<ping, detail::template_args_icmp>::ping_impl_t;
+		using ping_t<ping>::ping_t;
 	};
 }
 

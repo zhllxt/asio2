@@ -51,6 +51,8 @@ int main()
 	std::cout << size << std::endl;
 	std::cout << conn.required_size() << std::endl;
 
+	client.post([]() {}, std::chrono::seconds(3));
+
 	client.bind_recv([&](std::string_view data)
 	{
 		asio2::detail::ignore_unused(data);

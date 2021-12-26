@@ -160,7 +160,7 @@ int main()
 		printf("client enter : %s %u %s %u\n",
 			session_ptr->remote_address().c_str(), session_ptr->remote_port(),
 			session_ptr->local_address().c_str(), session_ptr->local_port());
-
+		session_ptr->post([]() {}, std::chrono::seconds(3));
 		session_ptr->async_call([](asio::error_code ec, int v)
 		{
 			if (!ec)

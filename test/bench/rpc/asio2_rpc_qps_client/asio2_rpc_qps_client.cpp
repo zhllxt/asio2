@@ -34,4 +34,4 @@ int main()
 	while (std::getchar() != '\n');
 
 	return 0;
-};
+}

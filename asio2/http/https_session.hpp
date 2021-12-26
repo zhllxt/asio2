@@ -34,7 +34,7 @@ namespace asio2::detail
 	ASIO2_CLASS_FORWARD_DECLARE_TCP_SERVER;
 	ASIO2_CLASS_FORWARD_DECLARE_TCP_SESSION;
 
-	template<class derived_t, class args_t>
+	template<class derived_t, class args_t = template_args_https_session>
 	class https_session_impl_t
 		: public http_session_impl_t<derived_t, args_t>
 		, public ssl_stream_cp      <derived_t, args_t>
@@ -169,10 +169,17 @@ namespace asio2::detail
 
 namespace asio2
 {
-	class https_session : public detail::https_session_impl_t<https_session, detail::template_args_https_session>
+	template<class derived_t>
+	class https_session_t : public detail::https_session_impl_t<derived_t, detail::template_args_https_session>
 	{
 	public:
-		using https_session_impl_t<https_session, detail::template_args_https_session>::https_session_impl_t;
+		using detail::https_session_impl_t<derived_t, detail::template_args_https_session>::https_session_impl_t;
+	};
+
+	class https_session : public https_session_t<https_session>
+	{
+	public:
+		using https_session_t<https_session>::https_session_t;
 	};
 }
 

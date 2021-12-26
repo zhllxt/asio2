@@ -14,6 +14,7 @@ int main()
 	{
 		printf("\n");
 		asio2::udp_cast sender;
+		sender.post([]() {}, std::chrono::seconds(3));
 		sender.bind_recv([&](asio::ip::udp::endpoint& endpoint, std::string_view sv)
 		{
 			printf("recv : %s %u %u %.*s\n", endpoint.address().to_string().c_str(),

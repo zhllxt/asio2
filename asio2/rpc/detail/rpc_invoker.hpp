@@ -36,6 +36,7 @@
 #include <asio2/base/define.hpp>
 
 #include <asio2/base/detail/function_traits.hpp>
+#include <asio2/base/detail/util.hpp>
 
 #include <asio2/rpc/detail/rpc_serialization.hpp>
 #include <asio2/rpc/detail/rpc_protocol.hpp>

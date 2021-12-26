@@ -192,6 +192,8 @@ int main()
 
 	int times = 0;
 
+	client.post([]() {}, std::chrono::seconds(3));
+
 	client.bind_recv([&](http::request& req, http::response& rep)
 	{
 		asio2::detail::ignore(req, rep);
