@@ -25,8 +25,12 @@
   * fixed bug : it will cause crash when call "client.start" multi times, all "ssl client" and "websocket client" will be affected by this bug, This is because multithreading reads and writes "ws_stream_".
   * fixed bug : The code error traversing "http_router's wildcard_routers_" causes crash.
   * fixed bug : When the timer is stopped immediately after it is started in the io_context thread, the timer will stop fails.
+  * fixed bug : If user has called "http::response.defer()" in the recv callback, it maybe cause crash if the session has disconnected before the "defer" has executed, beacuse the "rep_" was destroyed already at this time.
+  * fixed bug : If user has called "http::response.defer()" in the recv callback, and the client has not a "keep_alive" option, the response will can not be send to the client correctly.
+  * fixed bug : If user has called "http::response.defer()" in the recv callback, the variable "req_" maybe read write in two threads at the same time, and this maybe cause crash.
   * Fixed the problem where kcp server and client did not send fin frame correctly.
   * Fixed the problem where the endian of the KCP handshake data header was not handled correctly.
+  * Fixed problem : when the client.stop is called, and at this time the async_send is called in another thread, the async_send maybe has unexpected behavior (e.g. async_send's callback is not called).
   * Fixed unnecessary memory allocation problems in allocator to reduce the number of memory allocation. Now all timers do not use customized allocator to allocate memory, but use asio to allocate memory automatically.
   * Various code fixes and improvements.
   * Other general enhancements.

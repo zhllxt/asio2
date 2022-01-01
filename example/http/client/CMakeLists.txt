@@ -8,9 +8,8 @@
 # (See accompanying file LICENSE or see <http://www.gnu.org/licenses/>)
 #
 
-GroupSources (asio2 "/")
-GroupSources (asio "/")
-GroupSources (bho "/")
+GroupSources (include/asio2 "/")
+GroupSources (3rd/asio "/")
 
 aux_source_directory(. SRC_FILES)
 
@@ -36,9 +35,8 @@ target_link_libraries(${TARGET_NAME} ${GENERAL_LIBS})
 #####################################################################################################
 
 
-#GroupSources (asio2 "/")
-#GroupSources (asio "/")
-#GroupSources (bho "/")
+#GroupSources (include/asio2 "/")
+#GroupSources (3rd/asio "/")
 #
 #aux_source_directory(. SRC_FILES)
 #
@@ -49,11 +47,10 @@ target_link_libraries(${TARGET_NAME} ${GENERAL_LIBS})
 #file (GLOB_RECURSE SPDLOG_FILES ${ASIO2_ROOT_DIR}/spdlog/*.*)
 #
 #
-#GroupSources (cereal "/")
-#GroupSources (fmt "/")
-#GroupSources (nlohmann "/")
-#GroupSources (pfr "/")
-#GroupSources (spdlog "/")
+#GroupSources (3rd/cereal "/")
+#GroupSources (3rd/fmt "/")
+#GroupSources (3rd/nlohmann "/")
+#GroupSources (3rd/spdlog "/")
 #
 #
 #source_group("" FILES ${SRC_FILES})
@@ -62,7 +59,7 @@ target_link_libraries(${TARGET_NAME} ${GENERAL_LIBS})
 #
 #add_executable (
 #    ${TARGET_NAME}
-#    ${ASIO2_FILES} ${FMT_FILES} ${JSON_FILES} ${PFR_FILES} ${SPDLOG_FILES} ${CEREAL_FILES} ${ASIO_FILES} ${BHO_FILES} ${SRC_FILES}
+#    ${ASIO2_FILES} ${FMT_FILES} ${JSON_FILES} ${SPDLOG_FILES} ${CEREAL_FILES} ${ASIO_FILES} ${SRC_FILES}
 #    ${TARGET_NAME}.cpp
 #)
 #

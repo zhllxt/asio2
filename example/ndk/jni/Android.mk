@@ -1,7 +1,8 @@
 
 LOCAL_PATH := $(call my-dir)
 
-ASIO2_INCLUDE := $(LOCAL_PATH)/../../../
+ASIO2_INCLUDE := $(LOCAL_PATH)/../../../3rd
+ASIO2_INCLUDE += $(LOCAL_PATH)/../../../include
 
 include $(CLEAR_VARS)
 LOCAL_C_INCLUDES += $(ASIO2_INCLUDE)
@@ -133,4 +134,10 @@ include $(CLEAR_VARS)
 LOCAL_C_INCLUDES += $(ASIO2_INCLUDE)
 LOCAL_MODULE := mqtt_client.out
 LOCAL_SRC_FILES := $(LOCAL_PATH)/../../mqtt/client/mqtt_client.cpp
+include $(BUILD_EXECUTABLE)
+
+include $(CLEAR_VARS)
+LOCAL_C_INCLUDES += $(ASIO2_INCLUDE)
+LOCAL_MODULE := custom_scheduler.out
+LOCAL_SRC_FILES := $(LOCAL_PATH)/../../custom_scheduler/custom_scheduler.cpp
 include $(BUILD_EXECUTABLE)

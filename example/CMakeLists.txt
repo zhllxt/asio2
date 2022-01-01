@@ -30,23 +30,30 @@ message("ASIO2_ROOT_DIR = ${ASIO2_ROOT_DIR}")
 
 #-------------------------------------------------------------------------------
 
-function (DoGroupSources curdir rootdir folder)
+function (DoGroupSources curdir rootdir foldername folder)
     file (GLOB children RELATIVE ${ASIO2_ROOT_DIR}/${curdir} ${ASIO2_ROOT_DIR}/${curdir}/*)
     foreach (child ${children})
         if (IS_DIRECTORY ${ASIO2_ROOT_DIR}/${curdir}/${child})
-            DoGroupSources (${curdir}/${child} ${rootdir} ${folder})
+            DoGroupSources (${curdir}/${child} ${rootdir} ${foldername} ${folder})
         elseif (${child} STREQUAL "CMakeLists.txt")
             source_group("" FILES ${ASIO2_ROOT_DIR}/${curdir}/${child})
         else()
             string (REGEX REPLACE ^${rootdir} ${folder} groupname ${curdir})
             string (REPLACE "/" "\\" groupname ${groupname})
-            source_group (${rootdir}${groupname} FILES ${ASIO2_ROOT_DIR}/${curdir}/${child})
+            source_group (${foldername}${groupname} FILES ${ASIO2_ROOT_DIR}/${curdir}/${child})
         endif()
     endforeach()
 endfunction()
 
 function (GroupSources curdir folder)
-    DoGroupSources (${curdir} ${curdir} ${folder})
+    string (FIND ${curdir} "/" Separator)
+    if(${Separator} EQUAL -1)
+        set(Separator 0)
+    else ()
+        math(EXPR Separator "${Separator} + 1")
+    endif()
+    string (SUBSTRING ${curdir} ${Separator} -1 foldername)
+    DoGroupSources (${curdir} ${curdir} ${foldername} ${folder})
 endfunction()
 
 #-------------------------------------------------------------------------------
@@ -120,7 +127,7 @@ set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "" FORCE)
 # Set default build to release
 # ---------------------------------------------------------------------------------------
 if(NOT CMAKE_BUILD_TYPE)
-#    set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose Release or Debug" FORCE)
+    set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose Release or Debug" FORCE)
 endif()
 
 # ---------------------------------------------------------------------------------------
@@ -178,16 +185,16 @@ else()
 endif()
 
 
-include_directories (${ASIO2_ROOT_DIR})
+include_directories (${ASIO2_ROOT_DIR}/3rd)
+include_directories (${ASIO2_ROOT_DIR}/include)
 
 
-file (GLOB_RECURSE  ASIO2_FILES  ${ASIO2_ROOT_DIR}/asio2/*.*)
-file (GLOB_RECURSE   ASIO_FILES  ${ASIO2_ROOT_DIR}/asio/*.*)
-file (GLOB_RECURSE    BHO_FILES  ${ASIO2_ROOT_DIR}/bho/*.*)
-file (GLOB_RECURSE CEREAL_FILES  ${ASIO2_ROOT_DIR}/cereal/*.*)
+file (GLOB_RECURSE  ASIO2_FILES  ${ASIO2_ROOT_DIR}/include/asio2/*.*)
+file (GLOB_RECURSE   ASIO_FILES  ${ASIO2_ROOT_DIR}/3rd/asio/*.*)
+file (GLOB_RECURSE CEREAL_FILES  ${ASIO2_ROOT_DIR}/3rd/cereal/*.*)
 
 # exclude : asio/impl/src.cpp
-list(REMOVE_ITEM ASIO_FILES ${ASIO2_ROOT_DIR}/asio/impl/src.cpp)
+list(REMOVE_ITEM ASIO_FILES ${ASIO2_ROOT_DIR}/3rd/asio/impl/src.cpp)
 
 
 add_subdirectory (${ASIO2_ROOT_DIR}/example/http             asio2_example_project/http             )

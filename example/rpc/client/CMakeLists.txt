@@ -8,10 +8,9 @@
 # (See accompanying file LICENSE or see <http://www.gnu.org/licenses/>)
 #
 
-GroupSources (asio2 "/")
-GroupSources (asio "/")
-#GroupSources (bho "/")
-GroupSources (cereal "/")
+GroupSources (include/asio2 "/")
+GroupSources (3rd/asio "/")
+GroupSources (3rd/cereal "/")
 
 aux_source_directory(. SRC_FILES)
 

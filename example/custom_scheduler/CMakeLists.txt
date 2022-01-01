@@ -8,9 +8,7 @@
 # (See accompanying file LICENSE or see <http://www.gnu.org/licenses/>)
 #
 
-GroupSources (asio2 "/")
-GroupSources (asio "/")
-GroupSources (bho "/")
+GroupSources (include/asio2 "/")
 
 aux_source_directory(. SRC_FILES)
 
@@ -20,7 +18,7 @@ set(TARGET_NAME custom_scheduler)
 
 add_executable (
     ${TARGET_NAME}
-    ${ASIO2_FILES} ${ASIO_FILES} ${BHO_FILES} ${SRC_FILES}
+    ${ASIO2_FILES} ${SRC_FILES}
     ${TARGET_NAME}.cpp
 )
 

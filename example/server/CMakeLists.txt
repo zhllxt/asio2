@@ -32,23 +32,30 @@ message("ASIO2_ROOT_DIR = ${ASIO2_ROOT_DIR}")
 
 #-------------------------------------------------------------------------------
 
-function (DoGroupSources curdir rootdir folder)
+function (DoGroupSources curdir rootdir foldername folder)
     file (GLOB children RELATIVE ${ASIO2_ROOT_DIR}/${curdir} ${ASIO2_ROOT_DIR}/${curdir}/*)
     foreach (child ${children})
         if (IS_DIRECTORY ${ASIO2_ROOT_DIR}/${curdir}/${child})
-            DoGroupSources (${curdir}/${child} ${rootdir} ${folder})
+            DoGroupSources (${curdir}/${child} ${rootdir} ${foldername} ${folder})
         elseif (${child} STREQUAL "CMakeLists.txt")
             source_group("" FILES ${ASIO2_ROOT_DIR}/${curdir}/${child})
         else()
             string (REGEX REPLACE ^${rootdir} ${folder} groupname ${curdir})
             string (REPLACE "/" "\\" groupname ${groupname})
-            source_group (${rootdir}${groupname} FILES ${ASIO2_ROOT_DIR}/${curdir}/${child})
+            source_group (${foldername}${groupname} FILES ${ASIO2_ROOT_DIR}/${curdir}/${child})
         endif()
     endforeach()
 endfunction()
 
 function (GroupSources curdir folder)
-    DoGroupSources (${curdir} ${curdir} ${folder})
+    string (FIND ${curdir} "/" Separator)
+    if(${Separator} EQUAL -1)
+        set(Separator 0)
+    else ()
+        math(EXPR Separator "${Separator} + 1")
+    endif()
+    string (SUBSTRING ${curdir} ${Separator} -1 foldername)
+    DoGroupSources (${curdir} ${curdir} ${foldername} ${folder})
 endfunction()
 
 #-------------------------------------------------------------------------------
@@ -95,6 +102,7 @@ message("ASIO2_LIBS_DIR = ${ASIO2_LIBS_DIR}")
 message("ASIO2_EXES_DIR = ${ASIO2_EXES_DIR}")
  
 IF (CMAKE_SYSTEM_NAME MATCHES "Linux")
+    message("if the [unrecognized command line option '-std=c++17'] error occurs, attempt to execute this command: export CC=/usr/local/bin/gcc; export CXX=/usr/local/bin/g++;")
 	set(OPENSSL_LIBS libssl.a libcrypto.a)
 	set(GENERAL_LIBS -lpthread -lrt -ldl stdc++fs)
 ELSEIF (CMAKE_SYSTEM_NAME MATCHES "Windows")
@@ -179,15 +187,16 @@ else()
 endif()
 
 
-include_directories (${ASIO2_ROOT_DIR})
+include_directories (${ASIO2_ROOT_DIR}/3rd)
+include_directories (${ASIO2_ROOT_DIR}/include)
 
 
-file (GLOB_RECURSE ASIO2_FILES ${ASIO2_ROOT_DIR}/asio2/*.*)
-file (GLOB_RECURSE ASIO_FILES  ${ASIO2_ROOT_DIR}/asio/*.*)
-file (GLOB_RECURSE BEAST_FILES ${ASIO2_ROOT_DIR}/beast/*.*)
+file (GLOB_RECURSE  ASIO2_FILES  ${ASIO2_ROOT_DIR}/include/asio2/*.*)
+file (GLOB_RECURSE   ASIO_FILES  ${ASIO2_ROOT_DIR}/3rd/asio/*.*)
+file (GLOB_RECURSE CEREAL_FILES  ${ASIO2_ROOT_DIR}/3rd/cereal/*.*)
 
 # exclude : asio/impl/src.cpp
-list(REMOVE_ITEM ASIO_FILES ${ASIO2_ROOT_DIR}/asio/impl/src.cpp)
+list(REMOVE_ITEM ASIO_FILES ${ASIO2_ROOT_DIR}/3rd/asio/impl/src.cpp)
 
 
 add_subdirectory (${ASIO2_ROOT_DIR}/example/http/server          asio2_server_example_project/http_server)
