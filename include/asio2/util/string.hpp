@@ -363,10 +363,21 @@ namespace asio2
 			pos = s.find(old_str, pos);
 			if (pos != String::npos)
 			{
-				if constexpr (std::is_pointer_v<new_str_type> || std::is_array_v<new_str_type>)
-					s.replace(pos, old_str_size, new_str);
+				// char* char[] char
+				if constexpr (std::is_trivial_v<new_raw_type>)
+				{
+					// char* char[]
+					if constexpr (std::is_pointer_v<new_str_type> || std::is_array_v<new_str_type>)
+						s.replace(pos, old_str_size, new_str);
+					// char
+					else
+						s.replace(pos, old_str_size, new_str_size, new_str);
+				}
+				// std::string
 				else
-					s.replace(pos, old_str_size, new_str_size, new_str);
+				{
+					s.replace(pos, old_str_size, new_str);
+				}
 			}
 			else
 				break;

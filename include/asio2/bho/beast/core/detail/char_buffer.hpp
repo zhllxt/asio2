@@ -31,10 +31,10 @@ public:
 
     bool try_append(char const* first, char const* last)
     {
-        std::size_t const n = last - first;
-        if (n > N - size_)
+        std::ptrdiff_t const n = last - first;
+        if (n > std::ptrdiff_t(N - size_))
             return false;
-        std::memmove(&buf_[size_], first, n);
+        std::memmove(&buf_[size_], first, std::size_t(n));
         size_ += n;
         return true;
     }
