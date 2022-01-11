@@ -45,7 +45,7 @@ namespace asio2::detail
 		/**
 		 * @constructor
 		 */
-		tcp_send_op() {}
+		tcp_send_op() noexcept {}
 
 		/**
 		 * @destructor

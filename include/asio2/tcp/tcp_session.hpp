@@ -155,14 +155,14 @@ namespace asio2::detail
 		/**
 		 * @function : get this object hash key,used for session map
 		 */
-		inline key_type hash_key() const
+		inline key_type hash_key() const noexcept
 		{
 			return reinterpret_cast<key_type>(this);
 		}
 
 	protected:
 		template<typename MatchCondition>
-		inline void _do_init(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		inline void _do_init(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition) noexcept
 		{
 			detail::ignore_unused(this_ptr, condition);
 
@@ -276,7 +276,7 @@ namespace asio2::detail
 		}
 
 		template<class Data>
-		inline send_data_t _rdc_convert_to_send_data(Data& data)
+		inline send_data_t _rdc_convert_to_send_data(Data& data) noexcept
 		{
 			auto buffer = asio::buffer(data);
 			return send_data_t{ reinterpret_cast<
@@ -366,11 +366,11 @@ namespace asio2::detail
 		/**
 		 * @function : get the recv/read allocator object refrence
 		 */
-		inline auto & rallocator() { return this->rallocator_; }
+		inline auto & rallocator() noexcept { return this->rallocator_; }
 		/**
 		 * @function : get the send/write allocator object refrence
 		 */
-		inline auto & wallocator() { return this->wallocator_; }
+		inline auto & wallocator() noexcept { return this->wallocator_; }
 
 	protected:
 		/// The memory to use for handler-based custom memory allocation. used fo recv/read.

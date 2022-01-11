@@ -47,7 +47,7 @@ namespace asio2::detail
 		/**
 		 * @function : obtain derived class object through CRTP mechanism
 		 */
-		inline const derived_t & derived() const
+		inline const derived_t & derived() const noexcept
 		{
 			return static_cast<const derived_t &>(*this);
 		}
@@ -55,7 +55,7 @@ namespace asio2::detail
 		/**
 		 * @function : obtain derived class object through CRTP mechanism
 		 */
-		inline derived_t & derived()
+		inline derived_t & derived() noexcept
 		{
 			return static_cast<derived_t &>(*this);
 		}
@@ -65,7 +65,7 @@ namespace asio2::detail
 		 *             a not empty shared_ptr<derived_t>, othwise it will return a empty
 		 *             shared_ptr<derived_t>.
 		 */
-		inline std::shared_ptr<derived_t> selfptr()
+		inline std::shared_ptr<derived_t> selfptr() noexcept
 		{
 			// if the "derived_t" (maybe server,client,session...) is created like a
 			// "shared_ptr", then here will return a not empty shared_ptr, otherwise
@@ -102,7 +102,7 @@ namespace asio2::detail
 		/**
 		 * @function : obtain derived class object through CRTP mechanism
 		 */
-		inline const derived_t & derived() const
+		inline const derived_t & derived() const noexcept
 		{
 			return static_cast<const derived_t &>(*this);
 		}
@@ -110,7 +110,7 @@ namespace asio2::detail
 		/**
 		 * @function : obtain derived class object through CRTP mechanism
 		 */
-		inline derived_t & derived()
+		inline derived_t & derived() noexcept
 		{
 			return static_cast<derived_t &>(*this);
 		}
@@ -118,7 +118,7 @@ namespace asio2::detail
 		/**
 		 * @function : always return a empty shared_ptr<derived_t>.
 		 */
-		inline std::shared_ptr<derived_t> selfptr()
+		inline std::shared_ptr<derived_t> selfptr() noexcept
 		{
 			return std::shared_ptr<derived_t>{};
 		}

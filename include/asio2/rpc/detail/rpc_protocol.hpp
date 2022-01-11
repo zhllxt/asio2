@@ -45,13 +45,13 @@ namespace asio2::detail
 	public:
 		using id_type = std::uint64_t;
 
-		rpc_header() {}
+		rpc_header() noexcept {}
 		rpc_header(char type, id_type id, std::string_view name)
 			: type_(type), id_(id), name_(name) {}
 		~rpc_header() = default;
 
 		rpc_header(const rpc_header& r) : type_(r.type_), id_(r.id_), name_(r.name_) {}
-		rpc_header(rpc_header&& r) : type_(r.type_), id_(r.id_), name_(std::move(r.name_)) {}
+		rpc_header(rpc_header&& r) noexcept : type_(r.type_), id_(r.id_), name_(std::move(r.name_)) {}
 
 		inline rpc_header& operator=(const rpc_header& r)
 		{
@@ -60,7 +60,7 @@ namespace asio2::detail
 			name_ = r.name_;
 			return (*this);
 		}
-		inline rpc_header& operator=(rpc_header&& r)
+		inline rpc_header& operator=(rpc_header&& r) noexcept
 		{
 			type_ = r.type_;
 			id_ = r.id_;
@@ -86,16 +86,16 @@ namespace asio2::detail
 			ar(type_, id_, name_);
 		}
 
-		inline       char         type() const { return this->type_; }
-		inline       id_type      id()   const { return this->id_;   }
-		inline const std::string& name() const { return this->name_; }
+		inline       char         type() const noexcept { return this->type_; }
+		inline       id_type      id  () const noexcept { return this->id_;   }
+		inline const std::string& name() const noexcept { return this->name_; }
 
-		inline bool is_request()  { return this->type_ == rpc_type_req; }
-		inline bool is_response() { return this->type_ == rpc_type_rep; }
+		inline bool is_request () noexcept { return this->type_ == rpc_type_req; }
+		inline bool is_response() noexcept { return this->type_ == rpc_type_rep; }
 
-		inline rpc_header& type(char type            ) { this->type_ = type; return (*this); }
-		inline rpc_header& id  (id_type id           ) { this->id_   = id  ; return (*this); }
-		inline rpc_header& name(std::string_view name) { this->name_ = name; return (*this); }
+		inline rpc_header& type(char type            ) noexcept { this->type_ = type; return (*this); }
+		inline rpc_header& id  (id_type id           ) noexcept { this->id_   = id  ; return (*this); }
+		inline rpc_header& name(std::string_view name)          { this->name_ = name; return (*this); }
 
 	protected:
 		char           type_;
@@ -141,7 +141,7 @@ namespace asio2::detail
 		};
 
 	public:
-		rpc_request() : rpc_header() { this->type_ = rpc_type_req; }
+		rpc_request() noexcept : rpc_header() { this->type_ = rpc_type_req; }
 		rpc_request(std::string_view name, Args&&... args)
 			: rpc_header(rpc_type_req,  0, name), tp_(std::forward_as_tuple(std::forward<Args>(args)...)) {}
 		rpc_request(id_type id, std::string_view name, Args&&... args)
@@ -149,7 +149,7 @@ namespace asio2::detail
 		~rpc_request() = default;
 
 		rpc_request(const rpc_request& r) : rpc_header(r), tp_(r.tp_) {}
-		rpc_request(rpc_request&& r) : rpc_header(std::move(r)), tp_(std::move(r.tp_)) {}
+		rpc_request(rpc_request&& r) noexcept : rpc_header(std::move(r)), tp_(std::move(r.tp_)) {}
 
 		inline rpc_request& operator=(const rpc_request& r)
 		{
@@ -157,7 +157,7 @@ namespace asio2::detail
 			tp_ = r.tp_;
 			return (*this);
 		}
-		inline rpc_request& operator=(rpc_request&& r)
+		inline rpc_request& operator=(rpc_request&& r) noexcept
 		{
 			static_cast<rpc_header&>(*this) = std::move(r);
 			tp_ = std::move(r.tp_);
@@ -205,14 +205,16 @@ namespace asio2::detail
 	class rpc_response : public rpc_header
 	{
 	public:
-		rpc_response() : rpc_header() { this->type_ = rpc_type_rep; }
+		rpc_response() noexcept : rpc_header() { this->type_ = rpc_type_rep; }
 		rpc_response(id_type id, std::string_view name) : rpc_header(rpc_type_rep, id, name) {}
 		rpc_response(id_type id, std::string_view name, const error_code& ec, T&& ret)
 			: rpc_header(rpc_type_rep, id, name), ec_(ec), ret_(std::forward<T>(ret)) {}
 		~rpc_response() = default;
 
-		rpc_response(const rpc_response& r) : rpc_header(r), ec_(r.ec_), ret_(r.ret_) {}
-		rpc_response(rpc_response&& r) : rpc_header(std::move(r)), ec_(std::move(r.ec_)), ret_(std::move(r.ret_)) {}
+		rpc_response(const rpc_response& r)
+			: rpc_header(r), ec_(r.ec_), ret_(r.ret_) {}
+		rpc_response(rpc_response&& r) noexcept
+			: rpc_header(std::move(r)), ec_(std::move(r.ec_)), ret_(std::move(r.ret_)) {}
 
 		inline rpc_response& operator=(const rpc_response& r)
 		{
@@ -221,7 +223,7 @@ namespace asio2::detail
 			ret_ = r.ret_;
 			return (*this);
 		}
-		inline rpc_response& operator=(rpc_response&& r)
+		inline rpc_response& operator=(rpc_response&& r) noexcept
 		{
 			static_cast<rpc_header&>(*this) = std::move(r);
 			ec_ = std::move(r.ec_);

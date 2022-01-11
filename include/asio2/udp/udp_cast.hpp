@@ -601,25 +601,25 @@ namespace asio2::detail
 		/**
 		 * @function : get the buffer object refrence
 		 */
-		inline buffer_wrap<buffer_type> & buffer() { return this->buffer_; }
+		inline buffer_wrap<buffer_type> & buffer() noexcept { return this->buffer_; }
 
 		/**
 		 * @function : get the io object refrence
 		 */
-		inline io_t & io() { return this->io_; }
+		inline io_t & io() noexcept { return this->io_; }
 
 	protected:
 		/**
 		 * @function : get the recv/read allocator object refrence
 		 */
-		inline auto & rallocator() { return this->rallocator_; }
+		inline auto & rallocator() noexcept { return this->rallocator_; }
 		/**
 		 * @function : get the send/write allocator object refrence
 		 */
-		inline auto & wallocator() { return this->wallocator_; }
+		inline auto & wallocator() noexcept { return this->wallocator_; }
 
-		inline listener_t                 & listener() { return this->listener_; }
-		inline std::atomic<state_t>       & state()    { return this->state_; }
+		inline listener_t                 & listener() noexcept { return this->listener_; }
+		inline std::atomic<state_t>       & state   () noexcept { return this->state_; }
 
 	protected:
 		/// The memory to use for handler-based custom memory allocation. used fo recv/read.

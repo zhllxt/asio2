@@ -78,7 +78,7 @@ namespace asio2::detail
 		/**
 		 * @constructor
 		 */
-		connect_cp() {}
+		connect_cp() noexcept {}
 
 		/**
 		 * @destructor

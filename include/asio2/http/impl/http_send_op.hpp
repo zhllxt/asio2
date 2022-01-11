@@ -40,7 +40,7 @@ namespace asio2::detail
 		/**
 		 * @constructor
 		 */
-		http_send_op() {}
+		http_send_op() noexcept {}
 
 		/**
 		 * @destructor

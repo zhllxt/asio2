@@ -239,7 +239,7 @@ namespace asio2::detail
 		/**
 		 * @function : get session count
 		 */
-		inline std::size_t size()
+		inline std::size_t size() const noexcept
 		{
 			return this->sessions_.size();
 		}
@@ -247,7 +247,7 @@ namespace asio2::detail
 		/**
 		 * @function : Checks if the session container has no elements
 		 */
-		inline bool empty()
+		inline bool empty() const noexcept
 		{
 			return this->sessions_.empty();
 		}
@@ -255,7 +255,7 @@ namespace asio2::detail
 		/**
 		 * @function : get the io object refrence
 		 */
-		inline io_t & io()
+		inline io_t & io() noexcept
 		{
 			return this->io_;
 		}

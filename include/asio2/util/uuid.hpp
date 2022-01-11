@@ -38,10 +38,10 @@ namespace asio2
 		~uuid() = default;
 
 		uuid(const uuid&) = default;
-		uuid(uuid&&) = default;
+		uuid(uuid&&) noexcept = default;
 
 		uuid& operator=(const uuid&) = default;
-		uuid& operator=(uuid&&) = default;
+		uuid& operator=(uuid&&) noexcept = default;
 
 		inline uuid& operator()()
 		{
@@ -176,7 +176,7 @@ namespace asio2
 		}
 
 	protected:
-		inline char to_char(int i, bool upper)
+		inline char to_char(int i, bool upper) noexcept
 		{
 			if (i <= 9)
 			{

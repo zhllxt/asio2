@@ -49,7 +49,7 @@ namespace asio2::detail
 		/**
 		 * @constructor
 		 */
-		udp_send_cp(io_t&) {}
+		udp_send_cp(io_t&) noexcept {}
 
 		/**
 		 * @destructor
@@ -71,7 +71,7 @@ namespace asio2::detail
 		template<typename String, typename StrOrInt, class DataT>
 		inline typename std::enable_if_t<!std::is_same_v<detail::remove_cvref_t<String>,
 			asio::ip::udp::endpoint>, void>
-			async_send(String&& host, StrOrInt&& port, DataT&& data)
+			async_send(String&& host, StrOrInt&& port, DataT&& data) noexcept
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
@@ -105,7 +105,7 @@ namespace asio2::detail
 				std::is_same_v<detail::remove_cvref_t<CharT>, wchar_t> ||
 				std::is_same_v<detail::remove_cvref_t<CharT>, char16_t> ||
 				std::is_same_v<detail::remove_cvref_t<CharT>, char32_t>), void>
-			async_send(String&& host, StrOrInt&& port, CharT* s)
+			async_send(String&& host, StrOrInt&& port, CharT* s) noexcept
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
@@ -121,7 +121,7 @@ namespace asio2::detail
 		template<typename String, typename StrOrInt, class CharT, class SizeT>
 		inline typename std::enable_if_t<std::is_integral_v<detail::remove_cvref_t<SizeT>> &&
 			!std::is_same_v<detail::remove_cvref_t<String>, asio::ip::udp::endpoint>, void>
-			async_send(String&& host, StrOrInt&& port, CharT * s, SizeT count)
+			async_send(String&& host, StrOrInt&& port, CharT * s, SizeT count) noexcept
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
@@ -404,7 +404,7 @@ namespace asio2::detail
 		template<class Endpoint, class DataT>
 		inline typename std::enable_if_t<
 			std::is_same_v<detail::remove_cvref_t<Endpoint>, asio::ip::udp::endpoint>, void>
-			async_send(Endpoint&& endpoint, DataT&& data)
+			async_send(Endpoint&& endpoint, DataT&& data) noexcept
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
@@ -440,7 +440,7 @@ namespace asio2::detail
 				std::is_same_v<detail::remove_cvref_t<CharT>, wchar_t> ||
 				std::is_same_v<detail::remove_cvref_t<CharT>, char16_t> ||
 				std::is_same_v<detail::remove_cvref_t<CharT>, char32_t>), void>
-			async_send(Endpoint&& endpoint, CharT * s)
+			async_send(Endpoint&& endpoint, CharT * s) noexcept
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
@@ -455,7 +455,7 @@ namespace asio2::detail
 		template<class Endpoint, class CharT, class SizeT>
 		inline typename std::enable_if_t<std::is_integral_v<detail::remove_cvref_t<SizeT>> &&
 			std::is_same_v<detail::remove_cvref_t<Endpoint>, asio::ip::udp::endpoint>, void>
-			async_send(Endpoint&& endpoint, CharT * s, SizeT count)
+			async_send(Endpoint&& endpoint, CharT * s, SizeT count) noexcept
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 

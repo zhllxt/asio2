@@ -93,16 +93,18 @@ namespace asio2::detail
 		 * @param port A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
 		 */
-		template<typename String, typename StrOrInt>
-		bool start(String&& host, StrOrInt&& port)
+		template<typename String, typename StrOrInt, typename... Args>
+		bool start(String&& host, StrOrInt&& port, Args&&... args)
 		{
 #if !defined(ASIO2_USE_WEBSOCKET_RPC)
 			return executor_t::template start(
-				std::forward<String>(host), std::forward<StrOrInt>(port), asio2::use_dgram);
+				std::forward<String>(host), std::forward<StrOrInt>(port),
+				asio2::use_dgram, std::forward<Args>(args)...);
 #else
 			static_assert(is_websocket_client<executor_t>::value);
 			return executor_t::template start(
-				std::forward<String>(host), std::forward<StrOrInt>(port));
+				std::forward<String>(host), std::forward<StrOrInt>(port),
+				std::forward<Args>(args)...);
 #endif
 		}
 
@@ -113,16 +115,18 @@ namespace asio2::detail
 		 * @param port A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
 		 */
-		template<typename String, typename StrOrInt>
-		bool async_start(String&& host, StrOrInt&& port)
+		template<typename String, typename StrOrInt, typename... Args>
+		bool async_start(String&& host, StrOrInt&& port, Args&&... args)
 		{
 #if !defined(ASIO2_USE_WEBSOCKET_RPC)
 			return executor_t::template async_start(
-				std::forward<String>(host), std::forward<StrOrInt>(port), asio2::use_dgram);
+				std::forward<String>(host), std::forward<StrOrInt>(port),
+				asio2::use_dgram, std::forward<Args>(args)...);
 #else
 			static_assert(is_websocket_client<executor_t>::value);
 			return executor_t::template async_start(
-				std::forward<String>(host), std::forward<StrOrInt>(port));
+				std::forward<String>(host), std::forward<StrOrInt>(port),
+				std::forward<Args>(args)...);
 #endif
 		}
 

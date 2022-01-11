@@ -46,7 +46,7 @@ namespace asio2::detail
 		/**
 		 * @function : get silence timeout value ,unit : second
 		 */
-		inline std::chrono::steady_clock::duration silence_timeout() const
+		inline std::chrono::steady_clock::duration silence_timeout() const noexcept
 		{
 			return this->silence_timeout_;
 		}
@@ -55,7 +55,7 @@ namespace asio2::detail
 		 * @function : set silence timeout value
 		 */
 		template<class Rep, class Period>
-		inline derived_t & silence_timeout(std::chrono::duration<Rep, Period> duration)
+		inline derived_t & silence_timeout(std::chrono::duration<Rep, Period> duration) noexcept
 		{
 			this->silence_timeout_ = duration;
 			return static_cast<derived_t&>(*this);

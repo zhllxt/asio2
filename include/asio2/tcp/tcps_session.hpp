@@ -81,7 +81,7 @@ namespace asio2::detail
 		/**
 		 * @function : get this object hash key,used for session map
 		 */
-		inline key_type hash_key() const
+		inline key_type hash_key() const noexcept
 		{
 			return reinterpret_cast<key_type>(this);
 		}
@@ -89,7 +89,7 @@ namespace asio2::detail
 		/**
 		 * @function : get the stream object refrence
 		 */
-		inline typename ssl_stream_comp::stream_type & stream()
+		inline typename ssl_stream_comp::stream_type & stream() noexcept
 		{
 			ASIO2_ASSERT(bool(this->ssl_stream_));
 			return (*(this->ssl_stream_));

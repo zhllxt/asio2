@@ -99,7 +99,7 @@ namespace asio2::detail
 		/**
 		 * @function : start the server
 		 */
-		inline bool start()
+		inline bool start() noexcept
 		{
 			return true;
 		}
@@ -137,7 +137,7 @@ namespace asio2::detail
 		/**
 		 * @function : check whether the server is started 
 		 */
-		inline bool is_started() const
+		inline bool is_started() const noexcept
 		{
 			return (this->state_ == state_t::started);
 		}
@@ -145,7 +145,7 @@ namespace asio2::detail
 		/**
 		 * @function : check whether the server is stopped
 		 */
-		inline bool is_stopped() const
+		inline bool is_stopped() const noexcept
 		{
 			return (this->state_ == state_t::stopped);
 		}
@@ -153,7 +153,7 @@ namespace asio2::detail
 		/**
 		 * @function : get this object hash key
 		 */
-		inline key_type hash_key() const
+		inline key_type hash_key() const noexcept
 		{
 			return reinterpret_cast<key_type>(this);
 		}
@@ -216,7 +216,7 @@ namespace asio2::detail
 		/**
 		 * @function : get the acceptor refrence,derived classes must override this function
 		 */
-		inline auto & acceptor() { return this->derived().acceptor(); }
+		inline auto & acceptor() noexcept { return this->derived().acceptor(); }
 
 		/**
 		 * @function : get the listen address
@@ -248,7 +248,7 @@ namespace asio2::detail
 		/**
 		 * @function : get connected session count
 		 */
-		inline std::size_t session_count() { return this->sessions_.size(); }
+		inline std::size_t session_count() noexcept { return this->sessions_.size(); }
 
 		/**
 		 * @function :
@@ -288,25 +288,25 @@ namespace asio2::detail
 		/**
 		 * @function : get the io object refrence
 		 */
-		inline io_t & io() { return this->io_; }
+		inline io_t & io() noexcept { return this->io_; }
 
 	protected:
 		/**
 		 * @function : get the recv/read allocator object refrence
 		 */
-		inline auto & rallocator() { return this->rallocator_; }
+		inline auto & rallocator() noexcept { return this->rallocator_; }
 		/**
 		 * @function : get the send/write/post allocator object refrence
 		 */
-		inline auto & wallocator() { return this->wallocator_; }
+		inline auto & wallocator() noexcept { return this->wallocator_; }
 
-		inline session_mgr_t<session_t> & sessions() { return this->sessions_; }
-		inline listener_t               & listener() { return this->listener_; }
-		inline std::atomic<state_t>     & state   () { return this->state_;    }
+		inline session_mgr_t<session_t> & sessions() noexcept { return this->sessions_; }
+		inline listener_t               & listener() noexcept { return this->listener_; }
+		inline std::atomic<state_t>     & state   () noexcept { return this->state_;    }
 
-		inline constexpr static bool is_session() { return false; }
-		inline constexpr static bool is_client () { return false; }
-		inline constexpr static bool is_server () { return true ; }
+		inline constexpr static bool is_session() noexcept { return false; }
+		inline constexpr static bool is_client () noexcept { return false; }
+		inline constexpr static bool is_server () noexcept { return true ; }
 
 	protected:
 		// The memory to use for handler-based custom memory allocation. used for acceptor.

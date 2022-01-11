@@ -178,7 +178,7 @@ namespace asio2::detail
 	}
 
 	template <typename F>
-	typename function_traits<F>::pointer to_function_pointer(const F& lambda)
+	typename function_traits<F>::pointer to_function_pointer(const F& lambda) noexcept
 	{
 		return static_cast<typename function_traits<F>::pointer>(lambda);
 	}

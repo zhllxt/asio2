@@ -460,9 +460,11 @@ namespace asio2::detail
 		{
 			template <class, class>                       friend class rpc_call_cp;
 		protected:
-			sync_caller(derive_t& d) : derive(d), id_(0), tm_(d.default_timeout()) {}
-			sync_caller(sync_caller&& o) : derive(o.derive)
-				, id_(std::move(o.id_)), tm_(std::move(o.tm_)), ec_(std::move(o.ec_)) {}
+			sync_caller(derive_t& d) noexcept
+				: derive(d), id_(0), tm_(d.default_timeout()) {}
+			sync_caller(sync_caller&& o) noexcept
+				: derive(o.derive), id_(std::move(o.id_)), tm_(std::move(o.tm_)), ec_(std::move(o.ec_)) {}
+
 			sync_caller(const sync_caller&) = delete;
 			sync_caller& operator=(sync_caller&&) = delete;
 			sync_caller& operator=(const sync_caller&) = delete;
@@ -471,13 +473,13 @@ namespace asio2::detail
 			~sync_caller() = default;
 
 			template<class Rep, class Period>
-			inline sync_caller& timeout(std::chrono::duration<Rep, Period> timeout)
+			inline sync_caller& timeout(std::chrono::duration<Rep, Period> timeout) noexcept
 			{
 				this->tm_ = std::move(timeout);
 				return (*this);
 			}
 
-			inline sync_caller& errcode(error_code& ec)
+			inline sync_caller& errcode(error_code& ec) noexcept
 			{
 				this->ec_ = &ec;
 				return (*this);
@@ -504,10 +506,13 @@ namespace asio2::detail
 		{
 			template <class, class>                       friend class rpc_call_cp;
 		protected:
-			async_caller(derive_t& d) : derive(d), id_(0), tm_(d.default_timeout()) {}
-			async_caller(async_caller&& o) : derive(o.derive)
+			async_caller(derive_t& d) noexcept
+				: derive(d), id_(0), tm_(d.default_timeout()) {}
+			async_caller(async_caller&& o) noexcept
+				: derive(o.derive)
 				, id_(std::move(o.id_)), tm_(std::move(o.tm_))
 				, cb_(std::move(o.cb_)), fn_(std::move(o.fn_)) {}
+
 			async_caller(const async_caller&) = delete;
 			async_caller& operator=(async_caller&&) = delete;
 			async_caller& operator=(const async_caller&) = delete;
@@ -525,7 +530,7 @@ namespace asio2::detail
 			}
 
 			template<class Rep, class Period>
-			inline async_caller& timeout(std::chrono::duration<Rep, Period> timeout)
+			inline async_caller& timeout(std::chrono::duration<Rep, Period> timeout) noexcept
 			{
 				this->tm_ = timeout;
 				return (*this);
@@ -575,8 +580,11 @@ namespace asio2::detail
 		{
 			template <class, class>                       friend class rpc_call_cp;
 		protected:
-			base_caller(derive_t& d) : derive(d), tm_(d.default_timeout()) {}
-			base_caller(base_caller&& o) : derive(o.derive), tm_(std::move(o.tm_)), ec_(std::move(o.ec_)) {}
+			base_caller(derive_t& d) noexcept
+				: derive(d), tm_(d.default_timeout()) {}
+			base_caller(base_caller&& o) noexcept
+				: derive(o.derive), tm_(std::move(o.tm_)), ec_(std::move(o.ec_)) {}
+
 			base_caller& operator=(base_caller&&) = delete;
 			base_caller(const base_caller&) = delete;
 			base_caller& operator=(const base_caller&) = delete;
@@ -585,18 +593,18 @@ namespace asio2::detail
 			~base_caller() = default;
 
 			template<class Rep, class Period>
-			inline base_caller& timeout(std::chrono::duration<Rep, Period> timeout)
+			inline base_caller& timeout(std::chrono::duration<Rep, Period> timeout) noexcept
 			{
 				this->tm_ = std::move(timeout);
 				return (*this);
 			}
 
-			inline sync_caller<derive_t> errcode(error_code& ec)
+			inline sync_caller<derive_t> errcode(error_code& ec) noexcept
 			{
 				sync_caller<derive_t> caller{ derive };
 				caller.timeout(std::move(this->tm_));
 				caller.errcode(ec);
-				return std::move(caller);
+				return caller; // "caller" is local variable has RVO optimization, should't use std::move()
 			}
 
 			template<class Callback>
@@ -605,7 +613,7 @@ namespace asio2::detail
 				async_caller<derive_t> caller{ derive };
 				caller.timeout(std::move(this->tm_));
 				caller.response(std::forward<Callback>(cb));
-				return std::move(caller);
+				return caller; // "caller" is local variable has RVO optimization, should't use std::move()
 			}
 
 			// If invoke synchronization rpc call function in communication thread, it will degenerates
@@ -623,7 +631,7 @@ namespace asio2::detail
 				async_caller<derive_t> caller{ derive };
 				caller.timeout(std::move(this->tm_));
 				caller.async_call(std::move(name), std::forward<Args>(args)...);
-				return std::move(caller);
+				return caller; // "caller" is local variable has RVO optimization, should't use std::move()
 			}
 
 		protected:
@@ -771,7 +779,7 @@ namespace asio2::detail
 		{
 			async_caller<derived_t> caller{ static_cast<derived_t&>(*this) };
 			caller.async_call(std::move(name), std::forward<Args>(args)...);
-			return std::move(caller);
+			return caller; // "caller" is local variable has RVO optimization, should't use std::move()
 		}
 
 		template<class Rep, class Period>
@@ -779,14 +787,14 @@ namespace asio2::detail
 		{
 			base_caller<derived_t> caller{ static_cast<derived_t&>(*this) };
 			caller.timeout(timeout);
-			return std::move(caller);
+			return caller; // "caller" is local variable has RVO optimization, should't use std::move()
 		}
 
 		inline sync_caller<derived_t> errcode(error_code& ec)
 		{
 			sync_caller<derived_t> caller{ static_cast<derived_t&>(*this) };
 			caller.errcode(ec);
-			return std::move(caller);
+			return caller; // "caller" is local variable has RVO optimization, should't use std::move()
 		}
 
 		template<class Callback>
@@ -794,7 +802,7 @@ namespace asio2::detail
 		{
 			async_caller<derived_t> caller{ static_cast<derived_t&>(*this) };
 			caller.response(std::forward<Callback>(cb));
-			return std::move(caller);
+			return caller; // "caller" is local variable has RVO optimization, should't use std::move()
 		}
 
 	protected:

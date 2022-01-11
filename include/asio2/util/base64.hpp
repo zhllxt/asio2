@@ -55,7 +55,7 @@ public:
  * @param c The character to test
  * @return true if c is a valid base64 character
  */
-inline bool is_base64(unsigned char c) {
+inline bool is_base64(unsigned char c) noexcept {
     return (c == 43 || // +
            (c >= 47 && c <= 57) || // /-9
            (c >= 65 && c <= 90) || // A-Z

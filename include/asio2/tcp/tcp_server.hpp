@@ -292,7 +292,7 @@ namespace asio2::detail
 		/**
 		 * @function : get the acceptor refrence
 		 */
-		inline asio::ip::tcp::acceptor & acceptor() { return this->acceptor_; }
+		inline asio::ip::tcp::acceptor & acceptor() noexcept { return this->acceptor_; }
 
 	protected:
 		template<typename String, typename StrOrInt, typename MatchCondition>

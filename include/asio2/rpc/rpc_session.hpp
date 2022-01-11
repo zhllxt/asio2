@@ -91,7 +91,7 @@ namespace asio2::detail
 		}
 
 	protected:
-		inline rpc_invoker_t<derived_t>& _invoker()
+		inline rpc_invoker_t<derived_t>& _invoker() noexcept
 		{
 			return (this->invoker_);
 		}

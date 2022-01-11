@@ -52,7 +52,7 @@ namespace asio2::detail
 		 */
 		template<class Rep, class Period>
 		[[deprecated("Replace reconnect with auto_reconnect")]]
-		inline derived_t& reconnect(bool enable, std::chrono::duration<Rep, Period> delay)
+		inline derived_t& reconnect(bool enable, std::chrono::duration<Rep, Period> delay) noexcept
 		{
 			this->reconnect_enable_ = enable;
 			if (this->reconnect_enable_)
@@ -66,7 +66,7 @@ namespace asio2::detail
 		 */
 		template<typename = void>
 		[[deprecated("Replace reconnect with auto_reconnect")]]
-		inline derived_t& reconnect(bool enable)
+		inline derived_t& reconnect(bool enable) noexcept
 		{
 			this->reconnect_enable_ = enable;
 			return static_cast<derived_t&>(*this);
@@ -79,7 +79,7 @@ namespace asio2::detail
 		 * false, the delay param is ignored
 		 */
 		template<class Rep, class Period>
-		inline derived_t& auto_reconnect(bool enable, std::chrono::duration<Rep, Period> delay)
+		inline derived_t& auto_reconnect(bool enable, std::chrono::duration<Rep, Period> delay) noexcept
 		{
 			this->reconnect_enable_ = enable;
 			this->reconnect_delay_  = delay;
@@ -91,7 +91,7 @@ namespace asio2::detail
 		 * @param : enable - whether reconnect or not
 		 */
 		template<typename = void>
-		inline derived_t& auto_reconnect(bool enable)
+		inline derived_t& auto_reconnect(bool enable) noexcept
 		{
 			this->reconnect_enable_ = enable;
 			return static_cast<derived_t&>(*this);

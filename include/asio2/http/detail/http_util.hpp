@@ -139,7 +139,7 @@ namespace boost::beast::http
 		}
 
 		template<typename = void>
-		bool has_unencode_char(std::string_view uri)
+		bool has_unencode_char(std::string_view uri) noexcept
 		{
 			using namespace std::literals;
 			std::string_view reserve = "!*();:@&=$,/?[]-_.~"sv;
@@ -443,7 +443,7 @@ namespace boost::beast::http
 		 * @function : Returns `true` if the HTTP message's Content-Type is "multipart/form-data";
 		 */
 		template<class HttpMessage>
-		inline bool has_multipart(const HttpMessage& msg)
+		inline bool has_multipart(const HttpMessage& msg) noexcept
 		{
 			return (asio2::ifind(msg[http::field::content_type], "multipart/form-data") != std::string_view::npos);
 		}

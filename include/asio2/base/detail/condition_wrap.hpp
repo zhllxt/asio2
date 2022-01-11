@@ -33,7 +33,7 @@ namespace asio2::detail
 	{
 		using iterator = asio::buffers_iterator<asio::streambuf::const_buffers_type>;
 		using diff_type = typename iterator::difference_type;
-		std::pair<iterator, bool> dgram_match_role(iterator begin, iterator end)
+		std::pair<iterator, bool> dgram_match_role(iterator begin, iterator end) noexcept
 		{
 			for (iterator p = begin; p < end;)
 			{
@@ -121,17 +121,18 @@ namespace asio2::detail
 	public:
 		using type = T;
 
-		condition_traits(condition_traits&&) = default;
+		condition_traits(condition_traits&&) noexcept = default;
 		condition_traits(condition_traits const&) = default;
-		condition_traits& operator=(condition_traits&&) = default;
+		condition_traits& operator=(condition_traits&&) noexcept = default;
 		condition_traits& operator=(condition_traits const&) = default;
 
 		// must use explicit, Otherwise, there will be an error when there are the following
 		// statements: condition_traits<char> c1; auto c2 = c1;
-		template<class MT>
-		explicit condition_traits(MT c) : condition_(std::move(c)) {}
+		template<class MT, std::enable_if_t<
+			!std::is_base_of_v<condition_traits, detail::remove_cvref_t<MT>>, int> = 0>
+		explicit condition_traits(MT c) noexcept : condition_(std::move(c)) {}
 
-		inline T& operator()() { return this->condition_; }
+		inline T& operator()() noexcept { return this->condition_; }
 
 	protected:
 		T condition_;
@@ -147,14 +148,15 @@ namespace asio2::detail
 	public:
 		using type = void;
 
-		condition_traits(condition_traits&&) = default;
-		condition_traits(condition_traits const&) = default;
-		condition_traits& operator=(condition_traits&&) = default;
-		condition_traits& operator=(condition_traits const&) = default;
+		condition_traits(condition_traits&&) noexcept = default;
+		condition_traits(condition_traits const&) noexcept = default;
+		condition_traits& operator=(condition_traits&&) noexcept = default;
+		condition_traits& operator=(condition_traits const&) noexcept = default;
 
-		condition_traits() = default;
+		 condition_traits() noexcept = default;
+		~condition_traits() noexcept = default;
 
-		inline void operator()() {}
+		inline void operator()() noexcept {}
 	};
 
 	template<>
@@ -163,14 +165,15 @@ namespace asio2::detail
 	public:
 		using type = use_dgram_t;
 
-		condition_traits(condition_traits&&) = default;
-		condition_traits(condition_traits const&) = default;
-		condition_traits& operator=(condition_traits&&) = default;
-		condition_traits& operator=(condition_traits const&) = default;
+		condition_traits(condition_traits&&) noexcept = default;
+		condition_traits(condition_traits const&) noexcept = default;
+		condition_traits& operator=(condition_traits&&) noexcept = default;
+		condition_traits& operator=(condition_traits const&) noexcept = default;
 
-		explicit condition_traits(use_dgram_t) {}
+		explicit condition_traits(use_dgram_t) noexcept {}
+		~condition_traits() noexcept = default;
 
-		inline auto& operator()() { return dgram_match_role; }
+		inline auto& operator()() noexcept { return dgram_match_role; }
 
 	protected:
 	};
@@ -181,14 +184,15 @@ namespace asio2::detail
 	public:
 		using type = use_kcp_t;
 
-		condition_traits(condition_traits&&) = default;
-		condition_traits(condition_traits const&) = default;
-		condition_traits& operator=(condition_traits&&) = default;
-		condition_traits& operator=(condition_traits const&) = default;
+		condition_traits(condition_traits&&) noexcept = default;
+		condition_traits(condition_traits const&) noexcept = default;
+		condition_traits& operator=(condition_traits&&) noexcept = default;
+		condition_traits& operator=(condition_traits const&) noexcept = default;
 
-		explicit condition_traits(use_kcp_t) {}
+		explicit condition_traits(use_kcp_t) noexcept {}
+		~condition_traits() noexcept = default;
 
-		inline asio::detail::transfer_at_least_t operator()() { return asio::transfer_at_least(1); }
+		inline asio::detail::transfer_at_least_t operator()() noexcept { return asio::transfer_at_least(1); }
 
 	protected:
 	};
@@ -199,14 +203,15 @@ namespace asio2::detail
 	public:
 		using type = hook_buffer_t;
 
-		condition_traits(condition_traits&&) = default;
-		condition_traits(condition_traits const&) = default;
-		condition_traits& operator=(condition_traits&&) = default;
-		condition_traits& operator=(condition_traits const&) = default;
+		condition_traits(condition_traits&&) noexcept = default;
+		condition_traits(condition_traits const&) noexcept = default;
+		condition_traits& operator=(condition_traits&&) noexcept = default;
+		condition_traits& operator=(condition_traits const&) noexcept = default;
 
-		explicit condition_traits(hook_buffer_t) {}
+		explicit condition_traits(hook_buffer_t) noexcept {}
+		~condition_traits() noexcept = default;
 
-		inline asio::detail::transfer_at_least_t operator()() { return asio::transfer_at_least(1); }
+		inline asio::detail::transfer_at_least_t operator()() noexcept { return asio::transfer_at_least(1); }
 
 	protected:
 	};
@@ -241,16 +246,16 @@ namespace asio2::detail
 		{
 		}
 
-		inline decltype(auto) operator()() { return condition_(); }
+		inline decltype(auto) operator()() noexcept { return condition_(); }
 
 		template<typename = void>
-		static constexpr bool has_rdc()
+		static constexpr bool has_rdc() noexcept
 		{
 			return (is_template_instance_of_v<asio2::rdc::option, Args> || ...);
 		}
 
 		template<std::size_t I, typename T1, typename... TN>
-		static constexpr std::size_t rdc_index_helper()
+		static constexpr std::size_t rdc_index_helper() noexcept
 		{
 			if constexpr (is_template_instance_of_v<asio2::rdc::option, T1>)
 				return I;
@@ -264,25 +269,25 @@ namespace asio2::detail
 		}
 
 		template<typename = void>
-		static constexpr std::size_t rdc_index()
+		static constexpr std::size_t rdc_index() noexcept
 		{
 			return rdc_index_helper<0, Args...>();
 		}
 
 		template<class Tag, std::enable_if_t<std::is_same_v<Tag, std::in_place_t>, int> = 0>
-		typename components<rdc_index()>::type& rdc_option(Tag)
+		typename components<rdc_index()>::type& rdc_option(Tag) noexcept
 		{
 			return std::get<rdc_index()>(components_);
 		}
 
 		template<typename = void>
-		static constexpr bool has_socks5()
+		static constexpr bool has_socks5() noexcept
 		{
 			return (std::is_base_of_v<asio2::socks5::detail::option_base, Args> || ...);
 		}
 
 		template<std::size_t I, typename T1, typename... TN>
-		static constexpr std::size_t socks5_index_helper()
+		static constexpr std::size_t socks5_index_helper() noexcept
 		{
 			if constexpr (std::is_base_of_v<asio2::socks5::detail::option_base, T1>)
 				return I;
@@ -296,13 +301,13 @@ namespace asio2::detail
 		}
 
 		template<typename = void>
-		static constexpr std::size_t socks5_index()
+		static constexpr std::size_t socks5_index() noexcept
 		{
 			return socks5_index_helper<0, Args...>();
 		}
 
 		template<class Tag, std::enable_if_t<std::is_same_v<Tag, std::in_place_t>, int> = 0>
-		typename components<socks5_index()>::type& socks5_option(Tag)
+		typename components<socks5_index()>::type& socks5_option(Tag) noexcept
 		{
 			return std::get<socks5_index()>(components_);
 		}
@@ -325,15 +330,16 @@ namespace asio2::detail
 		using traits_type = condition_traits<T>;
 		using condition_type = typename traits_type::type;
 
-		condition_wrap(condition_wrap&&) = default;
+		condition_wrap(condition_wrap&&) noexcept = default;
 		condition_wrap(condition_wrap const&) = default;
-		condition_wrap& operator=(condition_wrap&&) = default;
+		condition_wrap& operator=(condition_wrap&&) noexcept = default;
 		condition_wrap& operator=(condition_wrap const&) = default;
 
-		template<class MT>
-		explicit condition_wrap(MT c) : impl_(std::move(c)) {}
+		template<class MT, std::enable_if_t<
+			!std::is_base_of_v<condition_wrap, detail::remove_cvref_t<MT>>, int> = 0>
+		explicit condition_wrap(MT c) noexcept : impl_(std::move(c)) {}
 
-		inline decltype(auto) operator()() { return impl_(); }
+		inline decltype(auto) operator()() noexcept { return impl_(); }
 
 	protected:
 		traits_type impl_;
@@ -350,12 +356,13 @@ namespace asio2::detail
 		using type = void;
 		using condition_type = void;
 
-		condition_wrap(condition_wrap&&) = default;
-		condition_wrap(condition_wrap const&) = default;
-		condition_wrap& operator=(condition_wrap&&) = default;
-		condition_wrap& operator=(condition_wrap const&) = default;
+		condition_wrap(condition_wrap&&) noexcept = default;
+		condition_wrap(condition_wrap const&) noexcept = default;
+		condition_wrap& operator=(condition_wrap&&) noexcept = default;
+		condition_wrap& operator=(condition_wrap const&) noexcept = default;
 
-		condition_wrap() = default;
+		 condition_wrap() noexcept = default;
+		~condition_wrap() noexcept = default;
 	};
 
 	template<class ConditionT, class... Args>
@@ -365,16 +372,17 @@ namespace asio2::detail
 		using traits_type = ecs_t<ConditionT, Args...>;
 		using condition_type = typename traits_type::type;
 
-		condition_wrap(condition_wrap&&) = default;
+		condition_wrap(condition_wrap&&) noexcept = default;
 		condition_wrap(condition_wrap const&) = default;
-		condition_wrap& operator=(condition_wrap&&) = default;
+		condition_wrap& operator=(condition_wrap&&) noexcept = default;
 		condition_wrap& operator=(condition_wrap const&) = default;
 
-		template<class ECST>
+		template<class ECST, std::enable_if_t<
+			!std::is_base_of_v<condition_wrap, detail::remove_cvref_t<ECST>>, int> = 0>
 		explicit condition_wrap(ECST c)
 			: impl_(std::make_shared<detail::remove_cvref_t<ECST>>(std::move(c))) {}
 
-		inline decltype(auto) operator()() { return (*impl_)(); }
+		inline decltype(auto) operator()() noexcept { return (*impl_)(); }
 
 		std::shared_ptr<traits_type> impl_;
 	};
@@ -385,11 +393,11 @@ namespace asio2::detail
 	struct condition_helper
 	{
 		template<class T>
-		static constexpr bool is_component()
+		static constexpr bool is_component() noexcept
 		{
 			using type = detail::remove_cvref_t<T>;
 
-			if constexpr /**/ (is_template_instance_of_v<asio2::rdc::option, type>)
+			if /**/ constexpr (is_template_instance_of_v<asio2::rdc::option, type>)
 				return true;
 			else if constexpr (std::is_base_of_v<asio2::socks5::detail::option_base, type>)
 				return true;
@@ -398,7 +406,7 @@ namespace asio2::detail
 		}
 
 		template<class... Args>
-		static constexpr bool has_match_condition()
+		static constexpr bool has_match_condition() noexcept
 		{
 			if constexpr (sizeof...(Args) == std::size_t(0))
 				return false;
@@ -409,7 +417,7 @@ namespace asio2::detail
 		// use "DefaultConditionT c, Args... args", not use "DefaultConditionT&& c, Args&&... args"
 		// to avoid the "c and args..." variables being references
 		template<class DefaultConditionT, class... Args>
-		static constexpr auto make_condition(DefaultConditionT c, Args... args)
+		static constexpr auto make_condition(DefaultConditionT c, Args... args) noexcept
 		{
 			detail::ignore_unused(c);
 
@@ -430,7 +438,7 @@ namespace asio2::detail
 		}
 
 		template<typename MatchCondition>
-		static constexpr bool has_rdc()
+		static constexpr bool has_rdc() noexcept
 		{
 			if constexpr (is_template_instance_of_v<ecs_t, MatchCondition>)
 			{
@@ -443,7 +451,7 @@ namespace asio2::detail
 		}
 
 		template<typename MatchCondition>
-		static constexpr bool has_socks5()
+		static constexpr bool has_socks5() noexcept
 		{
 			if constexpr (is_template_instance_of_v<ecs_t, MatchCondition>)
 			{

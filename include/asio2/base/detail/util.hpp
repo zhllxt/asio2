@@ -101,13 +101,14 @@ namespace asio2::detail
 	static std::size_t constexpr max_buffer_size = (std::numeric_limits<std::size_t>::max)();
 
 	// std::thread::hardware_concurrency() is not constexpr, so use it with function form
-	inline std::size_t default_concurrency() { return std::thread::hardware_concurrency() * 2; }
+	template<typename = void>
+	inline std::size_t default_concurrency() noexcept { return std::thread::hardware_concurrency() * 2; }
 }
 
 namespace asio2::detail
 {
 	template <typename Enumeration>
-	inline constexpr auto to_underlying(Enumeration const value) ->
+	inline constexpr auto to_underlying(Enumeration const value) noexcept ->
 		typename std::underlying_type<Enumeration>::type
 	{
 		return static_cast<typename std::underlying_type<Enumeration>::type>(value);
@@ -116,7 +117,8 @@ namespace asio2::detail
 	/**
 	 * BKDR Hash Function
 	 */
-	inline std::size_t bkdr_hash(const unsigned char * const p, std::size_t size)
+	template<typename = void>
+	inline std::size_t bkdr_hash(const unsigned char * const p, std::size_t size) noexcept
 	{
 		std::size_t v = 0;
 		for (std::size_t i = 0; i < size; ++i)
@@ -168,7 +170,7 @@ namespace asio2::detail
 	// struct that ignores assignments
 	struct ignore
 	{
-		template<class ...Args> ignore(const Args&...) {}
+		template<class ...Args> ignore(const Args&...) noexcept {}
 
 		template<class T>
 		constexpr const ignore& operator=(const T&) const noexcept	// strengthened
@@ -182,10 +184,10 @@ namespace asio2::detail
 	};
 
 	template <typename... Ts>
-	inline constexpr void ignore_unused(Ts const& ...) {}
+	inline constexpr void ignore_unused(Ts const& ...) noexcept {}
 
 	template <typename... Ts>
-	inline constexpr void ignore_unused() {}
+	inline constexpr void ignore_unused() noexcept {}
 
 	template<class T>
 	class copyable_wrapper
@@ -194,15 +196,15 @@ namespace asio2::detail
 		using value_type = T;
 
 		template<typename ...Args>
-		copyable_wrapper(Args&&... args) : raw(std::forward<Args>(args)...) { }
+		copyable_wrapper(Args&&... args) noexcept : raw(std::forward<Args>(args)...) { }
 		template<typename = void>
-		copyable_wrapper(T&& o) : raw(std::move(o)) { }
+		copyable_wrapper(T&& o) noexcept : raw(std::move(o)) { }
 
-		copyable_wrapper(copyable_wrapper&&) = default;
-		copyable_wrapper& operator=(copyable_wrapper&&) = default;
+		copyable_wrapper(copyable_wrapper&&) noexcept = default;
+		copyable_wrapper& operator=(copyable_wrapper&&) noexcept = default;
 
-		copyable_wrapper(copyable_wrapper const& r) : raw(const_cast<T&&>(r.raw)) { }
-		copyable_wrapper& operator=(copyable_wrapper const& r) { raw = const_cast<T&&>(r.raw); }
+		copyable_wrapper(copyable_wrapper const& r) noexcept : raw(const_cast<T&&>(r.raw)) { }
+		copyable_wrapper& operator=(copyable_wrapper const& r) noexcept { raw = const_cast<T&&>(r.raw); }
 
 		T& operator()() noexcept { return raw; }
 
@@ -249,7 +251,7 @@ namespace asio2::detail
 	class id_maker
 	{
 	public:
-		id_maker(T init = static_cast<T>(1)) : id(init)
+		id_maker(T init = static_cast<T>(1)) noexcept : id(init)
 		{
 			if constexpr (isIntegral)
 			{
@@ -268,7 +270,7 @@ namespace asio2::detail
 				static_assert(true);
 			}
 		}
-		inline T mkid()
+		inline T mkid() noexcept
 		{
 			if constexpr (SkipZero)
 			{
@@ -517,7 +519,8 @@ namespace asio2::detail
 	}
 
 	// Returns true if the current machine is little endian
-	inline bool is_little_endian()
+	template<typename = void>
+	inline bool is_little_endian() noexcept
 	{
 		static std::int32_t test = 1;
 		return (*reinterpret_cast<std::int8_t*>(&test) == 1);
@@ -529,14 +532,14 @@ namespace asio2::detail
 	 * @tparam DataSize The true size of the data
 	 */
 	template <std::size_t DataSize>
-	inline void swap_bytes(std::uint8_t * data)
+	inline void swap_bytes(std::uint8_t * data) noexcept
 	{
 		for (std::size_t i = 0, end = DataSize / 2; i < end; ++i)
 			std::swap(data[i], data[DataSize - i - 1]);
 	}
 
 	template<class T, class Pointer>
-	inline void write(Pointer& p, T v)
+	inline void write(Pointer& p, T v) noexcept
 	{
 		if constexpr (int(sizeof(T)) > 1)
 		{
@@ -560,7 +563,7 @@ namespace asio2::detail
 	}
 
 	template<class T, class Pointer>
-	inline T read(Pointer& p)
+	inline T read(Pointer& p) noexcept
 	{
 		T v{};
 
@@ -618,8 +621,8 @@ namespace asio2::detail
 	template<class Integer>
 	struct integer_add_sub_guard
 	{
-		 integer_add_sub_guard(Integer& v) : v_(v) { ++v_; }
-		~integer_add_sub_guard()                   { --v_; }
+		 integer_add_sub_guard(Integer& v) noexcept : v_(v) { ++v_; }
+		~integer_add_sub_guard()           noexcept         { --v_; }
 
 		Integer& v_;
 	};
@@ -632,17 +635,17 @@ namespace asio2::detail
 namespace asio2
 {
 	template <typename Enumeration>
-	inline constexpr auto to_underlying(Enumeration const value) ->
+	inline constexpr auto to_underlying(Enumeration const value) noexcept ->
 		typename std::underlying_type<Enumeration>::type
 	{
 		return static_cast<typename std::underlying_type<Enumeration>::type>(value);
 	}
 
 	template <typename... Ts>
-	inline constexpr void ignore_unused(Ts const& ...) {}
+	inline constexpr void ignore_unused(Ts const& ...) noexcept {}
 
 	template <typename... Ts>
-	inline constexpr void ignore_unused() {}
+	inline constexpr void ignore_unused() noexcept {}
 }
 
 // custom specialization of std::hash can be injected in namespace std

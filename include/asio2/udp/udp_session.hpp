@@ -147,7 +147,7 @@ namespace asio2::detail
 		/**
 		 * @function : get the remote address
 		 */
-		inline std::string remote_address()
+		inline std::string remote_address() const
 		{
 			try
 			{
@@ -160,7 +160,7 @@ namespace asio2::detail
 		/**
 		 * @function : get the remote port
 		 */
-		inline unsigned short remote_port()
+		inline unsigned short remote_port() const noexcept
 		{
 			try
 			{
@@ -173,7 +173,7 @@ namespace asio2::detail
 		/**
 		 * @function : get this object hash key,used for session map
 		 */
-		inline const key_type & hash_key() const
+		inline const key_type & hash_key() const noexcept
 		{
 			return this->remote_endpoint_;
 		}
@@ -184,7 +184,7 @@ namespace asio2::detail
 		 * generic mode : ikcp_nodelay(kcp, 0, 10, 0, 1);
 		 * fast    mode : ikcp_nodelay(kcp, 1, 10, 2, 1);
 		 */
-		inline kcp::ikcpcb* kcp()
+		inline kcp::ikcpcb* kcp() noexcept
 		{
 			return (this->kcp_ ? this->kcp_->kcp_ : nullptr);
 		}
@@ -330,7 +330,7 @@ namespace asio2::detail
 		}
 
 		template<class Data>
-		inline send_data_t _rdc_convert_to_send_data(Data& data)
+		inline send_data_t _rdc_convert_to_send_data(Data& data) noexcept
 		{
 			auto buffer = asio::buffer(data);
 			return send_data_t{ reinterpret_cast<
@@ -454,11 +454,11 @@ namespace asio2::detail
 		/**
 		 * @function : get the recv/read allocator object refrence
 		 */
-		inline auto & rallocator() { return this->wallocator_; }
+		inline auto & rallocator() noexcept { return this->wallocator_; }
 		/**
 		 * @function : get the send/write allocator object refrence
 		 */
-		inline auto & wallocator() { return this->wallocator_; }
+		inline auto & wallocator() noexcept { return this->wallocator_; }
 
 	protected:
 		/// buffer

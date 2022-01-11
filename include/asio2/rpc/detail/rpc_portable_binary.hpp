@@ -42,7 +42,7 @@ namespace cereal
   {
     //! Returns true if the current machine is little endian
     /*! @ingroup Internal */
-    inline std::uint8_t is_little_endian()
+    inline std::uint8_t is_little_endian() noexcept
     {
       static std::int32_t test = 1;
       return *reinterpret_cast<std::int8_t*>( &test ) == 1;
@@ -53,7 +53,7 @@ namespace cereal
         @tparam DataSize The true size of the data
         @ingroup Internal */
     template <std::size_t DataSize>
-    inline void swap_bytes( std::uint8_t * data )
+    inline void swap_bytes( std::uint8_t * data ) noexcept
     {
       for( std::size_t i = 0, end = DataSize / 2; i < end; ++i )
         std::swap( data[i], data[DataSize - i - 1] );
@@ -90,26 +90,26 @@ namespace cereal
           { big, little };
 
           //! Default options, preserve system endianness
-          static Options Default(){ return Options(); }
+          static Options Default() noexcept { return Options(); }
 
           //! Save as little endian
-          static Options LittleEndian(){ return Options( Endianness::little ); }
+          static Options LittleEndian() noexcept { return Options( Endianness::little ); }
 
           //! Save as big endian
-          static Options BigEndian(){ return Options( Endianness::big ); }
+          static Options BigEndian() noexcept { return Options( Endianness::big ); }
 
           //! Specify specific options for the RPCPortableBinaryOutputArchive
           /*! @param outputEndian The desired endianness of saved (output) data */
-          explicit Options( Endianness outputEndian = getEndianness() ) :
+          explicit Options( Endianness outputEndian = getEndianness() ) noexcept :
             itsOutputEndianness( outputEndian ) { }
 
         private:
           //! Gets the endianness of the system
-          inline static Endianness getEndianness()
+          inline static Endianness getEndianness() noexcept
           { return rpc_portable_binary_detail::is_little_endian() ? Endianness::little : Endianness::big; }
 
           //! Checks if Options is set for little endian
-          inline std::uint8_t is_little_endian() const
+          inline std::uint8_t is_little_endian() const noexcept
           { return itsOutputEndianness == Endianness::little; }
 
           friend class RPCPortableBinaryOutputArchive;
@@ -208,26 +208,26 @@ namespace cereal
           { big, little };
 
           //! Default options, preserve system endianness
-          static Options Default(){ return Options(); }
+          static Options Default() noexcept { return Options(); }
 
           //! Load into little endian
-          static Options LittleEndian(){ return Options( Endianness::little ); }
+          static Options LittleEndian() noexcept { return Options( Endianness::little ); }
 
           //! Load into big endian
-          static Options BigEndian(){ return Options( Endianness::big ); }
+          static Options BigEndian() noexcept { return Options( Endianness::big ); }
 
           //! Specify specific options for the RPCPortableBinaryInputArchive
           /*! @param inputEndian The desired endianness of loaded (input) data */
-          explicit Options( Endianness inputEndian = getEndianness() ) :
+          explicit Options( Endianness inputEndian = getEndianness() ) noexcept :
             itsInputEndianness( inputEndian ) { }
 
         private:
           //! Gets the endianness of the system
-          inline static Endianness getEndianness()
+          inline static Endianness getEndianness() noexcept
           { return rpc_portable_binary_detail::is_little_endian() ? Endianness::little : Endianness::big; }
 
           //! Checks if Options is set for little endian
-          inline std::uint8_t is_little_endian() const
+          inline std::uint8_t is_little_endian() const noexcept
           { return itsInputEndianness == Endianness::little; }
 
           friend class RPCPortableBinaryInputArchive;

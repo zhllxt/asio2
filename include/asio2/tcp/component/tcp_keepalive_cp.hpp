@@ -34,7 +34,7 @@ namespace asio2::detail
 	class tcp_keepalive_cp
 	{
 	public:
-		tcp_keepalive_cp(typename args_t::socket_t& socket) : socket_ref_(socket) {}
+		tcp_keepalive_cp(typename args_t::socket_t& socket) noexcept : socket_ref_(socket) {}
 		~tcp_keepalive_cp() = default;
 
 		/**
@@ -49,7 +49,7 @@ namespace asio2::detail
 			unsigned int idle = 60,
 			unsigned int interval = 3,
 			unsigned int count = 3
-		)
+		) noexcept
 		{
 			try
 			{

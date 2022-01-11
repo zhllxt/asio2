@@ -41,9 +41,9 @@ namespace asio2
 		/// Destructor
 		~basic_linear_buffer() = default;
 
-		basic_linear_buffer() = default;
+		 basic_linear_buffer() = default;
 
-		explicit basic_linear_buffer(size_type max) : Container(), max_(max) {}
+		explicit basic_linear_buffer(size_type max) noexcept : Container(), max_(max) {}
 
 		basic_linear_buffer(basic_linear_buffer&& other) = default;
 		basic_linear_buffer(basic_linear_buffer const& other) = default;
@@ -52,25 +52,25 @@ namespace asio2
 		basic_linear_buffer& operator=(basic_linear_buffer const& other) = default;
 
 		/// Returns the size of the input sequence.
-		inline size_type size() const
+		inline size_type size() const noexcept
 		{
 			return (wpos_ - rpos_);
 		}
 
 		/// Return the maximum sum of the input and output sequence sizes.
-		inline size_type max_size() const
+		inline size_type max_size() const noexcept
 		{
 			return max_;
 		}
 
 		/// Return the maximum sum of input and output sizes that can be held without an allocation.
-		inline size_type capacity() const
+		inline size_type capacity() const noexcept
 		{
 			return Container::capacity();
 		}
 
 		/// Get a list of buffers that represent the input sequence.
-		inline const_buffers_type data() const
+		inline const_buffers_type data() const noexcept
 		{
 			return { Container::data() + rpos_, wpos_ - rpos_ };
 		}
@@ -124,7 +124,7 @@ namespace asio2
 			@note All previous buffers sequences obtained from
 			calls to @ref data or @ref prepare are invalidated.
 		*/
-		inline void commit(size_type n)
+		inline void commit(size_type n) noexcept
 		{
 			wpos_ += (std::min<size_type>)(n, Container::size() - wpos_);
 		}
@@ -137,7 +137,7 @@ namespace asio2
 			@note All previous buffers sequences obtained from
 			calls to @ref data or @ref prepare are invalidated.
 		*/
-		inline void consume(size_type n)
+		inline void consume(size_type n) noexcept
 		{
 			if (n >= wpos_ - rpos_)
 			{

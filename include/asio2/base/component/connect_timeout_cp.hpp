@@ -45,13 +45,16 @@ namespace asio2::detail
 		/**
 		 * @function : get the connect timeout
 		 */
-		inline std::chrono::steady_clock::duration connect_timeout() { return this->connect_timeout_; }
+		inline std::chrono::steady_clock::duration connect_timeout() noexcept
+		{
+			return this->connect_timeout_;
+		}
 
 		/**
 		 * @function : set the connect timeout
 		 */
 		template<class Rep, class Period>
-		inline derived_t& connect_timeout(std::chrono::duration<Rep, Period> timeout)
+		inline derived_t& connect_timeout(std::chrono::duration<Rep, Period> timeout) noexcept
 		{
 			this->connect_timeout_ = timeout;
 			return static_cast<derived_t&>(*this);
@@ -221,12 +224,12 @@ namespace asio2::detail
 			catch (std::exception&) {}
 		}
 
-		inline bool _is_connect_timeout()
+		inline bool _is_connect_timeout() const noexcept
 		{
 			return this->connect_timeout_flag_.load();
 		}
 
-		inline asio::error_code _connect_error_code()
+		inline asio::error_code _connect_error_code() noexcept
 		{
 			return this->connect_error_code_;
 		}

@@ -31,9 +31,9 @@ namespace asio2::socks5::detail
 	{
 	public:
 		method_field() = default;
-		method_field(method_field&&) = default;
+		method_field(method_field&&) noexcept = default;
 		method_field(method_field const&) = default;
-		method_field& operator=(method_field&&) = default;
+		method_field& operator=(method_field&&) noexcept = default;
 		method_field& operator=(method_field const&) = default;
 
 		method_field(std::string username, std::string password)
@@ -56,8 +56,8 @@ namespace asio2::socks5::detail
 			return static_cast<derived_t&>(*this);
 		}
 
-		inline std::string& username() { return  username_; }
-		inline std::string& password() { return  password_; }
+		inline std::string& username() noexcept { return  username_; }
+		inline std::string& password() noexcept { return  password_; }
 
 	protected:
 		std::string username_{};
@@ -136,18 +136,18 @@ namespace asio2::socks5
 			return (*this);
 		}
 
-		inline std::string& host() { return host_; }
-		inline std::string& port() { return port_; }
+		inline std::string& host() noexcept { return host_; }
+		inline std::string& port() noexcept { return port_; }
 
 		// vs2017 15.9.31 not supported
 		//constexpr static bool has_password_method = ((ms == method::password) || ...);
 		template<typename = void>
-		constexpr static bool has_password_method()
+		constexpr static bool has_password_method() noexcept
 		{
 			return ((ms == method::password) || ...);
 		}
 
-		inline std::array<method, sizeof...(ms)> methods()
+		inline std::array<method, sizeof...(ms)> methods() noexcept
 		{
 			return methods_;
 		}
@@ -157,9 +157,9 @@ namespace asio2::socks5
 			return methods_.size();
 		}
 
-		inline socks5::command command()                    { return cmd_;                }
+		inline socks5::command command()                    noexcept { return cmd_;                }
 
-		inline option&         command(socks5::command cmd) { cmd_ = cmd; return (*this); }
+		inline option&         command(socks5::command cmd) noexcept { cmd_ = cmd; return (*this); }
 
 	protected:
 		std::array<method, sizeof...(ms)> methods_{ ms... };

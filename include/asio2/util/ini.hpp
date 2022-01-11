@@ -110,7 +110,7 @@ namespace asio2
 	struct convert<bool>
 	{
 		template<typename = void>
-		inline static char ascii_tolower(char c)
+		inline static char ascii_tolower(char c) noexcept
 		{
 			return char(((static_cast<unsigned>(c) - 65U) < 26) ? c + 'a' - 'A' : c);
 		}
@@ -119,7 +119,7 @@ namespace asio2
 		 * @function : Returns `true` if two strings are equal, using a case-insensitive comparison.
 		 */
 		template<typename = void>
-		inline static bool iequals(std::string_view lhs, std::string_view rhs)
+		inline static bool iequals(std::string_view lhs, std::string_view rhs) noexcept
 		{
 			auto n = lhs.size();
 			if (rhs.size() != n)

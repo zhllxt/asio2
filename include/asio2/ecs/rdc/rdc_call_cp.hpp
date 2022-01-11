@@ -415,7 +415,7 @@ namespace asio2::detail
 				sync_caller<derive_t, arg_t> caller{ derive };
 				caller.timeout(std::move(this->tm_));
 				caller.errcode(ec);
-				return std::move(caller);
+				return caller; // "caller" is local variable has RVO optimization, should't use std::move()
 			}
 
 			template<class Callback>
@@ -424,7 +424,7 @@ namespace asio2::detail
 				async_caller<derive_t, arg_t> caller{ derive };
 				caller.timeout(std::move(this->tm_));
 				caller.response(std::forward<Callback>(cb));
-				return std::move(caller);
+				return caller; // "caller" is local variable has RVO optimization, should't use std::move()
 			}
 
 			template<class return_t, class DataT>
@@ -440,7 +440,7 @@ namespace asio2::detail
 				async_caller<derive_t, arg_t> caller{ derive };
 				caller.timeout(std::move(this->tm_));
 				caller.async_call(std::forward<DataT>(data));
-				return std::move(caller);
+				return caller; // "caller" is local variable has RVO optimization, should't use std::move()
 			}
 
 		protected:
@@ -534,7 +534,7 @@ namespace asio2::detail
 		{
 			async_caller<derived_t, args_t> caller{ static_cast<derived_t&>(*this) };
 			caller.async_call(std::forward<DataT>(data));
-			return std::move(caller);
+			return caller; // "caller" is local variable has RVO optimization, should't use std::move()
 		}
 
 		template<class Rep, class Period>
@@ -542,14 +542,14 @@ namespace asio2::detail
 		{
 			base_caller<derived_t, args_t> caller{ static_cast<derived_t&>(*this) };
 			caller.timeout(timeout);
-			return std::move(caller);
+			return caller; // "caller" is local variable has RVO optimization, should't use std::move()
 		}
 
 		inline sync_caller<derived_t, args_t> errcode(error_code& ec)
 		{
 			sync_caller<derived_t, args_t> caller{ static_cast<derived_t&>(*this) };
 			caller.errcode(ec);
-			return std::move(caller);
+			return caller; // "caller" is local variable has RVO optimization, should't use std::move()
 		}
 
 		template<class Callback>
@@ -557,7 +557,7 @@ namespace asio2::detail
 		{
 			async_caller<derived_t, args_t> caller{ static_cast<derived_t&>(*this) };
 			caller.response(std::forward<Callback>(cb));
-			return std::move(caller);
+			return caller; // "caller" is local variable has RVO optimization, should't use std::move()
 		}
 	
 	protected:

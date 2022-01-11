@@ -37,7 +37,7 @@ namespace asio2::detail
 		/**
 		 * @constructor
 		 */
-		rpc_recv_op() {}
+		rpc_recv_op() noexcept {}
 
 		/**
 		 * @destructor

@@ -55,7 +55,7 @@ namespace asio2::detail
 			bind(std::forward<T>(id));
 		}
 
-		inline bool operator==(const user_timer_handle& r) const
+		inline bool operator==(const user_timer_handle& r) const noexcept
 		{
 			return (r.handle == this->handle);
 		}
@@ -131,7 +131,7 @@ namespace asio2::detail
 
 	struct user_timer_handle_hash
 	{
-		inline std::size_t operator()(const user_timer_handle& k) const
+		inline std::size_t operator()(const user_timer_handle& k) const noexcept
 		{
 			return std::hash<std::string>{}(k.handle);
 		}
@@ -139,7 +139,7 @@ namespace asio2::detail
 
 	struct user_timer_handle_equal
 	{
-		inline bool operator()(const user_timer_handle& lhs, const user_timer_handle& rhs) const
+		inline bool operator()(const user_timer_handle& lhs, const user_timer_handle& rhs) const noexcept
 		{
 			return lhs.handle == rhs.handle;
 		}
@@ -171,7 +171,7 @@ namespace asio2::detail
 		/**
 		 * @destructor
 		 */
-		~user_timer_cp() {}
+		~user_timer_cp() noexcept {}
 
 	public:
 		/**

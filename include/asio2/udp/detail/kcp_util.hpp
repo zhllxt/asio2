@@ -135,7 +135,7 @@ namespace asio2::detail::kcp
 	}
 
 	template<typename = void>
-	kcphdr to_kcphdr(std::string_view s)
+	kcphdr to_kcphdr(std::string_view s) noexcept
 	{
 		kcphdr hdr{};
 
@@ -154,7 +154,7 @@ namespace asio2::detail::kcp
 	}
 
 	template<typename = void>
-	unsigned short checksum(unsigned short * addr, int size)
+	unsigned short checksum(unsigned short * addr, int size) noexcept
 	{
 		long sum = 0;
 		while (size > 1)
@@ -174,7 +174,7 @@ namespace asio2::detail::kcp
 	}
 
 	template<typename = void>
-	inline bool is_kcphdr_syn(std::string_view s)
+	inline bool is_kcphdr_syn(std::string_view s) noexcept
 	{
 		if (s.size() != kcphdr::required_size())
 			return false;
@@ -190,7 +190,7 @@ namespace asio2::detail::kcp
 	}
 
 	template<typename = void>
-	inline bool is_kcphdr_synack(std::string_view s, std::uint32_t seq)
+	inline bool is_kcphdr_synack(std::string_view s, std::uint32_t seq) noexcept
 	{
 		if (s.size() != kcphdr::required_size())
 			return false;
@@ -209,7 +209,7 @@ namespace asio2::detail::kcp
 	}
 
 	template<typename = void>
-	inline bool is_kcphdr_ack(std::string_view s, std::uint32_t seq)
+	inline bool is_kcphdr_ack(std::string_view s, std::uint32_t seq) noexcept
 	{
 		if (s.size() != kcphdr::required_size())
 			return false;
@@ -228,7 +228,7 @@ namespace asio2::detail::kcp
 	}
 
 	template<typename = void>
-	inline bool is_kcphdr_fin(std::string_view s)
+	inline bool is_kcphdr_fin(std::string_view s) noexcept
 	{
 		if (s.size() != kcphdr::required_size())
 			return false;
@@ -307,7 +307,7 @@ namespace asio2::detail::kcp
 
 	struct kcp_deleter
 	{
-		inline void operator()(ikcpcb* p) const { kcp::ikcp_release(p); };
+		inline void operator()(ikcpcb* p) const noexcept { kcp::ikcp_release(p); };
 	};
 }
 

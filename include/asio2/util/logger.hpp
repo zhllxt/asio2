@@ -165,9 +165,9 @@ namespace asio2
 			}
 		}
 
-		static logger & get() { static logger log; return log; }
+		static logger & get() noexcept { static logger log; return log; }
 
-		inline const char * level2severity(severity_level level)
+		inline const char * level2severity(severity_level level) noexcept
 		{
 			static const char * name[]{ "TRACE","DEBUG","INFOR","WARNS","ERROR","FATAL","REPOT", };
 
@@ -178,7 +178,7 @@ namespace asio2
 		/**
 		 * set the log ouput level,if you has't call this function,the defaul level is trace.
 		 */
-		inline logger & level(severity_level level)
+		inline logger & level(severity_level level) noexcept
 		{
 			this->level_ = level;
 			if (this->level_ < severity_level::trace || this->level_ > severity_level::report)
@@ -186,18 +186,18 @@ namespace asio2
 			return (*this);
 		}
 
-		inline severity_level level()
+		inline severity_level level() noexcept
 		{
 			return this->level_;
 		}
 
-		inline logger & dest(unsigned int dest)
+		inline logger & dest(unsigned int dest) noexcept
 		{
 			this->dest_ = dest;
 			return (*this);
 		}
 
-		inline unsigned int dest()
+		inline unsigned int dest() noexcept
 		{
 			return this->dest_;
 		}
@@ -206,13 +206,13 @@ namespace asio2
 		 * @Fun : void(const std::string & text)
 		 */
 		template<class Fun>
-		inline logger & target(Fun&& target)
+		inline logger & target(Fun&& target) noexcept
 		{
 			this->target_ = std::forward<Fun>(target);
 			return (*this);
 		}
 
-		inline std::function<void(const std::string & text)> & target()
+		inline std::function<void(const std::string & text)> & target() noexcept
 		{
 			return this->target_;
 		}
@@ -220,7 +220,7 @@ namespace asio2
 		/**
 		 * convert the level value to string
 		 */
-		inline const char * level2string(severity_level level)
+		inline const char * level2string(severity_level level) noexcept
 		{
 			static const char * name[]{ "trace","debug","info","warn","error","fatal","report", };
 

@@ -59,17 +59,17 @@ namespace asio2
 	public:
 		std::chrono::steady_clock::duration lag{ std::chrono::steady_clock::duration(-1) };
 
-		inline bool is_timeout() { return (this->lag.count() == -1); }
+		inline bool is_timeout() noexcept { return (this->lag.count() == -1); }
 
-		inline auto milliseconds()
+		inline auto milliseconds() noexcept
 		{
 			return this->lag.count() == -1 ? -1 :
 				std::chrono::duration_cast<std::chrono::milliseconds>(this->lag).count();
 		}
 
-		detail::ipv4_header& base_ipv4() { return static_cast<detail::ipv4_header&>(*this); }
-		//detail::ipv6_header& base_ipv6() { return static_cast<detail::ipv6_header&>(*this); }
-		detail::icmp_header& base_icmp() { return static_cast<detail::icmp_header&>(*this); }
+		detail::ipv4_header& base_ipv4() noexcept { return static_cast<detail::ipv4_header&>(*this); }
+		//detail::ipv6_header& base_ipv6() noexcept { return static_cast<detail::ipv6_header&>(*this); }
+		detail::icmp_header& base_icmp() noexcept { return static_cast<detail::icmp_header&>(*this); }
 
 	protected:
 
@@ -460,19 +460,19 @@ namespace asio2::detail
 		/**
 		 * @function : get the socket object refrence
 		 */
-		inline socket_type & socket() { return this->socket_; }
+		inline socket_type & socket() noexcept { return this->socket_; }
 
 		/**
 		 * @function : get the stream object refrence
 		 */
-		inline socket_type & stream() { return this->socket_; }
+		inline socket_type & stream() noexcept { return this->socket_; }
 
 	public:
 		/**
 		 * @function : set reply timeout duration value
 		 */
 		template<class Rep, class Period>
-		inline derived_t & timeout(std::chrono::duration<Rep, Period> duration)
+		inline derived_t & timeout(std::chrono::duration<Rep, Period> duration) noexcept
 		{
 			this->timeout_ = duration;
 			return (this->derived());
@@ -481,7 +481,7 @@ namespace asio2::detail
 		/**
 		 * @function : get reply timeout duration value
 		 */
-		inline std::chrono::steady_clock::duration timeout()
+		inline std::chrono::steady_clock::duration timeout() noexcept
 		{
 			return this->timeout_;
 		}
@@ -490,7 +490,7 @@ namespace asio2::detail
 		 * @function : set send interval duration value
 		 */
 		template<class Rep, class Period>
-		inline derived_t & interval(std::chrono::duration<Rep, Period> duration)
+		inline derived_t & interval(std::chrono::duration<Rep, Period> duration) noexcept
 		{
 			this->interval_ = duration;
 			return (this->derived());
@@ -525,7 +525,7 @@ namespace asio2::detail
 		/**
 		 * @function : Set the total number of echo packets you want to send
 		 */
-		inline derived_t & ncount(std::size_t send_count)
+		inline derived_t & ncount(std::size_t send_count) noexcept
 		{
 			this->ncount_ = send_count;
 			return (this->derived());
@@ -534,17 +534,17 @@ namespace asio2::detail
 		/**
 		 * @function : Get the total number of echo packets has sent
 		 */
-		inline std::size_t total_send() { return this->total_send_; }
+		inline std::size_t total_send() noexcept { return this->total_send_; }
 
 		/**
 		 * @function : Get the total number of reply packets has recved
 		 */
-		inline std::size_t total_recv() { return this->total_recv_; }
+		inline std::size_t total_recv() noexcept { return this->total_recv_; }
 
 		/**
 		 * @function : Get the packet loss probability (loss rate)
 		 */
-		inline double plp()
+		inline double plp() noexcept
 		{
 			if (this->total_send_ == static_cast<std::size_t>(0))
 				return 0.0;
@@ -554,7 +554,7 @@ namespace asio2::detail
 		/**
 		 * @function : Get the average duration of elapsed when recved reply packets
 		 */
-		inline std::chrono::steady_clock::duration avg_lag()
+		inline std::chrono::steady_clock::duration avg_lag() noexcept
 		{
 			if (this->total_recv_ == static_cast<std::size_t>(0))
 				return std::chrono::steady_clock::duration(0);
@@ -959,24 +959,24 @@ namespace asio2::detail
 		/**
 		 * @function : get the buffer object refrence
 		 */
-		inline buffer_wrap<buffer_type> & buffer() { return this->buffer_; }
+		inline buffer_wrap<buffer_type> & buffer() noexcept { return this->buffer_; }
 		/**
 		 * @function : get the io object refrence
 		 */
-		inline io_t & io() { return this->io_; }
+		inline io_t & io() noexcept { return this->io_; }
 
 	protected:
 		/**
 		 * @function : get the recv/read allocator object refrence
 		 */
-		inline auto & rallocator() { return this->rallocator_; }
+		inline auto & rallocator() noexcept { return this->rallocator_; }
 		/**
 		 * @function : get the timer/post allocator object refrence
 		 */
-		inline auto & wallocator() { return this->wallocator_; }
+		inline auto & wallocator() noexcept { return this->wallocator_; }
 
-		inline listener_t                 & listener() { return this->listener_; }
-		inline std::atomic<state_t>       & state()    { return this->state_;    }
+		inline listener_t                 & listener() noexcept { return this->listener_; }
+		inline std::atomic<state_t>       & state   () noexcept { return this->state_;    }
 
 	protected:
 		/// socket 

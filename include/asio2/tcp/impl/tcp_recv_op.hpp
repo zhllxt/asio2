@@ -33,7 +33,7 @@ namespace asio2::detail
 		/**
 		 * @constructor
 		 */
-		tcp_recv_op() {}
+		tcp_recv_op() noexcept {}
 
 		/**
 		 * @destructor

@@ -33,7 +33,7 @@ namespace asio2::detail
 		/**
 		 * @constructor
 		 */
-		udp_send_op() {}
+		udp_send_op() noexcept {}
 
 		/**
 		 * @destructor

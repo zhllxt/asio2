@@ -26,18 +26,23 @@ namespace asio2::detail
 		/**
 		 * @constructor
 		 */
-		connect_time_cp() {}
+		connect_time_cp() noexcept = default;
 
 		/**
 		 * @destructor
 		 */
-		~connect_time_cp() = default;
+		~connect_time_cp() noexcept = default;
+
+		connect_time_cp(connect_time_cp&&) noexcept = default;
+		connect_time_cp(connect_time_cp const&) noexcept = default;
+		connect_time_cp& operator=(connect_time_cp&&) noexcept = default;
+		connect_time_cp& operator=(connect_time_cp const&) noexcept = default;
 
 	public:
 		/**
 		 * @function : get build connection time
 		 */
-		inline std::chrono::time_point<std::chrono::system_clock> connect_time() const
+		inline std::chrono::time_point<std::chrono::system_clock> connect_time() const noexcept
 		{
 			return this->connect_time_;
 		}
@@ -45,7 +50,7 @@ namespace asio2::detail
 		/**
 		 * @function : reset build connection time to system_clock::now()
 		 */
-		inline derived_t & reset_connect_time()
+		inline derived_t & reset_connect_time() noexcept
 		{
 			this->connect_time_ = std::chrono::system_clock::now();
 			return (static_cast<derived_t &>(*this));
@@ -54,7 +59,7 @@ namespace asio2::detail
 		/**
 		 * @function : get connection duration of std::chrono::duration
 		 */
-		inline std::chrono::system_clock::duration connect_duration() const
+		inline std::chrono::system_clock::duration connect_duration() const noexcept
 		{
 			return std::chrono::duration_cast<std::chrono::system_clock::duration>(
 				std::chrono::system_clock::now() - this->connect_time_);

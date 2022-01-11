@@ -220,13 +220,13 @@ namespace asio2::detail
 		}
 
 		/// Returns the base portion of the message
-		inline super const& base() const
+		inline super const& base() const noexcept
 		{
 			return *this;
 		}
 
 		/// Returns the base portion of the message
-		inline super& base()
+		inline super& base() noexcept
 		{
 			return *this;
 		}
@@ -249,7 +249,7 @@ namespace asio2::detail
 		/**
 		 * @function : get the root directory where we load the files.
 		 */
-		inline const std::filesystem::path& root_directory()
+		inline const std::filesystem::path& root_directory() noexcept
 		{
 			return this->root_directory_;
 		}
@@ -359,7 +359,7 @@ namespace asio2::detail
 		/**
 		 * @function : Returns `true` if this HTTP response's Content-Type is "multipart/form-data";
 		 */
-		inline bool has_multipart()
+		inline bool has_multipart() noexcept
 		{
 			return http::has_multipart(*this);
 		}

@@ -45,12 +45,13 @@ namespace asio2::rdc
 		asio2::detail::rdc_invoker_t<IdT, SendDataT, RecvDataT> rdc_invoker_;
 
 	public:
-		option(option&&) = default;
+		option(option&&) noexcept = default;
 		option(option const&) = default;
-		option& operator=(option&&) = default;
+		option& operator=(option&&) noexcept = default;
 		option& operator=(option const&) = default;
 
-		template<class ParserFun>
+		template<class ParserFun, std::enable_if_t<
+			!std::is_base_of_v<option, detail::remove_cvref_t<ParserFun>>, int> = 0>
 		explicit option(ParserFun&& parser)
 			: rdc_send_parser_(std::forward<ParserFun>(parser))
 			, rdc_recv_parser_(rdc_send_parser_)
@@ -76,10 +77,10 @@ namespace asio2::rdc
 			return (*this);
 		}
 
-		send_parser_fun& send_parser() { return rdc_send_parser_; }
-		recv_parser_fun& recv_parser() { return rdc_recv_parser_; }
+		send_parser_fun& send_parser() noexcept { return rdc_send_parser_; }
+		recv_parser_fun& recv_parser() noexcept { return rdc_recv_parser_; }
 
-		asio2::detail::rdc_invoker_t<IdT, SendDataT, RecvDataT>& invoker() { return rdc_invoker_; }
+		asio2::detail::rdc_invoker_t<IdT, SendDataT, RecvDataT>& invoker() noexcept { return rdc_invoker_; }
 	};
 
 	// C++17 class template argument deduction guides

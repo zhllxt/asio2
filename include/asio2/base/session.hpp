@@ -231,7 +231,7 @@ namespace asio2::detail
 		/**
 		 * @function : get the buffer object refrence
 		 */
-		inline buffer_wrap<buffer_type> & buffer()
+		inline buffer_wrap<buffer_type> & buffer() noexcept
 		{
 			return this->buffer_;
 		}
@@ -239,7 +239,7 @@ namespace asio2::detail
 		/**
 		 * @function : get the io object refrence
 		 */
-		inline io_t & io()
+		inline io_t & io() noexcept
 		{
 			return this->io_;
 		}
@@ -248,7 +248,7 @@ namespace asio2::detail
 		 * @function : set the default remote call timeout for rpc/rdc
 		 */
 		template<class Rep, class Period>
-		inline derived_t & default_timeout(std::chrono::duration<Rep, Period> duration)
+		inline derived_t & default_timeout(std::chrono::duration<Rep, Period> duration) noexcept
 		{
 			this->rc_timeout_ = duration;
 			return (this->derived());
@@ -257,19 +257,19 @@ namespace asio2::detail
 		/**
 		 * @function : get the default remote call timeout for rpc/rdc
 		 */
-		inline std::chrono::steady_clock::duration default_timeout()
+		inline std::chrono::steady_clock::duration default_timeout() noexcept
 		{
 			return this->rc_timeout_;
 		}
 
 	protected:
-		inline session_mgr_t<derived_t> & sessions() { return this->sessions_; }
-		inline listener_t               & listener() { return this->listener_; }
-		inline std::atomic<state_t>     & state   () { return this->state_;    }
+		inline session_mgr_t<derived_t> & sessions() noexcept { return this->sessions_; }
+		inline listener_t               & listener() noexcept { return this->listener_; }
+		inline std::atomic<state_t>     & state   () noexcept { return this->state_;    }
 
-		inline constexpr static bool is_session() { return true ; }
-		inline constexpr static bool is_client () { return false; }
-		inline constexpr static bool is_server () { return false; }
+		inline constexpr static bool is_session() noexcept { return true ; }
+		inline constexpr static bool is_client () noexcept { return false; }
+		inline constexpr static bool is_server () noexcept { return false; }
 
 	protected:
 		/// asio::strand ,used to ensure socket multi thread safe,we must ensure that only one operator

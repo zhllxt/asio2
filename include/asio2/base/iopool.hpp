@@ -86,20 +86,20 @@ namespace asio2::detail
 	class io_t
 	{
 	public:
-		io_t(asio::io_context* ioc, std::atomic<std::size_t>& pending)
+		io_t(asio::io_context* ioc, std::atomic<std::size_t>& pending) noexcept
 			: context_(ioc)
 			, strand_ (*context_)
 			, pending_(pending)
 		{
 		}
-		~io_t()
+		~io_t() noexcept
 		{
 		}
 
-		inline asio::io_context                        & context() { return (*(this->context_)); }
-		inline asio::io_context::strand                & strand () { return    this->strand_   ; }
-		inline std::atomic<std::size_t>                & pending() { return    this->pending_  ; }
-		inline std::unordered_set<asio::steady_timer*> & timers () { return    this->timers_   ; }
+		inline asio::io_context                        & context() noexcept { return (*(this->context_)); }
+		inline asio::io_context::strand                & strand () noexcept { return    this->strand_   ; }
+		inline std::atomic<std::size_t>                & pending() noexcept { return    this->pending_  ; }
+		inline std::unordered_set<asio::steady_timer*> & timers () noexcept { return    this->timers_   ; }
 
 		/**
 		 * @function : save the timers that maybe have not been closed properly.
@@ -332,7 +332,7 @@ namespace asio2::detail
 		/**
 		 * @function : check whether the io_context pool is stopped
 		 */
-		inline bool stopped() const
+		inline bool stopped() const noexcept
 		{
 			return (this->stopped_);
 		}
@@ -340,7 +340,7 @@ namespace asio2::detail
 		/**
 		 * @function : get an io_t to use
 		 */
-		inline io_t& get(std::size_t index = static_cast<std::size_t>(-1))
+		inline io_t& get(std::size_t index = static_cast<std::size_t>(-1)) noexcept
 		{
 			ASIO2_ASSERT(!this->iots_.empty());
 
@@ -350,7 +350,7 @@ namespace asio2::detail
 		/**
 		 * @function : get an io_context to use
 		 */
-		inline asio::io_context& get_context(std::size_t index = static_cast<std::size_t>(-1))
+		inline asio::io_context& get_context(std::size_t index = static_cast<std::size_t>(-1)) noexcept
 		{
 			ASIO2_ASSERT(!this->iots_.empty());
 
@@ -360,7 +360,7 @@ namespace asio2::detail
 		/**
 		 * @function : get an io_context::strand to use
 		 */
-		inline asio::io_context::strand& get_strand(std::size_t index = static_cast<std::size_t>(-1))
+		inline asio::io_context::strand& get_strand(std::size_t index = static_cast<std::size_t>(-1)) noexcept
 		{
 			ASIO2_ASSERT(!this->iots_.empty());
 
@@ -370,7 +370,7 @@ namespace asio2::detail
 		/**
 		 * @function : Determine whether current code is running in the io_context pool threads.
 		 */
-		inline bool running_in_threads() const
+		inline bool running_in_threads() const noexcept
 		{
 			std::thread::id curr_tid = std::this_thread::get_id();
 			for (auto & thread : this->threads_)
@@ -384,7 +384,7 @@ namespace asio2::detail
 		/**
 		 * @function : Determine whether current code is running in the io_context thread by index
 		 */
-		inline bool running_in_thread(std::size_t index) const
+		inline bool running_in_thread(std::size_t index) const noexcept
 		{
 			ASIO2_ASSERT(index < this->threads_.size());
 
@@ -397,7 +397,7 @@ namespace asio2::detail
 		/**
 		 * @function : get io_context pool size.
 		 */
-		inline std::size_t size() const
+		inline std::size_t size() const noexcept
 		{
 			return this->iots_.size();
 		}
@@ -405,7 +405,7 @@ namespace asio2::detail
 		/**
 		 * @function : 
 		 */
-		inline std::atomic<std::size_t>& pending()
+		inline std::atomic<std::size_t>& pending() noexcept
 		{
 			return this->pending_;
 		}
@@ -481,7 +481,7 @@ namespace asio2::detail
 		/**
 		 * @function :
 		 */
-		inline std::size_t next(std::size_t index)
+		inline std::size_t next(std::size_t index) noexcept
 		{
 			// Use a round-robin scheme to choose the next io_context to use. 
 			return (index < this->size() ? index : ((++(this->next_)) % this->size()));
@@ -538,12 +538,12 @@ namespace asio2::detail
 		iopool_base() = default;
 		virtual ~iopool_base() {}
 
-		virtual bool                        start  ()                          = 0;
-		virtual void                        stop   ()                          = 0;
-		virtual bool                        stopped() const                    = 0;
-		virtual io_t                      & get    (std::size_t index)         = 0;
-		virtual std::size_t                 size   () const                    = 0;
-		virtual std::atomic<std::size_t>  & pending()                          = 0;
+		virtual bool                        start  ()                           = 0;
+		virtual void                        stop   ()                           = 0;
+		virtual bool                        stopped()            const noexcept = 0;
+		virtual io_t                      & get    (std::size_t index) noexcept = 0;
+		virtual std::size_t                 size   ()            const noexcept = 0;
+		virtual std::atomic<std::size_t>  & pending()                  noexcept = 0;
 	};
 
 	class default_iopool : public iopool_base
@@ -580,7 +580,7 @@ namespace asio2::detail
 		/**
 		 * @function : check whether the io_context pool is stopped
 		 */
-		virtual bool stopped() const override
+		virtual bool stopped() const noexcept override
 		{
 			return this->impl_.stopped();
 		}
@@ -588,7 +588,7 @@ namespace asio2::detail
 		/**
 		 * @function : get an io_t to use
 		 */
-		virtual io_t& get(std::size_t index) override
+		virtual io_t& get(std::size_t index) noexcept override
 		{
 			return this->impl_.get(index);
 		}
@@ -596,7 +596,7 @@ namespace asio2::detail
 		/**
 		 * @function : get io_context pool size.
 		 */
-		virtual std::size_t size() const override
+		virtual std::size_t size() const noexcept override
 		{
 			return this->impl_.size();
 		}
@@ -604,7 +604,7 @@ namespace asio2::detail
 		/**
 		 * @function : 
 		 */
-		virtual std::atomic<std::size_t>& pending() override
+		virtual std::atomic<std::size_t>& pending() noexcept override
 		{
 			return this->impl_.pending();
 		}
@@ -700,7 +700,7 @@ namespace asio2::detail
 		/**
 		 * @function : check whether the io_context pool is stopped
 		 */
-		virtual bool stopped() const override
+		virtual bool stopped() const noexcept override
 		{
 			return (this->stopped_);
 		}
@@ -708,7 +708,7 @@ namespace asio2::detail
 		/**
 		 * @function : get an io_t to use
 		 */
-		virtual io_t& get(std::size_t index) override
+		virtual io_t& get(std::size_t index) noexcept override
 		{
 			return *(this->iots_[this->next(index)]);
 		}
@@ -716,7 +716,7 @@ namespace asio2::detail
 		/**
 		 * @function : get io_context pool size.
 		 */
-		virtual std::size_t size() const override
+		virtual std::size_t size() const noexcept override
 		{
 			return this->iots_.size();
 		}
@@ -724,7 +724,7 @@ namespace asio2::detail
 		/**
 		 * @function :
 		 */
-		virtual std::atomic<std::size_t>& pending() override
+		virtual std::atomic<std::size_t>& pending() noexcept override
 		{
 			return this->pending_;
 		}
@@ -732,7 +732,7 @@ namespace asio2::detail
 		/**
 		 * @function :
 		 */
-		inline std::size_t next(std::size_t index)
+		inline std::size_t next(std::size_t index) noexcept
 		{
 			// Use a round-robin scheme to choose the next io_context to use. 
 			return (index < this->size() ? index : ((++(this->next_)) % this->size()));
@@ -827,10 +827,10 @@ namespace asio2::detail
 
 		~iopool_cp() = default;
 
-		inline iopool_base& iopool() { return (*(this->iopool_)); }
+		inline iopool_base& iopool() noexcept { return (*(this->iopool_)); }
 
 	protected:
-		inline io_t& _get_io(std::size_t index = static_cast<std::size_t>(-1))
+		inline io_t& _get_io(std::size_t index = static_cast<std::size_t>(-1)) noexcept
 		{
 			ASIO2_ASSERT(!iots_.empty());
 			std::size_t n = index < iots_.size() ? index : ((++next_) % iots_.size());

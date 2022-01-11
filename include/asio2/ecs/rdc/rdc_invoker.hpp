@@ -213,7 +213,7 @@ namespace asio2::detail
 		/**
 		 * @function :
 		 */
-		inline std::multimap<IdT, std::tuple<std::shared_ptr<asio::steady_timer>, callback_type>>& reqs()
+		inline std::multimap<IdT, std::tuple<std::shared_ptr<asio::steady_timer>, callback_type>>& reqs() noexcept
 		{
 			return this->rdc_reqs_;
 		}

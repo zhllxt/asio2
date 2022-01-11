@@ -131,26 +131,26 @@ namespace asio2::detail
 		/**
 		 * @function : get this object hash key,used for session map
 		 */
-		inline key_type hash_key() const
+		inline key_type hash_key() const noexcept
 		{
 			return reinterpret_cast<key_type>(this);
 		}
 
-		inline bool is_websocket() { return (bool(this->websocket_router_)); }
-		inline bool is_http()      { return (!(this->is_websocket()));       }
+		inline bool is_websocket() noexcept { return (bool(this->websocket_router_)); }
+		inline bool is_http     () noexcept { return (!(this->is_websocket()));       }
 
 		/**
 		 * @function : get the request object
 		 */
-		inline const http::request & request()  { return this->req_; }
+		inline const http::request & request() noexcept { return this->req_; }
 
 		/**
 		 * @function : get the response object
 		 */
-		inline const http::response& response() { return this->rep_; }
+		inline const http::response& response() noexcept { return this->rep_; }
 
 	protected:
-		inline http_router_t<derived_t>& _router()
+		inline http_router_t<derived_t>& _router() noexcept
 		{
 			return (this->router_);
 		}
@@ -222,7 +222,7 @@ namespace asio2::detail
 		}
 
 		template<class Data>
-		inline send_data_t _rdc_convert_to_send_data(Data& data)
+		inline send_data_t _rdc_convert_to_send_data(Data& data) noexcept
 		{
 			ASIO2_ASSERT(this->websocket_router_ && "Only available in websocket mode");
 			//if (!this->is_websocket())

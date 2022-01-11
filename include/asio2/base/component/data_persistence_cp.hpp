@@ -42,12 +42,12 @@ namespace asio2::detail
 		/**
 		 * @constructor
 		 */
-		data_persistence_cp() {}
+		data_persistence_cp() noexcept = default;
 
 		/**
 		 * @destructor
 		 */
-		~data_persistence_cp() = default;
+		~data_persistence_cp() noexcept = default;
 
 	protected:
 		template<class T>
@@ -93,74 +93,74 @@ namespace asio2::detail
 		}
 
 		template<typename = void>
-		inline auto _data_persistence(asio::const_buffer& data)
+		inline auto _data_persistence(asio::const_buffer& data) noexcept
 		{
 			return static_cast<derived_t&>(*this)._data_persistence(asio::const_buffer(data));
 		}
 
 		template<typename = void>
-		inline auto _data_persistence(const asio::const_buffer& data)
+		inline auto _data_persistence(const asio::const_buffer& data) noexcept
 		{
 			return static_cast<derived_t&>(*this)._data_persistence(asio::const_buffer(data));
 		}
 
 		template<typename = void>
-		inline auto _data_persistence(asio::const_buffer&& data)
+		inline auto _data_persistence(asio::const_buffer&& data) noexcept
 		{
-			return std::move(data);
+			return std::move(data); // "data" is rvalue reference, should use std::move()
 		}
 
 		template<typename = void>
-		inline auto _data_persistence(asio::mutable_buffer& data)
-		{
-			return static_cast<derived_t&>(*this)._data_persistence(asio::const_buffer(data));
-		}
-
-		template<typename = void>
-		inline auto _data_persistence(const asio::mutable_buffer& data)
+		inline auto _data_persistence(asio::mutable_buffer& data) noexcept
 		{
 			return static_cast<derived_t&>(*this)._data_persistence(asio::const_buffer(data));
 		}
 
 		template<typename = void>
-		inline auto _data_persistence(asio::mutable_buffer&& data)
+		inline auto _data_persistence(const asio::mutable_buffer& data) noexcept
+		{
+			return static_cast<derived_t&>(*this)._data_persistence(asio::const_buffer(data));
+		}
+
+		template<typename = void>
+		inline auto _data_persistence(asio::mutable_buffer&& data) noexcept
 		{
 			return static_cast<derived_t&>(*this)._data_persistence(asio::const_buffer(std::move(data)));
 		}
 
 #if !defined(ASIO_NO_DEPRECATED) && !defined(BOOST_ASIO_NO_DEPRECATED)
 		template<typename = void>
-		inline auto _data_persistence(asio::const_buffers_1& data)
+		inline auto _data_persistence(asio::const_buffers_1& data) noexcept
 		{
 			return static_cast<derived_t&>(*this)._data_persistence(asio::const_buffer(data));
 		}
 
 		template<typename = void>
-		inline auto _data_persistence(const asio::const_buffers_1& data)
+		inline auto _data_persistence(const asio::const_buffers_1& data) noexcept
 		{
 			return static_cast<derived_t&>(*this)._data_persistence(asio::const_buffer(data));
 		}
 
 		template<typename = void>
-		inline auto _data_persistence(asio::const_buffers_1&& data)
+		inline auto _data_persistence(asio::const_buffers_1&& data) noexcept
 		{
 			return static_cast<derived_t&>(*this)._data_persistence(asio::const_buffer(std::move(data)));
 		}
 
 		template<typename = void>
-		inline auto _data_persistence(asio::mutable_buffers_1& data)
+		inline auto _data_persistence(asio::mutable_buffers_1& data) noexcept
 		{
 			return static_cast<derived_t&>(*this)._data_persistence(asio::const_buffer(data));
 		}
 
 		template<typename = void>
-		inline auto _data_persistence(const asio::mutable_buffers_1& data)
+		inline auto _data_persistence(const asio::mutable_buffers_1& data) noexcept
 		{
 			return static_cast<derived_t&>(*this)._data_persistence(asio::const_buffer(data));
 		}
 
 		template<typename = void>
-		inline auto _data_persistence(asio::mutable_buffers_1&& data)
+		inline auto _data_persistence(asio::mutable_buffers_1&& data) noexcept
 		{
 			return static_cast<derived_t&>(*this)._data_persistence(asio::const_buffer(std::move(data)));
 		}

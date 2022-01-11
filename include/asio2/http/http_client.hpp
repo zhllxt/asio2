@@ -114,12 +114,12 @@ namespace asio2::detail
 		/**
 		 * @function : get the request object
 		 */
-		inline const http::request & request()  { return this->req_; }
+		inline const http::request & request() noexcept { return this->req_; }
 
 		/**
 		 * @function : get the response object
 		 */
-		inline const http::response& response() { return this->rep_; }
+		inline const http::response& response() noexcept { return this->rep_; }
 
 	public:
 		template<typename String, typename StrOrInt, class Rep, class Period, class Proxy,

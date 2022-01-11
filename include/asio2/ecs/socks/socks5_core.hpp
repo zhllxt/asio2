@@ -232,12 +232,12 @@ namespace asio2::socks5
 		return cat;
 	}
 
-	inline error_code make_error_code(error e)
+	inline error_code make_error_code(error e) noexcept
 	{
 		return error_code{ static_cast<std::underlying_type<error>::type>(e), socks5_category() };
 	}
 
-	inline error_condition make_error_condition(condition c)
+	inline error_condition make_error_condition(condition c) noexcept
 	{
 		return error_condition{ static_cast<std::underlying_type<condition>::type>(c), socks5_category() };
 	}

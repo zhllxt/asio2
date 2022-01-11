@@ -50,7 +50,7 @@ struct basic_flex_body
     */
     static inline 
     std::uint64_t
-    size(value_type const& body);
+    size(value_type const& body) noexcept;
 };
 
 /** The type of the @ref message::body member.
@@ -100,43 +100,43 @@ public:
     /// Move assignment
     value_type& operator=(value_type&& other) = default;
 
-	inline text_t& text()
+	inline text_t& text() noexcept
 	{
 		return text_;
 	}
 
-	inline text_t& text() const
+	inline text_t& text() const noexcept
 	{
 		return const_cast<text_t&>(text_);
 	}
 
     /// Return the file
-	inline file_t& file()
+	inline file_t& file() noexcept
     {
         return file_;
     }
 
     /// Return the file
-	inline file_t& file() const
+	inline file_t& file() const noexcept
     {
         return const_cast<file_t&>(file_);
     }
 
     /// Returns the size of the text or file
-	inline std::uint64_t size() const
+	inline std::uint64_t size() const noexcept
     {
 		return (is_file() ? file_.size() : text_.size());
     }
 
-	inline bool is_text() const { return !is_file();      }
-	inline bool is_file() const { return file_.is_open(); }
+	inline bool is_text() const noexcept { return !is_file();      }
+	inline bool is_file() const noexcept { return file_.is_open(); }
 };
 
 // This is called from message::payload_size
 template<class TextBody, class FileBody>
 std::uint64_t
 basic_flex_body<TextBody, FileBody>::
-size(value_type const& body)
+size(value_type const& body) noexcept
 {
     // Forward the call to the body
     return body.size();

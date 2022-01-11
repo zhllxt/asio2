@@ -41,9 +41,14 @@ namespace asio2
 			event_timer_ = std::make_shared<asio::steady_timer>(io.context());
 		}
 
-		~async_event()
+		~async_event() noexcept
 		{
 		}
+
+		async_event(async_event&&) noexcept = default;
+		async_event(async_event const&) noexcept = default;
+		async_event& operator=(async_event&&) = delete;
+		async_event& operator=(async_event const&) = delete;
 
 		template <typename WaitHandler>
 		inline void async_wait(WaitHandler&& handler)

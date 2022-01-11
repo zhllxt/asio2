@@ -56,7 +56,7 @@ namespace asio2::rpc
 	{
 		template<class> friend class asio2::detail::rpc_invoker_t;
 	public:
-		response_defer() = default;
+		 response_defer() noexcept = default;
 		~response_defer()
 		{
 			ASIO2_ASSERT(f_);
@@ -82,15 +82,15 @@ namespace asio2::rpc
 		template<class> friend class asio2::detail::rpc_invoker_t;
 	public:
 		future() = delete;
-		future(std::shared_ptr<response_defer<T>> defer) : defer_(std::move(defer))
+		future(std::shared_ptr<response_defer<T>> defer) noexcept : defer_(std::move(defer))
 		{
 		}
-		~future() = default;
+		~future() noexcept = default;
 
-		future(future&&) = default;
-		future(future const&) = default;
-		future& operator=(future&&) = default;
-		future& operator=(future const&) = default;
+		future(future&&) noexcept = default;
+		future(future const&) noexcept = default;
+		future& operator=(future&&) noexcept = default;
+		future& operator=(future const&) noexcept = default;
 
 	protected:
 		std::shared_ptr<response_defer<T>> defer_{};
@@ -102,14 +102,14 @@ namespace asio2::rpc
 		template<class> friend class asio2::detail::rpc_invoker_t;
 	public:
 		 promise() = default;
-		~promise() = default;
+		~promise() noexcept = default;
 
-		promise(promise&&) = default;
-		promise(promise const&) = default;
-		promise& operator=(promise&&) = default;
-		promise& operator=(promise const&) = default;
+		promise(promise&&) noexcept = default;
+		promise(promise const&) noexcept = default;
+		promise& operator=(promise&&) noexcept = default;
+		promise& operator=(promise const&) noexcept = default;
 
-		inline future<T> get_future() { return future<T>{ defer_ }; }
+		inline future<T> get_future() noexcept { return future<T>{ defer_ }; }
 
 		template<class V>
 		inline void set_value(V&& v) { defer_->set_value(std::forward<V>(v)); }
@@ -127,7 +127,7 @@ namespace asio2::rpc
 	{
 		template<class> friend class asio2::detail::rpc_invoker_t;
 	public:
-		response_defer() = default;
+		 response_defer() noexcept = default;
 		~response_defer()
 		{
 			ASIO2_ASSERT(f_);
@@ -153,15 +153,15 @@ namespace asio2::rpc
 		template<class> friend class asio2::detail::rpc_invoker_t;
 	public:
 		future() = delete;
-		future(std::shared_ptr<response_defer<void>> defer) : defer_(std::move(defer))
+		future(std::shared_ptr<response_defer<void>> defer) noexcept : defer_(std::move(defer))
 		{
 		}
-		~future() = default;
+		~future() noexcept = default;
 
-		future(future&&) = default;
-		future(future const&) = default;
-		future& operator=(future&&) = default;
-		future& operator=(future const&) = default;
+		future(future&&) noexcept = default;
+		future(future const&) noexcept = default;
+		future& operator=(future&&) noexcept = default;
+		future& operator=(future const&) noexcept = default;
 
 	protected:
 		std::shared_ptr<response_defer<void>> defer_{};
@@ -173,14 +173,14 @@ namespace asio2::rpc
 		template<class> friend class asio2::detail::rpc_invoker_t;
 	public:
 		 promise() = default;
-		~promise() = default;
+		~promise() noexcept = default;
 
-		promise(promise&&) = default;
-		promise(promise const&) = default;
-		promise& operator=(promise&&) = default;
-		promise& operator=(promise const&) = default;
+		promise(promise&&) noexcept = default;
+		promise(promise const&) noexcept = default;
+		promise& operator=(promise&&) noexcept = default;
+		promise& operator=(promise const&) noexcept = default;
 
-		inline future<void> get_future() { return future<void>{ defer_ }; }
+		inline future<void> get_future() noexcept { return future<void>{ defer_ }; }
 
 		template<typename = void>
 		inline void set_value() { defer_->set_value(); }
@@ -276,7 +276,7 @@ namespace asio2::detail
 		}
 
 	protected:
-		inline self& _invoker() { return (*this); }
+		inline self& _invoker() noexcept { return (*this); }
 
 		template<class F>
 		inline void _bind(std::string name, F f)
@@ -373,7 +373,7 @@ namespace asio2::detail
 		}
 
 		template<std::size_t... I, typename... Args>
-		inline decltype(auto) _body_args_tuple_impl(std::index_sequence<I...>, std::tuple<Args...>*)
+		inline decltype(auto) _body_args_tuple_impl(std::index_sequence<I...>, std::tuple<Args...>*) noexcept
 		{
 			return (std::tuple<typename std::tuple_element<I + 1, std::tuple<Args...>>::type...>{});
 		}
@@ -408,7 +408,7 @@ namespace asio2::detail
 						v = std::move(defer->v_)]
 					() mutable
 					{
-						if (!caller_ptr->is_started())
+						if (!caller->is_started())
 							return;
 
 						head.type(rpc_type_rep);

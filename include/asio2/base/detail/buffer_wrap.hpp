@@ -88,13 +88,13 @@ namespace asio2
 		{
 			using size_type = std::size_t;
 
-			inline size_type size() const { return 0; }
-			inline size_type max_size() const { return 0; }
-			inline size_type capacity() const { return 0; }
-			inline auto data() const { return asio::buffer(asio::const_buffer()); }
-			inline auto prepare(size_type) { return asio::buffer(asio::mutable_buffer()); }
-			inline void commit(size_type) {}
-			inline void consume(size_type) {}
+			inline size_type size    ()    const noexcept { return 0; }
+			inline size_type max_size()    const noexcept { return 0; }
+			inline size_type capacity()    const noexcept { return 0; }
+			inline auto      data    ()          noexcept { return asio::buffer(asio::const_buffer  ()); }
+			inline auto      prepare (size_type) noexcept { return asio::buffer(asio::mutable_buffer()); }
+			inline void      commit  (size_type) noexcept {}
+			inline void      consume (size_type) noexcept {}
 		};
 	}
 
@@ -109,9 +109,8 @@ namespace asio2
 		using buffer_t::buffer_t;
 		using size_type = std::size_t;
 
+		 buffer_wrap() = default;
 		~buffer_wrap() = default;
-
-		buffer_wrap() = default;
 
 		buffer_wrap(size_type max) : buffer_t(max) {}
 		buffer_wrap(size_type pre, size_type max) : buffer_t(max), pre_(pre)
@@ -125,19 +124,19 @@ namespace asio2
 		buffer_wrap& operator=(buffer_wrap&& other) = default;
 		buffer_wrap& operator=(buffer_wrap const& other) = default;
 
-		inline buffer_t & base() { return (*this); }
-		inline buffer_t const& base() const { return (*this); }
+		inline buffer_t      & base()       noexcept { return (*this); }
+		inline buffer_t const& base() const noexcept { return (*this); }
 
-		inline size_type pre_size() const { return this->pre_; }
-		inline size_type max_size() const
+		inline size_type   pre_size() const noexcept { return this->pre_; }
+		inline size_type   max_size() const noexcept
 		{
 			if constexpr (detail::buffer_has_max_size<buffer_t>::value)
 				return buffer_t::max_size();
 			else
 				return (std::numeric_limits<size_type>::max)();
 		}
-		inline buffer_wrap& pre_size(size_type size) { this->pre_ = size; return (*this); }
-		inline buffer_wrap& max_size(size_type) { return (*this); }
+		inline buffer_wrap& pre_size(size_type size) noexcept { this->pre_ = size; return (*this); }
+		inline buffer_wrap& max_size(size_type     ) noexcept {                    return (*this); }
 
 	protected:
 		size_type pre_ = detail::min_size;
@@ -151,9 +150,8 @@ namespace asio2
 		using buffer_t::buffer_t;
 		using size_type = std::size_t;
 
+		 buffer_wrap() = default;
 		~buffer_wrap() = default;
-
-		buffer_wrap() = default;
 
 		buffer_wrap(size_type max) : buffer_t(), max_(max) {}
 		buffer_wrap(size_type pre, size_type max) : buffer_t(), pre_(pre), max_(max)
@@ -167,19 +165,19 @@ namespace asio2
 		buffer_wrap& operator=(buffer_wrap&& other) = default;
 		buffer_wrap& operator=(buffer_wrap const& other) = default;
 
-		inline buffer_t & base() { return (*this); }
-		inline buffer_t const& base() const { return (*this); }
+		inline buffer_t      & base()       noexcept { return (*this); }
+		inline buffer_t const& base() const noexcept { return (*this); }
 
-		inline size_type pre_size() const { return this->pre_; }
-		inline size_type max_size() const
+		inline size_type   pre_size() const noexcept { return this->pre_; }
+		inline size_type   max_size() const noexcept
 		{
 			if constexpr (detail::buffer_has_max_size<buffer_t>::value)
 				return buffer_t::max_size();
 			else
 				return this->max_;
 		}
-		inline buffer_wrap& pre_size(size_type size) { this->pre_ = size; return (*this); }
-		inline buffer_wrap& max_size(size_type size) { this->max_ = size; return (*this); }
+		inline buffer_wrap& pre_size(size_type size) noexcept { this->pre_ = size; return (*this); }
+		inline buffer_wrap& max_size(size_type size) noexcept { this->max_ = size; return (*this); }
 
 	protected:
 		size_type pre_ = detail::min_size; // prepare size
@@ -191,14 +189,13 @@ namespace asio2
 	{
 	public:
 		using buffer_type = detail::empty_buffer;
-		using size_type = std::size_t;
+		using size_type   = std::size_t;
 
+		 buffer_wrap() = default;
 		~buffer_wrap() = default;
 
-		buffer_wrap() = default;
-
-		buffer_wrap(size_type) {}
-		buffer_wrap(size_type, size_type) {}
+		buffer_wrap(size_type           ) noexcept {}
+		buffer_wrap(size_type, size_type) noexcept {}
 
 		buffer_wrap(buffer_wrap&& other) = default;
 		buffer_wrap(buffer_wrap const& other) = default;
@@ -206,13 +203,13 @@ namespace asio2
 		buffer_wrap& operator=(buffer_wrap&& other) = default;
 		buffer_wrap& operator=(buffer_wrap const& other) = default;
 
-		inline detail::empty_buffer & base() { return (*this); }
-		inline detail::empty_buffer const& base() const { return (*this); }
+		inline detail::empty_buffer      & base()       noexcept { return (*this); }
+		inline detail::empty_buffer const& base() const noexcept { return (*this); }
 
-		inline size_type pre_size() const { return 0; }
-		inline size_type max_size() const { return 0; }
-		inline buffer_wrap& pre_size(size_type) { return (*this); }
-		inline buffer_wrap& max_size(size_type) { return (*this); }
+		inline size_type      pre_size(         ) const noexcept { return 0; }
+		inline size_type      max_size(         ) const noexcept { return 0; }
+		inline buffer_wrap&   pre_size(size_type)       noexcept { return (*this); }
+		inline buffer_wrap&   max_size(size_type)       noexcept { return (*this); }
 	};
 
 	template<>
@@ -220,14 +217,13 @@ namespace asio2
 	{
 	public:
 		using buffer_type = detail::empty_buffer;
-		using size_type = std::size_t;
+		using size_type   = std::size_t;
 
+		 buffer_wrap() = default;
 		~buffer_wrap() = default;
 
-		buffer_wrap() = default;
-
-		buffer_wrap(size_type) {}
-		buffer_wrap(size_type, size_type) {}
+		buffer_wrap(size_type           ) noexcept {}
+		buffer_wrap(size_type, size_type) noexcept {}
 
 		buffer_wrap(buffer_wrap&& other) = default;
 		buffer_wrap(buffer_wrap const& other) = default;
@@ -235,13 +231,13 @@ namespace asio2
 		buffer_wrap& operator=(buffer_wrap&& other) = default;
 		buffer_wrap& operator=(buffer_wrap const& other) = default;
 
-		inline detail::empty_buffer & base() { return (*this); }
-		inline detail::empty_buffer const& base() const { return (*this); }
+		inline detail::empty_buffer      & base()       noexcept { return (*this); }
+		inline detail::empty_buffer const& base() const noexcept { return (*this); }
 
-		inline size_type pre_size() const { return 0; }
-		inline size_type max_size() const { return 0; }
-		inline buffer_wrap& pre_size(size_type) { return (*this); }
-		inline buffer_wrap& max_size(size_type) { return (*this); }
+		inline size_type      pre_size(         ) const noexcept { return 0; }
+		inline size_type      max_size(         ) const noexcept { return 0; }
+		inline buffer_wrap&   pre_size(size_type)       noexcept { return (*this); }
+		inline buffer_wrap&   max_size(size_type)       noexcept { return (*this); }
 	};
 
 }

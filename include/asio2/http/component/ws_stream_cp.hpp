@@ -53,9 +53,9 @@ namespace asio2::detail
 		/**
 		 * @destructor
 		 */
-		~ws_stream_cp() {}
+		~ws_stream_cp() noexcept {}
 
-		inline stream_type & ws_stream()
+		inline stream_type & ws_stream() noexcept
 		{
 			ASIO2_ASSERT(bool(this->ws_stream_));
 			return (*(this->ws_stream_));

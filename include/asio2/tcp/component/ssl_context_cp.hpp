@@ -114,7 +114,7 @@ namespace asio2::detail
 			std::string_view private_cert_buffer,
 			std::string_view private_key_buffer,
 			std::string_view private_password
-		)
+		) noexcept
 		{
 			try
 			{
@@ -173,7 +173,7 @@ namespace asio2::detail
 			const std::string& private_cert_file,
 			const std::string& private_key_file,
 			const std::string& private_password
-		)
+		) noexcept
 		{
 			try
 			{
@@ -216,7 +216,7 @@ namespace asio2::detail
 		/**
 		 * BIO_new_mem_buf -> SSL_CTX_set_tmp_dh
 		 */
-		inline derived_t& set_dh_buffer(std::string_view dh_buffer)
+		inline derived_t& set_dh_buffer(std::string_view dh_buffer) noexcept
 		{
 			try
 			{
@@ -246,7 +246,7 @@ namespace asio2::detail
 		/**
 		 * BIO_new_file -> SSL_CTX_set_tmp_dh
 		 */
-		inline derived_t& set_dh_file(const std::string& dh_file)
+		inline derived_t& set_dh_file(const std::string& dh_file) noexcept
 		{
 			try
 			{

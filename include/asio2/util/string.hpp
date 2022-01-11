@@ -49,7 +49,7 @@ namespace asio2
 		};
 
 		template<typename = void>
-		inline char ascii_tolower(char c)
+		inline char ascii_tolower(char c) noexcept
 		{
 			return char(((static_cast<unsigned>(c) - 65U) < 26) ? c + 'a' - 'A' : c);
 		}
@@ -375,7 +375,7 @@ namespace asio2
 	}
 
 	template<class String1, class String2>
-	inline std::size_t ifind(const String1& src, const String2& dest, typename String1::size_type pos = 0)
+	inline std::size_t ifind(const String1& src, const String2& dest, typename String1::size_type pos = 0) noexcept
 	{
 		using str2_type = std::remove_reference_t<std::remove_cv_t<String2>>;
 		using raw2_type = std::remove_pointer_t<std::remove_all_extents_t<str2_type>>;
@@ -408,7 +408,7 @@ namespace asio2
 	 * @function : Returns `true` if two strings are equal, using a case-insensitive comparison.
 	 */
 	template<typename = void>
-	inline bool iequals(std::string_view lhs, std::string_view rhs)
+	inline bool iequals(std::string_view lhs, std::string_view rhs) noexcept
 	{
 		auto n = lhs.size();
 		if (rhs.size() != n)

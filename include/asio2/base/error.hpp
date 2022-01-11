@@ -55,7 +55,7 @@ namespace asio2
 		/**
 		 * @function : get last error_code
 		 */
-		inline error_code & get_last_error()
+		inline error_code & get_last_error() noexcept
 		{
 			// thread local variable of error_code
 			thread_local static error_code ec_last{};
@@ -66,7 +66,7 @@ namespace asio2
 		/**
 		 * @function : set last error_code
 		 */
-		inline void set_last_error(int ec)
+		inline void set_last_error(int ec) noexcept
 		{
 			get_last_error().assign(ec, asio::error::get_system_category());
 		}
@@ -75,7 +75,7 @@ namespace asio2
 		 * @function : set last error_code
 		 */
 		template<typename T>
-		inline void set_last_error(int ec, const T& ecat)
+		inline void set_last_error(int ec, const T& ecat) noexcept
 		{
 			get_last_error().assign(ec, ecat);
 		}
@@ -83,7 +83,7 @@ namespace asio2
 		/**
 		 * @function : set last error_code
 		 */
-		inline void set_last_error(const error_code & ec)
+		inline void set_last_error(const error_code & ec) noexcept
 		{
 			get_last_error() = ec;
 		}
@@ -91,7 +91,7 @@ namespace asio2
 		/**
 		 * @function : set last error_code
 		 */
-		inline void set_last_error(const system_error & e)
+		inline void set_last_error(const system_error & e) noexcept
 		{
 			get_last_error() = e.code();
 		}
@@ -99,7 +99,7 @@ namespace asio2
 		/**
 		 * @function : Replaces the error code and error category with default values.
 		 */
-		inline void clear_last_error()
+		inline void clear_last_error() noexcept
 		{
 			get_last_error().clear();
 		}
@@ -107,7 +107,7 @@ namespace asio2
 		/**
 		 * @function : get last error value
 		 */
-		inline auto last_error_val()
+		inline auto last_error_val() noexcept
 		{
 			return get_last_error().value();
 		}

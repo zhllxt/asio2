@@ -122,12 +122,12 @@ namespace asio2::detail
 		/**
 		 * @function : get the websocket upgraged response object
 		 */
-		inline const http::response_t<body_type>& upgrade_response() { return this->upgrade_rep_; }
+		inline const http::response_t<body_type>& upgrade_response() noexcept { return this->upgrade_rep_; }
 
 		/**
 		 * @function : get the websocket upgraged target
 		 */
-		inline const std::string& upgrade_target() { return this->upgrade_target_; }
+		inline const std::string& upgrade_target() noexcept { return this->upgrade_target_; }
 
 		/**
 		 * @function : set the websocket upgraged target

@@ -28,12 +28,17 @@ namespace asio2::detail
 		/**
 		 * @constructor
 		 */
-		local_endpoint_cp() : local_endpoint_() {}
+		local_endpoint_cp() noexcept : local_endpoint_() {}
 
 		/**
 		 * @destructor
 		 */
 		~local_endpoint_cp() = default;
+
+		local_endpoint_cp(local_endpoint_cp&&) noexcept = default;
+		local_endpoint_cp(local_endpoint_cp const&) noexcept = default;
+		local_endpoint_cp& operator=(local_endpoint_cp&&) noexcept = default;
+		local_endpoint_cp& operator=(local_endpoint_cp const&) noexcept = default;
 
 	public:
 		/**
@@ -45,10 +50,11 @@ namespace asio2::detail
 		 * To specify an IPv6 UDP endpoint for port 9876, use:
 		 * asio::ip::udp::endpoint ep(asio::ip::udp::v6(), 9876);
 		 */
-		template<typename InternetProtocol>
-		inline derived_t & local_endpoint(const InternetProtocol& internet_protocol, unsigned short port_num)
+		template<typename InternetProtocol, typename StrOrInt>
+		inline derived_t& local_endpoint(const InternetProtocol& protocol, StrOrInt&& port)
 		{
-			this->local_endpoint_ = endpoint_type(internet_protocol, port_num);
+			this->local_endpoint_ = endpoint_type(protocol,
+				detail::to_integer<typename asio::ip::port_type>(std::forward<StrOrInt>(port)));
 			return static_cast<derived_t&>(*this);
 		}
 
@@ -61,16 +67,18 @@ namespace asio2::detail
 		 * To specify an IPv6 UDP endpoint for port 9876, use:
 		 * asio::ip::udp::endpoint ep(asio::ip::address_v6::from_string("..."), 9876);
 		 */
-		inline derived_t & local_endpoint(const asio::ip::address& addr, unsigned short port_num)
+		template<typename StrOrInt>
+		inline derived_t& local_endpoint(const asio::ip::address& addr, StrOrInt&& port)
 		{
-			this->local_endpoint_ = endpoint_type(addr, port_num);
+			this->local_endpoint_ = endpoint_type(addr,
+				detail::to_integer<typename asio::ip::port_type>(std::forward<StrOrInt>(port)));
 			return static_cast<derived_t&>(*this);
 		}
 
 		/**
 		 * get the binded local endpoint refrence
 		 */
-		inline endpoint_type& local_endpoint() { return this->local_endpoint_; }
+		inline endpoint_type& local_endpoint() noexcept { return this->local_endpoint_; }
 
 	protected:
 		/// local bind endpoint

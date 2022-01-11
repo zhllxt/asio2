@@ -112,17 +112,17 @@ namespace asio2::detail
 		/**
 		 * @function : get the io object refrence
 		 */
-		inline io_t & io() { return this->io_; }
+		inline io_t & io() noexcept { return this->io_; }
 
 	protected:
 		/**
 		 * @function : get the recv/read allocator object refrence
 		 */
-		inline auto & rallocator() { return this->wallocator_; }
+		inline auto & rallocator() noexcept { return this->wallocator_; }
 		/**
 		 * @function : get the send/write allocator object refrence
 		 */
-		inline auto & wallocator() { return this->wallocator_; }
+		inline auto & wallocator() noexcept { return this->wallocator_; }
 
 	protected:
 		/// The io (include io_context and strand) used to handle the accept event.

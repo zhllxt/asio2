@@ -56,7 +56,7 @@ namespace asio2::detail
 		/**
 		 * @constructor
 		 */
-		send_cp() {}
+		send_cp() noexcept {}
 
 		/**
 		 * @destructor
@@ -76,7 +76,7 @@ namespace asio2::detail
 		 * std::basic_string<Elem, Traits, Allocator> : std::string m; async_send(m);
 		 */
 		template<class DataT>
-		inline void async_send(DataT&& data)
+		inline void async_send(DataT&& data) noexcept
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
@@ -122,7 +122,7 @@ namespace asio2::detail
 			std::is_same_v<detail::remove_cvref_t<CharT>, char> ||
 			std::is_same_v<detail::remove_cvref_t<CharT>, wchar_t> ||
 			std::is_same_v<detail::remove_cvref_t<CharT>, char16_t> ||
-			std::is_same_v<detail::remove_cvref_t<CharT>, char32_t>, void> async_send(CharT * s)
+			std::is_same_v<detail::remove_cvref_t<CharT>, char32_t>, void> async_send(CharT * s) noexcept
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
@@ -136,7 +136,7 @@ namespace asio2::detail
 		 */
 		template<class CharT, class SizeT>
 		inline typename std::enable_if_t<std::is_integral_v<detail::remove_cvref_t<SizeT>>, void>
-			async_send(CharT* s, SizeT count)
+			async_send(CharT* s, SizeT count) noexcept
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 

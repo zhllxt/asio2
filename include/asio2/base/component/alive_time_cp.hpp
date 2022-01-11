@@ -26,19 +26,24 @@ namespace asio2::detail
 		/**
 		 * @constructor
 		 */
-		alive_time_cp() {}
+		alive_time_cp() noexcept = default;
 
 		/**
 		 * @destructor
 		 */
-		~alive_time_cp() = default;
+		~alive_time_cp() noexcept = default;
+
+		alive_time_cp(alive_time_cp&&) noexcept = default;
+		alive_time_cp(alive_time_cp const&) noexcept = default;
+		alive_time_cp& operator=(alive_time_cp&&) noexcept = default;
+		alive_time_cp& operator=(alive_time_cp const&) noexcept = default;
 
 	public:
 		/**
 		 * @function : get the time when the last alive event occurred
 		 */
 		[[deprecated("Replace active_time with last_alive_time")]]
-		inline std::chrono::time_point<std::chrono::system_clock> active_time() const
+		inline std::chrono::time_point<std::chrono::system_clock> active_time() const noexcept
 		{
 			return this->last_alive_time_;
 		}
@@ -47,7 +52,7 @@ namespace asio2::detail
 		 * @function : reset last alive time to system_clock::now()
 		 */
 		[[deprecated("Replace reset_active_time with update_alive_time")]]
-		inline derived_t & reset_active_time()
+		inline derived_t & reset_active_time() noexcept
 		{
 			this->last_alive_time_ = std::chrono::system_clock::now();
 			return (static_cast<derived_t &>(*this));
@@ -56,7 +61,7 @@ namespace asio2::detail
 		/**
 		 * @function : get the time when the last alive event occurred
 		 */
-		inline std::chrono::time_point<std::chrono::system_clock> last_alive_time() const
+		inline std::chrono::time_point<std::chrono::system_clock> last_alive_time() const noexcept
 		{
 			return this->last_alive_time_;
 		}
@@ -64,7 +69,7 @@ namespace asio2::detail
 		/**
 		 * @function : reset last alive time to system_clock::now()
 		 */
-		inline derived_t & update_alive_time()
+		inline derived_t & update_alive_time() noexcept
 		{
 			this->last_alive_time_ = std::chrono::system_clock::now();
 			return (static_cast<derived_t &>(*this));
@@ -73,7 +78,7 @@ namespace asio2::detail
 		/**
 		 * @function : get silence duration of std::chrono::duration
 		 */
-		inline std::chrono::system_clock::duration silence_duration() const
+		inline std::chrono::system_clock::duration silence_duration() const noexcept
 		{
 			return std::chrono::duration_cast<std::chrono::system_clock::duration>(
 				std::chrono::system_clock::now() - this->last_alive_time_);

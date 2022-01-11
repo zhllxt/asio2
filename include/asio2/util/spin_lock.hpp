@@ -26,17 +26,17 @@ namespace asio2
 	class spin_lock
 	{
 	public:
-		spin_lock()
+		spin_lock() noexcept
 		{
 			v_.clear();
 		}
 
-		bool try_lock()
+		bool try_lock() noexcept
 		{
 			return !v_.test_and_set(std::memory_order_acquire);
 		}
 
-		void lock()
+		void lock() noexcept
 		{
 			for (unsigned k = 0; !try_lock(); ++k)
 			{
@@ -55,7 +55,7 @@ namespace asio2
 			}
 		}
 
-		void unlock()
+		void unlock() noexcept
 		{
 			v_.clear(std::memory_order_release);
 		}

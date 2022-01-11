@@ -78,7 +78,7 @@ namespace asio2::detail
 		/**
 		 * @function : get the stream object refrence
 		 */
-		inline typename ssl_stream_comp::stream_type & stream()
+		inline typename ssl_stream_comp::stream_type & stream() noexcept
 		{
 			ASIO2_ASSERT(bool(this->ssl_stream_));
 			return (*(this->ssl_stream_));

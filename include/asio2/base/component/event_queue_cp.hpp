@@ -37,7 +37,7 @@ namespace asio2::detail
 {
 	struct defer_event_dummy
 	{
-		inline void operator()() {}
+		inline void operator()() noexcept {}
 	};
 
 	template<class Function = defer_event_dummy>
@@ -45,15 +45,15 @@ namespace asio2::detail
 	{
 	public:
 		template<class Fn>
-		defer_event(Fn&& fn) : f(std::forward<Fn>(fn)), valid_(true) {}
+		defer_event(Fn&& fn) noexcept : f(std::forward<Fn>(fn)), valid_(true) {}
 
-		defer_event(std::nullptr_t) : f(defer_event_dummy{}), valid_(false) {}
+		defer_event(std::nullptr_t) noexcept : f(defer_event_dummy{}), valid_(false) {}
 
 		inline defer_event(defer_event&& o) noexcept : f(std::move(o.f)), valid_(o.valid_)
 		{
 			o.valid_ = false;
 		};
-		inline void operator=(defer_event&& o)
+		inline void operator=(defer_event&& o) noexcept
 		{
 			ASIO2_ASSERT(false);
 
@@ -62,13 +62,13 @@ namespace asio2::detail
 			o.valid_ = false;
 		};
 
-		inline defer_event(const defer_event& o) : f(const_cast<Function&&>(o.f)), valid_(o.valid_)
+		inline defer_event(const defer_event& o) noexcept : f(const_cast<Function&&>(o.f)), valid_(o.valid_)
 		{
 			ASIO2_ASSERT(false);
 
 			const_cast<defer_event&>(o).valid_ = false;
 		};
-		inline void operator=(const defer_event& o)
+		inline void operator=(const defer_event& o) noexcept
 		{
 			ASIO2_ASSERT(false);
 
@@ -77,13 +77,13 @@ namespace asio2::detail
 			const_cast<defer_event&>(o).valid_ = false;
 		}
 
-		~defer_event()
+		~defer_event() noexcept
 		{
 			if (valid_)
 				f();
 		}
 
-		inline bool empty() { return !valid_; }
+		inline bool empty() const noexcept { return !valid_; }
 
 	protected:
 		Function f;
@@ -105,7 +105,7 @@ namespace asio2::detail
 		template <class, class>           friend class event_queue_cp;
 
 	protected:
-		event_queue_guard(derived_t& d) : derive(d), derive_ptr_(d.selfptr()) {}
+		event_queue_guard(derived_t& d) noexcept : derive(d), derive_ptr_(d.selfptr()) {}
 
 	public:
 		inline event_queue_guard(event_queue_guard&& o) noexcept
@@ -119,13 +119,13 @@ namespace asio2::detail
 		inline void operator=(event_queue_guard&& o) = delete;
 		inline void operator=(const event_queue_guard& o) = delete;
 
-		~event_queue_guard()
+		~event_queue_guard() noexcept
 		{
 			if (this->valid_)
 				derive.next_event(std::move(*this));
 		}
 
-		inline bool valid() { return valid_; }
+		inline bool valid() const noexcept { return valid_; }
 
 	protected:
 		derived_t                    & derive;
@@ -148,7 +148,7 @@ namespace asio2::detail
 		/**
 		 * @constructor
 		 */
-		event_queue_cp() {}
+		event_queue_cp() noexcept {}
 
 		/**
 		 * @destructor

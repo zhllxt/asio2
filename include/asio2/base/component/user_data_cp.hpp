@@ -28,12 +28,17 @@ namespace asio2::detail
 		/**
 		 * @constructor
 		 */
-		user_data_cp() {}
+		user_data_cp() noexcept {}
 
 		/**
 		 * @destructor
 		 */
 		~user_data_cp() = default;
+
+		user_data_cp(user_data_cp&&) noexcept = default;
+		user_data_cp(user_data_cp const&) = default;
+		user_data_cp& operator=(user_data_cp&&) noexcept = default;
+		user_data_cp& operator=(user_data_cp const&) = default;
 
 	public:
 		/**
@@ -51,7 +56,7 @@ namespace asio2::detail
 		 * example : MyStruct my = user_data<MyStruct>(); MyStruct* my = user_data<MyStruct*>();
 		 */
 		template<class DataT>
-		inline DataT user_data()
+		inline DataT user_data() noexcept
 		{
 			try
 			{
@@ -79,7 +84,7 @@ namespace asio2::detail
 			return DataT{};
 		}
 
-		inline std::any& user_data_any() { return this->user_data_; }
+		inline std::any& user_data_any() noexcept { return this->user_data_; }
 
 	protected:
 		/// user data

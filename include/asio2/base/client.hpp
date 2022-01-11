@@ -147,7 +147,7 @@ namespace asio2::detail
 		/**
 		 * @function : start the client
 		 */
-		inline bool start()
+		inline bool start() noexcept
 		{
 			return true;
 		}
@@ -155,7 +155,7 @@ namespace asio2::detail
 		/**
 		 * @function : async start the client
 		 */
-		inline bool async_start()
+		inline bool async_start() noexcept
 		{
 			return true;
 		}
@@ -215,7 +215,7 @@ namespace asio2::detail
 		/**
 		 * @function : get this object hash key
 		 */
-		inline key_type hash_key() const
+		inline key_type hash_key() const noexcept
 		{
 			return reinterpret_cast<key_type>(this);
 		}
@@ -223,18 +223,18 @@ namespace asio2::detail
 		/**
 		 * @function : get the buffer object refrence
 		 */
-		inline buffer_wrap<buffer_type> & buffer() { return this->buffer_; }
+		inline buffer_wrap<buffer_type> & buffer() noexcept { return this->buffer_; }
 
 		/**
 		 * @function : get the io object refrence
 		 */
-		inline io_t & io() { return this->io_; }
+		inline io_t & io() noexcept { return this->io_; }
 
 		/**
 		 * @function : set the default remote call timeout for rpc/rdc
 		 */
 		template<class Rep, class Period>
-		inline derived_t & default_timeout(std::chrono::duration<Rep, Period> duration)
+		inline derived_t & default_timeout(std::chrono::duration<Rep, Period> duration) noexcept
 		{
 			this->rc_timeout_ = duration;
 			return (this->derived());
@@ -243,7 +243,7 @@ namespace asio2::detail
 		/**
 		 * @function : get the default remote call timeout for rpc/rdc
 		 */
-		inline std::chrono::steady_clock::duration default_timeout()
+		inline std::chrono::steady_clock::duration default_timeout() noexcept
 		{
 			return this->rc_timeout_;
 		}
@@ -252,18 +252,18 @@ namespace asio2::detail
 		/**
 		 * @function : get the recv/read allocator object refrence
 		 */
-		inline auto & rallocator() { return this->rallocator_; }
+		inline auto & rallocator() noexcept { return this->rallocator_; }
 		/**
 		 * @function : get the send/write allocator object refrence
 		 */
-		inline auto & wallocator() { return this->wallocator_; }
+		inline auto & wallocator() noexcept { return this->wallocator_; }
 
-		inline listener_t                 & listener() { return this->listener_; }
-		inline std::atomic<state_t>       & state   () { return this->state_;    }
+		inline listener_t                 & listener() noexcept { return this->listener_; }
+		inline std::atomic<state_t>       & state   () noexcept { return this->state_;    }
 
-		inline constexpr static bool is_session() { return false; }
-		inline constexpr static bool is_client () { return true ; }
-		inline constexpr static bool is_server () { return false; }
+		inline constexpr static bool is_session() noexcept { return false; }
+		inline constexpr static bool is_client () noexcept { return true ; }
+		inline constexpr static bool is_server () noexcept { return false; }
 
 	protected:
 		/// The memory to use for handler-based custom memory allocation. used fo recv/read.

@@ -115,12 +115,12 @@ namespace asio2::detail
 	}
 #else
 	template <typename... Ts>
-	inline constexpr void log(Ts const& ...) {}
+	inline constexpr void log(Ts const& ...) noexcept {}
 #endif
 
 	// just for : debug, find bug ...
 	template<typename = void>
-	static bool& has_unexpected_behavior()
+	static bool& has_unexpected_behavior() noexcept
 	{
 		static bool flag = false;
 		return flag;

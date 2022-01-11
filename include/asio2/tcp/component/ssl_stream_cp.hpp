@@ -39,7 +39,7 @@ namespace asio2::detail
 		using stream_type    = asio::ssl::stream<socket_type&>;
 		using handshake_type = typename asio::ssl::stream_base::handshake_type;
 
-		ssl_stream_cp(io_t& ssl_io, asio::ssl::context& ctx, handshake_type type)
+		ssl_stream_cp(io_t& ssl_io, asio::ssl::context& ctx, handshake_type type) noexcept
 			: ssl_ctx_(ctx)
 			, ssl_type_(type)
 		{
@@ -48,7 +48,7 @@ namespace asio2::detail
 
 		~ssl_stream_cp() = default;
 
-		inline stream_type & ssl_stream()
+		inline stream_type & ssl_stream() noexcept
 		{
 			ASIO2_ASSERT(bool(this->ssl_stream_));
 			return (*(this->ssl_stream_));
@@ -89,7 +89,7 @@ namespace asio2::detail
 		inline void _ssl_start(
 			const std::shared_ptr<derived_t>& this_ptr,
 			const condition_wrap<MatchCondition>& condition,
-			socket_type& socket, asio::ssl::context& ctx)
+			socket_type& socket, asio::ssl::context& ctx) noexcept
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 

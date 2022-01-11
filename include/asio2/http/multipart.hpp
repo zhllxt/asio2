@@ -51,11 +51,11 @@ public:
 	/// Constructor
 	basic_multipart_field() = default;
 	/// Constructor
-	basic_multipart_field(basic_multipart_field&&) = default;
+	basic_multipart_field(basic_multipart_field&&) noexcept = default;
 	/// Constructor
 	basic_multipart_field(basic_multipart_field const&) = default;
 	/// Assignment
-	basic_multipart_field& operator=(basic_multipart_field&&) = default;
+	basic_multipart_field& operator=(basic_multipart_field&&) noexcept = default;
 	/// Assignment
 	basic_multipart_field& operator=(basic_multipart_field const&) = default;
 
@@ -191,7 +191,7 @@ public:
     /*
 	 * Remove all fields from the container
      */
-	inline void clear()
+	inline void clear() noexcept
 	{
 		set_.clear();
 		list_.clear();

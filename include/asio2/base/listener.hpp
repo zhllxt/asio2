@@ -47,7 +47,7 @@ namespace asio2::detail
 	class observer_base
 	{
 	public:
-		virtual ~observer_base() {}
+		virtual ~observer_base() noexcept {}
 	};
 
 	template<class... Args>
@@ -57,10 +57,10 @@ namespace asio2::detail
 		using func_type = std::function<void(Args...)>;
 		using args_type = std::tuple<Args...>;
 
-		explicit observer_t(const func_type & fn) : fn_(fn) {}
-		explicit observer_t(func_type && fn) : fn_(std::move(fn)) {}
-		explicit observer_t(const observer_t<Args...> & other) : fn_(other.fn_) {}
-		explicit observer_t(observer_t<Args...> && other) noexcept : fn_(std::move(other.fn_)) {}
+		explicit observer_t(const func_type &  fn) : fn_(fn) {}
+		explicit observer_t(      func_type && fn) : fn_(std::move(fn)) {}
+		explicit observer_t(const observer_t<Args...> &  other) : fn_(other.fn_) {}
+		explicit observer_t(      observer_t<Args...> && other) : fn_(std::move(other.fn_)) {}
 
 		template<class F, class ...C>
 		explicit observer_t(F&& f, C&&... c)
@@ -107,7 +107,7 @@ namespace asio2::detail
 				this->fn_(std::forward<Args>(args)...);
 		}
 
-		inline func_type move() { return std::move(this->fn_); }
+		inline func_type move() noexcept { return std::move(this->fn_); }
 
 	protected:
 		func_type fn_;
@@ -138,7 +138,7 @@ namespace asio2::detail
 			}
 		}
 
-		inline std::unique_ptr<observer_base>& find(event_type e)
+		inline std::unique_ptr<observer_base>& find(event_type e) noexcept
 		{
 			return this->observers_[detail::to_underlying(e)];
 		}

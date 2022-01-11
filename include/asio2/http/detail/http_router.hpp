@@ -67,9 +67,9 @@ namespace boost::beast::websocket
 		using self = listener<caller_t>;
 
 		listener() = default;
-		listener(listener&&) = default;
+		listener(listener&&) noexcept = default;
 		listener(listener const&) = default;
-		listener& operator=(listener&&) = default;
+		listener& operator=(listener&&) noexcept = default;
 		listener& operator=(listener const&) = default;
 
 		template<class F>
@@ -260,7 +260,7 @@ namespace asio2::detail
 		/**
 		 * @function : get the root directory where we load the files.
 		 */
-		inline const std::filesystem::path& root_directory()
+		inline const std::filesystem::path& root_directory() noexcept
 		{
 			return this->root_directory_;
 		}
@@ -268,7 +268,7 @@ namespace asio2::detail
 		/**
 		 * @function : set whether websocket is supported, default is true
 		 */
-		inline self& support_websocket(bool v)
+		inline self& support_websocket(bool v) noexcept
 		{
 			this->support_websocket_ = v;
 			return (*this);
@@ -276,13 +276,13 @@ namespace asio2::detail
 		/**
 		 * @function : get whether websocket is supported, default is true
 		 */
-		inline bool support_websocket()
+		inline bool support_websocket() noexcept
 		{
 			return this->support_websocket_;
 		}
 
 	protected:
-		inline self& _router() { return (*this); }
+		inline self& _router() noexcept { return (*this); }
 
 		template<http::verb... M>
 		inline decltype(auto) _make_uris(std::string name)
@@ -648,7 +648,7 @@ namespace asio2::detail
 			return false;
 		}
 
-		inline constexpr std::string_view _to_char(http::verb method)
+		inline constexpr std::string_view _to_char(http::verb method) noexcept
 		{
 			using namespace std::literals;
 			constexpr std::string_view chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"sv;

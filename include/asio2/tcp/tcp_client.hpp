@@ -436,7 +436,7 @@ namespace asio2::detail
 		}
 
 		template<typename MatchCondition>
-		inline void _do_init(condition_wrap<MatchCondition>)
+		inline void _do_init(condition_wrap<MatchCondition>) noexcept
 		{
 			// Used to test whether the behavior of different compilers is consistent
 			static_assert(tcp_send_op<derived_t, args_t>::template has_member_dgram<self>::value,
@@ -574,7 +574,7 @@ namespace asio2::detail
 		}
 
 		template<class Data>
-		inline send_data_t _rdc_convert_to_send_data(Data& data)
+		inline send_data_t _rdc_convert_to_send_data(Data& data) noexcept
 		{
 			auto buffer = asio::buffer(data);
 			return send_data_t{ reinterpret_cast<

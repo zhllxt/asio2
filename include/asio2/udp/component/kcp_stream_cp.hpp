@@ -60,7 +60,7 @@ namespace asio2::detail
 		/**
 		 * @destructor
 		 */
-		~kcp_stream_cp()
+		~kcp_stream_cp() noexcept
 		{
 			if (this->kcp_)
 			{

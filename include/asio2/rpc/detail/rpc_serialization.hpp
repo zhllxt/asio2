@@ -37,14 +37,14 @@ namespace asio2::detail
 		using size_type = typename string_type::size_type;
 
 		ostrbuf() {}
-		virtual ~ostrbuf() {}
+		virtual ~ostrbuf() noexcept {}
 
-		inline const string_type& str() const
+		inline const string_type& str() const noexcept
 		{
 			return this->str_;
 		}
 
-		inline void clear()
+		inline void clear() noexcept
 		{
 			this->str_.clear();
 
@@ -72,9 +72,9 @@ namespace asio2::detail
 		using size_type = typename string_type::size_type;
 
 		istrbuf() {}
-		virtual ~istrbuf() {}
+		virtual ~istrbuf() noexcept {}
 
-		inline void setbuf(std::string_view s)
+		inline void setbuf(std::string_view s) noexcept
 		{
 			this->setbuf(const_cast<char_type*>(s.data()), std::streamsize(s.size()));
 		}
@@ -138,12 +138,12 @@ namespace asio2::detail
 			return (*this);
 		}
 
-		inline const auto& str() const
+		inline const auto& str() const noexcept
 		{
 			return this->obuffer_.str();
 		}
 
-		inline ostrbuf& buffer() { return this->obuffer_; }
+		inline ostrbuf& buffer() noexcept { return this->obuffer_; }
 
 	protected:
 		ostrbuf         obuffer_;
@@ -192,7 +192,7 @@ namespace asio2::detail
 			return (*this);
 		}
 
-		inline istrbuf& buffer() { return this->ibuffer_; }
+		inline istrbuf& buffer() noexcept { return this->ibuffer_; }
 
 	protected:
 		istrbuf         ibuffer_;

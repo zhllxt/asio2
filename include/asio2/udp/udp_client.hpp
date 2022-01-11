@@ -177,7 +177,7 @@ namespace asio2::detail
 		 * generic mode : ikcp_nodelay(kcp, 0, 10, 0, 1);
 		 * fast    mode : ikcp_nodelay(kcp, 1, 10, 2, 1);
 		 */
-		inline kcp::ikcpcb* kcp()
+		inline kcp::ikcpcb* kcp() noexcept
 		{
 			return (this->kcp_ ? this->kcp_->kcp_ : nullptr);
 		}
@@ -569,7 +569,7 @@ namespace asio2::detail
 		}
 
 		template<class Data>
-		inline send_data_t _rdc_convert_to_send_data(Data& data)
+		inline send_data_t _rdc_convert_to_send_data(Data& data) noexcept
 		{
 			auto buffer = asio::buffer(data);
 			return send_data_t{ reinterpret_cast<

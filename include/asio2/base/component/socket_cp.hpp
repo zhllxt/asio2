@@ -44,7 +44,7 @@ namespace asio2::detail
 		/**
 		 * @function : get the socket object refrence
 		 */
-		inline socket_type & socket()
+		inline socket_type & socket() noexcept
 		{
 			return this->socket_;
 		}
@@ -52,7 +52,7 @@ namespace asio2::detail
 		/**
 		 * @function : get the stream object refrence
 		 */
-		inline socket_type & stream()
+		inline socket_type & stream() noexcept
 		{
 			return this->socket_;
 		}

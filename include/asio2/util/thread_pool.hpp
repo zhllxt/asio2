@@ -155,7 +155,7 @@ namespace asio2
 		/**
 		 * @function : get thread count of the thread pool
 		 */
-		inline std::size_t pool_size()
+		inline std::size_t pool_size() const noexcept
 		{
 			return this->workers_.size();
 		}
@@ -163,7 +163,7 @@ namespace asio2
 		/**
 		 * @function : get remain task size
 		 */
-		inline std::size_t task_size()
+		inline std::size_t task_size() const noexcept
 		{
 			return this->tasks_.size();
 		}
@@ -171,7 +171,7 @@ namespace asio2
 		/**
 		 * @function : Determine whether current code is running in the pool's threads.
 		 */
-		inline bool running_in_threads() const
+		inline bool running_in_threads() const noexcept
 		{
 			std::thread::id curr_tid = std::this_thread::get_id();
 			for (auto & thread : this->workers_)
@@ -185,7 +185,7 @@ namespace asio2
 		/**
 		 * @function : Determine whether current code is running in the thread by index
 		 */
-		inline bool running_in_thread(std::size_t index) const
+		inline bool running_in_thread(std::size_t index) const noexcept
 		{
 			if (!(index < this->workers_.size()))
 				return false;

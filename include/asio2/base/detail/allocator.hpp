@@ -50,7 +50,7 @@ namespace asio2::detail
 
 #if defined(_DEBUG) || defined(DEBUG)
 	template<typename = void>
-	inline constexpr std::size_t allocator_size()
+	inline constexpr std::size_t allocator_size() noexcept
 	{
 		if constexpr (sizeof(void *) == sizeof(std::uint32_t))
 			return std::size_t(1304 + 8);
@@ -59,7 +59,7 @@ namespace asio2::detail
 	}
 #else
 	template<typename = void>
-	inline constexpr std::size_t allocator_size()
+	inline constexpr std::size_t allocator_size() noexcept
 	{
 		if constexpr (sizeof(void *) == sizeof(std::uint32_t))
 			return std::size_t(456 + 64);
@@ -78,10 +78,10 @@ namespace asio2::detail
 	class handler_memory;
 
 #if defined(ASIO2_ENABLE_LOG) && (defined(_DEBUG) || defined(DEBUG))
-	std::size_t __unlock_use_counter__ = 0;
-	std::size_t __unlock_new_counter__ = 0;
-	std::size_t __atomic_use_counter__ = 0;
-	std::size_t __atomic_new_counter__ = 0;
+	static std::size_t __unlock_use_counter__ = 0;
+	static std::size_t __unlock_new_counter__ = 0;
+	static std::size_t __atomic_use_counter__ = 0;
+	static std::size_t __atomic_new_counter__ = 0;
 #endif
 
 	// Class to manage the memory to be used for handler-based custom allocation.
@@ -92,7 +92,7 @@ namespace asio2::detail
 	class handler_memory<SizeN, std::false_type>
 	{
 	public:
-		explicit handler_memory() : in_use_(false) {}
+		explicit handler_memory() noexcept : in_use_(false) {}
 
 		handler_memory(const handler_memory&) = delete;
 		handler_memory& operator=(const handler_memory&) = delete;
@@ -120,7 +120,7 @@ namespace asio2::detail
 			}
 		}
 
-		inline void deallocate(void* pointer)
+		inline void deallocate(void* pointer) noexcept
 		{
 			if (pointer == &storage_)
 			{
@@ -144,7 +144,7 @@ namespace asio2::detail
 	class handler_memory<SizeN, std::true_type>
 	{
 	public:
-		handler_memory() { in_use_.clear(); }
+		handler_memory() noexcept { in_use_.clear(); }
 
 		handler_memory(const handler_memory&) = delete;
 		handler_memory& operator=(const handler_memory&) = delete;
@@ -171,7 +171,7 @@ namespace asio2::detail
 			}
 		}
 
-		inline void deallocate(void* pointer)
+		inline void deallocate(void* pointer) noexcept
 		{
 			if (pointer == &storage_)
 			{
@@ -199,7 +199,7 @@ namespace asio2::detail
 	public:
 		using value_type = T;
 
-		explicit handler_allocator(handler_memory<N, B>& mem)
+		explicit handler_allocator(handler_memory<N, B>& mem) noexcept
 			: memory_(mem)
 		{
 		}
@@ -225,7 +225,7 @@ namespace asio2::detail
 			return static_cast<T*>(memory_.allocate(sizeof(T) * n));
 		}
 
-		inline void deallocate(T* p, std::size_t /*n*/) const
+		inline void deallocate(T* p, std::size_t /*n*/) const noexcept
 		{
 			return memory_.deallocate(p);
 		}
@@ -247,7 +247,7 @@ namespace asio2::detail
 	public:
 		using allocator_type = handler_allocator<Handler, N, B>;
 
-		custom_alloc_handler(handler_memory<N, B>& m, Handler&& h)
+		custom_alloc_handler(handler_memory<N, B>& m, Handler&& h) noexcept
 			: memory_(m)
 			, handler_(std::forward<Handler>(h))
 		{

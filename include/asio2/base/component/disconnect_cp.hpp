@@ -40,7 +40,7 @@ namespace asio2::detail
 		/**
 		 * @constructor
 		 */
-		disconnect_cp() {}
+		disconnect_cp() noexcept {}
 
 		/**
 		 * @destructor
