@@ -23,6 +23,8 @@
 #include <cassert>
 #include <string>
 #include <system_error>
+#include <ios>
+#include <future>
 
 #include <asio2/3rd/asio.hpp>
 
@@ -104,9 +106,29 @@ namespace asio2
 		/**
 		 * @function : set last error_code
 		 */
-		inline void set_last_error(int ec) noexcept
+		template<class ErrorCodeEnum>
+		inline void set_last_error(ErrorCodeEnum e) noexcept
 		{
-			get_last_error().assign(ec, asio::error::get_system_category());
+			using type = std::remove_cv_t<std::remove_reference_t<ErrorCodeEnum>>;
+			if /**/ constexpr (
+				std::is_same_v<type, asio::error::basic_errors   > ||
+				std::is_same_v<type, asio::error::netdb_errors   > ||
+				std::is_same_v<type, asio::error::addrinfo_errors> ||
+				std::is_same_v<type, asio::error::misc_errors    > )
+			{
+				get_last_error() = asio::error::make_error_code(e);
+			}
+			else if constexpr (
+				std::is_same_v<type, std::errc       > ||
+				std::is_same_v<type, std::io_errc    > ||
+				std::is_same_v<type, std::future_errc> )
+			{
+				get_last_error() = std::make_error_code(e);
+			}
+			else
+			{
+				get_last_error().assign(static_cast<int>(e), std::generic_category());
+			}
 		}
 
 		/**

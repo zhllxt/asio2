@@ -116,7 +116,13 @@ namespace asio2::detail
 			auto buffer = asio::buffer(data);
 
 			int ret = kcp::ikcp_send(this->kcp_, (const char *)buffer.data(), (int)buffer.size());
-			set_last_error(ret);
+			switch (ret)
+			{
+			case  0: set_last_error(error_code{}                        ); break;
+			case -1: set_last_error(asio::error::invalid_argument       ); break;
+			case -2: set_last_error(asio::error::no_memory              ); break;
+			default: set_last_error(asio::error::operation_not_supported); break;
+			}
 			if (ret == 0)
 				kcp::ikcp_flush(this->kcp_);
 			callback(get_last_error(), ret < 0 ? 0 : buffer.size());
