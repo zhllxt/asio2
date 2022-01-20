@@ -184,7 +184,7 @@ namespace asio2::detail
 				desc += "The resource for ";
 				desc += req.method_string();
 				desc += " \"";
-				desc += req.target();
+				desc += http::url_decode(req.target());
 				desc += "\" was not found";
 
 				rep.fill_page(http::status::not_found, std::move(desc), {}, req.version());

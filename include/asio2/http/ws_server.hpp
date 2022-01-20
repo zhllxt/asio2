@@ -76,12 +76,12 @@ namespace asio2::detail
 		/**
 		 * @function : bind websocket upgrade listener
 		 * @param    : fun - a user defined callback function
-		 * Function signature : void(std::shared_ptr<asio2::ws_session>& session_ptr, asio::error_code ec)
+		 * Function signature : void(std::shared_ptr<asio2::ws_session>& session_ptr)
 		 */
 		template<class F, class ...C>
 		inline derived_t & bind_upgrade(F&& fun, C&&... obj)
 		{
-			this->listener_.bind(event_type::upgrade, observer_t<std::shared_ptr<session_t>&, error_code>
+			this->listener_.bind(event_type::upgrade, observer_t<std::shared_ptr<session_t>&>
 				(std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
 		}

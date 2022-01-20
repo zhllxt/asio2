@@ -153,12 +153,12 @@ namespace asio2::detail
 			this->derived()._ws_handle_recv(ec, bytes_recvd, std::move(this_ptr), std::move(condition));
 		}
 
-		inline void _fire_upgrade(std::shared_ptr<derived_t>& this_ptr, error_code ec)
+		inline void _fire_upgrade(std::shared_ptr<derived_t>& this_ptr)
 		{
 			// the _fire_upgrade must be executed in the thread 0.
 			ASIO2_ASSERT(this->sessions().io().strand().running_in_this_thread());
 
-			this->listener_.notify(event_type::upgrade, this_ptr, ec);
+			this->listener_.notify(event_type::upgrade, this_ptr);
 		}
 
 	protected:

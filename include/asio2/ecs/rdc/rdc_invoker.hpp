@@ -75,40 +75,42 @@ namespace asio2::detail
 		template<class F>
 		static inline void _proxy(F& f, const error_code& ec, SendDataT send_data, RecvDataT recv_data)
 		{
-			ignore_unused(send_data);
+			detail::ignore_unused(send_data);
 
 			using fun_traits_type = function_traits<F>;
-			using arg1_type = typename std::remove_cv_t<typename fun_traits_type::template args<1>::type>;
+			using arg_type = typename std::remove_cv_t<typename fun_traits_type::template args<0>::type>;
 
-			if constexpr (std::is_reference_v<arg1_type>)
+			set_last_error(ec);
+
+			if constexpr (std::is_reference_v<arg_type>)
 			{
-				f(ec, recv_data);
+				f(recv_data);
 			}
 			else
 			{
 				if (ec)
 				{
-					arg1_type result;
-					f(ec, std::move(result));
+					arg_type result;
+					f(std::move(result));
 					return;
 				}
 
-				if constexpr (has_stream_operator<arg1_type, RecvDataT>::value)
+				if /**/ constexpr (has_stream_operator<arg_type, RecvDataT>::value)
 				{
-					arg1_type result;
+					arg_type result;
 					result << recv_data;
-					f(ec, std::move(result));
+					f(std::move(result));
 				}
-				else if constexpr (has_equal_operator<arg1_type, RecvDataT>::value)
+				else if constexpr (has_equal_operator<arg_type, RecvDataT>::value)
 				{
-					arg1_type result;
+					arg_type result;
 					result = recv_data;
-					f(ec, std::move(result));
+					f(std::move(result));
 				}
 				else
 				{
-					arg1_type result{ recv_data };
-					f(ec, std::move(result));
+					arg_type result{ recv_data };
+					f(std::move(result));
 				}
 			}
 		}
@@ -116,40 +118,42 @@ namespace asio2::detail
 		template<class F, class C>
 		static inline void _proxy(F& f, C* c, const error_code& ec, SendDataT send_data, RecvDataT recv_data)
 		{
-			ignore_unused(send_data);
+			detail::ignore_unused(send_data);
 
 			using fun_traits_type = function_traits<F>;
-			using arg1_type = typename std::remove_cv_t<typename fun_traits_type::template args<1>::type>;
+			using arg_type = typename std::remove_cv_t<typename fun_traits_type::template args<0>::type>;
+			
+			set_last_error(ec);
 
-			if constexpr (std::is_reference_v<arg1_type>)
+			if constexpr (std::is_reference_v<arg_type>)
 			{
-				(c->*f)(ec, recv_data);
+				(c->*f)(recv_data);
 			}
 			else
 			{
 				if (ec)
 				{
-					arg1_type result;
-					(c->*f)(ec, std::move(result));
+					arg_type result;
+					(c->*f)(std::move(result));
 					return;
 				}
 
-				if constexpr (has_stream_operator<arg1_type, RecvDataT>::value)
+				if /**/ constexpr (has_stream_operator<arg_type, RecvDataT>::value)
 				{
-					arg1_type result;
+					arg_type result;
 					result << recv_data;
-					(c->*f)(ec, std::move(result));
+					(c->*f)(std::move(result));
 				}
-				else if constexpr (has_equal_operator<arg1_type, RecvDataT>::value)
+				else if constexpr (has_equal_operator<arg_type, RecvDataT>::value)
 				{
-					arg1_type result;
+					arg_type result;
 					result = recv_data;
-					(c->*f)(ec, std::move(result));
+					(c->*f)(std::move(result));
 				}
 				else
 				{
-					arg1_type result{ recv_data };
-					(c->*f)(ec, std::move(result));
+					arg_type result{ recv_data };
+					(c->*f)(std::move(result));
 				}
 			}
 		}
@@ -182,7 +186,11 @@ namespace asio2::detail
 		 */
 		inline auto find(IdT const& id)
 		{
-			return this->rdc_reqs_.find(id);
+			// can't use std::multimap::find
+			// std::multimap<Key,T,Compare,Allocator>::find
+			// Finds an element with key equivalent to key. If there are several elements
+			// with key in the container, any of them may be returned.
+			return this->rdc_reqs_.lower_bound(id);
 		}
 
 		/**
@@ -190,7 +198,10 @@ namespace asio2::detail
 		 */
 		inline auto emplace(IdT id, std::shared_ptr<asio::steady_timer> timer, callback_type cb)
 		{
-			return this->rdc_reqs_.emplace(std::move(id), std::tuple{ std::move(timer), std::move(cb) });
+			// std::multimap<Key,T,Compare,Allocator>::insert
+			// inserts value. If the container has elements with equivalent key,
+			// inserts at the upper bound of that range.(since C++11)
+			return this->rdc_reqs_.insert(std::pair(std::move(id), std::tuple(std::move(timer), std::move(cb))));
 		}
 
 		/**

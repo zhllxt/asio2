@@ -20,9 +20,9 @@ int main()
 	//std::string msg;
 	//msg.resize(15000, 'a');
 
-	client.bind_connect([&](asio::error_code ec)
+	client.bind_connect([&]()
 	{
-		if (ec)
+		if (asio2::get_last_error())
 			printf("connect failure : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
 		else
 			printf("connect success : %s %u\n", client.local_address().c_str(), client.local_port());
@@ -38,14 +38,14 @@ int main()
 
 		client.async_call("1<abcdefghijklmnopqrstovuxyz0123456789>");
 		client.async_call(std::string_view{ "1<abcdefghijklmnopqrstovuxyz0123456789>" }).
-			response([](asio::error_code ec, std::string_view data)
+			response([](std::string_view data)
 		{
-			asio2::detail::ignore_unused(ec, data);
+			asio2::detail::ignore_unused(data);
 		});
 
-	}).bind_disconnect([](asio::error_code ec)
+	}).bind_disconnect([]()
 	{
-		printf("disconnect : %d %s\n", ec.value(), ec.message().c_str());
+		printf("disconnect : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
 	}).bind_recv([&](std::string_view sv)
 	{
 		printf("recv : %u %.*s\n", (unsigned)sv.size(), (int)sv.size(), sv.data());
@@ -66,12 +66,12 @@ int main()
 		//client.async_send(sv, asio::use_future);
 		//client.async_send(sv, [](std::size_t bytes_sent) {});
 
-	}).bind_handshake([&](asio::error_code ec)
+	}).bind_handshake([&]()
 	{
-		if (ec)
-			printf("handshake failure : %d %s\n", ec.value(), ec.message().c_str());
+		if (asio2::get_last_error())
+			printf("handshake failure : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
 		else
-			printf("handshake success : %d %s\n", ec.value(), ec.message().c_str());
+			printf("handshake success : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
 
 		// this send will be failed, because connection is not fully completed
 		client.async_send("abc", []()

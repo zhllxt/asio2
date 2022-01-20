@@ -46,10 +46,10 @@ int main()
 
 		client.async_send(data);
 
-	}).bind_connect([&](asio::error_code ec)
+	}).bind_connect([&]()
 	{
-		if (ec)
-			printf("connect failure : %d %s\n", ec.value(), ec.message().c_str());
+		if (asio2::get_last_error())
+			printf("connect failure : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
 		else
 			printf("connect success : %s %u\n", client.local_address().c_str(), client.local_port());
 
@@ -73,15 +73,15 @@ int main()
 			});
 		}).join();
 
-	}).bind_upgrade([&](asio::error_code ec)
+	}).bind_upgrade([&]()
 	{
-		if (ec)
-			std::cout << "upgrade failure : " << ec.value() << " " << ec.message() << std::endl;
+		if (asio2::get_last_error())
+			std::cout << "upgrade failure : " << asio2::last_error_val() << " " << asio2::last_error_msg() << std::endl;
 		else
 			std::cout << "upgrade success : " << client.upgrade_response() << std::endl;
-	}).bind_disconnect([](asio::error_code ec)
+	}).bind_disconnect([]()
 	{
-		printf("disconnect : %d %s\n", ec.value(), ec.message().c_str());
+		printf("disconnect : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
 	});
 
 	asio2::rdc::option rdc_option{ [](std::string_view) { return 0; } };

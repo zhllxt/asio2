@@ -500,7 +500,7 @@ namespace asio2::detail
 
 		/**
 		 * @function : Send data and asynchronous waiting for a response or until the timeout period is reached
-		 * Callback signature : void(asio::error_code ec, T data)
+		 * Callback signature : void(DataType data)
 		 */
 		template<class DataT, class Callback>
 		inline typename std::enable_if_t<is_callable_v<Callback>, void>
@@ -514,7 +514,7 @@ namespace asio2::detail
 
 		/**
 		 * @function : Send data and asynchronous waiting for a response or until the timeout period is reached
-		 * Callback signature : void(asio::error_code ec, T data)
+		 * Callback signature : void(DataType data)
 		 */
 		template<class DataT, class Callback, class Rep, class Period>
 		inline typename std::enable_if_t<is_callable_v<Callback>, void>

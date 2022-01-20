@@ -38,12 +38,12 @@ int main()
 		s += '>';
 		sp.async_send(s, []() {});
 
-	}).bind_start([&](asio::error_code ec)
+	}).bind_start([&]()
 	{
-		printf("start : %d %s\n", ec.value(), ec.message().c_str());
-	}).bind_stop([&](asio::error_code ec)
+		printf("start : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
+	}).bind_stop([&]()
 	{
-		printf("stop : %d %s\n", ec.value(), ec.message().c_str());
+		printf("stop : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
 	});
 
 	//sp.start(device, baud_rate);

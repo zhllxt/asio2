@@ -289,7 +289,6 @@ namespace asio2::detail
 
 		/**
 		 * @function : blocking execute the http request until it is returned on success or failure
-		 * You need to encode the "url"(by url_encode) before calling this function
 		 */
 		template<class Body = http::string_body, class Fields = http::fields>
 		static inline http::response_t<Body, Fields> execute(std::string_view url, error_code& ec)
@@ -299,7 +298,6 @@ namespace asio2::detail
 
 		/**
 		 * @function : blocking execute the http request until it is returned on success or failure
-		 * You need to encode the "url"(by url_encode) before calling this function
 		 */
 		template<class Body = http::string_body, class Fields = http::fields>
 		static inline http::response_t<Body, Fields> execute(std::string_view url)
@@ -312,7 +310,6 @@ namespace asio2::detail
 
 		/**
 		 * @function : blocking execute the http request until it is returned on success or failure
-		 * You need to encode the "url"(by url_encode) before calling this function
 		 */
 		template<class Rep, class Period, class Body = http::string_body, class Fields = http::fields>
 		static inline http::response_t<Body, Fields> execute(std::string_view url,
@@ -329,7 +326,6 @@ namespace asio2::detail
 
 		/**
 		 * @function : blocking execute the http request until it is returned on success or failure
-		 * You need to encode the "url"(by url_encode) before calling this function
 		 */
 		template<class Rep, class Period, class Body = http::string_body, class Fields = http::fields>
 		static inline http::response_t<Body, Fields> execute(std::string_view url,
@@ -343,7 +339,6 @@ namespace asio2::detail
 
 		/**
 		 * @function : blocking execute the http request until it is returned on success or failure
-		 * You need to encode the "target"(by url_encode) before calling this function
 		 */
 		template<typename String, typename StrOrInt, class Body = http::string_body, class Fields = http::fields>
 		static inline http::response_t<Body, Fields> execute(String&& host, StrOrInt&& port,
@@ -356,7 +351,6 @@ namespace asio2::detail
 
 		/**
 		 * @function : blocking execute the http request until it is returned on success or failure
-		 * You need to encode the "target"(by url_encode) before calling this function
 		 */
 		template<typename String, typename StrOrInt, class Body = http::string_body, class Fields = http::fields>
 		static inline http::response_t<Body, Fields> execute(String&& host, StrOrInt&& port,
@@ -371,7 +365,6 @@ namespace asio2::detail
 
 		/**
 		 * @function : blocking execute the http request until it is returned on success or failure
-		 * You need to encode the "target"(by url_encode) before calling this function
 		 */
 		template<typename String, typename StrOrInt, class Rep, class Period,
 			class Body = http::string_body, class Fields = http::fields>
@@ -392,7 +385,6 @@ namespace asio2::detail
 
 		/**
 		 * @function : blocking execute the http request until it is returned on success or failure
-		 * You need to encode the "target"(by url_encode) before calling this function
 		 */
 		template<typename String, typename StrOrInt, class Rep, class Period,
 			class Body = http::string_body, class Fields = http::fields>
@@ -443,7 +435,6 @@ namespace asio2::detail
 
 		/**
 		 * @function : blocking execute the http request until it is returned on success or failure
-		 * You need to encode the "url"(by url_encode) before calling this function
 		 */
 		template<class Proxy, class Body = http::string_body, class Fields = http::fields>
 		static inline http::response_t<Body, Fields> execute(std::string_view url, Proxy&& proxy, error_code& ec)
@@ -453,7 +444,6 @@ namespace asio2::detail
 
 		/**
 		 * @function : blocking execute the http request until it is returned on success or failure
-		 * You need to encode the "url"(by url_encode) before calling this function
 		 */
 		template<class Proxy, class Body = http::string_body, class Fields = http::fields>
 		static inline http::response_t<Body, Fields> execute(std::string_view url, Proxy&& proxy)
@@ -466,7 +456,6 @@ namespace asio2::detail
 
 		/**
 		 * @function : blocking execute the http request until it is returned on success or failure
-		 * You need to encode the "url"(by url_encode) before calling this function
 		 */
 		template<class Rep, class Period, class Proxy, class Body = http::string_body, class Fields = http::fields>
 		static inline http::response_t<Body, Fields> execute(std::string_view url,
@@ -483,7 +472,6 @@ namespace asio2::detail
 
 		/**
 		 * @function : blocking execute the http request until it is returned on success or failure
-		 * You need to encode the "url"(by url_encode) before calling this function
 		 */
 		template<class Rep, class Period, class Proxy, class Body = http::string_body, class Fields = http::fields>
 		static inline http::response_t<Body, Fields> execute(std::string_view url,
@@ -497,7 +485,6 @@ namespace asio2::detail
 
 		/**
 		 * @function : blocking execute the http request until it is returned on success or failure
-		 * You need to encode the "target"(by url_encode) before calling this function
 		 */
 		template<typename String, typename StrOrInt, class Proxy, class Body = http::string_body, class Fields = http::fields>
 		static inline http::response_t<Body, Fields> execute(String&& host, StrOrInt&& port,
@@ -510,7 +497,6 @@ namespace asio2::detail
 
 		/**
 		 * @function : blocking execute the http request until it is returned on success or failure
-		 * You need to encode the "target"(by url_encode) before calling this function
 		 */
 		template<typename String, typename StrOrInt, class Proxy, class Body = http::string_body, class Fields = http::fields>
 		static inline http::response_t<Body, Fields> execute(String&& host, StrOrInt&& port,
@@ -525,7 +511,6 @@ namespace asio2::detail
 
 		/**
 		 * @function : blocking execute the http request until it is returned on success or failure
-		 * You need to encode the "target"(by url_encode) before calling this function
 		 */
 		template<typename String, typename StrOrInt, class Rep, class Period, class Proxy,
 			class Body = http::string_body, class Fields = http::fields>
@@ -546,7 +531,6 @@ namespace asio2::detail
 
 		/**
 		 * @function : blocking execute the http request until it is returned on success or failure
-		 * You need to encode the "target"(by url_encode) before calling this function
 		 */
 		template<typename String, typename StrOrInt, class Rep, class Period, class Proxy,
 			class Body = http::string_body, class Fields = http::fields>

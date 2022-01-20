@@ -30,13 +30,13 @@ int main()
 			sender.send(shost, sport, buf);
 			sender.send(shost, sport, p2);
 			sender.send(shost, sport, "3abcdefghijklmnopqrxtovwxyz");
-		}).bind_start([&](asio::error_code ec)
+		}).bind_start([&]()
 		{
-			printf("start : %d %s\n", ec.value(), ec.message().c_str());
+			printf("start : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
 
-		}).bind_stop([&](asio::error_code ec)
+		}).bind_stop([&]()
 		{
-			printf("stop : %d %s\n", ec.value(), ec.message().c_str());
+			printf("stop : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
 		}).bind_init([&]()
 		{
 			//// Join the multicast group.

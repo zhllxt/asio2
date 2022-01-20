@@ -296,7 +296,7 @@ namespace asio2::detail
 			{
 				if constexpr (args_t::is_session)
 				{
-					derive._fire_handshake(this_ptr, ec);
+					derive._fire_handshake(this_ptr);
 
 					asio::detail::throw_error(ec);
 
@@ -304,7 +304,7 @@ namespace asio2::detail
 				}
 				else
 				{
-					derive._fire_handshake(this_ptr, ec);
+					derive._fire_handshake(this_ptr);
 
 					derive._done_connect(ec, std::move(this_ptr), std::move(condition));
 				}

@@ -87,8 +87,7 @@ namespace asio2::detail
 		{
 			template<class return_t, class Rep, class Period, class ...Args>
 			inline static return_t exec(derive_t& derive, error_code* ec_ptr,
-				std::chrono::duration<Rep, Period> timeout,
-				std::string name, Args&&... args)
+				std::chrono::duration<Rep, Period> timeout, std::string name, Args&&... args)
 			{
 				if (ec_ptr) { ec_ptr->clear(); }
 
@@ -238,7 +237,7 @@ namespace asio2::detail
 			}
 
 			template<std::size_t Argc, class Callback>
-			typename std::enable_if_t<Argc == 1, std::function<void(error_code, std::string_view)>>
+			typename std::enable_if_t<Argc == 0, std::function<void(error_code, std::string_view)>>
 			inline static make_callback_argc(derive_t& derive, Callback&& cb)
 			{
 				return async_call_op<derive_t>::template make_callback_impl<void>(
@@ -246,11 +245,11 @@ namespace asio2::detail
 			}
 
 			template<std::size_t Argc, class Callback>
-			typename std::enable_if_t<Argc == 2, std::function<void(error_code, std::string_view)>>
+			typename std::enable_if_t<Argc == 1, std::function<void(error_code, std::string_view)>>
 			inline static make_callback_argc(derive_t& derive, Callback&& cb)
 			{
 				using fun_traits_type = function_traits<std::remove_cv_t<std::remove_reference_t<Callback>>>;
-				using return_type = typename fun_traits_type::template args<1>::type;
+				using return_type = typename fun_traits_type::template args<0>::type;
 				static_assert(!std::is_same_v<return_type, void>);
 				return async_call_op<derive_t>::template make_callback_impl<return_type>(
 					derive, std::forward<Callback>(cb));
@@ -276,7 +275,7 @@ namespace asio2::detail
 
 						set_last_error(ec);
 
-						cb(ec);
+						cb();
 					}
 				};
 			}
@@ -308,7 +307,7 @@ namespace asio2::detail
 
 						set_last_error(ec);
 
-						cb(ec, std::move(result));
+						cb(std::move(result));
 					}
 				};
 			}
@@ -645,6 +644,7 @@ namespace asio2::detail
 		 * @function : call a rpc function
 		 * If invoke synchronization rpc call function in communication thread, it will degenerates
 		 * into async_call and the return value is empty.
+		 * You can use get_last_error to check whether there is an error of the call
 		 */
 		template<class return_t, class Rep, class Period, class ...Args>
 		inline return_t call(std::chrono::duration<Rep, Period> timeout, std::string name, Args&&... args)
@@ -674,6 +674,7 @@ namespace asio2::detail
 		 * @function : call a rpc function
 		 * If invoke synchronization rpc call function in communication thread, it will degenerates
 		 * into async_call and the return value is empty.
+		 * You can use get_last_error to check whether there is an error of the call
 		 */
 		template<class return_t, class ...Args>
 		inline return_t call(std::string name, Args&&... args)
@@ -688,6 +689,7 @@ namespace asio2::detail
 		 * @function : call a rpc function
 		 * If invoke synchronization rpc call function in communication thread, it will degenerates
 		 * into async_call and the return value is empty.
+		 * You can use get_last_error to check whether there is an error of the call
 		 */
 		template<class return_t, class ...Args>
 		inline return_t call(error_code& ec, std::string name, Args&&... args)
@@ -700,8 +702,8 @@ namespace asio2::detail
 
 		/**
 		 * @function : asynchronous call a rpc function
-		 * Callback signature : void(asio::error_code ec, int result)
-		 * if result type is void, the Callback signature is : void(asio::error_code ec)
+		 * Callback signature : void(DataType result)  example : [](std::string result){}
+		 * if result type is void, the Callback signature is : void()
 		 * Because the result value type is not specified in the first template parameter,
 		 * so the result value type must be specified in the Callback lambda.
 		 */
@@ -718,8 +720,8 @@ namespace asio2::detail
 
 		/**
 		 * @function : asynchronous call a rpc function
-		 * Callback signature : void(asio::error_code ec, int result)
-		 * if result type is void, the Callback signature is : void(asio::error_code ec)
+		 * Callback signature : void(DataType result)  example : [](std::string result){}
+		 * if result type is void, the Callback signature is : void()
 		 * Because the result value type is not specified in the first template parameter,
 		 * so the result value type must be specified in the Callback lambda
 		 */
@@ -736,12 +738,12 @@ namespace asio2::detail
 
 		/**
 		 * @function : asynchronous call a rpc function
-		 * Callback signature : void(asio::error_code ec, return_t result) the return_t
-		 * is the first template parameter.
-		 * if result type is void, the Callback signature is : void(asio::error_code ec)
+		 * Callback signature : void(return_t result)
+		 * the return_t is the first template parameter.
+		 * if result type is void, the Callback signature is : void()
 		 */
 		template<class return_t, class Callback, class ...Args>
-		inline typename std::enable_if_t<is_template_callable_v<Callback, error_code, return_t>, void>
+		inline typename std::enable_if_t<is_template_callable_v<Callback, return_t>, void>
 		async_call(Callback&& cb, std::string name, Args&&... args)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
@@ -754,12 +756,12 @@ namespace asio2::detail
 
 		/**
 		 * @function : asynchronous call a rpc function
-		 * Callback signature : void(asio::error_code ec, return_t result) the return_t
-		 * is the first template parameter.
-		 * if result type is void, the Callback signature is : void(asio::error_code ec)
+		 * Callback signature : void(return_t result)
+		 * the return_t is the first template parameter.
+		 * if result type is void, the Callback signature is : void()
 		 */
 		template<class return_t, class Callback, class Rep, class Period, class ...Args>
-		inline typename std::enable_if_t<is_template_callable_v<Callback, error_code, return_t>, void>
+		inline typename std::enable_if_t<is_template_callable_v<Callback, return_t>, void>
 		async_call(Callback&& cb, std::chrono::duration<Rep, Period> timeout,
 			std::string name, Args&&... args)
 		{

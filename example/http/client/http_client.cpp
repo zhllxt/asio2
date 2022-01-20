@@ -239,10 +239,8 @@ int main()
 			client.async_send(std::move(req3));
 		}
 
-	}).bind_connect([&](asio::error_code ec)
+	}).bind_connect([&]()
 	{
-		asio2::detail::ignore_unused(ec);
-
 		if (asio2::get_last_error())
 			printf("connect failure : %d %s\n",
 				asio2::last_error_val(), asio2::last_error_msg().c_str());
@@ -257,10 +255,8 @@ int main()
 			client.async_send(msg, [](std::size_t bytes_sent) {asio2::detail::ignore_unused(bytes_sent); });
 		}
 
-	}).bind_disconnect([](asio::error_code ec)
+	}).bind_disconnect([]()
 	{
-		asio2::detail::ignore_unused(ec);
-
 		printf("disconnect : %d %s\n",
 			asio2::last_error_val(), asio2::last_error_msg().c_str());
 	});

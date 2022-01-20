@@ -1,5 +1,5 @@
 #include <asio2/rpc/rpc_server.hpp>
-#include <nlohmann/json.hpp>
+#include <asio2/3rd/json.hpp>
 
 struct userinfo
 {
@@ -161,23 +161,26 @@ int main()
 			session_ptr->remote_address().c_str(), session_ptr->remote_port(),
 			session_ptr->local_address().c_str(), session_ptr->local_port());
 		session_ptr->post([]() {}, std::chrono::seconds(3));
-		session_ptr->async_call([](asio::error_code ec, int v)
+		session_ptr->async_call([](int v)
 		{
-			if (!ec)
+			if (!asio2::get_last_error())
 			{
 				ASIO2_ASSERT(v == 15 - 6);
 			}
-			printf("sub : %d err : %d %s\n", v, ec.value(), ec.message().c_str());
+			printf("sub : %d err : %d %s\n", v, asio2::last_error_val(), asio2::last_error_msg().c_str());
 		}, std::chrono::seconds(10), "sub", 15, 6);
 
-	}).bind_start([&](asio::error_code ec)
+	}).bind_disconnect([&](auto & session_ptr)
+	{
+		printf("client leave : %s %u\n", session_ptr->remote_address().c_str(), session_ptr->remote_port());
+	}).bind_start([&]()
 	{
 		printf("start rpc server : %s %u %d %s\n",
 			server.listen_address().c_str(), server.listen_port(),
-			ec.value(), ec.message().c_str());
-	}).bind_stop([&](asio::error_code ec)
+			asio2::last_error_val(), asio2::last_error_msg().c_str());
+	}).bind_stop([&]()
 	{
-		printf("stop : %d %s\n", ec.value(), ec.message().c_str());
+		printf("stop : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
 	});
 
 	A a;
@@ -198,23 +201,23 @@ int main()
 		const std::string& a, const std::string& b)
 	{
 		// Nested call rpc function in business function is ok.
-		session_ptr->async_call([session_ptr](asio::error_code ec, int v) mutable
+		session_ptr->async_call([session_ptr](int v) mutable
 		{
 			// Nested call rpc function in business function is ok.
-			session_ptr->async_call([](asio::error_code ec, int v)
+			session_ptr->async_call([](int v)
 			{
-				if (!ec)
+				if (!asio2::get_last_error())
 				{
 					ASIO2_ASSERT(v == 15 + 18);
 				}
-				printf("async_add : %d err : %d %s\n", v, ec.value(), ec.message().c_str());
+				printf("async_add : %d err : %d %s\n", v, asio2::last_error_val(), asio2::last_error_msg().c_str());
 			}, "async_add", 15, 18);
 
-			if (!ec)
+			if (!asio2::get_last_error())
 			{
 				ASIO2_ASSERT(v == 15 - 8);
 			}
-			printf("sub : %d err : %d %s\n", v, ec.value(), ec.message().c_str());
+			printf("sub : %d err : %d %s\n", v, asio2::last_error_val(), asio2::last_error_msg().c_str());
 		}, "sub", 15, 8);
 
 		return a + b;

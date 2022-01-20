@@ -180,23 +180,23 @@ int main()
 		}
 		printf("client leave : %s %u %s\n", session_ptr->remote_address().c_str(),
 			session_ptr->remote_port(), asio2::last_error_msg().c_str());
-	}).bind_handshake([&](auto & session_ptr, asio::error_code ec)
+	}).bind_handshake([&](auto & session_ptr)
 	{
 		if (asio2::get_last_error())
-			printf("handshake failure : %d %s\n", ec.value(), ec.message().c_str());
+			printf("handshake failure : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
 		else
 			printf("handshake success : %s %u\n", session_ptr->remote_address().c_str(), session_ptr->remote_port());
-	}).bind_start([&](asio::error_code ec)
+	}).bind_start([&]()
 	{
 		if (asio2::get_last_error())
-			printf("start tcps server failure : %d %s\n", ec.value(), ec.message().c_str());
+			printf("start tcps server failure : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
 		else
 			printf("start tcps server success : %s %u\n", server.listen_address().c_str(), server.listen_port());
 		//server.stop();
-	}).bind_stop([&](asio::error_code ec)
+	}).bind_stop([&]()
 	{
 		all_stopped = true;
-		printf("stop tcps server : %d %s\n", ec.value(), ec.message().c_str());
+		printf("stop tcps server : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
 	});
 
 	server.start(host, port);

@@ -140,13 +140,13 @@ namespace asio2::detail
 		/**
 		 * @function : bind websocket upgrade listener
 		 * @param    : fun - a user defined callback function
-		 * Function signature : void(asio::error_code ec)
+		 * Function signature : void()
 		 */
 		template<class F, class ...C>
 		inline derived_t & bind_upgrade(F&& fun, C&&... obj)
 		{
 			this->listener_.bind(event_type::upgrade,
-				observer_t<error_code>(std::forward<F>(fun), std::forward<C>(obj)...));
+				observer_t<>(std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
 		}
 
@@ -223,14 +223,14 @@ namespace asio2::detail
 			this->derived()._ws_handle_recv(ec, bytes_recvd, std::move(this_ptr), std::move(condition));
 		}
 
-		inline void _fire_upgrade(std::shared_ptr<derived_t>& this_ptr, error_code ec)
+		inline void _fire_upgrade(std::shared_ptr<derived_t>& this_ptr)
 		{
 			// the _fire_upgrade must be executed in the thread 0.
 			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
 
 			detail::ignore_unused(this_ptr);
 
-			this->listener_.notify(event_type::upgrade, ec);
+			this->listener_.notify(event_type::upgrade);
 		}
 
 	protected:

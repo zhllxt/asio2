@@ -34,8 +34,8 @@ public:
 		ping.interval(std::chrono::seconds(1));
 		ping.body("");
 		ping.bind_recv(&ping_test::on_recv, this)
-			.bind_start(std::bind(&ping_test::on_start, this, std::placeholders::_1))
-			.bind_stop([this](asio::error_code ec) { this->on_stop(ec); });
+			.bind_start(std::bind(&ping_test::on_start, this))
+			.bind_stop([this]() { this->on_stop(); });
 	}
 	void on_recv(asio2::icmp_rep& rep)
 	{
@@ -49,13 +49,13 @@ public:
 			<< ", time=" << std::chrono::duration_cast<std::chrono::milliseconds>(rep.lag).count() << "ms"
 			<< std::endl;
 	}
-	void on_start(asio::error_code ec)
+	void on_start()
 	{
-		printf("start : %d %s\n", ec.value(), ec.message().c_str());
+		printf("start : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
 	}
-	void on_stop(asio::error_code ec)
+	void on_stop()
 	{
-		printf("stop : %d %s\n", ec.value(), ec.message().c_str());
+		printf("stop : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
 	}
 	void run()
 	{

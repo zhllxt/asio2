@@ -412,7 +412,7 @@ namespace asio2::detail
 					{
 						set_last_error(ec);
 
-						derive._fire_upgrade(this_ptr, ec);
+						derive._fire_upgrade(this_ptr);
 
 						asio::detail::throw_error(ec);
 
@@ -433,7 +433,7 @@ namespace asio2::detail
 			{
 				set_last_error(ec);
 
-				derive._fire_upgrade(this_ptr, ec);
+				derive._fire_upgrade(this_ptr);
 
 				derive._done_connect(ec, std::move(this_ptr), std::move(condition));
 			}

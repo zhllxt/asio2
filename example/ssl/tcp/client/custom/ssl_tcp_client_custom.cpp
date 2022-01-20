@@ -56,7 +56,7 @@ int main()
 		std::cout << "timer was triggered in thread : " << std::this_thread::get_id() << std::endl;
 	});
 
-	client.bind_connect([&](asio::error_code ec)
+	client.bind_connect([&]()
 	{
 		if (asio2::get_last_error())
 			printf("connect failure : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
@@ -64,7 +64,7 @@ int main()
 			printf("connect success : %s %u\n", client.local_address().c_str(), client.local_port());
 
 		// connect success, send data
-		if (!ec)
+		if (!asio2::get_last_error())
 		{
 			std::string s;
 			s += '#';
@@ -74,9 +74,9 @@ int main()
 			client.async_send(s);
 		}
 
-	}).bind_disconnect([](asio::error_code ec)
+	}).bind_disconnect([]()
 	{
-		printf("disconnect : %d %s\n", ec.value(), ec.message().c_str());
+		printf("disconnect : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
 	}).bind_recv([&](std::string_view sv)
 	{
 		printf("recv : %u %.*s\n", (unsigned)sv.size(), (int)sv.size(), sv.data());

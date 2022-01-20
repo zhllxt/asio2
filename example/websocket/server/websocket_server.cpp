@@ -53,19 +53,19 @@ int main()
 		{
 			printf("client leave : %s %u %s\n", session_ptr->remote_address().c_str(),
 				session_ptr->remote_port(), asio2::last_error_msg().c_str());
-		}).bind_upgrade([](auto & session_ptr, asio::error_code ec)
+		}).bind_upgrade([](auto & session_ptr)
 		{
 			asio2::detail::ignore_unused(session_ptr);
 
-			printf(">> upgrade %d %s\n", ec.value(), ec.message().c_str());
-		}).bind_start([&](asio::error_code ec)
+			printf(">> upgrade %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
+		}).bind_start([&]()
 		{
 			printf("start websocket server : %s %u %d %s\n",
 				server.listen_address().c_str(), server.listen_port(),
-				ec.value(), ec.message().c_str());
-		}).bind_stop([&](asio::error_code ec)
+				asio2::last_error_val(), asio2::last_error_msg().c_str());
+		}).bind_stop([&]()
 		{
-			printf("stop : %d %s\n", ec.value(), ec.message().c_str());
+			printf("stop : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
 		});
 
 		server.post_event([]()

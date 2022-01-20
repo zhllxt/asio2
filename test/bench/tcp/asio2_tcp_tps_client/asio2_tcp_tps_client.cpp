@@ -4,11 +4,11 @@ int main()
 {
 	asio2::tcp_client client;
 
-	client.bind_connect([&](asio::error_code ec)
+	client.bind_connect([&]()
 	{
 		std::string strmsg(1024, 'A');
 
-		if (!ec)
+		if (!asio2::get_last_error())
 			client.async_send(std::move(strmsg));
 
 	}).bind_recv([&](std::string_view data)

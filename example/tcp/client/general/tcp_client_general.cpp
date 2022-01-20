@@ -60,10 +60,8 @@ int main()
 		client.start_timer(1, std::chrono::seconds(1), []() {}); // test timer
 		client.post([]() {}, std::chrono::seconds(3));
 
-		client.bind_connect([&](asio::error_code ec)
+		client.bind_connect([&]()
 		{
-			asio2::detail::ignore_unused(ec);
-
 			if (asio2::get_last_error())
 				printf("connect failure : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
 			else
@@ -80,7 +78,7 @@ int main()
 
 			// call send in the communication thread, it will degenerates into async_send
 			// and the return value is 0(success) or -1(failure).
-			if (!ec)
+			if (!asio2::get_last_error())
 			{
 				std::size_t sent_bytes;
 
@@ -140,9 +138,9 @@ int main()
 			client.async_send(narys, []() {std::cout << asio2::last_error_msg() << std::endl; }); // callback with no params
 			client.async_send(narys, [](std::size_t bytes) {std::ignore = bytes; }); // callback with param
 
-		}).bind_disconnect([&](asio::error_code ec)
+		}).bind_disconnect([&]()
 		{
-			printf("disconnect : %d %s\n", ec.value(), ec.message().c_str());
+			printf("disconnect : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
 		}).bind_recv([&](std::string_view sv)
 		{
 			printf("recv : %u %.*s\n", (unsigned)sv.size(), (int)sv.size(), sv.data());

@@ -118,12 +118,29 @@ namespace asio2::detail
 	inline constexpr void log(Ts const& ...) noexcept {}
 #endif
 
+	class external_linkaged_log
+	{
+	public:
+		static bool& has_unexpected_behavior() noexcept
+		{
+			static bool flag = false;
+			return flag;
+		}
+	};
+
+	namespace internal_linkaged_log
+	{
+		static bool& has_unexpected_behavior() noexcept
+		{
+			static bool flag = false;
+			return flag;
+		}
+	}
+
 	// just for : debug, find bug ...
-	template<typename = void>
 	static bool& has_unexpected_behavior() noexcept
 	{
-		static bool flag = false;
-		return flag;
+		return external_linkaged_log::has_unexpected_behavior();
 	}
 }
 

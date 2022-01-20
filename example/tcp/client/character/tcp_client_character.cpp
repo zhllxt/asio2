@@ -19,9 +19,9 @@ int main()
 		printf("timer\n");
 	});
 
-	client.bind_connect([&](asio::error_code ec)
+	client.bind_connect([&]()
 	{
-		if (ec)
+		if (asio2::get_last_error())
 			printf("connect failure : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
 		else
 			printf("connect success : %s %u\n", client.local_address().c_str(), client.local_port());
@@ -38,9 +38,8 @@ int main()
 
 		client.async_send(s);
 
-	}).bind_disconnect([](asio::error_code ec)
+	}).bind_disconnect([]()
 	{
-		asio2::detail::ignore_unused(ec);
 		printf("disconnect : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
 	}).bind_recv([&](std::string_view sv)
 	{

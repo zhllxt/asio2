@@ -51,27 +51,27 @@ int main()
 		printf("client leave : %s %u %s\n", session_ptr->remote_address().c_str(),
 			session_ptr->remote_port(), asio2::last_error_msg().c_str());
 
-	}).bind_handshake([](auto & session_ptr, asio::error_code ec)
+	}).bind_handshake([](auto & session_ptr)
 	{
 		(void)session_ptr;
-		printf("client handshake : %d %s\n", ec.value(), ec.message().c_str());
+		printf("client handshake : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
 
-	}).bind_upgrade([](auto & session_ptr, asio::error_code ec)
+	}).bind_upgrade([](auto & session_ptr)
 	{
 		(void)session_ptr;
-		printf("client upgrade : %d %s\n", ec.value(), ec.message().c_str());
+		printf("client upgrade : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
 
-	}).bind_start([&](asio::error_code ec)
+	}).bind_start([&]()
 	{
-		if (ec)
+		if (asio2::get_last_error())
 			printf("start websocket ssl server failure : %d %s\n",
-				ec.value(), ec.message().c_str());
+				asio2::last_error_val(), asio2::last_error_msg().c_str());
 		else
 			printf("start websocket ssl server success : %s %u\n",
 				server.listen_address().c_str(), server.listen_port());
-	}).bind_stop([&](asio::error_code ec)
+	}).bind_stop([&]()
 	{
-		printf("stop websocket ssl server : %d %s\n", ec.value(), ec.message().c_str());
+		printf("stop websocket ssl server : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
 	});
 
 	server.start(host, port);

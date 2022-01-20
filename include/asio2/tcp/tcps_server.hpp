@@ -79,13 +79,13 @@ namespace asio2::detail
 		 * @param    : obj - a pointer or reference to a class object, this parameter can be none
 		 * if fun is nonmember function, the obj param must be none, otherwise the obj must be the
 		 * the class object's pointer or refrence.
-		 * Function signature : void(std::shared_ptr<asio2::tcps_session>& session_ptr, asio2::error_code ec)
+		 * Function signature : void(std::shared_ptr<asio2::tcps_session>& session_ptr)
 		 */
 		template<class F, class ...C>
 		inline derived_t & bind_handshake(F&& fun, C&&... obj)
 		{
 			this->listener_.bind(event_type::handshake,
-				observer_t<std::shared_ptr<session_t>&, error_code>(
+				observer_t<std::shared_ptr<session_t>&>(
 					std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
 		}

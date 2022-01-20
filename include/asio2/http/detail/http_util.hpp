@@ -42,47 +42,121 @@ namespace boost::beast::http
 	{
 		// Percent-encoding : https://en.wikipedia.org/wiki/Percent-encoding
 
+		// ---- RFC 3986 section 2.2 Reserved Characters (January 2005)
+		// !#$&'()*+,/:;=?@[]
+		// 
+		// ---- RFC 3986 section 2.3 Unreserved Characters (January 2005)
+		// ABCDEFGHIJKLMNOPQRSTUVWXYZ
+		// abcdefghijklmnopqrstuvwxyz
+		// 0123456789-_.~
+		// 
+		// 
+		// http://www.baidu.com/query?key=x!#$&'()*+,/:;=?@[ ]-_.~%^{}\"|<>`\\y
+		// 
+		// C# System.Web.HttpUtility.UrlEncode
+		// http%3a%2f%2fwww.baidu.com%2fquery%3fkey%3dx!%23%24%26%27()*%2b%2c%2f%3a%3b%3d%3f%40%5b+%5d-_.%7e%25%5e%7b%7d%22%7c%3c%3e%60%5cy
+		// 
+		// java.net.URLEncoder.encode
+		// http%3A%2F%2Fwww.baidu.com%2Fquery%3Fkey%3Dx%21%23%24%26%27%28%29*%2B%2C%2F%3A%3B%3D%3F%40%5B+%5D-_.%7E%25%5E%7B%7D%5C%22%7C%3C%3E%60%5C%5Cy
+		// 
+		// postman
+		// 
+		// http://127.0.0.1/index.asp?id=x!#$&name='()*+,/:;=?@[ ]-_.~%^{}\"|<>`\\y
+		// http://127.0.0.1/index.asp?id=x%21%23%24&name=%27%28%29*%2B%2C%2F%3A%3B=?%40%5B%20%5D-_.%7E%25%5E%7B%7D%22%7C%3C%3E%60%5Cy
+		// the character    &=?    can't be encoded, otherwise the result of queryString is wrong.
+		// <%
+		//   id=request.queryString("id")
+		//   response.write "id=" & id
+		//   response.write "</br>"
+		//   name=request.queryString("name")
+		//   response.write "name=" & name
+		// %>
+		// 
+		// 
+		// http%+y%2f%2fwww.baidu.com%2fquery%3fkey%3dx!%23%24%26%27()*%2b%2c%2f%3a%3b%3d%3f%40%5b+%5d-_.%7e%25%5e%7b%7d%22%7c%3c%3e%60%+5
+		// 
+		// C# System.Web.HttpUtility.UrlDecode
+		// http% y//www.baidu.com/query?key=x!#$&'()*+,/:;=?@[ ]-_.~%^{}"|<>`% 5
+		//
+
+		static constexpr char unreserved_char[] = {
+			//0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F
+			  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0
+			  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 1
+			  0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 1, 0, // 2
+			  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 1, // 3
+			  0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 4
+			  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, // 5
+			  0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 6
+			  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, // 7
+			  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 8
+			  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 9
+			  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // A
+			  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // B
+			  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // C
+			  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // D
+			  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // E
+			  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0  // F
+		};
+
 		template<
 			class CharT = char,
 			class Traits = std::char_traits<CharT>,
 			class Allocator = std::allocator<CharT>
 		>
-			std::basic_string<CharT, Traits, Allocator> url_decode(std::string_view url)
+		std::basic_string<CharT, Traits, Allocator> url_decode(std::string_view url)
 		{
+			using size_type   = typename std::string_view::size_type;
+			using value_type  = typename std::string_view::value_type;
+			using rvalue_type = typename std::basic_string<CharT, Traits, Allocator>::value_type;
+
 			std::basic_string<CharT, Traits, Allocator> r;
 			r.reserve(url.size());
-			using size_type = typename std::string_view::size_type;
-			using value_type = typename std::string_view::value_type;
-			using rvalue_type = typename std::basic_string<CharT, Traits, Allocator>::value_type;
+
 			for (size_type i = 0; i < url.size(); ++i)
 			{
-				if (url[i] == static_cast<value_type>('%'))
+				value_type c = url[i];
+
+				if (c == '%')
 				{
 					if (i + 3 <= url.size())
 					{
 						value_type h = url[i + 1];
 						value_type l = url[i + 2];
 
-						if /**/ (h >= static_cast<value_type>('0') && h <= static_cast<value_type>('9')) h = value_type(h - '0'     );
-						else if (h >= static_cast<value_type>('a') && h <= static_cast<value_type>('f')) h = value_type(h - 'a' + 10);
-						else if (h >= static_cast<value_type>('A') && h <= static_cast<value_type>('F')) h = value_type(h - 'A' + 10);
-						else asio::detail::throw_error(asio::error::invalid_argument);
+						bool f1 = false, f2 = false;
 
-						if /**/ (l >= static_cast<value_type>('0') && l <= static_cast<value_type>('9')) l = value_type(l - '0'     );
-						else if (l >= static_cast<value_type>('a') && l <= static_cast<value_type>('f')) l = value_type(l - 'a' + 10);
-						else if (l >= static_cast<value_type>('A') && l <= static_cast<value_type>('F')) l = value_type(l - 'A' + 10);
-						else asio::detail::throw_error(asio::error::invalid_argument);
+						if /**/ (h >= '0' && h <= '9') { f1 = true; h = value_type(h - '0'     ); }
+						else if (h >= 'a' && h <= 'f') { f1 = true; h = value_type(h - 'a' + 10); }
+						else if (h >= 'A' && h <= 'F') { f1 = true; h = value_type(h - 'A' + 10); }
 
-						r += static_cast<rvalue_type>(h * 16 + l);
-						i += 2;
+						if /**/ (l >= '0' && l <= '9') { f2 = true; l = value_type(l - '0'     ); }
+						else if (l >= 'a' && l <= 'f') { f2 = true; l = value_type(l - 'a' + 10); }
+						else if (l >= 'A' && l <= 'F') { f2 = true; l = value_type(l - 'A' + 10); }
+
+						if (f1 && f2)
+						{
+							r += static_cast<rvalue_type>(h * 16 + l);
+							i += 2;
+						}
+						else
+						{
+							r += static_cast<rvalue_type>(c);
+						}
 					}
 					else
-						asio::detail::throw_error(asio::error::invalid_argument);
+					{
+						r += static_cast<rvalue_type>(c);
+					}
 				}
-				else if (url[i] == static_cast<value_type>('+'))
+				else if (c == '+')
+				{
 					r += static_cast<rvalue_type>(' ');
+				}
 				else
-					r += static_cast<rvalue_type>(url[i]);
+				{
+					r += static_cast<rvalue_type>(c);
+				}
 			}
 			return r;
 		}
@@ -92,13 +166,15 @@ namespace boost::beast::http
 			class Traits = std::char_traits<CharT>,
 			class Allocator = std::allocator<CharT>
 		>
-			std::basic_string<CharT, Traits, Allocator> url_encode(std::string_view url)
+		std::basic_string<CharT, Traits, Allocator> url_encode(std::string_view url)
 		{
+			using size_type   = typename std::string_view::size_type;
+			using value_type  = typename std::string_view::value_type;
+			using rvalue_type = typename std::basic_string<CharT, Traits, Allocator>::value_type;
+
 			std::basic_string<CharT, Traits, Allocator> r;
 			r.reserve(url.size() * 2);
-			using size_type = typename std::string_view::size_type;
-			using value_type = typename std::string_view::value_type;
-			using rvalue_type = typename std::basic_string<CharT, Traits, Allocator>::value_type;
+
 			size_type i = 0;
 
 			http::http_parser_ns::http_parser_url u;
@@ -118,20 +194,20 @@ namespace boost::beast::http
 				}
 			}
 
-			using namespace std::literals;
-			std::string_view reserve = "!*();:@&=$,/?[]-_.~"sv;
-
 			for (; i < url.size(); ++i)
 			{
-				value_type c = url[i];
-				if (std::isalnum(static_cast<unsigned char>(c)) || reserve.find(c) != std::string_view::npos)
+				unsigned char c = static_cast<unsigned char>(url[i]);
+
+				if (/*std::isalnum(c) || */unreserved_char[c])
+				{
 					r += static_cast<rvalue_type>(c);
+				}
 				else
 				{
 					r += static_cast<rvalue_type>('%');
-					rvalue_type h = rvalue_type(static_cast<unsigned char>(c) >> 4);
+					rvalue_type h = rvalue_type(c >> 4);
 					r += h > rvalue_type(9) ? rvalue_type(h + 55) : rvalue_type(h + 48);
-					rvalue_type l = rvalue_type(static_cast<unsigned char>(c) % 16);
+					rvalue_type l = rvalue_type(c % 16);
 					r += l > rvalue_type(9) ? rvalue_type(l + 55) : rvalue_type(l + 48);
 				}
 			}
@@ -141,18 +217,57 @@ namespace boost::beast::http
 		template<typename = void>
 		bool has_unencode_char(std::string_view uri) noexcept
 		{
-			using namespace std::literals;
-			std::string_view reserve = "!*();:@&=$,/?[]-_.~"sv;
-			std::string_view invalid = " `#{}'\"\\|^+<>"sv;
+			using size_type   = typename std::string_view::size_type;
+			using value_type  = typename std::string_view::value_type;
+			using rvalue_type = typename std::string::value_type;
 
-			for (auto c : uri)
+			size_type i = 0;
+
+			http::http_parser_ns::http_parser_url u;
+			if (0 == http::http_parser_ns::http_parser_parse_url(uri.data(), uri.size(), 0, &u))
 			{
-				if (invalid.find(c) != std::string_view::npos)
-					return true;
+				if (u.field_set & (1 << (int)http::http_parser_ns::url_fields::UF_PATH))
+				{
+					i = u.field_data[(int)http::http_parser_ns::url_fields::UF_PATH].off;
+					if (i < uri.size() && uri[i] == static_cast<value_type>('/'))
+					{
+						i++;
+					}
+				}
+			}
 
-				if (c != '%' && !std::isalnum(static_cast<unsigned char>(c)) &&
-					reserve.find(c) == std::string_view::npos)
+			for (; i < uri.size(); ++i)
+			{
+				unsigned char c = static_cast<unsigned char>(uri[i]);
+
+				if (c == static_cast<unsigned char>('%'))
+				{
+					if (i + 3 <= uri.size())
+					{
+						value_type h = uri[i + 1];
+						value_type l = uri[i + 2];
+
+						if /**/ (h >= '0' && h <= '9') {}
+						else if (h >= 'a' && h <= 'f') {}
+						else if (h >= 'A' && h <= 'F') {}
+						else { return true; }
+
+						if /**/ (l >= '0' && l <= '9') {}
+						else if (l >= 'a' && l <= 'f') {}
+						else if (l >= 'A' && l <= 'F') {}
+						else { return true; }
+
+						i += 2;
+					}
+					else
+					{
+						return true;
+					}
+				}
+				else if (!unreserved_char[c])
+				{
 					return true;
+				}
 			}
 			return false;
 		}
@@ -226,7 +341,6 @@ namespace boost::beast::http
 
 		/**
 		 * @function : make A typical HTTP request struct from the uri
-		 * You need to encode the "uri"(by url_encode) before calling this function
 		 */
 		template<class Body = http::string_body, class Fields = http::fields>
 		http::request_t<Body, Fields> make_request(std::string_view uri, error_code& ec)
@@ -251,7 +365,12 @@ namespace boost::beast::http
 				// It is a URL
 				else
 				{
-					ASIO2_ASSERT(!has_unencode_char(uri));
+					std::string encoded;
+					if (has_unencode_char(uri))
+					{
+						encoded = url_encode(uri);
+						uri = encoded;
+					}
 
 					if (0 != state)
 						asio::detail::throw_error(asio::error::invalid_argument);
@@ -308,7 +427,6 @@ namespace boost::beast::http
 
 		/**
 		 * @function : make A typical HTTP request struct from the uri
-		 * You need to encode the "uri"(by url_encode) before calling this function
 		 */
 		template<class Body = http::string_body, class Fields = http::fields>
 		inline http::request_t<Body, Fields> make_request(std::string_view uri)
@@ -321,13 +439,18 @@ namespace boost::beast::http
 
 		/**
 		 * @function : make A typical HTTP request struct from the uri
-		 * You need to encode the "target"(by url_encode) before calling this function
 		 */
 		template<typename String, typename StrOrInt, class Body = http::string_body, class Fields = http::fields>
 		inline http::request_t<Body, Fields> make_request(String&& host, StrOrInt&& port,
 			std::string_view target, http::verb method = http::verb::get, unsigned version = 11)
 		{
-			ASIO2_ASSERT(!has_unencode_char(target));
+			std::string encoded;
+			if (has_unencode_char(target))
+			{
+				encoded = url_encode(target);
+				target = encoded;
+			}
+
 			http::request_t<Body, Fields> req;
 			// Set up an HTTP GET request message
 			req.method(method);

@@ -213,7 +213,7 @@ namespace asio2::detail
 				if (!kcp::is_kcphdr_syn(this->first_))
 				{
 					set_last_error(asio::error::address_family_not_supported);
-					this->derived()._fire_handshake(this_ptr, asio::error::address_family_not_supported);
+					this->derived()._fire_handshake(this_ptr);
 					this->derived()._do_disconnect(asio::error::address_family_not_supported);
 					return;
 				}
@@ -415,12 +415,12 @@ namespace asio2::detail
 			this->derived()._rdc_handle_recv(this_ptr, data, condition);
 		}
 
-		inline void _fire_handshake(std::shared_ptr<derived_t>& this_ptr, error_code ec)
+		inline void _fire_handshake(std::shared_ptr<derived_t>& this_ptr)
 		{
 			// the _fire_handshake must be executed in the thread 0.
 			ASIO2_ASSERT(this->sessions().io().strand().running_in_this_thread());
 
-			this->listener_.notify(event_type::handshake, this_ptr, ec);
+			this->listener_.notify(event_type::handshake, this_ptr);
 		}
 
 		template<typename MatchCondition>

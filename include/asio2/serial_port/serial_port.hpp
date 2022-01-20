@@ -269,13 +269,13 @@ namespace asio2::detail
 		 * if fun is nonmember function, the obj param must be none, otherwise the obj must be the
 		 * the class object's pointer or refrence.
 		 * This notification is called after the server starts up, whether successful or unsuccessful
-		 * Function signature : void(asio2::error_code ec)
+		 * Function signature : void()
 		 */
 		template<class F, class ...C>
 		inline derived_t & bind_start(F&& fun, C&&... obj)
 		{
 			this->listener_.bind(event_type::start,
-				observer_t<error_code>(std::forward<F>(fun), std::forward<C>(obj)...));
+				observer_t<>(std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
 		}
 
@@ -286,13 +286,13 @@ namespace asio2::detail
 		 * if fun is nonmember function, the obj param must be none, otherwise the obj must be the
 		 * the class object's pointer or refrence.
 		 * This notification is called before the server is ready to stop
-		 * Function signature : void(asio2::error_code ec)
+		 * Function signature : void()
 		 */
 		template<class F, class ...C>
 		inline derived_t & bind_stop(F&& fun, C&&... obj)
 		{
 			this->listener_.bind(event_type::stop,
-				observer_t<error_code>(std::forward<F>(fun), std::forward<C>(obj)...));
+				observer_t<>(std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
 		}
 
@@ -426,7 +426,7 @@ namespace asio2::detail
 
 				set_last_error(ec);
 
-				this->derived()._fire_start(ec, condition);
+				this->derived()._fire_start(condition);
 
 				expected = state_t::started;
 				if (!ec)
@@ -514,7 +514,7 @@ namespace asio2::detail
 				state_t expected = state_t::stopping;
 				if (this->state_.compare_exchange_strong(expected, state_t::stopped))
 				{
-					this->derived()._fire_stop(ec);
+					this->derived()._fire_stop();
 
 					// call CRTP polymorphic stop
 					this->derived()._handle_stop(ec, std::move(this_ptr), std::move(chain));
@@ -628,12 +628,13 @@ namespace asio2::detail
 		{
 			// the _fire_init must be executed in the thread 0.
 			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
+			ASIO2_ASSERT(!get_last_error());
 
 			this->listener_.notify(event_type::init);
 		}
 
 		template<typename MatchCondition>
-		inline void _fire_start(error_code ec, condition_wrap<MatchCondition>& condition)
+		inline void _fire_start(condition_wrap<MatchCondition>& condition)
 		{
 			// the _fire_start must be executed in the thread 0.
 			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
@@ -642,15 +643,15 @@ namespace asio2::detail
 			ASIO2_ASSERT(this->is_stop_called_ == false);
 		#endif
 
-			if (!ec)
+			if (!get_last_error())
 			{
 				this->derived()._rdc_start(this->derived().selfptr(), condition);
 			}
 
-			this->listener_.notify(event_type::start, ec);
+			this->listener_.notify(event_type::start);
 		}
 
-		inline void _fire_stop(error_code ec)
+		inline void _fire_stop()
 		{
 			// the _fire_stop must be executed in the thread 0.
 			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
@@ -659,7 +660,7 @@ namespace asio2::detail
 			this->is_stop_called_ = true;
 		#endif
 
-			this->listener_.notify(event_type::stop, ec);
+			this->listener_.notify(event_type::stop);
 		}
 
 		template<typename MatchCondition>

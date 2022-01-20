@@ -45,34 +45,6 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @function : set the option of whether reconnect when disconnected
-		 * @param : enable - whether reconnect or not
-		 * @param : delay - how long is the delay before reconnecting, when enalbe is
-		 * false, the delay param is ignored
-		 */
-		template<class Rep, class Period>
-		[[deprecated("Replace reconnect with auto_reconnect")]]
-		inline derived_t& reconnect(bool enable, std::chrono::duration<Rep, Period> delay) noexcept
-		{
-			this->reconnect_enable_ = enable;
-			if (this->reconnect_enable_)
-				this->reconnect_delay_ = delay;
-			return static_cast<derived_t&>(*this);
-		}
-
-		/**
-		 * @function : set the option of whether reconnect when disconnected
-		 * @param : enable - whether reconnect or not
-		 */
-		template<typename = void>
-		[[deprecated("Replace reconnect with auto_reconnect")]]
-		inline derived_t& reconnect(bool enable) noexcept
-		{
-			this->reconnect_enable_ = enable;
-			return static_cast<derived_t&>(*this);
-		}
-
-		/**
 		 * @function : set the option of whether auto reconnect when disconnected
 		 * @param : enable - whether reconnect or not
 		 * @param : delay - how long is the delay before reconnecting, when enalbe is

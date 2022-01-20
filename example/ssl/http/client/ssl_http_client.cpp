@@ -180,11 +180,11 @@ int main()
 		std::cout << "----------------------------------------" << std::endl;
 		std::cout << rep << std::endl;
 
-	}).bind_connect([&](asio::error_code ec)
+	}).bind_connect([&]()
 	{
 		if (asio2::get_last_error())
 			printf("connect failure : %d %s\n",
-				ec.value(), asio2::last_error_msg().c_str());
+				asio2::last_error_val(), asio2::last_error_msg().c_str());
 		else
 			printf("connect success : %s %u\n",
 				client.local_address().c_str(), client.local_port());
@@ -192,12 +192,12 @@ int main()
 		// send a request
 		client.async_send("GET / HTTP/1.1\r\n\r\n");
 
-	}).bind_disconnect([](asio::error_code ec)
+	}).bind_disconnect([]()
 	{
-		printf("disconnect : %d %s\n", ec.value(), ec.message().c_str());
-	}).bind_handshake([&](asio::error_code ec)
+		printf("disconnect : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
+	}).bind_handshake([&]()
 	{
-		printf("handshake : %d %s\n", ec.value(), ec.message().c_str());
+		printf("handshake : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
 	});
 
 	client.start(host, port);

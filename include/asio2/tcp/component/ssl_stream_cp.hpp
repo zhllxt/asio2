@@ -244,7 +244,7 @@ namespace asio2::detail
 					{
 						set_last_error(ec);
 
-						derive._fire_handshake(this_ptr, ec);
+						derive._fire_handshake(this_ptr);
 
 						asio::detail::throw_error(ec);
 
@@ -262,7 +262,7 @@ namespace asio2::detail
 			{
 				set_last_error(ec);
 
-				derive._fire_handshake(self_ptr, ec);
+				derive._fire_handshake(self_ptr);
 
 				derive._done_connect(ec, std::move(self_ptr), std::move(condition));
 			}

@@ -150,22 +150,22 @@ int main()
 
 		client.async_send(sv);
 
-	}).bind_connect([&](asio::error_code ec)
+	}).bind_connect([&]()
     {
-        printf("connect : %d %s\n", ec.value(), ec.message().c_str());
+        printf("connect : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
 
 		std::string s;
 		s.resize(64);
 
 		client.async_send(s);
 
-    }).bind_handshake([&](asio::error_code ec)
+    }).bind_handshake([&]()
 	{
-		printf("handshake : %d %s\n", ec.value(), ec.message().c_str());
+		printf("handshake : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
 
-	}).bind_disconnect([](asio::error_code ec)
+	}).bind_disconnect([]()
 	{
-		printf("disconnect : %d %s\n", ec.value(), ec.message().c_str());
+		printf("disconnect : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
 	});
 
 	if (!client.start(host, port))

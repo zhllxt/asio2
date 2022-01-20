@@ -96,13 +96,14 @@ int main()
 
 		//session_ptr->async_send(s);
 
-	}).bind_start([&](asio::error_code ec)
+	}).bind_start([&]()
 	{
-		printf("start tcp server match role : %s %u %d %s\n", server.listen_address().c_str(), server.listen_port(),
-			ec.value(), ec.message().c_str());
-	}).bind_stop([&](asio::error_code ec)
+		printf("start tcp server match role : %s %u %d %s\n",
+			server.listen_address().c_str(), server.listen_port(),
+			asio2::last_error_val(), asio2::last_error_msg().c_str());
+	}).bind_stop([&]()
 	{
-		printf("stop tcp server match role : %d %s\n", ec.value(), ec.message().c_str());
+		printf("stop tcp server match role : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
 	}).bind_connect([&](auto & session_ptr)
 	{
 		session_ptr->no_delay(true);

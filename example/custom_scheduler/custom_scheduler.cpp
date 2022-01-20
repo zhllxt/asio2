@@ -103,9 +103,9 @@ int main()
 
 	my_tcp_client1 my_client1;
 
-	my_client1.bind_connect([&](asio::error_code ec)
+	my_client1.bind_connect([&]()
 	{
-		if (!ec)
+		if (!asio2::get_last_error())
 			my_client1.async_send("<0123456789abcdefghijklmnopqrstovwxyz>");
 
 	}).bind_recv([&](std::string_view sv)
@@ -346,18 +346,18 @@ int main()
 		printf("client leave : %s %u %s\n",
 			session_ptr->remote_address().c_str(),
 			session_ptr->remote_port(), asio2::last_error_msg().c_str());
-	}).bind_start([&](asio::error_code ec)
+	}).bind_start([&]()
 	{
 		ASIO2_ASSERT(iopool.running_in_thread(0));
 
 		printf("start tcp server : %s %u %d %s\n",
 			server.listen_address().c_str(), server.listen_port(),
-			ec.value(), ec.message().c_str());
-	}).bind_stop([&](asio::error_code ec)
+			asio2::last_error_val(), asio2::last_error_msg().c_str());
+	}).bind_stop([&]()
 	{
 		ASIO2_ASSERT(iopool.running_in_thread(0));
 
-		printf("stop : %d %s\n", ec.value(), ec.message().c_str());
+		printf("stop : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
 	});
 
 	server.start("0.0.0.0", port);
@@ -396,10 +396,8 @@ int main()
 
 	client.start_timer(1, std::chrono::seconds(1), []() {}); // test timer
 
-	client.bind_connect([&](asio::error_code ec)
+	client.bind_connect([&]()
 	{
-		asio2::detail::ignore_unused(ec);
-
 		ASIO2_ASSERT(iopool.running_in_thread(index));
 
 		if (asio2::get_last_error())
@@ -418,11 +416,11 @@ int main()
 
 		client.async_send(s);
 
-	}).bind_disconnect([&](asio::error_code ec)
+	}).bind_disconnect([&]()
 	{
 		ASIO2_ASSERT(iopool.running_in_thread(index));
 
-		printf("disconnect : %d %s\n", ec.value(), ec.message().c_str());
+		printf("disconnect : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
 	}).bind_recv([&](std::string_view sv)
 	{
 		ASIO2_ASSERT(iopool.running_in_thread(index));
@@ -679,18 +677,18 @@ int main()
 			printf("client leave : %s %u %s\n",
 				session_ptr->remote_address().c_str(),
 				session_ptr->remote_port(), asio2::last_error_msg().c_str());
-		}).bind_start([&](asio::error_code ec)
+		}).bind_start([&]()
 		{
 			ASIO2_ASSERT(iopool.running_in_thread(0));
 
 			printf("start tcp server : %s %u %d %s\n",
 				server.listen_address().c_str(), server.listen_port(),
-				ec.value(), ec.message().c_str());
-		}).bind_stop([&](asio::error_code ec)
+				asio2::last_error_val(), asio2::last_error_msg().c_str());
+		}).bind_stop([&]()
 		{
 			ASIO2_ASSERT(iopool.running_in_thread(0));
 
-			printf("stop : %d %s\n", ec.value(), ec.message().c_str());
+			printf("stop : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
 		});
 
 		server.start("0.0.0.0", port);
@@ -729,10 +727,8 @@ int main()
 
 		client.start_timer(1, std::chrono::seconds(1), []() {}); // test timer
 
-		client.bind_connect([&](asio::error_code ec)
+		client.bind_connect([&]()
 		{
-			asio2::detail::ignore_unused(ec);
-
 			ASIO2_ASSERT(iopool.running_in_thread(index));
 
 			if (asio2::get_last_error())
@@ -751,11 +747,11 @@ int main()
 
 			client.async_send(s);
 
-		}).bind_disconnect([&](asio::error_code ec)
+		}).bind_disconnect([&]()
 		{
 			ASIO2_ASSERT(iopool.running_in_thread(index));
 
-			printf("disconnect : %d %s\n", ec.value(), ec.message().c_str());
+			printf("disconnect : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
 		}).bind_recv([&](std::string_view sv)
 		{
 			ASIO2_ASSERT(iopool.running_in_thread(index));

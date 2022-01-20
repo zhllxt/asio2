@@ -36,10 +36,10 @@ int main()
 					req.set(http::field::authorization, " websocket-client-authorization");
 				}));
 
-			}).bind_connect([&](asio::error_code ec)
+			}).bind_connect([&]()
 			{
-				if (ec)
-					printf("connect failure : %d %s\n", ec.value(), ec.message().c_str());
+				if (asio2::get_last_error())
+					printf("connect failure : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
 				else
 					printf("connect success : %s %u\n", client.local_address().c_str(), client.local_port());
 
@@ -54,13 +54,12 @@ int main()
 
 				client.async_send(std::move(s), [](std::size_t bytes_sent) {std::ignore = bytes_sent; });
 
-			}).bind_upgrade([&](asio::error_code ec)
+			}).bind_upgrade([&]()
 			{
-				std::ignore = ec;
-				//if (ec)
-				//	std::cout << "upgrade failure : " << ec.value() << " " << ec.message() << std::endl;
-				//else
-				//	std::cout << "upgrade success : " << client.upgrade_response() << std::endl;
+				if (asio2::get_last_error())
+					std::cout << "upgrade failure : " << asio2::last_error_val() << " " << asio2::last_error_msg() << std::endl;
+				else
+					std::cout << "upgrade success : " << client.upgrade_response() << std::endl;
 
 				// this send will be failed, because connection is not fully completed
 				client.async_send("abc", []()

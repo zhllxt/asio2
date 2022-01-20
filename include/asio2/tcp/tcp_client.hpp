@@ -237,13 +237,13 @@ namespace asio2::detail
 		 * if fun is nonmember function, the obj param must be none, otherwise the obj must be the
 		 * the class object's pointer or refrence.
 		 * This notification is called after the client connection completed, whether successful or unsuccessful
-		 * Function signature : void(asio2::error_code ec)
+		 * Function signature : void()
 		 */
 		template<class F, class ...C>
 		inline derived_t & bind_connect(F&& fun, C&&... obj)
 		{
 			this->listener_.bind(event_type::connect,
-				observer_t<error_code>(std::forward<F>(fun), std::forward<C>(obj)...));
+				observer_t<>(std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
 		}
 
@@ -254,13 +254,13 @@ namespace asio2::detail
 		 * if fun is nonmember function, the obj param must be none, otherwise the obj must be the
 		 * the class object's pointer or refrence.
 		 * This notification is called before the client is ready to disconnect
-		 * Function signature : void(asio2::error_code ec)
+		 * Function signature : void()
 		 */
 		template<class F, class ...C>
 		inline derived_t & bind_disconnect(F&& fun, C&&... obj)
 		{
 			this->listener_.bind(event_type::disconnect,
-				observer_t<error_code>(std::forward<F>(fun), std::forward<C>(obj)...));
+				observer_t<>(std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
 		}
 
@@ -620,6 +620,7 @@ namespace asio2::detail
 		{
 			// the _fire_init must be executed in the thread 0.
 			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
+			ASIO2_ASSERT(!get_last_error());
 
 			this->listener_.notify(event_type::init);
 		}
@@ -634,8 +635,7 @@ namespace asio2::detail
 		}
 
 		template<typename MatchCondition>
-		inline void _fire_connect(std::shared_ptr<derived_t>& this_ptr, error_code ec,
-			condition_wrap<MatchCondition>& condition)
+		inline void _fire_connect(std::shared_ptr<derived_t>& this_ptr, condition_wrap<MatchCondition>& condition)
 		{
 			// the _fire_connect must be executed in the thread 0.
 			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
@@ -644,15 +644,15 @@ namespace asio2::detail
 			ASIO2_ASSERT(this->is_disconnect_called_ == false);
 		#endif
 
-			if (!ec)
+			if (!get_last_error())
 			{
 				this->derived()._rdc_start(this_ptr, condition);
 			}
 
-			this->listener_.notify(event_type::connect, ec);
+			this->listener_.notify(event_type::connect);
 		}
 
-		inline void _fire_disconnect(std::shared_ptr<derived_t>& this_ptr, error_code ec)
+		inline void _fire_disconnect(std::shared_ptr<derived_t>& this_ptr)
 		{
 			// the _fire_disconnect must be executed in the thread 0.
 			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
@@ -663,7 +663,7 @@ namespace asio2::detail
 
 			detail::ignore_unused(this_ptr);
 
-			this->listener_.notify(event_type::disconnect, ec);
+			this->listener_.notify(event_type::disconnect);
 		}
 
 	protected:

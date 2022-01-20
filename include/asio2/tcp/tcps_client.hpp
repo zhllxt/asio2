@@ -88,13 +88,13 @@ namespace asio2::detail
 		 * @param    : obj - a pointer or reference to a class object, this parameter can be none
 		 * if fun is nonmember function, the obj param must be none, otherwise the obj must be the
 		 * the class object's pointer or refrence.
-		 * Function signature : void(asio2::error_code ec)
+		 * Function signature : void()
 		 */
 		template<class F, class ...C>
 		inline derived_t & bind_handshake(F&& fun, C&&... obj)
 		{
 			this->listener_.bind(event_type::handshake,
-				observer_t<error_code>(std::forward<F>(fun), std::forward<C>(obj)...));
+				observer_t<>(std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
 		}
 
@@ -129,14 +129,14 @@ namespace asio2::detail
 			this->derived()._post_handshake(std::move(this_ptr), std::move(condition));
 		}
 
-		inline void _fire_handshake(std::shared_ptr<derived_t>& this_ptr, error_code ec)
+		inline void _fire_handshake(std::shared_ptr<derived_t>& this_ptr)
 		{
 			// the _fire_handshake must be executed in the thread 0.
 			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
 
 			detail::ignore_unused(this_ptr);
 
-			this->listener_.notify(event_type::handshake, ec);
+			this->listener_.notify(event_type::handshake);
 		}
 	};
 }

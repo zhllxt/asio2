@@ -69,14 +69,14 @@ int main()
 		printf("client leave : %s %u %s\n", session_ptr->remote_address().c_str(),
 			session_ptr->remote_port(), asio2::last_error_msg().c_str());
 
-	}).bind_start([&](asio::error_code ec)
+	}).bind_start([&]()
 	{
 		printf("start https server : %s %u %d %s\n", server.listen_address().c_str(),
-			server.listen_port(), ec.value(), ec.message().c_str());
+			server.listen_port(), asio2::last_error_val(), asio2::last_error_msg().c_str());
 
-	}).bind_stop([&](asio::error_code ec)
+	}).bind_stop([&]()
 	{
-		printf("stop https server : %d %s\n", ec.value(), ec.message().c_str());
+		printf("stop https server : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
 	});
 
 	server.bind<http::verb::get, http::verb::post>("/index.*", [](http::request& req, http::response& rep)

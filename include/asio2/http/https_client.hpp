@@ -201,7 +201,6 @@ namespace asio2::detail
 
 		/**
 		 * @function : blocking execute the http request until it is returned on success or failure
-		 * You need to encode the "url"(by url_encode) before calling this function
 		 */
 		template<class Body = http::string_body, class Fields = http::fields>
 		static inline http::response_t<Body, Fields> execute(std::string_view url, error_code& ec)
@@ -211,7 +210,6 @@ namespace asio2::detail
 
 		/**
 		 * @function : blocking execute the http request until it is returned on success or failure
-		 * You need to encode the "url"(by url_encode) before calling this function
 		 */
 		template<class Body = http::string_body, class Fields = http::fields>
 		static inline http::response_t<Body, Fields> execute(std::string_view url)
@@ -224,7 +222,6 @@ namespace asio2::detail
 
 		/**
 		 * @function : blocking execute the http request until it is returned on success or failure
-		 * You need to encode the "url"(by url_encode) before calling this function
 		 */
 		template<class Rep, class Period, class Body = http::string_body, class Fields = http::fields>
 		static inline http::response_t<Body, Fields> execute(std::string_view url,
@@ -236,7 +233,6 @@ namespace asio2::detail
 
 		/**
 		 * @function : blocking execute the http request until it is returned on success or failure
-		 * You need to encode the "url"(by url_encode) before calling this function
 		 */
 		template<class Rep, class Period, class Body = http::string_body, class Fields = http::fields>
 		static inline http::response_t<Body, Fields> execute(std::string_view url,
@@ -250,7 +246,6 @@ namespace asio2::detail
 
 		/**
 		 * @function : blocking execute the http request until it is returned on success or failure
-		 * You need to encode the "url"(by url_encode) before calling this function
 		 */
 		template<class Rep, class Period, class Body = http::string_body, class Fields = http::fields>
 		static inline http::response_t<Body, Fields> execute(const asio::ssl::context& ctx, std::string_view url,
@@ -267,7 +262,6 @@ namespace asio2::detail
 
 		/**
 		 * @function : blocking execute the http request until it is returned on success or failure
-		 * You need to encode the "url"(by url_encode) before calling this function
 		 */
 		template<class Rep, class Period, class Body = http::string_body, class Fields = http::fields>
 		static inline http::response_t<Body, Fields> execute(const asio::ssl::context& ctx, std::string_view url,
@@ -281,7 +275,6 @@ namespace asio2::detail
 
 		/**
 		 * @function : blocking execute the http request until it is returned on success or failure
-		 * You need to encode the "target"(by url_encode) before calling this function
 		 */
 		template<typename String, typename StrOrInt, class Body = http::string_body, class Fields = http::fields>
 		static inline http::response_t<Body, Fields> execute(String&& host, StrOrInt&& port,
@@ -294,7 +287,6 @@ namespace asio2::detail
 
 		/**
 		 * @function : blocking execute the http request until it is returned on success or failure
-		 * You need to encode the "target"(by url_encode) before calling this function
 		 */
 		template<typename String, typename StrOrInt, class Body = http::string_body, class Fields = http::fields>
 		static inline http::response_t<Body, Fields> execute(String&& host, StrOrInt&& port,
@@ -309,7 +301,6 @@ namespace asio2::detail
 
 		/**
 		 * @function : blocking execute the http request until it is returned on success or failure
-		 * You need to encode the "target"(by url_encode) before calling this function
 		 */
 		template<typename String, typename StrOrInt, class Rep, class Period,
 			class Body = http::string_body, class Fields = http::fields>
@@ -330,7 +321,6 @@ namespace asio2::detail
 
 		/**
 		 * @function : blocking execute the http request until it is returned on success or failure
-		 * You need to encode the "target"(by url_encode) before calling this function
 		 */
 		template<typename String, typename StrOrInt, class Rep, class Period,
 			class Body = http::string_body, class Fields = http::fields>
@@ -350,13 +340,13 @@ namespace asio2::detail
 		/**
 		 * @function : bind ssl handshake listener
 		 * @param    : fun - a user defined callback function
-		 * Function signature : void(asio2::error_code ec)
+		 * Function signature : void()
 		 */
 		template<class F, class ...C>
 		inline derived_t & bind_handshake(F&& fun, C&&... obj)
 		{
 			this->listener_.bind(event_type::handshake,
-				observer_t<error_code>(std::forward<F>(fun), std::forward<C>(obj)...));
+				observer_t<>(std::forward<F>(fun), std::forward<C>(obj)...));
 			return (this->derived());
 		}
 
@@ -393,14 +383,14 @@ namespace asio2::detail
 			this->derived()._post_handshake(std::move(this_ptr), std::move(condition));
 		}
 
-		inline void _fire_handshake(std::shared_ptr<derived_t>& this_ptr, error_code ec)
+		inline void _fire_handshake(std::shared_ptr<derived_t>& this_ptr)
 		{
 			// the _fire_handshake must be executed in the thread 0.
 			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
 
 			detail::ignore_unused(this_ptr);
 
-			this->listener_.notify(event_type::handshake, ec);
+			this->listener_.notify(event_type::handshake);
 		}
 
 	protected:

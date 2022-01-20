@@ -10,16 +10,16 @@ int main()
 
 	sender = [&]()
 	{
-		client.async_call([](asio::error_code ec, std::string v)
+		client.async_call([](std::string v)
 		{
-			if (!ec)
+			if (!asio2::get_last_error())
 				sender();
 		}, "echo", strmsg);
 	};
 
-	client.bind_connect([&](asio::error_code ec)
+	client.bind_connect([&]()
 	{
-		if (!ec)
+		if (!asio2::get_last_error())
 			sender();
 	});
 

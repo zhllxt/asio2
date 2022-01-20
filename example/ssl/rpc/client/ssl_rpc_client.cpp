@@ -32,11 +32,11 @@ int main()
 
 	sender = [&]()
 	{
-		client.async_call([&](asio::error_code ec, std::string v)
+		client.async_call([&](std::string v)
 		{
-			printf("cat : %s err : %d %s\n", v.c_str(), ec.value(), ec.message().c_str());
+			printf("cat : %s err : %d %s\n", v.c_str(), asio2::last_error_val(), asio2::last_error_msg().c_str());
 
-			if (!ec)
+			if (!asio2::get_last_error())
 			{
 				ASIO2_ASSERT(v == "abc123xxx");
 				sender();
@@ -55,26 +55,27 @@ int main()
 	//client.set_verify_mode(asio::ssl::verify_peer);
 	//client.set_cert_file("../../cert/ca.crt", "../../cert/client.crt", "../../cert/client.key", "123456");
 
-	client.bind_connect([&](asio::error_code ec)
+	client.bind_connect([&]()
 	{
-		asio2::detail::ignore_unused(ec);
+		if (asio2::get_last_error())
+			return;
 
 		// the type of the callback's second parameter is auto, so you have to specify 
 		// the return type in the template function like 'async_call<int>'
-		client.async_call<int>([](asio::error_code ec, auto v)
+		client.async_call<int>([](auto v)
 		{
-			if (!ec)
+			if (!asio2::get_last_error())
 			{
 				ASIO2_ASSERT(v == 44 + 11);
 			}
-			printf("sum1 : %d err : %d %s\n", v, ec.value(), ec.message().c_str());
+			printf("sum1 : %d err : %d %s\n", v, asio2::last_error_val(), asio2::last_error_msg().c_str());
 		}, "add", 44, 11);
 
 		sender();
 
-	}).bind_disconnect([](asio::error_code ec)
+	}).bind_disconnect([]()
 	{
-		printf("disconnect : %d %s\n", ec.value(), ec.message().c_str());
+		printf("disconnect : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
 	});
 
 	client.bind("sub", [](int a, int b) { return a - b; });
@@ -83,13 +84,13 @@ int main()
 
 	client.start_timer("123", std::chrono::seconds(1), [&]()
 	{
-		client.async_call([](asio::error_code ec, std::string v)
+		client.async_call([](std::string v)
 		{
-			if (!ec)
+			if (!asio2::get_last_error())
 			{
 				ASIO2_ASSERT(v == "abc123");
 			}
-			printf("cat : %s err : %d %s\n", v.c_str(), ec.value(), ec.message().c_str());
+			printf("cat : %s err : %d %s\n", v.c_str(), asio2::last_error_val(), asio2::last_error_msg().c_str());
 
 		}, "cat", std::string("abc"), std::string("123"));
 	});

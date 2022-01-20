@@ -393,7 +393,7 @@ namespace asio2::detail
 					expected = state_t::stopped;
 					if (!derive.state().compare_exchange_strong(expected, state_t::stopped))
 					{
-						derive._fire_connect(this_ptr, ec, condition);
+						derive._fire_connect(this_ptr, condition);
 					}
 				}
 

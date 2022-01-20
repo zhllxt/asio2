@@ -287,6 +287,16 @@ namespace asio2::detail
 	};
 
 
+	template<class T>
+	struct remove_cvref
+	{
+		typedef std::remove_cv_t<std::remove_reference_t<T>> type;
+	};
+
+	template< class T >
+	using remove_cvref_t = typename remove_cvref<T>::type;
+
+
 	template <typename Tup, typename Fun, std::size_t... I>
 	inline void for_each_tuple_impl(Tup&& t, Fun&& f, std::index_sequence<I...>)
 	{
@@ -297,18 +307,8 @@ namespace asio2::detail
 	inline void for_each_tuple(Tup&& t, Fun&& f)
 	{
 		for_each_tuple_impl(std::forward<Tup>(t), std::forward<Fun>(f), std::make_index_sequence<
-			std::tuple_size_v<std::remove_cv_t<std::remove_reference_t<Tup>>>>{});
+			std::tuple_size_v<detail::remove_cvref_t<Tup>>>{});
 	}
-
-
-	template<class T>
-	struct remove_cvref
-	{
-		typedef std::remove_cv_t<std::remove_reference_t<T>> type;
-	};
-
-	template< class T >
-	using remove_cvref_t = typename remove_cvref<T>::type;
 
 
 	// example : static_assert(is_template_instantiable_v<std::vector, double>);
@@ -365,20 +365,20 @@ namespace asio2::detail
 	struct is_char_pointer : std::false_type {};
 
 	// char const * 
-	// std::remove_cv_t<std::remove_pointer_t<std::remove_cv_t<std::remove_reference_t<T>>>
+	// detail::remove_cvref_t<std::remove_pointer_t<detail::remove_cvref_t<T>>>
 	// char
 	template<typename T>
-	struct is_char_pointer<T, std::void_t<typename std::enable_if_t <
-		 std::is_pointer_v<                      std::remove_cv_t<std::remove_reference_t<T>>>  &&
-		!std::is_pointer_v<std::remove_pointer_t<std::remove_cv_t<std::remove_reference_t<T>>>> &&
+	struct is_char_pointer<T, std::void_t<typename std::enable_if_t<
+		 std::is_pointer_v<                                             detail::remove_cvref_t<T>>  &&
+		!std::is_pointer_v<detail::remove_cvref_t<std::remove_pointer_t<detail::remove_cvref_t<T>>>> &&
 		(
-			std::is_same_v<std::remove_cv_t<std::remove_pointer_t<std::remove_cv_t<std::remove_reference_t<T>>>>, char    > ||
-			std::is_same_v<std::remove_cv_t<std::remove_pointer_t<std::remove_cv_t<std::remove_reference_t<T>>>>, wchar_t > ||
+			std::is_same_v<detail::remove_cvref_t<std::remove_pointer_t<detail::remove_cvref_t<T>>>, char    > ||
+			std::is_same_v<detail::remove_cvref_t<std::remove_pointer_t<detail::remove_cvref_t<T>>>, wchar_t > ||
 		#if defined(__cpp_lib_char8_t)
-			std::is_same_v<std::remove_cv_t<std::remove_pointer_t<std::remove_cv_t<std::remove_reference_t<T>>>>, char8_t > ||
+			std::is_same_v<detail::remove_cvref_t<std::remove_pointer_t<detail::remove_cvref_t<T>>>, char8_t > ||
 		#endif
-			std::is_same_v<std::remove_cv_t<std::remove_pointer_t<std::remove_cv_t<std::remove_reference_t<T>>>>, char16_t> ||
-			std::is_same_v<std::remove_cv_t<std::remove_pointer_t<std::remove_cv_t<std::remove_reference_t<T>>>>, char32_t>
+			std::is_same_v<detail::remove_cvref_t<std::remove_pointer_t<detail::remove_cvref_t<T>>>, char16_t> ||
+			std::is_same_v<detail::remove_cvref_t<std::remove_pointer_t<detail::remove_cvref_t<T>>>, char32_t>
 		)
 		>>> : std::true_type {};
 
@@ -391,15 +391,15 @@ namespace asio2::detail
 
 	template<typename T>
 	struct is_char_array<T, std::void_t<typename std::enable_if_t <
-		std::is_array_v<std::remove_cv_t<std::remove_reference_t<T>>>  &&
+		std::is_array_v<detail::remove_cvref_t<T>>  &&
 		(
-			std::is_same_v<std::remove_cv_t<std::remove_all_extents_t<std::remove_cv_t<std::remove_reference_t<T>>>>, char    > ||
-			std::is_same_v<std::remove_cv_t<std::remove_all_extents_t<std::remove_cv_t<std::remove_reference_t<T>>>>, wchar_t > ||
+			std::is_same_v<detail::remove_cvref_t<std::remove_all_extents_t<detail::remove_cvref_t<T>>>, char    > ||
+			std::is_same_v<detail::remove_cvref_t<std::remove_all_extents_t<detail::remove_cvref_t<T>>>, wchar_t > ||
 		#if defined(__cpp_lib_char8_t)
-			std::is_same_v<std::remove_cv_t<std::remove_all_extents_t<std::remove_cv_t<std::remove_reference_t<T>>>>, char8_t > ||
+			std::is_same_v<detail::remove_cvref_t<std::remove_all_extents_t<detail::remove_cvref_t<T>>>, char8_t > ||
 		#endif
-			std::is_same_v<std::remove_cv_t<std::remove_all_extents_t<std::remove_cv_t<std::remove_reference_t<T>>>>, char16_t> ||
-			std::is_same_v<std::remove_cv_t<std::remove_all_extents_t<std::remove_cv_t<std::remove_reference_t<T>>>>, char32_t>
+			std::is_same_v<detail::remove_cvref_t<std::remove_all_extents_t<detail::remove_cvref_t<T>>>, char16_t> ||
+			std::is_same_v<detail::remove_cvref_t<std::remove_all_extents_t<detail::remove_cvref_t<T>>>, char32_t>
 		)
 		>>> : std::true_type {};
 
@@ -441,7 +441,7 @@ namespace asio2::detail
 	template<typename T>
 	inline std::string to_string(T&& v)
 	{
-		using type = std::remove_cv_t<std::remove_reference_t<T>>;
+		using type = detail::remove_cvref_t<T>;
 		std::string s;
 		if constexpr (is_string_view_v<type>)
 		{
@@ -483,7 +483,7 @@ namespace asio2::detail
 	template<typename IntegerType, typename T>
 	inline IntegerType to_integer(T&& v)
 	{
-		using type = std::remove_cv_t<std::remove_reference_t<T>>;
+		using type = detail::remove_cvref_t<T>;
 		if constexpr (std::is_integral_v<type>)
 			return static_cast<IntegerType>(v);
 		else

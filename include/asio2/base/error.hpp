@@ -41,6 +41,47 @@ namespace asio2
 	// Very important features:
 	// One Definition Rule : https://en.wikipedia.org/wiki/One_Definition_Rule
 
+	// ---- internal linkage ----
+	// static global variable : static int x;
+	// static global function, namespace scope or not : static bool test(){...}
+	// enum definition : enum Boolean { NO,YES };
+	// class definition : class Point { int d_x; int d_y; ... };
+	// inline function definition : inline int operator==(const Point& left,const Point&right) { ... }
+	// union definition
+	// const variable definition
+	//
+	// ---- external linkage ----
+	// not inlined class member function : Point& Point::operator+=(const Point& right) { ... }
+	// not inlined not static function : Point operator+(const Point& left, const Point& right) { ... }
+	// global variable : static int x;
+	// singleton class member function : class st{ static st& get(){static st& s; return s;} }
+
+	namespace detail
+	{
+		class external_linkaged_last_error
+		{
+		public:
+			static error_code & get() noexcept
+			{
+				// thread local variable of error_code
+				thread_local static error_code ec_last{};
+
+				return ec_last;
+			}
+		};
+
+		namespace internal_linkaged_last_error
+		{
+			static error_code & get() noexcept
+			{
+				// thread local variable of error_code
+				thread_local static error_code ec_last{};
+
+				return ec_last;
+			}
+		}
+	}
+
 	// use anonymous namespace to resolve global function redefinition problem
 	namespace
 	{
@@ -57,10 +98,7 @@ namespace asio2
 		 */
 		inline error_code & get_last_error() noexcept
 		{
-			// thread local variable of error_code
-			thread_local static error_code ec_last{};
-
-			return ec_last;
+			return detail::external_linkaged_last_error::get();
 		}
 
 		/**

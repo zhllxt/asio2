@@ -136,12 +136,20 @@ namespace asio2::detail
 				ASIO2_LOG(spdlog::level::debug, "exec disconnect : {}",
 					magic_enum::enum_name(derive.state_.load()));
 
+				// When the connection is disconnected, should we set the state to stopping or stopped?
+				// If the state is set to stopped, then the user wants to use client.is_stopped() to 
+				// determine whether the client has stopped. The result is inaccurate because the client
+				// has not stopped completely, such as the timer is still running.
+				// If the state is set to stopping, the user will fail to reconnect the client using
+				// client.start(...) in the bind_disconnect callback. because the client.start(...)
+				// function will detects the value of state and the client.start(...) will only executed
+				// if the state is stopped.
 				state_t expected = state_t::stopping;
 				if (derive.state().compare_exchange_strong(expected, state_t::stopping))
 				{
 					if (old_state == state_t::started)
 					{
-						derive._fire_disconnect(this_ptr, ec);
+						derive._fire_disconnect(this_ptr);
 					}
 				}
 				else

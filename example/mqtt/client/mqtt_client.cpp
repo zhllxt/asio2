@@ -89,16 +89,16 @@ int main()
 
 		//std::ignore = cack;
 
-	}).bind_connect([&](asio::error_code ec)
+	}).bind_connect([&]()
 	{
-		if (ec)
+		if (asio2::get_last_error())
 			printf("connect failure : %d %s\n",
 				asio2::last_error_val(), asio2::last_error_msg().c_str());
 		else
 			printf("connect success : %s %u\n",
 				client.local_address().c_str(), client.local_port());
 
-		if (!ec)
+		if (!asio2::get_last_error())
 		{
 			asio2::mqtt::v5::publish publish;
 			publish.qos(asio2::mqtt::qos_type::at_least_once);
@@ -111,10 +111,8 @@ int main()
 			});
 		}
 
-	}).bind_disconnect([](asio::error_code ec)
+	}).bind_disconnect([]()
 	{
-		asio2::detail::ignore_unused(ec);
-
 		printf("disconnect : %d %s\n",
 			asio2::last_error_val(), asio2::last_error_msg().c_str());
 	});

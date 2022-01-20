@@ -14,9 +14,9 @@ int main()
 
 	asio2::tcp_client client;
 
-	client.bind_connect([&](asio::error_code ec)
+	client.bind_connect([&]()
 	{
-		if (ec)
+		if (asio2::get_last_error())
 			printf("connect failure : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
 		else
 			printf("connect success : %s %u\n", client.local_address().c_str(), client.local_port());
@@ -32,9 +32,9 @@ int main()
 
 		client.async_send(s);
 
-	}).bind_disconnect([](asio::error_code ec)
+	}).bind_disconnect([]()
 	{
-		printf("disconnect : %d %s\n", ec.value(), ec.message().c_str());
+		printf("disconnect : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
 	}).bind_recv([&](std::string_view sv)
 	{
 		printf("recv : %u %.*s\n", (unsigned)sv.size(), (int)sv.size(), sv.data());
@@ -64,7 +64,28 @@ int main()
 	asio2::socks5::option<asio2::socks5::method::anonymous, asio2::socks5::method::password>
 		sock5_option{ "s5.doudouip.cn",1088,"zjww-1","aaa123" };
 
-	client.start(host, port, asio2::use_dgram, std::move(rdc_option), std::move(sock5_option));
+	client.start(host, port, asio2::use_dgram, std::move(rdc_option)/*, std::move(sock5_option)*/);
+
+	char buf[] = "abc";
+
+	std::string str{ buf };
+
+	std::string_view sv{ buf };
+
+	int bytes[4] = {1,2,3,4};
+
+	const char * const p = buf;
+
+	client.async_send(sv);
+
+	client.call<std::string>(sv);
+
+	client.async_call(sv, [](std::string_view data)
+	{
+		if (asio2::get_last_error())
+			return;
+		std::cout << data << std::endl;
+	});
 
 	while (std::getchar() != '\n');
 
