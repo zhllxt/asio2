@@ -105,7 +105,8 @@ namespace asio2::detail
 			// close all async_events
 			this->notify_all_events();
 
-			this->iopool_->stop(); // stop the io_context pool
+			// stop the io_context pool
+			this->iopool_->stop();
 		}
 
 	public:

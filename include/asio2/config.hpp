@@ -33,8 +33,7 @@
 //#define ASIO2_USE_SSL
 
 // RPC component is using tcp dgram mode as the underlying communication support by default,
-// If you want to using websocket as the underlying communication support, open the macro 
-// definition below
+// If you want to using websocket as the underlying communication support, turn on this macro.
 //#define ASIO2_USE_WEBSOCKET_RPC
 
 // Whether to detect the validity of UTF8 string of mqtt
@@ -42,5 +41,9 @@
 
 // Whether enable internal logging of asio2
 //#define ASIO2_ENABLE_LOG
+
+// Whether called the timer callback when the timer is awaked with some error.
+// eg : stop_timer will awake the timer with error of asio::error::operation_aborted.
+#define ASIO2_ENABLE_TIMER_CALLBACK_WHEN_ERROR
 
 #endif // !__ASIO2_CONFIG_HPP__

@@ -143,6 +143,11 @@ namespace asio2::detail
 
 namespace asio2
 {
+	/**
+	 * ssl tcp client
+	 * constructor maybe throw exception "Too many open files" (exception code : 24)
+	 * asio::error::no_descriptors - Too many open files
+	 */
 	template<class derived_t>
 	class tcps_client_t : public detail::tcps_client_impl_t<derived_t, detail::template_args_tcp_client>
 	{
@@ -150,6 +155,11 @@ namespace asio2
 		using detail::tcps_client_impl_t<derived_t, detail::template_args_tcp_client>::tcps_client_impl_t;
 	};
 
+	/**
+	 * ssl tcp client
+	 * constructor maybe throw exception "Too many open files" (exception code : 24)
+	 * asio::error::no_descriptors - Too many open files
+	 */
 	class tcps_client : public tcps_client_t<tcps_client>
 	{
 	public:

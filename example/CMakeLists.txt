@@ -124,10 +124,10 @@ set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "" FORCE)
 
 
 # ---------------------------------------------------------------------------------------
-# Set default build to release
+# Set default build to debug
 # ---------------------------------------------------------------------------------------
 if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose Release or Debug" FORCE)
+    set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "Choose Release or Debug" FORCE)
 endif()
 
 # ---------------------------------------------------------------------------------------

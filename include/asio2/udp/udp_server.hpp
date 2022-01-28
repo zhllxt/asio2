@@ -712,6 +712,10 @@ namespace asio2::detail
 
 namespace asio2
 {
+	/**
+	 * constructor maybe throw exception "Too many open files" (exception code : 24)
+	 * asio::error::no_descriptors - Too many open files
+	 */
 	template<class session_t>
 	class udp_server_t : public detail::udp_server_impl_t<udp_server_t<session_t>, session_t>
 	{
@@ -719,6 +723,10 @@ namespace asio2
 		using detail::udp_server_impl_t<udp_server_t<session_t>, session_t>::udp_server_impl_t;
 	};
 
+	/**
+	 * constructor maybe throw exception "Too many open files" (exception code : 24)
+	 * asio::error::no_descriptors - Too many open files
+	 */
 	using udp_server = udp_server_t<udp_session>;
 }
 

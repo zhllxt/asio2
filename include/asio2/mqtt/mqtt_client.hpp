@@ -505,7 +505,7 @@ namespace asio2::detail
 			derived_t& derive = this->derived();
 
 			// start the timer 
-			if (duration > std::chrono::duration<Rep, Period>::zero())
+			if (duration > std::chrono::duration<Rep, Period>::zero() && this->is_started())
 			{
 				this->pingreq_timer_.expires_after(duration);
 				this->pingreq_timer_.async_wait(asio::bind_executor(derive.io().strand(),

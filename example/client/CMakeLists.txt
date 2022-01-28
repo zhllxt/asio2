@@ -126,10 +126,10 @@ set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "" FORCE)
 
 
 # ---------------------------------------------------------------------------------------
-# Set default build to release
+# Set default build to debug
 # ---------------------------------------------------------------------------------------
 if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose Release or Debug" FORCE)
+    set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "Choose Release or Debug" FORCE)
 endif()
 
 # ---------------------------------------------------------------------------------------
@@ -210,7 +210,3 @@ add_subdirectory (${ASIO2_ROOT_DIR}/example/ssl/http/client      asio2_client_ex
 add_subdirectory (${ASIO2_ROOT_DIR}/example/ssl/rpc/client       asio2_client_example_project/ssl_rpc_client      )
 add_subdirectory (${ASIO2_ROOT_DIR}/example/ssl/tcp/client       asio2_client_example_project/ssl_tcp_client      )
 add_subdirectory (${ASIO2_ROOT_DIR}/example/ssl/websocket/client asio2_client_example_project/ssl_websocket_client)
-
-add_subdirectory (${ASIO2_ROOT_DIR}/example/icmp                 asio2_client_example_project/icmp)
-add_subdirectory (${ASIO2_ROOT_DIR}/example/serial_port          asio2_client_example_project/serial_port)
-add_subdirectory (${ASIO2_ROOT_DIR}/example/udp/cast             asio2_client_example_project/udp_cast)

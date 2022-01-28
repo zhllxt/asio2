@@ -75,7 +75,7 @@ namespace asio2::detail
 
 				if (ret_keepidle || ret_keepintvl || ret_keepinit)
 				{
-					set_last_error(errno, std::generic_category());
+					set_last_error(errno, asio::error::get_system_category());
 					return false;
 				}
 			#elif BHO_OS_UNIX
@@ -87,7 +87,7 @@ namespace asio2::detail
 
 				//if (ret_tcpkeepalive || ret_tcpkeepintvl)
 				//{
-				//	set_last_error(errno, std::generic_category());
+				//	set_last_error(errno, asio::error::get_system_category());
 				//	return false;
 				//}
 			#elif BHO_OS_IOS
@@ -106,7 +106,7 @@ namespace asio2::detail
 				{
 					if (::WSAGetLastError() != WSAEWOULDBLOCK)
 					{
-						set_last_error(::WSAGetLastError(), std::generic_category());
+						set_last_error(::WSAGetLastError(), asio::error::get_system_category());
 						return false;
 					}
 				}

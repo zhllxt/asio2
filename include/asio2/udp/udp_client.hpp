@@ -271,9 +271,9 @@ namespace asio2::detail
 		{
 			derived_t& derive = this->derived();
 
-			derive.iopool_->start();
+			this->iopool_->start();
 
-			if (derive.iopool_->stopped())
+			if (this->iopool_->stopped())
 			{
 				ASIO2_ASSERT(false);
 				set_last_error(asio::error::operation_aborted);
@@ -751,6 +751,10 @@ namespace asio2::detail
 
 namespace asio2
 {
+	/**
+	 * constructor maybe throw exception "Too many open files" (exception code : 24)
+	 * asio::error::no_descriptors - Too many open files
+	 */
 	template<class derived_t>
 	class udp_client_t : public detail::udp_client_impl_t<derived_t, detail::template_args_udp_client>
 	{
@@ -758,6 +762,10 @@ namespace asio2
 		using detail::udp_client_impl_t<derived_t, detail::template_args_udp_client>::udp_client_impl_t;
 	};
 
+	/**
+	 * constructor maybe throw exception "Too many open files" (exception code : 24)
+	 * asio::error::no_descriptors - Too many open files
+	 */
 	class udp_client : public udp_client_t<udp_client>
 	{
 	public:

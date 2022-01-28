@@ -286,9 +286,9 @@ namespace asio2::detail
 		{
 			derived_t& derive = this->derived();
 
-			derive.iopool_->start();
+			this->iopool_->start();
 
-			if (derive.iopool_->stopped())
+			if (this->iopool_->stopped())
 			{
 				ASIO2_ASSERT(false);
 				set_last_error(asio::error::operation_aborted);
@@ -677,6 +677,10 @@ namespace asio2::detail
 
 namespace asio2
 {
+	/**
+	 * constructor maybe throw exception "Too many open files" (exception code : 24)
+	 * asio::error::no_descriptors - Too many open files
+	 */
 	template<class derived_t>
 	class tcp_client_t : public detail::tcp_client_impl_t<derived_t, detail::template_args_tcp_client>
 	{
@@ -684,6 +688,10 @@ namespace asio2
 		using detail::tcp_client_impl_t<derived_t, detail::template_args_tcp_client>::tcp_client_impl_t;
 	};
 
+	/**
+	 * constructor maybe throw exception "Too many open files" (exception code : 24)
+	 * asio::error::no_descriptors - Too many open files
+	 */
 	class tcp_client : public tcp_client_t<tcp_client>
 	{
 	public:

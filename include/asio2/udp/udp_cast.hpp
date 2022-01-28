@@ -88,6 +88,8 @@ namespace asio2::detail
 
 		/**
 		 * @constructor
+		 * maybe throw exception "Too many open files" (exception code : 24)
+		 * asio::error::no_descriptors - Too many open files
 		 */
 		explicit udp_cast_impl_t(
 			std::size_t init_buf_size = udp_frame_size,
@@ -652,6 +654,11 @@ namespace asio2::detail
 
 namespace asio2
 {
+	/**
+	 * udp unicast/multicast/broadcast
+	 * constructor maybe throw exception "Too many open files" (exception code : 24)
+	 * asio::error::no_descriptors - Too many open files
+	 */
 	template<class derived_t>
 	class udp_cast_t : public detail::udp_cast_impl_t<derived_t, detail::template_args_udp_cast>
 	{
@@ -661,6 +668,8 @@ namespace asio2
 
 	/*
 	 * udp unicast/multicast/broadcast
+	 * constructor maybe throw exception "Too many open files" (exception code : 24)
+	 * asio::error::no_descriptors - Too many open files
 	 */
 	class udp_cast : public udp_cast_t<udp_cast>
 	{

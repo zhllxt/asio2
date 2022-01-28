@@ -80,8 +80,7 @@ namespace asio2::detail
 			bool                                 stop_flag_ = false;
 
 			/// Constructor
-			rdc_fields(io_t& io, std::shared_ptr<void> derive_ptr)
-				: send_event_(std::make_shared<async_event>(io, std::move(derive_ptr)))
+			rdc_fields(io_t& io) : send_event_(std::make_shared<async_event>(io))
 			{
 			}
 		};
@@ -570,7 +569,7 @@ namespace asio2::detail
 			{
 				derived_t& derive = static_cast<derived_t&>(*this);
 
-				this->rdc_fields_ = std::make_unique<rdc_fields>(derive.io(), derive.selfptr());
+				this->rdc_fields_ = std::make_unique<rdc_fields>(derive.io());
 			}
 			else
 			{

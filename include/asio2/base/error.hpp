@@ -55,7 +55,7 @@ namespace asio2
 	// ---- external linkage ----
 	// not inlined class member function : Point& Point::operator+=(const Point& right) { ... }
 	// not inlined not static function : Point operator+(const Point& left, const Point& right) { ... }
-	// global variable : static int x;
+	// global variable : int x;
 	// singleton class member function : class st{ static st& get(){static st& s; return s;} }
 
 	namespace detail
@@ -127,7 +127,7 @@ namespace asio2
 			}
 			else
 			{
-				get_last_error().assign(static_cast<int>(e), std::generic_category());
+				get_last_error().assign(static_cast<int>(e), asio::error::get_system_category());
 			}
 		}
 

@@ -61,6 +61,8 @@ namespace boost::beast::http
 		// 
 		// postman
 		// 
+		// 
+		// asp
 		// http://127.0.0.1/index.asp?id=x!#$&name='()*+,/:;=?@[ ]-_.~%^{}\"|<>`\\y
 		// http://127.0.0.1/index.asp?id=x%21%23%24&name=%27%28%29*%2B%2C%2F%3A%3B=?%40%5B%20%5D-_.%7E%25%5E%7B%7D%22%7C%3C%3E%60%5Cy
 		// the character    &=?    can't be encoded, otherwise the result of queryString is wrong.

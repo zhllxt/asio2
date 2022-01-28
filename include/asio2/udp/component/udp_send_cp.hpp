@@ -183,7 +183,18 @@ namespace asio2::detail
 				{
 					// if multiple addresses is resolved for the host and port, then the promise
 					// will set_value many times, then will cause exception
-					promise->set_value(std::pair<error_code, std::size_t>(ec, bytes_sent));
+					try
+					{
+						promise->set_value(std::pair<error_code, std::size_t>(ec, bytes_sent));
+					}
+					catch (std::future_errc const& e)
+					{
+						set_last_error(e);
+					}
+					catch (std::exception const&)
+					{
+						set_last_error(asio::error::eof);
+					}
 				});
 			}
 			catch (system_error & e)
@@ -259,7 +270,18 @@ namespace asio2::detail
 				{
 					// if multiple addresses is resolved for the host and port, then the promise
 					// will set_value many times, then will cause exception
-					promise->set_value(std::pair<error_code, std::size_t>(ec, bytes_sent));
+					try
+					{
+						promise->set_value(std::pair<error_code, std::size_t>(ec, bytes_sent));
+					}
+					catch (std::future_errc const& e)
+					{
+						set_last_error(e);
+					}
+					catch (std::exception const&)
+					{
+						set_last_error(asio::error::eof);
+					}
 				});
 			}
 			catch (system_error & e)
@@ -521,8 +543,6 @@ namespace asio2::detail
 					derive._do_send(endpoint, data, [&promise, g = std::move(g)]
 					(const error_code& ec, std::size_t bytes_sent) mutable
 					{
-						// if multiple addresses is resolved for the host and port, then the promise
-						// will set_value many times, then will cause exception
 						promise->set_value(std::pair<error_code, std::size_t>(ec, bytes_sent));
 					});
 				});
@@ -601,8 +621,6 @@ namespace asio2::detail
 					derive._do_send(endpoint, data, [&promise, g = std::move(g)]
 					(const error_code& ec, std::size_t bytes_sent) mutable
 					{
-						// if multiple addresses is resolved for the host and port, then the promise
-						// will set_value many times, then will cause exception
 						promise->set_value(std::pair<error_code, std::size_t>(ec, bytes_sent));
 					});
 				});

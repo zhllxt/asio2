@@ -21,6 +21,7 @@
 #include <unordered_map>
 #include <string>
 #include <string_view>
+#include <future>
 
 #include <asio2/3rd/asio.hpp>
 #include <asio2/base/iopool.hpp>
@@ -29,6 +30,7 @@
 
 #include <asio2/base/detail/util.hpp>
 #include <asio2/base/detail/allocator.hpp>
+#include <asio2/base/detail/function_traits.hpp>
 
 namespace asio2::detail
 {
@@ -147,13 +149,17 @@ namespace asio2::detail
 
 	struct user_timer_obj
 	{
-		user_timer_handle id;
-		asio::steady_timer timer;
-		std::function<void()> task;
-		bool exited = false;
+		user_timer_handle                        id;
+		asio::steady_timer                       timer;
+		std::function<void()>                    callback{};
+		typename asio::steady_timer::duration    interval{};
+		mutable std::size_t                      repeat = static_cast<std::size_t>(-1);
+		mutable bool                             exited = false;
 
-		user_timer_obj(user_timer_handle Id, asio::io_context & context, std::function<void()> t)
-			: id(std::move(Id)), timer(context), task(std::move(t)) {}
+		user_timer_obj(user_timer_handle Id, asio::io_context& context)
+			: id(std::move(Id)), timer(context)
+		{
+		}
 	};
 
 	template<class derived_t, class args_t = void>
@@ -180,9 +186,62 @@ namespace asio2::detail
 		 * the callback function signature : [](){}
 		 */
 		template<class TimerId, class Rep, class Period, class Fun, class... Args>
-		inline void start_timer(TimerId&& timer_id, std::chrono::duration<Rep, Period> duration,
+		inline typename std::enable_if_t<is_callable_v<Fun>, void>
+		start_timer(TimerId&& timer_id, std::chrono::duration<Rep, Period> interval, Fun&& fun, Args&&... args)
+		{
+			this->start_timer(std::forward<TimerId>(timer_id), interval, std::size_t(-1), interval,
+				std::forward<Fun>(fun), std::forward<Args>(args)...);
+		}
+
+		/**
+		 * @function : start a timer
+		 * the timer id can be integer or string, example : 1,2,3 or "id1" "id2"
+		 * the callback function signature : [](){}
+		 */
+		template<class TimerId, class Rep, class Period, class Integer, class Fun, class... Args>
+		inline typename std::enable_if_t<
+			is_callable_v<Fun> && std::is_integral_v<detail::remove_cvref_t<Integer>>, void>
+		start_timer(TimerId&& timer_id, std::chrono::duration<Rep, Period> interval, Integer repeat,
 			Fun&& fun, Args&&... args)
 		{
+			this->start_timer(std::forward<TimerId>(timer_id), interval, repeat, interval,
+				std::forward<Fun>(fun), std::forward<Args>(args)...);
+		}
+
+		/**
+		 * @function : start a timer
+		 * the timer id can be integer or string, example : 1,2,3 or "id1" "id2"
+		 * the callback function signature : [](){}
+		 */
+		template<class TimerId, class Rep, class Period, class Fun, class... Args>
+		inline typename std::enable_if_t<is_callable_v<Fun>, void>
+		start_timer(TimerId&& timer_id, std::chrono::duration<Rep, Period> interval,
+			std::chrono::duration<Rep, Period> first_delay, Fun&& fun, Args&&... args)
+		{
+			this->start_timer(std::forward<TimerId>(timer_id), interval, std::size_t(-1), first_delay,
+				std::forward<Fun>(fun), std::forward<Args>(args)...);
+		}
+
+		/**
+		 * @function : start a timer
+		 * @param interval - The amount of time between set and firing.
+		 * @param repeat - Total number of times the timer is executed.
+		 * @param first_delay - The timeout for the first execute of timer. 
+		 * the timer id can be integer or string, example : 1,2,3 or "id1" "id2"
+		 * the callback function signature : [](){}
+		 */
+		template<class TimerId, class Rep, class Period, class Integer, class Fun, class... Args>
+		inline typename std::enable_if_t<
+			is_callable_v<Fun> && std::is_integral_v<detail::remove_cvref_t<Integer>>, void>
+		start_timer(TimerId&& timer_id, std::chrono::duration<Rep, Period> interval, Integer repeat,
+			std::chrono::duration<Rep, Period> first_delay, Fun&& fun, Args&&... args)
+		{
+			if (repeat == static_cast<std::size_t>(0))
+			{
+				ASIO2_ASSERT(false);
+				return;
+			}
+
 			derived_t& derive = static_cast<derived_t&>(*this);
 
 			std::function<void()> t = std::bind(std::forward<Fun>(fun), std::forward<Args>(args)...);
@@ -193,7 +252,7 @@ namespace asio2::detail
 			asio::post(derive.io().strand(), make_allocator(derive.wallocator(),
 			[this, &derive, this_ptr = derive.selfptr(),
 				timer_handle = user_timer_handle(std::forward<TimerId>(timer_id)),
-				duration, task = std::move(t)]() mutable
+				interval, repeat, first_delay, callback = std::move(t)]() mutable
 			{
 				// if the timer is already exists, cancel it first.
 				auto iter = this->user_timers_.find(timer_handle);
@@ -205,14 +264,36 @@ namespace asio2::detail
 					iter->second->timer.cancel(ec_ignore);
 				}
 
-				std::shared_ptr<user_timer_obj> timer_obj_ptr = std::make_shared<user_timer_obj>(
-					timer_handle, derive.io().context(), std::move(task));
+				try
+				{
+					// the asio::steady_timer's constructor may be throw some exception.
+					std::shared_ptr<user_timer_obj> timer_obj_ptr = std::make_shared<user_timer_obj>(
+						timer_handle, derive.io().context());
 
-				this->user_timers_[std::move(timer_handle)] = timer_obj_ptr;
+					// after asio::steady_timer's constructor is successed, then set the callback,
+					// avoid the callback is empty by std::move(callback) when asio::steady_timer's
+					// constructor throw some exception.
+					timer_obj_ptr->callback = std::move(callback);
+					timer_obj_ptr->interval = interval;
+					timer_obj_ptr->repeat   = static_cast<std::size_t>(repeat);
 
-				derive.io().timers().emplace(&(timer_obj_ptr->timer));
+					this->user_timers_[std::move(timer_handle)] = timer_obj_ptr;
 
-				derive._post_user_timers(std::move(timer_obj_ptr), duration, std::move(this_ptr));
+					derive.io().timers().emplace(&(timer_obj_ptr->timer));
+
+					derive._post_user_timers(std::move(this_ptr), std::move(timer_obj_ptr), first_delay);
+				}
+				catch (system_error & e)
+				{
+					set_last_error(e);
+
+					ASIO2_ASSERT(false);
+
+				#if defined(ASIO2_ENABLE_TIMER_CALLBACK_WHEN_ERROR)
+					// call the user callback directly.
+					callback();
+				#endif
+				}
 			}));
 		}
 
@@ -236,7 +317,7 @@ namespace asio2::detail
 			[this, this_ptr = derive.selfptr(), timer_id = std::forward<TimerId>(timer_id)]
 			() mutable
 			{
-				asio2::ignore_unused(this_ptr);
+				detail::ignore_unused(this_ptr);
 
 				auto iter = this->user_timers_.find(timer_id);
 				if (iter != this->user_timers_.end())
@@ -245,6 +326,7 @@ namespace asio2::detail
 
 					iter->second->exited = true;
 					iter->second->timer.cancel(ec_ignore);
+
 					this->user_timers_.erase(iter);
 				}
 			}));
@@ -262,14 +344,13 @@ namespace asio2::detail
 			asio::post(derive.io().strand(), make_allocator(derive.wallocator(),
 			[this, this_ptr = derive.selfptr()]() mutable
 			{
-				asio2::ignore_unused(this_ptr);
-
 				error_code ec_ignore{};
 
 				// close user custom timers
 				for (auto &[id, timer_obj_ptr] : this->user_timers_)
 				{
-					std::ignore = id;
+					detail::ignore_unused(this_ptr, id);
+
 					timer_obj_ptr->exited = true;
 					timer_obj_ptr->timer.cancel(ec_ignore);
 				}
@@ -277,35 +358,100 @@ namespace asio2::detail
 			}));
 		}
 
-	protected:
-		template<class Rep, class Period>
-		inline void _post_user_timers(std::shared_ptr<user_timer_obj> timer_obj_ptr,
-			std::chrono::duration<Rep, Period> duration, std::shared_ptr<derived_t> this_ptr)
+		/**
+		 * @function : Returns true if the specified timer exists
+		 */
+		template<class TimerId>
+		inline bool is_timer_exists(TimerId&& timer_id)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			// detect whether the timer is still exists, in some cases, after erase and
-			// cancel a timer, the steady_timer is still exist
-			if (timer_obj_ptr->exited)
+			if (derive.io().strand().running_in_this_thread())
 			{
-				derive.io().timers().erase(&(timer_obj_ptr->timer));
-				return;
+				return (this->user_timers_.find(timer_id) != this->user_timers_.end());
 			}
+
+			std::promise<bool> p;
+			std::future<bool> f = p.get_future();
+
+			asio::post(derive.io().strand(), make_allocator(derive.wallocator(),
+			[this, this_ptr = derive.selfptr(), timer_id = std::forward<TimerId>(timer_id), &p]
+			() mutable
+			{
+				detail::ignore_unused(this_ptr);
+
+				p.set_value(this->user_timers_.find(timer_id) != this->user_timers_.end());
+			}));
+
+			return f.get();
+		}
+
+		/**
+		 * @function : Get the interval for the specified timer.
+		 */
+		template<class TimerId>
+		inline typename asio::steady_timer::duration get_timer_interval(TimerId&& timer_id)
+		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
+			if (derive.io().strand().running_in_this_thread())
+			{
+				auto iter = this->user_timers_.find(timer_id);
+				if (iter != this->user_timers_.end())
+				{
+					return iter->second->interval;
+				}
+				else
+				{
+					return typename asio::steady_timer::duration{};
+				}
+			}
+
+			std::promise<typename asio::steady_timer::duration> p;
+			std::future<typename asio::steady_timer::duration> f = p.get_future();
+
+			asio::post(derive.io().strand(), make_allocator(derive.wallocator(),
+			[this, this_ptr = derive.selfptr(), timer_id = std::forward<TimerId>(timer_id), &p]
+			() mutable
+			{
+				detail::ignore_unused(this_ptr);
+
+				auto iter = this->user_timers_.find(timer_id);
+				if (iter != this->user_timers_.end())
+				{
+					p.set_value(iter->second->interval);
+				}
+				else
+				{
+					p.set_value(typename asio::steady_timer::duration{});
+				}
+			}));
+
+			return f.get();
+		}
+
+	protected:
+		template<class Rep, class Period>
+		inline void _post_user_timers(std::shared_ptr<derived_t> this_ptr,
+			std::shared_ptr<user_timer_obj> timer_obj_ptr, std::chrono::duration<Rep, Period> expiry)
+		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
+			ASIO2_ASSERT(this->user_timers_.find(timer_obj_ptr->id) != this->user_timers_.end());
 
 			asio::steady_timer& timer = timer_obj_ptr->timer;
 
-			timer.expires_after(duration);
+			timer.expires_after(expiry);
 			timer.async_wait(asio::bind_executor(derive.io().strand(),
-			[&derive, timer_ptr = std::move(timer_obj_ptr), duration, self_ptr = std::move(this_ptr)]
+			[&derive, self_ptr = std::move(this_ptr), timer_ptr = std::move(timer_obj_ptr)]
 			(const error_code& ec) mutable
 			{
-				derive._handle_user_timers(ec, std::move(timer_ptr), duration, std::move(self_ptr));
+				derive._handle_user_timers(ec, std::move(self_ptr), std::move(timer_ptr));
 			}));
 		}
 
-		template<class Rep, class Period>
-		inline void _handle_user_timers(const error_code & ec, std::shared_ptr<user_timer_obj> timer_obj_ptr,
-			std::chrono::duration<Rep, Period> duration, std::shared_ptr<derived_t> this_ptr)
+		inline void _handle_user_timers(const error_code& ec, std::shared_ptr<derived_t> this_ptr,
+			std::shared_ptr<user_timer_obj> timer_obj_ptr)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
@@ -326,16 +472,60 @@ namespace asio2::detail
 			// timeout is not reached, perhaps the user wants the timer callback function also 
 			// can be called even if the timer is aborted by stop_timer.
 
-			//if (!ec)
-				(timer_obj_ptr->task)();
+			if (timer_obj_ptr->repeat == static_cast<std::size_t>(-1))
+			{
+				derive._invoke_user_timer_callback(ec, timer_obj_ptr);
+			}
+			else
+			{
+				ASIO2_ASSERT(timer_obj_ptr->repeat > static_cast<std::size_t>(0));
 
-			if (ec == asio::error::operation_aborted)
+				derive._invoke_user_timer_callback(ec, timer_obj_ptr);
+
+				timer_obj_ptr->repeat--;
+			}
+
+			/**
+			 * @note If the timer has already expired when cancel() is called, then the
+			 * handlers for asynchronous wait operations will:
+			 *
+			 * @li have already been invoked; or
+			 *
+			 * @li have been queued for invocation in the near future.
+			 *
+			 * These handlers can no longer be cancelled, and therefore are passed an
+			 * error code that indicates the successful completion of the wait operation.
+			 */
+
+			// must detect whether the timer is still exists by "exited", in some cases,
+			// after remove and cancel a timer, the ec is 0 (not operation_aborted) and 
+			// the steady_timer is still exist
+
+			if (ec == asio::error::operation_aborted ||
+				timer_obj_ptr->exited || timer_obj_ptr->repeat == static_cast<std::size_t>(0))
 			{
 				derive.io().timers().erase(&(timer_obj_ptr->timer));
+
 				return;
 			}
 
-			derive._post_user_timers(std::move(timer_obj_ptr), duration, std::move(this_ptr));
+			typename asio::steady_timer::duration expiry = timer_obj_ptr->interval;
+
+			derive._post_user_timers(std::move(this_ptr), std::move(timer_obj_ptr), expiry);
+		}
+
+		inline void _invoke_user_timer_callback(const error_code& ec, std::shared_ptr<user_timer_obj>& timer_obj_ptr)
+		{
+			detail::ignore_unused(ec);
+
+		#if defined(ASIO2_ENABLE_TIMER_CALLBACK_WHEN_ERROR)
+				(timer_obj_ptr->callback)();
+		#else
+			if (!ec)
+			{
+				(timer_obj_ptr->callback)();
+			}
+		#endif
 		}
 
 	protected:

@@ -100,6 +100,8 @@ namespace asio2::detail
 	public:
 		/**
 		 * @constructor
+		 * maybe throw exception "Too many open files" (exception code : 24)
+		 * asio::error::no_descriptors - Too many open files
 		 */
 		template<class ...Args>
 		explicit session_impl_t(

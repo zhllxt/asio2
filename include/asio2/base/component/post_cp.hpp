@@ -101,7 +101,14 @@ namespace asio2::detail
 					derive.io().timers().erase(timer.get());
 					detail::ignore_unused(p);
 					set_last_error(ec);
+				#if defined(ASIO2_ENABLE_TIMER_CALLBACK_WHEN_ERROR)
 					f();
+				#else
+					if (!ec)
+					{
+						f();
+					}
+				#endif
 					this->timed_tasks_.erase(timer.get());
 				}));
 			}));
@@ -178,7 +185,14 @@ namespace asio2::detail
 					derive.io().timers().erase(timer.get());
 					detail::ignore_unused(p);
 					set_last_error(ec);
+				#if defined(ASIO2_ENABLE_TIMER_CALLBACK_WHEN_ERROR)
 					t();
+				#else
+					if (!ec)
+					{
+						t();
+					}
+				#endif
 					this->timed_tasks_.erase(timer.get());
 				}));
 			}));
