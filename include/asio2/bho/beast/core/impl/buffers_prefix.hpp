@@ -7,10 +7,11 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_IMPL_BUFFERS_PREFIX_HPP
-#define BEAST_IMPL_BUFFERS_PREFIX_HPP
+#ifndef BHO_BEAST_IMPL_BUFFERS_PREFIX_HPP
+#define BHO_BEAST_IMPL_BUFFERS_PREFIX_HPP
 
 #include <asio2/bho/beast/core/buffer_traits.hpp>
+#include <asio2/bho/config/workaround.hpp>
 #include <algorithm>
 #include <cstdint>
 #include <iterator>
@@ -18,6 +19,7 @@
 #include <type_traits>
 #include <utility>
 
+namespace bho {
 namespace beast {
 
 template<class Buffers>
@@ -30,9 +32,18 @@ class buffers_prefix_view<Buffers>::const_iterator
     iter_type it_{};
 
 public:
+#if BHO_WORKAROUND(BHO_MSVC, < 1910)
+    using value_type = typename std::conditional<
+        std::is_convertible<typename
+            std::iterator_traits<iter_type>::value_type,
+                net::mutable_buffer>::value,
+                    net::mutable_buffer,
+                        net::const_buffer>::type;
+#else
     using value_type = buffers_type<Buffers>;
+#endif
 
-	BEAST_STATIC_ASSERT(std::is_same<
+    BHO_STATIC_ASSERT(std::is_same<
         typename const_iterator::value_type,
         typename buffers_prefix_view::value_type>::value);
 
@@ -145,7 +156,7 @@ setup(std::size_t size)
             size_ += size;
 
             // by design, this subtraction can wrap
-			BEAST_STATIC_ASSERT(std::is_unsigned<
+            BHO_STATIC_ASSERT(std::is_unsigned<
                 decltype(remain_)>::value);
             remain_ = size - len;
             break;
@@ -210,7 +221,7 @@ template<class... Args>
 buffers_prefix_view<Buffers>::
 buffers_prefix_view(
     std::size_t size,
-	std::in_place_t,
+    std::in_place_t,
     Args&&... args)
     : bs_(std::forward<Args>(args)...)
 {
@@ -264,7 +275,7 @@ public:
     template<class... Args>
     buffers_prefix_view(
         std::size_t size,
-		std::in_place_t,
+        std::in_place_t,
         Args&&... args)
         : buffers_prefix_view(size,
             net::const_buffer(
@@ -300,7 +311,7 @@ public:
     template<class... Args>
     buffers_prefix_view(
         std::size_t size,
-		std::in_place_t,
+        std::in_place_t,
         Args&&... args)
         : buffers_prefix_view(size,
             net::mutable_buffer(
@@ -310,7 +321,9 @@ public:
 };
 
 } // beast
+} // bho
 
+namespace bho {
 namespace beast {
 
 template<class Buffers>
@@ -325,7 +338,7 @@ class buffers_prefix_view<Buffers*>::const_iterator
 public:
     using value_type = buffers_type<Buffers>;
 
-	BEAST_STATIC_ASSERT(std::is_same<
+	BHO_STATIC_ASSERT(std::is_same<
         typename const_iterator::value_type,
         typename buffers_prefix_view::value_type>::value);
 
@@ -438,7 +451,7 @@ setup(std::size_t size)
             size_ += size;
 
             // by design, this subtraction can wrap
-			BEAST_STATIC_ASSERT(std::is_unsigned<
+			BHO_STATIC_ASSERT(std::is_unsigned<
                 decltype(remain_)>::value);
             remain_ = size - len;
             break;
@@ -519,5 +532,6 @@ end() const ->
 }
 
 } // beast
+} // bho
 
 #endif

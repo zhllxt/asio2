@@ -5,8 +5,8 @@
 //
 //  See http://www.boost.org/libs/type_traits for most recent version including documentation.
 
-#ifndef BEAST_TT_TYPE_WITH_ALIGNMENT_INCLUDED
-#define BEAST_TT_TYPE_WITH_ALIGNMENT_INCLUDED
+#ifndef BHO_BEAST_TT_TYPE_WITH_ALIGNMENT_INCLUDED
+#define BHO_BEAST_TT_TYPE_WITH_ALIGNMENT_INCLUDED
 
 #include <type_traits>
 #include <asio2/bho/static_assert.hpp>
@@ -19,6 +19,7 @@
 #   pragma warning(disable: 4121) // alignment is sensitive to packing
 #endif
 
+namespace bho {
 namespace beast {
 #ifndef BHO_BORLANDC
    namespace detail{
@@ -44,7 +45,7 @@ namespace beast {
       };
 
 template <std::size_t Target, bool check> struct long_double_alignment{ typedef long double type; };
-template <std::size_t Target> struct long_double_alignment<Target, false>{ typedef beast::detail::max_align type; };
+template <std::size_t Target> struct long_double_alignment<Target, false>{ typedef bho::beast::detail::max_align type; };
 
 template <std::size_t Target, bool check> struct double_alignment{ typedef double type; };
 template <std::size_t Target> struct double_alignment<Target, false>{ typedef typename long_double_alignment<Target, std::alignment_of<long double>::value >= Target>::type type; };
@@ -75,7 +76,7 @@ template <std::size_t Target> struct char_alignment<Target, false>{ typedef type
 template <std::size_t Align>
 struct type_with_alignment 
 {
-   typedef typename beast::detail::char_alignment<Align, std::alignment_of<char>::value >= Align>::type type;
+   typedef typename bho::beast::detail::char_alignment<Align, std::alignment_of<char>::value >= Align>::type type;
 };
 
 #if (defined(__GNUC__) || (defined (__SUNPRO_CC) &&  (__SUNPRO_CC >= 0x5130)) || defined(__clang__))
@@ -151,43 +152,43 @@ struct __declspec(align(128)) a128 {
 template<> struct type_with_alignment<8>  
 { 
    typedef std::conditional<
-      std::alignment_of<beast::detail::max_align>::value < 8,
+      std::alignment_of<bho::beast::detail::max_align>::value < 8,
       tt_align_ns::a8,
-      beast::detail::char_alignment<8, false> >::type t1;
+      bho::beast::detail::char_alignment<8, false> >::type t1;
 public: 
    typedef t1::type type;
 };
 template<> struct type_with_alignment<16> 
 { 
    typedef std::conditional<
-      std::alignment_of<beast::detail::max_align>::value < 16,
+      std::alignment_of<bho::beast::detail::max_align>::value < 16,
       tt_align_ns::a16,
-      beast::detail::char_alignment<16, false> >::type t1;
+      bho::beast::detail::char_alignment<16, false> >::type t1;
 public: 
    typedef t1::type type;
 };
 template<> struct type_with_alignment<32> 
 { 
    typedef std::conditional<
-      std::alignment_of<beast::detail::max_align>::value < 32,
+      std::alignment_of<bho::beast::detail::max_align>::value < 32,
       tt_align_ns::a32,
-      beast::detail::char_alignment<32, false> >::type t1;
+      bho::beast::detail::char_alignment<32, false> >::type t1;
 public: 
    typedef t1::type type;
 };
 template<> struct type_with_alignment<64> {
    typedef std::conditional<
-      std::alignment_of<beast::detail::max_align>::value < 64,
+      std::alignment_of<bho::beast::detail::max_align>::value < 64,
       tt_align_ns::a64,
-      beast::detail::char_alignment<64, false> >::type t1;
+      bho::beast::detail::char_alignment<64, false> >::type t1;
 public: 
    typedef t1::type type;
 };
 template<> struct type_with_alignment<128> {
    typedef std::conditional<
-      std::alignment_of<beast::detail::max_align>::value < 128,
+      std::alignment_of<bho::beast::detail::max_align>::value < 128,
       tt_align_ns::a128,
-      beast::detail::char_alignment<128, false> >::type t1;
+      bho::beast::detail::char_alignment<128, false> >::type t1;
 public: 
    typedef t1::type type;
 };
@@ -233,7 +234,7 @@ template <std::size_t N> struct type_with_alignment
 {
    // We should never get to here, but if we do use the maximally
    // aligned type:
-   // BEAST_STATIC_ASSERT(0);
+   // BHO_STATIC_ASSERT(0);
    typedef tt_align_ns::a16 type;
 };
 template <> struct type_with_alignment<1>{ typedef char type; };
@@ -245,6 +246,7 @@ template <> struct type_with_alignment<16>{ typedef tt_align_ns::a16 type; };
 #endif
 
 } // namespace beast
+} // namespace bho
 
 #ifdef BHO_MSVC
 #   pragma warning(pop)

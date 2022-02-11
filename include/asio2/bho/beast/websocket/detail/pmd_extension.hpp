@@ -7,8 +7,8 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_WEBSOCKET_DETAIL_PMD_EXTENSION_HPP
-#define BEAST_WEBSOCKET_DETAIL_PMD_EXTENSION_HPP
+#ifndef BHO_BEAST_WEBSOCKET_DETAIL_PMD_EXTENSION_HPP
+#define BHO_BEAST_WEBSOCKET_DETAIL_PMD_EXTENSION_HPP
 
 #include <asio2/bho/beast/core/error.hpp>
 #include <asio2/bho/beast/websocket/option.hpp>
@@ -16,6 +16,7 @@
 #include <utility>
 #include <type_traits>
 
+namespace bho {
 namespace beast {
 namespace websocket {
 namespace detail {
@@ -42,19 +43,19 @@ struct pmd_offer
     bool client_no_context_takeover;
 };
 
-BEAST_DECL
+BHO_BEAST_DECL
 int
 parse_bits(string_view s);
 
-BEAST_DECL
+BHO_BEAST_DECL
 void
 pmd_read_impl(pmd_offer& offer, http::ext_list const& list);
 
-BEAST_DECL
+BHO_BEAST_DECL
 static_string<512>
 pmd_write_impl(pmd_offer const& offer);
 
-BEAST_DECL
+BHO_BEAST_DECL
 static_string<512>
 pmd_negotiate_impl(
     pmd_offer& config,
@@ -108,13 +109,14 @@ pmd_negotiate(
 
 // Normalize the server's response
 //
-BEAST_DECL
+BHO_BEAST_DECL
 void
 pmd_normalize(pmd_offer& offer);
 
 } // detail
 } // websocket
 } // beast
+} // bho
 
 #if BEAST_HEADER_ONLY
 #include <asio2/bho/beast/websocket/detail/pmd_extension.ipp>

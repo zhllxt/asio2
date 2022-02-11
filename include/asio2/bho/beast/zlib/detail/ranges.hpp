@@ -34,12 +34,13 @@
     (zlib format), rfc1951 (deflate format) and rfc1952 (gzip format).
 */
 
-#ifndef BEAST_ZLIB_DETAIL_RANGES_HPP
-#define BEAST_ZLIB_DETAIL_RANGES_HPP
+#ifndef BHO_BEAST_ZLIB_DETAIL_RANGES_HPP
+#define BHO_BEAST_ZLIB_DETAIL_RANGES_HPP
 
 #include <cstdint>
 #include <type_traits>
 
+namespace bho {
 namespace beast {
 namespace zlib {
 namespace detail {
@@ -96,5 +97,6 @@ U clamp(U u, V v)
 } // detail
 } // zlib
 } // beast
+} // bho
 
 #endif

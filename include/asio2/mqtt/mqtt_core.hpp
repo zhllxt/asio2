@@ -38,10 +38,10 @@
 #include <tuple>
 #include <type_traits>
 
-#include <asio2/bho/predef/other/endian.h>
-#include <asio2/base/detail/util.hpp>
+#include <asio2/3rd/beast.hpp>
+#include <asio2/3rd/predef.h>
 
-#include <asio2/bho/beast/websocket/detail/utf8_checker.hpp>
+#include <asio2/base/detail/util.hpp>
 
 #include <asio2/mqtt/mqtt_error.hpp>
 #include <asio2/mqtt/detail/mqtt_topic_util.hpp>

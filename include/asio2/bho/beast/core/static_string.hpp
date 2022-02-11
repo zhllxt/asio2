@@ -7,8 +7,8 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_STATIC_STRING_HPP
-#define BEAST_STATIC_STRING_HPP
+#ifndef BHO_BEAST_STATIC_STRING_HPP
+#define BHO_BEAST_STATIC_STRING_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/core/string.hpp>
@@ -21,6 +21,7 @@
 #include <string>
 #include <type_traits>
 
+namespace bho {
 namespace beast {
 
 /** A modifiable string with a fixed-size storage area.
@@ -140,7 +141,7 @@ public:
         obtained by converting `t` to `string_view_type`,
         and used to construct the string.
     */
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
     template<class T>
 #else
     template<class T, class = typename std::enable_if<
@@ -256,7 +257,7 @@ public:
         and used to assign the string.
     */
     template<class T>
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
     static_string&
 #else
     typename std::enable_if<std::is_convertible<T,
@@ -535,7 +536,7 @@ public:
     insert(const_iterator pos, size_type count, CharT ch);
 
     template<class InputIt>
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
     iterator
 #else
     typename std::enable_if<
@@ -557,7 +558,7 @@ public:
     }
 
     template<class T>
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
     static_string&
 #else
     typename std::enable_if<
@@ -621,7 +622,7 @@ public:
     }
 
     template<class InputIt>
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
     static_string&
 #else
     typename std::enable_if<
@@ -757,7 +758,7 @@ public:
     }
 
     template<class T>
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
     int
 #else
     typename std::enable_if<
@@ -1096,7 +1097,7 @@ operator<<(std::basic_ostream<CharT, Traits>& os,
 */
 template<
     class Integer
-#ifndef BEAST_DOXYGEN
+#ifndef BHO_BEAST_DOXYGEN
     ,class = typename std::enable_if<
         std::is_integral<Integer>::value>::type
 #endif
@@ -1105,6 +1106,7 @@ static_string<detail::max_digits(sizeof(Integer))>
 to_static_string(Integer x);
 
 } // beast
+} // bho
 
 #include <asio2/bho/beast/core/impl/static_string.hpp>
 

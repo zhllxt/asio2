@@ -7,8 +7,8 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_WEBSOCKET_IMPL_ACCEPT_IPP
-#define BEAST_WEBSOCKET_IMPL_ACCEPT_IPP
+#ifndef BHO_BEAST_WEBSOCKET_IMPL_ACCEPT_IPP
+#define BHO_BEAST_WEBSOCKET_IMPL_ACCEPT_IPP
 
 #include <asio2/bho/beast/websocket/impl/stream_impl.hpp>
 #include <asio2/bho/beast/websocket/detail/type_traits.hpp>
@@ -22,12 +22,13 @@
 #include <asio2/bho/beast/core/stream_traits.hpp>
 #include <asio2/bho/beast/core/detail/buffer.hpp>
 #include <asio2/bho/beast/version.hpp>
-#include <asio/coroutine.hpp>
-#include <asio/post.hpp>
-#include <asio2/bho/beast/core/util.hpp>
+#include <asio2/3rd/asio.hpp>
+#include <asio2/bho/assert.hpp>
+#include <asio2/bho/throw_exception.hpp>
 #include <memory>
 #include <type_traits>
 
+namespace bho {
 namespace beast {
 namespace websocket {
 
@@ -39,8 +40,8 @@ template<class Body, class Allocator>
 void
 impl_base<true>::
 build_response_pmd(
-    http::response_t<http::string_body>& res,
-    http::request_t<Body,
+    http::response<http::string_body>& res,
+    http::request<Body,
         http::basic_fields<Allocator>> const& req)
 {
     pmd_offer offer;
@@ -53,8 +54,8 @@ template<class Body, class Allocator>
 void
 impl_base<false>::
 build_response_pmd(
-    http::response_t<http::string_body>&,
-    http::request_t<Body,
+    http::response<http::string_body>&,
+    http::request<Body,
         http::basic_fields<Allocator>> const&)
 {
 }
@@ -66,7 +67,7 @@ template<class Body, class Allocator, class Decorator>
 response_type
 stream<NextLayer, deflateSupported>::impl_type::
 build_response(
-    http::request_t<Body,
+    http::request<Body,
         http::basic_fields<Allocator>> const& req,
     Decorator const& decorator,
     error_code& result)
@@ -78,7 +79,7 @@ build_response(
             decorator(res);
             if(! res.count(http::field::server))
                 res.set(http::field::server,
-                    string_view(BEAST_VERSION_STRING));
+                    string_view(BHO_BEAST_VERSION_STRING));
         };
     auto err =
         [&](error e)
@@ -164,7 +165,7 @@ template<class Handler>
 class stream<NextLayer, deflateSupported>::response_op
     : public beast::stable_async_base<
         Handler, beast::executor_type<stream>>
-    , public asio::coroutine
+    , public net::coroutine
 {
     std::weak_ptr<impl_type> wp_;
     error_code result_; // must come before res_
@@ -178,7 +179,7 @@ public:
     response_op(
         Handler_&& h,
         std::shared_ptr<impl_type> const& sp,
-        http::request_t<Body,
+        http::request<Body,
             http::basic_fields<Allocator>> const& req,
         Decorator const& decorator,
         bool cont = false)
@@ -198,7 +199,7 @@ public:
         std::size_t bytes_transferred = 0,
         bool cont = true)
     {
-        beast::ignore_unused(bytes_transferred);
+        bho::ignore_unused(bytes_transferred);
         auto sp = wp_.lock();
         if(! sp)
         {
@@ -245,7 +246,7 @@ template<class Handler, class Decorator>
 class stream<NextLayer, deflateSupported>::accept_op
     : public beast::stable_async_base<
         Handler, beast::executor_type<stream>>
-    , public asio::coroutine
+    , public net::coroutine
 {
     std::weak_ptr<impl_type> wp_;
     http::request_parser<http::empty_body>& p_;
@@ -284,7 +285,7 @@ public:
         std::size_t bytes_transferred = 0,
         bool cont = true)
     {
-        beast::ignore_unused(bytes_transferred);
+        bho::ignore_unused(bytes_transferred);
         auto sp = wp_.lock();
         if(! sp)
         {
@@ -345,7 +346,7 @@ struct stream<NextLayer, deflateSupported>::
     operator()(
         AcceptHandler&& h,
         std::shared_ptr<impl_type> const& sp,
-        http::request_t<Body,
+        http::request<Body,
             http::basic_fields<Allocator>> const* m,
         Decorator const& d)
     {
@@ -406,7 +407,7 @@ template<class Body, class Allocator,
 void
 stream<NextLayer, deflateSupported>::
 do_accept(
-    http::request_t<Body,
+    http::request<Body,
         http::basic_fields<Allocator>> const& req,
     Decorator const& decorator,
     error_code& ec)
@@ -468,7 +469,7 @@ accept()
     error_code ec;
     accept(ec);
     if(ec)
-        BEAST_THROW_EXCEPTION(system_error{ec});
+        BHO_THROW_EXCEPTION(system_error{ec});
 }
 
 template<class NextLayer, bool deflateSupported>
@@ -498,7 +499,7 @@ accept(ConstBufferSequence const& buffers)
     error_code ec;
     accept(buffers, ec);
     if(ec)
-        BEAST_THROW_EXCEPTION(system_error{ec});
+        BHO_THROW_EXCEPTION(system_error{ec});
 }
 template<class NextLayer, bool deflateSupported>
 template<class ConstBufferSequence>
@@ -522,7 +523,7 @@ template<class Body, class Allocator>
 void
 stream<NextLayer, deflateSupported>::
 accept(
-    http::request_t<Body,
+    http::request<Body,
         http::basic_fields<Allocator>> const& req)
 {
     static_assert(is_sync_stream<next_layer_type>::value,
@@ -530,7 +531,7 @@ accept(
     error_code ec;
     accept(req, ec);
     if(ec)
-        BEAST_THROW_EXCEPTION(system_error{ec});
+        BHO_THROW_EXCEPTION(system_error{ec});
 }
 
 template<class NextLayer, bool deflateSupported>
@@ -538,7 +539,7 @@ template<class Body, class Allocator>
 void
 stream<NextLayer, deflateSupported>::
 accept(
-    http::request_t<Body,
+    http::request<Body,
         http::basic_fields<Allocator>> const& req,
     error_code& ec)
 {
@@ -552,8 +553,8 @@ accept(
 
 template<class NextLayer, bool deflateSupported>
 template<
-    BEAST_ASYNC_TPARAM1 AcceptHandler>
-BEAST_ASYNC_RESULT1(AcceptHandler)
+    BHO_BEAST_ASYNC_TPARAM1 AcceptHandler>
+BHO_BEAST_ASYNC_RESULT1(AcceptHandler)
 stream<NextLayer, deflateSupported>::
 async_accept(
     AcceptHandler&& handler)
@@ -574,8 +575,8 @@ async_accept(
 template<class NextLayer, bool deflateSupported>
 template<
     class ConstBufferSequence,
-    BEAST_ASYNC_TPARAM1 AcceptHandler>
-BEAST_ASYNC_RESULT1(AcceptHandler)
+    BHO_BEAST_ASYNC_TPARAM1 AcceptHandler>
+BHO_BEAST_ASYNC_RESULT1(AcceptHandler)
 stream<NextLayer, deflateSupported>::
 async_accept(
     ConstBufferSequence const& buffers,
@@ -604,11 +605,11 @@ async_accept(
 template<class NextLayer, bool deflateSupported>
 template<
     class Body, class Allocator,
-    BEAST_ASYNC_TPARAM1 AcceptHandler>
-BEAST_ASYNC_RESULT1(AcceptHandler)
+    BHO_BEAST_ASYNC_TPARAM1 AcceptHandler>
+BHO_BEAST_ASYNC_RESULT1(AcceptHandler)
 stream<NextLayer, deflateSupported>::
 async_accept(
-    http::request_t<Body, http::basic_fields<Allocator>> const& req,
+    http::request<Body, http::basic_fields<Allocator>> const& req,
     AcceptHandler&& handler)
 {
     static_assert(is_async_stream<next_layer_type>::value,
@@ -626,5 +627,6 @@ async_accept(
 
 } // websocket
 } // beast
+} // bho
 
 #endif

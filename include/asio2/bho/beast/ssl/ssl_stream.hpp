@@ -7,26 +7,25 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_CORE_SSL_STREAM_HPP
-#define BEAST_CORE_SSL_STREAM_HPP
+#ifndef BHO_BEAST_CORE_SSL_STREAM_HPP
+#define BHO_BEAST_CORE_SSL_STREAM_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 
-// This include is necessary to work with `ssl::stream` and `beast::websocket::stream`
+// This include is necessary to work with `ssl::stream` and `bho::beast::websocket::stream`
 #include <asio2/bho/beast/websocket/ssl.hpp>
 
 #include <asio2/bho/beast/core/flat_stream.hpp>
 
 // VFALCO We include this because anyone who uses ssl will
 //        very likely need to check for ssl::error::stream_truncated
-#include <asio/ssl/error.hpp>
-
-#include <asio/ssl/stream.hpp>
+#include <asio2/3rd/asio.hpp>
 #include <cstddef>
 #include <memory>
 #include <type_traits>
 #include <utility>
 
+namespace bho {
 namespace beast {
 
 /** Provides stream-oriented functionality using OpenSSL
@@ -73,7 +72,7 @@ class ssl_stream
     : public net::ssl::stream_base
 {
     using ssl_stream_type = net::ssl::stream<NextLayer>;
-    using stream_type = beast::flat_stream<ssl_stream_type>;
+    using stream_type = bho::beast::flat_stream<ssl_stream_type>;
 
     std::unique_ptr<stream_type> p_;
 
@@ -133,7 +132,7 @@ public:
         suitable for passing to functions such as @c SSL_get_verify_result and
         @c SSL_get_peer_certificate:
         @code
-        beast::ssl_stream<net::ip::tcp::socket> ss{ioc, ctx};
+        bho::beast::ssl_stream<net::ip::tcp::socket> ss{ioc, ctx};
 
         // ... establish connection and perform handshake ...
 
@@ -554,7 +553,7 @@ public:
         need to ensure that all data is written before the asynchronous operation
         completes.
     */
-    template<class ConstBufferSequence, BEAST_ASYNC_TPARAM2 WriteHandler>
+    template<class ConstBufferSequence, BHO_BEAST_ASYNC_TPARAM2 WriteHandler>
     ASIO_INITFN_RESULT_TYPE(WriteHandler, void(beast::error_code, std::size_t))
     async_write_some(ConstBufferSequence const& buffers,
         ASIO_MOVE_ARG(WriteHandler) handler)
@@ -635,7 +634,7 @@ public:
         if you need to ensure that the requested amount of data is read before
         the asynchronous operation completes.
     */
-    template<class MutableBufferSequence, BEAST_ASYNC_TPARAM2 ReadHandler>
+    template<class MutableBufferSequence, BHO_BEAST_ASYNC_TPARAM2 ReadHandler>
     ASIO_INITFN_RESULT_TYPE(ReadHandler, void(beast::error_code, std::size_t))
     async_read_some(MutableBufferSequence const& buffers,
         ASIO_MOVE_ARG(ReadHandler) handler)
@@ -644,15 +643,15 @@ public:
             ASIO_MOVE_CAST(ReadHandler)(handler));
     }
 
-    // These hooks are used to inform beast::websocket::stream on
+    // These hooks are used to inform bho::beast::websocket::stream on
     // how to tear down the connection as part of the WebSocket
     // protocol specifications
-    #if ! BEAST_DOXYGEN
+    #if ! BHO_BEAST_DOXYGEN
     template<class SyncStream>
     friend
     void
     teardown(
-        beast::role_type role,
+        bho::beast::role_type role,
         ssl_stream<SyncStream>& stream,
         beast::error_code& ec);
 
@@ -660,39 +659,40 @@ public:
     friend
     void
     async_teardown(
-        beast::role_type role,
+        bho::beast::role_type role,
         ssl_stream<AsyncStream>& stream,
         TeardownHandler&& handler);
     #endif
 };
 
-#if ! BEAST_DOXYGEN
+#if ! BHO_BEAST_DOXYGEN
 template<class SyncStream>
 void
 teardown(
-    beast::role_type role,
+    bho::beast::role_type role,
     ssl_stream<SyncStream>& stream,
     beast::error_code& ec)
 {
     // Just forward it to the underlying ssl::stream
-    using beast::websocket::teardown;
+    using bho::beast::websocket::teardown;
     teardown(role, *stream.p_, ec);
 }
 
 template<class AsyncStream, class TeardownHandler>
 void
 async_teardown(
-    beast::role_type role,
+    bho::beast::role_type role,
     ssl_stream<AsyncStream>& stream,
     TeardownHandler&& handler)
 {
     // Just forward it to the underlying ssl::stream
-    using beast::websocket::async_teardown;
+    using bho::beast::websocket::async_teardown;
     async_teardown(role, *stream.p_,
         std::forward<TeardownHandler>(handler));
 }
 #endif
 
 } // beast
+} // bho
 
 #endif

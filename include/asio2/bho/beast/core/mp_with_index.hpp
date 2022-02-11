@@ -1,5 +1,5 @@
-#ifndef BEAST_MP11_DETAIL_MP_WITH_INDEX_HPP_INCLUDED
-#define BEAST_MP11_DETAIL_MP_WITH_INDEX_HPP_INCLUDED
+#ifndef BHO_BEAST_MP11_DETAIL_MP_WITH_INDEX_HPP_INCLUDED
+#define BHO_BEAST_MP11_DETAIL_MP_WITH_INDEX_HPP_INCLUDED
 
 //  Copyright 2017 Peter Dimov.
 //
@@ -27,6 +27,7 @@
 # define BEAST_MP11_UNREACHABLE_DEFAULT
 #endif
 
+namespace bho {
 namespace beast
 {
 namespace mp11
@@ -393,5 +394,6 @@ template<class N, class F> inline BEAST_MP11_CONSTEXPR14 decltype(std::declval<F
 
 } // namespace mp11
 } // namespace beast
+} // bho
 
-#endif // #ifndef BEAST_MP11_DETAIL_MP_WITH_INDEX_HPP_INCLUDED
+#endif // #ifndef BHO_BEAST_MP11_DETAIL_MP_WITH_INDEX_HPP_INCLUDED

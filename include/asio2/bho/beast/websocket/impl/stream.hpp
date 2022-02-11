@@ -7,8 +7,8 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_WEBSOCKET_IMPL_STREAM_HPP
-#define BEAST_WEBSOCKET_IMPL_STREAM_HPP
+#ifndef BHO_BEAST_WEBSOCKET_IMPL_STREAM_HPP
+#define BHO_BEAST_WEBSOCKET_IMPL_STREAM_HPP
 
 #include <asio2/bho/beast/core/buffer_traits.hpp>
 #include <asio2/bho/beast/websocket/rfc6455.hpp>
@@ -25,14 +25,16 @@
 #include <asio2/bho/beast/core/buffers_suffix.hpp>
 #include <asio2/bho/beast/core/flat_static_buffer.hpp>
 #include <asio2/bho/beast/core/detail/clamp.hpp>
-#include <asio/steady_timer.hpp>
-#include <asio2/bho/beast/core/util.hpp>
+#include <asio2/3rd/asio.hpp>
+#include <asio2/bho/assert.hpp>
+#include <asio2/bho/throw_exception.hpp>
 #include <algorithm>
 #include <chrono>
 #include <memory>
 #include <stdexcept>
 #include <utility>
 
+namespace bho {
 namespace beast {
 namespace websocket {
 
@@ -51,7 +53,7 @@ stream(Args&&... args)
     : impl_(std::make_shared<impl_type>(
         std::forward<Args>(args)...))
 {
-    BEAST_ASSERT(impl_->rd_buf.max_size() >=
+    BHO_ASSERT(impl_->rd_buf.max_size() >=
         max_control_frame_size);
 }
 
@@ -270,7 +272,7 @@ stream<NextLayer, deflateSupported>::
 write_buffer_bytes(std::size_t amount)
 {
     if(amount < 8)
-        BEAST_THROW_EXCEPTION(std::invalid_argument{
+        BHO_THROW_EXCEPTION(std::invalid_argument{
             "write buffer size underflow"});
     impl_->wr_buf_opt = amount;
 }
@@ -312,7 +314,7 @@ do_fail(
     error_code ev,              // error code to use upon success
     error_code& ec)             // set to the error, else set to ev
 {
-    BEAST_ASSERT(ev);
+    BHO_ASSERT(ev);
     impl_->change_status(status::closing);
     if(code != close_code::none && ! impl_->wr_close)
     {
@@ -343,5 +345,6 @@ do_fail(
 
 } // websocket
 } // beast
+} // bho
 
 #endif

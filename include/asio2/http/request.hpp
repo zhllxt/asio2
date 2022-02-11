@@ -22,7 +22,7 @@
 #include <asio2/http/detail/http_util.hpp>
 
 #ifdef BEAST_HEADER_ONLY
-namespace beast::websocket
+namespace bho::beast::websocket
 #else
 namespace boost::beast::websocket
 #endif
@@ -213,12 +213,12 @@ namespace asio2::detail
 }
 
 #ifdef BEAST_HEADER_ONLY
-namespace beast::http
+namespace bho::beast::http
 #else
 namespace boost::beast::http
 #endif
 {
-	using request = asio2::detail::http_request_impl_t<http::string_body>;
+	using web_request = asio2::detail::http_request_impl_t<http::string_body>;
 }
 
 #include <asio2/base/detail/pop_options.hpp>

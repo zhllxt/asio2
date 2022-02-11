@@ -8,8 +8,8 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_HTTP_IMPL_READ_HPP
-#define BEAST_HTTP_IMPL_READ_HPP
+#ifndef BHO_BEAST_HTTP_IMPL_READ_HPP
+#define BHO_BEAST_HTTP_IMPL_READ_HPP
 
 #include <asio2/bho/beast/http/type_traits.hpp>
 #include <asio2/bho/beast/http/error.hpp>
@@ -19,10 +19,9 @@
 #include <asio2/bho/beast/core/stream_traits.hpp>
 #include <asio2/bho/beast/core/detail/buffer.hpp>
 #include <asio2/bho/beast/core/detail/read.hpp>
-#include <asio/error.hpp>
-#include <asio/compose.hpp>
-#include <asio/coroutine.hpp>
+#include <asio2/3rd/asio.hpp>
 
+namespace bho {
 namespace beast {
 namespace http {
 
@@ -57,7 +56,7 @@ template<
 class read_msg_op
     : public beast::stable_async_base<
         Handler, beast::executor_type<Stream>>
-    , public asio::coroutine
+    , public net::coroutine
 {
     using parser_type =
         parser<isRequest, Body, Allocator>;
@@ -148,7 +147,7 @@ struct run_read_msg_op
 };
 
 template<class AsyncReadStream, class DynamicBuffer, bool isRequest>
-class read_some_op : asio::coroutine
+class read_some_op : net::coroutine
 {
     AsyncReadStream& s_;
     DynamicBuffer& b_;
@@ -216,7 +215,7 @@ public:
                 b_.commit(bytes_transferred);
                 if(ec == net::error::eof)
                 {
-                    BEAST_ASSERT(bytes_transferred == 0);
+                    BHO_ASSERT(bytes_transferred == 0);
                     if(p_.got_some())
                     {
                         // caller sees EOF on next read
@@ -224,7 +223,7 @@ public:
                         p_.put_eof(ec);
                         if(ec)
                             goto upcall;
-                        BEAST_ASSERT(p_.is_done());
+                        BHO_ASSERT(p_.is_done());
                         goto upcall;
                     }
                     ec = error::end_of_stream;
@@ -254,7 +253,7 @@ public:
 
 template<class Stream, class DynamicBuffer, bool isRequest, class Condition>
 class read_op
-    : asio::coroutine
+    : net::coroutine
 {
     Stream& s_;
     DynamicBuffer& b_;
@@ -350,7 +349,7 @@ read_some(SyncReadStream& s, DynamicBuffer& b, basic_parser<isRequest>& p, error
         b.commit(bytes_transferred);
         if(ec == net::error::eof)
         {
-            BEAST_ASSERT(bytes_transferred == 0);
+            BHO_ASSERT(bytes_transferred == 0);
             if(p.got_some())
             {
                 // caller sees EOF on next read
@@ -358,7 +357,7 @@ read_some(SyncReadStream& s, DynamicBuffer& b, basic_parser<isRequest>& p, error
                 p.put_eof(ec);
                 if(ec)
                     return total;
-                BEAST_ASSERT(p.is_done());
+                BHO_ASSERT(p.is_done());
                 return total;
             }
             ec = error::end_of_stream;
@@ -413,7 +412,7 @@ read_some(
     auto const bytes_transferred =
         http::read_some(stream, buffer, parser, ec);
     if(ec)
-        BEAST_THROW_EXCEPTION(system_error{ec});
+        BHO_THROW_EXCEPTION(system_error{ec});
     return bytes_transferred;
 }
 
@@ -441,8 +440,8 @@ template<
     class AsyncReadStream,
     class DynamicBuffer,
     bool isRequest,
-    BEAST_ASYNC_TPARAM2 ReadHandler>
-BEAST_ASYNC_RESULT2(ReadHandler)
+    BHO_BEAST_ASYNC_TPARAM2 ReadHandler>
+BHO_BEAST_ASYNC_RESULT2(ReadHandler)
 async_read_some(
     AsyncReadStream& stream,
     DynamicBuffer& buffer,
@@ -482,7 +481,7 @@ read_header(
     auto const bytes_transferred =
         http::read_header(stream, buffer, parser, ec);
     if(ec)
-        BEAST_THROW_EXCEPTION(system_error{ec});
+        BHO_THROW_EXCEPTION(system_error{ec});
     return bytes_transferred;
 }
 
@@ -513,8 +512,8 @@ template<
     class AsyncReadStream,
     class DynamicBuffer,
     bool isRequest,
-    BEAST_ASYNC_TPARAM2 ReadHandler>
-BEAST_ASYNC_RESULT2(ReadHandler)
+    BHO_BEAST_ASYNC_TPARAM2 ReadHandler>
+BHO_BEAST_ASYNC_RESULT2(ReadHandler)
 async_read_header(
     AsyncReadStream& stream,
     DynamicBuffer& buffer,
@@ -556,7 +555,7 @@ read(
     auto const bytes_transferred =
         http::read(stream, buffer, parser, ec);
     if(ec)
-        BEAST_THROW_EXCEPTION(system_error{ec});
+        BHO_THROW_EXCEPTION(system_error{ec});
     return bytes_transferred;
 }
 
@@ -587,8 +586,8 @@ template<
     class AsyncReadStream,
     class DynamicBuffer,
     bool isRequest,
-    BEAST_ASYNC_TPARAM2 ReadHandler>
-BEAST_ASYNC_RESULT2(ReadHandler)
+    BHO_BEAST_ASYNC_TPARAM2 ReadHandler>
+BHO_BEAST_ASYNC_RESULT2(ReadHandler)
 async_read(
     AsyncReadStream& stream,
     DynamicBuffer& buffer,
@@ -640,7 +639,7 @@ read(
     auto const bytes_transferred =
         http::read(stream, buffer, msg, ec);
     if(ec)
-        BEAST_THROW_EXCEPTION(system_error{ec});
+        BHO_THROW_EXCEPTION(system_error{ec});
     return bytes_transferred;
 }
 
@@ -679,8 +678,8 @@ template<
     class AsyncReadStream,
     class DynamicBuffer,
     bool isRequest, class Body, class Allocator,
-    BEAST_ASYNC_TPARAM2 ReadHandler>
-BEAST_ASYNC_RESULT2(ReadHandler)
+    BHO_BEAST_ASYNC_TPARAM2 ReadHandler>
+BHO_BEAST_ASYNC_RESULT2(ReadHandler)
 async_read(
     AsyncReadStream& stream,
     DynamicBuffer& buffer,
@@ -706,5 +705,6 @@ async_read(
 
 } // http
 } // beast
+} // bho
 
 #endif

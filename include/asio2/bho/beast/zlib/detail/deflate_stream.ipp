@@ -34,13 +34,15 @@
     (zlib format), rfc1951 (deflate format) and rfc1952 (gzip format).
 */
 
-#ifndef BEAST_ZLIB_DETAIL_DEFLATE_STREAM_IPP
-#define BEAST_ZLIB_DETAIL_DEFLATE_STREAM_IPP
+#ifndef BHO_BEAST_ZLIB_DETAIL_DEFLATE_STREAM_IPP
+#define BHO_BEAST_ZLIB_DETAIL_DEFLATE_STREAM_IPP
 
 #include <asio2/bho/beast/zlib/detail/deflate_stream.hpp>
 #include <asio2/bho/beast/zlib/detail/ranges.hpp>
-#include <asio2/bho/beast/core/util.hpp>
+#include <asio2/bho/assert.hpp>
+#include <asio2/bho/config.hpp>
 #include <optional>
+#include <asio2/bho/throw_exception.hpp>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
@@ -48,6 +50,7 @@
 #include <stdexcept>
 #include <type_traits>
 
+namespace bho {
 namespace beast {
 namespace zlib {
 namespace detail {
@@ -126,7 +129,7 @@ gen_codes(ct_data *tree, int max_code, std::uint16_t *bl_count)
     }
     // Check that the bit counts in bl_count are consistent.
     // The last code must be all ones.
-    BEAST_ASSERT(code + bl_count[maxBits]-1 == (1<<maxBits)-1);
+    BHO_ASSERT(code + bl_count[maxBits]-1 == (1<<maxBits)-1);
     for(n = 0; n <= max_code; n++)
     {
         int len = tree[n].dl;
@@ -158,7 +161,7 @@ deflate_stream::get_lut() ->
                 for(unsigned n = 0; n < run; ++n)
                     tables.length_code[length++] = code;
             }
-            BEAST_ASSERT(length == 0);
+            BHO_ASSERT(length == 0);
             // Note that the length 255 (match length 258) can be represented
             // in two different ways: code 284 + 5 bits or code 285, so we
             // overwrite length_code[255] to use the best encoding:
@@ -175,7 +178,7 @@ deflate_stream::get_lut() ->
                     for(unsigned n = 0; n < run; ++n)
                         tables.dist_code[dist++] = code;
                 }
-                BEAST_ASSERT(dist == 256);
+                BHO_ASSERT(dist == 256);
                 // from now on, all distances are divided by 128
                 dist >>= 7;
                 for(; code < dCodes; ++code)
@@ -185,7 +188,7 @@ deflate_stream::get_lut() ->
                     for(std::size_t n = 0; n < run; ++n)
                         tables.dist_code[256 + dist++] = code;
                 }
-                BEAST_ASSERT(dist == 256);
+                BHO_ASSERT(dist == 256);
             }
 
             // Construct the codes of the static literal tree
@@ -237,15 +240,15 @@ doReset(
         windowBits = 9;
 
     if(level < 0 || level > 9)
-        BEAST_THROW_EXCEPTION(std::invalid_argument{
+        BHO_THROW_EXCEPTION(std::invalid_argument{
             "invalid level"});
 
     if(windowBits < 8 || windowBits > 15)
-        BEAST_THROW_EXCEPTION(std::invalid_argument{
+        BHO_THROW_EXCEPTION(std::invalid_argument{
             "invalid windowBits"});
 
     if(memLevel < 1 || memLevel > max_mem_level)
-        BEAST_THROW_EXCEPTION(std::invalid_argument{
+        BHO_THROW_EXCEPTION(std::invalid_argument{
             "invalid memLevel"});
 
     w_bits_ = windowBits;
@@ -357,7 +360,7 @@ doWrite(z_params& zs, std::optional<Flush> flush, error_code& ec)
     maybe_init();
 
     if(zs.next_in == nullptr && zs.avail_in != 0)
-        BEAST_THROW_EXCEPTION(std::invalid_argument{"invalid input"});
+        BHO_THROW_EXCEPTION(std::invalid_argument{"invalid input"});
 
     if(zs.next_out == nullptr ||
         (status_ == FINISH_STATE && flush != Flush::finish))
@@ -1051,7 +1054,7 @@ send_tree(
                 send_code(curlen, bl_tree_);
                 count--;
             }
-            BEAST_ASSERT(count >= 3 && count <= 6);
+            BHO_ASSERT(count >= 3 && count <= 6);
             send_code(REP_3_6, bl_tree_);
             send_bits(count-3, 2);
         }
@@ -1132,8 +1135,8 @@ send_all_trees(
 {
     int rank;       // index in bl_order
 
-    BEAST_ASSERT(lcodes >= 257 && dcodes >= 1 && blcodes >= 4);
-    BEAST_ASSERT(lcodes <= lCodes && dcodes <= dCodes && blcodes <= blCodes);
+    BHO_ASSERT(lcodes >= 257 && dcodes >= 1 && blcodes >= 4);
+    BHO_ASSERT(lcodes <= lCodes && dcodes <= dCodes && blcodes <= blCodes);
     send_bits(lcodes-257, 5); // not +255 as stated in appnote.txt
     send_bits(dcodes-1,   5);
     send_bits(blcodes-4,  4); // not -3 as stated in appnote.txt
@@ -1180,7 +1183,7 @@ compress_block(
                 }
                 dist--; /* dist is now the match distance - 1 */
                 code = d_code(dist);
-                BEAST_ASSERT(code < dCodes);
+                BHO_ASSERT(code < dCodes);
 
                 send_code(code, dtree);       /* send the distance code */
                 extra = lut_.extra_dbits[code];
@@ -1192,7 +1195,7 @@ compress_block(
             } /* literal or match pair ? */
 
             /* Check that the overlay between pending_buf and d_buf+l_buf is ok: */
-            BEAST_ASSERT((uInt)(pending_) < lit_bufsize_ + 2*lx);
+            BHO_ASSERT((uInt)(pending_) < lit_bufsize_ + 2*lx);
         }
         while(lx < last_lit_);
     }
@@ -1429,7 +1432,7 @@ tr_flush_block(
         //        https://github.com/madler/zlib/issues/172
 
     #if 0
-        BEAST_ASSERT(buf);
+        BHO_ASSERT(buf);
     #endif
         opt_lenb = static_lenb = stored_len + 5; // force a stored block
     }
@@ -1728,7 +1731,7 @@ longest_match(IPos cur_match)
     /* The code is optimized for HASH_BITS >= 8 and maxMatch-2 multiple of 16.
      * It is easy to get rid of this optimization if necessary.
      */
-    BEAST_ASSERT(hash_bits_ >= 8 && maxMatch == 258);
+    BHO_ASSERT(hash_bits_ >= 8 && maxMatch == 258);
 
     /* Do not waste too much time if we already have a good match: */
     if(prev_length_ >= good_match_) {
@@ -1740,10 +1743,10 @@ longest_match(IPos cur_match)
     if((uInt)nice_match > lookahead_)
         nice_match = lookahead_;
 
-    BEAST_ASSERT((std::uint32_t)strstart_ <= window_size_-kMinLookahead);
+    BHO_ASSERT((std::uint32_t)strstart_ <= window_size_-kMinLookahead);
 
     do {
-        BEAST_ASSERT(cur_match < strstart_);
+        BHO_ASSERT(cur_match < strstart_);
         match = window_ + cur_match;
 
         /* Skip to next match if the match length cannot increase
@@ -1767,7 +1770,7 @@ longest_match(IPos cur_match)
          * the hash keys are equal and that HASH_BITS >= 8.
          */
         scan += 2, match++;
-        BEAST_ASSERT(*scan == *match);
+        BHO_ASSERT(*scan == *match);
 
         /* We check for insufficient lookahead only every 8th comparison;
          * the 256th check will be made at strstart+258.
@@ -1781,7 +1784,7 @@ longest_match(IPos cur_match)
                 *++scan == *++match && *++scan == *++match &&
                 scan < strend);
 
-        BEAST_ASSERT(scan <= window_+(unsigned)(window_size_-1));
+        BHO_ASSERT(scan <= window_+(unsigned)(window_size_-1));
 
         len = maxMatch - (int)(strend - scan);
         scan = strend - maxMatch;
@@ -1832,7 +1835,7 @@ f_stored(z_params& zs, Flush flush) ->
         /* Fill the window as much as possible: */
         if(lookahead_ <= 1) {
 
-            BEAST_ASSERT(strstart_ < w_size_+max_dist() ||
+            BHO_ASSERT(strstart_ < w_size_+max_dist() ||
                    block_start_ >= (long)w_size_);
 
             fill_window(zs);
@@ -1841,7 +1844,7 @@ f_stored(z_params& zs, Flush flush) ->
 
             if(lookahead_ == 0) break; /* flush the current block */
         }
-        BEAST_ASSERT(block_start_ >= 0L);
+        BHO_ASSERT(block_start_ >= 0L);
 
         strstart_ += lookahead_;
         lookahead_ = 0;
@@ -2119,7 +2122,7 @@ f_slow(z_params& zs, Flush flush) ->
             lookahead_--;
         }
     }
-    BEAST_ASSERT(flush != Flush::none);
+    BHO_ASSERT(flush != Flush::none);
     if(match_available_)
     {
         tr_tally_lit(window_[strstart_-1], bflush);
@@ -2186,7 +2189,7 @@ f_rle(z_params& zs, Flush flush) ->
                 if(match_length_ > lookahead_)
                     match_length_ = lookahead_;
             }
-            BEAST_ASSERT(scan <= window_+(uInt)(window_size_-1));
+            BHO_ASSERT(scan <= window_+(uInt)(window_size_-1));
         }
 
         /* Emit match if have run of minMatch or longer, else emit literal */
@@ -2285,5 +2288,6 @@ f_huff(z_params& zs, Flush flush) ->
 } // detail
 } // zlib
 } // beast
+} // bho
 
 #endif

@@ -7,8 +7,8 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_WEBSOCKET_IMPL_READ_HPP
-#define BEAST_WEBSOCKET_IMPL_READ_HPP
+#ifndef BHO_BEAST_WEBSOCKET_IMPL_READ_HPP
+#define BHO_BEAST_WEBSOCKET_IMPL_READ_HPP
 
 #include <asio2/bho/beast/core/buffer_traits.hpp>
 #include <asio2/bho/beast/websocket/teardown.hpp>
@@ -25,14 +25,16 @@
 #include <asio2/bho/beast/core/detail/buffer.hpp>
 #include <asio2/bho/beast/core/detail/clamp.hpp>
 #include <asio2/bho/beast/core/detail/config.hpp>
-#include <asio/coroutine.hpp>
-#include <asio/post.hpp>
-#include <asio2/bho/beast/core/util.hpp>
+#include <asio2/3rd/asio.hpp>
+#include <asio2/bho/assert.hpp>
+#include <asio2/bho/config.hpp>
 #include <optional>
+#include <asio2/bho/throw_exception.hpp>
 #include <algorithm>
 #include <limits>
 #include <memory>
 
+namespace bho {
 namespace beast {
 namespace websocket {
 
@@ -45,13 +47,13 @@ template<class Handler, class MutableBufferSequence>
 class stream<NextLayer, deflateSupported>::read_some_op
     : public beast::async_base<
         Handler, beast::executor_type<stream>>
-    , public asio::coroutine
+    , public net::coroutine
 {
     std::weak_ptr<impl_type> wp_;
     MutableBufferSequence bs_;
     buffers_suffix<MutableBufferSequence> cb_;
     std::size_t bytes_written_ = 0;
-    error_code result_;
+    beast::error_code result_;
     close_code code_;
     bool did_read_ = false;
 
@@ -76,7 +78,7 @@ public:
     }
 
     void operator()(
-        error_code ec = {},
+        beast::error_code ec = {},
         std::size_t bytes_transferred = 0,
         bool cont = true)
     {
@@ -115,20 +117,20 @@ public:
 
                     net::post(std::move(*this));
                 }
-                BEAST_ASSERT(impl.rd_block.is_locked(this));
+                BHO_ASSERT(impl.rd_block.is_locked(this));
 
-				BEAST_ASSERT(!ec);
+                BHO_ASSERT(!ec);
                 if(impl.check_stop_now(ec))
                 {
-                    BEAST_ASSERT(ec == net::error::operation_aborted);
+                    BHO_ASSERT(ec == net::error::operation_aborted);
                     goto upcall;
                 }
                 // VFALCO Should never get here
 
                 // The only way to get read blocked is if
                 // a `close_op` wrote a close frame
-                BEAST_ASSERT(impl.wr_close);
-                BEAST_ASSERT(impl.status_ != status::open);
+                BHO_ASSERT(impl.wr_close);
+                BHO_ASSERT(impl.status_ != status::open);
                 ec = net::error::operation_aborted;
                 goto upcall;
             }
@@ -148,7 +150,7 @@ public:
             // then finish the read with operation_aborted.
 
         loop:
-            BEAST_ASSERT(impl.rd_block.is_locked(this));
+            BHO_ASSERT(impl.rd_block.is_locked(this));
             // See if we need to read a frame header. This
             // condition is structured to give the decompressor
             // a chance to emit the final empty deflate block
@@ -169,7 +171,7 @@ public:
                             code_ = close_code::protocol_error;
                         goto close;
                     }
-                    BEAST_ASSERT(impl.rd_block.is_locked(this));
+                    BHO_ASSERT(impl.rd_block.is_locked(this));
                     ASIO_CORO_YIELD
                     {
                         ASIO_HANDLER_LOCATION((
@@ -181,7 +183,7 @@ public:
                                 impl.rd_buf, impl.rd_buf.max_size())),
                                     std::move(*this));
                     }
-                    BEAST_ASSERT(impl.rd_block.is_locked(this));
+                    BHO_ASSERT(impl.rd_block.is_locked(this));
                     impl.rd_buf.commit(bytes_transferred);
                     if(impl.check_stop_now(ec))
                         goto upcall;
@@ -193,7 +195,7 @@ public:
                     if( impl.op_r_close.maybe_invoke())
                     {
                         // Suspend
-                        BEAST_ASSERT(impl.rd_block.is_locked());
+                        BHO_ASSERT(impl.rd_block.is_locked());
                         goto do_suspend;
                     }
                     // Acquire read block
@@ -227,7 +229,7 @@ public:
 
                                     net::post(std::move(*this));
                                 }
-                                BEAST_ASSERT(cont);
+                                BHO_ASSERT(cont);
                                 // VFALCO call check_stop_now() here?
                             }
                         }
@@ -236,7 +238,7 @@ public:
                                 clamp(impl.rd_fh.len),
                                     impl.rd_buf.data());
                             auto const len = buffer_bytes(b);
-                            BEAST_ASSERT(len == impl.rd_fh.len);
+                            BHO_ASSERT(len == impl.rd_fh.len);
                             ping_data payload;
                             detail::read_ping(payload, b);
                             impl.rd_buf.consume(len);
@@ -277,13 +279,13 @@ public:
 
                                 net::post(std::move(*this));
                             }
-                            BEAST_ASSERT(impl.wr_block.is_locked(this));
+                            BHO_ASSERT(impl.wr_block.is_locked(this));
                             if(impl.check_stop_now(ec))
                                 goto upcall;
                         }
 
                         // Send pong
-                        BEAST_ASSERT(impl.wr_block.is_locked(this));
+                        BHO_ASSERT(impl.wr_block.is_locked(this));
                         ASIO_CORO_YIELD
                         {
                             ASIO_HANDLER_LOCATION((
@@ -294,7 +296,7 @@ public:
                                 impl.stream(), net::const_buffer(impl.rd_fb.data()),
                                 beast::detail::bind_continuation(std::move(*this)));
                         }
-                        BEAST_ASSERT(impl.wr_block.is_locked(this));
+                        BHO_ASSERT(impl.wr_block.is_locked(this));
                         if(impl.check_stop_now(ec))
                             goto upcall;
                         impl.wr_block.unlock(this);
@@ -321,13 +323,13 @@ public:
 
                                     net::post(std::move(*this));
                                 }
-                                BEAST_ASSERT(cont);
+                                BHO_ASSERT(cont);
                             }
                         }
                         auto const cb = buffers_prefix(clamp(
                             impl.rd_fh.len), impl.rd_buf.data());
                         auto const len = buffer_bytes(cb);
-                        BEAST_ASSERT(len == impl.rd_fh.len);
+                        BHO_ASSERT(len == impl.rd_fh.len);
                         ping_data payload;
                         detail::read_ping(payload, cb);
                         impl.rd_buf.consume(len);
@@ -338,7 +340,7 @@ public:
                     }
 
                     // Handle close frame
-                    BEAST_ASSERT(impl.rd_fh.op == detail::opcode::close);
+                    BHO_ASSERT(impl.rd_fh.op == detail::opcode::close);
                     {
                         if(impl.ctrl_cb)
                         {
@@ -352,14 +354,14 @@ public:
 
                                     net::post(std::move(*this));
                                 }
-                                BEAST_ASSERT(cont);
+                                BHO_ASSERT(cont);
                             }
                         }
                         auto const cb = buffers_prefix(clamp(
                             impl.rd_fh.len), impl.rd_buf.data());
                         auto const len = buffer_bytes(cb);
-                        BEAST_ASSERT(len == impl.rd_fh.len);
-                        BEAST_ASSERT(! impl.rd_close);
+                        BHO_ASSERT(len == impl.rd_fh.len);
+                        BHO_ASSERT(! impl.rd_close);
                         impl.rd_close = true;
                         close_reason cr;
                         detail::read_close(cr, cb, result_);
@@ -378,7 +380,7 @@ public:
                         if(impl.status_ == status::closing)
                         {
                             // _Close the WebSocket Connection_
-                            BEAST_ASSERT(impl.wr_close);
+                            BHO_ASSERT(impl.wr_close);
                             code_ = close_code::none;
                             result_ = error::closed;
                             goto close;
@@ -456,9 +458,9 @@ public:
                     else
                     {
                         // Read into caller's buffer
-                        BEAST_ASSERT(impl.rd_remain > 0);
-                        BEAST_ASSERT(buffer_bytes(cb_) > 0);
-                        BEAST_ASSERT(buffer_bytes(buffers_prefix(
+                        BHO_ASSERT(impl.rd_remain > 0);
+                        BHO_ASSERT(buffer_bytes(cb_) > 0);
+                        BHO_ASSERT(buffer_bytes(buffers_prefix(
                             clamp(impl.rd_remain), cb_)) > 0);
                         ASIO_CORO_YIELD
                         {
@@ -472,7 +474,7 @@ public:
                         if(impl.check_stop_now(ec))
                             goto upcall;
                         impl.reset_idle();
-                        BEAST_ASSERT(bytes_transferred > 0);
+                        BHO_ASSERT(bytes_transferred > 0);
                         auto const mb = buffers_prefix(
                             bytes_transferred, cb_);
                         impl.rd_remain -= bytes_transferred;
@@ -494,7 +496,7 @@ public:
                         impl.rd_size += bytes_transferred;
                     }
                 }
-                BEAST_ASSERT( ! impl.rd_done );
+                BHO_ASSERT( ! impl.rd_done );
                 if( impl.rd_remain == 0 && impl.rd_fh.fin )
                     impl.rd_done = true;
             }
@@ -524,7 +526,7 @@ public:
                         if(impl.check_stop_now(ec))
                             goto upcall;
                         impl.reset_idle();
-                        BEAST_ASSERT(bytes_transferred > 0);
+                        BHO_ASSERT(bytes_transferred > 0);
                         impl.rd_buf.commit(bytes_transferred);
                         if(impl.rd_fh.mask)
                             detail::mask_inplace(
@@ -537,7 +539,7 @@ public:
                         auto const out = buffers_front(cb_);
                         zs.next_out = out.data();
                         zs.avail_out = out.size();
-                        BEAST_ASSERT(zs.avail_out > 0);
+                        BHO_ASSERT(zs.avail_out > 0);
                     }
                     // boolean to track the end of the message.
                     bool fin = false;
@@ -631,7 +633,7 @@ public:
 
                     net::post(std::move(*this));
                 }
-                BEAST_ASSERT(impl.wr_block.is_locked(this));
+                BHO_ASSERT(impl.wr_block.is_locked(this));
                 if(impl.check_stop_now(ec))
                     goto upcall;
             }
@@ -649,7 +651,7 @@ public:
                         impl.rd_fb, code_);
 
                 // Send close frame
-                BEAST_ASSERT(impl.wr_block.is_locked(this));
+                BHO_ASSERT(impl.wr_block.is_locked(this));
                 ASIO_CORO_YIELD
                 {
                     ASIO_HANDLER_LOCATION((
@@ -659,14 +661,14 @@ public:
                     net::async_write(impl.stream(), net::const_buffer(impl.rd_fb.data()),
                         beast::detail::bind_continuation(std::move(*this)));
                 }
-                BEAST_ASSERT(impl.wr_block.is_locked(this));
+                BHO_ASSERT(impl.wr_block.is_locked(this));
                 if(impl.check_stop_now(ec))
                     goto upcall;
             }
 
             // Teardown
             using beast::websocket::async_teardown;
-            BEAST_ASSERT(impl.wr_block.is_locked(this));
+            BHO_ASSERT(impl.wr_block.is_locked(this));
             ASIO_CORO_YIELD
             {
                 ASIO_HANDLER_LOCATION((
@@ -676,7 +678,7 @@ public:
                 async_teardown(impl.role, impl.stream(),
                     beast::detail::bind_continuation(std::move(*this)));
             }
-            BEAST_ASSERT(impl.wr_block.is_locked(this));
+            BHO_ASSERT(impl.wr_block.is_locked(this));
             if(ec == net::error::eof)
             {
                 // Rationale:
@@ -711,7 +713,7 @@ template<class Handler,  class DynamicBuffer>
 class stream<NextLayer, deflateSupported>::read_op
     : public beast::async_base<
         Handler, beast::executor_type<stream>>
-    , public asio::coroutine
+    , public net::coroutine
 {
     std::weak_ptr<impl_type> wp_;
     DynamicBuffer& b_;
@@ -741,7 +743,7 @@ public:
     }
 
     void operator()(
-        error_code ec = {},
+        beast::error_code ec = {},
         std::size_t bytes_transferred = 0,
         bool cont = true)
     {
@@ -809,7 +811,7 @@ struct stream<NextLayer, deflateSupported>::
 
         static_assert(
             beast::detail::is_invocable<ReadHandler,
-                void(error_code, std::size_t)>::value,
+                void(beast::error_code, std::size_t)>::value,
             "ReadHandler type requirements not met");
 
         read_some_op<
@@ -842,7 +844,7 @@ struct stream<NextLayer, deflateSupported>::
 
         static_assert(
             beast::detail::is_invocable<ReadHandler,
-                void(error_code, std::size_t)>::value,
+                void(beast::error_code, std::size_t)>::value,
             "ReadHandler type requirements not met");
 
         read_op<
@@ -869,10 +871,10 @@ read(DynamicBuffer& buffer)
     static_assert(
         net::is_dynamic_buffer<DynamicBuffer>::value,
         "DynamicBuffer type requirements not met");
-    error_code ec;
+    beast::error_code ec;
     auto const bytes_written = read(buffer, ec);
     if(ec)
-        BEAST_THROW_EXCEPTION(system_error{ec});
+        BHO_THROW_EXCEPTION(system_error{ec});
     return bytes_written;
 }
 
@@ -880,7 +882,7 @@ template<class NextLayer, bool deflateSupported>
 template<class DynamicBuffer>
 std::size_t
 stream<NextLayer, deflateSupported>::
-read(DynamicBuffer& buffer, error_code& ec)
+read(DynamicBuffer& buffer, beast::error_code& ec)
 {
     static_assert(is_sync_stream<next_layer_type>::value,
         "SyncStream type requirements not met");
@@ -899,8 +901,8 @@ read(DynamicBuffer& buffer, error_code& ec)
 }
 
 template<class NextLayer, bool deflateSupported>
-template<class DynamicBuffer, BEAST_ASYNC_TPARAM2 ReadHandler>
-BEAST_ASYNC_RESULT2(ReadHandler)
+template<class DynamicBuffer, BHO_BEAST_ASYNC_TPARAM2 ReadHandler>
+BHO_BEAST_ASYNC_RESULT2(ReadHandler)
 stream<NextLayer, deflateSupported>::
 async_read(DynamicBuffer& buffer, ReadHandler&& handler)
 {
@@ -911,7 +913,7 @@ async_read(DynamicBuffer& buffer, ReadHandler&& handler)
         "DynamicBuffer type requirements not met");
     return net::async_initiate<
         ReadHandler,
-        void(error_code, std::size_t)>(
+        void(beast::error_code, std::size_t)>(
             run_read_op{},
             handler,
             impl_,
@@ -935,11 +937,11 @@ read_some(
     static_assert(
         net::is_dynamic_buffer<DynamicBuffer>::value,
         "DynamicBuffer type requirements not met");
-    error_code ec;
+    beast::error_code ec;
     auto const bytes_written =
         read_some(buffer, limit, ec);
     if(ec)
-        BEAST_THROW_EXCEPTION(system_error{ec});
+        BHO_THROW_EXCEPTION(system_error{ec});
     return bytes_written;
 }
 
@@ -950,7 +952,7 @@ stream<NextLayer, deflateSupported>::
 read_some(
     DynamicBuffer& buffer,
     std::size_t limit,
-    error_code& ec)
+    beast::error_code& ec)
 {
     static_assert(is_sync_stream<next_layer_type>::value,
         "SyncStream type requirements not met");
@@ -962,7 +964,7 @@ read_some(
         limit = (std::numeric_limits<std::size_t>::max)();
     auto const size =
         clamp(read_size_hint(buffer), limit);
-    BEAST_ASSERT(size > 0);
+    BHO_ASSERT(size > 0);
     auto mb = beast::detail::dynamic_buffer_prepare(
         buffer, size, ec, error::buffer_overflow);
     if(impl_->check_stop_now(ec))
@@ -973,8 +975,8 @@ read_some(
 }
 
 template<class NextLayer, bool deflateSupported>
-template<class DynamicBuffer, BEAST_ASYNC_TPARAM2 ReadHandler>
-BEAST_ASYNC_RESULT2(ReadHandler)
+template<class DynamicBuffer, BHO_BEAST_ASYNC_TPARAM2 ReadHandler>
+BHO_BEAST_ASYNC_RESULT2(ReadHandler)
 stream<NextLayer, deflateSupported>::
 async_read_some(
     DynamicBuffer& buffer,
@@ -988,7 +990,7 @@ async_read_some(
         "DynamicBuffer type requirements not met");
     return net::async_initiate<
         ReadHandler,
-        void(error_code, std::size_t)>(
+        void(beast::error_code, std::size_t)>(
             run_read_op{},
             handler,
             impl_,
@@ -1011,10 +1013,10 @@ read_some(
     static_assert(net::is_mutable_buffer_sequence<
             MutableBufferSequence>::value,
         "MutableBufferSequence type requirements not met");
-    error_code ec;
+    beast::error_code ec;
     auto const bytes_written = read_some(buffers, ec);
     if(ec)
-        BEAST_THROW_EXCEPTION(system_error{ec});
+        BHO_THROW_EXCEPTION(system_error{ec});
     return bytes_written;
 }
 
@@ -1024,7 +1026,7 @@ std::size_t
 stream<NextLayer, deflateSupported>::
 read_some(
     MutableBufferSequence const& buffers,
-    error_code& ec)
+    beast::error_code& ec)
 {
     static_assert(is_sync_stream<next_layer_type>::value,
         "SyncStream type requirements not met");
@@ -1048,7 +1050,7 @@ loop:
         ! impl.rd_fh.fin || impl.rd_done))
     {
         // Read frame header
-        error_code result;
+        beast::error_code result;
         while(! impl.parse_fh(impl.rd_fh, impl.rd_buf, result))
         {
             if(result)
@@ -1082,7 +1084,7 @@ loop:
             auto const b = buffers_prefix(
                 clamp(impl.rd_fh.len), impl.rd_buf.data());
             auto const len = buffer_bytes(b);
-            BEAST_ASSERT(len == impl.rd_fh.len);
+            BHO_ASSERT(len == impl.rd_fh.len);
 
             // Clear this otherwise the next
             // frame will be considered final.
@@ -1120,9 +1122,9 @@ loop:
                 goto loop;
             }
             // Handle close frame
-            BEAST_ASSERT(impl.rd_fh.op == detail::opcode::close);
+            BHO_ASSERT(impl.rd_fh.op == detail::opcode::close);
             {
-                BEAST_ASSERT(! impl.rd_close);
+                BHO_ASSERT(! impl.rd_close);
                 impl.rd_close = true;
                 close_reason cr;
                 detail::read_close(cr, b, result);
@@ -1137,7 +1139,7 @@ loop:
                 impl.rd_buf.consume(len);
                 if(impl.ctrl_cb)
                     impl.ctrl_cb(frame_type::close, impl.cr.reason);
-                BEAST_ASSERT(! impl.wr_close);
+                BHO_ASSERT(! impl.wr_close);
                 // _Start the WebSocket Closing Handshake_
                 do_fail(
                     cr.code == close_code::none ?
@@ -1207,9 +1209,9 @@ loop:
             else
             {
                 // Read into caller's buffer
-                BEAST_ASSERT(impl.rd_remain > 0);
-                BEAST_ASSERT(buffer_bytes(buffers) > 0);
-                BEAST_ASSERT(buffer_bytes(buffers_prefix(
+                BHO_ASSERT(impl.rd_remain > 0);
+                BHO_ASSERT(buffer_bytes(buffers) > 0);
+                BHO_ASSERT(buffer_bytes(buffers_prefix(
                     clamp(impl.rd_remain), buffers)) > 0);
                 auto const bytes_transferred =
                     impl.stream().read_some(buffers_prefix(
@@ -1217,7 +1219,7 @@ loop:
                 // VFALCO What if some bytes were written?
                 if(impl.check_stop_now(ec))
                     return bytes_written;
-                BEAST_ASSERT(bytes_transferred > 0);
+                BHO_ASSERT(bytes_transferred > 0);
                 auto const mb = buffers_prefix(
                     bytes_transferred, buffers);
                 impl.rd_remain -= bytes_transferred;
@@ -1239,7 +1241,7 @@ loop:
                 impl.rd_size += bytes_transferred;
             }
         }
-        BEAST_ASSERT( ! impl.rd_done );
+        BHO_ASSERT( ! impl.rd_done );
         if( impl.rd_remain == 0 && impl.rd_fh.fin )
             impl.rd_done = true;
     }
@@ -1258,7 +1260,7 @@ loop:
                 auto const out = beast::buffers_front(cb);
                 zs.next_out = out.data();
                 zs.avail_out = out.size();
-                BEAST_ASSERT(zs.avail_out > 0);
+                BHO_ASSERT(zs.avail_out > 0);
             }
             // boolean to track the end of the message.
             bool fin = false;
@@ -1283,7 +1285,7 @@ loop:
                             ec);
                     if(impl.check_stop_now(ec))
                         return bytes_written;
-                    BEAST_ASSERT(bytes_transferred > 0);
+                    BHO_ASSERT(bytes_transferred > 0);
                     impl.rd_buf.commit(bytes_transferred);
                     if(impl.rd_fh.mask)
                         detail::mask_inplace(
@@ -1355,8 +1357,8 @@ loop:
 }
 
 template<class NextLayer, bool deflateSupported>
-template<class MutableBufferSequence, BEAST_ASYNC_TPARAM2 ReadHandler>
-BEAST_ASYNC_RESULT2(ReadHandler)
+template<class MutableBufferSequence, BHO_BEAST_ASYNC_TPARAM2 ReadHandler>
+BHO_BEAST_ASYNC_RESULT2(ReadHandler)
 stream<NextLayer, deflateSupported>::
 async_read_some(
     MutableBufferSequence const& buffers,
@@ -1369,7 +1371,7 @@ async_read_some(
         "MutableBufferSequence type requirements not met");
     return net::async_initiate<
         ReadHandler,
-        void(error_code, std::size_t)>(
+        void(beast::error_code, std::size_t)>(
             run_read_some_op{},
             handler,
             impl_,
@@ -1378,5 +1380,6 @@ async_read_some(
 
 } // websocket
 } // beast
+} // bho
 
 #endif

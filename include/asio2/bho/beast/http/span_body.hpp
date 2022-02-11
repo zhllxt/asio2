@@ -7,8 +7,8 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_HTTP_SPAN_BODY_HPP
-#define BEAST_HTTP_SPAN_BODY_HPP
+#ifndef BHO_BEAST_HTTP_SPAN_BODY_HPP
+#define BHO_BEAST_HTTP_SPAN_BODY_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/core/buffer_traits.hpp>
@@ -17,6 +17,7 @@
 #include <asio2/bho/beast/http/message.hpp>
 #include <optional>
 
+namespace bho {
 namespace beast {
 namespace http {
 
@@ -65,7 +66,7 @@ public:
 
         Meets the requirements of <em>BodyReader</em>.
     */
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
     using reader = __implementation_defined__;
 #else
     class reader
@@ -124,7 +125,7 @@ public:
 
         Meets the requirements of <em>BodyWriter</em>.
     */
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
     using writer = __implementation_defined__;
 #else
     class writer
@@ -164,5 +165,6 @@ public:
 
 } // http
 } // beast
+} // bho
 
 #endif

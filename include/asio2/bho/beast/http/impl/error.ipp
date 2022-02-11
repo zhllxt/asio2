@@ -7,12 +7,13 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_HTTP_IMPL_ERROR_IPP
-#define BEAST_HTTP_IMPL_ERROR_IPP
+#ifndef BHO_BEAST_HTTP_IMPL_ERROR_IPP
+#define BHO_BEAST_HTTP_IMPL_ERROR_IPP
 
 #include <asio2/bho/beast/http/error.hpp>
 #include <type_traits>
 
+namespace bho {
 namespace beast {
 namespace http {
 namespace detail {
@@ -99,5 +100,6 @@ make_error_code(error ev)
 
 } // http
 } // beast
+} // bho
 
 #endif

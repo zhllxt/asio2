@@ -7,8 +7,8 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_HTTP_WRITE_HPP
-#define BEAST_HTTP_WRITE_HPP
+#ifndef BHO_BEAST_HTTP_WRITE_HPP
+#define BHO_BEAST_HTTP_WRITE_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/http/message.hpp>
@@ -17,13 +17,14 @@
 #include <asio2/bho/beast/http/detail/chunk_encode.hpp>
 #include <asio2/bho/beast/core/error.hpp>
 #include <asio2/bho/beast/core/stream_traits.hpp>
-#include <asio/async_result.hpp>
+#include <asio2/3rd/asio.hpp>
 #include <iosfwd>
 #include <limits>
 #include <memory>
 #include <type_traits>
 #include <utility>
 
+namespace bho {
 namespace beast {
 namespace http {
 
@@ -165,10 +166,10 @@ write_some(
 template<
     class AsyncWriteStream,
     bool isRequest, class Body, class Fields,
-    BEAST_ASYNC_TPARAM2 WriteHandler =
+    BHO_BEAST_ASYNC_TPARAM2 WriteHandler =
         net::default_completion_token_t<
             executor_type<AsyncWriteStream>>>
-BEAST_ASYNC_RESULT2(WriteHandler)
+BHO_BEAST_ASYNC_RESULT2(WriteHandler)
 async_write_some(
     AsyncWriteStream& stream,
     serializer<isRequest, Body, Fields>& sr,
@@ -295,10 +296,10 @@ write_header(
 template<
     class AsyncWriteStream,
     bool isRequest, class Body, class Fields,
-    BEAST_ASYNC_TPARAM2 WriteHandler =
+    BHO_BEAST_ASYNC_TPARAM2 WriteHandler =
         net::default_completion_token_t<
             executor_type<AsyncWriteStream>>>
-BEAST_ASYNC_RESULT2(WriteHandler)
+BHO_BEAST_ASYNC_RESULT2(WriteHandler)
 async_write_header(
     AsyncWriteStream& stream,
     serializer<isRequest, Body, Fields>& sr,
@@ -416,10 +417,10 @@ write(
 template<
     class AsyncWriteStream,
     bool isRequest, class Body, class Fields,
-    BEAST_ASYNC_TPARAM2 WriteHandler =
+    BHO_BEAST_ASYNC_TPARAM2 WriteHandler =
         net::default_completion_token_t<
             executor_type<AsyncWriteStream>>>
-BEAST_ASYNC_RESULT2(WriteHandler)
+BHO_BEAST_ASYNC_RESULT2(WriteHandler)
 async_write(
     AsyncWriteStream& stream,
     serializer<isRequest, Body, Fields>& sr,
@@ -459,7 +460,7 @@ async_write(
 template<
     class SyncWriteStream,
     bool isRequest, class Body, class Fields>
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
 std::size_t
 #else
 typename std::enable_if<
@@ -500,7 +501,7 @@ write(
 template<
     class SyncWriteStream,
     bool isRequest, class Body, class Fields>
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
 std::size_t
 #else
 typename std::enable_if<
@@ -541,7 +542,7 @@ write(
 template<
     class SyncWriteStream,
     bool isRequest, class Body, class Fields>
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
 std::size_t
 #else
 typename std::enable_if<
@@ -583,7 +584,7 @@ write(
 template<
     class SyncWriteStream,
     bool isRequest, class Body, class Fields>
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
 std::size_t
 #else
 typename std::enable_if<
@@ -641,17 +642,17 @@ write(
 template<
     class AsyncWriteStream,
     bool isRequest, class Body, class Fields,
-    BEAST_ASYNC_TPARAM2 WriteHandler =
+    BHO_BEAST_ASYNC_TPARAM2 WriteHandler =
         net::default_completion_token_t<
             executor_type<AsyncWriteStream>>>
-BEAST_ASYNC_RESULT2(WriteHandler)
+BHO_BEAST_ASYNC_RESULT2(WriteHandler)
 async_write(
     AsyncWriteStream& stream,
     message<isRequest, Body, Fields>& msg,
     WriteHandler&& handler =
         net::default_completion_token_t<
             executor_type<AsyncWriteStream>>{}
-#ifndef BEAST_DOXYGEN
+#ifndef BHO_BEAST_DOXYGEN
     , typename std::enable_if<
         is_mutable_body_writer<Body>::value>::type* = 0
 #endif
@@ -703,17 +704,17 @@ async_write(
 template<
     class AsyncWriteStream,
     bool isRequest, class Body, class Fields,
-    BEAST_ASYNC_TPARAM2 WriteHandler =
+    BHO_BEAST_ASYNC_TPARAM2 WriteHandler =
         net::default_completion_token_t<
             executor_type<AsyncWriteStream>>>
-BEAST_ASYNC_RESULT2(WriteHandler)
+BHO_BEAST_ASYNC_RESULT2(WriteHandler)
 async_write(
     AsyncWriteStream& stream,
     message<isRequest, Body, Fields> const& msg,
     WriteHandler&& handler =
         net::default_completion_token_t<
             executor_type<AsyncWriteStream>>{}
-#ifndef BEAST_DOXYGEN
+#ifndef BHO_BEAST_DOXYGEN
     , typename std::enable_if<
         ! is_mutable_body_writer<Body>::value>::type* = 0
 #endif
@@ -755,6 +756,7 @@ operator<<(std::ostream& os,
 
 } // http
 } // beast
+} // bho
 
 #include <asio2/bho/beast/http/impl/write.hpp>
 

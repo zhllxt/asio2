@@ -7,8 +7,8 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_CORE_HPP
-#define BEAST_CORE_HPP
+#ifndef BHO_BEAST_CORE_HPP
+#define BHO_BEAST_CORE_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 

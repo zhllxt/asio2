@@ -35,6 +35,9 @@
 		#define BOOST_BEAST_VERSION_STRING BEAST_VERSION_STRING
 	#endif
 #else
+	#ifndef BOOST_BEAST_USE_STD_STRING_VIEW
+		#define BOOST_BEAST_USE_STD_STRING_VIEW
+	#endif
 	#include <boost/beast.hpp>
 	#if defined(ASIO2_USE_SSL)
 		// boost 1.72(107200) BOOST_BEAST_VERSION 277
@@ -49,11 +52,19 @@
 	#ifndef BEAST_VERSION_STRING
 		#define BEAST_VERSION_STRING BOOST_BEAST_VERSION_STRING
 	#endif
+	#ifndef BHO_BEAST_VERSION
+		#define BHO_BEAST_VERSION BOOST_BEAST_VERSION
+	#endif
+	#ifndef BHO_BEAST_VERSION_STRING
+		#define BHO_BEAST_VERSION_STRING BOOST_BEAST_VERSION_STRING
+	#endif
 #endif // BEAST_HEADER_ONLY
 
 #ifdef BEAST_HEADER_ONLY
+	namespace beast = ::bho::beast;
 #else
 	namespace beast = ::boost::beast;
+	namespace asio  = ::boost::asio;
 #endif // BEAST_HEADER_ONLY
 
 namespace http      = ::beast::http;

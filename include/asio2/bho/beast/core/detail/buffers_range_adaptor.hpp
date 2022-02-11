@@ -7,13 +7,14 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_DETAIL_BUFFERS_RANGE_ADAPTOR_HPP
-#define BEAST_DETAIL_BUFFERS_RANGE_ADAPTOR_HPP
+#ifndef BHO_BEAST_DETAIL_BUFFERS_RANGE_ADAPTOR_HPP
+#define BHO_BEAST_DETAIL_BUFFERS_RANGE_ADAPTOR_HPP
 
 #include <asio2/bho/beast/core/buffer_traits.hpp>
 #include <iterator>
 #include <type_traits>
 
+namespace bho {
 namespace beast {
 namespace detail {
 
@@ -23,7 +24,7 @@ class buffers_range_adaptor
     BufferSequence b_;
 
 public:
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
     using value_type = __see_below__;
 #else
     using value_type = buffers_type<BufferSequence>;
@@ -127,5 +128,6 @@ public:
 
 } // detail
 } // beast
+} // bho
 
 #endif

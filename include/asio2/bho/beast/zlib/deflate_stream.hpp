@@ -7,8 +7,8 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_ZLIB_DEFLATE_STREAM_HPP
-#define BEAST_ZLIB_DEFLATE_STREAM_HPP
+#ifndef BHO_BEAST_ZLIB_DEFLATE_STREAM_HPP
+#define BHO_BEAST_ZLIB_DEFLATE_STREAM_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/zlib/error.hpp>
@@ -20,6 +20,7 @@
 #include <cstring>
 #include <memory>
 
+namespace bho {
 namespace beast {
 namespace zlib {
 
@@ -398,5 +399,6 @@ deflate_upper_bound(std::size_t bytes)
 
 } // zlib
 } // beast
+} // bho
 
 #endif

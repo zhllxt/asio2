@@ -7,11 +7,12 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_DETAIL_ALLOCATOR_HPP
-#define BEAST_DETAIL_ALLOCATOR_HPP
+#ifndef BHO_BEAST_DETAIL_ALLOCATOR_HPP
+#define BHO_BEAST_DETAIL_ALLOCATOR_HPP
 
 #include <memory>
 
+namespace bho {
 namespace beast {
 namespace detail {
 
@@ -20,5 +21,6 @@ using allocator_traits = std::allocator_traits<Alloc>;
 
 } // detail
 } // beast
+} // bho
 
 #endif

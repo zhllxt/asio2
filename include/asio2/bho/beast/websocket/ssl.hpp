@@ -7,14 +7,14 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_WEBSOCKET_SSL_HPP
-#define BEAST_WEBSOCKET_SSL_HPP
+#ifndef BHO_BEAST_WEBSOCKET_SSL_HPP
+#define BHO_BEAST_WEBSOCKET_SSL_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/websocket/teardown.hpp>
-#include <asio/ip/tcp.hpp>
-#include <asio/ssl/stream.hpp>
+#include <asio2/3rd/asio.hpp>
 
+namespace bho {
 namespace beast {
 
 /** Tear down a `net::ssl::stream`.
@@ -37,7 +37,7 @@ void
 teardown(
     role_type role,
     net::ssl::stream<SyncStream>& stream,
-    error_code& ec);
+    beast::error_code& ec);
 
 /** Start tearing down a `net::ssl::stream`.
 
@@ -59,7 +59,7 @@ teardown(
     the handler must be:
     @code
     void handler(
-        error_code const& error // result of operation
+        beast::error_code const& error // result of operation
     );
     @endcode
     Regardless of whether the asynchronous operation completes
@@ -76,6 +76,7 @@ async_teardown(
     TeardownHandler&& handler);
 
 } // beast
+} // bho
 
 #include <asio2/bho/beast/websocket/impl/ssl.hpp>
 

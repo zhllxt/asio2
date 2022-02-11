@@ -7,8 +7,8 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_BUFFERS_CAT_HPP
-#define BEAST_BUFFERS_CAT_HPP
+#ifndef BHO_BEAST_BUFFERS_CAT_HPP
+#define BHO_BEAST_BUFFERS_CAT_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/core/buffer_traits.hpp>
@@ -16,6 +16,7 @@
 #include <asio2/bho/beast/core/detail/type_traits.hpp>
 #include <tuple>
 
+namespace bho {
 namespace beast {
 
 /** A buffer sequence representing a concatenation of buffer sequences.
@@ -32,7 +33,7 @@ public:
         then `value_type` will be `net::mutable_buffer`.
         Otherwise, `value_type` will be `net::const_buffer`.
     */
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
     using value_type = __see_below__;
 #else
     using value_type = buffers_type<Buffers...>;
@@ -81,7 +82,7 @@ public:
     sequence will be a <em>ConstBufferSequence</em>.
     @see buffers_cat_view
 */
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
 template<class... BufferSequence>
 buffers_cat_view<BufferSequence...>
 buffers_cat(BufferSequence const&... buffers)
@@ -98,6 +99,7 @@ buffers_cat(B1 const& b1, Bn const&... bn)
 }
 
 } // beast
+} // bho
 
 #include <asio2/bho/beast/core/impl/buffers_cat.hpp>
 

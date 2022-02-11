@@ -7,19 +7,21 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_CORE_IMPL_BASIC_STREAM_HPP
-#define BEAST_CORE_IMPL_BASIC_STREAM_HPP
+#ifndef BHO_BEAST_CORE_IMPL_BASIC_STREAM_HPP
+#define BHO_BEAST_CORE_IMPL_BASIC_STREAM_HPP
 
 #include <asio2/bho/beast/core/async_base.hpp>
 #include <asio2/bho/beast/core/buffer_traits.hpp>
 #include <asio2/bho/beast/core/buffers_prefix.hpp>
 #include <asio2/bho/beast/websocket/teardown.hpp>
-#include <asio/coroutine.hpp>
-#include <asio2/bho/beast/core/util.hpp>
+#include <asio2/3rd/asio.hpp>
+#include <asio2/bho/assert.hpp>
+#include <asio2/bho/core/exchange.hpp>
 #include <cstdlib>
 #include <type_traits>
 #include <utility>
 
+namespace bho {
 namespace beast {
 
 //------------------------------------------------------------------------------
@@ -43,8 +45,8 @@ basic_stream<Protocol, Executor, RatePolicy>::
 impl_type::
 impl_type(std::true_type,
     RatePolicy_&& policy, Args&&... args)
-    : beast::empty_value<RatePolicy>(
-		beast::empty_init_t{},
+    : bho::empty_value<RatePolicy>(
+        bho::empty_init_t{},
         std::forward<RatePolicy_>(policy))
     , socket(std::forward<Args>(args)...)
     , read(ex())
@@ -61,19 +63,19 @@ basic_stream<Protocol, Executor, RatePolicy>::
 impl_type::
 on_timer(Executor2 const& ex2)
 {
-    BEAST_ASSERT(waiting > 0);
+    BHO_ASSERT(waiting > 0);
 
     // the last waiter starts the new slice
     if(--waiting > 0)
         return;
 
     // update the expiration time
-    BEAST_VERIFY(timer.expires_after(
+    BHO_VERIFY(timer.expires_after(
         std::chrono::seconds(1)) == 0);
 
     rate_policy_access::on_timer(policy());
 
-    struct handler : beast::empty_value<Executor2>
+    struct handler : bho::empty_value<Executor2>
     {
         std::weak_ptr<impl_type> wp;
 
@@ -88,21 +90,21 @@ on_timer(Executor2 const& ex2)
         handler(
             Executor2 const& ex2,
             std::shared_ptr<impl_type> const& sp)
-            : beast::empty_value<Executor2>(
-				beast::empty_init_t{}, ex2)
+            : bho::empty_value<Executor2>(
+                bho::empty_init_t{}, ex2)
             , wp(sp)
         {
         }
 
         void
-        operator()(error_code ec)
+        operator()(beast::error_code ec)
         {
             auto sp = wp.lock();
             if(! sp)
                 return;
             if(ec == net::error::operation_aborted)
                 return;
-            BEAST_ASSERT(! ec);
+            BHO_ASSERT(! ec);
             if(ec)
                 return;
             sp->on_timer(this->get());
@@ -125,14 +127,14 @@ reset()
     // outstanding, so there is nothing to apply
     // the expiration time to!
     //
-    BEAST_ASSERT(! read.pending || ! write.pending);
+    BHO_ASSERT(! read.pending || ! write.pending);
 
     if(! read.pending)
-        BEAST_VERIFY(
+        BHO_VERIFY(
             read.timer.expires_at(never()) == 0);
 
     if(! write.pending)
-        BEAST_VERIFY(
+        BHO_VERIFY(
             write.timer.expires_at(never()) == 0);
 }
 
@@ -143,7 +145,7 @@ impl_type::
 close() noexcept
 {
     {
-        error_code ec;
+		beast::error_code ec;
         socket.close(ec);
     }
     try
@@ -175,12 +177,12 @@ struct basic_stream<Protocol, Executor, RatePolicy>::
     }
 
     void
-    operator()(error_code ec)
+    operator()(beast::error_code ec)
     {
         // timer canceled
         if(ec == net::error::operation_aborted)
             return;
-        BEAST_ASSERT(! ec);
+        BHO_ASSERT(! ec);
 
         auto sp = wp.lock();
 
@@ -191,10 +193,10 @@ struct basic_stream<Protocol, Executor, RatePolicy>::
         // stale timer
         if(tick < state.tick)
             return;
-        BEAST_ASSERT(tick == state.tick);
+        BHO_ASSERT(tick == state.tick);
 
         // timeout
-        BEAST_ASSERT(! state.timeout);
+        BHO_ASSERT(! state.timeout);
         sp->close();
         state.timeout = true;
     }
@@ -209,7 +211,7 @@ struct basic_stream<Protocol, Executor, RatePolicy>::ops
 template<bool isRead, class Buffers, class Handler>
 class transfer_op
     : public async_base<Handler, Executor>
-    , public asio::coroutine
+    , public net::coroutine
 {
     std::shared_ptr<impl_type> impl_;
     pending_guard pg_;
@@ -289,7 +291,7 @@ public:
             // This can occur even if an existing async_read is in progress.
             // In this specific case, we will complete the async op with no error
             // in order to prevent assertions and/or internal corruption of the basic_stream
-            this->complete(false, error_code(), 0);
+            this->complete(false, beast::error_code(), 0);
         }
         else
         {
@@ -300,7 +302,7 @@ public:
 
     void
     operator()(
-        error_code ec,
+		beast::error_code ec,
         std::size_t bytes_transferred = 0)
     {
         ASIO_CORO_REENTER(*this)
@@ -362,7 +364,7 @@ public:
                 if(ec)
                 {
                     // socket was closed, or a timeout
-                    BEAST_ASSERT(ec ==
+                    BHO_ASSERT(ec ==
                         net::error::operation_aborted);
                     // timeout handler invoked?
                     if(state().timeout)
@@ -410,8 +412,8 @@ public:
                 }
                 else
                 {
-                    BEAST_ASSERT(n == 1);
-                    BEAST_ASSERT(! state().timeout);
+                    BHO_ASSERT(n == 1);
+                    BHO_ASSERT(! state().timeout);
                 }
             }
 
@@ -548,7 +550,7 @@ public:
 
     template<class... Args>
     void
-    operator()(error_code ec, Args&&... args)
+    operator()(beast::error_code ec, Args&&... args)
     {
         if(state().timer.expiry() != stream_base::never())
         {
@@ -569,8 +571,8 @@ public:
             }
             else
             {
-                BEAST_ASSERT(n == 1);
-                BEAST_ASSERT(! state().timeout);
+                BHO_ASSERT(n == 1);
+                BHO_ASSERT(! state().timeout);
             }
         }
 
@@ -595,7 +597,7 @@ struct run_read_op
 
         static_assert(
             detail::is_invocable<ReadHandler,
-                void(error_code, std::size_t)>::value,
+                void(beast::error_code, std::size_t)>::value,
             "ReadHandler type requirements not met");
 
         transfer_op<
@@ -621,7 +623,7 @@ struct run_write_op
 
         static_assert(
             detail::is_invocable<WriteHandler,
-                void(error_code, std::size_t)>::value,
+                void(beast::error_code, std::size_t)>::value,
             "WriteHandler type requirements not met");
 
         transfer_op<
@@ -647,7 +649,7 @@ struct run_connect_op
 
         static_assert(
             detail::is_invocable<ConnectHandler,
-                void(error_code)>::value,
+                void(beast::error_code)>::value,
             "ConnectHandler type requirements not met");
 
         connect_op<typename std::decay<ConnectHandler>::type>(
@@ -674,7 +676,7 @@ struct run_connect_range_op
 
         static_assert(
             detail::is_invocable<RangeConnectHandler,
-                void(error_code, typename Protocol::endpoint)>::value,
+                void(beast::error_code, typename Protocol::endpoint)>::value,
             "RangeConnectHandler type requirements not met");
 
         connect_op<typename std::decay<RangeConnectHandler>::type>(
@@ -701,7 +703,7 @@ struct run_connect_iter_op
 
         static_assert(
             detail::is_invocable<IteratorConnectHandler,
-                void(error_code, Iterator)>::value,
+                void(beast::error_code, Iterator)>::value,
             "IteratorConnectHandler type requirements not met");
 
         connect_op<typename std::decay<IteratorConnectHandler>::type>(
@@ -783,17 +785,17 @@ expires_after(net::steady_timer::duration expiry_time)
     // outstanding, so there is nothing to apply
     // the expiration time to!
     //
-    BEAST_ASSERT(
+    BHO_ASSERT(
         ! impl_->read.pending ||
         ! impl_->write.pending);
 
     if(! impl_->read.pending)
-        BEAST_VERIFY(
+        BHO_VERIFY(
             impl_->read.timer.expires_after(
                 expiry_time) == 0);
 
     if(! impl_->write.pending)
-        BEAST_VERIFY(
+        BHO_VERIFY(
             impl_->write.timer.expires_after(
                 expiry_time) == 0);
 }
@@ -809,17 +811,17 @@ expires_at(
     // outstanding, so there is nothing to apply
     // the expiration time to!
     //
-    BEAST_ASSERT(
+    BHO_ASSERT(
         ! impl_->read.pending ||
         ! impl_->write.pending);
 
     if(! impl_->read.pending)
-        BEAST_VERIFY(
+        BHO_VERIFY(
             impl_->read.timer.expires_at(
                 expiry_time) == 0);
 
     if(! impl_->write.pending)
-        BEAST_VERIFY(
+        BHO_VERIFY(
             impl_->write.timer.expires_at(
                 expiry_time) == 0);
 }
@@ -837,7 +839,7 @@ void
 basic_stream<Protocol, Executor, RatePolicy>::
 cancel()
 {
-    error_code ec;
+	beast::error_code ec;
     impl_->socket.cancel(ec);
     impl_->timer.cancel();
 }
@@ -853,8 +855,8 @@ close()
 //------------------------------------------------------------------------------
 
 template<class Protocol, class Executor, class RatePolicy>
-template<BEAST_ASYNC_TPARAM1 ConnectHandler>
-BEAST_ASYNC_RESULT1(ConnectHandler)
+template<BHO_BEAST_ASYNC_TPARAM1 ConnectHandler>
+BHO_BEAST_ASYNC_RESULT1(ConnectHandler)
 basic_stream<Protocol, Executor, RatePolicy>::
 async_connect(
     endpoint_type const& ep,
@@ -862,7 +864,7 @@ async_connect(
 {
     return net::async_initiate<
         ConnectHandler,
-        void(error_code)>(
+        void(beast::error_code)>(
             typename ops::run_connect_op{},
             handler,
             this,
@@ -872,9 +874,9 @@ async_connect(
 template<class Protocol, class Executor, class RatePolicy>
 template<
     class EndpointSequence,
-    ASIO_COMPLETION_TOKEN_FOR(void(error_code, typename Protocol::endpoint)) RangeConnectHandler,
+    ASIO_COMPLETION_TOKEN_FOR(void(beast::error_code, typename Protocol::endpoint)) RangeConnectHandler,
     class>
-ASIO_INITFN_RESULT_TYPE(RangeConnectHandler,void(error_code, typename Protocol::endpoint))
+ASIO_INITFN_RESULT_TYPE(RangeConnectHandler,void(beast::error_code, typename Protocol::endpoint))
 basic_stream<Protocol, Executor, RatePolicy>::
 async_connect(
     EndpointSequence const& endpoints,
@@ -882,7 +884,7 @@ async_connect(
 {
     return net::async_initiate<
         RangeConnectHandler,
-        void(error_code, typename Protocol::endpoint)>(
+        void(beast::error_code, typename Protocol::endpoint)>(
             typename ops::run_connect_range_op{},
             handler,
             this,
@@ -894,9 +896,9 @@ template<class Protocol, class Executor, class RatePolicy>
 template<
     class EndpointSequence,
     class ConnectCondition,
-    ASIO_COMPLETION_TOKEN_FOR(void(error_code, typename Protocol::endpoint)) RangeConnectHandler,
+    ASIO_COMPLETION_TOKEN_FOR(void(beast::error_code, typename Protocol::endpoint)) RangeConnectHandler,
     class>
-ASIO_INITFN_RESULT_TYPE(RangeConnectHandler,void (error_code, typename Protocol::endpoint))
+ASIO_INITFN_RESULT_TYPE(RangeConnectHandler,void (beast::error_code, typename Protocol::endpoint))
 basic_stream<Protocol, Executor, RatePolicy>::
 async_connect(
     EndpointSequence const& endpoints,
@@ -905,7 +907,7 @@ async_connect(
 {
     return net::async_initiate<
         RangeConnectHandler,
-        void(error_code, typename Protocol::endpoint)>(
+        void(beast::error_code, typename Protocol::endpoint)>(
             typename ops::run_connect_range_op{},
             handler,
             this,
@@ -916,8 +918,8 @@ async_connect(
 template<class Protocol, class Executor, class RatePolicy>
 template<
     class Iterator,
-    ASIO_COMPLETION_TOKEN_FOR(void(error_code, Iterator)) IteratorConnectHandler>
-ASIO_INITFN_RESULT_TYPE(IteratorConnectHandler,void (error_code, Iterator))
+    ASIO_COMPLETION_TOKEN_FOR(void(beast::error_code, Iterator)) IteratorConnectHandler>
+ASIO_INITFN_RESULT_TYPE(IteratorConnectHandler,void (beast::error_code, Iterator))
 basic_stream<Protocol, Executor, RatePolicy>::
 async_connect(
     Iterator begin, Iterator end,
@@ -925,7 +927,7 @@ async_connect(
 {
     return net::async_initiate<
         IteratorConnectHandler,
-        void(error_code, Iterator)>(
+        void(beast::error_code, Iterator)>(
             typename ops::run_connect_iter_op{},
             handler,
             this,
@@ -937,8 +939,8 @@ template<class Protocol, class Executor, class RatePolicy>
 template<
     class Iterator,
     class ConnectCondition,
-    ASIO_COMPLETION_TOKEN_FOR(void(error_code, Iterator)) IteratorConnectHandler>
-ASIO_INITFN_RESULT_TYPE(IteratorConnectHandler,void (error_code, Iterator))
+    ASIO_COMPLETION_TOKEN_FOR(void(beast::error_code, Iterator)) IteratorConnectHandler>
+ASIO_INITFN_RESULT_TYPE(IteratorConnectHandler,void (beast::error_code, Iterator))
 basic_stream<Protocol, Executor, RatePolicy>::
 async_connect(
     Iterator begin, Iterator end,
@@ -947,7 +949,7 @@ async_connect(
 {
     return net::async_initiate<
         IteratorConnectHandler,
-        void(error_code, Iterator)>(
+        void(beast::error_code, Iterator)>(
             typename ops::run_connect_iter_op{},
             handler,
             this,
@@ -958,8 +960,8 @@ async_connect(
 //------------------------------------------------------------------------------
 
 template<class Protocol, class Executor, class RatePolicy>
-template<class MutableBufferSequence, BEAST_ASYNC_TPARAM2 ReadHandler>
-BEAST_ASYNC_RESULT2(ReadHandler)
+template<class MutableBufferSequence, BHO_BEAST_ASYNC_TPARAM2 ReadHandler>
+BHO_BEAST_ASYNC_RESULT2(ReadHandler)
 basic_stream<Protocol, Executor, RatePolicy>::
 async_read_some(
     MutableBufferSequence const& buffers,
@@ -970,7 +972,7 @@ async_read_some(
         "MutableBufferSequence type requirements not met");
     return net::async_initiate<
         ReadHandler,
-        void(error_code, std::size_t)>(
+        void(beast::error_code, std::size_t)>(
             typename ops::run_read_op{},
             handler,
             this,
@@ -978,8 +980,8 @@ async_read_some(
 }
 
 template<class Protocol, class Executor, class RatePolicy>
-template<class ConstBufferSequence, BEAST_ASYNC_TPARAM2 WriteHandler>
-BEAST_ASYNC_RESULT2(WriteHandler)
+template<class ConstBufferSequence, BHO_BEAST_ASYNC_TPARAM2 WriteHandler>
+BHO_BEAST_ASYNC_RESULT2(WriteHandler)
 basic_stream<Protocol, Executor, RatePolicy>::
 async_write_some(
     ConstBufferSequence const& buffers,
@@ -990,7 +992,7 @@ async_write_some(
         "ConstBufferSequence type requirements not met");
     return net::async_initiate<
         WriteHandler,
-        void(error_code, std::size_t)>(
+        void(beast::error_code, std::size_t)>(
             typename ops::run_write_op{},
             handler,
             this,
@@ -1002,7 +1004,7 @@ async_write_some(
 // Customization points
 //
 
-#if ! BEAST_DOXYGEN
+#if ! BHO_BEAST_DOXYGEN
 
 template<
     class Protocol, class Executor, class RatePolicy>
@@ -1010,7 +1012,7 @@ void
 beast_close_socket(
     basic_stream<Protocol, Executor, RatePolicy>& stream)
 {
-    error_code ec;
+	beast::error_code ec;
     stream.socket().close(ec);
 }
 
@@ -1020,7 +1022,7 @@ void
 teardown(
     role_type role,
     basic_stream<Protocol, Executor, RatePolicy>& stream,
-    error_code& ec)
+	beast::error_code& ec)
 {
     using beast::websocket::teardown;
     teardown(role, stream.socket(), ec);
@@ -1043,5 +1045,6 @@ async_teardown(
 #endif
 
 } // beast
+} // bho
 
 #endif

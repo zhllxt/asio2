@@ -7,8 +7,8 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_HTTP_IMPL_WRITE_HPP
-#define BEAST_HTTP_IMPL_WRITE_HPP
+#ifndef BHO_BEAST_HTTP_IMPL_WRITE_HPP
+#define BHO_BEAST_HTTP_IMPL_WRITE_HPP
 
 #include <asio2/bho/beast/http/type_traits.hpp>
 #include <asio2/bho/beast/core/async_base.hpp>
@@ -17,14 +17,13 @@
 #include <asio2/bho/beast/core/make_printable.hpp>
 #include <asio2/bho/beast/core/stream_traits.hpp>
 #include <asio2/bho/beast/core/detail/is_invocable.hpp>
-#include <asio/coroutine.hpp>
-#include <asio/post.hpp>
-#include <asio/write.hpp>
+#include <asio2/3rd/asio.hpp>
 #include <optional>
-#include <asio2/bho/beast/core/util.hpp>
+#include <asio2/bho/throw_exception.hpp>
 #include <ostream>
 #include <sstream>
 
+namespace bho {
 namespace beast {
 namespace http {
 namespace detail {
@@ -95,7 +94,7 @@ public:
             sr_.next(ec, f);
             if(ec)
             {
-                BEAST_ASSERT(! f.invoked);
+                BHO_ASSERT(! f.invoked);
 
                 ASIO_HANDLER_LOCATION((
                     __FILE__, __LINE__,
@@ -112,7 +111,7 @@ public:
                 return;
             }
             // What else could it be?
-            BEAST_ASSERT(sr_.is_done());
+            BHO_ASSERT(sr_.is_done());
         }
 
         ASIO_HANDLER_LOCATION((
@@ -172,7 +171,7 @@ template<
 class write_op
     : public beast::async_base<
         Handler, beast::executor_type<Stream>>
-    , public asio::coroutine
+    , public net::coroutine
 {
     Stream& s_;
     serializer<isRequest, Body, Fields>& sr_;
@@ -491,8 +490,8 @@ write_some_impl(
 template<
     class AsyncWriteStream,
     bool isRequest, class Body, class Fields,
-    BEAST_ASYNC_TPARAM2 WriteHandler>
-BEAST_ASYNC_RESULT2(WriteHandler)
+    BHO_BEAST_ASYNC_TPARAM2 WriteHandler>
+BHO_BEAST_ASYNC_RESULT2(WriteHandler)
 async_write_some_impl(
     AsyncWriteStream& stream,
     serializer<isRequest, Body, Fields>& sr,
@@ -529,7 +528,7 @@ write_some(
     auto const bytes_transferred =
         write_some(stream, sr, ec);
     if(ec)
-        BEAST_THROW_EXCEPTION(system_error{ec});
+        BHO_THROW_EXCEPTION(system_error{ec});
     return bytes_transferred;
 }
 
@@ -554,8 +553,8 @@ write_some(
 template<
     class AsyncWriteStream,
     bool isRequest, class Body, class Fields,
-    BEAST_ASYNC_TPARAM2 WriteHandler>
-BEAST_ASYNC_RESULT2(WriteHandler)
+    BHO_BEAST_ASYNC_TPARAM2 WriteHandler>
+BHO_BEAST_ASYNC_RESULT2(WriteHandler)
 async_write_some(
     AsyncWriteStream& stream,
     serializer<isRequest, Body, Fields>& sr,
@@ -591,7 +590,7 @@ write_header(SyncWriteStream& stream,
     auto const bytes_transferred =
         write_header(stream, sr, ec);
     if(ec)
-        BEAST_THROW_EXCEPTION(system_error{ec});
+        BHO_THROW_EXCEPTION(system_error{ec});
     return bytes_transferred;
 }
 
@@ -621,7 +620,7 @@ write_header(
             bytes_transferred += f.bytes_transferred;
             if(ec)
                 return bytes_transferred;
-            BEAST_ASSERT(f.invoked);
+            BHO_ASSERT(f.invoked);
             sr.consume(f.bytes_transferred);
         }
         while(! sr.is_header_done());
@@ -636,8 +635,8 @@ write_header(
 template<
     class AsyncWriteStream,
     bool isRequest, class Body, class Fields,
-    BEAST_ASYNC_TPARAM2 WriteHandler>
-BEAST_ASYNC_RESULT2(WriteHandler)
+    BHO_BEAST_ASYNC_TPARAM2 WriteHandler>
+BHO_BEAST_ASYNC_RESULT2(WriteHandler)
 async_write_header(
     AsyncWriteStream& stream,
     serializer<isRequest, Body, Fields>& sr,
@@ -677,7 +676,7 @@ write(
     auto const bytes_transferred =
         write(stream, sr, ec);
     if(ec)
-        BEAST_THROW_EXCEPTION(system_error{ec});
+        BHO_THROW_EXCEPTION(system_error{ec});
     return bytes_transferred;
 }
 
@@ -709,8 +708,8 @@ write(
 template<
     class AsyncWriteStream,
     bool isRequest, class Body, class Fields,
-    BEAST_ASYNC_TPARAM2 WriteHandler>
-BEAST_ASYNC_RESULT2(WriteHandler)
+    BHO_BEAST_ASYNC_TPARAM2 WriteHandler>
+BHO_BEAST_ASYNC_RESULT2(WriteHandler)
 async_write(
     AsyncWriteStream& stream,
     serializer<isRequest, Body, Fields>& sr,
@@ -756,7 +755,7 @@ write(
     auto const bytes_transferred =
         write(stream, msg, ec);
     if(ec)
-		BEAST_THROW_EXCEPTION(system_error{ec});
+        BHO_THROW_EXCEPTION(system_error{ec});
     return bytes_transferred;
 }
 
@@ -780,7 +779,7 @@ write(
     auto const bytes_transferred =
         write(stream, msg, ec);
     if(ec)
-		BEAST_THROW_EXCEPTION(system_error{ec});
+        BHO_THROW_EXCEPTION(system_error{ec});
     return bytes_transferred;
 }
 
@@ -829,8 +828,8 @@ write(
 template<
     class AsyncWriteStream,
     bool isRequest, class Body, class Fields,
-    BEAST_ASYNC_TPARAM2 WriteHandler>
-BEAST_ASYNC_RESULT2(WriteHandler)
+    BHO_BEAST_ASYNC_TPARAM2 WriteHandler>
+BHO_BEAST_ASYNC_RESULT2(WriteHandler)
 async_write(
     AsyncWriteStream& stream,
     message<isRequest, Body, Fields>& msg,
@@ -858,8 +857,8 @@ async_write(
 template<
     class AsyncWriteStream,
     bool isRequest, class Body, class Fields,
-    BEAST_ASYNC_TPARAM2 WriteHandler>
-BEAST_ASYNC_RESULT2(WriteHandler)
+    BHO_BEAST_ASYNC_TPARAM2 WriteHandler>
+BHO_BEAST_ASYNC_RESULT2(WriteHandler)
 async_write(
     AsyncWriteStream& stream,
     message<isRequest, Body, Fields> const& msg,
@@ -974,5 +973,6 @@ operator<<(std::ostream& os,
 
 } // http
 } // beast
+} // bho
 
 #endif

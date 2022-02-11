@@ -7,11 +7,12 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_DETAIL_STRING_HPP
-#define BEAST_DETAIL_STRING_HPP
+#ifndef BHO_BEAST_DETAIL_STRING_HPP
+#define BHO_BEAST_DETAIL_STRING_HPP
 
 #include <asio2/bho/beast/core/string_type.hpp>
 
+namespace bho {
 namespace beast {
 
 namespace detail {
@@ -38,5 +39,6 @@ ascii_tolower(char c)
 }
 } // detail
 } // beast
+} // bho
 
 #endif

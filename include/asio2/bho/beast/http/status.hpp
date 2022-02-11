@@ -7,13 +7,14 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_HTTP_STATUS_HPP
-#define BEAST_HTTP_STATUS_HPP
+#ifndef BHO_BEAST_HTTP_STATUS_HPP
+#define BHO_BEAST_HTTP_STATUS_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/core/string.hpp>
 #include <iosfwd>
 
+namespace bho {
 namespace beast {
 namespace http {
 
@@ -133,7 +134,7 @@ enum class status_class : unsigned
     If the integer does not match a known status code,
     @ref status::unknown is returned.
 */
-BEAST_DECL
+BHO_BEAST_DECL
 status
 int_to_status(unsigned v);
 
@@ -144,7 +145,7 @@ int_to_status(unsigned v);
     @return The status class. If the integer does not match
     a known status class, @ref status_class::unknown is returned.
 */
-BEAST_DECL
+BHO_BEAST_DECL
 status_class
 to_status_class(unsigned v);
 
@@ -154,7 +155,7 @@ to_status_class(unsigned v);
 
     @return The status class.
 */
-BEAST_DECL
+BHO_BEAST_DECL
 status_class
 to_status_class(status v);
 
@@ -162,17 +163,18 @@ to_status_class(status v);
 
     @param v The status code to use.
 */
-BEAST_DECL
+BHO_BEAST_DECL
 string_view
 obsolete_reason(status v);
 
 /// Outputs the standard reason phrase of a status code to a stream.
-BEAST_DECL
+BHO_BEAST_DECL
 std::ostream&
 operator<<(std::ostream&, status);
 
 } // http
 } // beast
+} // bho
 
 #ifdef BEAST_HEADER_ONLY
 #include <asio2/bho/beast/http/impl/status.ipp>

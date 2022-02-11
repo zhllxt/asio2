@@ -7,14 +7,15 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_IMPL_READ_SIZE_HPP
-#define BEAST_IMPL_READ_SIZE_HPP
+#ifndef BHO_BEAST_IMPL_READ_SIZE_HPP
+#define BHO_BEAST_IMPL_READ_SIZE_HPP
 
-#include <asio/buffer.hpp>
-#include <asio2/bho/beast/core/util.hpp>
+#include <asio2/3rd/asio.hpp>
+#include <asio2/bho/assert.hpp>
 #include <stdexcept>
 #include <type_traits>
 
+namespace bho {
 namespace beast {
 
 namespace detail {
@@ -47,7 +48,7 @@ read_size(DynamicBuffer& buffer,
         "DynamicBuffer type requirements not met");
     auto const size = buffer.size();
     auto const limit = buffer.max_size() - size;
-    BEAST_ASSERT(size <= buffer.max_size());
+    BHO_ASSERT(size <= buffer.max_size());
     return std::min<std::size_t>(
         std::max<std::size_t>(512, buffer.capacity() - size),
         std::min<std::size_t>(max_size, limit));
@@ -71,11 +72,12 @@ read_size_or_throw(
 {
     auto const n = read_size(buffer, max_size);
     if(n == 0)
-        BEAST_THROW_EXCEPTION(std::length_error{
+        BHO_THROW_EXCEPTION(std::length_error{
             "buffer overflow"});
     return n;
 }
 
 } // beast
+} // bho
 
 #endif

@@ -7,12 +7,13 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_HTTP_IMPL_RFC7230_HPP
-#define BEAST_HTTP_IMPL_RFC7230_HPP
+#ifndef BHO_BEAST_HTTP_IMPL_RFC7230_HPP
+#define BHO_BEAST_HTTP_IMPL_RFC7230_HPP
 
 #include <asio2/bho/beast/http/detail/rfc7230.hpp>
 #include <iterator>
 
+namespace bho {
 namespace beast {
 namespace http {
 
@@ -85,12 +86,12 @@ private:
         increment();
     }
 
-    BEAST_DECL
+    BHO_BEAST_DECL
     static
     std::string
     unquote(string_view sr);
 
-    BEAST_DECL
+    BHO_BEAST_DECL
     void
     increment();
 };
@@ -202,7 +203,7 @@ private:
         increment();
     }
 
-    BEAST_DECL
+    BHO_BEAST_DECL
     void
     increment();
 };
@@ -315,7 +316,7 @@ private:
         increment();
     }
 
-    BEAST_DECL
+    BHO_BEAST_DECL
     void
     increment();
 };
@@ -378,6 +379,7 @@ validate_list(detail::basic_parsed_list<
 
 } // http
 } // beast
+} // bho
 
 #ifdef BEAST_HEADER_ONLY
 #include <asio2/bho/beast/http/impl/rfc7230.ipp>

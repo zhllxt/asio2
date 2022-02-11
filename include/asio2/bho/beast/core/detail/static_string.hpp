@@ -7,15 +7,15 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_DETAIL_STATIC_STRING_HPP
-#define BEAST_DETAIL_STATIC_STRING_HPP
+#ifndef BHO_BEAST_DETAIL_STATIC_STRING_HPP
+#define BHO_BEAST_DETAIL_STATIC_STRING_HPP
 
 #include <asio2/bho/beast/core/string.hpp>
-#include <asio2/bho/beast/core/util.hpp>
-
+#include <asio2/bho/assert.hpp>
 #include <iterator>
 #include <type_traits>
 
+namespace bho {
 namespace beast {
 namespace detail {
 
@@ -120,13 +120,14 @@ template<
 CharT*
 raw_to_string(CharT* last, std::size_t size, Integer i)
 {
-	beast::ignore_unused(size);
-	BEAST_ASSERT(size >= max_digits(sizeof(Integer)));
+    bho::ignore_unused(size);
+    BHO_ASSERT(size >= max_digits(sizeof(Integer)));
     return raw_to_string<CharT, Integer, Traits>(
         last, i, std::is_signed<Integer>{});
 }
 
 } // detail
 } // beast
+} // bho
 
 #endif

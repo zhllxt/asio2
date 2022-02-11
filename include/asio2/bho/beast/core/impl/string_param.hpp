@@ -7,11 +7,12 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_IMPL_STRING_PARAM_HPP
-#define BEAST_IMPL_STRING_PARAM_HPP
+#ifndef BHO_BEAST_IMPL_STRING_PARAM_HPP
+#define BHO_BEAST_IMPL_STRING_PARAM_HPP
 
 #include <type_traits>
 
+namespace bho {
 namespace beast {
 
 template<class T>
@@ -104,5 +105,6 @@ string_param(Args const&... args)
 }
 
 } // beast
+} // bho
 
 #endif

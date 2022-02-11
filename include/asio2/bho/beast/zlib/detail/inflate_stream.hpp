@@ -34,8 +34,8 @@
     (zlib format), rfc1951 (deflate format) and rfc1952 (gzip format).
 */
 
-#ifndef BEAST_ZLIB_DETAIL_INFLATE_STREAM_HPP
-#define BEAST_ZLIB_DETAIL_INFLATE_STREAM_HPP
+#ifndef BHO_BEAST_ZLIB_DETAIL_INFLATE_STREAM_HPP
+#define BHO_BEAST_ZLIB_DETAIL_INFLATE_STREAM_HPP
 
 #include <asio2/bho/beast/zlib/error.hpp>
 #include <asio2/bho/beast/zlib/zlib.hpp>
@@ -44,7 +44,7 @@
 #include <asio2/bho/beast/zlib/detail/window.hpp>
 #if 0
 #include <asio2/bho/beast/core/detail/type_traits.hpp>
-#include <asio2/bho/beast/core/util.hpp>
+#include <asio2/bho/throw_exception.hpp>
 #include <algorithm>
 #include <array>
 #include <cstdint>
@@ -52,6 +52,7 @@
 #include <stdexcept>
 #endif
 
+namespace bho {
 namespace beast {
 namespace zlib {
 namespace detail {
@@ -64,15 +65,15 @@ protected:
         w_.reset(15);
     }
 
-    BEAST_DECL
+    BHO_BEAST_DECL
     void
     doClear();
 
-    BEAST_DECL
+    BHO_BEAST_DECL
     void
     doReset(int windowBits);
 
-    BEAST_DECL
+    BHO_BEAST_DECL
     void
     doWrite(z_params& zs, Flush flush, error_code& ec);
 
@@ -178,7 +179,7 @@ private:
         dists
     };
 
-    BEAST_DECL
+    BHO_BEAST_DECL
     static
     void
     inflate_table(
@@ -190,16 +191,16 @@ private:
         std::uint16_t* work,
         error_code& ec);
 
-    BEAST_DECL
+    BHO_BEAST_DECL
     static
     codes const&
     get_fixed_tables();
 
-    BEAST_DECL
+    BHO_BEAST_DECL
     void
     fixedTables();
 
-    BEAST_DECL
+    BHO_BEAST_DECL
     void
     inflate_fast(ranges& r, error_code& ec);
 
@@ -241,6 +242,7 @@ private:
 } // detail
 } // zlib
 } // beast
+} // bho
 
 #ifdef BEAST_HEADER_ONLY
 #include <asio2/bho/beast/zlib/detail/inflate_stream.ipp>

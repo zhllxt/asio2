@@ -7,19 +7,18 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_BUFFERED_READ_STREAM_HPP
-#define BEAST_BUFFERED_READ_STREAM_HPP
+#ifndef BHO_BEAST_BUFFERED_READ_STREAM_HPP
+#define BHO_BEAST_BUFFERED_READ_STREAM_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/core/error.hpp>
 #include <asio2/bho/beast/core/multi_buffer.hpp>
 #include <asio2/bho/beast/core/stream_traits.hpp>
-#include <asio/async_result.hpp>
-#include <asio/buffer.hpp>
-#include <asio/io_context.hpp>
+#include <asio2/3rd/asio.hpp>
 #include <cstdint>
 #include <utility>
 
+namespace bho {
 namespace beast {
 
 /** A <em>Stream</em> with attached <em>DynamicBuffer</em> to buffer reads.
@@ -262,9 +261,9 @@ public:
     */
     template<
         class MutableBufferSequence,
-        BEAST_ASYNC_TPARAM2 ReadHandler =
+        BHO_BEAST_ASYNC_TPARAM2 ReadHandler =
             net::default_completion_token_t<executor_type>>
-    BEAST_ASYNC_RESULT2(ReadHandler)
+    BHO_BEAST_ASYNC_RESULT2(ReadHandler)
     async_read_some(
         MutableBufferSequence const& buffers,
         ReadHandler&& handler =
@@ -341,9 +340,9 @@ public:
     */
     template<
         class ConstBufferSequence,
-        BEAST_ASYNC_TPARAM2 WriteHandler =
+        BHO_BEAST_ASYNC_TPARAM2 WriteHandler =
             net::default_completion_token_t<executor_type>>
-    BEAST_ASYNC_RESULT2(WriteHandler)
+    BHO_BEAST_ASYNC_RESULT2(WriteHandler)
     async_write_some(
         ConstBufferSequence const& buffers,
         WriteHandler&& handler =
@@ -351,6 +350,7 @@ public:
 };
 
 } // beast
+} // bho
 
 #include <asio2/bho/beast/core/impl/buffered_read_stream.hpp>
 

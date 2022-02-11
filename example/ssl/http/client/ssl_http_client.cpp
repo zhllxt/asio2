@@ -146,7 +146,7 @@ int main()
 		std::cout << rep2 << std::endl;
 
 
-	http::request req1;
+	http::web_request req1;
 	req1.version(11);
 	req1.target("/");
 	req1.method(http::verb::post);
@@ -173,7 +173,7 @@ int main()
 		"../../cert/client.key",
 		"123456");
 	client.connect_timeout(std::chrono::seconds(10));
-	client.bind_recv([&](http::request& req, http::response& rep)
+	client.bind_recv([&](http::web_request& req, http::web_response& rep)
 	{
 		asio2::detail::ignore_unused(req);
 

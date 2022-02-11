@@ -7,11 +7,14 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_IMPL_MULTI_BUFFER_HPP
-#define BEAST_IMPL_MULTI_BUFFER_HPP
+#ifndef BHO_BEAST_IMPL_MULTI_BUFFER_HPP
+#define BHO_BEAST_IMPL_MULTI_BUFFER_HPP
 
 #include <asio2/bho/beast/core/buffer_traits.hpp>
-#include <asio2/bho/beast/core/util.hpp>
+#include <asio2/bho/config/workaround.hpp>
+#include <asio2/bho/core/exchange.hpp>
+#include <asio2/bho/assert.hpp>
+#include <asio2/bho/throw_exception.hpp>
 #include <algorithm>
 #include <exception>
 #include <iterator>
@@ -20,6 +23,7 @@
 #include <type_traits>
 #include <utility>
 
+namespace bho {
 namespace beast {
 
 /*  These diagrams illustrate the layout and state variables.
@@ -86,6 +90,12 @@ namespace beast {
 */
 
 //------------------------------------------------------------------------------
+
+#if BHO_WORKAROUND(BHO_MSVC, < 1910)
+# pragma warning (push)
+# pragma warning (disable: 4521) // multiple copy constructors specified
+# pragma warning (disable: 4522) // multiple assignment operators specified
+#endif
 
 template<class Allocator>
 template<bool isMutable>
@@ -250,8 +260,29 @@ public:
     class const_iterator;
 
     subrange() = delete;
+#if BHO_WORKAROUND(BHO_MSVC, < 1910)
+    subrange(subrange const& other)
+        : b_(other.b_)
+        , begin_(other.begin_)
+        , end_(other.end_)
+        , begin_pos_(other.begin_pos_)
+        , last_pos_(other.last_pos_)
+    {
+    }
+
+    subrange& operator=(subrange const& other)
+    {
+        b_ = other.b_;
+        begin_ = other.begin_;
+        end_ = other.end_;
+        begin_pos_ = other.begin_pos_;
+        last_pos_ = other.last_pos_;
+        return *this;
+    }
+#else
     subrange(subrange const&) = default;
     subrange& operator=(subrange const&) = default;
+#endif
 
     template<
         bool isMutable_ = isMutable,
@@ -289,6 +320,10 @@ public:
         return b_->size();
     }
 };
+
+#if BHO_WORKAROUND(BHO_MSVC, < 1910)
+# pragma warning (pop)
+#endif
 
 //------------------------------------------------------------------------------
 
@@ -345,7 +380,7 @@ public:
     operator*() const noexcept
     {
         value_type result;
-        BEAST_ASSERT(sr_->last_pos_ != 0);
+        BHO_ASSERT(sr_->last_pos_ != 0);
         if(it_ == std::prev(sr_->end_))
             result = {
                 (*it_)->data(), sr_->last_pos_ };
@@ -447,8 +482,8 @@ template<class Allocator>
 basic_multi_buffer<Allocator>::
 basic_multi_buffer(
     Allocator const& alloc) noexcept
-    : beast::empty_value<Allocator>(
-        beast::empty_init_t(), alloc)
+    : bho::empty_value<Allocator>(
+        bho::empty_init_t(), alloc)
     , max_(alloc_traits::max_size(this->get()))
     , out_(list_.end())
 {
@@ -459,8 +494,8 @@ basic_multi_buffer<Allocator>::
 basic_multi_buffer(
     std::size_t limit,
     Allocator const& alloc) noexcept
-    : beast::empty_value<Allocator>(
-        beast::empty_init_t(), alloc)
+    : bho::empty_value<Allocator>(
+        bho::empty_init_t(), alloc)
     , max_(limit)
     , out_(list_.end())
 {
@@ -470,8 +505,8 @@ template<class Allocator>
 basic_multi_buffer<Allocator>::
 basic_multi_buffer(
     basic_multi_buffer&& other) noexcept
-    : beast::empty_value<Allocator>(
-        beast::empty_init_t(), std::move(other.get()))
+    : bho::empty_value<Allocator>(
+        bho::empty_init_t(), std::move(other.get()))
     , max_(other.max_)
     , in_size_(std::exchange(other.in_size_, 0))
     , in_pos_(std::exchange(other.in_pos_, 0))
@@ -490,8 +525,8 @@ basic_multi_buffer<Allocator>::
 basic_multi_buffer(
     basic_multi_buffer&& other,
     Allocator const& alloc)
-    : beast::empty_value<Allocator>(
-        beast::empty_init_t(), alloc)
+    : bho::empty_value<Allocator>(
+        bho::empty_init_t(), alloc)
     , max_(other.max_)
 {
     if(this->get() != other.get())
@@ -520,8 +555,8 @@ template<class Allocator>
 basic_multi_buffer<Allocator>::
 basic_multi_buffer(
     basic_multi_buffer const& other)
-    : beast::empty_value<Allocator>(
-        beast::empty_init_t(), alloc_traits::
+    : bho::empty_value<Allocator>(
+        bho::empty_init_t(), alloc_traits::
             select_on_container_copy_construction(
                 other.get()))
     , max_(other.max_)
@@ -535,8 +570,8 @@ basic_multi_buffer<Allocator>::
 basic_multi_buffer(
     basic_multi_buffer const& other,
     Allocator const& alloc)
-    : beast::empty_value<Allocator>(
-        beast::empty_init_t(), alloc)
+    : bho::empty_value<Allocator>(
+        bho::empty_init_t(), alloc)
     , max_(other.max_)
     , out_(list_.end())
 {
@@ -559,8 +594,8 @@ basic_multi_buffer<Allocator>::
 basic_multi_buffer(
     basic_multi_buffer<OtherAlloc> const& other,
         allocator_type const& alloc)
-    : beast::empty_value<Allocator>(
-        beast::empty_init_t(), alloc)
+    : bho::empty_value<Allocator>(
+        bho::empty_init_t(), alloc)
     , max_(other.max_)
     , out_(list_.end())
 {
@@ -649,7 +684,7 @@ reserve(std::size_t n)
     // VFALCO The amount needs to be adjusted for
     //        the sizeof(element) plus padding
     if(n > alloc_traits::max_size(this->get()))
-        BEAST_THROW_EXCEPTION(std::length_error(
+        BHO_THROW_EXCEPTION(std::length_error(
         "A basic_multi_buffer exceeded the allocator's maximum size"));
     std::size_t total = in_size_;
     if(n <= total)
@@ -668,7 +703,7 @@ reserve(std::size_t n)
                 return;
         }
     }
-    BEAST_ASSERT(n > total);
+    BHO_ASSERT(n > total);
     (void)prepare(n - size());
 }
 
@@ -691,7 +726,7 @@ shrink_to_fit()
         in_pos_ = 0;
         out_pos_ = 0;
         out_end_ = 0;
-    #if BEAST_MULTI_BUFFER_DEBUG_CHECK
+    #if BHO_BEAST_MULTI_BUFFER_DEBUG_CHECK
         debug_check();
     #endif
         return;
@@ -710,23 +745,23 @@ shrink_to_fit()
                 std::next(out_),
                 list_.end());
             destroy(extra);
-        #if BEAST_MULTI_BUFFER_DEBUG_CHECK
+        #if BHO_BEAST_MULTI_BUFFER_DEBUG_CHECK
             debug_check();
         #endif
         }
 
         // unused out_
-        BEAST_ASSERT(out_ ==
+        BHO_ASSERT(out_ ==
             std::prev(list_.end(), 1));
         if(out_pos_ == 0)
         {
-            BEAST_ASSERT(out_ != list_.begin());
+            BHO_ASSERT(out_ != list_.begin());
             auto& e = **out_;
             list_.erase(out_);
             out_ = list_.end();
             destroy(e);
             out_end_ = 0;
-        #if BEAST_MULTI_BUFFER_DEBUG_CHECK
+        #if BHO_BEAST_MULTI_BUFFER_DEBUG_CHECK
             debug_check();
         #endif
         }
@@ -746,9 +781,9 @@ shrink_to_fit()
     // partial last buffer
     if(list_.size() > 1 && out_ != list_.end())
     {
-        BEAST_ASSERT(out_ ==
+        BHO_ASSERT(out_ ==
             std::prev(list_.end(), 1));
-        BEAST_ASSERT(out_pos_ != 0);
+        BHO_ASSERT(out_pos_ != 0);
         auto& e = alloc(out_pos_);
         std::memcpy(
             e.data(),
@@ -758,7 +793,7 @@ shrink_to_fit()
         out_ = list_.end();
         out_pos_ = 0;
         out_end_ = 0;
-    #if BEAST_MULTI_BUFFER_DEBUG_CHECK
+    #if BHO_BEAST_MULTI_BUFFER_DEBUG_CHECK
         debug_check();
     #endif
     }
@@ -780,8 +815,8 @@ shrink_to_fit()
         }
         else
         {
-            BEAST_ASSERT(list_.size() == 1);
-            BEAST_ASSERT(out_pos_ > in_pos_);
+            BHO_ASSERT(list_.size() == 1);
+            BHO_ASSERT(out_pos_ > in_pos_);
             auto const n = out_pos_ - in_pos_;
             auto& e = alloc(n);
             std::memcpy(
@@ -792,7 +827,7 @@ shrink_to_fit()
             in_pos_ = 0;
             out_ = list_.end();
         }
-    #if BEAST_MULTI_BUFFER_DEBUG_CHECK
+    #if BHO_BEAST_MULTI_BUFFER_DEBUG_CHECK
         debug_check();
     #endif
     }
@@ -818,7 +853,7 @@ prepare(size_type n) ->
 {
     auto const n0 = n;
     if(in_size_ > max_ || n > (max_ - in_size_))
-		BEAST_THROW_EXCEPTION(std::length_error{
+        BHO_THROW_EXCEPTION(std::length_error{
             "basic_multi_buffer too long"});
     list_type reuse;
     std::size_t total = in_size_;
@@ -831,7 +866,7 @@ prepare(size_type n) ->
             out_end_ = (*out_)->size();
             reuse.splice(reuse.end(), list_,
                 std::next(out_), list_.end());
-        #if BEAST_MULTI_BUFFER_DEBUG_CHECK
+        #if BHO_BEAST_MULTI_BUFFER_DEBUG_CHECK
             debug_check();
         #endif
         }
@@ -846,7 +881,7 @@ prepare(size_type n) ->
             out_end_ = out_pos_ + n;
             n = 0;
         }
-    #if BEAST_MULTI_BUFFER_DEBUG_CHECK
+    #if BHO_BEAST_MULTI_BUFFER_DEBUG_CHECK
         debug_check();
     #endif
     }
@@ -867,11 +902,11 @@ prepare(size_type n) ->
             out_end_ = n;
             n = 0;
         }
-    #if BEAST_MULTI_BUFFER_DEBUG_CHECK
+    #if BHO_BEAST_MULTI_BUFFER_DEBUG_CHECK
         debug_check();
     #endif
     }
-    BEAST_ASSERT(total <= max_);
+    BHO_ASSERT(total <= max_);
     if(! reuse.empty() || n > 0)
     {
         destroy(reuse);
@@ -893,7 +928,7 @@ prepare(size_type n) ->
             if(out_ == list_.end())
                 out_ = list_.iterator_to(e);
             out_end_ = n;
-        #if BEAST_MULTI_BUFFER_DEBUG_CHECK
+        #if BHO_BEAST_MULTI_BUFFER_DEBUG_CHECK
             debug_check();
         #endif
         }
@@ -901,7 +936,7 @@ prepare(size_type n) ->
     auto const result =
         mutable_buffers_type(
             *this, in_size_, n0);
-    BEAST_ASSERT(
+    BHO_ASSERT(
         net::buffer_size(result) == n0);
     return result;
 }
@@ -925,7 +960,7 @@ commit(size_type n) noexcept
         {
             out_pos_ += n;
             in_size_ += n;
-        #if BEAST_MULTI_BUFFER_DEBUG_CHECK
+        #if BHO_BEAST_MULTI_BUFFER_DEBUG_CHECK
             debug_check();
         #endif
             return;
@@ -934,7 +969,7 @@ commit(size_type n) noexcept
         n -= avail;
         out_pos_ = 0;
         in_size_ += avail;
-    #if BEAST_MULTI_BUFFER_DEBUG_CHECK
+    #if BHO_BEAST_MULTI_BUFFER_DEBUG_CHECK
         debug_check();
     #endif
     }
@@ -948,7 +983,7 @@ commit(size_type n) noexcept
         out_pos_ = 0;
         out_end_ = 0;
     }
-#if BEAST_MULTI_BUFFER_DEBUG_CHECK
+#if BHO_BEAST_MULTI_BUFFER_DEBUG_CHECK
     debug_check();
 #endif
 }
@@ -970,7 +1005,7 @@ consume(size_type n) noexcept
             {
                 in_size_ -= n;
                 in_pos_ += n;
-            #if BEAST_MULTI_BUFFER_DEBUG_CHECK
+            #if BHO_BEAST_MULTI_BUFFER_DEBUG_CHECK
                 debug_check();
             #endif
                 break;
@@ -981,7 +1016,7 @@ consume(size_type n) noexcept
             auto& e = *list_.front();
             list_.erase(list_.begin());
             destroy(e);
-        #if BEAST_MULTI_BUFFER_DEBUG_CHECK
+        #if BHO_BEAST_MULTI_BUFFER_DEBUG_CHECK
             debug_check();
         #endif
         }
@@ -1010,7 +1045,7 @@ consume(size_type n) noexcept
                     out_end_ = 0;
                 }
             }
-        #if BEAST_MULTI_BUFFER_DEBUG_CHECK
+        #if BHO_BEAST_MULTI_BUFFER_DEBUG_CHECK
             debug_check();
         #endif
             break;
@@ -1128,7 +1163,7 @@ void
 basic_multi_buffer<Allocator>::
 swap(basic_multi_buffer& other, std::false_type) noexcept
 {
-    BEAST_ASSERT(this->get() == other.get());
+    BHO_ASSERT(this->get() == other.get());
     using std::swap;
     auto const at_end0 =
         out_ == list_.end();
@@ -1197,7 +1232,7 @@ alloc(std::size_t size) ->
     element&
 {
     if(size > alloc_traits::max_size(this->get()))
-		BEAST_THROW_EXCEPTION(std::length_error(
+        BHO_THROW_EXCEPTION(std::length_error(
         "A basic_multi_buffer exceeded the allocator's maximum size"));
     auto a = rebind_type{this->get()};
     auto const p = alloc_traits::allocate(a,
@@ -1212,40 +1247,41 @@ basic_multi_buffer<Allocator>::
 debug_check() const
 {
 #ifndef NDEBUG
-    BEAST_ASSERT(buffer_bytes(data()) == in_size_);
+    BHO_ASSERT(buffer_bytes(data()) == in_size_);
     if(list_.empty())
     {
-        BEAST_ASSERT(in_pos_ == 0);
-        BEAST_ASSERT(in_size_ == 0);
-        BEAST_ASSERT(out_pos_ == 0);
-        BEAST_ASSERT(out_end_ == 0);
-        BEAST_ASSERT(out_ == list_.end());
+        BHO_ASSERT(in_pos_ == 0);
+        BHO_ASSERT(in_size_ == 0);
+        BHO_ASSERT(out_pos_ == 0);
+        BHO_ASSERT(out_end_ == 0);
+        BHO_ASSERT(out_ == list_.end());
         return;
     }
 
     auto const& front = *list_.front();
 
-    BEAST_ASSERT(in_pos_ < front.size());
+    BHO_ASSERT(in_pos_ < front.size());
 
     if(out_ == list_.end())
     {
-        BEAST_ASSERT(out_pos_ == 0);
-        BEAST_ASSERT(out_end_ == 0);
+        BHO_ASSERT(out_pos_ == 0);
+        BHO_ASSERT(out_end_ == 0);
     }
     else
     {
         auto const& out = **out_;
         auto const& back = *list_.back();
 
-        BEAST_ASSERT(out_end_ <= back.size());
-        BEAST_ASSERT(out_pos_ <  out.size());
-        BEAST_ASSERT(&out != &front || out_pos_ >= in_pos_);
-        BEAST_ASSERT(&out != &front || out_pos_ - in_pos_ == in_size_);
-        BEAST_ASSERT(&out != &back  || out_pos_ <= out_end_);
+        BHO_ASSERT(out_end_ <= back.size());
+        BHO_ASSERT(out_pos_ <  out.size());
+        BHO_ASSERT(&out != &front || out_pos_ >= in_pos_);
+        BHO_ASSERT(&out != &front || out_pos_ - in_pos_ == in_size_);
+        BHO_ASSERT(&out != &back  || out_pos_ <= out_end_);
     }
 #endif
 }
 
 } // beast
+} // bho
 
 #endif

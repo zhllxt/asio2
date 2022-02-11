@@ -7,11 +7,12 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_WEBSOCKET_OPTION_HPP
-#define BEAST_WEBSOCKET_OPTION_HPP
+#ifndef BHO_BEAST_WEBSOCKET_OPTION_HPP
+#define BHO_BEAST_WEBSOCKET_OPTION_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 
+namespace bho {
 namespace beast {
 namespace websocket {
 
@@ -58,5 +59,6 @@ struct permessage_deflate
 
 } // websocket
 } // beast
+} // bho
 
 #endif

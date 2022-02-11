@@ -7,8 +7,8 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_WEBSOCKET_IMPL_STREAM_IMPL_HPP
-#define BEAST_WEBSOCKET_IMPL_STREAM_IMPL_HPP
+#ifndef BHO_BEAST_WEBSOCKET_IMPL_STREAM_IMPL_HPP
+#define BHO_BEAST_WEBSOCKET_IMPL_STREAM_IMPL_HPP
 
 #include <asio2/bho/beast/websocket/rfc6455.hpp>
 #include <asio2/bho/beast/websocket/detail/frame.hpp>
@@ -30,23 +30,24 @@
 #include <asio2/bho/beast/core/static_buffer.hpp>
 #include <asio2/bho/beast/core/stream_traits.hpp>
 #include <asio2/bho/beast/core/detail/clamp.hpp>
-#include <asio/steady_timer.hpp>
-#include <asio2/bho/beast/core/empty_value.hpp>
+#include <asio2/3rd/asio.hpp>
+#include <asio2/bho/core/empty_value.hpp>
 #include <optional>
 
+namespace bho {
 namespace beast {
 namespace websocket {
 
 template<
     class NextLayer, bool deflateSupported>
 struct stream<NextLayer, deflateSupported>::impl_type
-    : beast::empty_value<NextLayer>
+    : bho::empty_value<NextLayer>
     , detail::service::impl_type
     , detail::impl_base<deflateSupported>
 {
     NextLayer& stream() noexcept
     {
-        return this->beast::empty_value<
+        return this->bho::empty_value<
             NextLayer>::get();
     }
 
@@ -121,13 +122,13 @@ struct stream<NextLayer, deflateSupported>::impl_type
 
     template<class... Args>
     impl_type(Args&&... args)
-        : beast::empty_value<NextLayer>(
-			beast::empty_init_t{},
+        : bho::empty_value<NextLayer>(
+            bho::empty_init_t{},
             std::forward<Args>(args)...)
         , detail::service::impl_type(
             this->get_context(
-                this->beast::empty_value<NextLayer>::get().get_executor()))
-        , timer(this->beast::empty_value<NextLayer>::get().get_executor())
+                this->bho::empty_value<NextLayer>::get().get_executor()))
+        , timer(this->bho::empty_value<NextLayer>::get().get_executor())
     {
         timeout_opt.handshake_timeout = none();
         timeout_opt.idle_timeout = none();
@@ -154,7 +155,7 @@ struct stream<NextLayer, deflateSupported>::impl_type
         timed_out = false;
         cr.code = close_code::none;
         role = role_;
-		BEAST_ASSERT(status_ != status::open);
+		BHO_ASSERT(status_ != status::open);
         status_ = status::open;
         rd_remain = 0;
         rd_cont = false;
@@ -187,7 +188,7 @@ struct stream<NextLayer, deflateSupported>::impl_type
     void
     reset()
     {
-        BEAST_ASSERT(status_ != status::open);
+        BHO_ASSERT(status_ != status::open);
         timer.expires_at(never());
         cr.code = close_code::none;
         rd_remain = 0;
@@ -264,7 +265,7 @@ struct stream<NextLayer, deflateSupported>::impl_type
     template<class Body, class Allocator, class Decorator>
     response_type
     build_response(
-        http::request_t<Body,
+        http::request<Body,
             http::basic_fields<Allocator>> const& req,
         Decorator const& decorator,
         error_code& result);
@@ -346,7 +347,7 @@ struct stream<NextLayer, deflateSupported>::impl_type
         if( status_ == status::closed ||
             status_ == status::failed)
         {
-            //BEAST_ASSERT(ec_delivered);
+            //BHO_ASSERT(ec_delivered);
             ec = net::error::operation_aborted;
             return true;
         }
@@ -383,7 +384,7 @@ struct stream<NextLayer, deflateSupported>::impl_type
             break;
 
         case status::closing:
-            //BEAST_ASSERT(status_ == status::open);
+            //BHO_ASSERT(status_ == status::open);
             break;
 
         case status::failed:
@@ -412,7 +413,7 @@ struct stream<NextLayer, deflateSupported>::impl_type
         switch(status_)
         {
         case status::handshake:
-            BEAST_ASSERT(idle_counter == 0);
+            BHO_ASSERT(idle_counter == 0);
             if(! is_timer_set() &&
                 timeout_opt.handshake_timeout != none())
             {
@@ -479,7 +480,7 @@ struct stream<NextLayer, deflateSupported>::impl_type
                 // a pending read with the timer set. The bigger
                 // fix is to give close its own timeout, instead
                 // of using the handshake timeout.
-                // BEAST_ASSERT(! is_timer_set());
+                // BHO_ASSERT(! is_timer_set());
             }
             break;
 
@@ -517,7 +518,7 @@ private:
 
     template<class Executor>
     class timeout_handler
-        : beast::empty_value<Executor>
+        : bho::empty_value<Executor>
     {
         std::weak_ptr<impl_type> wp_;
 
@@ -525,8 +526,8 @@ private:
         timeout_handler(
             Executor const& ex,
             std::weak_ptr<impl_type>&& wp)
-            : beast::empty_value<Executor>(
-				beast::empty_init_t{}, ex)
+            : bho::empty_value<Executor>(
+                bho::empty_init_t{}, ex)
             , wp_(std::move(wp))
         {
         }
@@ -545,7 +546,7 @@ private:
             // timer canceled?
             if(ec == net::error::operation_aborted)
                 return;
-            BEAST_ASSERT(! ec);
+            BHO_ASSERT(! ec);
 
             // stream destroyed?
             auto sp = wp_.lock();
@@ -822,7 +823,7 @@ parse_fh(
     {
 
         std::uint16_t len_be;
-        BEAST_ASSERT(buffer_bytes(cb) >= sizeof(len_be));
+        BHO_ASSERT(buffer_bytes(cb) >= sizeof(len_be));
         cb.consume(net::buffer_copy(
             net::mutable_buffer(&len_be, sizeof(len_be)), cb));
         fh.len = endian::big_to_native(len_be);
@@ -837,7 +838,7 @@ parse_fh(
     case 127:
     {
         std::uint64_t len_be;
-        BEAST_ASSERT(buffer_bytes(cb) >= sizeof(len_be));
+        BHO_ASSERT(buffer_bytes(cb) >= sizeof(len_be));
         cb.consume(net::buffer_copy(
             net::mutable_buffer(&len_be, sizeof(len_be)), cb));
         fh.len = endian::big_to_native(len_be);
@@ -853,7 +854,7 @@ parse_fh(
     if(fh.mask)
     {
         std::uint32_t key_le;
-        BEAST_ASSERT(buffer_bytes(cb) >= sizeof(key_le));
+        BHO_ASSERT(buffer_bytes(cb) >= sizeof(key_le));
         cb.consume(net::buffer_copy(
             net::mutable_buffer(&key_le, sizeof(key_le)), cb));
         fh.key = endian::little_to_native(key_le);
@@ -984,5 +985,6 @@ write_close(DynamicBuffer& db, close_reason const& cr)
 
 } // websocket
 } // beast
+} // bho
 
 #endif

@@ -7,8 +7,8 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_CORE_SPAN_HPP
-#define BEAST_CORE_SPAN_HPP
+#ifndef BHO_BEAST_CORE_SPAN_HPP
+#define BHO_BEAST_CORE_SPAN_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/core/detail/type_traits.hpp>
@@ -17,6 +17,7 @@
 #include <string>
 #include <type_traits>
 
+namespace bho {
 namespace beast {
 
 /** A range of bytes expressed as a ContiguousContainer
@@ -86,7 +87,7 @@ public:
         @param container The container to construct from
     */
     template<class ContiguousContainer
-#if ! BEAST_DOXYGEN
+#if ! BHO_BEAST_DOXYGEN
         , class = typename std::enable_if<
           detail::is_contiguous_container<
                 ContiguousContainer, T>::value>::type
@@ -99,7 +100,7 @@ public:
     {
     }
 
-#if ! BEAST_DOXYGEN
+#if ! BHO_BEAST_DOXYGEN
     template<class CharT, class Traits, class Allocator>
     explicit
     span(std::basic_string<CharT, Traits, Allocator>& s)
@@ -122,7 +123,7 @@ public:
         @param container The container to assign from
     */
     template<class ContiguousContainer>
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
     span&
 #else
     typename std::enable_if<detail::is_contiguous_container<
@@ -136,7 +137,7 @@ public:
         return *this;
     }
 
-#if ! BEAST_DOXYGEN
+#if ! BHO_BEAST_DOXYGEN
     template<class CharT, class Traits, class Allocator>
     span&
     operator=(std::basic_string<
@@ -209,5 +210,6 @@ public:
 };
 
 } // beast
+} // bho
 
 #endif

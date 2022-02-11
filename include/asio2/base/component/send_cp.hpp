@@ -184,10 +184,19 @@ namespace asio2::detail
 			detail::integer_add_sub_guard asg(derive.io().pending());
 
 			// why use copyable_wrapper? beacuse std::promise is moveable-only, but
-			// std::function is copyable-only
+			// std::function need copy-constructible.
+
+			// 20220211 : 
+			// Due to the event_queue_cp uses a custom detail::function that supports moveable-only instead
+			// of std::function, so copyable_wrapper is no longer required.
+
+			// https://en.cppreference.com/w/cpp/utility/functional/function/function
+			// The program is ill-formed if the target type is not copy-constructible or
+			// initialization of the target is ill-formed.
+
 			std::ignore = flag;
-			copyable_wrapper<std::promise<std::pair<error_code, std::size_t>>> promise;
-			std::future<std::pair<error_code, std::size_t>> future = promise().get_future();
+			std::promise<std::pair<error_code, std::size_t>> promise;
+			std::future<std::pair<error_code, std::size_t>> future = promise.get_future();
 			try
 			{
 				if (!derive.is_started())
@@ -200,19 +209,19 @@ namespace asio2::detail
 					derive._do_send(data, [&promise, g = std::move(g)]
 					(const error_code& ec, std::size_t bytes_sent) mutable
 					{
-						promise().set_value(std::pair<error_code, std::size_t>(ec, bytes_sent));
+						promise.set_value(std::pair<error_code, std::size_t>(ec, bytes_sent));
 					});
 				});
 			}
 			catch (system_error & e)
 			{
 				set_last_error(e);
-				promise().set_value(std::pair<error_code, std::size_t>(e.code(), 0));
+				promise.set_value(std::pair<error_code, std::size_t>(e.code(), 0));
 			}
 			catch (std::exception &)
 			{
 				set_last_error(asio::error::eof);
-				promise().set_value(std::pair<error_code, std::size_t>(asio::error::eof, 0));
+				promise.set_value(std::pair<error_code, std::size_t>(asio::error::eof, 0));
 			}
 			return future;
 		}
@@ -257,8 +266,8 @@ namespace asio2::detail
 			detail::integer_add_sub_guard asg(derive.io().pending());
 
 			std::ignore = flag;
-			copyable_wrapper<std::promise<std::pair<error_code, std::size_t>>> promise;
-			std::future<std::pair<error_code, std::size_t>> future = promise().get_future();
+			std::promise<std::pair<error_code, std::size_t>> promise;
+			std::future<std::pair<error_code, std::size_t>> future = promise.get_future();
 			try
 			{
 				if (!derive.is_started())
@@ -273,19 +282,19 @@ namespace asio2::detail
 					derive._do_send(data, [&promise, g = std::move(g)]
 					(const error_code& ec, std::size_t bytes_sent) mutable
 					{
-						promise().set_value(std::pair<error_code, std::size_t>(ec, bytes_sent));
+						promise.set_value(std::pair<error_code, std::size_t>(ec, bytes_sent));
 					});
 				});
 			}
 			catch (system_error & e)
 			{
 				set_last_error(e);
-				promise().set_value(std::pair<error_code, std::size_t>(e.code(), 0));
+				promise.set_value(std::pair<error_code, std::size_t>(e.code(), 0));
 			}
 			catch (std::exception &)
 			{
 				set_last_error(asio::error::eof);
-				promise().set_value(std::pair<error_code, std::size_t>(asio::error::eof, 0));
+				promise.set_value(std::pair<error_code, std::size_t>(asio::error::eof, 0));
 			}
 			return future;
 		}

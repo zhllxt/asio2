@@ -7,14 +7,15 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_HTTP_EMPTY_BODY_HPP
-#define BEAST_HTTP_EMPTY_BODY_HPP
+#ifndef BHO_BEAST_HTTP_EMPTY_BODY_HPP
+#define BHO_BEAST_HTTP_EMPTY_BODY_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/http/error.hpp>
 #include <asio2/bho/beast/http/message.hpp>
 #include <optional>
 
+namespace bho {
 namespace beast {
 namespace http {
 
@@ -55,7 +56,7 @@ struct empty_body
 
         Meets the requirements of <em>BodyReader</em>.
     */
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
     using reader = __implementation_defined__;
 #else
     struct reader
@@ -93,7 +94,7 @@ struct empty_body
 
         Meets the requirements of <em>BodyWriter</em>.
     */
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
     using writer = __implementation_defined__;
 #else
     struct writer
@@ -125,5 +126,6 @@ struct empty_body
 
 } // http
 } // beast
+} // bho
 
 #endif

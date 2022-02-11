@@ -7,36 +7,48 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_WEBSOCKET_IMPL_ERROR_HPP
-#define BEAST_WEBSOCKET_IMPL_ERROR_HPP
+#ifndef BHO_BEAST_WEBSOCKET_IMPL_ERROR_HPP
+#define BHO_BEAST_WEBSOCKET_IMPL_ERROR_HPP
 
 #include <system_error>
 
+#ifdef ASIO_STANDALONE
 namespace std {
+#else
+namespace boost {
+namespace system {
+#endif
 template<>
-struct is_error_code_enum<::beast::websocket::error>
+struct is_error_code_enum<::bho::beast::websocket::error>
 {
     static bool const value = true;
 };
 template<>
-struct is_error_condition_enum<::beast::websocket::condition>
+struct is_error_condition_enum<::bho::beast::websocket::condition>
 {
     static bool const value = true;
 };
+#ifdef ASIO_STANDALONE
 } // std
+#else
+} // system
+} // boost
+#endif
 
+namespace bho {
 namespace beast {
 namespace websocket {
 
-BEAST_DECL
+BHO_BEAST_DECL
 error_code
 make_error_code(error e);
 
-BEAST_DECL
+BHO_BEAST_DECL
 error_condition
 make_error_condition(condition c);
 
 } // websocket
 } // beast
+} // bho
 
 #endif

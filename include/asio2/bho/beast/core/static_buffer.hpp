@@ -7,14 +7,15 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_STATIC_BUFFER_HPP
-#define BEAST_STATIC_BUFFER_HPP
+#ifndef BHO_BEAST_STATIC_BUFFER_HPP
+#define BHO_BEAST_STATIC_BUFFER_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/core/detail/buffers_pair.hpp>
-#include <asio/buffer.hpp>
+#include <asio2/3rd/asio.hpp>
 #include <cstddef>
 
+namespace bho {
 namespace beast {
 
 /** A dynamic buffer providing a fixed size, circular buffer.
@@ -68,7 +69,7 @@ public:
 
         @param size The number of valid bytes pointed to by `p`.
     */
-    BEAST_DECL
+    BHO_BEAST_DECL
     static_buffer_base(void* p, std::size_t size) noexcept;
 
     /** Clear the readable and writable bytes to zero.
@@ -83,13 +84,13 @@ public:
 
         No-throw guarantee.
     */
-    BEAST_DECL
+    BHO_BEAST_DECL
     void
     clear() noexcept;
 
     //--------------------------------------------------------------------------
 
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
     /// The ConstBufferSequence used to represent the readable bytes.
     using const_buffers_type = __implementation_defined__;
 
@@ -123,7 +124,7 @@ public:
     }
 
     /// Returns a constant buffer sequence representing the readable bytes
-    BEAST_DECL
+    BHO_BEAST_DECL
     const_buffers_type
     data() const noexcept;
 
@@ -135,7 +136,7 @@ public:
     }
 
     /// Returns a mutable buffer sequence representing the readable bytes
-    BEAST_DECL
+    BHO_BEAST_DECL
     mutable_buffers_type
     data() noexcept;
 
@@ -157,7 +158,7 @@ public:
 
         Strong guarantee.
     */
-    BEAST_DECL
+    BHO_BEAST_DECL
     mutable_buffers_type
     prepare(std::size_t n);
 
@@ -179,7 +180,7 @@ public:
 
         No-throw guarantee.
     */
-    BEAST_DECL
+    BHO_BEAST_DECL
     void
     commit(std::size_t n) noexcept;
 
@@ -198,7 +199,7 @@ public:
 
         No-throw guarantee.
     */
-    BEAST_DECL
+    BHO_BEAST_DECL
     void
     consume(std::size_t n) noexcept;
 };
@@ -283,6 +284,7 @@ public:
 };
 
 } // beast
+} // bho
 
 #include <asio2/bho/beast/core/impl/static_buffer.hpp>
 #ifdef BEAST_HEADER_ONLY

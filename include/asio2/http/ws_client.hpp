@@ -120,7 +120,7 @@ namespace asio2::detail
 		/**
 		 * @function : get the websocket upgraged response object
 		 */
-		inline const http::response_t<body_type>& upgrade_response() noexcept { return this->upgrade_rep_; }
+		inline const http::response<body_type>& upgrade_response() noexcept { return this->upgrade_rep_; }
 
 		/**
 		 * @function : get the websocket upgraged target
@@ -234,7 +234,7 @@ namespace asio2::detail
 		}
 
 	protected:
-		http::response_t<body_type> upgrade_rep_;
+		http::response<body_type> upgrade_rep_;
 
 		std::string                 upgrade_target_ = "/";
 	};

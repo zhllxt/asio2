@@ -7,20 +7,20 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_DETAIL_CPU_INFO_HPP
-#define BEAST_DETAIL_CPU_INFO_HPP
+#ifndef BHO_BEAST_DETAIL_CPU_INFO_HPP
+#define BHO_BEAST_DETAIL_CPU_INFO_HPP
 
 #include <asio2/bho/config.hpp>
 
-#ifndef BEAST_NO_INTRINSICS
+#ifndef BHO_BEAST_NO_INTRINSICS
 # if defined(BHO_MSVC) || ((defined(BHO_GCC) || defined(BHO_CLANG)) && defined(__SSE4_2__))
-#  define BEAST_NO_INTRINSICS 0
+#  define BHO_BEAST_NO_INTRINSICS 0
 # else
-#  define BEAST_NO_INTRINSICS 1
+#  define BHO_BEAST_NO_INTRINSICS 1
 # endif
 #endif
 
-#if ! BEAST_NO_INTRINSICS
+#if ! BHO_BEAST_NO_INTRINSICS
 
 #ifdef BHO_MSVC
 #include <intrin.h> // __cpuid
@@ -28,6 +28,7 @@
 #include <cpuid.h>  // __get_cpuid
 #endif
 
+namespace bho {
 namespace beast {
 namespace detail {
 
@@ -91,6 +92,7 @@ get_cpu_info()
 
 } // detail
 } // beast
+} // bho
 
 #endif
 

@@ -7,13 +7,14 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_CORE_DETAIL_PCG_HPP
-#define BEAST_CORE_DETAIL_PCG_HPP
+#ifndef BHO_BEAST_CORE_DETAIL_PCG_HPP
+#define BHO_BEAST_CORE_DETAIL_PCG_HPP
 
-#include <asio2/bho/beast/core/util.hpp>
+#include <asio2/bho/core/ignore_unused.hpp>
 #include <cstdint>
 #include <random>
 
+namespace bho {
 namespace beast {
 namespace detail {
 
@@ -33,9 +34,9 @@ public:
     {
         // increment must be odd
         increment_ = 2 * stream + 1;
-        beast::ignore_unused((*this)());
+        bho::ignore_unused((*this)());
         state_ += seed;
-		beast::ignore_unused((*this)());
+        bho::ignore_unused((*this)());
     }
 
     std::uint32_t
@@ -59,5 +60,6 @@ public:
 
 } // detail
 } // beast
+} // bho
 
 #endif

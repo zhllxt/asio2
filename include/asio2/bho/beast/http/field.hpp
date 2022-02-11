@@ -7,13 +7,14 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_HTTP_FIELD_HPP
-#define BEAST_HTTP_FIELD_HPP
+#ifndef BHO_BEAST_HTTP_FIELD_HPP
+#define BHO_BEAST_HTTP_FIELD_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/core/string.hpp>
 #include <iosfwd>
 
+namespace bho {
 namespace beast {
 namespace http {
 
@@ -378,12 +379,11 @@ namespace http {
         x400_trace,
         xref
     };
-
 /** Convert a field enum to a string.
 
     @param f The field to convert
 */
-BEAST_DECL
+BHO_BEAST_DECL
 string_view
 to_string(field f);
 
@@ -394,17 +394,18 @@ to_string(field f);
     @return The corresponding field, or @ref field::unknown
     if no known field matches.
 */
-BEAST_DECL
+BHO_BEAST_DECL
 field
 string_to_field(string_view s);
 
 /// Write the text for a field name to an output stream.
-BEAST_DECL
+BHO_BEAST_DECL
 std::ostream&
 operator<<(std::ostream& os, field f);
 
 } // http
 } // beast
+} // bho
 
 #ifdef BEAST_HEADER_ONLY
 #include <asio2/bho/beast/http/impl/field.ipp>

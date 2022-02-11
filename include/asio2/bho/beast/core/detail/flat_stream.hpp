@@ -7,13 +7,14 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_CORE_DETAIL_FLAT_STREAM_HPP
-#define BEAST_CORE_DETAIL_FLAT_STREAM_HPP
+#ifndef BHO_BEAST_CORE_DETAIL_FLAT_STREAM_HPP
+#define BHO_BEAST_CORE_DETAIL_FLAT_STREAM_HPP
 
 #include <asio2/bho/beast/core/buffer_traits.hpp>
-#include <asio/buffer.hpp>
+#include <asio2/3rd/asio.hpp>
 #include <cstdlib>
 
+namespace bho {
 namespace beast {
 namespace detail {
 
@@ -67,5 +68,6 @@ public:
 
 } // detail
 } // beast
+} // bho
 
 #endif

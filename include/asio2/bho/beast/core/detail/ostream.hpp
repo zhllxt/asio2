@@ -7,19 +7,20 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_DETAIL_OSTREAM_HPP
-#define BEAST_DETAIL_OSTREAM_HPP
+#ifndef BHO_BEAST_DETAIL_OSTREAM_HPP
+#define BHO_BEAST_DETAIL_OSTREAM_HPP
 
 #include <asio2/bho/beast/core/buffers_prefix.hpp>
 #include <asio2/bho/beast/core/buffers_range.hpp>
-#include <asio2/bho/beast/core/util.hpp>
-#include <asio/buffer.hpp>
+#include <asio2/bho/throw_exception.hpp>
+#include <asio2/3rd/asio.hpp>
 #include <memory>
 #include <ostream>
 #include <streambuf>
 #include <type_traits>
 #include <utility>
 
+namespace bho {
 namespace beast {
 namespace detail {
 
@@ -71,7 +72,7 @@ public:
     int_type
     overflow(int_type ch) override
     {
-        BEAST_ASSERT(! Traits::eq_int_type(
+        BHO_ASSERT(! Traits::eq_int_type(
             ch, Traits::eof()));
         sync();
 
@@ -88,7 +89,7 @@ public:
         auto const p = static_cast<CharT*>(b.data());
         this->setp(p, p + b.size() / sizeof(CharT));
 
-		BEAST_ASSERT(b_.capacity() > b_.size());
+        BHO_ASSERT(b_.capacity() > b_.size());
         return this->sputc(
             Traits::to_char_type(ch));
     }
@@ -141,7 +142,7 @@ public:
     int_type
     overflow(int_type ch) override
     {
-		BEAST_ASSERT(! Traits::eq_int_type(
+        BHO_ASSERT(! Traits::eq_int_type(
             ch, Traits::eof()));
         sync();
 
@@ -158,7 +159,7 @@ public:
         auto const p = static_cast<CharT*>(b.data());
         this->setp(p, p + b.size() / sizeof(CharT));
 
-		BEAST_ASSERT(b_.capacity() > b_.size());
+        BHO_ASSERT(b_.capacity() > b_.size());
         return this->sputc(
             Traits::to_char_type(ch));
     }
@@ -261,5 +262,6 @@ public:
 
 } // detail
 } // beast
+} // bho
 
 #endif

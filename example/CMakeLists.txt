@@ -185,8 +185,11 @@ else()
 endif()
 
 
+#include_directories (/usr/local/include) # for boost header file include
 include_directories (${ASIO2_ROOT_DIR}/3rd)
 include_directories (${ASIO2_ROOT_DIR}/include)
+
+#link_directories    (/usr/local/lib)     # for boost library file include
 
 
 file (GLOB_RECURSE  ASIO2_FILES  ${ASIO2_ROOT_DIR}/include/asio2/*.*)

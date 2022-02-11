@@ -7,16 +7,18 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_HTTP_IMPL_FIELD_IPP
-#define BEAST_HTTP_IMPL_FIELD_IPP
+#ifndef BHO_BEAST_HTTP_IMPL_FIELD_IPP
+#define BHO_BEAST_HTTP_IMPL_FIELD_IPP
 
 #include <asio2/bho/beast/http/field.hpp>
+#include <asio2/bho/assert.hpp>
 #include <algorithm>
 #include <array>
 #include <cstring>
-#include <asio2/bho/beast/core/util.hpp>
 #include <ostream>
 
+
+namespace bho {
 namespace beast {
 namespace http {
 
@@ -479,7 +481,7 @@ struct field_table
             auto sv = by_name_[ i ];
             auto h = digest(sv);
             auto j = h % N;
-            BEAST_ASSERT(map_[j][0] == 0);
+            BHO_ASSERT(map_[j][0] == 0);
             map_[j][0] = static_cast<unsigned char>(i);
         }
 
@@ -488,7 +490,7 @@ struct field_table
             auto sv = by_name_[i];
             auto h = digest(sv);
             auto j = h % N;
-			BEAST_ASSERT(map_[j][1] == 0);
+            BHO_ASSERT(map_[j][1] == 0);
             map_[j][1] = static_cast<unsigned char>(i - 255);
         }
     }
@@ -539,7 +541,7 @@ struct field_table
     }
 };
 
-BEAST_DECL
+BHO_BEAST_DECL
 field_table const&
 get_field_table()
 {
@@ -547,12 +549,12 @@ get_field_table()
     return tab;
 }
 
-BEAST_DECL
+BHO_BEAST_DECL
 string_view
 to_string(field f)
 {
     auto const& v = get_field_table();
-	BEAST_ASSERT(static_cast<unsigned>(f) < v.size());
+    BHO_ASSERT(static_cast<unsigned>(f) < v.size());
     return v.begin()[static_cast<unsigned>(f)];
 }
 
@@ -578,5 +580,6 @@ operator<<(std::ostream& os, field f)
 
 } // http
 } // beast
+} // bho
 
 #endif

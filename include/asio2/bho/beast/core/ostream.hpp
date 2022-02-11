@@ -7,8 +7,8 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_WRITE_OSTREAM_HPP
-#define BEAST_WRITE_OSTREAM_HPP
+#ifndef BHO_BEAST_WRITE_OSTREAM_HPP
+#define BHO_BEAST_WRITE_OSTREAM_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/core/detail/ostream.hpp>
@@ -16,10 +16,11 @@
 #include <streambuf>
 #include <utility>
 
-#ifdef BEAST_ALLOW_DEPRECATED
+#ifdef BHO_BEAST_ALLOW_DEPRECATED
 #include <asio2/bho/beast/core/make_printable.hpp>
 #endif
 
+namespace bho {
 namespace beast {
 
 /** Return an output stream that formats values into a <em>DynamicBuffer</em>.
@@ -47,7 +48,7 @@ namespace beast {
     lifetime of the output stream.
 */
 template<class DynamicBuffer>
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
 __implementation_defined__
 #else
 detail::ostream_helper<
@@ -66,7 +67,7 @@ ostream(DynamicBuffer& buffer)
 
 //------------------------------------------------------------------------------
 
-#ifdef BEAST_ALLOW_DEPRECATED
+#ifdef BHO_BEAST_ALLOW_DEPRECATED
 template<class T>
 detail::make_printable_adaptor<T>
 buffers(T const& t)
@@ -79,10 +80,11 @@ void buffers(T const&)
 {
     static_assert(sizeof(T) == 0,
         "The function buffers() is deprecated, use make_printable() instead, "
-        "or define BEAST_ALLOW_DEPRECATED to silence this error.");
+        "or define BHO_BEAST_ALLOW_DEPRECATED to silence this error.");
 }
 #endif
 
 } // beast
+} // bho
 
 #endif

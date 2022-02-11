@@ -7,12 +7,13 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_HTTP_IMPL_PARSER_HPP
-#define BEAST_HTTP_IMPL_PARSER_HPP
+#ifndef BHO_BEAST_HTTP_IMPL_PARSER_HPP
+#define BHO_BEAST_HTTP_IMPL_PARSER_HPP
 
-#include <asio2/bho/beast/core/util.hpp>
+#include <asio2/bho/throw_exception.hpp>
 #include <stdexcept>
 
+namespace bho {
 namespace beast {
 namespace http {
 
@@ -46,11 +47,12 @@ parser(
     , rd_(m_.base(), m_.body())
 {
     if(other.rd_inited_)
-        BEAST_THROW_EXCEPTION(std::invalid_argument{
+        BHO_THROW_EXCEPTION(std::invalid_argument{
             "moved-from parser has a body"});
 }
 
 } // http
 } // beast
+} // bho
 
 #endif

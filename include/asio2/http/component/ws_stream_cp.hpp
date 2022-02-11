@@ -127,7 +127,7 @@ namespace asio2::detail
 				magic_enum::enum_name(derive.state_.load()));
 
 			// bug fixed : resolve beast::websocket::detail::soft_mutex 
-			// BEAST_ASSERT(id_ != T::id); failed (line 89).
+			// BHO_ASSERT(id_ != T::id); failed (line 89).
 			// 
 			// If this assert goes off it means you are attempting to
 			// simultaneously initiate more than one of same asynchronous
@@ -156,7 +156,7 @@ namespace asio2::detail
 
 				// Can't call close twice
 				// TODO return a custom error code
-				// BEAST_ASSERT(! impl.wr_close);
+				// BHO_ASSERT(! impl.wr_close);
 				if (!this->ws_stream_->is_open())
 				{
 					// must Reset the control frame callback. the control frame callback hold the 

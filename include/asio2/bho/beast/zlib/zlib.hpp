@@ -34,13 +34,14 @@
     (zlib format), rfc1951 (deflate format) and rfc1952 (gzip format).
 */
 
-#ifndef BEAST_ZLIB_ZLIB_HPP
-#define BEAST_ZLIB_ZLIB_HPP
+#ifndef BHO_BEAST_ZLIB_ZLIB_HPP
+#define BHO_BEAST_ZLIB_ZLIB_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <cstdint>
 #include <cstdlib>
 
+namespace bho {
 namespace beast {
 namespace zlib {
 
@@ -176,6 +177,7 @@ enum class Strategy
 
 } // zlib
 } // beast
+} // bho
 
 #endif
 

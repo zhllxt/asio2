@@ -7,13 +7,14 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_CORE_DETAIL_CLAMP_HPP
-#define BEAST_CORE_DETAIL_CLAMP_HPP
+#ifndef BHO_BEAST_CORE_DETAIL_CLAMP_HPP
+#define BHO_BEAST_CORE_DETAIL_CLAMP_HPP
 
 #include <cstdlib>
 #include <limits>
 #include <type_traits>
 
+namespace bho {
 namespace beast {
 namespace detail {
 
@@ -53,5 +54,6 @@ sum_exceeds(U1 x, U2 y, U3 z)
 
 } // detail
 } // beast
+} // bho
 
 #endif

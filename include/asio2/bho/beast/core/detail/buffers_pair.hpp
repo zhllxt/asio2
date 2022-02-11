@@ -7,24 +7,30 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_DETAIL_BUFFERS_PAIR_HPP
-#define BEAST_DETAIL_BUFFERS_PAIR_HPP
+#ifndef BHO_BEAST_DETAIL_BUFFERS_PAIR_HPP
+#define BHO_BEAST_DETAIL_BUFFERS_PAIR_HPP
 
-#include <asio2/bho/beast/core/detail/config.hpp>
-#include <asio/buffer.hpp>
-#include <asio2/bho/beast/core/util.hpp>
-
+#include <asio2/3rd/asio.hpp>
+#include <asio2/bho/assert.hpp>
+#include <asio2/bho/config/workaround.hpp>
 #include <type_traits>
 
+namespace bho {
 namespace beast {
 namespace detail {
+
+#if BHO_WORKAROUND(BHO_MSVC, < 1910)
+# pragma warning (push)
+# pragma warning (disable: 4521) // multiple copy constructors specified
+# pragma warning (disable: 4522) // multiple assignment operators specified
+#endif
 
 template<bool isMutable>
 class buffers_pair
 {
 public:
     // VFALCO: This type is public otherwise
-    //         asio::buffers_iterator won't compile.
+    //         net::buffers_iterator won't compile.
     using value_type = typename
         std::conditional<isMutable,
             net::mutable_buffer,
@@ -34,8 +40,24 @@ public:
 
     buffers_pair() = default;
 
+#if BHO_WORKAROUND(BHO_MSVC, < 1910)
+    buffers_pair(buffers_pair const& other)
+        : buffers_pair(
+            *other.begin(), *(other.begin() + 1))
+    {
+    }
+
+    buffers_pair&
+    operator=(buffers_pair const& other)
+    {
+        b_[0] = *other.begin();
+        b_[1] = *(other.begin() + 1);
+        return *this;
+    }
+#else
     buffers_pair(buffers_pair const& other) = default;
     buffers_pair& operator=(buffers_pair const& other) = default;
+#endif
 
     template<
         bool isMutable_ = isMutable,
@@ -82,7 +104,12 @@ private:
     value_type b_[2];
 };
 
+#if BHO_WORKAROUND(BHO_MSVC, < 1910)
+# pragma warning (pop)
+#endif
+
 } // detail
 } // beast
+} // bho
 
 #endif

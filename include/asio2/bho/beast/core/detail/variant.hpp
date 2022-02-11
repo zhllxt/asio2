@@ -7,12 +7,13 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_DETAIL_VARIANT_HPP
-#define BEAST_DETAIL_VARIANT_HPP
+#ifndef BHO_BEAST_DETAIL_VARIANT_HPP
+#define BHO_BEAST_DETAIL_VARIANT_HPP
 
 #include <asio2/bho/beast/core/detail/type_traits.hpp>
-#include <asio2/bho/beast/core/util.hpp>
+#include <asio2/bho/assert.hpp>
 
+namespace bho {
 namespace beast {
 namespace detail {
 
@@ -27,5 +28,6 @@ namespace detail {
 
 } // detail
 } // beast
+} // bho
 
 #endif

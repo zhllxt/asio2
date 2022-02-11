@@ -7,17 +7,17 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_SRC_HPP
-#define BEAST_SRC_HPP
+#ifndef BHO_BEAST_SRC_HPP
+#define BHO_BEAST_SRC_HPP
 
 /*
 
 This file is meant to be included once, in a translation unit of
-the program, with the macro BEAST_SEPARATE_COMPILATION defined.
+the program, with the macro BHO_BEAST_SEPARATE_COMPILATION defined.
 
 */
 
-#define BEAST_SOURCE
+#define BHO_BEAST_SOURCE
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 

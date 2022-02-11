@@ -23,12 +23,15 @@
 #include <algorithm>
 
 #include <asio2/3rd/asio.hpp>
+#include <asio2/3rd/beast.hpp>
+
 #include <asio2/base/error.hpp>
 
-#include <asio2/bho/beast/zlib/deflate_stream.hpp>
-#include <asio2/bho/beast/zlib/inflate_stream.hpp>
-
-namespace beast::zlib
+#ifdef BEAST_HEADER_ONLY
+namespace bho::beast::zlib
+#else
+namespace boost::beast::zlib
+#endif
 {
 	/**
 	 * impl : use the beast::zlib for compress and uncompress

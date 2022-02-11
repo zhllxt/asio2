@@ -7,15 +7,16 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_FLAT_STATIC_BUFFER_HPP
-#define BEAST_FLAT_STATIC_BUFFER_HPP
+#ifndef BHO_BEAST_FLAT_STATIC_BUFFER_HPP
+#define BHO_BEAST_FLAT_STATIC_BUFFER_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
-#include <asio/buffer.hpp>
+#include <asio2/3rd/asio.hpp>
 #include <algorithm>
 #include <cstddef>
 #include <cstring>
 
+namespace bho {
 namespace beast {
 
 /** A dynamic buffer using a fixed size internal buffer.
@@ -87,7 +88,7 @@ public:
 
         No-throw guarantee.
     */
-    BEAST_DECL
+    BHO_BEAST_DECL
     void
     clear() noexcept;
 
@@ -158,7 +159,7 @@ public:
 
         Strong guarantee.
     */
-    BEAST_DECL
+    BHO_BEAST_DECL
     mutable_buffers_type
     prepare(std::size_t n);
 
@@ -201,7 +202,7 @@ public:
 
         No-throw guarantee.
     */
-    BEAST_DECL
+    BHO_BEAST_DECL
     void
     consume(std::size_t n) noexcept;
 
@@ -229,7 +230,7 @@ protected:
 
         No-throw guarantee.
     */
-    BEAST_DECL
+    BHO_BEAST_DECL
     void
     reset(void* p, std::size_t n) noexcept;
 
@@ -306,6 +307,7 @@ public:
 };
 
 } // beast
+} // bho
 
 #include <asio2/bho/beast/core/impl/flat_static_buffer.hpp>
 #ifdef BEAST_HEADER_ONLY

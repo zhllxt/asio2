@@ -7,8 +7,8 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_HTTP_IMPL_CHUNK_ENCODE_HPP
-#define BEAST_HTTP_IMPL_CHUNK_ENCODE_HPP
+#ifndef BHO_BEAST_HTTP_IMPL_CHUNK_ENCODE_HPP
+#define BHO_BEAST_HTTP_IMPL_CHUNK_ENCODE_HPP
 
 #include <asio2/bho/beast/core/buffer_traits.hpp>
 #include <asio2/bho/beast/core/detail/varint.hpp>
@@ -16,6 +16,7 @@
 #include <asio2/bho/beast/http/detail/rfc7230.hpp>
 #include <algorithm>
 
+namespace bho {
 namespace beast {
 namespace http {
 
@@ -27,7 +28,7 @@ chunk_header(std::size_t size)
         net::const_buffer{nullptr, 0},
         chunk_crlf{})
 {
-    BEAST_ASSERT(size > 0);
+    BHO_ASSERT(size > 0);
 }
 
 inline
@@ -41,7 +42,7 @@ chunk_header(
             extensions.data(), extensions.size()},
         chunk_crlf{})
 {
-    BEAST_ASSERT(size > 0);
+    BHO_ASSERT(size > 0);
 }
 
 template<class ChunkExtensions, class>
@@ -60,7 +61,7 @@ chunk_header(
     static_assert(
         detail::is_chunk_extensions<ChunkExtensions>::value,
         "ChunkExtensions requirements not met");
-    BEAST_ASSERT(size > 0);
+    BHO_ASSERT(size > 0);
 }
 
 template<class ChunkExtensions, class Allocator, class>
@@ -80,7 +81,7 @@ chunk_header(
     static_assert(
         detail::is_chunk_extensions<ChunkExtensions>::value,
         "ChunkExtensions requirements not met");
-    BEAST_ASSERT(size > 0);
+    BHO_ASSERT(size > 0);
 }
 
 //------------------------------------------------------------------------------
@@ -541,13 +542,13 @@ semi:
         it = first;
         for(;;)
         {
-            BEAST_ASSERT(it != last);
+            BHO_ASSERT(it != last);
             if(*it == '"')
                 break;
             if(*it == '\\')
             {
                 ++it;
-                BEAST_ASSERT(it != last);
+                BHO_ASSERT(it != last);
             }
             Traits::assign(*dest++, *it++);
         }
@@ -700,5 +701,6 @@ end() const ->
 
 } // http
 } // beast
+} // bho
 
 #endif

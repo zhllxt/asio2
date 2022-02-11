@@ -7,8 +7,8 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_CORE_FILE_STDIO_HPP
-#define BEAST_CORE_FILE_STDIO_HPP
+#ifndef BHO_BEAST_CORE_FILE_STDIO_HPP
+#define BHO_BEAST_CORE_FILE_STDIO_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/core/error.hpp>
@@ -16,6 +16,7 @@
 #include <cstdio>
 #include <cstdint>
 
+namespace bho {
 namespace beast {
 
 /** An implementation of File which uses cstdio.
@@ -38,7 +39,7 @@ public:
 
         If the file is open it is first closed.
     */
-    BEAST_DECL
+    BHO_BEAST_DECL
     ~file_stdio();
 
     /** Constructor
@@ -51,14 +52,14 @@ public:
 
         The moved-from object behaves as if default constructed.
     */
-    BEAST_DECL
+    BHO_BEAST_DECL
     file_stdio(file_stdio&& other);
 
     /** Assignment
 
         The moved-from object behaves as if default constructed.
     */
-    BEAST_DECL
+    BHO_BEAST_DECL
     file_stdio& operator=(file_stdio&& other);
 
     /// Returns the native handle associated with the file.
@@ -74,7 +75,7 @@ public:
 
         @param f The native file handle to assign.
     */
-    BEAST_DECL
+    BHO_BEAST_DECL
     void
     native_handle(std::FILE* f);
 
@@ -89,7 +90,7 @@ public:
 
         @param ec Set to the error, if any occurred.
     */
-    BEAST_DECL
+    BHO_BEAST_DECL
     void
     close(error_code& ec);
 
@@ -101,7 +102,7 @@ public:
 
         @param ec Set to the error, if any occurred
     */
-    BEAST_DECL
+    BHO_BEAST_DECL
     void
     open(char const* path, file_mode mode, error_code& ec);
 
@@ -111,7 +112,7 @@ public:
 
         @return The size in bytes
     */
-    BEAST_DECL
+    BHO_BEAST_DECL
     std::uint64_t
     size(error_code& ec) const;
 
@@ -121,7 +122,7 @@ public:
 
         @return The offset in bytes from the beginning of the file
     */
-    BEAST_DECL
+    BHO_BEAST_DECL
     std::uint64_t
     pos(error_code& ec) const;
 
@@ -131,7 +132,7 @@ public:
 
         @param ec Set to the error, if any occurred
     */
-    BEAST_DECL
+    BHO_BEAST_DECL
     void
     seek(std::uint64_t offset, error_code& ec);
 
@@ -143,7 +144,7 @@ public:
 
         @param ec Set to the error, if any occurred
     */
-    BEAST_DECL
+    BHO_BEAST_DECL
     std::size_t
     read(void* buffer, std::size_t n, error_code& ec) const;
 
@@ -155,12 +156,13 @@ public:
 
         @param ec Set to the error, if any occurred
     */
-    BEAST_DECL
+    BHO_BEAST_DECL
     std::size_t
     write(void const* buffer, std::size_t n, error_code& ec);
 };
 
 } // beast
+} // bho
 
 #ifdef BEAST_HEADER_ONLY
 #include <asio2/bho/beast/core/impl/file_stdio.ipp>

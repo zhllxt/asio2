@@ -7,12 +7,13 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_STRING_HPP
-#define BEAST_STRING_HPP
+#ifndef BHO_BEAST_STRING_HPP
+#define BHO_BEAST_STRING_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/core/string_type.hpp>
 
+namespace bho {
 namespace beast {
 
 /** Returns `true` if two strings are equal, using a case-insensitive comparison.
@@ -23,7 +24,7 @@ namespace beast {
 
     @param rhs The string on the right side of the equality
 */
-BEAST_DECL
+BHO_BEAST_DECL
 bool
 iequals(
     beast::string_view lhs,
@@ -39,7 +40,7 @@ iequals(
 */
 struct iless
 {
-    BEAST_DECL
+    BHO_BEAST_DECL
     bool
     operator()(
         string_view lhs,
@@ -70,6 +71,7 @@ struct iequal
 };
 
 } // beast
+} // bho
 
 #ifdef BEAST_HEADER_ONLY
 #include <asio2/bho/beast/core/impl/string.ipp>

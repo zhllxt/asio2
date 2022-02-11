@@ -7,13 +7,14 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_HTTP_DETAIL_TYPE_TRAITS_HPP
-#define BEAST_HTTP_DETAIL_TYPE_TRAITS_HPP
+#ifndef BHO_BEAST_HTTP_DETAIL_TYPE_TRAITS_HPP
+#define BHO_BEAST_HTTP_DETAIL_TYPE_TRAITS_HPP
 
 #include <asio2/bho/beast/core/detail/type_traits.hpp>
 #include <optional>
 #include <cstdint>
 
+namespace bho {
 namespace beast {
 namespace http {
 
@@ -196,5 +197,6 @@ struct is_fields_helper : T
 } // detail
 } // http
 } // beast
+} // bho
 
 #endif

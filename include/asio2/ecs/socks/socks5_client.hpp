@@ -155,7 +155,7 @@ namespace asio2::detail
 
 				if (std::uint8_t version = read<std::uint8_t>(p); version != std::uint8_t(0x05))
 				{
-					ec = asio2::socks5::error::unsupported_version;
+					ec = socks5::make_error_code(socks5::error::unsupported_version);
 					goto end;
 				}
 
@@ -213,7 +213,7 @@ namespace asio2::detail
 				}
 				else if (method == socks5::method::gssapi)
 				{
-					ec = asio2::socks5::error::unsupported_method;
+					ec = socks5::make_error_code(socks5::error::unsupported_method);
 					goto end;
 				}
 				else if (method == socks5::method::password)
@@ -229,7 +229,7 @@ namespace asio2::detail
 					//         | 1  |  1   | 1 to 255 |  1   | 1 to 255 |
 					//         +----+------+----------+------+----------+
 
-					if constexpr (asio2::socks5::detail::has_member_username<decltype(sock5_)>::value)
+					if constexpr (socks5::detail::has_member_username<decltype(sock5_)>::value)
 					{
 						username = sock5_.username();
 					}
@@ -238,7 +238,7 @@ namespace asio2::detail
 						ASIO2_ASSERT(false);
 					}
 
-					if constexpr (asio2::socks5::detail::has_member_password<decltype(sock5_)>::value)
+					if constexpr (socks5::detail::has_member_password<decltype(sock5_)>::value)
 					{
 						password = sock5_.password();
 					}
@@ -250,7 +250,7 @@ namespace asio2::detail
 					if (username.empty() && password.empty())
 					{
 						ASIO2_ASSERT(false);
-						ec = asio2::socks5::error::username_required;
+						ec = socks5::make_error_code(socks5::error::username_required);
 						goto end;
 					}
 
@@ -320,34 +320,34 @@ namespace asio2::detail
 
 					if (std::uint8_t ver = read<std::uint8_t>(p); ver != std::uint8_t(0x01))
 					{
-						ec = asio2::socks5::error::unsupported_authentication_version;
+						ec = socks5::make_error_code(socks5::error::unsupported_authentication_version);
 						goto end;
 					}
 
 					if (std::uint8_t status = read<std::uint8_t>(p); status != std::uint8_t(0x00))
 					{
-						ec = asio2::socks5::error::authentication_failed;
+						ec = socks5::make_error_code(socks5::error::authentication_failed);
 						goto end;
 					}
 				}
 				//else if (method == socks5::method::iana)
 				//{
-				//	ec = asio2::socks5::error::unsupported_method;
+				//	ec = socks5::make_error_code((socks5::error::unsupported_method);
 				//	goto end;
 				//}
 				//else if (method == socks5::method::reserved)
 				//{
-				//	ec = asio2::socks5::error::unsupported_method;
+				//	ec = socks5::make_error_code(socks5::error::unsupported_method);
 				//	goto end;
 				//}
 				else if (method == socks5::method::noacceptable)
 				{
-					ec = asio2::socks5::error::no_acceptable_methods;
+					ec = socks5::make_error_code(socks5::error::no_acceptable_methods);
 					goto end;
 				}
 				else
 				{
-					ec = asio2::socks5::error::no_acceptable_methods;
+					ec = socks5::make_error_code(socks5::error::no_acceptable_methods);
 					goto end;
 				}
 
@@ -465,7 +465,7 @@ namespace asio2::detail
 				// VER
 				if (std::uint8_t ver = read<std::uint8_t>(p); ver != std::uint8_t(0x05))
 				{
-					ec = asio2::socks5::error::unsupported_version;
+					ec = socks5::make_error_code(socks5::error::unsupported_version);
 					goto end;
 				}
 
@@ -473,16 +473,16 @@ namespace asio2::detail
 				switch (read<std::uint8_t>(p))
 				{
 				case std::uint8_t(0x00): ec = {}													; break;
-				case std::uint8_t(0x01): ec = asio2::socks5::error::general_socks_server_failure	; break;
 				case std::uint8_t(0x02): ec = asio::error::no_permission                            ; break;
 				case std::uint8_t(0x03): ec = asio::error::network_unreachable                      ; break;
 				case std::uint8_t(0x04): ec = asio::error::host_unreachable                         ; break;
 				case std::uint8_t(0x05): ec = asio::error::connection_refused                       ; break;
 				case std::uint8_t(0x06): ec = asio::error::timed_out                                ; break;
-				case std::uint8_t(0x07): ec = asio2::socks5::error::command_not_supported			; break;
 				case std::uint8_t(0x08): ec = asio::error::address_family_not_supported             ; break;
-				case std::uint8_t(0x09): ec = asio2::socks5::error::unassigned						; break;
-				default: ec = asio2::socks5::error::unassigned; break;
+				case std::uint8_t(0x01): ec = socks5::make_error_code(socks5::error::general_socks_server_failure)	; break;
+				case std::uint8_t(0x07): ec = socks5::make_error_code(socks5::error::command_not_supported)			; break;
+				case std::uint8_t(0x09): ec = socks5::make_error_code(socks5::error::unassigned)					; break;
+				default:                 ec = socks5::make_error_code(socks5::error::unassigned)                    ; break;
 				}
 
 				if (ec)
@@ -502,7 +502,7 @@ namespace asio2::detail
 				case std::uint8_t(0x04): bytes = 16        + 2 - 1; break; // IP V6 address: X'04'
 				default:
 				{
-					ec = asio2::socks5::error::general_failure;
+					ec = socks5::make_error_code(socks5::error::general_failure);
 					goto end;
 				}
 				}

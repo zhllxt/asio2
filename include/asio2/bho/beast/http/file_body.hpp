@@ -7,18 +7,19 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_HTTP_FILE_BODY_HPP
-#define BEAST_HTTP_FILE_BODY_HPP
+#ifndef BHO_BEAST_HTTP_FILE_BODY_HPP
+#define BHO_BEAST_HTTP_FILE_BODY_HPP
 
 #include <asio2/bho/beast/core/file.hpp>
 #include <asio2/bho/beast/http/basic_file_body.hpp>
-#include <asio2/bho/beast/core/util.hpp>
+#include <asio2/bho/assert.hpp>
 #include <optional>
 #include <algorithm>
 #include <cstdio>
 #include <cstdint>
 #include <utility>
 
+namespace bho {
 namespace beast {
 namespace http {
 
@@ -27,6 +28,7 @@ using file_body = basic_file_body<file>;
 
 } // http
 } // beast
+} // bho
 
 
 #endif

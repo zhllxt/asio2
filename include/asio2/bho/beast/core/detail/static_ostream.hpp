@@ -7,13 +7,14 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_DETAIL_STATIC_OSTREAM_HPP
-#define BEAST_DETAIL_STATIC_OSTREAM_HPP
+#ifndef BHO_BEAST_DETAIL_STATIC_OSTREAM_HPP
+#define BHO_BEAST_DETAIL_STATIC_OSTREAM_HPP
 
 #include <locale>
 #include <ostream>
 #include <streambuf>
 
+namespace bho {
 namespace beast {
 namespace detail {
 
@@ -136,5 +137,6 @@ public:
 
 } // detail
 } // beast
+} // bho
 
 #endif

@@ -7,11 +7,12 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_CORE_SAVED_HANDLER_HPP
-#define BEAST_CORE_SAVED_HANDLER_HPP
+#ifndef BHO_BEAST_CORE_SAVED_HANDLER_HPP
+#define BHO_BEAST_CORE_SAVED_HANDLER_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 
+namespace bho {
 namespace beast {
 
 /** An invocable, nullary function object which holds a completion handler.
@@ -44,15 +45,15 @@ public:
     saved_handler& operator=(saved_handler const&) = delete;
 
     /// Destructor
-    BEAST_DECL
+    BHO_BEAST_DECL
     ~saved_handler();
 
     /// Move Constructor
-    BEAST_DECL
+    BHO_BEAST_DECL
     saved_handler(saved_handler&& other) noexcept;
 
     /// Move Assignment
-    BEAST_DECL
+    BHO_BEAST_DECL
     saved_handler&
     operator=(saved_handler&& other) noexcept;
 
@@ -95,7 +96,7 @@ public:
 
         @returns `true` if an object was destroyed.
     */
-    BEAST_DECL
+    BHO_BEAST_DECL
     bool
     reset() noexcept;
 
@@ -106,7 +107,7 @@ public:
         is invoked. The executor work guard is also reset before
         the invocation.
     */
-    BEAST_DECL
+    BHO_BEAST_DECL
     void
     invoke();
 
@@ -120,12 +121,13 @@ public:
 
         @return `true` if the invocation took place.
     */
-    BEAST_DECL
+    BHO_BEAST_DECL
     bool
     maybe_invoke();
 };
 
 } // beast
+} // bho
 
 #include <asio2/bho/beast/core/impl/saved_handler.hpp>
 #ifdef BEAST_HEADER_ONLY

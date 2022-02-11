@@ -7,14 +7,15 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_MAKE_PRINTABLE_HPP
-#define BEAST_MAKE_PRINTABLE_HPP
+#ifndef BHO_BEAST_MAKE_PRINTABLE_HPP
+#define BHO_BEAST_MAKE_PRINTABLE_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/core/buffer_traits.hpp>
-#include <asio/buffer.hpp>
+#include <asio2/3rd/asio.hpp>
 #include <ostream>
 
+namespace bho {
 namespace beast {
 
 namespace detail {
@@ -86,7 +87,7 @@ operator<<(std::ostream& os,
     for managing its lifetime.
 */
 template<class ConstBufferSequence>
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
 __implementation_defined__
 #else
 detail::make_printable_adaptor<ConstBufferSequence>
@@ -101,5 +102,6 @@ make_printable(ConstBufferSequence const& buffers)
 }
 
 } // beast
+} // bho
 
 #endif

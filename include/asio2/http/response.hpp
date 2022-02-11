@@ -25,7 +25,7 @@
 #include <asio2/http/detail/http_util.hpp>
 
 #ifdef BEAST_HEADER_ONLY
-namespace beast::http
+namespace bho::beast::http
 #else
 namespace boost::beast::http
 #endif
@@ -401,12 +401,12 @@ namespace asio2::detail
 }
 
 #ifdef BEAST_HEADER_ONLY
-namespace beast::http
+namespace bho::beast::http
 #else
 namespace boost::beast::http
 #endif
 {
-	using response = asio2::detail::http_response_impl_t<http::flex_body>;
+	using web_response = asio2::detail::http_response_impl_t<http::flex_body>;
 }
 
 #include <asio2/base/detail/pop_options.hpp>

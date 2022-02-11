@@ -7,15 +7,17 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_BUFFER_TRAITS_HPP
-#define BEAST_BUFFER_TRAITS_HPP
+#ifndef BHO_BEAST_BUFFER_TRAITS_HPP
+#define BHO_BEAST_BUFFER_TRAITS_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/core/detail/buffer_traits.hpp>
 #include <asio2/bho/beast/core/detail/static_const.hpp>
-#include <asio/buffer.hpp>
+#include <asio2/3rd/asio.hpp>
+#include <asio2/bho/config/workaround.hpp>
 #include <type_traits>
 
+namespace bho {
 namespace beast {
 
 /** Determine if a list of types satisfy the <em>ConstBufferSequence</em> requirements.
@@ -29,7 +31,7 @@ namespace beast {
     list is empty, the resulting type alias will be `std::true_type`.
 */
 template<class... BufferSequence>
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
 using is_const_buffer_sequence = __see_below__;
 #else
 using is_const_buffer_sequence = std::integral_constant<bool,
@@ -48,7 +50,7 @@ using is_const_buffer_sequence = std::integral_constant<bool,
     list is empty, the resulting type alias will be `std::true_type`.
 */
 template<class... BufferSequence>
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
 using is_mutable_buffer_sequence = __see_below__;
 #else
 using is_mutable_buffer_sequence = std::integral_constant<bool,
@@ -101,7 +103,7 @@ namespace detail {
     list is empty, the resulting type alias will be `net::mutable_buffer`.
 */
 template<class... BufferSequence>
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
 using buffers_type = __see_below__;
 #else
 using buffers_type = typename detail::buffers_type_impl<BufferSequence...>::type;
@@ -117,8 +119,12 @@ using buffers_type = typename detail::buffers_type_impl<BufferSequence...>::type
     the buffer sequence.
 */
 template <class BufferSequence>
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
 using buffers_iterator_type = __see_below__;
+#elif BHO_WORKAROUND(BHO_MSVC, < 1910)
+using buffers_iterator_type = typename
+    detail::buffers_iterator_type_helper<
+        typename std::decay<BufferSequence>::type>::type;
 #else
 using buffers_iterator_type =
     decltype(net::buffer_sequence_begin(
@@ -152,14 +158,15 @@ using buffers_iterator_type =
 
     @return The total number of bytes in the buffer or sequence.
 */
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
 template<class BufferSequence>
 std::size_t
 buffer_bytes(BufferSequence const& buffers);
 #else
-BEAST_INLINE_VARIABLE(buffer_bytes, detail::buffer_bytes_impl)
+BHO_BEAST_INLINE_VARIABLE(buffer_bytes, detail::buffer_bytes_impl)
 #endif
 
 } // beast
+} // bho
 
 #endif

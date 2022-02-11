@@ -7,14 +7,15 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_STREAM_TRAITS_HPP
-#define BEAST_STREAM_TRAITS_HPP
+#ifndef BHO_BEAST_STREAM_TRAITS_HPP
+#define BHO_BEAST_STREAM_TRAITS_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/core/detail/static_const.hpp>
 #include <asio2/bho/beast/core/detail/stream_traits.hpp>
-#include <asio/basic_socket.hpp>
+#include <asio2/3rd/asio.hpp>
 
+namespace bho {
 namespace beast {
 
 /** A trait to determine the lowest layer type of a stack of stream layers.
@@ -30,7 +31,7 @@ namespace beast {
     @return The type of the lowest layer.
 */
 template<class T>
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
 using lowest_layer_type = __see_below__;
 #else
 using lowest_layer_type = detail::lowest_layer_type<T>;
@@ -100,9 +101,13 @@ get_lowest_layer(T& t) noexcept
     @return The type of values returned from `get_executor`.
 */
 // Workaround for ICE on gcc 4.8
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
 template<class T>
 using executor_type = __see_below__;
+#elif BHO_WORKAROUND(BHO_GCC, < 40900)
+template<class T>
+using executor_type =
+    typename std::decay<T>::type::executor_type;
 #else
 template<class T>
 using executor_type =
@@ -156,7 +161,7 @@ using executor_type =
     static_assert(has_get_executor<stream>::value, "Missing get_executor member");
     @endcode
 */
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
 template<class T>
 using has_get_executor = __see_below__;
 #else
@@ -194,7 +199,7 @@ struct has_get_executor<T, std::void_t<decltype(
     f(SyncReadStream& stream);
     @endcode
 */
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
 template<class T>
 using is_sync_read_stream = __see_below__;
 #else
@@ -238,7 +243,7 @@ struct is_sync_read_stream<T, std::void_t<decltype(
     f(SyncReadStream& stream);
     @endcode
 */
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
 template<class T>
 using is_sync_write_stream = __see_below__;
 #else
@@ -283,7 +288,7 @@ struct is_sync_write_stream<T, std::void_t<decltype(
     f(SyncStream& stream);
     @endcode
 */
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
 template<class T>
 using is_sync_stream = __see_below__;
 #else
@@ -321,7 +326,7 @@ using is_sync_stream = std::integral_constant<bool,
         f(AsyncReadStream& stream);
     @endcode
 */
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
 template<class T>
 using is_async_read_stream = __see_below__;
 #else
@@ -365,7 +370,7 @@ struct is_async_read_stream<T, std::void_t<decltype(
     f(AsyncWriteStream& stream);
     @endcode
 */
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
 template<class T>
 using is_async_write_stream = __see_below__;
 #else
@@ -409,7 +414,7 @@ struct is_async_write_stream<T, std::void_t<decltype(
     f(AsyncStream& stream);
     @endcode
 */
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
 template<class T>
 using is_async_stream = __see_below__;
 #else
@@ -525,14 +530,15 @@ struct close_socket_impl
 
     @see beast_close_socket
 */
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
 template<class Socket>
 void
 close_socket(Socket& sock);
 #else
-BEAST_INLINE_VARIABLE(close_socket, detail::close_socket_impl)
+BHO_BEAST_INLINE_VARIABLE(close_socket, detail::close_socket_impl)
 #endif
 
 } // beast
+} // bho
 
 #endif

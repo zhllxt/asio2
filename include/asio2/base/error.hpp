@@ -123,7 +123,11 @@ namespace asio2
 				std::is_same_v<type, std::io_errc    > ||
 				std::is_same_v<type, std::future_errc> )
 			{
+			#ifdef ASIO_STANDALONE
 				get_last_error() = std::make_error_code(e);
+			#else
+				get_last_error().assign(static_cast<int>(e), asio::error::get_system_category());
+			#endif
 			}
 			else
 			{

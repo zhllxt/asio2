@@ -7,12 +7,13 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_IMPL_STATIC_BUFFER_HPP
-#define BEAST_IMPL_STATIC_BUFFER_HPP
+#ifndef BHO_BEAST_IMPL_STATIC_BUFFER_HPP
+#define BHO_BEAST_IMPL_STATIC_BUFFER_HPP
 
-#include <asio/buffer.hpp>
+#include <asio2/3rd/asio.hpp>
 #include <stdexcept>
 
+namespace bho {
 namespace beast {
 
 template<std::size_t N>
@@ -39,5 +40,6 @@ operator=(static_buffer const& other) noexcept ->
 }
 
 } // beast
+} // bho
 
 #endif

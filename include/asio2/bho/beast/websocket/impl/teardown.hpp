@@ -7,18 +7,18 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_WEBSOCKET_IMPL_TEARDOWN_HPP
-#define BEAST_WEBSOCKET_IMPL_TEARDOWN_HPP
+#ifndef BHO_BEAST_WEBSOCKET_IMPL_TEARDOWN_HPP
+#define BHO_BEAST_WEBSOCKET_IMPL_TEARDOWN_HPP
 
 #include <asio2/bho/beast/core/async_base.hpp>
 #include <asio2/bho/beast/core/bind_handler.hpp>
 #include <asio2/bho/beast/core/stream_traits.hpp>
 #include <asio2/bho/beast/core/detail/bind_continuation.hpp>
 #include <asio2/bho/beast/core/detail/is_invocable.hpp>
-#include <asio/coroutine.hpp>
-#include <asio/post.hpp>
+#include <asio2/3rd/asio.hpp>
 #include <memory>
 
+namespace bho {
 namespace beast {
 namespace websocket {
 
@@ -32,7 +32,7 @@ class teardown_tcp_op
         Handler, beast::executor_type<
             net::basic_stream_socket<
                 Protocol, Executor>>>
-    , public asio::coroutine
+    , public net::coroutine
 {
     using socket_type =
         net::basic_stream_socket<Protocol, Executor>;
@@ -62,7 +62,7 @@ public:
 
     void
     operator()(
-        error_code ec = {},
+        beast::error_code ec = {},
         std::size_t bytes_transferred = 0,
         bool cont = true)
     {
@@ -131,7 +131,7 @@ public:
                 }
             }
             {
-                error_code ignored;
+                beast::error_code ignored;
                 s_.non_blocking(nb_, ignored);
             }
             this->complete_now(ec);
@@ -149,7 +149,7 @@ teardown(
     role_type role,
     net::basic_stream_socket<
         Protocol, Executor>& socket,
-    error_code& ec)
+    beast::error_code& ec)
 {
     if(role == role_type::server)
         socket.shutdown(
@@ -194,7 +194,7 @@ async_teardown(
     TeardownHandler&& handler)
 {
     static_assert(beast::detail::is_invocable<
-        TeardownHandler, void(error_code)>::value,
+        TeardownHandler, void(beast::error_code)>::value,
             "TeardownHandler type requirements not met");
     detail::teardown_tcp_op<
         Protocol,
@@ -207,5 +207,6 @@ async_teardown(
 
 } // websocket
 } // beast
+} // bho
 
 #endif

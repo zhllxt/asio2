@@ -7,8 +7,8 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_HTTP_BASIC_PARSER_HPP
-#define BEAST_HTTP_BASIC_PARSER_HPP
+#ifndef BHO_BEAST_HTTP_BASIC_PARSER_HPP
+#define BHO_BEAST_HTTP_BASIC_PARSER_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/core/error.hpp>
@@ -16,14 +16,15 @@
 #include <asio2/bho/beast/http/field.hpp>
 #include <asio2/bho/beast/http/verb.hpp>
 #include <asio2/bho/beast/http/detail/basic_parser.hpp>
-#include <asio/buffer.hpp>
+#include <asio2/3rd/asio.hpp>
 #include <optional>
-#include <asio2/bho/beast/core/util.hpp>
+#include <asio2/bho/assert.hpp>
 #include <limits>
 #include <memory>
 #include <type_traits>
 #include <utility>
 
+namespace bho {
 namespace beast {
 namespace http {
 
@@ -413,7 +414,7 @@ public:
     std::size_t
     put(ConstBufferSequence const& buffers, error_code& ec);
 
-#if ! BEAST_DOXYGEN
+#if ! BHO_BEAST_DOXYGEN
     std::size_t
     put(net::const_buffer buffer,
         error_code& ec);
@@ -691,6 +692,7 @@ private:
 
 } // http
 } // beast
+} // bho
 
 #include <asio2/bho/beast/http/impl/basic_parser.hpp>
 #ifdef BEAST_HEADER_ONLY

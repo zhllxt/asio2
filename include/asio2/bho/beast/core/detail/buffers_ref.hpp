@@ -7,13 +7,14 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_DETAIL_BUFFERS_REF_HPP
-#define BEAST_DETAIL_BUFFERS_REF_HPP
+#ifndef BHO_BEAST_DETAIL_BUFFERS_REF_HPP
+#define BHO_BEAST_DETAIL_BUFFERS_REF_HPP
 
 #include <asio2/bho/beast/core/buffer_traits.hpp>
 #include <iterator>
 #include <memory>
 
+namespace bho {
 namespace beast {
 namespace detail {
 
@@ -36,7 +37,7 @@ public:
     buffers_ref()
         : buffers_(nullptr)
     {
-		//BEAST_ASSERT(false);
+		//BHO_ASSERT(false);
     }
 
     explicit
@@ -71,5 +72,6 @@ make_buffers_ref(BufferSequence const& buffers)
 
 } // detail
 } // beast
+} // bho
 
 #endif

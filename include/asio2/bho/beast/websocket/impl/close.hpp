@@ -7,8 +7,8 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_WEBSOCKET_IMPL_CLOSE_HPP
-#define BEAST_WEBSOCKET_IMPL_CLOSE_HPP
+#ifndef BHO_BEAST_WEBSOCKET_IMPL_CLOSE_HPP
+#define BHO_BEAST_WEBSOCKET_IMPL_CLOSE_HPP
 
 #include <asio2/bho/beast/websocket/teardown.hpp>
 #include <asio2/bho/beast/websocket/detail/mask.hpp>
@@ -17,11 +17,11 @@
 #include <asio2/bho/beast/core/flat_static_buffer.hpp>
 #include <asio2/bho/beast/core/stream_traits.hpp>
 #include <asio2/bho/beast/core/detail/bind_continuation.hpp>
-#include <asio/coroutine.hpp>
-#include <asio/post.hpp>
-#include <asio2/bho/beast/core/util.hpp>
+#include <asio2/3rd/asio.hpp>
+#include <asio2/bho/throw_exception.hpp>
 #include <memory>
 
+namespace bho {
 namespace beast {
 namespace websocket {
 
@@ -37,10 +37,10 @@ template<class Handler>
 class stream<NextLayer, deflateSupported>::close_op
     : public beast::stable_async_base<
         Handler, beast::executor_type<stream>>
-    , public asio::coroutine
+    , public net::coroutine
 {
     std::weak_ptr<impl_type> wp_;
-    error_code ev_;
+    beast::error_code ev_;
     detail::frame_buffer& fb_;
 
 public:
@@ -67,7 +67,7 @@ public:
 
     void
     operator()(
-        error_code ec = {},
+        beast::error_code ec = {},
         std::size_t bytes_transferred = 0,
         bool cont = true)
     {
@@ -101,14 +101,14 @@ public:
 
                     net::post(std::move(*this));
                 }
-                BEAST_ASSERT(impl.wr_block.is_locked(this));
+                BHO_ASSERT(impl.wr_block.is_locked(this));
             }
             if(impl.check_stop_now(ec))
                 goto upcall;
 
             // Can't call close twice
             // TODO return a custom error code
-			BEAST_ASSERT(! impl.wr_close);
+            BHO_ASSERT(! impl.wr_close);
 
             // Send close frame
             impl.wr_close = true;
@@ -154,10 +154,10 @@ public:
 
                     net::post(std::move(*this));
                 }
-				BEAST_ASSERT(impl.rd_block.is_locked(this));
+                BHO_ASSERT(impl.rd_block.is_locked(this));
                 if(impl.check_stop_now(ec))
                     goto upcall;
-				BEAST_ASSERT(! impl.rd_close);
+                BHO_ASSERT(! impl.rd_close);
             }
 
             // Read until a receiving a close frame
@@ -198,7 +198,7 @@ public:
 
                     // Process close frame
                     // TODO Should we invoke the control callback?
-					BEAST_ASSERT(! impl.rd_close);
+                    BHO_ASSERT(! impl.rd_close);
                     impl.rd_close = true;
                     auto const mb = buffers_prefix(
                         clamp(impl.rd_fh.len),
@@ -233,14 +233,14 @@ public:
                     if(impl.check_stop_now(ec))
                         goto upcall;
                 }
-				BEAST_ASSERT(impl.rd_buf.size() >= impl.rd_remain);
+                BHO_ASSERT(impl.rd_buf.size() >= impl.rd_remain);
                 impl.rd_buf.consume(clamp(impl.rd_remain));
                 impl.rd_remain = 0;
             }
 
         teardown:
             // Teardown
-			BEAST_ASSERT(impl.wr_block.is_locked(this));
+            BHO_ASSERT(impl.wr_block.is_locked(this));
             using beast::websocket::async_teardown;
             ASIO_CORO_YIELD
             {
@@ -251,7 +251,7 @@ public:
                 async_teardown(impl.role, impl.stream(),
                     beast::detail::bind_continuation(std::move(*this)));
             }
-			BEAST_ASSERT(impl.wr_block.is_locked(this));
+            BHO_ASSERT(impl.wr_block.is_locked(this));
             if(ec == net::error::eof)
             {
                 // Rationale:
@@ -296,7 +296,7 @@ struct stream<NextLayer, deflateSupported>::
 
         static_assert(
             beast::detail::is_invocable<CloseHandler,
-                void(error_code)>::value,
+                void(beast::error_code)>::value,
             "CloseHandler type requirements not met");
 
         close_op<
@@ -316,16 +316,16 @@ close(close_reason const& cr)
 {
     static_assert(is_sync_stream<next_layer_type>::value,
         "SyncStream type requirements not met");
-    error_code ec;
+	beast::error_code ec;
     close(cr, ec);
     if(ec)
-        BEAST_THROW_EXCEPTION(system_error{ec});
+        BHO_THROW_EXCEPTION(system_error{ec});
 }
 
 template<class NextLayer, bool deflateSupported>
 void
 stream<NextLayer, deflateSupported>::
-close(close_reason const& cr, error_code& ec)
+close(close_reason const& cr, beast::error_code& ec)
 {
     static_assert(is_sync_stream<next_layer_type>::value,
         "SyncStream type requirements not met");
@@ -334,11 +334,11 @@ close(close_reason const& cr, error_code& ec)
     ec = {};
     if(impl.check_stop_now(ec))
         return;
-	BEAST_ASSERT(! impl.rd_close);
+    BHO_ASSERT(! impl.rd_close);
 
     // Can't call close twice
     // TODO return a custom error code
-	BEAST_ASSERT(! impl.wr_close);
+    BHO_ASSERT(! impl.wr_close);
 
     // Send close frame
     {
@@ -352,7 +352,7 @@ close(close_reason const& cr, error_code& ec)
     }
 
     // Read until a receiving a close frame
-    error_code ev;
+	beast::error_code ev;
     if(impl.rd_remain > 0)
         goto read_payload;
     for(;;)
@@ -384,7 +384,7 @@ close(close_reason const& cr, error_code& ec)
 
             // Handle close frame
             // TODO Should we invoke the control callback?
-			BEAST_ASSERT(! impl.rd_close);
+            BHO_ASSERT(! impl.rd_close);
             impl.rd_close = true;
             auto const mb = buffers_prefix(
                 clamp(impl.rd_fh.len),
@@ -417,7 +417,7 @@ close(close_reason const& cr, error_code& ec)
             if(impl.check_stop_now(ec))
                 return;
         }
-		BEAST_ASSERT(
+        BHO_ASSERT(
             impl.rd_buf.size() >= impl.rd_remain);
         impl.rd_buf.consume(clamp(impl.rd_remain));
         impl.rd_remain = 0;
@@ -429,8 +429,8 @@ close(close_reason const& cr, error_code& ec)
 }
 
 template<class NextLayer, bool deflateSupported>
-template<BEAST_ASYNC_TPARAM1 CloseHandler>
-BEAST_ASYNC_RESULT1(CloseHandler)
+template<BHO_BEAST_ASYNC_TPARAM1 CloseHandler>
+BHO_BEAST_ASYNC_RESULT1(CloseHandler)
 stream<NextLayer, deflateSupported>::
 async_close(close_reason const& cr, CloseHandler&& handler)
 {
@@ -438,7 +438,7 @@ async_close(close_reason const& cr, CloseHandler&& handler)
         "AsyncStream type requirements not met");
     return net::async_initiate<
         CloseHandler,
-        void(error_code)>(
+        void(beast::error_code)>(
             run_close_op{},
             handler,
             impl_,
@@ -447,5 +447,6 @@ async_close(close_reason const& cr, CloseHandler&& handler)
 
 } // websocket
 } // beast
+} // bho
 
 #endif

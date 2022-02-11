@@ -7,13 +7,14 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_HTTP_RFC7230_HPP
-#define BEAST_HTTP_RFC7230_HPP
+#ifndef BHO_BEAST_HTTP_RFC7230_HPP
+#define BHO_BEAST_HTTP_RFC7230_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/http/detail/rfc7230.hpp>
 #include <asio2/bho/beast/http/detail/basic_parsed_list.hpp>
 
+namespace bho {
 namespace beast {
 namespace http {
 
@@ -64,7 +65,7 @@ public:
         std::pair<string_view, string_view>;
 
     /// A constant iterator to the list
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
     using const_iterator = __implementation_defined__;
 #else
     class const_iterator;
@@ -153,7 +154,7 @@ public:
     using value_type = std::pair<string_view, param_list>;
 
     /// A constant iterator to the list
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
     using const_iterator = __implementation_defined__;
 #else
     class const_iterator;
@@ -189,7 +190,7 @@ public:
         @return An iterator to the matching token, or `end()` if no
         token exists.
     */
-    BEAST_DECL
+    BHO_BEAST_DECL
     const_iterator
     find(string_view const& s);
 
@@ -197,7 +198,7 @@ public:
 
         @param s The token to find. A case-insensitive comparison is used.
     */
-    BEAST_DECL
+    BHO_BEAST_DECL
     bool
     exists(string_view const& s);
 };
@@ -241,7 +242,7 @@ public:
     using value_type = string_view;
 
     /// A constant iterator to the list
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
     using const_iterator = __implementation_defined__;
 #else
     class const_iterator;
@@ -274,7 +275,7 @@ public:
 
         @param s The token to find. A case-insensitive comparison is used.
     */
-    BEAST_DECL
+    BHO_BEAST_DECL
     bool
     exists(string_view const& s);
 };
@@ -321,6 +322,7 @@ validate_list(detail::basic_parsed_list<
 
 } // http
 } // beast
+} // bho
 
 #include <asio2/bho/beast/http/impl/rfc7230.hpp>
 

@@ -7,16 +7,43 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_DETAIL_BUFFER_TRAITS_HPP
-#define BEAST_DETAIL_BUFFER_TRAITS_HPP
+#ifndef BHO_BEAST_DETAIL_BUFFER_TRAITS_HPP
+#define BHO_BEAST_DETAIL_BUFFER_TRAITS_HPP
 
-#include <asio2/bho/beast/core/detail/config.hpp>
-#include <asio/buffer.hpp>
+#include <asio2/3rd/asio.hpp>
+#include <asio2/bho/config/workaround.hpp>
 #include <cstdint>
 #include <type_traits>
 
+namespace bho {
 namespace beast {
 namespace detail {
+
+#if BHO_WORKAROUND(BHO_MSVC, < 1910)
+
+template<class T>
+struct buffers_iterator_type_helper
+{
+    using type = decltype(
+        net::buffer_sequence_begin(
+            std::declval<T const&>()));
+};
+
+template<>
+struct buffers_iterator_type_helper<
+    net::const_buffer>
+{
+    using type = net::const_buffer const*;
+};
+
+template<>
+struct buffers_iterator_type_helper<
+    net::mutable_buffer>
+{
+    using type = net::mutable_buffer const*;
+};
+
+#endif
 
 struct buffer_bytes_impl
 {
@@ -65,5 +92,6 @@ buffers_empty(ConstBufferSequence const& buffers)
 
 } // detail
 } // beast
+} // bho
 
 #endif

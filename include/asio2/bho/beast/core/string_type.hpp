@@ -7,13 +7,14 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_STRING_TYPE_HPP
-#define BEAST_STRING_TYPE_HPP
+#ifndef BHO_BEAST_STRING_TYPE_HPP
+#define BHO_BEAST_STRING_TYPE_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 
 #include <string_view>
 
+namespace bho {
 namespace beast {
 
 using string_view = std::string_view;
@@ -23,5 +24,6 @@ using basic_string_view =
     std::basic_string_view<CharT, Traits>;
 
 } // beast
+} // bho
 
 #endif

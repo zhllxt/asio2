@@ -7,11 +7,12 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_DETAIL_SERVICE_BASE_HPP
-#define BEAST_DETAIL_SERVICE_BASE_HPP
+#ifndef BHO_BEAST_DETAIL_SERVICE_BASE_HPP
+#define BHO_BEAST_DETAIL_SERVICE_BASE_HPP
 
-#include <asio/execution_context.hpp>
+#include <asio2/3rd/asio.hpp>
 
+namespace bho {
 namespace beast {
 namespace detail {
 
@@ -32,5 +33,6 @@ net::execution_context::id const service_base<T>::id;
 
 } // detail
 } // beast
+} // bho
 
 #endif

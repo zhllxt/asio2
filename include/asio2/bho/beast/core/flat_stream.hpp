@@ -7,18 +7,19 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_CORE_FLAT_STREAM_HPP
-#define BEAST_CORE_FLAT_STREAM_HPP
+#ifndef BHO_BEAST_CORE_FLAT_STREAM_HPP
+#define BHO_BEAST_CORE_FLAT_STREAM_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/core/error.hpp>
 #include <asio2/bho/beast/core/flat_buffer.hpp>
 #include <asio2/bho/beast/core/stream_traits.hpp>
 #include <asio2/bho/beast/core/detail/flat_stream.hpp>
-#include <asio/async_result.hpp>
+#include <asio2/3rd/asio.hpp>
 #include <cstdlib>
 #include <utility>
 
+namespace bho {
 namespace beast {
 
 /** Stream wrapper to improve write performance.
@@ -85,14 +86,14 @@ namespace beast {
 */
 template<class NextLayer>
 class flat_stream
-#if ! BEAST_DOXYGEN
+#if ! BHO_BEAST_DOXYGEN
     : private detail::flat_stream_base
 #endif
 {
     NextLayer stream_;
     flat_buffer buffer_;
 
-    BEAST_STATIC_ASSERT(has_get_executor<NextLayer>::value);
+    BHO_STATIC_ASSERT(has_get_executor<NextLayer>::value);
 
     struct ops;
 
@@ -186,7 +187,7 @@ public:
         
         @returns The number of bytes read.
         
-        @throws beast::system_error Thrown on failure.
+        @throws bho::system::system_error Thrown on failure.
         
         @note The `read_some` operation may not read all of the requested number of
         bytes. Consider using the function `net::read` if you need to ensure
@@ -252,9 +253,9 @@ public:
     */
     template<
         class MutableBufferSequence,
-        BEAST_ASYNC_TPARAM2 ReadHandler =
+        BHO_BEAST_ASYNC_TPARAM2 ReadHandler =
             net::default_completion_token_t<executor_type>>
-    BEAST_ASYNC_RESULT2(ReadHandler)
+    BHO_BEAST_ASYNC_RESULT2(ReadHandler)
     async_read_some(
         MutableBufferSequence const& buffers,
         ReadHandler&& handler =
@@ -270,7 +271,7 @@ public:
         
         @returns The number of bytes written.
         
-        @throws beast::system_error Thrown on failure.
+        @throws bho::system::system_error Thrown on failure.
         
         @note The `write_some` operation may not transmit all of the data to the
         peer. Consider using the function `net::write` if you need to
@@ -333,9 +334,9 @@ public:
     */
     template<
         class ConstBufferSequence,
-        BEAST_ASYNC_TPARAM2 WriteHandler =
+        BHO_BEAST_ASYNC_TPARAM2 WriteHandler =
             net::default_completion_token_t<executor_type>>
-    BEAST_ASYNC_RESULT2(WriteHandler)
+    BHO_BEAST_ASYNC_RESULT2(WriteHandler)
     async_write_some(
         ConstBufferSequence const& buffers,
         WriteHandler&& handler =
@@ -343,6 +344,7 @@ public:
 };
 
 } // beast
+} // bho
 
 #include <asio2/bho/beast/core/impl/flat_stream.hpp>
 

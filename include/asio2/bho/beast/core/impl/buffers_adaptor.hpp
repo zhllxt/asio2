@@ -7,13 +7,14 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_IMPL_BUFFERS_ADAPTOR_HPP
-#define BEAST_IMPL_BUFFERS_ADAPTOR_HPP
+#ifndef BHO_BEAST_IMPL_BUFFERS_ADAPTOR_HPP
+#define BHO_BEAST_IMPL_BUFFERS_ADAPTOR_HPP
 
 #include <asio2/bho/beast/core/buffer_traits.hpp>
 #include <asio2/bho/beast/core/buffers_adaptor.hpp>
-#include <asio/buffer.hpp>
-#include <asio2/bho/beast/core/util.hpp>
+#include <asio2/3rd/asio.hpp>
+#include <asio2/bho/config/workaround.hpp>
+#include <asio2/bho/throw_exception.hpp>
 #include <algorithm>
 #include <cstring>
 #include <iterator>
@@ -21,9 +22,16 @@
 #include <type_traits>
 #include <utility>
 
+namespace bho {
 namespace beast {
 
 //------------------------------------------------------------------------------
+
+#if BHO_WORKAROUND(BHO_MSVC, < 1910)
+# pragma warning (push)
+# pragma warning (disable: 4521) // multiple copy constructors specified
+# pragma warning (disable: 4522) // multiple assignment operators specified
+#endif
 
 template<class MutableBufferSequence>
 template<bool isMutable>
@@ -45,10 +53,31 @@ public:
         std::size_t n =         // the total length of the subrange
         (std::numeric_limits<std::size_t>::max)());
 
+#if BHO_WORKAROUND(BHO_MSVC, < 1910)
+    subrange(
+        subrange const& other)
+        : first_(other.first_)
+        , last_(other.last_)
+        , first_offset_(other.first_offset_)
+        , last_size_(other.last_size_)
+    {
+    }
+
+    subrange& operator=(
+        subrange const& other)
+    {
+        first_ = other.first_;
+        last_ = other.last_;
+        first_offset_ = other.first_offset_;
+        last_size_ = other.last_size_;
+        return *this;
+    }
+#else
     subrange(
         subrange const&) = default;
     subrange& operator=(
         subrange const&) = default;
+#endif
 
     // allow conversion from mutable to const
     template<bool isMutable_ = isMutable, typename
@@ -89,6 +118,10 @@ private:
     // how many bytes in the penultimate buffer are used (if any)
     std::size_t last_size_;
 };
+
+#if BHO_WORKAROUND(BHO_MSVC, < 1910)
+# pragma warning (pop)
+#endif
 
 //------------------------------------------------------------------------------
 
@@ -192,7 +225,7 @@ template<class MutableBufferSequence>
 template<class... Args>
 buffers_adaptor<MutableBufferSequence>::
 buffers_adaptor(
-	std::in_place_t, Args&&... args)
+    std::in_place_t, Args&&... args)
     : bs_{std::forward<Args>(args)...}
     , begin_(net::buffer_sequence_begin(bs_))
     , out_  (net::buffer_sequence_begin(bs_))
@@ -315,7 +348,7 @@ prepare(std::size_t n) ->
         }
     }
     if(n > 0)
-        BEAST_THROW_EXCEPTION(std::length_error{
+        BHO_THROW_EXCEPTION(std::length_error{
             "buffers_adaptor too long"});
     return mutable_buffers_type(out_, end_, out_pos_, prepared);
 }
@@ -669,5 +702,6 @@ operator!=(iterator const &b) const ->
 }
 
 } // beast
+} // bho
 
 #endif

@@ -7,8 +7,8 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_IMPL_BUFFERED_READ_STREAM_HPP
-#define BEAST_IMPL_BUFFERED_READ_STREAM_HPP
+#ifndef BHO_BEAST_IMPL_BUFFERED_READ_STREAM_HPP
+#define BHO_BEAST_IMPL_BUFFERED_READ_STREAM_HPP
 
 #include <asio2/bho/beast/core/async_base.hpp>
 #include <asio2/bho/beast/core/bind_handler.hpp>
@@ -16,9 +16,10 @@
 #include <asio2/bho/beast/core/read_size.hpp>
 #include <asio2/bho/beast/core/stream_traits.hpp>
 #include <asio2/bho/beast/core/detail/is_invocable.hpp>
-#include <asio/post.hpp>
-#include <asio2/bho/beast/core/util.hpp>
+#include <asio2/3rd/asio.hpp>
+#include <asio2/bho/throw_exception.hpp>
 
+namespace bho {
 namespace beast {
 
 
@@ -90,6 +91,7 @@ public:
 
         case 2:
             s_.buffer_.commit(bytes_transferred);
+            BHO_FALLTHROUGH;
 
         case 3:
             bytes_transferred =
@@ -139,8 +141,8 @@ buffered_read_stream(Args&&... args)
 }
 
 template<class Stream, class DynamicBuffer>
-template<class ConstBufferSequence, BEAST_ASYNC_TPARAM2 WriteHandler>
-BEAST_ASYNC_RESULT2(WriteHandler)
+template<class ConstBufferSequence, BHO_BEAST_ASYNC_TPARAM2 WriteHandler>
+BHO_BEAST_ASYNC_RESULT2(WriteHandler)
 buffered_read_stream<Stream, DynamicBuffer>::
 async_write_some(
     ConstBufferSequence const& buffers,
@@ -173,7 +175,7 @@ read_some(
     error_code ec;
     auto n = read_some(buffers, ec);
     if(ec)
-        BEAST_THROW_EXCEPTION(system_error{ec});
+        BHO_THROW_EXCEPTION(system_error{ec});
     return n;
 }
 
@@ -210,8 +212,8 @@ read_some(MutableBufferSequence const& buffers,
 }
 
 template<class Stream, class DynamicBuffer>
-template<class MutableBufferSequence, BEAST_ASYNC_TPARAM2 ReadHandler>
-BEAST_ASYNC_RESULT2(ReadHandler)
+template<class MutableBufferSequence, BHO_BEAST_ASYNC_TPARAM2 ReadHandler>
+BHO_BEAST_ASYNC_RESULT2(ReadHandler)
 buffered_read_stream<Stream, DynamicBuffer>::
 async_read_some(
     MutableBufferSequence const& buffers,
@@ -235,5 +237,6 @@ async_read_some(
 }
 
 } // beast
+} // bho
 
 #endif

@@ -7,14 +7,15 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_HTTP_DETAIL_BASIC_PARSED_LIST_HPP
-#define BEAST_HTTP_DETAIL_BASIC_PARSED_LIST_HPP
+#ifndef BHO_BEAST_HTTP_DETAIL_BASIC_PARSED_LIST_HPP
+#define BHO_BEAST_HTTP_DETAIL_BASIC_PARSED_LIST_HPP
 
 #include <asio2/bho/beast/core/string.hpp>
-#include <asio2/bho/beast/core/empty_value.hpp>
+#include <asio2/bho/core/empty_value.hpp>
 #include <cstddef>
 #include <iterator>
 
+namespace bho {
 namespace beast {
 namespace http {
 namespace detail {
@@ -34,14 +35,14 @@ public:
     using value_type = typename Policy::value_type;
 
     /// A constant iterator to a list element.
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
     using const_iterator = __implementation_defined__;
 #else
     class const_iterator;
 #endif
 
     class const_iterator
-        : private beast::empty_value<Policy>
+        : private bho::empty_value<Policy>
     {
         basic_parsed_list const* list_ = nullptr;
         char const* it_ = nullptr;
@@ -190,6 +191,7 @@ cend() const ->
 } // detail
 } // http
 } // beast
+} // bho
 
 #endif
 

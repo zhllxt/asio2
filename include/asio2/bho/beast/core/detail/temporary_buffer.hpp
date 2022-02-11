@@ -7,14 +7,15 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_DETAIL_TEMPORARY_BUFFER_HPP
-#define BEAST_DETAIL_TEMPORARY_BUFFER_HPP
+#ifndef BHO_BEAST_DETAIL_TEMPORARY_BUFFER_HPP
+#define BHO_BEAST_DETAIL_TEMPORARY_BUFFER_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/core/string.hpp>
 
 #include <memory>
 
+namespace bho {
 namespace beast {
 namespace detail {
 
@@ -29,11 +30,11 @@ struct temporary_buffer
         deallocate(data_);
     }
 
-    BEAST_DECL
+    BHO_BEAST_DECL
     void
     append(string_view s);
 
-    BEAST_DECL
+    BHO_BEAST_DECL
     void
     append(string_view s1, string_view s2);
 
@@ -50,11 +51,11 @@ struct temporary_buffer
     }
 
 private:
-    BEAST_DECL
+    BHO_BEAST_DECL
     void
     unchecked_append(string_view s);
 
-    BEAST_DECL
+    BHO_BEAST_DECL
     void
     grow(std::size_t n);
 
@@ -73,6 +74,7 @@ private:
 
 } // detail
 } // beast
+} // bho
 
 #ifdef BEAST_HEADER_ONLY
 #include <asio2/bho/beast/core/detail/impl/temporary_buffer.ipp>

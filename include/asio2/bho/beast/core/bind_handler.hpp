@@ -7,14 +7,15 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_BIND_HANDLER_HPP
-#define BEAST_BIND_HANDLER_HPP
+#ifndef BHO_BEAST_BIND_HANDLER_HPP
+#define BHO_BEAST_BIND_HANDLER_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/core/detail/bind_handler.hpp>
 #include <type_traits>
 #include <utility>
 
+namespace bho {
 namespace beast {
 
 /** Bind parameters to a completion handler, creating a new handler.
@@ -55,7 +56,7 @@ namespace beast {
     a fashion identical to a call to `std::bind`.
 */
 template<class Handler, class... Args>
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
 __implementation_defined__
 #else
 detail::bind_wrapper<
@@ -106,7 +107,7 @@ bind_handler(Handler&& handler, Args&&... args)
     The arguments are forwarded into the returned object.
 */
 template<class Handler, class... Args>
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
 __implementation_defined__
 #else
 auto
@@ -126,5 +127,6 @@ bind_front_handler(
 }
 
 } // beast
+} // bho
 
 #endif

@@ -7,13 +7,14 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_DETAIL_IS_INVOCABLE_HPP
-#define BEAST_DETAIL_IS_INVOCABLE_HPP
+#ifndef BHO_BEAST_DETAIL_IS_INVOCABLE_HPP
+#define BHO_BEAST_DETAIL_IS_INVOCABLE_HPP
 
-#include <asio/async_result.hpp>
+#include <asio2/3rd/asio.hpp>
 #include <type_traits>
 #include <utility>
 
+namespace bho {
 namespace beast {
 namespace detail {
 
@@ -65,7 +66,7 @@ struct any_initiation
 template<class CompletionToken, class R, class...Args>
 struct is_completion_token_for<
     CompletionToken, R(Args...), std::void_t<decltype(
-        asio::async_initiate<CompletionToken, R(Args...)>(
+        net::async_initiate<CompletionToken, R(Args...)>(
             any_initiation(), std::declval<CompletionToken&>())
         )>> : std::true_type
 {
@@ -73,5 +74,6 @@ struct is_completion_token_for<
 
 } // detail
 } // beast
+} // bho
 
 #endif

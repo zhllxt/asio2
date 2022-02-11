@@ -33,7 +33,7 @@
 #include <asio2/util/string.hpp>
 
 #ifdef BEAST_HEADER_ONLY
-namespace beast::http
+namespace bho::beast::http
 #else
 namespace boost::beast::http
 #endif
@@ -345,9 +345,9 @@ namespace boost::beast::http
 		 * @function : make A typical HTTP request struct from the uri
 		 */
 		template<class Body = http::string_body, class Fields = http::fields>
-		http::request_t<Body, Fields> make_request(std::string_view uri, error_code& ec)
+		http::request<Body, Fields> make_request(std::string_view uri, error_code& ec)
 		{
-			http::request_t<Body, Fields> req;
+			http::request<Body, Fields> req;
 			try
 			{
 				ec.clear();
@@ -360,9 +360,9 @@ namespace boost::beast::http
 				{
 					http::request_parser<Body> parser;
 					parser.eager(true);
-					parser.put(asio::buffer(uri), ec);
+					parser.put(::asio::buffer(uri), ec);
 					req = parser.get();
-					asio::detail::throw_error(ec);
+					::asio::detail::throw_error(ec);
 				}
 				// It is a URL
 				else
@@ -375,7 +375,7 @@ namespace boost::beast::http
 					}
 
 					if (0 != state)
-						asio::detail::throw_error(asio::error::invalid_argument);
+						::asio::detail::throw_error(::asio::error::invalid_argument);
 
 					/* <scheme>://<user>:<password>@<host>:<port>/<path>;<params>?<query>#<fragment> */
 
@@ -417,7 +417,7 @@ namespace boost::beast::http
 						req.set(http::field::host, std::string(host) + ":" + std::string(port));
 
 					if (host.empty())
-						asio::detail::throw_error(asio::error::invalid_argument);
+						::asio::detail::throw_error(::asio::error::invalid_argument);
 				}
 			}
 			catch (system_error & e)
@@ -431,11 +431,11 @@ namespace boost::beast::http
 		 * @function : make A typical HTTP request struct from the uri
 		 */
 		template<class Body = http::string_body, class Fields = http::fields>
-		inline http::request_t<Body, Fields> make_request(std::string_view uri)
+		inline http::request<Body, Fields> make_request(std::string_view uri)
 		{
 			error_code ec;
-			http::request_t<Body, Fields> req = make_request<Body, Fields>(uri, ec);
-			asio::detail::throw_error(ec);
+			http::request<Body, Fields> req = make_request<Body, Fields>(uri, ec);
+			::asio::detail::throw_error(ec);
 			return req;
 		}
 
@@ -443,7 +443,7 @@ namespace boost::beast::http
 		 * @function : make A typical HTTP request struct from the uri
 		 */
 		template<typename String, typename StrOrInt, class Body = http::string_body, class Fields = http::fields>
-		inline http::request_t<Body, Fields> make_request(String&& host, StrOrInt&& port,
+		inline http::request<Body, Fields> make_request(String&& host, StrOrInt&& port,
 			std::string_view target, http::verb method = http::verb::get, unsigned version = 11)
 		{
 			std::string encoded;
@@ -453,7 +453,7 @@ namespace boost::beast::http
 				target = encoded;
 			}
 
-			http::request_t<Body, Fields> req;
+			http::request<Body, Fields> req;
 			// Set up an HTTP GET request message
 			req.method(method);
 			req.version(version);
@@ -473,30 +473,30 @@ namespace boost::beast::http
 		}
 
 		template<class Body = http::string_body, class Fields = http::fields>
-		inline http::response_t<Body, Fields> make_response(std::string_view uri, error_code& ec)
+		inline http::response<Body, Fields> make_response(std::string_view uri, error_code& ec)
 		{
 			ec.clear();
 			http::response_parser<Body> parser;
 			parser.eager(true);
-			parser.put(asio::buffer(uri), ec);
-			http::response_t<Body, Fields> rep = parser.get();
+			parser.put(::asio::buffer(uri), ec);
+			http::response<Body, Fields> rep = parser.get();
 			return rep;
 		}
 
 		template<class Body = http::string_body, class Fields = http::fields>
-		inline http::response_t<Body, Fields> make_response(std::string_view uri)
+		inline http::response<Body, Fields> make_response(std::string_view uri)
 		{
 			error_code ec;
-			http::response_t<Body, Fields> rep = make_response<Body, Fields>(uri, ec);
-			asio::detail::throw_error(ec);
+			http::response<Body, Fields> rep = make_response<Body, Fields>(uri, ec);
+			::asio::detail::throw_error(ec);
 			return rep;
 		}
 
 		template<class Body = http::string_body, class Fields = http::fields>
-		inline typename std::enable_if_t<std::is_same_v<Body, http::string_body>, http::response_t<Body, Fields>>
+		inline typename std::enable_if_t<std::is_same_v<Body, http::string_body>, http::response<Body, Fields>>
 			make_response(http::status code, std::string_view body, unsigned version = 11)
 		{
-			http::response_t<Body, Fields> rep;
+			http::response<Body, Fields> rep;
 			rep.version(version);
 			rep.set(http::field::server, BEAST_VERSION_STRING);
 			rep.result(code);
@@ -506,7 +506,7 @@ namespace boost::beast::http
 		}
 
 		template<class Body = http::string_body, class Fields = http::fields>
-		inline typename std::enable_if_t<std::is_same_v<Body, http::string_body>, http::response_t<Body, Fields>>
+		inline typename std::enable_if_t<std::is_same_v<Body, http::string_body>, http::response<Body, Fields>>
 			make_response(unsigned code, std::string_view body, unsigned version = 11)
 		{
 			return make_response(http::int_to_status(code), body, version);
@@ -598,7 +598,7 @@ namespace boost::beast::http
 }
 
 #ifdef BEAST_HEADER_ONLY
-namespace beast::websocket
+namespace bho::beast::websocket
 #else
 namespace boost::beast::websocket
 #endif

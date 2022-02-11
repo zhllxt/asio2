@@ -21,7 +21,7 @@
 #include <string_view>
 
 #ifdef BEAST_HEADER_ONLY
-namespace beast::http
+namespace bho::beast::http
 #else
 namespace boost::beast::http
 #endif

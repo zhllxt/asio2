@@ -7,8 +7,8 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_WEBSOCKET_RFC6455_HPP
-#define BEAST_WEBSOCKET_RFC6455_HPP
+#ifndef BHO_BEAST_WEBSOCKET_RFC6455_HPP
+#define BHO_BEAST_WEBSOCKET_RFC6455_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/core/static_string.hpp>
@@ -19,14 +19,15 @@
 #include <array>
 #include <cstdint>
 
+namespace bho {
 namespace beast {
 namespace websocket {
 
 /// The type of object holding HTTP Upgrade requests
-using request_type = http::request_t<http::empty_body>;
+using request_type = http::request<http::empty_body>;
 
 /// The type of object holding HTTP Upgrade responses
-using response_type = http::response_t<http::string_body>;
+using response_type = http::response<http::string_body>;
 
 /** Returns `true` if the specified HTTP request is a WebSocket Upgrade.
 
@@ -45,12 +46,12 @@ using response_type = http::response_t<http::string_body>;
     @code
     void handle_connection(net::ip::tcp::socket& sock)
     {
-        beast::flat_buffer buffer;
-        beast::http::request_t<beast::http::string_body> req;
-        beast::http::read(sock, buffer, req);
-        if(beast::websocket::is_upgrade(req))
+        bho::beast::flat_buffer buffer;
+        bho::beast::http::request<bho::beast::http::string_body> req;
+        bho::beast::http::read(sock, buffer, req);
+        if(bho::beast::websocket::is_upgrade(req))
         {
-            beast::websocket::stream<decltype(sock)> ws{std::move(sock)};
+            bho::beast::websocket::stream<decltype(sock)> ws{std::move(sock)};
             ws.accept(req);
         }
     }
@@ -215,6 +216,7 @@ struct close_reason
 
 } // websocket
 } // beast
+} // bho
 
 #include <asio2/bho/beast/websocket/impl/rfc6455.hpp>
 

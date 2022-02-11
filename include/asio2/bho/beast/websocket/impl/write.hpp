@@ -7,8 +7,8 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_WEBSOCKET_IMPL_WRITE_HPP
-#define BEAST_WEBSOCKET_IMPL_WRITE_HPP
+#ifndef BHO_BEAST_WEBSOCKET_IMPL_WRITE_HPP
+#define BHO_BEAST_WEBSOCKET_IMPL_WRITE_HPP
 
 #include <asio2/bho/beast/websocket/detail/mask.hpp>
 #include <asio2/bho/beast/core/async_base.hpp>
@@ -25,11 +25,14 @@
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/websocket/detail/frame.hpp>
 #include <asio2/bho/beast/websocket/impl/stream_impl.hpp>
-#include <asio/coroutine.hpp>
-#include <asio2/bho/beast/core/util.hpp>
+#include <asio2/3rd/asio.hpp>
+#include <asio2/bho/assert.hpp>
+#include <asio2/bho/config.hpp>
+#include <asio2/bho/throw_exception.hpp>
 #include <algorithm>
 #include <memory>
 
+namespace bho {
 namespace beast {
 namespace websocket {
 
@@ -38,7 +41,7 @@ template<class Handler, class Buffers>
 class stream<NextLayer, deflateSupported>::write_some_op
     : public beast::async_base<
         Handler, beast::executor_type<stream>>
-    , public asio::coroutine
+    , public net::coroutine
 {
     enum
     {
@@ -110,7 +113,7 @@ public:
             }
             else
             {
-                BEAST_ASSERT(impl.wr_buf_size != 0);
+                BHO_ASSERT(impl.wr_buf_size != 0);
                 remain_ = buffer_bytes(cb_);
                 if(remain_ > impl.wr_buf_size)
                     how_ = do_nomask_frag;
@@ -126,7 +129,7 @@ public:
             }
             else
             {
-                BEAST_ASSERT(impl.wr_buf_size != 0);
+                BHO_ASSERT(impl.wr_buf_size != 0);
                 remain_ = buffer_bytes(cb_);
                 if(remain_ > impl.wr_buf_size)
                     how_ = do_mask_frag;
@@ -193,7 +196,7 @@ operator()(
 
                 net::post(std::move(*this));
             }
-            BEAST_ASSERT(impl.wr_block.is_locked(this));
+            BHO_ASSERT(impl.wr_block.is_locked(this));
         }
         if(impl.check_stop_now(ec))
             goto upcall;
@@ -287,7 +290,7 @@ operator()(
                     || impl.op_rd.maybe_invoke()
                     || impl.op_ping.maybe_invoke())
                 {
-                    BEAST_ASSERT(impl.wr_block.is_locked());
+                    BHO_ASSERT(impl.wr_block.is_locked());
                     goto do_suspend;
                 }
                 impl.wr_block.lock(this);
@@ -439,7 +442,7 @@ operator()(
                     || impl.op_rd.maybe_invoke()
                     || impl.op_ping.maybe_invoke())
                 {
-                    BEAST_ASSERT(impl.wr_block.is_locked());
+                    BHO_ASSERT(impl.wr_block.is_locked());
                     goto do_suspend;
                 }
                 impl.wr_block.lock(this);
@@ -464,8 +467,8 @@ operator()(
                 {
                     // The input was consumed, but there is
                     // no output due to compression latency.
-                    BEAST_ASSERT(! fin_);
-                    BEAST_ASSERT(buffer_bytes(cb_) == 0);
+                    BHO_ASSERT(! fin_);
+                    BHO_ASSERT(buffer_bytes(cb_) == 0);
                     goto upcall;
                 }
                 if(fh_.mask)
@@ -518,7 +521,7 @@ operator()(
                         || impl.op_rd.maybe_invoke()
                         || impl.op_ping.maybe_invoke())
                     {
-                        BEAST_ASSERT(impl.wr_block.is_locked());
+                        BHO_ASSERT(impl.wr_block.is_locked());
                         goto do_suspend;
                     }
                     impl.wr_block.lock(this);
@@ -594,7 +597,7 @@ write_some(bool fin, ConstBufferSequence const& buffers)
     auto const bytes_transferred =
         write_some(fin, buffers, ec);
     if(ec)
-        BEAST_THROW_EXCEPTION(system_error{ec});
+        BHO_THROW_EXCEPTION(system_error{ec});
     return bytes_transferred;
 }
 
@@ -651,8 +654,8 @@ write_some(bool fin,
                 // The input was consumed, but there
                 // is no output due to compression
                 // latency.
-                BEAST_ASSERT(! fin);
-                BEAST_ASSERT(buffer_bytes(cb) == 0);
+                BHO_ASSERT(! fin);
+                BHO_ASSERT(buffer_bytes(cb) == 0);
                 fh.fin = false;
                 break;
             }
@@ -701,7 +704,7 @@ write_some(bool fin,
         else
         {
             // no mask, autofrag
-            BEAST_ASSERT(impl.wr_buf_size != 0);
+            BHO_ASSERT(impl.wr_buf_size != 0);
             buffers_suffix<
                 ConstBufferSequence> cb{buffers};
             for(;;)
@@ -775,7 +778,7 @@ write_some(bool fin,
     else
     {
         // mask, autofrag
-        BEAST_ASSERT(impl.wr_buf_size != 0);
+        BHO_ASSERT(impl.wr_buf_size != 0);
         buffers_suffix<
             ConstBufferSequence> cb(buffers);
         for(;;)
@@ -811,8 +814,8 @@ write_some(bool fin,
 }
 
 template<class NextLayer, bool deflateSupported>
-template<class ConstBufferSequence, BEAST_ASYNC_TPARAM2 WriteHandler>
-BEAST_ASYNC_RESULT2(WriteHandler)
+template<class ConstBufferSequence, BHO_BEAST_ASYNC_TPARAM2 WriteHandler>
+BHO_BEAST_ASYNC_RESULT2(WriteHandler)
 stream<NextLayer, deflateSupported>::
 async_write_some(bool fin,
     ConstBufferSequence const& bs, WriteHandler&& handler)
@@ -848,7 +851,7 @@ write(ConstBufferSequence const& buffers)
     error_code ec;
     auto const bytes_transferred = write(buffers, ec);
     if(ec)
-        BEAST_THROW_EXCEPTION(system_error{ec});
+        BHO_THROW_EXCEPTION(system_error{ec});
     return bytes_transferred;
 }
 
@@ -867,8 +870,8 @@ write(ConstBufferSequence const& buffers, error_code& ec)
 }
 
 template<class NextLayer, bool deflateSupported>
-template<class ConstBufferSequence, BEAST_ASYNC_TPARAM2 WriteHandler>
-BEAST_ASYNC_RESULT2(WriteHandler)
+template<class ConstBufferSequence, BHO_BEAST_ASYNC_TPARAM2 WriteHandler>
+BHO_BEAST_ASYNC_RESULT2(WriteHandler)
 stream<NextLayer, deflateSupported>::
 async_write(
     ConstBufferSequence const& bs, WriteHandler&& handler)
@@ -890,5 +893,6 @@ async_write(
 
 } // websocket
 } // beast
+} // bho
 
 #endif

@@ -7,19 +7,15 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_DETAIL_GET_IO_CONTEXT_HPP
-#define BEAST_DETAIL_GET_IO_CONTEXT_HPP
+#ifndef BHO_BEAST_DETAIL_GET_IO_CONTEXT_HPP
+#define BHO_BEAST_DETAIL_GET_IO_CONTEXT_HPP
 
 #include <asio2/bho/beast/core/stream_traits.hpp>
-#ifdef ASIO_NO_TS_EXECUTORS
-#include <asio/execution.hpp>
-#endif
-#include <asio/executor.hpp>
-#include <asio/io_context.hpp>
-#include <asio/strand.hpp>
+#include <asio2/3rd/asio.hpp>
 #include <memory>
 #include <type_traits>
 
+namespace bho {
 namespace beast {
 namespace detail {
 
@@ -103,5 +99,6 @@ get_io_context(T& t)
 
 } // detail
 } // beast
+} // bho
 
 #endif

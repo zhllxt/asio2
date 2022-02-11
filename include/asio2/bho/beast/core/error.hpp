@@ -7,27 +7,27 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_ERROR_HPP
-#define BEAST_ERROR_HPP
+#ifndef BHO_BEAST_ERROR_HPP
+#define BHO_BEAST_ERROR_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
-#include <asio/error_code.hpp>
-#include <asio/system_error.hpp>
+#include <asio2/3rd/asio.hpp>
 #include <system_error>
 
+namespace bho {
 namespace beast {
 
 /// The type of error code used by the library
-using error_code = asio::error_code;
+using error_code = net::error_code;
 
 /// The type of system error thrown by the library
-using system_error = asio::system_error;
+using system_error = net::system_error;
 
 /// The type of error category used by the library
-using error_category = asio::error_category;
+using error_category = net::error_category;
 
 /// A function to return the generic error category used by the library
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
 error_category const&
 generic_category();
 #else
@@ -35,18 +35,18 @@ using std::generic_category;
 #endif
 
 /// A function to return the system error category used by the library
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
 error_category const&
 system_category();
 #else
-using std::system_category;
+using net::system_category;
 #endif
 
 /// The type of error condition used by the library
-using error_condition = std::error_condition;
+using error_condition = net::error_condition;
 
 /// The set of constants used for cross-platform error codes
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
 enum errc{};
 #else
 using errc = std::errc;
@@ -78,6 +78,7 @@ enum class condition
 };
 
 } // beast
+} // bho
 
 #include <asio2/bho/beast/core/impl/error.hpp>
 #ifdef BEAST_HEADER_ONLY

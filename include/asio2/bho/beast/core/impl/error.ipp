@@ -7,11 +7,12 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_IMPL_ERROR_IPP
-#define BEAST_IMPL_ERROR_IPP
+#ifndef BHO_BEAST_IMPL_ERROR_IPP
+#define BHO_BEAST_IMPL_ERROR_IPP
 
 #include <asio2/bho/beast/core/error.hpp>
 
+namespace bho {
 namespace beast {
 
 namespace detail {
@@ -25,7 +26,7 @@ public:
         return "boost.beast";
     }
 
-    BEAST_DECL
+    BHO_BEAST_DECL
     std::string
     message(int ev) const override
     {
@@ -37,7 +38,7 @@ public:
         }
     }
 
-    BEAST_DECL
+    BHO_BEAST_DECL
     error_condition
     default_error_condition(int ev) const noexcept override
     {
@@ -54,14 +55,14 @@ public:
 class error_conditions : public error_category
 {
 public:
-    BEAST_DECL
+    BHO_BEAST_DECL
     const char*
     name() const noexcept override
     {
         return "boost.beast";
     }
 
-    BEAST_DECL
+    BHO_BEAST_DECL
     std::string
     message(int cv) const override
     {
@@ -93,5 +94,6 @@ make_error_condition(condition c)
 }
 
 } // beast
+} // bho
 
 #endif

@@ -7,8 +7,8 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_SSL_HPP
-#define BEAST_SSL_HPP
+#ifndef BHO_BEAST_SSL_HPP
+#define BHO_BEAST_SSL_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 

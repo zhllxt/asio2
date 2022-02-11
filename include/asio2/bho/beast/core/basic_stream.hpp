@@ -7,8 +7,8 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_CORE_BASIC_STREAM_HPP
-#define BEAST_CORE_BASIC_STREAM_HPP
+#ifndef BHO_BEAST_CORE_BASIC_STREAM_HPP
+#define BHO_BEAST_CORE_BASIC_STREAM_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/core/detail/stream_base.hpp>
@@ -16,24 +16,26 @@
 #include <asio2/bho/beast/core/rate_policy.hpp>
 #include <asio2/bho/beast/core/role.hpp>
 #include <asio2/bho/beast/core/stream_traits.hpp>
-#include <asio/async_result.hpp>
-#include <asio/basic_stream_socket.hpp>
-#include <asio/connect.hpp>
-#include <asio/executor.hpp>
-#include <asio/is_executor.hpp>
-#include <asio2/bho/beast/core/empty_value.hpp>
+#include <asio2/3rd/asio.hpp>
+#include <asio2/bho/core/empty_value.hpp>
+#include <asio2/bho/config/workaround.hpp>
 #include <chrono>
 #include <limits>
 #include <memory>
 
-#if ! BEAST_DOXYGEN
+#if ! BHO_BEAST_DOXYGEN
+#ifdef ASIO_STANDALONE
 namespace asio {
+#else
+namespace boost::asio {
+#endif
 namespace ssl {
 template<typename> class stream;
 } // ssl
 } // asio
 #endif
 
+namespace bho {
 namespace beast {
 
 /** A stream socket wrapper with timeouts, an executor, and a rate limit policy.
@@ -112,14 +114,14 @@ namespace beast {
     void process_http_1 (tcp_stream& stream, net::yield_context yield)
     {
         flat_buffer buffer;
-        http::request_t<http::empty_body> req;
+        http::request<http::empty_body> req;
 
         // Read the request, with a 15 second timeout
         stream.expires_after(std::chrono::seconds(15));
         http::async_read(stream, buffer, req, yield);
 
         // Calculate the response
-        http::response_t<http::string_body> res = make_response(req);
+        http::response<http::string_body> res = make_response(req);
 
         // Send the response, with a 30 second timeout.
         stream.expires_after (std::chrono::seconds(30));
@@ -136,14 +138,14 @@ namespace beast {
     void process_http_2 (tcp_stream& stream, net::yield_context yield)
     {
         flat_buffer buffer;
-        http::request_t<http::empty_body> req;
+        http::request<http::empty_body> req;
 
         // Require that the read and write combined take no longer than 30 seconds
         stream.expires_after(std::chrono::seconds(30));
 
         http::async_read(stream, buffer, req, yield);
 
-        http::response_t<http::string_body> res = make_response(req);
+        http::response<http::string_body> res = make_response(req);
         http::async_write (stream, res, yield);
     }
     @endcode
@@ -195,7 +197,7 @@ template<
     class RatePolicy = unlimited_rate_policy
 >
 class basic_stream
-#if ! BEAST_DOXYGEN
+#if ! BHO_BEAST_DOXYGEN
     : private detail::stream_base
 #endif
 {
@@ -233,7 +235,7 @@ private:
 
     struct impl_type
         : std::enable_shared_from_this<impl_type>
-        , beast::empty_value<RatePolicy>
+        , bho::empty_value<RatePolicy>
     {
         // must come first
         net::basic_stream_socket<
@@ -274,13 +276,13 @@ private:
         RatePolicy&
         policy() noexcept
         {
-            return this->beast::empty_value<RatePolicy>::get();
+            return this->bho::empty_value<RatePolicy>::get();
         }
 
         RatePolicy const&
         policy() const noexcept
         {
-            return this->beast::empty_value<RatePolicy>::get();
+            return this->bho::empty_value<RatePolicy>::get();
         }
 
         template<class Executor2>
@@ -301,11 +303,11 @@ private:
 
     struct ops;
 
-#if ! BEAST_DOXYGEN
-    // asio::ssl::stream needs these
+#if ! BHO_BEAST_DOXYGEN
+    // net::ssl::stream needs these
     // DEPRECATED
     template<class>
-    friend class asio::ssl::stream;
+    friend class net::ssl::stream;
     // DEPRECATED
     using lowest_layer_type = socket_type;
     // DEPRECATED
@@ -340,7 +342,7 @@ public:
         @param args A list of parameters forwarded to the constructor of
         the underlying socket.
     */
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
     template<class... Args>
     explicit
     basic_stream(Args&&... args);
@@ -365,7 +367,7 @@ public:
         @param args A list of parameters forwarded to the constructor of
         the underlying socket.
     */
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
     template<class RatePolicy_, class... Args>
     explicit
     basic_stream(RatePolicy_&& policy, Args&&... args);
@@ -579,7 +581,7 @@ public:
         Otherwise, contains the error from the last connection attempt.
     */
     template<class EndpointSequence
-    #if ! BEAST_DOXYGEN
+    #if ! BHO_BEAST_DOXYGEN
         ,class = typename std::enable_if<
             net::is_endpoint_sequence<
                 EndpointSequence>::value>::type
@@ -613,7 +615,7 @@ public:
         default-constructed endpoint.
     */
     template<class EndpointSequence
-    #if ! BEAST_DOXYGEN
+    #if ! BHO_BEAST_DOXYGEN
         ,class = typename std::enable_if<
             net::is_endpoint_sequence<
                 EndpointSequence>::value>::type
@@ -675,7 +677,7 @@ public:
         @param end An iterator pointing to the end of a sequence of endpoints.
 
         @param ec Set to indicate what error occurred, if any. If the sequence is
-        empty, set to asio::error::not_found. Otherwise, contains the error
+        empty, set to net::error::not_found. Otherwise, contains the error
         from the last connection attempt.
 
         @returns On success, an iterator denoting the successfully connected
@@ -725,7 +727,7 @@ public:
     */
     template<
         class EndpointSequence, class ConnectCondition
-    #if ! BEAST_DOXYGEN
+    #if ! BHO_BEAST_DOXYGEN
         ,class = typename std::enable_if<
             net::is_endpoint_sequence<
                 EndpointSequence>::value>::type
@@ -776,7 +778,7 @@ public:
     */
     template<
         class EndpointSequence, class ConnectCondition
-    #if ! BEAST_DOXYGEN
+    #if ! BHO_BEAST_DOXYGEN
         ,class = typename std::enable_if<
             net::is_endpoint_sequence<
                 EndpointSequence>::value>::type
@@ -916,10 +918,10 @@ public:
         @see async_connect
     */
     template<
-        BEAST_ASYNC_TPARAM1 ConnectHandler =
+        BHO_BEAST_ASYNC_TPARAM1 ConnectHandler =
             net::default_completion_token_t<executor_type>
     >
-    BEAST_ASYNC_RESULT1(ConnectHandler)
+    BHO_BEAST_ASYNC_RESULT1(ConnectHandler)
     async_connect(
         endpoint_type const& ep,
         ConnectHandler&& handler =
@@ -973,7 +975,7 @@ public:
             void(error_code, typename Protocol::endpoint))
             RangeConnectHandler =
                 net::default_completion_token_t<executor_type>
-    #if ! BEAST_DOXYGEN
+    #if ! BHO_BEAST_DOXYGEN
         ,class = typename std::enable_if<
             net::is_endpoint_sequence<
                 EndpointSequence>::value>::type
@@ -1066,7 +1068,7 @@ public:
             void(error_code, typename Protocol::endpoint))
             RangeConnectHandler =
                 net::default_completion_token_t<executor_type>
-    #if ! BEAST_DOXYGEN
+    #if ! BHO_BEAST_DOXYGEN
         ,class = typename std::enable_if<
             net::is_endpoint_sequence<
                 EndpointSequence>::value>::type
@@ -1313,10 +1315,10 @@ public:
     */
     template<
         class MutableBufferSequence,
-        BEAST_ASYNC_TPARAM2 ReadHandler =
+        BHO_BEAST_ASYNC_TPARAM2 ReadHandler =
             net::default_completion_token_t<executor_type>
     >
-    BEAST_ASYNC_RESULT2(ReadHandler)
+    BHO_BEAST_ASYNC_RESULT2(ReadHandler)
     async_read_some(
         MutableBufferSequence const& buffers,
         ReadHandler&& handler =
@@ -1436,10 +1438,10 @@ public:
     */
     template<
         class ConstBufferSequence,
-        BEAST_ASYNC_TPARAM2 WriteHandler =
+        BHO_BEAST_ASYNC_TPARAM2 WriteHandler =
             net::default_completion_token_t<Executor>
     >
-    BEAST_ASYNC_RESULT2(WriteHandler)
+    BHO_BEAST_ASYNC_RESULT2(WriteHandler)
     async_write_some(
         ConstBufferSequence const& buffers,
         WriteHandler&& handler =
@@ -1447,6 +1449,7 @@ public:
 };
 
 } // beast
+} // bho
 
 #include <asio2/bho/beast/core/impl/basic_stream.hpp>
 

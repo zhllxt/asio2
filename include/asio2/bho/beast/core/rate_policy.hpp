@@ -7,13 +7,14 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_CORE_RATE_POLICY_HPP
-#define BEAST_CORE_RATE_POLICY_HPP
+#ifndef BHO_BEAST_CORE_RATE_POLICY_HPP
+#define BHO_BEAST_CORE_RATE_POLICY_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <cstdint>
 #include <limits>
 
+namespace bho {
 namespace beast {
 
 /** Helper class to assist implementing a <em>RatePolicy</em>.
@@ -214,5 +215,6 @@ public:
 };
 
 } // beast
+} // bho
 
 #endif

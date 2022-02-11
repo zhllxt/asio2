@@ -24,6 +24,7 @@ namespace asio2::detail
 	{
 	public:
 		using endpoint_type = typename args_t::socket_t::lowest_layer_type::endpoint_type;
+		using port_type     = std::uint16_t; // typename asio::ip::port_type; // boost 1.72 not exists this type.
 
 		/**
 		 * @constructor
@@ -54,7 +55,7 @@ namespace asio2::detail
 		inline derived_t& local_endpoint(const InternetProtocol& protocol, StrOrInt&& port)
 		{
 			this->local_endpoint_ = endpoint_type(protocol,
-				detail::to_integer<typename asio::ip::port_type>(std::forward<StrOrInt>(port)));
+				detail::to_integer<port_type>(std::forward<StrOrInt>(port)));
 			return static_cast<derived_t&>(*this);
 		}
 
@@ -71,7 +72,7 @@ namespace asio2::detail
 		inline derived_t& local_endpoint(const asio::ip::address& addr, StrOrInt&& port)
 		{
 			this->local_endpoint_ = endpoint_type(addr,
-				detail::to_integer<typename asio::ip::port_type>(std::forward<StrOrInt>(port)));
+				detail::to_integer<port_type>(std::forward<StrOrInt>(port)));
 			return static_cast<derived_t&>(*this);
 		}
 

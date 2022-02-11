@@ -7,11 +7,12 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_ROLE_HPP
-#define BEAST_ROLE_HPP
+#ifndef BHO_BEAST_ROLE_HPP
+#define BHO_BEAST_ROLE_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 
+namespace bho {
 namespace beast {
 
 /** The role of local or remote peer.
@@ -44,5 +45,6 @@ enum class role_type
 };
 
 } // beast
+} // bho
 
 #endif

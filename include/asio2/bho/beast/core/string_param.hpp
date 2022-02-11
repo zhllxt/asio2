@@ -7,10 +7,11 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_STRING_PARAM_HPP
-#define BEAST_STRING_PARAM_HPP
+#ifndef BHO_BEAST_STRING_PARAM_HPP
+#define BHO_BEAST_STRING_PARAM_HPP
 
-#if defined(BEAST_ALLOW_DEPRECATED) && !defined(BEAST_DOXYGEN)
+#if defined(BHO_BEAST_ALLOW_DEPRECATED) && !defined(BHO_BEAST_DOXYGEN)
+
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/core/string.hpp>
@@ -18,6 +19,7 @@
 #include <asio2/bho/beast/core/detail/static_ostream.hpp>
 #include <optional>
 
+namespace bho {
 namespace beast {
 
 /** A function parameter which efficiently converts to string.
@@ -123,9 +125,10 @@ public:
 };
 
 } // beast
+} // bho
 
 #include <asio2/bho/beast/core/impl/string_param.hpp>
 
-#endif // defined(BEAST_ALLOW_DEPRECATED) && !BEAST_DOXYGEN
+#endif // defined(BHO_BEAST_ALLOW_DEPRECATED) && !BHO_BEAST_DOXYGEN
 
 #endif

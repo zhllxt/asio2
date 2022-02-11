@@ -7,13 +7,14 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_BUFFERS_RANGE_HPP
-#define BEAST_BUFFERS_RANGE_HPP
+#ifndef BHO_BEAST_BUFFERS_RANGE_HPP
+#define BHO_BEAST_BUFFERS_RANGE_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/core/buffer_traits.hpp>
 #include <asio2/bho/beast/core/detail/buffers_range_adaptor.hpp>
 
+namespace bho {
 namespace beast {
 
 /** Returns an iterable range representing a buffer sequence.
@@ -53,7 +54,7 @@ namespace beast {
     @see buffers_range_ref
 */
 template<class BufferSequence>
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
 __implementation_defined__
 #else
 detail::buffers_range_adaptor<BufferSequence>
@@ -106,7 +107,7 @@ buffers_range(BufferSequence const& buffers)
     @see buffers_range
 */
 template<class BufferSequence>
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
 __implementation_defined__
 #else
 detail::buffers_range_adaptor<BufferSequence const&>
@@ -122,5 +123,6 @@ buffers_range_ref(BufferSequence const& buffers)
 /** @} */
 
 } // beast
+} // bho
 
 #endif

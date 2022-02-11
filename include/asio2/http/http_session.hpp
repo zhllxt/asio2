@@ -142,12 +142,12 @@ namespace asio2::detail
 		/**
 		 * @function : get the request object
 		 */
-		inline const http::request & request() noexcept { return this->req_; }
+		inline const http::web_request & request() noexcept { return this->req_; }
 
 		/**
 		 * @function : get the response object
 		 */
-		inline const http::response& response() noexcept { return this->rep_; }
+		inline const http::web_response& response() noexcept { return this->rep_; }
 
 	protected:
 		inline http_router_t<derived_t>& _router() noexcept
@@ -415,9 +415,9 @@ namespace asio2::detail
 		}
 
 	protected:
-		http::request             req_;
+		http::web_request             req_;
 
-		http::response            rep_;
+		http::web_response            rep_;
 
 		http_router_t<derived_t>& router_;
 

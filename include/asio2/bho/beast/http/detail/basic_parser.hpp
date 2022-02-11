@@ -7,16 +7,19 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_HTTP_DETAIL_BASIC_PARSER_HPP
-#define BEAST_HTTP_DETAIL_BASIC_PARSER_HPP
+#ifndef BHO_BEAST_HTTP_DETAIL_BASIC_PARSER_HPP
+#define BHO_BEAST_HTTP_DETAIL_BASIC_PARSER_HPP
 
 #include <asio2/bho/beast/core/string.hpp>
 #include <asio2/bho/beast/core/detail/char_buffer.hpp>
 #include <asio2/bho/beast/http/error.hpp>
 #include <asio2/bho/beast/http/detail/rfc7230.hpp>
+#include <asio2/bho/config.hpp>
+#include <asio2/bho/version.hpp>
 #include <cstddef>
 #include <utility>
 
+namespace bho {
 namespace beast {
 namespace http {
 namespace detail {
@@ -58,12 +61,12 @@ struct basic_parser_base
         return static_cast<unsigned char>(c-32) < 95;
     }
 
-    BEAST_DECL
+    BHO_BEAST_DECL
     static
     char const*
     trim_front(char const* it, char const* end);
 
-    BEAST_DECL
+    BHO_BEAST_DECL
     static
     char const*
     trim_back(
@@ -79,17 +82,17 @@ struct basic_parser_base
 
     //--------------------------------------------------------------------------
 
-    BEAST_DECL
+    BHO_BEAST_DECL
     static
     bool
     is_pathchar(char c);
 
-    BEAST_DECL
+    BHO_BEAST_DECL
     static
     bool
     unhex(unsigned char& d, char c);
 
-    BEAST_DECL
+    BHO_BEAST_DECL
     static
     std::pair<char const*, bool>
     find_fast(
@@ -98,21 +101,21 @@ struct basic_parser_base
         char const* ranges,
         size_t ranges_size);
 
-    BEAST_DECL
+    BHO_BEAST_DECL
     static
     char const*
     find_eol(
         char const* it, char const* last,
             error_code& ec);
 
-    BEAST_DECL
+    BHO_BEAST_DECL
     static
     char const*
     find_eom(char const* p, char const* last);
 
     //--------------------------------------------------------------------------
 
-    BEAST_DECL
+    BHO_BEAST_DECL
     static
     char const*
     parse_token_to_eol(
@@ -121,57 +124,57 @@ struct basic_parser_base
         char const*& token_last,
         error_code& ec);
 
-    BEAST_DECL
+    BHO_BEAST_DECL
     static
     bool
     parse_dec(string_view s, std::uint64_t& v);
 
-    BEAST_DECL
+    BHO_BEAST_DECL
     static
     bool
     parse_hex(char const*& it, std::uint64_t& v);
 
-    BEAST_DECL
+    BHO_BEAST_DECL
     static
     bool
     parse_crlf(char const*& it);
 
-    BEAST_DECL
+    BHO_BEAST_DECL
     static
     void
     parse_method(
         char const*& it, char const* last,
         string_view& result, error_code& ec);
 
-    BEAST_DECL
+    BHO_BEAST_DECL
     static
     void
     parse_target(
         char const*& it, char const* last,
         string_view& result, error_code& ec);
 
-    BEAST_DECL
+    BHO_BEAST_DECL
     static
     void
     parse_version(
         char const*& it, char const* last,
         int& result, error_code& ec);
 
-    BEAST_DECL
+    BHO_BEAST_DECL
     static
     void
     parse_status(
         char const*& it, char const* last,
         unsigned short& result, error_code& ec);
 
-    BEAST_DECL
+    BHO_BEAST_DECL
     static
     void
     parse_reason(
         char const*& it, char const* last,
         string_view& result, error_code& ec);
 
-    BEAST_DECL
+    BHO_BEAST_DECL
     static
     void
     parse_field(
@@ -182,7 +185,7 @@ struct basic_parser_base
         beast::detail::char_buffer<max_obs_fold>& buf,
         error_code& ec);
 
-    BEAST_DECL
+    BHO_BEAST_DECL
     static
     void
     parse_chunk_extensions(
@@ -194,6 +197,7 @@ struct basic_parser_base
 } // detail
 } // http
 } // beast
+} // bho
 
 #ifdef BEAST_HEADER_ONLY
 #include <asio2/bho/beast/http/detail/basic_parser.ipp>

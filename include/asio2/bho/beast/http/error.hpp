@@ -7,12 +7,13 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_HTTP_ERROR_HPP
-#define BEAST_HTTP_ERROR_HPP
+#ifndef BHO_BEAST_HTTP_ERROR_HPP
+#define BHO_BEAST_HTTP_ERROR_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/core/error.hpp>
 
+namespace bho {
 namespace beast {
 namespace http {
 
@@ -150,7 +151,7 @@ enum class error
         This happens when attempting to re-use a parser that has
         already completed parsing a message. Programs must construct
         a new parser for each message. This can be easily done by
-        storing the parser in an std::optional container.
+        storing the parser in an boost or std::optional container.
     */
     stale_parser,
 
@@ -165,6 +166,7 @@ enum class error
 
 } // http
 } // beast
+} // bho
 
 #include <asio2/bho/beast/http/impl/error.hpp>
 #ifdef BEAST_HEADER_ONLY

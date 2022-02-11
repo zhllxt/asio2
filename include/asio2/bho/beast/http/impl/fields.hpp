@@ -7,8 +7,8 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_HTTP_IMPL_FIELDS_HPP
-#define BEAST_HTTP_IMPL_FIELDS_HPP
+#ifndef BHO_BEAST_HTTP_IMPL_FIELDS_HPP
+#define BHO_BEAST_HTTP_IMPL_FIELDS_HPP
 
 #include <asio2/bho/beast/core/buffers_cat.hpp>
 #include <asio2/bho/beast/core/string.hpp>
@@ -21,10 +21,12 @@
 #include <asio2/bho/beast/http/rfc7230.hpp>
 #include <asio2/bho/beast/http/status.hpp>
 #include <asio2/bho/beast/http/chunk_encode.hpp>
-#include <asio2/bho/beast/core/util.hpp>
+#include <asio2/bho/core/exchange.hpp>
+#include <asio2/bho/throw_exception.hpp>
 #include <stdexcept>
 #include <string>
 
+namespace bho {
 namespace beast {
 namespace http {
 
@@ -294,7 +296,7 @@ value_type(field name,
     , f_(name)
 	, self_(self)
 {
-    //BEAST_ASSERT(name == field::unknown ||
+    //BHO_ASSERT(name == field::unknown ||
     //    iequals(sname, to_string(name)));
     char* p = data();
     p[off_-2] = ':';
@@ -358,14 +360,14 @@ basic_fields<Allocator>::
 template<class Allocator>
 basic_fields<Allocator>::
 basic_fields(Allocator const& alloc) noexcept
-    : beast::empty_value<Allocator>(beast::empty_init_t(), alloc)
+    : bho::empty_value<Allocator>(bho::empty_init_t(), alloc)
 {
 }
 
 template<class Allocator>
 basic_fields<Allocator>::
 basic_fields(basic_fields&& other) noexcept
-    : beast::empty_value<Allocator>(beast::empty_init_t(),
+    : bho::empty_value<Allocator>(bho::empty_init_t(),
         std::move(other.get()))
     , set_(std::move(other.set_))
     , list_(std::move(other.list_))
@@ -377,7 +379,7 @@ basic_fields(basic_fields&& other) noexcept
 template<class Allocator>
 basic_fields<Allocator>::
 basic_fields(basic_fields&& other, Allocator const& alloc)
-    : beast::empty_value<Allocator>(beast::empty_init_t(), alloc)
+    : bho::empty_value<Allocator>(bho::empty_init_t(), alloc)
 {
     if(this->get() != other.get())
     {
@@ -395,7 +397,7 @@ basic_fields(basic_fields&& other, Allocator const& alloc)
 template<class Allocator>
 basic_fields<Allocator>::
 basic_fields(basic_fields const& other)
-    : beast::empty_value<Allocator>(beast::empty_init_t(), alloc_traits::
+    : bho::empty_value<Allocator>(bho::empty_init_t(), alloc_traits::
         select_on_container_copy_construction(other.get()))
 {
     copy_all(other);
@@ -405,7 +407,7 @@ template<class Allocator>
 basic_fields<Allocator>::
 basic_fields(basic_fields const& other,
         Allocator const& alloc)
-    : beast::empty_value<Allocator>(beast::empty_init_t(), alloc)
+    : bho::empty_value<Allocator>(bho::empty_init_t(), alloc)
 {
     copy_all(other);
 }
@@ -423,7 +425,7 @@ template<class OtherAlloc>
 basic_fields<Allocator>::
 basic_fields(basic_fields<OtherAlloc> const& other,
         Allocator const& alloc)
-    : beast::empty_value<Allocator>(beast::empty_init_t(), alloc)
+    : bho::empty_value<Allocator>(bho::empty_init_t(), alloc)
 {
     copy_all(other);
 }
@@ -478,10 +480,10 @@ string_view const
 basic_fields<Allocator>::
 at(field name) const
 {
-    BEAST_ASSERT(name != field::unknown);
+    BHO_ASSERT(name != field::unknown);
     auto const it = find(name);
     if(it == end())
-        BEAST_THROW_EXCEPTION(std::out_of_range{
+        BHO_THROW_EXCEPTION(std::out_of_range{
             "field not found"});
     return it->value();
 }
@@ -493,7 +495,7 @@ at(string_view name) const
 {
     auto const it = find(name);
     if(it == end())
-        BEAST_THROW_EXCEPTION(std::out_of_range{
+        BHO_THROW_EXCEPTION(std::out_of_range{
             "field not found"});
     return it->value();
 }
@@ -503,7 +505,7 @@ string_view const
 basic_fields<Allocator>::
 operator[](field name) const
 {
-    BEAST_ASSERT(name != field::unknown);
+    BHO_ASSERT(name != field::unknown);
     auto const it = find(name);
     if(it == end())
         return {};
@@ -543,7 +545,7 @@ void
 basic_fields<Allocator>::
 insert(field name, string_view const& value)
 {
-    BEAST_ASSERT(name != field::unknown);
+    BHO_ASSERT(name != field::unknown);
     insert(name, to_string(name), value);
 }
 
@@ -568,8 +570,8 @@ insert(field name,
 
 	auto iter = set_.emplace(e.name_string(), &e);
 	auto itel = list_.insert(std::next(list_.begin(), std::distance(set_.begin(), iter)), e);
-	beast::ignore_unused(iter, itel);
-	BEAST_ASSERT(std::distance(set_.begin(), iter) == std::distance(list_.begin(), itel));
+	bho::ignore_unused(iter, itel);
+	BHO_ASSERT(std::distance(set_.begin(), iter) == std::distance(list_.begin(), itel));
 }
 
 template<class Allocator>
@@ -577,7 +579,7 @@ void
 basic_fields<Allocator>::
 set(field name, string_view const& value)
 {
-    BEAST_ASSERT(name != field::unknown);
+    BHO_ASSERT(name != field::unknown);
     set_element(new_element(name, to_string(name),
         static_cast<string_view>(value)));
 }
@@ -597,7 +599,7 @@ basic_fields<Allocator>::
 erase(const_iterator pos) ->
     const_iterator
 {
-	BEAST_ASSERT(std::next(set_.begin(), std::distance(list_.begin(), pos))->second->self_ == pos->self_);
+	BHO_ASSERT(std::next(set_.begin(), std::distance(list_.begin(), pos))->second->self_ == pos->self_);
     auto next = pos;
     auto& e = *next++;
 	set_.erase(std::next(set_.begin(), std::distance(list_.begin(), pos)));
@@ -611,7 +613,7 @@ std::size_t
 basic_fields<Allocator>::
 erase(field name)
 {
-    BEAST_ASSERT(name != field::unknown);
+    BHO_ASSERT(name != field::unknown);
     return erase(to_string(name));
 }
 
@@ -665,7 +667,7 @@ std::size_t
 basic_fields<Allocator>::
 count(field name) const
 {
-    BEAST_ASSERT(name != field::unknown);
+    BHO_ASSERT(name != field::unknown);
     return count(to_string(name));
 }
 
@@ -684,7 +686,7 @@ basic_fields<Allocator>::
 find(field name) const ->
     const_iterator
 {
-    BEAST_ASSERT(name != field::unknown);
+    BHO_ASSERT(name != field::unknown);
     return find(to_string(name));
 }
 
@@ -698,7 +700,7 @@ find(string_view name) const ->
         name);
     if(it == set_.end())
         return list_.end();
-	BEAST_ASSERT(std::next(list_.begin(), std::distance(set_.begin(), it))->self_ == it->second->self_);
+	BHO_ASSERT(std::next(list_.begin(), std::distance(set_.begin(), it))->self_ == it->second->self_);
 	return std::next(list_.begin(), std::distance(set_.begin(), it));
 }
 
@@ -709,7 +711,7 @@ basic_fields<Allocator>::
 equal_range(field name) const ->
     std::pair<const_iterator, const_iterator>
 {
-    BEAST_ASSERT(name != field::unknown);
+    BHO_ASSERT(name != field::unknown);
     return equal_range(to_string(name));
 }
 
@@ -745,14 +747,14 @@ struct iequals_predicate
 };
 
 // Filter the last item in a token list
-BEAST_DECL
+BHO_BEAST_DECL
 void
 filter_token_list_last(
     beast::detail::temporary_buffer& s,
     string_view value,
     iequals_predicate const& pred);
 
-BEAST_DECL
+BHO_BEAST_DECL
 void
 keep_alive_impl(
     beast::detail::temporary_buffer& s, string_view value,
@@ -953,11 +955,11 @@ new_element(field name,
 {
     if(sname.size() + 2 >
             (std::numeric_limits<off_t>::max)())
-        BEAST_THROW_EXCEPTION(std::length_error{
+        BHO_THROW_EXCEPTION(std::length_error{
             "field name too large"});
     if(value.size() + 2 >
             (std::numeric_limits<off_t>::max)())
-        BEAST_THROW_EXCEPTION(std::length_error{
+        BHO_THROW_EXCEPTION(std::length_error{
             "field value too large"});
     value = detail::trim(value);
     std::uint16_t const off =
@@ -994,8 +996,8 @@ set_element(element& e)
 	erase(e.name_string());
 	auto iter = set_.emplace(e.name_string(), &e);
 	auto itel = list_.insert(std::next(list_.begin(), std::distance(set_.begin(), iter)), e);
-	beast::ignore_unused(iter, itel);
-	BEAST_ASSERT(std::distance(set_.begin(), iter) == std::distance(list_.begin(), itel));
+	bho::ignore_unused(iter, itel);
+	BHO_ASSERT(std::distance(set_.begin(), iter) == std::distance(list_.begin(), itel));
 }
 
 template<class Allocator>
@@ -1166,7 +1168,7 @@ void
 basic_fields<Allocator>::
 swap(basic_fields& other, std::false_type)
 {
-    BEAST_ASSERT(this->get() == other.get());
+    BHO_ASSERT(this->get() == other.get());
     using std::swap;
     swap(set_, other.set_);
     swap(list_, other.list_);
@@ -1176,6 +1178,7 @@ swap(basic_fields& other, std::false_type)
 
 } // http
 } // beast
+} // bho
 
 #ifdef BEAST_HEADER_ONLY
 #include <asio2/bho/beast/http/impl/fields.ipp>

@@ -20,20 +20,18 @@
 #pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
-#include <asio2/3rd/asio.hpp>
-#include <asio2/base/error.hpp>
-
-#include <asio2/bho/beast/core/detail/config.hpp>
-#include <asio2/bho/beast/core/async_base.hpp>
-#include <asio2/bho/beast/core/error.hpp>
-#include <asio2/bho/beast/core/read_size.hpp>
-#include <asio2/bho/beast/core/stream_traits.hpp>
-#include <asio2/bho/beast/core/tribool.hpp>
-#include <asio/async_result.hpp>
-#include <asio/coroutine.hpp>
 #include <type_traits>
 
-#include <asio/yield.hpp>
+#include <asio2/3rd/asio.hpp>
+#include <asio2/3rd/beast.hpp>
+
+#include <asio2/base/error.hpp>
+
+#ifdef ASIO_STANDALONE
+	#include <asio/yield.hpp>
+#else
+	#include <boost/asio/yield.hpp>
+#endif
 
 namespace asio2::detail
 {
@@ -333,6 +331,10 @@ namespace asio2::detail
 	}
 }
 
-#include <asio/unyield.hpp>
+#ifdef ASIO_STANDALONE
+	#include <asio/unyield.hpp>
+#else
+	#include <boost/asio/unyield.hpp>
+#endif
 
 #endif // !__ASIO2_MQTT_DETECT_WEBSOCKET_HPP__

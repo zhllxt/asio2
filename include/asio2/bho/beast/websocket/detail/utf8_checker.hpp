@@ -7,14 +7,15 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_WEBSOCKET_DETAIL_UTF8_CHECKER_HPP
-#define BEAST_WEBSOCKET_DETAIL_UTF8_CHECKER_HPP
+#ifndef BHO_BEAST_WEBSOCKET_DETAIL_UTF8_CHECKER_HPP
+#define BHO_BEAST_WEBSOCKET_DETAIL_UTF8_CHECKER_HPP
 
 #include <asio2/bho/beast/core/buffers_range.hpp>
-#include <asio/buffer.hpp>
+#include <asio2/3rd/asio.hpp>
 
 #include <cstdint>
 
+namespace bho {
 namespace beast {
 namespace websocket {
 namespace detail {
@@ -34,13 +35,13 @@ class utf8_checker
 public:
     /** Prepare to process text as valid utf8
     */
-    BEAST_DECL
+    BHO_BEAST_DECL
     void
     reset();
 
     /** Check that all processed text is valid utf8
     */
-    BEAST_DECL
+    BHO_BEAST_DECL
     bool
     finish();
 
@@ -48,7 +49,7 @@ public:
 
         @return `true` if the text is valid utf8 or false otherwise.
     */
-    BEAST_DECL
+    BHO_BEAST_DECL
     bool
     write(std::uint8_t const* in, std::size_t size);
 
@@ -79,13 +80,14 @@ write(ConstBufferSequence const& buffers)
 }
 
 
-BEAST_DECL
+BHO_BEAST_DECL
 bool
 check_utf8(char const* p, std::size_t n);
 
 } // detail
 } // websocket
 } // beast
+} // bho
 
 #if BEAST_HEADER_ONLY
 #include <asio2/bho/beast/websocket/detail/utf8_checker.ipp>

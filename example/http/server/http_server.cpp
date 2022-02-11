@@ -4,13 +4,13 @@
 
 struct aop_log
 {
-	bool before(http::request& req, http::response& rep)
+	bool before(http::web_request& req, http::web_response& rep)
 	{
 		asio2::detail::ignore_unused(rep);
 		printf("aop_log before %s\n", req.method_string().data());
 		return true;
 	}
-	bool after(std::shared_ptr<asio2::http_session>& session_ptr, http::request& req, http::response& rep)
+	bool after(std::shared_ptr<asio2::http_session>& session_ptr, http::web_request& req, http::web_response& rep)
 	{
 		asio2::detail::ignore_unused(session_ptr, req, rep);
 		printf("aop_log after\n");
@@ -20,13 +20,13 @@ struct aop_log
 
 struct aop_check
 {
-	bool before(std::shared_ptr<asio2::http_session>& session_ptr, http::request& req, http::response& rep)
+	bool before(std::shared_ptr<asio2::http_session>& session_ptr, http::web_request& req, http::web_response& rep)
 	{
 		asio2::detail::ignore_unused(session_ptr, req, rep);
 		printf("aop_check before\n");
 		return true;
 	}
-	bool after(http::request& req, http::response& rep)
+	bool after(http::web_request& req, http::web_response& rep)
 	{
 		asio2::detail::ignore_unused(req, rep);
 		printf("aop_check after\n");
@@ -58,7 +58,7 @@ int main()
 
 	event_ptr->notify();
 
-	server.bind_recv([&](http::request& req, http::response& rep)
+	server.bind_recv([&](http::web_request& req, http::web_response& rep)
 	{
 		// all http and websocket request will goto here first.
 		std::cout << req.path() << std::endl;
@@ -101,7 +101,7 @@ int main()
 
 			rep.fill_text(str, http::status::ok, type);
 
-			http::request_t<http::string_body> re;
+			http::request<http::string_body> re;
 			re.method(http::verb::post);
 			re.set(http::field::content_type, type);
 			re.keep_alive(true);
@@ -135,7 +135,7 @@ int main()
 		printf("stop http server : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
 	});
 
-	server.bind<http::verb::get, http::verb::post>("/index.*", [](http::request& req, http::response& rep)
+	server.bind<http::verb::get, http::verb::post>("/index.*", [](http::web_request& req, http::web_response& rep)
 	{
 		asio2::detail::ignore_unused(req, rep);
 
@@ -145,7 +145,7 @@ int main()
 	}, aop_log{});
 
 	server.bind<http::verb::get>("/del_user",
-		[](std::shared_ptr<asio2::http_session>& session_ptr, http::request& req, http::response& rep)
+		[](std::shared_ptr<asio2::http_session>& session_ptr, http::web_request& req, http::web_response& rep)
 	{
 		asio2::detail::ignore_unused(req, rep);
 
@@ -155,7 +155,7 @@ int main()
 
 	}, aop_check{});
 
-	server.bind<http::verb::get, http::verb::post>("/api/user/*", [](http::request& req, http::response& rep)
+	server.bind<http::verb::get, http::verb::post>("/api/user/*", [](http::web_request& req, http::web_response& rep)
 	{
 		asio2::detail::ignore_unused(req, rep);
 
@@ -163,7 +163,7 @@ int main()
 
 	}, aop_log{}, aop_check{});
 
-	server.bind<http::verb::get>("/defer", [](http::request& req, http::response& rep)
+	server.bind<http::verb::get>("/defer", [](http::web_request& req, http::web_response& rep)
 	{
 		asio2::detail::ignore_unused(req, rep);
 
@@ -215,7 +215,7 @@ int main()
 
 	}));
 
-	server.bind_not_found([](http::request& req, http::response& rep)
+	server.bind_not_found([](http::web_request& req, http::web_response& rep)
 	{
 		asio2::detail::ignore_unused(req);
 

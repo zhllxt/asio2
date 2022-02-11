@@ -7,8 +7,8 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_WEBSOCKET_DETAIL_PRNG_IPP
-#define BEAST_WEBSOCKET_DETAIL_PRNG_IPP
+#ifndef BHO_BEAST_WEBSOCKET_DETAIL_PRNG_IPP
+#define BHO_BEAST_WEBSOCKET_DETAIL_PRNG_IPP
 
 #include <asio2/bho/beast/websocket/detail/prng.hpp>
 #include <asio2/bho/beast/core/detail/chacha.hpp>
@@ -18,6 +18,7 @@
 #include <mutex>
 #include <random>
 
+namespace bho {
 namespace beast {
 namespace websocket {
 namespace detail {
@@ -73,6 +74,48 @@ beast::detail::pcg make_pcg()
         ((static_cast<std::uint64_t>(pv[6])<<32)+pv[7]), make_nonce()};
 }
 
+#ifdef BHO_NO_CXX11_THREAD_LOCAL
+
+inline
+std::uint32_t
+secure_generate()
+{
+    struct generator
+    {
+        std::uint32_t operator()()
+        {
+            std::lock_guard<std::mutex> guard{mtx};
+            return gen();
+        }
+
+        beast::detail::chacha<20> gen;
+        std::mutex mtx;
+    };
+    static generator gen{beast::detail::chacha<20>{prng_seed(), make_nonce()}};
+    return gen();
+}
+
+inline
+std::uint32_t
+fast_generate()
+{
+    struct generator
+    {
+        std::uint32_t operator()()
+        {
+            std::lock_guard<std::mutex> guard{mtx};
+            return gen();
+        }
+
+        beast::detail::pcg gen;
+        std::mutex mtx;
+    };
+    static generator gen{make_pcg()};
+    return gen();
+}
+
+#else
+
 inline
 std::uint32_t
 secure_generate()
@@ -89,6 +132,8 @@ fast_generate()
     return gen();
 }
 
+#endif
+
 generator
 make_prng(bool secure)
 {
@@ -101,5 +146,6 @@ make_prng(bool secure)
 } // detail
 } // websocket
 } // beast
+} // bho
 
 #endif

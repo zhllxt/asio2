@@ -7,14 +7,15 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_IMPL_STATIC_BUFFER_IPP
-#define BEAST_IMPL_STATIC_BUFFER_IPP
+#ifndef BHO_BEAST_IMPL_STATIC_BUFFER_IPP
+#define BHO_BEAST_IMPL_STATIC_BUFFER_IPP
 
 #include <asio2/bho/beast/core/static_buffer.hpp>
-#include <asio/buffer.hpp>
-#include <asio2/bho/beast/core/util.hpp>
+#include <asio2/3rd/asio.hpp>
+#include <asio2/bho/throw_exception.hpp>
 #include <stdexcept>
 
+namespace bho {
 namespace beast {
 
 static_buffer_base::
@@ -77,7 +78,7 @@ prepare(std::size_t n) ->
 {
     using net::mutable_buffer;
     if(n > capacity_ - in_size_)
-        BEAST_THROW_EXCEPTION(std::length_error{
+        BHO_THROW_EXCEPTION(std::length_error{
             "static_buffer overflow"});
     out_size_ = n;
     auto const out_off =
@@ -123,5 +124,6 @@ consume(std::size_t n) noexcept
 }
 
 } // beast
+} // bho
 
 #endif

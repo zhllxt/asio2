@@ -7,12 +7,13 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_HTTP_IMPL_BASIC_PARSER_HPP
-#define BEAST_HTTP_IMPL_BASIC_PARSER_HPP
+#ifndef BHO_BEAST_HTTP_IMPL_BASIC_PARSER_HPP
+#define BHO_BEAST_HTTP_IMPL_BASIC_PARSER_HPP
 
 #include <asio2/bho/beast/core/buffer_traits.hpp>
-#include <asio/buffer.hpp>
+#include <asio2/3rd/asio.hpp>
 
+namespace bho {
 namespace beast {
 namespace http {
 
@@ -81,5 +82,6 @@ put_from_stack(std::size_t size,
 
 } // http
 } // beast
+} // bho
 
 #endif

@@ -31,7 +31,7 @@
 #include <asio2/base/detail/push_options.hpp>
 
 #ifdef BEAST_HEADER_ONLY
-namespace beast::http::http_parser_ns
+namespace bho::beast::http::http_parser_ns
 #else
 namespace boost::beast::http::http_parser_ns
 #endif

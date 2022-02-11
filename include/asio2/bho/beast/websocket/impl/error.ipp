@@ -7,11 +7,12 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_WEBSOCKET_IMPL_ERROR_IPP
-#define BEAST_WEBSOCKET_IMPL_ERROR_IPP
+#ifndef BHO_BEAST_WEBSOCKET_IMPL_ERROR_IPP
+#define BHO_BEAST_WEBSOCKET_IMPL_ERROR_IPP
 
 #include <asio2/bho/beast/websocket/error.hpp>
 
+namespace bho {
 namespace beast {
 namespace websocket {
 namespace detail {
@@ -154,5 +155,6 @@ make_error_condition(condition c)
 
 } // websocket
 } // beast
+} // bho
 
 #endif

@@ -1,10 +1,11 @@
-#ifndef BEAST_CORE_DETAIL_WORK_GUARD_HPP
-#define BEAST_CORE_DETAIL_WORK_GUARD_HPP
+#ifndef BHO_BEAST_CORE_DETAIL_WORK_GUARD_HPP
+#define BHO_BEAST_CORE_DETAIL_WORK_GUARD_HPP
 
-#include <asio/executor_work_guard.hpp>
-#include <asio/execution.hpp>
+#include <asio2/3rd/asio.hpp>
+#include <asio2/bho/assert.hpp>
 #include <optional>
 
+namespace bho {
 namespace beast {
 namespace detail {
 
@@ -46,7 +47,7 @@ struct execution_work_guard
     executor_type
     get_executor() const noexcept
     {
-        BEAST_ASSERT(ex_.has_value());
+        BHO_ASSERT(ex_.has_value());
         return *ex_;
     }
 
@@ -87,5 +88,6 @@ make_work_guard(Executor const& exec) noexcept
 
 }
 }
+}
 
-#endif // BEAST_CORE_DETAIL_WORK_GUARD_HPP
+#endif // BHO_BEAST_CORE_DETAIL_WORK_GUARD_HPP

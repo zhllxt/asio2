@@ -7,25 +7,20 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_CORE_DETAIL_BIND_DEFAULT_EXECUTOR_HPP
-#define BEAST_CORE_DETAIL_BIND_DEFAULT_EXECUTOR_HPP
+#ifndef BHO_BEAST_CORE_DETAIL_BIND_DEFAULT_EXECUTOR_HPP
+#define BHO_BEAST_CORE_DETAIL_BIND_DEFAULT_EXECUTOR_HPP
 
-#include <asio/associated_allocator.hpp>
-#include <asio/associated_executor.hpp>
-#include <asio/dispatch.hpp>
-#include <asio/executor.hpp>
-#include <asio/handler_alloc_hook.hpp>
-#include <asio/handler_continuation_hook.hpp>
-#include <asio/handler_invoke_hook.hpp>
-#include <asio2/bho/beast/core/empty_value.hpp>
+#include <asio2/3rd/asio.hpp>
+#include <asio2/bho/core/empty_value.hpp>
 #include <utility>
 
+namespace bho {
 namespace beast {
 namespace detail {
 
 template<class Handler, class Executor>
 class bind_default_executor_wrapper
-    : private beast::empty_value<Executor>
+    : private bho::empty_value<Executor>
 {
     Handler h_;
 
@@ -34,8 +29,8 @@ public:
     bind_default_executor_wrapper(
         Handler_&& h,
         Executor const& ex)
-        : beast::empty_value<Executor>(
-			beast::empty_init_t{}, ex)
+        : bho::empty_value<Executor>(
+            bho::empty_init_t{}, ex)
         , h_(std::forward<Handler_>(h))
     {
     }
@@ -71,22 +66,22 @@ public:
     // if they build their code with ASIO_NO_DEPRECATED.
 
     friend
-    asio::asio_handler_allocate_is_deprecated
+    net::asio_handler_allocate_is_deprecated
     asio_handler_allocate(
         std::size_t size, bind_default_executor_wrapper* p)
     {
-        using asio::asio_handler_allocate;
+        using net::asio_handler_allocate;
         return asio_handler_allocate(
             size, std::addressof(p->h_));
     }
 
     friend
-    asio::asio_handler_deallocate_is_deprecated
+    net::asio_handler_deallocate_is_deprecated
     asio_handler_deallocate(
         void* mem, std::size_t size,
             bind_default_executor_wrapper* p)
     {
-        using asio::asio_handler_deallocate;
+        using net::asio_handler_deallocate;
         return asio_handler_deallocate(mem, size,
             std::addressof(p->h_));
     }
@@ -95,7 +90,7 @@ public:
     bool asio_handler_is_continuation(
         bind_default_executor_wrapper* p)
     {
-        using asio::asio_handler_is_continuation;
+        using net::asio_handler_is_continuation;
         return asio_handler_is_continuation(
             std::addressof(p->h_));
     }
@@ -115,5 +110,6 @@ bind_default_executor(Executor const& ex, Handler&& h) ->
 
 } // detail
 } // beast
+} // bho
 
 #endif

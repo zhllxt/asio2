@@ -7,12 +7,13 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_HTTP_DETAIL_BASIC_PARSER_IPP
-#define BEAST_HTTP_DETAIL_BASIC_PARSER_IPP
+#ifndef BHO_BEAST_HTTP_DETAIL_BASIC_PARSER_IPP
+#define BHO_BEAST_HTTP_DETAIL_BASIC_PARSER_IPP
 
 #include <asio2/bho/beast/http/detail/basic_parser.hpp>
 #include <limits>
 
+namespace bho {
 namespace beast {
 namespace http {
 namespace detail {
@@ -112,7 +113,7 @@ find_fast(
     size_t ranges_size)
 {
     bool found = false;
-    beast::ignore_unused(buf_end, ranges, ranges_size);
+    bho::ignore_unused(buf_end, ranges, ranges_size);
     return {buf, found};
 }
 
@@ -251,15 +252,15 @@ parse_token_to_eol(
             ec = error::need_more;
             return p;
         }
-        if(BEAST_UNLIKELY(! is_print(*p)))
-            if((BEAST_LIKELY(static_cast<
+        if(BHO_UNLIKELY(! is_print(*p)))
+            if((BHO_LIKELY(static_cast<
                     unsigned char>(*p) < '\040') &&
-                BEAST_LIKELY(*p != 9)) ||
-                BEAST_UNLIKELY(*p == 127))
+                BHO_LIKELY(*p != 9)) ||
+                BHO_UNLIKELY(*p == 127))
                 goto found_control;
     }
 found_control:
-    if(BEAST_LIKELY(*p == '\r'))
+    if(BHO_LIKELY(*p == '\r'))
     {
         if(++p >= last)
         {
@@ -526,7 +527,7 @@ parse_field(
         "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
 
     // name
-    BEAST_ALIGNMENT(16) static const char ranges1[] =
+    BHO_ALIGNMENT(16) static const char ranges1[] =
         "\x00 "  /* control chars and up to SP */
         "\"\""   /* 0x22 */
         "()"     /* 0x28,0x29 */
@@ -617,7 +618,7 @@ parse_field(
         return;
     }
 
-    BEAST_ASSERT(! buf.empty());
+    BHO_ASSERT(! buf.empty());
     for(;;)
     {
         // eat leading ' ' and '\t'
@@ -843,5 +844,6 @@ semi:
 } // detail
 } // http
 } // beast
+} // bho
 
 #endif

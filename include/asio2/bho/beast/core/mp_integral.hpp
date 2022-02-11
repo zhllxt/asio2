@@ -1,5 +1,5 @@
-#ifndef BEAST_MP11_INTEGRAL_HPP_INCLUDED
-#define BEAST_MP11_INTEGRAL_HPP_INCLUDED
+#ifndef BHO_BEAST_MP11_INTEGRAL_HPP_INCLUDED
+#define BHO_BEAST_MP11_INTEGRAL_HPP_INCLUDED
 
 //  Copyright 2015 Peter Dimov.
 //
@@ -11,6 +11,7 @@
 #include <type_traits>
 #include <cstddef>
 
+namespace bho {
 namespace beast
 {
 namespace mp11
@@ -36,5 +37,6 @@ template<std::size_t N> using mp_size_t = std::integral_constant<std::size_t, N>
 
 } // namespace mp11
 } // namespace beast
+} // bho
 
-#endif // #ifndef BEAST_MP11_INTEGRAL_HPP_INCLUDED
+#endif // #ifndef BHO_BEAST_MP11_INTEGRAL_HPP_INCLUDED

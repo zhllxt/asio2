@@ -7,8 +7,8 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_WEBSOCKET_DETAIL_DECORATOR_HPP
-#define BEAST_WEBSOCKET_DETAIL_DECORATOR_HPP
+#ifndef BHO_BEAST_WEBSOCKET_DETAIL_DECORATOR_HPP
+#define BHO_BEAST_WEBSOCKET_DETAIL_DECORATOR_HPP
 
 #include <asio2/bho/beast/websocket/rfc6455.hpp>
 #include <algorithm>
@@ -17,6 +17,7 @@
 #include <type_traits>
 #include <utility>
 
+namespace bho {
 namespace beast {
 namespace websocket {
 namespace detail {
@@ -306,5 +307,6 @@ struct decorator::vtable_impl<F, false>
 } // detail
 } // websocket
 } // beast
+} // bho
 
 #endif

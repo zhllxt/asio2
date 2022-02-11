@@ -7,15 +7,16 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_BUFFERS_TO_STRING_HPP
-#define BEAST_BUFFERS_TO_STRING_HPP
+#ifndef BHO_BEAST_BUFFERS_TO_STRING_HPP
+#define BHO_BEAST_BUFFERS_TO_STRING_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/core/buffer_traits.hpp>
 #include <asio2/bho/beast/core/buffers_range.hpp>
-#include <asio/buffer.hpp>
+#include <asio2/3rd/asio.hpp>
 #include <string>
 
+namespace bho {
 namespace beast {
 
 /** Return a string representing the contents of a buffer sequence.
@@ -56,5 +57,6 @@ buffers_to_string(ConstBufferSequence const& buffers)
 }
 
 } // beast
+} // bho
 
 #endif

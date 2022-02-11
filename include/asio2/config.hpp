@@ -21,10 +21,10 @@
 // boost::asio is not supported for current version.
 
 // Must define ASIO_STANDALONE, otherwise compilation fails.
-#define ASIO_STANDALONE
+//#define ASIO_STANDALONE
 
 // Must define BEAST_HEADER_ONLY, otherwise compilation fails.
-#define BEAST_HEADER_ONLY 1
+//#define BEAST_HEADER_ONLY 1
 
 // If you want to use the ssl, you need to define ASIO2_USE_SSL.
 // When use ssl,on windows need linker "libssl.lib;libcrypto.lib;Crypt32.lib;", on 

@@ -35,12 +35,13 @@
     (zlib format), rfc1951 (deflate format) and rfc1952 (gzip format).
 */
 
-#ifndef BEAST_ZLIB_IMPL_ERROR_IPP
-#define BEAST_ZLIB_IMPL_ERROR_IPP
+#ifndef BHO_BEAST_ZLIB_IMPL_ERROR_IPP
+#define BHO_BEAST_ZLIB_IMPL_ERROR_IPP
 
 #include <asio2/bho/beast/zlib/error.hpp>
 #include <type_traits>
 
+namespace bho {
 namespace beast {
 namespace zlib {
 namespace detail {
@@ -118,5 +119,6 @@ make_error_code(error ev)
 
 } // zlib
 } // beast
+} // bho
 
 #endif

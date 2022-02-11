@@ -30,12 +30,13 @@
     3. This notice may not be removed or altered from any source distribution.
 */
 
-#ifndef BEAST_CORE_DETAIL_CHACHA_HPP
-#define BEAST_CORE_DETAIL_CHACHA_HPP
+#ifndef BHO_BEAST_CORE_DETAIL_CHACHA_HPP
+#define BHO_BEAST_CORE_DETAIL_CHACHA_HPP
 
 #include <cstdint>
 #include <limits>
 
+namespace bho {
 namespace beast {
 namespace detail {
 
@@ -68,28 +69,28 @@ class chacha
 
     void chacha_core()
     {
-        #define BEAST_CHACHA_ROTL32(x, n) (((x) << (n)) | ((x) >> (32 - (n))))
+        #define BHO_BEAST_CHACHA_ROTL32(x, n) (((x) << (n)) | ((x) >> (32 - (n))))
 
-        #define BEAST_CHACHA_QUARTERROUND(x, a, b, c, d) \
-            x[a] = x[a] + x[b]; x[d] ^= x[a]; x[d] = BEAST_CHACHA_ROTL32(x[d], 16); \
-            x[c] = x[c] + x[d]; x[b] ^= x[c]; x[b] = BEAST_CHACHA_ROTL32(x[b], 12); \
-            x[a] = x[a] + x[b]; x[d] ^= x[a]; x[d] = BEAST_CHACHA_ROTL32(x[d],  8); \
-            x[c] = x[c] + x[d]; x[b] ^= x[c]; x[b] = BEAST_CHACHA_ROTL32(x[b],  7)
+        #define BHO_BEAST_CHACHA_QUARTERROUND(x, a, b, c, d) \
+            x[a] = x[a] + x[b]; x[d] ^= x[a]; x[d] = BHO_BEAST_CHACHA_ROTL32(x[d], 16); \
+            x[c] = x[c] + x[d]; x[b] ^= x[c]; x[b] = BHO_BEAST_CHACHA_ROTL32(x[b], 12); \
+            x[a] = x[a] + x[b]; x[d] ^= x[a]; x[d] = BHO_BEAST_CHACHA_ROTL32(x[d],  8); \
+            x[c] = x[c] + x[d]; x[b] ^= x[c]; x[b] = BHO_BEAST_CHACHA_ROTL32(x[b],  7)
 
         for (unsigned i = 0; i < R; i += 2)
         {
-            BEAST_CHACHA_QUARTERROUND(block_, 0, 4,  8, 12);
-            BEAST_CHACHA_QUARTERROUND(block_, 1, 5,  9, 13);
-            BEAST_CHACHA_QUARTERROUND(block_, 2, 6, 10, 14);
-            BEAST_CHACHA_QUARTERROUND(block_, 3, 7, 11, 15);
-            BEAST_CHACHA_QUARTERROUND(block_, 0, 5, 10, 15);
-            BEAST_CHACHA_QUARTERROUND(block_, 1, 6, 11, 12);
-            BEAST_CHACHA_QUARTERROUND(block_, 2, 7,  8, 13);
-            BEAST_CHACHA_QUARTERROUND(block_, 3, 4,  9, 14);
+            BHO_BEAST_CHACHA_QUARTERROUND(block_, 0, 4,  8, 12);
+            BHO_BEAST_CHACHA_QUARTERROUND(block_, 1, 5,  9, 13);
+            BHO_BEAST_CHACHA_QUARTERROUND(block_, 2, 6, 10, 14);
+            BHO_BEAST_CHACHA_QUARTERROUND(block_, 3, 7, 11, 15);
+            BHO_BEAST_CHACHA_QUARTERROUND(block_, 0, 5, 10, 15);
+            BHO_BEAST_CHACHA_QUARTERROUND(block_, 1, 6, 11, 12);
+            BHO_BEAST_CHACHA_QUARTERROUND(block_, 2, 7,  8, 13);
+            BHO_BEAST_CHACHA_QUARTERROUND(block_, 3, 4,  9, 14);
         }
 
-        #undef BEAST_CHACHA_QUARTERROUND
-        #undef BEAST_CHACHA_ROTL32
+        #undef BHO_BEAST_CHACHA_QUARTERROUND
+        #undef BHO_BEAST_CHACHA_ROTL32
     }
 
 public:
@@ -120,5 +121,6 @@ public:
 
 } // detail
 } // beast
+} // bho
 
 #endif

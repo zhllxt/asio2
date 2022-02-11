@@ -7,8 +7,8 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_HTTP_IMPL_BASIC_PARSER_IPP
-#define BEAST_HTTP_IMPL_BASIC_PARSER_IPP
+#ifndef BHO_BEAST_HTTP_IMPL_BASIC_PARSER_IPP
+#define BHO_BEAST_HTTP_IMPL_BASIC_PARSER_IPP
 
 #include <asio2/bho/beast/http/basic_parser.hpp>
 #include <asio2/bho/beast/http/error.hpp>
@@ -17,10 +17,11 @@
 #include <asio2/bho/beast/core/detail/clamp.hpp>
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/core/detail/string.hpp>
-#include <asio/buffer.hpp>
+#include <asio2/3rd/asio.hpp>
 #include <algorithm>
 #include <utility>
 
+namespace bho {
 namespace beast {
 namespace http {
 
@@ -29,7 +30,7 @@ bool
 basic_parser<isRequest>::
 keep_alive() const
 {
-    BEAST_ASSERT(is_header_done());
+    BHO_ASSERT(is_header_done());
     if(f_ & flagHTTP11)
     {
         if(f_ & flagConnectionClose)
@@ -48,7 +49,7 @@ std::optional<std::uint64_t>
 basic_parser<isRequest>::
 content_length() const
 {
-    BEAST_ASSERT(is_header_done());
+    BHO_ASSERT(is_header_done());
     return content_length_unchecked();
 }
 
@@ -57,7 +58,7 @@ std::optional<std::uint64_t>
 basic_parser<isRequest>::
 content_length_remaining() const
 {
-    BEAST_ASSERT(is_header_done());
+    BHO_ASSERT(is_header_done());
     if(! (f_ & flagContentLength))
         return std::nullopt;
     return len_;
@@ -68,7 +69,7 @@ void
 basic_parser<isRequest>::
 skip(bool v)
 {
-    BEAST_ASSERT(! got_some());
+    BHO_ASSERT(! got_some());
     if(v)
         f_ |= flagSkipBody;
     else
@@ -86,7 +87,7 @@ put(net::const_buffer buffer,
     // not supported. If you need to re-use a parser, consider storing it
     // in an optional. Then reset() and emplace() prior to parsing each new
     // message.
-    BEAST_ASSERT(!is_done());
+    BHO_ASSERT(!is_done());
     if (is_done())
     {
         ec = error::stale_parser;
@@ -107,7 +108,7 @@ loop:
             return 0;
         }
         state_ = state::start_line;
-        BEAST_FALLTHROUGH;
+        BHO_FALLTHROUGH;
 
     case state::start_line:
     {
@@ -131,14 +132,14 @@ loop:
             }
             goto done;
         }
-        BEAST_ASSERT(! is_done());
+        BHO_ASSERT(! is_done());
         n = static_cast<std::size_t>(p1 - p);
         if(p >= p1)
         {
             ec = error::need_more;
             goto done;
         }
-        BEAST_FALLTHROUGH;
+        BHO_FALLTHROUGH;
     }
 
     case state::fields:
@@ -168,30 +169,30 @@ loop:
         break;
 
     case state::body0:
-        BEAST_ASSERT(! skip_);
+        BHO_ASSERT(! skip_);
         this->on_body_init_impl(content_length(), ec);
         if(ec)
             goto done;
         state_ = state::body;
-        BEAST_FALLTHROUGH;
+        BHO_FALLTHROUGH;
 
     case state::body:
-        BEAST_ASSERT(! skip_);
+        BHO_ASSERT(! skip_);
         parse_body(p, n, ec);
         if(ec)
             goto done;
         break;
 
     case state::body_to_eof0:
-        BEAST_ASSERT(! skip_);
+        BHO_ASSERT(! skip_);
         this->on_body_init_impl(content_length(), ec);
         if(ec)
             goto done;
         state_ = state::body_to_eof;
-        BEAST_FALLTHROUGH;
+        BHO_FALLTHROUGH;
 
     case state::body_to_eof:
-        BEAST_ASSERT(! skip_);
+        BHO_ASSERT(! skip_);
         parse_body_to_eof(p, n, ec);
         if(ec)
             goto done;
@@ -202,7 +203,7 @@ loop:
         if(ec)
             goto done;
         state_ = state::chunk_header;
-        BEAST_FALLTHROUGH;
+        BHO_FALLTHROUGH;
 
     case state::chunk_header:
         parse_chunk_header(p, n, ec);
@@ -234,7 +235,7 @@ void
 basic_parser<isRequest>::
 put_eof(error_code& ec)
 {
-    BEAST_ASSERT(got_some());
+    BHO_ASSERT(got_some());
     if( state_ == state::start_line ||
         state_ == state::fields)
     {
@@ -698,19 +699,19 @@ parse_chunk_header(char const*& p0,
     }
     else
     {
-        BEAST_ASSERT(n >= 5);
+        BHO_ASSERT(n >= 5);
         if(f_ & flagExpectCRLF)
-            BEAST_VERIFY(parse_crlf(p));
+            BHO_VERIFY(parse_crlf(p));
         std::uint64_t size{}; std::ignore = size;
-        BEAST_VERIFY(parse_hex(p, size));
+        BHO_VERIFY(parse_hex(p, size));
         eol = find_eol(p, pend, ec);
-        BEAST_ASSERT(! ec);
+        BHO_ASSERT(! ec);
     }
 
     auto eom = find_eom(p0 + skip_, pend);
     if(! eom)
     {
-        BEAST_ASSERT(n >= 3);
+        BHO_ASSERT(n >= 3);
         skip_ = n - 3;
         ec = error::need_more;
         return;
@@ -733,7 +734,7 @@ parse_chunk_header(char const*& p0,
     parse_fields(p, eom, ec);
     if(ec)
         return;
-    BEAST_ASSERT(p == eom);
+    BHO_ASSERT(p == eom);
     p0 = eom;
 
     this->on_finish_impl(ec);
@@ -841,7 +842,7 @@ do_field(field f,
         if (tokens_unprocessed)
             return bad_content_length();
 
-        BEAST_ASSERT(existing.has_value());
+        BHO_ASSERT(existing.has_value());
         ec = {};
         len_ = *existing;
         len0_ = *existing;
@@ -893,12 +894,13 @@ do_field(field f,
     ec = {};
 }
 
-#ifdef BEAST_SOURCE
+#ifdef BHO_BEAST_SOURCE
 template class http::basic_parser<true>;
 template class http::basic_parser<false>;
 #endif
 
 } // http
 } // beast
+} // bho
 
 #endif

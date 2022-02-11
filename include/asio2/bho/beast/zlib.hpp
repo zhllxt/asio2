@@ -7,8 +7,8 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_ZLIB_HPP
-#define BEAST_ZLIB_HPP
+#ifndef BHO_BEAST_ZLIB_HPP
+#define BHO_BEAST_ZLIB_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 

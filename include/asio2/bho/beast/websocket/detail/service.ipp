@@ -7,11 +7,12 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_WEBSOCKET_DETAIL_SERVICE_IPP
-#define BEAST_WEBSOCKET_DETAIL_SERVICE_IPP
+#ifndef BHO_BEAST_WEBSOCKET_DETAIL_SERVICE_IPP
+#define BHO_BEAST_WEBSOCKET_DETAIL_SERVICE_IPP
 
 #include <asio2/bho/beast/websocket/detail/service.hpp>
 
+namespace bho {
 namespace beast {
 namespace websocket {
 namespace detail {
@@ -59,5 +60,6 @@ shutdown()
 } // detail
 } // websocket
 } // beast
+} // bho
 
 #endif

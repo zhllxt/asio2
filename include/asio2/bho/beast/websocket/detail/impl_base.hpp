@@ -7,8 +7,8 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_WEBSOCKET_DETAIL_IMPL_BASE_HPP
-#define BEAST_WEBSOCKET_DETAIL_IMPL_BASE_HPP
+#ifndef BHO_BEAST_WEBSOCKET_DETAIL_IMPL_BASE_HPP
+#define BHO_BEAST_WEBSOCKET_DETAIL_IMPL_BASE_HPP
 
 #include <asio2/bho/beast/websocket/option.hpp>
 #include <asio2/bho/beast/websocket/detail/frame.hpp>
@@ -23,11 +23,12 @@
 #include <asio2/bho/beast/core/buffers_suffix.hpp>
 #include <asio2/bho/beast/core/error.hpp>
 #include <asio2/bho/beast/core/detail/clamp.hpp>
-#include <asio/buffer.hpp>
+#include <asio2/3rd/asio.hpp>
 #include <cstdint>
 #include <memory>
 #include <stdexcept>
 
+namespace bho {
 namespace beast {
 namespace websocket {
 namespace detail {
@@ -86,7 +87,7 @@ struct impl_base<true>
         std::size_t& total_in,
         error_code& ec)
     {
-        BEAST_ASSERT(out.size() >= 6);
+        BHO_ASSERT(out.size() >= 6);
         auto& zo = this->pmd_->zo;
         zlib::z_params zs;
         zs.avail_in = 0;
@@ -104,17 +105,17 @@ struct impl_base<true>
             {
                 if(ec != zlib::error::need_buffers)
                     return false;
-                BEAST_ASSERT(zs.avail_out == 0);
-                BEAST_ASSERT(zs.total_out == out.size());
+                BHO_ASSERT(zs.avail_out == 0);
+                BHO_ASSERT(zs.total_out == out.size());
                 ec = {};
                 break;
             }
             if(zs.avail_out == 0)
             {
-                BEAST_ASSERT(zs.total_out == out.size());
+                BHO_ASSERT(zs.total_out == out.size());
                 break;
             }
-            BEAST_ASSERT(zs.avail_in == 0);
+            BHO_ASSERT(zs.avail_in == 0);
         }
         total_in = zs.total_in;
         cb.consume(zs.total_in);
@@ -129,7 +130,7 @@ struct impl_base<true>
                 // VFALCO We could do this flush twice depending
                 //        on how much space is in the output.
                 zo.write(zs, zlib::Flush::block, ec);
-                BEAST_ASSERT(! ec || ec == zlib::error::need_buffers);
+                BHO_ASSERT(! ec || ec == zlib::error::need_buffers);
                 if(ec == zlib::error::need_buffers)
                     ec = {};
                 if(ec)
@@ -137,7 +138,7 @@ struct impl_base<true>
                 if(zs.avail_out >= 6)
                 {
                     zo.write(zs, zlib::Flush::sync, ec);
-                    BEAST_ASSERT(! ec);
+                    BHO_ASSERT(! ec);
                     // remove flush marker
                     zs.total_out -= 4;
                     out = net::buffer(out.data(), zs.total_out);
@@ -186,13 +187,13 @@ struct impl_base<true>
     template<class Body, class Allocator>
     void
     build_response_pmd(
-        http::response_t<http::string_body>& res,
-        http::request_t<Body,
+        http::response<http::string_body>& res,
+        http::request<Body,
             http::basic_fields<Allocator>> const& req);
 
     void
     on_response_pmd(
-        http::response_t<http::string_body> const& res)
+        http::response<http::string_body> const& res)
     {
         detail::pmd_offer offer;
         detail::pmd_read(offer, res);
@@ -214,19 +215,19 @@ struct impl_base<true>
     {
         if( o.server_max_window_bits > 15 ||
             o.server_max_window_bits < 9)
-            BEAST_THROW_EXCEPTION(std::invalid_argument{
+            BHO_THROW_EXCEPTION(std::invalid_argument{
                 "invalid server_max_window_bits"});
         if( o.client_max_window_bits > 15 ||
             o.client_max_window_bits < 9)
-            BEAST_THROW_EXCEPTION(std::invalid_argument{
+            BHO_THROW_EXCEPTION(std::invalid_argument{
                 "invalid client_max_window_bits"});
         if( o.compLevel < 0 ||
             o.compLevel > 9)
-            BEAST_THROW_EXCEPTION(std::invalid_argument{
+            BHO_THROW_EXCEPTION(std::invalid_argument{
                 "invalid compLevel"});
         if( o.memLevel < 1 ||
             o.memLevel > 9)
-            BEAST_THROW_EXCEPTION(std::invalid_argument{
+            BHO_THROW_EXCEPTION(std::invalid_argument{
                 "invalid memLevel"});
         pmd_opts_ = o;
     }
@@ -239,7 +240,7 @@ struct impl_base<true>
 
 
     void
-    build_request_pmd(http::request_t<http::empty_body>& req)
+    build_request_pmd(http::request<http::empty_body>& req)
     {
         if(pmd_opts_.client_enable)
         {
@@ -310,7 +311,7 @@ struct impl_base<true>
     {
         using beast::detail::clamp;
         std::size_t result;
-        BEAST_ASSERT(initial_size > 0);
+        BHO_ASSERT(initial_size > 0);
         if(! pmd_ || (! rd_done && ! pmd_->rd_set))
         {
             // current message is uncompressed
@@ -324,7 +325,7 @@ struct impl_base<true>
             else if(rd_fh.fin)
             {
                 // last message frame
-                BEAST_ASSERT(rd_remain > 0);
+                BHO_ASSERT(rd_remain > 0);
                 result = clamp(rd_remain);
                 goto done;
             }
@@ -332,7 +333,7 @@ struct impl_base<true>
         result = (std::max)(
             initial_size, clamp(rd_remain));
     done:
-        BEAST_ASSERT(result != 0);
+        BHO_ASSERT(result != 0);
         return result;
     }
 };
@@ -390,13 +391,13 @@ struct impl_base<false>
     template<class Body, class Allocator>
     void
     build_response_pmd(
-        http::response_t<http::string_body>&,
-        http::request_t<Body,
+        http::response<http::string_body>&,
+        http::request<Body,
             http::basic_fields<Allocator>> const&);
 
     void
     on_response_pmd(
-        http::response_t<http::string_body> const&)
+        http::response<http::string_body> const&)
     {
     }
 
@@ -414,7 +415,7 @@ struct impl_base<false>
             // Can't enable permessage-deflate
             // when deflateSupported == false.
             //
-            BEAST_THROW_EXCEPTION(std::invalid_argument{
+            BHO_THROW_EXCEPTION(std::invalid_argument{
                 "deflateSupported == false"});
         }
     }
@@ -429,7 +430,7 @@ struct impl_base<false>
 
     void
     build_request_pmd(
-        http::request_t<http::empty_body>&)
+        http::request<http::empty_body>&)
     {
     }
 
@@ -455,7 +456,7 @@ struct impl_base<false>
     {
         using beast::detail::clamp;
         std::size_t result;
-        BEAST_ASSERT(initial_size > 0);
+        BHO_ASSERT(initial_size > 0);
         // compression is not supported
         if(rd_done)
         {
@@ -465,7 +466,7 @@ struct impl_base<false>
         else if(rd_fh.fin)
         {
             // last message frame
-            BEAST_ASSERT(rd_remain > 0);
+            BHO_ASSERT(rd_remain > 0);
             result = clamp(rd_remain);
         }
         else
@@ -473,7 +474,7 @@ struct impl_base<false>
             result = (std::max)(
                 initial_size, clamp(rd_remain));
         }
-        BEAST_ASSERT(result != 0);
+        BHO_ASSERT(result != 0);
         return result;
     }
 };
@@ -481,5 +482,6 @@ struct impl_base<false>
 } // detail
 } // websocket
 } // beast
+} // bho
 
 #endif

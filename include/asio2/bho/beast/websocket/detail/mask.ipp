@@ -7,11 +7,12 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_WEBSOCKET_DETAIL_MASK_IPP
-#define BEAST_WEBSOCKET_DETAIL_MASK_IPP
+#ifndef BHO_BEAST_WEBSOCKET_DETAIL_MASK_IPP
+#define BHO_BEAST_WEBSOCKET_DETAIL_MASK_IPP
 
 #include <asio2/bho/beast/websocket/detail/mask.hpp>
 
+namespace bho {
 namespace beast {
 namespace websocket {
 namespace detail {
@@ -60,5 +61,6 @@ mask_inplace(net::mutable_buffer const& b, prepared_key& key)
 } // detail
 } // websocket
 } // beast
+} // bho
 
 #endif

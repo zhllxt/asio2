@@ -7,11 +7,13 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_CORE_IMPL_SAVED_HANDLER_IPP
-#define BEAST_CORE_IMPL_SAVED_HANDLER_IPP
+#ifndef BHO_BEAST_CORE_IMPL_SAVED_HANDLER_IPP
+#define BHO_BEAST_CORE_IMPL_SAVED_HANDLER_IPP
 
 #include <asio2/bho/beast/core/saved_handler.hpp>
+#include <asio2/bho/core/exchange.hpp>
 
+namespace bho {
 namespace beast {
 
 saved_handler::
@@ -32,7 +34,7 @@ saved_handler::
 operator=(saved_handler&& other) noexcept
 {
     // Can't delete a handler before invoking
-	BEAST_ASSERT(! has_value());
+    BHO_ASSERT(! has_value());
     p_ = std::exchange(other.p_, nullptr);
     return *this;
 }
@@ -52,7 +54,7 @@ saved_handler::
 invoke()
 {
     // Can't invoke without a value
-	BEAST_ASSERT(has_value());
+    BHO_ASSERT(has_value());
     std::exchange(
         p_, nullptr)->invoke();
 }
@@ -69,5 +71,6 @@ maybe_invoke()
 }
 
 } // beast
+} // bho
 
 #endif

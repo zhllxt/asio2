@@ -7,8 +7,8 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_HTTP_SERIALIZER_HPP
-#define BEAST_HTTP_SERIALIZER_HPP
+#ifndef BHO_BEAST_HTTP_SERIALIZER_HPP
+#define BHO_BEAST_HTTP_SERIALIZER_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/core/buffers_cat.hpp>
@@ -18,9 +18,10 @@
 #include <asio2/bho/beast/core/detail/variant.hpp>
 #include <asio2/bho/beast/http/message.hpp>
 #include <asio2/bho/beast/http/chunk_encode.hpp>
-#include <asio/buffer.hpp>
+#include <asio2/3rd/asio.hpp>
 #include <optional>
 
+namespace bho {
 namespace beast {
 namespace http {
 
@@ -66,7 +67,7 @@ public:
         This may be const or non-const depending on the
         implementation of the corresponding <em>BodyWriter</em>.
     */
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
     using value_type = __implementation_defined__;
 #else
     using value_type = typename std::conditional<
@@ -95,7 +96,7 @@ private:
         do_header_c         =  70,
         do_body_c           =  80,
         do_final_c          =  90,
-    #ifndef BEAST_NO_BIG_VARIANTS
+    #ifndef BHO_BEAST_NO_BIG_VARIANTS
         do_body_final_c     = 100,
         do_all_c            = 110,
     #endif
@@ -362,6 +363,7 @@ using response_serializer = serializer<false, Body, Fields>;
 
 } // http
 } // beast
+} // bho
 
 #include <asio2/bho/beast/http/impl/serializer.hpp>
 

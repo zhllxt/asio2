@@ -7,8 +7,8 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_BUFFERS_PREFIX_HPP
-#define BEAST_BUFFERS_PREFIX_HPP
+#ifndef BHO_BEAST_BUFFERS_PREFIX_HPP
+#define BHO_BEAST_BUFFERS_PREFIX_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/core/buffer_traits.hpp>
@@ -17,6 +17,7 @@
 #include <cstdint>
 #include <type_traits>
 
+namespace bho {
 namespace beast {
 
 /** A buffer sequence adaptor that shortens the sequence size.
@@ -55,13 +56,20 @@ public:
 
         @see buffers_type
     */
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
     using value_type = __see_below__;
+#elif BHO_WORKAROUND(BHO_MSVC, < 1910)
+    using value_type = typename std::conditional<
+        std::is_convertible<typename
+            std::iterator_traits<iter_type>::value_type,
+                net::mutable_buffer>::value,
+                    net::mutable_buffer,
+                        net::const_buffer>::type;
 #else
     using value_type = buffers_type<BufferSequence>;
 #endif
 
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
     /// A bidirectional iterator type that may be used to read elements.
     using const_iterator = __implementation_defined__;
 
@@ -119,7 +127,7 @@ public:
     const_iterator
     end() const;
 
-#if ! BEAST_DOXYGEN
+#if ! BHO_BEAST_DOXYGEN
     std::size_t
     buffer_bytes_impl() const noexcept
     {
@@ -156,13 +164,13 @@ public:
 
         @see buffers_type
     */
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
     using value_type = __see_below__;
 #else
     using value_type = buffers_type<BufferSequence>;
 #endif
 
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
     /// A bidirectional iterator type that may be used to read elements.
     using const_iterator = __implementation_defined__;
 
@@ -205,7 +213,7 @@ public:
     const_iterator
     end() const;
 
-#if ! BEAST_DOXYGEN
+#if ! BHO_BEAST_DOXYGEN
     std::size_t
     buffer_bytes_impl() const noexcept
     {
@@ -272,6 +280,7 @@ buffers_front(BufferSequence const& buffers)
 }
 
 } // beast
+} // bho
 
 #include <asio2/bho/beast/core/impl/buffers_prefix.hpp>
 

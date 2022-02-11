@@ -7,8 +7,8 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_HTTP_MESSAGE_HPP
-#define BEAST_HTTP_MESSAGE_HPP
+#ifndef BHO_BEAST_HTTP_MESSAGE_HPP
+#define BHO_BEAST_HTTP_MESSAGE_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/http/fields.hpp>
@@ -16,15 +16,17 @@
 #include <asio2/bho/beast/http/status.hpp>
 #include <asio2/bho/beast/http/type_traits.hpp>
 #include <asio2/bho/beast/core/string.hpp>
-#include <asio2/bho/beast/core/empty_value.hpp>
-#include <asio2/bho/beast/core/util.hpp>
+#include <asio2/bho/core/empty_value.hpp>
+#include <asio2/bho/assert.hpp>
 #include <optional>
+#include <asio2/bho/throw_exception.hpp>
 #include <memory>
 #include <stdexcept>
 #include <string>
 #include <tuple>
 #include <utility>
 
+namespace bho {
 namespace beast {
 namespace http {
 
@@ -42,7 +44,7 @@ namespace http {
 
     A `header` includes the start-line and header-fields.
 */
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
 template<bool isRequest, class Fields = fields>
 class header : public Fields
 
@@ -59,7 +61,7 @@ public:
         "Fields type requirements not met");
 
     /// Indicates if the header is a request or response.
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
     using is_request = std::integral_constant<bool, isRequest>;
 #else
     using is_request = std::true_type;
@@ -114,7 +116,7 @@ public:
     */
     void version(unsigned value) noexcept
     {
-        BEAST_ASSERT(value > 0 && value < 100);
+        BHO_ASSERT(value > 0 && value < 100);
         version_ = value;
     }
 
@@ -207,7 +209,7 @@ public:
         not convertible to @ref header, @ref verb, or
         @ref status.
     */
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
     template<class... Args>
     explicit
     header(Args&&... args);
@@ -336,7 +338,7 @@ public:
     */
     void version(unsigned value) noexcept
     {
-		BEAST_ASSERT(value > 0 && value < 100);
+        BHO_ASSERT(value > 0 && value < 100);
         version_ = value;
     }
 #endif
@@ -417,7 +419,7 @@ public:
     reason(string_view s);
 
 private:
-#if ! BEAST_DOXYGEN
+#if ! BHO_BEAST_DOXYGEN
     template<bool, class, class>
     friend class message;
 
@@ -490,8 +492,8 @@ using value_type_t = typename T::value_type;
 template<bool isRequest, class Body, class Fields = fields>
 class message
     : public header<isRequest, Fields>
-#if ! BEAST_DOXYGEN
-    , beast::empty_value<
+#if ! BHO_BEAST_DOXYGEN
+    , bho::empty_value<
         typename Body::value_type>
 #endif
 {
@@ -552,7 +554,7 @@ public:
 
         @note This function is only available when `isRequest == true`.
     */
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
     message(verb method, string_view target, unsigned version);
 #else
     template<class Version,
@@ -573,7 +575,7 @@ public:
 
         @note This function is only available when `isRequest == true`.
     */
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
     template<class BodyArg>
     message(verb method, string_view target,
         unsigned version, BodyArg&& body_arg);
@@ -599,7 +601,7 @@ public:
 
         @note This function is only available when `isRequest == true`.
     */
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
     template<class BodyArg, class FieldsArg>
     message(verb method, string_view target, unsigned version,
         BodyArg&& body_arg, FieldsArg&& fields_arg);
@@ -619,7 +621,7 @@ public:
 
         @note This member is only available when `isRequest == false`.
     */
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
     message(status result, unsigned version);
 #else
     template<class Version,
@@ -638,7 +640,7 @@ public:
 
         @note This member is only available when `isRequest == false`.
     */
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
     template<class BodyArg>
     message(status result, unsigned version, BodyArg&& body_arg);
 #else
@@ -660,7 +662,7 @@ public:
 
         @note This member is only available when `isRequest == false`.
     */
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
     template<class BodyArg, class FieldsArg>
     message(status result, unsigned version,
         BodyArg&& body_arg, FieldsArg&& fields_arg);
@@ -681,7 +683,7 @@ public:
 
     /** Construct a message.
 
-        @param body_args A tuple forwarded as a parameter
+        @param body_args A std::tuple forwarded as a parameter
         pack to the body constructor.
     */
     template<class... BodyArgs>
@@ -690,10 +692,10 @@ public:
 
     /** Construct a message.
 
-        @param body_args A tuple forwarded as a parameter
+        @param body_args A std::tuple forwarded as a parameter
         pack to the body constructor.
 
-        @param fields_args A tuple forwarded as a parameter
+        @param fields_args A std::tuple forwarded as a parameter
         pack to the `Fields` constructor.
     */
     template<class... BodyArgs, class... FieldsArgs>
@@ -844,7 +846,7 @@ public:
 
         @par Example
         @code
-        request_t<string_body> req{verb::post, "/"};
+        request<string_body> req{verb::post, "/"};
         req.set(field::user_agent, "Beast");
         req.body() = "Hello, world!";
         req.prepare_payload();
@@ -857,19 +859,19 @@ public:
     }
 
     /// Returns the body
-#if BEAST_DOXYGEN || ! defined(BHO_MSVC)
+#if BHO_BEAST_DOXYGEN || ! defined(BHO_MSVC)
     typename body_type::value_type&
 #else
     detail::value_type_t<Body>&
 #endif
     body()& noexcept
     {
-        return this->beast::empty_value<
+        return this->bho::empty_value<
             typename Body::value_type>::get();
     }
 
     /// Returns the body
-#if BEAST_DOXYGEN || ! defined(BHO_MSVC)
+#if BHO_BEAST_DOXYGEN || ! defined(BHO_MSVC)
     typename body_type::value_type&&
 #else
     detail::value_type_t<Body>&&
@@ -877,19 +879,19 @@ public:
     body()&& noexcept
     {
         return std::move(
-            this->beast::empty_value<
+            this->bho::empty_value<
                 typename Body::value_type>::get());
     }
 
     /// Returns the body
-#if BEAST_DOXYGEN || ! defined(BHO_MSVC)
+#if BHO_BEAST_DOXYGEN || ! defined(BHO_MSVC)
     typename body_type::value_type const&
 #else
     detail::value_type_t<Body> const&
 #endif
     body() const& noexcept
     {
-        return this->beast::empty_value<
+        return this->bho::empty_value<
             typename Body::value_type>::get();
     }
 
@@ -904,12 +906,12 @@ private:
         std::piecewise_construct_t,
         std::tuple<BodyArgs...>& body_args,
         std::index_sequence<IBodyArgs...>)
-        : beast::empty_value<
-            typename Body::value_type>(beast::empty_init_t(),
+        : bho::empty_value<
+            typename Body::value_type>(bho::empty_init_t(),
                 std::forward<BodyArgs>(
                 std::get<IBodyArgs>(body_args))...)
     {
-        beast::ignore_unused(body_args);
+        bho::ignore_unused(body_args);
     }
 
     template<
@@ -925,13 +927,13 @@ private:
         std::index_sequence<IFieldsArgs...>)
         : header_type(std::forward<FieldsArgs>(
             std::get<IFieldsArgs>(fields_args))...)
-        , beast::empty_value<
-            typename Body::value_type>(beast::empty_init_t(),
+        , bho::empty_value<
+            typename Body::value_type>(bho::empty_init_t(),
                 std::forward<BodyArgs>(
                 std::get<IBodyArgs>(body_args))...)
     {
-		beast::ignore_unused(body_args);
-		beast::ignore_unused(fields_args);
+        bho::ignore_unused(body_args);
+        bho::ignore_unused(fields_args);
     }
 
     bool
@@ -964,15 +966,15 @@ private:
 
 /// A typical HTTP request
 template<class Body, class Fields = fields>
-using request_t = message<true, Body, Fields>;
+using request = message<true, Body, Fields>;
 
 /// A typical HTTP response
 template<class Body, class Fields = fields>
-using response_t = message<false, Body, Fields>;
+using response = message<false, Body, Fields>;
 
 //------------------------------------------------------------------------------
 
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
 /** Swap two header objects.
 
     @par Requirements
@@ -998,6 +1000,7 @@ swap(
 
 } // http
 } // beast
+} // bho
 
 #include <asio2/bho/beast/http/impl/message.hpp>
 

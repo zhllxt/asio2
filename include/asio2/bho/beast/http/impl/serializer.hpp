@@ -7,17 +7,18 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_HTTP_IMPL_SERIALIZER_HPP
-#define BEAST_HTTP_IMPL_SERIALIZER_HPP
+#ifndef BHO_BEAST_HTTP_IMPL_SERIALIZER_HPP
+#define BHO_BEAST_HTTP_IMPL_SERIALIZER_HPP
 
 #include <asio2/bho/beast/core/buffer_traits.hpp>
 #include <asio2/bho/beast/core/detail/buffers_ref.hpp>
 #include <asio2/bho/beast/http/error.hpp>
 #include <asio2/bho/beast/http/status.hpp>
 #include <asio2/bho/beast/core/detail/config.hpp>
-#include <asio2/bho/beast/core/util.hpp>
+#include <asio2/bho/assert.hpp>
 #include <ostream>
 
+namespace bho {
 namespace beast {
 namespace http {
 
@@ -79,7 +80,7 @@ next(error_code& ec, Visit&& visit)
         if(m_.chunked())
             goto go_init_c;
         s_ = do_init;
-        BEAST_FALLTHROUGH;
+        BHO_FALLTHROUGH;
     }
 
     case do_init:
@@ -102,7 +103,7 @@ next(error_code& ec, Visit&& visit)
             fwr_->get(),
             result->first);
         s_ = do_header;
-        BEAST_FALLTHROUGH;
+        BHO_FALLTHROUGH;
     }
 
     case do_header:
@@ -112,14 +113,14 @@ next(error_code& ec, Visit&& visit)
     go_header_only:
         v_.template emplace<1 - 1>(fwr_->get());
         s_ = do_header_only;
-        BEAST_FALLTHROUGH;
+        BHO_FALLTHROUGH;
     case do_header_only:
         do_visit<1>(ec, visit);
         break;
 
     case do_body:
         s_ = do_body + 1;
-        BEAST_FALLTHROUGH;
+        BHO_FALLTHROUGH;
 
     case do_body + 1:
     {
@@ -131,7 +132,7 @@ next(error_code& ec, Visit&& visit)
         more_ = result->second;
         v_.template emplace<3 - 1>(result->first);
         s_ = do_body + 2;
-        BEAST_FALLTHROUGH;
+        BHO_FALLTHROUGH;
     }
 
     case do_body + 2:
@@ -142,7 +143,7 @@ next(error_code& ec, Visit&& visit)
 
         go_init_c:
         s_ = do_init_c;
-        BEAST_FALLTHROUGH;
+        BHO_FALLTHROUGH;
     case do_init_c:
     {
         wr_.init(ec);
@@ -183,7 +184,7 @@ next(error_code& ec, Visit&& visit)
             result->first,
             chunk_crlf{});
         s_ = do_header_c;
-        BEAST_FALLTHROUGH;
+        BHO_FALLTHROUGH;
     }
 
     case do_header_c:
@@ -193,7 +194,7 @@ next(error_code& ec, Visit&& visit)
     go_header_only_c:
         v_.template emplace<1 - 1>(fwr_->get());
         s_ = do_header_only_c;
-        BEAST_FALLTHROUGH;
+        BHO_FALLTHROUGH;
 
     case do_header_only_c:
         do_visit<1>(ec, visit);
@@ -201,7 +202,7 @@ next(error_code& ec, Visit&& visit)
 
     case do_body_c:
         s_ = do_body_c + 1;
-        BEAST_FALLTHROUGH;
+        BHO_FALLTHROUGH;
 
     case do_body_c + 1:
     {
@@ -234,7 +235,7 @@ next(error_code& ec, Visit&& visit)
             result->first,
             chunk_crlf{});
         s_ = do_body_c + 2;
-        BEAST_FALLTHROUGH;
+        BHO_FALLTHROUGH;
     }
 
     case do_body_c + 2:
@@ -243,14 +244,14 @@ next(error_code& ec, Visit&& visit)
 
     go_body_final_c:
         s_ = do_body_final_c;
-        BEAST_FALLTHROUGH;
+        BHO_FALLTHROUGH;
     case do_body_final_c:
         do_visit<6>(ec, visit);
         break;
 
     go_all_c:
         s_ = do_all_c;
-        BEAST_FALLTHROUGH;
+        BHO_FALLTHROUGH;
     case do_all_c:
         do_visit<7>(ec, visit);
         break;
@@ -263,7 +264,7 @@ next(error_code& ec, Visit&& visit)
             net::const_buffer{nullptr, 0},
             chunk_crlf{});
         s_ = do_final_c + 1;
-        BEAST_FALLTHROUGH;
+        BHO_FALLTHROUGH;
 
     case do_final_c + 1:
         do_visit<8>(ec, visit);
@@ -273,7 +274,7 @@ next(error_code& ec, Visit&& visit)
 
     default:
     case do_complete:
-        BEAST_ASSERT(false);
+        BHO_ASSERT(false);
         break;
 
     go_complete:
@@ -291,7 +292,7 @@ consume(std::size_t n)
     switch(s_)
     {
     case do_header:
-        BEAST_ASSERT(
+        BHO_ASSERT(
             n <= buffer_bytes(std::get<2-1>(v_)));
         std::get<2-1>(v_).consume(n);
         if(buffer_bytes(std::get<2-1>(v_)) > 0)
@@ -304,7 +305,7 @@ consume(std::size_t n)
         break;
 
     case do_header_only:
-        BEAST_ASSERT(
+        BHO_ASSERT(
             n <= buffer_bytes(std::get<1-1>(v_)));
         std::get<1-1>(v_).consume(n);
         if(buffer_bytes(std::get<1-1>(v_)) > 0)
@@ -318,7 +319,7 @@ consume(std::size_t n)
 
     case do_body + 2:
     {
-        BEAST_ASSERT(
+        BHO_ASSERT(
             n <= buffer_bytes(std::get<3-1>(v_)));
         std::get<3-1>(v_).consume(n);
         if(buffer_bytes(std::get<3-1>(v_)) > 0)
@@ -333,7 +334,7 @@ consume(std::size_t n)
     //----------------------------------------------------------------------
 
     case do_header_c:
-        BEAST_ASSERT(
+        BHO_ASSERT(
             n <= buffer_bytes(std::get<4-1>(v_)));
         std::get<4-1>(v_).consume(n);
         if(buffer_bytes(std::get<4-1>(v_)) > 0)
@@ -348,7 +349,7 @@ consume(std::size_t n)
 
     case do_header_only_c:
     {
-        BEAST_ASSERT(
+        BHO_ASSERT(
             n <= buffer_bytes(std::get<1-1>(v_)));
         std::get<1-1>(v_).consume(n);
         if(buffer_bytes(std::get<1-1>(v_)) > 0)
@@ -365,7 +366,7 @@ consume(std::size_t n)
     }
 
     case do_body_c + 2:
-        BEAST_ASSERT(
+        BHO_ASSERT(
             n <= buffer_bytes(std::get<5-1>(v_)));
         std::get<5-1>(v_).consume(n);
         if(buffer_bytes(std::get<5-1>(v_)) > 0)
@@ -379,7 +380,7 @@ consume(std::size_t n)
 
     case do_body_final_c:
     {
-        BEAST_ASSERT(
+        BHO_ASSERT(
             n <= buffer_bytes(std::get<6-1>(v_)));
         std::get<6-1>(v_).consume(n);
         if(buffer_bytes(std::get<6-1>(v_)) > 0)
@@ -391,7 +392,7 @@ consume(std::size_t n)
 
     case do_all_c:
     {
-        BEAST_ASSERT(
+        BHO_ASSERT(
             n <= buffer_bytes(std::get<7-1>(v_)));
         std::get<7-1>(v_).consume(n);
         if(buffer_bytes(std::get<7-1>(v_)) > 0)
@@ -403,7 +404,7 @@ consume(std::size_t n)
     }
 
     case do_final_c + 1:
-        BEAST_ASSERT(buffer_bytes(std::get<8-1>(v_)));
+        BHO_ASSERT(buffer_bytes(std::get<8-1>(v_)));
         std::get<8-1>(v_).consume(n);
         if(buffer_bytes(std::get<8-1>(v_)) > 0)
             break;
@@ -413,7 +414,7 @@ consume(std::size_t n)
     //----------------------------------------------------------------------
 
     default:
-        BEAST_ASSERT(false);
+        BHO_ASSERT(false);
     case do_complete:
         break;
 
@@ -425,5 +426,6 @@ consume(std::size_t n)
 
 } // http
 } // beast
+} // bho
 
 #endif

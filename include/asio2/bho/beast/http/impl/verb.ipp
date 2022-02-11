@@ -7,13 +7,14 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_HTTP_IMPL_VERB_IPP
-#define BEAST_HTTP_IMPL_VERB_IPP
+#ifndef BHO_BEAST_HTTP_IMPL_VERB_IPP
+#define BHO_BEAST_HTTP_IMPL_VERB_IPP
 
 #include <asio2/bho/beast/http/verb.hpp>
-#include <asio2/bho/beast/core/util.hpp>
+#include <asio2/bho/throw_exception.hpp>
 #include <stdexcept>
 
+namespace bho {
 namespace beast {
 namespace http {
 
@@ -67,7 +68,7 @@ to_string(verb v)
         return "<unknown>"_sv;
     }
 
-    BEAST_THROW_EXCEPTION(std::invalid_argument{"unknown verb"});
+    BHO_THROW_EXCEPTION(std::invalid_argument{"unknown verb"});
 }
 
 verb
@@ -140,7 +141,7 @@ string_to_verb(string_view v)
                 return verb::connect;
             if(v == "PY"_sv)
                 return verb::copy;
-            BEAST_FALLTHROUGH;
+            BHO_FALLTHROUGH;
 
         default:
             break;
@@ -201,7 +202,7 @@ string_to_verb(string_view v)
         case 'O':
             if(v == "VE"_sv)
                 return verb::move;
-            BEAST_FALLTHROUGH;
+            BHO_FALLTHROUGH;
 
         default:
             break;
@@ -245,7 +246,7 @@ string_to_verb(string_view v)
                 return verb::purge;
             if(v == "T"_sv)
                 return verb::put;
-            BEAST_FALLTHROUGH;
+            BHO_FALLTHROUGH;
 
         default:
             break;
@@ -297,5 +298,6 @@ string_to_verb(string_view v)
 
 } // http
 } // beast
+} // bho
 
 #endif

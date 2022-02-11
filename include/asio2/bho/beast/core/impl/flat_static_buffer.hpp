@@ -7,9 +7,10 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_IMPL_FLAT_STATIC_BUFFER_HPP
-#define BEAST_IMPL_FLAT_STATIC_BUFFER_HPP
+#ifndef BHO_BEAST_IMPL_FLAT_STATIC_BUFFER_HPP
+#define BHO_BEAST_IMPL_FLAT_STATIC_BUFFER_HPP
 
+namespace bho {
 namespace beast {
 
 template<std::size_t N>
@@ -37,5 +38,6 @@ operator=(flat_static_buffer const& other) ->
 }
 
 } // beast
+} // bho
 
 #endif

@@ -7,12 +7,13 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_HTTP_IMPL_RFC7230_IPP
-#define BEAST_HTTP_IMPL_RFC7230_IPP
+#ifndef BHO_BEAST_HTTP_IMPL_RFC7230_IPP
+#define BHO_BEAST_HTTP_IMPL_RFC7230_IPP
 
 #include <asio2/bho/beast/http/rfc7230.hpp>
 #include <algorithm>
 
+namespace bho {
 namespace beast {
 namespace http {
 
@@ -201,5 +202,6 @@ exists(string_view const& s)
 
 } // http
 } // beast
+} // bho
 
-#endif // BEAST_HTTP_IMPL_RFC7230_IPP
+#endif // BHO_BEAST_HTTP_IMPL_RFC7230_IPP

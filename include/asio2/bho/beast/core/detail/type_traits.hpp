@@ -7,12 +7,13 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_DETAIL_TYPE_TRAITS_HPP
-#define BEAST_DETAIL_TYPE_TRAITS_HPP
+#ifndef BHO_BEAST_DETAIL_TYPE_TRAITS_HPP
+#define BHO_BEAST_DETAIL_TYPE_TRAITS_HPP
 
 #include <type_traits>
 #include <new>
 
+namespace bho {
 namespace beast {
 namespace detail {
 
@@ -97,6 +98,8 @@ T launder_cast(U* u)
 {
 #if defined(__cpp_lib_launder) && __cpp_lib_launder >= 201606
     return std::launder(reinterpret_cast<T>(u));
+#elif defined(BHO_GCC) && BHO_GCC_VERSION > 80000
+    return __builtin_launder(reinterpret_cast<T>(u));
 #else
     return reinterpret_cast<T>(u);
 #endif
@@ -104,5 +107,6 @@ T launder_cast(U* u)
 
 } // detail
 } // beast
+} // bho
 
 #endif

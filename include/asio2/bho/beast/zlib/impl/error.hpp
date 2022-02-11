@@ -35,25 +35,37 @@
     (zlib format), rfc1951 (deflate format) and rfc1952 (gzip format).
 */
 
-#ifndef BEAST_ZLIB_IMPL_ERROR_HPP
-#define BEAST_ZLIB_IMPL_ERROR_HPP
+#ifndef BHO_BEAST_ZLIB_IMPL_ERROR_HPP
+#define BHO_BEAST_ZLIB_IMPL_ERROR_HPP
 
+#ifdef ASIO_STANDALONE
 namespace std {
+#else
+namespace boost {
+namespace system {
+#endif
 template<>
-struct is_error_code_enum<::beast::zlib::error>
+struct is_error_code_enum<::bho::beast::zlib::error>
 {
     static bool const value = true;
 };
+#ifdef ASIO_STANDALONE
 } // std
+#else
+} // system
+} // boost
+#endif
 
+namespace bho {
 namespace beast {
 namespace zlib {
 
-BEAST_DECL
+BHO_BEAST_DECL
 error_code
 make_error_code(error ev);
 
 } // zlib
 } // beast
+} // bho
 
 #endif

@@ -19,7 +19,7 @@ int main()
 		sock5_option{ "s5.doudouip.cn",1088,"zjww-1","aaa123" };
 
 	//{
-	//	http::request_t<http::string_body> req;
+	//	http::request<http::string_body> req;
 	//	req.method(http::verb::get);
 	//	req.target("/");
 	//	auto rep6 = asio2::http_client::execute("www.baidu.com", "80", req, sock5_option, ec);
@@ -112,7 +112,7 @@ int main()
 	//	std::cout << rep4 << std::endl;
 
 	//// POST
-	//http::request_t<http::string_body> req5(http::verb::post, "/", 11);
+	//http::request<http::string_body> req5(http::verb::post, "/", 11);
 	//auto rep5 = asio2::http_client::execute("www.baidu.com", "80", req5, ec);
 	//if (ec)
 	//	std::cout << ec.message() << std::endl;
@@ -120,7 +120,7 @@ int main()
 	//	std::cout << rep5 << std::endl;
 
 	//// POST
-	//http::request_t<http::string_body> req6;
+	//http::request<http::string_body> req6;
 	//req6.method(http::verb::post);
 	//req6.target("/");
 	//auto rep6 = asio2::http_client::execute("www.baidu.com", "80", req6, ec);
@@ -130,7 +130,7 @@ int main()
 	//	std::cout << rep6 << std::endl;
 
 	//// POST
-	//http::request_t<http::string_body> req7;
+	//http::request<http::string_body> req7;
 	//req7.method(http::verb::post);
 	//req7.target("/");
 	//req7.set(http::field::user_agent, "Chrome");
@@ -194,7 +194,7 @@ int main()
 
 	client.post([]() {}, std::chrono::seconds(3));
 
-	client.bind_recv([&](http::request& req, http::response& rep)
+	client.bind_recv([&](http::web_request& req, http::web_response& rep)
 	{
 		asio2::detail::ignore(req, rep);
 
@@ -221,7 +221,7 @@ int main()
 		}
 		else if (times == 2)
 		{
-			http::request req2;
+			http::web_request req2;
 			req2.method(http::verb::get);
 			req2.keep_alive(true);
 			req2.target("/get_user?name=abc");
@@ -233,7 +233,7 @@ int main()
 		}
 		else if (times == 3)
 		{
-			http::request_t<http::string_body> req3;
+			http::request<http::string_body> req3;
 			req3.method(http::verb::get);
 			req3.target("/");
 			client.async_send(std::move(req3));
@@ -269,7 +269,7 @@ int main()
 		"aaa123"
 	};
 
-	asio2::rdc::option rdc_option{ [](http::request&) { return 0; },[](http::response&) { return 0; } };
+	asio2::rdc::option rdc_option{ [](http::web_request&) { return 0; },[](http::web_response&) { return 0; } };
 
 	client.start(host, port/*, std::move(rdc_option), sock5_option*/);
 

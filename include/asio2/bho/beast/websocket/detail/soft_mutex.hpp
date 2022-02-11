@@ -7,12 +7,13 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_WEBSOCKET_DETAIL_SOFT_MUTEX_HPP
-#define BEAST_WEBSOCKET_DETAIL_SOFT_MUTEX_HPP
+#ifndef BHO_BEAST_WEBSOCKET_DETAIL_SOFT_MUTEX_HPP
+#define BHO_BEAST_WEBSOCKET_DETAIL_SOFT_MUTEX_HPP
 
-#include <asio2/bho/beast/core/util.hpp>
+#include <asio2/bho/assert.hpp>
 #include <utility>
 
+namespace bho {
 namespace beast {
 namespace websocket {
 namespace detail {
@@ -64,7 +65,7 @@ public:
     void
     lock(T const*)
     {
-        BEAST_ASSERT(id_ == 0);
+        BHO_ASSERT(id_ == 0);
         id_ = T::id;
     }
 
@@ -72,7 +73,7 @@ public:
     void
     unlock(T const*)
     {
-		BEAST_ASSERT(id_ == T::id);
+        BHO_ASSERT(id_ == T::id);
         id_ = 0;
     }
 
@@ -86,7 +87,7 @@ public:
         // for an async_read to complete before performing another
         // async_read.
         //
-		BEAST_ASSERT(id_ != T::id);
+        BHO_ASSERT(id_ != T::id);
         if(id_ != 0)
             return false;
         id_ = T::id;
@@ -107,5 +108,6 @@ public:
 } // detail
 } // websocket
 } // beast
+} // bho
 
 #endif

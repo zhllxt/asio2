@@ -25,13 +25,13 @@
 #include <chrono>
 
 #include <asio2/3rd/asio.hpp>
+#include <asio2/3rd/predef.h>
+
 #include <asio2/base/error.hpp>
 #include <asio2/base/detail/condition_wrap.hpp>
 #include <asio2/base/detail/util.hpp>
 
 #include <asio2/udp/detail/ikcp.h>
-
-#include <asio2/bho/predef/other/endian.h>
 
 namespace asio2::detail::kcp
 {

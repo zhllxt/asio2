@@ -7,8 +7,8 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_WEBSOCKET_STREAM_HPP
-#define BEAST_WEBSOCKET_STREAM_HPP
+#ifndef BHO_BEAST_WEBSOCKET_STREAM_HPP
+#define BHO_BEAST_WEBSOCKET_STREAM_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/websocket/error.hpp>
@@ -24,8 +24,7 @@
 #include <asio2/bho/beast/core/stream_traits.hpp>
 #include <asio2/bho/beast/core/string.hpp>
 #include <asio2/bho/beast/http/detail/type_traits.hpp>
-#include <asio/async_result.hpp>
-#include <asio/error.hpp>
+#include <asio2/3rd/asio.hpp>
 #include <algorithm>
 #include <cstdint>
 #include <functional>
@@ -34,6 +33,7 @@
 #include <type_traits>
 #include <random>
 
+namespace bho {
 namespace beast {
 namespace websocket {
 
@@ -123,7 +123,7 @@ template<
     class NextLayer,
     bool deflateSupported>
 class stream
-#if ! BEAST_DOXYGEN
+#if ! BHO_BEAST_DOXYGEN
     : private stream_base
 #endif
 {
@@ -324,7 +324,7 @@ public:
         state of the current frame, if any.
     */
     template<class DynamicBuffer
-#if ! BEAST_DOXYGEN
+#if ! BHO_BEAST_DOXYGEN
         , class = typename std::enable_if<
             ! std::is_integral<DynamicBuffer>::value>::type
 #endif
@@ -339,7 +339,7 @@ public:
     //
     //--------------------------------------------------------------------------
 
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
     template<class Option>
     void
     get_option(Option& opt);
@@ -874,10 +874,10 @@ public:
         @li <a href="https://tools.ietf.org/html/rfc7230#section-5.3.1">origin-form (RFC7230)</a>
     */
     template<
-        BEAST_ASYNC_TPARAM1 HandshakeHandler =
+        BHO_BEAST_ASYNC_TPARAM1 HandshakeHandler =
             net::default_completion_token_t<executor_type>
     >
-    BEAST_ASYNC_RESULT1(HandshakeHandler)
+    BHO_BEAST_ASYNC_RESULT1(HandshakeHandler)
     async_handshake(
         string_view host,
         string_view target,
@@ -960,10 +960,10 @@ public:
         @li <a href="https://tools.ietf.org/html/rfc7230#section-5.3.1">origin-form (RFC7230)</a>
     */
     template<
-        BEAST_ASYNC_TPARAM1 HandshakeHandler =
+        BHO_BEAST_ASYNC_TPARAM1 HandshakeHandler =
             net::default_completion_token_t<executor_type>
     >
-    BEAST_ASYNC_RESULT1(HandshakeHandler)
+    BHO_BEAST_ASYNC_RESULT1(HandshakeHandler)
     async_handshake(
         response_type& res,
         string_view host,
@@ -1097,7 +1097,7 @@ public:
         @li <a href="https://tools.ietf.org/html/rfc6455#section-4.2">Websocket Opening Handshake Server Requirements (RFC6455)</a>
     */
     template<class ConstBufferSequence>
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
     void
 #else
     typename std::enable_if<! http::detail::is_header<
@@ -1146,7 +1146,7 @@ public:
         @li <a href="https://tools.ietf.org/html/rfc6455#section-4.2">Websocket Opening Handshake Server Requirements (RFC6455)</a>
     */
     template<class ConstBufferSequence>
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
     void
 #else
     typename std::enable_if<! http::detail::is_header<
@@ -1191,7 +1191,7 @@ public:
     */
     template<class Body, class Allocator>
     void
-    accept(http::request_t<Body,
+    accept(http::request<Body,
         http::basic_fields<Allocator>> const& req);
 
     /** Respond to a WebSocket HTTP Upgrade request
@@ -1229,7 +1229,7 @@ public:
     */
     template<class Body, class Allocator>
     void
-    accept(http::request_t<Body,
+    accept(http::request<Body,
         http::basic_fields<Allocator>> const& req,
             error_code& ec);
 
@@ -1284,10 +1284,10 @@ public:
         @li <a href="https://tools.ietf.org/html/rfc6455#section-4.2">Websocket Opening Handshake Server Requirements (RFC6455)</a>
     */
     template<
-        BEAST_ASYNC_TPARAM1 AcceptHandler =
+        BHO_BEAST_ASYNC_TPARAM1 AcceptHandler =
             net::default_completion_token_t<executor_type>
     >
-    BEAST_ASYNC_RESULT1(AcceptHandler)
+    BHO_BEAST_ASYNC_RESULT1(AcceptHandler)
     async_accept(
         AcceptHandler&& handler =
             net::default_completion_token_t<
@@ -1352,16 +1352,16 @@ public:
     */
     template<
         class ConstBufferSequence,
-        BEAST_ASYNC_TPARAM1 AcceptHandler =
+        BHO_BEAST_ASYNC_TPARAM1 AcceptHandler =
             net::default_completion_token_t<executor_type>
     >
-    BEAST_ASYNC_RESULT1(AcceptHandler)
+    BHO_BEAST_ASYNC_RESULT1(AcceptHandler)
     async_accept(
         ConstBufferSequence const& buffers,
         AcceptHandler&& handler =
             net::default_completion_token_t<
                 executor_type>{}
-#ifndef BEAST_DOXYGEN
+#ifndef BHO_BEAST_DOXYGEN
         , typename std::enable_if<
             ! http::detail::is_header<
             ConstBufferSequence>::value>::type* = 0
@@ -1417,12 +1417,12 @@ public:
     */
     template<
         class Body, class Allocator,
-        BEAST_ASYNC_TPARAM1 AcceptHandler =
+        BHO_BEAST_ASYNC_TPARAM1 AcceptHandler =
             net::default_completion_token_t<executor_type>
     >
-    BEAST_ASYNC_RESULT1(AcceptHandler)
+    BHO_BEAST_ASYNC_RESULT1(AcceptHandler)
     async_accept(
-        http::request_t<Body,
+        http::request<Body,
             http::basic_fields<Allocator>> const& req,
         AcceptHandler&& handler =
             net::default_completion_token_t<
@@ -1552,10 +1552,10 @@ public:
         @li <a href="https://tools.ietf.org/html/rfc6455#section-7.1.2">Websocket Closing Handshake (RFC6455)</a>
     */
     template<
-        BEAST_ASYNC_TPARAM1 CloseHandler =
+        BHO_BEAST_ASYNC_TPARAM1 CloseHandler =
             net::default_completion_token_t<executor_type>
     >
-    BEAST_ASYNC_RESULT1(CloseHandler)
+    BHO_BEAST_ASYNC_RESULT1(CloseHandler)
     async_close(
         close_reason const& cr,
         CloseHandler&& handler =
@@ -1654,10 +1654,10 @@ public:
         manner equivalent to using `net::post`.
     */
     template<
-        BEAST_ASYNC_TPARAM1 WriteHandler =
+        BHO_BEAST_ASYNC_TPARAM1 WriteHandler =
             net::default_completion_token_t<executor_type>
     >
-    BEAST_ASYNC_RESULT1(WriteHandler)
+    BHO_BEAST_ASYNC_RESULT1(WriteHandler)
     async_ping(
         ping_data const& payload,
         WriteHandler&& handler =
@@ -1762,10 +1762,10 @@ public:
         manner equivalent to using `net::post`.
     */
     template<
-        BEAST_ASYNC_TPARAM1 WriteHandler =
+        BHO_BEAST_ASYNC_TPARAM1 WriteHandler =
             net::default_completion_token_t<executor_type>
     >
-    BEAST_ASYNC_RESULT1(WriteHandler)
+    BHO_BEAST_ASYNC_RESULT1(WriteHandler)
     async_pong(
         ping_data const& payload,
         WriteHandler&& handler =
@@ -1924,10 +1924,10 @@ public:
     */
     template<
         class DynamicBuffer,
-        BEAST_ASYNC_TPARAM2 ReadHandler =
+        BHO_BEAST_ASYNC_TPARAM2 ReadHandler =
             net::default_completion_token_t<
                 executor_type>>
-    BEAST_ASYNC_RESULT2(ReadHandler)
+    BHO_BEAST_ASYNC_RESULT2(ReadHandler)
     async_read(
         DynamicBuffer& buffer,
         ReadHandler&& handler =
@@ -2103,10 +2103,10 @@ public:
     */
     template<
         class DynamicBuffer,
-        BEAST_ASYNC_TPARAM2 ReadHandler =
+        BHO_BEAST_ASYNC_TPARAM2 ReadHandler =
             net::default_completion_token_t<
                 executor_type>>
-    BEAST_ASYNC_RESULT2(ReadHandler)
+    BHO_BEAST_ASYNC_RESULT2(ReadHandler)
     async_read_some(
         DynamicBuffer& buffer,
         std::size_t limit,
@@ -2278,10 +2278,10 @@ public:
     */
     template<
         class MutableBufferSequence,
-        BEAST_ASYNC_TPARAM2 ReadHandler =
+        BHO_BEAST_ASYNC_TPARAM2 ReadHandler =
             net::default_completion_token_t<
                 executor_type>>
-    BEAST_ASYNC_RESULT2(ReadHandler)
+    BHO_BEAST_ASYNC_RESULT2(ReadHandler)
     async_read_some(
         MutableBufferSequence const& buffers,
         ReadHandler&& handler =
@@ -2401,10 +2401,10 @@ public:
     */
     template<
         class ConstBufferSequence,
-        BEAST_ASYNC_TPARAM2 WriteHandler =
+        BHO_BEAST_ASYNC_TPARAM2 WriteHandler =
             net::default_completion_token_t<
                 executor_type>>
-    BEAST_ASYNC_RESULT2(WriteHandler)
+    BHO_BEAST_ASYNC_RESULT2(WriteHandler)
     async_write(
         ConstBufferSequence const& buffers,
         WriteHandler&& handler =
@@ -2524,10 +2524,10 @@ public:
     */
     template<
         class ConstBufferSequence,
-        BEAST_ASYNC_TPARAM2 WriteHandler =
+        BHO_BEAST_ASYNC_TPARAM2 WriteHandler =
             net::default_completion_token_t<
                 executor_type>>
-    BEAST_ASYNC_RESULT2(WriteHandler)
+    BHO_BEAST_ASYNC_RESULT2(WriteHandler)
     async_write_some(
         bool fin,
         ConstBufferSequence const& buffers,
@@ -2577,7 +2577,7 @@ private:
         class Decorator>
     void
     do_accept(
-        http::request_t<Body,
+        http::request<Body,
             http::basic_fields<Allocator>> const& req,
         Decorator const& decorator,
         error_code& ec);
@@ -2632,6 +2632,7 @@ seed_prng(std::seed_seq& ss)
 
 } // websocket
 } // beast
+} // bho
 
 #include <asio2/bho/beast/websocket/impl/stream_impl.hpp> // must be first
 #include <asio2/bho/beast/websocket/impl/accept.hpp>

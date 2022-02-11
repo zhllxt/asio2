@@ -7,12 +7,13 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_WEBSOCKET_ERROR_HPP
-#define BEAST_WEBSOCKET_ERROR_HPP
+#ifndef BHO_BEAST_WEBSOCKET_ERROR_HPP
+#define BHO_BEAST_WEBSOCKET_ERROR_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/core/error.hpp>
 
+namespace bho {
 namespace beast {
 namespace websocket {
 
@@ -32,7 +33,7 @@ enum class error
 
     - VFALCO
 */
-#if ! BEAST_DOXYGEN
+#if ! BHO_BEAST_DOXYGEN
     unused1 = 2, // failed
     unused2 = 3, // handshake_failed
 #endif
@@ -245,6 +246,7 @@ enum class condition
 
 } // websocket
 } // beast
+} // bho
 
 #include <asio2/bho/beast/websocket/impl/error.hpp>
 #ifdef BEAST_HEADER_ONLY

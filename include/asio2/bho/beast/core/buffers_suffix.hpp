@@ -7,15 +7,17 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_BUFFERS_SUFFIX_HPP
-#define BEAST_BUFFERS_SUFFIX_HPP
+#ifndef BHO_BEAST_BUFFERS_SUFFIX_HPP
+#define BHO_BEAST_BUFFERS_SUFFIX_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/core/buffer_traits.hpp>
+#include <optional>
 #include <cstdint>
 #include <iterator>
 #include <utility>
 
+namespace bho {
 namespace beast {
 
 /** Adaptor to progressively trim the front of a <em>BufferSequence</em>.
@@ -75,13 +77,13 @@ public:
         `net::mutable_buffer`, otherwise this type will be
         `net::const_buffer`.
     */
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
     using value_type = __see_below__;
 #else
     using value_type = buffers_type<BufferSequence>;
 #endif
 
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
     /// A bidirectional iterator type that may be used to read elements.
     using const_iterator = __implementation_defined__;
 
@@ -137,6 +139,7 @@ public:
 };
 
 } // beast
+} // bho
 
 #include <asio2/bho/beast/core/impl/buffers_suffix.hpp>
 

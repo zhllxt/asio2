@@ -7,12 +7,13 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_WEBSOCKET_IMPL_RFC6455_HPP
-#define BEAST_WEBSOCKET_IMPL_RFC6455_HPP
+#ifndef BHO_BEAST_WEBSOCKET_IMPL_RFC6455_HPP
+#define BHO_BEAST_WEBSOCKET_IMPL_RFC6455_HPP
 
 #include <asio2/bho/beast/http/fields.hpp>
 #include <asio2/bho/beast/http/rfc7230.hpp>
 
+namespace bho {
 namespace beast {
 namespace websocket {
 
@@ -34,5 +35,6 @@ is_upgrade(http::header<true,
 
 } // websocket
 } // beast
+} // bho
 
 #endif

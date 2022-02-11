@@ -7,10 +7,11 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_VERSION_HPP
-#define BEAST_VERSION_HPP
+#ifndef BHO_BEAST_VERSION_HPP
+#define BHO_BEAST_VERSION_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
+#include <asio2/bho/config.hpp>
 
 /*  BEAST_VERSION
 
@@ -19,16 +20,24 @@
     This is a simple integer that is incremented by one every
     time a set of code changes is merged to the develop branch.
 */
-#define BEAST_VERSION 322
+#define BHO_BEAST_VERSION 322
 
-#define BEAST_VERSION_STRING "Boost.Beast/" BEAST_STRINGIZE(BEAST_VERSION)
+#define BHO_BEAST_VERSION_STRING "Boost.Beast/" BHO_STRINGIZE(BHO_BEAST_VERSION)
+
+#ifndef BEAST_VERSION
+#  define BEAST_VERSION BHO_BEAST_VERSION
+#endif
+
+#ifndef BEAST_VERSION_STRING
+#  define BEAST_VERSION_STRING BHO_BEAST_VERSION_STRING
+#endif
 
 #ifndef BOOST_BEAST_VERSION
-#  define BOOST_BEAST_VERSION BEAST_VERSION
+#  define BOOST_BEAST_VERSION BHO_BEAST_VERSION
 #endif
 
 #ifndef BOOST_BEAST_VERSION_STRING
-#  define BOOST_BEAST_VERSION_STRING BEAST_VERSION_STRING
+#  define BOOST_BEAST_VERSION_STRING BHO_BEAST_VERSION_STRING
 #endif
 
 #endif

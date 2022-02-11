@@ -7,19 +7,20 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_WEBSOCKET_DETAIL_FRAME_HPP
-#define BEAST_WEBSOCKET_DETAIL_FRAME_HPP
+#ifndef BHO_BEAST_WEBSOCKET_DETAIL_FRAME_HPP
+#define BHO_BEAST_WEBSOCKET_DETAIL_FRAME_HPP
 
 #include <asio2/bho/beast/core/buffer_traits.hpp>
 #include <asio2/bho/beast/websocket/error.hpp>
 #include <asio2/bho/beast/websocket/rfc6455.hpp>
 #include <asio2/bho/beast/websocket/detail/utf8_checker.hpp>
 #include <asio2/bho/beast/core/flat_static_buffer.hpp>
-#include <asio/buffer.hpp>
-#include <asio2/bho/beast/core/util.hpp>
-//#include <asio2/bho/beast/endian/conversion.hpp>
+#include <asio2/3rd/asio.hpp>
+#include <asio2/bho/assert.hpp>
+#include <asio2/bho/endian/conversion.hpp>
 #include <cstdint>
 
+namespace bho {
 namespace beast {
 namespace websocket {
 namespace detail {
@@ -181,7 +182,7 @@ template<class Buffers>
 void
 read_ping(ping_data& data, Buffers const& bs)
 {
-    BEAST_ASSERT(buffer_bytes(bs) <= data.max_size());
+    BHO_ASSERT(buffer_bytes(bs) <= data.max_size());
     data.resize(buffer_bytes(bs));
     net::buffer_copy(net::mutable_buffer{
         data.data(), data.size()}, bs);
@@ -198,7 +199,7 @@ read_close(
     error_code& ec)
 {
     auto const n = buffer_bytes(bs);
-    BEAST_ASSERT(n <= 125);
+    BHO_ASSERT(n <= 125);
     if(n == 0)
     {
         cr = close_reason{};
@@ -241,5 +242,6 @@ read_close(
 } // detail
 } // websocket
 } // beast
+} // bho
 
 #endif

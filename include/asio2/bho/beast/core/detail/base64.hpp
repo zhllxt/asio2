@@ -7,28 +7,29 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_DETAIL_BASE64_HPP
-#define BEAST_DETAIL_BASE64_HPP
+#ifndef BHO_BEAST_DETAIL_BASE64_HPP
+#define BHO_BEAST_DETAIL_BASE64_HPP
 
 #include <asio2/bho/beast/core/string.hpp>
 #include <cctype>
 #include <utility>
 
+namespace bho {
 namespace beast {
 namespace detail {
 
 namespace base64 {
 
-BEAST_DECL
+BHO_BEAST_DECL
 char const*
 get_alphabet();
 
-BEAST_DECL
+BHO_BEAST_DECL
 signed char const*
 get_inverse();
 
 /// Returns max chars needed to encode a base64 string
-BEAST_DECL
+BHO_BEAST_DECL
 std::size_t constexpr
 encoded_size(std::size_t n)
 {
@@ -55,7 +56,7 @@ decoded_size(std::size_t n)
     @return The number of characters written to `out`. This
     will exclude any null termination.
 */
-BEAST_DECL
+BHO_BEAST_DECL
 std::size_t
 encode(void* dest, void const* src, std::size_t len);
 
@@ -70,7 +71,7 @@ encode(void* dest, void const* src, std::size_t len);
     the number of characters read from the input string,
     expressed as a pair.
 */
-BEAST_DECL
+BHO_BEAST_DECL
 std::pair<std::size_t, std::size_t>
 decode(void* dest, char const* src, std::size_t len);
 
@@ -78,6 +79,7 @@ decode(void* dest, char const* src, std::size_t len);
 
 } // detail
 } // beast
+} // bho
 
 #ifdef BEAST_HEADER_ONLY
 #include <asio2/bho/beast/core/detail/base64.ipp>

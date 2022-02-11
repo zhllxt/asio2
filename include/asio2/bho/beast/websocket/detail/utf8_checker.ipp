@@ -7,13 +7,14 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_WEBSOCKET_DETAIL_UTF8_CHECKER_IPP
-#define BEAST_WEBSOCKET_DETAIL_UTF8_CHECKER_IPP
+#ifndef BHO_BEAST_WEBSOCKET_DETAIL_UTF8_CHECKER_IPP
+#define BHO_BEAST_WEBSOCKET_DETAIL_UTF8_CHECKER_IPP
 
 #include <asio2/bho/beast/websocket/detail/utf8_checker.hpp>
 
-#include <asio2/bho/beast/core/util.hpp>
+#include <asio2/bho/assert.hpp>
 
+namespace bho {
 namespace beast {
 namespace websocket {
 namespace detail {
@@ -183,13 +184,13 @@ write(std::uint8_t const* in, std::size_t size)
         // Add characters to the code point
         while(n--)
             *p_++ = *in++;
-        BEAST_ASSERT(p_ <= cp_ + 4);
+        BHO_ASSERT(p_ <= cp_ + 4);
 
         // Still incomplete?
         if(need_ > 0)
         {
             // Incomplete code point
-			BEAST_ASSERT(in == end);
+            BHO_ASSERT(in == end);
 
             // Do partial validation on the incomplete
             // code point, this is called "Fail fast"
@@ -301,8 +302,8 @@ tail:
             // Save the partial code point
             while(n--)
                 *p_++ = *in++;
-			BEAST_ASSERT(in == end);
-			BEAST_ASSERT(p_ <= cp_ + 4);
+            BHO_ASSERT(in == end);
+            BHO_ASSERT(p_ <= cp_ + 4);
 
             // Do partial validation on the incomplete
             // code point, this is called "Fail fast"
@@ -325,5 +326,6 @@ check_utf8(char const* p, std::size_t n)
 } // detail
 } // websocket
 } // beast
+} // bho
 
-#endif // BEAST_WEBSOCKET_DETAIL_UTF8_CHECKER_IPP
+#endif // BHO_BEAST_WEBSOCKET_DETAIL_UTF8_CHECKER_IPP

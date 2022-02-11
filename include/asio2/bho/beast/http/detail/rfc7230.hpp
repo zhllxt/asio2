@@ -7,38 +7,39 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_HTTP_DETAIL_RFC7230_HPP
-#define BEAST_HTTP_DETAIL_RFC7230_HPP
+#ifndef BHO_BEAST_HTTP_DETAIL_RFC7230_HPP
+#define BHO_BEAST_HTTP_DETAIL_RFC7230_HPP
 
 #include <asio2/bho/beast/core/string.hpp>
 #include <iterator>
 #include <utility>
 
+namespace bho {
 namespace beast {
 namespace http {
 namespace detail {
 
-BEAST_DECL
+BHO_BEAST_DECL
 bool
 is_digit(char c);
 
-BEAST_DECL
+BHO_BEAST_DECL
 char
 is_alpha(char c);
 
-BEAST_DECL
+BHO_BEAST_DECL
 char
 is_text(char c);
 
-BEAST_DECL
+BHO_BEAST_DECL
 char
 is_token_char(char c);
 
-BEAST_DECL
+BHO_BEAST_DECL
 char
 is_qdchar(char c);
 
-BEAST_DECL
+BHO_BEAST_DECL
 char
 is_qpchar(char c);
 
@@ -46,16 +47,16 @@ is_qpchar(char c);
 // converts to lower case,
 // returns 0 if not a valid text char
 //
-BEAST_DECL
+BHO_BEAST_DECL
 char
 to_value_char(char c);
 
 // VFALCO TODO Make this return unsigned?
-BEAST_DECL
+BHO_BEAST_DECL
 std::int8_t
 unhex(char c);
 
-BEAST_DECL
+BHO_BEAST_DECL
 string_view
 trim(string_view s);
 
@@ -74,7 +75,7 @@ struct param_iter
         return first == it;
     }
 
-    BEAST_DECL
+    BHO_BEAST_DECL
     void
     increment();
 };
@@ -86,7 +87,7 @@ struct opt_token_list_policy
 {
     using value_type = string_view;
 
-    BEAST_DECL
+    BHO_BEAST_DECL
     bool
     operator()(value_type& v,
         char const*& it, string_view s) const;
@@ -95,6 +96,7 @@ struct opt_token_list_policy
 } // detail
 } // http
 } // beast
+} // bho
 
 #ifdef BEAST_HEADER_ONLY
 #include <asio2/bho/beast/http/detail/rfc7230.ipp>

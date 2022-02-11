@@ -7,13 +7,14 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_DETAIL_STREAM_TRAITS_HPP
-#define BEAST_DETAIL_STREAM_TRAITS_HPP
+#ifndef BHO_BEAST_DETAIL_STREAM_TRAITS_HPP
+#define BHO_BEAST_DETAIL_STREAM_TRAITS_HPP
 
 #include <asio2/bho/beast/core/error.hpp>
-#include <asio/buffer.hpp>
+#include <asio2/3rd/asio.hpp>
 #include <type_traits>
 
+namespace bho {
 namespace beast {
 namespace detail {
 
@@ -104,5 +105,6 @@ using WriteHandler = StreamHandler;
 
 } // detail
 } // beast
+} // bho
 
 #endif

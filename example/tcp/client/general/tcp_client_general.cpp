@@ -8,7 +8,11 @@ struct userinfo
 	int8_t age;
 };
 
+#ifdef ASIO_STANDALONE
 namespace asio
+#else
+namespace boost::asio
+#endif
 {
 	inline asio::const_buffer buffer(const userinfo& u) noexcept
 	{

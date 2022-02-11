@@ -7,34 +7,46 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_IMPL_ERROR_HPP
-#define BEAST_IMPL_ERROR_HPP
+#ifndef BHO_BEAST_IMPL_ERROR_HPP
+#define BHO_BEAST_IMPL_ERROR_HPP
 
 #include <type_traits>
 
+#ifdef ASIO_STANDALONE
 namespace std {
+#else
+namespace boost {
+namespace system {
+#endif
 template<>
-struct is_error_code_enum<::beast::error>
+struct is_error_code_enum<::bho::beast::error>
 {
     static bool const value = true;
 };
 template<>
-struct is_error_condition_enum<::beast::condition>
+struct is_error_condition_enum<::bho::beast::condition>
 {
     static bool const value = true;
 };
+#ifdef ASIO_STANDALONE
 } // std
+#else
+} // system
+} // boost
+#endif
 
+namespace bho {
 namespace beast {
 
-BEAST_DECL
+BHO_BEAST_DECL
 error_code
 make_error_code(error e);
 
-BEAST_DECL
+BHO_BEAST_DECL
 error_condition
 make_error_condition(condition c);
 
 } // beast
+} // bho
 
 #endif

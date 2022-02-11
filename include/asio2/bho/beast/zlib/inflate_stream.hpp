@@ -34,12 +34,13 @@
     (zlib format), rfc1951 (deflate format) and rfc1952 (gzip format).
 */
 
-#ifndef BEAST_ZLIB_INFLATE_STREAM_HPP
-#define BEAST_ZLIB_INFLATE_STREAM_HPP
+#ifndef BHO_BEAST_ZLIB_INFLATE_STREAM_HPP
+#define BHO_BEAST_ZLIB_INFLATE_STREAM_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/zlib/detail/inflate_stream.hpp>
 
+namespace bho {
 namespace beast {
 namespace zlib {
 
@@ -213,5 +214,6 @@ public:
 
 } // zlib
 } // beast
+} // bho
 
 #endif

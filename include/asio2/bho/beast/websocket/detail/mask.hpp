@@ -7,31 +7,32 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_WEBSOCKET_DETAIL_MASK_HPP
-#define BEAST_WEBSOCKET_DETAIL_MASK_HPP
+#ifndef BHO_BEAST_WEBSOCKET_DETAIL_MASK_HPP
+#define BHO_BEAST_WEBSOCKET_DETAIL_MASK_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/core/buffers_range.hpp>
-#include <asio/buffer.hpp>
+#include <asio2/3rd/asio.hpp>
 #include <array>
 #include <climits>
 #include <cstdint>
 #include <random>
 #include <type_traits>
 
+namespace bho {
 namespace beast {
 namespace websocket {
 namespace detail {
 
 using prepared_key = std::array<unsigned char, 4>;
 
-BEAST_DECL
+BHO_BEAST_DECL
 void
 prepare_key(prepared_key& prepared, std::uint32_t key);
 
 // Apply mask in place
 //
-BEAST_DECL
+BHO_BEAST_DECL
 void
 mask_inplace(net::mutable_buffer const& b, prepared_key& key);
 
@@ -51,6 +52,7 @@ mask_inplace(
 } // detail
 } // websocket
 } // beast
+} // bho
 
 
 #if BEAST_HEADER_ONLY

@@ -7,8 +7,8 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_WEBSOCKET_IMPL_HANDSHAKE_HPP
-#define BEAST_WEBSOCKET_IMPL_HANDSHAKE_HPP
+#ifndef BHO_BEAST_WEBSOCKET_IMPL_HANDSHAKE_HPP
+#define BHO_BEAST_WEBSOCKET_IMPL_HANDSHAKE_HPP
 
 #include <asio2/bho/beast/websocket/impl/stream_impl.hpp>
 #include <asio2/bho/beast/websocket/detail/type_traits.hpp>
@@ -19,10 +19,12 @@
 #include <asio2/bho/beast/core/async_base.hpp>
 #include <asio2/bho/beast/core/flat_buffer.hpp>
 #include <asio2/bho/beast/core/stream_traits.hpp>
-#include <asio/coroutine.hpp>
-#include <asio2/bho/beast/core/util.hpp>
+#include <asio2/3rd/asio.hpp>
+#include <asio2/bho/assert.hpp>
+#include <asio2/bho/throw_exception.hpp>
 #include <memory>
 
+namespace bho {
 namespace beast {
 namespace websocket {
 
@@ -35,7 +37,7 @@ template<class Handler>
 class stream<NextLayer, deflateSupported>::handshake_op
     : public beast::stable_async_base<Handler,
         beast::executor_type<stream>>
-    , public asio::coroutine
+    , public net::coroutine
 {
     struct data
     {
@@ -87,7 +89,7 @@ public:
         std::size_t bytes_used = 0,
         bool cont = true)
     {
-		beast::ignore_unused(bytes_used);
+        bho::ignore_unused(bytes_used);
         auto sp = wp_.lock();
         if(! sp)
         {
@@ -284,8 +286,8 @@ do_handshake(
 //------------------------------------------------------------------------------
 
 template<class NextLayer, bool deflateSupported>
-template<BEAST_ASYNC_TPARAM1 HandshakeHandler>
-BEAST_ASYNC_RESULT1(HandshakeHandler)
+template<BHO_BEAST_ASYNC_TPARAM1 HandshakeHandler>
+BHO_BEAST_ASYNC_RESULT1(HandshakeHandler)
 stream<NextLayer, deflateSupported>::
 async_handshake(
     string_view host,
@@ -309,8 +311,8 @@ async_handshake(
 }
 
 template<class NextLayer, bool deflateSupported>
-template<BEAST_ASYNC_TPARAM1 HandshakeHandler>
-BEAST_ASYNC_RESULT1(HandshakeHandler)
+template<BHO_BEAST_ASYNC_TPARAM1 HandshakeHandler>
+BHO_BEAST_ASYNC_RESULT1(HandshakeHandler)
 stream<NextLayer, deflateSupported>::
 async_handshake(
     response_type& res,
@@ -346,7 +348,7 @@ handshake(string_view host,
     handshake(
         host, target, ec);
     if(ec)
-        BEAST_THROW_EXCEPTION(system_error{ec});
+        BHO_THROW_EXCEPTION(system_error{ec});
 }
 
 template<class NextLayer, bool deflateSupported>
@@ -361,7 +363,7 @@ handshake(response_type& res,
     error_code ec;
     handshake(res, host, target, ec);
     if(ec)
-        BEAST_THROW_EXCEPTION(system_error{ec});
+        BHO_THROW_EXCEPTION(system_error{ec});
 }
 
 template<class NextLayer, bool deflateSupported>
@@ -392,5 +394,6 @@ handshake(response_type& res,
 
 } // websocket
 } // beast
+} // bho
 
 #endif

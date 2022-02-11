@@ -7,21 +7,18 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_DETAIL_BIND_HANDLER_HPP
-#define BEAST_DETAIL_BIND_HANDLER_HPP
+#ifndef BHO_BEAST_DETAIL_BIND_HANDLER_HPP
+#define BHO_BEAST_DETAIL_BIND_HANDLER_HPP
 
 #include <asio2/bho/beast/core/error.hpp>
 #include <asio2/bho/beast/core/detail/tuple.hpp>
-#include <asio/associated_allocator.hpp>
-#include <asio/associated_executor.hpp>
-#include <asio/handler_alloc_hook.hpp>
-#include <asio/handler_continuation_hook.hpp>
-#include <asio/handler_invoke_hook.hpp>
-#include <asio2/bho/beast/core/util.hpp>
+#include <asio2/3rd/asio.hpp>
+#include <asio2/bho/core/ignore_unused.hpp>
 #include <functional>
 #include <type_traits>
 #include <utility>
 
+namespace bho {
 namespace beast {
 namespace detail {
 
@@ -55,7 +52,7 @@ class bind_wrapper
         Arg&&>::type
     extract(Arg&& arg, Vals&& vals)
     {
-        beast::ignore_unused(vals);
+        bho::ignore_unused(vals);
         return std::forward<Arg>(arg);
     }
 
@@ -80,10 +77,10 @@ class bind_wrapper
     invoke(
         Handler& h,
         ArgsTuple& args,
-		std::tuple<>&&,
+        std::tuple<>&&,
         std::index_sequence<S...>)
     {
-		beast::ignore_unused(args);
+        bho::ignore_unused(args);
         h(std::get<S>(std::move(args))...);
     }
 
@@ -97,10 +94,10 @@ class bind_wrapper
         Handler& h,
         ArgsTuple& args,
         ValsTuple&& vals,
-		std::index_sequence<S...>)
+        std::index_sequence<S...>)
     {
-		beast::ignore_unused(args);
-		beast::ignore_unused(vals);
+        bho::ignore_unused(args);
+        bho::ignore_unused(vals);
         h(extract(std::get<S>(std::move(args)),
             std::forward<ValsTuple>(vals))...);
     }
@@ -128,20 +125,20 @@ public:
     operator()(Values&&... values)
     {
         invoke(h_, args_,
-			std::tuple<Values&&...>(
+            std::tuple<Values&&...>(
                 std::forward<Values>(values)...),
-			std::index_sequence_for<Args...>());
+            std::index_sequence_for<Args...>());
     }
 
     //
 
     template<class Function>
     friend
-    asio::asio_handler_invoke_is_deprecated
+    net::asio_handler_invoke_is_deprecated
     asio_handler_invoke(
         Function&& f, bind_wrapper* op)
     {
-        using asio::asio_handler_invoke;
+        using net::asio_handler_invoke;
         return asio_handler_invoke(f, std::addressof(op->h_));
     }
 
@@ -149,27 +146,27 @@ public:
     bool asio_handler_is_continuation(
         bind_wrapper* op)
     {
-        using asio::asio_handler_is_continuation;
+        using net::asio_handler_is_continuation;
         return asio_handler_is_continuation(
                 std::addressof(op->h_));
     }
 
     friend
-    asio::asio_handler_allocate_is_deprecated
+    net::asio_handler_allocate_is_deprecated
     asio_handler_allocate(
         std::size_t size, bind_wrapper* op)
     {
-        using asio::asio_handler_allocate;
+        using net::asio_handler_allocate;
         return asio_handler_allocate(
             size, std::addressof(op->h_));
     }
 
     friend
-    asio::asio_handler_deallocate_is_deprecated
+    net::asio_handler_deallocate_is_deprecated
     asio_handler_deallocate(
         void* p, std::size_t size, bind_wrapper* op)
     {
-        using asio::asio_handler_deallocate;
+        using net::asio_handler_deallocate;
         return asio_handler_deallocate(
             p, size, std::addressof(op->h_));
     }
@@ -203,7 +200,7 @@ class bind_front_wrapper
     void
     invoke(
         std::false_type,
-		std::index_sequence<I...>,
+        std::index_sequence<I...>,
         Ts&&... ts)
     {
         h_( std::get<I>(std::move(args_))...,
@@ -214,7 +211,7 @@ class bind_front_wrapper
     void
     invoke(
         std::true_type,
-		std::index_sequence<I...>,
+        std::index_sequence<I...>,
         Ts&&... ts)
     {
         std::mem_fn(h_)(
@@ -242,7 +239,7 @@ public:
     {
         invoke(
             std::is_member_function_pointer<Handler>{},
-			std::index_sequence_for<Args...>{},
+            std::index_sequence_for<Args...>{},
             std::forward<Ts>(ts)...);
     }
 
@@ -250,11 +247,11 @@ public:
 
     template<class Function>
     friend
-    asio::asio_handler_invoke_is_deprecated
+    net::asio_handler_invoke_is_deprecated
     asio_handler_invoke(
         Function&& f, bind_front_wrapper* op)
     {
-        using asio::asio_handler_invoke;
+        using net::asio_handler_invoke;
         return asio_handler_invoke(f, std::addressof(op->h_));
     }
 
@@ -262,27 +259,27 @@ public:
     bool asio_handler_is_continuation(
         bind_front_wrapper* op)
     {
-        using asio::asio_handler_is_continuation;
+        using net::asio_handler_is_continuation;
         return asio_handler_is_continuation(
             std::addressof(op->h_));
     }
 
     friend
-    asio::asio_handler_allocate_is_deprecated
+    net::asio_handler_allocate_is_deprecated
     asio_handler_allocate(
         std::size_t size, bind_front_wrapper* op)
     {
-        using asio::asio_handler_allocate;
+        using net::asio_handler_allocate;
         return asio_handler_allocate(
             size, std::addressof(op->h_));
     }
 
     friend
-    asio::asio_handler_deallocate_is_deprecated
+    net::asio_handler_deallocate_is_deprecated
     asio_handler_deallocate(
         void* p, std::size_t size, bind_front_wrapper* op)
     {
-        using asio::asio_handler_deallocate;
+        using net::asio_handler_deallocate;
         return asio_handler_deallocate(
             p, size, std::addressof(op->h_));
     }
@@ -290,21 +287,26 @@ public:
 
 } // detail
 } // beast
+} // bho
 
 //------------------------------------------------------------------------------
 
+#ifdef ASIO_STANDALONE
 namespace asio {
+#else
+namespace boost::asio {
+#endif
 
 template<class Handler, class... Args, class Executor>
 struct associated_executor<
-    beast::detail::bind_wrapper<Handler, Args...>, Executor>
+    bho::beast::detail::bind_wrapper<Handler, Args...>, Executor>
 {
     using type = typename
         associated_executor<Handler, Executor>::type;
 
     static
     type
-    get(beast::detail::bind_wrapper<Handler, Args...> const& op,
+    get(bho::beast::detail::bind_wrapper<Handler, Args...> const& op,
         Executor const& ex = Executor{}) noexcept
     {
         return associated_executor<
@@ -314,14 +316,14 @@ struct associated_executor<
 
 template<class Handler, class... Args, class Executor>
 struct associated_executor<
-    beast::detail::bind_front_wrapper<Handler, Args...>, Executor>
+	bho::beast::detail::bind_front_wrapper<Handler, Args...>, Executor>
 {
     using type = typename
         associated_executor<Handler, Executor>::type;
 
     static
     type
-    get(beast::detail::bind_front_wrapper<Handler, Args...> const& op,
+    get(bho::beast::detail::bind_front_wrapper<Handler, Args...> const& op,
         Executor const& ex = Executor{}) noexcept
     {
         return associated_executor<
@@ -333,14 +335,14 @@ struct associated_executor<
 
 template<class Handler, class... Args, class Allocator>
 struct associated_allocator<
-    beast::detail::bind_wrapper<Handler, Args...>, Allocator>
+	bho::beast::detail::bind_wrapper<Handler, Args...>, Allocator>
 {
     using type = typename
         associated_allocator<Handler, Allocator>::type;
 
     static
     type
-    get(beast::detail::bind_wrapper<Handler, Args...> const& op,
+    get(bho::beast::detail::bind_wrapper<Handler, Args...> const& op,
         Allocator const& alloc = Allocator{}) noexcept
     {
         return associated_allocator<
@@ -350,14 +352,14 @@ struct associated_allocator<
 
 template<class Handler, class... Args, class Allocator>
 struct associated_allocator<
-    beast::detail::bind_front_wrapper<Handler, Args...>, Allocator>
+	bho::beast::detail::bind_front_wrapper<Handler, Args...>, Allocator>
 {
     using type = typename
         associated_allocator<Handler, Allocator>::type;
 
     static
     type
-    get(beast::detail::bind_front_wrapper<Handler, Args...> const& op,
+    get(bho::beast::detail::bind_front_wrapper<Handler, Args...> const& op,
         Allocator const& alloc = Allocator{}) noexcept
     {
         return associated_allocator<
@@ -380,12 +382,12 @@ namespace std {
 
 template<class Handler, class... Args>
 void
-bind(beast::detail::bind_wrapper<
+bind(bho::beast::detail::bind_wrapper<
     Handler, Args...>, ...) = delete;
 
 template<class Handler, class... Args>
 void
-bind(beast::detail::bind_front_wrapper<
+bind(bho::beast::detail::bind_front_wrapper<
     Handler, Args...>, ...) = delete;
 
 } // std

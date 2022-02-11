@@ -7,13 +7,13 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_IMPL_BUFFERS_CAT_HPP
-#define BEAST_IMPL_BUFFERS_CAT_HPP
+#ifndef BHO_BEAST_IMPL_BUFFERS_CAT_HPP
+#define BHO_BEAST_IMPL_BUFFERS_CAT_HPP
 
 #include <asio2/bho/beast/core/detail/tuple.hpp>
 #include <asio2/bho/beast/core/detail/variant.hpp>
 #include <asio2/bho/beast/core/mp_with_index.hpp>
-#include <asio/buffer.hpp>
+#include <asio2/3rd/asio.hpp>
 #include <cstdint>
 #include <iterator>
 #include <new>
@@ -22,6 +22,7 @@
 #include <tuple>
 #include <variant>
 
+namespace bho {
 namespace beast {
 
 template<class Buffer>
@@ -53,40 +54,40 @@ public:
 };
 
 #if defined(_MSC_VER) && ! defined(__clang__)
-# define BEAST_UNREACHABLE() __assume(false)
-# define BEAST_UNREACHABLE_RETURN(v) return v
+# define BHO_BEAST_UNREACHABLE() __assume(false)
+# define BHO_BEAST_UNREACHABLE_RETURN(v) return v
 #else
-# define BEAST_UNREACHABLE() __builtin_unreachable()
-# define BEAST_UNREACHABLE_RETURN(v) \
+# define BHO_BEAST_UNREACHABLE() __builtin_unreachable()
+# define BHO_BEAST_UNREACHABLE_RETURN(v) \
     do { __builtin_unreachable(); return v; } while(false)
 #endif
 
-#ifdef BEAST_TESTS
+#ifdef BHO_BEAST_TESTS
 
-#define BEAST_LOGIC_ERROR(s) \
+#define BHO_BEAST_LOGIC_ERROR(s) \
     do { \
-        BEAST_THROW_EXCEPTION(std::logic_error((s))); \
-        BEAST_UNREACHABLE(); \
+        BHO_THROW_EXCEPTION(std::logic_error((s))); \
+        BHO_BEAST_UNREACHABLE(); \
     } while(false)
 
-#define BEAST_LOGIC_ERROR_RETURN(v, s) \
+#define BHO_BEAST_LOGIC_ERROR_RETURN(v, s) \
     do { \
-        BEAST_THROW_EXCEPTION(std::logic_error(s)); \
-        BEAST_UNREACHABLE_RETURN(v); \
+        BHO_THROW_EXCEPTION(std::logic_error(s)); \
+        BHO_BEAST_UNREACHABLE_RETURN(v); \
     } while(false)
 
 #else
 
-#define BEAST_LOGIC_ERROR(s) \
+#define BHO_BEAST_LOGIC_ERROR(s) \
     do { \
-        BEAST_ASSERT_MSG(false, s); \
-        BEAST_UNREACHABLE(); \
+        BHO_ASSERT_MSG(false, s); \
+        BHO_BEAST_UNREACHABLE(); \
     } while(false)
 
-#define BEAST_LOGIC_ERROR_RETURN(v, s) \
+#define BHO_BEAST_LOGIC_ERROR_RETURN(v, s) \
     do { \
-        BEAST_ASSERT_MSG(false, (s)); \
-        BEAST_UNREACHABLE_RETURN(v); \
+        BHO_ASSERT_MSG(false, (s)); \
+        BHO_BEAST_UNREACHABLE_RETURN(v); \
     } while(false)
 
 #endif
@@ -102,7 +103,7 @@ struct buffers_cat_view_iterator_base
         net::mutable_buffer
         operator*() const
         {
-            BEAST_LOGIC_ERROR_RETURN({},
+            BHO_BEAST_LOGIC_ERROR_RETURN({},
                 "Dereferencing a one-past-the-end iterator");
         }
 
@@ -190,7 +191,7 @@ private:
         //reference
         //operator()(mp11::mp_size_t<0>)
         //{
-        //    BEAST_LOGIC_ERROR_RETURN({},
+        //    BHO_BEAST_LOGIC_ERROR_RETURN({},
         //        "Dereferencing a default-constructed iterator");
         //}
 
@@ -208,7 +209,7 @@ private:
         //void
         //operator()(mp11::mp_size_t<0>)
         //{
-        //    BEAST_LOGIC_ERROR(
+        //    BHO_BEAST_LOGIC_ERROR(
         //        "Incrementing a default-constructed iterator");
         //}
 
@@ -269,7 +270,7 @@ private:
         void
         operator()(mp11::mp_size_t<sizeof...(Bn)+1>)
         {
-            BEAST_LOGIC_ERROR(
+            BHO_BEAST_LOGIC_ERROR(
                 "Incrementing a one-past-the-end iterator");
         }
     };
@@ -289,7 +290,7 @@ private:
                 if(it == net::buffer_sequence_begin(
                     std::get<I>(*self.bn_)))
                 {
-                    BEAST_LOGIC_ERROR(
+                    BHO_BEAST_LOGIC_ERROR(
                         "Decrementing an iterator to the beginning");
                 }
                 --it;
@@ -354,7 +355,7 @@ const_iterator(
 {
     it_.template emplace<0>(
         net::buffer_sequence_begin(
-			std::get<0>(*bn_)));
+            std::get<0>(*bn_)));
     increment{*this}.next(
         mp11::mp_size_t<1>{});
 }
@@ -460,5 +461,6 @@ buffers_cat_view<Bn...>::end() const->
 }
 
 } // beast
+} // bho
 
 #endif

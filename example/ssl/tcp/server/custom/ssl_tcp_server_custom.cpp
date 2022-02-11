@@ -55,7 +55,11 @@ private:
 	char c_;
 };
 
+#ifdef ASIO_STANDALONE
 namespace asio
+#else
+namespace boost::asio
+#endif
 {
 	template <> struct is_match_condition<match_role> : public std::true_type {};
 }

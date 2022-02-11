@@ -7,14 +7,15 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_IMPL_STRING_IPP
-#define BEAST_IMPL_STRING_IPP
+#ifndef BHO_BEAST_IMPL_STRING_IPP
+#define BHO_BEAST_IMPL_STRING_IPP
 
 #include <asio2/bho/beast/core/string.hpp>
 #include <asio2/bho/beast/core/detail/string.hpp>
 
 #include <algorithm>
 
+namespace bho {
 namespace beast {
 
 bool
@@ -67,5 +68,6 @@ iless::operator()(
 }
 
 } // beast
+} // bho
 
 #endif

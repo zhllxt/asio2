@@ -7,22 +7,23 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_DETAIL_REMAP_POST_TO_DEFER_HPP
-#define BEAST_DETAIL_REMAP_POST_TO_DEFER_HPP
+#ifndef BHO_BEAST_DETAIL_REMAP_POST_TO_DEFER_HPP
+#define BHO_BEAST_DETAIL_REMAP_POST_TO_DEFER_HPP
 
-#include <asio/is_executor.hpp>
-#include <asio2/bho/beast/core/empty_value.hpp>
+#include <asio2/3rd/asio.hpp>
+#include <asio2/bho/core/empty_value.hpp>
 #include <type_traits>
 #include <utility>
 
+namespace bho {
 namespace beast {
 namespace detail {
 
 template<class Executor>
 class remap_post_to_defer
-    : private beast::empty_value<Executor>
+    : private bho::empty_value<Executor>
 {
-    BEAST_STATIC_ASSERT(
+    BHO_STATIC_ASSERT(
         net::is_executor<Executor>::value);
 
     Executor const&
@@ -41,8 +42,8 @@ public:
     explicit
     remap_post_to_defer(
         Executor const& ex)
-        : beast::empty_value<Executor>(
-			beast::empty_init_t{}, ex)
+        : bho::empty_value<Executor>(
+            bho::empty_init_t{}, ex)
     {
     }
 
@@ -102,5 +103,6 @@ public:
 
 } // detail
 } // beast
+} // bho
 
 #endif

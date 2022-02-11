@@ -78,24 +78,24 @@ namespace asio2::detail
 		 * @function : bind recv listener
 		 * @param    : fun - a user defined callback function
 		 * Function signature : void(std::shared_ptr<asio2::http_session>& session_ptr,
-		 *                           http::request& req, http::response& rep)
-		 * or                 : void(http::request& req, http::response& rep)
+		 *                           http::web_request& req, http::web_response& rep)
+		 * or                 : void(http::web_request& req, http::web_response& rep)
 		 */
 		template<class F, class ...C>
 		inline derived_t & bind_recv(F&& fun, C&&... obj)
 		{
 			if constexpr (is_template_callable_v<F,
-				std::shared_ptr<session_t>&, http::request&, http::response&>)
+				std::shared_ptr<session_t>&, http::web_request&, http::web_response&>)
 			{
 				this->is_arg0_session_ = true;
 				this->listener_.bind(event_type::recv, observer_t<std::shared_ptr<session_t>&,
-					http::request&, http::response&>(std::forward<F>(fun), std::forward<C>(obj)...));
+					http::web_request&, http::web_response&>(std::forward<F>(fun), std::forward<C>(obj)...));
 			}
 			else
 			{
 				this->is_arg0_session_ = false;
 				this->listener_.bind(event_type::recv, observer_t<
-					http::request&, http::response&>(std::forward<F>(fun), std::forward<C>(obj)...));
+					http::web_request&, http::web_response&>(std::forward<F>(fun), std::forward<C>(obj)...));
 			}
 			return (this->derived());
 		}

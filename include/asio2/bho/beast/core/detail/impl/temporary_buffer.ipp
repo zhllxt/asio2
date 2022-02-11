@@ -7,15 +7,18 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_DETAIL_IMPL_TEMPORARY_BUFFER_IPP
-#define BEAST_DETAIL_IMPL_TEMPORARY_BUFFER_IPP
+#ifndef BHO_BEAST_DETAIL_IMPL_TEMPORARY_BUFFER_IPP
+#define BHO_BEAST_DETAIL_IMPL_TEMPORARY_BUFFER_IPP
 
 #include <asio2/bho/beast/core/detail/temporary_buffer.hpp>
 #include <asio2/bho/beast/core/detail/clamp.hpp>
-#include <asio2/bho/beast/core/util.hpp>
+#include <asio2/bho/core/exchange.hpp>
+#include <asio2/bho/assert.hpp>
 #include <memory>
 #include <cstring>
+#include <utility>
 
+namespace bho {
 namespace beast {
 namespace detail {
 
@@ -53,7 +56,7 @@ grow(std::size_t n)
         return;
 
     auto const capacity = (n + size_) * 2u;
-    BEAST_ASSERT(! detail::sum_exceeds(
+    BHO_ASSERT(! detail::sum_exceeds(
         n, size_, capacity));
     char* const p = new char[capacity];
     std::memcpy(p, data_, size_);
@@ -62,5 +65,6 @@ grow(std::size_t n)
 }
 } // detail
 } // beast
+} // bho
 
 #endif

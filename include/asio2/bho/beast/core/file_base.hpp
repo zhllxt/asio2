@@ -7,13 +7,14 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_CORE_FILE_BASE_HPP
-#define BEAST_CORE_FILE_BASE_HPP
+#ifndef BHO_BEAST_CORE_FILE_BASE_HPP
+#define BHO_BEAST_CORE_FILE_BASE_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/core/error.hpp>
 #include <type_traits>
 
+namespace bho {
 namespace beast {
 
 /*
@@ -120,7 +121,7 @@ enum class file_mode
     f(File& file);
     @endcode
 */
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
 template<class T>
 struct is_file : std::integral_constant<bool, ...>{};
 #else
@@ -157,5 +158,6 @@ struct is_file<T, std::void_t<decltype(
 #endif
 
 } // beast
+} // bho
 
 #endif

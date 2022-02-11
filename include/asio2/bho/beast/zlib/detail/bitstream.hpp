@@ -34,13 +34,14 @@
     (zlib format), rfc1951 (deflate format) and rfc1952 (gzip format).
 */
 
-#ifndef BEAST_ZLIB_DETAIL_BITSTREAM_HPP
-#define BEAST_ZLIB_DETAIL_BITSTREAM_HPP
+#ifndef BHO_BEAST_ZLIB_DETAIL_BITSTREAM_HPP
+#define BHO_BEAST_ZLIB_DETAIL_BITSTREAM_HPP
 
-#include <asio2/bho/beast/core/util.hpp>
+#include <asio2/bho/assert.hpp>
 #include <cstdint>
 #include <iterator>
 
+namespace bho {
 namespace beast {
 namespace zlib {
 namespace detail {
@@ -64,7 +65,7 @@ public:
     void
     drop(std::size_t n)
     {
-        BEAST_ASSERT(n <= n_);
+        BHO_ASSERT(n <= n_);
         n_ -= static_cast<unsigned>(n);
         v_ >>= n;
     }
@@ -162,8 +163,8 @@ void
 bitstream::
 peek(Unsigned& value, std::size_t n)
 {
-    BEAST_ASSERT(n <= sizeof(value)*8);
-	BEAST_ASSERT(n <= n_);
+    BHO_ASSERT(n <= sizeof(value)*8);
+    BHO_ASSERT(n <= n_);
     value = static_cast<Unsigned>(
         v_ & ((1ULL << n) - 1));
 }
@@ -173,8 +174,8 @@ void
 bitstream::
 read(Unsigned& value, std::size_t n)
 {
-	BEAST_ASSERT(n < sizeof(v_)*8);
-	BEAST_ASSERT(n <= n_);
+    BHO_ASSERT(n < sizeof(v_)*8);
+    BHO_ASSERT(n <= n_);
     value = static_cast<Unsigned>(
         v_ & ((1ULL << n) - 1));
     v_ >>= n;
@@ -195,5 +196,6 @@ rewind(BidirIt& it)
 } // detail
 } // zlib
 } // beast
+} // bho
 
 #endif

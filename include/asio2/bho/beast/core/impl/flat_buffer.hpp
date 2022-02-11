@@ -7,14 +7,16 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_IMPL_FLAT_BUFFER_HPP
-#define BEAST_IMPL_FLAT_BUFFER_HPP
+#ifndef BHO_BEAST_IMPL_FLAT_BUFFER_HPP
+#define BHO_BEAST_IMPL_FLAT_BUFFER_HPP
 
-#include <asio2/bho/beast/core/util.hpp>
-#include <asio2/bho/beast/core/empty_value.hpp>
+#include <asio2/bho/core/exchange.hpp>
+#include <asio2/bho/assert.hpp>
+#include <asio2/bho/throw_exception.hpp>
 #include <memory>
 #include <stdexcept>
 
+namespace bho {
 namespace beast {
 
 /*  Layout:
@@ -63,8 +65,8 @@ basic_flat_buffer(
 template<class Allocator>
 basic_flat_buffer<Allocator>::
 basic_flat_buffer(Allocator const& alloc) noexcept
-    : beast::empty_value<base_alloc_type>(
-        beast::empty_init_t{}, alloc)
+    : bho::empty_value<base_alloc_type>(
+        bho::empty_init_t{}, alloc)
     , begin_(nullptr)
     , in_(nullptr)
     , out_(nullptr)
@@ -80,8 +82,8 @@ basic_flat_buffer<Allocator>::
 basic_flat_buffer(
     std::size_t limit,
     Allocator const& alloc) noexcept
-    : beast::empty_value<base_alloc_type>(
-        beast::empty_init_t{}, alloc)
+    : bho::empty_value<base_alloc_type>(
+        bho::empty_init_t{}, alloc)
     , begin_(nullptr)
     , in_(nullptr)
     , out_(nullptr)
@@ -94,8 +96,8 @@ basic_flat_buffer(
 template<class Allocator>
 basic_flat_buffer<Allocator>::
 basic_flat_buffer(basic_flat_buffer&& other) noexcept
-    : beast::empty_value<base_alloc_type>(
-        beast::empty_init_t{}, std::move(other.get()))
+    : bho::empty_value<base_alloc_type>(
+        bho::empty_init_t{}, std::move(other.get()))
     , begin_(std::exchange(other.begin_, nullptr))
     , in_(std::exchange(other.in_, nullptr))
     , out_(std::exchange(other.out_, nullptr))
@@ -110,8 +112,8 @@ basic_flat_buffer<Allocator>::
 basic_flat_buffer(
     basic_flat_buffer&& other,
     Allocator const& alloc)
-    : beast::empty_value<base_alloc_type>(
-        beast::empty_init_t{}, alloc)
+    : bho::empty_value<base_alloc_type>(
+        bho::empty_init_t{}, alloc)
 {
     if(this->get() != other.get())
     {
@@ -131,7 +133,7 @@ basic_flat_buffer(
     last_ = other.out_; // invalidate
     end_ = other.end_;
     max_ = other.max_;
-    BEAST_ASSERT(
+    BHO_ASSERT(
         alloc_traits::max_size(this->get()) ==
         alloc_traits::max_size(other.get()));
     other.begin_ = nullptr;
@@ -144,7 +146,7 @@ basic_flat_buffer(
 template<class Allocator>
 basic_flat_buffer<Allocator>::
 basic_flat_buffer(basic_flat_buffer const& other)
-    : beast::empty_value<base_alloc_type>(beast::empty_init_t{},
+    : bho::empty_value<base_alloc_type>(bho::empty_init_t{},
         alloc_traits::select_on_container_copy_construction(
             other.get()))
     , begin_(nullptr)
@@ -162,8 +164,8 @@ basic_flat_buffer<Allocator>::
 basic_flat_buffer(
     basic_flat_buffer const& other,
     Allocator const& alloc)
-    : beast::empty_value<base_alloc_type>(
-        beast::empty_init_t{}, alloc)
+    : bho::empty_value<base_alloc_type>(
+        bho::empty_init_t{}, alloc)
     , begin_(nullptr)
     , in_(nullptr)
     , out_(nullptr)
@@ -196,8 +198,8 @@ basic_flat_buffer<Allocator>::
 basic_flat_buffer(
     basic_flat_buffer<OtherAlloc> const& other,
     Allocator const& alloc)
-    : beast::empty_value<base_alloc_type>(
-        beast::empty_init_t{}, alloc)
+    : bho::empty_value<base_alloc_type>(
+        bho::empty_init_t{}, alloc)
     , begin_(nullptr)
     , in_(nullptr)
     , out_(nullptr)
@@ -268,12 +270,14 @@ shrink_to_fit() noexcept
     char* p;
     if(len > 0)
     {
-        BEAST_ASSERT(begin_);
-        BEAST_ASSERT(in_);
-
+        BHO_ASSERT(begin_);
+        BHO_ASSERT(in_);
+#ifndef BHO_NO_EXCEPTIONS
         try
         {
+#endif
             p = alloc(len);
+#ifndef BHO_NO_EXCEPTIONS
         }
         catch(std::exception const&)
         {
@@ -281,7 +285,7 @@ shrink_to_fit() noexcept
             // squelch the exception
             return;
         }
-
+#endif
         std::memcpy(p, in_, len);
     }
     else
@@ -317,7 +321,7 @@ prepare(std::size_t n) ->
 {
     auto const len = size();
     if(len > max_ || n > (max_ - len))
-        BEAST_THROW_EXCEPTION(std::length_error{
+        BHO_THROW_EXCEPTION(std::length_error{
             "basic_flat_buffer too long"});
     if(n <= dist(out_, end_))
     {
@@ -331,8 +335,8 @@ prepare(std::size_t n) ->
         // existing capacity is sufficient
         if(len > 0)
         {
-            BEAST_ASSERT(begin_);
-            BEAST_ASSERT(in_);
+            BHO_ASSERT(begin_);
+            BHO_ASSERT(in_);
             std::memmove(begin_, in_, len);
         }
         in_ = begin_;
@@ -347,8 +351,8 @@ prepare(std::size_t n) ->
     auto const p = alloc(new_size);
     if(begin_)
     {
-        BEAST_ASSERT(p);
-        BEAST_ASSERT(in_);
+        BHO_ASSERT(p);
+        BHO_ASSERT(in_);
         std::memcpy(p, in_, len);
         alloc_traits::deallocate(
             this->get(), begin_, capacity());
@@ -411,7 +415,7 @@ copy_from(
     last_ = begin_ + n;
     if(begin_)
     {
-        BEAST_ASSERT(other.begin_);
+        BHO_ASSERT(other.begin_);
         std::memcpy(begin_, other.in_, n);
     }
 }
@@ -503,7 +507,7 @@ void
 basic_flat_buffer<Allocator>::
 swap(basic_flat_buffer& other, std::false_type)
 {
-    BEAST_ASSERT(this->get() == other.get());
+    BHO_ASSERT(this->get() == other.get());
     using std::swap;
     swap(max_, other.max_);
     swap(begin_, other.begin_);
@@ -529,11 +533,12 @@ basic_flat_buffer<Allocator>::
 alloc(std::size_t n)
 {
     if(n > alloc_traits::max_size(this->get()))
-        BEAST_THROW_EXCEPTION(std::length_error(
+        BHO_THROW_EXCEPTION(std::length_error(
             "A basic_flat_buffer exceeded the allocator's maximum size"));
     return alloc_traits::allocate(this->get(), n);
 }
 
 } // beast
+} // bho
 
 #endif

@@ -11,11 +11,15 @@
 #define __ASIO2_HTTP_FLEX_BODY_HPP__
 
 #include <asio2/3rd/beast.hpp>
+#include <asio2/3rd/assert.hpp>
 
-#include <asio2/bho/beast/http/string_body.hpp>
-#include <asio2/bho/beast/http/file_body.hpp>
 #include <asio2/http/detail/http_util.hpp>
 
+#ifdef BEAST_HEADER_ONLY
+namespace bho {
+#else
+namespace boost {
+#endif
 namespace beast {
 namespace http {
 
@@ -163,7 +167,7 @@ public:
     // The type of buffer sequence returned by `get`.
     //
     using const_buffers_type =
-        net::const_buffer;
+        ::asio::const_buffer;
 
     // Constructor.
     //
@@ -207,7 +211,11 @@ public:
     // the contained pair will have the next buffer
     // to serialize, and a `bool` indicating whether
     // or not there may be additional buffers.
+#ifdef BEAST_HEADER_ONLY
 	inline std::optional<std::pair<const_buffers_type, bool>>
+#else
+	inline boost::optional<std::pair<const_buffers_type, bool>>
+#endif
     get(error_code& ec);
 };
 
@@ -254,7 +262,11 @@ auto
 basic_flex_body<TextBody, FileBody>::
 writer::
 get(error_code& ec) ->
+#ifdef BEAST_HEADER_ONLY
     std::optional<std::pair<const_buffers_type, bool>>
+#else
+    boost::optional<std::pair<const_buffers_type, bool>>
+#endif
 {
 	if (body_.is_file())
 		return file_writer_.get(ec);
@@ -300,7 +312,11 @@ public:
     // optionally use for optimization.
     //
 	inline void
+#ifdef BEAST_HEADER_ONLY
     init(std::optional<std::uint64_t> const&, error_code& ec);
+#else
+    init(boost::optional<std::uint64_t> const&, error_code& ec);
+#endif
 
     // This function is called one or more times to store
     // buffer sequences corresponding to the incoming body.
@@ -338,7 +354,11 @@ void
 basic_flex_body<TextBody, FileBody>::
 reader::
 init(
+#ifdef BEAST_HEADER_ONLY
     std::optional<std::uint64_t> const& content_length,
+#else
+    boost::optional<std::uint64_t> const& content_length,
+#endif
     error_code& ec)
 {
 	if (body_.is_file())
@@ -390,7 +410,7 @@ operator<<(std::ostream& os,
 	}
 	else
 	{
-		BEAST_ASSERT(false);
+		BHO_ASSERT(false);
 	}
 	return os;
 }
@@ -410,12 +430,13 @@ operator<<(std::ostream& os,
 	}
 	else
 	{
-		BEAST_ASSERT(false);
+		BHO_ASSERT(false);
 	}
 	return os;
 }
 
 } // http
 } // beast
+} // bho
 
 #endif

@@ -36,8 +36,8 @@
    Rene Nyffenegger rene.nyffenegger@adp-gmbh.ch
 */
 
-#ifndef BEAST_DETAIL_BASE64_IPP
-#define BEAST_DETAIL_BASE64_IPP
+#ifndef BHO_BEAST_DETAIL_BASE64_IPP
+#define BHO_BEAST_DETAIL_BASE64_IPP
 
 #include <asio2/bho/beast/core/detail/base64.hpp>
 #include <asio2/bho/beast/core/string.hpp>
@@ -45,6 +45,7 @@
 #include <string>
 #include <utility>
 
+namespace bho {
 namespace beast {
 namespace detail {
 
@@ -196,5 +197,6 @@ decode(void* dest, char const* src, std::size_t len)
 
 } // detail
 } // beast
+} // bho
 
 #endif

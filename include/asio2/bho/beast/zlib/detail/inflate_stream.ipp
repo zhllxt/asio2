@@ -34,13 +34,14 @@
     (zlib format), rfc1951 (deflate format) and rfc1952 (gzip format).
 */
 
-#ifndef BEAST_ZLIB_DETAIL_INFLATE_STREAM_IPP
-#define BEAST_ZLIB_DETAIL_INFLATE_STREAM_IPP
+#ifndef BHO_BEAST_ZLIB_DETAIL_INFLATE_STREAM_IPP
+#define BHO_BEAST_ZLIB_DETAIL_INFLATE_STREAM_IPP
 
 #include <asio2/bho/beast/zlib/detail/inflate_stream.hpp>
-#include <asio2/bho/beast/core/util.hpp>
+#include <asio2/bho/throw_exception.hpp>
 #include <array>
 
+namespace bho {
 namespace beast {
 namespace zlib {
 namespace detail {
@@ -56,7 +57,7 @@ inflate_stream::
 doReset(int windowBits)
 {
     if(windowBits < 8 || windowBits > 15)
-        BEAST_THROW_EXCEPTION(std::domain_error{
+        BHO_THROW_EXCEPTION(std::domain_error{
             "windowBits out of range"});
     w_.reset(windowBits);
 
@@ -191,12 +192,12 @@ doWrite(z_params& zs, Flush flush, error_code& ec)
             mode_ = COPY_;
             if(flush == Flush::trees)
                 return done();
-            BEAST_FALLTHROUGH;
+            BHO_FALLTHROUGH;
         }
 
         case COPY_:
             mode_ = COPY;
-            BEAST_FALLTHROUGH;
+            BHO_FALLTHROUGH;
 
         case COPY:
         {
@@ -230,7 +231,7 @@ doWrite(z_params& zs, Flush flush, error_code& ec)
                 return err(error::too_many_symbols);
             have_ = 0;
             mode_ = LENLENS;
-            BEAST_FALLTHROUGH;
+            BHO_FALLTHROUGH;
 
         case LENLENS:
         {
@@ -258,7 +259,7 @@ doWrite(z_params& zs, Flush flush, error_code& ec)
             }
             have_ = 0;
             mode_ = CODELENS;
-            BEAST_FALLTHROUGH;
+            BHO_FALLTHROUGH;
         }
 
         case CODELENS:
@@ -347,12 +348,12 @@ doWrite(z_params& zs, Flush flush, error_code& ec)
             mode_ = LEN_;
             if(flush == Flush::trees)
                 return done();
-            BEAST_FALLTHROUGH;
+            BHO_FALLTHROUGH;
         }
 
         case LEN_:
             mode_ = LEN;
-            BEAST_FALLTHROUGH;
+            BHO_FALLTHROUGH;
 
         case LEN:
         {
@@ -405,7 +406,7 @@ doWrite(z_params& zs, Flush flush, error_code& ec)
                 return err(error::invalid_literal_length);
             extra_ = cp->op & 15;
             mode_ = LENEXT;
-            BEAST_FALLTHROUGH;
+            BHO_FALLTHROUGH;
         }
 
         case LENEXT:
@@ -420,7 +421,7 @@ doWrite(z_params& zs, Flush flush, error_code& ec)
             }
             was_ = length_;
             mode_ = DIST;
-            BEAST_FALLTHROUGH;
+            BHO_FALLTHROUGH;
 
         case DIST:
         {
@@ -449,7 +450,7 @@ doWrite(z_params& zs, Flush flush, error_code& ec)
             offset_ = cp->val;
             extra_ = cp->op & 15;
             mode_ = DISTEXT;
-            BEAST_FALLTHROUGH;
+            BHO_FALLTHROUGH;
         }
 
         case DISTEXT:
@@ -467,7 +468,7 @@ doWrite(z_params& zs, Flush flush, error_code& ec)
                 return err(error::invalid_distance);
 #endif
             mode_ = MATCH;
-            BEAST_FALLTHROUGH;
+            BHO_FALLTHROUGH;
 
         case MATCH:
         {
@@ -512,7 +513,7 @@ doWrite(z_params& zs, Flush flush, error_code& ec)
 
         case CHECK:
             mode_ = DONE;
-            BEAST_FALLTHROUGH;
+            BHO_FALLTHROUGH;
 
         case DONE:
             ec = error::end_of_stream;
@@ -523,7 +524,7 @@ doWrite(z_params& zs, Flush flush, error_code& ec)
 
         case SYNC:
         default:
-            BEAST_THROW_EXCEPTION(std::logic_error{
+            BHO_THROW_EXCEPTION(std::logic_error{
                 "stream error"});
         }
     }
@@ -747,7 +748,7 @@ inflate_table(
 
     auto const not_enough = []
     {
-        BEAST_THROW_EXCEPTION(std::logic_error{
+        BHO_THROW_EXCEPTION(std::logic_error{
             "insufficient output size when inflating tables"});
     };
 
@@ -888,7 +889,7 @@ get_fixed_tables() ->
                 inflate_table(build::lens,
                     lens, 288, &next, &lenbits, work, ec);
                 if(ec)
-                    BEAST_THROW_EXCEPTION(std::logic_error{ec.message()});
+                    BHO_THROW_EXCEPTION(std::logic_error{ec.message()});
             }
 
             // VFALCO These fixups are from ZLib
@@ -904,7 +905,7 @@ get_fixed_tables() ->
                 inflate_table(build::dists,
                     lens, 32, &next, &distbits, work, ec);
                 if(ec)
-                    BEAST_THROW_EXCEPTION(std::logic_error{ec.message()});
+                    BHO_THROW_EXCEPTION(std::logic_error{ec.message()});
             }
         }
     };
@@ -1110,5 +1111,6 @@ inflate_fast(ranges& r, error_code& ec)
 } // detail
 } // zlib
 } // beast
+} // bho
 
 #endif

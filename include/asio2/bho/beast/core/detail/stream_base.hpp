@@ -7,15 +7,17 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_CORE_DETAIL_STREAM_BASE_HPP
-#define BEAST_CORE_DETAIL_STREAM_BASE_HPP
+#ifndef BHO_BEAST_CORE_DETAIL_STREAM_BASE_HPP
+#define BHO_BEAST_CORE_DETAIL_STREAM_BASE_HPP
 
-#include <asio/steady_timer.hpp>
-#include <asio2/bho/beast/core/util.hpp>
+#include <asio2/3rd/asio.hpp>
+#include <asio2/bho/assert.hpp>
+#include <asio2/bho/core/exchange.hpp>
 #include <chrono>
 #include <cstdint>
 #include <utility>
 
+namespace bho {
 namespace beast {
 namespace detail {
 
@@ -72,7 +74,7 @@ struct stream_base
 
         explicit
         pending_guard(bool& b)
-            : b_(&b)
+        : b_(&b)
         {
             // If this assert goes off, it means you are attempting
             // to issue two of the same asynchronous I/O operation
@@ -81,7 +83,7 @@ struct stream_base
             // calls to async_read_some. Only one pending call of
             // each I/O type (read and write) is permitted.
             //
-            BEAST_ASSERT(! *b_);
+            BHO_ASSERT(! *b_);
             *b_ = true;
         }
 
@@ -95,8 +97,8 @@ struct stream_base
 
         void assign(bool& b)
         {
-            BEAST_ASSERT(!b_);
-            BEAST_ASSERT(clear_);
+            BHO_ASSERT(!b_);
+            BHO_ASSERT(clear_);
             b_ = &b;
 
             // If this assert goes off, it means you are attempting
@@ -106,14 +108,14 @@ struct stream_base
             // calls to async_read_some. Only one pending call of
             // each I/O type (read and write) is permitted.
             //
-            BEAST_ASSERT(! *b_);
+            BHO_ASSERT(! *b_);
             *b_ = true;
         }
 
         void
         reset()
         {
-			BEAST_ASSERT(clear_);
+            BHO_ASSERT(clear_);
             if (b_)
                 *b_ = false;
             clear_ = false;
@@ -131,5 +133,6 @@ struct stream_base
 
 } // detail
 } // beast
+} // bho
 
 #endif

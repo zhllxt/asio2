@@ -7,11 +7,12 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_WEBSOCKET_DETAIL_PMD_EXTENSION_IPP
-#define BEAST_WEBSOCKET_DETAIL_PMD_EXTENSION_IPP
+#ifndef BHO_BEAST_WEBSOCKET_DETAIL_PMD_EXTENSION_IPP
+#define BHO_BEAST_WEBSOCKET_DETAIL_PMD_EXTENSION_IPP
 
 #include <asio2/bho/beast/websocket/detail/pmd_extension.hpp>
 
+namespace bho {
 namespace beast {
 namespace websocket {
 namespace detail {
@@ -304,5 +305,6 @@ pmd_normalize(pmd_offer& offer)
 } // detail
 } // websocket
 } // beast
+} // bho
 
-#endif // BEAST_WEBSOCKET_DETAIL_PMD_EXTENSION_IPP
+#endif // BHO_BEAST_WEBSOCKET_DETAIL_PMD_EXTENSION_IPP

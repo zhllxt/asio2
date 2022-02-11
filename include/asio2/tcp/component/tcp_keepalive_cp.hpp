@@ -18,9 +18,9 @@
 #include <tuple>
 
 #include <asio2/3rd/asio.hpp>
-#include <asio2/base/error.hpp>
+#include <asio2/3rd/predef.h>
 
-#include <asio2/bho/predef.h>
+#include <asio2/base/error.hpp>
 
 #if BHO_OS_WINDOWS
 #	if __has_include(<Mstcpip.h>)

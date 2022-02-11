@@ -7,15 +7,15 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_HTTP_FIELDS_HPP
-#define BEAST_HTTP_FIELDS_HPP
+#ifndef BHO_BEAST_HTTP_FIELDS_HPP
+#define BHO_BEAST_HTTP_FIELDS_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/core/string.hpp>
 #include <asio2/bho/beast/core/detail/allocator.hpp>
 #include <asio2/bho/beast/http/field.hpp>
-#include <asio/buffer.hpp>
-#include <asio2/bho/beast/core/empty_value.hpp>
+#include <asio2/3rd/asio.hpp>
+#include <asio2/bho/core/empty_value.hpp>
 #include <optional>
 #include <algorithm>
 #include <cctype>
@@ -27,6 +27,7 @@
 #include <list>
 #include <map>
 
+namespace bho {
 namespace beast {
 namespace http {
 
@@ -49,8 +50,8 @@ namespace http {
 */
 template<class Allocator>
 class basic_fields
-#if ! BEAST_DOXYGEN
-    : private beast::empty_value<Allocator>
+#if ! BHO_BEAST_DOXYGEN
+    : private bho::empty_value<Allocator>
 #endif
 {
     // Fancy pointers are not supported
@@ -112,7 +113,7 @@ public:
 
         The case-comparison operation is defined only for low-ASCII characters.
     */
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
     using key_compare = __implementation_defined__;
 #else
     struct key_compare : beast::iless
@@ -172,7 +173,7 @@ public:
     };
 
     /// The algorithm used to serialize the header
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
     using writer = __implementation_defined__;
 #else
     class writer;
@@ -278,7 +279,7 @@ public:
 
 public:
     /// A constant iterator to the field sequence.
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
     using const_iterator = __implementation_defined__;
 #else
     using const_iterator = typename list_t::const_iterator;
@@ -471,7 +472,7 @@ public:
     */
     void
     insert(field name, string_view name_string,
-        string_view const& value);
+           string_view const& value);
 
     void
     insert(field, string_view, std::nullptr_t) = delete;
@@ -508,7 +509,7 @@ public:
     void
     set(string_view, std::nullptr_t) = delete;
 
-    /** Remove a field.
+        /** Remove a field.
 
         References and iterators to the erased elements are
         invalidated. Other references and iterators are not
@@ -787,6 +788,7 @@ using fields = basic_fields<std::allocator<char>>;
 
 } // http
 } // beast
+} // bho
 
 #include <asio2/bho/beast/http/impl/fields.hpp>
 

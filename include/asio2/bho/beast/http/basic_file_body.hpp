@@ -7,14 +7,14 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_HTTP_BASIC_FILE_BODY_HPP
-#define BEAST_HTTP_BASIC_FILE_BODY_HPP
+#ifndef BHO_BEAST_HTTP_BASIC_FILE_BODY_HPP
+#define BHO_BEAST_HTTP_BASIC_FILE_BODY_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/core/error.hpp>
 #include <asio2/bho/beast/core/file_base.hpp>
 #include <asio2/bho/beast/http/message.hpp>
-#include <asio2/bho/beast/core/util.hpp>
+#include <asio2/bho/assert.hpp>
 #include <optional>
 #include <algorithm>
 #include <cstdio>
@@ -22,6 +22,7 @@
 #include <utility>
 #include <memory>
 
+namespace bho {
 namespace beast {
 namespace http {
 
@@ -350,7 +351,7 @@ writer::
 writer(header<isRequest, Fields>& h, value_type& b)
     : body_(b)
 {
-    beast::ignore_unused(h);
+    bho::ignore_unused(h);
 }
 
 // Initializer
@@ -361,7 +362,7 @@ writer::
 init(error_code& ec)
 {
     // The file must already be open
-    BEAST_ASSERT(body_.file_->is_open());
+    BHO_ASSERT(body_.file_->is_open());
 
 	body_.file_->seek(0, ec);
 
@@ -420,8 +421,8 @@ get(error_code& ec) ->
     }
 
     // Make sure there is forward progress
-    BEAST_ASSERT(nread != 0);
-	BEAST_ASSERT(nread <= remain_);
+    BHO_ASSERT(nread != 0);
+    BHO_ASSERT(nread <= remain_);
 
     // Update the amount remaining based on what we got
     remain_ -= nread;
@@ -511,7 +512,7 @@ reader::
 reader(header<isRequest, Fields>& h, value_type& body)
     : body_(body)
 {
-    beast::ignore_unused(h);
+    bho::ignore_unused(h);
 }
 
 template<class File>
@@ -523,12 +524,12 @@ init(
     error_code& ec)
 {
     // The file must already be open for writing
-	BEAST_ASSERT(body_.file_->is_open());
+	BHO_ASSERT(body_.file_->is_open());
 
     // We don't do anything with this but a sophisticated
     // application might check available space on the device
     // to see if there is enough room to store the body.
-    beast::ignore_unused(content_length);
+    bho::ignore_unused(content_length);
 
     // The error_code specification requires that we
     // either set the error to some value, or set it
@@ -585,7 +586,7 @@ finish(error_code& ec)
 
 //]
 
-#if ! BEAST_DOXYGEN
+#if ! BHO_BEAST_DOXYGEN
 // operator<< is not supported for file_body
 template<bool isRequest, class File, class Fields>
 std::ostream&
@@ -595,5 +596,6 @@ operator<<(std::ostream&, message<
 
 } // http
 } // beast
+} // bho
 
 #endif

@@ -7,17 +7,18 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_CORE_IMPL_FLAT_STREAM_HPP
-#define BEAST_CORE_IMPL_FLAT_STREAM_HPP
+#ifndef BHO_BEAST_CORE_IMPL_FLAT_STREAM_HPP
+#define BHO_BEAST_CORE_IMPL_FLAT_STREAM_HPP
 
 #include <asio2/bho/beast/core/async_base.hpp>
 #include <asio2/bho/beast/core/buffers_prefix.hpp>
 #include <asio2/bho/beast/core/static_buffer.hpp>
 #include <asio2/bho/beast/core/stream_traits.hpp>
 #include <asio2/bho/beast/websocket/teardown.hpp>
-#include <asio/buffer.hpp>
+#include <asio2/3rd/asio.hpp>
 #include <memory>
 
+namespace bho {
 namespace beast {
 
 template<class NextLayer>
@@ -124,7 +125,7 @@ std::size_t
 flat_stream<NextLayer>::
 read_some(MutableBufferSequence const& buffers)
 {
-    static_assert(beast::is_sync_read_stream<next_layer_type>::value,
+    static_assert(bho::beast::is_sync_read_stream<next_layer_type>::value,
         "SyncReadStream type requirements not met");
     static_assert(net::is_mutable_buffer_sequence<
         MutableBufferSequence>::value,
@@ -132,7 +133,7 @@ read_some(MutableBufferSequence const& buffers)
     error_code ec;
     auto n = read_some(buffers, ec);
     if(ec)
-        BEAST_THROW_EXCEPTION(beast::system_error{ec});
+        BHO_THROW_EXCEPTION(beast::system_error{ec});
     return n;
 }
 
@@ -142,7 +143,7 @@ std::size_t
 flat_stream<NextLayer>::
 read_some(MutableBufferSequence const& buffers, error_code& ec)
 {
-    static_assert(beast::is_sync_read_stream<next_layer_type>::value,
+    static_assert(bho::beast::is_sync_read_stream<next_layer_type>::value,
         "SyncReadStream type requirements not met");
     static_assert(net::is_mutable_buffer_sequence<
         MutableBufferSequence>::value,
@@ -153,14 +154,14 @@ read_some(MutableBufferSequence const& buffers, error_code& ec)
 template<class NextLayer>
 template<
     class MutableBufferSequence,
-    BEAST_ASYNC_TPARAM2 ReadHandler>
-BEAST_ASYNC_RESULT2(ReadHandler)
+    BHO_BEAST_ASYNC_TPARAM2 ReadHandler>
+BHO_BEAST_ASYNC_RESULT2(ReadHandler)
 flat_stream<NextLayer>::
 async_read_some(
     MutableBufferSequence const& buffers,
     ReadHandler&& handler)
 {
-    static_assert(beast::is_async_read_stream<next_layer_type>::value,
+    static_assert(bho::beast::is_async_read_stream<next_layer_type>::value,
         "AsyncReadStream type requirements not met");
     static_assert(net::is_mutable_buffer_sequence<
         MutableBufferSequence >::value,
@@ -175,7 +176,7 @@ std::size_t
 flat_stream<NextLayer>::
 write_some(ConstBufferSequence const& buffers)
 {
-    static_assert(beast::is_sync_write_stream<next_layer_type>::value,
+    static_assert(bho::beast::is_sync_write_stream<next_layer_type>::value,
         "SyncWriteStream type requirements not met");
     static_assert(net::is_const_buffer_sequence<
         ConstBufferSequence>::value,
@@ -183,7 +184,7 @@ write_some(ConstBufferSequence const& buffers)
     error_code ec;
     auto n = write_some(buffers, ec);
     if(ec)
-        BEAST_THROW_EXCEPTION(beast::system_error{ec});
+        BHO_THROW_EXCEPTION(beast::system_error{ec});
     return n;
 }
 
@@ -208,7 +209,7 @@ std::size_t
 flat_stream<NextLayer>::
 write_some(ConstBufferSequence const& buffers, error_code& ec)
 {
-    static_assert(beast::is_sync_write_stream<next_layer_type>::value,
+    static_assert(bho::beast::is_sync_write_stream<next_layer_type>::value,
         "SyncWriteStream type requirements not met");
     static_assert(net::is_const_buffer_sequence<
         ConstBufferSequence>::value,
@@ -228,20 +229,20 @@ write_some(ConstBufferSequence const& buffers, error_code& ec)
     buffer_.clear();
     buffer_.shrink_to_fit();
     return stream_.write_some(
-        beast::buffers_prefix(result.size, buffers), ec);
+        bho::beast::buffers_prefix(result.size, buffers), ec);
 }
 
 template<class NextLayer>
 template<
     class ConstBufferSequence,
-    BEAST_ASYNC_TPARAM2 WriteHandler>
-BEAST_ASYNC_RESULT2(WriteHandler)
+    BHO_BEAST_ASYNC_TPARAM2 WriteHandler>
+BHO_BEAST_ASYNC_RESULT2(WriteHandler)
 flat_stream<NextLayer>::
 async_write_some(
     ConstBufferSequence const& buffers,
     WriteHandler&& handler)
 {
-    static_assert(beast::is_async_write_stream<next_layer_type>::value,
+    static_assert(bho::beast::is_async_write_stream<next_layer_type>::value,
         "AsyncWriteStream type requirements not met");
     static_assert(net::is_const_buffer_sequence<
         ConstBufferSequence>::value,
@@ -258,25 +259,26 @@ async_write_some(
 template<class NextLayer>
 void
 teardown(
-    beast::role_type role,
+    bho::beast::role_type role,
     flat_stream<NextLayer>& s,
     error_code& ec)
 {
-    using beast::websocket::teardown;
+    using bho::beast::websocket::teardown;
     teardown(role, s.next_layer(), ec);
 }
 
 template<class NextLayer, class TeardownHandler>
 void
 async_teardown(
-    beast::role_type role,
+    bho::beast::role_type role,
     flat_stream<NextLayer>& s,
     TeardownHandler&& handler)
 {
-    using beast::websocket::async_teardown;
+    using bho::beast::websocket::async_teardown;
     async_teardown(role, s.next_layer(), std::move(handler));
 }
 
 } // beast
+} // bho
 
 #endif

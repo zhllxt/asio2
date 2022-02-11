@@ -7,14 +7,15 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_CORE_DETAIL_BUFFER_HPP
-#define BEAST_CORE_DETAIL_BUFFER_HPP
+#ifndef BHO_BEAST_CORE_DETAIL_BUFFER_HPP
+#define BHO_BEAST_CORE_DETAIL_BUFFER_HPP
 
 #include <asio2/bho/beast/core/error.hpp>
-#include <asio/buffer.hpp>
+#include <asio2/3rd/asio.hpp>
 #include <optional>
 #include <stdexcept>
 
+namespace bho {
 namespace beast {
 namespace detail {
 
@@ -55,6 +56,7 @@ dynamic_buffer_prepare(
         std::optional<typename
         DynamicBuffer::mutable_buffers_type>
 {
+#ifndef BHO_NO_EXCEPTIONS
     try
     {
         std::optional<typename
@@ -68,9 +70,15 @@ dynamic_buffer_prepare(
         ec = ev;
     }
     return std::nullopt;
+
+#else
+    return dynamic_buffer_prepare_noexcept(
+        buffer, size, ec, ev);
+#endif
 }
 
 } // detail
 } // beast
+} // bho
 
 #endif

@@ -7,8 +7,8 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_WEBSOCKET_IMPL_PING_HPP
-#define BEAST_WEBSOCKET_IMPL_PING_HPP
+#ifndef BHO_BEAST_WEBSOCKET_IMPL_PING_HPP
+#define BHO_BEAST_WEBSOCKET_IMPL_PING_HPP
 
 #include <asio2/bho/beast/core/async_base.hpp>
 #include <asio2/bho/beast/core/bind_handler.hpp>
@@ -16,11 +16,11 @@
 #include <asio2/bho/beast/core/detail/bind_continuation.hpp>
 #include <asio2/bho/beast/websocket/detail/frame.hpp>
 #include <asio2/bho/beast/websocket/impl/stream_impl.hpp>
-#include <asio/coroutine.hpp>
-#include <asio/post.hpp>
-#include <asio2/bho/beast/core/util.hpp>
+#include <asio2/3rd/asio.hpp>
+#include <asio2/bho/throw_exception.hpp>
 #include <memory>
 
+namespace bho {
 namespace beast {
 namespace websocket {
 
@@ -34,7 +34,7 @@ template<class Handler>
 class stream<NextLayer, deflateSupported>::ping_op
     : public beast::stable_async_base<
         Handler, beast::executor_type<stream>>
-    , public asio::coroutine
+    , public net::coroutine
 {
     std::weak_ptr<impl_type> wp_;
     detail::frame_buffer& fb_;
@@ -67,7 +67,7 @@ public:
         std::size_t bytes_transferred = 0,
         bool cont = true)
     {
-		beast::ignore_unused(bytes_transferred);
+        bho::ignore_unused(bytes_transferred);
         auto sp = wp_.lock();
         if(! sp)
         {
@@ -97,7 +97,7 @@ public:
 
                     net::post(std::move(*this));
                 }
-                BEAST_ASSERT(impl.wr_block.is_locked(this));
+                BHO_ASSERT(impl.wr_block.is_locked(this));
             }
             if(impl.check_stop_now(ec))
                 goto upcall;
@@ -132,8 +132,8 @@ public:
 template<class NextLayer, bool deflateSupported>
 template<class Executor>
 class stream<NextLayer, deflateSupported>::idle_ping_op
-    : public asio::coroutine
-    , public beast::empty_value<Executor>
+    : public net::coroutine
+    , public bho::empty_value<Executor>
 {
     std::weak_ptr<impl_type> wp_;
     std::unique_ptr<detail::frame_buffer> fb_;
@@ -152,8 +152,8 @@ public:
     idle_ping_op(
         std::shared_ptr<impl_type> const& sp,
         Executor const& ex)
-        : beast::empty_value<Executor>(
-			beast::empty_init_t{}, ex)
+        : bho::empty_value<Executor>(
+            bho::empty_init_t{}, ex)
         , wp_(sp)
         , fb_(new detail::frame_buffer)
     {
@@ -179,7 +179,7 @@ public:
         error_code ec = {},
         std::size_t bytes_transferred = 0)
     {
-		beast::ignore_unused(bytes_transferred);
+        bho::ignore_unused(bytes_transferred);
         auto sp = wp_.lock();
         if(! sp)
             return;
@@ -207,7 +207,7 @@ public:
                     net::post(
                         this->get_executor(), std::move(*this));
                 }
-                BEAST_ASSERT(impl.wr_block.is_locked(this));
+                BHO_ASSERT(impl.wr_block.is_locked(this));
             }
             if(impl.check_stop_now(ec))
                 goto upcall;
@@ -226,7 +226,7 @@ public:
                 goto upcall;
 
         upcall:
-            BEAST_ASSERT(sp->idle_pinging);
+            BHO_ASSERT(sp->idle_pinging);
             sp->idle_pinging = false;
             impl.wr_block.unlock(this);
             impl.op_close.maybe_invoke()
@@ -277,7 +277,7 @@ ping(ping_data const& payload)
     error_code ec;
     ping(payload, ec);
     if(ec)
-        BEAST_THROW_EXCEPTION(system_error{ec});
+        BHO_THROW_EXCEPTION(system_error{ec});
 }
 
 template<class NextLayer, bool deflateSupported>
@@ -303,7 +303,7 @@ pong(ping_data const& payload)
     error_code ec;
     pong(payload, ec);
     if(ec)
-        BEAST_THROW_EXCEPTION(system_error{ec});
+        BHO_THROW_EXCEPTION(system_error{ec});
 }
 
 template<class NextLayer, bool deflateSupported>
@@ -322,8 +322,8 @@ pong(ping_data const& payload, error_code& ec)
 }
 
 template<class NextLayer, bool deflateSupported>
-template<BEAST_ASYNC_TPARAM1 WriteHandler>
-BEAST_ASYNC_RESULT1(WriteHandler)
+template<BHO_BEAST_ASYNC_TPARAM1 WriteHandler>
+BHO_BEAST_ASYNC_RESULT1(WriteHandler)
 stream<NextLayer, deflateSupported>::
 async_ping(ping_data const& payload, WriteHandler&& handler)
 {
@@ -340,8 +340,8 @@ async_ping(ping_data const& payload, WriteHandler&& handler)
 }
 
 template<class NextLayer, bool deflateSupported>
-template<BEAST_ASYNC_TPARAM1 WriteHandler>
-BEAST_ASYNC_RESULT1(WriteHandler)
+template<BHO_BEAST_ASYNC_TPARAM1 WriteHandler>
+BHO_BEAST_ASYNC_RESULT1(WriteHandler)
 stream<NextLayer, deflateSupported>::
 async_pong(ping_data const& payload, WriteHandler&& handler)
 {
@@ -359,5 +359,6 @@ async_pong(ping_data const& payload, WriteHandler&& handler)
 
 } // websocket
 } // beast
+} // bho
 
 #endif

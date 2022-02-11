@@ -7,17 +7,18 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_IMPL_FLAT_STATIC_BUFFER_IPP
-#define BEAST_IMPL_FLAT_STATIC_BUFFER_IPP
+#ifndef BHO_BEAST_IMPL_FLAT_STATIC_BUFFER_IPP
+#define BHO_BEAST_IMPL_FLAT_STATIC_BUFFER_IPP
 
 #include <asio2/bho/beast/core/flat_static_buffer.hpp>
-#include <asio2/bho/beast/core/util.hpp>
+#include <asio2/bho/throw_exception.hpp>
 #include <algorithm>
 #include <cstring>
 #include <iterator>
 #include <memory>
 #include <stdexcept>
 
+namespace bho {
 namespace beast {
 
 /*  Layout:
@@ -48,7 +49,7 @@ prepare(std::size_t n) ->
     }
     auto const len = size();
     if(n > capacity() - len)
-        BEAST_THROW_EXCEPTION(std::length_error{
+        BHO_THROW_EXCEPTION(std::length_error{
             "buffer overflow"});
     if(len > 0)
         std::memmove(begin_, in_, len);
@@ -83,5 +84,6 @@ reset(void* p, std::size_t n) noexcept
 }
 
 } // beast
+} // bho
 
 #endif

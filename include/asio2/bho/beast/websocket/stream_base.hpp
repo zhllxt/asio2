@@ -7,8 +7,8 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_WEBSOCKET_STREAM_BASE_HPP
-#define BEAST_WEBSOCKET_STREAM_BASE_HPP
+#ifndef BHO_BEAST_WEBSOCKET_STREAM_BASE_HPP
+#define BHO_BEAST_WEBSOCKET_STREAM_BASE_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/websocket/detail/decorator.hpp>
@@ -16,6 +16,7 @@
 #include <chrono>
 #include <type_traits>
 
+namespace bho {
 namespace beast {
 namespace websocket {
 
@@ -66,7 +67,7 @@ struct stream_base
             the function object is transferred by decay-copy.
         */
         template<class Decorator
-#ifndef BEAST_DOXYGEN
+#ifndef BHO_BEAST_DOXYGEN
             ,class = typename std::enable_if<
                 detail::is_decorator<
                     Decorator>::value>::type
@@ -172,5 +173,6 @@ protected:
 
 } // websocket
 } // beast
+} // bho
 
 #endif

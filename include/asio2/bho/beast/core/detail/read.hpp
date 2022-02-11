@@ -7,16 +7,17 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_DETAIL_READ_HPP
-#define BEAST_DETAIL_READ_HPP
+#ifndef BHO_BEAST_DETAIL_READ_HPP
+#define BHO_BEAST_DETAIL_READ_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/core/error.hpp>
 #include <asio2/bho/beast/core/stream_traits.hpp>
 #include <asio2/bho/beast/core/detail/is_invocable.hpp>
-#include <asio/async_result.hpp>
+#include <asio2/3rd/asio.hpp>
 #include <cstdlib>
 
+namespace bho {
 namespace beast {
 namespace detail {
 
@@ -70,7 +71,7 @@ template<
     class SyncReadStream,
     class DynamicBuffer,
     class CompletionCondition
-#if ! BEAST_DOXYGEN
+#if ! BHO_BEAST_DOXYGEN
     , class = typename std::enable_if<
         is_sync_read_stream<SyncReadStream>::value &&
         net::is_dynamic_buffer<DynamicBuffer>::value &&
@@ -131,7 +132,7 @@ template<
     class SyncReadStream,
     class DynamicBuffer,
     class CompletionCondition
-#if ! BEAST_DOXYGEN
+#if ! BHO_BEAST_DOXYGEN
     , class = typename std::enable_if<
         is_sync_read_stream<SyncReadStream>::value &&
         net::is_dynamic_buffer<DynamicBuffer>::value &&
@@ -218,8 +219,8 @@ template<
     class AsyncReadStream,
     class DynamicBuffer,
     class CompletionCondition,
-    BEAST_ASYNC_TPARAM2 ReadHandler
-#if ! BEAST_DOXYGEN
+    BHO_BEAST_ASYNC_TPARAM2 ReadHandler
+#if ! BHO_BEAST_DOXYGEN
     , class = typename std::enable_if<
         is_async_read_stream<AsyncReadStream>::value &&
         net::is_dynamic_buffer<DynamicBuffer>::value &&
@@ -228,7 +229,7 @@ template<
     >::type
 #endif
 >
-BEAST_ASYNC_RESULT2(ReadHandler)
+BHO_BEAST_ASYNC_RESULT2(ReadHandler)
 async_read(
     AsyncReadStream& stream,
     DynamicBuffer& buffer,
@@ -237,6 +238,7 @@ async_read(
 
 } // detail
 } // beast
+} // bho
 
 #include <asio2/bho/beast/core/detail/impl/read.hpp>
 

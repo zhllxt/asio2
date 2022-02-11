@@ -34,14 +34,16 @@
     (zlib format), rfc1951 (deflate format) and rfc1952 (gzip format).
 */
 
-#ifndef BEAST_ZLIB_DETAIL_DEFLATE_STREAM_HPP
-#define BEAST_ZLIB_DETAIL_DEFLATE_STREAM_HPP
+#ifndef BHO_BEAST_ZLIB_DETAIL_DEFLATE_STREAM_HPP
+#define BHO_BEAST_ZLIB_DETAIL_DEFLATE_STREAM_HPP
 
 #include <asio2/bho/beast/zlib/error.hpp>
 #include <asio2/bho/beast/zlib/zlib.hpp>
 #include <asio2/bho/beast/zlib/detail/ranges.hpp>
-#include <asio2/bho/beast/core/util.hpp>
+#include <asio2/bho/assert.hpp>
+#include <asio2/bho/config.hpp>
 #include <optional>
+#include <asio2/bho/throw_exception.hpp>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
@@ -49,6 +51,7 @@
 #include <stdexcept>
 #include <type_traits>
 
+namespace bho {
 namespace beast {
 namespace zlib {
 namespace detail {
@@ -84,7 +87,7 @@ protected:
     static std::uint16_t constexpr maxMatch = 258;
 
     // Can't change minMatch without also changing code, see original zlib
-    BEAST_STATIC_ASSERT(minMatch == 3);
+    BHO_STATIC_ASSERT(minMatch == 3);
 
     // end of block literal code
     static std::uint16_t constexpr END_BLOCK = 256;
@@ -602,63 +605,63 @@ protected:
     Unsigned
     bi_reverse(Unsigned code, unsigned len);
 
-    BEAST_DECL
+    BHO_BEAST_DECL
     static
     void
     gen_codes(ct_data *tree, int max_code, std::uint16_t *bl_count);
 
-    BEAST_DECL
+    BHO_BEAST_DECL
     static
     lut_type const&
     get_lut();
 
-    BEAST_DECL void doReset             (int level, int windowBits, int memLevel, Strategy strategy);
-    BEAST_DECL void doReset             ();
-    BEAST_DECL void doClear             ();
-    BEAST_DECL std::size_t doUpperBound (std::size_t sourceLen) const;
-    BEAST_DECL void doTune              (int good_length, int max_lazy, int nice_length, int max_chain);
-    BEAST_DECL void doParams            (z_params& zs, int level, Strategy strategy, error_code& ec);
-    BEAST_DECL void doWrite             (z_params& zs, std::optional<Flush> flush, error_code& ec);
-    BEAST_DECL void doDictionary        (Byte const* dict, uInt dictLength, error_code& ec);
-    BEAST_DECL void doPrime             (int bits, int value, error_code& ec);
-    BEAST_DECL void doPending           (unsigned* value, int* bits);
+    BHO_BEAST_DECL void doReset             (int level, int windowBits, int memLevel, Strategy strategy);
+    BHO_BEAST_DECL void doReset             ();
+    BHO_BEAST_DECL void doClear             ();
+    BHO_BEAST_DECL std::size_t doUpperBound (std::size_t sourceLen) const;
+    BHO_BEAST_DECL void doTune              (int good_length, int max_lazy, int nice_length, int max_chain);
+    BHO_BEAST_DECL void doParams            (z_params& zs, int level, Strategy strategy, error_code& ec);
+    BHO_BEAST_DECL void doWrite             (z_params& zs, std::optional<Flush> flush, error_code& ec);
+    BHO_BEAST_DECL void doDictionary        (Byte const* dict, uInt dictLength, error_code& ec);
+    BHO_BEAST_DECL void doPrime             (int bits, int value, error_code& ec);
+    BHO_BEAST_DECL void doPending           (unsigned* value, int* bits);
 
-    BEAST_DECL void init                ();
-    BEAST_DECL void lm_init             ();
-    BEAST_DECL void init_block          ();
-    BEAST_DECL void pqdownheap          (ct_data const* tree, int k);
-    BEAST_DECL void pqremove            (ct_data const* tree, int& top);
-    BEAST_DECL void gen_bitlen          (tree_desc *desc);
-    BEAST_DECL void build_tree          (tree_desc *desc);
-    BEAST_DECL void scan_tree           (ct_data *tree, int max_code);
-    BEAST_DECL void send_tree           (ct_data *tree, int max_code);
-    BEAST_DECL int  build_bl_tree       ();
-    BEAST_DECL void send_all_trees      (int lcodes, int dcodes, int blcodes);
-    BEAST_DECL void compress_block      (ct_data const* ltree, ct_data const* dtree);
-    BEAST_DECL int  detect_data_type    ();
-    BEAST_DECL void bi_windup           ();
-    BEAST_DECL void bi_flush            ();
-    BEAST_DECL void copy_block          (char *buf, unsigned len, int header);
+    BHO_BEAST_DECL void init                ();
+    BHO_BEAST_DECL void lm_init             ();
+    BHO_BEAST_DECL void init_block          ();
+    BHO_BEAST_DECL void pqdownheap          (ct_data const* tree, int k);
+    BHO_BEAST_DECL void pqremove            (ct_data const* tree, int& top);
+    BHO_BEAST_DECL void gen_bitlen          (tree_desc *desc);
+    BHO_BEAST_DECL void build_tree          (tree_desc *desc);
+    BHO_BEAST_DECL void scan_tree           (ct_data *tree, int max_code);
+    BHO_BEAST_DECL void send_tree           (ct_data *tree, int max_code);
+    BHO_BEAST_DECL int  build_bl_tree       ();
+    BHO_BEAST_DECL void send_all_trees      (int lcodes, int dcodes, int blcodes);
+    BHO_BEAST_DECL void compress_block      (ct_data const* ltree, ct_data const* dtree);
+    BHO_BEAST_DECL int  detect_data_type    ();
+    BHO_BEAST_DECL void bi_windup           ();
+    BHO_BEAST_DECL void bi_flush            ();
+    BHO_BEAST_DECL void copy_block          (char *buf, unsigned len, int header);
 
-    BEAST_DECL void tr_init             ();
-    BEAST_DECL void tr_align            ();
-    BEAST_DECL void tr_flush_bits       ();
-    BEAST_DECL void tr_stored_block     (char *bu, std::uint32_t stored_len, int last);
-    BEAST_DECL void tr_tally_dist       (std::uint16_t dist, std::uint8_t len, bool& flush);
-    BEAST_DECL void tr_tally_lit        (std::uint8_t c, bool& flush);
+    BHO_BEAST_DECL void tr_init             ();
+    BHO_BEAST_DECL void tr_align            ();
+    BHO_BEAST_DECL void tr_flush_bits       ();
+    BHO_BEAST_DECL void tr_stored_block     (char *bu, std::uint32_t stored_len, int last);
+    BHO_BEAST_DECL void tr_tally_dist       (std::uint16_t dist, std::uint8_t len, bool& flush);
+    BHO_BEAST_DECL void tr_tally_lit        (std::uint8_t c, bool& flush);
 
-    BEAST_DECL void tr_flush_block      (z_params& zs, char *buf, std::uint32_t stored_len, int last);
-    BEAST_DECL void fill_window         (z_params& zs);
-    BEAST_DECL void flush_pending       (z_params& zs);
-    BEAST_DECL void flush_block         (z_params& zs, bool last);
-    BEAST_DECL int  read_buf            (z_params& zs, Byte *buf, unsigned size);
-    BEAST_DECL uInt longest_match       (IPos cur_match);
+    BHO_BEAST_DECL void tr_flush_block      (z_params& zs, char *buf, std::uint32_t stored_len, int last);
+    BHO_BEAST_DECL void fill_window         (z_params& zs);
+    BHO_BEAST_DECL void flush_pending       (z_params& zs);
+    BHO_BEAST_DECL void flush_block         (z_params& zs, bool last);
+    BHO_BEAST_DECL int  read_buf            (z_params& zs, Byte *buf, unsigned size);
+    BHO_BEAST_DECL uInt longest_match       (IPos cur_match);
 
-    BEAST_DECL block_state f_stored     (z_params& zs, Flush flush);
-    BEAST_DECL block_state f_fast       (z_params& zs, Flush flush);
-    BEAST_DECL block_state f_slow       (z_params& zs, Flush flush);
-    BEAST_DECL block_state f_rle        (z_params& zs, Flush flush);
-    BEAST_DECL block_state f_huff       (z_params& zs, Flush flush);
+    BHO_BEAST_DECL block_state f_stored     (z_params& zs, Flush flush);
+    BHO_BEAST_DECL block_state f_fast       (z_params& zs, Flush flush);
+    BHO_BEAST_DECL block_state f_slow       (z_params& zs, Flush flush);
+    BHO_BEAST_DECL block_state f_rle        (z_params& zs, Flush flush);
+    BHO_BEAST_DECL block_state f_huff       (z_params& zs, Flush flush);
 
     block_state
     deflate_stored(z_params& zs, Flush flush)
@@ -699,8 +702,8 @@ Unsigned
 deflate_stream::
 bi_reverse(Unsigned code, unsigned len)
 {
-    BEAST_STATIC_ASSERT(std::is_unsigned<Unsigned>::value);
-	BEAST_ASSERT(len <= 8 * sizeof(unsigned));
+    BHO_STATIC_ASSERT(std::is_unsigned<Unsigned>::value);
+    BHO_ASSERT(len <= 8 * sizeof(unsigned));
     Unsigned res = 0;
     do
     {
@@ -715,6 +718,7 @@ bi_reverse(Unsigned code, unsigned len)
 } // detail
 } // zlib
 } // beast
+} // bho
 
 #ifdef BEAST_HEADER_ONLY
 #include <asio2/bho/beast/zlib/detail/deflate_stream.ipp>

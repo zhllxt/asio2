@@ -7,14 +7,15 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_WEBSOCKET_DETAIL_HYBI13_HPP
-#define BEAST_WEBSOCKET_DETAIL_HYBI13_HPP
+#ifndef BHO_BEAST_WEBSOCKET_DETAIL_HYBI13_HPP
+#define BHO_BEAST_WEBSOCKET_DETAIL_HYBI13_HPP
 
 #include <asio2/bho/beast/core/static_string.hpp>
 #include <asio2/bho/beast/core/string.hpp>
 #include <asio2/bho/beast/core/detail/base64.hpp>
 #include <cstdint>
 
+namespace bho {
 namespace beast {
 namespace websocket {
 namespace detail {
@@ -25,11 +26,11 @@ using sec_ws_key_type = static_string<
 using sec_ws_accept_type = static_string<
     beast::detail::base64::encoded_size(20)>;
 
-BEAST_DECL
+BHO_BEAST_DECL
 void
 make_sec_ws_key(sec_ws_key_type& key);
 
-BEAST_DECL
+BHO_BEAST_DECL
 void
 make_sec_ws_accept(
     sec_ws_accept_type& accept,
@@ -38,6 +39,7 @@ make_sec_ws_accept(
 } // detail
 } // websocket
 } // beast
+} // bho
 
 #if BEAST_HEADER_ONLY
 #include <asio2/bho/beast/websocket/detail/hybi13.ipp>

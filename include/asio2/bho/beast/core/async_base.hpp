@@ -7,24 +7,20 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_CORE_ASYNC_BASE_HPP
-#define BEAST_CORE_ASYNC_BASE_HPP
+#ifndef BHO_BEAST_CORE_ASYNC_BASE_HPP
+#define BHO_BEAST_CORE_ASYNC_BASE_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/core/bind_handler.hpp>
 #include <asio2/bho/beast/core/detail/allocator.hpp>
 #include <asio2/bho/beast/core/detail/async_base.hpp>
 #include <asio2/bho/beast/core/detail/work_guard.hpp>
-#include <asio/associated_allocator.hpp>
-#include <asio/associated_executor.hpp>
-#include <asio/bind_executor.hpp>
-#include <asio/handler_alloc_hook.hpp>
-#include <asio/handler_continuation_hook.hpp>
-#include <asio/handler_invoke_hook.hpp>
-#include <asio/post.hpp>
-#include <asio2/bho/beast/core/empty_value.hpp>
+#include <asio2/3rd/asio.hpp>
+#include <asio2/bho/core/exchange.hpp>
+#include <asio2/bho/core/empty_value.hpp>
 #include <utility>
 
+namespace bho {
 namespace beast {
 
 /** Base class to assist writing composed operations.
@@ -175,8 +171,8 @@ template<
     class Allocator = std::allocator<void>
 >
 class async_base
-#if ! BEAST_DOXYGEN
-    : private beast::empty_value<Allocator>
+#if ! BHO_BEAST_DOXYGEN
+    : private bho::empty_value<Allocator>
 #endif
 {
     static_assert(
@@ -194,7 +190,7 @@ public:
     be this type.
 */
     using executor_type =
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
         __implementation_defined__;
 #else
         typename
@@ -228,7 +224,7 @@ public:
         derived from this class. If `Allocator` is default-constructible,
         this parameter is optional and may be omitted.
     */
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
     template<class Handler_>
     async_base(
         Handler&& handler,
@@ -256,8 +252,8 @@ public:
         Handler_&& handler,
         Executor1 const& ex1,
         Allocator const& alloc)
-        : beast::empty_value<Allocator>(
-			beast::empty_init_t{}, alloc)
+        : bho::empty_value<Allocator>(
+            bho::empty_init_t{}, alloc)
         , h_(std::forward<Handler_>(handler))
         , wg1_(ex1)
     {
@@ -290,7 +286,7 @@ public:
     get_allocator() const noexcept
     {
         return net::get_associated_allocator(h_,
-			beast::empty_value<Allocator>::get());
+            bho::empty_value<Allocator>::get());
     }
 
     /** Returns the executor associated with this object.
@@ -390,7 +386,7 @@ public:
         h_(std::forward<Args>(args)...);
     }
 
-#if ! BEAST_DOXYGEN
+#if ! BHO_BEAST_DOXYGEN
     Handler*
     get_legacy_handler_pointer() noexcept
     {
@@ -482,7 +478,7 @@ public:
         using handler_type = typename net::async_completion<WriteHandler, void(error_code)>::completion_handler_type;
         using base_type = stable_async_base<handler_type, typename AsyncWriteStream::executor_type>;
 
-        struct op : base_type, asio::coroutine
+        struct op : base_type, net::coroutine
         {
             // This object must have a stable address
             struct temporary_data
@@ -518,7 +514,11 @@ public:
             }
 
             // Including this file provides the keywords for macro-based coroutines
-            #include <asio/yield.hpp>
+            #ifdef ASIO_STANDALONE
+            	#include <asio/yield.hpp>
+            #else
+            	#include <boost/asio/yield.hpp>
+            #endif
 
             void operator()(error_code ec = {}, std::size_t = 0)
             {
@@ -555,7 +555,11 @@ public:
             }
 
             // Including this file undefines the macros for the coroutines
-            #include <asio/unyield.hpp>
+            #ifdef ASIO_STANDALONE
+            	#include <asio/unyield.hpp>
+            #else
+            	#include <boost/asio/unyield.hpp>
+            #endif
         };
 
         net::async_completion<WriteHandler, void(error_code)> completion(handler);
@@ -616,7 +620,7 @@ public:
         derived from this class. If `Allocator` is default-constructible,
         this parameter is optional and may be omitted.
     */
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
     template<class Handler>
     stable_async_base(
         Handler&& handler,
@@ -717,6 +721,7 @@ allocate_stable(
     Args&&... args);
 
 } // beast
+} // bho
 
 #include <asio2/bho/beast/core/impl/async_base.hpp>
 

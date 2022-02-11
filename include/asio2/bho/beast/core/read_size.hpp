@@ -7,12 +7,13 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_READ_SIZE_HELPER_HPP
-#define BEAST_READ_SIZE_HELPER_HPP
+#ifndef BHO_BEAST_READ_SIZE_HELPER_HPP
+#define BHO_BEAST_READ_SIZE_HELPER_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
-#include <asio2/bho/beast/core/util.hpp>
+#include <asio2/bho/throw_exception.hpp>
 
+namespace bho {
 namespace beast {
 
 /** Returns a natural read size.
@@ -55,6 +56,7 @@ read_size_or_throw(DynamicBuffer& buffer,
     std::size_t max_size);
 
 } // beast
+} // bho
 
 #include <asio2/bho/beast/core/impl/read_size.hpp>
 

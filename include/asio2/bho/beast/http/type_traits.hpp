@@ -7,18 +7,19 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_HTTP_TYPE_TRAITS_HPP
-#define BEAST_HTTP_TYPE_TRAITS_HPP
+#ifndef BHO_BEAST_HTTP_TYPE_TRAITS_HPP
+#define BHO_BEAST_HTTP_TYPE_TRAITS_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/core/error.hpp>
 #include <asio2/bho/beast/core/string.hpp>
 #include <asio2/bho/beast/http/detail/type_traits.hpp>
-#include <asio/buffer.hpp>
+#include <asio2/3rd/asio.hpp>
 #include <optional>
 #include <type_traits>
 #include <utility>
 
+namespace bho {
 namespace beast {
 namespace http {
 
@@ -43,7 +44,7 @@ class message;
     @endcode
 */
 template<class T>
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
 using is_body = __see_below__;
 #else
 using is_body = detail::has_value_type<T>;
@@ -69,7 +70,7 @@ using is_body = detail::has_value_type<T>;
     }
     @endcode
 */
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
 template<class T>
 using is_body_writer = __see_below__;
 #else
@@ -108,7 +109,7 @@ struct is_body_writer<T, beast::detail::void_t<
 
     @tparam T The body type to test.
 */
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
 template<class T>
 using is_mutable_body_writer = __see_below__;
 #else
@@ -163,7 +164,7 @@ struct is_mutable_body_writer<T, beast::detail::void_t<
     }
     @endcode
 */
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
 template<class T>
 using is_body_reader = __see_below__;
 #else
@@ -218,7 +219,7 @@ struct is_body_reader<T, beast::detail::void_t<decltype(
     f(message<isRequest, Body, Fields> const&);
     @endcode
 */
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
 template<class T>
 using is_fields = __see_below__;
 #else
@@ -228,5 +229,6 @@ using is_fields = typename detail::is_fields_helper<T>::type;
 
 } // http
 } // beast
+} // bho
 
 #endif

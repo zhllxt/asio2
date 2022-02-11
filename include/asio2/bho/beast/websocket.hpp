@@ -7,8 +7,8 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_WEBSOCKET_HPP
-#define BEAST_WEBSOCKET_HPP
+#ifndef BHO_BEAST_WEBSOCKET_HPP
+#define BHO_BEAST_WEBSOCKET_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 

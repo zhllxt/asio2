@@ -7,13 +7,14 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_HTTP_VERB_HPP
-#define BEAST_HTTP_VERB_HPP
+#ifndef BHO_BEAST_HTTP_VERB_HPP
+#define BHO_BEAST_HTTP_VERB_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/core/string.hpp>
 #include <iosfwd>
 
+namespace bho {
 namespace beast {
 namespace http {
 
@@ -132,12 +133,12 @@ enum class verb
     If the string does not match a known request method,
     @ref verb::unknown is returned.
 */
-BEAST_DECL
+BHO_BEAST_DECL
 verb
 string_to_verb(string_view s);
 
 /// Returns the text representation of a request method verb.
-BEAST_DECL
+BHO_BEAST_DECL
 string_view
 to_string(verb v);
 
@@ -151,6 +152,7 @@ operator<<(std::ostream& os, verb v)
 
 } // http
 } // beast
+} // bho
 
 #ifdef BEAST_HEADER_ONLY
 #include <asio2/bho/beast/http/impl/verb.ipp>

@@ -7,8 +7,8 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_DETAIL_SHA1_HPP
-#define BEAST_DETAIL_SHA1_HPP
+#ifndef BHO_BEAST_DETAIL_SHA1_HPP
+#define BHO_BEAST_DETAIL_SHA1_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <cstdint>
@@ -24,6 +24,7 @@
         Vincent Falco (beast adaptation)
 */
 
+namespace bho {
 namespace beast {
 namespace detail {
 
@@ -46,18 +47,18 @@ struct sha1_context
     std::uint8_t buf[block_size];
 };
 
-BEAST_DECL
+BHO_BEAST_DECL
 void
 init(sha1_context& ctx) noexcept;
 
-BEAST_DECL
+BHO_BEAST_DECL
 void
 update(
     sha1_context& ctx,
     void const* message,
     std::size_t size) noexcept;
 
-BEAST_DECL
+BHO_BEAST_DECL
 void
 finish(
     sha1_context& ctx,
@@ -65,6 +66,7 @@ finish(
 
 } // detail
 } // beast
+} // bho
 
 #ifdef BEAST_HEADER_ONLY
 #include <asio2/bho/beast/core/detail/sha1.ipp>

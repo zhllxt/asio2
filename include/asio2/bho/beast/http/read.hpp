@@ -7,16 +7,17 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_HTTP_READ_HPP
-#define BEAST_HTTP_READ_HPP
+#ifndef BHO_BEAST_HTTP_READ_HPP
+#define BHO_BEAST_HTTP_READ_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/core/error.hpp>
 #include <asio2/bho/beast/core/stream_traits.hpp>
 #include <asio2/bho/beast/http/basic_parser.hpp>
 #include <asio2/bho/beast/http/message.hpp>
-#include <asio/async_result.hpp>
+#include <asio2/3rd/asio.hpp>
 
+namespace bho {
 namespace beast {
 namespace http {
 
@@ -204,10 +205,10 @@ template<
     class AsyncReadStream,
     class DynamicBuffer,
     bool isRequest,
-    BEAST_ASYNC_TPARAM2 ReadHandler =
+    BHO_BEAST_ASYNC_TPARAM2 ReadHandler =
         net::default_completion_token_t<
             executor_type<AsyncReadStream>>>
-BEAST_ASYNC_RESULT2(ReadHandler)
+BHO_BEAST_ASYNC_RESULT2(ReadHandler)
 async_read_some(
     AsyncReadStream& stream,
     DynamicBuffer& buffer,
@@ -401,10 +402,10 @@ template<
     class AsyncReadStream,
     class DynamicBuffer,
     bool isRequest,
-    BEAST_ASYNC_TPARAM2 ReadHandler =
+    BHO_BEAST_ASYNC_TPARAM2 ReadHandler =
         net::default_completion_token_t<
             executor_type<AsyncReadStream>>>
-BEAST_ASYNC_RESULT2(ReadHandler)
+BHO_BEAST_ASYNC_RESULT2(ReadHandler)
 async_read_header(
     AsyncReadStream& stream,
     DynamicBuffer& buffer,
@@ -598,10 +599,10 @@ template<
     class AsyncReadStream,
     class DynamicBuffer,
     bool isRequest,
-    BEAST_ASYNC_TPARAM2 ReadHandler =
+    BHO_BEAST_ASYNC_TPARAM2 ReadHandler =
         net::default_completion_token_t<
             executor_type<AsyncReadStream>>>
-BEAST_ASYNC_RESULT2(ReadHandler)
+BHO_BEAST_ASYNC_RESULT2(ReadHandler)
 async_read(
     AsyncReadStream& stream,
     DynamicBuffer& buffer,
@@ -804,10 +805,10 @@ template<
     class AsyncReadStream,
     class DynamicBuffer,
     bool isRequest, class Body, class Allocator,
-    BEAST_ASYNC_TPARAM2 ReadHandler =
+    BHO_BEAST_ASYNC_TPARAM2 ReadHandler =
         net::default_completion_token_t<
             executor_type<AsyncReadStream>>>
-BEAST_ASYNC_RESULT2(ReadHandler)
+BHO_BEAST_ASYNC_RESULT2(ReadHandler)
 async_read(
     AsyncReadStream& stream,
     DynamicBuffer& buffer,
@@ -818,6 +819,7 @@ async_read(
 
 } // http
 } // beast
+} // bho
 
 #include <asio2/bho/beast/http/impl/read.hpp>
 

@@ -7,12 +7,13 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_HTTP_DYNAMIC_BODY_HPP
-#define BEAST_HTTP_DYNAMIC_BODY_HPP
+#ifndef BHO_BEAST_HTTP_DYNAMIC_BODY_HPP
+#define BHO_BEAST_HTTP_DYNAMIC_BODY_HPP
 
 #include <asio2/bho/beast/core/multi_buffer.hpp>
 #include <asio2/bho/beast/http/basic_dynamic_body.hpp>
 
+namespace bho {
 namespace beast {
 namespace http {
 
@@ -24,5 +25,6 @@ using dynamic_body = basic_dynamic_body<multi_buffer>;
 
 } // http
 } // beast
+} // bho
 
 #endif

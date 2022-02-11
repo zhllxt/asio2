@@ -7,20 +7,21 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_HTTP_PARSER_HPP
-#define BEAST_HTTP_PARSER_HPP
+#ifndef BHO_BEAST_HTTP_PARSER_HPP
+#define BHO_BEAST_HTTP_PARSER_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/http/basic_parser.hpp>
 #include <asio2/bho/beast/http/message.hpp>
 #include <asio2/bho/beast/http/type_traits.hpp>
 #include <optional>
-#include <asio2/bho/beast/core/util.hpp>
+#include <asio2/bho/throw_exception.hpp>
 #include <functional>
 #include <memory>
 #include <type_traits>
 #include <utility>
 
+namespace bho {
 namespace beast {
 namespace http {
 
@@ -101,7 +102,7 @@ public:
         resolution only if the first argument is not a
         @ref parser.
     */
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
     template<class... Args>
     explicit
     parser(Args&&... args);
@@ -145,7 +146,7 @@ public:
         @note This function participates in overload resolution only
         if the other parser uses a different body type.
     */
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
     template<class OtherBody, class... Args>
 #else
     template<class OtherBody, class... Args,
@@ -236,10 +237,10 @@ public:
     {
         // Callback may not be constant, caller is responsible for
         // managing the lifetime of the callback. Copies are not made.
-        BEAST_STATIC_ASSERT(! std::is_const<Callback>::value);
+        BHO_STATIC_ASSERT(! std::is_const<Callback>::value);
 
         // Can't set the callback after receiving any chunk data!
-        BEAST_ASSERT(! rd_inited_);
+        BHO_ASSERT(! rd_inited_);
 
         cb_h_ = std::ref(cb);
     }
@@ -284,10 +285,10 @@ public:
     {
         // Callback may not be constant, caller is responsible for
         // managing the lifetime of the callback. Copies are not made.
-        BEAST_STATIC_ASSERT(! std::is_const<Callback>::value);
+        BHO_STATIC_ASSERT(! std::is_const<Callback>::value);
 
         // Can't set the callback after receiving any chunk data!
-		BEAST_ASSERT(! rd_inited_);
+        BHO_ASSERT(! rd_inited_);
 
         cb_b_ = std::ref(cb);
     }
@@ -341,7 +342,7 @@ private:
         // The easiest way to do that is to store the parser in
         // an optional object.
 
-		BEAST_ASSERT(! used_);
+        BHO_ASSERT(! used_);
         if(used_)
         {
             ec = error::stale_parser;
@@ -391,7 +392,7 @@ private:
         // The easiest way to do that is to store the parser in
         // an optional object.
 
-		BEAST_ASSERT(! used_);
+        BHO_ASSERT(! used_);
         if(used_)
         {
             ec = error::stale_parser;
@@ -497,6 +498,7 @@ using response_parser = parser<false, Body, Allocator>;
 
 } // http
 } // beast
+} // bho
 
 #include <asio2/bho/beast/http/impl/parser.hpp>
 

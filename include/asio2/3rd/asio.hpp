@@ -209,15 +209,67 @@
 	#ifndef ASIO_VERSION
 		#define ASIO_VERSION BOOST_ASIO_VERSION
 	#endif
+
+	#ifndef ASIO_CONST_BUFFER
+		#define ASIO_CONST_BUFFER BOOST_ASIO_CONST_BUFFER
+	#endif
+	#ifndef ASIO_MUTABLE_BUFFER
+		#define ASIO_MUTABLE_BUFFER BOOST_ASIO_MUTABLE_BUFFER
+	#endif
+	#ifndef ASIO_NOEXCEPT
+		#define ASIO_NOEXCEPT BOOST_ASIO_NOEXCEPT
+	#endif
+	#ifndef ASIO_CORO_REENTER
+		#define ASIO_CORO_REENTER BOOST_ASIO_CORO_REENTER
+	#endif
+	#ifndef ASIO_CORO_YIELD
+		#define ASIO_CORO_YIELD BOOST_ASIO_CORO_YIELD
+	#endif
+	#ifndef ASIO_CORO_FORK
+		#define ASIO_CORO_FORK BOOST_ASIO_CORO_FORK
+	#endif
+	#ifndef ASIO_INITFN_AUTO_RESULT_TYPE
+		#define ASIO_INITFN_AUTO_RESULT_TYPE BOOST_ASIO_INITFN_AUTO_RESULT_TYPE
+	#endif
+	#ifndef ASIO_COMPLETION_TOKEN_FOR
+		#define ASIO_COMPLETION_TOKEN_FOR BOOST_ASIO_COMPLETION_TOKEN_FOR
+	#endif
+	#ifndef ASIO_NO_TS_EXECUTORS
+		#ifdef BOOST_ASIO_NO_TS_EXECUTORS
+			#define ASIO_NO_TS_EXECUTORS BOOST_ASIO_NO_TS_EXECUTORS
+		#endif
+	#endif
+	#ifndef ASIO_HANDLER_LOCATION
+		#define ASIO_HANDLER_LOCATION BOOST_ASIO_HANDLER_LOCATION
+	#endif
+	#ifndef ASIO_ENABLE_BUFFER_DEBUGGING
+		#ifdef BOOST_ASIO_ENABLE_BUFFER_DEBUGGING
+			#define ASIO_ENABLE_BUFFER_DEBUGGING BOOST_ASIO_ENABLE_BUFFER_DEBUGGING
+		#endif
+	#endif
+	#ifndef ASIO_MOVE_ARG
+		#define ASIO_MOVE_ARG BOOST_ASIO_MOVE_ARG
+	#endif
+	#ifndef ASIO_MOVE_CAST
+		#define ASIO_MOVE_CAST BOOST_ASIO_MOVE_CAST
+	#endif
+	#ifndef ASIO_HANDLER_TYPE
+		#define ASIO_HANDLER_TYPE BOOST_ASIO_HANDLER_TYPE
+	#endif
 #endif // ASIO_STANDALONE
 
 #ifdef ASIO_STANDALONE
-	//namespace asio = ::asio;
+	namespace asio
+	{
+		using error_condition = std::error_condition;
+	}
 #else
 	namespace boost::asio
 	{
-		using error_code   = ::boost::system::error_code;
-		using system_error = ::boost::system::system_error;
+		using error_code      = ::boost::system::error_code;
+		using system_error    = ::boost::system::system_error;
+		using error_condition = ::boost::system::error_condition;
+		using error_category  = ::boost::system::error_category;
 	}
 	namespace asio = ::boost::asio;
 
@@ -227,18 +279,24 @@
 	// https://stackoverflow.com/questions/31629101/adding-definitions-to-namespace-alias?r=SearchResults
 	//namespace asio
 	//{
-	//	using error_code = ::boost::system::error_code;
+	//	using error_code   = ::boost::system::error_code;
 	//	using system_error = ::boost::system::system_error;
 	//}
 #endif // ASIO_STANDALONE
 
 namespace asio2
 {
-	using error_code   = ::asio::error_code;
-	using system_error = ::asio::system_error;
+	using error_code      = ::asio::error_code;
+	using system_error    = ::asio::system_error;
+	using error_condition = ::asio::error_condition;
+	using error_category  = ::asio::error_category;
 }
 
+#ifdef ASIO_STANDALONE
 namespace asio
+#else
+namespace boost::asio
+#endif
 {
 	/*
 	 * used for rdc mode, call("abc") or async_call("abc")

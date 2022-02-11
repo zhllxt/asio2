@@ -7,8 +7,8 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_DETAIL_STATIC_CONST_HPP
-#define BEAST_DETAIL_STATIC_CONST_HPP
+#ifndef BHO_BEAST_DETAIL_STATIC_CONST_HPP
+#define BHO_BEAST_DETAIL_STATIC_CONST_HPP
 
 /*  This is a derivative work, original copyright:
 
@@ -22,6 +22,7 @@
     Project home: https://github.com/ericniebler/range-v3
 */
 
+namespace bho {
 namespace beast {
 namespace detail {
 
@@ -34,14 +35,15 @@ struct static_const
 template<typename T>
 constexpr T static_const<T>::value;
 
-#define BEAST_INLINE_VARIABLE(name, type) \
+#define BHO_BEAST_INLINE_VARIABLE(name, type) \
     namespace \
     { \
         constexpr auto& name = \
-            ::beast::detail::static_const<type>::value; \
+            ::bho::beast::detail::static_const<type>::value; \
     }
 
 } // detail
 } // beast
+} // bho
 
 #endif

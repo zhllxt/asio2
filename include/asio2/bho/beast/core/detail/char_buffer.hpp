@@ -7,13 +7,15 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_CORE_DETAIL_CHAR_BUFFER_HPP
-#define BEAST_CORE_DETAIL_CHAR_BUFFER_HPP
+#ifndef BHO_BEAST_CORE_DETAIL_CHAR_BUFFER_HPP
+#define BHO_BEAST_CORE_DETAIL_CHAR_BUFFER_HPP
 
+#include <asio2/bho/config.hpp>
 #include <cstddef>
 #include <cstring>
 #include <cstdint>
 
+namespace bho {
 namespace beast {
 namespace detail {
 
@@ -71,5 +73,6 @@ private:
 
 } // detail
 } // beast
+} // bho
 
 #endif

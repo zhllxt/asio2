@@ -7,12 +7,13 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_IMPL_STATIC_STRING_HPP
-#define BEAST_IMPL_STATIC_STRING_HPP
+#ifndef BHO_BEAST_IMPL_STATIC_STRING_HPP
+#define BHO_BEAST_IMPL_STATIC_STRING_HPP
 
 #include <asio2/bho/beast/core/detail/static_string.hpp>
-#include <asio2/bho/beast/core/util.hpp>
+#include <asio2/bho/throw_exception.hpp>
 
+namespace bho {
 namespace beast {
 
 //
@@ -65,7 +66,7 @@ static_string(CharT const* s)
 {
     auto const count = Traits::length(s);
     if(count > max_size())
-        BEAST_THROW_EXCEPTION(std::length_error{
+        BHO_THROW_EXCEPTION(std::length_error{
             "count > max_size()"});
     n_ = count;
     Traits::copy(&s_[0], s, n_ + 1);
@@ -128,7 +129,7 @@ operator=(CharT const* s) ->
 {
     auto const count = Traits::length(s);
     if(count > max_size())
-        BEAST_THROW_EXCEPTION(std::length_error{
+        BHO_THROW_EXCEPTION(std::length_error{
             "count > max_size()"});
     n_ = count;
     Traits::copy(&s_[0], s, n_ + 1);
@@ -142,7 +143,7 @@ assign(size_type count, CharT ch) ->
     static_string&
 {
     if(count > max_size())
-        BEAST_THROW_EXCEPTION(std::length_error{
+        BHO_THROW_EXCEPTION(std::length_error{
             "count > max_size()"});
     n_ = count;
     Traits::assign(&s_[0], n_, ch);
@@ -158,7 +159,7 @@ assign(static_string const& str) ->
 {
     n_ = str.n_;
     auto const n = n_ + 1;
-    BEAST_ASSUME(n != 0);
+    BHO_BEAST_ASSUME(n != 0);
     Traits::copy(&s_[0], &str.s_[0], n);
     return *this;
 }
@@ -182,7 +183,7 @@ assign(CharT const* s, size_type count) ->
     static_string&
 {
     if(count > max_size())
-        BEAST_THROW_EXCEPTION(std::length_error{
+        BHO_THROW_EXCEPTION(std::length_error{
             "count > max_size()"});
     n_ = count;
     Traits::copy(&s_[0], s, n_);
@@ -199,7 +200,7 @@ assign(InputIt first, InputIt last) ->
 {
     std::size_t const n = std::distance(first, last);
     if(n > max_size())
-        BEAST_THROW_EXCEPTION(std::length_error{
+        BHO_THROW_EXCEPTION(std::length_error{
             "n > max_size()"});
     n_ = n;
     for(auto it = &s_[0]; first != last; ++it, ++first)
@@ -218,7 +219,7 @@ assign(T const& t, size_type pos, size_type count) ->
 {
     auto const sv = string_view_type(t).substr(pos, count);
     if(sv.size() > max_size())
-        BEAST_THROW_EXCEPTION(std::length_error{
+        BHO_THROW_EXCEPTION(std::length_error{
             "sv.size() > max_size()"});
     n_ = sv.size();
     Traits::copy(&s_[0], &sv[0], n_);
@@ -237,7 +238,7 @@ at(size_type pos) ->
     reference
 {
     if(pos >= size())
-        BEAST_THROW_EXCEPTION(std::out_of_range{
+        BHO_THROW_EXCEPTION(std::out_of_range{
             "pos >= size()"});
     return s_[pos];
 }
@@ -249,7 +250,7 @@ at(size_type pos) const ->
     const_reference
 {
     if(pos >= size())
-        BEAST_THROW_EXCEPTION(std::out_of_range{
+        BHO_THROW_EXCEPTION(std::out_of_range{
             "pos >= size()"});
     return s_[pos];
 }
@@ -264,7 +265,7 @@ static_string<N, CharT, Traits>::
 reserve(std::size_t n)
 {
     if(n > max_size())
-        BEAST_THROW_EXCEPTION(std::length_error{
+        BHO_THROW_EXCEPTION(std::length_error{
             "n > max_size()"});
 }
 
@@ -288,7 +289,7 @@ insert(size_type index, size_type count, CharT ch) ->
     static_string&
 {
     if(index > size())
-        BEAST_THROW_EXCEPTION(std::out_of_range{
+        BHO_THROW_EXCEPTION(std::out_of_range{
             "index > size()"});
     insert(begin() + index, count, ch);
     return *this;
@@ -301,10 +302,10 @@ insert(size_type index, CharT const* s, size_type count) ->
     static_string&
 {
     if(index > size())
-        BEAST_THROW_EXCEPTION(std::out_of_range{
+        BHO_THROW_EXCEPTION(std::out_of_range{
             "index > size()"});
     if(size() + count > max_size())
-        BEAST_THROW_EXCEPTION(std::length_error{
+        BHO_THROW_EXCEPTION(std::length_error{
             "size() + count > max_size()"});
     Traits::move(
         &s_[index + count], &s_[index], size() - index);
@@ -334,7 +335,7 @@ insert(const_iterator pos, size_type count, CharT ch) ->
     iterator
 {
     if(size() + count > max_size())
-        BEAST_THROW_EXCEPTION(std::length_error{
+        BHO_THROW_EXCEPTION(std::length_error{
             "size() + count() > max_size()"});
     auto const index = pos - &s_[0];
     Traits::move(
@@ -356,7 +357,7 @@ insert(const_iterator pos, InputIt first, InputIt last) ->
 {
     std::size_t const count = std::distance(first, last);
     if(size() + count > max_size())
-        BEAST_THROW_EXCEPTION(std::length_error{
+        BHO_THROW_EXCEPTION(std::length_error{
             "size() + count > max_size()"});
     std::size_t const index = pos - begin();
     Traits::move(
@@ -392,7 +393,7 @@ erase(size_type index, size_type count) ->
     static_string&
 {
     if(index > size())
-        BEAST_THROW_EXCEPTION(std::out_of_range{
+        BHO_THROW_EXCEPTION(std::out_of_range{
             "index > size()"});
     auto const n = (std::min)(count, size() - index);
     Traits::move(
@@ -428,7 +429,7 @@ static_string<N, CharT, Traits>::
 push_back(CharT ch)
 {
     if(size() >= max_size())
-        BEAST_THROW_EXCEPTION(std::length_error{
+        BHO_THROW_EXCEPTION(std::length_error{
             "size() >= max_size()"});
     Traits::assign(s_[n_++], ch);
     term();
@@ -444,7 +445,7 @@ append(static_string<M, CharT, Traits> const& str,
 {
     // Valid range is [0, size)
     if(pos >= str.size())
-        BEAST_THROW_EXCEPTION(std::out_of_range{
+        BHO_THROW_EXCEPTION(std::out_of_range{
             "pos > str.size()"});
     string_view_type const ss{&str.s_[pos],
         (std::min)(count, str.size() - pos)};
@@ -459,7 +460,7 @@ substr(size_type pos, size_type count) const ->
     string_view_type
 {
     if(pos > size())
-        BEAST_THROW_EXCEPTION(std::out_of_range{
+        BHO_THROW_EXCEPTION(std::out_of_range{
             "pos > size()"});
     return{&s_[pos], (std::min)(count, size() - pos)};
 }
@@ -481,7 +482,7 @@ static_string<N, CharT, Traits>::
 resize(std::size_t n)
 {
     if(n > max_size())
-        BEAST_THROW_EXCEPTION(std::length_error{
+        BHO_THROW_EXCEPTION(std::length_error{
             "n > max_size()"});
     if(n > n_)
         Traits::assign(&s_[n_], n - n_, CharT{});
@@ -495,7 +496,7 @@ static_string<N, CharT, Traits>::
 resize(std::size_t n, CharT c)
 {
     if(n > max_size())
-        BEAST_THROW_EXCEPTION(std::length_error{
+        BHO_THROW_EXCEPTION(std::length_error{
             "n > max_size()"});
     if(n > n_)
         Traits::assign(&s_[n_], n - n_, c);
@@ -522,10 +523,10 @@ static_string<N, CharT, Traits>::
 swap(static_string<M, CharT, Traits>& str)
 {
     if(size() > str.max_size())
-        BEAST_THROW_EXCEPTION(std::length_error{
+        BHO_THROW_EXCEPTION(std::length_error{
             "size() > str.max_size()"});
     if(str.size() > max_size())
-        BEAST_THROW_EXCEPTION(std::length_error{
+        BHO_THROW_EXCEPTION(std::length_error{
             "str.size() > max_size()"});
     static_string tmp(str);
     str.n_ = n_;
@@ -553,7 +554,7 @@ static_string<N, CharT, Traits>::
 assign_char(CharT, std::false_type) ->
     static_string&
 {
-    BEAST_THROW_EXCEPTION(std::length_error{
+    BHO_THROW_EXCEPTION(std::length_error{
         "max_size() == 0"});
 }
 
@@ -563,7 +564,7 @@ to_static_string(Integer x)
 {
     using CharT = char;
     using Traits = std::char_traits<CharT>;
-	BEAST_STATIC_ASSERT(std::is_integral<Integer>::value);
+    BHO_STATIC_ASSERT(std::is_integral<Integer>::value);
     char buf[detail::max_digits(sizeof(Integer))];
     auto last = buf + sizeof(buf);
     auto it = detail::raw_to_string<
@@ -577,5 +578,6 @@ to_static_string(Integer x)
 }
 
 } // beast
+} // bho
 
 #endif

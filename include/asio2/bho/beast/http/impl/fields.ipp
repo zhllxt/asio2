@@ -7,12 +7,12 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_HTTP_IMPL_FIELDS_IPP
-#define BEAST_HTTP_IMPL_FIELDS_IPP
+#ifndef BHO_BEAST_HTTP_IMPL_FIELDS_IPP
+#define BHO_BEAST_HTTP_IMPL_FIELDS_IPP
 
 #include <asio2/bho/beast/http/fields.hpp>
-#include <asio2/bho/beast/core/util.hpp>
 
+namespace bho {
 namespace beast {
 namespace http {
 namespace detail {
@@ -20,7 +20,7 @@ namespace detail {
 // `basic_fields` assumes that `std::size_t` is larger than `uint16_t`, so we
 // verify it explicitly here, so that users that use split compilation don't
 // need to pay the (fairly small) price for this sanity check
-BEAST_STATIC_ASSERT((std::numeric_limits<std::size_t>::max)() >=
+BHO_STATIC_ASSERT((std::numeric_limits<std::size_t>::max)() >=
     (std::numeric_limits<std::uint32_t>::max)());
 
 // Filter a token list
@@ -133,5 +133,6 @@ keep_alive_impl(
 } // detail
 } // http
 } // beast
+} // bho
 
-#endif // BEAST_HTTP_IMPL_FIELDS_IPP
+#endif // BHO_BEAST_HTTP_IMPL_FIELDS_IPP

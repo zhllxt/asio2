@@ -7,17 +7,18 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_WEBSOCKET_DETAIL_HYBI13_IPP
-#define BEAST_WEBSOCKET_DETAIL_HYBI13_IPP
+#ifndef BHO_BEAST_WEBSOCKET_DETAIL_HYBI13_IPP
+#define BHO_BEAST_WEBSOCKET_DETAIL_HYBI13_IPP
 
 #include <asio2/bho/beast/websocket/detail/hybi13.hpp>
 #include <asio2/bho/beast/core/detail/sha1.hpp>
 #include <asio2/bho/beast/websocket/detail/prng.hpp>
 
-#include <asio2/bho/beast/core/util.hpp>
+#include <asio2/bho/assert.hpp>
 #include <cstdint>
 #include <string>
 
+namespace bho {
 namespace beast {
 namespace websocket {
 namespace detail {
@@ -39,7 +40,7 @@ make_sec_ws_accept(
     sec_ws_accept_type& accept,
     string_view key)
 {
-    BEAST_ASSERT(key.size() <= sec_ws_key_type::max_size_n);
+    BHO_ASSERT(key.size() <= sec_ws_key_type::max_size_n);
     using namespace beast::detail::string_literals;
     auto const guid = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"_sv;
     beast::detail::sha1_context ctx;
@@ -56,5 +57,6 @@ make_sec_ws_accept(
 } // detail
 } // websocket
 } // beast
+} // bho
 
-#endif // BEAST_WEBSOCKET_DETAIL_HYBI13_IPP
+#endif // BHO_BEAST_WEBSOCKET_DETAIL_HYBI13_IPP

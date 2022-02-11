@@ -7,13 +7,15 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_HTTP_IMPL_MESSAGE_HPP
-#define BEAST_HTTP_IMPL_MESSAGE_HPP
+#ifndef BHO_BEAST_HTTP_IMPL_MESSAGE_HPP
+#define BHO_BEAST_HTTP_IMPL_MESSAGE_HPP
 
 #include <asio2/bho/beast/core/error.hpp>
-#include <asio2/bho/beast/core/util.hpp>
+#include <asio2/bho/assert.hpp>
+#include <asio2/bho/throw_exception.hpp>
 #include <stdexcept>
 
+namespace bho {
 namespace beast {
 namespace http {
 
@@ -40,7 +42,7 @@ header<true, Fields>::
 method(verb v)
 {
     if(v == verb::unknown)
-        BEAST_THROW_EXCEPTION(
+        BHO_THROW_EXCEPTION(
             std::invalid_argument{"unknown method"});
     method_ = v;
     this->set_method_impl({});
@@ -132,7 +134,7 @@ header<false, Fields>::
 result(unsigned v)
 {
     if(v > 999)
-		BEAST_THROW_EXCEPTION(
+        BHO_THROW_EXCEPTION(
             std::invalid_argument{
                 "invalid status-code"});
     result_ = static_cast<status>(v);
@@ -186,8 +188,8 @@ template<class... BodyArgs>
 message<isRequest, Body, Fields>::
 message(header_type&& h, BodyArgs&&... body_args)
     : header_type(std::move(h))
-    , beast::empty_value<
-        typename Body::value_type>(beast::empty_init_t(),
+    , bho::empty_value<
+        typename Body::value_type>(bho::empty_init_t(),
             std::forward<BodyArgs>(body_args)...)
 {
 }
@@ -197,8 +199,8 @@ template<class... BodyArgs>
 message<isRequest, Body, Fields>::
 message(header_type const& h, BodyArgs&&... body_args)
     : header_type(h)
-    , beast::empty_value<
-        typename Body::value_type>(beast::empty_init_t(),
+    , bho::empty_value<
+        typename Body::value_type>(bho::empty_init_t(),
             std::forward<BodyArgs>(body_args)...)
 {
 }
@@ -217,8 +219,8 @@ message<isRequest, Body, Fields>::
 message(verb method, string_view target,
         Version version, BodyArg&& body_arg)
     : header_type(method, target, version)
-    , beast::empty_value<
-        typename Body::value_type>(beast::empty_init_t(),
+    , bho::empty_value<
+        typename Body::value_type>(bho::empty_init_t(),
             std::forward<BodyArg>(body_arg))
 {
 }
@@ -232,8 +234,8 @@ message(
     FieldsArg&& fields_arg)
     : header_type(method, target, version,
         std::forward<FieldsArg>(fields_arg))
-    , beast::empty_value<
-        typename Body::value_type>(beast::empty_init_t(),
+    , bho::empty_value<
+        typename Body::value_type>(bho::empty_init_t(),
             std::forward<BodyArg>(body_arg))
 {
 }
@@ -252,8 +254,8 @@ message<isRequest, Body, Fields>::
 message(status result, Version version,
     BodyArg&& body_arg)
     : header_type(result, version)
-    , beast::empty_value<
-        typename Body::value_type>(beast::empty_init_t(),
+    , bho::empty_value<
+        typename Body::value_type>(bho::empty_init_t(),
             std::forward<BodyArg>(body_arg))
 {
 }
@@ -265,8 +267,8 @@ message(status result, Version version,
     BodyArg&& body_arg, FieldsArg&& fields_arg)
     : header_type(result, version,
         std::forward<FieldsArg>(fields_arg))
-    , beast::empty_value<
-        typename Body::value_type>(beast::empty_init_t(),
+    , bho::empty_value<
+        typename Body::value_type>(bho::empty_init_t(),
             std::forward<BodyArg>(body_arg))
 {
 }
@@ -355,7 +357,7 @@ prepare_payload(std::true_type)
 {
     auto const n = payload_size();
     if(this->method() == verb::trace && (! n || *n > 0))
-		BEAST_THROW_EXCEPTION(std::invalid_argument{
+        BHO_THROW_EXCEPTION(std::invalid_argument{
             "invalid request body"});
     if(n)
     {
@@ -393,7 +395,7 @@ prepare_payload(std::false_type)
         this->result() == status::not_modified)))
     {
         // The response body MUST be empty for this case
-		BEAST_THROW_EXCEPTION(std::invalid_argument{
+        BHO_THROW_EXCEPTION(std::invalid_argument{
             "invalid response body"});
     }
     if(n)
@@ -421,5 +423,6 @@ swap(
 
 } // http
 } // beast
+} // bho
 
 #endif

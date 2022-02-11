@@ -45,7 +45,7 @@ namespace asio2::socks5
 	using error_category = asio::error_category;
 
 	/// The type of error condition used by the library
-	using error_condition = std::error_condition;
+	using error_condition = asio::error_condition;
 
 	enum class error
 	{

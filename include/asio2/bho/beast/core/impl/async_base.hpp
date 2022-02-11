@@ -7,11 +7,12 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_CORE_IMPL_ASYNC_BASE_HPP
-#define BEAST_CORE_IMPL_ASYNC_BASE_HPP
+#ifndef BHO_BEAST_CORE_IMPL_ASYNC_BASE_HPP
+#define BHO_BEAST_CORE_IMPL_ASYNC_BASE_HPP
 
-#include <asio2/bho/beast/core/empty_value.hpp>
+#include <asio2/bho/core/empty_value.hpp>
 
+namespace bho {
 namespace beast {
 
 namespace detail {
@@ -19,7 +20,7 @@ namespace detail {
 template<class State, class Allocator>
 struct allocate_stable_state final
     : stable_base
-    , beast::empty_value<Allocator>
+    , bho::empty_value<Allocator>
 {
     State value;
 
@@ -28,8 +29,8 @@ struct allocate_stable_state final
     allocate_stable_state(
         Allocator const& alloc,
         Args&&... args)
-        : beast::empty_value<Allocator>(
-			beast::empty_init_t{}, alloc)
+        : bho::empty_value<Allocator>(
+            bho::empty_init_t{}, alloc)
         , value{std::forward<Args>(args)...}
     {
     }
@@ -54,12 +55,12 @@ template<
     class Executor1,
     class Allocator,
     class Function>
-asio::asio_handler_invoke_is_deprecated
+net::asio_handler_invoke_is_deprecated
 asio_handler_invoke(
     Function&& f,
     async_base<Handler, Executor1, Allocator>* p)
 {
-    using asio::asio_handler_invoke;
+    using net::asio_handler_invoke;
     return asio_handler_invoke(f,
         p->get_legacy_handler_pointer());
 }
@@ -68,12 +69,12 @@ template<
     class Handler,
     class Executor1,
     class Allocator>
-asio::asio_handler_allocate_is_deprecated
+net::asio_handler_allocate_is_deprecated
 asio_handler_allocate(
     std::size_t size,
     async_base<Handler, Executor1, Allocator>* p)
 {
-    using asio::asio_handler_allocate;
+    using net::asio_handler_allocate;
     return asio_handler_allocate(size,
         p->get_legacy_handler_pointer());
 }
@@ -82,12 +83,12 @@ template<
     class Handler,
     class Executor1,
     class Allocator>
-asio::asio_handler_deallocate_is_deprecated
+net::asio_handler_deallocate_is_deprecated
 asio_handler_deallocate(
     void* mem, std::size_t size,
     async_base<Handler, Executor1, Allocator>* p)
 {
-    using asio::asio_handler_deallocate;
+    using net::asio_handler_deallocate;
     return asio_handler_deallocate(mem, size,
         p->get_legacy_handler_pointer());
 }
@@ -100,7 +101,7 @@ bool
 asio_handler_is_continuation(
     async_base<Handler, Executor1, Allocator>* p)
 {
-    using asio::asio_handler_is_continuation;
+    using net::asio_handler_is_continuation;
     return asio_handler_is_continuation(
         p->get_legacy_handler_pointer());
 }
@@ -149,5 +150,6 @@ allocate_stable(
 }
 
 } // beast
+} // bho
 
 #endif

@@ -436,7 +436,7 @@ namespace asio2::mqtt
 	using error_category  = asio::error_category;
 
 	/// The type of error condition used by the library
-	using error_condition = std::error_condition;
+	using error_condition = asio::error_condition;
 
 	class mqtt_error_category : public error_category
 	{

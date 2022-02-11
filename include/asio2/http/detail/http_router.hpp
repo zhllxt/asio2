@@ -53,7 +53,7 @@ namespace asio2::detail
 }
 
 #ifdef BEAST_HEADER_ONLY
-namespace beast::websocket
+namespace bho::beast::websocket
 #else
 namespace boost::beast::websocket
 #endif
@@ -100,7 +100,7 @@ namespace boost::beast::websocket
 		}
 
 	protected:
-		inline void operator()(std::shared_ptr<caller_t>& caller, http::request& req, http::response&)
+		inline void operator()(std::shared_ptr<caller_t>& caller, http::web_request& req, http::web_response&)
 		{
 			ASIO2_ASSERT(caller->is_websocket());
 
@@ -169,7 +169,7 @@ namespace asio2::detail
 
 	public:
 		using self = http_router_t<caller_t>;
-		using optype = std::function<void(std::shared_ptr<caller_t>&, http::request&, http::response&)>;
+		using optype = std::function<void(std::shared_ptr<caller_t>&, http::web_request&, http::web_response&)>;
 
 		/**
 		 * @constructor
@@ -177,7 +177,7 @@ namespace asio2::detail
 		http_router_t()
 		{
 			this->not_found_router_ = std::make_shared<optype>(
-				[](std::shared_ptr<caller_t>&, http::request& req, http::response& rep) mutable
+				[](std::shared_ptr<caller_t>&, http::web_request& req, http::web_response& rep) mutable
 			{
 				std::string desc;
 				desc.reserve(64);
@@ -370,7 +370,7 @@ namespace asio2::detail
 
 		template<class F, class Tup>
 		inline void _proxy(F& f, Tup& aops, 
-			std::shared_ptr<caller_t>& caller, http::request& req, http::response& rep)
+			std::shared_ptr<caller_t>& caller, http::web_request& req, http::web_response& rep)
 		{
 			using fun_traits_type = function_traits<F>;
 			using arg0_type = typename std::remove_cv_t<std::remove_reference_t<
@@ -393,7 +393,7 @@ namespace asio2::detail
 
 		template<class F, class C, class Tup>
 		inline void _proxy(F& f, C* c, Tup& aops, 
-			std::shared_ptr<caller_t>& caller, http::request& req, http::response& rep)
+			std::shared_ptr<caller_t>& caller, http::web_request& req, http::web_response& rep)
 		{
 			using fun_traits_type = function_traits<F>;
 			using arg0_type = typename std::remove_cv_t<std::remove_reference_t<
@@ -416,7 +416,7 @@ namespace asio2::detail
 
 		template<class Tup>
 		inline void _proxy(websocket::listener<caller_t>& listener, Tup& aops,
-			std::shared_ptr<caller_t>& caller, http::request& req, http::response& rep)
+			std::shared_ptr<caller_t>& caller, http::web_request& req, http::web_response& rep)
 		{
 			if (!_call_aop_before(aops, caller, req, rep))
 				return;
@@ -450,11 +450,12 @@ namespace asio2::detail
 
 		template<class F>
 		inline void _not_found_proxy(F& f, std::shared_ptr<caller_t>& caller,
-			http::request& req, http::response& rep)
+			http::web_request& req, http::web_response& rep)
 		{
 			asio2::detail::ignore_unused(caller);
 
-			if constexpr (is_template_callable_v<F, std::shared_ptr<caller_t>&, http::request&, http::response&>)
+			if constexpr (is_template_callable_v<F, std::shared_ptr<caller_t>&,
+				http::web_request&, http::web_response&>)
 			{
 				f(caller, req, rep);
 			}
@@ -466,12 +467,12 @@ namespace asio2::detail
 
 		template<class F, class C>
 		inline void _not_found_proxy(F& f, C* c, std::shared_ptr<caller_t>& caller,
-			http::request& req, http::response& rep)
+			http::web_request& req, http::web_response& rep)
 		{
 			asio2::detail::ignore_unused(caller);
 
 			if constexpr (is_template_callable_v<F, std::shared_ptr<caller_t>&,
-				http::request&, http::response&>)
+				http::web_request&, http::web_response&>)
 			{
 				if (c) (c->*f)(caller, req, rep);
 			}
@@ -489,7 +490,7 @@ namespace asio2::detail
 
 		template<class Tup>
 		inline bool _call_aop_before(Tup& aops, std::shared_ptr<caller_t>& caller,
-			http::request& req, http::response& rep)
+			http::web_request& req, http::web_response& rep)
 		{
 			asio2::detail::ignore_unused(aops, caller, req, rep);
 
@@ -511,12 +512,12 @@ namespace asio2::detail
 					return;
 
 				if constexpr (has_member_before<decltype(aop), bool,
-					std::shared_ptr<caller_t>&, http::request&, http::response&>::value)
+					std::shared_ptr<caller_t>&, http::web_request&, http::web_response&>::value)
 				{
 					continued = aop.before(caller, req, rep);
 				}
 				else if constexpr (has_member_before<decltype(aop), bool,
-					http::request&, http::response&>::value)
+					http::web_request&, http::web_response&>::value)
 				{
 					continued = aop.before(req, rep);
 				}
@@ -531,7 +532,7 @@ namespace asio2::detail
 
 		template<class Tup>
 		inline bool _call_aop_after(Tup& aops, std::shared_ptr<caller_t>& caller,
-			http::request& req, http::response& rep)
+			http::web_request& req, http::web_response& rep)
 		{
 			if constexpr (!std::tuple_size_v<Tup>)
 			{
@@ -551,12 +552,12 @@ namespace asio2::detail
 					return;
 
 				if constexpr (has_member_after<decltype(aop), bool,
-					std::shared_ptr<caller_t>&, http::request&, http::response&>::value)
+					std::shared_ptr<caller_t>&, http::web_request&, http::web_response&>::value)
 				{
 					continued = aop.after(caller, req, rep);
 				}
 				else if constexpr (has_member_after<decltype(aop), bool,
-					http::request&, http::response&>::value)
+					http::web_request&, http::web_response&>::value)
 				{
 					continued = aop.after(req, rep);
 				}
@@ -585,7 +586,7 @@ namespace asio2::detail
 		}
 
 		template<bool IsHttp>
-		inline std::shared_ptr<optype>& _find(http::request& req, http::response& rep)
+		inline std::shared_ptr<optype>& _find(http::web_request& req, http::web_response& rep)
 		{
 			asio2::detail::ignore_unused(rep);
 
@@ -626,7 +627,7 @@ namespace asio2::detail
 			return this->dummy_router_;
 		}
 
-		inline bool _route(std::shared_ptr<caller_t>& caller, http::request& req, http::response& rep)
+		inline bool _route(std::shared_ptr<caller_t>& caller, http::web_request& req, http::web_response& rep)
 		{
 			if (caller->websocket_router_)
 			{

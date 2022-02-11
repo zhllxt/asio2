@@ -7,8 +7,8 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_IMPL_BUFFERS_SUFFIX_HPP
-#define BEAST_IMPL_BUFFERS_SUFFIX_HPP
+#ifndef BHO_BEAST_IMPL_BUFFERS_SUFFIX_HPP
+#define BHO_BEAST_IMPL_BUFFERS_SUFFIX_HPP
 
 #include <asio2/bho/beast/core/buffer_traits.hpp>
 #include <algorithm>
@@ -17,6 +17,7 @@
 #include <type_traits>
 #include <utility>
 
+namespace bho {
 namespace beast {
 
 template<class Buffers>
@@ -30,7 +31,16 @@ class buffers_suffix<Buffers>::const_iterator
     buffers_suffix const* b_ = nullptr;
 
 public:
+#if BHO_WORKAROUND(BHO_MSVC, < 1910)
+    using value_type = typename std::conditional<
+        std::is_convertible<typename
+            std::iterator_traits<iter_type>::value_type,
+                net::mutable_buffer>::value,
+                    net::mutable_buffer,
+                        net::const_buffer>::type;
+#else
     using value_type = buffers_type<Buffers>;
+#endif
     using pointer = value_type const*;
     using reference = value_type;
     using difference_type = std::ptrdiff_t;
@@ -111,7 +121,7 @@ private:
 template<class Buffers>
 buffers_suffix<Buffers>::
 buffers_suffix()
-    //: begin_(net::buffer_sequence_begin(bs_))
+    //: begin_(net::buffer_sequence_begin(bs_)) // note : There may be some problems
 {
 }
 
@@ -208,5 +218,6 @@ consume(std::size_t amount)
 }
 
 } // beast
+} // bho
 
 #endif

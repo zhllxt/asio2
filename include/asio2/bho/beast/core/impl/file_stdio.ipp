@@ -7,11 +7,12 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_CORE_IMPL_FILE_STDIO_IPP
-#define BEAST_CORE_IMPL_FILE_STDIO_IPP
+#ifndef BHO_BEAST_CORE_IMPL_FILE_STDIO_IPP
+#define BHO_BEAST_CORE_IMPL_FILE_STDIO_IPP
 
-#include <asio2/bho/config.hpp>
 #include <asio2/bho/beast/core/file_stdio.hpp>
+#include <asio2/bho/config/workaround.hpp>
+#include <asio2/bho/core/exchange.hpp>
 #include <limits>
 
 #if defined(BHO_MSVC)
@@ -35,6 +36,7 @@
 #  pragma clang diagnostic ignored "-Wunknown-warning-option"
 #endif
 
+namespace bho {
 namespace beast {
 
 file_stdio::
@@ -268,6 +270,7 @@ write(void const* buffer, std::size_t n, error_code& ec)
 }
 
 } // beast
+} // bho
 
 #if defined(BHO_CLANG)
 #  pragma clang diagnostic pop

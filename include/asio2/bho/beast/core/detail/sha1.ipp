@@ -7,8 +7,8 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_DETAIL_SHA1_IPP
-#define BEAST_DETAIL_SHA1_IPP
+#ifndef BHO_BEAST_DETAIL_SHA1_IPP
+#define BHO_BEAST_DETAIL_SHA1_IPP
 
 #include <asio2/bho/beast/core/detail/sha1.hpp>
 
@@ -26,6 +26,7 @@
         Vincent Falco (beast adaptation)
 */
 
+namespace bho {
 namespace beast {
 namespace detail {
 
@@ -295,5 +296,6 @@ finish(
 
 } // detail
 } // beast
+} // bho
 
 #endif

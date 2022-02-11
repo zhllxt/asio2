@@ -7,17 +7,17 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_CORE_IMPL_SAVED_HANDLER_HPP
-#define BEAST_CORE_IMPL_SAVED_HANDLER_HPP
+#ifndef BHO_BEAST_CORE_IMPL_SAVED_HANDLER_HPP
+#define BHO_BEAST_CORE_IMPL_SAVED_HANDLER_HPP
 
 #include <asio2/bho/beast/core/detail/allocator.hpp>
-#include <asio/associated_allocator.hpp>
-#include <asio/associated_executor.hpp>
-#include <asio/executor_work_guard.hpp>
-#include <asio2/bho/beast/core/util.hpp>
-#include <asio2/bho/beast/core/empty_value.hpp>
+#include <asio2/3rd/asio.hpp>
+#include <asio2/bho/assert.hpp>
+#include <asio2/bho/core/empty_value.hpp>
+#include <asio2/bho/core/exchange.hpp>
 #include <utility>
 
+namespace bho {
 namespace beast {
 
 //------------------------------------------------------------------------------
@@ -45,7 +45,7 @@ class saved_handler::impl final : public base
     using alloc_traits =
         beast::detail::allocator_traits<alloc_type>;
 
-    struct ebo_pair : beast::empty_value<alloc_type>
+    struct ebo_pair : bho::empty_value<alloc_type>
     {
         Handler h;
 
@@ -53,8 +53,8 @@ class saved_handler::impl final : public base
         ebo_pair(
             alloc_type const& a,
             Handler_&& h_)
-            : beast::empty_value<alloc_type>(
-				beast::empty_init_t{}, a)
+            : bho::empty_value<alloc_type>(
+                bho::empty_init_t{}, a)
             , h(std::forward<Handler_>(h_))
         {
         }
@@ -111,7 +111,7 @@ saved_handler::
 emplace(Handler&& handler, Allocator const& alloc)
 {
     // Can't delete a handler before invoking
-	BEAST_ASSERT(! has_value());
+    BHO_ASSERT(! has_value());
     using handler_type =
         typename std::decay<Handler>::type;
     using alloc_type = typename
@@ -150,12 +150,13 @@ saved_handler::
 emplace(Handler&& handler)
 {
     // Can't delete a handler before invoking
-	BEAST_ASSERT(! has_value());
+    BHO_ASSERT(! has_value());
     emplace(
         std::forward<Handler>(handler),
         net::get_associated_allocator(handler));
 }
 
 } // beast
+} // bho
 
 #endif

@@ -7,14 +7,15 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_DETAIL_VARINT_HPP
-#define BEAST_DETAIL_VARINT_HPP
+#ifndef BHO_BEAST_DETAIL_VARINT_HPP
+#define BHO_BEAST_DETAIL_VARINT_HPP
 
-#include <asio2/bho/beast/core/util.hpp>
+#include <asio2/bho/static_assert.hpp>
 #include <cstdlib>
 #include <iterator>
 #include <type_traits>
 
+namespace bho {
 namespace beast {
 namespace detail {
 
@@ -39,7 +40,7 @@ varint_read(FwdIt& first)
 {
     using value_type = typename
         std::iterator_traits<FwdIt>::value_type;
-    BEAST_STATIC_ASSERT(
+    BHO_STATIC_ASSERT(
         std::is_integral<value_type>::value &&
         sizeof(value_type) == 1);
     std::size_t value = 0;
@@ -59,7 +60,7 @@ varint_write(FwdIt& first, std::size_t value)
 {
     using value_type = typename
         std::iterator_traits<FwdIt>::value_type;
-	BEAST_STATIC_ASSERT(
+    BHO_STATIC_ASSERT(
         std::is_integral<value_type>::value &&
         sizeof(value_type) == 1);
     while(value > 127)
@@ -73,5 +74,6 @@ varint_write(FwdIt& first, std::size_t value)
 
 } // detail
 } // beast
+} // bho
 
 #endif

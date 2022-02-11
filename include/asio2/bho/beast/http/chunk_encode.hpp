@@ -7,18 +7,19 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_HTTP_CHUNK_ENCODE_HPP
-#define BEAST_HTTP_CHUNK_ENCODE_HPP
+#ifndef BHO_BEAST_HTTP_CHUNK_ENCODE_HPP
+#define BHO_BEAST_HTTP_CHUNK_ENCODE_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/core/buffers_cat.hpp>
 #include <asio2/bho/beast/core/string.hpp>
 #include <asio2/bho/beast/http/type_traits.hpp>
 #include <asio2/bho/beast/http/detail/chunk_encode.hpp>
-#include <asio/buffer.hpp>
+#include <asio2/3rd/asio.hpp>
 #include <memory>
 #include <type_traits>
 
+namespace bho {
 namespace beast {
 namespace http {
 
@@ -44,7 +45,7 @@ struct chunk_crlf
     //-----
 
     /// Required for <em>ConstBufferSequence</em>
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
     using value_type = __implementation_defined__;
 #else
     using value_type = net::const_buffer;
@@ -178,7 +179,7 @@ public:
         @see https://tools.ietf.org/html/rfc7230#section-4.1
     */
     template<class ChunkExtensions
-#if ! BEAST_DOXYGEN
+#if ! BHO_BEAST_DOXYGEN
         , class = typename std::enable_if<
             detail::is_chunk_extensions<
                 ChunkExtensions>::value>::type
@@ -214,7 +215,7 @@ public:
         @see https://tools.ietf.org/html/rfc7230#section-4.1
     */
     template<class ChunkExtensions, class Allocator
-#if ! BEAST_DOXYGEN
+#if ! BHO_BEAST_DOXYGEN
         , class = typename std::enable_if<
             detail::is_chunk_extensions<
                 ChunkExtensions>::value>::type
@@ -228,14 +229,14 @@ public:
     //-----
 
     /// Required for <em>ConstBufferSequence</em>
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
     using value_type = __implementation_defined__;
 #else
     using value_type = typename view_type::value_type;
 #endif
 
     /// Required for <em>ConstBufferSequence</em>
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
     using const_iterator = __implementation_defined__;
 #else
     using const_iterator = typename view_type::const_iterator;
@@ -369,7 +370,7 @@ public:
         @see https://tools.ietf.org/html/rfc7230#section-4.1
     */
     template<class ChunkExtensions
-#if ! BEAST_DOXYGEN
+#if ! BHO_BEAST_DOXYGEN
         , class = typename std::enable_if<
             ! std::is_convertible<typename std::decay<
                 ChunkExtensions>::type, string_view>::value>::type
@@ -408,7 +409,7 @@ public:
         @see https://tools.ietf.org/html/rfc7230#section-4.1
     */
     template<class ChunkExtensions, class Allocator
-#if ! BEAST_DOXYGEN
+#if ! BHO_BEAST_DOXYGEN
         , class = typename std::enable_if<
             ! std::is_convertible<typename std::decay<
                 ChunkExtensions>::type, string_view>::value>::type
@@ -422,14 +423,14 @@ public:
     //-----
 
     /// Required for <em>ConstBufferSequence</em>
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
     using value_type = __implementation_defined__;
 #else
     using value_type = typename view_type::value_type;
 #endif
 
     /// Required for <em>ConstBufferSequence</em>
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
     using const_iterator = __implementation_defined__;
 #else
     using const_iterator = typename view_type::const_iterator;
@@ -510,7 +511,7 @@ public:
         @param allocator The allocator to use for storing temporary
         data associated with the serialized trailer buffers.
     */
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
     template<class Allocator>
     chunk_last(Trailer const& trailer, Allocator const& allocator);
 #else
@@ -527,7 +528,7 @@ public:
     chunk_last(chunk_last const&) = default;
 
     /// Required for <em>ConstBufferSequence</em>
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
     using value_type = __implementation_defined__;
 #else
     using value_type =
@@ -535,7 +536,7 @@ public:
 #endif
 
     /// Required for <em>ConstBufferSequence</em>
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
     using const_iterator = __implementation_defined__;
 #else
     using const_iterator =
@@ -729,6 +730,7 @@ make_chunk_last(
 
 } // http
 } // beast
+} // bho
 
 #include <asio2/bho/beast/http/impl/chunk_encode.hpp>
 

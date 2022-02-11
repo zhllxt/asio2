@@ -7,14 +7,14 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_WEBSOCKET_IMPL_SSL_HPP
-#define BEAST_WEBSOCKET_IMPL_SSL_HPP
+#ifndef BHO_BEAST_WEBSOCKET_IMPL_SSL_HPP
+#define BHO_BEAST_WEBSOCKET_IMPL_SSL_HPP
 
 #include <utility>
 #include <asio2/bho/beast/websocket/teardown.hpp>
-#include <asio/compose.hpp>
-#include <asio/coroutine.hpp>
+#include <asio2/3rd/asio.hpp>
 
+namespace bho {
 namespace beast {
 
 /*
@@ -36,12 +36,12 @@ template<class AsyncStream>
 void
 teardown(
     role_type role,
-    asio::ssl::stream<AsyncStream>& stream,
-    error_code& ec)
+    net::ssl::stream<AsyncStream>& stream,
+    beast::error_code& ec)
 {
     stream.shutdown(ec);
-    using beast::websocket::teardown;
-    error_code ec2;
+    using bho::beast::websocket::teardown;
+    beast::error_code ec2;
     teardown(role, stream.next_layer(), ec ? ec2 : ec);
 }
 
@@ -49,10 +49,10 @@ namespace detail {
 
 template<class AsyncStream>
 struct ssl_shutdown_op
-    : asio::coroutine
+    : net::coroutine
 {
     ssl_shutdown_op(
-        asio::ssl::stream<AsyncStream>& s,
+        net::ssl::stream<AsyncStream>& s,
         role_type role)
         : s_(s)
         , role_(role)
@@ -61,7 +61,7 @@ struct ssl_shutdown_op
 
     template<class Self>
     void
-    operator()(Self& self, error_code ec = {}, std::size_t = 0)
+    operator()(Self& self, beast::error_code ec = {}, std::size_t = 0)
     {
         ASIO_CORO_REENTER(*this)
         {
@@ -69,7 +69,7 @@ struct ssl_shutdown_op
                 s_.async_shutdown(std::move(self));
             ec_ = ec;
 
-            using beast::websocket::async_teardown;
+            using bho::beast::websocket::async_teardown;
             ASIO_CORO_YIELD
                 async_teardown(role_, s_.next_layer(), std::move(self));
             if (!ec_)
@@ -80,9 +80,9 @@ struct ssl_shutdown_op
     }
 
 private:
-    asio::ssl::stream<AsyncStream>& s_;
+    net::ssl::stream<AsyncStream>& s_;
     role_type role_;
-    error_code ec_;
+    beast::error_code ec_;
 };
 
 } // detail
@@ -93,15 +93,16 @@ template<
 void
 async_teardown(
     role_type role,
-    asio::ssl::stream<AsyncStream>& stream,
+    net::ssl::stream<AsyncStream>& stream,
     TeardownHandler&& handler)
 {
-    return asio::async_compose<TeardownHandler, void(error_code)>(
+    return net::async_compose<TeardownHandler, void(beast::error_code)>(
         detail::ssl_shutdown_op<AsyncStream>(stream, role),
         handler,
         stream);
 }
 
 } // beast
+} // bho
 
 #endif

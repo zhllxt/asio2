@@ -7,17 +7,18 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_FLAT_BUFFER_HPP
-#define BEAST_FLAT_BUFFER_HPP
+#ifndef BHO_BEAST_FLAT_BUFFER_HPP
+#define BHO_BEAST_FLAT_BUFFER_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/core/detail/allocator.hpp>
-#include <asio/buffer.hpp>
-#include <asio2/bho/beast/core/empty_value.hpp>
+#include <asio2/3rd/asio.hpp>
+#include <asio2/bho/core/empty_value.hpp>
 #include <limits>
 #include <memory>
 #include <type_traits>
 
+namespace bho {
 namespace beast {
 
 /** A dynamic buffer providing buffer sequences of length one.
@@ -55,8 +56,8 @@ namespace beast {
 */
 template<class Allocator>
 class basic_flat_buffer
-#if ! BEAST_DOXYGEN
-    : private beast::empty_value<
+#if ! BHO_BEAST_DOXYGEN
+    : private bho::empty_value<
         typename detail::allocator_traits<Allocator>::
             template rebind_alloc<char>>
 #endif
@@ -522,6 +523,7 @@ using flat_buffer =
     basic_flat_buffer<std::allocator<char>>;
 
 } // beast
+} // bho
 
 #include <asio2/bho/beast/core/impl/flat_buffer.hpp>
 

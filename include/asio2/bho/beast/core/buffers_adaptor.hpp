@@ -7,14 +7,15 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_BUFFERS_ADAPTOR_HPP
-#define BEAST_BUFFERS_ADAPTOR_HPP
+#ifndef BHO_BEAST_BUFFERS_ADAPTOR_HPP
+#define BHO_BEAST_BUFFERS_ADAPTOR_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/core/buffer_traits.hpp>
 #include <optional>
 #include <type_traits>
 
+namespace bho {
 namespace beast {
 
 /** Adapts a <em>MutableBufferSequence</em> into a <em>DynamicBuffer</em>.
@@ -101,7 +102,7 @@ public:
 
     //--------------------------------------------------------------------------
 
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
     /// The ConstBufferSequence used to represent the readable bytes.
     using const_buffers_type = __implementation_defined__;
 
@@ -226,6 +227,7 @@ private:
 };
 
 } // beast
+} // bho
 
 #include <asio2/bho/beast/core/impl/buffers_adaptor.hpp>
 

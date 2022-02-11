@@ -7,16 +7,17 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_DETAIL_BIND_CONTINUATION_HPP
-#define BEAST_DETAIL_BIND_CONTINUATION_HPP
+#ifndef BHO_BEAST_DETAIL_BIND_CONTINUATION_HPP
+#define BHO_BEAST_DETAIL_BIND_CONTINUATION_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/core/detail/remap_post_to_defer.hpp>
-#include <asio/bind_executor.hpp>
-#include <asio2/bho/beast/core/empty_value.hpp>
+#include <asio2/3rd/asio.hpp>
+#include <asio2/bho/core/empty_value.hpp>
 #include <type_traits>
 #include <utility>
 
+namespace bho {
 namespace beast {
 namespace detail {
 
@@ -38,7 +39,7 @@ namespace detail {
     @li <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2014/n4242.html">[N4242] Executors and Asynchronous Operations, Revision 1</a>
 */
 template<class CompletionHandler>
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
 __implementation_defined__
 #else
 net::executor_binder<
@@ -74,7 +75,7 @@ bind_continuation(CompletionHandler&& handler)
     @li <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2014/n4242.html">[N4242] Executors and Asynchronous Operations, Revision 1</a>
 */
 template<class Executor, class CompletionHandler>
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
 __implementation_defined__
 #else
 net::executor_binder<typename
@@ -104,5 +105,6 @@ bind_continuation(F&& f)
 
 } // detail
 } // beast
+} // bho
 
 #endif

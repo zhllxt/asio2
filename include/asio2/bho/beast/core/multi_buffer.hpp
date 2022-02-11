@@ -7,13 +7,13 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_MULTI_BUFFER_HPP
-#define BEAST_MULTI_BUFFER_HPP
+#ifndef BHO_BEAST_MULTI_BUFFER_HPP
+#define BHO_BEAST_MULTI_BUFFER_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/core/detail/allocator.hpp>
-#include <asio/buffer.hpp>
-#include <asio2/bho/beast/core/empty_value.hpp>
+#include <asio2/3rd/asio.hpp>
+#include <asio2/bho/core/empty_value.hpp>
 #include <asio2/bho/beast/core/type_with_alignment.hpp>
 #include <iterator>
 #include <limits>
@@ -21,6 +21,7 @@
 #include <type_traits>
 #include <list>
 
+namespace bho {
 namespace beast {
 
 /** A dynamic buffer providing sequences of variable length.
@@ -61,8 +62,8 @@ namespace beast {
 */
 template<class Allocator>
 class basic_multi_buffer
-#if ! BEAST_DOXYGEN
-    : private beast::empty_value<Allocator>
+#if ! BHO_BEAST_DOXYGEN
+    : private bho::empty_value<Allocator>
 #endif
 {
     // Fancy pointers are not supported
@@ -151,7 +152,7 @@ class basic_multi_buffer
     size_type out_end_ = 0; // output end offset in list_.back()
 
 public:
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
     /// The ConstBufferSequence used to represent the readable bytes.
     using const_buffers_type = __implementation_defined__;
 
@@ -582,6 +583,7 @@ private:
 using multi_buffer = basic_multi_buffer<std::allocator<char>>;
 
 } // beast
+} // bho
 
 #include <asio2/bho/beast/core/impl/multi_buffer.hpp>
 

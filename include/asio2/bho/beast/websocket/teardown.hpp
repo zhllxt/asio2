@@ -7,15 +7,16 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_WEBSOCKET_TEARDOWN_HPP
-#define BEAST_WEBSOCKET_TEARDOWN_HPP
+#ifndef BHO_BEAST_WEBSOCKET_TEARDOWN_HPP
+#define BHO_BEAST_WEBSOCKET_TEARDOWN_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/core/error.hpp>
 #include <asio2/bho/beast/core/role.hpp>
-#include <asio/basic_stream_socket.hpp>
+#include <asio2/3rd/asio.hpp>
 #include <type_traits>
 
+namespace bho {
 namespace beast {
 namespace websocket {
 
@@ -39,9 +40,9 @@ void
 teardown(
     role_type role,
     Socket& socket,
-    error_code& ec)
+    beast::error_code& ec)
 {
-    beast::ignore_unused(role, socket, ec);
+    bho::ignore_unused(role, socket, ec);
 /*
     If you are trying to use OpenSSL and this goes off, you need to
     add an include for <asio2/bho/beast/websocket/ssl.hpp>.
@@ -74,7 +75,7 @@ teardown(
     the handler must be:
     @code
     void handler(
-        error_code const& error // result of operation
+        beast::error_code const& error // result of operation
     );
     @endcode
     Regardless of whether the asynchronous operation completes
@@ -92,7 +93,7 @@ async_teardown(
     Socket& socket,
     TeardownHandler&& handler)
 {
-    beast::ignore_unused(role, socket, handler);
+    bho::ignore_unused(role, socket, handler);
 /*
     If you are trying to use OpenSSL and this goes off, you need to
     add an include for <asio2/bho/beast/websocket/ssl.hpp>.
@@ -132,7 +133,7 @@ teardown(
     role_type role,
     net::basic_stream_socket<
         Protocol, Executor>& socket,
-    error_code& ec);
+    beast::error_code& ec);
 
 /** Start tearing down a `net::ip::tcp::socket`.
 
@@ -154,7 +155,7 @@ teardown(
     the handler must be:
     @code
     void handler(
-        error_code const& error // result of operation
+        beast::error_code const& error // result of operation
     );
     @endcode   
     Regardless of whether the asynchronous operation completes
@@ -175,6 +176,7 @@ async_teardown(
 
 } // websocket
 } // beast
+} // bho
 
 #include <asio2/bho/beast/websocket/impl/teardown.hpp>
 

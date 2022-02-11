@@ -7,17 +7,17 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_DETAIL_IMPL_READ_HPP
-#define BEAST_DETAIL_IMPL_READ_HPP
+#ifndef BHO_BEAST_DETAIL_IMPL_READ_HPP
+#define BHO_BEAST_DETAIL_IMPL_READ_HPP
 
 #include <asio2/bho/beast/core/bind_handler.hpp>
 #include <asio2/bho/beast/core/async_base.hpp>
 #include <asio2/bho/beast/core/flat_static_buffer.hpp>
 #include <asio2/bho/beast/core/read_size.hpp>
-#include <asio/basic_stream_socket.hpp>
-#include <asio/coroutine.hpp>
-#include <asio2/bho/beast/core/util.hpp>
+#include <asio2/3rd/asio.hpp>
+#include <asio2/bho/throw_exception.hpp>
 
+namespace bho {
 namespace beast {
 namespace detail {
 
@@ -37,7 +37,7 @@ template<
     class Condition,
     class Handler>
 class read_op
-    : public asio::coroutine
+    : public net::coroutine
     , public async_base<
         Handler, beast::executor_type<Stream>>
 {
@@ -168,7 +168,7 @@ read(
     auto const bytes_transferred = detail::read(
         stream, buffer, std::move(cond), ec);
     if(ec)
-        BEAST_THROW_EXCEPTION(system_error{ec});
+        BHO_THROW_EXCEPTION(system_error{ec});
     return bytes_transferred;
 }
 
@@ -213,9 +213,9 @@ template<
     class AsyncReadStream,
     class DynamicBuffer,
     class CompletionCondition,
-    BEAST_ASYNC_TPARAM2 ReadHandler,
+    BHO_BEAST_ASYNC_TPARAM2 ReadHandler,
     class>
-BEAST_ASYNC_RESULT2(ReadHandler)
+BHO_BEAST_ASYNC_RESULT2(ReadHandler)
 async_read(
     AsyncReadStream& stream,
     DynamicBuffer& buffer,
@@ -243,5 +243,6 @@ async_read(
 
 } // detail
 } // beast
+} // bho
 
 #endif

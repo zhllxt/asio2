@@ -7,9 +7,12 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_CORE_DETAIL_ASYNC_BASE_HPP
-#define BEAST_CORE_DETAIL_ASYNC_BASE_HPP
+#ifndef BHO_BEAST_CORE_DETAIL_ASYNC_BASE_HPP
+#define BHO_BEAST_CORE_DETAIL_ASYNC_BASE_HPP
 
+#include <asio2/bho/core/exchange.hpp>
+
+namespace bho {
 namespace beast {
 namespace detail {
 
@@ -38,5 +41,6 @@ protected:
 
 } // detail
 } // beast
+} // bho
 
 #endif

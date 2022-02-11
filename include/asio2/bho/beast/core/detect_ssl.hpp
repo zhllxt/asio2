@@ -7,19 +7,19 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_CORE_DETECT_SSL_HPP
-#define BEAST_CORE_DETECT_SSL_HPP
+#ifndef BHO_BEAST_CORE_DETECT_SSL_HPP
+#define BHO_BEAST_CORE_DETECT_SSL_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/core/async_base.hpp>
 #include <asio2/bho/beast/core/error.hpp>
 #include <asio2/bho/beast/core/read_size.hpp>
 #include <asio2/bho/beast/core/stream_traits.hpp>
-#include <asio2/bho/beast/core/tribool.hpp>
-#include <asio/async_result.hpp>
-#include <asio/coroutine.hpp>
+#include <asio2/bho/logic/tribool.hpp>
+#include <asio2/3rd/asio.hpp>
 #include <type_traits>
 
+namespace bho {
 namespace beast {
 
 //------------------------------------------------------------------------------
@@ -61,7 +61,7 @@ namespace detail {
     @li `false` if the contents of the buffer cannot possibly
     be a valid client_hello message, or
 
-    @li `beast::indeterminate` if the buffer contains an
+    @li `bho::indeterminate` if the buffer contains an
     insufficient number of bytes to determine the result. In
     this case the caller should read more data from the relevant
     stream, append it to the buffers, and call this function again.
@@ -69,7 +69,7 @@ namespace detail {
     @param buffers The buffer sequence to inspect.
     This type must meet the requirements of <em>ConstBufferSequence</em>.
 
-    @return `beast::tribool` indicating whether the buffer contains
+    @return `bho::tribool` indicating whether the buffer contains
     a TLS client handshake, does not contain a handshake, or needs
     additional bytes to determine an outcome.
 
@@ -79,7 +79,7 @@ namespace detail {
     (RFC2246: The TLS Protocol)
 */
 template <class ConstBufferSequence>
-beast::tribool
+bho::tribool
 is_tls_client_hello (ConstBufferSequence const& buffers);
 
 } // detail
@@ -91,7 +91,7 @@ is_tls_client_hello (ConstBufferSequence const& buffers);
 namespace detail {
 
 template <class ConstBufferSequence>
-beast::tribool
+bho::tribool
 is_tls_client_hello (ConstBufferSequence const& buffers)
 {
     // Make sure buffers meets the requirements
@@ -125,7 +125,7 @@ is_tls_client_hello (ConstBufferSequence const& buffers)
 
     // Can't do much without any bytes
     if(n < 1)
-        return beast::indeterminate;
+        return bho::indeterminate;
 
     // Require the first byte to be 0x16, indicating a TLS handshake record
     if(buf[0] != 0x16)
@@ -133,7 +133,7 @@ is_tls_client_hello (ConstBufferSequence const& buffers)
 
     // We need at least 5 bytes to know the record payload size
     if(n < 5)
-        return beast::indeterminate;
+        return bho::indeterminate;
 
     // Calculate the record payload size
     std::uint32_t const length = (buf[3] << 8) + buf[4];
@@ -145,7 +145,7 @@ is_tls_client_hello (ConstBufferSequence const& buffers)
 
     // We need at least 6 bytes to know the handshake type
     if(n < 6)
-        return beast::indeterminate;
+        return bho::indeterminate;
 
     // The handshake_type must be 0x01 == client_hello
     if(buf[5] != 0x01)
@@ -153,7 +153,7 @@ is_tls_client_hello (ConstBufferSequence const& buffers)
 
     // We need at least 9 bytes to know the payload size
     if(n < 9)
-        return beast::indeterminate;
+        return bho::indeterminate;
 
     // Calculate the message payload size
     std::uint32_t const size =
@@ -214,6 +214,8 @@ detect_ssl(
     DynamicBuffer& buffer,
     error_code& ec)
 {
+    namespace beast = bho::beast;
+
     // Make sure arguments meet the requirements
 
     static_assert(
@@ -232,7 +234,7 @@ detect_ssl(
         auto const result = detail::is_tls_client_hello(buffer.data());
 
         // If we got an answer, return it
-        if(! beast::indeterminate(result))
+        if(! bho::indeterminate(result))
         {
             // A definite answer is a success
             ec = {};
@@ -316,7 +318,7 @@ template<
     class CompletionToken =
         net::default_completion_token_t<beast::executor_type<AsyncReadStream>>
 >
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
 ASIO_INITFN_RESULT_TYPE(CompletionToken, void(error_code, bool))
 #else
 auto
@@ -362,7 +364,7 @@ struct run_detect_ssl_op
     //
     // `async_initiate` takes care of transforming the completion
     // token into the "real handler" which must have the correct
-    // signature, in this case `void(error_code, beast::tri_bool)`.
+    // signature, in this case `void(error_code, bho::tri_bool)`.
 
     template<
         class DetectHandler,
@@ -392,7 +394,7 @@ template<
     class AsyncReadStream,
     class DynamicBuffer,
     class CompletionToken>
-#if BEAST_DOXYGEN
+#if BHO_BEAST_DOXYGEN
 ASIO_INITFN_RESULT_TYPE(CompletionToken, void(error_code, bool))
 #else
 auto
@@ -472,7 +474,7 @@ template<
     class AsyncReadStream,
     class DynamicBuffer>
 class detect_ssl_op
-    : public asio::coroutine
+    : public net::coroutine
     , public async_base<
         DetectHandler, executor_type<AsyncReadStream>>
 {
@@ -488,7 +490,7 @@ class detect_ssl_op
     // We're going to need this in case we have to post the handler
     error_code ec_;
 
-	beast::tribool result_ = false;
+    bho::tribool result_ = false;
 
 public:
     // Completion handlers must be MoveConstructible.
@@ -543,7 +545,11 @@ namespace detail {
 // This example uses the Asio's stackless "fauxroutines", implemented
 // using a macro-based solution. It makes the code easier to write and
 // easier to read. This include file defines the necessary macros and types.
-#include <asio/yield.hpp>
+#ifdef ASIO_STANDALONE
+	#include <asio/yield.hpp>
+#else
+	#include <boost/asio/yield.hpp>
+#endif
 
 // detect_ssl_op is callable with the signature void(error_code, bytes_transferred),
 // allowing `*this` to be used as a ReadHandler
@@ -556,6 +562,8 @@ void
 detect_ssl_op<AsyncStream, DynamicBuffer, Handler>::
 operator()(error_code ec, std::size_t bytes_transferred, bool cont)
 {
+    namespace beast = bho::beast;
+
     // This introduces the scope of the stackless coroutine
     reenter(*this)
     {
@@ -566,7 +574,7 @@ operator()(error_code ec, std::size_t bytes_transferred, bool cont)
             result_ = is_tls_client_hello(buffer_.data());
 
             // If we got an answer, then the operation is complete
-            if(! beast::indeterminate(result_))
+            if(! bho::indeterminate(result_))
                 break;
 
             // Try to fill our buffer by reading from the stream.
@@ -654,12 +662,17 @@ operator()(error_code ec, std::size_t bytes_transferred, bool cont)
 }
 
 // Including this file undefines the macros used by the stackless fauxroutines.
-#include <asio/unyield.hpp>
+#ifdef ASIO_STANDALONE
+	#include <asio/unyield.hpp>
+#else
+	#include <boost/asio/unyield.hpp>
+#endif
 
 } // detail
 
 //]
 
 } // beast
+} // bho
 
 #endif

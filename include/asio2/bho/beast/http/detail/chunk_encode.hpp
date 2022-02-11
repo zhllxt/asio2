@@ -7,16 +7,17 @@
 // Official repository: https://github.com/boostorg/beast
 //
 
-#ifndef BEAST_HTTP_DETAIL_CHUNK_ENCODE_HPP
-#define BEAST_HTTP_DETAIL_CHUNK_ENCODE_HPP
+#ifndef BHO_BEAST_HTTP_DETAIL_CHUNK_ENCODE_HPP
+#define BHO_BEAST_HTTP_DETAIL_CHUNK_ENCODE_HPP
 
 #include <asio2/bho/beast/http/type_traits.hpp>
-#include <asio/buffer.hpp>
+#include <asio2/3rd/asio.hpp>
 #include <algorithm>
 #include <array>
 #include <cstddef>
 #include <memory>
 
+namespace bho {
 namespace beast {
 namespace http {
 namespace detail {
@@ -218,5 +219,6 @@ struct buffers_or_fields<T, false>
 } // detail
 } // http
 } // beast
+} // bho
 
 #endif

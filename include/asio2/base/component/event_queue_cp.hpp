@@ -32,6 +32,7 @@
 #include <asio2/base/detail/util.hpp>
 #include <asio2/base/detail/function_traits.hpp>
 #include <asio2/base/detail/buffer_wrap.hpp>
+#include <asio2/base/detail/function.hpp>
 
 namespace asio2::detail
 {
@@ -259,7 +260,7 @@ namespace asio2::detail
 		}
 
 	protected:
-		std::queue<std::function<void(event_queue_guard<derived_t>&&)>> events_;
+		std::queue<detail::function<void(event_queue_guard<derived_t>&&)>> events_;
 	};
 }
 
