@@ -74,7 +74,7 @@ int main()
 
 	int bytes[4] = {1,2,3,4};
 
-	const char * const p = buf;
+	[[maybe_unused]] const char * const p = buf;
 
 	client.async_send(sv);
 
