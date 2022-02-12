@@ -61,8 +61,24 @@
 #endif // BEAST_HEADER_ONLY
 
 #ifdef BEAST_HEADER_ONLY
+	namespace bho::beast::http
+	{
+		template<class Body, class Fields = fields>
+		using request_t = request<Body, Fields>;
+
+		template<class Body, class Fields = fields>
+		using response_t = response<Body, Fields>;
+	}
 	namespace beast = ::bho::beast;
 #else
+	namespace boost::beast::http
+	{
+		template<class Body, class Fields = fields>
+		using request_t = request<Body, Fields>;
+
+		template<class Body, class Fields = fields>
+		using response_t = response<Body, Fields>;
+	}
 	namespace beast = ::boost::beast;
 	namespace asio  = ::boost::asio;
 #endif // BEAST_HEADER_ONLY

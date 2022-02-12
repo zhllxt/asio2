@@ -101,7 +101,7 @@ int main()
 
 			rep.fill_text(str, http::status::ok, type);
 
-			http::request<http::string_body> re;
+			http::request_t<http::string_body> re;
 			re.method(http::verb::post);
 			re.set(http::field::content_type, type);
 			re.keep_alive(true);
