@@ -13,7 +13,7 @@
 
 #include <asio2/config.hpp>
 
-#if __has_include(<boost/pfr.hpp>)
+#if !defined(ASIO2_DISABLE_BOOST) && __has_include(<boost/pfr.hpp>)
 #include <boost/pfr.hpp>
 namespace pfr = ::boost::pfr;
 #else

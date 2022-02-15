@@ -13,7 +13,7 @@
 
 #include <asio2/config.hpp>
 
-#if __has_include(<boost/predef.h>)
+#if !defined(ASIO2_DISABLE_BOOST) && __has_include(<boost/predef.h>)
 #include <boost/predef.h>
 
 #  ifndef BHO_ENDIAN_BIG_BYTE

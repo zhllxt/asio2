@@ -22,6 +22,8 @@
 
 #include <asio2/base/error.hpp>
 
+#include <asio2/base/detail/util.hpp>
+
 #if BHO_OS_WINDOWS
 #	if __has_include(<Mstcpip.h>)
 #		include <Mstcpip.h> // tcp_keepalive struct
@@ -53,8 +55,6 @@ namespace asio2::detail
 		{
 			try
 			{
-				std::ignore = count;
-
 				auto & socket = this->socket_ref_.lowest_layer();
 				if (!socket.is_open())
 				{
@@ -66,6 +66,8 @@ namespace asio2::detail
 				socket.set_option(option);
 
 				auto native_fd = socket.native_handle();
+
+				detail::ignore_unused(onoff, idle, interval, count, native_fd);
 
 			#if BHO_OS_LINUX
 				// For *n*x systems

@@ -13,7 +13,7 @@
 
 #include <asio2/config.hpp>
 
-#if __has_include(<boost/throw_exception.hpp>)
+#if !defined(ASIO2_DISABLE_BOOST) && __has_include(<boost/throw_exception.hpp>)
 #include <boost/throw_exception.hpp>
 #  ifndef BHO_THROW_EXCEPTION
 #    define BHO_THROW_EXCEPTION BOOST_THROW_EXCEPTION

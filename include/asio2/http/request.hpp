@@ -66,7 +66,7 @@ namespace asio2::detail
 			: super(std::forward<Args>(args)...)
 			, user_data_cp<http_request_impl_t<Body, Fields>>()
 		{
-			std::memset((void*)(&url_parser_), 0, sizeof(http::http_parser_ns::http_parser_url));
+			std::memset((void*)(&url_parser_), 0, sizeof(http::parses::http_parser_url));
 		}
 
 		http_request_impl_t(const http_request_impl_t& o)
@@ -165,13 +165,13 @@ namespace asio2::detail
 		 */
 		inline std::string_view path()
 		{
-			if (!(url_parser_.field_set & (1 << (int)http::http_parser_ns::url_fields::UF_PATH)))
+			if (!(url_parser_.field_set & (1 << (int)http::parses::url_fields::UF_PATH)))
 				return std::string_view{};
 
 			std::string_view url = this->target();
 
-			return std::string_view{ &url[url_parser_.field_data[(int)http::http_parser_ns::url_fields::UF_PATH].off],
-				url_parser_.field_data[(int)http::http_parser_ns::url_fields::UF_PATH].len };
+			return std::string_view{ &url[url_parser_.field_data[(int)http::parses::url_fields::UF_PATH].off],
+				url_parser_.field_data[(int)http::parses::url_fields::UF_PATH].len };
 		}
 
 		/**
@@ -180,13 +180,13 @@ namespace asio2::detail
 		 */
 		inline std::string_view query()
 		{
-			if (!(url_parser_.field_set & (1 << (int)http::http_parser_ns::url_fields::UF_QUERY)))
+			if (!(url_parser_.field_set & (1 << (int)http::parses::url_fields::UF_QUERY)))
 				return std::string_view{};
 
 			std::string_view url = this->target();
 
-			return std::string_view{ &url[url_parser_.field_data[(int)http::http_parser_ns::url_fields::UF_QUERY].off],
-				url_parser_.field_data[(int)http::http_parser_ns::url_fields::UF_QUERY].len };
+			return std::string_view{ &url[url_parser_.field_data[(int)http::parses::url_fields::UF_QUERY].off],
+				url_parser_.field_data[(int)http::parses::url_fields::UF_QUERY].len };
 		}
 
 		/**
@@ -206,7 +206,7 @@ namespace asio2::detail
 		}
 
 	protected:
-		http::http_parser_ns::http_parser_url url_parser_;
+		http::parses::http_parser_url         url_parser_;
 		websocket::frame                      ws_frame_type_ = websocket::frame::unknown;
 		std::string_view                      ws_frame_data_;
 	};

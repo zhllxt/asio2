@@ -3,6 +3,7 @@
 #endif
 
 #include <filesystem>
+#include <iostream>
 #include <asio2/http/https_server.hpp>
 
 struct aop_log
@@ -44,8 +45,8 @@ int main()
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
 
-	std::string_view host = "0.0.0.0";
-	std::string_view port = "8043";
+	std::string_view host = "127.0.0.1";
+	std::string_view port = "8443";
 
 	asio2::https_server server;
 
@@ -58,7 +59,66 @@ int main()
 		"123456");
 	server.set_dh_file("../../cert/dh1024.pem");
 
-	server.bind_accept([](std::shared_ptr<asio2::https_session> & session_ptr)
+	server.bind_recv([&](http::web_request& req, http::web_response& rep)
+	{
+		// all http and websocket request will goto here first.
+		std::cout << req.path() << std::endl;
+		std::cout << req.query() << std::endl;
+
+		auto& body = req.body();
+		auto target = req.target();
+
+		std::stringstream ss;
+		ss << req;
+		auto str_req = ss.str();
+
+
+		asio2::detail::ignore_unused(body, target, str_req);
+
+		for (auto it = req.begin(); it != req.end(); ++it)
+		{
+			std::cout << it->name_string() << " : " << it->value() << std::endl;
+		}
+
+		auto mpbody = req.multipart();
+
+		for (auto it = mpbody.begin(); it != mpbody.end(); ++it)
+		{
+			std::cout << "filename:" << it->filename() << " name:" << it->name() << " content_type:" << it->content_type() << std::endl;
+		}
+
+		if (req.has_multipart())
+		{
+			http::multipart_fields multipart_body = req.multipart();
+
+			auto& field_username = multipart_body["username"];
+			auto username = field_username.value();
+
+			auto& field_password = multipart_body["password"];
+			auto password = field_password.value();
+
+			std::string str = http::to_string(multipart_body);
+
+			std::string type = "multipart/form-data; boundary="; type += multipart_body.boundary();
+
+			rep.fill_text(str, http::status::ok, type);
+
+			http::request_t<http::string_body> re;
+			re.method(http::verb::post);
+			re.set(http::field::content_type, type);
+			re.keep_alive(true);
+			re.target("/api/user/");
+			re.body() = str;
+			re.prepare_payload();
+
+			std::stringstream ress;
+			ress << re;
+			auto restr = ress.str();
+
+			asio2::detail::ignore_unused(username, password, restr);
+		}
+
+	}).bind_accept([](std::shared_ptr<asio2::https_session> & session_ptr)
 	{
 		// close the invalid client
 		if (session_ptr->remote_address().find("192") != std::string::npos)

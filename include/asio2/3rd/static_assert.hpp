@@ -13,7 +13,7 @@
 
 #include <asio2/config.hpp>
 
-#if __has_include(<boost/static_assert.hpp>)
+#if !defined(ASIO2_DISABLE_BOOST) && __has_include(<boost/static_assert.hpp>)
 #include <boost/static_assert.hpp>
 #  ifndef BHO_STATIC_ASSERT
 #    define BHO_STATIC_ASSERT BOOST_STATIC_ASSERT

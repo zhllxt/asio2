@@ -13,7 +13,7 @@
 
 #include <asio2/config.hpp>
 
-#if __has_include(<boost/current_function.hpp>)
+#if !defined(ASIO2_DISABLE_BOOST) && __has_include(<boost/current_function.hpp>)
 #include <boost/current_function.hpp>
 #  ifndef BHO_CURRENT_FUNCTION
 #    define BHO_CURRENT_FUNCTION BOOST_CURRENT_FUNCTION

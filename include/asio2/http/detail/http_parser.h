@@ -31,9 +31,9 @@
 #include <asio2/base/detail/push_options.hpp>
 
 #ifdef BEAST_HEADER_ONLY
-namespace bho::beast::http::http_parser_ns
+namespace bho::beast::http::parses
 #else
-namespace boost::beast::http::http_parser_ns
+namespace boost::beast::http::parses
 #endif
 {
 //#ifdef __cplusplus
@@ -42,8 +42,8 @@ namespace boost::beast::http::http_parser_ns
 
 /* Also update SONAME in the Makefile whenever you change these. */
 #define HTTP_PARSER_VERSION_MAJOR 2
-#define HTTP_PARSER_VERSION_MINOR 8
-#define HTTP_PARSER_VERSION_PATCH 1
+#define HTTP_PARSER_VERSION_MINOR 9
+#define HTTP_PARSER_VERSION_PATCH 4
 
 #include <stddef.h>
 #if defined(_WIN32) && !defined(__MINGW32__) && \
@@ -57,6 +57,8 @@ typedef __int32 int32_t;
 typedef unsigned __int32 uint32_t;
 typedef __int64 int64_t;
 typedef unsigned __int64 uint64_t;
+#elif (defined(__sun) || defined(__sun__)) && defined(__SunOS_5_9)
+#include <sys/inttypes.h>
 #else
 #include <stdint.h>
 #endif
@@ -107,69 +109,71 @@ typedef int (*http_cb) (http_parser*, void * user_data);
 
 /* Status Codes */
 #define HTTP_STATUS_MAP(HTTP_XX)                                                 \
-  HTTP_XX(100, CONTINUE,                        Continue)                        \
-  HTTP_XX(101, SWITCHING_PROTOCOLS,             Switching Protocols)             \
-  HTTP_XX(102, PROCESSING,                      Processing)                      \
-  HTTP_XX(200, OK,                              OK)                              \
-  HTTP_XX(201, CREATED,                         Created)                         \
-  HTTP_XX(202, ACCEPTED,                        Accepted)                        \
-  HTTP_XX(203, NON_AUTHORITATIVE_INFORMATION,   Non-Authoritative Information)   \
-  HTTP_XX(204, NO_CONTENT,                      No Content)                      \
-  HTTP_XX(205, RESET_CONTENT,                   Reset Content)                   \
-  HTTP_XX(206, PARTIAL_CONTENT,                 Partial Content)                 \
-  HTTP_XX(207, MULTI_STATUS,                    Multi-Status)                    \
-  HTTP_XX(208, ALREADY_REPORTED,                Already Reported)                \
-  HTTP_XX(226, IM_USED,                         IM Used)                         \
-  HTTP_XX(300, MULTIPLE_CHOICES,                Multiple Choices)                \
-  HTTP_XX(301, MOVED_PERMANENTLY,               Moved Permanently)               \
-  HTTP_XX(302, FOUND,                           Found)                           \
-  HTTP_XX(303, SEE_OTHER,                       See Other)                       \
-  HTTP_XX(304, NOT_MODIFIED,                    Not Modified)                    \
-  HTTP_XX(305, USE_PROXY,                       Use Proxy)                       \
-  HTTP_XX(307, TEMPORARY_REDIRECT,              Temporary Redirect)              \
-  HTTP_XX(308, PERMANENT_REDIRECT,              Permanent Redirect)              \
-  HTTP_XX(400, BAD_REQUEST,                     Bad Request)                     \
-  HTTP_XX(401, UNAUTHORIZED,                    Unauthorized)                    \
-  HTTP_XX(402, PAYMENT_REQUIRED,                Payment Required)                \
-  HTTP_XX(403, FORBIDDEN,                       Forbidden)                       \
-  HTTP_XX(404, NOT_FOUND,                       Not Found)                       \
-  HTTP_XX(405, METHOD_NOT_ALLOWED,              Method Not Allowed)              \
-  HTTP_XX(406, NOT_ACCEPTABLE,                  Not Acceptable)                  \
-  HTTP_XX(407, PROXY_AUTHENTICATION_REQUIRED,   Proxy Authentication Required)   \
-  HTTP_XX(408, REQUEST_TIMEOUT,                 Request Timeout)                 \
-  HTTP_XX(409, CONFLICT,                        Conflict)                        \
-  HTTP_XX(410, GONE,                            Gone)                            \
-  HTTP_XX(411, LENGTH_REQUIRED,                 Length Required)                 \
-  HTTP_XX(412, PRECONDITION_FAILED,             Precondition Failed)             \
-  HTTP_XX(413, PAYLOAD_TOO_LARGE,               Payload Too Large)               \
-  HTTP_XX(414, URI_TOO_LONG,                    URI Too Long)                    \
-  HTTP_XX(415, UNSUPPORTED_MEDIA_TYPE,          Unsupported Media Type)          \
-  HTTP_XX(416, RANGE_NOT_SATISFIABLE,           Range Not Satisfiable)           \
-  HTTP_XX(417, EXPECTATION_FAILED,              Expectation Failed)              \
-  HTTP_XX(421, MISDIRECTED_REQUEST,             Misdirected Request)             \
-  HTTP_XX(422, UNPROCESSABLE_ENTITY,            Unprocessable Entity)            \
-  HTTP_XX(423, LOCKED,                          Locked)                          \
-  HTTP_XX(424, FAILED_DEPENDENCY,               Failed Dependency)               \
-  HTTP_XX(426, UPGRADE_REQUIRED,                Upgrade Required)                \
-  HTTP_XX(428, PRECONDITION_REQUIRED,           Precondition Required)           \
-  HTTP_XX(429, TOO_MANY_REQUESTS,               Too Many Requests)               \
-  HTTP_XX(431, REQUEST_HEADER_FIELDS_TOO_LARGE, Request Header Fields Too Large) \
-  HTTP_XX(451, UNAVAILABLE_FOR_LEGAL_REASONS,   Unavailable For Legal Reasons)   \
-  HTTP_XX(500, INTERNAL_SERVER_ERROR,           Internal Server Error)           \
-  HTTP_XX(501, NOT_IMPLEMENTED,                 Not Implemented)                 \
-  HTTP_XX(502, BAD_GATEWAY,                     Bad Gateway)                     \
-  HTTP_XX(503, SERVICE_UNAVAILABLE,             Service Unavailable)             \
-  HTTP_XX(504, GATEWAY_TIMEOUT,                 Gateway Timeout)                 \
-  HTTP_XX(505, HTTP_VERSION_NOT_SUPPORTED,      HTTP Version Not Supported)      \
-  HTTP_XX(506, VARIANT_ALSO_NEGOTIATES,         Variant Also Negotiates)         \
-  HTTP_XX(507, INSUFFICIENT_STORAGE,            Insufficient Storage)            \
-  HTTP_XX(508, LOOP_DETECTED,                   Loop Detected)                   \
-  HTTP_XX(510, NOT_EXTENDED,                    Not Extended)                    \
-  HTTP_XX(511, NETWORK_AUTHENTICATION_REQUIRED, Network Authentication Required) \
+  HTTP_XX(100, continuation,                    Continue)                        \
+  HTTP_XX(101, switching_protocols,             Switching Protocols)             \
+  HTTP_XX(102, processing,                      Processing)                      \
+  HTTP_XX(200, ok,                              OK)                              \
+  HTTP_XX(201, created,                         Created)                         \
+  HTTP_XX(202, accepted,                        Accepted)                        \
+  HTTP_XX(203, non_authoritative_information,   Non-Authoritative Information)   \
+  HTTP_XX(204, no_content,                      No Content)                      \
+  HTTP_XX(205, reset_content,                   Reset Content)                   \
+  HTTP_XX(206, partial_content,                 Partial Content)                 \
+  HTTP_XX(207, multi_status,                    Multi-Status)                    \
+  HTTP_XX(208, already_reported,                Already Reported)                \
+  HTTP_XX(226, im_used,                         IM Used)                         \
+  HTTP_XX(300, multiple_choices,                Multiple Choices)                \
+  HTTP_XX(301, moved_permanently,               Moved Permanently)               \
+  HTTP_XX(302, found,                           Found)                           \
+  HTTP_XX(303, see_other,                       See Other)                       \
+  HTTP_XX(304, not_modified,                    Not Modified)                    \
+  HTTP_XX(305, use_proxy,                       Use Proxy)                       \
+  HTTP_XX(307, temporary_redirect,              Temporary Redirect)              \
+  HTTP_XX(308, permanent_redirect,              Permanent Redirect)              \
+  HTTP_XX(400, bad_request,                     Bad Request)                     \
+  HTTP_XX(401, unauthorized,                    Unauthorized)                    \
+  HTTP_XX(402, payment_required,                Payment Required)                \
+  HTTP_XX(403, forbidden,                       Forbidden)                       \
+  HTTP_XX(404, not_found,                       Not Found)                       \
+  HTTP_XX(405, method_not_allowed,              Method Not Allowed)              \
+  HTTP_XX(406, not_acceptable,                  Not Acceptable)                  \
+  HTTP_XX(407, proxy_authentication_required,   Proxy Authentication Required)   \
+  HTTP_XX(408, request_timeout,                 Request Timeout)                 \
+  HTTP_XX(409, conflict,                        Conflict)                        \
+  HTTP_XX(410, gone,                            Gone)                            \
+  HTTP_XX(411, length_required,                 Length Required)                 \
+  HTTP_XX(412, precondition_failed,             Precondition Failed)             \
+  HTTP_XX(413, payload_too_large,               Payload Too Large)               \
+  HTTP_XX(414, uri_too_long,                    URI Too Long)                    \
+  HTTP_XX(415, unsupported_media_type,          Unsupported Media Type)          \
+  HTTP_XX(416, range_not_satisfiable,           Range Not Satisfiable)           \
+  HTTP_XX(417, expectation_failed,              Expectation Failed)              \
+  HTTP_XX(421, misdirected_request,             Misdirected Request)             \
+  HTTP_XX(422, unprocessable_entity,            Unprocessable Entity)            \
+  HTTP_XX(423, locked,                          Locked)                          \
+  HTTP_XX(424, failed_dependency,               Failed Dependency)               \
+  HTTP_XX(426, upgrade_required,                Upgrade Required)                \
+  HTTP_XX(428, precondition_required,           Precondition Required)           \
+  HTTP_XX(429, too_many_requests,               Too Many Requests)               \
+  HTTP_XX(431, request_header_fields_too_large, Request Header Fields Too Large) \
+  HTTP_XX(451, unavailable_for_legal_reasons,   Unavailable For Legal Reasons)   \
+  HTTP_XX(500, internal_server_error,           Internal Server Error)           \
+  HTTP_XX(501, not_implemented,                 Not Implemented)                 \
+  HTTP_XX(502, bad_gateway,                     Bad Gateway)                     \
+  HTTP_XX(503, service_unavailable,             Service Unavailable)             \
+  HTTP_XX(504, gateway_timeout,                 Gateway Timeout)                 \
+  HTTP_XX(505, http_version_not_supported,      HTTP Version Not Supported)      \
+  HTTP_XX(506, variant_also_negotiates,         Variant Also Negotiates)         \
+  HTTP_XX(507, insufficient_storage,            Insufficient Storage)            \
+  HTTP_XX(508, loop_detected,                   Loop Detected)                   \
+  HTTP_XX(510, not_extended,                    Not Extended)                    \
+  HTTP_XX(511, network_authentication_required, Network Authentication Required) \
 
 enum class http_status
   {
-#define HTTP_XX(num, name, string) HTTP_STATUS_##name = num,
+// 20220214 Fix the conflict with the macro definition in <wininet.h>
+// HTTP_STATUS_CONTINUE is also defined in <wininet.h>
+#define HTTP_XX(num, name, string) name = num,
   HTTP_STATUS_MAP(HTTP_XX)
 #undef HTTP_XX
   };
@@ -291,7 +295,9 @@ enum class flags
   HTTP_XX(INVALID_INTERNAL_STATE, "encountered unexpected internal state")\
   HTTP_XX(STRICT, "strict mode assertion failed")                         \
   HTTP_XX(PAUSED, "parser is paused")                                     \
-  HTTP_XX(UNKNOWN, "an unknown error occurred")
+  HTTP_XX(UNKNOWN, "an unknown error occurred")                           \
+  HTTP_XX(INVALID_TRANSFER_ENCODING,                                      \
+     "request has invalid transfer-encoding")                             \
 
 
 /* Define HPE_* values for each errno value above */
@@ -309,14 +315,20 @@ enum class http_errno {
 struct http_parser {
   /** PRIVATE **/
   unsigned int type : 2;         /* enum http_parser_type */
-  unsigned int flags : 8;        /* F_* values from 'flags' enum; semi-public */
+  unsigned int flags : 8;       /* F_* values from 'flags' enum; semi-public */
   unsigned int state : 7;        /* enum state from http_parser.c */
   unsigned int header_state : 7; /* enum header_state from http_parser.c */
-  unsigned int index : 7;        /* index into current matcher */
+  unsigned int index : 5;        /* index into current matcher */
+  unsigned int uses_transfer_encoding : 1; /* Transfer-Encoding header is present */
+  unsigned int allow_chunked_length : 1; /* Allow headers with both
+                                          * `Content-Length` and
+                                          * `Transfer-Encoding: chunked` set */
   unsigned int lenient_http_headers : 1;
 
   uint32_t nread;          /* # bytes read in various scenarios */
-  uint64_t content_length; /* # bytes in body (0 if no Content-Length header) */
+  uint64_t content_length; /* # bytes in body. `(uint64_t) -1` (all bits one)
+                            * if no Content-Length header.
+                            */
 
   /** READ-ONLY **/
   unsigned short http_major;
@@ -475,6 +487,8 @@ struct http_parser_url {
 #include <string.h>
 #include <limits.h>
 
+static uint32_t max_header_size = HTTP_MAX_HEADER_SIZE;
+
 #ifndef HTTP_ULLONG_MAX
 # define HTTP_ULLONG_MAX ((uint64_t) -1) /* 2^64-1 */
 #endif
@@ -499,6 +513,7 @@ struct http_parser_url {
 
 #define HTTP_SET_ERRNO(e)                                            \
 do {                                                                 \
+  parser->nread = nread;                                             \
   parser->http_errno = (unsigned int)(e);                            \
 } while(0)
 
@@ -506,6 +521,7 @@ do {                                                                 \
 #define HTTP_UPDATE_STATE(V) p_state = (state) (V);
 #define HTTP_RETURN(V)                                               \
 do {                                                                 \
+  parser->nread = nread;                                             \
   parser->state = (unsigned int)(HTTP_CURRENT_STATE());              \
   return (V);                                                        \
 } while (0);
@@ -587,20 +603,20 @@ do {                                                                 \
 } while (0)
 
 /* Don't allow the total size of the HTTP headers (including the status
- * line) to exceed HTTP_MAX_HEADER_SIZE.  This check is here to protect
+ * line) to exceed max_header_size.  This check is here to protect
  * embedders against denial-of-service attacks where the attacker feeds
  * us a never-ending header that the embedder keeps buffering.
  *
  * This check is arguably the responsibility of embedders but we're doing
  * it on the embedder's behalf because most won't bother and this way we
- * make the web a little safer.  HTTP_MAX_HEADER_SIZE is still far bigger
+ * make the web a little safer.  max_header_size is still far bigger
  * than any reasonable request or response so this should never affect
  * day-to-day operation.
  */
 #define HTTP_COUNT_HEADER_SIZE(V)                                    \
 do {                                                                 \
-  parser->nread += static_cast<uint32_t>(V);                         \
-  if (HTTP_UNLIKELY(parser->nread > (HTTP_MAX_HEADER_SIZE))) {       \
+  nread += (uint32_t)(V);                                            \
+  if (HTTP_UNLIKELY(nread > max_header_size)) {                      \
     HTTP_SET_ERRNO(http_errno::HPE_HEADER_OVERFLOW);                 \
     goto error;                                                      \
   }                                                                  \
@@ -642,7 +658,7 @@ static const char tokens[256] = {
 /*  24 can   25 em    26 sub   27 esc   28 fs    29 gs    30 rs    31 us  */
         0,       0,       0,       0,       0,       0,       0,       0,
 /*  32 sp    33  !    34  "    35  #    36  $    37  %    38  &    39  '  */
-        0,      '!',      0,      '#',     '$',     '%',     '&',    '\'',
+       ' ',     '!',      0,      '#',     '$',     '%',     '&',    '\'',
 /*  40  (    41  )    42  *    43  +    44  ,    45  -    46  .    47  /  */
         0,       0,      '*',     '+',      0,      '-',     '.',      0,
 /*  48  0    49  1    50  2    51  3    52  4    53  5    54  6    55  7  */
@@ -762,6 +778,8 @@ enum class state
   , s_req_http_HT
   , s_req_http_HTT
   , s_req_http_HTTP
+  , s_req_http_I
+  , s_req_http_IC
   , s_req_http_major
   , s_req_http_dot
   , s_req_http_minor
@@ -825,7 +843,10 @@ enum class header_states
   , h_transfer_encoding
   , h_upgrade
 
+  , h_matching_transfer_encoding_token_start
   , h_matching_transfer_encoding_chunked
+  , h_matching_transfer_encoding_token
+
   , h_matching_connection_token_start
   , h_matching_connection_keep_alive
   , h_matching_connection_close
@@ -869,14 +890,14 @@ enum class http_host_state
   (c) == ';' || (c) == ':' || (c) == '&' || (c) == '=' || (c) == '+' || \
   (c) == '$' || (c) == ',')
 
-#define HTTP_STRICT_TOKEN(c)     (tokens[(unsigned char)c])
+#define HTTP_STRICT_TOKEN(c)     ((c == ' ') ? 0 : tokens[(unsigned char)c])
 
 #if HTTP_PARSER_STRICT
-#define HTTP_TOKEN(c)            (tokens[(unsigned char)c])
+#define HTTP_TOKEN(c)            HTTP_STRICT_TOKEN(c)
 #define HTTP_IS_URL_CHAR(c)      (HTTP_BIT_AT(normal_url_char, (unsigned char)c))
 #define HTTP_IS_HOST_CHAR(c)     (HTTP_IS_ALPHANUM(c) || (c) == '.' || (c) == '-')
 #else
-#define HTTP_TOKEN(c)            ((c == ' ') ? ' ' : tokens[(unsigned char)c])
+#define HTTP_TOKEN(c)            tokens[(unsigned char)c]
 #define HTTP_IS_URL_CHAR(c)                                                         \
   (HTTP_BIT_AT(normal_url_char, (unsigned char)c) || ((c) & 0x80))
 #define HTTP_IS_HOST_CHAR(c)                                                        \
@@ -935,6 +956,12 @@ http_message_needs_eof (const http_parser *parser)
       parser->status_code == 304 ||     /* Not Modified */
       parser->flags & (unsigned int)(flags::F_SKIPBODY)) {     /* response to a HEAD request */
     return 0;
+  }
+
+  /* RFC 7230 3.3.3, see `s_headers_almost_done` */
+  if ((parser->uses_transfer_encoding == 1) &&
+      (parser->flags & (unsigned int)(flags::F_CHUNKED)) == 0) {
+    return 1;
   }
 
   if ((parser->flags & (unsigned int)(flags::F_CHUNKED)) || parser->content_length != HTTP_ULLONG_MAX) {
@@ -1035,7 +1062,7 @@ parse_url_char(state s, const char ch)
         return state::s_dead;
       }
 
-    /* FALLTHROUGH */
+    /* fall through */
     case state::s_req_server_start:
     case state::s_req_server:
       if (ch == '/') {
@@ -1153,6 +1180,9 @@ size_t http_parser_execute (http_parser *parser,
   const char *status_mark = 0;
   state p_state = (state) parser->state;
   const unsigned int lenient = parser->lenient_http_headers;
+  const unsigned int allow_chunked_length = parser->allow_chunked_length;
+
+  uint32_t nread = parser->nread;
 
   /* We're in an error state. Don't bother doing anything. */
   if (HTTP_PARSER_ERRNO(parser) != http_errno::HPE_OK) {
@@ -1230,6 +1260,7 @@ reexecute:
         if (ch == HTTP_CR || ch == HTTP_LF)
           break;
         parser->flags = (unsigned int)(0);
+        parser->uses_transfer_encoding = 0;
         parser->content_length = HTTP_ULLONG_MAX;
 
         if (ch == 'H') {
@@ -1264,21 +1295,17 @@ reexecute:
 
       case state::s_start_res:
       {
+        if (ch == HTTP_CR || ch == HTTP_LF)
+          break;
         parser->flags = (unsigned int)(0);
+        parser->uses_transfer_encoding = 0;
         parser->content_length = HTTP_ULLONG_MAX;
 
-        switch (ch) {
-          case 'H':
-            HTTP_UPDATE_STATE(state::s_res_H);
-            break;
-
-          case HTTP_CR:
-          case HTTP_LF:
-            break;
-
-          default:
-            HTTP_SET_ERRNO(http_errno::HPE_INVALID_CONSTANT);
-            goto error;
+        if (ch == 'H') {
+          HTTP_UPDATE_STATE(state::s_res_H);
+        } else {
+          HTTP_SET_ERRNO(http_errno::HPE_INVALID_CONSTANT);
+          goto error;
         }
 
         HTTP_CALLBACK_NOTIFY(message_begin);
@@ -1429,6 +1456,7 @@ reexecute:
         if (ch == HTTP_CR || ch == HTTP_LF)
           break;
         parser->flags = (unsigned int)(0);
+        parser->uses_transfer_encoding = 0;
         parser->content_length = HTTP_ULLONG_MAX;
 
         if (HTTP_UNLIKELY(!HTTP_IS_ALPHA(ch))) {
@@ -1595,11 +1623,17 @@ reexecute:
 
       case state::s_req_http_start:
         switch (ch) {
+          case ' ':
+            break;
           case 'H':
             HTTP_UPDATE_STATE(state::s_req_http_H);
             break;
-          case ' ':
-            break;
+          case 'I':
+            if (parser->method == (unsigned int)(http_method::HTTP_SOURCE)) {
+              HTTP_UPDATE_STATE(state::s_req_http_I);
+              break;
+            }
+            /* fall through */
           default:
             HTTP_SET_ERRNO(http_errno::HPE_INVALID_CONSTANT);
             goto error;
@@ -1618,7 +1652,17 @@ reexecute:
 
       case state::s_req_http_HTT:
         HTTP_STRICT_CHECK(ch != 'P');
-        HTTP_UPDATE_STATE(state::s_req_http_HTTP);
+		HTTP_UPDATE_STATE(state::s_req_http_HTTP);
+        break;
+
+      case state::s_req_http_I:
+        HTTP_STRICT_CHECK(ch != 'C');
+		HTTP_UPDATE_STATE(state::s_req_http_IC);
+        break;
+
+      case state::s_req_http_IC:
+        HTTP_STRICT_CHECK(ch != 'E');
+        HTTP_UPDATE_STATE(state::s_req_http_HTTP);  /* Treat "ICE" as "HTTP". */
         break;
 
       case state::s_req_http_HTTP:
@@ -1747,8 +1791,14 @@ reexecute:
             break;
 
           switch (header_states(parser->header_state)) {
-            case header_states::h_general:
+            case header_states::h_general: {
+              size_t left = size_t(data + len - p);
+              const char* pe = p + HTTP_MIN(left, max_header_size);
+              while (p+1 < pe && HTTP_TOKEN(p[1])) {
+                p++;
+              }
               break;
+            }
 
             case header_states::h_C:
               parser->index++;
@@ -1820,6 +1870,7 @@ reexecute:
                 parser->header_state = (unsigned int)(header_states::h_general);
               } else if (parser->index == sizeof(HTTP_TRANSFER_ENCODING)-2) {
                 parser->header_state = (unsigned int)(header_states::h_transfer_encoding);
+                parser->uses_transfer_encoding = 1;
               }
               break;
 
@@ -1848,12 +1899,13 @@ reexecute:
           }
         }
 
-        HTTP_COUNT_HEADER_SIZE(p - start);
-
         if (p == data + len) {
           --p;
+          HTTP_COUNT_HEADER_SIZE(p - start);
           break;
         }
+
+        HTTP_COUNT_HEADER_SIZE(p - start);
 
         if (ch == ':') {
           HTTP_UPDATE_STATE(state::s_header_value_discard_ws);
@@ -1878,7 +1930,7 @@ reexecute:
           break;
         }
 
-        /* FALLTHROUGH */
+        /* fall through */
 
       case state::s_header_value_start:
       {
@@ -1900,8 +1952,12 @@ reexecute:
             if ('c' == c) {
               parser->header_state = (unsigned int)(header_states::h_matching_transfer_encoding_chunked);
             } else {
-              parser->header_state = (unsigned int)(header_states::h_general);
+              parser->header_state = (unsigned int)(header_states::h_matching_transfer_encoding_token);
             }
+            break;
+
+          /* Multi-value `Transfer-Encoding` header */
+          case header_states::h_matching_transfer_encoding_token_start:
             break;
 
           case header_states::h_content_length:
@@ -1918,6 +1974,11 @@ reexecute:
             parser->flags |= (unsigned int)(flags::F_CONTENTLENGTH);
             parser->content_length = ch - '0';
             parser->header_state = (unsigned int)(header_states::h_content_length_num);
+            break;
+
+          /* when obsolete line folding is encountered for content length
+           * continue to the s_header_value state */
+          case header_states::h_content_length_ws:
             break;
 
           case header_states::h_connection:
@@ -1975,29 +2036,25 @@ reexecute:
 
           switch (h_state) {
             case header_states::h_general:
-            {
-              const char* p_cr;
-              const char* p_lf;
-              size_t limit = data + len - p;
+              {
+                size_t left = size_t(data + len - p);
+                const char* pe = p + HTTP_MIN(left, max_header_size);
 
-              limit = HTTP_MIN(limit, HTTP_MAX_HEADER_SIZE);
-
-              p_cr = (const char*) memchr(p, HTTP_CR, limit);
-              p_lf = (const char*) memchr(p, HTTP_LF, limit);
-              if (p_cr != NULL) {
-                if (p_lf != NULL && p_cr >= p_lf)
-                  p = p_lf;
-                else
-                  p = p_cr;
-              } else if (HTTP_UNLIKELY(p_lf != NULL)) {
-                p = p_lf;
-              } else {
-                p = data + len;
+                for (; p != pe; p++) {
+                  ch = *p;
+                  if (ch == HTTP_CR || ch == HTTP_LF) {
+                    --p;
+                    break;
+                  }
+                  if (!lenient && !HTTP_IS_HEADER_CHAR(ch)) {
+                    HTTP_SET_ERRNO(http_errno::HPE_INVALID_HEADER_TOKEN);
+                    goto error;
+                  }
+                }
+                if (p == data + len)
+                  --p;
+                break;
               }
-              --p;
-
-              break;
-            }
 
             case header_states::h_connection:
             case header_states::h_transfer_encoding:
@@ -2007,7 +2064,7 @@ reexecute:
             case header_states::h_content_length:
               if (ch == ' ') break;
               h_state = header_states::h_content_length_num;
-              /* FALLTHROUGH */
+              /* fall through */
 
             case header_states::h_content_length_num:
             {
@@ -2046,13 +2103,38 @@ reexecute:
               goto error;
 
             /* Transfer-Encoding: chunked */
+            case header_states::h_matching_transfer_encoding_token_start:
+              /* looking for 'Transfer-Encoding: chunked' */
+              if ('c' == c) {
+                h_state = header_states::h_matching_transfer_encoding_chunked;
+              } else if (HTTP_STRICT_TOKEN(c)) {
+                /* TODO(indutny): similar code below does this, but why?
+                 * At the very least it seems to be inconsistent given that
+                 * h_matching_transfer_encoding_token does not check for
+                 * `STRICT_TOKEN`
+                 */
+                h_state = header_states::h_matching_transfer_encoding_token;
+              } else if (c == ' ' || c == '\t') {
+                /* Skip lws */
+              } else {
+                h_state = header_states::h_general;
+              }
+              break;
+
             case header_states::h_matching_transfer_encoding_chunked:
               parser->index++;
               if (parser->index > sizeof(HTTP_CHUNKED)-1
                   || c != HTTP_CHUNKED[parser->index]) {
-                h_state = header_states::h_general;
+                h_state = header_states::h_matching_transfer_encoding_token;
               } else if (parser->index == sizeof(HTTP_CHUNKED)-2) {
                 h_state = header_states::h_transfer_encoding_chunked;
+              }
+              break;
+
+            case header_states::h_matching_transfer_encoding_token:
+              if (ch == ',') {
+                h_state = header_states::h_matching_transfer_encoding_token_start;
+                parser->index = 0;
               }
               break;
 
@@ -2114,7 +2196,7 @@ reexecute:
               break;
 
             case header_states::h_transfer_encoding_chunked:
-              if (ch != ' ') h_state = header_states::h_general;
+              if (ch != ' ') h_state = header_states::h_matching_transfer_encoding_token;
               break;
 
             case header_states::h_connection_keep_alive:
@@ -2143,10 +2225,10 @@ reexecute:
         }
         parser->header_state = (unsigned int)(h_state);
 
-        HTTP_COUNT_HEADER_SIZE(p - start);
-
         if (p == data + len)
           --p;
+
+        HTTP_COUNT_HEADER_SIZE(p - start);
         break;
       }
 
@@ -2164,6 +2246,10 @@ reexecute:
       case state::s_header_value_lws:
       {
         if (ch == ' ' || ch == '\t') {
+          if (parser->header_state == (unsigned int)(header_states::h_content_length_num)) {
+              /* treat obsolete line folding as space */
+              parser->header_state = (unsigned int)(header_states::h_content_length_ws);
+          }
           HTTP_UPDATE_STATE(state::s_header_value_start);
           HTTP_REEXECUTE();
         }
@@ -2216,6 +2302,11 @@ reexecute:
             case header_states::h_transfer_encoding_chunked:
               parser->flags |= (unsigned int)(flags::F_CHUNKED);
               break;
+            case header_states::h_content_length:
+              /* do not allow empty content length */
+              HTTP_SET_ERRNO(http_errno::HPE_INVALID_CONTENT_LENGTH);
+              goto error;
+              break;
             default:
               break;
           }
@@ -2239,12 +2330,22 @@ reexecute:
           HTTP_REEXECUTE();
         }
 
-        /* Cannot use chunked encoding and a content-length header together
-           per the HTTP specification. */
-        if ((parser->flags & (unsigned int)(flags::F_CHUNKED)) &&
+        /* Cannot use transfer-encoding and a content-length header together
+           per the HTTP specification. (RFC 7230 Section 3.3.3) */
+        if ((parser->uses_transfer_encoding == 1) &&
             (parser->flags & (unsigned int)(flags::F_CONTENTLENGTH))) {
-          HTTP_SET_ERRNO(http_errno::HPE_UNEXPECTED_CONTENT_LENGTH);
-          goto error;
+          /* Allow it for lenient parsing as long as `Transfer-Encoding` is
+           * not `chunked` or allow_length_with_encoding is set
+           */
+          if (parser->flags & (unsigned int)(flags::F_CHUNKED)) {
+            if (!allow_chunked_length) {
+              HTTP_SET_ERRNO(http_errno::HPE_UNEXPECTED_CONTENT_LENGTH);
+              goto error;
+            }
+          } else if (!lenient) {
+            HTTP_SET_ERRNO(http_errno::HPE_UNEXPECTED_CONTENT_LENGTH);
+            goto error;
+          }
         }
 
         HTTP_UPDATE_STATE(state::s_headers_done);
@@ -2279,7 +2380,7 @@ reexecute:
             case 2:
               parser->upgrade = 1;
 
-            /* FALLTHROUGH */
+            /* fall through */
             case 1:
               parser->flags |= (unsigned int)(flags::F_SKIPBODY);
               break;
@@ -2303,6 +2404,7 @@ reexecute:
         HTTP_STRICT_CHECK(ch != HTTP_LF);
 
         parser->nread = 0;
+        nread = 0;
 
         hasBody = parser->flags & (unsigned int)(flags::F_CHUNKED) ||
           (parser->content_length > 0 && parser->content_length != HTTP_ULLONG_MAX);
@@ -2318,8 +2420,31 @@ reexecute:
           HTTP_UPDATE_STATE(HTTP_NEW_MESSAGE());
           HTTP_CALLBACK_NOTIFY(message_complete);
         } else if (parser->flags & (unsigned int)(flags::F_CHUNKED)) {
-          /* chunked encoding - ignore Content-Length header */
+          /* chunked encoding - ignore Content-Length header,
+           * prepare for a chunk */
           HTTP_UPDATE_STATE(state::s_chunk_size_start);
+        } else if (parser->uses_transfer_encoding == 1) {
+          if (parser->type == (unsigned int)(http_parser_type::HTTP_REQUEST) && !lenient) {
+            /* RFC 7230 3.3.3 */
+
+            /* If a Transfer-Encoding header field
+             * is present in a request and the chunked transfer coding is not
+             * the final encoding, the message body length cannot be determined
+             * reliably; the server MUST respond with the 400 (Bad Request)
+             * status code and then close the connection.
+             */
+            HTTP_SET_ERRNO(http_errno::HPE_INVALID_TRANSFER_ENCODING);
+            HTTP_RETURN(p - data); /* Error */
+          } else {
+            /* RFC 7230 3.3.3 */
+
+            /* If a Transfer-Encoding header field is present in a response and
+             * the chunked transfer coding is not the final encoding, the
+             * message body length is determined by reading the connection until
+             * it is closed by the server.
+             */
+            HTTP_UPDATE_STATE(state::s_body_identity_eof);
+          }
         } else {
           if (parser->content_length == 0) {
             /* Content-Length header given but zero: Content-Length: 0\r\n */
@@ -2397,7 +2522,7 @@ reexecute:
 
       case state::s_chunk_size_start:
       {
-        assert(parser->nread == 1);
+        assert(nread == 1);
         assert(parser->flags & (unsigned int)(flags::F_CHUNKED));
 
         unhex_val = unhex[(unsigned char)ch];
@@ -2465,6 +2590,7 @@ reexecute:
         HTTP_STRICT_CHECK(ch != HTTP_LF);
 
         parser->nread = 0;
+        nread = 0;
 
         if (parser->content_length == 0) {
           parser->flags |= (unsigned int)(flags::F_TRAILING);
@@ -2511,6 +2637,7 @@ reexecute:
         assert(parser->flags & (unsigned int)(flags::F_CHUNKED));
         HTTP_STRICT_CHECK(ch != HTTP_LF);
         parser->nread = 0;
+        nread = 0;
         HTTP_UPDATE_STATE(state::s_chunk_size_start);
         HTTP_CALLBACK_NOTIFY(chunk_complete);
         break;
@@ -2522,7 +2649,7 @@ reexecute:
     }
   }
 
-  /* Run callbacks for any marks that we have leftover after we ran our of
+  /* Run callbacks for any marks that we have leftover after we ran out of
    * bytes. There should be at most one of these set, so it's OK to invoke
    * them in series (unset marks will not result in callbacks).
    *
@@ -2554,19 +2681,19 @@ error:
   HTTP_RETURN(p - data);
 }
 
+/* Returns a string version of the HTTP method. */
 template<typename = void>
-const char *
-http_method_str (http_method m)
+const char *http_method_str (http_method m)
 {
   return HTTP_ELEM_AT(method_strings, m, "<unknown>");
 }
 
+/* Returns a string version of the HTTP status code. */
 template<typename = void>
-const char *
-http_status_str(http_status s)
+const char *http_status_str(http_status s)
 {
 	switch (s) {
-#define HTTP_XX(num, name, string) case http_status::HTTP_STATUS_##name: return #string;
+#define HTTP_XX(num, name, string) case http_status::name: return #string;
 		HTTP_STATUS_MAP(HTTP_XX)
 #undef HTTP_XX
 	default: return "<unknown>";
@@ -2644,7 +2771,7 @@ http_parse_host_char(http_host_state s, const char ch) {
         return http_host_state::s_http_host;
       }
 
-    /* FALLTHROUGH */
+    /* fall through */
     case http_host_state::s_http_host_v6_end:
       if (ch == ':') {
         return http_host_state::s_http_host_port_start;
@@ -2657,7 +2784,7 @@ http_parse_host_char(http_host_state s, const char ch) {
         return http_host_state::s_http_host_v6_end;
       }
 
-    /* FALLTHROUGH */
+    /* fall through */
     case http_host_state::s_http_host_v6_start:
       if (HTTP_IS_HEX(ch) || ch == ':' || ch == '.') {
         return http_host_state::s_http_host_v6;
@@ -2673,7 +2800,7 @@ http_parse_host_char(http_host_state s, const char ch) {
         return http_host_state::s_http_host_v6_end;
       }
 
-    /* FALLTHROUGH */
+    /* fall through */
     case http_host_state::s_http_host_v6_zone_start:
       /* RFC 6874 Zone ID consists of 1*( unreserved / pct-encoded) */
       if (HTTP_IS_ALPHANUM(ch) || ch == '%' || ch == '.' || ch == '-' || ch == '_' ||
@@ -2795,6 +2922,10 @@ http_parser_parse_url(const char *buf, size_t buflen, int is_connect,
   url_fields uf, old_uf;
   int found_at = 0;
 
+  if (buflen == 0) {
+    return 1;
+  }
+
   u->port = u->field_set = 0;
   s = is_connect ? state::s_req_server_start : state::s_req_spaces_before_url;
   old_uf = url_fields::UF_MAX;
@@ -2822,7 +2953,7 @@ http_parser_parse_url(const char *buf, size_t buflen, int is_connect,
       case state::s_req_server_with_at:
         found_at = 1;
 
-      /* FALLTHROUGH */
+      /* fall through */
       case state::s_req_server:
         uf = url_fields::UF_HOST;
         break;
@@ -2914,16 +3045,24 @@ http_parser_pause(http_parser *parser, int paused) {
    */
   if (HTTP_PARSER_ERRNO(parser) == http_errno::HPE_OK ||
       HTTP_PARSER_ERRNO(parser) == http_errno::HPE_PAUSED) {
+    uint32_t nread = parser->nread; /* used by the HTTP_SET_ERRNO macro */
     HTTP_SET_ERRNO((paused) ? http_errno::HPE_PAUSED : http_errno::HPE_OK);
   } else {
     assert(0 && "Attempting to pause parser in error state");
   }
 }
 
+/* Checks if this is the final chunk of the body. */
 template<typename = void>
-int
-http_body_is_final(const struct http_parser *parser) {
+int http_body_is_final(const struct http_parser *parser) {
     return parser->state == (unsigned int)(state::s_message_done);
+}
+
+/* Change the maximum header size provided at compile time. */
+template<typename = void>
+void http_parser_set_max_header_size(uint32_t size)
+{
+  max_header_size = size;
 }
 
 template<typename = void>

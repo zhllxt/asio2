@@ -13,7 +13,7 @@
 
 #include <asio2/config.hpp>
 
-#if __has_include(<boost/limits.hpp>)
+#if !defined(ASIO2_DISABLE_BOOST) && __has_include(<boost/limits.hpp>)
 #include <boost/limits.hpp>
 #else
 #include <asio2/bho/limits.hpp>
