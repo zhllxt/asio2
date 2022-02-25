@@ -401,16 +401,19 @@ namespace asio2::detail
 			this->router_._route(this_ptr, this->req_, this->rep_);
 
 			if (this->is_websocket())
-				this->derived()._rdc_handle_recv(this_ptr, this->req_.ws_frame_data_, condition);
-
-			if (this->rep_.defer_guard_)
 			{
-				this->rep_.defer_guard_.reset();
+				this->derived()._rdc_handle_recv(this_ptr, this->req_.ws_frame_data_, condition);
 			}
 			else
 			{
-				if (this->is_http())
+				if (this->rep_.defer_guard_)
+				{
+					this->rep_.defer_guard_.reset();
+				}
+				else
+				{
 					this->derived()._send_response(this_ptr, condition);
+				}
 			}
 		}
 

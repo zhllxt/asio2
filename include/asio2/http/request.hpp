@@ -20,6 +20,7 @@
 #include <asio2/base/component/user_data_cp.hpp>
 
 #include <asio2/http/detail/http_util.hpp>
+#include <asio2/http/detail/http_url.hpp>
 
 #ifdef BEAST_HEADER_ONLY
 namespace bho::beast::websocket
@@ -66,7 +67,6 @@ namespace asio2::detail
 			: super(std::forward<Args>(args)...)
 			, user_data_cp<http_request_impl_t<Body, Fields>>()
 		{
-			std::memset((void*)(&url_parser_), 0, sizeof(http::parses::http_parser_url));
 		}
 
 		http_request_impl_t(const http_request_impl_t& o)
@@ -74,6 +74,7 @@ namespace asio2::detail
 			, user_data_cp<http_request_impl_t<Body, Fields>>()
 		{
 			this->base() = o.base();
+			this->url_           = o.url_;
 			this->ws_frame_type_ = o.ws_frame_type_;
 			this->ws_frame_data_ = o.ws_frame_data_;
 		}
@@ -83,6 +84,7 @@ namespace asio2::detail
 			, user_data_cp<http_request_impl_t<Body, Fields>>()
 		{
 			this->base() = std::move(o.base());
+			this->url_           = std::move(o.url_);
 			this->ws_frame_type_ = o.ws_frame_type_;
 			this->ws_frame_data_ = o.ws_frame_data_;
 		}
@@ -90,6 +92,7 @@ namespace asio2::detail
 		self& operator=(const http_request_impl_t& o)
 		{
 			this->base() = o.base();
+			this->url_           = o.url_;
 			this->ws_frame_type_ = o.ws_frame_type_;
 			this->ws_frame_data_ = o.ws_frame_data_;
 			return *this;
@@ -98,6 +101,7 @@ namespace asio2::detail
 		self& operator=(http_request_impl_t&& o)
 		{
 			this->base() = std::move(o.base());
+			this->url_           = std::move(o.url_);
 			this->ws_frame_type_ = o.ws_frame_type_;
 			this->ws_frame_data_ = o.ws_frame_data_;
 			return *this;
@@ -160,18 +164,49 @@ namespace asio2::detail
 		inline bool is_upgrade() noexcept { return websocket::is_upgrade(*this); }
 
 		/**
+		 * @function : Gets the content of the "schema" section, maybe empty
+		 * <scheme>://<user>:<password>@<host>:<port>/<path>;<params>?<query>#<fragment>
+		 */
+		inline std::string_view schema() noexcept
+		{
+			return this->url_.schema();
+		}
+
+		/**
+		 * @function : Gets the content of the "host" section, maybe empty
+		 * <scheme>://<user>:<password>@<host>:<port>/<path>;<params>?<query>#<fragment>
+		 */
+		inline std::string_view host() noexcept
+		{
+			return this->url_.host();
+		}
+
+		/**
+		 * @function : Gets the content of the "port" section, maybe empty
+		 * <scheme>://<user>:<password>@<host>:<port>/<path>;<params>?<query>#<fragment>
+		 */
+		inline std::string_view port() noexcept
+		{
+			return this->url_.port();
+		}
+
+		/**
 		 * @function : Gets the content of the "path" section of the target
 		 * <scheme>://<user>:<password>@<host>:<port>/<path>;<params>?<query>#<fragment>
 		 */
 		inline std::string_view path()
 		{
-			if (!(url_parser_.field_set & (1 << (int)http::parses::url_fields::UF_PATH)))
-				return std::string_view{};
+			if (!this->url_.string().empty())
+				return this->url_.path();
 
-			std::string_view url = this->target();
+			if (!(this->url_.parser().field_set & (1 << (int)http::parses::url_fields::UF_PATH)))
+				return std::string_view{ "/" };
 
-			return std::string_view{ &url[url_parser_.field_data[(int)http::parses::url_fields::UF_PATH].off],
-				url_parser_.field_data[(int)http::parses::url_fields::UF_PATH].len };
+			std::string_view target = this->target();
+
+			return std::string_view{ &target[
+				this->url_.parser().field_data[(int)http::parses::url_fields::UF_PATH].off],
+				this->url_.parser().field_data[(int)http::parses::url_fields::UF_PATH].len };
 		}
 
 		/**
@@ -180,13 +215,17 @@ namespace asio2::detail
 		 */
 		inline std::string_view query()
 		{
-			if (!(url_parser_.field_set & (1 << (int)http::parses::url_fields::UF_QUERY)))
+			if (!this->url_.string().empty())
+				return this->url_.query();
+
+			if (!(this->url_.parser().field_set & (1 << (int)http::parses::url_fields::UF_QUERY)))
 				return std::string_view{};
 
-			std::string_view url = this->target();
+			std::string_view target = this->target();
 
-			return std::string_view{ &url[url_parser_.field_data[(int)http::parses::url_fields::UF_QUERY].off],
-				url_parser_.field_data[(int)http::parses::url_fields::UF_QUERY].len };
+			return std::string_view{ &target[
+				this->url_.parser().field_data[(int)http::parses::url_fields::UF_QUERY].off],
+				this->url_.parser().field_data[(int)http::parses::url_fields::UF_QUERY].len };
 		}
 
 		/**
@@ -205,8 +244,13 @@ namespace asio2::detail
 			return http::multipart(*this);
 		}
 
+		/**
+		 * @function : Get the url object reference.
+		 */
+		inline http::url& url() { return this->url_; }
+
 	protected:
-		http::parses::http_parser_url         url_parser_;
+		http::url                             url_{ "" };
 		websocket::frame                      ws_frame_type_ = websocket::frame::unknown;
 		std::string_view                      ws_frame_data_;
 	};

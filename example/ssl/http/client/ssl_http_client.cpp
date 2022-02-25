@@ -19,6 +19,49 @@ int main()
 
 	asio2::error_code ec;
 
+	{
+		std::string_view url = "https://www.baidu.com/query?key=x!#$&'()*+,/:;=?@[ ]-_.~%^{}\"|<>`\\y";
+		http::request_t<http::string_body> req1;
+		http::web_request req2 = http::make_request(url);
+
+		asio::ssl::context ctx{ asio::ssl::context::sslv23 };
+
+		asio2::https_client::execute(ctx, "www.baidu.com", "443", req1, std::chrono::seconds(5), ec);
+		asio2::https_client::execute(ctx, "www.baidu.com", "443", req1, std::chrono::seconds(5));
+		asio2::https_client::execute(ctx, "www.baidu.com", "443", req1, ec);
+
+		asio2::https_client::execute("www.baidu.com", "443", req1, std::chrono::seconds(5), ec);
+		asio2::https_client::execute("www.baidu.com", "443", req1, std::chrono::seconds(5));
+		asio2::https_client::execute("www.baidu.com", "443", req1, ec);
+		asio2::https_client::execute("www.baidu.com", "443", req1);
+
+		asio2::https_client::execute(ctx, req2, std::chrono::seconds(5), ec);
+		asio2::https_client::execute(ctx, req2, std::chrono::seconds(5));
+		asio2::https_client::execute(ctx, req2, ec);
+		asio2::https_client::execute(ctx, req2);
+
+		asio2::https_client::execute(req2, std::chrono::seconds(5), ec);
+		asio2::https_client::execute(req2, std::chrono::seconds(5));
+		asio2::https_client::execute(req2, ec);
+		asio2::https_client::execute(req2);
+
+		asio2::https_client::execute(ctx, url, std::chrono::seconds(5), ec);
+		asio2::https_client::execute(ctx, url, std::chrono::seconds(5));
+		asio2::https_client::execute(ctx, url, ec);
+		asio2::https_client::execute(ctx, url);
+
+		asio2::https_client::execute(url, std::chrono::seconds(5), ec);
+		asio2::https_client::execute(url, std::chrono::seconds(5));
+		asio2::https_client::execute(url, ec);
+		asio2::https_client::execute(url);
+
+		asio2::https_client::execute("www.baidu.com", "443", "/query?key=x!#$&'()", std::chrono::seconds(5), ec);
+		asio2::https_client::execute("www.baidu.com", "443", "/query?key=x!#$&'()", std::chrono::seconds(5));
+		asio2::https_client::execute("www.baidu.com", "443", "/query?key=x!#$&'()", ec);
+		asio2::https_client::execute("www.baidu.com", "443", "/query?key=x!#$&'()");
+
+	}
+
 	auto reprss = asio2::https_client::execute("https://github.com/freefq/free", std::chrono::seconds(60), ec);
 	std::cout << reprss << std::endl;
 

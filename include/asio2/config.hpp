@@ -44,6 +44,6 @@
 
 // Whether called the timer callback when the timer is awaked with some error.
 // eg : stop_timer will awake the timer with error of asio::error::operation_aborted.
-#define ASIO2_ENABLE_TIMER_CALLBACK_WHEN_ERROR
+//#define ASIO2_ENABLE_TIMER_CALLBACK_WHEN_ERROR
 
 #endif // !__ASIO2_CONFIG_HPP__

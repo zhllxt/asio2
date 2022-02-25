@@ -28,6 +28,7 @@
 #include <string_view>
 #include <vector>
 #include <type_traits>
+#include <algorithm>
 
 namespace asio2
 {
@@ -321,7 +322,8 @@ namespace asio2
 	template<class String, class OldStr, class NewStr>
 	inline String& replace(String& s, const OldStr& old_str, const NewStr& new_str)
 	{
-		using size_type = typename String::size_type;
+		using size_type  = typename String::size_type;
+		using value_type = typename String::value_type;
 		using old_str_type = std::remove_reference_t<std::remove_cv_t<OldStr>>;
 		using new_str_type = std::remove_reference_t<std::remove_cv_t<NewStr>>;
 		using old_raw_type = std::remove_pointer_t<std::remove_all_extents_t<old_str_type>>;
@@ -346,6 +348,9 @@ namespace asio2
 			old_str_size = old_str.size();
 		}
 
+		if (old_str_size == size_type(0))
+			return s;
+
 		if constexpr (std::is_trivial_v<new_raw_type>)
 		{
 			if constexpr (std::is_pointer_v<new_str_type> || std::is_array_v<new_str_type>)
@@ -363,6 +368,18 @@ namespace asio2
 			pos = s.find(old_str, pos);
 			if (pos != String::npos)
 			{
+				// to avoid this problem:
+				// s = "a\r\nb"; replace(s, "\r", "\r\n"); s == "a\r\n\nb";
+				// at this time, the s should be: s == "a\r\nb";
+				if (old_str_size < new_str_size)
+				{
+					std::basic_string_view<value_type> v{ &(s[pos]), (std::min)(new_str_size, s.size() - pos) };
+					if (v.size() == new_str_size && v.find(new_str) == size_type(0))
+					{
+						continue;
+					}
+				}
+
 				// char* char[] char
 				if constexpr (std::is_trivial_v<new_raw_type>)
 				{
@@ -380,28 +397,34 @@ namespace asio2
 				}
 			}
 			else
+			{
 				break;
+			}
 		}
 		return s;
 	}
 
 	template<class String1, class String2>
-	inline std::size_t ifind(const String1& src, const String2& dest, typename String1::size_type pos = 0) noexcept
+	inline std::size_t ifind(const String1& src, const String2& dest, std::string::size_type pos = 0) noexcept
 	{
+		using str1_type = std::remove_reference_t<std::remove_cv_t<String1>>;
+		using raw1_type = std::remove_pointer_t<std::remove_all_extents_t<str1_type>>;
+
 		using str2_type = std::remove_reference_t<std::remove_cv_t<String2>>;
 		using raw2_type = std::remove_pointer_t<std::remove_all_extents_t<str2_type>>;
 
+		std::basic_string_view<typename detail::char_type<raw1_type>::type> suc{ src  };
 		std::basic_string_view<typename detail::char_type<raw2_type>::type> des{ dest };
 
-		if (pos >= src.size() || des.empty())
-			return String1::npos;
+		if (pos >= suc.size() || des.empty())
+			return std::string::npos;
 
 		// Outer loop
-		for (auto OuterIt = std::next(src.begin(), pos); OuterIt != src.end(); ++OuterIt)
+		for (auto OuterIt = std::next(suc.begin(), pos); OuterIt != suc.end(); ++OuterIt)
 		{
 			auto InnerIt = OuterIt;
 			auto SubstrIt = des.begin();
-			for (; InnerIt != src.end() && SubstrIt != des.end(); ++InnerIt, ++SubstrIt)
+			for (; InnerIt != suc.end() && SubstrIt != des.end(); ++InnerIt, ++SubstrIt)
 			{
 				if (std::tolower(*InnerIt) != std::tolower(*SubstrIt))
 					break;
@@ -409,10 +432,10 @@ namespace asio2
 
 			// Substring matching succeeded
 			if (SubstrIt == des.end())
-				return std::distance(src.begin(), OuterIt);
+				return std::distance(suc.begin(), OuterIt);
 		}
 
-		return String1::npos;
+		return std::string::npos;
 	}
 
 	/** 

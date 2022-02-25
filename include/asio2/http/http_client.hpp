@@ -20,6 +20,8 @@
 #include <asio2/tcp/tcp_client.hpp>
 
 #include <asio2/http/detail/http_util.hpp>
+#include <asio2/http/detail/http_make.hpp>
+
 #include <asio2/http/impl/http_send_op.hpp>
 #include <asio2/http/impl/http_recv_op.hpp>
 
@@ -125,7 +127,8 @@ namespace asio2::detail
 		template<typename String, typename StrOrInt, class Rep, class Period, class Proxy,
 			class Body = http::string_body, class Fields = http::fields, class Buffer = beast::flat_buffer>
 		static inline http::response<Body, Fields> execute(String&& host, StrOrInt&& port,
-			http::request<Body, Fields>& req, std::chrono::duration<Rep, Period> timeout, Proxy&& proxy, error_code& ec)
+			http::request<Body, Fields>& req, std::chrono::duration<Rep, Period> timeout, Proxy&& proxy,
+			error_code& ec)
 		{
 			http::parser<false, Body, typename Fields::allocator_type> parser;
 			try
@@ -241,21 +244,32 @@ namespace asio2::detail
 			return parser.release();
 		}
 
-		template<typename String, typename StrOrInt, class Rep, class Period,
-			class Body = http::string_body, class Fields = http::fields, class Buffer = beast::flat_buffer>
+		template<typename String, typename StrOrInt, class Rep, class Period, class Proxy,
+			class Body = http::string_body, class Fields = http::fields>
 		static inline http::response<Body, Fields> execute(String&& host, StrOrInt&& port,
-			http::request<Body, Fields>& req, std::chrono::duration<Rep, Period> timeout, error_code& ec)
+			http::request<Body, Fields>& req, std::chrono::duration<Rep, Period> timeout, Proxy&& proxy)
 		{
-			ec.clear();
-			return execute(
-				std::forward<String>(host), std::forward<StrOrInt>(port),
-				req, timeout, std::in_place, ec);
+			error_code ec;
+			http::response<Body, Fields> rep = execute(
+				std::forward<String>(host), std::forward<StrOrInt>(port), req, timeout,
+				std::forward<Proxy>(proxy), ec);
+			asio::detail::throw_error(ec);
+			return rep;
 		}
 
 		// ----------------------------------------------------------------------------------------
 
 		template<typename String, typename StrOrInt, class Rep, class Period,
-			class Body = http::string_body, class Fields = http::fields, class Buffer = beast::flat_buffer>
+			class Body = http::string_body, class Fields = http::fields>
+		static inline http::response<Body, Fields> execute(String&& host, StrOrInt&& port,
+			http::request<Body, Fields>& req, std::chrono::duration<Rep, Period> timeout, error_code& ec)
+		{
+			return execute(
+				std::forward<String>(host), std::forward<StrOrInt>(port), req, timeout, std::in_place, ec);
+		}
+
+		template<typename String, typename StrOrInt, class Rep, class Period,
+			class Body = http::string_body, class Fields = http::fields>
 		static inline http::response<Body, Fields> execute(String&& host, StrOrInt&& port,
 			http::request<Body, Fields>& req, std::chrono::duration<Rep, Period> timeout)
 		{
@@ -270,10 +284,9 @@ namespace asio2::detail
 		static inline http::response<Body, Fields> execute(String&& host, StrOrInt&& port,
 			http::request<Body, Fields>& req, error_code& ec)
 		{
-			ec.clear();
 			return execute(
 				std::forward<String>(host), std::forward<StrOrInt>(port),
-				req, std::chrono::milliseconds(http_execute_timeout), std::in_place, ec);
+				req, std::chrono::milliseconds(http_execute_timeout), ec);
 		}
 
 		template<typename String, typename StrOrInt, class Body = http::string_body, class Fields = http::fields>
@@ -282,31 +295,46 @@ namespace asio2::detail
 		{
 			error_code ec;
 			http::response<Body, Fields> rep = execute(
-				std::forward<String>(host), std::forward<StrOrInt>(port), req, std::in_place, ec);
+				std::forward<String>(host), std::forward<StrOrInt>(port), req, ec);
 			asio::detail::throw_error(ec);
 			return rep;
 		}
 
-		/**
-		 * @function : blocking execute the http request until it is returned on success or failure
-		 */
-		template<class Body = http::string_body, class Fields = http::fields>
-		static inline http::response<Body, Fields> execute(std::string_view url, error_code& ec)
+		// ----------------------------------------------------------------------------------------
+
+		template<class Rep, class Period, class Body = http::string_body, class Fields = http::fields>
+		static inline http::response<Body, Fields> execute(
+			http::web_request& req, std::chrono::duration<Rep, Period> timeout, error_code& ec)
 		{
-			return execute(url, std::chrono::milliseconds(http_execute_timeout), std::in_place, ec);
+			return execute(req.url().host(), req.url().port(), req.base(), timeout, std::in_place, ec);
 		}
 
-		/**
-		 * @function : blocking execute the http request until it is returned on success or failure
-		 */
-		template<class Body = http::string_body, class Fields = http::fields>
-		static inline http::response<Body, Fields> execute(std::string_view url)
+		template<class Rep, class Period, class Body = http::string_body, class Fields = http::fields>
+		static inline http::response<Body, Fields> execute(
+			http::web_request& req, std::chrono::duration<Rep, Period> timeout)
 		{
 			error_code ec;
-			http::response<Body, Fields> rep = execute(url, std::in_place, ec);
+			http::response<Body, Fields> rep = execute(req, timeout, ec);
 			asio::detail::throw_error(ec);
 			return rep;
 		}
+
+		template<class Body = http::string_body, class Fields = http::fields>
+		static inline http::response<Body, Fields> execute(http::web_request& req, error_code& ec)
+		{
+			return execute(req, std::chrono::milliseconds(http_execute_timeout), ec);
+		}
+
+		template<class Body = http::string_body, class Fields = http::fields>
+		static inline http::response<Body, Fields> execute(http::web_request& req)
+		{
+			error_code ec;
+			http::response<Body, Fields> rep = execute(req, ec);
+			asio::detail::throw_error(ec);
+			return rep;
+		}
+
+		// ----------------------------------------------------------------------------------------
 
 		/**
 		 * @function : blocking execute the http request until it is returned on success or failure
@@ -315,13 +343,13 @@ namespace asio2::detail
 		static inline http::response<Body, Fields> execute(std::string_view url,
 			std::chrono::duration<Rep, Period> timeout, error_code& ec)
 		{
-			ec.clear();
-			http::request<Body, Fields> req = http::make_request<Body, Fields>(url, ec);
-			if (ec) return http::response<Body, Fields>{ http::status::unknown, 11};
-			std::string_view host = http::url_to_host(url);
-			std::string_view port = http::url_to_port(url);
+			http::web_request req = http::make_request(url, ec);
+			if (ec)
+			{
+				return http::response<Body, Fields>{ http::status::unknown, 11};
+			}
 			return execute(
-				host, port, req, timeout, std::in_place, ec);
+				req.host(), req.port(), req.base(), timeout, std::in_place, ec);
 		}
 
 		/**
@@ -332,7 +360,59 @@ namespace asio2::detail
 			std::chrono::duration<Rep, Period> timeout)
 		{
 			error_code ec;
-			http::response<Body, Fields> rep = execute(url, timeout, std::in_place, ec);
+			http::response<Body, Fields> rep = execute(url, timeout, ec);
+			asio::detail::throw_error(ec);
+			return rep;
+		}
+
+		/**
+		 * @function : blocking execute the http request until it is returned on success or failure
+		 */
+		template<class Body = http::string_body, class Fields = http::fields>
+		static inline http::response<Body, Fields> execute(std::string_view url, error_code& ec)
+		{
+			return execute(url, std::chrono::milliseconds(http_execute_timeout), ec);
+		}
+
+		/**
+		 * @function : blocking execute the http request until it is returned on success or failure
+		 */
+		template<class Body = http::string_body, class Fields = http::fields>
+		static inline http::response<Body, Fields> execute(std::string_view url)
+		{
+			error_code ec;
+			http::response<Body, Fields> rep = execute(url, ec);
+			asio::detail::throw_error(ec);
+			return rep;
+		}
+
+		// ----------------------------------------------------------------------------------------
+
+		/**
+		 * @function : blocking execute the http request until it is returned on success or failure
+		 */
+		template<typename String, typename StrOrInt, class Rep, class Period,
+			class Body = http::string_body, class Fields = http::fields>
+		static inline http::response<Body, Fields> execute(String&& host, StrOrInt&& port,
+			std::string_view target, std::chrono::duration<Rep, Period> timeout, error_code& ec)
+		{
+			http::web_request req = http::make_request(host, port, target);
+			return execute(
+				std::forward<String>(host), std::forward<StrOrInt>(port),
+				req.base(), timeout, std::in_place, ec);
+		}
+
+		/**
+		 * @function : blocking execute the http request until it is returned on success or failure
+		 */
+		template<typename String, typename StrOrInt, class Rep, class Period,
+			class Body = http::string_body, class Fields = http::fields>
+		static inline http::response<Body, Fields> execute(String&& host, StrOrInt&& port,
+			std::string_view target, std::chrono::duration<Rep, Period> timeout)
+		{
+			error_code ec;
+			http::response<Body, Fields> rep = execute(
+				std::forward<String>(host), std::forward<StrOrInt>(port), target, timeout, ec);
 			asio::detail::throw_error(ec);
 			return rep;
 		}
@@ -346,7 +426,7 @@ namespace asio2::detail
 		{
 			return execute(
 				std::forward<String>(host), std::forward<StrOrInt>(port),
-				target, std::chrono::milliseconds(http_execute_timeout), std::in_place, ec);
+				target, std::chrono::milliseconds(http_execute_timeout), ec);
 		}
 
 		/**
@@ -358,77 +438,96 @@ namespace asio2::detail
 		{
 			error_code ec;
 			http::response<Body, Fields> rep = execute(
-				std::forward<String>(host), std::forward<StrOrInt>(port), target, std::in_place, ec);
-			asio::detail::throw_error(ec);
-			return rep;
-		}
-
-		/**
-		 * @function : blocking execute the http request until it is returned on success or failure
-		 */
-		template<typename String, typename StrOrInt, class Rep, class Period,
-			class Body = http::string_body, class Fields = http::fields>
-		static inline http::response<Body, Fields> execute(String&& host, StrOrInt&& port,
-			std::string_view target, std::chrono::duration<Rep, Period> timeout, error_code& ec)
-		{
-			using host_param_type = std::remove_cv_t<std::remove_reference_t<String>>;
-			using port_param_type = std::remove_cv_t<std::remove_reference_t<StrOrInt>>;
-			ec.clear();
-			http::request<Body, Fields> req = http::make_request<
-				const host_param_type&, const port_param_type&, Body, Fields>(
-					const_cast<const host_param_type&>(host), const_cast<const port_param_type&>(port),
-					target);
-			return execute(
-				std::forward<String>(host), std::forward<StrOrInt>(port),
-				req, timeout, std::in_place, ec);
-		}
-
-		/**
-		 * @function : blocking execute the http request until it is returned on success or failure
-		 */
-		template<typename String, typename StrOrInt, class Rep, class Period,
-			class Body = http::string_body, class Fields = http::fields>
-		static inline http::response<Body, Fields> execute(String&& host, StrOrInt&& port,
-			std::string_view target, std::chrono::duration<Rep, Period> timeout)
-		{
-			error_code ec;
-			http::response<Body, Fields> rep = execute(
-				std::forward<String>(host), std::forward<StrOrInt>(port), target, timeout, std::in_place, ec);
+				std::forward<String>(host), std::forward<StrOrInt>(port), target, ec);
 			asio::detail::throw_error(ec);
 			return rep;
 		}
 
 		// ----------------------------------------------------------------------------------------
 
-		template<typename String, typename StrOrInt, class Rep, class Period, class Proxy,
-			class Body = http::string_body, class Fields = http::fields, class Buffer = beast::flat_buffer>
-		static inline http::response<Body, Fields> execute(String&& host, StrOrInt&& port,
-			http::request<Body, Fields>& req, std::chrono::duration<Rep, Period> timeout, Proxy&& proxy)
-		{
-			error_code ec;
-			http::response<Body, Fields> rep = execute(
-				std::forward<String>(host), std::forward<StrOrInt>(port), req, timeout, std::forward<Proxy>(proxy), ec);
-			asio::detail::throw_error(ec);
-			return rep;
-		}
-
-		template<typename String, typename StrOrInt, class Proxy, class Body = http::string_body, class Fields = http::fields>
+		template<typename String, typename StrOrInt, class Proxy,
+			class Body = http::string_body, class Fields = http::fields>
 		static inline http::response<Body, Fields> execute(String&& host, StrOrInt&& port,
 			http::request<Body, Fields>& req, Proxy&& proxy, error_code& ec)
 		{
-			ec.clear();
 			return execute(
 				std::forward<String>(host), std::forward<StrOrInt>(port),
 				req, std::chrono::milliseconds(http_execute_timeout), std::forward<Proxy>(proxy), ec);
 		}
 
-		template<typename String, typename StrOrInt, class Proxy, class Body = http::string_body, class Fields = http::fields>
+		template<typename String, typename StrOrInt, class Proxy,
+			class Body = http::string_body, class Fields = http::fields>
 		static inline http::response<Body, Fields> execute(String&& host, StrOrInt&& port,
 			http::request<Body, Fields>& req, Proxy&& proxy)
 		{
 			error_code ec;
 			http::response<Body, Fields> rep = execute(
 				std::forward<String>(host), std::forward<StrOrInt>(port), req, std::forward<Proxy>(proxy), ec);
+			asio::detail::throw_error(ec);
+			return rep;
+		}
+
+		// ----------------------------------------------------------------------------------------
+
+		template<class Rep, class Period, class Proxy, class Body = http::string_body, class Fields = http::fields>
+		static inline http::response<Body, Fields> execute(
+			http::web_request& req, std::chrono::duration<Rep, Period> timeout, Proxy&& proxy, error_code& ec)
+		{
+			return execute(req.url().host(), req.url().port(), req.base(), timeout,
+				std::forward<Proxy>(proxy), ec);
+		}
+
+		template<class Rep, class Period, class Proxy, class Body = http::string_body, class Fields = http::fields>
+		static inline http::response<Body, Fields> execute(
+			http::web_request& req, std::chrono::duration<Rep, Period> timeout, Proxy&& proxy)
+		{
+			error_code ec;
+			http::response<Body, Fields> rep = execute(req, timeout, std::forward<Proxy>(proxy), ec);
+			asio::detail::throw_error(ec);
+			return rep;
+		}
+
+		template<class Proxy, class Body = http::string_body, class Fields = http::fields>
+		static inline http::response<Body, Fields> execute(http::web_request& req, Proxy&& proxy, error_code& ec)
+		{
+			return execute(req, std::chrono::milliseconds(http_execute_timeout), std::forward<Proxy>(proxy), ec);
+		}
+
+		template<class Proxy, class Body = http::string_body, class Fields = http::fields>
+		static inline http::response<Body, Fields> execute(http::web_request& req, Proxy&& proxy)
+		{
+			error_code ec;
+			http::response<Body, Fields> rep = execute(req, std::forward<Proxy>(proxy), ec);
+			asio::detail::throw_error(ec);
+			return rep;
+		}
+
+		// ----------------------------------------------------------------------------------------
+
+		/**
+		 * @function : blocking execute the http request until it is returned on success or failure
+		 */
+		template<class Rep, class Period, class Proxy, class Body = http::string_body, class Fields = http::fields>
+		static inline http::response<Body, Fields> execute(std::string_view url,
+			std::chrono::duration<Rep, Period> timeout, Proxy&& proxy, error_code& ec)
+		{
+			http::web_request req = http::make_request(url, ec);
+			if (ec)
+			{
+				return http::response<Body, Fields>{ http::status::unknown, 11};
+			}
+			return execute(req.host(), req.port(), req.base(), timeout, std::forward<Proxy>(proxy), ec);
+		}
+
+		/**
+		 * @function : blocking execute the http request until it is returned on success or failure
+		 */
+		template<class Rep, class Period, class Proxy, class Body = http::string_body, class Fields = http::fields>
+		static inline http::response<Body, Fields> execute(std::string_view url,
+			std::chrono::duration<Rep, Period> timeout, Proxy&& proxy)
+		{
+			error_code ec;
+			http::response<Body, Fields> rep = execute(url, timeout, std::forward<Proxy>(proxy), ec);
 			asio::detail::throw_error(ec);
 			return rep;
 		}
@@ -454,60 +553,7 @@ namespace asio2::detail
 			return rep;
 		}
 
-		/**
-		 * @function : blocking execute the http request until it is returned on success or failure
-		 */
-		template<class Rep, class Period, class Proxy, class Body = http::string_body, class Fields = http::fields>
-		static inline http::response<Body, Fields> execute(std::string_view url,
-			std::chrono::duration<Rep, Period> timeout, Proxy&& proxy, error_code& ec)
-		{
-			ec.clear();
-			http::request<Body, Fields> req = http::make_request<Body, Fields>(url, ec);
-			if (ec) return http::response<Body, Fields>{ http::status::unknown, 11};
-			std::string_view host = http::url_to_host(url);
-			std::string_view port = http::url_to_port(url);
-			return execute(
-				host, port, req, timeout, std::forward<Proxy>(proxy), ec);
-		}
-
-		/**
-		 * @function : blocking execute the http request until it is returned on success or failure
-		 */
-		template<class Rep, class Period, class Proxy, class Body = http::string_body, class Fields = http::fields>
-		static inline http::response<Body, Fields> execute(std::string_view url,
-			std::chrono::duration<Rep, Period> timeout, Proxy&& proxy)
-		{
-			error_code ec;
-			http::response<Body, Fields> rep = execute(url, timeout, std::forward<Proxy>(proxy), ec);
-			asio::detail::throw_error(ec);
-			return rep;
-		}
-
-		/**
-		 * @function : blocking execute the http request until it is returned on success or failure
-		 */
-		template<typename String, typename StrOrInt, class Proxy, class Body = http::string_body, class Fields = http::fields>
-		static inline http::response<Body, Fields> execute(String&& host, StrOrInt&& port,
-			std::string_view target, Proxy&& proxy, error_code& ec)
-		{
-			return execute(
-				std::forward<String>(host), std::forward<StrOrInt>(port),
-				target, std::chrono::milliseconds(http_execute_timeout), std::forward<Proxy>(proxy), ec);
-		}
-
-		/**
-		 * @function : blocking execute the http request until it is returned on success or failure
-		 */
-		template<typename String, typename StrOrInt, class Proxy, class Body = http::string_body, class Fields = http::fields>
-		static inline http::response<Body, Fields> execute(String&& host, StrOrInt&& port,
-			std::string_view target, Proxy&& proxy)
-		{
-			error_code ec;
-			http::response<Body, Fields> rep = execute(
-				std::forward<String>(host), std::forward<StrOrInt>(port), target, std::forward<Proxy>(proxy), ec);
-			asio::detail::throw_error(ec);
-			return rep;
-		}
+		// ----------------------------------------------------------------------------------------
 
 		/**
 		 * @function : blocking execute the http request until it is returned on success or failure
@@ -517,16 +563,10 @@ namespace asio2::detail
 		static inline http::response<Body, Fields> execute(String&& host, StrOrInt&& port,
 			std::string_view target, std::chrono::duration<Rep, Period> timeout, Proxy&& proxy, error_code& ec)
 		{
-			using host_param_type = std::remove_cv_t<std::remove_reference_t<String>>;
-			using port_param_type = std::remove_cv_t<std::remove_reference_t<StrOrInt>>;
-			ec.clear();
-			http::request<Body, Fields> req = http::make_request<
-				const host_param_type&, const port_param_type&, Body, Fields>(
-					const_cast<const host_param_type&>(host), const_cast<const port_param_type&>(port),
-					target);
+			http::web_request req = http::make_request(host, port, target);
 			return execute(
 				std::forward<String>(host), std::forward<StrOrInt>(port),
-				req, timeout, std::forward<Proxy>(proxy), ec);
+				req.base(), timeout, std::forward<Proxy>(proxy), ec);
 		}
 
 		/**
@@ -539,7 +579,36 @@ namespace asio2::detail
 		{
 			error_code ec;
 			http::response<Body, Fields> rep = execute(
-				std::forward<String>(host), std::forward<StrOrInt>(port), target, timeout, std::forward<Proxy>(proxy), ec);
+				std::forward<String>(host), std::forward<StrOrInt>(port), target, timeout,
+				std::forward<Proxy>(proxy), ec);
+			asio::detail::throw_error(ec);
+			return rep;
+		}
+
+		/**
+		 * @function : blocking execute the http request until it is returned on success or failure
+		 */
+		template<typename String, typename StrOrInt, class Proxy,
+			class Body = http::string_body, class Fields = http::fields>
+		static inline http::response<Body, Fields> execute(String&& host, StrOrInt&& port,
+			std::string_view target, Proxy&& proxy, error_code& ec)
+		{
+			return execute(
+				std::forward<String>(host), std::forward<StrOrInt>(port),
+				target, std::chrono::milliseconds(http_execute_timeout), std::forward<Proxy>(proxy), ec);
+		}
+
+		/**
+		 * @function : blocking execute the http request until it is returned on success or failure
+		 */
+		template<typename String, typename StrOrInt, class Proxy,
+			class Body = http::string_body, class Fields = http::fields>
+		static inline http::response<Body, Fields> execute(String&& host, StrOrInt&& port,
+			std::string_view target, Proxy&& proxy)
+		{
+			error_code ec;
+			http::response<Body, Fields> rep = execute(
+				std::forward<String>(host), std::forward<StrOrInt>(port), target, std::forward<Proxy>(proxy), ec);
 			asio::detail::throw_error(ec);
 			return rep;
 		}

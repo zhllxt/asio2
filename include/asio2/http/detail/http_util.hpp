@@ -115,6 +115,9 @@ namespace boost::beast::http
 			std::basic_string<CharT, Traits, Allocator> r;
 			r.reserve(url.size());
 
+			if (url.empty())
+				return r;
+
 			for (size_type i = 0; i < url.size(); ++i)
 			{
 				value_type c = url[i];
@@ -168,7 +171,7 @@ namespace boost::beast::http
 			class Traits = std::char_traits<CharT>,
 			class Allocator = std::allocator<CharT>
 		>
-		std::basic_string<CharT, Traits, Allocator> url_encode(std::string_view url)
+		std::basic_string<CharT, Traits, Allocator> url_encode(std::string_view url, std::size_t offset = 0)
 		{
 			using size_type   = typename std::string_view::size_type;
 			using value_type  = typename std::string_view::value_type;
@@ -177,23 +180,48 @@ namespace boost::beast::http
 			std::basic_string<CharT, Traits, Allocator> r;
 			r.reserve(url.size() * 2);
 
+			if (url.empty())
+				return r;
+
 			size_type i = 0;
 
-			http::parses::http_parser_url u;
-			if (0 == http::parses::http_parser_parse_url(url.data(), url.size(), 0, &u))
+			if (offset == 0)
 			{
-				if (u.field_set & (1 << (int)http::parses::url_fields::UF_PATH))
+				http::parses::http_parser_url u;
+				if (0 == http::parses::http_parser_parse_url(url.data(), url.size(), 0, &u))
 				{
-					i = u.field_data[(int)http::parses::url_fields::UF_PATH].off;
-					for (size_type n = 0; n < i; ++n)
+					if /**/ (u.field_set & (1 << (int)http::parses::url_fields::UF_PATH))
 					{
-						r += static_cast<rvalue_type>(url[n]);
+						i = u.field_data[(int)http::parses::url_fields::UF_PATH].off + 1;
 					}
-					if (i < url.size() && url[i] == static_cast<value_type>('/'))
+					else if (u.field_set & (1 << (int)http::parses::url_fields::UF_PORT))
 					{
-						r += static_cast<rvalue_type>(url[i++]);
+						i = u.field_data[(int)http::parses::url_fields::UF_PORT].off +
+							u.field_data[(int)http::parses::url_fields::UF_PORT].len;
+					}
+					else if (u.field_set & (1 << (int)http::parses::url_fields::UF_HOST))
+					{
+						i = u.field_data[(int)http::parses::url_fields::UF_HOST].off +
+							u.field_data[(int)http::parses::url_fields::UF_HOST].len;
+					}
+
+					if constexpr (std::is_same_v<CharT, char>)
+					{
+						r += std::string_view{ url.data(), i };
+					}
+					else
+					{
+						for (size_type n = 0; n < i; ++n)
+						{
+							r += static_cast<rvalue_type>(url[n]);
+						}
 					}
 				}
+			}
+			else
+			{
+				r += url.substr(0, offset);
+				i = offset;
 			}
 
 			for (; i < url.size(); ++i)
@@ -217,37 +245,52 @@ namespace boost::beast::http
 		}
 
 		template<typename = void>
-		bool has_unencode_char(std::string_view uri) noexcept
+		bool has_unencode_char(std::string_view url, std::size_t offset = 0) noexcept
 		{
 			using size_type   = typename std::string_view::size_type;
 			using value_type  = typename std::string_view::value_type;
-			using rvalue_type = typename std::string::value_type;
+
+			if (url.empty())
+				return false;
 
 			size_type i = 0;
 
-			http::parses::http_parser_url u;
-			if (0 == http::parses::http_parser_parse_url(uri.data(), uri.size(), 0, &u))
+			if (offset == 0)
 			{
-				if (u.field_set & (1 << (int)http::parses::url_fields::UF_PATH))
+				http::parses::http_parser_url u;
+				if (0 == http::parses::http_parser_parse_url(url.data(), url.size(), 0, &u))
 				{
-					i = u.field_data[(int)http::parses::url_fields::UF_PATH].off;
-					if (i < uri.size() && uri[i] == static_cast<value_type>('/'))
+					if /**/ (u.field_set & (1 << (int)http::parses::url_fields::UF_PATH))
 					{
-						i++;
+						i = u.field_data[(int)http::parses::url_fields::UF_PATH].off + 1;
+					}
+					else if (u.field_set & (1 << (int)http::parses::url_fields::UF_PORT))
+					{
+						i = u.field_data[(int)http::parses::url_fields::UF_PORT].off +
+							u.field_data[(int)http::parses::url_fields::UF_PORT].len;
+					}
+					else if (u.field_set & (1 << (int)http::parses::url_fields::UF_HOST))
+					{
+						i = u.field_data[(int)http::parses::url_fields::UF_HOST].off +
+							u.field_data[(int)http::parses::url_fields::UF_HOST].len;
 					}
 				}
 			}
-
-			for (; i < uri.size(); ++i)
+			else
 			{
-				unsigned char c = static_cast<unsigned char>(uri[i]);
+				i = offset;
+			}
+
+			for (; i < url.size(); ++i)
+			{
+				unsigned char c = static_cast<unsigned char>(url[i]);
 
 				if (c == static_cast<unsigned char>('%'))
 				{
-					if (i + 3 <= uri.size())
+					if (i + 3 <= url.size())
 					{
-						value_type h = uri[i + 1];
-						value_type l = uri[i + 2];
+						value_type h = url[i + 1];
+						value_type l = url[i + 2];
 
 						if /**/ (h >= '0' && h <= '9') {}
 						else if (h >= 'a' && h <= 'f') {}
@@ -275,8 +318,56 @@ namespace boost::beast::http
 		}
 
 		template<typename = void>
+		bool has_undecode_char(std::string_view url, std::size_t offset = 0) noexcept
+		{
+			using size_type   = typename std::string_view::size_type;
+			using value_type  = typename std::string_view::value_type;
+
+			if (url.empty())
+				return false;
+
+			for (size_type i = offset; i < url.size(); ++i)
+			{
+				value_type c = url[i];
+
+				if (c == '%')
+				{
+					if (i + 3 <= url.size())
+					{
+						value_type h = url[i + 1];
+						value_type l = url[i + 2];
+
+						bool f1 = false, f2 = false;
+
+						if /**/ (h >= '0' && h <= '9') { f1 = true; }
+						else if (h >= 'a' && h <= 'f') { f1 = true; }
+						else if (h >= 'A' && h <= 'F') { f1 = true; }
+
+						if /**/ (l >= '0' && l <= '9') { f2 = true; }
+						else if (l >= 'a' && l <= 'f') { f2 = true; }
+						else if (l >= 'A' && l <= 'F') { f2 = true; }
+
+						if (f1 && f2)
+						{
+							return true;
+						}
+					}
+				}
+				else if (c == '+')
+				{
+					return true;
+				}
+			}
+
+			return false;
+		}
+
+		template<typename = void>
 		std::string_view url_to_host(std::string_view url)
 		{
+			if (url.empty())
+				return std::string_view{};
+
 			http::parses::http_parser_url u;
 			if (0 != http::parses::http_parser_parse_url(url.data(), url.size(), 0, &u))
 				return std::string_view{};
@@ -284,30 +375,35 @@ namespace boost::beast::http
 			if (!(u.field_set & (1 << (int)http::parses::url_fields::UF_HOST)))
 				return std::string_view{};
 
-			return std::string_view{ &url[u.field_data[(int)http::parses::url_fields::UF_HOST].off],
+			return std::string_view{ &url[
+				u.field_data[(int)http::parses::url_fields::UF_HOST].off],
 				u.field_data[(int)http::parses::url_fields::UF_HOST].len };
 		}
 
 		template<typename = void>
 		std::string_view url_to_port(std::string_view url)
 		{
+			if (url.empty())
+				return std::string_view{};
+
 			http::parses::http_parser_url u;
 			if (0 != http::parses::http_parser_parse_url(url.data(), url.size(), 0, &u))
 				return std::string_view{};
 
 			if (u.field_set & (1 << (int)http::parses::url_fields::UF_PORT))
-				return std::string_view{ &url[u.field_data[(int)http::parses::url_fields::UF_PORT].off],
-				u.field_data[(int)http::parses::url_fields::UF_PORT].len };
+				return std::string_view{ &url[
+					u.field_data[(int)http::parses::url_fields::UF_PORT].off],
+					u.field_data[(int)http::parses::url_fields::UF_PORT].len };
 
 			if (u.field_set & (1 << (int)http::parses::url_fields::UF_SCHEMA))
 			{
-				std::string schema(&url[u.field_data[(int)http::parses::url_fields::UF_SCHEMA].off],
+				std::string_view schema(&url[
+					u.field_data[(int)http::parses::url_fields::UF_SCHEMA].off],
 					u.field_data[(int)http::parses::url_fields::UF_SCHEMA].len);
-				std::transform(schema.begin(), schema.end(), schema.begin(), [](std::string::value_type c)
-				{
-					return static_cast<std::string::value_type>(std::tolower(c));
-				});
-				return (schema == "https" ? std::string_view{ "443" } : std::string_view{ "80" });
+				if (asio2::iequals(schema, "http"))
+					std::string_view{ "80" };
+				if (asio2::iequals(schema, "https"))
+					std::string_view{ "443" };
 			}
 
 			return std::string_view{ "80" };
@@ -316,20 +412,27 @@ namespace boost::beast::http
 		template<typename = void>
 		std::string_view url_to_path(std::string_view url)
 		{
+			if (url.empty())
+				return std::string_view{};
+
 			http::parses::http_parser_url u;
 			if (0 != http::parses::http_parser_parse_url(url.data(), url.size(), 0, &u))
 				return std::string_view{};
 
 			if (!(u.field_set & (1 << (int)http::parses::url_fields::UF_PATH)))
-				return std::string_view{};
+				return std::string_view{ "/" };
 
-			return std::string_view{ &url[u.field_data[(int)http::parses::url_fields::UF_PATH].off],
+			return std::string_view{ &url[
+				u.field_data[(int)http::parses::url_fields::UF_PATH].off],
 				u.field_data[(int)http::parses::url_fields::UF_PATH].len };
 		}
 
 		template<typename = void>
 		std::string_view url_to_query(std::string_view url)
 		{
+			if (url.empty())
+				return std::string_view{};
+
 			http::parses::http_parser_url u;
 			if (0 != http::parses::http_parser_parse_url(url.data(), url.size(), 0, &u))
 				return std::string_view{};
@@ -337,179 +440,9 @@ namespace boost::beast::http
 			if (!(u.field_set & (1 << (int)http::parses::url_fields::UF_QUERY)))
 				return std::string_view{};
 
-			return std::string_view{ &url[u.field_data[(int)http::parses::url_fields::UF_QUERY].off],
+			return std::string_view{ &url[
+				u.field_data[(int)http::parses::url_fields::UF_QUERY].off],
 				u.field_data[(int)http::parses::url_fields::UF_QUERY].len };
-		}
-
-		/**
-		 * @function : make A typical HTTP request struct from the uri
-		 */
-		template<class Body = http::string_body, class Fields = http::fields>
-		http::request<Body, Fields> make_request(std::string_view uri, error_code& ec)
-		{
-			http::request<Body, Fields> req;
-			try
-			{
-				ec.clear();
-
-				parses::http_parser_url u;
-				int state = parses::http_parser_parse_url(uri.data(), uri.size(), 0, &u);
-
-				// If a \r\n string is found, it is not a URL
-				if (uri.find("\r\n") != std::string_view::npos && 0 != state)
-				{
-					http::request_parser<Body> parser;
-					parser.eager(true);
-					parser.put(::asio::buffer(uri), ec);
-					req = parser.get();
-					::asio::detail::throw_error(ec);
-				}
-				// It is a URL
-				else
-				{
-					std::string encoded;
-					if (has_unencode_char(uri))
-					{
-						encoded = url_encode(uri);
-						uri = encoded;
-					}
-
-					if (0 != state)
-						::asio::detail::throw_error(::asio::error::invalid_argument);
-
-					/* <scheme>://<user>:<password>@<host>:<port>/<path>;<params>?<query>#<fragment> */
-
-					std::string_view /*schema{ "http" }, */host, port, target{ "/" }/*, userinfo, path, query, fragment*/;
-
-					//if (u.field_set & (1 << (int)parses::url_fields::UF_SCHEMA))
-					//	schema = { &uri[u.field_data[(int)parses::url_fields::UF_SCHEMA].off],
-					//	u.field_data[(int)parses::url_fields::UF_SCHEMA].len };
-					if (u.field_set & (1 << (int)parses::url_fields::UF_HOST))
-						host = { &uri[u.field_data[(int)parses::url_fields::UF_HOST].off],
-						u.field_data[(int)parses::url_fields::UF_HOST].len };
-					if (u.field_set & (1 << (int)parses::url_fields::UF_PORT))
-						port = { &uri[u.field_data[(int)parses::url_fields::UF_PORT].off],
-						u.field_data[(int)parses::url_fields::UF_PORT].len };
-					if (u.field_set & (1 << (int)parses::url_fields::UF_PATH))
-						target = { &uri[u.field_data[(int)parses::url_fields::UF_PATH].off],
-						uri.size() - u.field_data[(int)parses::url_fields::UF_PATH].off };
-					//	path = target = { &uri[u.field_data[(int)parses::url_fields::UF_PATH].off],
-					//	u.field_data[(int)parses::url_fields::UF_PATH].len };
-					//if (u.field_set & (1 << (int)parses::url_fields::UF_USERINFO))
-					//	userinfo = { &uri[u.field_data[(int)parses::url_fields::UF_USERINFO].off],
-					//	u.field_data[(int)parses::url_fields::UF_USERINFO].len };
-					//if (u.field_set & (1 << (int)parses::url_fields::UF_QUERY))
-					//	query = { &uri[u.field_data[(int)parses::url_fields::UF_QUERY].off],
-					//	u.field_data[(int)parses::url_fields::UF_QUERY].len };
-					//if (u.field_set & (1 << (int)parses::url_fields::UF_FRAGMENT))
-					//	fragment = { &uri[u.field_data[(int)parses::url_fields::UF_FRAGMENT].off],
-					//	u.field_data[(int)parses::url_fields::UF_FRAGMENT].len };
-
-					// Set up an HTTP GET request message
-					req.method(http::verb::get);
-					req.version(11);
-					req.target(beast::string_view(target.data(), target.size()));
-					req.set(http::field::server, BEAST_VERSION_STRING);
-
-					if (port.empty())
-						req.set(http::field::host, host);
-					else
-						req.set(http::field::host, std::string(host) + ":" + std::string(port));
-
-					if (host.empty())
-						::asio::detail::throw_error(::asio::error::invalid_argument);
-				}
-			}
-			catch (system_error & e)
-			{
-				ec = e.code();
-			}
-			return req;
-		}
-
-		/**
-		 * @function : make A typical HTTP request struct from the uri
-		 */
-		template<class Body = http::string_body, class Fields = http::fields>
-		inline http::request<Body, Fields> make_request(std::string_view uri)
-		{
-			error_code ec;
-			http::request<Body, Fields> req = make_request<Body, Fields>(uri, ec);
-			::asio::detail::throw_error(ec);
-			return req;
-		}
-
-		/**
-		 * @function : make A typical HTTP request struct from the uri
-		 */
-		template<typename String, typename StrOrInt, class Body = http::string_body, class Fields = http::fields>
-		inline http::request<Body, Fields> make_request(String&& host, StrOrInt&& port,
-			std::string_view target, http::verb method = http::verb::get, unsigned version = 11)
-		{
-			std::string encoded;
-			if (has_unencode_char(target))
-			{
-				encoded = url_encode(target);
-				target = encoded;
-			}
-
-			http::request<Body, Fields> req;
-			// Set up an HTTP GET request message
-			req.method(method);
-			req.version(version);
-			req.target(target.empty() ? beast::string_view{ "/" } : beast::string_view(target.data(), target.size()));
-			std::string sport = asio2::detail::to_string(std::forward<StrOrInt>(port));
-			asio2::trim_both(sport);
-			if (!sport.empty() && sport != "443" && sport != "80")
-			{
-				req.set(http::field::host, std::string(std::forward<String>(host)) + ":" + sport);
-			}
-			else
-			{
-				req.set(http::field::host, std::forward<String>(host));
-			}
-			req.set(http::field::server, BEAST_VERSION_STRING);
-			return req;
-		}
-
-		template<class Body = http::string_body, class Fields = http::fields>
-		inline http::response<Body, Fields> make_response(std::string_view uri, error_code& ec)
-		{
-			ec.clear();
-			http::response_parser<Body> parser;
-			parser.eager(true);
-			parser.put(::asio::buffer(uri), ec);
-			http::response<Body, Fields> rep = parser.get();
-			return rep;
-		}
-
-		template<class Body = http::string_body, class Fields = http::fields>
-		inline http::response<Body, Fields> make_response(std::string_view uri)
-		{
-			error_code ec;
-			http::response<Body, Fields> rep = make_response<Body, Fields>(uri, ec);
-			::asio::detail::throw_error(ec);
-			return rep;
-		}
-
-		template<class Body = http::string_body, class Fields = http::fields>
-		inline typename std::enable_if_t<std::is_same_v<Body, http::string_body>, http::response<Body, Fields>>
-			make_response(http::status code, std::string_view body, unsigned version = 11)
-		{
-			http::response<Body, Fields> rep;
-			rep.version(version);
-			rep.set(http::field::server, BEAST_VERSION_STRING);
-			rep.result(code);
-			rep.body() = body;
-			rep.prepare_payload();
-			return rep;
-		}
-
-		template<class Body = http::string_body, class Fields = http::fields>
-		inline typename std::enable_if_t<std::is_same_v<Body, http::string_body>, http::response<Body, Fields>>
-			make_response(unsigned code, std::string_view body, unsigned version = 11)
-		{
-			return make_response(http::int_to_status(code), body, version);
 		}
 
 		template<typename = void>
@@ -517,6 +450,10 @@ namespace boost::beast::http
 		{
 			if (pattern == "/*")
 				return true;
+
+			if (url.empty())
+				return false;
+
 			std::vector<std::string_view> fragments = asio2::split(pattern, "*");
 			std::size_t index = 0;
 			while (!url.empty())

@@ -19,6 +19,73 @@ int main()
 		sock5_option{ "s5.doudouip.cn",1088,"zjww-1","aaa123" };
 
 	{
+		std::string_view url = "http://www.baidu.com/abc?x@y";
+
+		[[maybe_unused]] auto urle = http::url_encode(url);
+		[[maybe_unused]] auto urld = http::url_decode(urle);
+		[[maybe_unused]] auto urfe1 = http::has_unencode_char(url);
+		[[maybe_unused]] auto urfd1 = http::has_undecode_char(url);
+		[[maybe_unused]] auto urfe2 = http::has_unencode_char(urle);
+		[[maybe_unused]] auto urfd2 = http::has_undecode_char(urle);
+		[[maybe_unused]] auto urfe3 = http::has_unencode_char(urld);
+		[[maybe_unused]] auto urfd3 = http::has_undecode_char(urld);
+
+		[[maybe_unused]] http::web_request req3 = http::make_request(url);
+
+		[[maybe_unused]] auto ho1 = req3.host();
+		[[maybe_unused]] auto po1 = req3.port();
+		[[maybe_unused]] auto pa1 = req3.path();
+		[[maybe_unused]] auto qu1 = req3.query();
+		[[maybe_unused]] auto ta1 = req3.target();
+
+		[[maybe_unused]] auto ho2 = req3.url().host();
+		[[maybe_unused]] auto po2 = req3.url().port();
+		[[maybe_unused]] auto pa2 = req3.url().path();
+		[[maybe_unused]] auto qu2 = req3.url().query();
+		[[maybe_unused]] auto ta2 = req3.url().target();
+
+		http::request_t<http::string_body> req1;
+
+		asio2::http_client::execute("www.baidu.com", "80", req1, std::chrono::seconds(5), sock5_option, ec);
+		asio2::http_client::execute("www.baidu.com", "80", req1, std::chrono::seconds(5), sock5_option);
+		asio2::http_client::execute("www.baidu.com", "80", req1, std::chrono::seconds(5), ec);
+		asio2::http_client::execute("www.baidu.com", "80", req1, std::chrono::seconds(5));
+		asio2::http_client::execute("www.baidu.com", "80", req1, ec);
+		asio2::http_client::execute("www.baidu.com", "80", req1);
+
+		http::web_request req2 = http::make_request(url);
+
+		asio2::http_client::execute(req2, std::chrono::seconds(5), ec);
+		asio2::http_client::execute(req2, std::chrono::seconds(5));
+		asio2::http_client::execute(req2, ec);
+		asio2::http_client::execute(req2);
+		asio2::http_client::execute(url, std::chrono::seconds(5), ec);
+		asio2::http_client::execute(url, std::chrono::seconds(5));
+		asio2::http_client::execute(url, ec);
+		asio2::http_client::execute(url);
+
+		asio2::http_client::execute("www.baidu.com", "80", "/", std::chrono::seconds(5), ec);
+		asio2::http_client::execute("www.baidu.com", "80", "/", std::chrono::seconds(5));
+		asio2::http_client::execute("www.baidu.com", "80", "/", ec);
+		asio2::http_client::execute("www.baidu.com", "80", "/");
+
+		asio2::http_client::execute("www.baidu.com", "80", req1, sock5_option, ec);
+		asio2::http_client::execute("www.baidu.com", "80", req1, sock5_option);
+		asio2::http_client::execute(req2, std::chrono::seconds(5), sock5_option, ec);
+		asio2::http_client::execute(req2, std::chrono::seconds(5), sock5_option);
+		asio2::http_client::execute(req2, sock5_option, ec);
+		asio2::http_client::execute(req2, sock5_option);
+		asio2::http_client::execute(url, std::chrono::seconds(5), sock5_option, ec);
+		asio2::http_client::execute(url, std::chrono::seconds(5), sock5_option);
+		asio2::http_client::execute(url, sock5_option, ec);
+		asio2::http_client::execute(url, sock5_option);
+		asio2::http_client::execute("www.baidu.com", "80", "/", std::chrono::seconds(5), sock5_option, ec);
+		asio2::http_client::execute("www.baidu.com", "80", "/", std::chrono::seconds(5), sock5_option);
+		asio2::http_client::execute("www.baidu.com", "80", "/", sock5_option, ec);
+		asio2::http_client::execute("www.baidu.com", "80", "/", sock5_option);
+	}
+
+	{
 		http::request_t<http::string_body> req;
 		req.method(http::verb::get);
 		req.target("/");

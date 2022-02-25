@@ -95,6 +95,22 @@ namespace asio2::detail
 			return true;
 		}
 
+		template<class Body, class Fields, class Callback>
+		inline bool _ws_send(detail::http_request_impl_t<Body, Fields>& data, Callback&& callback)
+		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
+			return derive._ws_send(data.base(), std::forward<Callback>(callback));
+		}
+
+		template<class Body, class Fields, class Callback>
+		inline bool _ws_send(detail::http_response_impl_t<Body, Fields>& data, Callback&& callback)
+		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
+			return derive._ws_send(data.base(), std::forward<Callback>(callback));
+		}
+
 	protected:
 	};
 }

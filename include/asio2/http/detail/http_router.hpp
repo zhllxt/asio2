@@ -572,15 +572,34 @@ namespace asio2::detail
 
 		inline std::string _make_uri(std::string_view root, std::string_view path)
 		{
-			while (path.size() > static_cast<std::string_view::size_type>(1) && path.back() == '/')
-			{
-				path.remove_suffix(1);
-			}
-
 			std::string uri;
-			uri.reserve(root.size() + path.size());
-			uri += root;
-			uri += path;
+
+			if (http::has_undecode_char(path, 1))
+			{
+				std::string decoded = http::url_decode(path);
+
+				path = decoded;
+
+				while (path.size() > static_cast<std::string_view::size_type>(1) && path.back() == '/')
+				{
+					path.remove_suffix(1);
+				}
+
+				uri.reserve(root.size() + path.size());
+				uri += root;
+				uri += path;
+			}
+			else
+			{
+				while (path.size() > static_cast<std::string_view::size_type>(1) && path.back() == '/')
+				{
+					path.remove_suffix(1);
+				}
+
+				uri.reserve(root.size() + path.size());
+				uri += root;
+				uri += path;
+			}
 
 			return uri;
 		}

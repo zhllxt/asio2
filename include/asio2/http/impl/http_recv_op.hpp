@@ -130,7 +130,7 @@ namespace asio2::detail
 					{
 						std::string_view target = derive.req_.target();
 						http::parses::http_parser_parse_url(
-							target.data(), target.size(), 0, &(derive.req_.url_parser_));
+							target.data(), target.size(), 0, &(derive.req_.url_.parser()));
 
 						if (derive._check_upgrade(this_ptr, condition))
 							return;
