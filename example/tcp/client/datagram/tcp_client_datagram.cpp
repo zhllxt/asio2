@@ -61,18 +61,18 @@ int main()
 		}
 	};
 
-	asio2::socks5::option<asio2::socks5::method::anonymous, asio2::socks5::method::password>
+	[[maybe_unused]] asio2::socks5::option<asio2::socks5::method::anonymous, asio2::socks5::method::password>
 		sock5_option{ "s5.doudouip.cn",1088,"zjww-1","aaa123" };
 
 	client.start(host, port, asio2::use_dgram, std::move(rdc_option)/*, std::move(sock5_option)*/);
 
-	char buf[] = "abc";
+	[[maybe_unused]] char buf[] = "abc";
 
-	std::string str{ buf };
+	[[maybe_unused]] std::string str{ buf };
 
-	std::string_view sv{ buf };
+	[[maybe_unused]] std::string_view sv{ buf };
 
-	int bytes[4] = {1,2,3,4};
+	[[maybe_unused]] int bytes[4] = {1,2,3,4};
 
 	[[maybe_unused]] const char * const p = buf;
 

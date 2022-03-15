@@ -536,6 +536,9 @@ namespace asio2::detail
 			return caller; // "caller" is local variable has RVO optimization, should't use std::move()
 		}
 
+		/**
+		 * @function : set the timeout for remote data call component (means rdc)
+		 */
 		template<class Rep, class Period>
 		inline base_caller<derived_t, args_t> timeout(std::chrono::duration<Rep, Period> timeout)
 		{
@@ -544,6 +547,9 @@ namespace asio2::detail
 			return caller; // "caller" is local variable has RVO optimization, should't use std::move()
 		}
 
+		/**
+		 * @function : bind a error_code for remote data call component (means rdc)
+		 */
 		inline sync_caller<derived_t, args_t> errcode(error_code& ec)
 		{
 			sync_caller<derived_t, args_t> caller{ static_cast<derived_t&>(*this) };
@@ -551,6 +557,9 @@ namespace asio2::detail
 			return caller; // "caller" is local variable has RVO optimization, should't use std::move()
 		}
 
+		/**
+		 * @function : bind a response callback function for remote data call component (means rdc)
+		 */
 		template<class Callback>
 		inline async_caller<derived_t, args_t> response(Callback&& cb)
 		{

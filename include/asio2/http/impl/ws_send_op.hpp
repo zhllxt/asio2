@@ -24,6 +24,9 @@
 #include <asio2/3rd/beast.hpp>
 #include <asio2/base/error.hpp>
 
+#include <asio2/http/request.hpp>
+#include <asio2/http/response.hpp>
+
 namespace asio2::detail
 {
 	template<class derived_t, class args_t>

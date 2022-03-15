@@ -658,8 +658,8 @@ namespace std
 		inline result_type operator()(argument_type const& s) const noexcept
 		{
 			//return std::hash<std::string_view>()(std::string_view{
-			//	reinterpret_cast<std::string_view::const_pointer>(&s),sizeof(argument_type) });
-			return asio2::detail::bkdr_hash((const unsigned char *)(&s), sizeof(argument_type));
+			//	reinterpret_cast<std::string_view::const_pointer>(s.data()), s.size() });
+			return asio2::detail::bkdr_hash((const unsigned char *)(s.data()), s.size());
 		}
 	};
 
@@ -670,8 +670,8 @@ namespace std
 		inline result_type operator()(argument_type const& s) const noexcept
 		{
 			//return std::hash<std::string_view>()(std::string_view{
-			//	reinterpret_cast<std::string_view::const_pointer>(&s),sizeof(argument_type) });
-			return asio2::detail::bkdr_hash((const unsigned char *)(&s), sizeof(argument_type));
+			//	reinterpret_cast<std::string_view::const_pointer>(s.data()), s.size() });
+			return asio2::detail::bkdr_hash((const unsigned char *)(s.data()), s.size());
 		}
 	};
 }

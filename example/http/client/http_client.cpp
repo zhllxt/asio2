@@ -21,8 +21,8 @@ int main()
 	{
 		std::string_view url = "http://www.baidu.com/abc?x@y";
 
-		[[maybe_unused]] auto urle = http::url_encode(url);
-		[[maybe_unused]] auto urld = http::url_decode(urle);
+		[[maybe_unused]] auto urle  = http::url_encode(url);
+		[[maybe_unused]] auto urld  = http::url_decode(urle);
 		[[maybe_unused]] auto urfe1 = http::has_unencode_char(url);
 		[[maybe_unused]] auto urfd1 = http::has_undecode_char(url);
 		[[maybe_unused]] auto urfe2 = http::has_unencode_char(urle);
