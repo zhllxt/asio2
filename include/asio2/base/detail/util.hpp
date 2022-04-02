@@ -153,7 +153,7 @@ namespace asio2::detail
 	}
 
 	template<typename T>
-	inline T fnv1a_hash_combine(T v, const unsigned char * const p, const T size) noexcept
+	inline T fnv1a_hash(T v, const unsigned char * const p, const T size) noexcept
 	{
 		static_assert(sizeof(T) == 4 || sizeof(T) == 8, "Must be 32 or 64 digits");
 		for (T i = 0; i < size; ++i)
@@ -167,27 +167,13 @@ namespace asio2::detail
 		return (v);
 	}
 
-	// struct that ignores assignments
-	struct ignore
-	{
-		template<class ...Args> ignore(const Args&...) noexcept {}
-
-		template<class T>
-		constexpr const ignore& operator=(const T&) const noexcept	// strengthened
-		{
-			return (*this);
-		}
-
-		template<class ...Args>
-		[[deprecated("Replace unused with ignore_unused")]]
-		static inline constexpr void unused(const Args&...) noexcept {}
-	};
 
 	template <typename... Ts>
 	inline constexpr void ignore_unused(Ts const& ...) noexcept {}
 
 	template <typename... Ts>
 	inline constexpr void ignore_unused() noexcept {}
+
 
 	template<class T>
 	class copyable_wrapper
@@ -634,6 +620,22 @@ namespace asio2::detail
 
 namespace asio2
 {
+	enum class net_protocol : std::int8_t
+	{
+		udp = 1,
+
+		tcp,
+		http,
+		websocket,
+
+		tcps,
+		https,
+		websockets,
+
+		ws = websocket,
+		wss = websockets
+	};
+
 	template <typename Enumeration>
 	inline constexpr auto to_underlying(Enumeration const value) noexcept ->
 		typename std::underlying_type<Enumeration>::type

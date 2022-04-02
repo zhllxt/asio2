@@ -167,34 +167,64 @@ namespace asio2::detail
 		 * @function : Gets the content of the "schema" section, maybe empty
 		 * <scheme>://<user>:<password>@<host>:<port>/<path>;<params>?<query>#<fragment>
 		 */
-		inline std::string_view schema() noexcept
+		inline std::string_view get_schema() noexcept
 		{
 			return this->url_.schema();
+		}
+
+		/**
+		 * @function : Gets the content of the "schema" section, maybe empty
+		 * <scheme>://<user>:<password>@<host>:<port>/<path>;<params>?<query>#<fragment>
+		 * same as get_schema
+		 */
+		inline std::string_view schema() noexcept
+		{
+			return this->get_schema();
 		}
 
 		/**
 		 * @function : Gets the content of the "host" section, maybe empty
 		 * <scheme>://<user>:<password>@<host>:<port>/<path>;<params>?<query>#<fragment>
 		 */
-		inline std::string_view host() noexcept
+		inline std::string_view get_host() noexcept
 		{
 			return this->url_.host();
+		}
+
+		/**
+		 * @function : Gets the content of the "host" section, maybe empty
+		 * <scheme>://<user>:<password>@<host>:<port>/<path>;<params>?<query>#<fragment>
+		 * same as get_host
+		 */
+		inline std::string_view host() noexcept
+		{
+			return this->get_host();
 		}
 
 		/**
 		 * @function : Gets the content of the "port" section, maybe empty
 		 * <scheme>://<user>:<password>@<host>:<port>/<path>;<params>?<query>#<fragment>
 		 */
-		inline std::string_view port() noexcept
+		inline std::string_view get_port() noexcept
 		{
 			return this->url_.port();
+		}
+
+		/**
+		 * @function : Gets the content of the "port" section, maybe empty
+		 * <scheme>://<user>:<password>@<host>:<port>/<path>;<params>?<query>#<fragment>
+		 * same as get_port
+		 */
+		inline std::string_view port() noexcept
+		{
+			return this->get_port();
 		}
 
 		/**
 		 * @function : Gets the content of the "path" section of the target
 		 * <scheme>://<user>:<password>@<host>:<port>/<path>;<params>?<query>#<fragment>
 		 */
-		inline std::string_view path()
+		inline std::string_view get_path()
 		{
 			if (!this->url_.string().empty())
 				return this->url_.path();
@@ -210,10 +240,20 @@ namespace asio2::detail
 		}
 
 		/**
+		 * @function : Gets the content of the "path" section of the target
+		 * <scheme>://<user>:<password>@<host>:<port>/<path>;<params>?<query>#<fragment>
+		 * same as get_path
+		 */
+		inline std::string_view path()
+		{
+			return this->get_path();
+		}
+
+		/**
 		 * @function : Gets the content of the "query" section of the target
 		 * <scheme>://<user>:<password>@<host>:<port>/<path>;<params>?<query>#<fragment>
 		 */
-		inline std::string_view query()
+		inline std::string_view get_query()
 		{
 			if (!this->url_.string().empty())
 				return this->url_.query();
@@ -229,6 +269,16 @@ namespace asio2::detail
 		}
 
 		/**
+		 * @function : Gets the content of the "query" section of the target
+		 * <scheme>://<user>:<password>@<host>:<port>/<path>;<params>?<query>#<fragment>
+		 * same as get_query
+		 */
+		inline std::string_view query()
+		{
+			return this->get_query();
+		}
+
+		/**
 		 * @function : Returns `true` if this HTTP request's Content-Type is "multipart/form-data";
 		 */
 		inline bool has_multipart() noexcept
@@ -239,15 +289,28 @@ namespace asio2::detail
 		/**
 		 * @function : Get the "multipart/form-data" body content.
 		 */
-		inline decltype(auto) multipart()
+		inline decltype(auto) get_multipart()
 		{
 			return http::multipart(*this);
 		}
 
 		/**
+		 * @function : Get the "multipart/form-data" body content. same as get_multipart
+		 */
+		inline decltype(auto) multipart()
+		{
+			return this->get_multipart();
+		}
+
+		/**
+		 * @function : Get the url object reference. same as get_url
+		 */
+		inline http::url&    url() { return this->url_; }
+
+		/**
 		 * @function : Get the url object reference.
 		 */
-		inline http::url& url() { return this->url_; }
+		inline http::url& get_url() { return this->url_; }
 
 	protected:
 		http::url                             url_{ "" };

@@ -1,6 +1,7 @@
 //#include <asio2/asio2.hpp>
 #include <iostream>
 #include <asio2/tcp/tcp_server.hpp>
+#include <asio2/util/uuid.hpp>
 
 int main()
 {
@@ -11,6 +12,8 @@ int main()
 
 	std::string_view host = "0.0.0.0";
 	std::string_view port = "8027";
+
+	std::srand((unsigned int)time(nullptr));
 
 	// Specify the "max recv buffer size" to avoid malicious packets, if some client
 	// sent data packets size is too long to the "max recv buffer size", then the
@@ -25,7 +28,17 @@ int main()
 	{
 		printf("recv : %u %.*s\n", (unsigned)s.size(), (int)s.size(), s.data());
 
-		session_ptr->async_send(s, [](std::size_t bytes_sent) {std::ignore = bytes_sent; });
+		std::string uuid = asio2::uuid().next().str();
+
+		std::string msg{ s };
+
+		session_ptr->start_timer(uuid, std::chrono::milliseconds(std::rand() % 999), [uuid, session_ptr, msg]()
+		{
+			session_ptr->stop_timer(uuid);
+			session_ptr->async_send(msg);
+		});
+
+		//session_ptr->async_send(s, [](std::size_t bytes_sent) {std::ignore = bytes_sent; });
 
 	}).bind_connect([&](auto & session_ptr)
 	{
@@ -51,7 +64,6 @@ int main()
 	{
 		printf("stop : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
 	});
-
 
 	server.start(host, port, asio2::use_dgram); // dgram tcp
 

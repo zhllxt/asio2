@@ -75,8 +75,6 @@ int main()
 				client.async_send(sv, []() {});
 			});
 
-			asio2::rdc::option rdc_option{ [](std::string_view) { return 0; } };
-
 			asio2::socks5::option<asio2::socks5::method::anonymous> sock5_option
 			{
 				"127.0.0.1",
@@ -93,7 +91,7 @@ int main()
 				printf("start failure : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
 			}
 
-			if (!client.start(host, port, "/user", std::move(rdc_option), std::move(sock5_option)))
+			if (!client.start(host, port, "/user", std::move(sock5_option)))
 			{
 				printf("start failure : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
 			}

@@ -169,7 +169,7 @@ namespace asio2
 		}
 
 		/**
-		 * @function : get last error value
+		 * @function : get last error value, same as get_last_error_val
 		 */
 		inline auto last_error_val() noexcept
 		{
@@ -177,9 +177,25 @@ namespace asio2
 		}
 
 		/**
-		 * @function : get last error message
+		 * @function : get last error value
+		 */
+		inline auto get_last_error_val() noexcept
+		{
+			return get_last_error().value();
+		}
+
+		/**
+		 * @function : get last error message, same as get_last_error_msg
 		 */
 		inline auto last_error_msg()
+		{
+			return get_last_error().message();
+		}
+
+		/**
+		 * @function : get last error message
+		 */
+		inline auto get_last_error_msg()
 		{
 			return get_last_error().message();
 		}

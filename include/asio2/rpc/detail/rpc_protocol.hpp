@@ -86,16 +86,22 @@ namespace asio2::detail
 			ar(type_, id_, name_);
 		}
 
-		inline       char         type() const noexcept { return this->type_; }
-		inline       id_type      id  () const noexcept { return this->id_;   }
-		inline const std::string& name() const noexcept { return this->name_; }
+		inline       char             type() const noexcept { return this->type_; }
+		inline       id_type          id  () const noexcept { return this->id_;   }
+		inline const std::string&     name() const noexcept { return this->name_; }
+		inline       char         get_type() const noexcept { return this->type_; }
+		inline       id_type      get_id  () const noexcept { return this->id_;   }
+		inline const std::string& get_name() const noexcept { return this->name_; }
 
 		inline bool is_request () noexcept { return this->type_ == rpc_type_req; }
 		inline bool is_response() noexcept { return this->type_ == rpc_type_rep; }
 
-		inline rpc_header& type(char type            ) noexcept { this->type_ = type; return (*this); }
-		inline rpc_header& id  (id_type id           ) noexcept { this->id_   = id  ; return (*this); }
-		inline rpc_header& name(std::string_view name)          { this->name_ = name; return (*this); }
+		inline rpc_header&     type(char type            ) noexcept { this->type_ = type; return (*this); }
+		inline rpc_header&     id  (id_type id           ) noexcept { this->id_   = id  ; return (*this); }
+		inline rpc_header&     name(std::string_view name)          { this->name_ = name; return (*this); }
+		inline rpc_header& set_type(char type            ) noexcept { this->type_ = type; return (*this); }
+		inline rpc_header& set_id  (id_type id           ) noexcept { this->id_   = id  ; return (*this); }
+		inline rpc_header& set_name(std::string_view name)          { this->name_ = name; return (*this); }
 
 	protected:
 		char           type_;

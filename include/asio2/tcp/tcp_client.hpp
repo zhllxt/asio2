@@ -309,7 +309,8 @@ namespace asio2::detail
 			};
 
 			derive.push_event(
-			[this, &derive, host = std::forward<String>(host), port = std::forward<StrOrInt>(port),
+			[this, &derive, this_ptr = derive.selfptr(),
+				host = std::forward<String>(host), port = std::forward<StrOrInt>(port),
 				condition = std::move(condition), set_promise = std::move(set_promise)]
 			(event_queue_guard<derived_t>&& g) mutable
 			{
@@ -350,7 +351,7 @@ namespace asio2::detail
 					derive._load_reconnect_timer(condition);
 
 					derive.template _start_connect<IsAsync>(
-						derive.selfptr(), std::move(condition), std::move(set_promise));
+						std::move(this_ptr), std::move(condition), std::move(set_promise));
 
 					return;
 				}

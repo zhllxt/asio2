@@ -73,24 +73,117 @@ namespace boost::beast::websocket
 		listener& operator=(listener const&) = default;
 
 		template<class F>
+		inline listener& on_message(F&& f)
+		{
+			this->_bind(websocket::frame::message, std::forward<F>(f));
+			return (*this);
+		}
+		template<class F>
+		inline listener& on_ping(F&& f)
+		{
+			this->_bind(websocket::frame::ping, std::forward<F>(f));
+			return (*this);
+		}
+		template<class F>
+		inline listener& on_pong(F&& f)
+		{
+			this->_bind(websocket::frame::pong, std::forward<F>(f));
+			return (*this);
+		}
+		template<class F>
+		inline listener& on_open(F&& f)
+		{
+			this->_bind(websocket::frame::open, std::forward<F>(f));
+			return (*this);
+		}
+		template<class F>
+		inline listener& on_close(F&& f)
+		{
+			this->_bind(websocket::frame::close, std::forward<F>(f));
+			return (*this);
+		}
+
+		template<class F, class C>
+		inline listener& on_message(F&& f, C* c)
+		{
+			auto mf = std::bind(std::forward<F>(f), c, std::placeholders::_1, std::placeholders::_2);
+			this->_bind(websocket::frame::message, std::move(mf));
+			return (*this);
+		}
+		template<class F, class C>
+		inline listener& on_ping(F&& f, C* c)
+		{
+			auto mf = std::bind(std::forward<F>(f), c, std::placeholders::_1, std::placeholders::_2);
+			this->_bind(websocket::frame::ping, std::move(mf));
+			return (*this);
+		}
+		template<class F, class C>
+		inline listener& on_pong(F&& f, C* c)
+		{
+			auto mf = std::bind(std::forward<F>(f), c, std::placeholders::_1, std::placeholders::_2);
+			this->_bind(websocket::frame::pong, std::move(mf));
+			return (*this);
+		}
+		template<class F, class C>
+		inline listener& on_open(F&& f, C* c)
+		{
+			auto mf = std::bind(std::forward<F>(f), c, std::placeholders::_1, std::placeholders::_2);
+			this->_bind(websocket::frame::open, std::move(mf));
+			return (*this);
+		}
+		template<class F, class C>
+		inline listener& on_close(F&& f, C* c)
+		{
+			auto mf = std::bind(std::forward<F>(f), c, std::placeholders::_1, std::placeholders::_2);
+			this->_bind(websocket::frame::close, std::move(mf));
+			return (*this);
+		}
+
+		template<class F, class C>
+		inline listener& on_message(F&& f, C& c)
+		{
+			return this->on_message(std::forward<F>(f), &c);
+		}
+		template<class F, class C>
+		inline listener& on_ping(F&& f, C& c)
+		{
+			return this->on_ping(std::forward<F>(f), &c);
+		}
+		template<class F, class C>
+		inline listener& on_pong(F&& f, C& c)
+		{
+			return this->on_pong(std::forward<F>(f), &c);
+		}
+		template<class F, class C>
+		inline listener& on_open(F&& f, C& c)
+		{
+			return this->on_open(std::forward<F>(f), &c);
+		}
+		template<class F, class C>
+		inline listener& on_close(F&& f, C& c)
+		{
+			return this->on_close(std::forward<F>(f), &c);
+		}
+
+		template<class F>
 		inline listener& on(std::string_view type, F&& f)
 		{
-			if      (beast::iequals(type, "message")) _bind(websocket::frame::message, std::forward<F>(f));
-			else if (beast::iequals(type, "ping"   )) _bind(websocket::frame::ping   , std::forward<F>(f));
-			else if (beast::iequals(type, "pong"   )) _bind(websocket::frame::pong   , std::forward<F>(f));
-			else if (beast::iequals(type, "open"   )) _bind(websocket::frame::open   , std::forward<F>(f));
-			else if (beast::iequals(type, "close"  )) _bind(websocket::frame::close  , std::forward<F>(f));
+			if      (beast::iequals(type, "message")) this->_bind(websocket::frame::message, std::forward<F>(f));
+			else if (beast::iequals(type, "ping"   )) this->_bind(websocket::frame::ping   , std::forward<F>(f));
+			else if (beast::iequals(type, "pong"   )) this->_bind(websocket::frame::pong   , std::forward<F>(f));
+			else if (beast::iequals(type, "open"   )) this->_bind(websocket::frame::open   , std::forward<F>(f));
+			else if (beast::iequals(type, "close"  )) this->_bind(websocket::frame::close  , std::forward<F>(f));
 			return (*this);
 		}
 		template<class F, class C>
 		inline listener& on(std::string_view type, F&& f, C* c)
 		{
 			auto mf = std::bind(std::forward<F>(f), c, std::placeholders::_1, std::placeholders::_2);
-			if      (beast::iequals(type, "message")) _bind(websocket::frame::message, std::move(mf));
-			else if (beast::iequals(type, "ping"   )) _bind(websocket::frame::ping   , std::move(mf));
-			else if (beast::iequals(type, "pong"   )) _bind(websocket::frame::pong   , std::move(mf));
-			else if (beast::iequals(type, "open"   )) _bind(websocket::frame::open   , std::move(mf));
-			else if (beast::iequals(type, "close"  )) _bind(websocket::frame::close  , std::move(mf));
+			if      (beast::iequals(type, "message")) this->_bind(websocket::frame::message, std::move(mf));
+			else if (beast::iequals(type, "ping"   )) this->_bind(websocket::frame::ping   , std::move(mf));
+			else if (beast::iequals(type, "pong"   )) this->_bind(websocket::frame::pong   , std::move(mf));
+			else if (beast::iequals(type, "open"   )) this->_bind(websocket::frame::open   , std::move(mf));
+			else if (beast::iequals(type, "close"  )) this->_bind(websocket::frame::close  , std::move(mf));
 			return (*this);
 		}
 		template<class F, class C>
@@ -252,33 +345,67 @@ namespace asio2::detail
 		/**
 		 * @function : set the root directory where we load the files.
 		 */
-		inline self& root_directory(std::filesystem::path path)
+		inline self& set_root_directory(std::filesystem::path path)
 		{
 			this->root_directory_ = std::move(path);
 			return (*this);
 		}
+
+		/**
+		 * @function : set the root directory where we load the files. same as set_root_directory
+		 */
+		inline self& root_directory(std::filesystem::path path)
+		{
+			return this->set_root_directory(std::move(path));
+		}
+
 		/**
 		 * @function : get the root directory where we load the files.
 		 */
-		inline const std::filesystem::path& root_directory() noexcept
+		inline const std::filesystem::path& get_root_directory() noexcept
 		{
 			return this->root_directory_;
 		}
 
 		/**
+		 * @function : get the root directory where we load the files. same as get_root_directory
+		 */
+		inline const std::filesystem::path& root_directory() noexcept
+		{
+			return this->get_root_directory();
+		}
+
+		/**
 		 * @function : set whether websocket is supported, default is true
 		 */
-		inline self& support_websocket(bool v) noexcept
+		inline self& set_support_websocket(bool v) noexcept
 		{
 			this->support_websocket_ = v;
 			return (*this);
 		}
+
+		/**
+		 * @function : set whether websocket is supported, default is true, same as set_support_websocket
+		 */
+		inline self& support_websocket(bool v) noexcept
+		{
+			return this->set_support_websocket(v);
+		}
+
 		/**
 		 * @function : get whether websocket is supported, default is true
 		 */
-		inline bool support_websocket() noexcept
+		inline bool is_support_websocket() noexcept
 		{
 			return this->support_websocket_;
+		}
+
+		/**
+		 * @function : get whether websocket is supported, default is true, same as is_support_websocket
+		 */
+		inline bool support_websocket() noexcept
+		{
+			return this->is_support_websocket();
 		}
 
 	protected:

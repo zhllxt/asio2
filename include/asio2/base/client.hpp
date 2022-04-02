@@ -233,19 +233,36 @@ namespace asio2::detail
 		inline io_t & io() noexcept { return this->io_; }
 
 		/**
-		 * @function : set the default remote call timeout for rpc/rdc
+		 * @function : set the default remote call timeout for rpc/rdc, same as set_default_timeout
 		 */
 		template<class Rep, class Period>
 		inline derived_t & default_timeout(std::chrono::duration<Rep, Period> duration) noexcept
+		{
+			return this->set_default_timeout(std::move(duration));
+		}
+
+		/**
+		 * @function : set the default remote call timeout for rpc/rdc
+		 */
+		template<class Rep, class Period>
+		inline derived_t & set_default_timeout(std::chrono::duration<Rep, Period> duration) noexcept
 		{
 			this->rc_timeout_ = duration;
 			return (this->derived());
 		}
 
 		/**
-		 * @function : get the default remote call timeout for rpc/rdc
+		 * @function : get the default remote call timeout for rpc/rdc, same as get_default_timeout
 		 */
 		inline std::chrono::steady_clock::duration default_timeout() noexcept
+		{
+			return this->get_default_timeout();
+		}
+
+		/**
+		 * @function : get the default remote call timeout for rpc/rdc
+		 */
+		inline std::chrono::steady_clock::duration get_default_timeout() noexcept
 		{
 			return this->rc_timeout_;
 		}

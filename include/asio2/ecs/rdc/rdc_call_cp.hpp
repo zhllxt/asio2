@@ -118,16 +118,13 @@ namespace asio2::detail
 			}
 
 			template<class return_t, class Rep, class Period, class DataT>
-			inline static return_t exec(derive_t& derive, error_code* ec_ptr,
-				std::chrono::duration<Rep, Period> timeout, DataT&& data)
+			inline static return_t exec(derive_t& derive, std::chrono::duration<Rep, Period> timeout, DataT&& data)
 			{
 				static_assert(!std::is_void_v<return_t>);
 				static_assert(!std::is_reference_v<return_t> && !std::is_pointer_v<return_t>);
 				static_assert(!is_template_instance_of_v<std::basic_string_view, return_t>);
 
 				ASIO2_ASSERT(derive.rdc_fields_ && "This function is only available in rdc mode");
-
-				if (ec_ptr) { ec_ptr->clear(); }
 
 				decltype(auto) fn_data = [&derive, data = derive._data_persistence(std::forward<DataT>(data))]
 				() mutable->send_data_t
@@ -203,16 +200,9 @@ namespace asio2::detail
 
 				set_last_error(ec);
 
-				if (ec_ptr)
-				{
-					*ec_ptr = ec;
-				}
-				else
-				{
-					// [20210818] don't throw an error, you can use get_last_error() to check
-					// is there any exception.
-					// asio::detail::throw_error(ec);
-				}
+				// [20210818] don't throw an error, you can use get_last_error() to check
+				// is there any exception.
+				// asio::detail::throw_error(ec);
 
 				return std::move(*result);
 			}
@@ -289,7 +279,7 @@ namespace asio2::detail
 
 		protected:
 			sync_caller(derive_t& d) : derive(d), tm_(d.default_timeout()) {}
-			sync_caller(sync_caller&& o) : derive(o.derive), tm_(std::move(o.tm_)), ec_(std::move(o.ec_)) {}
+			sync_caller(sync_caller&& o) : derive(o.derive), tm_(std::move(o.tm_)) {}
 			sync_caller(const sync_caller&) = delete;
 			sync_caller& operator=(sync_caller&&) = delete;
 			sync_caller& operator=(const sync_caller&) = delete;
@@ -297,29 +287,35 @@ namespace asio2::detail
 		public:
 			~sync_caller() = default;
 
+			/**
+			 * @function : set the timeout for remote data call component (means rdc)
+			 */
 			template<class Rep, class Period>
-			inline sync_caller& timeout(std::chrono::duration<Rep, Period> timeout)
+			inline sync_caller& set_timeout(std::chrono::duration<Rep, Period> timeout)
 			{
 				this->tm_ = std::move(timeout);
 				return (*this);
 			}
 
-			inline sync_caller& errcode(error_code& ec)
+			/**
+			 * @function : set the timeout for remote data call component (means rdc), same as set_timeout
+			 */
+			template<class Rep, class Period>
+			inline sync_caller& timeout(std::chrono::duration<Rep, Period> timeout)
 			{
-				this->ec_ = &ec;
-				return (*this);
+				return this->set_timeout(std::move(timeout));
 			}
 
 			template<class return_t, class DataT>
 			inline return_t call(DataT&& data)
 			{
-				return sync_call_op<derive_t, arg_t>::template exec<return_t>(derive, ec_, tm_, std::forward<DataT>(data));
+				return sync_call_op<derive_t, arg_t>::template exec<return_t>(
+					derive, tm_, std::forward<DataT>(data));
 			}
 
 		protected:
 			derive_t&                                           derive;
 			asio::steady_timer::duration                        tm_;
-			error_code*                                         ec_       = nullptr;
 		};
 
 		template<class derive_t, class arg_t>
@@ -350,11 +346,23 @@ namespace asio2::detail
 				}
 			}
 
+			/**
+			 * @function : set the timeout for remote data call component (means rdc)
+			 */
 			template<class Rep, class Period>
-			inline async_caller& timeout(std::chrono::duration<Rep, Period> timeout)
+			inline async_caller& set_timeout(std::chrono::duration<Rep, Period> timeout)
 			{
 				this->tm_ = timeout;
 				return (*this);
+			}
+
+			/**
+			 * @function : set the timeout for remote data call component (means rdc), same as set_timeout
+			 */
+			template<class Rep, class Period>
+			inline async_caller& timeout(std::chrono::duration<Rep, Period> timeout)
+			{
+				return this->set_timeout(std::move(timeout));
 			}
 
 			template<class Callback>
@@ -394,7 +402,7 @@ namespace asio2::detail
 
 		protected:
 			base_caller(derive_t& d) : derive(d), tm_(d.default_timeout()) {}
-			base_caller(base_caller&& o) : derive(o.derive), tm_(std::move(o.tm_)), ec_(std::move(o.ec_)) {}
+			base_caller(base_caller&& o) : derive(o.derive), tm_(std::move(o.tm_)) {}
 			base_caller& operator=(base_caller&&) = delete;
 			base_caller(const base_caller&) = delete;
 			base_caller& operator=(const base_caller&) = delete;
@@ -402,26 +410,30 @@ namespace asio2::detail
 		public:
 			~base_caller() = default;
 
+			/**
+			 * @function : set the timeout for remote data call component (means rdc)
+			 */
 			template<class Rep, class Period>
-			inline base_caller& timeout(std::chrono::duration<Rep, Period> timeout)
+			inline base_caller& set_timeout(std::chrono::duration<Rep, Period> timeout)
 			{
 				this->tm_ = std::move(timeout);
 				return (*this);
 			}
 
-			inline sync_caller<derive_t, arg_t> errcode(error_code& ec)
+			/**
+			 * @function : set the timeout for remote data call component (means rdc), same as set_timeout
+			 */
+			template<class Rep, class Period>
+			inline base_caller& timeout(std::chrono::duration<Rep, Period> timeout)
 			{
-				sync_caller<derive_t, arg_t> caller{ derive };
-				caller.timeout(std::move(this->tm_));
-				caller.errcode(ec);
-				return caller; // "caller" is local variable has RVO optimization, should't use std::move()
+				return this->set_timeout(std::move(timeout));
 			}
 
 			template<class Callback>
 			inline async_caller<derive_t, arg_t> response(Callback&& cb)
 			{
 				async_caller<derive_t, arg_t> caller{ derive };
-				caller.timeout(std::move(this->tm_));
+				caller.set_timeout(std::move(this->tm_));
 				caller.response(std::forward<Callback>(cb));
 				return caller; // "caller" is local variable has RVO optimization, should't use std::move()
 			}
@@ -429,15 +441,15 @@ namespace asio2::detail
 			template<class return_t, class DataT>
 			inline return_t call(DataT&& data)
 			{
-				return sync_call_op<derive_t, arg_t>::template exec<return_t>(derive, this->ec_, this->tm_,
-					std::forward<DataT>(data));
+				return sync_call_op<derive_t, arg_t>::template exec<return_t>(
+					derive, this->tm_, std::forward<DataT>(data));
 			}
 
 			template<class DataT>
 			inline async_caller<derive_t, arg_t> async_call(DataT&& data)
 			{
 				async_caller<derive_t, arg_t> caller{ derive };
-				caller.timeout(std::move(this->tm_));
+				caller.set_timeout(std::move(this->tm_));
 				caller.async_call(std::forward<DataT>(data));
 				return caller; // "caller" is local variable has RVO optimization, should't use std::move()
 			}
@@ -445,7 +457,6 @@ namespace asio2::detail
 		protected:
 			derive_t&                                           derive;
 			asio::steady_timer::duration                        tm_;
-			error_code*                                         ec_       = nullptr;
 		};
 
 	public:
@@ -457,8 +468,8 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			return sync_call_op<derived_t, args_t>::template exec<return_t>(derive, nullptr, derive.default_timeout(),
-				std::forward<DataT>(data));
+			return sync_call_op<derived_t, args_t>::template exec<return_t>(
+				derive, derive.default_timeout(), std::forward<DataT>(data));
 		}
 
 		/**
@@ -469,32 +480,8 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			return sync_call_op<derived_t, args_t>::template exec<return_t>(derive, nullptr, timeout,
-				std::forward<DataT>(data));
-		}
-
-		/**
-		 * @function : Send data and synchronize waiting for a response or until the timeout period is reached
-		 */
-		template<class return_t, class DataT>
-		inline return_t call(DataT&& data, error_code& ec)
-		{
-			derived_t& derive = static_cast<derived_t&>(*this);
-
-			return sync_call_op<derived_t, args_t>::template exec<return_t>(derive, &ec, derive.default_timeout(),
-				std::forward<DataT>(data));
-		}
-
-		/**
-		 * @function : Send data and synchronize waiting for a response or until the timeout period is reached
-		 */
-		template<class return_t, class DataT, class Rep, class Period>
-		inline return_t call(DataT&& data, std::chrono::duration<Rep, Period> timeout, error_code& ec)
-		{
-			derived_t& derive = static_cast<derived_t&>(*this);
-
-			return sync_call_op<derived_t, args_t>::template exec<return_t>(derive, &ec, timeout,
-				std::forward<DataT>(data));
+			return sync_call_op<derived_t, args_t>::template exec<return_t>(
+				derive, timeout, std::forward<DataT>(data));
 		}
 
 		/**
@@ -540,21 +527,20 @@ namespace asio2::detail
 		 * @function : set the timeout for remote data call component (means rdc)
 		 */
 		template<class Rep, class Period>
-		inline base_caller<derived_t, args_t> timeout(std::chrono::duration<Rep, Period> timeout)
+		inline base_caller<derived_t, args_t> set_timeout(std::chrono::duration<Rep, Period> timeout)
 		{
 			base_caller<derived_t, args_t> caller{ static_cast<derived_t&>(*this) };
-			caller.timeout(timeout);
+			caller.set_timeout(timeout);
 			return caller; // "caller" is local variable has RVO optimization, should't use std::move()
 		}
 
 		/**
-		 * @function : bind a error_code for remote data call component (means rdc)
+		 * @function : set the timeout for remote data call component (means rdc), same as set_timeout
 		 */
-		inline sync_caller<derived_t, args_t> errcode(error_code& ec)
+		template<class Rep, class Period>
+		inline base_caller<derived_t, args_t> timeout(std::chrono::duration<Rep, Period> timeout)
 		{
-			sync_caller<derived_t, args_t> caller{ static_cast<derived_t&>(*this) };
-			caller.errcode(ec);
-			return caller; // "caller" is local variable has RVO optimization, should't use std::move()
+			return this->set_timeout(std::move(timeout));
 		}
 
 		/**
@@ -638,6 +624,8 @@ namespace asio2::detail
 				this->rdc_fields_->send_event_->async_wait(
 				[&derive, this, this_ptr = std::move(this_ptr), condition = std::move(condition)]() mutable
 				{
+					ASIO2_ASSERT(derive.io().strand().running_in_this_thread());
+
 					while (!this->rdc_fields_->pending_datas_.empty())
 					{
 						auto&&[fn_data, timeout, invoker] = this->rdc_fields_->pending_datas_.front();
@@ -704,6 +692,8 @@ namespace asio2::detail
 					{
 						auto& _rdc = condition.impl_->rdc_option(std::in_place);
 
+						ASIO2_ASSERT(derive.io().strand().running_in_this_thread());
+
 						_rdc.invoker().emplace(id, timer, std::move(invoker));
 
 						timer->expires_after(timeout);
@@ -715,6 +705,8 @@ namespace asio2::detail
 								return;
 
 							auto& _rdc = condition.impl_->rdc_option(std::in_place);
+
+							ASIO2_ASSERT(derive.io().strand().running_in_this_thread());
 
 							auto iter = _rdc.invoker().find(id);
 							if (iter != _rdc.invoker().end())
@@ -739,6 +731,8 @@ namespace asio2::detail
 								auto& _rdc = condition.impl_->rdc_option(std::in_place);
 
 								error_code ec_ignore{};
+
+								ASIO2_ASSERT(derive.io().strand().running_in_this_thread());
 
 								auto iter = _rdc.invoker().find(id);
 								if (iter != _rdc.invoker().end())
@@ -781,6 +775,8 @@ namespace asio2::detail
 				auto id = (_rdc.recv_parser())(data);
 
 				error_code ec_ignore{};
+
+				ASIO2_ASSERT(derive.io().strand().running_in_this_thread());
 
 				auto iter = _rdc.invoker().find(id);
 				if (iter != _rdc.invoker().end())

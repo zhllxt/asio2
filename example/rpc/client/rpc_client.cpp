@@ -74,6 +74,10 @@ int main()
 	std::string_view host = "127.0.0.1";
 	std::string_view port = "8010";
 
+	// for test
+	[[maybe_unused]] asio2::rpc_client_use<asio2::net_protocol::tcp> rpc_client_with_tcp;
+	[[maybe_unused]] asio2::rpc_client_use<asio2::net_protocol::ws > rpc_client_with_ws;
+
 	std::srand((unsigned int)time(nullptr));
 
 	while (!asio2::detail::has_unexpected_behavior())
@@ -139,7 +143,7 @@ int main()
 				ASIO2_ASSERT(js["name"].get<std::string>() == "lilei");
 			}
 
-			asio2::detail::ignore_unused(js, s);
+			asio2::ignore_unused(js, s);
 		});
 
 		// param 2 is empty, use the default_timeout
@@ -157,7 +161,7 @@ int main()
 
 
 		// Chain calls : 
-		client.timeout(std::chrono::seconds(5)).async_call("mul", 2.5, 2.5).response([](double v)
+		client.set_timeout(std::chrono::seconds(5)).async_call("mul", 2.5, 2.5).response([](double v)
 		{
 			if (!asio2::get_last_error())
 			{

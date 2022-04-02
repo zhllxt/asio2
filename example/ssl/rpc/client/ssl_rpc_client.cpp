@@ -28,6 +28,10 @@ int main()
 	std::string_view host = "127.0.0.1";
 	std::string_view port = "8011";
 
+	// for test
+	[[maybe_unused]] asio2::rpcs_client_use<asio2::net_protocol::tcps> rpcs_client_with_tcp;
+	[[maybe_unused]] asio2::rpcs_client_use<asio2::net_protocol::wss > rpcs_client_with_ws;
+
 	asio2::rpcs_client client;
 
 	sender = [&]()

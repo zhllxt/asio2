@@ -84,7 +84,8 @@ namespace asio2::detail
 				f();
 		}
 
-		inline bool empty() const noexcept { return !valid_; }
+		inline bool    empty() const noexcept { return !valid_; }
+		inline bool is_empty() const noexcept { return !valid_; }
 
 	protected:
 		Function f;
@@ -126,7 +127,8 @@ namespace asio2::detail
 				derive.next_event(std::move(*this));
 		}
 
-		inline bool valid() const noexcept { return valid_; }
+		inline bool    valid() const noexcept { return valid_; }
+		inline bool is_valid() const noexcept { return valid_; }
 
 	protected:
 		derived_t                    & derive;

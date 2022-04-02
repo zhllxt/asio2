@@ -263,7 +263,7 @@ int main()
 
 	client.bind_recv([&](http::web_request& req, http::web_response& rep)
 	{
-		asio2::detail::ignore(req, rep);
+		asio2::ignore_unused(req, rep);
 
 		std::cout << "----------------------------------------" << std::endl;
 		// print the whole response
@@ -319,7 +319,7 @@ int main()
 		if (!asio2::get_last_error())
 		{
 			const char * msg = "GET / HTTP/1.1\r\n\r\n";
-			client.async_send(msg, [](std::size_t bytes_sent) {asio2::detail::ignore_unused(bytes_sent); });
+			client.async_send(msg, [](std::size_t bytes_sent) {asio2::ignore_unused(bytes_sent); });
 		}
 
 	}).bind_disconnect([]()
@@ -336,9 +336,7 @@ int main()
 		"aaa123"
 	};
 
-	asio2::rdc::option rdc_option{ [](http::web_request&) { return 0; },[](http::web_response&) { return 0; } };
-
-	client.start(host, port/*, std::move(rdc_option), sock5_option*/);
+	client.start(host, port/*, sock5_option*/);
 
 	while (std::getchar() != '\n');
 

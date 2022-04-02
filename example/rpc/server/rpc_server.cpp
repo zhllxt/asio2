@@ -108,7 +108,7 @@ public:
 	// to std::shared_ptr<asio2::rpc_session>& session_ptr
 	userinfo get_user(std::shared_ptr<asio2::rpc_session>& session_ptr)
 	{
-		asio2::detail::ignore_unused(session_ptr);
+		asio2::ignore_unused(session_ptr);
 
 		userinfo u;
 		u.name = "lilei";
@@ -132,6 +132,22 @@ void heartbeat(std::shared_ptr<asio2::rpc_session>& session_ptr)
 	printf("heartbeat %s\n", session_ptr->remote_address().c_str());
 }
 
+class my_rpc_session : public asio2::rpc_session_t<my_rpc_session, asio2::net_protocol::tcp>
+{
+public:
+	using asio2::rpc_session_t<my_rpc_session, asio2::net_protocol::tcp>::rpc_session_t;
+
+	std::string username;
+};
+
+class my_rpc_server1 : public asio2::rpc_server_t<my_rpc_session, asio2::net_protocol::tcp>
+{
+public:
+	using asio2::rpc_server_t<my_rpc_session, asio2::net_protocol::tcp>::rpc_server_t;
+};
+
+using my_rpc_server2 = asio2::rpc_server_t<my_rpc_session, asio2::net_protocol::tcp>;
+
 int main()
 {
 #if defined(WIN32) || defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS_)
@@ -141,6 +157,12 @@ int main()
 
 	std::string_view host = "0.0.0.0";
 	std::string_view port = "8010";
+
+	// for test
+	[[maybe_unused]] asio2::rpc_server_use<asio2::net_protocol::tcp> rpc_server_with_tcp;
+	[[maybe_unused]] asio2::rpc_server_use<asio2::net_protocol::ws > rpc_server_with_ws;
+	[[maybe_unused]] my_rpc_server1 mrs1;
+	[[maybe_unused]] my_rpc_server2 mrs2;
 
 	std::srand((unsigned int)time(nullptr));
 

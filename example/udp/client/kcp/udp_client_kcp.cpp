@@ -29,20 +29,6 @@ int main()
 
 		//client.async_send(msg);
 		client.async_send(std::string("1<abcdefghijklmnopqrstovuxyz0123456789>"));
-
-		char buf[5] = "1abc";
-		char * p = buf;
-
-		client.async_call(buf);
-		client.async_call(p);
-
-		client.async_call("1<abcdefghijklmnopqrstovuxyz0123456789>");
-		client.async_call(std::string_view{ "1<abcdefghijklmnopqrstovuxyz0123456789>" }).
-			response([](std::string_view data)
-		{
-			asio2::detail::ignore_unused(data);
-		});
-
 	}).bind_disconnect([]()
 	{
 		printf("disconnect : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
@@ -81,20 +67,8 @@ int main()
 		});
 	});
 
-	asio2::rdc::option rdc_option
-	{
-		[](std::string_view data)
-		{
-			return std::stoi(std::string{ data.substr(0, 1) });
-		},
-		[](std::string_view data)
-		{
-			return std::stoi(std::string{ data.substr(0, 1) });
-		}
-	};
-
 	// to use kcp, the last param must be : asio2::use_kcp
-	client.async_start(host, port, asio2::use_kcp, std::move(rdc_option));
+	client.async_start(host, port, asio2::use_kcp);
 	//auto * kp = client.kcp();
 
 	std::string s;

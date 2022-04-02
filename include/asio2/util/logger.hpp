@@ -178,7 +178,7 @@ namespace asio2
 		/**
 		 * set the log ouput level,if you has't call this function,the defaul level is trace.
 		 */
-		inline logger & level(severity_level level) noexcept
+		inline logger & set_level(severity_level level) noexcept
 		{
 			this->level_ = level;
 			if (this->level_ < severity_level::trace || this->level_ > severity_level::report)
@@ -186,23 +186,77 @@ namespace asio2
 			return (*this);
 		}
 
+		/**
+		 * set the log ouput level,if you has't call this function,the defaul level is trace.
+		 * same as set_level
+		 */
+		inline logger & level(severity_level level) noexcept
+		{
+			return this->set_level(level);
+		}
+
+		/**
+		 * get the log ouput level
+		 */
+		inline severity_level get_level() noexcept
+		{
+			return this->level_;
+		}
+
+		/**
+		 * get the log ouput level, same as get_level
+		 */
 		inline severity_level level() noexcept
 		{
 			return this->level_;
 		}
 
-		inline logger & dest(unsigned int dest) noexcept
+		/**
+		 * set the log ouput dest, console or file or both.
+		 */
+		inline logger & set_dest(unsigned int dest) noexcept
 		{
 			this->dest_ = dest;
 			return (*this);
 		}
 
+		/**
+		 * set the log ouput dest, console or file or both. same as set_dest
+		 */
+		inline logger & dest(unsigned int dest) noexcept
+		{
+			return this->set_dest(dest);
+		}
+
+		/**
+		 * get the log ouput dest, console or file or both.
+		 */
+		inline unsigned int get_dest() noexcept
+		{
+			return this->dest_;
+		}
+
+		/**
+		 * get the log ouput dest, console or file or both. same as get_dest
+		 */
 		inline unsigned int dest() noexcept
 		{
 			return this->dest_;
 		}
 
 		/**
+		 * set a user custom function log target.
+		 * @Fun : void(const std::string & text)
+		 */
+		template<class Fun>
+		inline logger & set_target(Fun&& target) noexcept
+		{
+			this->target_ = std::forward<Fun>(target);
+			return (*this);
+		}
+
+		/**
+		 * set a user custom function log target. same as set_target
 		 * @Fun : void(const std::string & text)
 		 */
 		template<class Fun>
@@ -212,6 +266,17 @@ namespace asio2
 			return (*this);
 		}
 
+		/**
+		 * get the user custom function log target.
+		 */
+		inline std::function<void(const std::string & text)> & get_target() noexcept
+		{
+			return this->target_;
+		}
+
+		/**
+		 * get the user custom function log target. same as get_target
+		 */
 		inline std::function<void(const std::string & text)> & target() noexcept
 		{
 			return this->target_;

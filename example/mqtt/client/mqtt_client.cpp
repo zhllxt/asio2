@@ -55,7 +55,7 @@ int main()
 
 	client.bind_recv([&](std::string_view data)
 	{
-		asio2::detail::ignore_unused(data);
+		asio2::ignore_unused(data);
 
 		//asio2::mqtt::v3::connack cack;
 		//cack.deserialize(data);
@@ -139,7 +139,7 @@ int main()
 				auto type  = prop.type();
 				auto value = prop.value();
 
-				asio2::detail::ignore_unused(name, type, value);
+				asio2::ignore_unused(name, type, value);
 			},vprop);
 		}
 	});
@@ -161,37 +161,37 @@ int main()
 
 	client.on_pubrec([](asio2::mqtt::v3::pubrec& pubrec, asio2::mqtt::v3::pubrel& pubrel)
 	{
-		asio2::detail::ignore_unused(pubrec, pubrel);
+		asio2::ignore_unused(pubrec, pubrel);
 		std::cout << "recv v3::pubrec, packet id: " << pubrec.packet_id() << std::endl;
 	});
 
 	client.on_pubrec([](asio2::mqtt::v4::pubrec& pubrec, asio2::mqtt::v4::pubrel& pubrel)
 	{
-		asio2::detail::ignore_unused(pubrec, pubrel);
+		asio2::ignore_unused(pubrec, pubrel);
 		std::cout << "recv v4::pubrec, packet id: " << pubrec.packet_id() << std::endl;
 	});
 
 	client.on_pubrec([](asio2::mqtt::v5::pubrec& pubrec, asio2::mqtt::v5::pubrel& pubrel)
 	{
-		asio2::detail::ignore_unused(pubrec, pubrel);
+		asio2::ignore_unused(pubrec, pubrel);
 		std::cout << "recv v5::pubrec, packet id: " << pubrec.packet_id() << " reason_code : " << int(pubrec.reason_code()) << std::endl;
 	});
 
 	client.on_pubcomp([](asio2::mqtt::v3::pubcomp& pubcomp)
 	{
-		asio2::detail::ignore_unused(pubcomp);
+		asio2::ignore_unused(pubcomp);
 		std::cout << "recv v3::pubcomp, packet id: " << pubcomp.packet_id() << std::endl;
 	});
 
 	client.on_pubcomp([](asio2::mqtt::v4::pubcomp& pubcomp)
 	{
-		asio2::detail::ignore_unused(pubcomp);
+		asio2::ignore_unused(pubcomp);
 		std::cout << "recv v4::pubcomp, packet id: " << pubcomp.packet_id() << std::endl;
 	});
 
 	client.on_pubcomp([](asio2::mqtt::v5::pubcomp& pubcomp)
 	{
-		asio2::detail::ignore_unused(pubcomp);
+		asio2::ignore_unused(pubcomp);
 		std::cout << "recv v5::pubcomp, packet id: " << pubcomp.packet_id() << " reason_code : " << int(pubcomp.reason_code()) << std::endl;
 	});
 

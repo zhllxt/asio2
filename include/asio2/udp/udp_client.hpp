@@ -177,9 +177,20 @@ namespace asio2::detail
 		 * generic mode : ikcp_nodelay(kcp, 0, 10, 0, 1);
 		 * fast    mode : ikcp_nodelay(kcp, 1, 10, 2, 1);
 		 */
-		inline kcp::ikcpcb* kcp() noexcept
+		inline kcp::ikcpcb* get_kcp() noexcept
 		{
 			return (this->kcp_ ? this->kcp_->kcp_ : nullptr);
+		}
+
+		/**
+		 * @function : get the kcp pointer, just used for kcp mode. same as get_kcp
+		 * default mode : ikcp_nodelay(kcp, 0, 10, 0, 0);
+		 * generic mode : ikcp_nodelay(kcp, 0, 10, 0, 1);
+		 * fast    mode : ikcp_nodelay(kcp, 1, 10, 2, 1);
+		 */
+		inline kcp::ikcpcb* kcp() noexcept
+		{
+			return this->get_kcp();
 		}
 
 	public:
@@ -294,7 +305,8 @@ namespace asio2::detail
 			};
 
 			derive.push_event(
-			[this, &derive, host = std::forward<String>(host), port = std::forward<StrOrInt>(port),
+			[this, &derive, this_ptr = derive.selfptr(),
+				host = std::forward<String>(host), port = std::forward<StrOrInt>(port),
 				condition = std::move(condition), set_promise = std::move(set_promise)]
 			(event_queue_guard<derived_t>&& g) mutable
 			{
@@ -335,7 +347,7 @@ namespace asio2::detail
 					derive._load_reconnect_timer(condition);
 
 					derive.template _start_connect<IsAsync>(
-						derive.selfptr(), std::move(condition), std::move(set_promise));
+						std::move(this_ptr), std::move(condition), std::move(set_promise));
 
 					return;
 				}

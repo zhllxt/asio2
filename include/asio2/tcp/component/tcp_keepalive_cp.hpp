@@ -45,8 +45,26 @@ namespace asio2::detail
 		 * @param    : idle     - How many seconds after the connection is idle, start sending keepalives
 		 * @param    : interval - How many seconds later to send again when no reply is received
 		 * @param    : count    - How many times to resend when no reply is received
+		 * same as set_keep_alive_options
 		 */
 		bool keep_alive_options(
+			bool         onoff = true,
+			unsigned int idle = 60,
+			unsigned int interval = 3,
+			unsigned int count = 3
+		) noexcept
+		{
+			return this->set_keep_alive_options(onoff, idle, interval, count);
+		}
+
+		/**
+		 * @function : set tcp socket keep alive options
+		 * @param    : onoff    - Turn keepalive on or off
+		 * @param    : idle     - How many seconds after the connection is idle, start sending keepalives
+		 * @param    : interval - How many seconds later to send again when no reply is received
+		 * @param    : count    - How many times to resend when no reply is received
+		 */
+		bool set_keep_alive_options(
 			bool         onoff = true,
 			unsigned int idle = 60,
 			unsigned int interval = 3,

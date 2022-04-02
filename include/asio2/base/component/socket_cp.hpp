@@ -44,25 +44,49 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @function : get the socket object refrence
+		 * @function : get the socket object refrence, same as get_socket
 		 */
 		inline socket_type & socket() noexcept
 		{
+			return this->get_socket();
+		}
+
+		/**
+		 * @function : get the socket object refrence
+		 */
+		inline socket_type & get_socket() noexcept
+		{
 			return this->socket_;
+		}
+
+		/**
+		 * @function : get the stream object refrence, same as get_stream
+		 */
+		inline socket_type & stream() noexcept
+		{
+			return this->get_stream();
 		}
 
 		/**
 		 * @function : get the stream object refrence
 		 */
-		inline socket_type & stream() noexcept
+		inline socket_type & get_stream() noexcept
 		{
 			return this->socket_;
 		}
 
 		/**
+		 * @function : get the local address, same as get_local_address
+		 */
+		inline std::string local_address() noexcept
+		{
+			return this->get_local_address();
+		}
+
+		/**
 		 * @function : get the local address
 		 */
-		inline std::string local_address()
+		inline std::string get_local_address() noexcept
 		{
 			try
 			{
@@ -76,9 +100,17 @@ namespace asio2::detail
 		}
 
 		/**
+		 * @function : get the local port, same as get_local_port
+		 */
+		inline unsigned short local_port() noexcept
+		{
+			return this->get_local_port();
+		}
+
+		/**
 		 * @function : get the local port
 		 */
-		inline unsigned short local_port()
+		inline unsigned short get_local_port() noexcept
 		{
 			try
 			{
@@ -92,9 +124,17 @@ namespace asio2::detail
 		}
 
 		/**
+		 * @function : get the remote address, same as get_remote_address
+		 */
+		inline std::string remote_address() noexcept
+		{
+			return this->get_remote_address();
+		}
+
+		/**
 		 * @function : get the remote address
 		 */
-		inline std::string remote_address()
+		inline std::string get_remote_address() noexcept
 		{
 			try
 			{
@@ -108,9 +148,17 @@ namespace asio2::detail
 		}
 
 		/**
+		 * @function : get the remote port, same as get_remote_port
+		 */
+		inline unsigned short remote_port() noexcept
+		{
+			return this->get_remote_port();
+		}
+
+		/**
 		 * @function : get the remote port
 		 */
-		inline unsigned short remote_port()
+		inline unsigned short get_remote_port() noexcept
 		{
 			try
 			{
@@ -125,9 +173,17 @@ namespace asio2::detail
 
 	public:
 		/**
+		 * @function : Implements the SOL_SOCKET/SO_SNDBUF socket option. same as set_sndbuf_size
+		 */
+		inline derived_t & sndbuf_size(int val) noexcept
+		{
+			return this->set_sndbuf_size(val);
+		}
+
+		/**
 		 * @function : Implements the SOL_SOCKET/SO_SNDBUF socket option.
 		 */
-		inline derived_t & sndbuf_size(int val)
+		inline derived_t & set_sndbuf_size(int val) noexcept
 		{
 			try
 			{
@@ -141,9 +197,17 @@ namespace asio2::detail
 		}
 
 		/**
+		 * @function : Implements the SOL_SOCKET/SO_RCVBUF socket option. same as set_rcvbuf_size
+		 */
+		inline derived_t & rcvbuf_size(int val) noexcept
+		{
+			return this->set_rcvbuf_size(val);
+		}
+
+		/**
 		 * @function : Implements the SOL_SOCKET/SO_RCVBUF socket option.
 		 */
-		inline derived_t & rcvbuf_size(int val)
+		inline derived_t & set_rcvbuf_size(int val) noexcept
 		{
 			try
 			{
@@ -157,9 +221,17 @@ namespace asio2::detail
 		}
 
 		/**
+		 * @function : Implements the SOL_SOCKET/SO_KEEPALIVE socket option. same as set_keep_alive
+		 */
+		inline derived_t & keep_alive(bool val) noexcept
+		{
+			return this->set_keep_alive(val);
+		}
+
+		/**
 		 * @function : Implements the SOL_SOCKET/SO_KEEPALIVE socket option.
 		 */
-		inline derived_t & keep_alive(bool val)
+		inline derived_t & set_keep_alive(bool val) noexcept
 		{
 			try
 			{
@@ -173,9 +245,17 @@ namespace asio2::detail
 		}
 
 		/**
+		 * @function : Implements the SOL_SOCKET/SO_REUSEADDR socket option. same as set_reuse_address
+		 */
+		inline derived_t & reuse_address(bool val) noexcept
+		{
+			return this->set_reuse_address(val);
+		}
+
+		/**
 		 * @function : Implements the SOL_SOCKET/SO_REUSEADDR socket option.
 		 */
-		inline derived_t & reuse_address(bool val)
+		inline derived_t & set_reuse_address(bool val) noexcept
 		{
 			try
 			{
@@ -189,9 +269,17 @@ namespace asio2::detail
 		}
 
 		/**
+		 * @function : Implements the SOL_SOCKET/SO_SNDBUF socket option. same as get_sndbuf_size
+		 */
+		inline int sndbuf_size() const noexcept
+		{
+			return this->get_sndbuf_size();
+		}
+
+		/**
 		 * @function : Implements the SOL_SOCKET/SO_SNDBUF socket option.
 		 */
-		inline int sndbuf_size() const
+		inline int get_sndbuf_size() const noexcept
 		{
 			try
 			{
@@ -207,9 +295,17 @@ namespace asio2::detail
 		}
 
 		/**
+		 * @function : Implements the SOL_SOCKET/SO_RCVBUF socket option. same as get_rcvbuf_size
+		 */
+		inline int rcvbuf_size() const noexcept
+		{
+			return this->get_rcvbuf_size();
+		}
+
+		/**
 		 * @function : Implements the SOL_SOCKET/SO_RCVBUF socket option.
 		 */
-		inline int rcvbuf_size() const
+		inline int get_rcvbuf_size() const noexcept
 		{
 			try
 			{
@@ -225,9 +321,17 @@ namespace asio2::detail
 		}
 
 		/**
+		 * @function : Implements the SOL_SOCKET/SO_KEEPALIVE socket option. same as is_keep_alive
+		 */
+		inline bool keep_alive() const noexcept
+		{
+			return this->is_keep_alive();
+		}
+
+		/**
 		 * @function : Implements the SOL_SOCKET/SO_KEEPALIVE socket option.
 		 */
-		inline bool keep_alive() const
+		inline bool is_keep_alive() const noexcept
 		{
 			try
 			{
@@ -243,9 +347,17 @@ namespace asio2::detail
 		}
 
 		/**
+		 * @function : Implements the SOL_SOCKET/SO_REUSEADDR socket option. same as is_reuse_address
+		 */
+		inline bool reuse_address() const noexcept
+		{
+			return this->is_reuse_address();
+		}
+
+		/**
 		 * @function : Implements the SOL_SOCKET/SO_REUSEADDR socket option.
 		 */
-		inline bool reuse_address() const
+		inline bool is_reuse_address() const noexcept
 		{
 			try
 			{
@@ -261,9 +373,17 @@ namespace asio2::detail
 		}
 
 		/**
+		 * @function : Implements the TCP_NODELAY socket option. same as is_no_delay
+		 */
+		inline bool no_delay() const noexcept
+		{
+			return this->is_no_delay();
+		}
+
+		/**
 		 * @function : Implements the TCP_NODELAY socket option.
 		 */
-		inline bool no_delay() const
+		inline bool is_no_delay() const noexcept
 		{
 			try
 			{
@@ -287,10 +407,19 @@ namespace asio2::detail
 		}
 
 		/**
+		 * @function : Implements the TCP_NODELAY socket option. same as set_no_delay
+		 * If it's not a tcp socket, do nothing
+		 */
+		inline derived_t & no_delay(bool val) noexcept
+		{
+			return this->set_no_delay(val);
+		}
+
+		/**
 		 * @function : Implements the TCP_NODELAY socket option.
 		 * If it's not a tcp socket, do nothing
 		 */
-		inline derived_t & no_delay(bool val)
+		inline derived_t & set_no_delay(bool val) noexcept
 		{
 			try
 			{

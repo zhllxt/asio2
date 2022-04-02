@@ -43,21 +43,33 @@ namespace asio2::socks5::detail
 			ASIO2_ASSERT(username_.size() <= std::size_t(0xff) && password_.size() <= std::size_t(0xff));
 		}
 
-		inline derived_t& username(std::string v)
+		inline derived_t& set_username(std::string v)
 		{
 			username_ = std::move(v);
 			ASIO2_ASSERT(username_.size() <= std::size_t(0xff));
 			return static_cast<derived_t&>(*this);
 		}
-		inline derived_t& password(std::string v)
+		inline derived_t& set_password(std::string v)
 		{
 			password_ = std::move(v);
 			ASIO2_ASSERT(password_.size() <= std::size_t(0xff));
 			return static_cast<derived_t&>(*this);
 		}
 
-		inline std::string& username() noexcept { return  username_; }
-		inline std::string& password() noexcept { return  password_; }
+		inline derived_t& username(std::string v)
+		{
+			return this->set_username(std::move(v));
+		}
+		inline derived_t& password(std::string v)
+		{
+			return this->set_password(std::move(v));
+		}
+
+		inline std::string&     username() noexcept { return  username_; }
+		inline std::string&     password() noexcept { return  password_; }
+
+		inline std::string& get_username() noexcept { return  username_; }
+		inline std::string& get_password() noexcept { return  password_; }
 
 	protected:
 		std::string username_{};
@@ -125,19 +137,31 @@ namespace asio2::socks5
 			this->password(asio2::detail::to_string(std::forward<String4>(password)));
 		}
 
-		inline option& host(std::string proxy_host)
+		inline option& set_host(std::string proxy_host)
 		{
 			host_ = std::move(proxy_host);
 			return (*this);
 		}
-		inline option& port(std::string proxy_port)
+		inline option& set_port(std::string proxy_port)
 		{
 			port_ = std::move(proxy_port);
 			return (*this);
 		}
 
-		inline std::string& host() noexcept { return host_; }
-		inline std::string& port() noexcept { return port_; }
+		inline option& host(std::string proxy_host)
+		{
+			return this->set_host(std::move(proxy_host));
+		}
+		inline option& port(std::string proxy_port)
+		{
+			return this->set_port(std::move(proxy_port));
+		}
+
+		inline std::string&     host() noexcept { return host_; }
+		inline std::string&     port() noexcept { return port_; }
+
+		inline std::string& get_host() noexcept { return host_; }
+		inline std::string& get_port() noexcept { return port_; }
 
 		// vs2017 15.9.31 not supported
 		//constexpr static bool has_password_method = ((ms == method::password) || ...);
@@ -147,9 +171,19 @@ namespace asio2::socks5
 			return ((ms == method::password) || ...);
 		}
 
+		inline std::array<method, sizeof...(ms)> get_methods() noexcept
+		{
+			return methods_;
+		}
+
 		inline std::array<method, sizeof...(ms)> methods() noexcept
 		{
 			return methods_;
+		}
+
+		constexpr auto get_methods_count() const noexcept
+		{
+			return methods_.size();
 		}
 
 		constexpr auto methods_count() const noexcept
@@ -157,9 +191,11 @@ namespace asio2::socks5
 			return methods_.size();
 		}
 
-		inline socks5::command command()                    noexcept { return cmd_;                }
+		inline socks5::command     command()                    noexcept { return cmd_;                }
+		inline socks5::command get_command()                    noexcept { return cmd_;                }
 
-		inline option&         command(socks5::command cmd) noexcept { cmd_ = cmd; return (*this); }
+		inline option&             command(socks5::command cmd) noexcept { cmd_ = cmd; return (*this); }
+		inline option&         set_command(socks5::command cmd) noexcept { cmd_ = cmd; return (*this); }
 
 	protected:
 		std::array<method, sizeof...(ms)> methods_{ ms... };

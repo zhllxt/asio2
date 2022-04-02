@@ -28,6 +28,7 @@
   * fixed bug : If user has called "http::response.defer()" in the recv callback, it maybe cause crash if the session has disconnected before the "defer" has executed, beacuse the "rep_" was destroyed already at this time.
   * fixed bug : If user has called "http::response.defer()" in the recv callback, and the client has not a "keep_alive" option, the response will can not be send to the client correctly.
   * fixed bug : If user has called "http::response.defer()" in the recv callback, the variable "req_" maybe read write in two threads at the same time, and this maybe cause crash.
+  * fixed bug : it might find a callback function that does not match the id of rdc component.
   * Fixed the problem where kcp server and client did not send fin frame correctly.
   * Fixed the problem where the endian of the KCP handshake data header was not handled correctly.
   * Fixed problem : when the client.stop is called, and at this time the async_send is called in another thread, the async_send maybe has unexpected behavior (e.g. async_send's callback is not called).

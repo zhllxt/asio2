@@ -190,7 +190,19 @@ namespace asio2::detail
 			// std::multimap<Key,T,Compare,Allocator>::find
 			// Finds an element with key equivalent to key. If there are several elements
 			// with key in the container, any of them may be returned.
-			return this->rdc_reqs_.lower_bound(id);
+			auto it = this->rdc_reqs_.lower_bound(id);
+
+			if (it == this->rdc_reqs_.end())
+				return it;
+
+			// [20220402] fix bug
+			// Returns an iterator pointing to the first element that is not less than
+			// (i.e. greater or equal to) key.
+			// when multimap has {2,2} {3,3} if you find key 1, the map will return {2,2}
+			if (it->first == id)
+				return it;
+
+			return this->rdc_reqs_.end();
 		}
 
 		/**

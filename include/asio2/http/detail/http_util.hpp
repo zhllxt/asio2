@@ -476,7 +476,7 @@ namespace boost::beast::http
 		}
 
 		template<typename = void>
-		inline std::string error_page(http::status result, std::string desc = {})
+		inline std::string make_error_page(http::status result, std::string desc = {})
 		{
 			std::string_view reason = http::obsolete_reason(result);
 			std::string content;
@@ -501,6 +501,12 @@ namespace boost::beast::http
 			return content;
 		}
 
+		template<typename = void>
+		inline std::string error_page(http::status result, std::string desc = {})
+		{
+			return make_error_page(result, std::move(desc));
+		}
+
 		/**
 		 * @function : Returns `true` if the HTTP message's Content-Type is "multipart/form-data";
 		 */
@@ -514,9 +520,18 @@ namespace boost::beast::http
 		 * @function : Get the "multipart/form-data" body content.
 		 */
 		template<class HttpMessage, class String = std::string_view>
-		inline basic_multipart_fields<String> multipart(const HttpMessage& msg)
+		inline basic_multipart_fields<String> get_multipart(const HttpMessage& msg)
 		{
 			return multipart_parser_execute(msg);
+		}
+
+		/**
+		 * @function : Get the "multipart/form-data" body content. same as get_multipart
+		 */
+		template<class HttpMessage, class String = std::string_view>
+		inline basic_multipart_fields<String> multipart(const HttpMessage& msg)
+		{
+			return get_multipart(msg);
 		}
 	}
 

@@ -147,7 +147,7 @@ namespace asio2::detail
 		/**
 		 * @function : get the remote address
 		 */
-		inline std::string remote_address() const
+		inline std::string get_remote_address() const noexcept
 		{
 			try
 			{
@@ -156,11 +156,18 @@ namespace asio2::detail
 			catch (system_error & e) { set_last_error(e); }
 			return std::string();
 		}
+		/**
+		 * @function : get the remote address, same as get_remote_address
+		 */
+		inline std::string remote_address() const noexcept
+		{
+			return this->get_remote_address();
+		}
 
 		/**
 		 * @function : get the remote port
 		 */
-		inline unsigned short remote_port() const noexcept
+		inline unsigned short get_remote_port() const noexcept
 		{
 			try
 			{
@@ -168,6 +175,13 @@ namespace asio2::detail
 			}
 			catch (system_error & e) { set_last_error(e); }
 			return static_cast<unsigned short>(0);
+		}
+		/**
+		 * @function : get the remote port, same as get_remote_port
+		 */
+		inline unsigned short remote_port() const noexcept
+		{
+			return this->get_remote_port();
 		}
 
 		/**
@@ -184,9 +198,20 @@ namespace asio2::detail
 		 * generic mode : ikcp_nodelay(kcp, 0, 10, 0, 1);
 		 * fast    mode : ikcp_nodelay(kcp, 1, 10, 2, 1);
 		 */
-		inline kcp::ikcpcb* kcp() noexcept
+		inline kcp::ikcpcb* get_kcp() noexcept
 		{
 			return (this->kcp_ ? this->kcp_->kcp_ : nullptr);
+		}
+
+		/**
+		 * @function : get the kcp pointer, just used for kcp mode. same as get_kcp
+		 * default mode : ikcp_nodelay(kcp, 0, 10, 0, 0);
+		 * generic mode : ikcp_nodelay(kcp, 0, 10, 0, 1);
+		 * fast    mode : ikcp_nodelay(kcp, 1, 10, 2, 1);
+		 */
+		inline kcp::ikcpcb* kcp() noexcept
+		{
+			return this->get_kcp();
 		}
 
 	protected:

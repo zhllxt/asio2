@@ -6,13 +6,13 @@ struct aop_log
 {
 	bool before(http::web_request& req, http::web_response& rep)
 	{
-		asio2::detail::ignore_unused(rep);
+		asio2::ignore_unused(rep);
 		printf("aop_log before %s\n", req.method_string().data());
 		return true;
 	}
 	bool after(std::shared_ptr<asio2::http_session>& session_ptr, http::web_request& req, http::web_response& rep)
 	{
-		asio2::detail::ignore_unused(session_ptr, req, rep);
+		asio2::ignore_unused(session_ptr, req, rep);
 		printf("aop_log after\n");
 		return true;
 	}
@@ -22,13 +22,13 @@ struct aop_check
 {
 	bool before(std::shared_ptr<asio2::http_session>& session_ptr, http::web_request& req, http::web_response& rep)
 	{
-		asio2::detail::ignore_unused(session_ptr, req, rep);
+		asio2::ignore_unused(session_ptr, req, rep);
 		printf("aop_check before\n");
 		return true;
 	}
 	bool after(http::web_request& req, http::web_response& rep)
 	{
-		asio2::detail::ignore_unused(req, rep);
+		asio2::ignore_unused(req, rep);
 		printf("aop_check after\n");
 		return true;
 	}
@@ -71,7 +71,7 @@ int main()
 		ss << req;
 		auto str_req = ss.str();
 
-		asio2::detail::ignore_unused(body, target, str_req);
+		asio2::ignore_unused(body, target, str_req);
 
 		for (auto it = req.begin(); it != req.end(); ++it)
 		{
@@ -113,7 +113,7 @@ int main()
 			ress << re;
 			auto restr = ress.str();
 
-			asio2::detail::ignore_unused(username, password, restr);
+			asio2::ignore_unused(username, password, restr);
 		}
 
 	}).bind_connect([](auto & session_ptr)
@@ -137,7 +137,7 @@ int main()
 
 	server.bind<http::verb::get, http::verb::post>("/index.*", [](http::web_request& req, http::web_response& rep)
 	{
-		asio2::detail::ignore_unused(req, rep);
+		asio2::ignore_unused(req, rep);
 
 		rep.fill_file("../../index.html");
 		rep.chunked(true);
@@ -147,7 +147,7 @@ int main()
 	server.bind<http::verb::get>("/del_user",
 		[](std::shared_ptr<asio2::http_session>& session_ptr, http::web_request& req, http::web_response& rep)
 	{
-		asio2::detail::ignore_unused(req, rep);
+		asio2::ignore_unused(req, rep);
 
 		printf("del_user ip : %s\n", session_ptr->remote_address().data());
 
@@ -157,7 +157,7 @@ int main()
 
 	server.bind<http::verb::get, http::verb::post>("/api/user/*", [](http::web_request& req, http::web_response& rep)
 	{
-		asio2::detail::ignore_unused(req, rep);
+		asio2::ignore_unused(req, rep);
 
 		//rep.fill_text("the user name is hanmeimei, .....");
 
@@ -165,7 +165,7 @@ int main()
 
 	server.bind<http::verb::get>("/defer", [](http::web_request& req, http::web_response& rep)
 	{
-		asio2::detail::ignore_unused(req, rep);
+		asio2::ignore_unused(req, rep);
 
 		// use defer to make the reponse not send immediately, util the derfer shared_ptr
 		// is destroyed, then the response will be sent.
@@ -209,7 +209,7 @@ int main()
 
 	}).on("close", [](std::shared_ptr<asio2::http_session>& session_ptr)
 	{
-		asio2::detail::ignore_unused(session_ptr);
+		asio2::ignore_unused(session_ptr);
 
 		printf("ws close\n");
 
@@ -217,7 +217,7 @@ int main()
 
 	server.bind_not_found([](http::web_request& req, http::web_response& rep)
 	{
-		asio2::detail::ignore_unused(req);
+		asio2::ignore_unused(req);
 
 		rep.fill_page(http::status::not_found);
 	});

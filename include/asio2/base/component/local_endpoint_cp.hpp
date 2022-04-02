@@ -50,9 +50,41 @@ namespace asio2::detail
 		 * asio::ip::tcp::endpoint ep(asio::ip::tcp::v4(), 1234);
 		 * To specify an IPv6 UDP endpoint for port 9876, use:
 		 * asio::ip::udp::endpoint ep(asio::ip::udp::v6(), 9876);
+		 * same as set_local_endpoint
 		 */
 		template<typename InternetProtocol, typename StrOrInt>
 		inline derived_t& local_endpoint(const InternetProtocol& protocol, StrOrInt&& port)
+		{
+			return this->set_local_endpoint(protocol, std::forward<StrOrInt>(port));
+		}
+
+		/**
+		 * Construct an endpoint using a port number and an IP address. This
+		 * function may be used for accepting connections on a specific interface
+		 * or for making a connection to a remote endpoint.
+		 * To initialise an IPv4 TCP endpoint for port 1234, use:
+		 * asio::ip::tcp::endpoint ep(asio::ip::address_v4::from_string("..."), 1234);
+		 * To specify an IPv6 UDP endpoint for port 9876, use:
+		 * asio::ip::udp::endpoint ep(asio::ip::address_v6::from_string("..."), 9876);
+		 * same as set_local_endpoint
+		 */
+		template<typename StrOrInt>
+		inline derived_t& local_endpoint(const asio::ip::address& addr, StrOrInt&& port)
+		{
+			return this->set_local_endpoint(addr, std::forward<StrOrInt>(port));
+		}
+
+		/**
+		 * Construct an endpoint using a port number, specified in the host's byte
+		 * order. The IP address will be the any address (i.e. INADDR_ANY or
+		 * in6addr_any).
+		 * To initialise an IPv4 TCP endpoint for port 1234, use:
+		 * asio::ip::tcp::endpoint ep(asio::ip::tcp::v4(), 1234);
+		 * To specify an IPv6 UDP endpoint for port 9876, use:
+		 * asio::ip::udp::endpoint ep(asio::ip::udp::v6(), 9876);
+		 */
+		template<typename InternetProtocol, typename StrOrInt>
+		inline derived_t& set_local_endpoint(const InternetProtocol& protocol, StrOrInt&& port)
 		{
 			this->local_endpoint_ = endpoint_type(protocol,
 				detail::to_integer<port_type>(std::forward<StrOrInt>(port)));
@@ -69,7 +101,7 @@ namespace asio2::detail
 		 * asio::ip::udp::endpoint ep(asio::ip::address_v6::from_string("..."), 9876);
 		 */
 		template<typename StrOrInt>
-		inline derived_t& local_endpoint(const asio::ip::address& addr, StrOrInt&& port)
+		inline derived_t& set_local_endpoint(const asio::ip::address& addr, StrOrInt&& port)
 		{
 			this->local_endpoint_ = endpoint_type(addr,
 				detail::to_integer<port_type>(std::forward<StrOrInt>(port)));
@@ -77,9 +109,14 @@ namespace asio2::detail
 		}
 
 		/**
+		 * get the binded local endpoint refrence, same as get_local_endpoint
+		 */
+		inline endpoint_type& local_endpoint() noexcept { return this->get_local_endpoint(); }
+
+		/**
 		 * get the binded local endpoint refrence
 		 */
-		inline endpoint_type& local_endpoint() noexcept { return this->local_endpoint_; }
+		inline endpoint_type& get_local_endpoint() noexcept { return this->local_endpoint_; }
 
 	protected:
 		/// local bind endpoint

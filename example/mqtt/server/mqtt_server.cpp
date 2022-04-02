@@ -20,11 +20,11 @@ int main()
 
 	server.bind_accept([](std::shared_ptr<asio2::mqtt_session>& session_ptr)
 	{
-		asio2::detail::ignore_unused(session_ptr);
+		asio2::ignore_unused(session_ptr);
 
 	}).bind_recv([](auto & session_ptr, std::string_view s)
 	{
-		asio2::detail::ignore_unused(session_ptr, s);
+		asio2::ignore_unused(session_ptr, s);
 
 		//printf("recv : %u %.*s\n", (unsigned)s.size(), (int)s.size(), s.data());
 
@@ -54,21 +54,21 @@ int main()
 		asio2::mqtt::v3::publish& publish,
 		std::variant<asio2::mqtt::v3::puback, asio2::mqtt::v3::pubrec>& response)
 	{
-		asio2::detail::ignore_unused(session_ptr, publish, response);
+		asio2::ignore_unused(session_ptr, publish, response);
 	});
 
 	server.on_publish([](std::shared_ptr<asio2::mqtt_session>& session_ptr,
 		asio2::mqtt::v4::publish& publish,
 		std::variant<asio2::mqtt::v4::puback, asio2::mqtt::v4::pubrec>& response)
 	{
-		asio2::detail::ignore_unused(session_ptr, publish, response);
+		asio2::ignore_unused(session_ptr, publish, response);
 	});
 
 	server.on_publish([](std::shared_ptr<asio2::mqtt_session>& session_ptr,
 		asio2::mqtt::v5::publish& publish,
 		std::variant<asio2::mqtt::v5::puback, asio2::mqtt::v5::pubrec>& response)
 	{
-		asio2::detail::ignore_unused(session_ptr, publish, response);
+		asio2::ignore_unused(session_ptr, publish, response);
 	});
 
 	server.start(host, port);

@@ -218,7 +218,7 @@ int main()
 	client.connect_timeout(std::chrono::seconds(10));
 	client.bind_recv([&](http::web_request& req, http::web_response& rep)
 	{
-		asio2::detail::ignore_unused(req);
+		asio2::ignore_unused(req);
 
 		std::cout << "----------------------------------------" << std::endl;
 		std::cout << rep << std::endl;

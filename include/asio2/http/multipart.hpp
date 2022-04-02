@@ -60,28 +60,49 @@ public:
 	/// Assignment
 	basic_multipart_field& operator=(basic_multipart_field const&) = default;
 
-	inline const String& content_disposition      () { return content_disposition_      ; }
-	inline const String& name                     () { return name_                     ; }
-	inline const String& value                    () { return value_                    ; }
-	inline const String& content_type             () { return content_type_             ; }
-	inline const String& filename                 () { return filename_                 ; }
-	inline const String& content_transfer_encoding() { return content_transfer_encoding_; }
+	inline const String&     content_disposition      () { return content_disposition_      ; }
+	inline const String&     name                     () { return name_                     ; }
+	inline const String&     value                    () { return value_                    ; }
+	inline const String&     content_type             () { return content_type_             ; }
+	inline const String&     filename                 () { return filename_                 ; }
+	inline const String&     content_transfer_encoding() { return content_transfer_encoding_; }
 
-	inline const String& content_disposition      () const { return content_disposition_      ; }
-	inline const String& name                     () const { return name_                     ; }
-	inline const String& value                    () const { return value_                    ; }
-	inline const String& content_type             () const { return content_type_             ; }
-	inline const String& filename                 () const { return filename_                 ; }
-	inline const String& content_transfer_encoding() const { return content_transfer_encoding_; }
+	inline const String& get_content_disposition      () { return content_disposition_      ; }
+	inline const String& get_name                     () { return name_                     ; }
+	inline const String& get_value                    () { return value_                    ; }
+	inline const String& get_content_type             () { return content_type_             ; }
+	inline const String& get_filename                 () { return filename_                 ; }
+	inline const String& get_content_transfer_encoding() { return content_transfer_encoding_; }
 
-	template<class Str> inline basic_multipart_field& content_disposition      (Str&& v) { content_disposition_       = std::forward<Str>(v); return (*this); }
-	template<class Str> inline basic_multipart_field& name                     (Str&& v) { name_                      = std::forward<Str>(v); return (*this); }
-	template<class Str> inline basic_multipart_field& value                    (Str&& v) { value_                     = std::forward<Str>(v); return (*this); }
-	template<class Str> inline basic_multipart_field& content_type             (Str&& v) { content_type_              = std::forward<Str>(v); return (*this); }
-	template<class Str> inline basic_multipart_field& filename                 (Str&& v) { filename_                  = std::forward<Str>(v); return (*this); }
-	template<class Str> inline basic_multipart_field& content_transfer_encoding(Str&& v) { content_transfer_encoding_ = std::forward<Str>(v); return (*this); }
+	inline const String&     content_disposition      () const { return content_disposition_      ; }
+	inline const String&     name                     () const { return name_                     ; }
+	inline const String&     value                    () const { return value_                    ; }
+	inline const String&     content_type             () const { return content_type_             ; }
+	inline const String&     filename                 () const { return filename_                 ; }
+	inline const String&     content_transfer_encoding() const { return content_transfer_encoding_; }
 
-	inline bool empty()
+	inline const String& get_content_disposition      () const { return content_disposition_      ; }
+	inline const String& get_name                     () const { return name_                     ; }
+	inline const String& get_value                    () const { return value_                    ; }
+	inline const String& get_content_type             () const { return content_type_             ; }
+	inline const String& get_filename                 () const { return filename_                 ; }
+	inline const String& get_content_transfer_encoding() const { return content_transfer_encoding_; }
+
+	template<class Str> inline basic_multipart_field&     content_disposition      (Str&& v) { content_disposition_       = std::forward<Str>(v); return (*this); }
+	template<class Str> inline basic_multipart_field&     name                     (Str&& v) { name_                      = std::forward<Str>(v); return (*this); }
+	template<class Str> inline basic_multipart_field&     value                    (Str&& v) { value_                     = std::forward<Str>(v); return (*this); }
+	template<class Str> inline basic_multipart_field&     content_type             (Str&& v) { content_type_              = std::forward<Str>(v); return (*this); }
+	template<class Str> inline basic_multipart_field&     filename                 (Str&& v) { filename_                  = std::forward<Str>(v); return (*this); }
+	template<class Str> inline basic_multipart_field&     content_transfer_encoding(Str&& v) { content_transfer_encoding_ = std::forward<Str>(v); return (*this); }
+
+	template<class Str> inline basic_multipart_field& set_content_disposition      (Str&& v) { content_disposition_       = std::forward<Str>(v); return (*this); }
+	template<class Str> inline basic_multipart_field& set_name                     (Str&& v) { name_                      = std::forward<Str>(v); return (*this); }
+	template<class Str> inline basic_multipart_field& set_value                    (Str&& v) { value_                     = std::forward<Str>(v); return (*this); }
+	template<class Str> inline basic_multipart_field& set_content_type             (Str&& v) { content_type_              = std::forward<Str>(v); return (*this); }
+	template<class Str> inline basic_multipart_field& set_filename                 (Str&& v) { filename_                  = std::forward<Str>(v); return (*this); }
+	template<class Str> inline basic_multipart_field& set_content_transfer_encoding(Str&& v) { content_transfer_encoding_ = std::forward<Str>(v); return (*this); }
+
+	inline bool is_empty()
 	{
 		return (
 			content_disposition_      .empty() && 
@@ -90,6 +111,11 @@ public:
 			content_type_             .empty() &&
 			filename_                 .empty() &&
 			content_transfer_encoding_.empty()    );
+	}
+
+	inline bool empty()
+	{
+		return this->is_empty();
 	}
 
 protected:
@@ -122,10 +148,13 @@ public:
 	using const_iterator = typename std::list<basic_multipart_field<String>>::const_iterator;
 	using iterator = typename std::list<basic_multipart_field<String>>::iterator;
 
-	inline const String& boundary()       { return boundary_; }
-	inline const String& boundary() const { return boundary_; }
+	inline const String&     boundary()       { return boundary_; }
+	inline const String&     boundary() const { return boundary_; }
+	inline const String& get_boundary()       { return boundary_; }
+	inline const String& get_boundary() const { return boundary_; }
 
-	template<class Str> inline basic_multipart_fields& boundary(Str&& v) { boundary_ = std::forward<Str>(v); return (*this); }
+	template<class Str> inline basic_multipart_fields&     boundary(Str&& v) { boundary_ = std::forward<Str>(v); return (*this); }
+	template<class Str> inline basic_multipart_fields& set_boundary(Str&& v) { boundary_ = std::forward<Str>(v); return (*this); }
 
     /** Returns the value for a field, or throws an exception.
 

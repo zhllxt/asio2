@@ -65,6 +65,19 @@ namespace asio2::rdc
 		}
 
 		template<class ParserFun>
+		option& set_send_parser(ParserFun&& parser)
+		{
+			rdc_send_parser_ = std::forward<ParserFun>(parser);
+			return (*this);
+		}
+		template<class ParserFun>
+		option& set_recv_parser(ParserFun&& parser)
+		{
+			rdc_recv_parser_ = std::forward<ParserFun>(parser);
+			return (*this);
+		}
+
+		template<class ParserFun>
 		option& send_parser(ParserFun&& parser)
 		{
 			rdc_send_parser_ = std::forward<ParserFun>(parser);
@@ -77,8 +90,11 @@ namespace asio2::rdc
 			return (*this);
 		}
 
-		send_parser_fun& send_parser() noexcept { return rdc_send_parser_; }
-		recv_parser_fun& recv_parser() noexcept { return rdc_recv_parser_; }
+		send_parser_fun&     send_parser() noexcept { return rdc_send_parser_; }
+		recv_parser_fun&     recv_parser() noexcept { return rdc_recv_parser_; }
+
+		send_parser_fun& get_send_parser() noexcept { return rdc_send_parser_; }
+		recv_parser_fun& get_recv_parser() noexcept { return rdc_recv_parser_; }
 
 		asio2::detail::rdc_invoker_t<IdT, SendDataT, RecvDataT>& invoker() noexcept { return rdc_invoker_; }
 	};

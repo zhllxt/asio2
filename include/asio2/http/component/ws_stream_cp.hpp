@@ -55,7 +55,18 @@ namespace asio2::detail
 		 */
 		~ws_stream_cp() noexcept {}
 
+		/**
+		 * @function : get the websocket stream object refrence, same as get_ws_stream
+		 */
 		inline stream_type & ws_stream() noexcept
+		{
+			return this->get_ws_stream();
+		}
+
+		/**
+		 * @function : get the websocket stream object refrence
+		 */
+		inline stream_type & get_ws_stream() noexcept
 		{
 			ASIO2_ASSERT(bool(this->ws_stream_));
 			return (*(this->ws_stream_));

@@ -104,11 +104,12 @@ namespace asio2::detail
 
 	protected:
 		template<typename MatchCondition>
-		inline void _handle_start(error_code ec, condition_wrap<MatchCondition> condition)
+		inline void _handle_start(
+			error_code ec, std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
 		{
 			this->derived()._bind_default_mqtt_handler(condition);
 
-			return super::_handle_start(std::move(ec), std::move(condition));
+			return super::_handle_start(std::move(ec), std::move(this_ptr), std::move(condition));
 		}
 
 		inline void _post_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr, state_t old_state)

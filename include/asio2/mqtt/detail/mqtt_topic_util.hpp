@@ -35,7 +35,7 @@ namespace std
 		{
 			std::size_t v = asio2::detail::fnv1a_hash<std::size_t>(
 				(const unsigned char *)(&(pair.first)), sizeof(std::size_t));
-			return asio2::detail::fnv1a_hash_combine<std::size_t>(v,
+			return asio2::detail::fnv1a_hash<std::size_t>(v,
 				(const unsigned char *)(pair.second.data()), pair.second.size());
 		}
 	};
@@ -47,7 +47,7 @@ namespace std
 		{
 			std::size_t v = asio2::detail::fnv1a_hash<std::size_t>(
 				(const unsigned char *)(&(pair.first)), sizeof(std::size_t));
-			return asio2::detail::fnv1a_hash_combine<std::size_t>(v,
+			return asio2::detail::fnv1a_hash<std::size_t>(v,
 				(const unsigned char *)(pair.second.data()), pair.second.size());
 		}
 	};
@@ -59,7 +59,7 @@ namespace std
 		{
 			std::size_t v = asio2::detail::fnv1a_hash<std::size_t>(
 				(const unsigned char *)(pair.first.data()), pair.first.size());
-			return asio2::detail::fnv1a_hash_combine<std::size_t>(v,
+			return asio2::detail::fnv1a_hash<std::size_t>(v,
 				(const unsigned char *)(pair.second.data()), pair.second.size());
 		}
 	};

@@ -61,10 +61,15 @@ namespace asio2
 
 		inline bool is_timeout() noexcept { return (this->lag.count() == -1); }
 
-		inline auto milliseconds() noexcept
+		inline auto get_milliseconds() noexcept
 		{
 			return this->lag.count() == -1 ? -1 :
 				std::chrono::duration_cast<std::chrono::milliseconds>(this->lag).count();
+		}
+
+		inline auto milliseconds() noexcept
+		{
+			return this->get_milliseconds();
 		}
 
 		detail::ipv4_header& base_ipv4() noexcept { return static_cast<detail::ipv4_header&>(*this); }
@@ -467,40 +472,90 @@ namespace asio2::detail
 		 */
 		inline socket_type & stream() noexcept { return this->socket_; }
 
+		/**
+		 * @function : get the socket object refrence
+		 */
+		inline socket_type & get_socket() noexcept { return this->socket_; }
+
+		/**
+		 * @function : get the stream object refrence
+		 */
+		inline socket_type & get_stream() noexcept { return this->socket_; }
+
 	public:
 		/**
 		 * @function : set reply timeout duration value
 		 */
 		template<class Rep, class Period>
-		inline derived_t & timeout(std::chrono::duration<Rep, Period> duration) noexcept
+		inline derived_t & set_timeout(std::chrono::duration<Rep, Period> duration) noexcept
 		{
 			this->timeout_ = duration;
 			return (this->derived());
+		}
+		/**
+		 * @function : set reply timeout duration value, same as set_timeout
+		 */
+		template<class Rep, class Period>
+		inline derived_t & timeout(std::chrono::duration<Rep, Period> duration) noexcept
+		{
+			return this->set_timeout(std::move(duration));
 		}
 
 		/**
 		 * @function : get reply timeout duration value
 		 */
-		inline std::chrono::steady_clock::duration timeout() noexcept
+		inline std::chrono::steady_clock::duration get_timeout() noexcept
 		{
 			return this->timeout_;
+		}
+		/**
+		 * @function : get reply timeout duration value, same as get_timeout
+		 */
+		inline std::chrono::steady_clock::duration timeout() noexcept
+		{
+			return this->get_timeout();
 		}
 
 		/**
 		 * @function : set send interval duration value
 		 */
 		template<class Rep, class Period>
-		inline derived_t & interval(std::chrono::duration<Rep, Period> duration) noexcept
+		inline derived_t & set_interval(std::chrono::duration<Rep, Period> duration) noexcept
 		{
 			this->interval_ = duration;
 			return (this->derived());
 		}
 
 		/**
+		 * @function : set send interval duration value, same as set_interval
+		 */
+		template<class Rep, class Period>
+		inline derived_t & interval(std::chrono::duration<Rep, Period> duration) noexcept
+		{
+			return this->set_interval(std::move(duration));
+		}
+
+		/**
+		 * @function : get send interval duration value
+		 */
+		inline std::chrono::steady_clock::duration get_interval() noexcept
+		{
+			return this->interval_;
+		}
+
+		/**
+		 * @function : get send interval duration value, same as get_interval
+		 */
+		inline std::chrono::steady_clock::duration interval() noexcept
+		{
+			return this->interval_;
+		}
+
+		/**
 		 * @function : set icmp payload body
 		 * This function is the same as the "payload()" function
 		 */
-		inline derived_t & body(std::string_view body)
+		inline derived_t & set_body(std::string_view body)
 		{
 			this->body_ = body;
 			if (this->body_.size() > 65500)
@@ -509,42 +564,83 @@ namespace asio2::detail
 		}
 
 		/**
+		 * @function : set icmp payload body, same as set_body
+		 * This function is the same as the "payload()" function
+		 */
+		inline derived_t & body(std::string_view body)
+		{
+			return this->set_body(std::move(body));
+		}
+
+		/**
 		 * @function : set icmp payload body
 		 * This function is the same as the "body()" function
 		 */
-		inline derived_t & payload(std::string_view body)
+		inline derived_t & set_payload(std::string_view body)
 		{
 			return this->derived().body(std::move(body));
 		}
 
 		/**
+		 * @function : set icmp payload body, same as set_payload
+		 * This function is the same as the "body()" function
+		 */
+		inline derived_t & payload(std::string_view body)
+		{
+			return this->set_payload(std::move(body));
+		}
+
+		/**
 		 * @function : get the resolved host ip
 		 */
-		inline std::string host_ip() { return this->destination_.address().to_string(); }
+		inline std::string get_host_ip() { return this->destination_.address().to_string(); }
+
+		/**
+		 * @function : get the resolved host ip, same as get_host_ip
+		 */
+		inline std::string host_ip() { return this->get_host_ip(); }
 
 		/**
 		 * @function : Set the total number of echo packets you want to send
 		 */
-		inline derived_t & ncount(std::size_t send_count) noexcept
+		inline derived_t & set_ncount(std::size_t send_count) noexcept
 		{
 			this->ncount_ = send_count;
 			return (this->derived());
 		}
 
 		/**
-		 * @function : Get the total number of echo packets has sent
+		 * @function : Set the total number of echo packets you want to send, same as set_ncount
+		 */
+		inline derived_t & ncount(std::size_t send_count) noexcept
+		{
+			return this->set_ncount(send_count);
+		}
+
+		/**
+		 * @function : Get the total number of echo packets has sent, same as get_total_send
 		 */
 		inline std::size_t total_send() noexcept { return this->total_send_; }
 
 		/**
-		 * @function : Get the total number of reply packets has recved
+		 * @function : Get the total number of reply packets has recved, same as get_total_recv
 		 */
 		inline std::size_t total_recv() noexcept { return this->total_recv_; }
 
 		/**
+		 * @function : Get the total number of echo packets has sent
+		 */
+		inline std::size_t get_total_send() noexcept { return this->total_send_; }
+
+		/**
+		 * @function : Get the total number of reply packets has recved
+		 */
+		inline std::size_t get_total_recv() noexcept { return this->total_recv_; }
+
+		/**
 		 * @function : Get the packet loss probability (loss rate)
 		 */
-		inline double plp() noexcept
+		inline double get_plp() noexcept
 		{
 			if (this->total_send_ == static_cast<std::size_t>(0))
 				return 0.0;
@@ -552,9 +648,17 @@ namespace asio2::detail
 		}
 
 		/**
+		 * @function : Get the packet loss probability (loss rate), same as get_plp
+		 */
+		inline double plp() noexcept
+		{
+			return this->get_plp();
+		}
+
+		/**
 		 * @function : Get the average duration of elapsed when recved reply packets
 		 */
-		inline std::chrono::steady_clock::duration avg_lag() noexcept
+		inline std::chrono::steady_clock::duration get_avg_lag() noexcept
 		{
 			if (this->total_recv_ == static_cast<std::size_t>(0))
 				return std::chrono::steady_clock::duration(0);
@@ -562,10 +666,20 @@ namespace asio2::detail
 				long((double)this->total_time_.count() / (double)this->total_recv_));
 		}
 
+		/**
+		 * @function : Get the average duration of elapsed when recved reply packets, same as get_avg_lag
+		 */
+		inline std::chrono::steady_clock::duration avg_lag() noexcept
+		{
+			return this->get_avg_lag();
+		}
+
 	protected:
 		template<typename String>
 		bool _do_start(String&& host)
 		{
+			derived_t& derive = this->derived();
+
 			this->iopool_->start();
 
 			if (this->iopool_->stopped())
@@ -585,8 +699,9 @@ namespace asio2::detail
 				[promise = std::move(promise)]() mutable { promise.set_value(get_last_error()); }
 			};
 
-			this->derived().post(
-			[this, host = std::forward<String>(host), set_promise = std::move(set_promise)]
+			derive.post(
+			[this, &derive, this_ptr = derive.selfptr(),
+				host = std::forward<String>(host), set_promise = std::move(set_promise)]
 			() mutable
 			{
 				state_t expected = state_t::stopped;
@@ -630,7 +745,7 @@ namespace asio2::detail
 					this->socket_.close(ec_ignore);
 					this->socket_.open(this->destination_.protocol());
 
-					this->derived()._fire_init();
+					derive._fire_init();
 				}
 				catch (system_error const& e)
 				{
@@ -641,10 +756,10 @@ namespace asio2::detail
 					set_last_error(asio::error::invalid_argument);
 				}
 
-				this->derived()._handle_start(get_last_error());
+				derive._handle_start(get_last_error(), std::move(this_ptr));
 			});
 
-			if (!this->derived().io().strand().running_in_this_thread())
+			if (!derive.io().strand().running_in_this_thread())
 			{
 				set_last_error(future.get());
 			}
@@ -659,10 +774,10 @@ namespace asio2::detail
 			// if the state is stopping, the return value is false, the last error is already_started
 			// if the state is starting, the return value is false, the last error is already_started
 			// if the state is started , the return value is true , the last error is already_started
-			return this->derived().is_started();
+			return derive.is_started();
 		}
 
-		void _handle_start(error_code ec)
+		void _handle_start(error_code ec, std::shared_ptr<derived_t> this_ptr)
 		{
 			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
 
@@ -687,8 +802,8 @@ namespace asio2::detail
 
 				this->buffer_.consume(this->buffer_.size());
 
-				this->derived()._post_send();
-				this->derived()._post_recv();
+				this->derived()._post_send(this_ptr);
+				this->derived()._post_recv(std::move(this_ptr));
 			}
 			catch (system_error & e)
 			{
@@ -768,7 +883,7 @@ namespace asio2::detail
 			this->socket_.close(ec_ignore);
 		}
 
-		void _post_send()
+		void _post_send(std::shared_ptr<derived_t> this_ptr)
 		{
 			// if ncount_ is equal to max, infinite send
 			if (this->ncount_ != std::size_t(-1))
@@ -807,11 +922,14 @@ namespace asio2::detail
 			{
 				this->timer_.expires_after(this->timeout_);
 				this->timer_.async_wait(asio::bind_executor(this->io_.strand(),
-					std::bind(&self::_handle_timer, this, std::placeholders::_1)));
+				[this, this_ptr = std::move(this_ptr)](const error_code & ec) mutable
+				{
+					this->derived()._handle_timer(ec, std::move(this_ptr));
+				}));
 			}
 		}
 
-		void _handle_timer(const error_code & ec)
+		void _handle_timer(const error_code & ec, std::shared_ptr<derived_t> this_ptr)
 		{
 			detail::ignore_unused(ec);
 
@@ -830,11 +948,17 @@ namespace asio2::detail
 			if (this->is_started())
 			{
 				this->timer_.expires_after(this->interval_);
-				this->timer_.async_wait(asio::bind_executor(this->io_.strand(), std::bind(&self::_post_send, this)));
+				this->timer_.async_wait(asio::bind_executor(this->io_.strand(),
+				[this, this_ptr = std::move(this_ptr)](const error_code & ec) mutable
+				{
+					detail::ignore_unused(ec);
+
+					this->derived()._post_send(std::move(this_ptr));
+				}));
 			}
 		}
 
-		void _post_recv()
+		void _post_recv(std::shared_ptr<derived_t> this_ptr)
 		{
 			if (!this->is_started())
 				return;
@@ -844,8 +968,11 @@ namespace asio2::detail
 				// Wait for a reply. We prepare the buffer to receive up to 64KB.
 				this->socket_.async_receive(this->buffer_.prepare(this->buffer_.pre_size()),
 					asio::bind_executor(this->io_.strand(), make_allocator(this->rallocator_,
-						std::bind(&self::_handle_recv, this,
-							std::placeholders::_1, std::placeholders::_2))));
+						[this, this_ptr = std::move(this_ptr)]
+				(const error_code& ec, std::size_t bytes_recvd) mutable
+				{
+					this->derived()._handle_recv(ec, bytes_recvd, std::move(this_ptr));
+				})));
 			}
 			catch (system_error & e)
 			{
@@ -854,7 +981,7 @@ namespace asio2::detail
 			}
 		}
 
-		void _handle_recv(const error_code& ec, std::size_t bytes_recvd)
+		void _handle_recv(const error_code& ec, std::size_t bytes_recvd, std::shared_ptr<derived_t> this_ptr)
 		{
 			set_last_error(ec);
 
@@ -912,7 +1039,7 @@ namespace asio2::detail
 			// Discard any data already in the buffer.
 			this->buffer_.consume(this->buffer_.size());
 
-			this->derived()._post_recv();
+			this->derived()._post_recv(std::move(this_ptr));
 		}
 
 		inline void _fire_init()

@@ -215,13 +215,27 @@ namespace asio2::detail
 	public:
 		/**
 		 * @function : get the acceptor refrence,derived classes must override this function
+		 * same as get_acceptor
 		 */
-		inline auto & acceptor() noexcept { return this->derived().acceptor(); }
+		inline auto & acceptor() noexcept { return this->get_acceptor(); }
+
+		/**
+		 * @function : get the acceptor refrence,derived classes must override this function
+		 */
+		inline auto & get_acceptor() noexcept { return this->derived().acceptor(); }
+
+		/**
+		 * @function : get the listen address, same as get_listen_address
+		 */
+		inline std::string listen_address() noexcept
+		{
+			return this->get_listen_address();
+		}
 
 		/**
 		 * @function : get the listen address
 		 */
-		inline std::string listen_address()
+		inline std::string get_listen_address() noexcept
 		{
 			try
 			{
@@ -232,9 +246,17 @@ namespace asio2::detail
 		}
 
 		/**
+		 * @function : get the listen port, same as get_listen_port
+		 */
+		inline unsigned short listen_port() noexcept
+		{
+			return this->get_listen_port();
+		}
+
+		/**
 		 * @function : get the listen port
 		 */
-		inline unsigned short listen_port()
+		inline unsigned short get_listen_port() noexcept
 		{
 			try
 			{
@@ -244,11 +266,15 @@ namespace asio2::detail
 			return static_cast<unsigned short>(0);
 		}
 
+		/**
+		 * @function : get connected session count, same as get_session_count
+		 */
+		inline std::size_t session_count() noexcept { return this->get_session_count(); }
 
 		/**
 		 * @function : get connected session count
 		 */
-		inline std::size_t session_count() noexcept { return this->sessions_.size(); }
+		inline std::size_t get_session_count() noexcept { return this->sessions_.size(); }
 
 		/**
 		 * @function :

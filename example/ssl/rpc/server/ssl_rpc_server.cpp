@@ -58,6 +58,10 @@ int main()
 	std::string_view host = "0.0.0.0";
 	std::string_view port = "8011";
 
+	// for test
+	[[maybe_unused]] asio2::rpcs_server_use<asio2::net_protocol::tcps> rpcs_server_with_tcp;
+	[[maybe_unused]] asio2::rpcs_server_use<asio2::net_protocol::wss > rpcs_server_with_ws;
+
 	asio2::rpcs_server server;
 
 	// use file for cert

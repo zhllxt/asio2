@@ -298,19 +298,31 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @function : get the socket object refrence
+		 * @function : get the socket object refrence, same as get_socket
 		 */
 		inline socket_type & socket() noexcept { return this->socket_; }
 
 		/**
-		 * @function : get the stream object refrence
+		 * @function : get the stream object refrence, same as get_stream
 		 */
 		inline socket_type & stream() noexcept { return this->socket_; }
+
+		/**
+		 * @function : get the socket object refrence
+		 */
+		inline socket_type & get_socket() noexcept { return this->socket_; }
+
+		/**
+		 * @function : get the stream object refrence
+		 */
+		inline socket_type & get_stream() noexcept { return this->socket_; }
 
 	protected:
 		template<typename String, typename StrOrInt, typename MatchCondition>
 		bool _do_start(String&& device, StrOrInt&& baud_rate, condition_wrap<MatchCondition> condition)
 		{
+			derived_t& derive = this->derived();
+
 			this->iopool_->start();
 
 			if (this->iopool_->stopped())
@@ -330,8 +342,9 @@ namespace asio2::detail
 				[promise = std::move(promise)]() mutable { promise.set_value(get_last_error()); }
 			};
 
-			this->derived().push_event(
-			[this, device = std::forward<String>(device), baud_rate = std::forward<StrOrInt>(baud_rate),
+			derive.push_event(
+			[this, &derive, this_ptr = derive.selfptr(),
+				device = std::forward<String>(device), baud_rate = std::forward<StrOrInt>(baud_rate),
 				condition = std::move(condition), set_promise = std::move(set_promise)]
 			(event_queue_guard<derived_t>&& g) mutable
 			{
@@ -372,9 +385,9 @@ namespace asio2::detail
 					this->socket_.set_option(asio::serial_port::baud_rate(b));
 
 					// if the match condition is remote data call mode,do some thing.
-					this->derived()._rdc_init(condition);
+					derive._rdc_init(condition);
 
-					this->derived()._fire_init();
+					derive._fire_init();
 					// You can set other serial port parameters in on_init(bind_init) callback function like this:
 					// sp.socket().set_option(asio::serial_port::flow_control(serial_port::flow_control::type(flow_control)));
 					// sp.socket().set_option(asio::serial_port::parity(serial_port::parity::type(parity)));
@@ -390,10 +403,10 @@ namespace asio2::detail
 					set_last_error(asio::error::invalid_argument);
 				}
 
-				this->derived()._handle_start(get_last_error(), std::move(condition));
+				derive._handle_start(get_last_error(), std::move(this_ptr), std::move(condition));
 			});
 
-			if (!this->derived().io().strand().running_in_this_thread())
+			if (!derive.io().strand().running_in_this_thread())
 			{
 				set_last_error(future.get());
 			}
@@ -408,11 +421,12 @@ namespace asio2::detail
 			// if the state is stopping, the return value is false, the last error is already_started
 			// if the state is starting, the return value is false, the last error is already_started
 			// if the state is started , the return value is true , the last error is already_started
-			return this->derived().is_started();
+			return derive.is_started();
 		}
 
 		template<typename MatchCondition>
-		void _handle_start(error_code ec, condition_wrap<MatchCondition> condition)
+		void _handle_start(
+			error_code ec, std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
 		{
 			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
 
@@ -435,7 +449,7 @@ namespace asio2::detail
 
 				asio::detail::throw_error(ec);
 
-				this->derived()._start_recv(std::move(condition));
+				this->derived()._start_recv(std::move(this_ptr), std::move(condition));
 			}
 			catch (system_error & e)
 			{
@@ -553,11 +567,11 @@ namespace asio2::detail
 		}
 
 		template<typename MatchCondition>
-		inline void _start_recv(condition_wrap<MatchCondition> condition)
+		inline void _start_recv(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
 		{
 			// Connect succeeded. post recv request.
 			asio::dispatch(this->derived().io().strand(), make_allocator(this->derived().wallocator(),
-			[this, this_ptr = this->derived().selfptr(), condition = std::move(condition)]() mutable
+			[this, this_ptr = std::move(this_ptr), condition = std::move(condition)]() mutable
 			{
 				using condition_type = typename condition_wrap<MatchCondition>::condition_type;
 
@@ -611,8 +625,7 @@ namespace asio2::detail
 
 	protected:
 		template<typename MatchCondition>
-		inline void _post_recv(std::shared_ptr<derived_t> this_ptr,
-			condition_wrap<MatchCondition> condition)
+		inline void _post_recv(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
 		{
 			this->derived()._tcp_post_recv(std::move(this_ptr), std::move(condition));
 		}
@@ -677,6 +690,15 @@ namespace asio2::detail
 		 * @function : set the default remote call timeout for rpc/rdc
 		 */
 		template<class Rep, class Period>
+		inline derived_t & set_default_timeout(std::chrono::duration<Rep, Period> duration) noexcept
+		{
+			this->rc_timeout_ = duration;
+			return (this->derived());
+		}
+		/**
+		 * @function : set the default remote call timeout for rpc/rdc, same as set_default_timeout
+		 */
+		template<class Rep, class Period>
 		inline derived_t & default_timeout(std::chrono::duration<Rep, Period> duration) noexcept
 		{
 			this->rc_timeout_ = duration;
@@ -685,6 +707,14 @@ namespace asio2::detail
 
 		/**
 		 * @function : get the default remote call timeout for rpc/rdc
+		 */
+		inline std::chrono::steady_clock::duration get_default_timeout() noexcept
+		{
+			return this->rc_timeout_;
+		}
+
+		/**
+		 * @function : get the default remote call timeout for rpc/rdc, same as get_default_timeout
 		 */
 		inline std::chrono::steady_clock::duration default_timeout() noexcept
 		{
@@ -746,11 +776,6 @@ namespace asio2::detail
 
 namespace asio2
 {
-	//template<class T>
-	//class [[deprecated("No longer using scp, replace scp with serial_port.")]] scp
-	//{
-	//};
-
 	template<class derived_t>
 	class serial_port_t : public detail::serial_port_impl_t<derived_t, detail::template_args_serial_port>
 	{

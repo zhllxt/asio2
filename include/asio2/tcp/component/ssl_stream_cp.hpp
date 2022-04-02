@@ -48,10 +48,21 @@ namespace asio2::detail
 
 		~ssl_stream_cp() = default;
 
-		inline stream_type & ssl_stream() noexcept
+		/**
+		 * @function : get the ssl socket object refrence
+		 */
+		inline stream_type & get_ssl_stream() noexcept
 		{
 			ASIO2_ASSERT(bool(this->ssl_stream_));
 			return (*(this->ssl_stream_));
+		}
+
+		/**
+		 * @function : get the ssl socket object refrence, same as get_ssl_stream
+		 */
+		inline stream_type & ssl_stream() noexcept
+		{
+			return this->get_ssl_stream();
 		}
 
 	protected:

@@ -37,7 +37,7 @@ int main()
 
 		}).bind_recv([&server](auto & session_ptr, std::string_view s)
 		{
-			asio2::detail::ignore_unused(server, session_ptr);
+			asio2::ignore_unused(server, session_ptr);
 
 			//printf("recv : %u %.*s\n", (unsigned)s.size(), (int)s.size(), s.data());
 
@@ -55,7 +55,7 @@ int main()
 				session_ptr->remote_port(), asio2::last_error_msg().c_str());
 		}).bind_upgrade([](auto & session_ptr)
 		{
-			asio2::detail::ignore_unused(session_ptr);
+			asio2::ignore_unused(session_ptr);
 
 			printf(">> upgrade %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
 		}).bind_start([&]()

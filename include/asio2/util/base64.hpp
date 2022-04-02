@@ -178,6 +178,48 @@ inline std::string decode(std::string const & input) {
     return ret;
 }
 };
+
+/// Test whether a character is a valid base64 character
+/**
+ * @param c The character to test
+ * @return true if c is a valid base64 character
+ */
+inline bool is_base64(unsigned char c) noexcept
+{
+	return base64().is_base64(c);
+}
+
+/// Encode a char buffer into a base64 string
+/**
+ * @param input The input data
+ * @param len The length of input in bytes
+ * @return A base64 encoded string representing input
+ */
+inline std::string base64_encode(unsigned char const * input, size_t len)
+{
+	return base64().encode(input, len);
+}
+
+/// Encode a string into a base64 string
+/**
+ * @param input The input data
+ * @return A base64 encoded string representing input
+ */
+inline std::string base64_encode(std::string const & input)
+{
+	return base64().encode(input);
+}
+
+/// Decode a base64 encoded string into a string of raw bytes
+/**
+ * @param input The base64 encoded input data
+ * @return A string representing the decoded raw bytes
+ */
+inline std::string base64_decode(std::string const & input)
+{
+	return base64().decode(input);
+}
+
 } // namespace asio2
 
 #endif // __ASIO2_BASE64_IMPL_HPP__

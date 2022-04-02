@@ -140,14 +140,24 @@ namespace asio2::detail
 		inline bool is_http     () noexcept { return (!(this->is_websocket()));       }
 
 		/**
-		 * @function : get the request object
+		 * @function : get the request object, same as get_request
 		 */
 		inline const http::web_request & request() noexcept { return this->req_; }
 
 		/**
-		 * @function : get the response object
+		 * @function : get the response object, same as get_response
 		 */
 		inline const http::web_response& response() noexcept { return this->rep_; }
+
+		/**
+		 * @function : get the request object
+		 */
+		inline const http::web_request & get_request() noexcept { return this->req_; }
+
+		/**
+		 * @function : get the response object
+		 */
+		inline const http::web_response& get_response() noexcept { return this->rep_; }
 
 	protected:
 		inline http_router_t<derived_t>& _router() noexcept

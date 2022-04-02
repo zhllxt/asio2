@@ -86,11 +86,9 @@ namespace asio2::detail
 		struct sync_call_op
 		{
 			template<class return_t, class Rep, class Period, class ...Args>
-			inline static return_t exec(derive_t& derive, error_code* ec_ptr,
+			inline static return_t exec(derive_t& derive,
 				std::chrono::duration<Rep, Period> timeout, std::string name, Args&&... args)
 			{
-				if (ec_ptr) { ec_ptr->clear(); }
-
 				error_code ec;
 				std::shared_ptr<typename rpc_result_t<return_t>::type> result =
 					std::make_shared<typename rpc_result_t<return_t>::type>();
@@ -194,16 +192,9 @@ namespace asio2::detail
 
 				set_last_error(ec);
 
-				if (ec_ptr)
-				{
-					*ec_ptr = ec;
-				}
-				else
-				{
-					// [20210818] don't throw an error, you can use get_last_error() to check
-					// is there any exception.
-					//asio::detail::throw_error(ec);
-				}
+				// [20210818] don't throw an error, you can use get_last_error() to check
+				// is there any exception.
+				//asio::detail::throw_error(ec);
 
 				if constexpr (!std::is_void_v<return_t>)
 				{
@@ -462,7 +453,7 @@ namespace asio2::detail
 			sync_caller(derive_t& d) noexcept
 				: derive(d), id_(0), tm_(d.default_timeout()) {}
 			sync_caller(sync_caller&& o) noexcept
-				: derive(o.derive), id_(std::move(o.id_)), tm_(std::move(o.tm_)), ec_(std::move(o.ec_)) {}
+				: derive(o.derive), id_(std::move(o.id_)), tm_(std::move(o.tm_)) {}
 
 			sync_caller(const sync_caller&) = delete;
 			sync_caller& operator=(sync_caller&&) = delete;
@@ -471,17 +462,23 @@ namespace asio2::detail
 		public:
 			~sync_caller() = default;
 
+			/**
+			 * @function : Set the timeout of this rpc call, only valid for this once call.
+			 */
 			template<class Rep, class Period>
-			inline sync_caller& timeout(std::chrono::duration<Rep, Period> timeout) noexcept
+			inline sync_caller& set_timeout(std::chrono::duration<Rep, Period> timeout) noexcept
 			{
 				this->tm_ = std::move(timeout);
 				return (*this);
 			}
 
-			inline sync_caller& errcode(error_code& ec) noexcept
+			/**
+			 * @function : Set the timeout of this rpc call, only valid for this once call. same as set_timeout
+			 */
+			template<class Rep, class Period>
+			inline sync_caller& timeout(std::chrono::duration<Rep, Period> timeout) noexcept
 			{
-				this->ec_ = &ec;
-				return (*this);
+				return this->set_timeout(std::move(timeout));
 			}
 
 			// If invoke synchronization rpc call function in communication thread, it will degenerates
@@ -490,14 +487,13 @@ namespace asio2::detail
 			inline return_t call(std::string name, Args&&... args)
 			{
 				return sync_call_op<derive_t>::template exec<return_t>(
-					derive, ec_, tm_, std::move(name), std::forward<Args>(args)...);
+					derive, tm_, std::move(name), std::forward<Args>(args)...);
 			}
 
 		protected:
 			derive_t&                                           derive;
 			rpc_header::id_type                                 id_;
 			asio::steady_timer::duration                        tm_;
-			error_code*                                         ec_       = nullptr;
 		};
 
 		template<class derive_t>
@@ -528,13 +524,28 @@ namespace asio2::detail
 				}
 			}
 
+			/**
+			 * @function : Set the timeout of this rpc call, only valid for this once call.
+			 */
 			template<class Rep, class Period>
-			inline async_caller& timeout(std::chrono::duration<Rep, Period> timeout) noexcept
+			inline async_caller& set_timeout(std::chrono::duration<Rep, Period> timeout) noexcept
 			{
 				this->tm_ = timeout;
 				return (*this);
 			}
 
+			/**
+			 * @function : Set the timeout of this rpc call, only valid for this once call. same as set_timeout
+			 */
+			template<class Rep, class Period>
+			inline async_caller& timeout(std::chrono::duration<Rep, Period> timeout) noexcept
+			{
+				return this->set_timeout(std::move(timeout));
+			}
+
+			/**
+			 * @function : Set the callback function of this rpc call, only valid for this once call.
+			 */
 			template<class Callback>
 			inline async_caller& response(Callback&& cb)
 			{
@@ -582,7 +593,7 @@ namespace asio2::detail
 			base_caller(derive_t& d) noexcept
 				: derive(d), tm_(d.default_timeout()) {}
 			base_caller(base_caller&& o) noexcept
-				: derive(o.derive), tm_(std::move(o.tm_)), ec_(std::move(o.ec_)) {}
+				: derive(o.derive), tm_(std::move(o.tm_)) {}
 
 			base_caller& operator=(base_caller&&) = delete;
 			base_caller(const base_caller&) = delete;
@@ -591,26 +602,33 @@ namespace asio2::detail
 		public:
 			~base_caller() = default;
 
+			/**
+			 * @function : Set the timeout of this rpc call, only valid for this once call.
+			 */
 			template<class Rep, class Period>
-			inline base_caller& timeout(std::chrono::duration<Rep, Period> timeout) noexcept
+			inline base_caller& set_timeout(std::chrono::duration<Rep, Period> timeout) noexcept
 			{
 				this->tm_ = std::move(timeout);
 				return (*this);
 			}
 
-			inline sync_caller<derive_t> errcode(error_code& ec) noexcept
+			/**
+			 * @function : Set the timeout of this rpc call, only valid for this once call. same as set_timeout
+			 */
+			template<class Rep, class Period>
+			inline base_caller& timeout(std::chrono::duration<Rep, Period> timeout) noexcept
 			{
-				sync_caller<derive_t> caller{ derive };
-				caller.timeout(std::move(this->tm_));
-				caller.errcode(ec);
-				return caller; // "caller" is local variable has RVO optimization, should't use std::move()
+				return this->set_timeout(std::move(timeout));
 			}
 
+			/**
+			 * @function : Set the callback function of this rpc call, only valid for this once call.
+			 */
 			template<class Callback>
 			inline async_caller<derive_t> response(Callback&& cb)
 			{
 				async_caller<derive_t> caller{ derive };
-				caller.timeout(std::move(this->tm_));
+				caller.set_timeout(std::move(this->tm_));
 				caller.response(std::forward<Callback>(cb));
 				return caller; // "caller" is local variable has RVO optimization, should't use std::move()
 			}
@@ -620,7 +638,7 @@ namespace asio2::detail
 			template<class return_t, class ...Args>
 			inline return_t call(std::string name, Args&&... args)
 			{
-				return sync_call_op<derive_t>::template exec<return_t>(derive, this->ec_, this->tm_,
+				return sync_call_op<derive_t>::template exec<return_t>(derive, this->tm_,
 					std::move(name), std::forward<Args>(args)...);
 			}
 
@@ -628,7 +646,7 @@ namespace asio2::detail
 			inline async_caller<derive_t> async_call(std::string name, Args&&... args)
 			{
 				async_caller<derive_t> caller{ derive };
-				caller.timeout(std::move(this->tm_));
+				caller.set_timeout(std::move(this->tm_));
 				caller.async_call(std::move(name), std::forward<Args>(args)...);
 				return caller; // "caller" is local variable has RVO optimization, should't use std::move()
 			}
@@ -636,7 +654,6 @@ namespace asio2::detail
 		protected:
 			derive_t&                                           derive;
 			asio::steady_timer::duration                        tm_;
-			error_code*                                         ec_       = nullptr;
 		};
 
 	public:
@@ -651,22 +668,7 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			return sync_call_op<derived_t>::template exec<return_t>(derive, nullptr, timeout,
-				std::move(name), std::forward<Args>(args)...);
-		}
-
-		/**
-		 * @function : call a rpc function
-		 * If invoke synchronization rpc call function in communication thread, it will degenerates
-		 * into async_call and the return value is empty.
-		 */
-		template<class return_t, class Rep, class Period, class ...Args>
-		inline return_t call(error_code& ec, std::chrono::duration<Rep, Period> timeout,
-			std::string name, Args&&... args)
-		{
-			derived_t& derive = static_cast<derived_t&>(*this);
-
-			return sync_call_op<derived_t>::template exec<return_t>(derive, &ec, timeout,
+			return sync_call_op<derived_t>::template exec<return_t>(derive, timeout,
 				std::move(name), std::forward<Args>(args)...);
 		}
 
@@ -681,22 +683,7 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			return sync_call_op<derived_t>::template exec<return_t>(derive, nullptr,
-				derive.default_timeout(), std::move(name), std::forward<Args>(args)...);
-		}
-
-		/**
-		 * @function : call a rpc function
-		 * If invoke synchronization rpc call function in communication thread, it will degenerates
-		 * into async_call and the return value is empty.
-		 * You can use get_last_error to check whether there is an error of the call
-		 */
-		template<class return_t, class ...Args>
-		inline return_t call(error_code& ec, std::string name, Args&&... args)
-		{
-			derived_t& derive = static_cast<derived_t&>(*this);
-
-			return sync_call_op<derived_t>::template exec<return_t>(derive, &ec,
+			return sync_call_op<derived_t>::template exec<return_t>(derive,
 				derive.default_timeout(), std::move(name), std::forward<Args>(args)...);
 		}
 
@@ -709,7 +696,7 @@ namespace asio2::detail
 		 */
 		template<class Callback, class ...Args>
 		inline typename std::enable_if_t<is_callable_v<Callback>, void>
-			async_call(Callback&& cb, std::string name, Args&&... args)
+		async_call(Callback&& cb, std::string name, Args&&... args)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
@@ -762,8 +749,7 @@ namespace asio2::detail
 		 */
 		template<class return_t, class Callback, class Rep, class Period, class ...Args>
 		inline typename std::enable_if_t<is_template_callable_v<Callback, return_t>, void>
-		async_call(Callback&& cb, std::chrono::duration<Rep, Period> timeout,
-			std::string name, Args&&... args)
+		async_call(Callback&& cb, std::chrono::duration<Rep, Period> timeout, std::string name, Args&&... args)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
@@ -784,21 +770,29 @@ namespace asio2::detail
 			return caller; // "caller" is local variable has RVO optimization, should't use std::move()
 		}
 
+		/**
+		 * @function : Set the timeout of this rpc call, only valid for this once call.
+		 */
+		template<class Rep, class Period>
+		inline base_caller<derived_t> set_timeout(std::chrono::duration<Rep, Period> timeout)
+		{
+			base_caller<derived_t> caller{ static_cast<derived_t&>(*this) };
+			caller.set_timeout(timeout);
+			return caller; // "caller" is local variable has RVO optimization, should't use std::move()
+		}
+
+		/**
+		 * @function : Set the timeout of this rpc call, only valid for this once call. same as set_timeout
+		 */
 		template<class Rep, class Period>
 		inline base_caller<derived_t> timeout(std::chrono::duration<Rep, Period> timeout)
 		{
-			base_caller<derived_t> caller{ static_cast<derived_t&>(*this) };
-			caller.timeout(timeout);
-			return caller; // "caller" is local variable has RVO optimization, should't use std::move()
+			return this->set_timeout(std::move(timeout));
 		}
 
-		inline sync_caller<derived_t> errcode(error_code& ec)
-		{
-			sync_caller<derived_t> caller{ static_cast<derived_t&>(*this) };
-			caller.errcode(ec);
-			return caller; // "caller" is local variable has RVO optimization, should't use std::move()
-		}
-
+		/**
+		 * @function : Set the callback function of this rpc call, only valid for this once call.
+		 */
 		template<class Callback>
 		inline async_caller<derived_t> response(Callback&& cb)
 		{

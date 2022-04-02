@@ -120,22 +120,40 @@ namespace asio2::detail
 		}
 
 		/**
+		 * @function : get the websocket upgraged response object, same as get_upgrade_response
+		 */
+		inline const http::response<body_type>&     upgrade_response() noexcept { return this->upgrade_rep_; }
+
+		/**
 		 * @function : get the websocket upgraged response object
 		 */
-		inline const http::response<body_type>& upgrade_response() noexcept { return this->upgrade_rep_; }
+		inline const http::response<body_type>& get_upgrade_response() noexcept { return this->upgrade_rep_; }
+
+		/**
+		 * @function : get the websocket upgraged target, same as get_upgrade_target
+		 */
+		inline const std::string&     upgrade_target() noexcept { return this->upgrade_target_; }
 
 		/**
 		 * @function : get the websocket upgraged target
 		 */
-		inline const std::string& upgrade_target() noexcept { return this->upgrade_target_; }
+		inline const std::string& get_upgrade_target() noexcept { return this->upgrade_target_; }
 
 		/**
 		 * @function : set the websocket upgraged target
 		 */
-		inline derived_t & upgrade_target(std::string target)
+		inline derived_t & set_upgrade_target(std::string target)
 		{
 			this->upgrade_target_ = std::move(target);
 			return (this->derived());
+		}
+
+		/**
+		 * @function : set the websocket upgraged target, same as set_upgrade_target
+		 */
+		inline derived_t & upgrade_target(std::string target)
+		{
+			return this->set_upgrade_target(std::move(target));
 		}
 
 	public:

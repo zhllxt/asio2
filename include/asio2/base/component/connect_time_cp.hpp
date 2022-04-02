@@ -40,9 +40,17 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @function : get build connection time
+		 * @function : get build connection time, same as get_connect_time
 		 */
 		inline std::chrono::time_point<std::chrono::system_clock> connect_time() const noexcept
+		{
+			return this->get_connect_time();
+		}
+
+		/**
+		 * @function : get build connection time
+		 */
+		inline std::chrono::time_point<std::chrono::system_clock> get_connect_time() const noexcept
 		{
 			return this->connect_time_;
 		}
@@ -57,9 +65,17 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get connection duration of std::chrono::duration
+		 * @function : get connection duration of std::chrono::duration, same as get_connect_duration
 		 */
 		inline std::chrono::system_clock::duration connect_duration() const noexcept
+		{
+			return this->get_connect_duration();
+		}
+
+		/**
+		 * @function : get connection duration of std::chrono::duration
+		 */
+		inline std::chrono::system_clock::duration get_connect_duration() const noexcept
 		{
 			return std::chrono::duration_cast<std::chrono::system_clock::duration>(
 				std::chrono::system_clock::now() - this->connect_time_);
