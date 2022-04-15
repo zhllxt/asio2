@@ -14,7 +14,7 @@
 #include <asio2/bho/beast/core/async_base.hpp>
 #include <asio2/bho/beast/core/flat_static_buffer.hpp>
 #include <asio2/bho/beast/core/read_size.hpp>
-#include <asio2/3rd/asio.hpp>
+#include <asio2/external/asio.hpp>
 #include <asio2/bho/throw_exception.hpp>
 
 namespace bho {

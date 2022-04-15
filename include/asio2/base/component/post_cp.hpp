@@ -19,7 +19,7 @@
 #include <future>
 #include <functional>
 
-#include <asio2/3rd/asio.hpp>
+#include <asio2/external/asio.hpp>
 #include <asio2/base/iopool.hpp>
 #include <asio2/base/detail/allocator.hpp>
 

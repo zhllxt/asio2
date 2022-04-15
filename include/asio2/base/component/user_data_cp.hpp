@@ -52,7 +52,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get user data, same get_user_data
+		 * @function : get user data, same as get_user_data
 		 * example : MyStruct my = user_data<MyStruct>(); MyStruct* my = user_data<MyStruct*>();
 		 */
 		template<class DataT>

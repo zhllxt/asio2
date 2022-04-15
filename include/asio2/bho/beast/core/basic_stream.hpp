@@ -16,7 +16,7 @@
 #include <asio2/bho/beast/core/rate_policy.hpp>
 #include <asio2/bho/beast/core/role.hpp>
 #include <asio2/bho/beast/core/stream_traits.hpp>
-#include <asio2/3rd/asio.hpp>
+#include <asio2/external/asio.hpp>
 #include <asio2/bho/core/empty_value.hpp>
 #include <asio2/bho/config/workaround.hpp>
 #include <chrono>

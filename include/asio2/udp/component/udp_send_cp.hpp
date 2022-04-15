@@ -25,7 +25,7 @@
 #include <utility>
 #include <string_view>
 
-#include <asio2/3rd/asio.hpp>
+#include <asio2/external/asio.hpp>
 #include <asio2/base/iopool.hpp>
 #include <asio2/base/error.hpp>
 #include <asio2/base/define.hpp>
@@ -74,6 +74,8 @@ namespace asio2::detail
 			async_send(String&& host, StrOrInt&& port, DataT&& data) noexcept
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
+
+			clear_last_error();
 
 			detail::integer_add_sub_guard asg(derive.io().pending());
 
@@ -125,6 +127,8 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
+			clear_last_error();
+
 			detail::integer_add_sub_guard asg(derive.io().pending());
 
 			// We must ensure that there is only one operation to send data
@@ -165,6 +169,8 @@ namespace asio2::detail
 			async_send(String&& host, StrOrInt&& port, DataT&& data, asio::use_future_t<> flag)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
+
+			clear_last_error();
 
 			detail::integer_add_sub_guard asg(derive.io().pending());
 
@@ -250,6 +256,8 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
+			clear_last_error();
+
 			detail::integer_add_sub_guard asg(derive.io().pending());
 
 			std::ignore = flag;
@@ -316,6 +324,8 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
+			clear_last_error();
+
 			detail::integer_add_sub_guard asg(derive.io().pending());
 
 			// We must ensure that there is only one operation to send data
@@ -380,6 +390,8 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
+			clear_last_error();
+
 			detail::integer_add_sub_guard asg(derive.io().pending());
 
 			// We must ensure that there is only one operation to send data
@@ -429,6 +441,8 @@ namespace asio2::detail
 			async_send(Endpoint&& endpoint, DataT&& data) noexcept
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
+
+			clear_last_error();
 
 			detail::integer_add_sub_guard asg(derive.io().pending());
 
@@ -481,6 +495,8 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
+			clear_last_error();
+
 			detail::integer_add_sub_guard asg(derive.io().pending());
 
 			// We must ensure that there is only one operation to send data
@@ -524,6 +540,8 @@ namespace asio2::detail
 			async_send(Endpoint&& endpoint, DataT&& data, asio::use_future_t<> flag)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
+
+			clear_last_error();
 
 			detail::integer_add_sub_guard asg(derive.io().pending());
 
@@ -600,6 +618,8 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
+			clear_last_error();
+
 			detail::integer_add_sub_guard asg(derive.io().pending());
 
 			std::ignore = flag;
@@ -656,6 +676,8 @@ namespace asio2::detail
 			async_send(Endpoint&& endpoint, DataT&& data, Callback&& fn)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
+
+			clear_last_error();
 
 			detail::integer_add_sub_guard asg(derive.io().pending());
 
@@ -724,6 +746,8 @@ namespace asio2::detail
 			async_send(Endpoint&& endpoint, CharT * s, SizeT count, Callback&& fn)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
+
+			clear_last_error();
 
 			detail::integer_add_sub_guard asg(derive.io().pending());
 

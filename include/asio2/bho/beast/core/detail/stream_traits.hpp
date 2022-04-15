@@ -11,7 +11,7 @@
 #define BHO_BEAST_DETAIL_STREAM_TRAITS_HPP
 
 #include <asio2/bho/beast/core/error.hpp>
-#include <asio2/3rd/asio.hpp>
+#include <asio2/external/asio.hpp>
 #include <type_traits>
 
 namespace bho {

@@ -14,9 +14,6 @@ int main()
 
 	asio2::udp_client client;
 
-	//client.local_endpoint(asio::ip::address_v4::from_string("127.0.0.1"), 9876); // port is integer
-	//client.local_endpoint(asio::ip::udp::v4(), "8678"); // port is string
-
 	//std::string msg;
 	//msg.resize(15000, 'a');
 

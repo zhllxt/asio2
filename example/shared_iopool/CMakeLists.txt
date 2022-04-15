@@ -14,7 +14,7 @@ aux_source_directory(. SRC_FILES)
 
 source_group("" FILES ${SRC_FILES})
 
-set(TARGET_NAME custom_scheduler)
+set(TARGET_NAME shared_iopool)
 
 add_executable (
     ${TARGET_NAME}

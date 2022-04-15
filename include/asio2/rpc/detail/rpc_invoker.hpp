@@ -30,7 +30,7 @@
 #include <type_traits>
 #include <optional>
 
-#include <asio2/3rd/asio.hpp>
+#include <asio2/external/asio.hpp>
 #include <asio2/base/iopool.hpp>
 #include <asio2/base/error.hpp>
 #include <asio2/base/define.hpp>

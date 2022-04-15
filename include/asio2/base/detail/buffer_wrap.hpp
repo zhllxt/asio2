@@ -20,7 +20,7 @@
 #include <memory>
 #include <type_traits>
 
-#include <asio2/3rd/asio.hpp>
+#include <asio2/external/asio.hpp>
 
 namespace asio2
 {

@@ -26,7 +26,7 @@
 #include <ios>
 #include <future>
 
-#include <asio2/3rd/asio.hpp>
+#include <asio2/external/asio.hpp>
 
 #ifdef ASIO2_ASSERT
 	static_assert(false, "Unknown ASIO2_ASSERT definition will affect the relevant functions of this program.");

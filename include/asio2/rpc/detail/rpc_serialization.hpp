@@ -21,9 +21,9 @@
 #include <string>
 #include <string_view>
 
-#include <asio2/3rd/cereal.hpp>
+#include <asio2/external/cereal.hpp>
 
-#include <asio2/3rd/asio.hpp>
+#include <asio2/external/asio.hpp>
 #include <asio2/base/error.hpp>
 
 #include <asio2/rpc/detail/rpc_portable_binary.hpp>

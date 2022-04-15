@@ -10,8 +10,8 @@
 #ifndef __ASIO2_HTTP_FLEX_BODY_HPP__
 #define __ASIO2_HTTP_FLEX_BODY_HPP__
 
-#include <asio2/3rd/beast.hpp>
-#include <asio2/3rd/assert.hpp>
+#include <asio2/external/beast.hpp>
+#include <asio2/external/assert.hpp>
 
 #include <asio2/http/detail/http_util.hpp>
 

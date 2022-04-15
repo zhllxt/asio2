@@ -138,6 +138,6 @@ include $(BUILD_EXECUTABLE)
 
 include $(CLEAR_VARS)
 LOCAL_C_INCLUDES += $(ASIO2_INCLUDE)
-LOCAL_MODULE := custom_scheduler.out
-LOCAL_SRC_FILES := $(LOCAL_PATH)/../../custom_scheduler/custom_scheduler.cpp
+LOCAL_MODULE := shared_iopool.out
+LOCAL_SRC_FILES := $(LOCAL_PATH)/../../shared_iopool/shared_iopool.cpp
 include $(BUILD_EXECUTABLE)

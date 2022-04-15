@@ -15,7 +15,7 @@
 #include <asio2/bho/beast/core/stream_traits.hpp>
 #include <asio2/bho/beast/core/detail/bind_continuation.hpp>
 #include <asio2/bho/beast/core/detail/is_invocable.hpp>
-#include <asio2/3rd/asio.hpp>
+#include <asio2/external/asio.hpp>
 #include <memory>
 
 namespace bho {

@@ -11,6 +11,8 @@
 # export CC=/usr/local/bin/gcc
 # export CXX=/usr/local/bin/g++
 #
+# cmake -G "Visual Studio 15 Win64" .
+#
 
 cmake_minimum_required (VERSION 2.8)
 
@@ -208,7 +210,7 @@ add_subdirectory (${ASIO2_ROOT_DIR}/example/tcp              asio2_example_proje
 add_subdirectory (${ASIO2_ROOT_DIR}/example/udp              asio2_example_project/udp              )
 add_subdirectory (${ASIO2_ROOT_DIR}/example/websocket        asio2_example_project/websocket        )
 add_subdirectory (${ASIO2_ROOT_DIR}/example/mqtt             asio2_example_project/mqtt             )
-add_subdirectory (${ASIO2_ROOT_DIR}/example/custom_scheduler asio2_example_project/custom_scheduler )
+add_subdirectory (${ASIO2_ROOT_DIR}/example/shared_iopool    asio2_example_project/shared_iopool )
 
 add_subdirectory (${ASIO2_ROOT_DIR}/example/ssl              asio2_example_project/ssl              )
 

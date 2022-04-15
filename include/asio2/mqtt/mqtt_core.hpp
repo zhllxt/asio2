@@ -38,8 +38,8 @@
 #include <tuple>
 #include <type_traits>
 
-#include <asio2/3rd/beast.hpp>
-#include <asio2/3rd/predef.h>
+#include <asio2/external/beast.hpp>
+#include <asio2/external/predef.h>
 
 #include <asio2/base/detail/util.hpp>
 

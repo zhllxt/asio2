@@ -20,7 +20,7 @@
 #include <utility>
 #include <string_view>
 
-#include <asio2/3rd/asio.hpp>
+#include <asio2/external/asio.hpp>
 #include <asio2/base/iopool.hpp>
 #include <asio2/base/error.hpp>
 #include <asio2/base/listener.hpp>
@@ -45,6 +45,7 @@ namespace asio2::detail
 		using socket_t           = typename args_t::socket_t;
 		using raw_socket_t       = typename std::remove_reference_t<socket_t>;
 		using resolver_type      = typename asio::ip::basic_resolver<typename raw_socket_t::protocol_type>;
+		using endpoint_type      = typename args_t::socket_t::lowest_layer_type::endpoint_type;
 		using endpoints_type     = typename resolver_type::results_type;
 		using endpoints_iterator = typename endpoints_type::iterator;
 
@@ -114,30 +115,6 @@ namespace asio2::detail
 					ASIO2_ASSERT(false);
 					asio::detail::throw_error(asio::error::operation_aborted);
 				}
-
-				auto & socket = derive.socket().lowest_layer();
-
-				error_code ec_ignore{};
-
-				socket.close(ec_ignore);
-
-				socket.open(derive.local_endpoint().protocol());
-
-				// open succeeded. set the keeplive values
-				socket.set_option(typename raw_socket_t::reuse_address(true)); // set port reuse
-
-				if constexpr (std::is_same_v<typename raw_socket_t::protocol_type, asio::ip::tcp>)
-				{
-					derive.keep_alive_options();
-				}
-				else
-				{
-					std::ignore = true;
-				}
-
-				derive._fire_init();
-
-				socket.bind(derive.local_endpoint());
 
 				// start the timeout timer
 				derive._post_connect_timeout_timer(derive.connect_timeout(), this_ptr,
@@ -243,8 +220,42 @@ namespace asio2::detail
 					return;
 				}
 
+				auto & socket = derive.socket().lowest_layer();
+
+				// if the socket's binded endpoint is ipv4, and the finded endpoint is ipv6, then
+				// the async_connect will be failed, so we need reopen the socket with ipv6.
+				if (socket.is_open() && socket.local_endpoint().protocol() != iter->endpoint().protocol())
+				{
+					error_code ec_ignore{};
+
+					socket.close(ec_ignore);
+				}
+
+				if (!socket.is_open())
+				{
+					socket.open(iter->endpoint().protocol());
+
+					// open succeeded. set the keeplive values
+					socket.set_option(typename raw_socket_t::reuse_address(true)); // set port reuse
+
+					if constexpr (std::is_same_v<typename raw_socket_t::protocol_type, asio::ip::tcp>)
+					{
+						derive.keep_alive_options();
+					}
+					else
+					{
+						std::ignore = true;
+					}
+
+					// We don't call the bind function, beacuse it will be called internally in asio
+					//socket.bind(endpoint);
+
+					// And in the init notify, you can call the bind function you self.
+					derive._fire_init();
+				}
+
 				// Start the asynchronous connect operation.
-				derive.socket().lowest_layer().async_connect(iter->endpoint(),
+				socket.async_connect(iter->endpoint(),
 					asio::bind_executor(derive.io().strand(), make_allocator(derive.rallocator(),
 				[&derive, iter, this_ptr = std::move(this_ptr), condition = std::move(condition)]
 				(const error_code & ec) mutable

@@ -17,7 +17,7 @@
 
 #include <string>
 
-#include <asio2/3rd/asio.hpp>
+#include <asio2/external/asio.hpp>
 
 namespace asio2::detail
 {

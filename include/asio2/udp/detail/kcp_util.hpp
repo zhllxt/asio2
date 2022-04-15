@@ -24,8 +24,8 @@
 #include <string_view>
 #include <chrono>
 
-#include <asio2/3rd/asio.hpp>
-#include <asio2/3rd/predef.h>
+#include <asio2/external/asio.hpp>
+#include <asio2/external/predef.h>
 
 #include <asio2/base/error.hpp>
 #include <asio2/base/detail/condition_wrap.hpp>

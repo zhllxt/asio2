@@ -11,7 +11,7 @@
 #define BHO_BEAST_CORE_IMPL_SAVED_HANDLER_HPP
 
 #include <asio2/bho/beast/core/detail/allocator.hpp>
-#include <asio2/3rd/asio.hpp>
+#include <asio2/external/asio.hpp>
 #include <asio2/bho/assert.hpp>
 #include <asio2/bho/core/empty_value.hpp>
 #include <asio2/bho/core/exchange.hpp>

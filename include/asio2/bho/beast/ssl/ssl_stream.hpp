@@ -19,7 +19,7 @@
 
 // VFALCO We include this because anyone who uses ssl will
 //        very likely need to check for ssl::error::stream_truncated
-#include <asio2/3rd/asio.hpp>
+#include <asio2/external/asio.hpp>
 #include <cstddef>
 #include <memory>
 #include <type_traits>

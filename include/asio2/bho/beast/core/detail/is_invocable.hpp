@@ -10,7 +10,7 @@
 #ifndef BHO_BEAST_DETAIL_IS_INVOCABLE_HPP
 #define BHO_BEAST_DETAIL_IS_INVOCABLE_HPP
 
-#include <asio2/3rd/asio.hpp>
+#include <asio2/external/asio.hpp>
 #include <type_traits>
 #include <utility>
 

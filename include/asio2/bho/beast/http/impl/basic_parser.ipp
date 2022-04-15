@@ -17,7 +17,7 @@
 #include <asio2/bho/beast/core/detail/clamp.hpp>
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/core/detail/string.hpp>
-#include <asio2/3rd/asio.hpp>
+#include <asio2/external/asio.hpp>
 #include <algorithm>
 #include <utility>
 

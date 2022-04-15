@@ -13,7 +13,7 @@
 #include <asio2/bho/beast/core/detail/tuple.hpp>
 #include <asio2/bho/beast/core/detail/variant.hpp>
 #include <asio2/bho/beast/core/mp_with_index.hpp>
-#include <asio2/3rd/asio.hpp>
+#include <asio2/external/asio.hpp>
 #include <cstdint>
 #include <iterator>
 #include <new>

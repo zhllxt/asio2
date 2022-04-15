@@ -17,7 +17,7 @@
 #include <asio2/bho/beast/core/make_printable.hpp>
 #include <asio2/bho/beast/core/stream_traits.hpp>
 #include <asio2/bho/beast/core/detail/is_invocable.hpp>
-#include <asio2/3rd/asio.hpp>
+#include <asio2/external/asio.hpp>
 #include <optional>
 #include <asio2/bho/throw_exception.hpp>
 #include <ostream>

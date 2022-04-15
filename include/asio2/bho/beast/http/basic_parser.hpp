@@ -16,7 +16,7 @@
 #include <asio2/bho/beast/http/field.hpp>
 #include <asio2/bho/beast/http/verb.hpp>
 #include <asio2/bho/beast/http/detail/basic_parser.hpp>
-#include <asio2/3rd/asio.hpp>
+#include <asio2/external/asio.hpp>
 #include <optional>
 #include <asio2/bho/assert.hpp>
 #include <limits>

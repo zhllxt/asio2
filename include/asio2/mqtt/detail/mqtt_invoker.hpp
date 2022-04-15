@@ -15,7 +15,7 @@
 #pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
-#include <asio2/3rd/asio.hpp>
+#include <asio2/external/asio.hpp>
 #include <asio2/base/iopool.hpp>
 #include <asio2/base/error.hpp>
 #include <asio2/base/define.hpp>
@@ -30,7 +30,7 @@
 #include <asio2/mqtt/detail/mqtt_shared_target.hpp>
 #include <asio2/mqtt/detail/mqtt_retained_message.hpp>
 
-#include <asio2/3rd/magic_enum.hpp>
+#include <asio2/external/magic_enum.hpp>
 
 namespace asio2::detail
 {

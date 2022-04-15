@@ -30,7 +30,7 @@
 #include <asio2/bho/beast/core/static_buffer.hpp>
 #include <asio2/bho/beast/core/stream_traits.hpp>
 #include <asio2/bho/beast/core/detail/clamp.hpp>
-#include <asio2/3rd/asio.hpp>
+#include <asio2/external/asio.hpp>
 #include <asio2/bho/core/empty_value.hpp>
 #include <optional>
 

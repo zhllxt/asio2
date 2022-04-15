@@ -213,6 +213,18 @@ int main()
 
 		printf("ws close\n");
 
+	}).on_ping([](std::shared_ptr<asio2::http_session>& session_ptr)
+	{
+		asio2::ignore_unused(session_ptr);
+
+		printf("ws ping\n");
+
+	}).on_pong([](std::shared_ptr<asio2::http_session>& session_ptr)
+	{
+		asio2::ignore_unused(session_ptr);
+
+		printf("ws pong\n");
+
 	}));
 
 	server.bind_not_found([](http::web_request& req, http::web_response& rep)

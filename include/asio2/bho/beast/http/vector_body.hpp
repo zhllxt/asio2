@@ -15,7 +15,7 @@
 #include <asio2/bho/beast/http/error.hpp>
 #include <asio2/bho/beast/http/message.hpp>
 #include <asio2/bho/beast/core/detail/clamp.hpp>
-#include <asio2/3rd/asio.hpp>
+#include <asio2/external/asio.hpp>
 #include <optional>
 #include <cstdint>
 #include <limits>

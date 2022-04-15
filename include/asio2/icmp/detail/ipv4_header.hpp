@@ -17,7 +17,7 @@
 
 #include <algorithm>
 
-#include <asio2/3rd/asio.hpp>
+#include <asio2/external/asio.hpp>
 
 // Packet header for IPv4.
 //

@@ -15,7 +15,7 @@
 #include <asio2/bho/version.hpp>
 #include <asio2/bho/core/ignore_unused.hpp>
 #include <asio2/bho/static_assert.hpp>
-#include <asio2/3rd/asio.hpp>
+#include <asio2/external/asio.hpp>
 
 namespace bho {
 namespace beast {

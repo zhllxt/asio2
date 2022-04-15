@@ -10,7 +10,7 @@
 #ifndef BHO_BEAST_DETAIL_SERVICE_BASE_HPP
 #define BHO_BEAST_DETAIL_SERVICE_BASE_HPP
 
-#include <asio2/3rd/asio.hpp>
+#include <asio2/external/asio.hpp>
 
 namespace bho {
 namespace beast {

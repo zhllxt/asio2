@@ -11,7 +11,7 @@
 #define BHO_BEAST_DETAIL_GET_IO_CONTEXT_HPP
 
 #include <asio2/bho/beast/core/stream_traits.hpp>
-#include <asio2/3rd/asio.hpp>
+#include <asio2/external/asio.hpp>
 #include <memory>
 #include <type_traits>
 

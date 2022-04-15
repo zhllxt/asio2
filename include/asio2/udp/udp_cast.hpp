@@ -30,7 +30,7 @@
 #include <tuple>
 #include <unordered_map>
 
-#include <asio2/3rd/asio.hpp>
+#include <asio2/external/asio.hpp>
 #include <asio2/base/iopool.hpp>
 #include <asio2/base/error.hpp>
 #include <asio2/base/listener.hpp>
@@ -559,6 +559,11 @@ namespace asio2::detail
 			}
 
 			this->buffer_.consume(this->buffer_.size());
+
+			if (bytes_recvd == this->buffer_.pre_size())
+			{
+				this->buffer_.pre_size((std::min)(this->buffer_.pre_size() * 2, this->buffer_.max_size()));
+			}
 
 			this->derived()._post_recv(std::move(this_ptr), std::move(condition));
 		}

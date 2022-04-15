@@ -14,7 +14,7 @@
 #include <asio2/bho/beast/core/buffer_traits.hpp>
 #include <asio2/bho/beast/core/buffers_prefix.hpp>
 #include <asio2/bho/beast/websocket/teardown.hpp>
-#include <asio2/3rd/asio.hpp>
+#include <asio2/external/asio.hpp>
 #include <asio2/bho/assert.hpp>
 #include <asio2/bho/core/exchange.hpp>
 #include <cstdlib>

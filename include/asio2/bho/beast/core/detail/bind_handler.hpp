@@ -12,7 +12,7 @@
 
 #include <asio2/bho/beast/core/error.hpp>
 #include <asio2/bho/beast/core/detail/tuple.hpp>
-#include <asio2/3rd/asio.hpp>
+#include <asio2/external/asio.hpp>
 #include <asio2/bho/core/ignore_unused.hpp>
 #include <functional>
 #include <type_traits>

@@ -16,7 +16,7 @@
 #include <asio2/bho/beast/core/detail/bind_continuation.hpp>
 #include <asio2/bho/beast/websocket/detail/frame.hpp>
 #include <asio2/bho/beast/websocket/impl/stream_impl.hpp>
-#include <asio2/3rd/asio.hpp>
+#include <asio2/external/asio.hpp>
 #include <asio2/bho/throw_exception.hpp>
 #include <memory>
 

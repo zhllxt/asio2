@@ -1,7 +1,7 @@
 #ifndef BHO_BEAST_CORE_DETAIL_WORK_GUARD_HPP
 #define BHO_BEAST_CORE_DETAIL_WORK_GUARD_HPP
 
-#include <asio2/3rd/asio.hpp>
+#include <asio2/external/asio.hpp>
 #include <asio2/bho/assert.hpp>
 #include <optional>
 

@@ -10,7 +10,7 @@
 #ifndef BHO_BEAST_CORE_DETAIL_BIND_DEFAULT_EXECUTOR_HPP
 #define BHO_BEAST_CORE_DETAIL_BIND_DEFAULT_EXECUTOR_HPP
 
-#include <asio2/3rd/asio.hpp>
+#include <asio2/external/asio.hpp>
 #include <asio2/bho/core/empty_value.hpp>
 #include <utility>
 

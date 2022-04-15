@@ -1,4 +1,4 @@
-#include <asio2/3rd/asio.hpp>
+#include <asio2/external/asio.hpp>
 #include <iostream>
 
 struct userinfo
@@ -46,6 +46,8 @@ int main()
 #endif
 
 	std::string_view host = "127.0.0.1";
+	//std::string_view host = "fe80::dc05:d962:f568:39b7"; // ipv6 windows
+	//std::string_view host = "fe80::bb00:5a10:d713:d293%eth0"; // ipv6 linux
 	std::string_view port = "8028";
 
 	asio2::tcp_client clients[20];

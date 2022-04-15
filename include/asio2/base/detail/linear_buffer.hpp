@@ -19,7 +19,7 @@
 #include <memory>
 #include <vector>
 
-#include <asio2/3rd/asio.hpp>
+#include <asio2/external/asio.hpp>
 
 namespace asio2
 {

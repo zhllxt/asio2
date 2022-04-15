@@ -15,7 +15,7 @@
 #include <asio2/bho/beast/core/flat_buffer.hpp>
 #include <asio2/bho/beast/core/stream_traits.hpp>
 #include <asio2/bho/beast/core/detail/flat_stream.hpp>
-#include <asio2/3rd/asio.hpp>
+#include <asio2/external/asio.hpp>
 #include <cstdlib>
 #include <utility>
 

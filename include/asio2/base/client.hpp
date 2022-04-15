@@ -31,8 +31,8 @@
 #include <unordered_map>
 #include <type_traits>
 
-#include <asio2/3rd/asio.hpp>
-#include <asio2/3rd/magic_enum.hpp>
+#include <asio2/external/asio.hpp>
+#include <asio2/external/magic_enum.hpp>
 
 #include <asio2/base/iopool.hpp>
 #include <asio2/base/error.hpp>
@@ -52,7 +52,6 @@
 #include <asio2/base/component/socket_cp.hpp>
 #include <asio2/base/component/connect_cp.hpp>
 #include <asio2/base/component/disconnect_cp.hpp>
-#include <asio2/base/component/local_endpoint_cp.hpp>
 #include <asio2/base/component/user_timer_cp.hpp>
 #include <asio2/base/component/post_cp.hpp>
 #include <asio2/base/component/connect_timeout_cp.hpp>
@@ -79,7 +78,6 @@ namespace asio2::detail
 		, public socket_cp             <derived_t, args_t>
 		, public connect_cp            <derived_t, args_t>
 		, public disconnect_cp         <derived_t, args_t>
-		, public local_endpoint_cp     <derived_t, args_t>
 		, public reconnect_timer_cp    <derived_t, args_t>
 		, public user_timer_cp         <derived_t, args_t>
 		, public connect_timeout_cp    <derived_t, args_t>
@@ -123,7 +121,6 @@ namespace asio2::detail
 			, socket_cp           <derived_t, args_t>(iopool_cp::_get_io(0).context(), std::forward<Args>(args)...)
 			, connect_cp          <derived_t, args_t>()
 			, disconnect_cp       <derived_t, args_t>()
-			, local_endpoint_cp   <derived_t, args_t>()
 			, reconnect_timer_cp  <derived_t, args_t>(iopool_cp::_get_io(0))
 			, user_timer_cp       <derived_t, args_t>()
 			, connect_timeout_cp  <derived_t, args_t>(iopool_cp::_get_io(0))

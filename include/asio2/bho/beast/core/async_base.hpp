@@ -15,7 +15,7 @@
 #include <asio2/bho/beast/core/detail/allocator.hpp>
 #include <asio2/bho/beast/core/detail/async_base.hpp>
 #include <asio2/bho/beast/core/detail/work_guard.hpp>
-#include <asio2/3rd/asio.hpp>
+#include <asio2/external/asio.hpp>
 #include <asio2/bho/core/exchange.hpp>
 #include <asio2/bho/core/empty_value.hpp>
 #include <utility>

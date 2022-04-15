@@ -22,7 +22,7 @@
 #include <asio2/bho/beast/core/stream_traits.hpp>
 #include <asio2/bho/beast/core/detail/buffer.hpp>
 #include <asio2/bho/beast/version.hpp>
-#include <asio2/3rd/asio.hpp>
+#include <asio2/external/asio.hpp>
 #include <asio2/bho/assert.hpp>
 #include <asio2/bho/throw_exception.hpp>
 #include <memory>

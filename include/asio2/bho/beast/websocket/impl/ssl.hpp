@@ -12,7 +12,7 @@
 
 #include <utility>
 #include <asio2/bho/beast/websocket/teardown.hpp>
-#include <asio2/3rd/asio.hpp>
+#include <asio2/external/asio.hpp>
 
 namespace bho {
 namespace beast {

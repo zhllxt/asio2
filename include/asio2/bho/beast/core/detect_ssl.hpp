@@ -16,7 +16,7 @@
 #include <asio2/bho/beast/core/read_size.hpp>
 #include <asio2/bho/beast/core/stream_traits.hpp>
 #include <asio2/bho/logic/tribool.hpp>
-#include <asio2/3rd/asio.hpp>
+#include <asio2/external/asio.hpp>
 #include <type_traits>
 
 namespace bho {

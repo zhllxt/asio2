@@ -20,8 +20,8 @@
 #include <utility>
 #include <string_view>
 
-#include <asio2/3rd/asio.hpp>
-#include <asio2/3rd/beast.hpp>
+#include <asio2/external/asio.hpp>
+#include <asio2/external/beast.hpp>
 #include <asio2/base/error.hpp>
 
 #include <asio2/http/detail/http_util.hpp>

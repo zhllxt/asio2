@@ -22,7 +22,7 @@
 #include <vector>
 #include <variant>
 
-#include <asio2/3rd/asio.hpp>
+#include <asio2/external/asio.hpp>
 #include <asio2/base/error.hpp>
 #include <asio2/base/detail/util.hpp>
 #include <asio2/base/detail/condition_wrap.hpp>

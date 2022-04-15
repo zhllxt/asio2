@@ -18,7 +18,7 @@
 #include <asio2/bho/beast/core/detail/variant.hpp>
 #include <asio2/bho/beast/http/message.hpp>
 #include <asio2/bho/beast/http/chunk_encode.hpp>
-#include <asio2/3rd/asio.hpp>
+#include <asio2/external/asio.hpp>
 #include <optional>
 
 namespace bho {
