@@ -22,8 +22,8 @@
 
 #include <type_traits>
 
-#include <asio2/3rd/asio.hpp>
-#include <asio2/3rd/beast.hpp>
+#include <asio2/external/asio.hpp>
+#include <asio2/external/beast.hpp>
 
 #include <asio2/base/error.hpp>
 

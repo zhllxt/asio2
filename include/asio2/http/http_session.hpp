@@ -165,6 +165,17 @@ namespace asio2::detail
 			return (this->router_);
 		}
 
+		template<typename MatchCondition>
+		inline void _do_init(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		{
+			super::_do_init(std::move(this_ptr), condition);
+
+			if (this->support_websocket_)
+			{
+				this->derived()._ws_init(condition, this->derived().stream());
+			}
+		}
+
 		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
 		{
 			this->derived()._rdc_stop();
@@ -328,7 +339,7 @@ namespace asio2::detail
 					this->req_.ws_frame_data_ = {};
 
 					this->derived().silence_timeout_ = std::chrono::milliseconds(tcp_silence_timeout);
-					this->derived()._ws_init(condition, this->derived().stream());
+
 					this->derived()._ws_start(this_ptr, condition, this->derived().stream());
 
 					if (this->router_._route(this_ptr, this->req_, this->rep_))
