@@ -14,22 +14,22 @@ int main()
 
 	asio2::mqtt_client client;
 
-	asio2::mqtt::v5::connect conn;
+	mqtt::v5::connect conn;
 	conn.username("3772738@qq.com");
 	conn.password("0123456789123456");
 	conn.properties(
-		asio2::mqtt::v5::payload_format_indicator{ asio2::mqtt::v5::payload_format_indicator::format::string },
-		asio2::mqtt::v5::session_expiry_interval{ 60 });
+		mqtt::v5::payload_format_indicator{ mqtt::v5::payload_format_indicator::format::string },
+		mqtt::v5::session_expiry_interval{ 60 });
 	conn.will_attributes(
 		u8"0123456789abcdefg",
 		u8"0123456789abcdefg",
-		asio2::mqtt::qos_type::at_least_once, true,
-		asio2::mqtt::v5::payload_format_indicator{ 0 },
-		asio2::mqtt::v5::session_expiry_interval{ 60 });
+		mqtt::qos_type::at_least_once, true,
+		mqtt::v5::payload_format_indicator{ 0 },
+		mqtt::v5::session_expiry_interval{ 60 });
 	conn.will_attributes(
 		u8"0123456789abcdefg",
 		u8"0123456789abcdefg",
-		asio2::mqtt::qos_type::at_least_once, true);
+		mqtt::qos_type::at_least_once, true);
 
 	std::vector<asio::const_buffer> sbuffer;
 	std::string sdata;
@@ -57,32 +57,32 @@ int main()
 	{
 		asio2::ignore_unused(data);
 
-		//asio2::mqtt::v3::connack cack;
+		//mqtt::v3::connack cack;
 		//cack.deserialize(data);
 
-		//asio2::mqtt::v4::connack cack;
+		//mqtt::v4::connack cack;
 		//cack.deserialize(data);
 
-		//asio2::mqtt::v5::connack cack;
+		//mqtt::v5::connack cack;
 		//cack.deserialize(data);
 
-		//cack.properties().has<asio2::mqtt::v5::receive_maximum>();
+		//cack.properties().has<mqtt::v5::receive_maximum>();
 
 		//std::cout << "reason_code value is : " << int(cack.reason_code()) << std::endl;
 
-		//asio2::mqtt::v5::receive_maximum* prm = cack.properties().get_if<asio2::mqtt::v5::receive_maximum>();
+		//mqtt::v5::receive_maximum* prm = cack.properties().get_if<mqtt::v5::receive_maximum>();
 		//if (prm)
 		//	std::cout << "receive_maximum value is : " << prm->value() << std::endl;
 
-		//asio2::mqtt::v5::topic_alias_maximum* ptam = cack.properties().get_if<asio2::mqtt::v5::topic_alias_maximum>();
+		//mqtt::v5::topic_alias_maximum* ptam = cack.properties().get_if<mqtt::v5::topic_alias_maximum>();
 		//if(ptam)
 		//	std::cout << "topic_alias_maximum value is : " << ptam->value() << std::endl;
 
-		//asio2::mqtt::v5::reason_string* prs = cack.properties().get_if<asio2::mqtt::v5::reason_string>();
+		//mqtt::v5::reason_string* prs = cack.properties().get_if<mqtt::v5::reason_string>();
 		//if(prs)
 		//	std::cout << "reason_string value is : " << cack.reason_string() << std::endl;
 
-		//if (cack.reason_code() == asio2::mqtt::v3::connect_reason_code::success)
+		//if (cack.reason_code() == mqtt::v3::connect_reason_code::success)
 		//	std::cout << "connect success-----------------------------\n";
 		//else
 		//	std::cout << "connect failure*****************************\n";
@@ -100,14 +100,25 @@ int main()
 
 		if (!asio2::get_last_error())
 		{
-			asio2::mqtt::v5::publish publish;
-			publish.qos(asio2::mqtt::qos_type::at_least_once);
-			//publish.packet_id(1001);
+			mqtt::v5::publish publish;
+			publish.qos(mqtt::qos_type::at_least_once);
+			publish.packet_id(1001);
 			publish.topic_name("/");
 			publish.payload("20210906_payload_test");
 			client.async_send(std::move(publish), []()
 			{
 				std::cout << "send publish" << std::endl;
+			});
+
+			client.start_timer(1, 1000, 1, [&]()
+			{
+				mqtt::v5::subscribe subscribe;
+				subscribe.packet_id(1001);
+				subscribe.add_subscriptions(mqtt::subscription{ "/",mqtt::qos_type::at_least_once });
+				client.async_send(std::move(subscribe), []()
+				{
+					std::cout << "send subscribe" << std::endl;
+				});
 			});
 		}
 
@@ -117,17 +128,17 @@ int main()
 			asio2::last_error_val(), asio2::last_error_msg().c_str());
 	});
 
-	client.on_connack([](asio2::mqtt::v3::connack& connack)
+	client.on_connack([](mqtt::v3::connack& connack)
 	{
 		std::cout << "connack reason code: " << int(connack.reason_code()) << std::endl;
 	});
 
-	client.on_connack([](asio2::mqtt::v4::connack& connack)
+	client.on_connack([](mqtt::v4::connack& connack)
 	{
 		std::cout << "connack reason code: " << int(connack.reason_code()) << std::endl;
 	});
 
-	client.on_connack([](asio2::mqtt::v5::connack& connack)
+	client.on_connack([](mqtt::v5::connack& connack)
 	{
 		std::cout << "connack reason code: " << int(connack.reason_code()) << std::endl;
 
@@ -144,94 +155,94 @@ int main()
 		}
 	});
 
-	client.on_puback([](asio2::mqtt::v3::puback& puback)
+	client.on_puback([](mqtt::v3::puback& puback)
 	{
 		printf("recv v3::puback : packet id : %u\n", puback.packet_id());
 	});
 
-	client.on_puback([](asio2::mqtt::v4::puback& puback)
+	client.on_puback([](mqtt::v4::puback& puback)
 	{
 		printf("recv v4::puback : packet id : %u\n", puback.packet_id());
 	});
 
-	client.on_puback([](asio2::mqtt::v5::puback& puback)
+	client.on_puback([](mqtt::v5::puback& puback)
 	{
 		printf("recv v5::puback : packet id : %u reason code : %u\n", puback.packet_id(), puback.reason_code());
 	});
 
-	client.on_pubrec([](asio2::mqtt::v3::pubrec& pubrec, asio2::mqtt::v3::pubrel& pubrel)
+	client.on_pubrec([](mqtt::v3::pubrec& pubrec, mqtt::v3::pubrel& pubrel)
 	{
 		asio2::ignore_unused(pubrec, pubrel);
 		std::cout << "recv v3::pubrec, packet id: " << pubrec.packet_id() << std::endl;
 	});
 
-	client.on_pubrec([](asio2::mqtt::v4::pubrec& pubrec, asio2::mqtt::v4::pubrel& pubrel)
+	client.on_pubrec([](mqtt::v4::pubrec& pubrec, mqtt::v4::pubrel& pubrel)
 	{
 		asio2::ignore_unused(pubrec, pubrel);
 		std::cout << "recv v4::pubrec, packet id: " << pubrec.packet_id() << std::endl;
 	});
 
-	client.on_pubrec([](asio2::mqtt::v5::pubrec& pubrec, asio2::mqtt::v5::pubrel& pubrel)
+	client.on_pubrec([](mqtt::v5::pubrec& pubrec, mqtt::v5::pubrel& pubrel)
 	{
 		asio2::ignore_unused(pubrec, pubrel);
 		std::cout << "recv v5::pubrec, packet id: " << pubrec.packet_id() << " reason_code : " << int(pubrec.reason_code()) << std::endl;
 	});
 
-	client.on_pubcomp([](asio2::mqtt::v3::pubcomp& pubcomp)
+	client.on_pubcomp([](mqtt::v3::pubcomp& pubcomp)
 	{
 		asio2::ignore_unused(pubcomp);
 		std::cout << "recv v3::pubcomp, packet id: " << pubcomp.packet_id() << std::endl;
 	});
 
-	client.on_pubcomp([](asio2::mqtt::v4::pubcomp& pubcomp)
+	client.on_pubcomp([](mqtt::v4::pubcomp& pubcomp)
 	{
 		asio2::ignore_unused(pubcomp);
 		std::cout << "recv v4::pubcomp, packet id: " << pubcomp.packet_id() << std::endl;
 	});
 
-	client.on_pubcomp([](asio2::mqtt::v5::pubcomp& pubcomp)
+	client.on_pubcomp([](mqtt::v5::pubcomp& pubcomp)
 	{
 		asio2::ignore_unused(pubcomp);
 		std::cout << "recv v5::pubcomp, packet id: " << pubcomp.packet_id() << " reason_code : " << int(pubcomp.reason_code()) << std::endl;
 	});
 
-	client.on_pingresp([](asio2::mqtt::v3::pingresp& pingresp)
+	client.on_pingresp([](mqtt::v3::pingresp& pingresp)
 	{
 		std::ignore = pingresp;
 		printf("recv v3::pingresp\n");
 	});
 
-	client.on_pingresp([](asio2::mqtt::v4::pingresp& pingresp)
+	client.on_pingresp([](mqtt::v4::pingresp& pingresp)
 	{
 		std::ignore = pingresp;
 		printf("recv v4::pingresp\n");
 	});
 
-	client.on_pingresp([](asio2::mqtt::v5::pingresp& pingresp)
+	client.on_pingresp([](mqtt::v5::pingresp& pingresp)
 	{
 		std::ignore = pingresp;
 		printf("recv v5::pingresp\n");
 	});
 
-	client.on_disconnect([](asio2::mqtt::v3::disconnect& disconnect)
+	client.on_disconnect([](mqtt::v3::disconnect& disconnect)
 	{
 		asio2::ignore_unused(disconnect);
 		printf("recv v3::disconnect \n");
 	});
 
-	client.on_disconnect([](asio2::mqtt::v4::disconnect& disconnect)
+	client.on_disconnect([](mqtt::v4::disconnect& disconnect)
 	{
 		asio2::ignore_unused(disconnect);
 		printf("recv v4::disconnect \n");
 	});
 
-	client.on_disconnect([](asio2::mqtt::v5::disconnect& disconnect)
+	client.on_disconnect([](mqtt::v5::disconnect& disconnect)
 	{
 		asio2::ignore_unused(disconnect);
 		printf("recv v5::disconnect : reason code : %u\n", disconnect.reason_code());
 	});
 
-	asio2::mqtt::v5::connect connect;
+	mqtt::v5::connect connect;
 	connect.client_id(u8"37792738@qq.com");
 
 	client.start(host, port, std::move(connect));

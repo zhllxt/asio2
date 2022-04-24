@@ -65,7 +65,7 @@ namespace asio2::detail
 			catch (cereal::exception const&)
 			{
 				set_last_error(asio::error::message_size);
-				derive._do_disconnect(asio::error::message_size);
+				derive._do_disconnect(asio::error::message_size, this_ptr);
 				return;
 			}
 			// bug fixed : illegal data being parsed into string object fails to allocate
@@ -73,13 +73,13 @@ namespace asio2::detail
 			catch (std::bad_alloc const&)
 			{
 				set_last_error(asio::error::message_size);
-				derive._do_disconnect(asio::error::message_size);
+				derive._do_disconnect(asio::error::message_size, this_ptr);
 				return;
 			}
 			catch (std::exception const&)
 			{
 				set_last_error(asio::error::message_size);
-				derive._do_disconnect(asio::error::message_size);
+				derive._do_disconnect(asio::error::message_size, this_ptr);
 				return;
 			}
 
@@ -138,7 +138,7 @@ namespace asio2::detail
 			else
 			{
 				set_last_error(asio::error::no_data);
-				derive._do_disconnect(asio::error::no_data);
+				derive._do_disconnect(asio::error::no_data, this_ptr);
 			}
 		}
 

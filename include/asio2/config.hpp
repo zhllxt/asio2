@@ -15,15 +15,16 @@
 #pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
-// Note : Version 2.6 only supports asio standalone, does not support boost::asio, because
+// Note : Version 2.6 and 2.7 only supports asio standalone, does not support boost::asio, because
 // boost::optional and other boost classes are used in boost::beast, while std::optional is
 // used in beast standalone. to make the two compatible, it requires too much work. so,
-// boost::asio is not supported for current version.
+// boost::asio is not supported for version 2.6 and 2.7.
+// But at version 2.8, it supports both asio standalone and boost::asio.
 
-// Must define ASIO_STANDALONE, otherwise compilation fails.
+// define ASIO_STANDALONE to use asio standalone, otherwise use boost::asio.
 #define ASIO_STANDALONE
 
-// Must define BEAST_HEADER_ONLY, otherwise compilation fails.
+// define BEAST_HEADER_ONLY to use beast standalone, otherwise use boost::beast.
 #define BEAST_HEADER_ONLY 1
 
 // If you want to use the ssl, you need to define ASIO2_USE_SSL.

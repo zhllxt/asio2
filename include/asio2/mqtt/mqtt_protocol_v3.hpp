@@ -51,6 +51,12 @@ namespace asio2::mqtt::v3
 			update_remain_length();
 		}
 
+		connect(utf8_string::value_type clientid) : fixed_header(control_packet_type::connect)
+		{
+			client_id(std::move(clientid));
+			update_remain_length();
+		}
+
 		inline std::size_t required_size()
 		{
 			return (fixed_header::required_size() + fixed_header::remain_length());

@@ -869,11 +869,10 @@ namespace asio2::detail
 
 			// post a async event to disconnect, don't call _do_disconnect directly,
 			// otherwise the client's bind_disconnect callback maybe can't be called.
-			asio::post(caller->io().strand(), make_allocator(caller->wallocator(), [ec, caller_ptr, caller]() mutable
+			asio::post(caller->io().strand(), make_allocator(caller->wallocator(),
+			[ec, caller_ptr, caller]() mutable
 			{
-				detail::ignore_unused(caller_ptr);
-
-				caller->_do_disconnect(ec);
+				caller->_do_disconnect(ec, std::move(caller_ptr));
 			}));
 		}
 

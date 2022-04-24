@@ -108,7 +108,7 @@ namespace asio2::detail
 
 			this->derived().dispatch([this]() mutable
 			{
-				this->derived()._do_stop(asio::error::operation_aborted);
+				this->derived()._do_stop(asio::error::operation_aborted, this->derived().selfptr());
 			});
 
 			this->iopool_->stop();
@@ -432,21 +432,21 @@ namespace asio2::detail
 			{
 				set_last_error(e);
 
-				this->derived()._do_stop(e.code());
+				this->derived()._do_stop(e.code(), this->derived().selfptr());
 			}
 		}
 
-		inline void _do_stop(const error_code& ec)
+		inline void _do_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
 		{
 			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
 
 			state_t expected = state_t::starting;
 			if (this->state_.compare_exchange_strong(expected, state_t::stopping))
-				return this->derived()._post_stop(ec, this->derived().selfptr(), expected);
+				return this->derived()._post_stop(ec, std::move(this_ptr), expected);
 
 			expected = state_t::started;
 			if (this->state_.compare_exchange_strong(expected, state_t::stopping))
-				return this->derived()._post_stop(ec, this->derived().selfptr(), expected);
+				return this->derived()._post_stop(ec, std::move(this_ptr), expected);
 		}
 
 		inline void _post_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr, state_t old_state)
@@ -550,7 +550,7 @@ namespace asio2::detail
 			catch (system_error & e)
 			{
 				set_last_error(e);
-				this->derived()._do_stop(e.code());
+				this->derived()._do_stop(e.code(), this->derived().selfptr());
 			}
 		}
 
@@ -562,7 +562,7 @@ namespace asio2::detail
 
 			if (ec == asio::error::operation_aborted)
 			{
-				this->derived()._do_stop(ec);
+				this->derived()._do_stop(ec, std::move(this_ptr));
 				return;
 			}
 

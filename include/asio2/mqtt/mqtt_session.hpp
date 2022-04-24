@@ -124,6 +124,14 @@ namespace asio2::detail
 		 */
 		inline mqtt::version version()
 		{
+			return this->get_version();
+		}
+
+		/**
+		 * @function : get the mqtt version number
+		 */
+		inline mqtt::version get_version()
+		{
 			return this->version_;
 		}
 
@@ -131,6 +139,14 @@ namespace asio2::detail
 		 * @function : get the mqtt client id 
 		 */
 		inline std::string_view client_id()
+		{
+			return this->get_client_id();
+		}
+
+		/**
+		 * @function : get the mqtt client id 
+		 */
+		inline std::string_view get_client_id()
 		{
 			std::string_view id{};
 			if (this->connect_message_.index() != std::variant_npos)
@@ -145,22 +161,24 @@ namespace asio2::detail
 
 	protected:
 		template<typename DeferEvent = defer_event<>>
-		inline void _do_disconnect(const error_code& ec, DeferEvent&& chain = defer_event{ nullptr })
+		inline void _do_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr,
+			DeferEvent&& chain = defer_event{ nullptr })
 		{
 			state_t expected = state_t::started;
 			if (this->derived().state_.compare_exchange_strong(expected, state_t::started))
 			{
-				if /**/ (this->version_ == mqtt::version::v3)
+				mqtt::version ver = this->derived().version();
+				if /**/ (ver == mqtt::version::v3)
+				{
+					mqtt::v3::disconnect disconnect;
+					this->derived().async_send(std::move(disconnect));
+				}
+				else if (ver == mqtt::version::v4)
 				{
 					mqtt::v4::disconnect disconnect;
 					this->derived().async_send(std::move(disconnect));
 				}
-				else if (this->version_ == mqtt::version::v4)
-				{
-					mqtt::v4::disconnect disconnect;
-					this->derived().async_send(std::move(disconnect));
-				}
-				else if (this->version_ == mqtt::version::v5)
+				else if (ver == mqtt::version::v5)
 				{
 					// https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901208
 					mqtt::v5::disconnect disconnect;
@@ -174,17 +192,20 @@ namespace asio2::detail
 				}
 			}
 
-			super::_do_disconnect(ec, std::forward<DeferEvent>(chain));
+			super::_do_disconnect(ec, std::move(this_ptr), std::forward<DeferEvent>(chain));
 		}
 
 		template<typename MatchCondition>
 		inline void _handle_connect(const error_code& ec, std::shared_ptr<derived_t> this_ptr,
 			condition_wrap<MatchCondition> condition)
 		{
+			detail::ignore_unused(ec);
+
+			ASIO2_ASSERT(!ec);
 			ASIO2_ASSERT(this->derived().sessions().io().strand().running_in_this_thread());
 
 			asio::dispatch(this->derived().io().strand(), make_allocator(this->derived().wallocator(),
-			[this, ec, this_ptr = std::move(this_ptr), condition = std::move(condition)]
+			[this, this_ptr = std::move(this_ptr), condition = std::move(condition)]
 			() mutable
 			{
 				derived_t& derive = this->derived();
@@ -196,11 +217,11 @@ namespace asio2::detail
 				{
 					derive.io().context(), derive.io().strand(),
 					derive.stream(),
-					[this, ec, this_ptr = std::move(this_ptr), condition = std::move(condition)]
-					(error_code er, std::unique_ptr<asio::streambuf> stream) mutable
+					[this, this_ptr = std::move(this_ptr), condition = std::move(condition)]
+					(error_code ec, std::unique_ptr<asio::streambuf> stream) mutable
 					{
-						this->derived()._handle_mqtt_connect_message(ec ? ec : er, std::move(this_ptr),
-							 std::move(condition), std::move(stream));
+						this->derived()._handle_mqtt_connect_message(ec, std::move(this_ptr),
+								std::move(condition), std::move(stream));
 					}
 				};
 			}));
@@ -210,47 +231,50 @@ namespace asio2::detail
 		inline void _handle_mqtt_connect_message(error_code ec, std::shared_ptr<derived_t> this_ptr,
 			condition_wrap<MatchCondition> condition, std::unique_ptr<asio::streambuf> stream)
 		{
-			if (ec)
+			do
+			{
+				if (ec)
+					break;
+
+				std::string_view data{ reinterpret_cast<std::string_view::const_pointer>(
+					asio::buffer_cast<const char*>(stream->data())), stream->size() };
+
+				mqtt::control_packet_type type = mqtt::message_type_from_byte(data.front());
+
+				// If the server does not receive a CONNECT message within a reasonable amount of time 
+				// after the TCP/IP connection is established, the server should close the connection.
+				if (type != mqtt::control_packet_type::connect)
+				{
+					ec = mqtt::make_error_code(mqtt::error::malformed_packet);
+					break;
+				}
+
+				// parse the connect message to get the mqtt version
+				mqtt::version ver = mqtt::version_from_connect_data(data);
+
+				if (ver != mqtt::version::v3 && ver != mqtt::version::v4 && ver != mqtt::version::v5)
+				{
+					ec = mqtt::make_error_code(mqtt::error::unsupported_protocol_version);
+					break;
+				}
+
+				this->version_ = ver;
+
+				// If the client sends an invalid CONNECT message, the server should close the connection.
+				// This includes CONNECT messages that provide invalid Protocol Name or Protocol Version Numbers.
+				// If the server can parse enough of the CONNECT message to determine that an invalid protocol
+				// has been requested, it may try to send a CONNACK containing the "Connection Refused:
+				// unacceptable protocol version" code before dropping the connection.
+				this->invoker_._call_mqtt_handler(type, ec, this_ptr, static_cast<derived_t*>(this), data);
+
+			} while (false);
+
+			this->derived().sessions().dispatch(
+			[this, this_ptr = std::move(this_ptr), condition = std::move(condition), ec]
+			() mutable
 			{
 				super::_handle_connect(ec, std::move(this_ptr), std::move(condition));
-				return;
-			}
-
-			std::string_view data{ reinterpret_cast<std::string_view::const_pointer>(
-				asio::buffer_cast<const char*>(stream->data())), stream->size() };
-
-			mqtt::control_packet_type type = mqtt::message_type_from_byte(data.front());
-
-			// If the server does not receive a CONNECT message within a reasonable amount of time 
-			// after the TCP/IP connection is established, the server should close the connection.
-			if (type != mqtt::control_packet_type::connect)
-			{
-				ec = mqtt::make_error_code(mqtt::error::malformed_packet);
-				super::_handle_connect(ec, std::move(this_ptr), std::move(condition));
-				return;
-			}
-
-			// parse the connect message to get the mqtt version
-			mqtt::version ver = mqtt::version_from_connect_data(data);
-
-			if (!(ver == mqtt::version::v3 || ver == mqtt::version::v4 || ver == mqtt::version::v5))
-			{
-				ec = mqtt::make_error_code(mqtt::error::unsupported_protocol_version);
-				super::_handle_connect(ec, std::move(this_ptr), std::move(condition));
-				return;
-			}
-
-			this->version_ = ver;
-
-			this->invoker_._call_mqtt_handler(type, ec, this_ptr, static_cast<derived_t*>(this), data);
-
-			// If the client sends an invalid CONNECT message, the server should close the connection.
-			// This includes CONNECT messages that provide invalid Protocol Name or Protocol Version Numbers.
-			// If the server can parse enough of the CONNECT message to determine that an invalid protocol
-			// has been requested, it may try to send a CONNACK containing the "Connection Refused:
-			// unacceptable protocol version" code before dropping the connection.
-
-			super::_handle_connect(ec, std::move(this_ptr), std::move(condition));
+			});
 		}
 
 		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
@@ -294,7 +318,7 @@ namespace asio2::detail
 			if (type > mqtt::control_packet_type::auth)
 			{
 				ASIO2_ASSERT(false);
-				this->derived()._do_disconnect(mqtt::make_error_code(mqtt::error::malformed_packet));
+				this->derived()._do_disconnect(mqtt::make_error_code(mqtt::error::malformed_packet), this_ptr);
 			}
 
 			error_code ec;
@@ -303,7 +327,7 @@ namespace asio2::detail
 
 			if (ec)
 			{
-				this->derived()._do_disconnect(ec);
+				this->derived()._do_disconnect(ec, this_ptr);
 			}
 		}
 

@@ -2120,7 +2120,8 @@ namespace asio2::mqtt
 	{
 		return os << v.data_view();
 	}
-
 }
+
+namespace mqtt = ::asio2::mqtt;
 
 #endif // !__ASIO2_MQTT_CORE_HPP__

@@ -341,6 +341,16 @@ namespace asio2::detail
 			return (*this);
 		}
 
+		/**
+		 * @function : set the 404 not found router function
+		 */
+		template<class F, class ...C>
+		inline self& bind_404(F&& f, C&&... obj)
+		{
+			this->_bind_not_found(std::forward<F>(f), std::forward<C>(obj)...);
+			return (*this);
+		}
+
 	public:
 		/**
 		 * @function : set the root directory where we load the files.

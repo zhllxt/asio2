@@ -351,6 +351,15 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
+			if constexpr (args_t::is_session)
+			{
+				ASIO2_ASSERT(derive.sessions().io().strand().running_in_this_thread());
+			}
+			else
+			{
+				ASIO2_ASSERT(derive.io().strand().running_in_this_thread());
+			}
+
 			ASIO2_LOG(spdlog::level::debug, "enter _done_connect : {}",
 				magic_enum::enum_name(derive.state_.load()));
 
@@ -426,7 +435,7 @@ namespace asio2::detail
 				ASIO2_LOG(spdlog::level::debug, "call _do_disconnect by _done_connect error : {} {} {}",
 					magic_enum::enum_name(derive.state_.load()), e.code().value(), e.what());
 
-				derive._do_disconnect(e.code());
+				derive._do_disconnect(e.code(), derive.selfptr());
 			}
 		}
 	};

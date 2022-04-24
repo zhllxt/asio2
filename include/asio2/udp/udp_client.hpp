@@ -149,12 +149,14 @@ namespace asio2::detail
 				// first close the reconnect timer
 				this->_stop_reconnect_timer();
 
-				this->derived()._do_disconnect(asio::error::operation_aborted,
+				auto this_ptr = this->derived().selfptr();
+
+				this->derived()._do_disconnect(asio::error::operation_aborted, this->derived().selfptr(),
 					defer_event
 					{
-						[this]() mutable
+						[this, this_ptr = std::move(this_ptr)]() mutable
 						{
-							this->derived()._do_stop(asio::error::operation_aborted);
+							this->derived()._do_stop(asio::error::operation_aborted, std::move(this_ptr));
 						}
 					}
 				);
@@ -362,7 +364,7 @@ namespace asio2::detail
 					set_last_error(asio::error::invalid_argument);
 				}
 
-				derive._do_disconnect(get_last_error());
+				derive._do_disconnect(get_last_error(), derive.selfptr());
 			});
 
 			if constexpr (IsAsync)
@@ -506,7 +508,7 @@ namespace asio2::detail
 			this->socket_.close(ec_ignore);
 		}
 
-		inline void _do_stop(const error_code& ec)
+		inline void _do_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
 		{
 			ASIO2_LOG(spdlog::level::debug, "enter _do_stop : {}",
 				magic_enum::enum_name(this->state_.load()));
@@ -518,7 +520,7 @@ namespace asio2::detail
 			}
 		#endif
 
-			this->derived()._post_stop(ec, this->derived().selfptr());
+			this->derived()._post_stop(ec, std::move(this_ptr));
 		}
 
 		inline void _post_stop(const error_code& ec, std::shared_ptr<derived_t> self_ptr)
@@ -629,7 +631,7 @@ namespace asio2::detail
 			catch (system_error & e)
 			{
 				set_last_error(e);
-				this->derived()._do_disconnect(e.code());
+				this->derived()._do_disconnect(e.code(), this->derived().selfptr());
 			}
 		}
 
@@ -641,7 +643,7 @@ namespace asio2::detail
 
 			if (ec == asio::error::operation_aborted || ec == asio::error::connection_refused)
 			{
-				this->derived()._do_disconnect(ec);
+				this->derived()._do_disconnect(ec, std::move(this_ptr));
 				return;
 			}
 
@@ -668,7 +670,7 @@ namespace asio2::detail
 						if /**/ (kcp::is_kcphdr_fin(data))
 						{
 							this->kcp_->send_fin_ = false;
-							this->derived()._do_disconnect(asio::error::connection_reset);
+							this->derived()._do_disconnect(asio::error::connection_reset, std::move(this_ptr));
 						}
 						else if (kcp::is_kcphdr_synack(data, this->kcp_->seq_))
 						{

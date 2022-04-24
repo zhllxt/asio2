@@ -453,7 +453,7 @@ namespace asio2::detail
 	}
 
 	template<typename Iterator>
-	inline std::string_view to_string_view(Iterator&& first, Iterator&& last)
+	inline std::string_view to_string_view(const Iterator& first, const Iterator& last)
 	{
 		using type = typename detail::remove_cvref_t<Iterator>;
 		if constexpr (std::is_pointer_v<type>)

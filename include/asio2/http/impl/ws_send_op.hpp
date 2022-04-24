@@ -61,7 +61,7 @@ namespace asio2::detail
 				if (ec)
 				{
 					// must stop, otherwise re-sending will cause body confusion
-					derive._do_disconnect(ec);
+					derive._do_disconnect(ec, std::move(p));
 				}
 			})));
 
@@ -91,7 +91,7 @@ namespace asio2::detail
 				if (ec)
 				{
 					// must stop, otherwise re-sending will cause body confusion
-					derive._do_disconnect(ec);
+					derive._do_disconnect(ec, std::move(p));
 				}
 			})));
 

@@ -146,7 +146,7 @@ namespace asio2::detail
 				// and the object will be destroyed automatically after this handler returns.
 				set_last_error(asio::error::timed_out);
 
-				derive._do_disconnect(asio::error::timed_out);
+				derive._do_disconnect(asio::error::timed_out, std::move(this_ptr));
 			}
 		}
 

@@ -165,7 +165,7 @@ namespace asio2::detail
 			if (len != 0)
 			{
 				set_last_error(asio::error::message_size);
-				derive._do_disconnect(asio::error::message_size);
+				derive._do_disconnect(asio::error::message_size, this_ptr);
 				return;
 			}
 			for (;;)
@@ -225,7 +225,7 @@ namespace asio2::detail
 					// has recvd the syn packet and this client recvd reply.
 					std::shared_ptr<asio::steady_timer> timer =
 						mktimer(derive.io().context(), derive.io().strand(), std::chrono::milliseconds(500),
-						[this, syn](error_code ec) mutable
+						[this, self_ptr, syn](error_code ec) mutable
 					{
 						if (ec == asio::error::operation_aborted)
 							return false;
@@ -233,7 +233,7 @@ namespace asio2::detail
 						if (ec)
 						{
 							set_last_error(ec);
-							derive._do_disconnect(ec);
+							derive._do_disconnect(ec, std::move(self_ptr));
 							return false;
 						}
 						// return true  : let the timer continue execute.
@@ -288,7 +288,7 @@ namespace asio2::detail
 			{
 				set_last_error(e);
 
-				derive._do_disconnect(e.code());
+				derive._do_disconnect(e.code(), derive.selfptr());
 			}
 		}
 
@@ -319,7 +319,7 @@ namespace asio2::detail
 			{
 				set_last_error(e);
 
-				derive._do_disconnect(e.code());
+				derive._do_disconnect(e.code(), derive.selfptr());
 			}
 		}
 

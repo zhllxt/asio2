@@ -119,6 +119,7 @@ namespace asio2::detail
 		{
 			detail::ignore_unused(ec);
 
+			ASIO2_ASSERT(!ec);
 			ASIO2_ASSERT(this->derived().sessions().io().strand().running_in_this_thread());
 
 			asio::dispatch(this->io_.strand(), make_allocator(this->wallocator_,

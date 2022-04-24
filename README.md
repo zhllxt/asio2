@@ -20,16 +20,15 @@ Header only c++ network library, based on asio,support tcp,udp,http,websocket,rp
  - 1、基本概念和使用说明 [https://blog.csdn.net/zhllxt/article/details/108850090](https://blog.csdn.net/zhllxt/article/details/108850090)
  - 2、各个回调函数的触发顺序和执行流程 [https://blog.csdn.net/zhllxt/article/details/108850715](https://blog.csdn.net/zhllxt/article/details/108850715)
  - 3、各个回调函数的触发线程以及多线程总结 [https://blog.csdn.net/zhllxt/article/details/108868559](https://blog.csdn.net/zhllxt/article/details/108868559)
- - 4、使用tcp客户端发送数据时,如何在发送数据的代码处直接获取到服务端返回的结果数据 [https://blog.csdn.net/zhllxt/article/details/110881015](https://blog.csdn.net/zhllxt/article/details/110881015)
+ - 4、发送数据时如何同步获取服务端返回结果 [https://blog.csdn.net/zhllxt/article/details/110881015](https://blog.csdn.net/zhllxt/article/details/110881015)
  - asio做tcp的自动拆包时，asio的match condition如何使用的详细说明 [https://blog.csdn.net/zhllxt/article/details/104772948](https://blog.csdn.net/zhllxt/article/details/104772948)
 
-## v2.6重要更新:
-* 完全移除对boost库的依赖,以前使用http和websocket时需要依赖boost库,现在所有功能都不需要boost了;
-* rpc组件添加了链式调用功能,以前版本中调用rpc函数时,"用户回调函数,超时时长,rpc函数名,rpc函数参数"这些参数都要写在同一个函数中,很容易搞糊涂,现在支持链式调用可避免这个问题了;
-* 重写了http接口,http接口更简单易用了;
-
-## v2.7重要更新:
-* 添加了远程数据调用功能,详见:[使用tcp客户端发送数据时,如何在发送数据的代码处直接获取到服务端返回的结果数据](https://blog.csdn.net/zhllxt/article/details/110881015);
+## v2._ 重大的接口变更:
+* 将原来的异步函数send拆分为send和async_send两个函数,现在send表示同步发送,async_send表示异步发送(查找你代码中的send直接替换为async_send即可).现在send函数的返回值为发送数据的字节数(以前是bool),async_send的返回值为void.如果在通信线程中调用了同步发送函数send,则会退化为异步调用;
+* 将http回调函数中的http::request和http::response修改为http::web_request和http::web_response,目的是为了兼容boost(查找你代码中的http::request直接替换为http::web_request即可,response同理,具体可参考example/http代码示例).
+* 删除了所有回调函数中的错误码参数,比如以前是bind_start([](asio::error_code ec){});现在是bind_start([](){}); 现在需要用asio2::get_last_error();函数来判断是否有错误;修改的接口包括:bind_start,bind_stop,bind_connect,bind_disconnect,以及rpc的async_call的回调函数等;
+* 其它一些细节调整和大量的问题修复(具体可参考CHANGELOG.md)
+* 添加mqtt协议支持.
 
 ## 与其它框架的一点区别:
 ```c++

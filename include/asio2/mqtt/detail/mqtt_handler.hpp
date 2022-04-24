@@ -272,6 +272,7 @@ namespace asio2::detail
 			if (caller->state_.compare_exchange_strong(expected, state_t::started))
 			{
 				ec = mqtt::make_error_code(mqtt::error::malformed_packet);
+				response.send_flag(false);
 				return;
 			}
 
@@ -1034,44 +1035,44 @@ namespace asio2::detail
 				// not error, but not supported, and the session will not be disconnect
 				if (detail::to_underlying(qos) > caller->maximum_qos())
 				{
-					flag = false;
+					ec = mqtt::make_error_code(mqtt::error::qos_not_supported);
 					response.add_reason_codes(detail::to_underlying(is_v5 ?
 						mqtt::error::quota_exceeded : mqtt::error::unspecified_error));
+					flag = false;
+					continue;
 				}
+
 				// not error, and supported too
-				else
+				response.add_reason_codes(detail::to_underlying(qos));
+
+				mqtt::subscription_entry<caller_t> entry{ caller, sub, std::move(props) };
+
+				std::string_view share_name   = entry.share_name();
+				std::string_view topic_filter = entry.topic_filter();
+
+				if (!share_name.empty())
 				{
-					response.add_reason_codes(detail::to_underlying(qos));
+					caller->shared_targets_.insert(caller, share_name, topic_filter);
+				}
 
-					mqtt::subscription_entry<caller_t> entry{ caller, sub, std::move(props) };
+				auto[handle, insert] = caller->subs_map_.insert_or_assign(
+					topic_filter, caller->client_id(), std::move(entry));
 
-					std::string_view share_name   = entry.share_name();
-					std::string_view topic_filter = entry.topic_filter();
+				mqtt::retain_handling_type rh = sub.retain_handling();
 
-					if (!share_name.empty())
+				if (insert)
+				{
+					if (rh == mqtt::retain_handling_type::send ||
+						rh == mqtt::retain_handling_type::send_only_new_subscription)
 					{
-						caller->shared_targets_.insert(caller, share_name, topic_filter);
+						_send_retained_messages(caller_ptr, caller, sub);
 					}
-
-					auto[handle, insert] = caller->subs_map_.insert_or_assign(
-						topic_filter, caller->client_id(), std::move(entry));
-
-					mqtt::retain_handling_type rh = sub.retain_handling();
-
-					if (insert)
+				}
+				else // update
+				{
+					if (rh == mqtt::retain_handling_type::send)
 					{
-						if (rh == mqtt::retain_handling_type::send ||
-							rh == mqtt::retain_handling_type::send_only_new_subscription)
-						{
-							_send_retained_messages(caller_ptr, caller, sub);
-						}
-					}
-					else // update
-					{
-						if (rh == mqtt::retain_handling_type::send)
-						{
-							_send_retained_messages(caller_ptr, caller, sub);
-						}
+						_send_retained_messages(caller_ptr, caller, sub);
 					}
 				}
 			}

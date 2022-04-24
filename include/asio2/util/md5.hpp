@@ -23,6 +23,8 @@
 
 #include <string>
 
+#include <asio2/bho/predef/other/endian.h>
+
 namespace asio2
 {
 	class md5
@@ -66,8 +68,8 @@ namespace asio2
 			char hex_upper[16] = {
 				'0', '1', '2', '3',
 				'4', '5', '6', '7',
-				'8', '9', 'a', 'b',
-				'c', 'd', 'e', 'f'
+				'8', '9', 'A', 'B',
+				'C', 'D', 'E', 'F'
 			};
 			char hex_lower[16] = {
 				'0', '1', '2', '3',
@@ -333,11 +335,49 @@ namespace asio2
 			memcpy(ctx->buffer, data, size);
 		}
 
+// This must remain consistent no matter the endianness
 #define ASIO2_UUID_DETAIL_MD5_OUT(dst, src) \
         (dst)[0] = (unsigned char)(src); \
         (dst)[1] = (unsigned char)((src) >> 8); \
         (dst)[2] = (unsigned char)((src) >> 16); \
         (dst)[3] = (unsigned char)((src) >> 24);
+
+	//
+	// A big-endian issue with MD5 results was resolved
+	// in boost 1.71.  If you generated md5 name-based uuids
+	// with boost 1.66 through 1.70 and stored them, then
+	// set the following compatibility flag to ensure that
+	// your hash generation remains consistent.
+	//
+#if defined(BOOST_UUID_COMPAT_PRE_1_71_MD5) || defined(BHO_UUID_COMPAT_PRE_1_71_MD5)
+	#define ASIO2_UUID_DETAIL_MD5_BYTE_OUT(dst, src) \
+		ASIO2_UUID_DETAIL_MD5_OUT(dst, src)
+#else
+	//
+	// We're copying into a byte buffer which is actually
+	// backed by an unsigned int array, which later on
+	// is then swabbed one more time by the basic name
+	// generator.  Therefore the logic here is reversed.
+	// This was done to minimize the impact to existing
+	// name-based hash generation.  The correct fix would
+	// be to make this and name generation endian-correct
+	// but that would even break previously generated sha1
+	// hashes too.
+	//
+#if BHO_ENDIAN_LITTLE_BYTE
+	#define ASIO2_UUID_DETAIL_MD5_BYTE_OUT(dst, src) \
+		(dst)[0] = (unsigned char)((src) >> 24); \
+		(dst)[1] = (unsigned char)((src) >> 16); \
+		(dst)[2] = (unsigned char)((src) >> 8); \
+		(dst)[3] = (unsigned char)(src);
+#else
+	#define ASIO2_UUID_DETAIL_MD5_BYTE_OUT(dst, src) \
+		(dst)[0] = (unsigned char)(src); \
+		(dst)[1] = (unsigned char)((src) >> 8); \
+		(dst)[2] = (unsigned char)((src) >> 16); \
+		(dst)[3] = (unsigned char)((src) >> 24);
+#endif
+#endif // BOOST_UUID_COMPAT_PRE_1_71_MD5
 
 		void MD5_Final(unsigned char *result, MD5_CTX *ctx)
 		{
@@ -364,10 +404,10 @@ namespace asio2
 
 			body(ctx, ctx->buffer, 64);
 
-			ASIO2_UUID_DETAIL_MD5_OUT(&result[0], ctx->a)
-			ASIO2_UUID_DETAIL_MD5_OUT(&result[4], ctx->b)
-			ASIO2_UUID_DETAIL_MD5_OUT(&result[8], ctx->c)
-			ASIO2_UUID_DETAIL_MD5_OUT(&result[12], ctx->d)
+			ASIO2_UUID_DETAIL_MD5_BYTE_OUT(&result[0], ctx->a)
+			ASIO2_UUID_DETAIL_MD5_BYTE_OUT(&result[4], ctx->b)
+			ASIO2_UUID_DETAIL_MD5_BYTE_OUT(&result[8], ctx->c)
+			ASIO2_UUID_DETAIL_MD5_BYTE_OUT(&result[12], ctx->d)
 
 			memset(ctx, 0, sizeof(*ctx));
 		}
@@ -376,6 +416,7 @@ namespace asio2
 #undef ASIO2_UUID_DETAIL_MD5_SET
 #undef ASIO2_UUID_DETAIL_MD5_GET
 #undef ASIO2_UUID_DETAIL_MD5_STEP
+#undef ASIO2_UUID_DETAIL_MD5_BYTE_OUT
 
 		MD5_CTX ctx_;
 	};

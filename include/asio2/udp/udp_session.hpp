@@ -128,7 +128,7 @@ namespace asio2::detail
 			{
 				set_last_error(e);
 
-				this->derived()._do_disconnect(e.code());
+				this->derived()._do_disconnect(e.code(), this->derived().selfptr());
 			}
 		}
 
@@ -140,7 +140,7 @@ namespace asio2::detail
 		 */
 		inline void stop()
 		{
-			this->derived()._do_disconnect(asio::error::operation_aborted);
+			this->derived()._do_disconnect(asio::error::operation_aborted, this->derived().selfptr());
 		}
 
 	public:
@@ -231,6 +231,9 @@ namespace asio2::detail
 		{
 			detail::ignore_unused(ec);
 
+			ASIO2_ASSERT(!ec);
+			ASIO2_ASSERT(this->derived().sessions().io().strand().running_in_this_thread());
+
 			if constexpr (std::is_same_v<typename condition_wrap<MatchCondition>::condition_type, use_kcp_t>)
 			{
 				// step 3 : server recvd syn from client (the first_ is syn)
@@ -239,7 +242,7 @@ namespace asio2::detail
 				{
 					set_last_error(asio::error::address_family_not_supported);
 					this->derived()._fire_handshake(this_ptr);
-					this->derived()._do_disconnect(asio::error::address_family_not_supported);
+					this->derived()._do_disconnect(asio::error::address_family_not_supported, std::move(this_ptr));
 					return;
 				}
 				this->kcp_ = std::make_unique<kcp_stream_cp<derived_t, args_t>>(this->derived(), this->io_);
@@ -320,7 +323,7 @@ namespace asio2::detail
 				if (inserted)
 					this->derived()._start_recv(std::move(this_ptr), std::move(condition));
 				else
-					this->derived()._do_disconnect(asio::error::address_in_use);
+					this->derived()._do_disconnect(asio::error::address_in_use, std::move(this_ptr));
 			});
 		}
 
@@ -406,7 +409,7 @@ namespace asio2::detail
 					if /**/ (kcp::is_kcphdr_fin(data))
 					{
 						this->kcp_->send_fin_ = false;
-						this->derived()._do_disconnect(asio::error::connection_reset);
+						this->derived()._do_disconnect(asio::error::connection_reset, this_ptr);
 					}
 					// Check whether the packet is SYN handshake
 					// It is possible that the client did not receive the synack package, then the client
@@ -421,7 +424,7 @@ namespace asio2::detail
 						error_code ed;
 						this->kcp_->_kcp_send_hdr(synack, ed);
 						if (ed)
-							this->derived()._do_disconnect(ed);
+							this->derived()._do_disconnect(ed, this_ptr);
 					}
 				}
 				else

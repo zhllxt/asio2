@@ -64,7 +64,7 @@ namespace asio2
 		 */
 		inline self& set_options(const mqtt_options& options)
 		{
-			this->_mqtt_config_copy_from(options);
+			this->_mqtt_options_copy_from(options);
 			return (*this);
 		}
 
@@ -128,8 +128,8 @@ namespace asio2
 		inline bool retain_available() { return (_retain_available == static_cast<decltype(_retain_available)>(1)); }
 
 	protected:
-		template<class MqttConfig>
-		inline void _mqtt_config_copy_from(const MqttConfig& o)
+		template<class MqttOptions>
+		inline void _mqtt_options_copy_from(const MqttOptions& o)
 		{
 			//this->payload_format_indicator          ( o._payload_format_indicator          );
 			//this->message_expiry_interval           ( o._message_expiry_interval           );

@@ -81,10 +81,6 @@ namespace asio2::detail
 			, mqtt_send_op      <derived_t, args_t>()
 			, pingreq_timer_(this->io_.context())
 		{
-			// default mqtt version is v4, default client_id is a uuid string
-			mqtt::v4::connect connect{};
-			connect.client_id(asio2::uuid{}().str());
-			connect_message_ = std::move(connect);
 		}
 
 		template<class Scheduler, std::enable_if_t<!std::is_integral_v<detail::remove_cvref_t<Scheduler>>, int> = 0>
@@ -101,10 +97,6 @@ namespace asio2::detail
 			, mqtt_send_op      <derived_t, args_t>()
 			, pingreq_timer_(this->io_.context())
 		{
-			// default mqtt version is v4, default client_id is a uuid string
-			mqtt::v4::connect connect{};
-			connect.client_id(asio2::uuid{}().str());
-			connect_message_ = std::move(connect);
 		}
 
 		template<class Scheduler, std::enable_if_t<!std::is_integral_v<detail::remove_cvref_t<Scheduler>>, int> = 0>
@@ -169,6 +161,14 @@ namespace asio2::detail
 		 */
 		inline mqtt::version version()
 		{
+			return this->get_version();
+		}
+
+		/**
+		 * @function : get the mqtt version number
+		 */
+		inline mqtt::version get_version()
+		{
 			if /**/ (std::holds_alternative<mqtt::v3::connect>(connect_message_))
 			{
 				return mqtt::version::v3;
@@ -190,6 +190,14 @@ namespace asio2::detail
 		 * @function : get the mqtt client identifier 
 		 */
 		inline std::string_view client_id()
+		{
+			return this->get_client_id();
+		}
+
+		/**
+		 * @function : get the mqtt client identifier 
+		 */
+		inline std::string_view get_client_id()
 		{
 			std::string_view v{};
 			if (this->connect_message_.index() != std::variant_npos)
@@ -214,6 +222,14 @@ namespace asio2::detail
 		 */
 		inline std::uint16_t keep_alive_time()
 		{
+			return this->get_keep_alive_time();
+		}
+
+		/**
+		 * @function : get the mqtt Keep Alive which is a time interval measured in seconds. 
+		 */
+		inline std::uint16_t get_keep_alive_time()
+		{
 			//The Keep Alive is a Two Byte Integer which is a time interval measured in seconds.
 			// It is the maximum time interval that is permitted to elapse between the point at
 			// which the Client finishes transmitting one MQTT Control Packet and the point it
@@ -230,7 +246,8 @@ namespace asio2::detail
 				if (p)
 					return p->value();
 			}
-			std::uint16_t v = 0;
+			// Default to 60 seconds
+			std::uint16_t v = 60;
 			if (this->connect_message_.index() != std::variant_npos)
 			{
 				std::visit([&v](auto& m) mutable { v = m.keep_alive(); }, this->connect_message_);
@@ -239,10 +256,33 @@ namespace asio2::detail
 		}
 
 		/**
+		 * @function : set the mqtt connect message packet
+		 */
+		template<class Message>
+		inline derived_t& set_connect_message(Message&& connect_msg)
+		{
+			using msg_type = typename detail::remove_cvref_t<Message>;
+
+			if constexpr (
+				std::is_same_v<msg_type, mqtt::v3::connect> ||
+				std::is_same_v<msg_type, mqtt::v4::connect> ||
+				std::is_same_v<msg_type, mqtt::v5::connect>)
+			{
+				this->connect_message_ = std::forward<Message>(connect_msg);
+			}
+			else
+			{
+				ASIO2_ASSERT(false);
+			}
+
+			return (static_cast<derived_t&>(*this));
+		}
+
+		/**
 		 * @function : get the mqtt connect message packet refrence
 		 */
 		template<mqtt::version v>
-		inline auto& connect_message()
+		inline auto& get_connect_message()
 		{
 			if constexpr /**/ (mqtt::version::v3 == v)
 			{
@@ -380,23 +420,24 @@ namespace asio2::detail
 		}
 
 		template<typename DeferEvent = defer_event<>>
-		inline void _do_disconnect(const error_code& ec, DeferEvent&& chain = defer_event{ nullptr })
+		inline void _do_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr,
+			DeferEvent&& chain = defer_event{ nullptr })
 		{
 			state_t expected = state_t::started;
 			if (this->derived().state_.compare_exchange_strong(expected, state_t::started))
 			{
-				mqtt::version version = this->derived().version();
-				if /**/ (version == mqtt::version::v3)
+				mqtt::version ver = this->derived().version();
+				if /**/ (ver == mqtt::version::v3)
+				{
+					mqtt::v3::disconnect disconnect;
+					this->derived().async_send(std::move(disconnect));
+				}
+				else if (ver == mqtt::version::v4)
 				{
 					mqtt::v4::disconnect disconnect;
 					this->derived().async_send(std::move(disconnect));
 				}
-				else if (version == mqtt::version::v4)
-				{
-					mqtt::v4::disconnect disconnect;
-					this->derived().async_send(std::move(disconnect));
-				}
-				else if (version == mqtt::version::v5)
+				else if (ver == mqtt::version::v5)
 				{
 					mqtt::v5::disconnect disconnect;
 					switch (ec.value())
@@ -423,7 +464,7 @@ namespace asio2::detail
 				}
 			}
 
-			super::_do_disconnect(ec, std::forward<DeferEvent>(chain));
+			super::_do_disconnect(ec, std::move(this_ptr), std::forward<DeferEvent>(chain));
 		}
 
 		template<typename MatchCondition>
@@ -541,16 +582,16 @@ namespace asio2::detail
 			// is 0 the Client is not obliged to send MQTT Control Packets on any particular schedule.
 
 			// send pingreq message, don't case the last sent and recved time.
-			mqtt::version version = derive.version();
-			if /**/ (version == mqtt::version::v3)
+			mqtt::version ver = derive.version();
+			if /**/ (ver == mqtt::version::v3)
 			{
 				derive.async_send(mqtt::v3::pingreq{});
 			}
-			else if (version == mqtt::version::v4)
+			else if (ver == mqtt::version::v4)
 			{
 				derive.async_send(mqtt::v4::pingreq{});
 			}
-			else if (version == mqtt::version::v5)
+			else if (ver == mqtt::version::v5)
 			{
 				derive.async_send(mqtt::v5::pingreq{});
 			}
@@ -598,7 +639,7 @@ namespace asio2::detail
 			if (type > mqtt::control_packet_type::auth)
 			{
 				ASIO2_ASSERT(false);
-				this->derived()._do_disconnect(mqtt::make_error_code(mqtt::error::malformed_packet));
+				this->derived()._do_disconnect(mqtt::make_error_code(mqtt::error::malformed_packet), this_ptr);
 			}
 
 			error_code ec;
@@ -607,12 +648,16 @@ namespace asio2::detail
 
 			if (ec)
 			{
-				this->derived()._do_disconnect(ec);
+				this->derived()._do_disconnect(ec, this_ptr);
 			}
 		}
 
 	protected:
-		std::variant<mqtt::v3::connect, mqtt::v4::connect, mqtt::v5::connect> connect_message_{};
+		/// default mqtt version is v4, default client id is a uuid string
+		std::variant<mqtt::v3::connect, mqtt::v4::connect, mqtt::v5::connect> connect_message_ =
+			mqtt::v4::connect{ asio2::uuid().next().str() };
+
+		/// 
 		std::variant<mqtt::v3::connack, mqtt::v4::connack, mqtt::v5::connack> connack_message_{};
 
 		/// timer for pingreq

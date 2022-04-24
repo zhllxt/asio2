@@ -128,7 +128,7 @@ namespace asio2::mqtt
 	template<mqtt::version V, class Fun>
 	inline void data_to_message(std::string_view& data, Fun&& f)
 	{
-		data_to_packet<V>(data, std::forward<Fun>(f));
+		return data_to_packet<V>(data, std::forward<Fun>(f));
 	}
 
 	template<typename = void>

@@ -185,6 +185,37 @@ namespace asio2::detail
 		 * the timer id can be integer or string, example : 1,2,3 or "id1" "id2"
 		 * the callback function signature : [](){}
 		 */
+		template<class TimerId, class IntegerMilliseconds, class Fun, class... Args>
+		inline typename std::enable_if_t<is_callable_v<Fun>
+			&& std::is_integral_v<detail::remove_cvref_t<IntegerMilliseconds>>, void>
+		start_timer(TimerId&& timer_id, IntegerMilliseconds interval, Fun&& fun, Args&&... args)
+		{
+			this->start_timer(std::forward<TimerId>(timer_id), std::chrono::milliseconds(interval), std::size_t(-1),
+				std::chrono::milliseconds(interval), std::forward<Fun>(fun), std::forward<Args>(args)...);
+		}
+
+		/**
+		 * @function : start a timer
+		 * the timer id can be integer or string, example : 1,2,3 or "id1" "id2"
+		 * the callback function signature : [](){}
+		 */
+		template<class TimerId, class IntegerMilliseconds, class Integer, class Fun, class... Args>
+		inline typename std::enable_if_t<is_callable_v<Fun>
+			&& std::is_integral_v<detail::remove_cvref_t<IntegerMilliseconds>>
+			&& std::is_integral_v<detail::remove_cvref_t<Integer>>, void>
+		start_timer(TimerId&& timer_id, IntegerMilliseconds interval, Integer repeat, Fun&& fun, Args&&... args)
+		{
+			this->start_timer(std::forward<TimerId>(timer_id), std::chrono::milliseconds(interval), repeat,
+				std::chrono::milliseconds(interval), std::forward<Fun>(fun), std::forward<Args>(args)...);
+		}
+
+		// ----------------------------------------------------------------------------------------
+
+		/**
+		 * @function : start a timer
+		 * the timer id can be integer or string, example : 1,2,3 or "id1" "id2"
+		 * the callback function signature : [](){}
+		 */
 		template<class TimerId, class Rep, class Period, class Fun, class... Args>
 		inline typename std::enable_if_t<is_callable_v<Fun>, void>
 		start_timer(TimerId&& timer_id, std::chrono::duration<Rep, Period> interval, Fun&& fun, Args&&... args)

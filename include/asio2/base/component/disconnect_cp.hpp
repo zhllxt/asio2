@@ -50,7 +50,8 @@ namespace asio2::detail
 	protected:
 		template<typename DeferEvent = defer_event<>, bool IsSession = args_t::is_session>
 		typename std::enable_if_t<!IsSession, void>
-		inline _do_disconnect(const error_code& ec, DeferEvent&& chain = defer_event{ nullptr })
+		inline _do_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr,
+			DeferEvent&& chain = defer_event{ nullptr })
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
@@ -62,7 +63,7 @@ namespace asio2::detail
 				ASIO2_LOG(spdlog::level::debug, "enter _do_disconnect : {}",
 					magic_enum::enum_name(state_t::started));
 
-				return derive._check_reconnect(ec, expected, std::forward<DeferEvent>(chain));
+				return derive._check_reconnect(ec, std::move(this_ptr), expected, std::forward<DeferEvent>(chain));
 			}
 
 			expected = state_t::starting;
@@ -71,7 +72,7 @@ namespace asio2::detail
 				ASIO2_LOG(spdlog::level::debug, "enter _do_disconnect : {}",
 					magic_enum::enum_name(state_t::starting));
 
-				return derive._check_reconnect(ec, expected, std::forward<DeferEvent>(chain));
+				return derive._check_reconnect(ec, std::move(this_ptr), expected, std::forward<DeferEvent>(chain));
 			}
 
 			ASIO2_LOG(spdlog::level::debug, "enter _do_disconnect : {}",
@@ -80,22 +81,23 @@ namespace asio2::detail
 
 		template<typename DeferEvent, bool IsSession = args_t::is_session>
 		typename std::enable_if_t<!IsSession, void>
-		inline _check_reconnect(const error_code& ec, state_t expected, DeferEvent&& chain)
+		inline _check_reconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr,
+			state_t expected, DeferEvent&& chain)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
 			if (chain.empty())
 			{
-				derive._post_disconnect(ec, derive.selfptr(), expected, defer_event
+				derive._post_disconnect(ec, std::move(this_ptr), expected, defer_event
 				{
-					[&derive]() mutable
+					[&derive, self_ptr = derive.selfptr()]() mutable
 					{
 						ASIO2_LOG(spdlog::level::debug, "post _wake_reconnect_timer : {}",
 							magic_enum::enum_name(derive.state_.load()));
 
 						// Use push_event to ensure that reconnection will not executed until
 						// all events are completed.
-						derive.push_event([&derive, this_ptr = derive.selfptr()]
+						derive.push_event([&derive, this_ptr = std::move(self_ptr)]
 						(event_queue_guard<derived_t>&& g) mutable
 						{
 							detail::ignore_unused(this_ptr, g);
@@ -110,7 +112,7 @@ namespace asio2::detail
 			}
 			else
 			{
-				derive._post_disconnect(ec, derive.selfptr(), expected, std::forward<DeferEvent>(chain));
+				derive._post_disconnect(ec, std::move(this_ptr), expected, std::forward<DeferEvent>(chain));
 			}
 		}
 
@@ -167,7 +169,8 @@ namespace asio2::detail
 
 		template<typename DeferEvent = defer_event<>, bool IsSession = args_t::is_session>
 		typename std::enable_if_t<IsSession, void>
-		inline _do_disconnect(const error_code& ec, DeferEvent&& chain = defer_event{ nullptr })
+		inline _do_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr,
+			DeferEvent&& chain = defer_event{ nullptr })
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
@@ -175,11 +178,11 @@ namespace asio2::detail
 
 			state_t expected = state_t::started;
 			if (derive.state().compare_exchange_strong(expected, state_t::stopping))
-				return derive._post_disconnect(ec, derive.selfptr(), expected, std::forward<DeferEvent>(chain));
+				return derive._post_disconnect(ec, std::move(this_ptr), expected, std::forward<DeferEvent>(chain));
 
 			expected = state_t::starting;
 			if (derive.state().compare_exchange_strong(expected, state_t::stopping))
-				return derive._post_disconnect(ec, derive.selfptr(), expected, std::forward<DeferEvent>(chain));
+				return derive._post_disconnect(ec, std::move(this_ptr), expected, std::forward<DeferEvent>(chain));
 		}
 
 		template<typename DeferEvent = defer_event<>, bool IsSession = args_t::is_session>

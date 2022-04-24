@@ -14,7 +14,7 @@ int main()
 	asio2::mqtt_server server;
 
 	asio2::mqtt_options options;
-	//asio2::mqtt::options options;
+	//mqtt::options options;
 
 	server.set_options(options);
 
@@ -51,22 +51,22 @@ int main()
 	});
 
 	server.on_publish([](std::shared_ptr<asio2::mqtt_session>& session_ptr,
-		asio2::mqtt::v3::publish& publish,
-		std::variant<asio2::mqtt::v3::puback, asio2::mqtt::v3::pubrec>& response)
+		mqtt::v3::publish& publish,
+		std::variant<mqtt::v3::puback, mqtt::v3::pubrec>& response)
 	{
 		asio2::ignore_unused(session_ptr, publish, response);
 	});
 
 	server.on_publish([](std::shared_ptr<asio2::mqtt_session>& session_ptr,
-		asio2::mqtt::v4::publish& publish,
-		std::variant<asio2::mqtt::v4::puback, asio2::mqtt::v4::pubrec>& response)
+		mqtt::v4::publish& publish,
+		std::variant<mqtt::v4::puback, mqtt::v4::pubrec>& response)
 	{
 		asio2::ignore_unused(session_ptr, publish, response);
 	});
 
 	server.on_publish([](std::shared_ptr<asio2::mqtt_session>& session_ptr,
-		asio2::mqtt::v5::publish& publish,
-		std::variant<asio2::mqtt::v5::puback, asio2::mqtt::v5::pubrec>& response)
+		mqtt::v5::publish& publish,
+		std::variant<mqtt::v5::puback, mqtt::v5::pubrec>& response)
 	{
 		asio2::ignore_unused(session_ptr, publish, response);
 	});

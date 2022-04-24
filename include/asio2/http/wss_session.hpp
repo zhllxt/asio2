@@ -118,6 +118,7 @@ namespace asio2::detail
 		{
 			detail::ignore_unused(ec);
 
+			ASIO2_ASSERT(!ec);
 			ASIO2_ASSERT(this->derived().sessions().io().strand().running_in_this_thread());
 
 			asio::dispatch(this->derived().io().strand(), make_allocator(this->derived().wallocator(),
@@ -165,7 +166,7 @@ namespace asio2::detail
 				{
 					set_last_error(e);
 
-					this->derived()._do_disconnect(e.code());
+					this->derived()._do_disconnect(e.code(), std::move(this_ptr));
 				}
 			});
 		}

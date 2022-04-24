@@ -132,8 +132,6 @@ namespace asio2::detail
 			}
 		#endif
 
-			std::ignore = this_ptr;
-
 			if (!ec)
 			{
 				this->connect_timeout_flag_.store(true);
@@ -146,11 +144,12 @@ namespace asio2::detail
 
 			if (!ec)
 			{
-				derive._do_disconnect(asio::error::timed_out);
+				derive._do_disconnect(asio::error::timed_out, std::move(this_ptr));
 			}
 			else
 			{
-				derive._do_disconnect(this->connect_error_code_ ? this->connect_error_code_ : ec);
+				derive._do_disconnect(
+					this->connect_error_code_ ? this->connect_error_code_ : ec, std::move(this_ptr));
 			}
 		}
 

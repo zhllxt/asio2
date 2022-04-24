@@ -229,7 +229,7 @@ namespace asio2::detail
 				ASIO2_LOG(spdlog::level::debug, "call _do_disconnect by _ws_post_recv error : {} {} {}",
 					magic_enum::enum_name(derive.state_.load()), e.code().value(), e.what());
 
-				derive._do_disconnect(e.code());
+				derive._do_disconnect(e.code(), derive.selfptr());
 			}
 		}
 
@@ -259,7 +259,7 @@ namespace asio2::detail
 				ASIO2_LOG(spdlog::level::debug, "call _do_disconnect by _ws_handle_recv error : {} {} {}",
 					magic_enum::enum_name(derive.state_.load()), ec.value(), ec.message());
 
-				derive._do_disconnect(ec);
+				derive._do_disconnect(ec, derive.selfptr());
 			}
 			// If an error occurs then no new asynchronous operations are started. This
 			// means that all shared_ptr references to the connection object will
@@ -344,7 +344,7 @@ namespace asio2::detail
 			ASIO2_LOG(spdlog::level::debug, "call _do_disconnect by _handle_control_close error : {}",
 				magic_enum::enum_name(derive.state_.load()));
 
-			derive._do_disconnect(websocket::error::closed);
+			derive._do_disconnect(websocket::error::closed, std::move(this_ptr));
 		}
 
 		template<typename MatchCondition, typename Response, bool IsSession = args_t::is_session>
@@ -436,7 +436,7 @@ namespace asio2::detail
 						ASIO2_LOG(spdlog::level::debug, "call _do_disconnect by _handle_upgrade error : {} {} {}",
 							magic_enum::enum_name(derive.state_.load()), e.code().value(), e.what());
 
-						derive._do_disconnect(e.code());
+						derive._do_disconnect(e.code(), derive.selfptr());
 					}
 				});
 			}

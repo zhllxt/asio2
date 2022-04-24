@@ -212,7 +212,7 @@ namespace asio2::detail
 				this->mqttid_sessions_mtx_, this->mqttid_sessions_,
 				this->subs_map_, this->shared_targets_, this->retained_messages_);
 			// Copy the parameter configuration of user calls for the "server" to each "session"
-			p->_mqtt_config_copy_from(*this);
+			p->_mqtt_options_copy_from(*this);
 			return p;
 		}
 

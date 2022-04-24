@@ -128,6 +128,9 @@ namespace asio2::detail
 		{
 			detail::ignore_unused(ec);
 
+			ASIO2_ASSERT(!ec);
+			ASIO2_ASSERT(this->derived().sessions().io().strand().running_in_this_thread());
+
 			asio::dispatch(this->derived().io().strand(), make_allocator(this->derived().wallocator(),
 			[this, this_ptr = std::move(this_ptr), condition = std::move(condition)]() mutable
 			{
