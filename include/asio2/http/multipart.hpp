@@ -31,7 +31,7 @@
 
 #include <asio2/external/asio.hpp>
 #include <asio2/external/beast.hpp>
-#include <asio2/external/throw_exception.hpp>
+#include <asio2/bho/throw_exception.hpp>
 
 #include <asio2/util/string.hpp>
 

@@ -118,9 +118,10 @@ int main()
 
 	}).bind_connect([](auto & session_ptr)
 	{
-		printf("client enter : %s %u %s %u\n", session_ptr->remote_address().c_str(), session_ptr->remote_port(),
+		printf("client enter : %s %u %s %u\n",
+			session_ptr->remote_address().c_str(), session_ptr->remote_port(),
 			session_ptr->local_address().c_str(), session_ptr->local_port());
-		session_ptr->post([]() {}, std::chrono::seconds(3));
+		//session_ptr->set_response_mode(asio2::response_mode::manual);
 	}).bind_disconnect([](auto & session_ptr)
 	{
 		printf("client leave : %s %u %s\n", session_ptr->remote_address().c_str(),

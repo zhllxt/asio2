@@ -11,7 +11,7 @@
 #define __ASIO2_HTTP_FLEX_BODY_HPP__
 
 #include <asio2/external/beast.hpp>
-#include <asio2/external/assert.hpp>
+#include <asio2/bho/assert.hpp>
 
 #include <asio2/http/detail/http_util.hpp>
 

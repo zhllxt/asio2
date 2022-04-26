@@ -636,6 +636,12 @@ namespace asio2
 		wss = websockets
 	};
 
+	enum class response_mode : std::int8_t
+	{
+		automatic = 1,
+		manual,
+	};
+
 	template <typename Enumeration>
 	inline constexpr auto to_underlying(Enumeration const value) noexcept ->
 		typename std::underlying_type<Enumeration>::type

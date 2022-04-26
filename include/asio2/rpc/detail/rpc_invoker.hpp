@@ -345,7 +345,7 @@ namespace asio2::detail
 			using arg0_type = typename std::remove_cv_t<std::remove_reference_t<
 				typename fun_traits_type::template args<0>::type>>;
 
-			if constexpr (std::is_same_v<std::shared_ptr<caller_t>, arg0_type>)
+			if constexpr /**/ (std::is_same_v<arg0_type, std::shared_ptr<caller_t>>)
 			{
 				auto tp = _body_args_tuple((fun_args_tuple*)0);
 				detail::for_each_tuple(tp, [&dr](auto& elem) mutable
@@ -353,6 +353,16 @@ namespace asio2::detail
 					dr >> elem;
 				});
 				auto tp_new = std::tuple_cat(std::tuple<std::shared_ptr<caller_t>&>(caller_ptr), tp);
+				return _invoke<fun_ret_type>(f, c, caller_ptr, caller, sr, dr, std::move(tp_new));
+			}
+			else if constexpr (std::is_same_v<arg0_type, caller_t>)
+			{
+				auto tp = _body_args_tuple((fun_args_tuple*)0);
+				detail::for_each_tuple(tp, [&dr](auto& elem) mutable
+				{
+					dr >> elem;
+				});
+				auto tp_new = std::tuple_cat(std::tuple<caller_t&>(*caller), tp);
 				return _invoke<fun_ret_type>(f, c, caller_ptr, caller, sr, dr, std::move(tp_new));
 			}
 			else

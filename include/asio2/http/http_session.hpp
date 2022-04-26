@@ -159,6 +159,22 @@ namespace asio2::detail
 		 */
 		inline const http::web_response& get_response() noexcept { return this->rep_; }
 
+		/**
+		 * @function : set how to send the http response in the bind_recv callback
+		 * automatic - The framework automatically send the http response
+		 * manual    - You need to send the http response youself
+		 */
+		inline derived_t& set_response_mode(asio2::response_mode mode)
+		{
+			this->response_mode_ = mode;
+			return (static_cast<derived_t&>(*this));
+		}
+
+		/**
+		 * @function : get the response mode
+		 */
+		inline asio2::response_mode get_response_mode() { return this->response_mode_; }
+
 	protected:
 		inline http_router_t<derived_t>& _router() noexcept
 		{
@@ -433,7 +449,10 @@ namespace asio2::detail
 				}
 				else
 				{
-					this->derived()._send_response(this_ptr, condition);
+					if (this->response_mode_ == asio2::response_mode::automatic)
+					{
+						this->derived()._send_response(this_ptr, condition);
+					}
 				}
 			}
 		}
@@ -450,6 +469,8 @@ namespace asio2::detail
 		bool                      is_arg0_session_    = false;
 
 		bool                      support_websocket_  = false;
+
+		asio2::response_mode      response_mode_      = asio2::response_mode::automatic;
 
 		std::shared_ptr<typename http_router_t<derived_t>::optype>   websocket_router_;
 	};

@@ -64,6 +64,12 @@ rpc::future<int> async_add(int a, int b)
 	return f;
 }
 
+// set the first parameter to client reference to know which client was called
+void test(asio2::rpc_client& client, std::string str)
+{
+	std::cout << client.get_user_data<int>() << " - test : " << str << std::endl;
+}
+
 int main()
 {
 #if defined(WIN32) || defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS_)
@@ -87,6 +93,8 @@ int main()
 	for (int i = 0; i < 10; i++)
 	{
 		auto & client = clients[i];
+
+		client.set_user_data(i + 99);
 
 	// set default rpc call timeout
 	client.default_timeout(std::chrono::seconds(3));
@@ -219,6 +227,8 @@ int main()
 	client.bind("sub", [](int a, int b) { return a - b; });
 
 	client.bind("async_add", async_add);
+
+	client.bind("test", test);
 
 	client.start(host, port);
 

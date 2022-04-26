@@ -28,12 +28,6 @@
 		#endif
 		#include <asio2/bho/beast/websocket/ssl.hpp>
 	#endif
-	#ifndef BOOST_BEAST_VERSION
-		#define BOOST_BEAST_VERSION BEAST_VERSION
-	#endif
-	#ifndef BOOST_BEAST_VERSION_STRING
-		#define BOOST_BEAST_VERSION_STRING BEAST_VERSION_STRING
-	#endif
 #else
 	#ifndef BOOST_BEAST_USE_STD_STRING_VIEW
 		#define BOOST_BEAST_USE_STD_STRING_VIEW

@@ -19,8 +19,9 @@
 # include <limits>
 #endif
 
-#if (defined(BHO_HAS_LONG_LONG) && defined(BHO_NO_LONG_LONG_NUMERIC_LIMITS)) \
-      || (defined(BHO_HAS_MS_INT64) && defined(BHO_NO_MS_INT64_NUMERIC_LIMITS))
+#if (!defined(BOOST_LLT)) && (!defined(BOOST_ULLT)) \
+      && ((defined(BHO_HAS_LONG_LONG) && defined(BHO_NO_LONG_LONG_NUMERIC_LIMITS)) \
+      ||  (defined(BHO_HAS_MS_INT64 ) && defined(BHO_NO_MS_INT64_NUMERIC_LIMITS )))
 // Add missing specializations for numeric_limits:
 #ifdef BHO_HAS_MS_INT64
 #  define BHO_LLT __int64

@@ -198,9 +198,6 @@
 	#if defined(ASIO2_USE_SSL)
 		#include <asio/ssl.hpp>
 	#endif
-	#ifndef BOOST_ASIO_VERSION
-		#define BOOST_ASIO_VERSION ASIO_VERSION
-	#endif
 #else
 	#include <boost/asio.hpp>
 	#if defined(ASIO2_USE_SSL)

@@ -212,6 +212,7 @@ add_subdirectory (${ASIO2_ROOT_DIR}/example/websocket        asio2_example_proje
 add_subdirectory (${ASIO2_ROOT_DIR}/example/mqtt             asio2_example_project/mqtt             )
 add_subdirectory (${ASIO2_ROOT_DIR}/example/shared_iopool    asio2_example_project/shared_iopool    )
 add_subdirectory (${ASIO2_ROOT_DIR}/example/timer            asio2_example_project/timer            )
+add_subdirectory (${ASIO2_ROOT_DIR}/example/inherit          asio2_example_project/inherit          )
 
 add_subdirectory (${ASIO2_ROOT_DIR}/example/ssl              asio2_example_project/ssl              )
 

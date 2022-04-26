@@ -39,7 +39,7 @@
 #include <type_traits>
 
 #include <asio2/external/beast.hpp>
-#include <asio2/external/predef.h>
+#include <asio2/bho/predef.h>
 
 #include <asio2/base/detail/util.hpp>
 

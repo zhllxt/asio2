@@ -8,8 +8,8 @@
  * (See accompanying file LICENSE or see <http://www.gnu.org/licenses/>)
  */
 
-#ifndef __ASIO2_3RD_CEREAL_HPP__
-#define __ASIO2_3RD_CEREAL_HPP__
+#ifndef __ASIO2_CEREAL_HPP__
+#define __ASIO2_CEREAL_HPP__
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1200)
 #pragma once
@@ -81,4 +81,4 @@ namespace cereal
 
 #include <asio2/base/detail/pop_options.hpp>
 
-#endif // !__ASIO2_3RD_CEREAL_HPP__
+#endif // !__ASIO2_CEREAL_HPP__

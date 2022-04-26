@@ -192,6 +192,8 @@ int main()
 			printf("sub : %d err : %d %s\n", v, asio2::last_error_val(), asio2::last_error_msg().c_str());
 		}, std::chrono::seconds(10), "sub", 15, 6);
 
+		session_ptr->async_call("test", "i love you");
+
 	}).bind_disconnect([&](auto & session_ptr)
 	{
 		printf("client leave : %s %u\n", session_ptr->remote_address().c_str(), session_ptr->remote_port());
