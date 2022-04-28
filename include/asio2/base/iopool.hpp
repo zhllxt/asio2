@@ -24,6 +24,8 @@
 #include <algorithm>
 #include <atomic>
 #include <unordered_set>
+#include <map>
+#include <functional>
 
 #include <asio2/external/asio.hpp>
 #include <asio2/base/error.hpp>
@@ -83,8 +85,11 @@ namespace asio2::detail
 
 	//-----------------------------------------------------------------------------------
 
+	class iopool;
+
 	class io_t
 	{
+		friend class iopool;
 	public:
 		io_t(asio::io_context* ioc, std::atomic<std::size_t>& pending) noexcept
 			: context_(ioc)
@@ -100,6 +105,41 @@ namespace asio2::detail
 		inline asio::io_context::strand                & strand () noexcept { return    this->strand_   ; }
 		inline std::atomic<std::size_t>                & pending() noexcept { return    this->pending_  ; }
 		inline std::unordered_set<asio::steady_timer*> & timers () noexcept { return    this->timers_   ; }
+
+		template<class Object>
+		inline void regobj(Object* p)
+		{
+			if (p)
+			{
+				asio::dispatch(this->strand_, [this, p, optr = p->derived().selfptr()]() mutable
+				{
+					std::size_t k = reinterpret_cast<std::size_t>(p);
+					ASIO2_ASSERT(this->objects_.find(k) == this->objects_.end());
+					this->objects_[k] = [p, optr = std::move(optr)]() mutable
+					{
+						detail::ignore_unused(optr);
+						p->stop();
+					};
+				});
+			}
+		}
+
+		template<class Object>
+		inline void unregobj(Object* p)
+		{
+			if (p)
+			{
+				// must use post, beacuse the "for each objects_" was called in the iopool.stop,
+				// then the object->stop is called in the for each, then the unregobj is called 
+				// in the object->stop, if we erase the elem of the objects_ directly at here,
+				// it will cause the iterator is invalid when executed at "for each objects_" .
+				asio::post(this->strand_, [this, p, optr = p->derived().selfptr()]() mutable
+				{
+					detail::ignore_unused(optr);
+					this->objects_.erase(reinterpret_cast<std::size_t>(p));
+				});
+			}
+		}
 
 	protected:
 		// Do not use shared_ptr<io_context>, it will cause a lot of problems. If the user
@@ -139,6 +179,10 @@ namespace asio2::detail
 		// and this will cause the iopool's wait_for_io_context_stopped function
 		// blocked forever.
 		std::unordered_set<asio::steady_timer*>  timers_;
+
+		// Used to save the server or client or other objects, when iopool.stop is called,
+		// the objects.stop will be called automaticly.
+		std::map<std::size_t, std::function<void()>> objects_;
 	};
 
 	//-----------------------------------------------------------------------------------
@@ -419,15 +463,36 @@ namespace asio2::detail
 					this->guards_.front().reset();
 			}
 
+			// notify all registered objects to stop
+			for (std::size_t i = 0; i < this->iots_.size(); ++i)
+			{
+				auto& iot = this->iots_[i];
+
+				// must ensure that the read write of objects_ is in the io_context thread.
+				asio::post(iot->strand(), [&iot]() mutable
+				{
+					for (auto&[ptr, fun] : iot->objects_)
+					{
+						detail::ignore_unused(ptr);
+						if (fun)
+						{
+							fun();
+						}
+					}
+
+					iot->objects_.clear();
+				});
+			}
+
 			constexpr auto max = std::chrono::milliseconds(10);
 			constexpr auto min = std::chrono::milliseconds(1);
 
 			// second wait indefinitely until the acceptor io_context is stopped
-			if (!this->iocs_.empty())
+			for (std::size_t i = 0; i < std::size_t(1) && i < this->iocs_.size(); ++i)
 			{
 				auto t1 = std::chrono::steady_clock::now();
-				auto& ioc = this->iocs_.front();
-				auto& iot = this->iots_.front();
+				auto& ioc = this->iocs_[i];
+				auto& iot = this->iots_[i];
 				while (!ioc->stopped())
 				{
 					// the timer may not be canceled successed when using visual
@@ -457,6 +522,8 @@ namespace asio2::detail
 				auto& iot = this->iots_[i];
 				while (!ioc->stopped())
 				{
+					// the timer may not be canceled successed when using visual
+					// studio break point for debugging, so cancel it at each loop
 					this->cancel_timers(&(*iot));
 
 					auto t2 = std::chrono::steady_clock::now();

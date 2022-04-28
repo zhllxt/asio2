@@ -21,7 +21,7 @@
 
 #include <asio2/mqtt/mqtt_protocol_util.hpp>
 
-namespace asio2
+namespace asio2::detail
 {
 	ASIO2_CLASS_FORWARD_DECLARE_BASE;
 	ASIO2_CLASS_FORWARD_DECLARE_TCP_BASE;
@@ -193,7 +193,12 @@ namespace asio2
 
 namespace asio2::mqtt
 {
-	using options = asio2::mqtt_options;
+	using options = asio2::detail::mqtt_options;
+}
+
+namespace asio2
+{
+	using mqtt_options = asio2::detail::mqtt_options;
 }
 
 #endif // !__ASIO2_MQTT_OPTIONS_HPP__

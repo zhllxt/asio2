@@ -178,6 +178,8 @@ namespace asio2::detail
 			if (this->iopool_->stopped())
 				return;
 
+			this->io().unregobj(this);
+
 			this->derived().dispatch([this]() mutable
 			{
 				this->derived()._do_stop(asio::error::operation_aborted, this->derived().selfptr());
@@ -291,6 +293,8 @@ namespace asio2::detail
 				set_last_error(asio::error::operation_aborted);
 				return false;
 			}
+
+			this->io().regobj(this);
 
 			// use promise to get the result of async connect
 			std::promise<error_code> promise;

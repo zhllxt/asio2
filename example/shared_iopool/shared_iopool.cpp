@@ -2,7 +2,9 @@
 //#define ASIO2_USE_SSL
 //#endif
 
+#ifndef ASIO2_ENABLE_TIMER_CALLBACK_WHEN_ERROR
 #define ASIO2_ENABLE_TIMER_CALLBACK_WHEN_ERROR
+#endif
 
 #include <asio2/asio2.hpp>
 #include <asio2/tcp/tcp_server.hpp>
@@ -29,8 +31,8 @@ int main()
 	std::vector<std::shared_ptr<std::thread>> threads;
 
 	// test timer
-	for (;;)
-	//for (int loop = 0; loop < 100; loop++)
+	//for (;;)
+	for (int loop = 0; loop < 100; loop++)
 	{
 		printf("%d\n", std::rand());
 
@@ -41,19 +43,16 @@ int main()
 
 		//// --------------------------------------------------------------------------------
 
-		// if you create a object and it will destroyed before iopool, you must do two things:
-		// 1. create the object as shared_ptr<asio2::tcp_client>, can't be asio2::tcp_client.
-		// 2. you must call stop() function manual.
+		// if you create a object and it will destroyed before iopool.stop(), you must create
+		// the object as shared_ptr<asio2::tcp_client>, can't be asio2::tcp_client.
 		{
-			// 1. create the object as shared_ptr<asio2::tcp_client>
 			std::shared_ptr<asio2::tcp_client> tcp_client = std::make_shared<asio2::tcp_client>(iopool.get(0));
 
 			tcp_client->start("127.0.0.1", 4567);
 
 			tcp_client->async_send("i love you");
 
-			// 2. call stop() function manual
-			tcp_client->stop();
+			//tcp_client->stop();
 		}
 
 		//// --------------------------------------------------------------------------------
@@ -439,8 +438,6 @@ int main()
 
 		//timer2.stop_all_timers();
 
-		// before call iopool.stop, all client's and server's and timer's stop must be
-		// called alerady, othwise the iopool.stop will blocked forever.
 		iopool.stop();
 
 
@@ -723,8 +720,6 @@ int main()
 
 		//timer2.stop_all_timers();
 
-		// before call iopool.stop, all client's and server's and timer's stop must be
-		// called alerady, othwise the iopool.stop will blocked forever.
 		iopool.stop();
 
 		{
@@ -1017,14 +1012,12 @@ int main()
 
 			std::this_thread::sleep_for(std::chrono::milliseconds(20 + std::rand() % 80));
 
-			client.stop();
+			//client.stop();
 
-			server.stop();
+			//server.stop();
 
 			//timer23.stop_all_timers();
 
-			// before call iopool.stop, all client's and server's and timer's stop must be
-			// called alerady, othwise the iopool.stop will blocked forever.
 			iopool.stop();
 		}
 

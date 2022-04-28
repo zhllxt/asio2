@@ -172,6 +172,8 @@ namespace asio2::detail
 			if (this->iopool_->stopped())
 				return;
 
+			this->io().unregobj(this);
+
 			ASIO2_LOG(spdlog::level::debug, "enter stop : {}",
 				magic_enum::enum_name(this->state_.load()));
 
@@ -296,6 +298,8 @@ namespace asio2::detail
 				set_last_error(asio::error::operation_aborted);
 				return false;
 			}
+
+			this->io().regobj(this);
 
 			ASIO2_LOG(spdlog::level::debug, "enter _do_connect : {}",
 				magic_enum::enum_name(derive.state_.load()));

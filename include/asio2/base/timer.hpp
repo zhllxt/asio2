@@ -73,7 +73,7 @@ namespace asio2::detail
 			, async_event_cp <derived_t>()
 			, io_                       (iopool_cp::_get_io(0))
 		{
-			this->iopool_->start(); // start the io_context pool
+			this->start();
 		}
 
 		template<class Scheduler, std::enable_if_t<!std::is_integral_v<detail::remove_cvref_t<Scheduler>>, int> = 0>
@@ -85,7 +85,7 @@ namespace asio2::detail
 			, async_event_cp <derived_t>()
 			, io_                       (iopool_cp::_get_io(0))
 		{
-			this->iopool_->start(); // start the io_context pool
+			this->start();
 		}
 
 		/**
@@ -93,8 +93,30 @@ namespace asio2::detail
 		 */
 		~timer_impl_t()
 		{
+			this->stop();
+		}
+
+		/**
+		 * @function : start
+		 */
+		inline bool start()
+		{
+			bool ret = this->iopool_->start(); // start the io_context pool
+
+			this->io().regobj(this);
+
+			return ret;
+		}
+
+		/**
+		 * @function : stop
+		 */
+		inline void stop()
+		{
 			if (this->iopool_->stopped())
 				return;
+
+			this->io().unregobj(this);
 
 			// close user custom timers
 			this->stop_all_timers();

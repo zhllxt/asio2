@@ -15,7 +15,13 @@
 #pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
+// Note : 
+// All the following classes must be in the namespace asio2::detail
+// All code that uses the following macros must also be in the namespace asio2::detail
+
 #define ASIO2_CLASS_DECLARE_BASE(KEYWORD)                                           \
+	                                             KEYWORD io_t;                      \
+	                                             KEYWORD iopool;                    \
 	template <class, class>                      KEYWORD alive_time_cp;             \
 	template <class, class>                      KEYWORD async_event_cp;            \
 	template <class, class>                      KEYWORD connect_cp;                \
