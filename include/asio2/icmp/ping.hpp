@@ -486,6 +486,23 @@ namespace asio2::detail
 
 	public:
 		/**
+		 * @function : set icmp protocol identifier
+		 */
+		template<class Integer>
+		inline derived_t & set_identifier(Integer id) noexcept
+		{
+			this->identifier_ = (unsigned short)(std::size_t(id));
+			return (this->derived());
+		}
+		/**
+		 * @function : get icmp protocol identifier
+		 */
+		inline unsigned short get_identifier() noexcept
+		{
+			return this->identifier_;
+		}
+
+		/**
 		 * @function : set reply timeout duration value
 		 */
 		template<class Rep, class Period>
@@ -736,11 +753,6 @@ namespace asio2::detail
 					this->total_send_ = 0;
 					this->total_recv_ = 0;
 					this->total_time_ = std::chrono::steady_clock::duration{ 0 };
-				#if defined(WIN32) || defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS_)
-					this->identifier_ = static_cast<unsigned short>(::GetCurrentProcessId());
-				#else
-					this->identifier_ = static_cast<unsigned short>(::getpid());
-				#endif
 					asio::ip::icmp::resolver resolver(this->io_.context());
 					this->destination_ = *resolver.resolve(host, "").begin();
 				
@@ -1138,7 +1150,7 @@ namespace asio2::detail
 		std::size_t                                 replies_ = 0;
 		icmp_rep                                    rep_;
 		asio::ip::icmp::endpoint                    destination_;
-		unsigned short                              identifier_;
+		unsigned short                              identifier_ = (unsigned short)(std::size_t(this));
 
 		std::size_t                                 ncount_    { std::size_t(-1) };
 		std::size_t                                 total_send_{ 0 };
