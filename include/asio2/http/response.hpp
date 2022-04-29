@@ -288,6 +288,11 @@ namespace asio2::detail
 			return this->get_root_directory();
 		}
 
+		/**
+		 * @function : create a deferred http response, the response will not be send immediately,
+		 * the http response will be sent only when the returned std::shared_ptr<http::response_defer>
+		 * is completely destroyed
+		 */
 		inline std::shared_ptr<http::response_defer> defer()
 		{
 			this->defer_guard_ = std::make_shared<http::response_defer>(
