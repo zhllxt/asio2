@@ -361,12 +361,24 @@ namespace asio2::detail
 		/**
 		 * @function : Respond to http request with local file
 		 */
-		inline self& fill_file(const std::filesystem::path& path,
+		inline self& fill_file(std::filesystem::path path,
 			http::status result = http::status::ok, unsigned version = 11)
 		{
-			// Build the path to the requested file
-			std::filesystem::path filepath = root_directory_;
-			filepath /= path;
+			path.make_preferred();
+
+			std::filesystem::path filepath;
+
+			if (path.is_absolute())
+			{
+				filepath = std::move(path);
+			}
+			else
+			{
+				// Build the path to the requested file
+				filepath = this->root_directory_;
+				filepath.make_preferred();
+				filepath /= path.relative_path();
+			}
 
 			// Attempt to open the file
 			beast::error_code ec;
