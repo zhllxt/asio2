@@ -301,13 +301,25 @@ namespace asio2::detail
 		{
 			asio2::trim_both(name);
 
-			static_assert(sizeof...(M), "The supported http method cannot be empty.");
+			if (name == "*")
+				name = "/*";
 
-			ASIO2_ASSERT(sizeof...(M));
-			ASIO2_ASSERT(!name.empty());
+			if (name.empty())
+			{
+				ASIO2_ASSERT(false);
+				return (*this);
+			}
 
-			if ((sizeof...(M)) && !name.empty())
-				this->_bind<M...>(std::move(name), std::forward<F>(fun), std::forward<CAOP>(caop)...);
+			if constexpr (sizeof...(M) == std::size_t(0))
+			{
+				this->_bind<http::verb::get, http::verb::post>(
+					std::move(name), std::forward<F>(fun), std::forward<CAOP>(caop)...);
+			}
+			else
+			{
+				this->_bind<M...>(
+					std::move(name), std::forward<F>(fun), std::forward<CAOP>(caop)...);
+			}
 
 			return (*this);
 		}
@@ -494,9 +506,15 @@ namespace asio2::detail
 					continue;
 
 				if (name.back() == '*')
+				{
+					ASIO2_ASSERT(this->wildcard_routers_.find(uri) == this->wildcard_routers_.end());
 					this->wildcard_routers_[std::move(uri)] = op;
+				}
 				else
+				{
+					ASIO2_ASSERT(this->strictly_routers_.find(uri) == this->strictly_routers_.end());
 					this->strictly_routers_[std::move(uri)] = op;
+				}
 			}
 		}
 

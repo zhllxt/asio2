@@ -97,6 +97,7 @@ namespace asio2::detail
 			this->root_directory_ = o.root_directory_;
 			this->defer_callback_ = o.defer_callback_;
 			this->defer_guard_    = o.defer_guard_;
+			this->session_ptr_    = o.session_ptr_;
 		}
 
 		http_response_impl_t(http_response_impl_t&& o)
@@ -107,6 +108,7 @@ namespace asio2::detail
 			this->root_directory_ = o.root_directory_;
 			this->defer_callback_ = o.defer_callback_;
 			this->defer_guard_    = o.defer_guard_;
+			this->session_ptr_    = o.session_ptr_;
 		}
 
 		self& operator=(const http_response_impl_t& o)
@@ -115,6 +117,7 @@ namespace asio2::detail
 			this->root_directory_ = o.root_directory_;
 			this->defer_callback_ = o.defer_callback_;
 			this->defer_guard_    = o.defer_guard_;
+			this->session_ptr_    = o.session_ptr_;
 			return *this;
 		}
 
@@ -124,6 +127,7 @@ namespace asio2::detail
 			this->root_directory_ = o.root_directory_;
 			this->defer_callback_ = o.defer_callback_;
 			this->defer_guard_    = o.defer_guard_;
+			this->session_ptr_    = o.session_ptr_;
 			return *this;
 		}
 

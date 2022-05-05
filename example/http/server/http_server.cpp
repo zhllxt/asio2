@@ -41,22 +41,15 @@ int main()
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
 
+	// try open localhost:8080 in your browser
 	std::string_view host = "0.0.0.0";
 	std::string_view port = "8080";
 
 	asio2::http_server server;
 
-	server.post([]()
-	{
-		printf("delay test\n");
-	}, std::chrono::seconds(30));
-
-	auto event_ptr = server.post_event([]()
-	{
-		printf("post_event test\n");
-	});
-
-	event_ptr->notify();
+	// set the root directory, here is:  /asio2/example/wwwroot
+	std::filesystem::path root = std::filesystem::current_path().parent_path().parent_path().append("wwwroot");
+	server.set_root_directory(std::move(root));
 
 	server.bind_recv([&](http::web_request& req, http::web_response& rep)
 	{
@@ -136,13 +129,19 @@ int main()
 		printf("stop http server : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
 	});
 
-	server.bind<http::verb::get, http::verb::post>("/index.*", [](http::web_request& req, http::web_response& rep)
+	server.bind<http::verb::get, http::verb::post>("/", [](http::web_request& req, http::web_response& rep)
 	{
 		asio2::ignore_unused(req, rep);
 
-		rep.fill_file("../../index.html");
+		rep.fill_file("index.html");
 		rep.chunked(true);
 
+	}, aop_log{});
+
+	// If no method is specified, GET and POST are both enabled by default.
+	server.bind("*", [](http::web_request& req, http::web_response& rep)
+	{
+		rep.fill_file(req.target());
 	}, aop_log{});
 
 	server.bind<http::verb::get>("/del_user",
