@@ -372,16 +372,27 @@ namespace asio2::detail
 
 			std::filesystem::path filepath;
 
-			if (path.is_absolute())
+			// C:/site/css/main.css
+			if (path.has_root_name())
 			{
 				filepath = std::move(path);
 			}
 			else
 			{
-				// Build the path to the requested file
-				filepath = this->root_directory_;
-				filepath.make_preferred();
-				filepath /= path.relative_path();
+				// /site/css/main.css
+				// on windows it is relative, on posix it is absolute
+				std::error_code ec;
+				if (path.is_absolute() && std::filesystem::exists(path, ec))
+				{
+					filepath = std::move(path);
+				}
+				else
+				{
+					// Build the path to the requested file
+					filepath = this->root_directory_;
+					filepath.make_preferred();
+					filepath /= path.relative_path();
+				}
 			}
 
 			// Attempt to open the file
