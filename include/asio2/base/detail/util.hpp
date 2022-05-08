@@ -455,14 +455,29 @@ namespace asio2::detail
 	template<typename Iterator>
 	inline std::string_view to_string_view(const Iterator& first, const Iterator& last)
 	{
-		using type = typename detail::remove_cvref_t<Iterator>;
-		if constexpr (std::is_pointer_v<type>)
+		using iter_type = typename detail::remove_cvref_t<Iterator>;
+		using diff_type = typename std::iterator_traits<iter_type>::difference_type;
+
+		diff_type n = std::distance(first, last);
+
+		if (n < static_cast<diff_type>(0))
 		{
-			return { first, static_cast<std::size_t>(std::distance(first, last)) };
+			ASIO2_ASSERT(false);
+			return std::string_view{};
+		}
+
+		if (n == static_cast<diff_type>(0))
+		{
+			return std::string_view{};
+		}
+
+		if constexpr (std::is_pointer_v<iter_type>)
+		{
+			return { first, static_cast<std::string_view::size_type>(n) };
 		}
 		else
 		{
-			return { first.operator->(), static_cast<std::size_t>(std::distance(first, last)) };
+			return { first.operator->(), static_cast<std::string_view::size_type>(n) };
 		}
 	}
 

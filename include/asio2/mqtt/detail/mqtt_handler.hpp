@@ -1060,17 +1060,13 @@ namespace asio2::detail
 
 				mqtt::retain_handling_type rh = sub.retain_handling();
 
-				if (insert)
+				if /**/ (rh == mqtt::retain_handling_type::send)
 				{
-					if (rh == mqtt::retain_handling_type::send ||
-						rh == mqtt::retain_handling_type::send_only_new_subscription)
-					{
-						_send_retained_messages(caller_ptr, caller, sub);
-					}
+					_send_retained_messages(caller_ptr, caller, sub);
 				}
-				else // update
+				else if (rh == mqtt::retain_handling_type::send_only_new_subscription)
 				{
-					if (rh == mqtt::retain_handling_type::send)
+					if (insert)
 					{
 						_send_retained_messages(caller_ptr, caller, sub);
 					}

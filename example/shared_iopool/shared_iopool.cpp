@@ -283,8 +283,8 @@ int main()
 		// the server's io_context must be the user passed io_context.
 		for (std::size_t i = 0; i < server.iopool().size(); i++)
 		{
-			asio::io_context& ioc1 = iopool.get(i).context();
-			asio::io_context& ioc2 = server.iopool().get(i).context();
+			[[maybe_unused]] asio::io_context& ioc1 = iopool.get(i).context();
+			[[maybe_unused]] asio::io_context& ioc2 = server.iopool().get(i).context();
 
 			ASIO2_ASSERT(&ioc1 == &ioc2);
 		}
@@ -601,8 +601,8 @@ int main()
 		// the server's io_context must be the user passed io_context.
 		for (std::size_t i = 0; i < server.iopool().size(); i++)
 		{
-			asio::io_context& ioc1 = iopool.get(i).context();
-			asio::io_context& ioc2 = server.iopool().get(i).context();
+			[[maybe_unused]] asio::io_context& ioc1 = iopool.get(i).context();
+            [[maybe_unused]] asio::io_context& ioc2 = server.iopool().get(i).context();
 
 			ASIO2_ASSERT(&ioc1 == &ioc2);
 		}
@@ -893,8 +893,8 @@ int main()
 			// the server's io_context must be the user passed io_context.
 			for (std::size_t i = 0; i < server.iopool().size(); i++)
 			{
-				asio::io_context& ioc1 = iopool.get(i).context();
-				asio::io_context& ioc2 = server.iopool().get(i).context();
+                [[maybe_unused]] asio::io_context& ioc1 = iopool.get(i).context();
+                [[maybe_unused]] asio::io_context& ioc2 = server.iopool().get(i).context();
 
 				ASIO2_ASSERT(&ioc1 == &ioc2);
 			}

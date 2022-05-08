@@ -36,7 +36,7 @@ int main()
 
 		//client.async_send(s);
 
-		client.async_call("03defhijk", [](std::string_view data)
+		client.async_call("03defhijk", []([[maybe_unused]] std::string_view data)
 		{
 			if (asio2::get_last_error())
 				return;
@@ -74,14 +74,14 @@ int main()
 
 	client.start(host, port, asio2::use_dgram, std::move(rdc_option));
 
-	client.async_call("01abc", [](std::string_view data)
+	client.async_call("01abc", []([[maybe_unused]] std::string_view data)
 	{
 		if (asio2::get_last_error())
 			return;
 		ASIO2_ASSERT(data == "01abc");
 	});
 
-	client.async_call("02defhijk", [](std::string_view data)
+	client.async_call("02defhijk", []([[maybe_unused]] std::string_view data)
 	{
 		if (asio2::get_last_error())
 			return;
@@ -103,7 +103,7 @@ int main()
 	client.call<std::string>("88abcddddddx");
 	client.async_call("06ddabc");
 
-	client.async_call("07xddabc").response([](std::string_view data)
+	client.async_call("07xddabc").response([]([[maybe_unused]] std::string_view data)
 	{
 		if (asio2::get_last_error())
 			return;
@@ -122,28 +122,28 @@ int main()
 		ASIO2_ASSERT(str == "09yabcddddddx");
 	}
 
-	client.async_call("10jxddabc").timeout(std::chrono::seconds(3)).response([](std::string_view data)
+	client.async_call("10jxddabc").timeout(std::chrono::seconds(3)).response([]([[maybe_unused]] std::string_view data)
 	{
 		if (asio2::get_last_error())
 			return;
 		ASIO2_ASSERT(data == "10jxddabc");
 	});
 
-	client.set_timeout(std::chrono::seconds(3)).async_call("11gjxddabc").response([](std::string_view data)
+	client.set_timeout(std::chrono::seconds(3)).async_call("11gjxddabc").response([]([[maybe_unused]] std::string_view data)
 	{
 		if (asio2::get_last_error())
 			return;
 		ASIO2_ASSERT(data == "11gjxddabc");
 	});
 
-	client.response([](std::string_view data)
+	client.response([]([[maybe_unused]] std::string_view data)
 	{
 		if (asio2::get_last_error())
 			return;
 		ASIO2_ASSERT(data == "12gggjxddabc");
 	}).set_timeout(std::chrono::seconds(3)).async_call("12gggjxddabc");
 
-	client.response([](std::string_view data)
+	client.response([]([[maybe_unused]] std::string_view data)
 	{
 		if (asio2::get_last_error())
 			return;
@@ -152,14 +152,14 @@ int main()
 
 	client.start_timer("timer111", std::chrono::seconds(5), [&]()
 	{
-		client.async_call("01abc", [](std::string_view data)
+		client.async_call("01abc", []([[maybe_unused]] std::string_view data)
 		{
 			if (asio2::get_last_error())
 				return;
 			ASIO2_ASSERT(data == "01abc");
 		});
 
-		client.async_call("02defhijk", [](std::string_view data)
+		client.async_call("02defhijk", []([[maybe_unused]] std::string_view data)
 		{
 			if (asio2::get_last_error())
 				return;
@@ -181,7 +181,7 @@ int main()
 		client.call<std::string>("88abcddddddx");
 		client.async_call("06ddabc");
 
-		client.async_call("07xddabc").response([](std::string_view data)
+		client.async_call("07xddabc").response([]([[maybe_unused]] std::string_view data)
 		{
 			if (asio2::get_last_error())
 				return;
@@ -200,28 +200,28 @@ int main()
 			ASIO2_ASSERT(str == "09yabcddddddx");
 		}
 
-		client.async_call("10jxddabc").timeout(std::chrono::seconds(3)).response([](std::string_view data)
+		client.async_call("10jxddabc").timeout(std::chrono::seconds(3)).response([]([[maybe_unused]] std::string_view data)
 		{
 			if (asio2::get_last_error())
 				return;
 			ASIO2_ASSERT(data == "10jxddabc");
 		});
 
-		client.set_timeout(std::chrono::seconds(3)).async_call("11gjxddabc").response([](std::string_view data)
+		client.set_timeout(std::chrono::seconds(3)).async_call("11gjxddabc").response([]([[maybe_unused]] std::string_view data)
 		{
 			if (asio2::get_last_error())
 				return;
 			ASIO2_ASSERT(data == "11gjxddabc");
 		});
 
-		client.response([](std::string_view data)
+		client.response([]([[maybe_unused]] std::string_view data)
 		{
 			if (asio2::get_last_error())
 				return;
 			ASIO2_ASSERT(data == "12gggjxddabc");
 		}).set_timeout(std::chrono::seconds(3)).async_call("12gggjxddabc");
 
-		client.response([](std::string_view data)
+		client.response([]([[maybe_unused]] std::string_view data)
 		{
 			if (asio2::get_last_error())
 				return;

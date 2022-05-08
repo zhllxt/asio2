@@ -25,6 +25,7 @@
 #include <algorithm>
 #include <optional>
 #include <vector>
+#include <cinttypes>
 
 #include <asio2/mqtt/mqtt_protocol_util.hpp>
 
@@ -37,23 +38,25 @@ namespace asio2::mqtt
 
 	// Compile error on other platforms (not 32 or 64 bit)
 	template<std::size_t N>
-	struct count_storage
+	struct count_storage_t
 	{
-		static_assert(N == 4 || N == 8, "Subscription map count_storage only knows how to handle architectures with 32 or 64 bit size_t: please update to support your platform.");
+		static_assert(N == 4 || N == 8,
+			"Subscription map count_storage only knows how to handle architectures with 32 or 64 bit size_t: "\
+			"please update to support your platform.");
 	};
 
 	template<>
-	struct count_storage<4>
+	struct count_storage_t<4>
 	{
 	public:
-		count_storage(std::uint32_t v = 1)
-			: value_(v & 0x3fffffffUL), has_hash_child_(false), has_plus_child_(false)
+		count_storage_t(std::uint32_t v = 1)
+			: value_(v & 0x3fffffffu), has_hash_child_(false), has_plus_child_(false)
 		{ }
 
 		static constexpr std::size_t max() { return (std::numeric_limits<std::uint32_t>::max)() >> 2; }
 
 		inline std::uint32_t value() const { return value_; }
-		inline void set_value(std::uint32_t v) { value_ = v & 0x3fffffffUL; }
+		inline void set_value(std::uint32_t v) { value_ = v & 0x3fffffffu; }
 		inline void increment_value() { ++value_; }
 		inline void decrement_value() { --value_; }
 
@@ -64,23 +67,23 @@ namespace asio2::mqtt
 		inline void set_plus_child(bool v) { has_plus_child_ = v; }
 
 	protected:
-		std::uint32_t value_ : 30;
-		std::uint32_t has_hash_child_ : 1;
-		std::uint32_t has_plus_child_ : 1;
+		std::uint32_t value_          : 30;
+		std::uint32_t has_hash_child_ :  1;
+		std::uint32_t has_plus_child_ :  1;
 	};
 
 	template<>
-	struct count_storage<8>
+	struct count_storage_t<8>
 	{
 	public:
-		count_storage(std::uint64_t v = 1)
-			: value_(v & 0x3fffffffffffffffULL), has_hash_child_(false), has_plus_child_(false)
+		count_storage_t(std::uint64_t v = 1)
+			: value_(v & 0x3fffffffffffffffllu), has_hash_child_(false), has_plus_child_(false)
 		{ }
 
 		static constexpr std::uint64_t max() { return (std::numeric_limits<std::uint64_t>::max)() >> 2; }
 
 		inline std::uint64_t value() const { return value_; }
-		inline void set_value(std::uint64_t v) { value_ = v & 0x3fffffffffffffffULL; }
+		inline void set_value(std::uint64_t v) { value_ = v & 0x3fffffffffffffffllu; }
 		inline void increment_value() { ++value_; }
 		inline void decrement_value() { --value_; }
 
@@ -91,53 +94,66 @@ namespace asio2::mqtt
 		inline void set_plus_child(bool v) { has_plus_child_ = v; }
 
 	protected:
-		std::uint64_t value_ : 62;
-		std::uint64_t has_hash_child_ : 1;
-		std::uint64_t has_plus_child_ : 1;
+		std::uint64_t value_          : 62;
+		std::uint64_t has_hash_child_ :  1;
+		std::uint64_t has_plus_child_ :  1;
 	};
 
-	template<typename Value>
+	template<typename Container>
 	class subscription_map_base
 	{
 	public:
 		using path_entry_key  = std::pair<std::size_t, std::string_view>;
 		using handle          = path_entry_key;
-		using count_storage_t = count_storage<sizeof(void *)>;
-
-	protected:
-		// Generate a node id for a new node
-		inline std::size_t generate_node_id()
-		{
-			if (next_node_id == (std::numeric_limits<std::size_t>::max)())
-				throw_max_stored_topics();
-			return ++next_node_id;
-		}
+		using count_storage   = count_storage_t<sizeof(void *)>;
 
 		struct path_entry
 		{
 			std::size_t        id;
 			path_entry_key     parent;
-			count_storage_t    count;
-			Value              value;
-			std::vector<char>  string; // vector has no SSO
+			std::vector<char>  tokenize; // vector has no SSO
+			count_storage      count;
+			Container          container;
 
 			inline std::string_view key_view()
 			{
-				return std::string_view{ string.data(), string.size() };
+				return std::string_view{ tokenize.data(), tokenize.size() };
 			}
 
-			explicit path_entry(std::size_t id, path_entry_key parent, std::string_view str)
+			explicit path_entry(std::size_t id, path_entry_key parent, std::string_view t)
 				: id(id), parent(parent)
 			{
-				string.resize(str.size());
-				std::memcpy((void*)string.data(), (const void*)str.data(), str.size());
+				tokenize.resize(t.size());
+				std::memcpy((void*)tokenize.data(), (const void*)t.data(), t.size());
 			}
 		};
 
-		// Increase the subscription count for a specific node
-		static void increase_count_storage(count_storage_t &count)
+		using map_type = std::unordered_map<path_entry_key, path_entry, std::hash<path_entry_key>>;
+		using map_type_iterator       = typename map_type::iterator;
+		using map_type_const_iterator = typename map_type::const_iterator;
+
+		subscription_map_base()
 		{
-			if (count.value() == (count_storage_t::max)())
+			// Create the root node
+			std::size_t virtual_node_id = next_node_id();
+			root_node_id_ = next_node_id();
+			root_key_ = path_entry_key(virtual_node_id, std::string_view());
+			map_.emplace(root_key_, path_entry(root_node_id_, path_entry_key(0, std::string_view()), std::string_view()));
+		}
+
+	protected:
+		// Generate a node id for a new node
+		inline std::size_t next_node_id()
+		{
+			if (next_node_id_ == (std::numeric_limits<std::size_t>::max)())
+				throw_max_stored_topics();
+			return ++next_node_id_;
+		}
+
+		// Increase the subscription count for a specific node
+		static void increase_count_storage(count_storage &count)
+		{
+			if (count.value() == (count_storage::max)())
 			{
 				throw_max_stored_topics();
 			}
@@ -146,67 +162,50 @@ namespace asio2::mqtt
 		}
 
 		// Decrease the subscription count for a specific node
-		static void decrease_count_storage(count_storage_t& count)
+		static void decrease_count_storage(count_storage& count)
 		{
 			ASIO2_ASSERT(count.value() > 0);
 			count.decrement_value();
 		}
 
-		using this_type = subscription_map_base<Value>;
-
-		using map_type = std::unordered_map<path_entry_key, path_entry, std::hash<path_entry_key>>;
-		using map_type_iterator       = typename map_type::iterator;
-		using map_type_const_iterator = typename map_type::const_iterator;
-
-		map_type map;
-
-		std::size_t next_node_id = 0;
-
-	protected:
 	public:
-		// Key and id of the root key
-		path_entry_key root_key;
-		std::size_t root_node_id;
-
 		// Return the iterator of the root
-		inline map_type_iterator get_root() { return map.find(root_key); };
-		inline map_type_const_iterator get_root() const { return map.find(root_key); };
+		inline map_type_iterator       get_root()       { return map_.find(root_key_); };
+		inline map_type_const_iterator get_root() const { return map_.find(root_key_); };
 
-		// Map size tracks the total number of subscriptions within the map
-		size_t map_size = 0;
+		inline map_type const&   get_map() const { return map_; }
+		inline map_type_iterator get_key(path_entry_key key) { return map_.find(key); }
+		inline map_type_iterator begin() { return map_.begin(); }
+		inline map_type_iterator end  () { return map_.end  (); }
 
-		inline map_type_iterator get_key(path_entry_key key) { return map.find(key); }
-		inline map_type_iterator begin() { return map.begin(); }
-		inline map_type_iterator end() { return map.end(); }
-		inline map_type const& get_map() const { return map; }
-
-		inline handle path_to_handle(std::vector<map_type_iterator> const& path) const
+		inline handle path_to_handle(std::vector<map_type_iterator> const& entrys) const
 		{
-			return path.back()->first;
+			return entrys.back()->first;
 		}
 
 		inline std::vector<map_type_iterator> find_topic_filter(std::string_view topic_filter)
 		{
 			auto parent_id = this->get_root()->second.id;
-			std::vector<map_type_iterator> path;
+
+			std::vector<map_type_iterator> entrys;
 
 			topic_filter_tokenizer(topic_filter,
-			[this, &path, &parent_id](std::string_view t) mutable
+			[this, &entrys, &parent_id](std::string_view t) mutable
 			{
-				auto entry = map.find(path_entry_key(parent_id, t));
+				auto entry = map_.find(path_entry_key(parent_id, t));
 
-				if (entry == map.end())
+				if (entry == map_.end())
 				{
-					path.clear();
+					entrys.clear();
 					return false;
 				}
 
-				path.push_back(entry);
 				parent_id = entry->second.id;
+				entrys.emplace_back(std::move(entry));
 				return true;
 			});
 
-			return path;
+			return entrys;
 		}
 
 		inline std::vector<map_type_iterator> create_topic_filter(std::string_view topic_filter)
@@ -218,14 +217,14 @@ namespace asio2::mqtt
 			topic_filter_tokenizer(topic_filter,
 			[this, &parent, &result](std::string_view t) mutable
 			{
-				auto entry = map.find(path_entry_key(parent->second.id, t));
+				auto entry = map_.find(path_entry_key(parent->second.id, t));
 
-				if (entry == map.end())
+				if (entry == map_.end())
 				{
-					path_entry     val{ generate_node_id(), parent->first, t };
+					path_entry     val{ next_node_id(), parent->first, t };
 					path_entry_key key{ parent->second.id, val.key_view() };
 
-					entry = map.emplace(std::move(key), std::move(val)).first;
+					entry = map_.emplace(std::move(key), std::move(val)).first;
 
 					parent->second.count.set_plus_child(parent->second.count.has_plus_child() | (t == "+"));
 					parent->second.count.set_hash_child(parent->second.count.has_hash_child() | (t == "#"));
@@ -235,8 +234,8 @@ namespace asio2::mqtt
 					increase_count_storage(entry->second.count);
 				}
 
-				result.push_back(entry);
-				parent = entry;
+				result.emplace_back(entry);
+				parent = std::move(entry);
 				return true;
 			});
 
@@ -244,15 +243,15 @@ namespace asio2::mqtt
 		}
 
 		// Remove a value at the specified path
-		inline void remove_topic_filter(std::vector<map_type_iterator>& path)
+		inline void remove_topic_filter(std::vector<map_type_iterator>& entrys)
 		{
 			bool remove_plus_child_flag = false;
 			bool remove_hash_child_flag = false;
 
-			std::reverse(path.begin(), path.end());
+			std::reverse(entrys.begin(), entrys.end());
 
 			// Go through entries to remove
-			for (auto& entry : path)
+			for (auto& entry : entrys)
 			{
 				if (remove_plus_child_flag)
 				{
@@ -275,7 +274,7 @@ namespace asio2::mqtt
 
 					// Erase in unordered map only invalidates erased iterator
 					// other iterators are unaffected
-					map.erase(entry->first);
+					map_.erase(entry->first);
 				}
 			}
 
@@ -296,10 +295,10 @@ namespace asio2::mqtt
 		static void find_match_impl(ThisType& self, std::string_view topic, Output&& callback)
 		{
 			// const_iterator or iterator depends on self
-			using iterator_type = decltype(self.map.end());
+			using iterator_type = decltype(self.map_.end());
 
 			std::vector<iterator_type> entries;
-			entries.push_back(self.get_root());
+			entries.emplace_back(self.get_root());
 
 			topic_filter_tokenizer(topic, [&self, &entries, &callback](std::string_view t) mutable
 			{
@@ -308,32 +307,32 @@ namespace asio2::mqtt
 				for (auto& entry : entries)
 				{
 					auto parent = entry->second.id;
-					auto i = self.map.find(path_entry_key(parent, t));
-					if (i != self.map.end())
+					auto i = self.map_.find(path_entry_key(parent, t));
+					if (i != self.map_.end())
 					{
-						new_entries.push_back(i);
+						new_entries.emplace_back(i);
 					}
 
 					if (entry->second.count.has_plus_child())
 					{
-						i = self.map.find(path_entry_key(parent, std::string_view("+")));
-						if (i != self.map.end())
+						i = self.map_.find(path_entry_key(parent, std::string_view("+")));
+						if (i != self.map_.end())
 						{
-							if (parent != self.root_node_id || t.empty() || t[0] != '$')
+							if (parent != self.root_node_id_ || t.empty() || t[0] != '$')
 							{
-								new_entries.push_back(i);
+								new_entries.emplace_back(i);
 							}
 						}
 					}
 
 					if (entry->second.count.has_hash_child())
 					{
-						i = self.map.find(path_entry_key(parent, std::string_view("#")));
-						if (i != self.map.end())
+						i = self.map_.find(path_entry_key(parent, std::string_view("#")));
+						if (i != self.map_.end())
 						{
-							if (parent != self.root_node_id || t.empty() || t[0] != '$')
+							if (parent != self.root_node_id_ || t.empty() || t[0] != '$')
 							{
-								callback(i->second.value);
+								callback(i->second.container);
 							}
 						}
 					}
@@ -345,7 +344,7 @@ namespace asio2::mqtt
 
 			for (auto& entry : entries)
 			{
-				callback(entry->second.value);
+				callback(entry->second.container);
 			}
 		}
 
@@ -367,10 +366,10 @@ namespace asio2::mqtt
 		static void handle_to_iterators(ThisType& self, handle const &h, Output&& output)
 		{
 			auto i = h;
-			while (i != self.root_key)
+			while (i != self.root_key_)
 			{
-				auto entry_iter = self.map.find(i);
-				if (entry_iter == self.map.end())
+				auto entry_iter = self.map_.find(i);
+				if (entry_iter == self.map_.end())
 				{
 					throw_invalid_handle();
 				}
@@ -381,15 +380,15 @@ namespace asio2::mqtt
 		}
 
 		// Exceptions used
-		static void throw_invalid_topic_filter()
+		inline static void throw_invalid_topic_filter()
 		{
 			throw std::runtime_error("Subscription map invalid topic filter was specified");
 		}
-		static void throw_invalid_handle()
+		inline static void throw_invalid_handle()
 		{
 			throw std::runtime_error("Subscription map invalid handle was specified");
 		}
-		static void throw_max_stored_topics()
+		inline static void throw_max_stored_topics()
 		{
 			throw std::overflow_error("Subscription map maximum number of stored topic filters reached");
 		}
@@ -398,7 +397,7 @@ namespace asio2::mqtt
 		inline std::vector<map_type_iterator> handle_to_iterators(handle const &h)
 		{
 			std::vector<map_type_iterator> result;
-			handle_to_iterators(*this, h, [&result](map_type_iterator i) mutable { result.push_back(i); });
+			handle_to_iterators(*this, h, [&result](map_type_iterator i) mutable { result.emplace_back(i); });
 			std::reverse(result.begin(), result.end());
 			return result;
 		}
@@ -415,53 +414,45 @@ namespace asio2::mqtt
 		// Increase the map size (total number of subscriptions stored)
 		inline void increase_map_size()
 		{
-			if (map_size == (std::numeric_limits<decltype(map_size)>::max)())
+			if (map_size_ == (std::numeric_limits<decltype(map_size_)>::max)())
 			{
 				throw_max_stored_topics();
 			}
 
-			++map_size;
+			++map_size_;
 		}
 
 		// Decrease the map size (total number of subscriptions stored)
 		inline void decrease_map_size()
 		{
-			ASIO2_ASSERT(map_size > 0);
-			--map_size;
+			ASIO2_ASSERT(map_size_ > 0);
+			--map_size_;
 		}
 
 		// Increase the number of subscriptions for this path
-		inline void increase_subscriptions(std::vector<map_type_iterator> const &path)
+		inline void increase_subscriptions(std::vector<map_type_iterator> const & entrys)
 		{
-			for (auto i : path)
+			for (auto i : entrys)
 			{
 				increase_count_storage(i->second.count);
 			}
 		}
 
-		subscription_map_base()
-		{
-			// Create the root node
-			root_node_id = generate_node_id();
-			root_key = path_entry_key(generate_node_id(), std::string_view());
-			map.emplace(root_key, path_entry(root_node_id, path_entry_key(), std::string_view()));
-		}
-
 	public:
 		// Return the number of elements in the tree
-		std::size_t internal_size() const { return map.size(); }
+		std::size_t internal_size() const { return map_.size(); }
 
 		// Return the number of registered topic filters
-		std::size_t size() const { return this->map_size; }
+		std::size_t size() const { return this->map_size_; }
 
 		// Lookup a topic filter
 		inline std::optional<handle> lookup(std::string_view topic_filter)
 		{
-			auto path = this->find_topic_filter(topic_filter);
-			if (path.empty())
+			auto entrys = this->find_topic_filter(topic_filter);
+			if (entrys.empty())
 				return std::optional<handle>();
 			else
-				return this->path_to_handle(std::move(path));
+				return this->path_to_handle(std::move(entrys));
 		}
 
 		// Get path of topic_filter
@@ -483,6 +474,18 @@ namespace asio2::mqtt
 
 			return result;
 		}
+
+	protected:
+		map_type       map_;
+
+		std::size_t    root_node_id_ = 0;
+		std::size_t    next_node_id_ = 0;
+
+		// Key and id of the root key
+		path_entry_key root_key_;
+
+		// Map size tracks the total number of subscriptions within the map
+		std::size_t    map_size_ = 0;
 	};
 
 	template<typename Value>
@@ -503,15 +506,15 @@ namespace asio2::mqtt
 			auto existing_subscription = this->find_topic_filter(topic_filter);
 			if (!existing_subscription.empty())
 			{
-				if (existing_subscription.back()->second.value)
+				if (existing_subscription.back()->second.container)
 					return std::make_pair(this->path_to_handle(std::move(existing_subscription)), false);
 
-				existing_subscription.back()->second.value.emplace(std::forward<V>(value));
+				existing_subscription.back()->second.container.emplace(std::forward<V>(value));
 				return std::make_pair(this->path_to_handle(std::move(existing_subscription)), true);
 			}
 
 			auto new_topic_filter = this->create_topic_filter(topic_filter);
-			new_topic_filter.back()->second.value = value;
+			new_topic_filter.back()->second.container = std::forward<V>(value);
 			this->increase_map_size();
 			return std::make_pair(this->path_to_handle(std::move(new_topic_filter)), true);
 		}
@@ -520,13 +523,13 @@ namespace asio2::mqtt
 		template <typename V>
 		void update(std::string_view topic_filter, V&& value)
 		{
-			auto path = this->find_topic_filter(topic_filter);
-			if (path.empty())
+			auto entrys = this->find_topic_filter(topic_filter);
+			if (entrys.empty())
 			{
 				this->throw_invalid_topic_filter();
 			}
 
-			path.back()->second.value.emplace(std::forward<V>(value));
+			entrys.back()->second.container.emplace(std::forward<V>(value));
 		}
 
 		template <typename V>
@@ -537,19 +540,19 @@ namespace asio2::mqtt
 			{
 				this->throw_invalid_topic_filter();
 			}
-			entry_iter->second.value.emplace(std::forward<V>(value));
+			entry_iter->second.container.emplace(std::forward<V>(value));
 		}
 
 		// Remove a value at the specified topic filter
 		std::size_t erase(std::string_view topic_filter)
 		{
-			auto path = this->find_topic_filter(topic_filter);
-			if (path.empty() || !path.back()->second.value)
+			auto entrys = this->find_topic_filter(topic_filter);
+			if (entrys.empty() || !entrys.back()->second.container)
 			{
 				return 0;
 			}
 
-			this->remove_topic_filter(path);
+			this->remove_topic_filter(entrys);
 			this->decrease_map_size();
 			return 1;
 		}
@@ -557,13 +560,13 @@ namespace asio2::mqtt
 		// Remove a value using a handle
 		std::size_t erase(handle const& h)
 		{
-			auto path = this->handle_to_iterators(h);
-			if (path.empty() || !path.back()->second.value)
+			auto entrys = this->handle_to_iterators(h);
+			if (entrys.empty() || !entrys.back()->second.container)
 			{
 				return 0;
 			}
 
-			this->remove_topic_filter(path);
+			this->remove_topic_filter(entrys);
 			this->decrease_map_size();
 			return 1;
 		}
@@ -595,7 +598,7 @@ namespace asio2::mqtt
 		using container_t = Container;
 
 		// Handle of an entry
-		using handle = typename subscription_map_base<Value>::handle;
+		using handle = typename subscription_map_base<Container>::handle;
 
 		using map_type = typename subscription_map_base<Container>::map_type;
 		using map_type_iterator       = typename subscription_map_base<Container>::map_type_iterator;
@@ -606,25 +609,25 @@ namespace asio2::mqtt
 		template <typename K, typename V>
 		inline std::pair<handle, bool> insert_or_assign(std::string_view topic_filter, K&& key, V&& value)
 		{
-			auto path = this->find_topic_filter(topic_filter);
-			if (path.empty())
+			auto entrys = this->find_topic_filter(topic_filter);
+			if (entrys.empty())
 			{
 				auto new_topic_filter = this->create_topic_filter(topic_filter);
-				new_topic_filter.back()->second.value.emplace(std::forward<K>(key), std::forward<V>(value));
+				new_topic_filter.back()->second.container.emplace(std::forward<K>(key), std::forward<V>(value));
 				this->increase_map_size();
 				return std::make_pair(this->path_to_handle(std::move(new_topic_filter)), true);
 			}
 			else
 			{
-				auto& subscription_set = path.back()->second.value;
+				auto& subscription_set = entrys.back()->second.container;
 
 				auto insert_result = subscription_set.insert_or_assign(std::forward<K>(key), std::forward<V>(value));
 				if (insert_result.second)
 				{
-					this->increase_subscriptions(path);
+					this->increase_subscriptions(entrys);
 					this->increase_map_size();
 				}
-				return std::make_pair(this->path_to_handle(std::move(path)), insert_result.second);
+				return std::make_pair(this->path_to_handle(std::move(entrys)), insert_result.second);
 			}
 		}
 
@@ -639,7 +642,7 @@ namespace asio2::mqtt
 				this->throw_invalid_handle();
 			}
 
-			auto& subscription_set = h_iter->second.value;
+			auto& subscription_set = h_iter->second.container;
 
 			auto insert_result = subscription_set.insert_or_assign(std::forward<K>(key), std::forward<V>(value));
 			if (insert_result.second)
@@ -662,7 +665,7 @@ namespace asio2::mqtt
 			}
 
 			// Remove the specified value
-			auto result = h_iter->second.value.erase(key);
+			auto result = h_iter->second.container.erase(key);
 			if (result)
 			{
 				std::vector<map_type_iterator> v = this->handle_to_iterators(h);
@@ -678,18 +681,18 @@ namespace asio2::mqtt
 		inline std::size_t erase(std::string_view topic_filter, Key const& key)
 		{
 			// Find the topic filter in the map
-			auto path = this->find_topic_filter(topic_filter);
-			if (path.empty())
+			auto entrys = this->find_topic_filter(topic_filter);
+			if (entrys.empty())
 			{
 				return 0;
 			}
 
 			// Remove the specified value
-			auto result = path.back()->second.value.erase(key);
+			auto result = entrys.back()->second.container.erase(key);
 			if (result)
 			{
 				this->decrease_map_size();
-				this->remove_topic_filter(path);
+				this->remove_topic_filter(entrys);
 			}
 
 			return result;
@@ -728,8 +731,8 @@ namespace asio2::mqtt
 			for (auto const& i : this->get_map())
 			{
 				out << "(" << i.first.first << ", " << i.first.second << "): id: "
-					<< i.second.id << ", size: " << i.second.value.size()
-					<< ", value: " << i.second.count.value << std::endl;
+					<< i.second.id << ", size: " << i.second.container.size()
+					<< ", value: " << i.second.count.value() << std::endl;
 			}
 		}
 	};

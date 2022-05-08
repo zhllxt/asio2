@@ -86,7 +86,7 @@ int main()
 			// and the return value is 0(success) or -1(failure).
 			if (!asio2::get_last_error())
 			{
-				std::size_t sent_bytes;
+				[[maybe_unused]] std::size_t sent_bytes;
 
 				sent_bytes = client.send(p1);
 				ASIO2_ASSERT(asio2::get_last_error() == asio::error::in_progress && sent_bytes == 0);
@@ -102,7 +102,7 @@ int main()
 			}
 			else
 			{
-				std::size_t sent_bytes;
+                [[maybe_unused]] std::size_t sent_bytes;
 
 				sent_bytes = client.send(p1);
 				ASIO2_ASSERT(asio2::get_last_error() == asio::error::not_connected && sent_bytes == (std::size_t)-1);

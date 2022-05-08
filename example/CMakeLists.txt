@@ -90,6 +90,16 @@ set_property (GLOBAL PROPERTY USE_FOLDERS ON)
 #    set(ASIO2_LIBS_DIR ${ASIO2_ROOT_DIR}/lib/x86)
 #endif(CMAKE_CL_64)
 
+
+# ---------------------------------------------------------------------------------------
+# Set default build to debug
+# ---------------------------------------------------------------------------------------
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "Choose Release or Debug" FORCE)
+    message("CMAKE_BUILD_TYPE is not set, Set default build to Debug.")
+endif()
+message("CMAKE_BUILD_TYPE = ${CMAKE_BUILD_TYPE}")
+
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
     set(ASIO2_LIBS_DIR ${ASIO2_ROOT_DIR}/lib/x64)
     set(ASIO2_EXES_DIR ${ASIO2_ROOT_DIR}/example/bin/x64)
@@ -107,7 +117,7 @@ IF (CMAKE_SYSTEM_NAME MATCHES "Linux")
 	set(GENERAL_LIBS -lpthread -lrt -ldl stdc++fs)
 ELSEIF (CMAKE_SYSTEM_NAME MATCHES "Windows")
 	set(OPENSSL_LIBS "libssl.lib;libcrypto.lib;Crypt32.lib;")
-	set(GENERAL_LIBS "")
+	set(GENERAL_LIBS "ws2_32;mswsock;")
 ELSEIF (CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
 	set(OPENSSL_LIBS libssl.a libcrypto.a)
 	set(GENERAL_LIBS -lpthread -lrt -ldl stdc++fs)
@@ -117,20 +127,12 @@ ELSE ()
 ENDIF (CMAKE_SYSTEM_NAME MATCHES "Linux")
 
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY         ${ASIO2_EXES_DIR})
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG   ${ASIO2_EXES_DIR})
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${ASIO2_EXES_DIR})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY         ${ASIO2_EXES_DIR}/${CMAKE_BUILD_TYPE})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG   ${ASIO2_EXES_DIR}/${CMAKE_BUILD_TYPE})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${ASIO2_EXES_DIR}/${CMAKE_BUILD_TYPE})
 
 set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "" FORCE)
 
-
-
-# ---------------------------------------------------------------------------------------
-# Set default build to debug
-# ---------------------------------------------------------------------------------------
-if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "Choose Release or Debug" FORCE)
-endif()
 
 # ---------------------------------------------------------------------------------------
 # Compiler config
@@ -187,6 +189,12 @@ else()
 endif()
 
 
+# https://stackoverflow.com/questions/44705845/file-too-big-compiling-on-cygwin-g
+if(MINGW OR CYGWIN)
+  add_definitions(-O3)
+endif()
+
+
 #include_directories (/usr/local/include) # for boost header file include
 include_directories (${ASIO2_ROOT_DIR}/3rd)
 include_directories (${ASIO2_ROOT_DIR}/include)
@@ -214,5 +222,8 @@ add_subdirectory (${ASIO2_ROOT_DIR}/example/shared_iopool    asio2_example_proje
 add_subdirectory (${ASIO2_ROOT_DIR}/example/timer            asio2_example_project/timer            )
 add_subdirectory (${ASIO2_ROOT_DIR}/example/inherit          asio2_example_project/inherit          )
 
+if(MINGW OR CYGWIN)
+# no mingw compiled openssl
+else()
 add_subdirectory (${ASIO2_ROOT_DIR}/example/ssl              asio2_example_project/ssl              )
-
+endif()

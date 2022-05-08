@@ -21,4 +21,6 @@ rmdir /s /q Release
 rmdir /s /q out
 rmdir /s /q obj
 rmdir /s /q build
-
+rmdir /s /q cmake-build-debug
+rmdir /s /q cmake-build-release
+rmdir /s /q .idea

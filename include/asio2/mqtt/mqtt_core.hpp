@@ -178,9 +178,9 @@ namespace asio2::mqtt
 	 */
 	enum class qos_type : std::uint8_t
 	{
-		at_most_once  = 0,
-		at_least_once = 1,
-		exactly_once  = 2,
+		at_most_once  = 0, // At most once delivery
+		at_least_once = 1, // At least once delivery
+		exactly_once  = 2, // Exactly once delivery
 	};
 
 	/**

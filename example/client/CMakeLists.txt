@@ -11,6 +11,8 @@
 # export CC=/usr/local/bin/gcc
 # export CXX=/usr/local/bin/g++
 #
+# cmake -G "Visual Studio 15 Win64" .
+#
 
 cmake_minimum_required (VERSION 2.8)
 
@@ -90,6 +92,16 @@ set_property (GLOBAL PROPERTY USE_FOLDERS ON)
 #    set(ASIO2_LIBS_DIR ${ASIO2_ROOT_DIR}/lib/x86)
 #endif(CMAKE_CL_64)
 
+
+# ---------------------------------------------------------------------------------------
+# Set default build to debug
+# ---------------------------------------------------------------------------------------
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "Choose Release or Debug" FORCE)
+    message("CMAKE_BUILD_TYPE is not set, Set default build to Debug.")
+endif()
+message("CMAKE_BUILD_TYPE = ${CMAKE_BUILD_TYPE}")
+
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
     set(ASIO2_LIBS_DIR ${ASIO2_ROOT_DIR}/lib/x64)
     set(ASIO2_EXES_DIR ${ASIO2_ROOT_DIR}/example/bin/x64)
@@ -107,7 +119,7 @@ IF (CMAKE_SYSTEM_NAME MATCHES "Linux")
 	set(GENERAL_LIBS -lpthread -lrt -ldl stdc++fs)
 ELSEIF (CMAKE_SYSTEM_NAME MATCHES "Windows")
 	set(OPENSSL_LIBS "libssl.lib;libcrypto.lib;Crypt32.lib;")
-	set(GENERAL_LIBS "")
+	set(GENERAL_LIBS "ws2_32;mswsock;")
 ELSEIF (CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
 	set(OPENSSL_LIBS libssl.a libcrypto.a)
 	set(GENERAL_LIBS -lpthread -lrt -ldl stdc++fs)
@@ -117,20 +129,12 @@ ELSE ()
 ENDIF (CMAKE_SYSTEM_NAME MATCHES "Linux")
 
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY         ${ASIO2_EXES_DIR})
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG   ${ASIO2_EXES_DIR})
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${ASIO2_EXES_DIR})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY         ${ASIO2_EXES_DIR}/${CMAKE_BUILD_TYPE})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG   ${ASIO2_EXES_DIR}/${CMAKE_BUILD_TYPE})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${ASIO2_EXES_DIR}/${CMAKE_BUILD_TYPE})
 
 set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "" FORCE)
 
-
-
-# ---------------------------------------------------------------------------------------
-# Set default build to debug
-# ---------------------------------------------------------------------------------------
-if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "Choose Release or Debug" FORCE)
-endif()
 
 # ---------------------------------------------------------------------------------------
 # Compiler config
@@ -172,7 +176,7 @@ if (MSVC)
     set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /std:c++17 /Zi /Ob2 /Oi /Ot /GL /MT")
 
     set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SAFESEH:NO")
-    set (CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /LTCG")
+    set (CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /LTCG:incremental")
 
 else()
     set (THREADS_PREFER_PTHREAD_FLAG ON)
@@ -187,8 +191,17 @@ else()
 endif()
 
 
+# https://stackoverflow.com/questions/44705845/file-too-big-compiling-on-cygwin-g
+if(MINGW OR CYGWIN)
+  add_definitions(-O3)
+endif()
+
+
+#include_directories (/usr/local/include) # for boost header file include
 include_directories (${ASIO2_ROOT_DIR}/3rd)
 include_directories (${ASIO2_ROOT_DIR}/include)
+
+#link_directories    (/usr/local/lib)     # for boost library file include
 
 
 file (GLOB_RECURSE  ASIO2_FILES  ${ASIO2_ROOT_DIR}/include/asio2/*.*)
@@ -206,7 +219,11 @@ add_subdirectory (${ASIO2_ROOT_DIR}/example/udp/client           asio2_client_ex
 add_subdirectory (${ASIO2_ROOT_DIR}/example/websocket/client     asio2_client_example_project/websocket_client)
 add_subdirectory (${ASIO2_ROOT_DIR}/example/mqtt/client          asio2_client_example_project/mqtt_client)
 
+if(MINGW OR CYGWIN)
+# no mingw compiled openssl
+else()
 add_subdirectory (${ASIO2_ROOT_DIR}/example/ssl/http/client      asio2_client_example_project/ssl_http_client     )
 add_subdirectory (${ASIO2_ROOT_DIR}/example/ssl/rpc/client       asio2_client_example_project/ssl_rpc_client      )
 add_subdirectory (${ASIO2_ROOT_DIR}/example/ssl/tcp/client       asio2_client_example_project/ssl_tcp_client      )
 add_subdirectory (${ASIO2_ROOT_DIR}/example/ssl/websocket/client asio2_client_example_project/ssl_websocket_client)
+endif()

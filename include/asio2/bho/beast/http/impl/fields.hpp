@@ -699,7 +699,9 @@ find(string_view name) const ->
     auto const it = set_.find(
         name);
     if(it == set_.end())
+    {
         return list_.end();
+    }
 	BHO_ASSERT(std::next(list_.begin(), std::distance(set_.begin(), it))->self_ == it->second->self_);
 	return std::next(list_.begin(), std::distance(set_.begin(), it));
 }

@@ -368,32 +368,13 @@ namespace asio2::detail
 		inline self& fill_file(std::filesystem::path path,
 			http::status result = http::status::ok, unsigned version = 11)
 		{
-			path.make_preferred();
+			// if you want to build a absolute path by youself and passed it to fill_file function,
+			// call set_root_directory("") first, then passed you absolute path to fill_file is ok.
 
-			std::filesystem::path filepath;
-
-			// C:/site/css/main.css
-			if (path.has_root_name())
-			{
-				filepath = std::move(path);
-			}
-			else
-			{
-				// /site/css/main.css
-				// on windows it is relative, on posix it is absolute
-				std::error_code ec;
-				if (path.is_absolute() && std::filesystem::exists(path, ec))
-				{
-					filepath = std::move(path);
-				}
-				else
-				{
-					// Build the path to the requested file
-					filepath = this->root_directory_;
-					filepath.make_preferred();
-					filepath /= path.relative_path();
-				}
-			}
+			// Build the path to the requested file
+			std::filesystem::path filepath = this->root_directory_;
+			filepath.make_preferred();
+			filepath /= path.make_preferred().relative_path();
 
 			// Attempt to open the file
 			beast::error_code ec;

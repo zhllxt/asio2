@@ -83,4 +83,7 @@
 #			include <SDKDDKVer.h>
 #		endif
 #	endif
+#	if __has_include(<crtdbg.h>)
+#		include <crtdbg.h>
+#	endif
 #endif
