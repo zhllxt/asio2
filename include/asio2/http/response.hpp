@@ -372,9 +372,18 @@ namespace asio2::detail
 			// call set_root_directory("") first, then passed you absolute path to fill_file is ok.
 
 			// Build the path to the requested file
-			std::filesystem::path filepath = this->root_directory_;
-			filepath.make_preferred();
-			filepath /= path.make_preferred().relative_path();
+			std::filesystem::path filepath;
+			if (this->root_directory_.empty())
+			{
+				filepath = std::move(path);
+				filepath.make_preferred();
+			}
+			else
+			{
+				filepath = this->root_directory_;
+				filepath.make_preferred();
+				filepath /= path.make_preferred().relative_path();
+			}
 
 			// Attempt to open the file
 			beast::error_code ec;
