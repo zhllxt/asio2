@@ -1,3 +1,4 @@
+#include "unit_test.hpp"
 #include <filesystem>
 #include <iostream>
 #include <asio2/asio2.hpp>
@@ -6,14 +7,12 @@ struct aop_log
 {
 	bool before(http::web_request& req, http::web_response& rep)
 	{
-		asio2::ignore_unused(rep);
-		printf("aop_log before %s\n", req.method_string().data());
+		asio2::ignore_unused(req, rep);
 		return true;
 	}
 	bool after(std::shared_ptr<asio2::http_session>& session_ptr, http::web_request& req, http::web_response& rep)
 	{
 		asio2::ignore_unused(session_ptr, req, rep);
-		printf("aop_log after\n");
 		return true;
 	}
 };
@@ -23,56 +22,41 @@ struct aop_check
 	bool before(std::shared_ptr<asio2::http_session>& session_ptr, http::web_request& req, http::web_response& rep)
 	{
 		asio2::ignore_unused(session_ptr, req, rep);
-		printf("aop_check before\n");
 		return true;
 	}
 	bool after(http::web_request& req, http::web_response& rep)
 	{
 		asio2::ignore_unused(req, rep);
-		printf("aop_check after\n");
 		return true;
 	}
 };
 
-int main()
+void http_test()
 {
-	// try open localhost:8080 in your browser
-	std::string_view host = "0.0.0.0";
-	std::string_view port = "8080";
+	ASIO2_TEST_BEGIN_LOOP(test_loop_times);
 
 	asio2::http_server server;
 
 	server.support_websocket(true);
 
 	// set the root directory, here is:  /asio2/example/wwwroot
-	std::filesystem::path root = std::filesystem::current_path().parent_path().parent_path().append("wwwroot");
+	std::filesystem::path root = std::filesystem::current_path()
+		.parent_path().parent_path().parent_path()
+		.append("example").append("wwwroot");
 	server.set_root_directory(std::move(root));
 
 	server.bind_recv([&](http::web_request& req, http::web_response& rep)
 	{
 		asio2::ignore_unused(req, rep);
-		// all http and websocket request will goto here first.
-		std::cout << req.path() << req.query() << std::endl;
 	}).bind_connect([](auto & session_ptr)
 	{
-		printf("client enter : %s %u %s %u\n",
-			session_ptr->remote_address().c_str(), session_ptr->remote_port(),
-			session_ptr->local_address().c_str(), session_ptr->local_port());
 		//session_ptr->set_response_mode(asio2::response_mode::manual);
 	}).bind_disconnect([](auto & session_ptr)
 	{
-		printf("client leave : %s %u %s\n",
-			session_ptr->remote_address().c_str(), session_ptr->remote_port(),
-			asio2::last_error_msg().c_str());
 	}).bind_start([&]()
 	{
-		printf("start http server : %s %u %d %s\n",
-			server.listen_address().c_str(), server.listen_port(),
-			asio2::last_error_val(), asio2::last_error_msg().c_str());
 	}).bind_stop([&]()
 	{
-		printf("stop http server : %d %s\n",
-			asio2::last_error_val(), asio2::last_error_msg().c_str());
 	});
 
 	server.bind<http::verb::get, http::verb::post>("/", [](http::web_request& req, http::web_response& rep)
@@ -104,16 +88,12 @@ int main()
 
 		for (auto it = req.begin(); it != req.end(); ++it)
 		{
-			std::cout << it->name_string() << " " << it->value() << std::endl;
 		}
 
 		auto mpbody = req.multipart();
 
 		for (auto it = mpbody.begin(); it != mpbody.end(); ++it)
 		{
-			std::cout
-				<< "filename:" << it->filename() << " name:" << it->name()
-				<< " content_type:" << it->content_type() << std::endl;
 		}
 
 		if (req.has_multipart())
@@ -155,9 +135,7 @@ int main()
 	server.bind<http::verb::get>("/del_user",
 		[](std::shared_ptr<asio2::http_session>& session_ptr, http::web_request& req, http::web_response& rep)
 	{
-		asio2::ignore_unused(req, rep);
-
-		printf("del_user ip : %s\n", session_ptr->remote_address().data());
+		asio2::ignore_unused(session_ptr, req, rep);
 
 		rep.fill_page(http::status::ok, "del_user successed.");
 
@@ -188,22 +166,16 @@ int main()
 
 	}, aop_log{}, aop_check{});
 
+	bool ws_open_flag = false, ws_close_flag = false;
 	server.bind("/ws", websocket::listener<asio2::http_session>{}.
 		on("message", [](std::shared_ptr<asio2::http_session>& session_ptr, std::string_view data)
 	{
-		printf("ws msg : %zu %.*s\n", data.size(), (int)data.size(), data.data());
-
 		session_ptr->async_send(data);
 
-	}).on("open", [](std::shared_ptr<asio2::http_session>& session_ptr)
+	}).on("open", [&](std::shared_ptr<asio2::http_session>& session_ptr)
 	{
-		printf("ws open\n");
-
-		// print the websocket request header.
-		std::cout << session_ptr->request() << std::endl;
-
+		ws_open_flag = true;
 		session_ptr->post([]() {}, std::chrono::seconds(3));
-
 		// how to set custom websocket response data : 
 		session_ptr->ws_stream().set_option(websocket::stream_base::decorator(
 			[](websocket::response_type& rep)
@@ -211,24 +183,16 @@ int main()
 			rep.set(http::field::authorization, " http-server-coro");
 		}));
 
-	}).on("close", [](std::shared_ptr<asio2::http_session>& session_ptr)
+	}).on("close", [&](std::shared_ptr<asio2::http_session>& session_ptr)
 	{
+		ws_close_flag = true;
 		asio2::ignore_unused(session_ptr);
-
-		printf("ws close\n");
-
 	}).on_ping([](std::shared_ptr<asio2::http_session>& session_ptr)
 	{
 		asio2::ignore_unused(session_ptr);
-
-		printf("ws ping\n");
-
 	}).on_pong([](std::shared_ptr<asio2::http_session>& session_ptr)
 	{
 		asio2::ignore_unused(session_ptr);
-
-		printf("ws pong\n");
-
 	}));
 
 	server.bind_not_found([](http::web_request& req, http::web_response& rep)
@@ -238,41 +202,103 @@ int main()
 		rep.fill_page(http::status::not_found);
 	});
 
-	server.start(host, port);
+	server.start("127.0.0.1", 8080);
 
-	while (std::getchar() != '\n'); // press enter to exit this program
+	asio2::http_client::execute("127.0.0.1", "8080", "/", std::chrono::seconds(5));
 
-	return 0;
+	asio2::http_client::execute("127.0.0.1", "8080", "/defer");
+
+	asio2::http_client http_client;
+
+	http_client.bind_recv([&](http::web_request& req, http::web_response& rep)
+	{
+		// convert the response body to string
+		std::stringstream ss;
+		ss << rep.body();
+
+		// Remove all fields
+		req.clear();
+
+		req.set(http::field::user_agent, "Chrome");
+		req.set(http::field::content_type, "text/html");
+
+		req.method(http::verb::get);
+		req.keep_alive(true);
+		req.target("/get_user?name=abc");
+		req.body() = "Hello World.";
+		req.prepare_payload();
+
+		http_client.async_send(std::move(req));
+
+	}).bind_connect([&]()
+	{
+		// connect success, send a request.
+		if (!asio2::get_last_error())
+		{
+			const char * msg = "GET / HTTP/1.1\r\n\r\n";
+			http_client.async_send(msg);
+		}
+	});
+
+	bool http_client_ret = http_client.start("127.0.0.1", 8080);
+	ASIO2_CHECK(http_client_ret);
+
+	asio2::ws_client ws_client;
+
+	ws_client.set_connect_timeout(std::chrono::seconds(5));
+
+	ws_client.bind_init([&]()
+	{
+		// how to set custom websocket request data : 
+		ws_client.ws_stream().set_option(websocket::stream_base::decorator(
+			[](websocket::request_type& req)
+		{
+			req.set(http::field::authorization, " websocket-authorization");
+		}));
+
+	}).bind_connect([&]()
+	{
+		std::string s;
+		s += '<';
+		int len = 128 + std::rand() % 512;
+		for (int i = 0; i < len; i++)
+		{
+			s += (char)((std::rand() % 26) + 'a');
+		}
+		s += '>';
+
+		ws_client.async_send(std::move(s));
+
+	}).bind_upgrade([&]()
+	{
+		// this send will be failed, because connection is not fully completed
+		ws_client.async_send("abc", []()
+		{
+			ASIO2_CHECK(asio2::get_last_error());
+		});
+
+	}).bind_recv([&](std::string_view data)
+	{
+		ws_client.async_send(data);
+	});
+
+	bool ws_client_ret = ws_client.start("127.0.0.1", 8080, "/ws");
+
+	ASIO2_CHECK(ws_client_ret);
+
+	ASIO2_CHECK(ws_open_flag);
+
+	std::this_thread::sleep_for(std::chrono::milliseconds(20 + std::rand() % 50));
+
+	ws_client.stop();
+	ASIO2_CHECK(ws_close_flag);
+
+	ASIO2_TEST_END_LOOP;
 }
 
-//-------------------------------------------------------------------
-// http request protocol sample
-//-------------------------------------------------------------------
 
-//GET / HTTP/1.1
-//Host: 127.0.0.1:8443
-//Connection: keep-alive
-//Cache-Control: max-age=0
-//User-Agent: Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36
-//Upgrade-Insecure-Requests: 1
-//Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8
-//Accept-Encoding: gzip, deflate, br
-//Accept-Language: zh-CN,zh;q=0.8
-
-//-------------------------------------------------------------------
-// http response protocol sample
-//-------------------------------------------------------------------
-
-//HTTP/1.1 302 Found
-//Server: openresty
-//Date: Fri, 10 Nov 2017 03:11:50 GMT
-//Content-Type: text/html; charset=utf-8
-//Transfer-Encoding: chunked
-//Connection: keep-alive
-//Keep-Alive: timeout=20
-//Location: http://bbs.csdn.net/home
-//Cache-Control: no-cache
-//
-//5a
-//<html><body>You are being <a href="http://bbs.csdn.net/home">redirected</a>.</body></html>
-//0
+ASIO2_TEST_SUITE
+(
+	"http",
+	ASIO2_TEST_CASE(http_test)
+)

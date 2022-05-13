@@ -1,5 +1,3 @@
-//#include <asio2/asio2.hpp>
-#include <iostream>
 #include <asio2/tcp/tcp_server.hpp>
 
 // how to use the match_role, see : https://blog.csdn.net/zhllxt/article/details/104772948
@@ -65,19 +63,15 @@ namespace boost::asio
 
 int main()
 {
-#if defined(WIN32) || defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS_)
-	// Detected memory leaks on windows system
-	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-#endif
-
 	std::string_view host = "0.0.0.0";
 	std::string_view port = "8026";
 
 	asio2::tcp_server server;
 
-	server.bind_recv([&](auto & session_ptr, std::string_view s)
+	server.bind_recv([&](auto & session_ptr, std::string_view data)
 	{
-		if (s.size() == 0)
+		// how to close the illegal client, see : https://blog.csdn.net/zhllxt/article/details/104772948
+		if (data.size() == 0)
 		{
 			printf("close illegal client : %s %u\n",
 				session_ptr->remote_address().c_str(), session_ptr->remote_port());
@@ -85,35 +79,18 @@ int main()
 			return;
 		}
 
-		printf("recv : %u %.*s\n", (unsigned)s.size(), (int)s.size(), s.data());
+		printf("recv : %zu %.*s\n", data.size(), (int)data.size(), data.data());
 
-		// force one packet data to be sent twice, and the client will recvd compeleted packet
-		session_ptr->async_send(s.substr(0, s.size() / 2), []() {});
+		// this is just a demo to show :
+		// even if we force one packet data to be sent twice,
+		// but the client must recvd whole packet once
+		session_ptr->async_send(data.substr(0, data.size() / 2));
 		std::this_thread::sleep_for(std::chrono::milliseconds(10));
-		session_ptr->async_send(s.substr(s.size() / 2), [](std::size_t bytes_sent) {std::ignore = bytes_sent; });
+		session_ptr->async_send(data.substr(data.size() / 2));
 
-		//session_ptr->async_send(s, [](std::size_t bytes_sent) {});
+		// of course you can sent the whole data once
+		//session_ptr->async_send(data);
 
-	}).bind_connect([&](auto & session_ptr)
-	{
-		session_ptr->no_delay(true);
-
-		session_ptr->start_timer(1, std::chrono::seconds(3), []()
-		{
-			printf("session timer is running....\n");
-		});
-
-		//session_ptr->stop(); // You can close the connection directly here.
-
-		printf("client enter : %s %u %s %u\n",
-			session_ptr->remote_address().c_str(), session_ptr->remote_port(),
-			session_ptr->local_address().c_str(), session_ptr->local_port());
-
-	}).bind_disconnect([&](auto & session_ptr)
-	{
-		printf("client leave : %s %u %s\n",
-			session_ptr->remote_address().c_str(),
-			session_ptr->remote_port(), asio2::last_error_msg().c_str());
 	}).bind_start([&]()
 	{
 		printf("start tcp server match role : %s %u %d %s\n",
@@ -121,9 +98,9 @@ int main()
 			asio2::last_error_val(), asio2::last_error_msg().c_str());
 	}).bind_stop([&]()
 	{
-		printf("stop : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
+		printf("stop tcp server match role : %d %s\n",
+			asio2::last_error_val(), asio2::last_error_msg().c_str());
 	});
-
 
 	server.start(host, port, match_role('#'));
 

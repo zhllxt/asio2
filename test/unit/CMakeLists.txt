@@ -8,3 +8,32 @@
 # (See accompanying file LICENSE or see <http://www.gnu.org/licenses/>)
 #
 
+#GroupSources (include/asio2 "/")
+#GroupSources (3rd/asio "/")
+
+aux_source_directory(. SRC_FILES)
+
+source_group("" FILES ${SRC_FILES})
+
+function (AddExecutableTarget InputTargetName)
+    set(TARGET_NAME ${InputTargetName})
+	link_directories(${ASIO2_LIBS_DIR})
+    add_executable (${TARGET_NAME} ${TARGET_NAME}.cpp)
+    set_property(TARGET ${TARGET_NAME} PROPERTY FOLDER "unit")
+    set_target_properties(${TARGET_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY ${ASIO2_EXES_DIR})
+	target_link_libraries(${TARGET_NAME} ${OPENSSL_LIBS})
+    target_link_libraries(${TARGET_NAME} ${CMAKE_THREAD_LIBS_INIT})
+    target_link_libraries(${TARGET_NAME} ${GENERAL_LIBS})
+	if (MSVC)
+      set_target_properties(${TARGET_NAME} PROPERTIES LINK_FLAGS "/ignore:4099")
+    endif()
+endfunction()
+
+AddExecutableTarget(ini)
+AddExecutableTarget(md5)
+AddExecutableTarget(rpc)
+AddExecutableTarget(timer)
+AddExecutableTarget(http)
+AddExecutableTarget(shared_iopool)
+
+AddExecutableTarget(https)

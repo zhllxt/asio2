@@ -1,4 +1,6 @@
 #include <asio2/asio2.hpp>
+#include <asio2/tcp/tcp_server.hpp>
+#include <asio2/tcp/tcp_client.hpp>
 
 int main()
 {
@@ -50,6 +52,93 @@ int main()
 	{
 		printf("timer 6, loop 6 times, delay 6 seconds\n");
 	});
+
+	// Start an asynchronous task with delay
+	timer.post([&]()
+	{
+		ASIO2_ASSERT(timer.io().strand().running_in_this_thread());
+		printf("execute some task after 3 seconds for timer\n");
+	}, std::chrono::seconds(3));
+
+	//---------------------------------------------------------------------------------------------
+
+	asio2::tcp_server server;
+
+	// test timer
+	server.start_timer(1, std::chrono::seconds(1), [&]()
+	{
+		ASIO2_ASSERT(server.io().strand().running_in_this_thread());
+		printf("execute timer for tcp server \n");
+	});
+
+	// Start an asynchronous task with delay
+	server.post([&]()
+	{
+		ASIO2_ASSERT(server.io().strand().running_in_this_thread());
+		printf("execute some task after 3 seconds\n");
+	}, std::chrono::seconds(3));
+
+	// Start a synchronization task
+	server.dispatch([&]()
+	{
+		ASIO2_ASSERT(server.io().strand().running_in_this_thread());
+		printf("execute some task in server's io_context thread\n");
+	});
+
+	server.bind_connect([&](auto & session_ptr)
+	{
+		session_ptr->post([session_ptr]()
+		{
+			printf("execute some task after 3 seconds, session key : %zu\n", session_ptr->hash_key());
+		}, std::chrono::seconds(3));
+
+		session_ptr->start_timer(1, 1000, 5, [session_ptr]()
+		{
+			printf("execute timer for 5 times, session key : %zu\n", session_ptr->hash_key());
+		});
+	});
+
+	server.start("127.0.0.1", 3990);
+
+	//---------------------------------------------------------------------------------------------
+
+	asio2::tcp_client client;
+
+	std::shared_ptr<asio2::async_event> evt_ptr = client.post_event([&]()
+	{
+		ASIO2_ASSERT(client.io().strand().running_in_this_thread());
+		printf("execute manual event for tcp client \n");
+	});
+
+	// test timer
+	client.start_timer(1, std::chrono::seconds(1), 10, [&, evt_ptr]()
+	{
+		ASIO2_ASSERT(client.io().strand().running_in_this_thread());
+		printf("execute timer 10 times for tcp client \n");
+
+		static int counter = 0;
+		if (counter++ > 5)
+		{
+			client.stop_timer(1);
+			evt_ptr->notify();
+		}
+	});
+
+	// Start an asynchronous task with delay
+	client.post([&]()
+	{
+		ASIO2_ASSERT(client.io().strand().running_in_this_thread());
+		printf("execute some task immediately for tcp client\n");
+	});
+
+	// Start a synchronization task
+	client.dispatch([&]()
+	{
+		ASIO2_ASSERT(client.io().strand().running_in_this_thread());
+		printf("execute some task in client's io_context thread\n");
+	});
+
+	client.start("127.0.0.1", 3990);
 
 	while (std::getchar() != '\n');
 

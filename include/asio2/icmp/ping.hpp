@@ -229,15 +229,19 @@ namespace asio2::detail
 		}
 
 	public:
+		/**
+		 * @function : sync ping the host, and return the response directly.
+		 * if some error occurs, call asio2::get_last_error(); to get the error info.
+		 */
 		template<class Rep, class Period>
-		static inline icmp_rep execute(std::string_view host, std::chrono::duration<Rep, Period> timeout,
-			std::string body, error_code& ec)
+		static inline icmp_rep execute(
+			std::string_view host, std::chrono::duration<Rep, Period> timeout, std::string body)
 		{
 			icmp_rep rep;
 			try
 			{
-				// First assign default value timed_out to ec
-				ec = asio::error::timed_out;
+				// First assign default value timed_out to last error
+				set_last_error(asio::error::timed_out);
 
 				// The io_context is required for all I/O
 				asio::io_context ioc;
@@ -263,7 +267,7 @@ namespace asio2::detail
 				resolver.async_resolve(host, "",
 				[&](const error_code& ec1, const asio::ip::icmp::resolver::results_type& endpoints) mutable
 				{
-					if (ec1) { ec = ec1; return; }
+					if (ec1) { set_last_error(ec1); return; }
 
 					for (auto& dest : endpoints)
 					{
@@ -294,11 +298,7 @@ namespace asio2::detail
 						// Create an ICMP header for an echo request.
 						echo_request.type(icmp_header::echo_request);
 						echo_request.code(0);
-					#if defined(WIN32) || defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS_)
-						id = static_cast<unsigned short>(::GetCurrentProcessId());
-					#else
-						id = static_cast<unsigned short>(::getpid());
-					#endif
+						id = (unsigned short)(std::size_t(guarder.get()));
 						echo_request.identifier(id);
 						auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
 							std::chrono::steady_clock::now().time_since_epoch()).count();
@@ -315,7 +315,7 @@ namespace asio2::detail
 						socket.async_send_to(request_buffer.data(), dest, [&, guarder = std::move(guarder)]
 						(const error_code& ec2, std::size_t) mutable
 						{
-							if (ec2) { ec = ec2; return; }
+							if (ec2) { set_last_error(ec2); return; }
 
 							// Discard any data already in the buffer.
 							reply_buffer.consume(reply_buffer.size());
@@ -326,7 +326,7 @@ namespace asio2::detail
 							socket.async_receive(reply_buffer.prepare(length), [&, guarder = std::move(guarder)]
 							(const error_code& ec3, std::size_t bytes_recvd) mutable
 							{
-								ec = ec3;
+								set_last_error(ec3);
 
 								// The actual number of bytes received is committed to the buffer so that we
 								// can extract it using a std::istream object.
@@ -361,47 +361,29 @@ namespace asio2::detail
 			}
 			catch (system_error & e)
 			{
-				ec = e.code();
+				set_last_error(e);
 			}
 
 			return rep;
 		}
 
-		template<class Rep, class Period>
-		static inline icmp_rep execute(std::string_view host, std::chrono::duration<Rep, Period> timeout, std::string body)
-		{
-			error_code ec;
-			icmp_rep rep = execute(host, timeout, std::move(body), ec);
-			asio::detail::throw_error(ec);
-			return rep;
-		}
-
+		/**
+		 * @function : sync ping the host, and return the response directly.
+		 * if some error occurs, call asio2::get_last_error(); to get the error info.
+		 */
 		template<class Rep, class Period>
 		static inline icmp_rep execute(std::string_view host, std::chrono::duration<Rep, Period> timeout)
 		{
-			error_code ec;
-			icmp_rep rep = execute(host, timeout, R"("Hello!" from Asio ping.)", ec);
-			asio::detail::throw_error(ec);
-			return rep;
+			return execute(host, timeout, R"("Hello!" from Asio ping.)");
 		}
 
+		/**
+		 * @function : sync ping the host, and return the response directly.
+		 * if some error occurs, call asio2::get_last_error(); to get the error info.
+		 */
 		static inline icmp_rep execute(std::string_view host)
 		{
-			error_code ec;
-			icmp_rep rep = execute(host, std::chrono::seconds(3), R"("Hello!" from Asio ping.)", ec);
-			asio::detail::throw_error(ec);
-			return rep;
-		}
-
-		static inline icmp_rep execute(std::string_view host, error_code& ec)
-		{
-			return execute(host, std::chrono::seconds(3), R"("Hello!" from Asio ping.)", ec);
-		}
-
-		template<class Rep, class Period>
-		static inline icmp_rep execute(std::string_view host, std::chrono::duration<Rep, Period> timeout, error_code& ec)
-		{
-			return execute(host, timeout, R"("Hello!" from Asio ping.)", ec);
+			return execute(host, std::chrono::milliseconds(icmp_execute_timeout), R"("Hello!" from Asio ping.)");
 		}
 
 	public:
@@ -708,8 +690,6 @@ namespace asio2::detail
 				return false;
 			}
 
-			this->io().regobj(this);
-
 			// use promise to get the result of async accept
 			std::promise<error_code> promise;
 			std::future<error_code> future = promise.get_future();
@@ -737,6 +717,8 @@ namespace asio2::detail
 				try
 				{
 					clear_last_error();
+
+					this->io().regobj(this);
 
 				#if defined(ASIO2_ENABLE_LOG)
 					this->is_stop_called_ = false;
@@ -1157,8 +1139,8 @@ namespace asio2::detail
 		std::size_t                                 total_recv_{ 0 };
 		std::chrono::steady_clock::duration         total_time_{ 0 };
 
-		std::chrono::steady_clock::duration         timeout_  = std::chrono::seconds(3);
-		std::chrono::steady_clock::duration         interval_ = std::chrono::seconds(1);
+		std::chrono::steady_clock::duration         timeout_  = std::chrono::milliseconds(icmp_execute_timeout);
+		std::chrono::steady_clock::duration         interval_ = std::chrono::milliseconds(1000);
 		std::chrono::steady_clock::time_point       time_sent_;
 
 	#if defined(ASIO2_ENABLE_LOG)

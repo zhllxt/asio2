@@ -39,37 +39,24 @@ namespace boost::beast::http
 		{
 			std::memset((void*)(&parser_), 0, sizeof(http::parses::http_parser_url));
 
-			if (http::has_unencode_char(string_))
-			{
-				string_ = http::url_encode(string_);
-			}
-
 			if (!string_.empty())
 			{
-				http::parses::http_parser_parse_url(string_.data(), string_.size(), 0, &parser_);
-			}
-		}
+				bool has_unencode_ch = http::has_unencode_char(string_);
 
-		/**
-		 * @constructor
-		 * if the 'str' has unencoded char, it will be encoded automatically, otherwise
-		 * the url parsing will be failed.
-		 */
-		url(std::string str, error_code& ec) : string_(std::move(str))
-		{
-			ec = asio::error::invalid_argument;
+				if (has_unencode_ch)
+				{
+					string_ = http::url_encode(string_);
+				}
 
-			std::memset((void*)(&parser_), 0, sizeof(http::parses::http_parser_url));
+				if (0 != http::parses::http_parser_parse_url(string_.data(), string_.size(), 0, &parser_))
+				{
+					if (has_unencode_ch)
+					{
+						string_ = http::url_decode(string_);
+					}
 
-			if (http::has_unencode_char(string_))
-			{
-				string_ = http::url_encode(string_);
-			}
-
-			if (!string_.empty())
-			{
-				if (0 == http::parses::http_parser_parse_url(string_.data(), string_.size(), 0, &parser_))
-					ec.clear();
+					asio2::set_last_error(asio::error::invalid_argument);
+				}
 			}
 		}
 

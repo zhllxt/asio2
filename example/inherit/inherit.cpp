@@ -42,51 +42,21 @@ public:
 
 int main()
 {
-#if defined(WIN32) || defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS_)
-	// Detected memory leaks on windows system
-	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-#endif
-
 	my_tcp_server1 my_server1;
-
-	my_server1.post([]()
-	{
-		std::ignore = true;
-	});
-	my_server1.post([]()
-	{
-		std::ignore = true; 
-	}, std::chrono::seconds(3));
-	auto future1 = my_server1.post([]()
-	{
-		std::ignore = true; 
-	}, asio::use_future);
-	auto future2 = my_server1.post([]()
-	{
-		std::ignore = true;
-	}, std::chrono::seconds(3), asio::use_future);
-	my_server1.dispatch([]()
-	{
-		std::ignore = true;
-	});
-	auto future3 = my_server1.dispatch([]()
-	{
-		std::ignore = true;
-	}, asio::use_future);
 
 	my_server1.bind_connect([&](std::shared_ptr<my_tcp_session>& session_ptr)
 	{
 		session_ptr->uuid = std::to_string(session_ptr->hash_key());
 
-	}).bind_recv([&](std::shared_ptr<my_tcp_session>& session_ptr, std::string_view sv)
+	}).bind_recv([&](std::shared_ptr<my_tcp_session>& session_ptr, std::string_view data)
 	{
-		asio2::ignore_unused(session_ptr, sv);
+		asio2::ignore_unused(session_ptr, data);
 
 		ASIO2_ASSERT(session_ptr->uuid == std::to_string(session_ptr->hash_key()));
 
-		printf("recv : %u %.*s\n", (unsigned)sv.size(), (int)sv.size(), sv.data());
+		printf("recv : %zu %.*s\n", data.size(), (int)data.size(), data.data());
 
-		session_ptr->async_send(sv);
+		session_ptr->async_send(data);
 	});
 
 	my_server1.start("0.0.0.0", 9981);
@@ -100,11 +70,11 @@ int main()
 		if (!asio2::get_last_error())
 			my_client1.async_send("<0123456789abcdefghijklmnopqrstovwxyz>");
 
-	}).bind_recv([&](std::string_view sv)
+	}).bind_recv([&](std::string_view data)
 	{
-		//printf("recv : %u %.*s\n", (unsigned)sv.size(), (int)sv.size(), sv.data());
+		//printf("recv : %zu %.*s\n", data.size(), (int)data.size(), data.data());
 
-		my_client1.async_send(sv);
+		my_client1.async_send(data);
 	});
 
 	my_client1.async_start("127.0.0.1", 9981);

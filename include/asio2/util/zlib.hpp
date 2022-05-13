@@ -63,10 +63,7 @@ namespace boost::beast::zlib
 
 		inline std::string compress(std::string_view data)
 		{
-			asio::error_code ec{};
-			std::string result = compress(data, ec);
-			asio::detail::throw_error(ec);
-			return result;
+			return compress(data, asio2::get_last_error());
 		}
 
 		inline std::string uncompress(std::string_view data, asio::error_code& ec)
@@ -76,10 +73,7 @@ namespace boost::beast::zlib
 
 		inline std::string uncompress(std::string_view data)
 		{
-			asio::error_code ec{};
-			std::string result = uncompress(data, ec);
-			asio::detail::throw_error(ec);
-			return result;
+			return uncompress(data, asio2::get_last_error());
 		}
 
 		inline static std::size_t compress_bound(std::size_t size)

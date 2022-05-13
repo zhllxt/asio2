@@ -17,40 +17,25 @@ struct userinfo
 	}
 };
 
-// -- method 1
+// -- method 2 for serialize the third party object
 namespace nlohmann
 {
-	void operator<<(asio2::rpc::oarchive& sr, const nlohmann::json& j)
+	template<class Archive>
+	void save(Archive& ar, nlohmann::json const& j)
 	{
-		sr << j.dump();
+		ar << j.dump();
 	}
-	
-	void operator>>(asio2::rpc::iarchive& dr, nlohmann::json& j)
+
+	template<class Archive>
+	void load(Archive& ar, nlohmann::json& j)
 	{
 		std::string v;
-		dr >> v;
+		ar >> v;
 		j = nlohmann::json::parse(v);
 	}
 }
 
-// -- method 2
-namespace nlohmann
-{
-	//template<class Archive>
-	//void save(Archive& ar, nlohmann::json const& j)
-	//{
-	//	ar << j.dump();
-	//}
-
-	//template<class Archive>
-	//void load(Archive& ar, nlohmann::json& j)
-	//{
-	//	std::string v;
-	//	ar >> v;
-	//	j = nlohmann::json::parse(v);
-	//}
-}
-
+// Asynchronous rpc function 
 rpc::future<int> async_add(int a, int b)
 {
 	rpc::promise<int> promise;
@@ -72,39 +57,18 @@ void test(asio2::rpc_client& client, std::string str)
 
 int main()
 {
-#if defined(WIN32) || defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS_)
-	// Detected memory leaks on windows system
-	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-#endif
-
 	std::string_view host = "127.0.0.1";
 	std::string_view port = "8010";
 
-	// for test
-	[[maybe_unused]] asio2::rpc_client_use<asio2::net_protocol::tcp> rpc_client_with_tcp;
-	[[maybe_unused]] asio2::rpc_client_use<asio2::net_protocol::ws > rpc_client_with_ws;
-
-	std::srand((unsigned int)time(nullptr));
-
-	while (!asio2::detail::has_unexpected_behavior())
-	{
-	asio2::rpc_client *clients = new asio2::rpc_client[10];
-
-	for (int i = 0; i < 10; i++)
-	{
-		auto & client = clients[i];
-
-		client.set_user_data(i + 99);
+	asio2::rpc_client client;
 
 	// set default rpc call timeout
-	client.default_timeout(std::chrono::seconds(3));
+	client.set_default_timeout(std::chrono::seconds(3));
 
 	client.bind_connect([&]()
 	{
 		if (asio2::get_last_error())
 			return;
-
-		client.post([]() {}, std::chrono::seconds(3));
 
 		//------------------------------------------------------------------
 		// this thread is a commucation thread. like bind_recv,bind_connect,
@@ -114,9 +78,13 @@ int main()
 		//------------------------------------------------------------------
 		client.call<double>("mul", 16.5, 26.5);
 		if (client.is_started())
+		{
 			ASIO2_ASSERT(asio2::get_last_error() == asio::error::in_progress);
+		}
 		else
+		{
 			ASIO2_ASSERT(asio2::get_last_error() == asio::error::not_connected);
+		}
 
 		// param 1 : user callback function(this param can be empty)
 		// param 2 : timeout (this param can be empty, if this param is empty, use the default_timeout)
@@ -128,12 +96,15 @@ int main()
 			{
 				ASIO2_ASSERT(v == 12 + 11);
 			}
-			printf("sum1 : %d err : %d %s\n", v, asio2::last_error_val(), asio2::last_error_msg().c_str());
+			printf("sum1 : %d err : %d %s\n",
+				v, asio2::last_error_val(), asio2::last_error_msg().c_str());
 		}, std::chrono::seconds(13), "add", 12, 11);
 
+		// call the rpc function which has no param
 		client.async_call([]()
 		{
-			printf("heartbeat err : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
+			printf("heartbeat err : %d %s\n",
+				asio2::last_error_val(), asio2::last_error_msg().c_str());
 		}, std::chrono::seconds(3), "heartbeat");
 
 		nlohmann::json j = nlohmann::json::object();
@@ -141,6 +112,7 @@ int main()
 		j["name"] = "lilei";
 		j["age"] = 30;
 
+		// Chain calls
 		client.async_call("test_json", j).response([](nlohmann::json js)
 		{
 			std::string s = js.dump();
@@ -161,12 +133,23 @@ int main()
 			{
 				ASIO2_ASSERT(v == 12 + 21);
 			}
-			printf("sum2 : %d err : %d %s\n", v, asio2::last_error_val(), asio2::last_error_msg().c_str());
+			printf("sum2 : %d err : %d %s\n", v,
+				asio2::last_error_val(), asio2::last_error_msg().c_str());
 		}, "add", 12, 21);
+
+		// call asynchronous rpc function, server's async_add is a asynchronous rpc function
+		client.async_call([](int v)
+		{
+			if (!asio2::get_last_error())
+			{
+				ASIO2_ASSERT(v == 1 + 11);
+			}
+			printf("async_add : %d err : %d %s\n", v,
+				asio2::last_error_val(), asio2::last_error_msg().c_str());
+		}, std::chrono::seconds(3), "async_add", 1, 11);
 
 		// param 1 is empty, the result of the rpc call is not returned
 		client.async_call("mul0", 2.5, 2.5);
-
 
 		// Chain calls : 
 		client.set_timeout(std::chrono::seconds(5)).async_call("mul", 2.5, 2.5).response([](double v)
@@ -178,48 +161,10 @@ int main()
 			std::cout << "mul1 " << v << std::endl;
 		});
 
-		// Chain calls : 
-		client.timeout(std::chrono::seconds(13)).response([](double v)
-		{
-			if (!asio2::get_last_error())
-			{
-				ASIO2_ASSERT(v == 3.5 * 3.5);
-			}
-			std::cout << "mul2 " << v << std::endl;
-		}).async_call("mul", 3.5, 3.5);
-
-		// Chain calls : 
-		client.response([](double v)
-		{
-			if (!asio2::get_last_error())
-			{
-				ASIO2_ASSERT(v == 4.5 * 4.5);
-			}
-			std::cout << "mul3 " << v << std::endl;
-		}).timeout(std::chrono::seconds(5)).async_call("mul", 4.5, 4.5);
-
-		// Chain calls : 
-		client.async_call("mul", 5.5, 5.5).response([](double v)
-		{
-			if (!asio2::get_last_error())
-			{
-				ASIO2_ASSERT(v == 5.5 * 5.5);
-			}
-			std::cout << "mul4 " << v << std::endl;
-		}).timeout(std::chrono::seconds(10));
-
-		client.async_call([](int v)
-		{
-			if (!asio2::get_last_error())
-			{
-				ASIO2_ASSERT(v == 1 + 11);
-			}
-			printf("async_add : %d err : %d %s\n", v, asio2::last_error_val(), asio2::last_error_msg().c_str());
-		}, std::chrono::seconds(3), "async_add", 1, 11);
-
 		client.async_call([]()
 		{
-			printf("async_test err : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
+			printf("async_test err : %d %s\n",
+				asio2::last_error_val(), asio2::last_error_msg().c_str());
 		}, std::chrono::seconds(3), "async_test", "abc", "def");
 	});
 
@@ -232,9 +177,16 @@ int main()
 
 	client.start(host, port);
 
-	client.start(host, port);
-
-	client.async_start(host, port);
+	// synchronous call
+	// param 1 : timeout (this param can be empty, if this param is empty, use the default_timeout)
+	// param 2 : rpc function name
+	// param 3 : rpc function params
+	double mul = client.call<double>(std::chrono::seconds(3), "mul", 6.5, 6.5);
+	printf("mul5 : %lf err : %d %s\n", mul, asio2::last_error_val(), asio2::last_error_msg().c_str());
+	if (!asio2::get_last_error())
+	{
+		ASIO2_ASSERT(mul == 6.5 * 6.5);
+	}
 
 	nlohmann::json j = nlohmann::json::object();
 
@@ -248,30 +200,12 @@ int main()
 		ASIO2_ASSERT(j2["name"].get<std::string>() == "hanmeimei");
 	}
 
-	// synchronous call
-	// param 1 : error_code refrence (this param can be empty)
-	// param 2 : timeout (this param can be empty, if this param is empty, use the default_timeout)
-	// param 3 : rpc function name
-	// param 4 : rpc function params
-	double mul = client.call<double>(std::chrono::seconds(3), "mul", 6.5, 6.5);
-	printf("mul5 : %lf err : %d %s\n", mul, asio2::last_error_val(), asio2::last_error_msg().c_str());
-	if (!asio2::get_last_error())
-	{
-		ASIO2_ASSERT(mul == 6.5 * 6.5);
-	}
-
 	userinfo u;
 	u = client.call<userinfo>("get_user");
 	if (!asio2::get_last_error())
 	{
 		ASIO2_ASSERT(u.name == "lilei" && u.purview.size() == 2);
 	}
-	printf("get_user : %s %d -> ", u.name.c_str(), u.age);
-	for (auto &[k, v] : u.purview)
-	{
-		printf("%d %s ", k, v.c_str());
-	}
-	printf("\n");
 
 	u.name = "hanmeimei";
 	u.age = ((int)time(nullptr)) % 100;
@@ -312,14 +246,6 @@ int main()
 	}
 
 	// Chain calls : 
-	sum = client.timeout(std::chrono::seconds(13)).call<int>("add", 11, 32);
-	printf("sum6 : %d err : %d %s\n", sum, asio2::last_error_val(), asio2::last_error_msg().c_str());
-	if (!asio2::get_last_error())
-	{
-		ASIO2_ASSERT(sum == 11 + 32);
-	}
-
-	// Chain calls : 
 	std::string str = client.call<std::string>("cat", "abc", "123");
 	printf("cat : %s err : %d %s\n", str.data(), asio2::last_error_val(), asio2::last_error_msg().c_str());
 	if (!asio2::get_last_error())
@@ -327,22 +253,13 @@ int main()
 		ASIO2_ASSERT(str == "abc123");
 	}
 
+	// Call a non-existent rpc function
 	client.async_call([](int v)
 	{
 		printf("test call no_exists_fn : %d err : %d %s\n",
 			v, asio2::last_error_val(), asio2::last_error_msg().c_str());
 		ASIO2_ASSERT(bool(asio2::get_last_error()));
 	}, "no_exists_fn", 10);
-
-	}
-
-	std::this_thread::sleep_for(std::chrono::seconds(1 + std::rand() % 2));
-
-	delete[]clients;
-
-	ASIO2_LOG(spdlog::level::debug, "<-------------------------------------------->");
-
-	}
 
 	while (std::getchar() != '\n');
 

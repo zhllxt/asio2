@@ -262,10 +262,9 @@ namespace asio2::detail
 		inline send_data_t _rdc_convert_to_send_data(Data& data) noexcept
 		{
 			ASIO2_ASSERT(this->websocket_router_ && "Only available in websocket mode");
-			//if (!this->is_websocket())
-			//{
-			//	asio::detail::throw_error(asio::error::operation_not_supported);
-			//}
+
+			set_last_error(asio::error::operation_not_supported);
+
 			auto buffer = asio::buffer(data);
 			return send_data_t{ reinterpret_cast<
 				std::string_view::const_pointer>(buffer.data()),buffer.size() };

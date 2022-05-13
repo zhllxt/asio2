@@ -140,7 +140,6 @@ namespace asio2::detail
 					e.code().value(), e.what());
 				ASIO2_ASSERT(false);
 				set_last_error(e);
-				asio::detail::throw_error(get_last_error());
 			}
 			catch (std::exception const& e)
 			{
@@ -148,7 +147,6 @@ namespace asio2::detail
 				ASIO2_LOG(spdlog::level::critical, "set_cert_buffer exception : {}", e.what());
 				ASIO2_ASSERT(false);
 				set_last_error(asio::error::invalid_argument);
-				asio::detail::throw_error(get_last_error());
 			}
 
 			return (static_cast<derived_t&>(*this));
@@ -199,7 +197,6 @@ namespace asio2::detail
 					e.code().value(), e.what());
 				ASIO2_ASSERT(false);
 				set_last_error(e);
-				asio::detail::throw_error(get_last_error());
 			}
 			catch (std::exception const& e)
 			{
@@ -207,7 +204,6 @@ namespace asio2::detail
 				ASIO2_LOG(spdlog::level::critical, "set_cert_file exception : {}", e.what());
 				ASIO2_ASSERT(false);
 				set_last_error(asio::error::invalid_argument);
-				asio::detail::throw_error(get_last_error());
 			}
 
 			return (static_cast<derived_t&>(*this));
@@ -229,7 +225,6 @@ namespace asio2::detail
 					e.code().value(), e.what());
 				ASIO2_ASSERT(false);
 				set_last_error(e);
-				asio::detail::throw_error(get_last_error());
 			}
 			catch (std::exception const& e)
 			{
@@ -237,7 +232,6 @@ namespace asio2::detail
 				ASIO2_LOG(spdlog::level::critical, "set_dh_buffer exception : {}", e.what());
 				ASIO2_ASSERT(false);
 				set_last_error(asio::error::invalid_argument);
-				asio::detail::throw_error(get_last_error());
 			}
 
 			return (static_cast<derived_t&>(*this));
@@ -259,7 +253,6 @@ namespace asio2::detail
 					e.code().value(), e.what());
 				ASIO2_ASSERT(false);
 				set_last_error(e);
-				asio::detail::throw_error(get_last_error());
 			}
 			catch (std::exception const& e)
 			{
@@ -267,7 +260,6 @@ namespace asio2::detail
 				ASIO2_LOG(spdlog::level::critical, "set_dh_file exception : {}", e.what());
 				ASIO2_ASSERT(false);
 				set_last_error(asio::error::invalid_argument);
-				asio::detail::throw_error(get_last_error());
 			}
 
 			return (static_cast<derived_t&>(*this));

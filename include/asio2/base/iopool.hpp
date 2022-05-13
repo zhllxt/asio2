@@ -114,7 +114,6 @@ namespace asio2::detail
 				asio::dispatch(this->strand_, [this, p, optr = p->derived().selfptr()]() mutable
 				{
 					std::size_t k = reinterpret_cast<std::size_t>(p);
-					ASIO2_ASSERT(this->objects_.find(k) == this->objects_.end());
 					this->objects_[k] = [p, optr = std::move(optr)]() mutable
 					{
 						detail::ignore_unused(optr);

@@ -8,5 +8,4 @@
 # (See accompanying file LICENSE or see <http://www.gnu.org/licenses/>)
 #
 
-add_subdirectory (custom)
 add_subdirectory (general)

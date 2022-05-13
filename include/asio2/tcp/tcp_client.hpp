@@ -299,8 +299,6 @@ namespace asio2::detail
 				return false;
 			}
 
-			this->io().regobj(this);
-
 			ASIO2_LOG(spdlog::level::debug, "enter _do_connect : {}",
 				magic_enum::enum_name(derive.state_.load()));
 
@@ -334,6 +332,8 @@ namespace asio2::detail
 				try
 				{
 					clear_last_error();
+
+					this->io().regobj(this);
 
 				#if defined(ASIO2_ENABLE_LOG)
 					this->is_stop_reconnect_timer_called_ = false;

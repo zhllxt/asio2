@@ -19,6 +19,8 @@
 #define NDEBUG
 #endif
 
+#include <asio2/base/detail/push_options.hpp>
+
 #include <cerrno>
 #include <cassert>
 #include <string>
@@ -201,5 +203,7 @@ namespace asio2
 		}
 	}
 }
+
+#include <asio2/base/detail/pop_options.hpp>
 
 #endif // !__ASIO2_ERROR_HPP__

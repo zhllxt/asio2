@@ -3,11 +3,6 @@
 
 int main()
 {
-#if defined(WIN32) || defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS_)
-	// Detected memory leaks on windows system
-	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-#endif
-
 	//std::string_view host = "broker.hivemq.com";
 	std::string_view host = "127.0.0.1";
 	std::string_view port = "1883";

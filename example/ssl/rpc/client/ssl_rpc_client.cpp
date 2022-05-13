@@ -4,53 +4,15 @@
 
 #include <asio2/rpc/rpc_client.hpp>
 
-class userinfo
-{
-public:
-	std::string name;
-	int age;
-	std::map<int, std::string> purview;
-
-	// User defined object types require serialized the members like this:
-	template <class Archive>
-	void serialize(Archive & ar)
-	{
-		ar(name);
-		ar(age);
-		ar(purview);
-	}
-};
-
-std::function<void()> sender;
-
 int main()
 {
 	std::string_view host = "127.0.0.1";
 	std::string_view port = "8011";
 
-	// for test
-	[[maybe_unused]] asio2::rpcs_client_use<asio2::net_protocol::tcps> rpcs_client_with_tcp;
-	[[maybe_unused]] asio2::rpcs_client_use<asio2::net_protocol::wss > rpcs_client_with_ws;
-
 	asio2::rpcs_client client;
 
-	sender = [&]()
-	{
-		client.async_call([&](std::string v)
-		{
-			printf("cat : %s err : %d %s\n", v.c_str(), asio2::last_error_val(), asio2::last_error_msg().c_str());
-
-			if (!asio2::get_last_error())
-			{
-				ASIO2_ASSERT(v == "abc123xxx");
-				sender();
-			}
-
-		}, "cat", std::string("abc"), std::string("123xxx"));
-	};
-
 	// set default rpc call timeout
-	client.default_timeout(std::chrono::seconds(3));
+	client.set_default_timeout(std::chrono::seconds(3));
 
 	//------------------------------------------------------------------------------
 	// beacuse the server did not specify the verify_fail_if_no_peer_cert flag, so
@@ -66,16 +28,16 @@ int main()
 
 		// the type of the callback's second parameter is auto, so you have to specify 
 		// the return type in the template function like 'async_call<int>'
-		client.async_call<int>([](auto v)
+		int x = std::rand(), y = std::rand();
+		client.async_call<int>([x, y](auto v)
 		{
 			if (!asio2::get_last_error())
 			{
-				ASIO2_ASSERT(v == 44 + 11);
+				ASIO2_ASSERT(v == x + y);
 			}
-			printf("sum1 : %d err : %d %s\n", v, asio2::last_error_val(), asio2::last_error_msg().c_str());
-		}, "add", 44, 11);
-
-		sender();
+			printf("sum1 : %d - %d %s\n", v,
+				asio2::last_error_val(), asio2::last_error_msg().c_str());
+		}, "add", x, y);
 
 	}).bind_disconnect([]()
 	{
@@ -86,17 +48,32 @@ int main()
 
 	client.async_start(host, port);
 
-	client.start_timer("123", std::chrono::seconds(1), [&]()
+	client.start_timer("timer_id1", std::chrono::milliseconds(500), [&]()
 	{
-		client.async_call([](std::string v)
+		std::string s1;
+		s1 += '<';
+		for (int i = 100 + std::rand() % (100); i > 0; i--)
+		{
+			s1 += (char)((std::rand() % 26) + 'a');
+		}
+
+		std::string s2;
+		for (int i = 100 + std::rand() % (100); i > 0; i--)
+		{
+			s2 += (char)((std::rand() % 26) + 'a');
+		}
+		s2 += '>';
+
+		client.async_call([s1, s2](std::string v)
 		{
 			if (!asio2::get_last_error())
 			{
-				ASIO2_ASSERT(v == "abc123");
+				ASIO2_ASSERT(v == s1 + s2);
 			}
-			printf("cat : %s err : %d %s\n", v.c_str(), asio2::last_error_val(), asio2::last_error_msg().c_str());
+			printf("cat : %s - %d %s\n", v.c_str(),
+				asio2::last_error_val(), asio2::last_error_msg().c_str());
 
-		}, "cat", std::string("abc"), std::string("123"));
+		}, "cat", s1, s2);
 	});
 
 	while (std::getchar() != '\n');

@@ -56,7 +56,7 @@ namespace asio2::detail
 		using super = session_impl_t    <derived_t, args_t>;
 		using self  = udp_session_impl_t<derived_t, args_t>;
 
-		using key_type = asio::ip::udp::endpoint;
+		using key_type = std::size_t;
 
 		using buffer_type = typename args_t::buffer_t;
 		using send_data_t = typename args_t::send_data_t;
@@ -187,9 +187,9 @@ namespace asio2::detail
 		/**
 		 * @function : get this object hash key,used for session map
 		 */
-		inline const key_type & hash_key() const noexcept
+		inline key_type hash_key() const noexcept
 		{
-			return this->remote_endpoint_;
+			return std::hash<asio::ip::udp::endpoint>{}(this->remote_endpoint_);
 		}
 
 		/**

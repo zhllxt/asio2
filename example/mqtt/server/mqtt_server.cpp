@@ -3,11 +3,6 @@
 
 int main()
 {
-#if defined(WIN32) || defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS_)
-	// Detected memory leaks on windows system
-	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-#endif
-
 	std::string_view host = "0.0.0.0";
 	std::string_view port = "1883";
 
@@ -26,7 +21,7 @@ int main()
 	{
 		asio2::ignore_unused(session_ptr, s);
 
-		//printf("recv : %u %.*s\n", (unsigned)s.size(), (int)s.size(), s.data());
+		//printf("recv : %zu %.*s\n", s.size(), (int)s.size(), s.data());
 
 		//session_ptr->async_send(std::string(s), [](std::size_t bytes_sent) {});
 

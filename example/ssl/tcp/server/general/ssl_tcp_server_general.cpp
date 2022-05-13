@@ -2,9 +2,7 @@
 #define ASIO2_USE_SSL
 #endif
 
-//#include <asio2/asio2.hpp>
 #include <asio2/tcp/tcps_server.hpp>
-#include <iostream>
 
 std::string_view server_key = R"(
 -----BEGIN RSA PRIVATE KEY-----
@@ -136,11 +134,6 @@ J5fipXRE8kFry0Nk9lL96seMYoER32zw6y2tXgUeksVrjOkGuheTAgEC
 
 int main()
 {
-#if defined(WIN32) || defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS_)
-	// Detected memory leaks on windows system
-	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-#endif
-
 	std::string_view host = "0.0.0.0";
 	std::string_view port = "8002";
 
@@ -150,53 +143,59 @@ int main()
 
 	server.set_verify_mode(asio::ssl::verify_peer | asio::ssl::verify_fail_if_no_peer_cert);
 
-	server.set_cert_buffer(ca_crt, server_crt, server_key, "123456"); // use memory string for cert
+	// use memory string for cert
+	server.set_cert_buffer(ca_crt, server_crt, server_key, "123456");
 	server.set_dh_buffer(dh);
-
-	server.start_timer(0x0f, std::chrono::seconds(3), []()
-	{
-		printf("0x0f timer is running...\n");
-	});
 
 	server.bind_recv([&](auto & session_ptr, std::string_view s)
 	{
-		printf("recv : %u %.*s\n", (unsigned)s.size(), (int)s.size(), s.data());
+		printf("recv : %zu %.*s\n", s.size(), (int)s.size(), s.data());
 
-		session_ptr->async_send(s, []() {});
+		session_ptr->async_send(s);
 	}).bind_accept([&](auto& session_ptr)
 	{
-		printf("client accept : %s %u %s %u\n", session_ptr->remote_address().c_str(), session_ptr->remote_port(),
+		// You can close the connection directly here.
+		if (session_ptr->remote_address() == "192.168.0.254")
+			session_ptr->stop();
+
+		printf("client accept : %s %u %s %u\n",
+			session_ptr->remote_address().c_str(), session_ptr->remote_port(),
 			session_ptr->local_address().c_str(), session_ptr->local_port());
 	}).bind_connect([&](auto & session_ptr)
 	{
-		printf("client enter : %s %u %s %u\n", session_ptr->remote_address().c_str(), session_ptr->remote_port(),
+		printf("client enter : %s %u %s %u\n",
+			session_ptr->remote_address().c_str(), session_ptr->remote_port(),
 			session_ptr->local_address().c_str(), session_ptr->local_port());
 	}).bind_disconnect([&](auto & session_ptr)
 	{
 		// Used to test that all sessions must be closed before entering the on_stop(bind_stop) function.
-		if (all_stopped)
-		{
-			ASIO2_ASSERT(false);
-		}
-		printf("client leave : %s %u %s\n", session_ptr->remote_address().c_str(),
-			session_ptr->remote_port(), asio2::last_error_msg().c_str());
+		ASIO2_ASSERT(all_stopped == false);
+
+		printf("client leave : %s %u %s\n",
+			session_ptr->remote_address().c_str(), session_ptr->remote_port(),
+			asio2::last_error_msg().c_str());
 	}).bind_handshake([&](auto & session_ptr)
 	{
 		if (asio2::get_last_error())
-			printf("handshake failure : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
+			printf("handshake failure : %d %s\n",
+				asio2::last_error_val(), asio2::last_error_msg().c_str());
 		else
-			printf("handshake success : %s %u\n", session_ptr->remote_address().c_str(), session_ptr->remote_port());
+			printf("handshake success : %s %u\n",
+				session_ptr->remote_address().c_str(), session_ptr->remote_port());
 	}).bind_start([&]()
 	{
 		if (asio2::get_last_error())
-			printf("start tcps server failure : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
+			printf("start tcps server failure : %d %s\n",
+				asio2::last_error_val(), asio2::last_error_msg().c_str());
 		else
-			printf("start tcps server success : %s %u\n", server.listen_address().c_str(), server.listen_port());
+			printf("start tcps server success : %s %u\n",
+				server.listen_address().c_str(), server.listen_port());
 		//server.stop();
 	}).bind_stop([&]()
 	{
 		all_stopped = true;
-		printf("stop tcps server : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
+		printf("stop tcps server : %d %s\n",
+			asio2::last_error_val(), asio2::last_error_msg().c_str());
 	});
 
 	server.start(host, port);

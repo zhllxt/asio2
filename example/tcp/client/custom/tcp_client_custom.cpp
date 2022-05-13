@@ -1,5 +1,3 @@
-//#include <asio2/asio2.hpp>
-#include <iostream>
 #include <asio2/tcp/tcp_client.hpp>
 
 // how to use the match_role, see : https://blog.csdn.net/zhllxt/article/details/104772948
@@ -37,11 +35,6 @@ std::pair<buffer_iterator, bool> match_role(buffer_iterator begin, buffer_iterat
 
 int main()
 {
-#if defined(WIN32) || defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS_)
-	// Detected memory leaks on windows system
-	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-#endif
-
 	std::string_view host = "127.0.0.1";
 	std::string_view port = "8026";
 
@@ -50,36 +43,41 @@ int main()
 	client.bind_connect([&]()
 	{
 		if (asio2::get_last_error())
-			printf("connect failure : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
+			printf("connect failure : %d %s\n",
+				asio2::last_error_val(), asio2::last_error_msg().c_str());
 		else
-			printf("connect success : %s %u\n", client.local_address().c_str(), client.local_port());
+			printf("connect success : %s %u\n",
+				client.local_address().c_str(), client.local_port());
 
-		std::string s;
-		s += '#';
-		s += char(1);
-		s += 'a';
+		std::string str;
+		str += '#';
+		str += char(3);
+		str += "abc";
 
-		client.async_send(s);
+		client.async_send(str);
 
-	}).bind_disconnect([]()
+	}).bind_recv([&](std::string_view data)
 	{
-		printf("disconnect : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
-	}).bind_recv([&](std::string_view sv)
-	{
-		printf("recv : %u %.*s\n", (unsigned)sv.size(), (int)sv.size(), sv.data());
+		printf("recv : %zu %.*s\n", data.size(), (int)data.size(), data.data());
 
-		std::string s;
-		s += '#';
+		std::string str;
+		str += '#';
 		uint8_t len = uint8_t(100 + (std::rand() % 100));
-		s += char(len);
+		str += char(len);
 		for (uint8_t i = 0; i < len; i++)
 		{
-			s += (char)((std::rand() % 26) + 'a');
+			str += (char)((std::rand() % 26) + 'a');
 		}
-		// demo of force a packet of data to be sent twice
-		client.async_send(s.substr(0, s.size() / 2), []() {});
-		//std::this_thread::sleep_for(std::chrono::milliseconds(10));
-		client.async_send(s.substr(s.size() / 2), [](std::size_t bytes_sent) {std::ignore = bytes_sent; });
+
+		// this is just a demo to show :
+		// even if we force one packet data to be sent twice,
+		// but the server must recvd whole packet once
+		client.async_send(str.substr(0, str.size() / 2));
+		std::this_thread::sleep_for(std::chrono::milliseconds(10));
+		client.async_send(str.substr(str.size() / 2));
+
+		// of course you can sent the whole data once
+		//client.async_send(std::move(str));
 	});
 
 	client.async_start(host, port, match_role);

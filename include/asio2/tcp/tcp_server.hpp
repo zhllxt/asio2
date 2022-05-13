@@ -316,8 +316,6 @@ namespace asio2::detail
 				return false;
 			}
 
-			this->io().regobj(this);
-
 			// use promise to get the result of async accept
 			std::promise<error_code> promise;
 			std::future<error_code> future = promise.get_future();
@@ -346,6 +344,8 @@ namespace asio2::detail
 				try
 				{
 					clear_last_error();
+
+					this->io().regobj(this);
 
 				#if defined(ASIO2_ENABLE_LOG)
 					this->sessions_.is_all_session_stop_called_ = false;

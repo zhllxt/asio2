@@ -147,16 +147,12 @@ namespace asio2
 			return true;
 		}
 
-		template<class ...Args>
-		inline static bool stov(Args&&... args)
-		{ return (!(std::stoi(std::forward<Args>(args)...) == 0)); }
-
 		template<
 			class CharT,
 			class Traits = std::char_traits<CharT>,
 			class Allocator = std::allocator<CharT>
 		>
-		inline static bool stov(std::basic_string<CharT, Traits, Allocator>&& val)
+		inline static bool stov(std::basic_string<CharT, Traits, Allocator>& val)
 		{
 			if (iequals(val, "true"))
 				return true;
@@ -172,6 +168,14 @@ namespace asio2
 		template<class ...Args>
 		inline static char stov(Args&&... args)
 		{ return static_cast<char>(std::stoi(std::forward<Args>(args)...)); }
+	};
+
+	template<>
+	struct convert<signed char>
+	{
+		template<class ...Args>
+		inline static signed char stov(Args&&... args)
+		{ return static_cast<signed char>(std::stoi(std::forward<Args>(args)...)); }
 	};
 
 	template<>
@@ -648,36 +652,13 @@ namespace asio2
 		 */
 		template<class R, class Sec, class Key, class Traits = std::char_traits<char_type>,
 			class Allocator = std::allocator<char_type>>
-		inline typename detail::util::return_type<R>::type get(const Sec& sec, const Key& key, R default_val = R())
-		{
-			std::error_code ec;
-
-			return this->get(sec, key, ec, std::move(default_val));
-		}
-
-		/**
-		 * get the value associated with a key in the specified section of an ini file.
-		 * This function does not throw an exception.
-		 * example : 
-		 * asio2::ini ini("config.ini");
-		 * std::error_code ec;
-		 * std::string   host = ini.get("main", "host", ec, "127.0.0.1");
-		 * std::uint16_t port = ini.get("main", "port", ec, 8080);
-		 * or : 
-		 * std::string   host = ini.get<std::string  >("main", "host", ec);
-		 * std::uint16_t port = ini.get<std::uint16_t>("main", "port", ec);
-		 */
-		template<class R, class Sec, class Key, class Traits = std::char_traits<char_type>,
-			class Allocator = std::allocator<char_type>>
 		inline typename detail::util::return_type<R>::type
-			get(const Sec& sec, const Key& key, std::error_code& ec, R default_val = R())
+			get(const Sec& sec, const Key& key, R default_val = R())
 		{
 			using return_t = typename detail::util::return_type<R>::type;
 
 			try
 			{
-				ec.clear();
-
 				std::basic_string<char_type, Traits, Allocator> val;
 
 				bool flag = this->_get(
@@ -698,17 +679,14 @@ namespace asio2
 					return (flag ? asio2::convert<R>::stov(val) : default_val);
 				}
 			}
-			catch (std::invalid_argument &)
+			catch (std::invalid_argument const&)
 			{
-				ec = std::make_error_code(std::errc::invalid_argument);
 			}
-			catch (std::out_of_range &)
+			catch (std::out_of_range const&)
 			{
-				ec = std::make_error_code(std::errc::result_out_of_range);
 			}
-			catch (std::exception &)
+			catch (std::exception const&)
 			{
-				ec = std::make_error_code(std::errc::invalid_argument);
 			}
 
 			return return_t{ default_val };

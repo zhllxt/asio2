@@ -80,6 +80,7 @@ namespace asio2::detail
 	static long constexpr mqtt_silence_timeout   = 90 * 1000; // 60 * 1.5
 
 	static long constexpr http_execute_timeout   = 5 * 1000;
+	static long constexpr icmp_execute_timeout   = 4 * 1000;
 
 	static long constexpr ssl_shutdown_timeout   = 5 * 1000;
 	static long constexpr  ws_shutdown_timeout   = 5 * 1000;
@@ -423,12 +424,17 @@ namespace asio2::detail
 		std::declval<std::string>() = std::declval<T>()
 		)>> : std::true_type{};
 
+	template<class T>
+	inline constexpr bool can_convert_to_string_v = can_convert_to_string<T>::value;
+
 
 	template<typename T>
 	inline std::string to_string(T&& v)
 	{
 		using type = detail::remove_cvref_t<T>;
+
 		std::string s;
+
 		if constexpr (is_string_view_v<type>)
 		{
 			s = { v.data(),v.size() };
@@ -436,6 +442,32 @@ namespace asio2::detail
 		else if constexpr (std::is_integral_v<type>)
 		{
 			s = std::to_string(v);
+		}
+		else if constexpr (std::is_pointer_v<type>)
+		{
+			if (v) s = v;
+		}
+		else if constexpr (std::is_array_v<type>)
+		{
+			s = std::forward<T>(v);
+		}
+		else
+		{
+			s = std::forward<T>(v);
+		}
+		return s;
+	}
+
+	template<typename T>
+	inline std::string_view to_string_view(T&& v)
+	{
+		using type = detail::remove_cvref_t<T>;
+
+		std::string_view s;
+
+		if constexpr (is_string_view_v<type>)
+		{
+			s = std::forward<T>(v);
 		}
 		else if constexpr (std::is_pointer_v<type>)
 		{

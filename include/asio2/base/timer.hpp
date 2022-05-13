@@ -103,7 +103,10 @@ namespace asio2::detail
 		{
 			bool ret = this->iopool_->start(); // start the io_context pool
 
-			this->io().regobj(this);
+			if (ret)
+			{
+				this->io().regobj(this);
+			}
 
 			return ret;
 		}

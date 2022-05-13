@@ -17,7 +17,7 @@ struct userinfo
 	}
 };
 
-// -- method 1
+// -- method 1 for serialize the third party object
 namespace nlohmann
 {
 	void operator<<(asio2::rpc::oarchive& sr, const nlohmann::json& j)
@@ -33,29 +33,12 @@ namespace nlohmann
 	}
 }
 
-// -- method 2
-namespace nlohmann
-{
-	//template<class Archive>
-	//void save(Archive& ar, nlohmann::json const& j)
-	//{
-	//	ar << j.dump();
-	//}
-
-	//template<class Archive>
-	//void load(Archive& ar, nlohmann::json& j)
-	//{
-	//	std::string v;
-	//	ar >> v;
-	//	j = nlohmann::json::parse(v);
-	//}
-}
-
 int add(int a, int b)
 {
 	return a + b;
 }
 
+// Asynchronous rpc function 
 rpc::future<int> async_add(int a, int b)
 {
 	rpc::promise<int> promise;
@@ -71,6 +54,7 @@ rpc::future<int> async_add(int a, int b)
 	return f;
 }
 
+// Asynchronous rpc function, and the return value is void
 rpc::future<void> async_test(std::shared_ptr<asio2::rpc_session>& session_ptr, std::string a, std::string b)
 {
 	asio2::ignore_unused(session_ptr, a, b);
@@ -89,6 +73,7 @@ rpc::future<void> async_test(std::shared_ptr<asio2::rpc_session>& session_ptr, s
 	return f;
 }
 
+// rpc function with return third party object
 nlohmann::json test_json(nlohmann::json j)
 {
 	std::string s = j.dump();
@@ -96,7 +81,7 @@ nlohmann::json test_json(nlohmann::json j)
 	return nlohmann::json::parse(s);
 }
 
-class A
+class user_crud
 {
 public:
 	double mul(double a, double b)
@@ -132,42 +117,11 @@ void heartbeat(std::shared_ptr<asio2::rpc_session>& session_ptr)
 	printf("heartbeat %s\n", session_ptr->remote_address().c_str());
 }
 
-class my_rpc_session : public asio2::rpc_session_t<my_rpc_session, asio2::net_protocol::tcp>
-{
-public:
-	using asio2::rpc_session_t<my_rpc_session, asio2::net_protocol::tcp>::rpc_session_t;
-
-	std::string username;
-};
-
-class my_rpc_server1 : public asio2::rpc_server_t<my_rpc_session, asio2::net_protocol::tcp>
-{
-public:
-	using asio2::rpc_server_t<my_rpc_session, asio2::net_protocol::tcp>::rpc_server_t;
-};
-
-using my_rpc_server2 = asio2::rpc_server_t<my_rpc_session, asio2::net_protocol::tcp>;
-
 int main()
 {
-#if defined(WIN32) || defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS_)
-	// Detected memory leaks on windows system
-	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-#endif
-
 	std::string_view host = "0.0.0.0";
 	std::string_view port = "8010";
 
-	// for test
-	[[maybe_unused]] asio2::rpc_server_use<asio2::net_protocol::tcp> rpc_server_with_tcp;
-	[[maybe_unused]] asio2::rpc_server_use<asio2::net_protocol::ws > rpc_server_with_ws;
-	[[maybe_unused]] my_rpc_server1 mrs1;
-	[[maybe_unused]] my_rpc_server2 mrs2;
-
-	std::srand((unsigned int)time(nullptr));
-
-	for(;;)
-	{
 	// Specify the "max recv buffer size" to avoid malicious packets, if some client
 	// sent data packets size is too long to the "max recv buffer size", then the
 	// client will be disconnect automatic .
@@ -182,45 +136,45 @@ int main()
 		printf("client enter : %s %u %s %u\n",
 			session_ptr->remote_address().c_str(), session_ptr->remote_port(),
 			session_ptr->local_address().c_str(), session_ptr->local_port());
-		session_ptr->post([]() {}, std::chrono::seconds(3));
+
+		// when a client is connected, we call the client's rpc function.
 		session_ptr->async_call([](int v)
 		{
 			if (!asio2::get_last_error())
 			{
 				ASIO2_ASSERT(v == 15 - 6);
 			}
-			printf("sub : %d err : %d %s\n", v, asio2::last_error_val(), asio2::last_error_msg().c_str());
+			printf("sub : %d err : %d %s\n", v,
+				asio2::last_error_val(), asio2::last_error_msg().c_str());
 		}, std::chrono::seconds(10), "sub", 15, 6);
 
+		// just call the client's rpc function, and don't care the client's response
 		session_ptr->async_call("test", "i love you");
 
-	}).bind_disconnect([&](auto & session_ptr)
-	{
-		printf("client leave : %s %u\n", session_ptr->remote_address().c_str(), session_ptr->remote_port());
 	}).bind_start([&]()
 	{
 		printf("start rpc server : %s %u %d %s\n",
 			server.listen_address().c_str(), server.listen_port(),
 			asio2::last_error_val(), asio2::last_error_msg().c_str());
-	}).bind_stop([&]()
-	{
-		printf("stop : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
 	});
 
-	A a;
+	user_crud usercrud;
 
+	// bind member rpc function
 	server
 		.bind("add", add)
-		.bind("mul", &A::mul, a)
-		.bind("get_user", &A::get_user, a)
-		.bind("del_user", &A::del_user, &a);
+		.bind("mul", &user_crud::mul, usercrud)
+		.bind("get_user", &user_crud::get_user, usercrud)
+		.bind("del_user", &user_crud::del_user, &usercrud);
 
+	// bind global rpc function
 	server.bind("async_add", async_add);
 	server.bind("async_test", async_test);
 
 	server.bind("test_json", test_json);
 	server.bind("heartbeat", heartbeat);
 
+	// bind lambda rpc function
 	server.bind("cat", [&](std::shared_ptr<asio2::rpc_session>& session_ptr,
 		const std::string& a, const std::string& b)
 	{
@@ -234,14 +188,16 @@ int main()
 				{
 					ASIO2_ASSERT(v == 15 + 18);
 				}
-				printf("async_add : %d err : %d %s\n", v, asio2::last_error_val(), asio2::last_error_msg().c_str());
+				printf("async_add : %d err : %d %s\n", v,
+					asio2::last_error_val(), asio2::last_error_msg().c_str());
 			}, "async_add", 15, 18);
 
 			if (!asio2::get_last_error())
 			{
 				ASIO2_ASSERT(v == 15 - 8);
 			}
-			printf("sub : %d err : %d %s\n", v, asio2::last_error_val(), asio2::last_error_msg().c_str());
+			printf("sub : %d err : %d %s\n", v,
+				asio2::last_error_val(), asio2::last_error_msg().c_str());
 		}, "sub", 15, 8);
 
 		return a + b;
@@ -249,19 +205,7 @@ int main()
 
 	server.start(host, port);
 
-	auto sec = 1 + std::rand() % 2;
-
-	std::this_thread::sleep_for(std::chrono::seconds(sec));
-
-	server.start(host, port);
-
-	server.stop();
-
-	printf("<-------------------------------------------->\n");
-	}
-
 	while (std::getchar() != '\n');
-
 
 	return 0;
 }

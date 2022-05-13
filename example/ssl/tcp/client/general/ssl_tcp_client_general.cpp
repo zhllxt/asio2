@@ -128,36 +128,32 @@ NcJfvucspIZ1QdOFX5wESIpAMlQ=
 
 int main()
 {
-#if defined(WIN32) || defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS_)
-	// Detected memory leaks on windows system
-	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-#endif
-
 	std::string_view host = "127.0.0.1";
 	std::string_view port = "8002";
 
 	asio2::tcps_client client;
 
-	client.connect_timeout(std::chrono::seconds(10));
+	client.set_connect_timeout(std::chrono::seconds(10));
 	client.auto_reconnect(true, std::chrono::seconds(3));
 
+	// use memory string for cert
 	client.set_verify_mode(asio::ssl::verify_peer);
 	client.set_cert_buffer(ca_crt, client_crt, client_key, "123456");
 
-	client.bind_recv([&](std::string_view sv)
+	client.bind_recv([&](std::string_view data)
 	{
-		printf("recv : %u %.*s\n", (unsigned)sv.size(), (int)sv.size(), sv.data());
+		printf("recv : %zu %.*s\n", data.size(), (int)data.size(), data.data());
 
-		client.async_send(sv);
+		client.async_send(data);
 
 	}).bind_connect([&]()
     {
         printf("connect : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
 
-		std::string s;
-		s.resize(64);
+		std::string str;
+		str.resize(64);
 
-		client.async_send(s);
+		client.async_send(std::move(str));
 
     }).bind_handshake([&]()
 	{
@@ -177,23 +173,13 @@ int main()
 		std::cout << "start success " << std::endl;
 	}
 
-
-	std::string s;
-	s += '<';
-	int len = 128 + std::rand() % (300);
-	for (int i = 0; i < len; i++)
-	{
-		s += (char)((std::rand() % 26) + 'a');
-	}
-	s += '>';
-
 	// send data, beacuse may be connect failed,
-	// if connect failed, the data will sent failed to.
-	//client.async_send(std::move(s), []()
-	//{
-	//	if (asio2::get_last_error())
-	//		std::cout << "send failed : " << asio2::last_error_msg() << std::endl;
-	//});
+	// if connect failed, the data will sent failed too.
+	client.async_send(std::string("abc0123456789xyz"), []()
+	{
+		if (asio2::get_last_error())
+			std::cout << "send failed : " << asio2::last_error_msg() << std::endl;
+	});
 
 	while (std::getchar() != '\n');
 

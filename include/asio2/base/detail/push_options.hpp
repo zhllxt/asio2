@@ -29,12 +29,14 @@
 
 #if defined(_MSC_VER)
 #  pragma warning(push)
+#  pragma warning(disable:4100) // warning C4100: Unreferenced formal parameters
 #  pragma warning(disable:4191) // asio inner : from FARPROC to cancel_io_ex_t is unsafe
-#  pragma warning(disable:4996) // warning STL4009: std::allocator<void> is deprecated in C++17
+#  pragma warning(disable:4267) // warning C4267: Convert from size_t to uint32_t may be loss data
 #  pragma warning(disable:4311)
 #  pragma warning(disable:4312)
-#  pragma warning(disable:4702) // unreachable code
 #  pragma warning(disable:4505) // Unreferenced local function removed
+#  pragma warning(disable:4702) // unreachable code
+#  pragma warning(disable:4996) // warning STL4009: std::allocator<void> is deprecated in C++17
 #  pragma warning(disable:5054) // Operator '|': deprecated between enumerations of different types
 #endif
 

@@ -2,17 +2,10 @@
 #define ASIO2_USE_SSL
 #endif
 
-//#include <asio2/asio2.hpp>
 #include <asio2/http/wss_server.hpp>
-#include <iostream>
 
 int main()
 {
-#if defined(WIN32) || defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS_)
-	// Detected memory leaks on windows system
-	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-#endif
-
 	std::string_view host = "0.0.0.0";
 	std::string_view port = "8007";
 
@@ -21,7 +14,11 @@ int main()
 	// use verify_fail_if_no_peer_cert, the client must specified a cert
 	server.set_verify_mode(asio::ssl::verify_peer | asio::ssl::verify_fail_if_no_peer_cert);
 
-	server.set_cert_file("../../cert/ca.crt", "../../cert/server.crt", "../../cert/server.key", "123456");
+	server.set_cert_file(
+		"../../cert/ca.crt",
+		"../../cert/server.crt",
+		"../../cert/server.key",
+		"123456");
 	server.set_dh_file("../../cert/dh1024.pem");
 
 	server.bind_accept([](std::shared_ptr<asio2::wss_session>& session_ptr)
@@ -33,33 +30,35 @@ int main()
 			rep.set(http::field::authorization, " ssl-websocket-server-coro");
 		}));
 
-		session_ptr->post([]() {}, std::chrono::seconds(3));
-
 	}).bind_recv([](std::shared_ptr<asio2::wss_session> & session_ptr, std::string_view data)
 	{
-		printf("recv : %u %.*s\n", (unsigned)data.size(), (int)data.size(), data.data());
+		printf("recv : %zu %.*s\n", data.size(), (int)data.size(), data.data());
 
-		session_ptr->async_send(data, []() {});
+		session_ptr->async_send(data);
 
 	}).bind_connect([](auto & session_ptr)
 	{
-		printf("client enter : %s %u %s %u\n", session_ptr->remote_address().c_str(), session_ptr->remote_port(),
+		printf("client enter : %s %u %s %u\n",
+			session_ptr->remote_address().c_str(), session_ptr->remote_port(),
 			session_ptr->local_address().c_str(), session_ptr->local_port());
 
 	}).bind_disconnect([](auto & session_ptr)
 	{
-		printf("client leave : %s %u %s\n", session_ptr->remote_address().c_str(),
-			session_ptr->remote_port(), asio2::last_error_msg().c_str());
+		printf("client leave : %s %u %s\n",
+			session_ptr->remote_address().c_str(), session_ptr->remote_port(),
+			asio2::last_error_msg().c_str());
 
 	}).bind_handshake([](auto & session_ptr)
 	{
-		(void)session_ptr;
-		printf("client handshake : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
+		printf("client handshake : %s %u %d %s\n",
+			session_ptr->remote_address().c_str(), session_ptr->remote_port(),
+			asio2::last_error_val(), asio2::last_error_msg().c_str());
 
 	}).bind_upgrade([](auto & session_ptr)
 	{
-		(void)session_ptr;
-		printf("client upgrade : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
+		printf("client upgrade : %s %u %d %s\n",
+			session_ptr->remote_address().c_str(), session_ptr->remote_port(),
+			asio2::last_error_val(), asio2::last_error_msg().c_str());
 
 	}).bind_start([&]()
 	{
@@ -71,7 +70,8 @@ int main()
 				server.listen_address().c_str(), server.listen_port());
 	}).bind_stop([&]()
 	{
-		printf("stop websocket ssl server : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
+		printf("stop websocket ssl server : %d %s\n",
+			asio2::last_error_val(), asio2::last_error_msg().c_str());
 	});
 
 	server.start(host, port);

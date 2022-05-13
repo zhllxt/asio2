@@ -1,12 +1,15 @@
 #include <asio2/icmp/ping.hpp>
 #include <iostream>
 
-void ping_test1()
+int main()
 {
+	std::cout << asio2::ping::execute("www.baidu.com").milliseconds() << std::endl;;
+
+
 	asio2::ping ping;
-	ping.timeout(std::chrono::seconds(3))
-		.interval(std::chrono::seconds(1))
-		.body("abc")
+	ping.set_timeout(std::chrono::seconds(4))
+		.set_interval(std::chrono::seconds(1))
+		.set_body("abc")
 		.bind_recv([](asio2::icmp_rep& rep)
 	{
 		if (rep.is_timeout())
@@ -16,74 +19,16 @@ void ping_test1()
 			<< " bytes from " << rep.source_address()
 			<< ": icmp_seq=" << rep.sequence_number()
 			<< ", ttl=" << rep.time_to_live()
-			<< ", time=" << std::chrono::duration_cast<std::chrono::milliseconds>(rep.lag).count() << "ms"
+			<< ", time=" << rep.milliseconds() << "ms"
 			<< std::endl;
-	}).start("151.101.193.69");
+	}).start("stackoverflow.com");
 
 	while (std::getchar() != '\n');
-}
 
-class ping_test
-{
-	asio2::ping ping;
-public:
-	ping_test() : ping(1000)
-	{
-		ping.post([]() {}, std::chrono::seconds(3));
-		ping.timeout(std::chrono::seconds(3));
-		ping.interval(std::chrono::seconds(1));
-		ping.body("");
-		ping.bind_recv(&ping_test::on_recv, this)
-			.bind_start(std::bind(&ping_test::on_start, this))
-			.bind_stop([this]() { this->on_stop(); });
-	}
-	void on_recv(asio2::icmp_rep& rep)
-	{
-		if (rep.is_timeout())
-			std::cout << "request timed out" << std::endl;
-		else
-			std::cout << rep.total_length() - rep.header_length()
-			<< " bytes from " << rep.source_address()
-			<< ": icmp_seq=" << rep.sequence_number()
-			<< ", ttl=" << rep.time_to_live()
-			<< ", time=" << std::chrono::duration_cast<std::chrono::milliseconds>(rep.lag).count() << "ms"
-			<< std::endl;
-	}
-	void on_start()
-	{
-		printf("start : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
-	}
-	void on_stop()
-	{
-		printf("stop : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
-	}
-	void run()
-	{
-		//if (!ping.start("123.45.67.89"))
-		//if (!ping.start("fe80::59f9:25af:4427:fab7"))
-		if (!ping.start("stackoverflow.com"))
-			printf("start failure : %s\n", asio2::last_error_msg().c_str());
+	ping.stop();
 
-		while (std::getchar() != '\n');
-
-		ping.stop();
-
-		printf("loss rate : %.0lf%% average time : %ldms\n", ping.plp(),
-			long(std::chrono::duration_cast<std::chrono::milliseconds>(ping.avg_lag()).count()));
-	}
-};
-
-int main()
-{
-#if defined(WIN32) || defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS_)
-	// Detected memory leaks on windows system
-	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-#endif
-
-	ping_test ping;
-	ping.run();
-
-	//ping_test1();
+	printf("loss rate : %.0lf%% average time : %ldms\n", ping.plp(),
+		long(std::chrono::duration_cast<std::chrono::milliseconds>(ping.avg_lag()).count()));
 
 	while (std::getchar() != '\n');
 

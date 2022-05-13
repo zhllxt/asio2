@@ -4,42 +4,44 @@
 
 int main()
 {
-#if defined(WIN32) || defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS_)
-	// Detected memory leaks on windows system
-	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-#endif
-
 	std::string_view host = "0.0.0.0";
 	std::string_view port = "8036";
 
 	asio2::udp_server server;
 
-	server.bind_recv([](std::shared_ptr<asio2::udp_session> & session_ptr, std::string_view s)
+	server.bind_recv([](std::shared_ptr<asio2::udp_session>& session_ptr, std::string_view data)
 	{
-		printf("recv : %u %.*s\n", (unsigned)s.size(), (int)s.size(), s.data());
-		session_ptr->async_send(s, []() {});
+		printf("recv : %zu %.*s\n", data.size(), (int)data.size(), data.data());
+
+		session_ptr->async_send(data);
+
 	}).bind_connect([](auto & session_ptr)
 	{
-		printf("client enter : %s %u %s %u\n", session_ptr->remote_address().c_str(), session_ptr->remote_port(),
+		printf("client enter : %s %u %s %u\n",
+			session_ptr->remote_address().c_str(), session_ptr->remote_port(),
 			session_ptr->local_address().c_str(), session_ptr->local_port());
 	}).bind_disconnect([](auto & session_ptr)
 	{
-		printf("client leave : %s %u %s\n", session_ptr->remote_address().c_str(),
-			session_ptr->remote_port(), asio2::last_error_msg().c_str());
+		printf("client leave : %s %u %s\n",
+			session_ptr->remote_address().c_str(), session_ptr->remote_port(),
+			asio2::last_error_msg().c_str());
 	}).bind_handshake([](auto & session_ptr)
 	{
-		(void)session_ptr;
-		printf("client handshake : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
+		printf("client handshake : %s %u %d %s\n",
+			session_ptr->remote_address().c_str(), session_ptr->remote_port(),
+			asio2::last_error_val(), asio2::last_error_msg().c_str());
 	}).bind_start([&]()
 	{
 		if (asio2::get_last_error())
-			printf("start udp server kcp failure : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
+			printf("start udp server kcp failure : %d %s\n",
+				asio2::last_error_val(), asio2::last_error_msg().c_str());
 		else
-			printf("start udp server kcp success : %s %u\n", server.listen_address().c_str(), server.listen_port());
-		//server.stop();
+			printf("start udp server kcp success : %s %u\n",
+				server.listen_address().c_str(), server.listen_port());
 	}).bind_stop([&]()
 	{
-		printf("stop : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
+		printf("stop udp server kcp : %d %s\n",
+			asio2::last_error_val(), asio2::last_error_msg().c_str());
 	}).bind_init([&]()
 	{
 		//// Join the multicast group. you can set this option in the on_init(_fire_init) function.

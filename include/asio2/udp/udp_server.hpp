@@ -284,8 +284,6 @@ namespace asio2::detail
 				return false;
 			}
 
-			this->io().regobj(this);
-
 			// use promise to get the result of async accept
 			std::promise<error_code> promise;
 			std::future<error_code> future = promise.get_future();
@@ -314,6 +312,8 @@ namespace asio2::detail
 				try
 				{
 					clear_last_error();
+
+					this->io().regobj(this);
 
 				#if defined(ASIO2_ENABLE_LOG)
 					this->sessions_.is_all_session_stop_called_ = false;
@@ -582,7 +582,8 @@ namespace asio2::detail
 
 				// first we find whether the session is in the session_mgr pool already,if not ,
 				// we new a session and put it into the session_mgr pool
-				std::shared_ptr<session_t> session_ptr = this->sessions_.find(this->remote_endpoint_);
+				std::size_t key = std::hash<asio::ip::udp::endpoint>{}(this->remote_endpoint_);
+				std::shared_ptr<session_t> session_ptr = this->sessions_.find(key);
 				if (!session_ptr)
 				{
 					this->derived()._handle_accept(ec, data, session_ptr, condition);

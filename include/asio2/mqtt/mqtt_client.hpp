@@ -299,7 +299,8 @@ namespace asio2::detail
 			else
 			{
 				ASIO2_ASSERT(false);
-				asio::detail::throw_error(asio::error::invalid_argument);
+				set_last_error(asio::error::invalid_argument);
+				return std::get<mqtt::v4::connect>(this->connect_message_);
 			}
 		}
 
