@@ -10,7 +10,7 @@ int main()
 
 	sender = [&]()
 	{
-		client.async_call([](std::string v)
+		client.async_call([](std::string)
 		{
 			if (!asio2::get_last_error())
 				sender();

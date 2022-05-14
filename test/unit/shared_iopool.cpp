@@ -44,7 +44,7 @@ void shared_iopool_test()
 	asio2::ping        _ping1(&iopool.get(3));
 
 	//// --------------------------------------------------------------------------------
-	
+
 	int index = std::rand() % iopool.size();
 
 #define iothread_check \
@@ -54,7 +54,7 @@ void shared_iopool_test()
 	}
 
 #define iothreads_check \
-	[&iopool, index]() \
+	[&iopool]() \
 	{ \
 		ASIO2_CHECK(iopool.running_in_threads()); \
 	}
@@ -145,7 +145,7 @@ void shared_iopool_test()
 
 	index = 0;
 
-	asio2::tcp_server server(std::vector<asio2::io_t*>{ 
+	asio2::tcp_server server(std::vector<asio2::io_t*>{
 		&iopool.get(0), &iopool.get(1), &iopool.get(2), &iopool.get(3) });
 
 	// the server's io_context must be the user passed io_context.
@@ -159,7 +159,7 @@ void shared_iopool_test()
 
 	server.start_timer(1, std::chrono::seconds(1), timer_check); // test timer
 
-	server.bind_recv([&, index](std::shared_ptr<asio2::tcp_session> & session_ptr, std::string_view sv)
+	server.bind_recv([&](std::shared_ptr<asio2::tcp_session> & session_ptr, std::string_view sv)
 	{
 		ASIO2_CHECK(session_ptr->io().strand().running_in_this_thread());
 
@@ -167,13 +167,14 @@ void shared_iopool_test()
 
 		session_ptr->async_send(sv);
 
-	}).bind_connect([&, index](auto & session_ptr)
+	}).bind_connect([&](auto & session_ptr)
 	{
 		ASIO2_CHECK(iopool.running_in_thread(0));
 
 		session_ptr->start_timer(2, std::chrono::seconds(1), iothreads_check); // test timer
 	}).bind_disconnect([&](auto & session_ptr)
 	{
+		asio2::ignore_unused(session_ptr);
 		ASIO2_CHECK(iopool.running_in_thread(0));
 	}).bind_start([&]()
 	{

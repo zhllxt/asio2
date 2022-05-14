@@ -7,7 +7,22 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
+#if defined(_MSC_VER)
 #pragma warning(disable:4996)
+#endif
+
+#if defined(WIN32) || defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS_)
+#	ifndef _WIN32_WINNT
+#		if __has_include(<winsdkver.h>)
+#			include <winsdkver.h>
+#			define _WIN32_WINNT _WIN32_WINNT_WIN7
+#		endif
+#		if __has_include(<SDKDDKVer.h>)
+#			include <SDKDDKVer.h>
+#		endif
+#	endif
+#endif
+
 #define ASIO_STANDALONE
 #include "asio.hpp"
 #include <algorithm>
@@ -234,6 +249,8 @@ private:
 
 int main(int argc, char* argv[])
 {
+  (void)argc;
+  (void)argv;
   try
   {
     using namespace std; // For atoi.

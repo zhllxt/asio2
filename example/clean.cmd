@@ -41,6 +41,9 @@ rmdir /s /q client\out
 rmdir /s /q client\obj
 rmdir /s /q client\http_client.dir
 rmdir /s /q client\build
+rmdir /s /q client\cmake-build-debug
+rmdir /s /q client\cmake-build-release
+rmdir /s /q client\.idea
 
 
 rmdir /s /q server\.vs
@@ -58,6 +61,9 @@ rmdir /s /q server\out
 rmdir /s /q server\obj
 rmdir /s /q server\http_client.dir
 rmdir /s /q server\build
+rmdir /s /q server\cmake-build-debug
+rmdir /s /q server\cmake-build-release
+rmdir /s /q server\.idea
 
 rmdir /s /q ndk\libs
 rmdir /s /q ndk\obj

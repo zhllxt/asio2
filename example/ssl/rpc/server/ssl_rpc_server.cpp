@@ -55,6 +55,7 @@ int main()
 		// Nested call rpc function in business function is ok.
 		session_ptr->async_call([x, y](int v)
 		{
+			asio2::ignore_unused(x, y);
 			if (!asio2::get_last_error())
 			{
 				ASIO2_ASSERT(v == x - y);

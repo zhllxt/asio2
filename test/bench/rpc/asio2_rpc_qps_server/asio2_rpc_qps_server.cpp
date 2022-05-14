@@ -3,12 +3,12 @@
 decltype(std::chrono::steady_clock::now()) time1 = std::chrono::steady_clock::now();
 decltype(std::chrono::steady_clock::now()) time2 = std::chrono::steady_clock::now();
 std::size_t qps = 0;
-bool first = true;
+bool _first = true;
 std::string echo(std::string a)
 {
-	if (first)
+	if (_first)
 	{
-		first = false;
+		_first = false;
 		time1 = std::chrono::steady_clock::now();
 		time2 = std::chrono::steady_clock::now();
 	}

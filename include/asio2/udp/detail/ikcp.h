@@ -21,7 +21,7 @@
 #include <assert.h>
 
 namespace asio2::detail::kcp {
-namespace {
+
 //=====================================================================
 // 32BIT INTEGER DEFINITION 
 //=====================================================================
@@ -340,6 +340,8 @@ typedef struct IKCPCB ikcpcb;
 //#ifdef __cplusplus
 //extern "C" {
 //#endif
+
+namespace {
 
 //---------------------------------------------------------------------
 // interface
@@ -1698,12 +1700,12 @@ IUINT32 ikcp_getconv(const void *ptr)
 	return conv;
 }
 
+}
 
 //#ifdef __cplusplus
 //}
 //#endif
 
-}
 }
 
 #include <asio2/base/detail/pop_options.hpp>

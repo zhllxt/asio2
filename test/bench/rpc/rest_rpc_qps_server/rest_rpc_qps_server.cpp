@@ -10,6 +10,7 @@
 #include <fstream>
 #include <memory>
 #include <chrono>
+#include <thread>
 #include <rpc_server.h>
 using namespace rest_rpc;
 using namespace rpc_service;

@@ -11,6 +11,8 @@
 #ifndef __ASIO2_UNIT_TEST_HPP__
 #define __ASIO2_UNIT_TEST_HPP__
 
+#include <asio2/base/detail/push_options.hpp>
+
 #include <cstdlib>
 #include <ctime>
 #include <cstdio>
@@ -18,11 +20,12 @@
 #include <iostream>
 #include <limits>
 #include <iomanip>
-#include <filesystem>
+#include <mutex>
+#include <iterator>
+#include <string>
+#include <string_view>
+
 #include <asio2/external/asio.hpp>
-#if defined(WIN32) || defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS_)
-#include <crtdbg.h>
-#endif
 
 #if defined(__sun)
 # include <stdlib.h> // Needed for lrand48.
@@ -63,6 +66,15 @@ inline std::atomic<long>& test_errors()
   static std::atomic<long> errors(0);
   return errors;
 }
+
+inline std::mutex& test_lock()
+{
+  static std::mutex mtx{};
+  return mtx;
+}
+
+#define ASIO2_TEST_LOCK_GUARD \
+  std::lock_guard guard(asio2::detail::test_lock());
 
 inline void begin_test_suite(const char* name)
 {
@@ -132,13 +144,15 @@ void check_memory_leaks()
 
 #define ASIO2_CHECK(expr) \
   do { if (!(expr)) { \
+    ASIO2_TEST_LOCK_GUARD \
     if (!test_has_error) \
 	{ \
       ASIO2_TEST_IOSTREAM << std::endl; \
       test_has_error = true; \
 	} \
+    std::string_view file{__FILE__}; \
     ASIO2_TEST_IOSTREAM \
-      << std::strrchr(__FILE__, std::filesystem::path::preferred_separator) + 1 << "(" << __LINE__ << "): " \
+      << std::next(std::next(file.data(), file.find_last_of("\\/"))) << "(" << __LINE__ << "): " \
       << asio2::detail::test_name() << ": " \
       << "check '" << #expr << "' failed" << std::endl; \
     ++asio2::detail::test_errors(); \
@@ -146,14 +160,16 @@ void check_memory_leaks()
 
 #define ASIO2_CHECK_VALUE(val, expr) \
   do { if (!(expr)) { \
+    ASIO2_TEST_LOCK_GUARD \
     if (!test_has_error) \
 	{ \
       ASIO2_TEST_IOSTREAM << std::endl; \
       test_has_error = true; \
 	} \
+    std::string_view file{__FILE__}; \
     ASIO2_TEST_IOSTREAM \
       << #val << "=" << val << " \t" \
-      << std::strrchr(__FILE__, std::filesystem::path::preferred_separator) + 1 << "(" << __LINE__ << "): " \
+      << std::next(std::next(file.data(), file.find_last_of("\\/"))) << "(" << __LINE__ << "): " \
       << asio2::detail::test_name() << ": " \
       << "check '" << #expr << "' failed" << std::endl; \
     ++asio2::detail::test_errors(); \
@@ -161,13 +177,15 @@ void check_memory_leaks()
 
 #define ASIO2_CHECK_MESSAGE(expr, msg) \
   do { if (!(expr)) { \
+    ASIO2_TEST_LOCK_GUARD \
     if (!test_has_error) \
 	{ \
       ASIO2_TEST_IOSTREAM << std::endl; \
       test_has_error = true; \
 	} \
+    std::string_view file{__FILE__}; \
     ASIO2_TEST_IOSTREAM \
-      << std::strrchr(__FILE__, std::filesystem::path::preferred_separator) + 1 << "(" << __LINE__ << "): " \
+      << std::next(std::next(file.data(), file.find_last_of("\\/"))) << "(" << __LINE__ << "): " \
       << asio2::detail::test_name() << ": " \
       << msg << std::endl; \
     ++asio2::detail::test_errors(); \
@@ -175,21 +193,25 @@ void check_memory_leaks()
 
 #define ASIO2_WARN_MESSAGE(expr, msg) \
   do { if (!(expr)) { \
+    ASIO2_TEST_LOCK_GUARD \
     if (!test_has_error) \
 	{ \
       ASIO2_TEST_IOSTREAM << std::endl; \
       test_has_error = true; \
 	} \
+    std::string_view file{__FILE__}; \
     ASIO2_TEST_IOSTREAM \
-      << std::strrchr(__FILE__, std::filesystem::path::preferred_separator) + 1 << "(" << __LINE__ << "): " \
+      << std::next(std::next(file.data(), file.find_last_of("\\/"))) << "(" << __LINE__ << "): " \
       << asio2::detail::test_name() << ": " \
       << msg << std::endl; \
   } } while (0)
 
 #define ASIO2_ERROR(msg) \
   do { \
+    ASIO2_TEST_LOCK_GUARD \
+    std::string_view file{__FILE__}; \
     ASIO2_TEST_IOSTREAM \
-      << std::strrchr(__FILE__, std::filesystem::path::preferred_separator) + 1 << "(" << __LINE__ << "): " \
+      << std::next(std::next(file.data(), file.find_last_of("\\/"))) << "(" << __LINE__ << "): " \
       << asio2::detail::test_name() << ": " \
       << msg << std::endl; \
     ++asio2::detail::test_errors(); \
@@ -235,15 +257,15 @@ void check_memory_leaks()
   int loops = __loops__; \
   for (int loop = 0; loop < loops; ++loop) \
   { \
-    ASIO2_TEST_IOSTREAM << std::setiosflags(std::ios::left) << std::setw(4) << loop;
+    { \
+      ASIO2_TEST_LOCK_GUARD \
+      ASIO2_TEST_IOSTREAM << '#'; \
+    }
 
 #define ASIO2_TEST_END_LOOP \
     if (loop + 1 < loops) \
     { \
-      if (!test_has_error) \
-      { \
-        ASIO2_TEST_IOSTREAM << "\b\b\b\b"; \
-      } \
+      ASIO2_TEST_LOCK_GUARD \
       test_has_error = false; \
     } \
   }
@@ -260,5 +282,7 @@ int test_main(int, char**)
 }
 
 #endif // defined(__GNUC__) && defined(_AIX)
+
+#include <asio2/base/detail/pop_options.hpp>
 
 #endif // __ASIO2_UNIT_TEST_HPP__

@@ -50,9 +50,11 @@ void http_test()
 		asio2::ignore_unused(req, rep);
 	}).bind_connect([](auto & session_ptr)
 	{
+		asio2::ignore_unused(session_ptr);
 		//session_ptr->set_response_mode(asio2::response_mode::manual);
 	}).bind_disconnect([](auto & session_ptr)
 	{
+		asio2::ignore_unused(session_ptr);
 	}).bind_start([&]()
 	{
 	}).bind_stop([&]()

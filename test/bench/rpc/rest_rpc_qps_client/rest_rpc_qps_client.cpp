@@ -7,6 +7,12 @@
 // first : unzip the "asio2/test/bench/rpc/rest_rpc-master.zip"
 // the unziped path is like this : "asio2/test/bench/rpc/rest_rpc-master/include"
 
+#if defined(_MSC_VER)
+#pragma warning(disable:4189)
+#pragma warning(disable:4244)
+#endif
+
+#include <thread>
 #include <iostream>
 #include <rpc_client.hpp>
 #include <chrono>

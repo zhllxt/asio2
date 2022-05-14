@@ -31,6 +31,7 @@ int main()
 		int x = std::rand(), y = std::rand();
 		client.async_call<int>([x, y](auto v)
 		{
+			asio2::ignore_unused(x, y);
 			if (!asio2::get_last_error())
 			{
 				ASIO2_ASSERT(v == x + y);

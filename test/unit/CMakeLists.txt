@@ -36,4 +36,8 @@ AddExecutableTarget(timer)
 AddExecutableTarget(http)
 AddExecutableTarget(shared_iopool)
 
+if(MINGW OR CYGWIN)
+# no mingw compiled openssl
+else()
 AddExecutableTarget(https)
+endif()
