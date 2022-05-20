@@ -1,4 +1,11 @@
 #include "unit_test.hpp"
+
+#include <asio2/config.hpp>
+
+#ifndef ASIO2_ENABLE_LOG
+#define ASIO2_ENABLE_LOG
+#endif
+
 #include <asio2/asio2.hpp>
 
 void shared_iopool_test()

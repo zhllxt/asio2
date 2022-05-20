@@ -21,6 +21,7 @@
 #include <memory>
 #include <type_traits>
 #include <chrono>
+#include <mutex>
 
 #include <asio2/external/asio.hpp>
 #include <asio2/base/iopool.hpp>
@@ -31,10 +32,17 @@
 
 #include <asio2/util/spin_lock.hpp>
 
+namespace asio2::detail
+{
+	template<class, class> class async_event_cp;
+}
+
 namespace asio2
 {
 	class async_event : public detail::object_t<async_event>
 	{
+		template<class, class> friend class asio2::detail::async_event_cp;
+
 	public:
 		explicit async_event(detail::io_t& io)
 			: event_timer_io_(io)
@@ -46,66 +54,74 @@ namespace asio2
 		{
 		}
 
+	protected:
 		template <typename WaitHandler>
 		inline void async_wait(WaitHandler&& handler)
 		{
-			asio::dispatch(this->event_timer_io_.strand(),
-			[this, handler = std::forward<WaitHandler>(handler)]() mutable
+			// when code run to here, it means that the io_context is started already,
+			// then we set the flag to true, if the io_context is not started, we can't
+			// set the flag to true, otherwise maybe cause crash.
+			// eg : 
+			// asio2::udp_cast udp;
+			// auto ptr = udp.post_event([](){});
+			// std::thread([ptr]() mutable
+			// {
+			// 	std::this_thread::sleep_for(std::chrono::seconds(5));
+			// 	ptr->notify();
+			// }).detach();
+			// // udp.start(...); // udp.start is not called,
+			// then the udp is destroyed, after 5 seconds, the code will run to ptr->notify,
+			// then it cause crash...
+
+			// when code run to here, the io_context must be not destroy.
+
 			{
-				this->event_timer_io_.timers().emplace(&event_timer_);
+				std::lock_guard g{ this->event_life_lock_ };
+				this->event_life_flag_ = true;
+			}
 
-				// Setting expiration to infinity will cause handlers to
-				// wait on the timer until cancelled.
-				this->event_timer_.expires_after((std::chrono::nanoseconds::max)());
+			this->event_timer_io_.timers().emplace(&event_timer_);
 
-				// bind is used to adapt the user provided handler to the 
-				// timer's wait handler type requirement.
-				// the "handler" has hold the derive_ptr already, so this lambda don't need hold it again.
-				// this event_ptr (means selfptr) has holded by the map "async_events_" already, 
-				// so this lambda don't need hold selfptr again.
-				this->event_timer_.async_wait(asio::bind_executor(this->event_timer_io_.strand(),
-				[this, handler = std::move(handler)](const error_code&) mutable
+			// Setting expiration to infinity will cause handlers to
+			// wait on the timer until cancelled.
+			this->event_timer_.expires_after((std::chrono::nanoseconds::max)());
+
+			// bind is used to adapt the user provided handler to the 
+			// timer's wait handler type requirement.
+			// the "handler" has hold the derive_ptr already, so this lambda don't need hold it again.
+			// this event_ptr (means selfptr) has holded by the map "async_events_" already, 
+			// so this lambda don't need hold selfptr again.
+			this->event_timer_.async_wait(asio::bind_executor(this->event_timer_io_.strand(),
+			[this, handler = std::forward<WaitHandler>(handler)](const error_code&) mutable
+			{
+				// after this lambda is executed, the io_context maybe destroyed,
+				// we set the flag to false.
 				{
-					this->event_timer_io_.timers().erase(&event_timer_);
+					std::lock_guard g{ this->event_life_lock_ };
+					this->event_life_flag_ = false;
+				}
 
-					handler();
-				}));
-			});
+				this->event_timer_io_.timers().erase(&event_timer_);
+
+				handler();
+			}));
 		}
 
+	public:
 		/**
 		 * @function : wakeup the waiting async_event.
-		 * must ensure that the io_context is not destroyed, otherwise this will cause crash.
-		 * 
-		 * when the event_ptr is passed into some thread, when the thread executing,
-		 * and the event_ptr->notify is called, at this time, the io_context maybe
-		 * destroyed already, this will crash.
-		 * eg : 
-		 * asio2::udp_cast udp;
-		 * auto ptr = udp.post_event([](){});
-		 * std::thread([ptr]() mutable
-		 * {
-		 * 	std::this_thread::sleep_for(std::chrono::seconds(5));
-		 * 	ptr->notify();
-		 * }).detach();
-		 * udp.start(...); // or don't call udp.start
-		 * 
-		 * asio2::iopool iopool(4);
-		 * iopool.start(); // or don't call iopool.start
-		 * asio2::udp_cast udp(iopool.get(0));
-		 * auto ptr = udp.post_event([](){});
-		 * std::thread([ptr]() mutable
-		 * {
-		 * 	std::this_thread::sleep_for(std::chrono::seconds(5));
-		 * 	ptr->notify();
-		 * }).detach();
-		 * udp.start(...); // or don't call udp.start
-		 * iopool.stop();
 		 */
 		inline void notify()
 		{
 			// must use dispatch, otherwise if use called post_event, and then called 
 			// notify() immediately, the event will can't be notifyed.
+
+			// when code run to here, the io_context maybe destroyed already, if the 
+			// io_context is destroyed already, the flag must be false, so the io_context
+			// will can't be used.
+			std::lock_guard g{ this->event_life_lock_ };
+			if (this->event_life_flag_ == false)
+				return;
 
 			asio::dispatch(this->event_timer_io_.strand(), [this, this_ptr = this->selfptr()]() mutable
 			{
@@ -122,6 +138,12 @@ namespace asio2
 
 		/// Used to implementing asynchronous async_event
 		asio::steady_timer                  event_timer_;
+
+		///
+		std::mutex                          event_life_lock_;
+
+		///
+		bool                                event_life_flag_ = false;
 	};
 }
 

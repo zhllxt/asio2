@@ -153,10 +153,11 @@ namespace asio2::detail
 
 				try
 				{
-					// Set the timeout to none to cancel the websocket timeout timer, otherwise
-					// we'll have to wait a lot of seconds util the timer is timeout.
+					// Set the handshake timeout to a small value, otherwise if the remote don't
+					// send a websocket close frame, the async_close's callback will never be
+					// called.
 					websocket::stream_base::timeout opt{};
-					opt.handshake_timeout = websocket::stream_base::none();
+					opt.handshake_timeout = std::chrono::milliseconds(ws_shutdown_timeout);
 					opt.idle_timeout      = websocket::stream_base::none();
 					this->ws_stream_->set_option(opt);
 				}
@@ -180,6 +181,9 @@ namespace asio2::detail
 				}
 
 				// Close the WebSocket connection
+				// async_close behavior : 
+				// send a websocket close frame to the remote, and wait for recv a websocket close
+				// frame from the remote.
 				this->ws_stream_->async_close(websocket::close_code::normal,
 					asio::bind_executor(derive.io().strand(),
 				[this, this_ptr = std::move(this_ptr), g = std::move(g), f = std::move(fn)]
@@ -242,7 +246,7 @@ namespace asio2::detail
 			set_last_error(ec);
 
 			// bytes_recvd : The number of bytes in the streambuf's get area up to and including the delimiter.
-			if (!ec)
+			if (!ec && derive.is_started())
 			{
 				// every times recv data,we update the last alive time.
 				derive.update_alive_time();

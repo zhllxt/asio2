@@ -497,6 +497,8 @@ namespace asio2::detail
 			this->socket_.lowest_layer().shutdown(asio::socket_base::shutdown_both, ec_ignore);
 			// Call close,otherwise the _handle_recv will never return
 			this->socket_.lowest_layer().close(ec_ignore);
+
+			ASIO2_ASSERT(!this->socket_.lowest_layer().is_open());
 		}
 
 		inline void _do_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr)

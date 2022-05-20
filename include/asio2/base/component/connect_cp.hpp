@@ -211,6 +211,12 @@ namespace asio2::detail
 
 			try
 			{
+				state_t expected = state_t::starting;
+				if (!derive.state_.compare_exchange_strong(expected, state_t::starting))
+				{
+					asio::detail::throw_error(asio::error::operation_aborted);
+				}
+
 				if (iter == this->endpoints_.end())
 				{
 					// There are no more endpoints to try. Shut down the client.
@@ -221,6 +227,10 @@ namespace asio2::detail
 				}
 
 				auto & socket = derive.socket().lowest_layer();
+
+				// the socket.open(...) must after async_resolve, beacuse only after async_resolve,
+				// we can get the remote endpoint is ipv4 or ipv6, then we can open the socket
+				// with ipv4 or ipv6 correctly.
 
 				// if the socket's binded endpoint is ipv4, and the finded endpoint is ipv6, then
 				// the async_connect will be failed, so we need reopen the socket with ipv6.
@@ -285,32 +295,49 @@ namespace asio2::detail
 
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			if constexpr (is_template_instance_of_v<ecs_t, MatchCondition>)
+			ASIO2_ASSERT(derive.io().strand().running_in_this_thread());
+
+			try
 			{
-				if (ec)
-					return derive._handle_proxy(ec, std::move(this_ptr), std::move(condition));
+				state_t expected = state_t::starting;
+				if (!derive.state_.compare_exchange_strong(expected, state_t::starting))
+				{
+					asio::detail::throw_error(asio::error::operation_aborted);
+				}
 
-				//// Traverse each component in order, and if it is a proxy component, start it
-				//detail::for_each_tuple(condition.impl_->components_, [&](auto& component) mutable
-				//{
-				//	using type = detail::remove_cvref_t<decltype(component)>;
+				if constexpr (is_template_instance_of_v<ecs_t, MatchCondition>)
+				{
+					if (ec)
+						return derive._handle_proxy(ec, std::move(this_ptr), std::move(condition));
 
-				//	if constexpr (std::is_base_of_v<asio2::socks5::detail::option_base, type>)
-				//		derive._socks5_start(this_ptr, condition);
-				//	else
-				//	{
-				//		std::ignore = true;
-				//	}
-				//});
+					//// Traverse each component in order, and if it is a proxy component, start it
+					//detail::for_each_tuple(condition.impl_->components_, [&](auto& component) mutable
+					//{
+					//	using type = detail::remove_cvref_t<decltype(component)>;
 
-				if constexpr (MatchCondition::has_socks5())
-					derive._socks5_start(std::move(this_ptr), std::move(condition));
+					//	if constexpr (std::is_base_of_v<asio2::socks5::detail::option_base, type>)
+					//		derive._socks5_start(this_ptr, condition);
+					//	else
+					//	{
+					//		std::ignore = true;
+					//	}
+					//});
+
+					if constexpr (MatchCondition::has_socks5())
+						derive._socks5_start(std::move(this_ptr), std::move(condition));
+					else
+						derive._handle_proxy(ec, std::move(this_ptr), std::move(condition));
+				}
 				else
+				{
 					derive._handle_proxy(ec, std::move(this_ptr), std::move(condition));
+				}
 			}
-			else
+			catch (system_error & e)
 			{
-				derive._handle_proxy(ec, std::move(this_ptr), std::move(condition));
+				set_last_error(e);
+
+				derive._handle_connect(e.code(), std::move(this_ptr), std::move(condition));
 			}
 		}
 

@@ -119,7 +119,7 @@ namespace asio2::detail
 
 			std::ignore = bytes_recvd;
 
-			if (!ec)
+			if (!ec && derive.is_started())
 			{
 				// every times recv data,we update the last alive time.
 				derive.update_alive_time();

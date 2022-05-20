@@ -33,8 +33,10 @@ AddExecutableTarget(ini)
 AddExecutableTarget(md5)
 AddExecutableTarget(rpc)
 AddExecutableTarget(timer)
+AddExecutableTarget(timer_enable_error)
 AddExecutableTarget(http)
 AddExecutableTarget(shared_iopool)
+AddExecutableTarget(tcp_general)
 
 if(MINGW OR CYGWIN)
 # no mingw compiled openssl

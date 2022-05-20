@@ -161,7 +161,7 @@ void http_test()
 
 		std::thread([rep_defer, &rep]() mutable
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+			std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
 			rep = asio2::http_client::execute("http://www.baidu.com");
 		}).detach();
@@ -177,7 +177,7 @@ void http_test()
 	}).on("open", [&](std::shared_ptr<asio2::http_session>& session_ptr)
 	{
 		ws_open_flag = true;
-		session_ptr->post([]() {}, std::chrono::seconds(3));
+		session_ptr->post([]() {}, std::chrono::milliseconds(10));
 		// how to set custom websocket response data : 
 		session_ptr->ws_stream().set_option(websocket::stream_base::decorator(
 			[](websocket::response_type& rep)
@@ -290,7 +290,7 @@ void http_test()
 
 	ASIO2_CHECK(ws_open_flag);
 
-	std::this_thread::sleep_for(std::chrono::milliseconds(20 + std::rand() % 50));
+	std::this_thread::sleep_for(std::chrono::milliseconds(50 + std::rand() % 50));
 
 	ws_client.stop();
 	ASIO2_CHECK(ws_close_flag);

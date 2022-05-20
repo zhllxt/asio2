@@ -436,7 +436,9 @@ namespace asio2::detail
 		 *           this will be less than the sum of the data size.
 		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
 		 * Note : If this function is called in communication thread, it will degenerates into async_send
-		 *        and the return value is 0(success) or -1(failure).
+		 *        and the return value is 0, you can use asio2::get_last_error() to check whether the
+		 *        send is success, if asio2::get_last_error() is equal to asio::error::in_progress, it
+		 *        means success, otherwise failed.
 		 * use like this : std::string m; send(std::move(m)); can reducing memory allocation.
 		 * PodType * : send("abc");
 		 * PodType (&data)[N] : double m[10]; send(m);
@@ -463,7 +465,7 @@ namespace asio2::detail
 				if (status == std::future_status::ready)
 				{
 					set_last_error(future.get().first);
-					return std::size_t(-1);
+					return std::size_t(0);
 				}
 				// async_send in_progress.
 				else
@@ -486,7 +488,9 @@ namespace asio2::detail
 		 *           this will be less than the sum of the data size.
 		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
 		 * Note : If this function is called in communication thread, it will degenerates into async_send
-		 *        and the return value is 0(success) or -1(failure).
+		 *        and the return value is 0, you can use asio2::get_last_error() to check whether the
+		 *        send is success, if asio2::get_last_error() is equal to asio::error::in_progress, it
+		 *        means success, otherwise failed.
 		 * PodType * : send("abc");
 		 */
 		template<class CharT, class Traits = std::char_traits<CharT>>
@@ -507,7 +511,9 @@ namespace asio2::detail
 		 *           this will be less than the sum of the data size.
 		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
 		 * Note : If this function is called in communication thread, it will degenerates into async_send
-		 *        and the return value is 0(success) or -1(failure).
+		 *        and the return value is 0, you can use asio2::get_last_error() to check whether the
+		 *        send is success, if asio2::get_last_error() is equal to asio::error::in_progress, it
+		 *        means success, otherwise failed.
 		 * PodType (&data)[N] : double m[10]; send(m,5);
 		 */
 		template<class CharT, class SizeT>

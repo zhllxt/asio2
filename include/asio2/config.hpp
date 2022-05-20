@@ -40,9 +40,6 @@
 // Whether to detect the validity of UTF8 string of mqtt
 #define ASIO2_CHECK_UTF8
 
-// Whether enable internal logging of asio2
-//#define ASIO2_ENABLE_LOG
-
 // Whether called the timer callback when the timer is awaked with some error.
 // eg : stop_timer will awake the timer with error of asio::error::operation_aborted.
 //#define ASIO2_ENABLE_TIMER_CALLBACK_WHEN_ERROR

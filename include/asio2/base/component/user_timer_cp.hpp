@@ -532,10 +532,26 @@ namespace asio2::detail
 			// after remove and cancel a timer, the ec is 0 (not operation_aborted) and 
 			// the steady_timer is still exist
 
-			if (ec == asio::error::operation_aborted ||
-				timer_obj_ptr->exited || timer_obj_ptr->repeat == static_cast<std::size_t>(0))
+			if (timer_obj_ptr->exited)
+			{
+				// if exited is true, can't erase the timer object from the "user_timers_",
+				// beacuse maybe user start timer multi times with same id.
+				derive.io().timers().erase(&(timer_obj_ptr->timer));
+
+				return;
+			}
+
+			if (ec == asio::error::operation_aborted || timer_obj_ptr->repeat == static_cast<std::size_t>(0))
 			{
 				derive.io().timers().erase(&(timer_obj_ptr->timer));
+
+				auto iter = this->user_timers_.find(timer_obj_ptr->id);
+				if (iter != this->user_timers_.end())
+				{
+					iter->second->exited = true;
+
+					this->user_timers_.erase(iter);
+				}
 
 				return;
 			}

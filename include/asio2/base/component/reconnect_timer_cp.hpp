@@ -95,7 +95,7 @@ namespace asio2::detail
 		 * @function : get whether auto reconnect is enabled or not
 		 */
 		template<typename = void>
-		inline bool is_auto_reconnect_enabled() noexcept
+		inline bool is_auto_reconnect() noexcept
 		{
 			return this->reconnect_enable_;
 		}

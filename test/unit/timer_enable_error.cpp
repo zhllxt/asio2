@@ -2,13 +2,15 @@
 
 #include <asio2/config.hpp>
 
-#undef ASIO2_ENABLE_TIMER_CALLBACK_WHEN_ERROR
+#ifndef ASIO2_ENABLE_TIMER_CALLBACK_WHEN_ERROR
+#define ASIO2_ENABLE_TIMER_CALLBACK_WHEN_ERROR
+#endif
 
 #include <asio2/base/timer.hpp>
 
-void timer_test()
+void timer_enable_error_test()
 {
-#if defined(ASIO2_ENABLE_TIMER_CALLBACK_WHEN_ERROR)
+#if !defined(ASIO2_ENABLE_TIMER_CALLBACK_WHEN_ERROR)
 	ASIO2_CHECK(false);
 #endif
 
@@ -19,10 +21,16 @@ void timer_test()
 	asio2::timer timer1;
 
 	int c1 = 0, c2 = 0, c3 = 0, c4 = 0, c5 = 0, c6 = 0;
+	int e1 = 0, e2 = 0, e3 = 0, e4 = 0, e5 = 0, e6 = 0;
 
 	auto t1 = std::chrono::high_resolution_clock::now();
-	timer1.start_timer(1, 100, [&c1, &t1]() mutable
+	timer1.start_timer(1, 100, [&c1, &t1, &e1]() mutable
 	{
+		if (asio2::get_last_error())
+		{
+			e1 = 1;
+			return;
+		}
 		c1++;
 		ASIO2_CHECK(!asio2::get_last_error());
 		auto elapse1 = std::abs(std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -32,8 +40,13 @@ void timer_test()
 	});
 
 	auto t2 = std::chrono::high_resolution_clock::now();
-	timer1.start_timer("id2", 500, 9, [&c2, &t2]() mutable
+	timer1.start_timer("id2", 530, 9, [&c2, &t2, &e2]() mutable
 	{
+		if (asio2::get_last_error())
+		{
+			e2 = 1;
+			return;
+		}
 		c2++;
 		ASIO2_CHECK(!asio2::get_last_error());
 		auto elapse2 = std::abs(std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -43,8 +56,13 @@ void timer_test()
 	});
 
 	auto t3 = std::chrono::high_resolution_clock::now();
-	timer1.start_timer(3, std::chrono::milliseconds(1100), [&c3, &t3]() mutable
+	timer1.start_timer(3, std::chrono::milliseconds(1100), [&c3, &t3, &e3]() mutable
 	{
+		if (asio2::get_last_error())
+		{
+			e3 = 1;
+			return;
+		}
 		c3++;
 		ASIO2_CHECK(!asio2::get_last_error());
 		auto elapse3 = std::abs(std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -54,8 +72,13 @@ void timer_test()
 	});
 
 	auto t4 = std::chrono::high_resolution_clock::now();
-	timer1.start_timer(4, std::chrono::milliseconds(600), 7, [&c4, &t4]() mutable
+	timer1.start_timer(4, std::chrono::milliseconds(600), 7, [&c4, &t4, &e4]() mutable
 	{
+		if (asio2::get_last_error())
+		{
+			e4 = 1;
+			return;
+		}
 		c4++;
 		ASIO2_CHECK(!asio2::get_last_error());
 		auto elapse4 = std::abs(std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -66,8 +89,13 @@ void timer_test()
 
 	bool f5 = true;
 	auto t5 = std::chrono::high_resolution_clock::now();
-	timer1.start_timer(5, std::chrono::milliseconds(1000), std::chrono::milliseconds(2300), [&c5, &t5, &f5]() mutable
+	timer1.start_timer(5, std::chrono::milliseconds(1000), std::chrono::milliseconds(2300), [&c5, &t5, &f5, &e5]() mutable
 	{
+		if (asio2::get_last_error())
+		{
+			e5 = 1;
+			return;
+		}
 		c5++;
 		ASIO2_CHECK(!asio2::get_last_error());
 		if (f5)
@@ -88,8 +116,13 @@ void timer_test()
 
 	bool f6 = true;
 	auto t6 = std::chrono::high_resolution_clock::now();
-	timer1.start_timer(6, std::chrono::milliseconds(400), 6, std::chrono::milliseconds(2200), [&c6, &t6, &f6]() mutable
+	timer1.start_timer(6, std::chrono::milliseconds(400), 6, std::chrono::milliseconds(2200), [&c6, &t6, &f6, &e6]() mutable
 	{
+		if (asio2::get_last_error())
+		{
+			e6 = 1;
+			return;
+		}
 		c6++;
 		ASIO2_CHECK(!asio2::get_last_error());
 		if (f6)
@@ -142,12 +175,105 @@ void timer_test()
 	ASIO2_CHECK(!timer1.is_timer_exists(5));
 	ASIO2_CHECK(!timer1.is_timer_exists(6));
 
+	ASIO2_CHECK(e1 == 1);
+	if (c2 == 9)
+		ASIO2_CHECK(e2 == 0);
+	else
+		ASIO2_CHECK(e2 == 1);
+	ASIO2_CHECK(e3 == 1);
+	if (c4 == 7)
+		ASIO2_CHECK(e4 == 0);
+	else
+		ASIO2_CHECK(e4 == 1);
+	ASIO2_CHECK(e5 == 1);
+	if (c6 == 6)
+		ASIO2_CHECK(e6 == 0);
+	else
+		ASIO2_CHECK(e6 == 1);
+
+	//---------------------------------------------------------------------------------------------
+
+	asio2::timer timer2;
+
+	int b1 = -1, b2 = -1, b3 = -1, b4 = -1;
+
+	timer2.stop_timer(1);
+	timer2.start_timer(1, std::chrono::milliseconds(500), [&]()
+	{
+		ASIO2_CHECK(asio2::get_last_error());
+		if (asio2::get_last_error())
+		{
+			ASIO2_CHECK(true); // must run to here
+			b1 = 0;
+			return;
+		}
+		ASIO2_CHECK(false); // can't run to here
+		b1 = 1;
+		timer2.stop_timer(1);
+	});
+
+	timer2.stop_timer(1);
+	timer2.start_timer(1, std::chrono::milliseconds(500), [&]()
+	{
+		ASIO2_CHECK(asio2::get_last_error());
+		if (asio2::get_last_error())
+		{
+			ASIO2_CHECK(true); // must run to here
+			b2 = 0;
+			ASIO2_CHECK(b1 == 0);
+			return;
+		}
+		ASIO2_CHECK(false); // can't run to here
+		b2 = 1;
+		timer2.stop_timer(1);
+	});
+
+	timer2.post([&]()
+	{
+		timer2.stop_timer(1);
+		timer2.start_timer(1, std::chrono::milliseconds(500), [&]()
+		{
+			ASIO2_CHECK(asio2::get_last_error());
+			if (asio2::get_last_error())
+			{
+				ASIO2_CHECK(true); // must run to here
+				b3 = 0;
+				ASIO2_CHECK(b1 == 0 && b2 == 0);
+				return;
+			}
+			ASIO2_CHECK(false); // can't run to here
+			b3 = 1;
+			timer2.stop_timer(1);
+		});
+
+		timer2.stop_timer(1);
+		timer2.start_timer(1, std::chrono::milliseconds(50), [&]()
+		{
+			if (asio2::get_last_error())
+			{
+				ASIO2_CHECK(b1 == 0 && b2 == 0 && b3 == 0 && b4 == 1); // must run to here second
+				b4 = 0;
+				return;
+			}
+			ASIO2_CHECK(b1 == 0 && b2 == 0 && b3 == 0 && b4 == -1); // must run to here first
+			b4 = 1;
+			timer2.stop_timer(1);
+		});
+	});
+
+	while (b4 != 0)
+	{
+		std::this_thread::sleep_for(std::chrono::milliseconds(1));
+	}
+
+	ASIO2_CHECK(!timer2.is_timer_exists(1));
+
 	ASIO2_TEST_END_LOOP;
 }
 
 
 ASIO2_TEST_SUITE
 (
-	"timer",
-	ASIO2_TEST_CASE(timer_test)
+	"timer_enable_error",
+	ASIO2_TEST_CASE(timer_enable_error_test)
 )

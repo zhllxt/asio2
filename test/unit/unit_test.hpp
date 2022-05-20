@@ -47,7 +47,7 @@
 #endif // !defined(ASIO2_TEST_IOSTREAM)
 
 static const int   test_loop_times = 1000;
-static const int   test_client_count = 100;
+static const int   test_client_count = 10;
 
 bool test_has_error = false;
 
@@ -88,12 +88,7 @@ inline int end_test_suite(const char* name)
   ASIO2_TEST_IOSTREAM << name << " test suite ends" << std::endl;
   ASIO2_TEST_IOSTREAM << "\n*** ";
   long errors = asio2::detail::test_errors();
-  if (errors == 0)
-    ASIO2_TEST_IOSTREAM << "No errors detected.";
-  else if (errors == 1)
-    ASIO2_TEST_IOSTREAM << "1 error detected.";
-  else
-    ASIO2_TEST_IOSTREAM << errors << " errors detected." << std::endl;
+  ASIO2_TEST_IOSTREAM << errors << " errors detected." << std::endl;
   ASIO2_TEST_IOSTREAM << std::endl;
   return errors == 0 ? 0 : 1;
 }
@@ -134,8 +129,16 @@ void throw_exception(const T& t)
 void check_memory_leaks()
 {
 #if defined(WIN32) || defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS_)
-	// Detected memory leaks on windows system
-	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+  // Detected memory leaks on windows system
+  _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+#endif
+}
+
+void pause_cmd_window()
+{
+#if defined(WIN32) || defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS_)
+  // Detected memory leaks on windows system
+  while (std::getchar() != '\n');
 #endif
 }
 
@@ -146,10 +149,10 @@ void check_memory_leaks()
   do { if (!(expr)) { \
     ASIO2_TEST_LOCK_GUARD \
     if (!test_has_error) \
-	{ \
+    { \
       ASIO2_TEST_IOSTREAM << std::endl; \
       test_has_error = true; \
-	} \
+    } \
     std::string_view file{__FILE__}; \
     ASIO2_TEST_IOSTREAM \
       << std::next(std::next(file.data(), file.find_last_of("\\/"))) << "(" << __LINE__ << "): " \
@@ -162,10 +165,10 @@ void check_memory_leaks()
   do { if (!(expr)) { \
     ASIO2_TEST_LOCK_GUARD \
     if (!test_has_error) \
-	{ \
+    { \
       ASIO2_TEST_IOSTREAM << std::endl; \
       test_has_error = true; \
-	} \
+    } \
     std::string_view file{__FILE__}; \
     ASIO2_TEST_IOSTREAM \
       << #val << "=" << val << " \t" \
@@ -179,10 +182,10 @@ void check_memory_leaks()
   do { if (!(expr)) { \
     ASIO2_TEST_LOCK_GUARD \
     if (!test_has_error) \
-	{ \
+    { \
       ASIO2_TEST_IOSTREAM << std::endl; \
       test_has_error = true; \
-	} \
+    } \
     std::string_view file{__FILE__}; \
     ASIO2_TEST_IOSTREAM \
       << std::next(std::next(file.data(), file.find_last_of("\\/"))) << "(" << __LINE__ << "): " \
@@ -195,10 +198,10 @@ void check_memory_leaks()
   do { if (!(expr)) { \
     ASIO2_TEST_LOCK_GUARD \
     if (!test_has_error) \
-	{ \
+    { \
       ASIO2_TEST_IOSTREAM << std::endl; \
       test_has_error = true; \
-	} \
+    } \
     std::string_view file{__FILE__}; \
     ASIO2_TEST_IOSTREAM \
       << std::next(std::next(file.data(), file.find_last_of("\\/"))) << "(" << __LINE__ << "): " \
@@ -220,13 +223,13 @@ void check_memory_leaks()
 #define ASIO2_TEST_SUITE_IMPL(name, tests) \
   int main() \
   { \
-	std::srand((unsigned int)time(nullptr)); \
-	asio2::detail::check_memory_leaks(); \
+    std::srand((unsigned int)time(nullptr)); \
+    asio2::detail::check_memory_leaks(); \
     asio2::detail::begin_test_suite(name); \
     tests \
     int ret = asio2::detail::end_test_suite(name); \
-	while (std::getchar() != '\n'); \
-	return ret; \
+    asio2::detail::pause_cmd_window(); \
+    return ret; \
   }
 
 #define ASIO2_TEST_SUITE(name, tests) \

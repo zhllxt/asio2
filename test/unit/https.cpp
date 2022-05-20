@@ -204,6 +204,9 @@ void https_test()
 	std::this_thread::sleep_for(std::chrono::milliseconds(50 + std::rand() % 50));
 
 	wss_client.stop();
+
+	server.stop();
+
 	ASIO2_CHECK(wss_close_flag);
 
 	ASIO2_TEST_END_LOOP;
