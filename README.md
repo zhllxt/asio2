@@ -10,9 +10,9 @@ Header only c++ network library, based on asio,support tcp,udp,http,websocket,rp
 * 支持tcp, udp, http, websocket, rpc, ssl, icmp, serial_port;
 * 支持可靠UDP(基于KCP),支持SSL,支持从内存字符串加载SSL证书;
 * TCP支持各种数据拆包功能(单个字符或字符串或用户自定义协议等);实现了数据报模式的TCP(类似WEBSOCKET);
-* 跨平台,支持windows,linux,arm,android,32位,64位等;在msvc(vs2017 vs2019) gcc8 clang10 ndk-r22b下编译通过;
-* 基于C++17,基于asio (asio 的 standalone 版本);
-* example目录包含大量的示例工程(工程基于VS2017创建),各种使用方法请参考示例代码;
+* 跨平台,支持windows,linux,arm,android,32位,64位等;在msvc gcc8 clang10 ndk-r22b mingw下编译通过;
+* 基于C++17,基于asio (standalone asio或boost::asio均可);
+* example目录包含大量示例代码,各种使用方法请参考示例代码;
 
 #### QQ交流群：833425075
 

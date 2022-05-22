@@ -6,14 +6,9 @@ Header only c++ network library, based on asio,support tcp,udp,http,websocket,rp
 * Support tcp, udp, http, websocket, rpc, ssl, icmp, serial_port;
 * Support reliable udp (based on KCP), support SSL, support loading SSL certificates from memory strings;
 * TCP supports data unpacking (character or string or user defined protocol), and implements the datagram mode of TCP (similar to WEBSOCKET);
-* Support windows, linux, 32 bits, 64 bits;Compiled under msvc (vs2017 vs2019) gcc8 clang10;
-* Dependence on C++ 17,dependence on asio (asio standalone). 
-* The example directory contains a large number of sample projects (projects based on VS2017 creation), and a variety of use methods refer to the sample code.
-
-## v2.6 big update:
-* Remove the dependence on the Boost library completely. Before using http and websocket, you need to rely on the boost library. Now all functionalitys do not need boost;
-* RPC component adds chain call capabilitie. When calling RPC function in previous version, the "user callback function, timeout duration, RPC function name and RPC function parameter" are all written inner the same function, so it is easy to get confused. Now, support chain calls can avoid this problem.
-* Rewriting the HTTP interface, the HTTP interface is more simple and easy to use;
+* Support windows,linux,arm,android, 32 bits, 64 bits;Compiled under msvc gcc8 clang10 ndk-r22b mingw;
+* Dependence on C++ 17,dependence on asio (standalone asio or boost::asio). 
+* The example directory contains a large number of sample code, and a variety of use methods refer to the sample code.
 
 ## TCP:
 ##### server:
