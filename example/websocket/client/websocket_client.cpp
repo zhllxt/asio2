@@ -12,6 +12,12 @@ int main()
 
 	client.bind_init([&]()
 	{
+		// Set the binary message write option.
+		client.ws_stream().binary(true);
+
+		// Set the text message write option.
+		//client.ws_stream().text(true);
+
 		// how to set custom websocket request data : 
 		client.ws_stream().set_option(websocket::stream_base::decorator(
 			[](websocket::request_type& req)

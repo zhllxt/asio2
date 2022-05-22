@@ -203,7 +203,11 @@ int main()
 		// print the websocket request header.
 		std::cout << session_ptr->request() << std::endl;
 
-		session_ptr->post([]() {}, std::chrono::seconds(3));
+		// Set the binary message write option.
+		session_ptr->ws_stream().binary(true);
+
+		// Set the text message write option.
+		//session_ptr->ws_stream().text(true);
 
 		// how to set custom websocket response data : 
 		session_ptr->ws_stream().set_option(websocket::stream_base::decorator(
