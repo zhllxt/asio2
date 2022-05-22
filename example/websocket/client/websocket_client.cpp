@@ -58,8 +58,8 @@ int main()
 		client.async_send(data);
 	});
 
-	// the /admin is the websocket upgraged target
-	if (!client.start(host, port, "/admin"))
+	// the /ws is the websocket upgraged target
+	if (!client.start(host, port, "/ws"))
 	{
 		printf("connect websocket server failure : %d %s\n",
 			asio2::last_error_val(), asio2::last_error_msg().c_str());

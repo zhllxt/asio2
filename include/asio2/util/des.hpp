@@ -36,7 +36,7 @@ namespace asio2
 		{
 			uint64_t k = 0;
 			key.resize(sizeof(k));
-			std::memcpy((void *)&k, (const void *)key.data(), sizeof(k));
+			std::memcpy((void*)&k, (const void*)key.data(), (std::min)(key.size(), sizeof(k)));
 			keygen(k);
 		}
 		~des()

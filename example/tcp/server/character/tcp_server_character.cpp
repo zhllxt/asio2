@@ -38,9 +38,10 @@ public:
 			asio2::last_error_val(), asio2::last_error_msg().c_str());
 	}
 
-	void on_stop()
+	void on_stop(asio2::tcp_server& server)
 	{
-		printf("stop : %d %s\n",
+		printf("stop tcp server character : %s %u %d %s\n",
+			server.listen_address().c_str(), server.listen_port(),
 			asio2::last_error_val(), asio2::last_error_msg().c_str());
 	}
 };
@@ -59,8 +60,8 @@ int main()
 		.bind_recv      (&svr_listener::on_recv      ,  listener) // by reference
 		.bind_connect   (&svr_listener::on_connect   , &listener) // by pointer
 		.bind_disconnect(&svr_listener::on_disconnect, &listener)
-		.bind_start     (std::bind(&svr_listener::on_start, &listener, std::ref(server)))
-		.bind_stop      (&svr_listener::on_stop      ,  listener);
+		.bind_start     (std::bind(&svr_listener::on_start, &listener, std::ref(server))) //     use std::bind
+		.bind_stop      (          &svr_listener::on_stop ,  listener, std::ref(server)); // not use std::bind
 
 	// Split data with a single character
 	//server.start(host, port, '\n');

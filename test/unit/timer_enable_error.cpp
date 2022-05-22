@@ -197,9 +197,10 @@ void timer_enable_error_test()
 
 	int b1 = -1, b2 = -1, b3 = -1, b4 = -1;
 
-	timer2.stop_timer(1);
-	timer2.start_timer(1, std::chrono::milliseconds(500), [&]()
+	timer2.stop_timer(1/*1*/);
+	timer2.start_timer(1, std::chrono::milliseconds(500), [&]()/*2*/
 	{
+		/*10*/
 		ASIO2_CHECK(asio2::get_last_error());
 		if (asio2::get_last_error())
 		{
@@ -209,12 +210,13 @@ void timer_enable_error_test()
 		}
 		ASIO2_CHECK(false); // can't run to here
 		b1 = 1;
-		timer2.stop_timer(1);
+		timer2.stop_timer(1); // can't run to here
 	});
 
-	timer2.stop_timer(1);
-	timer2.start_timer(1, std::chrono::milliseconds(500), [&]()
+	timer2.stop_timer(1/*3*/);
+	timer2.start_timer(1, std::chrono::milliseconds(500), [&]()/*4*/
 	{
+		/*11*/
 		ASIO2_CHECK(asio2::get_last_error());
 		if (asio2::get_last_error())
 		{
@@ -225,14 +227,15 @@ void timer_enable_error_test()
 		}
 		ASIO2_CHECK(false); // can't run to here
 		b2 = 1;
-		timer2.stop_timer(1);
+		timer2.stop_timer(1); // can't run to here
 	});
 
-	timer2.post([&]()
+	timer2.post([&]()/*5*/
 	{
-		timer2.stop_timer(1);
-		timer2.start_timer(1, std::chrono::milliseconds(500), [&]()
+		timer2.stop_timer(1/*6*/);
+		timer2.start_timer(1, std::chrono::milliseconds(500), [&]()/*7*/
 		{
+			/*12*/
 			ASIO2_CHECK(asio2::get_last_error());
 			if (asio2::get_last_error())
 			{
@@ -243,18 +246,20 @@ void timer_enable_error_test()
 			}
 			ASIO2_CHECK(false); // can't run to here
 			b3 = 1;
-			timer2.stop_timer(1);
+			timer2.stop_timer(1); // can't run to here
 		});
 
-		timer2.stop_timer(1);
-		timer2.start_timer(1, std::chrono::milliseconds(50), [&]()
+		timer2.stop_timer(1/*8*/);
+		timer2.start_timer(1, std::chrono::milliseconds(50), [&]()/*9*/
 		{
+			/*13*/
 			if (asio2::get_last_error())
 			{
 				ASIO2_CHECK(b1 == 0 && b2 == 0 && b3 == 0 && b4 == 1); // must run to here second
 				b4 = 0;
 				return;
 			}
+			/*14*/
 			ASIO2_CHECK(b1 == 0 && b2 == 0 && b3 == 0 && b4 == -1); // must run to here first
 			b4 = 1;
 			timer2.stop_timer(1);

@@ -63,8 +63,8 @@ int main()
 	// bind member function
 	client
 		.bind_disconnect(&clt_listener::on_disconnect, listener)
-		.bind_connect(std::bind(&clt_listener::on_connect, listener, std::ref(client)))
-		.bind_recv   (std::bind(&clt_listener::on_recv   , listener, std::ref(client), std::placeholders::_1));
+		.bind_connect   (&clt_listener::on_connect   , listener, std::ref(client))  // not use std::bind
+		.bind_recv      (&clt_listener::on_recv      , listener, std::ref(client)); // not use std::bind
 
 	// Split data with a single character
 	//client.start(host, port, '\n');

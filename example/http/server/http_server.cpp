@@ -36,7 +36,7 @@ struct aop_check
 
 int main()
 {
-	// try open localhost:8080 in your browser
+	// try open http://localhost:8080 in your browser
 	std::string_view host = "0.0.0.0";
 	std::string_view port = "8080";
 
@@ -188,6 +188,7 @@ int main()
 
 	}, aop_log{}, aop_check{});
 
+	// the /ws is the websocket upgraged target
 	server.bind("/ws", websocket::listener<asio2::http_session>{}.
 		on("message", [](std::shared_ptr<asio2::http_session>& session_ptr, std::string_view data)
 	{

@@ -163,21 +163,35 @@ if (MSVC)
     #    -D_SILENCE_CXX17_ADAPTOR_TYPEDEFS_DEPRECATION_WARNING
     #)
 
-    add_compile_options(
-        /bigobj       # large object file format
-        #/permissive-  # strict C++
-        #/wd4503      # decorated name length exceeded, name was truncated
-        /W4           # enable all warnings
-        /MP           # Multi-processor compilation
-        /JMC
-        )
-
-    set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /std:c++17 /MTd /ZI")
-    set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /std:c++17 /Zi /Ob2 /Oi /Ot /GL /MT")
-
-    set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SAFESEH:NO")
-    set (CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /LTCG:incremental")
-
+    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+      add_compile_options(
+          /bigobj       # large object file format
+          #/permissive-  # strict C++
+          #/wd4503      # decorated name length exceeded, name was truncated
+          /W4           # enable all warnings
+          /JMC
+          )
+  
+      set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /std:c++17 /MTd")
+      set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /std:c++17 /Zi /Ob2 /Oi /Ot /MT")
+  
+      set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SAFESEH:NO")
+    else()
+      add_compile_options(
+          /bigobj       # large object file format
+          #/permissive-  # strict C++
+          #/wd4503      # decorated name length exceeded, name was truncated
+          /W4           # enable all warnings
+          /MP           # Multi-processor compilation
+          /JMC
+          )
+  
+      set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /std:c++17 /MTd /ZI")
+      set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /std:c++17 /Zi /Ob2 /Oi /Ot /GL /MT")
+  
+      set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SAFESEH:NO")
+      set (CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /LTCG:incremental")
+    endif ()
 else()
     set (THREADS_PREFER_PTHREAD_FLAG ON)
     find_package (Threads)

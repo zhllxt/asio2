@@ -1,5 +1,5 @@
 # asio2
-### [README in English](https://github.com/zhllxt/asio2/blob/master/README.en.md) 
+### 中文 | [English](https://github.com/zhllxt/asio2/blob/master/README.en.md) 
 Header only c++ network library, based on asio,support tcp,udp,http,websocket,rpc,ssl,icmp,serial_port.
 
 <a href="https://996.icu"><img src="https://img.shields.io/badge/link-996.icu-red.svg" alt="996.icu" /></a>
@@ -23,12 +23,11 @@ Header only c++ network library, based on asio,support tcp,udp,http,websocket,rp
  - 4、发送数据时如何同步获取服务端返回结果 [https://blog.csdn.net/zhllxt/article/details/110881015](https://blog.csdn.net/zhllxt/article/details/110881015)
  - asio做tcp的自动拆包时，asio的match condition如何使用的详细说明 [https://blog.csdn.net/zhllxt/article/details/104772948](https://blog.csdn.net/zhllxt/article/details/104772948)
 
-## v2._ 重大的接口变更:
+## 重大的接口变更:
 * 将原来的异步函数send拆分为send和async_send两个函数,现在send表示同步发送,async_send表示异步发送(查找你代码中的send直接替换为async_send即可).现在send函数的返回值为发送数据的字节数(以前是bool),async_send的返回值为void.如果在通信线程中调用了同步发送函数send,则会退化为异步调用;
 * 将http回调函数中的http::request和http::response修改为http::web_request和http::web_response,目的是为了兼容boost(查找你代码中的http::request直接替换为http::web_request即可,response同理,具体可参考example/http代码示例).
 * 删除了所有回调函数中的错误码参数,比如以前是bind_start([](asio::error_code ec){});现在是bind_start([](){}); 现在需要用asio2::get_last_error();函数来判断是否有错误;修改的接口包括:bind_start,bind_stop,bind_connect,bind_disconnect,以及rpc的async_call的回调函数等;
-* 其它一些细节调整和大量的问题修复(具体可参考CHANGELOG.md)
-* 添加mqtt协议支持.
+* 删除了若干函数中的错误码参数,主要包括http_client::execute,ping::execute,http::make_request,http::make_response等,现在需要使用asio2::get_last_error()来判断是否发生错误;
 
 ## 与其它框架的一点区别:
 ```c++
@@ -57,7 +56,7 @@ rpc测试的和说明代码请看:[rpc性能测试代码](https://github.com/zhl
 asio2::tcp_server server;
 server.bind_recv([&](std::shared_ptr<asio2::tcp_session> & session_ptr, std::string_view s)
 {
-	printf("recv : %u %.*s\n", (unsigned)s.size(), (int)s.size(), s.data());
+	printf("recv : %zu %.*s\n", s.size(), (int)s.size(), s.data());
 	// 异步发送(所有发送操作都是异步且线程安全的)
 	session_ptr->async_send(s);
 	// 发送时指定一个回调函数,当发送完成后会调用此回调函数,bytes_sent表示实际发送的字节数,
@@ -77,8 +76,8 @@ server.bind_recv([&](std::shared_ptr<asio2::tcp_session> & session_ptr, std::str
 }).bind_disconnect([&](auto & session_ptr)
 {
 	printf("client leave : %s %u %s\n",
-		session_ptr->remote_address().c_str(),
-		session_ptr->remote_port(), asio2::last_error_msg().c_str());
+		session_ptr->remote_address().c_str(), session_ptr->remote_port(),
+		asio2::last_error_msg().c_str());
 });
 server.start("0.0.0.0", "8080");
 
@@ -112,7 +111,7 @@ asio2::tcp_client client;
 // 启用自动重连 并设置自定义的延时
 client.auto_reconnect(true, std::chrono::seconds(3));
 
-client.bind_connect([&](asio::error_code ec)
+client.bind_connect([&]()
 {
 	if (asio2::get_last_error())
 		printf("connect failure : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
@@ -126,12 +125,12 @@ client.bind_connect([&](asio::error_code ec)
 	// 如果在通信线程中调用同步发送函数会退化为异步调用(这里的bind_connect的回调函数就位于通信线程中)
 	// client.send("abc");
 
-}).bind_disconnect([](asio::error_code ec)
+}).bind_disconnect([]()
 {
 	printf("disconnect : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
 }).bind_recv([&](std::string_view sv)
 {
-	printf("recv : %u %.*s\n", (unsigned)sv.size(), (int)sv.size(), sv.data());
+	printf("recv : %zu %.*s\n", sv.size(), (int)sv.size(), sv.data());
 
 	client.async_send(sv);
 })
@@ -234,9 +233,9 @@ server.bind("get_user", &A::get_user, a);
 server.bind("del_user", &A::del_user, &a);
 
 // 服务端也可以调用客户端的RPC函数(通过连接对象session_ptr)
-session_ptr->async_call([](asio::error_code ec, int v)
+session_ptr->async_call([](int v)
 {
-	printf("sub : %d err : %d %s\n", v, ec.value(), ec.message().c_str());
+	printf("sub : %d err : %d %s\n", v, asio2::last_error_val(), asio2::last_error_msg().c_str());
 }, std::chrono::seconds(10), "sub", 15, 6);
 
 //server.start("0.0.0.0", "8080");
@@ -248,31 +247,30 @@ asio2::rpc_client client;
 // 不仅server可以绑定RPC函数给client调用，同时client也可以绑定RPC函数给server调用。请参考example代码。
 client.start("0.0.0.0", "8080");
 
-asio::error_code ec;
-
 // 同步调用RPC函数
-int sum = client.call<int>(ec, std::chrono::seconds(3), "add", 11, 2);
-printf("sum : %d err : %d %s\n", sum, ec.value(), ec.message().c_str());
+int sum = client.call<int>(std::chrono::seconds(3), "add", 11, 2);
+printf("sum : %d err : %d %s\n", sum, asio2::last_error_val(), asio2::last_error_msg().c_str());
 
 // 异步调用RPC函数,
-// 第一个参数是回调函数,当调用完成或超时会自动调用该回调函数,如果超时或其它错误,错误码保存在ec中
+// 第一个参数是回调函数,当调用完成或超时会自动调用该回调函数
 // 第二个参数是调用超时,可以不填,如果不填则使用默认超时
 // 第三个参数是rpc函数名,之后的参数是rpc函数的参数
-client.async_call([](asio::error_code ec, int v)
+client.async_call([](int v)
 {
-	printf("sum : %d err : %d %s\n", v, ec.value(), ec.message().c_str());
+	// 如果超时或发生其它错误,可以通过asio2::get_last_error()等一系列函数获取错误信息
+	printf("sum : %d err : %d %s\n", v, asio2::last_error_val(), asio2::last_error_msg().c_str());
 }, "add", 10, 20);
 
 // 上面的调用方式的参数位置很容易搞混,因此也支持链式调用,如下(其它示例请查看example):
 client.timeout(std::chrono::seconds(5)).async_call("mul", 2.5, 2.5).response(
-	[](asio::error_code ec, double v)
+	[](double v)
 {
 	std::cout << "mul1 " << v << std::endl;
 });
-int sum = client.timeout(std::chrono::seconds(3)).errcode(ec).call<int>("add", 11, 32);
+int sum = client.timeout(std::chrono::seconds(3)).call<int>("add", 11, 32);
 
 // 返回值为用户自定义数据类型(user类型的定义请查看example代码)
-user u = client.call<user>(ec, "get_user");
+user u = client.call<user>("get_user");
 printf("%s %d ", u.name.c_str(), u.age);
 for (auto &[k, v] : u.purview)
 {
@@ -284,8 +282,8 @@ u.name = "hanmeimei";
 u.age = ((int)time(nullptr)) % 100;
 u.purview = { {10,"get"},{20,"set"} };
 
-// 如果RPC函数的返回值为void,则用户回调函数只有一个参数ec即可
-client.async_call([](asio::error_code ec)
+// 如果RPC函数的返回值为void,则用户回调函数参数为空
+client.async_call([]()
 {
 }, "del_user", std::move(u));
 
@@ -367,10 +365,9 @@ server.bind<http::verb::get>("/defer", [](http::request& req, http::response& re
 
 	std::thread([rep_defer, &rep]() mutable
 	{
-		std::this_thread::sleep_for(std::chrono::milliseconds(3000));
-
-		asio::error_code ec;
-		auto newrep = asio2::http_client::execute("http://www.baidu.com", ec);
+		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+        
+		auto newrep = asio2::http_client::execute("http://www.baidu.com");
 
 		rep = std::move(newrep);
 
@@ -382,7 +379,7 @@ server.bind<http::verb::get>("/defer", [](http::request& req, http::response& re
 server.bind("/ws", websocket::listener<asio2::http_session>{}.
 	on("message", [](std::shared_ptr<asio2::http_session>& session_ptr, std::string_view data)
 {
-	printf("ws msg : %u %.*s\n", (unsigned)data.size(), (int)data.size(), data.data());
+	printf("ws msg : %zu %.*s\n", data.size(), (int)data.size(), data.data());
 
 	session_ptr->async_send(data);
 
@@ -414,23 +411,23 @@ server.bind_not_found([](http::request& req, http::response& rep)
 ```
 ##### 客户端:
 ```c++
-asio2::error_code ec;
 
 // 通过URL字符串生成一个http请求对象
 auto req1 = http::make_request("http://www.baidu.com/get_user?name=abc");
-// 通过URL字符串直接请求某个网址,返回结果在rep1中,如果有错误,错误码保存在ec中
-auto rep1 = asio2::http_client::execute("http://www.baidu.com/get_user?name=abc", ec);
-if (ec)
-	std::cout << ec.message() << std::endl;
+// 通过URL字符串直接请求某个网址,返回结果在rep1中
+auto rep1 = asio2::http_client::execute("http://www.baidu.com/get_user?name=abc");
+// 通过asio2::get_last_error()判断是否发生错误
+if (asio2::get_last_error())
+	std::cout << asio2::last_error_msg() << std::endl;
 else
 	std::cout << rep1 << std::endl; // 打印http请求结果
 
 // 通过http协议字符串生成一个http请求对象
 auto req2 = http::make_request("GET / HTTP/1.1\r\nHost: 192.168.0.1\r\n\r\n");
 // 通过请求对象发送http请求
-auto rep2 = asio2::http_client::execute("www.baidu.com", "80", req2, std::chrono::seconds(3), ec);
-if (ec)
-	std::cout << ec.message() << std::endl;
+auto rep2 = asio2::http_client::execute("www.baidu.com", "80", req2, std::chrono::seconds(3));
+if (asio2::get_last_error())
+	std::cout << asio2::last_error_msg() << std::endl;
 else
 	std::cout << rep2 << std::endl;
 
@@ -448,9 +445,9 @@ std::cout << query << std::endl;
 
 std::cout << std::endl;
 
-auto rep3 = asio2::http_client::execute("www.baidu.com", "80", "/api/get_user?name=abc", ec);
-if (ec)
-	std::cout << ec.message() << std::endl;
+auto rep3 = asio2::http_client::execute("www.baidu.com", "80", "/api/get_user?name=abc");
+if (asio2::get_last_error())
+	std::cout << asio2::last_error_msg() << std::endl;
 else
 	std::cout << rep3 << std::endl;
 
@@ -480,18 +477,13 @@ ping.timeout(std::chrono::seconds(3))  // 设置ping超时 默认3秒
 		<< " bytes from " << rep.source_address()
 		<< ": icmp_seq=" << rep.sequence_number()
 		<< ", ttl=" << rep.time_to_live()
-		<< ", time=" << std::chrono::duration_cast<std::chrono::milliseconds>(rep.lag).count() << "ms"
+		<< ", time=" << rep.milliseconds() << "ms"
 		<< std::endl;
 }).start("151.101.193.69");
 ```
 ```c++
 // 直接发送icmp包并同步获取网络延迟的时长
-asio::error_code ec;
-std::cout << asio2::ping::execute("www.baidu.com", std::chrono::seconds(3), "icmp body string", ec).milliseconds() << std::endl;
 std::cout << asio2::ping::execute("www.baidu.com").milliseconds() << std::endl;
-std::cout << asio2::ping::execute("www.baidu.com", std::chrono::seconds(3)).milliseconds() << std::endl;
-std::cout << asio2::ping::execute("www.baidu.com", std::chrono::seconds(3), ec).milliseconds() << std::endl;
-std::cout << asio2::ping::execute("www.baidu.com", ec).milliseconds() << std::endl;
 ```
 
 ## SSL:
@@ -549,7 +541,7 @@ sp.bind_init([&]()
 
 }).bind_recv([&](std::string_view sv)
 {
-	printf("recv : %u %.*s\n", (unsigned)sv.size(), (int)sv.size(), sv.data());
+	printf("recv : %zu %.*s\n", sv.size(), (int)sv.size(), sv.data());
 
 	// 接收串口数据
 	std::string s;
@@ -584,7 +576,7 @@ sp.start(device, baud_rate, '>');
 ## 其它:
 ##### 定时器
 ```c++
-// 框架中提供了定时器功能,使用非常简单,如下:
+// 框架中提供了定时器功能,使用非常简单,如下(更多示例请参考example/timer/timer.cpp):
 asio2::timer timer;
 // 参数1表示定时器ID,参数2表示定时器间隔,参数3为定时器回调函数
 timer.start_timer(1, std::chrono::seconds(1), [&]()
@@ -593,6 +585,17 @@ timer.start_timer(1, std::chrono::seconds(1), [&]()
 	if (true) // 满足某个条件时关闭定时器,当然也可以在其它任意地方关闭定时器
 		timer.stop_timer(1);
 });
+// 执行5次的定时器,定时器id是字符串"id2",定时器间隔是2000毫秒
+timer.start_timer("id2", 2000, 5, []()
+{
+	printf("timer id2, loop 5 times\n");
+});
+// 首次执行会延时5000毫秒的定时器,定时器id是5,定时器间隔是1000毫秒
+timer.start_timer(5, std::chrono::milliseconds(1000), std::chrono::milliseconds(5000), []()
+{
+	printf("timer 5, loop infinite, delay 5 seconds\n");
+});
+// 所有的server,client,session等都继承了timer,所以server,client,session也可以使用定时器功能.
 ```
 ##### 手动触发的事件
 ```c++

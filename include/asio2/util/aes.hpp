@@ -44,11 +44,11 @@ namespace asio2
 
 	public:
 		/*
-		 * if key.size() <= 16, key will be resized to 16 and padded with '\0',
-		 * if key.size() > 16 && <= 24, key will be resized to 24 and padded with '\0',
-		 * if key.size() > 24, key will be resized to 32 and padded with '\0',
+		 * if key.size() <= 16, key will be resized to 16 and padded with '\0', the data block is 128 bit.
+		 * if key.size() > 16 && <= 24, key will be resized to 24 and padded with '\0', the data block is 192 bit.
+		 * if key.size() > 24, key will be resized to 32 and padded with '\0', the data block is 256 bit.
 		 */
-		aes(std::string key) : key_(std::move(key))
+		explicit aes(std::string key, mode_t mode = mode_t::ecb) : key_(std::move(key)), mode_(mode)
 		{
 			init();
 		}
@@ -80,8 +80,11 @@ namespace asio2
 			return (*this);
 		}
 
-		mode_t mode() { return mode_; }
-		aes & mode(mode_t mode) { mode_ = mode; return (*this); }
+		mode_t     mode() { return mode_; }
+		mode_t set_mode() { return mode_; }
+
+		aes &     mode(mode_t mode) { mode_ = mode; return (*this); }
+		aes & get_mode(mode_t mode) { mode_ = mode; return (*this); }
 
 		aes & iv(uint8_t iv[AES_BLOCKLEN]) { memcpy(&Iv_[0], iv, AES_BLOCKLEN); return (*this); }
 
@@ -599,7 +602,7 @@ namespace asio2
 		}
 
 	protected:
-		mode_t mode_ = mode_t::cbc;
+		mode_t mode_ = mode_t::ecb;
 
 		std::string key_;
 

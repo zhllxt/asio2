@@ -85,6 +85,9 @@ example/server/out
 test/bin/
 test/obj/
 
+test/ndk/libs
+test/ndk/obj
+
 test/.vs
 test/asio2_test_project
 test/CMakeFiles

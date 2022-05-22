@@ -5,14 +5,17 @@
   * Upgrade the fmt library to version 8.0.1
   * Add CMake to build the example projects
   * Add mqtt, support mqtt v3.1 v3.1.1 v5.0
-  * Add async_send interface function, modify the "send" interface function, if "send" is called in the communication thread, it will degenerates into async_send.
   * Change the "_fire_init, _fire_start, _fire_stop" triggered thread from thread main to thread 0.
   * Change the rpc's "call" interface function, before if it is called in the communication thread, it will do nothing, now it will degenerates into async_call and the return value is empty.
-  * Change the file "asio2/base/selector.hpp" to "asio2/3rd/asio.hpp and asio2/3rd/beast.hpp", used to separate asio and beast header file, previously "included tcp_lient.hpp" will contain both asio and beast, but now "included tcp_lient.hpp" will only contain asio.
+  * Change the file "asio2/base/selector.hpp" to "asio2/external/asio.hpp and asio2/external/beast.hpp", used to separate asio and beast header file, previously "included tcp_lient.hpp" will contain both asio and beast, but now "included tcp_lient.hpp" will only contain asio.
   * Change the serial port component which named "scp" to "serial_port".
   * Modify "push_event, next_event" function, to optimized the problem where session_ptr would be copied multiple times.
   * Modify "post, dispatch" function in post_cp.hpp, add "derive.selfptr()" to ensure that the asio::post callback function must hold the session_ptr.
-  * Modify the behavior of the async_send function with the callback parameter, whenever async_send function called fails, such as an exception, the callback will be called, the callback was called only when write data failed previously.
+  * Split the original asynchronous function "send" into "send" and "async_send" two functions. Now "send" function means synchronous sending, "async_send" means asynchronous sending (you can find the "send" in your code and replace it with "async_send" directly). Now the return value of the "send" function is the number of bytes of data sent (formerly bool), The return value of "async_send" is void. If the synchronous function "send" is called in the communication thread, it will degenerate into an asynchronous function "async_send";
+  * Modify the behavior of the async_send function with the callback parameter, whenever async_send function called fails, such as an exception, the callback will be called. In previous versions, the callback was called only when write data failed.
+  * Modify the http::request and http::response in the http callback function to http::web_request and http::web_response, This purpose is to be compatible with boost (you can find http::request in your code and directly replace it with http::web_request. The same is for response. For details, please refer to example/http code example).
+  * Remove the "asio::error_code ec" parameter in all callback functions, for example: it used to be bind_start([](asio::error_code ec){}); now it's bind_start([](){}); Now you need to use asio2::get_last_error(); function to determine whether there is an error; Modified interfaces include: bind_start,bind_stop,bind_connect,bind_disconnect and async_call of rpc callback functions;
+  * Remove the error_code parameters in several functions, mainly include http_client::execute,ping::execute,http::make_request,http::make_response, and so on..., now you need to use asio2::get_last_error() to determine whether an error has occurred;
   * Remove "thread_local static error_code ec_ignore;" in asio2/base/error.hpp.
   * Resolve compiling errors under "Visual Studio 2017 - Windows XP (v141_xp)", changed the std::shared_mutex to asio2_shared_mutex marco.
   * Fixed bug : after call server.stop(); in some cases, the server still accept session and the session can "recv send data" normaly. This will cause the server to never exit.
@@ -29,6 +32,7 @@
   * fixed bug : If user has called "http::response.defer()" in the recv callback, and the client has not a "keep_alive" option, the response will can not be send to the client correctly.
   * fixed bug : If user has called "http::response.defer()" in the recv callback, the variable "req_" maybe read write in two threads at the same time, and this maybe cause crash.
   * fixed bug : it might find a callback function that does not match the id of rdc component.
+  * fixed bug : in some cases, after client.stop(), the client.is_stopped() maybe false.
   * Fixed the problem where kcp server and client did not send fin frame correctly.
   * Fixed the problem where the endian of the KCP handshake data header was not handled correctly.
   * Fixed problem : when the client.stop is called, and at this time the async_send is called in another thread, the async_send maybe has unexpected behavior (e.g. async_send's callback is not called).

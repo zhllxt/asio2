@@ -30,9 +30,10 @@ void on_start(asio2::tcp_server& server)
 		asio2::last_error_val(), asio2::last_error_msg().c_str());
 }
 
-void on_stop()
+void on_stop(asio2::tcp_server& server)
 {
-	printf("stop tcp server dgram : %d %s\n",
+	printf("stop tcp server dgram : %s %u %d %s\n",
+		server.listen_address().c_str(), server.listen_port(),
 		asio2::last_error_val(), asio2::last_error_msg().c_str());
 }
 
@@ -52,11 +53,11 @@ int main()
 
 	// bind global function
 	server
-		.bind_recv      (on_recv)
+		.bind_recv      (on_recv) // use global function
 		.bind_connect   (on_connect)
 		.bind_disconnect(on_disconnect)
-		.bind_start     (std::bind(on_start, std::ref(server)))
-		.bind_stop      (on_stop);
+		.bind_start     (std::bind(on_start, std::ref(server))) //     use std::bind
+		.bind_stop      (          on_stop , std::ref(server)); // not use std::bind
 
 	server.start(host, port, asio2::use_dgram); // dgram tcp
 

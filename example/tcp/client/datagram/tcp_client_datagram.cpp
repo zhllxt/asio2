@@ -50,7 +50,7 @@ int main()
 
 	// bind global function
 	client
-		.bind_recv   (std::bind(on_recv   , std::ref(client), std::placeholders::_1))
+		.bind_recv   (std::bind(on_recv   , std::ref(client), std::placeholders::_1)) // use std::bind
 		.bind_connect(std::bind(on_connect, std::ref(client)))
 		.bind_disconnect(on_disconnect);
 

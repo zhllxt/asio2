@@ -77,8 +77,8 @@ int main()
 			asio2::last_error_val(), asio2::last_error_msg().c_str());
 	});
 
-	// the /admin is the websocket upgraged target
-	client.async_start(host, port, "/admin");
+	// the /ws is the websocket upgraged target
+	client.async_start(host, port, "/ws");
 
 	while (std::getchar() != '\n');
 

@@ -24,3 +24,6 @@ rmdir /s /q build
 rmdir /s /q cmake-build-debug
 rmdir /s /q cmake-build-release
 rmdir /s /q .idea
+
+rmdir /s /q ndk\libs
+rmdir /s /q ndk\obj

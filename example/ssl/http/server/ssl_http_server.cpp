@@ -89,6 +89,7 @@ int main()
 		rep.fill_file(req.target());
 	}, aop_check{});
 
+	// the /ws is the websocket upgraged target
 	server.bind("/ws", websocket::listener<asio2::https_session>{}.
 		on("message", [](std::shared_ptr<asio2::https_session>& session_ptr, std::string_view data)
 	{

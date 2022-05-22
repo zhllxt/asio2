@@ -65,28 +65,47 @@ namespace asio2::detail
 		template<class F, class ...C>
 		explicit observer_t(F&& f, C&&... c)
 		{
-			static_assert(sizeof...(C) == 0 || sizeof...(C) == 1,
-				"the class object parameters of C&&... c can only be none or one");
 			this->bind(std::forward<F>(f), std::forward<C>(c)...);
 		}
 
-		template<class F>
-		inline void bind(F&& f)
+		template<class F, class ...C>
+		inline void bind(F&& f, C&&... c)
 		{
-			this->fn_ = func_type(std::forward<F>(f));
+			if constexpr (sizeof...(C) == std::size_t(0))
+			{
+				this->fn_ = func_type(std::forward<F>(f));
+			}
+			else
+			{
+				if constexpr (std::is_member_function_pointer_v<detail::remove_cvref_t<F>>)
+				{
+					if constexpr (sizeof...(C) == std::size_t(1))
+					{
+						this->bind_memfn(std::forward<F>(f), std::forward<C>(c)...);
+					}
+					else
+					{
+						this->bind_memfn_front(std::forward<F>(f), std::forward<C>(c)...);
+					}
+				}
+				else
+				{
+					this->bind_fn_front(std::forward<F>(f), std::forward<C>(c)...);
+				}
+			}
 		}
 
 		template<class F, class C>
-		inline void bind(F&& f, C&& c)
+		inline void bind_memfn(F&& f, C&& c)
 		{
-			if constexpr /**/ (std::is_pointer_v<C>)
+			if constexpr /**/ (std::is_pointer_v<detail::remove_cvref_t<C>>)
 			{
 				this->fn_ = [fn = std::forward<F>(f), s = std::forward<C>(c)](Args&&... args) mutable
 				{
 					(s->*fn)(std::forward<Args>(args)...);
 				};
 			}
-			else if constexpr (std::is_reference_v<C>)
+			else if constexpr (std::is_reference_v<std::remove_cv_t<C>>)
 			{
 				this->fn_ = [fn = std::forward<F>(f), s = std::forward<C>(c)](Args&&... args) mutable
 				{
@@ -99,6 +118,53 @@ namespace asio2::detail
 				//static_assert(false,
 				//	"the class object parameters of C&& c must be pointer or refrence");
 			}
+		}
+
+		template<class F, class C, class... Ts>
+		inline void bind_memfn_front(F&& f, C&& c, Ts&&... ts)
+		{
+			if constexpr /**/ (std::is_pointer_v<detail::remove_cvref_t<C>>)
+			{
+				this->fn_ = [fn = std::forward<F>(f), s = std::forward<C>(c), tp = std::tuple(std::forward<Ts>(ts)...)]
+				(Args&&... args) mutable
+				{
+					invoke_memfn_front(fn, s, std::make_index_sequence<sizeof...(Ts)>{}, tp, std::forward<Args>(args)...);
+				};
+			}
+			else if constexpr (std::is_reference_v<std::remove_cv_t<C>>)
+			{
+				this->fn_ = [fn = std::forward<F>(f), s = std::forward<C>(c), tp = std::tuple(std::forward<Ts>(ts)...)]
+				(Args&&... args) mutable
+				{
+					invoke_memfn_front(fn, &s, std::make_index_sequence<sizeof...(Ts)>{}, tp, std::forward<Args>(args)...);
+				};
+			}
+			else
+			{
+				ASIO2_ASSERT(false);
+			}
+		}
+
+		template<typename F, typename C, std::size_t... I, typename... Ts>
+		inline static void invoke_memfn_front(F& f, C* c, std::index_sequence<I...>, std::tuple<Ts...>& tp, Args&&... args)
+		{
+			(c->*f)(std::get<I>(tp)..., std::forward<Args>(args)...);
+		}
+
+		template<class F, class... Ts>
+		inline void bind_fn_front(F&& f, Ts&&... ts)
+		{
+			this->fn_ = [fn = std::forward<F>(f), tp = std::tuple(std::forward<Ts>(ts)...)]
+			(Args&&... args) mutable
+			{
+				invoke_fn_front(fn, std::make_index_sequence<sizeof...(Ts)>{}, tp, std::forward<Args>(args)...);
+			};
+		}
+
+		template<typename F, std::size_t... I, typename... Ts>
+		inline static void invoke_fn_front(F& f, std::index_sequence<I...>, std::tuple<Ts...>& tp, Args&&... args)
+		{
+			f(std::get<I>(tp)..., std::forward<Args>(args)...);
 		}
 
 		inline void operator()(Args&&... args)

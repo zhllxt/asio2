@@ -1,4 +1,5 @@
 # asio2
+### [中文](https://github.com/zhllxt/asio2/blob/master/README.md) | English
 Header only c++ network library, based on asio,support tcp,udp,http,websocket,rpc,ssl,icmp,serial_port.
 
 * header only, do not rely on the Boost library;
@@ -22,7 +23,8 @@ server.bind_recv([&server](std::shared_ptr<asio2::tcp_session> & session_ptr, st
 {
 	session_ptr->no_delay(true);
 
-	printf("recv : %u %.*s\n", (unsigned)s.size(), (int)s.size(), s.data());
+	printf("recv : %zu %.*s\n", s.size(), (int)s.size(), s.data());
+    
 	session_ptr->send(s, [](std::size_t bytes_sent) {});
 }).bind_connect([&server](auto & session_ptr)
 {
@@ -32,8 +34,8 @@ server.bind_recv([&server](std::shared_ptr<asio2::tcp_session> & session_ptr, st
 }).bind_disconnect([&server](auto & session_ptr)
 {
 	printf("client leave : %s %u %s\n",
-		session_ptr->remote_address().c_str(),
-		session_ptr->remote_port(), asio2::last_error_msg().c_str());
+		session_ptr->remote_address().c_str(), session_ptr->remote_port(),
+		asio2::last_error_msg().c_str());
 });
 server.start("0.0.0.0", 8080);
 
@@ -70,7 +72,7 @@ asio2::tcp_client client;
 // enable auto reconnect and use custom delay
 client.auto_reconnect(true, std::chrono::seconds(3));
 
-client.bind_connect([&](asio::error_code ec)
+client.bind_connect([&]()
 {
 	if (asio2::get_last_error())
 		printf("connect failure : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
@@ -78,12 +80,12 @@ client.bind_connect([&](asio::error_code ec)
 		printf("connect success : %s %u\n", client.local_address().c_str(), client.local_port());
 
 	client.send("<abcdefghijklmnopqrstovuxyz0123456789>");
-}).bind_disconnect([](asio::error_code ec)
+}).bind_disconnect([]()
 {
 	printf("disconnect : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
 }).bind_recv([&](std::string_view sv)
 {
-	printf("recv : %u %.*s\n", (unsigned)sv.size(), (int)sv.size(), sv.data());
+	printf("recv : %zu %.*s\n", sv.size(), (int)sv.size(), sv.data());
 
 	client.send(sv);
 })
@@ -171,20 +173,21 @@ server.start("0.0.0.0", 8080);
 asio2::rpc_client client;
 // ... Binding listener (see demo code)
 client.start("0.0.0.0", 8080);
-asio::error_code ec;
+
 // Synchronized invoke RPC functions
-int sum = client.call<int>(ec, std::chrono::seconds(3), "add", 11, 2);
-printf("sum : %d err : %d %s\n", sum, ec.value(), ec.message().c_str());
+int sum = client.call<int>(std::chrono::seconds(3), "add", 11, 2);
+printf("sum : %d err : %d %s\n", sum, asio2::last_error_val(), asio2::last_error_msg().c_str());
+
 // Asynchronous invocation of RPC function, the first parameter is the callback function,
-// when the call is completed or timeout, the callback function automatically called, if
-// timeout or other errors, error codes are stored in ec.
-client.async_call([](asio::error_code ec, int v)
+// when the call is completed or timeout, the callback function automatically called.
+client.async_call([](int v)
 {
-	printf("sum : %d err : %d %s\n", v, ec.value(), ec.message().c_str());
+	// if timeout or other errors, you can get the error info by asio2::get_last_error.
+	printf("sum : %d err : %d %s\n", v, asio2::last_error_val(), asio2::last_error_msg().c_str());
 }, "add", 10, 20);
 
 // Result value is user-defined data type (see demo code for the definition of user type)
-user u = client.call<user>(ec, "get_user");
+user u = client.call<user>("get_user");
 printf("%s %d ", u.name.c_str(), u.age);
 for (auto &[k, v] : u.purview)
 {
@@ -197,7 +200,7 @@ u.age = ((int)time(nullptr)) % 100;
 u.purview = { {10,"get"},{20,"set"} };
 // If the result value of the RPC function is void, then the user callback 
 // function has only one parameter.
-client.async_call([](asio::error_code ec)
+client.async_call([]()
 {
 }, "del_user", std::move(u));
 // just call rpc function, don't need result
@@ -252,20 +255,21 @@ server.bind_recv([&](http::request& req, http::response& rep)
 }).bind_connect([](auto & session_ptr)
 {
 	printf("client enter : %s %u %s %u\n",
-	session_ptr->remote_address().c_str(), session_ptr->remote_port(),
+	    session_ptr->remote_address().c_str(), session_ptr->remote_port(),
 		session_ptr->local_address().c_str(), session_ptr->local_port());
 }).bind_disconnect([](auto & session_ptr)
 {
-	printf("client leave : %s %u %s\n", session_ptr->remote_address().c_str(),
-		session_ptr->remote_port(), asio2::last_error_msg().c_str());
-}).bind_start([&](asio::error_code ec)
+	printf("client leave : %s %u %s\n",
+		session_ptr->remote_address().c_str(), session_ptr->remote_port(),
+		asio2::last_error_msg().c_str());
+}).bind_start([&]()
 {
 	printf("start http server : %s %u %d %s\n",
 	server.listen_address().c_str(), server.listen_port(),
-		ec.value(), ec.message().c_str());
-}).bind_stop([&](asio::error_code ec)
+		asio2::last_error_val(), asio2::last_error_msg().c_str());
+}).bind_stop([&]()
 {
-	printf("stop : %d %s\n", ec.value(), ec.message().c_str());
+	printf("stop : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
 });
 
 server.bind<http::verb::get, http::verb::post>("/index.*",
@@ -300,10 +304,9 @@ server.bind<http::verb::get>("/defer", [](http::request& req, http::response& re
 
 	std::thread([rep_defer, &rep]() mutable
 	{
-		std::this_thread::sleep_for(std::chrono::milliseconds(3000));
-
-		asio::error_code ec;
-		auto newrep = asio2::http_client::execute("http://www.baidu.com", ec);
+		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+        
+		auto newrep = asio2::http_client::execute("http://www.baidu.com");
 
 		rep = std::move(newrep);
 
@@ -314,7 +317,7 @@ server.bind<http::verb::get>("/defer", [](http::request& req, http::response& re
 server.bind("/ws", websocket::listener<asio2::http_session>{}.
 	on("message", [](std::shared_ptr<asio2::http_session>& session_ptr, std::string_view data)
 {
-	printf("ws msg : %u %.*s\n", (unsigned)data.size(), (int)data.size(), data.data());
+	printf("ws msg : %zu %.*s\n", data.size(), (int)data.size(), data.data());
 
 	session_ptr->send(data);
 
@@ -347,20 +350,19 @@ server.start(host, port);
 ```
 ##### client:
 ```c++
-asio2::error_code ec;
 
 auto req1 = http::make_request("http://www.baidu.com/get_user?name=abc");
-auto rep1 = asio2::http_client::execute("http://www.baidu.com/get_user?name=abc", ec);
-if (ec)
-	std::cout << ec.message() << std::endl;
+auto rep1 = asio2::http_client::execute("http://www.baidu.com/get_user?name=abc");
+if (asio2::get_last_error())
+	std::cout << asio2::last_error_msg() << std::endl;
 else
 	std::cout << rep1 << std::endl;
 
 
 auto req2 = http::make_request("GET / HTTP/1.1\r\nHost: 192.168.0.1\r\n\r\n");
-auto rep2 = asio2::http_client::execute("www.baidu.com", "80", req2, std::chrono::seconds(3), ec);
-if (ec)
-	std::cout << ec.message() << std::endl;
+auto rep2 = asio2::http_client::execute("www.baidu.com", "80", req2, std::chrono::seconds(3));
+if (asio2::get_last_error())
+	std::cout << asio2::last_error_msg() << std::endl;
 else
 	std::cout << rep2 << std::endl;
 
@@ -373,9 +375,9 @@ std::cout << query << std::endl;
 
 std::cout << std::endl;
 
-auto rep3 = asio2::http_client::execute("www.baidu.com", "80", "/api/get_user?name=abc", ec);
-if (ec)
-	std::cout << ec.message() << std::endl;
+auto rep3 = asio2::http_client::execute("www.baidu.com", "80", "/api/get_user?name=abc");
+if (asio2::get_last_error())
+	std::cout << asio2::last_error_msg() << std::endl;
 else
 	std::cout << rep3 << std::endl;
 
@@ -402,17 +404,12 @@ ping.timeout(std::chrono::seconds(3))
 		<< " bytes from " << rep.source_address()
 		<< ": icmp_seq=" << rep.sequence_number()
 		<< ", ttl=" << rep.time_to_live()
-		<< ", time=" << std::chrono::duration_cast<std::chrono::milliseconds>(rep.lag).count() << "ms"
+		<< ", time=" << rep.milliseconds() << "ms"
 		<< std::endl;
 }).start("151.101.193.69");
 ```
 ```c++
-asio::error_code ec;
-std::cout << asio2::ping::execute("www.google.com", std::chrono::seconds(3), "icmp body string", ec).milliseconds() << std::endl;
 std::cout << asio2::ping::execute("www.google.com").milliseconds() << std::endl;
-std::cout << asio2::ping::execute("www.google.com", std::chrono::seconds(3)).milliseconds() << std::endl;
-std::cout << asio2::ping::execute("www.google.com", std::chrono::seconds(3), ec).milliseconds() << std::endl;
-std::cout << asio2::ping::execute("www.google.com", ec).milliseconds() << std::endl;
 ```
 ## SSL:
 ##### TCP/HTTP/WEBSOCKET all support SSL(config.hpp uncomment #define ASIO2_USE_SSL)
@@ -475,7 +472,7 @@ sp.bind_init([&]()
 
 }).bind_recv([&](std::string_view sv)
 {
-	printf("recv : %u %.*s\n", (unsigned)sv.size(), (int)sv.size(), sv.data());
+	printf("recv : %zu %.*s\n", sv.size(), (int)sv.size(), sv.data());
 
 	std::string s;
 	uint8_t len = uint8_t(10 + (std::rand() % 20));
@@ -508,6 +505,14 @@ timer.start_timer(1, std::chrono::seconds(1), [&]()
 	printf("timer 1\n");
 	if (true)
 		timer.stop_timer(1);
+});
+timer.start_timer("id2", 2000, 5, []()
+{
+	printf("timer id2, loop 5 times\n");
+});
+timer.start_timer(5, std::chrono::milliseconds(1000), std::chrono::milliseconds(5000), []()
+{
+	printf("timer 5, loop infinite, delay 5 seconds\n");
 });
 ```
 ##### Manually triggered events

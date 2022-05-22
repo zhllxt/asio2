@@ -46,6 +46,7 @@ namespace asio2::detail
 		 * same as set_user_data
 		 */
 		template<class DataT>
+		[[deprecated("Replace user_data with set_user_data")]]
 		inline derived_t & user_data(DataT && data)
 		{
 			return this->set_user_data(std::forward<DataT>(data));
@@ -56,6 +57,7 @@ namespace asio2::detail
 		 * example : MyStruct my = user_data<MyStruct>(); MyStruct* my = user_data<MyStruct*>();
 		 */
 		template<class DataT>
+		[[deprecated("Replace user_data with get_user_data")]]
 		inline DataT user_data() noexcept
 		{
 			return this->get_user_data<DataT>();
@@ -63,6 +65,7 @@ namespace asio2::detail
 
 		/**
 		 * @function : set user data, internal use std::any to storage, you can set any type of data
+		 * example : struct MyStruct{ ... }; MyStruct my; set_user_data(my);
 		 */
 		template<class DataT>
 		inline derived_t & set_user_data(DataT && data)
@@ -73,7 +76,10 @@ namespace asio2::detail
 
 		/**
 		 * @function : get user data
-		 * example : MyStruct my = user_data<MyStruct>(); MyStruct* my = user_data<MyStruct*>();
+		 * example : 
+		 * MyStruct  my = get_user_data<MyStruct>();
+		 * MyStruct* my = get_user_data<MyStruct*>();
+		 * MyStruct& my = get_user_data<MyStruct&>();
 		 */
 		template<class DataT>
 		inline DataT get_user_data() noexcept
@@ -118,6 +124,9 @@ namespace asio2::detail
 			}
 		}
 
+		/**
+		 * @function : return the std::any reference
+		 */
 		inline std::any& user_data_any() noexcept { return this->user_data_; }
 
 	protected:

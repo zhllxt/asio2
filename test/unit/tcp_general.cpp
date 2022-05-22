@@ -1870,22 +1870,22 @@ void tcp_general_test()
 				ASIO2_CHECK(!data.empty());
 				ASIO2_CHECK(client.is_started());
 
-				ext_data& ex = client.get_user_data<ext_data&>();
+				ext_data* ex = client.get_user_data<ext_data*>();
 
-				ex.buf += data;
+				ex->buf += data;
 
 				while (true)
 				{
-					auto pos = ex.buf.find('\n');
+					auto pos = ex->buf.find('\n');
 					if (pos == std::string::npos)
 						break;
 
-					ASIO2_CHECK(ex.buf[5] == ',');
-					ASIO2_CHECK(std::stoi(ex.buf.substr(0, 5)) == ex.num);
+					ASIO2_CHECK(ex->buf[5] == ',');
+					ASIO2_CHECK(std::stoi(ex->buf.substr(0, 5)) == ex->num);
 
-					std::string_view frag{ &ex.buf[6], size_t(&ex.buf[pos] - &ex.buf[6]) };
+					std::string_view frag{ &ex->buf[6], size_t(&ex->buf[pos] - &ex->buf[6]) };
 
-					for (int i = 0; i < ex.num; i++)
+					for (int i = 0; i < ex->num; i++)
 					{
 						ASIO2_CHECK(frag.size() >= chars.size());
 						ASIO2_CHECK(std::memcmp(frag.data(), chars.data(), chars.size()) == 0);
@@ -1898,11 +1898,11 @@ void tcp_general_test()
 						return;
 					}
 
-					ex.num++;
+					ex->num++;
 
-					std::string msg = fmt::format("{:05d},", ex.num);
+					std::string msg = fmt::format("{:05d},", ex->num);
 
-					for (int i = 0; i < ex.num; i++)
+					for (int i = 0; i < ex->num; i++)
 					{
 						msg += chars;
 					}
@@ -1911,7 +1911,7 @@ void tcp_general_test()
 
 					client.async_send(std::move(msg));
 
-					ex.buf.erase(0, pos + 1);
+					ex->buf.erase(0, pos + 1);
 				}
 			});
 
