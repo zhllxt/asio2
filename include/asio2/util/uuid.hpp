@@ -7,7 +7,10 @@
  * Distributed under the GNU GENERAL PUBLIC LICENSE Version 3, 29 June 2007
  * (See accompanying file LICENSE or see <http://www.gnu.org/licenses/>)
  *
- * code come from : boost/uuid
+ * boost/uuid
+ * https://lowrey.me/guid-generation-in-c-11/
+ * https://github.com/mariusbancila/stduuid
+ * 
  */
 
 #ifndef __ASIO2_UUID_IMPL_HPP__
@@ -24,52 +27,133 @@
 #include <string>
 #include <random>
 #include <limits>
+#include <memory>
+#include <array>
+#include <algorithm>
+#include <iterator>
 
 namespace asio2
 {
 	/**
 	 * UUID Generation in C++11
-	 * Reference from the boost library
 	 */
 	class uuid
 	{
+	protected:
+		struct random_enginer
+		{
+			std::seed_seq                                sseq_;
+			std::mt19937                                 engine_;
+			std::uniform_int_distribution<std::uint32_t> distribution_;
+
+			template<class InputIt>
+			explicit random_enginer(InputIt begin, InputIt end)
+				: sseq_(begin, end)
+				, engine_(sseq_)
+			{
+			}
+
+			inline std::uint32_t get()
+			{
+				return distribution_(engine_);
+			}
+		};
+
 	public:
-		uuid() = default;
+		uuid()
+		{
+			std::random_device rd{};
+			std::array<std::uint32_t, std::mt19937::state_size> sb{};
+			std::generate(std::begin(sb), std::end(sb), std::ref(rd));
+
+			this->random_enginer_ = std::make_unique<random_enginer>(std::begin(sb), std::end(sb));
+		}
 		~uuid() = default;
 
-		uuid(const uuid&) = default;
+		uuid(const uuid&) = delete;
 		uuid(uuid&&) noexcept = default;
 
-		uuid& operator=(const uuid&) = default;
+		uuid& operator=(const uuid&) = delete;
 		uuid& operator=(uuid&&) noexcept = default;
 
 		inline uuid& operator()()
 		{
-			gen();
-
-			return (*this);
+			return generate();
 		}
 
 		inline uuid& next()
 		{
-			gen();
+			return generate();
+		}
+
+		inline uuid& generate()
+		{
+			for (std::size_t i = 0; i < sizeof(data); i += sizeof(std::uint32_t))
+			{
+				*reinterpret_cast<std::uint32_t*>(data + i) = this->random_enginer_->get();
+			}
+
+			// set variant
+			// must be 0b10xxxxxx
+			*(data + 8) &= 0xBF;
+			*(data + 8) |= 0x80;
+
+			// set version
+			// must be 0b0100xxxx
+			*(data + 6) &= 0x4F; //0b01001111
+			*(data + 6) |= 0x40; //0b01000000
 
 			return (*this);
 		}
 
-		inline std::string str(bool upper = false) noexcept
+		/**
+		 * @function : convert the uuid bytes to std::string
+		 */
+		inline std::string str(bool upper = false, bool group = true) noexcept
 		{
 			std::string result;
-			result.reserve(32);
 
-			for (int it = 0; it < int(sizeof(data)); ++it)
+			if (group)
 			{
-				const int hi = ((*(data + it)) >> 4) & 0x0F;
-				result += to_char(hi, upper);
+				// 00000000-0000-0000-0000-000000000000
 
-				const int lo = (*(data + it)) & 0x0F;
-				result += to_char(lo, upper);
+				result.reserve(36);
+
+				for (std::size_t i = 0; i < sizeof(data); )
+				{
+					int n = static_cast<int>(result.size());
+
+					if (n == 8 || n == 13 || n == 18 || n == 23)
+					{
+						result += '-';
+						continue;
+					}
+
+					const int hi = ((*(data + i)) >> 4) & 0x0F;
+					result += to_char(hi, upper);
+
+					const int lo = (*(data + i)) & 0x0F;
+					result += to_char(lo, upper);
+
+					++i;
+				}
 			}
+			else
+			{
+				// 00000000000000000000000000000000
+
+				result.reserve(32);
+
+				for (std::size_t i = 0; i < sizeof(data); ++i)
+				{
+					const int hi = ((*(data + i)) >> 4) & 0x0F;
+					result += to_char(hi, upper);
+
+					const int lo = (*(data + i)) & 0x0F;
+					result += to_char(lo, upper);
+				}
+			}
+
 			return result;
 		}
 
@@ -77,78 +161,95 @@ namespace asio2
 		inline std::size_t hash() noexcept
 		{
 			std::size_t seed = 0;
-			for (int it = 0; it < int(sizeof(data)); ++it)
+			for (std::size_t i = 0; i < sizeof(data); ++i)
 			{
-				seed ^= static_cast<std::size_t>(*(data + it)) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+				seed ^= static_cast<std::size_t>(*(data + i)) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
 			}
 
 			return seed;
 		}
 
-		enum variant_type
+		enum class variant_type
 		{
-			variant_ncs, // NCS backward compatibility
-			variant_rfc_4122, // defined in RFC 4122 document
-			variant_microsoft, // Microsoft Corporation backward compatibility
-			variant_future // future definition
+			ncs,       // NCS backward compatibility
+			rfc,       // defined in RFC 4122 document
+			microsoft, // Microsoft Corporation backward compatibility
+			future     // future definition
 		};
+
 		inline variant_type variant() const noexcept
 		{
 			// variant is stored in octet 7
 			// which is index 8, since indexes count backwards
 			unsigned char octet7 = data[8]; // octet 7 is array index 8
-			if ((octet7 & 0x80) == 0x00) { // 0b0xxxxxxx
-				return variant_ncs;
+
+			if ((octet7 & 0x80) == 0x00)
+			{
+				// 0b0xxxxxxx
+				return variant_type::ncs;
 			}
-			else if ((octet7 & 0xC0) == 0x80) { // 0b10xxxxxx
-				return variant_rfc_4122;
+			else if ((octet7 & 0xC0) == 0x80)
+			{
+				// 0b10xxxxxx
+				return variant_type::rfc;
 			}
-			else if ((octet7 & 0xE0) == 0xC0) { // 0b110xxxxx
-				return variant_microsoft;
+			else if ((octet7 & 0xE0) == 0xC0)
+			{
+				// 0b110xxxxx
+				return variant_type::microsoft;
 			}
-			else {
+			else
+			{
 				//assert( (octet7 & 0xE0) == 0xE0 ) // 0b111xxxx
-				return variant_future;
+				return variant_type::future;
 			}
 		}
 
-		enum version_type
+		enum class version_type
 		{
-			version_unknown = -1,
-			version_time_based = 1,
-			version_dce_security = 2,
-			version_name_based_md5 = 3,
-			version_random_number_based = 4,
-			version_name_based_sha1 = 5
+			unknown             = 0, // only possible for nil or invalid uuids
+			time_based          = 1, // The time-based version specified in RFC 4122
+			dce_security        = 2, // DCE Security version, with embedded POSIX UIDs.
+			name_based_md5      = 3, // The name-based version specified in RFS 4122 with MD5 hashing
+			random_number_based = 4, // The randomly or pseudo-randomly generated version specified in RFS 4122
+			name_based_sha1     = 5	 // The name-based version specified in RFS 4122 with SHA1 hashing
 		};
+
 		inline version_type version() const noexcept
 		{
 			// version is stored in octet 9
 			// which is index 6, since indexes count backwards
 			uint8_t octet9 = data[6];
-			if ((octet9 & 0xF0) == 0x10) {
-				return version_time_based;
+
+			if ((octet9 & 0xF0) == 0x10)
+			{
+				return version_type::time_based;
 			}
-			else if ((octet9 & 0xF0) == 0x20) {
-				return version_dce_security;
+			else if ((octet9 & 0xF0) == 0x20)
+			{
+				return version_type::dce_security;
 			}
-			else if ((octet9 & 0xF0) == 0x30) {
-				return version_name_based_md5;
+			else if ((octet9 & 0xF0) == 0x30)
+			{
+				return version_type::name_based_md5;
 			}
-			else if ((octet9 & 0xF0) == 0x40) {
-				return version_random_number_based;
+			else if ((octet9 & 0xF0) == 0x40)
+			{
+				return version_type::random_number_based;
 			}
-			else if ((octet9 & 0xF0) == 0x50) {
-				return version_name_based_sha1;
+			else if ((octet9 & 0xF0) == 0x50)
+			{
+				return version_type::name_based_sha1;
 			}
-			else {
-				return version_unknown;
+			else
+			{
+				return version_type::unknown;
 			}
 		}
 
 		inline std::string short_uuid(int bytes)
 		{
-			char keys[]
+			constexpr char keys[]
 			{
 				'+', '-',
 				'0', '1', '2', '3', '4', '5', '6', '7', '8','9',
@@ -156,23 +257,39 @@ namespace asio2
 				'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
 			};
 
-			std::string s;
-			s.reserve(bytes);
+			std::string result;
 
-			for (int it = 0; it < bytes; ++it)
+			result.reserve(bytes);
+
+			std::uniform_int_distribution<int> d(0, int(sizeof(keys) - 1));
+
+			for (int i = 0; i < bytes; ++i)
 			{
-				s += keys[random(0, sizeof(keys) - 1)];
+				result += keys[d(this->random_enginer_->engine_)];
 			}
 
-			return s;
+			return result;
 		}
 
-		inline unsigned long random(
-			unsigned long mini = (std::numeric_limits<unsigned long>::min)(),
-			unsigned long maxi = (std::numeric_limits<unsigned long>::max)())
+		template <typename CharT>
+		constexpr inline unsigned char hex2char(CharT const ch)
 		{
-			std::uniform_int_distribution<unsigned long> distribution(mini, maxi);
-			return distribution(random_enginer_);
+			if (ch >= static_cast<CharT>('0') && ch <= static_cast<CharT>('9'))
+				return static_cast<unsigned char>(ch - static_cast<CharT>('0'));
+			if (ch >= static_cast<CharT>('a') && ch <= static_cast<CharT>('f'))
+				return static_cast<unsigned char>(10 + ch - static_cast<CharT>('a'));
+			if (ch >= static_cast<CharT>('A') && ch <= static_cast<CharT>('F'))
+				return static_cast<unsigned char>(10 + ch - static_cast<CharT>('A'));
+			return 0;
+		}
+
+		template <typename CharT>
+		constexpr inline bool is_hex(CharT const ch)
+		{
+			return
+				(ch >= static_cast<CharT>('0') && ch <= static_cast<CharT>('9')) ||
+				(ch >= static_cast<CharT>('a') && ch <= static_cast<CharT>('f')) ||
+				(ch >= static_cast<CharT>('A') && ch <= static_cast<CharT>('F'));
 		}
 
 	protected:
@@ -188,38 +305,11 @@ namespace asio2
 			}
 		}
 
-		inline void gen()
-		{
-			unsigned long random_value = random();
-			for (int i = 0, it = 0; it < int(sizeof(data)); ++it, ++i)
-			{
-				if (i == int(sizeof(unsigned long)))
-				{
-					random_value = random();
-					i = 0;
-				}
-
-				// static_cast gets rid of warnings of converting unsigned long to std::uint8_t
-				data[it] = static_cast<std::uint8_t>((random_value >> (i * 8)) & 0xFF);
-			}
-
-			// set variant
-			// must be 0b10xxxxxx
-			*(data + 8) &= 0xBF;
-			*(data + 8) |= 0x80;
-
-			// set version
-			// must be 0b0100xxxx
-			*(data + 6) &= 0x4F; //0b01001111
-			*(data + 6) |= 0x40; //0b01000000
-		}
-
 	public:
-		std::uint8_t data[16];
+		std::uint8_t data[16]{};
 
 	protected:
-		//std::default_random_engine random_enginer_{ std::random_device{}() };
-		std::mt19937               random_enginer_{ std::random_device{}() };
+		std::unique_ptr<random_enginer> random_enginer_;
 	};
 }
 

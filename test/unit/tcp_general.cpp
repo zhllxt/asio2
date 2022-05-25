@@ -91,6 +91,7 @@ void tcp_general_test()
 			server_disconnect_counter++;
 
 			ASIO2_CHECK(asio2::get_last_error());
+			// on linux, when disconnect is called, the remote_address maybe empty...
 #if defined(WIN32) || defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS_)
 			ASIO2_CHECK(session_ptr->remote_address() == "127.0.0.1");
 #endif
