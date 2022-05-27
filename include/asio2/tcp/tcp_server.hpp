@@ -398,6 +398,14 @@ namespace asio2::detail
 
 					this->acceptor_.bind(endpoint);
 					this->acceptor_.listen();
+
+					// if the some error occured in the _fire_init notify function, the 
+					// get_last_error maybe not zero, so if we use _handle_start(get_last_error()...
+					// at here, the start will failed, and the user don't know what happend.
+					// so we need use as this : _handle_start(error_code{}...
+					derive._handle_start(error_code{}, std::move(this_ptr), std::move(condition));
+
+					return;
 				}
 				catch (system_error const& e)
 				{
@@ -414,6 +422,8 @@ namespace asio2::detail
 			if (!derive.io().strand().running_in_this_thread())
 			{
 				set_last_error(future.get());
+
+				return static_cast<bool>(!get_last_error());
 			}
 			else
 			{
@@ -450,7 +460,7 @@ namespace asio2::detail
 				expected = state_t::started;
 				if (!ec)
 					if (!this->state_.compare_exchange_strong(expected, state_t::started))
-						asio::detail::throw_error(asio::error::operation_aborted);
+						ec = asio::error::operation_aborted;
 
 				asio::detail::throw_error(ec);
 

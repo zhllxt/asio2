@@ -85,6 +85,9 @@ namespace asio2::detail
 		 * a numeric address string.
 		 * @param port A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
+		 * @param args The args can be include the upgraged target.
+		 * eg: start("127.0.0.1", 8883); start("127.0.0.1", 8883, "/admin");
+		 * the "/admin" is the websocket upgraged target
 		 */
 		template<typename String, typename StrOrInt, typename... Args>
 		inline bool start(String&& host, StrOrInt&& port, Args&&... args)
@@ -105,6 +108,9 @@ namespace asio2::detail
 		 * a numeric address string.
 		 * @param port A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
+		 * @param args The args can be include the upgraged target.
+		 * eg: async_start("127.0.0.1", 8883); async_start("127.0.0.1", 8883, "/admin");
+		 * the "/admin" is the websocket upgraged target
 		 */
 		template<typename String, typename StrOrInt, typename... Args>
 		inline bool async_start(String&& host, StrOrInt&& port, Args&&... args)

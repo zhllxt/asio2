@@ -44,9 +44,7 @@ int main()
 
 	}).bind_disconnect([](auto & session_ptr)
 	{
-		printf("client leave : %s %u %s\n",
-			session_ptr->remote_address().c_str(), session_ptr->remote_port(),
-			asio2::last_error_msg().c_str());
+		printf("client leave : %s\n", asio2::last_error_msg().c_str());
 
 	}).bind_handshake([](auto & session_ptr)
 	{

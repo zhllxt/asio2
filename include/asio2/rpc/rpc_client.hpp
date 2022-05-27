@@ -173,131 +173,131 @@ namespace asio2
 {
 	namespace detail
 	{
-		template<net_protocol np> struct template_args_rpc_client;
+		template<asio2::net_protocol np> struct template_args_rpc_client;
 
 		template<>
-		struct template_args_rpc_client<net_protocol::tcp> : public template_args_tcp_client
+		struct template_args_rpc_client<asio2::net_protocol::tcp> : public template_args_tcp_client
 		{
 			static constexpr bool rdc_call_cp_enabled = false;
 		};
 
 		template<>
-		struct template_args_rpc_client<net_protocol::ws> : public template_args_ws_client
+		struct template_args_rpc_client<asio2::net_protocol::ws> : public template_args_ws_client
 		{
 			static constexpr bool rdc_call_cp_enabled = false;
 		};
 	}
 
-	template<class derived_t, net_protocol np> class rpc_client_t;
+	template<class derived_t, asio2::net_protocol np> class rpc_client_t;
 
 	template<class derived_t>
-	class rpc_client_t<derived_t, net_protocol::tcp> : public detail::rpc_client_impl_t<derived_t,
-		detail::tcp_client_impl_t<derived_t, detail::template_args_rpc_client<net_protocol::tcp>>>
+	class rpc_client_t<derived_t, asio2::net_protocol::tcp> : public detail::rpc_client_impl_t<derived_t,
+		detail::tcp_client_impl_t<derived_t, detail::template_args_rpc_client<asio2::net_protocol::tcp>>>
 	{
 	public:
 		using detail::rpc_client_impl_t<derived_t, detail::tcp_client_impl_t
-			<derived_t, detail::template_args_rpc_client<net_protocol::tcp>>>::rpc_client_impl_t;
+			<derived_t, detail::template_args_rpc_client<asio2::net_protocol::tcp>>>::rpc_client_impl_t;
 	};
 
 	template<class derived_t>
-	class rpc_client_t<derived_t, net_protocol::ws> : public detail::rpc_client_impl_t<derived_t,
-		detail::ws_client_impl_t<derived_t, detail::template_args_rpc_client<net_protocol::ws>>>
+	class rpc_client_t<derived_t, asio2::net_protocol::ws> : public detail::rpc_client_impl_t<derived_t,
+		detail::ws_client_impl_t<derived_t, detail::template_args_rpc_client<asio2::net_protocol::ws>>>
 	{
 	public:
 		using detail::rpc_client_impl_t<derived_t, detail::ws_client_impl_t<derived_t,
-			detail::template_args_rpc_client<net_protocol::ws>>>::rpc_client_impl_t;
+			detail::template_args_rpc_client<asio2::net_protocol::ws>>>::rpc_client_impl_t;
 	};
 
-	template<net_protocol np> class rpc_client_use;
+	template<asio2::net_protocol np> class rpc_client_use;
 
 	template<>
-	class rpc_client_use<net_protocol::tcp>
-		: public rpc_client_t<rpc_client_use<net_protocol::tcp>, net_protocol::tcp>
+	class rpc_client_use<asio2::net_protocol::tcp>
+		: public rpc_client_t<rpc_client_use<asio2::net_protocol::tcp>, asio2::net_protocol::tcp>
 	{
 	public:
-		using rpc_client_t<rpc_client_use<net_protocol::tcp>, net_protocol::tcp>::rpc_client_t;
+		using rpc_client_t<rpc_client_use<asio2::net_protocol::tcp>, asio2::net_protocol::tcp>::rpc_client_t;
 	};
 
 	template<>
-	class rpc_client_use<net_protocol::ws>
-		: public rpc_client_t<rpc_client_use<net_protocol::ws>, net_protocol::ws>
+	class rpc_client_use<asio2::net_protocol::ws>
+		: public rpc_client_t<rpc_client_use<asio2::net_protocol::ws>, asio2::net_protocol::ws>
 	{
 	public:
-		using rpc_client_t<rpc_client_use<net_protocol::ws>, net_protocol::ws>::rpc_client_t;
+		using rpc_client_t<rpc_client_use<asio2::net_protocol::ws>, asio2::net_protocol::ws>::rpc_client_t;
 	};
 
 #if defined(ASIO2_USE_SSL)
 	namespace detail
 	{
-		template<net_protocol np> struct template_args_rpcs_client;
+		template<asio2::net_protocol np> struct template_args_rpcs_client;
 
 		template<>
-		struct template_args_rpcs_client<net_protocol::tcps> : public template_args_tcp_client
+		struct template_args_rpcs_client<asio2::net_protocol::tcps> : public template_args_tcp_client
 		{
 			static constexpr bool rdc_call_cp_enabled = false;
 		};
 
 		template<>
-		struct template_args_rpcs_client<net_protocol::wss> : public template_args_wss_client
+		struct template_args_rpcs_client<asio2::net_protocol::wss> : public template_args_wss_client
 		{
 			static constexpr bool rdc_call_cp_enabled = false;
 		};
 	}
 
-	template<class derived_t, net_protocol np> class rpcs_client_t;
+	template<class derived_t, asio2::net_protocol np> class rpcs_client_t;
 
 	template<class derived_t>
-	class rpcs_client_t<derived_t, net_protocol::tcps> : public detail::rpc_client_impl_t<derived_t,
-		detail::tcps_client_impl_t<derived_t, detail::template_args_rpcs_client<net_protocol::tcps>>>
+	class rpcs_client_t<derived_t, asio2::net_protocol::tcps> : public detail::rpc_client_impl_t<derived_t,
+		detail::tcps_client_impl_t<derived_t, detail::template_args_rpcs_client<asio2::net_protocol::tcps>>>
 	{
 	public:
 		using detail::rpc_client_impl_t<derived_t, detail::tcps_client_impl_t<derived_t,
-			detail::template_args_rpcs_client<net_protocol::tcps>>>::rpc_client_impl_t;
+			detail::template_args_rpcs_client<asio2::net_protocol::tcps>>>::rpc_client_impl_t;
 	};
 
 	template<class derived_t>
-	class rpcs_client_t<derived_t, net_protocol::wss> : public detail::rpc_client_impl_t<derived_t,
-		detail::wss_client_impl_t<derived_t, detail::template_args_rpcs_client<net_protocol::wss>>>
+	class rpcs_client_t<derived_t, asio2::net_protocol::wss> : public detail::rpc_client_impl_t<derived_t,
+		detail::wss_client_impl_t<derived_t, detail::template_args_rpcs_client<asio2::net_protocol::wss>>>
 	{
 	public:
 		using detail::rpc_client_impl_t<derived_t, detail::wss_client_impl_t<
-			derived_t, detail::template_args_rpcs_client<net_protocol::wss>>>::rpc_client_impl_t;
+			derived_t, detail::template_args_rpcs_client<asio2::net_protocol::wss>>>::rpc_client_impl_t;
 	};
 
-	template<net_protocol np> class rpcs_client_use;
+	template<asio2::net_protocol np> class rpcs_client_use;
 
 	template<>
-	class rpcs_client_use<net_protocol::tcps>
-		: public rpcs_client_t<rpcs_client_use<net_protocol::tcps>, net_protocol::tcps>
+	class rpcs_client_use<asio2::net_protocol::tcps>
+		: public rpcs_client_t<rpcs_client_use<asio2::net_protocol::tcps>, asio2::net_protocol::tcps>
 	{
 	public:
-		using rpcs_client_t<rpcs_client_use<net_protocol::tcps>, net_protocol::tcps>::rpcs_client_t;
+		using rpcs_client_t<rpcs_client_use<asio2::net_protocol::tcps>, asio2::net_protocol::tcps>::rpcs_client_t;
 	};
 
 	template<>
-	class rpcs_client_use<net_protocol::wss>
-		: public rpcs_client_t<rpcs_client_use<net_protocol::wss>, net_protocol::wss>
+	class rpcs_client_use<asio2::net_protocol::wss>
+		: public rpcs_client_t<rpcs_client_use<asio2::net_protocol::wss>, asio2::net_protocol::wss>
 	{
 	public:
-		using rpcs_client_t<rpcs_client_use<net_protocol::wss>, net_protocol::wss>::rpcs_client_t;
+		using rpcs_client_t<rpcs_client_use<asio2::net_protocol::wss>, asio2::net_protocol::wss>::rpcs_client_t;
 	};
 #endif
 
 #if !defined(ASIO2_USE_WEBSOCKET_RPC)
 	/// Using tcp dgram mode as the underlying communication support
-	using rpc_client = rpc_client_use<net_protocol::tcp>;
+	using rpc_client = rpc_client_use<asio2::net_protocol::tcp>;
 #else
 	/// Using websocket as the underlying communication support
-	using rpc_client = rpc_client_use<net_protocol::ws>;
+	using rpc_client = rpc_client_use<asio2::net_protocol::ws>;
 #endif
 
 #if defined(ASIO2_USE_SSL)
 #if !defined(ASIO2_USE_WEBSOCKET_RPC)
 	/// Using tcp dgram mode as the underlying communication support
-	using rpcs_client = rpcs_client_use<net_protocol::tcps>;
+	using rpcs_client = rpcs_client_use<asio2::net_protocol::tcps>;
 #else
 	/// Using websocket as the underlying communication support
-	using rpcs_client = rpcs_client_use<net_protocol::wss>;
+	using rpcs_client = rpcs_client_use<asio2::net_protocol::wss>;
 #endif
 #endif
 }

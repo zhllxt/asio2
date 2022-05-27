@@ -121,6 +121,8 @@ namespace asio2::detail
 				[&derive, set_promise = std::move(set_promise)]
 				(const error_code& ec) mutable
 				{
+					ASIO2_ASSERT((!ec) || ec == asio::error::operation_aborted);
+
 					// no errors indicating that the connection timed out
 					if (!ec)
 					{
@@ -128,12 +130,15 @@ namespace asio2::detail
 						// with operation_aborted.
 						error_code ec_ignore{};
 						derive.socket().lowest_layer().close(ec_ignore);
+
+						ASIO2_ASSERT(!derive.socket().lowest_layer().is_open());
+
+						set_last_error(asio::error::timed_out);
 					}
-
-					error_code connect_ec = derive._connect_error_code();
-
-					set_last_error(connect_ec ? connect_ec :
-						(ec == asio::error::operation_aborted ? error_code{} : ec));
+					else
+					{
+						set_last_error(derive._connect_error_code());
+					}
 				});
 
 				derive._post_resolve(std::move(this_ptr), std::move(condition));
@@ -401,9 +406,6 @@ namespace asio2::detail
 					ec = asio::error::timed_out;
 				}
 
-				// Whatever of connection success or failure or timeout, cancel the timeout timer.
-				derive._stop_connect_timeout_timer(ec);
-
 				state_t expected;
 
 				// Set the state to started before fire_connect because the user may send data in
@@ -448,8 +450,11 @@ namespace asio2::detail
 				{
 					expected = state_t::started;
 					if (!derive.state().compare_exchange_strong(expected, state_t::started))
-						asio::detail::throw_error(asio::error::operation_aborted);
+						ec = asio::error::operation_aborted;
 				}
+
+				// Whatever of connection success or failure or timeout, cancel the timeout timer.
+				derive._stop_connect_timeout_timer(ec);
 
 				asio::detail::throw_error(ec);
 

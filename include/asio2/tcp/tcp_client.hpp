@@ -386,6 +386,13 @@ namespace asio2::detail
 				if (!derive.io().strand().running_in_this_thread())
 				{
 					set_last_error(future.get());
+
+					// beacuse here code is running in the user thread, not in the io_context thread,
+					// so, even if the client is start successed, but if the server disconnect this
+					// client after connect success, and when code run to here, the client's state
+					// maybe stopping, so if we return derive.is_started();, the return value maybe 
+					// false, but we did connect to the server is successfully.
+					return static_cast<bool>(!get_last_error());
 				}
 				else
 				{

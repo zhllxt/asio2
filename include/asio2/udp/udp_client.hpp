@@ -382,6 +382,8 @@ namespace asio2::detail
 				if (!derive.io().strand().running_in_this_thread())
 				{
 					set_last_error(future.get());
+
+					return static_cast<bool>(!get_last_error());
 				}
 				else
 				{

@@ -56,24 +56,14 @@ namespace boost::beast::zlib
 		impl& operator=(impl&&) = delete;
 		impl& operator=(const impl&) = delete;
 
-		inline std::string compress(std::string_view data, asio::error_code& ec)
-		{
-			return work(deflate_stream_, deflate_flush_, data, ec);
-		}
-
 		inline std::string compress(std::string_view data)
 		{
-			return compress(data, asio2::get_last_error());
-		}
-
-		inline std::string uncompress(std::string_view data, asio::error_code& ec)
-		{
-			return work(inflate_stream_, inflate_flush_, data, ec);
+			return work(deflate_stream_, deflate_flush_, data, asio2::get_last_error());
 		}
 
 		inline std::string uncompress(std::string_view data)
 		{
-			return uncompress(data, asio2::get_last_error());
+			return work(inflate_stream_, inflate_flush_, data, asio2::get_last_error());
 		}
 
 		inline static std::size_t compress_bound(std::size_t size)

@@ -622,7 +622,8 @@ namespace asio2::detail
 			}
 			else
 			{
-				derive._handle_proxy(get_last_error(), std::move(this_ptr), std::move(condition));
+				ASIO2_ASSERT(!get_last_error());
+				derive._handle_proxy(error_code{}, std::move(this_ptr), std::move(condition));
 			}
 		}
 

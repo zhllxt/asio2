@@ -13,16 +13,13 @@ void uuid_test()
 	std::string uppers = "ABCDEF";
 	std::string empty = "00000000-0000-0000-0000-000000000000";
 
-	std::string keys
-	{
-		'+', '-',
-		'0', '1', '2', '3', '4', '5', '6', '7', '8','9',
-		'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
-		'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
-	};
+	static std::string const short_uuid_chars =
+		"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+		"abcdefghijklmnopqrstuvwxyz"
+		"0123456789+/";
 
-	std::vector<int> keys_flags;
-	keys_flags.resize(keys.size());
+	std::vector<int> short_uuid_chars_flags;
+	short_uuid_chars_flags.resize(short_uuid_chars.size());
 
 	std::unordered_set<std::string> uuid_set;
 
@@ -200,9 +197,9 @@ void uuid_test()
 
 		for (auto c : s2)
 		{
-			auto pos = keys.find(c);
+			auto pos = short_uuid_chars.find(c);
 			ASIO2_CHECK(pos != std::string::npos);
-			keys_flags[pos] = 1;
+			short_uuid_chars_flags[pos] = 1;
 		}
 	}
 
@@ -215,7 +212,7 @@ void uuid_test()
 
 	ASIO2_TEST_END_LOOP;
 
-	for (auto i : keys_flags)
+	for (auto i : short_uuid_chars_flags)
 	{
 		ASIO2_CHECK(i == 1);
 	}

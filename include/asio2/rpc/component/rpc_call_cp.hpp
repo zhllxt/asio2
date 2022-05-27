@@ -130,8 +130,10 @@ namespace asio2::detail
 							catch (system_error     & e) { ec = e.code();             }
 							catch (std::exception   &  ) { ec = asio::error::eof;     }
 						}
-						set_last_error(ec);
-						pm->set_value(ec);
+
+						set_last_error(ec.value());
+
+						pm->set_value(get_last_error());
 
 						derive.reqs_.erase(id);
 					};
@@ -264,7 +266,7 @@ namespace asio2::detail
 						catch (system_error     & e) { ec = e.code();             }
 						catch (std::exception   &  ) { ec = asio::error::eof;     }
 
-						set_last_error(ec);
+						set_last_error(ec.value());
 
 						cb();
 					}
@@ -296,7 +298,7 @@ namespace asio2::detail
 						catch (system_error     & e) { ec = e.code();             }
 						catch (std::exception   &  ) { ec = asio::error::eof;     }
 
-						set_last_error(ec);
+						set_last_error(ec.value());
 
 						cb(std::move(result));
 					}

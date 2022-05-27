@@ -397,6 +397,10 @@ namespace asio2::detail
 					// sp.socket().set_option(asio::serial_port::parity(serial_port::parity::type(parity)));
 					// sp.socket().set_option(asio::serial_port::stop_bits(serial_port::stop_bits::type(stop_bits)));
 					// sp.socket().set_option(asio::serial_port::character_size(character_size));
+
+					derive._handle_start(error_code{}, std::move(this_ptr), std::move(condition));
+
+					return;
 				}
 				catch (system_error const& e)
 				{
@@ -413,6 +417,8 @@ namespace asio2::detail
 			if (!derive.io().strand().running_in_this_thread())
 			{
 				set_last_error(future.get());
+
+				return static_cast<bool>(!get_last_error());
 			}
 			else
 			{
@@ -449,7 +455,7 @@ namespace asio2::detail
 				expected = state_t::started;
 				if (!ec)
 					if (!this->state_.compare_exchange_strong(expected, state_t::started))
-						asio::detail::throw_error(asio::error::operation_aborted);
+						ec = asio::error::operation_aborted;
 
 				asio::detail::throw_error(ec);
 

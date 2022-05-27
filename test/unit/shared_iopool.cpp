@@ -191,7 +191,7 @@ void shared_iopool_test()
 		ASIO2_CHECK(iopool.running_in_thread(0));
 	});
 
-	server.start("0.0.0.0", 39001);
+	server.start("127.0.0.1", 39001);
 
 	//-----------------------------------------------------------------------------------
 
@@ -334,7 +334,7 @@ void shared_iopool_test()
 		ASIO2_CHECK(iopool.running_in_thread(0));
 	});
 
-	server.start("0.0.0.0", 39001);
+	server.start("127.0.0.1", 39001);
 
 	//-----------------------------------------------------------------------------------
 
