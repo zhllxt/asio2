@@ -276,8 +276,8 @@ void http_test()
 		// this send will be failed, because connection is not fully completed
 		ws_client.async_send("abc", [](std::size_t bytes)
 		{
-			ASIO2_ASSERT(asio2::get_last_error() == asio::error::not_connected);
-			ASIO2_ASSERT(bytes == 0);
+			ASIO2_CHECK(asio2::get_last_error() == asio::error::not_connected);
+			ASIO2_CHECK(bytes == 0);
 		});
 
 	}).bind_recv([&](std::string_view data)

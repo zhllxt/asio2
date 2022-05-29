@@ -62,10 +62,10 @@ namespace asio2
 
 	namespace detail
 	{
-		class external_linkaged_last_error
+		class [[maybe_unused]] external_linkaged_last_error
 		{
 		public:
-			static error_code & get() noexcept
+			[[maybe_unused]] static error_code & get() noexcept
 			{
 				// thread local variable of error_code
 				thread_local static error_code ec_last{};
@@ -76,7 +76,7 @@ namespace asio2
 
 		namespace internal_linkaged_last_error
 		{
-			static error_code & get() noexcept
+			[[maybe_unused]] static error_code & get() noexcept
 			{
 				// thread local variable of error_code
 				thread_local static error_code ec_last{};

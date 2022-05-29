@@ -229,7 +229,7 @@ namespace asio2::detail
 		{
 			asio2_shared_lock guard(this->mutex_);
 			auto iter = std::find_if(this->sessions_.begin(), this->sessions_.end(),
-			[this, &fn](auto &pair) mutable
+			[&fn](auto &pair) mutable
 			{
 				return fn(pair.second);
 			});

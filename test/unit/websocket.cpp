@@ -73,8 +73,8 @@ void websocket_test()
 			// this send will be failed, because connection is not fully completed
 			session_ptr->async_send("abc", [](std::size_t bytes)
 			{
-				ASIO2_ASSERT(asio2::get_last_error() == asio::error::not_connected);
-				ASIO2_ASSERT(bytes == 0);
+				ASIO2_CHECK(asio2::get_last_error() == asio::error::not_connected);
+				ASIO2_CHECK(bytes == 0);
 			});
 		});
 		std::atomic<int> server_connect_counter = 0;
@@ -106,7 +106,7 @@ void websocket_test()
 		server.bind_disconnect([&](auto & session_ptr)
 		{
 			server_disconnect_counter++;
-
+			asio2::ignore_unused(session_ptr);
 			ASIO2_CHECK(asio2::get_last_error());
 			// after test, on linux, when disconnect is called, and there has some data 
 			// is transmiting(by async_send), the remote_address maybe empty.
@@ -204,8 +204,8 @@ void websocket_test()
 			// this send will be failed, because connection is not fully completed
 			client.async_send("abc", [](std::size_t bytes)
 			{
-				ASIO2_ASSERT(asio2::get_last_error() == asio::error::not_connected);
-				ASIO2_ASSERT(bytes == 0);
+				ASIO2_CHECK(asio2::get_last_error() == asio::error::not_connected);
+				ASIO2_CHECK(bytes == 0);
 			});
 		});
 		std::atomic<int> client_connect_counter = 0;

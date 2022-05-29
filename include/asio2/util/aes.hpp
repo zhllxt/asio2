@@ -602,9 +602,9 @@ namespace asio2
 		}
 
 	protected:
-		mode_t mode_ = mode_t::ecb;
-
 		std::string key_;
+
+		mode_t mode_ = mode_t::ecb;
 
 		// The number of columns comprising a state in AES. This is a constant in AES. Value=4
 		unsigned int Nb = 4;

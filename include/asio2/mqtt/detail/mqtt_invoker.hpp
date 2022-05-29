@@ -724,8 +724,8 @@ namespace asio2::detail
 		{
 			detail::ignore_unused(ec, caller_ptr, caller, msg, response);
 
-			using message_type  = typename detail::remove_cvref_t<Message>;
-			using response_type = typename detail::remove_cvref_t<Response>;
+			using message_type  [[maybe_unused]] = typename detail::remove_cvref_t<Message>;
+			using response_type [[maybe_unused]] = typename detail::remove_cvref_t<Response>;
 
 			if constexpr (
 				std::is_same_v<message_type, mqtt::v3::publish> ||
@@ -778,8 +778,8 @@ namespace asio2::detail
 		{
 			detail::ignore_unused(ec, caller_ptr, caller, msg, response);
 
-			using message_type  = typename detail::remove_cvref_t<Message>;
-			using response_type = typename detail::remove_cvref_t<Response>;
+			using message_type  [[maybe_unused]] = typename detail::remove_cvref_t<Message>;
+			using response_type [[maybe_unused]] = typename detail::remove_cvref_t<Response>;
 
 			// std::variant<response_message1, response_message2, response_message3>
 			if constexpr (detail::is_template_instance_of_v<std::variant, response_type>)

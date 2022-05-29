@@ -211,7 +211,7 @@ void tcp_general_test()
 			});
 
 			client_send_size += std::strlen("<abc>");
-			client.async_send("<abc>", [p1](std::size_t bytes)
+			client.async_send("<abc>", [](std::size_t bytes)
 			{
 				ASIO2_CHECK(bytes == 5);
 				ASIO2_CHECK(bytes == std::strlen("<abc>"));
@@ -324,7 +324,7 @@ void tcp_general_test()
 
 			double scores[5] = { 0.1,0.2,0.3 };
 			client_send_size += sizeof(double) * 3;
-			client.async_send(scores, 3, [scores](std::size_t bytes)
+			client.async_send(scores, 3, [](std::size_t bytes)
 			{
 				ASIO2_CHECK(bytes == sizeof(double) * 3);
 				ASIO2_CHECK(!asio2::get_last_error());
@@ -476,7 +476,7 @@ void tcp_general_test()
 		});
 
 		client_send_size += std::strlen(p2);
-		client.async_send(p2, [p2, buf](std::size_t bytes)
+		client.async_send(p2, [p2](std::size_t bytes)
 		{
 			ASIO2_CHECK(bytes == 6);
 			ASIO2_CHECK(bytes == std::strlen(p2));
@@ -484,7 +484,7 @@ void tcp_general_test()
 		});
 
 		client_send_size += std::strlen("<123>");
-		client.async_send("<123>", [p1](std::size_t bytes)
+		client.async_send("<123>", [](std::size_t bytes)
 		{
 			ASIO2_CHECK(bytes == 5);
 			ASIO2_CHECK(bytes == std::strlen("<123>"));
@@ -589,7 +589,7 @@ void tcp_general_test()
 
 		double scores[5] = { 0.1,0.2,0.3 };
 		client_send_size += sizeof(double) * 3;
-		client.async_send(scores, 3, [scores](std::size_t bytes)
+		client.async_send(scores, 3, [](std::size_t bytes)
 		{
 			ASIO2_CHECK(bytes == sizeof(double) * 3);
 			ASIO2_CHECK(!asio2::get_last_error());

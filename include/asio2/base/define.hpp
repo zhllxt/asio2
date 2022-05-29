@@ -15,6 +15,14 @@
 #pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
+// use this method to disable the compile warning under mingw.
+// note : the tail of "disable_warning_pedantic" don't has the char ';'
+// warning: extra ';' [-Wpedantic]
+namespace asio2::detail
+{
+	template<class T, class U> class [[maybe_unused]] disable_warning_pedantic {};
+}
+
 // Note : 
 // All the following classes must be in the namespace asio2::detail
 // All code that uses the following macros must also be in the namespace asio2::detail
@@ -43,7 +51,7 @@
 	template <class       >                      KEYWORD session_mgr_t;             \
 	template <class, class>                      KEYWORD socks5_client_impl;        \
 	template <class, class, class>               KEYWORD socks5_client_connect_op;  \
-
+    template <class, class>                      KEYWORD disable_warning_pedantic
 
 #define ASIO2_CLASS_DECLARE_TCP_BASE(KEYWORD)                                       \
 	template <class, class>                      KEYWORD ssl_context_cp;            \
@@ -62,7 +70,7 @@
 	template <class, class>                      KEYWORD mqtt_send_op;              \
 	template <class       >                      KEYWORD mqtt_handler_t;            \
 	template <class       >                      KEYWORD mqtt_invoker_t;            \
-
+    template <class, class>                      KEYWORD disable_warning_pedantic
 
 #define ASIO2_CLASS_DECLARE_TCP_CLIENT(KEYWORD)                                     \
 	template <class, class>                      KEYWORD client_impl_t;             \
@@ -74,7 +82,7 @@
 	template <class, class>                      KEYWORD wss_client_impl_t;         \
 	template <class, class>                      KEYWORD rpc_client_impl_t;         \
 	template <class, class>                      KEYWORD mqtt_client_impl_t;        \
-
+    template <class, class>                      KEYWORD disable_warning_pedantic
 
 #define ASIO2_CLASS_DECLARE_TCP_SERVER(KEYWORD)                                     \
 	template <class, class>                      KEYWORD server_impl_t;             \
@@ -86,7 +94,7 @@
 	template <class, class>                      KEYWORD wss_server_impl_t;         \
 	template <class, class>                      KEYWORD rpc_server_impl_t;         \
 	template <class, class>                      KEYWORD mqtt_server_impl_t;        \
-
+    template <class, class>                      KEYWORD disable_warning_pedantic
 
 #define ASIO2_CLASS_DECLARE_TCP_SESSION(KEYWORD)                                    \
 	template <class, class>                      KEYWORD session_impl_t;            \
@@ -98,28 +106,28 @@
 	template <class, class>                      KEYWORD wss_session_impl_t;        \
 	template <class, class>                      KEYWORD rpc_session_impl_t;        \
 	template <class, class>                      KEYWORD mqtt_session_impl_t;       \
-
+    template <class, class>                      KEYWORD disable_warning_pedantic
 
 #define ASIO2_CLASS_DECLARE_UDP_BASE(KEYWORD)                                       \
 	template <class, class>                      KEYWORD kcp_stream_cp;             \
 	template <class, class>                      KEYWORD udp_send_cp;               \
 	template <class, class>                      KEYWORD udp_send_op;               \
-
+    template <class, class>                      KEYWORD disable_warning_pedantic
 
 #define ASIO2_CLASS_DECLARE_UDP_CLIENT(KEYWORD)                                     \
 	template <class, class>                      KEYWORD client_impl_t;             \
 	template <class, class>                      KEYWORD udp_client_impl_t;         \
-
+    template <class, class>                      KEYWORD disable_warning_pedantic
 
 #define ASIO2_CLASS_DECLARE_UDP_SERVER(KEYWORD)                                     \
 	template <class, class>                      KEYWORD server_impl_t;             \
 	template <class, class>                      KEYWORD udp_server_impl_t;         \
-
+    template <class, class>                      KEYWORD disable_warning_pedantic
 
 #define ASIO2_CLASS_DECLARE_UDP_SESSION(KEYWORD)                                    \
 	template <class, class>                      KEYWORD session_impl_t;            \
 	template <class, class>                      KEYWORD udp_session_impl_t;        \
-
+    template <class, class>                      KEYWORD disable_warning_pedantic
 
 //-------------------------------------------------------------------------------------------------
 

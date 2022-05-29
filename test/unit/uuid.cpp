@@ -120,7 +120,7 @@ void uuid_test()
 		asio2::replace(str, "-", "");
 		ASIO2_CHECK(str.find('-') == std::string::npos);
 		ASIO2_CHECK(str.size() == 32);
-		std::transform(str.begin(), str.end(), str.begin(), [](unsigned char c) { return std::tolower(c); });
+		std::transform(str.begin(), str.end(), str.begin(), [](char c) { return (char)std::tolower(c); });
 		bool inserted = uuid_set.emplace(std::move(str)).second;
 		ASIO2_CHECK(inserted);
 	}
@@ -183,7 +183,7 @@ void uuid_test()
 		ASIO2_CHECK(has_lower == false);
 		ASIO2_CHECK(has_group == false);
 
-		std::transform(str.begin(), str.end(), str.begin(), [](unsigned char c) { return std::tolower(c); });
+		std::transform(str.begin(), str.end(), str.begin(), [](char c) { return (char)std::tolower(c); });
 		bool inserted = uuid_set.emplace(std::move(str)).second;
 		ASIO2_CHECK(inserted);
 	}

@@ -173,9 +173,9 @@ namespace boost::beast::http
 		>
 		std::basic_string<CharT, Traits, Allocator> url_encode(std::string_view url, std::size_t offset = 0)
 		{
-			using size_type   = typename std::string_view::size_type;
-			using value_type  = typename std::string_view::value_type;
-			using rvalue_type = typename std::basic_string<CharT, Traits, Allocator>::value_type;
+			using size_type   [[maybe_unused]] = typename std::string_view::size_type;
+			using value_type  [[maybe_unused]] = typename std::string_view::value_type;
+			using rvalue_type [[maybe_unused]] = typename std::basic_string<CharT, Traits, Allocator>::value_type;
 
 			std::basic_string<CharT, Traits, Allocator> r;
 			r.reserve(url.size() * 2);

@@ -73,8 +73,8 @@ namespace asio2::detail
 		{
 			detail::ignore_unused(ec, caller_ptr, caller, msg, response);
 
-			using message_type  = typename detail::remove_cvref_t<Message>;
-			using response_type = typename detail::remove_cvref_t<Response>;
+			using message_type  [[maybe_unused]] = typename detail::remove_cvref_t<Message>;
+			using response_type [[maybe_unused]] = typename detail::remove_cvref_t<Response>;
 
 			// if started already and recvd connect message again, disconnect
 			state_t expected = state_t::started;
@@ -877,8 +877,8 @@ namespace asio2::detail
 		{
 			detail::ignore_unused(ec, caller_ptr, caller, msg, response);
 
-			using message_type  = typename detail::remove_cvref_t<Message>;
-			using response_type = typename detail::remove_cvref_t<Response>;
+			using message_type  [[maybe_unused]] = typename detail::remove_cvref_t<Message>;
+			using response_type [[maybe_unused]] = typename detail::remove_cvref_t<Response>;
 
 			response.packet_id(msg.packet_id());
 
@@ -1148,8 +1148,8 @@ namespace asio2::detail
 		{
 			detail::ignore_unused(ec, caller_ptr, caller, msg, response);
 
-			using message_type  = typename detail::remove_cvref_t<Message>;
-			using response_type = typename detail::remove_cvref_t<Response>;
+			using message_type  [[maybe_unused]] = typename detail::remove_cvref_t<Message>;
+			using response_type [[maybe_unused]] = typename detail::remove_cvref_t<Response>;
 
 			response.packet_id(msg.packet_id());
 

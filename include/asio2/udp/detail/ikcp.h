@@ -12,8 +12,6 @@
 #ifndef __IKCP_H__
 #define __IKCP_H__
 
-#include <asio2/base/detail/push_options.hpp>
-
 #define KCP_VERSION 107 // 1.7
 
 #include <stddef.h>
@@ -1707,8 +1705,6 @@ IUINT32 ikcp_getconv(const void *ptr)
 //#endif
 
 }
-
-#include <asio2/base/detail/pop_options.hpp>
 
 #endif
 

@@ -44,6 +44,7 @@ int main()
 
 	}).bind_disconnect([](auto & session_ptr)
 	{
+		asio2::ignore_unused(session_ptr);
 		printf("client leave : %s\n", asio2::last_error_msg().c_str());
 
 	}).bind_handshake([](auto & session_ptr)

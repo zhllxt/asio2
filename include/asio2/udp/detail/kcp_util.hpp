@@ -17,6 +17,8 @@
 #pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
+#include <asio2/base/detail/push_options.hpp>
+
 #include <memory>
 #include <future>
 #include <utility>
@@ -310,5 +312,7 @@ namespace asio2::detail::kcp
 		inline void operator()(ikcpcb* p) const noexcept { kcp::ikcp_release(p); };
 	};
 }
+
+#include <asio2/base/detail/pop_options.hpp>
 
 #endif // !__ASIO2_KCP_UTIL_HPP__

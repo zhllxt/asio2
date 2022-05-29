@@ -655,74 +655,72 @@ namespace asio2::detail
 			}
 			else
 			{
-				std::ignore = true;
+				bool continued = true;
+				_for_each_tuple(aops, [&continued, &caller, &req, &rep](auto& aop)
+				{
+					asio2::detail::ignore_unused(caller, req, rep);
+
+					if (!continued)
+						return;
+
+					if constexpr (has_member_before<decltype(aop), bool,
+						std::shared_ptr<caller_t>&, http::web_request&, http::web_response&>::value)
+					{
+						continued = aop.before(caller, req, rep);
+					}
+					else if constexpr (has_member_before<decltype(aop), bool,
+						http::web_request&, http::web_response&>::value)
+					{
+						continued = aop.before(req, rep);
+					}
+					else
+					{
+						std::ignore = true;
+					}
+				}, std::make_index_sequence<std::tuple_size_v<Tup>>{});
+
+				return continued;
 			}
-			
-			bool continued = true;
-			_for_each_tuple(aops, [&continued, &caller, &req, &rep](auto& aop)
-			{
-				asio2::detail::ignore_unused(caller, req, rep);
-
-				if (!continued)
-					return;
-
-				if constexpr (has_member_before<decltype(aop), bool,
-					std::shared_ptr<caller_t>&, http::web_request&, http::web_response&>::value)
-				{
-					continued = aop.before(caller, req, rep);
-				}
-				else if constexpr (has_member_before<decltype(aop), bool,
-					http::web_request&, http::web_response&>::value)
-				{
-					continued = aop.before(req, rep);
-				}
-				else
-				{
-					std::ignore = true;
-				}
-			}, std::make_index_sequence<std::tuple_size_v<Tup>>{});
-
-			return continued;
 		}
 
 		template<class Tup>
 		inline bool _call_aop_after(Tup& aops, std::shared_ptr<caller_t>& caller,
 			http::web_request& req, http::web_response& rep)
 		{
+			asio2::detail::ignore_unused(aops, caller, req, rep);
+
 			if constexpr (!std::tuple_size_v<Tup>)
 			{
 				return true;
 			}
 			else
 			{
-				std::ignore = true;
+				bool continued = true;
+				_for_each_tuple(aops, [&continued, &caller, &req, &rep](auto& aop)
+				{
+					asio2::detail::ignore_unused(caller, req, rep);
+
+					if (!continued)
+						return;
+
+					if constexpr (has_member_after<decltype(aop), bool,
+						std::shared_ptr<caller_t>&, http::web_request&, http::web_response&>::value)
+					{
+						continued = aop.after(caller, req, rep);
+					}
+					else if constexpr (has_member_after<decltype(aop), bool,
+						http::web_request&, http::web_response&>::value)
+					{
+						continued = aop.after(req, rep);
+					}
+					else
+					{
+						std::ignore = true;
+					}
+				}, std::make_index_sequence<std::tuple_size_v<Tup>>{});
+
+				return continued;
 			}
-			
-			bool continued = true;
-			_for_each_tuple(aops, [&continued, &caller, &req, &rep](auto& aop)
-			{
-				asio2::detail::ignore_unused(caller, req, rep);
-
-				if (!continued)
-					return;
-
-				if constexpr (has_member_after<decltype(aop), bool,
-					std::shared_ptr<caller_t>&, http::web_request&, http::web_response&>::value)
-				{
-					continued = aop.after(caller, req, rep);
-				}
-				else if constexpr (has_member_after<decltype(aop), bool,
-					http::web_request&, http::web_response&>::value)
-				{
-					continued = aop.after(req, rep);
-				}
-				else
-				{
-					std::ignore = true;
-				}
-			}, std::make_index_sequence<std::tuple_size_v<Tup>>{});
-
-			return continued;
 		}
 
 		inline std::string _make_uri(std::string_view root, std::string_view path)

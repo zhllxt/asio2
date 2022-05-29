@@ -1008,7 +1008,7 @@ void rpc_test()
 			ASIO2_CHECK_VALUE(ex.client_connect_counter, ex.client_connect_counter == 3);
 		}
 
-		while (server_accept_counter < std::size_t(test_client_count * 3))
+		while (server_connect_counter < test_client_count * 3)
 		{
 			std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		}
@@ -1112,7 +1112,7 @@ void rpc_test()
 			ASIO2_CHECK_VALUE(ex.client_connect_counter, ex.client_connect_counter == 1);
 		}
 
-		while (server_accept_counter < std::size_t(test_client_count * 1))
+		while (server_connect_counter < test_client_count * 1)
 		{
 			std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		}
@@ -1605,7 +1605,7 @@ void rpc_test()
 			ASIO2_CHECK_VALUE(ex.client_connect_counter, ex.client_connect_counter == 1);
 		}
 
-		while (server_accept_counter < std::size_t(test_client_count * 1))
+		while (server_connect_counter < test_client_count * 1)
 		{
 			std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		}
@@ -1837,7 +1837,7 @@ void rpc_test()
 			ASIO2_CHECK(sum == 0);
 		}
 
-		while (server_accept_counter < std::size_t(test_client_count * 1))
+		while (server_connect_counter < test_client_count * 1)
 		{
 			std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		}
@@ -1954,7 +1954,7 @@ void rpc_test()
 		server.bind_disconnect([&](auto & session_ptr)
 		{
 			server_disconnect_counter++;
-
+			asio2::ignore_unused(session_ptr);
 			ASIO2_CHECK(asio2::get_last_error());
 			ASIO2_CHECK(server.io().strand().running_in_this_thread());
 			ASIO2_CHECK(server.iopool().get(0).strand().running_in_this_thread());
@@ -2431,7 +2431,7 @@ void rpc_test()
 			ASIO2_CHECK_VALUE(ex.client_connect_counter, ex.client_connect_counter == 1);
 		}
 
-		while (server_accept_counter < std::size_t(test_client_count * 1))
+		while (server_connect_counter < test_client_count * 1)
 		{
 			std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		}
@@ -2663,7 +2663,7 @@ void rpc_test()
 			ASIO2_CHECK(sum == 0);
 		}
 
-		while (server_accept_counter < std::size_t(test_client_count * 1))
+		while (server_connect_counter < test_client_count * 1)
 		{
 			std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		}
