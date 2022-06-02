@@ -25,6 +25,12 @@
 
 #include <asio2/bho/predef/other/endian.h>
 
+#ifndef ASIO2_DISABLE_AUTO_BOOST_UUID_COMPAT_PRE_1_71_MD5
+#ifndef BOOST_UUID_COMPAT_PRE_1_71_MD5
+#define BOOST_UUID_COMPAT_PRE_1_71_MD5
+#endif // !BOOST_UUID_COMPAT_PRE_1_71_MD5
+#endif // !ASIO2_DISABLE_AUTO_BOOST_UUID_COMPAT_PRE_1_71_MD5
+
 namespace asio2
 {
 	class md5

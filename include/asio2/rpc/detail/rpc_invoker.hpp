@@ -400,7 +400,12 @@ namespace asio2::detail
 
 			if constexpr (detail::is_template_instance_of_v<rpc::future, R>)
 			{
-				error_code ec = dr.buffer().in_avail() != 0 ? asio::error::invalid_argument : error_code{};
+				error_code ec = rpc::make_error_code(rpc::error::success);
+
+				if (dr.buffer().in_avail() != 0)
+				{
+					ec = rpc::make_error_code(rpc::error::invalid_argument);
+				}
 
 				auto* defer = r.defer_.get();
 
@@ -424,7 +429,9 @@ namespace asio2::detail
 						head.type(rpc_type_rep);
 
 						if (v.has_value() == false && (!ec))
-							ec = asio::error::no_data;
+						{
+							ec = rpc::make_error_code(rpc::error::no_data);
+						}
 
 						try
 						{
@@ -447,10 +454,19 @@ namespace asio2::detail
 
 							return; // not exception, return
 						}
-						catch (cereal::exception const&  ) { if (!ec) ec = asio::error::invalid_argument; }
+						catch (cereal::exception const&)
+						{
+							if (!ec) ec = rpc::make_error_code(rpc::error::invalid_argument);
+						}
 						// on c++ 20 and vs2019, the next line code will compile failed, so impossible.
-						//catch (system_error      const& e) { if (!ec) ec = e.code()                     ; }
-						catch (std::exception    const&  ) { if (!ec) ec = asio::error::no_data         ; }
+						//catch (system_error const&)
+						//{
+						//	if (!ec) ec = rpc::make_error_code(rpc::error::unspecified_error);
+						//}
+						catch (std::exception const&)
+						{
+							if (!ec) ec = rpc::make_error_code(rpc::error::unspecified_error);
+						}
 
 						// the error_code must not be 0.
 						ASIO2_ASSERT(ec);
@@ -468,14 +484,14 @@ namespace asio2::detail
 			}
 			else if constexpr (!std::is_same_v<R, void>)
 			{
-				sr << error_code{};
+				sr << rpc::make_error_code(rpc::error::success);
 				sr << r;
 
 				return false;
 			}
 			else
 			{
-				sr << error_code{};
+				sr << rpc::make_error_code(rpc::error::success);
 				std::ignore = r;
 
 				return false;
@@ -515,7 +531,5 @@ namespace asio2::detail
 			std::shared_ptr<caller_t>&, caller_t*, rpc_serializer&, rpc_deserializer&)>> invokers_;
 	};
 }
-
-namespace rpc = ::asio2::rpc;
 
 #endif // !__ASIO2_RPC_INVOKER_HPP__

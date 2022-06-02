@@ -456,16 +456,6 @@ namespace asio2::detail
 		 */
 		inline socket_type & stream() noexcept { return this->socket_; }
 
-		/**
-		 * @function : get the socket object refrence
-		 */
-		inline socket_type & get_socket() noexcept { return this->socket_; }
-
-		/**
-		 * @function : get the stream object refrence
-		 */
-		inline socket_type & get_stream() noexcept { return this->socket_; }
-
 	public:
 		/**
 		 * @function : set icmp protocol identifier
@@ -769,8 +759,6 @@ namespace asio2::detail
 			}
 			else
 			{
-				ASIO2_ASSERT(false);
-
 				set_last_error(asio::error::in_progress);
 			}
 

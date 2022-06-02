@@ -2122,6 +2122,4 @@ namespace asio2::mqtt
 	}
 }
 
-namespace mqtt = ::asio2::mqtt;
-
 #endif // !__ASIO2_MQTT_CORE_HPP__

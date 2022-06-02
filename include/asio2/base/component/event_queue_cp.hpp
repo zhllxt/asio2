@@ -158,6 +158,14 @@ namespace asio2::detail
 		 */
 		~event_queue_cp() = default;
 
+		///**
+		// * @function Get pending event count.
+		// */
+		//inline std::size_t get_pending_event_count() const noexcept
+		//{
+		//	return this->events_.size();
+		//}
+
 	protected:
 		/**
 		 * push a task to the tail of the event queue

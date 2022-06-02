@@ -147,7 +147,7 @@ namespace asio2::detail
 			while (!this->reqs_.empty())
 			{
 				auto& fn = this->reqs_.begin()->second;
-				fn(asio::error::operation_aborted, std::string_view{});
+				fn(rpc::make_error_code(rpc::error::operation_aborted), std::string_view{});
 			}
 
 			super::_handle_disconnect(ec, std::move(this_ptr));

@@ -64,22 +64,25 @@ namespace asio2::detail
 			}
 			catch (cereal::exception const&)
 			{
-				set_last_error(asio::error::message_size);
-				derive._do_disconnect(asio::error::message_size, this_ptr);
+				error_code ec = rpc::make_error_code(rpc::error::illegal_data);
+				set_last_error(ec);
+				derive._do_disconnect(ec, this_ptr);
 				return;
 			}
 			// bug fixed : illegal data being parsed into string object fails to allocate
 			// memory due to excessively long data
 			catch (std::bad_alloc const&)
 			{
-				set_last_error(asio::error::message_size);
-				derive._do_disconnect(asio::error::message_size, this_ptr);
+				error_code ec = rpc::make_error_code(rpc::error::illegal_data);
+				set_last_error(ec);
+				derive._do_disconnect(ec, this_ptr);
 				return;
 			}
 			catch (std::exception const&)
 			{
-				set_last_error(asio::error::message_size);
-				derive._do_disconnect(asio::error::message_size, this_ptr);
+				error_code ec = rpc::make_error_code(rpc::error::unspecified_error);
+				set_last_error(ec);
+				derive._do_disconnect(ec, this_ptr);
 				return;
 			}
 
@@ -106,20 +109,34 @@ namespace asio2::detail
 						{
 							sr.reset();
 							sr << head;
-							asio::detail::throw_error(asio::error::invalid_argument);
+							error_code ec = rpc::make_error_code(rpc::error::invalid_argument);
+							sr << ec;
 						}
 					}
 					else
 					{
 						if (head.id() != static_cast<rpc_header::id_type>(0))
 						{
-							sr << error_code{ asio::error::not_found };
+							error_code ec = rpc::make_error_code(rpc::error::not_found);
+							sr << ec;
 						}
 					}
 				}
-				catch (cereal::exception const&  ) { sr << error_code{ asio::error::invalid_argument }; }
-				catch (system_error      const& e) { sr << e.code();                                    }
-				catch (std::exception    const&  ) { sr << error_code{ asio::error::no_data          }; }
+				catch (cereal::exception const&)
+				{
+					error_code ec = rpc::make_error_code(rpc::error::invalid_argument);
+					sr << ec;
+				}
+				catch (system_error      const&)
+				{
+					error_code ec = rpc::make_error_code(rpc::error::unspecified_error);
+					sr << ec;
+				}
+				catch (std::exception    const&)
+				{
+					error_code ec = rpc::make_error_code(rpc::error::unspecified_error);
+					sr << ec;
+				}
 
 				if (head.id() != static_cast<rpc_header::id_type>(0))
 				{
@@ -132,13 +149,14 @@ namespace asio2::detail
 				if (iter != derive.reqs_.end())
 				{
 					std::function<void(error_code, std::string_view)>& cb = iter->second;
-					cb(error_code{}, data);
+					cb(rpc::make_error_code(rpc::error::success), data);
 				}
 			}
 			else
 			{
-				set_last_error(asio::error::no_data);
-				derive._do_disconnect(asio::error::no_data, this_ptr);
+				error_code ec = rpc::make_error_code(rpc::error::no_data);
+				set_last_error(ec);
+				derive._do_disconnect(ec, this_ptr);
 			}
 		}
 

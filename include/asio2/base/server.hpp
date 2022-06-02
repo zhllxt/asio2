@@ -214,15 +214,9 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @function : get the acceptor refrence,derived classes must override this function
-		 * same as get_acceptor
+		 * @function : get the acceptor refrence, derived classes must override this function
 		 */
-		inline auto & acceptor() noexcept { return this->get_acceptor(); }
-
-		/**
-		 * @function : get the acceptor refrence,derived classes must override this function
-		 */
-		inline auto & get_acceptor() noexcept { return this->derived().acceptor(); }
+		inline auto & acceptor() noexcept { return this->derived().acceptor(); }
 
 		/**
 		 * @function : get the listen address, same as get_listen_address

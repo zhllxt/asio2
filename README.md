@@ -1,5 +1,5 @@
 # asio2
-### 中文 | [English](https://github.com/zhllxt/asio2/blob/master/README.en.md) 
+### 中文 | [English](README.en.md) 
 Header only c++ network library, based on asio,support tcp,udp,http,websocket,rpc,ssl,icmp,serial_port.
 
 <a href="https://996.icu"><img src="https://img.shields.io/badge/link-996.icu-red.svg" alt="996.icu" /></a>
@@ -10,7 +10,7 @@ Header only c++ network library, based on asio,support tcp,udp,http,websocket,rp
 * 支持tcp, udp, http, websocket, rpc, ssl, icmp, serial_port;
 * 支持可靠UDP(基于KCP),支持SSL,支持从内存字符串加载SSL证书;
 * TCP支持各种数据拆包功能(单个字符或字符串或用户自定义协议等);实现了数据报模式的TCP(类似WEBSOCKET);
-* 跨平台,支持windows,linux,arm,android,32位,64位等;在msvc gcc8 clang10 ndk-r22b mingw下编译通过;
+* 跨平台,支持windows,linux,macos,arm,android,32位,64位等;在msvc gcc clang ndk mingw下编译通过;
 * 基于C++17,基于asio (standalone asio或boost::asio均可);
 * example目录包含大量示例代码,各种使用方法请参考示例代码;
 

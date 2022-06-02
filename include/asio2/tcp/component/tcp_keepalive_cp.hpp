@@ -45,24 +45,8 @@ namespace asio2::detail
 		 * @param    : idle     - How many seconds after the connection is idle, start sending keepalives
 		 * @param    : interval - How many seconds later to send again when no reply is received
 		 * @param    : count    - How many times to resend when no reply is received
-		 * same as set_keep_alive_options
-		 */
-		bool keep_alive_options(
-			bool         onoff = true,
-			unsigned int idle = 60,
-			unsigned int interval = 3,
-			unsigned int count = 3
-		) noexcept
-		{
-			return this->set_keep_alive_options(onoff, idle, interval, count);
-		}
-
-		/**
-		 * @function : set tcp socket keep alive options
-		 * @param    : onoff    - Turn keepalive on or off
-		 * @param    : idle     - How many seconds after the connection is idle, start sending keepalives
-		 * @param    : interval - How many seconds later to send again when no reply is received
-		 * @param    : count    - How many times to resend when no reply is received
+		 * on macOS Catalina 10.15.5 (19F101), the default value is:
+		 * onoff - false, idle - 7200, interval - 75, count - 8
 		 */
 		bool set_keep_alive_options(
 			bool         onoff = true,
@@ -90,10 +74,21 @@ namespace asio2::detail
 			#if BHO_OS_LINUX
 				// For *n*x systems
 				int ret_keepidle  = setsockopt(native_fd, SOL_TCP, TCP_KEEPIDLE , (void*)&idle    , sizeof(unsigned int));
-				int ret_keepintvl = setsockopt(native_fd, SOL_TCP, TCP_KEEPINTVL, (void*)&interval, sizeof(unsigned int));
-				int ret_keepinit  = setsockopt(native_fd, SOL_TCP, TCP_KEEPCNT  , (void*)&count   , sizeof(unsigned int));
+				if (ret_keepidle)
+				{
+					set_last_error(errno, asio::error::get_system_category());
+					return false;
+				}
 
-				if (ret_keepidle || ret_keepintvl || ret_keepinit)
+				int ret_keepintvl = setsockopt(native_fd, SOL_TCP, TCP_KEEPINTVL, (void*)&interval, sizeof(unsigned int));
+				if (ret_keepintvl)
+				{
+					set_last_error(errno, asio::error::get_system_category());
+					return false;
+				}
+
+				int ret_keepcount = setsockopt(native_fd, SOL_TCP, TCP_KEEPCNT  , (void*)&count   , sizeof(unsigned int));
+				if (ret_keepcount)
 				{
 					set_last_error(errno, asio::error::get_system_category());
 					return false;
@@ -101,15 +96,26 @@ namespace asio2::detail
 			#elif BHO_OS_UNIX
 				// be pending
 			#elif BHO_OS_MACOS
-				//// Set the timeout before the first keep alive message
-				//int ret_tcpkeepalive = setsockopt(native_fd, IPPROTO_TCP, TCP_KEEPALIVE        , (void*)&idle    , sizeof(unsigned int));
-				//int ret_tcpkeepintvl = setsockopt(native_fd, IPPROTO_TCP, TCP_CONNECTIONTIMEOUT, (void*)&interval, sizeof(unsigned int));
+				int ret_keepalive = setsockopt(native_fd, IPPROTO_TCP, TCP_KEEPALIVE, (void*)&idle    , sizeof(unsigned int));
+				if (ret_keepalive)
+				{
+					set_last_error(errno, asio::error::get_system_category());
+					return false;
+				}
 
-				//if (ret_tcpkeepalive || ret_tcpkeepintvl)
-				//{
-				//	set_last_error(errno, asio::error::get_system_category());
-				//	return false;
-				//}
+				int ret_keepintvl = setsockopt(native_fd, IPPROTO_TCP, TCP_KEEPINTVL, (void*)&interval, sizeof(unsigned int));
+				if (ret_keepintvl)
+				{
+					set_last_error(errno, asio::error::get_system_category());
+					return false;
+				}
+
+				int ret_keepcount = setsockopt(native_fd, IPPROTO_TCP, TCP_KEEPCNT  , (void*)&count   , sizeof(unsigned int));
+				if (ret_keepcount)
+				{
+					set_last_error(errno, asio::error::get_system_category());
+					return false;
+				}
 			#elif BHO_OS_IOS
 				// be pending
 			#elif BHO_OS_WINDOWS

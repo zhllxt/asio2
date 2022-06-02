@@ -137,7 +137,6 @@ void check_memory_leaks()
 void pause_cmd_window()
 {
 #if defined(WIN32) || defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS_)
-  // Detected memory leaks on windows system
   while (std::getchar() != '\n');
 #endif
 }

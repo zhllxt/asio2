@@ -23,6 +23,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
+#include <cassert>
 
 #include <memory>
 #include <string>
@@ -78,7 +79,8 @@
 #	if __has_include(<dirent.h>)
 #		include <dirent.h>
 #	endif
-#elif defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS_) || defined(WIN32)
+#elif defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(_WIN64) || \
+	defined(_WINDOWS_) || defined(__WINDOWS__) || defined(__TOS_WIN__)
 #	ifndef WIN32_LEAN_AND_MEAN
 #		define WIN32_LEAN_AND_MEAN
 #	endif
@@ -93,6 +95,10 @@
 #	endif
 #	if __has_include(<direct.h>)
 #		include <direct.h>
+#	endif
+#elif defined(__APPLE__) && defined(__MACH__)
+#	if __has_include(<mach-o/dyld.h>)
+#		include <mach-o/dyld.h>
 #	endif
 #endif
 
@@ -420,12 +426,22 @@ namespace asio2
 					defined(linux) || defined(__linux) || defined(__linux__) || defined(__gnu_linux__)
 					filepath_.resize(PATH_MAX);
 					readlink("/proc/self/exe", (char *)filepath_.data(), PATH_MAX);
-				#elif defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS_) || defined(WIN32)
+				#elif defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(_WIN64) || \
+					defined(_WINDOWS_) || defined(__WINDOWS__) || defined(__TOS_WIN__)
 					filepath_.resize(MAX_PATH);
 					filepath_.resize(::GetModuleFileNameA(NULL, (LPSTR)filepath_.data(), MAX_PATH));
+				#elif defined(__APPLE__) && defined(__MACH__)
+					filepath_.resize(PATH_MAX);
+					std::uint32_t bufsize = std::uint32_t(PATH_MAX);
+					_NSGetExecutablePath(filepath_.data(), &bufsize);
 				#endif
 					if (std::string::size_type pos = filepath_.find('\0'); pos != std::string::npos)
 						filepath_.resize(pos);
+
+				#if defined(_DEBUG) || defined(DEBUG)
+					assert(!filepath_.empty());
+				#endif
+
 
 					std::filesystem::path path{ filepath_ };
 
@@ -572,12 +588,15 @@ namespace asio2
 		template<class ...Args>
 		basic_ini(Args&&... args) : detail::basic_ini_impl<Stream>(std::forward<Args>(args)...)
 		{
-		#if defined(unix) || defined(__unix) || defined(_XOPEN_SOURCE) || defined(_POSIX_SOURCE) || \
-			defined(linux) || defined(__linux) || defined(__linux__) || defined(__gnu_linux__)
 			this->endl_ = { '\n' };
-		#elif defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS_) || defined(WIN32)
+		#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(_WIN64) || \
+			defined(_WINDOWS_) || defined(__WINDOWS__) || defined(__TOS_WIN__)
 			this->endl_ = { '\r','\n' };
-		#	endif
+		#elif defined(__APPLE__) && defined(__MACH__)
+			// on the macos 9, the newline character is '\r'.
+			// the last macos 9 version is 9.2.2 (20011205)
+			//this->endl_ = { '\r' };
+		#endif
 		}
 
 	protected:

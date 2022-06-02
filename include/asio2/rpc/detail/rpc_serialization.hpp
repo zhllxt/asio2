@@ -27,6 +27,7 @@
 #include <asio2/base/error.hpp>
 
 #include <asio2/rpc/detail/rpc_portable_binary.hpp>
+#include <asio2/rpc/rpc_error.hpp>
 
 namespace asio2::detail
 {

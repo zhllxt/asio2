@@ -44,33 +44,17 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @function : get the socket object refrence, same as get_socket
-		 */
-		inline socket_type & socket() noexcept
-		{
-			return this->get_socket();
-		}
-
-		/**
 		 * @function : get the socket object refrence
 		 */
-		inline socket_type & get_socket() noexcept
+		inline socket_type & socket() noexcept
 		{
 			return this->socket_;
 		}
 
 		/**
-		 * @function : get the stream object refrence, same as get_stream
-		 */
-		inline socket_type & stream() noexcept
-		{
-			return this->get_stream();
-		}
-
-		/**
 		 * @function : get the stream object refrence
 		 */
-		inline socket_type & get_stream() noexcept
+		inline socket_type & stream() noexcept
 		{
 			return this->socket_;
 		}
@@ -173,14 +157,6 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @function : Implements the SOL_SOCKET/SO_SNDBUF socket option. same as set_sndbuf_size
-		 */
-		inline derived_t & sndbuf_size(int val) noexcept
-		{
-			return this->set_sndbuf_size(val);
-		}
-
-		/**
 		 * @function : Implements the SOL_SOCKET/SO_SNDBUF socket option.
 		 */
 		inline derived_t & set_sndbuf_size(int val) noexcept
@@ -197,11 +173,21 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Implements the SOL_SOCKET/SO_RCVBUF socket option. same as set_rcvbuf_size
+		 * @function : Implements the SOL_SOCKET/SO_SNDBUF socket option.
 		 */
-		inline derived_t & rcvbuf_size(int val) noexcept
+		inline int get_sndbuf_size() const noexcept
 		{
-			return this->set_rcvbuf_size(val);
+			try
+			{
+				asio::socket_base::send_buffer_size option;
+				this->socket_.lowest_layer().get_option(option);
+				return option.value();
+			}
+			catch (system_error & e)
+			{
+				set_last_error(e);
+			}
+			return (-1);
 		}
 
 		/**
@@ -218,6 +204,24 @@ namespace asio2::detail
 				set_last_error(e);
 			}
 			return (static_cast<derived_t &>(*this));
+		}
+
+		/**
+		 * @function : Implements the SOL_SOCKET/SO_RCVBUF socket option.
+		 */
+		inline int get_rcvbuf_size() const noexcept
+		{
+			try
+			{
+				asio::socket_base::receive_buffer_size option;
+				this->socket_.lowest_layer().get_option(option);
+				return option.value();
+			}
+			catch (system_error & e)
+			{
+				set_last_error(e);
+			}
+			return (-1);
 		}
 
 		/**
@@ -245,6 +249,24 @@ namespace asio2::detail
 		}
 
 		/**
+		 * @function : Implements the SOL_SOCKET/SO_KEEPALIVE socket option.
+		 */
+		inline bool is_keep_alive() const noexcept
+		{
+			try
+			{
+				asio::socket_base::keep_alive option;
+				this->socket_.lowest_layer().get_option(option);
+				return option.value();
+			}
+			catch (system_error & e)
+			{
+				set_last_error(e);
+			}
+			return false;
+		}
+
+		/**
 		 * @function : Implements the SOL_SOCKET/SO_REUSEADDR socket option. same as set_reuse_address
 		 */
 		inline derived_t & reuse_address(bool val) noexcept
@@ -269,92 +291,6 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Implements the SOL_SOCKET/SO_SNDBUF socket option. same as get_sndbuf_size
-		 */
-		inline int sndbuf_size() const noexcept
-		{
-			return this->get_sndbuf_size();
-		}
-
-		/**
-		 * @function : Implements the SOL_SOCKET/SO_SNDBUF socket option.
-		 */
-		inline int get_sndbuf_size() const noexcept
-		{
-			try
-			{
-				asio::socket_base::send_buffer_size option;
-				this->socket_.lowest_layer().get_option(option);
-				return option.value();
-			}
-			catch (system_error & e)
-			{
-				set_last_error(e);
-			}
-			return (-1);
-		}
-
-		/**
-		 * @function : Implements the SOL_SOCKET/SO_RCVBUF socket option. same as get_rcvbuf_size
-		 */
-		inline int rcvbuf_size() const noexcept
-		{
-			return this->get_rcvbuf_size();
-		}
-
-		/**
-		 * @function : Implements the SOL_SOCKET/SO_RCVBUF socket option.
-		 */
-		inline int get_rcvbuf_size() const noexcept
-		{
-			try
-			{
-				asio::socket_base::receive_buffer_size option;
-				this->socket_.lowest_layer().get_option(option);
-				return option.value();
-			}
-			catch (system_error & e)
-			{
-				set_last_error(e);
-			}
-			return (-1);
-		}
-
-		/**
-		 * @function : Implements the SOL_SOCKET/SO_KEEPALIVE socket option. same as is_keep_alive
-		 */
-		inline bool keep_alive() const noexcept
-		{
-			return this->is_keep_alive();
-		}
-
-		/**
-		 * @function : Implements the SOL_SOCKET/SO_KEEPALIVE socket option.
-		 */
-		inline bool is_keep_alive() const noexcept
-		{
-			try
-			{
-				asio::socket_base::keep_alive option;
-				this->socket_.lowest_layer().get_option(option);
-				return option.value();
-			}
-			catch (system_error & e)
-			{
-				set_last_error(e);
-			}
-			return false;
-		}
-
-		/**
-		 * @function : Implements the SOL_SOCKET/SO_REUSEADDR socket option. same as is_reuse_address
-		 */
-		inline bool reuse_address() const noexcept
-		{
-			return this->is_reuse_address();
-		}
-
-		/**
 		 * @function : Implements the SOL_SOCKET/SO_REUSEADDR socket option.
 		 */
 		inline bool is_reuse_address() const noexcept
@@ -364,40 +300,6 @@ namespace asio2::detail
 				asio::socket_base::reuse_address option;
 				this->socket_.lowest_layer().get_option(option);
 				return option.value();
-			}
-			catch (system_error & e)
-			{
-				set_last_error(e);
-			}
-			return false;
-		}
-
-		/**
-		 * @function : Implements the TCP_NODELAY socket option. same as is_no_delay
-		 */
-		inline bool no_delay() const noexcept
-		{
-			return this->is_no_delay();
-		}
-
-		/**
-		 * @function : Implements the TCP_NODELAY socket option.
-		 */
-		inline bool is_no_delay() const noexcept
-		{
-			try
-			{
-				if constexpr (std::is_same_v<typename socket_type::protocol_type, asio::ip::tcp>)
-				{
-					asio::ip::tcp::no_delay option;
-					this->socket_.lowest_layer().get_option(option);
-					return option.value();
-				}
-				else
-				{
-					std::ignore = true;
-					//static_assert(false, "Only tcp socket has the no_delay option");
-				}
 			}
 			catch (system_error & e)
 			{
@@ -438,6 +340,32 @@ namespace asio2::detail
 				set_last_error(e);
 			}
 			return (static_cast<derived_t &>(*this));
+		}
+
+		/**
+		 * @function : Implements the TCP_NODELAY socket option.
+		 */
+		inline bool is_no_delay() const noexcept
+		{
+			try
+			{
+				if constexpr (std::is_same_v<typename socket_type::protocol_type, asio::ip::tcp>)
+				{
+					asio::ip::tcp::no_delay option;
+					this->socket_.lowest_layer().get_option(option);
+					return option.value();
+				}
+				else
+				{
+					std::ignore = true;
+					//static_assert(false, "Only tcp socket has the no_delay option");
+				}
+			}
+			catch (system_error & e)
+			{
+				set_last_error(e);
+			}
+			return false;
 		}
 
 	protected:

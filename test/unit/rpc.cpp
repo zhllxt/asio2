@@ -334,7 +334,7 @@ void rpc_test()
 			clients[i]->async_call("echo", msg).response([](std::string s)
 			{
 				ASIO2_CHECK(s.empty());
-				ASIO2_CHECK(asio2::get_last_error() == asio::error::operation_aborted);
+				ASIO2_CHECK(asio2::get_last_error() == rpc::error::operation_aborted);
 			});
 		}
 
@@ -425,7 +425,7 @@ void rpc_test()
 			clients[i]->async_call("echo", msg).response([](std::string s)
 			{
 				ASIO2_CHECK(s.empty());
-				ASIO2_CHECK(asio2::get_last_error() == asio::error::operation_aborted);
+				ASIO2_CHECK(asio2::get_last_error() == rpc::error::operation_aborted);
 			});
 		}
 
@@ -936,7 +936,7 @@ void rpc_test()
 					else
 					{
 						ASIO2_CHECK(s.empty());
-						ASIO2_CHECK(asio2::get_last_error() == asio::error::operation_aborted);
+						ASIO2_CHECK(asio2::get_last_error() == rpc::error::operation_aborted);
 					}
 				});
 
@@ -1343,7 +1343,7 @@ void rpc_test()
 
 				//------------------------------------------------------------------
 				client.call<double>("mul", 16.5, 26.5);
-				ASIO2_CHECK(asio2::get_last_error() == asio::error::in_progress);
+				ASIO2_CHECK(asio2::get_last_error() == rpc::error::in_progress);
 
 				client.async_call([&](int v)
 				{
@@ -1523,7 +1523,7 @@ void rpc_test()
 			{
 				ASIO2_CHECK(client.io().strand().running_in_this_thread());
 				ASIO2_CHECK(client.iopool().get(0).strand().running_in_this_thread());
-				ASIO2_CHECK(asio2::get_last_error() == asio::error::invalid_argument);
+				ASIO2_CHECK(asio2::get_last_error() == rpc::error::invalid_argument);
 				ext_data& ex = client.get_user_data<ext_data&>();
 				ex.async_call_counter++;
 			});
@@ -1533,7 +1533,7 @@ void rpc_test()
 			{
 				ASIO2_CHECK(client.io().strand().running_in_this_thread());
 				ASIO2_CHECK(client.iopool().get(0).strand().running_in_this_thread());
-				ASIO2_CHECK(asio2::get_last_error() == asio::error::invalid_argument);
+				ASIO2_CHECK(asio2::get_last_error() == rpc::error::invalid_argument);
 				ext_data& ex = client.get_user_data<ext_data&>();
 				ex.async_call_counter++;
 			});
@@ -1543,7 +1543,7 @@ void rpc_test()
 			{
 				ASIO2_CHECK(client.io().strand().running_in_this_thread());
 				ASIO2_CHECK(client.iopool().get(0).strand().running_in_this_thread());
-				ASIO2_CHECK(asio2::get_last_error() == asio::error::invalid_argument);
+				ASIO2_CHECK(asio2::get_last_error() == rpc::error::invalid_argument);
 				ext_data& ex = client.get_user_data<ext_data&>();
 				ex.async_call_counter++;
 			});
@@ -1559,15 +1559,15 @@ void rpc_test()
 			ASIO2_CHECK(sum == 11 + 32);
 
 			sum = client.timeout(std::chrono::seconds(13)).call<int>("add", 11);
-			ASIO2_CHECK(asio2::get_last_error() == asio::error::invalid_argument);
+			ASIO2_CHECK(asio2::get_last_error() == rpc::error::invalid_argument);
 			ASIO2_CHECK(sum == 0);
 
 			sum = client.timeout(std::chrono::seconds(13)).call<int>("add", 11, 12, 13);
-			ASIO2_CHECK(asio2::get_last_error() == asio::error::invalid_argument);
+			ASIO2_CHECK(asio2::get_last_error() == rpc::error::invalid_argument);
 			ASIO2_CHECK(sum == 0);
 
 			sum = client.timeout(std::chrono::seconds(13)).call<int>("add", "11", 12, 13);
-			ASIO2_CHECK(asio2::get_last_error() == asio::error::invalid_argument);
+			ASIO2_CHECK(asio2::get_last_error() == rpc::error::invalid_argument);
 			ASIO2_CHECK(sum == 0);
 
 			// Chain calls : 
@@ -1579,13 +1579,13 @@ void rpc_test()
 			{
 				ASIO2_CHECK(client.io().strand().running_in_this_thread());
 				ASIO2_CHECK(client.iopool().get(0).strand().running_in_this_thread());
-				ASIO2_CHECK(asio2::get_last_error() == asio::error::not_found);
+				ASIO2_CHECK(asio2::get_last_error() == rpc::error::not_found);
 				ext_data& ex = client.get_user_data<ext_data&>();
 				ex.async_call_counter++;
 			}, "no_exists_fn", 10);
 
 			sum = client.timeout(std::chrono::seconds(13)).call<int>("no_exists_fn", 12, 13);
-			ASIO2_CHECK(asio2::get_last_error() == asio::error::not_found);
+			ASIO2_CHECK(asio2::get_last_error() == rpc::error::not_found);
 			ASIO2_CHECK(sum == 0);
 		}
 
@@ -1771,7 +1771,7 @@ void rpc_test()
 			{
 				ASIO2_CHECK(client.io().strand().running_in_this_thread());
 				ASIO2_CHECK(client.iopool().get(0).strand().running_in_this_thread());
-				ASIO2_CHECK(asio2::get_last_error() == asio::error::invalid_argument);
+				ASIO2_CHECK(asio2::get_last_error() == rpc::error::invalid_argument);
 				ext_data& ex = client.get_user_data<ext_data&>();
 				ex.async_call_counter++;
 			});
@@ -1781,7 +1781,7 @@ void rpc_test()
 			{
 				ASIO2_CHECK(client.io().strand().running_in_this_thread());
 				ASIO2_CHECK(client.iopool().get(0).strand().running_in_this_thread());
-				ASIO2_CHECK(asio2::get_last_error() == asio::error::invalid_argument);
+				ASIO2_CHECK(asio2::get_last_error() == rpc::error::invalid_argument);
 				ext_data& ex = client.get_user_data<ext_data&>();
 				ex.async_call_counter++;
 			});
@@ -1791,7 +1791,7 @@ void rpc_test()
 			{
 				ASIO2_CHECK(client.io().strand().running_in_this_thread());
 				ASIO2_CHECK(client.iopool().get(0).strand().running_in_this_thread());
-				ASIO2_CHECK(asio2::get_last_error() == asio::error::invalid_argument);
+				ASIO2_CHECK(asio2::get_last_error() == rpc::error::invalid_argument);
 				ext_data& ex = client.get_user_data<ext_data&>();
 				ex.async_call_counter++;
 			});
@@ -1807,15 +1807,15 @@ void rpc_test()
 			ASIO2_CHECK(sum == 11 + 32);
 
 			sum = client.timeout(std::chrono::seconds(13)).call<int>("add", 11);
-			ASIO2_CHECK(asio2::get_last_error() == asio::error::invalid_argument);
+			ASIO2_CHECK(asio2::get_last_error() == rpc::error::invalid_argument);
 			ASIO2_CHECK(sum == 0);
 
 			sum = client.timeout(std::chrono::seconds(13)).call<int>("add", 11, 12, 13);
-			ASIO2_CHECK(asio2::get_last_error() == asio::error::invalid_argument);
+			ASIO2_CHECK(asio2::get_last_error() == rpc::error::invalid_argument);
 			ASIO2_CHECK(sum == 0);
 
 			sum = client.timeout(std::chrono::seconds(13)).call<int>("add", "11", 12, 13);
-			ASIO2_CHECK(asio2::get_last_error() == asio::error::invalid_argument);
+			ASIO2_CHECK(asio2::get_last_error() == rpc::error::invalid_argument);
 			ASIO2_CHECK(sum == 0);
 
 			// Chain calls : 
@@ -1827,13 +1827,13 @@ void rpc_test()
 			{
 				ASIO2_CHECK(client.io().strand().running_in_this_thread());
 				ASIO2_CHECK(client.iopool().get(0).strand().running_in_this_thread());
-				ASIO2_CHECK(asio2::get_last_error() == asio::error::not_found);
+				ASIO2_CHECK(asio2::get_last_error() == rpc::error::not_found);
 				ext_data& ex = client.get_user_data<ext_data&>();
 				ex.async_call_counter++;
 			}, "no_exists_fn", 10);
 
 			sum = client.timeout(std::chrono::seconds(13)).call<int>("no_exists_fn", 12, 13);
-			ASIO2_CHECK(asio2::get_last_error() == asio::error::not_found);
+			ASIO2_CHECK(asio2::get_last_error() == rpc::error::not_found);
 			ASIO2_CHECK(sum == 0);
 		}
 
@@ -2133,7 +2133,7 @@ void rpc_test()
 
 				//------------------------------------------------------------------
 				client.call<double>("mul", 16.5, 26.5);
-				ASIO2_CHECK(asio2::get_last_error() == asio::error::in_progress);
+				ASIO2_CHECK(asio2::get_last_error() == rpc::error::in_progress);
 
 				client.async_call([&](int v)
 				{
@@ -2349,7 +2349,7 @@ void rpc_test()
 			{
 				ASIO2_CHECK(client.io().strand().running_in_this_thread());
 				ASIO2_CHECK(client.iopool().get(0).strand().running_in_this_thread());
-				ASIO2_CHECK(asio2::get_last_error() == asio::error::invalid_argument);
+				ASIO2_CHECK(asio2::get_last_error() == rpc::error::invalid_argument);
 				ext_data& ex = client.get_user_data<ext_data&>();
 				ex.async_call_counter++;
 			});
@@ -2359,7 +2359,7 @@ void rpc_test()
 			{
 				ASIO2_CHECK(client.io().strand().running_in_this_thread());
 				ASIO2_CHECK(client.iopool().get(0).strand().running_in_this_thread());
-				ASIO2_CHECK(asio2::get_last_error() == asio::error::invalid_argument);
+				ASIO2_CHECK(asio2::get_last_error() == rpc::error::invalid_argument);
 				ext_data& ex = client.get_user_data<ext_data&>();
 				ex.async_call_counter++;
 			});
@@ -2369,7 +2369,7 @@ void rpc_test()
 			{
 				ASIO2_CHECK(client.io().strand().running_in_this_thread());
 				ASIO2_CHECK(client.iopool().get(0).strand().running_in_this_thread());
-				ASIO2_CHECK(asio2::get_last_error() == asio::error::invalid_argument);
+				ASIO2_CHECK(asio2::get_last_error() == rpc::error::invalid_argument);
 				ext_data& ex = client.get_user_data<ext_data&>();
 				ex.async_call_counter++;
 			});
@@ -2385,15 +2385,15 @@ void rpc_test()
 			ASIO2_CHECK(sum == 11 + 32);
 
 			sum = client.timeout(std::chrono::seconds(13)).call<int>("add", 11);
-			ASIO2_CHECK(asio2::get_last_error() == asio::error::invalid_argument);
+			ASIO2_CHECK(asio2::get_last_error() == rpc::error::invalid_argument);
 			ASIO2_CHECK(sum == 0);
 
 			sum = client.timeout(std::chrono::seconds(13)).call<int>("add", 11, 12, 13);
-			ASIO2_CHECK(asio2::get_last_error() == asio::error::invalid_argument);
+			ASIO2_CHECK(asio2::get_last_error() == rpc::error::invalid_argument);
 			ASIO2_CHECK(sum == 0);
 
 			sum = client.timeout(std::chrono::seconds(13)).call<int>("add", "11", 12, 13);
-			ASIO2_CHECK(asio2::get_last_error() == asio::error::invalid_argument);
+			ASIO2_CHECK(asio2::get_last_error() == rpc::error::invalid_argument);
 			ASIO2_CHECK(sum == 0);
 
 			// Chain calls : 
@@ -2405,13 +2405,13 @@ void rpc_test()
 			{
 				ASIO2_CHECK(client.io().strand().running_in_this_thread());
 				ASIO2_CHECK(client.iopool().get(0).strand().running_in_this_thread());
-				ASIO2_CHECK(asio2::get_last_error() == asio::error::not_found);
+				ASIO2_CHECK(asio2::get_last_error() == rpc::error::not_found);
 				ext_data& ex = client.get_user_data<ext_data&>();
 				ex.async_call_counter++;
 			}, "no_exists_fn", 10);
 
 			sum = client.timeout(std::chrono::seconds(13)).call<int>("no_exists_fn", 12, 13);
-			ASIO2_CHECK(asio2::get_last_error() == asio::error::not_found);
+			ASIO2_CHECK(asio2::get_last_error() == rpc::error::not_found);
 			ASIO2_CHECK(sum == 0);
 		}
 
@@ -2597,7 +2597,7 @@ void rpc_test()
 			{
 				ASIO2_CHECK(client.io().strand().running_in_this_thread());
 				ASIO2_CHECK(client.iopool().get(0).strand().running_in_this_thread());
-				ASIO2_CHECK(asio2::get_last_error() == asio::error::invalid_argument);
+				ASIO2_CHECK(asio2::get_last_error() == rpc::error::invalid_argument);
 				ext_data& ex = client.get_user_data<ext_data&>();
 				ex.async_call_counter++;
 			});
@@ -2607,7 +2607,7 @@ void rpc_test()
 			{
 				ASIO2_CHECK(client.io().strand().running_in_this_thread());
 				ASIO2_CHECK(client.iopool().get(0).strand().running_in_this_thread());
-				ASIO2_CHECK(asio2::get_last_error() == asio::error::invalid_argument);
+				ASIO2_CHECK(asio2::get_last_error() == rpc::error::invalid_argument);
 				ext_data& ex = client.get_user_data<ext_data&>();
 				ex.async_call_counter++;
 			});
@@ -2617,7 +2617,7 @@ void rpc_test()
 			{
 				ASIO2_CHECK(client.io().strand().running_in_this_thread());
 				ASIO2_CHECK(client.iopool().get(0).strand().running_in_this_thread());
-				ASIO2_CHECK(asio2::get_last_error() == asio::error::invalid_argument);
+				ASIO2_CHECK(asio2::get_last_error() == rpc::error::invalid_argument);
 				ext_data& ex = client.get_user_data<ext_data&>();
 				ex.async_call_counter++;
 			});
@@ -2633,15 +2633,15 @@ void rpc_test()
 			ASIO2_CHECK(sum == 11 + 32);
 
 			sum = client.timeout(std::chrono::seconds(13)).call<int>("add", 11);
-			ASIO2_CHECK(asio2::get_last_error() == asio::error::invalid_argument);
+			ASIO2_CHECK(asio2::get_last_error() == rpc::error::invalid_argument);
 			ASIO2_CHECK(sum == 0);
 
 			sum = client.timeout(std::chrono::seconds(13)).call<int>("add", 11, 12, 13);
-			ASIO2_CHECK(asio2::get_last_error() == asio::error::invalid_argument);
+			ASIO2_CHECK(asio2::get_last_error() == rpc::error::invalid_argument);
 			ASIO2_CHECK(sum == 0);
 
 			sum = client.timeout(std::chrono::seconds(13)).call<int>("add", "11", 12, 13);
-			ASIO2_CHECK(asio2::get_last_error() == asio::error::invalid_argument);
+			ASIO2_CHECK(asio2::get_last_error() == rpc::error::invalid_argument);
 			ASIO2_CHECK(sum == 0);
 
 			// Chain calls : 
@@ -2653,13 +2653,13 @@ void rpc_test()
 			{
 				ASIO2_CHECK(client.io().strand().running_in_this_thread());
 				ASIO2_CHECK(client.iopool().get(0).strand().running_in_this_thread());
-				ASIO2_CHECK(asio2::get_last_error() == asio::error::not_found);
+				ASIO2_CHECK(asio2::get_last_error() == rpc::error::not_found);
 				ext_data& ex = client.get_user_data<ext_data&>();
 				ex.async_call_counter++;
 			}, "no_exists_fn", 10);
 
 			sum = client.timeout(std::chrono::seconds(13)).call<int>("no_exists_fn", 12, 13);
-			ASIO2_CHECK(asio2::get_last_error() == asio::error::not_found);
+			ASIO2_CHECK(asio2::get_last_error() == rpc::error::not_found);
 			ASIO2_CHECK(sum == 0);
 		}
 

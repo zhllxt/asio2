@@ -176,7 +176,7 @@ namespace asio2::detail
 				this->dgram_ = false;
 
 			// set keeplive options
-			this->keep_alive_options();
+			this->set_keep_alive_options();
 		}
 
 		template<typename MatchCondition>

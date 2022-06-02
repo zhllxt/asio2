@@ -1,5 +1,7 @@
 #include "unit_test.hpp"
 #include <asio2/util/ini.hpp>
+#include <cmath>
+#include <cstdlib>
 
 void ini_test()
 {
@@ -34,8 +36,8 @@ void ini_test()
 	ASIO2_CHECK(ini.get<std:: int64_t>("number", "i64", -9999999999ll ) == -9999999999ll );
 	ASIO2_CHECK(ini.get<std::uint64_t>("number", "u64",  9999999999llu) ==  9999999999llu);
 
-	ASIO2_CHECK(std::abs(ini.get<float >("number", "sf",  99.99f) -  99.99f) < 0.0001f);
-	ASIO2_CHECK(std::abs(ini.get<double>("number", "df", 999.99 ) - 999.99 ) < 0.0001 );
+	ASIO2_CHECK(std::fabs(ini.get<float >("number", "sf",  99.99f) -  99.99f) < 0.0001f);
+	ASIO2_CHECK(std::fabs(ini.get<double>("number", "df", 999.99 ) - 999.99 ) < 0.0001 );
 
 	ASIO2_CHECK(ini.get<std::size_t>("number", "su", 99999) == 99999);
 
@@ -65,8 +67,8 @@ void ini_test()
 	ASIO2_CHECK(ini.get<std:: int64_t>("", "i64", -9999999999ll ) == -9999999999ll );
 	ASIO2_CHECK(ini.get<std::uint64_t>("", "u64",  9999999999llu) ==  9999999999llu);
 
-	ASIO2_CHECK(std::abs(ini.get<float >("", "sf",  99.99f) -  99.99f) < 0.0001f);
-	ASIO2_CHECK(std::abs(ini.get<double>("", "df", 999.99 ) - 999.99 ) < 0.0001 );
+	ASIO2_CHECK(std::fabs(ini.get<float >("", "sf",  99.99f) -  99.99f) < 0.0001f);
+	ASIO2_CHECK(std::fabs(ini.get<double>("", "df", 999.99 ) - 999.99 ) < 0.0001 );
 
 	ASIO2_CHECK(ini.get<std::size_t>("", "su", 99999) == 99999);
 
@@ -138,10 +140,10 @@ void ini_test()
 	ASIO2_CHECK(ini.get<std::size_t>("number", "su") == su);
 
 	ini.set("number", "sf", sf);
-	ASIO2_CHECK(std::abs(ini.get<float>("number", "sf") - sf) < 0.0001f);
+	ASIO2_CHECK(std::fabs(ini.get<float>("number", "sf") - sf) < 0.0001f);
 
 	ini.set("number", "df", df);
-	ASIO2_CHECK(std::abs(ini.get<double>("number", "df") - df) < 0.0001);
+	ASIO2_CHECK(std::fabs(ini.get<double>("number", "df") - df) < 0.0001);
 
 	ini.set("string", "str", str);
 	ASIO2_CHECK(ini.get<std::string>("string", "str") == str);
@@ -196,10 +198,10 @@ void ini_test()
 	ASIO2_CHECK(ini.get<std::size_t>("", "su") == su);
 
 	ini.set("", "sf", sf);
-	ASIO2_CHECK(std::abs(ini.get<float>("", "sf") - sf) < 0.0001f);
+	ASIO2_CHECK(std::fabs(ini.get<float>("", "sf") - sf) < 0.0001f);
 
 	ini.set("", "df", df);
-	ASIO2_CHECK(std::abs(ini.get<double>("", "df") - df) < 0.0001);
+	ASIO2_CHECK(std::fabs(ini.get<double>("", "df") - df) < 0.0001);
 
 	ini.set("", "str", str);
 	ASIO2_CHECK(ini.get<std::string>("", "str") == str);

@@ -401,9 +401,9 @@ namespace boost::beast::http
 					u.field_data[(int)http::parses::url_fields::UF_SCHEMA].off],
 					u.field_data[(int)http::parses::url_fields::UF_SCHEMA].len);
 				if (asio2::iequals(schema, "http"))
-					std::string_view{ "80" };
+					return std::string_view{ "80" };
 				if (asio2::iequals(schema, "https"))
-					std::string_view{ "443" };
+					return std::string_view{ "443" };
 			}
 
 			return std::string_view{ "80" };
@@ -448,7 +448,7 @@ namespace boost::beast::http
 		template<typename = void>
 		inline bool url_match(std::string_view pattern, std::string_view url)
 		{
-			if (pattern == "/*")
+			if (pattern == "*" || pattern == "/*")
 				return true;
 
 			if (url.empty())

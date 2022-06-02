@@ -15,28 +15,34 @@
 #pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
+#include <cassert>
+
 #include <string>
 
 #include <asio2/external/magic_enum.hpp>
 
 #include <asio2/config.hpp>
+#include <asio2/bho/predef.h>
 
 #if defined(ASIO2_ENABLE_LOG)
 	#if __has_include(<spdlog/spdlog.h>)
-		#if defined(unix) || defined(__unix) || defined(_XOPEN_SOURCE) || defined(_POSIX_SOURCE) || \
-			defined(linux) || defined(__linux) || defined(__linux__) || defined(__gnu_linux__)
+		#if BHO_OS_LINUX || BHO_OS_UNIX
 			#if __has_include(<unistd.h>)
 				#include <unistd.h>
 			#endif
 			#if __has_include(<dirent.h>)
 				#include <dirent.h>
 			#endif
-		#elif defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS_) || defined(WIN32)
+		#elif BHO_OS_WINDOWS
 			#ifndef WIN32_LEAN_AND_MEAN
 				#define WIN32_LEAN_AND_MEAN
 			#endif
 			#if __has_include(<Windows.h>)
 				#include <Windows.h>
+			#endif
+		#elif BHO_OS_MACOS
+			#if __has_include(<mach-o/dyld.h>)
+				#include <mach-o/dyld.h>
 			#endif
 		#endif
 
@@ -63,13 +69,16 @@ namespace asio2::detail
 			{
 				std::string                  filepath;
 
-			#if defined(unix) || defined(__unix) || defined(_XOPEN_SOURCE) || defined(_POSIX_SOURCE) || \
-				defined(linux) || defined(__linux) || defined(__linux__) || defined(__gnu_linux__)
+			#if BHO_OS_LINUX || BHO_OS_UNIX
 				filepath.resize(PATH_MAX);
 				readlink("/proc/self/exe", (char *)filepath.data(), PATH_MAX);
-			#elif defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS_) || defined(WIN32)
+			#elif BHO_OS_WINDOWS
 				filepath.resize(MAX_PATH);
 				filepath.resize(::GetModuleFileNameA(NULL, (LPSTR)filepath.data(), MAX_PATH));
+			#elif BHO_OS_MACOS
+				filepath.resize(PATH_MAX);
+				std::uint32_t bufsize = std::uint32_t(PATH_MAX);
+				_NSGetExecutablePath(filepath.data(), &bufsize);
 			#endif
 
 				std::string::size_type pos;
@@ -86,6 +95,10 @@ namespace asio2::detail
 				pos = filepath.find('\0');
 				if (pos != std::string::npos)
 					filepath = filepath.substr(0, pos);
+
+			#if defined(_DEBUG) || defined(DEBUG)
+				assert(!filepath.empty());
+			#endif
 
 				filepath += ".log";
 				filepath.insert(0, "asio2_");

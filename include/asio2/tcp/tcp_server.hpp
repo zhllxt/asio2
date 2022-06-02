@@ -292,14 +292,9 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @function : get the acceptor refrence, same as get_acceptor
-		 */
-		inline asio::ip::tcp::acceptor & acceptor() noexcept { return this->acceptor_; }
-
-		/**
 		 * @function : get the acceptor refrence
 		 */
-		inline asio::ip::tcp::acceptor & get_acceptor() noexcept { return this->acceptor_; }
+		inline asio::ip::tcp::acceptor & acceptor() noexcept { return this->acceptor_; }
 
 	protected:
 		template<typename String, typename StrOrInt, typename MatchCondition>
@@ -427,8 +422,6 @@ namespace asio2::detail
 			}
 			else
 			{
-				ASIO2_ASSERT(false);
-
 				set_last_error(asio::error::in_progress);
 			}
 

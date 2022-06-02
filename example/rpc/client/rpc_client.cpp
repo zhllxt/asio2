@@ -79,11 +79,11 @@ int main()
 		client.call<double>("mul", 16.5, 26.5);
 		if (client.is_started())
 		{
-			ASIO2_ASSERT(asio2::get_last_error() == asio::error::in_progress);
+			ASIO2_ASSERT(asio2::get_last_error() == rpc::error::in_progress);
 		}
 		else
 		{
-			ASIO2_ASSERT(asio2::get_last_error() == asio::error::not_connected);
+			ASIO2_ASSERT(asio2::get_last_error() == rpc::error::not_connected);
 		}
 
 		// param 1 : user callback function(this param can be empty)

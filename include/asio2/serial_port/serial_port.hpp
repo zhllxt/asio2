@@ -300,24 +300,14 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @function : get the socket object refrence, same as get_socket
+		 * @function : get the socket object refrence
 		 */
 		inline socket_type & socket() noexcept { return this->socket_; }
 
 		/**
-		 * @function : get the stream object refrence, same as get_stream
-		 */
-		inline socket_type & stream() noexcept { return this->socket_; }
-
-		/**
-		 * @function : get the socket object refrence
-		 */
-		inline socket_type & get_socket() noexcept { return this->socket_; }
-
-		/**
 		 * @function : get the stream object refrence
 		 */
-		inline socket_type & get_stream() noexcept { return this->socket_; }
+		inline socket_type & stream() noexcept { return this->socket_; }
 
 	protected:
 		template<typename String, typename StrOrInt, typename MatchCondition>
@@ -422,8 +412,6 @@ namespace asio2::detail
 			}
 			else
 			{
-				ASIO2_ASSERT(false);
-
 				set_last_error(asio::error::in_progress);
 			}
 

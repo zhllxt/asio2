@@ -62,6 +62,23 @@ int main()
 
 	//---------------------------------------------------------------------------------------------
 
+	{
+		std::shared_ptr<asio2::timer> timer_ptr = std::make_shared<asio2::timer>();
+
+		timer_ptr->start_timer("timer_ptr1", 1000, []()
+		{
+			printf("timer_ptr1, loop infinite\n");
+		});
+
+		// Note : 
+		// if the timer is create as "std::shared_ptr<asio2::timer>", not "asio2::timer", you must
+		// call the "timer::stop()" function manually, otherwise it maybe cause crash.
+		// all the "server, client" need do the same like this.
+		timer_ptr->stop();
+	}
+
+	//---------------------------------------------------------------------------------------------
+
 	asio2::tcp_server server;
 
 	// test timer

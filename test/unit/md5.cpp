@@ -1,9 +1,5 @@
 #include "unit_test.hpp"
 
-#ifndef BOOST_UUID_COMPAT_PRE_1_71_MD5
-#define BOOST_UUID_COMPAT_PRE_1_71_MD5
-#endif
-
 #include <asio2/util/md5.hpp>
 
 void md5_test()

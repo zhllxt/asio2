@@ -89,13 +89,13 @@ namespace asio2::detail
 			inline static return_t exec(derive_t& derive,
 				std::chrono::duration<Rep, Period> timeout, std::string name, Args&&... args)
 			{
-				error_code ec;
+				error_code ec = rpc::make_error_code(rpc::error::success);
 				std::shared_ptr<typename rpc_result_t<return_t>::type> result =
 					std::make_shared<typename rpc_result_t<return_t>::type>();
 				try
 				{
 					if (!derive.is_started())
-						asio::detail::throw_error(asio::error::not_connected);
+						asio::detail::throw_error(rpc::make_error_code(rpc::error::not_connected));
 
 					rpc_header::id_type id = derive.mkid();
 					rpc_request<Args...> req(id, std::move(name), std::forward<Args>(args)...);
@@ -109,6 +109,7 @@ namespace asio2::detail
 					{
 						detail::ignore_unused(data);
 
+						ASIO2_ASSERT(&(ec.category()) == &(rpc::rpc_category()));
 						ASIO2_ASSERT(derive.io().strand().running_in_this_thread());
 
 						if (!ec)
@@ -126,14 +127,34 @@ namespace asio2::detail
 									std::ignore = result;
 								}
 							}
-							catch (cereal::exception&  ) { ec = asio::error::no_data; }
-							catch (system_error     & e) { ec = e.code();             }
-							catch (std::exception   &  ) { ec = asio::error::eof;     }
+							catch (cereal::exception const&)
+							{
+								ec = rpc::make_error_code(rpc::error::no_data);
+							}
+							catch (system_error      const& e)
+							{
+								ec = e.code();
+								if (&(ec.category()) != &(rpc::rpc_category()))
+								{
+									ec = rpc::make_error_code(rpc::error::unspecified_error);
+								}
+							}
+							catch (std::exception    const&)
+							{
+								ec = rpc::make_error_code(rpc::error::unspecified_error);
+							}
 						}
 
-						set_last_error(ec.value());
+						ASIO2_ASSERT(&(ec.category()) == &(rpc::rpc_category()));
 
-						pm->set_value(get_last_error());
+						if (&(ec.category()) != &(rpc::rpc_category()))
+						{
+							ec.assign(ec.value(), rpc::rpc_category());
+						}
+
+						set_last_error(ec);
+
+						pm->set_value(ec);
 
 						derive.reqs_.erase(id);
 					};
@@ -167,7 +188,7 @@ namespace asio2::detail
 						}
 						else
 						{
-							ec = asio::error::timed_out;
+							ec = rpc::make_error_code(rpc::error::timed_out);
 
 							derive.post([&derive, id]() mutable
 							{
@@ -185,12 +206,25 @@ namespace asio2::detail
 							derive.reqs_.erase(id);
 						});
 
-						ec = asio::error::in_progress;
+						ec = rpc::make_error_code(rpc::error::in_progress);
 					}
 				}
-				catch (cereal::exception&  ) { ec = asio::error::no_data; }
-				catch (system_error     & e) { ec = e.code(); }
-				catch (std::exception   &  ) { ec = asio::error::eof; }
+				catch (cereal::exception const&)
+				{
+					ec = rpc::make_error_code(rpc::error::no_data);
+				}
+				catch (system_error      const& e)
+				{
+					ec = e.code();
+					if (&(ec.category()) != &(rpc::rpc_category()))
+					{
+						ec = rpc::make_error_code(rpc::error::unspecified_error);
+					}
+				}
+				catch (std::exception    const&)
+				{
+					ec = rpc::make_error_code(rpc::error::unspecified_error);
+				}
 
 				set_last_error(ec);
 
@@ -257,16 +291,38 @@ namespace asio2::detail
 				{
 					[&derive, cb = std::forward<Callback>(cb)](auto ec, std::string_view) mutable
 					{
+						ASIO2_ASSERT(&(ec.category()) == &(rpc::rpc_category()));
+
 						try
 						{
 							if (!ec)
 								derive.dr_ >> ec;
 						}
-						catch (cereal::exception&  ) { ec = asio::error::no_data; }
-						catch (system_error     & e) { ec = e.code();             }
-						catch (std::exception   &  ) { ec = asio::error::eof;     }
+						catch (cereal::exception const&)
+						{
+							ec = rpc::make_error_code(rpc::error::no_data);
+						}
+						catch (system_error      const& e)
+						{
+							ec = e.code();
+							if (&(ec.category()) != &(rpc::rpc_category()))
+							{
+								ec = rpc::make_error_code(rpc::error::unspecified_error);
+							}
+						}
+						catch (std::exception    const&)
+						{
+							ec = rpc::make_error_code(rpc::error::unspecified_error);
+						}
 
-						set_last_error(ec.value());
+						ASIO2_ASSERT(&(ec.category()) == &(rpc::rpc_category()));
+
+						if (&(ec.category()) != &(rpc::rpc_category()))
+						{
+							ec.assign(ec.value(), rpc::rpc_category());
+						}
+
+						set_last_error(ec);
 
 						cb();
 					}
@@ -284,6 +340,8 @@ namespace asio2::detail
 					{
 						detail::ignore_unused(data);
 
+						ASIO2_ASSERT(&(ec.category()) == &(rpc::rpc_category()));
+
 						typename rpc_result_t<return_t>::type result{};
 
 						try
@@ -294,11 +352,31 @@ namespace asio2::detail
 							if (!ec)
 								derive.dr_ >> result;
 						}
-						catch (cereal::exception&  ) { ec = asio::error::no_data; }
-						catch (system_error     & e) { ec = e.code();             }
-						catch (std::exception   &  ) { ec = asio::error::eof;     }
+						catch (cereal::exception const&)
+						{
+							ec = rpc::make_error_code(rpc::error::no_data);
+						}
+						catch (system_error      const& e)
+						{
+							ec = e.code();
+							if (&(ec.category()) != &(rpc::rpc_category()))
+							{
+								ec = rpc::make_error_code(rpc::error::unspecified_error);
+							}
+						}
+						catch (std::exception    const&)
+						{
+							ec = rpc::make_error_code(rpc::error::unspecified_error);
+						}
 
-						set_last_error(ec.value());
+						ASIO2_ASSERT(&(ec.category()) == &(rpc::rpc_category()));
+
+						if (&(ec.category()) != &(rpc::rpc_category()))
+						{
+							ec.assign(ec.value(), rpc::rpc_category());
+						}
+
+						set_last_error(ec);
 
 						cb(std::move(result));
 					}
@@ -310,12 +388,12 @@ namespace asio2::detail
 			{
 				ASIO2_ASSERT(!req.id());
 
-				error_code ec;
+				error_code ec = rpc::make_error_code(rpc::error::success);
 
 				try
 				{
 					if (!derive.is_started())
-						asio::detail::throw_error(asio::error::not_connected);
+						asio::detail::throw_error(rpc::make_error_code(rpc::error::not_connected));
 
 					derive.post([&derive, req = std::forward<Req>(req)]() mutable
 					{
@@ -324,9 +402,29 @@ namespace asio2::detail
 
 					return;
 				}
-				catch (cereal::exception&  ) { ec = asio::error::no_data; }
-				catch (system_error     & e) { ec = e.code();             }
-				catch (std::exception   &  ) { ec = asio::error::eof;     }
+				catch (cereal::exception const&)
+				{
+					ec = rpc::make_error_code(rpc::error::no_data);
+				}
+				catch (system_error      const& e)
+				{
+					ec = e.code();
+					if (&(ec.category()) != &(rpc::rpc_category()))
+					{
+						ec = rpc::make_error_code(rpc::error::unspecified_error);
+					}
+				}
+				catch (std::exception    const&)
+				{
+					ec = rpc::make_error_code(rpc::error::unspecified_error);
+				}
+
+				ASIO2_ASSERT(&(ec.category()) == &(rpc::rpc_category()));
+
+				if (&(ec.category()) != &(rpc::rpc_category()))
+				{
+					ec.assign(ec.value(), rpc::rpc_category());
+				}
 
 				set_last_error(ec);
 			}
@@ -337,7 +435,7 @@ namespace asio2::detail
 			{
 				ASIO2_ASSERT(id);
 
-				error_code ec;
+				error_code ec = rpc::make_error_code(rpc::error::success);
 
 				req.id(id);
 
@@ -350,6 +448,7 @@ namespace asio2::detail
 				auto ex = [&derive, id, timer, cb = std::forward<Callback>(cb)]
 				(error_code ec, std::string_view data) mutable
 				{
+					ASIO2_ASSERT(&(ec.category()) == &(rpc::rpc_category()));
 					ASIO2_ASSERT(derive.io().strand().running_in_this_thread());
 
 					error_code ec_ignore{};
@@ -364,7 +463,7 @@ namespace asio2::detail
 				try
 				{
 					if (!derive.is_started())
-						asio::detail::throw_error(asio::error::not_connected);
+						asio::detail::throw_error(rpc::make_error_code(rpc::error::not_connected));
 
 					// 2019-11-28 fixed the bug of issue #6 : task() cannot be called directly
 
@@ -408,7 +507,7 @@ namespace asio2::detail
 							if (iter != derive.reqs_.end())
 							{
 								auto& ex = iter->second;
-								ex(asio::error::timed_out, std::string_view{});
+								ex(rpc::make_error_code(rpc::error::timed_out), std::string_view{});
 							}
 						}));
 
@@ -430,9 +529,29 @@ namespace asio2::detail
 
 					return;
 				}
-				catch (cereal::exception&  ) { ec = asio::error::no_data; }
-				catch (system_error     & e) { ec = e.code();             }
-				catch (std::exception   &  ) { ec = asio::error::eof;     }
+				catch (cereal::exception const&)
+				{
+					ec = rpc::make_error_code(rpc::error::no_data);
+				}
+				catch (system_error      const& e)
+				{
+					ec = e.code();
+					if (&(ec.category()) != &(rpc::rpc_category()))
+					{
+						ec = rpc::make_error_code(rpc::error::unspecified_error);
+					}
+				}
+				catch (std::exception    const&)
+				{
+					ec = rpc::make_error_code(rpc::error::unspecified_error);
+				}
+
+				ASIO2_ASSERT(&(ec.category()) == &(rpc::rpc_category()));
+
+				if (&(ec.category()) != &(rpc::rpc_category()))
+				{
+					ec.assign(ec.value(), rpc::rpc_category());
+				}
 
 				set_last_error(ec);
 

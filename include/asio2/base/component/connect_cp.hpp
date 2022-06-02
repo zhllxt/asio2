@@ -255,7 +255,7 @@ namespace asio2::detail
 
 					if constexpr (std::is_same_v<typename raw_socket_t::protocol_type, asio::ip::tcp>)
 					{
-						derive.keep_alive_options();
+						derive.set_keep_alive_options();
 					}
 					else
 					{

@@ -396,8 +396,6 @@ namespace asio2::detail
 				}
 				else
 				{
-					ASIO2_ASSERT(false);
-
 					set_last_error(asio::error::in_progress);
 				}
 

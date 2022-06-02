@@ -53,7 +53,7 @@ namespace asio2::mqtt
 			: value_(v & 0x3fffffffu), has_hash_child_(false), has_plus_child_(false)
 		{ }
 
-		static constexpr std::size_t max() { return (std::numeric_limits<std::uint32_t>::max)() >> 2; }
+		static constexpr std::size_t (max)() { return (std::numeric_limits<std::uint32_t>::max)() >> 2; }
 
 		inline std::uint32_t value() const { return value_; }
 		inline void set_value(std::uint32_t v) { value_ = v & 0x3fffffffu; }
@@ -80,7 +80,7 @@ namespace asio2::mqtt
 			: value_(v & 0x3fffffffffffffffllu), has_hash_child_(false), has_plus_child_(false)
 		{ }
 
-		static constexpr std::uint64_t max() { return (std::numeric_limits<std::uint64_t>::max)() >> 2; }
+		static constexpr std::uint64_t (max)() { return (std::numeric_limits<std::uint64_t>::max)() >> 2; }
 
 		inline std::uint64_t value() const { return value_; }
 		inline void set_value(std::uint64_t v) { value_ = v & 0x3fffffffffffffffllu; }
