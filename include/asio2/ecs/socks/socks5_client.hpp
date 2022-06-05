@@ -599,8 +599,9 @@ namespace asio2::detail
 			detail::ignore_unused(condition);
 		}
 
-		template<typename MatchCondition>
-		inline void _socks5_start(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		template<typename MatchCondition, typename DeferEvent>
+		inline void _socks5_start(
+			std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition, DeferEvent chain)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
@@ -612,18 +613,18 @@ namespace asio2::detail
 					derive.host_, derive.port_,
 					derive.stream(),
 					condition.impl_->socks5_option(std::in_place),
-					[this, this_ptr, condition](error_code ec) mutable
+					[this, this_ptr, condition, chain = std::move(chain)](error_code ec) mutable
 					{
 						derived_t& derive = static_cast<derived_t&>(*this);
 
-						derive._handle_proxy(ec, std::move(this_ptr), std::move(condition));
+						derive._handle_proxy(ec, std::move(this_ptr), std::move(condition), std::move(chain));
 					}
 				};
 			}
 			else
 			{
 				ASIO2_ASSERT(!get_last_error());
-				derive._handle_proxy(error_code{}, std::move(this_ptr), std::move(condition));
+				derive._handle_proxy(error_code{}, std::move(this_ptr), std::move(condition), std::move(chain));
 			}
 		}
 

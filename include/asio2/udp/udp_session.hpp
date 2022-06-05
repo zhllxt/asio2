@@ -82,8 +82,8 @@ namespace asio2::detail
 			, remote_endpoint_(endpoint)
 			, wallocator_     ()
 		{
-			this->silence_timeout(std::chrono::milliseconds(udp_silence_timeout));
-			this->connect_timeout(std::chrono::milliseconds(udp_connect_timeout));
+			this->set_silence_timeout(std::chrono::milliseconds(udp_silence_timeout));
+			this->set_connect_timeout(std::chrono::milliseconds(udp_connect_timeout));
 		}
 
 		/**

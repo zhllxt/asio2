@@ -70,7 +70,7 @@ namespace asio2::detail
 			: super(init_buf_size, max_buf_size, concurrency)
 			, udp_send_op<derived_t, args_t>()
 		{
-			this->connect_timeout(std::chrono::milliseconds(udp_connect_timeout));
+			this->set_connect_timeout(std::chrono::milliseconds(udp_connect_timeout));
 		}
 
 		template<class Scheduler, std::enable_if_t<!std::is_integral_v<detail::remove_cvref_t<Scheduler>>, int> = 0>
@@ -82,7 +82,7 @@ namespace asio2::detail
 			: super(init_buf_size, max_buf_size, std::forward<Scheduler>(scheduler))
 			, udp_send_op<derived_t, args_t>()
 		{
-			this->connect_timeout(std::chrono::milliseconds(udp_connect_timeout));
+			this->set_connect_timeout(std::chrono::milliseconds(udp_connect_timeout));
 		}
 
 		template<class Scheduler, std::enable_if_t<!std::is_integral_v<detail::remove_cvref_t<Scheduler>>, int> = 0>
@@ -312,9 +312,15 @@ namespace asio2::detail
 			[this, &derive, this_ptr = derive.selfptr(),
 				host = std::forward<String>(host), port = std::forward<StrOrInt>(port),
 				condition = std::move(condition), set_promise = std::move(set_promise)]
-			(event_queue_guard<derived_t>&& g) mutable
+			(event_queue_guard<derived_t> g) mutable
 			{
-				detail::ignore_unused(g);
+				defer_event chain
+				{
+					[set_promise = std::move(set_promise)] (event_queue_guard<derived_t> g) mutable
+					{
+						detail::ignore_unused(set_promise, g);
+					}, std::move(g)
+				};
 
 				state_t expected = state_t::stopped;
 				if (!derive.state_.compare_exchange_strong(expected, state_t::starting))
@@ -353,7 +359,7 @@ namespace asio2::detail
 					derive._load_reconnect_timer(condition);
 
 					derive.template _start_connect<IsAsync>(
-						std::move(this_ptr), std::move(condition), std::move(set_promise));
+						std::move(this_ptr), std::move(condition), std::move(chain));
 
 					return;
 				}
@@ -412,9 +418,9 @@ namespace asio2::detail
 				// can't use condition = std::move(condition), Otherwise, the value of condition will
 				// be empty the next time the code goto here.
 				derive.push_event([this, &derive, this_ptr = derive.selfptr(), condition]
-				(event_queue_guard<derived_t>&& g) mutable
+				(event_queue_guard<derived_t> g) mutable
 				{
-					detail::ignore_unused(this, g);
+					detail::ignore_unused(this);
 
 					if (derive.reconnect_timer_canceled_.test_and_set())
 					{
@@ -432,7 +438,7 @@ namespace asio2::detail
 							magic_enum::enum_name(derive.state_.load()));
 
 						derive.template _start_connect<true>(std::move(this_ptr), std::move(condition),
-							defer_event{ nullptr });
+							defer_event(std::move(g)));
 					}
 				});
 			});
@@ -531,7 +537,7 @@ namespace asio2::detail
 		{
 			// All pending sending events will be cancelled after enter the send strand below.
 			this->derived().push_event([this, ec, this_ptr = std::move(self_ptr)]
-			(event_queue_guard<derived_t>&& g) mutable
+			(event_queue_guard<derived_t> g) mutable
 			{
 				detail::ignore_unused(g);
 

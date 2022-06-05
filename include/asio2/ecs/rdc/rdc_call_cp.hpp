@@ -164,7 +164,7 @@ namespace asio2::detail
 					// All pending sending events will be cancelled after enter the send strand below.
 					derive.push_event(
 					[&derive, p = derive.selfptr(), timeout, invoker = std::move(invoker), fn_data = std::move(fn_data)]
-					(event_queue_guard<derived_t>&& g) mutable
+					(event_queue_guard<derived_t> g) mutable
 					{
 						detail::ignore_unused(p, g);
 
@@ -239,7 +239,7 @@ namespace asio2::detail
 					// All pending sending events will be cancelled after enter the send strand below.
 					derive.push_event([&derive, p = derive.selfptr(), timeout,
 						invoker = std::forward<Invoker>(invoker), fn_data = std::move(fn_data)]
-					(event_queue_guard<derived_t>&& g) mutable
+					(event_queue_guard<derived_t> g) mutable
 					{
 						detail::ignore_unused(p, g);
 
@@ -258,7 +258,7 @@ namespace asio2::detail
 
 				// ensure the callback was called in the communication thread.
 				derive.push_event([&derive, p = derive.selfptr(), ec, invoker = std::forward<Invoker>(invoker),
-					fn_data = std::move(fn_data)](event_queue_guard<derived_t>&& g) mutable
+					fn_data = std::move(fn_data)](event_queue_guard<derived_t> g) mutable
 				{
 					detail::ignore_unused(p, g);
 
@@ -278,7 +278,7 @@ namespace asio2::detail
 			using recv_data_t = typename arg_t::recv_data_t;
 
 		protected:
-			sync_caller(derive_t& d) : derive(d), tm_(d.default_timeout()) {}
+			sync_caller(derive_t& d) : derive(d), tm_(d.get_default_timeout()) {}
 			sync_caller(sync_caller&& o) : derive(o.derive), tm_(std::move(o.tm_)) {}
 			sync_caller(const sync_caller&) = delete;
 			sync_caller& operator=(sync_caller&&) = delete;
@@ -327,7 +327,7 @@ namespace asio2::detail
 			using recv_data_t = typename arg_t::recv_data_t;
 
 		protected:
-			async_caller(derive_t& d) : derive(d), tm_(d.default_timeout()) {}
+			async_caller(derive_t& d) : derive(d), tm_(d.get_default_timeout()) {}
 			async_caller(async_caller&& o) : derive(o.derive),
 				tm_(std::move(o.tm_)), cb_(std::move(o.cb_)), fn_(std::move(o.fn_)) {}
 			async_caller(const async_caller&) = delete;
@@ -401,7 +401,7 @@ namespace asio2::detail
 			using recv_data_t = typename arg_t::recv_data_t;
 
 		protected:
-			base_caller(derive_t& d) : derive(d), tm_(d.default_timeout()) {}
+			base_caller(derive_t& d) : derive(d), tm_(d.get_default_timeout()) {}
 			base_caller(base_caller&& o) : derive(o.derive), tm_(std::move(o.tm_)) {}
 			base_caller& operator=(base_caller&&) = delete;
 			base_caller(const base_caller&) = delete;
@@ -469,7 +469,7 @@ namespace asio2::detail
 			derived_t& derive = static_cast<derived_t&>(*this);
 
 			return sync_call_op<derived_t, args_t>::template exec<return_t>(
-				derive, derive.default_timeout(), std::forward<DataT>(data));
+				derive, derive.get_default_timeout(), std::forward<DataT>(data));
 		}
 
 		/**
@@ -494,7 +494,7 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			async_call_op<derived_t, args_t>::exec(derive, std::forward<DataT>(data), derive.default_timeout(),
+			async_call_op<derived_t, args_t>::exec(derive, std::forward<DataT>(data), derive.get_default_timeout(),
 				rdc_make_callback_t<send_data_t, recv_data_t>::bind(std::forward<Callback>(cb)));
 		}
 
@@ -599,7 +599,7 @@ namespace asio2::detail
 				derived_t& derive = static_cast<derived_t&>(*this);
 
 				// All pending sending events will be cancelled after enter the send strand below.
-				derive.push_event([this, p = derive.selfptr()](event_queue_guard<derived_t>&& g) mutable
+				derive.push_event([this, p = derive.selfptr()](event_queue_guard<derived_t> g) mutable
 				{
 					detail::ignore_unused(p, g);
 
@@ -680,7 +680,7 @@ namespace asio2::detail
 				{
 					auto& _rdc = condition.impl_->rdc_option(std::in_place);
 
-					auto id = (_rdc.send_parser())(fn_data());
+					auto id = (_rdc.get_send_parser())(fn_data());
 
 					std::shared_ptr<asio::steady_timer> timer =
 						std::make_shared<asio::steady_timer>(derive.io().context());
@@ -688,7 +688,7 @@ namespace asio2::detail
 					derive.push_event([&derive, this_ptr = std::move(this_ptr), condition = std::move(condition),
 						id = std::move(id), timer = std::move(timer),
 						fn_data = std::move(fn_data), timeout, invoker = std::move(invoker)]
-					(event_queue_guard<derived_t>&& g) mutable
+					(event_queue_guard<derived_t> g) mutable
 					{
 						auto& _rdc = condition.impl_->rdc_option(std::in_place);
 
@@ -772,7 +772,7 @@ namespace asio2::detail
 
 				auto& _rdc = condition.impl_->rdc_option(std::in_place);
 
-				auto id = (_rdc.recv_parser())(data);
+				auto id = (_rdc.get_recv_parser())(data);
 
 				error_code ec_ignore{};
 

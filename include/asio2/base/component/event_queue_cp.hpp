@@ -36,102 +36,60 @@
 
 namespace asio2::detail
 {
-	struct defer_event_dummy
-	{
-		inline void operator()() noexcept {}
-	};
-
-	template<class Function = defer_event_dummy>
-	class defer_event
-	{
-	public:
-		template<class Fn>
-		defer_event(Fn&& fn) noexcept : f(std::forward<Fn>(fn)), valid_(true) {}
-
-		defer_event(std::nullptr_t) noexcept : f(defer_event_dummy{}), valid_(false) {}
-
-		inline defer_event(defer_event&& o) noexcept : f(std::move(o.f)), valid_(o.valid_)
-		{
-			o.valid_ = false;
-		};
-		inline void operator=(defer_event&& o) noexcept
-		{
-			ASIO2_ASSERT(false);
-
-			f = std::move(o.f);
-			valid_ = o.valid_;
-			o.valid_ = false;
-		};
-
-		inline defer_event(const defer_event& o) noexcept : f(const_cast<Function&&>(o.f)), valid_(o.valid_)
-		{
-			ASIO2_ASSERT(false);
-
-			const_cast<defer_event&>(o).valid_ = false;
-		};
-		inline void operator=(const defer_event& o) noexcept
-		{
-			ASIO2_ASSERT(false);
-
-			f = const_cast<Function&&>(o.f);
-			valid_ = o.valid_;
-			const_cast<defer_event&>(o).valid_ = false;
-		}
-
-		~defer_event() noexcept
-		{
-			if (valid_)
-				f();
-		}
-
-		inline bool    empty() const noexcept { return !valid_; }
-		inline bool is_empty() const noexcept { return !valid_; }
-
-	protected:
-		Function f;
-
-		bool valid_;
-	};
-
-	template<class F>
-	defer_event(F)->defer_event<F>;
-
-	defer_event(std::nullptr_t)->defer_event<defer_event_dummy>;
-
-
 	template <class, class>                      class event_queue_cp;
+	template <class...    >                      class defer_event;
 
-	template<class derived_t, class args_t = void>
+	template<class derived_t>
 	class event_queue_guard
 	{
 		template <class, class>           friend class event_queue_cp;
+		template <class...    >           friend class defer_event;
 
-	protected:
-		event_queue_guard(derived_t& d) noexcept : derive(d), derive_ptr_(d.selfptr()) {}
+	public:
+		event_queue_guard()
+		{
+		}
+		event_queue_guard(std::nullptr_t)
+		{
+		}
+		event_queue_guard(derived_t& d) noexcept
+			: derive(&d), derive_ptr_(d.selfptr()), valid_(true)
+		{
+		}
 
 	public:
 		inline event_queue_guard(event_queue_guard&& o) noexcept
 			: derive(o.derive), derive_ptr_(std::move(o.derive_ptr_)), valid_(o.valid_)
 		{
-			ASIO2_ASSERT(o.valid_ == true);
+			o.valid_ = false;
+		}
+		inline void operator=(event_queue_guard&& o) noexcept
+		{
+			derive = o.derive;
+			derive_ptr_ = std::move(o.derive_ptr_);
+			valid_ = o.valid_;
 
 			o.valid_ = false;
 		}
-		inline event_queue_guard(const event_queue_guard& o) = delete;
-		inline void operator=(event_queue_guard&& o) = delete;
-		inline void operator=(const event_queue_guard& o) = delete;
+
+		event_queue_guard(const event_queue_guard&) = delete;
+		event_queue_guard& operator=(const event_queue_guard&) = delete;
 
 		~event_queue_guard() noexcept
 		{
 			if (this->valid_)
-				derive.next_event(std::move(*this));
+			{
+				derive->next_event(std::move(*this));
+
+				ASIO2_ASSERT(this->valid_ == false);
+			}
 		}
 
-		inline bool    valid() const noexcept { return valid_; }
-		inline bool is_valid() const noexcept { return valid_; }
+		inline bool    empty() const noexcept { return (!valid_); }
+		inline bool is_empty() const noexcept { return (!valid_); }
 
 	protected:
-		derived_t                    & derive;
+		derived_t                    * derive = nullptr;
 
 		// must hold the derived object, maybe empty in client
 		// if didn't hold the derived object, when the callback is executed in the event queue,
@@ -141,8 +99,250 @@ namespace asio2::detail
 		std::shared_ptr<derived_t>     derive_ptr_;
 
 		// whether the guard is valid, when object is moved by std::move the guard will be invalid
-		bool                           valid_ = true;
+		bool                           valid_ = false;
 	};
+
+
+	template<class Function>
+	class [[maybe_unused]] defer_event<Function>
+	{
+		template <class...> friend class defer_event;
+	public:
+		template<class Fn>
+		defer_event(Fn&& fn) noexcept
+			: fn_(std::forward<Fn>(fn)), valid_(true)
+		{
+		}
+
+		inline defer_event(defer_event&& o) noexcept
+			: fn_(std::move(o.fn_)), valid_(o.valid_)
+		{
+			o.valid_ = false;
+		};
+		inline void operator=(defer_event&& o) noexcept
+		{
+			fn_ = std::move(o.fn_);
+			valid_ = o.valid_;
+			o.valid_ = false;
+		};
+
+		defer_event(const defer_event&) = delete;
+		defer_event& operator=(const defer_event&) = delete;
+
+		~defer_event() noexcept
+		{
+			if (valid_)
+			{
+				(fn_)();
+				valid_ = false;
+			}
+		}
+
+		inline bool    empty() const noexcept { return (!valid_); }
+		inline bool is_empty() const noexcept { return (!valid_); }
+
+	protected:
+		Function fn_;
+
+		bool     valid_ = false;
+	};
+
+	template<>
+	class [[maybe_unused]] defer_event<void>
+	{
+		template <class...> friend class defer_event;
+	public:
+		defer_event() noexcept {}
+		defer_event(std::nullptr_t) noexcept {}
+
+		defer_event(defer_event&&) noexcept = default;
+		defer_event& operator=(defer_event&&) noexcept = default;
+
+		defer_event(const defer_event&) = delete;
+		defer_event& operator=(const defer_event&) = delete;
+
+		inline constexpr bool    empty() const noexcept { return true; }
+		inline constexpr bool is_empty() const noexcept { return true; }
+	};
+
+	template<class Function, class derived_t>
+	class [[maybe_unused]] defer_event<Function, derived_t, std::false_type>
+	{
+		template <class...> friend class defer_event;
+	public:
+		template<class Fn>
+		defer_event(Fn&& fn) noexcept
+			: fn_(std::forward<Fn>(fn))
+			, valid_(true)
+		{
+		}
+
+		inline defer_event(defer_event&& o) noexcept
+			: fn_(std::move(o.fn_)), valid_(o.valid_)
+		{
+			o.valid_ = false;
+		};
+		inline void operator=(defer_event&& o) noexcept
+		{
+			fn_      = std::move(o.fn_);
+			valid_   = o.valid_;
+
+			o.valid_ = false;
+		};
+
+		defer_event(const defer_event&) = delete;
+		defer_event& operator=(const defer_event&) = delete;
+
+		~defer_event() noexcept
+		{
+			if (valid_)
+			{
+				(fn_)(event_queue_guard<derived_t>());
+				valid_ = false;
+			}
+		}
+
+		inline bool    empty() const noexcept { return (!valid_); }
+		inline bool is_empty() const noexcept { return (!valid_); }
+
+		//inline defer_event<Function, derived_t, std::false_type> move_event()
+		//{
+		//	return std::move(*this);
+		//}
+
+	protected:
+		Function fn_;
+
+		bool     valid_ = false;
+	};
+
+	template<class Function, class derived_t>
+	class [[maybe_unused]] defer_event<Function, derived_t, std::true_type>
+	{
+		template <class...> friend class defer_event;
+	public:
+		template<class Fn, class D = derived_t>
+		defer_event(Fn&& fn, event_queue_guard<D> guard) noexcept
+			: fn_(std::forward<Fn>(fn))
+			, valid_(true)
+			, guard_(std::move(guard))
+		{
+		}
+
+		template<class Fn, class D = derived_t>
+		defer_event(defer_event<Fn, D, std::false_type> o, event_queue_guard<D> guard) noexcept
+			: fn_   (std::move(o.fn_   ))
+			, valid_(          o.valid_ )
+			, guard_(std::move(guard   ))
+		{
+			o.valid_ = false;
+		}
+
+		inline defer_event(defer_event&& o) noexcept
+			: fn_(std::move(o.fn_)), valid_(o.valid_), guard_(std::move(o.guard_))
+		{
+			o.valid_ = false;
+		};
+		inline void operator=(defer_event&& o) noexcept
+		{
+			fn_    = std::move(o.fn_   );
+			valid_ =           o.valid_ ;
+			guard_ = std::move(o.guard_);
+
+			o.valid_ = false;
+		};
+
+		defer_event(const defer_event&) = delete;
+		defer_event& operator=(const defer_event&) = delete;
+
+		~defer_event() noexcept
+		{
+			if (valid_)
+			{
+				(fn_)(std::move(guard_));
+				valid_ = false;
+			}
+
+			// guard will be destroy at here, then guard's destroctor will be called
+		}
+
+		inline bool    empty() const noexcept { return (!valid_); }
+		inline bool is_empty() const noexcept { return (!valid_); }
+
+		inline defer_event<Function, derived_t, std::false_type> move_event()
+		{
+			valid_ = false;
+			return defer_event<Function, derived_t, std::false_type>(std::move(fn_));
+		}
+		inline event_queue_guard<derived_t> move_guard()
+		{
+			return std::move(guard_);
+		}
+
+	protected:
+		Function fn_;
+
+		bool     valid_ = false;
+
+		event_queue_guard<derived_t> guard_;
+	};
+
+	template<class derived_t>
+	class [[maybe_unused]] defer_event<void, derived_t>
+	{
+		template <class...> friend class defer_event;
+	public:
+		defer_event() noexcept
+		{
+		}
+
+		template<class D = derived_t>
+		defer_event(event_queue_guard<D> guard) noexcept
+			: guard_(std::move(guard))
+		{
+		}
+
+		defer_event(defer_event&& o) = default;
+		defer_event& operator=(defer_event&& o) = default;
+		defer_event(const defer_event&) = delete;
+		defer_event& operator=(const defer_event&) = delete;
+
+		~defer_event() noexcept
+		{
+			// guard will be destroy at here, then guard's destroctor will be called
+		}
+
+		inline constexpr bool    empty() const noexcept { return true; }
+		inline constexpr bool is_empty() const noexcept { return true; }
+
+		inline auto                         move_event() { return ([](event_queue_guard<derived_t>) {}); }
+		inline event_queue_guard<derived_t> move_guard() { return std::move(guard_); }
+
+	protected:
+		event_queue_guard<derived_t> guard_;
+	};
+
+	template<class F>
+	defer_event(F)->defer_event<F>;
+
+	defer_event(std::nullptr_t)->defer_event<void>;
+
+	template<class F, class derived_t>
+	defer_event(F, event_queue_guard<derived_t>)->defer_event<F, derived_t, std::true_type>;
+
+	template<class F, class derived_t>
+	defer_event(defer_event<F, derived_t, std::false_type>, event_queue_guard<derived_t>)->
+		defer_event<F, derived_t, std::true_type>;
+
+	template<class F, class derived_t>
+	defer_event(F)->defer_event<F, derived_t, std::false_type>;
+
+	template<class derived_t>
+	defer_event()->defer_event<void, derived_t>;
+
+	template<class derived_t>
+	defer_event(event_queue_guard<derived_t>)->defer_event<void, derived_t>;
+
 
 	template<class derived_t, class args_t = void>
 	class event_queue_cp
@@ -169,11 +369,11 @@ namespace asio2::detail
 	protected:
 		/**
 		 * push a task to the tail of the event queue
-		 * Callback signature : void(event_queue_guard<derived_t>&& g)
+		 * Callback signature : void(event_queue_guard<derived_t> g)
 		 * note : the callback must hold the derived_ptr itself
 		 */
 		template<class Callback>
-		inline derived_t & push_event(Callback&& f)
+		inline derived_t& push_event(Callback&& f)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
@@ -215,18 +415,45 @@ namespace asio2::detail
 		}
 
 		/**
+		 * dispatch a task
+		 * if the guard is not valid, the task will pushed to the tail of the event queue(like push_event),
+		 * otherwise the task will be executed directly.
+		 * Callback signature : void(event_queue_guard<derived_t> g)
+		 * note : the callback must hold the derived_ptr itself
+		 */
+		template<class Callback>
+		inline derived_t& disp_event(Callback&& f, event_queue_guard<derived_t> guard)
+		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
+			if (guard.is_empty())
+			{
+				derive.push_event(std::forward<Callback>(f));
+			}
+			else
+			{
+				ASIO2_ASSERT(derive.io().strand().running_in_this_thread());
+
+				f(std::move(guard));
+			}
+
+			return (derive);
+		}
+
+		/**
 		 * Removes an element from the front of the event queue.
 		 * and then execute the next element of the queue.
 		 */
 		template<typename = void>
-		inline derived_t & next_event(event_queue_guard<derived_t>&& g)
+		inline derived_t& next_event(event_queue_guard<derived_t> g)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
 			// Make sure we run on the strand
 			if (derive.io().strand().running_in_this_thread())
 			{
-				ASIO2_ASSERT(g.valid());
+				ASIO2_ASSERT(!g.is_empty());
+				ASIO2_ASSERT(!this->events_.empty());
 
 				if (!this->events_.empty())
 				{
@@ -234,12 +461,15 @@ namespace asio2::detail
 
 					if (!this->events_.empty())
 					{
-						// force move, if use std::move(g), the "g" maybe passed as a refrence and not moved
-						(this->events_.front())(event_queue_guard<derived_t>{std::move(g)});
-
-						ASIO2_ASSERT(!g.valid());
+						(this->events_.front())(std::move(g));
+					}
+					else
+					{
+						g.valid_ = false;
 					}
 				}
+
+				ASIO2_ASSERT(g.is_empty());
 
 				return (derive);
 			}
@@ -250,7 +480,8 @@ namespace asio2::detail
 			asio::post(derive.io().strand(), make_allocator(derive.wallocator(),
 			[this, p = derive.selfptr(), g = std::move(g)]() mutable
 			{
-				ASIO2_ASSERT(g.valid());
+				ASIO2_ASSERT(!g.is_empty());
+				ASIO2_ASSERT(!this->events_.empty());
 
 				if (!this->events_.empty())
 				{
@@ -258,19 +489,22 @@ namespace asio2::detail
 
 					if (!this->events_.empty())
 					{
-						// force move, if use std::move(g), the "g" maybe passed as a refrence and not moved
-						(this->events_.front())(event_queue_guard<derived_t>{std::move(g)});
-
-						ASIO2_ASSERT(!g.valid());
+						(this->events_.front())(std::move(g));
+					}
+					else
+					{
+						g.valid_ = false;
 					}
 				}
+
+				ASIO2_ASSERT(g.is_empty());
 			}));
 
 			return (derive);
 		}
 
 	protected:
-		std::queue<detail::function<void(event_queue_guard<derived_t>&&)>> events_;
+		std::queue<detail::function<void(event_queue_guard<derived_t>)>> events_;
 	};
 }
 

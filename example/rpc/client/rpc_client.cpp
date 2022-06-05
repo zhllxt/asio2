@@ -87,7 +87,7 @@ int main()
 		}
 
 		// param 1 : user callback function(this param can be empty)
-		// param 2 : timeout (this param can be empty, if this param is empty, use the default_timeout)
+		// param 2 : timeout (this param can be empty, if this param is empty, use the default timeout)
 		// param 3 : function name
 		// param 4 : function params
 		client.async_call([](int v)
@@ -126,7 +126,7 @@ int main()
 			asio2::ignore_unused(js, s);
 		});
 
-		// param 2 is empty, use the default_timeout
+		// param 2 is empty, use the default timeout
 		client.async_call([](int v)
 		{
 			if (!asio2::get_last_error())
@@ -178,7 +178,7 @@ int main()
 	client.start(host, port);
 
 	// synchronous call
-	// param 1 : timeout (this param can be empty, if this param is empty, use the default_timeout)
+	// param 1 : timeout (this param can be empty, if this param is empty, use the default timeout)
 	// param 2 : rpc function name
 	// param 3 : rpc function params
 	double mul = client.call<double>(std::chrono::seconds(3), "mul", 6.5, 6.5);

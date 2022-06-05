@@ -374,27 +374,11 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : set the root directory where we load the files. same as set_root_directory
-		 */
-		inline self& root_directory(std::filesystem::path path)
-		{
-			return this->set_root_directory(std::move(path));
-		}
-
-		/**
 		 * @function : get the root directory where we load the files.
 		 */
 		inline const std::filesystem::path& get_root_directory() noexcept
 		{
 			return this->root_directory_;
-		}
-
-		/**
-		 * @function : get the root directory where we load the files. same as get_root_directory
-		 */
-		inline const std::filesystem::path& root_directory() noexcept
-		{
-			return this->get_root_directory();
 		}
 
 		/**
@@ -420,14 +404,6 @@ namespace asio2::detail
 		inline bool is_support_websocket() noexcept
 		{
 			return this->support_websocket_;
-		}
-
-		/**
-		 * @function : get whether websocket is supported, default is true, same as is_support_websocket
-		 */
-		inline bool support_websocket() noexcept
-		{
-			return this->is_support_websocket();
 		}
 
 	protected:

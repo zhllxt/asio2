@@ -196,11 +196,22 @@ namespace asio2::detail
 		inline void notify(event_type e, Args&&... args)
 		{
 			using observer_type = observer_t<Args...>;
-			observer_type * observer_ptr = static_cast<observer_type *>(
-				this->observers_[detail::to_underlying(e)].get());
-			if (observer_ptr)
+			try
 			{
-				(*observer_ptr)(std::forward<Args>(args)...);
+				observer_type* observer_ptr = static_cast<observer_type*>(
+					this->observers_[detail::to_underlying(e)].get());
+				if (observer_ptr)
+				{
+					(*observer_ptr)(std::forward<Args>(args)...);
+				}
+			}
+			catch (std::exception const&)
+			{
+				ASIO2_ASSERT(false && "Some exception occurred in the user callback function.");
+			}
+			catch (...)
+			{
+				ASIO2_ASSERT(false && "Some exception occurred in the user callback function.");
 			}
 		}
 

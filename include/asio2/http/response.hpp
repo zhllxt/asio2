@@ -269,27 +269,11 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : set the root directory where we load the files. same as set_root_directory
-		 */
-		inline self& root_directory(std::filesystem::path path)
-		{
-			return this->set_root_directory(std::move(path));
-		}
-
-		/**
 		 * @function : get the root directory where we load the files.
 		 */
 		inline const std::filesystem::path& get_root_directory() noexcept
 		{
 			return this->root_directory_;
-		}
-
-		/**
-		 * @function : get the root directory where we load the files. same as get_root_directory
-		 */
-		inline const std::filesystem::path& root_directory() noexcept
-		{
-			return this->get_root_directory();
 		}
 
 		/**

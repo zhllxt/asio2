@@ -572,7 +572,7 @@ namespace asio2::detail
 			template <class, class>                       friend class rpc_call_cp;
 		protected:
 			sync_caller(derive_t& d) noexcept
-				: derive(d), id_(0), tm_(d.default_timeout()) {}
+				: derive(d), id_(0), tm_(d.get_default_timeout()) {}
 			sync_caller(sync_caller&& o) noexcept
 				: derive(o.derive), id_(std::move(o.id_)), tm_(std::move(o.tm_)) {}
 
@@ -623,7 +623,7 @@ namespace asio2::detail
 			template <class, class>                       friend class rpc_call_cp;
 		protected:
 			async_caller(derive_t& d) noexcept
-				: derive(d), id_(0), tm_(d.default_timeout()) {}
+				: derive(d), id_(0), tm_(d.get_default_timeout()) {}
 			async_caller(async_caller&& o) noexcept
 				: derive(o.derive)
 				, id_(std::move(o.id_)), tm_(std::move(o.tm_))
@@ -712,7 +712,7 @@ namespace asio2::detail
 			template <class, class>                       friend class rpc_call_cp;
 		protected:
 			base_caller(derive_t& d) noexcept
-				: derive(d), tm_(d.default_timeout()) {}
+				: derive(d), tm_(d.get_default_timeout()) {}
 			base_caller(base_caller&& o) noexcept
 				: derive(o.derive), tm_(std::move(o.tm_)) {}
 
@@ -805,7 +805,7 @@ namespace asio2::detail
 			derived_t& derive = static_cast<derived_t&>(*this);
 
 			return sync_call_op<derived_t>::template exec<return_t>(derive,
-				derive.default_timeout(), std::move(name), std::forward<Args>(args)...);
+				derive.get_default_timeout(), std::move(name), std::forward<Args>(args)...);
 		}
 
 		/**
@@ -821,7 +821,7 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			async_call_op<derived_t>::template exec(derive, derive.mkid(), derive.default_timeout(),
+			async_call_op<derived_t>::template exec(derive, derive.mkid(), derive.get_default_timeout(),
 				async_call_op<derived_t>::template make_callback(derive, std::forward<Callback>(cb)),
 				rpc_request<Args...>{ std::move(name), std::forward<Args>(args)... });
 		}
@@ -856,7 +856,7 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			async_call_op<derived_t>::template exec(derive, derive.mkid(), derive.default_timeout(),
+			async_call_op<derived_t>::template exec(derive, derive.mkid(), derive.get_default_timeout(),
 				async_call_op<derived_t>::template make_callback<return_t>(
 					derive, std::forward<Callback>(cb)),
 				rpc_request<Args...>{ std::move(name), std::forward<Args>(args)... });

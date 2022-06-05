@@ -115,7 +115,7 @@ namespace asio2::detail
 			}
 
 			derive.push_event([this, &derive, this_ptr = std::move(this_ptr), fn = std::forward<Fn>(fn)]
-			(event_queue_guard<derived_t>&& g) mutable
+			(event_queue_guard<derived_t> g) mutable
 			{
 				struct SSL_clear_op
 				{

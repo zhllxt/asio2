@@ -100,7 +100,7 @@ namespace asio2::detail
 			, shared_targets_     (shared_targets     )
 			, retained_messages_  (retained_messages  )
 		{
-			this->silence_timeout(std::chrono::milliseconds(mqtt_silence_timeout));
+			this->set_silence_timeout(std::chrono::milliseconds(mqtt_silence_timeout));
 		}
 
 		/**
@@ -160,9 +160,9 @@ namespace asio2::detail
 		}
 
 	protected:
-		template<typename DeferEvent = defer_event<>>
+		template<typename DeferEvent = defer_event<void, derived_t>>
 		inline void _do_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr,
-			DeferEvent&& chain = defer_event{ nullptr })
+			DeferEvent chain = defer_event<void, derived_t>{})
 		{
 			state_t expected = state_t::started;
 			if (this->derived().state_.compare_exchange_strong(expected, state_t::started))
@@ -192,7 +192,7 @@ namespace asio2::detail
 				}
 			}
 
-			super::_do_disconnect(ec, std::move(this_ptr), std::forward<DeferEvent>(chain));
+			super::_do_disconnect(ec, std::move(this_ptr), std::move(chain));
 		}
 
 		template<typename MatchCondition>

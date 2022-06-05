@@ -111,7 +111,7 @@ namespace asio2::detail
 		template<typename MatchCondition>
 		inline void start(condition_wrap<MatchCondition> condition)
 		{
-			this->rep_.root_directory(this->root_directory_);
+			this->rep_.set_root_directory(this->root_directory_);
 			this->rep_.session_ptr_ = this->selfptr();
 			this->rep_.defer_callback_ = [this, condition, wptr = std::weak_ptr<derived_t>(this->selfptr())]
 			() mutable
@@ -192,35 +192,41 @@ namespace asio2::detail
 			}
 		}
 
-		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
+		template<typename DeferEvent>
+		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr, DeferEvent chain)
 		{
 			this->derived()._rdc_stop();
 
 			if (this->is_http())
 			{
-				super::_handle_disconnect(ec, std::move(this_ptr));
+				super::_handle_disconnect(ec, std::move(this_ptr), std::move(chain));
 			}
 			else
 			{
-				this->derived()._ws_stop(this_ptr, [this, ec, this_ptr]() mutable
-				{
-					super::_handle_disconnect(ec, std::move(this_ptr));
-				});
+				this->derived()._ws_stop(this_ptr,
+					defer_event
+					{
+						[this, ec, this_ptr, e = chain.move_event()] (event_queue_guard<derived_t> g) mutable
+						{
+							super::_handle_disconnect(ec, std::move(this_ptr), defer_event(std::move(e), std::move(g)));
+						}, chain.move_guard()
+					}
+				);
 			}
 		}
 
-		inline void _do_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
+		template<typename DeferEvent>
+		inline void _do_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr, DeferEvent chain)
 		{
 			// call the base class _do_stop function
-			super::_do_stop(ec, std::move(this_ptr));
+			super::_do_stop(ec, std::move(this_ptr), std::move(chain));
 
 			// reset the callback shared_ptr, to avoid the callback owned this self shared_ptr.
 			this->websocket_router_.reset();
 		}
 
 		template<typename MatchCondition>
-		inline void _send_response(std::shared_ptr<derived_t> this_ptr,
-			condition_wrap<MatchCondition> condition)
+		inline void _send_response(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
 		{
 			ASIO2_ASSERT(this->is_http());
 
@@ -308,12 +314,12 @@ namespace asio2::detail
 			this->derived()._http_handle_recv(ec, bytes_recvd, std::move(this_ptr), std::move(condition));
 		}
 
-		template<typename MatchCondition>
+		template<typename MatchCondition, typename DeferEvent>
 		inline void _handle_upgrade(const error_code & ec, std::shared_ptr<derived_t> self_ptr,
-			condition_wrap<MatchCondition> condition)
+			condition_wrap<MatchCondition> condition, DeferEvent chain)
 		{
 			this->derived().sessions().post(
-			[this, ec, this_ptr = std::move(self_ptr), condition = std::move(condition)]
+			[this, ec, this_ptr = std::move(self_ptr), condition = std::move(condition), chain = std::move(chain)]
 			() mutable
 			{
 				try
@@ -325,9 +331,11 @@ namespace asio2::detail
 					asio::detail::throw_error(ec);
 
 					asio::post(this->derived().io().strand(), make_allocator(this->derived().wallocator(),
-					[this, this_ptr = std::move(this_ptr), condition = std::move(condition)]
+					[this, this_ptr = std::move(this_ptr), condition = std::move(condition), chain = std::move(chain)]
 					() mutable
 					{
+						detail::ignore_unused(chain);
+
 						this->derived()._post_recv(std::move(this_ptr), std::move(condition));
 					}));
 				}
@@ -335,14 +343,13 @@ namespace asio2::detail
 				{
 					set_last_error(e);
 
-					this->derived()._do_disconnect(e.code(), this->derived().selfptr());
+					this->derived()._do_disconnect(e.code(), this->derived().selfptr(), defer_event(chain.move_guard()));
 				}
 			});
 		}
 
 		template<typename MatchCondition>
-		inline bool _check_upgrade(std::shared_ptr<derived_t>& this_ptr,
-			condition_wrap<MatchCondition>& condition)
+		inline bool _check_upgrade(std::shared_ptr<derived_t>& this_ptr, condition_wrap<MatchCondition>& condition)
 		{
 			if (this->support_websocket_ && this->derived().is_http() && this->req_.is_upgrade())
 			{
@@ -362,12 +369,11 @@ namespace asio2::detail
 						this->derived()._post_control_callback(this_ptr, condition);
 						this->derived().push_event(
 						[this, this_ptr = std::move(this_ptr), condition = std::move(condition)]
-						(event_queue_guard<derived_t>&& g) mutable
+						(event_queue_guard<derived_t> g) mutable
 						{
-							detail::ignore_unused(g);
-
 							this->derived()._post_upgrade(
-								std::move(this_ptr), std::move(condition), this->req_.base());
+								std::move(this_ptr), std::move(condition), this->req_.base(),
+								defer_event([](event_queue_guard<derived_t>) {}, std::move(g)));
 						});
 						return true;
 					}

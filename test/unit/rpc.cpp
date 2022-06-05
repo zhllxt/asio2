@@ -255,8 +255,8 @@ void rpc_test()
 			asio2::rpc_client& client = *iter;
 
 			// set default rpc call timeout
-			client.default_timeout(std::chrono::seconds(3));
-			ASIO2_CHECK(client.default_timeout() == std::chrono::seconds(3));
+			client.set_default_timeout(std::chrono::seconds(3));
+			ASIO2_CHECK(client.get_default_timeout() == std::chrono::seconds(3));
 			client.set_auto_reconnect(false);
 			ASIO2_CHECK(!client.is_auto_reconnect());
 
@@ -567,8 +567,8 @@ void rpc_test()
 			my_rpc_client_tcp& client = *iter;
 
 			// set default rpc call timeout
-			client.default_timeout(std::chrono::seconds(3));
-			ASIO2_CHECK(client.default_timeout() == std::chrono::seconds(3));
+			client.set_default_timeout(std::chrono::seconds(3));
+			ASIO2_CHECK(client.get_default_timeout() == std::chrono::seconds(3));
 			client.set_auto_reconnect(false);
 			ASIO2_CHECK(!client.is_auto_reconnect());
 
@@ -891,8 +891,8 @@ void rpc_test()
 			asio2::rpc_client& client = *iter;
 
 			// set default rpc call timeout
-			client.default_timeout(std::chrono::seconds(3));
-			ASIO2_CHECK(client.default_timeout() == std::chrono::seconds(3));
+			client.set_default_timeout(std::chrono::seconds(3));
+			ASIO2_CHECK(client.get_default_timeout() == std::chrono::seconds(3));
 			client.set_connect_timeout(std::chrono::milliseconds(100));
 			client.set_auto_reconnect(true, std::chrono::milliseconds(100));
 			ASIO2_CHECK(client.is_auto_reconnect());
@@ -1080,7 +1080,7 @@ void rpc_test()
 		{
 			asio2::rpc_client& client = *clients[i];
 
-			ASIO2_CHECK(client.default_timeout() == std::chrono::seconds(3));
+			ASIO2_CHECK(client.get_default_timeout() == std::chrono::seconds(3));
 			client.set_auto_reconnect(true, std::chrono::milliseconds(100));
 			ASIO2_CHECK(client.is_auto_reconnect());
 			ASIO2_CHECK(client.get_auto_reconnect_delay() == std::chrono::milliseconds(100));
@@ -1310,8 +1310,8 @@ void rpc_test()
 			asio2::rpc_client& client = *iter;
 
 			// set default rpc call timeout
-			client.default_timeout(std::chrono::seconds(3));
-			ASIO2_CHECK(client.default_timeout() == std::chrono::seconds(3));
+			client.set_default_timeout(std::chrono::seconds(3));
+			ASIO2_CHECK(client.get_default_timeout() == std::chrono::seconds(3));
 			client.set_auto_reconnect(false);
 			ASIO2_CHECK(!client.is_auto_reconnect());
 
@@ -1685,7 +1685,7 @@ void rpc_test()
 		{
 			asio2::rpc_client& client = *clients[i];
 
-			ASIO2_CHECK(client.default_timeout() == std::chrono::seconds(3));
+			ASIO2_CHECK(client.get_default_timeout() == std::chrono::seconds(3));
 			client.set_auto_reconnect(true, std::chrono::milliseconds(100));
 			ASIO2_CHECK(client.is_auto_reconnect());
 			ASIO2_CHECK(client.get_auto_reconnect_delay() == std::chrono::milliseconds(100));
@@ -2100,8 +2100,8 @@ void rpc_test()
 			asio2::rpc_client_use<asio2::net_protocol::ws>& client = *iter;
 
 			// set default rpc call timeout
-			client.default_timeout(std::chrono::seconds(3));
-			ASIO2_CHECK(client.default_timeout() == std::chrono::seconds(3));
+			client.set_default_timeout(std::chrono::seconds(3));
+			ASIO2_CHECK(client.get_default_timeout() == std::chrono::seconds(3));
 			client.set_auto_reconnect(false);
 			ASIO2_CHECK(!client.is_auto_reconnect());
 
@@ -2511,7 +2511,7 @@ void rpc_test()
 		{
 			asio2::rpc_client_use<asio2::net_protocol::ws>& client = *clients[i];
 
-			ASIO2_CHECK(client.default_timeout() == std::chrono::seconds(3));
+			ASIO2_CHECK(client.get_default_timeout() == std::chrono::seconds(3));
 			client.set_auto_reconnect(true, std::chrono::milliseconds(100));
 			ASIO2_CHECK(client.is_auto_reconnect());
 			ASIO2_CHECK(client.get_auto_reconnect_delay() == std::chrono::milliseconds(100));

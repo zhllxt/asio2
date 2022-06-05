@@ -124,19 +124,9 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get the websocket upgraged response object, same as get_upgrade_response
-		 */
-		inline const http::response<body_type>&     upgrade_response() noexcept { return this->upgrade_rep_; }
-
-		/**
 		 * @function : get the websocket upgraged response object
 		 */
 		inline const http::response<body_type>& get_upgrade_response() noexcept { return this->upgrade_rep_; }
-
-		/**
-		 * @function : get the websocket upgraged target, same as get_upgrade_target
-		 */
-		inline const std::string&     upgrade_target() noexcept { return this->upgrade_target_; }
 
 		/**
 		 * @function : get the websocket upgraged target
@@ -150,14 +140,6 @@ namespace asio2::detail
 		{
 			this->upgrade_target_ = std::move(target);
 			return (this->derived());
-		}
-
-		/**
-		 * @function : set the websocket upgraged target, same as set_upgrade_target
-		 */
-		inline derived_t & upgrade_target(std::string target)
-		{
-			return this->set_upgrade_target(std::move(target));
 		}
 
 	public:
@@ -180,7 +162,7 @@ namespace asio2::detail
 		{
 			if constexpr (detail::can_convert_to_string<detail::remove_cvref_t<Arg1>>::value)
 			{
-				this->derived().upgrade_target(std::forward<Arg1>(arg1));
+				this->derived().set_upgrade_target(std::forward<Arg1>(arg1));
 
 				return this->derived().template _do_connect<IsAsync>(
 					std::forward<String>(host), std::forward<StrOrInt>(port),
@@ -203,27 +185,33 @@ namespace asio2::detail
 			this->derived()._ws_init(condition, this->socket_);
 		}
 
-		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
+		template<typename DeferEvent>
+		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr, DeferEvent chain)
 		{
-			this->derived()._ws_stop(this_ptr, [this, ec, this_ptr]() mutable
-			{
-				super::_handle_disconnect(ec, std::move(this_ptr));
-			});
+			this->derived()._ws_stop(this_ptr,
+				defer_event
+				{
+					[this, ec, this_ptr, e = chain.move_event()] (event_queue_guard<derived_t> g) mutable
+					{
+						super::_handle_disconnect(ec, std::move(this_ptr), defer_event(std::move(e), std::move(g)));
+					}, chain.move_guard()
+				}
+			);
 		}
 
-		template<typename MatchCondition>
+		template<typename MatchCondition, typename DeferEvent>
 		inline void _handle_connect(const error_code & ec, std::shared_ptr<derived_t> this_ptr,
-			condition_wrap<MatchCondition> condition)
+			condition_wrap<MatchCondition> condition, DeferEvent chain)
 		{
 			set_last_error(ec);
 
 			if (ec)
-				return this->derived()._done_connect(ec, std::move(this_ptr), std::move(condition));
+				return this->derived()._done_connect(ec, std::move(this_ptr), std::move(condition), std::move(chain));
 
 			this->derived()._ws_start(this_ptr, condition, this->socket_);
 
 			this->derived()._post_control_callback(this_ptr, condition);
-			this->derived()._post_upgrade(std::move(this_ptr), std::move(condition), this->upgrade_rep_);
+			this->derived()._post_upgrade(std::move(this_ptr), std::move(condition), this->upgrade_rep_, std::move(chain));
 		}
 
 		template<class Data, class Callback>

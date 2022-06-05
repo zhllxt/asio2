@@ -74,7 +74,7 @@ namespace asio2::detail
 			, tcp_send_op<derived_t, args_t>()
 			, tcp_recv_op<derived_t, args_t>()
 		{
-			this->connect_timeout(std::chrono::milliseconds(tcp_connect_timeout));
+			this->set_connect_timeout(std::chrono::milliseconds(tcp_connect_timeout));
 		}
 
 		template<class Scheduler, std::enable_if_t<!std::is_integral_v<detail::remove_cvref_t<Scheduler>>, int> = 0>
@@ -88,7 +88,7 @@ namespace asio2::detail
 			, tcp_send_op<derived_t, args_t>()
 			, tcp_recv_op<derived_t, args_t>()
 		{
-			this->connect_timeout(std::chrono::milliseconds(tcp_connect_timeout));
+			this->set_connect_timeout(std::chrono::milliseconds(tcp_connect_timeout));
 		}
 
 		template<class Scheduler, std::enable_if_t<!std::is_integral_v<detail::remove_cvref_t<Scheduler>>, int> = 0>
@@ -186,7 +186,8 @@ namespace asio2::detail
 			// If you don't do this, you may end up closing the connection while the other side is still sending data.
 			// This will result in an ungraceful close.
 
-			this->derived().dispatch([this]() mutable
+			this->derived().push_event([this, this_ptr = this->derived().selfptr()]
+			(event_queue_guard<derived_t> g) mutable
 			{
 				ASIO2_LOG(spdlog::level::debug, "exec stop : {}",
 					magic_enum::enum_name(this->state_.load()));
@@ -194,15 +195,14 @@ namespace asio2::detail
 				// first close the reconnect timer
 				this->_stop_reconnect_timer();
 
-				auto this_ptr = this->derived().selfptr();
-
 				this->derived()._do_disconnect(asio::error::operation_aborted, this->derived().selfptr(),
 					defer_event
 					{
-						[this, this_ptr = std::move(this_ptr)]() mutable
+						[this, this_ptr = std::move(this_ptr)] (event_queue_guard<derived_t> g) mutable
 						{
-							this->derived()._do_stop(asio::error::operation_aborted, std::move(this_ptr));
-						}
+							this->derived()._do_stop(asio::error::operation_aborted, std::move(this_ptr),
+								defer_event([](event_queue_guard<derived_t>) {}, std::move(g)));
+						}, std::move(g)
 					}
 				);
 			});
@@ -316,9 +316,15 @@ namespace asio2::detail
 			[this, &derive, this_ptr = derive.selfptr(),
 				host = std::forward<String>(host), port = std::forward<StrOrInt>(port),
 				condition = std::move(condition), set_promise = std::move(set_promise)]
-			(event_queue_guard<derived_t>&& g) mutable
+			(event_queue_guard<derived_t> g) mutable
 			{
-				detail::ignore_unused(g);
+				defer_event chain
+				{
+					[set_promise = std::move(set_promise)] (event_queue_guard<derived_t> g) mutable
+					{
+						detail::ignore_unused(set_promise, g);
+					}, std::move(g)
+				};
 
 				state_t expected = state_t::stopped;
 				if (!derive.state_.compare_exchange_strong(expected, state_t::starting))
@@ -357,7 +363,7 @@ namespace asio2::detail
 					derive._load_reconnect_timer(condition);
 
 					derive.template _start_connect<IsAsync>(
-						std::move(this_ptr), std::move(condition), std::move(set_promise));
+						std::move(this_ptr), std::move(condition), std::move(chain));
 
 					return;
 				}
@@ -421,9 +427,9 @@ namespace asio2::detail
 				// can't use condition = std::move(condition), Otherwise, the value of condition will
 				// be empty the next time the code goto here.
 				derive.push_event([this, &derive, this_ptr = derive.selfptr(), condition]
-				(event_queue_guard<derived_t>&& g) mutable
+				(event_queue_guard<derived_t> g) mutable
 				{
-					detail::ignore_unused(this, g);
+					detail::ignore_unused(this);
 
 					if (derive.reconnect_timer_canceled_.test_and_set())
 					{
@@ -441,7 +447,7 @@ namespace asio2::detail
 							magic_enum::enum_name(derive.state_.load()));
 
 						derive.template _start_connect<true>(std::move(this_ptr), std::move(condition),
-							defer_event{ nullptr });
+							defer_event(std::move(g)));
 					}
 				});
 			});
@@ -460,16 +466,18 @@ namespace asio2::detail
 				this->dgram_ = false;
 		}
 
-		template<typename MatchCondition>
-		inline void _do_start(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		template<typename MatchCondition, typename DeferEvent>
+		inline void _do_start(
+			std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition, DeferEvent chain)
 		{
 			this->update_alive_time();
 			this->reset_connect_time();
 
-			this->derived()._start_recv(std::move(this_ptr), std::move(condition));
+			this->derived()._start_recv(std::move(this_ptr), std::move(condition), std::move(chain));
 		}
 
-		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
+		template<typename DeferEvent>
+		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr, DeferEvent chain)
 		{
 			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
 
@@ -485,7 +493,7 @@ namespace asio2::detail
 			ASIO2_LOG(spdlog::level::debug, "enter _handle_disconnect : {}",
 				magic_enum::enum_name(this->state_.load()));
 
-			detail::ignore_unused(ec, this_ptr);
+			detail::ignore_unused(ec, this_ptr, chain);
 
 			this->derived()._rdc_stop();
 
@@ -506,7 +514,8 @@ namespace asio2::detail
 			ASIO2_ASSERT(!this->socket_.lowest_layer().is_open());
 		}
 
-		inline void _do_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
+		template<typename DeferEvent>
+		inline void _do_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr, DeferEvent chain)
 		{
 			ASIO2_LOG(spdlog::level::debug, "enter _do_stop : {}",
 				magic_enum::enum_name(this->state_.load()));
@@ -518,33 +527,33 @@ namespace asio2::detail
 			}
 		#endif
 
-			this->derived()._post_stop(ec, std::move(this_ptr));
+			this->derived()._post_stop(ec, std::move(this_ptr), std::move(chain));
 		}
 
-		inline void _post_stop(const error_code& ec, std::shared_ptr<derived_t> self_ptr)
+		template<typename DeferEvent>
+		inline void _post_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr, DeferEvent chain)
 		{
 			// All pending sending events will be cancelled after enter the send strand below.
-			this->derived().push_event([this, ec, this_ptr = std::move(self_ptr)]
-			(event_queue_guard<derived_t>&& g) mutable
+			this->derived().disp_event([this, ec, this_ptr = std::move(this_ptr), e = chain.move_event()]
+			(event_queue_guard<derived_t> g) mutable
 			{
-				detail::ignore_unused(g);
-
 				set_last_error(ec);
 
 				// call the base class stop function
 				super::stop();
 
 				// call CRTP polymorphic stop
-				this->derived()._handle_stop(ec, std::move(this_ptr));
-			});
+				this->derived()._handle_stop(ec, std::move(this_ptr), defer_event(std::move(e), std::move(g)));
+			}, chain.move_guard());
 		}
 
-		inline void _handle_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
+		template<typename DeferEvent>
+		inline void _handle_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr, DeferEvent chain)
 		{
 			ASIO2_LOG(spdlog::level::debug, "enter _handle_stop : {}",
 				magic_enum::enum_name(this->state_.load()));
 
-			detail::ignore_unused(ec, this_ptr);
+			detail::ignore_unused(ec, this_ptr, chain);
 
 			state_t expected = state_t::stopping;
 			if (!this->state_.compare_exchange_strong(expected, state_t::stopped))
@@ -559,14 +568,18 @@ namespace asio2::detail
 			}
 		}
 
-		template<typename MatchCondition>
-		inline void _start_recv(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		template<typename MatchCondition, typename DeferEvent>
+		inline void _start_recv(
+			std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition, DeferEvent chain)
 		{
 			// Connect succeeded. post recv request.
 			asio::dispatch(this->derived().io().strand(), make_allocator(this->derived().wallocator(),
-			[this, this_ptr = std::move(this_ptr), condition = std::move(condition)]() mutable
+			[this, this_ptr = std::move(this_ptr), condition = std::move(condition), chain = std::move(chain)]
+			() mutable
 			{
 				using condition_type = typename condition_wrap<MatchCondition>::condition_type;
+
+				detail::ignore_unused(chain);
 
 				if constexpr (!std::is_same_v<condition_type, asio2::detail::hook_buffer_t>)
 				{

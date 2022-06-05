@@ -47,6 +47,16 @@ namespace asio2::detail
 		/**
 		 * @function : set the option of whether auto reconnect when disconnected, same as set_auto_reconnect
 		 * @param : enable - whether reconnect or not
+		 */
+		template<typename = void>
+		inline derived_t& auto_reconnect(bool enable) noexcept
+		{
+			return this->set_auto_reconnect(enable);
+		}
+
+		/**
+		 * @function : set the option of whether auto reconnect when disconnected, same as set_auto_reconnect
+		 * @param : enable - whether reconnect or not
 		 * @param : delay - how long is the delay before reconnecting, when enalbe is
 		 * false, the delay param is ignored
 		 */
@@ -54,6 +64,17 @@ namespace asio2::detail
 		inline derived_t& auto_reconnect(bool enable, std::chrono::duration<Rep, Period> delay) noexcept
 		{
 			return this->set_auto_reconnect(enable, std::move(delay));
+		}
+
+		/**
+		 * @function : set the option of whether auto reconnect when disconnected
+		 * @param : enable - whether reconnect or not
+		 */
+		template<typename = void>
+		inline derived_t& set_auto_reconnect(bool enable) noexcept
+		{
+			this->reconnect_enable_ = enable;
+			return static_cast<derived_t&>(*this);
 		}
 
 		/**
@@ -67,27 +88,6 @@ namespace asio2::detail
 		{
 			this->reconnect_enable_ = enable;
 			this->reconnect_delay_  = delay;
-			return static_cast<derived_t&>(*this);
-		}
-
-		/**
-		 * @function : set the option of whether auto reconnect when disconnected, same as set_auto_reconnect
-		 * @param : enable - whether reconnect or not
-		 */
-		template<typename = void>
-		inline derived_t& auto_reconnect(bool enable) noexcept
-		{
-			return this->set_auto_reconnect(enable);
-		}
-
-		/**
-		 * @function : set the option of whether auto reconnect when disconnected
-		 * @param : enable - whether reconnect or not
-		 */
-		template<typename = void>
-		inline derived_t& set_auto_reconnect(bool enable) noexcept
-		{
-			this->reconnect_enable_ = enable;
 			return static_cast<derived_t&>(*this);
 		}
 

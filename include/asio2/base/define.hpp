@@ -38,7 +38,7 @@ namespace asio2::detail
 	template <class, class>                      KEYWORD data_persistence_cp;       \
 	template <class, class>                      KEYWORD disconnect_cp;             \
 	template <class, class>                      KEYWORD event_queue_cp;            \
-	template <class, class>                      KEYWORD event_queue_guard;         \
+	template <class       >                      KEYWORD event_queue_guard;         \
 	template <class, class>                      KEYWORD post_cp;                   \
 	template <class, class>                      KEYWORD rdc_call_cp;               \
 	template <class, class>                      KEYWORD rdc_call_cp_impl;          \

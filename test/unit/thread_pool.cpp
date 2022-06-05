@@ -62,7 +62,7 @@ void thread_pool_test()
 			thpool.post([&]() mutable
 			{
 				c1++;
-				ASIO2_CHECK(thpool.pool_size() == 4);
+				ASIO2_CHECK(thpool.pool_size() == std::thread::hardware_concurrency());
 				ASIO2_CHECK(thpool.running_in_threads());
 			});
 			thpool.post(test1);

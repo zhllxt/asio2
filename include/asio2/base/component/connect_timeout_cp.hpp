@@ -43,28 +43,11 @@ namespace asio2::detail
 		~connect_timeout_cp() = default;
 
 		/**
-		 * @function : get the connect timeout, same as get_connect_timeout
-		 */
-		inline std::chrono::steady_clock::duration connect_timeout() noexcept
-		{
-			return this->get_connect_timeout();
-		}
-
-		/**
 		 * @function : get the connect timeout
 		 */
 		inline std::chrono::steady_clock::duration get_connect_timeout() noexcept
 		{
 			return this->connect_timeout_;
-		}
-
-		/**
-		 * @function : set the connect timeout, same as set_connect_timeout
-		 */
-		template<class Rep, class Period>
-		inline derived_t& connect_timeout(std::chrono::duration<Rep, Period> timeout) noexcept
-		{
-			return this->set_connect_timeout(std::move(timeout));
 		}
 
 		/**

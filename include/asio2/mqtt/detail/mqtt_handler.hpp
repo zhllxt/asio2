@@ -193,7 +193,7 @@ namespace asio2::detail
 
 							caller->push_event(
 							[this, caller_ptr, caller, pub = std::move(pub)]
-							(event_queue_guard<caller_t>&& g) mutable
+							(event_queue_guard<caller_t> g) mutable
 							{
 								detail::ignore_unused(g);
 
@@ -518,7 +518,7 @@ namespace asio2::detail
 				// response is sent already.
 				caller->push_event(
 				[this, caller_ptr, caller, msg = std::move(msg), topic_name = std::string{ topic_name }]
-				(event_queue_guard<caller_t>&& g) mutable
+				(event_queue_guard<caller_t> g) mutable
 				{
 					detail::ignore_unused(g);
 
@@ -781,7 +781,7 @@ namespace asio2::detail
 		{
 			session->push_event(
 			[session, sptr = session->selfptr(), rep = std::forward<Response>(response)]
-			(event_queue_guard<caller_t>&& g) mutable
+			(event_queue_guard<caller_t> g) mutable
 			{
 				detail::ignore_unused(sptr);
 
@@ -1084,7 +1084,7 @@ namespace asio2::detail
 			// response is sent already.
 			caller->push_event(
 			[this, caller_ptr, caller, sub = std::move(sub), topic_filter = std::string{ sub.topic_filter() }]
-			(event_queue_guard<caller_t>&& g) mutable
+			(event_queue_guard<caller_t> g) mutable
 			{
 				detail::ignore_unused(g);
 

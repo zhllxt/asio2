@@ -47,6 +47,7 @@
 #include <asio2/base/component/user_data_cp.hpp>
 #include <asio2/base/component/user_timer_cp.hpp>
 #include <asio2/base/component/post_cp.hpp>
+#include <asio2/base/component/event_queue_cp.hpp>
 #include <asio2/base/component/async_event_cp.hpp>
 
 namespace asio2::detail
@@ -57,6 +58,7 @@ namespace asio2::detail
 	class server_impl_t
 		: public object_t       <derived_t>
 		, public iopool_cp
+		//, public event_queue_cp <derived_t>
 		, public user_data_cp   <derived_t>
 		, public user_timer_cp  <derived_t>
 		, public post_cp        <derived_t>

@@ -338,7 +338,7 @@ namespace asio2::detail
 			[this, &derive, this_ptr = derive.selfptr(),
 				device = std::forward<String>(device), baud_rate = std::forward<StrOrInt>(baud_rate),
 				condition = std::move(condition), set_promise = std::move(set_promise)]
-			(event_queue_guard<derived_t>&& g) mutable
+			(event_queue_guard<derived_t> g) mutable
 			{
 				detail::ignore_unused(g);
 
@@ -457,68 +457,67 @@ namespace asio2::detail
 			}
 		}
 
-		template<typename DeferEvent = defer_event<>>
+		template<typename DeferEvent = defer_event<void, derived_t>>
 		inline void _do_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr,
-			DeferEvent&& chain = defer_event{ nullptr })
+			DeferEvent chain = defer_event<void, derived_t>{})
 		{
 			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
 
 			state_t expected = state_t::started;
 			if (this->state_.compare_exchange_strong(expected, state_t::stopping))
 			{
-				return this->derived()._post_disconnect(ec, std::move(this_ptr), expected,
-					std::forward<DeferEvent>(chain));
+				return this->derived()._post_disconnect(ec, std::move(this_ptr), expected, std::move(chain));
 			}
 
 			expected = state_t::starting;
 			if (this->state_.compare_exchange_strong(expected, state_t::stopping))
 			{
-				return this->derived()._post_disconnect(ec, std::move(this_ptr), expected,
-					std::forward<DeferEvent>(chain));
+				return this->derived()._post_disconnect(ec, std::move(this_ptr), expected, std::move(chain));
 			}
 		}
 
-		template<typename DeferEvent = defer_event<>>
+		template<typename DeferEvent>
 		inline void _post_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr,
-			state_t old_state, DeferEvent&& chain = defer_event{ nullptr })
+			state_t old_state, DeferEvent chain)
 		{
 			// All pending sending events will be cancelled after enter the send strand below.
-			this->derived().push_event(
-			[this, ec, old_state, this_ptr = std::move(this_ptr), chain = std::forward<DeferEvent>(chain)]
-			(event_queue_guard<derived_t>&& g) mutable
+			this->derived().disp_event(
+			[this, ec, old_state, this_ptr = std::move(this_ptr), e = chain.move_event()]
+			(event_queue_guard<derived_t> g) mutable
 			{
 				detail::ignore_unused(g);
 
 				set_last_error(ec);
 
-				this->derived()._handle_disconnect(ec, std::move(this_ptr), old_state, std::move(chain));
-			});
+				this->derived()._handle_disconnect(ec, std::move(this_ptr), old_state,
+					defer_event(std::move(e), std::move(g)));
+			}, chain.move_guard());
 		}
 
 		template<typename DeferEvent>
 		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr,
-			state_t old_state, DeferEvent&& chain)
+			state_t old_state, DeferEvent chain)
 		{
 			this->derived()._rdc_stop();
 
-			this->derived()._do_stop(ec, std::move(this_ptr), old_state, std::forward<DeferEvent>(chain));
+			this->derived()._do_stop(ec, std::move(this_ptr), old_state, std::move(chain));
 		}
 
 		template<typename DeferEvent>
 		inline void _do_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr,
-			state_t old_state, DeferEvent&& chain)
+			state_t old_state, DeferEvent chain)
 		{
-			this->derived()._post_stop(ec, std::move(this_ptr), old_state, std::forward<DeferEvent>(chain));
+			this->derived()._post_stop(ec, std::move(this_ptr), old_state, std::move(chain));
 		}
 
 		template<typename DeferEvent>
 		inline void _post_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr,
-			state_t old_state, DeferEvent&& chain)
+			state_t old_state, DeferEvent chain)
 		{
 			// All pending sending events will be cancelled after enter the send strand below.
-			this->derived().push_event(
-			[this, ec, old_state, this_ptr = std::move(this_ptr), chain = std::forward<DeferEvent>(chain)]
-			(event_queue_guard<derived_t>&& g) mutable
+			this->derived().disp_event(
+			[this, ec, old_state, this_ptr = std::move(this_ptr), e = chain.move_event()]
+			(event_queue_guard<derived_t> g) mutable
 			{
 				detail::ignore_unused(g, old_state);
 
@@ -530,17 +529,17 @@ namespace asio2::detail
 					this->derived()._fire_stop();
 
 					// call CRTP polymorphic stop
-					this->derived()._handle_stop(ec, std::move(this_ptr), std::move(chain));
+					this->derived()._handle_stop(ec, std::move(this_ptr), defer_event(std::move(e), std::move(g)));
 				}
 				else
 				{
 					ASIO2_ASSERT(false);
 				}
-			});
+			}, chain.move_guard());
 		}
 
 		template<typename DeferEvent>
-		inline void _handle_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr, DeferEvent&& chain)
+		inline void _handle_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr, DeferEvent chain)
 		{
 			detail::ignore_unused(ec, this_ptr, chain);
 
@@ -694,28 +693,11 @@ namespace asio2::detail
 			this->rc_timeout_ = duration;
 			return (this->derived());
 		}
-		/**
-		 * @function : set the default remote call timeout for rpc/rdc, same as set_default_timeout
-		 */
-		template<class Rep, class Period>
-		inline derived_t & default_timeout(std::chrono::duration<Rep, Period> duration) noexcept
-		{
-			this->rc_timeout_ = duration;
-			return (this->derived());
-		}
 
 		/**
 		 * @function : get the default remote call timeout for rpc/rdc
 		 */
 		inline std::chrono::steady_clock::duration get_default_timeout() noexcept
-		{
-			return this->rc_timeout_;
-		}
-
-		/**
-		 * @function : get the default remote call timeout for rpc/rdc, same as get_default_timeout
-		 */
-		inline std::chrono::steady_clock::duration default_timeout() noexcept
 		{
 			return this->rc_timeout_;
 		}

@@ -455,7 +455,7 @@ namespace asio2::detail
 
 				derive.push_event([&derive, p = derive.selfptr(), endpoint = std::forward<Endpoint>(endpoint),
 					data = derive._data_persistence(std::forward<DataT>(data))]
-					(event_queue_guard<derived_t>&& g) mutable
+					(event_queue_guard<derived_t> g) mutable
 				{
 					derive._do_send(endpoint, data, [g = std::move(g)](const error_code&, std::size_t) mutable {});
 				});
@@ -510,7 +510,7 @@ namespace asio2::detail
 					asio::detail::throw_error(asio::error::invalid_argument);
 
 				derive.push_event([&derive, p = derive.selfptr(), endpoint = std::forward<Endpoint>(endpoint),
-					data = derive._data_persistence(s, count)](event_queue_guard<derived_t>&& g) mutable
+					data = derive._data_persistence(s, count)](event_queue_guard<derived_t> g) mutable
 				{
 					derive._do_send(endpoint, data, [g = std::move(g)](const error_code&, std::size_t) mutable {});
 				});
@@ -556,7 +556,7 @@ namespace asio2::detail
 
 				derive.push_event([&derive, p = derive.selfptr(), endpoint = std::forward<Endpoint>(endpoint),
 					data = derive._data_persistence(std::forward<DataT>(data)),
-					promise = std::move(promise)](event_queue_guard<derived_t>&& g) mutable
+					promise = std::move(promise)](event_queue_guard<derived_t> g) mutable
 				{
 					derive._do_send(endpoint, data, [&promise, g = std::move(g)]
 					(const error_code& ec, std::size_t bytes_sent) mutable
@@ -636,7 +636,7 @@ namespace asio2::detail
 
 				derive.push_event([&derive, p = derive.selfptr(), endpoint = std::forward<Endpoint>(endpoint),
 					data = derive._data_persistence(s, count),
-					promise = std::move(promise)](event_queue_guard<derived_t>&& g) mutable
+					promise = std::move(promise)](event_queue_guard<derived_t> g) mutable
 				{
 					derive._do_send(endpoint, data, [&promise, g = std::move(g)]
 					(const error_code& ec, std::size_t bytes_sent) mutable
@@ -690,7 +690,7 @@ namespace asio2::detail
 
 				derive.push_event([&derive, p = derive.selfptr(), endpoint = std::forward<Endpoint>(endpoint),
 					data = derive._data_persistence(std::forward<DataT>(data)),
-					fn = std::forward<Callback>(fn)](event_queue_guard<derived_t>&& g) mutable
+					fn = std::forward<Callback>(fn)](event_queue_guard<derived_t> g) mutable
 				{
 					derive._do_send(endpoint, data, [&fn, g = std::move(g)]
 					(const error_code&, std::size_t bytes_sent) mutable
@@ -763,7 +763,7 @@ namespace asio2::detail
 
 				derive.push_event([&derive, p = derive.selfptr(), endpoint = std::forward<Endpoint>(endpoint),
 					data = derive._data_persistence(s, count),
-					fn = std::forward<Callback>(fn)](event_queue_guard<derived_t>&& g) mutable
+					fn = std::forward<Callback>(fn)](event_queue_guard<derived_t> g) mutable
 				{
 					derive._do_send(endpoint, data, [&fn, g = std::move(g)]
 					(const error_code&, std::size_t bytes_sent) mutable
@@ -1012,7 +1012,7 @@ namespace asio2::detail
 						derive.push_event([&derive, p, endpoint = iter->endpoint(),
 							data = (endpoints.size() == i ? std::move(data) : data),
 							callback = (endpoints.size() == i ? std::move(callback) : callback)]
-						(event_queue_guard<derived_t>&& g) mutable
+						(event_queue_guard<derived_t> g) mutable
 						{
 							derive._do_send(endpoint, data, [g = std::move(g), f = std::move(callback)]
 							(const error_code& ec, std::size_t bytes_sent) mutable

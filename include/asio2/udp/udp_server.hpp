@@ -606,7 +606,7 @@ namespace asio2::detail
 
 								session->push_event([this, ec, session_ptr = std::move(session_ptr),
 									condition = std::move(condition), syn = std::string{ data.data(),data.size() }]
-								(event_queue_guard<session_t>&& g) mutable
+								(event_queue_guard<session_t> g) mutable
 								{
 									detail::ignore_unused(g);
 

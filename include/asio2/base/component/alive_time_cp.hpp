@@ -65,14 +65,6 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get silence duration of std::chrono::duration, same as get_silence_duration
-		 */
-		inline std::chrono::system_clock::duration silence_duration() const noexcept
-		{
-			return this->get_silence_duration();
-		}
-
-		/**
 		 * @function : get silence duration of std::chrono::duration
 		 */
 		inline std::chrono::system_clock::duration get_silence_duration() const noexcept

@@ -796,7 +796,7 @@ namespace asio2::detail
 
 				// can't use async_send, beacuse the caller maybe not started yet
 				caller->push_event([caller_ptr, caller, response = std::forward<Response>(response)]
-				(event_queue_guard<caller_t>&& g) mutable
+				(event_queue_guard<caller_t> g) mutable
 				{
 					detail::ignore_unused(caller_ptr);
 
@@ -814,7 +814,7 @@ namespace asio2::detail
 
 				// can't use async_send, beacuse the caller maybe not started yet
 				caller->push_event([caller_ptr, caller, response = std::forward<Response>(response)]
-				(event_queue_guard<caller_t>&& g) mutable
+				(event_queue_guard<caller_t> g) mutable
 				{
 					detail::ignore_unused(caller_ptr);
 

@@ -308,7 +308,7 @@ namespace asio2::detail
 			[this, &derive, this_ptr = derive.selfptr(),
 				host = std::forward<String>(host), port = std::forward<StrOrInt>(port),
 				condition = std::move(condition), set_promise = std::move(set_promise)]
-			(event_queue_guard<derived_t>&& g) mutable
+			(event_queue_guard<derived_t> g) mutable
 			{
 				detail::ignore_unused(g);
 
