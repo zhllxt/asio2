@@ -97,11 +97,28 @@ namespace asio2::detail
 			set_last_error(ec);
 
 			// bytes_recvd : The number of bytes in the streambuf's get area up to and including the delimiter.
+
 			// After testing, it is found that even if the "ec" is 0, the socket may have been closed already,
 			// the stop function of the base class has been called already, and the member variable resources
 			// have been destroyed already, so we need check the "derive.is_started()" to ensure that the user
 			// maybe read write the member variable resources in the recv callback, and it will cause crash.
-			if (!ec && derive.is_started())
+			// the code can't be like this:
+			//if (!ec && derive.is_started())
+			//{
+			//	_fire_recv(...);
+			//	_post_recv(...);
+			//}
+			//else
+			//{
+			//	// after call client.stop, and user call client.start again, when code run to here, the state
+			//	// maybe changed to starting by the client.start, if we call _do_disconnect at here, the state
+			//	// is changed to stopping again, this will break the client.start processing.
+			//	_do_disconnect(...);
+			//}
+			if (!derive.is_started())
+				return;
+
+			if (!ec)
 			{
 				// every times recv data,we update the last alive time.
 				derive.update_alive_time();

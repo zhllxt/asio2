@@ -1070,6 +1070,7 @@ void http_test()
 			asio2::ws_client& client = *client_ptr;
 
 			client.set_connect_timeout(std::chrono::seconds(5));
+			client.set_auto_reconnect(false);
 
 			client.bind_init([&]()
 			{
@@ -1121,7 +1122,7 @@ void http_test()
 				// this send will be failed, because connection is not fully completed
 				//client.async_send("abc", []()
 				//{
-				//	ASIO2_ASSERT(asio2::get_last_error());
+				//	ASIO2_CHECK(asio2::get_last_error());
 				//	std::cout << "send failed : " << asio2::last_error_msg() << std::endl;
 				//});
 
@@ -1129,10 +1130,16 @@ void http_test()
 			{
 				ASIO2_CHECK(!data.empty());
 				//client.async_send(data);
+			}).bind_disconnect([&]()
+			{
+				ASIO2_CHECK(asio2::get_last_error());
+				client_connect_counter--;
 			});
 
 			// the /ws is the websocket upgraged target
-			client.start("127.0.0.1", 8080, "/ws");
+			bool ws_client_ret = client.start("127.0.0.1", 8080, "/ws");
+			ASIO2_CHECK(ws_client_ret);
+			ASIO2_CHECK(!asio2::get_last_error());
 		}
 
 		while (server.get_session_count() < std::size_t(test_client_count))
@@ -1150,23 +1157,35 @@ void http_test()
 
 		ASIO2_CHECK_VALUE(client_connect_counter.load(), client_connect_counter == test_client_count);
 
-		asio2::timer timer;
+		asio2::timer timer(iopool.get(loop % iopool.size()));
 		timer.start_timer(1, 10, 1, [&]()
 		{
-			client_connect_counter = 0;
-
+			ASIO2_CHECK(timer.get_thread_id() == std::this_thread::get_id());
 			for (auto& client_ptr : ws_clients)
 			{
-				// beacuse used iopool, so the stop is async, it is not blocking, and will return
-				// immediately. 
+				// if the client.stop function is not called in the client's io_context thread,
+				// the stop is async, it is not blocking, and will return immediately. 
 				client_ptr->stop();
-				// at here, the client state maybe not stopped, beacuse the stop is async.
+
+				// if the client.stop function is not called in the client's io_context thread,
+				// after client.stop, the client must be stopped completed already.
+				if (client_ptr->get_thread_id() != std::this_thread::get_id())
+				{
+					ASIO2_CHECK(client_ptr->is_stopped());
+				}
+
+				// at here, the client state maybe not stopped, beacuse the stop maybe async.
 				// but this async_start event chain must will be executed after all stop event
 				// chain is completed. so when the async_start's push_event is executed, the
 				// client must be stopped already.
 				client_ptr->async_start("127.0.0.1", 8080, "/ws");
 			}
 		});
+
+		while (timer.is_timer_exists(1))
+		{
+			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+		}
 
 		while (server.get_session_count() < std::size_t(test_client_count))
 		{

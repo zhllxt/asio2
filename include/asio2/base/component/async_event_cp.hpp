@@ -92,8 +92,12 @@ namespace asio2
 			// this event_ptr (means selfptr) has holded by the map "async_events_" already, 
 			// so this lambda don't need hold selfptr again.
 			this->event_timer_.async_wait(asio::bind_executor(this->event_timer_io_.strand(),
-			[this, handler = std::forward<WaitHandler>(handler)](const error_code&) mutable
+			[this, handler = std::forward<WaitHandler>(handler)](const error_code& ec) mutable
 			{
+				ASIO2_ASSERT((!ec) || ec == asio::error::operation_aborted);
+
+				detail::ignore_unused(ec);
+
 				// after this lambda is executed, the io_context maybe destroyed,
 				// we set the flag to false.
 				{

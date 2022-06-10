@@ -233,8 +233,11 @@ namespace asio2::detail
 
 			set_last_error(ec);
 
+			if (!derive.is_started())
+				return;
+
 			// bytes_recvd : The number of bytes in the streambuf's get area up to and including the delimiter.
-			if (!ec && derive.is_started())
+			if (!ec)
 			{
 				// every times recv data,we update the last alive time.
 				derive.update_alive_time();
@@ -337,7 +340,10 @@ namespace asio2::detail
 			ASIO2_LOG(spdlog::level::debug, "call _do_disconnect by _handle_control_close error : {}",
 				magic_enum::enum_name(derive.state_.load()));
 
-			derive._do_disconnect(websocket::error::closed, std::move(this_ptr));
+			if (derive.state() == state_t::started)
+			{
+				derive._do_disconnect(websocket::error::closed, std::move(this_ptr));
+			}
 		}
 
 		template<typename MatchCondition, typename DeferEvent, typename Response, bool IsSession = args_t::is_session>

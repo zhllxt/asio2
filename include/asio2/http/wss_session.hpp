@@ -102,19 +102,25 @@ namespace asio2::detail
 			this->derived()._ws_init(condition, this->ssl_stream());
 		}
 
-		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
+		template<typename DeferEvent>
+		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr, DeferEvent chain)
 		{
 			this->derived()._rdc_stop();
 
-			this->derived()._ws_stop(this_ptr, [this, ec, this_ptr]() mutable
-			{
-				super::_handle_disconnect(ec, std::move(this_ptr));
-			});
+			this->derived()._ws_stop(this_ptr,
+				defer_event
+				{
+					[this, ec, this_ptr, e = chain.move_event()](event_queue_guard<derived_t> g) mutable
+					{
+						super::_handle_disconnect(ec, std::move(this_ptr), defer_event(std::move(e), std::move(g)));
+					}, chain.move_guard()
+				}
+			);
 		}
 
-		template<typename MatchCondition>
+		template<typename MatchCondition, typename DeferEvent>
 		inline void _handle_connect(const error_code& ec, std::shared_ptr<derived_t> this_ptr,
-			condition_wrap<MatchCondition> condition)
+			condition_wrap<MatchCondition> condition, DeferEvent chain)
 		{
 			detail::ignore_unused(ec);
 
@@ -122,26 +128,28 @@ namespace asio2::detail
 			ASIO2_ASSERT(this->derived().sessions().io().strand().running_in_this_thread());
 
 			asio::dispatch(this->derived().io().strand(), make_allocator(this->derived().wallocator(),
-			[this, this_ptr = std::move(this_ptr), condition = std::move(condition)]() mutable
+			[this, this_ptr = std::move(this_ptr), condition = std::move(condition), chain = std::move(chain)]
+			() mutable
 			{
 				this->derived()._ssl_start(this_ptr, condition, this->socket_, this->ctx_);
 
 				this->derived()._ws_start(this_ptr, condition, this->ssl_stream());
 
-				this->derived()._post_handshake(std::move(this_ptr), std::move(condition));
+				this->derived()._post_handshake(std::move(this_ptr), std::move(condition), std::move(chain));
 			}));
 		}
 
-		template<typename MatchCondition>
+		template<typename MatchCondition, typename DeferEvent>
 		inline void _handle_handshake(const error_code & ec, std::shared_ptr<derived_t> this_ptr,
-			condition_wrap<MatchCondition> condition)
+			condition_wrap<MatchCondition> condition, DeferEvent chain)
 		{
 			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
 
 			// Use "sessions().dispatch" to ensure that the _fire_accept function and the _fire_handshake
 			// function are fired in the same thread
 			this->sessions().dispatch(
-			[this, ec, this_ptr = std::move(this_ptr), condition = std::move(condition)]() mutable
+			[this, ec, this_ptr = std::move(this_ptr), condition = std::move(condition), chain = std::move(chain)]
+			() mutable
 			{
 				ASIO2_ASSERT(this->derived().sessions().io().strand().running_in_this_thread());
 
@@ -154,19 +162,20 @@ namespace asio2::detail
 					asio::detail::throw_error(ec);
 
 					asio::dispatch(this->io_.strand(), make_allocator(this->wallocator_,
-					[this, this_ptr = std::move(this_ptr), condition = std::move(condition)]() mutable
+					[this, this_ptr = std::move(this_ptr), condition = std::move(condition), chain = std::move(chain)]
+					() mutable
 					{
 						ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
 
 						this->derived()._post_control_callback(this_ptr, condition);
-						this->derived()._post_upgrade(std::move(this_ptr), std::move(condition));
+						this->derived()._post_upgrade(std::move(this_ptr), std::move(condition), std::move(chain));
 					}));
 				}
 				catch (system_error & e)
 				{
 					set_last_error(e);
 
-					this->derived()._do_disconnect(e.code(), std::move(this_ptr));
+					this->derived()._do_disconnect(e.code(), std::move(this_ptr), std::move(chain));
 				}
 			});
 		}

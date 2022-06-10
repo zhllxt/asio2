@@ -114,13 +114,6 @@ namespace asio2::detail
 			});
 
 			this->iopool_->stop();
-
-		#if defined(_DEBUG) || defined(DEBUG)
-			if (dynamic_cast<asio2::detail::default_iopool*>(this->iopool_.get()))
-			{
-				ASIO2_ASSERT(this->state_ == state_t::stopped);
-			}
-		#endif
 		}
 
 		/**
@@ -284,7 +277,7 @@ namespace asio2::detail
 			std::future<error_code> future = promise.get_future();
 
 			// use derfer to ensure the promise's value must be seted.
-			detail::defer_event set_promise
+			detail::defer_event pg
 			{
 				[promise = std::move(promise)]() mutable { promise.set_value(get_last_error()); }
 			};
@@ -292,7 +285,7 @@ namespace asio2::detail
 			derive.post(
 			[this, &derive, this_ptr = derive.selfptr(),
 				host = std::forward<String>(host), port = std::forward<StrOrInt>(port),
-				condition = std::move(condition), set_promise = std::move(set_promise)]
+				condition = std::move(condition), pg = std::move(pg)]
 			() mutable
 			{
 				state_t expected = state_t::stopped;
@@ -563,14 +556,14 @@ namespace asio2::detail
 		{
 			set_last_error(ec);
 
+			if (!this->is_started())
+				return;
+
 			if (ec == asio::error::operation_aborted)
 			{
 				this->derived()._do_stop(ec, std::move(this_ptr));
 				return;
 			}
-
-			if (!this->is_started())
-				return;
 
 			this->buffer_.commit(bytes_recvd);
 

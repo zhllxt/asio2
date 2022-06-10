@@ -165,7 +165,10 @@ namespace asio2::detail
 			if (len != 0)
 			{
 				set_last_error(asio::error::message_size);
-				derive._do_disconnect(asio::error::message_size, this_ptr);
+				if (derive.state() == state_t::started)
+				{
+					derive._do_disconnect(asio::error::message_size, this_ptr);
+				}
 				return;
 			}
 			for (;;)
@@ -188,8 +191,9 @@ namespace asio2::detail
 			kcp::ikcp_flush(this->kcp_);
 		}
 
-		template<typename MatchCondition>
-		inline void _post_handshake(std::shared_ptr<derived_t> self_ptr, condition_wrap<MatchCondition> condition)
+		template<typename MatchCondition, typename DeferEvent>
+		inline void _post_handshake(
+			std::shared_ptr<derived_t> self_ptr, condition_wrap<MatchCondition> condition, DeferEvent chain)
 		{
 			try
 			{
@@ -209,7 +213,7 @@ namespace asio2::detail
 					asio::detail::throw_error(ec);
 
 					this->_kcp_start(self_ptr, this->seq_);
-					this->_handle_handshake(ec, std::move(self_ptr), std::move(condition));
+					this->_handle_handshake(ec, std::move(self_ptr), std::move(condition), std::move(chain));
 				}
 				else
 				{
@@ -233,7 +237,10 @@ namespace asio2::detail
 						if (ec)
 						{
 							set_last_error(ec);
-							derive._do_disconnect(ec, std::move(self_ptr));
+							if (derive.state() == state_t::started)
+							{
+								derive._do_disconnect(ec, std::move(self_ptr));
+							}
 							return false;
 						}
 						// return true  : let the timer continue execute.
@@ -245,7 +252,7 @@ namespace asio2::detail
 					derive.socket().async_receive(derive.buffer().prepare(derive.buffer().pre_size()),
 						asio::bind_executor(derive.io().strand(), make_allocator(derive.rallocator(),
 					[this, this_ptr = std::move(self_ptr), condition = std::move(condition),
-							timer = std::move(timer)]
+						timer = std::move(timer), chain = std::move(chain)]
 					(const error_code & ec, std::size_t bytes_recvd) mutable
 					{
 						error_code ec_ignore{};
@@ -257,7 +264,7 @@ namespace asio2::detail
 							this->_handle_handshake(
 								derive._is_connect_timeout() ? asio::error::timed_out :
 								(derive._connect_error_code() ? derive._connect_error_code() : ec),
-								std::move(this_ptr), std::move(condition));
+								std::move(this_ptr), std::move(condition), std::move(chain));
 							return;
 						}
 
@@ -272,12 +279,12 @@ namespace asio2::detail
 							kcp::kcphdr hdr = kcp::to_kcphdr(data);
 							std::uint32_t conv = hdr.th_seq;
 							this->_kcp_start(this_ptr, conv);
-							this->_handle_handshake(ec, std::move(this_ptr), std::move(condition));
+							this->_handle_handshake(ec, std::move(this_ptr), std::move(condition), std::move(chain));
 						}
 						else
 						{
 							this->_handle_handshake(asio::error::address_family_not_supported,
-								std::move(this_ptr), std::move(condition));
+								std::move(this_ptr), std::move(condition), std::move(chain));
 						}
 
 						derive.buffer().consume(bytes_recvd);
@@ -288,13 +295,20 @@ namespace asio2::detail
 			{
 				set_last_error(e);
 
-				derive._do_disconnect(e.code(), derive.selfptr());
+				if constexpr (args_t::is_session)
+				{
+					derive._do_disconnect(e.code(), derive.selfptr(), std::move(chain));
+				}
+				else
+				{
+					derive._do_disconnect(e.code(), derive.selfptr(), defer_event(chain.move_guard()));
+				}
 			}
 		}
 
-		template<typename MatchCondition>
+		template<typename MatchCondition, typename DeferEvent>
 		inline void _handle_handshake(const error_code & ec, std::shared_ptr<derived_t> this_ptr,
-			condition_wrap<MatchCondition> condition)
+			condition_wrap<MatchCondition> condition, DeferEvent chain)
 		{
 			set_last_error(ec);
 
@@ -306,20 +320,20 @@ namespace asio2::detail
 
 					asio::detail::throw_error(ec);
 
-					derive._done_connect(ec, std::move(this_ptr), std::move(condition));
+					derive._done_connect(ec, std::move(this_ptr), std::move(condition), std::move(chain));
 				}
 				else
 				{
 					derive._fire_handshake(this_ptr);
 
-					derive._done_connect(ec, std::move(this_ptr), std::move(condition));
+					derive._done_connect(ec, std::move(this_ptr), std::move(condition), std::move(chain));
 				}
 			}
 			catch (system_error & e)
 			{
 				set_last_error(e);
 
-				derive._do_disconnect(e.code(), derive.selfptr());
+				derive._do_disconnect(e.code(), derive.selfptr(), defer_event(chain.move_guard()));
 			}
 		}
 

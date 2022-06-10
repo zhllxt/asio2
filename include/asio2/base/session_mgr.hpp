@@ -265,7 +265,7 @@ namespace asio2::detail
 		std::unordered_map<key_type, std::shared_ptr<session_t>> sessions_;
 
 		/// use rwlock to make this session map thread safe
-		asio2_shared_mutex                        mutex_;
+		mutable asio2_shared_mutex                mutex_;
 
 		/// the zero io_context refrence in the iopool
 		io_t                                    & io_;

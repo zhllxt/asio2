@@ -40,6 +40,7 @@
 #include <asio2/base/detail/allocator.hpp>
 #include <asio2/base/detail/util.hpp>
 
+#include <asio2/base/component/thread_id_cp.hpp>
 #include <asio2/base/component/user_timer_cp.hpp>
 #include <asio2/base/component/post_cp.hpp>
 #include <asio2/base/component/async_event_cp.hpp>
@@ -52,6 +53,7 @@ namespace asio2::detail
 	class timer_impl_t
 		: public object_t      <derived_t>
 		, public iopool_cp
+		, public thread_id_cp  <derived_t>
 		, public user_timer_cp <derived_t>
 		, public post_cp       <derived_t>
 		, public async_event_cp<derived_t>
@@ -106,6 +108,16 @@ namespace asio2::detail
 			if (ret)
 			{
 				this->io().regobj(this);
+
+				if (this->derived().io().get_thread_id() == std::thread::id{})
+				{
+					this->dispatch([this]() mutable
+					{
+						// init the running thread id 
+						if (this->derived().io().get_thread_id() == std::thread::id{})
+							this->derived().io().init_thread_id();
+					});
+				}
 			}
 
 			return ret;

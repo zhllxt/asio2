@@ -23,21 +23,39 @@ namespace asio2
 {
 	class defer
 	{
+	protected:
+		template<typename F, typename Void, typename... Args>
+		struct is_callable : std::false_type {};
+
+		template<typename F, typename... Args>
+		struct is_callable<F, std::void_t<decltype(std::declval<std::decay_t<F>&>()
+			((std::declval<Args>())...)), char>, Args...> : std::true_type {};
+
 	public:
-		defer() = default;
+		defer() noexcept = default;
 
 		// movable
-		defer(defer&&) = default;
-		defer& operator=(defer&&) = default;
+		defer(defer&&) noexcept = default;
+		defer& operator=(defer&&) noexcept = default;
 
 		// non copyable
 		defer(const defer&) = delete;
 		void operator=(const defer&) = delete;
 
-		template <typename Fun, typename... Args>
+		template <typename Fun, typename... Args,
+			std::enable_if_t<is_callable<Fun, void, Args...>::value, int> = 0>
 		defer(Fun&& fun, Args&&... args)
 		{
 			this->fn_ = std::bind(std::forward<Fun>(fun), std::forward<Args>(args)...);
+		}
+
+		template <typename Constructor, typename Destructor,
+			std::enable_if_t<is_callable<Constructor, void>::value && is_callable<Destructor, void>::value, int> = 0>
+		defer(Constructor&& ctor, Destructor&& dtor)
+		{
+			(ctor)();
+
+			this->fn_ = std::forward<Destructor>(dtor);
 		}
 
 		~defer() noexcept
@@ -49,7 +67,9 @@ namespace asio2
 		std::function<void()> fn_;
 	};
 
+#ifndef ASIO2_CONCAT
 #define ASIO2_CONCAT(a, b) a##b
+#endif
 #define ASIO2_MAKE_DEFER(line) ::asio2::defer ASIO2_CONCAT(_asio2_defer_, line) = [&]()
 #define ASIO2_DEFER ASIO2_MAKE_DEFER(__LINE__)
 

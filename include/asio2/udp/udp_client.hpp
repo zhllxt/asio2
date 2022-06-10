@@ -143,7 +143,18 @@ namespace asio2::detail
 			ASIO2_LOG(spdlog::level::debug, "enter stop : {}",
 				magic_enum::enum_name(this->state_.load()));
 
-			this->derived().dispatch([this]() mutable
+			// use promise to get the result of stop
+			std::promise<state_t> promise;
+			std::future<state_t> future = promise.get_future();
+
+			// use derfer to ensure the promise's value must be seted.
+			detail::defer_event pg
+			{
+				[this, p = std::move(promise)]() mutable { p.set_value(this->state().load()); }
+			};
+
+			this->derived().push_event([this, this_ptr = this->derived().selfptr(), pg = std::move(pg)]
+			(event_queue_guard<derived_t> g) mutable
 			{
 				ASIO2_LOG(spdlog::level::debug, "exec stop : {}",
 					magic_enum::enum_name(this->state_.load()));
@@ -151,27 +162,33 @@ namespace asio2::detail
 				// first close the reconnect timer
 				this->_stop_reconnect_timer();
 
-				auto this_ptr = this->derived().selfptr();
-
 				this->derived()._do_disconnect(asio::error::operation_aborted, this->derived().selfptr(),
 					defer_event
 					{
-						[this, this_ptr = std::move(this_ptr)]() mutable
+						[this, this_ptr = std::move(this_ptr), pg = std::move(pg)]
+						(event_queue_guard<derived_t> g) mutable
 						{
-							this->derived()._do_stop(asio::error::operation_aborted, std::move(this_ptr));
-						}
+							this->derived()._do_stop(asio::error::operation_aborted, std::move(this_ptr),
+								defer_event
+								{
+									[pg = std::move(pg)](event_queue_guard<derived_t> g) mutable
+									{
+										detail::ignore_unused(pg, g);
+									}, std::move(g)
+								}
+							);
+						}, std::move(g)
 					}
 				);
 			});
 
-			this->iopool_->stop();
-
-		#if defined(_DEBUG) || defined(DEBUG)
-			if (dynamic_cast<asio2::detail::default_iopool*>(this->iopool_.get()))
+			if (!this->derived().running_in_this_thread())
 			{
-				ASIO2_ASSERT(this->state_ == state_t::stopped);
+				[[maybe_unused]] state_t state = future.get();
+				ASIO2_ASSERT(state == state_t::stopped);
 			}
-		#endif
+
+			this->iopool_->stop();
 		}
 
 	public:
@@ -303,7 +320,7 @@ namespace asio2::detail
 			std::future<error_code> future = promise.get_future();
 
 			// use derfer to ensure the promise's value must be seted.
-			detail::defer_event set_promise
+			detail::defer_event pg
 			{
 				[promise = std::move(promise)]() mutable { promise.set_value(get_last_error()); }
 			};
@@ -311,14 +328,14 @@ namespace asio2::detail
 			derive.push_event(
 			[this, &derive, this_ptr = derive.selfptr(),
 				host = std::forward<String>(host), port = std::forward<StrOrInt>(port),
-				condition = std::move(condition), set_promise = std::move(set_promise)]
+				condition = std::move(condition), pg = std::move(pg)]
 			(event_queue_guard<derived_t> g) mutable
 			{
 				defer_event chain
 				{
-					[set_promise = std::move(set_promise)] (event_queue_guard<derived_t> g) mutable
+					[pg = std::move(pg)] (event_queue_guard<derived_t> g) mutable
 					{
-						detail::ignore_unused(set_promise, g);
+						detail::ignore_unused(pg, g);
 					}, std::move(g)
 				};
 
@@ -374,7 +391,7 @@ namespace asio2::detail
 					set_last_error(asio::error::invalid_argument);
 				}
 
-				derive._do_disconnect(get_last_error(), derive.selfptr());
+				derive._do_disconnect(get_last_error(), derive.selfptr(), defer_event(chain.move_guard()));
 			});
 
 			if constexpr (IsAsync)
@@ -453,23 +470,26 @@ namespace asio2::detail
 				this->kcp_.reset();
 		}
 
-		template<typename MatchCondition>
+		template<typename MatchCondition, typename DeferEvent>
 		inline void _handle_connect(const error_code & ec, std::shared_ptr<derived_t> this_ptr,
-			condition_wrap<MatchCondition> condition)
+			condition_wrap<MatchCondition> condition, DeferEvent chain)
 		{
 			set_last_error(ec);
 
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			if (ec)
-				return this->derived()._done_connect(ec, std::move(this_ptr), std::move(condition));
+				return derive._done_connect(ec, std::move(this_ptr), std::move(condition), std::move(chain));
 
 			if constexpr (std::is_same_v<typename condition_wrap<MatchCondition>::condition_type, use_kcp_t>)
-				this->kcp_->_post_handshake(std::move(this_ptr), std::move(condition));
+				this->kcp_->_post_handshake(std::move(this_ptr), std::move(condition), std::move(chain));
 			else
-				this->derived()._done_connect(ec, std::move(this_ptr), std::move(condition));
+				derive._done_connect(ec, std::move(this_ptr), std::move(condition), std::move(chain));
 		}
 
-		template<typename MatchCondition>
-		inline void _do_start(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		template<typename MatchCondition, typename DeferEvent>
+		inline void _do_start(
+			std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition, DeferEvent chain)
 		{
 			this->update_alive_time();
 			this->reset_connect_time();
@@ -482,14 +502,15 @@ namespace asio2::detail
 					this->kcp_->send_fin_ = true;
 			}
 
-			this->derived()._start_recv(std::move(this_ptr), std::move(condition));
+			this->derived()._start_recv(std::move(this_ptr), std::move(condition), std::move(chain));
 		}
 
-		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
+		template<typename DeferEvent>
+		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr, DeferEvent chain)
 		{
 			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
 
-			//ASIO2_ASSERT(this->state_ == state_t::stopping);
+			ASIO2_ASSERT(this->state_ == state_t::stopping);
 
 		#if defined(ASIO2_ENABLE_LOG)
 			if (this->state_ != state_t::stopping)
@@ -501,7 +522,7 @@ namespace asio2::detail
 			ASIO2_LOG(spdlog::level::debug, "enter _handle_disconnect : {}",
 				magic_enum::enum_name(this->state_.load()));
 
-			detail::ignore_unused(ec, this_ptr);
+			detail::ignore_unused(ec, this_ptr, chain);
 
 			this->derived()._rdc_stop();
 
@@ -518,10 +539,13 @@ namespace asio2::detail
 			this->socket_.close(ec_ignore);
 		}
 
-		inline void _do_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
+		template<typename DeferEvent>
+		inline void _do_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr, DeferEvent chain)
 		{
 			ASIO2_LOG(spdlog::level::debug, "enter _do_stop : {}",
 				magic_enum::enum_name(this->state_.load()));
+
+			ASIO2_ASSERT(this->state_ == state_t::stopping);
 
 		#if defined(ASIO2_ENABLE_LOG)
 			if (this->state_ != state_t::stopping)
@@ -530,33 +554,34 @@ namespace asio2::detail
 			}
 		#endif
 
-			this->derived()._post_stop(ec, std::move(this_ptr));
+			this->derived()._post_stop(ec, std::move(this_ptr), std::move(chain));
 		}
 
-		inline void _post_stop(const error_code& ec, std::shared_ptr<derived_t> self_ptr)
+		template<typename DeferEvent>
+		inline void _post_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr, DeferEvent chain)
 		{
 			// All pending sending events will be cancelled after enter the send strand below.
-			this->derived().push_event([this, ec, this_ptr = std::move(self_ptr)]
+			this->derived().disp_event(
+			[this, ec, this_ptr = std::move(this_ptr), e = chain.move_event()]
 			(event_queue_guard<derived_t> g) mutable
 			{
-				detail::ignore_unused(g);
-
 				set_last_error(ec);
 
 				// call the base class stop function
 				super::stop();
 
 				// call CRTP polymorphic stop
-				this->derived()._handle_stop(ec, std::move(this_ptr));
-			});
+				this->derived()._handle_stop(ec, std::move(this_ptr), defer_event(std::move(e), std::move(g)));
+			}, chain.move_guard());
 		}
 
-		inline void _handle_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
+		template<typename DeferEvent>
+		inline void _handle_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr, DeferEvent chain)
 		{
 			ASIO2_LOG(spdlog::level::debug, "enter _handle_stop : {}",
 				magic_enum::enum_name(this->state_.load()));
 
-			detail::ignore_unused(ec, this_ptr);
+			detail::ignore_unused(ec, this_ptr, chain);
 
 			state_t expected = state_t::stopping;
 			if (!this->state_.compare_exchange_strong(expected, state_t::stopped))
@@ -567,17 +592,21 @@ namespace asio2::detail
 			#if defined(ASIO2_ENABLE_LOG)
 				detail::has_unexpected_behavior() = true;
 			#endif
-				//ASIO2_ASSERT(false);
+				ASIO2_ASSERT(false);
 			}
 		}
 
-		template<typename MatchCondition>
-		inline void _start_recv(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		template<typename MatchCondition, typename DeferEvent>
+		inline void _start_recv(
+			std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition, DeferEvent chain)
 		{
 			// Connect succeeded. post recv request.
 			asio::dispatch(this->derived().io().strand(), make_allocator(this->derived().wallocator(),
-			[this, this_ptr = std::move(this_ptr), condition = std::move(condition)]() mutable
+			[this, this_ptr = std::move(this_ptr), condition = std::move(condition), chain = std::move(chain)]
+			() mutable
 			{
+				detail::ignore_unused(chain);
+
 				this->derived().buffer().consume(this->derived().buffer().size());
 
 				this->derived()._post_recv(std::move(this_ptr), std::move(condition));
@@ -632,15 +661,16 @@ namespace asio2::detail
 			{
 				this->socket_.async_receive(this->buffer_.prepare(this->buffer_.pre_size()),
 					asio::bind_executor(this->io_.strand(), make_allocator(this->rallocator_,
-						[this, self_ptr = std::move(this_ptr), condition = std::move(condition)]
+						[this, this_ptr = std::move(this_ptr), condition = std::move(condition)]
 				(const error_code & ec, std::size_t bytes_recvd) mutable
 				{
-					this->derived()._handle_recv(ec, bytes_recvd, std::move(self_ptr), std::move(condition));
+					this->derived()._handle_recv(ec, bytes_recvd, std::move(this_ptr), std::move(condition));
 				})));
 			}
 			catch (system_error & e)
 			{
 				set_last_error(e);
+
 				this->derived()._do_disconnect(e.code(), this->derived().selfptr());
 			}
 		}
@@ -651,14 +681,14 @@ namespace asio2::detail
 		{
 			set_last_error(ec);
 
+			if (!this->is_started())
+				return;
+
 			if (ec == asio::error::operation_aborted || ec == asio::error::connection_refused)
 			{
 				this->derived()._do_disconnect(ec, std::move(this_ptr));
 				return;
 			}
-
-			if (!this->is_started())
-				return;
 
 			this->buffer_.commit(bytes_recvd);
 

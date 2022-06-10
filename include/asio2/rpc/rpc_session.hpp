@@ -103,7 +103,8 @@ namespace asio2::detail
 			this->derived().ws_stream().binary(true);
 		}
 
-		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
+		template<typename DeferEvent>
+		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr, DeferEvent chain)
 		{
 			while (!this->reqs_.empty())
 			{
@@ -111,7 +112,7 @@ namespace asio2::detail
 				fn(rpc::make_error_code(rpc::error::operation_aborted), std::string_view{});
 			}
 
-			super::_handle_disconnect(ec, std::move(this_ptr));
+			super::_handle_disconnect(ec, std::move(this_ptr), std::move(chain));
 		}
 
 		template<typename MatchCondition>

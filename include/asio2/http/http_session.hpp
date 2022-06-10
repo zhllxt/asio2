@@ -248,9 +248,15 @@ namespace asio2::detail
 			{
 				// after send the response, we check if the client should be disconnect.
 				if (this->derived().req_.need_eof())
+				{
+					// session maybe don't need check the state.
+					//if (this->derived().state() == state_t::started)
 					this->derived()._do_disconnect(asio::error::operation_aborted, std::move(this_ptr));
+				}
 				else
+				{
 					this->derived()._post_recv(std::move(this_ptr), std::move(condition));
+				}
 			});
 		}
 
@@ -343,7 +349,7 @@ namespace asio2::detail
 				{
 					set_last_error(e);
 
-					this->derived()._do_disconnect(e.code(), this->derived().selfptr(), defer_event(chain.move_guard()));
+					this->derived()._do_disconnect(e.code(), this->derived().selfptr(), std::move(chain));
 				}
 			});
 		}
@@ -421,7 +427,11 @@ namespace asio2::detail
 
 			this->router_._route(this_ptr, this->req_, this->rep_);
 
-			this->derived()._do_disconnect(websocket::error::closed, std::move(this_ptr));
+			// session maybe don't need check the state.
+			//if (this->derived().state() == state_t::started)
+			//{
+				this->derived()._do_disconnect(websocket::error::closed, std::move(this_ptr));
+			//}
 		}
 
 		inline void _fire_upgrade(std::shared_ptr<derived_t>& this_ptr)

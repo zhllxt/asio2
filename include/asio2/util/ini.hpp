@@ -1092,7 +1092,7 @@ namespace asio2
 		}
 
 	protected:
-		asio2_shared_mutex           mutex_;
+		mutable asio2_shared_mutex   mutex_;
 
 		std::basic_string<char_type> endl_;
 	};

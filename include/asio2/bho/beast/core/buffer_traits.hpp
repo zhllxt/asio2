@@ -15,6 +15,7 @@
 #include <asio2/bho/beast/core/detail/static_const.hpp>
 #include <asio2/external/asio.hpp>
 #include <asio2/bho/config/workaround.hpp>
+#include <asio2/bho/mp11/function.hpp>
 #include <type_traits>
 
 namespace bho {
@@ -34,9 +35,12 @@ template<class... BufferSequence>
 #if BHO_BEAST_DOXYGEN
 using is_const_buffer_sequence = __see_below__;
 #else
-using is_const_buffer_sequence = std::integral_constant<bool,
-    (net::is_const_buffer_sequence<
-        typename std::decay<BufferSequence>::type>::value && ...)>;
+//using is_const_buffer_sequence = std::integral_constant<bool,
+//    (net::is_const_buffer_sequence<
+//        typename std::decay<BufferSequence>::type>::value && ...)>;
+using is_const_buffer_sequence = mp11::mp_all<
+    net::is_const_buffer_sequence<
+        typename std::decay<BufferSequence>::type>...>;
 #endif
 
 /** Determine if a list of types satisfy the <em>MutableBufferSequence</em> requirements.
@@ -53,9 +57,12 @@ template<class... BufferSequence>
 #if BHO_BEAST_DOXYGEN
 using is_mutable_buffer_sequence = __see_below__;
 #else
-using is_mutable_buffer_sequence = std::integral_constant<bool,
-    (net::is_mutable_buffer_sequence<
-        typename std::decay<BufferSequence>::type>::value && ...)>;
+//using is_mutable_buffer_sequence = std::integral_constant<bool,
+//    (net::is_mutable_buffer_sequence<
+//        typename std::decay<BufferSequence>::type>::value && ...)>;
+using is_mutable_buffer_sequence = mp11::mp_all<
+    net::is_mutable_buffer_sequence<
+        typename std::decay<BufferSequence>::type>...>;
 #endif
 
 namespace detail {

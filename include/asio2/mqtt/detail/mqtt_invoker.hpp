@@ -872,7 +872,10 @@ namespace asio2::detail
 			asio::post(caller->io().strand(), make_allocator(caller->wallocator(),
 			[ec, caller_ptr, caller]() mutable
 			{
-				caller->_do_disconnect(ec, std::move(caller_ptr));
+				if (caller->state() == state_t::started)
+				{
+					caller->_do_disconnect(ec, std::move(caller_ptr));
+				}
 			}));
 		}
 

@@ -245,11 +245,11 @@ namespace asio2::detail
 			}, chain.move_guard());
 		}
 
-		template<typename DeferEvent>
-		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr, DeferEvent chain)
-		{
-			detail::ignore_unused(ec, this_ptr, chain);
-		}
+		//template<typename DeferEvent>
+		//inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr, DeferEvent chain)
+		//{
+		//	detail::ignore_unused(ec, this_ptr, chain);
+		//}
 
 	protected:
 	};

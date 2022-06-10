@@ -103,6 +103,8 @@ namespace asio2::detail
 			static_assert(tcp_send_op<derived_t, args_t>::template has_member_dgram<self>::value,
 				"The behavior of different compilers is not consistent");
 
+			ASIO2_ASSERT(this->sessions().io().strand().running_in_this_thread());
+
 			try
 			{
 			#if defined(ASIO2_ENABLE_LOG)
@@ -188,8 +190,7 @@ namespace asio2::detail
 		}
 
 		template<typename DeferEvent>
-		inline void _handle_disconnect(
-			const error_code& ec, std::shared_ptr<derived_t> this_ptr, DeferEvent chain)
+		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr, DeferEvent chain)
 		{
 			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
 
@@ -250,7 +251,7 @@ namespace asio2::detail
 						std::move(this_ptr), std::move(condition), std::move(chain));
 				else
 					this->derived()._do_disconnect(
-						asio::error::address_in_use, std::move(this_ptr), defer_event(chain.move_guard()));
+						asio::error::address_in_use, std::move(this_ptr), std::move(chain));
 			});
 		}
 

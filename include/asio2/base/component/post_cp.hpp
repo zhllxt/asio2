@@ -98,6 +98,8 @@ namespace asio2::detail
 				[this, &derive, p = std::move(p), timer = std::move(timer), f = std::move(f)]
 				(const error_code& ec) mutable
 				{
+					ASIO2_ASSERT((!ec) || ec == asio::error::operation_aborted);
+
 					derive.io().timers().erase(timer.get());
 					detail::ignore_unused(p);
 					set_last_error(ec);
@@ -182,6 +184,8 @@ namespace asio2::detail
 				[this, &derive, p = std::move(p), timer = std::move(timer), t = std::move(t)]
 				(const error_code& ec) mutable
 				{
+					ASIO2_ASSERT((!ec) || ec == asio::error::operation_aborted);
+
 					derive.io().timers().erase(timer.get());
 					detail::ignore_unused(p);
 					set_last_error(ec);

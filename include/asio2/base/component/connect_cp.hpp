@@ -462,9 +462,16 @@ namespace asio2::detail
 				ASIO2_LOG(spdlog::level::debug, "call _do_disconnect by _done_connect error : {} {} {}",
 					magic_enum::enum_name(derive.state_.load()), e.code().value(), e.what());
 
-				// can't pass the whole chain to the _do_disconnect, it will cause the auto reconnect
-				// has no effect.
-				derive._do_disconnect(e.code(), derive.selfptr(), defer_event(chain.move_guard()));
+				if constexpr (args_t::is_session)
+				{
+					derive._do_disconnect(e.code(), derive.selfptr(), std::move(chain));
+				}
+				else
+				{
+					// can't pass the whole chain to the _do_disconnect, it will cause the auto
+					// reconnect has no effect.
+					derive._do_disconnect(e.code(), derive.selfptr(), defer_event(chain.move_guard()));
+				}
 			}
 		}
 	};

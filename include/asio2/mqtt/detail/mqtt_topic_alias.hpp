@@ -83,7 +83,7 @@ namespace asio2::detail
 		}
 
 	protected:
-		asio2_shared_mutex                             topic_aliases_mtx_;
+		mutable asio2_shared_mutex                     topic_aliases_mtx_;
 		std::unordered_map<std::uint16_t, std::string> topic_aliases_;
 	};
 }

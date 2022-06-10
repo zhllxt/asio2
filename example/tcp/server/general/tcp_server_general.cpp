@@ -13,6 +13,10 @@ int main()
 
 		session_ptr->async_send(data);
 
+	}).bind_accept([](auto & session_ptr)
+	{
+		session_ptr->set_silence_timeout(std::chrono::seconds(5));
+
 	}).bind_connect([&](auto & session_ptr)
 	{
 		session_ptr->no_delay(true);

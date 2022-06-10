@@ -177,6 +177,16 @@ namespace asio2::detail
 			ASIO2_LOG(spdlog::level::debug, "enter stop : {}",
 				magic_enum::enum_name(this->state_.load()));
 
+			// use promise to get the result of stop
+			std::promise<state_t> promise;
+			std::future<state_t> future = promise.get_future();
+
+			// use derfer to ensure the promise's value must be seted.
+			detail::defer_event pg
+			{
+				[this, p = std::move(promise)]() mutable { p.set_value(this->state().load()); }
+			};
+
 			// Asio end socket functions: cancel, shutdown, close, release :
 			// https://stackoverflow.com/questions/51468848/asio-end-socket-functions-cancel-shutdown-close-release
 			// The proper steps are:
@@ -186,7 +196,7 @@ namespace asio2::detail
 			// If you don't do this, you may end up closing the connection while the other side is still sending data.
 			// This will result in an ungraceful close.
 
-			this->derived().push_event([this, this_ptr = this->derived().selfptr()]
+			this->derived().push_event([this, this_ptr = this->derived().selfptr(), pg = std::move(pg)]
 			(event_queue_guard<derived_t> g) mutable
 			{
 				ASIO2_LOG(spdlog::level::debug, "exec stop : {}",
@@ -198,23 +208,30 @@ namespace asio2::detail
 				this->derived()._do_disconnect(asio::error::operation_aborted, this->derived().selfptr(),
 					defer_event
 					{
-						[this, this_ptr = std::move(this_ptr)] (event_queue_guard<derived_t> g) mutable
+						[this, this_ptr = std::move(this_ptr), pg = std::move(pg)]
+						(event_queue_guard<derived_t> g) mutable
 						{
 							this->derived()._do_stop(asio::error::operation_aborted, std::move(this_ptr),
-								defer_event([](event_queue_guard<derived_t>) {}, std::move(g)));
+								defer_event
+								{
+									[pg = std::move(pg)](event_queue_guard<derived_t> g) mutable
+									{
+										detail::ignore_unused(pg, g);
+									}, std::move(g)
+								}
+							);
 						}, std::move(g)
 					}
 				);
 			});
 
-			this->iopool_->stop();
-
-		#if defined(_DEBUG) || defined(DEBUG)
-			if (dynamic_cast<asio2::detail::default_iopool*>(this->iopool_.get()))
+			if (!this->derived().running_in_this_thread())
 			{
-				ASIO2_ASSERT(this->state_ == state_t::stopped);
+				[[maybe_unused]] state_t state = future.get();
+				ASIO2_ASSERT(state == state_t::stopped);
 			}
-		#endif
+
+			this->iopool_->stop();
 		}
 
 	public:
@@ -307,7 +324,7 @@ namespace asio2::detail
 			std::future<error_code> future = promise.get_future();
 
 			// use derfer to ensure the promise's value must be seted.
-			detail::defer_event set_promise
+			detail::defer_event pg
 			{
 				[promise = std::move(promise)]() mutable { promise.set_value(get_last_error()); }
 			};
@@ -315,14 +332,14 @@ namespace asio2::detail
 			derive.push_event(
 			[this, &derive, this_ptr = derive.selfptr(),
 				host = std::forward<String>(host), port = std::forward<StrOrInt>(port),
-				condition = std::move(condition), set_promise = std::move(set_promise)]
+				condition = std::move(condition), pg = std::move(pg)]
 			(event_queue_guard<derived_t> g) mutable
 			{
 				defer_event chain
 				{
-					[set_promise = std::move(set_promise)] (event_queue_guard<derived_t> g) mutable
+					[pg = std::move(pg)] (event_queue_guard<derived_t> g) mutable
 					{
-						detail::ignore_unused(set_promise, g);
+						detail::ignore_unused(pg, g);
 					}, std::move(g)
 				};
 
@@ -378,7 +395,7 @@ namespace asio2::detail
 					set_last_error(asio::error::invalid_argument);
 				}
 
-				derive._do_disconnect(get_last_error(), derive.selfptr());
+				derive._do_disconnect(get_last_error(), derive.selfptr(), defer_event(chain.move_guard()));
 			});
 
 			if constexpr (IsAsync)
@@ -481,7 +498,7 @@ namespace asio2::detail
 		{
 			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
 
-			//ASIO2_ASSERT(this->state_ == state_t::stopping);
+			ASIO2_ASSERT(this->state_ == state_t::stopping);
 
 		#if defined(ASIO2_ENABLE_LOG)
 			if (this->state_ != state_t::stopping)
@@ -519,6 +536,8 @@ namespace asio2::detail
 		{
 			ASIO2_LOG(spdlog::level::debug, "enter _do_stop : {}",
 				magic_enum::enum_name(this->state_.load()));
+
+			ASIO2_ASSERT(this->state_ == state_t::stopping);
 
 		#if defined(ASIO2_ENABLE_LOG)
 			if (this->state_ != state_t::stopping)
@@ -564,7 +583,7 @@ namespace asio2::detail
 			#if defined(ASIO2_ENABLE_LOG)
 				detail::has_unexpected_behavior() = true;
 			#endif
-				//ASIO2_ASSERT(false);
+				ASIO2_ASSERT(false);
 			}
 		}
 

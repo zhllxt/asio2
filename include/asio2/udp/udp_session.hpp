@@ -122,7 +122,8 @@ namespace asio2::detail
 				// if the match condition is remote data call mode,do some thing.
 				this->derived()._rdc_init(condition);
 
-				this->derived()._handle_connect(error_code{}, std::move(this_ptr), std::move(condition));
+				this->derived()._handle_connect(error_code{}, std::move(this_ptr), std::move(condition),
+					defer_event(event_queue_guard<derived_t>()));
 			}
 			catch (system_error & e)
 			{
@@ -225,9 +226,9 @@ namespace asio2::detail
 			this->update_alive_time();
 		}
 
-		template<typename MatchCondition>
+		template<typename MatchCondition, typename DeferEvent>
 		inline void _handle_connect(const error_code& ec, std::shared_ptr<derived_t> this_ptr,
-			condition_wrap<MatchCondition> condition)
+			condition_wrap<MatchCondition> condition, DeferEvent chain)
 		{
 			detail::ignore_unused(ec);
 
@@ -242,21 +243,23 @@ namespace asio2::detail
 				{
 					set_last_error(asio::error::address_family_not_supported);
 					this->derived()._fire_handshake(this_ptr);
-					this->derived()._do_disconnect(asio::error::address_family_not_supported, std::move(this_ptr));
+					this->derived()._do_disconnect(asio::error::address_family_not_supported,
+						std::move(this_ptr), std::move(chain));
 					return;
 				}
 				this->kcp_ = std::make_unique<kcp_stream_cp<derived_t, args_t>>(this->derived(), this->io_);
-				this->kcp_->_post_handshake(std::move(this_ptr), std::move(condition));
+				this->kcp_->_post_handshake(std::move(this_ptr), std::move(condition), std::move(chain));
 			}
 			else
 			{
 				this->kcp_.reset();
-				this->derived()._done_connect(ec, std::move(this_ptr), std::move(condition));
+				this->derived()._done_connect(ec, std::move(this_ptr), std::move(condition), std::move(chain));
 			}
 		}
 
-		template<typename MatchCondition>
-		inline void _do_start(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		template<typename MatchCondition, typename DeferEvent>
+		inline void _do_start(
+			std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition, DeferEvent chain)
 		{
 			if constexpr (std::is_same_v<typename condition_wrap<MatchCondition>::condition_type, use_kcp_t>)
 			{
@@ -266,10 +269,11 @@ namespace asio2::detail
 					this->kcp_->send_fin_ = true;
 			}
 
-			this->derived()._join_session(std::move(this_ptr), std::move(condition));
+			this->derived()._join_session(std::move(this_ptr), std::move(condition), std::move(chain));
 		}
 
-		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
+		template<typename DeferEvent>
+		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr, DeferEvent chain)
 		{
 			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
 
@@ -277,15 +281,17 @@ namespace asio2::detail
 
 			this->derived()._rdc_stop();
 
-			this->derived()._do_stop(ec, std::move(this_ptr));
+			this->derived()._do_stop(ec, std::move(this_ptr), std::move(chain));
 		}
 
-		inline void _do_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
+		template<typename DeferEvent>
+		inline void _do_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr, DeferEvent chain)
 		{
-			this->derived()._post_stop(ec, std::move(this_ptr));
+			this->derived()._post_stop(ec, std::move(this_ptr), std::move(chain));
 		}
 
-		inline void _post_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
+		template<typename DeferEvent>
+		inline void _post_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr, DeferEvent chain)
 		{
 			// if we use asio::dispatch in server's _exec_stop, then we need:
 			// put _kcp_stop in front of super::stop, othwise the super::stop will execute
@@ -300,12 +306,13 @@ namespace asio2::detail
 			super::stop();
 
 			// call CRTP polymorphic stop
-			this->derived()._handle_stop(ec, std::move(this_ptr));
+			this->derived()._handle_stop(ec, std::move(this_ptr), std::move(chain));
 		}
 
-		inline void _handle_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
+		template<typename DeferEvent>
+		inline void _handle_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr, DeferEvent chain)
 		{
-			detail::ignore_unused(ec, this_ptr);
+			detail::ignore_unused(ec, this_ptr, chain);
 
 			state_t expected = state_t::stopping;
 			if (!this->state_.compare_exchange_strong(expected, state_t::stopped))
@@ -314,28 +321,34 @@ namespace asio2::detail
 			}
 		}
 
-		template<typename MatchCondition>
-		inline void _join_session(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		template<typename MatchCondition, typename DeferEvent>
+		inline void _join_session(
+			std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition, DeferEvent chain)
 		{
-			this->sessions_.emplace(this_ptr, [this, this_ptr, condition = std::move(condition)]
+			this->sessions_.emplace(this_ptr,
+			[this, this_ptr, condition = std::move(condition), chain = std::move(chain)]
 			(bool inserted) mutable
 			{
 				if (inserted)
-					this->derived()._start_recv(std::move(this_ptr), std::move(condition));
+					this->derived()._start_recv(std::move(this_ptr), std::move(condition), std::move(chain));
 				else
-					this->derived()._do_disconnect(asio::error::address_in_use, std::move(this_ptr));
+					this->derived()._do_disconnect(asio::error::address_in_use, std::move(this_ptr), std::move(chain));
 			});
 		}
 
-		template<typename MatchCondition>
-		inline void _start_recv(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		template<typename MatchCondition, typename DeferEvent>
+		inline void _start_recv(
+			std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition, DeferEvent chain)
 		{
 			// to avlid the user call stop in another thread,then it may be socket_.async_read_some
 			// and socket_.close be called at the same time
 			asio::dispatch(this->io_.strand(), make_allocator(this->wallocator_,
-			[this, this_ptr = std::move(this_ptr), condition = std::move(condition)]() mutable
+			[this, this_ptr = std::move(this_ptr), condition = std::move(condition), chain = std::move(chain)]
+			() mutable
 			{
 				using condition_type = typename condition_wrap<MatchCondition>::condition_type;
+
+				detail::ignore_unused(chain);
 
 				// start the timer of check silence timeout
 				this->derived()._post_silence_timer(this->silence_timeout_, this_ptr);
@@ -424,7 +437,9 @@ namespace asio2::detail
 						error_code ed;
 						this->kcp_->_kcp_send_hdr(synack, ed);
 						if (ed)
+						{
 							this->derived()._do_disconnect(ed, this_ptr);
+						}
 					}
 				}
 				else

@@ -525,7 +525,7 @@ namespace asio2::detail
 		}
 
 	protected:
-		//asio2_shared_mutex                          mutex_;
+		//mutable asio2_shared_mutex                  mutex_;
 
 		std::unordered_map<std::string, std::function<bool(
 			std::shared_ptr<caller_t>&, caller_t*, rpc_serializer&, rpc_deserializer&)>> invokers_;

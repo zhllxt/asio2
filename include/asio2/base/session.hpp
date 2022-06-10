@@ -48,6 +48,7 @@
 #include <asio2/base/detail/buffer_wrap.hpp>
 #include <asio2/base/detail/condition_wrap.hpp>
 
+#include <asio2/base/component/thread_id_cp.hpp>
 #include <asio2/base/component/connect_time_cp.hpp>
 #include <asio2/base/component/alive_time_cp.hpp>
 #include <asio2/base/component/user_data_cp.hpp>
@@ -71,6 +72,7 @@ namespace asio2::detail
 	template<class derived_t, class args_t>
 	class session_impl_t
 		: public object_t              <derived_t        >
+		, public thread_id_cp          <derived_t, args_t>
 		, public event_queue_cp        <derived_t, args_t>
 		, public user_data_cp          <derived_t, args_t>
 		, public connect_time_cp       <derived_t, args_t>
@@ -169,6 +171,10 @@ namespace asio2::detail
 				});
 				return;
 			}
+
+			// init the running thread id 
+			if (this->derived().io().get_thread_id() == std::thread::id{})
+				this->derived().io().init_thread_id();
 
 			// start the timer of check connect timeout
 			this->derived()._post_connect_timeout_timer(

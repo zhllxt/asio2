@@ -176,6 +176,8 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
+			ASIO2_ASSERT((!ec) || ec == asio::error::operation_aborted);
+
 		#if defined(ASIO2_ENABLE_LOG)
 			if (ec && ec != asio::error::operation_aborted)
 			{

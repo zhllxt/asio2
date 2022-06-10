@@ -140,6 +140,40 @@ namespace asio2::detail
 			}
 		}
 
+		/**
+		 * @function : initialize the thread id to "std::this_thread::get_id()"
+		 */
+		inline void init_thread_id() noexcept
+		{
+			//ASIO2_ASSERT(strand_.running_in_this_thread());
+			this->thread_id_ = std::this_thread::get_id();
+		}
+
+		/**
+		 * @function : uninitialize the thread id to empty.
+		 */
+		inline void fini_thread_id() noexcept
+		{
+			//ASIO2_ASSERT(strand_.running_in_this_thread());
+			this->thread_id_ = std::thread::id{};
+		}
+
+		/**
+		 * @function : return the thread id of the current io_context running in.
+		 */
+		inline std::thread::id get_thread_id() const noexcept
+		{
+			return this->thread_id_;
+		}
+
+		/**
+		 * @function : Determine whether the current io_context is running in the current thread.
+		 */
+		inline bool running_in_this_thread() const noexcept
+		{
+			return (std::this_thread::get_id() == this->thread_id_);
+		}
+
 	protected:
 		// Do not use shared_ptr<io_context>, it will cause a lot of problems. If the user
 		// calls asio::post([ptr = shared_ptr<io_context>(context)](){}) after io_context is 
@@ -177,11 +211,14 @@ namespace asio2::detail
 		// "timer.start_timer(1,...)" is executed, nobody has a chance to cancel it,
 		// and this will cause the iopool's wait_for_io_context_stopped function
 		// blocked forever.
-		std::unordered_set<asio::steady_timer*>  timers_;
+		std::unordered_set<asio::steady_timer*>      timers_;
 
 		// Used to save the server or client or other objects, when iopool.stop is called,
 		// the objects.stop will be called automaticly.
 		std::map<std::size_t, std::function<void()>> objects_;
+
+		// the thread id of the current io_context running in.
+		std::thread::id                              thread_id_{};
 	};
 
 	//-----------------------------------------------------------------------------------
@@ -263,8 +300,11 @@ namespace asio2::detail
 			}
 
 			// Create a pool of threads to run all of the io_contexts. 
-			for (auto & ioc : this->iocs_)
+			for (std::size_t i = 0; i < this->iots_.size(); ++i)
 			{
+				auto& ioc = this->iocs_[i];
+				auto& iot = this->iots_[i];
+
 				/// Restart the io_context in preparation for a subsequent run() invocation.
 				/**
 				 * This function must be called prior to any second or later set of
@@ -298,7 +338,16 @@ namespace asio2::detail
 					//	ASIO2_ASSERT(false);
 					//}
 				});
+
+				iot->thread_id_ = this->threads_[i].get_id();
 			}
+
+		#if defined(_DEBUG) || defined(DEBUG)
+			for (std::size_t i = 0; i < this->iots_.size(); ++i)
+			{
+				ASIO2_ASSERT(this->iots_[i]->get_thread_id() == this->threads_[i].get_id());
+			}
+		#endif
 
 			this->stopped_ = false;
 
@@ -502,6 +551,7 @@ namespace asio2::detail
 					auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1);
 					std::this_thread::sleep_for(std::clamp(ms, min, max));
 				}
+				iot->thread_id_ = std::thread::id{};
 				ASIO2_ASSERT(iot->timers().empty());
 			}
 
@@ -529,6 +579,7 @@ namespace asio2::detail
 					auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1);
 					std::this_thread::sleep_for(std::clamp(ms, min, max));
 				}
+				iot->thread_id_ = std::thread::id{};
 				ASIO2_ASSERT(iot->timers().empty());
 			}
 		}

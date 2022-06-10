@@ -115,9 +115,9 @@ namespace asio2::detail
 			super::_do_init(std::move(this_ptr), condition);
 		}
 
-		template<typename MatchCondition>
+		template<typename MatchCondition, typename DeferEvent>
 		inline void _handle_connect(const error_code& ec, std::shared_ptr<derived_t> this_ptr,
-			condition_wrap<MatchCondition> condition)
+			condition_wrap<MatchCondition> condition, DeferEvent chain)
 		{
 			detail::ignore_unused(ec);
 
@@ -125,35 +125,52 @@ namespace asio2::detail
 			ASIO2_ASSERT(this->derived().sessions().io().strand().running_in_this_thread());
 
 			asio::dispatch(this->derived().io().strand(), make_allocator(this->derived().wallocator(),
-			[this, self_ptr = std::move(this_ptr), condition = std::move(condition)]
+			[this, self_ptr = std::move(this_ptr), condition = std::move(condition), chain = std::move(chain)]
 			() mutable
 			{
 				this->derived()._ssl_start(self_ptr, condition, this->socket_, this->ctx_);
 
-				this->derived()._post_handshake(std::move(self_ptr), std::move(condition));
+				this->derived()._post_handshake(std::move(self_ptr), std::move(condition), std::move(chain));
 			}));
 		}
 
-		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
+		template<typename DeferEvent>
+		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr, DeferEvent chain)
 		{
 			this->derived()._rdc_stop();
 
 			if (this->is_http())
 			{
-				this->derived()._ssl_stop(this_ptr, [this, ec, this_ptr]() mutable
-				{
-					super::_handle_disconnect(ec, std::move(this_ptr));
-				});
+				this->derived()._ssl_stop(this_ptr,
+					defer_event
+					{
+						[this, ec, this_ptr, e = chain.move_event()](event_queue_guard<derived_t> g) mutable
+						{
+							super::_handle_disconnect(ec, std::move(this_ptr), defer_event(std::move(e), std::move(g)));
+						}, chain.move_guard()
+					}
+				);
 			}
 			else
 			{
-				this->derived()._ws_stop(this_ptr, [this, ec, this_ptr]() mutable
-				{
-					this->derived()._ssl_stop(this_ptr, [this, ec, this_ptr]() mutable
+				this->derived()._ws_stop(this_ptr,
+					defer_event
 					{
-						super::super::_handle_disconnect(ec, std::move(this_ptr));
-					});
-				});
+						[this, ec, this_ptr, e = chain.move_event()](event_queue_guard<derived_t> g) mutable
+						{
+							this->derived()._ssl_stop(this_ptr,
+								defer_event
+								{
+									[this, ec, this_ptr, e = std::move(e)](event_queue_guard<derived_t> g) mutable
+									{
+										super::super::_handle_disconnect(ec,
+											std::move(this_ptr), defer_event(std::move(e), std::move(g)));
+									}, std::move(g)
+								}
+							);
+						}, chain.move_guard()
+					}
+				);
 			}
 		}
 

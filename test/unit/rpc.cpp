@@ -787,6 +787,7 @@ void rpc_test()
 		struct ext_data
 		{
 			int data_zie = 0;
+			int send_counter = 0;
 			int client_init_counter = 0;
 			int client_connect_counter = 0;
 			int client_disconnect_counter = 0;
@@ -926,12 +927,15 @@ void rpc_test()
 
 				std::string msg;
 				msg.resize(ex.data_zie);
-				client.async_call("echo", msg).response([len = ex.data_zie](std::string s)
+				client.async_call("echo", msg).response([&client](std::string s)
 				{
-					if (len <= 1024)
+					ext_data& ex = client.get_user_data<ext_data&>();
+					ex.send_counter++;
+
+					if (ex.data_zie <= 1024)
 					{
 						ASIO2_CHECK(!s.empty());
-						ASIO2_CHECK(!asio2::get_last_error());
+						ASIO2_CHECK_VALUE(asio2::last_error_msg(), !asio2::get_last_error());
 					}
 					else
 					{
@@ -1124,6 +1128,15 @@ void rpc_test()
 		{
 			ASIO2_CHECK(!clients[i]->is_stopped());
 			ASIO2_CHECK( clients[i]->is_started());
+		}
+
+		for (int i = 0; i < test_client_count; i++)
+		{
+			ext_data& ex = clients[i]->get_user_data<ext_data&>();
+			while (ex.send_counter < 1)
+			{
+				std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			}
 		}
 
 		for (int i = 0; i < test_client_count; i++)

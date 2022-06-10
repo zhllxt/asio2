@@ -142,7 +142,10 @@ namespace asio2::detail
 					callback(ec, bytes_sent);
 
 					// must stop, otherwise re-sending will cause header confusion
-					derive._do_disconnect(ec, std::move(p));
+					if (derive.state() == state_t::started)
+					{
+						derive._do_disconnect(ec, std::move(p));
+					}
 				}
 				else
 				{
@@ -169,7 +172,10 @@ namespace asio2::detail
 				if (ec)
 				{
 					// must stop, otherwise re-sending will cause body confusion
-					derive._do_disconnect(ec, std::move(p));
+					if (derive.state() == state_t::started)
+					{
+						derive._do_disconnect(ec, std::move(p));
+					}
 				}
 			})));
 			return true;

@@ -46,13 +46,16 @@ namespace asio2::detail
 		template <class...    >           friend class defer_event;
 
 	public:
-		event_queue_guard()
+		explicit event_queue_guard()
 		{
 		}
-		event_queue_guard(std::nullptr_t)
+		explicit event_queue_guard(std::nullptr_t)
 		{
 		}
-		event_queue_guard(derived_t& d) noexcept
+
+	protected:
+		// the valid guard can only be created by event_queue_cp
+		explicit event_queue_guard(derived_t& d) noexcept
 			: derive(&d), derive_ptr_(d.selfptr()), valid_(true)
 		{
 		}
@@ -133,8 +136,8 @@ namespace asio2::detail
 		{
 			if (valid_)
 			{
-				(fn_)();
 				valid_ = false;
+				(fn_)();
 			}
 		}
 
@@ -165,13 +168,20 @@ namespace asio2::detail
 		inline constexpr bool is_empty() const noexcept { return true; }
 	};
 
+	// defer event with event queue guard dummy
+	template<class derived_t>
+	struct defer_eqg_dummy
+	{
+		inline void operator()(event_queue_guard<derived_t>) {}
+	};
+
 	template<class Function, class derived_t>
 	class [[maybe_unused]] defer_event<Function, derived_t, std::false_type>
 	{
 		template <class...> friend class defer_event;
 	public:
 		template<class Fn>
-		defer_event(Fn&& fn) noexcept
+		defer_event(Fn&& fn, std::nullptr_t) noexcept
 			: fn_(std::forward<Fn>(fn))
 			, valid_(true)
 		{
@@ -197,18 +207,22 @@ namespace asio2::detail
 		{
 			if (valid_)
 			{
-				(fn_)(event_queue_guard<derived_t>());
 				valid_ = false;
+				(fn_)(event_queue_guard<derived_t>());
 			}
 		}
 
 		inline bool    empty() const noexcept { return (!valid_); }
 		inline bool is_empty() const noexcept { return (!valid_); }
 
-		//inline defer_event<Function, derived_t, std::false_type> move_event()
-		//{
-		//	return std::move(*this);
-		//}
+		inline defer_event<Function, derived_t, std::false_type> move_event() noexcept
+		{
+			return std::move(*this);
+		}
+		inline event_queue_guard<derived_t> move_guard() noexcept
+		{
+			return event_queue_guard<derived_t>();
+		}
 
 	protected:
 		Function fn_;
@@ -259,8 +273,8 @@ namespace asio2::detail
 		{
 			if (valid_)
 			{
-				(fn_)(std::move(guard_));
 				valid_ = false;
+				(fn_)(std::move(guard_));
 			}
 
 			// guard will be destroy at here, then guard's destroctor will be called
@@ -269,12 +283,17 @@ namespace asio2::detail
 		inline bool    empty() const noexcept { return (!valid_); }
 		inline bool is_empty() const noexcept { return (!valid_); }
 
-		inline defer_event<Function, derived_t, std::false_type> move_event()
+		inline defer_event<Function, derived_t, std::false_type> move_event() noexcept
 		{
-			valid_ = false;
-			return defer_event<Function, derived_t, std::false_type>(std::move(fn_));
+			defer_event<Function, derived_t, std::false_type> evt(std::move(fn_), nullptr);
+			
+			evt.valid_ = this->valid_;
+
+			this->valid_ = false;
+
+			return evt;
 		}
-		inline event_queue_guard<derived_t> move_guard()
+		inline event_queue_guard<derived_t> move_guard() noexcept
 		{
 			return std::move(guard_);
 		}
@@ -302,8 +321,8 @@ namespace asio2::detail
 		{
 		}
 
-		defer_event(defer_event&& o) = default;
-		defer_event& operator=(defer_event&& o) = default;
+		defer_event(defer_event&& o) noexcept = default;
+		defer_event& operator=(defer_event&& o) noexcept = default;
 		defer_event(const defer_event&) = delete;
 		defer_event& operator=(const defer_event&) = delete;
 
@@ -315,8 +334,19 @@ namespace asio2::detail
 		inline constexpr bool    empty() const noexcept { return true; }
 		inline constexpr bool is_empty() const noexcept { return true; }
 
-		inline auto                         move_event() { return ([](event_queue_guard<derived_t>) {}); }
-		inline event_queue_guard<derived_t> move_guard() { return std::move(guard_); }
+		inline defer_event<defer_eqg_dummy<derived_t>, derived_t, std::false_type> move_event() noexcept
+		{
+			defer_event<defer_eqg_dummy<derived_t>, derived_t, std::false_type> evt(
+				defer_eqg_dummy<derived_t>{}, nullptr);
+
+			evt.valid_ = false;
+
+			return evt;
+		}
+		inline event_queue_guard<derived_t> move_guard() noexcept
+		{
+			return std::move(guard_);
+		}
 
 	protected:
 		event_queue_guard<derived_t> guard_;
@@ -335,7 +365,7 @@ namespace asio2::detail
 		defer_event<F, derived_t, std::true_type>;
 
 	template<class F, class derived_t>
-	defer_event(F)->defer_event<F, derived_t, std::false_type>;
+	defer_event(F, std::nullptr_t)->defer_event<F, derived_t, std::false_type>;
 
 	template<class derived_t>
 	defer_event()->defer_event<void, derived_t>;
@@ -358,13 +388,13 @@ namespace asio2::detail
 		 */
 		~event_queue_cp() = default;
 
-		///**
-		// * @function Get pending event count.
-		// */
-		//inline std::size_t get_pending_event_count() const noexcept
-		//{
-		//	return this->events_.size();
-		//}
+		/**
+		 * @function Get pending event count in the event queue.
+		 */
+		inline std::size_t get_pending_event_count() const noexcept
+		{
+			return this->events_.size();
+		}
 
 	protected:
 		/**
@@ -465,6 +495,8 @@ namespace asio2::detail
 					}
 					else
 					{
+						// must set valid to false, otherwise when g is destroyed, it will enter
+						// next_event again, this will cause a infinite loop, and cause stack overflow.
 						g.valid_ = false;
 					}
 				}
@@ -493,6 +525,8 @@ namespace asio2::detail
 					}
 					else
 					{
+						// must set valid to false, otherwise when g is destroyed, it will enter
+						// next_event again, this will cause a infinite loop, and cause stack overflow.
 						g.valid_ = false;
 					}
 				}

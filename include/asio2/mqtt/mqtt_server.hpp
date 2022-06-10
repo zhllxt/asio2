@@ -218,7 +218,7 @@ namespace asio2::detail
 
 	protected:
 		/// use rwlock to make this id session map thread safe
-		asio2_shared_mutex                                               mqttid_sessions_mtx_;
+		mutable asio2_shared_mutex                                       mqttid_sessions_mtx_;
 
 		/// client id map
 		std::unordered_map<std::string_view, std::shared_ptr<session_t>> mqttid_sessions_;

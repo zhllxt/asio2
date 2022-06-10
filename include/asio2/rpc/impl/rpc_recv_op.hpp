@@ -53,6 +53,8 @@ namespace asio2::detail
 
 			derived_t& derive = static_cast<derived_t&>(*this);
 
+			ASIO2_ASSERT(derive.is_started());
+
 			rpc_serializer   & sr   = derive.serializer_;
 			rpc_deserializer & dr   = derive.deserializer_;
 			rpc_header       & head = derive.header_;

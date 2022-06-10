@@ -468,16 +468,18 @@ namespace asio2::detail
 			super::_do_disconnect(ec, std::move(this_ptr), std::move(chain));
 		}
 
-		template<typename MatchCondition>
+		template<typename MatchCondition, typename DeferEvent>
 		inline void _handle_connect(const error_code& ec, std::shared_ptr<derived_t> this_ptr,
-			condition_wrap<MatchCondition> condition)
+			condition_wrap<MatchCondition> condition, DeferEvent chain)
 		{
 			derived_t& derive = this->derived();
 
 			set_last_error(ec);
 
 			if (ec)
-				return derive._done_connect(ec, std::move(this_ptr), std::move(condition));
+			{
+				return derive._done_connect(ec, std::move(this_ptr), std::move(condition), std::move(chain));
+			}
 
 			// send connect message to server use coroutine 
 			mqtt_send_connect_op
@@ -485,22 +487,22 @@ namespace asio2::detail
 				derive.io().context(), derive.io().strand(),
 				derive.connect_message_,
 				derive.stream(),
-				[&derive, this_ptr = std::move(this_ptr), condition = std::move(condition)]
+				[&derive, this_ptr = std::move(this_ptr), condition = std::move(condition), chain = std::move(chain)]
 				(error_code ec, std::unique_ptr<asio::streambuf> stream) mutable
 				{
 					derive._handle_mqtt_connect_response(ec, std::move(this_ptr), std::move(condition),
-						std::move(stream));
+						std::move(stream), std::move(chain));
 				}
 			};
 		}
 
-		template<typename MatchCondition>
+		template<typename MatchCondition, typename DeferEvent>
 		inline void _handle_mqtt_connect_response(error_code ec, std::shared_ptr<derived_t> this_ptr,
-			condition_wrap<MatchCondition> condition, std::unique_ptr<asio::streambuf> stream)
+			condition_wrap<MatchCondition> condition, std::unique_ptr<asio::streambuf> stream, DeferEvent chain)
 		{
 			if (ec)
 			{
-				this->derived()._done_connect(ec, std::move(this_ptr), std::move(condition));
+				this->derived()._done_connect(ec, std::move(this_ptr), std::move(condition), std::move(chain));
 				return;
 			}
 
@@ -522,7 +524,7 @@ namespace asio2::detail
 			{
 				ASIO2_ASSERT(false);
 				ec = mqtt::make_error_code(mqtt::error::malformed_packet);
-				this->derived()._done_connect(ec, std::move(this_ptr), std::move(condition));
+				this->derived()._done_connect(ec, std::move(this_ptr), std::move(condition), std::move(chain));
 				return;
 			}
 
@@ -530,13 +532,14 @@ namespace asio2::detail
 
 			this->derived()._call_mqtt_handler(type, ec, this_ptr, static_cast<derived_t*>(this), data);
 
-			this->derived()._done_connect(ec, std::move(this_ptr), std::move(condition));
+			this->derived()._done_connect(ec, std::move(this_ptr), std::move(condition), std::move(chain));
 		}
 
-		template<typename MatchCondition>
-		inline void _do_start(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		template<typename MatchCondition, typename DeferEvent>
+		inline void _do_start(
+			std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition, DeferEvent chain)
 		{
-			super::_do_start(std::move(this_ptr), std::move(condition));
+			super::_do_start(std::move(this_ptr), std::move(condition), std::move(chain));
 
 			this->derived()._post_pingreq_timer(std::chrono::seconds(this->derived().keep_alive_time()), this_ptr);
 		}
@@ -561,6 +564,8 @@ namespace asio2::detail
 		inline void _handle_pingreq_timer(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
 		{
 			derived_t& derive = this->derived();
+
+			ASIO2_ASSERT((!ec) || ec == asio::error::operation_aborted);
 
 		#if defined(ASIO2_ENABLE_LOG)
 			if (ec && ec != asio::error::operation_aborted)
@@ -608,16 +613,18 @@ namespace asio2::detail
 			this->pingreq_timer_.cancel(ec_ignore);
 		}
 
-		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
+		template<typename DeferEvent>
+		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr, DeferEvent chain)
 		{
 			this->derived()._stop_pingreq_timer();
 
-			super::_handle_disconnect(ec, std::move(this_ptr));
+			super::_handle_disconnect(ec, std::move(this_ptr), std::move(chain));
 		}
 
-		inline void _handle_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
+		template<typename DeferEvent>
+		inline void _handle_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr, DeferEvent chain)
 		{
-			super::_handle_stop(ec, std::move(this_ptr));
+			super::_handle_stop(ec, std::move(this_ptr), std::move(chain));
 		}
 
 		template<class Data, class Callback>

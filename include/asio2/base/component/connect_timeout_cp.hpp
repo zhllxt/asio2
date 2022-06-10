@@ -62,8 +62,8 @@ namespace asio2::detail
 
 	protected:
 		template<class Rep, class Period>
-		inline void _post_connect_timeout_timer(std::chrono::duration<Rep, Period> duration,
-			std::shared_ptr<derived_t> this_ptr)
+		inline void _post_connect_timeout_timer(
+			std::chrono::duration<Rep, Period> duration, std::shared_ptr<derived_t> this_ptr)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
@@ -107,6 +107,8 @@ namespace asio2::detail
 		inline void _handle_connect_timeout_timer(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
+
+			ASIO2_ASSERT((!ec) || ec == asio::error::operation_aborted);
 
 		#if defined(ASIO2_ENABLE_LOG)
 			if (ec && ec != asio::error::operation_aborted)
@@ -167,6 +169,8 @@ namespace asio2::detail
 			[this, self_ptr = std::move(this_ptr), f = std::forward<Fn>(fn)]
 			(const error_code& ec) mutable
 			{
+				ASIO2_ASSERT((!ec) || ec == asio::error::operation_aborted);
+
 			#if defined(ASIO2_ENABLE_LOG)
 				if (ec && ec != asio::error::operation_aborted)
 				{

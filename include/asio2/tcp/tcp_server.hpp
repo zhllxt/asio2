@@ -146,12 +146,6 @@ namespace asio2::detail
 			// Fixed a lost "outstanding work count" that can occur when an asynchronous 
 			// accept operation is automatically restarted.
 			// Using boost 1.72.0 or above version can avoid this problem (asio 1.16.0)
-		#if defined(_DEBUG) || defined(DEBUG)
-			if (dynamic_cast<asio2::detail::default_iopool*>(this->iopool_.get()))
-			{
-				ASIO2_ASSERT(this->state_ == state_t::stopped);
-			}
-		#endif
 		}
 
 		/**
@@ -316,7 +310,7 @@ namespace asio2::detail
 			std::future<error_code> future = promise.get_future();
 
 			// use derfer to ensure the promise's value must be seted.
-			detail::defer_event set_promise
+			detail::defer_event pg
 			{
 				[promise = std::move(promise)]() mutable { promise.set_value(get_last_error()); }
 			};
@@ -324,7 +318,7 @@ namespace asio2::detail
 			derive.post(
 			[this, &derive, this_ptr = derive.selfptr(),
 				host = std::forward<String>(host), port = std::forward<StrOrInt>(port),
-				condition = std::move(condition), set_promise = std::move(set_promise)]
+				condition = std::move(condition), pg = std::move(pg)]
 			() mutable
 			{
 				state_t expected = state_t::stopped;
@@ -525,7 +519,7 @@ namespace asio2::detail
 		{
 			// use asio::post to ensure this server's _handle_stop is called must be after 
 			// all sessions _handle_stop has been called already.
-			// is use asio::dispatch, session's _handle_stop maybe called first.
+			// if use asio::dispatch, session's _handle_stop maybe called first.
 			asio::post(this->derived().io().strand(), make_allocator(this->derived().wallocator(),
 			[this, ec, this_ptr = std::move(this_ptr)]() mutable
 			{
@@ -572,7 +566,7 @@ namespace asio2::detail
 			#if defined(ASIO2_ENABLE_LOG)
 				detail::has_unexpected_behavior() = true;
 			#endif
-				//ASIO2_ASSERT(false);
+				ASIO2_ASSERT(false);
 			}
 		}
 

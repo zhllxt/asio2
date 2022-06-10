@@ -1,5 +1,5 @@
-#ifndef BHO_BEAST_MP11_INTEGRAL_HPP_INCLUDED
-#define BHO_BEAST_MP11_INTEGRAL_HPP_INCLUDED
+#ifndef BHO_MP11_INTEGRAL_HPP_INCLUDED
+#define BHO_MP11_INTEGRAL_HPP_INCLUDED
 
 //  Copyright 2015 Peter Dimov.
 //
@@ -8,11 +8,11 @@
 //  See accompanying file LICENSE_1_0.txt or copy at
 //  http://www.boost.org/LICENSE_1_0.txt
 
+#include <asio2/bho/mp11/version.hpp>
 #include <type_traits>
 #include <cstddef>
 
-namespace bho {
-namespace beast
+namespace bho
 {
 namespace mp11
 {
@@ -36,7 +36,6 @@ template<int I> using mp_int = std::integral_constant<int, I>;
 template<std::size_t N> using mp_size_t = std::integral_constant<std::size_t, N>;
 
 } // namespace mp11
-} // namespace beast
-} // bho
+} // namespace bho
 
-#endif // #ifndef BHO_BEAST_MP11_INTEGRAL_HPP_INCLUDED
+#endif // #ifndef BHO_MP11_INTEGRAL_HPP_INCLUDED

@@ -58,6 +58,7 @@ AddExecutableTarget(shared_iopool)
 AddExecutableTarget(tcp_general)
 AddExecutableTarget(websocket)
 AddExecutableTarget(zlib)
+AddExecutableTarget(event_dispatcher)
 
 if(MINGW OR CYGWIN)
 # no mingw compiled openssl

@@ -41,6 +41,7 @@
 #include <asio2/base/detail/buffer_wrap.hpp>
 #include <asio2/base/detail/condition_wrap.hpp>
 
+#include <asio2/base/component/thread_id_cp.hpp>
 #include <asio2/base/component/user_data_cp.hpp>
 #include <asio2/base/component/socket_cp.hpp>
 #include <asio2/base/component/user_timer_cp.hpp>
@@ -95,6 +96,7 @@ namespace asio2::detail
 	class ping_impl_t
 		: public object_t       <derived_t        >
 		, public iopool_cp
+		, public thread_id_cp   <derived_t, args_t>
 		, public user_data_cp   <derived_t, args_t>
 		, public user_timer_cp  <derived_t, args_t>
 		, public post_cp        <derived_t, args_t>
@@ -203,13 +205,6 @@ namespace asio2::detail
 			});
 
 			this->iopool_->stop();
-
-		#if defined(_DEBUG) || defined(DEBUG)
-			if (dynamic_cast<asio2::detail::default_iopool*>(this->iopool_.get()))
-			{
-				ASIO2_ASSERT(this->state_ == state_t::stopped);
-			}
-		#endif
 		}
 
 		/**
@@ -685,14 +680,13 @@ namespace asio2::detail
 			std::future<error_code> future = promise.get_future();
 
 			// use derfer to ensure the promise's value must be seted.
-			detail::defer_event set_promise
+			detail::defer_event pg
 			{
 				[promise = std::move(promise)]() mutable { promise.set_value(get_last_error()); }
 			};
 
 			derive.post(
-			[this, &derive, this_ptr = derive.selfptr(),
-				host = std::forward<String>(host), set_promise = std::move(set_promise)]
+			[this, &derive, this_ptr = derive.selfptr(), host = std::forward<String>(host), pg = std::move(pg)]
 			() mutable
 			{
 				state_t expected = state_t::stopped;
@@ -720,6 +714,10 @@ namespace asio2::detail
 						ASIO2_ASSERT(false);
 						asio::detail::throw_error(asio::error::operation_aborted);
 					}
+
+					// init the running thread id 
+					if (this->derived().io().get_thread_id() == std::thread::id{})
+						this->derived().io().init_thread_id();
 
 					this->seq_ = 0;
 					this->total_send_ = 0;
@@ -977,6 +975,9 @@ namespace asio2::detail
 		{
 			set_last_error(ec);
 
+			if (!this->is_started())
+				return;
+
 			if (ec == asio::error::operation_aborted)
 			{
 				this->derived()._do_stop(ec, std::move(this_ptr));
@@ -988,9 +989,6 @@ namespace asio2::detail
 				this->derived()._do_stop(ec, std::move(this_ptr));
 				return;
 			}
-
-			if (!this->is_started())
-				return;
 
 			// The actual number of bytes received is committed to the buffer so that we
 			// can extract it using a std::istream object.

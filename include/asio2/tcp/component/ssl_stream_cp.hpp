@@ -101,22 +101,22 @@ namespace asio2::detail
 			ASIO2_ASSERT(derive.io().strand().running_in_this_thread());
 		}
 
-		template<typename Fn>
-		inline void _ssl_stop(std::shared_ptr<derived_t> this_ptr, Fn&& fn)
+		template<typename DeferEvent>
+		inline void _ssl_stop(std::shared_ptr<derived_t> this_ptr, DeferEvent chain)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
 			ASIO2_ASSERT(derive.io().strand().running_in_this_thread());
 
 			if (!this->ssl_stream_)
-			{
-				fn();
 				return;
-			}
 
-			derive.push_event([this, &derive, this_ptr = std::move(this_ptr), fn = std::forward<Fn>(fn)]
+			derive.disp_event([this, &derive, this_ptr = std::move(this_ptr), e = chain.move_event()]
 			(event_queue_guard<derived_t> g) mutable
 			{
+				// must construct a new chain
+				defer_event chain(std::move(e), std::move(g));
+
 				struct SSL_clear_op
 				{
 					stream_type* s{};
@@ -144,18 +144,16 @@ namespace asio2::detail
 					std::make_shared<asio::steady_timer>(derive.io().context());
 				timer->expires_after(std::chrono::milliseconds(ssl_shutdown_timeout));
 				timer->async_wait(asio::bind_executor(derive.io().strand(),
-				[this_ptr, f = std::move(fn), g = std::move(g), SSL_clear_ptr]
+				[this_ptr, chain = std::move(chain), SSL_clear_ptr]
 				(const error_code& ec) mutable
 				{
-					// note : lambda [g = std::move(g), SSL_clear_ptr]
+					// note : lambda [chain = std::move(chain), SSL_clear_ptr]
 					// SSL_clear_ptr will destroyed first
-					// g will destroyed second after SSL_clear_ptr.
+					// chain will destroyed second after SSL_clear_ptr.
 
-					detail::ignore_unused(this_ptr, g, SSL_clear_ptr);
+					detail::ignore_unused(this_ptr, chain, SSL_clear_ptr);
 
 					set_last_error(ec);
-
-					(f)();
 				}));
 
 				// when server call ssl stream sync shutdown first,if the client socket is
@@ -173,11 +171,12 @@ namespace asio2::detail
 					// clost the timer
 					timer->cancel(ec_ignore);
 				}));
-			});
+			}, chain.move_guard());
 		}
 
-		template<typename MatchCondition>
-		inline void _post_handshake(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		template<typename MatchCondition, typename DeferEvent>
+		inline void _post_handshake(
+			std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition, DeferEvent chain)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
@@ -214,7 +213,7 @@ namespace asio2::detail
 			this->ssl_stream_->async_handshake(this->ssl_type_,
 				asio::bind_executor(derive.io().strand(), make_allocator(derive.wallocator(),
 			[&derive, self_ptr = std::move(this_ptr), condition = std::move(condition),
-					flag_ptr = std::move(flag_ptr), timer = std::move(timer)]
+				flag_ptr = std::move(flag_ptr), timer = std::move(timer), chain = std::move(chain)]
 			(const error_code& ec) mutable
 			{
 				error_code ec_ignore{};
@@ -223,15 +222,17 @@ namespace asio2::detail
 				timer->cancel(ec_ignore);
 
 				if (flag_ptr->test_and_set())
-					derive._handle_handshake(asio::error::timed_out, std::move(self_ptr), std::move(condition));
+					derive._handle_handshake(asio::error::timed_out,
+						std::move(self_ptr), std::move(condition), std::move(chain));
 				else
-					derive._handle_handshake(ec, std::move(self_ptr), std::move(condition));
+					derive._handle_handshake(ec,
+						std::move(self_ptr), std::move(condition), std::move(chain));
 			})));
 		}
 
-		template<typename MatchCondition>
+		template<typename MatchCondition, typename DeferEvent>
 		inline void _handle_handshake(const error_code & ec, std::shared_ptr<derived_t> self_ptr,
-			condition_wrap<MatchCondition> condition)
+			condition_wrap<MatchCondition> condition, DeferEvent chain)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
@@ -240,7 +241,8 @@ namespace asio2::detail
 				// Use "sessions().dispatch" to ensure that the _fire_accept function and the _fire_handshake
 				// function are fired in the same thread
 				derive.sessions().dispatch(
-				[&derive, ec, this_ptr = std::move(self_ptr), condition = std::move(condition)]
+				[&derive, ec, this_ptr = std::move(self_ptr), condition = std::move(condition),
+					chain = std::move(chain)]
 				() mutable
 				{
 					try
@@ -251,13 +253,13 @@ namespace asio2::detail
 
 						asio::detail::throw_error(ec);
 
-						derive._done_connect(ec, std::move(this_ptr), std::move(condition));
+						derive._done_connect(ec, std::move(this_ptr), std::move(condition), std::move(chain));
 					}
 					catch (system_error & e)
 					{
 						set_last_error(e);
 
-						derive._do_disconnect(e.code(), derive.selfptr());
+						derive._do_disconnect(e.code(), std::move(this_ptr), std::move(chain));
 					}
 				});
 			}
@@ -267,7 +269,7 @@ namespace asio2::detail
 
 				derive._fire_handshake(self_ptr);
 
-				derive._done_connect(ec, std::move(self_ptr), std::move(condition));
+				derive._done_connect(ec, std::move(self_ptr), std::move(condition), std::move(chain));
 			}
 		}
 

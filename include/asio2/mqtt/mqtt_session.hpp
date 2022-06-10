@@ -195,9 +195,9 @@ namespace asio2::detail
 			super::_do_disconnect(ec, std::move(this_ptr), std::move(chain));
 		}
 
-		template<typename MatchCondition>
+		template<typename MatchCondition, typename DeferEvent>
 		inline void _handle_connect(const error_code& ec, std::shared_ptr<derived_t> this_ptr,
-			condition_wrap<MatchCondition> condition)
+			condition_wrap<MatchCondition> condition, DeferEvent chain)
 		{
 			detail::ignore_unused(ec);
 
@@ -205,7 +205,7 @@ namespace asio2::detail
 			ASIO2_ASSERT(this->derived().sessions().io().strand().running_in_this_thread());
 
 			asio::dispatch(this->derived().io().strand(), make_allocator(this->derived().wallocator(),
-			[this, this_ptr = std::move(this_ptr), condition = std::move(condition)]
+			[this, this_ptr = std::move(this_ptr), condition = std::move(condition), chain = std::move(chain)]
 			() mutable
 			{
 				derived_t& derive = this->derived();
@@ -217,19 +217,19 @@ namespace asio2::detail
 				{
 					derive.io().context(), derive.io().strand(),
 					derive.stream(),
-					[this, this_ptr = std::move(this_ptr), condition = std::move(condition)]
+					[this, this_ptr = std::move(this_ptr), condition = std::move(condition), chain = std::move(chain)]
 					(error_code ec, std::unique_ptr<asio::streambuf> stream) mutable
 					{
 						this->derived()._handle_mqtt_connect_message(ec, std::move(this_ptr),
-								std::move(condition), std::move(stream));
+								std::move(condition), std::move(stream), std::move(chain));
 					}
 				};
 			}));
 		}
 
-		template<typename MatchCondition>
+		template<typename MatchCondition, typename DeferEvent>
 		inline void _handle_mqtt_connect_message(error_code ec, std::shared_ptr<derived_t> this_ptr,
-			condition_wrap<MatchCondition> condition, std::unique_ptr<asio::streambuf> stream)
+			condition_wrap<MatchCondition> condition, std::unique_ptr<asio::streambuf> stream, DeferEvent chain)
 		{
 			do
 			{
@@ -270,14 +270,15 @@ namespace asio2::detail
 			} while (false);
 
 			this->derived().sessions().dispatch(
-			[this, this_ptr = std::move(this_ptr), condition = std::move(condition), ec]
+			[this, ec, this_ptr = std::move(this_ptr), condition = std::move(condition), chain = std::move(chain)]
 			() mutable
 			{
-				super::_handle_connect(ec, std::move(this_ptr), std::move(condition));
+				super::_handle_connect(ec, std::move(this_ptr), std::move(condition), std::move(chain));
 			});
 		}
 
-		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
+		template<typename DeferEvent>
+		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr, DeferEvent chain)
 		{
 			{
 				asio2_unique_lock lock{ this->mqttid_sessions_mtx_ };
@@ -294,7 +295,7 @@ namespace asio2::detail
 				}
 			}
 
-			super::_handle_disconnect(ec, std::move(this_ptr));
+			super::_handle_disconnect(ec, std::move(this_ptr), std::move(chain));
 		}
 
 	protected:
