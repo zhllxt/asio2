@@ -143,11 +143,28 @@ namespace bho::pfr
 	class create_helper
 	{
 	public:
+		// dont use Args&&... args
+		// it will cause issue like this:
+		// int i = 2;
+		// create("dog", i);
+		// the i will be parsed as int&
 		template<typename ...Args>
-		static inline BaseT* create(const std::string& name, Args&&... args)
+		static inline BaseT* create(const std::string& name, Args... args)
 		{
 			return (class_factory<BaseT, Args...>::instance().create(
-				name, std::forward<Args>(args)...));
+				name, std::move(args)...));
+		}
+	};
+
+	template<typename BaseT>
+	class create_helper<BaseT*>
+	{
+	public:
+		template<typename ...Args>
+		static inline BaseT* create(const std::string& name, Args... args)
+		{
+			return (class_factory<BaseT, Args...>::instance().create(
+				name, std::move(args)...));
 		}
 	};
 
@@ -156,10 +173,10 @@ namespace bho::pfr
 	{
 	public:
 		template<typename ...Args>
-		static inline std::shared_ptr<BaseT> create(const std::string& name, Args&&... args)
+		static inline std::shared_ptr<BaseT> create(const std::string& name, Args... args)
 		{
 			return std::shared_ptr<BaseT>(class_factory<BaseT, Args...>::instance().create(
-				name, std::forward<Args>(args)...));
+				name, std::move(args)...));
 		}
 	};
 
@@ -168,10 +185,10 @@ namespace bho::pfr
 	{
 	public:
 		template<typename ...Args>
-		static inline std::unique_ptr<BaseT> create(const std::string& name, Args&&... args)
+		static inline std::unique_ptr<BaseT> create(const std::string& name, Args... args)
 		{
 			return std::unique_ptr<BaseT>(class_factory<BaseT, Args...>::instance().create(
-				name, std::forward<Args>(args)...));
+				name, std::move(args)...));
 		}
 	};
 }
@@ -202,7 +219,6 @@ private:                                                                        
     static char (*__refl_field_counter__(...))[1];                                                 \
     template<typename T, int N = -1>   struct __refl_members_iterator__ :                          \
 		public pfr::detail::__refl_members_iterator_dummy__{};                                     \
-    template<typename T, int N> friend struct __refl_members_iterator__;                           \
 public:                                                                                            \
     template<typename Func>                                                                        \
     void for_each_field(const Func& func) noexcept                                                 \
@@ -214,6 +230,7 @@ public:                                                                         
 	{                                                                                              \
         __refl_members_iterator__<int, 0>::for_each_field_name(func);                              \
     }                                                                                              \
+    template<typename T, int N> friend struct __refl_members_iterator__                            \
 
 #define F(type, name)                                                                              \
 public:                                                                                            \
