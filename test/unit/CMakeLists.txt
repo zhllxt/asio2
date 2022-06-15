@@ -59,6 +59,7 @@ AddExecutableTarget(tcp_general)
 AddExecutableTarget(websocket)
 AddExecutableTarget(zlib)
 AddExecutableTarget(event_dispatcher)
+AddExecutableTarget(reflection)
 
 if(MINGW OR CYGWIN)
 # no mingw compiled openssl

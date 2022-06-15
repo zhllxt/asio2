@@ -33,9 +33,26 @@ void event_dispatcher_test_basic()
 	ASIO2_CHECK(dispatcher.get_listener_count() == 0);
 	ASIO2_CHECK(!dispatcher.has_any_listener(3));
 
-	// listener has been removed, so insert before the listener will be failed.
-	ASIO2_CHECK(!dispatcher.insert_listener(listener, []() {}));
+	// listener has been removed, so the listener will be append at the tail
+	listener = dispatcher.insert_listener(3, []() {}, listener);
+	ASIO2_CHECK(listener);
+	ASIO2_CHECK(dispatcher.get_listener_count(3) == 1);
+
+	listener = dispatcher.find_listener_if(3, [](auto& listener_ptr) { return (listener_ptr->get_event_type() == 30); });
+	ASIO2_CHECK(!listener);
+
+	// the listener is empty, so remove listener will be failed.
+	ASIO2_CHECK(!dispatcher.remove_listener(listener));
+
+	listener = dispatcher.find_listener_if(3, [](auto& listener_ptr) { return (listener_ptr->get_event_type() == 3); });
+	ASIO2_CHECK(listener);
+
+	dispatcher.remove_listener(listener);
+	ASIO2_CHECK(!listener);
 	ASIO2_CHECK(dispatcher.get_listener_count(3) == 0);
+
+	listener = dispatcher.find_listener_if(3, [](auto& listener_ptr) { return (listener_ptr->get_event_type() == 3); });
+	ASIO2_CHECK(!listener);
 
 	int f32 = -1;
 	listener = dispatcher.append_listener(3, [&]()
@@ -45,6 +62,12 @@ void event_dispatcher_test_basic()
 	ASIO2_CHECK(dispatcher.has_any_listener(3));
 	ASIO2_CHECK(dispatcher.get_listener_count() == 1);
 	ASIO2_CHECK(dispatcher.get_listener_count(3) == 1);
+
+	// the event_type 30 is not equal to the "listener->evt", so this insert will failed.
+#if !defined(DEBUG) && !defined(_DEBUG)
+	listener = dispatcher.insert_listener(30, []() {}, listener);
+	ASIO2_CHECK(!listener);
+#endif
 
 	int f51 = -1;
 	dispatcher.append_listener(5, [&]()
@@ -82,7 +105,7 @@ void event_dispatcher_test_basic()
 	listeners.insert(listeners.end(), liss2.begin(), liss2.end());
 	ASIO2_CHECK(dispatcher.get_listener_count() == 7);
 
-	dispatcher.insert_listener(listener, []() {});
+	dispatcher.insert_listener(3, []() {}, listener);
 	ASIO2_CHECK(dispatcher.get_listener_count(3) == 2);
 	ASIO2_CHECK(dispatcher.get_listener_count() == 8);
 
@@ -424,8 +447,17 @@ void event_dispatcher_test_name()
 	ASIO2_CHECK(dispatcher.get_listener_count() == 0);
 	ASIO2_CHECK(!dispatcher.has_any_listener(3));
 
-	// listener has been removed, so insert before the listener will be failed.
-	ASIO2_CHECK(!dispatcher.insert_listener("e32", listener, []() {}));
+	// listener has been removed, so the listener will be append at the tail
+	listener = dispatcher.insert_listener("e32", 3, []() {}, listener);
+	ASIO2_CHECK(listener);
+	ASIO2_CHECK(dispatcher.get_listener_count(3) == 1);
+	ASIO2_CHECK(dispatcher.get_listener_count("e31") == 0);
+	ASIO2_CHECK(dispatcher.get_listener_count("e31", 3) == 0);
+	ASIO2_CHECK(dispatcher.get_listener_count("e32") == 1);
+	ASIO2_CHECK(dispatcher.get_listener_count("e32", 3) == 1);
+	
+	dispatcher.remove_listener(listener);
+	ASIO2_CHECK(!listener);
 	ASIO2_CHECK(dispatcher.get_listener_count(3) == 0);
 	ASIO2_CHECK(dispatcher.get_listener_count("e31") == 0);
 	ASIO2_CHECK(dispatcher.get_listener_count("e31", 3) == 0);
@@ -491,7 +523,7 @@ void event_dispatcher_test_name()
 	listeners.insert(listeners.end(), liss2.begin(), liss2.end());
 	ASIO2_CHECK(dispatcher.get_listener_count() == 7);
 
-	dispatcher.insert_listener(listener, []() {});
+	dispatcher.insert_listener(3, []() {}, listener);
 	ASIO2_CHECK(dispatcher.get_listener_count(3) == 2);
 	ASIO2_CHECK(dispatcher.get_listener_count() == 8);
 
@@ -549,6 +581,64 @@ void event_dispatcher_test_name()
 	ASIO2_CHECK(dispatcher.get_listener_count() == 0);
 }
 
+class ipacket
+{
+public:
+	ipacket()
+	{
+	}
+	virtual ~ipacket()
+	{
+	}
+
+	virtual const char * get_packet_type() = 0;
+};
+
+class mem_packet : public ipacket
+{
+public:
+	mem_packet(std::string m) : message(std::move(m))
+	{
+	}
+	virtual ~mem_packet()
+	{
+	}
+
+	virtual const char * get_packet_type() { return "mp"; }
+
+	std::string message;
+};
+
+void event_dispatcher_test_move()
+{
+	std::cout << std::endl << "event_dispatcher tutorial 6, move" << std::endl;
+
+	struct my_policy
+	{
+		static std::string_view get_event(const std::shared_ptr<ipacket> & e)
+		{
+			return e->get_packet_type();
+		}
+	};
+
+	asio2::event_dispatcher<std::string_view, void(const std::shared_ptr<ipacket>&), my_policy> dispatcher;
+
+	int f = -1;
+	dispatcher.append_listener("mp", [&](const std::shared_ptr<ipacket>& e)
+	{
+		f = 1;
+		ASIO2_CHECK(std::string_view{ "mp" } == e->get_packet_type());
+		mem_packet* p = dynamic_cast<mem_packet*>(e.get());
+		ASIO2_CHECK(p->message == "Hello world");
+	});
+
+	std::shared_ptr<mem_packet> e = std::make_shared<mem_packet>("Hello world");
+
+	dispatcher.dispatch(std::move(e));
+
+	ASIO2_CHECK(f == 1);
+}
+
 #include <asio2/util/uuid.hpp>
 void event_dispatcher_test_bench()
 {
@@ -564,6 +654,10 @@ void event_dispatcher_test_bench()
 	std::size_t sum = 0;
 	int count = 100;
 	int loop = 10000000;
+
+#if defined(DEBUG) || defined(_DEBUG)
+	loop /= 100;
+#endif
 
 	vs.reserve(count);
 
@@ -628,5 +722,6 @@ ASIO2_TEST_SUITE
 	ASIO2_TEST_CASE(event_dispatcher_test_event_canceling)
 	ASIO2_TEST_CASE(event_dispatcher_test_event_filter)
 	ASIO2_TEST_CASE(event_dispatcher_test_name)
+	ASIO2_TEST_CASE(event_dispatcher_test_move)
 	ASIO2_TEST_CASE(event_dispatcher_test_bench)
 )

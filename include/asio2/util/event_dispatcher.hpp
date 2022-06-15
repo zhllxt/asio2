@@ -1793,9 +1793,9 @@ public:
 		return prepend_listener(listener_name_type{}, es, cb);
 	}
 
-	listener_wptr insert_listener(const listener_wptr & before, callback_type cb)
+	listener_wptr insert_listener(const event_type& e, callback_type cb, const listener_wptr & before)
 	{
-		return insert_listener(listener_name_type{}, before, std::move(cb));
+		return insert_listener(listener_name_type{}, e, std::move(cb), before);
 	}
 
 	template<class Function>
@@ -1869,18 +1869,27 @@ public:
 		return v;
 	}
 
-	listener_wptr insert_listener(const listener_name_type& name, const listener_wptr & before, callback_type cb)
+	listener_wptr insert_listener(
+		const listener_name_type& name, const event_type& e, callback_type cb, const listener_wptr & before)
 	{
 		auto n = before.lock();
 
-		if (!n)
-			return listener_wptr();
-
 		typename thread_type::template unique_lock<mutex_type> guard(listener_mtx_);
 
-		listener_wptr ptr = listener_map_[n->evt].insert(name, n->evt, std::move(cb), before);
+		if (n)
+		{
+			if (n->evt != e)
+			{
+			#if defined(_DEBUG) || defined(DEBUG)
+				assert(false);
+			#endif
+				return listener_wptr();
+			}
+		}
 
-		listener_name_map_[name].emplace(n->evt, ptr);
+		listener_wptr ptr = listener_map_[e].insert(name, e, std::move(cb), before);
+
+		listener_name_map_[name].emplace(e, ptr);
 
 		return ptr;
 	}
@@ -2166,6 +2175,32 @@ public:
 		return do_find_callable_list(e);
 	}
 
+	/**
+	 * @param pred Find the listener by user defined rule
+	 * the "pred" Function signature : bool(auto& listener_ptr)
+	 */
+	template<class Function>
+	inline listener_wptr find_listener_if(const event_type & e, Function&& pred)
+	{
+		typename thread_type::template shared_lock<mutex_type> guard(listener_mtx_);
+
+		auto it1 = this->listener_map_.find(e);
+		if (it1 != this->listener_map_.end())
+		{
+			callback_list_type& cblist = it1->second;
+
+			for (auto it2 = cblist.begin(); it2 != cblist.end(); ++it2)
+			{
+				if (pred(*it2))
+				{
+					return listener_wptr(*it2);
+				}
+			}
+		}
+
+		return listener_wptr();
+	}
+
 	template <typename Func>
 	void for_each(const event_type & e, Func && func) const
 	{
@@ -2196,13 +2231,9 @@ public:
 		using get_event_t = typename select_get_event<
 			PolicyT, EventTypeT, has_function_get_event<PolicyT, Args...>::value>::type;
 
-		// can't std::forward<Args>(args) in get_event_t::get_event because the pass by value
-		// arguments will be moved to get_event
-		// then the other std::forward<Args>(args) to direct_dispatch will get empty values.
-		direct_dispatch(
-			get_event_t::get_event(args...),
-			std::forward<Args>(args)...
-		);
+		const event_type e = get_event_t::get_event(args...);
+
+		direct_dispatch(e, std::forward<Args>(args)...);
 	}
 
 	template <typename T>
@@ -2214,10 +2245,9 @@ public:
 		using get_event_t = typename select_get_event<
 			PolicyT, EventTypeT, has_function_get_event<PolicyT, T &&, Args...>::value>::type;
 
-		direct_dispatch(
-			get_event_t::get_event(std::forward<T>(first), args...),
-			std::forward<Args>(args)...
-		);
+		const event_type e = get_event_t::get_event(std::forward<T>(first), args...);
+
+		direct_dispatch(e, std::forward<Args>(args)...);
 	}
 
 	// Bypass any get_event policy. The first argument is the event type.
