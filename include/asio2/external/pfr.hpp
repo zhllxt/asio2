@@ -212,7 +212,7 @@ namespace bho::pfr
 		 sizeof(*counter((void*)0)) / sizeof(char) + tag + 1>*))                                   \
 		[sizeof(*counter((void*)0)) / sizeof(char) + tag + 1];                                     \
 
-#define BHO_REFLECT_F_INDEX(name) BHO_JOIN(__reflect_tag_, name)
+#define BHO_REFLECT_F_TAG(name) BHO_JOIN(__reflect_tag_, name)
 
 #define F_BEGIN(Class)                                                                             \
 private:                                                                                           \
@@ -236,11 +236,11 @@ public:                                                                         
 public:                                                                                            \
     type name{};                                                                                   \
 private:                                                                                           \
-    BHO_REFLECT_INCREASE(__refl_field_counter__, BHO_REFLECT_F_INDEX(name))                        \
+    BHO_REFLECT_INCREASE(__refl_field_counter__, BHO_REFLECT_F_TAG(name))                          \
     template <typename T>                                                                          \
-    struct __refl_members_iterator__<T, BHO_REFLECT_F_INDEX(name)>                                 \
+    struct __refl_members_iterator__<T, BHO_REFLECT_F_TAG(name)>                                   \
 	{                                                                                              \
-        typedef __refl_members_iterator__<T, BHO_REFLECT_F_INDEX(name) + 1> next_type;             \
+        typedef __refl_members_iterator__<T, BHO_REFLECT_F_TAG(name) + 1> next_type;               \
         template<typename ThisType, typename Func>                                                 \
         static void for_each_field(ThisType& This, const Func& func) noexcept                      \
 		{                                                                                          \

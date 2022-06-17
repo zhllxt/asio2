@@ -337,6 +337,12 @@ namespace asio2::detail
 
 					//	ASIO2_ASSERT(false);
 					//}
+
+					// memory leaks occur when SSL is used in multithreading
+					// https://github.com/chriskohlhoff/asio/issues/368
+				#if defined(ASIO2_USE_SSL)
+					OPENSSL_thread_stop();
+				#endif
 				});
 
 				iot->thread_id_ = this->threads_[i].get_id();
