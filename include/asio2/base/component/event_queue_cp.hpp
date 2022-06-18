@@ -364,11 +364,13 @@ namespace asio2::detail
 	defer_event(defer_event<F, derived_t, std::false_type>, event_queue_guard<derived_t>)->
 		defer_event<F, derived_t, std::true_type>;
 
-	template<class F, class derived_t>
-	defer_event(F, std::nullptr_t)->defer_event<F, derived_t, std::false_type>;
+	// This will cause error "non-deducible template parameter 'derived_t'" on macos clion
+	//template<class F, class derived_t>
+	//defer_event(F, std::nullptr_t)->defer_event<F, derived_t, std::false_type>;
 
-	template<class derived_t>
-	defer_event()->defer_event<void, derived_t>;
+	// This will cause error "non-deducible template parameter 'derived_t'" on macos clion
+	//template<class derived_t>
+	//defer_event()->defer_event<void, derived_t>;
 
 	template<class derived_t>
 	defer_event(event_queue_guard<derived_t>)->defer_event<void, derived_t>;

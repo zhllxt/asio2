@@ -24,6 +24,12 @@ include $(BUILD_EXECUTABLE)
 
 include $(CLEAR_VARS)
 LOCAL_C_INCLUDES += $(ASIO2_INCLUDE)
+LOCAL_MODULE := event_dispatcher.out
+LOCAL_SRC_FILES := $(LOCAL_PATH)/../../unit/event_dispatcher.cpp
+include $(BUILD_EXECUTABLE)
+
+include $(CLEAR_VARS)
+LOCAL_C_INCLUDES += $(ASIO2_INCLUDE)
 LOCAL_MODULE := http.out
 LOCAL_SRC_FILES := $(LOCAL_PATH)/../../unit/http.cpp
 include $(BUILD_EXECUTABLE)
@@ -38,6 +44,12 @@ include $(CLEAR_VARS)
 LOCAL_C_INCLUDES += $(ASIO2_INCLUDE)
 LOCAL_MODULE := md5.out
 LOCAL_SRC_FILES := $(LOCAL_PATH)/../../unit/md5.cpp
+include $(BUILD_EXECUTABLE)
+
+include $(CLEAR_VARS)
+LOCAL_C_INCLUDES += $(ASIO2_INCLUDE)
+LOCAL_MODULE := reflection.out
+LOCAL_SRC_FILES := $(LOCAL_PATH)/../../unit/reflection.cpp
 include $(BUILD_EXECUTABLE)
 
 include $(CLEAR_VARS)
@@ -66,6 +78,12 @@ include $(BUILD_EXECUTABLE)
 
 include $(CLEAR_VARS)
 LOCAL_C_INCLUDES += $(ASIO2_INCLUDE)
+LOCAL_MODULE := thread_pool.out
+LOCAL_SRC_FILES := $(LOCAL_PATH)/../../unit/thread_pool.cpp
+include $(BUILD_EXECUTABLE)
+
+include $(CLEAR_VARS)
+LOCAL_C_INCLUDES += $(ASIO2_INCLUDE)
 LOCAL_MODULE := timer.out
 LOCAL_SRC_FILES := $(LOCAL_PATH)/../../unit/timer.cpp
 include $(BUILD_EXECUTABLE)
@@ -74,4 +92,22 @@ include $(CLEAR_VARS)
 LOCAL_C_INCLUDES += $(ASIO2_INCLUDE)
 LOCAL_MODULE := timer_enable_error.out
 LOCAL_SRC_FILES := $(LOCAL_PATH)/../../unit/timer_enable_error.cpp
+include $(BUILD_EXECUTABLE)
+
+include $(CLEAR_VARS)
+LOCAL_C_INCLUDES += $(ASIO2_INCLUDE)
+LOCAL_MODULE := uuid.out
+LOCAL_SRC_FILES := $(LOCAL_PATH)/../../unit/uuid.cpp
+include $(BUILD_EXECUTABLE)
+
+include $(CLEAR_VARS)
+LOCAL_C_INCLUDES += $(ASIO2_INCLUDE)
+LOCAL_MODULE := websocket.out
+LOCAL_SRC_FILES := $(LOCAL_PATH)/../../unit/websocket.cpp
+include $(BUILD_EXECUTABLE)
+
+include $(CLEAR_VARS)
+LOCAL_C_INCLUDES += $(ASIO2_INCLUDE)
+LOCAL_MODULE := zlib.out
+LOCAL_SRC_FILES := $(LOCAL_PATH)/../../unit/zlib.cpp
 include $(BUILD_EXECUTABLE)
