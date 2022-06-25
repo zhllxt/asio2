@@ -15,28 +15,14 @@
 #pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
-#include <asio2/base/define.hpp>
-
 #include <asio2/base/detail/util.hpp>
 
-#include <asio2/mqtt/mqtt_protocol_util.hpp>
+#include <asio2/mqtt/protocol_util.hpp>
 
 namespace asio2::detail
 {
-	ASIO2_CLASS_FORWARD_DECLARE_BASE;
-	ASIO2_CLASS_FORWARD_DECLARE_TCP_BASE;
-	ASIO2_CLASS_FORWARD_DECLARE_TCP_SERVER;
-	ASIO2_CLASS_FORWARD_DECLARE_TCP_SESSION;
-	ASIO2_CLASS_FORWARD_DECLARE_TCP_CLIENT;
-
 	class mqtt_options
 	{
-		ASIO2_CLASS_FRIEND_DECLARE_BASE;
-		ASIO2_CLASS_FRIEND_DECLARE_TCP_BASE;
-		ASIO2_CLASS_FRIEND_DECLARE_TCP_SERVER;
-		ASIO2_CLASS_FRIEND_DECLARE_TCP_SESSION;
-		ASIO2_CLASS_FRIEND_DECLARE_TCP_CLIENT;
-
 	public:
 		using self = mqtt_options;
 

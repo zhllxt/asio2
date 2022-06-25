@@ -18,7 +18,7 @@
 #pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
-#include <asio2/mqtt/mqtt_core.hpp>
+#include <asio2/mqtt/core.hpp>
 
 namespace asio2::mqtt::v5
 {
@@ -834,34 +834,241 @@ namespace asio2::mqtt::v5
 	};
 
 	using property_variant = std::variant<
-		payload_format_indicator,
-		message_expiry_interval,
-		content_type,
-		response_topic,
-		correlation_data,
-		subscription_identifier,
-		session_expiry_interval,
-		assigned_client_identifier,
-		server_keep_alive,
-		authentication_method,
-		authentication_data,
-		request_problem_information,
-		will_delay_interval,
-		request_response_information,
-		response_information,
-		server_reference,
-		reason_string,
-		receive_maximum,
-		topic_alias_maximum,
-		topic_alias,
-		maximum_qos,
-		retain_available,
-		user_property,
-		maximum_packet_size,
-		wildcard_subscription_available,
-		subscription_identifier_available,
-		shared_subscription_available
+		v5::payload_format_indicator            ,
+		v5::message_expiry_interval             ,
+		v5::content_type                        ,
+		v5::response_topic                      ,
+		v5::correlation_data                    ,
+		v5::subscription_identifier             ,
+		v5::session_expiry_interval             ,
+		v5::assigned_client_identifier          ,
+		v5::server_keep_alive                   ,
+		v5::authentication_method               ,
+		v5::authentication_data                 ,
+		v5::request_problem_information         ,
+		v5::will_delay_interval                 ,
+		v5::request_response_information        ,
+		v5::response_information                ,
+		v5::server_reference                    ,
+		v5::reason_string                       ,
+		v5::receive_maximum                     ,
+		v5::topic_alias_maximum                 ,
+		v5::topic_alias                         ,
+		v5::maximum_qos                         ,
+		v5::retain_available                    ,
+		v5::user_property                       ,
+		v5::maximum_packet_size                 ,
+		v5::wildcard_subscription_available     ,
+		v5::subscription_identifier_available   ,
+		v5::shared_subscription_available       
 	>;
+
+	template<typename T>
+	inline constexpr bool is_v5_property()
+	{
+		using type = asio2::detail::remove_cvref_t<T>;
+		if constexpr (
+			std::is_same_v<type, v5::payload_format_indicator            > ||
+			std::is_same_v<type, v5::message_expiry_interval             > ||
+			std::is_same_v<type, v5::content_type                        > ||
+			std::is_same_v<type, v5::response_topic                      > ||
+			std::is_same_v<type, v5::correlation_data                    > ||
+			std::is_same_v<type, v5::subscription_identifier             > ||
+			std::is_same_v<type, v5::session_expiry_interval             > ||
+			std::is_same_v<type, v5::assigned_client_identifier          > ||
+			std::is_same_v<type, v5::server_keep_alive                   > ||
+			std::is_same_v<type, v5::authentication_method               > ||
+			std::is_same_v<type, v5::authentication_data                 > ||
+			std::is_same_v<type, v5::request_problem_information         > ||
+			std::is_same_v<type, v5::will_delay_interval                 > ||
+			std::is_same_v<type, v5::request_response_information        > ||
+			std::is_same_v<type, v5::response_information                > ||
+			std::is_same_v<type, v5::server_reference                    > ||
+			std::is_same_v<type, v5::reason_string                       > ||
+			std::is_same_v<type, v5::receive_maximum                     > ||
+			std::is_same_v<type, v5::topic_alias_maximum                 > ||
+			std::is_same_v<type, v5::topic_alias                         > ||
+			std::is_same_v<type, v5::maximum_qos                         > ||
+			std::is_same_v<type, v5::retain_available                    > ||
+			std::is_same_v<type, v5::user_property                       > ||
+			std::is_same_v<type, v5::maximum_packet_size                 > ||
+			std::is_same_v<type, v5::wildcard_subscription_available     > ||
+			std::is_same_v<type, v5::subscription_identifier_available   > ||
+			std::is_same_v<type, v5::shared_subscription_available       > 
+			)
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+	class property : public property_variant
+	{
+	public:
+		using super = property_variant;
+
+		property()
+		{
+		}
+
+		template<class T, std::enable_if_t<is_v5_property<T>(), int> = 0>
+		property(T&& v) : property_variant(std::forward<T>(v))
+		{
+		}
+
+		template<class T, std::enable_if_t<is_v5_property<T>(), int> = 0>
+		property& operator=(T&& v)
+		{
+			this->base() = std::forward<T>(v);
+			return (*this);
+		}
+
+		property(property&&) noexcept = default;
+		property(property const&) = default;
+		property& operator=(property&&) noexcept = default;
+		property& operator=(property const&) = default;
+
+		template<class T, std::enable_if_t<is_v5_property<T>(), int> = 0>
+		operator T&()
+		{
+			return std::get<T>(this->base());
+		}
+
+		template<class T, std::enable_if_t<is_v5_property<T>(), int> = 0>
+		operator const T&()
+		{
+			return std::get<T>(this->base());
+		}
+
+		template<class T, std::enable_if_t<is_v5_property<T>(), int> = 0>
+		operator T*() noexcept
+		{
+			return std::get_if<T>(std::addressof(this->base()));
+		}
+
+		template<class T, std::enable_if_t<is_v5_property<T>(), int> = 0>
+		operator const T*() noexcept
+		{
+			return std::get_if<T>(std::addressof(this->base()));
+		}
+
+		template<class T, std::enable_if_t<is_v5_property<T>(), int> = 0>
+		operator T()
+		{
+			return std::get<T>(this->base());
+		}
+
+		inline variable_byte_integer::value_type id()
+		{
+			asio2::clear_last_error();
+			variable_byte_integer::value_type r = 0;
+			try
+			{
+				r = std::visit([](auto& prop) mutable { return prop.id(); }, this->base());
+			}
+			catch (std::bad_variant_access const&)
+			{
+				asio2::set_last_error(asio::error::no_data);
+			}
+			return r;
+		}
+
+		inline property_type type()
+		{
+			asio2::clear_last_error();
+			property_type r = static_cast<property_type>(0);
+			try
+			{
+				r = std::visit([](auto& prop) mutable { return prop.type(); }, this->base());
+			}
+			catch (std::bad_variant_access const&)
+			{
+				asio2::set_last_error(asio::error::no_data);
+			}
+			return r;
+		}
+
+		inline std::string_view name()
+		{
+			asio2::clear_last_error();
+			std::string_view r{};
+			try
+			{
+				r = std::visit([](auto& prop) mutable { return prop.name(); }, this->base());
+			}
+			catch (std::bad_variant_access const&)
+			{
+				asio2::set_last_error(asio::error::no_data);
+			}
+			return r;
+		}
+
+		/// Returns the base variant of the message
+		inline super const& base()    const noexcept { return *this; }
+
+		/// Returns the base variant of the message
+		inline super&       base()          noexcept { return *this; }
+
+		/// Returns the base variant of the message
+		inline super const& variant() const noexcept { return *this; }
+
+		/// Returns the base variant of the message
+		inline super&       variant()       noexcept { return *this; }
+
+		/**
+		 * @function Checks if the variant holds the alternative T.
+		 */
+		template<class T>
+		inline bool has() noexcept
+		{
+			return std::holds_alternative<T>(this->base());
+		}
+
+		/**
+		 * @function If this holds the alternative T, returns a pointer to the value stored in the variant.
+		 * Otherwise, returns a null pointer value.
+		 */
+		template<class T>
+		inline std::add_pointer_t<T> get_if() noexcept
+		{
+			return std::get_if<T>(std::addressof(this->base()));
+		}
+
+		/**
+		 * @function If this holds the alternative T, returns a pointer to the value stored in the variant.
+		 * Otherwise, returns a null pointer value.
+		 */
+		template<class T>
+		inline std::add_pointer_t<const T> get_if() noexcept
+		{
+			return std::get_if<T>(std::addressof(this->base()));
+		}
+
+		/**
+		 * @function If this holds the alternative T, returns a reference to the value stored in the variant.
+		 * Otherwise, throws std::bad_variant_access.
+		 */
+		template<class T>
+		inline T& get()
+		{
+			return std::get<T>(this->base());
+		}
+
+		/**
+		 * @function If this holds the alternative T, returns a reference to the value stored in the variant.
+		 * Otherwise, throws std::bad_variant_access.
+		 */
+		template<class T>
+		inline const T& get()
+		{
+			return std::get<T>(this->base());
+		}
+
+	protected:
+	};
 
 	/**
 	 * The set of Properties is composed of a Property Length followed by the Properties.
@@ -882,9 +1089,9 @@ namespace asio2::mqtt::v5
 		template<class... Properties>
 		inline properties_set& set(Properties&&... Props)
 		{
-			value_.clear();
+			data_.clear();
 
-			(value_.emplace_back(std::forward<Properties>(Props)), ...);
+			(data_.emplace_back(std::forward<Properties>(Props)), ...);
 
 			update_length();
 
@@ -894,7 +1101,7 @@ namespace asio2::mqtt::v5
 		template<class... Properties>
 		inline properties_set& add(Properties&&... Props)
 		{
-			(value_.emplace_back(std::forward<Properties>(Props)), ...);
+			(data_.emplace_back(std::forward<Properties>(Props)), ...);
 
 			update_length();
 
@@ -904,7 +1111,7 @@ namespace asio2::mqtt::v5
 		template<class Propertie>
 		inline properties_set& erase(Propertie&& Prop)
 		{
-			for (auto it = value_.begin(); it != value_.end();)
+			for (auto it = data_.begin(); it != data_.end();)
 			{
 				std::visit([this, &it, &Prop](auto&& prop) mutable
 				{
@@ -913,10 +1120,10 @@ namespace asio2::mqtt::v5
 					using T1 = std::decay_t<decltype(Prop)>;
 					using T2 = std::decay_t<decltype(prop)>;
 					if constexpr (std::is_same_v<T1, T2>)
-						it = value_.erase(it);
+						it = data_.erase(it);
 					else
 						++it;
-				}, *it);
+				}, (*it).base());
 			}
 
 			update_length();
@@ -927,17 +1134,17 @@ namespace asio2::mqtt::v5
 		template<class Propertie>
 		inline properties_set& erase()
 		{
-			for (auto it = value_.begin(); it != value_.end();)
+			for (auto it = data_.begin(); it != data_.end();)
 			{
 				std::visit([this, &it](auto&& prop) mutable
 				{
 					using T1 = std::decay_t<Propertie>;
 					using T2 = std::decay_t<decltype(prop)>;
 					if constexpr (std::is_same_v<T1, T2>)
-						it = value_.erase(it);
+						it = data_.erase(it);
 					else
 						++it;
-				}, *it);
+				}, (*it).base());
 			}
 
 			update_length();
@@ -947,7 +1154,7 @@ namespace asio2::mqtt::v5
 
 		inline properties_set& clear() noexcept
 		{
-			value_.clear();
+			data_.clear();
 
 			update_length();
 
@@ -961,15 +1168,18 @@ namespace asio2::mqtt::v5
 
 		inline std::size_t count() noexcept
 		{
-			return value_.size();
+			return data_.size();
 		}
 
+		/**
+		 * @function Checks if the properties holds the alternative property T.
+		 */
 		template<class T>
 		inline bool has() noexcept
 		{
-			for (auto& v : value_)
+			for (auto& v : data_)
 			{
-				if (auto pval = std::get_if<T>(&v))
+				if (std::holds_alternative<T>(v))
 					return true;
 			}
 			return false;
@@ -978,7 +1188,7 @@ namespace asio2::mqtt::v5
 		template<class T>
 		inline std::add_pointer_t<T> get_if() noexcept
 		{
-			for (auto& v : value_)
+			for (auto& v : data_)
 			{
 				if (auto pval = std::get_if<T>(&v))
 					return pval;
@@ -996,9 +1206,9 @@ namespace asio2::mqtt::v5
 
 			length_.serialize(buffer);
 
-			for (auto& v : value_)
+			for (auto& v : data_)
 			{
-				std::visit([&buffer](auto& prop) mutable { prop.serialize(buffer); }, v);
+				std::visit([&buffer](auto& prop) mutable { prop.serialize(buffer); }, v.base());
 			}
 
 			return (*this);
@@ -1019,83 +1229,93 @@ namespace asio2::mqtt::v5
 				while (!props_data.empty())
 				{
 					variable_byte_integer id{};
+
 					id.deserialize(props_data);
+
+					bool succeed = true;
+
+					// It is a Protocol Error to include the Session Expiry Interval more than once.
+					for (auto& prop : data_)
+					{
+						if (prop.id() == id)
+						{
+							ASIO2_ASSERT(false);
+							asio2::set_last_error(mqtt::make_error_code(mqtt::error::protocol_error));
+							break;
+						}
+					}
 
 					switch (static_cast<property_type>(id.value()))
 					{
-					case property_type::payload_format_indicator          : value_.emplace_back(payload_format_indicator         {}); break;
-					case property_type::message_expiry_interval           : value_.emplace_back(message_expiry_interval          {}); break;
-					case property_type::content_type                      : value_.emplace_back(content_type                     {}); break;
-					case property_type::response_topic                    : value_.emplace_back(response_topic                   {}); break;
-					case property_type::correlation_data                  : value_.emplace_back(correlation_data                 {}); break;
-					case property_type::subscription_identifier           : value_.emplace_back(subscription_identifier          {}); break;
-					case property_type::session_expiry_interval           : value_.emplace_back(session_expiry_interval          {}); break;
-					case property_type::assigned_client_identifier        : value_.emplace_back(assigned_client_identifier       {}); break;
-					case property_type::server_keep_alive                 : value_.emplace_back(server_keep_alive                {}); break;
-					case property_type::authentication_method             : value_.emplace_back(authentication_method            {}); break;
-					case property_type::authentication_data               : value_.emplace_back(authentication_data              {}); break;
-					case property_type::request_problem_information       : value_.emplace_back(request_problem_information      {}); break;
-					case property_type::will_delay_interval               : value_.emplace_back(will_delay_interval              {}); break;
-					case property_type::request_response_information      : value_.emplace_back(request_response_information     {}); break;
-					case property_type::response_information              : value_.emplace_back(response_information             {}); break;
-					case property_type::server_reference                  : value_.emplace_back(server_reference                 {}); break;
-					case property_type::reason_string                     : value_.emplace_back(reason_string                    {}); break;
-					case property_type::receive_maximum                   : value_.emplace_back(receive_maximum                  {}); break;
-					case property_type::topic_alias_maximum               : value_.emplace_back(topic_alias_maximum              {}); break;
-					case property_type::topic_alias                       : value_.emplace_back(topic_alias                      {}); break;
-					case property_type::maximum_qos                       : value_.emplace_back(maximum_qos                      {}); break;
-					case property_type::retain_available                  : value_.emplace_back(retain_available                 {}); break;
-					case property_type::user_property                     : value_.emplace_back(user_property                    {}); break;
-					case property_type::maximum_packet_size               : value_.emplace_back(maximum_packet_size              {}); break;
-					case property_type::wildcard_subscription_available   : value_.emplace_back(wildcard_subscription_available  {}); break;
-					case property_type::subscription_identifier_available : value_.emplace_back(subscription_identifier_available{}); break;
-					case property_type::shared_subscription_available     : value_.emplace_back(shared_subscription_available    {}); break;
+					case property_type::payload_format_indicator          : data_.emplace_back(payload_format_indicator         {}); break;
+					case property_type::message_expiry_interval           : data_.emplace_back(message_expiry_interval          {}); break;
+					case property_type::content_type                      : data_.emplace_back(content_type                     {}); break;
+					case property_type::response_topic                    : data_.emplace_back(response_topic                   {}); break;
+					case property_type::correlation_data                  : data_.emplace_back(correlation_data                 {}); break;
+					case property_type::subscription_identifier           : data_.emplace_back(subscription_identifier          {}); break;
+					case property_type::session_expiry_interval           : data_.emplace_back(session_expiry_interval          {}); break;
+					case property_type::assigned_client_identifier        : data_.emplace_back(assigned_client_identifier       {}); break;
+					case property_type::server_keep_alive                 : data_.emplace_back(server_keep_alive                {}); break;
+					case property_type::authentication_method             : data_.emplace_back(authentication_method            {}); break;
+					case property_type::authentication_data               : data_.emplace_back(authentication_data              {}); break;
+					case property_type::request_problem_information       : data_.emplace_back(request_problem_information      {}); break;
+					case property_type::will_delay_interval               : data_.emplace_back(will_delay_interval              {}); break;
+					case property_type::request_response_information      : data_.emplace_back(request_response_information     {}); break;
+					case property_type::response_information              : data_.emplace_back(response_information             {}); break;
+					case property_type::server_reference                  : data_.emplace_back(server_reference                 {}); break;
+					case property_type::reason_string                     : data_.emplace_back(reason_string                    {}); break;
+					case property_type::receive_maximum                   : data_.emplace_back(receive_maximum                  {}); break;
+					case property_type::topic_alias_maximum               : data_.emplace_back(topic_alias_maximum              {}); break;
+					case property_type::topic_alias                       : data_.emplace_back(topic_alias                      {}); break;
+					case property_type::maximum_qos                       : data_.emplace_back(maximum_qos                      {}); break;
+					case property_type::retain_available                  : data_.emplace_back(retain_available                 {}); break;
+					case property_type::user_property                     : data_.emplace_back(user_property                    {}); break;
+					case property_type::maximum_packet_size               : data_.emplace_back(maximum_packet_size              {}); break;
+					case property_type::wildcard_subscription_available   : data_.emplace_back(wildcard_subscription_available  {}); break;
+					case property_type::subscription_identifier_available : data_.emplace_back(subscription_identifier_available{}); break;
+					case property_type::shared_subscription_available     : data_.emplace_back(shared_subscription_available    {}); break;
 					default:
 						// A Control Packet which contains an Identifier which is not valid for its packet type,
 						// or contains a value not of the specified data type, is a Malformed Packet. If received,
 						// use a CONNACK or DISCONNECT packet with Reason Code 0x81 (Malformed Packet) as described
 						// in section 4.13 Handling errors.
+						succeed = false;
 						ASIO2_ASSERT(false);
-						asio::detail::throw_error(mqtt::make_error_code(mqtt::error::malformed_packet));
+						asio2::set_last_error(mqtt::make_error_code(mqtt::error::malformed_packet));
 						break;
 					}
 
-					std::visit([&props_data](auto& prop) mutable { prop.value_.deserialize(props_data); }, value_.back());
-				}
-
-				auto it = std::adjacent_find(value_.begin(), value_.end(), [](const property_variant&a, const property_variant&b)
-				{
-					auto ida = std::visit([](auto& prop) mutable { return prop.id(); }, const_cast<property_variant&>(a));
-					auto idb = std::visit([](auto& prop) mutable { return prop.id(); }, const_cast<property_variant&>(b));
-					return (ida == idb);
-				});
-
-				// It is a Protocol Error to include the Session Expiry Interval more than once.
-				if (it != value_.end())
-				{
-					asio::detail::throw_error(mqtt::make_error_code(mqtt::error::protocol_error));
+					if (succeed)
+					{
+						std::visit([&props_data](auto& prop) mutable
+						{
+							prop.value_.deserialize(props_data);
+						}, data_.back().base());
+					}
 				}
 			}
 			catch (system_error const&)
 			{
-				asio::detail::throw_error(mqtt::make_error_code(mqtt::error::malformed_packet));
+				ASIO2_ASSERT(false);
+				asio2::set_last_error(mqtt::make_error_code(mqtt::error::malformed_packet));
 			}
 			catch (std::exception const&)
 			{
-				asio::detail::throw_error(mqtt::make_error_code(mqtt::error::malformed_packet));
+				ASIO2_ASSERT(false);
+				asio2::set_last_error(mqtt::make_error_code(mqtt::error::malformed_packet));
 			}
 
 			return (*this);
 		}
 
-		inline std::vector<property_variant>& value() { return value_; }
+		inline std::vector<property>& data() { return data_; }
 
 		inline properties_set& update_length()
 		{
 			std::size_t size = 0;
-			for (auto& v : value_)
+			for (auto& v : data_)
 			{
-				size += std::visit([](auto& prop) mutable { return prop.required_size(); }, v);
+				size += std::visit([](auto& prop) mutable { return prop.required_size(); }, v.base());
 			}
 
 			length_ = static_cast<std::int32_t>(size);
@@ -1109,9 +1329,9 @@ namespace asio2::mqtt::v5
 		template<class Function>
 		inline properties_set& for_each(Function&& f)
 		{
-			for (auto& v : value_)
+			for (auto& v : data_)
 			{
-				std::visit([&f](auto& prop) mutable { f(prop); }, v);
+				std::visit([&f](auto& prop) mutable { f(prop); }, v.base());
 			}
 
 			return (*this);
@@ -1125,7 +1345,7 @@ namespace asio2::mqtt::v5
 		variable_byte_integer         length_{};
 
 		// propertie list
-		std::vector<property_variant> value_ {};
+		std::vector<property>         data_ {};
 	};
 
 	namespace detail
@@ -1572,7 +1792,7 @@ namespace asio2::mqtt::v5
 				(type_and_flags_.bits.qos >  std::uint8_t(0) && !packet_id_.has_value()))
 			{
 				ASIO2_ASSERT(false);
-				//asio::detail::throw_error(asio::error::invalid_argument);
+				asio2::set_last_error(mqtt::make_error_code(mqtt::error::malformed_packet));
 			}
 
 			                  topic_name_.serialize(buffer);

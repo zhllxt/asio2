@@ -87,7 +87,7 @@ namespace asio2::mqtt
 		//inflight_messages inflight_messages_;
 		std::set<mqtt::two_byte_integer::value_type> qos2_publish_processed_;
 
-		offline_messages<offline_entry> offline_messages_;
+		offline_messages<omnode> offline_messages_;
 
 		//std::set<sub_con_map::handle> handles_; // to efficient remove
 	};

@@ -22,15 +22,14 @@
 #include <vector>
 #include <variant>
 
-#include <asio2/external/asio.hpp>
 #include <asio2/base/error.hpp>
 #include <asio2/base/detail/util.hpp>
 #include <asio2/base/detail/condition_wrap.hpp>
 #include <asio2/base/detail/buffer_wrap.hpp>
 
-#include <asio2/mqtt/mqtt_protocol_v3.hpp>
-#include <asio2/mqtt/mqtt_protocol_v4.hpp>
-#include <asio2/mqtt/mqtt_protocol_v5.hpp>
+#include <asio2/mqtt/protocol_v3.hpp>
+#include <asio2/mqtt/protocol_v4.hpp>
+#include <asio2/mqtt/protocol_v5.hpp>
 
 namespace asio2::detail
 {

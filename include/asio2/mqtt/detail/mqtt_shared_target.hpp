@@ -33,14 +33,14 @@
 
 namespace asio2::mqtt
 {
-	// v is shared_entry
-	template<typename Value>
-	typename std::add_pointer_t<typename asio2::detail::remove_cvref_t<Value>::session_type>
-	round_shared_target_method(Value& v)
+	// v is shared target node
+	template<typename STNode>
+	auto round_shared_target_method(STNode& v) -> 
+		std::shared_ptr<typename asio2::detail::remove_cvref_t<STNode>::session_type>
 	{
-		using session_type = typename asio2::detail::remove_cvref_t<Value>::session_type;
+		using session_type = typename asio2::detail::remove_cvref_t<STNode>::session_type;
 
-		session_type* session = nullptr;
+		std::weak_ptr<session_type> session;
 
 		if (!v.session_map.empty())
 		{
@@ -57,20 +57,21 @@ namespace asio2::mqtt
 			session = v.last->second;
 		}
 
-		return session;
+		return session.lock();
 	}
 
-	template<typename Value>
+	template<typename STNode>
 	class shared_target
 	{
 	public:
 		shared_target()
 		{
-			set_policy(std::bind(round_shared_target_method<Value>, std::placeholders::_1));
+			set_policy(std::bind(round_shared_target_method<STNode>, std::placeholders::_1));
 		}
 		~shared_target() = default;
 
-		using session_type = typename Value::session_type;
+		using session_t    = typename STNode::session_type;
+		using session_type = typename STNode::session_type;
 
 		template<class Function>
 		inline shared_target& set_policy(Function&& fun)
@@ -80,16 +81,14 @@ namespace asio2::mqtt
 		}
 
 	public:
-		void insert(session_type* session, std::string_view share_name, std::string_view topic_filter)
+		void insert(std::shared_ptr<session_t>& session, std::string_view share_name, std::string_view topic_filter)
 		{
 			auto key = std::pair{ share_name, topic_filter };
-
-			// std::map<std::chrono::nanoseconds::rep, session_t*> session_map;
 
 			auto it = targets_.find(key);
 			if (it == targets_.end())
 			{
-				Value v{ share_name, topic_filter };
+				STNode v{ share_name, topic_filter };
 
 				auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
 					std::chrono::steady_clock::now().time_since_epoch()).count();
@@ -98,7 +97,7 @@ namespace asio2::mqtt
 
 				v.session_map.emplace(ns, session);
 
-				v.session_set.emplace(session);
+				v.session_set.emplace(session.get());
 
 				key = std::pair{ v.share_name_view(), v.topic_filter_view() };
 
@@ -106,9 +105,9 @@ namespace asio2::mqtt
 			}
 			else
 			{
-				Value& v = it->second;
+				STNode& v = it->second;
 
-				if (v.session_set.find(session) != v.session_set.end())
+				if (v.session_set.find(session.get()) != v.session_set.end())
 					return;
 
 				for (;;)
@@ -127,13 +126,13 @@ namespace asio2::mqtt
 
 					v.session_map.emplace(ns, session);
 
-					v.session_set.emplace(session);
+					v.session_set.emplace(session.get());
 
 					break;
 				}
 			}
 		}
-		void erase(session_type* session, std::string_view share_name, std::string_view topic_filter)
+		void erase(std::shared_ptr<session_t>& session, std::string_view share_name, std::string_view topic_filter)
 		{
 			auto key = std::pair{ share_name, topic_filter };
 
@@ -141,7 +140,7 @@ namespace asio2::mqtt
 			if (it == targets_.end())
 				return;
 
-			Value& v = it->second;
+			STNode& v = it->second;
 
 			auto it_map = v.session_map.find(session->shared_target_key_);
 			if (it_map != v.session_map.end())
@@ -157,13 +156,13 @@ namespace asio2::mqtt
 				v.session_map.erase(it_map);
 			}
 
-			auto it_set = v.session_set.find(session);
+			auto it_set = v.session_set.find(session.get());
 			if (it_set != v.session_set.end())
 			{
 				v.session_set.erase(it_set);
 			}
 		}
-		//void erase(session_type* session, std::set<std::string_view> share_names)
+		//void erase(std::shared_ptr<session_t>& session, std::set<std::string_view> share_names)
 		//{
 		//	for (std::string_view share_name : share_names)
 		//	{
@@ -179,34 +178,34 @@ namespace asio2::mqtt
 		//		map_inner.erase(it_map);
 		//	}
 		//}
-		session_type* get_target(std::string_view share_name, std::string_view topic_filter)
+		std::shared_ptr<session_t> get_target(std::string_view share_name, std::string_view topic_filter)
 		{
 			auto key = std::pair{ share_name, topic_filter };
 
 			auto it = targets_.find(key);
 			if (it == targets_.end())
-				return nullptr;
+				return std::shared_ptr<session_t>();
 
-			Value& v = it->second;
+			STNode& v = it->second;
 
 			return policy_(v);
 		}
 
 	protected:
-		/// key : share_name - topic_filter, val : shared_entry
-		std::unordered_map<std::pair<std::string_view, std::string_view>, Value> targets_;
+		/// key : share_name - topic_filter, val : shared target node
+		std::unordered_map<std::pair<std::string_view, std::string_view>, STNode> targets_;
 
-		std::function<session_type*(Value&)> policy_;
+		std::function<std::shared_ptr<session_type>(STNode&)>                       policy_;
 	};
 
 	template<class session_t>
-	struct shared_entry
+	struct stnode
 	{
 		template <class> friend class mqtt::shared_target;
 
 		using session_type = session_t;
 
-		explicit shared_entry(std::string_view _share_name, std::string_view _topic_filter)
+		explicit stnode(std::string_view _share_name, std::string_view _topic_filter)
 		{
 			share_name.resize(_share_name.size());
 			std::memcpy((void*)share_name.data(), (const void*)_share_name.data(), _share_name.size());
@@ -231,13 +230,13 @@ namespace asio2::mqtt
 		std::vector<char> topic_filter;
 
 		/// session map ordered by steady_clock
-		std::map<std::chrono::nanoseconds::rep, session_t*> session_map;
+		std::map<std::chrono::nanoseconds::rep, std::weak_ptr<session_t>> session_map;
 
 		/// session unique
-		std::set<session_t*> session_set;
+		std::set<session_t*>                                              session_set;
 
 		/// last session for shared subscribe
-		typename std::map<std::chrono::nanoseconds::rep, session_t*>::iterator last;
+		typename std::map<std::chrono::nanoseconds::rep, std::weak_ptr<session_t>>::iterator last;
 	};
 }
 

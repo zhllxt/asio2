@@ -22,11 +22,12 @@
 #include <asio2/mqtt/impl/mqtt_send_connect_op.hpp>
 #include <asio2/mqtt/impl/mqtt_send_op.hpp>
 
-#include <asio2/mqtt/detail/mqtt_options.hpp>
 #include <asio2/mqtt/detail/mqtt_handler.hpp>
 #include <asio2/mqtt/detail/mqtt_invoker.hpp>
 #include <asio2/mqtt/detail/mqtt_topic_alias.hpp>
 #include <asio2/mqtt/detail/mqtt_session_state.hpp>
+
+#include <asio2/mqtt/options.hpp>
 
 #include <asio2/util/uuid.hpp>
 
@@ -336,78 +337,22 @@ namespace asio2::detail
 		{
 			detail::ignore_unused(condition);
 
-			if (!(this->template _find_mqtt_handler<mqtt::version::v3>(mqtt::control_packet_type::connack)))
-				this->on_connack([](mqtt::v3::connack&) mutable {});
-			if (!(this->template _find_mqtt_handler<mqtt::version::v4>(mqtt::control_packet_type::connack)))
-				this->on_connack([](mqtt::v4::connack&) mutable { });
-			if (!(this->template _find_mqtt_handler<mqtt::version::v5>(mqtt::control_packet_type::connack)))
-				this->on_connack([](mqtt::v5::connack&) mutable { });
-
-			if (!(this->template _find_mqtt_handler<mqtt::version::v3>(mqtt::control_packet_type::publish)))
-				this->on_publish([](mqtt::v3::publish&, std::variant<asio2::mqtt::v3::puback, asio2::mqtt::v3::pubrec>&) mutable {});
-			if (!(this->template _find_mqtt_handler<mqtt::version::v4>(mqtt::control_packet_type::publish)))
-				this->on_publish([](mqtt::v4::publish&, std::variant<asio2::mqtt::v4::puback, asio2::mqtt::v4::pubrec>&) mutable {});
-			if (!(this->template _find_mqtt_handler<mqtt::version::v5>(mqtt::control_packet_type::publish)))
-				this->on_publish([](mqtt::v5::publish&, std::variant<asio2::mqtt::v5::puback, asio2::mqtt::v5::pubrec>&) mutable {});
-
-			if (!(this->template _find_mqtt_handler<mqtt::version::v3>(mqtt::control_packet_type::puback)))
-				this->on_puback([](mqtt::v3::puback&) mutable {});
-			if (!(this->template _find_mqtt_handler<mqtt::version::v4>(mqtt::control_packet_type::puback)))
-				this->on_puback([](mqtt::v4::puback&) mutable {});
-			if (!(this->template _find_mqtt_handler<mqtt::version::v5>(mqtt::control_packet_type::puback)))
-				this->on_puback([](mqtt::v5::puback&) mutable {});
-
-			if (!(this->template _find_mqtt_handler<mqtt::version::v3>(mqtt::control_packet_type::pubrec)))
-				this->on_pubrec([](mqtt::v3::pubrec&, mqtt::v3::pubrel&) mutable {});
-			if (!(this->template _find_mqtt_handler<mqtt::version::v4>(mqtt::control_packet_type::pubrec)))
-				this->on_pubrec([](mqtt::v4::pubrec&, mqtt::v4::pubrel&) mutable {});
-			if (!(this->template _find_mqtt_handler<mqtt::version::v5>(mqtt::control_packet_type::pubrec)))
-				this->on_pubrec([](mqtt::v5::pubrec&, mqtt::v5::pubrel&) mutable {});
-
-			if (!(this->template _find_mqtt_handler<mqtt::version::v3>(mqtt::control_packet_type::pubrel)))
-				this->on_pubrel([](mqtt::v3::pubrel&, mqtt::v3::pubcomp&) mutable {});
-			if (!(this->template _find_mqtt_handler<mqtt::version::v4>(mqtt::control_packet_type::pubrel)))
-				this->on_pubrel([](mqtt::v4::pubrel&, mqtt::v4::pubcomp&) mutable {});
-			if (!(this->template _find_mqtt_handler<mqtt::version::v5>(mqtt::control_packet_type::pubrel)))
-				this->on_pubrel([](mqtt::v5::pubrel&, mqtt::v5::pubcomp&) mutable {});
-
-			if (!(this->template _find_mqtt_handler<mqtt::version::v3>(mqtt::control_packet_type::pubcomp)))
-				this->on_pubcomp([](mqtt::v3::pubcomp&) mutable {});
-			if (!(this->template _find_mqtt_handler<mqtt::version::v4>(mqtt::control_packet_type::pubcomp)))
-				this->on_pubcomp([](mqtt::v4::pubcomp&) mutable {});
-			if (!(this->template _find_mqtt_handler<mqtt::version::v5>(mqtt::control_packet_type::pubcomp)))
-				this->on_pubcomp([](mqtt::v5::pubcomp&) mutable {});
-
-			if (!(this->template _find_mqtt_handler<mqtt::version::v3>(mqtt::control_packet_type::suback)))
-				this->on_suback([](mqtt::v3::suback&) mutable {});
-			if (!(this->template _find_mqtt_handler<mqtt::version::v4>(mqtt::control_packet_type::suback)))
-				this->on_suback([](mqtt::v4::suback&) mutable {});
-			if (!(this->template _find_mqtt_handler<mqtt::version::v5>(mqtt::control_packet_type::suback)))
-				this->on_suback([](mqtt::v5::suback&) mutable {});
-
-			if (!(this->template _find_mqtt_handler<mqtt::version::v3>(mqtt::control_packet_type::unsuback)))
-				this->on_unsuback([](mqtt::v3::unsuback&) mutable {});
-			if (!(this->template _find_mqtt_handler<mqtt::version::v4>(mqtt::control_packet_type::unsuback)))
-				this->on_unsuback([](mqtt::v4::unsuback&) mutable {});
-			if (!(this->template _find_mqtt_handler<mqtt::version::v5>(mqtt::control_packet_type::unsuback)))
-				this->on_unsuback([](mqtt::v5::unsuback&) mutable {});
-
-			if (!(this->template _find_mqtt_handler<mqtt::version::v3>(mqtt::control_packet_type::pingresp)))
-				this->on_pingresp([](mqtt::v3::pingresp&) mutable {});
-			if (!(this->template _find_mqtt_handler<mqtt::version::v4>(mqtt::control_packet_type::pingresp)))
-				this->on_pingresp([](mqtt::v4::pingresp&) mutable {});
-			if (!(this->template _find_mqtt_handler<mqtt::version::v5>(mqtt::control_packet_type::pingresp)))
-				this->on_pingresp([](mqtt::v5::pingresp&) mutable {});
-
-			if (!(this->template _find_mqtt_handler<mqtt::version::v3>(mqtt::control_packet_type::disconnect)))
-				this->on_disconnect([](mqtt::v3::disconnect&) mutable {});
-			if (!(this->template _find_mqtt_handler<mqtt::version::v4>(mqtt::control_packet_type::disconnect)))
-				this->on_disconnect([](mqtt::v4::disconnect&) mutable {});
-			if (!(this->template _find_mqtt_handler<mqtt::version::v5>(mqtt::control_packet_type::disconnect)))
-				this->on_disconnect([](mqtt::v5::disconnect&) mutable {});
-
-			if (!(this->template _find_mqtt_handler<mqtt::version::v5>(mqtt::control_packet_type::auth)))
-				this->on_auth([](mqtt::v5::auth&, mqtt::v5::auth&) mutable {});
+			// must set default callback for every mqtt message.
+			if (!(this->_find_mqtt_handler(mqtt::control_packet_type::connect    ))) this->on_connect    ([](mqtt::message&                ) mutable {});
+			if (!(this->_find_mqtt_handler(mqtt::control_packet_type::connack    ))) this->on_connack    ([](mqtt::message&                ) mutable {});
+			if (!(this->_find_mqtt_handler(mqtt::control_packet_type::publish    ))) this->on_publish    ([](mqtt::message&, mqtt::message&) mutable {});
+			if (!(this->_find_mqtt_handler(mqtt::control_packet_type::puback     ))) this->on_puback     ([](mqtt::message&                ) mutable {});
+			if (!(this->_find_mqtt_handler(mqtt::control_packet_type::pubrec     ))) this->on_pubrec     ([](mqtt::message&, mqtt::message&) mutable {});
+			if (!(this->_find_mqtt_handler(mqtt::control_packet_type::pubrel     ))) this->on_pubrel     ([](mqtt::message&, mqtt::message&) mutable {});
+			if (!(this->_find_mqtt_handler(mqtt::control_packet_type::pubcomp    ))) this->on_pubcomp    ([](mqtt::message&                ) mutable {});
+			if (!(this->_find_mqtt_handler(mqtt::control_packet_type::subscribe  ))) this->on_subscribe  ([](mqtt::message&                ) mutable {});
+			if (!(this->_find_mqtt_handler(mqtt::control_packet_type::suback     ))) this->on_suback     ([](mqtt::message&                ) mutable {});
+			if (!(this->_find_mqtt_handler(mqtt::control_packet_type::unsubscribe))) this->on_unsubscribe([](mqtt::message&                ) mutable {});
+			if (!(this->_find_mqtt_handler(mqtt::control_packet_type::unsuback   ))) this->on_unsuback   ([](mqtt::message&                ) mutable {});
+			if (!(this->_find_mqtt_handler(mqtt::control_packet_type::pingreq    ))) this->on_pingreq    ([](mqtt::message&, mqtt::message&) mutable {});
+			if (!(this->_find_mqtt_handler(mqtt::control_packet_type::pingresp   ))) this->on_pingresp   ([](mqtt::message&                ) mutable {});
+			if (!(this->_find_mqtt_handler(mqtt::control_packet_type::disconnect ))) this->on_disconnect ([](mqtt::message&                ) mutable {});
+			if (!(this->_find_mqtt_handler(mqtt::control_packet_type::auth       ))) this->on_auth       ([](mqtt::message&, mqtt::message&) mutable {});
 		}
 
 	protected:

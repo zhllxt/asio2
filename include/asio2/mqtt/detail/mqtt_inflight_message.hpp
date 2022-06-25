@@ -29,7 +29,7 @@
 #include <asio2/base/iopool.hpp>
 #include <asio2/base/error.hpp>
 
-#include <asio2/mqtt/mqtt_core.hpp>
+#include <asio2/mqtt/core.hpp>
 
 #include <asio2/mqtt/detail/mqtt_topic_util.hpp>
 
@@ -78,18 +78,18 @@ namespace asio2::mqtt
 
 	//protected:
 	//	using mi_inflight_message = mi::multi_index_container<
-	//		inflight_entry,
+	//		imnode,
 	//		mi::indexed_by<
 	//		mi::sequenced<
 	//		mi::tag<tag_seq>
 	//		>,
 	//		mi::ordered_unique<
 	//		mi::tag<tag_pid>,
-	//		BOOST_MULTI_INDEX_CONST_MEM_FUN(inflight_entry, packet_id_t, packet_id)
+	//		BOOST_MULTI_INDEX_CONST_MEM_FUN(imnode, packet_id_t, packet_id)
 	//		>,
 	//		mi::ordered_non_unique<
 	//		mi::tag<tag_tim>,
-	//		BOOST_MULTI_INDEX_MEMBER(inflight_entry, std::shared_ptr<asio::steady_timer>, message_expiry_timer_)
+	//		BOOST_MULTI_INDEX_MEMBER(imnode, std::shared_ptr<asio::steady_timer>, message_expiry_timer_)
 	//		>
 	//		>
 	//	>;
@@ -97,10 +97,10 @@ namespace asio2::mqtt
 	//	mi_inflight_message messages_;
 	//};
 
-	//struct inflight_entry
+	//struct imnode
 	//{
 	//	template<class Message>
-	//	inflight_entry(Message&& msg,
+	//	imnode(Message&& msg,
 	//		any life_keeper,
 	//		std::shared_ptr<asio::steady_timer> tim_message_expiry
 	//	)

@@ -4,25 +4,25 @@
  * author   : zhllxt
  * email    : 37792738@qq.com
  *
- * chinese : http://blog.mcxiaoke.com/mqtt/protocol/MQTT-3.1.1-CN.html
- * english : http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/os/mqtt-v3.1.1-os.html
+ * chinese : 
+ * english : http://public.dhe.ibm.com/software/dw/webservices/ws-mqtt/mqtt-v3r1.html
  * 
  * Distributed under the GNU GENERAL PUBLIC LICENSE Version 3, 29 June 2007
  * (See accompanying file LICENSE or see <http://www.gnu.org/licenses/>)
  */
 
-#ifndef __ASIO2_MQTT_PROTOCOL_V4_HPP__
-#define __ASIO2_MQTT_PROTOCOL_V4_HPP__
+#ifndef __ASIO2_MQTT_PROTOCOL_V3_HPP__
+#define __ASIO2_MQTT_PROTOCOL_V3_HPP__
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1200)
 #pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
-#include <asio2/mqtt/mqtt_core.hpp>
+#include <asio2/mqtt/core.hpp>
 
-namespace asio2::mqtt::v4
+namespace asio2::mqtt::v3
 {
-	static constexpr std::uint8_t version_number = asio2::detail::to_underlying(mqtt::version::v4);
+	static constexpr std::uint8_t version_number = asio2::detail::to_underlying(mqtt::version::v3);
 
 	enum class connect_reason_code : std::uint8_t
 	{
@@ -36,15 +36,12 @@ namespace asio2::mqtt::v4
 	};
 
 	/**
-	 * CONNECT - Client requests a connection to a Server
-	 * 
-	 * After a Network Connection is established by a Client to a Server, the first packet sent from the
-	 * Client to the Server MUST be a CONNECT packet [MQTT-3.1.0-1].
-	 * 
-	 * A Client can only send the CONNECT Packet once over a Network Connection. The Server MUST process
-	 * a second CONNECT Packet sent from a Client as a protocol violation and disconnect the Client
-	 * 
-	 * http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/os/mqtt-v3.1.1-os.html#_Toc398718028
+	 * CONNECT - Client requests a connection to a server
+	 *
+	 * When a TCP/IP socket connection is established from a client to a server, a protocol level
+	 * session must be created using a CONNECT flow.
+	 *
+	 * http://public.dhe.ibm.com/software/dw/webservices/ws-mqtt/mqtt-v3r1.html#connect
 	 */
 	class connect : public fixed_header<version_number>
 	{
@@ -205,13 +202,13 @@ namespace asio2::mqtt::v4
 		}
 
 	protected:
-		// The Protocol Name is a UTF-8 Encoded String that represents the protocol name "MQTT". 
-		// The string, its offset and length will not be changed by future versions of the MQTT specification.
-		utf8_string      protocol_name_{ "MQTT" };
+		// The protocol name is present in the variable header of a MQTT CONNECT message.
+		// This field is a UTF-encoded string that represents the protocol name MQIsdp, capitalized as shown.
+		utf8_string      protocol_name_{ "MQIsdp" };
 
-		// The 8 bit unsigned value that represents the revision level of the protocol used by the Client. 
-		// The value of the Protocol Level field for the version 3.1.1 of the protocol is 4 (0x04).
-		one_byte_integer protocol_version_{ 0x04 };
+		// The protocol version is present in the variable header of a CONNECT message.
+		// The value of the Protocol version field for the current version of the protocol, 3 (0x03)
+		one_byte_integer protocol_version_{ 0x03 };
 
 		union
 		{
@@ -265,7 +262,7 @@ namespace asio2::mqtt::v4
 	/**
 	 * CONNACK - Acknowledge connection request
 	 * 
-	 * http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/os/mqtt-v3.1.1-os.html#_Toc398718033
+	 * http://public.dhe.ibm.com/software/dw/webservices/ws-mqtt/mqtt-v3r1.html#connack
 	 */
 	class connack : public fixed_header<version_number>
 	{
@@ -275,19 +272,17 @@ namespace asio2::mqtt::v4
 			update_remain_length();
 		}
 
-		explicit connack(bool session_present, std::uint8_t reason_code)
+		explicit connack(std::uint8_t reason_code)
 			: fixed_header(control_packet_type::connack)
 			, reason_code_(reason_code)
 		{
-			connack_flags_.bits.session_present = session_present;
 			update_remain_length();
 		}
 
-		explicit connack(bool session_present, connect_reason_code reason_code)
+		explicit connack(connect_reason_code reason_code)
 			: fixed_header(control_packet_type::connack)
 			, reason_code_(asio2::detail::to_underlying(reason_code))
 		{
-			connack_flags_.bits.session_present = session_present;
 			update_remain_length();
 		}
 
@@ -304,8 +299,8 @@ namespace asio2::mqtt::v4
 		{
 			fixed_header::serialize(buffer);
 
-			connack_flags_.byte      .serialize(buffer);
-			reason_code_             .serialize(buffer);
+			connack_flags_.byte.serialize(buffer);
+			reason_code_       .serialize(buffer);
 
 			return (*this);
 		}
@@ -314,8 +309,8 @@ namespace asio2::mqtt::v4
 		{
 			fixed_header::deserialize(data);
 
-			connack_flags_.byte     .deserialize(data);
-			reason_code_            .deserialize(data);
+			connack_flags_.byte.deserialize(data);
+			reason_code_       .deserialize(data);
 
 			update_remain_length();
 
@@ -326,20 +321,27 @@ namespace asio2::mqtt::v4
 		inline connect_reason_code reason_code    () { return static_cast<connect_reason_code>(reason_code_.value()); }
 
 		inline connack       & session_present(bool         v) { connack_flags_.bits.session_present = v; return (*this); }
-		inline connack       & reason_code    (std::uint8_t v) { reason_code_                        = v; return (*this); }
-		inline connack       & reason_code    (connect_reason_code v)
+		inline connack       & reason_code    (std::uint8_t v) { reason_code_ = v; return (*this); }
+
+		inline connack       & reason_code(connect_reason_code v)
 		{ reason_code_ = asio2::detail::to_underlying(v); return (*this); }
 
 		inline connack& update_remain_length()
 		{
 			remain_length_ = static_cast<std::int32_t>(0
-				+ connack_flags_.byte    .required_size()
-				+ reason_code_           .required_size()
+				+ connack_flags_.byte.required_size()
+				+ reason_code_       .required_size()
 				);
 
 			return (*this);
 		}
 	protected:
+		// Topic Name Compression Response
+		// byte 1	Reserved values. Not used.
+
+		//one_byte_integer reserved_   { 0 };
+
+		// Here we use the connection flags to replace the "reserved_"
 		union
 		{
 			one_byte_integer byte{ 0 }; // all connack flags
@@ -358,16 +360,23 @@ namespace asio2::mqtt::v4
 		#endif
 		} connack_flags_{};	               // connack flags
 
-		// Byte 2 in the Variable Header is the Connect Reason Code.
+		// Connect Return Code
+		// byte 2	Return Code
 		one_byte_integer reason_code_{ 0 };
 	};
 
 	/**
 	 * PUBLISH - Publish message
 	 * 
-	 * A PUBLISH packet is sent from a Client to a Server or from a Server to a Client to transport an Application Message.
+	 * A PUBLISH message is sent by a client to a server for distribution to interested subscribers.
+	 * Each PUBLISH message is associated with a topic name (also known as the Subject or Channel).
+	 * This is a hierarchical name space that defines a taxonomy of information sources for which 
+	 * subscribers can register an interest. A message that is published to a specific topic name
+	 * is delivered to connected subscribers for that topic.
+	 * If a client subscribes to one or more topics, any message published to those topics are sent
+	 * by the server to the client as a PUBLISH message.
 	 * 
-	 * http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/os/mqtt-v3.1.1-os.html#_Toc398718037
+	 * http://public.dhe.ibm.com/software/dw/webservices/ws-mqtt/mqtt-v3r1.html#publish
 	 */
 	class publish : public fixed_header<version_number>
 	{
@@ -405,7 +414,7 @@ namespace asio2::mqtt::v4
 				(type_and_flags_.bits.qos >  std::uint8_t(0) && !packet_id_.has_value()))
 			{
 				ASIO2_ASSERT(false);
-				//asio::detail::throw_error(asio::error::invalid_argument);
+				asio2::set_last_error(mqtt::make_error_code(mqtt::error::malformed_packet));
 			}
 
 			                  topic_name_.serialize(buffer);
@@ -420,7 +429,6 @@ namespace asio2::mqtt::v4
 			fixed_header::deserialize(data);
 
 			topic_name_.deserialize(data);
-			// A PUBLISH Packet MUST NOT contain a Packet Identifier if its QoS value is set to 0 [MQTT-2.3.1-5].
 			if (type_and_flags_.bits.qos == 1 || type_and_flags_.bits.qos == 2)
 			{
 				two_byte_integer packet_id{};
@@ -444,7 +452,7 @@ namespace asio2::mqtt::v4
 
 		inline utf8_string::view_type          topic_name() { return topic_name_.data_view(); }
 		inline two_byte_integer::value_type    packet_id () { return packet_id_->value()    ; }
-		inline application_message::view_type  payload   () { return payload_.data_view()   ; }
+		inline application_message::view_type  payload   () { return payload_   .data_view(); }
 
 		inline publish       &  packet_id (std::uint16_t    v) { packet_id_  = v             ;                         return (*this); }
 		template<class String>
@@ -483,9 +491,11 @@ namespace asio2::mqtt::v4
 	/**
 	 * PUBACK - Publish acknowledgement
 	 * 
-	 * A PUBACK Packet is the response to a PUBLISH Packet with QoS level 1.
+	 * A PUBACK message is the response to a PUBLISH message with QoS level 1.
+	 * A PUBACK message is sent by a server in response to a PUBLISH message from a publishing client, 
+	 * and by a subscriber in response to a PUBLISH message from the server.
 	 * 
-	 * http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/os/mqtt-v3.1.1-os.html#_Toc398718043
+	 * http://public.dhe.ibm.com/software/dw/webservices/ws-mqtt/mqtt-v3r1.html#puback
 	 */
 	class puback : public fixed_header<version_number>
 	{
@@ -544,17 +554,19 @@ namespace asio2::mqtt::v4
 			return (*this);
 		}
 	protected:
-		// This contains the Packet Identifier from the PUBLISH Packet that is being acknowledged.
+		// Contains the Message Identifier (Message ID) for the PUBLISH message that is being acknowledged. 
 		two_byte_integer                packet_id_ {};
 	};
 
 	/**
-	 * PUBREC - Publish received (QoS 2 publish received, part 1)
+	 * PUBREC - Assured publish received (part 1)
 	 * 
-	 * A PUBREC Packet is the response to a PUBLISH Packet with QoS 2.
-	 * It is the second packet of the QoS 2 protocol exchange.
+	 * A PUBREC message is the response to a PUBLISH message with QoS level 2.
+	 * It is the second message of the QoS level 2 protocol flow.
+	 * A PUBREC message is sent by the server in response to a PUBLISH message from a publishing client,
+	 * or by a subscriber in response to a PUBLISH message from the server.
 	 * 
-	 * http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/os/mqtt-v3.1.1-os.html#_Toc398718048
+	 * http://public.dhe.ibm.com/software/dw/webservices/ws-mqtt/mqtt-v3r1.html#pubrec
 	 */
 	class pubrec : public fixed_header<version_number>
 	{
@@ -613,26 +625,25 @@ namespace asio2::mqtt::v4
 			return (*this);
 		}
 	protected:
-		// The variable header contains the Packet Identifier from the PUBLISH Packet that is being acknowledged.
+		// The variable header contains the Message ID for the acknowledged PUBLISH.
 		two_byte_integer                packet_id_ {};
 	};
 
 	/**
-	 * PUBREL - Publish release (QoS 2 publish received, part 2)
+	 * PUBREL - Assured Publish Release (part 2)
 	 * 
-	 * A PUBREL Packet is the response to a PUBREC Packet.
-	 * It is the third packet of the QoS 2 protocol exchange.
+	 * A PUBREL message is the response either from a publisher to a PUBREC message from the server,
+	 * or from the server to a PUBREC message from a subscriber.
 	 * 
-	 * http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/os/mqtt-v3.1.1-os.html#_Toc398718053
+	 * http://public.dhe.ibm.com/software/dw/webservices/ws-mqtt/mqtt-v3r1.html#pubrel
 	 */
 	class pubrel : public fixed_header<version_number>
 	{
 	public:
 		pubrel() : fixed_header(control_packet_type::pubrel)
 		{
-			// Bits 3,2,1 and 0 of the Fixed Header in the PUBREL packet are reserved and MUST be
-			// set to 0,0,1 and 0 respectively.
-			// The Server MUST treat any other value as malformed and close the Network Connection [MQTT-3.6.1-1].
+			// PUBREL messages use QoS level 1 as an acknowledgement is expected in the form of a PUBCOMP.
+			// Retries are handled in the same way as PUBLISH messages.
 			type_and_flags_.reserved.bit1 = 1;
 
 			update_remain_length();
@@ -689,17 +700,18 @@ namespace asio2::mqtt::v4
 			return (*this);
 		}
 	protected:
-		// The variable header contains the same Packet Identifier as the PUBREC Packet that is being acknowledged.
+		// The variable header contains the same Message ID as the PUBREC message that is being acknowledged. 
 		two_byte_integer                packet_id_ {};
 	};
 
 	/**
-	 * PUBCOMP - Publish complete (QoS 2 publish received, part 3)
+	 * PUBCOMP - Assured publish complete (part 3)
 	 * 
-	 * The PUBCOMP Packet is the response to a PUBREL Packet.
-	 * It is the fourth and final packet of the QoS 2 protocol exchange.
+	 * This message is either the response from the server to a PUBREL message from a publisher,
+	 * or the response from a subscriber to a PUBREL message from the server.
+	 * It is the fourth and last message in the QoS 2 protocol flow.
 	 * 
-	 * http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/os/mqtt-v3.1.1-os.html#_Toc398718058
+	 * http://public.dhe.ibm.com/software/dw/webservices/ws-mqtt/mqtt-v3r1.html#pubcomp
 	 */
 	class pubcomp : public fixed_header<version_number>
 	{
@@ -758,30 +770,27 @@ namespace asio2::mqtt::v4
 			return (*this);
 		}
 	protected:
-		// The variable header contains the same Packet Identifier as the PUBREL Packet that is being acknowledged.
+		// The variable header contains the same Message ID as the acknowledged PUBREL message.
 		two_byte_integer                packet_id_ {};
 	};
 
 	/**
-	 * SUBSCRIBE - Subscribe to topics
+	 * SUBSCRIBE - Subscribe to named topics
 	 * 
-	 * The SUBSCRIBE Packet is sent from the Client to the Server to create one or more Subscriptions.
-	 * Each Subscription registers a Client's interest in one or more Topics.
-	 * The Server sends PUBLISH Packets to the Client in order to forward Application Messages that were
-	 * published to Topics that match these Subscriptions.
-	 * The SUBSCRIBE Packet also specifies (for each Subscription) the maximum QoS with which the Server
-	 * can send Application Messages to the Client.
+	 * The SUBSCRIBE message allows a client to register an interest in one or more topic names with the server.
+	 * Messages published to these topics are delivered from the server to the client as PUBLISH messages.
+	 * The SUBSCRIBE message also specifies the QoS level at which the subscriber wants to receive published messages.
 	 * 
-	 * http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/os/mqtt-v3.1.1-os.html#_Toc398718063
+	 * http://public.dhe.ibm.com/software/dw/webservices/ws-mqtt/mqtt-v3r1.html#subscribe
 	 */
 	class subscribe : public fixed_header<version_number>
 	{
 	public:
 		subscribe() : fixed_header(control_packet_type::subscribe)
 		{
-			// Bits 3,2,1 and 0 of the fixed header of the SUBSCRIBE Control Packet are reserved and MUST be
-			// set to 0,0,1 and 0 respectively. The Server MUST treat any other value as malformed and close
-			// the Network Connection [MQTT-3.8.1-1].
+			// SUBSCRIBE messages use QoS level 1 to acknowledge multiple subscription requests.
+			// The corresponding SUBACK message is identified by matching the Message ID.
+			// Retries are handled in the same way as PUBLISH messages.
 			type_and_flags_.reserved.bit1 = 1;
 
 			update_remain_length();
@@ -859,26 +868,22 @@ namespace asio2::mqtt::v4
 			return (*this);
 		}
 	protected:
-		// The variable header contains a Packet Identifier.
+		// The variable header contains a Message ID because a SUBSCRIBE message has a QoS level of 1. 
 		two_byte_integer                packet_id_    {};
 
-		// The payload of a SUBSCRIBE Packet contains a list of Topic Filters indicating the Topics
-		// to which the Client wants to subscribe. The Topic Filters in a SUBSCRIBE packet payload
-		// MUST be UTF-8 encoded strings as defined in Section 1.5.3 [MQTT-3.8.3-1]. A Server SHOULD
-		// support Topic filters that contain the wildcard characters defined in Section 4.7.1. If
-		// it chooses not to support topic filters that contain wildcard characters it MUST reject 
-		// any Subscription request whose filter contains them [MQTT-3.8.3-2]. Each filter is
-		// followed by a byte called the Requested QoS. This gives the maximum QoS level at which 
-		// the Server can send Application Messages to the Client.
+		// The payload of a SUBSCRIBE message contains a list of topic names to which the client wants
+		// to subscribe, and the QoS level at which the client wants to receive the messages. The strings
+		// are UTF-encoded, and the QoS level occupies 2 bits of a single byte. The topic strings may
+		// contain special Topic wildcard characters to represent a set of topics.
 		subscriptions_set               subscriptions_{};
 	};
 
 	/**
-	 * SUBACK - Subscribe acknowledgement
+	 * SUBACK - Subscription acknowledgement
 	 * 
-	 * A SUBACK Packet is sent by the Server to the Client to confirm receipt and processing of a SUBSCRIBE Packet.
+	 * A SUBACK message is sent by the server to the client to confirm receipt of a SUBSCRIBE message.
 	 * 
-	 * http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/os/mqtt-v3.1.1-os.html#_Toc398718068
+	 * http://public.dhe.ibm.com/software/dw/webservices/ws-mqtt/mqtt-v3r1.html#suback
 	 */
 	class suback : public fixed_header<version_number>
 	{
@@ -928,8 +933,8 @@ namespace asio2::mqtt::v4
 			return (*this);
 		}
 
-		inline two_byte_integer::value_type    packet_id    () { return packet_id_  .value()   ; }
-		inline one_byte_integer_set  &         reason_codes () { return reason_codes_          ; }
+		inline two_byte_integer::value_type    packet_id    () { return packet_id_  .value(); }
+		inline one_byte_integer_set  &         reason_codes () { return reason_codes_       ; }
 
 		inline suback       &  packet_id  (std::uint16_t v) { packet_id_   = v; return (*this); }
 
@@ -958,22 +963,22 @@ namespace asio2::mqtt::v4
 			return (*this);
 		}
 	protected:
-		// The Variable Header of the SUBACK Packet contains the following fields in the order:
-		// the Packet Identifier from the SUBSCRIBE Packet that is being acknowledged, and Properties.
+		// The variable header contains the Message ID for the SUBSCRIBE message that is being acknowledged.
 		two_byte_integer                packet_id_   {};
 
-		// The payload contains a list of return codes. Each return code corresponds to a Topic Filter
-		// in the SUBSCRIBE Packet being acknowledged. The order of return codes in the SUBACK Packet
-		// MUST match the order of Topic Filters in the SUBSCRIBE Packet [MQTT-3.9.3-1].
+		// The payload contains a vector of granted QoS levels. Each level corresponds to a topic name
+		// in the corresponding SUBSCRIBE message. The order of QoS levels in the SUBACK message matches
+		// the order of topic name and Requested QoS pairs in the SUBSCRIBE message. The Message ID in the
+		// variable header enables you to match SUBACK messages with the corresponding SUBSCRIBE messages.
 		one_byte_integer_set            reason_codes_{};
 	};
 
 	/**
-	 * UNSUBSCRIBE - Unsubscribe from topics
+	 * UNSUBSCRIBE - Unsubscribe from named topics
 	 * 
-	 * An UNSUBSCRIBE Packet is sent by the Client to the Server, to unsubscribe from topics.
+	 * An UNSUBSCRIBE message is sent by the client to the server to unsubscribe from named topics.
 	 * 
-	 * http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/os/mqtt-v3.1.1-os.html#_Toc398718072
+	 * http://public.dhe.ibm.com/software/dw/webservices/ws-mqtt/mqtt-v3r1.html#unsubscribe
 	 */
 	class unsubscribe : public fixed_header<version_number>
 	{
@@ -987,9 +992,9 @@ namespace asio2::mqtt::v4
 			: fixed_header(control_packet_type::unsubscribe)
 			, packet_id_  (packet_id)
 		{
-			// Bits 3,2,1 and 0 of the Fixed Header of the UNSUBSCRIBE packet are reserved and MUST
-			// be set to 0,0,1 and 0 respectively. The Server MUST treat any other value as malformed
-			// and close the Network Connection [MQTT-3.10.1-1].
+			// UNSUBSCRIBE messages use QoS level 1 to acknowledge multiple unsubscribe requests.
+			// The corresponding UNSUBACK message is identified by the Message ID. Retries are
+			// handled in the same way as PUBLISH messages.
 			type_and_flags_.reserved.bit1 = 1;
 
 			update_remain_length();
@@ -1058,24 +1063,21 @@ namespace asio2::mqtt::v4
 			return (*this);
 		}
 	protected:
-		// The variable header contains a Packet Identifier. 
+		// The variable header contains a Message ID because an UNSUBSCRIBE message has a QoS level of 1.
 		two_byte_integer                packet_id_    {};
 
-		// The payload for the UNSUBSCRIBE Packet contains the list of Topic Filters that the Client
-		// wishes to unsubscribe from. The Topic Filters in an UNSUBSCRIBE packet MUST be UTF-8
-		// encoded strings as defined in Section 1.5.3, packed contiguously [MQTT-3.10.3-1].
-		// The Payload of an UNSUBSCRIBE packet MUST contain at least one Topic Filter.An UNSUBSCRIBE
-		// packet with no payload is a protocol violation[MQTT - 3.10.3 - 2].See section 4.8 for
-		// information about handling errors.
+		// The client unsubscribes from the list of topics named in the payload.
+		// The strings are UTF-encoded and are packed contiguously.
+		// Topic names in a UNSUBSCRIBE message are not compressed. 
 		utf8_string_set                 topic_filters_{};
 	};
 
 	/**
-	 * UNSUBACK - Unsubscribe acknowledgement
+	 * UNSUBACK - Unsubscribe acknowledgment
 	 * 
-	 * The UNSUBACK packet is sent by the Server to the Client to confirm receipt of an UNSUBSCRIBE packet.
+	 * The UNSUBACK message is sent by the server to the client to confirm receipt of an UNSUBSCRIBE message.
 	 * 
-	 * http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/os/mqtt-v3.1.1-os.html#_Toc398718077
+	 * http://public.dhe.ibm.com/software/dw/webservices/ws-mqtt/mqtt-v3r1.html#unsuback
 	 */
 	class unsuback : public fixed_header<version_number>
 	{
@@ -1134,7 +1136,7 @@ namespace asio2::mqtt::v4
 			return (*this);
 		}
 	protected:
-		// The variable header contains the Packet Identifier of the UNSUBSCRIBE Packet that is being acknowledged.
+		// The variable header contains the Message ID for the UNSUBSCRIBE message that is being acknowledged. 
 		two_byte_integer                packet_id_   {};
 
 		// The UNSUBACK Packet has no payload.
@@ -1143,9 +1145,9 @@ namespace asio2::mqtt::v4
 	/**
 	 * PINGREQ - PING request
 	 * 
-	 * The PINGREQ packet is sent from a Client to the Server.
+	 * The PINGREQ message is an "are you alive?" message that is sent from a connected client to the server.
 	 * 
-	 * http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/os/mqtt-v3.1.1-os.html#_Toc398718081
+	 * http://public.dhe.ibm.com/software/dw/webservices/ws-mqtt/mqtt-v3r1.html#pingreq
 	 */
 	class pingreq : public fixed_header<version_number>
 	{
@@ -1196,10 +1198,9 @@ namespace asio2::mqtt::v4
 	/**
 	 * PINGRESP - PING response
 	 * 
-	 * A PINGRESP Packet is sent by the Server to the Client in response to a PINGREQ packet.
-	 * It indicates that the Server is alive.
+	 * A PINGRESP message is the response sent by a server to a PINGREQ message and means "yes I am alive".
 	 * 
-	 * http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/os/mqtt-v3.1.1-os.html#_Toc398718086
+	 * http://public.dhe.ibm.com/software/dw/webservices/ws-mqtt/mqtt-v3r1.html#pingresp
 	 */
 	class pingresp : public fixed_header<version_number>
 	{
@@ -1250,10 +1251,13 @@ namespace asio2::mqtt::v4
 	/**
 	 * DISCONNECT - Disconnect notification
 	 * 
-	 * The DISCONNECT Packet is the final Control Packet sent from the Client to the Server.
-	 * It indicates that the Client is disconnecting cleanly.
+	 * The DISCONNECT message is sent from the client to the server to indicate that it is about to close
+	 * its TCP/IP connection. This allows for a clean disconnection, rather than just dropping the line.
+	 * If the client had connected with the clean session flag set, then all previously maintained
+	 * information about the client will be discarded.
+	 * A server should not rely on the client to close the TCP/IP connection after receiving a DISCONNECT.
 	 * 
-	 * http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/os/mqtt-v3.1.1-os.html#_Toc398718090
+	 * http://public.dhe.ibm.com/software/dw/webservices/ws-mqtt/mqtt-v3r1.html#disconnect
 	 */
 	class disconnect : public fixed_header<version_number>
 	{
@@ -1296,9 +1300,9 @@ namespace asio2::mqtt::v4
 			return (*this);
 		}
 	protected:
-		// The DISCONNECT Packet has no variable header.
+		// There is no variable header.
 
-		// The DISCONNECT Packet has no payload.
+		// There is no payload.
 	};
 
 }
@@ -1306,17 +1310,17 @@ namespace asio2::mqtt::v4
 namespace asio2::mqtt
 {
 	template<typename = void>
-	inline constexpr std::string_view to_string(v4::connect_reason_code v)
+	inline constexpr std::string_view to_string(v3::connect_reason_code v)
 	{
 		using namespace std::string_view_literals;
 		switch(v)
 		{
-		case v4::connect_reason_code::success						 : return "Connection accepted"sv;
-		case v4::connect_reason_code::unacceptable_protocol_version	 : return "The Server does not support the level of the MQTT protocol requested by the Client"sv;
-		case v4::connect_reason_code::identifier_rejected			 : return "The Client identifier is correct UTF-8 but not allowed by the Server"sv;
-		case v4::connect_reason_code::server_unavailable			 : return "The Network Connection has been made but the MQTT service is unavailable"sv;
-		case v4::connect_reason_code::bad_user_name_or_password		 : return "The data in the user name or password is malformed"sv;
-		case v4::connect_reason_code::not_authorized				 : return "The Client is not authorized to connect"sv;
+		case v3::connect_reason_code::success						 : return "Connection accepted"sv;
+		case v3::connect_reason_code::unacceptable_protocol_version	 : return "The Server does not support the level of the MQTT protocol requested by the Client"sv;
+		case v3::connect_reason_code::identifier_rejected			 : return "The Client identifier is correct UTF-8 but not allowed by the Server"sv;
+		case v3::connect_reason_code::server_unavailable			 : return "The Network Connection has been made but the MQTT service is unavailable"sv;
+		case v3::connect_reason_code::bad_user_name_or_password		 : return "The data in the user name or password is malformed"sv;
+		case v3::connect_reason_code::not_authorized				 : return "The Client is not authorized to connect"sv;
 		default:
 			ASIO2_ASSERT(false);
 			break;
@@ -1325,4 +1329,4 @@ namespace asio2::mqtt
 	}
 }
 
-#endif // !__ASIO2_MQTT_PROTOCOL_V4_HPP__
+#endif // !__ASIO2_MQTT_PROTOCOL_V3_HPP__

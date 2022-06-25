@@ -43,8 +43,9 @@
 
 #include <asio2/base/detail/util.hpp>
 
-#include <asio2/mqtt/mqtt_error.hpp>
 #include <asio2/mqtt/detail/mqtt_topic_util.hpp>
+
+#include <asio2/mqtt/error.hpp>
 
 /*
  * Server                     Broker      Port             Websocket
@@ -57,11 +58,13 @@
  *
  */
 
-namespace asio2::detail
-{
-	template <class> class mqtt_handler_t;
-	template <class> class mqtt_invoker_t;
-}
+//namespace asio2::detail
+//{
+//	template <class> class mqtt_handler_t;
+//	template <class> class mqtt_invoker_t;
+//	template <class> class mqtt_aop_connect;
+//	template <class> class mqtt_aop_publish;
+//}
 
 namespace asio2::mqtt
 {
@@ -1494,18 +1497,20 @@ namespace asio2::mqtt
 	 * this class is just used for user application, it is not the part of mqtt protocol.
 	 */
 	template<class derived_t>
-	class user_message_flag
+	class user_message_attr
 	{
-		template <class> friend class asio2::detail::mqtt_handler_t;
-		template <class> friend class asio2::detail::mqtt_invoker_t;
+		//template <class> friend class asio2::detail::mqtt_handler_t;
+		//template <class> friend class asio2::detail::mqtt_invoker_t;
+		//template <class> friend class asio2::detail::mqtt_aop_connect;
+		//template <class> friend class asio2::detail::mqtt_aop_publish;
 
 	public:
-		 user_message_flag() = default;
-		~user_message_flag() = default;
+		 user_message_attr() = default;
+		~user_message_attr() = default;
 
-	protected:
-		inline derived_t& send_flag(bool v) { send_flag_ = v; return (static_cast<derived_t&>(*this)); }
-		inline bool       send_flag(      ) { return send_flag_; }
+	//protected:
+		inline derived_t& set_send_flag(bool v) { send_flag_ = v; return (static_cast<derived_t&>(*this)); }
+		inline bool       get_send_flag(      ) { return send_flag_; }
 
 	protected:
 		bool send_flag_ = true;
@@ -1519,7 +1524,7 @@ namespace asio2::mqtt
 	 * https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901021
 	 */
 	template<std::uint8_t Version>
-	class fixed_header : public user_message_flag<fixed_header<Version>>
+	class fixed_header : public user_message_attr<fixed_header<Version>>
 	{
 	public:
 		union type_and_flags
@@ -1735,9 +1740,9 @@ namespace asio2::mqtt
 		template<class... Subscriptions>
 		inline subscriptions_set& set(Subscriptions&&... Subscripts)
 		{
-			value_.clear();
+			data_.clear();
 
-			(value_.emplace_back(std::forward<Subscriptions>(Subscripts)), ...);
+			(data_.emplace_back(std::forward<Subscriptions>(Subscripts)), ...);
 
 			return (*this);
 		}
@@ -1745,17 +1750,17 @@ namespace asio2::mqtt
 		template<class... Subscriptions>
 		inline subscriptions_set& add(Subscriptions&&... Subscripts)
 		{
-			(value_.emplace_back(std::forward<Subscriptions>(Subscripts)), ...);
+			(data_.emplace_back(std::forward<Subscriptions>(Subscripts)), ...);
 
 			return (*this);
 		}
 
 		inline subscriptions_set& erase(std::string_view topic_filter)
 		{
-			for (auto it = value_.begin(); it != value_.end();)
+			for (auto it = data_.begin(); it != data_.end();)
 			{
 				if (it->topic_filter() == topic_filter)
-					it = value_.erase(it);
+					it = data_.erase(it);
 				else
 					++it;
 			}
@@ -1765,7 +1770,7 @@ namespace asio2::mqtt
 
 		inline subscriptions_set& clear()
 		{
-			value_.clear();
+			data_.clear();
 
 			return (*this);
 		}
@@ -1773,7 +1778,7 @@ namespace asio2::mqtt
 		inline std::size_t required_size()
 		{
 			std::size_t r = 0;
-			for (auto& v : value_)
+			for (auto& v : data_)
 			{
 				r += v.required_size();
 			}
@@ -1782,7 +1787,7 @@ namespace asio2::mqtt
 
 		inline std::size_t count() const noexcept
 		{
-			return value_.size();
+			return data_.size();
 		}
 
 		/*
@@ -1791,7 +1796,7 @@ namespace asio2::mqtt
 		template<class Container>
 		inline subscriptions_set& serialize(Container& buffer)
 		{
-			for (auto& v : value_)
+			for (auto& v : data_)
 			{
 				v.serialize(buffer);
 			}
@@ -1805,16 +1810,16 @@ namespace asio2::mqtt
 			{
 				subscription s{};
 				s.deserialize(data);
-				value_.emplace_back(std::move(s));
+				data_.emplace_back(std::move(s));
 			}
 
 			return (*this);
 		}
 
-		inline std::vector<subscription>& value() { return value_; }
+		inline std::vector<subscription>& data() { return data_; }
 
 	protected:
-		std::vector<subscription> value_{};
+		std::vector<subscription> data_{};
 	};
 
 	class one_byte_integer_set
@@ -1829,9 +1834,9 @@ namespace asio2::mqtt
 		template<class... Integers>
 		inline one_byte_integer_set& set(Integers... Ints)
 		{
-			value_.clear();
+			data_.clear();
 
-			(value_.emplace_back(static_cast<one_byte_integer::value_type>(Ints)), ...);
+			(data_.emplace_back(static_cast<one_byte_integer::value_type>(Ints)), ...);
 
 			return (*this);
 		}
@@ -1839,34 +1844,34 @@ namespace asio2::mqtt
 		template<class... Integers>
 		inline one_byte_integer_set& add(Integers... Ints)
 		{
-			(value_.emplace_back(static_cast<one_byte_integer::value_type>(Ints)), ...);
+			(data_.emplace_back(static_cast<one_byte_integer::value_type>(Ints)), ...);
 
 			return (*this);
 		}
 
 		inline one_byte_integer_set& erase(std::size_t index)
 		{
-			if (index < value_.size())
-				value_.erase(std::next(value_.begin(), index));
+			if (index < data_.size())
+				data_.erase(std::next(data_.begin(), index));
 
 			return (*this);
 		}
 
 		inline one_byte_integer_set& clear()
 		{
-			value_.clear();
+			data_.clear();
 
 			return (*this);
 		}
 
 		inline std::size_t required_size()
 		{
-			return (value_.empty() ? 0 : value_.size() * value_.front().required_size());
+			return (data_.empty() ? 0 : data_.size() * data_.front().required_size());
 		}
 
 		inline std::size_t count() const noexcept
 		{
-			return value_.size();
+			return data_.size();
 		}
 
 		/*
@@ -1875,7 +1880,7 @@ namespace asio2::mqtt
 		template<class Container>
 		inline one_byte_integer_set& serialize(Container& buffer)
 		{
-			for (auto& v : value_)
+			for (auto& v : data_)
 			{
 				v.serialize(buffer);
 			}
@@ -1889,16 +1894,21 @@ namespace asio2::mqtt
 			{
 				one_byte_integer v{};
 				v.deserialize(data);
-				value_.emplace_back(std::move(v));
+				data_.emplace_back(std::move(v));
 			}
 
 			return (*this);
 		}
 
-		inline std::vector<one_byte_integer>& value() { return value_; }
+		inline std::vector<one_byte_integer>& data() { return data_; }
+
+		inline one_byte_integer::value_type at(std::size_t i)
+		{
+			return static_cast<one_byte_integer::value_type>(data_.size() > i ? data_[i].value() : -1);
+		}
 
 	protected:
-		std::vector<one_byte_integer> value_{};
+		std::vector<one_byte_integer> data_{};
 	};
 
 	class utf8_string_set
@@ -1913,9 +1923,9 @@ namespace asio2::mqtt
 		template<class... Strings>
 		inline utf8_string_set& set(Strings&&... Strs)
 		{
-			value_.clear();
+			data_.clear();
 
-			(value_.emplace_back(std::forward<Strings>(Strs)), ...);
+			(data_.emplace_back(std::forward<Strings>(Strs)), ...);
 
 			return (*this);
 		}
@@ -1923,17 +1933,17 @@ namespace asio2::mqtt
 		template<class... Strings>
 		inline utf8_string_set& add(Strings... Strs)
 		{
-			(value_.emplace_back(std::forward<Strings>(Strs)), ...);
+			(data_.emplace_back(std::forward<Strings>(Strs)), ...);
 
 			return (*this);
 		}
 
 		inline utf8_string_set& erase(std::string_view s)
 		{
-			for (auto it = value_.begin(); it != value_.end();)
+			for (auto it = data_.begin(); it != data_.end();)
 			{
 				if (it->data_view() == s)
-					it = value_.erase(it);
+					it = data_.erase(it);
 				else
 					++it;
 			}
@@ -1943,7 +1953,7 @@ namespace asio2::mqtt
 
 		inline utf8_string_set& clear()
 		{
-			value_.clear();
+			data_.clear();
 
 			return (*this);
 		}
@@ -1951,7 +1961,7 @@ namespace asio2::mqtt
 		inline std::size_t required_size()
 		{
 			std::size_t r = 0;
-			for (auto& v : value_)
+			for (auto& v : data_)
 			{
 				r += v.required_size();
 			}
@@ -1960,7 +1970,7 @@ namespace asio2::mqtt
 
 		inline std::size_t count() const noexcept
 		{
-			return value_.size();
+			return data_.size();
 		}
 
 		/*
@@ -1969,7 +1979,7 @@ namespace asio2::mqtt
 		template<class Container>
 		inline utf8_string_set& serialize(Container& buffer)
 		{
-			for (auto& v : value_)
+			for (auto& v : data_)
 			{
 				v.serialize(buffer);
 			}
@@ -1983,13 +1993,13 @@ namespace asio2::mqtt
 			{
 				utf8_string s{};
 				s.deserialize(data);
-				value_.emplace_back(std::move(s));
+				data_.emplace_back(std::move(s));
 			}
 
 			return (*this);
 		}
 
-		inline std::vector<utf8_string>& value() { return value_; }
+		inline std::vector<utf8_string>& data() { return data_; }
 
 		/**
 		 * function signature : void(mqtt::utf8_string& str)
@@ -1997,7 +2007,7 @@ namespace asio2::mqtt
 		template<class Function>
 		inline utf8_string_set& for_each(Function&& f)
 		{
-			for (auto& v : value_)
+			for (auto& v : data_)
 			{
 				f(v);
 			}
@@ -2006,7 +2016,7 @@ namespace asio2::mqtt
 		}
 
 	protected:
-		std::vector<utf8_string> value_{};
+		std::vector<utf8_string> data_{};
 	};
 
 	namespace

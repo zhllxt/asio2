@@ -15,22 +15,21 @@
 #pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
-#include <asio2/external/asio.hpp>
 #include <asio2/base/iopool.hpp>
 #include <asio2/base/error.hpp>
 #include <asio2/base/define.hpp>
 
+#include <asio2/external/magic_enum.hpp>
+
 #include <asio2/base/detail/function_traits.hpp>
 #include <asio2/base/detail/util.hpp>
 
-#include <asio2/mqtt/mqtt_protocol_util.hpp>
 #include <asio2/mqtt/detail/mqtt_topic_util.hpp>
-
 #include <asio2/mqtt/detail/mqtt_subscription_map.hpp>
 #include <asio2/mqtt/detail/mqtt_shared_target.hpp>
 #include <asio2/mqtt/detail/mqtt_retained_message.hpp>
 
-#include <asio2/external/magic_enum.hpp>
+#include <asio2/mqtt/message.hpp>
 
 namespace asio2::detail
 {
@@ -73,7 +72,9 @@ namespace asio2::detail
 		 * @param    : fun - a user defined callback function
 		 * Function signature : 
 		 *   server : void(std::shared_ptr<mqtt_session>& session_ptr,
-		 *                 mqtt::v4::connect& connect, mqtt::v4::connack& connack) or v3 or v5
+		 *                 mqtt::v4::connect& msg, mqtt::v4::connack& rep) or v3 or v5
+		 *       or : void(std::shared_ptr<mqtt_session>& session_ptr,
+		 *                 mqtt::message& msg, mqtt::message& rep)
 		 *   client : Don't need
 		 */
 		template<class F, class ...C>
@@ -88,7 +89,8 @@ namespace asio2::detail
 		 * @function : bind connack listener
 		 * @param    : fun - a user defined callback function
 		 * Function signature : server : Don't need
-		 *                      client : void(asio2::mqtt::v4::connack& connack) or v3 or v5
+		 *                      client : void(mqtt::v4::connack& msg) or v3 or v5
+		 *                          or : void(mqtt::message& msg)
 		 */
 		template<class F, class ...C>
 		inline self& on_connack(F&& fun, C&&... obj)
@@ -102,34 +104,16 @@ namespace asio2::detail
 		 * @param    : fun - a user defined callback function
 		 * Function signature : 
 		 *   server : void(std::shared_ptr<mqtt_session>& session_ptr,
-		 *                 asio2::mqtt::v4::publish& publish, 
-		 *                 std::variant<asio2::mqtt::v4::puback, asio2::mqtt::v4::pubrec>& response) or v3 or v5
-		 *   client : void(asio2::mqtt::v4::publish& publish, 
-		 *                 std::variant<asio2::mqtt::v4::puback, asio2::mqtt::v4::pubrec>& response) or v3 or v5
+		 *                 mqtt::v4::publish& msg, mqtt::v4::puback rep) or v3 or v5
+		 *       or : void(std::shared_ptr<mqtt_session>& session_ptr,
+		 *                 mqtt::message& msg, mqtt::message rep)
+		 *   client : void(mqtt::v4::publish& msg, mqtt::v4::puback rep) or v3 or v5
+		 *       or : void(mqtt::message& msg, mqtt::message rep)
 		 */
-		template<int Qos = -1, class F, class ...C>
+		template<class F, class ...C>
 		inline self& on_publish(F&& fun, C&&... obj)
 		{
-			if constexpr /**/ (Qos == -1)
-			{
-				this->_bind(mqtt::control_packet_type::publish, std::forward<F>(fun), std::forward<C>(obj)...);
-			}
-			else if constexpr (Qos == 0)
-			{
-
-			}
-			else if constexpr (Qos == 1)
-			{
-
-			}
-			else if constexpr (Qos == 2)
-			{
-
-			}
-			else
-			{
-				ASIO2_ASSERT(false);
-			}
+			this->_bind(mqtt::control_packet_type::publish, std::forward<F>(fun), std::forward<C>(obj)...);
 			return (*this);
 		}
 
@@ -137,9 +121,10 @@ namespace asio2::detail
 		 * @function : bind puback listener
 		 * @param    : fun - a user defined callback function
 		 * Function signature : 
-		 *   server : void(std::shared_ptr<mqtt_session>& session_ptr,
-		 *                 asio2::mqtt::v4::puback& puback) or v3 or v5
-		 *   client : void(asio2::mqtt::v4::puback& puback) or v3 or v5
+		 *   server : void(std::shared_ptr<mqtt_session>& session_ptr, mqtt::v4::puback& msg) or v3 or v5
+		 *       or : void(std::shared_ptr<mqtt_session>& session_ptr, mqtt::message& msg)
+		 *   client : void(mqtt::v4::puback& puback) or v3 or v5
+		 *       or : void(mqtt::message& msg)
 		 */
 		template<class F, class ...C>
 		inline self& on_puback(F&& fun, C&&... obj)
@@ -153,8 +138,11 @@ namespace asio2::detail
 		 * @param    : fun - a user defined callback function
 		 * Function signature : 
 		 *   server : void(std::shared_ptr<mqtt_session>& session_ptr,
-		 *                 asio2::mqtt::v4::pubrec& pubrec, asio2::mqtt::v4::pubrel& pubrel) or v3 or v5
-		 *   client : void(asio2::mqtt::v4::pubrec& pubrec, asio2::mqtt::v4::pubrel& pubrel) or v3 or v5
+		 *                 mqtt::v4::pubrec& msg, mqtt::v4::pubrel& rep) or v3 or v5
+		 *       or : void(std::shared_ptr<mqtt_session>& session_ptr,
+		 *                 mqtt::message& msg, mqtt::message& rep)
+		 *   client : void(mqtt::v4::pubrec& msg, mqtt::v4::pubrel& rep) or v3 or v5
+		 *       or : void(mqtt::message& msg, mqtt::message& rep)
 		 */
 		template<class F, class ...C>
 		inline self& on_pubrec(F&& fun, C&&... obj)
@@ -168,8 +156,11 @@ namespace asio2::detail
 		 * @param    : fun - a user defined callback function
 		 * Function signature : 
 		 *   server : void(std::shared_ptr<mqtt_session>& session_ptr,
-		 *                 asio2::mqtt::v4::pubrel& pubrel, asio2::mqtt::v4::pubcomp& pubcomp) or v3 or v5
-		 *   client : void(asio2::mqtt::v4::pubrel& pubrel, asio2::mqtt::v4::pubcomp& pubcomp) or v3 or v5
+		 *                 mqtt::v4::pubrel& msg, mqtt::v4::pubcomp& rep) or v3 or v5
+		 *       or : void(std::shared_ptr<mqtt_session>& session_ptr,
+		 *                 mqtt::message& msg, mqtt::message& rep)
+		 *   client : void(mqtt::v4::pubrel& msg, mqtt::v4::pubcomp& rep) or v3 or v5
+		 *       or : void(mqtt::message& msg, mqtt::message& rep)
 		 */
 		template<class F, class ...C>
 		inline self& on_pubrel(F&& fun, C&&... obj)
@@ -182,8 +173,11 @@ namespace asio2::detail
 		 * @function : bind pubcomp listener
 		 * @param    : fun - a user defined callback function
 		 * Function signature : server : void(std::shared_ptr<mqtt_session>& session_ptr,
-		 *                                    asio2::mqtt::v4::pubcomp& pubcomp) or v3 or v5
-		 *                      client : void(asio2::mqtt::v4::pubcomp& pubcomp) or v3 or v5
+		 *                                    mqtt::v4::pubcomp& msg) or v3 or v5
+		 *                          or : void(std::shared_ptr<mqtt_session>& session_ptr,
+		 *                                    mqtt::message& msg)
+		 *                      client : void(mqtt::v4::pubcomp& msg) or v3 or v5
+		 *                          or : void(mqtt::message& msg)
 		 */
 		template<class F, class ...C>
 		inline self& on_pubcomp(F&& fun, C&&... obj)
@@ -197,7 +191,9 @@ namespace asio2::detail
 		 * @param    : fun - a user defined callback function
 		 * Function signature : 
 		 *   server : void(std::shared_ptr<mqtt_session>& session_ptr,
-		 *                 mqtt::v4::subscribe& subscribe, mqtt::v4::suback& suback) or v3 or v5
+		 *                 mqtt::v4::subscribe& msg, mqtt::v4::suback& rep) or v3 or v5
+		 *       or : void(std::shared_ptr<mqtt_session>& session_ptr,
+		 *                 mqtt::message& msg, mqtt::message& rep)
 		 *   client : Don't need
 		 */
 		template<class F, class ...C>
@@ -211,7 +207,8 @@ namespace asio2::detail
 		 * @function : bind suback listener
 		 * @param    : fun - a user defined callback function
 		 * Function signature : server : Don't need
-		 *                      client : void(mqtt::v4::suback& suback) or v3 or v5
+		 *                      client : void(mqtt::v4::suback& msg) or v3 or v5
+		 *                          or : void(mqtt::message& msg)
 		 */
 		template<class F, class ...C>
 		inline self& on_suback(F&& fun, C&&... obj)
@@ -225,7 +222,9 @@ namespace asio2::detail
 		 * @param    : fun - a user defined callback function
 		 * Function signature : 
 		 *   server : void(std::shared_ptr<mqtt_session>& session_ptr,
-		 *                 mqtt::v4::unsubscribe& unsubscribe, mqtt::v4::unsuback& unsuback) or v3 or v5
+		 *                 mqtt::v4::unsubscribe& msg, mqtt::v4::unsuback& rep) or v3 or v5
+		 *   server : void(std::shared_ptr<mqtt_session>& session_ptr,
+		 *                 mqtt::message& msg, mqtt::message& rep)
 		 *   client : Don't need
 		 */
 		template<class F, class ...C>
@@ -239,7 +238,8 @@ namespace asio2::detail
 		 * @function : bind unsuback listener
 		 * @param    : fun - a user defined callback function
 		 * Function signature : server : Don't need
-		 *                      client : void(mqtt::v4::unsuback& unsuback) or v3 or v5
+		 *                      client : void(mqtt::v4::unsuback& msg) or v3 or v5
+		 *                          or : void(mqtt::message& msg)
 		 */
 		template<class F, class ...C>
 		inline self& on_unsuback(F&& fun, C&&... obj)
@@ -249,11 +249,13 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : bind connack listener
+		 * @function : bind pingreq listener
 		 * @param    : fun - a user defined callback function
 		 * Function signature : 
 		 *   server : void(std::shared_ptr<mqtt_session>& session_ptr,
-		 *                 mqtt::v4::pingreq& pingreq, mqtt::v4::pingresp& pingresp) or v3 or v5
+		 *                 mqtt::v4::pingreq& msg, mqtt::v4::pingresp& rep) or v3 or v5
+		 *       or : void(std::shared_ptr<mqtt_session>& session_ptr,
+		 *                 mqtt::message& msg, mqtt::message& rep)
 		 *   client : Don't need
 		 */
 		template<class F, class ...C>
@@ -264,10 +266,11 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : bind connack listener
+		 * @function : bind pingresp listener
 		 * @param    : fun - a user defined callback function
 		 * Function signature : server : Don't need
-		 *                      client : void(asio2::mqtt::v4::pingresp& pingresp) or v3 or v5
+		 *                      client : void(mqtt::v4::pingresp& msg) or v3 or v5
+		 *                          or : void(mqtt::message& msg)
 		 */
 		template<class F, class ...C>
 		inline self& on_pingresp(F&& fun, C&&... obj)
@@ -279,8 +282,11 @@ namespace asio2::detail
 		/**
 		 * @function : bind disconnect listener
 		 * @param    : fun - a user defined callback function
-		 * Function signature : server : void(std::shared_ptr<mqtt_session>& session_ptr, mqtt::v4::disconnect& disconnect) or v3 or v5
-		 *                      client : void(asio2::mqtt::v4::disconnect& disconnect) or v3 or v5
+		 * Function signature :
+		 *    server : void(std::shared_ptr<mqtt_session>& session_ptr, mqtt::v4::disconnect& msg) or v3 or v5
+		 *        or : void(std::shared_ptr<mqtt_session>& session_ptr, mqtt::message& msg)
+		 *    client : void(mqtt::v4::disconnect& msg) or v3 or v5
+		 *        or : void(mqtt::message& msg)
 		 */
 		template<class F, class ...C>
 		inline self& on_disconnect(F&& fun, C&&... obj)
@@ -294,8 +300,11 @@ namespace asio2::detail
 		 * @param    : fun - a user defined callback function
 		 * Function signature : 
 		 *   server : void(std::shared_ptr<mqtt_session>& session_ptr,
-		 *                 std::variant<mqtt::v5::auth, mqtt::v5::connack>& response)
-		 *   client : void(asio2::mqtt::v5::auth& auth, asio2::mqtt::v5::auth& response)
+		 *                 mqtt::v5::auth& msg, mqtt::v5::connack& rep)
+		 *       or : void(std::shared_ptr<mqtt_session>& session_ptr,
+		 *                 mqtt::message& msg, mqtt::message& rep)
+		 *   client : void(mqtt::v5::auth& msg, mqtt::v5::auth& rep)
+		 *       or : void(mqtt::message& msg, mqtt::message& rep)
 		 */
 		template<class F, class ...C>
 		inline self& on_auth(F&& fun, C&&... obj)
@@ -308,121 +317,41 @@ namespace asio2::detail
 		template<class F>
 		inline void _bind(mqtt::control_packet_type type, F f)
 		{
-			using fun_traits_type = function_traits<F>;
-
-			this->_argc_bind<fun_traits_type::argc>(type, std::move(f), ((dummy*)nullptr));
+			this->_do_bind(type, std::move(f), ((dummy*)nullptr));
 		}
 
 		template<class F, class C>
 		inline void _bind(mqtt::control_packet_type type, F f, C& c)
 		{
-			using fun_traits_type = function_traits<F>;
-
-			this->_argc_bind<fun_traits_type::argc>(type, std::move(f), &c);
+			this->_do_bind(type, std::move(f), &c);
 		}
 
 		template<class F, class C>
 		inline void _bind(mqtt::control_packet_type type, F f, C* c)
 		{
-			using fun_traits_type = function_traits<F>;
-
-			this->_argc_bind<fun_traits_type::argc>(type, std::move(f), c);
+			this->_do_bind(type, std::move(f), c);
 		}
 
-		// Argc == 1 : must be client, the callback signature : void (mqtt::xxx_message&)
-		template<std::size_t Argc, class F, class C>
-		typename std::enable_if_t<Argc == 1>
-		inline _argc_bind(mqtt::control_packet_type type, F f, C* c)
+		template<class F, class C>
+		inline void _do_bind(mqtt::control_packet_type type, F f, C* c)
 		{
-			using fun_traits_type = function_traits<F>;
-			using message_type = typename std::remove_cv_t<std::remove_reference_t<
-				typename fun_traits_type::template args<0>::type>>;
-
-			this->template _version_bind<message_type, F, C>(type, std::move(f), c);
+			this->handlers_[detail::to_underlying(type)] = std::bind(
+				&self::template _proxy<F, C>,
+				this, std::move(f), c,
+				std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
 		}
 
-		// Argc == 2 : client or server
-		// if client, the callback signature : void (mqtt::xxx_message& message, mqtt::xxx_message& response)
-		// if server, the callback signature : void (std::shared_ptr<xxx_session>& session_ptr, mqtt::xxx_message& message)
-		template<std::size_t Argc, class F, class C>
-		typename std::enable_if_t<Argc == 2>
-		inline _argc_bind(mqtt::control_packet_type type, F f, C* c)
-		{
-			using fun_traits_type = function_traits<F>;
-			using arg0_type = typename std::remove_cv_t<std::remove_reference_t<
-				typename fun_traits_type::template args<0>::type>>;
-
-			// must be server
-			if constexpr (std::is_same_v<std::shared_ptr<caller_t>, arg0_type>)
-			{
-				using message_type = typename std::remove_cv_t<std::remove_reference_t<
-					typename fun_traits_type::template args<1>::type>>;
-
-				this->template _version_bind<message_type, F, C>(type, std::move(f), c);
-			}
-			// must be client
-			else
-			{
-				using message_type = arg0_type;
-
-				this->template _version_bind<message_type, F, C>(type, std::move(f), c);
-			}
-		}
-
-		// Argc == 3 : must be server, the callback signature : 
-		// void (std::shared_ptr<xxx_session>& session_ptr, mqtt::xxx_message& message, mqtt::xxx_message& response)
-		template<std::size_t Argc, class F, class C>
-		typename std::enable_if_t<Argc == 3>
-		inline _argc_bind(mqtt::control_packet_type type, F f, C* c)
-		{
-			using fun_traits_type = function_traits<F>;
-			using message_type = typename std::remove_cv_t<std::remove_reference_t<
-				typename fun_traits_type::template args<1>::type>>;
-
-			this->template _version_bind<message_type, F, C>(type, std::move(f), c);
-		}
-
-		template<class message_type, class F, class C>
-		inline void _version_bind(mqtt::control_packet_type type, F f, C* c)
-		{
-			if constexpr /**/ (mqtt::is_v3_message<message_type>())
-			{
-				this->v3_handlers_[detail::to_underlying(type)] = std::bind(
-					&self::template _proxy<mqtt::version::v3, F, C>,
-					this, std::move(f), c,
-					std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
-			}
-			else if constexpr (mqtt::is_v4_message<message_type>())
-			{
-				this->v4_handlers_[detail::to_underlying(type)] = std::bind(
-					&self::template _proxy<mqtt::version::v4, F, C>,
-					this, std::move(f), c,
-					std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
-			}
-			else if constexpr (mqtt::is_v5_message<message_type>())
-			{
-				this->v5_handlers_[detail::to_underlying(type)] = std::bind(
-					&self::template _proxy<mqtt::version::v5, F, C>,
-					this, std::move(f), c,
-					std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
-			}
-			else
-			{
-				ASIO2_ASSERT(false);
-			}
-		}
-
-		template<mqtt::version V, class F, class C>
+		template<class F, class C>
 		inline void _proxy(F& f, C* c, error_code& ec,
 			std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, std::string_view& data)
 		{
 			using fun_traits_type = function_traits<F>;
 
-			_argc_proxy<fun_traits_type::argc, V>(f, c, ec, caller_ptr, caller, data);
+			_argc_proxy<fun_traits_type::argc>(f, c, ec, caller_ptr, caller, data);
 		}
 
 		// Argc == 1 : must be client, the callback signature : void (mqtt::xxx_message&)
-		template<std::size_t Argc, mqtt::version V, class F, class C>
+		template<std::size_t Argc, class F, class C>
 		typename std::enable_if_t<Argc == 1>
 		inline _argc_proxy(F& f, C* c,
 			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, std::string_view& data)
@@ -435,31 +364,36 @@ namespace asio2::detail
 
 			try
 			{
-				mqtt::data_to_message<V>(data, [this, &f, &c, &ec, &caller_ptr, caller]
-				(auto message) mutable
+				mqtt::data_to_message(caller->version(), data, [this, &f, &c, &ec, &caller_ptr, caller]
+				(auto msg) mutable
 				{
-					if constexpr (std::is_same_v<message_type, decltype(message)>)
+					if (msg.index() == std::variant_npos)
+					{
+						this->_do_malformed_packet(ec, caller_ptr, caller);
+
+						return;
+					}
+
+					if constexpr (std::is_same_v<message_type, mqtt::message>)
 					{
 						ec.clear();
 
-						caller->_before_user_callback(ec, caller_ptr, caller, message);
-
-						this->_invoke_user_callback(f, c, message);
-
-						caller->_after_user_callback(ec, caller_ptr, caller, message);
-
-						this->_handle_mqtt_error(ec, caller_ptr, caller);
+						this->_do_client_no_response(f, c, ec, caller_ptr, caller, msg);
 					}
 					else
 					{
-						ASIO2_ASSERT(false &&
-							"The parameters of the user callback function do not match."\
-							" Check that the parameters of your callback function are of the correct type");
+						message_type* pmsg = std::get_if<message_type>(std::addressof(msg.variant()));
 
-						if (!ec)
-							ec = mqtt::make_error_code(mqtt::error::malformed_packet);
+						if (pmsg)
+						{
+							ec.clear();
 
-						this->_handle_mqtt_error(ec, caller_ptr, caller);
+							this->_do_client_no_response(f, c, ec, caller_ptr, caller, *pmsg);
+						}
+						else
+						{
+							this->_do_malformed_packet(ec, caller_ptr, caller);
+						}
 					}
 				});
 			}
@@ -475,7 +409,7 @@ namespace asio2::detail
 		// Argc == 2 : client or server
 		// if client, the callback signature : void (mqtt::xxx_message& message, mqtt::xxx_message& response)
 		// if server, the callback signature : void (std::shared_ptr<xxx_session>& session, mqtt::xxx_message& message)
-		template<std::size_t Argc, mqtt::version V, class F, class C>
+		template<std::size_t Argc, class F, class C>
 		typename std::enable_if_t<Argc == 2>
 		inline _argc_proxy(F& f, C* c,
 			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, std::string_view& data)
@@ -492,31 +426,36 @@ namespace asio2::detail
 
 				try
 				{
-					mqtt::data_to_message<V>(data, [this, &f, &c, &ec, &caller_ptr, caller]
-					(auto message) mutable
+					mqtt::data_to_message(caller->version(), data, [this, &f, &c, &ec, &caller_ptr, caller]
+					(auto msg) mutable
 					{
-						if constexpr (std::is_same_v<message_type, decltype(message)>)
+						if (msg.index() == std::variant_npos)
+						{
+							this->_do_malformed_packet(ec, caller_ptr, caller);
+
+							return;
+						}
+
+						if constexpr (std::is_same_v<message_type, mqtt::message>)
 						{
 							ec.clear();
 
-							caller->_before_user_callback(ec, caller_ptr, caller, message);
-
-							this->_invoke_user_callback(f, c, caller_ptr, message);
-
-							caller->_after_user_callback(ec, caller_ptr, caller, message);
-
-							this->_handle_mqtt_error(ec, caller_ptr, caller);
+							this->_do_server_no_response(f, c, ec, caller_ptr, caller, msg);
 						}
 						else
 						{
-							ASIO2_ASSERT(false &&
-								"The parameters of the user callback function do not match."\
-								" Check that the parameters of your callback function are of the correct type");
+							message_type* pmsg = std::get_if<message_type>(std::addressof(msg.variant()));
 
-							if (!ec)
-								ec = mqtt::make_error_code(mqtt::error::malformed_packet);
+							if (pmsg)
+							{
+								ec.clear();
 
-							this->_handle_mqtt_error(ec, caller_ptr, caller);
+								this->_do_server_no_response(f, c, ec, caller_ptr, caller, *pmsg);
+							}
+							else
+							{
+								this->_do_malformed_packet(ec, caller_ptr, caller);
+							}
 						}
 					});
 				}
@@ -537,69 +476,36 @@ namespace asio2::detail
 
 				try
 				{
-					mqtt::data_to_message<V>(data, [this, &f, &c, &ec, &caller_ptr, caller]
-					(auto message) mutable
+					mqtt::data_to_message(caller->version(), data, [this, &f, &c, &ec, &caller_ptr, caller]
+					(auto msg) mutable
 					{
-						if constexpr (std::is_same_v<message_type, decltype(message)>)
+						if (msg.index() == std::variant_npos)
+						{
+							this->_do_malformed_packet(ec, caller_ptr, caller);
+
+							return;
+						}
+
+						if constexpr (std::is_same_v<message_type, mqtt::message>)
 						{
 							ec.clear();
 
-							if constexpr (detail::is_template_instance_of_v<std::variant, response_type>)
-							{
-								// a default-constructed variant holds a value of its first alternative
-								response_type response;
-
-								this->_initialize_response<V>(ec, caller_ptr, caller, message, response);
-
-								if (response.index() != std::variant_npos)
-								{
-									std::visit([&ec, &caller_ptr, caller, &message](auto& rep) mutable
-									{
-										caller->_before_user_callback(ec, caller_ptr, caller, message, rep);
-									}, response);
-								}
-
-								this->_invoke_user_callback(f, c, message, response);
-
-								if (response.index() != std::variant_npos)
-								{
-									std::visit([&ec, &caller_ptr, caller, &message](auto& rep) mutable
-									{
-										caller->_after_user_callback(ec, caller_ptr, caller, message, rep);
-									}, response);
-								}
-
-								this->_send_mqtt_response<V>(ec, caller_ptr, caller, message, std::move(response));
-
-								this->_handle_mqtt_error(ec, caller_ptr, caller);
-							}
-							else
-							{
-								response_type response{};
-
-								this->_initialize_response<V>(ec, caller_ptr, caller, message, response);
-
-								caller->_before_user_callback(ec, caller_ptr, caller, message, response);
-
-								this->_invoke_user_callback(f, c, message, response);
-
-								caller->_after_user_callback(ec, caller_ptr, caller, message, response);
-
-								this->_send_mqtt_response<V>(ec, caller_ptr, caller, message, std::move(response));
-
-								this->_handle_mqtt_error(ec, caller_ptr, caller);
-							}
+							this->_do_client_with_response(f, c, ec, caller_ptr, caller, msg, response_type{});
 						}
 						else
 						{
-							ASIO2_ASSERT(false &&
-								"The parameters of the user callback function do not match."\
-								" Check that the parameters of your callback function are of the correct type");
+							message_type* pmsg = std::get_if<message_type>(std::addressof(msg.variant()));
 
-							if (!ec)
-								ec = mqtt::make_error_code(mqtt::error::malformed_packet);
+							if (pmsg)
+							{
+								ec.clear();
 
-							this->_handle_mqtt_error(ec, caller_ptr, caller);
+								this->_do_client_with_response(f, c, ec, caller_ptr, caller, *pmsg, response_type{});
+							}
+							else
+							{
+								this->_do_malformed_packet(ec, caller_ptr, caller);
+							}
 						}
 					});
 				}
@@ -615,7 +521,7 @@ namespace asio2::detail
 
 		// Argc == 3 : must be server, the callback signature : 
 		// void (std::shared_ptr<xxx_session>&, mqtt::xxx_message& message, mqtt::xxx_message& response)
-		template<std::size_t Argc, mqtt::version V, class F, class C>
+		template<std::size_t Argc, class F, class C>
 		typename std::enable_if_t<Argc == 3>
 		inline _argc_proxy(F& f, C* c,
 			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, std::string_view& data)
@@ -633,69 +539,36 @@ namespace asio2::detail
 
 			try
 			{
-				mqtt::data_to_message<V>(data, [this, &f, &c, &ec, &caller_ptr, caller]
-				(auto message) mutable
+				mqtt::data_to_message(caller->version(), data, [this, &f, &c, &ec, &caller_ptr, caller]
+				(auto msg) mutable
 				{
-					if constexpr (std::is_same_v<message_type, decltype(message)>)
+					if (msg.index() == std::variant_npos)
+					{
+						this->_do_malformed_packet(ec, caller_ptr, caller);
+
+						return;
+					}
+
+					if constexpr (std::is_same_v<message_type, mqtt::message>)
 					{
 						ec.clear();
 
-						if constexpr (detail::is_template_instance_of_v<std::variant, response_type>)
-						{
-							// a default-constructed variant holds a value of its first alternative
-							response_type response;
-
-							this->_initialize_response<V>(ec, caller_ptr, caller, message, response);
-
-							if (response.index() != std::variant_npos)
-							{
-								std::visit([&ec, &caller_ptr, caller, &message](auto& rep) mutable
-								{
-									caller->_before_user_callback(ec, caller_ptr, caller, message, rep);
-								}, response);
-							}
-
-							this->_invoke_user_callback(f, c, caller_ptr, message, response);
-
-							if (response.index() != std::variant_npos)
-							{
-								std::visit([&ec, &caller_ptr, caller, &message](auto& rep) mutable
-								{
-									caller->_after_user_callback(ec, caller_ptr, caller, message, rep);
-								}, response);
-							}
-
-							this->_send_mqtt_response<V>(ec, caller_ptr, caller, message, std::move(response));
-
-							this->_handle_mqtt_error(ec, caller_ptr, caller);
-						}
-						else
-						{
-							response_type response{};
-
-							this->_initialize_response<V>(ec, caller_ptr, caller, message, response);
-
-							caller->_before_user_callback(ec, caller_ptr, caller, message, response);
-
-							this->_invoke_user_callback(f, c, caller_ptr, message, response);
-
-							caller->_after_user_callback(ec, caller_ptr, caller, message, response);
-
-							this->_send_mqtt_response<V>(ec, caller_ptr, caller, message, std::move(response));
-
-							this->_handle_mqtt_error(ec, caller_ptr, caller);
-						}
+						this->_do_server_with_response(f, c, ec, caller_ptr, caller, msg, response_type{});
 					}
 					else
 					{
-						ASIO2_ASSERT(false &&
-							"The parameters of the user callback function do not match."\
-							" Check that the parameters of your callback function are of the correct type");
+						message_type* pmsg = std::get_if<message_type>(std::addressof(msg.variant()));
 
-						if (!ec)
-							ec = mqtt::make_error_code(mqtt::error::malformed_packet);
+						if (pmsg)
+						{
+							ec.clear();
 
-						this->_handle_mqtt_error(ec, caller_ptr, caller);
+							this->_do_server_with_response(f, c, ec, caller_ptr, caller, *pmsg, response_type{});
+						}
+						else
+						{
+							this->_do_malformed_packet(ec, caller_ptr, caller);
+						}
 					}
 				});
 			}
@@ -706,6 +579,79 @@ namespace asio2::detail
 
 				this->_handle_mqtt_error(ec, caller_ptr, caller);
 			}
+		}
+
+		inline void _do_malformed_packet(
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller)
+		{
+			ASIO2_ASSERT(false &&
+				"The parameters of the user callback function do not match."\
+				" Check that the parameters of your callback function are of the correct type");
+
+			if (!ec)
+				ec = mqtt::make_error_code(mqtt::error::malformed_packet);
+
+			this->_handle_mqtt_error(ec, caller_ptr, caller);
+		}
+
+		template<typename F, typename C, class Message>
+		inline void _do_client_no_response(F& f, C* c,
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, Message& msg)
+		{
+			caller->_before_user_callback(ec, caller_ptr, caller, msg);
+
+			this->_invoke_user_callback(f, c, msg);
+
+			caller->_after_user_callback(ec, caller_ptr, caller, msg);
+
+			this->_handle_mqtt_error(ec, caller_ptr, caller);
+		}
+
+		template<typename F, typename C, class Message>
+		inline void _do_server_no_response(F& f, C* c,
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, Message& msg)
+		{
+			caller->_before_user_callback(ec, caller_ptr, caller, msg);
+
+			this->_invoke_user_callback(f, c, caller_ptr, msg);
+
+			caller->_after_user_callback(ec, caller_ptr, caller, msg);
+
+			this->_handle_mqtt_error(ec, caller_ptr, caller);
+		}
+
+		template<typename F, typename C, class Message, class Response>
+		inline void _do_client_with_response(F& f, C* c,
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, Message& msg, Response rep)
+		{
+			this->_init_response(ec, caller_ptr, caller, msg, rep);
+
+			caller->_before_user_callback(ec, caller_ptr, caller, msg, rep);
+
+			this->_invoke_user_callback(f, c, msg, rep);
+
+			caller->_after_user_callback(ec, caller_ptr, caller, msg, rep);
+
+			this->_send_mqtt_response(ec, caller_ptr, caller, msg, std::move(rep));
+
+			this->_handle_mqtt_error(ec, caller_ptr, caller);
+		}
+
+		template<typename F, typename C, class Message, class Response>
+		inline void _do_server_with_response(F& f, C* c,
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, Message& msg, Response rep)
+		{
+			this->_init_response(ec, caller_ptr, caller, msg, rep);
+
+			caller->_before_user_callback(ec, caller_ptr, caller, msg, rep);
+
+			this->_invoke_user_callback(f, c, caller_ptr, msg, rep);
+
+			caller->_after_user_callback(ec, caller_ptr, caller, msg, rep);
+
+			this->_send_mqtt_response(ec, caller_ptr, caller, msg, std::move(rep));
+
+			this->_handle_mqtt_error(ec, caller_ptr, caller);
 		}
 
 		template<typename F, typename C, typename... Args>
@@ -719,51 +665,28 @@ namespace asio2::detail
 				(c->*f)(std::forward<Args>(args)...);
 		}
 
-		template<mqtt::version V, class Message, class Response>
-		inline void _initialize_response(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, Message& msg, Response& response)
+		template<class Message, class Response>
+		typename std::enable_if_t<std::is_same_v<typename detail::remove_cvref_t<Message>, mqtt::message>>
+		inline _init_response(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller,
+			Message& msg, Response& rep)
 		{
-			detail::ignore_unused(ec, caller_ptr, caller, msg, response);
+			detail::ignore_unused(ec, caller_ptr, caller, msg, rep);
 
 			using message_type  [[maybe_unused]] = typename detail::remove_cvref_t<Message>;
 			using response_type [[maybe_unused]] = typename detail::remove_cvref_t<Response>;
 
-			if constexpr (
-				std::is_same_v<message_type, mqtt::v3::publish> ||
-				std::is_same_v<message_type, mqtt::v4::publish> ||
-				std::is_same_v<message_type, mqtt::v5::publish>)
+			if constexpr (std::is_same_v<response_type, mqtt::message>)
 			{
-				if constexpr /**/ (V == mqtt::version::v3)
+				if constexpr (std::is_same_v<message_type, mqtt::message>)
 				{
-					switch (msg.qos())
+					std::visit([this, &ec, &caller_ptr, &caller, &rep](auto& m) mutable
 					{
-					// the qos 0 publish messgae don't need response
-					case mqtt::qos_type::at_most_once : break;
-					case mqtt::qos_type::at_least_once: response = mqtt::v3::puback{}; break;
-					case mqtt::qos_type::exactly_once : response = mqtt::v3::pubrec{}; break;
-					default:break;
-					}
+						this->_init_response(ec, caller_ptr, caller, m, rep);
+					}, msg.variant());
 				}
-				else if constexpr (V == mqtt::version::v4)
+				else
 				{
-					switch (msg.qos())
-					{
-					// the qos 0 publish messgae don't need response
-					case mqtt::qos_type::at_most_once : break;
-					case mqtt::qos_type::at_least_once: response = mqtt::v4::puback{}; break;
-					case mqtt::qos_type::exactly_once : response = mqtt::v4::pubrec{}; break;
-					default:break;
-					}
-				}
-				else if constexpr (V == mqtt::version::v5)
-				{
-					switch (msg.qos())
-					{
-					// the qos 0 publish messgae don't need response
-					case mqtt::qos_type::at_most_once : break;
-					case mqtt::qos_type::at_least_once: response = mqtt::v5::puback{}; break;
-					case mqtt::qos_type::exactly_once : response = mqtt::v5::pubrec{}; break;
-					default:break;
-					}
+					std::ignore = true;
 				}
 			}
 			else
@@ -772,53 +695,254 @@ namespace asio2::detail
 			}
 		}
 
-		template<mqtt::version V, class Message, class Response>
-		inline void _send_mqtt_response(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller,
-			Message& msg, Response&& response)
+		template<class Message, class Response>
+		typename std::enable_if_t<mqtt::is_control_message<typename detail::remove_cvref_t<Message>>()>
+		inline _init_response(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller,
+			Message& msg, Response& rep)
 		{
-			detail::ignore_unused(ec, caller_ptr, caller, msg, response);
+			detail::ignore_unused(ec, caller_ptr, caller, msg, rep);
 
 			using message_type  [[maybe_unused]] = typename detail::remove_cvref_t<Message>;
 			using response_type [[maybe_unused]] = typename detail::remove_cvref_t<Response>;
 
-			// std::variant<response_message1, response_message2, response_message3>
-			if constexpr (detail::is_template_instance_of_v<std::variant, response_type>)
+			if constexpr (std::is_same_v<response_type, mqtt::message>)
 			{
-				if (response.index() == std::variant_npos)
+				if /**/ constexpr (
+					std::is_same_v<message_type, mqtt::v3::connect> ||
+					std::is_same_v<message_type, mqtt::v4::connect> ||
+					std::is_same_v<message_type, mqtt::v5::connect>)
+				{
+					mqtt::version ver = caller->version();
+
+					if /**/ (ver == mqtt::version::v3)
+					{
+						rep = mqtt::v3::connack{};
+					}
+					else if (ver == mqtt::version::v4)
+					{
+						rep = mqtt::v4::connack{};
+					}
+					else if (ver == mqtt::version::v5)
+					{
+						rep = mqtt::v5::connack{};
+					}
+				}
+				else if constexpr (
+					std::is_same_v<message_type, mqtt::v3::publish> ||
+					std::is_same_v<message_type, mqtt::v4::publish> ||
+					std::is_same_v<message_type, mqtt::v5::publish>)
+				{
+					mqtt::version ver = caller->version();
+
+					if /**/ (ver == mqtt::version::v3)
+					{
+						switch (msg.qos())
+						{
+						// the qos 0 publish messgae don't need response
+						case mqtt::qos_type::at_most_once :                           break;
+						case mqtt::qos_type::at_least_once: rep = mqtt::v3::puback{}; break;
+						case mqtt::qos_type::exactly_once : rep = mqtt::v3::pubrec{}; break;
+						default:break;
+						}
+					}
+					else if (ver == mqtt::version::v4)
+					{
+						switch (msg.qos())
+						{
+						// the qos 0 publish messgae don't need response
+						case mqtt::qos_type::at_most_once :                           break;
+						case mqtt::qos_type::at_least_once: rep = mqtt::v4::puback{}; break;
+						case mqtt::qos_type::exactly_once : rep = mqtt::v4::pubrec{}; break;
+						default:break;
+						}
+					}
+					else if (ver == mqtt::version::v5)
+					{
+						switch (msg.qos())
+						{
+						// the qos 0 publish messgae don't need response
+						case mqtt::qos_type::at_most_once :                           break;
+						case mqtt::qos_type::at_least_once: rep = mqtt::v5::puback{}; break;
+						case mqtt::qos_type::exactly_once : rep = mqtt::v5::pubrec{}; break;
+						default:break;
+						}
+					}
+				}
+				else if constexpr (
+					std::is_same_v<message_type, mqtt::v3::pubrec> ||
+					std::is_same_v<message_type, mqtt::v4::pubrec> ||
+					std::is_same_v<message_type, mqtt::v5::pubrec>)
+				{
+					mqtt::version ver = caller->version();
+
+					if /**/ (ver == mqtt::version::v3)
+					{
+						rep = mqtt::v3::pubrel{};
+					}
+					else if (ver == mqtt::version::v4)
+					{
+						rep = mqtt::v4::pubrel{};
+					}
+					else if (ver == mqtt::version::v5)
+					{
+						rep = mqtt::v5::pubrel{};
+					}
+				}
+				else if constexpr (
+					std::is_same_v<message_type, mqtt::v3::pubrel> ||
+					std::is_same_v<message_type, mqtt::v4::pubrel> ||
+					std::is_same_v<message_type, mqtt::v5::pubrel>)
+				{
+					mqtt::version ver = caller->version();
+
+					if /**/ (ver == mqtt::version::v3)
+					{
+						rep = mqtt::v3::pubcomp{};
+					}
+					else if (ver == mqtt::version::v4)
+					{
+						rep = mqtt::v4::pubcomp{};
+					}
+					else if (ver == mqtt::version::v5)
+					{
+						rep = mqtt::v5::pubcomp{};
+					}
+				}
+				else if constexpr (
+					std::is_same_v<message_type, mqtt::v3::subscribe> ||
+					std::is_same_v<message_type, mqtt::v4::subscribe> ||
+					std::is_same_v<message_type, mqtt::v5::subscribe>)
+				{
+					mqtt::version ver = caller->version();
+
+					if /**/ (ver == mqtt::version::v3)
+					{
+						rep = mqtt::v3::suback{};
+					}
+					else if (ver == mqtt::version::v4)
+					{
+						rep = mqtt::v4::suback{};
+					}
+					else if (ver == mqtt::version::v5)
+					{
+						rep = mqtt::v5::suback{};
+					}
+				}
+				else if constexpr (
+					std::is_same_v<message_type, mqtt::v3::unsubscribe> ||
+					std::is_same_v<message_type, mqtt::v4::unsubscribe> ||
+					std::is_same_v<message_type, mqtt::v5::unsubscribe>)
+				{
+					mqtt::version ver = caller->version();
+
+					if /**/ (ver == mqtt::version::v3)
+					{
+						rep = mqtt::v3::unsuback{};
+					}
+					else if (ver == mqtt::version::v4)
+					{
+						rep = mqtt::v4::unsuback{};
+					}
+					else if (ver == mqtt::version::v5)
+					{
+						rep = mqtt::v5::unsuback{};
+					}
+				}
+				else if constexpr (
+					std::is_same_v<message_type, mqtt::v3::pingreq> ||
+					std::is_same_v<message_type, mqtt::v4::pingreq> ||
+					std::is_same_v<message_type, mqtt::v5::pingreq>)
+				{
+					mqtt::version ver = caller->version();
+
+					if /**/ (ver == mqtt::version::v3)
+					{
+						rep = mqtt::v3::pingresp{};
+					}
+					else if (ver == mqtt::version::v4)
+					{
+						rep = mqtt::v4::pingresp{};
+					}
+					else if (ver == mqtt::version::v5)
+					{
+						rep = mqtt::v5::pingresp{};
+					}
+				}
+				else if constexpr (
+					std::is_same_v<message_type, mqtt::v5::auth>)
+				{
+					mqtt::version ver = caller->version();
+
+					if /**/ (ver == mqtt::version::v3)
+					{
+						rep = mqtt::v3::connack{};
+					}
+					else if (ver == mqtt::version::v4)
+					{
+						rep = mqtt::v4::connack{};
+					}
+					else if (ver == mqtt::version::v5)
+					{
+						rep = mqtt::v5::auth{};
+					}
+				}
+				else
+				{
+					std::ignore = true;
+				}
+			}
+			else
+			{
+				std::ignore = true;
+			}
+		}
+
+		template<class Message, class Response>
+		inline void _send_mqtt_response(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller,
+			Message& msg, Response&& rep)
+		{
+			detail::ignore_unused(ec, caller_ptr, caller, msg, rep);
+
+			using message_type  [[maybe_unused]] = typename detail::remove_cvref_t<Message>;
+			using response_type [[maybe_unused]] = typename detail::remove_cvref_t<Response>;
+
+			if constexpr (std::is_same_v<response_type, mqtt::message>)
+			{
+				if (rep.index() == std::variant_npos)
 					return;
 
-				bool send_flag = true;
+				bool sendflag = true;
 
-				std::visit([&send_flag](auto& rep) mutable { send_flag = rep.send_flag(); }, response);
+				std::visit([&sendflag](auto& rep) mutable { sendflag = rep.get_send_flag(); }, rep.variant());
 
-				if (send_flag == false)
+				if (sendflag == false)
 					return;
 
 				// can't use async_send, beacuse the caller maybe not started yet
-				caller->push_event([caller_ptr, caller, response = std::forward<Response>(response)]
+				caller->push_event([caller_ptr, caller, rep = std::forward<Response>(rep)]
 				(event_queue_guard<caller_t> g) mutable
 				{
 					detail::ignore_unused(caller_ptr);
 
-					std::visit([caller, g = std::move(g)](auto& rep) mutable
+					std::visit([caller, g = std::move(g)](auto& r) mutable
 					{
-						caller->_do_send(rep, [g = std::move(g)](const error_code&, std::size_t) mutable {});
-					}, response);
+						caller->_do_send(r, [g = std::move(g)](const error_code&, std::size_t) mutable {});
+					}, rep.variant());
 				});
 			}
 			// response_message
 			else
 			{
-				if (response.send_flag() == false)
+				if (rep.get_send_flag() == false)
 					return;
 
 				// can't use async_send, beacuse the caller maybe not started yet
-				caller->push_event([caller_ptr, caller, response = std::forward<Response>(response)]
+				caller->push_event([caller_ptr, caller, rep = std::forward<Response>(rep)]
 				(event_queue_guard<caller_t> g) mutable
 				{
 					detail::ignore_unused(caller_ptr);
 
-					caller->_do_send(response, [g = std::move(g)](const error_code&, std::size_t) mutable {});
+					caller->_do_send(rep, [g = std::move(g)](const error_code&, std::size_t) mutable {});
 				});
 			}
 		}
@@ -830,23 +954,8 @@ namespace asio2::detail
 
 			handler_type* f = nullptr;
 
-			mqtt::version ver = caller->version();
-
-			if /**/ (ver == mqtt::version::v3)
-			{
-				if (detail::to_underlying(type) < this->v3_handlers_.size())
-					f = &(this->v3_handlers_[detail::to_underlying(type)]);
-			}
-			else if (ver == mqtt::version::v4)
-			{
-				if (detail::to_underlying(type) < this->v4_handlers_.size())
-					f = &(this->v4_handlers_[detail::to_underlying(type)]);
-			}
-			else if (ver == mqtt::version::v5)
-			{
-				if (detail::to_underlying(type) < this->v5_handlers_.size())
-					f = &(this->v5_handlers_[detail::to_underlying(type)]);
-			}
+			if (detail::to_underlying(type) < this->handlers_.size())
+				f = std::addressof(this->handlers_[detail::to_underlying(type)]);
 
 			if (f && (*f))
 			{
@@ -879,39 +988,18 @@ namespace asio2::detail
 			}));
 		}
 
-	protected:
-		template<mqtt::version Version>
 		inline const handler_type& _find_mqtt_handler(mqtt::control_packet_type type)
 		{
-			if constexpr /**/ (Version == mqtt::version::v3)
-			{
-				if (detail::to_underlying(type) < this->v3_handlers_.size())
-					return v3_handlers_[detail::to_underlying(type)];
-			}
-			else if constexpr (Version == mqtt::version::v4)
-			{
-				if (detail::to_underlying(type) < this->v4_handlers_.size())
-					return v4_handlers_[detail::to_underlying(type)];
-			}
-			else if constexpr (Version == mqtt::version::v5)
-			{
-				if (detail::to_underlying(type) < this->v5_handlers_.size())
-					return v5_handlers_[detail::to_underlying(type)];
-			}
+			if (detail::to_underlying(type) < this->handlers_.size())
+				return handlers_[detail::to_underlying(type)];
 
 			return this->dummy_handler_;
 		}
 
 	protected:
-		handler_type dummy_handler_;
+		inline static handler_type dummy_handler_{};
 
-		std::array<handler_type, magic_enum::enum_count<mqtt::control_packet_type>()> v3_handlers_;
-		std::array<handler_type, magic_enum::enum_count<mqtt::control_packet_type>()> v4_handlers_;
-		std::array<handler_type, magic_enum::enum_count<mqtt::control_packet_type>()> v5_handlers_;
-
-		std::array<handler_type, magic_enum::enum_count<mqtt::qos_type>()> v3_publish_handlers_;
-		std::array<handler_type, magic_enum::enum_count<mqtt::qos_type>()> v4_publish_handlers_;
-		std::array<handler_type, magic_enum::enum_count<mqtt::qos_type>()> v5_publish_handlers_;
+		std::array<handler_type, magic_enum::enum_count<mqtt::control_packet_type>()> handlers_{};
 	};
 }
 

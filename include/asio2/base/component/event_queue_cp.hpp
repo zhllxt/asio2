@@ -431,7 +431,7 @@ namespace asio2::detail
 			// beacuse the callback "f" hold the derived_ptr already,
 			// so this callback for asio::post don't need hold the derived_ptr again.
 			asio::post(derive.io().strand(), make_allocator(derive.wallocator(),
-			[this, &derive, f = std::forward<Callback>(f)]() mutable
+			[this, f = std::forward<Callback>(f)]() mutable
 			{
 				ASIO2_ASSERT(this->events_.size() < std::size_t(32767));
 
@@ -439,7 +439,7 @@ namespace asio2::detail
 				this->events_.emplace(std::move(f));
 				if (empty)
 				{
-					(this->events_.front())(event_queue_guard<derived_t>{derive});
+					(this->events_.front())(event_queue_guard<derived_t>{static_cast<derived_t&>(*this)});
 				}
 			}));
 

@@ -1,0 +1,97 @@
+/*
+ * COPYRIGHT (C) 2017-2021, zhllxt
+ *
+ * author   : zhllxt
+ * email    : 37792738@qq.com
+ * 
+ * Distributed under the GNU GENERAL PUBLIC LICENSE Version 3, 29 June 2007
+ * (See accompanying file LICENSE or see <http://www.gnu.org/licenses/>)
+ */
+
+#ifndef __ASIO2_MQTT_AOP_PUBREC_HPP__
+#define __ASIO2_MQTT_AOP_PUBREC_HPP__
+
+#if defined(_MSC_VER) && (_MSC_VER >= 1200)
+#pragma once
+#endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
+
+#include <asio2/base/iopool.hpp>
+#include <asio2/base/error.hpp>
+
+#include <asio2/base/detail/function_traits.hpp>
+#include <asio2/base/detail/util.hpp>
+
+#include <asio2/mqtt/protocol_util.hpp>
+
+namespace asio2::detail
+{
+	template<class caller_t>
+	class mqtt_aop_pubrec
+	{
+		friend caller_t;
+
+	protected:
+		// server or client
+		template<class Message, class Response>
+		inline bool _before_pubrec_callback(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, Message& msg, Response& rep)
+		{
+			detail::ignore_unused(ec, caller_ptr, caller, msg, rep);
+
+			using message_type  [[maybe_unused]] = typename detail::remove_cvref_t<Message>;
+			using response_type [[maybe_unused]] = typename detail::remove_cvref_t<Response>;
+
+			rep.packet_id(msg.packet_id());
+
+			// PUBREL Reason Code
+			// https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901144
+			if constexpr (std::is_same_v<response_type, mqtt::v5::pubrel>)
+			{
+				rep.reason_code(detail::to_underlying(mqtt::error::success));
+			}
+			else
+			{
+				std::ignore = true;
+			}
+
+			return true;
+		}
+
+		// server or client
+		inline void _before_user_callback_impl(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::v3::pubrec& msg, asio2::mqtt::v3::pubrel& rep)
+		{
+			if (!_before_pubrec_callback(ec, caller_ptr, caller, msg, rep))
+				return;
+		}
+
+		// server or client
+		inline void _before_user_callback_impl(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::v4::pubrec& msg, asio2::mqtt::v4::pubrel& rep)
+		{
+			if (!_before_pubrec_callback(ec, caller_ptr, caller, msg, rep))
+				return;
+		}
+
+		// server or client
+		inline void _before_user_callback_impl(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::v5::pubrec& msg, asio2::mqtt::v5::pubrel& rep)
+		{
+			if (!_before_pubrec_callback(ec, caller_ptr, caller, msg, rep))
+				return;
+		}
+
+		inline void _after_user_callback_impl(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::v3::pubrec& msg, asio2::mqtt::v3::pubrel& rep)
+		{
+			detail::ignore_unused(ec, caller_ptr, caller, msg, rep);
+		}
+
+		inline void _after_user_callback_impl(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::v4::pubrec& msg, asio2::mqtt::v4::pubrel& rep)
+		{
+			detail::ignore_unused(ec, caller_ptr, caller, msg, rep);
+		}
+
+		inline void _after_user_callback_impl(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::v5::pubrec& msg, asio2::mqtt::v5::pubrel& rep)
+		{
+			detail::ignore_unused(ec, caller_ptr, caller, msg, rep);
+		}
+	};
+}
+
+#endif // !__ASIO2_MQTT_AOP_PUBREC_HPP__

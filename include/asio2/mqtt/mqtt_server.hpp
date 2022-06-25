@@ -131,78 +131,21 @@ namespace asio2::detail
 			detail::ignore_unused(condition);
 
 			// must set default callback for every mqtt message.
-			if (!(this->template _find_mqtt_handler<mqtt::version::v3>(mqtt::control_packet_type::connect)))
-				this->on_connect([](std::shared_ptr<session_t>&, mqtt::v3::connect&, mqtt::v3::connack&) mutable {});
-			if (!(this->template _find_mqtt_handler<mqtt::version::v4>(mqtt::control_packet_type::connect)))
-				this->on_connect([](std::shared_ptr<session_t>&, mqtt::v4::connect&, mqtt::v4::connack&) mutable {});
-			if (!(this->template _find_mqtt_handler<mqtt::version::v5>(mqtt::control_packet_type::connect)))
-				this->on_connect([](std::shared_ptr<session_t>&, mqtt::v5::connect&, mqtt::v5::connack&) mutable {});
-
-			if (!(this->template _find_mqtt_handler<mqtt::version::v3>(mqtt::control_packet_type::publish)))
-				this->on_publish([](std::shared_ptr<session_t>&, mqtt::v3::publish&, std::variant<asio2::mqtt::v3::puback, asio2::mqtt::v3::pubrec>&) mutable {});
-			if (!(this->template _find_mqtt_handler<mqtt::version::v4>(mqtt::control_packet_type::publish)))
-				this->on_publish([](std::shared_ptr<session_t>&, mqtt::v4::publish&, std::variant<asio2::mqtt::v4::puback, asio2::mqtt::v4::pubrec>&) mutable {});
-			if (!(this->template _find_mqtt_handler<mqtt::version::v5>(mqtt::control_packet_type::publish)))
-				this->on_publish([](std::shared_ptr<session_t>&, mqtt::v5::publish&, std::variant<asio2::mqtt::v5::puback, asio2::mqtt::v5::pubrec>&) mutable {});
-
-			if (!(this->template _find_mqtt_handler<mqtt::version::v3>(mqtt::control_packet_type::puback)))
-				this->on_puback([](std::shared_ptr<session_t>&, mqtt::v3::puback&) mutable {});
-			if (!(this->template _find_mqtt_handler<mqtt::version::v4>(mqtt::control_packet_type::puback)))
-				this->on_puback([](std::shared_ptr<session_t>&, mqtt::v4::puback&) mutable {});
-			if (!(this->template _find_mqtt_handler<mqtt::version::v5>(mqtt::control_packet_type::puback)))
-				this->on_puback([](std::shared_ptr<session_t>&, mqtt::v5::puback&) mutable {});
-
-			if (!(this->template _find_mqtt_handler<mqtt::version::v3>(mqtt::control_packet_type::pubrec)))
-				this->on_pubrec([](std::shared_ptr<session_t>&, mqtt::v3::pubrec&, mqtt::v3::pubrel&) mutable {});
-			if (!(this->template _find_mqtt_handler<mqtt::version::v4>(mqtt::control_packet_type::pubrec)))
-				this->on_pubrec([](std::shared_ptr<session_t>&, mqtt::v4::pubrec&, mqtt::v4::pubrel&) mutable {});
-			if (!(this->template _find_mqtt_handler<mqtt::version::v5>(mqtt::control_packet_type::pubrec)))
-				this->on_pubrec([](std::shared_ptr<session_t>&, mqtt::v5::pubrec&, mqtt::v5::pubrel&) mutable {});
-
-			if (!(this->template _find_mqtt_handler<mqtt::version::v3>(mqtt::control_packet_type::pubrel)))
-				this->on_pubrel([](std::shared_ptr<session_t>&, mqtt::v3::pubrel&, mqtt::v3::pubcomp&) mutable {});
-			if (!(this->template _find_mqtt_handler<mqtt::version::v4>(mqtt::control_packet_type::pubrel)))
-				this->on_pubrel([](std::shared_ptr<session_t>&, mqtt::v4::pubrel&, mqtt::v4::pubcomp&) mutable {});
-			if (!(this->template _find_mqtt_handler<mqtt::version::v5>(mqtt::control_packet_type::pubrel)))
-				this->on_pubrel([](std::shared_ptr<session_t>&, mqtt::v5::pubrel&, mqtt::v5::pubcomp&) mutable {});
-
-			if (!(this->template _find_mqtt_handler<mqtt::version::v3>(mqtt::control_packet_type::pubcomp)))
-				this->on_pubcomp([](std::shared_ptr<session_t>&, mqtt::v3::pubcomp&) mutable {});
-			if (!(this->template _find_mqtt_handler<mqtt::version::v4>(mqtt::control_packet_type::pubcomp)))
-				this->on_pubcomp([](std::shared_ptr<session_t>&, mqtt::v4::pubcomp&) mutable {});
-			if (!(this->template _find_mqtt_handler<mqtt::version::v5>(mqtt::control_packet_type::pubcomp)))
-				this->on_pubcomp([](std::shared_ptr<session_t>&, mqtt::v5::pubcomp&) mutable {});
-
-			if (!(this->template _find_mqtt_handler<mqtt::version::v3>(mqtt::control_packet_type::subscribe)))
-				this->on_subscribe([](std::shared_ptr<session_t>&, mqtt::v3::subscribe&, mqtt::v3::suback&) mutable {});
-			if (!(this->template _find_mqtt_handler<mqtt::version::v4>(mqtt::control_packet_type::subscribe)))
-				this->on_subscribe([](std::shared_ptr<session_t>&, mqtt::v4::subscribe&, mqtt::v4::suback&) mutable {});
-			if (!(this->template _find_mqtt_handler<mqtt::version::v5>(mqtt::control_packet_type::subscribe)))
-				this->on_subscribe([](std::shared_ptr<session_t>&, mqtt::v5::subscribe&, mqtt::v5::suback&) mutable {});
-
-			if (!(this->template _find_mqtt_handler<mqtt::version::v3>(mqtt::control_packet_type::unsubscribe)))
-				this->on_unsubscribe([](std::shared_ptr<session_t>&, mqtt::v3::unsubscribe&, mqtt::v3::unsuback&) mutable {});
-			if (!(this->template _find_mqtt_handler<mqtt::version::v4>(mqtt::control_packet_type::unsubscribe)))
-				this->on_unsubscribe([](std::shared_ptr<session_t>&, mqtt::v4::unsubscribe&, mqtt::v4::unsuback&) mutable {});
-			if (!(this->template _find_mqtt_handler<mqtt::version::v5>(mqtt::control_packet_type::unsubscribe)))
-				this->on_unsubscribe([](std::shared_ptr<session_t>&, mqtt::v5::unsubscribe&, mqtt::v5::unsuback&) mutable {});
-
-			if (!(this->template _find_mqtt_handler<mqtt::version::v3>(mqtt::control_packet_type::pingreq)))
-				this->on_pingreq([](std::shared_ptr<session_t>&, mqtt::v3::pingreq&, mqtt::v3::pingresp&) mutable {});
-			if (!(this->template _find_mqtt_handler<mqtt::version::v4>(mqtt::control_packet_type::pingreq)))
-				this->on_pingreq([](std::shared_ptr<session_t>&, mqtt::v4::pingreq&, mqtt::v4::pingresp&) mutable {});
-			if (!(this->template _find_mqtt_handler<mqtt::version::v5>(mqtt::control_packet_type::pingreq)))
-				this->on_pingreq([](std::shared_ptr<session_t>&, mqtt::v5::pingreq&, mqtt::v5::pingresp&) mutable {});
-
-			if (!(this->template _find_mqtt_handler<mqtt::version::v3>(mqtt::control_packet_type::disconnect)))
-				this->on_disconnect([](std::shared_ptr<session_t>&, mqtt::v3::disconnect&) mutable {});
-			if (!(this->template _find_mqtt_handler<mqtt::version::v4>(mqtt::control_packet_type::disconnect)))
-				this->on_disconnect([](std::shared_ptr<session_t>&, mqtt::v4::disconnect&) mutable {});
-			if (!(this->template _find_mqtt_handler<mqtt::version::v5>(mqtt::control_packet_type::disconnect)))
-				this->on_disconnect([](std::shared_ptr<session_t>&, mqtt::v5::disconnect&) mutable {});
-
-			if (!(this->template _find_mqtt_handler<mqtt::version::v5>(mqtt::control_packet_type::auth)))
-				this->on_auth([](std::shared_ptr<session_t>&, mqtt::v5::auth&, mqtt::v5::connack&) mutable {});
+			if (!(this->_find_mqtt_handler(mqtt::control_packet_type::connect    ))) this->on_connect    ([](std::shared_ptr<session_t>&, mqtt::message&, mqtt::message&) mutable {});
+			if (!(this->_find_mqtt_handler(mqtt::control_packet_type::connack    ))) this->on_connack    ([](std::shared_ptr<session_t>&, mqtt::message&                ) mutable {});
+			if (!(this->_find_mqtt_handler(mqtt::control_packet_type::publish    ))) this->on_publish    ([](std::shared_ptr<session_t>&, mqtt::message&, mqtt::message&) mutable {});
+			if (!(this->_find_mqtt_handler(mqtt::control_packet_type::puback     ))) this->on_puback     ([](std::shared_ptr<session_t>&, mqtt::message&                ) mutable {});
+			if (!(this->_find_mqtt_handler(mqtt::control_packet_type::pubrec     ))) this->on_pubrec     ([](std::shared_ptr<session_t>&, mqtt::message&, mqtt::message&) mutable {});
+			if (!(this->_find_mqtt_handler(mqtt::control_packet_type::pubrel     ))) this->on_pubrel     ([](std::shared_ptr<session_t>&, mqtt::message&, mqtt::message&) mutable {});
+			if (!(this->_find_mqtt_handler(mqtt::control_packet_type::pubcomp    ))) this->on_pubcomp    ([](std::shared_ptr<session_t>&, mqtt::message&                ) mutable {});
+			if (!(this->_find_mqtt_handler(mqtt::control_packet_type::subscribe  ))) this->on_subscribe  ([](std::shared_ptr<session_t>&, mqtt::message&, mqtt::message&) mutable {});
+			if (!(this->_find_mqtt_handler(mqtt::control_packet_type::suback     ))) this->on_suback     ([](std::shared_ptr<session_t>&, mqtt::message&                ) mutable {});
+			if (!(this->_find_mqtt_handler(mqtt::control_packet_type::unsubscribe))) this->on_unsubscribe([](std::shared_ptr<session_t>&, mqtt::message&, mqtt::message&) mutable {});
+			if (!(this->_find_mqtt_handler(mqtt::control_packet_type::unsuback   ))) this->on_unsuback   ([](std::shared_ptr<session_t>&, mqtt::message&                ) mutable {});
+			if (!(this->_find_mqtt_handler(mqtt::control_packet_type::pingreq    ))) this->on_pingreq    ([](std::shared_ptr<session_t>&, mqtt::message&, mqtt::message&) mutable {});
+			if (!(this->_find_mqtt_handler(mqtt::control_packet_type::pingresp   ))) this->on_pingresp   ([](std::shared_ptr<session_t>&, mqtt::message&                ) mutable {});
+			if (!(this->_find_mqtt_handler(mqtt::control_packet_type::disconnect ))) this->on_disconnect ([](std::shared_ptr<session_t>&, mqtt::message&                ) mutable {});
+			if (!(this->_find_mqtt_handler(mqtt::control_packet_type::auth       ))) this->on_auth       ([](std::shared_ptr<session_t>&, mqtt::message&, mqtt::message&) mutable {});
 		}
 
 		template<typename... Args>
@@ -218,19 +161,19 @@ namespace asio2::detail
 
 	protected:
 		/// use rwlock to make this id session map thread safe
-		mutable asio2_shared_mutex                                       mqttid_sessions_mtx_;
+		mutable asio2_shared_mutex                                         mqttid_sessions_mtx_;
 
 		/// client id map
-		std::unordered_map<std::string_view, std::shared_ptr<session_t>> mqttid_sessions_;
+		std::unordered_map<std::string_view, std::shared_ptr<session_t>>   mqttid_sessions_;
 
 		/// subscription information map
-		mqtt::multiple_subscription_map<std::string_view, mqtt::subscription_entry<session_t>> subs_map_;
+		mqtt::subscription_map<std::string_view, mqtt::subnode<session_t>> subs_map_;
 
 		/// shared subscription targets
-		mqtt::shared_target<mqtt::shared_entry<session_t>> shared_targets_;
+		mqtt::shared_target<mqtt::stnode<session_t>>                       shared_targets_;
 
 		/// A list of messages retained so they can be sent to newly subscribed clients.
-		mqtt::retained_messages<mqtt::retained_entry> retained_messages_;
+		mqtt::retained_messages<mqtt::rmnode>                              retained_messages_;
 	};
 }
 

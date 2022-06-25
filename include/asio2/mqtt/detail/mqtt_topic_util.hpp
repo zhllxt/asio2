@@ -108,8 +108,8 @@ namespace asio2::mqtt
 
 	static constexpr char topic_filter_separator = '/';
 
-	template<typename Iterator, typename Output>
-	inline std::size_t topic_filter_tokenizer(Iterator&& first, Iterator&& last, Output&& write)
+	template<typename Iterator, typename Function>
+	inline std::size_t topic_filter_tokenizer(Iterator&& first, Iterator&& last, Function&& callback)
 	{
 		if (first >= last)
 		{
@@ -118,7 +118,7 @@ namespace asio2::mqtt
 		}
 		std::size_t count = static_cast<std::size_t>(1);
 		auto iter = std::find(first, last, topic_filter_separator);
-		while (write(asio2::detail::to_string_view(first, iter)) && iter != last)
+		while (callback(asio2::detail::to_string_view(first, iter)) && iter != last)
 		{
 			first = std::next(iter);
 			if (first >= last)
@@ -129,10 +129,10 @@ namespace asio2::mqtt
 		return count;
 	}
 
-	template<typename Output>
-	inline std::size_t topic_filter_tokenizer(std::string_view str, Output&& write)
+	template<typename Function>
+	inline std::size_t topic_filter_tokenizer(std::string_view str, Function&& callback)
 	{
-		return topic_filter_tokenizer(std::begin(str), std::end(str), std::forward<Output>(write));
+		return topic_filter_tokenizer(std::begin(str), std::end(str), std::forward<Function>(callback));
 	}
 }
 

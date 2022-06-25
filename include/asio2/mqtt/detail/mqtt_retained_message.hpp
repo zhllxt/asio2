@@ -26,9 +26,9 @@
 #include <optional>
 #include <deque>
 
-#include <asio2/mqtt/mqtt_protocol_v3.hpp>
-#include <asio2/mqtt/mqtt_protocol_v4.hpp>
-#include <asio2/mqtt/mqtt_protocol_v5.hpp>
+#include <asio2/mqtt/protocol_v3.hpp>
+#include <asio2/mqtt/protocol_v4.hpp>
+#include <asio2/mqtt/protocol_v5.hpp>
 
 #include <asio2/mqtt/detail/mqtt_topic_util.hpp>
 
@@ -38,7 +38,7 @@ namespace asio2::mqtt
 	class retained_messages
 	{
 	public:
-		using path_entry_key = std::pair<std::size_t, std::string_view>;
+		using key_type = std::pair<std::size_t, std::string_view>;
 
 	protected:
 		// Exceptions used
@@ -91,19 +91,19 @@ namespace asio2::mqtt
 			{ }
 		};
 
-		using map_type = std::unordered_map<path_entry_key, path_entry, std::hash<path_entry_key>>;
-		using map_type_iterator       = typename map_type::iterator;
-		using map_type_const_iterator = typename map_type::const_iterator;
+		using map_type = std::unordered_map<key_type, path_entry, std::hash<key_type>>;
+		using map_iterator       = typename map_type::iterator;
+		using map_const_iterator = typename map_type::const_iterator;
 
-		std::unordered_map<path_entry_key, path_entry, std::hash<path_entry_key>> map;
+		std::unordered_map<key_type, path_entry, std::hash<key_type>> map;
 		std::unordered_multimap<std::size_t, path_entry*> wildcard_map;
 
 		std::size_t map_size;
 		std::size_t next_node_id;
 
-		inline map_type_iterator create_topic(std::string_view topic_name)
+		inline map_iterator create_topic(std::string_view topic_name)
 		{
-			map_type_iterator parent = get_root();
+			map_iterator parent = get_root();
 
 			topic_filter_tokenizer(topic_name, [this, &parent](std::string_view t) mutable
 			{
@@ -114,16 +114,16 @@ namespace asio2::mqtt
 
 				std::size_t parent_id = parent->second.id;
 
-				map_type_iterator entry = map.find(path_entry_key(parent_id, t));
+				map_iterator it = map.find(key_type(parent_id, t));
 
-				if (entry == map.end())
+				if (it == map.end())
 				{
-					entry = map.emplace(
-						path_entry_key(parent_id, t),
+					it = map.emplace(
+						key_type(parent_id, t),
 						path_entry(parent_id, t, next_node_id++)
 					).first;
 
-					wildcard_map.emplace(parent_id, &(entry->second));
+					wildcard_map.emplace(parent_id, &(it->second));
 
 					if (next_node_id == max_node_id)
 					{
@@ -132,34 +132,34 @@ namespace asio2::mqtt
 				}
 				else
 				{
-					entry->second.increase_count();
+					it->second.increase_count();
 				}
 
-				parent = entry;
+				parent = it;
 				return true;
 			});
 
 			return parent;
 		}
 
-		inline std::vector<map_type_iterator> find_topic(std::string_view topic_name)
+		inline std::vector<map_iterator> find_topic(std::string_view topic_name)
 		{
-			std::vector<map_type_iterator> path;
+			std::vector<map_iterator> path;
 
-			map_type_iterator parent = get_root();
+			map_iterator parent = get_root();
 
 			topic_filter_tokenizer(topic_name, [this, &parent, &path](std::string_view t) mutable
 			{
-				auto entry = map.find(path_entry_key(parent->second.id, t));
+				auto it = map.find(key_type(parent->second.id, t));
 
-				if (entry == map.end())
+				if (it == map.end())
 				{
 					path.clear();
 					return false;
 				}
 
-				path.push_back(entry);
-				parent = entry;
+				path.push_back(it);
+				parent = it;
 				return true;
 			});
 
@@ -171,20 +171,19 @@ namespace asio2::mqtt
 		template<typename Output>
 		inline void match_hash_entries(std::size_t parent_id, Output&& callback, bool ignore_system)
 		{
-			std::deque<std::size_t> entries;
-			entries.push_back(parent_id);
+			std::deque<std::size_t> ids;
+			ids.push_back(parent_id);
 
-			std::deque<std::size_t> new_entries;
+			std::deque<std::size_t> new_ids;
 
-			while (!entries.empty())
+			while (!ids.empty())
 			{
-				new_entries.resize(0);
+				new_ids.resize(0);
 
-				for (auto entry : entries)
+				for (auto it : ids)
 				{
-					// Find all entries below this node
-					auto range = wildcard_map.equal_range(entry);
-					for (auto i = range.first; i != range.second && i->second->parent_id == entry; ++i)
+					auto range = wildcard_map.equal_range(it);
+					for (auto i = range.first; i != range.second && i->second->parent_id == it; ++i)
 					{
 						// Should we ignore system matches
 						if (!ignore_system || i->second->name.empty() || i->second->name[0] != '$')
@@ -194,7 +193,7 @@ namespace asio2::mqtt
 								callback(i->second->value.value());
 							}
 
-							new_entries.push_back(i->second->id);
+							new_ids.push_back(i->second->id);
 						}
 					}
 				}
@@ -202,7 +201,7 @@ namespace asio2::mqtt
 				// Ignore system only on first level
 				ignore_system = false;
 
-				std::swap(entries, new_entries);
+				std::swap(ids, new_ids);
 			}
 		}
 
@@ -210,19 +209,19 @@ namespace asio2::mqtt
 		template<typename Output>
 		inline void find_match(std::string_view topic_filter, Output&& callback)
 		{
-			std::deque<map_type_iterator> entries;
-			entries.push_back(get_root());
+			std::deque<map_iterator> iters;
+			iters.push_back(get_root());
 
-			std::deque<map_type_iterator> new_entries;
+			std::deque<map_iterator> new_iters;
 
 			topic_filter_tokenizer(topic_filter,
-			[this, &entries, &new_entries, &callback](std::string_view t) mutable
+			[this, &iters, &new_iters, &callback](std::string_view t) mutable
 			{
-				new_entries.resize(0);
+				new_iters.resize(0);
 
-				for (auto& entry : entries)
+				for (auto& it : iters)
 				{
-					std::size_t parent_id = entry->second.id;
+					std::size_t parent_id = it->second.id;
 
 					if (t == std::string_view("+"))
 					{
@@ -232,9 +231,9 @@ namespace asio2::mqtt
 						{
 							if (parent_id != root_node_id || i->second->name.empty() || i->second->name[0] != '$')
 							{
-								auto it = map.find(path_entry_key(i->second->parent_id, i->second->name));
-								ASIO2_ASSERT(it != map.end());
-								new_entries.push_back(it);
+								auto j = map.find(key_type(i->second->parent_id, i->second->name));
+								ASIO2_ASSERT(j != map.end());
+								new_iters.push_back(j);
 							}
 							else
 							{
@@ -249,24 +248,24 @@ namespace asio2::mqtt
 					}
 					else
 					{
-						map_type_iterator i = map.find(path_entry_key(parent_id, t));
+						map_iterator i = map.find(key_type(parent_id, t));
 						if (i != map.end())
 						{
-							new_entries.push_back(i);
+							new_iters.push_back(i);
 						}
 					}
 				}
 
-				std::swap(new_entries, entries);
+				std::swap(new_iters, iters);
 
-				return !entries.empty();
+				return !iters.empty();
 			});
 
-			for (auto& entry : entries)
+			for (auto& it : iters)
 			{
-				if (entry->second.value)
+				if (it->second.value)
 				{
-					callback(entry->second.value.value());
+					callback(it->second.value.value());
 				}
 			}
 		}
@@ -282,24 +281,24 @@ namespace asio2::mqtt
 				path.back()->second.value = std::nullopt;
 
 				// Do iterators stay valid when erasing ? I think they do ?
-				for (auto entry : path)
+				for (auto iter : path)
 				{
-					entry->second.decrease_count();
+					iter->second.decrease_count();
 
-					if (entry->second.count == 0)
+					if (iter->second.count == 0)
 					{
-						auto range = wildcard_map.equal_range(std::get<0>(entry->first));
+						auto range = wildcard_map.equal_range(std::get<0>(iter->first));
 
 						for (auto it = range.first; it != range.second; ++it)
 						{
-							if (&(entry->second) == it->second)
+							if (&(iter->second) == it->second)
 							{
 								wildcard_map.erase(it);
 								break;
 							}
 						}
 
-						map.erase(entry);
+						map.erase(iter);
 					}
 				}
 
@@ -310,11 +309,11 @@ namespace asio2::mqtt
 		}
 
 		// Increase the number of topics for this path
-		inline void increase_topics(std::vector<map_type_iterator> const &path)
+		inline void increase_topics(std::vector<map_iterator> const &path)
 		{
-			for (auto& entry : path)
+			for (auto& it : path)
 			{
-				entry->second.increase_count();
+				it->second.increase_count();
 			}
 		}
 
@@ -340,16 +339,16 @@ namespace asio2::mqtt
 		{
 			map_size = 0;
 			// Create the root node
-			auto entry = map.emplace(path_entry_key(root_parent_id, ""),
+			auto it = map.emplace(key_type(root_parent_id, ""),
 				path_entry(root_parent_id, "", root_node_id)).first;
 			next_node_id = root_node_id + 1;
 			// 
-			wildcard_map.emplace(root_parent_id, &(entry->second));
+			wildcard_map.emplace(root_parent_id, &(it->second));
 		}
 
-		inline map_type_iterator get_root()
+		inline map_iterator get_root()
 		{
-			return map.find(path_entry_key(root_parent_id, ""));
+			return map.find(key_type(root_parent_id, ""));
 		}
 
 	public:
@@ -401,10 +400,8 @@ namespace asio2::mqtt
 			return result;
 		}
 
-		// Get the number of entries stored in the map
 		inline std::size_t size() const { return map_size; }
 
-		// Get the number of entries in the map (for debugging purpose only)
 		inline std::size_t internal_size() const { return map.size(); }
 
 		// Clear all topics
@@ -430,10 +427,10 @@ namespace asio2::mqtt
 
 	// A collection of messages that have been retained in
 	// case clients add a new subscription to the associated topics.
-	struct retained_entry
+	struct rmnode
 	{
 		template<class Message>
-		explicit retained_entry(Message&& msg, std::shared_ptr<asio::steady_timer> expiry_timer)
+		explicit rmnode(Message&& msg, std::shared_ptr<asio::steady_timer> expiry_timer)
 			: message(std::forward<Message>(msg))
 			, message_expiry_timer(std::move(expiry_timer))
 		{

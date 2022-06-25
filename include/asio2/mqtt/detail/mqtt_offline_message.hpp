@@ -29,7 +29,7 @@
 #include <asio2/base/iopool.hpp>
 #include <asio2/base/error.hpp>
 
-#include <asio2/mqtt/mqtt_core.hpp>
+#include <asio2/mqtt/core.hpp>
 
 #include <asio2/mqtt/detail/mqtt_topic_util.hpp>
 
@@ -175,11 +175,11 @@ namespace asio2::mqtt
 		std::list<Value> messages_;
 	};
 
-	struct offline_entry
+	struct omnode
 	{
 	public:
 		template<class Message>
-		explicit offline_entry(Message&& msg, std::shared_ptr<asio::steady_timer> expiry_timer)
+		explicit omnode(Message&& msg, std::shared_ptr<asio::steady_timer> expiry_timer)
 			: message(std::forward<Message>(msg))
 			, message_expiry_timer(std::move(expiry_timer))
 		{

@@ -14,7 +14,7 @@
 # cmake -G "Visual Studio 15 Win64" .
 #
 
-cmake_minimum_required (VERSION 3.5...3.20)
+cmake_minimum_required (VERSION 2.8...3.20)
 
 
 
@@ -112,7 +112,6 @@ message("ASIO2_LIBS_DIR = ${ASIO2_LIBS_DIR}")
 message("ASIO2_EXES_DIR = ${ASIO2_EXES_DIR}")
  
 IF (CMAKE_SYSTEM_NAME MATCHES "Linux")
-    message("if the [unrecognized command line option '-std=c++17'] error occurs, attempt to execute this command: export CC=/usr/local/bin/gcc; export CXX=/usr/local/bin/g++;")
 	set(OPENSSL_LIBS libssl.a libcrypto.a)
 	set(GENERAL_LIBS -lpthread -lrt -ldl stdc++fs)
 ELSEIF (CMAKE_SYSTEM_NAME MATCHES "Windows")

@@ -45,25 +45,9 @@ int main()
 		printf("stop : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
 	});
 
-	server.on_publish([](std::shared_ptr<asio2::mqtt_session>& session_ptr,
-		mqtt::v3::publish& publish,
-		std::variant<mqtt::v3::puback, mqtt::v3::pubrec>& response)
+	server.on_publish([](std::shared_ptr<asio2::mqtt_session>& session_ptr, mqtt::message& msg, mqtt::message& rep)
 	{
-		asio2::ignore_unused(session_ptr, publish, response);
-	});
-
-	server.on_publish([](std::shared_ptr<asio2::mqtt_session>& session_ptr,
-		mqtt::v4::publish& publish,
-		std::variant<mqtt::v4::puback, mqtt::v4::pubrec>& response)
-	{
-		asio2::ignore_unused(session_ptr, publish, response);
-	});
-
-	server.on_publish([](std::shared_ptr<asio2::mqtt_session>& session_ptr,
-		mqtt::v5::publish& publish,
-		std::variant<mqtt::v5::puback, mqtt::v5::pubrec>& response)
-	{
-		asio2::ignore_unused(session_ptr, publish, response);
+		asio2::ignore_unused(session_ptr, msg, rep);
 	});
 
 	server.start(host, port);

@@ -22,7 +22,7 @@
 
 #include <asio2/base/detail/util.hpp>
 
-#include <asio2/mqtt/mqtt_core.hpp>
+#include <asio2/mqtt/core.hpp>
 
 namespace asio2::detail
 {

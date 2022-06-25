@@ -1,11 +1,26 @@
 #include <asio2/mqtt/mqtt_client.hpp>
 #include <iostream>
+#include <asio2/external/fmt.hpp>
+#include <asio2/mqtt/message.hpp>
 
 int main()
 {
 	//std::string_view host = "broker.hivemq.com";
 	std::string_view host = "127.0.0.1";
 	std::string_view port = "1883";
+
+	asio2::mqtt::message msg1(mqtt::v5::connect{});
+
+	msg1 = mqtt::v5::subscribe{};
+
+	[[maybe_unused]] mqtt::v5::subscribe       & subref1 = static_cast<      mqtt::v5::subscribe&>(msg1);
+	[[maybe_unused]] mqtt::v5::subscribe const & subref2 = static_cast<const mqtt::v5::subscribe&>(msg1);
+	[[maybe_unused]] mqtt::v5::subscribe         subvar3 = static_cast<      mqtt::v5::subscribe >(msg1);
+	[[maybe_unused]] mqtt::v5::subscribe const   subvar4 = static_cast<const mqtt::v5::subscribe >(msg1);
+	[[maybe_unused]] mqtt::v5::subscribe       * subptr1 = static_cast<      mqtt::v5::subscribe*>(msg1);
+	[[maybe_unused]] mqtt::v5::subscribe const * subptr2 = static_cast<const mqtt::v5::subscribe*>(msg1);
+
+	[[maybe_unused]] mqtt::v5::subscribe       & subrefa = msg1;
 
 	asio2::mqtt_client client;
 
@@ -33,7 +48,7 @@ int main()
 	conn.serialize(sdata);
 	conn.serialize(sbuffer);
 
-	std::cout << int(conn.version()) << std::endl;
+	fmt::print("connect version : {}\n", int(conn.version()));
 
 	char* p1 = (char*)&sbuffer[0];
 	char* p2 = (char*)&sbuffer[sbuffer.size() - 1];
@@ -41,10 +56,11 @@ int main()
 	auto ssss = sizeof(asio::const_buffer);
 	auto size = p2 - p1;
 
-	std::cout << sdata.size() << std::endl;
-	std::cout << ssss << std::endl;
-	std::cout << size << std::endl;
-	std::cout << conn.required_size() << std::endl;
+	fmt::print("serialize to std::string                    , size : {}\n", sdata.size());
+	fmt::print("serialize to std::vector<asio::const_buffer>, size : {}\n", size);
+	fmt::print("sizeof(asio::const_buffer) : {}\n", ssss);
+	fmt::print("connect.required_size()    : {}\n", conn.required_size());
+	fmt::print("\n");
 
 	client.post([]() {}, std::chrono::seconds(3));
 
@@ -95,24 +111,29 @@ int main()
 
 		if (!asio2::get_last_error())
 		{
-			mqtt::v5::publish publish;
-			publish.qos(mqtt::qos_type::at_least_once);
-			publish.packet_id(1001);
-			publish.topic_name("/");
-			publish.payload("20210906_payload_test");
-			client.async_send(std::move(publish), []()
-			{
-				std::cout << "send publish" << std::endl;
-			});
-
 			client.start_timer(1, 1000, 1, [&]()
 			{
-				mqtt::v5::subscribe subscribe;
-				subscribe.packet_id(1001);
-				subscribe.add_subscriptions(mqtt::subscription{ "/",mqtt::qos_type::at_least_once });
-				client.async_send(std::move(subscribe), []()
+				mqtt::v5::subscribe sub;
+				sub.packet_id(1001);
+				sub.add_subscriptions(mqtt::subscription{ "/asio2/mqtt/index",mqtt::qos_type::at_least_once });
+				client.async_send(std::move(sub), []()
 				{
-					std::cout << "send subscribe" << std::endl;
+					std::cout << "send v5::subscribe, packet_id : 1001" << std::endl;
+				});
+			});
+
+			client.start_timer(2, 2000, 10, [&]()
+			{
+				static int i = 1;
+
+				mqtt::v5::publish pub;
+				pub.qos(mqtt::qos_type::at_least_once);
+				pub.packet_id(1002);
+				pub.topic_name("/asio2/mqtt/index");
+				pub.payload(fmt::format("{}", i++));
+				client.async_send(std::move(pub), []()
+				{
+					std::cout << "send v5::publish  , packet_id : 1002" << std::endl;
 				});
 			});
 		}
@@ -123,118 +144,66 @@ int main()
 			asio2::last_error_val(), asio2::last_error_msg().c_str());
 	});
 
-	client.on_connack([](mqtt::v3::connack& connack)
-	{
-		std::cout << "connack reason code: " << int(connack.reason_code()) << std::endl;
-	});
-
-	client.on_connack([](mqtt::v4::connack& connack)
-	{
-		std::cout << "connack reason code: " << int(connack.reason_code()) << std::endl;
-	});
-
 	client.on_connack([](mqtt::v5::connack& connack)
 	{
-		std::cout << "connack reason code: " << int(connack.reason_code()) << std::endl;
+		fmt::print("recv v5::connack  , reason code: {}", int(connack.reason_code()));
 
-		for (auto& vprop : connack.properties().value())
+		for (auto& vprop : connack.properties().data())
 		{
 			std::visit([](auto& prop)
 			{
-				auto name  = prop.name();
-				auto type  = prop.type();
-				auto value = prop.value();
+				[[maybe_unused]] auto name  = prop.name();
+				[[maybe_unused]] auto type  = prop.type();
+				[[maybe_unused]] auto value = prop.value();
 
-				asio2::ignore_unused(name, type, value);
-			},vprop);
+				fmt::print(" {}:{}", name, value);
+			}, vprop.variant());
 		}
+		fmt::print("\n");
 	});
 
-	client.on_puback([](mqtt::v3::puback& puback)
+	client.on_suback([](mqtt::v5::suback& msg)
 	{
-		printf("recv v3::puback : packet id : %u\n", puback.packet_id());
+		fmt::print("recv v5::suback   , packet_id : {} reason code: {}\n",
+			msg.packet_id(), msg.reason_codes().at(0));
 	});
 
-	client.on_puback([](mqtt::v4::puback& puback)
+	client.on_publish([](mqtt::v5::publish& msg, mqtt::message& rep)
 	{
-		printf("recv v4::puback : packet id : %u\n", puback.packet_id());
+		asio2::ignore_unused(msg, rep);
+		fmt::print("recv v5::publish  , packet id : {} QoS : {} topic_name : {} payload : {}\n",
+			msg.packet_id(), int(msg.qos()), msg.topic_name(), msg.payload());
 	});
 
 	client.on_puback([](mqtt::v5::puback& puback)
 	{
-		printf("recv v5::puback : packet id : %u reason code : %u\n", puback.packet_id(), puback.reason_code());
+		fmt::print("recv v5::puback   , packet id : {} reason code : {}\n", puback.packet_id(), puback.reason_code());
 	});
 
-	client.on_pubrec([](mqtt::v3::pubrec& pubrec, mqtt::v3::pubrel& pubrel)
+	client.on_pubrec([](mqtt::v5::pubrec& msg, mqtt::v5::pubrel& rep)
 	{
-		asio2::ignore_unused(pubrec, pubrel);
-		std::cout << "recv v3::pubrec, packet id: " << pubrec.packet_id() << std::endl;
+		asio2::ignore_unused(msg, rep);
+		fmt::print("recv v5::pubrec   , packet id: {} reason_code : {}\n",
+			msg.packet_id(), int(msg.reason_code()));
 	});
 
-	client.on_pubrec([](mqtt::v4::pubrec& pubrec, mqtt::v4::pubrel& pubrel)
+	client.on_pubcomp([](mqtt::v5::pubcomp& msg)
 	{
-		asio2::ignore_unused(pubrec, pubrel);
-		std::cout << "recv v4::pubrec, packet id: " << pubrec.packet_id() << std::endl;
+		fmt::print("recv v5::pubcomp  , packet id: {} reason_code : {}\n",
+			msg.packet_id(), int(msg.reason_code()));
 	});
 
-	client.on_pubrec([](mqtt::v5::pubrec& pubrec, mqtt::v5::pubrel& pubrel)
+	client.on_pingresp([](mqtt::message& msg)
 	{
-		asio2::ignore_unused(pubrec, pubrel);
-		std::cout << "recv v5::pubrec, packet id: " << pubrec.packet_id() << " reason_code : " << int(pubrec.reason_code()) << std::endl;
-	});
-
-	client.on_pubcomp([](mqtt::v3::pubcomp& pubcomp)
-	{
-		asio2::ignore_unused(pubcomp);
-		std::cout << "recv v3::pubcomp, packet id: " << pubcomp.packet_id() << std::endl;
-	});
-
-	client.on_pubcomp([](mqtt::v4::pubcomp& pubcomp)
-	{
-		asio2::ignore_unused(pubcomp);
-		std::cout << "recv v4::pubcomp, packet id: " << pubcomp.packet_id() << std::endl;
-	});
-
-	client.on_pubcomp([](mqtt::v5::pubcomp& pubcomp)
-	{
-		asio2::ignore_unused(pubcomp);
-		std::cout << "recv v5::pubcomp, packet id: " << pubcomp.packet_id() << " reason_code : " << int(pubcomp.reason_code()) << std::endl;
-	});
-
-	client.on_pingresp([](mqtt::v3::pingresp& pingresp)
-	{
-		std::ignore = pingresp;
-		printf("recv v3::pingresp\n");
-	});
-
-	client.on_pingresp([](mqtt::v4::pingresp& pingresp)
-	{
-		std::ignore = pingresp;
-		printf("recv v4::pingresp\n");
-	});
-
-	client.on_pingresp([](mqtt::v5::pingresp& pingresp)
-	{
-		std::ignore = pingresp;
+		std::ignore = msg;
 		printf("recv v5::pingresp\n");
 	});
 
-	client.on_disconnect([](mqtt::v3::disconnect& disconnect)
+	client.on_disconnect([](mqtt::message& msg)
 	{
-		asio2::ignore_unused(disconnect);
-		printf("recv v3::disconnect \n");
-	});
-
-	client.on_disconnect([](mqtt::v4::disconnect& disconnect)
-	{
-		asio2::ignore_unused(disconnect);
-		printf("recv v4::disconnect \n");
-	});
-
-	client.on_disconnect([](mqtt::v5::disconnect& disconnect)
-	{
-		asio2::ignore_unused(disconnect);
-		printf("recv v5::disconnect : reason code : %u\n", disconnect.reason_code());
+		asio2::ignore_unused(msg);
+		if (mqtt::v5::disconnect* p = static_cast<mqtt::v5::disconnect*>(msg); p)
+			printf("recv v5::disconnect, reason code : %u\n", p->reason_code());
 	});
 
 	mqtt::v5::connect connect;

@@ -1,12 +1,12 @@
-cmake .
+cmake -A x64 -T host=x64 .
 
 cd server
 
-cmake .
+cmake -A x64 -T host=x64 .
 
 cd ..
 
 cd client
 
-cmake .
+cmake -A x64 -T host=x64 .
 

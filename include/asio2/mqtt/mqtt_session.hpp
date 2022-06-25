@@ -23,13 +23,13 @@
 
 #include <asio2/mqtt/impl/mqtt_send_op.hpp>
 
-#include <asio2/mqtt/detail/mqtt_options.hpp>
 #include <asio2/mqtt/detail/mqtt_handler.hpp>
 #include <asio2/mqtt/detail/mqtt_invoker.hpp>
-
 #include <asio2/mqtt/detail/mqtt_topic_alias.hpp>
 #include <asio2/mqtt/detail/mqtt_session_state.hpp>
-#include <asio2/mqtt/detail/mqtt_packet_id_mgr.hpp>
+
+#include <asio2/mqtt/idmgr.hpp>
+#include <asio2/mqtt/options.hpp>
 
 namespace asio2::detail
 {
@@ -50,7 +50,6 @@ namespace asio2::detail
 		, public mqtt_topic_alias_t<derived_t        >
 		, public mqtt_send_op      <derived_t, args_t>
 		, public mqtt::session_state
-		, public mqtt::packet_id_mgr<mqtt::two_byte_integer::value_type>
 	{
 		ASIO2_CLASS_FRIEND_DECLARE_BASE;
 		ASIO2_CLASS_FRIEND_DECLARE_TCP_BASE;
@@ -76,12 +75,12 @@ namespace asio2::detail
 		 * @constructor
 		 */
 		explicit mqtt_session_impl_t(
-			mqtt_invoker_t<derived_t>                                       & invoker,
-			asio2_shared_mutex                                              & mqttid_sessions_mtx,
-			std::unordered_map<std::string_view, std::shared_ptr<derived_t>>& mqttid_sessions,
-			mqtt::multiple_subscription_map<std::string_view, mqtt::subscription_entry<derived_t>>& subs_map,
-			mqtt::shared_target<mqtt::shared_entry<derived_t>>& shared_targets,
-			mqtt::retained_messages<mqtt::retained_entry>& retained_messages,
+			mqtt_invoker_t<derived_t>                                         & invoker,
+			asio2_shared_mutex                                                & mqttid_sessions_mtx,
+			std::unordered_map<std::string_view, std::shared_ptr<derived_t>>  & mqttid_sessions,
+			mqtt::subscription_map<std::string_view, mqtt::subnode<derived_t>>& subs_map,
+			mqtt::shared_target<mqtt::stnode<derived_t>>                      & shared_targets,
+			mqtt::retained_messages<mqtt::rmnode>                             & retained_messages,
 			session_mgr_t <derived_t>& sessions,
 			listener_t               & listener,
 			io_t                     & rwio,
@@ -340,16 +339,19 @@ namespace asio2::detail
 		std::unordered_map<std::string_view, std::shared_ptr<derived_t>>    & mqttid_sessions_;
 
 		/// subscription information map
-		mqtt::multiple_subscription_map<std::string_view, mqtt::subscription_entry<derived_t>>& subs_map_;
+		mqtt::subscription_map<std::string_view, mqtt::subnode<derived_t>>  & subs_map_;
 
 		/// shared subscription targets
-		mqtt::shared_target<mqtt::shared_entry<derived_t>>& shared_targets_;
+		mqtt::shared_target<mqtt::stnode<derived_t>>                        & shared_targets_;
 
 		/// A list of messages retained so they can be sent to newly subscribed clients.
-		mqtt::retained_messages<mqtt::retained_entry>& retained_messages_;
+		mqtt::retained_messages<mqtt::rmnode>                               & retained_messages_;
+
+		/// packet id manager
+		mqtt::idmgr<mqtt::two_byte_integer::value_type>                       idmgr_;
 
 		/// user to find session for shared targets
-		std::chrono::nanoseconds::rep shared_target_key_;
+		std::chrono::nanoseconds::rep                                         shared_target_key_;
 
 		std::variant<mqtt::v3::connect, mqtt::v4::connect, mqtt::v5::connect> connect_message_{};
 
