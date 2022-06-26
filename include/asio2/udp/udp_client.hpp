@@ -664,7 +664,13 @@ namespace asio2::detail
 		inline void _post_recv(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
 		{
 			if (!this->is_started())
+			{
+				if (this->derived().state() == state_t::started)
+				{
+					this->derived()._do_disconnect(asio2::get_last_error(), std::move(this_ptr));
+				}
 				return;
+			}
 
 			try
 			{
@@ -691,7 +697,13 @@ namespace asio2::detail
 			set_last_error(ec);
 
 			if (!this->is_started())
+			{
+				if (this->derived().state() == state_t::started)
+				{
+					this->derived()._do_disconnect(ec, std::move(this_ptr));
+				}
 				return;
+			}
 
 			if (ec == asio::error::operation_aborted || ec == asio::error::connection_refused)
 			{

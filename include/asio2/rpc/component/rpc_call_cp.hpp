@@ -108,7 +108,9 @@ namespace asio2::detail
 					{
 						detail::ignore_unused(data);
 
-						ASIO2_ASSERT(std::string_view(ec.category().name()) == rpc::rpc_category().name());
+						// when async_send failed, the error category is not rpc category.
+						//ASIO2_ASSERT(std::string_view(ec.category().name()) == rpc::rpc_category().name());
+
 						ASIO2_ASSERT(derive.io().running_in_this_thread());
 
 						if (!ec)
@@ -144,12 +146,12 @@ namespace asio2::detail
 							}
 						}
 
-						ASIO2_ASSERT(std::string_view(ec.category().name()) == rpc::rpc_category().name());
-
 						if (std::addressof(ec.category()) != std::addressof(rpc::rpc_category()))
 						{
 							ec.assign(ec.value(), rpc::rpc_category());
 						}
+
+						ASIO2_ASSERT(std::string_view(ec.category().name()) == rpc::rpc_category().name());
 
 						set_last_error(ec);
 
@@ -225,6 +227,8 @@ namespace asio2::detail
 					ec = rpc::make_error_code(rpc::error::unspecified_error);
 				}
 
+				ASIO2_ASSERT(std::string_view(ec.category().name()) == rpc::rpc_category().name());
+
 				set_last_error(ec);
 
 				// [20210818] don't throw an error, you can use get_last_error() to check
@@ -290,8 +294,6 @@ namespace asio2::detail
 				{
 					[&derive, cb = std::forward<Callback>(cb)](auto ec, std::string_view) mutable
 					{
-						ASIO2_ASSERT(std::string_view(ec.category().name()) == rpc::rpc_category().name());
-
 						try
 						{
 							if (!ec)
@@ -314,12 +316,12 @@ namespace asio2::detail
 							ec = rpc::make_error_code(rpc::error::unspecified_error);
 						}
 
-						ASIO2_ASSERT(std::string_view(ec.category().name()) == rpc::rpc_category().name());
-
 						if (std::addressof(ec.category()) != std::addressof(rpc::rpc_category()))
 						{
 							ec.assign(ec.value(), rpc::rpc_category());
 						}
+
+						ASIO2_ASSERT(std::string_view(ec.category().name()) == rpc::rpc_category().name());
 
 						set_last_error(ec);
 
@@ -338,8 +340,6 @@ namespace asio2::detail
 					[&derive, cb = std::forward<Callback>(cb)](auto ec, std::string_view data) mutable
 					{
 						detail::ignore_unused(data);
-
-						ASIO2_ASSERT(std::string_view(ec.category().name()) == rpc::rpc_category().name());
 
 						typename rpc_result_t<return_t>::type result{};
 
@@ -368,12 +368,12 @@ namespace asio2::detail
 							ec = rpc::make_error_code(rpc::error::unspecified_error);
 						}
 
-						ASIO2_ASSERT(std::string_view(ec.category().name()) == rpc::rpc_category().name());
-
 						if (std::addressof(ec.category()) != std::addressof(rpc::rpc_category()))
 						{
 							ec.assign(ec.value(), rpc::rpc_category());
 						}
+
+						ASIO2_ASSERT(std::string_view(ec.category().name()) == rpc::rpc_category().name());
 
 						set_last_error(ec);
 
@@ -447,7 +447,6 @@ namespace asio2::detail
 				auto ex = [&derive, id, timer, cb = std::forward<Callback>(cb)]
 				(error_code ec, std::string_view data) mutable
 				{
-					ASIO2_ASSERT(std::string_view(ec.category().name()) == rpc::rpc_category().name());
 					ASIO2_ASSERT(derive.io().running_in_this_thread());
 
 					error_code ec_ignore{};

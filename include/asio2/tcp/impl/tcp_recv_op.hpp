@@ -48,7 +48,13 @@ namespace asio2::detail
 			derived_t& derive = static_cast<derived_t&>(*this);
 
 			if (!derive.is_started())
+			{
+				if (derive.state() == state_t::started)
+				{
+					derive._do_disconnect(asio2::get_last_error(), std::move(this_ptr));
+				}
 				return;
+			}
 
 			try
 			{
@@ -115,7 +121,13 @@ namespace asio2::detail
 			//	_do_disconnect(...);
 			//}
 			if (!derive.is_started())
+			{
+				if (derive.state() == state_t::started)
+				{
+					derive._do_disconnect(ec, std::move(this_ptr));
+				}
 				return;
+			}
 
 			if (!ec)
 			{

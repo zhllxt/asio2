@@ -1110,6 +1110,7 @@ void http_test()
 		std::vector<std::shared_ptr<asio2::ws_client>> ws_clients;
 
 		std::atomic<int> client_connect_counter = 0;
+		std::atomic<int> client_start_failed_counter = 0;
 
 		for (int i = 0; i < test_client_count; i++)
 		{
@@ -1189,16 +1190,18 @@ void http_test()
 
 			// the /ws is the websocket upgraged target
 			bool ws_client_ret = client.start("127.0.0.1", 8080, "/ws");
+			if (!ws_client_ret)
+				client_start_failed_counter++;
 			ASIO2_CHECK(ws_client_ret);
 			ASIO2_CHECK(!asio2::get_last_error());
 		}
 
-		while (server.get_session_count() < std::size_t(test_client_count))
+		while (server.get_session_count() < std::size_t(test_client_count - client_start_failed_counter))
 		{
 			std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		}
 
-		while (client_connect_counter < test_client_count)
+		while (client_connect_counter < test_client_count - client_start_failed_counter)
 		{
 			std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		}
@@ -1238,12 +1241,12 @@ void http_test()
 			std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		}
 
-		while (server.get_session_count() < std::size_t(test_client_count))
+		while (server.get_session_count() < std::size_t(test_client_count - client_start_failed_counter))
 		{
 			std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		}
 
-		while (client_connect_counter < test_client_count)
+		while (client_connect_counter < test_client_count - client_start_failed_counter)
 		{
 			std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		}

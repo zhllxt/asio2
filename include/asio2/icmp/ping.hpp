@@ -954,7 +954,13 @@ namespace asio2::detail
 		void _post_recv(std::shared_ptr<derived_t> this_ptr)
 		{
 			if (!this->is_started())
+			{
+				if (this->derived().state() == state_t::started)
+				{
+					this->derived()._do_stop(asio2::get_last_error(), std::move(this_ptr));
+				}
 				return;
+			}
 
 			try
 			{
@@ -970,6 +976,7 @@ namespace asio2::detail
 			catch (system_error & e)
 			{
 				set_last_error(e);
+
 				this->derived()._do_stop(e.code(), this->derived().selfptr());
 			}
 		}
@@ -979,7 +986,13 @@ namespace asio2::detail
 			set_last_error(ec);
 
 			if (!this->is_started())
+			{
+				if (this->derived().state() == state_t::started)
+				{
+					this->derived()._do_stop(ec, std::move(this_ptr));
+				}
 				return;
+			}
 
 			if (ec == asio::error::operation_aborted)
 			{

@@ -248,6 +248,7 @@ void rpc_test()
 		std::atomic<int> client_init_counter = 0;
 		std::atomic<int> client_connect_counter = 0;
 		std::atomic<int> client_disconnect_counter = 0;
+		std::atomic<int> client_start_failed_counter = 0;
 		for (int i = 0; i < test_client_count; i++)
 		{
 			auto iter = clients.emplace_back(std::make_shared<asio2::rpc_client>());
@@ -303,12 +304,13 @@ void rpc_test()
 			});
 
 			bool client_start_ret = client.start("127.0.0.1", 18010);
-
+			if (!client_start_ret)
+				client_start_failed_counter++;
 			ASIO2_CHECK(client_start_ret);
 			ASIO2_CHECK(!asio2::get_last_error());
 		}
 
-		while (server.get_session_count() < std::size_t(test_client_count))
+		while (server.get_session_count() < std::size_t(test_client_count - client_start_failed_counter))
 		{
 			std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		}
@@ -319,7 +321,7 @@ void rpc_test()
 		ASIO2_CHECK_VALUE(server_accept_counter    .load(), server_accept_counter     == test_client_count);
 		ASIO2_CHECK_VALUE(server_connect_counter   .load(), server_connect_counter    == test_client_count);
 
-		while (client_connect_counter < test_client_count)
+		while (client_connect_counter < test_client_count - client_start_failed_counter)
 		{
 			std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		}
@@ -331,14 +333,21 @@ void rpc_test()
 		msg.resize(1500);
 		for (int i = 0; i < test_client_count; i++)
 		{
-			clients[i]->async_call("echo", msg).response([](std::string s)
+			auto& clt = clients[i];
+			clients[i]->async_call("echo", msg).response([&clt](std::string s)
 			{
 				ASIO2_CHECK(s.empty());
+				// when send data failed, the error is not rpc::error::operation_aborted,
 				ASIO2_CHECK(asio2::get_last_error() == rpc::error::operation_aborted);
+				if (asio2::get_last_error() != rpc::error::operation_aborted)
+				{
+					// close the socket, this will trigger the auto reconnect
+					clt->socket().close();
+				}
 			});
 		}
 
-		while (client_disconnect_counter < test_client_count)
+		while (client_disconnect_counter < test_client_count - client_start_failed_counter)
 		{
 			std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		}
@@ -361,7 +370,7 @@ void rpc_test()
 		ASIO2_CHECK_VALUE(client_disconnect_counter.load(), client_disconnect_counter == test_client_count);
 
 		// use this to ensure the ASIO2_CHECK(session_ptr->is_started());
-		while (server_disconnect_counter != test_client_count)
+		while (server_disconnect_counter != test_client_count- client_start_failed_counter)
 		{
 			std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		}
@@ -394,6 +403,7 @@ void rpc_test()
 		client_init_counter = 0;
 		client_connect_counter = 0;
 		client_disconnect_counter = 0;
+		client_start_failed_counter = 0;
 
 		for (int i = 0; i < test_client_count; i++)
 		{
@@ -402,7 +412,7 @@ void rpc_test()
 			ASIO2_CHECK(asio2::get_last_error() == asio::error::in_progress);
 		}
 
-		while (server.get_session_count() < std::size_t(test_client_count))
+		while (server.get_session_count() < std::size_t(test_client_count - client_start_failed_counter))
 		{
 			std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		}
@@ -412,7 +422,7 @@ void rpc_test()
 		ASIO2_CHECK_VALUE(server_accept_counter    .load(), server_accept_counter     == test_client_count);
 		ASIO2_CHECK_VALUE(server_connect_counter   .load(), server_connect_counter    == test_client_count);
 
-		while (client_connect_counter < test_client_count)
+		while (client_connect_counter < test_client_count - client_start_failed_counter)
 		{
 			std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		}
@@ -422,14 +432,21 @@ void rpc_test()
 
 		for (int i = 0; i < test_client_count; i++)
 		{
-			clients[i]->async_call("echo", msg).response([](std::string s)
+			auto& clt = clients[i];
+			clients[i]->async_call("echo", msg).response([&clt](std::string s)
 			{
 				ASIO2_CHECK(s.empty());
+				// when send data failed, the error is not rpc::error::operation_aborted,
 				ASIO2_CHECK(asio2::get_last_error() == rpc::error::operation_aborted);
+				if (asio2::get_last_error() != rpc::error::operation_aborted)
+				{
+					// close the socket, this will trigger the auto reconnect
+					clt->socket().close();
+				}
 			});
 		}
 
-		while (client_disconnect_counter < test_client_count)
+		while (client_disconnect_counter < test_client_count - client_start_failed_counter)
 		{
 			std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		}
@@ -452,7 +469,7 @@ void rpc_test()
 		ASIO2_CHECK_VALUE(client_disconnect_counter.load(), client_disconnect_counter == test_client_count);
 
 		// use this to ensure the ASIO2_CHECK(session_ptr->is_started());
-		while (server_disconnect_counter != test_client_count)
+		while (server_disconnect_counter != test_client_count - client_start_failed_counter)
 		{
 			std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		}
@@ -560,6 +577,7 @@ void rpc_test()
 		std::atomic<int> client_init_counter = 0;
 		std::atomic<int> client_connect_counter = 0;
 		std::atomic<int> client_disconnect_counter = 0;
+		std::atomic<int> client_start_failed_counter = 0;
 		for (int i = 0; i < test_client_count; i++)
 		{
 			auto iter = clients.emplace_back(std::make_shared<my_rpc_client_tcp>());
@@ -615,12 +633,13 @@ void rpc_test()
 			});
 
 			bool client_start_ret = client.start("127.0.0.1", 18010);
-
+			if (!client_start_ret)
+				client_start_failed_counter++;
 			ASIO2_CHECK(client_start_ret);
 			ASIO2_CHECK(!asio2::get_last_error());
 		}
 
-		while (server.get_session_count() < std::size_t(test_client_count))
+		while (server.get_session_count() < std::size_t(test_client_count - client_start_failed_counter))
 		{
 			std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		}
@@ -631,7 +650,7 @@ void rpc_test()
 		ASIO2_CHECK_VALUE(server_accept_counter    .load(), server_accept_counter     == test_client_count);
 		ASIO2_CHECK_VALUE(server_connect_counter   .load(), server_connect_counter    == test_client_count);
 
-		while (client_connect_counter < test_client_count)
+		while (client_connect_counter < test_client_count - client_start_failed_counter)
 		{
 			std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		}
@@ -641,7 +660,7 @@ void rpc_test()
 
 		std::string msg;
 
-		while (client_disconnect_counter < test_client_count)
+		while (client_disconnect_counter < test_client_count - client_start_failed_counter)
 		{
 			std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
@@ -676,7 +695,7 @@ void rpc_test()
 		ASIO2_CHECK_VALUE(client_disconnect_counter.load(), client_disconnect_counter == test_client_count);
 
 		// use this to ensure the ASIO2_CHECK(session_ptr->is_started());
-		while (server_disconnect_counter != test_client_count)
+		while (server_disconnect_counter != test_client_count - client_start_failed_counter)
 		{
 			std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		}
@@ -709,6 +728,7 @@ void rpc_test()
 		client_init_counter = 0;
 		client_connect_counter = 0;
 		client_disconnect_counter = 0;
+		client_start_failed_counter = 0;
 
 		for (int i = 0; i < test_client_count; i++)
 		{
@@ -717,7 +737,7 @@ void rpc_test()
 			ASIO2_CHECK(asio2::get_last_error() == asio::error::in_progress);
 		}
 
-		while (server.get_session_count() < std::size_t(test_client_count))
+		while (server.get_session_count() < std::size_t(test_client_count - client_start_failed_counter))
 		{
 			std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		}
@@ -727,7 +747,7 @@ void rpc_test()
 		ASIO2_CHECK_VALUE(server_accept_counter    .load(), server_accept_counter     == test_client_count);
 		ASIO2_CHECK_VALUE(server_connect_counter   .load(), server_connect_counter    == test_client_count);
 
-		while (client_connect_counter < test_client_count)
+		while (client_connect_counter < test_client_count - client_start_failed_counter)
 		{
 			std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		}
@@ -735,7 +755,7 @@ void rpc_test()
 		ASIO2_CHECK_VALUE(client_init_counter      .load(), client_init_counter    == test_client_count);
 		ASIO2_CHECK_VALUE(client_connect_counter   .load(), client_connect_counter == test_client_count);
 
-		while (client_disconnect_counter < test_client_count)
+		while (client_disconnect_counter < test_client_count - client_start_failed_counter)
 		{
 			std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
@@ -770,7 +790,7 @@ void rpc_test()
 		ASIO2_CHECK_VALUE(client_disconnect_counter.load(), client_disconnect_counter == test_client_count);
 
 		// use this to ensure the ASIO2_CHECK(session_ptr->is_started());
-		while (server_disconnect_counter != test_client_count)
+		while (server_disconnect_counter != test_client_count - client_start_failed_counter)
 		{
 			std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		}
@@ -916,6 +936,9 @@ void rpc_test()
 			});
 			client.bind_connect([&]()
 			{
+				if (asio2::get_last_error())
+					return;
+
 				ASIO2_CHECK(client.io().running_in_this_thread());
 				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
 				ASIO2_CHECK(!asio2::get_last_error());
@@ -940,7 +963,15 @@ void rpc_test()
 					else
 					{
 						ASIO2_CHECK(s.empty());
-						ASIO2_CHECK(asio2::get_last_error() == rpc::error::operation_aborted);
+						// when send data failed, the error is not rpc::error::operation_aborted,
+						// and the server can't recv the illage data, and the server will can't
+						// disconnect this client, this will cause client_connect_counter can't 
+						// be equal to 3.
+						if (asio2::get_last_error() != rpc::error::operation_aborted)
+						{
+							// close the socket, this will trigger the auto reconnect
+							client.socket().close();
+						}
 					}
 				});
 
@@ -1050,7 +1081,8 @@ void rpc_test()
 		}
 
 		// use this to ensure the ASIO2_CHECK(session_ptr->is_started());
-		while (server_disconnect_counter != test_client_count * 3)
+		//while (server_disconnect_counter != test_client_count * 3)
+		while (server_disconnect_counter < test_client_count * 3)
 		{
 			std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		}
@@ -1344,6 +1376,9 @@ void rpc_test()
 			});
 			client.bind_connect([&]()
 			{
+				if (asio2::get_last_error())
+					return;
+
 				ASIO2_CHECK(client.io().running_in_this_thread());
 				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
 				ASIO2_CHECK(!asio2::get_last_error());
@@ -2134,6 +2169,9 @@ void rpc_test()
 			});
 			client.bind_connect([&]()
 			{
+				if (asio2::get_last_error())
+					return;
+
 				ASIO2_CHECK(client.io().running_in_this_thread());
 				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
 				ASIO2_CHECK(!asio2::get_last_error());

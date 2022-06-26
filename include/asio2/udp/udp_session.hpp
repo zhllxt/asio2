@@ -407,7 +407,13 @@ namespace asio2::detail
 			detail::ignore_unused(ec);
 
 			if (!this->is_started())
+			{
+				if (this->derived().state() == state_t::started)
+				{
+					this->derived()._do_disconnect(ec, this_ptr);
+				}
 				return;
+			}
 
 			this->update_alive_time();
 

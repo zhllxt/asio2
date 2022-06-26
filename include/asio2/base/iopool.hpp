@@ -302,10 +302,13 @@ namespace asio2::detail
 				return true;
 			}
 
+			std::vector<std::promise<void>> promises(this->iots_.size());
+
 			// Create a pool of threads to run all of the io_contexts. 
 			for (std::size_t i = 0; i < this->iots_.size(); ++i)
 			{
 				auto& iot = this->iots_[i];
+				std::promise<void>& promise = promises[i];
 
 				/// Restart the io_context in preparation for a subsequent run() invocation.
 				/**
@@ -323,9 +326,12 @@ namespace asio2::detail
 				this->guards_.emplace_back(iot->context().get_executor());
 
 				// start work thread
-				this->threads_.emplace_back([&iot]() mutable
+				this->threads_.emplace_back([&iot, &promise]() mutable
 				{
 					iot->thread_id_ = std::this_thread::get_id();
+
+					// after the thread id is seted already, we set the promise
+					promise.set_value();
 
 					// should we catch the exception ? 
 					// If an exception occurs here, what should we do ?
@@ -350,15 +356,15 @@ namespace asio2::detail
 				});
 			}
 
+			for (std::size_t i = 0; i < this->iots_.size(); ++i)
+			{
+				promises[i].get_future().wait();
+			}
+
 		#if defined(_DEBUG) || defined(DEBUG)
 			for (std::size_t i = 0; i < this->iots_.size(); ++i)
 			{
-				auto& iot = this->iots_[i];
-
-				asio::dispatch(iot->context(), [this, i]() mutable
-				{
-					ASIO2_ASSERT(this->iots_[i]->get_thread_id() == this->threads_[i].get_id());
-				});
+				ASIO2_ASSERT(this->iots_[i]->get_thread_id() == this->threads_[i].get_id());
 			}
 		#endif
 
