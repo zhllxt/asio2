@@ -64,7 +64,7 @@ namespace asio2::detail
 					// use little endian
 					if (!is_little_endian())
 					{
-						swap_bytes<sizeof(std::uint16_t)>(reinterpret_cast<std::uint8_t*>(&payload_size));
+						swap_bytes<sizeof(std::uint16_t)>(reinterpret_cast<std::uint8_t*>(std::addressof(payload_size)));
 					}
 
 					p += 2;
@@ -88,7 +88,7 @@ namespace asio2::detail
 					// use little endian
 					if (!is_little_endian())
 					{
-						swap_bytes<sizeof(std::uint64_t)>(reinterpret_cast<std::uint8_t*>(&payload_size));
+						swap_bytes<sizeof(std::uint64_t)>(reinterpret_cast<std::uint8_t*>(std::addressof(payload_size)));
 					}
 
 					p += 8;

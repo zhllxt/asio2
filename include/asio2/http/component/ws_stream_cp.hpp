@@ -22,6 +22,7 @@
 
 #include <asio2/external/asio.hpp>
 #include <asio2/external/beast.hpp>
+
 #include <asio2/base/error.hpp>
 
 namespace asio2::detail
@@ -79,11 +80,11 @@ namespace asio2::detail
 
 			if constexpr (args_t::is_client)
 			{
-				ASIO2_ASSERT(derive.io().strand().running_in_this_thread());
+				ASIO2_ASSERT(derive.io().running_in_this_thread());
 			}
 			else
 			{
-				ASIO2_ASSERT(derive.sessions().io().strand().running_in_this_thread());
+				ASIO2_ASSERT(derive.sessions().io().running_in_this_thread());
 			}
 
 			this->ws_stream_ = std::make_unique<stream_type>(socket);
@@ -110,7 +111,7 @@ namespace asio2::detail
 
 			detail::ignore_unused(derive, this_ptr, condition, socket);
 
-			ASIO2_ASSERT(derive.io().strand().running_in_this_thread());
+			ASIO2_ASSERT(derive.io().running_in_this_thread());
 		}
 
 		template<typename DeferEvent>
@@ -118,7 +119,7 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			ASIO2_ASSERT(derive.io().strand().running_in_this_thread());
+			ASIO2_ASSERT(derive.io().running_in_this_thread());
 
 			if (!this->ws_stream_)
 				return;
@@ -151,7 +152,7 @@ namespace asio2::detail
 					websocket::stream_base::timeout opt{};
 					opt.handshake_timeout = std::chrono::milliseconds(ws_shutdown_timeout);
 					opt.idle_timeout      = websocket::stream_base::none();
-					this->ws_stream_->set_option(opt);
+					derive.ws_stream_->set_option(opt);
 				}
 				catch (system_error const& e)
 				{
@@ -175,7 +176,6 @@ namespace asio2::detail
 				// send a websocket close frame to the remote, and wait for recv a websocket close
 				// frame from the remote.
 				this->ws_stream_->async_close(websocket::close_code::normal,
-					asio::bind_executor(derive.io().strand(),
 				[this, this_ptr = std::move(this_ptr), chain = std::move(chain)]
 				(error_code ec) mutable
 				{
@@ -189,7 +189,7 @@ namespace asio2::detail
 					// must Reset the control frame callback. the control frame callback hold the 
 					// self shared_ptr, if don't reset it, will cause memory leaks.
 					this->ws_stream_->control_callback();
-				}));
+				});
 			}, chain.move_guard());
 		}
 
@@ -205,14 +205,12 @@ namespace asio2::detail
 			{
 				ASIO2_ASSERT(bool(this->ws_stream_));
 				// Read a message into our buffer
-				this->ws_stream_->async_read(derive.buffer().base(),
-					asio::bind_executor(derive.io().strand(),
-						make_allocator(derive.rallocator(),
-							[&derive, this_ptr = std::move(this_ptr), condition = std::move(condition)]
-				(const error_code & ec, std::size_t bytes_recvd) mutable
+				this->ws_stream_->async_read(derive.buffer().base(), make_allocator(derive.rallocator(),
+				[&derive, this_ptr = std::move(this_ptr), condition = std::move(condition)]
+				(const error_code& ec, std::size_t bytes_recvd) mutable
 				{
 					derive._handle_recv(ec, bytes_recvd, std::move(this_ptr), std::move(condition));
-				})));
+				}));
 			}
 			catch (system_error & e)
 			{
@@ -274,7 +272,7 @@ namespace asio2::detail
 			// can't use push_event, just only use asio::post, beacuse the callback handler
 			// will not be called immediately, it is called only when it receives an event 
 			// on the another side.
-			asio::post(derive.io().strand(), make_allocator(derive.wallocator(),
+			asio::post(derive.io().context(), make_allocator(derive.wallocator(),
 			[this, &derive, this_ptr = std::move(this_ptr), condition = std::move(condition)]() mutable
 			{
 				this->ws_stream_->control_callback(
@@ -357,12 +355,12 @@ namespace asio2::detail
 
 			// Perform the websocket handshake
 			this->ws_stream_->async_handshake(rep, derive.host_, derive.get_upgrade_target(),
-				asio::bind_executor(derive.io().strand(), make_allocator(derive.wallocator(),
+				make_allocator(derive.wallocator(),
 			[&derive, this_ptr = std::move(this_ptr), condition = std::move(condition), chain = std::move(chain)]
 			(error_code const& ec) mutable
 			{
 				derive._handle_upgrade(ec, std::move(this_ptr), std::move(condition), std::move(chain));
-			})));
+			}));
 		}
 
 		template<typename MatchCondition, typename DeferEvent, typename Request, bool IsSession = args_t::is_session>
@@ -375,13 +373,12 @@ namespace asio2::detail
 			ASIO2_ASSERT(bool(this->ws_stream_));
 
 			// Accept the websocket handshake
-			this->ws_stream_->async_accept(req, 
-				asio::bind_executor(derive.io().strand(), make_allocator(derive.wallocator(),
+			this->ws_stream_->async_accept(req, make_allocator(derive.wallocator(),
 			[&derive, this_ptr = std::move(this_ptr), condition = std::move(condition), chain = std::move(chain)]
 			(error_code ec) mutable
 			{
 				derive._handle_upgrade(ec, std::move(this_ptr), std::move(condition), std::move(chain));
-			})));
+			}));
 		}
 
 		template<typename MatchCondition, typename DeferEvent, bool IsSession = args_t::is_session>
@@ -394,13 +391,12 @@ namespace asio2::detail
 			ASIO2_ASSERT(bool(this->ws_stream_));
 
 			// Accept the websocket handshake
-			this->ws_stream_->async_accept(
-				asio::bind_executor(derive.io().strand(), make_allocator(derive.wallocator(),
+			this->ws_stream_->async_accept(make_allocator(derive.wallocator(),
 			[&derive, this_ptr = std::move(this_ptr), condition = std::move(condition), chain = std::move(chain)]
 			(error_code ec) mutable
 			{
 				derive._handle_upgrade(ec, std::move(this_ptr), std::move(condition), std::move(chain));
-			})));
+			}));
 		}
 
 		template<typename MatchCondition, typename DeferEvent>

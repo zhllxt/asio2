@@ -1323,6 +1323,34 @@ namespace asio2::mqtt
 		}
 		return "unknown"sv;
 	}
+
+	template<typename message_type>
+	inline constexpr bool is_v4_message()
+	{
+		using type = asio2::detail::remove_cvref_t<message_type>;
+		if constexpr (
+			std::is_same_v<type, mqtt::v4::connect     > ||
+			std::is_same_v<type, mqtt::v4::connack     > ||
+			std::is_same_v<type, mqtt::v4::publish     > ||
+			std::is_same_v<type, mqtt::v4::puback      > ||
+			std::is_same_v<type, mqtt::v4::pubrec      > ||
+			std::is_same_v<type, mqtt::v4::pubrel      > ||
+			std::is_same_v<type, mqtt::v4::pubcomp     > ||
+			std::is_same_v<type, mqtt::v4::subscribe   > ||
+			std::is_same_v<type, mqtt::v4::suback      > ||
+			std::is_same_v<type, mqtt::v4::unsubscribe > ||
+			std::is_same_v<type, mqtt::v4::unsuback    > ||
+			std::is_same_v<type, mqtt::v4::pingreq     > ||
+			std::is_same_v<type, mqtt::v4::pingresp    > ||
+			std::is_same_v<type, mqtt::v4::disconnect  > )
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
 }
 
 #endif // !__ASIO2_MQTT_PROTOCOL_V4_HPP__

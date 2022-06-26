@@ -22,6 +22,7 @@
 
 #include <asio2/external/asio.hpp>
 #include <asio2/external/beast.hpp>
+
 #include <asio2/base/error.hpp>
 
 #include <asio2/http/detail/http_util.hpp>
@@ -61,9 +62,8 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			http::async_write(derive.stream(), data,
-				asio::bind_executor(derive.io().strand(), make_allocator(derive.wallocator(),
-					[&derive, p = derive.selfptr(), callback = std::forward<Callback>(callback)]
+			http::async_write(derive.stream(), data, make_allocator(derive.wallocator(),
+			[&derive, p = derive.selfptr(), callback = std::forward<Callback>(callback)]
 			(const error_code& ec, std::size_t bytes_sent) mutable
 			{
 				set_last_error(ec);
@@ -78,7 +78,7 @@ namespace asio2::detail
 						derive._do_disconnect(ec, std::move(p));
 					}
 				}
-			})));
+			}));
 			return true;
 		}
 
@@ -87,9 +87,8 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			http::async_write(derive.stream(), data.base(),
-				asio::bind_executor(derive.io().strand(), make_allocator(derive.wallocator(),
-					[&derive, p = derive.selfptr(), callback = std::forward<Callback>(callback)]
+			http::async_write(derive.stream(), data.base(), make_allocator(derive.wallocator(),
+			[&derive, p = derive.selfptr(), callback = std::forward<Callback>(callback)]
 			(const error_code& ec, std::size_t bytes_sent) mutable
 			{
 				set_last_error(ec);
@@ -104,7 +103,7 @@ namespace asio2::detail
 						derive._do_disconnect(ec, std::move(p));
 					}
 				}
-			})));
+			}));
 			return true;
 		}
 
@@ -113,9 +112,8 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			http::async_write(derive.stream(), data.base(),
-				asio::bind_executor(derive.io().strand(), make_allocator(derive.wallocator(),
-					[&derive, p = derive.selfptr(), callback = std::forward<Callback>(callback)]
+			http::async_write(derive.stream(), data.base(), make_allocator(derive.wallocator(),
+			[&derive, p = derive.selfptr(), callback = std::forward<Callback>(callback)]
 			(const error_code& ec, std::size_t bytes_sent) mutable
 			{
 				set_last_error(ec);
@@ -130,7 +128,7 @@ namespace asio2::detail
 						derive._do_disconnect(ec, std::move(p));
 					}
 				}
-			})));
+			}));
 			return true;
 		}
 

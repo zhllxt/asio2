@@ -56,7 +56,7 @@ int main()
 	// Start an asynchronous task with delay
 	timer.post([&]()
 	{
-		ASIO2_ASSERT(timer.io().strand().running_in_this_thread());
+		ASIO2_ASSERT(timer.io().running_in_this_thread());
 		printf("execute some task after 3 seconds for timer\n");
 	}, std::chrono::seconds(3));
 
@@ -84,21 +84,21 @@ int main()
 	// test timer
 	server.start_timer(1, std::chrono::seconds(1), [&]()
 	{
-		ASIO2_ASSERT(server.io().strand().running_in_this_thread());
+		ASIO2_ASSERT(server.io().running_in_this_thread());
 		printf("execute timer for tcp server \n");
 	});
 
 	// Start an asynchronous task with delay
 	server.post([&]()
 	{
-		ASIO2_ASSERT(server.io().strand().running_in_this_thread());
+		ASIO2_ASSERT(server.io().running_in_this_thread());
 		printf("execute some task after 3 seconds\n");
 	}, std::chrono::seconds(3));
 
 	// Start a synchronization task
 	server.dispatch([&]()
 	{
-		ASIO2_ASSERT(server.io().strand().running_in_this_thread());
+		ASIO2_ASSERT(server.io().running_in_this_thread());
 		printf("execute some task in server's io_context thread\n");
 	});
 
@@ -123,14 +123,14 @@ int main()
 
 	std::shared_ptr<asio2::async_event> evt_ptr = client.post_event([&]()
 	{
-		ASIO2_ASSERT(client.io().strand().running_in_this_thread());
+		ASIO2_ASSERT(client.io().running_in_this_thread());
 		printf("execute manual event for tcp client \n");
 	});
 
 	// test timer
 	client.start_timer(1, std::chrono::seconds(1), 10, [&, evt_ptr]()
 	{
-		ASIO2_ASSERT(client.io().strand().running_in_this_thread());
+		ASIO2_ASSERT(client.io().running_in_this_thread());
 		printf("execute timer 10 times for tcp client \n");
 
 		static int counter = 0;
@@ -144,14 +144,14 @@ int main()
 	// Start an asynchronous task with delay
 	client.post([&]()
 	{
-		ASIO2_ASSERT(client.io().strand().running_in_this_thread());
+		ASIO2_ASSERT(client.io().running_in_this_thread());
 		printf("execute some task immediately for tcp client\n");
 	});
 
 	// Start a synchronization task
 	client.dispatch([&]()
 	{
-		ASIO2_ASSERT(client.io().strand().running_in_this_thread());
+		ASIO2_ASSERT(client.io().running_in_this_thread());
 		printf("execute some task in client's io_context thread\n");
 	});
 

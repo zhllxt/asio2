@@ -23,7 +23,6 @@
 
 #include <asio2/external/cereal.hpp>
 
-#include <asio2/external/asio.hpp>
 #include <asio2/base/error.hpp>
 
 #include <asio2/rpc/detail/rpc_portable_binary.hpp>
@@ -107,7 +106,7 @@ namespace asio2::detail
 
 		rpc_serializer()
 			: obuffer_()
-			, ostream_(&obuffer_)
+			, ostream_(std::addressof(obuffer_))
 			, oarchive_(ostream_)
 		{}
 		~rpc_serializer() = default;
@@ -159,7 +158,7 @@ namespace asio2::detail
 
 		rpc_deserializer()
 			: ibuffer_()
-			, istream_(&ibuffer_)
+			, istream_(std::addressof(ibuffer_))
 			, iarchive_(istream_)
 		{}
 		~rpc_deserializer() = default;

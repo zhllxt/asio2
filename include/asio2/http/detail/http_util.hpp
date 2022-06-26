@@ -22,6 +22,7 @@
 
 #include <asio2/external/asio.hpp>
 #include <asio2/external/beast.hpp>
+
 #include <asio2/base/error.hpp>
 
 #include <asio2/base/detail/util.hpp>
@@ -188,7 +189,7 @@ namespace boost::beast::http
 			if (offset == 0)
 			{
 				http::parses::http_parser_url u;
-				if (0 == http::parses::http_parser_parse_url(url.data(), url.size(), 0, &u))
+				if (0 == http::parses::http_parser_parse_url(url.data(), url.size(), 0, std::addressof(u)))
 				{
 					if /**/ (u.field_set & (1 << (int)http::parses::url_fields::UF_PATH))
 					{
@@ -258,7 +259,7 @@ namespace boost::beast::http
 			if (offset == 0)
 			{
 				http::parses::http_parser_url u;
-				if (0 == http::parses::http_parser_parse_url(url.data(), url.size(), 0, &u))
+				if (0 == http::parses::http_parser_parse_url(url.data(), url.size(), 0, std::addressof(u)))
 				{
 					if /**/ (u.field_set & (1 << (int)http::parses::url_fields::UF_PATH))
 					{
@@ -369,7 +370,7 @@ namespace boost::beast::http
 				return std::string_view{};
 
 			http::parses::http_parser_url u;
-			if (0 != http::parses::http_parser_parse_url(url.data(), url.size(), 0, &u))
+			if (0 != http::parses::http_parser_parse_url(url.data(), url.size(), 0, std::addressof(u)))
 				return std::string_view{};
 
 			if (!(u.field_set & (1 << (int)http::parses::url_fields::UF_HOST)))
@@ -387,7 +388,7 @@ namespace boost::beast::http
 				return std::string_view{};
 
 			http::parses::http_parser_url u;
-			if (0 != http::parses::http_parser_parse_url(url.data(), url.size(), 0, &u))
+			if (0 != http::parses::http_parser_parse_url(url.data(), url.size(), 0, std::addressof(u)))
 				return std::string_view{};
 
 			if (u.field_set & (1 << (int)http::parses::url_fields::UF_PORT))
@@ -416,7 +417,7 @@ namespace boost::beast::http
 				return std::string_view{};
 
 			http::parses::http_parser_url u;
-			if (0 != http::parses::http_parser_parse_url(url.data(), url.size(), 0, &u))
+			if (0 != http::parses::http_parser_parse_url(url.data(), url.size(), 0, std::addressof(u)))
 				return std::string_view{};
 
 			if (!(u.field_set & (1 << (int)http::parses::url_fields::UF_PATH)))
@@ -434,7 +435,7 @@ namespace boost::beast::http
 				return std::string_view{};
 
 			http::parses::http_parser_url u;
-			if (0 != http::parses::http_parser_parse_url(url.data(), url.size(), 0, &u))
+			if (0 != http::parses::http_parser_parse_url(url.data(), url.size(), 0, std::addressof(u)))
 				return std::string_view{};
 
 			if (!(u.field_set & (1 << (int)http::parses::url_fields::UF_QUERY)))

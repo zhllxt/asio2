@@ -16,12 +16,11 @@
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
 #include <asio2/base/iopool.hpp>
-#include <asio2/base/error.hpp>
 
 #include <asio2/base/detail/function_traits.hpp>
 #include <asio2/base/detail/util.hpp>
 
-#include <asio2/mqtt/protocol_util.hpp>
+#include <asio2/mqtt/message_util.hpp>
 
 namespace asio2::detail
 {

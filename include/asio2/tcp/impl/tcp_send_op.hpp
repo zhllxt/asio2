@@ -20,7 +20,6 @@
 #include <utility>
 #include <string_view>
 
-#include <asio2/external/asio.hpp>
 #include <asio2/base/error.hpp>
 #include <asio2/base/detail/condition_wrap.hpp>
 #include <asio2/base/detail/buffer_wrap.hpp>
@@ -128,11 +127,8 @@ namespace asio2::detail
 				std::forward<Buffer>(buffer)
 			};
 
-			asio::async_write(derive.stream(), buffers, asio::bind_executor(derive.io().strand(),
-				make_allocator(derive.wallocator(),
-					[&derive, p = derive.selfptr(),
-					bytes, head = std::move(head),
-					callback = std::forward<Callback>(callback)]
+			asio::async_write(derive.stream(), buffers, make_allocator(derive.wallocator(),
+			[&derive, p = derive.selfptr(), bytes, head = std::move(head), callback = std::forward<Callback>(callback)]
 			(const error_code& ec, std::size_t bytes_sent) mutable
 			{
 				set_last_error(ec);
@@ -151,7 +147,7 @@ namespace asio2::detail
 				{
 					callback(ec, bytes_sent - bytes);
 				}
-			})));
+			}));
 			return true;
 		}
 
@@ -160,9 +156,8 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			asio::async_write(derive.stream(), buffer, asio::bind_executor(derive.io().strand(),
-				make_allocator(derive.wallocator(),
-					[&derive, p = derive.selfptr(), callback = std::forward<Callback>(callback)]
+			asio::async_write(derive.stream(), buffer, make_allocator(derive.wallocator(),
+			[&derive, p = derive.selfptr(), callback = std::forward<Callback>(callback)]
 			(const error_code& ec, std::size_t bytes_sent) mutable
 			{
 				set_last_error(ec);
@@ -177,7 +172,7 @@ namespace asio2::detail
 						derive._do_disconnect(ec, std::move(p));
 					}
 				}
-			})));
+			}));
 			return true;
 		}
 

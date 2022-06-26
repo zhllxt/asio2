@@ -20,9 +20,7 @@
 #include <utility>
 #include <string_view>
 
-#include <asio2/external/asio.hpp>
 #include <asio2/base/iopool.hpp>
-#include <asio2/base/error.hpp>
 #include <asio2/base/listener.hpp>
 #include <asio2/base/detail/condition_wrap.hpp>
 
@@ -93,7 +91,7 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			ASIO2_ASSERT(derive.io().strand().running_in_this_thread());
+			ASIO2_ASSERT(derive.io().running_in_this_thread());
 
 			try
 			{
@@ -180,7 +178,7 @@ namespace asio2::detail
 
 			// Before async_resolve execution is complete, we must hold the resolver object.
 			// so we captured the resolver_ptr into the lambda callback function.
-			resolver_rptr->async_resolve(host, port, asio::bind_executor(derive.io().strand(),
+			resolver_rptr->async_resolve(host, port,
 			[this, &derive, this_ptr = std::move(this_ptr), condition = std::move(condition),
 				resolver_ptr = std::move(resolver_ptr), chain = std::move(chain)]
 			(const error_code& ec, const endpoints_type& endpoints) mutable
@@ -194,7 +192,7 @@ namespace asio2::detail
 				else
 					derive._post_connect(ec, this->endpoints_.begin(),
 						std::move(this_ptr), std::move(condition), std::move(chain));
-			}));
+			});
 		}
 
 		template<typename MatchCondition, typename DeferEvent, bool IsSession = args_t::is_session>
@@ -204,7 +202,7 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			ASIO2_ASSERT(derive.io().strand().running_in_this_thread());
+			ASIO2_ASSERT(derive.io().running_in_this_thread());
 
 			try
 			{
@@ -262,8 +260,7 @@ namespace asio2::detail
 				}
 
 				// Start the asynchronous connect operation.
-				socket.async_connect(iter->endpoint(),
-					asio::bind_executor(derive.io().strand(), make_allocator(derive.rallocator(),
+				socket.async_connect(iter->endpoint(), make_allocator(derive.rallocator(),
 				[&derive, iter, this_ptr = std::move(this_ptr), condition = std::move(condition), chain = std::move(chain)]
 				(const error_code & ec) mutable
 				{
@@ -274,7 +271,7 @@ namespace asio2::detail
 							std::move(this_ptr), std::move(condition), std::move(chain));
 					else
 						derive._post_proxy(ec, std::move(this_ptr), std::move(condition), std::move(chain));
-				})));
+				}));
 			}
 			catch (system_error & e)
 			{
@@ -292,7 +289,7 @@ namespace asio2::detail
 
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			ASIO2_ASSERT(derive.io().strand().running_in_this_thread());
+			ASIO2_ASSERT(derive.io().running_in_this_thread());
 
 			try
 			{
@@ -359,11 +356,11 @@ namespace asio2::detail
 
 			if constexpr (args_t::is_session)
 			{
-				ASIO2_ASSERT(derive.sessions().io().strand().running_in_this_thread());
+				ASIO2_ASSERT(derive.sessions().io().running_in_this_thread());
 			}
 			else
 			{
-				ASIO2_ASSERT(derive.io().strand().running_in_this_thread());
+				ASIO2_ASSERT(derive.io().running_in_this_thread());
 			}
 
 			derive._done_connect(ec, std::move(this_ptr), std::move(condition), std::move(chain));
@@ -377,11 +374,11 @@ namespace asio2::detail
 
 			if constexpr (args_t::is_session)
 			{
-				ASIO2_ASSERT(derive.sessions().io().strand().running_in_this_thread());
+				ASIO2_ASSERT(derive.sessions().io().running_in_this_thread());
 			}
 			else
 			{
-				ASIO2_ASSERT(derive.io().strand().running_in_this_thread());
+				ASIO2_ASSERT(derive.io().running_in_this_thread());
 			}
 
 			ASIO2_LOG(spdlog::level::debug, "enter _done_connect : {}",
@@ -414,7 +411,7 @@ namespace asio2::detail
 				// Is session : Only call fire_connect notification when the connection is succeed.
 				if constexpr (args_t::is_session)
 				{
-					ASIO2_ASSERT(derive.sessions().io().strand().running_in_this_thread());
+					ASIO2_ASSERT(derive.sessions().io().running_in_this_thread());
 
 					if (!ec)
 					{
@@ -428,7 +425,7 @@ namespace asio2::detail
 				// Is client : Whether the connection succeeds or fails, always call fire_connect notification
 				else
 				{
-					ASIO2_ASSERT(derive.io().strand().running_in_this_thread());
+					ASIO2_ASSERT(derive.io().running_in_this_thread());
 
 					// if state is not stopped, call _fire_connect
 					expected = state_t::stopped;

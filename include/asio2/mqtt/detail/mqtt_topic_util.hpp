@@ -34,7 +34,7 @@ namespace std
 		inline result_type operator()(argument_type const& pair) const noexcept
 		{
 			std::size_t v = asio2::detail::fnv1a_hash<std::size_t>(
-				(const unsigned char *)(&(pair.first)), sizeof(std::size_t));
+				(const unsigned char *)(std::addressof(pair.first)), sizeof(std::size_t));
 			return asio2::detail::fnv1a_hash<std::size_t>(v,
 				(const unsigned char *)(pair.second.data()), pair.second.size());
 		}
@@ -46,7 +46,7 @@ namespace std
 		inline result_type operator()(argument_type const& pair) const noexcept
 		{
 			std::size_t v = asio2::detail::fnv1a_hash<std::size_t>(
-				(const unsigned char *)(&(pair.first)), sizeof(std::size_t));
+				(const unsigned char *)(std::addressof(pair.first)), sizeof(std::size_t));
 			return asio2::detail::fnv1a_hash<std::size_t>(v,
 				(const unsigned char *)(pair.second.data()), pair.second.size());
 		}

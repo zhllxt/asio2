@@ -37,7 +37,7 @@ namespace boost::beast::http
 		 */
 		url(std::string str) : string_(std::move(str))
 		{
-			std::memset((void*)(&parser_), 0, sizeof(http::parses::http_parser_url));
+			std::memset((void*)(std::addressof(parser_)), 0, sizeof(http::parses::http_parser_url));
 
 			if (!string_.empty())
 			{
@@ -48,7 +48,7 @@ namespace boost::beast::http
 					string_ = http::url_encode(string_);
 				}
 
-				if (0 != http::parses::http_parser_parse_url(string_.data(), string_.size(), 0, &parser_))
+				if (0 != http::parses::http_parser_parse_url(string_.data(), string_.size(), 0, std::addressof(parser_)))
 				{
 					if (has_unencode_ch)
 					{

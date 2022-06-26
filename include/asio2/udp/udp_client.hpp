@@ -312,6 +312,15 @@ namespace asio2::detail
 				return false;
 			}
 
+			asio::dispatch(derive.io().context(), [this, this_ptr = derive.selfptr()]() mutable
+			{
+				detail::ignore_unused(this_ptr);
+
+				// init the running thread id 
+				if (this->derived().io().get_thread_id() == std::thread::id{})
+					this->derived().io().init_thread_id();
+			});
+
 			ASIO2_LOG(spdlog::level::debug, "enter _do_connect : {}",
 				magic_enum::enum_name(derive.state_.load()));
 
@@ -402,7 +411,7 @@ namespace asio2::detail
 			}
 			else
 			{
-				if (!derive.io().strand().running_in_this_thread())
+				if (!derive.io().running_in_this_thread())
 				{
 					set_last_error(future.get());
 
@@ -508,7 +517,7 @@ namespace asio2::detail
 		template<typename DeferEvent>
 		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr, DeferEvent chain)
 		{
-			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
+			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
 
 			ASIO2_ASSERT(this->state_ == state_t::stopping);
 
@@ -560,7 +569,7 @@ namespace asio2::detail
 		template<typename DeferEvent>
 		inline void _post_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr, DeferEvent chain)
 		{
-			// All pending sending events will be cancelled after enter the send strand below.
+			// All pending sending events will be cancelled after enter the callback below.
 			this->derived().disp_event(
 			[this, ec, this_ptr = std::move(this_ptr), e = chain.move_event()]
 			(event_queue_guard<derived_t> g) mutable
@@ -601,7 +610,7 @@ namespace asio2::detail
 			std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition, DeferEvent chain)
 		{
 			// Connect succeeded. post recv request.
-			asio::dispatch(this->derived().io().strand(), make_allocator(this->derived().wallocator(),
+			asio::dispatch(this->derived().io().context(), make_allocator(this->derived().wallocator(),
 			[this, this_ptr = std::move(this_ptr), condition = std::move(condition), chain = std::move(chain)]
 			() mutable
 			{
@@ -660,12 +669,12 @@ namespace asio2::detail
 			try
 			{
 				this->socket_.async_receive(this->buffer_.prepare(this->buffer_.pre_size()),
-					asio::bind_executor(this->io_.strand(), make_allocator(this->rallocator_,
+					make_allocator(this->rallocator_,
 						[this, this_ptr = std::move(this_ptr), condition = std::move(condition)]
 				(const error_code & ec, std::size_t bytes_recvd) mutable
 				{
 					this->derived()._handle_recv(ec, bytes_recvd, std::move(this_ptr), std::move(condition));
-				})));
+				}));
 			}
 			catch (system_error & e)
 			{
@@ -737,7 +746,7 @@ namespace asio2::detail
 		inline void _fire_init()
 		{
 			// the _fire_init must be executed in the thread 0.
-			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
+			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
 			ASIO2_ASSERT(!get_last_error());
 
 			this->listener_.notify(event_type::init);
@@ -755,7 +764,7 @@ namespace asio2::detail
 		inline void _fire_handshake(std::shared_ptr<derived_t>& this_ptr)
 		{
 			// the _fire_handshake must be executed in the thread 0.
-			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
+			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
 
 			detail::ignore_unused(this_ptr);
 
@@ -766,7 +775,7 @@ namespace asio2::detail
 		inline void _fire_connect(std::shared_ptr<derived_t>& this_ptr, condition_wrap<MatchCondition>& condition)
 		{
 			// the _fire_connect must be executed in the thread 0.
-			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
+			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
 
 		#if defined(ASIO2_ENABLE_LOG)
 			ASIO2_ASSERT(this->is_disconnect_called_ == false);
@@ -783,7 +792,7 @@ namespace asio2::detail
 		inline void _fire_disconnect(std::shared_ptr<derived_t>& this_ptr)
 		{
 			// the _fire_disconnect must be executed in the thread 0.
-			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
+			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
 
 		#if defined(ASIO2_ENABLE_LOG)
 			this->is_disconnect_called_ = true;

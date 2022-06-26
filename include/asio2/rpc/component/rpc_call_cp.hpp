@@ -54,7 +54,6 @@ auto f(Args&& ... args){
 #include <type_traits>
 #include <map>
 
-#include <asio2/external/asio.hpp>
 #include <asio2/base/error.hpp>
 #include <asio2/base/detail/function_traits.hpp>
 
@@ -109,8 +108,8 @@ namespace asio2::detail
 					{
 						detail::ignore_unused(data);
 
-						ASIO2_ASSERT(&(ec.category()) == &(rpc::rpc_category()));
-						ASIO2_ASSERT(derive.io().strand().running_in_this_thread());
+						ASIO2_ASSERT(std::string_view(ec.category().name()) == rpc::rpc_category().name());
+						ASIO2_ASSERT(derive.io().running_in_this_thread());
 
 						if (!ec)
 						{
@@ -134,7 +133,7 @@ namespace asio2::detail
 							catch (system_error      const& e)
 							{
 								ec = e.code();
-								if (&(ec.category()) != &(rpc::rpc_category()))
+								if (std::addressof(ec.category()) != std::addressof(rpc::rpc_category()))
 								{
 									ec = rpc::make_error_code(rpc::error::unspecified_error);
 								}
@@ -145,9 +144,9 @@ namespace asio2::detail
 							}
 						}
 
-						ASIO2_ASSERT(&(ec.category()) == &(rpc::rpc_category()));
+						ASIO2_ASSERT(std::string_view(ec.category().name()) == rpc::rpc_category().name());
 
-						if (&(ec.category()) != &(rpc::rpc_category()))
+						if (std::addressof(ec.category()) != std::addressof(rpc::rpc_category()))
 						{
 							ec.assign(ec.value(), rpc::rpc_category());
 						}
@@ -178,8 +177,8 @@ namespace asio2::detail
 						});
 					});
 
-					// Whether we run on the strand
-					if (!derive.io().strand().running_in_this_thread())
+					// Whether we run on the io_context thread
+					if (!derive.io().running_in_this_thread())
 					{
 						std::future_status status = future.wait_for(timeout);
 						if (status == std::future_status::ready)
@@ -216,7 +215,7 @@ namespace asio2::detail
 				catch (system_error      const& e)
 				{
 					ec = e.code();
-					if (&(ec.category()) != &(rpc::rpc_category()))
+					if (std::addressof(ec.category()) != std::addressof(rpc::rpc_category()))
 					{
 						ec = rpc::make_error_code(rpc::error::unspecified_error);
 					}
@@ -291,7 +290,7 @@ namespace asio2::detail
 				{
 					[&derive, cb = std::forward<Callback>(cb)](auto ec, std::string_view) mutable
 					{
-						ASIO2_ASSERT(&(ec.category()) == &(rpc::rpc_category()));
+						ASIO2_ASSERT(std::string_view(ec.category().name()) == rpc::rpc_category().name());
 
 						try
 						{
@@ -305,7 +304,7 @@ namespace asio2::detail
 						catch (system_error      const& e)
 						{
 							ec = e.code();
-							if (&(ec.category()) != &(rpc::rpc_category()))
+							if (std::addressof(ec.category()) != std::addressof(rpc::rpc_category()))
 							{
 								ec = rpc::make_error_code(rpc::error::unspecified_error);
 							}
@@ -315,9 +314,9 @@ namespace asio2::detail
 							ec = rpc::make_error_code(rpc::error::unspecified_error);
 						}
 
-						ASIO2_ASSERT(&(ec.category()) == &(rpc::rpc_category()));
+						ASIO2_ASSERT(std::string_view(ec.category().name()) == rpc::rpc_category().name());
 
-						if (&(ec.category()) != &(rpc::rpc_category()))
+						if (std::addressof(ec.category()) != std::addressof(rpc::rpc_category()))
 						{
 							ec.assign(ec.value(), rpc::rpc_category());
 						}
@@ -340,7 +339,7 @@ namespace asio2::detail
 					{
 						detail::ignore_unused(data);
 
-						ASIO2_ASSERT(&(ec.category()) == &(rpc::rpc_category()));
+						ASIO2_ASSERT(std::string_view(ec.category().name()) == rpc::rpc_category().name());
 
 						typename rpc_result_t<return_t>::type result{};
 
@@ -359,7 +358,7 @@ namespace asio2::detail
 						catch (system_error      const& e)
 						{
 							ec = e.code();
-							if (&(ec.category()) != &(rpc::rpc_category()))
+							if (std::addressof(ec.category()) != std::addressof(rpc::rpc_category()))
 							{
 								ec = rpc::make_error_code(rpc::error::unspecified_error);
 							}
@@ -369,9 +368,9 @@ namespace asio2::detail
 							ec = rpc::make_error_code(rpc::error::unspecified_error);
 						}
 
-						ASIO2_ASSERT(&(ec.category()) == &(rpc::rpc_category()));
+						ASIO2_ASSERT(std::string_view(ec.category().name()) == rpc::rpc_category().name());
 
-						if (&(ec.category()) != &(rpc::rpc_category()))
+						if (std::addressof(ec.category()) != std::addressof(rpc::rpc_category()))
 						{
 							ec.assign(ec.value(), rpc::rpc_category());
 						}
@@ -409,7 +408,7 @@ namespace asio2::detail
 				catch (system_error      const& e)
 				{
 					ec = e.code();
-					if (&(ec.category()) != &(rpc::rpc_category()))
+					if (std::addressof(ec.category()) != std::addressof(rpc::rpc_category()))
 					{
 						ec = rpc::make_error_code(rpc::error::unspecified_error);
 					}
@@ -419,9 +418,9 @@ namespace asio2::detail
 					ec = rpc::make_error_code(rpc::error::unspecified_error);
 				}
 
-				ASIO2_ASSERT(&(ec.category()) == &(rpc::rpc_category()));
+				ASIO2_ASSERT(std::string_view(ec.category().name()) == rpc::rpc_category().name());
 
-				if (&(ec.category()) != &(rpc::rpc_category()))
+				if (std::addressof(ec.category()) != std::addressof(rpc::rpc_category()))
 				{
 					ec.assign(ec.value(), rpc::rpc_category());
 				}
@@ -448,8 +447,8 @@ namespace asio2::detail
 				auto ex = [&derive, id, timer, cb = std::forward<Callback>(cb)]
 				(error_code ec, std::string_view data) mutable
 				{
-					ASIO2_ASSERT(&(ec.category()) == &(rpc::rpc_category()));
-					ASIO2_ASSERT(derive.io().strand().running_in_this_thread());
+					ASIO2_ASSERT(std::string_view(ec.category().name()) == rpc::rpc_category().name());
+					ASIO2_ASSERT(derive.io().running_in_this_thread());
 
 					error_code ec_ignore{};
 
@@ -496,7 +495,7 @@ namespace asio2::detail
 						auto this_ptr = derive.selfptr();
 
 						timer->expires_after(timeout);
-						timer->async_wait(asio::bind_executor(derive.io().strand(),
+						timer->async_wait(
 						[this_ptr = std::move(this_ptr), &derive, id = req.id()]
 						(const error_code& ec) mutable
 						{
@@ -509,7 +508,7 @@ namespace asio2::detail
 								auto& ex = iter->second;
 								ex(rpc::make_error_code(rpc::error::timed_out), std::string_view{});
 							}
-						}));
+						});
 
 						// 3. third, send request.
 						derive.async_send((derive.sr_.reset() << req).str(),
@@ -536,7 +535,7 @@ namespace asio2::detail
 				catch (system_error      const& e)
 				{
 					ec = e.code();
-					if (&(ec.category()) != &(rpc::rpc_category()))
+					if (std::addressof(ec.category()) != std::addressof(rpc::rpc_category()))
 					{
 						ec = rpc::make_error_code(rpc::error::unspecified_error);
 					}
@@ -546,9 +545,9 @@ namespace asio2::detail
 					ec = rpc::make_error_code(rpc::error::unspecified_error);
 				}
 
-				ASIO2_ASSERT(&(ec.category()) == &(rpc::rpc_category()));
+				ASIO2_ASSERT(std::string_view(ec.category().name()) == rpc::rpc_category().name());
 
-				if (&(ec.category()) != &(rpc::rpc_category()))
+				if (std::addressof(ec.category()) != std::addressof(rpc::rpc_category()))
 				{
 					ec.assign(ec.value(), rpc::rpc_category());
 				}

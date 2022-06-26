@@ -233,7 +233,7 @@ namespace asio2::detail
 			detail::ignore_unused(ec);
 
 			ASIO2_ASSERT(!ec);
-			ASIO2_ASSERT(this->derived().sessions().io().strand().running_in_this_thread());
+			ASIO2_ASSERT(this->derived().sessions().io().running_in_this_thread());
 
 			if constexpr (std::is_same_v<typename condition_wrap<MatchCondition>::condition_type, use_kcp_t>)
 			{
@@ -275,7 +275,7 @@ namespace asio2::detail
 		template<typename DeferEvent>
 		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr, DeferEvent chain)
 		{
-			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
+			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
 
 			set_last_error(ec);
 
@@ -342,7 +342,7 @@ namespace asio2::detail
 		{
 			// to avlid the user call stop in another thread,then it may be socket_.async_read_some
 			// and socket_.close be called at the same time
-			asio::dispatch(this->io_.strand(), make_allocator(this->wallocator_,
+			asio::dispatch(this->io().context(), make_allocator(this->wallocator_,
 			[this, this_ptr = std::move(this_ptr), condition = std::move(condition), chain = std::move(chain)]
 			() mutable
 			{
@@ -461,7 +461,7 @@ namespace asio2::detail
 		inline void _fire_handshake(std::shared_ptr<derived_t>& this_ptr)
 		{
 			// the _fire_handshake must be executed in the thread 0.
-			ASIO2_ASSERT(this->sessions().io().strand().running_in_this_thread());
+			ASIO2_ASSERT(this->sessions().io().running_in_this_thread());
 
 			this->listener_.notify(event_type::handshake, this_ptr);
 		}
@@ -470,7 +470,7 @@ namespace asio2::detail
 		inline void _fire_connect(std::shared_ptr<derived_t>& this_ptr, condition_wrap<MatchCondition>& condition)
 		{
 			// the _fire_connect must be executed in the thread 0.
-			ASIO2_ASSERT(this->sessions().io().strand().running_in_this_thread());
+			ASIO2_ASSERT(this->sessions().io().running_in_this_thread());
 
 		#if defined(ASIO2_ENABLE_LOG)
 			ASIO2_ASSERT(this->is_disconnect_called_ == false);
@@ -484,7 +484,7 @@ namespace asio2::detail
 		inline void _fire_disconnect(std::shared_ptr<derived_t>& this_ptr)
 		{
 			// the _fire_disconnect must be executed in the thread 0.
-			ASIO2_ASSERT(this->sessions().io().strand().running_in_this_thread());
+			ASIO2_ASSERT(this->sessions().io().running_in_this_thread());
 
 		#if defined(ASIO2_ENABLE_LOG)
 			this->is_disconnect_called_ = true;

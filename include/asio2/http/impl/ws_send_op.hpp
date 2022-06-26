@@ -22,6 +22,7 @@
 
 #include <asio2/external/asio.hpp>
 #include <asio2/external/beast.hpp>
+
 #include <asio2/base/error.hpp>
 
 #include <asio2/http/request.hpp>
@@ -49,9 +50,8 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			derive.ws_stream().async_write(asio::buffer(data),
-				asio::bind_executor(derive.io().strand(), make_allocator(derive.wallocator(),
-					[&derive, p = derive.selfptr(), callback = std::forward<Callback>(callback)]
+			derive.ws_stream().async_write(asio::buffer(data), make_allocator(derive.wallocator(),
+			[&derive, p = derive.selfptr(), callback = std::forward<Callback>(callback)]
 			(const error_code& ec, std::size_t bytes_sent) mutable
 			{
 				set_last_error(ec);
@@ -66,7 +66,7 @@ namespace asio2::detail
 						derive._do_disconnect(ec, std::move(p));
 					}
 				}
-			})));
+			}));
 
 			return true;
 		}
@@ -82,10 +82,9 @@ namespace asio2::detail
 
 			auto buffer = asio::buffer(*str);
 
-			derive.ws_stream().async_write(buffer, asio::bind_executor(derive.io().strand(),
-				make_allocator(derive.wallocator(), [&derive, p = derive.selfptr(),
-					str = std::move(str), callback = std::forward<Callback>(callback)]
-					(const error_code& ec, std::size_t bytes_sent) mutable
+			derive.ws_stream().async_write(buffer, make_allocator(derive.wallocator(),
+			[&derive, p = derive.selfptr(), str = std::move(str), callback = std::forward<Callback>(callback)]
+			(const error_code& ec, std::size_t bytes_sent) mutable
 			{
 				set_last_error(ec);
 
@@ -99,7 +98,7 @@ namespace asio2::detail
 						derive._do_disconnect(ec, std::move(p));
 					}
 				}
-			})));
+			}));
 
 			return true;
 		}

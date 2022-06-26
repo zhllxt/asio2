@@ -24,9 +24,7 @@
 #include <map>
 #include <type_traits>
 
-#include <asio2/external/asio.hpp>
 #include <asio2/base/iopool.hpp>
-#include <asio2/base/error.hpp>
 
 #include <asio2/base/detail/function_traits.hpp>
 #include <asio2/base/detail/util.hpp>
@@ -61,7 +59,7 @@ namespace asio2::detail
 		template<class F, class C>
 		static inline callback_type _bind(F f, C& c)
 		{
-			return std::bind(&self::template _proxy<F, C>, std::move(f), &c,
+			return std::bind(&self::template _proxy<F, C>, std::move(f), std::addressof(c),
 				std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
 		}
 

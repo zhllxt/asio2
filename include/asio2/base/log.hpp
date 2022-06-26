@@ -78,7 +78,7 @@ namespace asio2::detail
 			#elif BHO_OS_MACOS
 				filepath.resize(PATH_MAX);
 				std::uint32_t bufsize = std::uint32_t(PATH_MAX);
-				_NSGetExecutablePath(filepath.data(), &bufsize);
+				_NSGetExecutablePath(filepath.data(), std::addressof(bufsize));
 			#endif
 
 				std::string::size_type pos;

@@ -212,6 +212,7 @@ endif()
 # https://stackoverflow.com/questions/44705845/file-too-big-compiling-on-cygwin-g
 if(MINGW OR CYGWIN)
   add_definitions(-O3)
+  add_compile_options(-Wa,-mbig-obj)
 endif()
 
 

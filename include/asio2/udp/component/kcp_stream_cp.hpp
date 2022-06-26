@@ -15,9 +15,7 @@
 #pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
-#include <asio2/external/asio.hpp>
 #include <asio2/base/iopool.hpp>
-#include <asio2/base/error.hpp>
 #include <asio2/base/define.hpp>
 #include <asio2/base/listener.hpp>
 #include <asio2/base/session_mgr.hpp>
@@ -137,12 +135,11 @@ namespace asio2::detail
 			std::uint32_t clock2 = kcp::ikcp_check(this->kcp_, clock1);
 
 			this->kcp_timer_.expires_after(std::chrono::milliseconds(clock2 - clock1));
-			this->kcp_timer_.async_wait(asio::bind_executor(derive.io().strand(),
-				make_allocator(this->tallocator_,
-					[this, self_ptr = std::move(this_ptr)](const error_code & ec) mutable
+			this->kcp_timer_.async_wait(make_allocator(this->tallocator_,
+			[this, self_ptr = std::move(this_ptr)](const error_code & ec) mutable
 			{
 				this->_handle_kcp_timer(ec, std::move(self_ptr));
-			})));
+			}));
 		}
 
 		inline void _handle_kcp_timer(const error_code & ec, std::shared_ptr<derived_t> this_ptr)
@@ -228,7 +225,7 @@ namespace asio2::detail
 					// use a loop timer to execute "client send syn to server" until the server
 					// has recvd the syn packet and this client recvd reply.
 					std::shared_ptr<asio::steady_timer> timer =
-						mktimer(derive.io().context(), derive.io().strand(), std::chrono::milliseconds(500),
+						mktimer(derive.io().context(), std::chrono::milliseconds(500),
 						[this, self_ptr, syn](error_code ec) mutable
 					{
 						if (ec == asio::error::operation_aborted)
@@ -250,7 +247,7 @@ namespace asio2::detail
 
 					// step 2 : client wait for recv synack util connect timeout or recvd some data
 					derive.socket().async_receive(derive.buffer().prepare(derive.buffer().pre_size()),
-						asio::bind_executor(derive.io().strand(), make_allocator(derive.rallocator(),
+						make_allocator(derive.rallocator(),
 					[this, this_ptr = std::move(self_ptr), condition = std::move(condition),
 						timer = std::move(timer), chain = std::move(chain)]
 					(const error_code & ec, std::size_t bytes_recvd) mutable
@@ -288,7 +285,7 @@ namespace asio2::detail
 						}
 
 						derive.buffer().consume(bytes_recvd);
-					})));
+					}));
 				}
 			}
 			catch (system_error & e)

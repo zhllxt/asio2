@@ -16,12 +16,11 @@
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
 #include <asio2/base/iopool.hpp>
-#include <asio2/base/error.hpp>
 
 #include <asio2/base/detail/function_traits.hpp>
 #include <asio2/base/detail/util.hpp>
 
-#include <asio2/mqtt/protocol_util.hpp>
+#include <asio2/mqtt/message_util.hpp>
 
 namespace asio2::detail
 {
@@ -147,10 +146,14 @@ namespace asio2::detail
 					if (session_ptr->is_started())
 					{
 						// send will message
-						std::visit([this, caller_ptr, caller](auto& conn) mutable
+						if (session_ptr->connect_message_.index() != std::variant_npos)
 						{
-							if (conn.will_flag())
+							auto f = [caller_ptr, caller](auto& conn) mutable
 							{
+								if (!conn.will_flag())
+									return;
+
+								// note : why v5 ?
 								mqtt::v5::publish pub;
 								pub.qos(conn.will_qos());
 								pub.retain(conn.will_retain());
@@ -158,26 +161,50 @@ namespace asio2::detail
 								pub.payload(conn.will_payload());
 
 								caller->push_event(
-								[this, caller_ptr, caller, pub = std::move(pub)]
+								[caller_ptr, caller, pub = std::move(pub)]
 								(event_queue_guard<caller_t> g) mutable
 								{
 									detail::ignore_unused(g);
 
 									caller->_multicast_publish(caller_ptr, caller, std::move(pub), std::string{});
 								});
+							};
+
+							if /**/ (std::holds_alternative<mqtt::v3::connect>(session_ptr->connect_message_.base()))
+							{
+								mqtt::v3::connect* p = session_ptr->connect_message_.template get_if<mqtt::v3::connect>();
+								f(*p);
 							}
-						}, session_ptr->connect_message_);
+							else if (std::holds_alternative<mqtt::v4::connect>(session_ptr->connect_message_.base()))
+							{
+								mqtt::v4::connect* p = session_ptr->connect_message_.template get_if<mqtt::v4::connect>();
+								f(*p);
+							}
+							else if (std::holds_alternative<mqtt::v5::connect>(session_ptr->connect_message_.base()))
+							{
+								mqtt::v5::connect* p = session_ptr->connect_message_.template get_if<mqtt::v5::connect>();
+								f(*p);
+							}
+						}
 
 						// disconnect session
 						session_ptr->stop();
 
 						// 
-						bool clean_session;
+						bool clean_session = false;
 
-						std::visit([&clean_session](auto& conn)
+						if /**/ (std::holds_alternative<mqtt::v3::connect>(session_ptr->connect_message_.base()))
 						{
-							clean_session = conn.clean_session();
-						}, session_ptr->connect_message_);
+							clean_session = session_ptr->connect_message_.template get_if<mqtt::v3::connect>()->clean_session();
+						}
+						else if (std::holds_alternative<mqtt::v4::connect>(session_ptr->connect_message_.base()))
+						{
+							clean_session = session_ptr->connect_message_.template get_if<mqtt::v4::connect>()->clean_session();
+						}
+						else if (std::holds_alternative<mqtt::v5::connect>(session_ptr->connect_message_.base()))
+						{
+							clean_session = session_ptr->connect_message_.template get_if<mqtt::v5::connect>()->clean_session();
+						}
 
 						if (clean_session)
 						{

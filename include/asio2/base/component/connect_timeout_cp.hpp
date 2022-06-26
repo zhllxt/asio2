@@ -17,9 +17,7 @@
 
 #include <chrono>
 
-#include <asio2/external/asio.hpp>
 #include <asio2/base/iopool.hpp>
-#include <asio2/base/error.hpp>
 #include <asio2/base/log.hpp>
 
 namespace asio2::detail
@@ -67,9 +65,9 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			if (!derive.io().strand().running_in_this_thread())
+			if (!derive.io().running_in_this_thread())
 			{
-				asio::post(derive.io().strand(), make_allocator(derive.wallocator(),
+				asio::post(derive.io().context(), make_allocator(derive.wallocator(),
 				[this, this_ptr = std::move(this_ptr), duration]() mutable
 				{
 					this->_post_connect_timeout_timer(duration, std::move(this_ptr));
@@ -88,7 +86,7 @@ namespace asio2::detail
 			this->connect_timer_canceled_.clear();
 
 			this->connect_timeout_timer_.expires_after(duration);
-			this->connect_timeout_timer_.async_wait(asio::bind_executor(derive.io().strand(),
+			this->connect_timeout_timer_.async_wait(
 			[&derive, self_ptr = std::move(this_ptr)](const error_code& ec) mutable
 			{
 				// bug fixed : 
@@ -101,7 +99,7 @@ namespace asio2::detail
 
 				// can't do it like below, beacuse "this" maybe deleted already.
 				// this->...
-			}));
+			});
 		}
 
 		inline void _handle_connect_timeout_timer(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
@@ -144,9 +142,9 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			if (!derive.io().strand().running_in_this_thread())
+			if (!derive.io().running_in_this_thread())
 			{
-				asio::post(derive.io().strand(), make_allocator(derive.wallocator(),
+				asio::post(derive.io().context(), make_allocator(derive.wallocator(),
 				[this, this_ptr = std::move(this_ptr), duration, fn = std::forward<Fn>(fn)]() mutable
 				{
 					this->_post_connect_timeout_timer(duration, std::move(this_ptr), std::move(fn));
@@ -165,7 +163,7 @@ namespace asio2::detail
 			this->connect_timer_canceled_.clear();
 
 			this->connect_timeout_timer_.expires_after(duration);
-			this->connect_timeout_timer_.async_wait(asio::bind_executor(derive.io().strand(),
+			this->connect_timeout_timer_.async_wait(
 			[this, self_ptr = std::move(this_ptr), f = std::forward<Fn>(fn)]
 			(const error_code& ec) mutable
 			{
@@ -186,7 +184,7 @@ namespace asio2::detail
 				this->connect_timer_canceled_.clear();
 
 				f(ec);
-			}));
+			});
 		}
 
 		inline void _stop_connect_timeout_timer(asio::error_code ec)
@@ -203,7 +201,7 @@ namespace asio2::detail
 			// was called in the io thread.
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			if (!derive.io().strand().running_in_this_thread())
+			if (!derive.io().running_in_this_thread())
 			{
 				derive.post([this, ec]() mutable
 				{

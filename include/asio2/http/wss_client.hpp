@@ -257,7 +257,7 @@ namespace asio2::detail
 		inline void _fire_upgrade(std::shared_ptr<derived_t>& this_ptr)
 		{
 			// the _fire_upgrade must be executed in the thread 0.
-			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
+			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
 
 			detail::ignore_unused(this_ptr);
 

@@ -136,7 +136,7 @@ namespace asio2::detail
 				this->fn_ = [fn = std::forward<F>(f), s = std::forward<C>(c), tp = std::tuple(std::forward<Ts>(ts)...)]
 				(Args&&... args) mutable
 				{
-					invoke_memfn_front(fn, &s, std::make_index_sequence<sizeof...(Ts)>{}, tp, std::forward<Args>(args)...);
+					invoke_memfn_front(fn, std::addressof(s), std::make_index_sequence<sizeof...(Ts)>{}, tp, std::forward<Args>(args)...);
 				};
 			}
 			else

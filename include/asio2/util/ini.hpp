@@ -433,7 +433,7 @@ namespace asio2
 				#elif defined(__APPLE__) && defined(__MACH__)
 					filepath_.resize(PATH_MAX);
 					std::uint32_t bufsize = std::uint32_t(PATH_MAX);
-					_NSGetExecutablePath(filepath_.data(), &bufsize);
+					_NSGetExecutablePath(filepath_.data(), std::addressof(bufsize));
 				#endif
 					if (std::string::size_type pos = filepath_.find('\0'); pos != std::string::npos)
 						filepath_.resize(pos);

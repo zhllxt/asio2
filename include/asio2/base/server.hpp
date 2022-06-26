@@ -28,11 +28,9 @@
 #include <unordered_map>
 #include <type_traits>
 
-#include <asio2/external/asio.hpp>
 #include <asio2/external/magic_enum.hpp>
 
 #include <asio2/base/iopool.hpp>
-#include <asio2/base/error.hpp>
 #include <asio2/base/log.hpp>
 #include <asio2/base/listener.hpp>
 #include <asio2/base/session_mgr.hpp>
@@ -105,11 +103,7 @@ namespace asio2::detail
 		 */
 		inline bool start() noexcept
 		{
-			ASIO2_ASSERT(this->io_.strand().running_in_this_thread());
-
-			// init the running thread id 
-			if (this->derived().io().get_thread_id() == std::thread::id{})
-				this->derived().io().init_thread_id();
+			ASIO2_ASSERT(this->io_.running_in_this_thread());
 
 			return true;
 		}
@@ -119,9 +113,9 @@ namespace asio2::detail
 		 */
 		inline void stop()
 		{
-			ASIO2_ASSERT(this->io_.strand().running_in_this_thread());
+			ASIO2_ASSERT(this->io_.running_in_this_thread());
 
-			if (!this->io_.strand().running_in_this_thread())
+			if (!this->io_.running_in_this_thread())
 			{
 				this->derived().post([this]() mutable
 				{
@@ -348,7 +342,7 @@ namespace asio2::detail
 		/// listener
 		listener_t                                  listener_;
 
-		/// The io (include io_context and strand) used to handle the accept event.
+		/// The io_context wrapper used to handle the accept event.
 		io_t                                      & io_;
 
 		/// state

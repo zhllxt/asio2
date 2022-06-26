@@ -1327,6 +1327,34 @@ namespace asio2::mqtt
 		}
 		return "unknown"sv;
 	}
+
+	template<typename message_type>
+	inline constexpr bool is_v3_message()
+	{
+		using type = asio2::detail::remove_cvref_t<message_type>;
+		if constexpr (
+			std::is_same_v<type, mqtt::v3::connect     > ||
+			std::is_same_v<type, mqtt::v3::connack     > ||
+			std::is_same_v<type, mqtt::v3::publish     > ||
+			std::is_same_v<type, mqtt::v3::puback      > ||
+			std::is_same_v<type, mqtt::v3::pubrec      > ||
+			std::is_same_v<type, mqtt::v3::pubrel      > ||
+			std::is_same_v<type, mqtt::v3::pubcomp     > ||
+			std::is_same_v<type, mqtt::v3::subscribe   > ||
+			std::is_same_v<type, mqtt::v3::suback      > ||
+			std::is_same_v<type, mqtt::v3::unsubscribe > ||
+			std::is_same_v<type, mqtt::v3::unsuback    > ||
+			std::is_same_v<type, mqtt::v3::pingreq     > ||
+			std::is_same_v<type, mqtt::v3::pingresp    > ||
+			std::is_same_v<type, mqtt::v3::disconnect  > )
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
 }
 
 #endif // !__ASIO2_MQTT_PROTOCOL_V3_HPP__

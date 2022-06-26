@@ -26,7 +26,6 @@
 #include <string_view>
 #include <chrono>
 
-#include <asio2/external/asio.hpp>
 #include <asio2/bho/predef.h>
 
 #include <asio2/base/error.hpp>

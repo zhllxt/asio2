@@ -114,7 +114,7 @@ namespace asio2::detail
 
 		inline void _post_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr, state_t old_state)
 		{
-			asio::dispatch(this->derived().io().strand(), make_allocator(this->derived().wallocator(),
+			asio::dispatch(this->derived().io().context(), make_allocator(this->derived().wallocator(),
 			[this, this_ptr]() mutable
 			{
 				asio2_unique_lock lock{ this->mqttid_sessions_mtx_ };

@@ -59,7 +59,6 @@
 	#endif
 #endif
 
-#include <asio2/external/asio.hpp>
 #include <asio2/base/error.hpp>
 
 namespace asio2::detail
@@ -212,23 +211,22 @@ namespace asio2::detail
 
 
 	template<class Rep, class Period, class Fn>
-	std::shared_ptr<asio::steady_timer> mktimer(asio::io_context& ioc, asio::io_context::strand& strand,
+	std::shared_ptr<asio::steady_timer> mktimer(asio::io_context& ioc,
 		std::chrono::duration<Rep, Period> duration, Fn&& fn)
 	{
 		std::shared_ptr<asio::steady_timer> timer = std::make_shared<asio::steady_timer>(ioc);
 		auto post = std::make_shared<std::unique_ptr<std::function<void()>>>();
 		*post = std::make_unique<std::function<void()>>(
-		[&strand, duration, f = std::forward<Fn>(fn), timer, post]() mutable
+		[duration, f = std::forward<Fn>(fn), timer, post]() mutable
 		{
 			timer->expires_after(duration);
-			timer->async_wait(asio::bind_executor(strand, [&f, &post]
-			(const error_code & ec) mutable
+			timer->async_wait([&f, &post](const error_code& ec) mutable
 			{
 				if (f(ec))
 					(**post)();
 				else
 					(*post).reset();
-			}));
+			});
 		});
 		(**post)();
 		return timer;
@@ -556,7 +554,7 @@ namespace asio2::detail
 	inline bool is_little_endian() noexcept
 	{
 		static std::int32_t test = 1;
-		return (*reinterpret_cast<std::int8_t*>(&test) == 1);
+		return (*reinterpret_cast<std::int8_t*>(std::addressof(test)) == 1);
 	}
 
 	/**
@@ -580,7 +578,7 @@ namespace asio2::detail
 			// ** This mean the network byte order is big-endian **
 			if (is_little_endian())
 			{
-				swap_bytes<sizeof(T)>(reinterpret_cast<std::uint8_t *>(&v));
+				swap_bytes<sizeof(T)>(reinterpret_cast<std::uint8_t *>(std::addressof(v)));
 			}
 
 			std::memcpy((void*)p, (const void*)&v, sizeof(T));
@@ -608,7 +606,7 @@ namespace asio2::detail
 			// ** This mean the network byte order is big-endian **
 			if (is_little_endian())
 			{
-				swap_bytes<sizeof(T)>(reinterpret_cast<std::uint8_t *>(&v));
+				swap_bytes<sizeof(T)>(reinterpret_cast<std::uint8_t *>(std::addressof(v)));
 			}
 		}
 		else

@@ -25,9 +25,7 @@
 #include <algorithm>
 #include <variant>
 
-#include <asio2/external/asio.hpp>
 #include <asio2/base/iopool.hpp>
-#include <asio2/base/error.hpp>
 
 #include <asio2/mqtt/core.hpp>
 

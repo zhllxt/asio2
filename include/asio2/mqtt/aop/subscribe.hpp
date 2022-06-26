@@ -16,12 +16,11 @@
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
 #include <asio2/base/iopool.hpp>
-#include <asio2/base/error.hpp>
 
 #include <asio2/base/detail/function_traits.hpp>
 #include <asio2/base/detail/util.hpp>
 
-#include <asio2/mqtt/protocol_util.hpp>
+#include <asio2/mqtt/message_util.hpp>
 
 namespace asio2::detail
 {
@@ -164,17 +163,17 @@ namespace asio2::detail
 			// use push_event to ensure the publish message is sent to clients must after mqtt 
 			// response is sent already.
 			caller->push_event(
-			[this, caller_ptr, caller, sub = std::move(sub), topic_filter = std::string{ sub.topic_filter() }]
+			[caller_ptr, caller, sub = std::move(sub), topic_filter = std::string{ sub.topic_filter() }]
 			(event_queue_guard<caller_t> g) mutable
 			{
 				detail::ignore_unused(g);
 
 				mqtt::v5::properties_set props;
 
-				caller->retained_messages_.find(topic_filter, [this, caller_ptr, caller, &sub, &props]
+				caller->retained_messages_.find(topic_filter, [caller_ptr, caller, &sub, &props]
 				(mqtt::rmnode& node) mutable
 				{
-					std::visit([this, caller_ptr, caller, &sub, &props](auto& pub) mutable
+					std::visit([caller_ptr, caller, &sub, &props](auto& pub) mutable
 					{
 						caller->_send_publish_to_subscriber(caller_ptr, sub, props, pub);
 					}, node.message);

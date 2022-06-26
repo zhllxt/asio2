@@ -125,9 +125,9 @@ namespace asio2::detail
 			detail::ignore_unused(ec);
 
 			ASIO2_ASSERT(!ec);
-			ASIO2_ASSERT(this->derived().sessions().io().strand().running_in_this_thread());
+			ASIO2_ASSERT(this->derived().sessions().io().running_in_this_thread());
 
-			asio::dispatch(this->derived().io().strand(), make_allocator(this->derived().wallocator(),
+			asio::dispatch(this->derived().io().context(), make_allocator(this->derived().wallocator(),
 			[this, this_ptr = std::move(this_ptr), condition = std::move(condition), chain = std::move(chain)]
 			() mutable
 			{
@@ -143,7 +143,7 @@ namespace asio2::detail
 		inline void _handle_handshake(const error_code & ec, std::shared_ptr<derived_t> this_ptr,
 			condition_wrap<MatchCondition> condition, DeferEvent chain)
 		{
-			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
+			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
 
 			// Use "sessions().dispatch" to ensure that the _fire_accept function and the _fire_handshake
 			// function are fired in the same thread
@@ -151,7 +151,7 @@ namespace asio2::detail
 			[this, ec, this_ptr = std::move(this_ptr), condition = std::move(condition), chain = std::move(chain)]
 			() mutable
 			{
-				ASIO2_ASSERT(this->derived().sessions().io().strand().running_in_this_thread());
+				ASIO2_ASSERT(this->derived().sessions().io().running_in_this_thread());
 
 				try
 				{
@@ -161,11 +161,11 @@ namespace asio2::detail
 
 					asio::detail::throw_error(ec);
 
-					asio::dispatch(this->io_.strand(), make_allocator(this->wallocator_,
+					asio::dispatch(this->io().context(), make_allocator(this->wallocator_,
 					[this, this_ptr = std::move(this_ptr), condition = std::move(condition), chain = std::move(chain)]
 					() mutable
 					{
-						ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
+						ASIO2_ASSERT(this->derived().io().running_in_this_thread());
 
 						this->derived()._post_control_callback(this_ptr, condition);
 						this->derived()._post_upgrade(std::move(this_ptr), std::move(condition), std::move(chain));
@@ -203,7 +203,7 @@ namespace asio2::detail
 		inline void _fire_upgrade(std::shared_ptr<derived_t>& this_ptr)
 		{
 			// the _fire_upgrade must be executed in the thread 0.
-			ASIO2_ASSERT(this->sessions().io().strand().running_in_this_thread());
+			ASIO2_ASSERT(this->sessions().io().running_in_this_thread());
 
 			this->listener_.notify(event_type::upgrade, this_ptr);
 		}

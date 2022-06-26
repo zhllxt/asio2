@@ -373,7 +373,7 @@ namespace asio2
 				// at this time, the s should be: s == "a\r\nb";
 				if (old_str_size < new_str_size)
 				{
-					std::basic_string_view<value_type> v{ &(s[pos]), (std::min)(new_str_size, s.size() - pos) };
+					std::basic_string_view<value_type> v{ std::addressof(s[pos]), (std::min)(new_str_size, s.size() - pos) };
 					if (v.size() == new_str_size && v.find(new_str) == size_type(0))
 					{
 						continue;

@@ -25,9 +25,7 @@
 #include <utility>
 #include <string_view>
 
-#include <asio2/external/asio.hpp>
 #include <asio2/base/iopool.hpp>
-#include <asio2/base/error.hpp>
 #include <asio2/base/define.hpp>
 
 #include <asio2/base/detail/util.hpp>
@@ -812,8 +810,8 @@ namespace asio2::detail
 				std::forward<String>(host), std::forward<StrOrInt>(port),
 				std::forward<DataT>(data), asio::use_future);
 
-			// Whether we run on the strand
-			if (derive.io().strand().running_in_this_thread())
+			// Whether we run on the io_context thread
+			if (derive.io().running_in_this_thread())
 			{
 				std::future_status status = future.wait_for(std::chrono::nanoseconds(0));
 
@@ -908,8 +906,8 @@ namespace asio2::detail
 			std::future<std::pair<error_code, std::size_t>> future = derive.async_send(
 				std::forward<Endpoint>(endpoint), std::forward<DataT>(data), asio::use_future);
 
-			// Whether we run on the strand
-			if (derive.io().strand().running_in_this_thread())
+			// Whether we run on the io_context thread
+			if (derive.io().running_in_this_thread())
 			{
 				std::future_status status = future.wait_for(std::chrono::nanoseconds(0));
 
@@ -993,9 +991,8 @@ namespace asio2::detail
 			// so we captured the resolver_ptr into the lambda callback function.
 			resolver_type * resolver_pointer = resolver_ptr.get();
 			resolver_pointer->async_resolve(std::forward<String>(host), to_string(std::forward<StrOrInt>(port)),
-				asio::bind_executor(derive.io().strand(),
-					[&derive, p = derive.selfptr(), resolver_ptr = std::move(resolver_ptr),
-					data = std::forward<Data>(data), callback = std::forward<Callback>(callback)]
+			[&derive, p = derive.selfptr(), resolver_ptr = std::move(resolver_ptr),
+				data = std::forward<Data>(data), callback = std::forward<Callback>(callback)]
 			(const error_code& ec, const endpoints_type& endpoints) mutable
 			{
 				set_last_error(ec);
@@ -1022,7 +1019,7 @@ namespace asio2::detail
 						});
 					}
 				}
-			}));
+			});
 		}
 	};
 }

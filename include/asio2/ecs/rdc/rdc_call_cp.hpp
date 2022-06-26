@@ -28,7 +28,6 @@
 #include <tuple>
 #include <type_traits>
 
-#include <asio2/external/asio.hpp>
 #include <asio2/base/error.hpp>
 #include <asio2/base/define.hpp>
 
@@ -149,7 +148,7 @@ namespace asio2::detail
 					auto invoker = [&derive, result, pm = std::move(promise)]
 					(const error_code& ec, send_data_t s, recv_data_t r) mutable
 					{
-						ASIO2_ASSERT(derive.io().strand().running_in_this_thread());
+						ASIO2_ASSERT(derive.io().running_in_this_thread());
 
 						detail::ignore_unused(derive, s);
 
@@ -161,7 +160,7 @@ namespace asio2::detail
 						pm->set_value(ec);
 					};
 
-					// All pending sending events will be cancelled after enter the send strand below.
+					// All pending sending events will be cancelled after enter the callback below.
 					derive.push_event(
 					[&derive, p = derive.selfptr(), timeout, invoker = std::move(invoker), fn_data = std::move(fn_data)]
 					(event_queue_guard<derived_t> g) mutable
@@ -174,8 +173,8 @@ namespace asio2::detail
 						derive.rdc_fields_->send_event_->notify();
 					});
 
-					// Whether we run on the strand
-					if (!derive.io().strand().running_in_this_thread())
+					// Whether we run on the io_context thread
+					if (!derive.io().running_in_this_thread())
 					{
 						std::future_status status = future.wait_for(timeout);
 						if (status == std::future_status::ready)
@@ -236,7 +235,7 @@ namespace asio2::detail
 					if (!derive.is_started())
 						asio::detail::throw_error(asio::error::not_connected);
 
-					// All pending sending events will be cancelled after enter the send strand below.
+					// All pending sending events will be cancelled after enter the callback below.
 					derive.push_event([&derive, p = derive.selfptr(), timeout,
 						invoker = std::forward<Invoker>(invoker), fn_data = std::move(fn_data)]
 					(event_queue_guard<derived_t> g) mutable
@@ -598,7 +597,7 @@ namespace asio2::detail
 			{
 				derived_t& derive = static_cast<derived_t&>(*this);
 
-				// All pending sending events will be cancelled after enter the send strand below.
+				// All pending sending events will be cancelled after enter the callback below.
 				derive.push_event([this, p = derive.selfptr()](event_queue_guard<derived_t> g) mutable
 				{
 					detail::ignore_unused(p, g);
@@ -624,7 +623,7 @@ namespace asio2::detail
 				this->rdc_fields_->send_event_->async_wait(
 				[&derive, this, this_ptr = std::move(this_ptr), condition = std::move(condition)]() mutable
 				{
-					ASIO2_ASSERT(derive.io().strand().running_in_this_thread());
+					ASIO2_ASSERT(derive.io().running_in_this_thread());
 
 					while (!this->rdc_fields_->pending_datas_.empty())
 					{
@@ -692,12 +691,12 @@ namespace asio2::detail
 					{
 						auto& _rdc = condition.impl_->rdc_option(std::in_place);
 
-						ASIO2_ASSERT(derive.io().strand().running_in_this_thread());
+						ASIO2_ASSERT(derive.io().running_in_this_thread());
 
 						_rdc.invoker().emplace(id, timer, std::move(invoker));
 
 						timer->expires_after(timeout);
-						timer->async_wait(asio::bind_executor(derive.io().strand(),
+						timer->async_wait(
 						[&derive, id, this_ptr = std::move(this_ptr), condition]
 						(const error_code& ec) mutable
 						{
@@ -706,7 +705,7 @@ namespace asio2::detail
 
 							auto& _rdc = condition.impl_->rdc_option(std::in_place);
 
-							ASIO2_ASSERT(derive.io().strand().running_in_this_thread());
+							ASIO2_ASSERT(derive.io().running_in_this_thread());
 
 							auto iter = _rdc.invoker().find(id);
 							if (iter != _rdc.invoker().end())
@@ -716,7 +715,7 @@ namespace asio2::detail
 								_rdc.invoker().erase(iter);
 								detail::ignore_unused(tmer);
 							}
-						}));
+						});
 
 						send_data_t data = fn_data();
 
@@ -732,7 +731,7 @@ namespace asio2::detail
 
 								error_code ec_ignore{};
 
-								ASIO2_ASSERT(derive.io().strand().running_in_this_thread());
+								ASIO2_ASSERT(derive.io().running_in_this_thread());
 
 								auto iter = _rdc.invoker().find(id);
 								if (iter != _rdc.invoker().end())
@@ -776,7 +775,7 @@ namespace asio2::detail
 
 				error_code ec_ignore{};
 
-				ASIO2_ASSERT(derive.io().strand().running_in_this_thread());
+				ASIO2_ASSERT(derive.io().running_in_this_thread());
 
 				auto iter = _rdc.invoker().find(id);
 				if (iter != _rdc.invoker().end())

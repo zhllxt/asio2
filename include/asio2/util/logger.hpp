@@ -450,7 +450,7 @@ namespace asio2
 				time(&t);                 /* Get time in seconds */
 				struct tm tm = *localtime(&t);  /* Convert time to struct */
 				char tmbuf[20] = { 0 };
-				strftime(tmbuf, 20, "%Y-%m-%d %H.%M.%S", &tm);
+				strftime(tmbuf, 20, "%Y-%m-%d %H.%M.%S", std::addressof(tm));
 
 				this->filename_ += tmbuf;
 				this->filename_ += ".log";
@@ -475,7 +475,7 @@ namespace asio2
 					time(&t);                 /* Get time in seconds */
 					struct tm tm = *localtime(&t);  /* Convert time to struct */
 					char tmbuf[20] = { 0 };
-					strftime(tmbuf, 20, "%Y-%m-%d %H.%M.%S", &tm);
+					strftime(tmbuf, 20, "%Y-%m-%d %H.%M.%S", std::addressof(tm));
 
 					this->filename_ += tmbuf;
 					this->filename_ += ".log";

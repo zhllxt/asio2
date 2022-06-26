@@ -30,9 +30,7 @@
 #include <type_traits>
 #include <optional>
 
-#include <asio2/external/asio.hpp>
 #include <asio2/base/iopool.hpp>
-#include <asio2/base/error.hpp>
 #include <asio2/base/define.hpp>
 
 #include <asio2/base/detail/function_traits.hpp>
@@ -272,7 +270,7 @@ namespace asio2::detail
 			auto iter = this->invokers_.find(name);
 			if (iter == this->invokers_.end())
 				return nullptr;
-			return (&(iter->second));
+			return (std::addressof(iter->second));
 		}
 
 	protected:
@@ -292,7 +290,7 @@ namespace asio2::detail
 		{
 			//asio2_unique_lock guard(this->mutex_);
 			this->invokers_[std::move(name)] = std::bind(&self::template _proxy<F, C>,
-				this, std::move(f), &c,
+				this, std::move(f), std::addressof(c),
 				std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
 		}
 
@@ -418,7 +416,7 @@ namespace asio2::detail
 					// for a long time and couldn't find of a good method to solve this problem.
 
 					// the operator for "sr" must be in the io_context thread. 
-					asio::dispatch(caller->io().strand(), make_allocator(caller->wallocator(),
+					asio::dispatch(caller->io().context(), make_allocator(caller->wallocator(),
 					[caller_ptr = std::move(caller_ptr), caller, &sr, ec, head = std::move(head),
 						v = std::move(defer->v_)]
 					() mutable

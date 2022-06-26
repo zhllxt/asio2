@@ -20,7 +20,6 @@
 #include <utility>
 #include <string_view>
 
-#include <asio2/external/asio.hpp>
 #include <asio2/base/error.hpp>
 #include <asio2/base/detail/condition_wrap.hpp>
 
@@ -46,7 +45,7 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			derive.stream().async_send(asio::buffer(data), asio::bind_executor(derive.io().strand(),
+			derive.stream().async_send(asio::buffer(data),
 				make_allocator(derive.wallocator(),
 					[p = derive.selfptr(), callback = std::forward<Callback>(callback)]
 			(const error_code& ec, std::size_t bytes_sent) mutable
@@ -54,7 +53,7 @@ namespace asio2::detail
 				set_last_error(ec);
 
 				callback(ec, bytes_sent);
-			})));
+			}));
 			return true;
 		}
 
@@ -64,15 +63,14 @@ namespace asio2::detail
 			derived_t& derive = static_cast<derived_t&>(*this);
 
 			derive.stream().async_send_to(asio::buffer(data), endpoint,
-				asio::bind_executor(derive.io().strand(),
-					make_allocator(derive.wallocator(),
-						[p = derive.selfptr(), callback = std::forward<Callback>(callback)]
+				make_allocator(derive.wallocator(),
+					[p = derive.selfptr(), callback = std::forward<Callback>(callback)]
 			(const error_code& ec, std::size_t bytes_sent) mutable
 			{
 				set_last_error(ec);
 
 				callback(ec, bytes_sent);
-			})));
+			}));
 			return true;
 		}
 

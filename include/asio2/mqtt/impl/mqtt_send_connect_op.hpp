@@ -15,14 +15,12 @@
 #pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
-#include <asio2/external/asio.hpp>
 #include <asio2/base/iopool.hpp>
-#include <asio2/base/error.hpp>
 #include <asio2/base/define.hpp>
 
 #include <asio2/base/detail/util.hpp>
 
-#include <asio2/mqtt/protocol_util.hpp>
+#include <asio2/mqtt/message_util.hpp>
 
 namespace asio2::detail
 {
@@ -37,7 +35,6 @@ namespace asio2::detail
 
 	public:
 		asio::io_context        & context_;
-		asio::io_context::strand& strand_;
 
 		SocketT&       socket_;
 		HandlerT       handler_;
@@ -47,17 +44,12 @@ namespace asio2::detail
 		std::unique_ptr<asio::streambuf> stream{ std::make_unique<asio::streambuf>() };
 
 		template<class SKT, class H>
-		mqtt_send_connect_op(
-			asio::io_context& context, asio::io_context::strand& strand,
-			std::variant<mqtt::v3::connect, mqtt::v4::connect, mqtt::v5::connect>& connect_msg,
-			SKT& skt, H&& h
-		)
+		mqtt_send_connect_op(asio::io_context& context, mqtt::message& connect_msg, SKT& skt, H&& h)
 			: context_(context)
-			, strand_ (strand )
 			, socket_ (skt)
 			, handler_(std::forward<H>(h))
 		{
-			std::visit([this](auto& message) mutable { message.serialize(connect_buffer); }, connect_msg);
+			std::visit([this](auto& message) mutable { message.serialize(connect_buffer); }, connect_msg.base());
 
 			(*this)();
 		}
@@ -79,8 +71,7 @@ namespace asio2::detail
 				ASIO_CORO_YIELD
 				{
 					auto buffer = asio::buffer(connect_buffer);
-					asio::async_write(socket_, buffer, asio::transfer_exactly(buffer.size()),
-						asio::bind_executor(strand_, std::move(*this)));
+					asio::async_write(socket_, buffer, asio::transfer_exactly(buffer.size()), std::move(*this));
 				}
 				if (ec)
 					goto end;
@@ -90,8 +81,7 @@ namespace asio2::detail
 				ASIO_CORO_YIELD
 				{
 					asio::streambuf& strbuf = *stream;
-					asio::async_read_until(socket_, strbuf, mqtt::mqtt_match_role,
-						asio::bind_executor(strand_, std::move(*this)));
+					asio::async_read_until(socket_, strbuf, mqtt::mqtt_match_role, std::move(*this));
 				}
 				if (ec)
 					goto end;
@@ -104,9 +94,7 @@ namespace asio2::detail
 
 	// C++17 class template argument deduction guides
 	template<class SKT, class H>
-	mqtt_send_connect_op(asio::io_context&, asio::io_context::strand&,
-		std::variant<mqtt::v3::connect, mqtt::v4::connect, mqtt::v5::connect>&,
-		SKT&, H)->mqtt_send_connect_op<SKT, H>;
+	mqtt_send_connect_op(asio::io_context&, mqtt::message&, SKT&, H)->mqtt_send_connect_op<SKT, H>;
 }
 
 #endif // !__ASIO2_SEND_CONNECT_OP_HPP__

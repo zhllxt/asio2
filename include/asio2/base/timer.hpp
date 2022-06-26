@@ -28,11 +28,9 @@
 #include <unordered_map>
 #include <type_traits>
 
-#include <asio2/external/asio.hpp>
 #include <asio2/external/magic_enum.hpp>
 
 #include <asio2/base/iopool.hpp>
-#include <asio2/base/error.hpp>
 #include <asio2/base/log.hpp>
 #include <asio2/base/define.hpp>
 
@@ -109,15 +107,12 @@ namespace asio2::detail
 			{
 				this->io().regobj(this);
 
-				if (this->derived().io().get_thread_id() == std::thread::id{})
+				this->dispatch([this]() mutable
 				{
-					this->dispatch([this]() mutable
-					{
-						// init the running thread id 
-						if (this->derived().io().get_thread_id() == std::thread::id{})
-							this->derived().io().init_thread_id();
-					});
-				}
+					// init the running thread id 
+					if (this->derived().io().get_thread_id() == std::thread::id{})
+						this->derived().io().init_thread_id();
+				});
 			}
 
 			return ret;
@@ -163,7 +158,7 @@ namespace asio2::detail
 		inline auto & wallocator() noexcept { return this->wallocator_; }
 
 	protected:
-		/// The io (include io_context and strand) used to handle the accept event.
+		/// The io_context wrapper used to handle the accept event.
 		io_t                                          & io_;
 
 		/// The memory to use for handler-based custom memory allocation. used fo send/write.

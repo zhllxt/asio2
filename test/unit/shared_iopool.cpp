@@ -168,7 +168,7 @@ void shared_iopool_test()
 
 	server.bind_recv([&](std::shared_ptr<asio2::tcp_session> & session_ptr, std::string_view sv)
 	{
-		ASIO2_CHECK(session_ptr->io().strand().running_in_this_thread());
+		ASIO2_CHECK(session_ptr->io().running_in_this_thread());
 
 		iothreads_check();
 
@@ -317,7 +317,7 @@ void shared_iopool_test()
 
 	server.bind_recv([&](std::shared_ptr<asio2::tcp_session>& session_ptr, std::string_view s)
 	{
-		ASIO2_CHECK(session_ptr->io().strand().running_in_this_thread());
+		ASIO2_CHECK(session_ptr->io().running_in_this_thread());
 
 		session_ptr->async_send(s);
 	}).bind_connect([&](std::shared_ptr<asio2::tcp_session>&)

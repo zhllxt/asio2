@@ -23,7 +23,7 @@ int main()
 
 	server.bind_recv([&](std::shared_ptr<asio2::tcp_session>& session_ptr, std::string_view data)
 	{
-		ASIO2_ASSERT(session_ptr->io().strand().running_in_this_thread());
+		ASIO2_ASSERT(session_ptr->io().running_in_this_thread());
 
 		printf("recv : %zu %.*s\n", data.size(), (int)data.size(), data.data());
 

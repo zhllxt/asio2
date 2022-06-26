@@ -21,7 +21,6 @@
 #include <unordered_map>
 #include <type_traits>
 
-#include <asio2/external/asio.hpp>
 #include <asio2/external/magic_enum.hpp>
 
 #include <asio2/base/iopool.hpp>
@@ -80,9 +79,9 @@ namespace asio2::detail
 			if (!session_ptr)
 				return;
 
-			if (!this->io_.strand().running_in_this_thread())
+			if (!this->io_.running_in_this_thread())
 			{
-				asio::post(this->io_.strand(), make_allocator(this->allocator_,
+				asio::post(this->io().context(), make_allocator(this->allocator_,
 				[this, session_ptr = std::move(session_ptr), callback = std::forward<Fun>(callback)]
 				() mutable
 				{
@@ -151,9 +150,9 @@ namespace asio2::detail
 			if (!session_ptr)
 				return;
 
-			if (!this->io_.strand().running_in_this_thread())
+			if (!this->io_.running_in_this_thread())
 			{
-				asio::post(this->io_.strand(), make_allocator(this->allocator_,
+				asio::post(this->io().context(), make_allocator(this->allocator_,
 				[this, session_ptr = std::move(session_ptr), callback = std::forward<Fun>(callback)]
 				() mutable
 				{
@@ -180,7 +179,7 @@ namespace asio2::detail
 		template<class Fun>
 		inline void post(Fun&& task)
 		{
-			asio::post(this->io_.strand(), make_allocator(this->allocator_, std::forward<Fun>(task)));
+			asio::post(this->io().context(), make_allocator(this->allocator_, std::forward<Fun>(task)));
 		}
 
 		/**
@@ -190,7 +189,7 @@ namespace asio2::detail
 		template<class Fun>
 		inline void dispatch(Fun&& task)
 		{
-			asio::dispatch(this->io_.strand(), make_allocator(this->allocator_, std::forward<Fun>(task)));
+			asio::dispatch(this->io().context(), make_allocator(this->allocator_, std::forward<Fun>(task)));
 		}
 
 		/**

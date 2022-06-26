@@ -19,7 +19,6 @@
 #include <future>
 #include <functional>
 
-#include <asio2/external/asio.hpp>
 #include <asio2/base/iopool.hpp>
 #include <asio2/base/detail/allocator.hpp>
 
@@ -54,7 +53,7 @@ namespace asio2::detail
 			// if use call post, but the user callback "f" has't hold the session_ptr,
 			// it maybe cause crash, so we need hold the session_ptr again at here.
 			// if the session_ptr is already destroyed, the selfptr() will cause crash.
-			asio::post(derive.io().strand(), make_allocator(derive.wallocator(),
+			asio::post(derive.io().context(), make_allocator(derive.wallocator(),
 			[p = derive.selfptr(), f = std::forward<Function>(f)]() mutable
 			{
 				detail::ignore_unused(p);
@@ -83,7 +82,7 @@ namespace asio2::detail
 			// wait_for_io_context_stopped() can't compelete forever,and the server.stop or client.stop
 			// never compeleted.
 
-			asio::post(derive.io().strand(), make_allocator(derive.wallocator(),
+			asio::post(derive.io().context(), make_allocator(derive.wallocator(),
 			[this, &derive, p = derive.selfptr(), f = std::forward<Function>(f), delay]() mutable
 			{
 				std::unique_ptr<asio::steady_timer> timer = std::make_unique<
@@ -94,7 +93,7 @@ namespace asio2::detail
 				derive.io().timers().emplace(timer.get());
 
 				timer->expires_after(delay);
-				timer->async_wait(asio::bind_executor(derive.io().strand(),
+				timer->async_wait(
 				[this, &derive, p = std::move(p), timer = std::move(timer), f = std::move(f)]
 				(const error_code& ec) mutable
 				{
@@ -112,7 +111,7 @@ namespace asio2::detail
 					}
 				#endif
 					this->timed_tasks_.erase(timer.get());
-				}));
+				});
 			}));
 
 			return (derive);
@@ -138,7 +137,7 @@ namespace asio2::detail
 
 			std::future<return_type> future = task.get_future();
 
-			asio::post(derive.io().strand(), make_allocator(derive.wallocator(),
+			asio::post(derive.io().context(), make_allocator(derive.wallocator(),
 			[p = derive.selfptr(), t = std::move(task)]() mutable
 			{
 				detail::ignore_unused(p);
@@ -169,7 +168,7 @@ namespace asio2::detail
 
 			std::future<return_type> future = task.get_future();
 
-			asio::post(derive.io().strand(), make_allocator(derive.wallocator(),
+			asio::post(derive.io().context(), make_allocator(derive.wallocator(),
 			[this, &derive, p = derive.selfptr(), t = std::move(task), delay]() mutable
 			{
 				std::unique_ptr<asio::steady_timer> timer = std::make_unique<
@@ -180,7 +179,7 @@ namespace asio2::detail
 				derive.io().timers().emplace(timer.get());
 
 				timer->expires_after(delay);
-				timer->async_wait(asio::bind_executor(derive.io().strand(),
+				timer->async_wait(
 				[this, &derive, p = std::move(p), timer = std::move(timer), t = std::move(t)]
 				(const error_code& ec) mutable
 				{
@@ -198,7 +197,7 @@ namespace asio2::detail
 					}
 				#endif
 					this->timed_tasks_.erase(timer.get());
-				}));
+				});
 			}));
 
 			return future;
@@ -208,15 +207,15 @@ namespace asio2::detail
 		 * @function : Submits a completion token or function object for execution.
 		 * This function submits an object for execution using the object's associated
 		 * executor. The function object is queued for execution. if current thread is 
-		 * the strand's thread, the function will be executed immediately, otherwise 
-		 * the task will be asynchronously post to strand to execute.
+		 * the io_context's thread, the function will be executed immediately, otherwise 
+		 * the task will be asynchronously post to io_context to execute.
 		 */
 		template<typename Function>
 		inline derived_t & dispatch(Function&& f)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			asio::dispatch(derive.io().strand(), make_allocator(derive.wallocator(),
+			asio::dispatch(derive.io().context(), make_allocator(derive.wallocator(),
 			[p = derive.selfptr(), f = std::forward<Function>(f)]() mutable
 			{
 				detail::ignore_unused(p);
@@ -230,8 +229,8 @@ namespace asio2::detail
 		 * @function : Submits a completion token or function object for execution.
 		 * This function submits an object for execution using the object's associated
 		 * executor. The function object is queued for execution. if current thread is
-		 * the strand's thread, the function will be executed immediately, otherwise
-		 * the task will be asynchronously post to strand to execute.
+		 * the io_context's thread, the function will be executed immediately, otherwise
+		 * the task will be asynchronously post to io_context to execute.
 		 * note : Never call future's waiting function(eg:wait,get) in a communication(eg:on_recv)
 		 * thread, it will cause dead lock;
 		 */
@@ -247,14 +246,14 @@ namespace asio2::detail
 
 			std::future<return_type> future = task.get_future();
 
-			// Make sure we run on the strand
-			if (derive.io().strand().running_in_this_thread())
+			// Make sure we run on the io_context thread
+			if (derive.io().running_in_this_thread())
 			{
 				task();
 			}
 			else
 			{
-				asio::post(derive.io().strand(), make_allocator(derive.wallocator(),
+				asio::post(derive.io().context(), make_allocator(derive.wallocator(),
 				[p = derive.selfptr(), t = std::move(task)]() mutable
 				{
 					detail::ignore_unused(p);
@@ -273,7 +272,7 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			asio::post(derive.io().strand(), make_allocator(derive.wallocator(),
+			asio::post(derive.io().context(), make_allocator(derive.wallocator(),
 			[this, p = derive.selfptr()]() mutable
 			{
 				detail::ignore_unused(p);

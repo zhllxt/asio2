@@ -23,9 +23,7 @@
 #include <string_view>
 #include <future>
 
-#include <asio2/external/asio.hpp>
 #include <asio2/base/iopool.hpp>
-#include <asio2/base/error.hpp>
 #include <asio2/base/log.hpp>
 
 #include <asio2/base/detail/util.hpp>
@@ -277,10 +275,10 @@ namespace asio2::detail
 
 			std::function<void()> t = std::bind(std::forward<Fun>(fun), std::forward<Args>(args)...);
 
-			// Whether or not we run on the strand, We all start the timer by post an asynchronous 
+			// Whether or not we run on the io_context thread, We all start the timer by post an asynchronous 
 			// event, in order to avoid unexpected problems caused by the user start or stop the 
 			// timer again in the timer callback function.
-			asio::post(derive.io().strand(), make_allocator(derive.wallocator(),
+			asio::post(derive.io().context(), make_allocator(derive.wallocator(),
 			[this, &derive, this_ptr = derive.selfptr(),
 				timer_handle = user_timer_handle(std::forward<TimerId>(timer_id)),
 				interval, repeat, first_delay, callback = std::move(t)]() mutable
@@ -310,7 +308,7 @@ namespace asio2::detail
 
 					this->user_timers_[std::move(timer_handle)] = timer_obj_ptr;
 
-					derive.io().timers().emplace(&(timer_obj_ptr->timer));
+					derive.io().timers().emplace(std::addressof(timer_obj_ptr->timer));
 
 					derive._post_user_timers(std::move(this_ptr), std::move(timer_obj_ptr), first_delay);
 				}
@@ -344,7 +342,7 @@ namespace asio2::detail
 			// before the post next timer, so the cancel will has no effect. (so there was 
 			// a flag "exit" to ensure this : even if use dispatch, the timer also can be
 			// canceled success)
-			asio::post(derive.io().strand(), make_allocator(derive.wallocator(),
+			asio::post(derive.io().context(), make_allocator(derive.wallocator(),
 			[this, this_ptr = derive.selfptr(), timer_id = std::forward<TimerId>(timer_id)]
 			() mutable
 			{
@@ -372,7 +370,7 @@ namespace asio2::detail
 
 			// must use post, otherwise when call stop_all_timers immediately after start_timer
 			// will cause the stop_all_timers has no effect.
-			asio::post(derive.io().strand(), make_allocator(derive.wallocator(),
+			asio::post(derive.io().context(), make_allocator(derive.wallocator(),
 			[this, this_ptr = derive.selfptr()]() mutable
 			{
 				error_code ec_ignore{};
@@ -397,7 +395,7 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			if (derive.io().strand().running_in_this_thread())
+			if (derive.io().running_in_this_thread())
 			{
 				return (this->user_timers_.find(timer_id) != this->user_timers_.end());
 			}
@@ -405,7 +403,7 @@ namespace asio2::detail
 			std::promise<bool> p;
 			std::future<bool> f = p.get_future();
 
-			asio::post(derive.io().strand(), make_allocator(derive.wallocator(),
+			asio::post(derive.io().context(), make_allocator(derive.wallocator(),
 			[this, this_ptr = derive.selfptr(), timer_id = std::forward<TimerId>(timer_id), &p]
 			() mutable
 			{
@@ -425,7 +423,7 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			if (derive.io().strand().running_in_this_thread())
+			if (derive.io().running_in_this_thread())
 			{
 				auto iter = this->user_timers_.find(timer_id);
 				if (iter != this->user_timers_.end())
@@ -441,7 +439,7 @@ namespace asio2::detail
 			std::promise<typename asio::steady_timer::duration> p;
 			std::future<typename asio::steady_timer::duration> f = p.get_future();
 
-			asio::post(derive.io().strand(), make_allocator(derive.wallocator(),
+			asio::post(derive.io().context(), make_allocator(derive.wallocator(),
 			[this, this_ptr = derive.selfptr(), timer_id = std::forward<TimerId>(timer_id), &p]
 			() mutable
 			{
@@ -473,12 +471,12 @@ namespace asio2::detail
 			asio::steady_timer& timer = timer_obj_ptr->timer;
 
 			timer.expires_after(expiry);
-			timer.async_wait(asio::bind_executor(derive.io().strand(),
+			timer.async_wait(
 			[&derive, self_ptr = std::move(this_ptr), timer_ptr = std::move(timer_obj_ptr)]
 			(const error_code& ec) mutable
 			{
 				derive._handle_user_timers(ec, std::move(self_ptr), std::move(timer_ptr));
-			}));
+			});
 		}
 
 		inline void _handle_user_timers(const error_code& ec, std::shared_ptr<derived_t> this_ptr,
@@ -538,14 +536,14 @@ namespace asio2::detail
 			{
 				// if exited is true, can't erase the timer object from the "user_timers_",
 				// beacuse maybe user start timer multi times with same id.
-				derive.io().timers().erase(&(timer_obj_ptr->timer));
+				derive.io().timers().erase(std::addressof(timer_obj_ptr->timer));
 
 				return;
 			}
 
 			if (ec == asio::error::operation_aborted || timer_obj_ptr->repeat == static_cast<std::size_t>(0))
 			{
-				derive.io().timers().erase(&(timer_obj_ptr->timer));
+				derive.io().timers().erase(std::addressof(timer_obj_ptr->timer));
 
 				auto iter = this->user_timers_.find(timer_obj_ptr->id);
 				if (iter != this->user_timers_.end())

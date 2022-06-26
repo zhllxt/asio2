@@ -177,7 +177,7 @@ void https_test()
 		{
 			wss_client.post([&]()
 			{
-				ASIO2_CHECK(wss_client.io().strand().running_in_this_thread());
+				ASIO2_CHECK(wss_client.io().running_in_this_thread());
 
 				std::string str(std::size_t(100 + (std::rand() % 300)), char(std::rand() % 255));
 

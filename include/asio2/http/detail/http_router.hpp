@@ -35,8 +35,8 @@
 
 #include <asio2/external/asio.hpp>
 #include <asio2/external/beast.hpp>
+
 #include <asio2/base/iopool.hpp>
-#include <asio2/base/error.hpp>
 
 #include <asio2/base/detail/function_traits.hpp>
 #include <asio2/base/detail/util.hpp>
@@ -142,27 +142,27 @@ namespace boost::beast::websocket
 		template<class F, class C>
 		inline listener& on_message(F&& f, C& c)
 		{
-			return this->on_message(std::forward<F>(f), &c);
+			return this->on_message(std::forward<F>(f), std::addressof(c));
 		}
 		template<class F, class C>
 		inline listener& on_ping(F&& f, C& c)
 		{
-			return this->on_ping(std::forward<F>(f), &c);
+			return this->on_ping(std::forward<F>(f), std::addressof(c));
 		}
 		template<class F, class C>
 		inline listener& on_pong(F&& f, C& c)
 		{
-			return this->on_pong(std::forward<F>(f), &c);
+			return this->on_pong(std::forward<F>(f), std::addressof(c));
 		}
 		template<class F, class C>
 		inline listener& on_open(F&& f, C& c)
 		{
-			return this->on_open(std::forward<F>(f), &c);
+			return this->on_open(std::forward<F>(f), std::addressof(c));
 		}
 		template<class F, class C>
 		inline listener& on_close(F&& f, C& c)
 		{
-			return this->on_close(std::forward<F>(f), &c);
+			return this->on_close(std::forward<F>(f), std::addressof(c));
 		}
 
 		template<class F>
@@ -189,7 +189,7 @@ namespace boost::beast::websocket
 		template<class F, class C>
 		inline listener& on(std::string_view type, F&& f, C& c)
 		{
-			return this->on(std::move(type), std::forward<F>(f), &c);
+			return this->on(std::move(type), std::forward<F>(f), std::addressof(c));
 		}
 
 	protected:
@@ -457,7 +457,7 @@ namespace asio2::detail
 		typename std::enable_if_t<std::is_same_v<C, typename function_traits<F>::class_type>, void>
 		inline _bind(std::string name, F f, C& c, AOP&&... aop)
 		{
-			this->_bind<M...>(std::move(name), std::move(f), &c, std::forward<AOP>(aop)...);
+			this->_bind<M...>(std::move(name), std::move(f), std::addressof(c), std::forward<AOP>(aop)...);
 		}
 
 		template<class... AOP>
@@ -576,7 +576,7 @@ namespace asio2::detail
 		template<class F, class C>
 		inline void _bind_not_found(F f, C& c)
 		{
-			this->_bind_not_found(std::move(f), &c);
+			this->_bind_not_found(std::move(f), std::addressof(c));
 		}
 
 		template<class F>

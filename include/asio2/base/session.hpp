@@ -32,11 +32,9 @@
 #include <unordered_map>
 #include <type_traits>
 
-#include <asio2/external/asio.hpp>
 #include <asio2/external/magic_enum.hpp>
 
 #include <asio2/base/iopool.hpp>
-#include <asio2/base/error.hpp>
 #include <asio2/base/log.hpp>
 #include <asio2/base/listener.hpp>
 #include <asio2/base/session_mgr.hpp>
@@ -146,13 +144,13 @@ namespace asio2::detail
 			// some problem if put "counter_ptr_.reset()" in "stop" function, It looks like 
 			// this:
 			// when use async rpc user function, when code run to 
-			// "asio::dispatch(caller->io().strand(), make_allocator(caller->wallocator(),"
+			// "asio::dispatch(caller->io().context(), make_allocator(caller->wallocator(),"
 			// ( the code is in the rpc_invoker.hpp, line 405 ), the server maybe stopped 
 			// already ( beacuse server.stop will call all session's stop, and session.stop
 			// will call "counter_ptr_.reset()", so the server's counter_ptr_'s destructor
 			// can be called, so the iopool.stop can be returned in the server's stop function)
 			// after the iopool is stopped, the all io_context will be invalid, so when the 
-			// rpc_invoker call "caller->io().strand()", it will be crashed.
+			// rpc_invoker call "caller->io().context()", it will be crashed.
 			// destroy the counter
 			this->counter_ptr_.reset();
 		}
@@ -163,7 +161,7 @@ namespace asio2::detail
 		 */
 		inline void start()
 		{
-			if (!this->io_.strand().running_in_this_thread())
+			if (!this->io_.running_in_this_thread())
 			{
 				this->derived().post([this]() mutable
 				{
@@ -189,9 +187,9 @@ namespace asio2::detail
 		 */
 		inline void stop()
 		{
-			ASIO2_ASSERT(this->io_.strand().running_in_this_thread());
+			ASIO2_ASSERT(this->io_.running_in_this_thread());
 
-			if (!this->io_.strand().running_in_this_thread())
+			if (!this->io_.running_in_this_thread())
 			{
 				this->derived().post([this]() mutable
 				{
@@ -292,7 +290,7 @@ namespace asio2::detail
 		/// listener
 		listener_t                         & listener_;
 
-		/// The io (include io_context and strand) used to handle the recv/send event.
+		/// The io_context wrapper used to handle the recv/send event.
 		io_t                               & io_;
 
 		/// buffer

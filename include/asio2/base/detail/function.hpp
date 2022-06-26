@@ -74,7 +74,7 @@ public:
 	{
 		vtable_ = other.vtable_;
 		if (vtable_)
-			vtable_->move(&other.storage_, &storage_);
+			vtable_->move(std::addressof(other.storage_), std::addressof(storage_));
 		other.reset();
 	}
 	function & operator = (function && other) noexcept
@@ -85,7 +85,7 @@ public:
 		reset();
 		vtable_ = other.vtable_;
 		if (vtable_)
-			vtable_->move(&other.storage_, &storage_);
+			vtable_->move(std::addressof(other.storage_), std::addressof(storage_));
 		other.reset();
 		return *this;
 	}

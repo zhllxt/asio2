@@ -236,7 +236,7 @@ public:
 		basic_multipart_field<String> field;
 		field.name (std::forward<String1>(name ));
 		field.value(std::forward<String2>(value));
-		auto iter = set_.emplace(field.name(), &field);
+		auto iter = set_.emplace(field.name(), std::addressof(field));
 		auto itel = list_.insert(std::next(list_.begin(), std::distance(set_.begin(), iter)), std::move(field));
 		iter->second = itel.operator->();
 		return itel;
@@ -247,7 +247,7 @@ public:
      */
 	inline iterator insert(basic_multipart_field<String> field)
 	{
-		auto iter = set_.emplace(field.name(), &field);
+		auto iter = set_.emplace(field.name(), std::addressof(field));
 		auto itel = list_.insert(std::next(list_.begin(), std::distance(set_.begin(), iter)), std::move(field));
 		iter->second = itel.operator->();
 		return itel;
@@ -263,7 +263,7 @@ public:
 		field.name (std::forward<String1>(name ));
 		field.value(std::forward<String2>(value));
 		erase(field.name());
-		auto iter = set_.emplace(field.name(), &field);
+		auto iter = set_.emplace(field.name(), std::addressof(field));
 		auto itel = list_.insert(std::next(list_.begin(), std::distance(set_.begin(), iter)), std::move(field));
 		iter->second = itel.operator->();
 		return itel;

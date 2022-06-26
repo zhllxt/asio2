@@ -159,31 +159,11 @@ namespace asio2::mqtt
 		}
 
 		/**
-		 * @function If this holds the alternative T, returns a pointer to the value stored in the variant.
-		 * Otherwise, returns a null pointer value.
-		 */
-		template<class T>
-		inline std::add_pointer_t<const T> get_if() noexcept
-		{
-			return std::get_if<T>(std::addressof(this->base()));
-		}
-
-		/**
 		 * @function If this holds the alternative T, returns a reference to the value stored in the variant.
 		 * Otherwise, throws std::bad_variant_access.
 		 */
 		template<class T>
 		inline T& get()
-		{
-			return std::get<T>(this->base());
-		}
-
-		/**
-		 * @function If this holds the alternative T, returns a reference to the value stored in the variant.
-		 * Otherwise, throws std::bad_variant_access.
-		 */
-		template<class T>
-		inline const T& get()
 		{
 			return std::get<T>(this->base());
 		}

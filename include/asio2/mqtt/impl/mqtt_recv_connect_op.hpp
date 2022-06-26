@@ -15,9 +15,7 @@
 #pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
-#include <asio2/external/asio.hpp>
 #include <asio2/base/iopool.hpp>
-#include <asio2/base/error.hpp>
 #include <asio2/base/define.hpp>
 
 #include <asio2/base/detail/util.hpp>
@@ -37,7 +35,6 @@ namespace asio2::detail
 
 	public:
 		asio::io_context        & context_;
-		asio::io_context::strand& strand_;
 
 		SocketT&       socket_;
 		HandlerT       handler_;
@@ -45,12 +42,8 @@ namespace asio2::detail
 		std::unique_ptr<asio::streambuf> stream{ std::make_unique<asio::streambuf>() };
 
 		template<class SKT, class H>
-		mqtt_recv_connect_op(
-			asio::io_context& context, asio::io_context::strand& strand,
-			SKT& skt, H&& h
-		)
+		mqtt_recv_connect_op(asio::io_context& context, SKT& skt, H&& h)
 			: context_(context)
-			, strand_ (strand )
 			, socket_ (skt)
 			, handler_(std::forward<H>(h))
 		{
@@ -74,8 +67,7 @@ namespace asio2::detail
 				ASIO_CORO_YIELD
 				{
 					asio::streambuf& strbuf = *stream;
-					asio::async_read_until(socket_, strbuf, mqtt::mqtt_match_role,
-						asio::bind_executor(strand_, std::move(*this)));
+					asio::async_read_until(socket_, strbuf, mqtt::mqtt_match_role, std::move(*this));
 				}
 
 				handler_(ec, std::move(stream));
@@ -85,8 +77,7 @@ namespace asio2::detail
 
 	// C++17 class template argument deduction guides
 	template<class SKT, class H>
-	mqtt_recv_connect_op(asio::io_context&, asio::io_context::strand&,
-		SKT&, H)->mqtt_recv_connect_op<SKT, H>;
+	mqtt_recv_connect_op(asio::io_context&, SKT&, H)->mqtt_recv_connect_op<SKT, H>;
 }
 
 #endif // !__ASIO2_RECV_CONNECT_OP_HPP__

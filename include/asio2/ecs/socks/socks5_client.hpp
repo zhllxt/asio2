@@ -30,7 +30,6 @@
 #include <tuple>
 #include <type_traits>
 
-#include <asio2/external/asio.hpp>
 #include <asio2/base/error.hpp>
 #include <asio2/base/define.hpp>
 
@@ -58,7 +57,6 @@ namespace asio2::detail
 
 	public:
 		asio::io_context        & context_;
-		asio::io_context::strand& strand_;
 
 		std::string    host_{}, port_{};
 
@@ -77,12 +75,11 @@ namespace asio2::detail
 
 		template<class SKT, class S5, class H>
 		socks5_client_connect_op(
-			asio::io_context& context, asio::io_context::strand& strand,
+			asio::io_context& context,
 			std::string host, std::string port,
 			SKT& skt, S5 s5, H&& h
 		)
 			: context_(context)
-			, strand_ (strand )
 			, host_   (std::move(host))
 			, port_   (std::move(port))
 			, socket_ (skt)
@@ -129,8 +126,7 @@ namespace asio2::detail
 				stream->commit(bytes);
 
 				ASIO_CORO_YIELD
-					asio::async_write(socket_, strbuf, asio::transfer_exactly(bytes),
-						asio::bind_executor(strand_, std::move(*this)));
+					asio::async_write(socket_, strbuf, asio::transfer_exactly(bytes), std::move(*this));
 				if (ec)
 					goto end;
 
@@ -146,8 +142,7 @@ namespace asio2::detail
 				stream->consume(stream->size());
 
 				ASIO_CORO_YIELD
-					asio::async_read(socket_, strbuf, asio::transfer_exactly(1 + 1),
-						asio::bind_executor(strand_, std::move(*this)));
+					asio::async_read(socket_, strbuf, asio::transfer_exactly(1 + 1), std::move(*this));
 				if (ec)
 					goto end;
 
@@ -288,8 +283,7 @@ namespace asio2::detail
 
 					// send username and password to server
 					ASIO_CORO_YIELD
-						asio::async_write(socket_, strbuf, asio::transfer_exactly(bytes),
-							asio::bind_executor(strand_, std::move(*this)));
+						asio::async_write(socket_, strbuf, asio::transfer_exactly(bytes), std::move(*this));
 					if (ec)
 						goto end;
 
@@ -310,8 +304,7 @@ namespace asio2::detail
 					stream->consume(stream->size());
 
 					ASIO_CORO_YIELD
-						asio::async_read(socket_, strbuf, asio::transfer_exactly(1 + 1),
-							asio::bind_executor(strand_, std::move(*this)));
+						asio::async_read(socket_, strbuf, asio::transfer_exactly(1 + 1), std::move(*this));
 					if (ec)
 						goto end;
 
@@ -332,7 +325,7 @@ namespace asio2::detail
 				}
 				//else if (method == socks5::method::iana)
 				//{
-				//	ec = socks5::make_error_code((socks5::error::unsupported_method);
+				//	ec = socks5::make_error_code(socks5::error::unsupported_method);
 				//	goto end;
 				//}
 				//else if (method == socks5::method::reserved)
@@ -418,8 +411,7 @@ namespace asio2::detail
 				stream->commit(bytes);
 
 				ASIO_CORO_YIELD
-					asio::async_write(socket_, strbuf, asio::transfer_exactly(bytes),
-						asio::bind_executor(strand_, std::move(*this)));
+					asio::async_write(socket_, strbuf, asio::transfer_exactly(bytes), std::move(*this));
 				if (ec)
 					goto end;
 
@@ -455,8 +447,7 @@ namespace asio2::detail
 
 				// 1. read the first 5 bytes : VER REP RSV ATYP [LEN]
 				ASIO_CORO_YIELD
-					asio::async_read(socket_, strbuf, asio::transfer_exactly(5),
-						asio::bind_executor(strand_, std::move(*this)));
+					asio::async_read(socket_, strbuf, asio::transfer_exactly(5), std::move(*this));
 				if (ec)
 					goto end;
 
@@ -481,7 +472,7 @@ namespace asio2::detail
 				case std::uint8_t(0x08): ec = asio::error::address_family_not_supported             ; break;
 				case std::uint8_t(0x01): ec = socks5::make_error_code(socks5::error::general_socks_server_failure)	; break;
 				case std::uint8_t(0x07): ec = socks5::make_error_code(socks5::error::command_not_supported)			; break;
-				case std::uint8_t(0x09): ec = socks5::make_error_code(socks5::error::unassigned)					; break;
+				case std::uint8_t(0x09): ec = socks5::make_error_code(socks5::error::unassigned)                    ; break;
 				default:                 ec = socks5::make_error_code(socks5::error::unassigned)                    ; break;
 				}
 
@@ -510,8 +501,7 @@ namespace asio2::detail
 				stream->consume(stream->size());
 
 				ASIO_CORO_YIELD
-					asio::async_read(socket_, strbuf, asio::transfer_exactly(bytes),
-						asio::bind_executor(strand_, std::move(*this)));
+					asio::async_read(socket_, strbuf, asio::transfer_exactly(bytes), std::move(*this));
 				if (ec)
 					goto end;
 
@@ -568,7 +558,7 @@ namespace asio2::detail
 
 	// C++17 class template argument deduction guides
 	template<class SKT, class S5, class H>
-	socks5_client_connect_op(asio::io_context&, asio::io_context::strand&, std::string, std::string,
+	socks5_client_connect_op(asio::io_context&, std::string, std::string,
 		SKT&, S5, H)->socks5_client_connect_op<SKT, S5, H>;
 
 	template<class derived_t, class args_t>
@@ -609,7 +599,7 @@ namespace asio2::detail
 			{
 				socks5_client_connect_op
 				{
-					derive.io().context(), derive.io().strand(),
+					derive.io().context(),
 					derive.host_, derive.port_,
 					derive.stream(),
 					condition.impl_->socks5_option(std::in_place),

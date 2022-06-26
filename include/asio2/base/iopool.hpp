@@ -27,7 +27,6 @@
 #include <map>
 #include <functional>
 
-#include <asio2/external/asio.hpp>
 #include <asio2/base/error.hpp>
 #include <asio2/base/detail/util.hpp>
 
@@ -93,7 +92,6 @@ namespace asio2::detail
 	public:
 		io_t(asio::io_context* ioc, std::atomic<std::size_t>& pending) noexcept
 			: context_(ioc)
-			, strand_ (*context_)
 			, pending_(pending)
 		{
 		}
@@ -102,7 +100,6 @@ namespace asio2::detail
 		}
 
 		inline asio::io_context                        & context() noexcept { return (*(this->context_)); }
-		inline asio::io_context::strand                & strand () noexcept { return    this->strand_   ; }
 		inline std::atomic<std::size_t>                & pending() noexcept { return    this->pending_  ; }
 		inline std::unordered_set<asio::steady_timer*> & timers () noexcept { return    this->timers_   ; }
 
@@ -111,7 +108,7 @@ namespace asio2::detail
 		{
 			if (p)
 			{
-				asio::dispatch(this->strand_, [this, p, optr = p->derived().selfptr()]() mutable
+				asio::dispatch(this->context(), [this, p, optr = p->derived().selfptr()]() mutable
 				{
 					std::size_t k = reinterpret_cast<std::size_t>(p);
 					this->objects_[k] = [p, optr = std::move(optr)]() mutable
@@ -132,7 +129,7 @@ namespace asio2::detail
 				// then the object->stop is called in the for each, then the unregobj is called 
 				// in the object->stop, if we erase the elem of the objects_ directly at here,
 				// it will cause the iterator is invalid when executed at "for each objects_" .
-				asio::post(this->strand_, [this, p, optr = p->derived().selfptr()]() mutable
+				asio::post(this->context(), [this, p, optr = p->derived().selfptr()]() mutable
 				{
 					detail::ignore_unused(optr);
 					this->objects_.erase(reinterpret_cast<std::size_t>(p));
@@ -145,7 +142,6 @@ namespace asio2::detail
 		 */
 		inline void init_thread_id() noexcept
 		{
-			//ASIO2_ASSERT(strand_.running_in_this_thread());
 			this->thread_id_ = std::this_thread::get_id();
 		}
 
@@ -154,7 +150,6 @@ namespace asio2::detail
 		 */
 		inline void fini_thread_id() noexcept
 		{
-			//ASIO2_ASSERT(strand_.running_in_this_thread());
 			this->thread_id_ = std::thread::id{};
 		}
 
@@ -185,7 +180,15 @@ namespace asio2::detail
 		// more and more, then cause the program crash.
 		asio::io_context                       * context_ = nullptr;
 
-		asio::io_context::strand                 strand_;
+		// the strand will cause some problem when used in dll.
+		// 1. when declare a strand in dll, and export it, when use the strand in exe which 
+		//    exported by the dll, the strand.running_in_this_thread will false, even if it
+		//    is called in the io_context thread.
+		// 2. when declare a strand in dll, and export it, when use asio::bind_executor(strand
+		//    in exe, it will cause deak lock.
+		//    eg: async_connect(endpoint, asio::bind_executor(strand, callback)); the callback
+		//        will never be called.
+		//asio::io_context::strand                 strand_;
 
 		// Use this variable to ensure async_send function was executed correctly.
 		// see : send_cp.hpp "# issue x:"
@@ -302,7 +305,6 @@ namespace asio2::detail
 			// Create a pool of threads to run all of the io_contexts. 
 			for (std::size_t i = 0; i < this->iots_.size(); ++i)
 			{
-				auto& ioc = this->iocs_[i];
 				auto& iot = this->iots_[i];
 
 				/// Restart the io_context in preparation for a subsequent run() invocation.
@@ -316,20 +318,22 @@ namespace asio2::detail
 				 * This function must not be called while there are any unfinished calls to
 				 * the run(), run_one(), poll() or poll_one() functions.
 				 */
-				ioc->restart();
+				iot->context().restart();
 
-				this->guards_.emplace_back(ioc->get_executor());
+				this->guards_.emplace_back(iot->context().get_executor());
 
 				// start work thread
-				this->threads_.emplace_back([&ioc]() mutable
+				this->threads_.emplace_back([&iot]() mutable
 				{
+					iot->thread_id_ = std::this_thread::get_id();
+
 					// should we catch the exception ? 
 					// If an exception occurs here, what should we do ?
 					// We should handle exceptions in other business functions to ensure that
 					// exceptions will not be triggered here.
 					//try
 					//{
-						ioc->run();
+						iot->context().run();
 					//}
 					//catch (system_error const& e)
 					//{
@@ -344,14 +348,17 @@ namespace asio2::detail
 					OPENSSL_thread_stop();
 				#endif
 				});
-
-				iot->thread_id_ = this->threads_[i].get_id();
 			}
 
 		#if defined(_DEBUG) || defined(DEBUG)
 			for (std::size_t i = 0; i < this->iots_.size(); ++i)
 			{
-				ASIO2_ASSERT(this->iots_[i]->get_thread_id() == this->threads_[i].get_id());
+				auto& iot = this->iots_[i];
+
+				asio::dispatch(iot->context(), [this, i]() mutable
+				{
+					ASIO2_ASSERT(this->iots_[i]->get_thread_id() == this->threads_[i].get_id());
+				});
 			}
 		#endif
 
@@ -363,13 +370,13 @@ namespace asio2::detail
 		/**
 		 * @function : stop all io_context objects in the pool
 		 * blocking until all posted event has completed already.
-		 * After we call iog.reset(), when an asio::post(strand,...) execution ends, the count
-		 * of the strand will be checked. If the count equals 0, the strand will be closed. Then 
-		 * the subsequent call of asio:: post(strand,...) will fail, and the post event will not
-		 * be executed. When our program exits, it will nest call asio:: post (strand...) to post
-		 * many events, so when an asio::post(strand,...) inside someone asio::post(strand,...)
-		 * has not yet been executed, the strand may have been closed, which will result in the
-		 * nested asio::post(strand,...) never being executed.
+		 * After we call iog.reset(), when an asio::post(io_context,...) execution ends, the count
+		 * of the io_context will be checked. If the count equals 0, the io_context will be closed. Then 
+		 * the subsequent call of asio:: post(io_context,...) will fail, and the post event will not
+		 * be executed. When our program exits, it will nest call asio:: post (io_context...) to post
+		 * many events, so when an asio::post(io_context,...) inside someone asio::post(io_context,...)
+		 * has not yet been executed, the io_context may have been closed, which will result in the
+		 * nested asio::post(io_context,...) never being executed.
 		 */
 		void stop()
 		{
@@ -445,16 +452,6 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get an io_context::strand to use
-		 */
-		inline asio::io_context::strand& get_strand(std::size_t index = static_cast<std::size_t>(-1)) noexcept
-		{
-			ASIO2_ASSERT(!this->iots_.empty());
-
-			return this->iots_[this->next(index)]->strand();
-		}
-
-		/**
 		 * @function : Determine whether current code is running in the io_context pool threads.
 		 */
 		inline bool running_in_threads() const noexcept
@@ -523,7 +520,7 @@ namespace asio2::detail
 				auto& iot = this->iots_[i];
 
 				// must ensure that the read write of objects_ is in the io_context thread.
-				asio::post(iot->strand(), [&iot]() mutable
+				asio::post(iot->context(), [&iot]() mutable
 				{
 					for (auto&[ptr, fun] : iot->objects_)
 					{
@@ -551,7 +548,7 @@ namespace asio2::detail
 				{
 					// the timer may not be canceled successed when using visual
 					// studio break point for debugging, so cancel it at each loop
-					this->cancel_timers(&(*iot));
+					this->cancel_timers(std::addressof(*iot));
 
 					auto t2 = std::chrono::steady_clock::now();
 					auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1);
@@ -579,7 +576,7 @@ namespace asio2::detail
 				{
 					// the timer may not be canceled successed when using visual
 					// studio break point for debugging, so cancel it at each loop
-					this->cancel_timers(&(*iot));
+					this->cancel_timers(std::addressof(*iot));
 
 					auto t2 = std::chrono::steady_clock::now();
 					auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1);
@@ -606,7 +603,7 @@ namespace asio2::detail
 		{
 			// moust read write the io::timers_ in it's io_context thread by "post"
 			// when code run to here, the io_context maybe stopped already.
-			asio::post(io->strand(), [io]() mutable
+			asio::post(io->context(), [io]() mutable
 			{
 				error_code ec_ignore{};
 				for (asio::steady_timer* timer : io->timers())
@@ -749,11 +746,11 @@ namespace asio2::detail
 			// std::shared_ptr<io_context> , io_context*
 			if constexpr (is_io_context_pointer<copy_value_type>::value)
 			{
-				// why use &(*ioc) ?
+				// why use std::addressof(*ioc) ?
 				// the io_context pointer maybe "std::shared_ptr<io_context> , io_context*"
 				for (auto& ioc : copy_)
 				{
-					iots_.emplace_back(std::make_unique<io_t>(&(*ioc), this->pending_));
+					iots_.emplace_back(std::make_unique<io_t>(std::addressof(*ioc), this->pending_));
 				}
 			}
 			// std::shared_ptr<io_t> , io_t*
@@ -761,7 +758,7 @@ namespace asio2::detail
 			{
 				for (auto& iot : copy_)
 				{
-					iots_.emplace_back(&(*iot));
+					iots_.emplace_back(std::addressof(*iot));
 				}
 			}
 		}
@@ -935,7 +932,7 @@ namespace asio2::detail
 
 			for (std::size_t i = 0, size = iopool_->size(); i < size; ++i)
 			{
-				iots_.emplace_back(&(iopool_->get(i)));
+				iots_.emplace_back(std::addressof(iopool_->get(i)));
 			}
 		}
 

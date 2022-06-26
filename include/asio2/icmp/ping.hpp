@@ -29,9 +29,7 @@
 #include <future>
 #include <tuple>
 
-#include <asio2/external/asio.hpp>
 #include <asio2/base/iopool.hpp>
-#include <asio2/base/error.hpp>
 #include <asio2/base/listener.hpp>
 #include <asio2/base/define.hpp>
 
@@ -248,8 +246,8 @@ namespace asio2::detail
 				asio::streambuf request_buffer;
 				asio::streambuf reply_buffer;
 
-				std::ostream os(&request_buffer);
-				std::istream is(&reply_buffer);
+				std::ostream os(std::addressof(request_buffer));
+				std::istream is(std::addressof(reply_buffer));
 
 				icmp_header echo_request;
 
@@ -675,6 +673,15 @@ namespace asio2::detail
 				return false;
 			}
 
+			asio::dispatch(derive.io().context(), [this, this_ptr = derive.selfptr()]() mutable
+			{
+				detail::ignore_unused(this_ptr);
+
+				// init the running thread id 
+				if (this->derived().io().get_thread_id() == std::thread::id{})
+					this->derived().io().init_thread_id();
+			});
+
 			// use promise to get the result of async accept
 			std::promise<error_code> promise;
 			std::future<error_code> future = promise.get_future();
@@ -715,10 +722,6 @@ namespace asio2::detail
 						asio::detail::throw_error(asio::error::operation_aborted);
 					}
 
-					// init the running thread id 
-					if (this->derived().io().get_thread_id() == std::thread::id{})
-						this->derived().io().init_thread_id();
-
 					this->seq_ = 0;
 					this->total_send_ = 0;
 					this->total_recv_ = 0;
@@ -749,7 +752,7 @@ namespace asio2::detail
 				derive._handle_start(get_last_error(), std::move(this_ptr));
 			});
 
-			if (!derive.io().strand().running_in_this_thread())
+			if (!derive.io().running_in_this_thread())
 			{
 				set_last_error(future.get());
 
@@ -769,7 +772,7 @@ namespace asio2::detail
 
 		void _handle_start(error_code ec, std::shared_ptr<derived_t> this_ptr)
 		{
-			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
+			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
 
 			try
 			{
@@ -805,7 +808,7 @@ namespace asio2::detail
 
 		inline void _do_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
 		{
-			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
+			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
 
 			state_t expected = state_t::starting;
 			if (this->state_.compare_exchange_strong(expected, state_t::stopping))
@@ -822,9 +825,9 @@ namespace asio2::detail
 			// if you close socket in one thread and another thread is 
 			// calling socket's async_... function,it will crash.so we
 			// must care for operate the socket.when need close the 
-			// socket ,we use the strand to post a event,make sure the
+			// socket ,we use the io_context to post a event,make sure the
 			// socket's close operation is in the same thread.
-			asio::dispatch(this->io_.strand(), make_allocator(this->derived().wallocator(),
+			asio::dispatch(this->io().context(), make_allocator(this->derived().wallocator(),
 			[this, ec, this_ptr = std::move(this_ptr), old_state]() mutable
 			{
 				detail::ignore_unused(old_state);
@@ -848,7 +851,7 @@ namespace asio2::detail
 
 		inline void _handle_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
 		{
-			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
+			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
 
 			detail::ignore_unused(ec, this_ptr);
 
@@ -895,7 +898,7 @@ namespace asio2::detail
 
 			// Encode the request packet.
 			asio::streambuf buffer;
-			std::ostream os(&buffer);
+			std::ostream os(std::addressof(buffer));
 			os << req << this->body_;
 
 			// Send the request.
@@ -911,11 +914,11 @@ namespace asio2::detail
 			if (this->is_started())
 			{
 				this->timer_.expires_after(this->timeout_);
-				this->timer_.async_wait(asio::bind_executor(this->io_.strand(),
+				this->timer_.async_wait(
 				[this, this_ptr = std::move(this_ptr)](const error_code & ec) mutable
 				{
 					this->derived()._handle_timer(ec, std::move(this_ptr));
-				}));
+				});
 			}
 		}
 
@@ -938,13 +941,13 @@ namespace asio2::detail
 			if (this->is_started())
 			{
 				this->timer_.expires_after(this->interval_);
-				this->timer_.async_wait(asio::bind_executor(this->io_.strand(),
+				this->timer_.async_wait(
 				[this, this_ptr = std::move(this_ptr)](const error_code & ec) mutable
 				{
 					detail::ignore_unused(ec);
 
 					this->derived()._post_send(std::move(this_ptr));
-				}));
+				});
 			}
 		}
 
@@ -957,12 +960,12 @@ namespace asio2::detail
 			{
 				// Wait for a reply. We prepare the buffer to receive up to 64KB.
 				this->socket_.async_receive(this->buffer_.prepare(this->buffer_.pre_size()),
-					asio::bind_executor(this->io_.strand(), make_allocator(this->rallocator_,
+					make_allocator(this->rallocator_,
 						[this, this_ptr = std::move(this_ptr)]
 				(const error_code& ec, std::size_t bytes_recvd) mutable
 				{
 					this->derived()._handle_recv(ec, bytes_recvd, std::move(this_ptr));
-				})));
+				}));
 			}
 			catch (system_error & e)
 			{
@@ -995,7 +998,7 @@ namespace asio2::detail
 			this->buffer_.commit(bytes_recvd);
 
 			// Decode the reply packet.
-			std::istream is(&this->buffer_);
+			std::istream is(std::addressof(this->buffer_));
 			ipv4_header& ipv4_hdr = this->rep_.base_ipv4();
 			icmp_header& icmp_hdr = this->rep_.base_icmp();
 			is >> ipv4_hdr >> icmp_hdr;
@@ -1035,7 +1038,7 @@ namespace asio2::detail
 		inline void _fire_init()
 		{
 			// the _fire_init must be executed in the thread 0.
-			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
+			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
 			ASIO2_ASSERT(!get_last_error());
 
 			this->listener_.notify(event_type::init);
@@ -1044,7 +1047,7 @@ namespace asio2::detail
 		inline void _fire_start()
 		{
 			// the _fire_start must be executed in the thread 0.
-			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
+			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
 
 		#if defined(ASIO2_ENABLE_LOG)
 			ASIO2_ASSERT(this->is_stop_called_ == false);
@@ -1056,7 +1059,7 @@ namespace asio2::detail
 		inline void _fire_stop()
 		{
 			// the _fire_stop must be executed in the thread 0.
-			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
+			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
 
 		#if defined(ASIO2_ENABLE_LOG)
 			this->is_stop_called_ = true;
@@ -1109,7 +1112,7 @@ namespace asio2::detail
 		/// listener
 		listener_t                                  listener_;
 
-		/// The io (include io_context and strand) used to handle the accept event.
+		/// The io_context wrapper used to handle the accept event.
 		io_t                                      & io_;
 
 		/// buffer

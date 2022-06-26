@@ -87,7 +87,7 @@ namespace asio2::detail
 			if constexpr (std::is_reference_v<DataT>)
 			{
 				typename std::add_pointer_t<std::remove_reference_t<DataT>> r =
-					std::any_cast<std::remove_reference_t<DataT>>(&(this->user_data_));
+					std::any_cast<std::remove_reference_t<DataT>>(std::addressof(this->user_data_));
 				if (r)
 				{
 					return (*r);
@@ -105,7 +105,7 @@ namespace asio2::detail
 					return std::any_cast<DataT>(this->user_data_);
 
 				// user_data_ is not pointer, but DataT is pointer.
-				return std::any_cast<std::remove_pointer_t<DataT>>(&(this->user_data_));
+				return std::any_cast<std::remove_pointer_t<DataT>>(std::addressof(this->user_data_));
 			}
 			else
 			{

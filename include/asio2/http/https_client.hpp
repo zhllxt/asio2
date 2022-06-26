@@ -104,7 +104,6 @@ namespace asio2::detail
 
 				// The io_context is required for all I/O
 				asio::io_context ioc;
-				asio::io_context::strand strand(ioc);
 
 				// These objects perform our I/O
 				asio::ip::tcp::resolver resolver{ ioc };
@@ -131,7 +130,7 @@ namespace asio2::detail
 
 							detail::socks5_client_connect_op
 							{
-								ioc, strand,
+								ioc,
 								to_string(std::forward<String>(host)), to_string(std::forward<StrOrInt>(port)),
 								socket,
 								std::forward<Proxy>(proxy),
@@ -655,7 +654,7 @@ namespace asio2::detail
 		inline void _fire_handshake(std::shared_ptr<derived_t>& this_ptr)
 		{
 			// the _fire_handshake must be executed in the thread 0.
-			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
+			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
 
 			detail::ignore_unused(this_ptr);
 

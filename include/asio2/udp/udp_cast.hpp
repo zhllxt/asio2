@@ -30,9 +30,7 @@
 #include <tuple>
 #include <unordered_map>
 
-#include <asio2/external/asio.hpp>
 #include <asio2/base/iopool.hpp>
-#include <asio2/base/error.hpp>
 #include <asio2/base/listener.hpp>
 
 #include <asio2/base/detail/object.hpp>
@@ -320,6 +318,15 @@ namespace asio2::detail
 				return false;
 			}
 
+			asio::dispatch(derive.io().context(), [this, this_ptr = derive.selfptr()]() mutable
+			{
+				detail::ignore_unused(this_ptr);
+
+				// init the running thread id 
+				if (this->derived().io().get_thread_id() == std::thread::id{})
+					this->derived().io().init_thread_id();
+			});
+
 			// use promise to get the result of async connect
 			std::promise<error_code> promise;
 			std::future<error_code> future = promise.get_future();
@@ -374,10 +381,6 @@ namespace asio2::detail
 						asio::detail::throw_error(asio::error::operation_aborted);
 					}
 
-					// init the running thread id 
-					if (this->derived().io().get_thread_id() == std::thread::id{})
-						this->derived().io().init_thread_id();
-
 					error_code ec_ignore{};
 
 					this->socket_.close(ec_ignore);
@@ -422,7 +425,7 @@ namespace asio2::detail
 				derive._handle_start(get_last_error(), std::move(this_ptr), std::move(condition), std::move(chain));
 			});
 
-			if (!derive.io().strand().running_in_this_thread())
+			if (!derive.io().running_in_this_thread())
 			{
 				set_last_error(future.get());
 
@@ -444,7 +447,7 @@ namespace asio2::detail
 		void _handle_start(error_code ec, std::shared_ptr<derived_t> this_ptr,
 			condition_wrap<MatchCondition> condition, DeferEvent chain)
 		{
-			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
+			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
 
 			try
 			{
@@ -481,7 +484,7 @@ namespace asio2::detail
 		inline void _do_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr,
 			DeferEvent chain = defer_event<void, derived_t>{})
 		{
-			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
+			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
 
 			state_t expected = state_t::starting;
 			if (this->state_.compare_exchange_strong(expected, state_t::stopping))
@@ -569,12 +572,12 @@ namespace asio2::detail
 			{
 				this->socket_.async_receive_from(
 					this->buffer_.prepare(this->buffer_.pre_size()), this->remote_endpoint_,
-					asio::bind_executor(this->io_.strand(), make_allocator(this->rallocator_,
+					make_allocator(this->rallocator_,
 					[this, this_ptr = std::move(this_ptr), condition = std::move(condition)]
 				(const error_code& ec, std::size_t bytes_recvd) mutable
 				{
 					this->derived()._handle_recv(ec, bytes_recvd, std::move(this_ptr), std::move(condition));
-				})));
+				}));
 			}
 			catch (system_error & e)
 			{
@@ -621,7 +624,7 @@ namespace asio2::detail
 		inline void _fire_init()
 		{
 			// the _fire_init must be executed in the thread 0.
-			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
+			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
 			ASIO2_ASSERT(!get_last_error());
 
 			this->listener_.notify(event_type::init);
@@ -639,7 +642,7 @@ namespace asio2::detail
 		inline void _fire_start()
 		{
 			// the _fire_start must be executed in the thread 0.
-			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
+			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
 
 		#if defined(ASIO2_ENABLE_LOG)
 			ASIO2_ASSERT(this->is_stop_called_ == false);
@@ -651,7 +654,7 @@ namespace asio2::detail
 		inline void _fire_stop()
 		{
 			// the _fire_stop must be executed in the thread 0.
-			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
+			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
 
 		#if defined(ASIO2_ENABLE_LOG)
 			this->is_stop_called_ = true;
@@ -694,7 +697,7 @@ namespace asio2::detail
 		/// listener 
 		listener_t                                  listener_;
 
-		/// The io (include io_context and strand) used to handle the connect/recv/send event.
+		/// The io_context wrapper used to handle the connect/recv/send event.
 		io_t                                      & io_;
 
 		/// buffer

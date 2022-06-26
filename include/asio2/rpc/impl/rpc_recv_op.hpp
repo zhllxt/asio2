@@ -20,7 +20,6 @@
 #include <utility>
 #include <string_view>
 
-#include <asio2/external/asio.hpp>
 #include <asio2/base/error.hpp>
 #include <asio2/base/detail/condition_wrap.hpp>
 
@@ -102,7 +101,7 @@ namespace asio2::detail
 						// call this function will deserialize data, so it maybe throw some exception,
 						// and it will call user function inner, the user function maybe throw some 
 						// exception also.
-						if ((*fn)(this_ptr, &derive, sr, dr))
+						if ((*fn)(this_ptr, std::addressof(derive), sr, dr))
 							return;
 
 						// The number of parameters passed in when calling rpc function exceeds 

@@ -23,9 +23,7 @@
 #include <chrono>
 #include <mutex>
 
-#include <asio2/external/asio.hpp>
 #include <asio2/base/iopool.hpp>
-#include <asio2/base/error.hpp>
 
 #include <asio2/base/detail/object.hpp>
 #include <asio2/base/detail/allocator.hpp>
@@ -80,7 +78,7 @@ namespace asio2
 				this->event_life_flag_ = true;
 			}
 
-			this->event_timer_io_.timers().emplace(&event_timer_);
+			this->event_timer_io_.timers().emplace(std::addressof(event_timer_));
 
 			// Setting expiration to infinity will cause handlers to
 			// wait on the timer until cancelled.
@@ -91,7 +89,7 @@ namespace asio2
 			// the "handler" has hold the derive_ptr already, so this lambda don't need hold it again.
 			// this event_ptr (means selfptr) has holded by the map "async_events_" already, 
 			// so this lambda don't need hold selfptr again.
-			this->event_timer_.async_wait(asio::bind_executor(this->event_timer_io_.strand(),
+			this->event_timer_.async_wait(
 			[this, handler = std::forward<WaitHandler>(handler)](const error_code& ec) mutable
 			{
 				ASIO2_ASSERT((!ec) || ec == asio::error::operation_aborted);
@@ -105,10 +103,10 @@ namespace asio2
 					this->event_life_flag_ = false;
 				}
 
-				this->event_timer_io_.timers().erase(&event_timer_);
+				this->event_timer_io_.timers().erase(std::addressof(event_timer_));
 
 				handler();
-			}));
+			});
 		}
 
 	public:
@@ -127,7 +125,7 @@ namespace asio2
 			if (this->event_life_flag_ == false)
 				return;
 
-			asio::dispatch(this->event_timer_io_.strand(), [this, this_ptr = this->selfptr()]() mutable
+			asio::dispatch(this->event_timer_io_.context(), [this, this_ptr = this->selfptr()]() mutable
 			{
 				detail::ignore_unused(this_ptr);
 
@@ -137,7 +135,7 @@ namespace asio2
 		}
 
 	protected:
-		/// The io (include io_context and strand) used for the timer.
+		/// The io used for the timer.
 		detail::io_t                      & event_timer_io_;
 
 		/// Used to implementing asynchronous async_event
@@ -180,7 +178,7 @@ namespace asio2::detail
 
 			std::shared_ptr<async_event> event_ptr = std::make_shared<async_event>(derive.io());
 
-			asio::dispatch(derive.io().strand(), make_allocator(derive.wallocator(),
+			asio::dispatch(derive.io().context(), make_allocator(derive.wallocator(),
 			[this, this_ptr = derive.selfptr(), event_ptr, f = std::forward<Function>(f)]() mutable
 			{
 				async_event* evt = event_ptr.get();
@@ -205,10 +203,10 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			// Make sure we run on the strand
-			if (!derive.io().strand().running_in_this_thread())
+			// Make sure we run on the io_context thread
+			if (!derive.io().running_in_this_thread())
 			{
-				asio::post(derive.io().strand(), make_allocator(derive.wallocator(),
+				asio::post(derive.io().context(), make_allocator(derive.wallocator(),
 				[this, this_ptr = derive.selfptr()]() mutable
 				{
 					this->notify_all_events();

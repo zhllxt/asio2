@@ -49,7 +49,7 @@ int main()
 			// in the client's io_context thread, not in this new thread.
 			client.post([&]()
 			{
-				ASIO2_ASSERT(client.io().strand().running_in_this_thread());
+				ASIO2_ASSERT(client.running_in_this_thread());
 
 				std::string str;
 				str += '<';

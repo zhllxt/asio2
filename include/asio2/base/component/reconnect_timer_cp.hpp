@@ -17,9 +17,7 @@
 
 #include <chrono>
 
-#include <asio2/external/asio.hpp>
 #include <asio2/base/iopool.hpp>
-#include <asio2/base/error.hpp>
 #include <asio2/base/log.hpp>
 
 namespace asio2::detail
@@ -116,9 +114,9 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			if (!derive.io().strand().running_in_this_thread())
+			if (!derive.io().running_in_this_thread())
 			{
-				asio::post(derive.io().strand(), make_allocator(derive.wallocator(),
+				asio::post(derive.io().context(), make_allocator(derive.wallocator(),
 				[this, this_ptr = std::move(this_ptr), f = std::forward<Callback>(f), delay]() mutable
 				{
 					this->_post_reconnect_timer(std::move(this_ptr), std::move(f), delay);
@@ -132,12 +130,12 @@ namespace asio2::detail
 		#endif
 
 			this->reconnect_timer_.expires_after(delay);
-			this->reconnect_timer_.async_wait(asio::bind_executor(derive.io().strand(),
+			this->reconnect_timer_.async_wait(
 			[&derive, self_ptr = std::move(this_ptr), f = std::forward<Callback>(f)]
 			(const error_code & ec) mutable
 			{
 				derive._handle_reconnect_timer(ec, std::move(self_ptr), std::move(f));
-			}));
+			});
 		}
 
 	protected:
@@ -146,9 +144,9 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			if (!derive.io().strand().running_in_this_thread())
+			if (!derive.io().running_in_this_thread())
 			{
-				asio::post(derive.io().strand(), make_allocator(derive.wallocator(),
+				asio::post(derive.io().context(), make_allocator(derive.wallocator(),
 				[this, this_ptr = std::move(this_ptr), f = std::forward<Callback>(f)]() mutable
 				{
 					this->_make_reconnect_timer(std::move(this_ptr), std::move(f));
@@ -214,7 +212,7 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			if (!derive.io().strand().running_in_this_thread())
+			if (!derive.io().running_in_this_thread())
 			{
 				derive.post([this]() mutable
 				{
@@ -237,7 +235,7 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			if (!derive.io().strand().running_in_this_thread())
+			if (!derive.io().running_in_this_thread())
 			{
 				derive.post([this]() mutable
 				{

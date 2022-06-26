@@ -45,10 +45,18 @@
     http://www.boost.org/LICENSE_1_0.txt) */
 
 #if defined(_MSC_VER) && !defined(__clang__)
+#if defined(ASIO2_ENABLE_CEREAL_DLL_EXPORT)
 #   define CEREAL_DLL_EXPORT __declspec(dllexport)
+#else
+#   define CEREAL_DLL_EXPORT 
+#endif
 #   define CEREAL_USED
 #else // clang or gcc
+#if defined(ASIO2_ENABLE_CEREAL_DLL_EXPORT)
 #   define CEREAL_DLL_EXPORT __attribute__ ((visibility("default")))
+#else
+#   define CEREAL_DLL_EXPORT 
+#endif
 #   define CEREAL_USED __attribute__ ((__used__))
 #endif
 

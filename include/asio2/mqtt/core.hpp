@@ -339,7 +339,7 @@ namespace asio2::mqtt
 
 		inline one_byte_integer& serialize(std::vector<asio::const_buffer>& buffers)
 		{
-			buffers.emplace_back(&value_, required_size());
+			buffers.emplace_back(std::addressof(value_), required_size());
 			return (*this);
 		}
 
@@ -351,7 +351,7 @@ namespace asio2::mqtt
 		{
 			static_assert(sizeof(typename Container::value_type) == std::size_t(1));
 
-			auto* p = reinterpret_cast<typename Container::const_pointer>(&value_);
+			auto* p = reinterpret_cast<typename Container::const_pointer>(std::addressof(value_));
 
 			buffer.insert(buffer.end(), p, p + required_size());
 
@@ -426,7 +426,7 @@ namespace asio2::mqtt
 
 		inline two_byte_integer& serialize(std::vector<asio::const_buffer>& buffers)
 		{
-			buffers.emplace_back(&value_, required_size());
+			buffers.emplace_back(std::addressof(value_), required_size());
 			return (*this);
 		}
 
@@ -438,7 +438,7 @@ namespace asio2::mqtt
 		{
 			static_assert(sizeof(typename Container::value_type) == std::size_t(1));
 
-			auto* p = reinterpret_cast<typename Container::const_pointer>(&value_);
+			auto* p = reinterpret_cast<typename Container::const_pointer>(std::addressof(value_));
 
 			buffer.insert(buffer.end(), p, p + required_size());
 
@@ -518,7 +518,7 @@ namespace asio2::mqtt
 
 		inline four_byte_integer& serialize(std::vector<asio::const_buffer>& buffers)
 		{
-			buffers.emplace_back(&value_, required_size());
+			buffers.emplace_back(std::addressof(value_), required_size());
 			return (*this);
 		}
 
@@ -530,7 +530,7 @@ namespace asio2::mqtt
 		{
 			static_assert(sizeof(typename Container::value_type) == std::size_t(1));
 
-			auto* p = reinterpret_cast<typename Container::const_pointer>(&value_);
+			auto* p = reinterpret_cast<typename Container::const_pointer>(std::addressof(value_));
 
 			buffer.insert(buffer.end(), p, p + required_size());
 

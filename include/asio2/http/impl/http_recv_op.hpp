@@ -22,6 +22,7 @@
 
 #include <asio2/external/asio.hpp>
 #include <asio2/external/beast.hpp>
+
 #include <asio2/base/error.hpp>
 
 #include <asio2/http/detail/http_util.hpp>
@@ -66,23 +67,23 @@ namespace asio2::detail
 
 						// Read a request
 						http::async_read(derive.stream(), derive.buffer().base(), derive.req_,
-							asio::bind_executor(derive.io().strand(), make_allocator(derive.rallocator(),
+							make_allocator(derive.rallocator(),
 								[&derive, self_ptr = std::move(this_ptr), condition = std::move(condition)]
 						(const error_code & ec, std::size_t bytes_recvd) mutable
 						{
 							derive._handle_recv(ec, bytes_recvd, std::move(self_ptr), std::move(condition));
-						})));
+						}));
 					}
 					else
 					{
 						// Read a message into our buffer
 						derive.ws_stream().async_read(derive.buffer().base(),
-							asio::bind_executor(derive.io().strand(), make_allocator(derive.rallocator(),
+							make_allocator(derive.rallocator(),
 								[&derive, self_ptr = std::move(this_ptr), condition = std::move(condition)]
 						(const error_code & ec, std::size_t bytes_recvd) mutable
 						{
 							derive._handle_recv(ec, bytes_recvd, std::move(self_ptr), std::move(condition));
-						})));
+						}));
 					}
 				}
 				else
@@ -93,12 +94,12 @@ namespace asio2::detail
 
 					// Receive the HTTP response
 					http::async_read(derive.stream(), derive.buffer().base(), derive.rep_,
-						asio::bind_executor(derive.io().strand(), make_allocator(derive.rallocator(),
+						make_allocator(derive.rallocator(),
 							[&derive, self_ptr = std::move(this_ptr), condition = std::move(condition)]
 					(const error_code & ec, std::size_t bytes_recvd) mutable
 					{
 						derive._handle_recv(ec, bytes_recvd, std::move(self_ptr), condition);
-					})));
+					}));
 				}
 			}
 			catch (system_error & e)
@@ -133,7 +134,7 @@ namespace asio2::detail
 					{
 						std::string_view target = derive.req_.target();
 						http::parses::http_parser_parse_url(
-							target.data(), target.size(), 0, &(derive.req_.url_.parser()));
+							target.data(), target.size(), 0, std::addressof(derive.req_.url_.parser()));
 
 						if (derive._check_upgrade(this_ptr, condition))
 							return;

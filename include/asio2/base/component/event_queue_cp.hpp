@@ -25,9 +25,7 @@
 #include <utility>
 #include <string_view>
 
-#include <asio2/external/asio.hpp>
 #include <asio2/base/iopool.hpp>
-#include <asio2/base/error.hpp>
 
 #include <asio2/base/detail/util.hpp>
 #include <asio2/base/detail/function_traits.hpp>
@@ -56,7 +54,7 @@ namespace asio2::detail
 	protected:
 		// the valid guard can only be created by event_queue_cp
 		explicit event_queue_guard(derived_t& d) noexcept
-			: derive(&d), derive_ptr_(d.selfptr()), valid_(true)
+			: derive(std::addressof(d)), derive_ptr_(d.selfptr()), valid_(true)
 		{
 		}
 
@@ -416,8 +414,8 @@ namespace asio2::detail
 			// the task2 is in the thread 0, so the task2 will be enqueued directly, In this case, 
 			// task 2 is before task 1 in the queue
 
-			// Make sure we run on the strand
-			if (derive.io().strand().running_in_this_thread())
+			// Make sure we run on the io_context thread
+			if (derive.io().running_in_this_thread())
 			{
 				bool empty = this->events_.empty();
 				this->events_.emplace(std::forward<Callback>(f));
@@ -430,7 +428,7 @@ namespace asio2::detail
 
 			// beacuse the callback "f" hold the derived_ptr already,
 			// so this callback for asio::post don't need hold the derived_ptr again.
-			asio::post(derive.io().strand(), make_allocator(derive.wallocator(),
+			asio::post(derive.io().context(), make_allocator(derive.wallocator(),
 			[this, f = std::forward<Callback>(f)]() mutable
 			{
 				ASIO2_ASSERT(this->events_.size() < std::size_t(32767));
@@ -464,7 +462,7 @@ namespace asio2::detail
 			}
 			else
 			{
-				ASIO2_ASSERT(derive.io().strand().running_in_this_thread());
+				ASIO2_ASSERT(derive.io().running_in_this_thread());
 
 				f(std::move(guard));
 			}
@@ -481,8 +479,8 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			// Make sure we run on the strand
-			if (derive.io().strand().running_in_this_thread())
+			// Make sure we run on the io_context thread
+			if (derive.io().running_in_this_thread())
 			{
 				ASIO2_ASSERT(!g.is_empty());
 				ASIO2_ASSERT(!this->events_.empty());
@@ -511,7 +509,7 @@ namespace asio2::detail
 			// must hold the derived_ptr, beacuse next_event is called by event_queue_guard, when
 			// event_queue_guard is destroyed, the event queue and event_queue_guard maybe has't
 			// hold derived object both.
-			asio::post(derive.io().strand(), make_allocator(derive.wallocator(),
+			asio::post(derive.io().context(), make_allocator(derive.wallocator(),
 			[this, p = derive.selfptr(), g = std::move(g)]() mutable
 			{
 				ASIO2_ASSERT(!g.is_empty());

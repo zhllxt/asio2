@@ -230,9 +230,9 @@ namespace asio2::detail
 		{
 			ASIO2_ASSERT(this->is_http());
 
-			if (!this->derived().io().strand().running_in_this_thread())
+			if (!this->derived().io().running_in_this_thread())
 			{
-				asio::post(this->derived().io().strand(), make_allocator(this->derived().wallocator(),
+				asio::post(this->derived().io().context(), make_allocator(this->derived().wallocator(),
 				[this, this_ptr = std::move(this_ptr), condition = std::move(condition)]() mutable
 				{
 					this->derived()._send_response(std::move(this_ptr), std::move(condition));
@@ -336,7 +336,7 @@ namespace asio2::detail
 
 					asio::detail::throw_error(ec);
 
-					asio::post(this->derived().io().strand(), make_allocator(this->derived().wallocator(),
+					asio::post(this->derived().io().context(), make_allocator(this->derived().wallocator(),
 					[this, this_ptr = std::move(this_ptr), condition = std::move(condition), chain = std::move(chain)]
 					() mutable
 					{
@@ -437,7 +437,7 @@ namespace asio2::detail
 		inline void _fire_upgrade(std::shared_ptr<derived_t>& this_ptr)
 		{
 			// the _fire_upgrade must be executed in the thread 0.
-			ASIO2_ASSERT(this->sessions().io().strand().running_in_this_thread());
+			ASIO2_ASSERT(this->sessions().io().running_in_this_thread());
 
 			this->listener_.notify(event_type::upgrade, this_ptr);
 		}

@@ -21,7 +21,6 @@
 #include <functional>
 #include <type_traits>
 
-#include <asio2/external/asio.hpp>
 #include <asio2/base/error.hpp>
 #include <asio2/base/define.hpp>
 

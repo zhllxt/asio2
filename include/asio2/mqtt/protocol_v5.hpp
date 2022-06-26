@@ -1038,31 +1038,11 @@ namespace asio2::mqtt::v5
 		}
 
 		/**
-		 * @function If this holds the alternative T, returns a pointer to the value stored in the variant.
-		 * Otherwise, returns a null pointer value.
-		 */
-		template<class T>
-		inline std::add_pointer_t<const T> get_if() noexcept
-		{
-			return std::get_if<T>(std::addressof(this->base()));
-		}
-
-		/**
 		 * @function If this holds the alternative T, returns a reference to the value stored in the variant.
 		 * Otherwise, throws std::bad_variant_access.
 		 */
 		template<class T>
 		inline T& get()
-		{
-			return std::get<T>(this->base());
-		}
-
-		/**
-		 * @function If this holds the alternative T, returns a reference to the value stored in the variant.
-		 * Otherwise, throws std::bad_variant_access.
-		 */
-		template<class T>
-		inline const T& get()
 		{
 			return std::get<T>(this->base());
 		}
@@ -1190,7 +1170,7 @@ namespace asio2::mqtt::v5
 		{
 			for (auto& v : data_)
 			{
-				if (auto pval = std::get_if<T>(&v))
+				if (auto pval = std::get_if<T>(std::addressof(v)))
 					return pval;
 			}
 			return nullptr;
@@ -3089,6 +3069,38 @@ namespace asio2::mqtt::v5
 
 		// The AUTH packet has no Payload.
 	};
+}
+
+namespace asio2::mqtt
+{
+	template<typename message_type>
+	inline constexpr bool is_v5_message()
+	{
+		using type = asio2::detail::remove_cvref_t<message_type>;
+		if constexpr (
+			std::is_same_v<type, mqtt::v5::connect     > ||
+			std::is_same_v<type, mqtt::v5::connack     > ||
+			std::is_same_v<type, mqtt::v5::publish     > ||
+			std::is_same_v<type, mqtt::v5::puback      > ||
+			std::is_same_v<type, mqtt::v5::pubrec      > ||
+			std::is_same_v<type, mqtt::v5::pubrel      > ||
+			std::is_same_v<type, mqtt::v5::pubcomp     > ||
+			std::is_same_v<type, mqtt::v5::subscribe   > ||
+			std::is_same_v<type, mqtt::v5::suback      > ||
+			std::is_same_v<type, mqtt::v5::unsubscribe > ||
+			std::is_same_v<type, mqtt::v5::unsuback    > ||
+			std::is_same_v<type, mqtt::v5::pingreq     > ||
+			std::is_same_v<type, mqtt::v5::pingresp    > ||
+			std::is_same_v<type, mqtt::v5::disconnect  > ||
+			std::is_same_v<type, mqtt::v5::auth        > )
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
 }
 
 #endif // !__ASIO2_MQTT_PROTOCOL_V5_HPP__

@@ -211,6 +211,8 @@ int main()
 
 	client.start(host, port, std::move(connect));
 
+    [[maybe_unused]] auto cid = client.get_client_id();
+
 	while (std::getchar() != '\n');
 
 	return 0;

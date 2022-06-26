@@ -16,7 +16,6 @@
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
 #include <asio2/base/iopool.hpp>
-#include <asio2/base/error.hpp>
 #include <asio2/base/define.hpp>
 
 #include <asio2/external/magic_enum.hpp>
@@ -323,7 +322,7 @@ namespace asio2::detail
 		template<class F, class C>
 		inline void _bind(mqtt::control_packet_type type, F f, C& c)
 		{
-			this->_do_bind(type, std::move(f), &c);
+			this->_do_bind(type, std::move(f), std::addressof(c));
 		}
 
 		template<class F, class C>
@@ -950,7 +949,7 @@ namespace asio2::detail
 		inline void _call_mqtt_handler(mqtt::control_packet_type type, error_code& ec,
 			std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, std::string_view& data)
 		{
-			ASIO2_ASSERT(caller->io().strand().running_in_this_thread());
+			ASIO2_ASSERT(caller->io().running_in_this_thread());
 
 			handler_type* f = nullptr;
 
@@ -978,7 +977,7 @@ namespace asio2::detail
 
 			// post a async event to disconnect, don't call _do_disconnect directly,
 			// otherwise the client's bind_disconnect callback maybe can't be called.
-			asio::post(caller->io().strand(), make_allocator(caller->wallocator(),
+			asio::post(caller->io().context(), make_allocator(caller->wallocator(),
 			[ec, caller_ptr, caller]() mutable
 			{
 				if (caller->state() == state_t::started)

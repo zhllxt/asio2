@@ -150,10 +150,18 @@ namespace asio2::detail
 			std::string_view id{};
 			if (this->connect_message_.index() != std::variant_npos)
 			{
-				std::visit([&id](auto& connect) mutable
+				if /**/ (std::holds_alternative<mqtt::v3::connect>(connect_message_.base()))
 				{
-					id = connect.client_id();
-				}, this->connect_message_);
+					id = this->connect_message_.template get_if<mqtt::v3::connect>()->client_id();
+				}
+				else if (std::holds_alternative<mqtt::v4::connect>(connect_message_.base()))
+				{
+					id = this->connect_message_.template get_if<mqtt::v4::connect>()->client_id();
+				}
+				else if (std::holds_alternative<mqtt::v5::connect>(connect_message_.base()))
+				{
+					id = this->connect_message_.template get_if<mqtt::v5::connect>()->client_id();
+				}
 			}
 			return id;
 		}
@@ -201,20 +209,20 @@ namespace asio2::detail
 			detail::ignore_unused(ec);
 
 			ASIO2_ASSERT(!ec);
-			ASIO2_ASSERT(this->derived().sessions().io().strand().running_in_this_thread());
+			ASIO2_ASSERT(this->derived().sessions().io().running_in_this_thread());
 
-			asio::dispatch(this->derived().io().strand(), make_allocator(this->derived().wallocator(),
+			asio::dispatch(this->derived().io().context(), make_allocator(this->derived().wallocator(),
 			[this, this_ptr = std::move(this_ptr), condition = std::move(condition), chain = std::move(chain)]
 			() mutable
 			{
 				derived_t& derive = this->derived();
 
-				ASIO2_ASSERT(derive.io().strand().running_in_this_thread());
+				ASIO2_ASSERT(derive.io().running_in_this_thread());
 
 				// wait for the connect message which send by the client.
 				mqtt_recv_connect_op
 				{
-					derive.io().context(), derive.io().strand(),
+					derive.io().context(),
 					derive.stream(),
 					[this, this_ptr = std::move(this_ptr), condition = std::move(condition), chain = std::move(chain)]
 					(error_code ec, std::unique_ptr<asio::streambuf> stream) mutable
@@ -353,7 +361,7 @@ namespace asio2::detail
 		/// user to find session for shared targets
 		std::chrono::nanoseconds::rep                                         shared_target_key_;
 
-		std::variant<mqtt::v3::connect, mqtt::v4::connect, mqtt::v5::connect> connect_message_{};
+		mqtt::message                                                         connect_message_{};
 
 		mqtt::version              version_ = static_cast<mqtt::version>(0);
 	};

@@ -32,9 +32,7 @@
 #include <utility>
 #include <string_view>
 
-#include <asio2/external/asio.hpp>
 #include <asio2/base/iopool.hpp>
-#include <asio2/base/error.hpp>
 #include <asio2/base/define.hpp>
 
 #include <asio2/base/detail/util.hpp>
@@ -454,8 +452,8 @@ namespace asio2::detail
 			std::future<std::pair<error_code, std::size_t>> future = derive.async_send(
 				std::forward<DataT>(data), asio::use_future);
 
-			// Whether we run on the strand
-			if (derive.io().strand().running_in_this_thread())
+			// Whether we run on the io_context thread
+			if (derive.io().running_in_this_thread())
 			{
 				std::future_status status = future.wait_for(std::chrono::nanoseconds(0));
 

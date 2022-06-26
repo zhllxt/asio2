@@ -123,7 +123,7 @@ namespace asio2::mqtt
 						path_entry(parent_id, t, next_node_id++)
 					).first;
 
-					wildcard_map.emplace(parent_id, &(it->second));
+					wildcard_map.emplace(parent_id, std::addressof(it->second));
 
 					if (next_node_id == max_node_id)
 					{
@@ -291,7 +291,7 @@ namespace asio2::mqtt
 
 						for (auto it = range.first; it != range.second; ++it)
 						{
-							if (&(iter->second) == it->second)
+							if (std::addressof(iter->second) == it->second)
 							{
 								wildcard_map.erase(it);
 								break;
@@ -343,7 +343,7 @@ namespace asio2::mqtt
 				path_entry(root_parent_id, "", root_node_id)).first;
 			next_node_id = root_node_id + 1;
 			// 
-			wildcard_map.emplace(root_parent_id, &(it->second));
+			wildcard_map.emplace(root_parent_id, std::addressof(it->second));
 		}
 
 		inline map_iterator get_root()

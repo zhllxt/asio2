@@ -22,8 +22,6 @@
 #include <utility>
 #include <string_view>
 
-#include <asio2/external/asio.hpp>
-#include <asio2/base/error.hpp>
 #include <asio2/base/iopool.hpp>
 
 #include <asio2/base/detail/allocator.hpp>
@@ -69,11 +67,11 @@ namespace asio2::detail
 
 			if constexpr (args_t::is_client)
 			{
-				ASIO2_ASSERT(derive.io().strand().running_in_this_thread());
+				ASIO2_ASSERT(derive.io().running_in_this_thread());
 			}
 			else
 			{
-				ASIO2_ASSERT(derive.sessions().io().strand().running_in_this_thread());
+				ASIO2_ASSERT(derive.sessions().io().running_in_this_thread());
 			}
 
 			// Why put the initialization code of ssl stream here ?
@@ -98,7 +96,7 @@ namespace asio2::detail
 
 			detail::ignore_unused(derive, this_ptr, condition, socket, ctx);
 
-			ASIO2_ASSERT(derive.io().strand().running_in_this_thread());
+			ASIO2_ASSERT(derive.io().running_in_this_thread());
 		}
 
 		template<typename DeferEvent>
@@ -106,7 +104,7 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			ASIO2_ASSERT(derive.io().strand().running_in_this_thread());
+			ASIO2_ASSERT(derive.io().running_in_this_thread());
 
 			if (!this->ssl_stream_)
 				return;
@@ -143,7 +141,7 @@ namespace asio2::detail
 				std::shared_ptr<asio::steady_timer> timer = 
 					std::make_shared<asio::steady_timer>(derive.io().context());
 				timer->expires_after(std::chrono::milliseconds(ssl_shutdown_timeout));
-				timer->async_wait(asio::bind_executor(derive.io().strand(),
+				timer->async_wait(
 				[this_ptr, chain = std::move(chain), SSL_clear_ptr]
 				(const error_code& ec) mutable
 				{
@@ -154,12 +152,12 @@ namespace asio2::detail
 					detail::ignore_unused(this_ptr, chain, SSL_clear_ptr);
 
 					set_last_error(ec);
-				}));
+				});
 
 				// when server call ssl stream sync shutdown first,if the client socket is
 				// not closed forever,then here shutdowm will blocking forever.
-				this->ssl_stream_->async_shutdown(asio::bind_executor(derive.io().strand(),
-					[this_ptr = std::move(this_ptr), timer = std::move(timer), SSL_clear_ptr = std::move(SSL_clear_ptr)]
+				this->ssl_stream_->async_shutdown(
+				[this_ptr = std::move(this_ptr), timer = std::move(timer), SSL_clear_ptr = std::move(SSL_clear_ptr)]
 				(const error_code& ec) mutable
 				{
 					detail::ignore_unused(this_ptr, SSL_clear_ptr);
@@ -170,7 +168,7 @@ namespace asio2::detail
 
 					// clost the timer
 					timer->cancel(ec_ignore);
-				}));
+				});
 			}, chain.move_guard());
 		}
 
@@ -181,7 +179,7 @@ namespace asio2::detail
 			derived_t& derive = static_cast<derived_t&>(*this);
 
 			ASIO2_ASSERT(bool(this->ssl_stream_));
-			ASIO2_ASSERT(derive.io().strand().running_in_this_thread());
+			ASIO2_ASSERT(derive.io().running_in_this_thread());
 
 			// Used to chech whether the ssl handshake is timeout
 			std::shared_ptr<std::atomic_flag> flag_ptr = std::make_shared<std::atomic_flag>();
@@ -191,7 +189,7 @@ namespace asio2::detail
 			std::shared_ptr<asio::steady_timer> timer =
 				std::make_shared<asio::steady_timer>(derive.io().context());
 			timer->expires_after(std::chrono::milliseconds(ssl_handshake_timeout));
-			timer->async_wait(asio::bind_executor(derive.io().strand(),
+			timer->async_wait(
 			[&derive, this_ptr, flag_ptr](const error_code& ec) mutable
 			{
 				detail::ignore_unused(this_ptr);
@@ -208,10 +206,9 @@ namespace asio2::detail
 					derive.socket().lowest_layer().shutdown(asio::socket_base::shutdown_both, ec_ignore);
 					derive.socket().lowest_layer().close(ec_ignore);
 				}
-			}));
+			});
 
-			this->ssl_stream_->async_handshake(this->ssl_type_,
-				asio::bind_executor(derive.io().strand(), make_allocator(derive.wallocator(),
+			this->ssl_stream_->async_handshake(this->ssl_type_, make_allocator(derive.wallocator(),
 			[&derive, self_ptr = std::move(this_ptr), condition = std::move(condition),
 				flag_ptr = std::move(flag_ptr), timer = std::move(timer), chain = std::move(chain)]
 			(const error_code& ec) mutable
@@ -227,7 +224,7 @@ namespace asio2::detail
 				else
 					derive._handle_handshake(ec,
 						std::move(self_ptr), std::move(condition), std::move(chain));
-			})));
+			}));
 		}
 
 		template<typename MatchCondition, typename DeferEvent>

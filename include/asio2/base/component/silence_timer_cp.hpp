@@ -17,9 +17,7 @@
 
 #include <chrono>
 
-#include <asio2/external/asio.hpp>
 #include <asio2/base/iopool.hpp>
-#include <asio2/base/error.hpp>
 #include <asio2/base/log.hpp>
 
 namespace asio2::detail
@@ -68,9 +66,9 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			if (!derive.io().strand().running_in_this_thread())
+			if (!derive.io().running_in_this_thread())
 			{
-				asio::post(derive.io().strand(), make_allocator(derive.wallocator(),
+				asio::post(derive.io().context(), make_allocator(derive.wallocator(),
 				[this, this_ptr = std::move(this_ptr), duration]() mutable
 				{
 					this->_post_silence_timer(duration, std::move(this_ptr));
@@ -89,11 +87,11 @@ namespace asio2::detail
 			if (duration > std::chrono::duration<Rep, Period>::zero())
 			{
 				this->silence_timer_.expires_after(duration);
-				this->silence_timer_.async_wait(asio::bind_executor(derive.io().strand(),
+				this->silence_timer_.async_wait(
 				[&derive, self_ptr = std::move(this_ptr)](const error_code & ec) mutable
 				{
 					derive._handle_silence_timer(ec, std::move(self_ptr));
-				}));
+				});
 			}
 		}
 
@@ -139,7 +137,7 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			if (!derive.io().strand().running_in_this_thread())
+			if (!derive.io().running_in_this_thread())
 			{
 				derive.post([this]() mutable
 				{

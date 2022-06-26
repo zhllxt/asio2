@@ -153,7 +153,6 @@ namespace asio2::detail
 
 				// The io_context is required for all I/O
 				asio::io_context ioc;
-				asio::io_context::strand strand(ioc);
 
 				// These objects perform our I/O
 				asio::ip::tcp::resolver resolver{ ioc };
@@ -179,7 +178,7 @@ namespace asio2::detail
 
 							detail::socks5_client_connect_op
 							{
-								ioc, strand,
+								ioc,
 								to_string(std::forward<String>(host)), to_string(std::forward<StrOrInt>(port)),
 								socket,
 								std::forward<Proxy>(proxy),

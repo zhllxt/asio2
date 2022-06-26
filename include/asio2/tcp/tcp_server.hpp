@@ -305,6 +305,15 @@ namespace asio2::detail
 				return false;
 			}
 
+			asio::dispatch(derive.io().context(), [this, this_ptr = derive.selfptr()]() mutable
+			{
+				detail::ignore_unused(this_ptr);
+
+				// init the running thread id 
+				if (this->derived().io().get_thread_id() == std::thread::id{})
+					this->derived().io().init_thread_id();
+			});
+
 			// use promise to get the result of async accept
 			std::promise<error_code> promise;
 			std::future<error_code> future = promise.get_future();
@@ -408,7 +417,7 @@ namespace asio2::detail
 				derive._handle_start(get_last_error(), std::move(this_ptr), std::move(condition));
 			});
 
-			if (!derive.io().strand().running_in_this_thread())
+			if (!derive.io().running_in_this_thread())
 			{
 				set_last_error(future.get());
 
@@ -430,7 +439,7 @@ namespace asio2::detail
 		inline void _handle_start(
 			error_code ec, std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
 		{
-			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
+			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
 
 			try
 			{
@@ -463,7 +472,7 @@ namespace asio2::detail
 
 		inline void _do_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
 		{
-			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
+			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
 
 			state_t expected = state_t::starting;
 			if (this->state_.compare_exchange_strong(expected, state_t::stopping))
@@ -480,9 +489,9 @@ namespace asio2::detail
 			// if you close socket in one thread and another thread is
 			// calling socket's async_... function,it will crash.so we
 			// must care for operate the socket. when need close the 
-			// socket ,we use the strand to post a event,make sure the
+			// socket ,we use the io_context to post a event,make sure the
 			// socket's close operation is in the same thread.
-			asio::dispatch(this->derived().io().strand(), make_allocator(this->derived().wallocator(),
+			asio::dispatch(this->derived().io().context(), make_allocator(this->derived().wallocator(),
 			[this, ec, old_state, this_ptr = std::move(this_ptr)]() mutable
 			{
 				detail::ignore_unused(this, ec, old_state, this_ptr);
@@ -491,7 +500,7 @@ namespace asio2::detail
 
 				// start timer to hold the acceptor io_context
 				this->counter_timer_.expires_after((std::chrono::nanoseconds::max)());
-				this->counter_timer_.async_wait(asio::bind_executor(this->io_.strand(), [](const error_code&) {}));
+				this->counter_timer_.async_wait([](const error_code&) {});
 
 				// stop all the sessions, the session::stop must be no blocking,
 				// otherwise it may be cause loop lock.
@@ -520,7 +529,7 @@ namespace asio2::detail
 			// use asio::post to ensure this server's _handle_stop is called must be after 
 			// all sessions _handle_stop has been called already.
 			// if use asio::dispatch, session's _handle_stop maybe called first.
-			asio::post(this->derived().io().strand(), make_allocator(this->derived().wallocator(),
+			asio::post(this->derived().io().context(), make_allocator(this->derived().wallocator(),
 			[this, ec, this_ptr = std::move(this_ptr)]() mutable
 			{
 				state_t expected = state_t::stopping;
@@ -581,7 +590,7 @@ namespace asio2::detail
 		template<typename MatchCondition>
 		inline void _post_accept(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
 		{
-			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
+			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
 
 			if (!this->is_started())
 				return;
@@ -591,13 +600,12 @@ namespace asio2::detail
 				std::shared_ptr<session_t> session_ptr = this->derived()._make_session();
 
 				auto& socket = session_ptr->socket().lowest_layer();
-				this->acceptor_.async_accept(socket, asio::bind_executor(this->io_.strand(),
-					make_allocator(this->rallocator_,
-						[this, sptr = std::move(session_ptr), this_ptr = std::move(this_ptr), condition]
+				this->acceptor_.async_accept(socket, make_allocator(this->rallocator_,
+				[this, sptr = std::move(session_ptr), this_ptr = std::move(this_ptr), condition]
 				(const error_code& ec) mutable
 				{
 					this->derived()._handle_accept(ec, std::move(sptr), std::move(this_ptr), std::move(condition));
-				})));
+				}));
 			}
 			// handle exception, may be is the exception "Too many open files" (exception code : 24)
 			// asio::error::no_descriptors - Too many open files
@@ -608,7 +616,7 @@ namespace asio2::detail
 				std::shared_ptr<derived_t> self_ptr = this->derived().selfptr();
 
 				this->acceptor_timer_.expires_after(std::chrono::seconds(1));
-				this->acceptor_timer_.async_wait(asio::bind_executor(this->io_.strand(),
+				this->acceptor_timer_.async_wait(
 				[this, self_ptr = std::move(self_ptr), condition = std::move(condition)]
 				(const error_code& ec) mutable
 				{
@@ -619,7 +627,7 @@ namespace asio2::detail
 					{
 						this->derived()._post_accept(std::move(self_ptr), std::move(condition));
 					});
-				}));
+				});
 			}
 		}
 
@@ -648,7 +656,7 @@ namespace asio2::detail
 		inline void _fire_init()
 		{
 			// the _fire_init must be executed in the thread 0.
-			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
+			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
 			ASIO2_ASSERT(!get_last_error());
 
 			this->listener_.notify(event_type::init);
@@ -657,7 +665,7 @@ namespace asio2::detail
 		inline void _fire_start()
 		{
 			// the _fire_start must be executed in the thread 0.
-			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
+			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
 
 		#if defined(ASIO2_ENABLE_LOG)
 			ASIO2_ASSERT(this->is_stop_called_ == false);
@@ -669,7 +677,7 @@ namespace asio2::detail
 		inline void _fire_stop()
 		{
 			// the _fire_stop must be executed in the thread 0.
-			ASIO2_ASSERT(this->derived().io().strand().running_in_this_thread());
+			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
 
 		#if defined(ASIO2_ENABLE_LOG)
 			this->is_stop_called_ = true;

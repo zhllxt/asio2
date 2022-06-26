@@ -16,12 +16,11 @@
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
 #include <asio2/base/iopool.hpp>
-#include <asio2/base/error.hpp>
 
 #include <asio2/base/detail/function_traits.hpp>
 #include <asio2/base/detail/util.hpp>
 
-#include <asio2/mqtt/protocol_util.hpp>
+#include <asio2/mqtt/message_util.hpp>
 
 namespace asio2::detail
 {
@@ -144,7 +143,7 @@ namespace asio2::detail
 			}
 
 			//// Potentially allow write access for bridge status, otherwise explicitly deny.
-			//// rc = mosquitto_topic_matches_sub("$SYS/broker/connection/+/state", topic, &match);
+			//// rc = mosquitto_topic_matches_sub("$SYS/broker/connection/+/state", topic, std::addressof(match));
 			//if (topic_name.compare(0, 4, "$SYS") == 0)
 			//{
 			//	ec = mqtt::make_error_code(mqtt::error::topic_name_invalid);
@@ -190,7 +189,7 @@ namespace asio2::detail
 			{
 				// use post and push_event to ensure the publish message is sent to clients must
 				// after mqtt response is sent already.
-				asio::post(caller->io().strand(), make_allocator(caller->wallocator(),
+				asio::post(caller->io().context(), make_allocator(caller->wallocator(),
 				[this, caller, caller_ptr, msg = std::move(msg), topic_name = std::string(topic_name)]
 				() mutable
 				{

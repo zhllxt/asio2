@@ -170,15 +170,15 @@ namespace asio2::detail
 		 */
 		inline mqtt::version get_version()
 		{
-			if /**/ (std::holds_alternative<mqtt::v3::connect>(connect_message_))
+			if /**/ (std::holds_alternative<mqtt::v3::connect>(connect_message_.base()))
 			{
 				return mqtt::version::v3;
 			}
-			else if (std::holds_alternative<mqtt::v4::connect>(connect_message_))
+			else if (std::holds_alternative<mqtt::v4::connect>(connect_message_.base()))
 			{
 				return mqtt::version::v4;
 			}
-			else if (std::holds_alternative<mqtt::v5::connect>(connect_message_))
+			else if (std::holds_alternative<mqtt::v5::connect>(connect_message_.base()))
 			{
 				return mqtt::version::v5;
 			}
@@ -203,11 +203,22 @@ namespace asio2::detail
 			std::string_view v{};
 			if (this->connect_message_.index() != std::variant_npos)
 			{
-				std::visit([&v](auto& m) mutable { v = m.client_id(); }, this->connect_message_);
+				if /**/ (std::holds_alternative<mqtt::v3::connect>(connect_message_.base()))
+				{
+					v = connect_message_.template get<mqtt::v3::connect>().client_id();
+				}
+				else if (std::holds_alternative<mqtt::v4::connect>(connect_message_.base()))
+				{
+					v = connect_message_.template get<mqtt::v4::connect>().client_id();
+				}
+				else if (std::holds_alternative<mqtt::v5::connect>(connect_message_.base()))
+				{
+					v = connect_message_.template get<mqtt::v5::connect>().client_id();
+				}
 			}
 			if (v.empty())
 			{
-				if (mqtt::v5::connack* m = std::get_if<mqtt::v5::connack>(&connack_message_))
+				if (mqtt::v5::connack* m = std::get_if<mqtt::v5::connack>(std::addressof(connack_message_.base())))
 				{
 					mqtt::v5::assigned_client_identifier* p =
 						m->properties().get_if<mqtt::v5::assigned_client_identifier>();
@@ -240,7 +251,7 @@ namespace asio2::detail
 			// MQTT Control Packets, the Client MUST send a PINGREQ packet [MQTT-3.1.2-20].
 			// If the Server returns a Server Keep Alive on the CONNACK packet, the Client MUST 
 			// use that value instead of the value it sent as the Keep Alive [MQTT-3.1.2-21].
-			if (mqtt::v5::connack* m = std::get_if<mqtt::v5::connack>(&connack_message_))
+			if (mqtt::v5::connack* m = std::get_if<mqtt::v5::connack>(std::addressof(connack_message_.base())))
 			{
 				mqtt::v5::server_keep_alive* p =
 					m->properties().get_if<mqtt::v5::server_keep_alive>();
@@ -251,7 +262,18 @@ namespace asio2::detail
 			std::uint16_t v = 60;
 			if (this->connect_message_.index() != std::variant_npos)
 			{
-				std::visit([&v](auto& m) mutable { v = m.keep_alive(); }, this->connect_message_);
+				if /**/ (std::holds_alternative<mqtt::v3::connect>(connect_message_.base()))
+				{
+					v = this->connect_message_.template get_if<mqtt::v3::connect>()->keep_alive();
+				}
+				else if (std::holds_alternative<mqtt::v4::connect>(connect_message_.base()))
+				{
+					v = this->connect_message_.template get_if<mqtt::v4::connect>()->keep_alive();
+				}
+				else if (std::holds_alternative<mqtt::v5::connect>(connect_message_.base()))
+				{
+					v = this->connect_message_.template get_if<mqtt::v5::connect>()->keep_alive();
+				}
 			}
 			return v;
 		}
@@ -287,21 +309,21 @@ namespace asio2::detail
 		{
 			if constexpr /**/ (mqtt::version::v3 == v)
 			{
-				return std::get<mqtt::v3::connect>(this->connect_message_);
+				return std::get<mqtt::v3::connect>(this->connect_message_.base());
 			}
 			else if constexpr (mqtt::version::v4 == v)
 			{
-				return std::get<mqtt::v4::connect>(this->connect_message_);
+				return std::get<mqtt::v4::connect>(this->connect_message_.base());
 			}
 			else if constexpr (mqtt::version::v5 == v)
 			{
-				return std::get<mqtt::v5::connect>(this->connect_message_);
+				return std::get<mqtt::v5::connect>(this->connect_message_.base());
 			}
 			else
 			{
 				ASIO2_ASSERT(false);
 				set_last_error(asio::error::invalid_argument);
-				return std::get<mqtt::v4::connect>(this->connect_message_);
+				return std::get<mqtt::v4::connect>(this->connect_message_.base());
 			}
 		}
 
@@ -429,7 +451,7 @@ namespace asio2::detail
 			// send connect message to server use coroutine 
 			mqtt_send_connect_op
 			{
-				derive.io().context(), derive.io().strand(),
+				derive.io().context(),
 				derive.connect_message_,
 				derive.stream(),
 				[&derive, this_ptr = std::move(this_ptr), condition = std::move(condition), chain = std::move(chain)]
@@ -498,11 +520,11 @@ namespace asio2::detail
 			if (duration > std::chrono::duration<Rep, Period>::zero() && this->is_started())
 			{
 				this->pingreq_timer_.expires_after(duration);
-				this->pingreq_timer_.async_wait(asio::bind_executor(derive.io().strand(),
-					[&derive, self_ptr = std::move(this_ptr)](const error_code& ec) mutable
+				this->pingreq_timer_.async_wait(
+				[&derive, self_ptr = std::move(this_ptr)](const error_code& ec) mutable
 				{
 					derive._handle_pingreq_timer(ec, std::move(self_ptr));
-				}));
+				});
 			}
 		}
 
@@ -607,11 +629,10 @@ namespace asio2::detail
 
 	protected:
 		/// default mqtt version is v4, default client id is a uuid string
-		std::variant<mqtt::v3::connect, mqtt::v4::connect, mqtt::v5::connect> connect_message_ =
-			mqtt::v4::connect{ asio2::uuid().next().str() };
+		mqtt::message                               connect_message_{ mqtt::v4::connect{ asio2::uuid().next().str() } };
 
 		/// 
-		std::variant<mqtt::v3::connack, mqtt::v4::connack, mqtt::v5::connack> connack_message_{};
+		mqtt::message                               connack_message_{};
 
 		/// timer for pingreq
 		asio::steady_timer                          pingreq_timer_;

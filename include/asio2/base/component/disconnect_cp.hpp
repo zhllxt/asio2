@@ -20,9 +20,7 @@
 #include <utility>
 #include <string_view>
 
-#include <asio2/external/asio.hpp>
 #include <asio2/base/iopool.hpp>
-#include <asio2/base/error.hpp>
 #include <asio2/base/listener.hpp>
 #include <asio2/base/detail/condition_wrap.hpp>
 
@@ -55,7 +53,7 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			ASIO2_ASSERT(derive.io().strand().running_in_this_thread());
+			ASIO2_ASSERT(derive.io().running_in_this_thread());
 
 			state_t expected = state_t::started;
 			if (derive.state().compare_exchange_strong(expected, state_t::stopping))
@@ -124,7 +122,7 @@ namespace asio2::detail
 			ASIO2_LOG(spdlog::level::debug, "post disconnect : {}",
 				magic_enum::enum_name(derive.state_.load()));
 
-			// All pending sending events will be cancelled after enter the send strand below.
+			// All pending sending events will be cancelled after enter the callback below.
 			derive.disp_event(
 			[&derive, ec, this_ptr = std::move(this_ptr), old_state, e = chain.move_event()]
 			(event_queue_guard<derived_t> g) mutable
@@ -172,7 +170,7 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			//ASIO2_ASSERT(derive.io().strand().running_in_this_thread());
+			//ASIO2_ASSERT(derive.io().running_in_this_thread());
 
 			state_t expected = state_t::started;
 			if (derive.state().compare_exchange_strong(expected, state_t::stopping))
@@ -193,7 +191,7 @@ namespace asio2::detail
 			// asio don't allow operate the same socket in multi thread,if you close socket
 			// in one thread and another thread is calling socket's async_... function,it 
 			// will crash.so we must care for operate the socket. when need close the 
-			// socket ,we use the strand to post a event,make sure the socket's close 
+			// socket, we use the context to post a event, make sure the socket's close 
 			// operation is in the same thread.
 
 			// First ensure that all send and recv events are not executed again
@@ -210,7 +208,7 @@ namespace asio2::detail
 
 				defer_event chain(std::move(e), std::move(g));
 
-				asio::post(derive.io().strand(), make_allocator(derive.wallocator(),
+				asio::post(derive.io().context(), make_allocator(derive.wallocator(),
 				[&derive, ec, old_state, this_ptr = std::move(this_ptr), chain = std::move(chain)]
 				() mutable
 				{
@@ -233,7 +231,7 @@ namespace asio2::detail
 						}
 
 						// Third we can stop this session and close this socket now.
-						asio::dispatch(derive.io().strand(), make_allocator(derive.wallocator(),
+						asio::dispatch(derive.io().context(), make_allocator(derive.wallocator(),
 						[&derive, ec, this_ptr = std::move(this_ptr), chain = std::move(chain)]
 						() mutable
 						{

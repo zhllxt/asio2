@@ -57,15 +57,39 @@ std::uint32_t header_limit_ = (std::numeric_limits<std::uint32_t>::max)();     /
 ##### Modify file /spdlog/spdlog.h
 ```c++
 // Add header only define.
+#ifndef ASIO2_DISABLE_AUTO_HEADER_ONLY
 #ifndef SPDLOG_HEADER_ONLY
-#  define SPDLOG_HEADER_ONLY
+#define SPDLOG_HEADER_ONLY
+#endif
 #endif
 ```
 
 ##### Modify file /fmt/format.h
 ```c++
 // Add header only define.
+#ifndef ASIO2_DISABLE_AUTO_HEADER_ONLY
 #ifndef FMT_HEADER_ONLY
-#  define FMT_HEADER_ONLY
+#define FMT_HEADER_ONLY
+#endif
+#endif
+```
+
+##### Modify file /cereal/details/static_object.hpp
+```c++
+// Add No CEREAL_DLL_EXPORT define.
+#if defined(_MSC_VER) && !defined(__clang__)
+#if defined(ASIO2_ENABLE_CEREAL_DLL_EXPORT)
+#   define CEREAL_DLL_EXPORT __declspec(dllexport)
+#else
+#   define CEREAL_DLL_EXPORT 
+#endif
+#   define CEREAL_USED
+#else // clang or gcc
+#if defined(ASIO2_ENABLE_CEREAL_DLL_EXPORT)
+#   define CEREAL_DLL_EXPORT __attribute__ ((visibility("default")))
+#else
+#   define CEREAL_DLL_EXPORT 
+#endif
+#   define CEREAL_USED __attribute__ ((__used__))
 #endif
 ```

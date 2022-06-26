@@ -96,7 +96,7 @@ namespace asio2::detail
 
 			auto buffer = asio::buffer(binary);
 
-			asio::async_write(derive.stream(), buffer, asio::bind_executor(derive.io().strand(),
+			asio::async_write(derive.stream(), buffer,
 				make_allocator(derive.wallocator(), [&derive, p = derive.selfptr(),
 					binary = std::move(binary), callback = std::forward<Callback>(callback)]
 			(const error_code& ec, std::size_t bytes_sent) mutable
@@ -113,7 +113,7 @@ namespace asio2::detail
 						derive._do_disconnect(ec, std::move(p));
 					}
 				}
-			})));
+			}));
 
 			return true;
 		}
