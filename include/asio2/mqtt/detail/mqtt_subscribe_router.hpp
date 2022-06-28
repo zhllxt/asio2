@@ -127,7 +127,7 @@ namespace asio2::detail
 			}
 			else
 			{
-				static_assert(false);
+				ASIO2_ASSERT(false);
 			}
 		}
 
@@ -200,7 +200,7 @@ namespace asio2::detail
 
 					auto[_1, inserted] = this->subs_map_.emplace(topic_filter, "", std::move(node));
 
-					asio2::ignore_unused(_1, inserted);
+					asio2::ignore_unused(share_name, topic_filter, _1, inserted);
 				}
 
 				derive.async_send(std::forward<Message>(msg), []()
@@ -220,7 +220,7 @@ namespace asio2::detail
 			}
 			else
 			{
-				static_assert(false);
+				ASIO2_ASSERT(false);
 			}
 		}
 

@@ -1061,13 +1061,22 @@ namespace asio2::mqtt::v5
 	public:
 		properties_set() = default;
 
-		template<class... Properties>
+		template<class... Properties, std::enable_if_t<((
+			std::is_same_v<asio2::detail::remove_cvref_t<Properties>, property> ||
+			is_v5_property<asio2::detail::remove_cvref_t<Properties>>()) && ...), int> = 0>
 		explicit properties_set(Properties&&... Props)
 		{
 			set(std::forward<Properties>(Props)...);
 		}
 
-		template<class... Properties>
+		properties_set(properties_set&&) noexcept = default;
+		properties_set(properties_set const&) = default;
+		properties_set& operator=(properties_set&&) noexcept = default;
+		properties_set& operator=(properties_set const&) = default;
+
+		template<class... Properties, std::enable_if_t<((
+			std::is_same_v<asio2::detail::remove_cvref_t<Properties>, property> ||
+			is_v5_property<asio2::detail::remove_cvref_t<Properties>>()) && ...), int> = 0>
 		inline properties_set& set(Properties&&... Props)
 		{
 			data_.clear();
@@ -1079,7 +1088,9 @@ namespace asio2::mqtt::v5
 			return (*this);
 		}
 
-		template<class... Properties>
+		template<class... Properties, std::enable_if_t<((
+			std::is_same_v<asio2::detail::remove_cvref_t<Properties>, property> ||
+			is_v5_property<asio2::detail::remove_cvref_t<Properties>>()) && ...), int> = 0>
 		inline properties_set& add(Properties&&... Props)
 		{
 			(data_.emplace_back(std::forward<Properties>(Props)), ...);
@@ -1089,7 +1100,9 @@ namespace asio2::mqtt::v5
 			return (*this);
 		}
 
-		template<class Propertie>
+		template<class Propertie, std::enable_if_t<(
+			std::is_same_v<asio2::detail::remove_cvref_t<Propertie>, property> ||
+			is_v5_property<asio2::detail::remove_cvref_t<Propertie>>()), int> = 0>
 		inline properties_set& erase(Propertie&& Prop)
 		{
 			for (auto it = data_.begin(); it != data_.end();)
@@ -1112,7 +1125,9 @@ namespace asio2::mqtt::v5
 			return (*this);
 		}
 
-		template<class Propertie>
+		template<class Propertie, std::enable_if_t<(
+			std::is_same_v<asio2::detail::remove_cvref_t<Propertie>, property> ||
+			is_v5_property<asio2::detail::remove_cvref_t<Propertie>>()), int> = 0>
 		inline properties_set& erase()
 		{
 			for (auto it = data_.begin(); it != data_.end();)
