@@ -65,26 +65,27 @@ namespace asio2::detail
 	template <class, class>                      KEYWORD ws_send_op;                \
 	template <class, class>                      KEYWORD rpc_call_cp;               \
 	template <class, class>                      KEYWORD rpc_recv_op;               \
-	template <class       >                      KEYWORD http_router_t;             \
-	template <class       >                      KEYWORD rpc_invoker_t;             \
+	template <class, class>                      KEYWORD http_router_t;             \
+	template <class, class>                      KEYWORD rpc_invoker_t;             \
 	template <class, class>                      KEYWORD mqtt_send_op;              \
-	template <class       >                      KEYWORD mqtt_handler_t;            \
-	template <class       >                      KEYWORD mqtt_aop_auth       ;      \
-	template <class       >                      KEYWORD mqtt_aop_connack    ;      \
-	template <class       >                      KEYWORD mqtt_aop_connect    ;      \
-	template <class       >                      KEYWORD mqtt_aop_disconnect ;      \
-	template <class       >                      KEYWORD mqtt_aop_pingreq    ;      \
-	template <class       >                      KEYWORD mqtt_aop_pingresp   ;      \
-	template <class       >                      KEYWORD mqtt_aop_puback     ;      \
-	template <class       >                      KEYWORD mqtt_aop_pubcomp    ;      \
-	template <class       >                      KEYWORD mqtt_aop_publish    ;      \
-	template <class       >                      KEYWORD mqtt_aop_pubrec     ;      \
-	template <class       >                      KEYWORD mqtt_aop_pubrel     ;      \
-	template <class       >                      KEYWORD mqtt_aop_suback     ;      \
-	template <class       >                      KEYWORD mqtt_aop_subscribe  ;      \
-	template <class       >                      KEYWORD mqtt_aop_unsuback   ;      \
-	template <class       >                      KEYWORD mqtt_aop_unsubscribe;      \
-	template <class       >                      KEYWORD mqtt_invoker_t;            \
+	template <class, class>                      KEYWORD mqtt_handler_t;            \
+	template <class, class>                      KEYWORD mqtt_aop_auth       ;      \
+	template <class, class>                      KEYWORD mqtt_aop_connack    ;      \
+	template <class, class>                      KEYWORD mqtt_aop_connect    ;      \
+	template <class, class>                      KEYWORD mqtt_aop_disconnect ;      \
+	template <class, class>                      KEYWORD mqtt_aop_pingreq    ;      \
+	template <class, class>                      KEYWORD mqtt_aop_pingresp   ;      \
+	template <class, class>                      KEYWORD mqtt_aop_puback     ;      \
+	template <class, class>                      KEYWORD mqtt_aop_pubcomp    ;      \
+	template <class, class>                      KEYWORD mqtt_aop_publish    ;      \
+	template <class, class>                      KEYWORD mqtt_aop_pubrec     ;      \
+	template <class, class>                      KEYWORD mqtt_aop_pubrel     ;      \
+	template <class, class>                      KEYWORD mqtt_aop_suback     ;      \
+	template <class, class>                      KEYWORD mqtt_aop_subscribe  ;      \
+	template <class, class>                      KEYWORD mqtt_aop_unsuback   ;      \
+	template <class, class>                      KEYWORD mqtt_aop_unsubscribe;      \
+	template <class, class>                      KEYWORD mqtt_invoker_t;            \
+	template <class, class>                      KEYWORD mqtt_subscribe_router_t;   \
 	template <class, class>                      KEYWORD disable_warning_pedantic
 
 #define ASIO2_CLASS_DECLARE_TCP_CLIENT(KEYWORD)                                     \

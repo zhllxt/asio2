@@ -45,7 +45,7 @@ namespace asio2::detail
 {
 	ASIO2_CLASS_FORWARD_DECLARE_BASE;
 
-	template<class derived_t, class args_t = void>
+	template<class derived_t, class args_t>
 	class send_cp : public data_persistence_cp<derived_t, args_t>
 	{
 		ASIO2_CLASS_FRIEND_DECLARE_BASE;

@@ -38,7 +38,7 @@ namespace asio2::detail
 	ASIO2_CLASS_FORWARD_DECLARE_TCP_SESSION;
 	ASIO2_CLASS_FORWARD_DECLARE_TCP_CLIENT;
 
-	template<class caller_t>
+	template<class caller_t, class args_t>
 	class mqtt_invoker_t
 	{
 		friend caller_t;
@@ -53,7 +53,7 @@ namespace asio2::detail
 		struct dummy {};
 
 	public:
-		using self = mqtt_invoker_t<caller_t>;
+		using self = mqtt_invoker_t<caller_t, args_t>;
 		using handler_type = std::function<void(error_code&, std::shared_ptr<caller_t>&, caller_t*, std::string_view&)>;
 
 		/**
@@ -377,7 +377,7 @@ namespace asio2::detail
 					{
 						ec.clear();
 
-						this->_do_client_no_response(f, c, ec, caller_ptr, caller, msg);
+						this->_do_client_no_response(f, c, ec, caller_ptr, caller, msg, msg);
 					}
 					else
 					{
@@ -387,7 +387,7 @@ namespace asio2::detail
 						{
 							ec.clear();
 
-							this->_do_client_no_response(f, c, ec, caller_ptr, caller, *pmsg);
+							this->_do_client_no_response(f, c, ec, caller_ptr, caller, msg, *pmsg);
 						}
 						else
 						{
@@ -439,7 +439,7 @@ namespace asio2::detail
 						{
 							ec.clear();
 
-							this->_do_server_no_response(f, c, ec, caller_ptr, caller, msg);
+							this->_do_server_no_response(f, c, ec, caller_ptr, caller, msg, msg);
 						}
 						else
 						{
@@ -449,7 +449,7 @@ namespace asio2::detail
 							{
 								ec.clear();
 
-								this->_do_server_no_response(f, c, ec, caller_ptr, caller, *pmsg);
+								this->_do_server_no_response(f, c, ec, caller_ptr, caller, msg, *pmsg);
 							}
 							else
 							{
@@ -489,7 +489,8 @@ namespace asio2::detail
 						{
 							ec.clear();
 
-							this->_do_client_with_response(f, c, ec, caller_ptr, caller, msg, response_type{});
+							this->_do_client_with_response(
+								f, c, ec, caller_ptr, caller, msg, msg, response_type{});
 						}
 						else
 						{
@@ -499,7 +500,8 @@ namespace asio2::detail
 							{
 								ec.clear();
 
-								this->_do_client_with_response(f, c, ec, caller_ptr, caller, *pmsg, response_type{});
+								this->_do_client_with_response(
+									f, c, ec, caller_ptr, caller, msg, *pmsg, response_type{});
 							}
 							else
 							{
@@ -552,7 +554,8 @@ namespace asio2::detail
 					{
 						ec.clear();
 
-						this->_do_server_with_response(f, c, ec, caller_ptr, caller, msg, response_type{});
+						this->_do_server_with_response(
+							f, c, ec, caller_ptr, caller, msg, msg, response_type{});
 					}
 					else
 					{
@@ -562,7 +565,8 @@ namespace asio2::detail
 						{
 							ec.clear();
 
-							this->_do_server_with_response(f, c, ec, caller_ptr, caller, *pmsg, response_type{});
+							this->_do_server_with_response(
+								f, c, ec, caller_ptr, caller, msg, *pmsg, response_type{});
 						}
 						else
 						{
@@ -595,41 +599,44 @@ namespace asio2::detail
 
 		template<typename F, typename C, class Message>
 		inline void _do_client_no_response(F& f, C* c,
-			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, Message& msg)
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
+			Message& msg)
 		{
-			caller->_before_user_callback(ec, caller_ptr, caller, msg);
+			caller->_before_user_callback(ec, caller_ptr, caller, om, msg);
 
 			this->_invoke_user_callback(f, c, msg);
 
-			caller->_after_user_callback(ec, caller_ptr, caller, msg);
+			caller->_after_user_callback(ec, caller_ptr, caller, om, msg);
 
 			this->_handle_mqtt_error(ec, caller_ptr, caller);
 		}
 
 		template<typename F, typename C, class Message>
 		inline void _do_server_no_response(F& f, C* c,
-			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, Message& msg)
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
+			Message& msg)
 		{
-			caller->_before_user_callback(ec, caller_ptr, caller, msg);
+			caller->_before_user_callback(ec, caller_ptr, caller, om, msg);
 
 			this->_invoke_user_callback(f, c, caller_ptr, msg);
 
-			caller->_after_user_callback(ec, caller_ptr, caller, msg);
+			caller->_after_user_callback(ec, caller_ptr, caller, om, msg);
 
 			this->_handle_mqtt_error(ec, caller_ptr, caller);
 		}
 
 		template<typename F, typename C, class Message, class Response>
 		inline void _do_client_with_response(F& f, C* c,
-			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, Message& msg, Response rep)
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
+			Message& msg, Response rep)
 		{
 			this->_init_response(ec, caller_ptr, caller, msg, rep);
 
-			caller->_before_user_callback(ec, caller_ptr, caller, msg, rep);
+			caller->_before_user_callback(ec, caller_ptr, caller, om, msg, rep);
 
 			this->_invoke_user_callback(f, c, msg, rep);
 
-			caller->_after_user_callback(ec, caller_ptr, caller, msg, rep);
+			caller->_after_user_callback(ec, caller_ptr, caller, om, msg, rep);
 
 			this->_send_mqtt_response(ec, caller_ptr, caller, msg, std::move(rep));
 
@@ -638,15 +645,16 @@ namespace asio2::detail
 
 		template<typename F, typename C, class Message, class Response>
 		inline void _do_server_with_response(F& f, C* c,
-			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, Message& msg, Response rep)
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
+			Message& msg, Response rep)
 		{
 			this->_init_response(ec, caller_ptr, caller, msg, rep);
 
-			caller->_before_user_callback(ec, caller_ptr, caller, msg, rep);
+			caller->_before_user_callback(ec, caller_ptr, caller, om, msg, rep);
 
 			this->_invoke_user_callback(f, c, caller_ptr, msg, rep);
 
-			caller->_after_user_callback(ec, caller_ptr, caller, msg, rep);
+			caller->_after_user_callback(ec, caller_ptr, caller, om, msg, rep);
 
 			this->_send_mqtt_response(ec, caller_ptr, caller, msg, std::move(rep));
 
@@ -678,9 +686,9 @@ namespace asio2::detail
 			{
 				if constexpr (std::is_same_v<message_type, mqtt::message>)
 				{
-					std::visit([this, &ec, &caller_ptr, &caller, &rep](auto& m) mutable
+					std::visit([this, &ec, &caller_ptr, &caller, &rep](auto& pm) mutable
 					{
-						this->_init_response(ec, caller_ptr, caller, m, rep);
+						this->_init_response(ec, caller_ptr, caller, pm, rep);
 					}, msg.variant());
 				}
 				else
@@ -923,9 +931,9 @@ namespace asio2::detail
 				{
 					detail::ignore_unused(caller_ptr);
 
-					std::visit([caller, g = std::move(g)](auto& r) mutable
+					std::visit([caller, g = std::move(g)](auto& pr) mutable
 					{
-						caller->_do_send(r, [g = std::move(g)](const error_code&, std::size_t) mutable {});
+						caller->_do_send(pr, [g = std::move(g)](const error_code&, std::size_t) mutable {});
 					}, rep.variant());
 				});
 			}
@@ -970,21 +978,29 @@ namespace asio2::detail
 			}
 		}
 
-		inline void _handle_mqtt_error(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller)
+		template<class CallerT = caller_t>
+		inline void _handle_mqtt_error(error_code& ec, std::shared_ptr<CallerT>& caller_ptr, CallerT* caller)
 		{
-			if (!ec)
-				return;
-
-			// post a async event to disconnect, don't call _do_disconnect directly,
-			// otherwise the client's bind_disconnect callback maybe can't be called.
-			asio::post(caller->io().context(), make_allocator(caller->wallocator(),
-			[ec, caller_ptr, caller]() mutable
+			if constexpr (CallerT::is_client())
 			{
-				if (caller->state() == state_t::started)
+				return;
+			}
+			else
+			{
+				if (!ec)
+					return;
+
+				// post a async event to disconnect, don't call _do_disconnect directly,
+				// otherwise the client's bind_disconnect callback maybe can't be called.
+				asio::post(caller->io().context(), make_allocator(caller->wallocator(),
+				[ec, caller_ptr, caller]() mutable
 				{
-					caller->_do_disconnect(ec, std::move(caller_ptr));
-				}
-			}));
+					if (caller->state() == state_t::started)
+					{
+						caller->_do_disconnect(ec, std::move(caller_ptr));
+					}
+				}));
+			}
 		}
 
 		inline const handler_type& _find_mqtt_handler(mqtt::control_packet_type type)

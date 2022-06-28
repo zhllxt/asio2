@@ -35,6 +35,34 @@ namespace asio2::detail
 {
 	struct template_args_mqtt_session : public template_args_tcp_session
 	{
+		static constexpr bool rdc_call_cp_enabled = false;
+
+		template<class caller_t>
+		struct subnode
+		{
+			explicit subnode(
+				std::weak_ptr<caller_t>  c,
+				mqtt::subscription       s,
+				mqtt::v5::properties_set p = mqtt::v5::properties_set{}
+			)
+				: caller(std::move(c))
+				, sub   (std::move(s))
+				, props (std::move(p))
+			{
+			}
+
+			inline std::string_view share_name  () { return sub.share_name  (); }
+			inline std::string_view topic_filter() { return sub.topic_filter(); }
+
+			// 
+			std::weak_ptr<caller_t>   caller;
+
+			// subscription info
+			mqtt::subscription        sub;
+
+			// subscription properties
+			mqtt::v5::properties_set  props;
+		};
 	};
 
 	ASIO2_CLASS_FORWARD_DECLARE_BASE;
@@ -46,7 +74,7 @@ namespace asio2::detail
 	class mqtt_session_impl_t
 		: public tcp_session_impl_t<derived_t, args_t>
 		, public mqtt_options
-		, public mqtt_handler_t    <derived_t        >
+		, public mqtt_handler_t    <derived_t, args_t>
 		, public mqtt_topic_alias_t<derived_t        >
 		, public mqtt_send_op      <derived_t, args_t>
 		, public mqtt::session_state
@@ -62,23 +90,22 @@ namespace asio2::detail
 		using super = tcp_session_impl_t <derived_t, args_t>;
 		using self  = mqtt_session_impl_t<derived_t, args_t>;
 
-		using key_type    = std::size_t;
+		using args_type    = args_t;
+		using key_type     = std::size_t;
+		using subnode_type = typename args_type::template subnode<derived_t>;
 
-	//protected:
 		using super::send;
 		using super::async_send;
-		using super::call;
-		using super::async_call;
 
 	public:
 		/**
 		 * @constructor
 		 */
 		explicit mqtt_session_impl_t(
-			mqtt_invoker_t<derived_t>                                         & invoker,
-			asio2_shared_mutex                                                & mqttid_sessions_mtx,
-			std::unordered_map<std::string_view, std::shared_ptr<derived_t>>  & mqttid_sessions,
-			mqtt::subscription_map<std::string_view, mqtt::subnode<derived_t>>& subs_map,
+			mqtt_invoker_t<derived_t, args_t>                                 & invoker,
+			asio2_shared_mutex                                                & mtx,
+			std::unordered_map<std::string_view, std::shared_ptr<derived_t>>  & mqtt_sessions,
+			mqtt::subscription_map<std::string_view, subnode_type>            & subs_map,
 			mqtt::shared_target<mqtt::stnode<derived_t>>                      & shared_targets,
 			mqtt::retained_messages<mqtt::rmnode>                             & retained_messages,
 			session_mgr_t <derived_t>& sessions,
@@ -89,12 +116,12 @@ namespace asio2::detail
 		)
 			: super(sessions, listener, rwio, init_buf_size, max_buf_size)
 			, mqtt_options                         ()
-			, mqtt_handler_t    <derived_t        >()
+			, mqtt_handler_t    <derived_t, args_t>()
 			, mqtt_topic_alias_t<derived_t        >()
 			, mqtt_send_op      <derived_t, args_t>()
 			, invoker_            (invoker)
-			, mqttid_sessions_mtx_(mqttid_sessions_mtx)
-			, mqttid_sessions_    (mqttid_sessions    )
+			, mutex_              (mtx)
+			, mqtt_sessions_      (mqtt_sessions      )
 			, subs_map_           (subs_map           )
 			, shared_targets_     (shared_targets     )
 			, retained_messages_  (retained_messages  )
@@ -288,16 +315,16 @@ namespace asio2::detail
 		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr, DeferEvent chain)
 		{
 			{
-				asio2_unique_lock lock{ this->mqttid_sessions_mtx_ };
+				asio2_unique_lock lock{ this->mutex_ };
 
 				std::string_view id = this->client_id();
 
-				auto iter = this->mqttid_sessions_.find(id);
-				if (iter != this->mqttid_sessions_.end())
+				auto iter = this->mqtt_sessions_.find(id);
+				if (iter != this->mqtt_sessions_.end())
 				{
 					if (iter->second.get() == this)
 					{
-						this->mqttid_sessions_.erase(id);
+						this->mqtt_sessions_.erase(id);
 					}
 				}
 			}
@@ -327,6 +354,7 @@ namespace asio2::detail
 			{
 				ASIO2_ASSERT(false);
 				this->derived()._do_disconnect(mqtt::make_error_code(mqtt::error::malformed_packet), this_ptr);
+				return;
 			}
 
 			error_code ec;
@@ -339,15 +367,17 @@ namespace asio2::detail
 			}
 		}
 
+		inline asio2_shared_mutex& get_mutex() noexcept { return this->mutex_; }
+
 	protected:
-		mqtt_invoker_t<derived_t>                                           & invoker_;
+		mqtt_invoker_t<derived_t, args_t>                                   & invoker_;
 
-		asio2_shared_mutex                                                  & mqttid_sessions_mtx_;
+		asio2_shared_mutex                                                  & mutex_;
 
-		std::unordered_map<std::string_view, std::shared_ptr<derived_t>>    & mqttid_sessions_;
+		std::unordered_map<std::string_view, std::shared_ptr<derived_t>>    & mqtt_sessions_;
 
 		/// subscription information map
-		mqtt::subscription_map<std::string_view, mqtt::subnode<derived_t>>  & subs_map_;
+		mqtt::subscription_map<std::string_view, subnode_type>              & subs_map_;
 
 		/// shared subscription targets
 		mqtt::shared_target<mqtt::stnode<derived_t>>                        & shared_targets_;

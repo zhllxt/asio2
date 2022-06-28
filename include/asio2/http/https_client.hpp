@@ -43,6 +43,7 @@ namespace asio2::detail
 		using super = http_client_impl_t <derived_t, args_t>;
 		using self  = https_client_impl_t<derived_t, args_t>;
 
+		using args_type   = args_t;
 		using body_type   = typename args_t::body_t;
 		using buffer_type = typename args_t::buffer_t;
 

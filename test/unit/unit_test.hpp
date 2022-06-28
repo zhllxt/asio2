@@ -48,6 +48,7 @@
 
 static const int   test_loop_times = 1000;
 static const int   test_client_count = 10;
+static const int   test_wait_count = 60000;
 
 bool test_has_error = false;
 
@@ -259,7 +260,10 @@ void pause_cmd_window()
   int loops = __loops__; \
   for (int loop = 0; loop < loops; ++loop) \
   { \
+    static auto __time1__ = std::chrono::steady_clock::now(); \
+    if(std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - __time1__).count() > 60) \
     { \
+      __time1__ = std::chrono::steady_clock::now(); \
       ASIO2_TEST_LOCK_GUARD \
       ASIO2_TEST_IOSTREAM << '#'; \
     }
@@ -271,6 +275,25 @@ void pause_cmd_window()
       test_has_error = false; \
     } \
   }
+
+template<class... Args>
+void print(Args&... args) { ((ASIO2_TEST_IOSTREAM << args << " "), ...); }
+
+#define ASIO2_TEST_WAIT_CHECK(...) \
+std::this_thread::sleep_for(std::chrono::milliseconds(1)); \
+static int waits = 0; \
+if ((++waits) > test_wait_count) \
+{ \
+  ASIO2_TEST_LOCK_GUARD \
+    std::string_view file{__FILE__}; \
+    ASIO2_TEST_IOSTREAM \
+      << "wait timeout: " \
+      << std::next(std::next(file.data(), file.find_last_of("\\/"))) << "(" << __LINE__ << "): "; \
+      print(__VA_ARGS__); \
+      ASIO2_TEST_IOSTREAM << std::endl; \
+  waits = 0; \
+} \
+std::ignore = waits
 
 inline void null_test()
 {

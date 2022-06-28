@@ -43,6 +43,7 @@ namespace asio2::detail
 		using super = tcp_client_impl_t <derived_t, args_t>;
 		using self  = tcps_client_impl_t<derived_t, args_t>;
 
+		using args_type   = args_t;
 		using buffer_type = typename args_t::buffer_t;
 
 		using ssl_context_comp = ssl_context_cp<derived_t, args_t>;

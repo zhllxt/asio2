@@ -45,7 +45,7 @@ namespace asio2::detail
 	ASIO2_CLASS_FORWARD_DECLARE_TCP_SESSION;
 	ASIO2_CLASS_FORWARD_DECLARE_TCP_CLIENT;
 
-	template<class SocketT, class Sock5T, class HandlerT>
+	template<class SocketT, class Sock5OptT, class HandlerT>
 	class socks5_server_accept_op : public asio::coroutine
 	{
 		ASIO2_CLASS_FRIEND_DECLARE_BASE;
@@ -60,7 +60,7 @@ namespace asio2::detail
 		std::string    host_{}, port_{};
 
 		SocketT&       socket_;
-		Sock5T         sock5_;
+		Sock5OptT      sock5_;
 		HandlerT       handler_;
 
 		std::unique_ptr<asio::streambuf> stream{ std::make_unique<asio::streambuf>() };
@@ -72,11 +72,11 @@ namespace asio2::detail
 		std::uint8_t                     addr_type{}, addr_size{};
 		socks5::method                   method{};
 
-		template<class SKT, class S5, class H>
+		template<class SKT, class S5Opt, class H>
 		socks5_server_accept_op(
 			asio::io_context& context,
 			std::string host, std::string port,
-			SKT& skt, S5 s5, H&& h
+			SKT& skt, S5Opt s5, H&& h
 		)
 			: context_(context)
 			, host_   (std::move(host))
@@ -556,9 +556,9 @@ namespace asio2::detail
 	};
 
 	// C++17 class template argument deduction guides
-	template<class SKT, class S5, class H>
+	template<class SKT, class S5Opt, class H>
 	socks5_server_accept_op(asio::io_context&, std::string, std::string,
-		SKT&, S5, H)->socks5_server_accept_op<SKT, S5, H>;
+		SKT&, S5Opt, H)->socks5_server_accept_op<SKT, S5Opt, H>;
 
 	template<class derived_t, class args_t>
 	class socks5_server_impl

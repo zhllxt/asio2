@@ -20,11 +20,11 @@
 #include <asio2/base/detail/function_traits.hpp>
 #include <asio2/base/detail/util.hpp>
 
-#include <asio2/mqtt/message_util.hpp>
+#include <asio2/mqtt/message.hpp>
 
 namespace asio2::detail
 {
-	template<class caller_t>
+	template<class caller_t, class args_t>
 	class mqtt_aop_connect
 	{
 		friend caller_t;
@@ -32,9 +32,11 @@ namespace asio2::detail
 	protected:
 		// must be server
 		template<class Message, class Response>
-		inline bool _before_connect_callback(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, Message& msg, Response& rep)
+		inline bool _before_connect_callback(
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
+			Message& msg, Response& rep)
 		{
-			detail::ignore_unused(ec, caller_ptr, caller, msg, rep);
+			detail::ignore_unused(ec, caller_ptr, caller, om, msg, rep);
 
 			using message_type  [[maybe_unused]] = typename detail::remove_cvref_t<Message>;
 			using response_type [[maybe_unused]] = typename detail::remove_cvref_t<Response>;
@@ -119,9 +121,9 @@ namespace asio2::detail
 
 				caller->connect_message_ = msg;
 
-				asio2_unique_lock lock{ caller->mqttid_sessions_mtx_ };
+				asio2_unique_lock lock{ caller->get_mutex() };
 
-				auto iter = caller->mqttid_sessions_.find(caller->client_id());
+				auto iter = caller->mqtt_sessions_.find(caller->client_id());
 
 				// If the Server accepts a connection with Clean Start set to 1, the Server MUST set Session
 				// Present to 0 in the CONNACK packet in addition to setting a 0x00 (Success) Reason Code in
@@ -133,11 +135,11 @@ namespace asio2::detail
 				// it MUST set Session Present to 0 in the CONNACK packet. In both cases it MUST set a 0x00
 				// (Success) Reason Code in the CONNACK packet [MQTT-3.2.2-3].
 				else
-					rep.session_present(iter != caller->mqttid_sessions_.end());
+					rep.session_present(iter != caller->mqtt_sessions_.end());
 
-				if (iter == caller->mqttid_sessions_.end())
+				if (iter == caller->mqtt_sessions_.end())
 				{
-					iter = caller->mqttid_sessions_.emplace(caller->client_id(), caller_ptr).first;
+					iter = caller->mqtt_sessions_.emplace(caller->client_id(), caller_ptr).first;
 				}
 				else
 				{
@@ -240,30 +242,38 @@ namespace asio2::detail
 		}
 
 		// must be server
-		inline void _before_user_callback_impl(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::v3::connect& msg, mqtt::v3::connack& rep)
+		inline void _before_user_callback_impl(
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
+			mqtt::v3::connect& msg, mqtt::v3::connack& rep)
 		{
-			if (!_before_connect_callback(ec, caller_ptr, caller, msg, rep))
+			if (!_before_connect_callback(ec, caller_ptr, caller, om, msg, rep))
 				return;
 		}
 
 		// must be server
-		inline void _before_user_callback_impl(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::v4::connect& msg, mqtt::v4::connack& rep)
+		inline void _before_user_callback_impl(
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
+			mqtt::v4::connect& msg, mqtt::v4::connack& rep)
 		{
-			if (!_before_connect_callback(ec, caller_ptr, caller, msg, rep))
+			if (!_before_connect_callback(ec, caller_ptr, caller, om, msg, rep))
 				return;
 		}
 
 		// must be server
-		inline void _before_user_callback_impl(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::v5::connect& msg, mqtt::v5::connack& rep)
+		inline void _before_user_callback_impl(
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
+			mqtt::v5::connect& msg, mqtt::v5::connack& rep)
 		{
-			if (!_before_connect_callback(ec, caller_ptr, caller, msg, rep))
+			if (!_before_connect_callback(ec, caller_ptr, caller, om, msg, rep))
 				return;
 		}
 
 		// must be server
-		inline void _before_user_callback_impl(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::v5::connect& msg, mqtt::v5::auth& rep)
+		inline void _before_user_callback_impl(
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
+			mqtt::v5::connect& msg, mqtt::v5::auth& rep)
 		{
-			detail::ignore_unused(ec, caller_ptr, caller, msg, rep);
+			detail::ignore_unused(ec, caller_ptr, caller, om, msg, rep);
 
 			//if constexpr (caller_t::is_session())
 			//{
@@ -278,10 +288,10 @@ namespace asio2::detail
 
 			//	caller->connect_message_ = msg;
 
-			//	asio2_unique_lock lock{ caller->mqttid_sessions_mtx_ };
+			//	asio2_unique_lock lock{ caller->get_mutex() };
 
-			//	auto iter = caller->mqttid_sessions_.find(msg.client_id());
-			//	if (iter != caller->mqttid_sessions_.end())
+			//	auto iter = caller->mqtt_sessions_.find(msg.client_id());
+			//	if (iter != caller->mqtt_sessions_.end())
 			//	{
 
 			//	}
@@ -292,9 +302,11 @@ namespace asio2::detail
 			//}
 		}
 
-		inline void _after_user_callback_impl(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::v3::connect& msg, mqtt::v3::connack& rep)
+		inline void _after_user_callback_impl(
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
+			mqtt::v3::connect& msg, mqtt::v3::connack& rep)
 		{
-			detail::ignore_unused(ec, caller_ptr, caller, msg, rep);
+			detail::ignore_unused(ec, caller_ptr, caller, om, msg, rep);
 			// If a client with the same Client ID is already connected to the server, the "older" client
 			// must be disconnected by the server before completing the CONNECT flow of the new client.
 			switch(rep.reason_code())
@@ -309,9 +321,11 @@ namespace asio2::detail
 			}
 		}
 
-		inline void _after_user_callback_impl(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::v4::connect& msg, mqtt::v4::connack& rep)
+		inline void _after_user_callback_impl(
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
+			mqtt::v4::connect& msg, mqtt::v4::connack& rep)
 		{
-			detail::ignore_unused(ec, caller_ptr, caller, msg, rep);
+			detail::ignore_unused(ec, caller_ptr, caller, om, msg, rep);
 			switch(rep.reason_code())
 			{
 			case mqtt::v4::connect_reason_code::success						  : ec = mqtt::make_error_code(mqtt::error::success                     ); break;
@@ -324,9 +338,11 @@ namespace asio2::detail
 			}
 		}
 
-		inline void _after_user_callback_impl(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::v5::connect& msg, mqtt::v5::connack& rep)
+		inline void _after_user_callback_impl(
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
+			mqtt::v5::connect& msg, mqtt::v5::connack& rep)
 		{
-			detail::ignore_unused(ec, caller_ptr, caller, msg, rep);
+			detail::ignore_unused(ec, caller_ptr, caller, om, msg, rep);
 
 			ec = mqtt::make_error_code(static_cast<mqtt::error>(rep.reason_code()));
 
@@ -337,9 +353,11 @@ namespace asio2::detail
 			}
 		}
 
-		inline void _after_user_callback_impl(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::v5::connect& msg, mqtt::v5::auth& rep)
+		inline void _after_user_callback_impl(
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
+			mqtt::v5::connect& msg, mqtt::v5::auth& rep)
 		{
-			detail::ignore_unused(ec, caller_ptr, caller, msg, rep);
+			detail::ignore_unused(ec, caller_ptr, caller, om, msg, rep);
 		}
 	};
 }

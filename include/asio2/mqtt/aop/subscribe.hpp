@@ -20,11 +20,11 @@
 #include <asio2/base/detail/function_traits.hpp>
 #include <asio2/base/detail/util.hpp>
 
-#include <asio2/mqtt/message_util.hpp>
+#include <asio2/mqtt/message.hpp>
 
 namespace asio2::detail
 {
-	template<class caller_t>
+	template<class caller_t, class args_t>
 	class mqtt_aop_subscribe
 	{
 		friend caller_t;
@@ -32,9 +32,11 @@ namespace asio2::detail
 	protected:
 		// must be server
 		template<class Message, class Response>
-		inline bool _before_subscribe_callback(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, Message& msg, Response& rep)
+		inline bool _before_subscribe_callback(
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
+			Message& msg, Response& rep)
 		{
-			detail::ignore_unused(ec, caller_ptr, caller, msg, rep);
+			detail::ignore_unused(ec, caller_ptr, caller, om, msg, rep);
 
 			using message_type = typename detail::remove_cvref_t<Message>;
 
@@ -98,7 +100,7 @@ namespace asio2::detail
 					mqtt::qos_type qos = sub.qos();
 
 					// error, the session will be disconnect a later
-					if (detail::to_underlying(qos) > 2)
+					if (!mqtt::is_valid_qos(qos))
 					{
 						ec = mqtt::make_error_code(mqtt::error::unspecified_error);
 						rep.add_reason_codes(detail::to_underlying(mqtt::error::unspecified_error));
@@ -119,7 +121,7 @@ namespace asio2::detail
 					// not error, and supported too
 					rep.add_reason_codes(detail::to_underlying(qos));
 
-					mqtt::subnode<caller_t> node{ caller_ptr, sub, std::move(props) };
+					typename caller_t::subnode_type node{ caller_ptr, sub, std::move(props) };
 
 					std::string_view share_name   = node.share_name();
 					std::string_view topic_filter = node.topic_filter();
@@ -156,7 +158,8 @@ namespace asio2::detail
 			}
 		}
 
-		inline void _send_retained_messages(std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::subscription& sub)
+		inline void _send_retained_messages(
+			std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::subscription& sub)
 		{
 			detail::ignore_unused(caller_ptr, caller, sub);
 
@@ -182,41 +185,51 @@ namespace asio2::detail
 		}
 
 		// must be server
-		inline void _before_user_callback_impl(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::v3::subscribe& msg, mqtt::v3::suback& rep)
+		inline void _before_user_callback_impl(
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
+			mqtt::v3::subscribe& msg, mqtt::v3::suback& rep)
 		{
-			if (!_before_subscribe_callback(ec, caller_ptr, caller, msg, rep))
-				return;
-
-
-		}
-
-		// must be server
-		inline void _before_user_callback_impl(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::v4::subscribe& msg, mqtt::v4::suback& rep)
-		{
-			if (!_before_subscribe_callback(ec, caller_ptr, caller, msg, rep))
+			if (!_before_subscribe_callback(ec, caller_ptr, caller, om, msg, rep))
 				return;
 		}
 
 		// must be server
-		inline void _before_user_callback_impl(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::v5::subscribe& msg, mqtt::v5::suback& rep)
+		inline void _before_user_callback_impl(
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
+			mqtt::v4::subscribe& msg, mqtt::v4::suback& rep)
 		{
-			if (!_before_subscribe_callback(ec, caller_ptr, caller, msg, rep))
+			if (!_before_subscribe_callback(ec, caller_ptr, caller, om, msg, rep))
 				return;
 		}
 
-		inline void _after_user_callback_impl(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::v3::subscribe& msg, mqtt::v3::suback& rep)
+		// must be server
+		inline void _before_user_callback_impl(
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
+			mqtt::v5::subscribe& msg, mqtt::v5::suback& rep)
 		{
-			detail::ignore_unused(ec, caller_ptr, caller, msg, rep);
+			if (!_before_subscribe_callback(ec, caller_ptr, caller, om, msg, rep))
+				return;
 		}
 
-		inline void _after_user_callback_impl(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::v4::subscribe& msg, mqtt::v4::suback& rep)
+		inline void _after_user_callback_impl(
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
+			mqtt::v3::subscribe& msg, mqtt::v3::suback& rep)
 		{
-			detail::ignore_unused(ec, caller_ptr, caller, msg, rep);
+			detail::ignore_unused(ec, caller_ptr, caller, om, msg, rep);
 		}
 
-		inline void _after_user_callback_impl(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::v5::subscribe& msg, mqtt::v5::suback& rep)
+		inline void _after_user_callback_impl(
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
+			mqtt::v4::subscribe& msg, mqtt::v4::suback& rep)
 		{
-			detail::ignore_unused(ec, caller_ptr, caller, msg, rep);
+			detail::ignore_unused(ec, caller_ptr, caller, om, msg, rep);
+		}
+
+		inline void _after_user_callback_impl(
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
+			mqtt::v5::subscribe& msg, mqtt::v5::suback& rep)
+		{
+			detail::ignore_unused(ec, caller_ptr, caller, om, msg, rep);
 		}
 	};
 }

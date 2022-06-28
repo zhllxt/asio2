@@ -148,10 +148,16 @@ namespace asio2::detail
 
 	public:
 		rpc_request() noexcept : rpc_header() { this->type_ = rpc_type_req; }
+		// can't use tp_(std::forward_as_tuple(std::forward<Args>(args)...))
+		// if use tp_(std::forward_as_tuple(std::forward<Args>(args)...)),
+		// when the args is nlohmann::json and under gcc 9.4.0, the json::object
+		// maybe changed to json::array, like this:
+		// {"name":"hello","age":10} will changed to [{"name":"hello","age":10}]
+		// i don't why?
 		rpc_request(std::string_view name, Args&&... args)
-			: rpc_header(rpc_type_req,  0, name), tp_(std::forward_as_tuple(std::forward<Args>(args)...)) {}
+			: rpc_header(rpc_type_req,  0, name), tp_(std::forward<Args>(args)...) {}
 		rpc_request(id_type id, std::string_view name, Args&&... args)
-			: rpc_header(rpc_type_req, id, name), tp_(std::forward_as_tuple(std::forward<Args>(args)...)) {}
+			: rpc_header(rpc_type_req, id, name), tp_(std::forward<Args>(args)...) {}
 		~rpc_request() = default;
 
 		rpc_request(const rpc_request& r) : rpc_header(r), tp_(r.tp_) {}

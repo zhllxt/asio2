@@ -33,7 +33,7 @@
 #include <asio2/mqtt/detail/mqtt_topic_util.hpp>
 
 #include <asio2/mqtt/idmgr.hpp>
-#include <asio2/mqtt/protocol_util.hpp>
+#include <asio2/mqtt/message.hpp>
 
 namespace asio2::mqtt
 {
@@ -459,33 +459,6 @@ namespace asio2::mqtt
 		std::size_t                  subscribe_count_ = 0;
 
 		mqtt::idmgr<std::size_t>     idmgr_;
-	};
-
-	template<class session_t>
-	struct subnode
-	{
-		explicit subnode(
-			std::weak_ptr<session_t> _session,
-			mqtt::subscription       _sub,
-			mqtt::v5::properties_set _props = mqtt::v5::properties_set{}
-		)
-			: session(std::move(_session))
-			, sub    (std::move(_sub))
-			, props  (std::move(_props))
-		{
-		}
-
-		inline std::string_view share_name  () { return sub.share_name  (); }
-		inline std::string_view topic_filter() { return sub.topic_filter(); }
-
-		// 
-		std::weak_ptr<session_t>   session;
-
-		// subscription info
-		mqtt::subscription         sub;
-
-		// subscription properties
-		mqtt::v5::properties_set   props;
 	};
 }
 

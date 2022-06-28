@@ -20,11 +20,11 @@
 #include <asio2/base/detail/function_traits.hpp>
 #include <asio2/base/detail/util.hpp>
 
-#include <asio2/mqtt/message_util.hpp>
+#include <asio2/mqtt/message.hpp>
 
 namespace asio2::detail
 {
-	template<class caller_t>
+	template<class caller_t, class args_t>
 	class mqtt_aop_unsubscribe
 	{
 		friend caller_t;
@@ -32,9 +32,11 @@ namespace asio2::detail
 	protected:
 		// must be server
 		template<class Message, class Response>
-		inline bool _before_unsubscribe_callback(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, Message& msg, Response& rep)
+		inline bool _before_unsubscribe_callback(
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
+			Message& msg, Response& rep)
 		{
-			detail::ignore_unused(ec, caller_ptr, caller, msg, rep);
+			detail::ignore_unused(ec, caller_ptr, caller, om, msg, rep);
 
 			using message_type  [[maybe_unused]] = typename detail::remove_cvref_t<Message>;
 			using response_type [[maybe_unused]] = typename detail::remove_cvref_t<Response>;
@@ -89,39 +91,51 @@ namespace asio2::detail
 		}
 
 		// must be server
-		inline void _before_user_callback_impl(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::v3::unsubscribe& msg, mqtt::v3::unsuback& rep)
+		inline void _before_user_callback_impl(
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
+			mqtt::v3::unsubscribe& msg, mqtt::v3::unsuback& rep)
 		{
-			if (!_before_unsubscribe_callback(ec, caller_ptr, caller, msg, rep))
+			if (!_before_unsubscribe_callback(ec, caller_ptr, caller, om, msg, rep))
 				return;
 		}
 
 		// must be server
-		inline void _before_user_callback_impl(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::v4::unsubscribe& msg, mqtt::v4::unsuback& rep)
+		inline void _before_user_callback_impl(
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
+			mqtt::v4::unsubscribe& msg, mqtt::v4::unsuback& rep)
 		{
-			if (!_before_unsubscribe_callback(ec, caller_ptr, caller, msg, rep))
+			if (!_before_unsubscribe_callback(ec, caller_ptr, caller, om, msg, rep))
 				return;
 		}
 
 		// must be server
-		inline void _before_user_callback_impl(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::v5::unsubscribe& msg, mqtt::v5::unsuback& rep)
+		inline void _before_user_callback_impl(
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
+			mqtt::v5::unsubscribe& msg, mqtt::v5::unsuback& rep)
 		{
-			if (!_before_unsubscribe_callback(ec, caller_ptr, caller, msg, rep))
+			if (!_before_unsubscribe_callback(ec, caller_ptr, caller, om, msg, rep))
 				return;
 		}
 
-		inline void _after_user_callback_impl(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::v3::unsubscribe& msg, mqtt::v3::unsuback& rep)
+		inline void _after_user_callback_impl(
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
+			mqtt::v3::unsubscribe& msg, mqtt::v3::unsuback& rep)
 		{
-			detail::ignore_unused(ec, caller_ptr, caller, msg, rep);
+			detail::ignore_unused(ec, caller_ptr, caller, om, msg, rep);
 		}
 
-		inline void _after_user_callback_impl(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::v4::unsubscribe& msg, mqtt::v4::unsuback& rep)
+		inline void _after_user_callback_impl(
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
+			mqtt::v4::unsubscribe& msg, mqtt::v4::unsuback& rep)
 		{
-			detail::ignore_unused(ec, caller_ptr, caller, msg, rep);
+			detail::ignore_unused(ec, caller_ptr, caller, om, msg, rep);
 		}
 
-		inline void _after_user_callback_impl(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::v5::unsubscribe& msg, mqtt::v5::unsuback& rep)
+		inline void _after_user_callback_impl(
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
+			mqtt::v5::unsubscribe& msg, mqtt::v5::unsuback& rep)
 		{
-			detail::ignore_unused(ec, caller_ptr, caller, msg, rep);
+			detail::ignore_unused(ec, caller_ptr, caller, om, msg, rep);
 
 		}
 	};

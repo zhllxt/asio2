@@ -29,7 +29,7 @@ namespace asio2::detail
 	template<class derived_t, class session_t>
 	class http_server_impl_t
 		: public tcp_server_impl_t<derived_t, session_t>
-		, public http_router_t    <session_t           >
+		, public http_router_t    <session_t, typename session_t::args_type>
 	{
 		ASIO2_CLASS_FRIEND_DECLARE_BASE;
 		ASIO2_CLASS_FRIEND_DECLARE_TCP_BASE;

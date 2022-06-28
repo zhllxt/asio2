@@ -186,6 +186,18 @@ namespace asio2::mqtt
 		exactly_once  = 2, // Exactly once delivery
 	};
 
+	static constexpr std::uint8_t qos_min_value = static_cast<std::uint8_t>(qos_type::at_most_once);
+	static constexpr std::uint8_t qos_max_value = static_cast<std::uint8_t>(qos_type::exactly_once);
+
+	template<class IntOrQos>
+	typename std::enable_if_t<
+		std::is_same_v<asio2::detail::remove_cvref_t<IntOrQos>, mqtt::qos_type> ||
+		std::is_integral_v<detail::remove_cvref_t<IntOrQos>>, bool>
+	inline is_valid_qos(IntOrQos q)
+	{
+		return (static_cast<std::uint8_t>(q) >= qos_min_value && static_cast<std::uint8_t>(q) <= qos_max_value);
+	}
+
 	/**
 	 * Bits 4 and 5 of the Subscription Options represent the Retain Handling option.
 	 * This option specifies whether retained messages are sent when the subscription is established.
@@ -1629,14 +1641,14 @@ namespace asio2::mqtt
 		/*
 		 * the "no_local,rap,retain_handling" are only valid in mqtt 5.0
 		 */
-		template<class String>
+		template<class String, class IntOrQos>
 		explicit subscription(String&& topic_filter,
-			qos_type qos, bool no_local = false, bool rap = false,
+			IntOrQos qos, bool no_local = false, bool rap = false,
 			retain_handling_type retain_handling = retain_handling_type::send
 		)
 			: topic_filter_(std::forward<String>(topic_filter))
 		{
-			option_.bits.qos             = asio2::detail::to_underlying(qos);
+			option_.bits.qos             = static_cast<std::uint8_t>(qos);
 			option_.bits.nl              = no_local;
 			option_.bits.rap             = rap;
 			option_.bits.retain_handling = asio2::detail::to_underlying(retain_handling);

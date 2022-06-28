@@ -48,6 +48,7 @@ namespace asio2::detail
 		using super = http_session_impl_t <derived_t, args_t>;
 		using self  = https_session_impl_t<derived_t, args_t>;
 
+		using args_type   = args_t;
 		using key_type    = std::size_t;
 		using body_type   = typename args_t::body_t;
 		using buffer_type = typename args_t::buffer_t;
@@ -63,16 +64,16 @@ namespace asio2::detail
 		 * @constructor
 		 */
 		explicit https_session_impl_t(
-			http_router_t<derived_t> & router,
-			std::filesystem::path    & root_directory,
-			bool                       is_arg0_session,
-			bool                       support_websocket,
-			asio::ssl::context       & ctx,
-			session_mgr_t<derived_t> & sessions,
-			listener_t               & listener,
-			io_t                     & rwio,
-			std::size_t                init_buf_size,
-			std::size_t                max_buf_size
+			http_router_t<derived_t, args_t> & router,
+			std::filesystem::path            & root_directory,
+			bool                               is_arg0_session,
+			bool                               support_websocket,
+			asio::ssl::context               & ctx,
+			session_mgr_t<derived_t>         & sessions,
+			listener_t                       & listener,
+			io_t                             & rwio,
+			std::size_t                        init_buf_size,
+			std::size_t                        max_buf_size
 		)
 			: super(router, root_directory, is_arg0_session, support_websocket,
 				sessions, listener, rwio, init_buf_size, max_buf_size)

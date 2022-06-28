@@ -74,6 +74,9 @@ namespace asio2::mqtt
 		return ((!str.empty()) && (str.find_first_of("+#") == std::string_view::npos));
 	}
 
+	/**
+	 * @return std::pair<shared_name, topic_filter>
+	 */
 	template<typename = void>
 	inline std::pair<std::string_view, std::string_view> parse_topic_filter(std::string_view topic_filter)
 	{

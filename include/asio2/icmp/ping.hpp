@@ -106,6 +106,7 @@ namespace asio2::detail
 		using super = object_t   <derived_t        >;
 		using self  = ping_impl_t<derived_t, args_t>;
 
+		using args_type   = args_t;
 		using socket_type = typename args_t::socket_t;
 		using buffer_type = typename args_t::buffer_t;
 

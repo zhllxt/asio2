@@ -51,23 +51,23 @@ namespace asio2::detail
 	ASIO2_CLASS_FORWARD_DECLARE_TCP_SESSION;
 	ASIO2_CLASS_FORWARD_DECLARE_TCP_CLIENT;
 
-	template<class caller_t>
+	template<class caller_t, class args_t>
 	class mqtt_handler_t
-		: public mqtt_aop_auth       <caller_t>
-		, public mqtt_aop_connack    <caller_t>
-		, public mqtt_aop_connect    <caller_t>
-		, public mqtt_aop_disconnect <caller_t>
-		, public mqtt_aop_pingreq    <caller_t>
-		, public mqtt_aop_pingresp   <caller_t>
-		, public mqtt_aop_puback     <caller_t>
-		, public mqtt_aop_pubcomp    <caller_t>
-		, public mqtt_aop_publish    <caller_t>
-		, public mqtt_aop_pubrec     <caller_t>
-		, public mqtt_aop_pubrel     <caller_t>
-		, public mqtt_aop_suback     <caller_t>
-		, public mqtt_aop_subscribe  <caller_t>
-		, public mqtt_aop_unsuback   <caller_t>
-		, public mqtt_aop_unsubscribe<caller_t>
+		: public mqtt_aop_auth       <caller_t, args_t>
+		, public mqtt_aop_connack    <caller_t, args_t>
+		, public mqtt_aop_connect    <caller_t, args_t>
+		, public mqtt_aop_disconnect <caller_t, args_t>
+		, public mqtt_aop_pingreq    <caller_t, args_t>
+		, public mqtt_aop_pingresp   <caller_t, args_t>
+		, public mqtt_aop_puback     <caller_t, args_t>
+		, public mqtt_aop_pubcomp    <caller_t, args_t>
+		, public mqtt_aop_publish    <caller_t, args_t>
+		, public mqtt_aop_pubrec     <caller_t, args_t>
+		, public mqtt_aop_pubrel     <caller_t, args_t>
+		, public mqtt_aop_suback     <caller_t, args_t>
+		, public mqtt_aop_subscribe  <caller_t, args_t>
+		, public mqtt_aop_unsuback   <caller_t, args_t>
+		, public mqtt_aop_unsubscribe<caller_t, args_t>
 	{
 		friend caller_t;
 
@@ -78,118 +78,121 @@ namespace asio2::detail
 		ASIO2_CLASS_FRIEND_DECLARE_TCP_CLIENT;
 
 	protected:
-		using mqtt_aop_auth       <caller_t>::_before_user_callback_impl;
-		using mqtt_aop_connack    <caller_t>::_before_user_callback_impl;
-		using mqtt_aop_connect    <caller_t>::_before_user_callback_impl;
-		using mqtt_aop_disconnect <caller_t>::_before_user_callback_impl;
-		using mqtt_aop_pingreq    <caller_t>::_before_user_callback_impl;
-		using mqtt_aop_pingresp   <caller_t>::_before_user_callback_impl;
-		using mqtt_aop_puback     <caller_t>::_before_user_callback_impl;
-		using mqtt_aop_pubcomp    <caller_t>::_before_user_callback_impl;
-		using mqtt_aop_publish    <caller_t>::_before_user_callback_impl;
-		using mqtt_aop_pubrec     <caller_t>::_before_user_callback_impl;
-		using mqtt_aop_pubrel     <caller_t>::_before_user_callback_impl;
-		using mqtt_aop_suback     <caller_t>::_before_user_callback_impl;
-		using mqtt_aop_subscribe  <caller_t>::_before_user_callback_impl;
-		using mqtt_aop_unsuback   <caller_t>::_before_user_callback_impl;
-		using mqtt_aop_unsubscribe<caller_t>::_before_user_callback_impl;
+		using mqtt_aop_auth       <caller_t, args_t>::_before_user_callback_impl;
+		using mqtt_aop_connack    <caller_t, args_t>::_before_user_callback_impl;
+		using mqtt_aop_connect    <caller_t, args_t>::_before_user_callback_impl;
+		using mqtt_aop_disconnect <caller_t, args_t>::_before_user_callback_impl;
+		using mqtt_aop_pingreq    <caller_t, args_t>::_before_user_callback_impl;
+		using mqtt_aop_pingresp   <caller_t, args_t>::_before_user_callback_impl;
+		using mqtt_aop_puback     <caller_t, args_t>::_before_user_callback_impl;
+		using mqtt_aop_pubcomp    <caller_t, args_t>::_before_user_callback_impl;
+		using mqtt_aop_publish    <caller_t, args_t>::_before_user_callback_impl;
+		using mqtt_aop_pubrec     <caller_t, args_t>::_before_user_callback_impl;
+		using mqtt_aop_pubrel     <caller_t, args_t>::_before_user_callback_impl;
+		using mqtt_aop_suback     <caller_t, args_t>::_before_user_callback_impl;
+		using mqtt_aop_subscribe  <caller_t, args_t>::_before_user_callback_impl;
+		using mqtt_aop_unsuback   <caller_t, args_t>::_before_user_callback_impl;
+		using mqtt_aop_unsubscribe<caller_t, args_t>::_before_user_callback_impl;
 
-		using mqtt_aop_auth       <caller_t>::_after_user_callback_impl;
-		using mqtt_aop_connack    <caller_t>::_after_user_callback_impl;
-		using mqtt_aop_connect    <caller_t>::_after_user_callback_impl;
-		using mqtt_aop_disconnect <caller_t>::_after_user_callback_impl;
-		using mqtt_aop_pingreq    <caller_t>::_after_user_callback_impl;
-		using mqtt_aop_pingresp   <caller_t>::_after_user_callback_impl;
-		using mqtt_aop_puback     <caller_t>::_after_user_callback_impl;
-		using mqtt_aop_pubcomp    <caller_t>::_after_user_callback_impl;
-		using mqtt_aop_publish    <caller_t>::_after_user_callback_impl;
-		using mqtt_aop_pubrec     <caller_t>::_after_user_callback_impl;
-		using mqtt_aop_pubrel     <caller_t>::_after_user_callback_impl;
-		using mqtt_aop_suback     <caller_t>::_after_user_callback_impl;
-		using mqtt_aop_subscribe  <caller_t>::_after_user_callback_impl;
-		using mqtt_aop_unsuback   <caller_t>::_after_user_callback_impl;
-		using mqtt_aop_unsubscribe<caller_t>::_after_user_callback_impl;
+		using mqtt_aop_auth       <caller_t, args_t>::_after_user_callback_impl;
+		using mqtt_aop_connack    <caller_t, args_t>::_after_user_callback_impl;
+		using mqtt_aop_connect    <caller_t, args_t>::_after_user_callback_impl;
+		using mqtt_aop_disconnect <caller_t, args_t>::_after_user_callback_impl;
+		using mqtt_aop_pingreq    <caller_t, args_t>::_after_user_callback_impl;
+		using mqtt_aop_pingresp   <caller_t, args_t>::_after_user_callback_impl;
+		using mqtt_aop_puback     <caller_t, args_t>::_after_user_callback_impl;
+		using mqtt_aop_pubcomp    <caller_t, args_t>::_after_user_callback_impl;
+		using mqtt_aop_publish    <caller_t, args_t>::_after_user_callback_impl;
+		using mqtt_aop_pubrec     <caller_t, args_t>::_after_user_callback_impl;
+		using mqtt_aop_pubrel     <caller_t, args_t>::_after_user_callback_impl;
+		using mqtt_aop_suback     <caller_t, args_t>::_after_user_callback_impl;
+		using mqtt_aop_subscribe  <caller_t, args_t>::_after_user_callback_impl;
+		using mqtt_aop_unsuback   <caller_t, args_t>::_after_user_callback_impl;
+		using mqtt_aop_unsubscribe<caller_t, args_t>::_after_user_callback_impl;
 
 		template<class Message>
 		inline void _before_user_callback_impl(
-			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, Message& msg)
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om, Message& msg)
 		{
-			detail::ignore_unused(ec, caller_ptr, caller, msg);
+			detail::ignore_unused(ec, caller_ptr, caller, om, msg);
 
 			ASIO2_ASSERT(false);
 		}
 
 		template<class Message>
 		inline void _after_user_callback_impl(
-			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, Message& msg)
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om, Message& msg)
 		{
-			detail::ignore_unused(ec, caller_ptr, caller, msg);
+			detail::ignore_unused(ec, caller_ptr, caller, om, msg);
 
 			ASIO2_ASSERT(false);
 		}
 
 		template<class Message, class Response>
 		inline void _before_user_callback_impl(
-			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, Message& msg, Response& rep)
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om, Message& msg, Response& rep)
 		{
-			detail::ignore_unused(ec, caller_ptr, caller, msg, rep);
+			detail::ignore_unused(ec, caller_ptr, caller, om, msg, rep);
 
 			ASIO2_ASSERT(false);
 		}
 
 		template<class Message, class Response>
 		inline void _after_user_callback_impl(
-			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, Message& msg, Response& rep)
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om, Message& msg, Response& rep)
 		{
-			detail::ignore_unused(ec, caller_ptr, caller, msg, rep);
+			detail::ignore_unused(ec, caller_ptr, caller, om, msg, rep);
 
 			ASIO2_ASSERT(false);
 		}
 
 		template<class Message>
-		inline void _before_user_callback(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, Message& msg)
+		inline void _before_user_callback(
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om, Message& msg)
 		{
-			detail::ignore_unused(ec, caller_ptr, caller, msg);
+			detail::ignore_unused(ec, caller_ptr, caller, om, msg);
 
 			using message_type  [[maybe_unused]] = typename detail::remove_cvref_t<Message>;
 
 			if constexpr (std::is_same_v<message_type, mqtt::message>)
 			{
-				std::visit([&ec, &caller_ptr, &caller](auto& m) mutable
+				std::visit([&ec, &caller_ptr, &caller, &om](auto& pm) mutable
 				{
-					caller->_before_user_callback_impl(ec, caller_ptr, caller, m);
+					caller->_before_user_callback_impl(ec, caller_ptr, caller, om, pm);
 				}, msg.variant());
 			}
 			else
 			{
-				caller->_before_user_callback_impl(ec, caller_ptr, caller, msg);
+				caller->_before_user_callback_impl(ec, caller_ptr, caller, om, msg);
 			}
 		}
 
 		template<class Message>
-		inline void _after_user_callback(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, Message& msg)
+		inline void _after_user_callback(
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om, Message& msg)
 		{
-			detail::ignore_unused(ec, caller_ptr, caller, msg);
+			detail::ignore_unused(ec, caller_ptr, caller, om, msg);
 
 			using message_type  [[maybe_unused]] = typename detail::remove_cvref_t<Message>;
 
 			if constexpr (std::is_same_v<message_type, mqtt::message>)
 			{
-				std::visit([&ec, &caller_ptr, &caller](auto& m) mutable
+				std::visit([&ec, &caller_ptr, &caller, &om](auto& pm) mutable
 				{
-					caller->_after_user_callback_impl(ec, caller_ptr, caller, m);
+					caller->_after_user_callback_impl(ec, caller_ptr, caller, om, pm);
 				}, msg.variant());
 			}
 			else
 			{
-				caller->_after_user_callback_impl(ec, caller_ptr, caller, msg);
+				caller->_after_user_callback_impl(ec, caller_ptr, caller, om, msg);
 			}
 		}
 
 		template<class Message, class Response>
-		inline void _before_user_callback(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, Message& msg, Response& rep)
+		inline void _before_user_callback(
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om, Message& msg, Response& rep)
 		{
-			detail::ignore_unused(ec, caller_ptr, caller, msg, rep);
+			detail::ignore_unused(ec, caller_ptr, caller, om, msg, rep);
 
 			using message_type  [[maybe_unused]] = typename detail::remove_cvref_t<Message>;
 			using response_type [[maybe_unused]] = typename detail::remove_cvref_t<Response>;
@@ -200,20 +203,20 @@ namespace asio2::detail
 				{
 					if (rep.index() != std::variant_npos)
 					{
-						std::visit([&ec, &caller_ptr, &caller, &rep](auto& m) mutable
+						std::visit([&ec, &caller_ptr, &caller, &om, &rep](auto& pm) mutable
 						{
-							std::visit([&ec, &caller_ptr, &caller, &m](auto& r) mutable
+							std::visit([&ec, &caller_ptr, &caller, &om, &pm](auto& pr) mutable
 							{
-								caller->_before_user_callback_impl(ec, caller_ptr, caller, m, r);
+								caller->_before_user_callback_impl(ec, caller_ptr, caller, om, pm, pr);
 							}, rep.variant());
 						}, msg.variant());
 					}
 				}
 				else
 				{
-					std::visit([&ec, &caller_ptr, &caller, &rep](auto& m) mutable
+					std::visit([&ec, &caller_ptr, &caller, &om, &rep](auto& pm) mutable
 					{
-						caller->_before_user_callback_impl(ec, caller_ptr, caller, m, rep);
+						caller->_before_user_callback_impl(ec, caller_ptr, caller, om, pm, rep);
 					}, msg.variant());
 				}
 			}
@@ -223,23 +226,24 @@ namespace asio2::detail
 				{
 					if (rep.index() != std::variant_npos)
 					{
-						std::visit([&ec, &caller_ptr, &caller, &msg](auto& r) mutable
+						std::visit([&ec, &caller_ptr, &caller, &om, &msg](auto& pr) mutable
 						{
-							caller->_before_user_callback_impl(ec, caller_ptr, caller, msg, r);
+							caller->_before_user_callback_impl(ec, caller_ptr, caller, om, msg, pr);
 						}, rep.variant());
 					}
 				}
 				else
 				{
-					caller->_before_user_callback_impl(ec, caller_ptr, caller, msg, rep);
+					caller->_before_user_callback_impl(ec, caller_ptr, caller, om, msg, rep);
 				}
 			}
 		}
 
 		template<class Message, class Response>
-		inline void _after_user_callback(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, Message& msg, Response& rep)
+		inline void _after_user_callback(
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om, Message& msg, Response& rep)
 		{
-			detail::ignore_unused(ec, caller_ptr, caller, msg, rep);
+			detail::ignore_unused(ec, caller_ptr, caller, om, msg, rep);
 
 			using message_type  [[maybe_unused]] = typename detail::remove_cvref_t<Message>;
 			using response_type [[maybe_unused]] = typename detail::remove_cvref_t<Response>;
@@ -250,20 +254,20 @@ namespace asio2::detail
 				{
 					if (rep.index() != std::variant_npos)
 					{
-						std::visit([&ec, &caller_ptr, &caller, &rep](auto& m) mutable
+						std::visit([&ec, &caller_ptr, &caller, &om, &rep](auto& pm) mutable
 						{
-							std::visit([&ec, &caller_ptr, &caller, &m](auto& r) mutable
+							std::visit([&ec, &caller_ptr, &caller, &om, &pm](auto& pr) mutable
 							{
-								caller->_after_user_callback_impl(ec, caller_ptr, caller, m, r);
+								caller->_after_user_callback_impl(ec, caller_ptr, caller, om, pm, pr);
 							}, rep.variant());
 						}, msg.variant());
 					}
 				}
 				else
 				{
-					std::visit([&ec, &caller_ptr, &caller, &rep](auto& m) mutable
+					std::visit([&ec, &caller_ptr, &caller, &om, &rep](auto& pm) mutable
 					{
-						caller->_after_user_callback_impl(ec, caller_ptr, caller, m, rep);
+						caller->_after_user_callback_impl(ec, caller_ptr, caller, om, pm, rep);
 					}, msg.variant());
 				}
 			}
@@ -273,15 +277,15 @@ namespace asio2::detail
 				{
 					if (rep.index() != std::variant_npos)
 					{
-						std::visit([&ec, &caller_ptr, &caller, &msg](auto& r) mutable
+						std::visit([&ec, &caller_ptr, &caller, &om, &msg](auto& pr) mutable
 						{
-							caller->_after_user_callback_impl(ec, caller_ptr, caller, msg, r);
+							caller->_after_user_callback_impl(ec, caller_ptr, caller, om, msg, pr);
 						}, rep.variant());
 					}
 				}
 				else
 				{
-					caller->_after_user_callback_impl(ec, caller_ptr, caller, msg, rep);
+					caller->_after_user_callback_impl(ec, caller_ptr, caller, om, msg, rep);
 				}
 			}
 		}

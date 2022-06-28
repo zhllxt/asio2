@@ -446,7 +446,7 @@ void tcp_general_test()
 		// use this to ensure the ASIO2_CHECK(server.get_session_count() == std::size_t(1));
 		while (server_recv_counter < 1)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		ASIO2_CHECK(server.get_session_count() == std::size_t(1));
@@ -724,11 +724,11 @@ void tcp_general_test()
 
 		while (server_recv_size != client_send_size)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 		while (server_recv_size != client_recv_size)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		ASIO2_CHECK(server_recv_size == client_send_size);
@@ -742,7 +742,7 @@ void tcp_general_test()
 		// use this to ensure the ASIO2_CHECK(session_ptr->is_started());
 		while (server_disconnect_counter != 1)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		server.stop();
@@ -985,7 +985,7 @@ void tcp_general_test()
 		// use this to ensure the ASIO2_CHECK_VALUE(server_connect_counter   .load(), server_connect_counter    == 1);
 		while (server_recv_counter < 1)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		ASIO2_CHECK_VALUE(server_accept_counter    .load(), server_accept_counter     == 1);
@@ -999,7 +999,7 @@ void tcp_general_test()
 		// use this to ensure the ASIO2_CHECK(session_ptr->is_started());
 		while (server_disconnect_counter != 1)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		server.stop();
@@ -1187,7 +1187,7 @@ void tcp_general_test()
 
 		while (server.get_session_count() < std::size_t(test_client_count))
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		auto session_count = server.get_session_count();
@@ -1233,7 +1233,7 @@ void tcp_general_test()
 
 		while (client_connect_counter < test_client_count)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		ASIO2_CHECK_VALUE(client_init_counter      .load(), client_init_counter    == test_client_count);
@@ -1253,7 +1253,7 @@ void tcp_general_test()
 		// use this to ensure the ASIO2_CHECK(session_ptr->is_started());
 		while (server_disconnect_counter != test_client_count)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		server.stop();
@@ -1294,7 +1294,7 @@ void tcp_general_test()
 
 		while (server.get_session_count() < std::size_t(test_client_count))
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		ASIO2_CHECK_VALUE(server.get_session_count(), server.get_session_count() == std::size_t(test_client_count));
@@ -1305,7 +1305,7 @@ void tcp_general_test()
 
 		while (client_connect_counter < test_client_count)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		ASIO2_CHECK_VALUE(client_init_counter      .load(), client_init_counter    == test_client_count);
@@ -1325,7 +1325,7 @@ void tcp_general_test()
 		// use this to ensure the ASIO2_CHECK(session_ptr->is_started());
 		while (server_disconnect_counter != test_client_count)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		server.stop();
@@ -1513,7 +1513,7 @@ void tcp_general_test()
 
 		while (server.get_session_count() < std::size_t(test_client_count))
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		auto session_count = server.get_session_count();
@@ -1523,7 +1523,7 @@ void tcp_general_test()
 
 		while (client_recv_counter < test_client_count)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		ASIO2_CHECK_VALUE(client_recv_counter.load(), client_recv_counter >= test_client_count);
@@ -1534,7 +1534,7 @@ void tcp_general_test()
 
 		while (client_recv_counter < test_client_count)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		ASIO2_CHECK_VALUE(client_recv_counter.load(), client_recv_counter >= test_client_count);
@@ -1545,7 +1545,7 @@ void tcp_general_test()
 
 		while (client_recv_counter < test_client_count)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		ASIO2_CHECK_VALUE(client_recv_counter.load(), client_recv_counter >= test_client_count);
@@ -1567,7 +1567,7 @@ void tcp_general_test()
 		// use this to ensure the ASIO2_CHECK(session_ptr->is_started());
 		while (server_disconnect_counter != test_client_count)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		server.stop();
@@ -1608,14 +1608,14 @@ void tcp_general_test()
 
 		while (server.get_session_count() < std::size_t(test_client_count))
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		ASIO2_CHECK_VALUE(server.get_session_count(), server.get_session_count() == std::size_t(test_client_count));
 
 		while (client_connect_counter < test_client_count)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		ASIO2_CHECK_VALUE(client_init_counter      .load(), client_init_counter    == test_client_count);
@@ -1635,7 +1635,7 @@ void tcp_general_test()
 		// use this to ensure the ASIO2_CHECK(session_ptr->is_started());
 		while (server_disconnect_counter != test_client_count)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		server.stop();
@@ -1920,7 +1920,7 @@ void tcp_general_test()
 
 		while (client_finish_counter < test_client_count)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 		ASIO2_CHECK_VALUE(client_finish_counter.load(), client_finish_counter == std::size_t(test_client_count));
 
@@ -1944,7 +1944,7 @@ void tcp_general_test()
 		// use this to ensure the ASIO2_CHECK(session_ptr->is_started());
 		while (server_disconnect_counter != test_client_count)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		server.stop();
@@ -1986,14 +1986,14 @@ void tcp_general_test()
 
 		while (server.get_session_count() < std::size_t(test_client_count))
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		ASIO2_CHECK_VALUE(server.get_session_count(), server.get_session_count() == std::size_t(test_client_count));
 
 		while (client_connect_counter < test_client_count)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		ASIO2_CHECK_VALUE(client_init_counter      .load(), client_init_counter    == test_client_count);
@@ -2013,7 +2013,7 @@ void tcp_general_test()
 		// use this to ensure the ASIO2_CHECK(session_ptr->is_started());
 		while (server_disconnect_counter != test_client_count)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		server.stop();
@@ -2231,7 +2231,7 @@ void tcp_general_test()
 
 		while (server.get_session_count() < std::size_t(test_client_count))
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		auto session_count = server.get_session_count();
@@ -2254,7 +2254,7 @@ void tcp_general_test()
 		// use this to ensure the ASIO2_CHECK(session_ptr->is_started());
 		while (server_disconnect_counter != test_client_count)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		server.stop();
@@ -2295,14 +2295,14 @@ void tcp_general_test()
 
 		while (server.get_session_count() < std::size_t(test_client_count))
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		ASIO2_CHECK_VALUE(server.get_session_count(), server.get_session_count() == std::size_t(test_client_count));
 
 		while (client_connect_counter < test_client_count)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		ASIO2_CHECK_VALUE(client_init_counter      .load(), client_init_counter    == test_client_count);
@@ -2322,7 +2322,7 @@ void tcp_general_test()
 		// use this to ensure the ASIO2_CHECK(session_ptr->is_started());
 		while (server_disconnect_counter != test_client_count)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		server.stop();
@@ -2518,7 +2518,7 @@ void tcp_general_test()
 			ext_data& ex = clients[i]->get_user_data<ext_data&>();
 			while (ex.client_connect_counter < 3)
 			{
-				std::this_thread::sleep_for(std::chrono::milliseconds(1));
+				ASIO2_TEST_WAIT_CHECK();
 			}
 		}
 
@@ -2572,7 +2572,7 @@ void tcp_general_test()
 			ext_data& ex = clients[i]->get_user_data<ext_data&>();
 			while (ex.client_connect_counter < 3)
 			{
-				std::this_thread::sleep_for(std::chrono::milliseconds(1));
+				ASIO2_TEST_WAIT_CHECK();
 			}
 		}
 
@@ -2786,7 +2786,7 @@ void tcp_general_test()
 
 		while (server.get_session_count() < std::size_t(test_client_count))
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		auto session_count = server.get_session_count();
@@ -2797,7 +2797,7 @@ void tcp_general_test()
 			ext_data& ex = clients[i]->get_user_data<ext_data&>();
 			while (ex.client_connect_counter < 1)
 			{
-				std::this_thread::sleep_for(std::chrono::milliseconds(1));
+				ASIO2_TEST_WAIT_CHECK();
 			}
 		}
 
@@ -2821,7 +2821,7 @@ void tcp_general_test()
 		// use this to ensure the ASIO2_CHECK(session_ptr->is_started());
 		while (server_disconnect_counter != test_client_count)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		server.stop();
@@ -3021,17 +3021,17 @@ void tcp_general_test()
 
 		while (server.get_session_count() < std::size_t(test_client_count - 1))
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		while (client_disconnect_counter < 1)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		while (client_connect_counter < test_client_count)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		auto session_count = server.get_session_count();
@@ -3063,7 +3063,7 @@ void tcp_general_test()
 		// use this to ensure the ASIO2_CHECK(session_ptr->is_started());
 		while (server_disconnect_counter != test_client_count - 1)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		server.stop();
@@ -3106,12 +3106,12 @@ void tcp_general_test()
 
 		while (server.get_session_count() < std::size_t(test_client_count - 1))
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		while (client_disconnect_counter < 1)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		ASIO2_CHECK_VALUE(client_disconnect_counter.load(), client_disconnect_counter == 1);
@@ -3120,7 +3120,7 @@ void tcp_general_test()
 
 		while (client_connect_counter < test_client_count)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		server.foreach_session([](std::shared_ptr<asio2::tcp_session>& session_ptr) mutable
@@ -3145,7 +3145,7 @@ void tcp_general_test()
 		// use this to ensure the ASIO2_CHECK(session_ptr->is_started());
 		while (server_disconnect_counter != test_client_count - 1)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		server.stop();

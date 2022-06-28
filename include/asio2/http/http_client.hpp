@@ -53,6 +53,7 @@ namespace asio2::detail
 		using super = tcp_client_impl_t <derived_t, args_t>;
 		using self  = http_client_impl_t<derived_t, args_t>;
 
+		using args_type   = args_t;
 		using body_type   = typename args_t::body_t;
 		using buffer_type = typename args_t::buffer_t;
 		using send_data_t = typename args_t::send_data_t;

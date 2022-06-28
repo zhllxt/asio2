@@ -30,7 +30,7 @@ namespace asio2::detail
 	class mqtt_server_impl_t
 		: public tcp_server_impl_t<derived_t, session_t>
 		, public mqtt_options
-		, public mqtt_invoker_t   <session_t           >
+		, public mqtt_invoker_t   <session_t, typename session_t::args_type>
 	{
 		ASIO2_CLASS_FRIEND_DECLARE_BASE;
 		ASIO2_CLASS_FRIEND_DECLARE_TCP_BASE;
@@ -41,8 +41,8 @@ namespace asio2::detail
 		using self  = mqtt_server_impl_t<derived_t, session_t>;
 
 		using session_type = session_t;
+		using subnode_type = typename session_type::subnode_type;
 
-	//protected:
 		using super::async_send;
 
 	public:
@@ -55,8 +55,8 @@ namespace asio2::detail
 			std::size_t concurrency   = default_concurrency()
 		)
 			: super(init_buf_size, max_buf_size, concurrency)
-			, mqtt_options                           ()
-			, mqtt_invoker_t   <session_t           >()
+			, mqtt_options()
+			, mqtt_invoker_t   <session_t, typename session_t::args_type>()
 		{
 		}
 
@@ -68,7 +68,7 @@ namespace asio2::detail
 		)
 			: super(init_buf_size, max_buf_size, std::forward<Scheduler>(scheduler))
 			, mqtt_options                           ()
-			, mqtt_invoker_t   <session_t           >()
+			, mqtt_invoker_t   <session_t, typename session_t::args_type>()
 		{
 		}
 
@@ -117,9 +117,9 @@ namespace asio2::detail
 			asio::dispatch(this->derived().io().context(), make_allocator(this->derived().wallocator(),
 			[this, this_ptr]() mutable
 			{
-				asio2_unique_lock lock{ this->mqttid_sessions_mtx_ };
+				asio2_unique_lock lock{ this->mutex_ };
 
-				this->mqttid_sessions_.clear();
+				this->mqtt_sessions_.clear();
 			}));
 
 			super::_post_stop(ec, std::move(this_ptr), old_state);
@@ -152,22 +152,24 @@ namespace asio2::detail
 		inline std::shared_ptr<session_t> _make_session(Args&&... args)
 		{
 			std::shared_ptr<session_t> p = super::_make_session(std::forward<Args>(args)..., *this,
-				this->mqttid_sessions_mtx_, this->mqttid_sessions_,
+				this->mutex_, this->mqtt_sessions_,
 				this->subs_map_, this->shared_targets_, this->retained_messages_);
 			// Copy the parameter configuration of user calls for the "server" to each "session"
 			p->_mqtt_options_copy_from(*this);
 			return p;
 		}
 
+		inline asio2_shared_mutex& get_mutex() noexcept { return this->mutex_; }
+
 	protected:
 		/// use rwlock to make this id session map thread safe
-		mutable asio2_shared_mutex                                         mqttid_sessions_mtx_;
+		mutable asio2_shared_mutex                                         mutex_;
 
 		/// client id map
-		std::unordered_map<std::string_view, std::shared_ptr<session_t>>   mqttid_sessions_;
+		std::unordered_map<std::string_view, std::shared_ptr<session_t>>   mqtt_sessions_;
 
 		/// subscription information map
-		mqtt::subscription_map<std::string_view, mqtt::subnode<session_t>> subs_map_;
+		mqtt::subscription_map<std::string_view, subnode_type>             subs_map_;
 
 		/// shared subscription targets
 		mqtt::shared_target<mqtt::stnode<session_t>>                       shared_targets_;

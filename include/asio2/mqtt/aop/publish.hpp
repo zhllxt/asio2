@@ -20,11 +20,11 @@
 #include <asio2/base/detail/function_traits.hpp>
 #include <asio2/base/detail/util.hpp>
 
-#include <asio2/mqtt/message_util.hpp>
+#include <asio2/mqtt/message.hpp>
 
 namespace asio2::detail
 {
-	template<class caller_t>
+	template<class caller_t, class args_t>
 	class mqtt_aop_publish
 	{
 		friend caller_t;
@@ -32,9 +32,11 @@ namespace asio2::detail
 	protected:
 		// server or client
 		template<class Message, class Response>
-		inline bool _before_publish_callback(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, Message& msg, Response& rep)
+		inline bool _before_publish_callback(
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
+			Message& msg, Response& rep)
 		{
-			detail::ignore_unused(ec, caller_ptr, caller, msg, rep);
+			detail::ignore_unused(ec, caller_ptr, caller, om, msg, rep);
 
 			using message_type  = typename detail::remove_cvref_t<Message>;
 			using response_type = typename detail::remove_cvref_t<Response>;
@@ -52,7 +54,7 @@ namespace asio2::detail
 			if (qos == mqtt::qos_type::at_most_once)
 				rep.set_send_flag(false);
 
-			if (detail::to_underlying(qos) > 2)
+			if (!mqtt::is_valid_qos(qos))
 			{
 				ec = mqtt::make_error_code(mqtt::error::malformed_packet);
 				return false;
@@ -185,7 +187,7 @@ namespace asio2::detail
 				std::ignore = true;
 			}
 
-			if constexpr(caller_t::is_session())
+			if constexpr (caller_t::is_session())
 			{
 				// use post and push_event to ensure the publish message is sent to clients must
 				// after mqtt response is sent already.
@@ -213,7 +215,8 @@ namespace asio2::detail
 		}
 
 		template<class Message>
-		inline void _multicast_publish(std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, Message&& msg, std::string topic_name)
+		inline void _multicast_publish(
+			std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, Message&& msg, std::string topic_name)
 		{
 			detail::ignore_unused(caller_ptr, caller, msg);
 
@@ -228,7 +231,7 @@ namespace asio2::detail
 			ASIO2_ASSERT(!topic_name.empty());
 
 			caller->subs_map_.match(topic_name, [this, caller, &msg, &sent]
-			(std::string_view key, mqtt::subnode<caller_t>& node) mutable
+			(std::string_view key, auto& node) mutable
 			{
 				detail::ignore_unused(key);
 
@@ -241,7 +244,7 @@ namespace asio2::detail
 				{
 					// Non shared subscriptions
 
-					auto session_ptr = node.session.lock();
+					auto session_ptr = node.caller.lock();
 
 					if (!session_ptr)
 						return;
@@ -335,7 +338,9 @@ namespace asio2::detail
 		}
 
 		template<class session_t, class Message>
-		inline void _send_publish_to_subscriber(std::shared_ptr<session_t> session, mqtt::subscription& sub, mqtt::v5::properties_set& props, Message& msg)
+		inline void _send_publish_to_subscriber(
+			std::shared_ptr<session_t> session, mqtt::subscription& sub, mqtt::v5::properties_set& props,
+			Message& msg)
 		{
 			if (!session)
 				return;
@@ -360,7 +365,9 @@ namespace asio2::detail
 		}
 
 		template<class session_t, class Message, class Response>
-		inline void _prepare_send_publish(std::shared_ptr<session_t> session, mqtt::subscription& sub, mqtt::v5::properties_set& props, Message& msg, Response&& rep)
+		inline void _prepare_send_publish(
+			std::shared_ptr<session_t> session, mqtt::subscription& sub, mqtt::v5::properties_set& props,
+			Message& msg, Response&& rep)
 		{
 			using message_type  = typename detail::remove_cvref_t<Message>;
 			using response_type = typename detail::remove_cvref_t<Response>;
@@ -500,75 +507,125 @@ namespace asio2::detail
 		}
 
 		// server or client
-		inline void _before_user_callback_impl(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::v3::publish& msg, mqtt::v3::puback& rep)
+		inline void _before_user_callback_impl(
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
+			mqtt::v3::publish& msg, mqtt::v3::puback& rep)
 		{
-			if (!_before_publish_callback(ec, caller_ptr, caller, msg, rep))
+			if (!_before_publish_callback(ec, caller_ptr, caller, om, msg, rep))
 				return;
 		}
 
 		// server or client
-		inline void _before_user_callback_impl(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::v4::publish& msg, mqtt::v4::puback& rep)
+		inline void _before_user_callback_impl(
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
+			mqtt::v4::publish& msg, mqtt::v4::puback& rep)
 		{
-			if (!_before_publish_callback(ec, caller_ptr, caller, msg, rep))
+			if (!_before_publish_callback(ec, caller_ptr, caller, om, msg, rep))
 				return;
 		}
 
 		// server or client
-		inline void _before_user_callback_impl(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::v5::publish& msg, mqtt::v5::puback& rep)
+		inline void _before_user_callback_impl(
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
+			mqtt::v5::publish& msg, mqtt::v5::puback& rep)
 		{
-			if (!_before_publish_callback(ec, caller_ptr, caller, msg, rep))
+			if (!_before_publish_callback(ec, caller_ptr, caller, om, msg, rep))
 				return;
 		}
 
 		// server or client
-		inline void _before_user_callback_impl(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::v3::publish& msg, mqtt::v3::pubrec& rep)
+		inline void _before_user_callback_impl(
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
+			mqtt::v3::publish& msg, mqtt::v3::pubrec& rep)
 		{
-			if (!_before_publish_callback(ec, caller_ptr, caller, msg, rep))
+			if (!_before_publish_callback(ec, caller_ptr, caller, om, msg, rep))
 				return;
 		}
 
 		// server or client
-		inline void _before_user_callback_impl(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::v4::publish& msg, mqtt::v4::pubrec& rep)
+		inline void _before_user_callback_impl(
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
+			mqtt::v4::publish& msg, mqtt::v4::pubrec& rep)
 		{
-			if (!_before_publish_callback(ec, caller_ptr, caller, msg, rep))
+			if (!_before_publish_callback(ec, caller_ptr, caller, om, msg, rep))
 				return;
 		}
 
 		// server or client
-		inline void _before_user_callback_impl(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::v5::publish& msg, mqtt::v5::pubrec& rep)
+		inline void _before_user_callback_impl(
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
+			mqtt::v5::publish& msg, mqtt::v5::pubrec& rep)
 		{
-			if (!_before_publish_callback(ec, caller_ptr, caller, msg, rep))
+			if (!_before_publish_callback(ec, caller_ptr, caller, om, msg, rep))
 				return;
 		}
 
-		inline void _after_user_callback_impl(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::v3::publish& msg, mqtt::v3::puback& rep)
+		// server or client
+		template<class Message, class Response>
+		inline bool _after_publish_callback(
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
+			Message& msg, Response& rep)
 		{
-			detail::ignore_unused(ec, caller_ptr, caller, msg, rep);
+			detail::ignore_unused(ec, caller_ptr, caller, om, msg, rep);
+
+			if constexpr (caller_t::is_session())
+			{
+				std::ignore = true;
+			}
+			else
+			{
+
+			}
+
+			return true;
 		}
 
-		inline void _after_user_callback_impl(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::v4::publish& msg, mqtt::v4::puback& rep)
+		inline void _after_user_callback_impl(
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
+			mqtt::v3::publish& msg, mqtt::v3::puback& rep)
 		{
-			detail::ignore_unused(ec, caller_ptr, caller, msg, rep);
+			if (!_after_publish_callback(ec, caller_ptr, caller, om, msg, rep))
+				return;
 		}
 
-		inline void _after_user_callback_impl(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::v5::publish& msg, mqtt::v5::puback& rep)
+		inline void _after_user_callback_impl(
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
+			mqtt::v4::publish& msg, mqtt::v4::puback& rep)
 		{
-			detail::ignore_unused(ec, caller_ptr, caller, msg, rep);
+			if (!_after_publish_callback(ec, caller_ptr, caller, om, msg, rep))
+				return;
 		}
 
-		inline void _after_user_callback_impl(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::v3::publish& msg, mqtt::v3::pubrec& rep)
+		inline void _after_user_callback_impl(
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
+			mqtt::v5::publish& msg, mqtt::v5::puback& rep)
 		{
-			detail::ignore_unused(ec, caller_ptr, caller, msg, rep);
+			if (!_after_publish_callback(ec, caller_ptr, caller, om, msg, rep))
+				return;
 		}
 
-		inline void _after_user_callback_impl(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::v4::publish& msg, mqtt::v4::pubrec& rep)
+		inline void _after_user_callback_impl(
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
+			mqtt::v3::publish& msg, mqtt::v3::pubrec& rep)
 		{
-			detail::ignore_unused(ec, caller_ptr, caller, msg, rep);
+			if (!_after_publish_callback(ec, caller_ptr, caller, om, msg, rep))
+				return;
 		}
 
-		inline void _after_user_callback_impl(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::v5::publish& msg, mqtt::v5::pubrec& rep)
+		inline void _after_user_callback_impl(
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
+			mqtt::v4::publish& msg, mqtt::v4::pubrec& rep)
 		{
-			detail::ignore_unused(ec, caller_ptr, caller, msg, rep);
+			if (!_after_publish_callback(ec, caller_ptr, caller, om, msg, rep))
+				return;
+		}
+
+		inline void _after_user_callback_impl(
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
+			mqtt::v5::publish& msg, mqtt::v5::pubrec& rep)
+		{
+			if (!_after_publish_callback(ec, caller_ptr, caller, om, msg, rep))
+				return;
 		}
 	};
 }

@@ -44,6 +44,7 @@ namespace asio2::detail
 		using super = tcp_session_impl_t <derived_t, args_t>;
 		using self  = tcps_session_impl_t<derived_t, args_t>;
 
+		using args_type   = args_t;
 		using key_type    = std::size_t;
 		using buffer_type = typename args_t::buffer_t;
 

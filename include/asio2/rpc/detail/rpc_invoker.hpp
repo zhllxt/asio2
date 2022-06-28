@@ -44,7 +44,7 @@
 namespace asio2::detail
 {
 	// forward declare
-	template<class> class rpc_invoker_t;
+	template<class, class> class rpc_invoker_t;
 }
 
 namespace asio2::rpc
@@ -52,7 +52,8 @@ namespace asio2::rpc
 	template<class T>
 	class response_defer
 	{
-		template<class> friend class asio2::detail::rpc_invoker_t;
+		template<class, class> friend class asio2::detail::rpc_invoker_t;
+
 	public:
 		 response_defer() noexcept = default;
 		~response_defer()
@@ -77,7 +78,7 @@ namespace asio2::rpc
 	template<class T>
 	class future
 	{
-		template<class> friend class asio2::detail::rpc_invoker_t;
+		template<class, class> friend class asio2::detail::rpc_invoker_t;
 	public:
 		future() = delete;
 		future(std::shared_ptr<response_defer<T>> defer) noexcept : defer_(std::move(defer))
@@ -97,7 +98,7 @@ namespace asio2::rpc
 	template<class T>
 	class promise
 	{
-		template<class> friend class asio2::detail::rpc_invoker_t;
+		template<class, class> friend class asio2::detail::rpc_invoker_t;
 	public:
 		 promise() = default;
 		~promise() noexcept = default;
@@ -123,7 +124,7 @@ namespace asio2::rpc
 	template<>
 	class response_defer<void>
 	{
-		template<class> friend class asio2::detail::rpc_invoker_t;
+		template<class, class> friend class asio2::detail::rpc_invoker_t;
 	public:
 		 response_defer() noexcept = default;
 		~response_defer()
@@ -148,7 +149,7 @@ namespace asio2::rpc
 	template<>
 	class future<void>
 	{
-		template<class> friend class asio2::detail::rpc_invoker_t;
+		template<class, class> friend class asio2::detail::rpc_invoker_t;
 	public:
 		future() = delete;
 		future(std::shared_ptr<response_defer<void>> defer) noexcept : defer_(std::move(defer))
@@ -168,7 +169,7 @@ namespace asio2::rpc
 	template<>
 	class promise<void>
 	{
-		template<class> friend class asio2::detail::rpc_invoker_t;
+		template<class, class> friend class asio2::detail::rpc_invoker_t;
 	public:
 		 promise() = default;
 		~promise() noexcept = default;
@@ -202,14 +203,14 @@ namespace asio2::detail
 		using type = std::int8_t;
 	};
 
-	template<typename caller_t>
+	template<class caller_t, class args_t>
 	class rpc_invoker_t
 	{
 	protected:
 		struct dummy {};
 
 	public:
-		using self = rpc_invoker_t<caller_t>;
+		using self = rpc_invoker_t<caller_t, args_t>;
 
 		/**
 		 * @constructor

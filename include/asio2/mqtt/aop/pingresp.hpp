@@ -20,47 +20,59 @@
 #include <asio2/base/detail/function_traits.hpp>
 #include <asio2/base/detail/util.hpp>
 
-#include <asio2/mqtt/message_util.hpp>
+#include <asio2/mqtt/message.hpp>
 
 namespace asio2::detail
 {
-	template<class caller_t>
+	template<class caller_t, class args_t>
 	class mqtt_aop_pingresp
 	{
 		friend caller_t;
 
 	protected:
 		// must be client
-		inline void _before_user_callback_impl(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::v3::pingresp& msg)
+		inline void _before_user_callback_impl(
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
+			mqtt::v3::pingresp& msg)
 		{
-			detail::ignore_unused(ec, caller_ptr, caller, msg);
+			detail::ignore_unused(ec, caller_ptr, caller, om, msg);
 		}
 
 		// must be client
-		inline void _before_user_callback_impl(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::v4::pingresp& msg)
+		inline void _before_user_callback_impl(
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
+			mqtt::v4::pingresp& msg)
 		{
-			detail::ignore_unused(ec, caller_ptr, caller, msg);
+			detail::ignore_unused(ec, caller_ptr, caller, om, msg);
 		}
 
 		// must be client
-		inline void _before_user_callback_impl(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::v5::pingresp& msg)
+		inline void _before_user_callback_impl(
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
+			mqtt::v5::pingresp& msg)
 		{
-			detail::ignore_unused(ec, caller_ptr, caller, msg);
+			detail::ignore_unused(ec, caller_ptr, caller, om, msg);
 		}
 
-		inline void _after_user_callback_impl(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::v3::pingresp& msg)
+		inline void _after_user_callback_impl(
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
+			mqtt::v3::pingresp& msg)
 		{
-			detail::ignore_unused(ec, caller_ptr, caller, msg);
+			detail::ignore_unused(ec, caller_ptr, caller, om, msg);
 		}
 
-		inline void _after_user_callback_impl(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::v4::pingresp& msg)
+		inline void _after_user_callback_impl(
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
+			mqtt::v4::pingresp& msg)
 		{
-			detail::ignore_unused(ec, caller_ptr, caller, msg);
+			detail::ignore_unused(ec, caller_ptr, caller, om, msg);
 		}
 
-		inline void _after_user_callback_impl(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::v5::pingresp& msg)
+		inline void _after_user_callback_impl(
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
+			mqtt::v5::pingresp& msg)
 		{
-			detail::ignore_unused(ec, caller_ptr, caller, msg);
+			detail::ignore_unused(ec, caller_ptr, caller, om, msg);
 		}
 	};
 }

@@ -6,6 +6,7 @@ del /f /s /q cmake_install.cmake
 del /f /s /q CMakeCache.txt
 del /f /s /q *.vsp
 del /f /s /q *.psess
+del /f /s /q Makefile
 
 rmdir /s /q .vs
 rmdir /s /q asio2_example_project

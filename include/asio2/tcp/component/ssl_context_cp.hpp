@@ -25,6 +25,11 @@
 
 namespace asio2::detail
 {
+	// we must pass the "args_t" to this base class.
+	// can't use derived_t::args_type to get the args_t, beacuse this base class 
+	// is inited before the derived class, the derived_t::args_type has not been
+	// defined in this base class.
+
 	template<class derived_t, class args_t>
 	class ssl_context_cp : public asio::ssl::context
 	{

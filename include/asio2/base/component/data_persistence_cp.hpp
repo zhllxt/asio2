@@ -33,7 +33,7 @@
 
 namespace asio2::detail
 {
-	template<class derived_t, class args_t = void>
+	template<class derived_t, class args_t>
 	class data_persistence_cp
 	{
 	public:

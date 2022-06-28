@@ -57,6 +57,7 @@ namespace asio2::detail
 		using super = tcp_session_impl_t <derived_t, args_t>;
 		using self  = http_session_impl_t<derived_t, args_t>;
 
+		using args_type   = args_t;
 		using key_type    = std::size_t;
 		using body_type   = typename args_t::body_t;
 		using buffer_type = typename args_t::buffer_t;
@@ -73,15 +74,15 @@ namespace asio2::detail
 		 * @constructor
 		 */
 		explicit http_session_impl_t(
-			http_router_t<derived_t> & router,
-			std::filesystem::path    & root_directory,
-			bool                       is_arg0_session,
-			bool                       support_websocket,
-			session_mgr_t<derived_t> & sessions,
-			listener_t               & listener,
-			io_t                     & rwio,
-			std::size_t                init_buf_size,
-			std::size_t                max_buf_size
+			http_router_t<derived_t, args_t> & router,
+			std::filesystem::path            & root_directory,
+			bool                               is_arg0_session,
+			bool                               support_websocket,
+			session_mgr_t<derived_t>         & sessions,
+			listener_t                       & listener,
+			io_t                             & rwio,
+			std::size_t                        init_buf_size,
+			std::size_t                        max_buf_size
 		)
 			: super(sessions, listener, rwio, init_buf_size, max_buf_size)
 			, http_send_op<derived_t, args_t>()
@@ -176,7 +177,7 @@ namespace asio2::detail
 		inline asio2::response_mode get_response_mode() { return this->response_mode_; }
 
 	protected:
-		inline http_router_t<derived_t>& _router() noexcept
+		inline http_router_t<derived_t, args_t>& _router() noexcept
 		{
 			return (this->router_);
 		}
@@ -473,21 +474,21 @@ namespace asio2::detail
 		}
 
 	protected:
-		http::web_request             req_;
+		http::web_request                   req_;
 
-		http::web_response            rep_;
+		http::web_response                  rep_;
 
-		http_router_t<derived_t>& router_;
+		http_router_t<derived_t, args_t>  & router_;
 
-		std::filesystem::path   & root_directory_;
+		std::filesystem::path             & root_directory_;
 
-		bool                      is_arg0_session_    = false;
+		bool                                is_arg0_session_    = false;
 
-		bool                      support_websocket_  = false;
+		bool                                support_websocket_  = false;
 
-		asio2::response_mode      response_mode_      = asio2::response_mode::automatic;
+		asio2::response_mode                response_mode_      = asio2::response_mode::automatic;
 
-		std::shared_ptr<typename http_router_t<derived_t>::optype>   websocket_router_;
+		std::shared_ptr<typename http_router_t<derived_t, args_t>::optype>   websocket_router_;
 	};
 }
 

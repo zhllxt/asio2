@@ -20,20 +20,22 @@
 #include <asio2/base/detail/function_traits.hpp>
 #include <asio2/base/detail/util.hpp>
 
-#include <asio2/mqtt/message_util.hpp>
+#include <asio2/mqtt/message.hpp>
 
 namespace asio2::detail
 {
-	template<class caller_t>
+	template<class caller_t, class args_t>
 	class mqtt_aop_connack
 	{
 		friend caller_t;
 
 	protected:
 		// must be client
-		inline void _before_user_callback_impl(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::v3::connack& msg)
+		inline void _before_user_callback_impl(
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
+			mqtt::v3::connack& msg)
 		{
-			detail::ignore_unused(ec, caller_ptr, caller, msg);
+			detail::ignore_unused(ec, caller_ptr, caller, om, msg);
 
 			// if started already and recvd connack message again, disconnect
 			state_t expected = state_t::started;
@@ -65,9 +67,11 @@ namespace asio2::detail
 		}
 
 		// must be client
-		inline void _before_user_callback_impl(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::v4::connack& msg)
+		inline void _before_user_callback_impl(
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
+			mqtt::v4::connack& msg)
 		{
-			detail::ignore_unused(ec, caller_ptr, caller, msg);
+			detail::ignore_unused(ec, caller_ptr, caller, om, msg);
 
 			// if started already and recvd connack message again, disconnect
 			state_t expected = state_t::started;
@@ -99,9 +103,11 @@ namespace asio2::detail
 		}
 
 		// must be client
-		inline void _before_user_callback_impl(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::v5::connack& msg)
+		inline void _before_user_callback_impl(
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
+			mqtt::v5::connack& msg)
 		{
-			detail::ignore_unused(ec, caller_ptr, caller, msg);
+			detail::ignore_unused(ec, caller_ptr, caller, om, msg);
 
 			// if started already and recvd connack message again, disconnect
 			state_t expected = state_t::started;
@@ -123,9 +129,11 @@ namespace asio2::detail
 			ec = mqtt::make_error_code(static_cast<mqtt::error>(msg.reason_code()));
 		}
 
-		inline void _after_user_callback_impl(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::v3::connack& msg)
+		inline void _after_user_callback_impl(
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
+			mqtt::v3::connack& msg)
 		{
-			detail::ignore_unused(ec, caller_ptr, caller, msg);
+			detail::ignore_unused(ec, caller_ptr, caller, om, msg);
 			switch(msg.reason_code())
 			{
 			case mqtt::v3::connect_reason_code::success                       : ec = mqtt::make_error_code(mqtt::error::success                     ); break;
@@ -138,9 +146,11 @@ namespace asio2::detail
 			}
 		}
 
-		inline void _after_user_callback_impl(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::v4::connack& msg)
+		inline void _after_user_callback_impl(
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
+			mqtt::v4::connack& msg)
 		{
-			detail::ignore_unused(ec, caller_ptr, caller, msg);
+			detail::ignore_unused(ec, caller_ptr, caller, om, msg);
 			switch(msg.reason_code())
 			{
 			case mqtt::v4::connect_reason_code::success						  : ec = mqtt::make_error_code(mqtt::error::success                     ); break;
@@ -153,9 +163,11 @@ namespace asio2::detail
 			}
 		}
 
-		inline void _after_user_callback_impl(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::v5::connack& msg)
+		inline void _after_user_callback_impl(
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
+			mqtt::v5::connack& msg)
 		{
-			detail::ignore_unused(ec, caller_ptr, caller, msg);
+			detail::ignore_unused(ec, caller_ptr, caller, om, msg);
 			ec = mqtt::make_error_code(static_cast<mqtt::error>(msg.reason_code()));
 		}
 	};

@@ -26,6 +26,8 @@ bld/
 
 [Tt]humbs.db
 
+[Mm]akefile
+
 demo/bin/
 demo/vcproj_linux/bin
 demo/vcproj_linux/obj

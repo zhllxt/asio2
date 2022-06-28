@@ -955,11 +955,12 @@ namespace asio2::mqtt::v5
 			return std::get_if<T>(std::addressof(this->base()));
 		}
 
-		template<class T, std::enable_if_t<is_v5_property<T>(), int> = 0>
-		operator T()
-		{
-			return std::get<T>(this->base());
-		}
+		// this overload will cause compile error on gcc, see mqtt/message.hpp   operator T()
+		//template<class T, std::enable_if_t<is_v5_property<T>(), int> = 0>
+		//operator T()
+		//{
+		//	return std::get<T>(this->base());
+		//}
 
 		inline variable_byte_integer::value_type id()
 		{

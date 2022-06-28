@@ -1198,12 +1198,12 @@ void http_test()
 
 		while (server.get_session_count() < std::size_t(test_client_count - client_start_failed_counter))
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		while (client_connect_counter < test_client_count - client_start_failed_counter)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		auto session_count = server.get_session_count();
@@ -1238,17 +1238,17 @@ void http_test()
 
 		while (timer.is_timer_exists(1))
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		while (server.get_session_count() < std::size_t(test_client_count - client_start_failed_counter))
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		while (client_connect_counter < test_client_count - client_start_failed_counter)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		session_count = server.get_session_count();

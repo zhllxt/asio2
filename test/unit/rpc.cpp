@@ -312,7 +312,7 @@ void rpc_test()
 
 		while (server.get_session_count() < std::size_t(test_client_count - client_start_failed_counter))
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		auto session_count = server.get_session_count();
@@ -323,7 +323,7 @@ void rpc_test()
 
 		while (client_connect_counter < test_client_count - client_start_failed_counter)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		ASIO2_CHECK_VALUE(client_init_counter      .load(), client_init_counter    == test_client_count);
@@ -349,7 +349,7 @@ void rpc_test()
 
 		while (client_disconnect_counter < test_client_count - client_start_failed_counter)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		ASIO2_CHECK_VALUE(client_disconnect_counter.load(), client_disconnect_counter == test_client_count);
@@ -372,7 +372,7 @@ void rpc_test()
 		// use this to ensure the ASIO2_CHECK(session_ptr->is_started());
 		while (server_disconnect_counter != test_client_count- client_start_failed_counter)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		server.stop();
@@ -414,7 +414,7 @@ void rpc_test()
 
 		while (server.get_session_count() < std::size_t(test_client_count - client_start_failed_counter))
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		ASIO2_CHECK_VALUE(server.get_session_count(), server.get_session_count() == std::size_t(test_client_count));
@@ -424,7 +424,7 @@ void rpc_test()
 
 		while (client_connect_counter < test_client_count - client_start_failed_counter)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		ASIO2_CHECK_VALUE(client_init_counter      .load(), client_init_counter    == test_client_count);
@@ -448,7 +448,7 @@ void rpc_test()
 
 		while (client_disconnect_counter < test_client_count - client_start_failed_counter)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		ASIO2_CHECK_VALUE(client_disconnect_counter.load(), client_disconnect_counter == test_client_count);
@@ -471,7 +471,7 @@ void rpc_test()
 		// use this to ensure the ASIO2_CHECK(session_ptr->is_started());
 		while (server_disconnect_counter != test_client_count - client_start_failed_counter)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		server.stop();
@@ -611,6 +611,7 @@ void rpc_test()
 				ASIO2_CHECK(client.get_local_address() == "127.0.0.1");
 				ASIO2_CHECK(client.get_remote_address() == "127.0.0.1");
 				ASIO2_CHECK(client.get_remote_port() == 18010);
+				ASIO2_CHECK(client.is_started());
 
 				client_connect_counter++;
 
@@ -641,7 +642,7 @@ void rpc_test()
 
 		while (server.get_session_count() < std::size_t(test_client_count - client_start_failed_counter))
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		auto session_count = server.get_session_count();
@@ -652,7 +653,7 @@ void rpc_test()
 
 		while (client_connect_counter < test_client_count - client_start_failed_counter)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		ASIO2_CHECK_VALUE(client_init_counter      .load(), client_init_counter    == test_client_count);
@@ -662,7 +663,16 @@ void rpc_test()
 
 		while (client_disconnect_counter < test_client_count - client_start_failed_counter)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK(client_disconnect_counter, client_connect_counter, client_start_failed_counter);
+
+			if (waits == 0)
+			{
+				for (int i = 0; i < test_client_count; i++)
+				{
+					std::cout << clients[i]->get_pending_event_count() << " ";
+				}
+				std::cout << std::endl;
+			}
 
 			msg.clear();
 			int len = 200 + (std::rand() % 200);
@@ -697,7 +707,7 @@ void rpc_test()
 		// use this to ensure the ASIO2_CHECK(session_ptr->is_started());
 		while (server_disconnect_counter != test_client_count - client_start_failed_counter)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		server.stop();
@@ -739,7 +749,7 @@ void rpc_test()
 
 		while (server.get_session_count() < std::size_t(test_client_count - client_start_failed_counter))
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		ASIO2_CHECK_VALUE(server.get_session_count(), server.get_session_count() == std::size_t(test_client_count));
@@ -749,7 +759,7 @@ void rpc_test()
 
 		while (client_connect_counter < test_client_count - client_start_failed_counter)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		ASIO2_CHECK_VALUE(client_init_counter      .load(), client_init_counter    == test_client_count);
@@ -757,7 +767,16 @@ void rpc_test()
 
 		while (client_disconnect_counter < test_client_count - client_start_failed_counter)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK(client_disconnect_counter, client_connect_counter, client_start_failed_counter);
+
+			if (waits == 0)
+			{
+				for (int i = 0; i < test_client_count; i++)
+				{
+					std::cout << clients[i]->get_pending_event_count() << " ";
+				}
+				std::cout << std::endl;
+			}
 
 			msg.clear();
 			int len = 200 + (std::rand() % 200);
@@ -792,7 +811,7 @@ void rpc_test()
 		// use this to ensure the ASIO2_CHECK(session_ptr->is_started());
 		while (server_disconnect_counter != test_client_count - client_start_failed_counter)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		server.stop();
@@ -1032,7 +1051,7 @@ void rpc_test()
 			ext_data& ex = clients[i]->get_user_data<ext_data&>();
 			while (ex.client_connect_counter < 3)
 			{
-				std::this_thread::sleep_for(std::chrono::milliseconds(1));
+				ASIO2_TEST_WAIT_CHECK();
 			}
 		}
 
@@ -1045,7 +1064,7 @@ void rpc_test()
 
 		while (server_connect_counter < test_client_count * 3)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		ASIO2_CHECK_VALUE(server_accept_counter    .load(), server_accept_counter     == test_client_count * 3);
@@ -1056,7 +1075,7 @@ void rpc_test()
 			ext_data& ex = clients[i]->get_user_data<ext_data&>();
 			while (ex.client_disconnect_counter < 3)
 			{
-				std::this_thread::sleep_for(std::chrono::milliseconds(1));
+				ASIO2_TEST_WAIT_CHECK();
 			}
 		}
 
@@ -1084,7 +1103,7 @@ void rpc_test()
 		//while (server_disconnect_counter != test_client_count * 3)
 		while (server_disconnect_counter < test_client_count * 3)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		server.stop();
@@ -1137,7 +1156,7 @@ void rpc_test()
 			ext_data& ex = clients[i]->get_user_data<ext_data&>();
 			while (ex.client_connect_counter < 1)
 			{
-				std::this_thread::sleep_for(std::chrono::milliseconds(1));
+				ASIO2_TEST_WAIT_CHECK();
 			}
 		}
 
@@ -1150,7 +1169,7 @@ void rpc_test()
 
 		while (server_connect_counter < test_client_count * 1)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		ASIO2_CHECK_VALUE(server_accept_counter    .load(), server_accept_counter     == test_client_count * 1);
@@ -1167,7 +1186,7 @@ void rpc_test()
 			ext_data& ex = clients[i]->get_user_data<ext_data&>();
 			while (ex.send_counter < 1)
 			{
-				std::this_thread::sleep_for(std::chrono::milliseconds(1));
+				ASIO2_TEST_WAIT_CHECK();
 			}
 		}
 
@@ -1182,7 +1201,7 @@ void rpc_test()
 		// use this to ensure the ASIO2_CHECK(session_ptr->is_started());
 		while (server_disconnect_counter != test_client_count * 1)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		server.stop();
@@ -1642,7 +1661,7 @@ void rpc_test()
 			ext_data& ex = clients[i]->get_user_data<ext_data&>();
 			while (ex.client_connect_counter < 1)
 			{
-				std::this_thread::sleep_for(std::chrono::milliseconds(1));
+				ASIO2_TEST_WAIT_CHECK();
 			}
 		}
 
@@ -1655,7 +1674,7 @@ void rpc_test()
 
 		while (server_connect_counter < test_client_count * 1)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		ASIO2_CHECK_VALUE(server_accept_counter    .load(), server_accept_counter     == test_client_count * 1);
@@ -1672,7 +1691,7 @@ void rpc_test()
 			ext_data& ex = clients[i]->get_user_data<ext_data&>();
 			while (ex.async_call_counter < 15)
 			{
-				std::this_thread::sleep_for(std::chrono::milliseconds(1));
+				ASIO2_TEST_WAIT_CHECK();
 			}
 		}
 
@@ -1684,7 +1703,7 @@ void rpc_test()
 
 		while (server_async_call_counter < test_client_count * 3)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		ASIO2_CHECK_VALUE(server_async_call_counter.load(), server_async_call_counter == test_client_count * 3);
@@ -1700,7 +1719,7 @@ void rpc_test()
 		// use this to ensure the ASIO2_CHECK(session_ptr->is_started());
 		while (server_disconnect_counter != test_client_count * 1)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		server.stop();
@@ -1752,7 +1771,7 @@ void rpc_test()
 			ext_data& ex = clients[i]->get_user_data<ext_data&>();
 			while (ex.client_connect_counter < 1)
 			{
-				std::this_thread::sleep_for(std::chrono::milliseconds(1));
+				ASIO2_TEST_WAIT_CHECK();
 			}
 		}
 
@@ -1887,7 +1906,7 @@ void rpc_test()
 
 		while (server_connect_counter < test_client_count * 1)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		ASIO2_CHECK_VALUE(server_accept_counter    .load(), server_accept_counter     == test_client_count * 1);
@@ -1904,7 +1923,7 @@ void rpc_test()
 			ext_data& ex = clients[i]->get_user_data<ext_data&>();
 			while (ex.async_call_counter < 15)
 			{
-				std::this_thread::sleep_for(std::chrono::milliseconds(1));
+				ASIO2_TEST_WAIT_CHECK();
 			}
 		}
 
@@ -1916,7 +1935,7 @@ void rpc_test()
 
 		while (server_async_call_counter < test_client_count * 3)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		ASIO2_CHECK_VALUE(server_async_call_counter.load(), server_async_call_counter == test_client_count * 3);
@@ -1932,7 +1951,7 @@ void rpc_test()
 		// use this to ensure the ASIO2_CHECK(session_ptr->is_started());
 		while (server_disconnect_counter != test_client_count * 1)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		server.stop();
@@ -2471,7 +2490,7 @@ void rpc_test()
 			ext_data& ex = clients[i]->get_user_data<ext_data&>();
 			while (ex.client_connect_counter < 1)
 			{
-				std::this_thread::sleep_for(std::chrono::milliseconds(1));
+				ASIO2_TEST_WAIT_CHECK();
 			}
 		}
 
@@ -2484,7 +2503,7 @@ void rpc_test()
 
 		while (server_connect_counter < test_client_count * 1)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		ASIO2_CHECK_VALUE(server_accept_counter    .load(), server_accept_counter     == test_client_count * 1);
@@ -2501,7 +2520,7 @@ void rpc_test()
 			ext_data& ex = clients[i]->get_user_data<ext_data&>();
 			while (ex.async_call_counter < 19)
 			{
-				std::this_thread::sleep_for(std::chrono::milliseconds(1));
+				ASIO2_TEST_WAIT_CHECK();
 			}
 		}
 
@@ -2513,7 +2532,7 @@ void rpc_test()
 
 		while (server_async_call_counter < test_client_count * 3)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		ASIO2_CHECK_VALUE(server_async_call_counter.load(), server_async_call_counter == test_client_count * 3);
@@ -2529,7 +2548,7 @@ void rpc_test()
 		// use this to ensure the ASIO2_CHECK(session_ptr->is_started());
 		while (server_disconnect_counter != test_client_count * 1)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		server.stop();
@@ -2581,7 +2600,7 @@ void rpc_test()
 			ext_data& ex = clients[i]->get_user_data<ext_data&>();
 			while (ex.client_connect_counter < 1)
 			{
-				std::this_thread::sleep_for(std::chrono::milliseconds(1));
+				ASIO2_TEST_WAIT_CHECK();
 			}
 		}
 
@@ -2716,7 +2735,7 @@ void rpc_test()
 
 		while (server_connect_counter < test_client_count * 1)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		ASIO2_CHECK_VALUE(server_accept_counter    .load(), server_accept_counter     == test_client_count * 1);
@@ -2733,7 +2752,7 @@ void rpc_test()
 			ext_data& ex = clients[i]->get_user_data<ext_data&>();
 			while (ex.async_call_counter < 19)
 			{
-				std::this_thread::sleep_for(std::chrono::milliseconds(1));
+				ASIO2_TEST_WAIT_CHECK();
 			}
 		}
 
@@ -2745,7 +2764,7 @@ void rpc_test()
 
 		while (server_async_call_counter < test_client_count * 3)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		ASIO2_CHECK_VALUE(server_async_call_counter.load(), server_async_call_counter == test_client_count * 3);
@@ -2761,7 +2780,7 @@ void rpc_test()
 		// use this to ensure the ASIO2_CHECK(session_ptr->is_started());
 		while (server_disconnect_counter != test_client_count * 1)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			ASIO2_TEST_WAIT_CHECK();
 		}
 
 		server.stop();

@@ -17,7 +17,7 @@
 
 #include <asio2/base/detail/util.hpp>
 
-#include <asio2/mqtt/protocol_util.hpp>
+#include <asio2/mqtt/message.hpp>
 
 namespace asio2::detail
 {

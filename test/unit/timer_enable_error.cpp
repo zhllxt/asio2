@@ -268,7 +268,7 @@ void timer_enable_error_test()
 
 	while (b4 != 0)
 	{
-		std::this_thread::sleep_for(std::chrono::milliseconds(1));
+		ASIO2_TEST_WAIT_CHECK();
 	}
 
 	ASIO2_CHECK(!timer2.is_timer_exists(1));

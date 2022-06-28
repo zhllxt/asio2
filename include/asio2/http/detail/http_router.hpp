@@ -49,7 +49,7 @@
 
 namespace asio2::detail
 {
-	template<class> class http_router_t;
+	template<class, class> class http_router_t;
 }
 
 #ifdef BEAST_HEADER_ONLY
@@ -61,7 +61,7 @@ namespace boost::beast::websocket
 	template<class caller_t>
 	class listener
 	{
-		template<class> friend class asio2::detail::http_router_t;
+		template<class, class> friend class asio2::detail::http_router_t;
 
 	public:
 		using self = listener<caller_t>;
@@ -236,7 +236,7 @@ namespace asio2::detail
 	ASIO2_CLASS_FORWARD_DECLARE_TCP_SERVER;
 	ASIO2_CLASS_FORWARD_DECLARE_TCP_SESSION;
 
-	template<class caller_t>
+	template<class caller_t, class args_t>
 	class http_router_t
 	{
 		friend caller_t;
@@ -261,7 +261,7 @@ namespace asio2::detail
 			after((std::declval<Args>())...)), Args...> : std::true_type {};
 
 	public:
-		using self = http_router_t<caller_t>;
+		using self   = http_router_t<caller_t, args_t>;
 		using optype = std::function<void(std::shared_ptr<caller_t>&, http::web_request&, http::web_response&)>;
 
 		/**

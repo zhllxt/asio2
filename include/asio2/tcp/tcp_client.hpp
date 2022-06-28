@@ -56,6 +56,7 @@ namespace asio2::detail
 		using super = client_impl_t    <derived_t, args_t>;
 		using self  = tcp_client_impl_t<derived_t, args_t>;
 
+		using args_type   = args_t;
 		using buffer_type = typename args_t::buffer_t;
 		using send_data_t = typename args_t::send_data_t;
 		using recv_data_t = typename args_t::recv_data_t;
