@@ -39,7 +39,7 @@ int main()
 	// 5    - timer id
 	// std::chrono::milliseconds(1000) - timer inteval, 1000 milliseconds
 	// std::chrono::milliseconds(5000) - timer delay for first execute, 5000 milliseconds
-	timer.start_timer(5, std::chrono::milliseconds(1000), std::chrono::milliseconds(5000), []()
+	timer.start_timer(5, std::chrono::milliseconds(1000), std::chrono::seconds(5), []()
 	{
 		printf("timer 5, loop infinite, delay 5 seconds\n");
 	});
@@ -48,7 +48,7 @@ int main()
 	// std::chrono::milliseconds(1000) - timer inteval, 1000 milliseconds
 	// 6    - timer repeat times
 	// std::chrono::milliseconds(6000) - timer delay for first execute, 6000 milliseconds
-	timer.start_timer(6, std::chrono::milliseconds(1000), 6, std::chrono::milliseconds(6000), []()
+	timer.start_timer(6, std::chrono::seconds(1), 6, std::chrono::milliseconds(6000), []()
 	{
 		printf("timer 6, loop 6 times, delay 6 seconds\n");
 	});

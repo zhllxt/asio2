@@ -426,6 +426,13 @@ namespace asio2::detail
 
 				this->guards_ .clear();
 				this->threads_.clear();
+
+			#if defined(_DEBUG) || defined(DEBUG)
+				for (std::size_t i = 0; i < this->iots_.size(); ++i)
+				{
+					ASIO2_ASSERT(this->iots_[i]->objects_.empty());
+				}
+			#endif
 			}
 		}
 
@@ -953,6 +960,8 @@ namespace asio2::detail
 			std::size_t n = index < iots_.size() ? index : ((++next_) % iots_.size());
 			return *(iots_[n]);
 		}
+
+		inline bool _stopped() const noexcept { return iopool_->stopped(); }
 
 	protected:
 		/// the io_context pool for socket event

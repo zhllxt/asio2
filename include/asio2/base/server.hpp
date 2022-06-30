@@ -151,7 +151,7 @@ namespace asio2::detail
 		 */
 		inline bool is_stopped() const noexcept
 		{
-			return (this->state_ == state_t::stopped);
+			return (this->state_ == state_t::stopped && iopool_cp::_stopped());
 		}
 
 		/**

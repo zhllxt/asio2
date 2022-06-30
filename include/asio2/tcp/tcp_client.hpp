@@ -85,9 +85,9 @@ namespace asio2::detail
 			Scheduler&& scheduler
 		)
 			: super(init_buf_size, max_buf_size, std::forward<Scheduler>(scheduler))
-			, tcp_keepalive_cp<derived_t, args_t>(this->socket_)
-			, tcp_send_op<derived_t, args_t>()
-			, tcp_recv_op<derived_t, args_t>()
+			, tcp_keepalive_cp<derived_t, args_t>()
+			, tcp_send_op     <derived_t, args_t>()
+			, tcp_recv_op     <derived_t, args_t>()
 		{
 			this->set_connect_timeout(std::chrono::milliseconds(tcp_connect_timeout));
 		}
@@ -173,8 +173,6 @@ namespace asio2::detail
 			if (this->iopool_->stopped())
 				return;
 
-			this->io().unregobj(this);
-
 			// use promise to get the result of stop
 			std::promise<state_t> promise;
 			std::future<state_t> future = promise.get_future();
@@ -220,11 +218,11 @@ namespace asio2::detail
 				);
 			});
 
-			if (!this->derived().running_in_this_thread())
-			{
-				[[maybe_unused]] state_t state = future.get();
-				ASIO2_ASSERT(state == state_t::stopped);
-			}
+			//if (!this->derived().running_in_this_thread())
+			//{
+			//	[[maybe_unused]] state_t state = future.get();
+			//	ASIO2_ASSERT(state == state_t::stopped);
+			//}
 
 			this->iopool_->stop();
 		}
@@ -306,7 +304,6 @@ namespace asio2::detail
 
 			if (this->iopool_->stopped())
 			{
-				ASIO2_ASSERT(false);
 				set_last_error(asio::error::operation_aborted);
 				return false;
 			}
@@ -356,8 +353,6 @@ namespace asio2::detail
 				try
 				{
 					clear_last_error();
-
-					this->io().regobj(this);
 
 				#if defined(_DEBUG) || defined(DEBUG)
 					this->is_stop_reconnect_timer_called_ = false;
@@ -441,11 +436,9 @@ namespace asio2::detail
 			{
 				// can't use condition = std::move(condition), Otherwise, the value of condition will
 				// be empty the next time the code goto here.
-				derive.push_event([this, &derive, this_ptr = derive.selfptr(), condition]
+				derive.push_event([&derive, this_ptr = derive.selfptr(), condition]
 				(event_queue_guard<derived_t> g) mutable
 				{
-					detail::ignore_unused(this);
-
 					if (derive.reconnect_timer_canceled_.test_and_set())
 					{
 						return;
@@ -453,7 +446,7 @@ namespace asio2::detail
 
 					derive.reconnect_timer_canceled_.clear();
 
-					state_t expected = state_t::stopping;
+					state_t expected = state_t::stopped;
 					if (derive.state_.compare_exchange_strong(expected, state_t::starting))
 					{
 						derive.template _start_connect<true>(std::move(this_ptr), std::move(condition),
@@ -491,14 +484,7 @@ namespace asio2::detail
 		{
 			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
 
-			ASIO2_ASSERT(this->state_ == state_t::stopping);
-
-		#if defined(_DEBUG) || defined(DEBUG)
-			if (this->state_ != state_t::stopping)
-			{
-				detail::has_unexpected_behavior() = true;
-			}
-		#endif
+			ASIO2_ASSERT(this->state_ == state_t::stopped);
 
 			detail::ignore_unused(ec, this_ptr, chain);
 
@@ -527,17 +513,7 @@ namespace asio2::detail
 			// When use call client.stop in the io_context thread, then the iopool is not stopped,
 			// but this client is stopped, When client.stop is called again in the not io_context
 			// thread, then this client state is stopped.
-			//ASIO2_ASSERT(this->state_ == state_t::stopping);
-
-			if (this->state_ == state_t::stopped)
-				return;
-
-		#if defined(_DEBUG) || defined(DEBUG)
-			if (this->state_ != state_t::stopping)
-			{
-				detail::has_unexpected_behavior() = true;
-			}
-		#endif
+			ASIO2_ASSERT(this->state_ == state_t::stopped);
 
 			this->derived()._post_stop(ec, std::move(this_ptr), std::move(chain));
 		}
@@ -564,14 +540,7 @@ namespace asio2::detail
 		{
 			detail::ignore_unused(ec, this_ptr, chain);
 
-			state_t expected = state_t::stopping;
-			if (!this->state_.compare_exchange_strong(expected, state_t::stopped))
-			{
-			#if defined(_DEBUG) || defined(DEBUG)
-				detail::has_unexpected_behavior() = true;
-			#endif
-				ASIO2_ASSERT(false);
-			}
+			ASIO2_ASSERT(this->state_ == state_t::stopped);
 		}
 
 		template<typename MatchCondition, typename DeferEvent>

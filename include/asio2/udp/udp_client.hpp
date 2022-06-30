@@ -432,11 +432,9 @@ namespace asio2::detail
 			{
 				// can't use condition = std::move(condition), Otherwise, the value of condition will
 				// be empty the next time the code goto here.
-				derive.push_event([this, &derive, this_ptr = derive.selfptr(), condition]
+				derive.push_event([&derive, this_ptr = derive.selfptr(), condition]
 				(event_queue_guard<derived_t> g) mutable
 				{
-					detail::ignore_unused(this);
-
 					if (derive.reconnect_timer_canceled_.test_and_set())
 					{
 						return;
@@ -444,7 +442,7 @@ namespace asio2::detail
 
 					derive.reconnect_timer_canceled_.clear();
 
-					state_t expected = state_t::stopping;
+					state_t expected = state_t::stopped;
 					if (derive.state_.compare_exchange_strong(expected, state_t::starting))
 					{
 						derive.template _start_connect<true>(std::move(this_ptr), std::move(condition),
@@ -503,14 +501,7 @@ namespace asio2::detail
 		{
 			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
 
-			ASIO2_ASSERT(this->state_ == state_t::stopping);
-
-		#if defined(_DEBUG) || defined(DEBUG)
-			if (this->state_ != state_t::stopping)
-			{
-				detail::has_unexpected_behavior() = true;
-			}
-		#endif
+			ASIO2_ASSERT(this->state_ == state_t::stopped);
 
 			detail::ignore_unused(ec, this_ptr, chain);
 
@@ -532,14 +523,7 @@ namespace asio2::detail
 		template<typename DeferEvent>
 		inline void _do_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr, DeferEvent chain)
 		{
-			ASIO2_ASSERT(this->state_ == state_t::stopping);
-
-		#if defined(_DEBUG) || defined(DEBUG)
-			if (this->state_ != state_t::stopping)
-			{
-				detail::has_unexpected_behavior() = true;
-			}
-		#endif
+			ASIO2_ASSERT(this->state_ == state_t::stopped);
 
 			this->derived()._post_stop(ec, std::move(this_ptr), std::move(chain));
 		}
@@ -567,14 +551,7 @@ namespace asio2::detail
 		{
 			detail::ignore_unused(ec, this_ptr, chain);
 
-			state_t expected = state_t::stopping;
-			if (!this->state_.compare_exchange_strong(expected, state_t::stopped))
-			{
-			#if defined(_DEBUG) || defined(DEBUG)
-				detail::has_unexpected_behavior() = true;
-			#endif
-				ASIO2_ASSERT(false);
-			}
+			ASIO2_ASSERT(this->state_ == state_t::stopped);
 		}
 
 		template<typename MatchCondition, typename DeferEvent>

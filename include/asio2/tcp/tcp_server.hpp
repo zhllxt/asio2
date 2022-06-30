@@ -151,12 +151,15 @@ namespace asio2::detail
 		/**
 		 * @function : check whether the server is started
 		 */
-		inline bool is_started() { return (super::is_started() && this->acceptor_.is_open()); }
+		inline bool is_started() const { return (super::is_started() && this->acceptor_.is_open()); }
 
 		/**
 		 * @function : check whether the server is stopped
 		 */
-		inline bool is_stopped() { return (super::is_stopped() && !this->acceptor_.is_open()); }
+		inline bool is_stopped() const
+		{
+			return (this->state_ == state_t::stopped && !this->acceptor_.is_open() && iopool_cp::_stopped());
+		}
 
 	public:
 		/**
@@ -498,6 +501,8 @@ namespace asio2::detail
 
 				set_last_error(ec);
 
+				ASIO2_ASSERT(this->state_ == state_t::stopping);
+
 				// start timer to hold the acceptor io_context
 				this->counter_timer_.expires_after((std::chrono::nanoseconds::max)());
 				this->counter_timer_.async_wait([](const error_code&) {});
@@ -533,7 +538,7 @@ namespace asio2::detail
 			[this, ec, this_ptr = std::move(this_ptr)]() mutable
 			{
 				state_t expected = state_t::stopping;
-				if (this->state_.compare_exchange_strong(expected, state_t::stopping))
+				if (this->state_.compare_exchange_strong(expected, state_t::stopped))
 				{
 					this->derived()._handle_stop(ec, std::move(this_ptr));
 				}
@@ -566,14 +571,7 @@ namespace asio2::detail
 			// been called,otherwise the _handle_accept will never return
 			this->acceptor_.close(ec_ignore);
 
-			state_t expected = state_t::stopping;
-			if (!this->state_.compare_exchange_strong(expected, state_t::stopped))
-			{
-			#if defined(_DEBUG) || defined(DEBUG)
-				detail::has_unexpected_behavior() = true;
-			#endif
-				ASIO2_ASSERT(false);
-			}
+			ASIO2_ASSERT(this->state_ == state_t::stopped);
 		}
 
 		template<typename... Args>

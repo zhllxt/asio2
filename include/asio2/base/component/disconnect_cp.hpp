@@ -105,7 +105,8 @@ namespace asio2::detail
 						{
 							detail::ignore_unused(this_ptr, g);
 
-							derive._wake_reconnect_timer();
+							if (derive.reconnect_enable_)
+								derive._wake_reconnect_timer();
 						}, std::move(g));
 					}, chain.move_guard()
 				});
@@ -121,6 +122,8 @@ namespace asio2::detail
 		_post_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr, state_t old_state, DeferEvent chain)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
+
+			derive.io().unregobj(&derive);
 
 			derive._post_disconnect_timer(this_ptr);
 
@@ -141,8 +144,9 @@ namespace asio2::detail
 				// client.start(...) in the bind_disconnect callback. because the client.start(...)
 				// function will detects the value of state and the client.start(...) will only executed
 				// if the state is stopped.
+
 				state_t expected = state_t::stopping;
-				if (derive.state().compare_exchange_strong(expected, state_t::stopping))
+				if (derive.state().compare_exchange_strong(expected, state_t::stopped))
 				{
 					if (old_state == state_t::started)
 					{
@@ -223,7 +227,7 @@ namespace asio2::detail
 						set_last_error(ec);
 
 						state_t expected = state_t::stopping;
-						if (derive.state().compare_exchange_strong(expected, state_t::stopping))
+						if (derive.state().compare_exchange_strong(expected, state_t::stopped))
 						{
 							if (old_state == state_t::started && erased)
 								derive._fire_disconnect(const_cast<std::shared_ptr<derived_t>&>(this_ptr));

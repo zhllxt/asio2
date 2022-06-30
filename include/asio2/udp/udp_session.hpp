@@ -277,6 +277,7 @@ namespace asio2::detail
 		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr, DeferEvent chain)
 		{
 			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
+			ASIO2_ASSERT(this->state_ == state_t::stopped);
 
 			set_last_error(ec);
 
@@ -315,11 +316,7 @@ namespace asio2::detail
 		{
 			detail::ignore_unused(ec, this_ptr, chain);
 
-			state_t expected = state_t::stopping;
-			if (!this->state_.compare_exchange_strong(expected, state_t::stopped))
-			{
-				ASIO2_ASSERT(false);
-			}
+			ASIO2_ASSERT(this->state_ == state_t::stopped);
 		}
 
 		template<typename MatchCondition, typename DeferEvent>

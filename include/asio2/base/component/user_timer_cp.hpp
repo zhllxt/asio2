@@ -242,10 +242,10 @@ namespace asio2::detail
 		 * the timer id can be integer or string, example : 1,2,3 or "id1" "id2"
 		 * the callback function signature : [](){}
 		 */
-		template<class TimerId, class Rep, class Period, class Fun, class... Args>
+		template<class TimerId, class Rep1, class Period1, class Rep2, class Period2, class Fun, class... Args>
 		inline typename std::enable_if_t<is_callable_v<Fun>, void>
-		start_timer(TimerId&& timer_id, std::chrono::duration<Rep, Period> interval,
-			std::chrono::duration<Rep, Period> first_delay, Fun&& fun, Args&&... args)
+		start_timer(TimerId&& timer_id, std::chrono::duration<Rep1, Period1> interval,
+			std::chrono::duration<Rep2, Period2> first_delay, Fun&& fun, Args&&... args)
 		{
 			this->start_timer(std::forward<TimerId>(timer_id), interval, std::size_t(-1), first_delay,
 				std::forward<Fun>(fun), std::forward<Args>(args)...);
@@ -259,11 +259,11 @@ namespace asio2::detail
 		 * the timer id can be integer or string, example : 1,2,3 or "id1" "id2"
 		 * the callback function signature : [](){}
 		 */
-		template<class TimerId, class Rep, class Period, class Integer, class Fun, class... Args>
+		template<class TimerId, class Rep1, class Period1, class Rep2, class Period2, class Integer, class Fun, class... Args>
 		inline typename std::enable_if_t<
 			is_callable_v<Fun> && std::is_integral_v<detail::remove_cvref_t<Integer>>, void>
-		start_timer(TimerId&& timer_id, std::chrono::duration<Rep, Period> interval, Integer repeat,
-			std::chrono::duration<Rep, Period> first_delay, Fun&& fun, Args&&... args)
+		start_timer(TimerId&& timer_id, std::chrono::duration<Rep1, Period1> interval, Integer repeat,
+			std::chrono::duration<Rep2, Period2> first_delay, Fun&& fun, Args&&... args)
 		{
 			if (repeat == static_cast<std::size_t>(0))
 			{

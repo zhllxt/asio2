@@ -94,6 +94,8 @@ namespace asio2::detail
 			{
 				clear_last_error();
 
+				derive.io().regobj(&derive);
+
 			#if defined(_DEBUG) || defined(DEBUG)
 				derive.is_stop_reconnect_timer_called_ = false;
 				derive.is_stop_connect_timeout_timer_called_ = false;
@@ -210,6 +212,12 @@ namespace asio2::detail
 
 					return;
 				}
+
+				// maybe there has multi endpoints, and connect the first endpoint failed, then the
+				// next endpoint is connected, at this time, the ec and get_last_error maybe not 0,
+				// so we need clear the last error, otherwise if use call get_last_error in the
+				// fire init function, the get_last_error will be not 0.
+				clear_last_error();
 
 				auto & socket = derive.socket().lowest_layer();
 

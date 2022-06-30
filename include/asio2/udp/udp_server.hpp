@@ -119,12 +119,15 @@ namespace asio2::detail
 		/**
 		 * @function : check whether the server is started
 		 */
-		inline bool is_started() { return (super::is_started() && this->acceptor_.is_open()); }
+		inline bool is_started() const { return (super::is_started() && this->acceptor_.is_open()); }
 
 		/**
 		 * @function : check whether the server is stopped
 		 */
-		inline bool is_stopped() { return (super::is_stopped() && !this->acceptor_.is_open()); }
+		inline bool is_stopped() const
+		{
+			return (this->state_ == state_t::stopped && !this->acceptor_.is_open() && iopool_cp::_stopped());
+		}
 
 	public:
 		/**
@@ -533,6 +536,8 @@ namespace asio2::detail
 			this->acceptor_.shutdown(asio::socket_base::shutdown_both, ec_ignore);
 			// Call close,otherwise the _handle_recv will never return
 			this->acceptor_.close(ec_ignore);
+
+			ASIO2_ASSERT(this->state_ == state_t::stopped);
 		}
 
 		template<typename MatchCondition>

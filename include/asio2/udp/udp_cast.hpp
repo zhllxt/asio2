@@ -227,7 +227,7 @@ namespace asio2::detail
 		 */
 		inline bool is_stopped() const
 		{
-			return (this->state_ == state_t::stopped && !this->socket_.lowest_layer().is_open());
+			return (this->state_ == state_t::stopped && !this->socket_.lowest_layer().is_open() && iopool_cp::_stopped());
 		}
 
 	public:
