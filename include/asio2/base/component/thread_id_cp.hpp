@@ -28,12 +28,12 @@ namespace asio2::detail
 		/**
 		 * @constructor
 		 */
-		thread_id_cp() noexcept = default;
+		thread_id_cp() = default;
 
 		/**
 		 * @destructor
 		 */
-		~thread_id_cp() noexcept = default;
+		~thread_id_cp() = default;
 
 		thread_id_cp(thread_id_cp&&) noexcept = default;
 		thread_id_cp(thread_id_cp const&) = default;

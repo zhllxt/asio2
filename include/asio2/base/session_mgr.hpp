@@ -113,11 +113,7 @@ namespace asio2::detail
 
 				// we use a assert to check the server's sessions_.for_each -> 
 				// session_ptr->stop(); must not be executed yet.
-			#if defined(ASIO2_ENABLE_LOG)
-				if (is_all_session_stop_called_)
-				{
-					ASIO2_LOG(spdlog::level::critical, "server's sessions stop is called already. 1");
-				}
+			#if defined(_DEBUG) || defined(DEBUG)
 				ASIO2_ASSERT(is_all_session_stop_called_ == false);
 			#endif
 
@@ -128,11 +124,7 @@ namespace asio2::detail
 				inserted = this->sessions_.try_emplace(session_ptr->hash_key(), session_ptr).second;
 				session_ptr->in_sessions_ = inserted;
 
-			#if defined(ASIO2_ENABLE_LOG)
-				if (is_all_session_stop_called_)
-				{
-					ASIO2_LOG(spdlog::level::critical, "server's sessions stop is called already. 2");
-				}
+			#if defined(_DEBUG) || defined(DEBUG)
 				ASIO2_ASSERT(is_all_session_stop_called_ == false);
 			#endif
 			}
@@ -275,7 +267,7 @@ namespace asio2::detail
 		/// server state refrence
 		std::atomic<state_t>                    & state_;
 
-	#if defined(ASIO2_ENABLE_LOG)
+	#if defined(_DEBUG) || defined(DEBUG)
 		bool                                      is_all_session_stop_called_ = false;
 	#endif
 	};

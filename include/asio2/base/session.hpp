@@ -123,7 +123,7 @@ namespace asio2::detail
 			, disconnect_cp       <derived_t, args_t>()
 			, user_timer_cp       <derived_t, args_t>()
 			, silence_timer_cp    <derived_t, args_t>(rwio)
-			, connect_timeout_cp  <derived_t, args_t>(rwio)
+			, connect_timeout_cp  <derived_t, args_t>()
 			, send_cp             <derived_t, args_t>()
 			, post_cp             <derived_t, args_t>()
 			, async_event_cp      <derived_t, args_t>()
@@ -203,7 +203,7 @@ namespace asio2::detail
 			this->_stop_silence_timer();
 
 			// close connect timeout timer
-			this->_stop_connect_timeout_timer(asio::error::operation_aborted);
+			this->_stop_connect_timeout_timer();
 
 			// close user custom timers
 			this->stop_all_timers();

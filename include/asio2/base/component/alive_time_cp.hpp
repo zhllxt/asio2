@@ -26,17 +26,17 @@ namespace asio2::detail
 		/**
 		 * @constructor
 		 */
-		alive_time_cp() noexcept = default;
+		alive_time_cp() = default;
 
 		/**
 		 * @destructor
 		 */
-		~alive_time_cp() noexcept = default;
+		~alive_time_cp() = default;
 
 		alive_time_cp(alive_time_cp&&) noexcept = default;
-		alive_time_cp(alive_time_cp const&) noexcept = default;
+		alive_time_cp(alive_time_cp const&) = default;
 		alive_time_cp& operator=(alive_time_cp&&) noexcept = default;
-		alive_time_cp& operator=(alive_time_cp const&) noexcept = default;
+		alive_time_cp& operator=(alive_time_cp const&) = default;
 
 	public:
 		/**

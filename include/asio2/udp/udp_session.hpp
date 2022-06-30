@@ -103,7 +103,7 @@ namespace asio2::detail
 		{
 			try
 			{
-			#if defined(ASIO2_ENABLE_LOG)
+			#if defined(_DEBUG) || defined(DEBUG)
 				this->is_stop_silence_timer_called_ = false;
 				this->is_stop_connect_timeout_timer_called_ = false;
 				this->is_disconnect_called_ = false;
@@ -479,7 +479,7 @@ namespace asio2::detail
 			// the _fire_connect must be executed in the thread 0.
 			ASIO2_ASSERT(this->sessions().io().running_in_this_thread());
 
-		#if defined(ASIO2_ENABLE_LOG)
+		#if defined(_DEBUG) || defined(DEBUG)
 			ASIO2_ASSERT(this->is_disconnect_called_ == false);
 		#endif
 
@@ -493,7 +493,7 @@ namespace asio2::detail
 			// the _fire_disconnect must be executed in the thread 0.
 			ASIO2_ASSERT(this->sessions().io().running_in_this_thread());
 
-		#if defined(ASIO2_ENABLE_LOG)
+		#if defined(_DEBUG) || defined(DEBUG)
 			this->is_disconnect_called_ = true;
 		#endif
 
@@ -525,7 +525,7 @@ namespace asio2::detail
 		/// first recvd data packet
 		std::string_view                                  first_;
 
-	#if defined(ASIO2_ENABLE_LOG)
+	#if defined(_DEBUG) || defined(DEBUG)
 		bool                                              is_disconnect_called_ = false;
 	#endif
 	};

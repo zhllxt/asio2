@@ -141,9 +141,6 @@ namespace asio2::detail
 
 			this->io().unregobj(this);
 
-			ASIO2_LOG(spdlog::level::debug, "enter stop : {}",
-				magic_enum::enum_name(this->state_.load()));
-
 			// use promise to get the result of stop
 			std::promise<state_t> promise;
 			std::future<state_t> future = promise.get_future();
@@ -157,9 +154,6 @@ namespace asio2::detail
 			this->derived().push_event([this, this_ptr = this->derived().selfptr(), pg = std::move(pg)]
 			(event_queue_guard<derived_t> g) mutable
 			{
-				ASIO2_LOG(spdlog::level::debug, "exec stop : {}",
-					magic_enum::enum_name(this->state_.load()));
-
 				// first close the reconnect timer
 				this->_stop_reconnect_timer();
 
@@ -322,9 +316,6 @@ namespace asio2::detail
 					this->derived().io().init_thread_id();
 			});
 
-			ASIO2_LOG(spdlog::level::debug, "enter _do_connect : {}",
-				magic_enum::enum_name(derive.state_.load()));
-
 			// use promise to get the result of async connect
 			std::promise<error_code> promise;
 			std::future<error_code> future = promise.get_future();
@@ -364,7 +355,7 @@ namespace asio2::detail
 
 					this->io().regobj(this);
 
-				#if defined(ASIO2_ENABLE_LOG)
+				#if defined(_DEBUG) || defined(DEBUG)
 					this->is_stop_reconnect_timer_called_ = false;
 					this->is_post_reconnect_timer_called_ = false;
 					this->is_stop_connect_timeout_timer_called_ = false;
@@ -439,9 +430,6 @@ namespace asio2::detail
 			derive._make_reconnect_timer(derive.selfptr(),
 			[this, &derive, condition = std::move(condition)]() mutable
 			{
-				ASIO2_LOG(spdlog::level::debug, "enter reconnect timer : {}",
-					magic_enum::enum_name(derive.state_.load()));
-
 				// can't use condition = std::move(condition), Otherwise, the value of condition will
 				// be empty the next time the code goto here.
 				derive.push_event([this, &derive, this_ptr = derive.selfptr(), condition]
@@ -451,8 +439,6 @@ namespace asio2::detail
 
 					if (derive.reconnect_timer_canceled_.test_and_set())
 					{
-						ASIO2_LOG(spdlog::level::debug, "exec reconnect timer, but timer has canceled : {}",
-							magic_enum::enum_name(derive.state_.load()));
 						return;
 					}
 
@@ -461,9 +447,6 @@ namespace asio2::detail
 					state_t expected = state_t::stopping;
 					if (derive.state_.compare_exchange_strong(expected, state_t::starting))
 					{
-						ASIO2_LOG(spdlog::level::debug, "call _start_connect by reconnect timer : {}",
-							magic_enum::enum_name(derive.state_.load()));
-
 						derive.template _start_connect<true>(std::move(this_ptr), std::move(condition),
 							defer_event(std::move(g)));
 					}
@@ -522,15 +505,12 @@ namespace asio2::detail
 
 			ASIO2_ASSERT(this->state_ == state_t::stopping);
 
-		#if defined(ASIO2_ENABLE_LOG)
+		#if defined(_DEBUG) || defined(DEBUG)
 			if (this->state_ != state_t::stopping)
 			{
 				detail::has_unexpected_behavior() = true;
 			}
 		#endif
-
-			ASIO2_LOG(spdlog::level::debug, "enter _handle_disconnect : {}",
-				magic_enum::enum_name(this->state_.load()));
 
 			detail::ignore_unused(ec, this_ptr, chain);
 
@@ -552,12 +532,9 @@ namespace asio2::detail
 		template<typename DeferEvent>
 		inline void _do_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr, DeferEvent chain)
 		{
-			ASIO2_LOG(spdlog::level::debug, "enter _do_stop : {}",
-				magic_enum::enum_name(this->state_.load()));
-
 			ASIO2_ASSERT(this->state_ == state_t::stopping);
 
-		#if defined(ASIO2_ENABLE_LOG)
+		#if defined(_DEBUG) || defined(DEBUG)
 			if (this->state_ != state_t::stopping)
 			{
 				detail::has_unexpected_behavior() = true;
@@ -588,18 +565,12 @@ namespace asio2::detail
 		template<typename DeferEvent>
 		inline void _handle_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr, DeferEvent chain)
 		{
-			ASIO2_LOG(spdlog::level::debug, "enter _handle_stop : {}",
-				magic_enum::enum_name(this->state_.load()));
-
 			detail::ignore_unused(ec, this_ptr, chain);
 
 			state_t expected = state_t::stopping;
 			if (!this->state_.compare_exchange_strong(expected, state_t::stopped))
 			{
-				ASIO2_LOG(spdlog::level::debug, "_handle_stop -> state is not stopped : {}",
-					magic_enum::enum_name(expected));
-
-			#if defined(ASIO2_ENABLE_LOG)
+			#if defined(_DEBUG) || defined(DEBUG)
 				detail::has_unexpected_behavior() = true;
 			#endif
 				ASIO2_ASSERT(false);
@@ -790,7 +761,7 @@ namespace asio2::detail
 			// the _fire_connect must be executed in the thread 0.
 			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
 
-		#if defined(ASIO2_ENABLE_LOG)
+		#if defined(_DEBUG) || defined(DEBUG)
 			ASIO2_ASSERT(this->is_disconnect_called_ == false);
 		#endif
 
@@ -807,7 +778,7 @@ namespace asio2::detail
 			// the _fire_disconnect must be executed in the thread 0.
 			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
 
-		#if defined(ASIO2_ENABLE_LOG)
+		#if defined(_DEBUG) || defined(DEBUG)
 			this->is_disconnect_called_ = true;
 		#endif
 
@@ -819,7 +790,7 @@ namespace asio2::detail
 	protected:
 		std::unique_ptr<kcp_stream_cp<derived_t, args_t>> kcp_;
 
-	#if defined(ASIO2_ENABLE_LOG)
+	#if defined(_DEBUG) || defined(DEBUG)
 		bool is_disconnect_called_ = false;
 	#endif
 	};

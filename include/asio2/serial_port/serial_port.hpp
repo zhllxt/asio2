@@ -197,9 +197,6 @@ namespace asio2::detail
 
 			this->io().unregobj(this);
 
-			ASIO2_LOG(spdlog::level::debug, "enter stop : {}",
-				magic_enum::enum_name(this->state_.load()));
-
 			// use promise to get the result of stop
 			std::promise<state_t> promise;
 			std::future<state_t> future = promise.get_future();
@@ -213,9 +210,6 @@ namespace asio2::detail
 			this->derived().push_event([this, this_ptr = this->derived().selfptr(), pg = std::move(pg)]
 			(event_queue_guard<derived_t> g) mutable
 			{
-				ASIO2_LOG(spdlog::level::debug, "exec stop : {}",
-					magic_enum::enum_name(this->state_.load()));
-
 				this->derived()._do_disconnect(asio::error::operation_aborted, std::move(this_ptr),
 					defer_event
 					{
@@ -397,7 +391,7 @@ namespace asio2::detail
 
 					this->io().regobj(this);
 
-				#if defined(ASIO2_ENABLE_LOG)
+				#if defined(_DEBUG) || defined(DEBUG)
 					this->is_stop_called_ = false;
 				#endif
 
@@ -690,7 +684,7 @@ namespace asio2::detail
 			// the _fire_start must be executed in the thread 0.
 			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
 
-		#if defined(ASIO2_ENABLE_LOG)
+		#if defined(_DEBUG) || defined(DEBUG)
 			ASIO2_ASSERT(this->is_stop_called_ == false);
 		#endif
 
@@ -707,7 +701,7 @@ namespace asio2::detail
 			// the _fire_stop must be executed in the thread 0.
 			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
 
-		#if defined(ASIO2_ENABLE_LOG)
+		#if defined(_DEBUG) || defined(DEBUG)
 			this->is_stop_called_ = true;
 		#endif
 
@@ -789,7 +783,7 @@ namespace asio2::detail
 		/// Remote call (rpc/rdc) response timeout.
 		std::chrono::steady_clock::duration       rc_timeout_ = std::chrono::milliseconds(http_execute_timeout);
 
-	#if defined(ASIO2_ENABLE_LOG)
+	#if defined(_DEBUG) || defined(DEBUG)
 		bool                                      is_stop_called_  = false;
 	#endif
 	};

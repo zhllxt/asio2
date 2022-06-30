@@ -26,17 +26,17 @@ namespace asio2::detail
 		/**
 		 * @constructor
 		 */
-		connect_time_cp() noexcept = default;
+		connect_time_cp() = default;
 
 		/**
 		 * @destructor
 		 */
-		~connect_time_cp() noexcept = default;
+		~connect_time_cp() = default;
 
 		connect_time_cp(connect_time_cp&&) noexcept = default;
-		connect_time_cp(connect_time_cp const&) noexcept = default;
+		connect_time_cp(connect_time_cp const&) = default;
 		connect_time_cp& operator=(connect_time_cp&&) noexcept = default;
-		connect_time_cp& operator=(connect_time_cp const&) noexcept = default;
+		connect_time_cp& operator=(connect_time_cp const&) = default;
 
 	public:
 		/**

@@ -44,10 +44,10 @@ namespace asio2::detail
 		template <class...    >           friend class defer_event;
 
 	public:
-		explicit event_queue_guard()
+		explicit event_queue_guard() noexcept
 		{
 		}
-		explicit event_queue_guard(std::nullptr_t)
+		explicit event_queue_guard(std::nullptr_t) noexcept
 		{
 		}
 

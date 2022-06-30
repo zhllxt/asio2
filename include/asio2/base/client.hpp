@@ -124,7 +124,7 @@ namespace asio2::detail
 			, disconnect_cp       <derived_t, args_t>()
 			, reconnect_timer_cp  <derived_t, args_t>(iopool_cp::_get_io(0))
 			, user_timer_cp       <derived_t, args_t>()
-			, connect_timeout_cp  <derived_t, args_t>(iopool_cp::_get_io(0))
+			, connect_timeout_cp  <derived_t, args_t>()
 			, send_cp             <derived_t, args_t>()
 			, post_cp             <derived_t, args_t>()
 			, async_event_cp      <derived_t, args_t>()
@@ -184,7 +184,7 @@ namespace asio2::detail
 			this->_stop_reconnect_timer();
 
 			// close connect timeout timer
-			this->_stop_connect_timeout_timer(asio::error::operation_aborted);
+			this->_stop_connect_timeout_timer();
 
 			// close user custom timers
 			this->stop_all_timers();

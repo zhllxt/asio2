@@ -486,13 +486,6 @@ namespace asio2::detail
 
 			ASIO2_ASSERT((!ec) || ec == asio::error::operation_aborted);
 
-		#if defined(ASIO2_ENABLE_LOG)
-			if (ec && ec != asio::error::operation_aborted)
-			{
-				ASIO2_LOG(spdlog::level::info, "user_timer error : [{}] {}", ec.value(), ec.message());
-			}
-		#endif
-
 			set_last_error(ec);
 
 			// Should the callback function also be called if there is an error in the timer ?

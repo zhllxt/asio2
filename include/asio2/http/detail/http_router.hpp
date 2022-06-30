@@ -815,7 +815,7 @@ namespace asio2::detail
 
 		std::shared_ptr<optype>                                  not_found_router_;
 
-		std::shared_ptr<optype>                                  dummy_router_;
+		inline static std::shared_ptr<optype>                    dummy_router_;
 	};
 }
 

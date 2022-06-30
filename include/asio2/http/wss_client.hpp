@@ -268,7 +268,7 @@ namespace asio2::detail
 	protected:
 		http::response<body_type> upgrade_rep_;
 
-		std::string                 upgrade_target_ = "/";
+		std::string               upgrade_target_ = "/";
 	};
 }
 

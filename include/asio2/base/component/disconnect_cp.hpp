@@ -31,6 +31,24 @@ namespace asio2::detail
 	template<class derived_t, class args_t>
 	class disconnect_cp
 	{
+	protected:
+		struct safe_timer
+		{
+			explicit safe_timer(io_t& io) : timer(io.context()) {}
+			explicit safe_timer(asio::io_context& ioc) : timer(ioc) {}
+
+			/// If running in the ubuntu and gcc 9.4.0, when client is closed by server, then the
+			/// callback of client's asio::async_write maybe never invoked, this will cause the
+			/// next event never be called in the event queue, then cuase the client can't be exit
+			/// forever. after test, we need called the socket.cancel multi times, so we used a 
+			/// timer to do it.
+			asio::steady_timer timer;
+
+			/// Why use this flag, beacuase the ec param maybe zero when the timer callback is
+			/// called after the timer cancel function has called already.
+			std::atomic_flag   canceled;
+		};
+
 	public:
 		using self = disconnect_cp<derived_t, args_t>;
 
@@ -58,23 +76,14 @@ namespace asio2::detail
 			state_t expected = state_t::started;
 			if (derive.state().compare_exchange_strong(expected, state_t::stopping))
 			{
-				ASIO2_LOG(spdlog::level::debug, "enter _do_disconnect : {}",
-					magic_enum::enum_name(state_t::started));
-
 				return derive._check_reconnect(ec, std::move(this_ptr), expected, std::move(chain));
 			}
 
 			expected = state_t::starting;
 			if (derive.state().compare_exchange_strong(expected, state_t::stopping))
 			{
-				ASIO2_LOG(spdlog::level::debug, "enter _do_disconnect : {}",
-					magic_enum::enum_name(state_t::starting));
-
 				return derive._check_reconnect(ec, std::move(this_ptr), expected, std::move(chain));
 			}
-
-			ASIO2_LOG(spdlog::level::debug, "enter _do_disconnect : {}",
-				magic_enum::enum_name(derive.state_.load()));
 		}
 
 		template<typename DeferEvent, bool IsSession = args_t::is_session>
@@ -89,18 +98,12 @@ namespace asio2::detail
 				{
 					[&derive, self_ptr = derive.selfptr()](event_queue_guard<derived_t> g) mutable
 					{
-						ASIO2_LOG(spdlog::level::debug, "post _wake_reconnect_timer : {}",
-							magic_enum::enum_name(derive.state_.load()));
-
 						// Use push_event to ensure that reconnection will not executed until
 						// all events are completed.
 						derive.disp_event([&derive, this_ptr = std::move(self_ptr)]
 						(event_queue_guard<derived_t> g) mutable
 						{
 							detail::ignore_unused(this_ptr, g);
-
-							ASIO2_LOG(spdlog::level::debug, "call _wake_reconnect_timer : {}",
-								magic_enum::enum_name(derive.state_.load()));
 
 							derive._wake_reconnect_timer();
 						}, std::move(g));
@@ -119,8 +122,7 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			ASIO2_LOG(spdlog::level::debug, "post disconnect : {}",
-				magic_enum::enum_name(derive.state_.load()));
+			derive._post_disconnect_timer(this_ptr);
 
 			// All pending sending events will be cancelled after enter the callback below.
 			derive.disp_event(
@@ -130,9 +132,6 @@ namespace asio2::detail
 				set_last_error(ec);
 
 				defer_event chain(std::move(e), std::move(g));
-
-				ASIO2_LOG(spdlog::level::debug, "exec disconnect : {}",
-					magic_enum::enum_name(derive.state_.load()));
 
 				// When the connection is disconnected, should we set the state to stopping or stopped?
 				// If the state is set to stopped, then the user wants to use client.is_stopped() to 
@@ -154,6 +153,8 @@ namespace asio2::detail
 				{
 					ASIO2_ASSERT(false);
 				}
+
+				derive._stop_disconnect_timer();
 
 				derive._handle_disconnect(ec, std::move(this_ptr), std::move(chain));
 
@@ -186,6 +187,8 @@ namespace asio2::detail
 		_post_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr, state_t old_state, DeferEvent chain)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
+
+			derive._post_disconnect_timer(this_ptr);
 
 			// close the socket by post a event
 			// asio don't allow operate the same socket in multi thread,if you close socket
@@ -235,6 +238,8 @@ namespace asio2::detail
 						[&derive, ec, this_ptr = std::move(this_ptr), chain = std::move(chain)]
 						() mutable
 						{
+							derive._stop_disconnect_timer();
+
 							// call CRTP polymorphic stop
 							derive._handle_disconnect(ec, std::move(this_ptr), std::move(chain));
 						}));
@@ -250,6 +255,84 @@ namespace asio2::detail
 		//}
 
 	protected:
+		inline void _post_disconnect_timer(std::shared_ptr<derived_t> this_ptr)
+		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
+			if (!derive.io().running_in_this_thread())
+			{
+				asio::post(derive.io().context(), make_allocator(derive.wallocator(),
+				[this, this_ptr = std::move(this_ptr)]() mutable
+				{
+					this->_post_disconnect_timer(std::move(this_ptr));
+				}));
+				return;
+			}
+
+			if (!this->disconnect_timer_)
+			{
+				this->disconnect_timer_ = std::make_unique<safe_timer>(derive.io());
+			}
+
+			this->disconnect_timer_->canceled.clear();
+
+			this->disconnect_timer_->timer.expires_after(std::chrono::milliseconds(10));
+			this->disconnect_timer_->timer.async_wait(
+			[&derive, this_ptr = std::move(this_ptr)](const error_code & ec) mutable
+			{
+				derive._handle_disconnect_timer(ec, std::move(this_ptr));
+			});
+		}
+
+		inline void _handle_disconnect_timer(const error_code & ec, std::shared_ptr<derived_t> this_ptr)
+		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
+			ASIO2_ASSERT((!ec) || ec == asio::error::operation_aborted);
+
+			// ec maybe zero when the timer canceled is true.
+			if (ec == asio::error::operation_aborted || this->disconnect_timer_->canceled.test_and_set())
+			{
+				this->disconnect_timer_.reset();
+				return;
+			}
+
+			this->disconnect_timer_->canceled.clear();
+
+			error_code ec_ignore{};
+
+			derive.socket().shutdown(asio::socket_base::shutdown_both, ec_ignore);
+			derive.socket().cancel(ec_ignore);
+
+			derive._post_disconnect_timer(std::move(this_ptr));
+		}
+
+		inline void _stop_disconnect_timer()
+		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
+			if (!derive.io().running_in_this_thread())
+			{
+				derive.post([this]() mutable
+				{
+					this->_stop_disconnect_timer();
+				});
+				return;
+			}
+
+			if (this->disconnect_timer_)
+			{
+				error_code ec_ignore{};
+
+				this->disconnect_timer_->canceled.test_and_set();
+				this->disconnect_timer_->timer.cancel(ec_ignore);
+			}
+		}
+
+	protected:
+		/// beacuse the disconnect timer is used only when disconnect, so we use a pointer
+		/// to reduce memory space occupied when running
+		std::unique_ptr<safe_timer> disconnect_timer_;
 	};
 }
 

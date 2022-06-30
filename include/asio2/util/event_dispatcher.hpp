@@ -467,7 +467,7 @@ struct single_thread
 	template <typename T>
 	struct atomic
 	{
-		inline atomic() noexcept = default;
+		inline atomic() = default;
 
 		constexpr atomic(T desired) noexcept
 			: value(desired)

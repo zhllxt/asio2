@@ -252,15 +252,19 @@ namespace asio2::detail
 						timer = std::move(timer), chain = std::move(chain)]
 					(const error_code & ec, std::size_t bytes_recvd) mutable
 					{
+						ASIO2_ASSERT(derive.io().running_in_this_thread());
+
 						error_code ec_ignore{};
 
 						timer->cancel(ec_ignore);
 
 						if (ec)
 						{
+							// if connect_timeout_timer_ is empty, it means that the connect timeout timer is
+							// timeout and the callback has called already, so reset the error to timed_out.
+							// note : when the async_resolve is failed, the socket is invalid to.
 							this->_handle_handshake(
-								derive._is_connect_timeout() ? asio::error::timed_out :
-								(derive._connect_error_code() ? derive._connect_error_code() : ec),
+								derive.connect_timeout_timer_ ? ec : asio::error::timed_out,
 								std::move(this_ptr), std::move(condition), std::move(chain));
 							return;
 						}

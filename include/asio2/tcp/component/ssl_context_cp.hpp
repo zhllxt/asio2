@@ -139,15 +139,12 @@ namespace asio2::detail
 			}
 			catch (system_error const& e)
 			{
-				ASIO2_LOG(spdlog::level::critical, "set_cert_buffer exception : {} - {}",
-					e.code().value(), e.what());
 				ASIO2_ASSERT(false);
 				set_last_error(e);
 			}
 			catch (std::exception const& e)
 			{
 				detail::ignore_unused(e);
-				ASIO2_LOG(spdlog::level::critical, "set_cert_buffer exception : {}", e.what());
 				ASIO2_ASSERT(false);
 				set_last_error(asio::error::invalid_argument);
 			}
@@ -196,15 +193,12 @@ namespace asio2::detail
 			}
 			catch (system_error const& e)
 			{
-				ASIO2_LOG(spdlog::level::critical, "set_cert_file exception : {} - {}",
-					e.code().value(), e.what());
 				ASIO2_ASSERT(false);
 				set_last_error(e);
 			}
 			catch (std::exception const& e)
 			{
 				detail::ignore_unused(e);
-				ASIO2_LOG(spdlog::level::critical, "set_cert_file exception : {}", e.what());
 				ASIO2_ASSERT(false);
 				set_last_error(asio::error::invalid_argument);
 			}
@@ -224,15 +218,12 @@ namespace asio2::detail
 			}
 			catch (system_error const& e)
 			{
-				ASIO2_LOG(spdlog::level::critical, "set_dh_buffer exception : {} - {}",
-					e.code().value(), e.what());
 				ASIO2_ASSERT(false);
 				set_last_error(e);
 			}
 			catch (std::exception const& e)
 			{
 				detail::ignore_unused(e);
-				ASIO2_LOG(spdlog::level::critical, "set_dh_buffer exception : {}", e.what());
 				ASIO2_ASSERT(false);
 				set_last_error(asio::error::invalid_argument);
 			}
@@ -252,15 +243,12 @@ namespace asio2::detail
 			}
 			catch (system_error const& e)
 			{
-				ASIO2_LOG(spdlog::level::critical, "set_dh_file exception : {} - {}",
-					e.code().value(), e.what());
 				ASIO2_ASSERT(false);
 				set_last_error(e);
 			}
 			catch (std::exception const& e)
 			{
 				detail::ignore_unused(e);
-				ASIO2_LOG(spdlog::level::critical, "set_dh_file exception : {}", e.what());
 				ASIO2_ASSERT(false);
 				set_last_error(asio::error::invalid_argument);
 			}

@@ -40,12 +40,12 @@ namespace asio2::detail
 		/**
 		 * @constructor
 		 */
-		data_persistence_cp() noexcept = default;
+		data_persistence_cp() = default;
 
 		/**
 		 * @destructor
 		 */
-		~data_persistence_cp() noexcept = default;
+		~data_persistence_cp() = default;
 
 	protected:
 		template<class T>

@@ -50,9 +50,6 @@ namespace asio2::detail
 	protected:
 		/// Save the host and port of the server
 		std::string                     host_, port_;
-
-		/// the endpoints which parsed from host and port
-		endpoints_type                  endpoints_;
 	};
 
 	/*
@@ -97,14 +94,11 @@ namespace asio2::detail
 			{
 				clear_last_error();
 
-			#if defined(ASIO2_ENABLE_LOG)
+			#if defined(_DEBUG) || defined(DEBUG)
 				derive.is_stop_reconnect_timer_called_ = false;
 				derive.is_stop_connect_timeout_timer_called_ = false;
 				derive.is_disconnect_called_ = false;
 			#endif
-
-				ASIO2_LOG(spdlog::level::debug, "call connect : {}",
-					magic_enum::enum_name(derive.state_.load()));
 
 				state_t expected = state_t::starting;
 				if (!derive.state_.compare_exchange_strong(expected, state_t::starting))
@@ -114,22 +108,7 @@ namespace asio2::detail
 				}
 
 				// start the timeout timer
-				derive._post_connect_timeout_timer(derive.get_connect_timeout(), this_ptr,
-				[&derive](const error_code& ec) mutable
-				{
-					ASIO2_ASSERT((!ec) || ec == asio::error::operation_aborted);
-
-					// no errors indicating that the connection timed out
-					if (!ec)
-					{
-						// we close the socket, so the async_connect will returned 
-						// with operation_aborted.
-						error_code ec_ignore{};
-						derive.socket().lowest_layer().close(ec_ignore);
-
-						ASIO2_ASSERT(!derive.socket().lowest_layer().is_open());
-					}
-				});
+				derive._post_connect_timeout_timer(derive.get_connect_timeout(), this_ptr);
 
 				derive._post_resolve(std::move(this_ptr), std::move(condition), std::move(chain));
 			}
@@ -179,25 +158,36 @@ namespace asio2::detail
 			// Before async_resolve execution is complete, we must hold the resolver object.
 			// so we captured the resolver_ptr into the lambda callback function.
 			resolver_rptr->async_resolve(host, port,
-			[this, &derive, this_ptr = std::move(this_ptr), condition = std::move(condition),
+			[&derive, this_ptr = std::move(this_ptr), condition = std::move(condition),
 				resolver_ptr = std::move(resolver_ptr), chain = std::move(chain)]
-			(const error_code& ec, const endpoints_type& endpoints) mutable
+			(error_code ec, endpoints_type endpoints) mutable
 			{
+				// if the connect timeout timer is timedout and called already, it means 
+				// connect timed out already.
+				if (!derive.connect_timeout_timer_)
+				{
+					ec = asio::error::timed_out;
+				}
+
 				set_last_error(ec);
 
-				this->endpoints_ = endpoints;
+				std::unique_ptr<endpoints_type> eps = std::make_unique<endpoints_type>(std::move(endpoints));
+
+				endpoints_type* p = eps.get();
 
 				if (ec)
 					derive._handle_connect(ec, std::move(this_ptr), std::move(condition), std::move(chain));
 				else
-					derive._post_connect(ec, this->endpoints_.begin(),
+					derive._post_connect(ec, std::move(eps), p->begin(),
 						std::move(this_ptr), std::move(condition), std::move(chain));
 			});
 		}
 
 		template<typename MatchCondition, typename DeferEvent, bool IsSession = args_t::is_session>
 		typename std::enable_if_t<!IsSession, void>
-		inline _post_connect(error_code ec, endpoints_iterator iter, std::shared_ptr<derived_t> this_ptr,
+		inline _post_connect(
+			error_code ec, std::unique_ptr<endpoints_type> eps,
+			endpoints_iterator iter, std::shared_ptr<derived_t> this_ptr,
 			condition_wrap<MatchCondition> condition, DeferEvent chain)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
@@ -212,7 +202,7 @@ namespace asio2::detail
 					asio::detail::throw_error(asio::error::operation_aborted);
 				}
 
-				if (iter == this->endpoints_.end())
+				if (iter == eps->end())
 				{
 					// There are no more endpoints to try. Shut down the client.
 					derive._handle_connect(ec ? ec : asio::error::host_unreachable,
@@ -261,13 +251,14 @@ namespace asio2::detail
 
 				// Start the asynchronous connect operation.
 				socket.async_connect(iter->endpoint(), make_allocator(derive.rallocator(),
-				[&derive, iter, this_ptr = std::move(this_ptr), condition = std::move(condition), chain = std::move(chain)]
+				[&derive, eps = std::move(eps), iter, this_ptr = std::move(this_ptr),
+					condition = std::move(condition), chain = std::move(chain)]
 				(const error_code & ec) mutable
 				{
 					set_last_error(ec);
 
 					if (ec && ec != asio::error::operation_aborted)
-						derive._post_connect(ec, ++iter,
+						derive._post_connect(ec, std::move(eps), ++iter,
 							std::move(this_ptr), std::move(condition), std::move(chain));
 					else
 						derive._post_proxy(ec, std::move(this_ptr), std::move(condition), std::move(chain));
@@ -372,27 +363,33 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			if constexpr (args_t::is_session)
-			{
-				ASIO2_ASSERT(derive.sessions().io().running_in_this_thread());
-			}
-			else
-			{
-				ASIO2_ASSERT(derive.io().running_in_this_thread());
-			}
-
-			ASIO2_LOG(spdlog::level::debug, "enter _done_connect : {}",
-				magic_enum::enum_name(derive.state_.load()));
-
 			// code run to here, the state must not be stopped( stopping is possible but stopped is impossible )
 			//ASIO2_ASSERT(derive.state() != state_t::stopped);
 
 			try
 			{
-				// if connect timeout is true, reset the error to timed_out.
-				if (derive._is_connect_timeout())
+				if constexpr (args_t::is_session)
 				{
-					ec = asio::error::timed_out;
+					ASIO2_ASSERT(derive.sessions().io().running_in_this_thread());
+
+					// if socket is invalid, it means that the connect is timeout and the socket has
+					// been closed by the connect timeout timer, so reset the error to timed_out.
+					if (!derive.socket().is_open())
+					{
+						ec = asio::error::timed_out;
+					}
+				}
+				else
+				{
+					ASIO2_ASSERT(derive.io().running_in_this_thread());
+
+					// if connect_timeout_timer_ is empty, it means that the connect timeout timer is
+					// timeout and the callback has called already, so reset the error to timed_out.
+					// note : when the async_resolve is failed, the socket is invalid to.
+					if (!derive.connect_timeout_timer_)
+					{
+						ec = asio::error::timed_out;
+					}
 				}
 
 				state_t expected;
@@ -443,7 +440,7 @@ namespace asio2::detail
 				}
 
 				// Whatever of connection success or failure or timeout, cancel the timeout timer.
-				derive._stop_connect_timeout_timer(ec);
+				derive._stop_connect_timeout_timer();
 
 				asio::detail::throw_error(ec);
 
@@ -455,9 +452,6 @@ namespace asio2::detail
 			catch (system_error & e)
 			{
 				set_last_error(e);
-
-				ASIO2_LOG(spdlog::level::debug, "call _do_disconnect by _done_connect error : {} {} {}",
-					magic_enum::enum_name(derive.state_.load()), e.code().value(), e.what());
 
 				if constexpr (args_t::is_session)
 				{

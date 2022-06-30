@@ -345,7 +345,7 @@ namespace asio2::detail
 
 					this->io().regobj(this);
 
-				#if defined(ASIO2_ENABLE_LOG)
+				#if defined(_DEBUG) || defined(DEBUG)
 					this->sessions_.is_all_session_stop_called_ = false;
 					this->is_stop_called_ = false;
 				#endif
@@ -509,7 +509,7 @@ namespace asio2::detail
 					session_ptr->stop();
 				});
 
-			#if defined(ASIO2_ENABLE_LOG)
+			#if defined(_DEBUG) || defined(DEBUG)
 				this->sessions_.is_all_session_stop_called_ = true;
 			#endif
 
@@ -569,10 +569,7 @@ namespace asio2::detail
 			state_t expected = state_t::stopping;
 			if (!this->state_.compare_exchange_strong(expected, state_t::stopped))
 			{
-				ASIO2_LOG(spdlog::level::debug, "_handle_stop -> state is not stopping : {}",
-					magic_enum::enum_name(expected));
-
-			#if defined(ASIO2_ENABLE_LOG)
+			#if defined(_DEBUG) || defined(DEBUG)
 				detail::has_unexpected_behavior() = true;
 			#endif
 				ASIO2_ASSERT(false);
@@ -667,7 +664,7 @@ namespace asio2::detail
 			// the _fire_start must be executed in the thread 0.
 			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
 
-		#if defined(ASIO2_ENABLE_LOG)
+		#if defined(_DEBUG) || defined(DEBUG)
 			ASIO2_ASSERT(this->is_stop_called_ == false);
 		#endif
 
@@ -679,7 +676,7 @@ namespace asio2::detail
 			// the _fire_stop must be executed in the thread 0.
 			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
 
-		#if defined(ASIO2_ENABLE_LOG)
+		#if defined(_DEBUG) || defined(DEBUG)
 			this->is_stop_called_ = true;
 		#endif
 
@@ -700,7 +697,7 @@ namespace asio2::detail
 
 		std::size_t             max_buffer_size_  = max_buffer_size;
 
-	#if defined(ASIO2_ENABLE_LOG)
+	#if defined(_DEBUG) || defined(DEBUG)
 		bool                    is_stop_called_  = false;
 	#endif
 	};

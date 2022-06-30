@@ -28,12 +28,12 @@ namespace asio2::detail
 		/**
 		 * @constructor
 		 */
-		user_data_cp() noexcept = default;
+		user_data_cp() = default;
 
 		/**
 		 * @destructor
 		 */
-		~user_data_cp() noexcept = default;
+		~user_data_cp() = default;
 
 		user_data_cp(user_data_cp&&) noexcept = default;
 		user_data_cp(user_data_cp const&) = default;

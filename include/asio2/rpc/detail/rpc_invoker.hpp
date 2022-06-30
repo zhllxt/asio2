@@ -55,7 +55,7 @@ namespace asio2::rpc
 		template<class, class> friend class asio2::detail::rpc_invoker_t;
 
 	public:
-		 response_defer() noexcept = default;
+		 response_defer() = default;
 		~response_defer()
 		{
 			ASIO2_ASSERT(f_);
@@ -84,7 +84,7 @@ namespace asio2::rpc
 		future(std::shared_ptr<response_defer<T>> defer) noexcept : defer_(std::move(defer))
 		{
 		}
-		~future() noexcept = default;
+		~future() = default;
 
 		future(future&&) noexcept = default;
 		future(future const&) noexcept = default;
@@ -101,7 +101,7 @@ namespace asio2::rpc
 		template<class, class> friend class asio2::detail::rpc_invoker_t;
 	public:
 		 promise() = default;
-		~promise() noexcept = default;
+		~promise() = default;
 
 		promise(promise&&) noexcept = default;
 		promise(promise const&) noexcept = default;
@@ -126,7 +126,7 @@ namespace asio2::rpc
 	{
 		template<class, class> friend class asio2::detail::rpc_invoker_t;
 	public:
-		 response_defer() noexcept = default;
+		 response_defer() = default;
 		~response_defer()
 		{
 			ASIO2_ASSERT(f_);
@@ -155,7 +155,7 @@ namespace asio2::rpc
 		future(std::shared_ptr<response_defer<void>> defer) noexcept : defer_(std::move(defer))
 		{
 		}
-		~future() noexcept = default;
+		~future() = default;
 
 		future(future&&) noexcept = default;
 		future(future const&) noexcept = default;
@@ -172,7 +172,7 @@ namespace asio2::rpc
 		template<class, class> friend class asio2::detail::rpc_invoker_t;
 	public:
 		 promise() = default;
-		~promise() noexcept = default;
+		~promise() = default;
 
 		promise(promise&&) noexcept = default;
 		promise(promise const&) noexcept = default;

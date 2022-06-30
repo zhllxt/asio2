@@ -29,8 +29,7 @@ namespace asio2::detail
 		/**
 		 * @constructor
 		 */
-		explicit reconnect_timer_cp(io_t & io)
-			: reconnect_timer_(io.context())
+		explicit reconnect_timer_cp(io_t & io) : reconnect_timer_(io.context())
 		{
 			this->reconnect_timer_canceled_.clear();
 			this->reconnect_is_running_.clear();
@@ -107,37 +106,6 @@ namespace asio2::detail
 			return this->reconnect_delay_;
 		}
 
-	private:
-		template<class Rep, class Period, class Callback>
-		inline void _post_reconnect_timer(std::shared_ptr<derived_t> this_ptr, Callback&& f,
-			std::chrono::duration<Rep, Period> delay)
-		{
-			derived_t& derive = static_cast<derived_t&>(*this);
-
-			if (!derive.io().running_in_this_thread())
-			{
-				asio::post(derive.io().context(), make_allocator(derive.wallocator(),
-				[this, this_ptr = std::move(this_ptr), f = std::forward<Callback>(f), delay]() mutable
-				{
-					this->_post_reconnect_timer(std::move(this_ptr), std::move(f), delay);
-				}));
-				return;
-			}
-
-		#if defined(ASIO2_ENABLE_LOG)
-			this->is_post_reconnect_timer_called_ = true;
-			ASIO2_ASSERT(this->is_stop_reconnect_timer_called_ == false);
-		#endif
-
-			this->reconnect_timer_.expires_after(delay);
-			this->reconnect_timer_.async_wait(
-			[&derive, self_ptr = std::move(this_ptr), f = std::forward<Callback>(f)]
-			(const error_code & ec) mutable
-			{
-				derive._handle_reconnect_timer(ec, std::move(self_ptr), std::move(f));
-			});
-		}
-
 	protected:
 		template<class Callback>
 		inline void _make_reconnect_timer(std::shared_ptr<derived_t> this_ptr, Callback&& f)
@@ -168,20 +136,42 @@ namespace asio2::detail
 				(std::chrono::nanoseconds::max)()); // 292 yeas
 		}
 
+		template<class Rep, class Period, class Callback>
+		inline void _post_reconnect_timer(
+			std::shared_ptr<derived_t> this_ptr, Callback&& f, std::chrono::duration<Rep, Period> delay)
+		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
+			if (!derive.io().running_in_this_thread())
+			{
+				asio::post(derive.io().context(), make_allocator(derive.wallocator(),
+				[this, this_ptr = std::move(this_ptr), f = std::forward<Callback>(f), delay]() mutable
+				{
+					this->_post_reconnect_timer(std::move(this_ptr), std::move(f), delay);
+				}));
+				return;
+			}
+
+		#if defined(_DEBUG) || defined(DEBUG)
+			this->is_post_reconnect_timer_called_ = true;
+			ASIO2_ASSERT(this->is_stop_reconnect_timer_called_ == false);
+		#endif
+
+			this->reconnect_timer_.expires_after(delay);
+			this->reconnect_timer_.async_wait(
+			[&derive, self_ptr = std::move(this_ptr), f = std::forward<Callback>(f)]
+			(const error_code & ec) mutable
+			{
+				derive._handle_reconnect_timer(ec, std::move(self_ptr), std::move(f));
+			});
+		}
+
 		template<class Callback>
-		inline void _handle_reconnect_timer(const error_code& ec,
-			std::shared_ptr<derived_t> this_ptr, Callback&& f)
+		inline void _handle_reconnect_timer(const error_code& ec, std::shared_ptr<derived_t> this_ptr, Callback&& f)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
 			ASIO2_ASSERT((!ec) || ec == asio::error::operation_aborted);
-
-		#if defined(ASIO2_ENABLE_LOG)
-			if (ec && ec != asio::error::operation_aborted)
-			{
-				ASIO2_LOG(spdlog::level::info, "reconnect_timer error : [{}] {}", ec.value(), ec.message());
-			}
-		#endif
 
 			if (this->reconnect_timer_canceled_.test_and_set())
 			{
@@ -221,7 +211,7 @@ namespace asio2::detail
 				return;
 			}
 
-		#if defined(ASIO2_ENABLE_LOG)
+		#if defined(_DEBUG) || defined(DEBUG)
 			this->is_stop_reconnect_timer_called_ = true;
 		#endif
 
@@ -244,7 +234,7 @@ namespace asio2::detail
 				return;
 			}
 
-		#if defined(ASIO2_ENABLE_LOG)
+		#if defined(_DEBUG) || defined(DEBUG)
 			ASIO2_ASSERT(this->is_post_reconnect_timer_called_ == true);
 		#endif
 
@@ -259,7 +249,8 @@ namespace asio2::detail
 		/// timer for client reconnect
 		asio::steady_timer                          reconnect_timer_;
 
-		/// 
+		/// Why use this flag, beacuase the ec param maybe zero when the timer callback is
+		/// called after the timer cancel function has called already.
 		std::atomic_flag                            reconnect_timer_canceled_;
 
 		/// if there has no data transfer for a long time,the session will be disconnect
@@ -271,7 +262,7 @@ namespace asio2::detail
 		/// Used to chech whether the reconnect timer has started already
 		std::atomic_flag                            reconnect_is_running_;
 
-	#if defined(ASIO2_ENABLE_LOG)
+	#if defined(_DEBUG) || defined(DEBUG)
 		bool                                        is_stop_reconnect_timer_called_ = false;
 		bool                                        is_post_reconnect_timer_called_ = false;
 	#endif

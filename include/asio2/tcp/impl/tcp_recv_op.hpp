@@ -28,6 +28,13 @@ namespace asio2::detail
 	template<class derived_t, class args_t>
 	class tcp_recv_op
 	{
+	protected:
+		template<class, class = std::void_t<>>
+		struct has_member_dgram : std::false_type {};
+
+		template<class T>
+		struct has_member_dgram<T, std::void_t<decltype(T::dgram_)>> : std::true_type {};
+
 	public:
 		/**
 		 * @constructor
@@ -136,6 +143,19 @@ namespace asio2::detail
 
 				if constexpr (std::is_same_v<condition_type, use_dgram_t>)
 				{
+					if constexpr (has_member_dgram<derived_t>::value)
+					{
+						if (bytes_recvd == 0)
+						{
+							derive._do_disconnect(asio::error::no_data, std::move(this_ptr));
+							return;
+						}
+					}
+					else
+					{
+						ASIO2_ASSERT(false);
+					}
+
 					const std::uint8_t* buffer = static_cast<const std::uint8_t*>(derive.buffer().data().data());
 					if /**/ (std::uint8_t(buffer[0]) < std::uint8_t(254))
 					{

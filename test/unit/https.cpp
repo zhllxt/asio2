@@ -39,6 +39,24 @@ void https_test()
 {
 	ASIO2_TEST_BEGIN_LOOP(test_loop_times);
 
+	{
+		asio::error_code ec;
+
+		auto rep = asio2::https_client::execute("https://www.baidu.com");
+		ec = asio2::get_last_error();
+		if (ec)
+		{
+			ASIO2_CHECK_VALUE(asio2::last_error_msg(), asio2::get_last_error() == asio::error::connection_refused ||
+				ec == asio::error::timed_out || ec == http::error::end_of_stream);
+		}
+		else
+		{
+			ASIO2_CHECK(!asio2::get_last_error());
+			ASIO2_CHECK(rep.version() == 11);
+			ASIO2_CHECK(rep.result() == http::status::ok);
+		}
+	}
+
 	asio2::https_server server;
 
 	server.support_websocket(true);

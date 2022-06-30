@@ -1058,12 +1058,22 @@ namespace asio2::mqtt::v5
 	 */
 	class properties_set
 	{
+	protected:
+		template<class... Args>
+		static constexpr bool _is_property() noexcept
+		{
+			if constexpr (sizeof...(Args) == std::size_t(0))
+				return true;
+			else
+				return ((
+					std::is_same_v<asio2::detail::remove_cvref_t<Args>, v5::property> ||
+					is_v5_property<asio2::detail::remove_cvref_t<Args>>()) && ...);
+		}
+
 	public:
 		properties_set() = default;
 
-		template<class... Properties, std::enable_if_t<((
-			std::is_same_v<asio2::detail::remove_cvref_t<Properties>, property> ||
-			is_v5_property<asio2::detail::remove_cvref_t<Properties>>()) && ...), int> = 0>
+		template<class... Properties, std::enable_if_t<_is_property<Properties...>(), int> = 0>
 		explicit properties_set(Properties&&... Props)
 		{
 			set(std::forward<Properties>(Props)...);
@@ -1074,9 +1084,7 @@ namespace asio2::mqtt::v5
 		properties_set& operator=(properties_set&&) noexcept = default;
 		properties_set& operator=(properties_set const&) = default;
 
-		template<class... Properties, std::enable_if_t<((
-			std::is_same_v<asio2::detail::remove_cvref_t<Properties>, property> ||
-			is_v5_property<asio2::detail::remove_cvref_t<Properties>>()) && ...), int> = 0>
+		template<class... Properties, std::enable_if_t<_is_property<Properties...>(), int> = 0>
 		inline properties_set& set(Properties&&... Props)
 		{
 			data_.clear();
@@ -1088,9 +1096,7 @@ namespace asio2::mqtt::v5
 			return (*this);
 		}
 
-		template<class... Properties, std::enable_if_t<((
-			std::is_same_v<asio2::detail::remove_cvref_t<Properties>, property> ||
-			is_v5_property<asio2::detail::remove_cvref_t<Properties>>()) && ...), int> = 0>
+		template<class... Properties, std::enable_if_t<_is_property<Properties...>(), int> = 0>
 		inline properties_set& add(Properties&&... Props)
 		{
 			(data_.emplace_back(std::forward<Properties>(Props)), ...);
@@ -1100,9 +1106,7 @@ namespace asio2::mqtt::v5
 			return (*this);
 		}
 
-		template<class Propertie, std::enable_if_t<(
-			std::is_same_v<asio2::detail::remove_cvref_t<Propertie>, property> ||
-			is_v5_property<asio2::detail::remove_cvref_t<Propertie>>()), int> = 0>
+		template<class Propertie, std::enable_if_t<_is_property<Propertie>(), int> = 0>
 		inline properties_set& erase(Propertie&& Prop)
 		{
 			for (auto it = data_.begin(); it != data_.end();)
@@ -1125,9 +1129,7 @@ namespace asio2::mqtt::v5
 			return (*this);
 		}
 
-		template<class Propertie, std::enable_if_t<(
-			std::is_same_v<asio2::detail::remove_cvref_t<Propertie>, property> ||
-			is_v5_property<asio2::detail::remove_cvref_t<Propertie>>()), int> = 0>
+		template<class Propertie, std::enable_if_t<_is_property<Propertie>(), int> = 0>
 		inline properties_set& erase()
 		{
 			for (auto it = data_.begin(); it != data_.end();)

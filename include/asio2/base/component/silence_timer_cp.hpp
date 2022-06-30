@@ -29,8 +29,7 @@ namespace asio2::detail
 		/**
 		 * @constructor
 		 */
-		explicit silence_timer_cp(io_t & io)
-			: silence_timer_(io.context())
+		explicit silence_timer_cp(io_t & io) : silence_timer_(io.context())
 		{
 			this->silence_timer_canceled_.clear();
 		}
@@ -76,7 +75,7 @@ namespace asio2::detail
 				return;
 			}
 
-		#if defined(ASIO2_ENABLE_LOG)
+		#if defined(_DEBUG) || defined(DEBUG)
 			ASIO2_ASSERT(this->is_stop_silence_timer_called_ == false);
 		#endif
 
@@ -101,13 +100,7 @@ namespace asio2::detail
 
 			ASIO2_ASSERT((!ec) || ec == asio::error::operation_aborted);
 
-		#if defined(ASIO2_ENABLE_LOG)
-			if (ec && ec != asio::error::operation_aborted)
-			{
-				ASIO2_LOG(spdlog::level::info, "silence_timer error : [{}] {}", ec.value(), ec.message());
-			}
-		#endif
-
+			// ec maybe zero when timer_canceled_ is true.
 			if (ec == asio::error::operation_aborted || this->silence_timer_canceled_.test_and_set())
 				return;
 
@@ -146,7 +139,7 @@ namespace asio2::detail
 				return;
 			}
 
-		#if defined(ASIO2_ENABLE_LOG)
+		#if defined(_DEBUG) || defined(DEBUG)
 			this->is_stop_silence_timer_called_ = true;
 		#endif
 
@@ -160,13 +153,14 @@ namespace asio2::detail
 		/// timer for session silence time out
 		asio::steady_timer                          silence_timer_;
 
-		/// 
+		/// Why use this flag, beacuase the ec param maybe zero when the timer callback is
+		/// called after the timer cancel function has called already.
 		std::atomic_flag                            silence_timer_canceled_;
 
 		/// if there has no data transfer for a long time,the session will be disconnect
 		std::chrono::steady_clock::duration         silence_timeout_ = std::chrono::minutes(60);
 
-	#if defined(ASIO2_ENABLE_LOG)
+	#if defined(_DEBUG) || defined(DEBUG)
 		bool                                        is_stop_silence_timer_called_ = false;
 	#endif
 	};

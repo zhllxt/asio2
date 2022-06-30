@@ -712,7 +712,7 @@ namespace asio2::detail
 
 					this->io().regobj(this);
 
-				#if defined(ASIO2_ENABLE_LOG)
+				#if defined(_DEBUG) || defined(DEBUG)
 					this->is_stop_called_ = false;
 				#endif
 
@@ -1063,7 +1063,7 @@ namespace asio2::detail
 			// the _fire_start must be executed in the thread 0.
 			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
 
-		#if defined(ASIO2_ENABLE_LOG)
+		#if defined(_DEBUG) || defined(DEBUG)
 			ASIO2_ASSERT(this->is_stop_called_ == false);
 		#endif
 
@@ -1075,7 +1075,7 @@ namespace asio2::detail
 			// the _fire_stop must be executed in the thread 0.
 			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
 
-		#if defined(ASIO2_ENABLE_LOG)
+		#if defined(_DEBUG) || defined(DEBUG)
 			this->is_stop_called_ = true;
 		#endif
 
@@ -1152,7 +1152,7 @@ namespace asio2::detail
 		std::chrono::steady_clock::duration         interval_ = std::chrono::milliseconds(1000);
 		std::chrono::steady_clock::time_point       time_sent_;
 
-	#if defined(ASIO2_ENABLE_LOG)
+	#if defined(_DEBUG) || defined(DEBUG)
 		bool                                        is_stop_called_  = false;
 	#endif
 	};

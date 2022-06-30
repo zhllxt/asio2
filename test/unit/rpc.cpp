@@ -665,15 +665,6 @@ void rpc_test()
 		{
 			ASIO2_TEST_WAIT_CHECK(client_disconnect_counter, client_connect_counter, client_start_failed_counter);
 
-			if (waits == 0)
-			{
-				for (int i = 0; i < test_client_count; i++)
-				{
-					std::cout << clients[i]->get_pending_event_count() << " ";
-				}
-				std::cout << std::endl;
-			}
-
 			msg.clear();
 			int len = 200 + (std::rand() % 200);
 			for (int i = 0; i < len; i++)
@@ -768,15 +759,6 @@ void rpc_test()
 		while (client_disconnect_counter < test_client_count - client_start_failed_counter)
 		{
 			ASIO2_TEST_WAIT_CHECK(client_disconnect_counter, client_connect_counter, client_start_failed_counter);
-
-			if (waits == 0)
-			{
-				for (int i = 0; i < test_client_count; i++)
-				{
-					std::cout << clients[i]->get_pending_event_count() << " ";
-				}
-				std::cout << std::endl;
-			}
 
 			msg.clear();
 			int len = 200 + (std::rand() % 200);

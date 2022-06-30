@@ -76,9 +76,9 @@ namespace asio2::detail
 			std::size_t                max_buf_size
 		)
 			: super(sessions, listener, rwio, init_buf_size, max_buf_size, rwio.context())
-			, tcp_keepalive_cp<derived_t, args_t>(this->socket_)
-			, tcp_send_op<derived_t, args_t>()
-			, tcp_recv_op<derived_t, args_t>()
+			, tcp_keepalive_cp<derived_t, args_t>()
+			, tcp_send_op     <derived_t, args_t>()
+			, tcp_recv_op     <derived_t, args_t>()
 			, rallocator_()
 			, wallocator_()
 		{
@@ -108,7 +108,7 @@ namespace asio2::detail
 
 			try
 			{
-			#if defined(ASIO2_ENABLE_LOG)
+			#if defined(_DEBUG) || defined(DEBUG)
 				this->is_stop_silence_timer_called_ = false;
 				this->is_stop_connect_timeout_timer_called_ = false;
 				this->is_disconnect_called_ = false;
@@ -358,7 +358,7 @@ namespace asio2::detail
 			// the _fire_connect must be executed in the thread 0.
 			ASIO2_ASSERT(this->sessions().io().running_in_this_thread());
 
-		#if defined(ASIO2_ENABLE_LOG)
+		#if defined(_DEBUG) || defined(DEBUG)
 			ASIO2_ASSERT(this->is_disconnect_called_ == false);
 		#endif
 
@@ -372,7 +372,7 @@ namespace asio2::detail
 			// the _fire_disconnect must be executed in the thread 0.
 			ASIO2_ASSERT(this->sessions().io().running_in_this_thread());
 
-		#if defined(ASIO2_ENABLE_LOG)
+		#if defined(_DEBUG) || defined(DEBUG)
 			this->is_disconnect_called_ = true;
 		#endif
 
@@ -397,9 +397,9 @@ namespace asio2::detail
 		handler_memory<size_op<>, std::true_type> wallocator_;
 
 		/// Does it have the same datagram mechanism as udp?
-		bool                                      dgram_ = false;
+		bool                                      dgram_                = false;
 
-	#if defined(ASIO2_ENABLE_LOG)
+	#if defined(_DEBUG) || defined(DEBUG)
 		bool                                      is_disconnect_called_ = false;
 	#endif
 	};

@@ -35,8 +35,8 @@ namespace asio2::detail
 	class tcp_keepalive_cp
 	{
 	public:
-		tcp_keepalive_cp(typename args_t::socket_t& socket) noexcept : socket_ref_(socket) {}
-		~tcp_keepalive_cp() = default;
+		 tcp_keepalive_cp() noexcept {}
+		~tcp_keepalive_cp() noexcept {}
 
 		/**
 		 * @function : set tcp socket keep alive options
@@ -56,7 +56,9 @@ namespace asio2::detail
 		{
 			try
 			{
-				auto & socket = this->socket_ref_.lowest_layer();
+				derived_t& derive = static_cast<derived_t&>(*this);
+
+				auto & socket = derive.socket().lowest_layer();
 				if (!socket.is_open())
 				{
 					set_last_error(asio::error::not_connected);
@@ -146,7 +148,6 @@ namespace asio2::detail
 		}
 
 	private:
-		typename args_t::socket_t& socket_ref_;
 	};
 }
 

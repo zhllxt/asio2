@@ -124,9 +124,6 @@ namespace asio2::detail
 			if (!this->ws_stream_)
 				return;
 
-			ASIO2_LOG(spdlog::level::debug, "enter _ws_stop : {}",
-				magic_enum::enum_name(derive.state_.load()));
-
 			// bug fixed : resolve beast::websocket::detail::soft_mutex 
 			// BHO_ASSERT(id_ != T::id); failed (line 89).
 			// 
@@ -140,9 +137,6 @@ namespace asio2::detail
 			{
 				// must construct a new chain
 				defer_event chain(std::move(e), std::move(g));
-
-				ASIO2_LOG(spdlog::level::debug, "exec _ws_stream close : {}",
-					magic_enum::enum_name(derive.state_.load()));
 
 				try
 				{
@@ -222,9 +216,6 @@ namespace asio2::detail
 			{
 				set_last_error(e);
 
-				ASIO2_LOG(spdlog::level::debug, "call _do_disconnect by _ws_post_recv error : {} {} {}",
-					magic_enum::enum_name(derive.state_.load()), e.code().value(), e.what());
-
 				derive._do_disconnect(e.code(), derive.selfptr());
 			}
 		}
@@ -261,9 +252,6 @@ namespace asio2::detail
 			}
 			else
 			{
-				ASIO2_LOG(spdlog::level::debug, "call _do_disconnect by _ws_handle_recv error : {} {} {}",
-					magic_enum::enum_name(derive.state_.load()), ec.value(), ec.message());
-
 				derive._do_disconnect(ec, derive.selfptr());
 			}
 			// If an error occurs then no new asynchronous operations are started. This
@@ -346,9 +334,6 @@ namespace asio2::detail
 			derived_t& derive = static_cast<derived_t&>(*this);
 
 			detail::ignore_unused(payload, this_ptr, condition);
-
-			ASIO2_LOG(spdlog::level::debug, "call _do_disconnect by _handle_control_close error : {}",
-				magic_enum::enum_name(derive.state_.load()));
 
 			if (derive.state() == state_t::started)
 			{
@@ -440,9 +425,6 @@ namespace asio2::detail
 					catch (system_error & e)
 					{
 						set_last_error(e);
-
-						ASIO2_LOG(spdlog::level::debug, "call _do_disconnect by _handle_upgrade error : {} {} {}",
-							magic_enum::enum_name(derive.state_.load()), e.code().value(), e.what());
 
 						derive._do_disconnect(e.code(), derive.selfptr(), std::move(chain));
 					}

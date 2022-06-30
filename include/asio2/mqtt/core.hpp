@@ -1742,9 +1742,18 @@ namespace asio2::mqtt
 	 */
 	class subscriptions_set
 	{
+	protected:
+		template<class... Args>
+		static constexpr bool _is_subscription() noexcept
+		{
+			if constexpr (sizeof...(Args) == std::size_t(0))
+				return true;
+			else
+				return ((std::is_same_v<asio2::detail::remove_cvref_t<Args>, mqtt::subscription>) && ...);
+		}
+
 	public:
-		template<class... Subscriptions, std::enable_if_t<((
-			std::is_same_v<asio2::detail::remove_cvref_t<Subscriptions>, subscription>) && ...), int> = 0>
+		template<class... Subscriptions, std::enable_if_t<_is_subscription<Subscriptions...>(), int> = 0>
 		explicit subscriptions_set(Subscriptions&&... Subscripts)
 		{
 			set(std::forward<Subscriptions>(Subscripts)...);
@@ -1755,8 +1764,7 @@ namespace asio2::mqtt
 		subscriptions_set& operator=(subscriptions_set&&) noexcept = default;
 		subscriptions_set& operator=(subscriptions_set const&) = default;
 
-		template<class... Subscriptions, std::enable_if_t<((
-			std::is_same_v<asio2::detail::remove_cvref_t<Subscriptions>, subscription>) && ...), int> = 0>
+		template<class... Subscriptions, std::enable_if_t<_is_subscription<Subscriptions...>(), int> = 0>
 		inline subscriptions_set& set(Subscriptions&&... Subscripts)
 		{
 			data_.clear();
@@ -1766,8 +1774,7 @@ namespace asio2::mqtt
 			return (*this);
 		}
 
-		template<class... Subscriptions, std::enable_if_t<((
-			std::is_same_v<asio2::detail::remove_cvref_t<Subscriptions>, subscription>) && ...), int> = 0>
+		template<class... Subscriptions, std::enable_if_t<_is_subscription<Subscriptions...>(), int> = 0>
 		inline subscriptions_set& add(Subscriptions&&... Subscripts)
 		{
 			(data_.emplace_back(std::forward<Subscriptions>(Subscripts)), ...);
@@ -1844,9 +1851,18 @@ namespace asio2::mqtt
 
 	class one_byte_integer_set
 	{
+	protected:
+		template<class... Args>
+		static constexpr bool _is_integral() noexcept
+		{
+			if constexpr (sizeof...(Args) == std::size_t(0))
+				return true;
+			else
+				return ((std::is_integral_v<asio2::detail::remove_cvref_t<Args>>) && ...);
+		}
+
 	public:
-		template<class... Integers, std::enable_if_t<((
-			std::is_integral_v<asio2::detail::remove_cvref_t<Integers>>) && ...), int> = 0>
+		template<class... Integers, std::enable_if_t<_is_integral<Integers...>(), int> = 0>
 		explicit one_byte_integer_set(Integers... Ints)
 		{
 			set(Ints...);
@@ -1857,8 +1873,7 @@ namespace asio2::mqtt
 		one_byte_integer_set& operator=(one_byte_integer_set&&) noexcept = default;
 		one_byte_integer_set& operator=(one_byte_integer_set const&) = default;
 
-		template<class... Integers, std::enable_if_t<((
-			std::is_integral_v<asio2::detail::remove_cvref_t<Integers>>) && ...), int> = 0>
+		template<class... Integers, std::enable_if_t<_is_integral<Integers...>(), int> = 0>
 		inline one_byte_integer_set& set(Integers... Ints)
 		{
 			data_.clear();
@@ -1868,8 +1883,7 @@ namespace asio2::mqtt
 			return (*this);
 		}
 
-		template<class... Integers, std::enable_if_t<((
-			std::is_integral_v<asio2::detail::remove_cvref_t<Integers>>) && ...), int> = 0>
+		template<class... Integers, std::enable_if_t<_is_integral<Integers...>(), int> = 0>
 		inline one_byte_integer_set& add(Integers... Ints)
 		{
 			(data_.emplace_back(static_cast<one_byte_integer::value_type>(Ints)), ...);

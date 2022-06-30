@@ -37,10 +37,10 @@ namespace asio2::detail
 		{
 			for (iterator p = begin; p < end;)
 			{
-				// If 0~254, current byte are the payload length.
+				// If 0~253, current byte are the payload length.
 				if (std::uint8_t(*p) < std::uint8_t(254))
 				{
-					std::uint8_t payload_size = std::uint8_t(*p);
+					std::uint8_t payload_size = static_cast<std::uint8_t>(*p);
 
 					++p;
 
@@ -64,8 +64,13 @@ namespace asio2::detail
 					// use little endian
 					if (!is_little_endian())
 					{
-						swap_bytes<sizeof(std::uint16_t)>(reinterpret_cast<std::uint8_t*>(std::addressof(payload_size)));
+						swap_bytes<sizeof(std::uint16_t)>(reinterpret_cast<std::uint8_t*>(
+							std::addressof(payload_size)));
 					}
+
+					// illegal data
+					if (payload_size < static_cast<std::uint16_t>(254))
+						return std::pair(begin, true);
 
 					p += 2;
 					if (end - p < static_cast<diff_type>(payload_size))
@@ -83,13 +88,19 @@ namespace asio2::detail
 					if (end - p < 8)
 						break;
 
-					std::uint64_t payload_size = *(reinterpret_cast<const std::uint64_t*>(p.operator->()));
+					// the most significant bit MUST be 0
+					std::int64_t payload_size = *(reinterpret_cast<const std::int64_t*>(p.operator->()));
 
 					// use little endian
 					if (!is_little_endian())
 					{
-						swap_bytes<sizeof(std::uint64_t)>(reinterpret_cast<std::uint8_t*>(std::addressof(payload_size)));
+						swap_bytes<sizeof(std::int64_t)>(reinterpret_cast<std::uint8_t*>(
+							std::addressof(payload_size)));
 					}
+
+					// illegal data
+					if (payload_size <= static_cast<std::int64_t>((std::numeric_limits<std::uint16_t>::max)()))
+						return std::pair(begin, true);
 
 					p += 8;
 					if (end - p < static_cast<diff_type>(payload_size))
