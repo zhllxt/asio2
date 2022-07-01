@@ -193,12 +193,11 @@ namespace asio2::detail
 		 */
 		inline void stop()
 		{
-			if (this->iopool_->stopped())
-				return;
+			derived_t& derive = this->derived();
 
-			this->io().unregobj(this);
+			derive.io().unregobj(&derive);
 
-			this->derived().dispatch([this]() mutable
+			derive.dispatch([this]() mutable
 			{
 				this->derived()._do_stop(asio::error::operation_aborted, this->derived().selfptr());
 			});
@@ -669,7 +668,6 @@ namespace asio2::detail
 
 			if (this->iopool_->stopped())
 			{
-				ASIO2_ASSERT(false);
 				set_last_error(asio::error::operation_aborted);
 				return false;
 			}
@@ -710,7 +708,7 @@ namespace asio2::detail
 				{
 					clear_last_error();
 
-					this->io().regobj(this);
+					derive.io().regobj(&derive);
 
 				#if defined(_DEBUG) || defined(DEBUG)
 					this->is_stop_called_ = false;

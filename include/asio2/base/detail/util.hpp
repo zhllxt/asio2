@@ -232,6 +232,38 @@ namespace asio2::detail
 		return timer;
 	}
 
+	struct safe_timer
+	{
+		explicit safe_timer(asio::io_context& ioc) : timer(ioc)
+		{
+			canceled.clear();
+		}
+
+		inline void cancel()
+		{
+			try
+			{
+				this->canceled.test_and_set();
+				this->timer.cancel();
+			}
+			catch (system_error const&)
+			{
+			}
+		}
+
+		/// Timer impl
+		asio::steady_timer timer;
+
+		/// Why use this flag, beacuase the ec param maybe zero when the timer callback is
+		/// called after the timer cancel function has called already.
+		/// Before : need reset the "canceled" flag to false, otherwise after "client.stop();"
+		/// then call client.start(...) again, this reconnect timer will doesn't work .
+		/// can't put this "clear" code into the timer handle function, beacuse the stop timer
+		/// maybe called many times. so, when the "canceled" flag is set false in the timer handle
+		/// and the stop timer is called later, then the "canceled" flag will be set true again .
+		std::atomic_flag   canceled;
+	};
+
 	template<class T, bool isIntegral = true, bool isUnsigned = true, bool SkipZero = true>
 	class id_maker
 	{

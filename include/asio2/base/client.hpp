@@ -122,7 +122,7 @@ namespace asio2::detail
 			, socket_cp           <derived_t, args_t>(iopool_cp::_get_io(0).context(), std::forward<Args>(args)...)
 			, connect_cp          <derived_t, args_t>()
 			, disconnect_cp       <derived_t, args_t>()
-			, reconnect_timer_cp  <derived_t, args_t>(iopool_cp::_get_io(0))
+			, reconnect_timer_cp  <derived_t, args_t>()
 			, user_timer_cp       <derived_t, args_t>()
 			, connect_timeout_cp  <derived_t, args_t>()
 			, send_cp             <derived_t, args_t>()

@@ -25,20 +25,6 @@ namespace asio2::detail
 	template<class derived_t, class args_t>
 	class connect_timeout_cp
 	{
-	protected:
-		struct safe_timer
-		{
-			explicit safe_timer(io_t& io) : timer(io.context()) {}
-			explicit safe_timer(asio::io_context& ioc) : timer(ioc) {}
-
-			/// timer impl
-			asio::steady_timer timer;
-
-			/// Why use this flag, beacuase the ec param maybe zero when the timer callback is
-			/// called after the timer cancel function has called already.
-			std::atomic_flag   canceled;
-		};
-
 	public:
 		/**
 		 * @constructor
@@ -71,7 +57,7 @@ namespace asio2::detail
 	protected:
 		template<class Rep, class Period>
 		inline void _post_connect_timeout_timer(
-			std::chrono::duration<Rep, Period> duration, std::shared_ptr<derived_t> this_ptr)
+			std::shared_ptr<derived_t> this_ptr, std::chrono::duration<Rep, Period> duration)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
@@ -80,7 +66,7 @@ namespace asio2::detail
 				asio::post(derive.io().context(), make_allocator(derive.wallocator(),
 				[this, this_ptr = std::move(this_ptr), duration]() mutable
 				{
-					this->_post_connect_timeout_timer(duration, std::move(this_ptr));
+					this->_post_connect_timeout_timer(std::move(this_ptr), duration);
 				}));
 				return;
 			}
@@ -89,16 +75,17 @@ namespace asio2::detail
 			ASIO2_ASSERT(this->is_stop_connect_timeout_timer_called_ == false);
 		#endif
 
-			if (!this->connect_timeout_timer_)
+			if (this->connect_timeout_timer_)
 			{
-				this->connect_timeout_timer_ = std::make_unique<safe_timer>(derive.io());
+				this->connect_timeout_timer_->cancel();
 			}
 
-			this->connect_timeout_timer_->canceled.clear();
+			this->connect_timeout_timer_ = std::make_shared<safe_timer>(derive.io().context());
 
 			this->connect_timeout_timer_->timer.expires_after(duration);
 			this->connect_timeout_timer_->timer.async_wait(
-			[&derive, self_ptr = std::move(this_ptr)](const error_code& ec) mutable
+			[&derive, self_ptr = std::move(this_ptr), timer_ptr = this->connect_timeout_timer_]
+			(const error_code& ec) mutable
 			{
 				// bug fixed : 
 				// note : after call derive._handle_connect_timeout_timer(ec, std::move(self_ptr)); 
@@ -106,7 +93,7 @@ namespace asio2::detail
 				// self_ptr's reference counter is 1, after call 
 				// derive._handle_connect_timeout_timer(ec, std::move(self_ptr)); the self_ptr's 
 				// object will be destroyed, then below code "this->..." will cause crash.
-				derive._handle_connect_timeout_timer(ec, std::move(self_ptr));
+				derive._handle_connect_timeout_timer(ec, std::move(self_ptr), std::move(timer_ptr));
 
 				// after call derive._handle_connect_timeout_timer(ec, std::move(self_ptr));
 				// can't do it like below, beacuse "this" maybe deleted already.
@@ -115,22 +102,29 @@ namespace asio2::detail
 		}
 
 		template<class D = derived_t>
-		inline void _handle_connect_timeout_timer(const error_code& ec, std::shared_ptr<D> this_ptr)
+		inline void _handle_connect_timeout_timer(
+			const error_code& ec, std::shared_ptr<D> this_ptr, std::shared_ptr<safe_timer> timer_ptr)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
 			ASIO2_ASSERT((!ec) || ec == asio::error::operation_aborted);
 
-			// ec maybe zero when timer_canceled_ is true.
-			if (ec == asio::error::operation_aborted || this->connect_timeout_timer_->canceled.test_and_set())
+			// a new timer is maked, this is the prev timer, so return directly.
+			if (this->connect_timeout_timer_.get() != timer_ptr.get())
+				return;
+
+			// member variable timer should't be empty
+			if (!this->connect_timeout_timer_)
 			{
-				this->connect_timeout_timer_.reset();
+				ASIO2_ASSERT(false);
 				return;
 			}
 
-			this->connect_timeout_timer_->canceled.clear();
-
 			this->connect_timeout_timer_.reset();
+
+			// ec maybe zero when timer_canceled_ is true.
+			if (ec == asio::error::operation_aborted || timer_ptr->canceled.test_and_set())
+				return;
 
 			if constexpr (D::is_session())
 			{
@@ -189,17 +183,14 @@ namespace asio2::detail
 
 			if (this->connect_timeout_timer_)
 			{
-				error_code ec_ignore{};
-
-				this->connect_timeout_timer_->canceled.test_and_set();
-				this->connect_timeout_timer_->timer.cancel(ec_ignore);
+				this->connect_timeout_timer_->cancel();
 			}
 		}
 
 	protected:
 		/// beacuse the connect timeout timer is used only when connect, so we use a pointer
 		/// to reduce memory space occupied when running
-		std::unique_ptr<safe_timer>                 connect_timeout_timer_;
+		std::shared_ptr<safe_timer>                 connect_timeout_timer_;
 
 		std::chrono::steady_clock::duration         connect_timeout_         = std::chrono::seconds(5);
 

@@ -192,10 +192,9 @@ namespace asio2::detail
 		 */
 		inline void stop()
 		{
-			if (this->iopool_->stopped())
-				return;
+			derived_t& derive = this->derived();
 
-			this->io().unregobj(this);
+			derive.io().unregobj(&derive);
 
 			// use promise to get the result of stop
 			std::promise<state_t> promise;
@@ -207,7 +206,7 @@ namespace asio2::detail
 				[this, p = std::move(promise)]() mutable { p.set_value(this->state().load()); }
 			};
 
-			this->derived().push_event([this, this_ptr = this->derived().selfptr(), pg = std::move(pg)]
+			derive.push_event([this, this_ptr = this->derived().selfptr(), pg = std::move(pg)]
 			(event_queue_guard<derived_t> g) mutable
 			{
 				this->derived()._do_disconnect(asio::error::operation_aborted, std::move(this_ptr),
@@ -216,12 +215,19 @@ namespace asio2::detail
 						[pg = std::move(pg)](event_queue_guard<derived_t> g) mutable
 						{
 							detail::ignore_unused(pg, g);
+
+							// the "pg" should destroyed before the "g", otherwise if the "g"
+							// is destroyed before "pg", the next event maybe called, then the
+							// state maybe change to not stopped.
+							{
+								detail::defer_event{ std::move(pg) };
+							}
 						}, std::move(g)
 					}
 				);
 			});
 
-			if (!this->derived().running_in_this_thread())
+			if (!derive.running_in_this_thread())
 			{
 				[[maybe_unused]] state_t state = future.get();
 				ASIO2_ASSERT(state == state_t::stopped);
@@ -338,7 +344,6 @@ namespace asio2::detail
 
 			if (this->iopool_->stopped())
 			{
-				ASIO2_ASSERT(false);
 				set_last_error(asio::error::operation_aborted);
 				return false;
 			}
@@ -373,6 +378,13 @@ namespace asio2::detail
 					[pg = std::move(pg)](event_queue_guard<derived_t> g) mutable
 					{
 						detail::ignore_unused(pg, g);
+
+						// the "pg" should destroyed before the "g", otherwise if the "g"
+						// is destroyed before "pg", the next event maybe called, then the
+						// state maybe change to not stopped.
+						{
+							detail::defer_event{ std::move(pg) };
+						}
 					}, std::move(g)
 				};
 
@@ -389,7 +401,7 @@ namespace asio2::detail
 				{
 					clear_last_error();
 
-					this->io().regobj(this);
+					derive.io().regobj(&derive);
 
 				#if defined(_DEBUG) || defined(DEBUG)
 					this->is_stop_called_ = false;

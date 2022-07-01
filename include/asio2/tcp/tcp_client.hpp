@@ -170,8 +170,9 @@ namespace asio2::detail
 		 */
 		inline void stop()
 		{
-			if (this->iopool_->stopped())
-				return;
+			derived_t& derive = this->derived();
+
+			derive.io().unregobj(&derive);
 
 			// use promise to get the result of stop
 			std::promise<state_t> promise;
@@ -192,7 +193,7 @@ namespace asio2::detail
 			// If you don't do this, you may end up closing the connection while the other side is still sending data.
 			// This will result in an ungraceful close.
 
-			this->derived().push_event([this, this_ptr = this->derived().selfptr(), pg = std::move(pg)]
+			derive.push_event([this, this_ptr = this->derived().selfptr(), pg = std::move(pg)]
 			(event_queue_guard<derived_t> g) mutable
 			{
 				// first close the reconnect timer
@@ -210,6 +211,13 @@ namespace asio2::detail
 									[pg = std::move(pg)](event_queue_guard<derived_t> g) mutable
 									{
 										detail::ignore_unused(pg, g);
+
+										// the "pg" should destroyed before the "g", otherwise if the "g"
+										// is destroyed before "pg", the next event maybe called, then the
+										// state maybe change to not stopped.
+										{
+											detail::defer_event{ std::move(pg) };
+										}
 									}, std::move(g)
 								}
 							);
@@ -218,11 +226,11 @@ namespace asio2::detail
 				);
 			});
 
-			//if (!this->derived().running_in_this_thread())
-			//{
-			//	[[maybe_unused]] state_t state = future.get();
-			//	ASIO2_ASSERT(state == state_t::stopped);
-			//}
+			if (!derive.running_in_this_thread())
+			{
+				[[maybe_unused]] state_t state = future.get();
+				ASIO2_ASSERT(state == state_t::stopped);
+			}
 
 			this->iopool_->stop();
 		}
@@ -328,16 +336,25 @@ namespace asio2::detail
 			};
 
 			derive.push_event(
-			[this, &derive, this_ptr = derive.selfptr(),
+			[this, this_ptr = derive.selfptr(),
 				host = std::forward<String>(host), port = std::forward<StrOrInt>(port),
 				condition = std::move(condition), pg = std::move(pg)]
 			(event_queue_guard<derived_t> g) mutable
 			{
+				derived_t& derive = this->derived();
+
 				defer_event chain
 				{
 					[pg = std::move(pg)] (event_queue_guard<derived_t> g) mutable
 					{
 						detail::ignore_unused(pg, g);
+
+						// the "pg" should destroyed before the "g", otherwise if the "g"
+						// is destroyed before "pg", the next event maybe called, then the
+						// state maybe change to not stopped.
+						{
+							detail::defer_event{ std::move(pg) };
+						}
 					}, std::move(g)
 				};
 
@@ -353,6 +370,8 @@ namespace asio2::detail
 				try
 				{
 					clear_last_error();
+
+					derive.io().regobj(&derive);
 
 				#if defined(_DEBUG) || defined(DEBUG)
 					this->is_stop_reconnect_timer_called_ = false;
@@ -372,8 +391,6 @@ namespace asio2::detail
 					// ecs init
 					derive._rdc_init(condition);
 					derive._socks5_init(condition);
-
-					derive._load_reconnect_timer(condition);
 
 					derive.template _start_connect<IsAsync>(
 						std::move(this_ptr), std::move(condition), std::move(chain));
@@ -424,36 +441,6 @@ namespace asio2::detail
 				// if the state is started , the return value is true , the last error is already_started
 				return derive.is_started();
 			}
-		}
-
-		template<typename MatchCondition>
-		inline void _load_reconnect_timer(condition_wrap<MatchCondition> condition)
-		{
-			derived_t& derive = static_cast<derived_t&>(*this);
-
-			derive._make_reconnect_timer(derive.selfptr(),
-			[this, &derive, condition = std::move(condition)]() mutable
-			{
-				// can't use condition = std::move(condition), Otherwise, the value of condition will
-				// be empty the next time the code goto here.
-				derive.push_event([&derive, this_ptr = derive.selfptr(), condition]
-				(event_queue_guard<derived_t> g) mutable
-				{
-					if (derive.reconnect_timer_canceled_.test_and_set())
-					{
-						return;
-					}
-
-					derive.reconnect_timer_canceled_.clear();
-
-					state_t expected = state_t::stopped;
-					if (derive.state_.compare_exchange_strong(expected, state_t::starting))
-					{
-						derive.template _start_connect<true>(std::move(this_ptr), std::move(condition),
-							defer_event(std::move(g)));
-					}
-				});
-			});
 		}
 
 		template<typename MatchCondition>

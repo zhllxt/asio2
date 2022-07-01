@@ -138,6 +138,37 @@ namespace asio2::detail
 		}
 
 		/**
+		 * @function :
+		 */
+		inline void cancel()
+		{
+			// moust read write the timers_ in io_context thread by "post"
+			// when code run to here, the io_context maybe stopped already.
+			asio::post(this->context(), [this]() mutable
+			{
+				error_code ec_ignore{};
+
+				for (asio::steady_timer* timer : this->timers_)
+				{
+					// when the timer is canceled, it will erase itself from timers_.
+					timer->cancel(ec_ignore);
+				}
+
+				for (auto&[ptr, fun] : this->objects_)
+				{
+					detail::ignore_unused(ptr);
+					if (fun)
+					{
+						fun();
+					}
+				}
+
+				this->timers_.clear();
+				this->objects_.clear();
+			});
+		}
+
+		/**
 		 * @function : initialize the thread id to "std::this_thread::get_id()"
 		 */
 		inline void init_thread_id() noexcept
@@ -389,16 +420,13 @@ namespace asio2::detail
 			{
 				std::lock_guard<std::mutex> guard(this->mutex_);
 
-				if (this->stopped_)
-					return;
-
-				if (this->guards_.empty() && this->threads_.empty())
-					return;
+				this->stopped_ = true;
 
 				if (this->running_in_threads())
 					return;
 
-				this->stopped_ = true;
+				if (this->guards_.empty() && this->threads_.empty())
+					return;
 			}
 
 			// Waiting for all nested events to complete.
@@ -520,32 +548,11 @@ namespace asio2::detail
 
 				// wiat fo all pending events completed.
 				while (this->pending_ > std::size_t(0))
-					std::this_thread::sleep_for(std::chrono::milliseconds(0));
+					std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
 				// first reset the acceptor io_context work guard
 				if (!this->guards_.empty())
 					this->guards_.front().reset();
-			}
-
-			// notify all registered objects to stop
-			for (std::size_t i = 0; i < this->iots_.size(); ++i)
-			{
-				auto& iot = this->iots_[i];
-
-				// must ensure that the read write of objects_ is in the io_context thread.
-				asio::post(iot->context(), [&iot]() mutable
-				{
-					for (auto&[ptr, fun] : iot->objects_)
-					{
-						detail::ignore_unused(ptr);
-						if (fun)
-						{
-							fun();
-						}
-					}
-
-					iot->objects_.clear();
-				});
 			}
 
 			constexpr auto max = std::chrono::milliseconds(10);
@@ -561,7 +568,7 @@ namespace asio2::detail
 				{
 					// the timer may not be canceled successed when using visual
 					// studio break point for debugging, so cancel it at each loop
-					this->cancel_timers(std::addressof(*iot));
+					iot->cancel();
 
 					auto t2 = std::chrono::steady_clock::now();
 					auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1);
@@ -569,6 +576,7 @@ namespace asio2::detail
 				}
 				iot->thread_id_ = std::thread::id{};
 				ASIO2_ASSERT(iot->timers().empty());
+				ASIO2_ASSERT(iot->objects_.empty());
 			}
 
 			{
@@ -589,7 +597,7 @@ namespace asio2::detail
 				{
 					// the timer may not be canceled successed when using visual
 					// studio break point for debugging, so cancel it at each loop
-					this->cancel_timers(std::addressof(*iot));
+					iot->cancel();
 
 					auto t2 = std::chrono::steady_clock::now();
 					auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1);
@@ -597,6 +605,7 @@ namespace asio2::detail
 				}
 				iot->thread_id_ = std::thread::id{};
 				ASIO2_ASSERT(iot->timers().empty());
+				ASIO2_ASSERT(iot->objects_.empty());
 			}
 		}
 
@@ -607,24 +616,6 @@ namespace asio2::detail
 		{
 			// Use a round-robin scheme to choose the next io_context to use. 
 			return (index < this->size() ? index : ((++(this->next_)) % this->size()));
-		}
-
-		/**
-		 * @function :
-		 */
-		inline void cancel_timers(io_t* io)
-		{
-			// moust read write the io::timers_ in it's io_context thread by "post"
-			// when code run to here, the io_context maybe stopped already.
-			asio::post(io->context(), [io]() mutable
-			{
-				error_code ec_ignore{};
-				for (asio::steady_timer* timer : io->timers())
-				{
-					// when the timer is canceled, it will erase itself from io::timers_.
-					timer->cancel(ec_ignore);
-				}
-			});
 		}
 
 	protected:

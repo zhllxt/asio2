@@ -101,11 +101,13 @@ namespace asio2::detail
 		 */
 		inline bool start()
 		{
+			derived_t& derive = this->derived();
+
 			bool ret = this->iopool_->start(); // start the io_context pool
 
 			if (ret)
 			{
-				this->io().regobj(this);
+				derive.io().regobj(&derive);
 
 				this->dispatch([this]() mutable
 				{
@@ -123,10 +125,9 @@ namespace asio2::detail
 		 */
 		inline void stop()
 		{
-			if (this->iopool_->stopped())
-				return;
+			derived_t& derive = this->derived();
 
-			this->io().unregobj(this);
+			derive.io().unregobj(&derive);
 
 			// close user custom timers
 			this->stop_all_timers();

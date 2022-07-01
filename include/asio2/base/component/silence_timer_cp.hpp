@@ -143,10 +143,14 @@ namespace asio2::detail
 			this->is_stop_silence_timer_called_ = true;
 		#endif
 
-			error_code ec_ignore{};
-
-			this->silence_timer_canceled_.test_and_set();
-			this->silence_timer_.cancel(ec_ignore);
+			try
+			{
+				this->silence_timer_canceled_.test_and_set();
+				this->silence_timer_.cancel();
+			}
+			catch (system_error const&)
+			{
+			}
 		}
 
 	protected:

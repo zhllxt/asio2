@@ -94,8 +94,6 @@ namespace asio2::detail
 			{
 				clear_last_error();
 
-				derive.io().regobj(&derive);
-
 			#if defined(_DEBUG) || defined(DEBUG)
 				derive.is_stop_reconnect_timer_called_ = false;
 				derive.is_stop_connect_timeout_timer_called_ = false;
@@ -109,8 +107,10 @@ namespace asio2::detail
 					asio::detail::throw_error(asio::error::operation_aborted);
 				}
 
+				derive._make_reconnect_timer(this_ptr, condition);
+
 				// start the timeout timer
-				derive._post_connect_timeout_timer(derive.get_connect_timeout(), this_ptr);
+				derive._post_connect_timeout_timer(this_ptr, derive.get_connect_timeout());
 
 				derive._post_resolve(std::move(this_ptr), std::move(condition), std::move(chain));
 			}
@@ -136,19 +136,19 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			std::string_view host, port;
+			std::string_view h, p;
 
 			if constexpr (condition_helper::has_socks5<MatchCondition>())
 			{
 				auto& sock5 = condition.impl_->socks5_option(std::in_place);
 
-				host = sock5.host();
-				port = sock5.port();
+				h = sock5.host();
+				p = sock5.port();
 			}
 			else
 			{
-				host = this->host_;
-				port = this->port_;
+				h = this->host_;
+				p = this->port_;
 			}
 
 			// resolve the server address.
@@ -159,7 +159,7 @@ namespace asio2::detail
 
 			// Before async_resolve execution is complete, we must hold the resolver object.
 			// so we captured the resolver_ptr into the lambda callback function.
-			resolver_rptr->async_resolve(host, port,
+			resolver_rptr->async_resolve(h, p,
 			[&derive, this_ptr = std::move(this_ptr), condition = std::move(condition),
 				resolver_ptr = std::move(resolver_ptr), chain = std::move(chain)]
 			(error_code ec, endpoints_type endpoints) mutable
