@@ -141,6 +141,15 @@ namespace asio2::detail
 			ASIO2_ASSERT(this->is_stop_reconnect_timer_called_ == false);
 		#endif
 
+			// When goto timer callback, and execute the reconnect operation : 
+			// call _start_connect -> _make_reconnect_timer -> a new timer is maked, and 
+			// the prev timer will be canceled, then call _post_reconnect_timer, the prev
+			// timer will be enqueue to, this will cause the prev timer never be exit.
+			// so we check if timer_ptr is not equal the member variable reconnect_timer_,
+			// don't call async_wait again.
+			if (timer_ptr.get() != this->reconnect_timer_.get())
+				return;
+
 			safe_timer* ptimer = timer_ptr.get();
 
 			ptimer->timer.expires_after(delay);
@@ -162,7 +171,7 @@ namespace asio2::detail
 			ASIO2_ASSERT((!ec) || ec == asio::error::operation_aborted);
 
 			// a new timer is maked, this is the prev timer, so return directly.
-			if (this->reconnect_timer_.get() != timer_ptr.get())
+			if (timer_ptr.get() != this->reconnect_timer_.get())
 				return;
 
 			// member variable timer should't be empty

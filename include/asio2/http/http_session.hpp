@@ -198,7 +198,7 @@ namespace asio2::detail
 		{
 			this->derived()._rdc_stop();
 
-			if (this->is_http())
+			if (this->derived().is_http())
 			{
 				super::_handle_disconnect(ec, std::move(this_ptr), std::move(chain));
 			}
@@ -241,7 +241,7 @@ namespace asio2::detail
 				return;
 			}
 
-			if (this->is_websocket())
+			if (this->derived().is_websocket())
 				return;
 
 			this->derived().async_send(std::move(this->rep_.base()),
@@ -265,7 +265,7 @@ namespace asio2::detail
 		template<class Data, class Callback>
 		inline bool _do_send(Data& data, Callback&& callback)
 		{
-			if (this->is_websocket())
+			if (this->derived().is_websocket())
 				return this->derived()._ws_send(data, std::forward<Callback>(callback));
 
 			return this->derived()._http_send(data, std::forward<Callback>(callback));
@@ -287,7 +287,7 @@ namespace asio2::detail
 		inline void _rdc_invoke_with_none(const error_code& ec, Invoker& invoker)
 		{
 			ASIO2_ASSERT(this->websocket_router_ && "Only available in websocket mode");
-			if (this->is_websocket() && invoker)
+			if (this->derived().is_websocket() && invoker)
 				invoker(ec, send_data_t{}, recv_data_t{});
 		}
 
@@ -295,7 +295,7 @@ namespace asio2::detail
 		inline void _rdc_invoke_with_recv(const error_code& ec, Invoker& invoker, recv_data_t data)
 		{
 			ASIO2_ASSERT(this->websocket_router_ && "Only available in websocket mode");
-			if (this->is_websocket() && invoker)
+			if (this->derived().is_websocket() && invoker)
 				invoker(ec, send_data_t{}, data);
 		}
 
@@ -303,7 +303,7 @@ namespace asio2::detail
 		inline void _rdc_invoke_with_send(const error_code& ec, Invoker& invoker, FnData& fn_data)
 		{
 			ASIO2_ASSERT(this->websocket_router_ && "Only available in websocket mode");
-			if (this->is_websocket() && invoker)
+			if (this->derived().is_websocket() && invoker)
 				invoker(ec, fn_data(), recv_data_t{});
 		}
 
@@ -453,7 +453,7 @@ namespace asio2::detail
 
 			this->router_._route(this_ptr, this->req_, this->rep_);
 
-			if (this->is_websocket())
+			if (this->derived().is_websocket())
 			{
 				this->derived()._rdc_handle_recv(this_ptr, this->req_.ws_frame_data_, condition);
 			}

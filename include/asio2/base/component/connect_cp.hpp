@@ -110,7 +110,7 @@ namespace asio2::detail
 				derive._make_reconnect_timer(this_ptr, condition);
 
 				// start the timeout timer
-				derive._post_connect_timeout_timer(this_ptr, derive.get_connect_timeout());
+				derive._make_connect_timeout_timer(this_ptr, derive.get_connect_timeout());
 
 				derive._post_resolve(std::move(this_ptr), std::move(condition), std::move(chain));
 			}

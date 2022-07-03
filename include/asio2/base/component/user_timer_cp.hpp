@@ -287,10 +287,14 @@ namespace asio2::detail
 				auto iter = this->user_timers_.find(timer_handle);
 				if (iter != this->user_timers_.end())
 				{
-					error_code ec_ignore{};
-
-					iter->second->exited = true;
-					iter->second->timer.cancel(ec_ignore);
+					try
+					{
+						iter->second->exited = true;
+						iter->second->timer.cancel();
+					}
+					catch (system_error const&)
+					{
+					}
 				}
 
 				try
@@ -351,10 +355,14 @@ namespace asio2::detail
 				auto iter = this->user_timers_.find(timer_id);
 				if (iter != this->user_timers_.end())
 				{
-					error_code ec_ignore{};
-
-					iter->second->exited = true;
-					iter->second->timer.cancel(ec_ignore);
+					try
+					{
+						iter->second->exited = true;
+						iter->second->timer.cancel();
+					}
+					catch (system_error const&)
+					{
+					}
 
 					this->user_timers_.erase(iter);
 				}
@@ -373,15 +381,19 @@ namespace asio2::detail
 			asio::post(derive.io().context(), make_allocator(derive.wallocator(),
 			[this, this_ptr = derive.selfptr()]() mutable
 			{
-				error_code ec_ignore{};
-
 				// close user custom timers
 				for (auto &[id, timer_obj_ptr] : this->user_timers_)
 				{
 					detail::ignore_unused(this_ptr, id);
 
-					timer_obj_ptr->exited = true;
-					timer_obj_ptr->timer.cancel(ec_ignore);
+					try
+					{
+						timer_obj_ptr->exited = true;
+						timer_obj_ptr->timer.cancel();
+					}
+					catch (system_error const&)
+					{
+					}
 				}
 				this->user_timers_.clear();
 			}));

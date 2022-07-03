@@ -606,9 +606,13 @@ namespace asio2::detail
 
 		inline void _stop_pingreq_timer()
 		{
-			error_code ec_ignore{};
-
-			this->pingreq_timer_.cancel(ec_ignore);
+			try
+			{
+				this->pingreq_timer_.cancel();
+			}
+			catch (system_error const&)
+			{
+			}
 		}
 
 		template<typename DeferEvent>

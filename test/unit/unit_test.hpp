@@ -48,7 +48,7 @@
 
 static const int   test_loop_times = 1000;
 static const int   test_client_count = 10;
-static const int   test_wait_count = 60000;
+static const int   test_wait_count = 10000;
 
 bool test_has_error = false;
 
@@ -261,7 +261,7 @@ void pause_cmd_window()
   for (int loop = 0; loop < loops; ++loop) \
   { \
     static auto __time1__ = std::chrono::steady_clock::now(); \
-    if(std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - __time1__).count() > 60) \
+    if(std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - __time1__).count() > 1) \
     { \
       __time1__ = std::chrono::steady_clock::now(); \
       ASIO2_TEST_LOCK_GUARD \
@@ -277,7 +277,7 @@ void pause_cmd_window()
   }
 
 template<class... Args>
-void print(Args&... args) { ((ASIO2_TEST_IOSTREAM << args << " "), ...); }
+void print(Args&&... args) { ((ASIO2_TEST_IOSTREAM << args << " "), ...); }
 
 #define ASIO2_TEST_WAIT_CHECK(...) \
 std::this_thread::sleep_for(std::chrono::milliseconds(1)); \

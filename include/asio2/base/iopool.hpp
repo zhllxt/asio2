@@ -146,12 +146,16 @@ namespace asio2::detail
 			// when code run to here, the io_context maybe stopped already.
 			asio::post(this->context(), [this]() mutable
 			{
-				error_code ec_ignore{};
-
 				for (asio::steady_timer* timer : this->timers_)
 				{
 					// when the timer is canceled, it will erase itself from timers_.
-					timer->cancel(ec_ignore);
+					try
+					{
+						timer->cancel();
+					}
+					catch (system_error const&)
+					{
+					}
 				}
 
 				for (auto&[ptr, fun] : this->objects_)
@@ -420,13 +424,16 @@ namespace asio2::detail
 			{
 				std::lock_guard<std::mutex> guard(this->mutex_);
 
-				this->stopped_ = true;
-
-				if (this->running_in_threads())
+				if (this->stopped_)
 					return;
 
 				if (this->guards_.empty() && this->threads_.empty())
 					return;
+
+				if (this->running_in_threads())
+					return;
+
+				this->stopped_ = true;
 			}
 
 			// Waiting for all nested events to complete.
@@ -548,7 +555,7 @@ namespace asio2::detail
 
 				// wiat fo all pending events completed.
 				while (this->pending_ > std::size_t(0))
-					std::this_thread::sleep_for(std::chrono::milliseconds(1));
+					std::this_thread::sleep_for(std::chrono::milliseconds(0));
 
 				// first reset the acceptor io_context work guard
 				if (!this->guards_.empty())

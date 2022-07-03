@@ -241,7 +241,7 @@ void shared_iopool_test()
 	cast1.stop();
 	client.stop();
 	server.stop();
-	t1.stop_all_timers();
+	t1.stop();
 
 	iopool.stop();
 
@@ -359,7 +359,7 @@ void shared_iopool_test()
 	//cast1.stop();
 	//client.stop();
 	//server.stop();
-	//t1.stop_all_timers();
+	//t1.stop();
 
 	// the iopool.stop will cal all "server,client,timer,serial_port,ping" objects stop();
 	iopool.stop();

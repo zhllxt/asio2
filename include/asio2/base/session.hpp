@@ -176,7 +176,7 @@ namespace asio2::detail
 				this->derived().io().init_thread_id();
 
 			// start the timer of check connect timeout
-			this->derived()._post_connect_timeout_timer(
+			this->derived()._make_connect_timeout_timer(
 				this->derived().selfptr(), this->connect_timeout_);
 		}
 

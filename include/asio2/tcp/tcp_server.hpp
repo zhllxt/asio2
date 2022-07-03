@@ -130,13 +130,16 @@ namespace asio2::detail
 		 */
 		inline void stop()
 		{
+			if (this->iopool_->stopped())
+				return;
+
 			derived_t& derive = this->derived();
 
 			derive.io().unregobj(&derive);
 
-			derive.dispatch([this]() mutable
+			derive.dispatch([&derive]() mutable
 			{
-				this->derived()._do_stop(asio::error::operation_aborted, this->derived().selfptr());
+				derive._do_stop(asio::error::operation_aborted, derive.selfptr());
 			});
 
 			this->iopool_->stop();
@@ -306,13 +309,13 @@ namespace asio2::detail
 				return false;
 			}
 
-			asio::dispatch(derive.io().context(), [this, this_ptr = derive.selfptr()]() mutable
+			asio::dispatch(derive.io().context(), [&derive, this_ptr = derive.selfptr()]() mutable
 			{
 				detail::ignore_unused(this_ptr);
 
 				// init the running thread id 
-				if (this->derived().io().get_thread_id() == std::thread::id{})
-					this->derived().io().init_thread_id();
+				if (derive.io().get_thread_id() == std::thread::id{})
+					derive.io().init_thread_id();
 			});
 
 			// use promise to get the result of async accept
@@ -366,9 +369,9 @@ namespace asio2::detail
 
 					super::start();
 
-					this->counter_ptr_ = std::shared_ptr<void>((void*)1, [this](void*) mutable
+					this->counter_ptr_ = std::shared_ptr<void>((void*)1, [&derive](void*) mutable
 					{
-						this->derived()._exec_stop(asio::error::operation_aborted, this->derived().selfptr());
+						derive._exec_stop(asio::error::operation_aborted, derive.selfptr());
 					});
 
 					error_code ec_ignore{};
@@ -587,7 +590,7 @@ namespace asio2::detail
 		{
 			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
 
-			if (!this->is_started())
+			if (!this->derived().is_started())
 				return;
 
 			try
@@ -638,7 +641,7 @@ namespace asio2::detail
 
 			if (!ec)
 			{
-				if (this->is_started())
+				if (this->derived().is_started())
 				{
 					session_ptr->counter_ptr_ = this->counter_ptr_;
 					session_ptr->start(condition);

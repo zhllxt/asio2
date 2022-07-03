@@ -223,8 +223,8 @@ namespace asio2::detail
 			detail::ignore_unused(this_ptr, condition);
 
 			// reset the variable to default status
-			this->reset_connect_time();
-			this->update_alive_time();
+			this->derived().reset_connect_time();
+			this->derived().update_alive_time();
 		}
 
 		template<typename MatchCondition, typename DeferEvent>
@@ -404,7 +404,7 @@ namespace asio2::detail
 		{
 			detail::ignore_unused(ec);
 
-			if (!this->is_started())
+			if (!this->derived().is_started())
 			{
 				if (this->derived().state() == state_t::started)
 				{
@@ -413,7 +413,7 @@ namespace asio2::detail
 				return;
 			}
 
-			this->update_alive_time();
+			this->derived().update_alive_time();
 
 			if constexpr (!std::is_same_v<typename condition_wrap<MatchCondition>::condition_type, use_kcp_t>)
 			{

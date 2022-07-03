@@ -164,10 +164,14 @@ namespace asio2::detail
 
 					set_last_error(ec);
 
-					error_code ec_ignore{};
-
-					// clost the timer
-					timer->cancel(ec_ignore);
+					try
+					{
+						// clost the timer
+						timer->cancel();
+					}
+					catch (system_error const&)
+					{
+					}
 				});
 			}, chain.move_guard());
 		}
@@ -213,10 +217,14 @@ namespace asio2::detail
 				flag_ptr = std::move(flag_ptr), timer = std::move(timer), chain = std::move(chain)]
 			(const error_code& ec) mutable
 			{
-				error_code ec_ignore{};
-
-				// clost the timer
-				timer->cancel(ec_ignore);
+				try
+				{
+					// clost the timer
+					timer->cancel();
+				}
+				catch (system_error const&)
+				{
+				}
 
 				if (flag_ptr->test_and_set())
 					derive._handle_handshake(asio::error::timed_out,

@@ -193,13 +193,16 @@ namespace asio2::detail
 		 */
 		inline void stop()
 		{
+			if (this->iopool_->stopped())
+				return;
+
 			derived_t& derive = this->derived();
 
 			derive.io().unregobj(&derive);
 
-			derive.dispatch([this]() mutable
+			derive.dispatch([&derive]() mutable
 			{
-				this->derived()._do_stop(asio::error::operation_aborted, this->derived().selfptr());
+				derive._do_stop(asio::error::operation_aborted, derive.selfptr());
 			});
 
 			this->iopool_->stop();
@@ -672,13 +675,13 @@ namespace asio2::detail
 				return false;
 			}
 
-			asio::dispatch(derive.io().context(), [this, this_ptr = derive.selfptr()]() mutable
+			asio::dispatch(derive.io().context(), [&derive, this_ptr = derive.selfptr()]() mutable
 			{
 				detail::ignore_unused(this_ptr);
 
 				// init the running thread id 
-				if (this->derived().io().get_thread_id() == std::thread::id{})
-					this->derived().io().init_thread_id();
+				if (derive.io().get_thread_id() == std::thread::id{})
+					derive.io().init_thread_id();
 			});
 
 			// use promise to get the result of async accept
@@ -692,9 +695,11 @@ namespace asio2::detail
 			};
 
 			derive.post(
-			[this, &derive, this_ptr = derive.selfptr(), host = std::forward<String>(host), pg = std::move(pg)]
+			[this, this_ptr = derive.selfptr(), host = std::forward<String>(host), pg = std::move(pg)]
 			() mutable
 			{
+				derived_t& derive = this->derived();
+
 				state_t expected = state_t::stopped;
 				if (!this->state_.compare_exchange_strong(expected, state_t::starting))
 				{
@@ -1028,9 +1033,13 @@ namespace asio2::detail
 				// If this is the first reply, interrupt the five second timeout.
 				if (this->replies_++ == 0)
 				{
-					error_code ec_ignore{};
-
-					this->timer_.cancel(ec_ignore);
+					try
+					{
+						this->timer_.cancel();
+					}
+					catch (system_error const&)
+					{
+					}
 				}
 
 				this->total_recv_++;

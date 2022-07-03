@@ -27,21 +27,21 @@
 #include <asio2/mqtt/detail/mqtt_retained_message.hpp>
 #include <asio2/mqtt/detail/mqtt_offline_message.hpp>
 
-#include <asio2/mqtt/aop/auth.hpp>
-#include <asio2/mqtt/aop/connack.hpp>
-#include <asio2/mqtt/aop/connect.hpp>
-#include <asio2/mqtt/aop/disconnect.hpp>
-#include <asio2/mqtt/aop/pingreq.hpp>
-#include <asio2/mqtt/aop/pingresp.hpp>
-#include <asio2/mqtt/aop/puback.hpp>
-#include <asio2/mqtt/aop/pubcomp.hpp>
-#include <asio2/mqtt/aop/publish.hpp>
-#include <asio2/mqtt/aop/pubrec.hpp>
-#include <asio2/mqtt/aop/pubrel.hpp>
-#include <asio2/mqtt/aop/suback.hpp>
-#include <asio2/mqtt/aop/subscribe.hpp>
-#include <asio2/mqtt/aop/unsuback.hpp>
-#include <asio2/mqtt/aop/unsubscribe.hpp>
+#include <asio2/mqtt/aop/aop_auth.hpp>
+#include <asio2/mqtt/aop/aop_connack.hpp>
+#include <asio2/mqtt/aop/aop_connect.hpp>
+#include <asio2/mqtt/aop/aop_disconnect.hpp>
+#include <asio2/mqtt/aop/aop_pingreq.hpp>
+#include <asio2/mqtt/aop/aop_pingresp.hpp>
+#include <asio2/mqtt/aop/aop_puback.hpp>
+#include <asio2/mqtt/aop/aop_pubcomp.hpp>
+#include <asio2/mqtt/aop/aop_publish.hpp>
+#include <asio2/mqtt/aop/aop_pubrec.hpp>
+#include <asio2/mqtt/aop/aop_pubrel.hpp>
+#include <asio2/mqtt/aop/aop_suback.hpp>
+#include <asio2/mqtt/aop/aop_subscribe.hpp>
+#include <asio2/mqtt/aop/aop_unsuback.hpp>
+#include <asio2/mqtt/aop/aop_unsubscribe.hpp>
 
 namespace asio2::detail
 {

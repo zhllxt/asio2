@@ -56,7 +56,7 @@ namespace asio2::detail
 
 	protected:
 		template<class Rep, class Period>
-		inline void _post_connect_timeout_timer(
+		inline void _make_connect_timeout_timer(
 			std::shared_ptr<derived_t> this_ptr, std::chrono::duration<Rep, Period> duration)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
@@ -66,14 +66,10 @@ namespace asio2::detail
 				asio::post(derive.io().context(), make_allocator(derive.wallocator(),
 				[this, this_ptr = std::move(this_ptr), duration]() mutable
 				{
-					this->_post_connect_timeout_timer(std::move(this_ptr), duration);
+					this->_make_connect_timeout_timer(std::move(this_ptr), duration);
 				}));
 				return;
 			}
-
-		#if defined(_DEBUG) || defined(DEBUG)
-			ASIO2_ASSERT(this->is_stop_connect_timeout_timer_called_ == false);
-		#endif
 
 			if (this->connect_timeout_timer_)
 			{
@@ -82,9 +78,28 @@ namespace asio2::detail
 
 			this->connect_timeout_timer_ = std::make_shared<safe_timer>(derive.io().context());
 
-			this->connect_timeout_timer_->timer.expires_after(duration);
-			this->connect_timeout_timer_->timer.async_wait(
-			[&derive, self_ptr = std::move(this_ptr), timer_ptr = this->connect_timeout_timer_]
+			derive._post_connect_timeout_timer(std::move(this_ptr), this->connect_timeout_timer_, duration);
+		}
+
+		template<class Rep, class Period>
+		inline void _post_connect_timeout_timer(std::shared_ptr<derived_t> this_ptr,
+			std::shared_ptr<safe_timer> timer_ptr, std::chrono::duration<Rep, Period> duration)
+		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
+		#if defined(_DEBUG) || defined(DEBUG)
+			ASIO2_ASSERT(this->is_stop_connect_timeout_timer_called_ == false);
+		#endif
+
+			// a new timer is maked, this is the prev timer, so return directly.
+			if (timer_ptr.get() != this->connect_timeout_timer_.get())
+				return;
+
+			safe_timer* ptimer = timer_ptr.get();
+
+			ptimer->timer.expires_after(duration);
+			ptimer->timer.async_wait(
+			[&derive, self_ptr = std::move(this_ptr), timer_ptr = std::move(timer_ptr)]
 			(const error_code& ec) mutable
 			{
 				// bug fixed : 
@@ -110,7 +125,7 @@ namespace asio2::detail
 			ASIO2_ASSERT((!ec) || ec == asio::error::operation_aborted);
 
 			// a new timer is maked, this is the prev timer, so return directly.
-			if (this->connect_timeout_timer_.get() != timer_ptr.get())
+			if (timer_ptr.get() != this->connect_timeout_timer_.get())
 				return;
 
 			// member variable timer should't be empty

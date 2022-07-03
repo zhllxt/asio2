@@ -270,6 +270,10 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
+			// a new timer is maked, this is the prev timer, so return directly.
+			if (timer_ptr.get() != this->disconnect_timer_.get())
+				return;
+
 			safe_timer* ptimer = timer_ptr.get();
 
 			ptimer->timer.expires_after(std::chrono::milliseconds(10));
@@ -289,7 +293,7 @@ namespace asio2::detail
 			ASIO2_ASSERT((!ec) || ec == asio::error::operation_aborted);
 
 			// a new timer is maked, this is the prev timer, so return directly.
-			if (this->disconnect_timer_.get() != timer_ptr.get())
+			if (timer_ptr.get() != this->disconnect_timer_.get())
 				return;
 
 			// member variable timer should't be empty

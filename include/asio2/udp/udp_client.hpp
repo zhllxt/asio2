@@ -136,6 +136,9 @@ namespace asio2::detail
 		 */
 		inline void stop()
 		{
+			if (this->iopool_->stopped())
+				return;
+
 			derived_t& derive = this->derived();
 
 			derive.io().unregobj(&derive);
@@ -150,19 +153,19 @@ namespace asio2::detail
 				[this, p = std::move(promise)]() mutable { p.set_value(this->state().load()); }
 			};
 
-			derive.push_event([this, this_ptr = this->derived().selfptr(), pg = std::move(pg)]
+			derive.push_event([&derive, this_ptr = derive.selfptr(), pg = std::move(pg)]
 			(event_queue_guard<derived_t> g) mutable
 			{
 				// first close the reconnect timer
-				this->_stop_reconnect_timer();
+				derive._stop_reconnect_timer();
 
-				this->derived()._do_disconnect(asio::error::operation_aborted, this->derived().selfptr(),
+				derive._do_disconnect(asio::error::operation_aborted, derive.selfptr(),
 					defer_event
 					{
-						[this, this_ptr = std::move(this_ptr), pg = std::move(pg)]
+						[&derive, this_ptr = std::move(this_ptr), pg = std::move(pg)]
 						(event_queue_guard<derived_t> g) mutable
 						{
-							this->derived()._do_stop(asio::error::operation_aborted, std::move(this_ptr),
+							derive._do_stop(asio::error::operation_aborted, std::move(this_ptr),
 								defer_event
 								{
 									[pg = std::move(pg)](event_queue_guard<derived_t> g) mutable
@@ -312,13 +315,13 @@ namespace asio2::detail
 				return false;
 			}
 
-			asio::dispatch(derive.io().context(), [this, this_ptr = derive.selfptr()]() mutable
+			asio::dispatch(derive.io().context(), [&derive, this_ptr = derive.selfptr()]() mutable
 			{
 				detail::ignore_unused(this_ptr);
 
 				// init the running thread id 
-				if (this->derived().io().get_thread_id() == std::thread::id{})
-					this->derived().io().init_thread_id();
+				if (derive.io().get_thread_id() == std::thread::id{})
+					derive.io().init_thread_id();
 			});
 
 			// use promise to get the result of async connect
@@ -464,8 +467,8 @@ namespace asio2::detail
 		inline void _do_start(
 			std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition, DeferEvent chain)
 		{
-			this->update_alive_time();
-			this->reset_connect_time();
+			this->derived().update_alive_time();
+			this->derived().reset_connect_time();
 
 			if constexpr (std::is_same_v<typename condition_wrap<MatchCondition>::condition_type, use_kcp_t>)
 			{
@@ -594,7 +597,7 @@ namespace asio2::detail
 		template<typename MatchCondition>
 		inline void _post_recv(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
 		{
-			if (!this->is_started())
+			if (!this->derived().is_started())
 			{
 				if (this->derived().state() == state_t::started)
 				{
@@ -627,7 +630,7 @@ namespace asio2::detail
 		{
 			set_last_error(ec);
 
-			if (!this->is_started())
+			if (!this->derived().is_started())
 			{
 				if (this->derived().state() == state_t::started)
 				{
@@ -646,7 +649,7 @@ namespace asio2::detail
 
 			if (!ec)
 			{
-				this->update_alive_time();
+				this->derived().update_alive_time();
 
 				std::string_view data = std::string_view(static_cast<std::string_view::const_pointer>
 					(this->buffer_.data().data()), bytes_recvd);

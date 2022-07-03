@@ -643,8 +643,6 @@ namespace asio2::detail
 					{
 						auto& _rdc = condition.impl_->rdc_option(std::in_place);
 
-						error_code ec_ignore{};
-
 						// if stoped, execute all callbacks in the requests, otherwise if some
 						// call or async_call 's timeout is too long, then the application will
 						// can't exit before all timeout timer is reached.
@@ -652,7 +650,13 @@ namespace asio2::detail
 						{
 							detail::ignore_unused(id);
 							auto&[timer, invoker] = tup;
-							timer->cancel(ec_ignore);
+							try
+							{
+								timer->cancel();
+							}
+							catch (system_error const&)
+							{
+							}
 							derive._rdc_invoke_with_none(asio::error::operation_aborted, invoker);
 						}
 						_rdc.invoker().reqs().clear();
@@ -729,15 +733,19 @@ namespace asio2::detail
 							{
 								auto& _rdc = condition.impl_->rdc_option(std::in_place);
 
-								error_code ec_ignore{};
-
 								ASIO2_ASSERT(derive.io().running_in_this_thread());
 
 								auto iter = _rdc.invoker().find(id);
 								if (iter != _rdc.invoker().end())
 								{
 									auto&[tmer, cb] = iter->second;
-									tmer->cancel(ec_ignore);
+									try
+									{
+										tmer->cancel();
+									}
+									catch (system_error const&)
+									{
+									}
 									derive._rdc_invoke_with_none(asio::error::timed_out, cb);
 									_rdc.invoker().erase(iter);
 								}
@@ -773,15 +781,19 @@ namespace asio2::detail
 
 				auto id = (_rdc.get_recv_parser())(data);
 
-				error_code ec_ignore{};
-
 				ASIO2_ASSERT(derive.io().running_in_this_thread());
 
 				auto iter = _rdc.invoker().find(id);
 				if (iter != _rdc.invoker().end())
 				{
 					auto&[timer, invoker] = iter->second;
-					timer->cancel(ec_ignore);
+					try
+					{
+						timer->cancel();
+					}
+					catch (system_error const&)
+					{
+					}
 					derive._rdc_invoke_with_recv(error_code{}, invoker, data);
 					_rdc.invoker().erase(iter);
 				}

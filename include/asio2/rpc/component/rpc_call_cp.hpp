@@ -449,9 +449,13 @@ namespace asio2::detail
 				{
 					ASIO2_ASSERT(derive.io().running_in_this_thread());
 
-					error_code ec_ignore{};
-
-					timer->cancel(ec_ignore);
+					try
+					{
+						timer->cancel();
+					}
+					catch (system_error const&)
+					{
+					}
 
 					if (cb) { cb(ec, data); }
 

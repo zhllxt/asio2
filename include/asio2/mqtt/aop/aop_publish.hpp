@@ -233,7 +233,7 @@ namespace asio2::detail
 			caller->subs_map_.match(topic_name, [this, caller, &msg, &sent]
 			(std::string_view key, auto& node) mutable
 			{
-				detail::ignore_unused(key);
+				detail::ignore_unused(this, key);
 
 				mqtt::subscription& sub = node.sub;
 

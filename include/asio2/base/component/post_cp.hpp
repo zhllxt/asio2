@@ -277,11 +277,15 @@ namespace asio2::detail
 			{
 				detail::ignore_unused(p);
 
-				error_code ec_ignore{};
-
 				for (asio::steady_timer* timer : this->timed_tasks_)
 				{
-					timer->cancel(ec_ignore);
+					try
+					{
+						timer->cancel();
+					}
+					catch (system_error const&)
+					{
+					}
 				}
 			}));
 

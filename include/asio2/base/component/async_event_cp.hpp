@@ -129,8 +129,13 @@ namespace asio2
 			{
 				detail::ignore_unused(this_ptr);
 
-				error_code ec_ignore{};
-				this->event_timer_.cancel(ec_ignore);
+				try
+				{
+					this->event_timer_.cancel();
+				}
+				catch (system_error const&)
+				{
+				}
 			});
 		}
 

@@ -171,8 +171,8 @@ namespace asio2::detail
 			detail::ignore_unused(this_ptr, condition);
 
 			// reset the variable to default status
-			this->reset_connect_time();
-			this->update_alive_time();
+			this->derived().reset_connect_time();
+			this->derived().update_alive_time();
 
 			if constexpr (std::is_same_v<typename condition_wrap<MatchCondition>::condition_type, use_dgram_t>)
 				this->dgram_ = true;
@@ -180,7 +180,7 @@ namespace asio2::detail
 				this->dgram_ = false;
 
 			// set keeplive options
-			this->set_keep_alive_options();
+			this->derived().set_keep_alive_options();
 		}
 
 		template<typename MatchCondition, typename DeferEvent>

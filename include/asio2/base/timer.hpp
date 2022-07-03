@@ -109,11 +109,11 @@ namespace asio2::detail
 			{
 				derive.io().regobj(&derive);
 
-				this->dispatch([this]() mutable
+				derive.dispatch([&derive]() mutable
 				{
 					// init the running thread id 
-					if (this->derived().io().get_thread_id() == std::thread::id{})
-						this->derived().io().init_thread_id();
+					if (derive.io().get_thread_id() == std::thread::id{})
+						derive.io().init_thread_id();
 				});
 			}
 
@@ -125,6 +125,9 @@ namespace asio2::detail
 		 */
 		inline void stop()
 		{
+			if (this->iopool_->stopped())
+				return;
+
 			derived_t& derive = this->derived();
 
 			derive.io().unregobj(&derive);
