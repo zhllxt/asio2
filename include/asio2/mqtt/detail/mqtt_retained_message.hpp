@@ -26,9 +26,7 @@
 #include <optional>
 #include <deque>
 
-#include <asio2/mqtt/protocol_v3.hpp>
-#include <asio2/mqtt/protocol_v4.hpp>
-#include <asio2/mqtt/protocol_v5.hpp>
+#include <asio2/mqtt/message.hpp>
 
 #include <asio2/mqtt/detail/mqtt_topic_util.hpp>
 
@@ -436,7 +434,7 @@ namespace asio2::mqtt
 		{
 		}
 
-		std::variant<v3::publish, v4::publish, v5::publish> message;
+		mqtt::message message;
 		std::shared_ptr<asio::steady_timer> message_expiry_timer;
 	};
 }

@@ -201,7 +201,7 @@ namespace asio2::detail
 			{
 				if constexpr (std::is_same_v<response_type, mqtt::message>)
 				{
-					if (rep.index() != std::variant_npos)
+					if (!rep.empty())
 					{
 						std::visit([&ec, &caller_ptr, &caller, &om, &rep](auto& pm) mutable
 						{
@@ -224,7 +224,7 @@ namespace asio2::detail
 			{
 				if constexpr (std::is_same_v<response_type, mqtt::message>)
 				{
-					if (rep.index() != std::variant_npos)
+					if (!rep.empty())
 					{
 						std::visit([&ec, &caller_ptr, &caller, &om, &msg](auto& pr) mutable
 						{
@@ -252,7 +252,7 @@ namespace asio2::detail
 			{
 				if constexpr (std::is_same_v<response_type, mqtt::message>)
 				{
-					if (rep.index() != std::variant_npos)
+					if (!rep.empty())
 					{
 						std::visit([&ec, &caller_ptr, &caller, &om, &rep](auto& pm) mutable
 						{
@@ -275,7 +275,7 @@ namespace asio2::detail
 			{
 				if constexpr (std::is_same_v<response_type, mqtt::message>)
 				{
-					if (rep.index() != std::variant_npos)
+					if (!rep.empty())
 					{
 						std::visit([&ec, &caller_ptr, &caller, &om, &msg](auto& pr) mutable
 						{

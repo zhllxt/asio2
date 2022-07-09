@@ -27,9 +27,7 @@
 #include <asio2/base/detail/condition_wrap.hpp>
 #include <asio2/base/detail/buffer_wrap.hpp>
 
-#include <asio2/mqtt/protocol_v3.hpp>
-#include <asio2/mqtt/protocol_v4.hpp>
-#include <asio2/mqtt/protocol_v5.hpp>
+#include <asio2/mqtt/message.hpp>
 
 namespace asio2::detail
 {
@@ -80,7 +78,15 @@ namespace asio2::detail
 
 			using data_type = typename detail::remove_cvref_t<Data>;
 
-			if constexpr (detail::is_template_instance_of_v<std::variant, data_type>)
+			if constexpr (std::is_same_v<mqtt::message, data_type>)
+			{
+				std::visit([&binary](auto& message) mutable
+				{
+					binary.reserve(message.required_size());
+					message.serialize(binary);
+				}, data);
+			}
+			else if constexpr (detail::is_template_instance_of_v<std::variant, data_type>)
 			{
 				std::visit([&binary](auto& message) mutable
 				{

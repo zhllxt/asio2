@@ -75,7 +75,7 @@ namespace asio2::detail
 		: public tcp_session_impl_t<derived_t, args_t>
 		, public mqtt_options
 		, public mqtt_handler_t    <derived_t, args_t>
-		, public mqtt_topic_alias_t<derived_t        >
+		, public mqtt_topic_alias_t<derived_t, args_t>
 		, public mqtt_send_op      <derived_t, args_t>
 		, public mqtt::session_state
 	{
@@ -117,7 +117,7 @@ namespace asio2::detail
 			: super(sessions, listener, rwio, init_buf_size, max_buf_size)
 			, mqtt_options                         ()
 			, mqtt_handler_t    <derived_t, args_t>()
-			, mqtt_topic_alias_t<derived_t        >()
+			, mqtt_topic_alias_t<derived_t, args_t>()
 			, mqtt_send_op      <derived_t, args_t>()
 			, invoker_            (invoker)
 			, mutex_              (mtx)
@@ -175,7 +175,7 @@ namespace asio2::detail
 		inline std::string_view get_client_id()
 		{
 			std::string_view id{};
-			if (this->connect_message_.index() != std::variant_npos)
+			if (!this->connect_message_.empty())
 			{
 				if /**/ (std::holds_alternative<mqtt::v3::connect>(connect_message_.base()))
 				{
@@ -191,6 +191,20 @@ namespace asio2::detail
 				}
 			}
 			return id;
+		}
+
+		inline void remove_subscribed_topic(std::string_view topic_filter)
+		{
+			asio2_unique_lock lock{ this->mutex_ };
+
+			this->subs_map_.erase(topic_filter, this->client_id());
+		}
+
+		inline void remove_all_subscribed_topic()
+		{
+			asio2_unique_lock lock{ this->mutex_ };
+
+			this->subs_map_.erase(this->client_id());
 		}
 
 	protected:
@@ -273,7 +287,7 @@ namespace asio2::detail
 				std::string_view data{ reinterpret_cast<std::string_view::const_pointer>(
 					asio::buffer_cast<const char*>(stream->data())), stream->size() };
 
-				mqtt::control_packet_type type = mqtt::message_type_from_byte(data.front());
+				mqtt::control_packet_type type = mqtt::message_type_from_data(data);
 
 				// If the server does not receive a CONNECT message within a reasonable amount of time 
 				// after the TCP/IP connection is established, the server should close the connection.
@@ -319,6 +333,8 @@ namespace asio2::detail
 
 				std::string_view id = this->client_id();
 
+				this->subs_map_.erase(id);
+
 				auto iter = this->mqtt_sessions_.find(id);
 				if (iter != this->mqtt_sessions_.end())
 				{
@@ -348,7 +364,7 @@ namespace asio2::detail
 
 			this->derived()._rdc_handle_recv(this_ptr, data, condition);
 
-			mqtt::control_packet_type type = mqtt::message_type_from_byte(data.front());
+			mqtt::control_packet_type type = mqtt::message_type_from_data(data);
 
 			if (type > mqtt::control_packet_type::auth)
 			{
@@ -386,7 +402,7 @@ namespace asio2::detail
 		mqtt::retained_messages<mqtt::rmnode>                               & retained_messages_;
 
 		/// packet id manager
-		mqtt::idmgr<mqtt::two_byte_integer::value_type>                       idmgr_;
+		mqtt::idmgr<std::atomic<mqtt::two_byte_integer::value_type>>          idmgr_;
 
 		/// user to find session for shared targets
 		std::chrono::nanoseconds::rep                                         shared_target_key_;

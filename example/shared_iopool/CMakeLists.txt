@@ -18,7 +18,7 @@ set(TARGET_NAME shared_iopool)
 
 add_executable (
     ${TARGET_NAME}
-    ${ASIO2_FILES} ${SRC_FILES}
+    ${ASIO2_FILES}
     ${TARGET_NAME}.cpp
 )
 

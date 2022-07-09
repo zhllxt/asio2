@@ -19,7 +19,7 @@ set(TARGET_NAME tcp_server_character)
 
 add_executable (
     ${TARGET_NAME}
-    ${ASIO2_FILES} ${SRC_FILES}
+    ${ASIO2_FILES}
     ${TARGET_NAME}.cpp
 )
 

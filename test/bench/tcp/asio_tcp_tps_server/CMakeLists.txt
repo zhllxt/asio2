@@ -19,7 +19,6 @@ set(TARGET_NAME asio_tcp_tps_server)
 
 add_executable (
     ${TARGET_NAME}
-    ${SRC_FILES}
     ${TARGET_NAME}.cpp
 )
 

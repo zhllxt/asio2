@@ -363,7 +363,7 @@ namespace asio2::detail
 		: std::true_type {};
 
 	template<class T>
-	inline constexpr bool is_string_v = is_string<T>::value;
+	inline constexpr bool is_string_v = is_string<detail::remove_cvref_t<T>>::value;
 
 
 	template<typename, typename = void>
@@ -375,7 +375,7 @@ namespace asio2::detail
 		std::basic_string_view<typename T::value_type, typename T::traits_type>>>>> : std::true_type {};
 
 	template<class T>
-	inline constexpr bool is_string_view_v = is_string_view<T>::value;
+	inline constexpr bool is_string_view_v = is_string_view<detail::remove_cvref_t<T>>::value;
 
 
 	template<typename, typename = void>
@@ -400,7 +400,7 @@ namespace asio2::detail
 		>>> : std::true_type {};
 
 	template<class T>
-	inline constexpr bool is_char_pointer_v = is_char_pointer<T>::value;
+	inline constexpr bool is_char_pointer_v = is_char_pointer<detail::remove_cvref_t<T>>::value;
 
 
 	template<typename, typename = void>
@@ -421,7 +421,7 @@ namespace asio2::detail
 		>>> : std::true_type {};
 
 	template<class T>
-	inline constexpr bool is_char_array_v = is_char_array<T>::value;
+	inline constexpr bool is_char_array_v = is_char_array<detail::remove_cvref_t<T>>::value;
 
 
 	template<class T>
@@ -455,7 +455,7 @@ namespace asio2::detail
 		)>> : std::true_type{};
 
 	template<class T>
-	inline constexpr bool can_convert_to_string_v = can_convert_to_string<T>::value;
+	inline constexpr bool can_convert_to_string_v = can_convert_to_string<detail::remove_cvref_t<T>>::value;
 
 
 	template<typename T>

@@ -58,11 +58,15 @@ namespace asio2::detail
 
 					std::size_t removed = 0;
 
-					auto handle = caller->subs_map_.lookup(topic_filter);
-					if (handle)
 					{
-						//handles_.erase(handle.value());
-						removed = caller->subs_map_.erase(handle.value(), caller->client_id());
+						asio2_unique_lock lock{ caller->get_mutex() };
+
+						auto handle = caller->subs_map_.lookup(topic_filter);
+						if (handle)
+						{
+							//handles_.erase(handle.value());
+							removed = caller->subs_map_.erase(handle.value(), caller->client_id());
+						}
 					}
 
 					// The Payload contains a list of Reason Codes.

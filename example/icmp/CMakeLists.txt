@@ -19,7 +19,7 @@ set(TARGET_NAME icmp_ping)
 
 add_executable (
     ${TARGET_NAME}
-    ${ASIO2_FILES} ${SRC_FILES}
+    ${ASIO2_FILES}
     ${TARGET_NAME}.cpp
 )
 

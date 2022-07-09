@@ -20,11 +20,67 @@
 #include <cstdint>
 #include <set>
 #include <limits>
+#include <atomic>
 
 namespace asio2::mqtt
 {
-	template <typename Integer = std::uint16_t>
-	class idmgr
+	template<typename T>
+	class idmgr;
+
+	template<typename Integer>
+	class idmgr<std::atomic<Integer>>
+	{
+	public:
+		using id_type = std::remove_cv_t<std::remove_reference_t<Integer>>;
+
+		static_assert(std::is_integral_v<id_type>);
+
+		 idmgr() = default;
+		~idmgr() = default;
+
+		/**
+		 * @function Get a new unique id
+		 */
+		inline id_type get() noexcept
+		{
+			id_type r = id_.fetch_add(static_cast<id_type>(1));
+			while (r == 0)
+			{
+				r = id_.fetch_add(static_cast<id_type>(1));
+			}
+			return r;
+		}
+
+		/**
+		 * @function Checks whether contains the given id.
+		 */
+		inline bool contains(id_type id) const noexcept
+		{
+			return (id_.load() == id);
+		}
+
+		/**
+		 * @function Release the id.
+		 */
+		inline void release(id_type id) noexcept
+		{
+			std::ignore = id;
+		}
+
+		/**
+		 * @function Clear all ids.
+		 */
+		inline void clear() noexcept
+		{
+			id_.store(0);
+		}
+
+	private:
+		std::atomic<id_type> id_{ static_cast<id_type>(1) };
+	};
+
+	template<typename Integer>
+	class idmgr<std::set<Integer>>
 	{
 	public:
 		using id_type = std::remove_cv_t<std::remove_reference_t<Integer>>;
@@ -94,7 +150,7 @@ namespace asio2::mqtt
 		}
 
 	private:
-		std::set<id_type> used_;
+		std::set<id_type> used_{};
 	};
 }
 

@@ -30,12 +30,32 @@ namespace asio2::detail
 		friend caller_t;
 
 	protected:
+		// server or client
+		template<class Message>
+		inline bool _before_suback_callback(
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
+			Message& msg)
+		{
+			detail::ignore_unused(ec, caller_ptr, caller, om, msg);
+
+			using message_type  = typename detail::remove_cvref_t<Message>;
+
+			if (msg.reason_codes().count() == 0)
+			{
+				ec = mqtt::make_error_code(mqtt::error::malformed_packet);
+				return false;
+			}
+
+			return true;
+		}
+
 		// must be client
 		inline void _before_user_callback_impl(
 			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
 			mqtt::v3::suback& msg)
 		{
-			detail::ignore_unused(ec, caller_ptr, caller, om, msg);
+			if (!_before_suback_callback(ec, caller_ptr, caller, om, msg))
+				return;
 		}
 
 		// must be client
@@ -43,7 +63,8 @@ namespace asio2::detail
 			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
 			mqtt::v4::suback& msg)
 		{
-			detail::ignore_unused(ec, caller_ptr, caller, om, msg);
+			if (!_before_suback_callback(ec, caller_ptr, caller, om, msg))
+				return;
 		}
 
 		// must be client
@@ -51,7 +72,8 @@ namespace asio2::detail
 			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
 			mqtt::v5::suback& msg)
 		{
-			detail::ignore_unused(ec, caller_ptr, caller, om, msg);
+			if (!_before_suback_callback(ec, caller_ptr, caller, om, msg))
+				return;
 		}
 
 		inline void _after_user_callback_impl(

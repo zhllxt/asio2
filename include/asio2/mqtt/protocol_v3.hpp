@@ -167,22 +167,22 @@ namespace asio2::mqtt::v3
 			update_remain_length();
 			return (*this);
 		}
-		template<class String1, class String2>
+		template<class String1, class String2, class QosOrInt>
 		inline connect& will_attributes(String1&& topic, String2&& payload,
-			qos_type qos = qos_type::at_most_once, bool retain = false)
+			QosOrInt qos = qos_type::at_most_once, bool retain = false)
 		{
 			will_topic_   = std::forward<String1>(topic);
 			will_payload_ = std::forward<String2>(payload);
 			connect_flags_.bits.will_flag   = true;
-			connect_flags_.bits.will_qos    = asio2::detail::to_underlying(qos);
+			connect_flags_.bits.will_qos    = static_cast<std::uint8_t>(qos);
 			connect_flags_.bits.will_retain = retain;
 			update_remain_length();
 			return (*this);
 		}
 
-		inline bool has_will      () { return will_topic_.has_value(); }
-		inline bool has_username  () { return username_  .has_value(); }
-		inline bool has_password  () { return password_  .has_value(); }
+		inline bool has_will      () const noexcept { return will_topic_.has_value(); }
+		inline bool has_username  () const noexcept { return username_  .has_value(); }
+		inline bool has_password  () const noexcept { return password_  .has_value(); }
 
 		inline connect& update_remain_length()
 		{
@@ -386,12 +386,36 @@ namespace asio2::mqtt::v3
 			update_remain_length();
 		}
 
-		template<class... Properties>
-		explicit publish(bool dup, qos_type qos, bool retain) : fixed_header(control_packet_type::publish)
+		template<class String1, class String2, class QosOrInt, std::enable_if_t<
+			asio2::detail::is_character_string_v<String1>, int> = 0>
+		explicit publish(String1&& topic_name, String2&& payload, QosOrInt qos,
+			bool dup = false, bool retain = false)
+			: fixed_header(control_packet_type::publish)
+			, topic_name_ (std::forward<String1>(topic_name))
+			, payload_    (std::forward<String2>(payload   ))
 		{
 			type_and_flags_.bits.dup    = dup;
-			type_and_flags_.bits.qos    = asio2::detail::to_underlying(qos);
+			type_and_flags_.bits.qos    = static_cast<std::uint8_t>(qos);
 			type_and_flags_.bits.retain = retain;
+
+			update_remain_length();
+		}
+
+		template<class String1, class String2, class QosOrInt, std::enable_if_t<
+			asio2::detail::is_character_string_v<String1>, int> = 0>
+		explicit publish(std::uint16_t pid, String1&& topic_name, String2&& payload, QosOrInt qos,
+			bool dup = false, bool retain = false)
+			: fixed_header(control_packet_type::publish)
+			, topic_name_ (std::forward<String1>(topic_name))
+			, packet_id_  (pid)
+			, payload_    (std::forward<String2>(payload   ))
+		{
+			type_and_flags_.bits.dup    = dup;
+			type_and_flags_.bits.qos    = static_cast<std::uint8_t>(qos);
+			type_and_flags_.bits.retain = retain;
+
+			ASIO2_ASSERT(type_and_flags_.bits.qos > std::uint8_t(0));
+
 			update_remain_length();
 		}
 
@@ -417,9 +441,12 @@ namespace asio2::mqtt::v3
 				asio2::set_last_error(mqtt::make_error_code(mqtt::error::malformed_packet));
 			}
 
-			                  topic_name_.serialize(buffer);
-			if (packet_id_) { packet_id_->serialize(buffer); }
-			                  payload_   .serialize(buffer);
+			topic_name_.serialize(buffer);
+			if (type_and_flags_.bits.qos > std::uint8_t(0) && packet_id_.has_value())
+			{
+				packet_id_->serialize(buffer);
+			}
+			payload_.serialize(buffer);
 
 			return (*this);
 		}
@@ -446,21 +473,22 @@ namespace asio2::mqtt::v3
 		inline qos_type            qos   () { return static_cast<qos_type>(type_and_flags_.bits.qos   ); }
 		inline bool                retain() { return                      (type_and_flags_.bits.retain); }
 
-		inline publish       &     dup   (bool     v) { type_and_flags_.bits.dup    = v;                               return (*this); }
-		inline publish       &     qos   (qos_type v) { type_and_flags_.bits.qos    = asio2::detail::to_underlying(v); return (*this); }
-		inline publish       &     retain(bool     v) { type_and_flags_.bits.retain = v;                               return (*this); }
+		inline publish       &     dup   (bool     v) { type_and_flags_.bits.dup    = v;                            return (*this); }
+		template<class QosOrInt>
+		inline publish       &     qos   (QosOrInt v) { type_and_flags_.bits.qos    = static_cast<std::uint8_t>(v); return (*this); }
+		inline publish       &     retain(bool     v) { type_and_flags_.bits.retain = v;                            return (*this); }
 
 		inline utf8_string::view_type          topic_name() { return topic_name_.data_view(); }
 		inline two_byte_integer::value_type    packet_id () { return packet_id_->value()    ; }
 		inline application_message::view_type  payload   () { return payload_   .data_view(); }
 
-		inline publish       &  packet_id (std::uint16_t    v) { packet_id_  = v             ;                         return (*this); }
+		inline publish       &  packet_id (std::uint16_t    v) { packet_id_  = v             ;                      return (*this); }
 		template<class String>
 		inline publish       &  topic_name(String&&         v) { topic_name_ = std::forward<String>(v); update_remain_length(); return (*this); }
 		template<class String>
 		inline publish       &  payload   (String&&         v) { payload_    = std::forward<String>(v); update_remain_length(); return (*this); }
 
-		inline bool has_packet_id() { return packet_id_.has_value(); }
+		inline bool has_packet_id() const noexcept { return packet_id_.has_value(); }
 
 		inline publish& update_remain_length()
 		{
@@ -985,16 +1013,20 @@ namespace asio2::mqtt::v3
 	public:
 		unsubscribe() : fixed_header(control_packet_type::unsubscribe)
 		{
-			update_remain_length();
-		}
-
-		explicit unsubscribe(std::uint16_t packet_id)
-			: fixed_header(control_packet_type::unsubscribe)
-			, packet_id_  (packet_id)
-		{
 			// UNSUBSCRIBE messages use QoS level 1 to acknowledge multiple unsubscribe requests.
 			// The corresponding UNSUBACK message is identified by the Message ID. Retries are
 			// handled in the same way as PUBLISH messages.
+			type_and_flags_.reserved.bit1 = 1;
+
+			update_remain_length();
+		}
+
+		template<class... Strings>
+		explicit unsubscribe(std::uint16_t packet_id, Strings&&... topic_filters)
+			: fixed_header  (control_packet_type::unsubscribe)
+			, packet_id_    (packet_id)
+			, topic_filters_(std::forward<Strings>(topic_filters)...)
+		{
 			type_and_flags_.reserved.bit1 = 1;
 
 			update_remain_length();

@@ -230,48 +230,52 @@ namespace asio2::detail
 
 			ASIO2_ASSERT(!topic_name.empty());
 
-			caller->subs_map_.match(topic_name, [this, caller, &msg, &sent]
-			(std::string_view key, auto& node) mutable
 			{
-				detail::ignore_unused(this, key);
+				asio2_shared_lock lock{ caller->get_mutex() };
 
-				mqtt::subscription& sub = node.sub;
-
-				std::string_view share_name   = sub.share_name();
-				std::string_view topic_filter = sub.topic_filter();
-
-				if (share_name.empty())
+				caller->subs_map_.match(topic_name,
+				[this, caller, &msg, &sent](std::string_view key, auto& node) mutable
 				{
-					// Non shared subscriptions
+					detail::ignore_unused(this, key);
 
-					auto session_ptr = node.caller.lock();
+					mqtt::subscription& sub = node.sub;
 
-					if (!session_ptr)
-						return;
+					std::string_view share_name   = sub.share_name();
+					std::string_view topic_filter = sub.topic_filter();
 
-					// If NL (no local) subscription option is set and
-					// publisher is the same as subscriber, then skip it.
-					if (sub.no_local() && session_ptr->hash_key() == caller->hash_key())
-						return;
-
-					// send message
-					_send_publish_to_subscriber(std::move(session_ptr), node.sub, node.props, msg);
-				}
-				else
-				{
-					// Shared subscriptions
-					bool inserted;
-					std::tie(std::ignore, inserted) = sent.emplace(share_name, topic_filter);
-					if (inserted)
+					if (share_name.empty())
 					{
-						auto session_ptr = caller->shared_targets_.get_target(share_name, topic_filter);
-						if (session_ptr)
+						// Non shared subscriptions
+
+						auto session_ptr = node.caller.lock();
+
+						if (!session_ptr)
+							return;
+
+						// If NL (no local) subscription option is set and
+						// publisher is the same as subscriber, then skip it.
+						if (sub.no_local() && session_ptr->hash_key() == caller->hash_key())
+							return;
+
+						// send message
+						_send_publish_to_subscriber(std::move(session_ptr), node.sub, node.props, msg);
+					}
+					else
+					{
+						// Shared subscriptions
+						bool inserted;
+						std::tie(std::ignore, inserted) = sent.emplace(share_name, topic_filter);
+						if (inserted)
 						{
-							_send_publish_to_subscriber(std::move(session_ptr), node.sub, node.props, msg);
+							auto session_ptr = caller->shared_targets_.get_target(share_name, topic_filter);
+							if (session_ptr)
+							{
+								_send_publish_to_subscriber(std::move(session_ptr), node.sub, node.props, msg);
+							}
 						}
 					}
-				}
-			});
+				});
+			}
 
 			/*
 			 * If the message is marked as being retained, then we
@@ -500,7 +504,7 @@ namespace asio2::detail
 				std::visit([this, session](auto&& pub) mutable
 				{
 					this->_do_send_publish(session, std::move(pub));
-				}, node.message);
+				}, node.message.base());
 			});
 
 			session->offline_messages_.clear();
@@ -568,13 +572,58 @@ namespace asio2::detail
 		{
 			detail::ignore_unused(ec, caller_ptr, caller, om, msg, rep);
 
-			if constexpr (caller_t::is_session())
+			using message_type  = typename detail::remove_cvref_t<Message>;
+			using response_type = typename detail::remove_cvref_t<Response>;
+
+			std::string_view topic_name = msg.topic_name();
+
+			// << topic_alias >>
+			// A Topic Alias of 0 is not permitted. A sender MUST NOT send a PUBLISH packet containing a Topic Alias
+			// which has the value 0 [MQTT-3.3.2-8].
+			// << topic_alias_maximum >>
+			// This value indicates the highest value that the Client will accept as a Topic Alias sent by the Server.
+			// The Client uses this value to limit the number of Topic Aliases that it is willing to hold on this Connection.
+			// The Server MUST NOT send a Topic Alias in a PUBLISH packet to the Client greater than Topic Alias Maximum
+			// [MQTT-3.1.2-26]. A value of 0 indicates that the Client does not accept any Topic Aliases on this connection.
+			// If Topic Alias Maximum is absent or zero, the Server MUST NOT send any Topic Aliases to the Client [MQTT-3.1.2-27].
+			if constexpr (std::is_same_v<message_type, mqtt::v5::publish>)
 			{
-				std::ignore = true;
+				mqtt::v5::topic_alias* topic_alias = msg.properties().template get_if<mqtt::v5::topic_alias>();
+				if (topic_alias)
+				{
+					caller->find_topic_alias(topic_alias->value(), topic_name);
+				}
 			}
 			else
 			{
+				std::ignore = true;
+			}
 
+			if constexpr (caller_t::is_session())
+			{
+				asio2::detail::ignore_unused(topic_name);
+			}
+			else
+			{
+				// client don't need lock
+				caller->subs_map_.match(topic_name, [this, caller, &om](std::string_view key, auto& node) mutable
+				{
+					detail::ignore_unused(this, caller, key);
+
+					mqtt::subscription& sub = node.sub;
+
+					[[maybe_unused]] std::string_view share_name   = sub.share_name();
+					[[maybe_unused]] std::string_view topic_filter = sub.topic_filter();
+
+					if (share_name.empty())
+					{
+						if (node.callback)
+							node.callback(om);
+					}
+					else
+					{
+					}
+				});
 			}
 
 			return true;

@@ -20,7 +20,7 @@ set(TARGET_NAME rpc_client)
 
 add_executable (
     ${TARGET_NAME}
-    ${ASIO2_FILES} ${CEREAL_FILES} ${SRC_FILES}
+    ${ASIO2_FILES} ${CEREAL_FILES}
     ${TARGET_NAME}.cpp
 )
 

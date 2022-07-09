@@ -72,13 +72,13 @@ namespace asio2::mqtt
 
 	enum class version : std::uint8_t
 	{
-		// mqtt version 3.1
+		// mqtt version 3.1  , The protocol version of the mqtt 3.1   CONNECT message is 0x03
 		v3 = 3,
 
-		// mqtt version 3.1.1
+		// mqtt version 3.1.1, The protocol version of the mqtt 3.1.1 CONNECT message is 0x04
 		v4 = 4,
 
-		// mqtt version 5.0
+		// mqtt version 5.0  , The protocol version of the mqtt 5.0   CONNECT message is 0x05
 		v5 = 5
 	};
 
@@ -189,11 +189,11 @@ namespace asio2::mqtt
 	static constexpr std::uint8_t qos_min_value = static_cast<std::uint8_t>(qos_type::at_most_once);
 	static constexpr std::uint8_t qos_max_value = static_cast<std::uint8_t>(qos_type::exactly_once);
 
-	template<class IntOrQos>
+	template<class QosOrInt>
 	typename std::enable_if_t<
-		std::is_same_v<asio2::detail::remove_cvref_t<IntOrQos>, mqtt::qos_type> ||
-		std::is_integral_v<detail::remove_cvref_t<IntOrQos>>, bool>
-	inline is_valid_qos(IntOrQos q)
+		std::is_same_v<asio2::detail::remove_cvref_t<QosOrInt>, mqtt::qos_type> ||
+		std::is_integral_v<detail::remove_cvref_t<QosOrInt>>, bool>
+	inline is_valid_qos(QosOrInt q)
 	{
 		return (static_cast<std::uint8_t>(q) >= qos_min_value && static_cast<std::uint8_t>(q) <= qos_max_value);
 	}
@@ -1630,6 +1630,19 @@ namespace asio2::mqtt
 	};
 
 	/**
+	 * Used to init a variant mqtt::message to empty.
+	 */
+	class nullmsg : public fixed_header<asio2::detail::to_underlying(mqtt::version::v4)>
+	{
+	public:
+		nullmsg() : fixed_header(control_packet_type::reserved) {}
+
+		inline nullmsg& update_remain_length() { return (*this); }
+
+
+	};
+
+	/**
 	 * https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901168
 	 * https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901248
 	 */
@@ -1641,9 +1654,9 @@ namespace asio2::mqtt
 		/*
 		 * the "no_local,rap,retain_handling" are only valid in mqtt 5.0
 		 */
-		template<class String, class IntOrQos>
+		template<class String, class QosOrInt>
 		explicit subscription(String&& topic_filter,
-			IntOrQos qos, bool no_local = false, bool rap = false,
+			QosOrInt qos, bool no_local = false, bool rap = false,
 			retain_handling_type retain_handling = retain_handling_type::send
 		)
 			: topic_filter_(std::forward<String>(topic_filter))
@@ -1697,7 +1710,8 @@ namespace asio2::mqtt
 			return filter;
 		}
 
-		inline subscription& qos            (qos_type     v) { option_.bits.qos = asio2::detail::to_underlying(v); return (*this); }
+		template<class QosOrInt>
+		inline subscription& qos            (QosOrInt     v) { option_.bits.qos = static_cast<std::uint8_t>(v); return (*this); }
 		inline subscription& no_local       (bool         v) { option_.bits.nl              = v; return (*this); }
 		inline subscription& rap            (bool         v) { option_.bits.rap             = v; return (*this); }
 		inline subscription& retain_handling(std::uint8_t v) { option_.bits.retain_handling = v; return (*this); }
@@ -1753,6 +1767,10 @@ namespace asio2::mqtt
 		}
 
 	public:
+		subscriptions_set()
+		{
+		}
+
 		template<class... Subscriptions, std::enable_if_t<_is_subscription<Subscriptions...>(), int> = 0>
 		explicit subscriptions_set(Subscriptions&&... Subscripts)
 		{
@@ -1862,6 +1880,10 @@ namespace asio2::mqtt
 		}
 
 	public:
+		one_byte_integer_set()
+		{
+		}
+
 		template<class... Integers, std::enable_if_t<_is_integral<Integers...>(), int> = 0>
 		explicit one_byte_integer_set(Integers... Ints)
 		{
@@ -1956,6 +1978,10 @@ namespace asio2::mqtt
 	class utf8_string_set
 	{
 	public:
+		utf8_string_set()
+		{
+		}
+
 		template<class... Strings>
 		explicit utf8_string_set(Strings&&... Strs)
 		{

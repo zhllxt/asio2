@@ -51,7 +51,9 @@ namespace asio2::detail
 			}
 			else
 			{
-				std::ignore = true;
+				// if server recvd connack message, disconnect
+				ec = mqtt::make_error_code(mqtt::error::malformed_packet);
+				return;
 			}
 
 			switch(msg.reason_code())
@@ -87,7 +89,9 @@ namespace asio2::detail
 			}
 			else
 			{
-				std::ignore = true;
+				// if server recvd connack message, disconnect
+				ec = mqtt::make_error_code(mqtt::error::malformed_packet);
+				return;
 			}
 
 			switch(msg.reason_code())
@@ -123,7 +127,9 @@ namespace asio2::detail
 			}
 			else
 			{
-				std::ignore = true;
+				// if server recvd connack message, disconnect
+				ec = mqtt::make_error_code(mqtt::error::malformed_packet);
+				return;
 			}
 
 			ec = mqtt::make_error_code(static_cast<mqtt::error>(msg.reason_code()));
@@ -134,6 +140,11 @@ namespace asio2::detail
 			mqtt::v3::connack& msg)
 		{
 			detail::ignore_unused(ec, caller_ptr, caller, om, msg);
+
+			// if already has error, return
+			if (ec)
+				return;
+
 			switch(msg.reason_code())
 			{
 			case mqtt::v3::connect_reason_code::success                       : ec = mqtt::make_error_code(mqtt::error::success                     ); break;
@@ -151,6 +162,11 @@ namespace asio2::detail
 			mqtt::v4::connack& msg)
 		{
 			detail::ignore_unused(ec, caller_ptr, caller, om, msg);
+
+			// if already has error, return
+			if (ec)
+				return;
+
 			switch(msg.reason_code())
 			{
 			case mqtt::v4::connect_reason_code::success						  : ec = mqtt::make_error_code(mqtt::error::success                     ); break;
@@ -168,6 +184,11 @@ namespace asio2::detail
 			mqtt::v5::connack& msg)
 		{
 			detail::ignore_unused(ec, caller_ptr, caller, om, msg);
+
+			// if already has error, return
+			if (ec)
+				return;
+
 			ec = mqtt::make_error_code(static_cast<mqtt::error>(msg.reason_code()));
 		}
 	};

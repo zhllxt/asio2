@@ -131,9 +131,14 @@ namespace asio2::detail
 						caller->shared_targets_.insert(caller_ptr, share_name, topic_filter);
 					}
 
-					auto[_1, inserted] = caller->subs_map_.emplace(topic_filter, caller->client_id(), std::move(node));
+					bool inserted = false;
 
-					asio2::ignore_unused(_1, inserted);
+					{
+						asio2_unique_lock lock{ caller->get_mutex() };
+
+						inserted = caller->subs_map_.insert_or_assign(
+							topic_filter, caller->client_id(), std::move(node)).second;
+					}
 
 					mqtt::retain_handling_type rh = sub.retain_handling();
 
@@ -178,8 +183,16 @@ namespace asio2::detail
 				{
 					std::visit([caller_ptr, caller, &sub, &props](auto& pub) mutable
 					{
-						caller->_send_publish_to_subscriber(caller_ptr, sub, props, pub);
-					}, node.message);
+						using T = asio2::detail::remove_cvref_t<decltype(pub)>;
+						if constexpr (mqtt::is_publish_message<T>())
+						{
+							caller->_send_publish_to_subscriber(caller_ptr, sub, props, pub);
+						}
+						else
+						{
+							ASIO2_ASSERT(false);
+						}
+					}, node.message.base());
 				});
 			});
 		}

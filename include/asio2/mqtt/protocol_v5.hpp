@@ -864,7 +864,7 @@ namespace asio2::mqtt::v5
 	>;
 
 	template<typename T>
-	inline constexpr bool is_v5_property()
+	inline constexpr bool is_v5_property() noexcept
 	{
 		using type = asio2::detail::remove_cvref_t<T>;
 		if constexpr (
@@ -1020,12 +1020,21 @@ namespace asio2::mqtt::v5
 		inline super&       variant()       noexcept { return *this; }
 
 		/**
-		 * @function Checks if the variant holds the alternative T.
+		 * @function Checks if the variant holds anyone of the alternative Types...
 		 */
-		template<class T>
+		template<class... Types>
 		inline bool has() noexcept
 		{
-			return std::holds_alternative<T>(this->base());
+			return (std::holds_alternative<Types>(this->base()) || ...);
+		}
+
+		/**
+		 * @function Checks if the variant holds anyone of the alternative Types...
+		 */
+		template<class... Types>
+		inline bool holds() noexcept
+		{
+			return (std::holds_alternative<Types>(this->base()) || ...);
 		}
 
 		/**
@@ -1051,6 +1060,17 @@ namespace asio2::mqtt::v5
 	protected:
 	};
 
+	template<class... Args>
+	static constexpr bool is_property() noexcept
+	{
+		if constexpr (sizeof...(Args) == std::size_t(0))
+			return false;
+		else
+			return ((
+				std::is_same_v<asio2::detail::remove_cvref_t<Args>, v5::property> ||
+				is_v5_property<asio2::detail::remove_cvref_t<Args>>()) && ...);
+	}
+
 	/**
 	 * The set of Properties is composed of a Property Length followed by the Properties.
 	 * 
@@ -1058,22 +1078,10 @@ namespace asio2::mqtt::v5
 	 */
 	class properties_set
 	{
-	protected:
-		template<class... Args>
-		static constexpr bool _is_property() noexcept
-		{
-			if constexpr (sizeof...(Args) == std::size_t(0))
-				return true;
-			else
-				return ((
-					std::is_same_v<asio2::detail::remove_cvref_t<Args>, v5::property> ||
-					is_v5_property<asio2::detail::remove_cvref_t<Args>>()) && ...);
-		}
-
 	public:
 		properties_set() = default;
 
-		template<class... Properties, std::enable_if_t<_is_property<Properties...>(), int> = 0>
+		template<class... Properties, std::enable_if_t<is_property<Properties...>(), int> = 0>
 		explicit properties_set(Properties&&... Props)
 		{
 			set(std::forward<Properties>(Props)...);
@@ -1084,7 +1092,7 @@ namespace asio2::mqtt::v5
 		properties_set& operator=(properties_set&&) noexcept = default;
 		properties_set& operator=(properties_set const&) = default;
 
-		template<class... Properties, std::enable_if_t<_is_property<Properties...>(), int> = 0>
+		template<class... Properties, std::enable_if_t<is_property<Properties...>(), int> = 0>
 		inline properties_set& set(Properties&&... Props)
 		{
 			data_.clear();
@@ -1096,7 +1104,7 @@ namespace asio2::mqtt::v5
 			return (*this);
 		}
 
-		template<class... Properties, std::enable_if_t<_is_property<Properties...>(), int> = 0>
+		template<class... Properties, std::enable_if_t<is_property<Properties...>(), int> = 0>
 		inline properties_set& add(Properties&&... Props)
 		{
 			(data_.emplace_back(std::forward<Properties>(Props)), ...);
@@ -1106,7 +1114,7 @@ namespace asio2::mqtt::v5
 			return (*this);
 		}
 
-		template<class Propertie, std::enable_if_t<_is_property<Propertie>(), int> = 0>
+		template<class Propertie, std::enable_if_t<is_property<Propertie>(), int> = 0>
 		inline properties_set& erase(Propertie&& Prop)
 		{
 			for (auto it = data_.begin(); it != data_.end();)
@@ -1129,7 +1137,7 @@ namespace asio2::mqtt::v5
 			return (*this);
 		}
 
-		template<class Propertie, std::enable_if_t<_is_property<Propertie>(), int> = 0>
+		template<class Propertie, std::enable_if_t<is_property<Propertie>(), int> = 0>
 		inline properties_set& erase()
 		{
 			for (auto it = data_.begin(); it != data_.end();)
@@ -1525,23 +1533,23 @@ namespace asio2::mqtt::v5
 			update_remain_length();
 			return (*this);
 		}
-		template<class String1, class String2, class... Properties>
-		inline connect& will_attributes(String1&& topic, String2&& payload,
-			qos_type qos, bool retain, Properties&&... Props)
+		template<class String1, class String2, class QosOrInt, class... Properties>
+		inline connect& will_attributes(String1&& topic, String2&& payload, QosOrInt qos,
+			bool retain, Properties&&... Props)
 		{
 			will_props_   = properties_set{ std::forward<Properties>(Props)... };
 			will_topic_   = std::forward<String1>(topic);
 			will_payload_ = std::forward<String2>(payload);
 			connect_flags_.bits.will_flag   = true;
-			connect_flags_.bits.will_qos    = asio2::detail::to_underlying(qos);
+			connect_flags_.bits.will_qos    = static_cast<std::uint8_t>(qos);
 			connect_flags_.bits.will_retain = retain;
 			update_remain_length();
 			return (*this);
 		}
 
-		inline bool has_will      () { return will_props_.has_value(); }
-		inline bool has_username  () { return username_  .has_value(); }
-		inline bool has_password  () { return password_  .has_value(); }
+		inline bool has_will      () const noexcept { return will_props_.has_value(); }
+		inline bool has_username  () const noexcept { return username_  .has_value(); }
+		inline bool has_password  () const noexcept { return password_  .has_value(); }
 
 		inline connect& update_remain_length()
 		{
@@ -1646,7 +1654,7 @@ namespace asio2::mqtt::v5
 			update_remain_length();
 		}
 
-		template<class... Properties>
+		template<class... Properties, std::enable_if_t<is_property<Properties...>(), int> = 0>
 		explicit connack(bool session_present, std::uint8_t reason_code, Properties&&... Props)
 			: fixed_header(control_packet_type::connack)
 			, reason_code_(reason_code)
@@ -1758,14 +1766,36 @@ namespace asio2::mqtt::v5
 			update_remain_length();
 		}
 
-		template<class... Properties>
-		explicit publish(bool dup, qos_type qos, bool retain, Properties&&... Props)
+		template<class String1, class String2, class QosOrInt, std::enable_if_t<
+			asio2::detail::is_character_string_v<String1>, int> = 0>
+		explicit publish(String1&& topic_name, String2&& payload, QosOrInt qos,
+			bool dup = false, bool retain = false)
 			: fixed_header(control_packet_type::publish)
-			, properties_(std::forward<Properties>(Props)...)
+			, topic_name_ (std::forward<String1>(topic_name))
+			, payload_    (std::forward<String2>(payload   ))
 		{
 			type_and_flags_.bits.dup    = dup;
-			type_and_flags_.bits.qos    = asio2::detail::to_underlying(qos);
+			type_and_flags_.bits.qos    = static_cast<std::uint8_t>(qos);
 			type_and_flags_.bits.retain = retain;
+
+			update_remain_length();
+		}
+
+		template<class String1, class String2, class QosOrInt, std::enable_if_t<
+			asio2::detail::is_character_string_v<String1>, int> = 0>
+		explicit publish(std::uint16_t pid, String1&& topic_name, String2&& payload, QosOrInt qos,
+			bool dup = false, bool retain = false)
+			: fixed_header(control_packet_type::publish)
+			, topic_name_ (std::forward<String1>(topic_name))
+			, packet_id_  (pid)
+			, payload_    (std::forward<String2>(payload   ))
+		{
+			type_and_flags_.bits.dup    = dup;
+			type_and_flags_.bits.qos    = static_cast<std::uint8_t>(qos);
+			type_and_flags_.bits.retain = retain;
+
+			ASIO2_ASSERT(type_and_flags_.bits.qos > std::uint8_t(0));
+
 			update_remain_length();
 		}
 
@@ -1793,10 +1823,13 @@ namespace asio2::mqtt::v5
 				asio2::set_last_error(mqtt::make_error_code(mqtt::error::malformed_packet));
 			}
 
-			                  topic_name_.serialize(buffer);
-			if (packet_id_) { packet_id_->serialize(buffer); }
-			                  properties_.serialize(buffer);
-			                  payload_   .serialize(buffer);
+			topic_name_.serialize(buffer);
+			if (type_and_flags_.bits.qos > std::uint8_t(0) && packet_id_.has_value())
+			{
+				packet_id_->serialize(buffer);
+			}
+			properties_.serialize(buffer);
+			payload_   .serialize(buffer);
 
 			return (*this);
 		}
@@ -1824,16 +1857,17 @@ namespace asio2::mqtt::v5
 		inline qos_type            qos   () { return static_cast<qos_type>(type_and_flags_.bits.qos   ); }
 		inline bool                retain() { return                      (type_and_flags_.bits.retain); }
 
-		inline publish       &     dup   (bool     v) { type_and_flags_.bits.dup    = v;                               return (*this); }
-		inline publish       &     qos   (qos_type v) { type_and_flags_.bits.qos    = asio2::detail::to_underlying(v); return (*this); }
-		inline publish       &     retain(bool     v) { type_and_flags_.bits.retain = v;                               return (*this); }
+		inline publish       &     dup   (bool     v) { type_and_flags_.bits.dup    = v;                            return (*this); }
+		template<class QosOrInt>
+		inline publish       &     qos   (QosOrInt v) { type_and_flags_.bits.qos    = static_cast<std::uint8_t>(v); return (*this); }
+		inline publish       &     retain(bool     v) { type_and_flags_.bits.retain = v;                            return (*this); }
 
 		inline utf8_string::view_type          topic_name() { return topic_name_.data_view(); }
 		inline two_byte_integer::value_type    packet_id () { return packet_id_->value()    ; }
 		inline properties_set&                 properties() { return properties_            ; }
 		inline application_message::view_type  payload   () { return payload_.data_view()   ; }
 
-		inline publish       &  packet_id (std::uint16_t    v) { packet_id_  = v             ;                         return (*this); }
+		inline publish       &  packet_id (std::uint16_t    v) { packet_id_  = v             ;                      return (*this); }
 		template<class String>
 		inline publish       &  topic_name(String&&         v) { topic_name_ = std::forward<String>(v); update_remain_length(); return (*this); }
 		template<class String>
@@ -1847,7 +1881,7 @@ namespace asio2::mqtt::v5
 			return (*this);
 		}
 
-		inline bool has_packet_id() { return packet_id_.has_value(); }
+		inline bool has_packet_id() const noexcept { return packet_id_.has_value(); }
 
 		inline publish& update_remain_length()
 		{
@@ -1894,7 +1928,7 @@ namespace asio2::mqtt::v5
 			update_remain_length();
 		}
 
-		template<class... Properties>
+		template<class... Properties, std::enable_if_t<is_property<Properties...>(), int> = 0>
 		explicit puback(std::uint16_t packet_id, std::uint8_t reason_code, Properties&&... Props)
 			: fixed_header(control_packet_type::puback)
 			, packet_id_  (packet_id)
@@ -2001,7 +2035,7 @@ namespace asio2::mqtt::v5
 			update_remain_length();
 		}
 
-		template<class... Properties>
+		template<class... Properties, std::enable_if_t<is_property<Properties...>(), int> = 0>
 		explicit pubrec(std::uint16_t packet_id, std::uint8_t reason_code, Properties&&... Props)
 			: fixed_header(control_packet_type::pubrec)
 			, packet_id_  (packet_id)
@@ -2113,7 +2147,7 @@ namespace asio2::mqtt::v5
 			update_remain_length();
 		}
 
-		template<class... Properties>
+		template<class... Properties, std::enable_if_t<is_property<Properties...>(), int> = 0>
 		explicit pubrel(std::uint16_t packet_id, std::uint8_t reason_code, Properties&&... Props)
 			: fixed_header(control_packet_type::pubrel)
 			, packet_id_  (packet_id)
@@ -2222,7 +2256,7 @@ namespace asio2::mqtt::v5
 			update_remain_length();
 		}
 
-		template<class... Properties>
+		template<class... Properties, std::enable_if_t<is_property<Properties...>(), int> = 0>
 		explicit pubcomp(std::uint16_t packet_id, std::uint8_t reason_code, Properties&&... Props)
 			: fixed_header(control_packet_type::pubcomp)
 			, packet_id_  (packet_id)
@@ -2338,7 +2372,7 @@ namespace asio2::mqtt::v5
 			update_remain_length();
 		}
 
-		template<class... Properties>
+		template<class... Properties, std::enable_if_t<is_property<Properties...>(), int> = 0>
 		explicit subscribe(std::uint16_t packet_id, Properties&&... Props)
 			: fixed_header(control_packet_type::subscribe)
 			, packet_id_  (packet_id)
@@ -2451,7 +2485,7 @@ namespace asio2::mqtt::v5
 			update_remain_length();
 		}
 
-		template<class... Properties>
+		template<class... Properties, std::enable_if_t<is_property<Properties...>(), int> = 0>
 		explicit suback(std::uint16_t packet_id, Properties&&... Props)
 			: fixed_header(control_packet_type::suback)
 			, packet_id_  (packet_id)
@@ -2559,18 +2593,31 @@ namespace asio2::mqtt::v5
 	public:
 		unsubscribe() : fixed_header(control_packet_type::unsubscribe)
 		{
+			// Bits 3,2,1 and 0 of the Fixed Header of the UNSUBSCRIBE packet are reserved and MUST
+			// be set to 0,0,1 and 0 respectively. The Server MUST treat any other value as malformed
+			// and close the Network Connection [MQTT-3.10.1-1].
+			type_and_flags_.reserved.bit1 = 1;
+			
 			update_remain_length();
 		}
 
-		template<class... Properties>
+		template<class... Strings>
+		explicit unsubscribe(std::uint16_t packet_id, Strings&&... topic_filters)
+			: fixed_header  (control_packet_type::unsubscribe)
+			, packet_id_    (packet_id)
+			, topic_filters_(std::forward<Strings>(topic_filters)...)
+		{
+			type_and_flags_.reserved.bit1 = 1;
+
+			update_remain_length();
+		}
+
+		template<class... Properties, std::enable_if_t<is_property<Properties...>(), int> = 0>
 		explicit unsubscribe(std::uint16_t packet_id, Properties&&... Props)
 			: fixed_header(control_packet_type::unsubscribe)
 			, packet_id_  (packet_id)
 			, properties_ (std::forward<Properties>(Props)...)
 		{
-			// Bits 3,2,1 and 0 of the Fixed Header of the UNSUBSCRIBE packet are reserved and MUST
-			// be set to 0,0,1 and 0 respectively. The Server MUST treat any other value as malformed
-			// and close the Network Connection [MQTT-3.10.1-1].
 			type_and_flags_.reserved.bit1 = 1;
 
 			update_remain_length();
@@ -2681,7 +2728,7 @@ namespace asio2::mqtt::v5
 			update_remain_length();
 		}
 
-		template<class... Properties>
+		template<class... Properties, std::enable_if_t<is_property<Properties...>(), int> = 0>
 		explicit unsuback(std::uint16_t packet_id, Properties&&... Props)
 			: fixed_header(control_packet_type::unsuback)
 			, packet_id_  (packet_id)
@@ -2905,7 +2952,7 @@ namespace asio2::mqtt::v5
 			update_remain_length();
 		}
 
-		template<class... Properties>
+		template<class... Properties, std::enable_if_t<is_property<Properties...>(), int> = 0>
 		explicit disconnect(std::uint8_t reason_code, Properties&&... Props)
 			: fixed_header(control_packet_type::disconnect)
 			, reason_code_(reason_code)
@@ -3003,7 +3050,7 @@ namespace asio2::mqtt::v5
 			update_remain_length();
 		}
 
-		template<class... Properties>
+		template<class... Properties, std::enable_if_t<is_property<Properties...>(), int> = 0>
 		explicit auth(std::uint8_t reason_code, Properties&&... Props)
 			: fixed_header(control_packet_type::auth)
 			, reason_code_(reason_code)

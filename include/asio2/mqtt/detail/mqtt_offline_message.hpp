@@ -28,6 +28,7 @@
 #include <asio2/base/iopool.hpp>
 
 #include <asio2/mqtt/core.hpp>
+#include <asio2/mqtt/message.hpp>
 
 #include <asio2/mqtt/detail/mqtt_topic_util.hpp>
 
@@ -183,7 +184,7 @@ namespace asio2::mqtt
 		{
 		}
 
-		std::variant<v3::publish, v4::publish, v5::publish> message;
+		mqtt::message message;
 		std::shared_ptr<asio::steady_timer> message_expiry_timer;
 	};
 }

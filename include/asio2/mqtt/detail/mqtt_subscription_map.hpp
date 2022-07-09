@@ -21,6 +21,7 @@
 #include <string>
 #include <string_view>
 #include <type_traits>
+#include <unordered_set>
 #include <unordered_map>
 #include <algorithm>
 #include <optional>
@@ -324,19 +325,26 @@ namespace asio2::mqtt
 		// Insert a key => value at the specified topic filter
 		// returns the handle and true if key was inserted, false if key was updated
 		template <typename K, typename V>
-		std::pair<key_type, bool> emplace(std::string_view topic_filter, K&& key, V&& val)
+		std::pair<key_type, bool> insert_or_assign(std::string_view topic_filter, K&& key, V&& val)
 		{
 			auto iters = this->find(topic_filter);
 			if (iters.empty())
 			{
 				iters = this->emplace(topic_filter);
-				iters.back()->second.subscribers.emplace(std::forward<K>(key), std::forward<V>(val));
+
+				this->emplace_subscriber_node(key, iters.back()->first);
+
+				iters.back()->second.subscribers.insert_or_assign(std::forward<K>(key), std::forward<V>(val));
+
 				this->increase_subscribe_count();
+
 				return std::pair(iters.back()->first, true);
 			}
 			else
 			{
 				auto& subscribers = iters.back()->second.subscribers;
+
+				this->emplace_subscriber_node(key, iters.back()->first);
 
 				auto[_1, inserted] = subscribers.insert_or_assign(std::forward<K>(key), std::forward<V>(val));
 
@@ -355,7 +363,7 @@ namespace asio2::mqtt
 		// Insert a key => value with a handle to the topic filter
 		// returns the handle and true if key was inserted, false if key was updated
 		template <typename K, typename V>
-		std::pair<key_type, bool> emplace(key_type const& h, K&& key, V&& val)
+		std::pair<key_type, bool> insert_or_assign(key_type const& h, K&& key, V&& val)
 		{
 			auto it = this->map_.find(h);
 			if (it == this->map_.end())
@@ -364,6 +372,8 @@ namespace asio2::mqtt
 			}
 
 			auto& subscribers = it->second.subscribers;
+
+			this->emplace_subscriber_node(key, it->first);
 
 			auto[_1, inserted] = subscribers.insert_or_assign(std::forward<K>(key), std::forward<V>(val));
 
@@ -387,6 +397,8 @@ namespace asio2::mqtt
 				return 0;
 			}
 
+			this->erase_subscriber_node(key, h);
+
 			auto amount = it->second.subscribers.erase(key);
 			if (amount)
 			{
@@ -407,6 +419,8 @@ namespace asio2::mqtt
 				return 0;
 			}
 
+			this->erase_subscriber_node(key, iters.back()->first);
+
 			auto amount = iters.back()->second.subscribers.erase(key);
 			if (amount)
 			{
@@ -415,6 +429,37 @@ namespace asio2::mqtt
 			}
 
 			return amount;
+		}
+
+		// returns the number of removed elements
+		std::size_t erase(Key const& key)
+		{
+			auto iter = this->subscriber_nodes_.find(key);
+			if (iter == this->subscriber_nodes_.end())
+				return 0;
+
+			std::size_t total = 0;
+
+			for (auto& h : iter->second)
+			{
+				auto it = this->map_.find(h);
+				if (it == this->map_.end())
+					continue;
+
+				auto amount = it->second.subscribers.erase(key);
+				if (amount)
+				{
+					std::vector<map_iterator> v = this->handle_to_iterators(h);
+					this->erase(v);
+					this->decrease_subscribe_count();
+				}
+
+				total += amount;
+			}
+
+			this->subscriber_nodes_.erase(key);
+
+			return total;
 		}
 
 	protected:
@@ -448,17 +493,37 @@ namespace asio2::mqtt
 			}
 		}
 
+		template <typename K>
+		inline void emplace_subscriber_node(K&& key, key_type node_key)
+		{
+			std::unordered_set<key_type>& node_keys = this->subscriber_nodes_[key];
+			node_keys.emplace(std::move(node_key));
+		}
+
+		inline void erase_subscriber_node(const Key& key, const key_type& node_key)
+		{
+			std::unordered_set<key_type>& node_keys = this->subscriber_nodes_[key];
+			node_keys.erase(node_key);
+			if (node_keys.empty())
+			{
+				this->subscriber_nodes_.erase(key);
+			}
+		}
+
 	protected:
-		static constexpr key_type    root_key_{ 0, "" };
+		static constexpr key_type                               root_key_{ 0, "" };
 
-		std::size_t                  root_node_id_ = 1;
+		std::size_t                                             root_node_id_ = 1;
 
-		map_type                     map_;
+		map_type                                                map_;
 
 		// Map size tracks the total number of subscriptions within the map
-		std::size_t                  subscribe_count_ = 0;
+		std::size_t                                             subscribe_count_ = 0;
 
-		mqtt::idmgr<std::size_t>     idmgr_;
+		// Key - client id, Val - all nodes keys for the subscriber
+		std::unordered_map<Key, std::unordered_set<key_type>>   subscriber_nodes_;
+
+		mqtt::idmgr<std::set<std::size_t>>                      idmgr_;
 	};
 }
 

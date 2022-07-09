@@ -31,10 +31,10 @@ namespace asio2::detail
 	ASIO2_CLASS_FORWARD_DECLARE_TCP_SESSION;
 	ASIO2_CLASS_FORWARD_DECLARE_TCP_CLIENT;
 
-	template<class caller_t>
+	template<class derived_t, class args_t>
 	class mqtt_topic_alias_t
 	{
-		friend caller_t;
+		friend derived_t;
 
 		ASIO2_CLASS_FRIEND_DECLARE_BASE;
 		ASIO2_CLASS_FRIEND_DECLARE_TCP_BASE;
@@ -43,7 +43,7 @@ namespace asio2::detail
 		ASIO2_CLASS_FRIEND_DECLARE_TCP_CLIENT;
 
 	public:
-		using self = mqtt_topic_alias_t<caller_t>;
+		using self = mqtt_topic_alias_t<derived_t, args_t>;
 
 		/**
 		 * @constructor
@@ -58,18 +58,22 @@ namespace asio2::detail
 		~mqtt_topic_alias_t() = default;
 
 		template<class String>
-		inline self& push_topic_alias(std::uint16_t alias_value, String&& topic_name)
+		inline derived_t& push_topic_alias(std::uint16_t alias_value, String&& topic_name)
 		{
-			asio2_unique_lock guard(this->topic_aliases_mtx_);
+			derived_t& derive = static_cast<derived_t&>(*this);
+
+			asio2_unique_lock guard(derive.get_mutex());
 
 			topic_aliases_[alias_value] = detail::to_string(std::forward<String>(topic_name));
 
-			return (*this);
+			return static_cast<derived_t&>(*this);
 		}
 
 		inline bool find_topic_alias(std::uint16_t alias_value, std::string_view& topic_name)
 		{
-			asio2_shared_lock guard(this->topic_aliases_mtx_);
+			derived_t& derive = static_cast<derived_t&>(*this);
+
+			asio2_shared_lock guard(derive.get_mutex());
 
 			auto iter = topic_aliases_.find(alias_value);
 
@@ -83,7 +87,6 @@ namespace asio2::detail
 		}
 
 	protected:
-		mutable asio2_shared_mutex                     topic_aliases_mtx_;
 		std::unordered_map<std::uint16_t, std::string> topic_aliases_;
 	};
 }

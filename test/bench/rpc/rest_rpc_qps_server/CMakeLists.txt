@@ -19,7 +19,6 @@ set(TARGET_NAME rest_rpc_qps_server)
 
 add_executable (
     ${TARGET_NAME}
-    ${SRC_FILES}
     ${TARGET_NAME}.cpp
 )
 

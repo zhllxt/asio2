@@ -148,7 +148,7 @@ namespace asio2::detail
 					if (session_ptr->is_started())
 					{
 						// send will message
-						if (session_ptr->connect_message_.index() != std::variant_npos)
+						if (!session_ptr->connect_message_.empty())
 						{
 							auto f = [caller_ptr, caller](auto& conn) mutable
 							{
@@ -307,6 +307,11 @@ namespace asio2::detail
 			mqtt::v3::connect& msg, mqtt::v3::connack& rep)
 		{
 			detail::ignore_unused(ec, caller_ptr, caller, om, msg, rep);
+
+			// if already has error, return
+			if (ec)
+				return;
+
 			// If a client with the same Client ID is already connected to the server, the "older" client
 			// must be disconnected by the server before completing the CONNECT flow of the new client.
 			switch(rep.reason_code())
@@ -326,6 +331,11 @@ namespace asio2::detail
 			mqtt::v4::connect& msg, mqtt::v4::connack& rep)
 		{
 			detail::ignore_unused(ec, caller_ptr, caller, om, msg, rep);
+
+			// if already has error, return
+			if (ec)
+				return;
+
 			switch(rep.reason_code())
 			{
 			case mqtt::v4::connect_reason_code::success						  : ec = mqtt::make_error_code(mqtt::error::success                     ); break;
@@ -344,6 +354,10 @@ namespace asio2::detail
 		{
 			detail::ignore_unused(ec, caller_ptr, caller, om, msg, rep);
 
+			// if already has error, return
+			if (ec)
+				return;
+
 			ec = mqtt::make_error_code(static_cast<mqtt::error>(rep.reason_code()));
 
 			if (!ec)
@@ -358,6 +372,11 @@ namespace asio2::detail
 			mqtt::v5::connect& msg, mqtt::v5::auth& rep)
 		{
 			detail::ignore_unused(ec, caller_ptr, caller, om, msg, rep);
+
+			// if already has error, return
+			if (ec)
+				return;
+
 		}
 	};
 }

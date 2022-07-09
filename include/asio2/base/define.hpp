@@ -86,6 +86,8 @@ namespace asio2::detail
 	template <class, class>                      KEYWORD mqtt_aop_unsubscribe;      \
 	template <class, class>                      KEYWORD mqtt_invoker_t;            \
 	template <class, class>                      KEYWORD mqtt_subscribe_router_t;   \
+	template <class, class>                      KEYWORD mqtt_message_router_t;     \
+	template <class, class>                      KEYWORD mqtt_topic_alias_t;        \
 	template <class, class>                      KEYWORD disable_warning_pedantic
 
 #define ASIO2_CLASS_DECLARE_TCP_CLIENT(KEYWORD)                                     \

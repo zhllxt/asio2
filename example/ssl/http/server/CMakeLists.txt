@@ -21,7 +21,7 @@ link_directories    (${ASIO2_LIBS_DIR})
 
 add_executable (
     ${TARGET_NAME}
-    ${ASIO2_FILES} ${SRC_FILES}
+    ${ASIO2_FILES}
     ${TARGET_NAME}.cpp
 )
 

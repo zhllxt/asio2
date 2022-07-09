@@ -1,3 +1,4 @@
+#define ASIO2_ENABLE_LOG
 #include <asio2/mqtt/mqtt_client.hpp>
 #include <iostream>
 #include <asio2/external/fmt.hpp>
@@ -14,65 +15,13 @@ int main()
 	//std::string_view host = "127.0.0.1";
 	std::string_view port = "1883";
 
-	asio2::mqtt::message msg1(mqtt::v5::connect{});
-
-	msg1 = mqtt::v5::subscribe{};
-
-	[[maybe_unused]] mqtt::v5::subscribe       & subref1 = static_cast<      mqtt::v5::subscribe&>(msg1);
-	[[maybe_unused]] mqtt::v5::subscribe const & subref2 = static_cast<const mqtt::v5::subscribe&>(msg1);
-	[[maybe_unused]] mqtt::v5::subscribe         subvar3 = static_cast<      mqtt::v5::subscribe >(msg1);
-	[[maybe_unused]] mqtt::v5::subscribe const   subvar4 = static_cast<const mqtt::v5::subscribe >(msg1);
-	[[maybe_unused]] mqtt::v5::subscribe       * subptr1 = static_cast<      mqtt::v5::subscribe*>(msg1);
-	[[maybe_unused]] mqtt::v5::subscribe const * subptr2 = static_cast<const mqtt::v5::subscribe*>(msg1);
-
-	[[maybe_unused]] mqtt::v5::subscribe       & subrefa = msg1;
-
 	asio2::mqtt_client client;
 
-	mqtt::v5::connect conn;
-	conn.username("3772738@qq.com");
-	conn.password("0123456789123456");
-	conn.properties(
-		mqtt::v5::payload_format_indicator{ mqtt::v5::payload_format_indicator::format::string },
-		mqtt::v5::session_expiry_interval{ 60 });
-	conn.will_attributes(
-		u8"0123456789abcdefg",
-		u8"0123456789abcdefg",
-		mqtt::qos_type::at_least_once, true,
-		mqtt::v5::payload_format_indicator{ 0 },
-		mqtt::v5::session_expiry_interval{ 60 });
-	conn.will_attributes(
-		u8"0123456789abcdefg",
-		u8"0123456789abcdefg",
-		mqtt::qos_type::at_least_once, true);
+	mqtt::v5::connect connect;
+	connect.client_id(u8"37792738@qq.com");
+	client.set_connect_message(std::move(connect));
 
-	std::vector<asio::const_buffer> sbuffer;
-	std::string sdata;
-	std::vector<std::uint8_t> v1data;
-	std::vector<char> v2data;
-	conn.serialize(sdata);
-	conn.serialize(sbuffer);
-
-	fmt::print("connect version : {}\n", int(conn.version()));
-
-	char* p1 = (char*)&sbuffer[0];
-	char* p2 = (char*)&sbuffer[sbuffer.size() - 1];
-
-	auto ssss = sizeof(asio::const_buffer);
-	auto size = p2 - p1;
-
-	fmt::print("serialize to std::string                    , size : {}\n", sdata.size());
-	fmt::print("serialize to std::vector<asio::const_buffer>, size : {}\n", size);
-	fmt::print("sizeof(asio::const_buffer) : {}\n", ssss);
-	fmt::print("connect.required_size()    : {}\n", conn.required_size());
-	fmt::print("\n");
-
-	client.get_connect_packet<mqtt::version::v3>();
-
-	client.bind_recv([&](std::string_view data)
-	{
-		asio2::ignore_unused(data);
-	}).bind_connect([&]()
+	client.bind_connect([&]()
 	{
 		if (asio2::get_last_error())
 			printf("connect failure : %d %s\n",
@@ -114,22 +63,6 @@ int main()
 	{
 		printf("disconnect : %d %s\n",
 			asio2::last_error_val(), asio2::last_error_msg().c_str());
-	});
-
-	client.subscribe("/asio2/mqtt/qos1", 1, [](mqtt::v5::publish& msg) mutable
-	{
-		fmt::print("recv v5::publish  , packet id : {:5d} QoS : {} topic_name : {} payload : {}\n",
-			msg.packet_id(), int(msg.qos()), msg.topic_name(), msg.payload());
-	});
-
-	client.subscribe("/asio2/mqtt/qos0", 0, [](mqtt::message& msg) mutable
-	{
-		mqtt::v5::publish* p = msg.get_if<mqtt::v5::publish>();
-		if (p)
-		{
-			fmt::print("recv v5::publish  , packet id : {:5d} QoS : {} topic_name : {} payload : {}\n",
-				p->packet_id(), int(p->qos()), p->topic_name(), p->payload());
-		}
 	});
 
 	client.on_connack([](mqtt::v5::connack& connack)
@@ -194,10 +127,76 @@ int main()
 			printf("recv v5::disconnect, reason code : %u\n", p->reason_code());
 	});
 
-	mqtt::v5::connect connect;
-	connect.client_id(u8"37792738@qq.com");
+	client.start(host, port);
 
-	client.start(host, port, std::move(connect));
+	client.subscribe("/asio2/mqtt/qos1", 1, [](mqtt::v5::publish& msg) mutable
+	{
+		fmt::print("recv v5::publish  , packet id : {:5d} QoS : {} topic_name : {} payload : {}\n",
+			msg.packet_id(), int(msg.qos()), msg.topic_name(), msg.payload());
+	});
+
+	client.subscribe("/asio2/mqtt/qos0", 0, [](mqtt::message& msg) mutable
+	{
+		ASIO2_ASSERT(!msg.empty());
+		mqtt::v5::publish* p = msg.get_if<mqtt::v5::publish>();
+		if (p)
+		{
+			fmt::print("recv v5::publish  , packet id : {:5d} QoS : {} topic_name : {} payload : {}\n",
+				p->packet_id(), int(p->qos()), p->topic_name(), p->payload());
+		}
+	});
+
+	bool ret1 = client.subscribe<bool>("/asio2/mqtt/qos1", 1, [](mqtt::v5::publish& msg) mutable
+	{
+		fmt::print("recv v5::publish  , packet id : {:5d} QoS : {} topic_name : {} payload : {}\n",
+			msg.packet_id(), int(msg.qos()), msg.topic_name(), msg.payload());
+	});
+
+	bool ret2 = client.subscribe<bool>("/asio2/mqtt/qos0", 0, [](mqtt::message& msg) mutable
+	{
+		ASIO2_ASSERT(!msg.empty());
+		mqtt::v5::publish* p = msg.get_if<mqtt::v5::publish>();
+		if (p)
+		{
+			fmt::print("recv v5::publish  , packet id : {:5d} QoS : {} topic_name : {} payload : {}\n",
+				p->packet_id(), int(p->qos()), p->topic_name(), p->payload());
+		}
+	});
+
+	mqtt::message msg1 = client.subscribe<mqtt::message>("/asio2/mqtt/qos1", 1, [](mqtt::v5::publish& msg) mutable
+	{
+		fmt::print("recv v5::publish  , packet id : {:5d} QoS : {} topic_name : {} payload : {}\n",
+			msg.packet_id(), int(msg.qos()), msg.topic_name(), msg.payload());
+	});
+	mqtt::v5::suback* psuback1 = msg1.get_if<mqtt::v5::suback>();
+
+	mqtt::message msg2 = client.subscribe<mqtt::message>("/asio2/mqtt/qos0", 0, [](mqtt::message& msg) mutable
+	{
+		ASIO2_ASSERT(!msg.empty());
+		mqtt::v5::publish* p = msg.get_if<mqtt::v5::publish>();
+		if (p)
+		{
+			fmt::print("recv v5::publish  , packet id : {:5d} QoS : {} topic_name : {} payload : {}\n",
+				p->packet_id(), int(p->qos()), p->topic_name(), p->payload());
+		}
+	});
+	mqtt::v5::suback* psuback2 = msg2.get_if<mqtt::v5::suback>();
+
+	client.unsubscribe("/asio2/mqtt/qos1");
+
+	bool unret = client.unsubscribe<bool>("/asio2/mqtt/qos1");
+
+	mqtt::message unmsg = client.unsubscribe<mqtt::message>("/asio2/mqtt/qos1");
+	mqtt::v5::unsuback* punsuback = unmsg.get_if<mqtt::v5::unsuback>();
+
+	client.publish("/asio2/mqtt/qos0", "0", 0);
+
+	bool pubret = client.publish<bool>("/asio2/mqtt/qos1", "1", 1);
+
+	mqtt::message pubmsg = client.publish<mqtt::message>("/asio2/mqtt/qos2", "2", 2);
+	mqtt::v5::pubcomp* ppubcomp = pubmsg.get_if<mqtt::v5::pubcomp>();
+
+	asio2::ignore_unused(ret1, ret2, msg1, msg2, psuback1, psuback2, unret, unmsg, punsuback, pubret, ppubcomp);
 
 	while (std::getchar() != '\n');
 

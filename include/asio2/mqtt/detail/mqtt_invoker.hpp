@@ -17,6 +17,7 @@
 
 #include <asio2/base/iopool.hpp>
 #include <asio2/base/define.hpp>
+#include <asio2/base/log.hpp>
 
 #include <asio2/external/magic_enum.hpp>
 
@@ -27,8 +28,11 @@
 #include <asio2/mqtt/detail/mqtt_subscription_map.hpp>
 #include <asio2/mqtt/detail/mqtt_shared_target.hpp>
 #include <asio2/mqtt/detail/mqtt_retained_message.hpp>
+#include <asio2/mqtt/detail/mqtt_message_router.hpp>
 
 #include <asio2/mqtt/message.hpp>
+
+#include <asio2/bho/core/type_name.hpp>
 
 namespace asio2::detail
 {
@@ -366,9 +370,9 @@ namespace asio2::detail
 				mqtt::data_to_message(caller->version(), data, [this, &f, &c, &ec, &caller_ptr, caller]
 				(auto msg) mutable
 				{
-					if (msg.index() == std::variant_npos)
+					if (msg.empty())
 					{
-						this->_do_malformed_packet(ec, caller_ptr, caller);
+						this->_do_malformed_packet(f, ec, caller_ptr, caller);
 
 						return;
 					}
@@ -391,7 +395,7 @@ namespace asio2::detail
 						}
 						else
 						{
-							this->_do_malformed_packet(ec, caller_ptr, caller);
+							this->_do_no_match_callback(f, ec, caller_ptr, caller, pmsg);
 						}
 					}
 				});
@@ -428,9 +432,9 @@ namespace asio2::detail
 					mqtt::data_to_message(caller->version(), data, [this, &f, &c, &ec, &caller_ptr, caller]
 					(auto msg) mutable
 					{
-						if (msg.index() == std::variant_npos)
+						if (msg.empty())
 						{
-							this->_do_malformed_packet(ec, caller_ptr, caller);
+							this->_do_malformed_packet(f, ec, caller_ptr, caller);
 
 							return;
 						}
@@ -453,7 +457,7 @@ namespace asio2::detail
 							}
 							else
 							{
-								this->_do_malformed_packet(ec, caller_ptr, caller);
+								this->_do_no_match_callback(f, ec, caller_ptr, caller, pmsg);
 							}
 						}
 					});
@@ -478,9 +482,9 @@ namespace asio2::detail
 					mqtt::data_to_message(caller->version(), data, [this, &f, &c, &ec, &caller_ptr, caller]
 					(auto msg) mutable
 					{
-						if (msg.index() == std::variant_npos)
+						if (msg.empty())
 						{
-							this->_do_malformed_packet(ec, caller_ptr, caller);
+							this->_do_malformed_packet(f, ec, caller_ptr, caller);
 
 							return;
 						}
@@ -505,7 +509,7 @@ namespace asio2::detail
 							}
 							else
 							{
-								this->_do_malformed_packet(ec, caller_ptr, caller);
+								this->_do_no_match_callback(f, ec, caller_ptr, caller, pmsg);
 							}
 						}
 					});
@@ -543,9 +547,9 @@ namespace asio2::detail
 				mqtt::data_to_message(caller->version(), data, [this, &f, &c, &ec, &caller_ptr, caller]
 				(auto msg) mutable
 				{
-					if (msg.index() == std::variant_npos)
+					if (msg.empty())
 					{
-						this->_do_malformed_packet(ec, caller_ptr, caller);
+						this->_do_malformed_packet(f, ec, caller_ptr, caller);
 
 						return;
 					}
@@ -570,7 +574,7 @@ namespace asio2::detail
 						}
 						else
 						{
-							this->_do_malformed_packet(ec, caller_ptr, caller);
+							this->_do_no_match_callback(f, ec, caller_ptr, caller, pmsg);
 						}
 					}
 				});
@@ -584,12 +588,32 @@ namespace asio2::detail
 			}
 		}
 
-		inline void _do_malformed_packet(
+		template<class F>
+		inline void _do_malformed_packet(F& f,
 			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller)
 		{
-			ASIO2_ASSERT(false &&
-				"The parameters of the user callback function do not match."\
-				" Check that the parameters of your callback function are of the correct type");
+			detail::ignore_unused(f);
+
+			if (!ec)
+				ec = mqtt::make_error_code(mqtt::error::malformed_packet);
+
+			this->_handle_mqtt_error(ec, caller_ptr, caller);
+		}
+
+		template<class F, class M>
+		inline void _do_no_match_callback(F& f,
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, M* pmsg)
+		{
+			detail::ignore_unused(f, pmsg);
+
+			ASIO2_LOG(spdlog::level::info, "The user callback function signature do not match : {}({} ...)"
+				, bho::core::type_name<detail::remove_cvref_t<F>>()
+				, bho::core::type_name<detail::remove_cvref_t<M>>()
+			);
+
+			//ASIO2_ASSERT(false &&
+			//	"The parameters of the user callback function do not match."\
+			//	" Check that the parameters of your callback function are of the correct type");
 
 			if (!ec)
 				ec = mqtt::make_error_code(mqtt::error::malformed_packet);
@@ -604,7 +628,12 @@ namespace asio2::detail
 		{
 			caller->_before_user_callback(ec, caller_ptr, caller, om, msg);
 
+			if (ec)
+				return this->_handle_mqtt_error(ec, caller_ptr, caller);
+
 			this->_invoke_user_callback(f, c, msg);
+
+			caller->_match_router(om);
 
 			caller->_after_user_callback(ec, caller_ptr, caller, om, msg);
 
@@ -617,6 +646,9 @@ namespace asio2::detail
 			Message& msg)
 		{
 			caller->_before_user_callback(ec, caller_ptr, caller, om, msg);
+
+			if (ec)
+				return this->_handle_mqtt_error(ec, caller_ptr, caller);
 
 			this->_invoke_user_callback(f, c, caller_ptr, msg);
 
@@ -633,6 +665,9 @@ namespace asio2::detail
 			this->_init_response(ec, caller_ptr, caller, msg, rep);
 
 			caller->_before_user_callback(ec, caller_ptr, caller, om, msg, rep);
+
+			if (ec)
+				return this->_handle_mqtt_error(ec, caller_ptr, caller);
 
 			this->_invoke_user_callback(f, c, msg, rep);
 
@@ -651,6 +686,9 @@ namespace asio2::detail
 			this->_init_response(ec, caller_ptr, caller, msg, rep);
 
 			caller->_before_user_callback(ec, caller_ptr, caller, om, msg, rep);
+
+			if (ec)
+				return this->_handle_mqtt_error(ec, caller_ptr, caller);
 
 			this->_invoke_user_callback(f, c, caller_ptr, msg, rep);
 
@@ -703,7 +741,7 @@ namespace asio2::detail
 		}
 
 		template<class Message, class Response>
-		typename std::enable_if_t<mqtt::is_control_message<typename detail::remove_cvref_t<Message>>()>
+		typename std::enable_if_t<mqtt::is_message<typename detail::remove_cvref_t<Message>>()>
 		inline _init_response(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller,
 			Message& msg, Response& rep)
 		{
@@ -745,8 +783,10 @@ namespace asio2::detail
 					{
 						switch (msg.qos())
 						{
-						// the qos 0 publish messgae don't need response
-						case mqtt::qos_type::at_most_once :                           break;
+						// the qos 0 publish messgae don't need response, here just a placeholder,
+						// if has't set the rep to a msg, the _before_user_callback_impl can't be 
+						// called correctly.
+						case mqtt::qos_type::at_most_once : rep = mqtt::v3::puback{}; break;
 						case mqtt::qos_type::at_least_once: rep = mqtt::v3::puback{}; break;
 						case mqtt::qos_type::exactly_once : rep = mqtt::v3::pubrec{}; break;
 						default:break;
@@ -756,8 +796,10 @@ namespace asio2::detail
 					{
 						switch (msg.qos())
 						{
-						// the qos 0 publish messgae don't need response
-						case mqtt::qos_type::at_most_once :                           break;
+						// the qos 0 publish messgae don't need response, here just a placeholder,
+						// if has't set the rep to a msg, the _before_user_callback_impl can't be 
+						// called correctly.
+						case mqtt::qos_type::at_most_once : rep = mqtt::v4::puback{}; break;
 						case mqtt::qos_type::at_least_once: rep = mqtt::v4::puback{}; break;
 						case mqtt::qos_type::exactly_once : rep = mqtt::v4::pubrec{}; break;
 						default:break;
@@ -767,8 +809,10 @@ namespace asio2::detail
 					{
 						switch (msg.qos())
 						{
-						// the qos 0 publish messgae don't need response
-						case mqtt::qos_type::at_most_once :                           break;
+						// the qos 0 publish messgae don't need response, here just a placeholder,
+						// if has't set the rep to a msg, the _before_user_callback_impl can't be 
+						// called correctly.
+						case mqtt::qos_type::at_most_once : rep = mqtt::v5::puback{}; break;
 						case mqtt::qos_type::at_least_once: rep = mqtt::v5::puback{}; break;
 						case mqtt::qos_type::exactly_once : rep = mqtt::v5::pubrec{}; break;
 						default:break;
@@ -915,7 +959,7 @@ namespace asio2::detail
 
 			if constexpr (std::is_same_v<response_type, mqtt::message>)
 			{
-				if (rep.index() == std::variant_npos)
+				if (rep.empty())
 					return;
 
 				bool sendflag = true;
@@ -933,6 +977,7 @@ namespace asio2::detail
 
 					std::visit([caller, g = std::move(g)](auto& pr) mutable
 					{
+						ASIO2_LOG(spdlog::level::debug, "send {}", bho::core::type_name<decltype(pr)>());
 						caller->_do_send(pr, [g = std::move(g)](const error_code&, std::size_t) mutable {});
 					}, rep.variant());
 				});
@@ -948,7 +993,7 @@ namespace asio2::detail
 				(event_queue_guard<caller_t> g) mutable
 				{
 					detail::ignore_unused(caller_ptr);
-
+					ASIO2_LOG(spdlog::level::debug, "send {}", bho::core::type_name<decltype(rep)>());
 					caller->_do_send(rep, [g = std::move(g)](const error_code&, std::size_t) mutable {});
 				});
 			}

@@ -26,6 +26,7 @@
 #include <asio2/mqtt/detail/mqtt_invoker.hpp>
 #include <asio2/mqtt/detail/mqtt_topic_alias.hpp>
 #include <asio2/mqtt/detail/mqtt_session_state.hpp>
+#include <asio2/mqtt/detail/mqtt_message_router.hpp>
 #include <asio2/mqtt/detail/mqtt_subscribe_router.hpp>
 
 #include <asio2/mqtt/options.hpp>
@@ -78,8 +79,9 @@ namespace asio2::detail
 		, public mqtt_options
 		, public mqtt_handler_t         <derived_t, args_t>
 		, public mqtt_invoker_t         <derived_t, args_t>
+		, public mqtt_message_router_t  <derived_t, args_t>
 		, public mqtt_subscribe_router_t<derived_t, args_t>
-		, public mqtt_topic_alias_t     <derived_t        >
+		, public mqtt_topic_alias_t     <derived_t, args_t>
 		, public mqtt_send_op           <derived_t, args_t>
 		, public mqtt::session_state
 	{
@@ -110,8 +112,9 @@ namespace asio2::detail
 			, mqtt_options                              ()
 			, mqtt_handler_t         <derived_t, args_t>()
 			, mqtt_invoker_t         <derived_t, args_t>()
+			, mqtt_message_router_t  <derived_t, args_t>()
 			, mqtt_subscribe_router_t<derived_t, args_t>()
-			, mqtt_topic_alias_t     <derived_t        >()
+			, mqtt_topic_alias_t     <derived_t, args_t>()
 			, mqtt_send_op           <derived_t, args_t>()
 			, pingreq_timer_(this->io_.context())
 		{
@@ -124,11 +127,13 @@ namespace asio2::detail
 			Scheduler&& scheduler
 		)
 			: super(init_buf_size, max_buf_size, std::forward<Scheduler>(scheduler))
-			, mqtt_options                         ()
-			, mqtt_handler_t    <derived_t, args_t>()
-			, mqtt_invoker_t    <derived_t, args_t>()
-			, mqtt_topic_alias_t<derived_t        >()
-			, mqtt_send_op      <derived_t, args_t>()
+			, mqtt_options                              ()
+			, mqtt_handler_t         <derived_t, args_t>()
+			, mqtt_invoker_t         <derived_t, args_t>()
+			, mqtt_message_router_t  <derived_t, args_t>()
+			, mqtt_subscribe_router_t<derived_t, args_t>()
+			, mqtt_topic_alias_t     <derived_t, args_t>()
+			, mqtt_send_op           <derived_t, args_t>()
 			, pingreq_timer_(this->io_.context())
 		{
 		}
@@ -234,7 +239,7 @@ namespace asio2::detail
 		inline std::string_view get_client_id()
 		{
 			std::string_view v{};
-			if (this->connect_message_.index() != std::variant_npos)
+			if (!this->connect_message_.empty())
 			{
 				if /**/ (std::holds_alternative<mqtt::v3::connect>(connect_message_.base()))
 				{
@@ -293,7 +298,7 @@ namespace asio2::detail
 			}
 			// Default to 60 seconds
 			std::uint16_t v = 60;
-			if (this->connect_message_.index() != std::variant_npos)
+			if (!this->connect_message_.empty())
 			{
 				if /**/ (std::holds_alternative<mqtt::v3::connect>(connect_message_.base()))
 				{
@@ -388,6 +393,20 @@ namespace asio2::detail
 					condition_helper::make_condition(asio::transfer_at_least(1),
 						mqtt::mqtt_match_role, std::forward<Arg1>(arg1), std::forward<Args>(args)...));
 			}
+		}
+
+		template<bool IsAsync, typename String, typename StrOrInt, typename MatchCondition>
+		inline bool _do_connect(String&& host, StrOrInt&& port, condition_wrap<MatchCondition> condition)
+		{
+			if (!this->connect_message_.holds<mqtt::v3::connect, mqtt::v4::connect, mqtt::v5::connect>())
+			{
+				ASIO2_ASSERT(false);
+				set_last_error(asio::error::invalid_argument);
+				return false;
+			}
+
+			return super::template _do_connect<IsAsync>(
+				std::forward<String>(host), std::forward<StrOrInt>(port), std::move(condition));
 		}
 
 		template<typename MatchCondition>
@@ -512,7 +531,7 @@ namespace asio2::detail
 			std::string_view data{ reinterpret_cast<std::string_view::const_pointer>(
 					asio::buffer_cast<const char*>(stream->data())), stream->size() };
 
-			mqtt::control_packet_type type = mqtt::message_type_from_byte(data.front());
+			mqtt::control_packet_type type = mqtt::message_type_from_data(data);
 
 			bool valid_message = (type == mqtt::control_packet_type::connack) ||
 				(this->derived().version() == mqtt::version::v5 && type == mqtt::control_packet_type::auth);
@@ -644,7 +663,7 @@ namespace asio2::detail
 
 			this->derived()._rdc_handle_recv(this_ptr, data, condition);
 
-			mqtt::control_packet_type type = mqtt::message_type_from_byte(data.front());
+			mqtt::control_packet_type type = mqtt::message_type_from_data(data);
 
 			if (type > mqtt::control_packet_type::auth)
 			{
@@ -671,8 +690,8 @@ namespace asio2::detail
 		/// use rwlock to make this session map thread safe
 		mutable asio2_shared_mutex     mutex_;
 
-		/// default mqtt version is v4, default client id is a uuid string
-		mqtt::message                  connect_message_{ mqtt::v4::connect{ asio2::uuid().next().str() } };
+		/// Should we set a default mqtt version to v4, default client id to a uuid string ?
+		mqtt::message                  connect_message_{/* mqtt::v4::connect{ asio2::uuid().next().str() } */};
 
 		/// 
 		mqtt::message                  connack_message_{};
@@ -681,7 +700,7 @@ namespace asio2::detail
 		asio::steady_timer             pingreq_timer_;
 
 		/// packet id manager
-		mqtt::idmgr<mqtt::two_byte_integer::value_type>                   idmgr_;
+		mqtt::idmgr<std::atomic<mqtt::two_byte_integer::value_type>>           idmgr_;
 	};
 }
 

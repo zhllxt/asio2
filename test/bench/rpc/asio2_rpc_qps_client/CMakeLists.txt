@@ -19,7 +19,7 @@ set(TARGET_NAME asio2_rpc_qps_client)
 
 add_executable (
     ${TARGET_NAME}
-    ${ASIO2_FILES} ${SRC_FILES}
+    ${ASIO2_FILES}
     ${TARGET_NAME}.cpp
 )
 

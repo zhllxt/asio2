@@ -31,13 +31,39 @@ namespace asio2::detail
 
 	protected:
 		// server or client
+		template<class Message, class Response>
+		inline bool _before_pubrel_callback(
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
+			Message& msg, Response& rep)
+		{
+			detail::ignore_unused(ec, caller_ptr, caller, om, msg, rep);
+
+			using message_type  [[maybe_unused]] = typename detail::remove_cvref_t<Message>;
+			using response_type [[maybe_unused]] = typename detail::remove_cvref_t<Response>;
+
+			rep.packet_id(msg.packet_id());
+
+			// PUBCOMP Reason Code
+			// https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901154
+			if constexpr (std::is_same_v<response_type, mqtt::v5::pubcomp>)
+			{
+				rep.reason_code(detail::to_underlying(mqtt::error::success));
+			}
+			else
+			{
+				std::ignore = true;
+			}
+
+			return true;
+		}
+
+		// server or client
 		inline void _before_user_callback_impl(
 			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
 			mqtt::v3::pubrel& msg, asio2::mqtt::v3::pubcomp& rep)
 		{
-			detail::ignore_unused(ec, caller_ptr, caller, om, msg, rep);
-
-			rep.packet_id(msg.packet_id());
+			if (!_before_pubrel_callback(ec, caller_ptr, caller, om, msg, rep))
+				return;
 		}
 
 		// server or client
@@ -45,9 +71,8 @@ namespace asio2::detail
 			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
 			mqtt::v4::pubrel& msg, asio2::mqtt::v4::pubcomp& rep)
 		{
-			detail::ignore_unused(ec, caller_ptr, caller, om, msg, rep);
-
-			rep.packet_id(msg.packet_id());
+			if (!_before_pubrel_callback(ec, caller_ptr, caller, om, msg, rep))
+				return;
 		}
 
 		// server or client
@@ -55,9 +80,8 @@ namespace asio2::detail
 			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
 			mqtt::v5::pubrel& msg, asio2::mqtt::v5::pubcomp& rep)
 		{
-			detail::ignore_unused(ec, caller_ptr, caller, om, msg, rep);
-
-			rep.packet_id(msg.packet_id());
+			if (!_before_pubrel_callback(ec, caller_ptr, caller, om, msg, rep))
+				return;
 		}
 
 		inline void _after_user_callback_impl(
