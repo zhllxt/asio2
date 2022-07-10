@@ -121,7 +121,7 @@ int main()
 
 	asio2::tcp_client client;
 
-	std::shared_ptr<asio2::async_event> evt_ptr = client.post_event([&]()
+	std::shared_ptr<asio2::condition_event> evt_ptr = client.post_condition_event([&]()
 	{
 		ASIO2_ASSERT(client.io().running_in_this_thread());
 		printf("execute manual event for tcp client \n");

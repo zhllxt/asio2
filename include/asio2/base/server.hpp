@@ -47,7 +47,7 @@
 #include <asio2/base/component/user_timer_cp.hpp>
 #include <asio2/base/component/post_cp.hpp>
 #include <asio2/base/component/event_queue_cp.hpp>
-#include <asio2/base/component/async_event_cp.hpp>
+#include <asio2/base/component/condition_event_cp.hpp>
 
 namespace asio2::detail
 {
@@ -55,14 +55,14 @@ namespace asio2::detail
 
 	template<class derived_t, class session_t>
 	class server_impl_t
-		: public object_t       <derived_t>
+		: public object_t          <derived_t>
 		, public iopool_cp
-		, public thread_id_cp   <derived_t>
-		, public event_queue_cp <derived_t>
-		, public user_data_cp   <derived_t>
-		, public user_timer_cp  <derived_t>
-		, public post_cp        <derived_t>
-		, public async_event_cp <derived_t>
+		, public thread_id_cp      <derived_t>
+		, public event_queue_cp    <derived_t>
+		, public user_data_cp      <derived_t>
+		, public user_timer_cp     <derived_t>
+		, public post_cp           <derived_t>
+		, public condition_event_cp<derived_t>
 	{
 		ASIO2_CLASS_FRIEND_DECLARE_BASE;
 
@@ -131,7 +131,7 @@ namespace asio2::detail
 			this->stop_all_timed_tasks();
 
 			// close all async_events
-			this->notify_all_events();
+			this->notify_all_condition_events();
 
 			// destroy user data, maybe the user data is self shared_ptr, 
 			// if don't destroy it, will cause loop refrence.

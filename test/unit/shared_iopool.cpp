@@ -112,7 +112,7 @@ void shared_iopool_test()
 
 	cast1.start_timer(1, std::chrono::seconds(1), timer_check);
 
-	auto ptr = cast1.post_event(iothread_check);
+	auto ptr = cast1.post_condition_event(iothread_check);
 
 	cast1.post(iothread_check, std::chrono::milliseconds(std::rand() % 50));
 
@@ -136,7 +136,7 @@ void shared_iopool_test()
 
 	cast1.post(iothread_check, std::chrono::milliseconds(std::rand() % 50));
 
-	ptr = cast1.post_event(iothread_check);
+	ptr = cast1.post_condition_event(iothread_check);
 
 	threads.emplace_back(std::make_shared<std::thread>([ptr]() mutable
 	{
@@ -146,7 +146,7 @@ void shared_iopool_test()
 
 	ptr.reset();
 
-	ptr = cast1.post_event(iothread_check);
+	ptr = cast1.post_condition_event(iothread_check);
 
 	//-----------------------------------------------------------------------------------
 
@@ -262,7 +262,7 @@ void shared_iopool_test()
 
 	cast1.start_timer(1, std::chrono::seconds(1), []() {});
 
-	ptr = cast1.post_event([]() {});
+	ptr = cast1.post_condition_event([]() {});
 
 	cast1.post([]()
 	{
@@ -290,7 +290,7 @@ void shared_iopool_test()
 	{
 	}, std::chrono::milliseconds(std::rand() % 50));
 
-	ptr = cast1.post_event([]() {});
+	ptr = cast1.post_condition_event([]() {});
 
 	threads.emplace_back(std::make_shared<std::thread>([ptr]() mutable
 	{
@@ -300,7 +300,7 @@ void shared_iopool_test()
 
 	ptr.reset();
 
-	ptr = cast1.post_event([]() {});
+	ptr = cast1.post_condition_event([]() {});
 
 	cast1.start("0.0.0.0", 4444);
 

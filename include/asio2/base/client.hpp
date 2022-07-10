@@ -55,7 +55,7 @@
 #include <asio2/base/component/post_cp.hpp>
 #include <asio2/base/component/connect_timeout_cp.hpp>
 #include <asio2/base/component/event_queue_cp.hpp>
-#include <asio2/base/component/async_event_cp.hpp>
+#include <asio2/base/component/condition_event_cp.hpp>
 #include <asio2/base/component/reconnect_timer_cp.hpp>
 #include <asio2/base/component/send_cp.hpp>
 
@@ -83,7 +83,7 @@ namespace asio2::detail
 		, public connect_timeout_cp    <derived_t, args_t>
 		, public send_cp               <derived_t, args_t>
 		, public post_cp               <derived_t, args_t>
-		, public async_event_cp        <derived_t, args_t>
+		, public condition_event_cp    <derived_t, args_t>
 		, public rdc_call_cp           <derived_t, args_t>
 		, public socks5_client_impl    <derived_t, args_t>
 	{
@@ -127,7 +127,7 @@ namespace asio2::detail
 			, connect_timeout_cp  <derived_t, args_t>()
 			, send_cp             <derived_t, args_t>()
 			, post_cp             <derived_t, args_t>()
-			, async_event_cp      <derived_t, args_t>()
+			, condition_event_cp  <derived_t, args_t>()
 			, rdc_call_cp         <derived_t, args_t>()
 			, rallocator_()
 			, wallocator_()
@@ -193,7 +193,7 @@ namespace asio2::detail
 			this->stop_all_timed_tasks();
 
 			// close all async_events
-			this->notify_all_events();
+			this->notify_all_condition_events();
 
 			// destroy user data, maybe the user data is self shared_ptr, if don't destroy it,
 			// will cause loop refrence.

@@ -41,7 +41,7 @@
 #include <asio2/base/component/thread_id_cp.hpp>
 #include <asio2/base/component/user_timer_cp.hpp>
 #include <asio2/base/component/post_cp.hpp>
-#include <asio2/base/component/async_event_cp.hpp>
+#include <asio2/base/component/condition_event_cp.hpp>
 
 namespace asio2::detail
 {
@@ -49,12 +49,12 @@ namespace asio2::detail
 
 	template<class derived_t>
 	class timer_impl_t
-		: public object_t      <derived_t>
+		: public object_t          <derived_t>
 		, public iopool_cp
-		, public thread_id_cp  <derived_t>
-		, public user_timer_cp <derived_t>
-		, public post_cp       <derived_t>
-		, public async_event_cp<derived_t>
+		, public thread_id_cp      <derived_t>
+		, public user_timer_cp     <derived_t>
+		, public post_cp           <derived_t>
+		, public condition_event_cp<derived_t>
 	{
 		ASIO2_CLASS_FRIEND_DECLARE_BASE;
 
@@ -66,11 +66,11 @@ namespace asio2::detail
 		 * @constructor
 		 */
 		explicit timer_impl_t()
-			: object_t       <derived_t>()
-			, iopool_cp                 (1)
-			, user_timer_cp  <derived_t>()
-			, post_cp        <derived_t>()
-			, async_event_cp <derived_t>()
+			: object_t          <derived_t>()
+			, iopool_cp                    (1)
+			, user_timer_cp     <derived_t>()
+			, post_cp           <derived_t>()
+			, condition_event_cp<derived_t>()
 			, io_                       (iopool_cp::_get_io(0))
 		{
 			this->start();
@@ -78,11 +78,11 @@ namespace asio2::detail
 
 		template<class Scheduler, std::enable_if_t<!std::is_integral_v<detail::remove_cvref_t<Scheduler>>, int> = 0>
 		explicit timer_impl_t(Scheduler&& scheduler)
-			: object_t       <derived_t>()
-			, iopool_cp                 (std::forward<Scheduler>(scheduler))
-			, user_timer_cp  <derived_t>()
-			, post_cp        <derived_t>()
-			, async_event_cp <derived_t>()
+			: object_t          <derived_t>()
+			, iopool_cp                    (std::forward<Scheduler>(scheduler))
+			, user_timer_cp     <derived_t>()
+			, post_cp           <derived_t>()
+			, condition_event_cp<derived_t>()
 			, io_                       (iopool_cp::_get_io(0))
 		{
 			this->start();
@@ -139,7 +139,7 @@ namespace asio2::detail
 			this->stop_all_timed_tasks();
 
 			// close all async_events
-			this->notify_all_events();
+			this->notify_all_condition_events();
 
 			// stop the io_context pool
 			this->iopool_->stop();

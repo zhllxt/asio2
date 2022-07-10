@@ -398,7 +398,7 @@ namespace asio2::detail
 		template<bool IsAsync, typename String, typename StrOrInt, typename MatchCondition>
 		inline bool _do_connect(String&& host, StrOrInt&& port, condition_wrap<MatchCondition> condition)
 		{
-			if (!this->connect_message_.holds<mqtt::v3::connect, mqtt::v4::connect, mqtt::v5::connect>())
+			if (!this->connect_message_.template holds<mqtt::v3::connect, mqtt::v4::connect, mqtt::v5::connect>())
 			{
 				ASIO2_ASSERT(false);
 				set_last_error(asio::error::invalid_argument);

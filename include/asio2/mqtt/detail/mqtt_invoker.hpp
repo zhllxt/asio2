@@ -612,7 +612,7 @@ namespace asio2::detail
 			);
 
 			//ASIO2_ASSERT(false &&
-			//	"The parameters of the user callback function do not match."\
+			//	"The parameters of the user callback function do not match."
 			//	" Check that the parameters of your callback function are of the correct type");
 
 			if (!ec)

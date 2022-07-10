@@ -577,8 +577,8 @@ timer.start_timer(5, std::chrono::milliseconds(1000), std::chrono::milliseconds(
 ```cpp
 asio2::tcp_client client;
 
-// 投递一个异步事件,除非这个事件被主动触发,否则永远不会执行
-std::shared_ptr<asio2::async_event> event_ptr = client.post_event([]()
+// 投递一个异步条件事件,除非这个事件被主动触发,否则永远不会执行
+std::shared_ptr<asio2::condition_event> event_ptr = client.post_condition_event([]()
 {
 	// do something.
 });

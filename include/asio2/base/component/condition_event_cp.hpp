@@ -8,8 +8,8 @@
  * (See accompanying file LICENSE or see <http://www.gnu.org/licenses/>)
  */
 
-#ifndef __ASIO2_ASYNC_EVENT_COMPONENT_HPP__
-#define __ASIO2_ASYNC_EVENT_COMPONENT_HPP__
+#ifndef __ASIO2_CONDITION_EVENT_COMPONENT_HPP__
+#define __ASIO2_CONDITION_EVENT_COMPONENT_HPP__
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1200)
 #pragma once
@@ -32,23 +32,27 @@
 
 namespace asio2::detail
 {
-	template<class, class> class async_event_cp;
+	template<class, class> class condition_event_cp;
 }
 
 namespace asio2
 {
-	class async_event : public detail::object_t<async_event>
+	class [[deprecated("Replace async_event with condition_event")]] async_event : public detail::object_t<async_event>
 	{
-		template<class, class> friend class asio2::detail::async_event_cp;
+	};
+
+	class condition_event : public detail::object_t<condition_event>
+	{
+		template<class, class> friend class asio2::detail::condition_event_cp;
 
 	public:
-		explicit async_event(detail::io_t& io)
+		explicit condition_event(detail::io_t& io)
 			: event_timer_io_(io)
 			, event_timer_(io.context())
 		{
 		}
 
-		~async_event() noexcept
+		~condition_event() noexcept
 		{
 		}
 
@@ -61,7 +65,7 @@ namespace asio2
 			// set the flag to true, otherwise maybe cause crash.
 			// eg : 
 			// asio2::udp_cast udp;
-			// auto ptr = udp.post_event([](){});
+			// auto ptr = udp.post_condition_event([](){});
 			// std::thread([ptr]() mutable
 			// {
 			// 	std::this_thread::sleep_for(std::chrono::seconds(5));
@@ -87,7 +91,7 @@ namespace asio2
 			// bind is used to adapt the user provided handler to the 
 			// timer's wait handler type requirement.
 			// the "handler" has hold the derive_ptr already, so this lambda don't need hold it again.
-			// this event_ptr (means selfptr) has holded by the map "async_events_" already, 
+			// this event_ptr (means selfptr) has holded by the map "condition_events_" already, 
 			// so this lambda don't need hold selfptr again.
 			this->event_timer_.async_wait(
 			[this, handler = std::forward<WaitHandler>(handler)](const error_code& ec) mutable
@@ -111,11 +115,11 @@ namespace asio2
 
 	public:
 		/**
-		 * @function : wakeup the waiting async_event.
+		 * @function : wakeup the waiting condition event.
 		 */
 		inline void notify()
 		{
-			// must use dispatch, otherwise if use called post_event, and then called 
+			// must use dispatch, otherwise if use called post_condition_event, and then called 
 			// notify() immediately, the event will can't be notifyed.
 
 			// when code run to here, the io_context maybe destroyed already, if the 
@@ -143,7 +147,7 @@ namespace asio2
 		/// The io used for the timer.
 		detail::io_t                      & event_timer_io_;
 
-		/// Used to implementing asynchronous async_event
+		/// Used to implementing asynchronous condition event
 		asio::steady_timer                  event_timer_;
 
 		///
@@ -157,18 +161,18 @@ namespace asio2
 namespace asio2::detail
 {
 	template<class derived_t, class args_t = void>
-	class async_event_cp
+	class condition_event_cp
 	{
 	public:
 		/**
 		 * @constructor
 		 */
-		async_event_cp() = default;
+		condition_event_cp() = default;
 
 		/**
 		 * @destructor
 		 */
-		~async_event_cp() = default;
+		~condition_event_cp() = default;
 
 	public:
 		/**
@@ -177,24 +181,38 @@ namespace asio2::detail
 		 * The function signature of the handler must be : void handler();
 		 */
 		template<typename Function>
-		inline std::shared_ptr<async_event> post_event(Function&& f)
+		[[deprecated("Replace post_event with post_condition_event")]]
+		inline std::shared_ptr<condition_event> post_event(Function&& f)
+		{
+			ASIO2_ASSERT(false);
+
+			return std::shared_ptr<condition_event>{};
+		}
+
+		/**
+		 * @function : Post a asynchronous condition event to execution util the event is notifyed by user.
+		 * Before you call event_ptr->notify(); the event will not execute forever.
+		 * The function signature of the handler must be : void handler();
+		 */
+		template<typename Function>
+		inline std::shared_ptr<condition_event> post_condition_event(Function&& f)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			std::shared_ptr<async_event> event_ptr = std::make_shared<async_event>(derive.io());
+			std::shared_ptr<condition_event> event_ptr = std::make_shared<condition_event>(derive.io());
 
 			asio::dispatch(derive.io().context(), make_allocator(derive.wallocator(),
 			[this, this_ptr = derive.selfptr(), event_ptr, f = std::forward<Function>(f)]() mutable
 			{
-				async_event* evt = event_ptr.get();
+				condition_event* evt = event_ptr.get();
 
-				this->async_events_.emplace(evt, std::move(event_ptr));
+				this->condition_events_.emplace(evt, std::move(event_ptr));
 
 				evt->async_wait([this, this_ptr = std::move(this_ptr), key = evt, f = std::move(f)]() mutable
 				{
 					f();
 
-					this->async_events_.erase(key);
+					this->condition_events_.erase(key);
 				});
 			}));
 
@@ -204,7 +222,18 @@ namespace asio2::detail
 		/**
 		 * @function : Notify all async_events to execute.
 		 */
+		[[deprecated("Replace notify_all_events with notify_all_condition_events")]]
 		inline derived_t& notify_all_events()
+		{
+			ASIO2_ASSERT(false);
+
+			return (static_cast<derived_t&>(*this));
+		}
+
+		/**
+		 * @function : Notify all condition events to execute.
+		 */
+		inline derived_t& notify_all_condition_events()
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
@@ -214,12 +243,12 @@ namespace asio2::detail
 				asio::post(derive.io().context(), make_allocator(derive.wallocator(),
 				[this, this_ptr = derive.selfptr()]() mutable
 				{
-					this->notify_all_events();
+					this->notify_all_condition_events();
 				}));
 				return (derive);
 			}
 
-			for (auto&[key, event_ptr] : this->async_events_)
+			for (auto&[key, event_ptr] : this->condition_events_)
 			{
 				detail::ignore_unused(key);
 				event_ptr->notify();
@@ -229,12 +258,12 @@ namespace asio2::detail
 		}
 
 	protected:
-		/// Used to exit the async_event when component is ready to stop.
+		/// Used to exit the condition event when component is ready to stop.
 		/// if user don't notify the event to execute, the io_context will
-		/// block forever, so we need notify the async_event when component
+		/// block forever, so we need notify the condition event when component
 		/// is ready to stop.
-		std::map<async_event*, std::shared_ptr<async_event>> async_events_;
+		std::map<condition_event*, std::shared_ptr<condition_event>> condition_events_;
 	};
 }
 
-#endif // !__ASIO2_ASYNC_EVENT_COMPONENT_HPP__
+#endif // !__ASIO2_CONDITION_EVENT_COMPONENT_HPP__

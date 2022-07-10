@@ -20,7 +20,7 @@ Header only c++ network library, based on asio,support tcp,udp,http,websocket,rp
  - 1、基本概念和使用说明 [https://blog.csdn.net/zhllxt/article/details/108850090](https://blog.csdn.net/zhllxt/article/details/108850090)
  - 2、各个回调函数的触发顺序和执行流程 [https://blog.csdn.net/zhllxt/article/details/108850715](https://blog.csdn.net/zhllxt/article/details/108850715)
  - 3、各个回调函数的触发线程以及多线程总结 [https://blog.csdn.net/zhllxt/article/details/108868559](https://blog.csdn.net/zhllxt/article/details/108868559)
- - 4、发送数据时如何同步获取服务端返回结果 [https://blog.csdn.net/zhllxt/article/details/110881015](https://blog.csdn.net/zhllxt/article/details/110881015)
+ - 4、rpc使用教程 [https://blog.csdn.net/zhllxt/article/details/125433838](https://blog.csdn.net/zhllxt/article/details/125433838)
  - asio做tcp的自动拆包时，asio的match condition如何使用的详细说明 [https://blog.csdn.net/zhllxt/article/details/104772948](https://blog.csdn.net/zhllxt/article/details/104772948)
 
 ## 重大的接口变更:
@@ -601,8 +601,8 @@ timer.start_timer(5, std::chrono::milliseconds(1000), std::chrono::milliseconds(
 ```c++
 asio2::tcp_client client;
 
-// 投递一个异步事件,除非这个事件被主动触发,否则永远不会执行
-std::shared_ptr<asio2::async_event> event_ptr = client.post_event([]()
+// 投递一个异步条件事件,除非这个事件被主动触发,否则永远不会执行
+std::shared_ptr<asio2::condition_event> event_ptr = client.post_condition_event([]()
 {
 	// do something.
 });

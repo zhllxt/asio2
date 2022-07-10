@@ -265,10 +265,10 @@ namespace asio2::mqtt
 		}
 
 		/**
-		 * @function Invoke the callback for the alternative Types...
+		 * @function Invoke the callback if the variant holds the alternative Types...
 		 */
 		template<class... Types, class FunctionT>
-		inline bool invoke(FunctionT&& callback) noexcept
+		inline bool invoke_if(FunctionT&& callback) noexcept
 		{
 			return ((this->template _invoke_for_each_type<Types>(callback)) || ...);
 		}

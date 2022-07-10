@@ -70,7 +70,7 @@ namespace asio2::detail
 			// if the "derived_t" (maybe server,client,session...) is created like a
 			// "shared_ptr", then here will return a not empty shared_ptr, otherwise
 			// here will return a empty shared_ptr.
-			// e.g : when the "derived_t" is udp_cast, and user has called post_event,
+			// e.g : when the "derived_t" is udp_cast, and user has called post_condition_event,
 			// and hold the "event_ptr" into another thread, and when the udp_cast is 
 			// soppted and destroyed, and user called the "event_ptr->notify()" 
 			// in the "another thread", if the udp_cast is created like a "shared_ptr",

@@ -514,8 +514,8 @@ timer.start_timer(5, std::chrono::milliseconds(1000), std::chrono::milliseconds(
 ```c++
 asio2::tcp_client client;
 
-// Post an asynchronous event that is never executed unless it is manually triggered
-std::shared_ptr<asio2::async_event> event_ptr = client.post_event([]()
+// Post an asynchronous condition event that is never executed unless it is manually triggered
+std::shared_ptr<asio2::condition_event> event_ptr = client.post_condition_event([]()
 {
 	// do something.
 });

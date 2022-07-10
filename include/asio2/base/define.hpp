@@ -31,7 +31,7 @@ namespace asio2::detail
 	                                             KEYWORD io_t;                      \
 	                                             KEYWORD iopool;                    \
 	template <class, class>                      KEYWORD alive_time_cp;             \
-	template <class, class>                      KEYWORD async_event_cp;            \
+	template <class, class>                      KEYWORD condition_event_cp;        \
 	template <class, class>                      KEYWORD connect_cp;                \
 	template <class, class>                      KEYWORD connect_time_cp;           \
 	template <class, class>                      KEYWORD connect_timeout_cp;        \

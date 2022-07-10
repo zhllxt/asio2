@@ -34,7 +34,7 @@
 #include <asio2/base/detail/util.hpp>
 #include <asio2/base/detail/function_traits.hpp>
 
-#include <asio2/base/component/async_event_cp.hpp>
+#include <asio2/base/component/condition_event_cp.hpp>
 
 #include <asio2/ecs/rdc/rdc_invoker.hpp>
 #include <asio2/ecs/rdc/rdc_option.hpp>
@@ -66,7 +66,7 @@ namespace asio2::detail
 		struct rdc_fields
 		{
 			/// Used to notify the send queue to begin send.
-			std::shared_ptr<async_event>         send_event_;
+			std::shared_ptr<condition_event>     send_event_;
 
 			/// The pending send datas
 			std::queue<std::tuple<
@@ -79,7 +79,7 @@ namespace asio2::detail
 			bool                                 stop_flag_ = false;
 
 			/// Constructor
-			rdc_fields(io_t& io) : send_event_(std::make_shared<async_event>(io))
+			rdc_fields(io_t& io) : send_event_(std::make_shared<condition_event>(io))
 			{
 			}
 		};
