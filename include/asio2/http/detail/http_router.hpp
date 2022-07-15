@@ -195,7 +195,9 @@ namespace boost::beast::websocket
 			return this->on(std::move(type), std::forward<F>(f), std::addressof(c));
 		}
 
-	protected:
+	public:
+		// under gcc 8.2.0, if this "operator()" is protected, it compiled error :
+		// is protected within this context : function_traits<decltype(&Callable::operator())>{};
 		inline void operator()(std::shared_ptr<caller_t>& caller, http::web_request& req, http::web_response&)
 		{
 			ASIO2_ASSERT(caller->is_websocket());
@@ -204,6 +206,8 @@ namespace boost::beast::websocket
 
 			if (f) f(caller, req.ws_frame_data_);
 		}
+
+	protected:
 		template<class F>
 		inline void _bind(websocket::frame type, F&& f)
 		{
@@ -302,7 +306,9 @@ namespace asio2::detail
 		 * if fun is member function, the first caop param must the class object's pointer or refrence.
 		 */
 		template<http::verb... M, class F, class ...CAOP>
-		inline self& bind(std::string name, F&& fun, CAOP&&... caop)
+		typename std::enable_if_t<!detail::is_template_instance_of_v<websocket::listener,
+			detail::remove_cvref_t<F>>, self&>
+		inline bind(std::string name, F&& fun, CAOP&&... caop)
 		{
 			asio2::trim_both(name);
 
@@ -432,7 +438,9 @@ namespace asio2::detail
 		}
 
 		template<http::verb... M, class F, class... AOP>
-		inline void _bind(std::string name, F f, AOP&&... aop)
+		typename std::enable_if_t<!detail::is_template_instance_of_v<websocket::listener,
+			detail::remove_cvref_t<F>>, void>
+		inline _bind(std::string name, F f, AOP&&... aop)
 		{
 			using Tup = std::tuple<AOP...>;
 
@@ -445,7 +453,8 @@ namespace asio2::detail
 		}
 
 		template<http::verb... M, class F, class C, class... AOP>
-		typename std::enable_if_t<std::is_same_v<C, typename function_traits<F>::class_type>, void>
+		typename std::enable_if_t<!detail::is_template_instance_of_v<websocket::listener,
+			detail::remove_cvref_t<F>> && std::is_same_v<C, typename function_traits<F>::class_type>, void>
 		inline _bind(std::string name, F f, C* c, AOP&&... aop)
 		{
 			using Tup = std::tuple<AOP...>;
@@ -459,7 +468,8 @@ namespace asio2::detail
 		}
 
 		template<http::verb... M, class F, class C, class... AOP>
-		typename std::enable_if_t<std::is_same_v<C, typename function_traits<F>::class_type>, void>
+		typename std::enable_if_t<!detail::is_template_instance_of_v<websocket::listener,
+			detail::remove_cvref_t<F>> && std::is_same_v<C, typename function_traits<F>::class_type>, void>
 		inline _bind(std::string name, F f, C& c, AOP&&... aop)
 		{
 			this->_bind<M...>(std::move(name), std::move(f), std::addressof(c), std::forward<AOP>(aop)...);
