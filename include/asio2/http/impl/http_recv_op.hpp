@@ -148,11 +148,11 @@ namespace asio2::detail
 						http::parses::http_parser_parse_url(
 							target.data(), target.size(), 0, std::addressof(derive.req_.url_.parser()));
 
-						if (derive._check_upgrade(this_ptr, condition))
-							return;
-
 						derive.rep_.result(http::status::unknown);
 						derive.rep_.keep_alive(derive.req_.keep_alive());
+
+						if (derive._check_upgrade(this_ptr, condition))
+							return;
 
 						derive._fire_recv(this_ptr, condition);
 

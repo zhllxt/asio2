@@ -37,11 +37,12 @@
 #define __ASIO2_BASE64_IMPL_HPP__
 
 #include <string>
+#include <string_view>
 
 namespace asio2 {
 namespace detail
 {
-	static std::string const base64_chars =
+	static std::string_view const base64_chars =
 		"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 		"abcdefghijklmnopqrstuvwxyz"
 		"0123456789+/";
@@ -121,7 +122,7 @@ inline std::string encode(unsigned char const * input, size_t len) {
  * @param input The input data
  * @return A base64 encoded string representing input
  */
-inline std::string encode(std::string const & input) {
+inline std::string encode(std::string_view const & input) {
     return encode(
         reinterpret_cast<const unsigned char *>(input.data()),
         input.size()
@@ -133,7 +134,7 @@ inline std::string encode(std::string const & input) {
  * @param input The base64 encoded input data
  * @return A string representing the decoded raw bytes
  */
-inline std::string decode(std::string const & input) {
+inline std::string decode(std::string_view const & input) {
     size_t in_len = input.size();
     int i = 0;
     int j = 0;
@@ -205,7 +206,7 @@ inline std::string base64_encode(unsigned char const * input, size_t len)
  * @param input The input data
  * @return A base64 encoded string representing input
  */
-inline std::string base64_encode(std::string const & input)
+inline std::string base64_encode(std::string_view const & input)
 {
 	return base64().encode(input);
 }
@@ -215,7 +216,7 @@ inline std::string base64_encode(std::string const & input)
  * @param input The base64 encoded input data
  * @return A string representing the decoded raw bytes
  */
-inline std::string base64_decode(std::string const & input)
+inline std::string base64_decode(std::string_view const & input)
 {
 	return base64().decode(input);
 }

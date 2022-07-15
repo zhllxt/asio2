@@ -121,7 +121,7 @@ namespace asio2::detail
 				ASIO2_ASSERT(this_ptr);
 				if (this_ptr)
 				{
-					this->derived()._send_response(std::move(this_ptr), std::move(condition));
+					this->derived()._do_send_http_response(std::move(this_ptr), std::move(condition));
 				}
 			};
 
@@ -227,7 +227,25 @@ namespace asio2::detail
 		}
 
 		template<typename MatchCondition>
-		inline void _send_response(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		inline void _send_http_response(
+			std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		{
+			if (this->rep_.defer_guard_)
+			{
+				this->rep_.defer_guard_.reset();
+			}
+			else
+			{
+				if (this->response_mode_ == asio2::response_mode::automatic)
+				{
+					this->derived()._do_send_http_response(std::move(this_ptr), std::move(condition));
+				}
+			}
+		}
+
+		template<typename MatchCondition>
+		inline void _do_send_http_response(
+			std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
 		{
 			ASIO2_ASSERT(this->is_http());
 
@@ -236,7 +254,7 @@ namespace asio2::detail
 				asio::post(this->derived().io().context(), make_allocator(this->derived().wallocator(),
 				[this, this_ptr = std::move(this_ptr), condition = std::move(condition)]() mutable
 				{
-					this->derived()._send_response(std::move(this_ptr), std::move(condition));
+					this->derived()._do_send_http_response(std::move(this_ptr), std::move(condition));
 				}));
 				return;
 			}
@@ -367,12 +385,12 @@ namespace asio2::detail
 					this->req_.ws_frame_type_ = websocket::frame::open;
 					this->req_.ws_frame_data_ = {};
 
-					this->derived().silence_timeout_ = std::chrono::milliseconds(tcp_silence_timeout);
-
-					this->derived()._ws_start(this_ptr, condition, this->derived().stream());
-
 					if (this->router_._route(this_ptr, this->req_, this->rep_))
 					{
+						this->derived().silence_timeout_ = std::chrono::milliseconds(tcp_silence_timeout);
+
+						this->derived()._ws_start(this_ptr, condition, this->derived().stream());
+
 						this->derived()._post_control_callback(this_ptr, condition);
 						this->derived().push_event(
 						[this, this_ptr = std::move(this_ptr), condition = std::move(condition)]
@@ -382,12 +400,22 @@ namespace asio2::detail
 								std::move(this_ptr), std::move(condition), this->req_.base(),
 								defer_event([](event_queue_guard<derived_t>) {}, std::move(g)));
 						});
-						return true;
 					}
 					else
 					{
-						ASIO2_ASSERT(false);
+						this->req_.ws_frame_type_ = websocket::frame::unknown;
+						this->req_.ws_frame_data_ = {};
+
+						this->websocket_router_.reset();
+
+						this->derived()._send_http_response(this_ptr, condition);
 					}
+
+					// If find websocket router, the router callback must has been called, 
+					// so as long as we find the websocket router, we return true
+					// If don't do this, the fire recv will be called, then the router callback
+					// will be called again.
+					return true;
 				}
 			}
 			return false;
@@ -459,17 +487,7 @@ namespace asio2::detail
 			}
 			else
 			{
-				if (this->rep_.defer_guard_)
-				{
-					this->rep_.defer_guard_.reset();
-				}
-				else
-				{
-					if (this->response_mode_ == asio2::response_mode::automatic)
-					{
-						this->derived()._send_response(this_ptr, condition);
-					}
-				}
+				this->derived()._send_http_response(this_ptr, condition);
 			}
 		}
 

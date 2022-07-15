@@ -157,15 +157,47 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
+			// Normally, _do_disconnect function will be called in the io_context thread, but if some
+			// exception occured, _do_disconnect maybe called in the "catch(){ ... }", then this maybe
+			// not in the io_context thread.
+			// If the session_ptr->stop() is called not in io_context thread, then this will be not in
+			// the io_context thread.
+
 			//ASIO2_ASSERT(derive.io().running_in_this_thread());
 
 			state_t expected = state_t::started;
 			if (derive.state().compare_exchange_strong(expected, state_t::stopping))
-				return derive._post_disconnect(ec, std::move(this_ptr), expected, std::move(chain));
+			{
+				if (derive.io().running_in_this_thread())
+				{
+					return derive._post_disconnect(ec, std::move(this_ptr), expected, std::move(chain));
+				}
+				else
+				{
+					asio::post(derive.io().context(), make_allocator(derive.wallocator(),
+					[&derive, expected, ec, this_ptr = std::move(this_ptr), chain = std::move(chain)]() mutable
+					{
+						derive._post_disconnect(ec, std::move(this_ptr), expected, std::move(chain));
+					}));
+				}
+			}
 
 			expected = state_t::starting;
 			if (derive.state().compare_exchange_strong(expected, state_t::stopping))
-				return derive._post_disconnect(ec, std::move(this_ptr), expected, std::move(chain));
+			{
+				if (derive.io().running_in_this_thread())
+				{
+					return derive._post_disconnect(ec, std::move(this_ptr), expected, std::move(chain));
+				}
+				else
+				{
+					asio::post(derive.io().context(), make_allocator(derive.wallocator(),
+					[&derive, expected, ec, this_ptr = std::move(this_ptr), chain = std::move(chain)]() mutable
+					{
+						derive._post_disconnect(ec, std::move(this_ptr), expected, std::move(chain));
+					}));
+				}
+			}
 		}
 
 		template<typename DeferEvent, bool IsSession = args_t::is_session>
@@ -173,6 +205,8 @@ namespace asio2::detail
 		_post_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr, state_t old_state, DeferEvent chain)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
+
+			ASIO2_ASSERT(derive.io().running_in_this_thread());
 
 			derive._make_disconnect_timer(this_ptr);
 

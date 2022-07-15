@@ -462,9 +462,25 @@ namespace asio2::detail
 			}
 			else
 			{
-				ASIO2_ASSERT(derive.io().running_in_this_thread());
+				// when some exception occured, disp_event maybe called in the "catch(){ ... }", 
+				// then this maybe not in the io_context thread.
 
-				f(std::move(guard));
+				//ASIO2_ASSERT(derive.io().running_in_this_thread());
+
+				if (derive.io().running_in_this_thread())
+				{
+					f(std::move(guard));
+				}
+				else
+				{
+					// beacuse the callback "f" hold the derived_ptr already,
+					// so this callback for asio::post don't need hold the derived_ptr again.
+					asio::post(derive.io().context(), make_allocator(derive.wallocator(),
+					[f = std::forward<Callback>(f), guard = std::move(guard)]() mutable
+					{
+						f(std::move(guard));
+					}));
+				}
 			}
 
 			return (derive);

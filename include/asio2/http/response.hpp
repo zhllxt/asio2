@@ -294,7 +294,8 @@ namespace asio2::detail
 		 * @param : content - the response body, it's usually a simple string,
 		 * and the content-type is "text/plain" by default.
 		 */
-		inline self& fill_text(std::string content, http::status result = http::status::ok,
+		template<class StringT>
+		inline self& fill_text(StringT&& content, http::status result = http::status::ok,
 			std::string_view mimetype = "text/plain", unsigned version = 11)
 		{
 			// must clear file_body
@@ -306,7 +307,7 @@ namespace asio2::detail
 			this->result(result);
 			this->version(version < 10 ? 11 : version);
 
-			this->body().text() = std::move(content);
+			this->body().text() = detail::to_string(std::forward<StringT>(content));
 			this->prepare_payload();
 
 			return (*this);
@@ -315,10 +316,11 @@ namespace asio2::detail
 		/**
 		 * @function : Respond to http request with json content
 		 */
-		inline self& fill_json(std::string content, http::status result = http::status::ok,
+		template<class StringT>
+		inline self& fill_json(StringT&& content, http::status result = http::status::ok,
 			std::string_view mimetype = "application/json", unsigned version = 11)
 		{
-			return this->fill_text(std::move(content), result,
+			return this->fill_text(std::forward<StringT>(content), result,
 				mimetype.empty() ? "application/json" : mimetype, version);
 		}
 
@@ -327,10 +329,11 @@ namespace asio2::detail
 		 * @param : content - the response body, may be a plain text string, or a stardand
 		 * <html>...</html> string, it's just that the content-type is "text/html" by default.
 		 */
-		inline self& fill_html(std::string content, http::status result = http::status::ok,
+		template<class StringT>
+		inline self& fill_html(StringT&& content, http::status result = http::status::ok,
 			std::string_view mimetype = "text/html", unsigned version = 11)
 		{
-			return this->fill_text(std::move(content), result,
+			return this->fill_text(std::forward<StringT>(content), result,
 				mimetype.empty() ? "text/html" : mimetype, version);
 		}
 
@@ -339,10 +342,11 @@ namespace asio2::detail
 		 * Generated a standard html error page automatically use the status coe 'result',
 		 * like <html>...</html>, and the content-type is "text/html" by default.
 		 */
-		inline self& fill_page(http::status result, std::string desc = {},
+		template<class StringT = std::string_view>
+		inline self& fill_page(http::status result, StringT&& desc = std::string_view{},
 			std::string_view mimetype = "text/html", unsigned version = 11)
 		{
-			return this->fill_text(http::error_page(result, std::move(desc)), result,
+			return this->fill_text(http::error_page(result, std::forward<StringT>(desc)), result,
 				mimetype.empty() ? "text/html" : mimetype, version);
 		}
 

@@ -63,6 +63,9 @@ namespace boost::beast::websocket
 	{
 		template<class, class> friend class asio2::detail::http_router_t;
 
+		// Cannot access the protected member of bho::beast::websocket::listener<caller_t>::operator ()
+		template<typename, typename> friend struct asio2::detail::function_traits;
+
 	public:
 		using self = listener<caller_t>;
 
@@ -262,7 +265,7 @@ namespace asio2::detail
 
 	public:
 		using self   = http_router_t<caller_t, args_t>;
-		using optype = std::function<void(std::shared_ptr<caller_t>&, http::web_request&, http::web_response&)>;
+		using optype = std::function<bool(std::shared_ptr<caller_t>&, http::web_request&, http::web_response&)>;
 
 		/**
 		 * @constructor
@@ -270,7 +273,7 @@ namespace asio2::detail
 		http_router_t()
 		{
 			this->not_found_router_ = std::make_shared<optype>(
-				[](std::shared_ptr<caller_t>&, http::web_request& req, http::web_response& rep) mutable
+			[](std::shared_ptr<caller_t>&, http::web_request& req, http::web_response& rep) mutable
 			{
 				std::string desc;
 				desc.reserve(64);
@@ -281,6 +284,8 @@ namespace asio2::detail
 				desc += "\" was not found";
 
 				rep.fill_page(http::status::not_found, std::move(desc), {}, req.version());
+
+				return true;
 			});
 		}
 
@@ -470,6 +475,18 @@ namespace asio2::detail
 					std::move(listener), Tup{ std::forward<AOP>(aop)... },
 					std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 
+			// https://datatracker.ietf.org/doc/rfc6455/
+
+			// Once a connection to the server has been established (including a
+			// connection via a proxy or over a TLS-encrypted tunnel), the client
+			// MUST send an opening handshake to the server.  The handshake consists
+			// of an HTTP Upgrade request, along with a list of required and
+			// optional header fields.  The requirements for this handshake are as
+			// follows.
+
+			// 2.   The method of the request MUST be GET, and the HTTP version MUST
+			//      be at least 1.1.
+
 			this->_bind_uris(name, std::move(op), std::array<std::string, 1>{std::string{ "Z" } +name});
 		}
 
@@ -500,7 +517,7 @@ namespace asio2::detail
 		//}
 
 		template<class F, class Tup>
-		inline void _proxy(F& f, Tup& aops, 
+		inline bool _proxy(F& f, Tup& aops, 
 			std::shared_ptr<caller_t>& caller, http::web_request& req, http::web_response& rep)
 		{
 			using fun_traits_type = function_traits<F>;
@@ -508,7 +525,7 @@ namespace asio2::detail
 				typename fun_traits_type::template args<0>::type>>;
 
 			if (!_call_aop_before(aops, caller, req, rep))
-				return;
+				return false;
 
 			if constexpr (std::is_same_v<std::shared_ptr<caller_t>, arg0_type>)
 			{
@@ -519,11 +536,11 @@ namespace asio2::detail
 				f(req, rep);
 			}
 
-			_call_aop_after(aops, caller, req, rep);
+			return _call_aop_after(aops, caller, req, rep);
 		}
 
 		template<class F, class C, class Tup>
-		inline void _proxy(F& f, C* c, Tup& aops, 
+		inline bool _proxy(F& f, C* c, Tup& aops,
 			std::shared_ptr<caller_t>& caller, http::web_request& req, http::web_response& rep)
 		{
 			using fun_traits_type = function_traits<F>;
@@ -531,7 +548,7 @@ namespace asio2::detail
 				typename fun_traits_type::template args<0>::type>>;
 
 			if (!_call_aop_before(aops, caller, req, rep))
-				return;
+				return false;
 
 			if constexpr (std::is_same_v<std::shared_ptr<caller_t>, arg0_type>)
 			{
@@ -542,19 +559,30 @@ namespace asio2::detail
 				if (c) (c->*f)(req, rep);
 			}
 
-			_call_aop_after(aops, caller, req, rep);
+			return _call_aop_after(aops, caller, req, rep);
 		}
 
 		template<class Tup>
-		inline void _proxy(websocket::listener<caller_t>& listener, Tup& aops,
+		inline bool _proxy(websocket::listener<caller_t>& listener, Tup& aops,
 			std::shared_ptr<caller_t>& caller, http::web_request& req, http::web_response& rep)
 		{
-			if (!_call_aop_before(aops, caller, req, rep))
-				return;
+			if (req.ws_frame_type_ == websocket::frame::open)
+			{
+				if (!_call_aop_before(aops, caller, req, rep))
+					return false;
+			}
 
-			listener(caller, req, rep);
+			if (req.ws_frame_type_ != websocket::frame::unknown)
+			{
+				listener(caller, req, rep);
+			}
 
-			_call_aop_after(aops, caller, req, rep);
+			if (req.ws_frame_type_ == websocket::frame::open)
+			{
+				return _call_aop_after(aops, caller, req, rep);
+			}
+
+			return true;
 		}
 
 		template<class F>
@@ -580,7 +608,7 @@ namespace asio2::detail
 		}
 
 		template<class F>
-		inline void _not_found_proxy(F& f, std::shared_ptr<caller_t>& caller,
+		inline bool _not_found_proxy(F& f, std::shared_ptr<caller_t>& caller,
 			http::web_request& req, http::web_response& rep)
 		{
 			asio2::detail::ignore_unused(caller);
@@ -594,10 +622,12 @@ namespace asio2::detail
 			{
 				f(req, rep);
 			}
+
+			return true;
 		}
 
 		template<class F, class C>
-		inline void _not_found_proxy(F& f, C* c, std::shared_ptr<caller_t>& caller,
+		inline bool _not_found_proxy(F& f, C* c, std::shared_ptr<caller_t>& caller,
 			http::web_request& req, http::web_response& rep)
 		{
 			asio2::detail::ignore_unused(caller);
@@ -611,6 +641,8 @@ namespace asio2::detail
 			{
 				if (c) (c->*f)(req, rep);
 			}
+
+			return true;
 		}
 
 		template <typename... Args, typename F, std::size_t... I>
@@ -779,16 +811,14 @@ namespace asio2::detail
 		{
 			if (caller->websocket_router_)
 			{
-				(*(caller->websocket_router_))(caller, req, rep);
-				return true;
+				return (*(caller->websocket_router_))(caller, req, rep);
 			}
 
 			std::shared_ptr<optype>& router_ptr = this->template _find<true>(req, rep);
 
 			if (router_ptr)
 			{
-				(*router_ptr)(caller, req, rep);
-				return true;
+				return (*router_ptr)(caller, req, rep);
 			}
 
 			if (this->not_found_router_ && (*(this->not_found_router_)))

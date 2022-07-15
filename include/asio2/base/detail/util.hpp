@@ -489,29 +489,26 @@ namespace asio2::detail
 	}
 
 	template<typename T>
-	inline std::string_view to_string_view(T&& v)
+	inline std::string_view to_string_view(const T& v)
 	{
 		using type = detail::remove_cvref_t<T>;
 
-		std::string_view s;
-
 		if constexpr (is_string_view_v<type>)
 		{
-			s = std::forward<T>(v);
+			return std::string_view{ v };
 		}
 		else if constexpr (std::is_pointer_v<type>)
 		{
-			if (v) s = v;
+			return (v ? std::string_view{ v } : std::string_view{});
 		}
 		else if constexpr (std::is_array_v<type>)
 		{
-			s = std::forward<T>(v);
+			return std::string_view{ v };
 		}
 		else
 		{
-			s = std::forward<T>(v);
+			return std::string_view{ v };
 		}
-		return s;
 	}
 
 	template<typename Iterator>

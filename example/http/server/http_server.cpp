@@ -234,7 +234,7 @@ int main()
 
 		printf("ws pong\n");
 
-	}));
+	}), aop_check{});
 
 	server.bind_not_found([](http::web_request& req, http::web_response& rep)
 	{

@@ -266,11 +266,32 @@ namespace asio2::mqtt
 
 		/**
 		 * @function Invoke the callback if the variant holds the alternative Types...
+		 * @return 
+		 * If the callback return type is void :
+		 *   If the variant holds the alternative Types... , the callback will be called, then return true
+		 *   If the variant has't holds the alternative Types... , the callback will not be called, then return false
+		 * If the callback return type is not void :
+		 *   If the variant holds the alternative Types... , the callback will be called,
+		 *      This return value is the callback returned value.
+		 *   If the variant has't holds the alternative Types... , the callback will not be called,
+		 *      This return value is a empty object of the callback returned type.
+		 * The callback signature : void(auto& msg) or bool(auto& msg) or others...
 		 */
 		template<class... Types, class FunctionT>
-		inline bool invoke_if(FunctionT&& callback) noexcept
+		inline auto invoke_if(FunctionT&& callback) noexcept
 		{
-			return ((this->template _invoke_for_each_type<Types>(callback)) || ...);
+			using return_type = std::tuple_element_t<0, std::tuple<std::invoke_result_t<FunctionT, Types>...>>;
+
+			if constexpr (std::is_same_v<return_type, void>)
+			{
+				return ((this->template _invoke_for_each_type<Types>(callback)) || ...);
+			}
+			else
+			{
+				return_type r{};
+				[[maybe_unused]] bool f = ((this->template _invoke_for_each_type<Types>(r, callback)) || ...);
+				return r;
+			}
 		}
 
 	protected:
@@ -280,6 +301,17 @@ namespace asio2::mqtt
 			if (std::holds_alternative<T>(this->base()))
 			{
 				callback(std::get<T>(this->base()));
+				return true;
+			}
+			return false;
+		}
+
+		template<class T, class ReturnT, class FunctionT>
+		inline bool _invoke_for_each_type(ReturnT& r, FunctionT&& callback) noexcept
+		{
+			if (std::holds_alternative<T>(this->base()))
+			{
+				r = callback(std::get<T>(this->base()));
 				return true;
 			}
 			return false;

@@ -47,6 +47,31 @@ namespace asio2::detail
 		 * @destructor
 		 */
 		~http_send_op() = default;
+	
+	protected:
+		template<bool isRequest, class Body, class Fields>
+		inline void _check_http_message(http::message<isRequest, Body, Fields>& msg)
+		{
+			// https://datatracker.ietf.org/doc/html/rfc2616#section-14.13
+			// If an http message header don't has neither "Content-Length" nor "Transfer-Encoding"(chunk)
+			// Then the receiver may not be able to parse the http message normally.
+			try
+			{
+				if (!msg.chunked())
+				{
+					if (msg.find(http::field::content_length) == msg.end())
+					{
+						msg.prepare_payload();
+					}
+				}
+			}
+			catch (system_error const&)
+			{
+			}
+			catch (std::exception const&)
+			{
+			}
+		}
 
 	protected:
 		template<class Data, class Callback>
@@ -61,6 +86,8 @@ namespace asio2::detail
 		inline bool _http_send(http::message<isRequest, Body, Fields>& data, Callback&& callback)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
+
+			derive._check_http_message(data);
 
 			http::async_write(derive.stream(), data, make_allocator(derive.wallocator(),
 			[&derive, p = derive.selfptr(), callback = std::forward<Callback>(callback)]
@@ -87,6 +114,8 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
+			derive._check_http_message(data.base());
+
 			http::async_write(derive.stream(), data.base(), make_allocator(derive.wallocator(),
 			[&derive, p = derive.selfptr(), callback = std::forward<Callback>(callback)]
 			(const error_code& ec, std::size_t bytes_sent) mutable
@@ -111,6 +140,8 @@ namespace asio2::detail
 		inline bool _http_send(detail::http_response_impl_t<Body, Fields>& data, Callback&& callback)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
+
+			derive._check_http_message(data.base());
 
 			http::async_write(derive.stream(), data.base(), make_allocator(derive.wallocator(),
 			[&derive, p = derive.selfptr(), callback = std::forward<Callback>(callback)]

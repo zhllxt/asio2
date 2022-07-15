@@ -476,15 +476,16 @@ namespace boost::beast::http
 			return true;
 		}
 
-		template<typename = void>
-		inline std::string make_error_page(http::status result, std::string desc = {})
+		template<class StringT = std::string_view>
+		inline std::string make_error_page(http::status result, StringT&& desc = std::string_view{})
 		{
 			std::string_view reason = http::obsolete_reason(result);
+			std::string_view descrb = asio2::detail::to_string_view(desc);
 			std::string content;
-			if (desc.empty())
+			if (descrb.empty())
 				content.reserve(reason.size() * 2 + 67);
 			else
-				content.reserve(reason.size() * 2 + 67 + desc.size() + 21);
+				content.reserve(reason.size() * 2 + 67 + descrb.size() + 21);
 			content += "<html><head><title>";
 			content += reason;
 			content += "</title></head><body><h1>";
@@ -492,20 +493,20 @@ namespace boost::beast::http
 			content += " ";
 			content += reason;
 			content += "</h1>";
-			if (!desc.empty())
+			if (!descrb.empty())
 			{
 				content += "<p>Description : ";
-				content += std::move(desc);
+				content += descrb;
 				content += "</p>";
 			}
 			content += "</body></html>";
 			return content;
 		}
 
-		template<typename = void>
-		inline std::string error_page(http::status result, std::string desc = {})
+		template<class StringT = std::string_view>
+		inline std::string error_page(http::status result, StringT&& desc = std::string_view{})
 		{
-			return make_error_page(result, std::move(desc));
+			return make_error_page(result, std::forward<StringT>(desc));
 		}
 
 		/**
@@ -556,7 +557,7 @@ namespace bho::beast::websocket
 namespace boost::beast::websocket
 #endif
 {
-	enum class frame
+	enum class frame : std::uint8_t
 	{
 		/// 
 		unknown,
