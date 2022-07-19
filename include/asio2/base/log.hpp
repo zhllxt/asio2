@@ -15,6 +15,8 @@
 #pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
+#include <asio2/base/detail/push_options.hpp>
+
 #include <cassert>
 
 #include <string>
@@ -116,14 +118,14 @@ namespace asio2::detail
 		return logger;
 	}
 
-	template<typename FormatString, typename... Args>
-	inline void log(spdlog::level::level_enum lvl, const FormatString &fmt, Args&&...args)
+	template<typename... Args>
+	inline void log(spdlog::level::level_enum lvl, fmt::format_string<Args...> fmtstr, Args&&...args)
 	{
 		std::shared_ptr<spdlog::logger>& loger = get_logger();
 
 		if (loger)
 		{
-			loger->log(lvl, fmt, std::forward<Args>(args)...);
+			loger->log(lvl, fmtstr, std::forward<Args>(args)...);
 		}
 	}
 #else
@@ -166,5 +168,7 @@ namespace asio2::detail
 #else
 	#define ASIO2_LOG(...) ((void)0)
 #endif
+
+#include <asio2/base/detail/pop_options.hpp>
 
 #endif // !__ASIO2_LOG_HPP__

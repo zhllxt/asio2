@@ -30,6 +30,7 @@
 #if defined(_MSC_VER)
 #  pragma warning(push)
 #  pragma warning(disable:4100) // warning C4100: Unreferenced formal parameters
+#  pragma warning(disable:4189) // warning C4189: Local variables are initialized but not referenced
 #  pragma warning(disable:4191) // asio inner : from FARPROC to cancel_io_ex_t is unsafe
 #  pragma warning(disable:4267) // warning C4267: Convert from size_t to uint32_t may be loss data
 #  pragma warning(disable:4311)
