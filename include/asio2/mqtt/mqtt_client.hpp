@@ -529,7 +529,7 @@ namespace asio2::detail
 			}
 
 			std::string_view data{ reinterpret_cast<std::string_view::const_pointer>(
-					asio::buffer_cast<const char*>(stream->data())), stream->size() };
+					static_cast<const char*>(stream->data().data())), stream->size() };
 
 			mqtt::control_packet_type type = mqtt::message_type_from_data(data);
 

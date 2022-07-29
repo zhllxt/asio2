@@ -93,7 +93,13 @@ namespace asio2::detail
 			if (this->send_fin_)
 				this->_kcp_send_hdr(kcp::make_kcphdr_fin(0), ec_ignore);
 
-			this->kcp_timer_.cancel(ec_ignore);
+			try
+			{
+				this->kcp_timer_.cancel();
+			}
+			catch (system_error const&)
+			{
+			}
 		}
 
 	protected:

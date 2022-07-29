@@ -114,7 +114,7 @@ namespace asio2::detail
 
 				bytes  = 1 + 1 + sock5_.methods_count();
 				buffer = stream->prepare(bytes);
-				p      = asio::buffer_cast<char*>(buffer);
+				p      = static_cast<char*>(buffer.data());
 
 				write(p, std::uint8_t(0x05));                         // SOCKS VERSION 5.
 				write(p, std::uint8_t(sock5_.methods_count()));       // NMETHODS
@@ -146,7 +146,7 @@ namespace asio2::detail
 				if (ec)
 					goto end;
 
-				p = const_cast<char*>(asio::buffer_cast<const char*>(stream->data()));
+				p = const_cast<char*>(static_cast<const char*>(stream->data().data()));
 
 				if (std::uint8_t version = read<std::uint8_t>(p); version != std::uint8_t(0x05))
 				{
@@ -253,7 +253,7 @@ namespace asio2::detail
 
 					bytes  = 1 + 1 + username.size() + 1 + password.size();
 					buffer = stream->prepare(bytes);
-					p      = asio::buffer_cast<char*>(buffer);
+					p      = static_cast<char*>(buffer.data());
 
 					// The VER field contains the current version of the subnegotiation,
 					// which is X'01'. The ULEN field contains the length of the UNAME field
@@ -309,7 +309,7 @@ namespace asio2::detail
 						goto end;
 
 					// parse reply
-					p = const_cast<char*>(asio::buffer_cast<const char*>(stream->data()));
+					p = const_cast<char*>(static_cast<const char*>(stream->data().data()));
 
 					if (std::uint8_t ver = read<std::uint8_t>(p); ver != std::uint8_t(0x01))
 					{
@@ -350,14 +350,14 @@ namespace asio2::detail
 				// octet of the address field contains the number of octets of name that
 				// follow, there is no terminating NUL octet.
 				buffer = stream->prepare(1 + 1 + 1 + 1 + (std::max)(16, int(host_.size() + 1)) + 2);
-				p      = asio::buffer_cast<char*>(buffer);
+				p      = static_cast<char*>(buffer.data());
 
 				write(p, std::uint8_t(0x05));                                    // VER 5.
 				write(p, std::uint8_t(detail::to_underlying(sock5_.command()))); // CMD CONNECT .
 				write(p, std::uint8_t(0x00));                                    // RSV.
 
 				// ATYP
-				endpoint = asio::ip::address::from_string(host_, ec);
+				endpoint = asio::ip::make_address(host_, ec);
 				if (ec)
 				{
 					ASIO2_ASSERT(host_.size() <= std::size_t(0xff));
@@ -451,7 +451,7 @@ namespace asio2::detail
 				if (ec)
 					goto end;
 
-				p = const_cast<char*>(asio::buffer_cast<const char*>(stream->data()));
+				p = const_cast<char*>(static_cast<const char*>(stream->data().data()));
 
 				// VER
 				if (std::uint8_t ver = read<std::uint8_t>(p); ver != std::uint8_t(0x05))
@@ -505,7 +505,7 @@ namespace asio2::detail
 				if (ec)
 					goto end;
 
-				p = const_cast<char*>(asio::buffer_cast<const char*>(stream->data()));
+				p = const_cast<char*>(static_cast<const char*>(stream->data().data()));
 
 				switch (addr_type)
 				{

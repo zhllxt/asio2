@@ -562,8 +562,14 @@ namespace asio2::detail
 
 			error_code ec_ignore{};
 
-			this->acceptor_timer_.cancel(ec_ignore);
-			this->counter_timer_.cancel(ec_ignore);
+			try
+			{
+				this->acceptor_timer_.cancel();
+				this->counter_timer_.cancel();
+			}
+			catch (system_error const&)
+			{
+			}
 
 			// call the base class stop function
 			super::stop();

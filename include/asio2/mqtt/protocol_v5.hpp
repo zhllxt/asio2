@@ -1493,10 +1493,10 @@ namespace asio2::mqtt::v5
 		inline properties_set&              properties        () { return properties_               ; }
 		inline utf8_string::view_type       client_id         () { return client_id_    .data_view(); }
 		inline properties_set&              will_properties   () { return will_props_   .value()    ; }
-		inline utf8_string::view_type       will_topic        () { return will_topic_  ->data_view(); }
-		inline binary_data::view_type       will_payload      () { return will_payload_->data_view(); }
-		inline utf8_string::view_type       username          () { return username_    ->data_view(); }
-		inline binary_data::view_type       password          () { return password_    ->data_view(); }
+		inline utf8_string::view_type       will_topic        () { return will_topic_   ? will_topic_  ->data_view() : ""; }
+		inline binary_data::view_type       will_payload      () { return will_payload_ ? will_payload_->data_view() : ""; }
+		inline utf8_string::view_type       username          () { return username_     ? username_    ->data_view() : ""; }
+		inline binary_data::view_type       password          () { return password_     ? password_    ->data_view() : ""; }
 
 		inline connect& keep_alive(two_byte_integer::value_type   v)
 		{
@@ -1863,7 +1863,7 @@ namespace asio2::mqtt::v5
 		inline publish       &     retain(bool     v) { type_and_flags_.bits.retain = v;                            return (*this); }
 
 		inline utf8_string::view_type          topic_name() { return topic_name_.data_view(); }
-		inline two_byte_integer::value_type    packet_id () { return packet_id_->value()    ; }
+		inline two_byte_integer::value_type    packet_id () { return packet_id_ ? packet_id_->value() : 0; }
 		inline properties_set&                 properties() { return properties_            ; }
 		inline application_message::view_type  payload   () { return payload_.data_view()   ; }
 

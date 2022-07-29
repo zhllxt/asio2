@@ -48,7 +48,7 @@
 
 static const int   test_loop_times = 1000;
 static const int   test_client_count = 10;
-static const int   test_wait_count = 10000;
+static const int   test_wait_count = 60000;
 
 bool test_has_error = false;
 

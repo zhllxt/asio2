@@ -874,7 +874,13 @@ namespace asio2::detail
 			// if don't destroy it, will cause loop refrence.
 			this->user_data_.reset();
 
-			this->timer_.cancel(ec_ignore);
+			try
+			{
+				this->timer_.cancel();
+			}
+			catch (system_error const&)
+			{
+			}
 
 			// Call close,otherwise the _handle_recv will never return
 			this->socket_.close(ec_ignore);
