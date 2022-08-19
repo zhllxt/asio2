@@ -50,7 +50,7 @@ namespace asio2::detail
 	template<class derived_t>
 	class timer_impl_t
 		: public object_t          <derived_t>
-		, public iopool_cp
+		, public iopool_cp         <derived_t>
 		, public thread_id_cp      <derived_t>
 		, public user_timer_cp     <derived_t>
 		, public post_cp           <derived_t>
@@ -62,16 +62,18 @@ namespace asio2::detail
 		using super = object_t    <derived_t>;
 		using self  = timer_impl_t<derived_t>;
 
+		using iopoolcp = iopool_cp<derived_t>;
+
 		/**
 		 * @constructor
 		 */
 		explicit timer_impl_t()
 			: object_t          <derived_t>()
-			, iopool_cp                    (1)
+			, iopool_cp         <derived_t>(1)
 			, user_timer_cp     <derived_t>()
 			, post_cp           <derived_t>()
 			, condition_event_cp<derived_t>()
-			, io_                       (iopool_cp::_get_io(0))
+			, io_                       (iopoolcp::_get_io(0))
 		{
 			this->start();
 		}
@@ -79,11 +81,11 @@ namespace asio2::detail
 		template<class Scheduler, std::enable_if_t<!std::is_integral_v<detail::remove_cvref_t<Scheduler>>, int> = 0>
 		explicit timer_impl_t(Scheduler&& scheduler)
 			: object_t          <derived_t>()
-			, iopool_cp                    (std::forward<Scheduler>(scheduler))
+			, iopool_cp         <derived_t>(std::forward<Scheduler>(scheduler))
 			, user_timer_cp     <derived_t>()
 			, post_cp           <derived_t>()
 			, condition_event_cp<derived_t>()
-			, io_                       (iopool_cp::_get_io(0))
+			, io_                       (iopoolcp::_get_io(0))
 		{
 			this->start();
 		}
@@ -103,7 +105,7 @@ namespace asio2::detail
 		{
 			derived_t& derive = this->derived();
 
-			bool ret = this->iopool_->start(); // start the io_context pool
+			bool ret = this->start_iopool(); // start the io_context pool
 
 			if (ret)
 			{
@@ -125,7 +127,7 @@ namespace asio2::detail
 		 */
 		inline void stop()
 		{
-			if (this->iopool_->stopped())
+			if (this->is_iopool_stopped())
 				return;
 
 			derived_t& derive = this->derived();
@@ -142,7 +144,7 @@ namespace asio2::detail
 			this->notify_all_condition_events();
 
 			// stop the io_context pool
-			this->iopool_->stop();
+			this->stop_iopool();
 		}
 
 	public:

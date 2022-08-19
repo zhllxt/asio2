@@ -41,7 +41,6 @@ namespace asio2::detail
 		using self  = mqtt_server_impl_t<derived_t, session_t>;
 
 		using session_type = session_t;
-		using subnode_type = typename session_type::subnode_type;
 
 		using super::async_send;
 
@@ -56,7 +55,8 @@ namespace asio2::detail
 		)
 			: super(init_buf_size, max_buf_size, concurrency)
 			, mqtt_options()
-			, mqtt_invoker_t   <session_t, typename session_t::args_type>()
+			, mqtt_invoker_t<session_t, typename session_t::args_type>()
+			, broker_state_(*this, *this)
 		{
 		}
 
@@ -67,8 +67,9 @@ namespace asio2::detail
 			Scheduler&& scheduler
 		)
 			: super(init_buf_size, max_buf_size, std::forward<Scheduler>(scheduler))
-			, mqtt_options                           ()
-			, mqtt_invoker_t   <session_t, typename session_t::args_type>()
+			, mqtt_options()
+			, mqtt_invoker_t<session_t, typename session_t::args_type>()
+			, broker_state_(*this, *this)
 		{
 		}
 
@@ -117,9 +118,9 @@ namespace asio2::detail
 			asio::dispatch(this->derived().io().context(), make_allocator(this->derived().wallocator(),
 			[this, this_ptr]() mutable
 			{
-				asio2_unique_lock lock{ this->mutex_ };
+				asio2_unique_lock lock{ this->get_mutex()};
 
-				this->mqtt_sessions_.clear();
+				this->mqtt_sessions().clear();
 			}));
 
 			super::_post_stop(ec, std::move(this_ptr), old_state);
@@ -151,31 +152,23 @@ namespace asio2::detail
 		template<typename... Args>
 		inline std::shared_ptr<session_t> _make_session(Args&&... args)
 		{
-			std::shared_ptr<session_t> p = super::_make_session(std::forward<Args>(args)..., *this,
-				this->mutex_, this->mqtt_sessions_,
-				this->subs_map_, this->shared_targets_, this->retained_messages_);
+			std::shared_ptr<session_t> p = super::_make_session(std::forward<Args>(args)..., this->broker_state_);
 			// Copy the parameter configuration of user calls for the "server" to each "session"
 			p->_mqtt_options_copy_from(*this);
 			return p;
 		}
 
-		inline asio2_shared_mutex& get_mutex() noexcept { return this->mutex_; }
+		inline auto& get_mutex        () noexcept { return this->broker_state_.mutex_            ; }
+		inline auto& invoker          () noexcept { return this->broker_state_.invoker_          ; }
+		inline auto& mqtt_sessions    () noexcept { return this->broker_state_.mqtt_sessions_    ; }
+		inline auto& subs_map         () noexcept { return this->broker_state_.subs_map_         ; }
+		inline auto& shared_targets   () noexcept { return this->broker_state_.shared_targets_   ; }
+		inline auto& retained_messages() noexcept { return this->broker_state_.retained_messages_; }
+		inline auto& security         () noexcept { return this->broker_state_.security_         ; }
 
 	protected:
-		/// use rwlock to make this id session map thread safe
-		mutable asio2_shared_mutex                                         mutex_;
-
-		/// client id map
-		std::unordered_map<std::string_view, std::shared_ptr<session_t>>   mqtt_sessions_;
-
-		/// subscription information map
-		mqtt::subscription_map<std::string_view, subnode_type>             subs_map_;
-
-		/// shared subscription targets
-		mqtt::shared_target<mqtt::stnode<session_t>>                       shared_targets_;
-
-		/// A list of messages retained so they can be sent to newly subscribed clients.
-		mqtt::retained_messages<mqtt::rmnode>                              retained_messages_;
+		/// 
+		mqtt::broker_state<session_t, typename session_t::args_type>  broker_state_;
 	};
 }
 

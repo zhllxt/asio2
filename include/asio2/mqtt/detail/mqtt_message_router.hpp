@@ -27,23 +27,6 @@
 
 #include <asio2/mqtt/message.hpp>
 
-// custom specialization of std::hash can be injected in namespace std
-namespace std
-{
-	template<> struct hash<std::pair<mqtt::control_packet_type, mqtt::two_byte_integer::value_type>>
-	{
-		typedef std::pair<mqtt::control_packet_type, mqtt::two_byte_integer::value_type> argument_type;
-		typedef std::size_t result_type;
-		inline result_type operator()(argument_type const& pair) const noexcept
-		{
-			std::size_t v = asio2::detail::fnv1a_hash<std::size_t>(
-				(const unsigned char *)(std::addressof(pair.first)), sizeof(pair.first));
-			return asio2::detail::fnv1a_hash<std::size_t>(v,
-				(const unsigned char *)(std::addressof(pair.second)), sizeof(pair.second));
-		}
-	};
-}
-
 namespace asio2::detail
 {
 	ASIO2_CLASS_FORWARD_DECLARE_BASE;
@@ -72,6 +55,17 @@ namespace asio2::detail
 		using key_type = std::pair<mqtt::control_packet_type, mqtt::two_byte_integer::value_type>;
 		using val_type = detail::function<void(mqtt::message&)>;
 
+		struct hasher
+		{
+			inline std::size_t operator()(key_type const& pair) const noexcept
+			{
+				std::size_t v = detail::fnv1a_hash<std::size_t>(
+					(const unsigned char*)(std::addressof(pair.first)), sizeof(pair.first));
+				return detail::fnv1a_hash<std::size_t>(v,
+					(const unsigned char*)(std::addressof(pair.second)), sizeof(pair.second));
+			}
+		};
+
 		/**
 		 * @constructor
 		 */
@@ -99,7 +93,7 @@ namespace asio2::detail
 		}
 
 		template<class Message, class FunctionT>
-		typename std::enable_if_t<mqtt::is_message<Message>(), bool>
+		typename std::enable_if_t<mqtt::is_rawmsg<Message>(), bool>
 		inline _add_router(Message& msg, FunctionT&& callback)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
@@ -189,7 +183,7 @@ namespace asio2::detail
 		}
 
 		template<class Message>
-		typename std::enable_if_t<mqtt::is_message<Message>(), void>
+		typename std::enable_if_t<mqtt::is_rawmsg<Message>(), void>
 		inline _del_router(Message& msg)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
@@ -291,7 +285,7 @@ namespace asio2::detail
 		}
 
 		template<class Message>
-		typename std::enable_if_t<mqtt::is_message<Message>(), std::optional<key_type>>
+		typename std::enable_if_t<mqtt::is_rawmsg<Message>(), std::optional<key_type>>
 		inline _generate_key(Message& msg)
 		{
 			using message_type = typename detail::remove_cvref_t<Message>;
@@ -341,8 +335,8 @@ namespace asio2::detail
 		}
 
 	protected:
-		/// router map, pair<mqtt::control_packet_type, packet id>
-		std::unordered_map<key_type, val_type> message_router_;
+		/// router map, key - pair<mqtt::control_packet_type, packet id>
+		std::unordered_map<key_type, val_type, hasher> message_router_;
 	};
 }
 

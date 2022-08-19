@@ -27,7 +27,6 @@
 
 #include <asio2/base/iopool.hpp>
 
-#include <asio2/mqtt/core.hpp>
 #include <asio2/mqtt/message.hpp>
 
 #include <asio2/mqtt/detail/mqtt_topic_util.hpp>

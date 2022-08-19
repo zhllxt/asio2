@@ -93,7 +93,7 @@ namespace asio2::detail
 	template<class derived_t, class args_t = template_args_icmp>
 	class ping_impl_t
 		: public object_t          <derived_t        >
-		, public iopool_cp
+		, public iopool_cp         <derived_t, args_t>
 		, public thread_id_cp      <derived_t, args_t>
 		, public user_data_cp      <derived_t, args_t>
 		, public user_timer_cp     <derived_t, args_t>
@@ -105,6 +105,8 @@ namespace asio2::detail
 	public:
 		using super = object_t   <derived_t        >;
 		using self  = ping_impl_t<derived_t, args_t>;
+
+		using iopoolcp = iopool_cp<derived_t, args_t>;
 
 		using args_type   = args_t;
 		using socket_type = typename args_t::socket_t;
@@ -123,18 +125,18 @@ namespace asio2::detail
 			std::size_t concurrency   = 1
 		)
 			: super()
-			, iopool_cp(concurrency)
+			, iopool_cp          <derived_t, args_t>(concurrency)
 			, user_data_cp       <derived_t, args_t>()
 			, user_timer_cp      <derived_t, args_t>()
 			, post_cp            <derived_t, args_t>()
 			, condition_event_cp <derived_t, args_t>()
-			, socket_    (iopool_cp::_get_io(0).context())
+			, socket_    (iopoolcp::_get_io(0).context())
 			, rallocator_()
 			, wallocator_()
 			, listener_  ()
-			, io_        (iopool_cp::_get_io(0))
+			, io_        (iopoolcp::_get_io(0))
 			, buffer_    (init_buf_size, max_buf_size)
-			, timer_     (iopool_cp::_get_io(0).context())
+			, timer_     (iopoolcp::_get_io(0).context())
 			, ncount_    (send_count)
 		{
 		}
@@ -147,18 +149,18 @@ namespace asio2::detail
 			Scheduler&& scheduler
 		)
 			: super()
-			, iopool_cp(std::forward<Scheduler>(scheduler))
+			, iopool_cp          <derived_t, args_t>(std::forward<Scheduler>(scheduler))
 			, user_data_cp       <derived_t, args_t>()
 			, user_timer_cp      <derived_t, args_t>()
 			, post_cp            <derived_t, args_t>()
 			, condition_event_cp <derived_t, args_t>()
-			, socket_    (iopool_cp::_get_io(0).context())
+			, socket_    (iopoolcp::_get_io(0).context())
 			, rallocator_()
 			, wallocator_()
 			, listener_  ()
-			, io_        (iopool_cp::_get_io(0))
+			, io_        (iopoolcp::_get_io(0))
 			, buffer_    (init_buf_size, max_buf_size)
-			, timer_     (iopool_cp::_get_io(0).context())
+			, timer_     (iopoolcp::_get_io(0).context())
 			, ncount_    (send_count)
 		{
 		}
@@ -193,7 +195,7 @@ namespace asio2::detail
 		 */
 		inline void stop()
 		{
-			if (this->iopool_->stopped())
+			if (this->is_iopool_stopped())
 				return;
 
 			derived_t& derive = this->derived();
@@ -205,7 +207,7 @@ namespace asio2::detail
 				derive._do_stop(asio::error::operation_aborted, derive.selfptr());
 			});
 
-			this->iopool_->stop();
+			this->stop_iopool();
 		}
 
 		/**
@@ -221,7 +223,7 @@ namespace asio2::detail
 		 */
 		inline bool is_stopped() const
 		{
-			return (this->state_ == state_t::stopped && !this->socket_.lowest_layer().is_open() && iopool_cp::_stopped());
+			return (this->state_ == state_t::stopped && !this->socket_.lowest_layer().is_open() && this->is_iopool_stopped());
 		}
 
 	public:
@@ -370,7 +372,7 @@ namespace asio2::detail
 		template<class Rep, class Period>
 		static inline icmp_rep execute(std::string_view host, std::chrono::duration<Rep, Period> timeout)
 		{
-			return execute(host, timeout, R"("Hello!" from Asio ping.)");
+			return derived_t::execute(host, timeout, R"("Hello!" from Asio ping.)");
 		}
 
 		/**
@@ -379,7 +381,7 @@ namespace asio2::detail
 		 */
 		static inline icmp_rep execute(std::string_view host)
 		{
-			return execute(host, std::chrono::milliseconds(icmp_execute_timeout), R"("Hello!" from Asio ping.)");
+			return derived_t::execute(host, std::chrono::milliseconds(icmp_execute_timeout), R"("Hello!" from Asio ping.)");
 		}
 
 	public:
@@ -667,9 +669,9 @@ namespace asio2::detail
 		{
 			derived_t& derive = this->derived();
 
-			this->iopool_->start();
+			this->start_iopool();
 
-			if (this->iopool_->stopped())
+			if (this->is_iopool_stopped())
 			{
 				set_last_error(asio::error::operation_aborted);
 				return false;

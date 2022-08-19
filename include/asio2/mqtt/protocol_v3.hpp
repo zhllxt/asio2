@@ -93,7 +93,7 @@ namespace asio2::mqtt::v3
 			keep_alive_             .deserialize(data);
 			client_id_              .deserialize(data);
 
-			if (will_flag())
+			if (has_will())
 			{
 				utf8_string will_topic{};
 				will_topic.deserialize(data);
@@ -104,14 +104,14 @@ namespace asio2::mqtt::v3
 				will_payload_ = std::move(will_payload);
 			}
 
-			if (username_flag())
+			if (has_username())
 			{
 				utf8_string username{};
 				username.deserialize(data);
 				username_ = std::move(username);
 			}
 
-			if (password_flag())
+			if (has_password())
 			{
 				binary_data password{};
 				password.deserialize(data);
@@ -126,11 +126,11 @@ namespace asio2::mqtt::v3
 		inline std::uint8_t protocol_version() { return                      (protocol_version_                ); }
 		inline bool         clean_start     () { return                      (connect_flags_.bits.clean_session); }
 		inline bool         clean_session   () { return                      (connect_flags_.bits.clean_session); }
-		inline bool         will_flag       () { return                      (connect_flags_.bits.will_flag    ); }
+		inline bool         has_will        () { return                      (connect_flags_.bits.will_flag    ); }
 		inline qos_type     will_qos        () { return static_cast<qos_type>(connect_flags_.bits.will_qos     ); }
 		inline bool         will_retain     () { return                      (connect_flags_.bits.will_retain  ); }
-		inline bool         password_flag   () { return                      (connect_flags_.bits.password_flag); }
-		inline bool         username_flag   () { return                      (connect_flags_.bits.username_flag); }
+		inline bool         has_password    () { return                      (connect_flags_.bits.password_flag); }
+		inline bool         has_username    () { return                      (connect_flags_.bits.username_flag); }
 
 		inline connect&     clean_start     (bool v) { connect_flags_.bits.clean_session = v; return (*this); }
 		inline connect&     clean_session   (bool v) { connect_flags_.bits.clean_session = v; return (*this); }

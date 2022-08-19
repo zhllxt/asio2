@@ -31,6 +31,22 @@ namespace nlohmann
 		dr >> v;
 		j = nlohmann::json::parse(v);
 	}
+
+	// or like this :
+
+	//template<class Archive>
+	//void save(Archive& ar, json const& j)
+	//{
+	//	ar << j.dump();
+	//}
+
+	//template<class Archive>
+	//void load(Archive& ar, json& j)
+	//{
+	//	std::string v;
+	//	ar >> v;
+	//	j = json::parse(v);
+	//}
 }
 
 int add(int a, int b)

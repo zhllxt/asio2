@@ -73,7 +73,7 @@ namespace asio2::detail
 	template<class derived_t, class args_t = template_args_serial_port>
 	class serial_port_impl_t
 		: public object_t          <derived_t        >
-		, public iopool_cp
+		, public iopool_cp         <derived_t, args_t>
 		, public thread_id_cp      <derived_t, args_t>
 		, public event_queue_cp    <derived_t, args_t>
 		, public user_data_cp      <derived_t, args_t>
@@ -90,8 +90,10 @@ namespace asio2::detail
 		ASIO2_CLASS_FRIEND_DECLARE_TCP_BASE;
 
 	public:
-		using super = object_t  <derived_t        >;
+		using super = object_t          <derived_t        >;
 		using self  = serial_port_impl_t<derived_t, args_t>;
+
+		using iopoolcp = iopool_cp      <derived_t, args_t>;
 
 		using args_type   = args_t;
 		using socket_type = typename args_t::socket_t;
@@ -108,7 +110,7 @@ namespace asio2::detail
 			std::size_t concurrency   = 1
 		)
 			: super()
-			, iopool_cp(concurrency)
+			, iopool_cp         <derived_t, args_t>(concurrency)
 			, event_queue_cp    <derived_t, args_t>()
 			, user_data_cp      <derived_t, args_t>()
 			, alive_time_cp     <derived_t, args_t>()
@@ -119,11 +121,11 @@ namespace asio2::detail
 			, post_cp           <derived_t, args_t>()
 			, condition_event_cp<derived_t, args_t>()
 			, rdc_call_cp       <derived_t, args_t>()
-			, socket_    (iopool_cp::_get_io(0).context())
+			, socket_    (iopoolcp::_get_io(0).context())
 			, rallocator_()
 			, wallocator_()
 			, listener_  ()
-			, io_        (iopool_cp::_get_io(0))
+			, io_        (iopoolcp::_get_io(0))
 			, buffer_    (init_buf_size, max_buf_size)
 		{
 		}
@@ -135,7 +137,7 @@ namespace asio2::detail
 			Scheduler&& scheduler
 		)
 			: super()
-			, iopool_cp(std::forward<Scheduler>(scheduler))
+			, iopool_cp         <derived_t, args_t>(std::forward<Scheduler>(scheduler))
 			, event_queue_cp    <derived_t, args_t>()
 			, user_data_cp      <derived_t, args_t>()
 			, alive_time_cp     <derived_t, args_t>()
@@ -146,11 +148,11 @@ namespace asio2::detail
 			, post_cp           <derived_t, args_t>()
 			, condition_event_cp<derived_t, args_t>()
 			, rdc_call_cp       <derived_t, args_t>()
-			, socket_    (iopool_cp::_get_io(0).context())
+			, socket_    (iopoolcp::_get_io(0).context())
 			, rallocator_()
 			, wallocator_()
 			, listener_  ()
-			, io_        (iopool_cp::_get_io(0))
+			, io_        (iopoolcp::_get_io(0))
 			, buffer_    (init_buf_size, max_buf_size)
 		{
 		}
@@ -192,7 +194,7 @@ namespace asio2::detail
 		 */
 		inline void stop()
 		{
-			if (this->iopool_->stopped())
+			if (this->is_iopool_stopped())
 				return;
 
 			derived_t& derive = this->derived();
@@ -236,7 +238,7 @@ namespace asio2::detail
 				ASIO2_ASSERT(state == state_t::stopped);
 			}
 
-			this->iopool_->stop();
+			this->stop_iopool();
 		}
 
 		/**
@@ -252,7 +254,7 @@ namespace asio2::detail
 		 */
 		inline bool is_stopped() const
 		{
-			return (this->state_ == state_t::stopped && !this->socket_.lowest_layer().is_open() && iopool_cp::_stopped());
+			return (this->state_ == state_t::stopped && !this->socket_.lowest_layer().is_open() && this->is_iopool_stopped());
 		}
 
 	public:
@@ -337,15 +339,99 @@ namespace asio2::detail
 		 */
 		inline socket_type & stream() noexcept { return this->socket_; }
 
+		/**
+		 * This function is used to set an option on the serial port.
+		 *
+		 * @param option The option value to be set on the serial port.
+		 *
+		 * asio::serial_port::baud_rate
+		 * asio::serial_port::flow_control
+		 * asio::serial_port::parity
+		 * asio::serial_port::stop_bits
+		 * asio::serial_port::character_size
+		 */
+		template <typename SettableSerialPortOption>
+		derived_t& set_option(const SettableSerialPortOption& option) noexcept
+		{
+			try
+			{
+				clear_last_error();
+
+				this->socket_.set_option(option);
+			}
+			catch (system_error const& e)
+			{
+				set_last_error(e);
+			}
+			return (this->derived());
+		}
+
+		/**
+		 * This function is used to get the current value of an option on the serial
+		 * port.
+		 *
+		 * @param option The option value to be obtained from the serial port.
+		 *
+		 * asio::serial_port::baud_rate
+		 * asio::serial_port::flow_control
+		 * asio::serial_port::parity
+		 * asio::serial_port::stop_bits
+		 * asio::serial_port::character_size
+		 */
+		template <typename GettableSerialPortOption>
+		GettableSerialPortOption get_option() const
+		{
+			GettableSerialPortOption option{};
+			try
+			{
+				clear_last_error();
+
+				this->socket_.get_option(option);
+			}
+			catch (system_error const& e)
+			{
+				set_last_error(e);
+			}
+			return option;
+		}
+
+		/**
+		 * This function is used to get the current value of an option on the serial
+		 * port.
+		 *
+		 * @param option The option value to be obtained from the serial port.
+		 *
+		 * asio::serial_port_base::baud_rate
+		 * asio::serial_port_base::flow_control
+		 * asio::serial_port_base::parity
+		 * asio::serial_port_base::stop_bits
+		 * asio::serial_port_base::character_size
+		 */
+		template <typename GettableSerialPortOption>
+		derived_t& get_option(GettableSerialPortOption& option)
+		{
+			try
+			{
+				clear_last_error();
+
+				this->socket_.get_option(option);
+			}
+			catch (system_error const& e)
+			{
+				set_last_error(e);
+			}
+			return (this->derived());
+		}
+
 	protected:
 		template<typename String, typename StrOrInt, typename MatchCondition>
 		bool _do_start(String&& device, StrOrInt&& baud_rate, condition_wrap<MatchCondition> condition)
 		{
 			derived_t& derive = this->derived();
 
-			this->iopool_->start();
+			this->start_iopool();
 
-			if (this->iopool_->stopped())
+			if (this->is_iopool_stopped())
 			{
 				set_last_error(asio::error::operation_aborted);
 				return false;
@@ -434,10 +520,10 @@ namespace asio2::detail
 
 					derive._fire_init();
 					// You can set other serial port parameters in on_init(bind_init) callback function like this:
-					// sp.socket().set_option(asio::serial_port::flow_control(serial_port::flow_control::type(flow_control)));
-					// sp.socket().set_option(asio::serial_port::parity(serial_port::parity::type(parity)));
-					// sp.socket().set_option(asio::serial_port::stop_bits(serial_port::stop_bits::type(stop_bits)));
-					// sp.socket().set_option(asio::serial_port::character_size(character_size));
+					// sp.set_option(asio::serial_port::flow_control(serial_port::flow_control::type(flow_control)));
+					// sp.set_option(asio::serial_port::parity(serial_port::parity::type(parity)));
+					// sp.set_option(asio::serial_port::stop_bits(serial_port::stop_bits::type(stop_bits)));
+					// sp.set_option(asio::serial_port::character_size(character_size));
 
 					derive._handle_start(error_code{}, std::move(this_ptr), std::move(condition), std::move(chain));
 

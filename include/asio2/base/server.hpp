@@ -56,7 +56,7 @@ namespace asio2::detail
 	template<class derived_t, class session_t>
 	class server_impl_t
 		: public object_t          <derived_t>
-		, public iopool_cp
+		, public iopool_cp         <derived_t>
 		, public thread_id_cp      <derived_t>
 		, public event_queue_cp    <derived_t>
 		, public user_data_cp      <derived_t>
@@ -70,6 +70,8 @@ namespace asio2::detail
 		using super = object_t     <derived_t>;
 		using self  = server_impl_t<derived_t, session_t>;
 
+		using iopoolcp = iopool_cp <derived_t>;
+
 		using key_type = std::size_t;
 
 	public:
@@ -79,14 +81,14 @@ namespace asio2::detail
 		template<class ThreadCountOrScheduler>
 		explicit server_impl_t(ThreadCountOrScheduler&& tcos)
 			: object_t     <derived_t>()
-			, iopool_cp               (std::forward<ThreadCountOrScheduler>(tcos))
+			, iopool_cp    <derived_t>(std::forward<ThreadCountOrScheduler>(tcos))
 			, user_data_cp <derived_t>()
 			, user_timer_cp<derived_t>()
 			, post_cp      <derived_t>()
 			, rallocator_()
 			, wallocator_()
 			, listener_  ()
-			, io_        (iopool_cp::_get_io(0))
+			, io_        (iopoolcp::_get_io(0))
 			, sessions_  (io_, this->state_)
 		{
 		}
@@ -151,7 +153,7 @@ namespace asio2::detail
 		 */
 		inline bool is_stopped() const noexcept
 		{
-			return (this->state_ == state_t::stopped && iopool_cp::_stopped());
+			return (this->state_ == state_t::stopped && this->is_iopool_stopped());
 		}
 
 		/**

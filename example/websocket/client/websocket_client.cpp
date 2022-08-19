@@ -15,7 +15,7 @@ int main()
 		// Set the binary message write option.
 		client.ws_stream().binary(true);
 
-		// Set the text message write option.
+		// Set the text message write option. The sent text must be utf8 format.
 		//client.ws_stream().text(true);
 
 		// how to set custom websocket request data : 
@@ -71,7 +71,9 @@ int main()
 			asio2::last_error_val(), asio2::last_error_msg().c_str());
 	}
 
-	while (std::getchar() != '\n');
+	// blocked forever util some signal delivered.
+	// Normally, pressing Ctrl + C will emit the SIGINT signal.
+	client.wait_signal(SIGINT);
 
 	return 0;
 }

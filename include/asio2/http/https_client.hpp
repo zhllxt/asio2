@@ -233,7 +233,7 @@ namespace asio2::detail
 			const asio::ssl::context& ctx, String&& host, StrOrInt&& port,
 			http::request<Body, Fields>& req, std::chrono::duration<Rep, Period> timeout)
 		{
-			return execute(ctx, std::forward<String>(host), std::forward<StrOrInt>(port),
+			return derived_t::execute(ctx, std::forward<String>(host), std::forward<StrOrInt>(port),
 				req, timeout, std::in_place);
 		}
 
@@ -243,7 +243,7 @@ namespace asio2::detail
 			const asio::ssl::context& ctx, String&& host, StrOrInt&& port,
 			http::request<Body, Fields>& req)
 		{
-			return execute(ctx, std::forward<String>(host), std::forward<StrOrInt>(port),
+			return derived_t::execute(ctx, std::forward<String>(host), std::forward<StrOrInt>(port),
 				req, std::chrono::milliseconds(http_execute_timeout), std::in_place);
 		}
 
@@ -254,7 +254,7 @@ namespace asio2::detail
 		static inline http::response<Body, Fields> execute(String&& host, StrOrInt&& port,
 			http::request<Body, Fields>& req, std::chrono::duration<Rep, Period> timeout)
 		{
-			return execute(asio::ssl::context{ asio::ssl::context::sslv23 },
+			return derived_t::execute(asio::ssl::context{ asio::ssl::context::sslv23 },
 				std::forward<String>(host), std::forward<StrOrInt>(port), req, timeout, std::in_place);
 		}
 
@@ -262,7 +262,7 @@ namespace asio2::detail
 		static inline http::response<Body, Fields> execute(String&& host, StrOrInt&& port,
 			http::request<Body, Fields>& req)
 		{
-			return execute(
+			return derived_t::execute(
 				std::forward<String>(host), std::forward<StrOrInt>(port),
 				req, std::chrono::milliseconds(http_execute_timeout));
 		}
@@ -273,27 +273,27 @@ namespace asio2::detail
 		static inline http::response<Body, Fields> execute(
 			const asio::ssl::context& ctx, http::web_request& req, std::chrono::duration<Rep, Period> timeout)
 		{
-			return execute(ctx, req.url().host(), req.url().port(), req.base(), timeout, std::in_place);
+			return derived_t::execute(ctx, req.url().host(), req.url().port(), req.base(), timeout, std::in_place);
 		}
 
 		template<class Body = http::string_body, class Fields = http::fields>
 		static inline http::response<Body, Fields> execute(
 			const asio::ssl::context& ctx, http::web_request& req)
 		{
-			return execute(ctx, req, std::chrono::milliseconds(http_execute_timeout));
+			return derived_t::execute(ctx, req, std::chrono::milliseconds(http_execute_timeout));
 		}
 
 		template<class Rep, class Period, class Body = http::string_body, class Fields = http::fields>
 		static inline http::response<Body, Fields> execute(
 			http::web_request& req, std::chrono::duration<Rep, Period> timeout)
 		{
-			return execute(asio::ssl::context{ asio::ssl::context::sslv23 }, req, timeout);
+			return derived_t::execute(asio::ssl::context{ asio::ssl::context::sslv23 }, req, timeout);
 		}
 
 		template<class Body = http::string_body, class Fields = http::fields>
 		static inline http::response<Body, Fields> execute(http::web_request& req)
 		{
-			return execute(req, std::chrono::milliseconds(http_execute_timeout));
+			return derived_t::execute(req, std::chrono::milliseconds(http_execute_timeout));
 		}
 
 		// ----------------------------------------------------------------------------------------
@@ -310,7 +310,7 @@ namespace asio2::detail
 			{
 				return http::response<Body, Fields>{ http::status::unknown, 11};
 			}
-			return execute(ctx, req.host(), req.port(), req.base(), timeout, std::in_place);
+			return derived_t::execute(ctx, req.host(), req.port(), req.base(), timeout, std::in_place);
 		}
 
 		/**
@@ -319,7 +319,7 @@ namespace asio2::detail
 		template<class Body = http::string_body, class Fields = http::fields>
 		static inline http::response<Body, Fields> execute(const asio::ssl::context& ctx, std::string_view url)
 		{
-			return execute(ctx, url, std::chrono::milliseconds(http_execute_timeout));
+			return derived_t::execute(ctx, url, std::chrono::milliseconds(http_execute_timeout));
 		}
 
 		// ----------------------------------------------------------------------------------------
@@ -331,7 +331,7 @@ namespace asio2::detail
 		static inline http::response<Body, Fields> execute(std::string_view url,
 			std::chrono::duration<Rep, Period> timeout)
 		{
-			return execute(asio::ssl::context{ asio::ssl::context::sslv23 }, url, timeout);
+			return derived_t::execute(asio::ssl::context{ asio::ssl::context::sslv23 }, url, timeout);
 		}
 
 		/**
@@ -340,7 +340,7 @@ namespace asio2::detail
 		template<class Body = http::string_body, class Fields = http::fields>
 		static inline http::response<Body, Fields> execute(std::string_view url)
 		{
-			return execute(url, std::chrono::milliseconds(http_execute_timeout));
+			return derived_t::execute(url, std::chrono::milliseconds(http_execute_timeout));
 		}
 
 		// ----------------------------------------------------------------------------------------
@@ -359,7 +359,7 @@ namespace asio2::detail
 			{
 				return http::response<Body, Fields>{ http::status::unknown, 11};
 			}
-			return execute(ctx,
+			return derived_t::execute(ctx,
 				std::forward<String>(host), std::forward<StrOrInt>(port),
 				req.base(), timeout, std::in_place);
 		}
@@ -372,7 +372,7 @@ namespace asio2::detail
 			const asio::ssl::context& ctx, String&& host, StrOrInt&& port,
 			std::string_view target)
 		{
-			return execute(ctx,
+			return derived_t::execute(ctx,
 				std::forward<String>(host), std::forward<StrOrInt>(port),
 				target, std::chrono::milliseconds(http_execute_timeout));
 		}
@@ -389,7 +389,7 @@ namespace asio2::detail
 		static inline execute(String&& host, StrOrInt&& port, std::string_view target,
 			std::chrono::duration<Rep, Period> timeout)
 		{
-			return execute(asio::ssl::context{ asio::ssl::context::sslv23 },
+			return derived_t::execute(asio::ssl::context{ asio::ssl::context::sslv23 },
 				std::forward<String>(host), std::forward<StrOrInt>(port),
 				target, timeout);
 		}
@@ -402,7 +402,7 @@ namespace asio2::detail
 			http::response<Body, Fields>>
 		static inline execute(String&& host, StrOrInt&& port, std::string_view target)
 		{
-			return execute(
+			return derived_t::execute(
 				std::forward<String>(host), std::forward<StrOrInt>(port),
 				target, std::chrono::milliseconds(http_execute_timeout));
 		}
@@ -415,7 +415,7 @@ namespace asio2::detail
 			const asio::ssl::context& ctx, String&& host, StrOrInt&& port,
 			http::request<Body, Fields>& req, Proxy&& proxy)
 		{
-			return execute(ctx, std::forward<String>(host), std::forward<StrOrInt>(port),
+			return derived_t::execute(ctx, std::forward<String>(host), std::forward<StrOrInt>(port),
 				req, std::chrono::milliseconds(http_execute_timeout), std::forward<Proxy>(proxy));
 		}
 
@@ -426,7 +426,7 @@ namespace asio2::detail
 		static inline http::response<Body, Fields> execute(String&& host, StrOrInt&& port,
 			http::request<Body, Fields>& req, std::chrono::duration<Rep, Period> timeout, Proxy&& proxy)
 		{
-			return execute(asio::ssl::context{ asio::ssl::context::sslv23 },
+			return derived_t::execute(asio::ssl::context{ asio::ssl::context::sslv23 },
 				std::forward<String>(host), std::forward<StrOrInt>(port),
 				req, timeout, std::forward<Proxy>(proxy));
 		}
@@ -436,7 +436,7 @@ namespace asio2::detail
 		static inline http::response<Body, Fields> execute(String&& host, StrOrInt&& port,
 			http::request<Body, Fields>& req, Proxy&& proxy)
 		{
-			return execute(
+			return derived_t::execute(
 				std::forward<String>(host), std::forward<StrOrInt>(port),
 				req, std::chrono::milliseconds(http_execute_timeout), std::forward<Proxy>(proxy));
 		}
@@ -449,7 +449,7 @@ namespace asio2::detail
 			const asio::ssl::context& ctx, http::web_request& req,
 			std::chrono::duration<Rep, Period> timeout, Proxy&& proxy)
 		{
-			return execute(ctx, req.url().host(), req.url().port(), req.base(), timeout,
+			return derived_t::execute(ctx, req.url().host(), req.url().port(), req.base(), timeout,
 				std::forward<Proxy>(proxy));
 		}
 
@@ -457,7 +457,7 @@ namespace asio2::detail
 		static inline http::response<Body, Fields> execute(
 			const asio::ssl::context& ctx, http::web_request& req, Proxy&& proxy)
 		{
-			return execute(ctx, req, std::chrono::milliseconds(http_execute_timeout),
+			return derived_t::execute(ctx, req, std::chrono::milliseconds(http_execute_timeout),
 				std::forward<Proxy>(proxy));
 		}
 
@@ -466,14 +466,14 @@ namespace asio2::detail
 		static inline http::response<Body, Fields> execute(
 			http::web_request& req, std::chrono::duration<Rep, Period> timeout, Proxy&& proxy)
 		{
-			return execute(asio::ssl::context{ asio::ssl::context::sslv23 }, req, timeout,
+			return derived_t::execute(asio::ssl::context{ asio::ssl::context::sslv23 }, req, timeout,
 				std::forward<Proxy>(proxy));
 		}
 
 		template<class Proxy, class Body = http::string_body, class Fields = http::fields>
 		static inline http::response<Body, Fields> execute(http::web_request& req, Proxy&& proxy)
 		{
-			return execute(req, std::chrono::milliseconds(http_execute_timeout),
+			return derived_t::execute(req, std::chrono::milliseconds(http_execute_timeout),
 				std::forward<Proxy>(proxy));
 		}
 
@@ -493,7 +493,7 @@ namespace asio2::detail
 			{
 				return http::response<Body, Fields>{ http::status::unknown, 11};
 			}
-			return execute(ctx, req.host(), req.port(), req.base(), timeout, std::forward<Proxy>(proxy));
+			return derived_t::execute(ctx, req.host(), req.port(), req.base(), timeout, std::forward<Proxy>(proxy));
 		}
 
 		/**
@@ -503,7 +503,7 @@ namespace asio2::detail
 		static inline http::response<Body, Fields> execute(
 			const asio::ssl::context& ctx, std::string_view url, Proxy&& proxy)
 		{
-			return execute(ctx, url, std::chrono::milliseconds(http_execute_timeout),
+			return derived_t::execute(ctx, url, std::chrono::milliseconds(http_execute_timeout),
 				std::forward<Proxy>(proxy));
 		}
 
@@ -517,7 +517,7 @@ namespace asio2::detail
 		static inline http::response<Body, Fields> execute(std::string_view url,
 			std::chrono::duration<Rep, Period> timeout, Proxy&& proxy)
 		{
-			return execute(asio::ssl::context{ asio::ssl::context::sslv23 }, url, timeout,
+			return derived_t::execute(asio::ssl::context{ asio::ssl::context::sslv23 }, url, timeout,
 				std::forward<Proxy>(proxy));
 		}
 
@@ -527,7 +527,7 @@ namespace asio2::detail
 		template<class Proxy, class Body = http::string_body, class Fields = http::fields>
 		static inline http::response<Body, Fields> execute(std::string_view url, Proxy&& proxy)
 		{
-			return execute(url, std::chrono::milliseconds(http_execute_timeout),
+			return derived_t::execute(url, std::chrono::milliseconds(http_execute_timeout),
 				std::forward<Proxy>(proxy));
 		}
 
@@ -547,7 +547,7 @@ namespace asio2::detail
 			{
 				return http::response<Body, Fields>{ http::status::unknown, 11};
 			}
-			return execute(ctx,
+			return derived_t::execute(ctx,
 				std::forward<String>(host), std::forward<StrOrInt>(port),
 				req.base(), timeout, std::forward<Proxy>(proxy));
 		}
@@ -561,7 +561,7 @@ namespace asio2::detail
 			const asio::ssl::context& ctx, String&& host, StrOrInt&& port,
 			std::string_view target, Proxy&& proxy)
 		{
-			return execute(ctx,
+			return derived_t::execute(ctx,
 				std::forward<String>(host), std::forward<StrOrInt>(port),
 				target, std::chrono::milliseconds(http_execute_timeout), std::forward<Proxy>(proxy));
 		}
@@ -578,7 +578,7 @@ namespace asio2::detail
 		static inline execute(String&& host, StrOrInt&& port, std::string_view target,
 			std::chrono::duration<Rep, Period> timeout, Proxy&& proxy)
 		{
-			return execute(asio::ssl::context{ asio::ssl::context::sslv23 },
+			return derived_t::execute(asio::ssl::context{ asio::ssl::context::sslv23 },
 				std::forward<String>(host), std::forward<StrOrInt>(port),
 				target, timeout, std::forward<Proxy>(proxy));
 		}
@@ -592,7 +592,7 @@ namespace asio2::detail
 			http::response<Body, Fields>>
 		static inline execute(String&& host, StrOrInt&& port, std::string_view target, Proxy&& proxy)
 		{
-			return execute(
+			return derived_t::execute(
 				std::forward<String>(host), std::forward<StrOrInt>(port),
 				target, std::chrono::milliseconds(http_execute_timeout), std::forward<Proxy>(proxy));
 		}

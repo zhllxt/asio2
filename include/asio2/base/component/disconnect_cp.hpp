@@ -160,43 +160,38 @@ namespace asio2::detail
 			// Normally, _do_disconnect function will be called in the io_context thread, but if some
 			// exception occured, _do_disconnect maybe called in the "catch(){ ... }", then this maybe
 			// not in the io_context thread.
+			// When the stop() is called for each session in the server's _post_stop, this maybe also 
+			// not in the io_context thread.
 			// If the session_ptr->stop() is called not in io_context thread, then this will be not in
 			// the io_context thread.
+			// If we don't ensure this function is called in the io_context thread, the session status
+			// maybe stopping in the bind_recv callback.
 
 			//ASIO2_ASSERT(derive.io().running_in_this_thread());
+
+			if (!derive.io().running_in_this_thread())
+			{
+				asio::post(derive.io().context(), make_allocator(derive.wallocator(),
+				[&derive, ec, this_ptr = std::move(this_ptr), chain = std::move(chain)]() mutable
+				{
+					derive._do_disconnect(ec, std::move(this_ptr), std::move(chain));
+				}));
+
+				return;
+			}
+
+			ASIO2_ASSERT(derive.io().running_in_this_thread());
 
 			state_t expected = state_t::started;
 			if (derive.state().compare_exchange_strong(expected, state_t::stopping))
 			{
-				if (derive.io().running_in_this_thread())
-				{
-					return derive._post_disconnect(ec, std::move(this_ptr), expected, std::move(chain));
-				}
-				else
-				{
-					asio::post(derive.io().context(), make_allocator(derive.wallocator(),
-					[&derive, expected, ec, this_ptr = std::move(this_ptr), chain = std::move(chain)]() mutable
-					{
-						derive._post_disconnect(ec, std::move(this_ptr), expected, std::move(chain));
-					}));
-				}
+				return derive._post_disconnect(ec, std::move(this_ptr), expected, std::move(chain));
 			}
 
 			expected = state_t::starting;
 			if (derive.state().compare_exchange_strong(expected, state_t::stopping))
 			{
-				if (derive.io().running_in_this_thread())
-				{
-					return derive._post_disconnect(ec, std::move(this_ptr), expected, std::move(chain));
-				}
-				else
-				{
-					asio::post(derive.io().context(), make_allocator(derive.wallocator(),
-					[&derive, expected, ec, this_ptr = std::move(this_ptr), chain = std::move(chain)]() mutable
-					{
-						derive._post_disconnect(ec, std::move(this_ptr), expected, std::move(chain));
-					}));
-				}
+				return derive._post_disconnect(ec, std::move(this_ptr), expected, std::move(chain));
 			}
 		}
 

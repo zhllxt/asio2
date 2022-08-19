@@ -11,10 +11,10 @@ int main()
 	sp.bind_init([&]()
 	{
 		// Set other serial port parameters at here
-		sp.socket().set_option(asio::serial_port::flow_control(asio::serial_port::flow_control::type::none));
-		sp.socket().set_option(asio::serial_port::parity(asio::serial_port::parity::type::none));
-		sp.socket().set_option(asio::serial_port::stop_bits(asio::serial_port::stop_bits::type::one));
-		sp.socket().set_option(asio::serial_port::character_size(8));
+		sp.set_option(asio::serial_port::flow_control(asio::serial_port::flow_control::type::none));
+		sp.set_option(asio::serial_port::parity(asio::serial_port::parity::type::none));
+		sp.set_option(asio::serial_port::stop_bits(asio::serial_port::stop_bits::type::one));
+		sp.set_option(asio::serial_port::character_size(8));
 
 	}).bind_recv([&](std::string_view data)
 	{

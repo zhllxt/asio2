@@ -65,7 +65,7 @@ namespace asio2::detail
 	template<class derived_t, class args_t = template_args_udp_cast>
 	class udp_cast_impl_t
 		: public object_t          <derived_t        >
-		, public iopool_cp
+		, public iopool_cp         <derived_t, args_t>
 		, public thread_id_cp      <derived_t, args_t>
 		, public event_queue_cp    <derived_t, args_t>
 		, public user_data_cp      <derived_t, args_t>
@@ -84,6 +84,8 @@ namespace asio2::detail
 		using super = object_t       <derived_t        >;
 		using self  = udp_cast_impl_t<derived_t, args_t>;
 
+		using iopoolcp = iopool_cp   <derived_t, args_t>;
+
 		using args_type   = args_t;
 		using buffer_type = typename args_t::buffer_t;
 
@@ -98,20 +100,20 @@ namespace asio2::detail
 			std::size_t concurrency   = 1
 		)
 			: super()
-			, iopool_cp(concurrency)
+			, iopool_cp         <derived_t, args_t>(concurrency)
 			, event_queue_cp    <derived_t, args_t>()
 			, user_data_cp      <derived_t, args_t>()
 			, alive_time_cp     <derived_t, args_t>()
-			, socket_cp         <derived_t, args_t>(iopool_cp::_get_io(0).context())
+			, socket_cp         <derived_t, args_t>(iopoolcp::_get_io(0).context())
 			, user_timer_cp     <derived_t, args_t>()
 			, post_cp           <derived_t, args_t>()
 			, condition_event_cp<derived_t, args_t>()
-			, udp_send_cp       <derived_t, args_t>(iopool_cp::_get_io(0))
+			, udp_send_cp       <derived_t, args_t>(iopoolcp::_get_io(0))
 			, udp_send_op       <derived_t, args_t>()
 			, rallocator_()
 			, wallocator_()
 			, listener_  ()
-			, io_        (iopool_cp::_get_io(0))
+			, io_        (iopoolcp::_get_io(0))
 			, buffer_    (init_buf_size, max_buf_size)
 		{
 		}
@@ -123,20 +125,20 @@ namespace asio2::detail
 			Scheduler && scheduler
 		)
 			: super()
-			, iopool_cp(std::forward<Scheduler>(scheduler))
+			, iopool_cp         <derived_t, args_t>(std::forward<Scheduler>(scheduler))
 			, event_queue_cp    <derived_t, args_t>()
 			, user_data_cp      <derived_t, args_t>()
 			, alive_time_cp     <derived_t, args_t>()
-			, socket_cp         <derived_t, args_t>(iopool_cp::_get_io(0).context())
+			, socket_cp         <derived_t, args_t>(iopoolcp::_get_io(0).context())
 			, user_timer_cp     <derived_t, args_t>()
 			, post_cp           <derived_t, args_t>()
 			, condition_event_cp<derived_t, args_t>()
-			, udp_send_cp       <derived_t, args_t>(iopool_cp::_get_io(0))
+			, udp_send_cp       <derived_t, args_t>(iopoolcp::_get_io(0))
 			, udp_send_op       <derived_t, args_t>()
 			, rallocator_()
 			, wallocator_()
 			, listener_  ()
-			, io_        (iopool_cp::_get_io(0))
+			, io_        (iopoolcp::_get_io(0))
 			, buffer_    (init_buf_size, max_buf_size)
 		{
 		}
@@ -176,7 +178,7 @@ namespace asio2::detail
 		 */
 		inline void stop()
 		{
-			if (this->iopool_->stopped())
+			if (this->is_iopool_stopped())
 				return;
 
 			derived_t& derive = this->derived();
@@ -220,7 +222,7 @@ namespace asio2::detail
 				ASIO2_ASSERT(state == state_t::stopped);
 			}
 
-			this->iopool_->stop();
+			this->stop_iopool();
 		}
 
 		/**
@@ -236,7 +238,7 @@ namespace asio2::detail
 		 */
 		inline bool is_stopped() const
 		{
-			return (this->state_ == state_t::stopped && !this->socket_.lowest_layer().is_open() && iopool_cp::_stopped());
+			return (this->state_ == state_t::stopped && !this->socket_.lowest_layer().is_open() && this->is_iopool_stopped());
 		}
 
 	public:
@@ -313,9 +315,9 @@ namespace asio2::detail
 		{
 			derived_t& derive = this->derived();
 
-			this->iopool_->start();
+			this->start_iopool();
 
-			if (this->iopool_->stopped())
+			if (this->is_iopool_stopped())
 			{
 				set_last_error(asio::error::operation_aborted);
 				return false;

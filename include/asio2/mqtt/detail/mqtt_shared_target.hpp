@@ -64,6 +64,17 @@ namespace asio2::mqtt
 	class shared_target
 	{
 	public:
+		struct hasher
+		{
+			inline std::size_t operator()(std::pair<std::string_view, std::string_view> const& pair) const noexcept
+			{
+				std::size_t v = asio2::detail::fnv1a_hash<std::size_t>(
+					(const unsigned char*)(pair.first.data()), pair.first.size());
+				return asio2::detail::fnv1a_hash<std::size_t>(v,
+					(const unsigned char*)(pair.second.data()), pair.second.size());
+			}
+		};
+
 		shared_target()
 		{
 			set_policy(std::bind(round_shared_target_method<STNode>, std::placeholders::_1));
@@ -193,9 +204,9 @@ namespace asio2::mqtt
 
 	protected:
 		/// key : share_name - topic_filter, val : shared target node
-		std::unordered_map<std::pair<std::string_view, std::string_view>, STNode> targets_;
+		std::unordered_map<std::pair<std::string_view, std::string_view>, STNode, hasher> targets_;
 
-		std::function<std::shared_ptr<session_type>(STNode&)>                       policy_;
+		std::function<std::shared_ptr<session_type>(STNode&)>                             policy_;
 	};
 
 	template<class session_t>

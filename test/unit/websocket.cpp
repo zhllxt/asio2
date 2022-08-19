@@ -736,13 +736,13 @@ void websocket_test()
 				{
 					auto elapse1 = std::abs(std::chrono::duration_cast<std::chrono::milliseconds>(
 						std::chrono::high_resolution_clock::now() - ex.start_time).count() - 100);
-					ASIO2_CHECK_VALUE(elapse1, elapse1 <= 100);
+					ASIO2_CHECK_VALUE(elapse1, elapse1 <= test_timer_deviation);
 				}
 				else
 				{
 					auto elapse1 = std::abs(std::chrono::duration_cast<std::chrono::milliseconds>(
 						std::chrono::high_resolution_clock::now() - ex.start_time).count() - 200);
-					ASIO2_CHECK_VALUE(elapse1, elapse1 <= 100);
+					ASIO2_CHECK_VALUE(elapse1, elapse1 <= test_timer_deviation);
 				}
 
 				ex.start_time = std::chrono::high_resolution_clock::now();

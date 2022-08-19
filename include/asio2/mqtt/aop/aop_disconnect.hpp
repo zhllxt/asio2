@@ -37,14 +37,6 @@ namespace asio2::detail
 		{
 			detail::ignore_unused(ec, caller_ptr, caller, om, msg);
 
-			if constexpr /**/ (caller_t::is_session())
-			{
-				detail::ignore_unused(ec, caller_ptr, caller, om, msg);
-			}
-			else if constexpr (caller_t::is_client())
-			{
-				detail::ignore_unused(ec, caller_ptr, caller, om, msg);
-			}
 		}
 
 		// server or client
@@ -54,14 +46,6 @@ namespace asio2::detail
 		{
 			detail::ignore_unused(ec, caller_ptr, caller, om, msg);
 
-			if constexpr /**/ (caller_t::is_session())
-			{
-				detail::ignore_unused(ec, caller_ptr, caller, om, msg);
-			}
-			else if constexpr (caller_t::is_client())
-			{
-				detail::ignore_unused(ec, caller_ptr, caller, om, msg);
-			}
 		}
 
 		// server or client
@@ -71,14 +55,6 @@ namespace asio2::detail
 		{
 			detail::ignore_unused(ec, caller_ptr, caller, om, msg);
 
-			if constexpr /**/ (caller_t::is_session())
-			{
-				detail::ignore_unused(ec, caller_ptr, caller, om, msg);
-			}
-			else if constexpr (caller_t::is_client())
-			{
-				detail::ignore_unused(ec, caller_ptr, caller, om, msg);
-			}
 		}
 
 		inline void _after_user_callback_impl(

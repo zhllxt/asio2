@@ -25,7 +25,7 @@
 namespace asio2::mqtt
 {
 	template<typename M>
-	inline constexpr bool is_control_message()
+	inline constexpr bool is_ctrlmsg()
 	{
 		return (is_v3_message<M>() || is_v4_message<M>() || is_v5_message<M>());
 	}
@@ -37,9 +37,9 @@ namespace asio2::mqtt
 	}
 
 	template<typename M>
-	inline constexpr bool is_message()
+	inline constexpr bool is_rawmsg()
 	{
-		return (is_control_message<M>() || is_nullmsg<M>());
+		return (is_ctrlmsg<M>() || is_nullmsg<M>());
 	}
 
 	template<typename M> inline constexpr bool is_connect_message    () { using T = asio2::detail::remove_cvref_t<M>; return (std::is_same_v<T, mqtt::v3::connect    > || std::is_same_v<T, mqtt::v4::connect    > || std::is_same_v<T, mqtt::v5::connect    >); }
@@ -123,12 +123,12 @@ namespace asio2::mqtt
 		{
 		}
 
-		template<class T, std::enable_if_t<is_message<T>(), int> = 0>
+		template<class T, std::enable_if_t<is_rawmsg<T>(), int> = 0>
 		message(T&& v) : message_variant(std::forward<T>(v))
 		{
 		}
 
-		template<class T, std::enable_if_t<is_message<T>(), int> = 0>
+		template<class T, std::enable_if_t<is_rawmsg<T>(), int> = 0>
 		message& operator=(T&& v)
 		{
 			this->base() = std::forward<T>(v);
@@ -140,25 +140,25 @@ namespace asio2::mqtt
 		message& operator=(message&&) noexcept = default;
 		message& operator=(message const&) = default;
 
-		template<class T, std::enable_if_t<is_message<T>(), int> = 0>
+		template<class T, std::enable_if_t<is_rawmsg<T>(), int> = 0>
 		operator T&()
 		{
 			return std::get<T>(this->base());
 		}
 
-		template<class T, std::enable_if_t<is_message<T>(), int> = 0>
+		template<class T, std::enable_if_t<is_rawmsg<T>(), int> = 0>
 		operator const T&()
 		{
 			return std::get<T>(this->base());
 		}
 
-		template<class T, std::enable_if_t<is_message<T>(), int> = 0>
+		template<class T, std::enable_if_t<is_rawmsg<T>(), int> = 0>
 		operator T*() noexcept
 		{
 			return std::get_if<T>(std::addressof(this->base()));
 		}
 
-		template<class T, std::enable_if_t<is_message<T>(), int> = 0>
+		template<class T, std::enable_if_t<is_rawmsg<T>(), int> = 0>
 		operator const T*() noexcept
 		{
 			return std::get_if<T>(std::addressof(this->base()));
@@ -170,7 +170,7 @@ namespace asio2::mqtt
 		 * mqtt::v3::subscribe sub = static_cast<mqtt::v3::subscribe>(msg);
 		 * compile error : call of overloaded subscribe(asio2::mqtt::message&) is ambiguous
 		 */
-		//template<class T, std::enable_if_t<is_message<T>(), int> = 0>
+		//template<class T, std::enable_if_t<is_rawmsg<T>(), int> = 0>
 		//operator T()
 		//{
 		//	return std::get<T>(this->base());

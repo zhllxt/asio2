@@ -48,6 +48,17 @@ namespace asio2::mqtt
 	public:
 		using key_type = std::pair<std::size_t, std::string_view>;
 
+		struct hasher
+		{
+			inline std::size_t operator()(key_type const& pair) const noexcept
+			{
+				std::size_t v = asio2::detail::fnv1a_hash<std::size_t>(
+					(const unsigned char*)(std::addressof(pair.first)), sizeof(std::size_t));
+				return asio2::detail::fnv1a_hash<std::size_t>(v,
+					(const unsigned char*)(pair.second.data()), pair.second.size());
+			}
+		};
+
 		struct node
 		{
 			std::size_t        id;
@@ -70,7 +81,7 @@ namespace asio2::mqtt
 			}
 		};
 
-		using map_type = std::unordered_map<key_type, node>;
+		using map_type = std::unordered_map<key_type, node, hasher>;
 		using map_iterator       = typename map_type::iterator;
 		using map_const_iterator = typename map_type::const_iterator;
 
@@ -496,13 +507,13 @@ namespace asio2::mqtt
 		template <typename K>
 		inline void emplace_subscriber_node(K&& key, key_type node_key)
 		{
-			std::unordered_set<key_type>& node_keys = this->subscriber_nodes_[key];
+			std::unordered_set<key_type, hasher>& node_keys = this->subscriber_nodes_[key];
 			node_keys.emplace(std::move(node_key));
 		}
 
 		inline void erase_subscriber_node(const Key& key, const key_type& node_key)
 		{
-			std::unordered_set<key_type>& node_keys = this->subscriber_nodes_[key];
+			std::unordered_set<key_type, hasher>& node_keys = this->subscriber_nodes_[key];
 			node_keys.erase(node_key);
 			if (node_keys.empty())
 			{
@@ -511,19 +522,19 @@ namespace asio2::mqtt
 		}
 
 	protected:
-		static constexpr key_type                               root_key_{ 0, "" };
+		static constexpr key_type                                     root_key_{ 0, "" };
 
-		std::size_t                                             root_node_id_ = 1;
+		std::size_t                                                   root_node_id_ = 1;
 
-		map_type                                                map_;
+		map_type                                                      map_;
 
 		// Map size tracks the total number of subscriptions within the map
-		std::size_t                                             subscribe_count_ = 0;
+		std::size_t                                                   subscribe_count_ = 0;
 
 		// Key - client id, Val - all nodes keys for the subscriber
-		std::unordered_map<Key, std::unordered_set<key_type>>   subscriber_nodes_;
+		std::unordered_map<Key, std::unordered_set<key_type, hasher>> subscriber_nodes_;
 
-		mqtt::idmgr<std::set<std::size_t>>                      idmgr_;
+		mqtt::idmgr<std::set<std::size_t>>                            idmgr_;
 	};
 }
 

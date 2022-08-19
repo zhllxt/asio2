@@ -130,7 +130,7 @@ namespace asio2::detail
 		 */
 		inline void stop()
 		{
-			if (this->iopool_->stopped())
+			if (this->is_iopool_stopped())
 				return;
 
 			derived_t& derive = this->derived();
@@ -142,7 +142,7 @@ namespace asio2::detail
 				derive._do_stop(asio::error::operation_aborted, derive.selfptr());
 			});
 
-			this->iopool_->stop();
+			this->stop_iopool();
 
 			// asio bug , see : https://www.boost.org/users/history/version_1_72_0.html
 			// Fixed a lost "outstanding work count" that can occur when an asynchronous 
@@ -160,7 +160,7 @@ namespace asio2::detail
 		 */
 		inline bool is_stopped() const
 		{
-			return (this->state_ == state_t::stopped && !this->acceptor_.is_open() && iopool_cp::_stopped());
+			return (this->state_ == state_t::stopped && !this->acceptor_.is_open() && this->is_iopool_stopped());
 		}
 
 	public:
@@ -301,9 +301,9 @@ namespace asio2::detail
 		{
 			derived_t& derive = this->derived();
 
-			this->iopool_->start();
+			this->start_iopool();
 
-			if (this->iopool_->stopped())
+			if (this->is_iopool_stopped())
 			{
 				set_last_error(asio::error::operation_aborted);
 				return false;

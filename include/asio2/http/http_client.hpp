@@ -262,7 +262,7 @@ namespace asio2::detail
 		static inline http::response<Body, Fields> execute(String&& host, StrOrInt&& port,
 			http::request<Body, Fields>& req, std::chrono::duration<Rep, Period> timeout)
 		{
-			return execute(
+			return derived_t::execute(
 				std::forward<String>(host), std::forward<StrOrInt>(port), req, timeout, std::in_place);
 		}
 
@@ -270,7 +270,7 @@ namespace asio2::detail
 		static inline http::response<Body, Fields> execute(String&& host, StrOrInt&& port,
 			http::request<Body, Fields>& req)
 		{
-			return execute(
+			return derived_t::execute(
 				std::forward<String>(host), std::forward<StrOrInt>(port),
 				req, std::chrono::milliseconds(http_execute_timeout));
 		}
@@ -281,13 +281,13 @@ namespace asio2::detail
 		static inline http::response<Body, Fields> execute(
 			http::web_request& req, std::chrono::duration<Rep, Period> timeout)
 		{
-			return execute(req.url().host(), req.url().port(), req.base(), timeout, std::in_place);
+			return derived_t::execute(req.url().host(), req.url().port(), req.base(), timeout, std::in_place);
 		}
 
 		template<class Body = http::string_body, class Fields = http::fields>
 		static inline http::response<Body, Fields> execute(http::web_request& req)
 		{
-			return execute(req, std::chrono::milliseconds(http_execute_timeout));
+			return derived_t::execute(req, std::chrono::milliseconds(http_execute_timeout));
 		}
 
 		// ----------------------------------------------------------------------------------------
@@ -304,7 +304,7 @@ namespace asio2::detail
 			{
 				return http::response<Body, Fields>{ http::status::unknown, 11};
 			}
-			return execute(
+			return derived_t::execute(
 				req.host(), req.port(), req.base(), timeout, std::in_place);
 		}
 
@@ -314,7 +314,7 @@ namespace asio2::detail
 		template<class Body = http::string_body, class Fields = http::fields>
 		static inline http::response<Body, Fields> execute(std::string_view url)
 		{
-			return execute(url, std::chrono::milliseconds(http_execute_timeout));
+			return derived_t::execute(url, std::chrono::milliseconds(http_execute_timeout));
 		}
 
 		// ----------------------------------------------------------------------------------------
@@ -332,7 +332,7 @@ namespace asio2::detail
 			{
 				return http::response<Body, Fields>{ http::status::unknown, 11};
 			}
-			return execute(
+			return derived_t::execute(
 				std::forward<String>(host), std::forward<StrOrInt>(port),
 				req.base(), timeout, std::in_place);
 		}
@@ -344,7 +344,7 @@ namespace asio2::detail
 		static inline http::response<Body, Fields> execute(String&& host, StrOrInt&& port,
 			std::string_view target)
 		{
-			return execute(
+			return derived_t::execute(
 				std::forward<String>(host), std::forward<StrOrInt>(port),
 				target, std::chrono::milliseconds(http_execute_timeout));
 		}
@@ -356,7 +356,7 @@ namespace asio2::detail
 		static inline http::response<Body, Fields> execute(String&& host, StrOrInt&& port,
 			http::request<Body, Fields>& req, Proxy&& proxy)
 		{
-			return execute(
+			return derived_t::execute(
 				std::forward<String>(host), std::forward<StrOrInt>(port),
 				req, std::chrono::milliseconds(http_execute_timeout), std::forward<Proxy>(proxy));
 		}
@@ -367,14 +367,14 @@ namespace asio2::detail
 		static inline http::response<Body, Fields> execute(
 			http::web_request& req, std::chrono::duration<Rep, Period> timeout, Proxy&& proxy)
 		{
-			return execute(req.url().host(), req.url().port(), req.base(), timeout,
+			return derived_t::execute(req.url().host(), req.url().port(), req.base(), timeout,
 				std::forward<Proxy>(proxy));
 		}
 
 		template<class Proxy, class Body = http::string_body, class Fields = http::fields>
 		static inline http::response<Body, Fields> execute(http::web_request& req, Proxy&& proxy)
 		{
-			return execute(req, std::chrono::milliseconds(http_execute_timeout), std::forward<Proxy>(proxy));
+			return derived_t::execute(req, std::chrono::milliseconds(http_execute_timeout), std::forward<Proxy>(proxy));
 		}
 
 		// ----------------------------------------------------------------------------------------
@@ -391,7 +391,7 @@ namespace asio2::detail
 			{
 				return http::response<Body, Fields>{ http::status::unknown, 11};
 			}
-			return execute(req.host(), req.port(), req.base(), timeout, std::forward<Proxy>(proxy));
+			return derived_t::execute(req.host(), req.port(), req.base(), timeout, std::forward<Proxy>(proxy));
 		}
 
 		/**
@@ -400,7 +400,7 @@ namespace asio2::detail
 		template<class Proxy, class Body = http::string_body, class Fields = http::fields>
 		static inline http::response<Body, Fields> execute(std::string_view url, Proxy&& proxy)
 		{
-			return execute(url, std::chrono::milliseconds(http_execute_timeout), std::forward<Proxy>(proxy));
+			return derived_t::execute(url, std::chrono::milliseconds(http_execute_timeout), std::forward<Proxy>(proxy));
 		}
 
 		// ----------------------------------------------------------------------------------------
@@ -418,7 +418,7 @@ namespace asio2::detail
 			{
 				return http::response<Body, Fields>{ http::status::unknown, 11};
 			}
-			return execute(
+			return derived_t::execute(
 				std::forward<String>(host), std::forward<StrOrInt>(port),
 				req.base(), timeout, std::forward<Proxy>(proxy));
 		}
@@ -431,7 +431,7 @@ namespace asio2::detail
 		static inline http::response<Body, Fields> execute(String&& host, StrOrInt&& port,
 			std::string_view target, Proxy&& proxy)
 		{
-			return execute(
+			return derived_t::execute(
 				std::forward<String>(host), std::forward<StrOrInt>(port),
 				target, std::chrono::milliseconds(http_execute_timeout), std::forward<Proxy>(proxy));
 		}

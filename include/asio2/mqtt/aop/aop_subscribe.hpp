@@ -30,9 +30,44 @@ namespace asio2::detail
 		friend caller_t;
 
 	protected:
+		template<class Message>
+		inline mqtt::v5::properties_set _check_subscribe_properties(error_code& ec, Message& msg)
+		{
+			using message_type = typename detail::remove_cvref_t<Message>;
+
+			if constexpr (std::is_same_v<message_type, mqtt::v5::subscribe>)
+			{
+				// Get subscription identifier
+				mqtt::v5::subscription_identifier* sub_id =
+					msg.properties().template get_if<mqtt::v5::subscription_identifier>();
+				if (sub_id)
+				{
+					// The Subscription Identifier can have the value of 1 to 268,435,455.
+					// It is a Protocol Error if the Subscription Identifier has a value of 0
+					auto v = sub_id->value();
+					if (v < 1 || v > 268435455)
+					{
+						ASIO2_ASSERT(false);
+						ec = mqtt::make_error_code(mqtt::error::protocol_error);
+					}
+					else
+					{
+						std::ignore = true;
+					}
+				}
+
+				return msg.properties();
+			}
+			else
+			{
+				return {};
+			}
+		}
+
 		// must be server
-		template<class Message, class Response>
-		inline bool _before_subscribe_callback(
+		template<class Message, class Response, bool IsClient = args_t::is_client>
+		inline std::enable_if_t<!IsClient, void>
+		_before_subscribe_callback(
 			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
 			Message& msg, Response& rep)
 		{
@@ -40,127 +75,95 @@ namespace asio2::detail
 
 			using message_type = typename detail::remove_cvref_t<Message>;
 
-			if constexpr (caller_t::is_session())
+			bool is_v5 = std::is_same_v<message_type, mqtt::v5::subscribe>;
+
+			// A SUBACK and UNSUBACK MUST contain the Packet Identifier that was used in the
+			// corresponding SUBSCRIBE and UNSUBSCRIBE packet respectively [MQTT-2.2.1-6].
+			rep.packet_id(msg.packet_id());
+
+			// subscription properties
+			mqtt::v5::properties_set props = _check_subscribe_properties(ec, msg);
+
+			for (mqtt::subscription& sub : msg.subscriptions().data())
 			{
-				bool flag = true;
+				// Reason Codes
+				// https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901178
 
-				constexpr bool is_v5 = std::is_same_v<message_type, mqtt::v5::subscribe>;
-
-				// A SUBACK and UNSUBACK MUST contain the Packet Identifier that was used in the
-				// corresponding SUBSCRIBE and UNSUBSCRIBE packet respectively [MQTT-2.2.1-6].
-				rep.packet_id(msg.packet_id());
-
-				// subscription properties
-				mqtt::v5::properties_set props;
-
-				if constexpr (std::is_same_v<message_type, mqtt::v5::subscribe>)
+				// error, the session will be disconnect a later
+				if (sub.topic_filter().empty())
 				{
-					props = msg.properties();
-
-					// Get subscription identifier
-					mqtt::v5::subscription_identifier* sub_id =
-						msg.properties().template get_if<mqtt::v5::subscription_identifier>();
-					if (sub_id)
-					{
-						// The Subscription Identifier can have the value of 1 to 268,435,455.
-						// It is a Protocol Error if the Subscription Identifier has a value of 0
-						auto v = sub_id->value();
-						if (v < 1 || v > 268435455)
-						{
-							ASIO2_ASSERT(false);
-							ec = mqtt::make_error_code(mqtt::error::protocol_error);
-							flag = false;
-						}
-						else
-						{
-							std::ignore = true;
-						}
-					}
-				}
-				else
-				{
-					std::ignore = true;
+					ec = mqtt::make_error_code(mqtt::error::topic_filter_invalid);
+					rep.add_reason_codes(detail::to_underlying(is_v5 ?
+						mqtt::error::topic_filter_invalid : mqtt::error::unspecified_error));
+					continue;
 				}
 
-				for (mqtt::subscription& sub : msg.subscriptions().data())
+				mqtt::qos_type qos = sub.qos();
+
+				// error, the session will be disconnect a later
+				if (!mqtt::is_valid_qos(qos))
 				{
-					// Reason Codes
-					// https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901178
+					ec = mqtt::make_error_code(mqtt::error::unspecified_error);
+					rep.add_reason_codes(detail::to_underlying(mqtt::error::unspecified_error));
+					continue;
+				}
 
-					// error, the session will be disconnect a later
-					if (sub.topic_filter().empty())
-					{
-						ec = mqtt::make_error_code(mqtt::error::topic_filter_invalid);
-						rep.add_reason_codes(detail::to_underlying(is_v5 ?
-							mqtt::error::topic_filter_invalid : mqtt::error::unspecified_error));
-						flag = false;
-						continue;
-					}
+				// not error, but not supported, and the session will not be disconnect
+				if (detail::to_underlying(qos) > caller->maximum_qos())
+				{
+					ec = mqtt::make_error_code(mqtt::error::qos_not_supported);
+					rep.add_reason_codes(detail::to_underlying(is_v5 ?
+						mqtt::error::quota_exceeded : mqtt::error::unspecified_error));
+					continue;
+				}
 
-					mqtt::qos_type qos = sub.qos();
+				// not error, and supported too
+				rep.add_reason_codes(detail::to_underlying(qos));
 
-					// error, the session will be disconnect a later
-					if (!mqtt::is_valid_qos(qos))
-					{
-						ec = mqtt::make_error_code(mqtt::error::unspecified_error);
-						rep.add_reason_codes(detail::to_underlying(mqtt::error::unspecified_error));
-						flag = false;
-						continue;
-					}
+				typename caller_t::subnode_type node{ caller_ptr, sub, std::move(props) };
 
-					// not error, but not supported, and the session will not be disconnect
-					if (detail::to_underlying(qos) > caller->maximum_qos())
-					{
-						ec = mqtt::make_error_code(mqtt::error::qos_not_supported);
-						rep.add_reason_codes(detail::to_underlying(is_v5 ?
-							mqtt::error::quota_exceeded : mqtt::error::unspecified_error));
-						flag = false;
-						continue;
-					}
+				std::string_view share_name   = node.share_name();
+				std::string_view topic_filter = node.topic_filter();
 
-					// not error, and supported too
-					rep.add_reason_codes(detail::to_underlying(qos));
+				if (!share_name.empty())
+				{
+					caller->shared_targets().insert(caller_ptr, share_name, topic_filter);
+				}
 
-					typename caller_t::subnode_type node{ caller_ptr, sub, std::move(props) };
+				bool inserted = false;
 
-					std::string_view share_name   = node.share_name();
-					std::string_view topic_filter = node.topic_filter();
+				{
+					asio2_unique_lock lock{ caller->get_mutex() };
 
-					if (!share_name.empty())
-					{
-						caller->shared_targets_.insert(caller_ptr, share_name, topic_filter);
-					}
+					inserted = caller->subs_map().insert_or_assign(
+						topic_filter, caller->client_id(), std::move(node)).second;
+				}
 
-					bool inserted = false;
+				mqtt::retain_handling_type rh = sub.retain_handling();
 
-					{
-						asio2_unique_lock lock{ caller->get_mutex() };
-
-						inserted = caller->subs_map_.insert_or_assign(
-							topic_filter, caller->client_id(), std::move(node)).second;
-					}
-
-					mqtt::retain_handling_type rh = sub.retain_handling();
-
-					if /**/ (rh == mqtt::retain_handling_type::send)
+				if /**/ (rh == mqtt::retain_handling_type::send)
+				{
+					_send_retained_messages(caller_ptr, caller, sub);
+				}
+				else if (rh == mqtt::retain_handling_type::send_only_new_subscription)
+				{
+					if (inserted)
 					{
 						_send_retained_messages(caller_ptr, caller, sub);
 					}
-					else if (rh == mqtt::retain_handling_type::send_only_new_subscription)
-					{
-						if (inserted)
-						{
-							_send_retained_messages(caller_ptr, caller, sub);
-						}
-					}
 				}
+			}
+		}
 
-				return flag;
-			}
-			else
-			{
-				return true;
-			}
+		template<class Message, class Response, bool IsClient = args_t::is_client>
+		inline std::enable_if_t<IsClient, void>
+		_before_subscribe_callback(
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
+			Message& msg, Response& rep)
+		{
+			detail::ignore_unused(ec, caller_ptr, caller, om, msg, rep);
+
+			ASIO2_ASSERT(false && "client should't recv the subscribe message");
 		}
 
 		inline void _send_retained_messages(
@@ -178,7 +181,7 @@ namespace asio2::detail
 
 				mqtt::v5::properties_set props;
 
-				caller->retained_messages_.find(topic_filter, [caller_ptr, caller, &sub, &props]
+				caller->retained_messages().find(topic_filter, [caller_ptr, caller, &sub, &props]
 				(mqtt::rmnode& node) mutable
 				{
 					std::visit([caller_ptr, caller, &sub, &props](auto& pub) mutable
@@ -202,7 +205,7 @@ namespace asio2::detail
 			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
 			mqtt::v3::subscribe& msg, mqtt::v3::suback& rep)
 		{
-			if (!_before_subscribe_callback(ec, caller_ptr, caller, om, msg, rep))
+			if (_before_subscribe_callback(ec, caller_ptr, caller, om, msg, rep); ec)
 				return;
 		}
 
@@ -211,7 +214,7 @@ namespace asio2::detail
 			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
 			mqtt::v4::subscribe& msg, mqtt::v4::suback& rep)
 		{
-			if (!_before_subscribe_callback(ec, caller_ptr, caller, om, msg, rep))
+			if (_before_subscribe_callback(ec, caller_ptr, caller, om, msg, rep); ec)
 				return;
 		}
 
@@ -220,7 +223,7 @@ namespace asio2::detail
 			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
 			mqtt::v5::subscribe& msg, mqtt::v5::suback& rep)
 		{
-			if (!_before_subscribe_callback(ec, caller_ptr, caller, om, msg, rep))
+			if (_before_subscribe_callback(ec, caller_ptr, caller, om, msg, rep); ec)
 				return;
 		}
 

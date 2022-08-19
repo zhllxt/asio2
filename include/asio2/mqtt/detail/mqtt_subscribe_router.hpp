@@ -620,13 +620,15 @@ namespace asio2::detail
 				std::string_view share_name   = node.share_name();
 				std::string_view topic_filter = node.topic_filter();
 
-				auto[_1, inserted] = this->subs_map_.insert_or_assign(topic_filter, "", std::move(node));
+				auto[_1, inserted] = this->subs_map().insert_or_assign(topic_filter, "", std::move(node));
 
 				asio2::ignore_unused(share_name, topic_filter, _1, inserted);
 			}
 
 			derive.async_send(std::forward<Message>(msg));
 		}
+
+		inline mqtt::subscription_map<std::string_view, subnode_type>& subs_map() { return subs_map_; }
 
 	protected:
 		/// subscription information map

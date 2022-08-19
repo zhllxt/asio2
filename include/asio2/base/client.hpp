@@ -69,7 +69,7 @@ namespace asio2::detail
 	template<class derived_t, class args_t>
 	class client_impl_t
 		: public object_t              <derived_t        >
-		, public iopool_cp
+		, public iopool_cp             <derived_t, args_t>
 		, public thread_id_cp          <derived_t, args_t>
 		, public event_queue_cp        <derived_t, args_t>
 		, public user_data_cp          <derived_t, args_t>
@@ -93,6 +93,8 @@ namespace asio2::detail
 		using super = object_t     <derived_t        >;
 		using self  = client_impl_t<derived_t, args_t>;
 
+		using iopoolcp = iopool_cp <derived_t, args_t>;
+
 		using args_type   = args_t;
 		using key_type    = std::size_t;
 		using buffer_type = typename args_t::buffer_t;
@@ -114,12 +116,12 @@ namespace asio2::detail
 			Args&&...   args
 		)
 			: super()
-			, iopool_cp(std::forward<ThreadCountOrScheduler>(tcos))
+			, iopool_cp           <derived_t, args_t>(std::forward<ThreadCountOrScheduler>(tcos))
 			, event_queue_cp      <derived_t, args_t>()
 			, user_data_cp        <derived_t, args_t>()
 			, connect_time_cp     <derived_t, args_t>()
 			, alive_time_cp       <derived_t, args_t>()
-			, socket_cp           <derived_t, args_t>(iopool_cp::_get_io(0).context(), std::forward<Args>(args)...)
+			, socket_cp           <derived_t, args_t>(iopoolcp::_get_io(0).context(), std::forward<Args>(args)...)
 			, connect_cp          <derived_t, args_t>()
 			, disconnect_cp       <derived_t, args_t>()
 			, reconnect_timer_cp  <derived_t, args_t>()
@@ -132,7 +134,7 @@ namespace asio2::detail
 			, rallocator_()
 			, wallocator_()
 			, listener_  ()
-			, io_        (iopool_cp::_get_io(0))
+			, io_        (iopoolcp::_get_io(0))
 			, buffer_    (init_buf_size, max_buf_size)
 		{
 		}
@@ -213,7 +215,7 @@ namespace asio2::detail
 		 */
 		inline bool is_stopped() const
 		{
-			return (this->state_ == state_t::stopped && !this->socket_.lowest_layer().is_open() && iopool_cp::_stopped());
+			return (this->state_ == state_t::stopped && !this->socket_.lowest_layer().is_open() && this->is_iopool_stopped());
 		}
 
 		/**

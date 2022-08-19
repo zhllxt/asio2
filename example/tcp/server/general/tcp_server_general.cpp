@@ -22,6 +22,7 @@ int main()
 		session_ptr->no_delay(true);
 
 		// You can close the connection directly here.
+		// Of course, you can also close the connection anywhere.
 		if (session_ptr->remote_address() == "192.168.0.254")
 			session_ptr->stop();
 

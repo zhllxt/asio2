@@ -136,7 +136,7 @@ namespace asio2::detail
 		 */
 		inline void stop()
 		{
-			if (this->iopool_->stopped())
+			if (this->is_iopool_stopped())
 				return;
 
 			derived_t& derive = this->derived();
@@ -192,7 +192,7 @@ namespace asio2::detail
 				ASIO2_ASSERT(state == state_t::stopped);
 			}
 
-			this->iopool_->stop();
+			this->stop_iopool();
 		}
 
 	public:
@@ -307,9 +307,9 @@ namespace asio2::detail
 		{
 			derived_t& derive = this->derived();
 
-			this->iopool_->start();
+			this->start_iopool();
 
-			if (this->iopool_->stopped())
+			if (this->is_iopool_stopped())
 			{
 				set_last_error(asio::error::operation_aborted);
 				return false;

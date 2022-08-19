@@ -741,7 +741,7 @@ namespace asio2::detail
 		}
 
 		template<class Message, class Response>
-		typename std::enable_if_t<mqtt::is_message<typename detail::remove_cvref_t<Message>>()>
+		typename std::enable_if_t<mqtt::is_rawmsg<typename detail::remove_cvref_t<Message>>()>
 		inline _init_response(error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller,
 			Message& msg, Response& rep)
 		{

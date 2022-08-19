@@ -30,10 +30,23 @@ namespace asio2::detail
 		friend caller_t;
 
 	protected:
-		// must be client
-		inline void _before_user_callback_impl(
+		template<class Message, bool IsClient = args_t::is_client>
+		inline std::enable_if_t<!IsClient, void>
+		_before_connack_callback(
 			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
-			mqtt::v3::connack& msg)
+			Message& msg)
+		{
+			detail::ignore_unused(ec, caller_ptr, caller, om, msg);
+
+			// if server recvd connack message, disconnect
+			ec = mqtt::make_error_code(mqtt::error::malformed_packet);
+		}
+
+		template<class Message, bool IsClient = args_t::is_client>
+		inline std::enable_if_t<IsClient, void>
+		_before_connack_callback(
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
+			Message& msg)
 		{
 			detail::ignore_unused(ec, caller_ptr, caller, om, msg);
 
@@ -45,16 +58,16 @@ namespace asio2::detail
 				return;
 			}
 
-			if constexpr (caller_t::is_client())
-			{
-				caller->connack_message_ = msg;
-			}
-			else
-			{
-				// if server recvd connack message, disconnect
-				ec = mqtt::make_error_code(mqtt::error::malformed_packet);
+			caller->connack_message_ = msg;
+		}
+
+		// must be client
+		inline void _before_user_callback_impl(
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
+			mqtt::v3::connack& msg)
+		{
+			if (_before_connack_callback(ec, caller_ptr, caller, om, msg); ec)
 				return;
-			}
 
 			switch(msg.reason_code())
 			{
@@ -73,26 +86,8 @@ namespace asio2::detail
 			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
 			mqtt::v4::connack& msg)
 		{
-			detail::ignore_unused(ec, caller_ptr, caller, om, msg);
-
-			// if started already and recvd connack message again, disconnect
-			state_t expected = state_t::started;
-			if (caller->state_.compare_exchange_strong(expected, state_t::started))
-			{
-				ec = mqtt::make_error_code(mqtt::error::malformed_packet);
+			if (_before_connack_callback(ec, caller_ptr, caller, om, msg); ec)
 				return;
-			}
-
-			if constexpr (caller_t::is_client())
-			{
-				caller->connack_message_ = msg;
-			}
-			else
-			{
-				// if server recvd connack message, disconnect
-				ec = mqtt::make_error_code(mqtt::error::malformed_packet);
-				return;
-			}
 
 			switch(msg.reason_code())
 			{
@@ -111,26 +106,8 @@ namespace asio2::detail
 			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
 			mqtt::v5::connack& msg)
 		{
-			detail::ignore_unused(ec, caller_ptr, caller, om, msg);
-
-			// if started already and recvd connack message again, disconnect
-			state_t expected = state_t::started;
-			if (caller->state_.compare_exchange_strong(expected, state_t::started))
-			{
-				ec = mqtt::make_error_code(mqtt::error::malformed_packet);
+			if (_before_connack_callback(ec, caller_ptr, caller, om, msg); ec)
 				return;
-			}
-
-			if constexpr (caller_t::is_client())
-			{
-				caller->connack_message_ = msg;
-			}
-			else
-			{
-				// if server recvd connack message, disconnect
-				ec = mqtt::make_error_code(mqtt::error::malformed_packet);
-				return;
-			}
 
 			ec = mqtt::make_error_code(static_cast<mqtt::error>(msg.reason_code()));
 		}

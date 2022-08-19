@@ -38,6 +38,17 @@ namespace asio2::mqtt
 	public:
 		using key_type = std::pair<std::size_t, std::string_view>;
 
+		struct hasher
+		{
+			inline std::size_t operator()(key_type const& pair) const noexcept
+			{
+				std::size_t v = asio2::detail::fnv1a_hash<std::size_t>(
+					(const unsigned char*)(std::addressof(pair.first)), sizeof(std::size_t));
+				return asio2::detail::fnv1a_hash<std::size_t>(v,
+					(const unsigned char*)(pair.second.data()), pair.second.size());
+			}
+		};
+
 	protected:
 		// Exceptions used
 		static void throw_max_stored_topics()
@@ -89,11 +100,11 @@ namespace asio2::mqtt
 			{ }
 		};
 
-		using map_type = std::unordered_map<key_type, path_entry, std::hash<key_type>>;
+		using map_type = std::unordered_map<key_type, path_entry, hasher>;
 		using map_iterator       = typename map_type::iterator;
 		using map_const_iterator = typename map_type::const_iterator;
 
-		std::unordered_map<key_type, path_entry, std::hash<key_type>> map;
+		std::unordered_map<key_type, path_entry, hasher> map;
 		std::unordered_multimap<std::size_t, path_entry*> wildcard_map;
 
 		std::size_t map_size;

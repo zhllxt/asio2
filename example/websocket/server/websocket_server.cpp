@@ -12,7 +12,7 @@ int main()
 		// Set the binary message write option.
 		session_ptr->ws_stream().binary(true);
 
-		// Set the text message write option.
+		// Set the text message write option. The sent text must be utf8 format.
 		//session_ptr->ws_stream().text(true);
 
 		// how to set custom websocket response data : 
@@ -63,7 +63,9 @@ int main()
 
 	server.start(host, port);
 
-	while (std::getchar() != '\n');
+	// blocked forever util some signal delivered.
+	// Normally, pressing Ctrl + C will emit the SIGINT signal.
+	server.wait_signal(SIGINT, SIGTERM);
 
 	return 0;
 }

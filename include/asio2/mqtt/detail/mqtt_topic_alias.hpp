@@ -42,7 +42,7 @@ namespace asio2::detail
 		ASIO2_CLASS_FRIEND_DECLARE_TCP_SESSION;
 		ASIO2_CLASS_FRIEND_DECLARE_TCP_CLIENT;
 
-	public:
+	protected:
 		using self = mqtt_topic_alias_t<derived_t, args_t>;
 
 		/**

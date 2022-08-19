@@ -28,6 +28,7 @@
 #include <functional>
 
 #include <asio2/base/error.hpp>
+#include <asio2/base/define.hpp>
 #include <asio2/base/detail/util.hpp>
 
 namespace asio2::detail
@@ -431,7 +432,7 @@ namespace asio2::detail
 					return;
 
 				if (this->running_in_threads())
-					return;
+					return this->cancel();
 
 				this->stopped_ = true;
 			}
@@ -551,7 +552,7 @@ namespace asio2::detail
 				std::lock_guard<std::mutex> guard(this->mutex_);
 
 				if (this->running_in_threads())
-					return;
+					return this->cancel();
 
 				// wiat fo all pending events completed.
 				while (this->pending_ > std::size_t(0))
@@ -617,6 +618,22 @@ namespace asio2::detail
 		}
 
 		/**
+		 * 
+		 */
+		inline void cancel()
+		{
+			for (std::size_t i = 0; i < this->iocs_.size(); ++i)
+			{
+				auto& ioc = this->iocs_[i];
+				auto& iot = this->iots_[i];
+				if (!ioc->stopped())
+				{
+					iot->cancel();
+				}
+			}
+		}
+
+		/**
 		 * @function :
 		 */
 		inline std::size_t next(std::size_t index) noexcept
@@ -664,6 +681,7 @@ namespace asio2::detail
 		virtual io_t                      & get    (std::size_t index) noexcept = 0;
 		virtual std::size_t                 size   ()            const noexcept = 0;
 		virtual std::atomic<std::size_t>  & pending()                  noexcept = 0;
+		virtual bool             running_in_threads()            const noexcept = 0;
 	};
 
 	class default_iopool : public iopool_base
@@ -727,6 +745,14 @@ namespace asio2::detail
 		virtual std::atomic<std::size_t>& pending() noexcept override
 		{
 			return this->impl_.pending();
+		}
+
+		/**
+		 * @function : Determine whether current code is running in the io_context pool threads.
+		 */
+		virtual bool running_in_threads() const noexcept override
+		{
+			return this->impl_.running_in_threads();
 		}
 
 	protected:
@@ -860,6 +886,20 @@ namespace asio2::detail
 			return (index < this->size() ? index : ((++(this->next_)) % this->size()));
 		}
 
+		/**
+		 * @function : Determine whether current code is running in the io_context pool threads.
+		 */
+		virtual bool running_in_threads() const noexcept override
+		{
+			std::thread::id curr_tid = std::this_thread::get_id();
+			for (auto& iot : this->iots_)
+			{
+				if (curr_tid == iot->get_thread_id())
+					return true;
+			}
+			return false;
+		}
+
 	protected:
 		/// user container copy, maybe the user passed shared_ptr, and expect us to keep it
 		copy_container_type                      copy_;
@@ -880,6 +920,7 @@ namespace asio2::detail
 		std::atomic<std::size_t>                 pending_  = 0;
 	};
 
+	template<class derived_t, class args_t = void>
 	class iopool_cp
 	{
 	public:
@@ -949,6 +990,160 @@ namespace asio2::detail
 
 		~iopool_cp() = default;
 
+		/**
+		 * The wait_stop() function blocks until the stop() function has been called.
+		 */
+		void wait_stop()
+		{
+			if (this->iopool().running_in_threads())
+			{
+				set_last_error(asio::error::operation_not_supported);
+				return;
+			}
+
+			try
+			{
+				clear_last_error();
+
+				derived_t& derive = static_cast<derived_t&>(*this);
+
+				std::promise<error_code> promise;
+				std::future<error_code> future = promise.get_future();
+
+				// We must use asio::post to ensure the wait_stop_timer_ is read write in the 
+				// same thread.
+				asio::post(iots_[0]->context(), [this, this_ptr = derive.selfptr(), promise = std::move(promise)]
+				() mutable
+				{
+					try
+					{
+						this->wait_stop_timer_ = std::make_unique<asio::steady_timer>(iots_[0]->context());
+
+						this->iots_[0]->timers().emplace(this->wait_stop_timer_.get());
+
+						this->wait_stop_timer_->expires_after((std::chrono::nanoseconds::max)());
+						this->wait_stop_timer_->async_wait(
+						[this_ptr = std::move(this_ptr), promise = std::move(promise)]
+						(const error_code&) mutable
+						{
+							detail::ignore_unused(this_ptr);
+
+							promise.set_value(error_code{});
+						});
+					}
+					catch (system_error const& e)
+					{
+						promise.set_value(e.code());
+					}
+				});
+
+				set_last_error(future.get());
+			}
+			catch (system_error const& e)
+			{
+				set_last_error(e);
+			}
+		}
+
+		/**
+		 * The wait_for() function blocks until all work has finished and 
+		 * until the specified duration has elapsed.
+		 *
+		 * @param rel_time The duration for which the call may block.
+		 */
+		template <typename Rep, typename Period>
+		void wait_for(const std::chrono::duration<Rep, Period>& rel_time)
+		{
+			if (this->iopool().running_in_threads())
+			{
+				set_last_error(asio::error::operation_not_supported);
+				return;
+			}
+
+			try
+			{
+				clear_last_error();
+				asio::steady_timer timer(iots_[0]->context());
+				timer.expires_after(rel_time);
+				timer.wait();
+			}
+			catch (system_error const& e)
+			{
+				set_last_error(e);
+			}
+		}
+
+		/**
+		 * The wait_until() function blocks until all work has finished and 
+		 * until the specified time has been reached.
+		 *
+		 * @param abs_time The time point until which the call may block.
+		 */
+		template <typename Clock, typename Duration>
+		void wait_until(const std::chrono::time_point<Clock, Duration>& abs_time)
+		{
+			if (this->iopool().running_in_threads())
+			{
+				set_last_error(asio::error::operation_not_supported);
+				return;
+			}
+
+			try
+			{
+				clear_last_error();
+				asio::steady_timer timer(iots_[0]->context());
+				timer.expires_at(abs_time);
+				timer.wait();
+			}
+			catch (system_error const& e)
+			{
+				set_last_error(e);
+			}
+		}
+
+		/**
+		 * The wait_signal() function blocks util some signal delivered.
+		 * 
+		 * @return The delivered signal number. Maybe invalid value when some exception occured.
+		 */
+		template <class... Ints>
+		int wait_signal(Ints... signal_number)
+		{
+			if (this->iopool().running_in_threads())
+			{
+				set_last_error(asio::error::operation_not_supported);
+				return -1;
+			}
+
+			try
+			{
+				clear_last_error();
+
+				asio::signal_set signals(iots_[0]->context());
+
+				(signals.add(signal_number), ...);
+
+				std::promise<int> promise;
+				std::future<int> future = promise.get_future();
+
+				signals.async_wait([&](const error_code& /*ec*/, int signo)
+				{
+					promise.set_value(signo);
+				});
+
+				return future.get();
+			}
+			catch (system_error const& e)
+			{
+				set_last_error(e);
+			}
+
+			return -2;
+		}
+
+		/**
+		 * Get the iopool_base interface reference.
+		 */
 		inline iopool_base& iopool() noexcept { return (*(this->iopool_)); }
 
 	protected:
@@ -959,7 +1154,46 @@ namespace asio2::detail
 			return *(iots_[n]);
 		}
 
-		inline bool _stopped() const noexcept { return iopool_->stopped(); }
+		inline bool is_iopool_stopped() const noexcept
+		{
+			return this->iopool_->stopped();
+		}
+
+		inline bool start_iopool()
+		{
+			return this->iopool_->start();
+		}
+
+		inline void stop_iopool()
+		{
+			if (this->is_iopool_stopped())
+				return;
+
+			derived_t& derive = static_cast<derived_t&>(*this);
+
+			// if the server's or client's iopool is user_iopool, and when the server.stop 
+			// or client.stop is called, we need notify the timer to cancel for the function
+			// wait_stop, otherwise the wait_stop function will blocked forever.
+			// We must use asio::post to ensure the wait_stop_timer_ is read write in the 
+			// same thread.
+			asio::post(iots_[0]->context(), [this, this_ptr = derive.selfptr()]() mutable
+			{
+				detail::ignore_unused(this_ptr);
+				try
+				{
+					if (this->wait_stop_timer_)
+					{
+						this->iots_[0]->timers().erase(this->wait_stop_timer_.get());
+						this->wait_stop_timer_->cancel();
+					}
+				}
+				catch (system_error const&)
+				{
+				}
+			});
+
+			this->iopool_->stop();
+		}
 
 	protected:
 		/// the io_context pool for socket event
@@ -970,6 +1204,9 @@ namespace asio2::detail
 
 		/// The next io_context to use for a connection. 
 		std::size_t                              next_ = 0;
+
+		/// the timer used for wait_stop function.
+		std::unique_ptr<asio::steady_timer>      wait_stop_timer_;
 	};
 }
 

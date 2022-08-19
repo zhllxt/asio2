@@ -32,7 +32,7 @@ namespace asio2::detail
 	protected:
 		// server or client
 		template<class Message, class Response>
-		inline bool _before_pubrec_callback(
+		inline void _before_pubrec_callback(
 			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
 			Message& msg, Response& rep)
 		{
@@ -53,8 +53,6 @@ namespace asio2::detail
 			{
 				std::ignore = true;
 			}
-
-			return true;
 		}
 
 		// server or client
@@ -62,7 +60,7 @@ namespace asio2::detail
 			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
 			mqtt::v3::pubrec& msg, asio2::mqtt::v3::pubrel& rep)
 		{
-			if (!_before_pubrec_callback(ec, caller_ptr, caller, om, msg, rep))
+			if (_before_pubrec_callback(ec, caller_ptr, caller, om, msg, rep); ec)
 				return;
 		}
 
@@ -71,7 +69,7 @@ namespace asio2::detail
 			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
 			mqtt::v4::pubrec& msg, asio2::mqtt::v4::pubrel& rep)
 		{
-			if (!_before_pubrec_callback(ec, caller_ptr, caller, om, msg, rep))
+			if (_before_pubrec_callback(ec, caller_ptr, caller, om, msg, rep); ec)
 				return;
 		}
 
@@ -80,7 +78,7 @@ namespace asio2::detail
 			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
 			mqtt::v5::pubrec& msg, asio2::mqtt::v5::pubrel& rep)
 		{
-			if (!_before_pubrec_callback(ec, caller_ptr, caller, om, msg, rep))
+			if (_before_pubrec_callback(ec, caller_ptr, caller, om, msg, rep); ec)
 				return;
 		}
 

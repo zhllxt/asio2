@@ -191,7 +191,7 @@ namespace asio2::detail
 		 */
 		inline key_type hash_key() const noexcept
 		{
-			return std::hash<asio::ip::udp::endpoint>{}(this->remote_endpoint_);
+			return asio2::hash<asio::ip::udp::endpoint>{}(this->remote_endpoint_);
 		}
 
 		/**

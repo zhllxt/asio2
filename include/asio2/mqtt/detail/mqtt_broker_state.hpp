@@ -1,0 +1,67 @@
+/*
+ * COPYRIGHT (C) 2017-2021, zhllxt
+ *
+ * author   : zhllxt
+ * email    : 37792738@qq.com
+ *
+ * Distributed under the GNU GENERAL PUBLIC LICENSE Version 3, 29 June 2007
+ * (See accompanying file LICENSE or see <http://www.gnu.org/licenses/>)
+ */
+
+#ifndef __ASIO2_MQTT_BROKER_STATE_HPP__
+#define __ASIO2_MQTT_BROKER_STATE_HPP__
+
+#if defined(_MSC_VER) && (_MSC_VER >= 1200)
+#pragma once
+#endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
+
+#include <asio2/mqtt/options.hpp>
+
+#include <asio2/mqtt/detail/mqtt_invoker.hpp>
+#include <asio2/mqtt/detail/mqtt_subscription_map.hpp>
+#include <asio2/mqtt/detail/mqtt_shared_target.hpp>
+#include <asio2/mqtt/detail/mqtt_retained_message.hpp>
+#include <asio2/mqtt/detail/mqtt_security.hpp>
+
+namespace asio2::mqtt
+{
+	template<class session_t, class args_t>
+	struct broker_state
+	{
+		using session_type = session_t;
+		using subnode_type = typename session_type::subnode_type;
+
+		broker_state(
+			asio2::detail::mqtt_options& options,
+			asio2::detail::mqtt_invoker_t<session_t, args_t>& invoker
+		)
+			: options_(options)
+			, invoker_(invoker)
+		{
+		}
+
+		/// use rwlock to make this id session map thread safe
+		mutable asio2_shared_mutex                                         mutex_;
+
+		asio2::detail::mqtt_options                                      & options_;
+
+		asio2::detail::mqtt_invoker_t<session_t, args_t>                 & invoker_;
+
+		/// client id map
+		std::unordered_map<std::string_view, std::shared_ptr<session_t>>   mqtt_sessions_;
+
+		/// subscription information map
+		mqtt::subscription_map<std::string_view, subnode_type>             subs_map_;
+
+		/// shared subscription targets
+		mqtt::shared_target<mqtt::stnode<session_t>>                       shared_targets_;
+
+		/// A list of messages retained so they can be sent to newly subscribed clients.
+		mqtt::retained_messages<mqtt::rmnode>                              retained_messages_;
+
+		// Authorization and authentication settings
+		mqtt::security                                                     security_;
+	};
+}
+
+#endif // !__ASIO2_MQTT_BROKER_STATE_HPP__

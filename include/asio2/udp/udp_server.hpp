@@ -103,7 +103,7 @@ namespace asio2::detail
 		 */
 		inline void stop()
 		{
-			if (this->iopool_->stopped())
+			if (this->is_iopool_stopped())
 				return;
 
 			derived_t& derive = this->derived();
@@ -115,7 +115,7 @@ namespace asio2::detail
 				derive._do_stop(asio::error::operation_aborted, derive.selfptr());
 			});
 
-			this->iopool_->stop();
+			this->stop_iopool();
 		}
 
 		/**
@@ -128,7 +128,7 @@ namespace asio2::detail
 		 */
 		inline bool is_stopped() const
 		{
-			return (this->state_ == state_t::stopped && !this->acceptor_.is_open() && iopool_cp::_stopped());
+			return (this->state_ == state_t::stopped && !this->acceptor_.is_open() && this->is_iopool_stopped());
 		}
 
 	public:
@@ -268,9 +268,9 @@ namespace asio2::detail
 		{
 			derived_t& derive = this->derived();
 
-			this->iopool_->start();
+			this->start_iopool();
 
-			if (this->iopool_->stopped())
+			if (this->is_iopool_stopped())
 			{
 				set_last_error(asio::error::operation_aborted);
 				return false;
@@ -604,7 +604,7 @@ namespace asio2::detail
 
 				// first we find whether the session is in the session_mgr pool already,if not ,
 				// we new a session and put it into the session_mgr pool
-				std::size_t key = std::hash<asio::ip::udp::endpoint>{}(this->remote_endpoint_);
+				std::size_t key = asio2::hash<asio::ip::udp::endpoint>{}(this->remote_endpoint_);
 				std::shared_ptr<session_t> session_ptr = this->sessions_.find(key);
 				if (!session_ptr)
 				{

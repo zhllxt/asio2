@@ -152,7 +152,7 @@ private:
 	{
 		using move_func = void(*)(void *, void *);
 		using destroy_func = void(*)(void *);
-		using call_func = R(*)(void *, Args ...);
+		using call_func = R(*)(void *, Args&& ...);
 
 		move_func move;
 		destroy_func destroy;
@@ -173,7 +173,7 @@ private:
 			static vtable m = {
 				[](void * src, void * dst){ new (reinterpret_cast<T*>(dst)) T(std::move(*reinterpret_cast<T*>(src))); },
 				[](void * src){ reinterpret_cast<T*>(src)->~T(); },
-				[](void * src, Args ... args) -> R { return std::invoke(*reinterpret_cast<T*>(src), static_cast<Args&&>(args)...); }
+				[](void * src, Args&& ... args) -> R { return std::invoke(*reinterpret_cast<T*>(src), static_cast<Args&&>(args)...); }
 			};
 
 			vtable_ = &m;
@@ -185,7 +185,7 @@ private:
 			static vtable m = {
 				[](void * src, void * dst){ *reinterpret_cast<T**>(dst) = *reinterpret_cast<T**>(src); *reinterpret_cast<T**>(src) = nullptr; },
 				[](void * src){ delete *reinterpret_cast<T**>(src); },
-				[](void * src, Args ... args) -> R { return std::invoke(**reinterpret_cast<T**>(src), static_cast<Args&&>(args)...); }
+				[](void * src, Args&& ... args) -> R { return std::invoke(**reinterpret_cast<T**>(src), static_cast<Args&&>(args)...); }
 			};
 
 			vtable_ = &m;

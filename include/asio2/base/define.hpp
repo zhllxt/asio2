@@ -30,6 +30,7 @@ namespace asio2::detail
 #define ASIO2_CLASS_DECLARE_BASE(KEYWORD)                                           \
 	                                             KEYWORD io_t;                      \
 	                                             KEYWORD iopool;                    \
+	template <class, class>                      KEYWORD iopool_cp;                 \
 	template <class, class>                      KEYWORD alive_time_cp;             \
 	template <class, class>                      KEYWORD condition_event_cp;        \
 	template <class, class>                      KEYWORD connect_cp;                \

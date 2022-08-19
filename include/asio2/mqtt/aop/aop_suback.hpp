@@ -32,7 +32,7 @@ namespace asio2::detail
 	protected:
 		// server or client
 		template<class Message>
-		inline bool _before_suback_callback(
+		inline void _before_suback_callback(
 			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
 			Message& msg)
 		{
@@ -43,10 +43,7 @@ namespace asio2::detail
 			if (msg.reason_codes().count() == 0)
 			{
 				ec = mqtt::make_error_code(mqtt::error::malformed_packet);
-				return false;
 			}
-
-			return true;
 		}
 
 		// must be client
@@ -54,7 +51,7 @@ namespace asio2::detail
 			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
 			mqtt::v3::suback& msg)
 		{
-			if (!_before_suback_callback(ec, caller_ptr, caller, om, msg))
+			if (_before_suback_callback(ec, caller_ptr, caller, om, msg); ec)
 				return;
 		}
 
@@ -63,7 +60,7 @@ namespace asio2::detail
 			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
 			mqtt::v4::suback& msg)
 		{
-			if (!_before_suback_callback(ec, caller_ptr, caller, om, msg))
+			if (_before_suback_callback(ec, caller_ptr, caller, om, msg); ec)
 				return;
 		}
 
@@ -72,7 +69,7 @@ namespace asio2::detail
 			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om,
 			mqtt::v5::suback& msg)
 		{
-			if (!_before_suback_callback(ec, caller_ptr, caller, om, msg))
+			if (_before_suback_callback(ec, caller_ptr, caller, om, msg); ec)
 				return;
 		}
 

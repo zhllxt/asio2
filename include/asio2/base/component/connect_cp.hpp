@@ -253,7 +253,15 @@ namespace asio2::detail
 					// We don't call the bind function, beacuse it will be called internally in asio
 					//socket.bind(endpoint);
 
-					// And in the init notify, you can call the bind function you self.
+					// And you can call the bind function youself in the bind_init() callback.
+					// eg:
+					// 
+					// asio::ip::tcp::endpoint ep(asio::ip::tcp::v4(), 1234);
+					// asio::ip::udp::endpoint ep(asio::ip::udp::v6(), 9876);
+					// asio::ip::tcp::endpoint ep(asio::ip::make_address("0.0.0.0"), 1234);
+					// 
+					// client.socket().bind(ep);
+
 					derive._fire_init();
 				}
 

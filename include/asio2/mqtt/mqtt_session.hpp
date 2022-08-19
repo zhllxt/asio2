@@ -27,6 +27,7 @@
 #include <asio2/mqtt/detail/mqtt_invoker.hpp>
 #include <asio2/mqtt/detail/mqtt_topic_alias.hpp>
 #include <asio2/mqtt/detail/mqtt_session_state.hpp>
+#include <asio2/mqtt/detail/mqtt_broker_state.hpp>
 
 #include <asio2/mqtt/idmgr.hpp>
 #include <asio2/mqtt/options.hpp>
@@ -102,12 +103,7 @@ namespace asio2::detail
 		 * @constructor
 		 */
 		explicit mqtt_session_impl_t(
-			mqtt_invoker_t<derived_t, args_t>                                 & invoker,
-			asio2_shared_mutex                                                & mtx,
-			std::unordered_map<std::string_view, std::shared_ptr<derived_t>>  & mqtt_sessions,
-			mqtt::subscription_map<std::string_view, subnode_type>            & subs_map,
-			mqtt::shared_target<mqtt::stnode<derived_t>>                      & shared_targets,
-			mqtt::retained_messages<mqtt::rmnode>                             & retained_messages,
+			mqtt::broker_state<derived_t, args_t>& broker_state,
 			session_mgr_t <derived_t>& sessions,
 			listener_t               & listener,
 			io_t                     & rwio,
@@ -119,12 +115,7 @@ namespace asio2::detail
 			, mqtt_handler_t    <derived_t, args_t>()
 			, mqtt_topic_alias_t<derived_t, args_t>()
 			, mqtt_send_op      <derived_t, args_t>()
-			, invoker_            (invoker)
-			, mutex_              (mtx)
-			, mqtt_sessions_      (mqtt_sessions      )
-			, subs_map_           (subs_map           )
-			, shared_targets_     (shared_targets     )
-			, retained_messages_  (retained_messages  )
+			, broker_state_(broker_state)
 		{
 			this->set_silence_timeout(std::chrono::milliseconds(mqtt_silence_timeout));
 		}
@@ -195,16 +186,16 @@ namespace asio2::detail
 
 		inline void remove_subscribed_topic(std::string_view topic_filter)
 		{
-			asio2_unique_lock lock{ this->mutex_ };
+			asio2_unique_lock lock{ this->get_mutex() };
 
-			this->subs_map_.erase(topic_filter, this->client_id());
+			this->subs_map().erase(topic_filter, this->client_id());
 		}
 
 		inline void remove_all_subscribed_topic()
 		{
-			asio2_unique_lock lock{ this->mutex_ };
+			asio2_unique_lock lock{ this->get_mutex() };
 
-			this->subs_map_.erase(this->client_id());
+			this->subs_map().erase(this->client_id());
 		}
 
 	protected:
@@ -313,7 +304,7 @@ namespace asio2::detail
 				// If the server can parse enough of the CONNECT message to determine that an invalid protocol
 				// has been requested, it may try to send a CONNACK containing the "Connection Refused:
 				// unacceptable protocol version" code before dropping the connection.
-				this->invoker_._call_mqtt_handler(type, ec, this_ptr, static_cast<derived_t*>(this), data);
+				this->invoker()._call_mqtt_handler(type, ec, this_ptr, static_cast<derived_t*>(this), data);
 
 			} while (false);
 
@@ -329,18 +320,18 @@ namespace asio2::detail
 		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr, DeferEvent chain)
 		{
 			{
-				asio2_unique_lock lock{ this->mutex_ };
+				asio2_unique_lock lock{ this->get_mutex() };
 
 				std::string_view id = this->client_id();
 
-				this->subs_map_.erase(id);
+				this->subs_map().erase(id);
 
-				auto iter = this->mqtt_sessions_.find(id);
-				if (iter != this->mqtt_sessions_.end())
+				auto iter = this->mqtt_sessions().find(id);
+				if (iter != this->mqtt_sessions().end())
 				{
 					if (iter->second.get() == this)
 					{
-						this->mqtt_sessions_.erase(id);
+						this->mqtt_sessions().erase(id);
 					}
 				}
 			}
@@ -375,7 +366,7 @@ namespace asio2::detail
 
 			error_code ec;
 
-			this->invoker_._call_mqtt_handler(type, ec, this_ptr, static_cast<derived_t*>(this), data);
+			this->invoker()._call_mqtt_handler(type, ec, this_ptr, static_cast<derived_t*>(this), data);
 
 			if (ec)
 			{
@@ -383,23 +374,26 @@ namespace asio2::detail
 			}
 		}
 
-		inline asio2_shared_mutex& get_mutex() noexcept { return this->mutex_; }
+		inline auto& get_mutex        () noexcept { return this->broker_state_.mutex_            ; }
+		inline auto& invoker          () noexcept { return this->broker_state_.invoker_          ; }
+		inline auto& mqtt_sessions    () noexcept { return this->broker_state_.mqtt_sessions_    ; }
+		inline auto& subs_map         () noexcept { return this->broker_state_.subs_map_         ; }
+		inline auto& shared_targets   () noexcept { return this->broker_state_.shared_targets_   ; }
+		inline auto& retained_messages() noexcept { return this->broker_state_.retained_messages_; }
+		inline auto& security         () noexcept { return this->broker_state_.security_         ; }
+
+		inline void set_preauthed_username(std::optional<std::string> username)
+		{
+			preauthed_username_ = std::move(username);
+		}
+		inline std::optional<std::string> get_preauthed_username() const
+		{
+			return preauthed_username_;
+		}
 
 	protected:
-		mqtt_invoker_t<derived_t, args_t>                                   & invoker_;
-
-		asio2_shared_mutex                                                  & mutex_;
-
-		std::unordered_map<std::string_view, std::shared_ptr<derived_t>>    & mqtt_sessions_;
-
-		/// subscription information map
-		mqtt::subscription_map<std::string_view, subnode_type>              & subs_map_;
-
-		/// shared subscription targets
-		mqtt::shared_target<mqtt::stnode<derived_t>>                        & shared_targets_;
-
-		/// A list of messages retained so they can be sent to newly subscribed clients.
-		mqtt::retained_messages<mqtt::rmnode>                               & retained_messages_;
+		/// 
+		mqtt::broker_state<derived_t, args_t>                               & broker_state_;
 
 		/// packet id manager
 		mqtt::idmgr<std::atomic<mqtt::two_byte_integer::value_type>>          idmgr_;
@@ -408,6 +402,8 @@ namespace asio2::detail
 		std::chrono::nanoseconds::rep                                         shared_target_key_;
 
 		mqtt::message                                                         connect_message_{};
+
+		std::optional<std::string> preauthed_username_;
 
 		mqtt::version              version_ = static_cast<mqtt::version>(0);
 	};

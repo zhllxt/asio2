@@ -728,34 +728,51 @@ namespace asio2
 
 	template <typename... Ts>
 	inline constexpr void ignore_unused() noexcept {}
-}
 
-// custom specialization of std::hash can be injected in namespace std
-namespace std
-{
+	template <class KeyT>
+	struct hash;
+
 	template<> struct hash<asio::ip::udp::endpoint>
 	{
-		typedef asio::ip::udp::endpoint argument_type;
-		typedef std::size_t result_type;
-		inline result_type operator()(argument_type const& s) const noexcept
+		inline std::size_t operator()(asio::ip::udp::endpoint const& s) const
 		{
-			//return std::hash<std::string_view>()(std::string_view{
-			//	reinterpret_cast<std::string_view::const_pointer>(s.data()), s.size() });
-			return asio2::detail::bkdr_hash((const unsigned char *)(s.data()), s.size());
+			return std::hash<std::string_view>()(std::string_view{
+				reinterpret_cast<std::string_view::const_pointer>(s.data()), s.size() });
 		}
 	};
 
 	template<> struct hash<asio::ip::tcp::endpoint>
 	{
-		typedef asio::ip::tcp::endpoint argument_type;
-		typedef std::size_t result_type;
-		inline result_type operator()(argument_type const& s) const noexcept
+		inline std::size_t operator()(asio::ip::tcp::endpoint const& s) const
 		{
-			//return std::hash<std::string_view>()(std::string_view{
-			//	reinterpret_cast<std::string_view::const_pointer>(s.data()), s.size() });
-			return asio2::detail::bkdr_hash((const unsigned char *)(s.data()), s.size());
+			return std::hash<std::string_view>()(std::string_view{
+				reinterpret_cast<std::string_view::const_pointer>(s.data()), s.size() });
 		}
 	};
 }
+
+// custom specialization of std::hash can be injected in namespace std
+//namespace std
+//{
+//	template<> struct hash<asio::ip::udp::endpoint>
+//	{
+//		inline std::size_t operator()(asio::ip::udp::endpoint const& s) const noexcept
+//		{
+//			return std::hash<std::string_view>()(std::string_view{
+//				reinterpret_cast<std::string_view::const_pointer>(s.data()), s.size() });
+//			//return asio2::detail::bkdr_hash((const unsigned char *)(s.data()), s.size());
+//		}
+//	};
+//
+//	template<> struct hash<asio::ip::tcp::endpoint>
+//	{
+//		inline std::size_t operator()(asio::ip::tcp::endpoint const& s) const noexcept
+//		{
+//			return std::hash<std::string_view>()(std::string_view{
+//				reinterpret_cast<std::string_view::const_pointer>(s.data()), s.size() });
+//			//return asio2::detail::bkdr_hash((const unsigned char *)(s.data()), s.size());
+//		}
+//	};
+//}
 
 #endif // !__ASIO2_UTIL_HPP__

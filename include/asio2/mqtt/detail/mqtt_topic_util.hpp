@@ -24,47 +24,6 @@
 
 #include <asio2/base/detail/util.hpp>
 
-// custom specialization of std::hash can be injected in namespace std
-namespace std
-{
-	template<> struct hash<std::pair<std::size_t, std::string_view>>
-	{
-		typedef std::pair<std::size_t, std::string_view> argument_type;
-		typedef std::size_t result_type;
-		inline result_type operator()(argument_type const& pair) const noexcept
-		{
-			std::size_t v = asio2::detail::fnv1a_hash<std::size_t>(
-				(const unsigned char *)(std::addressof(pair.first)), sizeof(std::size_t));
-			return asio2::detail::fnv1a_hash<std::size_t>(v,
-				(const unsigned char *)(pair.second.data()), pair.second.size());
-		}
-	};
-	template<> struct hash<std::pair<std::size_t, std::string>>
-	{
-		typedef std::pair<std::size_t, std::string> argument_type;
-		typedef std::size_t result_type;
-		inline result_type operator()(argument_type const& pair) const noexcept
-		{
-			std::size_t v = asio2::detail::fnv1a_hash<std::size_t>(
-				(const unsigned char *)(std::addressof(pair.first)), sizeof(std::size_t));
-			return asio2::detail::fnv1a_hash<std::size_t>(v,
-				(const unsigned char *)(pair.second.data()), pair.second.size());
-		}
-	};
-	template<> struct hash<std::pair<std::string_view, std::string_view>>
-	{
-		typedef std::pair<std::string_view, std::string_view> argument_type;
-		typedef std::size_t result_type;
-		inline result_type operator()(argument_type const& pair) const noexcept
-		{
-			std::size_t v = asio2::detail::fnv1a_hash<std::size_t>(
-				(const unsigned char *)(pair.first.data()), pair.first.size());
-			return asio2::detail::fnv1a_hash<std::size_t>(v,
-				(const unsigned char *)(pair.second.data()), pair.second.size());
-		}
-	};
-}
-
 namespace asio2::mqtt
 {
 	template<typename = void>
@@ -111,6 +70,12 @@ namespace asio2::mqtt
 
 	static constexpr char topic_filter_separator = '/';
 
+	template<typename Iterator>
+	inline Iterator topic_filter_tokenizer_next(Iterator first, Iterator last)
+	{
+		return std::find(first, last, topic_filter_separator);
+	}
+
 	template<typename Iterator, typename Function>
 	inline std::size_t topic_filter_tokenizer(Iterator&& first, Iterator&& last, Function&& callback)
 	{
@@ -120,13 +85,13 @@ namespace asio2::mqtt
 			return static_cast<std::size_t>(0);
 		}
 		std::size_t count = static_cast<std::size_t>(1);
-		auto iter = std::find(first, last, topic_filter_separator);
+		auto iter = topic_filter_tokenizer_next(first, last);
 		while (callback(asio2::detail::to_string_view(first, iter)) && iter != last)
 		{
 			first = std::next(iter);
 			if (first >= last)
 				break;
-			iter = std::find(first, last, topic_filter_separator);
+			iter = topic_filter_tokenizer_next(first, last);
 			++count;
 		}
 		return count;
@@ -136,6 +101,88 @@ namespace asio2::mqtt
 	inline std::size_t topic_filter_tokenizer(std::string_view str, Function&& callback)
 	{
 		return topic_filter_tokenizer(std::begin(str), std::end(str), std::forward<Function>(callback));
+	}
+
+	// TODO: Technically this function is simply wrong, since it's treating the
+	// topic pattern as if it were an ASCII sequence.
+	// To make this function correct per the standard, it would be necessary
+	// to conduct the search for the wildcard characters using a proper
+	// UTF-8 API to avoid problems of interpreting parts of multi-byte characters
+	// as if they were individual ASCII characters
+	constexpr inline bool validate_topic_filter(std::string_view topic_filter)
+	{
+		// Confirm the topic pattern is valid before registering it.
+		// Use rules from http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/os/mqtt-v3.1.1-os.html#_Toc398718106
+
+		// All Topic Names and Topic Filters MUST be at least one character long
+		// Topic Names and Topic Filters are UTF-8 Encoded Strings; they MUST NOT encode to more than 65,535 bytes
+		if (topic_filter.empty() || (topic_filter.size() > std::numeric_limits<std::uint16_t>::max()))
+		{
+			return false;
+		}
+
+		for (std::string_view::size_type idx = topic_filter.find_first_of(std::string_view("\0+#", 3));
+			std::string_view::npos != idx;
+			idx = topic_filter.find_first_of(std::string_view("\0+#", 3), idx + 1))
+		{
+			ASIO2_ASSERT(
+				('\0' == topic_filter[idx]) ||
+				('+'  == topic_filter[idx]) ||
+				('#'  == topic_filter[idx])
+			);
+			if ('\0' == topic_filter[idx])
+			{
+				// Topic Names and Topic Filters MUST NOT include the null character (Unicode U+0000)
+				return false;
+			}
+			else if ('+' == topic_filter[idx])
+			{
+				/*
+				 * Either must be the first character,
+				 * or be preceeded by a topic seperator.
+				 */
+				if ((0 != idx) && ('/' != topic_filter[idx - 1]))
+				{
+					return false;
+				}
+
+				/*
+				 * Either must be the last character,
+				 * or be followed by a topic seperator.
+				 */
+				if ((topic_filter.size() - 1 != idx) && ('/' != topic_filter[idx + 1]))
+				{
+					return false;
+				}
+			}
+			// multilevel wildcard
+			else if ('#' == topic_filter[idx])
+			{
+				/*
+				 * Must be absolute last character.
+				 * Must only be one multi level wild card.
+				 */
+				if (idx != topic_filter.size() - 1)
+				{
+					return false;
+				}
+
+				/*
+				 * If not the first character, then the
+				 * immediately preceeding character must
+				 * be a topic level separator.
+				 */
+				if ((0 != idx) && ('/' != topic_filter[idx - 1]))
+				{
+					return false;
+				}
+			}
+			else
+			{
+				return false;
+			}
+		}
+		return true;
 	}
 }
 
