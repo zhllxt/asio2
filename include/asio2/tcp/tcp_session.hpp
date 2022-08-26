@@ -187,7 +187,28 @@ namespace asio2::detail
 		inline void _do_start(
 			std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition, DeferEvent chain)
 		{
-			this->derived()._join_session(std::move(this_ptr), std::move(condition), std::move(chain));
+			derived_t& derive = this->derived();
+
+			// Beacuse we ensured that the session::_do_disconnect must be called in the session's
+			// io_context thread, so if the session::stop is called in the server's bind_connect 
+			// callback, the session's disconnect event maybe still be called, However, in this case,
+			// we do not want the disconnect event to be called, so at here, we need use asio::post
+			// to ensure the join session is must be executed after the disconnect event, otherwise,
+			// the join session maybe executed before the disconnect event(the bind_disconnect callback).
+			// if the join session is executed before the disconnect event, the bind_disconnect will
+			// be called.
+			asio::dispatch(derive.io().context(), make_allocator(derive.wallocator(),
+			[&derive, this_ptr = std::move(this_ptr), condition = std::move(condition), chain = std::move(chain)]
+			() mutable
+			{
+				if (!derive.is_started())
+				{
+					derive._do_disconnect(asio::error::operation_aborted, std::move(this_ptr), std::move(chain));
+					return;
+				}
+
+				derive._join_session(std::move(this_ptr), std::move(condition), std::move(chain));
+			}));
 		}
 
 		template<typename DeferEvent>

@@ -145,7 +145,7 @@ namespace asio2::detail
 
 			[[maybe_unused]] key_type key = { msg.packet_type(), msg.packet_id() };
 
-			derive._do_subscribe(std::forward<Message>(msg), std::forward<FunctionT>(callback));
+			derive._dispatch_subscribe(std::forward<Message>(msg), std::forward<FunctionT>(callback));
 
 			if (derive.io().running_in_this_thread())
 			{
@@ -558,6 +558,18 @@ namespace asio2::detail
 		}
 
 		template<class Message, class FunctionT>
+		inline void _dispatch_subscribe(Message&& msg, FunctionT&& callback)
+		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
+			derive.dispatch(
+			[&derive, msg = std::forward<Message>(msg), cb = std::forward<FunctionT>(callback)]() mutable
+			{
+				derive._do_subscribe(std::move(msg), std::move(cb));
+			});
+		}
+
+		template<class Message, class FunctionT>
 		void _do_subscribe(Message&& msg, FunctionT&& callback)
 		{
 			using message_type = typename detail::remove_cvref_t<Message>;
@@ -567,17 +579,6 @@ namespace asio2::detail
 				typename fun_traits_type::template args<0>::type>>;
 
 			derived_t& derive = static_cast<derived_t&>(*this);
-
-			if (!derive.io().running_in_this_thread())
-			{
-				derive.post(
-				[&derive, msg = std::forward<Message>(msg), cb = std::forward<FunctionT>(callback)]() mutable
-				{
-					derive._do_subscribe(std::move(msg), std::move(cb));
-				});
-
-				return;
-			}
 
 			mqtt::v5::properties_set props;
 

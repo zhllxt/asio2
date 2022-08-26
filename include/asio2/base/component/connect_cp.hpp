@@ -264,6 +264,10 @@ namespace asio2::detail
 
 					derive._fire_init();
 				}
+				else
+				{
+					ASIO2_LOG(spdlog::level::err, "The client socket is opened already.");
+				}
 
 				// Start the asynchronous connect operation.
 				socket.async_connect(iter->endpoint(), make_allocator(derive.rallocator(),

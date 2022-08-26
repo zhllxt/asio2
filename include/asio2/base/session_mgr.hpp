@@ -79,57 +79,51 @@ namespace asio2::detail
 			if (!session_ptr)
 				return;
 
-			if (!this->io_.running_in_this_thread())
+			asio::dispatch(this->io().context(), make_allocator(this->allocator_,
+			[this, session_ptr = std::move(session_ptr), callback = std::forward<Fun>(callback)]
+			() mutable
 			{
-				asio::post(this->io().context(), make_allocator(this->allocator_,
-				[this, session_ptr = std::move(session_ptr), callback = std::forward<Fun>(callback)]
-				() mutable
+				bool inserted = false;
+
+				// when run to here, the server state maybe started or stopping or stopped, 
+				// if server state is not started, must can't push the session to the map
+				// again, and we need disconnect the session directly, otherwise the server
+				// maybe stopping, and the iopool's wait_iothreas is running in the "sleep"
+				// this will cause the server.stop() never return;
+				if (this->state_ == state_t::started)
 				{
-					this->emplace(std::move(session_ptr), std::move(callback));
-				}));
-				return;
-			}
+					// when code run to here, user maybe call server.stop() at other thread,
+					// if user do this, at this time, the state_ is not started already( it
+					// will be stopping ), but beacuase the server's sessions_.for_each -> 
+					// session_ptr->stop(); is execute in the thread 0, and this code is 
+					// executed in thread 0 too, so when code run to here, beacuse we have
+					// " if (this->state_ == state_t::started) " judgment statement, so the
+					// server's sessions_.for_each -> session_ptr->stop(); must not be
+					// executed yet, so even if we put the session in the map here, it will
+					// not have a problem, beacuse the server's sessions_.for_each -> 
+					// session_ptr->stop(); will be called a later, and this session will be 
+					// stopped at there.
 
-			bool inserted = false;
+					// we use a assert to check the server's sessions_.for_each -> 
+					// session_ptr->stop(); must not be executed yet.
+				#if defined(_DEBUG) || defined(DEBUG)
+					ASIO2_ASSERT(is_all_session_stop_called_ == false);
+				#endif
 
-			// when run to here, the server state maybe started or stopping or stopped, 
-			// if server state is not started, must can't push the session to the map
-			// again, and we need disconnect the session directly, otherwise the server
-			// maybe stopping, and the iopool's wait_iothreas is running in the "sleep"
-			// this will cause the server.stop() never return;
-			if (this->state_ == state_t::started)
-			{
-				// when code run to here, user maybe call server.stop() at other thread,
-				// if user do this, at this time, the state_ is not started already( it
-				// will be stopping ), but beacuase the server's sessions_.for_each -> 
-				// session_ptr->stop(); is execute in the thread 0, and this code is 
-				// executed in thread 0 too, so when code run to here, beacuse we have
-				// " if (this->state_ == state_t::started) " judgment statement, so the
-				// server's sessions_.for_each -> session_ptr->stop(); must not be
-				// executed yet, so even if we put the session in the map here, it will
-				// not have a problem, beacuse the server's sessions_.for_each -> 
-				// session_ptr->stop(); will be called a later, and this session will be 
-				// stopped at there.
+					// this thread is same as the server's io thread, when code run to here,
+					// the server's _post_stop must not be executed, so the server's sessions_.for_each
+					// -> session_ptr->stop() must not be executed.
+					asio2_unique_lock guard(this->mutex_);
+					inserted = this->sessions_.try_emplace(session_ptr->hash_key(), session_ptr).second;
+					session_ptr->in_sessions_ = inserted;
 
-				// we use a assert to check the server's sessions_.for_each -> 
-				// session_ptr->stop(); must not be executed yet.
-			#if defined(_DEBUG) || defined(DEBUG)
-				ASIO2_ASSERT(is_all_session_stop_called_ == false);
-			#endif
+				#if defined(_DEBUG) || defined(DEBUG)
+					ASIO2_ASSERT(is_all_session_stop_called_ == false);
+				#endif
+				}
 
-				// this thread is same as the server's io thread, when code run to here,
-				// the server's _post_stop must not be executed, so the server's sessions_.for_each
-				// -> session_ptr->stop() must not be executed.
-				asio2_unique_lock guard(this->mutex_);
-				inserted = this->sessions_.try_emplace(session_ptr->hash_key(), session_ptr).second;
-				session_ptr->in_sessions_ = inserted;
-
-			#if defined(_DEBUG) || defined(DEBUG)
-				ASIO2_ASSERT(is_all_session_stop_called_ == false);
-			#endif
-			}
-
-			(callback)(inserted);
+				(callback)(inserted);
+			}));
 		}
 
 		/**
@@ -142,26 +136,20 @@ namespace asio2::detail
 			if (!session_ptr)
 				return;
 
-			if (!this->io_.running_in_this_thread())
+			asio::dispatch(this->io().context(), make_allocator(this->allocator_,
+			[this, session_ptr = std::move(session_ptr), callback = std::forward<Fun>(callback)]
+			() mutable
 			{
-				asio::post(this->io().context(), make_allocator(this->allocator_,
-				[this, session_ptr = std::move(session_ptr), callback = std::forward<Fun>(callback)]
-				() mutable
+				bool erased = false;
+
 				{
-					this->erase(std::move(session_ptr), std::move(callback));
-				}));
-				return;
-			}
+					asio2_unique_lock guard(this->mutex_);
+					if (session_ptr->in_sessions_)
+						erased = (this->sessions_.erase(session_ptr->hash_key()) > 0);
+				}
 
-			bool erased = false;
-
-			{
-				asio2_unique_lock guard(this->mutex_);
-				if (session_ptr->in_sessions_)
-					erased = (this->sessions_.erase(session_ptr->hash_key()) > 0);
-			}
-
-			(callback)(erased);
+				(callback)(erased);
+			}));
 		}
 
 		/**

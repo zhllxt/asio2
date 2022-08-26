@@ -129,19 +129,22 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
+			derive.dispatch([&derive, key, cb = std::forward<FunctionT>(callback)]() mutable
+			{
+				derive._do_add_router(std::move(key), std::move(cb));
+			});
+
+			return true;
+		}
+
+		template<class FunctionT>
+		inline bool _do_add_router(key_type key, FunctionT&& callback)
+		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
 			using fun_traits_type = function_traits<FunctionT>;
 			using arg0_type = typename std::remove_cv_t<std::remove_reference_t<
 				typename fun_traits_type::template args<0>::type>>;
-
-			if (!derive.io().running_in_this_thread())
-			{
-				derive.post([&derive, key, cb = std::forward<FunctionT>(callback)]() mutable
-				{
-					derive._add_router(std::move(key), std::move(cb));
-				});
-
-				return true;
-			}
 
 			if constexpr (std::is_same_v<arg0_type, mqtt::message>)
 			{
@@ -218,17 +221,10 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			if (!derive.io().running_in_this_thread())
+			derive.dispatch([this, key = std::move(key)]() mutable
 			{
-				derive.post([&derive, key = std::move(key)]() mutable
-				{
-					derive._del_router(std::move(key));
-				});
-
-				return;
-			}
-
-			this->message_router_.erase(key);
+				this->message_router_.erase(key);
+			});
 		}
 
 		inline bool _match_router(mqtt::message& msg)
@@ -247,25 +243,16 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			if (!derive.io().running_in_this_thread())
+			derive.dispatch([this, msg, key = std::move(key)]() mutable
 			{
-				ASIO2_ASSERT(false);
+				auto it = this->message_router_.find(key);
+				if (it == this->message_router_.end())
+					return;
 
-				derive.post([&derive, msg, key = std::move(key)]() mutable
-				{
-					derive._call_router(std::move(key), msg);
-				});
+				(it->second)(msg);
 
-				return true;
-			}
-
-			auto it = this->message_router_.find(key);
-			if (it == this->message_router_.end())
-				return false;
-
-			(it->second)(msg);
-
-			this->message_router_.erase(it);
+				this->message_router_.erase(it);
+			});
 
 			return true;
 		}

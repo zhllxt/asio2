@@ -61,24 +61,20 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			if (!derive.io().running_in_this_thread())
+			asio::dispatch(derive.io().context(), make_allocator(derive.wallocator(),
+			[this, this_ptr = std::move(this_ptr), duration = std::move(duration)]() mutable
 			{
-				asio::post(derive.io().context(), make_allocator(derive.wallocator(),
-				[this, this_ptr = std::move(this_ptr), duration]() mutable
+				derived_t& derive = static_cast<derived_t&>(*this);
+
+				if (this->connect_timeout_timer_)
 				{
-					this->_make_connect_timeout_timer(std::move(this_ptr), duration);
-				}));
-				return;
-			}
+					this->connect_timeout_timer_->cancel();
+				}
 
-			if (this->connect_timeout_timer_)
-			{
-				this->connect_timeout_timer_->cancel();
-			}
+				this->connect_timeout_timer_ = std::make_shared<safe_timer>(derive.io().context());
 
-			this->connect_timeout_timer_ = std::make_shared<safe_timer>(derive.io().context());
-
-			derive._post_connect_timeout_timer(std::move(this_ptr), this->connect_timeout_timer_, duration);
+				derive._post_connect_timeout_timer(std::move(this_ptr), this->connect_timeout_timer_, duration);
+			}));
 		}
 
 		template<class Rep, class Period>
@@ -183,23 +179,17 @@ namespace asio2::detail
 			// was called in the io thread.
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			if (!derive.io().running_in_this_thread())
+			derive.dispatch([this]() mutable
 			{
-				derive.post([this]() mutable
+			#if defined(_DEBUG) || defined(DEBUG)
+				this->is_stop_connect_timeout_timer_called_ = true;
+			#endif
+
+				if (this->connect_timeout_timer_)
 				{
-					this->_stop_connect_timeout_timer();
-				});
-				return;
-			}
-
-		#if defined(_DEBUG) || defined(DEBUG)
-			this->is_stop_connect_timeout_timer_called_ = true;
-		#endif
-
-			if (this->connect_timeout_timer_)
-			{
-				this->connect_timeout_timer_->cancel();
-			}
+					this->connect_timeout_timer_->cancel();
+				}
+			});
 		}
 
 	protected:

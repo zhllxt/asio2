@@ -169,30 +169,23 @@ namespace asio2::detail
 
 			//ASIO2_ASSERT(derive.io().running_in_this_thread());
 
-			if (!derive.io().running_in_this_thread())
+			asio::dispatch(derive.io().context(), make_allocator(derive.wallocator(),
+			[&derive, ec, this_ptr = std::move(this_ptr), chain = std::move(chain)]() mutable
 			{
-				asio::post(derive.io().context(), make_allocator(derive.wallocator(),
-				[&derive, ec, this_ptr = std::move(this_ptr), chain = std::move(chain)]() mutable
+				ASIO2_ASSERT(derive.io().running_in_this_thread());
+
+				state_t expected = state_t::started;
+				if (derive.state().compare_exchange_strong(expected, state_t::stopping))
 				{
-					derive._do_disconnect(ec, std::move(this_ptr), std::move(chain));
-				}));
+					return derive._post_disconnect(ec, std::move(this_ptr), expected, std::move(chain));
+				}
 
-				return;
-			}
-
-			ASIO2_ASSERT(derive.io().running_in_this_thread());
-
-			state_t expected = state_t::started;
-			if (derive.state().compare_exchange_strong(expected, state_t::stopping))
-			{
-				return derive._post_disconnect(ec, std::move(this_ptr), expected, std::move(chain));
-			}
-
-			expected = state_t::starting;
-			if (derive.state().compare_exchange_strong(expected, state_t::stopping))
-			{
-				return derive._post_disconnect(ec, std::move(this_ptr), expected, std::move(chain));
-			}
+				expected = state_t::starting;
+				if (derive.state().compare_exchange_strong(expected, state_t::stopping))
+				{
+					return derive._post_disconnect(ec, std::move(this_ptr), expected, std::move(chain));
+				}
+			}));
 		}
 
 		template<typename DeferEvent, bool IsSession = args_t::is_session>
@@ -274,24 +267,20 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			if (!derive.io().running_in_this_thread())
+			asio::dispatch(derive.io().context(), make_allocator(derive.wallocator(),
+			[this, this_ptr = std::move(this_ptr)]() mutable
 			{
-				asio::post(derive.io().context(), make_allocator(derive.wallocator(),
-				[this, this_ptr = std::move(this_ptr)]() mutable
+				derived_t& derive = static_cast<derived_t&>(*this);
+
+				if (this->disconnect_timer_)
 				{
-					this->_make_disconnect_timer(std::move(this_ptr));
-				}));
-				return;
-			}
+					this->disconnect_timer_->cancel();
+				}
 
-			if (this->disconnect_timer_)
-			{
-				this->disconnect_timer_->cancel();
-			}
+				this->disconnect_timer_ = std::make_unique<safe_timer>(derive.io().context());
 
-			this->disconnect_timer_ = std::make_unique<safe_timer>(derive.io().context());
-
-			this->_post_disconnect_timer(std::move(this_ptr), this->disconnect_timer_);
+				derive._post_disconnect_timer(std::move(this_ptr), this->disconnect_timer_);
+			}));
 		}
 
 		inline void _post_disconnect_timer(
@@ -353,19 +342,13 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			if (!derive.io().running_in_this_thread())
+			derive.dispatch([this]() mutable
 			{
-				derive.post([this]() mutable
+				if (this->disconnect_timer_)
 				{
-					this->_stop_disconnect_timer();
-				});
-				return;
-			}
-
-			if (this->disconnect_timer_)
-			{
-				this->disconnect_timer_->cancel();
-			}
+					this->disconnect_timer_->cancel();
+				}
+			});
 		}
 
 	protected:

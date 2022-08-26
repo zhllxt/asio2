@@ -262,6 +262,8 @@ namespace asio2::detail
 		inline void _do_start(
 			std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition, DeferEvent chain)
 		{
+			derived_t& derive = this->derived();
+
 			if constexpr (std::is_same_v<typename condition_wrap<MatchCondition>::condition_type, use_kcp_t>)
 			{
 				ASIO2_ASSERT(this->kcp_);
@@ -269,8 +271,23 @@ namespace asio2::detail
 				if (this->kcp_)
 					this->kcp_->send_fin_ = true;
 			}
+			else
+			{
+				ASIO2_ASSERT(!this->kcp_);
+			}
 
-			this->derived()._join_session(std::move(this_ptr), std::move(condition), std::move(chain));
+			asio::dispatch(derive.io().context(), make_allocator(derive.wallocator(),
+			[&derive, this_ptr = std::move(this_ptr), condition = std::move(condition), chain = std::move(chain)]
+			() mutable
+			{
+				if (!derive.is_started())
+				{
+					derive._do_disconnect(asio::error::operation_aborted, std::move(this_ptr), std::move(chain));
+					return;
+				}
+
+				derive._join_session(std::move(this_ptr), std::move(condition), std::move(chain));
+			}));
 		}
 
 		template<typename DeferEvent>

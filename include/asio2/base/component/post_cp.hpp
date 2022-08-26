@@ -247,20 +247,13 @@ namespace asio2::detail
 			std::future<return_type> future = task.get_future();
 
 			// Make sure we run on the io_context thread
-			if (derive.io().running_in_this_thread())
+			asio::dispatch(derive.io().context(), make_allocator(derive.wallocator(),
+			[p = derive.selfptr(), t = std::move(task)]() mutable
 			{
-				task();
-			}
-			else
-			{
-				asio::post(derive.io().context(), make_allocator(derive.wallocator(),
-				[p = derive.selfptr(), t = std::move(task)]() mutable
-				{
-					detail::ignore_unused(p);
+				detail::ignore_unused(p);
 
-					t();
-				}));
-			}
+				t();
+			}));
 
 			return future;
 		}

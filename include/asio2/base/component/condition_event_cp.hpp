@@ -238,21 +238,15 @@ namespace asio2::detail
 			derived_t& derive = static_cast<derived_t&>(*this);
 
 			// Make sure we run on the io_context thread
-			if (!derive.io().running_in_this_thread())
+			asio::dispatch(derive.io().context(), make_allocator(derive.wallocator(),
+			[this, this_ptr = derive.selfptr()]() mutable
 			{
-				asio::post(derive.io().context(), make_allocator(derive.wallocator(),
-				[this, this_ptr = derive.selfptr()]() mutable
+				for (auto&[key, event_ptr] : this->condition_events_)
 				{
-					this->notify_all_condition_events();
-				}));
-				return (derive);
-			}
-
-			for (auto&[key, event_ptr] : this->condition_events_)
-			{
-				detail::ignore_unused(key);
-				event_ptr->notify();
-			}
+					detail::ignore_unused(this_ptr, key);
+					event_ptr->notify();
+				}
+			}));
 
 			return (derive);
 		}

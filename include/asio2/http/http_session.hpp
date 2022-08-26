@@ -249,34 +249,28 @@ namespace asio2::detail
 		{
 			ASIO2_ASSERT(this->is_http());
 
-			if (!this->derived().io().running_in_this_thread())
-			{
-				asio::post(this->derived().io().context(), make_allocator(this->derived().wallocator(),
-				[this, this_ptr = std::move(this_ptr), condition = std::move(condition)]() mutable
-				{
-					this->derived()._do_send_http_response(std::move(this_ptr), std::move(condition));
-				}));
-				return;
-			}
-
-			if (this->derived().is_websocket())
-				return;
-
-			this->derived().async_send(std::move(this->rep_.base()),
+			asio::dispatch(this->derived().io().context(), make_allocator(this->derived().wallocator(),
 			[this, this_ptr = std::move(this_ptr), condition = std::move(condition)]() mutable
 			{
-				// after send the response, we check if the client should be disconnect.
-				if (this->derived().req_.need_eof())
+				if (this->derived().is_websocket())
+					return;
+
+				this->derived().async_send(std::move(this->rep_.base()),
+				[this, this_ptr = std::move(this_ptr), condition = std::move(condition)]() mutable
 				{
-					// session maybe don't need check the state.
-					//if (this->derived().state() == state_t::started)
-					this->derived()._do_disconnect(asio::error::operation_aborted, std::move(this_ptr));
-				}
-				else
-				{
-					this->derived()._post_recv(std::move(this_ptr), std::move(condition));
-				}
-			});
+					// after send the response, we check if the client should be disconnect.
+					if (this->derived().req_.need_eof())
+					{
+						// session maybe don't need check the state.
+						//if (this->derived().state() == state_t::started)
+						this->derived()._do_disconnect(asio::error::operation_aborted, std::move(this_ptr));
+					}
+					else
+					{
+						this->derived()._post_recv(std::move(this_ptr), std::move(condition));
+					}
+				});
+			}));
 		}
 
 	protected:

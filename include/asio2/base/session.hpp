@@ -162,22 +162,16 @@ namespace asio2::detail
 		 */
 		inline void start()
 		{
-			if (!this->io_.running_in_this_thread())
+			this->derived().dispatch([this]() mutable
 			{
-				this->derived().post([this]() mutable
-				{
-					this->start();
-				});
-				return;
-			}
+				// init the running thread id 
+				if (this->derived().io().get_thread_id() == std::thread::id{})
+					this->derived().io().init_thread_id();
 
-			// init the running thread id 
-			if (this->derived().io().get_thread_id() == std::thread::id{})
-				this->derived().io().init_thread_id();
-
-			// start the timer of check connect timeout
-			this->derived()._make_connect_timeout_timer(
-				this->derived().selfptr(), this->connect_timeout_);
+				// start the timer of check connect timeout
+				this->derived()._make_connect_timeout_timer(
+					this->derived().selfptr(), this->connect_timeout_);
+			});
 		}
 
 	public:
@@ -190,33 +184,27 @@ namespace asio2::detail
 		{
 			ASIO2_ASSERT(this->io_.running_in_this_thread());
 
-			if (!this->io_.running_in_this_thread())
+			this->derived().dispatch([this]() mutable
 			{
-				this->derived().post([this]() mutable
-				{
-					this->stop();
-				});
-				return;
-			}
+				// close silence timer
+				this->_stop_silence_timer();
 
-			// close silence timer
-			this->_stop_silence_timer();
+				// close connect timeout timer
+				this->_stop_connect_timeout_timer();
 
-			// close connect timeout timer
-			this->_stop_connect_timeout_timer();
+				// close user custom timers
+				this->stop_all_timers();
 
-			// close user custom timers
-			this->stop_all_timers();
+				// close all posted timed tasks
+				this->stop_all_timed_tasks();
 
-			// close all posted timed tasks
-			this->stop_all_timed_tasks();
+				// close all async_events
+				this->notify_all_condition_events();
 
-			// close all async_events
-			this->notify_all_condition_events();
-
-			// destroy user data, maybe the user data is self shared_ptr, 
-			// if don't destroy it, will cause loop refrence.
-			this->user_data_.reset();
+				// destroy user data, maybe the user data is self shared_ptr, 
+				// if don't destroy it, will cause loop refrence.
+				this->user_data_.reset();
+			});
 		}
 
 		/**

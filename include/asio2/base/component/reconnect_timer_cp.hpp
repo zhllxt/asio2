@@ -108,25 +108,21 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			if (!derive.io().running_in_this_thread())
+			asio::dispatch(derive.io().context(), make_allocator(derive.wallocator(),
+			[this, this_ptr = std::move(this_ptr), c = std::forward<Condition>(c)]() mutable
 			{
-				asio::post(derive.io().context(), make_allocator(derive.wallocator(),
-				[&derive, this_ptr = std::move(this_ptr), c = std::forward<Condition>(c)]() mutable
+				derived_t& derive = static_cast<derived_t&>(*this);
+
+				if (this->reconnect_timer_)
 				{
-					derive._make_reconnect_timer(std::move(this_ptr), std::move(c));
-				}));
-				return;
-			}
+					this->reconnect_timer_->cancel();
+				}
 
-			if (this->reconnect_timer_)
-			{
-				this->reconnect_timer_->cancel();
-			}
+				this->reconnect_timer_ = std::make_unique<safe_timer>(derive.io().context());
 
-			this->reconnect_timer_ = std::make_unique<safe_timer>(derive.io().context());
-
-			derive._post_reconnect_timer(std::move(this_ptr), this->reconnect_timer_,
-				(std::chrono::nanoseconds::max)(), std::forward<Condition>(c)); // 292 yeas
+				derive._post_reconnect_timer(std::move(this_ptr), this->reconnect_timer_,
+					(std::chrono::nanoseconds::max)(), std::forward<Condition>(c)); // 292 yeas
+			}));
 		}
 
 		template<class Rep, class Period, class Condition>
@@ -223,57 +219,45 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			if (!derive.io().running_in_this_thread())
+			derive.dispatch([this]() mutable
 			{
-				derive.post([this]() mutable
+			#if defined(_DEBUG) || defined(DEBUG)
+				this->is_stop_reconnect_timer_called_ = true;
+			#endif
+
+				if (this->reconnect_timer_)
 				{
-					this->_stop_reconnect_timer();
-				});
-				return;
-			}
-
-		#if defined(_DEBUG) || defined(DEBUG)
-			this->is_stop_reconnect_timer_called_ = true;
-		#endif
-
-			if (this->reconnect_timer_)
-			{
-				this->reconnect_timer_->cancel();
-			}
+					this->reconnect_timer_->cancel();
+				}
+			});
 		}
 
 		inline void _wake_reconnect_timer()
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			if (!derive.io().running_in_this_thread())
+			derive.dispatch([this]() mutable
 			{
-				derive.post([this]() mutable
+			#if defined(_DEBUG) || defined(DEBUG)
+				ASIO2_ASSERT(this->is_post_reconnect_timer_called_ == true);
+			#endif
+
+				if (this->reconnect_enable_)
 				{
-					this->_wake_reconnect_timer();
-				});
-				return;
-			}
+					ASIO2_ASSERT(this->reconnect_timer_);
 
-		#if defined(_DEBUG) || defined(DEBUG)
-			ASIO2_ASSERT(this->is_post_reconnect_timer_called_ == true);
-		#endif
-
-			if (this->reconnect_enable_)
-			{
-				ASIO2_ASSERT(this->reconnect_timer_);
-
-				try
-				{
-					if (this->reconnect_timer_)
+					try
 					{
-						this->reconnect_timer_->timer.cancel();
+						if (this->reconnect_timer_)
+						{
+							this->reconnect_timer_->timer.cancel();
+						}
+					}
+					catch (system_error const&)
+					{
 					}
 				}
-				catch (system_error const&)
-				{
-				}
-			}
+			});
 		}
 
 	protected:

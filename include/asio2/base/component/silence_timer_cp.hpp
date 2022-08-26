@@ -65,33 +65,29 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			if (!derive.io().running_in_this_thread())
+			asio::dispatch(derive.io().context(), make_allocator(derive.wallocator(),
+			[this, this_ptr = std::move(this_ptr), duration]() mutable
 			{
-				asio::post(derive.io().context(), make_allocator(derive.wallocator(),
-				[this, this_ptr = std::move(this_ptr), duration]() mutable
+				derived_t& derive = static_cast<derived_t&>(*this);
+
+			#if defined(_DEBUG) || defined(DEBUG)
+				ASIO2_ASSERT(this->is_stop_silence_timer_called_ == false);
+			#endif
+
+				// reset the "canceled" flag to false, see reconnect_timer_cp.hpp -> _make_reconnect_timer
+				this->silence_timer_canceled_.clear();
+
+				// start the timer of check silence timeout
+				if (duration > std::chrono::duration<Rep, Period>::zero())
 				{
-					this->_post_silence_timer(duration, std::move(this_ptr));
-				}));
-				return;
-			}
-
-		#if defined(_DEBUG) || defined(DEBUG)
-			ASIO2_ASSERT(this->is_stop_silence_timer_called_ == false);
-		#endif
-
-			// reset the "canceled" flag to false, see reconnect_timer_cp.hpp -> _make_reconnect_timer
-			this->silence_timer_canceled_.clear();
-
-			// start the timer of check silence timeout
-			if (duration > std::chrono::duration<Rep, Period>::zero())
-			{
-				this->silence_timer_.expires_after(duration);
-				this->silence_timer_.async_wait(
-				[&derive, self_ptr = std::move(this_ptr)](const error_code & ec) mutable
-				{
-					derive._handle_silence_timer(ec, std::move(self_ptr));
-				});
-			}
+					this->silence_timer_.expires_after(duration);
+					this->silence_timer_.async_wait(
+					[&derive, self_ptr = std::move(this_ptr)](const error_code & ec) mutable
+					{
+						derive._handle_silence_timer(ec, std::move(self_ptr));
+					});
+				}
+			}));
 		}
 
 		inline void _handle_silence_timer(const error_code & ec, std::shared_ptr<derived_t> this_ptr)
@@ -130,27 +126,21 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			if (!derive.io().running_in_this_thread())
+			derive.dispatch([this]() mutable
 			{
-				derive.post([this]() mutable
+			#if defined(_DEBUG) || defined(DEBUG)
+				this->is_stop_silence_timer_called_ = true;
+			#endif
+
+				try
 				{
-					this->_stop_silence_timer();
-				});
-				return;
-			}
-
-		#if defined(_DEBUG) || defined(DEBUG)
-			this->is_stop_silence_timer_called_ = true;
-		#endif
-
-			try
-			{
-				this->silence_timer_canceled_.test_and_set();
-				this->silence_timer_.cancel();
-			}
-			catch (system_error const&)
-			{
-			}
+					this->silence_timer_canceled_.test_and_set();
+					this->silence_timer_.cancel();
+				}
+				catch (system_error const&)
+				{
+				}
+			});
 		}
 
 	protected:

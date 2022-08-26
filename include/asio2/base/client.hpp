@@ -173,33 +173,27 @@ namespace asio2::detail
 		{
 			ASIO2_ASSERT(this->io_.running_in_this_thread());
 
-			if (!this->io_.running_in_this_thread())
+			this->derived().dispatch([this]() mutable
 			{
-				this->derived().post([this]() mutable
-				{
-					this->stop();
-				});
-				return;
-			}
+				// close reconnect timer
+				this->_stop_reconnect_timer();
 
-			// close reconnect timer
-			this->_stop_reconnect_timer();
+				// close connect timeout timer
+				this->_stop_connect_timeout_timer();
 
-			// close connect timeout timer
-			this->_stop_connect_timeout_timer();
+				// close user custom timers
+				this->stop_all_timers();
 
-			// close user custom timers
-			this->stop_all_timers();
+				// close all posted timed tasks
+				this->stop_all_timed_tasks();
 
-			// close all posted timed tasks
-			this->stop_all_timed_tasks();
+				// close all async_events
+				this->notify_all_condition_events();
 
-			// close all async_events
-			this->notify_all_condition_events();
-
-			// destroy user data, maybe the user data is self shared_ptr, if don't destroy it,
-			// will cause loop refrence.
-			this->user_data_.reset();
+				// destroy user data, maybe the user data is self shared_ptr, if don't destroy it,
+				// will cause loop refrence.
+				this->user_data_.reset();
+			});
 		}
 
 		/**

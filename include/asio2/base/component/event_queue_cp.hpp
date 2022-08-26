@@ -410,25 +410,14 @@ namespace asio2::detail
 			// Should we use post to ensure that the task must be executed in the order of push_event?
 			// If we don't do that, example :
 			// call push_event in thread main with task1 first, call push_event in thread 0 with task2 second,
-			// beacuse the task1 is not in the thread 0, so the task1 will be enqueued by asio::post, but 
+			// beacuse the task1 is not in the thread 0, so the task1 will be enqueued by asio::dispatch, but 
 			// the task2 is in the thread 0, so the task2 will be enqueued directly, In this case, 
 			// task 2 is before task 1 in the queue
 
 			// Make sure we run on the io_context thread
-			if (derive.io().running_in_this_thread())
-			{
-				bool empty = this->events_.empty();
-				this->events_.emplace(std::forward<Callback>(f));
-				if (empty)
-				{
-					(this->events_.front())(event_queue_guard<derived_t>{derive});
-				}
-				return (derive);
-			}
-
 			// beacuse the callback "f" hold the derived_ptr already,
-			// so this callback for asio::post don't need hold the derived_ptr again.
-			asio::post(derive.io().context(), make_allocator(derive.wallocator(),
+			// so this callback for asio::dispatch don't need hold the derived_ptr again.
+			asio::dispatch(derive.io().context(), make_allocator(derive.wallocator(),
 			[this, f = std::forward<Callback>(f)]() mutable
 			{
 				ASIO2_ASSERT(this->events_.size() < std::size_t(32767));
@@ -467,20 +456,13 @@ namespace asio2::detail
 
 				//ASIO2_ASSERT(derive.io().running_in_this_thread());
 
-				if (derive.io().running_in_this_thread())
+				// beacuse the callback "f" hold the derived_ptr already,
+				// so this callback for asio::dispatch don't need hold the derived_ptr again.
+				asio::dispatch(derive.io().context(), make_allocator(derive.wallocator(),
+				[f = std::forward<Callback>(f), guard = std::move(guard)]() mutable
 				{
 					f(std::move(guard));
-				}
-				else
-				{
-					// beacuse the callback "f" hold the derived_ptr already,
-					// so this callback for asio::post don't need hold the derived_ptr again.
-					asio::post(derive.io().context(), make_allocator(derive.wallocator(),
-					[f = std::forward<Callback>(f), guard = std::move(guard)]() mutable
-					{
-						f(std::move(guard));
-					}));
-				}
+				}));
 			}
 
 			return (derive);
@@ -496,36 +478,10 @@ namespace asio2::detail
 			derived_t& derive = static_cast<derived_t&>(*this);
 
 			// Make sure we run on the io_context thread
-			if (derive.io().running_in_this_thread())
-			{
-				ASIO2_ASSERT(!g.is_empty());
-				ASIO2_ASSERT(!this->events_.empty());
-
-				if (!this->events_.empty())
-				{
-					this->events_.pop();
-
-					if (!this->events_.empty())
-					{
-						(this->events_.front())(std::move(g));
-					}
-					else
-					{
-						// must set valid to false, otherwise when g is destroyed, it will enter
-						// next_event again, this will cause a infinite loop, and cause stack overflow.
-						g.valid_ = false;
-					}
-				}
-
-				ASIO2_ASSERT(g.is_empty());
-
-				return (derive);
-			}
-
 			// must hold the derived_ptr, beacuse next_event is called by event_queue_guard, when
 			// event_queue_guard is destroyed, the event queue and event_queue_guard maybe has't
 			// hold derived object both.
-			asio::post(derive.io().context(), make_allocator(derive.wallocator(),
+			asio::dispatch(derive.io().context(), make_allocator(derive.wallocator(),
 			[this, p = derive.selfptr(), g = std::move(g)]() mutable
 			{
 				ASIO2_ASSERT(!g.is_empty());
