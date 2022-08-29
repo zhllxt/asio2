@@ -38,7 +38,7 @@ void http_test()
 	// test http url encode decode
 	{
 		std::string_view url = "http://www.baidu.com/query?key=x!#$&'()*,/:;=?@[ ]-_.~%^{}\"|<>`\\y";
-		std::string_view dst = "http://www.baidu.com/query?key=x%21%23%24&%27%28%29*%2C%2F%3A%3B=?%40%5B%20%5D-_.%7E%25%5E%7B%7D%22%7C%3C%3E%60%5Cy";
+		std::string_view dst = "http://www.baidu.com/query?key=x%21%23%24&%27%28%29*%2C/%3A%3B=?%40%5B%20%5D-_.%7E%25%5E%7B%7D%22%7C%3C%3E%60%5Cy";
 
 		ASIO2_CHECK(http::url_encode(url) == dst);
 		ASIO2_CHECK(http::url_decode(dst) == url);
@@ -58,8 +58,8 @@ void http_test()
 		ASIO2_CHECK(req.host  () == "www.baidu.com");
 		ASIO2_CHECK(req.port  () == "80");
 		ASIO2_CHECK(req.path  () == "/query");
-		ASIO2_CHECK(req.query () == "key=x%21%23%24&%27%28%29*%2C%2F%3A%3B=?%40%5B%20%5D-_.%7E%25%5E%7B%7D%22%7C%3C%3E%60%5Cy");
-		ASIO2_CHECK(req.target() == "/query?key=x%21%23%24&%27%28%29*%2C%2F%3A%3B=?%40%5B%20%5D-_.%7E%25%5E%7B%7D%22%7C%3C%3E%60%5Cy");
+		ASIO2_CHECK(req.query () == "key=x%21%23%24&%27%28%29*%2C/%3A%3B=?%40%5B%20%5D-_.%7E%25%5E%7B%7D%22%7C%3C%3E%60%5Cy");
+		ASIO2_CHECK(req.target() == "/query?key=x%21%23%24&%27%28%29*%2C/%3A%3B=?%40%5B%20%5D-_.%7E%25%5E%7B%7D%22%7C%3C%3E%60%5Cy");
 
 		ASIO2_CHECK(req.url().schema() == req.schema());
 		ASIO2_CHECK(req.url().host  () == req.host  ());
@@ -81,8 +81,8 @@ void http_test()
 	}
 
 	{
-		std::string_view url = R"(http://www.baidu.com/json={"qeury":"name like '%abc%'","id":1})";
-		std::string_view dst = R"(http://www.baidu.com/json=%7B%22qeury%22%3A%22name%20like%20%27%25abc%25%27%22%2C%22id%22%3A1%7D)";
+		std::string_view url = R"(http://www.baidu.com/childpathtest/json={"qeury":"name like '%abc%'","id":1})";
+		std::string_view dst = R"(http://www.baidu.com/childpathtest/json=%7B%22qeury%22%3A%22name%20like%20%27%25abc%25%27%22%2C%22id%22%3A1%7D)";
 
 		ASIO2_CHECK(http::url_encode(url) == dst);
 		ASIO2_CHECK(http::url_decode(dst) == url);
@@ -94,7 +94,7 @@ void http_test()
 	// test http url encode decode
 	{
 		std::string_view url = "http://127.0.0.1/index.asp?id=x!#$&name='()*+,/:;=?@[ ]-_.~%^{}\"|<>`\\y";
-		std::string_view dst = "http://127.0.0.1/index.asp?id=x%21%23%24&name=%27%28%29*%2B%2C%2F%3A%3B=?%40%5B%20%5D-_.%7E%25%5E%7B%7D%22%7C%3C%3E%60%5Cy";
+		std::string_view dst = "http://127.0.0.1/index.asp?id=x%21%23%24&name=%27%28%29*%2B%2C/%3A%3B=?%40%5B%20%5D-_.%7E%25%5E%7B%7D%22%7C%3C%3E%60%5Cy";
 		
 		ASIO2_CHECK(http::url_encode(url) == dst);
 		ASIO2_CHECK(http::url_decode(dst) == url);
@@ -111,8 +111,8 @@ void http_test()
 		ASIO2_CHECK(req.get_host  () == "127.0.0.1");
 		ASIO2_CHECK(req.get_port  () == "80");
 		ASIO2_CHECK(req.get_path  () == "/index.asp");
-		ASIO2_CHECK(req.get_query () == "id=x%21%23%24&name=%27%28%29*%2B%2C%2F%3A%3B=?%40%5B%20%5D-_.%7E%25%5E%7B%7D%22%7C%3C%3E%60%5Cy");
-		ASIO2_CHECK(req.target() == "/index.asp?id=x%21%23%24&name=%27%28%29*%2B%2C%2F%3A%3B=?%40%5B%20%5D-_.%7E%25%5E%7B%7D%22%7C%3C%3E%60%5Cy");
+		ASIO2_CHECK(req.get_query () == "id=x%21%23%24&name=%27%28%29*%2B%2C/%3A%3B=?%40%5B%20%5D-_.%7E%25%5E%7B%7D%22%7C%3C%3E%60%5Cy");
+		ASIO2_CHECK(req.target() == "/index.asp?id=x%21%23%24&name=%27%28%29*%2B%2C/%3A%3B=?%40%5B%20%5D-_.%7E%25%5E%7B%7D%22%7C%3C%3E%60%5Cy");
 
 		ASIO2_CHECK(req.url().schema() == req.schema());
 		ASIO2_CHECK(req.url().host  () == req.host  ());
