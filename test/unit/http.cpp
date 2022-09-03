@@ -455,8 +455,9 @@ void http_test()
 
 	// test http_client::execute
 	{
-		asio2::socks5::option<asio2::socks5::method::anonymous>
-			sock5_option{ "127.0.0.1",10808 };
+		std::shared_ptr<asio2::socks5::option<asio2::socks5::method::anonymous>>
+			sock5_option = std::make_shared<asio2::socks5::option<asio2::socks5::method::anonymous>>(
+				"127.0.0.1", 10808);
 		//asio2::socks5::option<asio2::socks5::method::anonymous, asio2::socks5::method::password>
 		//	sock5_option{ "s5.doudouip.cn",1088,"zjww-1","aaa123" };
 
@@ -829,13 +830,33 @@ void http_test()
 
 		asio2::http_client::execute("127.0.0.1", "8080", "/defer");
 
+
+		std::shared_ptr<asio2::socks5::option<asio2::socks5::method::anonymous>>
+			sock5_option = std::make_shared<asio2::socks5::option<asio2::socks5::method::anonymous>>(
+				"127.0.0.1", 10808);
+		//asio2::socks5::option<asio2::socks5::method::anonymous, asio2::socks5::method::password>
+		//	sock5_option{ "s5.doudouip.cn",1088,"zjww-1","aaa123" };
+
+
 		asio2::http_client http_client;
 
+		int counter = 0;
 		http_client.bind_recv([&](http::web_request& req, http::web_response& rep)
 		{
 			// convert the response body to string
 			std::stringstream ss;
 			ss << rep.body();
+
+			counter++;
+
+			if (counter == 1)
+			{
+				ASIO2_CHECK(rep.result() == http::status::ok);
+			}
+			else
+			{
+				ASIO2_CHECK(rep.result() == http::status::not_found);
+			}
 
 			// Remove all fields
 			req.clear();
@@ -861,8 +882,12 @@ void http_test()
 			}
 		});
 
-		bool http_client_ret = http_client.start("127.0.0.1", 8080);
+		bool http_client_ret = http_client.start("127.0.0.1", 8080, std::move(sock5_option));
 		ASIO2_CHECK(http_client_ret);
+		while (http_client_ret && counter < 3)
+		{
+			ASIO2_TEST_WAIT_CHECK();
+		}
 
 		asio2::ws_client ws_client;
 
@@ -914,6 +939,66 @@ void http_test()
 
 		ws_client.stop();
 		ASIO2_CHECK(ws_close_flag);
+	}
+
+	{
+		asio2::socks5::option<asio2::socks5::method::anonymous>
+			sock5_option{ "127.0.0.1", 10808 };
+		//asio2::socks5::option<asio2::socks5::method::anonymous, asio2::socks5::method::password>
+		//	sock5_option{ "s5.doudouip.cn",1088,"zjww-1","aaa123" };
+
+
+		asio2::http_client http_client;
+
+		int counter = 0;
+		http_client.bind_recv([&](http::web_request& req, http::web_response& rep)
+		{
+			// convert the response body to string
+			std::stringstream ss;
+			ss << rep.body();
+
+			counter++;
+
+			if (counter == 1)
+			{
+				ASIO2_CHECK(rep.result() == http::status::ok);
+			}
+			else
+			{
+				ASIO2_CHECK(rep.result() == http::status::not_found);
+			}
+
+			// Remove all fields
+			req.clear();
+
+			req.set(http::field::user_agent, "Chrome");
+			req.set(http::field::content_type, "text/html");
+
+			req.method(http::verb::get);
+			req.keep_alive(true);
+			req.target("/get_user?name=abc");
+			req.body() = "Hello World.";
+			req.prepare_payload();
+
+			http_client.async_send(std::move(req));
+
+		}).bind_connect([&]()
+		{
+			// connect success, send a request.
+			if (!asio2::get_last_error())
+			{
+				const char * msg = "GET / HTTP/1.1\r\n\r\n";
+				http_client.async_send(msg);
+			}
+		});
+
+		bool http_client_ret = http_client.start("www.baidu.com", 80, std::move(sock5_option));
+		ASIO2_CHECK(http_client_ret);
+		while (http_client_ret && counter < 3)
+		{
+			ASIO2_TEST_WAIT_CHECK();
+		}
+		std::this_thread::sleep_for(std::chrono::milliseconds(10 + std::rand() % 10));
 	}
 
 	{

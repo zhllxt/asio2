@@ -115,17 +115,23 @@ namespace asio2::detail
 				Buffer buffer;
 
 				// if has socks5 proxy
-				if constexpr (std::is_base_of_v<asio2::socks5::detail::option_base, detail::remove_cvref_t<Proxy>>)
+				if constexpr (std::is_base_of_v<asio2::socks5::detail::option_base,
+					typename detail::element_type_adapter<detail::remove_cvref_t<Proxy>>::type>)
 				{
+					auto socks5 = detail::to_shared_ptr(std::forward<Proxy>(proxy));
+
+					std::string_view h{ socks5->host() };
+					std::string_view p{ socks5->port() };
+
 					// Look up the domain name
-					resolver.async_resolve(proxy.host(), proxy.port(),
-					[&](const error_code& ec1, const asio::ip::tcp::resolver::results_type& endpoints) mutable
+					resolver.async_resolve(h, p, [&, s5 = std::move(socks5)]
+					(const error_code& ec1, const asio::ip::tcp::resolver::results_type& endpoints) mutable
 					{
 						if (ec1) { set_last_error(ec1); return; }
 
 						// Make the connection on the IP address we get from a lookup
 						asio::async_connect(socket, endpoints,
-						[&](const error_code& ec2, const asio::ip::tcp::endpoint&) mutable
+						[&, s5 = std::move(s5)](const error_code& ec2, const asio::ip::tcp::endpoint&) mutable
 						{
 							if (ec2) { set_last_error(ec2); return; }
 
@@ -134,7 +140,7 @@ namespace asio2::detail
 								ioc,
 								to_string(std::forward<String>(host)), to_string(std::forward<StrOrInt>(port)),
 								socket,
-								std::forward<Proxy>(proxy),
+								std::move(s5),
 								[&](error_code ecs5) mutable
 								{
 									if (ecs5) { set_last_error(ecs5); return; }

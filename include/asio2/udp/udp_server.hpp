@@ -692,7 +692,7 @@ namespace asio2::detail
 					session_ptr = this->derived()._make_session();
 					session_ptr->counter_ptr_ = this->counter_ptr_;
 					session_ptr->first_ = first;
-					session_ptr->start(std::move(condition));
+					session_ptr->start(condition.clone());
 				}
 			}
 		}

@@ -641,12 +641,12 @@ namespace asio2::detail
 					}
 					else
 					{
-						auto& _rdc = condition.impl_->rdc_option(std::in_place);
+						auto _rdc = condition.impl_->rdc_option(std::in_place);
 
 						// if stoped, execute all callbacks in the requests, otherwise if some
 						// call or async_call 's timeout is too long, then the application will
 						// can't exit before all timeout timer is reached.
-						for (auto&[id, tup] : _rdc.invoker().reqs())
+						for (auto&[id, tup] : _rdc->invoker().reqs())
 						{
 							detail::ignore_unused(id);
 							auto&[timer, invoker] = tup;
@@ -659,7 +659,7 @@ namespace asio2::detail
 							}
 							derive._rdc_invoke_with_none(asio::error::operation_aborted, invoker);
 						}
-						_rdc.invoker().reqs().clear();
+						_rdc->invoker().reqs().clear();
 					}
 				});
 			}
@@ -681,9 +681,9 @@ namespace asio2::detail
 
 				try
 				{
-					auto& _rdc = condition.impl_->rdc_option(std::in_place);
+					auto _rdc = condition.impl_->rdc_option(std::in_place);
 
-					auto id = (_rdc.get_send_parser())(fn_data());
+					auto id = (_rdc->get_send_parser())(fn_data());
 
 					std::shared_ptr<asio::steady_timer> timer =
 						std::make_shared<asio::steady_timer>(derive.io().context());
@@ -693,11 +693,11 @@ namespace asio2::detail
 						fn_data = std::move(fn_data), timeout, invoker = std::move(invoker)]
 					(event_queue_guard<derived_t> g) mutable
 					{
-						auto& _rdc = condition.impl_->rdc_option(std::in_place);
+						auto _rdc = condition.impl_->rdc_option(std::in_place);
 
 						ASIO2_ASSERT(derive.io().running_in_this_thread());
 
-						_rdc.invoker().emplace(id, timer, std::move(invoker));
+						_rdc->invoker().emplace(id, timer, std::move(invoker));
 
 						timer->expires_after(timeout);
 						timer->async_wait(
@@ -707,16 +707,16 @@ namespace asio2::detail
 							if (ec == asio::error::operation_aborted)
 								return;
 
-							auto& _rdc = condition.impl_->rdc_option(std::in_place);
+							auto _rdc = condition.impl_->rdc_option(std::in_place);
 
 							ASIO2_ASSERT(derive.io().running_in_this_thread());
 
-							auto iter = _rdc.invoker().find(id);
-							if (iter != _rdc.invoker().end())
+							auto iter = _rdc->invoker().find(id);
+							if (iter != _rdc->invoker().end())
 							{
 								auto&[tmer, cb] = iter->second;
 								derive._rdc_invoke_with_none(asio::error::timed_out, cb);
-								_rdc.invoker().erase(iter);
+								_rdc->invoker().erase(iter);
 								detail::ignore_unused(tmer);
 							}
 						});
@@ -731,12 +731,12 @@ namespace asio2::detail
 
 							if (ec)
 							{
-								auto& _rdc = condition.impl_->rdc_option(std::in_place);
+								auto _rdc = condition.impl_->rdc_option(std::in_place);
 
 								ASIO2_ASSERT(derive.io().running_in_this_thread());
 
-								auto iter = _rdc.invoker().find(id);
-								if (iter != _rdc.invoker().end())
+								auto iter = _rdc->invoker().find(id);
+								if (iter != _rdc->invoker().end())
 								{
 									auto&[tmer, cb] = iter->second;
 									try
@@ -747,7 +747,7 @@ namespace asio2::detail
 									{
 									}
 									derive._rdc_invoke_with_none(asio::error::timed_out, cb);
-									_rdc.invoker().erase(iter);
+									_rdc->invoker().erase(iter);
 								}
 							}
 						});
@@ -777,14 +777,14 @@ namespace asio2::detail
 			{
 				derived_t& derive = static_cast<derived_t&>(*this);
 
-				auto& _rdc = condition.impl_->rdc_option(std::in_place);
+				auto _rdc = condition.impl_->rdc_option(std::in_place);
 
-				auto id = (_rdc.get_recv_parser())(data);
+				auto id = (_rdc->get_recv_parser())(data);
 
 				ASIO2_ASSERT(derive.io().running_in_this_thread());
 
-				auto iter = _rdc.invoker().find(id);
-				if (iter != _rdc.invoker().end())
+				auto iter = _rdc->invoker().find(id);
+				if (iter != _rdc->invoker().end())
 				{
 					auto&[timer, invoker] = iter->second;
 					try
@@ -795,7 +795,7 @@ namespace asio2::detail
 					{
 					}
 					derive._rdc_invoke_with_recv(error_code{}, invoker, data);
-					_rdc.invoker().erase(iter);
+					_rdc->invoker().erase(iter);
 				}
 			}
 			else

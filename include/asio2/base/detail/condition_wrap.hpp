@@ -236,7 +236,7 @@ namespace asio2::detail
 		static constexpr std::size_t componentc = sizeof...(Args);
 
 		using type       = ConditionT;
-		using tuple_type = std::tuple<Args...>;
+		using tuple_type = std::tuple<typename detail::shared_ptr_adapter<Args>::type...>;
 
 		template<std::size_t I>
 		struct components
@@ -250,10 +250,21 @@ namespace asio2::detail
 		ecs_t& operator=(ecs_t&&) = default;
 		ecs_t& operator=(ecs_t const&) = delete;
 
+		template<std::size_t... I>
+		inline ecs_t clone_impl(std::index_sequence<I...>) noexcept
+		{
+			return ecs_t{ this->condition_, ((*std::get<I>(this->components_)), ...) };
+		}
+
+		inline ecs_t clone()
+		{
+			return clone_impl(std::make_index_sequence<componentc>{});
+		}
+
 		template<class Condition, class... Ts>
 		explicit ecs_t(Condition&& c, Ts&&... ts)
 			: condition_(std::forward<Condition>(c))
-			, components_(std::forward<Ts>(ts)...)
+			, components_(detail::to_shared_ptr(std::forward<Ts>(ts))...)
 		{
 		}
 
@@ -262,7 +273,8 @@ namespace asio2::detail
 		template<typename = void>
 		static constexpr bool has_rdc() noexcept
 		{
-			return (is_template_instance_of_v<asio2::rdc::option, Args> || ...);
+			return (is_template_instance_of_v<asio2::rdc::option,
+				typename element_type_adapter<typename detail::remove_cvref_t<Args>>::type> || ...);
 		}
 
 		template<std::size_t I, typename T1, typename... TN>
@@ -282,11 +294,12 @@ namespace asio2::detail
 		template<typename = void>
 		static constexpr std::size_t rdc_index() noexcept
 		{
-			return rdc_index_helper<0, Args...>();
+			return rdc_index_helper<0,
+				typename element_type_adapter<typename detail::remove_cvref_t<Args>>::type...>();
 		}
 
 		template<class Tag, std::enable_if_t<std::is_same_v<Tag, std::in_place_t>, int> = 0>
-		typename components<rdc_index()>::type& rdc_option(Tag) noexcept
+		typename components<rdc_index()>::type rdc_option(Tag) noexcept
 		{
 			return std::get<rdc_index()>(components_);
 		}
@@ -294,7 +307,8 @@ namespace asio2::detail
 		template<typename = void>
 		static constexpr bool has_socks5() noexcept
 		{
-			return (std::is_base_of_v<asio2::socks5::detail::option_base, Args> || ...);
+			return (std::is_base_of_v<asio2::socks5::detail::option_base,
+				typename element_type_adapter<typename detail::remove_cvref_t<Args>>::type> || ...);
 		}
 
 		template<std::size_t I, typename T1, typename... TN>
@@ -314,11 +328,12 @@ namespace asio2::detail
 		template<typename = void>
 		static constexpr std::size_t socks5_index() noexcept
 		{
-			return socks5_index_helper<0, Args...>();
+			return socks5_index_helper<0,
+				typename element_type_adapter<typename detail::remove_cvref_t<Args>>::type...>();
 		}
 
 		template<class Tag, std::enable_if_t<std::is_same_v<Tag, std::in_place_t>, int> = 0>
-		typename components<socks5_index()>::type& socks5_option(Tag) noexcept
+		typename components<socks5_index()>::type socks5_option(Tag) noexcept
 		{
 			return std::get<socks5_index()>(components_);
 		}
@@ -341,14 +356,24 @@ namespace asio2::detail
 		using traits_type = condition_traits<T>;
 		using condition_type = typename traits_type::type;
 
+		 condition_wrap() noexcept = default;
+		~condition_wrap() noexcept = default;
+
 		condition_wrap(condition_wrap&&) noexcept = default;
 		condition_wrap(condition_wrap const&) = default;
 		condition_wrap& operator=(condition_wrap&&) noexcept = default;
 		condition_wrap& operator=(condition_wrap const&) = default;
 
+		inline condition_wrap clone()
+		{
+			return condition_wrap{ this->impl_ };
+		}
+
 		template<class MT, std::enable_if_t<
 			!std::is_base_of_v<condition_wrap, detail::remove_cvref_t<MT>>, int> = 0>
 		explicit condition_wrap(MT c) noexcept : impl_(std::move(c)) {}
+
+		explicit condition_wrap(traits_type c) noexcept : impl_(std::move(c)) {}
 
 		inline decltype(auto) operator()() noexcept { return impl_(); }
 
@@ -367,13 +392,18 @@ namespace asio2::detail
 		using type = void;
 		using condition_type = void;
 
+		 condition_wrap() noexcept = default;
+		~condition_wrap() noexcept = default;
+
 		condition_wrap(condition_wrap&&) noexcept = default;
 		condition_wrap(condition_wrap const&) noexcept = default;
 		condition_wrap& operator=(condition_wrap&&) noexcept = default;
 		condition_wrap& operator=(condition_wrap const&) noexcept = default;
 
-		 condition_wrap() noexcept = default;
-		~condition_wrap() noexcept = default;
+		inline condition_wrap clone()
+		{
+			return condition_wrap{};
+		}
 	};
 
 	template<class ConditionT, class... Args>
@@ -383,10 +413,18 @@ namespace asio2::detail
 		using traits_type = ecs_t<ConditionT, Args...>;
 		using condition_type = typename traits_type::type;
 
+		 condition_wrap() noexcept = default;
+		~condition_wrap() noexcept = default;
+
 		condition_wrap(condition_wrap&&) noexcept = default;
 		condition_wrap(condition_wrap const&) = default;
 		condition_wrap& operator=(condition_wrap&&) noexcept = default;
 		condition_wrap& operator=(condition_wrap const&) = default;
+
+		inline condition_wrap clone()
+		{
+			return condition_wrap{ this->impl_->clone() };
+		}
 
 		template<class ECST, std::enable_if_t<
 			!std::is_base_of_v<condition_wrap, detail::remove_cvref_t<ECST>>, int> = 0>
@@ -408,12 +446,19 @@ namespace asio2::detail
 		{
 			using type = detail::remove_cvref_t<T>;
 
-			if /**/ constexpr (is_template_instance_of_v<asio2::rdc::option, type>)
-				return true;
-			else if constexpr (std::is_base_of_v<asio2::socks5::detail::option_base, type>)
-				return true;
+			if constexpr (is_template_instance_of_v<std::shared_ptr, type>)
+			{
+				return is_component<typename type::element_type>();
+			}
 			else
-				return false;
+			{
+				if /**/ constexpr (is_template_instance_of_v<asio2::rdc::option, type>)
+					return true;
+				else if constexpr (std::is_base_of_v<asio2::socks5::detail::option_base, type>)
+					return true;
+				else
+					return false;
+			}
 		}
 
 		template<class... Args>

@@ -140,10 +140,10 @@ namespace asio2::detail
 
 			if constexpr (condition_helper::has_socks5<MatchCondition>())
 			{
-				auto& sock5 = condition.impl_->socks5_option(std::in_place);
+				auto sock5 = condition.impl_->socks5_option(std::in_place);
 
-				h = sock5.host();
-				p = sock5.port();
+				h = sock5->host();
+				p = sock5->port();
 			}
 			else
 			{

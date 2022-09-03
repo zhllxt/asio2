@@ -104,7 +104,8 @@ namespace asio2::socks5
 		option& operator=(option const&) = default;
 
 		// constructor sfinae
-		template<class... Args>
+		template<class... Args, std::enable_if_t<
+			((!std::is_base_of_v<detail::option_base, asio2::detail::remove_cvref_t<Args>>) && ...), int> = 0>
 		explicit option(Args&&... args) : option(
 			std::conditional_t<option<ms...>::has_password_method(),
 			std::integral_constant<int, asio2::detail::to_underlying(method::password)>,
@@ -113,7 +114,9 @@ namespace asio2::socks5
 		{
 		}
 
-		template<class String1, class String2>
+		template<class String1, class String2, std::enable_if_t<
+			!std::is_base_of_v<detail::option_base, asio2::detail::remove_cvref_t<String1>> &&
+			!std::is_base_of_v<detail::option_base, asio2::detail::remove_cvref_t<String2>>, int> = 0>
 		explicit option(
 			std::integral_constant<int, asio2::detail::to_underlying(method::anonymous)>,
 			String1&& proxy_host, String2&& proxy_port,
@@ -124,7 +127,11 @@ namespace asio2::socks5
 		{
 		}
 
-		template<class String1, class String2, class String3, class String4>
+		template<class String1, class String2, class String3, class String4, std::enable_if_t<
+			!std::is_base_of_v<detail::option_base, asio2::detail::remove_cvref_t<String1>> &&
+			!std::is_base_of_v<detail::option_base, asio2::detail::remove_cvref_t<String2>> &&
+			!std::is_base_of_v<detail::option_base, asio2::detail::remove_cvref_t<String3>> &&
+			!std::is_base_of_v<detail::option_base, asio2::detail::remove_cvref_t<String4>>, int> = 0>
 		explicit option(
 			std::integral_constant<int, asio2::detail::to_underlying(method::password)>,
 			String1&& proxy_host, String2&& proxy_port, String3&& username, String4&& password,
@@ -142,9 +149,10 @@ namespace asio2::socks5
 			host_ = std::move(proxy_host);
 			return (*this);
 		}
-		inline option& set_port(std::string proxy_port)
+		template<class StrOrInt>
+		inline option& set_port(StrOrInt&& proxy_port)
 		{
-			port_ = std::move(proxy_port);
+			port_ = asio2::detail::to_string(std::forward<StrOrInt>(proxy_port));
 			return (*this);
 		}
 
@@ -152,9 +160,10 @@ namespace asio2::socks5
 		{
 			return this->set_host(std::move(proxy_host));
 		}
-		inline option& port(std::string proxy_port)
+		template<class StrOrInt>
+		inline option& port(StrOrInt&& proxy_port)
 		{
-			return this->set_port(std::move(proxy_port));
+			return this->set_port(std::forward<StrOrInt>(proxy_port));
 		}
 
 		inline std::string&     host() noexcept { return host_; }

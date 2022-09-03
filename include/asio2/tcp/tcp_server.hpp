@@ -650,7 +650,7 @@ namespace asio2::detail
 				if (this->derived().is_started())
 				{
 					session_ptr->counter_ptr_ = this->counter_ptr_;
-					session_ptr->start(condition);
+					session_ptr->start(condition.clone());
 				}
 			}
 

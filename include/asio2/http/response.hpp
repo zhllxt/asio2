@@ -383,7 +383,7 @@ namespace asio2::detail
 
 			// Handle an unknown error
 			if (ec)
-				return this->fill_page(http::status::internal_server_error, ec.message(), {}, version);
+				return this->fill_page(http::status::not_found, ec.message(), {}, version);
 
 			// Cache the size since we need it after the move
 			auto const size = this->body().size();

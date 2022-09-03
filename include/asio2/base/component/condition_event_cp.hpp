@@ -33,6 +33,7 @@
 namespace asio2::detail
 {
 	template<class, class> class condition_event_cp;
+	template<class, class> class rdc_call_cp_impl;
 }
 
 namespace asio2
@@ -44,6 +45,7 @@ namespace asio2
 	class condition_event : public detail::object_t<condition_event>
 	{
 		template<class, class> friend class asio2::detail::condition_event_cp;
+		template<class, class> friend class asio2::detail::rdc_call_cp_impl;
 
 	public:
 		explicit condition_event(detail::io_t& io)

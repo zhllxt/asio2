@@ -64,6 +64,8 @@ namespace asio2::detail
 		Sock5OptT      sock5_;
 		HandlerT       handler_;
 
+		static_assert(detail::is_template_instance_of_v<std::shared_ptr, Sock5OptT>);
+
 		std::unique_ptr<asio::streambuf> stream{ std::make_unique<asio::streambuf>() };
 		asio::mutable_buffer             buffer{};
 		std::size_t                      bytes{};
@@ -112,13 +114,13 @@ namespace asio2::detail
 
 				stream->consume(stream->size());
 
-				bytes  = 1 + 1 + sock5_.methods_count();
+				bytes  = 1 + 1 + sock5_->methods_count();
 				buffer = stream->prepare(bytes);
 				p      = static_cast<char*>(buffer.data());
 
 				write(p, std::uint8_t(0x05));                         // SOCKS VERSION 5.
-				write(p, std::uint8_t(sock5_.methods_count()));       // NMETHODS
-				for (auto m : sock5_.methods())
+				write(p, std::uint8_t(sock5_->methods_count()));      // NMETHODS
+				for (auto m : sock5_->methods())
 				{
 					write(p, std::uint8_t(detail::to_underlying(m))); // METHODS
 				}
@@ -224,18 +226,18 @@ namespace asio2::detail
 					//         | 1  |  1   | 1 to 255 |  1   | 1 to 255 |
 					//         +----+------+----------+------+----------+
 
-					if constexpr (socks5::detail::has_member_username<decltype(sock5_)>::value)
+					if constexpr (socks5::detail::has_member_username<typename Sock5OptT::element_type>::value)
 					{
-						username = sock5_.username();
+						username = sock5_->username();
 					}
 					else
 					{
 						ASIO2_ASSERT(false);
 					}
 
-					if constexpr (socks5::detail::has_member_password<decltype(sock5_)>::value)
+					if constexpr (socks5::detail::has_member_password<typename Sock5OptT::element_type>::value)
 					{
-						password = sock5_.password();
+						password = sock5_->password();
 					}
 					else
 					{
@@ -352,9 +354,9 @@ namespace asio2::detail
 				buffer = stream->prepare(1 + 1 + 1 + 1 + (std::max)(16, int(host_.size() + 1)) + 2);
 				p      = static_cast<char*>(buffer.data());
 
-				write(p, std::uint8_t(0x05));                                    // VER 5.
-				write(p, std::uint8_t(detail::to_underlying(sock5_.command()))); // CMD CONNECT .
-				write(p, std::uint8_t(0x00));                                    // RSV.
+				write(p, std::uint8_t(0x05));                                     // VER 5.
+				write(p, std::uint8_t(detail::to_underlying(sock5_->command()))); // CMD CONNECT .
+				write(p, std::uint8_t(0x00));                                     // RSV.
 
 				// ATYP
 				endpoint = asio::ip::make_address(host_, ec);
@@ -601,7 +603,7 @@ namespace asio2::detail
 				{
 					derive.io().context(),
 					derive.host_, derive.port_,
-					derive.stream(),
+					derive.socket(),
 					condition.impl_->socks5_option(std::in_place),
 					[this, this_ptr, condition, chain = std::move(chain)](error_code ec) mutable
 					{

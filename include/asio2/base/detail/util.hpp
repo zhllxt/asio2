@@ -690,6 +690,63 @@ namespace asio2::detail
 	// C++17 class template argument deduction guides
 	template<class Integer>
 	integer_add_sub_guard(Integer&)->integer_add_sub_guard<Integer>;
+
+	template<class T>
+	struct shared_ptr_adapter
+	{
+		using rawt = typename detail::remove_cvref_t<T>;
+		using type = std::conditional_t<detail::is_template_instance_of_v<std::shared_ptr, rawt>,
+			rawt, std::shared_ptr<rawt>>;
+	};
+
+	template<class T>
+	typename detail::shared_ptr_adapter<T>::type to_shared_ptr(T&& t)
+	{
+		using rawt = typename detail::remove_cvref_t<T>;
+
+		if constexpr (detail::is_template_instance_of_v<std::shared_ptr, rawt>)
+		{
+			return std::forward<T>(t);
+		}
+		else
+		{
+			return std::make_shared<rawt>(std::forward<T>(t));
+		}
+	}
+
+	//// The following code will cause element_type_adapter<int> compilation failure:
+	//// the "int" don't has a type of element_type.
+	//template<class T>
+	//struct element_type_adapter
+	//{
+	//	using rawt = typename remove_cvref_t<T>;
+	//	using type = std::conditional_t<is_template_instance_of_v<std::shared_ptr, rawt>,
+	//		typename rawt::element_type, rawt>;
+	//};
+
+	template<class T>
+	struct element_type_adapter
+	{
+		using type = typename detail::remove_cvref_t<T>;
+	};
+
+	template<class T>
+	struct element_type_adapter<std::shared_ptr<T>>
+	{
+		using type = typename detail::remove_cvref_t<T>;
+	};
+
+	template<class T>
+	struct element_type_adapter<std::unique_ptr<T>>
+	{
+		using type = typename detail::remove_cvref_t<T>;
+	};
+
+	template<class T>
+	struct element_type_adapter<T*>
+	{
+		using type = typename detail::remove_cvref_t<T>;
+	};
 }
 
 namespace asio2
