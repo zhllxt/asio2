@@ -91,10 +91,10 @@ void rdc_test()
 
 			ASIO2_CHECK(!asio2::get_last_error());
 			ASIO2_CHECK(server.get_listen_address() == "127.0.0.1");
-			ASIO2_CHECK(server.get_listen_port() == 18027);
+			ASIO2_CHECK(server.get_listen_port() == 18037);
 			ASIO2_CHECK(session_ptr->remote_address() == "127.0.0.1");
 			ASIO2_CHECK(session_ptr->local_address() == "127.0.0.1");
-			ASIO2_CHECK(session_ptr->local_port() == 18027);
+			ASIO2_CHECK(session_ptr->local_port() == 18037);
 			ASIO2_CHECK(server.io().running_in_this_thread());
 			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
 
@@ -117,7 +117,7 @@ void rdc_test()
 			ASIO2_CHECK(!server.find_session(session_ptr->hash_key()));
 			ASIO2_CHECK(session_ptr->remote_address() == "127.0.0.1");
 			ASIO2_CHECK(session_ptr->local_address() == "127.0.0.1");
-			ASIO2_CHECK(session_ptr->local_port() == 18027);
+			ASIO2_CHECK(session_ptr->local_port() == 18037);
 			ASIO2_CHECK(server.io().running_in_this_thread());
 			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
 			ASIO2_CHECK(session_ptr->is_keep_alive());
@@ -132,7 +132,7 @@ void rdc_test()
 			ASIO2_CHECK(!server.find_session(session_ptr->hash_key()));
 			ASIO2_CHECK(session_ptr->socket().is_open());
 			//ASIO2_CHECK(session_ptr->remote_address() == "127.0.0.1");
-			ASIO2_CHECK(session_ptr->local_port() == 18027);
+			ASIO2_CHECK(session_ptr->local_port() == 18037);
 			ASIO2_CHECK(server.io().running_in_this_thread());
 			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
 		});
@@ -156,7 +156,7 @@ void rdc_test()
 
 			ASIO2_CHECK(!asio2::get_last_error());
 			ASIO2_CHECK(server.get_listen_address() == "127.0.0.1");
-			ASIO2_CHECK(server.get_listen_port() == 18027);
+			ASIO2_CHECK(server.get_listen_port() == 18037);
 			ASIO2_CHECK(server.io().running_in_this_thread());
 			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
 		});
@@ -167,12 +167,12 @@ void rdc_test()
 
 			ASIO2_CHECK(asio2::get_last_error());
 			ASIO2_CHECK(server.get_listen_address() == "127.0.0.1");
-			ASIO2_CHECK(server.get_listen_port() == 18027);
+			ASIO2_CHECK(server.get_listen_port() == 18037);
 			ASIO2_CHECK(server.io().running_in_this_thread());
 			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
 		});
 
-		bool server_start_ret = server.start("127.0.0.1", 18027, asio2::use_dgram, server_rdc_option);
+		bool server_start_ret = server.start("127.0.0.1", 18037, asio2::use_dgram, server_rdc_option);
 
 		ASIO2_CHECK(server_start_ret);
 		ASIO2_CHECK(server.is_started());
@@ -213,7 +213,7 @@ void rdc_test()
 				ASIO2_CHECK(!asio2::get_last_error());
 				ASIO2_CHECK(client.get_local_address() == "127.0.0.1");
 				ASIO2_CHECK(client.get_remote_address() == "127.0.0.1");
-				ASIO2_CHECK(client.get_remote_port() == 18027);
+				ASIO2_CHECK(client.get_remote_port() == 18037);
 
 				client_connect_counter++;
 
@@ -270,7 +270,7 @@ void rdc_test()
 				});
 			});
 
-			bool client_start_ret = client.async_start("127.0.0.1", 18027, asio2::use_dgram, client_rdc_option);
+			bool client_start_ret = client.async_start("127.0.0.1", 18037, asio2::use_dgram, client_rdc_option);
 
 			ASIO2_CHECK(client_start_ret);
 			ASIO2_CHECK(asio2::get_last_error() == asio::error::in_progress);
@@ -345,7 +345,7 @@ void rdc_test()
 		server_connect_counter = 0;
 		server_recv_counter = 0;
 
-		server_start_ret = server.start("127.0.0.1", 18027, asio2::use_dgram, server_rdc_option);
+		server_start_ret = server.start("127.0.0.1", 18037, asio2::use_dgram, server_rdc_option);
 
 		ASIO2_CHECK(server_start_ret);
 		ASIO2_CHECK(server.is_started());
@@ -359,7 +359,7 @@ void rdc_test()
 
 		for (int i = 0; i < test_client_count; i++)
 		{
-			bool client_start_ret = clients[i]->async_start("127.0.0.1", 18027, asio2::use_dgram, client_rdc_option);
+			bool client_start_ret = clients[i]->async_start("127.0.0.1", 18037, asio2::use_dgram, client_rdc_option);
 			ASIO2_CHECK(client_start_ret);
 			ASIO2_CHECK(asio2::get_last_error() == asio::error::in_progress);
 		}
@@ -388,10 +388,8 @@ void rdc_test()
 
 			msg += chars;
 
-			clients[i]->async_call(msg, [msg](std::string_view data)
-			{
-				ASIO2_CHECK(msg == data);
-			});
+			std::string rep = clients[i]->call<std::string>(msg);
+			ASIO2_CHECK(msg == rep);
 		}
 
 		while (client_disconnect_counter != test_client_count)
@@ -419,6 +417,33 @@ void rdc_test()
 		ASIO2_CHECK(server.is_stopped());
 
 		ASIO2_CHECK_VALUE(server_stop_counter      .load(), server_stop_counter       == 1);
+	}
+
+	{
+		asio2::tcp_client client;
+
+		std::shared_ptr<asio2::socks5::option<asio2::socks5::method::anonymous>>
+			sock5_option = std::make_shared<asio2::socks5::option<asio2::socks5::method::anonymous>>("127.0.0.1", 10808);
+		
+		asio2::rdc::option client_rdc_option
+		{
+			[](std::string_view data)
+			{
+				std::string num { data.substr(0,data.find(','))};
+				return std::stoi(num);
+			},
+			[](std::string_view data)
+			{
+				std::string num { data.substr(0,data.find(','))};
+				return std::stoi(num);
+			}
+		};
+
+		// here, can't use the port 18037 again, otherwise the server_accept_counter and server_disconnect_counter
+		// maybe not equal the client_connect_counter of the 18037 server, this is because this client
+		// uses a socks5 proxy, even if this client was destroyed already, the proxy software will
+		// still connect to the 18037 server.
+		client.start("127.0.0.1", 18038, asio2::use_dgram, sock5_option, client_rdc_option);
 	}
 
 	{

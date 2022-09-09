@@ -253,7 +253,7 @@ namespace asio2::detail
 		template<std::size_t... I>
 		inline ecs_t clone_impl(std::index_sequence<I...>) noexcept
 		{
-			return ecs_t{ this->condition_, ((*std::get<I>(this->components_)), ...) };
+			return ecs_t{ this->condition_, (*std::get<I>(this->components_))... };
 		}
 
 		inline ecs_t clone()

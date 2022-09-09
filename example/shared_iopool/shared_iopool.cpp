@@ -19,7 +19,8 @@ int main()
 
 	//-----------------------------------------------------------------------------------
 
-	asio2::tcp_server server(std::vector<asio2::io_t*>{ &iopool.get(0), &iopool.get(1) });
+	// 256 - init recv buffer size, 2048 - max recv buffer size, see the constructor of tcp_server
+	asio2::tcp_server server(256, 2048, std::vector<asio2::io_t*>{ &iopool.get(0), & iopool.get(1) });
 
 	server.bind_recv([&](std::shared_ptr<asio2::tcp_session>& session_ptr, std::string_view data)
 	{
