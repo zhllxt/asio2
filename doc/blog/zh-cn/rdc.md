@@ -16,7 +16,7 @@ client.start(host, port, "\r\n");
 // 第1步，在这里发送数据
 client.send("get_user\r\n");
 ```
-我见过的网络框架的发送数据和接收数据的处理都和上面的逻辑类似，这种流程有个问题是用户没有办法在发送数据的代码的地方，直接得到远程返回的结果数据。
+我见过的异步网络框架的发送数据和接收数据的处理都和上面的逻辑类似，这种流程有个问题是用户没有办法在发送数据的代码的地方，直接得到远程返回的结果数据。
 
 大家可能都听过rpc这个词，rpc就是“远程过程调用”了，rpc的协议通常都是私有的，规定好的协议。所以，如果用户的协议是自定义的，那rpc通常就也不能用了。
 
@@ -65,27 +65,30 @@ server.bind_recv([&](auto & session_ptr, std::string_view s)
 // 发送数据的解析函数，当你发送数据时，框架内部会自动调用这个函数来从发送的数据中解析出
 // 唯一id，asio2的tcp在发送数据时，数据最终都会变为std::string_view格式，所以这个
 // 解析函数的参数是(std::string_view data)这个参数就表示你真正发送出去的数据
-auto parser = [](std::string_view data)
+asio2::rdc::option rdc_option
 {
-	// 将协议中前面的字符串形式的id取出来 然后转化为int类型的id
-	// 为什么这样转化？请看前面介绍：假定你的协议格式为  id,content
-	// 有人可能会问：这里能不能直接返回字符串形式的id呢？可以的，后面深入部分有介绍
-	int id = std::stoi(std::string{ data.substr(0, data.find(',')) });
+	[](std::string_view data)
+	{
+		// 将协议中前面的字符串形式的id取出来 然后转化为int类型的id
+		// 为什么这样转化？请看前面介绍：假定你的协议格式为  id,content
+		// 有人可能会问：这里能不能直接返回字符串形式的id呢？可以的，后面深入部分有介绍
+		int id = std::stoi(std::string{ data.substr(0, data.find(',')) });
 
-	return id;
+		return id;
+	}
 };
 
 // 参数"\r\n"表示将数据按照"\r\n"进行拆分(如果对tcp拆包知识不了解可通过网络搜索去了解)
-// 参数std::move(parser)表示将上面定义的发送数据的解析函数传到asio2框架内部
+// 参数std::move(rdc_option)表示将上面定义的发送数据的解析函数传到asio2框架内部
 // 注意：这里用"\r\n"来作为数据拆分标志，并不意味着，你的协议也必须要用"\r\n"拆分，实际上
 // 任何自定义的协议，都是支持的。比如按'\n'单个字符来拆分，那第3个参数就传'\n'就行了，
 // 如果是复杂的自定义协议，那第3个参数就传match_role就行了，具体的自定义协议的解析和拆分，
 // 请看本博客中关于match condition相关的文章介绍。
 // 另外，如果你要是不用“远程数据调用”这个功能的话，下面的第4个参数你是不需要传的，就传前
-// 3个参数就行了，也就是说，想用“远程数据调用”这个功能，就传parser，不想用就不传，如果
-// 没有传parser这个参数，那么框架在编译期就会把该功能禁用掉，所以用不用“远程数据调用”
+// 3个参数就行了，也就是说，想用“远程数据调用”这个功能，就传rdc_option，不想用就不传，如果
+// 没有传rdc_option这个参数，那么框架在编译期就会把该功能禁用掉，所以用不用“远程数据调用”
 // 这个功能，对运行时的性能没有任何损失。
-server.start(host, port, "\r\n", std::move(parser));
+server.start(host, port, "\r\n", std::move(rdc_option));
 ```
 ##### 客户端代码
 ```cpp
@@ -121,15 +124,18 @@ client.bind_connect([&]()
 });
 
 // 发送数据的解析函数 具体含义和上面服务端的发送数据的解析函数相同
-auto parser = [](std::string_view data)
+asio2::rdc::option rdc_option
 {
-	int id = std::stoi(std::string{ data.substr(0, data.find(',')) });
+	[](std::string_view data)
+	{
+		int id = std::stoi(std::string{ data.substr(0, data.find(',')) });
 
-	return id;
+		return id;
+	}
 };
 
 // 
-client.start(host, port, "\r\n", std::move(parser));
+client.start(host, port, "\r\n", std::move(rdc_option));
 
 // 演示同步远程调用
 std::string s = "2,get_user\r\n";
@@ -203,7 +209,7 @@ client.async_call(s, [](userinfo u)
 userinfo info = client.call<userinfo>(s, std::chrono::seconds(3));
 ```
 ## 深入功能2：使用自定义类型的唯一id
-问：上面的发送数据的解析函数（即上面代码中声明的变量parser）返回的唯一id的类型是int型的，我能用自定义的数据类型作为唯一id返回吗？
+问：上面的发送数据的解析函数（即上面代码中声明的变量rdc_option）返回的唯一id的类型是int型的，我能用自定义的数据类型作为唯一id返回吗？
 答：可以的。
 除了用基本int类型作为唯一id，用字符串std::string等各种c++标准库自带的类型都是可以的。只要这个c++标准库自带的类型能用作multimap的key就行（框架内部是用multimap来存储id的）。
 比如，最常见的，你可以用uuid作为唯一id，这时就需要用字符串std::string类型来作为唯一id了。
@@ -237,15 +243,18 @@ public:
 ```
 然后在发送数据的解析函数中去转换即可，如下：
 ```cpp
-auto parser = [](std::string_view data)
+asio2::rdc::option rdc_option
 {
-	// 然后按照你的实际需求将发送数据里面的id相关的信息取出来，转化为
-	// 自定义类型变量并返回即可
-	// 至于怎么转换，下面只是简单的举例，你完全可以按照你自己的协议去做
-	custom_id id;
-	id.name = data.substr(0, data.find(','));
+	[](std::string_view data)
+	{
+		// 然后按照你的实际需求将发送数据里面的id相关的信息取出来，转化为
+		// 自定义类型变量并返回即可
+		// 至于怎么转换，下面只是简单的举例，你完全可以按照你自己的协议去做
+		custom_id id;
+		id.name = data.substr(0, data.find(','));
 
-	return id;
+		return id;
+	}
 };
 ```
 ## 深入功能3：链式调用
@@ -268,66 +277,74 @@ session_ptr->async_call(str, [](std::string_view data)
 }, std::chrono::seconds(3));
 ```
 ## 深入功能5：发送数据和接收数据使用不同的解析函数
-问：上面的演示代码中只使用了“发送数据的解析函数parser”，如果发送数据所使用的协议，和接收数据所使用的协议不同，无法用同一个解析函数解析出唯一id，该怎么办呢？
+问：上面的演示代码中只使用了“发送数据的解析函数”，如果发送数据所使用的协议，和接收数据所使用的协议不同，无法用同一个解析函数解析出唯一id，该怎么办呢？
 答：同时提供发送数据的解析函数，和接收数据的解析函数即可。
-实际上框架内部有两个parser，一个发送解析的parser，一个接收解析的parser。如果你只传了一个parser，那么这个parser既用来解析发送数据，也用来解析接收数据。
+实际上框架内部有两个解析函数，一个发送数据时的解析函数，一个接收数据时的解析函数。如果你的rdc_option中只包含了一个解析函数，那么这个解析函数既用来解析发送数据，也用来解析接收数据。
 ```cpp
-auto send_parser = [](std::string_view data)
+asio2::rdc::option rdc_option
 {
-	// 然后按照你的实际需求将发送数据里面的id相关的信息取出来，转化为
-	// 自定义类型变量并返回即可
-	// 至于怎么转换，下面只是简单的举例，你完全可以按照你自己的协议去做
-	custom_id id;
-	id.name = data.substr(0, data.find(','));
+	[](std::string_view data) // 第1个是send数据的解析函数
+	{
+		// 然后按照你的实际需求将发送数据里面的id相关的信息取出来，转化为
+		// 自定义类型变量并返回即可
+		// 至于怎么转换，下面只是简单的举例，你完全可以按照你自己的协议去做
+		custom_id id;
+		id.name = data.substr(0, data.find(','));
 
-	return id;
+		return id;
+	},
+	[](std::string_view data) // 第2个是recv数据的解析函数
+	{
+		// 注意：虽然可以同时提供发送数据的解析函数，和接收数据的解析函数
+		// 但是返回的id的类型必须相同，因为框架内部是根据id来查找回调函数的
+		// 如果id类型不一样，就没法处理了。
+		// 还有，这里只是示意怎么使用，并没有按照协议的不同做不同的解析，这个
+		// 用户根据自己的实际需求去做就行了。
+		custom_id id;
+		id.country = data.substr(0, data.find(','));
+
+		return id;
+	}
 };
 
-auto recv_parser = [](std::string_view data)
-{
-	// 注意：虽然可以同时提供发送数据的解析函数，和接收数据的解析函数
-	// 但是返回的id的类型必须相同，因为框架内部是根据id来查找回调函数的
-	// 如果id类型不一样，就没法处理了。
-	// 还有，这里只是示意怎么使用，并没有按照协议的不同做不同的解析，这个
-	// 用户根据自己的实际需求去做就行了。
-	custom_id id;
-	id.country = data.substr(0, data.find(','));
-
-	return id;
-};
-
-server.start(host, port, "\r\n", std::move(send_parser), recv_parser);
+server.start(host, port, "\r\n", std::move(rdc_option));
 
 ```
 ## 深入功能6：两次发送的数据的唯一id相同可以吗？
 答：可以的。
 ```cpp
-auto parser = [](std::string_view data)
+asio2::rdc::option rdc_option
 {
-	// 实际上，你可以在这里直接返回0 (返回其它的数字或字符串，等等，都可以)
-	// 只要每次返回的id都相同，这就表示所有发送出去的的数据，对方在返回结果
-	// 数据后，会按照发送时的顺序，依次调用你的回调函数。
-	return 0;
+	[](std::string_view data)
+	{
+		// 实际上，你可以在这里直接返回0 (返回其它的数字或字符串，等等，都可以)
+		// 只要每次返回的id都相同，这就表示所有发送出去的的数据，对方在返回结果
+		// 数据后，会按照发送时的顺序，依次调用你的回调函数。
+		return 0;
+	}
 };
 
-client.start(host, port, "\r\n", std::move(parser));
+client.start(host, port, "\r\n", std::move(rdc_option));
 ```
 ```cpp
-auto parser = [](std::string_view data)
+asio2::rdc::option rdc_option
 {
-	// 如果协议中没有包含有效的id,那么就返回0，这样也是可以的
-	// 当接收到数据时，会按照发送时的顺序，依次调用id是0的回调函数
-	// 当然，发送数据解析出的id如果是0，那么接收数据解析出的id也
-	// 一定要是0，只不过可以有多个数据都返回了0这个id
-	if (data.find(',') == std::string_view::npos)
-		return 0;
-	// 如果协议中包含了有效的id 那么就返回该id作为唯一id
-	// 返回了id的，当接收到数据时，就会按照接收数据解析出来的id
-	// 来调用你对应的回调函数
-	return std::stoi(std::string{ data.substr(0, data.find(',')) });
+	[](std::string_view data)
+	{
+		// 如果协议中没有包含有效的id,那么就返回0，这样也是可以的
+		// 当接收到数据时，会按照发送时的顺序，依次调用id是0的回调函数
+		// 当然，发送数据解析出的id如果是0，那么接收数据解析出的id也
+		// 一定要是0，只不过可以有多个数据都返回了0这个id
+		if (data.find(',') == std::string_view::npos)
+			return 0;
+		// 如果协议中包含了有效的id 那么就返回该id作为唯一id
+		// 返回了id的，当接收到数据时，就会按照接收数据解析出来的id
+		// 来调用你对应的回调函数
+		return std::stoi(std::string{ data.substr(0, data.find(',')) });
+	}
 };
 
-client.start(host, port, "\r\n", std::move(parser));
+client.start(host, port, "\r\n", std::move(rdc_option));
 ```
 
 但是：如果两次发送的数据的id相同的话，一旦网络不稳定，是会出现问题的。我用下面的流程举例：
@@ -351,7 +368,7 @@ client.start(host, port, "\r\n", std::move(parser));
 如果只是想发送数据，并不想立即取得结果，那就用send或async_send即可。
 不管是send或async_send还是call或async_call，都会发送数据，区别在于，send或async_send发送数据时，框架内部没有从你发送的数据中解析出id，当然也就没有存储该id了。send或async_send函数把数据发出去之后就不管了。但call或async_call把数据发出去之后，如果收到对方回复的数据了，框架内部还会解析接收到数据，然后调用你提供的回调函数等。
 
-但是如果你在启动某组件时没有传入parser数据解析器（比如这样client.start(host, port, "\r\n");没有第4个参数，也就是说没有传parser），那么call和async_call是用不了。
+但是如果你在启动某组件时没有传入rdc数据解析器（比如这样client.start(host, port, "\r\n");没有第4个参数，也就是说没有传rdc_option），那么call和async_call是用不了。
 
 还有一点是用来发送数据的async_send函数有个重载版本，也可以传入一个回调函数，如
 client.async_send("abc",[](std::size_t bytes_sent) 
@@ -363,8 +380,8 @@ client.async_send("abc",[](std::size_t bytes_sent)
 流程是这样的：
 
 1、客户端调用call或async_call发送数据
-2、asio2框架内部 调用 parser 解析发送的数据，得到id 存起来(存到一个multimap中了)
-3、服务端返回数据，框架内部 调用 parser 解析接收的数据，得到id ，到multimap中找前面存起来的那个id，找到了，就调用该id对应的回调函数
+2、asio2框架内部调用rdc_option中的解析函数解析发送的数据，得到id 存起来(存到一个multimap中了)
+3、服务端返回数据，框架内部调用rdc_option中的解析函数解析接收的数据，得到id ，到multimap中找前面存起来的那个id，找到了，就调用该id对应的回调函数
 
 服务端远程调用客户端流程是一样的。
 
@@ -380,16 +397,18 @@ asio2::http_client client;
 // http client 的远程数据调用必须同时提供发送数据的解析函数和接收数据的解析函数
 // 因为http client在发送数据时，框架底层的数据格式是request类型
 // 而http client在接收数据时，框架底层的数据格式是response类型
-// 发送和接收数据的类型不一样，所以必须提供两个parser
+// 发送和接收数据的类型不一样，所以必须提供两个解析函数
 
 // 为什么都是return 0;呢？这是由http 1.1协议的特性决定的，http client先发送请求，
 // 然后http server再回复请求，而且http协议通常是一对一的，即一次请求对应
 // 一次回复，所以再用id就没有多大意义了，但又必须得返回个id，所以就return 0了
-auto send_parser = [](http::request&) { return 0; };
+asio2::rdc::option rdc_option
+{
+	[](http::request &) { return 0; },
+	[](http::response&) { return 0; }
+};
 
-auto recv_parser = [](http::response&) { return 0; };
-
-if (client.start(host, port, send_parser, recv_parser))
+if (client.start(host, port, rdc_option))
 {
 	http::request req(http::verb::get, "/", 11);
 
