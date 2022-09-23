@@ -213,20 +213,20 @@ namespace asio2::detail
 		using self = rpc_invoker_t<caller_t, args_t>;
 
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		rpc_invoker_t() = default;
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~rpc_invoker_t() = default;
 
 		/**
-		 * @function : bind a rpc function
-		 * @param    : name - Function name in string format
-		 * @param    : fun - Function object
-		 * @param    : obj - A pointer or reference to a class object, this parameter can be none.
+		 * @brief bind a rpc function
+		 * @param name - Function name in string format.
+		 * @param fun - Function object.
+		 * @param obj - A pointer or reference to a class object, this parameter can be none.
 		 * if fun is nonmember function, the obj param must be none, otherwise the obj must be the
 		 * the class object's pointer or refrence.
 		 */
@@ -251,7 +251,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : unbind a rpc function
+		 * @brief unbind a rpc function
 		 */
 		inline self& unbind(std::string const& name)
 		{
@@ -262,7 +262,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : find binded rpc function by name
+		 * @brief find binded rpc function by name
 		 */
 		inline std::function<bool(std::shared_ptr<caller_t>&, caller_t*, rpc_serializer&, rpc_deserializer&)>*
 			find(std::string const& name)

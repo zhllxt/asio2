@@ -51,7 +51,7 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		template<class... Args>
 		explicit tcps_client_impl_t(
@@ -65,7 +65,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~tcps_client_impl_t()
 		{
@@ -73,7 +73,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get the stream object refrence
+		 * @brief get the stream object refrence
 		 * 
 		 */
 		inline typename ssl_stream_comp::stream_type & stream() noexcept
@@ -84,9 +84,9 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @function : bind ssl handshake listener
-		 * @param    : fun - a user defined callback function
-		 * @param    : obj - a pointer or reference to a class object, this parameter can be none
+		 * @brief bind ssl handshake listener
+		 * @param fun - a user defined callback function.
+		 * @param obj - a pointer or reference to a class object, this parameter can be none.
 		 * if fun is nonmember function, the obj param must be none, otherwise the obj must be the
 		 * the class object's pointer or refrence.
 		 * Function signature : void()
@@ -151,8 +151,8 @@ namespace asio2::detail
 namespace asio2
 {
 	/**
-	 * ssl tcp client
-	 * constructor maybe throw exception "Too many open files" (exception code : 24)
+	 * @brief ssl tcp client
+	 * @throws constructor maybe throw exception "Too many open files" (exception code : 24)
 	 * asio::error::no_descriptors - Too many open files
 	 */
 	template<class derived_t>
@@ -163,8 +163,8 @@ namespace asio2
 	};
 
 	/**
-	 * ssl tcp client
-	 * constructor maybe throw exception "Too many open files" (exception code : 24)
+	 * @brief ssl tcp client
+	 * @throws constructor maybe throw exception "Too many open files" (exception code : 24)
 	 * asio::error::no_descriptors - Too many open files
 	 */
 	class tcps_client : public tcps_client_t<tcps_client>

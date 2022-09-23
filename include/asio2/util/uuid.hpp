@@ -107,7 +107,7 @@ namespace asio2
 		}
 
 		/**
-		 * @function : convert the uuid bytes to std::string
+		 * @brief convert the uuid bytes to std::string
 		 */
 		inline std::string str(bool upper = false, bool group = true) noexcept
 		{

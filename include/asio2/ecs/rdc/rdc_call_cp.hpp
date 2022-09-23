@@ -53,12 +53,12 @@ namespace asio2::detail
 		using recv_data_t = typename args_t::recv_data_t;
 
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		rdc_call_cp_impl() {}
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~rdc_call_cp_impl() = default;
 
@@ -287,7 +287,7 @@ namespace asio2::detail
 			~sync_caller() = default;
 
 			/**
-			 * @function : set the timeout for remote data call component (means rdc)
+			 * @brief set the timeout for remote data call component (means rdc)
 			 */
 			template<class Rep, class Period>
 			inline sync_caller& set_timeout(std::chrono::duration<Rep, Period> timeout)
@@ -297,7 +297,7 @@ namespace asio2::detail
 			}
 
 			/**
-			 * @function : set the timeout for remote data call component (means rdc), same as set_timeout
+			 * @brief set the timeout for remote data call component (means rdc), same as set_timeout
 			 */
 			template<class Rep, class Period>
 			inline sync_caller& timeout(std::chrono::duration<Rep, Period> timeout)
@@ -346,7 +346,7 @@ namespace asio2::detail
 			}
 
 			/**
-			 * @function : set the timeout for remote data call component (means rdc)
+			 * @brief set the timeout for remote data call component (means rdc)
 			 */
 			template<class Rep, class Period>
 			inline async_caller& set_timeout(std::chrono::duration<Rep, Period> timeout)
@@ -356,7 +356,7 @@ namespace asio2::detail
 			}
 
 			/**
-			 * @function : set the timeout for remote data call component (means rdc), same as set_timeout
+			 * @brief set the timeout for remote data call component (means rdc), same as set_timeout
 			 */
 			template<class Rep, class Period>
 			inline async_caller& timeout(std::chrono::duration<Rep, Period> timeout)
@@ -410,7 +410,7 @@ namespace asio2::detail
 			~base_caller() = default;
 
 			/**
-			 * @function : set the timeout for remote data call component (means rdc)
+			 * @brief set the timeout for remote data call component (means rdc)
 			 */
 			template<class Rep, class Period>
 			inline base_caller& set_timeout(std::chrono::duration<Rep, Period> timeout)
@@ -420,7 +420,7 @@ namespace asio2::detail
 			}
 
 			/**
-			 * @function : set the timeout for remote data call component (means rdc), same as set_timeout
+			 * @brief set the timeout for remote data call component (means rdc), same as set_timeout
 			 */
 			template<class Rep, class Period>
 			inline base_caller& timeout(std::chrono::duration<Rep, Period> timeout)
@@ -460,7 +460,7 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @function : Send data and synchronize waiting for a response or until the timeout period is reached
+		 * @brief Send data and synchronize waiting for a response or until the timeout period is reached
 		 */
 		template<class return_t, class DataT>
 		inline return_t call(DataT&& data)
@@ -472,7 +472,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Send data and synchronize waiting for a response or until the timeout period is reached
+		 * @brief Send data and synchronize waiting for a response or until the timeout period is reached
 		 */
 		template<class return_t, class DataT, class Rep, class Period>
 		inline return_t call(DataT&& data, std::chrono::duration<Rep, Period> timeout)
@@ -484,7 +484,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Send data and asynchronous waiting for a response or until the timeout period is reached
+		 * @brief Send data and asynchronous waiting for a response or until the timeout period is reached
 		 * Callback signature : void(DataType data)
 		 */
 		template<class DataT, class Callback>
@@ -498,7 +498,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Send data and asynchronous waiting for a response or until the timeout period is reached
+		 * @brief Send data and asynchronous waiting for a response or until the timeout period is reached
 		 * Callback signature : void(DataType data)
 		 */
 		template<class DataT, class Callback, class Rep, class Period>
@@ -512,7 +512,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Send data and asynchronous waiting for a response or until the timeout period is reached
+		 * @brief Send data and asynchronous waiting for a response or until the timeout period is reached
 		 */
 		template<class DataT>
 		inline async_caller<derived_t, args_t> async_call(DataT&& data)
@@ -523,7 +523,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : set the timeout for remote data call component (means rdc)
+		 * @brief set the timeout for remote data call component (means rdc)
 		 */
 		template<class Rep, class Period>
 		inline base_caller<derived_t, args_t> set_timeout(std::chrono::duration<Rep, Period> timeout)
@@ -534,7 +534,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : set the timeout for remote data call component (means rdc), same as set_timeout
+		 * @brief set the timeout for remote data call component (means rdc), same as set_timeout
 		 */
 		template<class Rep, class Period>
 		inline base_caller<derived_t, args_t> timeout(std::chrono::duration<Rep, Period> timeout)
@@ -543,7 +543,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : bind a response callback function for remote data call component (means rdc)
+		 * @brief bind a response callback function for remote data call component (means rdc)
 		 */
 		template<class Callback>
 		inline async_caller<derived_t, args_t> response(Callback&& cb)

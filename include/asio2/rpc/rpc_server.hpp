@@ -57,7 +57,7 @@ namespace asio2::detail
 	
 	public:
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		template<class ...Args>
 		explicit rpc_server_impl_t(
@@ -69,7 +69,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~rpc_server_impl_t()
 		{
@@ -77,10 +77,10 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : start the server
-		 * @param host A string identifying a location. May be a descriptive name or
+		 * @brief start the server
+		 * @param host - A string identifying a location. May be a descriptive name or
 		 * a numeric address string.
-		 * @param service A string identifying the requested service. This may be a
+		 * @param service - A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
 		 */
 		template<typename String, typename StrOrInt, typename... Args>
@@ -102,7 +102,7 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @function : call a rpc function for each session
+		 * @brief call a rpc function for each session
 		 */
 		template<class return_t, class Rep, class Period, class ...Args>
 		inline void call(std::chrono::duration<Rep, Period> timeout, const std::string& name, const Args&... args)
@@ -114,7 +114,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : call a rpc function for each session
+		 * @brief call a rpc function for each session
 		 */
 		template<class return_t, class Rep, class Period, class ...Args>
 		inline void call(error_code& ec, std::chrono::duration<Rep, Period> timeout,
@@ -127,7 +127,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : call a rpc function for each session
+		 * @brief call a rpc function for each session
 		 */
 		template<class return_t, class ...Args>
 		inline void call(const std::string& name, const Args&... args)
@@ -139,7 +139,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : call a rpc function for each session
+		 * @brief call a rpc function for each session
 		 */
 		template<class return_t, class ...Args>
 		inline void call(error_code& ec, const std::string& name, const Args&... args)
@@ -151,7 +151,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : asynchronous call a rpc function for each session
+		 * @brief asynchronous call a rpc function for each session
 		 * Callback signature : void(asio::error_code ec, int result)
 		 * if result type is void, the Callback signature is : void(asio::error_code ec)
 		 * Because the result value type is not specified in the first template parameter,
@@ -168,7 +168,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : asynchronous call a rpc function for each session
+		 * @brief asynchronous call a rpc function for each session
 		 * Callback signature : void(asio::error_code ec, int result)
 		 * if result type is void, the Callback signature is : void(asio::error_code ec)
 		 * Because the result value type is not specified in the first template parameter,
@@ -186,7 +186,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : asynchronous call a rpc function for each session
+		 * @brief asynchronous call a rpc function for each session
 		 * Callback signature : void(asio::error_code ec, return_t result) the return_t
 		 * is the first template parameter.
 		 * if result type is void, the Callback signature is : void(asio::error_code ec)
@@ -201,7 +201,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : asynchronous call a rpc function for each session
+		 * @brief asynchronous call a rpc function for each session
 		 * Callback signature : void(asio::error_code ec, return_t result) the return_t
 		 * is the first template parameter.
 		 * if result type is void, the Callback signature is : void(asio::error_code ec)
@@ -217,7 +217,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : asynchronous call a rpc function for each session
+		 * @brief asynchronous call a rpc function for each session
 		 * Don't care whether the call succeeds
 		 */
 		template<class ...Args>

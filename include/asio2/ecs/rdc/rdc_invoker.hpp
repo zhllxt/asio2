@@ -40,7 +40,7 @@ namespace asio2::detail
 		using callback_type = std::function<void(const error_code&, SendDataT, RecvDataT)>;
 
 		/**
-		 * @function : bind a rdc function
+		 * @brief bind a rdc function
 		 */
 		template<class F, class ...C>
 		static inline callback_type bind(F&& fun, C&&... obj)
@@ -165,12 +165,12 @@ namespace asio2::detail
 		using callback_type = typename rdc_make_callback_t<SendDataT, RecvDataT>::callback_type;
 
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		rdc_invoker_t() = default;
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~rdc_invoker_t() = default;
 
@@ -180,7 +180,7 @@ namespace asio2::detail
 		rdc_invoker_t& operator=(rdc_invoker_t const&) = default;
 
 		/**
-		 * @function : find binded rdc function iterator by id
+		 * @brief find binded rdc function iterator by id
 		 */
 		inline auto find(IdT const& id)
 		{
@@ -204,7 +204,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : 
+		 * @brief 
 		 */
 		inline auto emplace(IdT id, std::shared_ptr<asio::steady_timer> timer, callback_type cb)
 		{
@@ -215,7 +215,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function :
+		 * @brief
 		 */
 		inline auto end()
 		{
@@ -223,7 +223,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function :
+		 * @brief
 		 */
 		template<class Iter>
 		inline auto erase(Iter iter)
@@ -232,7 +232,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function :
+		 * @brief
 		 */
 		inline std::multimap<IdT, std::tuple<std::shared_ptr<asio::steady_timer>, callback_type>>& reqs() noexcept
 		{

@@ -80,7 +80,7 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		template<typename... Args>
 		explicit http_response_impl_t(Args&&... args)
@@ -234,7 +234,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~http_response_impl_t()
 		{
@@ -260,7 +260,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : set the root directory where we load the files.
+		 * @brief set the root directory where we load the files.
 		 */
 		inline self& set_root_directory(std::filesystem::path path)
 		{
@@ -269,7 +269,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get the root directory where we load the files.
+		 * @brief get the root directory where we load the files.
 		 */
 		inline const std::filesystem::path& get_root_directory() noexcept
 		{
@@ -277,7 +277,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : create a deferred http response, the response will not be send immediately,
+		 * @brief create a deferred http response, the response will not be send immediately,
 		 * the http response will be sent only when the returned std::shared_ptr<http::response_defer>
 		 * is completely destroyed
 		 */
@@ -290,8 +290,8 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @function : Respond to http request with plain text content
-		 * @param : content - the response body, it's usually a simple string,
+		 * @brief Respond to http request with plain text content
+		 * @param content - the response body, it's usually a simple string,
 		 * and the content-type is "text/plain" by default.
 		 */
 		template<class StringT>
@@ -314,7 +314,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Respond to http request with json content
+		 * @brief Respond to http request with json content
 		 */
 		template<class StringT>
 		inline self& fill_json(StringT&& content, http::status result = http::status::ok,
@@ -325,8 +325,8 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Respond to http request with html content
-		 * @param : content - the response body, may be a plain text string, or a stardand
+		 * @brief Respond to http request with html content
+		 * @param content - the response body, may be a plain text string, or a stardand
 		 * <html>...</html> string, it's just that the content-type is "text/html" by default.
 		 */
 		template<class StringT>
@@ -338,7 +338,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Respond to http request with pre-prepared error page content
+		 * @brief Respond to http request with pre-prepared error page content
 		 * Generated a standard html error page automatically use the status coe 'result',
 		 * like <html>...</html>, and the content-type is "text/html" by default.
 		 */
@@ -351,7 +351,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Respond to http request with local file
+		 * @brief Respond to http request with local file
 		 */
 		inline self& fill_file(std::filesystem::path path,
 			http::status result = http::status::ok, unsigned version = 11)
@@ -401,7 +401,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Returns `true` if this HTTP response's Content-Type is "multipart/form-data";
+		 * @brief Returns `true` if this HTTP response's Content-Type is "multipart/form-data";
 		 */
 		inline bool has_multipart() noexcept
 		{
@@ -409,7 +409,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Get the "multipart/form-data" body content.
+		 * @brief Get the "multipart/form-data" body content.
 		 */
 		inline decltype(auto) get_multipart()
 		{
@@ -417,7 +417,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Get the "multipart/form-data" body content. same as get_multipart
+		 * @brief Get the "multipart/form-data" body content. same as get_multipart
 		 */
 		inline decltype(auto) multipart()
 		{

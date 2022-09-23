@@ -55,7 +55,7 @@ namespace asio2::detail
 		using key_type = typename session_t::key_type;
 
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		explicit session_mgr_t(io_t& acceptor_io, std::atomic<state_t>& server_state)
 			: io_   (acceptor_io )
@@ -65,12 +65,12 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~session_mgr_t() = default;
 
 		/**
-		 * @function : emplace the session
+		 * @brief emplace the session
 		 * @callback : void(bool inserted);
 		 */
 		template<class Fun>
@@ -127,7 +127,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : erase the session
+		 * @brief erase the session
 		 * @callback : void(bool erased);
 		 */
 		template<class Fun>
@@ -153,7 +153,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Submits a completion token or function object for execution.
+		 * @brief Submits a completion token or function object for execution.
 		 * @task : void();
 		 */
 		template<class Fun>
@@ -163,7 +163,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Submits a completion token or function object for execution.
+		 * @brief Submits a completion token or function object for execution.
 		 * @task : void();
 		 */
 		template<class Fun>
@@ -173,7 +173,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : call user custom callback function for every session
+		 * @brief call user custom callback function for every session
 		 * the custom callback function is like this :
 		 * void on_callback(std::shared_ptr<tcp_session> & session_ptr)
 		 */
@@ -190,7 +190,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : find the session by map key
+		 * @brief find the session by map key
 		 */
 		inline std::shared_ptr<session_t> find(const key_type & key)
 		{
@@ -200,7 +200,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : find the session by user custom role
+		 * @brief find the session by user custom role
 		 * bool on_callback(std::shared_ptr<tcp_session> & session_ptr)
 		 */
 		template<class Fun>
@@ -216,7 +216,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get session count
+		 * @brief get session count
 		 */
 		inline std::size_t size() const noexcept
 		{
@@ -224,7 +224,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Checks if the session container has no elements
+		 * @brief Checks if the session container has no elements
 		 */
 		inline bool empty() const noexcept
 		{
@@ -232,7 +232,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get the io object refrence
+		 * @brief get the io object refrence
 		 */
 		inline io_t & io() noexcept
 		{

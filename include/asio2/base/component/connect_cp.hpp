@@ -72,7 +72,7 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		connect_cp() noexcept {}
 

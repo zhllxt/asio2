@@ -165,7 +165,7 @@ namespace asio2
 	}
 
 	/**
-	 * @function : trim each space character of the string: space \t \r \n and so on
+	 * @brief trim each space character of the string: space \t \r \n and so on
 	 */
 	template<
 		class CharT,
@@ -188,7 +188,7 @@ namespace asio2
 	}
 
 	/**
-	 * @function : trim left space character of the string: space \t \r \n and so on
+	 * @brief trim left space character of the string: space \t \r \n and so on
 	 */
 	template<
 		class CharT,
@@ -211,7 +211,7 @@ namespace asio2
 	}
 
 	/**
-	 * @function : trim right space character of the string: space \t \r \n and so on
+	 * @brief trim right space character of the string: space \t \r \n and so on
 	 */
 	template<
 		class CharT,
@@ -234,7 +234,7 @@ namespace asio2
 	}
 
 	/**
-	 * @function : trim left and right space character of the string: space \t \r \n and so on
+	 * @brief trim left and right space character of the string: space \t \r \n and so on
 	 */
 	template<
 		class CharT,
@@ -249,7 +249,7 @@ namespace asio2
 	}
 
 	/**
-	 * @function : trim left space character of the string: space \t \r \n and so on
+	 * @brief trim left space character of the string: space \t \r \n and so on
 	 */
 	template<class CharT, class Traits = std::char_traits<CharT>>
 	std::basic_string_view<CharT, Traits>& trim_left(std::basic_string_view<CharT, Traits>& s)
@@ -268,7 +268,7 @@ namespace asio2
 	}
 
 	/**
-	 * @function : trim right space character of the string: space \t \r \n and so on
+	 * @brief trim right space character of the string: space \t \r \n and so on
 	 */
 	template<class CharT, class Traits = std::char_traits<CharT>>
 	std::basic_string_view<CharT, Traits>& trim_right(std::basic_string_view<CharT, Traits>& s)
@@ -287,7 +287,7 @@ namespace asio2
 	}
 
 	/**
-	 * @function : trim left and right space character of the string: space \t \r \n and so on
+	 * @brief trim left and right space character of the string: space \t \r \n and so on
 	 */
 	template<class CharT, class Traits = std::char_traits<CharT>>
 	std::basic_string_view<CharT, Traits>& trim_both(std::basic_string_view<CharT, Traits>& s)
@@ -298,7 +298,7 @@ namespace asio2
 	}
 
 	/**
-	 * @function : Splits the string into multiple strings with the specified delimiters
+	 * @brief Splits the string into multiple strings with the specified delimiters
 	 */
 	template<class String, class Delimiter>
 	inline std::vector<String> split(const String& s, const Delimiter& delimiters = " ")
@@ -317,7 +317,7 @@ namespace asio2
 	}
 
 	/**
-	 * @function : Replaces all old_str characters that appear in the string with new_str characters.
+	 * @brief Replaces all old_str characters that appear in the string with new_str characters.
 	 */
 	template<class String, class OldStr, class NewStr>
 	inline String& replace(String& s, const OldStr& old_str, const NewStr& new_str)
@@ -439,7 +439,7 @@ namespace asio2
 	}
 
 	/** 
-	 * @function : Returns `true` if two strings are equal, using a case-insensitive comparison.
+	 * @brief Returns `true` if two strings are equal, using a case-insensitive comparison.
 	 */
 	template<typename = void>
 	inline bool iequals(std::string_view lhs, std::string_view rhs) noexcept

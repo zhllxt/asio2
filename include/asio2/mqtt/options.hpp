@@ -27,7 +27,7 @@ namespace asio2::detail
 		using self = mqtt_options;
 
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		mqtt_options()
 		{
@@ -41,7 +41,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~mqtt_options() = default;
 

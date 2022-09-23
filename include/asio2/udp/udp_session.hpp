@@ -65,7 +65,7 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		explicit udp_session_impl_t(
 			session_mgr_t<derived_t>                 & sessions,
@@ -88,7 +88,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~udp_session_impl_t()
 		{
@@ -96,7 +96,7 @@ namespace asio2::detail
 
 	protected:
 		/**
-		 * @function : start this session for prepare to recv msg
+		 * @brief start this session for prepare to recv msg
 		 */
 		template<typename MatchCondition>
 		inline void start(condition_wrap<MatchCondition> condition)
@@ -136,7 +136,7 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @function : stop session
+		 * @brief stop session
 		 * note : this function must be noblocking,if it's blocking,maybe cause circle lock.
 		 * You can call this function on the communication thread and anywhere to stop the session.
 		 */
@@ -147,7 +147,7 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @function : get the remote address
+		 * @brief get the remote address
 		 */
 		inline std::string get_remote_address() const noexcept
 		{
@@ -159,7 +159,7 @@ namespace asio2::detail
 			return std::string();
 		}
 		/**
-		 * @function : get the remote address, same as get_remote_address
+		 * @brief get the remote address, same as get_remote_address
 		 */
 		inline std::string remote_address() const noexcept
 		{
@@ -167,7 +167,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get the remote port
+		 * @brief get the remote port
 		 */
 		inline unsigned short get_remote_port() const noexcept
 		{
@@ -179,7 +179,7 @@ namespace asio2::detail
 			return static_cast<unsigned short>(0);
 		}
 		/**
-		 * @function : get the remote port, same as get_remote_port
+		 * @brief get the remote port, same as get_remote_port
 		 */
 		inline unsigned short remote_port() const noexcept
 		{
@@ -187,7 +187,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get this object hash key,used for session map
+		 * @brief get this object hash key,used for session map
 		 */
 		inline key_type hash_key() const noexcept
 		{
@@ -195,7 +195,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get the kcp pointer, just used for kcp mode
+		 * @brief get the kcp pointer, just used for kcp mode
 		 * default mode : ikcp_nodelay(kcp, 0, 10, 0, 0);
 		 * generic mode : ikcp_nodelay(kcp, 0, 10, 0, 1);
 		 * fast    mode : ikcp_nodelay(kcp, 1, 10, 2, 1);
@@ -206,7 +206,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get the kcp pointer, just used for kcp mode. same as get_kcp
+		 * @brief get the kcp pointer, just used for kcp mode. same as get_kcp
 		 * default mode : ikcp_nodelay(kcp, 0, 10, 0, 0);
 		 * generic mode : ikcp_nodelay(kcp, 0, 10, 0, 1);
 		 * fast    mode : ikcp_nodelay(kcp, 1, 10, 2, 1);
@@ -516,11 +516,11 @@ namespace asio2::detail
 
 	protected:
 		/**
-		 * @function : get the recv/read allocator object refrence
+		 * @brief get the recv/read allocator object refrence
 		 */
 		inline auto & rallocator() noexcept { return this->wallocator_; }
 		/**
-		 * @function : get the send/write allocator object refrence
+		 * @brief get the send/write allocator object refrence
 		 */
 		inline auto & wallocator() noexcept { return this->wallocator_; }
 

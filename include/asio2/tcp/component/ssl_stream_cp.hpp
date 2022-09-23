@@ -47,7 +47,7 @@ namespace asio2::detail
 		~ssl_stream_cp() = default;
 
 		/**
-		 * @function : get the ssl socket object refrence
+		 * @brief get the ssl socket object refrence
 		 */
 		inline stream_type & ssl_stream() noexcept
 		{

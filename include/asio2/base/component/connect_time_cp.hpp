@@ -24,12 +24,12 @@ namespace asio2::detail
 	{
 	public:
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		connect_time_cp() = default;
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~connect_time_cp() = default;
 
@@ -40,7 +40,7 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @function : get build connection time
+		 * @brief get build connection time
 		 */
 		inline std::chrono::time_point<std::chrono::system_clock> get_connect_time() const noexcept
 		{
@@ -48,7 +48,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : reset build connection time to system_clock::now()
+		 * @brief reset build connection time to system_clock::now()
 		 */
 		inline derived_t & reset_connect_time() noexcept
 		{
@@ -57,7 +57,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get connection duration of std::chrono::duration
+		 * @brief get connection duration of std::chrono::duration
 		 */
 		inline std::chrono::system_clock::duration get_connect_duration() const noexcept
 		{

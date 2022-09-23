@@ -139,7 +139,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function :
+		 * @brief
 		 */
 		inline void cancel()
 		{
@@ -174,7 +174,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : initialize the thread id to "std::this_thread::get_id()"
+		 * @brief initialize the thread id to "std::this_thread::get_id()"
 		 */
 		inline void init_thread_id() noexcept
 		{
@@ -182,7 +182,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : uninitialize the thread id to empty.
+		 * @brief uninitialize the thread id to empty.
 		 */
 		inline void fini_thread_id() noexcept
 		{
@@ -190,7 +190,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : return the thread id of the current io_context running in.
+		 * @brief return the thread id of the current io_context running in.
 		 */
 		inline std::thread::id get_thread_id() const noexcept
 		{
@@ -198,7 +198,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Determine whether the current io_context is running in the current thread.
+		 * @brief Determine whether the current io_context is running in the current thread.
 		 */
 		inline bool running_in_this_thread() const noexcept
 		{
@@ -285,8 +285,8 @@ namespace asio2::detail
 	{
 	public:
 		/**
-		 * @constructor
-		 * @param    : concurrency - the pool size, default is double the number of CPU cores
+		 * @brief constructor
+		 * @param concurrency - the pool size, default is double the number of CPU cores
 		 */
 		explicit iopool(std::size_t concurrency = default_concurrency())
 		{
@@ -310,7 +310,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~iopool()
 		{
@@ -318,7 +318,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : run all io_context objects in the pool.
+		 * @brief run all io_context objects in the pool.
 		 */
 		bool start()
 		{
@@ -410,7 +410,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : stop all io_context objects in the pool
+		 * @brief stop all io_context objects in the pool
 		 * blocking until all posted event has completed already.
 		 * After we call iog.reset(), when an asio::post(io_context,...) execution ends, the count
 		 * of the io_context will be checked. If the count equals 0, the io_context will be closed. Then 
@@ -473,7 +473,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : check whether the io_context pool is stopped
+		 * @brief check whether the io_context pool is stopped
 		 */
 		inline bool stopped() const noexcept
 		{
@@ -481,7 +481,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get an io_t to use
+		 * @brief get an io_t to use
 		 */
 		inline io_t& get(std::size_t index = static_cast<std::size_t>(-1)) noexcept
 		{
@@ -491,7 +491,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get an io_context to use
+		 * @brief get an io_context to use
 		 */
 		inline asio::io_context& get_context(std::size_t index = static_cast<std::size_t>(-1)) noexcept
 		{
@@ -501,7 +501,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Determine whether current code is running in the io_context pool threads.
+		 * @brief Determine whether current code is running in the io_context pool threads.
 		 */
 		inline bool running_in_threads() const noexcept
 		{
@@ -515,7 +515,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Determine whether current code is running in the io_context thread by index
+		 * @brief Determine whether current code is running in the io_context thread by index
 		 */
 		inline bool running_in_thread(std::size_t index) const noexcept
 		{
@@ -528,7 +528,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get io_context pool size.
+		 * @brief get io_context pool size.
 		 */
 		inline std::size_t size() const noexcept
 		{
@@ -536,7 +536,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : 
+		 * @brief 
 		 */
 		inline std::atomic<std::size_t>& pending() noexcept
 		{
@@ -634,7 +634,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function :
+		 * @brief
 		 */
 		inline std::size_t next(std::size_t index) noexcept
 		{
@@ -692,7 +692,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		virtual ~default_iopool()
 		{
@@ -700,7 +700,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : run all io_context objects in the pool.
+		 * @brief run all io_context objects in the pool.
 		 */
 		virtual bool start() override
 		{
@@ -708,7 +708,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : stop all io_context objects in the pool
+		 * @brief stop all io_context objects in the pool
 		 */
 		virtual void stop() override
 		{
@@ -716,7 +716,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : check whether the io_context pool is stopped
+		 * @brief check whether the io_context pool is stopped
 		 */
 		virtual bool stopped() const noexcept override
 		{
@@ -724,7 +724,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get an io_t to use
+		 * @brief get an io_t to use
 		 */
 		virtual io_t& get(std::size_t index) noexcept override
 		{
@@ -732,7 +732,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get io_context pool size.
+		 * @brief get io_context pool size.
 		 */
 		virtual std::size_t size() const noexcept override
 		{
@@ -740,7 +740,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : 
+		 * @brief 
 		 */
 		virtual std::atomic<std::size_t>& pending() noexcept override
 		{
@@ -748,7 +748,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Determine whether current code is running in the io_context pool threads.
+		 * @brief Determine whether current code is running in the io_context pool threads.
 		 */
 		virtual bool running_in_threads() const noexcept override
 		{
@@ -775,7 +775,7 @@ namespace asio2::detail
 		using io_value_type     = typename io_container_type::value_type;
 
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		template<class C>
 		explicit user_iopool(C&& copy) : copy_(std::forward<C>(copy))
@@ -801,7 +801,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		virtual ~user_iopool()
 		{
@@ -809,7 +809,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : run all io_context objects in the pool.
+		 * @brief run all io_context objects in the pool.
 		 */
 		virtual bool start() override
 		{
@@ -829,7 +829,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : stop all io_context objects in the pool
+		 * @brief stop all io_context objects in the pool
 		 */
 		virtual void stop() override
 		{
@@ -846,7 +846,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : check whether the io_context pool is stopped
+		 * @brief check whether the io_context pool is stopped
 		 */
 		virtual bool stopped() const noexcept override
 		{
@@ -854,7 +854,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get an io_t to use
+		 * @brief get an io_t to use
 		 */
 		virtual io_t& get(std::size_t index) noexcept override
 		{
@@ -862,7 +862,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get io_context pool size.
+		 * @brief get io_context pool size.
 		 */
 		virtual std::size_t size() const noexcept override
 		{
@@ -870,7 +870,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function :
+		 * @brief
 		 */
 		virtual std::atomic<std::size_t>& pending() noexcept override
 		{
@@ -878,7 +878,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function :
+		 * @brief
 		 */
 		inline std::size_t next(std::size_t index) noexcept
 		{
@@ -887,7 +887,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Determine whether current code is running in the io_context pool threads.
+		 * @brief Determine whether current code is running in the io_context pool threads.
 		 */
 		virtual bool running_in_threads() const noexcept override
 		{
@@ -1049,7 +1049,7 @@ namespace asio2::detail
 		 * The wait_for() function blocks until all work has finished and 
 		 * until the specified duration has elapsed.
 		 *
-		 * @param rel_time The duration for which the call may block.
+		 * @param rel_time - The duration for which the call may block.
 		 */
 		template <typename Rep, typename Period>
 		void wait_for(const std::chrono::duration<Rep, Period>& rel_time)
@@ -1077,7 +1077,7 @@ namespace asio2::detail
 		 * The wait_until() function blocks until all work has finished and 
 		 * until the specified time has been reached.
 		 *
-		 * @param abs_time The time point until which the call may block.
+		 * @param abs_time - The time point until which the call may block.
 		 */
 		template <typename Clock, typename Duration>
 		void wait_until(const std::chrono::time_point<Clock, Duration>& abs_time)

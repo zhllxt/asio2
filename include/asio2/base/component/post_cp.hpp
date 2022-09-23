@@ -29,18 +29,18 @@ namespace asio2::detail
 	{
 	public:
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		post_cp() {}
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~post_cp() = default;
 
 	public:
 		/**
-		 * @function : Submits a completion token or function object for execution.
+		 * @brief Submits a completion token or function object for execution.
 		 * This function submits an object for execution using the object's associated
 		 * executor. The function object is queued for execution, and is never called
 		 * from the current thread prior to returning from <tt>post()</tt>.
@@ -65,7 +65,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Submits a completion token or function object for execution after specified delay time.
+		 * @brief Submits a completion token or function object for execution after specified delay time.
 		 * This function submits an object for execution using the object's associated
 		 * executor. The function object is queued for execution, and is never called
 		 * from the current thread prior to returning from <tt>post()</tt>.
@@ -118,7 +118,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Submits a completion token or function object for execution.
+		 * @brief Submits a completion token or function object for execution.
 		 * This function submits an object for execution using the object's associated
 		 * executor. The function object is queued for execution, and is never called
 		 * from the current thread prior to returning from <tt>post()</tt>.
@@ -149,7 +149,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Submits a completion token or function object for execution after specified delay time.
+		 * @brief Submits a completion token or function object for execution after specified delay time.
 		 * This function submits an object for execution using the object's associated
 		 * executor. The function object is queued for execution, and is never called
 		 * from the current thread prior to returning from <tt>post()</tt>.
@@ -204,7 +204,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Submits a completion token or function object for execution.
+		 * @brief Submits a completion token or function object for execution.
 		 * This function submits an object for execution using the object's associated
 		 * executor. The function object is queued for execution. if current thread is 
 		 * the io_context's thread, the function will be executed immediately, otherwise 
@@ -226,7 +226,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Submits a completion token or function object for execution.
+		 * @brief Submits a completion token or function object for execution.
 		 * This function submits an object for execution using the object's associated
 		 * executor. The function object is queued for execution. if current thread is
 		 * the io_context's thread, the function will be executed immediately, otherwise
@@ -259,7 +259,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Stop all timed tasks which you posted with a delay duration.
+		 * @brief Stop all timed tasks which you posted with a delay duration.
 		 */
 		inline derived_t& stop_all_timed_tasks()
 		{

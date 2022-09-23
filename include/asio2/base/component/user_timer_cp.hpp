@@ -168,20 +168,22 @@ namespace asio2::detail
 			user_timer_handle_hash, user_timer_handle_equal>;
 
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		user_timer_cp() {}
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~user_timer_cp() noexcept {}
 
 	public:
 		/**
-		 * @function : start a timer
-		 * the timer id can be integer or string, example : 1,2,3 or "id1" "id2"
-		 * the callback function signature : [](){}
+		 * @brief start a timer
+		 * @param timer_id - The timer id can be integer or string, example : 1,2,3 or "id1" "id2",
+		 *  If a timer with this id already exists, that timer will be forced to canceled.
+		 * @param interval - An integer millisecond value for the amount of time between set and firing.
+		 * @param fun - The callback function signature : [](){}
 		 */
 		template<class TimerId, class IntegerMilliseconds, class Fun, class... Args>
 		inline typename std::enable_if_t<is_callable_v<Fun>
@@ -193,9 +195,12 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : start a timer
-		 * the timer id can be integer or string, example : 1,2,3 or "id1" "id2"
-		 * the callback function signature : [](){}
+		 * @brief start a timer
+		 * @param timer_id - The timer id can be integer or string, example : 1,2,3 or "id1" "id2",
+		 *  If a timer with this id already exists, that timer will be forced to canceled.
+		 * @param interval - An integer millisecond value for the amount of time between set and firing.
+		 * @param repeat - An integer value to indicate the number of times the timer is repeated.
+		 * @param fun - The callback function signature : [](){}
 		 */
 		template<class TimerId, class IntegerMilliseconds, class Integer, class Fun, class... Args>
 		inline typename std::enable_if_t<is_callable_v<Fun>
@@ -210,9 +215,11 @@ namespace asio2::detail
 		// ----------------------------------------------------------------------------------------
 
 		/**
-		 * @function : start a timer
-		 * the timer id can be integer or string, example : 1,2,3 or "id1" "id2"
-		 * the callback function signature : [](){}
+		 * @brief start a timer
+		 * @param timer_id - The timer id can be integer or string, example : 1,2,3 or "id1" "id2",
+		 *  If a timer with this id already exists, that timer will be forced to canceled.
+		 * @param interval - The amount of time between set and firing.
+		 * @param fun - The callback function signature : [](){}
 		 */
 		template<class TimerId, class Rep, class Period, class Fun, class... Args>
 		inline typename std::enable_if_t<is_callable_v<Fun>, void>
@@ -223,9 +230,12 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : start a timer
-		 * the timer id can be integer or string, example : 1,2,3 or "id1" "id2"
-		 * the callback function signature : [](){}
+		 * @brief start a timer
+		 * @param timer_id - The timer id can be integer or string, example : 1,2,3 or "id1" "id2",
+		 *  If a timer with this id already exists, that timer will be forced to canceled.
+		 * @param interval - The amount of time between set and firing.
+		 * @param repeat - An integer value to indicate the number of times the timer is repeated.
+		 * @param fun - The callback function signature : [](){}
 		 */
 		template<class TimerId, class Rep, class Period, class Integer, class Fun, class... Args>
 		inline typename std::enable_if_t<
@@ -238,9 +248,12 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : start a timer
-		 * the timer id can be integer or string, example : 1,2,3 or "id1" "id2"
-		 * the callback function signature : [](){}
+		 * @brief start a timer
+		 * @param timer_id - The timer id can be integer or string, example : 1,2,3 or "id1" "id2",
+		 *  If a timer with this id already exists, that timer will be forced to canceled.
+		 * @param interval - The amount of time between set and firing.
+		 * @param first_delay - The timeout for the first execute of timer.
+		 * @param fun - The callback function signature : [](){}
 		 */
 		template<class TimerId, class Rep1, class Period1, class Rep2, class Period2, class Fun, class... Args>
 		inline typename std::enable_if_t<is_callable_v<Fun>, void>
@@ -252,12 +265,13 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : start a timer
+		 * @brief start a timer
+		 * @param timer_id - The timer id can be integer or string, example : 1,2,3 or "id1" "id2",
+		 *  If a timer with this id already exists, that timer will be forced to canceled.
 		 * @param interval - The amount of time between set and firing.
 		 * @param repeat - Total number of times the timer is executed.
 		 * @param first_delay - The timeout for the first execute of timer. 
-		 * the timer id can be integer or string, example : 1,2,3 or "id1" "id2"
-		 * the callback function signature : [](){}
+		 * @param fun - The callback function signature : [](){}
 		 */
 		template<class TimerId, class Rep1, class Period1, class Rep2, class Period2, class Integer, class Fun, class... Args>
 		inline typename std::enable_if_t<
@@ -331,7 +345,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : stop the timer by timer id
+		 * @brief stop the timer by timer id
 		 */
 		template<class TimerId>
 		inline void stop_timer(TimerId&& timer_id)
@@ -370,7 +384,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : stop all timers
+		 * @brief stop all timers
 		 */
 		inline void stop_all_timers()
 		{
@@ -400,7 +414,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Returns true if the specified timer exists
+		 * @brief Returns true if the specified timer exists
 		 */
 		template<class TimerId>
 		inline bool is_timer_exists(TimerId&& timer_id)
@@ -428,7 +442,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Get the interval for the specified timer.
+		 * @brief Get the interval for the specified timer.
 		 */
 		template<class TimerId>
 		inline typename asio::steady_timer::duration get_timer_interval(TimerId&& timer_id)

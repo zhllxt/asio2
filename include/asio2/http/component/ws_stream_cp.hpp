@@ -47,17 +47,17 @@ namespace asio2::detail
 		using stream_type = typename args_t::stream_t;
 
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		ws_stream_cp() {}
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~ws_stream_cp() noexcept {}
 
 		/**
-		 * @function : get the websocket stream object refrence
+		 * @brief get the websocket stream object refrence
 		 */
 		inline stream_type & ws_stream() noexcept
 		{

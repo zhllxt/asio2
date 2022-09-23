@@ -574,12 +574,12 @@ namespace asio2::detail
 	public:
 
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		socks5_server_impl() {}
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~socks5_server_impl() = default;
 

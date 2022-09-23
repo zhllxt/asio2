@@ -858,8 +858,8 @@ struct security
 
 	/**
 	 * @brief Determine if user is allowed to subscribe to the specified topic filter
-	 * @param username The username to check
-	 * @param topic_filter Topic filter the user would like to subscribe to
+	 * @param username - The username to check
+	 * @param topic_filter - Topic filter the user would like to subscribe to
 	 * @return true if the user is authorized
 	 */
 	bool is_subscribe_authorized(std::string_view username, std::string_view topic_filter) const

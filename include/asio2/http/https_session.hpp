@@ -61,7 +61,7 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		explicit https_session_impl_t(
 			http_router_t<derived_t, args_t> & router,
@@ -83,14 +83,14 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~https_session_impl_t()
 		{
 		}
 
 		/**
-		 * @function : get the stream object refrence
+		 * @brief get the stream object refrence
 		 */
 		inline typename ssl_stream_comp::stream_type & stream() noexcept
 		{
@@ -100,7 +100,7 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @function : get this object hash key,used for session map
+		 * @brief get this object hash key,used for session map
 		 */
 		inline key_type hash_key() const noexcept
 		{

@@ -63,7 +63,7 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		explicit tcp_client_impl_t(
 			std::size_t init_buf_size = tcp_frame_size,
@@ -117,7 +117,7 @@ namespace asio2::detail
 		//}
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~tcp_client_impl_t()
 		{
@@ -125,12 +125,12 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : start the client, blocking connect to server
-		 * @param host A string identifying a location. May be a descriptive name or
+		 * @brief start the client, blocking connect to server
+		 * @param host - A string identifying a location. May be a descriptive name or
 		 * a numeric address string.
-		 * @param port A string identifying the requested service. This may be a
+		 * @param port - A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
-		 * @param args The delimiter condition.Valid value types include the following:
+		 * @param args - The delimiter condition.Valid value types include the following:
 		 * char,std::string,std::string_view,
 		 * function:std::pair<iterator, bool> match_condition(iterator begin, iterator end),
 		 * asio::transfer_at_least,asio::transfer_exactly
@@ -145,12 +145,12 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : start the client, asynchronous connect to server
-		 * @param host A string identifying a location. May be a descriptive name or
+		 * @brief start the client, asynchronous connect to server
+		 * @param host - A string identifying a location. May be a descriptive name or
 		 * a numeric address string.
-		 * @param port A string identifying the requested service. This may be a
+		 * @param port - A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
-		 * @param args The delimiter condition.Valid value types include the following:
+		 * @param args - The delimiter condition.Valid value types include the following:
 		 * char,std::string,std::string_view,
 		 * function:std::pair<iterator, bool> match_condition(iterator begin, iterator end),
 		 * asio::transfer_at_least,asio::transfer_exactly
@@ -165,7 +165,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : stop the client
+		 * @brief stop the client
 		 * You can call this function on the communication thread and anywhere to stop the client.
 		 */
 		inline void stop()
@@ -241,10 +241,10 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @function : bind recv listener
-		 * @param    : fun - a user defined callback function
-		 * @param    : obj - a pointer or reference to a class object, this parameter can be none
-		 * if fun is nonmember function, the obj param must be none, otherwise the obj must be the
+		 * @brief bind recv listener
+		 * @param fun - a user defined callback function.
+		 * @param obj - a pointer or reference to a class object, this parameter can be none.
+		 * @li if fun is nonmember function, the obj param must be none, otherwise the obj must be the
 		 * the class object's pointer or refrence.
 		 * Function signature : void(std::string_view data)
 		 */
@@ -257,10 +257,10 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : bind connect listener
-		 * @param    : fun - a user defined callback function
-		 * @param    : obj - a pointer or reference to a class object, this parameter can be none
-		 * if fun is nonmember function, the obj param must be none, otherwise the obj must be the
+		 * @brief bind connect listener
+		 * @param fun - a user defined callback function.
+		 * @param obj - a pointer or reference to a class object, this parameter can be none.
+		 * @li if fun is nonmember function, the obj param must be none, otherwise the obj must be the
 		 * the class object's pointer or refrence.
 		 * This notification is called after the client connection completed, whether successful or unsuccessful
 		 * Function signature : void()
@@ -274,10 +274,10 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : bind disconnect listener
-		 * @param    : fun - a user defined callback function
-		 * @param    : obj - a pointer or reference to a class object, this parameter can be none
-		 * if fun is nonmember function, the obj param must be none, otherwise the obj must be the
+		 * @brief bind disconnect listener
+		 * @param fun - a user defined callback function.
+		 * @param obj - a pointer or reference to a class object, this parameter can be none.
+		 * @li if fun is nonmember function, the obj param must be none, otherwise the obj must be the
 		 * the class object's pointer or refrence.
 		 * This notification is called before the client is ready to disconnect
 		 * Function signature : void()
@@ -291,10 +291,10 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : bind init listener,we should set socket options at here
-		 * @param    : fun - a user defined callback function
-		 * @param    : obj - a pointer or reference to a class object, this parameter can be none
-		 * if fun is nonmember function, the obj param must be none, otherwise the obj must be the
+		 * @brief bind init listener,we should set socket options at here
+		 * @param fun - a user defined callback function.
+		 * @param obj - a pointer or reference to a class object, this parameter can be none.
+		 * @li if fun is nonmember function, the obj param must be none, otherwise the obj must be the
 		 * the class object's pointer or refrence.
 		 * Function signature : void()
 		 */
@@ -671,7 +671,8 @@ namespace asio2::detail
 namespace asio2
 {
 	/**
-	 * constructor maybe throw exception "Too many open files" (exception code : 24)
+	 * @brief tcp client template class
+	 * @throws constructor maybe throw exception "Too many open files" (exception code : 24)
 	 * asio::error::no_descriptors - Too many open files
 	 */
 	template<class derived_t>
@@ -682,7 +683,8 @@ namespace asio2
 	};
 
 	/**
-	 * constructor maybe throw exception "Too many open files" (exception code : 24)
+	 * @brief tcp client 
+	 * @throws constructor maybe throw exception "Too many open files" (exception code : 24)
 	 * asio::error::no_descriptors - Too many open files
 	 */
 	class tcp_client : public tcp_client_t<tcp_client>

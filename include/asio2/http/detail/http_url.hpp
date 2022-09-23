@@ -31,7 +31,7 @@ namespace boost::beast::http
 	{
 	public:
 		/**
-		 * @constructor
+		 * @brief constructor
 		 * if the 'str' has unencoded char, it will be encoded automatically, otherwise
 		 * the url parsing will be failed.
 		 */
@@ -66,7 +66,7 @@ namespace boost::beast::http
 		url& operator=(url const&) = default;
 
 		/**
-		 * @function : Gets the content of the "schema" section, maybe empty
+		 * @brief Gets the content of the "schema" section, maybe empty
 		 * The return value is usually http or https
 		 */
 		inline std::string_view get_schema() noexcept
@@ -75,7 +75,7 @@ namespace boost::beast::http
 		}
 
 		/**
-		 * @function : Gets the content of the "schema" section, maybe empty
+		 * @brief Gets the content of the "schema" section, maybe empty
 		 * The return value is usually http or https
 		 * same as get_schema
 		 */
@@ -85,7 +85,7 @@ namespace boost::beast::http
 		}
 
 		/**
-		 * @function : Gets the content of the "host" section, maybe empty
+		 * @brief Gets the content of the "host" section, maybe empty
 		 */
 		inline std::string_view get_host() noexcept
 		{
@@ -93,7 +93,7 @@ namespace boost::beast::http
 		}
 
 		/**
-		 * @function : Gets the content of the "host" section, maybe empty
+		 * @brief Gets the content of the "host" section, maybe empty
 		 * same as get_host
 		 */
 		inline std::string_view host() noexcept
@@ -117,7 +117,7 @@ namespace boost::beast::http
 		}
 
 		/**
-		 * @function : Gets the content of the "port" section
+		 * @brief Gets the content of the "port" section
 		 */
 		inline std::string_view get_port() noexcept
 		{
@@ -128,7 +128,7 @@ namespace boost::beast::http
 		}
 
 		/**
-		 * @function : Gets the content of the "port" section
+		 * @brief Gets the content of the "port" section
 		 * same as get_port
 		 */
 		inline std::string_view port() noexcept
@@ -137,7 +137,7 @@ namespace boost::beast::http
 		}
 
 		/**
-		 * @function : Gets the content of the "path" section
+		 * @brief Gets the content of the "path" section
 		 * the return value maybe has undecoded char, you can use http::url_decode(...) to decoded it.
 		 */
 		inline std::string_view get_path() noexcept
@@ -149,7 +149,7 @@ namespace boost::beast::http
 		}
 
 		/**
-		 * @function : Gets the content of the "path" section
+		 * @brief Gets the content of the "path" section
 		 * the return value maybe has undecoded char, you can use http::url_decode(...) to decoded it.
 		 * same as get_path
 		 */
@@ -159,7 +159,7 @@ namespace boost::beast::http
 		}
 
 		/**
-		 * @function : Gets the content of the "query" section, maybe empty
+		 * @brief Gets the content of the "query" section, maybe empty
 		 * the return value maybe has undecoded char, you can use http::url_decode(...) to decoded it.
 		 */
 		inline std::string_view get_query() noexcept
@@ -168,7 +168,7 @@ namespace boost::beast::http
 		}
 
 		/**
-		 * @function : Gets the content of the "query" section, maybe empty
+		 * @brief Gets the content of the "query" section, maybe empty
 		 * the return value maybe has undecoded char, you can use http::url_decode(...) to decoded it.
 		 * same as get_query
 		 */
@@ -178,7 +178,7 @@ namespace boost::beast::http
 		}
 
 		/**
-		 * @function : Gets the "target", which composed by path and query
+		 * @brief Gets the "target", which composed by path and query
 		 * the return value maybe has undecoded char, you can use http::url_decode(...) to decoded it.
 		 */
 		inline std::string_view get_target() noexcept
@@ -195,7 +195,7 @@ namespace boost::beast::http
 		}
 
 		/**
-		 * @function : Gets the "target", which composed by path and query
+		 * @brief Gets the "target", which composed by path and query
 		 * the return value maybe has undecoded char, you can use http::url_decode(...) to decoded it.
 		 * same as get_target
 		 */
@@ -205,7 +205,7 @@ namespace boost::beast::http
 		}
 
 		/**
-		 * @function : Gets the content of the specific section, maybe empty
+		 * @brief Gets the content of the specific section, maybe empty
 		 */
 		inline std::string_view get_field(http::parses::url_fields f) noexcept
 		{
@@ -216,7 +216,7 @@ namespace boost::beast::http
 		}
 
 		/**
-		 * @function : Gets the content of the specific section, maybe empty
+		 * @brief Gets the content of the specific section, maybe empty
 		 * same as get_field
 		 */
 		inline std::string_view field(http::parses::url_fields f) noexcept

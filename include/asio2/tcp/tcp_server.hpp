@@ -41,7 +41,7 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		explicit tcp_server_impl_t(
 			std::size_t init_buf_size = tcp_frame_size,
@@ -97,7 +97,7 @@ namespace asio2::detail
 		//}
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~tcp_server_impl_t()
 		{
@@ -105,12 +105,12 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : start the server
-		 * @param host A string identifying a location. May be a descriptive name or
+		 * @brief start the server
+		 * @param host - A string identifying a location. May be a descriptive name or
 		 * a numeric address string.
-		 * @param service A string identifying the requested service. This may be a
+		 * @param service - A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
-		 * @param args The delimiter condition.Valid value types include the following:
+		 * @param args - The delimiter condition.Valid value types include the following:
 		 * char,std::string,std::string_view,
 		 * function:std::pair<iterator, bool> match_condition(iterator begin, iterator end),
 		 * asio::transfer_at_least,asio::transfer_exactly
@@ -125,7 +125,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : stop the server
+		 * @brief stop the server
 		 * You can call this function on the communication thread and anywhere to stop the server.
 		 */
 		inline void stop()
@@ -151,12 +151,12 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : check whether the server is started
+		 * @brief check whether the server is started
 		 */
 		inline bool is_started() const { return (super::is_started() && this->acceptor_.is_open()); }
 
 		/**
-		 * @function : check whether the server is stopped
+		 * @brief check whether the server is stopped
 		 */
 		inline bool is_stopped() const
 		{
@@ -165,10 +165,10 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @function : bind recv listener
-		 * @param    : fun - a user defined callback function
-		 * @param    : obj - a pointer or reference to a class object, this parameter can be none
-		 * if fun is nonmember function, the obj param must be none, otherwise the obj must be the
+		 * @brief bind recv listener
+		 * @param fun - a user defined callback function.
+		 * @param obj - a pointer or reference to a class object, this parameter can be none.
+		 * @li if fun is nonmember function, the obj param must be none, otherwise the obj must be the
 		 * the class object's pointer or refrence.
 		 * Function signature : void(std::shared_ptr<asio2::tcp_session>& session_ptr, std::string_view data)
 		 */
@@ -182,10 +182,10 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : bind accept listener
-		 * @param    : fun - a user defined callback function
-		 * @param    : obj - a pointer or reference to a class object, this parameter can be none
-		 * if fun is nonmember function, the obj param must be none, otherwise the obj must be the
+		 * @brief bind accept listener
+		 * @param fun - a user defined callback function.
+		 * @param obj - a pointer or reference to a class object, this parameter can be none.
+		 * @li if fun is nonmember function, the obj param must be none, otherwise the obj must be the
 		 * the class object's pointer or refrence.
 		 * This notification is invoked immediately when the server accept a new connection
 		 * Function signature : void(std::shared_ptr<asio2::tcp_session>& session_ptr)
@@ -200,10 +200,10 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : bind connect listener
-		 * @param    : fun - a user defined callback function
-		 * @param    : obj - a pointer or reference to a class object, this parameter can be none
-		 * if fun is nonmember function, the obj param must be none, otherwise the obj must be the
+		 * @brief bind connect listener
+		 * @param fun - a user defined callback function.
+		 * @param obj - a pointer or reference to a class object, this parameter can be none.
+		 * @li if fun is nonmember function, the obj param must be none, otherwise the obj must be the
 		 * the class object's pointer or refrence.
 		 * This notification is invoked after the connection is fully established,
 		 * and only after the connect/handshake/upgrade are completed.
@@ -219,10 +219,10 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : bind disconnect listener
-		 * @param    : fun - a user defined callback function
-		 * @param    : obj - a pointer or reference to a class object, this parameter can be none
-		 * if fun is nonmember function, the obj param must be none, otherwise the obj must be the
+		 * @brief bind disconnect listener
+		 * @param fun - a user defined callback function.
+		 * @param obj - a pointer or reference to a class object, this parameter can be none.
+		 * @li if fun is nonmember function, the obj param must be none, otherwise the obj must be the
 		 * the class object's pointer or refrence.
 		 * This notification is invoked before the connection is disconnected, you can call
 		 * get_last_error/last_error_msg, etc, to get the disconnected error information
@@ -238,10 +238,10 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : bind init listener,we should set socket options at here
-		 * @param    : fun - a user defined callback function
-		 * @param    : obj - a pointer or reference to a class object, this parameter can be none
-		 * if fun is nonmember function, the obj param must be none, otherwise the obj must be the
+		 * @brief bind init listener,we should set socket options at here
+		 * @param fun - a user defined callback function.
+		 * @param obj - a pointer or reference to a class object, this parameter can be none.
+		 * @li if fun is nonmember function, the obj param must be none, otherwise the obj must be the
 		 * the class object's pointer or refrence.
 		 * This notification is called after the socket is opened.
 		 * You can set the socket option in this notification.
@@ -256,10 +256,10 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : bind start listener
-		 * @param    : fun - a user defined callback function
-		 * @param    : obj - a pointer or reference to a class object, this parameter can be none
-		 * if fun is nonmember function, the obj param must be none, otherwise the obj must be the
+		 * @brief bind start listener
+		 * @param fun - a user defined callback function.
+		 * @param obj - a pointer or reference to a class object, this parameter can be none.
+		 * @li if fun is nonmember function, the obj param must be none, otherwise the obj must be the
 		 * the class object's pointer or refrence.
 		 * This notification is called after the server starts up, whether successful or unsuccessful
 		 * Function signature : void()
@@ -273,10 +273,10 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : bind stop listener
-		 * @param    : fun - a user defined callback function
-		 * @param    : obj - a pointer or reference to a class object, this parameter can be none
-		 * if fun is nonmember function, the obj param must be none, otherwise the obj must be the
+		 * @brief bind stop listener
+		 * @param fun - a user defined callback function.
+		 * @param obj - a pointer or reference to a class object, this parameter can be none.
+		 * @li if fun is nonmember function, the obj param must be none, otherwise the obj must be the
 		 * the class object's pointer or refrence.
 		 * This notification is called before the server is ready to stop
 		 * Function signature : void()
@@ -291,7 +291,7 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @function : get the acceptor refrence
+		 * @brief get the acceptor refrence
 		 */
 		inline asio::ip::tcp::acceptor & acceptor() noexcept { return this->acceptor_; }
 
@@ -713,7 +713,7 @@ namespace asio2::detail
 namespace asio2
 {
 	/**
-	 * constructor maybe throw exception "Too many open files" (exception code : 24)
+	 * @throws constructor maybe throw exception "Too many open files" (exception code : 24)
 	 * asio::error::no_descriptors - Too many open files
 	 */
 	template<class session_t>
@@ -724,7 +724,8 @@ namespace asio2
 	};
 
 	/**
-	 * constructor maybe throw exception "Too many open files" (exception code : 24)
+	 * @brief tcp server
+	 * @throws constructor maybe throw exception "Too many open files" (exception code : 24)
 	 * asio::error::no_descriptors - Too many open files
 	 */
 	using tcp_server = tcp_server_t<tcp_session>;

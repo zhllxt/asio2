@@ -61,7 +61,7 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		explicit udp_client_impl_t(
 			std::size_t init_buf_size = udp_frame_size,
@@ -93,7 +93,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~udp_client_impl_t()
 		{
@@ -101,10 +101,10 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : start the client, blocking connect to server
-		 * @param host A string identifying a location. May be a descriptive name or
+		 * @brief start the client, blocking connect to server
+		 * @param host - A string identifying a location. May be a descriptive name or
 		 * a numeric address string.
-		 * @param port A string identifying the requested service. This may be a
+		 * @param port - A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
 		 */
 		template<typename String, typename StrOrInt, typename... Args>
@@ -116,10 +116,10 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : start the client, asynchronous connect to server
-		 * @param host A string identifying a location. May be a descriptive name or
+		 * @brief start the client, asynchronous connect to server
+		 * @param host - A string identifying a location. May be a descriptive name or
 		 * a numeric address string.
-		 * @param port A string identifying the requested service. This may be a
+		 * @param port - A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
 		 */
 		template<typename String, typename StrOrInt, typename... Args>
@@ -131,7 +131,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : stop the client
+		 * @brief stop the client
 		 * You can call this function on the communication thread and anywhere to stop the client.
 		 */
 		inline void stop()
@@ -197,7 +197,7 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @function : get the kcp pointer, just used for kcp mode
+		 * @brief get the kcp pointer, just used for kcp mode
 		 * default mode : ikcp_nodelay(kcp, 0, 10, 0, 0);
 		 * generic mode : ikcp_nodelay(kcp, 0, 10, 0, 1);
 		 * fast    mode : ikcp_nodelay(kcp, 1, 10, 2, 1);
@@ -208,7 +208,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get the kcp pointer, just used for kcp mode. same as get_kcp
+		 * @brief get the kcp pointer, just used for kcp mode. same as get_kcp
 		 * default mode : ikcp_nodelay(kcp, 0, 10, 0, 0);
 		 * generic mode : ikcp_nodelay(kcp, 0, 10, 0, 1);
 		 * fast    mode : ikcp_nodelay(kcp, 1, 10, 2, 1);
@@ -220,10 +220,10 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @function : bind recv listener
-		 * @param    : fun - a user defined callback function
-		 * @param    : obj - a pointer or reference to a class object, this parameter can be none
-		 * if fun is nonmember function, the obj param must be none, otherwise the obj must be the
+		 * @brief bind recv listener
+		 * @param fun - a user defined callback function.
+		 * @param obj - a pointer or reference to a class object, this parameter can be none.
+		 * @li if fun is nonmember function, the obj param must be none, otherwise the obj must be the
 		 * the class object's pointer or refrence.
 		 * Function signature : void(std::string_view data)
 		 */
@@ -236,10 +236,10 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : bind connect listener
-		 * @param    : fun - a user defined callback function
-		 * @param    : obj - a pointer or reference to a class object, this parameter can be none
-		 * if fun is nonmember function, the obj param must be none, otherwise the obj must be the
+		 * @brief bind connect listener
+		 * @param fun - a user defined callback function.
+		 * @param obj - a pointer or reference to a class object, this parameter can be none.
+		 * @li if fun is nonmember function, the obj param must be none, otherwise the obj must be the
 		 * the class object's pointer or refrence.
 		 * This notification is called after the client connection completed, whether successful or unsuccessful
 		 * Function signature : void()
@@ -253,10 +253,10 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : bind disconnect listener
-		 * @param    : fun - a user defined callback function
-		 * @param    : obj - a pointer or reference to a class object, this parameter can be none
-		 * if fun is nonmember function, the obj param must be none, otherwise the obj must be the
+		 * @brief bind disconnect listener
+		 * @param fun - a user defined callback function.
+		 * @param obj - a pointer or reference to a class object, this parameter can be none.
+		 * @li if fun is nonmember function, the obj param must be none, otherwise the obj must be the
 		 * the class object's pointer or refrence.
 		 * This notification is called before the client is ready to disconnect
 		 * Function signature : void()
@@ -270,10 +270,10 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : bind init listener,we should set socket options at here
-		 * @param    : fun - a user defined callback function
-		 * @param    : obj - a pointer or reference to a class object, this parameter can be none
-		 * if fun is nonmember function, the obj param must be none, otherwise the obj must be the
+		 * @brief bind init listener,we should set socket options at here
+		 * @param fun - a user defined callback function.
+		 * @param obj - a pointer or reference to a class object, this parameter can be none.
+		 * @li if fun is nonmember function, the obj param must be none, otherwise the obj must be the
 		 * the class object's pointer or refrence.
 		 * Function signature : void()
 		 */
@@ -286,10 +286,10 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : bind kcp handshake listener, just used fo kcp mode
-		 * @param    : fun - a user defined callback function
-		 * @param    : obj - a pointer or reference to a class object, this parameter can be none
-		 * if fun is nonmember function, the obj param must be none, otherwise the obj must be the
+		 * @brief bind kcp handshake listener, just used fo kcp mode
+		 * @param fun - a user defined callback function.
+		 * @param obj - a pointer or reference to a class object, this parameter can be none.
+		 * @li if fun is nonmember function, the obj param must be none, otherwise the obj must be the
 		 * the class object's pointer or refrence.
 		 * Function signature : void()
 		 */
@@ -761,7 +761,7 @@ namespace asio2::detail
 namespace asio2
 {
 	/**
-	 * constructor maybe throw exception "Too many open files" (exception code : 24)
+	 * @throws constructor maybe throw exception "Too many open files" (exception code : 24)
 	 * asio::error::no_descriptors - Too many open files
 	 */
 	template<class derived_t>
@@ -772,7 +772,7 @@ namespace asio2
 	};
 
 	/**
-	 * constructor maybe throw exception "Too many open files" (exception code : 24)
+	 * @throws constructor maybe throw exception "Too many open files" (exception code : 24)
 	 * asio::error::no_descriptors - Too many open files
 	 */
 	class udp_client : public udp_client_t<udp_client>

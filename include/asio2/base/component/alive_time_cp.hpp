@@ -24,12 +24,12 @@ namespace asio2::detail
 	{
 	public:
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		alive_time_cp() = default;
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~alive_time_cp() = default;
 
@@ -40,7 +40,7 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @function : get the time when the last alive event occurred, same as get_last_alive_time
+		 * @brief get the time when the last alive event occurred, same as get_last_alive_time
 		 */
 		inline std::chrono::time_point<std::chrono::system_clock> last_alive_time() const noexcept
 		{
@@ -48,7 +48,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get the time when the last alive event occurred
+		 * @brief get the time when the last alive event occurred
 		 */
 		inline std::chrono::time_point<std::chrono::system_clock> get_last_alive_time() const noexcept
 		{
@@ -56,7 +56,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : reset last alive time to system_clock::now()
+		 * @brief reset last alive time to system_clock::now()
 		 */
 		inline derived_t & update_alive_time() noexcept
 		{
@@ -65,7 +65,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get silence duration of std::chrono::duration
+		 * @brief get silence duration of std::chrono::duration
 		 */
 		inline std::chrono::system_clock::duration get_silence_duration() const noexcept
 		{

@@ -62,7 +62,7 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		explicit wss_session_impl_t(
 			asio::ssl::context       & ctx,
@@ -79,7 +79,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~wss_session_impl_t()
 		{
@@ -87,7 +87,7 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @function : get this object hash key,used for session map
+		 * @brief get this object hash key,used for session map
 		 */
 		inline key_type hash_key() const noexcept
 		{

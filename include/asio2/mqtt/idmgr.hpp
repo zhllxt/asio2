@@ -39,7 +39,7 @@ namespace asio2::mqtt
 		~idmgr() = default;
 
 		/**
-		 * @function Get a new unique id
+		 * @brief Get a new unique id
 		 */
 		inline id_type get() noexcept
 		{
@@ -52,7 +52,7 @@ namespace asio2::mqtt
 		}
 
 		/**
-		 * @function Checks whether contains the given id.
+		 * @brief Checks whether contains the given id.
 		 */
 		inline bool contains(id_type id) const noexcept
 		{
@@ -60,7 +60,7 @@ namespace asio2::mqtt
 		}
 
 		/**
-		 * @function Release the id.
+		 * @brief Release the id.
 		 */
 		inline void release(id_type id) noexcept
 		{
@@ -68,7 +68,7 @@ namespace asio2::mqtt
 		}
 
 		/**
-		 * @function Clear all ids.
+		 * @brief Clear all ids.
 		 */
 		inline void clear() noexcept
 		{
@@ -91,7 +91,7 @@ namespace asio2::mqtt
 		~idmgr() = default;
 
 		/**
-		 * @function Get a new unique id, return 0 if failed.
+		 * @brief Get a new unique id, return 0 if failed.
 		 */
 		id_type get()
 		{
@@ -126,7 +126,7 @@ namespace asio2::mqtt
 		}
 
 		/**
-		 * @function Checks whether contains the given id. 
+		 * @brief Checks whether contains the given id. 
 		 */
 		bool contains(id_type id)
 		{
@@ -134,7 +134,7 @@ namespace asio2::mqtt
 		}
 
 		/**
-		 * @function Release the id.
+		 * @brief Release the id.
 		 */
 		void release(id_type id)
 		{
@@ -142,7 +142,7 @@ namespace asio2::mqtt
 		}
 
 		/**
-		 * @function Clear all ids.
+		 * @brief Clear all ids.
 		 */
 		void clear()
 		{

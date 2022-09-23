@@ -34,12 +34,12 @@ namespace asio2::detail
 	{
 	public:
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		rpc_recv_op() noexcept {}
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~rpc_recv_op() = default;
 

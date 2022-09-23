@@ -65,7 +65,7 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		template<class ...Args>
 		explicit rpc_session_impl_t(
@@ -81,7 +81,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~rpc_session_impl_t()
 		{

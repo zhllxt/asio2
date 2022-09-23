@@ -30,12 +30,12 @@ namespace asio2::detail
 	{
 	public:
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		udp_send_op() noexcept {}
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~udp_send_op() = default;
 

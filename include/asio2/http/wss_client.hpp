@@ -59,7 +59,7 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		template<class... Args>
 		explicit wss_client_impl_t(
@@ -73,7 +73,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~wss_client_impl_t()
 		{
@@ -81,12 +81,12 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : start the client, blocking connect to server
-		 * @param host A string identifying a location. May be a descriptive name or
+		 * @brief start the client, blocking connect to server
+		 * @param host - A string identifying a location. May be a descriptive name or
 		 * a numeric address string.
-		 * @param port A string identifying the requested service. This may be a
+		 * @param port - A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
-		 * @param args The args can be include the upgraged target.
+		 * @param args - The args can be include the upgraged target.
 		 * eg: start("127.0.0.1", 8883); start("127.0.0.1", 8883, "/admin");
 		 * the "/admin" is the websocket upgraged target
 		 */
@@ -104,12 +104,12 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : start the client, asynchronous connect to server
-		 * @param host A string identifying a location. May be a descriptive name or
+		 * @brief start the client, asynchronous connect to server
+		 * @param host - A string identifying a location. May be a descriptive name or
 		 * a numeric address string.
-		 * @param port A string identifying the requested service. This may be a
+		 * @param port - A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
-		 * @param args The args can be include the upgraged target.
+		 * @param args - The args can be include the upgraged target.
 		 * eg: async_start("127.0.0.1", 8883); async_start("127.0.0.1", 8883, "/admin");
 		 * the "/admin" is the websocket upgraged target
 		 */
@@ -127,17 +127,17 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get the websocket upgraged response object
+		 * @brief get the websocket upgraged response object
 		 */
 		inline const http::response<body_type>& get_upgrade_response() noexcept { return this->upgrade_rep_; }
 
 		/**
-		 * @function : get the websocket upgraged target
+		 * @brief get the websocket upgraged target
 		 */
 		inline const std::string& get_upgrade_target() noexcept { return this->upgrade_target_; }
 
 		/**
-		 * @function : set the websocket upgraged target
+		 * @brief set the websocket upgraged target
 		 */
 		inline derived_t & set_upgrade_target(std::string target)
 		{
@@ -147,8 +147,8 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @function : bind websocket upgrade listener
-		 * @param    : fun - a user defined callback function
+		 * @brief bind websocket upgrade listener
+		 * @param fun - a user defined callback function.
 		 * Function signature : void()
 		 */
 		template<class F, class ...C>

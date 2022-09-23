@@ -48,7 +48,7 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		kcp_stream_cp(derived_t& d, io_t& io)
 			: derive(d), kcp_timer_(io.context())
@@ -56,7 +56,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~kcp_stream_cp() noexcept
 		{

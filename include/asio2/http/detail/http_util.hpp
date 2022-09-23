@@ -510,7 +510,7 @@ namespace boost::beast::http
 		}
 
 		/**
-		 * @function : Returns `true` if the HTTP message's Content-Type is "multipart/form-data";
+		 * @brief Returns `true` if the HTTP message's Content-Type is "multipart/form-data";
 		 */
 		template<class HttpMessage>
 		inline bool has_multipart(const HttpMessage& msg) noexcept
@@ -519,7 +519,7 @@ namespace boost::beast::http
 		}
 
 		/**
-		 * @function : Get the "multipart/form-data" body content.
+		 * @brief Get the "multipart/form-data" body content.
 		 */
 		template<class HttpMessage, class String = std::string_view>
 		inline basic_multipart_fields<String> get_multipart(const HttpMessage& msg)
@@ -528,7 +528,7 @@ namespace boost::beast::http
 		}
 
 		/**
-		 * @function : Get the "multipart/form-data" body content. same as get_multipart
+		 * @brief Get the "multipart/form-data" body content. same as get_multipart
 		 */
 		template<class HttpMessage, class String = std::string_view>
 		inline basic_multipart_fields<String> multipart(const HttpMessage& msg)

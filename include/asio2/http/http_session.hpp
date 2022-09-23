@@ -71,7 +71,7 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		explicit http_session_impl_t(
 			http_router_t<derived_t, args_t> & router,
@@ -99,7 +99,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~http_session_impl_t()
 		{
@@ -107,7 +107,7 @@ namespace asio2::detail
 
 	protected:
 		/**
-		 * @function : start the session for prepare to recv/send msg
+		 * @brief start the session for prepare to recv/send msg
 		 */
 		template<typename MatchCondition>
 		inline void start(condition_wrap<MatchCondition> condition)
@@ -130,7 +130,7 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @function : get this object hash key,used for session map
+		 * @brief get this object hash key,used for session map
 		 */
 		inline key_type hash_key() const noexcept
 		{
@@ -141,27 +141,27 @@ namespace asio2::detail
 		inline bool is_http     () noexcept { return (!(this->is_websocket()));       }
 
 		/**
-		 * @function : get the request object, same as get_request
+		 * @brief get the request object, same as get_request
 		 */
 		inline const http::web_request & request() noexcept { return this->req_; }
 
 		/**
-		 * @function : get the response object, same as get_response
+		 * @brief get the response object, same as get_response
 		 */
 		inline const http::web_response& response() noexcept { return this->rep_; }
 
 		/**
-		 * @function : get the request object
+		 * @brief get the request object
 		 */
 		inline const http::web_request & get_request() noexcept { return this->req_; }
 
 		/**
-		 * @function : get the response object
+		 * @brief get the response object
 		 */
 		inline const http::web_response& get_response() noexcept { return this->rep_; }
 
 		/**
-		 * @function : set how to send the http response in the bind_recv callback
+		 * @brief set how to send the http response in the bind_recv callback
 		 * automatic - The framework automatically send the http response
 		 * manual    - You need to send the http response youself
 		 */
@@ -172,7 +172,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get the response mode
+		 * @brief get the response mode
 		 */
 		inline asio2::response_mode get_response_mode() { return this->response_mode_; }
 

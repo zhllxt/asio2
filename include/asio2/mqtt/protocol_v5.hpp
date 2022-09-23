@@ -1020,7 +1020,7 @@ namespace asio2::mqtt::v5
 		inline super&       variant()       noexcept { return *this; }
 
 		/**
-		 * @function Checks if the variant holds anyone of the alternative Types...
+		 * @brief Checks if the variant holds anyone of the alternative Types...
 		 */
 		template<class... Types>
 		inline bool has() noexcept
@@ -1029,7 +1029,7 @@ namespace asio2::mqtt::v5
 		}
 
 		/**
-		 * @function Checks if the variant holds anyone of the alternative Types...
+		 * @brief Checks if the variant holds anyone of the alternative Types...
 		 */
 		template<class... Types>
 		inline bool holds() noexcept
@@ -1038,7 +1038,7 @@ namespace asio2::mqtt::v5
 		}
 
 		/**
-		 * @function If this holds the alternative T, returns a pointer to the value stored in the variant.
+		 * @brief If this holds the alternative T, returns a pointer to the value stored in the variant.
 		 * Otherwise, returns a null pointer value.
 		 */
 		template<class T>
@@ -1048,7 +1048,7 @@ namespace asio2::mqtt::v5
 		}
 
 		/**
-		 * @function If this holds the alternative T, returns a reference to the value stored in the variant.
+		 * @brief If this holds the alternative T, returns a reference to the value stored in the variant.
 		 * Otherwise, throws std::bad_variant_access.
 		 */
 		template<class T>
@@ -1178,7 +1178,7 @@ namespace asio2::mqtt::v5
 		}
 
 		/**
-		 * @function Checks if the properties holds the alternative property T.
+		 * @brief Checks if the properties holds the alternative property T.
 		 */
 		template<class T>
 		inline bool has() noexcept

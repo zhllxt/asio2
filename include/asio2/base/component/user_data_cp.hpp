@@ -26,12 +26,12 @@ namespace asio2::detail
 	{
 	public:
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		user_data_cp() = default;
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~user_data_cp() = default;
 
@@ -42,7 +42,7 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @function : set user data, internal use std::any to storage, you can set any type of data
+		 * @brief set user data, internal use std::any to storage, you can set any type of data
 		 * same as set_user_data
 		 */
 		template<class DataT>
@@ -53,7 +53,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get user data, same as get_user_data
+		 * @brief get user data, same as get_user_data
 		 * example : MyStruct my = user_data<MyStruct>(); MyStruct* my = user_data<MyStruct*>();
 		 */
 		template<class DataT>
@@ -64,7 +64,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : set user data, internal use std::any to storage, you can set any type of data
+		 * @brief set user data, internal use std::any to storage, you can set any type of data
 		 * example : struct MyStruct{ ... }; MyStruct my; set_user_data(my);
 		 */
 		template<class DataT>
@@ -75,7 +75,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get user data
+		 * @brief get user data
 		 * example : 
 		 * MyStruct  my = get_user_data<MyStruct>();
 		 * MyStruct* my = get_user_data<MyStruct*>();
@@ -125,7 +125,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : return the std::any reference
+		 * @brief return the std::any reference
 		 */
 		inline std::any& user_data_any() noexcept { return this->user_data_; }
 

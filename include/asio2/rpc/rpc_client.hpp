@@ -61,7 +61,7 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		template<class ...Args>
 		explicit rpc_client_impl_t(
@@ -76,7 +76,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~rpc_client_impl_t()
 		{
@@ -84,10 +84,10 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : start the client, blocking connect to server
-		 * @param host A string identifying a location. May be a descriptive name or
+		 * @brief start the client, blocking connect to server
+		 * @param host - A string identifying a location. May be a descriptive name or
 		 * a numeric address string.
-		 * @param port A string identifying the requested service. This may be a
+		 * @param port - A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
 		 */
 		template<typename String, typename StrOrInt, typename... Args>
@@ -108,10 +108,10 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : start the client, asynchronous connect to server
-		 * @param host A string identifying a location. May be a descriptive name or
+		 * @brief start the client, asynchronous connect to server
+		 * @param host - A string identifying a location. May be a descriptive name or
 		 * a numeric address string.
-		 * @param port A string identifying the requested service. This may be a
+		 * @param port - A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
 		 */
 		template<typename String, typename StrOrInt, typename... Args>

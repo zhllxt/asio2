@@ -36,12 +36,12 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		disconnect_cp() noexcept {}
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~disconnect_cp() = default;
 

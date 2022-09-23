@@ -98,7 +98,7 @@ namespace asio2
 		//thread_local static error_code ec_last;
 
 		/**
-		 * @function : get last error_code
+		 * @brief get last error_code
 		 */
 		inline error_code & get_last_error() noexcept
 		{
@@ -106,7 +106,7 @@ namespace asio2
 		}
 
 		/**
-		 * @function : set last error_code
+		 * @brief set last error_code
 		 */
 		template<class ErrorCodeEnum>
 		inline void set_last_error(ErrorCodeEnum e) noexcept
@@ -147,7 +147,7 @@ namespace asio2
 		}
 
 		/**
-		 * @function : set last error_code
+		 * @brief set last error_code
 		 */
 		template<typename T>
 		inline void set_last_error(int ec, const T& ecat) noexcept
@@ -156,7 +156,7 @@ namespace asio2
 		}
 
 		/**
-		 * @function : set last error_code
+		 * @brief set last error_code
 		 */
 		inline void set_last_error(const error_code & ec) noexcept
 		{
@@ -164,7 +164,7 @@ namespace asio2
 		}
 
 		/**
-		 * @function : set last error_code
+		 * @brief set last error_code
 		 */
 		inline void set_last_error(const system_error & e) noexcept
 		{
@@ -172,7 +172,7 @@ namespace asio2
 		}
 
 		/**
-		 * @function : Replaces the error code and error category with default values.
+		 * @brief Replaces the error code and error category with default values.
 		 */
 		inline void clear_last_error() noexcept
 		{
@@ -180,7 +180,7 @@ namespace asio2
 		}
 
 		/**
-		 * @function : get last error value, same as get_last_error_val
+		 * @brief get last error value, same as get_last_error_val
 		 */
 		inline auto last_error_val() noexcept
 		{
@@ -188,7 +188,7 @@ namespace asio2
 		}
 
 		/**
-		 * @function : get last error value
+		 * @brief get last error value
 		 */
 		inline auto get_last_error_val() noexcept
 		{
@@ -196,7 +196,7 @@ namespace asio2
 		}
 
 		/**
-		 * @function : get last error message, same as get_last_error_msg
+		 * @brief get last error message, same as get_last_error_msg
 		 */
 		inline auto last_error_msg()
 		{
@@ -204,7 +204,7 @@ namespace asio2
 		}
 
 		/**
-		 * @function : get last error message
+		 * @brief get last error message
 		 */
 		inline auto get_last_error_msg()
 		{

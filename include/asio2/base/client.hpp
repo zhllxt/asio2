@@ -104,8 +104,8 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @constructor
-		 * maybe throw exception "Too many open files" (exception code : 24)
+		 * @brief constructor
+		 * @throws maybe throw exception "Too many open files" (exception code : 24)
 		 * asio::error::no_descriptors - Too many open files
 		 */
 		template<class ThreadCountOrScheduler, class ...Args>
@@ -140,14 +140,14 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~client_impl_t()
 		{
 		}
 
 		/**
-		 * @function : start the client
+		 * @brief start the client
 		 */
 		inline bool start() noexcept
 		{
@@ -157,7 +157,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : async start the client
+		 * @brief async start the client
 		 */
 		inline bool async_start() noexcept
 		{
@@ -167,7 +167,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : stop the client
+		 * @brief stop the client
 		 */
 		inline void stop()
 		{
@@ -197,7 +197,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : check whether the client is started
+		 * @brief check whether the client is started
 		 */
 		inline bool is_started() const
 		{
@@ -205,7 +205,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : check whether the client is stopped
+		 * @brief check whether the client is stopped
 		 */
 		inline bool is_stopped() const
 		{
@@ -213,7 +213,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get this object hash key
+		 * @brief get this object hash key
 		 */
 		inline key_type hash_key() const noexcept
 		{
@@ -221,17 +221,17 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get the buffer object refrence
+		 * @brief get the buffer object refrence
 		 */
 		inline buffer_wrap<buffer_type> & buffer() noexcept { return this->buffer_; }
 
 		/**
-		 * @function : get the io object refrence
+		 * @brief get the io object refrence
 		 */
 		inline io_t & io() noexcept { return this->io_; }
 
 		/**
-		 * @function : set the default remote call timeout for rpc/rdc
+		 * @brief set the default remote call timeout for rpc/rdc
 		 */
 		template<class Rep, class Period>
 		inline derived_t & set_default_timeout(std::chrono::duration<Rep, Period> duration) noexcept
@@ -241,7 +241,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get the default remote call timeout for rpc/rdc
+		 * @brief get the default remote call timeout for rpc/rdc
 		 */
 		inline std::chrono::steady_clock::duration get_default_timeout() noexcept
 		{
@@ -250,11 +250,11 @@ namespace asio2::detail
 
 	protected:
 		/**
-		 * @function : get the recv/read allocator object refrence
+		 * @brief get the recv/read allocator object refrence
 		 */
 		inline auto & rallocator() noexcept { return this->rallocator_; }
 		/**
-		 * @function : get the send/write allocator object refrence
+		 * @brief get the send/write allocator object refrence
 		 */
 		inline auto & wallocator() noexcept { return this->wallocator_; }
 

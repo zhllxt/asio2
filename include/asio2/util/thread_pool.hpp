@@ -65,7 +65,7 @@ namespace asio2
 	{
 	public:
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		explicit thread_pool(std::size_t thread_count = std::thread::hardware_concurrency())
 		{
@@ -102,7 +102,7 @@ namespace asio2
 		}
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~thread_pool()
 		{
@@ -121,11 +121,11 @@ namespace asio2
 		}
 
 		/**
-		 * @function : post a function object into the thread pool, then return immediately,
+		 * @brief post a function object into the thread pool, then return immediately,
 		 * the function object will never be executed inside this function. Instead, it will
 		 * be executed asynchronously in the thread pool.
-		 * @param : fun - global function,static function,lambda,member function,std::function
-		 * @return : std::future<...>
+		 * @param fun - global function,static function,lambda,member function,std::function.
+		 * @return std::future<fun_return_type>
 		 */
 		template<class Fun, class... Args>
 		auto post(Fun&& fun, Args&&... args) -> std::future<std::invoke_result_t<Fun, Args...>>
@@ -153,7 +153,7 @@ namespace asio2
 		}
 
 		/**
-		 * @function : get thread count of the thread pool
+		 * @brief get thread count of the thread pool
 		 */
 		inline std::size_t pool_size() const noexcept
 		{
@@ -161,7 +161,7 @@ namespace asio2
 		}
 
 		/**
-		 * @function : get remain task size
+		 * @brief get remain task size
 		 */
 		inline std::size_t task_size() const noexcept
 		{
@@ -169,7 +169,7 @@ namespace asio2
 		}
 
 		/**
-		 * @function : Determine whether current code is running in the pool's threads.
+		 * @brief Determine whether current code is running in the pool's threads.
 		 */
 		inline bool running_in_threads() const noexcept
 		{
@@ -183,7 +183,7 @@ namespace asio2
 		}
 
 		/**
-		 * @function : Determine whether current code is running in the thread by index
+		 * @brief Determine whether current code is running in the thread by index
 		 */
 		inline bool running_in_thread(std::size_t index) const noexcept
 		{

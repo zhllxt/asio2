@@ -55,7 +55,7 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		template<class... Args>
 		explicit https_client_impl_t(
@@ -69,7 +69,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~https_client_impl_t()
 		{
@@ -77,7 +77,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get the stream object refrence
+		 * @brief get the stream object refrence
 		 */
 		inline typename ssl_stream_comp::stream_type & stream() noexcept
 		{
@@ -305,7 +305,7 @@ namespace asio2::detail
 		// ----------------------------------------------------------------------------------------
 
 		/**
-		 * @function : blocking execute the http request until it is returned on success or failure
+		 * @brief blocking execute the http request until it is returned on success or failure
 		 */
 		template<class Rep, class Period, class Body = http::string_body, class Fields = http::fields>
 		static inline http::response<Body, Fields> execute(const asio::ssl::context& ctx, std::string_view url,
@@ -320,7 +320,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : blocking execute the http request until it is returned on success or failure
+		 * @brief blocking execute the http request until it is returned on success or failure
 		 */
 		template<class Body = http::string_body, class Fields = http::fields>
 		static inline http::response<Body, Fields> execute(const asio::ssl::context& ctx, std::string_view url)
@@ -331,7 +331,7 @@ namespace asio2::detail
 		// ----------------------------------------------------------------------------------------
 
 		/**
-		 * @function : blocking execute the http request until it is returned on success or failure
+		 * @brief blocking execute the http request until it is returned on success or failure
 		 */
 		template<class Rep, class Period, class Body = http::string_body, class Fields = http::fields>
 		static inline http::response<Body, Fields> execute(std::string_view url,
@@ -341,7 +341,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : blocking execute the http request until it is returned on success or failure
+		 * @brief blocking execute the http request until it is returned on success or failure
 		 */
 		template<class Body = http::string_body, class Fields = http::fields>
 		static inline http::response<Body, Fields> execute(std::string_view url)
@@ -352,7 +352,7 @@ namespace asio2::detail
 		// ----------------------------------------------------------------------------------------
 
 		/**
-		 * @function : blocking execute the http request until it is returned on success or failure
+		 * @brief blocking execute the http request until it is returned on success or failure
 		 */
 		template<typename String, typename StrOrInt, class Rep, class Period,
 			class Body = http::string_body, class Fields = http::fields>
@@ -371,7 +371,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : blocking execute the http request until it is returned on success or failure
+		 * @brief blocking execute the http request until it is returned on success or failure
 		 */
 		template<typename String, typename StrOrInt, class Body = http::string_body, class Fields = http::fields>
 		static inline http::response<Body, Fields> execute(
@@ -386,7 +386,7 @@ namespace asio2::detail
 		// ----------------------------------------------------------------------------------------
 
 		/**
-		 * @function : blocking execute the http request until it is returned on success or failure
+		 * @brief blocking execute the http request until it is returned on success or failure
 		 */
 		template<typename String, typename StrOrInt, class Rep, class Period,
 			class Body = http::string_body, class Fields = http::fields>
@@ -401,7 +401,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : blocking execute the http request until it is returned on success or failure
+		 * @brief blocking execute the http request until it is returned on success or failure
 		 */
 		template<typename String, typename StrOrInt, class Body = http::string_body, class Fields = http::fields>
 		typename std::enable_if_t<detail::can_convert_to_string_v<detail::remove_cvref_t<String>>,
@@ -486,7 +486,7 @@ namespace asio2::detail
 		// ----------------------------------------------------------------------------------------
 
 		/**
-		 * @function : blocking execute the http request until it is returned on success or failure
+		 * @brief blocking execute the http request until it is returned on success or failure
 		 */
 		template<class Proxy, class Rep, class Period,
 			class Body = http::string_body, class Fields = http::fields>
@@ -503,7 +503,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : blocking execute the http request until it is returned on success or failure
+		 * @brief blocking execute the http request until it is returned on success or failure
 		 */
 		template<class Proxy, class Body = http::string_body, class Fields = http::fields>
 		static inline http::response<Body, Fields> execute(
@@ -516,7 +516,7 @@ namespace asio2::detail
 		// ----------------------------------------------------------------------------------------
 
 		/**
-		 * @function : blocking execute the http request until it is returned on success or failure
+		 * @brief blocking execute the http request until it is returned on success or failure
 		 */
 		template<class Proxy, class Rep, class Period,
 			class Body = http::string_body, class Fields = http::fields>
@@ -528,7 +528,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : blocking execute the http request until it is returned on success or failure
+		 * @brief blocking execute the http request until it is returned on success or failure
 		 */
 		template<class Proxy, class Body = http::string_body, class Fields = http::fields>
 		static inline http::response<Body, Fields> execute(std::string_view url, Proxy&& proxy)
@@ -540,7 +540,7 @@ namespace asio2::detail
 		// ----------------------------------------------------------------------------------------
 
 		/**
-		 * @function : blocking execute the http request until it is returned on success or failure
+		 * @brief blocking execute the http request until it is returned on success or failure
 		 */
 		template<typename String, typename StrOrInt, class Proxy, class Rep, class Period,
 			class Body = http::string_body, class Fields = http::fields>
@@ -559,7 +559,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : blocking execute the http request until it is returned on success or failure
+		 * @brief blocking execute the http request until it is returned on success or failure
 		 */
 		template<typename String, typename StrOrInt, class Proxy,
 			class Body = http::string_body, class Fields = http::fields>
@@ -575,7 +575,7 @@ namespace asio2::detail
 		// ----------------------------------------------------------------------------------------
 
 		/**
-		 * @function : blocking execute the http request until it is returned on success or failure
+		 * @brief blocking execute the http request until it is returned on success or failure
 		 */
 		template<typename String, typename StrOrInt, class Proxy, class Rep, class Period,
 			class Body = http::string_body, class Fields = http::fields>
@@ -590,7 +590,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : blocking execute the http request until it is returned on success or failure
+		 * @brief blocking execute the http request until it is returned on success or failure
 		 */
 		template<typename String, typename StrOrInt, class Proxy,
 			class Body = http::string_body, class Fields = http::fields>
@@ -605,8 +605,8 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @function : bind ssl handshake listener
-		 * @param    : fun - a user defined callback function
+		 * @brief bind ssl handshake listener
+		 * @param fun - a user defined callback function
 		 * Function signature : void()
 		 */
 		template<class F, class ...C>

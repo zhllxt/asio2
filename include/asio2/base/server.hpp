@@ -76,7 +76,7 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		template<class ThreadCountOrScheduler>
 		explicit server_impl_t(ThreadCountOrScheduler&& tcos)
@@ -94,14 +94,14 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~server_impl_t()
 		{
 		}
 
 		/**
-		 * @function : start the server
+		 * @brief start the server
 		 */
 		inline bool start() noexcept
 		{
@@ -111,7 +111,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : stop the server
+		 * @brief stop the server
 		 */
 		inline void stop()
 		{
@@ -135,7 +135,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : check whether the server is started 
+		 * @brief check whether the server is started 
 		 */
 		inline bool is_started() const noexcept
 		{
@@ -143,7 +143,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : check whether the server is stopped
+		 * @brief check whether the server is stopped
 		 */
 		inline bool is_stopped() const noexcept
 		{
@@ -151,7 +151,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get this object hash key
+		 * @brief get this object hash key
 		 */
 		inline key_type hash_key() const noexcept
 		{
@@ -159,7 +159,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Asynchronous send data for each session
+		 * @brief Asynchronous send data for each session
 		 * supporting multi data formats,see asio::buffer(...) in /asio/buffer.hpp
 		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
 		 * PodType * : async_send("abc");
@@ -179,7 +179,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Asynchronous send data for each session
+		 * @brief Asynchronous send data for each session
 		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
 		 * PodType * : async_send("abc");
 		 */
@@ -194,7 +194,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Asynchronous send data for each session
+		 * @brief Asynchronous send data for each session
 		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
 		 * PodType (&data)[N] : double m[10]; async_send(m,5);
 		 */
@@ -214,12 +214,12 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @function : get the acceptor refrence, derived classes must override this function
+		 * @brief get the acceptor refrence, derived classes must override this function
 		 */
 		inline auto & acceptor() noexcept { return this->derived().acceptor(); }
 
 		/**
-		 * @function : get the listen address, same as get_listen_address
+		 * @brief get the listen address, same as get_listen_address
 		 */
 		inline std::string listen_address() noexcept
 		{
@@ -227,7 +227,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get the listen address
+		 * @brief get the listen address
 		 */
 		inline std::string get_listen_address() noexcept
 		{
@@ -240,7 +240,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get the listen port, same as get_listen_port
+		 * @brief get the listen port, same as get_listen_port
 		 */
 		inline unsigned short listen_port() noexcept
 		{
@@ -248,7 +248,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get the listen port
+		 * @brief get the listen port
 		 */
 		inline unsigned short get_listen_port() noexcept
 		{
@@ -261,18 +261,18 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get connected session count, same as get_session_count
+		 * @brief get connected session count, same as get_session_count
 		 */
 		inline std::size_t session_count() noexcept { return this->get_session_count(); }
 
 		/**
-		 * @function : get connected session count
+		 * @brief get connected session count
 		 */
 		inline std::size_t get_session_count() noexcept { return this->sessions_.size(); }
 
 		/**
-		 * @function :
-		 * @param    : fn - The handler to be called for each session.
+		 * @brief Applies the given function object fn for each session.
+		 * @param fn - The handler to be called for each session.
 		 * Function signature :
 		 * void(std::shared_ptr<asio2::xxx_session>& session_ptr)
 		 */
@@ -284,7 +284,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : find the session by session's hash key
+		 * @brief find the session by session's hash key
 		 */
 		template<class KeyType>
 		inline std::shared_ptr<session_t> find_session(const KeyType& key)
@@ -293,11 +293,11 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : find the session by user custom role
-		 * @param    : fn - The handler to be called when search the session.
+		 * @brief find the session by user custom role
+		 * @param fn - The handler to be called when search the session.
 		 * Function signature :
 		 * bool(std::shared_ptr<asio2::xxx_session>& session_ptr)
-		 * @return   : std::shared_ptr<asio2::xxx_session>
+		 * @return std::shared_ptr<asio2::xxx_session>
 		 */
 		template<class Fun>
 		inline std::shared_ptr<session_t> find_session_if(Fun&& fn)
@@ -306,17 +306,17 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get the io object refrence
+		 * @brief get the io object refrence
 		 */
 		inline io_t & io() noexcept { return this->io_; }
 
 	protected:
 		/**
-		 * @function : get the recv/read allocator object refrence
+		 * @brief get the recv/read allocator object refrence
 		 */
 		inline auto & rallocator() noexcept { return this->rallocator_; }
 		/**
-		 * @function : get the send/write/post allocator object refrence
+		 * @brief get the send/write/post allocator object refrence
 		 */
 		inline auto & wallocator() noexcept { return this->wallocator_; }
 

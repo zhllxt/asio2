@@ -60,7 +60,7 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		template<typename... Args>
 		explicit http_request_impl_t(Args&&... args)
@@ -134,7 +134,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~http_request_impl_t()
 		{
@@ -159,12 +159,12 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @function : Returns `true` if this HTTP request is a WebSocket Upgrade.
+		 * @brief Returns `true` if this HTTP request is a WebSocket Upgrade.
 		 */
 		inline bool is_upgrade() noexcept { return websocket::is_upgrade(*this); }
 
 		/**
-		 * @function : Gets the content of the "schema" section, maybe empty
+		 * @brief Gets the content of the "schema" section, maybe empty
 		 * <scheme>://<user>:<password>@<host>:<port>/<path>;<params>?<query>#<fragment>
 		 */
 		inline std::string_view get_schema() noexcept
@@ -173,7 +173,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Gets the content of the "schema" section, maybe empty
+		 * @brief Gets the content of the "schema" section, maybe empty
 		 * <scheme>://<user>:<password>@<host>:<port>/<path>;<params>?<query>#<fragment>
 		 * same as get_schema
 		 */
@@ -183,7 +183,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Gets the content of the "host" section, maybe empty
+		 * @brief Gets the content of the "host" section, maybe empty
 		 * <scheme>://<user>:<password>@<host>:<port>/<path>;<params>?<query>#<fragment>
 		 */
 		inline std::string_view get_host() noexcept
@@ -192,7 +192,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Gets the content of the "host" section, maybe empty
+		 * @brief Gets the content of the "host" section, maybe empty
 		 * <scheme>://<user>:<password>@<host>:<port>/<path>;<params>?<query>#<fragment>
 		 * same as get_host
 		 */
@@ -202,7 +202,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Gets the content of the "port" section, maybe empty
+		 * @brief Gets the content of the "port" section, maybe empty
 		 * <scheme>://<user>:<password>@<host>:<port>/<path>;<params>?<query>#<fragment>
 		 */
 		inline std::string_view get_port() noexcept
@@ -211,7 +211,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Gets the content of the "port" section, maybe empty
+		 * @brief Gets the content of the "port" section, maybe empty
 		 * <scheme>://<user>:<password>@<host>:<port>/<path>;<params>?<query>#<fragment>
 		 * same as get_port
 		 */
@@ -221,7 +221,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Gets the content of the "path" section of the target
+		 * @brief Gets the content of the "path" section of the target
 		 * <scheme>://<user>:<password>@<host>:<port>/<path>;<params>?<query>#<fragment>
 		 */
 		inline std::string_view get_path()
@@ -240,7 +240,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Gets the content of the "path" section of the target
+		 * @brief Gets the content of the "path" section of the target
 		 * <scheme>://<user>:<password>@<host>:<port>/<path>;<params>?<query>#<fragment>
 		 * same as get_path
 		 */
@@ -250,7 +250,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Gets the content of the "query" section of the target
+		 * @brief Gets the content of the "query" section of the target
 		 * <scheme>://<user>:<password>@<host>:<port>/<path>;<params>?<query>#<fragment>
 		 */
 		inline std::string_view get_query()
@@ -269,7 +269,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Gets the content of the "query" section of the target
+		 * @brief Gets the content of the "query" section of the target
 		 * <scheme>://<user>:<password>@<host>:<port>/<path>;<params>?<query>#<fragment>
 		 * same as get_query
 		 */
@@ -279,7 +279,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Returns `true` if this HTTP request's Content-Type is "multipart/form-data";
+		 * @brief Returns `true` if this HTTP request's Content-Type is "multipart/form-data";
 		 */
 		inline bool has_multipart() noexcept
 		{
@@ -287,7 +287,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Get the "multipart/form-data" body content.
+		 * @brief Get the "multipart/form-data" body content.
 		 */
 		inline decltype(auto) get_multipart()
 		{
@@ -295,7 +295,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Get the "multipart/form-data" body content. same as get_multipart
+		 * @brief Get the "multipart/form-data" body content. same as get_multipart
 		 */
 		inline decltype(auto) multipart()
 		{
@@ -303,12 +303,12 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Get the url object reference. same as get_url
+		 * @brief Get the url object reference. same as get_url
 		 */
 		inline http::url&    url() { return this->url_; }
 
 		/**
-		 * @function : Get the url object reference.
+		 * @brief Get the url object reference.
 		 */
 		inline http::url& get_url() { return this->url_; }
 

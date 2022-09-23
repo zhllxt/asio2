@@ -36,12 +36,12 @@ namespace asio2::detail
 	{
 	public:
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		mqtt_send_op() {}
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~mqtt_send_op() = default;
 

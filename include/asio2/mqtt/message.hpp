@@ -189,7 +189,7 @@ namespace asio2::mqtt
 		inline super&       variant()       noexcept { return *this; }
 
 		/**
-		 * @function Checks if the variant holds anyone of the alternative Types...
+		 * @brief Checks if the variant holds anyone of the alternative Types...
 		 */
 		template<class... Types>
 		inline bool has() noexcept
@@ -198,7 +198,7 @@ namespace asio2::mqtt
 		}
 
 		/**
-		 * @function Checks if the variant holds anyone of the alternative Types...
+		 * @brief Checks if the variant holds anyone of the alternative Types...
 		 */
 		template<class... Types>
 		inline bool holds() noexcept
@@ -207,7 +207,7 @@ namespace asio2::mqtt
 		}
 
 		/**
-		 * @function Checks if the variant holds any v3 message
+		 * @brief Checks if the variant holds any v3 message
 		 */
 		inline bool holds_v3_message() const noexcept
 		{
@@ -217,7 +217,7 @@ namespace asio2::mqtt
 		}
 
 		/**
-		 * @function Checks if the variant holds any v4 message
+		 * @brief Checks if the variant holds any v4 message
 		 */
 		inline bool holds_v4_message() const noexcept
 		{
@@ -227,7 +227,7 @@ namespace asio2::mqtt
 		}
 
 		/**
-		 * @function Checks if the variant holds any v5 message
+		 * @brief Checks if the variant holds any v5 message
 		 */
 		inline bool holds_v5_message() const noexcept
 		{
@@ -237,7 +237,7 @@ namespace asio2::mqtt
 		}
 
 		/**
-		 * @function If this holds the alternative T, returns a pointer to the value stored in the variant.
+		 * @brief If this holds the alternative T, returns a pointer to the value stored in the variant.
 		 * Otherwise, returns a null pointer value.
 		 */
 		template<class T>
@@ -247,7 +247,7 @@ namespace asio2::mqtt
 		}
 
 		/**
-		 * @function If this holds the alternative T, returns a reference to the value stored in the variant.
+		 * @brief If this holds the alternative T, returns a reference to the value stored in the variant.
 		 * Otherwise, throws std::bad_variant_access.
 		 */
 		template<class T>
@@ -257,7 +257,7 @@ namespace asio2::mqtt
 		}
 
 		/**
-		 * @function If this holds a valid value.
+		 * @brief If this holds a valid value.
 		 */
 		inline bool empty() noexcept
 		{
@@ -265,7 +265,7 @@ namespace asio2::mqtt
 		}
 
 		/**
-		 * @function Invoke the callback if the variant holds the alternative Types...
+		 * @brief Invoke the callback if the variant holds the alternative Types...
 		 * @return 
 		 * If the callback return type is void :
 		 *   If the variant holds the alternative Types... , the callback will be called, then return true

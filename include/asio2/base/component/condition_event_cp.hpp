@@ -117,7 +117,7 @@ namespace asio2
 
 	public:
 		/**
-		 * @function : wakeup the waiting condition event.
+		 * @brief wakeup the waiting condition event.
 		 */
 		inline void notify()
 		{
@@ -167,18 +167,18 @@ namespace asio2::detail
 	{
 	public:
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		condition_event_cp() = default;
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~condition_event_cp() = default;
 
 	public:
 		/**
-		 * @function : Post a asynchronous event to execution util the event is notifyed by user.
+		 * @brief Post a asynchronous event to execution util the event is notifyed by user.
 		 * Before you call event_ptr->notify(); the event will not execute forever.
 		 * The function signature of the handler must be : void handler();
 		 */
@@ -192,7 +192,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Post a asynchronous condition event to execution util the event is notifyed by user.
+		 * @brief Post a asynchronous condition event to execution util the event is notifyed by user.
 		 * Before you call event_ptr->notify(); the event will not execute forever.
 		 * The function signature of the handler must be : void handler();
 		 */
@@ -222,7 +222,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Notify all async_events to execute.
+		 * @brief Notify all async_events to execute.
 		 */
 		[[deprecated("Replace notify_all_events with notify_all_condition_events")]]
 		inline derived_t& notify_all_events()
@@ -233,7 +233,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Notify all condition events to execute.
+		 * @brief Notify all condition events to execute.
 		 */
 		inline derived_t& notify_all_condition_events()
 		{

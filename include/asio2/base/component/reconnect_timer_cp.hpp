@@ -27,19 +27,19 @@ namespace asio2::detail
 	{
 	public:
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		 reconnect_timer_cp() = default;
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~reconnect_timer_cp() = default;
 
 	public:
 		/**
-		 * @function : set the option of whether auto reconnect when disconnected, same as set_auto_reconnect
-		 * @param : enable - whether reconnect or not
+		 * @brief set the option of whether auto reconnect when disconnected, same as set_auto_reconnect
+		 * @param enable - whether reconnect or not
 		 */
 		template<typename = void>
 		inline derived_t& auto_reconnect(bool enable) noexcept
@@ -48,9 +48,9 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : set the option of whether auto reconnect when disconnected, same as set_auto_reconnect
-		 * @param : enable - whether reconnect or not
-		 * @param : delay - how long is the delay before reconnecting, when enalbe is
+		 * @brief set the option of whether auto reconnect when disconnected, same as set_auto_reconnect
+		 * @param enable - whether reconnect or not
+		 * @param delay - how long is the delay before reconnecting, when enalbe is
 		 * false, the delay param is ignored
 		 */
 		template<class Rep, class Period>
@@ -60,8 +60,8 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : set the option of whether auto reconnect when disconnected
-		 * @param : enable - whether reconnect or not
+		 * @brief set the option of whether auto reconnect when disconnected
+		 * @param enable - whether reconnect or not
 		 */
 		template<typename = void>
 		inline derived_t& set_auto_reconnect(bool enable) noexcept
@@ -71,9 +71,9 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : set the option of whether auto reconnect when disconnected
-		 * @param : enable - whether reconnect or not
-		 * @param : delay - how long is the delay before reconnecting, when enalbe is
+		 * @brief set the option of whether auto reconnect when disconnected
+		 * @param enable - whether reconnect or not
+		 * @param delay - how long is the delay before reconnecting, when enalbe is
 		 * false, the delay param is ignored
 		 */
 		template<class Rep, class Period>
@@ -85,7 +85,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get whether auto reconnect is enabled or not
+		 * @brief get whether auto reconnect is enabled or not
 		 */
 		template<typename = void>
 		inline bool is_auto_reconnect() noexcept
@@ -94,7 +94,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get the delay before reconnecting, when enalbe is
+		 * @brief get the delay before reconnecting, when enalbe is
 		 */
 		template<typename = void>
 		inline std::chrono::steady_clock::duration get_auto_reconnect_delay() noexcept

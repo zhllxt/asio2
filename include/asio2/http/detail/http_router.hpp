@@ -272,7 +272,7 @@ namespace asio2::detail
 		using optype = std::function<bool(std::shared_ptr<caller_t>&, http::web_request&, http::web_response&)>;
 
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		http_router_t()
 		{
@@ -294,15 +294,15 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~http_router_t() = default;
 
 		/**
-		 * @function : bind a function for http router
-		 * @param    : name - uri name in string format
-		 * @param    : fun - Function object
-		 * @param    : caop - A pointer or reference to a class object, and aop object list.
+		 * @brief bind a function for http router
+		 * @param name - uri name in string format.
+		 * @param fun - Function object.
+		 * @param caop - A pointer or reference to a class object, and aop object list.
 		 * if fun is member function, the first caop param must the class object's pointer or refrence.
 		 */
 		template<http::verb... M, class F, class ...CAOP>
@@ -336,10 +336,10 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : bind a function for websocket router
-		 * @param    : name - uri name in string format
-		 * @param    : listener - callback listener
-		 * @param    : aop - aop object list.
+		 * @brief bind a function for websocket router
+		 * @param name - uri name in string format.
+		 * @param listener - callback listener.
+		 * @param aop - aop object list.
 		 */
 		template<class ...AOP>
 		inline self& bind(std::string name, websocket::listener<caller_t> listener, AOP&&... aop)
@@ -355,7 +355,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : set the 404 not found router function
+		 * @brief set the 404 not found router function
 		 */
 		template<class F, class ...C>
 		inline self& bind_not_found(F&& f, C&&... obj)
@@ -365,7 +365,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : set the 404 not found router function
+		 * @brief set the 404 not found router function
 		 */
 		template<class F, class ...C>
 		inline self& bind_404(F&& f, C&&... obj)
@@ -376,7 +376,7 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @function : set the root directory where we load the files.
+		 * @brief set the root directory where we load the files.
 		 */
 		inline self& set_root_directory(std::filesystem::path path)
 		{
@@ -385,7 +385,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get the root directory where we load the files.
+		 * @brief get the root directory where we load the files.
 		 */
 		inline const std::filesystem::path& get_root_directory() noexcept
 		{
@@ -393,7 +393,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : set whether websocket is supported, default is true
+		 * @brief set whether websocket is supported, default is true
 		 */
 		inline self& set_support_websocket(bool v) noexcept
 		{
@@ -402,7 +402,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : set whether websocket is supported, default is true, same as set_support_websocket
+		 * @brief set whether websocket is supported, default is true, same as set_support_websocket
 		 */
 		inline self& support_websocket(bool v) noexcept
 		{
@@ -410,7 +410,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get whether websocket is supported, default is true
+		 * @brief get whether websocket is supported, default is true
 		 */
 		inline bool is_support_websocket() noexcept
 		{

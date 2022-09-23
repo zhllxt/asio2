@@ -25,7 +25,7 @@ namespace boost::beast::http
 #endif
 {
 	/**
-	 * @function : make A typical HTTP request struct from the uri
+	 * @brief make A typical HTTP request struct from the uri
 	 * if the string is a url, it must start with http or https,
 	 * eg : the url must be "https://www.github.com", the url can't be "www.github.com"
 	 */
@@ -93,7 +93,7 @@ namespace boost::beast::http
 	}
 
 	/**
-	 * @function : make A typical HTTP request struct from the uri
+	 * @brief make A typical HTTP request struct from the uri
 	 */
 	template<typename String, typename StrOrInt>
 	inline http::web_request make_request(String&& host, StrOrInt&& port,

@@ -64,7 +64,7 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		explicit ws_session_impl_t(
 			session_mgr_t<derived_t> & sessions,
@@ -80,7 +80,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~ws_session_impl_t()
 		{
@@ -88,7 +88,7 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @function : get this object hash key,used for session map
+		 * @brief get this object hash key,used for session map
 		 */
 		inline key_type hash_key() const noexcept
 		{

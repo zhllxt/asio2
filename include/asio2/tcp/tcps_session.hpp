@@ -55,7 +55,7 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		explicit tcps_session_impl_t(
 			asio::ssl::context       & ctx,
@@ -72,7 +72,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~tcps_session_impl_t()
 		{
@@ -80,7 +80,7 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @function : get this object hash key,used for session map
+		 * @brief get this object hash key,used for session map
 		 */
 		inline key_type hash_key() const noexcept
 		{
@@ -88,7 +88,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get the stream object refrence
+		 * @brief get the stream object refrence
 		 */
 		inline typename ssl_stream_comp::stream_type & stream() noexcept
 		{
@@ -155,6 +155,9 @@ namespace asio2::detail
 
 namespace asio2
 {
+	/**
+	 * @brief ssl tcp session
+	 */
 	template<class derived_t>
 	class tcps_session_t : public detail::tcps_session_impl_t<derived_t, detail::template_args_tcp_session>
 	{
@@ -162,6 +165,9 @@ namespace asio2
 		using detail::tcps_session_impl_t<derived_t, detail::template_args_tcp_session>::tcps_session_impl_t;
 	};
 
+	/**
+	 * @brief ssl tcp session
+	 */
 	class tcps_session : public tcps_session_t<tcps_session>
 	{
 	public:

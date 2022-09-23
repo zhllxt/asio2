@@ -588,8 +588,8 @@ namespace asio2::detail
 
 	/**
 	 * Swaps the order of bytes for some chunk of memory
-	 * @param data The data as a uint8_t pointer
-	 * @tparam DataSize The true size of the data
+	 * @param data - The data as a uint8_t pointer
+	 * @tparam DataSize - The true size of the data
 	 */
 	template <std::size_t DataSize>
 	inline void swap_bytes(std::uint8_t * data) noexcept

@@ -34,18 +34,18 @@ namespace asio2::detail
 	{
 	protected:
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		object_t() = default;
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~object_t() = default;
 
 	protected:
 		/**
-		 * @function : obtain derived class object through CRTP mechanism
+		 * @brief obtain derived class object through CRTP mechanism
 		 */
 		inline const derived_t & derived() const noexcept
 		{
@@ -53,7 +53,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : obtain derived class object through CRTP mechanism
+		 * @brief obtain derived class object through CRTP mechanism
 		 */
 		inline derived_t & derived() noexcept
 		{
@@ -61,7 +61,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : if the "derived_t" is created like a "shared_ptr", it will return
+		 * @brief if the "derived_t" is created like a "shared_ptr", it will return
 		 *             a not empty shared_ptr<derived_t>, othwise it will return a empty
 		 *             shared_ptr<derived_t>.
 		 */
@@ -89,18 +89,18 @@ namespace asio2::detail
 	{
 	protected:
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		object_t() = default;
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~object_t() = default;
 
 	protected:
 		/**
-		 * @function : obtain derived class object through CRTP mechanism
+		 * @brief obtain derived class object through CRTP mechanism
 		 */
 		inline const derived_t & derived() const noexcept
 		{
@@ -108,7 +108,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : obtain derived class object through CRTP mechanism
+		 * @brief obtain derived class object through CRTP mechanism
 		 */
 		inline derived_t & derived() noexcept
 		{
@@ -116,7 +116,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : always return a empty shared_ptr<derived_t>.
+		 * @brief always return a empty shared_ptr<derived_t>.
 		 */
 		inline std::shared_ptr<derived_t> selfptr() noexcept
 		{

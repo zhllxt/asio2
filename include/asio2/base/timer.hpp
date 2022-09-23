@@ -65,7 +65,7 @@ namespace asio2::detail
 		using iopoolcp = iopool_cp<derived_t>;
 
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		explicit timer_impl_t()
 			: object_t          <derived_t>()
@@ -91,7 +91,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~timer_impl_t()
 		{
@@ -99,7 +99,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : start
+		 * @brief start
 		 */
 		inline bool start()
 		{
@@ -123,7 +123,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : stop
+		 * @brief stop
 		 */
 		inline void stop()
 		{
@@ -149,17 +149,17 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @function : get the io object refrence
+		 * @brief get the io object refrence
 		 */
 		inline io_t & io() noexcept { return this->io_; }
 
 	protected:
 		/**
-		 * @function : get the recv/read allocator object refrence
+		 * @brief get the recv/read allocator object refrence
 		 */
 		inline auto & rallocator() noexcept { return this->wallocator_; }
 		/**
-		 * @function : get the send/write allocator object refrence
+		 * @brief get the send/write allocator object refrence
 		 */
 		inline auto & wallocator() noexcept { return this->wallocator_; }
 

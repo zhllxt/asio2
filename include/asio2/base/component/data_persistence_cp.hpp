@@ -38,12 +38,12 @@ namespace asio2::detail
 	{
 	public:
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		data_persistence_cp() = default;
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~data_persistence_cp() = default;
 

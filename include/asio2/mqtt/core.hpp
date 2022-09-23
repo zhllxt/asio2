@@ -271,7 +271,7 @@ namespace asio2::mqtt
 	}
 
 	/*
-	 * @return : pair.first - the integer value, pair.second - number of bytes
+	 * @return pair.first - the integer value, pair.second - number of bytes
 	 * 
 	 * The algorithm for decoding a Variable Byte Integer type is as follows:
 	 * https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901011

@@ -43,12 +43,12 @@ namespace asio2::detail
 		using subnode_type = typename args_type::template subnode<derived_t>;
 
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		mqtt_subscribe_router_t() = default;
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~mqtt_subscribe_router_t() = default;
 

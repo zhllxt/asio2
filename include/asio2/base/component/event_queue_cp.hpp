@@ -379,17 +379,17 @@ namespace asio2::detail
 	{
 	public:
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		event_queue_cp() noexcept {}
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~event_queue_cp() = default;
 
 		/**
-		 * @function Get pending event count in the event queue.
+		 * @brief Get pending event count in the event queue.
 		 */
 		inline std::size_t get_pending_event_count() const noexcept
 		{

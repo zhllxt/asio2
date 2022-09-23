@@ -27,7 +27,7 @@ namespace asio2::detail
 	{
 	public:
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		explicit silence_timer_cp(io_t & io) : silence_timer_(io.context())
 		{
@@ -35,13 +35,13 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~silence_timer_cp() = default;
 
 	public:
 		/**
-		 * @function : get silence timeout value
+		 * @brief get silence timeout value
 		 */
 		inline std::chrono::steady_clock::duration get_silence_timeout() const noexcept
 		{
@@ -49,7 +49,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : set silence timeout value
+		 * @brief set silence timeout value
 		 */
 		template<class Rep, class Period>
 		inline derived_t & set_silence_timeout(std::chrono::duration<Rep, Period> duration) noexcept

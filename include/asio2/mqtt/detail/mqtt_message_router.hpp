@@ -67,12 +67,12 @@ namespace asio2::detail
 		};
 
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		mqtt_message_router_t() = default;
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~mqtt_message_router_t() = default;
 

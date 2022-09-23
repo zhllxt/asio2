@@ -42,12 +42,12 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		tcp_send_op() noexcept {}
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~tcp_send_op() = default;
 

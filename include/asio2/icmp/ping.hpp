@@ -113,9 +113,9 @@ namespace asio2::detail
 		using buffer_type = typename args_t::buffer_t;
 
 		/**
-		 * @constructor
-		 * @param send_count Total number of echo packets you want to send
-		 * send_count equals -1 for infinite send
+		 * @brief constructor
+		 * @param send_count - Total number of echo packets you want to send,
+		 * send_count equals -1 for infinite send,
 		 * Other parameters should use default values.
 		 */
 		explicit ping_impl_t(
@@ -172,7 +172,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~ping_impl_t()
 		{
@@ -180,8 +180,8 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : start
-		 * @param host A string identifying a location. May be a descriptive name or
+		 * @brief start
+		 * @param host - A string identifying a location. May be a descriptive name or
 		 * a numeric address string.  example : "151.101.193.69" or "www.google.com"
 		 */
 		template<typename String>
@@ -191,7 +191,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : stop
+		 * @brief stop
 		 */
 		inline void stop()
 		{
@@ -211,7 +211,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : check whether the client is started
+		 * @brief check whether the client is started
 		 */
 		inline bool is_started() const
 		{
@@ -219,7 +219,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : check whether the client is stopped
+		 * @brief check whether the client is stopped
 		 */
 		inline bool is_stopped() const
 		{
@@ -228,7 +228,7 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @function : sync ping the host, and return the response directly.
+		 * @brief sync ping the host, and return the response directly.
 		 * if some error occurs, call asio2::get_last_error(); to get the error info.
 		 */
 		template<class Rep, class Period>
@@ -366,7 +366,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : sync ping the host, and return the response directly.
+		 * @brief sync ping the host, and return the response directly.
 		 * if some error occurs, call asio2::get_last_error(); to get the error info.
 		 */
 		template<class Rep, class Period>
@@ -376,7 +376,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : sync ping the host, and return the response directly.
+		 * @brief sync ping the host, and return the response directly.
 		 * if some error occurs, call asio2::get_last_error(); to get the error info.
 		 */
 		static inline icmp_rep execute(std::string_view host)
@@ -386,9 +386,9 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @function : bind recv listener
-		 * @param    : fun - a user defined callback function
-		 * void on_recv(asio2::icmp_rep& rep){...}
+		 * @brief bind recv listener
+		 * @param fun - a user defined callback function.
+		 * @li void on_recv(asio2::icmp_rep& rep){...}
 		 * or a lumbda function like this :
 		 * [&](asio2::icmp_rep& rep){...}
 		 */
@@ -401,9 +401,9 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : bind init listener,we should set socket options at here
-		 * @param    : fun - a user defined callback function
-		 * This notification is called after the socket is opened.
+		 * @brief bind init listener,we should set socket options at here
+		 * @param fun - a user defined callback function.
+		 * @li This notification is called after the socket is opened.
 		 * You can set the socket option in this notification.
 		 * Function signature : void()
 		 */
@@ -416,9 +416,9 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : bind start listener
-		 * @param    : fun - a user defined callback function
-		 * This notification is called after the server starts up, whether successful or unsuccessful
+		 * @brief bind start listener
+		 * @param fun - a user defined callback function.
+		 * @li This notification is called after the server starts up, whether successful or unsuccessful
 		 * Function signature : void()
 		 */
 		template<class F, class ...C>
@@ -430,9 +430,9 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : bind stop listener
-		 * @param    : fun - a user defined callback function
-		 * This notification is called before the server is ready to stop
+		 * @brief bind stop listener
+		 * @param fun - a user defined callback function.
+		 * @li This notification is called before the server is ready to stop
 		 * Function signature : void()
 		 */
 		template<class F, class ...C>
@@ -445,18 +445,18 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @function : get the socket object refrence
+		 * @brief get the socket object refrence
 		 */
 		inline socket_type & socket() noexcept { return this->socket_; }
 
 		/**
-		 * @function : get the stream object refrence
+		 * @brief get the stream object refrence
 		 */
 		inline socket_type & stream() noexcept { return this->socket_; }
 
 	public:
 		/**
-		 * @function : set icmp protocol identifier
+		 * @brief set icmp protocol identifier
 		 */
 		template<class Integer>
 		inline derived_t & set_identifier(Integer id) noexcept
@@ -465,7 +465,7 @@ namespace asio2::detail
 			return (this->derived());
 		}
 		/**
-		 * @function : get icmp protocol identifier
+		 * @brief get icmp protocol identifier
 		 */
 		inline unsigned short get_identifier() noexcept
 		{
@@ -473,7 +473,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : set reply timeout duration value
+		 * @brief set reply timeout duration value
 		 */
 		template<class Rep, class Period>
 		inline derived_t & set_timeout(std::chrono::duration<Rep, Period> duration) noexcept
@@ -482,7 +482,7 @@ namespace asio2::detail
 			return (this->derived());
 		}
 		/**
-		 * @function : set reply timeout duration value, same as set_timeout
+		 * @brief set reply timeout duration value, same as set_timeout
 		 */
 		template<class Rep, class Period>
 		inline derived_t & timeout(std::chrono::duration<Rep, Period> duration) noexcept
@@ -491,14 +491,14 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get reply timeout duration value
+		 * @brief get reply timeout duration value
 		 */
 		inline std::chrono::steady_clock::duration get_timeout() noexcept
 		{
 			return this->timeout_;
 		}
 		/**
-		 * @function : get reply timeout duration value, same as get_timeout
+		 * @brief get reply timeout duration value, same as get_timeout
 		 */
 		inline std::chrono::steady_clock::duration timeout() noexcept
 		{
@@ -506,7 +506,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : set send interval duration value
+		 * @brief set send interval duration value
 		 */
 		template<class Rep, class Period>
 		inline derived_t & set_interval(std::chrono::duration<Rep, Period> duration) noexcept
@@ -516,7 +516,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : set send interval duration value, same as set_interval
+		 * @brief set send interval duration value, same as set_interval
 		 */
 		template<class Rep, class Period>
 		inline derived_t & interval(std::chrono::duration<Rep, Period> duration) noexcept
@@ -525,7 +525,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get send interval duration value
+		 * @brief get send interval duration value
 		 */
 		inline std::chrono::steady_clock::duration get_interval() noexcept
 		{
@@ -533,7 +533,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get send interval duration value, same as get_interval
+		 * @brief get send interval duration value, same as get_interval
 		 */
 		inline std::chrono::steady_clock::duration interval() noexcept
 		{
@@ -541,7 +541,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : set icmp payload body
+		 * @brief set icmp payload body
 		 * This function is the same as the "payload()" function
 		 */
 		inline derived_t & set_body(std::string_view body)
@@ -553,7 +553,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : set icmp payload body, same as set_body
+		 * @brief set icmp payload body, same as set_body
 		 * This function is the same as the "payload()" function
 		 */
 		inline derived_t & body(std::string_view body)
@@ -562,7 +562,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : set icmp payload body
+		 * @brief set icmp payload body
 		 * This function is the same as the "body()" function
 		 */
 		inline derived_t & set_payload(std::string_view body)
@@ -571,7 +571,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : set icmp payload body, same as set_payload
+		 * @brief set icmp payload body, same as set_payload
 		 * This function is the same as the "body()" function
 		 */
 		inline derived_t & payload(std::string_view body)
@@ -580,17 +580,17 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get the resolved host ip
+		 * @brief get the resolved host ip
 		 */
 		inline std::string get_host_ip() { return this->destination_.address().to_string(); }
 
 		/**
-		 * @function : get the resolved host ip, same as get_host_ip
+		 * @brief get the resolved host ip, same as get_host_ip
 		 */
 		inline std::string host_ip() { return this->get_host_ip(); }
 
 		/**
-		 * @function : Set the total number of echo packets you want to send
+		 * @brief Set the total number of echo packets you want to send
 		 */
 		inline derived_t & set_ncount(std::size_t send_count) noexcept
 		{
@@ -599,7 +599,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Set the total number of echo packets you want to send, same as set_ncount
+		 * @brief Set the total number of echo packets you want to send, same as set_ncount
 		 */
 		inline derived_t & ncount(std::size_t send_count) noexcept
 		{
@@ -607,27 +607,27 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Get the total number of echo packets has sent, same as get_total_send
+		 * @brief Get the total number of echo packets has sent, same as get_total_send
 		 */
 		inline std::size_t total_send() noexcept { return this->total_send_; }
 
 		/**
-		 * @function : Get the total number of reply packets has recved, same as get_total_recv
+		 * @brief Get the total number of reply packets has recved, same as get_total_recv
 		 */
 		inline std::size_t total_recv() noexcept { return this->total_recv_; }
 
 		/**
-		 * @function : Get the total number of echo packets has sent
+		 * @brief Get the total number of echo packets has sent
 		 */
 		inline std::size_t get_total_send() noexcept { return this->total_send_; }
 
 		/**
-		 * @function : Get the total number of reply packets has recved
+		 * @brief Get the total number of reply packets has recved
 		 */
 		inline std::size_t get_total_recv() noexcept { return this->total_recv_; }
 
 		/**
-		 * @function : Get the packet loss probability (loss rate)
+		 * @brief Get the packet loss probability (loss rate)
 		 */
 		inline double get_plp() noexcept
 		{
@@ -637,7 +637,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Get the packet loss probability (loss rate), same as get_plp
+		 * @brief Get the packet loss probability (loss rate), same as get_plp
 		 */
 		inline double plp() noexcept
 		{
@@ -645,7 +645,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Get the average duration of elapsed when recved reply packets
+		 * @brief Get the average duration of elapsed when recved reply packets
 		 */
 		inline std::chrono::steady_clock::duration get_avg_lag() noexcept
 		{
@@ -656,7 +656,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Get the average duration of elapsed when recved reply packets, same as get_avg_lag
+		 * @brief Get the average duration of elapsed when recved reply packets, same as get_avg_lag
 		 */
 		inline std::chrono::steady_clock::duration avg_lag() noexcept
 		{
@@ -1107,21 +1107,21 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @function : get the buffer object refrence
+		 * @brief get the buffer object refrence
 		 */
 		inline buffer_wrap<buffer_type> & buffer() noexcept { return this->buffer_; }
 		/**
-		 * @function : get the io object refrence
+		 * @brief get the io object refrence
 		 */
 		inline io_t & io() noexcept { return this->io_; }
 
 	protected:
 		/**
-		 * @function : get the recv/read allocator object refrence
+		 * @brief get the recv/read allocator object refrence
 		 */
 		inline auto & rallocator() noexcept { return this->rallocator_; }
 		/**
-		 * @function : get the timer/post allocator object refrence
+		 * @brief get the timer/post allocator object refrence
 		 */
 		inline auto & wallocator() noexcept { return this->wallocator_; }
 
@@ -1183,9 +1183,9 @@ namespace asio2
 	};
 
 	/**
-	 * @constructor Parameter description
-	 * @param send_count Total number of echo packets you want to send
-	 * send_count equals -1 for infinite send
+	 * @brief constructor Parameter description
+	 * @param send_count - Total number of echo packets you want to send,
+	 * send_count equals -1 for infinite send,
 	 * Other parameters should use default values.
 	 */
 	class ping : public ping_t<ping>

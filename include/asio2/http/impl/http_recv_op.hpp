@@ -37,12 +37,12 @@ namespace asio2::detail
 		using buffer_type = typename args_t::buffer_t;
 
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		http_recv_op() noexcept {}
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~http_recv_op() = default;
 

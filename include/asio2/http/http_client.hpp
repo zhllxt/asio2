@@ -64,7 +64,7 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		template<class... Args>
 		explicit http_client_impl_t(Args&&... args)
@@ -76,7 +76,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~http_client_impl_t()
 		{
@@ -84,10 +84,10 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : start the client, blocking connect to server
-		 * @param host A string identifying a location. May be a descriptive name or
+		 * @brief start the client, blocking connect to server
+		 * @param host - A string identifying a location. May be a descriptive name or
 		 * a numeric address string.
-		 * @param port A string identifying the requested service. This may be a
+		 * @param port - A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
 		 */
 		template<typename String, typename StrOrInt, typename... Args>
@@ -99,10 +99,10 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : start the client, asynchronous connect to server
-		 * @param host A string identifying a location. May be a descriptive name or
+		 * @brief start the client, asynchronous connect to server
+		 * @param host - A string identifying a location. May be a descriptive name or
 		 * a numeric address string.
-		 * @param port A string identifying the requested service. This may be a
+		 * @param port - A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
 		 */
 		template<typename String, typename StrOrInt, typename... Args>
@@ -115,22 +115,22 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @function : get the request object, same as get_request
+		 * @brief get the request object, same as get_request
 		 */
 		inline const http::web_request & request() noexcept { return this->req_; }
 
 		/**
-		 * @function : get the response object, same as get_response
+		 * @brief get the response object, same as get_response
 		 */
 		inline const http::web_response& response() noexcept { return this->rep_; }
 
 		/**
-		 * @function : get the request object
+		 * @brief get the request object
 		 */
 		inline const http::web_request & get_request() noexcept { return this->req_; }
 
 		/**
-		 * @function : get the response object
+		 * @brief get the response object
 		 */
 		inline const http::web_response& get_response() noexcept { return this->rep_; }
 
@@ -299,7 +299,7 @@ namespace asio2::detail
 		// ----------------------------------------------------------------------------------------
 
 		/**
-		 * @function : blocking execute the http request until it is returned on success or failure
+		 * @brief blocking execute the http request until it is returned on success or failure
 		 */
 		template<class Rep, class Period, class Body = http::string_body, class Fields = http::fields>
 		static inline http::response<Body, Fields> execute(std::string_view url,
@@ -315,7 +315,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : blocking execute the http request until it is returned on success or failure
+		 * @brief blocking execute the http request until it is returned on success or failure
 		 */
 		template<class Body = http::string_body, class Fields = http::fields>
 		static inline http::response<Body, Fields> execute(std::string_view url)
@@ -326,7 +326,7 @@ namespace asio2::detail
 		// ----------------------------------------------------------------------------------------
 
 		/**
-		 * @function : blocking execute the http request until it is returned on success or failure
+		 * @brief blocking execute the http request until it is returned on success or failure
 		 */
 		template<typename String, typename StrOrInt, class Rep, class Period,
 			class Body = http::string_body, class Fields = http::fields>
@@ -344,7 +344,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : blocking execute the http request until it is returned on success or failure
+		 * @brief blocking execute the http request until it is returned on success or failure
 		 */
 		template<typename String, typename StrOrInt, class Body = http::string_body, class Fields = http::fields>
 		static inline http::response<Body, Fields> execute(String&& host, StrOrInt&& port,
@@ -386,7 +386,7 @@ namespace asio2::detail
 		// ----------------------------------------------------------------------------------------
 
 		/**
-		 * @function : blocking execute the http request until it is returned on success or failure
+		 * @brief blocking execute the http request until it is returned on success or failure
 		 */
 		template<class Rep, class Period, class Proxy, class Body = http::string_body, class Fields = http::fields>
 		static inline http::response<Body, Fields> execute(std::string_view url,
@@ -401,7 +401,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : blocking execute the http request until it is returned on success or failure
+		 * @brief blocking execute the http request until it is returned on success or failure
 		 */
 		template<class Proxy, class Body = http::string_body, class Fields = http::fields>
 		static inline http::response<Body, Fields> execute(std::string_view url, Proxy&& proxy)
@@ -412,7 +412,7 @@ namespace asio2::detail
 		// ----------------------------------------------------------------------------------------
 
 		/**
-		 * @function : blocking execute the http request until it is returned on success or failure
+		 * @brief blocking execute the http request until it is returned on success or failure
 		 */
 		template<typename String, typename StrOrInt, class Rep, class Period, class Proxy,
 			class Body = http::string_body, class Fields = http::fields>
@@ -430,7 +430,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : blocking execute the http request until it is returned on success or failure
+		 * @brief blocking execute the http request until it is returned on success or failure
 		 */
 		template<typename String, typename StrOrInt, class Proxy,
 			class Body = http::string_body, class Fields = http::fields>
@@ -444,8 +444,8 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @function : bind recv listener
-		 * @param    : fun - a user defined callback function
+		 * @brief bind recv listener
+		 * @param fun - a user defined callback function
 		 * Function signature : void(http::web_request& req, http::web_response& rep)
 		 */
 		template<class F, class ...C>

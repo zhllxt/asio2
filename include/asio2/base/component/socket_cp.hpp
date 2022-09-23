@@ -28,8 +28,8 @@ namespace asio2::detail
 		using socket_type = std::remove_cv_t<std::remove_reference_t<typename args_t::socket_t>>;
 
 		/**
-		 * @constructor
-		 * maybe throw exception "Too many open files" (exception code : 24)
+		 * @brief constructor
+		 * @throws maybe throw exception "Too many open files" (exception code : 24)
 		 * asio::error::no_descriptors - Too many open files
 		 */
 		template<class ...Args>
@@ -38,13 +38,13 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~socket_cp() = default;
 
 	public:
 		/**
-		 * @function : get the socket object refrence
+		 * @brief get the socket object refrence
 		 */
 		inline socket_type & socket() noexcept
 		{
@@ -52,7 +52,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get the stream object refrence
+		 * @brief get the stream object refrence
 		 */
 		inline socket_type & stream() noexcept
 		{
@@ -60,7 +60,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get the local address, same as get_local_address
+		 * @brief get the local address, same as get_local_address
 		 */
 		inline std::string local_address() noexcept
 		{
@@ -68,7 +68,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get the local address
+		 * @brief get the local address
 		 */
 		inline std::string get_local_address() noexcept
 		{
@@ -84,7 +84,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get the local port, same as get_local_port
+		 * @brief get the local port, same as get_local_port
 		 */
 		inline unsigned short local_port() noexcept
 		{
@@ -92,7 +92,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get the local port
+		 * @brief get the local port
 		 */
 		inline unsigned short get_local_port() noexcept
 		{
@@ -108,7 +108,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get the remote address, same as get_remote_address
+		 * @brief get the remote address, same as get_remote_address
 		 */
 		inline std::string remote_address() noexcept
 		{
@@ -116,7 +116,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get the remote address
+		 * @brief get the remote address
 		 */
 		inline std::string get_remote_address() noexcept
 		{
@@ -132,7 +132,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get the remote port, same as get_remote_port
+		 * @brief get the remote port, same as get_remote_port
 		 */
 		inline unsigned short remote_port() noexcept
 		{
@@ -140,7 +140,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get the remote port
+		 * @brief get the remote port
 		 */
 		inline unsigned short get_remote_port() noexcept
 		{
@@ -157,7 +157,7 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @function : Implements the SOL_SOCKET/SO_SNDBUF socket option.
+		 * @brief Implements the SOL_SOCKET/SO_SNDBUF socket option.
 		 */
 		inline derived_t & set_sndbuf_size(int val) noexcept
 		{
@@ -173,7 +173,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Implements the SOL_SOCKET/SO_SNDBUF socket option.
+		 * @brief Implements the SOL_SOCKET/SO_SNDBUF socket option.
 		 */
 		inline int get_sndbuf_size() const noexcept
 		{
@@ -191,7 +191,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Implements the SOL_SOCKET/SO_RCVBUF socket option.
+		 * @brief Implements the SOL_SOCKET/SO_RCVBUF socket option.
 		 */
 		inline derived_t & set_rcvbuf_size(int val) noexcept
 		{
@@ -207,7 +207,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Implements the SOL_SOCKET/SO_RCVBUF socket option.
+		 * @brief Implements the SOL_SOCKET/SO_RCVBUF socket option.
 		 */
 		inline int get_rcvbuf_size() const noexcept
 		{
@@ -225,7 +225,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Implements the SOL_SOCKET/SO_KEEPALIVE socket option. same as set_keep_alive
+		 * @brief Implements the SOL_SOCKET/SO_KEEPALIVE socket option. same as set_keep_alive
 		 */
 		inline derived_t & keep_alive(bool val) noexcept
 		{
@@ -233,7 +233,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Implements the SOL_SOCKET/SO_KEEPALIVE socket option.
+		 * @brief Implements the SOL_SOCKET/SO_KEEPALIVE socket option.
 		 */
 		inline derived_t & set_keep_alive(bool val) noexcept
 		{
@@ -249,7 +249,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Implements the SOL_SOCKET/SO_KEEPALIVE socket option.
+		 * @brief Implements the SOL_SOCKET/SO_KEEPALIVE socket option.
 		 */
 		inline bool is_keep_alive() const noexcept
 		{
@@ -267,7 +267,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Implements the SOL_SOCKET/SO_REUSEADDR socket option. same as set_reuse_address
+		 * @brief Implements the SOL_SOCKET/SO_REUSEADDR socket option. same as set_reuse_address
 		 */
 		inline derived_t & reuse_address(bool val) noexcept
 		{
@@ -275,7 +275,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Implements the SOL_SOCKET/SO_REUSEADDR socket option.
+		 * @brief Implements the SOL_SOCKET/SO_REUSEADDR socket option.
 		 */
 		inline derived_t & set_reuse_address(bool val) noexcept
 		{
@@ -291,7 +291,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Implements the SOL_SOCKET/SO_REUSEADDR socket option.
+		 * @brief Implements the SOL_SOCKET/SO_REUSEADDR socket option.
 		 */
 		inline bool is_reuse_address() const noexcept
 		{
@@ -309,7 +309,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Implements the TCP_NODELAY socket option. same as set_no_delay
+		 * @brief Implements the TCP_NODELAY socket option. same as set_no_delay
 		 * If it's not a tcp socket, do nothing
 		 */
 		inline derived_t & no_delay(bool val) noexcept
@@ -318,7 +318,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Implements the TCP_NODELAY socket option.
+		 * @brief Implements the TCP_NODELAY socket option.
 		 * If it's not a tcp socket, do nothing
 		 */
 		inline derived_t & set_no_delay(bool val) noexcept
@@ -343,7 +343,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Implements the TCP_NODELAY socket option.
+		 * @brief Implements the TCP_NODELAY socket option.
 		 */
 		inline bool is_no_delay() const noexcept
 		{

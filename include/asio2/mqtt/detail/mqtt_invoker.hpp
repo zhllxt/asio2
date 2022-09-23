@@ -61,19 +61,19 @@ namespace asio2::detail
 		using handler_type = std::function<void(error_code&, std::shared_ptr<caller_t>&, caller_t*, std::string_view&)>;
 
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		mqtt_invoker_t() = default;
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~mqtt_invoker_t() = default;
 
 		/**
-		 * @function : bind connect listener
-		 * @param    : fun - a user defined callback function
-		 * Function signature : 
+		 * @brief bind connect listener
+		 * @param fun - a user defined callback function.
+		 * @li Function signature : 
 		 *   server : void(std::shared_ptr<mqtt_session>& session_ptr,
 		 *                 mqtt::v4::connect& msg, mqtt::v4::connack& rep) or v3 or v5
 		 *       or : void(std::shared_ptr<mqtt_session>& session_ptr,
@@ -89,9 +89,9 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : bind connack listener
-		 * @param    : fun - a user defined callback function
-		 * Function signature : server : Don't need
+		 * @brief bind connack listener
+		 * @param fun - a user defined callback function.
+		 * @li Function signature : server : Don't need
 		 *                      client : void(mqtt::v4::connack& msg) or v3 or v5
 		 *                          or : void(mqtt::message& msg)
 		 */
@@ -103,9 +103,9 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : bind publish listener
-		 * @param    : fun - a user defined callback function
-		 * Function signature : 
+		 * @brief bind publish listener
+		 * @param fun - a user defined callback function.
+		 * @li Function signature : 
 		 *   server : void(std::shared_ptr<mqtt_session>& session_ptr,
 		 *                 mqtt::v4::publish& msg, mqtt::v4::puback rep) or v3 or v5
 		 *       or : void(std::shared_ptr<mqtt_session>& session_ptr,
@@ -121,9 +121,9 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : bind puback listener
-		 * @param    : fun - a user defined callback function
-		 * Function signature : 
+		 * @brief bind puback listener
+		 * @param fun - a user defined callback function.
+		 * @li Function signature : 
 		 *   server : void(std::shared_ptr<mqtt_session>& session_ptr, mqtt::v4::puback& msg) or v3 or v5
 		 *       or : void(std::shared_ptr<mqtt_session>& session_ptr, mqtt::message& msg)
 		 *   client : void(mqtt::v4::puback& puback) or v3 or v5
@@ -137,9 +137,9 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : bind pubrec listener
-		 * @param    : fun - a user defined callback function
-		 * Function signature : 
+		 * @brief bind pubrec listener
+		 * @param fun - a user defined callback function.
+		 * @li Function signature : 
 		 *   server : void(std::shared_ptr<mqtt_session>& session_ptr,
 		 *                 mqtt::v4::pubrec& msg, mqtt::v4::pubrel& rep) or v3 or v5
 		 *       or : void(std::shared_ptr<mqtt_session>& session_ptr,
@@ -155,9 +155,9 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : bind pubrel listener
-		 * @param    : fun - a user defined callback function
-		 * Function signature : 
+		 * @brief bind pubrel listener
+		 * @param fun - a user defined callback function.
+		 * @li Function signature : 
 		 *   server : void(std::shared_ptr<mqtt_session>& session_ptr,
 		 *                 mqtt::v4::pubrel& msg, mqtt::v4::pubcomp& rep) or v3 or v5
 		 *       or : void(std::shared_ptr<mqtt_session>& session_ptr,
@@ -173,9 +173,9 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : bind pubcomp listener
-		 * @param    : fun - a user defined callback function
-		 * Function signature : server : void(std::shared_ptr<mqtt_session>& session_ptr,
+		 * @brief bind pubcomp listener
+		 * @param fun - a user defined callback function.
+		 * @li Function signature : server : void(std::shared_ptr<mqtt_session>& session_ptr,
 		 *                                    mqtt::v4::pubcomp& msg) or v3 or v5
 		 *                          or : void(std::shared_ptr<mqtt_session>& session_ptr,
 		 *                                    mqtt::message& msg)
@@ -190,9 +190,9 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : bind subscribe listener
-		 * @param    : fun - a user defined callback function
-		 * Function signature : 
+		 * @brief bind subscribe listener
+		 * @param fun - a user defined callback function.
+		 * @li Function signature : 
 		 *   server : void(std::shared_ptr<mqtt_session>& session_ptr,
 		 *                 mqtt::v4::subscribe& msg, mqtt::v4::suback& rep) or v3 or v5
 		 *       or : void(std::shared_ptr<mqtt_session>& session_ptr,
@@ -207,9 +207,9 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : bind suback listener
-		 * @param    : fun - a user defined callback function
-		 * Function signature : server : Don't need
+		 * @brief bind suback listener
+		 * @param fun - a user defined callback function.
+		 * @li Function signature : server : Don't need
 		 *                      client : void(mqtt::v4::suback& msg) or v3 or v5
 		 *                          or : void(mqtt::message& msg)
 		 */
@@ -221,9 +221,9 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : bind unsubscribe listener
-		 * @param    : fun - a user defined callback function
-		 * Function signature : 
+		 * @brief bind unsubscribe listener
+		 * @param fun - a user defined callback function.
+		 * @li Function signature : 
 		 *   server : void(std::shared_ptr<mqtt_session>& session_ptr,
 		 *                 mqtt::v4::unsubscribe& msg, mqtt::v4::unsuback& rep) or v3 or v5
 		 *   server : void(std::shared_ptr<mqtt_session>& session_ptr,
@@ -238,9 +238,9 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : bind unsuback listener
-		 * @param    : fun - a user defined callback function
-		 * Function signature : server : Don't need
+		 * @brief bind unsuback listener
+		 * @param fun - a user defined callback function.
+		 * @li Function signature : server : Don't need
 		 *                      client : void(mqtt::v4::unsuback& msg) or v3 or v5
 		 *                          or : void(mqtt::message& msg)
 		 */
@@ -252,9 +252,9 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : bind pingreq listener
-		 * @param    : fun - a user defined callback function
-		 * Function signature : 
+		 * @brief bind pingreq listener
+		 * @param fun - a user defined callback function.
+		 * @li Function signature : 
 		 *   server : void(std::shared_ptr<mqtt_session>& session_ptr,
 		 *                 mqtt::v4::pingreq& msg, mqtt::v4::pingresp& rep) or v3 or v5
 		 *       or : void(std::shared_ptr<mqtt_session>& session_ptr,
@@ -269,9 +269,9 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : bind pingresp listener
-		 * @param    : fun - a user defined callback function
-		 * Function signature : server : Don't need
+		 * @brief bind pingresp listener
+		 * @param fun - a user defined callback function.
+		 * @li Function signature : server : Don't need
 		 *                      client : void(mqtt::v4::pingresp& msg) or v3 or v5
 		 *                          or : void(mqtt::message& msg)
 		 */
@@ -283,9 +283,9 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : bind disconnect listener
-		 * @param    : fun - a user defined callback function
-		 * Function signature :
+		 * @brief bind disconnect listener
+		 * @param fun - a user defined callback function.
+		 * @li Function signature :
 		 *    server : void(std::shared_ptr<mqtt_session>& session_ptr, mqtt::v4::disconnect& msg) or v3 or v5
 		 *        or : void(std::shared_ptr<mqtt_session>& session_ptr, mqtt::message& msg)
 		 *    client : void(mqtt::v4::disconnect& msg) or v3 or v5
@@ -299,9 +299,9 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : bind auth listener
-		 * @param    : fun - a user defined callback function
-		 * Function signature : 
+		 * @brief bind auth listener
+		 * @param fun - a user defined callback function.
+		 * @li Function signature : 
 		 *   server : void(std::shared_ptr<mqtt_session>& session_ptr,
 		 *                 mqtt::v5::auth& msg, mqtt::v5::connack& rep)
 		 *       or : void(std::shared_ptr<mqtt_session>& session_ptr,

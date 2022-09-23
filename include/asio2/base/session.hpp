@@ -100,8 +100,8 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @constructor
-		 * maybe throw exception "Too many open files" (exception code : 24)
+		 * @brief constructor
+		 * @throws maybe throw exception "Too many open files" (exception code : 24)
 		 * asio::error::no_descriptors - Too many open files
 		 */
 		template<class ...Args>
@@ -136,7 +136,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~session_impl_t()
 		{
@@ -158,7 +158,7 @@ namespace asio2::detail
 
 	protected:
 		/**
-		 * @function : start session
+		 * @brief start session
 		 */
 		inline void start()
 		{
@@ -176,7 +176,7 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @function : stop session
+		 * @brief stop session
 		 * note : this function must be noblocking,if it's blocking,
 		 *        will cause circle lock in session_mgr::stop function
 		 */
@@ -208,7 +208,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : check whether the session is started
+		 * @brief check whether the session is started
 		 */
 		inline bool is_started() const
 		{
@@ -216,7 +216,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : check whether the session is stopped
+		 * @brief check whether the session is stopped
 		 */
 		inline bool is_stopped() const
 		{
@@ -224,7 +224,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get the buffer object refrence
+		 * @brief get the buffer object refrence
 		 */
 		inline buffer_wrap<buffer_type> & buffer() noexcept
 		{
@@ -232,7 +232,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get the io object refrence
+		 * @brief get the io object refrence
 		 */
 		inline io_t & io() noexcept
 		{
@@ -240,7 +240,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : set the default remote call timeout for rpc/rdc
+		 * @brief set the default remote call timeout for rpc/rdc
 		 */
 		template<class Rep, class Period>
 		inline derived_t & set_default_timeout(std::chrono::duration<Rep, Period> duration) noexcept
@@ -250,7 +250,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get the default remote call timeout for rpc/rdc
+		 * @brief get the default remote call timeout for rpc/rdc
 		 */
 		inline std::chrono::steady_clock::duration get_default_timeout() noexcept
 		{

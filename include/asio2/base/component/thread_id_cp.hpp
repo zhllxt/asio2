@@ -26,12 +26,12 @@ namespace asio2::detail
 	{
 	public:
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		thread_id_cp() = default;
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~thread_id_cp() = default;
 
@@ -42,7 +42,7 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @function : Determine whether the object is running in the current thread.
+		 * @brief Determine whether the object is running in the current thread.
 		 */
 		inline bool running_in_this_thread() const noexcept
 		{
@@ -52,7 +52,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : return the thread id of the current object running in.
+		 * @brief return the thread id of the current object running in.
 		 */
 		inline std::thread::id get_thread_id() const noexcept
 		{

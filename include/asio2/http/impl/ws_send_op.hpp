@@ -35,12 +35,12 @@ namespace asio2::detail
 	{
 	public:
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		ws_send_op() = default;
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~ws_send_op() = default;
 

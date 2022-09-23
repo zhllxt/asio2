@@ -90,8 +90,8 @@ namespace asio2::detail
 		using buffer_type = typename args_t::buffer_t;
 
 		/**
-		 * @constructor
-		 * maybe throw exception "Too many open files" (exception code : 24)
+		 * @brief constructor
+		 * @throws maybe throw exception "Too many open files" (exception code : 24)
 		 * asio::error::no_descriptors - Too many open files
 		 */
 		explicit udp_cast_impl_t(
@@ -150,7 +150,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~udp_cast_impl_t()
 		{
@@ -158,10 +158,10 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : start the udp cast
-		 * @param host A string identifying a location. May be a descriptive name or
+		 * @brief start the udp cast
+		 * @param host - A string identifying a location. May be a descriptive name or
 		 * a numeric address string.
-		 * @param service A string identifying the requested service. This may be a
+		 * @param service - A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
 		 */
 		template<typename String, typename StrOrInt, typename... Args>
@@ -173,7 +173,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : stop the udp cast
+		 * @brief stop the udp cast
 		 * You can call this function on the communication thread and anywhere to stop the udp cast.
 		 */
 		inline void stop()
@@ -226,7 +226,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : check whether the udp cast is started
+		 * @brief check whether the udp cast is started
 		 */
 		inline bool is_started() const
 		{
@@ -234,7 +234,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : check whether the udp cast is stopped
+		 * @brief check whether the udp cast is stopped
 		 */
 		inline bool is_stopped() const
 		{
@@ -243,10 +243,10 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @function : bind recv listener
-		 * @param    : fun - a user defined callback function
-		 * @param    : obj - a pointer or reference to a class object, this parameter can be none
-		 * if fun is nonmember function, the obj param must be none, otherwise the obj must be the
+		 * @brief bind recv listener
+		 * @param fun - a user defined callback function.
+		 * @param obj - a pointer or reference to a class object, this parameter can be none.
+		 * @li if fun is nonmember function, the obj param must be none, otherwise the obj must be the
 		 * the class object's pointer or refrence.
 		 * Function signature : void(asio::ip::udp::endpoint& endpoint, std::string_view data)
 		 */
@@ -260,10 +260,10 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : bind init listener,we should set socket options at here
-		 * @param    : fun - a user defined callback function
-		 * @param    : obj - a pointer or reference to a class object, this parameter can be none
-		 * if fun is nonmember function, the obj param must be none, otherwise the obj must be the
+		 * @brief bind init listener,we should set socket options at here
+		 * @param fun - a user defined callback function.
+		 * @param obj - a pointer or reference to a class object, this parameter can be none.
+		 * @li if fun is nonmember function, the obj param must be none, otherwise the obj must be the
 		 * the class object's pointer or refrence.
 		 * Function signature : void()
 		 */
@@ -276,10 +276,10 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : bind start listener
-		 * @param    : fun - a user defined callback function
-		 * @param    : obj - a pointer or reference to a class object, this parameter can be none
-		 * if fun is nonmember function, the obj param must be none, otherwise the obj must be the
+		 * @brief bind start listener
+		 * @param fun - a user defined callback function.
+		 * @param obj - a pointer or reference to a class object, this parameter can be none.
+		 * @li if fun is nonmember function, the obj param must be none, otherwise the obj must be the
 		 * the class object's pointer or refrence.
 		 * This notification is called after the server starts up, whether successful or unsuccessful
 		 * Function signature : void()
@@ -293,10 +293,10 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : bind stop listener
-		 * @param    : fun - a user defined callback function
-		 * @param    : obj - a pointer or reference to a class object, this parameter can be none
-		 * if fun is nonmember function, the obj param must be none, otherwise the obj must be the
+		 * @brief bind stop listener
+		 * @param fun - a user defined callback function.
+		 * @param obj - a pointer or reference to a class object, this parameter can be none.
+		 * @li if fun is nonmember function, the obj param must be none, otherwise the obj must be the
 		 * the class object's pointer or refrence.
 		 * This notification is called before the server is ready to stop
 		 * Function signature : void()
@@ -691,22 +691,22 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @function : get the buffer object refrence
+		 * @brief get the buffer object refrence
 		 */
 		inline buffer_wrap<buffer_type> & buffer() noexcept { return this->buffer_; }
 
 		/**
-		 * @function : get the io object refrence
+		 * @brief get the io object refrence
 		 */
 		inline io_t & io() noexcept { return this->io_; }
 
 	protected:
 		/**
-		 * @function : get the recv/read allocator object refrence
+		 * @brief get the recv/read allocator object refrence
 		 */
 		inline auto & rallocator() noexcept { return this->rallocator_; }
 		/**
-		 * @function : get the send/write allocator object refrence
+		 * @brief get the send/write allocator object refrence
 		 */
 		inline auto & wallocator() noexcept { return this->wallocator_; }
 
@@ -745,7 +745,7 @@ namespace asio2
 {
 	/**
 	 * udp unicast/multicast/broadcast
-	 * constructor maybe throw exception "Too many open files" (exception code : 24)
+	 * @throws constructor maybe throw exception "Too many open files" (exception code : 24)
 	 * asio::error::no_descriptors - Too many open files
 	 */
 	template<class derived_t>
@@ -757,7 +757,7 @@ namespace asio2
 
 	/*
 	 * udp unicast/multicast/broadcast
-	 * constructor maybe throw exception "Too many open files" (exception code : 24)
+	 * @throws constructor maybe throw exception "Too many open files" (exception code : 24)
 	 * asio::error::no_descriptors - Too many open files
 	 */
 	class udp_cast : public udp_cast_t<udp_cast>

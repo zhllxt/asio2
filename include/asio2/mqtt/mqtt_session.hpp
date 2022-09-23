@@ -100,7 +100,7 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		explicit mqtt_session_impl_t(
 			mqtt::broker_state<derived_t, args_t>& broker_state,
@@ -121,7 +121,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~mqtt_session_impl_t()
 		{
@@ -129,7 +129,7 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @function : get this object hash key,used for session map
+		 * @brief get this object hash key,used for session map
 		 */
 		inline key_type hash_key() const
 		{
@@ -137,7 +137,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get the mqtt version number
+		 * @brief get the mqtt version number
 		 */
 		inline mqtt::version version()
 		{
@@ -145,7 +145,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get the mqtt version number
+		 * @brief get the mqtt version number
 		 */
 		inline mqtt::version get_version()
 		{
@@ -153,7 +153,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get the mqtt client id 
+		 * @brief get the mqtt client id 
 		 */
 		inline std::string_view client_id()
 		{
@@ -161,7 +161,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get the mqtt client id 
+		 * @brief get the mqtt client id 
 		 */
 		inline std::string_view get_client_id()
 		{

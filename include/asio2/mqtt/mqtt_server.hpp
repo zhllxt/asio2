@@ -46,7 +46,7 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		explicit mqtt_server_impl_t(
 			std::size_t init_buf_size = tcp_frame_size,
@@ -80,7 +80,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~mqtt_server_impl_t()
 		{
@@ -88,10 +88,10 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : start the server
-		 * @param host A string identifying a location. May be a descriptive name or
+		 * @brief start the server
+		 * @param host - A string identifying a location. May be a descriptive name or
 		 * a numeric address string.
-		 * @param service A string identifying the requested service. This may be a
+		 * @param service - A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
 		 */
 		template<typename String, typename StrOrInt, typename... Args>

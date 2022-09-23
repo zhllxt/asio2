@@ -45,7 +45,7 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		template<class... Args>
 		explicit https_server_impl_t(
@@ -57,7 +57,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~https_server_impl_t()
 		{
@@ -65,10 +65,10 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : start the server
-		 * @param host A string identifying a location. May be a descriptive name or
+		 * @brief start the server
+		 * @param host - A string identifying a location. May be a descriptive name or
 		 * a numeric address string.
-		 * @param service A string identifying the requested service. This may be a
+		 * @param service - A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
 		 */
 		template<typename String, typename StrOrInt, typename... Args>
@@ -80,11 +80,11 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @function : bind recv listener
-		 * @param    : fun - a user defined callback function
-		 * Function signature : void(std::shared_ptr<asio2::https_session>& session_ptr,
-		 *                           http::web_request& req, http::web_response& rep)
-		 * or                 : void(http::web_request& req, http::web_response& rep)
+		 * @brief bind recv listener
+		 * @param fun - a user defined callback function.
+		 * @li Function signature : void(std::shared_ptr<asio2::https_session>& session_ptr,
+		 *                               http::web_request& req, http::web_response& rep)
+		 * or                     : void(http::web_request& req, http::web_response& rep)
 		 */
 		template<class F, class ...C>
 		inline derived_t & bind_recv(F&& fun, C&&... obj)
@@ -106,9 +106,9 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : bind websocket upgrade listener
-		 * @param    : fun - a user defined callback function
-		 * Function signature : void(std::shared_ptr<asio2::http_session>& session_ptr)
+		 * @brief bind websocket upgrade listener
+		 * @param fun - a user defined callback function.
+		 * @li Function signature : void(std::shared_ptr<asio2::http_session>& session_ptr)
 		 */
 		template<class F, class ...C>
 		inline derived_t & bind_upgrade(F&& fun, C&&... obj)

@@ -68,7 +68,7 @@ namespace asio2::detail
 	{
 	public:
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		rpc_call_cp(io_t&, rpc_serializer& sr, rpc_deserializer& dr)
 			: sr_(sr), dr_(dr)
@@ -76,7 +76,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~rpc_call_cp() = default;
 
@@ -586,7 +586,7 @@ namespace asio2::detail
 			~sync_caller() = default;
 
 			/**
-			 * @function : Set the timeout of this rpc call, only valid for this once call.
+			 * @brief Set the timeout of this rpc call, only valid for this once call.
 			 */
 			template<class Rep, class Period>
 			inline sync_caller& set_timeout(std::chrono::duration<Rep, Period> timeout) noexcept
@@ -596,7 +596,7 @@ namespace asio2::detail
 			}
 
 			/**
-			 * @function : Set the timeout of this rpc call, only valid for this once call. same as set_timeout
+			 * @brief Set the timeout of this rpc call, only valid for this once call. same as set_timeout
 			 */
 			template<class Rep, class Period>
 			inline sync_caller& timeout(std::chrono::duration<Rep, Period> timeout) noexcept
@@ -648,7 +648,7 @@ namespace asio2::detail
 			}
 
 			/**
-			 * @function : Set the timeout of this rpc call, only valid for this once call.
+			 * @brief Set the timeout of this rpc call, only valid for this once call.
 			 */
 			template<class Rep, class Period>
 			inline async_caller& set_timeout(std::chrono::duration<Rep, Period> timeout) noexcept
@@ -658,7 +658,7 @@ namespace asio2::detail
 			}
 
 			/**
-			 * @function : Set the timeout of this rpc call, only valid for this once call. same as set_timeout
+			 * @brief Set the timeout of this rpc call, only valid for this once call. same as set_timeout
 			 */
 			template<class Rep, class Period>
 			inline async_caller& timeout(std::chrono::duration<Rep, Period> timeout) noexcept
@@ -667,7 +667,7 @@ namespace asio2::detail
 			}
 
 			/**
-			 * @function : Set the callback function of this rpc call, only valid for this once call.
+			 * @brief Set the callback function of this rpc call, only valid for this once call.
 			 */
 			template<class Callback>
 			inline async_caller& response(Callback&& cb)
@@ -726,7 +726,7 @@ namespace asio2::detail
 			~base_caller() = default;
 
 			/**
-			 * @function : Set the timeout of this rpc call, only valid for this once call.
+			 * @brief Set the timeout of this rpc call, only valid for this once call.
 			 */
 			template<class Rep, class Period>
 			inline base_caller& set_timeout(std::chrono::duration<Rep, Period> timeout) noexcept
@@ -736,7 +736,7 @@ namespace asio2::detail
 			}
 
 			/**
-			 * @function : Set the timeout of this rpc call, only valid for this once call. same as set_timeout
+			 * @brief Set the timeout of this rpc call, only valid for this once call. same as set_timeout
 			 */
 			template<class Rep, class Period>
 			inline base_caller& timeout(std::chrono::duration<Rep, Period> timeout) noexcept
@@ -745,7 +745,7 @@ namespace asio2::detail
 			}
 
 			/**
-			 * @function : Set the callback function of this rpc call, only valid for this once call.
+			 * @brief Set the callback function of this rpc call, only valid for this once call.
 			 */
 			template<class Callback>
 			inline async_caller<derive_t> response(Callback&& cb)
@@ -781,7 +781,7 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @function : call a rpc function
+		 * @brief call a rpc function
 		 * If invoke synchronization rpc call function in communication thread, it will degenerates
 		 * into async_call and the return value is empty.
 		 * You can use get_last_error to check whether there is an error of the call
@@ -796,7 +796,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : call a rpc function
+		 * @brief call a rpc function
 		 * If invoke synchronization rpc call function in communication thread, it will degenerates
 		 * into async_call and the return value is empty.
 		 * You can use get_last_error to check whether there is an error of the call
@@ -811,7 +811,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : asynchronous call a rpc function
+		 * @brief asynchronous call a rpc function
 		 * Callback signature : void(DataType result)  example : [](std::string result){}
 		 * if result type is void, the Callback signature is : void()
 		 * Because the result value type is not specified in the first template parameter,
@@ -829,7 +829,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : asynchronous call a rpc function
+		 * @brief asynchronous call a rpc function
 		 * Callback signature : void(DataType result)  example : [](std::string result){}
 		 * if result type is void, the Callback signature is : void()
 		 * Because the result value type is not specified in the first template parameter,
@@ -847,7 +847,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : asynchronous call a rpc function
+		 * @brief asynchronous call a rpc function
 		 * Callback signature : void(return_t result)
 		 * the return_t is the first template parameter.
 		 * if result type is void, the Callback signature is : void()
@@ -865,7 +865,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : asynchronous call a rpc function
+		 * @brief asynchronous call a rpc function
 		 * Callback signature : void(return_t result)
 		 * the return_t is the first template parameter.
 		 * if result type is void, the Callback signature is : void()
@@ -883,7 +883,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : asynchronous call a rpc function
+		 * @brief asynchronous call a rpc function
 		 */
 		template<class ...Args>
 		inline async_caller<derived_t> async_call(std::string name, Args&&... args)
@@ -894,7 +894,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Set the timeout of this rpc call, only valid for this once call.
+		 * @brief Set the timeout of this rpc call, only valid for this once call.
 		 */
 		template<class Rep, class Period>
 		inline base_caller<derived_t> set_timeout(std::chrono::duration<Rep, Period> timeout)
@@ -905,7 +905,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Set the timeout of this rpc call, only valid for this once call. same as set_timeout
+		 * @brief Set the timeout of this rpc call, only valid for this once call. same as set_timeout
 		 */
 		template<class Rep, class Period>
 		inline base_caller<derived_t> timeout(std::chrono::duration<Rep, Period> timeout)
@@ -914,7 +914,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Set the callback function of this rpc call, only valid for this once call.
+		 * @brief Set the callback function of this rpc call, only valid for this once call.
 		 */
 		template<class Callback>
 		inline async_caller<derived_t> response(Callback&& cb)

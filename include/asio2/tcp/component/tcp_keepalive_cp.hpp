@@ -39,12 +39,12 @@ namespace asio2::detail
 		~tcp_keepalive_cp() noexcept {}
 
 		/**
-		 * @function : set tcp socket keep alive options
-		 * @param    : onoff    - Turn keepalive on or off
-		 * @param    : idle     - How many seconds after the connection is idle, start sending keepalives
-		 * @param    : interval - How many seconds later to send again when no reply is received
-		 * @param    : count    - How many times to resend when no reply is received
-		 * on macOS Catalina 10.15.5 (19F101), the default value is:
+		 * @brief set tcp socket keep alive options
+		 * @param onoff    - Turn keepalive on or off.
+		 * @param idle     - How many seconds after the connection is idle, start sending keepalives.
+		 * @param interval - How many seconds later to send again when no reply is received.
+		 * @param count    - How many times to resend when no reply is received.
+		 * @li on macOS Catalina 10.15.5 (19F101), the default value is:
 		 * onoff - false, idle - 7200, interval - 75, count - 8
 		 */
 		bool set_keep_alive_options(

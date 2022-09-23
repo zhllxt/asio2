@@ -66,7 +66,7 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		explicit tcp_session_impl_t(
 			session_mgr_t<derived_t> & sessions,
@@ -87,7 +87,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~tcp_session_impl_t()
 		{
@@ -95,7 +95,7 @@ namespace asio2::detail
 
 	protected:
 		/**
-		 * @function : start the session for prepare to recv/send msg
+		 * @brief start the session for prepare to recv/send msg
 		 */
 		template<typename MatchCondition>
 		inline void start(condition_wrap<MatchCondition> condition)
@@ -147,7 +147,7 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @function : stop session
+		 * @brief stop session
 		 * note : this function must be noblocking,if it's blocking,maybe cause circle lock.
 		 * You can call this function on the communication thread and anywhere to stop the session.
 		 */
@@ -157,7 +157,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get this object hash key,used for session map
+		 * @brief get this object hash key,used for session map
 		 */
 		inline key_type hash_key() const noexcept
 		{
@@ -399,11 +399,11 @@ namespace asio2::detail
 
 	protected:
 		/**
-		 * @function : get the recv/read allocator object refrence
+		 * @brief get the recv/read allocator object refrence
 		 */
 		inline auto & rallocator() noexcept { return this->rallocator_; }
 		/**
-		 * @function : get the send/write allocator object refrence
+		 * @brief get the send/write allocator object refrence
 		 */
 		inline auto & wallocator() noexcept { return this->wallocator_; }
 
@@ -425,6 +425,9 @@ namespace asio2::detail
 
 namespace asio2
 {
+	/**
+	 * @brief tcp session
+	 */
 	template<class derived_t>
 	class tcp_session_t : public detail::tcp_session_impl_t<derived_t, detail::template_args_tcp_session>
 	{
@@ -432,6 +435,9 @@ namespace asio2
 		using detail::tcp_session_impl_t<derived_t, detail::template_args_tcp_session>::tcp_session_impl_t;
 	};
 
+	/**
+	 * @brief tcp session
+	 */
 	class tcp_session : public tcp_session_t<tcp_session>
 	{
 	public:

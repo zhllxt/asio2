@@ -46,14 +46,14 @@ namespace asio2::detail
 		using self = mqtt_topic_alias_t<derived_t, args_t>;
 
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		mqtt_topic_alias_t()
 		{
 		}
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~mqtt_topic_alias_t() = default;
 

@@ -101,7 +101,7 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		explicit mqtt_client_impl_t(
 			std::size_t init_buf_size = tcp_frame_size,
@@ -145,7 +145,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~mqtt_client_impl_t()
 		{
@@ -153,10 +153,10 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : start the client, blocking connect to server
-		 * @param host A string identifying a location. May be a descriptive name or
+		 * @brief start the client, blocking connect to server
+		 * @param host - A string identifying a location. May be a descriptive name or
 		 * a numeric address string.
-		 * @param port A string identifying the requested service. This may be a
+		 * @param port - A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
 		 */
 		template<typename String, typename StrOrInt, typename... Args>
@@ -174,10 +174,10 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : start the client, asynchronous connect to server
-		 * @param host A string identifying a location. May be a descriptive name or
+		 * @brief start the client, asynchronous connect to server
+		 * @param host - A string identifying a location. May be a descriptive name or
 		 * a numeric address string.
-		 * @param port A string identifying the requested service. This may be a
+		 * @param port - A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
 		 */
 		template<typename String, typename StrOrInt, typename... Args>
@@ -196,7 +196,7 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @function : get the mqtt version number
+		 * @brief get the mqtt version number
 		 */
 		inline mqtt::version version()
 		{
@@ -204,7 +204,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get the mqtt version number
+		 * @brief get the mqtt version number
 		 */
 		inline mqtt::version get_version()
 		{
@@ -226,7 +226,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get the mqtt client identifier 
+		 * @brief get the mqtt client identifier 
 		 */
 		inline std::string_view client_id()
 		{
@@ -234,7 +234,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get the mqtt client identifier 
+		 * @brief get the mqtt client identifier 
 		 */
 		inline std::string_view get_client_id()
 		{
@@ -268,7 +268,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get the mqtt Keep Alive which is a time interval measured in seconds. 
+		 * @brief get the mqtt Keep Alive which is a time interval measured in seconds. 
 		 */
 		inline std::uint16_t keep_alive_time()
 		{
@@ -276,7 +276,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get the mqtt Keep Alive which is a time interval measured in seconds. 
+		 * @brief get the mqtt Keep Alive which is a time interval measured in seconds. 
 		 */
 		inline std::uint16_t get_keep_alive_time()
 		{
@@ -317,7 +317,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : set the mqtt connect message packet
+		 * @brief set the mqtt connect message packet
 		 */
 		template<class Message>
 		inline derived_t& set_connect_message(Message&& connect_msg)
@@ -340,12 +340,12 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get the mqtt connect message refrence
+		 * @brief get the mqtt connect message refrence
 		 */
 		inline mqtt::message& get_connect_message() { return this->connect_message_; }
 
 		/**
-		 * @function : get the mqtt connect message packet refrence
+		 * @brief get the mqtt connect message packet refrence
 		 */
 		template<mqtt::version v>
 		inline auto& get_connect_packet()

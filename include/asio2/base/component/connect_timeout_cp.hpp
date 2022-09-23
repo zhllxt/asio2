@@ -27,17 +27,17 @@ namespace asio2::detail
 	{
 	public:
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		connect_timeout_cp() = default;
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~connect_timeout_cp() = default;
 
 		/**
-		 * @function : get the connect timeout
+		 * @brief get the connect timeout
 		 */
 		inline std::chrono::steady_clock::duration get_connect_timeout() noexcept
 		{
@@ -45,7 +45,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : set the connect timeout
+		 * @brief set the connect timeout
 		 */
 		template<class Rep, class Period>
 		inline derived_t& set_connect_timeout(std::chrono::duration<Rep, Period> timeout) noexcept

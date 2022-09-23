@@ -122,7 +122,7 @@ namespace asio2
 		}
 
 		/**
-		 * @function : Returns `true` if two strings are equal, using a case-insensitive comparison.
+		 * @brief Returns `true` if two strings are equal, using a case-insensitive comparison.
 		 */
 		template<typename = void>
 		inline static bool iequals(std::string_view lhs, std::string_view rhs) noexcept

@@ -102,7 +102,7 @@ namespace asio2::detail
 		using recv_data_t = typename args_t::recv_data_t;
 
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		explicit serial_port_impl_t(
 			std::size_t init_buf_size = 1024,
@@ -164,7 +164,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~serial_port_impl_t()
 		{
@@ -172,10 +172,10 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : start
-		 * @param device The platform-specific device name for this serial, example "/dev/ttyS0" or "COM1"
-		 * @param baud_rate Communication speed, example 9600 or 115200
-		 * @param condition The delimiter condition.Valid value types include the following:
+		 * @brief start
+		 * @param device - The platform-specific device name for this serial, example "/dev/ttyS0" or "COM1"
+		 * @param baud_rate - Communication speed, example 9600 or 115200
+		 * @param condition - The delimiter condition.Valid value types include the following:
 		 * char,std::string,std::string_view,
 		 * function:std::pair<iterator, bool> match_condition(iterator begin, iterator end),
 		 * asio::transfer_at_least,asio::transfer_exactly
@@ -190,7 +190,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : stop
+		 * @brief stop
 		 */
 		inline void stop()
 		{
@@ -242,7 +242,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : check whether the client is started
+		 * @brief check whether the client is started
 		 */
 		inline bool is_started() const
 		{
@@ -250,7 +250,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : check whether the client is stopped
+		 * @brief check whether the client is stopped
 		 */
 		inline bool is_stopped() const
 		{
@@ -259,10 +259,10 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @function : bind recv listener
-		 * @param    : fun - a user defined callback function
-		 * @param    : obj - a pointer or reference to a class object, this parameter can be none
-		 * if fun is nonmember function, the obj param must be none, otherwise the obj must be the
+		 * @brief bind recv listener
+		 * @param fun - a user defined callback function.
+		 * @param obj - a pointer or reference to a class object, this parameter can be none.
+		 * @li if fun is nonmember function, the obj param must be none, otherwise the obj must be the
 		 * the class object's pointer or refrence.
 		 * void on_recv(std::string_view data){...}
 		 * or a lumbda function like this :
@@ -277,10 +277,10 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : bind init listener,we should set socket options at here
-		 * @param    : fun - a user defined callback function
-		 * @param    : obj - a pointer or reference to a class object, this parameter can be none
-		 * if fun is nonmember function, the obj param must be none, otherwise the obj must be the
+		 * @brief bind init listener,we should set socket options at here
+		 * @param fun - a user defined callback function.
+		 * @param obj - a pointer or reference to a class object, this parameter can be none.
+		 * @li if fun is nonmember function, the obj param must be none, otherwise the obj must be the
 		 * the class object's pointer or refrence.
 		 * void on_init(){...}
 		 * or a lumbda function like this :
@@ -295,10 +295,10 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : bind start listener
-		 * @param    : fun - a user defined callback function
-		 * @param    : obj - a pointer or reference to a class object, this parameter can be none
-		 * if fun is nonmember function, the obj param must be none, otherwise the obj must be the
+		 * @brief bind start listener
+		 * @param fun - a user defined callback function.
+		 * @param obj - a pointer or reference to a class object, this parameter can be none.
+		 * @li if fun is nonmember function, the obj param must be none, otherwise the obj must be the
 		 * the class object's pointer or refrence.
 		 * This notification is called after the server starts up, whether successful or unsuccessful
 		 * Function signature : void()
@@ -312,10 +312,10 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : bind stop listener
-		 * @param    : fun - a user defined callback function
-		 * @param    : obj - a pointer or reference to a class object, this parameter can be none
-		 * if fun is nonmember function, the obj param must be none, otherwise the obj must be the
+		 * @brief bind stop listener
+		 * @param fun - a user defined callback function.
+		 * @param obj - a pointer or reference to a class object, this parameter can be none.
+		 * @li if fun is nonmember function, the obj param must be none, otherwise the obj must be the
 		 * the class object's pointer or refrence.
 		 * This notification is called before the server is ready to stop
 		 * Function signature : void()
@@ -330,20 +330,20 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @function : get the socket object refrence
+		 * @brief get the socket object refrence
 		 */
 		inline socket_type & socket() noexcept { return this->socket_; }
 
 		/**
-		 * @function : get the stream object refrence
+		 * @brief get the stream object refrence
 		 */
 		inline socket_type & stream() noexcept { return this->socket_; }
 
 		/**
 		 * This function is used to set an option on the serial port.
 		 *
-		 * @param option The option value to be set on the serial port.
-		 *
+		 * @param option - The option value to be set on the serial port.
+		 * @li 
 		 * asio::serial_port::baud_rate
 		 * asio::serial_port::flow_control
 		 * asio::serial_port::parity
@@ -370,8 +370,8 @@ namespace asio2::detail
 		 * This function is used to get the current value of an option on the serial
 		 * port.
 		 *
-		 * @param option The option value to be obtained from the serial port.
-		 *
+		 * @param option - The option value to be obtained from the serial port.
+		 * @li 
 		 * asio::serial_port::baud_rate
 		 * asio::serial_port::flow_control
 		 * asio::serial_port::parity
@@ -399,8 +399,8 @@ namespace asio2::detail
 		 * This function is used to get the current value of an option on the serial
 		 * port.
 		 *
-		 * @param option The option value to be obtained from the serial port.
-		 *
+		 * @param option - The option value to be obtained from the serial port.
+		 * @li 
 		 * asio::serial_port_base::baud_rate
 		 * asio::serial_port_base::flow_control
 		 * asio::serial_port_base::parity
@@ -822,7 +822,7 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @function : set the default remote call timeout for rpc/rdc
+		 * @brief set the default remote call timeout for rpc/rdc
 		 */
 		template<class Rep, class Period>
 		inline derived_t & set_default_timeout(std::chrono::duration<Rep, Period> duration) noexcept
@@ -832,7 +832,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get the default remote call timeout for rpc/rdc
+		 * @brief get the default remote call timeout for rpc/rdc
 		 */
 		inline std::chrono::steady_clock::duration get_default_timeout() noexcept
 		{
@@ -840,21 +840,21 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : get the buffer object refrence
+		 * @brief get the buffer object refrence
 		 */
 		inline buffer_wrap<buffer_type> & buffer() noexcept { return this->buffer_; }
 		/**
-		 * @function : get the io object refrence
+		 * @brief get the io object refrence
 		 */
 		inline io_t & io() noexcept { return this->io_; }
 	
 	protected:
 		/**
-		 * @function : get the recv/read allocator object refrence
+		 * @brief get the recv/read allocator object refrence
 		 */
 		inline auto & rallocator() noexcept { return this->rallocator_; }
 		/**
-		 * @function : get the send/write allocator object refrence
+		 * @brief get the send/write allocator object refrence
 		 */
 		inline auto & wallocator() noexcept { return this->wallocator_; }
 

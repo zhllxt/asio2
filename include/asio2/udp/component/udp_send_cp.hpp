@@ -45,18 +45,18 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		udp_send_cp(io_t&) noexcept {}
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~udp_send_cp() = default;
 
 	public:
 		/**
-		 * @function : Asynchronous send data,supporting multi data formats,
+		 * @brief Asynchronous send data,supporting multi data formats,
 		 *             see asio::buffer(...) in /asio/buffer.hpp
 		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
 		 * use like this : std::string m; async_send(std::move(m)); can reducing memory allocation.
@@ -94,7 +94,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Asynchronous send data
+		 * @brief Asynchronous send data
 		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
 		 * PodType * : async_send("abc");
 		 */
@@ -114,7 +114,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Asynchronous send data
+		 * @brief Asynchronous send data
 		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
 		 * PodType (&data)[N] : double m[10]; async_send(m,5);
 		 */
@@ -147,7 +147,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Asynchronous send data,supporting multi data formats,
+		 * @brief Asynchronous send data,supporting multi data formats,
 		 *             see asio::buffer(...) in /asio/buffer.hpp
 		 * use like this : std::string m; async_send(std::move(m)); can reducing memory allocation.
 		 * the pair.first save the send result error_code,the pair.second save the sent_bytes.
@@ -215,7 +215,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Asynchronous send data
+		 * @brief Asynchronous send data
 		 * the pair.first save the send result error_code,the pair.second save the sent_bytes.
 		 * note : Do not call this function in any listener callback function like this:
 		 * auto future = async_send(msg,asio::use_future); future.get(); it will cause deadlock and
@@ -239,7 +239,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Asynchronous send data
+		 * @brief Asynchronous send data
 		 * the pair.first save the send result error_code,the pair.second save the sent_bytes.
 		 * note : Do not call this function in any listener callback function like this:
 		 * auto future = async_send(msg,asio::use_future); future.get(); it will cause deadlock and
@@ -304,7 +304,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Asynchronous send data,supporting multi data formats,
+		 * @brief Asynchronous send data,supporting multi data formats,
 		 *             see asio::buffer(...) in /asio/buffer.hpp
 		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
 		 * use like this : std::string m; async_send(std::move(m)); can reducing memory allocation.
@@ -353,7 +353,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Asynchronous send data
+		 * @brief Asynchronous send data
 		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
 		 * PodType * : async_send("abc");
 		 * Callback signature : void() or void(std::size_t bytes_sent)
@@ -375,7 +375,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Asynchronous send data
+		 * @brief Asynchronous send data
 		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
 		 * PodType (&data)[N] : double m[10]; async_send(m,5);
 		 * Callback signature : void() or void(std::size_t bytes_sent)
@@ -423,7 +423,7 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @function : Asynchronous send data,supporting multi data formats,
+		 * @brief Asynchronous send data,supporting multi data formats,
 		 *             see asio::buffer(...) in /asio/buffer.hpp
 		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
 		 * use like this : std::string m; async_send(std::move(m)); can reducing memory allocation.
@@ -463,7 +463,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Asynchronous send data
+		 * @brief Asynchronous send data
 		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
 		 * PodType * : async_send("abc");
 		 */
@@ -482,7 +482,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Asynchronous send data
+		 * @brief Asynchronous send data
 		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
 		 * PodType (&data)[N] : double m[10]; async_send(m,5);
 		 */
@@ -518,7 +518,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Asynchronous send data,supporting multi data formats,
+		 * @brief Asynchronous send data,supporting multi data formats,
 		 *             see asio::buffer(...) in /asio/buffer.hpp
 		 * use like this : std::string m; async_send(std::move(m)); can reducing memory allocation.
 		 * the pair.first save the send result error_code,the pair.second save the sent_bytes.
@@ -577,7 +577,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Asynchronous send data
+		 * @brief Asynchronous send data
 		 * the pair.first save the send result error_code,the pair.second save the sent_bytes.
 		 * note : Do not call this function in any listener callback function like this:
 		 * auto future = async_send(msg,asio::use_future); future.get(); it will cause deadlock and
@@ -601,7 +601,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Asynchronous send data
+		 * @brief Asynchronous send data
 		 * the pair.first save the send result error_code,the pair.second save the sent_bytes.
 		 * note : Do not call this function in any listener callback function like this:
 		 * auto future = async_send(msg,asio::use_future); future.get(); it will cause deadlock and
@@ -657,7 +657,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Asynchronous send data,supporting multi data formats,
+		 * @brief Asynchronous send data,supporting multi data formats,
 		 *             see asio::buffer(...) in /asio/buffer.hpp
 		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
 		 * use like this : std::string m; async_send(std::move(m)); can reducing memory allocation.
@@ -711,7 +711,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Asynchronous send data
+		 * @brief Asynchronous send data
 		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
 		 * PodType * : async_send("abc");
 		 * Callback signature : void() or void(std::size_t bytes_sent)
@@ -732,7 +732,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Asynchronous send data
+		 * @brief Asynchronous send data
 		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
 		 * PodType (&data)[N] : double m[10]; async_send(m,5);
 		 * Callback signature : void() or void(std::size_t bytes_sent)
@@ -785,7 +785,7 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @function : Synchronous send data,supporting multi data formats,
+		 * @brief Synchronous send data,supporting multi data formats,
 		 *             see asio::buffer(...) in /asio/buffer.hpp
 		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
 		 * Note : If this function is called in communication thread, it will degenerates into async_send
@@ -837,7 +837,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Synchronous send data
+		 * @brief Synchronous send data
 		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
 		 * Note : If this function is called in communication thread, it will degenerates into async_send
 		 *        and the return value is 0, you can use asio2::get_last_error() to check whether the
@@ -861,7 +861,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Synchronous send data
+		 * @brief Synchronous send data
 		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
 		 * Note : If this function is called in communication thread, it will degenerates into async_send
 		 *        and the return value is 0, you can use asio2::get_last_error() to check whether the
@@ -882,7 +882,7 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @function : Synchronous send data,supporting multi data formats,
+		 * @brief Synchronous send data,supporting multi data formats,
 		 *             see asio::buffer(...) in /asio/buffer.hpp
 		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
 		 * Note : If this function is called in communication thread, it will degenerates into async_send
@@ -933,7 +933,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Synchronous send data
+		 * @brief Synchronous send data
 		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
 		 * Note : If this function is called in communication thread, it will degenerates into async_send
 		 *        and the return value is 0, you can use asio2::get_last_error() to check whether the
@@ -956,7 +956,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @function : Synchronous send data
+		 * @brief Synchronous send data
 		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
 		 * Note : If this function is called in communication thread, it will degenerates into async_send
 		 *        and the return value is 0, you can use asio2::get_last_error() to check whether the

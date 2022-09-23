@@ -37,12 +37,12 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @constructor
+		 * @brief constructor
 		 */
 		tcp_recv_op() noexcept {}
 
 		/**
-		 * @destructor
+		 * @brief destructor
 		 */
 		~tcp_recv_op() = default;
 
