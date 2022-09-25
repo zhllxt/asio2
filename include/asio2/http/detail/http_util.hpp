@@ -537,6 +537,129 @@ namespace boost::beast::http
 		}
 	}
 
+	// /boost_1_80_0/libs/beast/example/doc/http_examples.hpp
+	template<bool isRequest, class SyncReadStream, class DynamicBuffer, class HeaderCallback, class BodyCallback>
+	void read_large_body(SyncReadStream& stream, DynamicBuffer& buffer, HeaderCallback&& cbh, BodyCallback&& cbb)
+	{
+		error_code& ec = asio2::get_last_error();
+
+		// Declare the parser with an empty body since
+		// we plan on capturing the chunks ourselves.
+		http::parser<isRequest, http::string_body> hp;
+
+		// First read the complete header
+		http::read_header(stream, buffer, hp, ec);
+		if (ec)
+			return;
+
+		cbh(hp.get());
+
+		// should we check the http reponse status?
+		// should we handle the http range? 301 302 ?
+		//if (hp.get().result() != http::status::ok)
+		//{
+		//	ec = http::error::bad_status;
+		//	return;
+		//}
+
+		http::parser<isRequest, http::buffer_body> p(std::move(hp));
+
+		if (p.get().chunked())
+		{
+			// This container will hold the extensions for each chunk
+			http::chunk_extensions ce;
+
+			// This string will hold the body of each chunk
+			//std::string chunk;
+
+			// Declare our chunk header callback  This is invoked
+			// after each chunk header and also after the last chunk.
+			auto header_cb = [&](
+				std::uint64_t size,          // Size of the chunk, or zero for the last chunk
+				std::string_view extensions, // The raw chunk-extensions string. Already validated.
+				error_code& ev)              // We can set this to indicate an error
+			{
+				// Parse the chunk extensions so we can access them easily
+				ce.parse(extensions, ev);
+				if (ev)
+					return;
+
+				// See if the chunk is too big
+				if (size > (std::numeric_limits<std::size_t>::max)())
+				{
+					ev = http::error::body_limit;
+					return;
+				}
+
+				// Make sure we have enough storage, and
+				// reset the container for the upcoming chunk
+				//chunk.reserve(static_cast<std::size_t>(size));
+				//chunk.clear();
+			};
+
+			// Set the callback. The function requires a non-const reference so we
+			// use a local variable, since temporaries can only bind to const refs.
+			p.on_chunk_header(header_cb);
+
+			// Declare the chunk body callback. This is called one or
+			// more times for each piece of a chunk body.
+			auto body_cb = [&](
+				std::uint64_t remain,   // The number of bytes left in this chunk
+				std::string_view body,  // A buffer holding chunk body data
+				error_code& ev)         // We can set this to indicate an error
+			{
+				// If this is the last piece of the chunk body,
+				// set the error so that the call to `read` returns
+				// and we can process the chunk.
+				if (remain == body.size())
+					ev = http::error::end_of_chunk;
+
+				// Append this piece to our container
+				//chunk.append(body.data(), body.size());
+				cbb(body);
+
+				// The return value informs the parser of how much of the body we
+				// consumed. We will indicate that we consumed everything passed in.
+				return body.size();
+			};
+			p.on_chunk_body(body_cb);
+
+			while (!p.is_done())
+			{
+				// Read as much as we can. When we reach the end of the chunk, the chunk
+				// body callback will make the read return with the end_of_chunk error.
+				http::read(stream, buffer, p, ec);
+				if (!ec)
+					continue;
+				else if (ec != http::error::end_of_chunk)
+					return;
+				else
+					ec = {};
+			}
+		}
+		else
+		{
+			std::array<char, 512> buf;
+
+			while (!p.is_done())
+			{
+				p.get().body().data = buf.data();
+				p.get().body().size = buf.size();
+
+				std::size_t bytes_read = http::read(stream, buffer, p, ec);
+
+				if (ec == http::error::need_buffer)
+					ec = {};
+				if (ec)
+					return;
+
+				ASIO2_ASSERT(bytes_read == buf.size() - p.get().body().size);
+
+				cbb(std::string_view(buf.data(), bytes_read));
+			}
+		}
+	}
+
 	template<typename, typename = void>
 	struct is_http_message : std::false_type {};
 

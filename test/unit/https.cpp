@@ -100,6 +100,23 @@ void https_test()
 		}
 	}
 
+	// test https download
+	{
+		asio2::socks5::option<asio2::socks5::method::anonymous>
+			sock5_option{ "127.0.0.1",10808 };
+		std::string url = "https://www.baidu.com/img/flexible/logo/pc/result.png";
+		std::string pth = "result.png";
+		asio2::https_client::download(url, [](auto&) {}, [](std::string_view) {});
+		asio2::https_client::download(asio::ssl::context{ asio::ssl::context::sslv23 }, url, [](auto&) {}, [](std::string_view) {});
+		asio2::https_client::download(url, [](std::string_view) {});
+		asio2::https_client::download(asio::ssl::context{ asio::ssl::context::sslv23 }, url, [](std::string_view) {});
+		asio2::https_client::download(url, pth);
+		asio2::https_client::download(asio::ssl::context{ asio::ssl::context::sslv23 }, url, pth);
+		auto req = http::make_request(url);
+		asio2::https_client::download(asio::ssl::context{ asio::ssl::context::sslv23 }, req.host(), req.port(), req, [](auto&) {}, [](std::string_view) {}, nullptr);
+		asio2::https_client::download(asio::ssl::context{ asio::ssl::context::sslv23 }, req.host(), req.port(), req, [](auto&) {}, [](std::string_view) {}, sock5_option);
+	}
+
 	{
 		asio2::https_server server;
 

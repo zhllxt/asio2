@@ -654,6 +654,20 @@ void http_test()
 		}
 	}
 
+	// test http download
+	{
+		asio2::socks5::option<asio2::socks5::method::anonymous>
+			sock5_option{ "127.0.0.1",10808 };
+		std::string url = "http://www.baidu.com/img/flexible/logo/pc/result.png";
+		std::string pth = "result.png";
+		asio2::http_client::download(url, [](auto&) {}, [](std::string_view) {});
+		asio2::http_client::download(url, [](std::string_view) {});
+		asio2::http_client::download(url, pth);
+		auto req = http::make_request(url);
+		asio2::http_client::download(req.host(), req.port(), req, [](auto&) {}, [](std::string_view) {}, nullptr);
+		asio2::http_client::download(req.host(), req.port(), req, [](auto&) {}, [](std::string_view) {}, sock5_option);
+	}
+
 	{
 		asio2::http_server server;
 

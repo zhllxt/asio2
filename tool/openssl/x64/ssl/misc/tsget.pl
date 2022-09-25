@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
+# Copyright 2002-2018 The OpenSSL Project Authors. All Rights Reserved.
 # Copyright (c) 2002 The OpenTSA Project. All rights reserved.
-# Copyright 2002-2016 The OpenSSL Project Authors. All Rights Reserved.
 #
 # Licensed under the OpenSSL license (the "License").  You may not use
 # this file except in compliance with the License.  You can obtain a copy
@@ -47,7 +47,7 @@ sub create_curl {
     $curl->setopt(CURLOPT_VERBOSE, 1) if $options{d};
     $curl->setopt(CURLOPT_FAILONERROR, 1);
     $curl->setopt(CURLOPT_USERAGENT,
-        "OpenTSA tsget.pl/openssl-1.1.0f");
+        "OpenTSA tsget.pl/openssl-1.1.1q");
 
     # Options for POST method.
     $curl->setopt(CURLOPT_UPLOAD, 1);
@@ -198,4 +198,3 @@ REQUEST: foreach (@ARGV) {
     STDERR->printflush(", $output written.\n") if $options{v};
 }
 $curl->cleanup();
-WWW::Curl::Easy::global_cleanup();

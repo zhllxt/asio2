@@ -11,8 +11,11 @@ int main()
 	//asio2::socks5::option<asio2::socks5::method::anonymous, asio2::socks5::method::password>
 	//	sock5_option{ "s5.doudouip.cn",1088,"zjww-1","aaa123" };
 
-	std::string_view url = R"(http://www.baidu.com/cond?json={"qeury":"name like '%abc%'","id":1})";
+	// download and save the file directly. // see ssl_http_client.cpp
+	// The file is in this directory: /asio2/example/bin/x64/100mb.test
+	asio2::http_client::download("http://cachefly.cachefly.net/100mb.test", "100mb.test");
 
+	std::string_view url = R"(http://www.baidu.com/cond?json={"qeury":"name like '%abc%'","id":1})";
 
 	std::string en = http::url_encode(url);
 	std::cout << en << std::endl;

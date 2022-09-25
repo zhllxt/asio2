@@ -391,3 +391,7 @@ __pycache__/
 *.btm.cs
 *.odx.cs
 *.xsd.cs
+
+#########################################################
+# Cancel Ignore
+!/lib/x64/ossl_static.pdb

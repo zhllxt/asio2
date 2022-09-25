@@ -13,6 +13,28 @@ int main()
 	asio2::socks5::option<asio2::socks5::method::anonymous>
 		sock5_option{ "127.0.0.1",10808 };
 
+	// 1. download and save the file directly. 
+	// The file is in this directory: /asio2/example/bin/x64/QQ9.6.7.28807.exe
+	asio2::https_client::download(
+		"https://dldir1.qq.com/qqfile/qq/PCQQ9.6.7/QQ9.6.7.28807.exe",
+		"QQ9.6.7.28807.exe");
+
+	// 2. you can save the file content by youself. 
+	// I find that, we must specify the SSL version to tlsv13, otherwise it will fail.
+	std::fstream hugefile("CentOS-7-x86_64-DVD-2009.iso", std::ios::out | std::ios::binary | std::ios::trunc);
+	asio2::https_client::download(asio::ssl::context{ asio::ssl::context::tlsv13 },
+		"https://mirrors.tuna.tsinghua.edu.cn/centos/7.9.2009/isos/x86_64/CentOS-7-x86_64-DVD-2009.iso",
+		//[](auto& header) // http header callback. this param is optional. the body callback is required.
+		//{
+		//	std::cout << header << std::endl;
+		//},
+		[&hugefile](std::string_view chunk) // http body callback.
+		{
+			hugefile.write(chunk.data(), chunk.size());
+		}
+	);
+	hugefile.close();
+
 	std::string_view url = "https://www.baidu.com/query?key=x!#$&'()*+,/:;=?@[ ]-_.~%^{}\"|<>`\\y";
 
 	asio::ssl::context ctx{ asio::ssl::context::sslv23 };
