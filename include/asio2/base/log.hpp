@@ -24,7 +24,9 @@
 #include <asio2/external/magic_enum.hpp>
 
 #include <asio2/config.hpp>
+#if BEAST_HEADER_ONLY
 #include <asio2/bho/predef.h>
+#endif
 
 #if defined(ASIO2_ENABLE_LOG)
 	#if __has_include(<spdlog/spdlog.h>)
