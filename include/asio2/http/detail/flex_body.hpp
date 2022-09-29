@@ -11,7 +11,10 @@
 #define __ASIO2_HTTP_FLEX_BODY_HPP__
 
 #include <asio2/external/beast.hpp>
+
+#ifdef BEAST_HEADER_ONLY
 #include <asio2/bho/assert.hpp>
+#endif
 
 #include <asio2/http/detail/http_util.hpp>
 
@@ -410,7 +413,11 @@ operator<<(std::ostream& os,
 	}
 	else
 	{
+		#ifdef BEAST_HEADER_ONLY
 		BHO_ASSERT(false);
+		#else
+		assert(false);
+		#endif
 	}
 	return os;
 }
@@ -430,7 +437,11 @@ operator<<(std::ostream& os,
 	}
 	else
 	{
+		#ifdef BEAST_HEADER_ONLY
 		BHO_ASSERT(false);
+		#else
+		assert(false);
+		#endif
 	}
 	return os;
 }
