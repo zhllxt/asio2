@@ -17,7 +17,9 @@
 
 #include <tuple>
 
+#ifdef BEAST_HEADER_ONLY
 #include <asio2/bho/predef.h>
+#endif
 
 #include <asio2/base/error.hpp>
 
