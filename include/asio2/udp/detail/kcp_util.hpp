@@ -26,7 +26,9 @@
 #include <string_view>
 #include <chrono>
 
+#ifdef BEAST_HEADER_ONLY
 #include <asio2/bho/predef.h>
+#endif
 
 #include <asio2/base/error.hpp>
 #include <asio2/base/detail/condition_wrap.hpp>
