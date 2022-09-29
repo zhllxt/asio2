@@ -31,7 +31,9 @@
 
 #include <asio2/external/asio.hpp>
 #include <asio2/external/beast.hpp>
+#if BEAST_HEADER_ONLY
 #include <asio2/bho/throw_exception.hpp>
+#endif
 
 #include <asio2/util/string.hpp>
 
@@ -167,7 +169,11 @@ public:
 	{
 		auto it = find(name);
 		if (it == cend())
-			BHO_THROW_EXCEPTION(std::out_of_range{ "field not found" });
+			#if BEAST_HEADER_ONLY
+				BHO_THROW_EXCEPTION(std::out_of_range{ "field not found" });
+			#else
+				BOOST_THROW_EXCEPTION(std::out_of_range{ "field not found" });
+			#endif		
 		return (*it);
 	}
 
