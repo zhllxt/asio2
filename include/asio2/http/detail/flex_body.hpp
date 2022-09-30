@@ -11,11 +11,11 @@
 #define __ASIO2_HTTP_FLEX_BODY_HPP__
 
 #include <asio2/external/beast.hpp>
-#include <asio2/bho/assert.hpp>
+#include <asio2/external/assert.hpp>
 
 #include <asio2/http/detail/http_util.hpp>
 
-#ifdef BEAST_HEADER_ONLY
+#ifdef ASIO2_HEADER_ONLY
 namespace bho {
 #else
 namespace boost {
@@ -211,7 +211,7 @@ public:
     // the contained pair will have the next buffer
     // to serialize, and a `bool` indicating whether
     // or not there may be additional buffers.
-#ifdef BEAST_HEADER_ONLY
+#ifdef ASIO2_HEADER_ONLY
 	inline std::optional<std::pair<const_buffers_type, bool>>
 #else
 	inline boost::optional<std::pair<const_buffers_type, bool>>
@@ -262,7 +262,7 @@ auto
 basic_flex_body<TextBody, FileBody>::
 writer::
 get(error_code& ec) ->
-#ifdef BEAST_HEADER_ONLY
+#ifdef ASIO2_HEADER_ONLY
     std::optional<std::pair<const_buffers_type, bool>>
 #else
     boost::optional<std::pair<const_buffers_type, bool>>
@@ -312,7 +312,7 @@ public:
     // optionally use for optimization.
     //
 	inline void
-#ifdef BEAST_HEADER_ONLY
+#ifdef ASIO2_HEADER_ONLY
     init(std::optional<std::uint64_t> const&, error_code& ec);
 #else
     init(boost::optional<std::uint64_t> const&, error_code& ec);
@@ -354,7 +354,7 @@ void
 basic_flex_body<TextBody, FileBody>::
 reader::
 init(
-#ifdef BEAST_HEADER_ONLY
+#ifdef ASIO2_HEADER_ONLY
     std::optional<std::uint64_t> const& content_length,
 #else
     boost::optional<std::uint64_t> const& content_length,
@@ -410,7 +410,7 @@ operator<<(std::ostream& os,
 	}
 	else
 	{
-		BHO_ASSERT(false);
+		ASIO2_ASSERT(false);
 	}
 	return os;
 }
@@ -430,7 +430,7 @@ operator<<(std::ostream& os,
 	}
 	else
 	{
-		BHO_ASSERT(false);
+        ASIO2_ASSERT(false);
 	}
 	return os;
 }

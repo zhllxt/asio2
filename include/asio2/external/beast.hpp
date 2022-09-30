@@ -19,7 +19,13 @@
 
 #include <asio2/base/detail/push_options.hpp>
 
-#ifdef BEAST_HEADER_ONLY
+#ifdef ASIO2_HEADER_ONLY
+#ifndef BEAST_HEADER_ONLY
+#define BEAST_HEADER_ONLY 1
+#endif
+#endif
+
+#ifdef ASIO2_HEADER_ONLY
 	#include <asio2/bho/beast.hpp>
 	#if defined(ASIO2_USE_SSL)
 		// boost 1.72(107200) BOOST_BEAST_VERSION 277
@@ -52,9 +58,9 @@
 	#ifndef BHO_BEAST_VERSION_STRING
 		#define BHO_BEAST_VERSION_STRING BOOST_BEAST_VERSION_STRING
 	#endif
-#endif // BEAST_HEADER_ONLY
+#endif
 
-#ifdef BEAST_HEADER_ONLY
+#ifdef ASIO2_HEADER_ONLY
 	namespace bho::beast::http
 	{
 		template<class Body, class Fields = fields>
@@ -75,7 +81,8 @@
 	}
 	namespace beast = ::boost::beast;
 	namespace asio  = ::boost::asio;
-#endif // BEAST_HEADER_ONLY
+	namespace bho   = ::boost; // bho means boost header only
+#endif
 
 namespace http      = ::beast::http;
 namespace websocket = ::beast::websocket;

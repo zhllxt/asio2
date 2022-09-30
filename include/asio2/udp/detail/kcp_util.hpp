@@ -26,7 +26,7 @@
 #include <string_view>
 #include <chrono>
 
-#include <asio2/bho/predef.h>
+#include <asio2/external/predef.h>
 
 #include <asio2/base/error.hpp>
 #include <asio2/base/detail/condition_wrap.hpp>
@@ -78,7 +78,7 @@ namespace asio2::detail::kcp
 		union
 		{
 			std::uint8_t      byte{};
-		#if BHO_ENDIAN_BIG_BYTE
+		#if ASIO2_ENDIAN_BIG_BYTE
 			struct
 			{
 				std::uint8_t  urg     : 1;

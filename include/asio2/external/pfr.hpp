@@ -8,12 +8,16 @@
  * (See accompanying file LICENSE or see <http://www.gnu.org/licenses/>)
  */
 
-#ifndef __ASIO2_PFR_FUNCTION_HPP__
-#define __ASIO2_PFR_FUNCTION_HPP__
+#ifndef __ASIO2_EXTERNAL_PFR_HPP__
+#define __ASIO2_EXTERNAL_PFR_HPP__
 
-#include <asio2/config.hpp>
-#include <asio2/bho/config.hpp>
+#include <asio2/external/config.hpp>
+
+#if !defined(ASIO2_HEADER_ONLY) && __has_include(<boost/core/type_name.hpp>)
+#include <boost/core/type_name.hpp>
+#else
 #include <asio2/bho/core/type_name.hpp>
+#endif
 
 #include <string>
 #include <unordered_map>
@@ -21,7 +25,7 @@
 #include <functional>
 #include <type_traits>
 
-#if !defined(ASIO2_DISABLE_BOOST) && __has_include(<boost/pfr.hpp>)
+#if !defined(ASIO2_HEADER_ONLY) && __has_include(<boost/pfr.hpp>)
 #include <boost/pfr.hpp>
 namespace pfr = ::boost::pfr;
 #else
@@ -30,7 +34,7 @@ namespace pfr = ::bho::pfr;
 #endif
 
 
-#if !defined(ASIO2_DISABLE_BOOST) && __has_include(<boost/pfr.hpp>)
+#if !defined(ASIO2_HEADER_ONLY) && __has_include(<boost/pfr.hpp>)
 namespace boost::pfr
 #else
 namespace bho::pfr
@@ -114,7 +118,12 @@ namespace bho::pfr
 		{
 			registor()
 			{
-				std::string name = bho::core::type_name<T>();
+				std::string name;
+			#if !defined(ASIO2_HEADER_ONLY) && __has_include(<boost/core/type_name.hpp>)
+				name = boost::core::type_name<T>();
+			#else
+				name = bho::core::type_name<T>();
+			#endif
 				class_factory<BaseT, Args...>::instance().regist(std::move(name), create);
 			}
 			inline void makesure_construct() const noexcept { };
@@ -212,7 +221,7 @@ namespace bho::pfr
 		 sizeof(*counter((void*)0)) / sizeof(char) + tag + 1>*))                                   \
 		[sizeof(*counter((void*)0)) / sizeof(char) + tag + 1];                                     \
 
-#define BHO_REFLECT_F_TAG(name) BHO_JOIN(__reflect_tag_, name)
+#define BHO_REFLECT_F_TAG(name) ASIO2_JOIN(__reflect_tag_, name)
 
 #define F_BEGIN(Class)                                                                             \
 private:                                                                                           \
@@ -244,13 +253,13 @@ private:                                                                        
         template<typename ThisType, typename Func>                                                 \
         static void for_each_field(ThisType& This, const Func& func) noexcept                      \
 		{                                                                                          \
-            func(BHO_STRINGIZE(name), This.name);                                                  \
+            func(ASIO2_STRINGIZE(name), This.name);                                                \
             next_type::for_each_field(This, func);                                                 \
         }                                                                                          \
         template<typename Func>                                                                    \
         static void for_each_field_name(const Func& func) noexcept                                 \
 		{                                                                                          \
-            func(BHO_STRINGIZE(name));                                                             \
+            func(ASIO2_STRINGIZE(name));                                                           \
             next_type::for_each_field_name(func);                                                  \
         }                                                                                          \
     }                                                                                              \

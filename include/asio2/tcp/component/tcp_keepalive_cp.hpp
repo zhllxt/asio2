@@ -17,13 +17,13 @@
 
 #include <tuple>
 
-#include <asio2/bho/predef.h>
+#include <asio2/external/predef.h>
 
 #include <asio2/base/error.hpp>
 
 #include <asio2/base/detail/util.hpp>
 
-#if BHO_OS_WINDOWS
+#if ASIO2_OS_WINDOWS
 #	if __has_include(<Mstcpip.h>)
 #		include <Mstcpip.h> // tcp_keepalive struct
 #	endif
@@ -72,7 +72,7 @@ namespace asio2::detail
 
 				detail::ignore_unused(onoff, idle, interval, count, native_fd);
 
-			#if BHO_OS_LINUX
+			#if ASIO2_OS_LINUX
 				// For *n*x systems
 				int ret_keepidle  = setsockopt(native_fd, SOL_TCP, TCP_KEEPIDLE , (void*)&idle    , sizeof(unsigned int));
 				if (ret_keepidle)
@@ -94,9 +94,9 @@ namespace asio2::detail
 					set_last_error(errno, asio::error::get_system_category());
 					return false;
 				}
-			#elif BHO_OS_UNIX
+			#elif ASIO2_OS_UNIX
 				// be pending
-			#elif BHO_OS_MACOS
+			#elif ASIO2_OS_MACOS
 				int ret_keepalive = setsockopt(native_fd, IPPROTO_TCP, TCP_KEEPALIVE, (void*)&idle    , sizeof(unsigned int));
 				if (ret_keepalive)
 				{
@@ -117,9 +117,9 @@ namespace asio2::detail
 					set_last_error(errno, asio::error::get_system_category());
 					return false;
 				}
-			#elif BHO_OS_IOS
+			#elif ASIO2_OS_IOS
 				// be pending
-			#elif BHO_OS_WINDOWS
+			#elif ASIO2_OS_WINDOWS
 				// Partially supported on windows
 				tcp_keepalive keepalive_options;
 				keepalive_options.onoff = onoff;

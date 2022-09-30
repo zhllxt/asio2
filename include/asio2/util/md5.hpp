@@ -23,7 +23,19 @@
 
 #include <string>
 
+#include <asio2/config.hpp>
+
+#if !defined(ASIO2_HEADER_ONLY) && __has_include(<boost/predef/other/endian.h>)
+#include <boost/predef/other/endian.h>
+#ifndef ASIO2_ENDIAN_LITTLE_BYTE
+#define ASIO2_ENDIAN_LITTLE_BYTE BOOST_ENDIAN_LITTLE_BYTE
+#endif
+#else
 #include <asio2/bho/predef/other/endian.h>
+#ifndef ASIO2_ENDIAN_LITTLE_BYTE
+#define ASIO2_ENDIAN_LITTLE_BYTE BHO_ENDIAN_LITTLE_BYTE
+#endif
+#endif
 
 #ifndef ASIO2_DISABLE_AUTO_BOOST_UUID_COMPAT_PRE_1_71_MD5
 #ifndef BOOST_UUID_COMPAT_PRE_1_71_MD5
@@ -370,7 +382,7 @@ namespace asio2
 	// but that would even break previously generated sha1
 	// hashes too.
 	//
-#if BHO_ENDIAN_LITTLE_BYTE
+#if ASIO2_ENDIAN_LITTLE_BYTE
 	#define ASIO2_UUID_DETAIL_MD5_BYTE_OUT(dst, src) \
 		(dst)[0] = (unsigned char)((src) >> 24); \
 		(dst)[1] = (unsigned char)((src) >> 16); \

@@ -22,27 +22,25 @@
 #include <string>
 
 #include <asio2/external/magic_enum.hpp>
-
-#include <asio2/config.hpp>
-#include <asio2/bho/predef.h>
+#include <asio2/external/predef.h>
 
 #if defined(ASIO2_ENABLE_LOG)
 	#if __has_include(<spdlog/spdlog.h>)
-		#if BHO_OS_LINUX || BHO_OS_UNIX
+		#if ASIO2_OS_LINUX || ASIO2_OS_UNIX
 			#if __has_include(<unistd.h>)
 				#include <unistd.h>
 			#endif
 			#if __has_include(<dirent.h>)
 				#include <dirent.h>
 			#endif
-		#elif BHO_OS_WINDOWS
+		#elif ASIO2_OS_WINDOWS
 			#ifndef WIN32_LEAN_AND_MEAN
 				#define WIN32_LEAN_AND_MEAN
 			#endif
 			#if __has_include(<Windows.h>)
 				#include <Windows.h>
 			#endif
-		#elif BHO_OS_MACOS
+		#elif ASIO2_OS_MACOS
 			#if __has_include(<mach-o/dyld.h>)
 				#include <mach-o/dyld.h>
 			#endif
@@ -71,13 +69,13 @@ namespace asio2::detail
 			{
 				std::string                  filepath;
 
-			#if BHO_OS_LINUX || BHO_OS_UNIX
+			#if ASIO2_OS_LINUX || ASIO2_OS_UNIX
 				filepath.resize(PATH_MAX);
 				readlink("/proc/self/exe", (char *)filepath.data(), PATH_MAX);
-			#elif BHO_OS_WINDOWS
+			#elif ASIO2_OS_WINDOWS
 				filepath.resize(MAX_PATH);
 				filepath.resize(::GetModuleFileNameA(NULL, (LPSTR)filepath.data(), MAX_PATH));
-			#elif BHO_OS_MACOS
+			#elif ASIO2_OS_MACOS
 				filepath.resize(PATH_MAX);
 				std::uint32_t bufsize = std::uint32_t(PATH_MAX);
 				_NSGetExecutablePath(filepath.data(), std::addressof(bufsize));

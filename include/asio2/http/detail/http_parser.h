@@ -30,7 +30,7 @@
 
 #include <asio2/base/detail/push_options.hpp>
 
-#ifdef BEAST_HEADER_ONLY
+#ifdef ASIO2_HEADER_ONLY
 namespace bho::beast::http::parses
 #else
 namespace boost::beast::http::parses

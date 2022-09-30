@@ -56,7 +56,7 @@ rpc测试的和说明代码请看:[rpc性能测试代码](https://github.com/zhl
 asio2::tcp_server server;
 server.bind_recv([&](std::shared_ptr<asio2::tcp_session> & session_ptr, std::string_view s)
 {
-	printf("recv : %zu %.*s\n", s.size(), (int)s.size(), s.data());
+	printf("recv : %zu %.*s\n", s.size(), s.size(), s.data());
 	// 异步发送(所有发送操作都是异步且线程安全的)
 	session_ptr->async_send(s);
 	// 发送时指定一个回调函数,当发送完成后会调用此回调函数,bytes_sent表示实际发送的字节数,
@@ -130,7 +130,7 @@ client.bind_connect([&]()
 	printf("disconnect : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
 }).bind_recv([&](std::string_view sv)
 {
-	printf("recv : %zu %.*s\n", sv.size(), (int)sv.size(), sv.data());
+	printf("recv : %zu %.*s\n", sv.size(), sv.size(), sv.data());
 
 	client.async_send(sv);
 })
@@ -379,7 +379,7 @@ server.bind<http::verb::get>("/defer", [](http::request& req, http::response& re
 server.bind("/ws", websocket::listener<asio2::http_session>{}.
 	on("message", [](std::shared_ptr<asio2::http_session>& session_ptr, std::string_view data)
 {
-	printf("ws msg : %zu %.*s\n", data.size(), (int)data.size(), data.data());
+	printf("ws msg : %zu %.*s\n", data.size(), data.size(), data.data());
 
 	session_ptr->async_send(data);
 
@@ -411,6 +411,27 @@ server.bind_not_found([](http::request& req, http::response& rep)
 ```
 ##### 客户端:
 ```c++
+
+// 1. http下载大文件并直接保存
+// The file is in this directory: /asio2/example/bin/x64/QQ9.6.7.28807.exe
+asio2::https_client::download(
+	"https://dldir1.qq.com/qqfile/qq/PCQQ9.6.7/QQ9.6.7.28807.exe",
+	"QQ9.6.7.28807.exe");
+
+// 2. http下载大文件并循环调用回调函数，可在回调函数中写入文件，可实现进度条之类功能
+std::fstream hugefile("CentOS-7-x86_64-DVD-2009.iso", std::ios::out | std::ios::binary | std::ios::trunc);
+asio2::https_client::download(asio::ssl::context{ asio::ssl::context::tlsv13 },
+	"https://mirrors.tuna.tsinghua.edu.cn/centos/7.9.2009/isos/x86_64/CentOS-7-x86_64-DVD-2009.iso",
+	//[](auto& header) // http header callback. this param is optional. the body callback is required.
+	//{
+	//	std::cout << header << std::endl;
+	//},
+	[&hugefile](std::string_view chunk) // http body callback.
+	{
+		hugefile.write(chunk.data(), chunk.size());
+	}
+);
+hugefile.close();
 
 // 通过URL字符串生成一个http请求对象
 auto req1 = http::make_request("http://www.baidu.com/get_user?name=abc");
@@ -541,7 +562,7 @@ sp.bind_init([&]()
 
 }).bind_recv([&](std::string_view sv)
 {
-	printf("recv : %zu %.*s\n", sv.size(), (int)sv.size(), sv.data());
+	printf("recv : %zu %.*s\n", sv.size(), sv.size(), sv.data());
 
 	// 接收串口数据
 	std::string s;

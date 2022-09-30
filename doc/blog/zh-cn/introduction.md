@@ -35,7 +35,7 @@
 
 如果你对项目头文件路径包含很熟悉，比如你有你自己的第三方库目录（比如你习惯把你自己用到的第三方库都放在这个目录下），那么你只需要把asio2-master/3rd里面的全部文件（是asio2-master/3rd里面的文件而不是asio2-master/3rd这个目录本身），和asio2-master/include里面的全部文件，放到你自己的第三方库目录即可。
 ## 9、在DLL中使用asio2的注意事项
-不能在Windows DLL中直接声明一个asio2的server或client对象，会导致死锁。
+#### 1、不能在Windows DLL中直接声明一个asio2的server或client对象，会导致死锁。
 
 比如像下面这样在dllmain.cpp中直接声明了一个asio2全局对象：
 
@@ -65,6 +65,17 @@ void Init()
 
 // 然后在你的EXE中手动调用这个Init导出函数即可。
 
+#### 2、不能在Windows Dll的DLL_PROCESS_DETACH块中调用asio2的server或client对象的stop函数，会导致stop函数永远阻塞无法返回。
+原因是由于在DLL_PROCESS_DETACH时，通过PostQueuedCompletionStatus投递的IOCP事件永远得不到执行。
+
+解决办法依然是自己在DLL中做一个导出函数如Uninit()，在EXE中手动调用你的DLL中的导出函数Uninit();在Uninit函数中调用对象的stop函数；如：
+```cpp
+// 这是你dll中的导出函数Uninit
+void Uninit()
+{
+    client->stop();
+}
+```
 ## 项目地址：
 github : [https://github.com/zhllxt/asio2](https://github.com/zhllxt/asio2)
 码云 : [https://gitee.com/zhllxt/asio2](https://gitee.com/zhllxt/asio2)

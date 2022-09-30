@@ -21,11 +21,8 @@
 // boost::asio is not supported for version 2.6 and 2.7.
 // But at version 2.8, it supports both asio standalone and boost::asio.
 
-// define ASIO_STANDALONE to use asio standalone, otherwise use boost::asio.
-#define ASIO_STANDALONE
-
-// define BEAST_HEADER_ONLY to use beast standalone, otherwise use boost::beast.
-#define BEAST_HEADER_ONLY 1
+// define this to use asio standalone and beast standalone, otherwise use boost::asio and boost::beast.
+#define ASIO2_HEADER_ONLY
 
 // If you want to use the ssl, you need to define ASIO2_USE_SSL.
 // When use ssl,on windows need linker "libssl.lib;libcrypto.lib;Crypt32.lib;", on 

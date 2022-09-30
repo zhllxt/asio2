@@ -17,6 +17,12 @@
 
 #include <asio2/config.hpp>
 
+#ifdef ASIO2_HEADER_ONLY
+#  ifndef ASIO_STANDALONE
+#    define ASIO_STANDALONE
+#  endif
+#endif
+
 #ifdef ASIO_STANDALONE
 #  ifndef ASIO_HEADER_ONLY
 #    define ASIO_HEADER_ONLY
@@ -269,6 +275,7 @@
 		using error_category  = ::boost::system::error_category;
 	}
 	namespace asio = ::boost::asio;
+	namespace bho  = ::boost; // bho means boost header only
 
 	// [ adding definitions to namespace alias ]
 	// This is currently not allowed and probably won't be in C++1Z either,

@@ -29,16 +29,7 @@
 #include <future>
 
 #include <asio2/external/asio.hpp>
-
-#ifdef ASIO2_ASSERT
-	static_assert(false, "Unknown ASIO2_ASSERT definition will affect the relevant functions of this program.");
-#else
-	#if defined(_DEBUG) || defined(DEBUG)
-		#define ASIO2_ASSERT(x) assert(x)
-	#else
-		#define ASIO2_ASSERT(x) ((void)0)
-	#endif
-#endif
+#include <asio2/external/assert.hpp>
 
 namespace asio2
 {

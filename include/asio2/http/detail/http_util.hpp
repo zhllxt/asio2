@@ -33,7 +33,7 @@
 
 #include <asio2/util/string.hpp>
 
-#ifdef BEAST_HEADER_ONLY
+#ifdef ASIO2_HEADER_ONLY
 namespace bho::beast::http
 #else
 namespace boost::beast::http
@@ -674,7 +674,7 @@ namespace boost::beast::http
 	inline constexpr bool is_http_message_v = is_http_message<T>::value;
 }
 
-#ifdef BEAST_HEADER_ONLY
+#ifdef ASIO2_HEADER_ONLY
 namespace bho::beast::websocket
 #else
 namespace boost::beast::websocket

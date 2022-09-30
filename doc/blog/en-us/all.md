@@ -346,27 +346,6 @@ server.start(host, port);
 ##### client:
 ```c++
 
-// 1. download and save the file directly. 
-// The file is in this directory: /asio2/example/bin/x64/QQ9.6.7.28807.exe
-asio2::https_client::download(
-	"https://dldir1.qq.com/qqfile/qq/PCQQ9.6.7/QQ9.6.7.28807.exe",
-	"QQ9.6.7.28807.exe");
-
-// 2. you can save the file content by youself. 
-std::fstream hugefile("CentOS-7-x86_64-DVD-2009.iso", std::ios::out | std::ios::binary | std::ios::trunc);
-asio2::https_client::download(asio::ssl::context{ asio::ssl::context::tlsv13 },
-	"https://mirrors.tuna.tsinghua.edu.cn/centos/7.9.2009/isos/x86_64/CentOS-7-x86_64-DVD-2009.iso",
-	//[](auto& header) // http header callback. this param is optional. the body callback is required.
-	//{
-	//	std::cout << header << std::endl;
-	//},
-	[&hugefile](std::string_view chunk) // http body callback.
-	{
-		hugefile.write(chunk.data(), chunk.size());
-	}
-);
-hugefile.close();
-
 auto req1 = http::make_request("http://www.baidu.com/get_user?name=abc");
 auto rep1 = asio2::http_client::execute("http://www.baidu.com/get_user?name=abc");
 if (asio2::get_last_error())

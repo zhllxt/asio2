@@ -27,7 +27,7 @@
 
 #include <asio2/base/error.hpp>
 
-#ifdef BEAST_HEADER_ONLY
+#ifdef ASIO2_HEADER_ONLY
 namespace bho::beast::zlib
 #else
 namespace boost::beast::zlib

@@ -20,7 +20,7 @@
 #include <unordered_map>
 #include <string_view>
 
-#ifdef BEAST_HEADER_ONLY
+#ifdef ASIO2_HEADER_ONLY
 namespace bho::beast::http
 #else
 namespace boost::beast::http

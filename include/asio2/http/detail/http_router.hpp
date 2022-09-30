@@ -52,7 +52,7 @@ namespace asio2::detail
 	template<class, class> class http_router_t;
 }
 
-#ifdef BEAST_HEADER_ONLY
+#ifdef ASIO2_HEADER_ONLY
 namespace bho::beast::websocket
 #else
 namespace boost::beast::websocket

@@ -24,7 +24,7 @@
 #include <asio2/http/detail/flex_body.hpp>
 #include <asio2/http/detail/http_util.hpp>
 
-#ifdef BEAST_HEADER_ONLY
+#ifdef ASIO2_HEADER_ONLY
 namespace bho::beast::http
 #else
 namespace boost::beast::http
@@ -435,7 +435,7 @@ namespace asio2::detail
 	};
 }
 
-#ifdef BEAST_HEADER_ONLY
+#ifdef ASIO2_HEADER_ONLY
 namespace bho::beast::http
 #else
 namespace boost::beast::http

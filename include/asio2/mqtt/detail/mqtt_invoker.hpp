@@ -32,7 +32,11 @@
 
 #include <asio2/mqtt/message.hpp>
 
+#if !defined(ASIO2_HEADER_ONLY) && __has_include(<boost/core/type_name.hpp>)
+#include <boost/core/type_name.hpp>
+#else
 #include <asio2/bho/core/type_name.hpp>
+#endif
 
 namespace asio2::detail
 {
@@ -606,10 +610,17 @@ namespace asio2::detail
 		{
 			detail::ignore_unused(f, pmsg);
 
+		#if !defined(ASIO2_HEADER_ONLY) && __has_include(<boost/core/type_name.hpp>)
+			ASIO2_LOG(spdlog::level::info, "The user callback function signature do not match : {}({} ...)"
+				, boost::core::type_name<detail::remove_cvref_t<F>>()
+				, boost::core::type_name<detail::remove_cvref_t<M>>()
+			);
+		#else
 			ASIO2_LOG(spdlog::level::info, "The user callback function signature do not match : {}({} ...)"
 				, bho::core::type_name<detail::remove_cvref_t<F>>()
 				, bho::core::type_name<detail::remove_cvref_t<M>>()
 			);
+		#endif
 
 			//ASIO2_ASSERT(false &&
 			//	"The parameters of the user callback function do not match."
@@ -977,7 +988,11 @@ namespace asio2::detail
 
 					std::visit([caller, g = std::move(g)](auto& pr) mutable
 					{
+					#if !defined(ASIO2_HEADER_ONLY) && __has_include(<boost/core/type_name.hpp>)
+						ASIO2_LOG(spdlog::level::debug, "send {}", boost::core::type_name<decltype(pr)>());
+					#else
 						ASIO2_LOG(spdlog::level::debug, "send {}", bho::core::type_name<decltype(pr)>());
+					#endif
 						caller->_do_send(pr, [g = std::move(g)](const error_code&, std::size_t) mutable {});
 					}, rep.variant());
 				});
@@ -993,7 +1008,11 @@ namespace asio2::detail
 				(event_queue_guard<caller_t> g) mutable
 				{
 					detail::ignore_unused(caller_ptr);
+				#if !defined(ASIO2_HEADER_ONLY) && __has_include(<boost/core/type_name.hpp>)
+					ASIO2_LOG(spdlog::level::debug, "send {}", boost::core::type_name<decltype(rep)>());
+				#else
 					ASIO2_LOG(spdlog::level::debug, "send {}", bho::core::type_name<decltype(rep)>());
+				#endif
 					caller->_do_send(rep, [g = std::move(g)](const error_code&, std::size_t) mutable {});
 				});
 			}

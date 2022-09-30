@@ -18,7 +18,7 @@
 #include <asio2/http/request.hpp>
 #include <asio2/http/response.hpp>
 
-#ifdef BEAST_HEADER_ONLY
+#ifdef ASIO2_HEADER_ONLY
 namespace bho::beast::http
 #else
 namespace boost::beast::http

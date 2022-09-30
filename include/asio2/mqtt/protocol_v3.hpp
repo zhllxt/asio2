@@ -213,7 +213,7 @@ namespace asio2::mqtt::v3
 		union
 		{
 			one_byte_integer byte{ 0 };	// all connect flags
-		#if BHO_ENDIAN_BIG_BYTE
+		#if ASIO2_ENDIAN_BIG_BYTE
 			struct
 			{
 				bool         username_flag : 1; // User Name Flag
@@ -345,7 +345,7 @@ namespace asio2::mqtt::v3
 		union
 		{
 			one_byte_integer byte{ 0 }; // all connack flags
-		#if BHO_ENDIAN_BIG_BYTE
+		#if ASIO2_ENDIAN_BIG_BYTE
 			struct
 			{
 				std::uint8_t reserved : 7;

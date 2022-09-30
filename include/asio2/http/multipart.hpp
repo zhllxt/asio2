@@ -31,11 +31,11 @@
 
 #include <asio2/external/asio.hpp>
 #include <asio2/external/beast.hpp>
-#include <asio2/bho/throw_exception.hpp>
+#include <asio2/external/throw_exception.hpp>
 
 #include <asio2/util/string.hpp>
 
-#ifdef BEAST_HEADER_ONLY
+#ifdef ASIO2_HEADER_ONLY
 namespace bho::beast::http
 #else
 namespace boost::beast::http
@@ -167,7 +167,7 @@ public:
 	{
 		auto it = find(name);
 		if (it == cend())
-			BHO_THROW_EXCEPTION(std::out_of_range{ "field not found" });
+			ASIO2_THROW_EXCEPTION(std::out_of_range{ "field not found" });
 		return (*it);
 	}
 

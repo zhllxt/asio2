@@ -28,8 +28,17 @@
 #include <set>
 #include <optional>
 
+#if !defined(ASIO2_HEADER_ONLY) && __has_include(<boost/iterator/function_output_iterator.hpp>)
+#include <boost/iterator/function_output_iterator.hpp>
+#else
 #include <asio2/bho/iterator/function_output_iterator.hpp>
+#endif
+
+#if !defined(ASIO2_HEADER_ONLY) && __has_include(<boost/algorithm/hex.hpp>)
+#include <boost/algorithm/hex.hpp>
+#else
 #include <asio2/bho/algorithm/hex.hpp>
+#endif
 
 #include <asio2/base/iopool.hpp>
 #include <asio2/util/string.hpp>
@@ -132,7 +141,11 @@ struct security
 	static std::string to_hex(T start, T end)
 	{
 		std::string result;
+	#if !defined(ASIO2_HEADER_ONLY) && __has_include(<boost/algorithm/hex.hpp>)
+		boost::algorithm::hex(start, end, std::back_inserter(result));
+	#else
 		bho::algorithm::hex(start, end, std::back_inserter(result));
+	#endif
 		return result;
 	}
 
@@ -597,7 +610,11 @@ struct security
 					i.sub.end(),
 					username_and_groups.begin(),
 					username_and_groups.end(),
+				#if !defined(ASIO2_HEADER_ONLY) && __has_include(<boost/iterator/function_output_iterator.hpp>)
+					boost::make_function_output_iterator(std::ref(store_intersect))
+				#else
 					bho::make_function_output_iterator(std::ref(store_intersect))
+				#endif
 				);
 
 				if (sets_intersect)
