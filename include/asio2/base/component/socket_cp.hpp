@@ -309,7 +309,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @brief Implements the TCP_NODELAY socket option. same as set_no_delay
+		 * @brief Implements the TCP_NODELAY socket option. same as set_no_delay.
 		 * If it's not a tcp socket, do nothing
 		 */
 		inline derived_t & no_delay(bool val) noexcept
@@ -366,6 +366,42 @@ namespace asio2::detail
 				set_last_error(e);
 			}
 			return false;
+		}
+
+		/**
+		 * @brief Implements the SO_LINGER socket option.
+		 *        set_linger(true, 0) - RST will be sent instead of FIN/ACK/FIN/ACK
+		 * @param enable - option on/off
+		 * @param timeout - linger time
+		 */
+		inline derived_t& set_linger(bool enable, int timeout) noexcept
+		{
+			try
+			{
+				this->socket_.lowest_layer().set_option(asio::socket_base::linger(enable, timeout));
+			}
+			catch (system_error& e)
+			{
+				set_last_error(e);
+			}
+			return (static_cast<derived_t&>(*this));
+		}
+
+		/**
+		 * @brief Get the SO_LINGER socket option.
+		 */
+		inline asio::socket_base::linger get_linger() const noexcept
+		{
+			asio::socket_base::linger option{};
+			try
+			{
+				this->socket_.lowest_layer().get_option(option);
+			}
+			catch (system_error& e)
+			{
+				set_last_error(e);
+			}
+			return option;
 		}
 
 	protected:

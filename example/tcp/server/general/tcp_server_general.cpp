@@ -7,21 +7,31 @@ int main()
 
 	asio2::tcp_server server;
 
-	server.bind_recv([&](std::shared_ptr<asio2::tcp_session> & session_ptr, std::string_view data)
+	server.bind_recv([&](std::shared_ptr<asio2::tcp_session>& session_ptr, std::string_view data)
 	{
 		printf("recv : %zu %.*s\n", data.size(), (int)data.size(), data.data());
 
 		session_ptr->async_send(data);
 
-	}).bind_accept([](auto & session_ptr)
+	}).bind_accept([](std::shared_ptr<asio2::tcp_session>& session_ptr)
 	{
 		session_ptr->set_silence_timeout(std::chrono::seconds(5));
 
-	}).bind_connect([&](auto & session_ptr)
+		// eg: If the remote ip is in the blacklist, we close the connection with RST.
+		if (session_ptr->remote_address() == "192.168.0.250")
+		{
+			// How to close the socket with RST instead of FIN/ACK/FIN/ACK ?
+			// set the linger with 1,0 
+			session_ptr->set_linger(true, 0);
+			// close the socket directly.
+			session_ptr->socket().close(asio2::get_last_error());
+		}
+
+	}).bind_connect([&](std::shared_ptr<asio2::tcp_session>& session_ptr)
 	{
 		session_ptr->no_delay(true);
 
-		// You can close the connection directly here.
+		// Or you can close the connection here.
 		// Of course, you can also close the connection anywhere.
 		if (session_ptr->remote_address() == "192.168.0.254")
 			session_ptr->stop();
@@ -30,7 +40,7 @@ int main()
 			session_ptr->remote_address().c_str(), session_ptr->remote_port(),
 			session_ptr->local_address().c_str(), session_ptr->local_port());
 
-	}).bind_disconnect([&](auto & session_ptr)
+	}).bind_disconnect([&](std::shared_ptr<asio2::tcp_session>& session_ptr)
 	{
 		printf("client leave : %s %u %s\n",
 			session_ptr->remote_address().c_str(), session_ptr->remote_port(),

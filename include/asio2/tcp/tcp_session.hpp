@@ -128,6 +128,9 @@ namespace asio2::detail
 				if (!this->state_.compare_exchange_strong(expected, state_t::starting))
 					asio::detail::throw_error(asio::error::operation_aborted);
 
+				if (!this->derived().socket().is_open())
+					asio::detail::throw_error(asio::error::operation_aborted);
+
 				// First call the base class start function
 				super::start();
 
@@ -223,10 +226,16 @@ namespace asio2::detail
 
 			error_code ec_ignore{};
 
+			asio::socket_base::linger linger = this->derived().get_linger();
+
 			// call socket's close function to notify the _handle_recv function response with error > 0 ,
 			// then the socket can get notify to exit
 			// Call shutdown() to indicate that you will not write any more data to the socket.
-			this->socket_.lowest_layer().shutdown(asio::socket_base::shutdown_both, ec_ignore);
+			if (!(linger.enabled() == true && linger.timeout() == 0))
+			{
+				this->socket_.lowest_layer().shutdown(asio::socket_base::shutdown_both, ec_ignore);
+			}
+
 			// Call close,otherwise the _handle_recv will never return
 			this->socket_.lowest_layer().close(ec_ignore);
 

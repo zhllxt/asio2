@@ -205,9 +205,15 @@ namespace asio2::detail
 
 					error_code ec_ignore{};
 
+					asio::socket_base::linger linger = derive.get_linger();
+
 					// we close the socket, so the async_handshake will returned 
 					// with operation_aborted.
-					derive.socket().lowest_layer().shutdown(asio::socket_base::shutdown_both, ec_ignore);
+					if (!(linger.enabled() == true && linger.timeout() == 0))
+					{
+						derive.socket().lowest_layer().shutdown(asio::socket_base::shutdown_both, ec_ignore);
+					}
+
 					derive.socket().lowest_layer().close(ec_ignore);
 				}
 			});
