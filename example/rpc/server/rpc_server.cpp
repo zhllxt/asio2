@@ -57,11 +57,16 @@ int add(int a, int b)
 // Asynchronous rpc function 
 rpc::future<int> async_add(int a, int b)
 {
+	// If you want to know which client called this function, method 1:
+	std::shared_ptr<asio2::rpc_session> sptr = asio2::get_associated_session<asio2::rpc_session>();
+
 	rpc::promise<int> promise;
 	rpc::future<int> f = promise.get_future();
 
-	std::thread([a, b, promise = std::move(promise)]() mutable
+	std::thread([a, b, promise = std::move(promise), sptr = std::move(sptr)]() mutable
 	{
+		ASIO2_ASSERT(sptr);
+
 		std::this_thread::sleep_for(std::chrono::seconds(1));
 
 		promise.set_value(a + b);
@@ -105,11 +110,14 @@ public:
 		return a * b;
 	}
 
-	// If you want to know which client called this function, set the first parameter
-	// to std::shared_ptr<asio2::rpc_session>& session_ptr
+	// If you want to know which client called this function, method 2:
+	// set the first parameter to std::shared_ptr<asio2::rpc_session>& session_ptr
 	userinfo get_user(std::shared_ptr<asio2::rpc_session>& session_ptr)
 	{
-		asio2::ignore_unused(session_ptr);
+		// use get_associated_session to get the client again, this is just for test.
+		std::shared_ptr<asio2::rpc_session> sptr = asio2::get_associated_session<std::shared_ptr<asio2::rpc_session>>();
+		ASIO2_ASSERT(session_ptr.get() == sptr.get());
+		asio2::ignore_unused(session_ptr, sptr);
 
 		userinfo u;
 		u.name = "lilei";
@@ -118,8 +126,6 @@ public:
 		return u;
 	}
 
-	// If you want to know which client called this function, set the first parameter
-	// to std::shared_ptr<asio2::rpc_session>& session_ptr
 	void del_user(std::shared_ptr<asio2::rpc_session>& session_ptr, const userinfo& u)
 	{
 		printf("del_user is called by %s %u : %s %d \n",

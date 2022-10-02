@@ -2,7 +2,7 @@
 #define ASIO2_USE_SSL
 #endif
 
-#include <asio2/rpc/rpc_server.hpp>
+#include <asio2/rpc/rpcs_server.hpp>
 
 int add(int a, int b)
 {

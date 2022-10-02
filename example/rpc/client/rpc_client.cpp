@@ -1,6 +1,8 @@
 #include <asio2/rpc/rpc_client.hpp>
 #include <asio2/external/json.hpp>
 
+asio2::rpc_client* pclient = nullptr; // just for test get_associated_client
+
 struct userinfo
 {
 	std::string name;
@@ -38,6 +40,8 @@ namespace nlohmann
 // Asynchronous rpc function 
 rpc::future<int> async_add(int a, int b)
 {
+	ASIO2_ASSERT(pclient == asio2::get_associated_client<asio2::rpc_client*>());
+
 	rpc::promise<int> promise;
 	rpc::future<int> f = promise.get_future();
 
@@ -52,6 +56,13 @@ rpc::future<int> async_add(int a, int b)
 // set the first parameter to client reference to know which client was called
 void test(asio2::rpc_client& client, std::string str)
 {
+	asio2::rpc_client& rc = asio2::get_associated_client<asio2::rpc_client&>();
+
+	asio2::ignore_unused(rc);
+
+	ASIO2_ASSERT(&client == &rc);
+	ASIO2_ASSERT(&client == pclient);
+
 	std::cout << client.get_user_data<int>() << " - test : " << str << std::endl;
 }
 
@@ -61,6 +72,8 @@ int main()
 	std::string_view port = "8010";
 
 	asio2::rpc_client client;
+
+	pclient = &client;
 
 	// set default rpc call timeout
 	client.set_default_timeout(std::chrono::seconds(3));

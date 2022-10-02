@@ -2,7 +2,7 @@
 #define ASIO2_USE_SSL
 #endif
 
-#include <asio2/rpc/rpc_client.hpp>
+#include <asio2/rpc/rpcs_client.hpp>
 
 int main()
 {

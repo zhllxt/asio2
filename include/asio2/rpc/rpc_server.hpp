@@ -284,66 +284,12 @@ namespace asio2
 		using rpc_server_t<rpc_session_use<asio2::net_protocol::ws>, asio2::net_protocol::ws>::rpc_server_t;
 	};
 
-#if defined(ASIO2_USE_SSL)
-	template<class session_t, asio2::net_protocol np> class rpcs_server_t;
-
-	template<class session_t>
-	class rpcs_server_t<session_t, asio2::net_protocol::tcps> : public detail::rpc_server_impl_t<
-		rpcs_server_t<session_t, asio2::net_protocol::tcps>, detail::tcps_server_impl_t<
-		rpcs_server_t<session_t, asio2::net_protocol::tcps>, session_t>>
-	{
-	public:
-		using detail::rpc_server_impl_t<
-			rpcs_server_t<session_t, asio2::net_protocol::tcps>, detail::tcps_server_impl_t<
-			rpcs_server_t<session_t, asio2::net_protocol::tcps>, session_t>>::rpc_server_impl_t;
-	};
-
-	template<class session_t>
-	class rpcs_server_t<session_t, asio2::net_protocol::wss> : public detail::rpc_server_impl_t<
-		rpcs_server_t<session_t, asio2::net_protocol::wss>, detail::wss_server_impl_t<
-		rpcs_server_t<session_t, asio2::net_protocol::wss>, session_t>>
-	{
-	public:
-		using detail::rpc_server_impl_t<
-			rpcs_server_t<session_t, asio2::net_protocol::wss>, detail::wss_server_impl_t<
-			rpcs_server_t<session_t, asio2::net_protocol::wss>, session_t>>::rpc_server_impl_t;
-	};
-
-	template<asio2::net_protocol np> class rpcs_server_use;
-
-	template<>
-	class rpcs_server_use<asio2::net_protocol::tcps>
-		: public rpcs_server_t<rpcs_session_use<asio2::net_protocol::tcps>, asio2::net_protocol::tcps>
-	{
-	public:
-		using rpcs_server_t<rpcs_session_use<asio2::net_protocol::tcps>, asio2::net_protocol::tcps>::rpcs_server_t;
-	};
-
-	template<>
-	class rpcs_server_use<asio2::net_protocol::wss>
-		: public rpcs_server_t<rpcs_session_use<asio2::net_protocol::wss>, asio2::net_protocol::wss>
-	{
-	public:
-		using rpcs_server_t<rpcs_session_use<asio2::net_protocol::wss>, asio2::net_protocol::wss>::rpcs_server_t;
-	};
-#endif
-
 #if !defined(ASIO2_USE_WEBSOCKET_RPC)
 	/// Using tcp dgram mode as the underlying communication support
 	using rpc_server = rpc_server_use<asio2::net_protocol::tcp>;
 #else
 	/// Using websocket as the underlying communication support
 	using rpc_server = rpc_server_use<asio2::net_protocol::ws>;
-#endif
-
-#if defined(ASIO2_USE_SSL)
-#if !defined(ASIO2_USE_WEBSOCKET_RPC)
-	/// Using tcp dgram mode as the underlying communication support
-	using rpcs_server = rpcs_server_use<asio2::net_protocol::tcps>;
-#else
-	/// Using websocket as the underlying communication support
-	using rpcs_server = rpcs_server_use<asio2::net_protocol::wss>;
-#endif
 #endif
 }
 
