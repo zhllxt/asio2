@@ -1,7 +1,7 @@
 #include <asio2/rpc/rpc_client.hpp>
 #include <asio2/external/json.hpp>
 
-asio2::rpc_client* pclient = nullptr; // just for test get_associated_client
+asio2::rpc_client* pclient = nullptr; // just for test get_current_caller
 
 struct userinfo
 {
@@ -40,7 +40,7 @@ namespace nlohmann
 // Asynchronous rpc function 
 rpc::future<int> async_add(int a, int b)
 {
-	ASIO2_ASSERT(pclient == asio2::get_associated_client<asio2::rpc_client*>());
+	ASIO2_ASSERT(pclient == asio2::get_current_caller<asio2::rpc_client*>());
 
 	rpc::promise<int> promise;
 	rpc::future<int> f = promise.get_future();
@@ -56,7 +56,7 @@ rpc::future<int> async_add(int a, int b)
 // set the first parameter to client reference to know which client was called
 void test(asio2::rpc_client& client, std::string str)
 {
-	asio2::rpc_client& rc = asio2::get_associated_client<asio2::rpc_client&>();
+	asio2::rpc_client& rc = asio2::get_current_caller<asio2::rpc_client&>();
 
 	asio2::ignore_unused(rc);
 

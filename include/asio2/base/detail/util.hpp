@@ -837,22 +837,22 @@ namespace asio2
 	namespace detail
 	{
 		template<class T>
-		struct associated_object_result_t
+		struct current_object_result_t
 		{
 			using type = T&;
 		};
 
 		template<class T>
-		struct associated_object_result_t<std::shared_ptr<T>>
+		struct current_object_result_t<std::shared_ptr<T>>
 		{
 			using type = std::weak_ptr<T>&;
 		};
 
-		class [[maybe_unused]] external_linkaged_associated_object
+		class [[maybe_unused]] external_linkaged_current_object
 		{
 		public:
 			template<class T>
-			[[maybe_unused]] static typename associated_object_result_t<T>::type get() noexcept
+			[[maybe_unused]] static typename current_object_result_t<T>::type get() noexcept
 			{
 				if constexpr (detail::is_template_instance_of_v<std::shared_ptr, T>)
 				{
@@ -869,10 +869,10 @@ namespace asio2
 			}
 		};
 
-		namespace internal_linkaged_associated_object
+		namespace internal_linkaged_current_object
 		{
 			template<class T>
-			[[maybe_unused]] static typename associated_object_result_t<T>::type get() noexcept
+			[[maybe_unused]] static typename current_object_result_t<T>::type get() noexcept
 			{
 				if constexpr (detail::is_template_instance_of_v<std::shared_ptr, T>)
 				{
@@ -890,54 +890,34 @@ namespace asio2
 		}
 
 		template<class T>
-		[[maybe_unused]] inline typename associated_object_result_t<T>::type get_associated_object() noexcept
+		[[maybe_unused]] inline typename current_object_result_t<T>::type get_current_object() noexcept
 		{
-			return detail::external_linkaged_associated_object::get<T>();
+			return detail::external_linkaged_current_object::get<T>();
 		}
 	}
 
 	/**
-	 * @brief Get the associated session object in the current thread.
-	 * @tparam T - eg: asio2::rpc_session or std::shared_ptr<asio2::rpc_session>
-	 * @return eg: std::shared_ptr<asio2::rpc_session>
-	 */
-	template<class T>
-	[[maybe_unused]] inline typename detail::shared_ptr_adapter<T>::type get_associated_session() noexcept
-	{
-		if constexpr (detail::is_template_instance_of_v<std::shared_ptr, T>)
-		{
-			return detail::get_associated_object<T>().lock();
-		}
-		else
-		{
-			// session must be shared_ptr, so if the T is not shared_ptr, we cast it to shared_ptr.
-			return detail::get_associated_object<std::shared_ptr<typename detail::remove_cvref_t<T>>>().lock();
-		}
-	}
-
-	/**
-	 * @brief Get the associated client object in the current thread.
-	 * @tparam T - eg: asio2::rpc_client& or asio2::rpc_client* or std::shared_ptr<asio2::rpc_client>
-	 *         If the object is created on the stack such as "asio2::rpc_client client", the T can
-	 *         only be asio2::rpc_client& or asio2::rpc_client*
-	 *         If the object is created on the heap such as "std::shared_ptr<asio2::rpc_client> client", 
-	 *         the T can only be std::shared_ptr<asio2::rpc_client>
+	 * @brief Get the current caller object in the current thread.
+	 * @tparam T - If the object is created on the stack such as "asio2::rpc_client client", the T can
+	 *             only be asio2::rpc_client& or asio2::rpc_client*
+	 *             If the object is created on the heap such as "std::shared_ptr<asio2::rpc_session>", 
+	 *             the T can only be std::shared_ptr<asio2::rpc_session>
 	 * @return The return type is same as the T.
 	 */
 	template<class T>
-	[[maybe_unused]] inline T get_associated_client() noexcept
+	[[maybe_unused]] inline T get_current_caller() noexcept
 	{
 		if /**/ constexpr (detail::is_template_instance_of_v<std::shared_ptr, T>)
 		{
-			return detail::get_associated_object<T>().lock();
+			return detail::get_current_object<T>().lock();
 		}
 		else if constexpr (std::is_reference_v<T>)
 		{
-			return *detail::get_associated_object<std::add_pointer_t<typename detail::remove_cvref_t<T>>>();
+			return *detail::get_current_object<std::add_pointer_t<typename detail::remove_cvref_t<T>>>();
 		}
 		else
 		{
-			return detail::get_associated_object<T>();
+			return detail::get_current_object<T>();
 		}
 	}
 }

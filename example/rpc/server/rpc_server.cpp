@@ -58,7 +58,7 @@ int add(int a, int b)
 rpc::future<int> async_add(int a, int b)
 {
 	// If you want to know which client called this function, method 1:
-	std::shared_ptr<asio2::rpc_session> sptr = asio2::get_associated_session<asio2::rpc_session>();
+	std::shared_ptr<asio2::rpc_session> sptr = asio2::get_current_caller<std::shared_ptr<asio2::rpc_session>>();
 
 	rpc::promise<int> promise;
 	rpc::future<int> f = promise.get_future();
@@ -114,8 +114,8 @@ public:
 	// set the first parameter to std::shared_ptr<asio2::rpc_session>& session_ptr
 	userinfo get_user(std::shared_ptr<asio2::rpc_session>& session_ptr)
 	{
-		// use get_associated_session to get the client again, this is just for test.
-		std::shared_ptr<asio2::rpc_session> sptr = asio2::get_associated_session<std::shared_ptr<asio2::rpc_session>>();
+		// use get_current_caller to get the client again, this is just for test.
+		std::shared_ptr<asio2::rpc_session> sptr = asio2::get_current_caller<std::shared_ptr<asio2::rpc_session>>();
 		ASIO2_ASSERT(session_ptr.get() == sptr.get());
 		asio2::ignore_unused(session_ptr, sptr);
 

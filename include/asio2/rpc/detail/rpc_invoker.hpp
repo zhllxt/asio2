@@ -396,11 +396,11 @@ namespace asio2::detail
 
 			if (caller_ptr)
 			{
-				detail::get_associated_object<std::shared_ptr<caller_t>>() = caller_ptr;
+				detail::get_current_object<std::shared_ptr<caller_t>>() = caller_ptr;
 			}
 			else
 			{
-				detail::get_associated_object<caller_t*>() = caller;
+				detail::get_current_object<caller_t*>() = caller;
 			}
 
 			typename rpc_result_t<R>::type r = _invoke_impl<R>(f, c,
