@@ -12,6 +12,7 @@ struct aop_log
 	}
 	bool after(std::shared_ptr<asio2::http_session>& session_ptr, http::web_request& req, http::web_response& rep)
 	{
+		ASIO2_ASSERT(asio2::get_current_caller<std::shared_ptr<asio2::http_session>>().get() == session_ptr.get());
 		asio2::ignore_unused(session_ptr, req, rep);
 		printf("aop_log after\n");
 		return true;
@@ -22,6 +23,7 @@ struct aop_check
 {
 	bool before(std::shared_ptr<asio2::http_session>& session_ptr, http::web_request& req, http::web_response& rep)
 	{
+		ASIO2_ASSERT(asio2::get_current_caller<std::shared_ptr<asio2::http_session>>().get() == session_ptr.get());
 		asio2::ignore_unused(session_ptr, req, rep);
 		printf("aop_check before\n");
 		return true;

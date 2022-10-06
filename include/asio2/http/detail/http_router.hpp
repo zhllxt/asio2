@@ -673,6 +673,8 @@ namespace asio2::detail
 			}
 			else
 			{
+				asio2::detail::get_current_object<std::shared_ptr<caller_t>>() = caller;
+
 				bool continued = true;
 				_for_each_tuple(aops, [&continued, &caller, &req, &rep](auto& aop)
 				{
@@ -713,6 +715,8 @@ namespace asio2::detail
 			}
 			else
 			{
+				asio2::detail::get_current_object<std::shared_ptr<caller_t>>() = caller;
+
 				bool continued = true;
 				_for_each_tuple(aops, [&continued, &caller, &req, &rep](auto& aop)
 				{

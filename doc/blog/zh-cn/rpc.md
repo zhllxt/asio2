@@ -149,14 +149,25 @@ int add(int a, int b)
 }
 ```
 比如上面的add函数，当有1个server和1000个client，且1000个client都会调用这个add函数时，怎么知道是哪个client调用的呢？
-改成下面这样即可：
+
+方法1：
 ```cpp
-// 通过session_ptr就能知道是哪个client调用的了
+// 将rpc函数的第1个参数改为连接对象的指针，如下，此时通过session_ptr就能知道是哪个client调用的了
 // 当然，如果你不关心是哪个client调用的，那么std::shared_ptr<asio2::rpc_session>& session_ptr这个参数可以不要，
 // 也就是说下面这种带session_ptr的方式和上面那种不带session_ptr的方式，都支持，而且都只需server.bind("add", add)
 // 即可，不同的版本不需要其它不同的bind操作。
 int add(std::shared_ptr<asio2::rpc_session>& session_ptr, int a, int b)
 {
+	return a + b;
+}
+```
+方法2：
+```cpp
+int add(int a, int b)
+{
+	// 调用get_current_caller函数直接获取即可(注意模板参数必须完全匹配)
+	std::shared_ptr<asio2::rpc_session> session_ptr = 
+		asio2::get_current_caller<std::shared_ptr<asio2::rpc_session>>();
 	return a + b;
 }
 ```
