@@ -6,6 +6,42 @@ ASIO2_INCLUDE += $(LOCAL_PATH)/../../../include
 
 include $(CLEAR_VARS)
 LOCAL_C_INCLUDES += $(ASIO2_INCLUDE)
+LOCAL_MODULE := asio2_rpc_qps_client.out
+LOCAL_SRC_FILES := $(LOCAL_PATH)/../../bench/rpc/asio2_rpc_qps_client/asio2_rpc_qps_client.cpp
+include $(BUILD_EXECUTABLE)
+
+include $(CLEAR_VARS)
+LOCAL_C_INCLUDES += $(ASIO2_INCLUDE)
+LOCAL_MODULE := asio2_rpc_qps_server.out
+LOCAL_SRC_FILES := $(LOCAL_PATH)/../../bench/rpc/asio2_rpc_qps_server/asio2_rpc_qps_server.cpp
+include $(BUILD_EXECUTABLE)
+
+include $(CLEAR_VARS)
+LOCAL_C_INCLUDES += $(ASIO2_INCLUDE)
+LOCAL_MODULE := asio_tcp_tps_client.out
+LOCAL_SRC_FILES := $(LOCAL_PATH)/../../bench/tcp/asio_tcp_tps_client/asio_tcp_tps_client.cpp
+include $(BUILD_EXECUTABLE)
+
+include $(CLEAR_VARS)
+LOCAL_C_INCLUDES += $(ASIO2_INCLUDE)
+LOCAL_MODULE := asio_tcp_tps_server.out
+LOCAL_SRC_FILES := $(LOCAL_PATH)/../../bench/tcp/asio_tcp_tps_server/asio_tcp_tps_server.cpp
+include $(BUILD_EXECUTABLE)
+
+include $(CLEAR_VARS)
+LOCAL_C_INCLUDES += $(ASIO2_INCLUDE)
+LOCAL_MODULE := asio2_tcp_tps_client.out
+LOCAL_SRC_FILES := $(LOCAL_PATH)/../../bench/tcp/asio2_tcp_tps_client/asio2_tcp_tps_client.cpp
+include $(BUILD_EXECUTABLE)
+
+include $(CLEAR_VARS)
+LOCAL_C_INCLUDES += $(ASIO2_INCLUDE)
+LOCAL_MODULE := asio2_tcp_tps_server.out
+LOCAL_SRC_FILES := $(LOCAL_PATH)/../../bench/tcp/asio2_tcp_tps_server/asio2_tcp_tps_server.cpp
+include $(BUILD_EXECUTABLE)
+
+include $(CLEAR_VARS)
+LOCAL_C_INCLUDES += $(ASIO2_INCLUDE)
 LOCAL_MODULE := aes.out
 LOCAL_SRC_FILES := $(LOCAL_PATH)/../../unit/aes.cpp
 include $(BUILD_EXECUTABLE)
@@ -48,6 +84,18 @@ include $(BUILD_EXECUTABLE)
 
 include $(CLEAR_VARS)
 LOCAL_C_INCLUDES += $(ASIO2_INCLUDE)
+LOCAL_MODULE := mqtt.out
+LOCAL_SRC_FILES := $(LOCAL_PATH)/../../unit/mqtt.cpp
+include $(BUILD_EXECUTABLE)
+
+include $(CLEAR_VARS)
+LOCAL_C_INCLUDES += $(ASIO2_INCLUDE)
+LOCAL_MODULE := rdc.out
+LOCAL_SRC_FILES := $(LOCAL_PATH)/../../unit/rdc.cpp
+include $(BUILD_EXECUTABLE)
+
+include $(CLEAR_VARS)
+LOCAL_C_INCLUDES += $(ASIO2_INCLUDE)
 LOCAL_MODULE := reflection.out
 LOCAL_SRC_FILES := $(LOCAL_PATH)/../../unit/reflection.cpp
 include $(BUILD_EXECUTABLE)
@@ -68,6 +116,12 @@ include $(CLEAR_VARS)
 LOCAL_C_INCLUDES += $(ASIO2_INCLUDE)
 LOCAL_MODULE := shared_iopool.out
 LOCAL_SRC_FILES := $(LOCAL_PATH)/../../unit/shared_iopool.cpp
+include $(BUILD_EXECUTABLE)
+
+include $(CLEAR_VARS)
+LOCAL_C_INCLUDES += $(ASIO2_INCLUDE)
+LOCAL_MODULE := tcp_dgram.out
+LOCAL_SRC_FILES := $(LOCAL_PATH)/../../unit/tcp_dgram.cpp
 include $(BUILD_EXECUTABLE)
 
 include $(CLEAR_VARS)

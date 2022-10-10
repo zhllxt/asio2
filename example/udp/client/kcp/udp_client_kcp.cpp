@@ -33,7 +33,6 @@ int main()
 		printf("recv : %zu %.*s\n", data.size(), (int)data.size(), data.data());
 
 		std::string s;
-		s += '2';
 		s += '<';
 		int len = 33 + std::rand() % (126 - 33);
 		for (int i = 0; i < len; i++)

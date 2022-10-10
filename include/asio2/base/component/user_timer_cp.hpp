@@ -114,15 +114,15 @@ namespace asio2::detail
 			}
 			else if constexpr (std::is_array_v<type>)
 			{
-				ASIO2_ASSERT(false);
+				static_assert(detail::always_false_v<T>);
 			}
 			else if constexpr (std::is_same_v<user_timer_handle, type>)
 			{
-				ASIO2_ASSERT(false);
+				static_assert(detail::always_false_v<T>);
 			}
 			else
 			{
-				ASIO2_ASSERT(false);
+				static_assert(detail::always_false_v<T>);
 			}
 		}
 

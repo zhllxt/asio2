@@ -104,8 +104,8 @@ namespace boost::beast::zlib
 			}
 			else
 			{
-				//static_assert(false);
-				ASIO2_ASSERT(false);
+				// http://www.purecpp.cn/detail?id=2293
+				static_assert(!sizeof(CompressOrUncompress));
 			}
 		}
 

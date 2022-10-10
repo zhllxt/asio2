@@ -185,11 +185,7 @@ namespace asio2::detail
 			}
 			else
 			{
-				set_last_error(asio::error::invalid_argument);
-
-				ASIO2_ASSERT(false);
-
-				return ReturnT{};
+				static_assert(detail::always_false_v<ReturnT>);
 			}
 		}
 
@@ -309,11 +305,7 @@ namespace asio2::detail
 			}
 			else
 			{
-				set_last_error(asio::error::invalid_argument);
-
-				ASIO2_ASSERT(false);
-
-				return ReturnT{};
+				static_assert(detail::always_false_v<ReturnT>);
 			}
 		}
 
@@ -446,11 +438,7 @@ namespace asio2::detail
 			}
 			else
 			{
-				set_last_error(asio::error::invalid_argument);
-
-				ASIO2_ASSERT(false);
-
-				return ReturnT{};
+				static_assert(detail::always_false_v<ReturnT>);
 			}
 		}
 
@@ -488,9 +476,7 @@ namespace asio2::detail
 			}
 			else
 			{
-				ASIO2_ASSERT(false);
-				set_last_error(asio::error::invalid_argument);
-				return ReturnT{};
+				static_assert(detail::always_false_v<ReturnT>);
 			}
 		}
 

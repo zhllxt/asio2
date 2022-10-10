@@ -186,7 +186,7 @@ namespace asio2::detail
 		[[deprecated("Replace post_event with post_condition_event")]]
 		inline std::shared_ptr<condition_event> post_event(Function&& f)
 		{
-			ASIO2_ASSERT(false);
+			static_assert(detail::always_false_v<Function>);
 
 			return std::shared_ptr<condition_event>{};
 		}

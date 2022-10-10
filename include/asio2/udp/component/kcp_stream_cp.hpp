@@ -128,7 +128,9 @@ namespace asio2::detail
 			default: set_last_error(asio::error::operation_not_supported); break;
 			}
 			if (ret == 0)
+			{
 				kcp::ikcp_flush(this->kcp_);
+			}
 			callback(get_last_error(), ret < 0 ? 0 : buffer.size());
 
 			return (ret == 0);
@@ -155,6 +157,14 @@ namespace asio2::detail
 			std::uint32_t clock = static_cast<std::uint32_t>(std::chrono::duration_cast<
 				std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count());
 			kcp::ikcp_update(this->kcp_, clock);
+			if (this->kcp_->state == (kcp::IUINT32)-1)
+			{
+				if (derive.state() == state_t::started)
+				{
+					derive._do_disconnect(asio::error::network_reset, std::move(this_ptr));
+				}
+				return;
+			}
 			if (derive.is_started())
 				this->_post_kcp_timer(std::move(this_ptr));
 		}

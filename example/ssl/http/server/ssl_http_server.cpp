@@ -43,7 +43,7 @@ struct aop_check
 int main()
 {
 	// try open https://localhost:8443 in your browser
-	std::string_view host = "127.0.0.1";
+	std::string_view host = "0.0.0.0";
 	std::string_view port = "8443";
 
 	asio2::https_server server;

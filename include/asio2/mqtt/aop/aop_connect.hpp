@@ -51,7 +51,7 @@ namespace asio2::detail
 			}
 			else
 			{
-				ASIO2_ASSERT(false);
+				static_assert(detail::always_false_v<Response>);
 			}
 		}
 
@@ -76,7 +76,7 @@ namespace asio2::detail
 			}
 			else
 			{
-				ASIO2_ASSERT(false);
+				static_assert(detail::always_false_v<Response>);
 			}
 		}
 
@@ -101,7 +101,7 @@ namespace asio2::detail
 			}
 			else
 			{
-				ASIO2_ASSERT(false);
+				static_assert(detail::always_false_v<Response>);
 			}
 		}
 
@@ -155,7 +155,7 @@ namespace asio2::detail
 			}
 			else
 			{
-				ASIO2_ASSERT(false);
+				static_assert(detail::always_false_v<Response>);
 			}
 
 			// check whether uniquely identifier

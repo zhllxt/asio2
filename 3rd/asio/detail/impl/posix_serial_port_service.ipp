@@ -1,16 +1,16 @@
 //
-// detail/impl/reactive_serial_port_service.ipp
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// detail/impl/posix_serial_port_service.ipp
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 //
-// Copyright (c) 2003-2021 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+// Copyright (c) 2003-2022 Christopher M. Kohlhoff (chris at kohlhoff dot com)
 // Copyright (c) 2008 Rep Invariant Systems, Inc. (info@repinvariant.com)
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-#ifndef ASIO_DETAIL_IMPL_REACTIVE_SERIAL_PORT_SERVICE_IPP
-#define ASIO_DETAIL_IMPL_REACTIVE_SERIAL_PORT_SERVICE_IPP
+#ifndef ASIO_DETAIL_IMPL_POSIX_SERIAL_PORT_SERVICE_IPP
+#define ASIO_DETAIL_IMPL_POSIX_SERIAL_PORT_SERVICE_IPP
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1200)
 # pragma once
@@ -22,32 +22,33 @@
 #if !defined(ASIO_WINDOWS) && !defined(__CYGWIN__)
 
 #include <cstring>
-#include "asio/detail/reactive_serial_port_service.hpp"
+#include "asio/detail/posix_serial_port_service.hpp"
 
 #include "asio/detail/push_options.hpp"
 
 namespace asio {
 namespace detail {
 
-reactive_serial_port_service::reactive_serial_port_service(
+posix_serial_port_service::posix_serial_port_service(
     execution_context& context)
-  : execution_context_service_base<reactive_serial_port_service>(context),
+  : execution_context_service_base<posix_serial_port_service>(context),
     descriptor_service_(context)
 {
 }
 
-void reactive_serial_port_service::shutdown()
+void posix_serial_port_service::shutdown()
 {
   descriptor_service_.shutdown();
 }
 
-asio::error_code reactive_serial_port_service::open(
-    reactive_serial_port_service::implementation_type& impl,
+asio::error_code posix_serial_port_service::open(
+    posix_serial_port_service::implementation_type& impl,
     const std::string& device, asio::error_code& ec)
 {
   if (is_open(impl))
   {
     ec = asio::error::already_open;
+    ASIO_ERROR_LOCATION(ec);
     return ec;
   }
 
@@ -55,7 +56,10 @@ asio::error_code reactive_serial_port_service::open(
   int fd = descriptor_ops::open(device.c_str(),
       O_RDWR | O_NONBLOCK | O_NOCTTY, ec);
   if (fd < 0)
+  {
+    ASIO_ERROR_LOCATION(ec);
     return ec;
+  }
 
   int s = descriptor_ops::fcntl(fd, F_GETFL, ec);
   if (s >= 0)
@@ -64,6 +68,7 @@ asio::error_code reactive_serial_port_service::open(
   {
     asio::error_code ignored_ec;
     descriptor_ops::close(fd, state, ignored_ec);
+    ASIO_ERROR_LOCATION(ec);
     return ec;
   }
 
@@ -92,6 +97,7 @@ asio::error_code reactive_serial_port_service::open(
   {
     asio::error_code ignored_ec;
     descriptor_ops::close(fd, state, ignored_ec);
+    ASIO_ERROR_LOCATION(ec);
     return ec;
   }
 
@@ -102,40 +108,53 @@ asio::error_code reactive_serial_port_service::open(
     descriptor_ops::close(fd, state, ignored_ec);
   }
 
+  ASIO_ERROR_LOCATION(ec);
   return ec;
 }
 
-asio::error_code reactive_serial_port_service::do_set_option(
-    reactive_serial_port_service::implementation_type& impl,
-    reactive_serial_port_service::store_function_type store,
+asio::error_code posix_serial_port_service::do_set_option(
+    posix_serial_port_service::implementation_type& impl,
+    posix_serial_port_service::store_function_type store,
     const void* option, asio::error_code& ec)
 {
   termios ios;
   int s = ::tcgetattr(descriptor_service_.native_handle(impl), &ios);
   descriptor_ops::get_last_error(ec, s < 0);
   if (s < 0)
+  {
+    ASIO_ERROR_LOCATION(ec);
     return ec;
+  }
 
   if (store(option, ios, ec))
+  {
+    ASIO_ERROR_LOCATION(ec);
     return ec;
+  }
 
   s = ::tcsetattr(descriptor_service_.native_handle(impl), TCSANOW, &ios);
   descriptor_ops::get_last_error(ec, s < 0);
+  ASIO_ERROR_LOCATION(ec);
   return ec;
 }
 
-asio::error_code reactive_serial_port_service::do_get_option(
-    const reactive_serial_port_service::implementation_type& impl,
-    reactive_serial_port_service::load_function_type load,
+asio::error_code posix_serial_port_service::do_get_option(
+    const posix_serial_port_service::implementation_type& impl,
+    posix_serial_port_service::load_function_type load,
     void* option, asio::error_code& ec) const
 {
   termios ios;
   int s = ::tcgetattr(descriptor_service_.native_handle(impl), &ios);
   descriptor_ops::get_last_error(ec, s < 0);
   if (s < 0)
+  {
+    ASIO_ERROR_LOCATION(ec);
     return ec;
+  }
 
-  return load(option, ios, ec);
+  load(option, ios, ec);
+  ASIO_ERROR_LOCATION(ec);
+  return ec;
 }
 
 } // namespace detail
@@ -146,4 +165,4 @@ asio::error_code reactive_serial_port_service::do_get_option(
 #endif // !defined(ASIO_WINDOWS) && !defined(__CYGWIN__)
 #endif // defined(ASIO_HAS_SERIAL_PORT)
 
-#endif // ASIO_DETAIL_IMPL_REACTIVE_SERIAL_PORT_SERVICE_IPP
+#endif // ASIO_DETAIL_IMPL_POSIX_SERIAL_PORT_SERVICE_IPP

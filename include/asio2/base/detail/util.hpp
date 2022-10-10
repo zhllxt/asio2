@@ -313,6 +313,11 @@ namespace asio2::detail
 	template< class T >
 	using remove_cvref_t = typename remove_cvref<T>::type;
 
+	// https://stackoverflow.com/questions/53945490/how-to-assert-that-a-constexpr-if-else-clause-never-happen
+	// https://en.cppreference.com/w/cpp/utility/variant/visit
+	// https://en.cppreference.com/w/cpp/language/if#Constexpr_If
+	template<class...> inline constexpr bool always_false_v = false;
+
 
 	template <typename Tup, typename Fun, std::size_t... I>
 	inline void for_each_tuple_impl(Tup&& t, Fun&& f, std::index_sequence<I...>)
@@ -574,7 +579,7 @@ namespace asio2::detail
 		}
 		else
 		{
-			ASIO2_ASSERT(false);
+			static_assert(detail::always_false_v<Protocol>);
 		}
 	}
 

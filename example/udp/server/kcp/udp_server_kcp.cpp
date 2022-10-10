@@ -27,9 +27,13 @@ int main()
 			asio2::last_error_msg().c_str());
 	}).bind_handshake([](auto & session_ptr)
 	{
-		printf("client handshake : %s %u %d %s\n",
-			session_ptr->remote_address().c_str(), session_ptr->remote_port(),
-			asio2::last_error_val(), asio2::last_error_msg().c_str());
+		if (asio2::get_last_error())
+			printf("client handshake failure : %s %u %d %s\n",
+				session_ptr->remote_address().c_str(), session_ptr->remote_port(),
+				asio2::last_error_val(), asio2::last_error_msg().c_str());
+		else
+			printf("client handshake success : %s %u\n",
+				session_ptr->remote_address().c_str(), session_ptr->remote_port());
 	}).bind_start([&]()
 	{
 		if (asio2::get_last_error())

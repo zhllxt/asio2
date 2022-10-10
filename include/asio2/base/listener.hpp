@@ -114,9 +114,8 @@ namespace asio2::detail
 			}
 			else
 			{
-				ASIO2_ASSERT(false);
-				//static_assert(false,
-				//	"the class object parameters of C&& c must be pointer or refrence");
+				static_assert(detail::always_false_v<F>,
+					"the class object parameters of C&& c must be pointer or refrence");
 			}
 		}
 
@@ -141,7 +140,8 @@ namespace asio2::detail
 			}
 			else
 			{
-				ASIO2_ASSERT(false);
+				static_assert(detail::always_false_v<F>,
+					"the class object parameters of C&& c must be pointer or refrence");
 			}
 		}
 

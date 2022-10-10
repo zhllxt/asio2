@@ -102,7 +102,7 @@ namespace asio2::detail
 
 			if constexpr (!mqtt::has_packet_id<message_type>::value)
 			{
-				ASIO2_ASSERT(false && "This mqtt message don't has Packet Identifier");
+				static_assert(detail::always_false_v<Message> && "This mqtt message don't has Packet Identifier");
 				return false;
 			}
 			else
@@ -195,7 +195,7 @@ namespace asio2::detail
 
 			if constexpr (!mqtt::has_packet_id<message_type>::value)
 			{
-				ASIO2_ASSERT(false && "This mqtt message don't has Packet Identifier");
+				static_assert(detail::always_false_v<Message> && "This mqtt message don't has Packet Identifier");
 				return;
 			}
 			else
