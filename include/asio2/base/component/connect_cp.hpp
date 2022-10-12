@@ -47,6 +47,34 @@ namespace asio2::detail
 		using endpoints_type     = typename resolver_type::results_type;
 		using endpoints_iterator = typename endpoints_type::iterator;
 
+		/**
+		 * @brief Set the host of the server.
+		 * If connect failed, and you want to use a different ip when reconnect,
+		 * then you can do it like this:
+		 *  client.bind_connect([&client]()
+		 *	{
+		 *		if (asio2::get_last_error()) // has some error, means connect failed
+		 *			client.set_host("192.168.0.99");
+		 *	});
+		 * when reconnecting, the ip "192.168.0.99" will be used as the server's ip.
+		 */
+		template<typename String>
+		inline derived_t& set_host(String&& host)
+		{
+			this->host_ = detail::to_string(std::forward<String>(host));
+			return (static_cast<derived_t&>(*this));
+		}
+
+		/**
+		 * @brief Set the port of the server.
+		 */
+		template<typename StrOrInt>
+		inline derived_t& set_port(StrOrInt&& port)
+		{
+			this->port_ = detail::to_string(std::forward<StrOrInt>(port));
+			return (static_cast<derived_t&>(*this));
+		}
+
 	protected:
 		/// Save the host and port of the server
 		std::string                     host_, port_;
