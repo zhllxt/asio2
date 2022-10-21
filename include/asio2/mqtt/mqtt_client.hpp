@@ -364,7 +364,7 @@ namespace asio2::detail
 			}
 			else
 			{
-				static_assert(detail::always_false_v<v>);
+				static_assert(mqtt::version::v3 == v || mqtt::version::v4 == v || mqtt::version::v5 == v);
 			}
 		}
 

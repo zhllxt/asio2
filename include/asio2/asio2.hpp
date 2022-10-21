@@ -42,6 +42,8 @@
 #	include <asio2/http/https_server.hpp>
 #	include <asio2/http/wss_client.hpp>
 #	include <asio2/http/wss_server.hpp>
+#	include <asio2/rpc/rpcs_client.hpp>
+#	include <asio2/rpc/rpcs_server.hpp>
 #endif
 
 #include <asio2/base/detail/pop_options.hpp>

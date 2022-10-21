@@ -274,6 +274,34 @@ int main()
 		ASIO2_ASSERT(bool(asio2::get_last_error()));
 	}, "no_exists_fn", 10);
 
+	client.start_timer("timer_id1", std::chrono::milliseconds(500), [&]()
+	{
+		std::string s1;
+		s1 += '<';
+		for (int i = 100 + std::rand() % (100); i > 0; i--)
+		{
+			s1 += (char)((std::rand() % 26) + 'a');
+		}
+
+		std::string s2;
+		for (int i = 100 + std::rand() % (100); i > 0; i--)
+		{
+			s2 += (char)((std::rand() % 26) + 'a');
+		}
+		s2 += '>';
+
+		client.async_call([s1, s2](std::string v)
+		{
+			if (!asio2::get_last_error())
+			{
+				ASIO2_ASSERT(v == s1 + s2);
+			}
+			printf("cat : %s - %d %s\n", v.c_str(),
+				asio2::last_error_val(), asio2::last_error_msg().c_str());
+
+		}, "cat", s1, s2);
+	});
+
 	while (std::getchar() != '\n');
 
 	return 0;

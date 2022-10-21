@@ -1119,14 +1119,15 @@ namespace asio2::detail
 			{
 				clear_last_error();
 
-				asio::signal_set signals(iots_[0]->context());
+				// note: The variable name signals will conflict with the macro signals of qt
+				asio::signal_set signalset(iots_[0]->context());
 
-				(signals.add(signal_number), ...);
+				(signalset.add(signal_number), ...);
 
 				std::promise<int> promise;
 				std::future<int> future = promise.get_future();
 
-				signals.async_wait([&](const error_code& /*ec*/, int signo)
+				signalset.async_wait([&](const error_code& /*ec*/, int signo)
 				{
 					promise.set_value(signo);
 				});
