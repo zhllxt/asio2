@@ -42,6 +42,8 @@ namespace asio2::detail
 	template<class derived_t, class args_t>
 	class kcp_stream_cp
 	{
+		friend derived_t; // C++11
+
 		ASIO2_CLASS_FRIEND_DECLARE_UDP_CLIENT;
 		ASIO2_CLASS_FRIEND_DECLARE_UDP_SERVER;
 		ASIO2_CLASS_FRIEND_DECLARE_UDP_SESSION;
@@ -70,19 +72,50 @@ namespace asio2::detail
 	protected:
 		inline void _kcp_start(std::shared_ptr<derived_t> this_ptr, std::uint32_t conv)
 		{
-			if (this->kcp_)
+			// used to restore configs
+			kcp::ikcpcb* old = this->kcp_;
+
+			struct old_kcp_destructor
 			{
-				kcp::ikcp_release(this->kcp_);
-				this->kcp_ = nullptr;
-			}
+				 old_kcp_destructor(kcp::ikcpcb* p) : p_(p) {}
+				~old_kcp_destructor()
+				{
+					if (p_)
+						kcp::ikcp_release(p_);
+				}
+
+				kcp::ikcpcb* p_ = nullptr;
+			} old_kcp_destructor_guard(old);
+
+			ASIO2_ASSERT(conv != 0);
 
 			this->kcp_ = kcp::ikcp_create(conv, (void*)this);
 			this->kcp_->output = &kcp_stream_cp<derived_t, args_t>::_kcp_output;
 
-			kcp::ikcp_nodelay(this->kcp_, 1, 10, 2, 1);
-			kcp::ikcp_wndsize(this->kcp_, 128, 512);
+			if (old)
+			{
+				// ikcp_setmtu
+				kcp::ikcp_setmtu(this->kcp_, old->mtu);
 
-			this->_post_kcp_timer(std::move(this_ptr));
+				// ikcp_wndsize
+				kcp::ikcp_wndsize(this->kcp_, old->snd_wnd, old->rcv_wnd);
+
+				// ikcp_nodelay
+				kcp::ikcp_nodelay(this->kcp_, old->nodelay, old->interval, old->fastresend, old->nocwnd);
+			}
+			else
+			{
+				kcp::ikcp_nodelay(this->kcp_, 1, 10, 2, 1);
+				kcp::ikcp_wndsize(this->kcp_, 128, 512);
+			}
+
+			// if call kcp_timer_.cancel first, then call _post_kcp_timer second immediately,
+			// use asio::post to avoid start timer failed.
+			asio::post(derive.io().context(), make_allocator(derive.wallocator(),
+			[this, this_ptr = std::move(this_ptr)]() mutable
+			{
+				this->_post_kcp_timer(std::move(this_ptr));
+			}));
 		}
 
 		inline void _kcp_stop()
@@ -112,6 +145,19 @@ namespace asio2::detail
 			else
 				sent_bytes = derive.stream().send(asio::buffer(msg), 0, ec);
 			return sent_bytes;
+		}
+
+		inline std::size_t _kcp_send_syn(std::uint32_t seq, error_code& ec)
+		{
+			kcp::kcphdr syn = kcp::make_kcphdr_syn(derive.kcp_conv_, seq);
+			return this->_kcp_send_hdr(syn, ec);
+		}
+
+		inline std::size_t _kcp_send_synack(kcp::kcphdr syn, error_code& ec)
+		{
+			// the syn.th_ack is the kcp conv
+			kcp::kcphdr synack = kcp::make_kcphdr_synack(syn.th_ack, syn.th_seq);
+			return this->_kcp_send_hdr(synack, ec);
 		}
 
 		template<class Data, class Callback>
@@ -214,39 +260,42 @@ namespace asio2::detail
 				if constexpr (args_t::is_session)
 				{
 					// step 3 : server recvd syn from client (the first_ is the syn)
+					kcp::kcphdr syn = kcp::to_kcphdr(derive.first_);
+					std::uint32_t conv = syn.th_ack;
+					if (conv == 0)
+					{
+						conv = derive.kcp_conv_;
+						syn.th_ack = conv;
+					}
 
 					// step 4 : server send synack to client
-					kcp::kcphdr hdr = kcp::to_kcphdr(derive.first_);
-					const auto & key = derive.hash_key();
-					std::uint32_t conv = fnv1a_hash<std::uint32_t>(
-						(const unsigned char * const)&key, std::uint32_t(sizeof(key)));
-					this->seq_ = conv;
-					kcp::kcphdr synack = kcp::make_kcphdr_synack(this->seq_, hdr.th_seq);
-					this->_kcp_send_hdr(synack, ec);
+					this->_kcp_send_synack(syn, ec);
+
 					asio::detail::throw_error(ec);
 
-					this->_kcp_start(self_ptr, this->seq_);
+					this->_kcp_start(self_ptr, conv);
 					this->_handle_handshake(ec, std::move(self_ptr), std::move(condition), std::move(chain));
 				}
 				else
 				{
 					// step 1 : client send syn to server
-					this->seq_ = static_cast<std::uint32_t>(
+					std::uint32_t seq = static_cast<std::uint32_t>(
 						std::chrono::duration_cast<std::chrono::milliseconds>(
 						std::chrono::system_clock::now().time_since_epoch()).count());
-					kcp::kcphdr syn = kcp::make_kcphdr_syn(this->seq_);
-					this->_kcp_send_hdr(syn, ec);
+
+					this->_kcp_send_syn(seq, ec);
+
 					asio::detail::throw_error(ec);
 
 					// use a loop timer to execute "client send syn to server" until the server
 					// has recvd the syn packet and this client recvd reply.
 					std::shared_ptr<asio::steady_timer> timer =
 						mktimer(derive.io().context(), std::chrono::milliseconds(500),
-						[this, self_ptr, syn](error_code ec) mutable
+						[this, self_ptr, seq](error_code ec) mutable
 					{
 						if (ec == asio::error::operation_aborted)
 							return false;
-						this->_kcp_send_hdr(syn, ec);
+						this->_kcp_send_syn(seq, ec);
 						if (ec)
 						{
 							set_last_error(ec);
@@ -264,7 +313,7 @@ namespace asio2::detail
 					// step 2 : client wait for recv synack util connect timeout or recvd some data
 					derive.socket().async_receive(derive.buffer().prepare(derive.buffer().pre_size()),
 						make_allocator(derive.rallocator(),
-					[this, this_ptr = std::move(self_ptr), condition = std::move(condition),
+					[this, seq, this_ptr = std::move(self_ptr), condition = std::move(condition),
 						timer = std::move(timer), chain = std::move(chain)]
 					(const error_code & ec, std::size_t bytes_recvd) mutable
 					{
@@ -295,10 +344,14 @@ namespace asio2::detail
 							(derive.buffer().data().data()), bytes_recvd);
 
 						// Check whether the data is the correct handshake information
-						if (kcp::is_kcphdr_synack(data, this->seq_))
+						if (kcp::is_kcphdr_synack(data, seq))
 						{
 							kcp::kcphdr hdr = kcp::to_kcphdr(data);
 							std::uint32_t conv = hdr.th_seq;
+							if (derive.kcp_conv_ != 0)
+							{
+								ASIO2_ASSERT(derive.kcp_conv_ == conv);
+							}
 							this->_kcp_start(this_ptr, conv);
 							this->_handle_handshake(ec, std::move(this_ptr), std::move(condition), std::move(chain));
 						}
@@ -380,8 +433,6 @@ namespace asio2::detail
 		derived_t                   & derive;
 
 		kcp::ikcpcb                 * kcp_ = nullptr;
-
-		std::uint32_t                 seq_ = 0;
 
 		bool                          send_fin_ = true;
 

@@ -126,11 +126,11 @@ namespace asio2::detail::kcp
 
 		std::string::pointer p = s.data();
 
-		write(p, hdr.th_seq      );
-		write(p, hdr.th_ack      );
-		write(p, hdr.th_flag.byte);
-		write(p, hdr.th_padding  );
-		write(p, hdr.th_sum      );
+		detail::write(p, hdr.th_seq      );
+		detail::write(p, hdr.th_ack      );
+		detail::write(p, hdr.th_flag.byte);
+		detail::write(p, hdr.th_padding  );
+		detail::write(p, hdr.th_sum      );
 
 		return s;
 	}
@@ -144,11 +144,11 @@ namespace asio2::detail::kcp
 
 		if (s.size() >= kcphdr::required_size())
 		{
-			hdr.th_seq       = read<std::uint32_t>(p);
-			hdr.th_ack       = read<std::uint32_t>(p);
-			hdr.th_flag.byte = read<std::uint8_t >(p);
-			hdr.th_padding   = read<std::uint8_t >(p);
-			hdr.th_sum       = read<std::uint16_t>(p);
+			hdr.th_seq       = detail::read<std::uint32_t>(p);
+			hdr.th_ack       = detail::read<std::uint32_t>(p);
+			hdr.th_flag.byte = detail::read<std::uint8_t >(p);
+			hdr.th_padding   = detail::read<std::uint8_t >(p);
+			hdr.th_sum       = detail::read<std::uint16_t>(p);
 		}
 
 		return hdr;
@@ -245,10 +245,11 @@ namespace asio2::detail::kcp
 	}
 
 	template<typename = void>
-	inline kcphdr make_kcphdr_syn(std::uint32_t seq)
+	inline kcphdr make_kcphdr_syn(std::uint32_t conv, std::uint32_t seq)
 	{
 		kcphdr hdr{};
 		hdr.th_seq = seq;
+		hdr.th_ack = conv;
 		hdr.th_flag.bits.syn = 1;
 
 		std::string s = to_string(hdr);
@@ -260,10 +261,10 @@ namespace asio2::detail::kcp
 	}
 
 	template<typename = void>
-	inline kcphdr make_kcphdr_synack(std::uint32_t seq, std::uint32_t ack)
+	inline kcphdr make_kcphdr_synack(std::uint32_t conv, std::uint32_t ack)
 	{
 		kcphdr hdr{};
-		hdr.th_seq = seq;
+		hdr.th_seq = conv;
 		hdr.th_ack = ack + 1;
 		hdr.th_flag.bits.ack = 1;
 		hdr.th_flag.bits.syn = 1;

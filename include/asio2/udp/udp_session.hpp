@@ -57,7 +57,7 @@ namespace asio2::detail
 		using self  = udp_session_impl_t<derived_t, args_t>;
 
 		using args_type = args_t;
-		using key_type  = std::size_t;
+		using key_type  = asio::ip::udp::endpoint;
 
 		using buffer_type = typename args_t::buffer_t;
 		using send_data_t = typename args_t::send_data_t;
@@ -191,7 +191,10 @@ namespace asio2::detail
 		 */
 		inline key_type hash_key() const noexcept
 		{
-			return asio2::hash<asio::ip::udp::endpoint>{}(this->remote_endpoint_);
+			// after test, there are a lot of hash collisions for asio::ip::udp::endpoint.
+			// so the map key can't be the hash result of asio::ip::udp::endpoint, it must
+			// be the asio::ip::udp::endpoint itself.
+			return this->remote_endpoint_;
 		}
 
 		/**
@@ -416,11 +419,9 @@ namespace asio2::detail
 
 	protected:
 		template<typename MatchCondition>
-		inline void _handle_recv(const error_code& ec, std::string_view data,
+		inline void _handle_recv(error_code ec, std::string_view data,
 			std::shared_ptr<derived_t>& this_ptr, condition_wrap<MatchCondition> condition)
 		{
-			detail::ignore_unused(ec);
-
 			if (!this->derived().is_started())
 			{
 				if (this->derived().state() == state_t::started)
@@ -438,29 +439,62 @@ namespace asio2::detail
 			}
 			else
 			{
+				// the kcp message header length is 24
+				// the kcphdr length is 12 
 				if (data.size() == kcp::kcphdr::required_size())
 				{
-					if /**/ (kcp::is_kcphdr_fin(data))
+					// Check whether the packet is SYN handshake
+					// It is possible that the client did not receive the synack package, then the client
+					// will resend the syn package, so we just need to reply to the syncack package directly.
+					// If the client is disconnect without send a "fin" or the server has't recvd the 
+					// "fin", and then the client connect again a later, at this time, the client
+					// is in the session map already, and we need check whether the first message is fin
+					if /**/ (kcp::is_kcphdr_syn(data))
+					{
+						ASIO2_ASSERT(this->kcp_ && this->kcp_->kcp_);
+
+						if (this->kcp_ && this->kcp_->kcp_)
+						{
+							kcp::kcphdr syn = kcp::to_kcphdr(data);
+							std::uint32_t conv = syn.th_ack;
+							if (conv == 0)
+							{
+								conv = this->kcp_->kcp_->conv;
+								syn.th_ack = conv;
+							}
+
+							// set send_fin_ = false to make the _kcp_stop don't sent the fin frame.
+							this->kcp_->send_fin_ = false;
+
+							// If the client is forced disconnect after sent some messages, and the server
+							// has recvd the messages already, we must recreated the kcp object, otherwise
+							// the client and server will can't handle the next messages correctly.
+							this->kcp_->_kcp_stop();
+
+							this->kcp_->_kcp_start(this_ptr, conv);
+
+							this->kcp_->send_fin_ = true;
+
+							// every time we recv kcp syn, we sent synack to the client
+							this->kcp_->_kcp_send_synack(syn, ec);
+							if (ec)
+							{
+								this->derived()._do_disconnect(ec, this_ptr);
+							}
+						}
+						else
+						{
+							this->derived()._do_disconnect(asio::error::operation_aborted, this_ptr);
+						}
+					}
+					else if (kcp::is_kcphdr_fin(data))
 					{
 						this->kcp_->send_fin_ = false;
 						this->derived()._do_disconnect(asio::error::connection_reset, this_ptr);
 					}
-					// Check whether the packet is SYN handshake
-					// It is possible that the client did not receive the synack package, then the client
-					// will resend the syn package, so we just need to reply to the syncack package directly.
-					else if (kcp::is_kcphdr_syn(data))
+					else
 					{
-						// beacuse the server has handled the syn already, so this code will never executed.
-						ASIO2_ASSERT(this->kcp_ && this->kcp_->kcp_);
-						// step 4 : server send synack to client
-						kcp::kcphdr hdr    = kcp::to_kcphdr(data);
-						kcp::kcphdr synack = kcp::make_kcphdr_synack(this->kcp_->seq_, hdr.th_seq);
-						error_code ed;
-						this->kcp_->_kcp_send_hdr(synack, ed);
-						if (ed)
-						{
-							this->derived()._do_disconnect(ed, this_ptr);
-						}
+						ASIO2_ASSERT(false);
 					}
 				}
 				else
@@ -535,6 +569,8 @@ namespace asio2::detail
 		handler_memory<size_op<>, std::true_type>         wallocator_;
 
 		std::unique_ptr<kcp_stream_cp<derived_t, args_t>> kcp_;
+
+		std::uint32_t                                     kcp_conv_ = 0;
 
 		/// first recvd data packet
 		std::string_view                                  first_;

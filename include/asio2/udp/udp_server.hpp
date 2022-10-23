@@ -604,54 +604,29 @@ namespace asio2::detail
 
 				// first we find whether the session is in the session_mgr pool already,if not ,
 				// we new a session and put it into the session_mgr pool
-				std::size_t key = asio2::hash<asio::ip::udp::endpoint>{}(this->remote_endpoint_);
-				std::shared_ptr<session_t> session_ptr = this->sessions_.find(key);
+				std::shared_ptr<session_t> session_ptr = this->sessions_.find(this->remote_endpoint_);
 				if (!session_ptr)
 				{
 					this->derived()._handle_accept(ec, data, session_ptr, condition);
 				}
 				else
 				{
-					if constexpr (std::is_same_v<typename condition_wrap<MatchCondition>::condition_type, use_kcp_t>)
+					session_ptr->_handle_recv(ec, data, session_ptr, condition);
+				}
+			}
+			else
+			{
+			#ifndef ASIO2_DISABLE_STOP_SESSION_WHEN_RECVD_0BYTES
+				// has error, and bytes_recvd == 0
+				if (bytes_recvd == 0)
+				{
+					std::shared_ptr<session_t> session_ptr = this->sessions_.find(this->remote_endpoint_);
+					if (session_ptr)
 					{
-						if (data.size() == kcp::kcphdr::required_size())
-						{
-							// the client is disconnect without send a "fin" or the server has't recvd the 
-							// "fin", and then the client connect again a later, at this time, the client
-							// is in the session map already, so we need check whether the first message is fin
-							if /**/ (kcp::is_kcphdr_syn(data))
-							{
-								if (session_ptr->kcp_)
-									session_ptr->kcp_->send_fin_ = false;
-								session_ptr->stop();
-
-								session_t* session = session_ptr.get();
-
-								session->push_event([this, ec, session_ptr = std::move(session_ptr),
-									condition = std::move(condition), syn = std::string{ data.data(),data.size() }]
-								(event_queue_guard<session_t> g) mutable
-								{
-									detail::ignore_unused(g);
-
-									this->derived()._handle_accept(ec,
-										std::string_view{ syn }, std::move(session_ptr), std::move(condition));
-								});
-							}
-							else
-							{
-								session_ptr->_handle_recv(ec, data, session_ptr, condition);
-							}
-						}
-						else
-						{
-							session_ptr->_handle_recv(ec, data, session_ptr, condition);
-						}
-					}
-					else
-					{
-						session_ptr->_handle_recv(ec, data, session_ptr, condition);
+						session_ptr->stop();
 					}
 				}
+			#endif
 			}
 
 			this->buffer_.consume(this->buffer_.size());
@@ -692,8 +667,42 @@ namespace asio2::detail
 					session_ptr = this->derived()._make_session();
 					session_ptr->counter_ptr_ = this->counter_ptr_;
 					session_ptr->first_ = first;
+					session_ptr->kcp_conv_ = this->derived()._make_kcp_conv(first, condition);
 					session_ptr->start(condition.clone());
 				}
+			}
+		}
+
+		template<typename MatchCondition>
+		inline std::uint32_t _make_kcp_conv(std::string_view first, condition_wrap<MatchCondition>& condition)
+		{
+			if constexpr (std::is_same_v<typename condition_wrap<MatchCondition>::condition_type, use_kcp_t>)
+			{
+				std::uint32_t conv = 0;
+
+				if (kcp::is_kcphdr_syn(first))
+				{
+					kcp::kcphdr syn = kcp::to_kcphdr(first);
+
+					// the syn.th_ack is the kcp conv
+					if (syn.th_ack == 0)
+					{
+						conv = this->kcp_convs_.fetch_add(1);
+
+						if (conv == 0)
+							conv = this->kcp_convs_.fetch_add(1);
+					}
+					else
+					{
+						conv = syn.th_ack;
+					}
+				}
+
+				return conv;
+			}
+			else
+			{
+				return 0;
 			}
 		}
 
@@ -739,6 +748,8 @@ namespace asio2::detail
 
 		/// buffer
 		asio2::buffer_wrap<asio2::linear_buffer> buffer_;
+
+		std::atomic<std::uint32_t>               kcp_convs_ = 1;
 
 	#if defined(_DEBUG) || defined(DEBUG)
 		bool                    is_stop_called_  = false;

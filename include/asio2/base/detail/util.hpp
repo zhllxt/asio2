@@ -794,45 +794,74 @@ namespace asio2
 	template <class KeyT>
 	struct hash;
 
-	template<> struct hash<asio::ip::udp::endpoint>
+	template <typename InternetProtocol>
+	struct hash<asio::ip::basic_endpoint<InternetProtocol>>
 	{
-		inline std::size_t operator()(asio::ip::udp::endpoint const& s) const
+		std::size_t operator()(const asio::ip::basic_endpoint<InternetProtocol>& ep) const noexcept
 		{
 			return std::hash<std::string_view>()(std::string_view{
-				reinterpret_cast<std::string_view::const_pointer>(s.data()), s.size() });
-		}
-	};
-
-	template<> struct hash<asio::ip::tcp::endpoint>
-	{
-		inline std::size_t operator()(asio::ip::tcp::endpoint const& s) const
-		{
-			return std::hash<std::string_view>()(std::string_view{
-				reinterpret_cast<std::string_view::const_pointer>(s.data()), s.size() });
+				reinterpret_cast<std::string_view::const_pointer>(ep.data()), ep.size() });
 		}
 	};
 }
 
 // custom specialization of std::hash can be injected in namespace std
+#if !defined(ASIO_HAS_STD_HASH)
+namespace std
+{
+	template <typename InternetProtocol>
+	struct hash<asio::ip::basic_endpoint<InternetProtocol>>
+	{
+		std::size_t operator()(const asio::ip::basic_endpoint<InternetProtocol>& ep) const noexcept
+		{
+			// see : struct hash<asio::ip::basic_endpoint<InternetProtocol>> in asio/ip/basic_endpoint.hpp
+			return std::hash<std::string_view>()(std::string_view{
+				reinterpret_cast<std::string_view::const_pointer>(ep.data()), ep.size() });
+		}
+	};
+
+	//template<> struct hash<asio::ip::udp::endpoint>
+	//{
+	//	inline std::size_t operator()(asio::ip::udp::endpoint const& s) const noexcept
+	//	{
+	//		return std::hash<std::string_view>()(std::string_view{
+	//			reinterpret_cast<std::string_view::const_pointer>(s.data()), s.size() });
+	//		//return asio2::detail::bkdr_hash((const unsigned char *)(s.data()), s.size());
+	//	}
+	//};
+
+	//template<> struct hash<asio::ip::tcp::endpoint>
+	//{
+	//	inline std::size_t operator()(asio::ip::tcp::endpoint const& s) const noexcept
+	//	{
+	//		return std::hash<std::string_view>()(std::string_view{
+	//			reinterpret_cast<std::string_view::const_pointer>(s.data()), s.size() });
+	//		//return asio2::detail::bkdr_hash((const unsigned char *)(s.data()), s.size());
+	//	}
+	//};
+}
+#endif
+
 //namespace std
 //{
-//	template<> struct hash<asio::ip::udp::endpoint>
+//	template <typename InternetProtocol>
+//	struct hash<asio::ip::basic_endpoint<InternetProtocol>*>
 //	{
-//		inline std::size_t operator()(asio::ip::udp::endpoint const& s) const noexcept
+//		std::size_t operator()(const asio::ip::basic_endpoint<InternetProtocol>* ep) const noexcept
 //		{
+//			return 1;
 //			return std::hash<std::string_view>()(std::string_view{
-//				reinterpret_cast<std::string_view::const_pointer>(s.data()), s.size() });
-//			//return asio2::detail::bkdr_hash((const unsigned char *)(s.data()), s.size());
+//				reinterpret_cast<std::string_view::const_pointer>(ep->data()), ep->size() });
 //		}
 //	};
-//
-//	template<> struct hash<asio::ip::tcp::endpoint>
+//	template <typename InternetProtocol>
+//	struct equal_to<asio::ip::basic_endpoint<InternetProtocol>*>
 //	{
-//		inline std::size_t operator()(asio::ip::tcp::endpoint const& s) const noexcept
+//		std::size_t operator()(
+//			const asio::ip::basic_endpoint<InternetProtocol>* ep1,
+//			const asio::ip::basic_endpoint<InternetProtocol>* ep2) const noexcept
 //		{
-//			return std::hash<std::string_view>()(std::string_view{
-//				reinterpret_cast<std::string_view::const_pointer>(s.data()), s.size() });
-//			//return asio2::detail::bkdr_hash((const unsigned char *)(s.data()), s.size());
+//			return *ep1 == *ep2;
 //		}
 //	};
 //}
