@@ -311,6 +311,111 @@ namespace asio2::detail::kcp
 	{
 		inline void operator()(ikcpcb* p) const noexcept { kcp::ikcp_release(p); };
 	};
+
+	void ikcp_reset(ikcpcb* kcp)
+	{
+		//#### ikcp_release without free
+		assert(kcp);
+		if (kcp) {
+			IKCPSEG* seg;
+			while (!iqueue_is_empty(&kcp->snd_buf)) {
+				seg = iqueue_entry(kcp->snd_buf.next, IKCPSEG, node);
+				iqueue_del(&seg->node);
+				ikcp_segment_delete(kcp, seg);
+			}
+			while (!iqueue_is_empty(&kcp->rcv_buf)) {
+				seg = iqueue_entry(kcp->rcv_buf.next, IKCPSEG, node);
+				iqueue_del(&seg->node);
+				ikcp_segment_delete(kcp, seg);
+			}
+			while (!iqueue_is_empty(&kcp->snd_queue)) {
+				seg = iqueue_entry(kcp->snd_queue.next, IKCPSEG, node);
+				iqueue_del(&seg->node);
+				ikcp_segment_delete(kcp, seg);
+			}
+			while (!iqueue_is_empty(&kcp->rcv_queue)) {
+				seg = iqueue_entry(kcp->rcv_queue.next, IKCPSEG, node);
+				iqueue_del(&seg->node);
+				ikcp_segment_delete(kcp, seg);
+			}
+			//if (kcp->buffer) {
+			//	ikcp_free(kcp->buffer);
+			//}
+			if (kcp->acklist) {
+				ikcp_free(kcp->acklist);
+			}
+
+			kcp->nrcv_buf = 0;
+			kcp->nsnd_buf = 0;
+			kcp->nrcv_que = 0;
+			kcp->nsnd_que = 0;
+			kcp->ackcount = 0;
+			//kcp->buffer = NULL;
+			kcp->acklist = NULL;
+			//ikcp_free(kcp);
+		}
+
+		//#### ikcp_create without malloc
+		if (kcp) {
+			//ikcpcb* kcp = (ikcpcb*)ikcp_malloc(sizeof(struct IKCPCB));
+			//if (kcp == NULL) return NULL;
+			//kcp->conv = conv;
+			//kcp->user = user;
+			kcp->snd_una = 0;
+			kcp->snd_nxt = 0;
+			kcp->rcv_nxt = 0;
+			kcp->ts_recent = 0;
+			kcp->ts_lastack = 0;
+			kcp->ts_probe = 0;
+			kcp->probe_wait = 0;
+			//kcp->snd_wnd = IKCP_WND_SND; // ikcp_wndsize
+			//kcp->rcv_wnd = IKCP_WND_RCV; // ikcp_wndsize
+			kcp->rmt_wnd = IKCP_WND_RCV;
+			kcp->cwnd = 0;
+			kcp->incr = 0;
+			kcp->probe = 0;
+			//kcp->mtu = IKCP_MTU_DEF;             // ikcp_setmtu
+			//kcp->mss = kcp->mtu - IKCP_OVERHEAD; // ikcp_setmtu
+			kcp->stream = 0;
+
+			//kcp->buffer = (char*)ikcp_malloc((kcp->mtu + IKCP_OVERHEAD) * 3);
+			//if (kcp->buffer == NULL) {
+			//	ikcp_free(kcp);
+			//	return NULL;
+			//}
+
+			iqueue_init(&kcp->snd_queue);
+			iqueue_init(&kcp->rcv_queue);
+			iqueue_init(&kcp->snd_buf);
+			iqueue_init(&kcp->rcv_buf);
+			kcp->nrcv_buf = 0;
+			kcp->nsnd_buf = 0;
+			kcp->nrcv_que = 0;
+			kcp->nsnd_que = 0;
+			kcp->state = 0;
+			kcp->acklist = NULL;
+			kcp->ackblock = 0;
+			kcp->ackcount = 0;
+			kcp->rx_srtt = 0;
+			kcp->rx_rttval = 0;
+			kcp->rx_rto = IKCP_RTO_DEF;
+			//kcp->rx_minrto = IKCP_RTO_MIN; // ikcp_nodelay
+			kcp->current = 0;
+			//kcp->interval = IKCP_INTERVAL; // ikcp_nodelay
+			kcp->ts_flush = IKCP_INTERVAL;
+			//kcp->nodelay = 0;              // ikcp_nodelay
+			kcp->updated = 0;
+			//kcp->logmask = 0;
+			kcp->ssthresh = IKCP_THRESH_INIT;
+			//kcp->fastresend = 0;           // ikcp_nodelay
+			//kcp->fastlimit = IKCP_FASTACK_LIMIT;
+			//kcp->nocwnd = 0;               // ikcp_nodelay
+			kcp->xmit = 0;
+			//kcp->dead_link = IKCP_DEADLINK;
+			//kcp->output = NULL;
+			//kcp->writelog = NULL;
+		}
+	}
 }
 
 #include <asio2/base/detail/pop_options.hpp>

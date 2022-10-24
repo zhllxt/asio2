@@ -135,6 +135,11 @@ namespace asio2::detail
 			}
 		}
 
+		inline void _kcp_reset()
+		{
+			kcp::ikcp_reset(this->kcp_);
+		}
+
 	protected:
 		inline std::size_t _kcp_send_hdr(kcp::kcphdr hdr, error_code& ec)
 		{

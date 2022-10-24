@@ -51,6 +51,11 @@ void udp_test()
 			map.emplace(s2, 2);
 
 			ASIO2_CHECK(map.find(s2) != map.end());
+
+			ASIO2_CHECK(map.find(s1)->second == 1);
+			ASIO2_CHECK(map.find(s2)->second == 2);
+
+			ASIO2_CHECK(map.size() == 2);
 		}
 
 		// after test, there are a lot of hash collisions.

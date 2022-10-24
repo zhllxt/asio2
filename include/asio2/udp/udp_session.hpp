@@ -463,15 +463,19 @@ namespace asio2::detail
 								syn.th_ack = conv;
 							}
 
-							// set send_fin_ = false to make the _kcp_stop don't sent the fin frame.
-							this->kcp_->send_fin_ = false;
-
 							// If the client is forced disconnect after sent some messages, and the server
 							// has recvd the messages already, we must recreated the kcp object, otherwise
 							// the client and server will can't handle the next messages correctly.
+						#if 0
+							// set send_fin_ = false to make the _kcp_stop don't sent the fin frame.
+							this->kcp_->send_fin_ = false;
+
 							this->kcp_->_kcp_stop();
 
 							this->kcp_->_kcp_start(this_ptr, conv);
+						#else
+							this->kcp_->_kcp_reset();
+						#endif
 
 							this->kcp_->send_fin_ = true;
 
