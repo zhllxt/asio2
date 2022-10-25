@@ -294,7 +294,7 @@ namespace asio2::detail
 
 					// use a loop timer to execute "client send syn to server" until the server
 					// has recvd the syn packet and this client recvd reply.
-					std::shared_ptr<asio::steady_timer> timer =
+					std::shared_ptr<detail::safe_timer> timer =
 						mktimer(derive.io().context(), std::chrono::milliseconds(500),
 						[this, self_ptr, seq](error_code ec) mutable
 					{
@@ -324,13 +324,7 @@ namespace asio2::detail
 					{
 						ASIO2_ASSERT(derive.io().running_in_this_thread());
 
-						try
-						{
-							timer->cancel();
-						}
-						catch (system_error const&)
-						{
-						}
+						timer->cancel();
 
 						if (ec)
 						{

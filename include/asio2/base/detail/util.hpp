@@ -210,28 +210,6 @@ namespace asio2::detail
 	inline constexpr bool is_copyable_wrapper_v = is_copyable_wrapper<T>::value;
 
 
-	template<class Rep, class Period, class Fn>
-	std::shared_ptr<asio::steady_timer> mktimer(asio::io_context& ioc,
-		std::chrono::duration<Rep, Period> duration, Fn&& fn)
-	{
-		std::shared_ptr<asio::steady_timer> timer = std::make_shared<asio::steady_timer>(ioc);
-		auto post = std::make_shared<std::unique_ptr<std::function<void()>>>();
-		*post = std::make_unique<std::function<void()>>(
-		[duration, f = std::forward<Fn>(fn), timer, post]() mutable
-		{
-			timer->expires_after(duration);
-			timer->async_wait([&f, &post](const error_code& ec) mutable
-			{
-				if (f(ec))
-					(**post)();
-				else
-					(*post).reset();
-			});
-		});
-		(**post)();
-		return timer;
-	}
-
 	struct safe_timer
 	{
 		explicit safe_timer(asio::io_context& ioc) : timer(ioc)
@@ -263,6 +241,36 @@ namespace asio2::detail
 		/// and the stop timer is called later, then the "canceled" flag will be set true again .
 		std::atomic_flag   canceled;
 	};
+
+	template<class Rep, class Period, class Fn>
+	std::shared_ptr<safe_timer> mktimer(asio::io_context& ioc, std::chrono::duration<Rep, Period> duration, Fn&& fn)
+	{
+		std::shared_ptr<safe_timer> timer = std::make_shared<safe_timer>(ioc);
+		auto post = std::make_shared<std::unique_ptr<std::function<void()>>>();
+		*post = std::make_unique<std::function<void()>>(
+		[duration, f = std::forward<Fn>(fn), timer, post]() mutable
+		{
+			timer->timer.expires_after(duration);
+			timer->timer.async_wait([&f, &timer, &post](const error_code& ec) mutable
+			{
+				if (!timer->canceled.test_and_set())
+				{
+					timer->canceled.clear();
+
+					if (f(ec))
+						(**post)();
+					else
+						(*post).reset();
+				}
+				else
+				{
+					(*post).reset();
+				}
+			});
+		});
+		(**post)();
+		return timer;
+	}
 
 	template<class T, bool isIntegral = true, bool isUnsigned = true, bool SkipZero = true>
 	class id_maker

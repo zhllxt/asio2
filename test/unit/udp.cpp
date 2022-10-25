@@ -958,7 +958,13 @@ void udp_test()
 
 				if (ex->num > 10)
 				{
-					client.stop();
+					// before client.stop, the recvd kcp message should be reponsed ack, so
+					// we use a post to delay call client.stop, otherwise if we call
+					// client.stop() directly, the recvd kcp message will can't be reponsed,
+					// this will cause the kcp server will resent the message, and when 
+					// this client restart again, this client maybe recvd the prev kcp
+					// message in the handshaking, it will cause the handshake failed.
+					client.post([&client]() { client.stop(); }, std::chrono::seconds(1));
 					return;
 				}
 
