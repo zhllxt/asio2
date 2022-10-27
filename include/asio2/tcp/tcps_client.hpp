@@ -20,8 +20,8 @@
 #include <asio2/base/detail/push_options.hpp>
 
 #include <asio2/tcp/tcp_client.hpp>
-#include <asio2/tcp/component/ssl_stream_cp.hpp>
-#include <asio2/tcp/component/ssl_context_cp.hpp>
+#include <asio2/tcp/impl/ssl_stream_cp.hpp>
+#include <asio2/tcp/impl/ssl_context_cp.hpp>
 
 namespace asio2::detail
 {

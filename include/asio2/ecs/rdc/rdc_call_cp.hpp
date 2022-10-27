@@ -34,7 +34,7 @@
 #include <asio2/base/detail/util.hpp>
 #include <asio2/base/detail/function_traits.hpp>
 
-#include <asio2/base/component/condition_event_cp.hpp>
+#include <asio2/base/impl/condition_event_cp.hpp>
 
 #include <asio2/ecs/rdc/rdc_invoker.hpp>
 #include <asio2/ecs/rdc/rdc_option.hpp>

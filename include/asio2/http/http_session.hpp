@@ -18,7 +18,7 @@
 #include <asio2/base/detail/push_options.hpp>
 
 #include <asio2/tcp/tcp_session.hpp>
-#include <asio2/http/component/ws_stream_cp.hpp>
+#include <asio2/http/impl/ws_stream_cp.hpp>
 #include <asio2/http/impl/http_send_op.hpp>
 #include <asio2/http/impl/http_recv_op.hpp>
 #include <asio2/http/impl/ws_send_op.hpp>

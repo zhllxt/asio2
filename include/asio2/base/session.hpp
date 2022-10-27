@@ -46,20 +46,20 @@
 #include <asio2/base/detail/buffer_wrap.hpp>
 #include <asio2/base/detail/condition_wrap.hpp>
 
-#include <asio2/base/component/thread_id_cp.hpp>
-#include <asio2/base/component/connect_time_cp.hpp>
-#include <asio2/base/component/alive_time_cp.hpp>
-#include <asio2/base/component/user_data_cp.hpp>
-#include <asio2/base/component/socket_cp.hpp>
-#include <asio2/base/component/connect_cp.hpp>
-#include <asio2/base/component/disconnect_cp.hpp>
-#include <asio2/base/component/user_timer_cp.hpp>
-#include <asio2/base/component/silence_timer_cp.hpp>
-#include <asio2/base/component/post_cp.hpp>
-#include <asio2/base/component/connect_timeout_cp.hpp>
-#include <asio2/base/component/event_queue_cp.hpp>
-#include <asio2/base/component/condition_event_cp.hpp>
-#include <asio2/base/component/send_cp.hpp>
+#include <asio2/base/impl/thread_id_cp.hpp>
+#include <asio2/base/impl/connect_time_cp.hpp>
+#include <asio2/base/impl/alive_time_cp.hpp>
+#include <asio2/base/impl/user_data_cp.hpp>
+#include <asio2/base/impl/socket_cp.hpp>
+#include <asio2/base/impl/connect_cp.hpp>
+#include <asio2/base/impl/disconnect_cp.hpp>
+#include <asio2/base/impl/user_timer_cp.hpp>
+#include <asio2/base/impl/silence_timer_cp.hpp>
+#include <asio2/base/impl/post_cp.hpp>
+#include <asio2/base/impl/connect_timeout_cp.hpp>
+#include <asio2/base/impl/event_queue_cp.hpp>
+#include <asio2/base/impl/condition_event_cp.hpp>
+#include <asio2/base/impl/send_cp.hpp>
 
 #include <asio2/ecs/rdc/rdc_call_cp.hpp>
 

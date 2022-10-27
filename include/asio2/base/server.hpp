@@ -42,12 +42,12 @@
 #include <asio2/base/detail/buffer_wrap.hpp>
 #include <asio2/base/detail/condition_wrap.hpp>
 
-#include <asio2/base/component/thread_id_cp.hpp>
-#include <asio2/base/component/user_data_cp.hpp>
-#include <asio2/base/component/user_timer_cp.hpp>
-#include <asio2/base/component/post_cp.hpp>
-#include <asio2/base/component/event_queue_cp.hpp>
-#include <asio2/base/component/condition_event_cp.hpp>
+#include <asio2/base/impl/thread_id_cp.hpp>
+#include <asio2/base/impl/user_data_cp.hpp>
+#include <asio2/base/impl/user_timer_cp.hpp>
+#include <asio2/base/impl/post_cp.hpp>
+#include <asio2/base/impl/event_queue_cp.hpp>
+#include <asio2/base/impl/condition_event_cp.hpp>
 
 namespace asio2::detail
 {

@@ -21,7 +21,7 @@
 #include <asio2/base/detail/linear_buffer.hpp>
 #include <asio2/udp/impl/udp_send_op.hpp>
 #include <asio2/udp/detail/kcp_util.hpp>
-#include <asio2/udp/component/kcp_stream_cp.hpp>
+#include <asio2/udp/impl/kcp_stream_cp.hpp>
 
 namespace asio2::detail
 {

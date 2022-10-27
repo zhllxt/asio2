@@ -19,7 +19,7 @@
 
 #include <asio2/tcp/tcp_client.hpp>
 #include <asio2/http/detail/http_util.hpp>
-#include <asio2/http/component/ws_stream_cp.hpp>
+#include <asio2/http/impl/ws_stream_cp.hpp>
 #include <asio2/http/impl/ws_send_op.hpp>
 
 namespace asio2::detail

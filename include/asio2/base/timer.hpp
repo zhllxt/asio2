@@ -38,10 +38,10 @@
 #include <asio2/base/detail/allocator.hpp>
 #include <asio2/base/detail/util.hpp>
 
-#include <asio2/base/component/thread_id_cp.hpp>
-#include <asio2/base/component/user_timer_cp.hpp>
-#include <asio2/base/component/post_cp.hpp>
-#include <asio2/base/component/condition_event_cp.hpp>
+#include <asio2/base/impl/thread_id_cp.hpp>
+#include <asio2/base/impl/user_timer_cp.hpp>
+#include <asio2/base/impl/post_cp.hpp>
+#include <asio2/base/impl/condition_event_cp.hpp>
 
 namespace asio2::detail
 {

@@ -30,7 +30,7 @@
 #include <asio2/rpc/detail/rpc_protocol.hpp>
 #include <asio2/rpc/detail/rpc_invoker.hpp>
 #include <asio2/rpc/impl/rpc_recv_op.hpp>
-#include <asio2/rpc/component/rpc_call_cp.hpp>
+#include <asio2/rpc/impl/rpc_call_cp.hpp>
 
 namespace asio2::detail
 {
