@@ -395,3 +395,4 @@ __pycache__/
 #########################################################
 # Cancel Ignore
 !/lib/x64/ossl_static.pdb
+!/3rd/openssl/prebuilt/windows/x64/ossl_static.pdb

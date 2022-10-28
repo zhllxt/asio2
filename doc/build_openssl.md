@@ -7,8 +7,8 @@ openssl的编译方法可以直接看下载的openssl包中的INSTALL文件,不�
 安装nasm https://www.nasm.us/
 如果安装目录是C:\Program Files\NASM 将C:\Program Files\NASM路径放到电脑的环境变量PATH
 
-1.到https://github.com/openssl/openssl下载openssl源码,比如下载的源码包为openssl-OpenSSL_1_1_1h.zip
-2.打开 适用于 VS 2017 的 x64 本机工具命令提示(如果要编译32位的则打开VS 2017的开发人员命令提示符即可)
+1.到https://github.com/openssl/openssl下载openssl源码,比如下载的源码包为openssl-OpenSSL_1_1_1h.zip,解压缩
+2.打开 适用于 VS 2017 的 x64 本机工具命令提示(如果要编译32位的则打开VS 2017的开发人员命令提示符即可),进入到解压缩的openssl文件夹中
 3.perl Configure VC-WIN64A no-shared
 4.nmake
 5.nmake test
@@ -20,6 +20,11 @@ openssl的编译方法可以直接看下载的openssl包中的INSTALL文件,不�
 ## Linux下编译openssl步骤
 
 看INSTALL文件即可,很简单,只需要注意编译静态库时加上no-shared选项,如./config no-shared
+./Configure no-shared
+make
+make test
+make install
+以上编译步骤实际参考自下载的源码包中的openssl/INSTALL文件中的Building OpenSSL段落和Installing OpenSSL段落
 
 ## Arm下的openssl交叉编译步骤
 

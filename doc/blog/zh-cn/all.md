@@ -32,7 +32,7 @@ tcp下也会保证所有连接都正常关闭以后才会退出,你不用考虑�
 asio2::tcp_server server;
 server.bind_recv([&](std::shared_ptr<asio2::tcp_session> & session_ptr, std::string_view s)
 {
-	printf("recv : %zu %.*s\n", s.size(), s.size(), s.data());
+	printf("recv : %zu %.*s\n", s.size(), (int)s.size(), s.data());
 	// 异步发送(所有发送操作都是异步且线程安全的)
 	session_ptr->async_send(s);
 	// 发送时指定一个回调函数,当发送完成后会调用此回调函数,bytes_sent表示实际发送的字节数,
@@ -106,7 +106,7 @@ client.bind_connect([&]()
 	printf("disconnect : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
 }).bind_recv([&](std::string_view sv)
 {
-	printf("recv : %zu %.*s\n", sv.size(), sv.size(), sv.data());
+	printf("recv : %zu %.*s\n", sv.size(), (int)sv.size(), sv.data());
 
 	client.async_send(sv);
 })
@@ -355,7 +355,7 @@ server.bind<http::verb::get>("/defer", [](http::request& req, http::response& re
 server.bind("/ws", websocket::listener<asio2::http_session>{}.
 	on("message", [](std::shared_ptr<asio2::http_session>& session_ptr, std::string_view data)
 {
-	printf("ws msg : %zu %.*s\n", data.size(), data.size(), data.data());
+	printf("ws msg : %zu %.*s\n", data.size(), (int)data.size(), data.data());
 
 	session_ptr->async_send(data);
 
@@ -517,7 +517,7 @@ sp.bind_init([&]()
 
 }).bind_recv([&](std::string_view sv)
 {
-	printf("recv : %zu %.*s\n", sv.size(), sv.size(), sv.data());
+	printf("recv : %zu %.*s\n", sv.size(), (int)sv.size(), sv.data());
 
 	// 接收串口数据
 	std::string s;

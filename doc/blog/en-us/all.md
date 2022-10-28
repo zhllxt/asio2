@@ -18,7 +18,7 @@ server.bind_recv([&server](std::shared_ptr<asio2::tcp_session> & session_ptr, st
 {
 	session_ptr->no_delay(true);
 
-	printf("recv : %zu %.*s\n", s.size(), s.size(), s.data());
+	printf("recv : %zu %.*s\n", s.size(), (int)s.size(), s.data());
     
 	session_ptr->async_send(s);
 }).bind_connect([&server](auto & session_ptr)
@@ -80,7 +80,7 @@ client.bind_connect([&]()
 	printf("disconnect : %d %s\n", asio2::last_error_val(), asio2::last_error_msg().c_str());
 }).bind_recv([&](std::string_view sv)
 {
-	printf("recv : %zu %.*s\n", sv.size(), sv.size(), sv.data());
+	printf("recv : %zu %.*s\n", sv.size(), (int)sv.size(), sv.data());
 
 	client.async_send(sv);
 })
@@ -312,7 +312,7 @@ server.bind<http::verb::get>("/defer", [](http::request& req, http::response& re
 server.bind("/ws", websocket::listener<asio2::http_session>{}.
 	on("message", [](std::shared_ptr<asio2::http_session>& session_ptr, std::string_view data)
 {
-	printf("ws msg : %zu %.*s\n", data.size(), data.size(), data.data());
+	printf("ws msg : %zu %.*s\n", data.size(), (int)data.size(), data.data());
 
 	session_ptr->async_send(data);
 
@@ -467,7 +467,7 @@ sp.bind_init([&]()
 
 }).bind_recv([&](std::string_view sv)
 {
-	printf("recv : %zu %.*s\n", sv.size(), sv.size(), sv.data());
+	printf("recv : %zu %.*s\n", sv.size(), (int)sv.size(), sv.data());
 
 	std::string s;
 	uint8_t len = uint8_t(10 + (std::rand() % 20));
