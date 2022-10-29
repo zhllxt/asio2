@@ -1,4 +1,4 @@
-#include <asio2/http/ws_client.hpp>
+#include <asio2/websocket/ws_client.hpp>
 #include <iostream>
 
 int main()

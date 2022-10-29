@@ -201,12 +201,12 @@
 		#include "asio/write.hpp"
 		#include "asio/write_at.hpp"
 	#endif
-	#if defined(ASIO2_USE_SSL)
+	#if defined(ASIO2_ENABLE_SSL) || defined(ASIO2_USE_SSL)
 		#include <asio/ssl.hpp>
 	#endif
 #else
 	#include <boost/asio.hpp>
-	#if defined(ASIO2_USE_SSL)
+	#if defined(ASIO2_ENABLE_SSL) || defined(ASIO2_USE_SSL)
 		#include <boost/asio/ssl.hpp>
 	#endif
 	#ifndef ASIO_VERSION

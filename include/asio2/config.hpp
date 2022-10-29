@@ -24,11 +24,11 @@
 // define this to use asio standalone and beast standalone, otherwise use boost::asio and boost::beast.
 #define ASIO2_HEADER_ONLY
 
-// If you want to use the ssl, you need to define ASIO2_USE_SSL.
+// If you want to use the ssl, you need to define ASIO2_ENABLE_SSL.
 // When use ssl,on windows need linker "libssl.lib;libcrypto.lib;Crypt32.lib;", on 
 // linux need linker "ssl;crypto;", if link failed under gcc, try ":libssl.a;:libcrypto.a;"
 // ssl must be before crypto.
-//#define ASIO2_USE_SSL
+//#define ASIO2_ENABLE_SSL
 
 // RPC component is using tcp dgram mode as the underlying communication support by default,
 // If you want to using websocket as the underlying communication support, turn on this macro.

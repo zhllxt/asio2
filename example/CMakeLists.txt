@@ -262,10 +262,13 @@ add_subdirectory (${ASIO2_ROOT_DIR}/example/timer            asio2_example_proje
 add_subdirectory (${ASIO2_ROOT_DIR}/example/inherit          asio2_example_project/inherit          )
 
 if(MINGW OR CYGWIN)
-# no mingw compiled openssl
+        #after test, i find that it will linked failed when use the static ssl librarys, but it will
+        #successed when use the shared ssl librarys like this:
+        #https://github.com/axmolengine/buildware/releases/tag/v41
+        add_subdirectory (${ASIO2_ROOT_DIR}/example/ssl              asio2_example_project/ssl              )
 else()
     if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
-    # no MacOS compiled openssl
+        add_subdirectory (${ASIO2_ROOT_DIR}/example/ssl              asio2_example_project/ssl              )
     else()
         add_subdirectory (${ASIO2_ROOT_DIR}/example/ssl              asio2_example_project/ssl              )
     endif()

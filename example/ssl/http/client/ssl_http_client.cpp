@@ -1,5 +1,5 @@
-#ifndef ASIO2_USE_SSL
-#define ASIO2_USE_SSL
+#ifndef ASIO2_ENABLE_SSL
+#define ASIO2_ENABLE_SSL
 #endif
 
 #include <iostream>

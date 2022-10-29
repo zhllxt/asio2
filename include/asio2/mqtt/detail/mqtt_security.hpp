@@ -52,7 +52,7 @@
 #include <asio2/mqtt/detail/mqtt_topic_util.hpp>
 #include <asio2/mqtt/detail/mqtt_subscription_map.hpp>
 
-#if defined(ASIO2_USE_SSL)
+#if defined(ASIO2_ENABLE_SSL) || defined(ASIO2_USE_SSL)
 #include <openssl/evp.h>
 #endif
 
@@ -149,7 +149,7 @@ struct security
 		return result;
 	}
 
-#if defined(ASIO2_USE_SSL)
+#if defined(ASIO2_ENABLE_SSL) || defined(ASIO2_USE_SSL)
     static std::string sha256hash(string_view message) {
         std::shared_ptr<EVP_MD_CTX> mdctx(EVP_MD_CTX_new(), EVP_MD_CTX_free);
         EVP_DigestInit_ex(mdctx.get(), EVP_sha256(), NULL);

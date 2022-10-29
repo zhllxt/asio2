@@ -386,7 +386,7 @@ namespace asio2::detail
 
 					// memory leaks occur when SSL is used in multithreading
 					// https://github.com/chriskohlhoff/asio/issues/368
-				#if defined(ASIO2_USE_SSL)
+				#if defined(ASIO2_ENABLE_SSL) || defined(ASIO2_USE_SSL)
 					OPENSSL_thread_stop();
 				#endif
 				});

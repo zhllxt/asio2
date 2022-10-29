@@ -9,9 +9,15 @@ static std::string_view chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJK
 
 struct hasher
 {
-	inline std::size_t operator()(asio::ip::udp::endpoint const& s) const noexcept
+	inline std::size_t operator()(asio::ip::udp::endpoint const& ep) const noexcept
 	{
-		return asio2::detail::fnv1a_hash<std::uint32_t>((const unsigned char* const)s.data(), (std::uint32_t)s.size());
+		std::uint32_t addr = ep.address().to_v4().to_uint();
+
+		std::uint32_t v = asio2::detail::fnv1a_hash<std::uint32_t>((const unsigned char* const)&addr, sizeof(std::uint32_t));
+
+		std::uint16_t port = ep.port();
+
+		return asio2::detail::fnv1a_hash<std::uint32_t>(v, (const unsigned char* const)&port, sizeof(std::uint16_t));
 	}
 };
 
@@ -35,8 +41,8 @@ void udp_test()
 		{
 			std::unordered_map<asio::ip::udp::endpoint, std::size_t, hasher> map;
 
-			asio::ip::udp::endpoint s1(asio::ip::address_v4{ {0, 0, 16, 0  } }, 1145 );
-			asio::ip::udp::endpoint s2(asio::ip::address_v4{ {0, 0, 15, 104} }, 61166);
+			asio::ip::udp::endpoint s1(asio::ip::address_v4{ {0, 0, 23, 37 } }, 40889);
+			asio::ip::udp::endpoint s2(asio::ip::address_v4{ {0, 0, 23, 136} }, 129  );
 
 			auto h1 = hasher()(s1);
 			auto h2 = hasher()(s2);
@@ -75,9 +81,7 @@ void udp_test()
 		//				{
 		//					asio::ip::udp::endpoint s(asio::ip::address_v4{ {a,b,c,d} }, port);
 
-		//					//const auto hash = asio2::hash<asio::ip::udp::endpoint>{}(s);
-		//					std::uint32_t hash = asio2::detail::fnv1a_hash<std::uint32_t>(
-		//						(const unsigned char* const)s.data(), (std::uint32_t)s.size());
+		//					std::uint32_t hash = (std::uint32_t)hasher()(s);
 
 		//					auto pair = sets.emplace(hash);
 

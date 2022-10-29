@@ -1,8 +1,8 @@
-#ifndef ASIO2_USE_SSL
-#define ASIO2_USE_SSL
+#ifndef ASIO2_ENABLE_SSL
+#define ASIO2_ENABLE_SSL
 #endif
 
-#include <asio2/http/wss_client.hpp>
+#include <asio2/websocket/wss_client.hpp>
 
 int main()
 {

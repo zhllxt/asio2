@@ -35,7 +35,7 @@
 #include <asio2/icmp/ping.hpp>
 #include <asio2/serial_port/serial_port.hpp>
 
-#if defined(ASIO2_USE_SSL)
+#if defined(ASIO2_ENABLE_SSL) || defined(ASIO2_USE_SSL)
 #	include <asio2/tcp/tcps_client.hpp>
 #	include <asio2/tcp/tcps_server.hpp>
 #	include <asio2/http/https_client.hpp>

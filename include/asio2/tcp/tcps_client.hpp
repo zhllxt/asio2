@@ -8,7 +8,7 @@
  * (See accompanying file LICENSE or see <http://www.gnu.org/licenses/>)
  */
 
-#if defined(ASIO2_USE_SSL)
+#if defined(ASIO2_ENABLE_SSL) || defined(ASIO2_USE_SSL)
 
 #ifndef __ASIO2_TCPS_CLIENT_HPP__
 #define __ASIO2_TCPS_CLIENT_HPP__

@@ -27,7 +27,7 @@
 
 #ifdef ASIO2_HEADER_ONLY
 	#include <asio2/bho/beast.hpp>
-	#if defined(ASIO2_USE_SSL)
+	#if defined(ASIO2_ENABLE_SSL) || defined(ASIO2_USE_SSL)
 		// boost 1.72(107200) BOOST_BEAST_VERSION 277
 		#if defined(BEAST_VERSION) && (BEAST_VERSION >= 277)
 			#include <asio2/bho/beast/ssl.hpp>
@@ -39,7 +39,7 @@
 	#define BOOST_BEAST_USE_STD_STRING_VIEW
 	#endif
 	#include <boost/beast.hpp>
-	#if defined(ASIO2_USE_SSL)
+	#if defined(ASIO2_ENABLE_SSL) || defined(ASIO2_USE_SSL)
 		// boost 1.72(107200) BOOST_BEAST_VERSION 277
 		#if defined(BOOST_BEAST_VERSION) && (BOOST_BEAST_VERSION >= 277)
 			#include <boost/beast/ssl.hpp>

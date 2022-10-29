@@ -1,6 +1,6 @@
 #include "unit_test.hpp"
-#include <asio2/http/ws_server.hpp>
-#include <asio2/http/ws_client.hpp>
+#include <asio2/websocket/ws_server.hpp>
+#include <asio2/websocket/ws_client.hpp>
 #include <fmt/format.h>
 
 void websocket_test()

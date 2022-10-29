@@ -66,10 +66,13 @@ AddExecutableTarget(reflection)
 AddExecutableTarget(udp)
 
 if(MINGW OR CYGWIN)
-# no mingw compiled openssl
+        #after test, i find that it will linked failed when use the static ssl librarys, but it will
+        #successed when use the shared ssl librarys like this:
+        #https://github.com/axmolengine/buildware/releases/tag/v41
+        AddSslExecutableTarget(https)
 else()
     if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
-    # no MacOS compiled openssl
+        AddSslExecutableTarget(https)
     else()
         AddSslExecutableTarget(https)
     endif()
