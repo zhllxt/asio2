@@ -642,6 +642,103 @@ namespace asio2::detail
 			return (index < this->size() ? index : ((++(this->next_)) % this->size()));
 		}
 
+		/**
+		 * The wait_for() function blocks until all work has finished and 
+		 * until the specified duration has elapsed.
+		 *
+		 * @param rel_time - The duration for which the call may block.
+		 */
+		template <typename Rep, typename Period>
+		void wait_for(const std::chrono::duration<Rep, Period>& rel_time)
+		{
+			if (this->running_in_threads())
+			{
+				set_last_error(asio::error::operation_not_supported);
+				return;
+			}
+
+			try
+			{
+				clear_last_error();
+				asio::steady_timer timer(this->iots_[0]->context());
+				timer.expires_after(rel_time);
+				timer.wait();
+			}
+			catch (system_error const& e)
+			{
+				set_last_error(e);
+			}
+		}
+
+		/**
+		 * The wait_until() function blocks until all work has finished and 
+		 * until the specified time has been reached.
+		 *
+		 * @param abs_time - The time point until which the call may block.
+		 */
+		template <typename Clock, typename Duration>
+		void wait_until(const std::chrono::time_point<Clock, Duration>& abs_time)
+		{
+			if (this->running_in_threads())
+			{
+				set_last_error(asio::error::operation_not_supported);
+				return;
+			}
+
+			try
+			{
+				clear_last_error();
+				asio::steady_timer timer(this->iots_[0]->context());
+				timer.expires_at(abs_time);
+				timer.wait();
+			}
+			catch (system_error const& e)
+			{
+				set_last_error(e);
+			}
+		}
+
+		/**
+		 * The wait_signal() function blocks util some signal delivered.
+		 * 
+		 * @return The delivered signal number. Maybe invalid value when some exception occured.
+		 */
+		template <class... Ints>
+		int wait_signal(Ints... signal_number)
+		{
+			if (this->running_in_threads())
+			{
+				set_last_error(asio::error::operation_not_supported);
+				return -1;
+			}
+
+			try
+			{
+				clear_last_error();
+
+				// note: The variable name signals will conflict with the macro signals of qt
+				asio::signal_set signalset(this->iots_[0]->context());
+
+				(signalset.add(signal_number), ...);
+
+				std::promise<int> promise;
+				std::future<int> future = promise.get_future();
+
+				signalset.async_wait([&](const error_code& /*ec*/, int signo)
+				{
+					promise.set_value(signo);
+				});
+
+				return future.get();
+			}
+			catch (system_error const& e)
+			{
+				set_last_error(e);
+			}
+
+			return -2;
+		}
+
 	protected:
 		/// threads to run all of the io_context
 		std::vector<std::thread>                                     threads_;

@@ -261,9 +261,11 @@ namespace asio2::detail
 		inline listener_t                 & listener() noexcept { return this->listener_; }
 		inline std::atomic<state_t>       & state   () noexcept { return this->state_;    }
 
+	public:
 		inline constexpr static bool is_session() noexcept { return false; }
 		inline constexpr static bool is_client () noexcept { return true ; }
 		inline constexpr static bool is_server () noexcept { return false; }
+		inline constexpr static bool is_sslmode() noexcept { return false; }
 
 	protected:
 		/// The memory to use for handler-based custom memory allocation. used fo recv/read.

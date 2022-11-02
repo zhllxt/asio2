@@ -262,9 +262,11 @@ namespace asio2::detail
 		inline listener_t               & listener() noexcept { return this->listener_; }
 		inline std::atomic<state_t>     & state   () noexcept { return this->state_;    }
 
+	public:
 		inline constexpr static bool is_session() noexcept { return true ; }
 		inline constexpr static bool is_client () noexcept { return false; }
 		inline constexpr static bool is_server () noexcept { return false; }
+		inline constexpr static bool is_sslmode() noexcept { return false; }
 
 	protected:
 		/// asio::strand ,used to ensure socket multi thread safe,we must ensure that only one operator

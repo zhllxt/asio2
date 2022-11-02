@@ -103,32 +103,45 @@ endif()
 message("CMAKE_BUILD_TYPE = ${CMAKE_BUILD_TYPE}")
 
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-    set(ASIO2_LIBS_DIR ${ASIO2_ROOT_DIR}/lib/x64)
     set(ASIO2_EXES_DIR ${ASIO2_ROOT_DIR}/example/bin/x64)
 elseif(CMAKE_SIZEOF_VOID_P EQUAL 4)
-    set(ASIO2_LIBS_DIR ${ASIO2_ROOT_DIR}/lib/x86)
     set(ASIO2_EXES_DIR ${ASIO2_ROOT_DIR}/example/bin/x86)
 endif()
-
-message("ASIO2_LIBS_DIR = ${ASIO2_LIBS_DIR}")
-message("ASIO2_EXES_DIR = ${ASIO2_EXES_DIR}")
  
 IF (CMAKE_SYSTEM_NAME MATCHES "Linux")
 	set(OPENSSL_LIBS libssl.a libcrypto.a)
 	set(GENERAL_LIBS -lpthread -lrt -ldl stdc++fs)
+    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+        set(ASIO2_LIBS_DIR ${ASIO2_ROOT_DIR}/3rd/openssl/prebuilt/linux/x64)
+    elseif(CMAKE_SIZEOF_VOID_P EQUAL 4)
+        set(ASIO2_LIBS_DIR ${ASIO2_ROOT_DIR}/3rd/openssl/prebuilt/linux/x86)
+    endif()
 ELSEIF (CMAKE_SYSTEM_NAME MATCHES "Windows")
 	set(OPENSSL_LIBS "libssl.lib;libcrypto.lib;Crypt32.lib;")
 	set(GENERAL_LIBS "ws2_32;mswsock;")
+    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+        set(ASIO2_LIBS_DIR ${ASIO2_ROOT_DIR}/3rd/openssl/prebuilt/windows/x64)
+    elseif(CMAKE_SIZEOF_VOID_P EQUAL 4)
+        set(ASIO2_LIBS_DIR ${ASIO2_ROOT_DIR}/3rd/openssl/prebuilt/windows/x86)
+    endif()
 ELSEIF (CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
 	set(OPENSSL_LIBS libssl.a libcrypto.a)
 	set(GENERAL_LIBS -lpthread -lrt -ldl stdc++fs)
 ELSEIF (CMAKE_SYSTEM_NAME MATCHES "Darwin")
 	set(OPENSSL_LIBS libssl.a libcrypto.a)
 	set(GENERAL_LIBS -lpthread -ldl)
+    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+        set(ASIO2_LIBS_DIR ${ASIO2_ROOT_DIR}/3rd/openssl/prebuilt/mac)
+    elseif(CMAKE_SIZEOF_VOID_P EQUAL 4)
+        set(ASIO2_LIBS_DIR ${ASIO2_ROOT_DIR}/3rd/openssl/prebuilt/mac)
+    endif()
 ELSE ()
 	set(OPENSSL_LIBS libssl.a libcrypto.a)
 	set(GENERAL_LIBS -lpthread -lrt -ldl stdc++fs)
 ENDIF (CMAKE_SYSTEM_NAME MATCHES "Linux")
+
+message("ASIO2_LIBS_DIR = ${ASIO2_LIBS_DIR}")
+message("ASIO2_EXES_DIR = ${ASIO2_EXES_DIR}")
 
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY         ${ASIO2_EXES_DIR})
@@ -220,10 +233,14 @@ endif()
 
 
 #include_directories (/usr/local/include) # for boost header file include
+#include_directories (D:/boost)           # for boost header file include
+
 include_directories (${ASIO2_ROOT_DIR}/3rd)
+include_directories (${ASIO2_ROOT_DIR}/3rd/openssl/include)
 include_directories (${ASIO2_ROOT_DIR}/include)
 
 #link_directories    (/usr/local/lib)     # for boost library file include
+#link_directories    (D:/boost/stage/lib) # for boost library file include
 
 
 file (GLOB_RECURSE  ASIO2_FILES  ${ASIO2_ROOT_DIR}/include/asio2/*.*)
@@ -242,10 +259,16 @@ add_subdirectory (${ASIO2_ROOT_DIR}/example/websocket/server     asio2_server_ex
 add_subdirectory (${ASIO2_ROOT_DIR}/example/mqtt/server          asio2_server_example_project/mqtt_server)
 
 if(MINGW OR CYGWIN)
-# no mingw compiled openssl
+        add_subdirectory (${ASIO2_ROOT_DIR}/example/ssl/http/server      asio2_server_example_project/ssl_http_server     )
+        add_subdirectory (${ASIO2_ROOT_DIR}/example/ssl/rpc/server       asio2_server_example_project/ssl_rpc_server      )
+        add_subdirectory (${ASIO2_ROOT_DIR}/example/ssl/tcp/server       asio2_server_example_project/ssl_tcp_server      )
+        add_subdirectory (${ASIO2_ROOT_DIR}/example/ssl/websocket/server asio2_server_example_project/ssl_websocket_server)
 else()
     if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
-    # no MacOS compiled openssl
+        add_subdirectory (${ASIO2_ROOT_DIR}/example/ssl/http/server      asio2_server_example_project/ssl_http_server     )
+        add_subdirectory (${ASIO2_ROOT_DIR}/example/ssl/rpc/server       asio2_server_example_project/ssl_rpc_server      )
+        add_subdirectory (${ASIO2_ROOT_DIR}/example/ssl/tcp/server       asio2_server_example_project/ssl_tcp_server      )
+        add_subdirectory (${ASIO2_ROOT_DIR}/example/ssl/websocket/server asio2_server_example_project/ssl_websocket_server)
     else()
         add_subdirectory (${ASIO2_ROOT_DIR}/example/ssl/http/server      asio2_server_example_project/ssl_http_server     )
         add_subdirectory (${ASIO2_ROOT_DIR}/example/ssl/rpc/server       asio2_server_example_project/ssl_rpc_server      )
