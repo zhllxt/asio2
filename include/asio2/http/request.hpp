@@ -65,13 +65,11 @@ namespace asio2::detail
 		template<typename... Args>
 		explicit http_request_impl_t(Args&&... args)
 			: super(std::forward<Args>(args)...)
-			, user_data_cp<http_request_impl_t<Body, Fields>>()
 		{
 		}
 
 		http_request_impl_t(const http_request_impl_t& o)
 			: super()
-			, user_data_cp<http_request_impl_t<Body, Fields>>()
 		{
 			this->base() = o.base();
 			this->url_           = o.url_;
@@ -81,7 +79,6 @@ namespace asio2::detail
 
 		http_request_impl_t(http_request_impl_t&& o)
 			: super()
-			, user_data_cp<http_request_impl_t<Body, Fields>>()
 		{
 			this->base() = std::move(o.base());
 			this->url_           = std::move(o.url_);
@@ -109,14 +106,12 @@ namespace asio2::detail
 
 		http_request_impl_t(const http::message<true, Body, Fields>& req)
 			: super()
-			, user_data_cp<http_request_impl_t<Body, Fields>>()
 		{
 			this->base() = req;
 		}
 
 		http_request_impl_t(http::message<true, Body, Fields>&& req)
 			: super()
-			, user_data_cp<http_request_impl_t<Body, Fields>>()
 		{
 			this->base() = std::move(req);
 		}

@@ -1,6 +1,6 @@
 #include <asio2/tcp/tcp_server.hpp>
 
-// how to use the match_role, see : https://blog.csdn.net/zhllxt/article/details/104772948
+// how to use the match_role, see : https://blog.csdn.net/zhllxt/article/details/127670983
 
 // the byte 1    head   (1 bytes) : #
 // the byte 2    length (1 bytes) : the body length
@@ -87,7 +87,7 @@ int main()
 
 	server.bind_recv([&](auto & session_ptr, std::string_view data)
 	{
-		// how to close the illegal client, see : https://blog.csdn.net/zhllxt/article/details/104772948
+		// how to close the illegal client, see : https://blog.csdn.net/zhllxt/article/details/127670983
 		if (data.size() == 0)
 		{
 			printf("close illegal client : %s %u\n",
