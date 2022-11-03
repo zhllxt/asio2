@@ -13,3 +13,6 @@ add_subdirectory (asio_tcp_tps_server)
 
 add_subdirectory (asio2_tcp_tps_client)
 add_subdirectory (asio2_tcp_tps_server)
+
+add_subdirectory (asio2_tcp_concurrency_client)
+add_subdirectory (asio2_tcp_concurrency_server)
