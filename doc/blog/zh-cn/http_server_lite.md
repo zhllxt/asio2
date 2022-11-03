@@ -255,7 +255,6 @@ int main()
 		catch (json::exception const& e)
 		{
 			fmt::print("read the config file 'config.json' failed: {}\n", e.what());
-			return 0;
 		}
 	}
 
