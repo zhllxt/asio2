@@ -853,7 +853,7 @@ namespace asio2::detail
 		 * if result type is void, the Callback signature is : void()
 		 */
 		template<class return_t, class Callback, class ...Args>
-		inline typename std::enable_if_t<is_template_callable_v<Callback, return_t>, void>
+		inline typename std::enable_if_t<detail::is_template_callable_v<Callback, return_t>, void>
 		async_call(Callback&& cb, std::string name, Args&&... args)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
@@ -871,7 +871,7 @@ namespace asio2::detail
 		 * if result type is void, the Callback signature is : void()
 		 */
 		template<class return_t, class Callback, class Rep, class Period, class ...Args>
-		inline typename std::enable_if_t<is_template_callable_v<Callback, return_t>, void>
+		inline typename std::enable_if_t<detail::is_template_callable_v<Callback, return_t>, void>
 		async_call(Callback&& cb, std::chrono::duration<Rep, Period> timeout, std::string name, Args&&... args)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);

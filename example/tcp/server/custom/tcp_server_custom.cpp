@@ -26,11 +26,18 @@ public:
 			[[maybe_unused]] const char * buf = &(*p);
 
 			// eg : How to close illegal clients
-			// If the first byte is not # indicating that the client is illegal, we return
-			// the matching success here and then determine the number of bytes received
-			// in the on_recv callback function, if it is 0, we close the connection in on_recv.
 			if (*p != c_)
-				return std::pair(begin, true); // head character is not #, return and kill the client
+			{
+				// method 1:
+				// call the session stop function directly, you need add the init function, see below.
+				session_ptr_->stop();
+				break;
+
+				// method 2:
+				// return the matching success here and then determine the number of bytes received
+				// in the on_recv callback function, if it is 0, we close the connection in on_recv.
+				//return std::pair(begin, true); // head character is not #, return and kill the client
+			}
 
 			p++;
 			if (p == end) break;
@@ -48,8 +55,18 @@ public:
 		return std::pair(begin, false);
 	}
 
+	// the asio2 framework will call this function immediately after the session is created, 
+	// you can save the session pointer into a member variable, or do something else.
+	void init(std::shared_ptr<asio2::tcp_session>& session_ptr)
+	{
+		session_ptr_ = session_ptr;
+	}
+
 private:
 	char c_;
+
+	// note : use a shared_ptr to save the session does not cause circular reference.
+	std::shared_ptr<asio2::tcp_session> session_ptr_;
 };
 
 #ifdef ASIO_STANDALONE

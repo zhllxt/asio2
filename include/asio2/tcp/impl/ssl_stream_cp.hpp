@@ -57,9 +57,7 @@ namespace asio2::detail
 
 	protected:
 		template<typename MatchCondition>
-		inline void _ssl_init(
-			const condition_wrap<MatchCondition>& condition,
-			socket_type& socket, asio::ssl::context& ctx)
+		inline void _ssl_init(condition_wrap<MatchCondition>& condition, socket_type& socket, asio::ssl::context& ctx)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 

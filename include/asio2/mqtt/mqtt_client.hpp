@@ -434,12 +434,12 @@ namespace asio2::detail
 
 	protected:
 		template<typename MatchCondition>
-		inline void _do_init(condition_wrap<MatchCondition> condition)
+		inline void _do_init(condition_wrap<MatchCondition>& condition)
 		{
 			// must set default callback for every mqtt message.
 			this->derived()._bind_default_mqtt_handler(condition);
 
-			super::_do_init(std::move(condition));
+			super::_do_init(condition);
 		}
 
 		template<typename DeferEvent = defer_event<void, derived_t>>

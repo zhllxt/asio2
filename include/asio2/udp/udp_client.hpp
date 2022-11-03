@@ -447,7 +447,7 @@ namespace asio2::detail
 		}
 
 		template<typename MatchCondition>
-		inline void _do_init(condition_wrap<MatchCondition>)
+		inline void _do_init(condition_wrap<MatchCondition>&)
 		{
 			if constexpr (std::is_same_v<typename condition_wrap<MatchCondition>::condition_type, use_kcp_t>)
 				this->kcp_ = std::make_unique<kcp_stream_cp<derived_t, args_t>>(this->derived(), this->io_);

@@ -448,7 +448,7 @@ namespace asio2::detail
 		}
 
 		template<typename MatchCondition>
-		inline void _do_init(condition_wrap<MatchCondition>) noexcept
+		inline void _do_init(condition_wrap<MatchCondition>&) noexcept
 		{
 			// Used to test whether the behavior of different compilers is consistent
 			static_assert(tcp_send_op<derived_t, args_t>::template has_member_dgram<self>::value,

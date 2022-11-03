@@ -221,7 +221,7 @@ namespace asio2::detail
 
 	protected:
 		template<typename MatchCondition>
-		inline void _do_init(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		inline void _do_init(std::shared_ptr<derived_t>& this_ptr, condition_wrap<MatchCondition>& condition)
 		{
 			detail::ignore_unused(this_ptr, condition);
 

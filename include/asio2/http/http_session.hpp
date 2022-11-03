@@ -183,9 +183,9 @@ namespace asio2::detail
 		}
 
 		template<typename MatchCondition>
-		inline void _do_init(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		inline void _do_init(std::shared_ptr<derived_t>& this_ptr, condition_wrap<MatchCondition>& condition)
 		{
-			super::_do_init(std::move(this_ptr), condition);
+			super::_do_init(this_ptr, condition);
 
 			if (this->support_websocket_)
 			{

@@ -96,6 +96,15 @@ namespace asio2::socks5
 	template<method... ms>
 	class option : public detail::option_base, public detail::method_field<option<ms...>, ms>...
 	{
+	protected:
+		// vs2017 15.9.31 not supported
+		//std::enable_if_t<((!std::is_base_of_v<detail::option_base, asio2::detail::remove_cvref_t<Args>>) && ...)
+		template<class... Args>
+		constexpr static bool not_options() noexcept
+		{
+			return ((!std::is_base_of_v<detail::option_base, asio2::detail::remove_cvref_t<Args>>) && ...);
+		}
+
 	public:
 		option() = default;
 		option(option&&) = default;
@@ -104,8 +113,7 @@ namespace asio2::socks5
 		option& operator=(option const&) = default;
 
 		// constructor sfinae
-		template<class... Args, std::enable_if_t<
-			((!std::is_base_of_v<detail::option_base, asio2::detail::remove_cvref_t<Args>>) && ...), int> = 0>
+		template<class... Args, std::enable_if_t<not_options<Args...>(), int> = 0>
 		explicit option(Args&&... args) : option(
 			std::conditional_t<option<ms...>::has_password_method(),
 			std::integral_constant<int, asio2::detail::to_underlying(method::password)>,

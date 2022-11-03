@@ -67,7 +67,7 @@ namespace asio2::detail
 
 	protected:
 		template<typename MatchCondition, typename Socket>
-		inline void _ws_init(const condition_wrap<MatchCondition>& condition, Socket& socket)
+		inline void _ws_init(condition_wrap<MatchCondition>& condition, Socket& socket)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 

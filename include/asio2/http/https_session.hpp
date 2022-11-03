@@ -109,11 +109,11 @@ namespace asio2::detail
 
 	protected:
 		template<typename MatchCondition>
-		inline void _do_init(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		inline void _do_init(std::shared_ptr<derived_t>& this_ptr, condition_wrap<MatchCondition>& condition)
 		{
 			this->derived()._ssl_init(condition, this->socket_, this->ctx_);
 
-			super::_do_init(std::move(this_ptr), condition);
+			super::_do_init(this_ptr, condition);
 		}
 
 		template<typename MatchCondition, typename DeferEvent>

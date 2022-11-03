@@ -853,7 +853,7 @@ namespace asio2::detail
 		}
 
 	protected:
-		iopool impl_;
+		detail::iopool impl_;
 	};
 
 	/**
@@ -1030,6 +1030,19 @@ namespace asio2::detail
 			{
 				using pool_type = default_iopool;
 				this->iopool_ = std::make_unique<pool_type>(v);
+			}
+			else if constexpr (std::is_same_v<type, detail::iopool>)
+			{
+				using container = std::vector<io_t*>;
+				container copy{};
+
+				for (std::size_t i = 0; i < v.size(); ++i)
+				{
+					copy.emplace_back(&(v.get(i)));
+				}
+
+				using pool_type = user_iopool<container>;
+				this->iopool_ = std::make_unique<pool_type>(std::move(copy));
 			}
 			else if constexpr (is_io_context_pointer<type>::value)
 			{

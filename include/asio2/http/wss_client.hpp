@@ -181,7 +181,7 @@ namespace asio2::detail
 		}
 
 		template<typename MatchCondition>
-		inline void _do_init(condition_wrap<MatchCondition> condition)
+		inline void _do_init(condition_wrap<MatchCondition>& condition)
 		{
 			super::_do_init(condition);
 

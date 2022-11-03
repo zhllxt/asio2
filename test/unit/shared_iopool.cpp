@@ -33,6 +33,7 @@ void shared_iopool_test()
 	asio2::ws_server   _serverb(std::list  <asio2::io_t*>{ &iopool.get(0), &iopool.get(1) });
 	asio2::tcp_server  _serverc(&iopool.get(0));
 	asio2::tcp_server  _serverd( iopool.get(0));
+	asio2::tcp_server  _servere( iopool);
 
 	asio2::tcp_client  _client1(1024);
 	asio2::tcp_client  _client2(1024, 65535);

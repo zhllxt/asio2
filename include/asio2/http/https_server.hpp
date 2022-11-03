@@ -89,7 +89,7 @@ namespace asio2::detail
 		template<class F, class ...C>
 		inline derived_t & bind_recv(F&& fun, C&&... obj)
 		{
-			if constexpr (is_template_callable_v<F,
+			if constexpr (detail::is_template_callable_v<F,
 				std::shared_ptr<session_t>&, http::web_request&, http::web_response&>)
 			{
 				this->is_arg0_session_ = true;

@@ -623,7 +623,7 @@ namespace asio2::detail
 		{
 			asio2::detail::ignore_unused(caller);
 
-			if constexpr (is_template_callable_v<F, std::shared_ptr<caller_t>&,
+			if constexpr (detail::is_template_callable_v<F, std::shared_ptr<caller_t>&,
 				http::web_request&, http::web_response&>)
 			{
 				f(caller, req, rep);
@@ -642,7 +642,7 @@ namespace asio2::detail
 		{
 			asio2::detail::ignore_unused(caller);
 
-			if constexpr (is_template_callable_v<F, std::shared_ptr<caller_t>&,
+			if constexpr (detail::is_template_callable_v<F, std::shared_ptr<caller_t>&,
 				http::web_request&, http::web_response&>)
 			{
 				if (c) (c->*f)(caller, req, rep);

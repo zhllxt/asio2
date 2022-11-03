@@ -168,8 +168,15 @@ namespace asio2::detail
 		}
 
 	protected:
+		template<class T, class R, class... Args>
+		struct condition_has_member_init : std::false_type {};
+
+		template<class T, class... Args>
+		struct condition_has_member_init<T, decltype(std::declval<std::decay_t<T>>().
+			init((std::declval<Args>())...)), Args...> : std::true_type {};
+
 		template<typename MatchCondition>
-		inline void _do_init(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition) noexcept
+		inline void _do_init(std::shared_ptr<derived_t>& this_ptr, condition_wrap<MatchCondition>& condition) noexcept
 		{
 			detail::ignore_unused(this_ptr, condition);
 
@@ -178,9 +185,29 @@ namespace asio2::detail
 			this->derived().update_alive_time();
 
 			if constexpr (std::is_same_v<typename condition_wrap<MatchCondition>::condition_type, use_dgram_t>)
+			{
 				this->dgram_ = true;
+			}
 			else
+			{
 				this->dgram_ = false;
+			}
+
+			using condition_type = typename detail::remove_cvref_t<typename condition_wrap<MatchCondition>::condition_type>;
+
+			if constexpr (std::is_class_v<condition_type>)
+			{
+				if constexpr (condition_has_member_init<condition_type, void, std::shared_ptr<derived_t>&>::value)
+				{
+					condition().init(this_ptr);
+				}
+				else
+				{
+				}
+			}
+			else
+			{
+			}
 
 			// set keeplive options
 			this->derived().set_keep_alive_options();
