@@ -530,15 +530,19 @@ namespace asio2::detail
 
 			this->derived()._fire_stop();
 
-			error_code ec_ignore{};
-
 			// call the base class stop function
 			super::stop();
 
-			// Call shutdown() to indicate that you will not write any more data to the socket.
-			this->acceptor_.shutdown(asio::socket_base::shutdown_both, ec_ignore);
-			// Call close,otherwise the _handle_recv will never return
-			this->acceptor_.close(ec_ignore);
+			// the socket maybe closed already somewhere else.
+			if (this->acceptor_.lowest_layer().is_open())
+			{
+				error_code ec_ignore{};
+
+				// Call shutdown() to indicate that you will not write any more data to the socket.
+				this->acceptor_.shutdown(asio::socket_base::shutdown_both, ec_ignore);
+				// Call close,otherwise the _handle_recv will never return
+				this->acceptor_.close(ec_ignore);
+			}
 
 			ASIO2_ASSERT(this->state_ == state_t::stopped);
 		}

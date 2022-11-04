@@ -330,10 +330,13 @@ namespace asio2::detail
 
 			timer_ptr->canceled.clear();
 
-			error_code ec_ignore{};
+			if (derive.socket().is_open())
+			{
+				error_code ec_ignore{};
 
-			derive.socket().shutdown(asio::socket_base::shutdown_both, ec_ignore);
-			derive.socket().cancel(ec_ignore);
+				derive.socket().shutdown(asio::socket_base::shutdown_both, ec_ignore);
+				derive.socket().cancel(ec_ignore);
+			}
 
 			derive._post_disconnect_timer(std::move(this_ptr), std::move(timer_ptr));
 		}

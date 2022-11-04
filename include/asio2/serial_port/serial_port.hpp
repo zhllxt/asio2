@@ -699,6 +699,9 @@ namespace asio2::detail
 
 			// Call close,otherwise the _handle_recv will never return
 			this->socket_.close(ec_ignore);
+
+			// clear recv buffer
+			this->buffer().consume(this->buffer().size());
 		}
 
 		template<typename MatchCondition>

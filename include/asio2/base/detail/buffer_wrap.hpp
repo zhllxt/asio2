@@ -138,6 +138,13 @@ namespace asio2
 		inline buffer_wrap& pre_size(size_type size) noexcept { this->pre_ = size; return (*this); }
 		inline buffer_wrap& max_size(size_type     ) noexcept {                    return (*this); }
 
+		inline std::string_view data_view() noexcept
+		{
+			auto databuf = this->data();
+			return std::string_view{ reinterpret_cast<
+							std::string_view::const_pointer>(databuf.data()), databuf.size() };
+		}
+
 	protected:
 		size_type pre_ = detail::min_size;
 	};
@@ -179,6 +186,13 @@ namespace asio2
 		inline buffer_wrap& pre_size(size_type size) noexcept { this->pre_ = size; return (*this); }
 		inline buffer_wrap& max_size(size_type size) noexcept { this->max_ = size; return (*this); }
 
+		inline std::string_view data_view() noexcept
+		{
+			auto databuf = this->data();
+			return std::string_view{ reinterpret_cast<
+							std::string_view::const_pointer>(databuf.data()), databuf.size() };
+		}
+
 	protected:
 		size_type pre_ = detail::min_size; // prepare size
 		size_type max_ = (std::numeric_limits<size_type>::max)();
@@ -210,6 +224,13 @@ namespace asio2
 		inline size_type      max_size(         ) const noexcept { return 0; }
 		inline buffer_wrap&   pre_size(size_type)       noexcept { return (*this); }
 		inline buffer_wrap&   max_size(size_type)       noexcept { return (*this); }
+
+		inline std::string_view data_view() noexcept
+		{
+			auto databuf = this->data();
+			return std::string_view{ reinterpret_cast<
+							std::string_view::const_pointer>(databuf.data()), databuf.size() };
+		}
 	};
 
 	template<>
@@ -238,6 +259,13 @@ namespace asio2
 		inline size_type      max_size(         ) const noexcept { return 0; }
 		inline buffer_wrap&   pre_size(size_type)       noexcept { return (*this); }
 		inline buffer_wrap&   max_size(size_type)       noexcept { return (*this); }
+
+		inline std::string_view data_view() noexcept
+		{
+			auto databuf = this->data();
+			return std::string_view{ reinterpret_cast<
+							std::string_view::const_pointer>(databuf.data()), databuf.size() };
+		}
 	};
 
 }

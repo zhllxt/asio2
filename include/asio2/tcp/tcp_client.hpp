@@ -486,20 +486,27 @@ namespace asio2::detail
 			// auto reconnect executed, and then the _post_recv will be return with some error,
 			// and the _post_recv will cause the auto reconnect executed again.
 
-			error_code ec_ignore{};
-
-			asio::socket_base::linger linger = this->derived().get_linger();
-
-			// call socket's close function to notify the _handle_recv function response with 
-			// error > 0 ,then the socket can get notify to exit
-			// Call shutdown() to indicate that you will not write any more data to the socket.
-			if (!(linger.enabled() == true && linger.timeout() == 0))
+			// the socket maybe closed already in the connect timeout timer.
+			if (this->socket_.lowest_layer().is_open())
 			{
-				this->socket_.lowest_layer().shutdown(asio::socket_base::shutdown_both, ec_ignore);
-			}
+				error_code ec_ignore{};
 
-			// Call close,otherwise the _handle_recv will never return
-			this->socket_.lowest_layer().close(ec_ignore);
+				asio::socket_base::linger linger = this->derived().get_linger();
+
+				// the get_linger maybe change the last error value.
+				set_last_error(ec);
+
+				// call socket's close function to notify the _handle_recv function response with 
+				// error > 0 ,then the socket can get notify to exit
+				// Call shutdown() to indicate that you will not write any more data to the socket.
+				if (!(linger.enabled() == true && linger.timeout() == 0))
+				{
+					this->socket_.lowest_layer().shutdown(asio::socket_base::shutdown_both, ec_ignore);
+				}
+
+				// Call close,otherwise the _handle_recv will never return
+				this->socket_.lowest_layer().close(ec_ignore);
+			}
 
 			ASIO2_ASSERT(!this->socket_.lowest_layer().is_open());
 		}

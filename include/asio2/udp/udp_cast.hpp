@@ -545,8 +545,6 @@ namespace asio2::detail
 		{
 			detail::ignore_unused(ec, this_ptr, chain);
 
-			error_code ec_ignore{};
-
 			// close user custom timers
 			this->stop_all_timers();
 
@@ -560,12 +558,21 @@ namespace asio2::detail
 			// if don't destroy it, will cause loop refrence.
 			this->user_data_.reset();
 
-			// call socket's close function to notify the _handle_recv function
-			// response with error > 0 ,then the socket can get notify to exit
-			// Call shutdown() to indicate that you will not write any more data to the socket.
-			this->socket_.shutdown(asio::socket_base::shutdown_both, ec_ignore);
-			// Call close,otherwise the _handle_recv will never return
-			this->socket_.close(ec_ignore);
+			// the socket maybe closed already somewhere else.
+			if (this->socket_.lowest_layer().is_open())
+			{
+				error_code ec_ignore{};
+
+				// call socket's close function to notify the _handle_recv function
+				// response with error > 0 ,then the socket can get notify to exit
+				// Call shutdown() to indicate that you will not write any more data to the socket.
+				this->socket_.shutdown(asio::socket_base::shutdown_both, ec_ignore);
+				// Call close,otherwise the _handle_recv will never return
+				this->socket_.close(ec_ignore);
+			}
+
+			// clear recv buffer
+			this->buffer().consume(this->buffer().size());
 		}
 
 	protected:

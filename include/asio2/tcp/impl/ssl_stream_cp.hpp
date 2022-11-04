@@ -201,18 +201,26 @@ namespace asio2::detail
 				{
 					flag_ptr->test_and_set();
 
-					error_code ec_ignore{};
-
-					asio::socket_base::linger linger = derive.get_linger();
-
-					// we close the socket, so the async_handshake will returned 
-					// with operation_aborted.
-					if (!(linger.enabled() == true && linger.timeout() == 0))
+					if (derive.socket().is_open())
 					{
-						derive.socket().lowest_layer().shutdown(asio::socket_base::shutdown_both, ec_ignore);
-					}
+						error_code ec_ignore{};
 
-					derive.socket().lowest_layer().close(ec_ignore);
+						error_code oldec = get_last_error();
+
+						asio::socket_base::linger linger = derive.get_linger();
+
+						// the get_linger maybe change the last error value.
+						set_last_error(oldec);
+
+						// we close the socket, so the async_handshake will returned 
+						// with operation_aborted.
+						if (!(linger.enabled() == true && linger.timeout() == 0))
+						{
+							derive.socket().lowest_layer().shutdown(asio::socket_base::shutdown_both, ec_ignore);
+						}
+
+						derive.socket().lowest_layer().close(ec_ignore);
+					}
 				}
 			});
 
