@@ -21,12 +21,12 @@ int main()
 		recvd_bytes += data.size();
 
 		decltype(std::chrono::steady_clock::now()) time3 = std::chrono::steady_clock::now();
-		auto ms = std::chrono::duration_cast<std::chrono::seconds>(time3 - time2).count();
-		if (ms > 1)
+		auto sec = std::chrono::duration_cast<std::chrono::seconds>(time3 - time2).count();
+		if (sec > 1)
 		{
 			time2 = time3;
-			ms = std::chrono::duration_cast<std::chrono::seconds>(time3 - time1).count();
-			double speed = (double)recvd_bytes / (double)ms / double(1024) / double(1024);
+			sec = std::chrono::duration_cast<std::chrono::seconds>(time3 - time1).count();
+			double speed = (double)recvd_bytes / (double)sec / double(1024) / double(1024);
 			printf("%.1lf MByte/Sec connection_count:%zu\n", speed, server.get_session_count());
 		}
 
@@ -34,7 +34,8 @@ int main()
 		//session_ptr->async_send(data); // allocate memory
 	});
 
-	server.start("0.0.0.0", "8081");
+	if (!server.start("0.0.0.0", "18081"))
+		printf("start failed: %s\n", asio2::last_error_msg().data());
 
 	while (std::getchar() != '\n');
 

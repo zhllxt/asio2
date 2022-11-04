@@ -639,7 +639,8 @@ namespace asio2::detail
 		inline std::size_t next(std::size_t index) noexcept
 		{
 			// Use a round-robin scheme to choose the next io_context to use. 
-			return (index < this->size() ? index : ((++(this->next_)) % this->size()));
+			return (index == static_cast<std::size_t>(-1) ?
+				((++(this->next_)) % this->iots_.size()) : (index % this->iots_.size()));
 		}
 
 		/**
@@ -980,7 +981,9 @@ namespace asio2::detail
 		inline std::size_t next(std::size_t index) noexcept
 		{
 			// Use a round-robin scheme to choose the next io_context to use. 
-			return (index < this->size() ? index : ((++(this->next_)) % this->size()));
+			// Use this->iots_.size() instead of this->size() to avoid call virtual function.
+			return (index == static_cast<std::size_t>(-1) ?
+				((++(this->next_)) % this->iots_.size()) : (index % this->iots_.size()));
 		}
 
 		/**
@@ -1261,7 +1264,8 @@ namespace asio2::detail
 		inline io_t& _get_io(std::size_t index = static_cast<std::size_t>(-1)) noexcept
 		{
 			ASIO2_ASSERT(!iots_.empty());
-			std::size_t n = index < iots_.size() ? index : ((++next_) % iots_.size());
+			std::size_t n = (index == static_cast<std::size_t>(-1) ?
+				((++(this->next_)) % this->iots_.size()) : (index % this->iots_.size()));
 			return *(iots_[n]);
 		}
 
