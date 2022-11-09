@@ -384,16 +384,17 @@ namespace asio2::detail
 		 * @brief bind a function for websocket router
 		 * @param name - uri name in string format.
 		 * @param listener - callback listener.
+		 * @param aop - aop object list.
 		 */
 		template<class ...AOP>
-		inline self& bind(std::string name, websocket::listener<caller_t> listener)
+		inline self& bind(std::string name, websocket::listener<caller_t> listener, AOP&&... aop)
 		{
 			asio2::trim_both(name);
 
 			ASIO2_ASSERT(!name.empty());
 
 			if (!name.empty())
-				this->_bind(std::move(name), std::move(listener));
+				this->_bind(std::move(name), std::move(listener), std::forward<AOP>(aop)...);
 
 			return (*this);
 		}
@@ -639,15 +640,23 @@ namespace asio2::detail
 		inline opret _proxy(websocket::listener<caller_t>& listener, Tup& aops,
 			std::shared_ptr<caller_t>& caller, http::web_request& req, http::web_response& rep)
 		{
-			detail::ignore_unused(aops);
+			ASIO2_ASSERT(req.ws_frame_type_ != websocket::frame::unknown);
+
+			if (req.ws_frame_type_ == websocket::frame::open)
+			{
+				if (!_call_aop_before(aops, caller, req, rep))
+					return nullptr;
+			}
 
 			if (req.ws_frame_type_ != websocket::frame::unknown)
 			{
 				listener(caller, req, rep);
 			}
-			else
+
+			if (req.ws_frame_type_ == websocket::frame::open)
 			{
-				ASIO2_ASSERT(false);
+				if (!_call_aop_after(aops, caller, req, rep))
+					return nullptr;
 			}
 
 			return std::addressof(rep.base());
