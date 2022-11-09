@@ -121,7 +121,8 @@ namespace asio2::detail
 				ASIO2_ASSERT(this_ptr);
 				if (this_ptr)
 				{
-					this->derived()._do_send_http_response(std::move(this_ptr), std::move(condition));
+					this->derived()._do_send_http_response(
+						std::move(this_ptr), std::move(condition), this->rep_.base());
 				}
 			};
 
@@ -226,9 +227,9 @@ namespace asio2::detail
 			this->websocket_router_.reset();
 		}
 
-		template<typename MatchCondition>
+		template<typename MatchCondition, class MessageT>
 		inline void _send_http_response(
-			std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+			std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition, MessageT& msg)
 		{
 			if (this->rep_.defer_guard_)
 			{
@@ -238,37 +239,51 @@ namespace asio2::detail
 			{
 				if (this->response_mode_ == asio2::response_mode::automatic)
 				{
-					this->derived()._do_send_http_response(std::move(this_ptr), std::move(condition));
+					this->derived()._do_send_http_response(std::move(this_ptr), std::move(condition), msg);
 				}
 			}
 		}
 
-		template<typename MatchCondition>
+		template<typename MatchCondition, class MessageT>
 		inline void _do_send_http_response(
-			std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+			std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition, MessageT& msg)
 		{
 			ASIO2_ASSERT(this->is_http());
 
 			asio::dispatch(this->derived().io().context(), make_allocator(this->derived().wallocator(),
-			[this, this_ptr = std::move(this_ptr), condition = std::move(condition)]() mutable
+			[this, this_ptr = std::move(this_ptr), condition = std::move(condition), &msg]() mutable
 			{
-				if (this->derived().is_websocket())
+				derived_t& derive = this->derived();
+
+				if (derive.is_websocket())
 					return;
 
-				this->derived().async_send(std::move(this->rep_.base()),
-				[this, this_ptr = std::move(this_ptr), condition = std::move(condition)]() mutable
+				if (!derive.is_started())
+					return;
+
+				// be careful: here we pushed the reference of the msg into the queue, so the msg object
+				// must can't be destroyed or modifyed.
+				derive.push_event([&derive, this_ptr = std::move(this_ptr), condition = std::move(condition), &msg]
+				(event_queue_guard<derived_t> g) mutable
 				{
-					// after send the response, we check if the client should be disconnect.
-					if (this->derived().req_.need_eof())
+					derive._do_send(msg,
+					[&derive, this_ptr = std::move(this_ptr), condition = std::move(condition), g = std::move(g)]
+					(const error_code&, std::size_t) mutable
 					{
-						// session maybe don't need check the state.
-						//if (this->derived().state() == state_t::started)
-						this->derived()._do_disconnect(asio::error::operation_aborted, std::move(this_ptr));
-					}
-					else
-					{
-						this->derived()._post_recv(std::move(this_ptr), std::move(condition));
-					}
+						ASIO2_ASSERT(!g.is_empty());
+
+						// after send the response, we check if the client should be disconnect.
+						if (derive.req_.need_eof())
+						{
+							// session maybe don't need check the state.
+							//if (derive.state() == state_t::started)
+							derive._do_disconnect(asio::error::operation_aborted, std::move(this_ptr));
+						}
+						else
+						{
+							derive._post_recv(std::move(this_ptr), std::move(condition));
+						}
+					});
 				});
 			}));
 		}
@@ -402,7 +417,7 @@ namespace asio2::detail
 
 						this->websocket_router_.reset();
 
-						this->derived()._send_http_response(this_ptr, condition);
+						this->derived()._send_http_response(this_ptr, condition, this->rep_.base());
 					}
 
 					// If find websocket router, the router callback must has been called, 
@@ -473,7 +488,7 @@ namespace asio2::detail
 			else
 				this->listener_.notify(event_type::recv, this->req_, this->rep_);
 
-			this->router_._route(this_ptr, this->req_, this->rep_);
+			auto* prep = this->router_._route(this_ptr, this->req_, this->rep_);
 
 			if (this->derived().is_websocket())
 			{
@@ -481,7 +496,7 @@ namespace asio2::detail
 			}
 			else
 			{
-				this->derived()._send_http_response(this_ptr, condition);
+				this->derived()._send_http_response(this_ptr, condition, *prep);
 			}
 		}
 
@@ -500,7 +515,7 @@ namespace asio2::detail
 
 		asio2::response_mode                response_mode_      = asio2::response_mode::automatic;
 
-		std::shared_ptr<typename http_router_t<derived_t, args_t>::optype>   websocket_router_;
+		std::shared_ptr<typename http_router_t<derived_t, args_t>::opfun>   websocket_router_;
 	};
 }
 

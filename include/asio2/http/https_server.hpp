@@ -126,6 +126,17 @@ namespace asio2::detail
 				this->root_directory_, this->is_arg0_session_, this->support_websocket_);
 		}
 
+		inline void _handle_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
+		{
+			super::_handle_stop(ec, std::move(this_ptr));
+
+			this->derived().dispatch([this]() mutable
+			{
+				// clear the http cache
+				this->http_cache_.clear();
+			});
+		}
+
 	protected:
 		bool                      is_arg0_session_    = false;
 	};

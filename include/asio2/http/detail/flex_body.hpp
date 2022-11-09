@@ -134,6 +134,36 @@ public:
 
 	inline bool is_text() const noexcept { return !is_file();      }
 	inline bool is_file() const noexcept { return file_.is_open(); }
+
+    /// Convert the file body to text body.
+    inline bool to_text()
+    {
+        if (this->is_text())
+            return true;
+
+        if (this->size() > text_.max_size())
+            return false;
+
+        error_code ec;
+        auto& f = file_.file();
+
+        f.seek(0, ec);
+        if (ec)
+            return false;
+
+        text_.resize(this->size());
+
+        auto const nread = f.read(text_.data(), text_.size(), ec);
+        if (ec || nread != text_.size())
+        {
+            text_.clear();
+            return false;
+        }
+
+        file_ = file_t{};
+
+        return true;
+    }
 };
 
 // This is called from message::payload_size

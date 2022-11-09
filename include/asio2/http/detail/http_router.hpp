@@ -42,6 +42,7 @@
 #include <asio2/base/detail/util.hpp>
 
 #include <asio2/http/detail/http_util.hpp>
+#include <asio2/http/detail/http_cache.hpp>
 #include <asio2/http/request.hpp>
 #include <asio2/http/response.hpp>
 
@@ -267,16 +268,60 @@ namespace asio2::detail
 		struct has_member_after<T, decltype(std::declval<std::decay_t<T>>().
 			after((std::declval<Args>())...)), Args...> : std::true_type {};
 
+		/////////////////////////////////////////////////////////////////////////////
+		// cinatra-master/include/cinatra/utils.hpp
+		template <typename T, typename Tuple>
+		struct has_type;
+
+		template <typename T, typename... Us>
+		struct has_type<T, std::tuple<Us...>> : std::disjunction<std::is_same<T, Us>...> {};
+
+		template< typename T>
+		struct filter_helper
+		{
+			static constexpr auto func()
+			{
+				return std::tuple<>();
+			}
+
+			template< class... Args >
+			static constexpr auto func(T&&, Args&&...args)
+			{
+				return filter_helper::func(std::forward<Args>(args)...);
+			}
+
+			template< class... Args >
+			static constexpr auto func(const T&, Args&&...args)
+			{
+				return filter_helper::func(std::forward<Args>(args)...);
+			}
+
+			template< class X, class... Args >
+			static constexpr auto func(X&& x, Args&&...args)
+			{
+				return std::tuple_cat(std::make_tuple(std::forward<X>(x)),
+					filter_helper::func(std::forward<Args>(args)...));
+			}
+		};
+
+		template<typename T, typename... Args>
+		inline auto filter_cache(Args&&... args)
+		{
+			return filter_helper<T>::func(std::forward<Args>(args)...);
+		}
+		/////////////////////////////////////////////////////////////////////////////
+
 	public:
-		using self   = http_router_t<caller_t, args_t>;
-		using optype = std::function<bool(std::shared_ptr<caller_t>&, http::web_request&, http::web_response&)>;
+		using self  = http_router_t<caller_t, args_t>;
+		using opret = http::response<http::flex_body>*;
+		using opfun = std::function<opret(std::shared_ptr<caller_t>&, http::web_request&, http::web_response&)>;
 
 		/**
 		 * @brief constructor
 		 */
 		http_router_t()
 		{
-			this->not_found_router_ = std::make_shared<optype>(
+			this->not_found_router_ = std::make_shared<opfun>(
 			[](std::shared_ptr<caller_t>&, http::web_request& req, http::web_response& rep) mutable
 			{
 				std::string desc;
@@ -289,7 +334,7 @@ namespace asio2::detail
 
 				rep.fill_page(http::status::not_found, std::move(desc), {}, req.version());
 
-				return true;
+				return std::addressof(rep.base());
 			});
 		}
 
@@ -339,17 +384,16 @@ namespace asio2::detail
 		 * @brief bind a function for websocket router
 		 * @param name - uri name in string format.
 		 * @param listener - callback listener.
-		 * @param aop - aop object list.
 		 */
 		template<class ...AOP>
-		inline self& bind(std::string name, websocket::listener<caller_t> listener, AOP&&... aop)
+		inline self& bind(std::string name, websocket::listener<caller_t> listener)
 		{
 			asio2::trim_both(name);
 
 			ASIO2_ASSERT(!name.empty());
 
 			if (!name.empty())
-				this->_bind(std::move(name), std::move(listener), std::forward<AOP>(aop)...);
+				this->_bind(std::move(name), std::move(listener));
 
 			return (*this);
 		}
@@ -442,11 +486,16 @@ namespace asio2::detail
 			detail::remove_cvref_t<F>>, void>
 		inline _bind(std::string name, F f, AOP&&... aop)
 		{
-			using Tup = std::tuple<AOP...>;
+			constexpr bool CacheFlag = has_type<http::enable_cache_t, std::tuple<std::decay_t<AOP>...>>::value;
 
-			std::shared_ptr<optype> op = std::make_shared<optype>(
-				std::bind(&self::template _proxy<F, Tup>, this,
-					std::move(f), Tup{ std::forward<AOP>(aop)... },
+			auto tp = filter_cache<http::enable_cache_t>(std::forward<AOP>(aop)...);
+			using Tup = decltype(tp);
+
+			static_assert(!has_type<http::enable_cache_t, Tup>::value);
+
+			std::shared_ptr<opfun> op = std::make_shared<opfun>(
+				std::bind(&self::template _proxy<CacheFlag, F, Tup>, this,
+					std::move(f), std::move(tp),
 					std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 
 			this->_bind_uris(name, std::move(op), this->_make_uris<M...>(name));
@@ -457,11 +506,16 @@ namespace asio2::detail
 			detail::remove_cvref_t<F>> && std::is_same_v<C, typename function_traits<F>::class_type>, void>
 		inline _bind(std::string name, F f, C* c, AOP&&... aop)
 		{
-			using Tup = std::tuple<AOP...>;
+			constexpr bool CacheFlag = has_type<http::enable_cache_t, std::tuple<std::decay_t<AOP>...>>::value;
 
-			std::shared_ptr<optype> op = std::make_shared<optype>(
-				std::bind(&self::template _proxy<F, C, Tup>, this,
-					std::move(f), c, Tup{ std::forward<AOP>(aop)... },
+			auto tp = filter_cache<http::enable_cache_t>(std::forward<AOP>(aop)...);
+			using Tup = decltype(tp);
+
+			static_assert(!has_type<http::enable_cache_t, Tup>::value);
+
+			std::shared_ptr<opfun> op = std::make_shared<opfun>(
+				std::bind(&self::template _proxy<CacheFlag, F, C, Tup>, this,
+					std::move(f), c, std::move(tp),
 					std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 
 			this->_bind_uris(name, std::move(op), this->_make_uris<M...>(name));
@@ -478,11 +532,14 @@ namespace asio2::detail
 		template<class... AOP>
 		inline void _bind(std::string name, websocket::listener<caller_t> listener, AOP&&... aop)
 		{
-			using Tup = std::tuple<AOP...>;
+			auto tp = filter_cache<http::enable_cache_t>(std::forward<AOP>(aop)...);
+			using Tup = decltype(tp);
 
-			std::shared_ptr<optype> op = std::make_shared<optype>(
+			static_assert(!has_type<http::enable_cache_t, Tup>::value);
+
+			std::shared_ptr<opfun> op = std::make_shared<opfun>(
 				std::bind(&self::template _proxy<Tup>, this,
-					std::move(listener), Tup{ std::forward<AOP>(aop)... },
+					std::move(listener), std::move(tp),
 					std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 
 			// https://datatracker.ietf.org/doc/rfc6455/
@@ -501,7 +558,7 @@ namespace asio2::detail
 		}
 
 		template<class URIS>
-		inline void _bind_uris(std::string& name, std::shared_ptr<optype> op, URIS uris)
+		inline void _bind_uris(std::string& name, std::shared_ptr<opfun> op, URIS uris)
 		{
 			for (auto& uri : uris)
 			{
@@ -526,8 +583,9 @@ namespace asio2::detail
 		//{
 		//}
 
-		template<class F, class Tup>
-		inline bool _proxy(F& f, Tup& aops, 
+		template<bool CacheFlag, class F, class Tup>
+		typename std::enable_if_t<!CacheFlag, opret>
+		inline _proxy(F& f, Tup& aops, 
 			std::shared_ptr<caller_t>& caller, http::web_request& req, http::web_response& rep)
 		{
 			using fun_traits_type = function_traits<F>;
@@ -535,7 +593,7 @@ namespace asio2::detail
 				typename fun_traits_type::template args<0>::type>>;
 
 			if (!_call_aop_before(aops, caller, req, rep))
-				return false;
+				return std::addressof(rep.base());
 
 			if constexpr (std::is_same_v<std::shared_ptr<caller_t>, arg0_type>)
 			{
@@ -546,11 +604,14 @@ namespace asio2::detail
 				f(req, rep);
 			}
 
-			return _call_aop_after(aops, caller, req, rep);
+			_call_aop_after(aops, caller, req, rep);
+
+			return std::addressof(rep.base());
 		}
 
-		template<class F, class C, class Tup>
-		inline bool _proxy(F& f, C* c, Tup& aops,
+		template<bool CacheFlag, class F, class C, class Tup>
+		typename std::enable_if_t<!CacheFlag, opret>
+		inline _proxy(F& f, C* c, Tup& aops,
 			std::shared_ptr<caller_t>& caller, http::web_request& req, http::web_response& rep)
 		{
 			using fun_traits_type = function_traits<F>;
@@ -558,7 +619,7 @@ namespace asio2::detail
 				typename fun_traits_type::template args<0>::type>>;
 
 			if (!_call_aop_before(aops, caller, req, rep))
-				return false;
+				return std::addressof(rep.base());
 
 			if constexpr (std::is_same_v<std::shared_ptr<caller_t>, arg0_type>)
 			{
@@ -569,36 +630,177 @@ namespace asio2::detail
 				if (c) (c->*f)(req, rep);
 			}
 
-			return _call_aop_after(aops, caller, req, rep);
+			_call_aop_after(aops, caller, req, rep);
+
+			return std::addressof(rep.base());
 		}
 
 		template<class Tup>
-		inline bool _proxy(websocket::listener<caller_t>& listener, Tup& aops,
+		inline opret _proxy(websocket::listener<caller_t>& listener, Tup& aops,
 			std::shared_ptr<caller_t>& caller, http::web_request& req, http::web_response& rep)
 		{
-			if (req.ws_frame_type_ == websocket::frame::open)
-			{
-				if (!_call_aop_before(aops, caller, req, rep))
-					return false;
-			}
+			detail::ignore_unused(aops);
 
 			if (req.ws_frame_type_ != websocket::frame::unknown)
 			{
 				listener(caller, req, rep);
 			}
-
-			if (req.ws_frame_type_ == websocket::frame::open)
+			else
 			{
-				return _call_aop_after(aops, caller, req, rep);
+				ASIO2_ASSERT(false);
 			}
 
-			return true;
+			return std::addressof(rep.base());
+		}
+
+		template<bool CacheFlag, class F, class Tup>
+		typename std::enable_if_t<CacheFlag, opret>
+		inline _proxy(F& f, Tup& aops, 
+			std::shared_ptr<caller_t>& caller, http::web_request& req, http::web_response& rep)
+		{
+			using fun_traits_type = function_traits<F>;
+			using arg0_type = typename std::remove_cv_t<std::remove_reference_t<
+				typename fun_traits_type::template args<0>::type>>;
+			using pcache_node = decltype(this->http_cache_.find(""));
+
+			if (http::is_cache_enabled(req.base()))
+			{
+				pcache_node pcn = this->http_cache_.find(req.target());
+				if (!pcn)
+				{
+					if (!_call_aop_before(aops, caller, req, rep))
+						return std::addressof(rep.base());
+
+					if constexpr (std::is_same_v<std::shared_ptr<caller_t>, arg0_type>)
+					{
+						f(caller, req, rep);
+					}
+					else
+					{
+						f(req, rep);
+					}
+
+					if (_call_aop_after(aops, caller, req, rep) && rep.result() == http::status::ok)
+					{
+						http::web_response::super msg{ std::move(rep.base()) };
+						if (msg.body().to_text())
+						{
+							msg.prepare_payload();
+							this->http_cache_.shrink_to_fit();
+							pcn = this->http_cache_.emplace(req.target(), std::move(msg));
+							return std::addressof(pcn->msg);
+						}
+						else
+						{
+							rep.base() = std::move(msg);
+						}
+					}
+
+					return std::addressof(rep.base());
+				}
+				else
+				{
+					ASIO2_ASSERT(!pcn->msg.body().is_file());
+					pcn->update_alive_time();
+					return std::addressof(pcn->msg);
+				}
+			}
+			else
+			{
+				if (!_call_aop_before(aops, caller, req, rep))
+					return std::addressof(rep.base());
+
+				if constexpr (std::is_same_v<std::shared_ptr<caller_t>, arg0_type>)
+				{
+					f(caller, req, rep);
+				}
+				else
+				{
+					f(req, rep);
+				}
+
+				_call_aop_after(aops, caller, req, rep);
+
+				return std::addressof(rep.base());
+			}
+		}
+
+		template<bool CacheFlag, class F, class C, class Tup>
+		typename std::enable_if_t<CacheFlag, opret>
+		inline _proxy(F& f, C* c, Tup& aops,
+			std::shared_ptr<caller_t>& caller, http::web_request& req, http::web_response& rep)
+		{
+			using fun_traits_type = function_traits<F>;
+			using arg0_type = typename std::remove_cv_t<std::remove_reference_t<
+				typename fun_traits_type::template args<0>::type>>;
+			using pcache_node = decltype(this->http_cache_.find(""));
+
+			if (http::is_cache_enabled(req.base()))
+			{
+				pcache_node pcn = this->http_cache_.find(req.target());
+				if (!pcn)
+				{
+					if (!_call_aop_before(aops, caller, req, rep))
+						return std::addressof(rep.base());
+
+					if constexpr (std::is_same_v<std::shared_ptr<caller_t>, arg0_type>)
+					{
+						if (c) (c->*f)(caller, req, rep);
+					}
+					else
+					{
+						if (c) (c->*f)(req, rep);
+					}
+
+					if (_call_aop_after(aops, caller, req, rep) && rep.result() == http::status::ok)
+					{
+						http::web_response::super msg{ std::move(rep.base()) };
+						if (msg.body().to_text())
+						{
+							msg.prepare_payload();
+							this->http_cache_.shrink_to_fit();
+							pcn = this->http_cache_.emplace(req.target(), std::move(msg));
+							return std::addressof(pcn->msg);
+						}
+						else
+						{
+							rep.base() = std::move(msg);
+						}
+					}
+
+					return std::addressof(rep.base());
+				}
+				else
+				{
+					ASIO2_ASSERT(!pcn->msg.body().is_file());
+					pcn->update_alive_time();
+					return std::addressof(pcn->msg);
+				}
+			}
+			else
+			{
+				if (!_call_aop_before(aops, caller, req, rep))
+					return std::addressof(rep.base());
+
+				if constexpr (std::is_same_v<std::shared_ptr<caller_t>, arg0_type>)
+				{
+					if (c) (c->*f)(caller, req, rep);
+				}
+				else
+				{
+					if (c) (c->*f)(req, rep);
+				}
+
+				_call_aop_after(aops, caller, req, rep);
+
+				return std::addressof(rep.base());
+			}
 		}
 
 		template<class F>
 		inline void _bind_not_found(F f)
 		{
-			this->not_found_router_ = std::make_shared<optype>(
+			this->not_found_router_ = std::make_shared<opfun>(
 				std::bind(&self::template _not_found_proxy<F>, this, std::move(f),
 					std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 		}
@@ -606,7 +808,7 @@ namespace asio2::detail
 		template<class F, class C>
 		inline void _bind_not_found(F f, C* c)
 		{
-			this->not_found_router_ = std::make_shared<optype>(
+			this->not_found_router_ = std::make_shared<opfun>(
 				std::bind(&self::template _not_found_proxy<F, C>, this, std::move(f), c,
 					std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 		}
@@ -618,7 +820,7 @@ namespace asio2::detail
 		}
 
 		template<class F>
-		inline bool _not_found_proxy(F& f, std::shared_ptr<caller_t>& caller,
+		inline opret _not_found_proxy(F& f, std::shared_ptr<caller_t>& caller,
 			http::web_request& req, http::web_response& rep)
 		{
 			asio2::detail::ignore_unused(caller);
@@ -633,11 +835,11 @@ namespace asio2::detail
 				f(req, rep);
 			}
 
-			return true;
+			return std::addressof(rep.base());
 		}
 
 		template<class F, class C>
-		inline bool _not_found_proxy(F& f, C* c, std::shared_ptr<caller_t>& caller,
+		inline opret _not_found_proxy(F& f, C* c, std::shared_ptr<caller_t>& caller,
 			http::web_request& req, http::web_response& rep)
 		{
 			asio2::detail::ignore_unused(caller);
@@ -652,7 +854,7 @@ namespace asio2::detail
 				if (c) (c->*f)(req, rep);
 			}
 
-			return true;
+			return std::addressof(rep.base());
 		}
 
 		template <typename... Args, typename F, std::size_t... I>
@@ -780,7 +982,7 @@ namespace asio2::detail
 		}
 
 		template<bool IsHttp>
-		inline std::shared_ptr<optype>& _find(http::web_request& req, http::web_response& rep)
+		inline std::shared_ptr<opfun>& _find(http::web_request& req, http::web_response& rep)
 		{
 			asio2::detail::ignore_unused(rep);
 
@@ -821,14 +1023,14 @@ namespace asio2::detail
 			return this->dummy_router_;
 		}
 
-		inline bool _route(std::shared_ptr<caller_t>& caller, http::web_request& req, http::web_response& rep)
+		inline opret _route(std::shared_ptr<caller_t>& caller, http::web_request& req, http::web_response& rep)
 		{
 			if (caller->websocket_router_)
 			{
 				return (*(caller->websocket_router_))(caller, req, rep);
 			}
 
-			std::shared_ptr<optype>& router_ptr = this->template _find<true>(req, rep);
+			std::shared_ptr<opfun>& router_ptr = this->template _find<true>(req, rep);
 
 			if (router_ptr)
 			{
@@ -838,7 +1040,7 @@ namespace asio2::detail
 			if (this->not_found_router_ && (*(this->not_found_router_)))
 				(*(this->not_found_router_))(caller, req, rep);
 
-			return false;
+			return std::addressof(rep.base());
 		}
 
 		inline constexpr std::string_view _to_char(http::verb method) noexcept
@@ -853,13 +1055,15 @@ namespace asio2::detail
 
 		bool                      support_websocket_  = true;
 
-		std::unordered_map<std::string, std::shared_ptr<optype>> strictly_routers_;
+		std::unordered_map<std::string, std::shared_ptr<opfun>> strictly_routers_;
 
-		std::          map<std::string, std::shared_ptr<optype>> wildcard_routers_;
+		std::          map<std::string, std::shared_ptr<opfun>> wildcard_routers_;
 
-		std::shared_ptr<optype>                                  not_found_router_;
+		std::shared_ptr<opfun>                                  not_found_router_;
 
-		inline static std::shared_ptr<optype>                    dummy_router_;
+		inline static std::shared_ptr<opfun>                    dummy_router_;
+
+		detail::http_cache_t<caller_t, args_t>                  http_cache_;
 	};
 }
 

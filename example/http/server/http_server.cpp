@@ -82,15 +82,13 @@ int main()
 		asio2::ignore_unused(req, rep);
 
 		rep.fill_file("index.html");
-		rep.chunked(true);
-
-	}, aop_log{});
+	}, aop_log{}, http::enable_cache);
 
 	// If no method is specified, GET and POST are both enabled by default.
 	server.bind("*", [](http::web_request& req, http::web_response& rep)
 	{
 		rep.fill_file(req.target());
-	}, aop_check{});
+	}, aop_check{}, http::enable_cache);
 
 	// Test http multipart
 	server.bind<http::verb::get, http::verb::post>("/multipart", [](http::web_request& req, http::web_response& rep)
@@ -236,7 +234,7 @@ int main()
 
 		printf("ws pong\n");
 
-	}), aop_check{});
+	}));
 
 	server.bind_not_found([](http::web_request& req, http::web_response& rep)
 	{

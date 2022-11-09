@@ -155,7 +155,7 @@ server端的recv回调函数一定会触发2次，第1次的数据是123，第2�
 关于asio2的dgram模式下数据头的规则如下(和websocket的部分规则类似，稍微做了改变)：
 部分代码在这里：[/asio2/include/asio2/base/detail/condition_wrap.hpp - dgram_match_role](https://github.com/zhllxt/asio2/blob/master/include/asio2/base/detail/condition_wrap.hpp)
 websocket协议在这里：[RFC 6455: The WebSocket Protocol](https://www.rfc-editor.org/rfc/rfc6455#section-5.2)
-如果数据内容长度小于等于253个字节，则数据头是1个字节，数据头的值等于253，之后是数据内容。
+如果数据内容长度小于等于253个字节，则数据头是1个字节，数据头的值等于数据内容的长度，之后是数据内容。
 如果数据内容长度大于等于254小于等于65535字节，则数据头是3个字节，第1个字节的值等于254，后2个字节表示内容的长度。
 如果数据内容大于65535字节，则数据头是9个字节，第1个字节的值等于255，后8个字节表示内容的长度。
 
@@ -206,7 +206,7 @@ bind_recv([&](std::string_view data)
 			//do_work(msg);
 
 			// 处理完这包数据了，把你的buffer中的这段数据删掉
-			msg.erase(0, pos + 1);
+			buffer.erase(0, pos + 1);
 
 			// 接下来会继续执行while循环，继续查找\n，如果找到了就会继续处理
 		}
