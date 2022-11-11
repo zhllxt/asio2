@@ -117,7 +117,13 @@ namespace asio2::detail::kcp
 		}
 	};
 
-	template<typename = void>
+	struct kcp_deleter
+	{
+		inline void operator()(ikcpcb* p) const noexcept { kcp::ikcp_release(p); };
+	};
+
+	namespace
+	{
 	std::string to_string(kcphdr& hdr)
 	{
 		std::string s/*{ kcphdr::required_size(), '\0' }*/;
@@ -135,7 +141,6 @@ namespace asio2::detail::kcp
 		return s;
 	}
 
-	template<typename = void>
 	kcphdr to_kcphdr(std::string_view s) noexcept
 	{
 		kcphdr hdr{};
@@ -154,7 +159,6 @@ namespace asio2::detail::kcp
 		return hdr;
 	}
 
-	template<typename = void>
 	unsigned short checksum(unsigned short * addr, int size) noexcept
 	{
 		long sum = 0;
@@ -174,7 +178,6 @@ namespace asio2::detail::kcp
 		return static_cast<unsigned short>(~sum);
 	}
 
-	template<typename = void>
 	inline bool is_kcphdr_syn(std::string_view s) noexcept
 	{
 		if (s.size() != kcphdr::required_size())
@@ -190,7 +193,6 @@ namespace asio2::detail::kcp
 			static_cast<int>(kcphdr::required_size() - sizeof(kcphdr::th_sum))));
 	}
 
-	template<typename = void>
 	inline bool is_kcphdr_synack(std::string_view s, std::uint32_t seq) noexcept
 	{
 		if (s.size() != kcphdr::required_size())
@@ -209,7 +211,6 @@ namespace asio2::detail::kcp
 			static_cast<int>(kcphdr::required_size() - sizeof(kcphdr::th_sum))));
 	}
 
-	template<typename = void>
 	inline bool is_kcphdr_ack(std::string_view s, std::uint32_t seq) noexcept
 	{
 		if (s.size() != kcphdr::required_size())
@@ -228,7 +229,6 @@ namespace asio2::detail::kcp
 			static_cast<int>(kcphdr::required_size() - sizeof(kcphdr::th_sum))));
 	}
 
-	template<typename = void>
 	inline bool is_kcphdr_fin(std::string_view s) noexcept
 	{
 		if (s.size() != kcphdr::required_size())
@@ -244,7 +244,6 @@ namespace asio2::detail::kcp
 			static_cast<int>(kcphdr::required_size() - sizeof(kcphdr::th_sum))));
 	}
 
-	template<typename = void>
 	inline kcphdr make_kcphdr_syn(std::uint32_t conv, std::uint32_t seq)
 	{
 		kcphdr hdr{};
@@ -260,7 +259,6 @@ namespace asio2::detail::kcp
 		return hdr;
 	}
 
-	template<typename = void>
 	inline kcphdr make_kcphdr_synack(std::uint32_t conv, std::uint32_t ack)
 	{
 		kcphdr hdr{};
@@ -277,7 +275,6 @@ namespace asio2::detail::kcp
 		return hdr;
 	}
 
-	template<typename = void>
 	inline kcphdr make_kcphdr_ack(std::uint32_t ack)
 	{
 		kcphdr hdr{};
@@ -292,7 +289,6 @@ namespace asio2::detail::kcp
 		return hdr;
 	}
 
-	template<typename = void>
 	inline kcphdr make_kcphdr_fin(std::uint32_t seq)
 	{
 		kcphdr hdr{};
@@ -306,11 +302,6 @@ namespace asio2::detail::kcp
 
 		return hdr;
 	}
-
-	struct kcp_deleter
-	{
-		inline void operator()(ikcpcb* p) const noexcept { kcp::ikcp_release(p); };
-	};
 
 	void ikcp_reset(ikcpcb* kcp)
 	{
@@ -415,6 +406,7 @@ namespace asio2::detail::kcp
 			//kcp->output = NULL;
 			//kcp->writelog = NULL;
 		}
+	}
 	}
 }
 
