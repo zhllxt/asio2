@@ -4,8 +4,8 @@ Header only c++ network library, based on asio,support tcp,udp,http,websocket,rp
 
 * header only, do not rely on the Boost library;
 * Support tcp, udp, http, websocket, rpc, ssl, icmp, serial_port;
-* Support reliable udp (based on KCP), support SSL, support loading SSL certificates from memory strings;
-* TCP supports data unpacking (character or string or user defined protocol), and implements the datagram mode of TCP (similar to WEBSOCKET);
+* Support reliable udp (based on KCP), support SSL;
+* TCP supports data unpacking (character or string or user defined protocol);
 * Support windows,linux,macos,arm,android, 32 bits, 64 bits;Compiled under msvc gcc clang ndk mingw;
 * Dependence on C++ 17,dependence on asio (standalone asio or boost::asio). 
 * The example directory contains a large number of sample code, and a variety of use methods refer to the sample code.

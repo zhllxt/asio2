@@ -8,8 +8,8 @@ Header only c++ network library, based on asio,support tcp,udp,http,websocket,rp
 
 * header only,不依赖boost库,不需要单独编译,在工程的Include目录中添加asio2路径,在源码中#include <asio2/asio2.hpp>即可使用;
 * 支持tcp, udp, http, websocket, rpc, ssl, icmp, serial_port;
-* 支持可靠UDP(基于KCP),支持SSL,支持从内存字符串加载SSL证书;
-* TCP支持各种数据拆包功能(单个字符或字符串或用户自定义协议等);实现了数据报模式的TCP(类似WEBSOCKET);
+* 支持可靠UDP(基于KCP),支持SSL;
+* TCP支持各种数据拆包功能(单个字符或字符串或用户自定义协议等);
 * 跨平台,支持windows,linux,macos,arm,android,32位,64位等;在msvc gcc clang ndk mingw下编译通过;
 * 基于C++17,基于asio (standalone asio或boost::asio均可);
 * example目录包含大量示例代码,各种使用方法请参考示例代码;
@@ -17,11 +17,11 @@ Header only c++ network library, based on asio,support tcp,udp,http,websocket,rp
 #### QQ交流群：833425075
 
 ## 一些基础用法文章教程:
- - 1、基本概念和使用说明 [https://blog.csdn.net/zhllxt/article/details/108850090](https://blog.csdn.net/zhllxt/article/details/108850090)
- - 2、各个回调函数的触发顺序和执行流程 [https://blog.csdn.net/zhllxt/article/details/108850715](https://blog.csdn.net/zhllxt/article/details/108850715)
- - 3、各个回调函数的触发线程以及多线程总结 [https://blog.csdn.net/zhllxt/article/details/108868559](https://blog.csdn.net/zhllxt/article/details/108868559)
- - 4、rpc使用教程 [https://blog.csdn.net/zhllxt/article/details/125433838](https://blog.csdn.net/zhllxt/article/details/125433838)
- - asio做tcp的自动拆包时，asio的match condition如何使用的详细说明 [https://blog.csdn.net/zhllxt/article/details/127670983](https://blog.csdn.net/zhllxt/article/details/127670983)
+ - [1、基本概念和使用说明](/doc/blog/zh-cn/introduction.md)
+ - [2、各个回调函数的触发顺序和执行流程](/doc/blog/zh-cn/workflow.md)
+ - [3、各个回调函数的触发线程以及多线程总结](/doc/blog/zh-cn/thread.md)
+ - [4、rpc使用教程](/doc/blog/zh-cn/rpc.md)
+ - [asio做tcp的自动拆包时，asio的match condition如何使用的详细说明](/doc/blog/zh-cn/match_condition.md)
 
 ## 重大的接口变更:
 * 将原来的异步函数send拆分为send和async_send两个函数,现在send表示同步发送,async_send表示异步发送(查找你代码中的send直接替换为async_send即可).现在send函数的返回值为发送数据的字节数(以前是bool),async_send的返回值为void.如果在通信线程中调用了同步发送函数send,则会退化为异步调用;
