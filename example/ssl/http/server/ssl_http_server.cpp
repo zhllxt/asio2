@@ -2,7 +2,6 @@
 #define ASIO2_ENABLE_SSL
 #endif
 
-#include <filesystem>
 #include <iostream>
 #include <asio2/http/https_server.hpp>
 

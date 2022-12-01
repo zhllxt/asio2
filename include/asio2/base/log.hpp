@@ -71,7 +71,8 @@ namespace asio2::detail
 
 			#if ASIO2_OS_LINUX || ASIO2_OS_UNIX
 				filepath.resize(PATH_MAX);
-				readlink("/proc/self/exe", (char *)filepath.data(), PATH_MAX);
+				auto r = readlink("/proc/self/exe", (char *)filepath.data(), PATH_MAX);
+				std::ignore = r; // gcc 7 warning: ignoring return value of ... [-Wunused-result]
 			#elif ASIO2_OS_WINDOWS
 				filepath.resize(MAX_PATH);
 				filepath.resize(::GetModuleFileNameA(NULL, (LPSTR)filepath.data(), MAX_PATH));

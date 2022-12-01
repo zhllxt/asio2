@@ -141,7 +141,7 @@ public:
         if (this->is_text())
             return true;
 
-        if (this->size() > text_.max_size())
+        if (this->size() > std::uint64_t(text_.max_size()))
             return false;
 
         error_code ec;
@@ -151,7 +151,7 @@ public:
         if (ec)
             return false;
 
-        text_.resize(this->size());
+        text_.resize(std::size_t(this->size()));
 
         auto const nread = f.read(text_.data(), text_.size(), ec);
         if (ec || nread != text_.size())

@@ -31,13 +31,13 @@
 #include <map>
 #include <unordered_map>
 #include <type_traits>
-#include <filesystem>
 
 #include <asio2/external/asio.hpp>
 #include <asio2/external/beast.hpp>
 
 #include <asio2/base/iopool.hpp>
 
+#include <asio2/base/detail/filesystem.hpp>
 #include <asio2/base/detail/function_traits.hpp>
 #include <asio2/base/detail/util.hpp>
 
