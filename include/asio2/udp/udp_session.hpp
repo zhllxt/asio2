@@ -570,7 +570,7 @@ namespace asio2::detail
 		asio::ip::udp::endpoint                           remote_endpoint_;
 
 		/// The memory to use for handler-based custom memory allocation. used fo send/write.
-		handler_memory<size_op<>, std::true_type>         wallocator_;
+		handler_memory<std::false_type>                   wallocator_;
 
 		std::unique_ptr<kcp_stream_cp<derived_t, args_t>> kcp_;
 

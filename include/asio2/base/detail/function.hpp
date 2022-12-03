@@ -36,6 +36,94 @@
 #include <memory>
 #include <functional>
 
+#include <asio2/config.hpp>
+#include <asio2/base/log.hpp>
+
+namespace asio2::detail
+{
+#if defined(ASIO2_ENABLE_LOG)
+	template<typename = void>
+	inline void log_storage_size(bool is_stack, std::size_t size)
+	{
+		static std::mutex mtx;
+		static std::map<std::size_t, std::size_t> stack_map;
+		static std::map<std::size_t, std::size_t> heaps_map;
+
+		std::lock_guard guard(mtx);
+
+		if (is_stack)
+			stack_map[size]++;
+		else
+			heaps_map[size]++;
+
+		static auto t1 = std::chrono::steady_clock::now();
+
+		auto t2 = std::chrono::steady_clock::now();
+		if (std::chrono::duration_cast<std::chrono::seconds>(t2 - t1).count() > 5)
+		{
+			t1 = std::chrono::steady_clock::now();
+
+			std::string str;
+
+			str += "\n";
+			str += "function storage size test: ";
+
+			if /**/ constexpr (sizeof(void*) == sizeof(std::uint64_t))
+				str += "x64";
+			else if constexpr (sizeof(void*) == sizeof(std::uint32_t))
+				str += "x86";
+			else
+				str += std::to_string(sizeof(void*)) + "bit";
+
+			str += ", ";
+
+		#if defined(_DEBUG) || defined(DEBUG)
+			str += "Debug";
+		#else
+			str += "Release";
+		#endif
+
+		#if defined(ASIO2_ENABLE_SSL) || defined(ASIO2_USE_SSL)
+			str += ", SSL";
+		#endif
+
+		#if ASIO2_OS_LINUX || ASIO2_OS_UNIX
+			str += ", linux";
+		#elif ASIO2_OS_WINDOWS
+			str += ", windows";
+		#elif ASIO2_OS_MACOS
+			str += ", macos";
+		#endif
+
+			str += "\n";
+
+			str += "------------------------------------------------------------\n";
+
+			str += "stack_map\n";
+			for (auto [len, num] : stack_map)
+			{
+				str += "  ";
+				str += std::to_string(len); str += " : ";
+				str += std::to_string(num); str += "\n";
+			}
+
+			str += "heaps_map\n";
+			for (auto [len, num] : heaps_map)
+			{
+				str += "  ";
+				str += std::to_string(len); str += " : ";
+				str += std::to_string(num); str += "\n";
+			}
+
+			str += "------------------------------------------------------------\n";
+			str += "\n";
+
+			ASIO2_LOG(spdlog::level::critical, "{}", str);
+		}
+	}
+#endif
+}
+
 namespace asio2::detail
 {
 template <typename Signature>
@@ -45,7 +133,22 @@ template <typename R, typename ... Args>
 struct function<R(Args...)>
 {
 private:
-	static constexpr std::size_t storage_size = sizeof(void*) * 3;
+	static constexpr std::size_t storage_multiple() noexcept
+	{
+	#if defined(NDEBUG) || (!defined(_DEBUG) && !defined(DEBUG))
+		if constexpr (sizeof(void*) == sizeof(std::uint32_t))
+			return std::size_t(12);
+		else
+			return std::size_t(10);
+	#else
+		if constexpr (sizeof(void*) == sizeof(std::uint32_t))
+			return std::size_t(12 + 2);
+		else
+			return std::size_t(10 + 2);
+	#endif
+	}
+
+	static constexpr std::size_t storage_size  = sizeof(void*) * storage_multiple();
 	static constexpr std::size_t storage_align = alignof(void*);
 
 	template <typename T>
@@ -170,6 +273,10 @@ private:
 		{
 			new (reinterpret_cast<T *>(&storage_)) T(std::move(f));
 
+		#if defined(ASIO2_ENABLE_LOG)
+			log_storage_size(true, sizeof(T));
+		#endif
+
 			static vtable m = {
 				[](void * src, void * dst){ new (reinterpret_cast<T*>(dst)) T(std::move(*reinterpret_cast<T*>(src))); },
 				[](void * src){ reinterpret_cast<T*>(src)->~T(); },
@@ -181,6 +288,10 @@ private:
 		else
 		{
 			*reinterpret_cast<T**>(&storage_) = new T(std::move(f));
+
+		#if defined(ASIO2_ENABLE_LOG)
+			log_storage_size(false, sizeof(T));
+		#endif
 
 			static vtable m = {
 				[](void * src, void * dst){ *reinterpret_cast<T**>(dst) = *reinterpret_cast<T**>(src); *reinterpret_cast<T**>(src) = nullptr; },

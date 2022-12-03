@@ -250,7 +250,7 @@ namespace asio2::detail
 		io_t                                    & io_;
 
 		/// The memory to use for handler-based custom memory allocation.
-		handler_memory<size_op<>, std::true_type> allocator_;
+		handler_memory<std::false_type>           allocator_;
 
 		/// server state refrence
 		std::atomic<state_t>                    & state_;

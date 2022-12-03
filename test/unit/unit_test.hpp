@@ -25,6 +25,10 @@
 #include <string>
 #include <string_view>
 
+#ifndef ASIO2_ENABLE_LOG
+#define ASIO2_ENABLE_LOG
+#endif
+
 #include <asio2/external/asio.hpp>
 
 #if defined(__sun)

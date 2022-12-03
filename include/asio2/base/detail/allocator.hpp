@@ -20,91 +20,288 @@
 #include <utility>
 #include <atomic>
 #include <fstream>
+#include <mutex>
 
+#include <asio2/config.hpp>
 #include <asio2/base/log.hpp>
+
+#ifndef ASIO2_ADDITIONAL_ALLOCATOR_SIZE
+#define ASIO2_ADDITIONAL_ALLOCATOR_SIZE (sizeof(void*) * 8)
+#endif
 
 namespace asio2::detail
 {
-	//template<typename = void>
-	//inline void log_max_size(std::size_t size)
-	//{
-	//	static std::size_t max_size_ = 0;
-
-	//	if (size > max_size_)
-	//	{
-	//		max_size_ = size;
-
-	//		ASIO2_LOG(spdlog::level::critical, "max_size : {}", max_size_);
-	//	}
-	//}
-
-	/// see : boost\libs\asio\example\cpp11\allocation\server.cpp
-
-	// after test, in general situation:
-	// 32 bit exe:
-	// debug   mode : the max allocated size is 1304 and has very many times. 163 * 8 = 1304
-	// release mode : the max allocated size is 456  and has very many times. 57  * 8 = 456
-	// 64 bit exe:
-	// debug   mode : the max allocated size is 2200 and has very many times. 275 * 8 = 2200
-	// release mode : the max allocated size is 856  and has very many times. 107 * 8 = 856
-
-#if defined(_DEBUG) || defined(DEBUG)
+#if defined(ASIO2_ENABLE_LOG)
 	template<typename = void>
-	inline constexpr std::size_t allocator_size() noexcept
+	inline void log_allocator_size(bool is_lookfree, bool is_stack, std::size_t size)
 	{
-		if constexpr (sizeof(void *) == sizeof(std::uint32_t))
-			return std::size_t(1304 + 8);
+		static std::mutex mtx;
+		static std::map<std::size_t, std::size_t> unlock_stack_map;
+		static std::map<std::size_t, std::size_t> unlock_heaps_map;
+		static std::map<std::size_t, std::size_t> atomic_stack_map;
+		static std::map<std::size_t, std::size_t> atomic_heaps_map;
+
+		std::lock_guard guard(mtx);
+
+		if (is_lookfree)
+		{
+			if (is_stack)
+				unlock_stack_map[size]++;
+			else
+				unlock_heaps_map[size]++;
+		}
 		else
-			return std::size_t(2200 + 8);
+		{
+			if (is_stack)
+				atomic_stack_map[size]++;
+			else
+				atomic_heaps_map[size]++;
+		}
+
+		static auto t1 = std::chrono::steady_clock::now();
+
+		auto t2 = std::chrono::steady_clock::now();
+		if (std::chrono::duration_cast<std::chrono::seconds>(t2 - t1).count() > 5)
+		{
+			t1 = std::chrono::steady_clock::now();
+
+			std::string str;
+
+			str += "\n";
+			str += "allocator storage size test: ";
+
+			if /**/ constexpr (sizeof(void*) == sizeof(std::uint64_t))
+				str += "x64";
+			else if constexpr (sizeof(void*) == sizeof(std::uint32_t))
+				str += "x86";
+			else
+				str += std::to_string(sizeof(void*)) + "bit";
+
+			str += ", ";
+
+		#if defined(_DEBUG) || defined(DEBUG)
+			str += "Debug";
+		#else
+			str += "Release";
+		#endif
+
+		#if defined(ASIO2_ENABLE_SSL) || defined(ASIO2_USE_SSL)
+			str += ", SSL";
+		#endif
+
+		#if ASIO2_OS_LINUX || ASIO2_OS_UNIX
+			str += ", linux";
+		#elif ASIO2_OS_WINDOWS
+			str += ", windows";
+		#elif ASIO2_OS_MACOS
+			str += ", macos";
+		#endif
+
+			str += "\n";
+
+			str += "------------------------------------------------------------\n";
+
+			str += "unlock_stack_map\n";
+			for (auto [len, num] : unlock_stack_map)
+			{
+				str += "  ";
+				str += std::to_string(len); str += " : ";
+				str += std::to_string(num); str += "\n";
+			}
+
+			str += "unlock_heaps_map\n";
+			for (auto [len, num] : unlock_heaps_map)
+			{
+				str += "  ";
+				str += std::to_string(len); str += " : ";
+				str += std::to_string(num); str += "\n";
+			}
+
+			str += "atomic_stack_map\n";
+			for (auto [len, num] : atomic_stack_map)
+			{
+				str += "  ";
+				str += std::to_string(len); str += " : ";
+				str += std::to_string(num); str += "\n";
+			}
+
+			str += "atomic_heaps_map\n";
+			for (auto [len, num] : atomic_heaps_map)
+			{
+				str += "  ";
+				str += std::to_string(len); str += " : ";
+				str += std::to_string(num); str += "\n";
+			}
+
+			str += "------------------------------------------------------------\n";
+			str += "\n";
+
+			ASIO2_LOG(spdlog::level::critical, "{}", str);
+		}
 	}
-#else
+
 	template<typename = void>
-	inline constexpr std::size_t allocator_size() noexcept
+	inline void lockfree_allocator_threadsafe_test(std::size_t paddr, bool is_add)
 	{
-		if constexpr (sizeof(void *) == sizeof(std::uint32_t))
-			return std::size_t(456 + 64);
+		static std::mutex mtx;
+		static std::unordered_map<std::size_t, std::thread::id> addr_thread_map;
+
+		std::lock_guard guard(mtx);
+
+		if (is_add)
+		{
+			auto it = addr_thread_map.find(paddr);
+			if (it == addr_thread_map.end())
+			{
+				addr_thread_map.emplace(paddr, std::this_thread::get_id());
+			}
+			else
+			{
+				if (it->second != std::this_thread::get_id())
+				{
+					ASIO2_ASSERT(false);
+					throw 0;
+				}
+			}
+		}
 		else
-			return std::size_t(856 + 64);
+		{
+			addr_thread_map.erase(paddr);
+		}
 	}
 #endif
 
-	template<std::size_t N = allocator_size()>
-	struct size_op
+	/// see : boost\libs\asio\example\cpp11\allocation\server.cpp
+
+#if defined(_DEBUG) || defined(DEBUG)
+	template<typename IsLockFree>
+	inline constexpr std::size_t allocator_size() noexcept
+	{
+	#if defined(ASIO2_ENABLE_SSL) || defined(ASIO2_USE_SSL)
+		if constexpr (IsLockFree::value)
+		{
+			if constexpr (sizeof(void*) == sizeof(std::uint32_t))
+				return std::size_t(536 + ASIO2_ADDITIONAL_ALLOCATOR_SIZE);
+			else
+				return std::size_t(952 + ASIO2_ADDITIONAL_ALLOCATOR_SIZE);
+		}
+		else
+		{
+			if constexpr (sizeof(void*) == sizeof(std::uint32_t))
+				return std::size_t(1456 + ASIO2_ADDITIONAL_ALLOCATOR_SIZE);
+			else
+				return std::size_t(2464 + ASIO2_ADDITIONAL_ALLOCATOR_SIZE);
+		}
+	#else
+		if constexpr (IsLockFree::value)
+		{
+			if constexpr (sizeof(void*) == sizeof(std::uint32_t))
+				return std::size_t(456 + ASIO2_ADDITIONAL_ALLOCATOR_SIZE);
+			else
+				return std::size_t(824 + ASIO2_ADDITIONAL_ALLOCATOR_SIZE);
+		}
+		else
+		{
+			if constexpr (sizeof(void*) == sizeof(std::uint32_t))
+				return std::size_t(1304 + ASIO2_ADDITIONAL_ALLOCATOR_SIZE);
+			else
+				return std::size_t(2224 + ASIO2_ADDITIONAL_ALLOCATOR_SIZE);
+		}
+	#endif
+	}
+#else
+	template<typename IsLockFree>
+	inline constexpr std::size_t allocator_size() noexcept
+	{
+	#if defined(ASIO2_ENABLE_SSL) || defined(ASIO2_USE_SSL)
+		if constexpr (IsLockFree::value)
+		{
+			if constexpr (sizeof(void*) == sizeof(std::uint32_t))
+				return std::size_t(324 + ASIO2_ADDITIONAL_ALLOCATOR_SIZE);
+			else
+				return std::size_t(632 + ASIO2_ADDITIONAL_ALLOCATOR_SIZE);
+		}
+		else
+		{
+			if constexpr (sizeof(void*) == sizeof(std::uint32_t))
+				return std::size_t(520 + ASIO2_ADDITIONAL_ALLOCATOR_SIZE);
+			else
+				return std::size_t(992 + ASIO2_ADDITIONAL_ALLOCATOR_SIZE);
+		}
+	#else
+		if constexpr (IsLockFree::value)
+		{
+			if constexpr (sizeof(void*) == sizeof(std::uint32_t))
+				return std::size_t(288 + ASIO2_ADDITIONAL_ALLOCATOR_SIZE);
+			else
+				return std::size_t(664 + ASIO2_ADDITIONAL_ALLOCATOR_SIZE);
+		}
+		else
+		{
+			if constexpr (sizeof(void*) == sizeof(std::uint32_t))
+				return std::size_t(464 + ASIO2_ADDITIONAL_ALLOCATOR_SIZE);
+			else
+				return std::size_t(888 + ASIO2_ADDITIONAL_ALLOCATOR_SIZE);
+		}
+	#endif
+	}
+#endif
+
+	template<std::size_t N>
+	struct allocator_size_op
 	{
 		static constexpr std::size_t size = N;
 	};
 
-	template<typename SizeN = size_op<allocator_size()>, typename IsAtomicUse = std::false_type>
+	/**
+	 * @brief Class to manage the memory to be used for handler-based custom allocation.
+	 * It contains a single block of memory which may be returned for allocation
+	 * requests. If the memory is in use when an allocation request is made, the
+	 * allocator delegates allocation to the global heap.
+	 * @tparam IsLockFree - is lock free or not.
+	 * @tparam SizeN - the single block of memory size.
+	 */
+	template<
+		typename IsLockFree = std::true_type,
+		typename SizeN = allocator_size_op<allocator_size<IsLockFree>()>>
 	class handler_memory;
 
-#if defined(ASIO2_ENABLE_LOG) && (defined(_DEBUG) || defined(DEBUG))
-	static std::size_t __unlock_use_counter__ = 0;
-	static std::size_t __unlock_new_counter__ = 0;
-	static std::size_t __atomic_use_counter__ = 0;
-	static std::size_t __atomic_new_counter__ = 0;
-#endif
-
-	// Class to manage the memory to be used for handler-based custom allocation.
-	// It contains a single block of memory which may be returned for allocation
-	// requests. If the memory is in use when an allocation request is made, the
-	// allocator delegates allocation to the global heap.
+	/**
+	 * @brief Class to manage the memory to be used for handler-based custom allocation.
+	 * It contains a single block of memory which may be returned for allocation
+	 * requests. If the memory is in use when an allocation request is made, the
+	 * allocator delegates allocation to the global heap.
+	 * @tparam IsLockFree - is lock free or not.
+	 * @tparam SizeN - the single block of memory size.
+	 */
 	template<typename SizeN>
-	class handler_memory<SizeN, std::false_type>
+	class handler_memory<std::true_type, SizeN>
 	{
 	public:
+		static constexpr std::size_t storage_size = SizeN::size;
+
 		explicit handler_memory() noexcept : in_use_(false) {}
+
+		~handler_memory()
+		{
+		#if defined(ASIO2_ENABLE_LOG)
+			lockfree_allocator_threadsafe_test(std::size_t(this), false);
+		#endif
+		}
 
 		handler_memory(const handler_memory&) = delete;
 		handler_memory& operator=(const handler_memory&) = delete;
 
 		inline void* allocate(std::size_t size)
 		{
-			//log_max_size(size);
+		#if defined(ASIO2_ENABLE_LOG)
+			lockfree_allocator_threadsafe_test(std::size_t(this), true);
+		#endif
 
 			if (!in_use_ && size < sizeof(storage_))
 			{
-			#if defined(ASIO2_ENABLE_LOG) && (defined(_DEBUG) || defined(DEBUG))
-				__unlock_use_counter__++;
+			#if defined(ASIO2_ENABLE_LOG)
+				log_allocator_size(true, true, size);
 			#endif
 
 				in_use_ = true;
@@ -112,8 +309,8 @@ namespace asio2::detail
 			}
 			else
 			{
-			#if defined(ASIO2_ENABLE_LOG) && (defined(_DEBUG) || defined(DEBUG))
-				__unlock_new_counter__++;
+			#if defined(ASIO2_ENABLE_LOG)
+				log_allocator_size(true, false, size);
 			#endif
 
 				return ::operator new(size);
@@ -140,10 +337,20 @@ namespace asio2::detail
 		bool in_use_{};
 	};
 
+	/**
+	 * @brief Class to manage the memory to be used for handler-based custom allocation.
+	 * It contains a single block of memory which may be returned for allocation
+	 * requests. If the memory is in use when an allocation request is made, the
+	 * allocator delegates allocation to the global heap.
+	 * @tparam IsLockFree - is lock free or not.
+	 * @tparam SizeN - the single block of memory size.
+	 */
 	template<typename SizeN>
-	class handler_memory<SizeN, std::true_type>
+	class handler_memory<std::false_type, SizeN>
 	{
 	public:
+		static constexpr std::size_t storage_size = SizeN::size;
+
 		handler_memory() noexcept { in_use_.clear(); }
 
 		handler_memory(const handler_memory&) = delete;
@@ -151,20 +358,18 @@ namespace asio2::detail
 
 		inline void* allocate(std::size_t size)
 		{
-			//log_max_size(size);
-
 			if (size < sizeof(storage_) && (!in_use_.test_and_set()))
 			{
-			#if defined(ASIO2_ENABLE_LOG) && (defined(_DEBUG) || defined(DEBUG))
-				__atomic_use_counter__++;
+			#if defined(ASIO2_ENABLE_LOG)
+				log_allocator_size(false, true, size);
 			#endif
 
 				return &storage_;
 			}
 			else
 			{
-			#if defined(ASIO2_ENABLE_LOG) && (defined(_DEBUG) || defined(DEBUG))
-				__atomic_new_counter__++;
+			#if defined(ASIO2_ENABLE_LOG)
+				log_allocator_size(false, false, size);
 			#endif
 
 				return ::operator new(size);
@@ -190,6 +395,9 @@ namespace asio2::detail
 		// Whether the handler-based custom allocation storage has been used.
 		std::atomic_flag in_use_{};
 	};
+
+	static_assert(handler_memory<std::true_type >::storage_size == allocator_size<std::true_type >());
+	static_assert(handler_memory<std::false_type>::storage_size == allocator_size<std::false_type>());
 
 	// The allocator to be associated with the handler objects. This allocator only
 	// needs to satisfy the C++11 minimal allocator requirements.

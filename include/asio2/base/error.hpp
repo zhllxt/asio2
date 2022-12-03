@@ -15,9 +15,9 @@
 #pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
-#if !defined(NDEBUG) && !defined(_DEBUG) && !defined(DEBUG)
-#define NDEBUG
-#endif
+//#if !defined(NDEBUG) && !defined(_DEBUG) && !defined(DEBUG)
+//#define NDEBUG
+//#endif
 
 #include <asio2/base/detail/push_options.hpp>
 

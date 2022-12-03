@@ -1136,10 +1136,10 @@ namespace asio2::detail
 		socket_type                                 socket_;
 
 		/// The memory to use for handler-based custom memory allocation. used fo recv/read.
-		handler_memory<>                            rallocator_;
+		handler_memory<std::true_type>              rallocator_;
 
 		/// The memory to use for handler-based custom memory allocation. used fo timer/post.
-		handler_memory<size_op<>, std::true_type>   wallocator_;
+		handler_memory<std::false_type>             wallocator_;
 
 		/// listener
 		listener_t                                  listener_;

@@ -429,15 +429,25 @@ namespace asio2::detail
 		}
 
 	protected:
-		derived_t                   & derive;
+		static constexpr std::size_t tallocator_size() noexcept
+		{
+		#if defined(_DEBUG) || defined(DEBUG)
+			return (168 + ASIO2_ADDITIONAL_ALLOCATOR_SIZE);
+		#else
+			return (168 + ASIO2_ADDITIONAL_ALLOCATOR_SIZE);
+		#endif
+		}
 
-		kcp::ikcpcb                 * kcp_ = nullptr;
+	protected:
+		derived_t                                    & derive;
+									                          
+		kcp::ikcpcb                                  * kcp_ = nullptr;
+									                          
+		bool                                           send_fin_ = true;
 
-		bool                          send_fin_ = true;
+		asio::steady_timer                             kcp_timer_;
 
-		handler_memory<>              tallocator_;
-
-		asio::steady_timer            kcp_timer_;
+		handler_memory<std::true_type, allocator_size_op<tallocator_size()>>    tallocator_;
 	};
 }
 

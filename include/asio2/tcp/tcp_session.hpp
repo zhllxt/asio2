@@ -454,10 +454,10 @@ namespace asio2::detail
 
 	protected:
 		/// The memory to use for handler-based custom memory allocation. used fo recv/read.
-		handler_memory<>                          rallocator_;
+		handler_memory<std::true_type>            rallocator_;
 
 		/// The memory to use for handler-based custom memory allocation. used fo send/write.
-		handler_memory<size_op<>, std::true_type> wallocator_;
+		handler_memory<std::false_type>           wallocator_;
 
 		/// Does it have the same datagram mechanism as udp?
 		bool                                      dgram_                = false;
