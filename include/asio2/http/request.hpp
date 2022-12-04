@@ -17,6 +17,7 @@
 
 #include <asio2/base/detail/push_options.hpp>
 
+#include <asio2/base/define.hpp>
 #include <asio2/base/impl/user_data_cp.hpp>
 
 #include <asio2/http/detail/http_util.hpp>
@@ -312,6 +313,26 @@ namespace asio2::detail
 		websocket::frame                      ws_frame_type_ = websocket::frame::unknown;
 		std::string_view                      ws_frame_data_;
 	};
+
+	struct http_request_convert_helper
+	{
+		template<class Body, class Fields>
+		void from(http::request<Body, Fields>) {}
+
+		template<class Body, class Fields>
+		void from(detail::http_request_impl_t<Body, Fields>) {}
+	};
+
+	template<typename T, typename = void>
+	struct can_convert_to_http_request : std::false_type {};
+
+	template<typename T>
+	struct can_convert_to_http_request<T, std::void_t<decltype(std::declval<
+		http_request_convert_helper>().from(std::declval<T>()))>> : std::true_type {};
+
+	template<class T>
+	inline constexpr bool can_convert_to_http_request_v =
+		can_convert_to_http_request<detail::remove_cvref_t<T>>::value;
 }
 
 #ifdef ASIO2_HEADER_ONLY

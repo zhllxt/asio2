@@ -90,8 +90,10 @@ namespace asio2::detail
 	public:
 		template<typename String, typename StrOrInt, class Rep, class Period, class Proxy,
 			class Body = http::string_body, class Fields = http::fields, class Buffer = beast::flat_buffer>
-		typename std::enable_if_t<!std::is_same_v<detail::remove_cvref_t<Proxy>, error_code>,
-			http::response<Body, Fields>>
+		typename std::enable_if_t<detail::is_character_string_v<detail::remove_cvref_t<String>>
+			&& (!std::is_same_v<detail::remove_cvref_t<Proxy>, error_code>)
+			&& (!detail::can_convert_to_http_request_v<detail::remove_cvref_t<Proxy>>)
+			, http::response<Body, Fields>>
 		static inline execute(const asio::ssl::context& ctx, String&& host, StrOrInt&& port,
 			http::request<Body, Fields>& req, std::chrono::duration<Rep, Period> timeout, Proxy&& proxy)
 		{
@@ -147,6 +149,13 @@ namespace asio2::detail
 								{
 									if (ecs5) { set_last_error(ecs5); return; }
 
+									// https://github.com/djarek/certify
+									if (auto it = req.find(http::field::host); it != req.end())
+									{
+										std::string hostname(it->value());
+										SSL_set_tlsext_host_name(stream.native_handle(), hostname.data());
+									}
+
 									stream.async_handshake(asio::ssl::stream_base::client,
 									[&](const error_code& ec3) mutable
 									{
@@ -188,6 +197,13 @@ namespace asio2::detail
 						[&](const error_code& ec2, const asio::ip::tcp::endpoint&) mutable
 						{
 							if (ec2) { set_last_error(ec2); return; }
+
+							// https://github.com/djarek/certify
+							if (auto it = req.find(http::field::host); it != req.end())
+							{
+								std::string hostname(it->value());
+								SSL_set_tlsext_host_name(stream.native_handle(), hostname.data());
+							}
 
 							stream.async_handshake(asio::ssl::stream_base::client,
 							[&](const error_code& ec3) mutable
@@ -237,7 +253,9 @@ namespace asio2::detail
 
 		template<typename String, typename StrOrInt, class Rep, class Period,
 			class Body = http::string_body, class Fields = http::fields>
-		static inline http::response<Body, Fields> execute(
+		typename std::enable_if_t<detail::is_character_string_v<detail::remove_cvref_t<String>>
+			, http::response<Body, Fields>>
+		static inline execute(
 			const asio::ssl::context& ctx, String&& host, StrOrInt&& port,
 			http::request<Body, Fields>& req, std::chrono::duration<Rep, Period> timeout)
 		{
@@ -247,7 +265,9 @@ namespace asio2::detail
 
 		template<typename String, typename StrOrInt,
 			class Body = http::string_body, class Fields = http::fields>
-		static inline http::response<Body, Fields> execute(
+		typename std::enable_if_t<detail::is_character_string_v<detail::remove_cvref_t<String>>
+			, http::response<Body, Fields>>
+		static inline execute(
 			const asio::ssl::context& ctx, String&& host, StrOrInt&& port,
 			http::request<Body, Fields>& req)
 		{
@@ -259,7 +279,9 @@ namespace asio2::detail
 
 		template<typename String, typename StrOrInt, class Rep, class Period,
 			class Body = http::string_body, class Fields = http::fields>
-		static inline http::response<Body, Fields> execute(String&& host, StrOrInt&& port,
+		typename std::enable_if_t<detail::is_character_string_v<detail::remove_cvref_t<String>>
+			, http::response<Body, Fields>>
+		static inline execute(String&& host, StrOrInt&& port,
 			http::request<Body, Fields>& req, std::chrono::duration<Rep, Period> timeout)
 		{
 			return derived_t::execute(asio::ssl::context{ asio::ssl::context::sslv23 },
@@ -267,8 +289,9 @@ namespace asio2::detail
 		}
 
 		template<typename String, typename StrOrInt, class Body = http::string_body, class Fields = http::fields>
-		static inline http::response<Body, Fields> execute(String&& host, StrOrInt&& port,
-			http::request<Body, Fields>& req)
+		typename std::enable_if_t<detail::is_character_string_v<detail::remove_cvref_t<String>>
+			, http::response<Body, Fields>>
+		static inline execute(String&& host, StrOrInt&& port, http::request<Body, Fields>& req)
 		{
 			return derived_t::execute(
 				std::forward<String>(host), std::forward<StrOrInt>(port),
@@ -358,7 +381,9 @@ namespace asio2::detail
 		 */
 		template<typename String, typename StrOrInt, class Rep, class Period,
 			class Body = http::string_body, class Fields = http::fields>
-		static inline http::response<Body, Fields> execute(
+		typename std::enable_if_t<detail::is_character_string_v<detail::remove_cvref_t<String>>
+			, http::response<Body, Fields>>
+		static inline execute(
 			const asio::ssl::context& ctx, String&& host, StrOrInt&& port,
 			std::string_view target, std::chrono::duration<Rep, Period> timeout)
 		{
@@ -376,7 +401,9 @@ namespace asio2::detail
 		 * @brief blocking execute the http request until it is returned on success or failure
 		 */
 		template<typename String, typename StrOrInt, class Body = http::string_body, class Fields = http::fields>
-		static inline http::response<Body, Fields> execute(
+		typename std::enable_if_t<detail::is_character_string_v<detail::remove_cvref_t<String>>
+			, http::response<Body, Fields>>
+		static inline execute(
 			const asio::ssl::context& ctx, String&& host, StrOrInt&& port,
 			std::string_view target)
 		{
@@ -419,7 +446,11 @@ namespace asio2::detail
 
 		template<typename String, typename StrOrInt, class Proxy,
 			class Body = http::string_body, class Fields = http::fields>
-		static inline http::response<Body, Fields> execute(
+		typename std::enable_if_t<detail::is_character_string_v<detail::remove_cvref_t<String>>
+			&& (!std::is_same_v<detail::remove_cvref_t<Proxy>, error_code>)
+			&& (!detail::can_convert_to_http_request_v<detail::remove_cvref_t<Proxy>>)
+			, http::response<Body, Fields>>
+		static inline execute(
 			const asio::ssl::context& ctx, String&& host, StrOrInt&& port,
 			http::request<Body, Fields>& req, Proxy&& proxy)
 		{
@@ -431,7 +462,11 @@ namespace asio2::detail
 
 		template<typename String, typename StrOrInt, class Proxy, class Rep, class Period,
 			class Body = http::string_body, class Fields = http::fields>
-		static inline http::response<Body, Fields> execute(String&& host, StrOrInt&& port,
+		typename std::enable_if_t<detail::is_character_string_v<detail::remove_cvref_t<String>>
+			&& (!std::is_same_v<detail::remove_cvref_t<Proxy>, error_code>)
+			&& (!detail::can_convert_to_http_request_v<detail::remove_cvref_t<Proxy>>)
+			, http::response<Body, Fields>>
+		static inline execute(String&& host, StrOrInt&& port,
 			http::request<Body, Fields>& req, std::chrono::duration<Rep, Period> timeout, Proxy&& proxy)
 		{
 			return derived_t::execute(asio::ssl::context{ asio::ssl::context::sslv23 },
@@ -441,8 +476,11 @@ namespace asio2::detail
 
 		template<typename String, typename StrOrInt, class Proxy,
 			class Body = http::string_body, class Fields = http::fields>
-		static inline http::response<Body, Fields> execute(String&& host, StrOrInt&& port,
-			http::request<Body, Fields>& req, Proxy&& proxy)
+		typename std::enable_if_t<detail::is_character_string_v<detail::remove_cvref_t<String>>
+			&& (!std::is_same_v<detail::remove_cvref_t<Proxy>, error_code>)
+			&& (!detail::can_convert_to_http_request_v<detail::remove_cvref_t<Proxy>>)
+			, http::response<Body, Fields>>
+		static inline execute(String&& host, StrOrInt&& port, http::request<Body, Fields>& req, Proxy&& proxy)
 		{
 			return derived_t::execute(
 				std::forward<String>(host), std::forward<StrOrInt>(port),
@@ -453,7 +491,11 @@ namespace asio2::detail
 
 		template<class Proxy, class Rep, class Period,
 			class Body = http::string_body, class Fields = http::fields>
-		static inline http::response<Body, Fields> execute(
+		typename std::enable_if_t<true
+			&& (!std::is_same_v<detail::remove_cvref_t<Proxy>, error_code>)
+			&& (!detail::can_convert_to_http_request_v<detail::remove_cvref_t<Proxy>>)
+			, http::response<Body, Fields>>
+		static inline execute(
 			const asio::ssl::context& ctx, http::web_request& req,
 			std::chrono::duration<Rep, Period> timeout, Proxy&& proxy)
 		{
@@ -462,8 +504,11 @@ namespace asio2::detail
 		}
 
 		template<class Proxy, class Body = http::string_body, class Fields = http::fields>
-		static inline http::response<Body, Fields> execute(
-			const asio::ssl::context& ctx, http::web_request& req, Proxy&& proxy)
+		typename std::enable_if_t<true
+			&& (!std::is_same_v<detail::remove_cvref_t<Proxy>, error_code>)
+			&& (!detail::can_convert_to_http_request_v<detail::remove_cvref_t<Proxy>>)
+			, http::response<Body, Fields>>
+		static inline execute(const asio::ssl::context& ctx, http::web_request& req, Proxy&& proxy)
 		{
 			return derived_t::execute(ctx, req, std::chrono::milliseconds(http_execute_timeout),
 				std::forward<Proxy>(proxy));
@@ -471,7 +516,11 @@ namespace asio2::detail
 
 		template<class Proxy, class Rep, class Period,
 			class Body = http::string_body, class Fields = http::fields>
-		static inline http::response<Body, Fields> execute(
+		typename std::enable_if_t<true
+			&& (!std::is_same_v<detail::remove_cvref_t<Proxy>, error_code>)
+			&& (!detail::can_convert_to_http_request_v<detail::remove_cvref_t<Proxy>>)
+			, http::response<Body, Fields>>
+		static inline execute(
 			http::web_request& req, std::chrono::duration<Rep, Period> timeout, Proxy&& proxy)
 		{
 			return derived_t::execute(asio::ssl::context{ asio::ssl::context::sslv23 }, req, timeout,
@@ -479,7 +528,11 @@ namespace asio2::detail
 		}
 
 		template<class Proxy, class Body = http::string_body, class Fields = http::fields>
-		static inline http::response<Body, Fields> execute(http::web_request& req, Proxy&& proxy)
+		typename std::enable_if_t<true
+			&& (!std::is_same_v<detail::remove_cvref_t<Proxy>, error_code>)
+			&& (!detail::can_convert_to_http_request_v<detail::remove_cvref_t<Proxy>>)
+			, http::response<Body, Fields>>
+		static inline execute(http::web_request& req, Proxy&& proxy)
 		{
 			return derived_t::execute(req, std::chrono::milliseconds(http_execute_timeout),
 				std::forward<Proxy>(proxy));
@@ -492,7 +545,11 @@ namespace asio2::detail
 		 */
 		template<class Proxy, class Rep, class Period,
 			class Body = http::string_body, class Fields = http::fields>
-		static inline http::response<Body, Fields> execute(
+		typename std::enable_if_t<true
+			&& (!std::is_same_v<detail::remove_cvref_t<Proxy>, error_code>)
+			&& (!detail::can_convert_to_http_request_v<detail::remove_cvref_t<Proxy>>)
+			, http::response<Body, Fields>>
+		static inline execute(
 			const asio::ssl::context& ctx, std::string_view url,
 			std::chrono::duration<Rep, Period> timeout, Proxy&& proxy)
 		{
@@ -508,8 +565,11 @@ namespace asio2::detail
 		 * @brief blocking execute the http request until it is returned on success or failure
 		 */
 		template<class Proxy, class Body = http::string_body, class Fields = http::fields>
-		static inline http::response<Body, Fields> execute(
-			const asio::ssl::context& ctx, std::string_view url, Proxy&& proxy)
+		typename std::enable_if_t<true
+			&& (!std::is_same_v<detail::remove_cvref_t<Proxy>, error_code>)
+			&& (!detail::can_convert_to_http_request_v<detail::remove_cvref_t<Proxy>>)
+			, http::response<Body, Fields>>
+		static inline execute(const asio::ssl::context& ctx, std::string_view url, Proxy&& proxy)
 		{
 			return derived_t::execute(ctx, url, std::chrono::milliseconds(http_execute_timeout),
 				std::forward<Proxy>(proxy));
@@ -522,8 +582,11 @@ namespace asio2::detail
 		 */
 		template<class Proxy, class Rep, class Period,
 			class Body = http::string_body, class Fields = http::fields>
-		static inline http::response<Body, Fields> execute(std::string_view url,
-			std::chrono::duration<Rep, Period> timeout, Proxy&& proxy)
+		typename std::enable_if_t<true
+			&& (!std::is_same_v<detail::remove_cvref_t<Proxy>, error_code>)
+			&& (!detail::can_convert_to_http_request_v<detail::remove_cvref_t<Proxy>>)
+			, http::response<Body, Fields>>
+		static inline execute(std::string_view url, std::chrono::duration<Rep, Period> timeout, Proxy&& proxy)
 		{
 			return derived_t::execute(asio::ssl::context{ asio::ssl::context::sslv23 }, url, timeout,
 				std::forward<Proxy>(proxy));
@@ -533,7 +596,11 @@ namespace asio2::detail
 		 * @brief blocking execute the http request until it is returned on success or failure
 		 */
 		template<class Proxy, class Body = http::string_body, class Fields = http::fields>
-		static inline http::response<Body, Fields> execute(std::string_view url, Proxy&& proxy)
+		typename std::enable_if_t<true
+			&& (!std::is_same_v<detail::remove_cvref_t<Proxy>, error_code>)
+			&& (!detail::can_convert_to_http_request_v<detail::remove_cvref_t<Proxy>>)
+			, http::response<Body, Fields>>
+		static inline execute(std::string_view url, Proxy&& proxy)
 		{
 			return derived_t::execute(url, std::chrono::milliseconds(http_execute_timeout),
 				std::forward<Proxy>(proxy));
@@ -546,7 +613,11 @@ namespace asio2::detail
 		 */
 		template<typename String, typename StrOrInt, class Proxy, class Rep, class Period,
 			class Body = http::string_body, class Fields = http::fields>
-		static inline http::response<Body, Fields> execute(
+		typename std::enable_if_t<detail::is_character_string_v<detail::remove_cvref_t<String>>
+			&& (!std::is_same_v<detail::remove_cvref_t<Proxy>, error_code>)
+			&& (!detail::can_convert_to_http_request_v<detail::remove_cvref_t<Proxy>>)
+			, http::response<Body, Fields>>
+		static inline execute(
 			const asio::ssl::context& ctx, String&& host, StrOrInt&& port,
 			std::string_view target, std::chrono::duration<Rep, Period> timeout, Proxy&& proxy)
 		{
@@ -565,7 +636,11 @@ namespace asio2::detail
 		 */
 		template<typename String, typename StrOrInt, class Proxy,
 			class Body = http::string_body, class Fields = http::fields>
-		static inline http::response<Body, Fields> execute(
+		typename std::enable_if_t<detail::is_character_string_v<detail::remove_cvref_t<String>>
+			&& (!std::is_same_v<detail::remove_cvref_t<Proxy>, error_code>)
+			&& (!detail::can_convert_to_http_request_v<detail::remove_cvref_t<Proxy>>)
+			, http::response<Body, Fields>>
+		static inline execute(
 			const asio::ssl::context& ctx, String&& host, StrOrInt&& port,
 			std::string_view target, Proxy&& proxy)
 		{
@@ -581,8 +656,10 @@ namespace asio2::detail
 		 */
 		template<typename String, typename StrOrInt, class Proxy, class Rep, class Period,
 			class Body = http::string_body, class Fields = http::fields>
-		typename std::enable_if_t<detail::can_convert_to_string_v<detail::remove_cvref_t<String>>,
-			http::response<Body, Fields>>
+		typename std::enable_if_t<detail::is_character_string_v<detail::remove_cvref_t<String>>
+			&& (!std::is_same_v<detail::remove_cvref_t<Proxy>, error_code>)
+			&& (!detail::can_convert_to_http_request_v<detail::remove_cvref_t<Proxy>>)
+			, http::response<Body, Fields>>
 		static inline execute(String&& host, StrOrInt&& port, std::string_view target,
 			std::chrono::duration<Rep, Period> timeout, Proxy&& proxy)
 		{
@@ -596,8 +673,10 @@ namespace asio2::detail
 		 */
 		template<typename String, typename StrOrInt, class Proxy,
 			class Body = http::string_body, class Fields = http::fields>
-		typename std::enable_if_t<detail::can_convert_to_string_v<detail::remove_cvref_t<String>>,
-			http::response<Body, Fields>>
+		typename std::enable_if_t<detail::is_character_string_v<detail::remove_cvref_t<String>>
+			&& (!std::is_same_v<detail::remove_cvref_t<Proxy>, error_code>)
+			&& (!detail::can_convert_to_http_request_v<detail::remove_cvref_t<Proxy>>)
+			, http::response<Body, Fields>>
 		static inline execute(String&& host, StrOrInt&& port, std::string_view target, Proxy&& proxy)
 		{
 			return derived_t::execute(
@@ -618,7 +697,10 @@ namespace asio2::detail
 		 */
 		template<typename String, typename StrOrInt, class HeaderCallback, class BodyCallback, class Proxy,
 			class Body = http::string_body, class Fields = http::fields, class Buffer = beast::flat_buffer>
-		typename std::enable_if_t<!std::is_same_v<detail::remove_cvref_t<Proxy>, error_code>, bool>
+		typename std::enable_if_t<detail::is_character_string_v<detail::remove_cvref_t<String>>
+			&& (!std::is_same_v<detail::remove_cvref_t<Proxy>, error_code>)
+			&& (!detail::can_convert_to_http_request_v<detail::remove_cvref_t<Proxy>>)
+			, bool>
 		static inline download(const asio::ssl::context& ctx, String&& host, StrOrInt&& port,
 			http::request<Body, Fields>& req, HeaderCallback&& cbh, BodyCallback&& cbb, Proxy&& proxy)
 		{
@@ -674,6 +756,13 @@ namespace asio2::detail
 								{
 									if (ecs5) { set_last_error(ecs5); return; }
 
+									// https://github.com/djarek/certify
+									if (auto it = req.find(http::field::host); it != req.end())
+									{
+										std::string hostname(it->value());
+										SSL_set_tlsext_host_name(stream.native_handle(), hostname.data());
+									}
+
 									stream.async_handshake(asio::ssl::stream_base::client,
 									[&](const error_code& ec3) mutable
 									{
@@ -708,6 +797,13 @@ namespace asio2::detail
 						[&](const error_code& ec2, const asio::ip::tcp::endpoint&) mutable
 						{
 							if (ec2) { set_last_error(ec2); return; }
+
+							// https://github.com/djarek/certify
+							if (auto it = req.find(http::field::host); it != req.end())
+							{
+								std::string hostname(it->value());
+								SSL_set_tlsext_host_name(stream.native_handle(), hostname.data());
+							}
 
 							stream.async_handshake(asio::ssl::stream_base::client,
 							[&](const error_code& ec3) mutable

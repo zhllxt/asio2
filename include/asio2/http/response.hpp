@@ -17,8 +17,8 @@
 
 #include <asio2/base/detail/push_options.hpp>
 
+#include <asio2/base/define.hpp>
 #include <asio2/base/detail/filesystem.hpp>
-
 #include <asio2/base/impl/user_data_cp.hpp>
 
 #include <asio2/http/detail/flex_body.hpp>
