@@ -178,7 +178,10 @@ namespace asio2::detail
 		 */
 		inline void init_thread_id() noexcept
 		{
-			this->thread_id_ = std::this_thread::get_id();
+			if (this->thread_id_ != std::this_thread::get_id())
+			{
+				this->thread_id_ = std::this_thread::get_id();
+			}
 		}
 
 		/**

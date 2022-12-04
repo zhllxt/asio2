@@ -432,9 +432,9 @@ namespace asio2::detail
 		static constexpr std::size_t tallocator_size() noexcept
 		{
 		#if defined(_DEBUG) || defined(DEBUG)
-			return (168 + ASIO2_ADDITIONAL_ALLOCATOR_SIZE);
+			return (168 + 8);
 		#else
-			return (168 + ASIO2_ADDITIONAL_ALLOCATOR_SIZE);
+			return (168 + 8);
 		#endif
 		}
 

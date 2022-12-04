@@ -165,8 +165,7 @@ namespace asio2::detail
 			this->derived().dispatch([this]() mutable
 			{
 				// init the running thread id 
-				if (this->derived().io().get_thread_id() == std::thread::id{})
-					this->derived().io().init_thread_id();
+				this->derived().io().init_thread_id();
 
 				// start the timer of check connect timeout
 				this->derived()._make_connect_timeout_timer(

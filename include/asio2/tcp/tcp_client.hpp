@@ -325,8 +325,7 @@ namespace asio2::detail
 				detail::ignore_unused(this_ptr);
 
 				// init the running thread id 
-				if (derive.io().get_thread_id() == std::thread::id{})
-					derive.io().init_thread_id();
+				derive.io().init_thread_id();
 			});
 
 			// use promise to get the result of async connect

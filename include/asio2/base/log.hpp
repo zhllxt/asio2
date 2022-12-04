@@ -24,6 +24,8 @@
 #include <asio2/external/magic_enum.hpp>
 #include <asio2/external/predef.h>
 
+#include <asio2/base/detail/filesystem.hpp>
+
 #if defined(ASIO2_ENABLE_LOG)
 	#if __has_include(<spdlog/spdlog.h>)
 		#if ASIO2_OS_LINUX || ASIO2_OS_UNIX
@@ -67,7 +69,7 @@ namespace asio2::detail
 
 			if (!logger)
 			{
-				std::string                  filepath;
+				std::string filepath;
 
 			#if ASIO2_OS_LINUX || ASIO2_OS_UNIX
 				filepath.resize(PATH_MAX);
@@ -82,27 +84,22 @@ namespace asio2::detail
 				_NSGetExecutablePath(filepath.data(), std::addressof(bufsize));
 			#endif
 
-				std::string::size_type pos;
-
-				pos = filepath.find_last_of("\\/");
-				if (pos != std::string::npos)
-					filepath = filepath.substr(pos + 1);
-
-				pos = filepath.rfind('.');
-				if (pos != std::string::npos)
-					filepath = filepath.substr(0, pos);
-
-				// only for linux
-				pos = filepath.find('\0');
-				if (pos != std::string::npos)
-					filepath = filepath.substr(0, pos);
+				if (std::string::size_type pos = filepath.find('\0'); pos != std::string::npos)
+					filepath.resize(pos);
 
 			#if defined(_DEBUG) || defined(DEBUG)
 				assert(!filepath.empty());
 			#endif
 
-				filepath += ".log";
-				filepath.insert(0, "asio2_");
+				std::filesystem::path path{ filepath };
+
+				std::string name = path.filename().string();
+
+				std::string ext = path.extension().string();
+
+				name.resize(name.size() - ext.size());
+
+				filepath = path.parent_path().append(name).string() + ".asio2.log";
 
 				auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(filepath, true);
 				file_sink->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%l] %v");

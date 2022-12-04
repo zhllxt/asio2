@@ -25,10 +25,6 @@
 #include <asio2/config.hpp>
 #include <asio2/base/log.hpp>
 
-#ifndef ASIO2_ADDITIONAL_ALLOCATOR_SIZE
-#define ASIO2_ADDITIONAL_ALLOCATOR_SIZE (sizeof(void*) * 8)
-#endif
-
 namespace asio2::detail
 {
 #if defined(ASIO2_ENABLE_LOG)
@@ -173,79 +169,56 @@ namespace asio2::detail
 
 	/// see : boost\libs\asio\example\cpp11\allocation\server.cpp
 
-#if defined(_DEBUG) || defined(DEBUG)
 	template<typename IsLockFree>
 	inline constexpr std::size_t allocator_size() noexcept
 	{
-	#if defined(ASIO2_ENABLE_SSL) || defined(ASIO2_USE_SSL)
+#if   defined(ASIO2_ALLOCATOR_STORAGE_SIZE)
+		// if the user defined a custom allocator storage size, use it.
+		return std::size_t(ASIO2_ALLOCATOR_STORAGE_SIZE);
+#elif defined(_DEBUG) || defined(DEBUG)
+		// debug mode just provide a simple size
 		if constexpr (IsLockFree::value)
 		{
-			if constexpr (sizeof(void*) == sizeof(std::uint32_t))
-				return std::size_t(536 + ASIO2_ADDITIONAL_ALLOCATOR_SIZE);
-			else
-				return std::size_t(952 + ASIO2_ADDITIONAL_ALLOCATOR_SIZE);
+			return std::size_t(1024);
 		}
 		else
 		{
-			if constexpr (sizeof(void*) == sizeof(std::uint32_t))
-				return std::size_t(1456 + ASIO2_ADDITIONAL_ALLOCATOR_SIZE);
-			else
-				return std::size_t(2464 + ASIO2_ADDITIONAL_ALLOCATOR_SIZE);
+			return std::size_t(2048);
 		}
-	#else
-		if constexpr (IsLockFree::value)
-		{
-			if constexpr (sizeof(void*) == sizeof(std::uint32_t))
-				return std::size_t(456 + ASIO2_ADDITIONAL_ALLOCATOR_SIZE);
-			else
-				return std::size_t(824 + ASIO2_ADDITIONAL_ALLOCATOR_SIZE);
-		}
-		else
-		{
-			if constexpr (sizeof(void*) == sizeof(std::uint32_t))
-				return std::size_t(1304 + ASIO2_ADDITIONAL_ALLOCATOR_SIZE);
-			else
-				return std::size_t(2224 + ASIO2_ADDITIONAL_ALLOCATOR_SIZE);
-		}
-	#endif
-	}
 #else
-	template<typename IsLockFree>
-	inline constexpr std::size_t allocator_size() noexcept
-	{
 	#if defined(ASIO2_ENABLE_SSL) || defined(ASIO2_USE_SSL)
 		if constexpr (IsLockFree::value)
 		{
 			if constexpr (sizeof(void*) == sizeof(std::uint32_t))
-				return std::size_t(324 + ASIO2_ADDITIONAL_ALLOCATOR_SIZE);
+				return std::size_t(324 + 8);
 			else
-				return std::size_t(632 + ASIO2_ADDITIONAL_ALLOCATOR_SIZE);
+				return std::size_t(664 + 8);
 		}
 		else
 		{
 			if constexpr (sizeof(void*) == sizeof(std::uint32_t))
-				return std::size_t(520 + ASIO2_ADDITIONAL_ALLOCATOR_SIZE);
+				return std::size_t(520 + 8);
 			else
-				return std::size_t(992 + ASIO2_ADDITIONAL_ALLOCATOR_SIZE);
+				return std::size_t(992 + 8);
 		}
 	#else
 		if constexpr (IsLockFree::value)
 		{
 			if constexpr (sizeof(void*) == sizeof(std::uint32_t))
-				return std::size_t(288 + ASIO2_ADDITIONAL_ALLOCATOR_SIZE);
+				return std::size_t(324 + 8);
 			else
-				return std::size_t(664 + ASIO2_ADDITIONAL_ALLOCATOR_SIZE);
+				return std::size_t(664 + 8);
 		}
 		else
 		{
 			if constexpr (sizeof(void*) == sizeof(std::uint32_t))
-				return std::size_t(464 + ASIO2_ADDITIONAL_ALLOCATOR_SIZE);
+				return std::size_t(464 + 8);
 			else
-				return std::size_t(888 + ASIO2_ADDITIONAL_ALLOCATOR_SIZE);
+				return std::size_t(888 + 8);
 		}
 	#endif
-	}
 #endif
+	}
 
 	template<std::size_t N>
 	struct allocator_size_op
@@ -282,13 +255,6 @@ namespace asio2::detail
 
 		explicit handler_memory() noexcept : in_use_(false) {}
 
-		~handler_memory()
-		{
-		#if defined(ASIO2_ENABLE_LOG)
-			lockfree_allocator_threadsafe_test(std::size_t(this), false);
-		#endif
-		}
-
 		handler_memory(const handler_memory&) = delete;
 		handler_memory& operator=(const handler_memory&) = delete;
 
@@ -319,6 +285,12 @@ namespace asio2::detail
 
 		inline void deallocate(void* pointer) noexcept
 		{
+			// must erase when deallocate, otherwise if call server.stop -> server.start
+			// then the test map will incorrect.
+		#if defined(ASIO2_ENABLE_LOG)
+			lockfree_allocator_threadsafe_test(std::size_t(this), false);
+		#endif
+
 			if (pointer == &storage_)
 			{
 				in_use_ = false;

@@ -135,16 +135,14 @@ struct function<R(Args...)>
 private:
 	static constexpr std::size_t storage_multiple() noexcept
 	{
-	#if defined(NDEBUG) || (!defined(_DEBUG) && !defined(DEBUG))
+	#if defined(ASIO2_FUNCTION_STORAGE_SIZE)
+		// if the user defined a custom function storage size, use it.
+		return std::size_t(ASIO2_FUNCTION_STORAGE_SIZE);
+	#else
 		if constexpr (sizeof(void*) == sizeof(std::uint32_t))
 			return std::size_t(12);
 		else
 			return std::size_t(10);
-	#else
-		if constexpr (sizeof(void*) == sizeof(std::uint32_t))
-			return std::size_t(12 + 2);
-		else
-			return std::size_t(10 + 2);
 	#endif
 	}
 
