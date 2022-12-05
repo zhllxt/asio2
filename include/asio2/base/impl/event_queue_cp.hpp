@@ -510,7 +510,8 @@ namespace asio2::detail
 		}
 
 	protected:
-		std::queue<detail::function<void(event_queue_guard<derived_t>)>> events_;
+		std::queue<detail::function<
+			void(event_queue_guard<derived_t>), detail::function_size_traits<args_t>::value>> events_;
 	};
 }
 

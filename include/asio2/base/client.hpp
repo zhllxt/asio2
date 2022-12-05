@@ -137,6 +137,10 @@ namespace asio2::detail
 			, io_        (iopoolcp::_get_io(0))
 			, buffer_    (init_buf_size, max_buf_size)
 		{
+		#if defined(ASIO2_ALLOCATOR_STORAGE_SIZE)
+			static_assert(rallocator_.storage_size == ASIO2_ALLOCATOR_STORAGE_SIZE + 8);
+			static_assert(wallocator_.storage_size == ASIO2_ALLOCATOR_STORAGE_SIZE + 8);
+		#endif
 		}
 
 		/**
@@ -272,10 +276,10 @@ namespace asio2::detail
 
 	protected:
 		/// The memory to use for handler-based custom memory allocation. used fo recv/read.
-		handler_memory<std::true_type>              rallocator_;
+		handler_memory<std::true_type , assizer<args_t>>   rallocator_;
 
 		/// The memory to use for handler-based custom memory allocation. used fo send/write.
-		handler_memory<std::false_type>             wallocator_;
+		handler_memory<std::false_type, assizer<args_t>>   wallocator_;
 
 		/// listener 
 		listener_t                                  listener_;

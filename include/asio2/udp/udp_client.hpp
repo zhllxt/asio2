@@ -35,6 +35,9 @@ namespace asio2::detail
 		using buffer_t    = asio2::linear_buffer;
 		using send_data_t = std::string_view;
 		using recv_data_t = std::string_view;
+
+		static constexpr std::size_t function_storage_size = 56;
+		static constexpr std::size_t allocator_storage_size = 200;
 	};
 
 	ASIO2_CLASS_FORWARD_DECLARE_BASE;

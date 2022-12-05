@@ -168,6 +168,8 @@ namespace asio2::detail
 		template<class Data, class Callback>
 		inline bool _kcp_send(Data& data, Callback&& callback)
 		{
+			static_assert(tallocator_.storage_size == 168 + 8);
+
 			auto buffer = asio::buffer(data);
 
 			int ret = kcp::ikcp_send(this->kcp_, (const char *)buffer.data(), (int)buffer.size());
@@ -429,16 +431,6 @@ namespace asio2::detail
 		}
 
 	protected:
-		static constexpr std::size_t tallocator_size() noexcept
-		{
-		#if defined(_DEBUG) || defined(DEBUG)
-			return (168 + 8);
-		#else
-			return (168 + 8);
-		#endif
-		}
-
-	protected:
 		derived_t                                    & derive;
 									                          
 		kcp::ikcpcb                                  * kcp_ = nullptr;
@@ -447,7 +439,7 @@ namespace asio2::detail
 
 		asio::steady_timer                             kcp_timer_;
 
-		handler_memory<std::true_type, allocator_size_op<tallocator_size()>>    tallocator_;
+		handler_memory<std::true_type, allocator_fixed_size_op<168 + 8>>   tallocator_;
 	};
 }
 

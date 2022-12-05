@@ -126,33 +126,64 @@ namespace asio2::detail
 
 namespace asio2::detail
 {
-template <typename Signature>
+template<class args_t>
+struct function_size_traits
+{
+	template<class, class = void>
+	struct has_member_size : std::false_type {};
+
+	template<class T>
+	struct has_member_size<T, std::void_t<decltype(T::function_storage_size)>> : std::true_type {};
+
+	static constexpr std::size_t calc()
+	{
+		if constexpr (has_member_size<args_t>::value)
+		{
+			return args_t::function_storage_size;
+		}
+		else
+		{
+			return 0;
+		}
+	}
+
+	static constexpr std::size_t value = calc();
+};
+
+template <typename Signature, std::size_t StorageSize = 0>
 struct function;
 
-template <typename R, typename ... Args>
-struct function<R(Args...)>
+template <typename R, typename ... Args, std::size_t StorageSize>
+struct function<R(Args...), StorageSize>
 {
 private:
-	static constexpr std::size_t storage_multiple() noexcept
+	static constexpr std::size_t get_storage_size() noexcept
 	{
-	#if defined(ASIO2_FUNCTION_STORAGE_SIZE)
+	#ifdef ASIO2_FUNCTION_STORAGE_SIZE
 		// if the user defined a custom function storage size, use it.
 		return std::size_t(ASIO2_FUNCTION_STORAGE_SIZE);
 	#else
-		if constexpr (sizeof(void*) == sizeof(std::uint32_t))
-			return std::size_t(12);
+		if constexpr (StorageSize >= sizeof(void*) && StorageSize <= std::size_t(1024))
+		{
+			return StorageSize;
+		}
 		else
-			return std::size_t(10);
+		{
+			if constexpr (sizeof(void*) == sizeof(std::uint32_t))
+				return (sizeof(void*) * 10);
+			else
+				return (sizeof(void*) * 7);
+		}
 	#endif
 	}
 
-	static constexpr std::size_t storage_size  = sizeof(void*) * storage_multiple();
+	static constexpr std::size_t storage_size  = get_storage_size();
 	static constexpr std::size_t storage_align = alignof(void*);
 
 	template <typename T>
 	struct uses_static_storage
 		: std::bool_constant<true
-			&& sizeof(T) <= storage_size
+			&& sizeof (T) <= storage_size
 			&& alignof(T) <= storage_align
 			&& ((storage_align % alignof(T)) == 0)
 			&& std::is_nothrow_move_constructible_v<T>

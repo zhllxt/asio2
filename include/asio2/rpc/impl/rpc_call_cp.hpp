@@ -160,8 +160,11 @@ namespace asio2::detail
 						derive.reqs_.erase(id);
 					};
 
-					derive.post([&derive, req = std::move(req), ex = std::move(ex)]() mutable
+					asio::post(derive.io().context(), make_allocator(derive.callocator_,
+					[&derive, req = std::move(req), ex = std::move(ex), p = derive.selfptr()]() mutable
 					{
+						detail::ignore_unused(p);
+
 						derive.reqs_.emplace(req.id(), std::move(ex));
 
 						derive.async_send((derive.sr_.reset() << req).str(),
@@ -177,7 +180,7 @@ namespace asio2::detail
 								}
 							}
 						});
-					});
+					}));
 
 					// Whether we run on the io_context thread
 					if (!derive.io().running_in_this_thread())
@@ -191,10 +194,13 @@ namespace asio2::detail
 						{
 							ec = rpc::make_error_code(rpc::error::timed_out);
 
-							derive.post([&derive, id]() mutable
+							asio::post(derive.io().context(), make_allocator(derive.callocator_,
+							[&derive, id, p = derive.selfptr()]() mutable
 							{
+								detail::ignore_unused(p);
+
 								derive.reqs_.erase(id);
-							});
+							}));
 						}
 					}
 					else
@@ -202,10 +208,13 @@ namespace asio2::detail
 						// If invoke synchronization rpc call function in communication thread, it will degenerates
 						// into async_call and the return value is empty.
 
-						derive.post([&derive, id]() mutable
+						asio::post(derive.io().context(), make_allocator(derive.callocator_,
+						[&derive, id, p = derive.selfptr()]() mutable
 						{
+							detail::ignore_unused(p);
+
 							derive.reqs_.erase(id);
-						});
+						}));
 
 						ec = rpc::make_error_code(rpc::error::in_progress);
 					}
@@ -394,10 +403,13 @@ namespace asio2::detail
 					if (!derive.is_started())
 						asio::detail::throw_error(rpc::make_error_code(rpc::error::not_connected));
 
-					derive.post([&derive, req = std::forward<Req>(req)]() mutable
+					asio::post(derive.io().context(), make_allocator(derive.callocator_,
+					[&derive, req = std::forward<Req>(req), p = derive.selfptr()]() mutable
 					{
+						detail::ignore_unused(p);
+
 						derive.async_send((derive.sr_.reset() << req).str());
-					});
+					}));
 
 					return;
 				}
@@ -477,9 +489,9 @@ namespace asio2::detail
 					// It means that : The callback function of async_send may be called after 
 					// recved response data.
 
-					derive.post(
-					[&derive, timer = std::move(timer), timeout, req = std::forward<Req>(req), ex = std::move(ex)]
-					() mutable
+					asio::post(derive.io().context(), make_allocator(derive.callocator_,
+					[&derive, timer = std::move(timer), timeout, req = std::forward<Req>(req),
+						ex = std::move(ex), p = derive.selfptr()]() mutable
 					{
 						// 1. first, save the request id
 						derive.reqs_.emplace(req.id(), std::move(ex));
@@ -495,11 +507,9 @@ namespace asio2::detail
 						// must start a timeout timer, othwise if not recved response, it will cause the
 						// request id in the map forever.
 
-						auto this_ptr = derive.selfptr();
-
 						timer->expires_after(timeout);
 						timer->async_wait(
-						[this_ptr = std::move(this_ptr), &derive, id = req.id()]
+						[this_ptr = std::move(p), &derive, id = req.id()]
 						(const error_code& ec) mutable
 						{
 							if (ec == asio::error::operation_aborted)
@@ -527,7 +537,7 @@ namespace asio2::detail
 								}
 							}
 						});
-					});
+					}));
 
 					return;
 				}
@@ -559,12 +569,15 @@ namespace asio2::detail
 
 				// bug fixed : can't call ex(...) directly, it will 
 				// cause "reqs_.erase(id)" be called in multithread 
-				derive.post([ec, ex = std::move(ex)]() mutable
+				asio::post(derive.io().context(), make_allocator(derive.callocator_,
+				[ec, ex = std::move(ex), p = derive.selfptr()]() mutable
 				{
+					detail::ignore_unused(p);
+
 					set_last_error(ec);
 
 					ex(ec, std::string_view{});
-				});
+				}));
 			}
 		};
 
@@ -927,6 +940,9 @@ namespace asio2::detail
 	protected:
 		rpc_serializer    & sr_;
 		rpc_deserializer  & dr_;
+
+		/// The memory to use for handler-based custom memory allocation. used fo async_call.
+		handler_memory<std::false_type, assizer<args_t>>   callocator_;
 
 		std::map<rpc_header::id_type, std::function<void(error_code, std::string_view)>> reqs_;
 	};

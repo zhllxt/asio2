@@ -72,6 +72,7 @@ namespace asio2::detail
 
 		using iopoolcp = iopool_cp <derived_t>;
 
+		using args_type = typename session_t::args_type;
 		using key_type = std::size_t;
 
 	public:
@@ -332,10 +333,10 @@ namespace asio2::detail
 
 	protected:
 		// The memory to use for handler-based custom memory allocation. used for acceptor.
-		handler_memory<std::true_type>              rallocator_;
+		handler_memory<std::true_type , assizer<args_type>>     rallocator_;
 
 		/// The memory to use for handler-based custom memory allocation. used fo send/write/post.
-		handler_memory<std::false_type>             wallocator_;
+		handler_memory<std::false_type, assizer<args_type>>     wallocator_;
 
 		/// listener
 		listener_t                                  listener_;

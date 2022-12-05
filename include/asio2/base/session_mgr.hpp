@@ -52,7 +52,8 @@ namespace asio2::detail
 
 	public:
 		using self     = session_mgr_t<session_t>;
-		using key_type = typename session_t::key_type;
+		using args_type = typename session_t::args_type;
+		using key_type  = typename session_t::key_type;
 
 		/**
 		 * @brief constructor
@@ -250,7 +251,7 @@ namespace asio2::detail
 		io_t                                    & io_;
 
 		/// The memory to use for handler-based custom memory allocation.
-		handler_memory<std::false_type>           allocator_;
+		handler_memory<std::false_type, assizer<args_type>>      allocator_;
 
 		/// server state refrence
 		std::atomic<state_t>                    & state_;

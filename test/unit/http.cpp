@@ -273,6 +273,10 @@ void http_test()
 			ASIO2_CHECK(rep.result() == http::status::bad_request);
 		}
 
+		asio2::http_client::execute("www.baidu.com", "80", req1, std::chrono::seconds(5), nullptr);
+		asio2::http_client::execute("www.baidu.com", "80", req1, std::chrono::seconds(5), std::in_place);
+		asio2::http_client::execute("www.baidu.com", "80", req1, std::chrono::seconds(5), std::nullopt);
+
 		rep = asio2::http_client::execute("www.baidu.com", "80", req1, std::chrono::seconds(5));
 		ec = asio2::get_last_error();
 		if (!ec)

@@ -35,6 +35,9 @@ namespace asio2::detail
 		using buffer_t    = detail::empty_buffer;
 		using send_data_t = std::string_view;
 		using recv_data_t = std::string_view;
+
+		static constexpr std::size_t function_storage_size = 56;
+		static constexpr std::size_t allocator_storage_size = 200;
 	};
 
 	ASIO2_CLASS_FORWARD_DECLARE_BASE;
@@ -101,6 +104,12 @@ namespace asio2::detail
 		template<typename MatchCondition>
 		inline void start(condition_wrap<MatchCondition> condition)
 		{
+		#if defined(ASIO2_ALLOCATOR_STORAGE_SIZE)
+			static_assert(wallocator_.storage_size == ASIO2_ALLOCATOR_STORAGE_SIZE + 8);
+		#else
+			static_assert(wallocator_.storage_size == args_t::allocator_storage_size + 8);
+		#endif
+			
 			try
 			{
 			#if defined(_DEBUG) || defined(DEBUG)
@@ -570,7 +579,7 @@ namespace asio2::detail
 		asio::ip::udp::endpoint                           remote_endpoint_;
 
 		/// The memory to use for handler-based custom memory allocation. used fo send/write.
-		handler_memory<std::false_type>                   wallocator_;
+		handler_memory<std::false_type, assizer<args_t>>  wallocator_;
 
 		std::unique_ptr<kcp_stream_cp<derived_t, args_t>> kcp_;
 

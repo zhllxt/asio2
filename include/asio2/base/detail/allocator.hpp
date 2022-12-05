@@ -170,11 +170,11 @@ namespace asio2::detail
 	/// see : boost\libs\asio\example\cpp11\allocation\server.cpp
 
 	template<typename IsLockFree>
-	inline constexpr std::size_t allocator_size() noexcept
+	inline constexpr std::size_t calc_allocator_storage_size() noexcept
 	{
 #if   defined(ASIO2_ALLOCATOR_STORAGE_SIZE)
 		// if the user defined a custom allocator storage size, use it.
-		return std::size_t(ASIO2_ALLOCATOR_STORAGE_SIZE);
+		return std::size_t(ASIO2_ALLOCATOR_STORAGE_SIZE + 8);
 #elif defined(_DEBUG) || defined(DEBUG)
 		// debug mode just provide a simple size
 		if constexpr (IsLockFree::value)
@@ -226,6 +226,67 @@ namespace asio2::detail
 		static constexpr std::size_t size = N;
 	};
 
+	struct allocator_fixed_size_tag {};
+
+	template<std::size_t N>
+	struct allocator_fixed_size_op : public allocator_fixed_size_tag
+	{
+		static constexpr std::size_t size = N;
+	};
+
+	template<class args_t>
+	struct allocator_size_traits
+	{
+		template<class, class = void>
+		struct has_member_size : std::false_type {};
+
+		template<class T>
+		struct has_member_size<T, std::void_t<decltype(T::allocator_storage_size)>> : std::true_type {};
+
+		static constexpr std::size_t calc()
+		{
+			if constexpr (has_member_size<args_t>::value)
+			{
+				return args_t::allocator_storage_size + 8;
+			}
+			else
+			{
+				return 0;
+			}
+		}
+
+		static constexpr std::size_t value = calc();
+	};
+
+	// allocator storage sizer
+	template<class args_t>
+	using assizer = allocator_size_op<allocator_size_traits<args_t>::value>;
+
+	template<typename IsLockFree, typename SizeN>
+	inline constexpr std::size_t get_allocator_storage_size() noexcept
+	{
+		if constexpr (std::is_base_of_v<allocator_fixed_size_tag, detail::remove_cvref_t<SizeN>>)
+		{
+			return SizeN::size;
+		}
+		else
+		{
+		#if defined(ASIO2_ALLOCATOR_STORAGE_SIZE)
+			// if the user defined a custom allocator storage size, use it.
+			return std::size_t(ASIO2_ALLOCATOR_STORAGE_SIZE + 8);
+		#else
+			if constexpr (SizeN::size >= std::size_t(64) && SizeN::size <= std::size_t(1024 * 1024))
+			{
+				return SizeN::size;
+			}
+			else
+			{
+				return calc_allocator_storage_size<IsLockFree>();
+			}
+		#endif
+		}
+	}
+
 	/**
 	 * @brief Class to manage the memory to be used for handler-based custom allocation.
 	 * It contains a single block of memory which may be returned for allocation
@@ -236,7 +297,7 @@ namespace asio2::detail
 	 */
 	template<
 		typename IsLockFree = std::true_type,
-		typename SizeN = allocator_size_op<allocator_size<IsLockFree>()>>
+		typename SizeN = allocator_size_op<calc_allocator_storage_size<IsLockFree>()>>
 	class handler_memory;
 
 	/**
@@ -251,7 +312,7 @@ namespace asio2::detail
 	class handler_memory<std::true_type, SizeN>
 	{
 	public:
-		static constexpr std::size_t storage_size = SizeN::size;
+		static constexpr std::size_t storage_size = get_allocator_storage_size<std::true_type, SizeN>();
 
 		explicit handler_memory() noexcept : in_use_(false) {}
 
@@ -303,7 +364,7 @@ namespace asio2::detail
 
 	private:
 		// Storage space used for handler-based custom memory allocation.
-		typename std::aligned_storage<SizeN::size>::type storage_{};
+		typename std::aligned_storage<storage_size>::type storage_{};
 
 		// Whether the handler-based custom allocation storage has been used.
 		bool in_use_{};
@@ -321,7 +382,7 @@ namespace asio2::detail
 	class handler_memory<std::false_type, SizeN>
 	{
 	public:
-		static constexpr std::size_t storage_size = SizeN::size;
+		static constexpr std::size_t storage_size = get_allocator_storage_size<std::true_type, SizeN>();
 
 		handler_memory() noexcept { in_use_.clear(); }
 
@@ -362,14 +423,14 @@ namespace asio2::detail
 
 	private:
 		// Storage space used for handler-based custom memory allocation.
-		typename std::aligned_storage<SizeN::size>::type storage_{};
+		typename std::aligned_storage<storage_size>::type storage_{};
 
 		// Whether the handler-based custom allocation storage has been used.
 		std::atomic_flag in_use_{};
 	};
 
-	static_assert(handler_memory<std::true_type >::storage_size == allocator_size<std::true_type >());
-	static_assert(handler_memory<std::false_type>::storage_size == allocator_size<std::false_type>());
+	static_assert(handler_memory<std::true_type >::storage_size == calc_allocator_storage_size<std::true_type >());
+	static_assert(handler_memory<std::false_type>::storage_size == calc_allocator_storage_size<std::false_type>());
 
 	// The allocator to be associated with the handler objects. This allocator only
 	// needs to satisfy the C++11 minimal allocator requirements.

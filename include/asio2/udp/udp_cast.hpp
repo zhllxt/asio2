@@ -57,6 +57,9 @@ namespace asio2::detail
 	{
 		using socket_t = asio::ip::udp::socket;
 		using buffer_t = asio2::linear_buffer;
+
+		static constexpr std::size_t function_storage_size = 88;
+		static constexpr std::size_t allocator_storage_size = 200;
 	};
 
 	ASIO2_CLASS_FORWARD_DECLARE_BASE;
@@ -167,6 +170,14 @@ namespace asio2::detail
 		template<typename String, typename StrOrInt, typename... Args>
 		inline bool start(String&& host, StrOrInt&& service, Args&&... args)
 		{
+		#if defined(ASIO2_ALLOCATOR_STORAGE_SIZE)
+			static_assert(rallocator_.storage_size == ASIO2_ALLOCATOR_STORAGE_SIZE + 8);
+			static_assert(wallocator_.storage_size == ASIO2_ALLOCATOR_STORAGE_SIZE + 8);
+		#else
+			static_assert(rallocator_.storage_size == args_t::allocator_storage_size + 8);
+			static_assert(wallocator_.storage_size == args_t::allocator_storage_size + 8);
+		#endif
+
 			return this->derived()._do_start(
 				std::forward<String>(host), std::forward<StrOrInt>(service),
 				condition_helper::make_condition('0', std::forward<Args>(args)...));
@@ -721,10 +732,10 @@ namespace asio2::detail
 
 	protected:
 		/// The memory to use for handler-based custom memory allocation. used fo recv/read.
-		handler_memory<std::true_type>              rallocator_;
+		handler_memory<std::true_type , assizer<args_t>>   rallocator_;
 
 		/// The memory to use for handler-based custom memory allocation. used fo send/write.
-		handler_memory<std::false_type>             wallocator_;
+		handler_memory<std::false_type, assizer<args_t>>   wallocator_;
 
 		/// listener 
 		listener_t                                  listener_;
