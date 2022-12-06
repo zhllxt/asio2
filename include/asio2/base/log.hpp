@@ -21,7 +21,6 @@
 
 #include <string>
 
-#include <asio2/external/magic_enum.hpp>
 #include <asio2/external/predef.h>
 
 #include <asio2/base/detail/filesystem.hpp>

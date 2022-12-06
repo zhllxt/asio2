@@ -19,8 +19,6 @@
 #include <asio2/base/define.hpp>
 #include <asio2/base/log.hpp>
 
-#include <asio2/external/magic_enum.hpp>
-
 #include <asio2/base/detail/function_traits.hpp>
 #include <asio2/base/detail/util.hpp>
 
@@ -1078,7 +1076,8 @@ namespace asio2::detail
 	protected:
 		inline static handler_type dummy_handler_{};
 
-		std::array<handler_type, magic_enum::enum_count<mqtt::control_packet_type>()> handlers_{};
+		// magic_enum has bug: maybe return 0 under wsl ubuntu
+		std::array<handler_type, detail::to_underlying(mqtt::control_packet_type::auth) + 1> handlers_{};
 	};
 }
 

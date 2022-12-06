@@ -97,8 +97,8 @@ set_property (GLOBAL PROPERTY USE_FOLDERS ON)
 # Set default build to debug
 # ---------------------------------------------------------------------------------------
 if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "Choose Release or Debug" FORCE)
-    message("CMAKE_BUILD_TYPE is not set, Set default build to Debug.")
+    set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose Release or Debug" FORCE)
+    message("CMAKE_BUILD_TYPE is not set, Set default build to Release.")
 endif()
 message("CMAKE_BUILD_TYPE = ${CMAKE_BUILD_TYPE}")
 

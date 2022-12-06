@@ -21,8 +21,6 @@
 #include <unordered_map>
 #include <type_traits>
 
-#include <asio2/external/magic_enum.hpp>
-
 #include <asio2/base/iopool.hpp>
 #include <asio2/base/define.hpp>
 #include <asio2/base/log.hpp>

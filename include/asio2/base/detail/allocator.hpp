@@ -382,7 +382,7 @@ namespace asio2::detail
 	class handler_memory<std::false_type, SizeN>
 	{
 	public:
-		static constexpr std::size_t storage_size = get_allocator_storage_size<std::true_type, SizeN>();
+		static constexpr std::size_t storage_size = get_allocator_storage_size<std::false_type, SizeN>();
 
 		handler_memory() noexcept { in_use_.clear(); }
 
