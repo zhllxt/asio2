@@ -449,9 +449,11 @@ namespace asio2::detail
 		template<typename MatchCondition>
 		inline void _do_init(condition_wrap<MatchCondition>&) noexcept
 		{
+		#if defined(ASIO2_ENABLE_LOG)
 			// Used to test whether the behavior of different compilers is consistent
 			static_assert(tcp_send_op<derived_t, args_t>::template has_member_dgram<self>::value,
 				"The behavior of different compilers is not consistent");
+		#endif
 
 			if constexpr (std::is_same_v<typename condition_wrap<MatchCondition>::condition_type, use_dgram_t>)
 				this->dgram_ = true;

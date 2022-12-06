@@ -137,9 +137,11 @@ namespace asio2::detail
 			, io_        (iopoolcp::_get_io(0))
 			, buffer_    (init_buf_size, max_buf_size)
 		{
+		#if defined(ASIO2_ENABLE_LOG)
 		#if defined(ASIO2_ALLOCATOR_STORAGE_SIZE)
-			static_assert(rallocator_.storage_size == ASIO2_ALLOCATOR_STORAGE_SIZE + 8);
-			static_assert(wallocator_.storage_size == ASIO2_ALLOCATOR_STORAGE_SIZE + 8);
+			static_assert(rallocator_.storage_size == ASIO2_ALLOCATOR_STORAGE_SIZE);
+			static_assert(wallocator_.storage_size == ASIO2_ALLOCATOR_STORAGE_SIZE);
+		#endif
 		#endif
 		}
 

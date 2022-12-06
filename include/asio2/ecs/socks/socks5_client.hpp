@@ -64,7 +64,9 @@ namespace asio2::detail
 		Sock5OptT      sock5_;
 		HandlerT       handler_;
 
+	#if defined(ASIO2_ENABLE_LOG)
 		static_assert(detail::is_template_instance_of_v<std::shared_ptr, Sock5OptT>);
+	#endif
 
 		std::unique_ptr<asio::streambuf> stream{ std::make_unique<asio::streambuf>() };
 		asio::mutable_buffer             buffer{};

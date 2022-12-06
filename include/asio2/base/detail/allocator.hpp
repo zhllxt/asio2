@@ -174,7 +174,7 @@ namespace asio2::detail
 	{
 #if   defined(ASIO2_ALLOCATOR_STORAGE_SIZE)
 		// if the user defined a custom allocator storage size, use it.
-		return std::size_t(ASIO2_ALLOCATOR_STORAGE_SIZE + 8);
+		return std::size_t(ASIO2_ALLOCATOR_STORAGE_SIZE);
 #elif defined(_DEBUG) || defined(DEBUG)
 		// debug mode just provide a simple size
 		if constexpr (IsLockFree::value)
@@ -190,31 +190,31 @@ namespace asio2::detail
 		if constexpr (IsLockFree::value)
 		{
 			if constexpr (sizeof(void*) == sizeof(std::uint32_t))
-				return std::size_t(324 + 8);
+				return std::size_t(332);
 			else
-				return std::size_t(664 + 8);
+				return std::size_t(664);
 		}
 		else
 		{
 			if constexpr (sizeof(void*) == sizeof(std::uint32_t))
-				return std::size_t(520 + 8);
+				return std::size_t(520);
 			else
-				return std::size_t(992 + 8);
+				return std::size_t(1024);
 		}
 	#else
 		if constexpr (IsLockFree::value)
 		{
 			if constexpr (sizeof(void*) == sizeof(std::uint32_t))
-				return std::size_t(324 + 8);
+				return std::size_t(332);
 			else
-				return std::size_t(664 + 8);
+				return std::size_t(664);
 		}
 		else
 		{
 			if constexpr (sizeof(void*) == sizeof(std::uint32_t))
-				return std::size_t(464 + 8);
+				return std::size_t(512);
 			else
-				return std::size_t(888 + 8);
+				return std::size_t(1024);
 		}
 	#endif
 #endif
@@ -247,7 +247,7 @@ namespace asio2::detail
 		{
 			if constexpr (has_member_size<args_t>::value)
 			{
-				return args_t::allocator_storage_size + 8;
+				return args_t::allocator_storage_size;
 			}
 			else
 			{
@@ -273,7 +273,7 @@ namespace asio2::detail
 		{
 		#if defined(ASIO2_ALLOCATOR_STORAGE_SIZE)
 			// if the user defined a custom allocator storage size, use it.
-			return std::size_t(ASIO2_ALLOCATOR_STORAGE_SIZE + 8);
+			return std::size_t(ASIO2_ALLOCATOR_STORAGE_SIZE);
 		#else
 			if constexpr (SizeN::size >= std::size_t(64) && SizeN::size <= std::size_t(1024 * 1024))
 			{
@@ -364,7 +364,7 @@ namespace asio2::detail
 
 	private:
 		// Storage space used for handler-based custom memory allocation.
-		typename std::aligned_storage<storage_size>::type storage_{};
+		typename std::aligned_storage<storage_size + sizeof(void*)>::type storage_{};
 
 		// Whether the handler-based custom allocation storage has been used.
 		bool in_use_{};
@@ -423,14 +423,16 @@ namespace asio2::detail
 
 	private:
 		// Storage space used for handler-based custom memory allocation.
-		typename std::aligned_storage<storage_size>::type storage_{};
+		typename std::aligned_storage<storage_size + sizeof(void*)>::type storage_{};
 
 		// Whether the handler-based custom allocation storage has been used.
 		std::atomic_flag in_use_{};
 	};
 
+#if defined(ASIO2_ENABLE_LOG)
 	static_assert(handler_memory<std::true_type >::storage_size == calc_allocator_storage_size<std::true_type >());
 	static_assert(handler_memory<std::false_type>::storage_size == calc_allocator_storage_size<std::false_type>());
+#endif
 
 	// The allocator to be associated with the handler objects. This allocator only
 	// needs to satisfy the C++11 minimal allocator requirements.

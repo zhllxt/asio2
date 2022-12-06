@@ -142,12 +142,16 @@ namespace asio2
 		struct template_args_rpc_session<asio2::net_protocol::tcp> : public template_args_tcp_session
 		{
 			static constexpr bool rdc_call_cp_enabled = false;
+
+			static constexpr std::size_t function_storage_size = 72;
 		};
 
 		template<>
 		struct template_args_rpc_session<asio2::net_protocol::ws> : public template_args_ws_session
 		{
 			static constexpr bool rdc_call_cp_enabled = false;
+
+			static constexpr std::size_t function_storage_size = 72;
 		};
 	}
 

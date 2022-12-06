@@ -59,7 +59,7 @@ namespace asio2::detail
 		using buffer_t = asio2::linear_buffer;
 
 		static constexpr std::size_t function_storage_size = 88;
-		static constexpr std::size_t allocator_storage_size = 200;
+		static constexpr std::size_t allocator_storage_size = 256;
 	};
 
 	ASIO2_CLASS_FORWARD_DECLARE_BASE;
@@ -170,12 +170,14 @@ namespace asio2::detail
 		template<typename String, typename StrOrInt, typename... Args>
 		inline bool start(String&& host, StrOrInt&& service, Args&&... args)
 		{
+		#if defined(ASIO2_ENABLE_LOG)
 		#if defined(ASIO2_ALLOCATOR_STORAGE_SIZE)
-			static_assert(rallocator_.storage_size == ASIO2_ALLOCATOR_STORAGE_SIZE + 8);
-			static_assert(wallocator_.storage_size == ASIO2_ALLOCATOR_STORAGE_SIZE + 8);
+			static_assert(rallocator_.storage_size == ASIO2_ALLOCATOR_STORAGE_SIZE);
+			static_assert(wallocator_.storage_size == ASIO2_ALLOCATOR_STORAGE_SIZE);
 		#else
-			static_assert(rallocator_.storage_size == args_t::allocator_storage_size + 8);
-			static_assert(wallocator_.storage_size == args_t::allocator_storage_size + 8);
+			static_assert(rallocator_.storage_size == args_t::allocator_storage_size);
+			static_assert(wallocator_.storage_size == args_t::allocator_storage_size);
+		#endif
 		#endif
 
 			return this->derived()._do_start(

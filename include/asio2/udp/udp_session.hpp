@@ -36,8 +36,7 @@ namespace asio2::detail
 		using send_data_t = std::string_view;
 		using recv_data_t = std::string_view;
 
-		static constexpr std::size_t function_storage_size = 56;
-		static constexpr std::size_t allocator_storage_size = 200;
+		static constexpr std::size_t allocator_storage_size = 256;
 	};
 
 	ASIO2_CLASS_FORWARD_DECLARE_BASE;
@@ -104,10 +103,12 @@ namespace asio2::detail
 		template<typename MatchCondition>
 		inline void start(condition_wrap<MatchCondition> condition)
 		{
+		#if defined(ASIO2_ENABLE_LOG)
 		#if defined(ASIO2_ALLOCATOR_STORAGE_SIZE)
-			static_assert(wallocator_.storage_size == ASIO2_ALLOCATOR_STORAGE_SIZE + 8);
+			static_assert(wallocator_.storage_size == ASIO2_ALLOCATOR_STORAGE_SIZE);
 		#else
-			static_assert(wallocator_.storage_size == args_t::allocator_storage_size + 8);
+			static_assert(wallocator_.storage_size == args_t::allocator_storage_size);
+		#endif
 		#endif
 			
 			try

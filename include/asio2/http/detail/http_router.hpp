@@ -492,7 +492,9 @@ namespace asio2::detail
 			auto tp = filter_cache<http::enable_cache_t>(std::forward<AOP>(aop)...);
 			using Tup = decltype(tp);
 
+		#if defined(ASIO2_ENABLE_LOG)
 			static_assert(!has_type<http::enable_cache_t, Tup>::value);
+		#endif
 
 			std::shared_ptr<opfun> op = std::make_shared<opfun>(
 				std::bind(&self::template _proxy<CacheFlag, F, Tup>, this,
@@ -512,7 +514,9 @@ namespace asio2::detail
 			auto tp = filter_cache<http::enable_cache_t>(std::forward<AOP>(aop)...);
 			using Tup = decltype(tp);
 
+		#if defined(ASIO2_ENABLE_LOG)
 			static_assert(!has_type<http::enable_cache_t, Tup>::value);
+		#endif
 
 			std::shared_ptr<opfun> op = std::make_shared<opfun>(
 				std::bind(&self::template _proxy<CacheFlag, F, C, Tup>, this,
@@ -536,7 +540,9 @@ namespace asio2::detail
 			auto tp = filter_cache<http::enable_cache_t>(std::forward<AOP>(aop)...);
 			using Tup = decltype(tp);
 
+		#if defined(ASIO2_ENABLE_LOG)
 			static_assert(!has_type<http::enable_cache_t, Tup>::value);
+		#endif
 
 			std::shared_ptr<opfun> op = std::make_shared<opfun>(
 				std::bind(&self::template _proxy<Tup>, this,

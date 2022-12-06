@@ -168,7 +168,9 @@ namespace asio2::detail
 		template<class Data, class Callback>
 		inline bool _kcp_send(Data& data, Callback&& callback)
 		{
-			static_assert(tallocator_.storage_size == 168 + 8);
+		#if defined(ASIO2_ENABLE_LOG)
+			static_assert(tallocator_.storage_size == 168);
+		#endif
 
 			auto buffer = asio::buffer(data);
 
@@ -439,7 +441,7 @@ namespace asio2::detail
 
 		asio::steady_timer                             kcp_timer_;
 
-		handler_memory<std::true_type, allocator_fixed_size_op<168 + 8>>   tallocator_;
+		handler_memory<std::true_type, allocator_fixed_size_op<168>> tallocator_;
 	};
 }
 

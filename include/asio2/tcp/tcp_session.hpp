@@ -100,9 +100,11 @@ namespace asio2::detail
 		template<typename MatchCondition>
 		inline void start(condition_wrap<MatchCondition> condition)
 		{
+		#if defined(ASIO2_ENABLE_LOG)
 			// Used to test whether the behavior of different compilers is consistent
 			static_assert(tcp_send_op<derived_t, args_t>::template has_member_dgram<self>::value,
 				"The behavior of different compilers is not consistent");
+		#endif
 
 			ASIO2_ASSERT(this->sessions().io().running_in_this_thread());
 

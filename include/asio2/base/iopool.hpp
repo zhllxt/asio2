@@ -72,6 +72,7 @@ namespace asio2::detail
 
 	//-----------------------------------------------------------------------------------
 
+#if defined(ASIO2_ENABLE_LOG)
 	static_assert(is_io_context_pointer<asio::io_context*  >::value);
 	static_assert(is_io_context_pointer<asio::io_context*& >::value);
 	static_assert(is_io_context_pointer<asio::io_context*&&>::value);
@@ -82,6 +83,7 @@ namespace asio2::detail
 	static_assert(is_io_context_object<asio::io_context  >::value);
 	static_assert(is_io_context_object<asio::io_context& >::value);
 	static_assert(is_io_context_object<asio::io_context&&>::value);
+#endif
 
 	//-----------------------------------------------------------------------------------
 

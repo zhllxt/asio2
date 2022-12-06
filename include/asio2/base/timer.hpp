@@ -45,48 +45,63 @@
 
 namespace asio2::detail
 {
+	struct template_args_timer
+	{
+		static constexpr std::size_t allocator_storage_size = 256;
+	};
+
 	ASIO2_CLASS_FORWARD_DECLARE_BASE;
 
-	template<class derived_t>
+	template<class derived_t, class args_t = template_args_timer>
 	class timer_impl_t
-		: public object_t          <derived_t>
-		, public iopool_cp         <derived_t>
-		, public thread_id_cp      <derived_t>
-		, public user_timer_cp     <derived_t>
-		, public post_cp           <derived_t>
-		, public condition_event_cp<derived_t>
+		: public object_t          <derived_t        >
+		, public iopool_cp         <derived_t, args_t>
+		, public thread_id_cp      <derived_t, args_t>
+		, public user_timer_cp     <derived_t, args_t>
+		, public post_cp           <derived_t, args_t>
+		, public condition_event_cp<derived_t, args_t>
 	{
 		ASIO2_CLASS_FRIEND_DECLARE_BASE;
 
 	public:
-		using super = object_t    <derived_t>;
-		using self  = timer_impl_t<derived_t>;
+		using super = object_t    <derived_t        >;
+		using self  = timer_impl_t<derived_t, args_t>;
 
-		using iopoolcp = iopool_cp<derived_t>;
+		using iopoolcp = iopool_cp<derived_t, args_t>;
+
+		using args_type = args_t;
 
 		/**
 		 * @brief constructor
 		 */
 		explicit timer_impl_t()
-			: object_t          <derived_t>()
-			, iopool_cp         <derived_t>(1)
-			, user_timer_cp     <derived_t>()
-			, post_cp           <derived_t>()
-			, condition_event_cp<derived_t>()
-			, io_                       (iopoolcp::_get_io(0))
+			: super()
+			, iopool_cp         <derived_t, args_t>(1)
+			, user_timer_cp     <derived_t, args_t>()
+			, post_cp           <derived_t, args_t>()
+			, condition_event_cp<derived_t, args_t>()
+			, io_                                  (iopoolcp::_get_io(0))
 		{
 			this->start();
 		}
 
 		template<class Scheduler, std::enable_if_t<!std::is_integral_v<detail::remove_cvref_t<Scheduler>>, int> = 0>
 		explicit timer_impl_t(Scheduler&& scheduler)
-			: object_t          <derived_t>()
-			, iopool_cp         <derived_t>(std::forward<Scheduler>(scheduler))
-			, user_timer_cp     <derived_t>()
-			, post_cp           <derived_t>()
-			, condition_event_cp<derived_t>()
-			, io_                       (iopoolcp::_get_io(0))
+			: super()
+			, iopool_cp         <derived_t, args_t>(std::forward<Scheduler>(scheduler))
+			, user_timer_cp     <derived_t, args_t>()
+			, post_cp           <derived_t, args_t>()
+			, condition_event_cp<derived_t, args_t>()
+			, io_                                  (iopoolcp::_get_io(0))
 		{
+		#if defined(ASIO2_ENABLE_LOG)
+		#if defined(ASIO2_ALLOCATOR_STORAGE_SIZE)
+			static_assert(wallocator_.storage_size == ASIO2_ALLOCATOR_STORAGE_SIZE);
+		#else
+			static_assert(wallocator_.storage_size == args_t::allocator_storage_size);
+		#endif
+		#endif
+
 			this->start();
 		}
 
@@ -164,19 +179,19 @@ namespace asio2::detail
 
 	protected:
 		/// The io_context wrapper used to handle the accept event.
-		io_t                                          & io_;
+		io_t                                             & io_;
 
 		/// The memory to use for handler-based custom memory allocation. used fo send/write.
-		handler_memory<std::false_type>                 wallocator_;
+		handler_memory<std::false_type, assizer<args_t>>   wallocator_;
 	};
 }
 
 namespace asio2
 {
-	class timer : public detail::timer_impl_t<timer>
+	class timer : public detail::timer_impl_t<timer, detail::template_args_timer>
 	{
 	public:
-		using detail::timer_impl_t<timer>::timer_impl_t;
+		using detail::timer_impl_t<timer, detail::template_args_timer>::timer_impl_t;
 	};
 }
 

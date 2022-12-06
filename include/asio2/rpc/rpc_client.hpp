@@ -180,12 +180,16 @@ namespace asio2
 		struct template_args_rpc_client<asio2::net_protocol::tcp> : public template_args_tcp_client
 		{
 			static constexpr bool rdc_call_cp_enabled = false;
+
+			static constexpr std::size_t function_storage_size = 72;
 		};
 
 		template<>
 		struct template_args_rpc_client<asio2::net_protocol::ws> : public template_args_ws_client
 		{
 			static constexpr bool rdc_call_cp_enabled = false;
+
+			static constexpr std::size_t function_storage_size = 72;
 		};
 	}
 

@@ -86,6 +86,8 @@ namespace asio2::detail
 	{
 		using socket_t = asio::ip::icmp::socket;
 		using buffer_t = asio::streambuf;
+
+		static constexpr std::size_t allocator_storage_size = 256;
 	};
 
 	ASIO2_CLASS_FORWARD_DECLARE_BASE;
