@@ -273,14 +273,14 @@ namespace asio2::detail
 		template<typename = void>
 		static constexpr bool has_rdc() noexcept
 		{
-			return (is_template_instance_of_v<asio2::rdc::option,
+			return (std::is_base_of_v<asio2::rdc::detail::option_base,
 				typename element_type_adapter<typename detail::remove_cvref_t<Args>>::type> || ...);
 		}
 
 		template<std::size_t I, typename T1, typename... TN>
 		static constexpr std::size_t rdc_index_helper() noexcept
 		{
-			if constexpr (is_template_instance_of_v<asio2::rdc::option, T1>)
+			if constexpr (std::is_base_of_v<asio2::rdc::detail::option_base, T1>)
 				return I;
 			else
 			{
@@ -452,7 +452,7 @@ namespace asio2::detail
 			}
 			else
 			{
-				if /**/ constexpr (is_template_instance_of_v<asio2::rdc::option, type>)
+				if /**/ constexpr (std::is_base_of_v<asio2::rdc::detail::option_base, type>)
 					return true;
 				else if constexpr (std::is_base_of_v<asio2::socks5::detail::option_base, type>)
 					return true;

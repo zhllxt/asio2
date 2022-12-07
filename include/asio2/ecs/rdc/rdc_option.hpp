@@ -31,8 +31,13 @@
 
 namespace asio2::rdc
 {
+	namespace detail
+	{
+		struct option_base {};
+	}
+
 	template<class IdT, class SendDataT, class RecvDataT = SendDataT>
-	class option
+	class option : public rdc::detail::option_base
 	{
 	protected:
 		using send_parser_fun = std::function<IdT(SendDataT)>;
@@ -50,7 +55,7 @@ namespace asio2::rdc
 		option& operator=(option const&) = default;
 
 		template<class ParserFun, std::enable_if_t<
-			!std::is_base_of_v<option, detail::remove_cvref_t<ParserFun>>, int> = 0>
+			!std::is_base_of_v<option, asio2::detail::remove_cvref_t<ParserFun>>, int> = 0>
 		explicit option(ParserFun&& parser)
 			: rdc_send_parser_(std::forward<ParserFun>(parser))
 			, rdc_recv_parser_(rdc_send_parser_)
