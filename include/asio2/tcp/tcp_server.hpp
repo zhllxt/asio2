@@ -137,7 +137,7 @@ namespace asio2::detail
 
 			derive.io().unregobj(&derive);
 
-			derive.dispatch([&derive]() mutable
+			derive.post([&derive]() mutable
 			{
 				derive._do_stop(asio::error::operation_aborted, derive.selfptr());
 			});
@@ -555,13 +555,9 @@ namespace asio2::detail
 
 		inline void _handle_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
 		{
-			detail::ignore_unused(this_ptr);
-
 			set_last_error(ec);
 
 			this->derived()._fire_stop();
-
-			error_code ec_ignore{};
 
 			try
 			{
@@ -575,11 +571,17 @@ namespace asio2::detail
 			// call the base class stop function
 			super::stop();
 
-			// call acceptor's close function to notify the _handle_accept
-			// function response with error > 0 , then the listen socket
-			// can get notify to exit must ensure the close function has 
-			// been called,otherwise the _handle_accept will never return
-			this->acceptor_.close(ec_ignore);
+			this->derived().push_event([this, this_ptr = std::move(this_ptr)]
+			(event_queue_guard<derived_t>) mutable
+			{
+				error_code ec_ignore{};
+
+				// call acceptor's close function to notify the _handle_accept
+				// function response with error > 0 , then the listen socket
+				// can get notify to exit must ensure the close function has 
+				// been called,otherwise the _handle_accept will never return
+				this->acceptor_.close(ec_ignore);
+			});
 
 			ASIO2_ASSERT(this->state_ == state_t::stopped);
 		}

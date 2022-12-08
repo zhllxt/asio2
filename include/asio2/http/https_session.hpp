@@ -117,8 +117,8 @@ namespace asio2::detail
 		}
 
 		template<typename C, typename DeferEvent>
-		inline void _handle_connect(const error_code& ec, std::shared_ptr<derived_t> this_ptr,
-			ecs_t<C>& ecs, DeferEvent chain)
+		inline void _handle_connect(
+			const error_code& ec, std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs, DeferEvent chain)
 		{
 			detail::ignore_unused(ec);
 

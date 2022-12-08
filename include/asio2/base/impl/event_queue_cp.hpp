@@ -434,6 +434,35 @@ namespace asio2::detail
 		}
 
 		/**
+		 * post a task to the tail of the event queue
+		 * Callback signature : void(event_queue_guard<derived_t> g)
+		 * note : the callback must hold the derived_ptr itself
+		 */
+		template<class Callback>
+		inline derived_t& post_event(Callback&& f)
+		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
+			// Make sure we run on the io_context thread
+			// beacuse the callback "f" hold the derived_ptr already,
+			// so this callback for asio::dispatch don't need hold the derived_ptr again.
+			asio::post(derive.io().context(), make_allocator(derive.wallocator(),
+			[this, f = std::forward<Callback>(f)]() mutable
+			{
+				ASIO2_ASSERT(this->events_.size() < std::size_t(32767));
+
+				bool empty = this->events_.empty();
+				this->events_.emplace(std::move(f));
+				if (empty)
+				{
+					(this->events_.front())(event_queue_guard<derived_t>{static_cast<derived_t&>(*this)});
+				}
+			}));
+
+			return (derive);
+		}
+
+		/**
 		 * dispatch a task
 		 * if the guard is not valid, the task will pushed to the tail of the event queue(like push_event),
 		 * otherwise the task will be executed directly.

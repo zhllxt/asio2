@@ -224,10 +224,14 @@ namespace asio2::detail
 		inline void _do_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr, DeferEvent chain)
 		{
 			// call the base class _do_stop function
-			super::_do_stop(ec, std::move(this_ptr), std::move(chain));
+			super::_do_stop(ec, this_ptr, std::move(chain));
 
-			// reset the callback shared_ptr, to avoid the callback owned this self shared_ptr.
-			this->websocket_router_.reset();
+			this->derived().push_event([this, this_ptr = std::move(this_ptr)]
+			(event_queue_guard<derived_t>) mutable
+			{
+				// reset the callback shared_ptr, to avoid the callback owned this self shared_ptr.
+				this->websocket_router_.reset();
+			});
 		}
 
 		template<typename C, class MessageT>

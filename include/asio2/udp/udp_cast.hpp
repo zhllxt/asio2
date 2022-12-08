@@ -208,7 +208,7 @@ namespace asio2::detail
 				[this, p = std::move(promise)]() mutable { p.set_value(this->state().load()); }
 			};
 
-			derive.push_event([&derive, this_ptr = derive.selfptr(), pg = std::move(pg)]
+			derive.post_event([&derive, this_ptr = derive.selfptr(), pg = std::move(pg)]
 			(event_queue_guard<derived_t> g) mutable
 			{
 				derive._do_stop(asio::error::operation_aborted, std::move(this_ptr),
@@ -358,7 +358,7 @@ namespace asio2::detail
 				[promise = std::move(promise)]() mutable { promise.set_value(get_last_error()); }
 			};
 
-			derive.push_event(
+			derive.post_event(
 			[this, this_ptr = derive.selfptr(), &ecs, pg = std::move(pg),
 				host = std::forward<String>(host), port = std::forward<StrOrInt>(port)]
 			(event_queue_guard<derived_t> g) mutable
@@ -559,6 +559,8 @@ namespace asio2::detail
 		{
 			detail::ignore_unused(ec, this_ptr, chain);
 
+			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
+
 			// close user custom timers
 			this->stop_all_timers();
 
@@ -568,28 +570,32 @@ namespace asio2::detail
 			// close all async_events
 			this->notify_all_condition_events();
 
-			// destroy user data, maybe the user data is self shared_ptr,
-			// if don't destroy it, will cause loop refrence.
-			this->user_data_.reset();
-
-			// the socket maybe closed already somewhere else.
-			if (this->socket_.lowest_layer().is_open())
+			this->derived().push_event([this, this_ptr = std::move(this_ptr)]
+			(event_queue_guard<derived_t>) mutable
 			{
-				error_code ec_ignore{};
+				// the socket maybe closed already somewhere else.
+				if (this->socket_.lowest_layer().is_open())
+				{
+					error_code ec_ignore{};
 
-				// call socket's close function to notify the _handle_recv function
-				// response with error > 0 ,then the socket can get notify to exit
-				// Call shutdown() to indicate that you will not write any more data to the socket.
-				this->socket_.shutdown(asio::socket_base::shutdown_both, ec_ignore);
-				// Call close,otherwise the _handle_recv will never return
-				this->socket_.close(ec_ignore);
-			}
+					// call socket's close function to notify the _handle_recv function
+					// response with error > 0 ,then the socket can get notify to exit
+					// Call shutdown() to indicate that you will not write any more data to the socket.
+					this->socket_.shutdown(asio::socket_base::shutdown_both, ec_ignore);
+					// Call close,otherwise the _handle_recv will never return
+					this->socket_.close(ec_ignore);
+				}
 
-			// clear recv buffer
-			this->buffer().consume(this->buffer().size());
+				// clear recv buffer
+				this->buffer().consume(this->buffer().size());
 
-			// destroy the ecs
-			this->ecs_.reset();
+				// destroy user data, maybe the user data is self shared_ptr,
+				// if don't destroy it, will cause loop refrence.
+				this->user_data_.reset();
+
+				// destroy the ecs
+				this->ecs_.reset();
+			});
 		}
 
 	protected:

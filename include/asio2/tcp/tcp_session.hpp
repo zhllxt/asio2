@@ -269,26 +269,27 @@ namespace asio2::detail
 			// the socket maybe closed already somewhere else.
 			if (this->socket_.lowest_layer().is_open())
 			{
-				error_code ec_ignore{};
-
-				asio::socket_base::linger linger = this->derived().get_linger();
-
-				// the get_linger maybe change the last error value.
-				set_last_error(ec);
-
-				// call socket's close function to notify the _handle_recv function response with error > 0 ,
-				// then the socket can get notify to exit
-				// Call shutdown() to indicate that you will not write any more data to the socket.
-				if (!(linger.enabled() == true && linger.timeout() == 0))
+				this->derived().push_event([this, ec, this_ptr](event_queue_guard<derived_t>) mutable
 				{
-					this->socket_.lowest_layer().shutdown(asio::socket_base::shutdown_both, ec_ignore);
-				}
+					error_code ec_ignore{};
 
-				// Call close,otherwise the _handle_recv will never return
-				this->socket_.lowest_layer().close(ec_ignore);
+					asio::socket_base::linger linger = this->derived().get_linger();
+
+					// the get_linger maybe change the last error value.
+					set_last_error(ec);
+
+					// call socket's close function to notify the _handle_recv function response with error > 0 ,
+					// then the socket can get notify to exit
+					// Call shutdown() to indicate that you will not write any more data to the socket.
+					if (!(linger.enabled() == true && linger.timeout() == 0))
+					{
+						this->socket_.lowest_layer().shutdown(asio::socket_base::shutdown_both, ec_ignore);
+					}
+
+					// Call close,otherwise the _handle_recv will never return
+					this->socket_.lowest_layer().close(ec_ignore);
+				});
 			}
-
-			ASIO2_ASSERT(!this->socket_.lowest_layer().is_open());
 
 			this->derived()._do_stop(ec, std::move(this_ptr), std::move(chain));
 		}

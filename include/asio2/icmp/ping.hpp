@@ -873,10 +873,6 @@ namespace asio2::detail
 			// close all async_events
 			this->notify_all_condition_events();
 
-			// destroy user data, maybe the user data is self shared_ptr,
-			// if don't destroy it, will cause loop refrence.
-			this->user_data_.reset();
-
 			try
 			{
 				this->timer_.cancel();
@@ -890,6 +886,10 @@ namespace asio2::detail
 
 			// clear recv buffer
 			this->buffer().consume(this->buffer().size());
+
+			// destroy user data, maybe the user data is self shared_ptr,
+			// if don't destroy it, will cause loop refrence.
+			this->user_data_.reset();
 		}
 
 		void _post_send(std::shared_ptr<derived_t> this_ptr)

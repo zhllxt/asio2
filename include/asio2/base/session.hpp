@@ -181,9 +181,12 @@ namespace asio2::detail
 		{
 			ASIO2_ASSERT(this->io_.running_in_this_thread());
 
-			// use post to let resources cleared after user events like rdc response,
-			// if use dispatch, then the rdc stop will executed after this stop.
-			this->derived().post([this]() mutable
+			derived_t& derive = static_cast<derived_t&>(*this);
+
+			// can't use post, we need ensure when the derived stop is called, the chain
+			// must be executed completed.
+			asio::dispatch(derive.io().context(), make_allocator(derive.wallocator(),
+			[this, &derive, this_ptr = derive.selfptr()]() mutable
 			{
 				// close silence timer
 				this->_stop_silence_timer();
@@ -200,20 +203,28 @@ namespace asio2::detail
 				// close all async_events
 				this->notify_all_condition_events();
 
-				// destroy user data, maybe the user data is self shared_ptr, 
-				// if don't destroy it, will cause loop refrence.
-				// read/write user data in other thread which is not the io_context thread maybe 
-				// cause crash.
-				this->user_data_.reset();
+				// use push event to let resources cleared after user events like rdc response,
+				// if destroy it directly, then the rdc stop will executed after this stop.
+				// can't use post event, we need ensure when the derived stop is called,
+				// the chain must be executed completed.
+				derive.push_event([this, &derive, this_ptr = std::move(this_ptr)]
+				(event_queue_guard<derived_t>) mutable
+				{
+					// clear recv buffer
+					this->buffer().consume(this->buffer().size());
 
-				// clear recv buffer
-				this->buffer().consume(this->buffer().size());
+					// destroy user data, maybe the user data is self shared_ptr, 
+					// if don't destroy it, will cause loop refrence.
+					// read/write user data in other thread which is not the io_context 
+					// thread maybe cause crash.
+					this->user_data_.reset();
 
-				// destroy the ecs, the user maybe saved the session ptr in the match role init
-				// function, so we must destroy ecs, otherwise the server will can't be exited
-				// forever.
-				this->ecs_.reset();
-			});
+					// destroy the ecs, the user maybe saved the session ptr in the match role init
+					// function, so we must destroy ecs, otherwise the server will can't be exited
+					// forever.
+					this->ecs_.reset();
+				});
+			}));
 		}
 
 		/**

@@ -155,7 +155,8 @@ namespace asio2::detail
 				[this, p = std::move(promise)]() mutable { p.set_value(this->state().load()); }
 			};
 
-			derive.push_event([&derive, this_ptr = derive.selfptr(), pg = std::move(pg)]
+			// if user call stop in the recv callback, use post event to executed a async event.
+			derive.post_event([&derive, this_ptr = derive.selfptr(), pg = std::move(pg)]
 			(event_queue_guard<derived_t> g) mutable
 			{
 				// first close the reconnect timer
@@ -348,7 +349,8 @@ namespace asio2::detail
 				[promise = std::move(promise)]() mutable { promise.set_value(get_last_error()); }
 			};
 
-			derive.push_event(
+			// if user call start in the recv callback, use post event to executed a async event.
+			derive.post_event(
 			[this, this_ptr = derive.selfptr(), &ecs, pg = std::move(pg),
 				host = std::forward<String>(host), port = std::forward<StrOrInt>(port)]
 			(event_queue_guard<derived_t> g) mutable
@@ -510,14 +512,18 @@ namespace asio2::detail
 			// the socket maybe closed already somewhere else.
 			if (this->socket_.lowest_layer().is_open())
 			{
-				error_code ec_ignore{};
+				this->derived().push_event([this, this_ptr = std::move(this_ptr)]
+				(event_queue_guard<derived_t>) mutable
+				{
+					error_code ec_ignore{};
 
-				// call socket's close function to notify the _handle_recv function response with 
-				// error > 0 ,then the socket can get notify to exit
-				// Call shutdown() to indicate that you will not write any more data to the socket.
-				this->socket_.shutdown(asio::socket_base::shutdown_both, ec_ignore);
-				// Call close,otherwise the _handle_recv will never return
-				this->socket_.close(ec_ignore);
+					// call socket's close function to notify the _handle_recv function response with 
+					// error > 0 ,then the socket can get notify to exit
+					// Call shutdown() to indicate that you will not write any more data to the socket.
+					this->socket_.shutdown(asio::socket_base::shutdown_both, ec_ignore);
+					// Call close,otherwise the _handle_recv will never return
+					this->socket_.close(ec_ignore);
+				});
 			}
 		}
 

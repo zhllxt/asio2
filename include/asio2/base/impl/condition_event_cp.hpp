@@ -178,20 +178,6 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @brief Post a asynchronous event to execution util the event is notifyed by user.
-		 * Before you call event_ptr->notify(); the event will not execute forever.
-		 * The function signature of the handler must be : void handler();
-		 */
-		template<typename Function>
-		[[deprecated("Replace post_event with post_condition_event")]]
-		inline std::shared_ptr<condition_event> post_event(Function&& f)
-		{
-			static_assert(detail::always_false_v<Function>);
-
-			return std::shared_ptr<condition_event>{};
-		}
-
-		/**
 		 * @brief Post a asynchronous condition event to execution util the event is notifyed by user.
 		 * Before you call event_ptr->notify(); the event will not execute forever.
 		 * The function signature of the handler must be : void handler();

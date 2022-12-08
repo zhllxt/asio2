@@ -110,7 +110,7 @@ namespace asio2::detail
 
 			derive.io().unregobj(&derive);
 
-			derive.dispatch([&derive]() mutable
+			derive.post([&derive]() mutable
 			{
 				derive._do_stop(asio::error::operation_aborted, derive.selfptr());
 			});
@@ -525,8 +525,6 @@ namespace asio2::detail
 
 		inline void _handle_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
 		{
-			detail::ignore_unused(this_ptr);
-
 			set_last_error(ec);
 
 			this->derived()._fire_stop();
@@ -537,12 +535,16 @@ namespace asio2::detail
 			// the socket maybe closed already somewhere else.
 			if (this->acceptor_.lowest_layer().is_open())
 			{
-				error_code ec_ignore{};
+				this->derived().push_event([this, this_ptr = std::move(this_ptr)]
+				(event_queue_guard<derived_t>) mutable
+				{
+					error_code ec_ignore{};
 
-				// Call shutdown() to indicate that you will not write any more data to the socket.
-				this->acceptor_.shutdown(asio::socket_base::shutdown_both, ec_ignore);
-				// Call close,otherwise the _handle_recv will never return
-				this->acceptor_.close(ec_ignore);
+					// Call shutdown() to indicate that you will not write any more data to the socket.
+					this->acceptor_.shutdown(asio::socket_base::shutdown_both, ec_ignore);
+					// Call close,otherwise the _handle_recv will never return
+					this->acceptor_.close(ec_ignore);
+				});
 			}
 
 			ASIO2_ASSERT(this->state_ == state_t::stopped);

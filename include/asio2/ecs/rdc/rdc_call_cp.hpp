@@ -527,52 +527,57 @@ namespace asio2::detail
 		inline void _rdc_start(std::shared_ptr<derived_t>& this_ptr, ecs_t<C>& ecs)
 		{
 			detail::ignore_unused(this_ptr, ecs);
+
+			if constexpr (ecs_helper::has_rdc<C>())
+			{
+				ASIO2_ASSERT(ecs.get_component().rdc_option(std::in_place)->invoker().reqs().empty());
+			}
+			else
+			{
+				std::ignore = true;
+			}
 		}
 
 		inline void _rdc_stop()
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			// use post to avoid this problem: if stop is called in the bind_recv function, then
-			// the rdc callback will can't be called, beacuse the stop and here's chain will be 
-			// executed before the rdc handle recv.
-			derive.post([&derive, p = derive.selfptr()]() mutable
+			// use push event to avoid this problem: if stop is called in the bind_recv function,
+			// then the rdc callback will can't be called, beacuse the stop and here's chain
+			// will be executed before the rdc handle recv.
+			derive.push_event([&derive, p = derive.selfptr()](event_queue_guard<derived_t> g) mutable
 			{
-				// All pending sending events will be cancelled after enter the callback below.
-				derive.push_event([&derive, p = std::move(p)](event_queue_guard<derived_t> g) mutable
+				detail::ignore_unused(p, g);
+
+				// this callback maybe executed after the session stop, and the session
+				// stop will destroy the ecs, so we need check whether the ecs is valid.
+				if (!derive.ecs_)
+					return;
+
+				asio2::rdc::option_base* prdc = derive.ecs_->get_rdc();
+
+				// maybe not rdc mode, so must check whether the rdc is valid.
+				if (!prdc)
+					return;
+
+				// if stoped, execute all callbacks in the requests, otherwise if some
+				// call or async_call 's timeout is too long, then the application will
+				// can't exit before all timeout timer is reached.
+				prdc->foreach_and_clear([&derive](void*, void* val) mutable
 				{
-					detail::ignore_unused(p, g);
+					std::tuple<std::shared_ptr<asio::steady_timer>, callback_type>& tp =
+						*((std::tuple<std::shared_ptr<asio::steady_timer>, callback_type>*)val);
 
-					// this callback maybe executed after the session stop, and the session
-					// stop will destroy the ecs, so we need check whether the ecs is valid.
-					if (!derive.ecs_)
-						return;
-
-					asio2::rdc::option_base* prdc = derive.ecs_->get_rdc();
-
-					// maybe not rdc mode, so must check whether the rdc is valid.
-					if (!prdc)
-						return;
-
-					// if stoped, execute all callbacks in the requests, otherwise if some
-					// call or async_call 's timeout is too long, then the application will
-					// can't exit before all timeout timer is reached.
-					prdc->foreach_and_clear([&derive](void*, void* val) mutable
+					auto& [timer, invoker] = tp;
+					try
 					{
-						std::tuple<std::shared_ptr<asio::steady_timer>, callback_type>& tp =
-							*((std::tuple<std::shared_ptr<asio::steady_timer>, callback_type>*)val);
+						timer->cancel();
+					}
+					catch (system_error const&)
+					{
+					}
 
-						auto& [timer, invoker] = tp;
-						try
-						{
-							timer->cancel();
-						}
-						catch (system_error const&)
-						{
-						}
-
-						derive._rdc_invoke_with_none(asio::error::operation_aborted, invoker);
-					});
+					derive._rdc_invoke_with_none(asio::error::operation_aborted, invoker);
 				});
 			});
 		}
