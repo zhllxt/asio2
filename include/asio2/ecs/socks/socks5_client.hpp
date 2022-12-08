@@ -34,7 +34,7 @@
 #include <asio2/base/define.hpp>
 
 #include <asio2/base/detail/util.hpp>
-#include <asio2/base/detail/condition_wrap.hpp>
+#include <asio2/base/detail/ecs.hpp>
 
 #include <asio2/ecs/socks/socks5_core.hpp>
 
@@ -587,38 +587,38 @@ namespace asio2::detail
 		~socks5_client_impl() = default;
 
 	protected:
-		template<typename MatchCondition>
-		inline void _socks5_init(condition_wrap<MatchCondition>& condition)
+		template<typename C>
+		inline void _socks5_init(ecs_t<C>& ecs)
 		{
-			detail::ignore_unused(condition);
+			detail::ignore_unused(ecs);
 		}
 
-		template<typename MatchCondition, typename DeferEvent>
+		template<typename C, typename DeferEvent>
 		inline void _socks5_start(
-			std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition, DeferEvent chain)
+			std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs, DeferEvent chain)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			if constexpr (condition_helper::has_socks5<MatchCondition>())
+			if constexpr (ecs_helper::has_socks5<C>())
 			{
 				socks5_client_connect_op
 				{
 					derive.io().context(),
 					derive.host_, derive.port_,
 					derive.socket(),
-					condition.impl_->socks5_option(std::in_place),
-					[this, this_ptr, condition, chain = std::move(chain)](error_code ec) mutable
+					ecs.get_component().socks5_option(std::in_place),
+					[this, this_ptr, &ecs, chain = std::move(chain)](error_code ec) mutable
 					{
 						derived_t& derive = static_cast<derived_t&>(*this);
 
-						derive._handle_proxy(ec, std::move(this_ptr), std::move(condition), std::move(chain));
+						derive._handle_proxy(ec, std::move(this_ptr), ecs, std::move(chain));
 					}
 				};
 			}
 			else
 			{
 				ASIO2_ASSERT(!get_last_error());
-				derive._handle_proxy(error_code{}, std::move(this_ptr), std::move(condition), std::move(chain));
+				derive._handle_proxy(error_code{}, std::move(this_ptr), ecs, std::move(chain));
 			}
 		}
 

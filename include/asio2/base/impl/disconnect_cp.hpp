@@ -22,7 +22,7 @@
 
 #include <asio2/base/iopool.hpp>
 #include <asio2/base/listener.hpp>
-#include <asio2/base/detail/condition_wrap.hpp>
+#include <asio2/base/detail/ecs.hpp>
 
 #include <asio2/base/impl/event_queue_cp.hpp>
 

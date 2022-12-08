@@ -94,7 +94,7 @@ namespace asio2::detail
 		{
 			return this->derived()._do_start(
 				std::forward<String>(host), std::forward<StrOrInt>(service),
-				condition_helper::make_condition('0', std::forward<Args>(args)...));
+				ecs_helper::make_ecs('0', std::forward<Args>(args)...));
 		}
 
 		/**
@@ -263,10 +263,14 @@ namespace asio2::detail
 		inline asio::ip::udp::socket & acceptor() noexcept { return this->acceptor_; }
 
 	protected:
-		template<typename String, typename StrOrInt, typename MatchCondition>
-		inline bool _do_start(String&& host, StrOrInt&& port, condition_wrap<MatchCondition> condition)
+		template<typename String, typename StrOrInt, typename C>
+		inline bool _do_start(String&& host, StrOrInt&& port, ecs_t<C> e)
 		{
 			derived_t& derive = this->derived();
+
+			this->ecs_ = std::make_unique<ecs_t<C>>(std::move(e));
+
+			ecs_t<C>& ecs = *const_cast<ecs_t<C>*>(static_cast<const ecs_t<C>*>(this->ecs_.get()));
 
 			this->start_iopool();
 
@@ -295,9 +299,8 @@ namespace asio2::detail
 			};
 
 			derive.post(
-			[this, this_ptr = derive.selfptr(),
-				host = std::forward<String>(host), port = std::forward<StrOrInt>(port),
-				condition = std::move(condition), pg = std::move(pg)]
+			[this, this_ptr = derive.selfptr(), &ecs, pg = std::move(pg),
+				host = std::forward<String>(host), port = std::forward<StrOrInt>(port)]
 			() mutable
 			{
 				derived_t& derive = this->derived();
@@ -375,7 +378,7 @@ namespace asio2::detail
 
 					this->acceptor_.bind(endpoint);
 
-					derive._handle_start(error_code{}, std::move(this_ptr), std::move(condition));
+					derive._handle_start(error_code{}, std::move(this_ptr), ecs);
 
 					return;
 				}
@@ -388,7 +391,7 @@ namespace asio2::detail
 					set_last_error(asio::error::invalid_argument);
 				}
 
-				derive._handle_start(get_last_error(), std::move(this_ptr), std::move(condition));
+				derive._handle_start(get_last_error(), std::move(this_ptr), ecs);
 			});
 
 			if (!derive.io().running_in_this_thread())
@@ -409,9 +412,8 @@ namespace asio2::detail
 			return derive.is_started();
 		}
 
-		template<typename MatchCondition>
-		inline void _handle_start(
-			error_code ec, std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		template<typename C>
+		inline void _handle_start(error_code ec, std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs)
 		{
 			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
 
@@ -436,7 +438,7 @@ namespace asio2::detail
 
 				this->buffer_.consume(this->buffer_.size());
 
-				this->derived()._post_recv(std::move(this_ptr), std::move(condition));
+				this->derived()._post_recv(std::move(this_ptr), ecs);
 			}
 			catch (system_error & e)
 			{
@@ -546,8 +548,8 @@ namespace asio2::detail
 			ASIO2_ASSERT(this->state_ == state_t::stopped);
 		}
 
-		template<typename MatchCondition>
-		inline void _post_recv(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		template<typename C>
+		inline void _post_recv(std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs)
 		{
 			if (!this->derived().is_started())
 			{
@@ -561,12 +563,12 @@ namespace asio2::detail
 			try
 			{
 				this->acceptor_.async_receive_from(
-					this->buffer_.prepare(this->buffer_.pre_size()), this->remote_endpoint_,
-					make_allocator(this->rallocator_,
-					[this, this_ptr = std::move(this_ptr), condition = std::move(condition)]
+					this->buffer_.prepare(this->buffer_.pre_size()),
+					this->remote_endpoint_,
+					make_allocator(this->rallocator_, [this, this_ptr = std::move(this_ptr), &ecs]
 				(const error_code& ec, std::size_t bytes_recvd) mutable
 				{
-					this->derived()._handle_recv(ec, bytes_recvd, std::move(this_ptr), std::move(condition));
+					this->derived()._handle_recv(ec, bytes_recvd, std::move(this_ptr), ecs);
 				}));
 			}
 			catch (system_error & e)
@@ -577,9 +579,9 @@ namespace asio2::detail
 			}
 		}
 
-		template<typename MatchCondition>
-		inline void _handle_recv(const error_code& ec, std::size_t bytes_recvd,
-			std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		template<typename C>
+		inline void _handle_recv(
+			const error_code& ec, std::size_t bytes_recvd, std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs)
 		{
 			set_last_error(ec);
 
@@ -610,11 +612,11 @@ namespace asio2::detail
 				std::shared_ptr<session_t> session_ptr = this->sessions_.find(this->remote_endpoint_);
 				if (!session_ptr)
 				{
-					this->derived()._handle_accept(ec, data, session_ptr, condition);
+					this->derived()._handle_accept(ec, data, session_ptr, ecs);
 				}
 				else
 				{
-					session_ptr->_handle_recv(ec, data, session_ptr, condition);
+					session_ptr->_handle_recv(ec, data, session_ptr, ecs);
 				}
 			}
 			else
@@ -639,7 +641,7 @@ namespace asio2::detail
 				this->buffer_.pre_size((std::min)(this->buffer_.pre_size() * 2, this->buffer_.max_size()));
 			}
 
-			this->derived()._post_recv(std::move(this_ptr), std::move(condition));
+			this->derived()._post_recv(std::move(this_ptr), ecs);
 		}
 
 		template<typename... Args>
@@ -657,9 +659,9 @@ namespace asio2::detail
 				this->remote_endpoint_);
 		}
 
-		template<typename MatchCondition>
-		inline void _handle_accept(const error_code & ec, std::string_view first,
-			std::shared_ptr<session_t> session_ptr, condition_wrap<MatchCondition> condition)
+		template<typename C>
+		inline void _handle_accept(
+			const error_code& ec, std::string_view first, std::shared_ptr<session_t> session_ptr, ecs_t<C>& ecs)
 		{
 			set_last_error(ec);
 
@@ -670,16 +672,16 @@ namespace asio2::detail
 					session_ptr = this->derived()._make_session();
 					session_ptr->counter_ptr_ = this->counter_ptr_;
 					session_ptr->first_ = first;
-					session_ptr->kcp_conv_ = this->derived()._make_kcp_conv(first, condition);
-					session_ptr->start(condition.clone());
+					session_ptr->kcp_conv_ = this->derived()._make_kcp_conv(first, ecs);
+					session_ptr->start(ecs.clone());
 				}
 			}
 		}
 
-		template<typename MatchCondition>
-		inline std::uint32_t _make_kcp_conv(std::string_view first, condition_wrap<MatchCondition>& condition)
+		template<typename C>
+		inline std::uint32_t _make_kcp_conv(std::string_view first, ecs_t<C>& ecs)
 		{
-			if constexpr (std::is_same_v<typename condition_wrap<MatchCondition>::condition_type, use_kcp_t>)
+			if constexpr (std::is_same_v<typename ecs_t<C>::condition_lowest_type, use_kcp_t>)
 			{
 				std::uint32_t conv = 0;
 

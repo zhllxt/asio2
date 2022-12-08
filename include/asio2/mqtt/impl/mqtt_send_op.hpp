@@ -24,7 +24,7 @@
 
 #include <asio2/base/error.hpp>
 #include <asio2/base/detail/util.hpp>
-#include <asio2/base/detail/condition_wrap.hpp>
+#include <asio2/base/detail/ecs.hpp>
 #include <asio2/base/detail/buffer_wrap.hpp>
 
 #include <asio2/mqtt/message.hpp>

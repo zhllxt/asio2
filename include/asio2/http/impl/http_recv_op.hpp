@@ -47,8 +47,8 @@ namespace asio2::detail
 		~http_recv_op() = default;
 
 	protected:
-		template<typename MatchCondition>
-		void _http_post_recv(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		template<typename C>
+		void _http_post_recv(std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
@@ -74,10 +74,10 @@ namespace asio2::detail
 						// Read a request
 						http::async_read(derive.stream(), derive.buffer().base(), derive.req_,
 							make_allocator(derive.rallocator(),
-								[&derive, self_ptr = std::move(this_ptr), condition = std::move(condition)]
+								[&derive, self_ptr = std::move(this_ptr), &ecs]
 						(const error_code & ec, std::size_t bytes_recvd) mutable
 						{
-							derive._handle_recv(ec, bytes_recvd, std::move(self_ptr), std::move(condition));
+							derive._handle_recv(ec, bytes_recvd, std::move(self_ptr), ecs);
 						}));
 					}
 					else
@@ -85,10 +85,10 @@ namespace asio2::detail
 						// Read a message into our buffer
 						derive.ws_stream().async_read(derive.buffer().base(),
 							make_allocator(derive.rallocator(),
-								[&derive, self_ptr = std::move(this_ptr), condition = std::move(condition)]
+								[&derive, self_ptr = std::move(this_ptr), &ecs]
 						(const error_code & ec, std::size_t bytes_recvd) mutable
 						{
-							derive._handle_recv(ec, bytes_recvd, std::move(self_ptr), std::move(condition));
+							derive._handle_recv(ec, bytes_recvd, std::move(self_ptr), ecs);
 						}));
 					}
 				}
@@ -101,10 +101,10 @@ namespace asio2::detail
 					// Receive the HTTP response
 					http::async_read(derive.stream(), derive.buffer().base(), derive.rep_,
 						make_allocator(derive.rallocator(),
-							[&derive, self_ptr = std::move(this_ptr), condition = std::move(condition)]
+							[&derive, self_ptr = std::move(this_ptr), &ecs]
 					(const error_code & ec, std::size_t bytes_recvd) mutable
 					{
-						derive._handle_recv(ec, bytes_recvd, std::move(self_ptr), condition);
+						derive._handle_recv(ec, bytes_recvd, std::move(self_ptr), ecs);
 					}));
 				}
 			}
@@ -116,9 +116,9 @@ namespace asio2::detail
 			}
 		}
 
-		template<typename MatchCondition>
-		void _http_handle_recv(const error_code & ec, std::size_t bytes_recvd,
-			std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		template<typename C>
+		void _http_handle_recv(
+			const error_code& ec, std::size_t bytes_recvd, std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
@@ -151,10 +151,10 @@ namespace asio2::detail
 						derive.rep_.result(http::status::unknown);
 						derive.rep_.keep_alive(derive.req_.keep_alive());
 
-						if (derive._check_upgrade(this_ptr, condition))
+						if (derive._check_upgrade(this_ptr, ecs))
 							return;
 
-						derive._fire_recv(this_ptr, condition);
+						derive._fire_recv(this_ptr, ecs);
 
 						// note : can't read write the variable of "req_" after _fire_recv, it maybe
 						// cause crash, eg :
@@ -176,18 +176,18 @@ namespace asio2::detail
 						derive.req_.ws_frame_data_ = { reinterpret_cast<std::string_view::const_pointer>(
 							derive.buffer().data().data()), bytes_recvd };
 
-						derive._fire_recv(this_ptr, condition);
+						derive._fire_recv(this_ptr, ecs);
 
 						derive.buffer().consume(derive.buffer().size());
 
-						derive._post_recv(std::move(this_ptr), std::move(condition));
+						derive._post_recv(std::move(this_ptr), ecs);
 					}
 				}
 				else
 				{
-					derive._fire_recv(this_ptr, condition);
+					derive._fire_recv(this_ptr, ecs);
 
-					derive._post_recv(std::move(this_ptr), std::move(condition));
+					derive._post_recv(std::move(this_ptr), ecs);
 				}
 			}
 			else

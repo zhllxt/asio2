@@ -100,8 +100,8 @@ namespace asio2::detail
 		/**
 		 * @brief start this session for prepare to recv msg
 		 */
-		template<typename MatchCondition>
-		inline void start(condition_wrap<MatchCondition> condition)
+		template<typename C>
+		inline void start(ecs_t<C> e)
 		{
 		#if defined(ASIO2_ENABLE_LOG)
 		#if defined(ASIO2_ALLOCATOR_STORAGE_SIZE)
@@ -125,15 +125,19 @@ namespace asio2::detail
 
 				std::shared_ptr<derived_t> this_ptr = this->derived().selfptr();
 
-				this->derived()._do_init(this_ptr, condition);
+				this->ecs_ = std::make_unique<ecs_t<C>>(std::move(e));
+
+				ecs_t<C>& ecs = *const_cast<ecs_t<C>*>(static_cast<const ecs_t<C>*>(this->ecs_.get()));
+
+				this->derived()._do_init(this_ptr, ecs);
 
 				// First call the base class start function
 				super::start();
 
-				// if the match condition is remote data call mode,do some thing.
-				this->derived()._rdc_init(condition);
+				// if the ecs has remote data call mode,do some thing.
+				this->derived()._rdc_init(ecs);
 
-				this->derived()._handle_connect(error_code{}, std::move(this_ptr), std::move(condition),
+				this->derived()._handle_connect(error_code{}, std::move(this_ptr), ecs,
 					defer_event(event_queue_guard<derived_t>()));
 			}
 			catch (system_error & e)
@@ -230,26 +234,26 @@ namespace asio2::detail
 		}
 
 	protected:
-		template<typename MatchCondition>
-		inline void _do_init(std::shared_ptr<derived_t>& this_ptr, condition_wrap<MatchCondition>& condition)
+		template<typename C>
+		inline void _do_init(std::shared_ptr<derived_t>& this_ptr, ecs_t<C>& ecs)
 		{
-			detail::ignore_unused(this_ptr, condition);
+			detail::ignore_unused(this_ptr, ecs);
 
 			// reset the variable to default status
 			this->derived().reset_connect_time();
 			this->derived().update_alive_time();
 		}
 
-		template<typename MatchCondition, typename DeferEvent>
-		inline void _handle_connect(const error_code& ec, std::shared_ptr<derived_t> this_ptr,
-			condition_wrap<MatchCondition> condition, DeferEvent chain)
+		template<typename C, typename DeferEvent>
+		inline void _handle_connect(
+			const error_code& ec, std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs, DeferEvent chain)
 		{
 			detail::ignore_unused(ec);
 
 			ASIO2_ASSERT(!ec);
 			ASIO2_ASSERT(this->derived().sessions().io().running_in_this_thread());
 
-			if constexpr (std::is_same_v<typename condition_wrap<MatchCondition>::condition_type, use_kcp_t>)
+			if constexpr (std::is_same_v<typename ecs_t<C>::condition_lowest_type, use_kcp_t>)
 			{
 				// step 3 : server recvd syn from client (the first_ is syn)
 				// Check whether the first_ packet is SYN handshake
@@ -262,22 +266,22 @@ namespace asio2::detail
 					return;
 				}
 				this->kcp_ = std::make_unique<kcp_stream_cp<derived_t, args_t>>(this->derived(), this->io_);
-				this->kcp_->_post_handshake(std::move(this_ptr), std::move(condition), std::move(chain));
+				this->kcp_->_post_handshake(std::move(this_ptr), ecs, std::move(chain));
 			}
 			else
 			{
 				this->kcp_.reset();
-				this->derived()._done_connect(ec, std::move(this_ptr), std::move(condition), std::move(chain));
+				this->derived()._done_connect(ec, std::move(this_ptr), ecs, std::move(chain));
 			}
 		}
 
-		template<typename MatchCondition, typename DeferEvent>
+		template<typename C, typename DeferEvent>
 		inline void _do_start(
-			std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition, DeferEvent chain)
+			std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs, DeferEvent chain)
 		{
 			derived_t& derive = this->derived();
 
-			if constexpr (std::is_same_v<typename condition_wrap<MatchCondition>::condition_type, use_kcp_t>)
+			if constexpr (std::is_same_v<typename ecs_t<C>::condition_lowest_type, use_kcp_t>)
 			{
 				ASIO2_ASSERT(this->kcp_);
 
@@ -290,7 +294,7 @@ namespace asio2::detail
 			}
 
 			asio::dispatch(derive.io().context(), make_allocator(derive.wallocator(),
-			[&derive, this_ptr = std::move(this_ptr), condition = std::move(condition), chain = std::move(chain)]
+			[&derive, this_ptr = std::move(this_ptr), &ecs, chain = std::move(chain)]
 			() mutable
 			{
 				if (!derive.is_started())
@@ -299,7 +303,7 @@ namespace asio2::detail
 					return;
 				}
 
-				derive._join_session(std::move(this_ptr), std::move(condition), std::move(chain));
+				derive._join_session(std::move(this_ptr), ecs, std::move(chain));
 			}));
 		}
 
@@ -349,42 +353,42 @@ namespace asio2::detail
 			ASIO2_ASSERT(this->state_ == state_t::stopped);
 		}
 
-		template<typename MatchCondition, typename DeferEvent>
+		template<typename C, typename DeferEvent>
 		inline void _join_session(
-			std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition, DeferEvent chain)
+			std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs, DeferEvent chain)
 		{
 			this->sessions_.emplace(this_ptr,
-			[this, this_ptr, condition = std::move(condition), chain = std::move(chain)]
+			[this, this_ptr, &ecs, chain = std::move(chain)]
 			(bool inserted) mutable
 			{
 				if (inserted)
-					this->derived()._start_recv(std::move(this_ptr), std::move(condition), std::move(chain));
+					this->derived()._start_recv(std::move(this_ptr), ecs, std::move(chain));
 				else
 					this->derived()._do_disconnect(asio::error::address_in_use, std::move(this_ptr), std::move(chain));
 			});
 		}
 
-		template<typename MatchCondition, typename DeferEvent>
+		template<typename C, typename DeferEvent>
 		inline void _start_recv(
-			std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition, DeferEvent chain)
+			std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs, DeferEvent chain)
 		{
 			// to avlid the user call stop in another thread,then it may be socket_.async_read_some
 			// and socket_.close be called at the same time
 			asio::dispatch(this->io().context(), make_allocator(this->wallocator_,
-			[this, this_ptr = std::move(this_ptr), condition = std::move(condition), chain = std::move(chain)]
+			[this, this_ptr = std::move(this_ptr), &ecs, chain = std::move(chain)]
 			() mutable
 			{
-				using condition_type = typename condition_wrap<MatchCondition>::condition_type;
+				using condition_lowest_type = typename ecs_t<C>::condition_lowest_type;
 
 				detail::ignore_unused(chain);
 
 				// start the timer of check silence timeout
 				this->derived()._post_silence_timer(this->silence_timeout_, this_ptr);
 
-				if constexpr (std::is_same_v<condition_type, asio2::detail::use_kcp_t>)
-					detail::ignore_unused(this_ptr, condition);
+				if constexpr (std::is_same_v<condition_lowest_type, asio2::detail::use_kcp_t>)
+					detail::ignore_unused(this_ptr, ecs);
 				else
-					this->derived()._handle_recv(error_code{}, this->first_, this_ptr, std::move(condition));
+					this->derived()._handle_recv(error_code{}, this->first_, this_ptr, ecs);
 			}));
 		}
 
@@ -420,17 +424,17 @@ namespace asio2::detail
 				invoker(ec, send_data_t{}, data);
 		}
 
-		template<class Invoker, class FnData>
-		inline void _rdc_invoke_with_send(const error_code& ec, Invoker& invoker, FnData& fn_data)
+		template<class Invoker>
+		inline void _rdc_invoke_with_send(const error_code& ec, Invoker& invoker, send_data_t data)
 		{
 			if (invoker)
-				invoker(ec, fn_data(), recv_data_t{});
+				invoker(ec, data, recv_data_t{});
 		}
 
 	protected:
-		template<typename MatchCondition>
-		inline void _handle_recv(error_code ec, std::string_view data,
-			std::shared_ptr<derived_t>& this_ptr, condition_wrap<MatchCondition> condition)
+		template<typename C>
+		inline void _handle_recv(
+			error_code ec, std::string_view data, std::shared_ptr<derived_t>& this_ptr, ecs_t<C>& ecs)
 		{
 			if (!this->derived().is_started())
 			{
@@ -443,9 +447,9 @@ namespace asio2::detail
 
 			this->derived().update_alive_time();
 
-			if constexpr (!std::is_same_v<typename condition_wrap<MatchCondition>::condition_type, use_kcp_t>)
+			if constexpr (!std::is_same_v<typename ecs_t<C>::condition_lowest_type, use_kcp_t>)
 			{
-				this->derived()._fire_recv(this_ptr, std::move(data), condition);
+				this->derived()._fire_recv(this_ptr, ecs, std::move(data));
 			}
 			else
 			{
@@ -513,18 +517,17 @@ namespace asio2::detail
 				}
 				else
 				{
-					this->kcp_->_kcp_recv(this_ptr, data, this->buffer_ref_, condition);
+					this->kcp_->_kcp_recv(this_ptr, data, this->buffer_ref_, ecs);
 				}
 			}
 		}
 
-		template<typename MatchCondition>
-		inline void _fire_recv(std::shared_ptr<derived_t>& this_ptr, std::string_view data,
-			condition_wrap<MatchCondition>& condition)
+		template<typename C>
+		inline void _fire_recv(std::shared_ptr<derived_t>& this_ptr, ecs_t<C>& ecs, std::string_view data)
 		{
 			this->listener_.notify(event_type::recv, this_ptr, data);
 
-			this->derived()._rdc_handle_recv(this_ptr, data, condition);
+			this->derived()._rdc_handle_recv(this_ptr, ecs, data);
 		}
 
 		inline void _fire_handshake(std::shared_ptr<derived_t>& this_ptr)
@@ -535,8 +538,8 @@ namespace asio2::detail
 			this->listener_.notify(event_type::handshake, this_ptr);
 		}
 
-		template<typename MatchCondition>
-		inline void _fire_connect(std::shared_ptr<derived_t>& this_ptr, condition_wrap<MatchCondition>& condition)
+		template<typename C>
+		inline void _fire_connect(std::shared_ptr<derived_t>& this_ptr, ecs_t<C>& ecs)
 		{
 			// the _fire_connect must be executed in the thread 0.
 			ASIO2_ASSERT(this->sessions().io().running_in_this_thread());
@@ -545,7 +548,7 @@ namespace asio2::detail
 			ASIO2_ASSERT(this->is_disconnect_called_ == false);
 		#endif
 
-			this->derived()._rdc_start(this_ptr, condition);
+			this->derived()._rdc_start(this_ptr, ecs);
 
 			this->listener_.notify(event_type::connect, this_ptr);
 		}

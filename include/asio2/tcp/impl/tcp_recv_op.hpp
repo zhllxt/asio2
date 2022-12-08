@@ -21,7 +21,7 @@
 #include <string_view>
 
 #include <asio2/base/error.hpp>
-#include <asio2/base/detail/condition_wrap.hpp>
+#include <asio2/base/detail/ecs.hpp>
 
 namespace asio2::detail
 {
@@ -47,10 +47,10 @@ namespace asio2::detail
 		~tcp_recv_op() = default;
 
 	protected:
-		template<typename MatchCondition>
-		void _tcp_post_recv(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		template<typename C>
+		void _tcp_post_recv(std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs)
 		{
-			using condition_type = typename condition_wrap<MatchCondition>::condition_type;
+			using condition_lowest_type = typename ecs_t<C>::condition_lowest_type;
 
 			derived_t& derive = static_cast<derived_t&>(*this);
 
@@ -66,27 +66,27 @@ namespace asio2::detail
 			try
 			{
 				if constexpr (
-					std::is_same_v<condition_type, asio::detail::transfer_all_t> ||
-					std::is_same_v<condition_type, asio::detail::transfer_at_least_t> ||
-					std::is_same_v<condition_type, asio::detail::transfer_exactly_t> ||
-					std::is_same_v<condition_type, asio2::detail::hook_buffer_t>)
+					std::is_same_v<condition_lowest_type, asio::detail::transfer_all_t> ||
+					std::is_same_v<condition_lowest_type, asio::detail::transfer_at_least_t> ||
+					std::is_same_v<condition_lowest_type, asio::detail::transfer_exactly_t> ||
+					std::is_same_v<condition_lowest_type, asio2::detail::hook_buffer_t>)
 				{
-					asio::async_read(derive.stream(), derive.buffer().base(), condition(),
+					asio::async_read(derive.stream(), derive.buffer().base(), ecs.get_condition().lowest(),
 						make_allocator(derive.rallocator(),
-							[&derive, self_ptr = std::move(this_ptr), condition]
+							[&derive, self_ptr = std::move(this_ptr), &ecs]
 					(const error_code& ec, std::size_t bytes_recvd) mutable
 					{
-						derive._handle_recv(ec, bytes_recvd, std::move(self_ptr), std::move(condition));
+						derive._handle_recv(ec, bytes_recvd, std::move(self_ptr), ecs);
 					}));
 				}
 				else
 				{
-					asio::async_read_until(derive.stream(), derive.buffer().base(), condition(),
+					asio::async_read_until(derive.stream(), derive.buffer().base(), ecs.get_condition().lowest(),
 						make_allocator(derive.rallocator(),
-							[&derive, self_ptr = std::move(this_ptr), condition]
+							[&derive, self_ptr = std::move(this_ptr), &ecs]
 					(const error_code& ec, std::size_t bytes_recvd) mutable
 					{
-						derive._handle_recv(ec, bytes_recvd, std::move(self_ptr), std::move(condition));
+						derive._handle_recv(ec, bytes_recvd, std::move(self_ptr), ecs);
 					}));
 				}
 			}
@@ -98,11 +98,11 @@ namespace asio2::detail
 			}
 		}
 
-		template<typename MatchCondition>
+		template<typename C>
 		void _tcp_handle_recv(const error_code & ec, std::size_t bytes_recvd,
-			std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+			std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs)
 		{
-			using condition_type = typename condition_wrap<MatchCondition>::condition_type;
+			using condition_lowest_type = typename ecs_t<C>::condition_lowest_type;
 
 			derived_t& derive = static_cast<derived_t&>(*this);
 
@@ -141,7 +141,7 @@ namespace asio2::detail
 				// every times recv data,we update the last alive time.
 				derive.update_alive_time();
 
-				if constexpr (std::is_same_v<condition_type, use_dgram_t>)
+				if constexpr (std::is_same_v<condition_lowest_type, use_dgram_t>)
 				{
 					if constexpr (has_member_dgram<derived_t>::value)
 					{
@@ -159,37 +159,37 @@ namespace asio2::detail
 					const std::uint8_t* buffer = static_cast<const std::uint8_t*>(derive.buffer().data().data());
 					if /**/ (std::uint8_t(buffer[0]) < std::uint8_t(254))
 					{
-						derive._fire_recv(this_ptr, std::string_view(reinterpret_cast<
-							std::string_view::const_pointer>(buffer + 1), bytes_recvd - 1), condition);
+						derive._fire_recv(this_ptr, ecs, std::string_view(reinterpret_cast<
+							std::string_view::const_pointer>(buffer + 1), bytes_recvd - 1));
 					}
 					else if (std::uint8_t(buffer[0]) == std::uint8_t(254))
 					{
-						derive._fire_recv(this_ptr, std::string_view(reinterpret_cast<
-							std::string_view::const_pointer>(buffer + 1 + 2), bytes_recvd - 1 - 2), condition);
+						derive._fire_recv(this_ptr, ecs, std::string_view(reinterpret_cast<
+							std::string_view::const_pointer>(buffer + 1 + 2), bytes_recvd - 1 - 2));
 					}
 					else
 					{
 						ASIO2_ASSERT(std::uint8_t(buffer[0]) == std::uint8_t(255));
-						derive._fire_recv(this_ptr, std::string_view(reinterpret_cast<
-							std::string_view::const_pointer>(buffer + 1 + 8), bytes_recvd - 1 - 8), condition);
+						derive._fire_recv(this_ptr, ecs, std::string_view(reinterpret_cast<
+							std::string_view::const_pointer>(buffer + 1 + 8), bytes_recvd - 1 - 8));
 					}
 				}
 				else
 				{
-					if constexpr (!std::is_same_v<condition_type, asio2::detail::hook_buffer_t>)
+					if constexpr (!std::is_same_v<condition_lowest_type, asio2::detail::hook_buffer_t>)
 					{
-						derive._fire_recv(this_ptr, std::string_view(reinterpret_cast<
-							std::string_view::const_pointer>(derive.buffer().data().data()), bytes_recvd), condition);
+						derive._fire_recv(this_ptr, ecs, std::string_view(reinterpret_cast<
+							std::string_view::const_pointer>(derive.buffer().data().data()), bytes_recvd));
 					}
 					else
 					{
-						derive._fire_recv(this_ptr, std::string_view(reinterpret_cast<
+						derive._fire_recv(this_ptr, ecs, std::string_view(reinterpret_cast<
 							std::string_view::const_pointer>(derive.buffer().data().data()),
-							derive.buffer().size()), condition);
+							derive.buffer().size()));
 					}
 				}
 
-				if constexpr (!std::is_same_v<condition_type, asio2::detail::hook_buffer_t>)
+				if constexpr (!std::is_same_v<condition_lowest_type, asio2::detail::hook_buffer_t>)
 				{
 					derive.buffer().consume(bytes_recvd);
 				}
@@ -198,7 +198,7 @@ namespace asio2::detail
 					std::ignore = true;
 				}
 
-				derive._post_recv(std::move(this_ptr), std::move(condition));
+				derive._post_recv(std::move(this_ptr), ecs);
 			}
 			else
 			{

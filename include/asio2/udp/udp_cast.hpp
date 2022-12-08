@@ -182,7 +182,7 @@ namespace asio2::detail
 
 			return this->derived()._do_start(
 				std::forward<String>(host), std::forward<StrOrInt>(service),
-				condition_helper::make_condition('0', std::forward<Args>(args)...));
+				ecs_helper::make_ecs('0', std::forward<Args>(args)...));
 		}
 
 		/**
@@ -323,10 +323,14 @@ namespace asio2::detail
 		}
 
 	protected:
-		template<typename String, typename StrOrInt, typename MatchCondition>
-		bool _do_start(String&& host, StrOrInt&& port, condition_wrap<MatchCondition> condition)
+		template<typename String, typename StrOrInt, typename C>
+		bool _do_start(String&& host, StrOrInt&& port, ecs_t<C> e)
 		{
 			derived_t& derive = this->derived();
+
+			this->ecs_ = std::make_unique<ecs_t<C>>(std::move(e));
+
+			ecs_t<C>& ecs = *const_cast<ecs_t<C>*>(static_cast<const ecs_t<C>*>(this->ecs_.get()));
 
 			this->start_iopool();
 
@@ -355,9 +359,8 @@ namespace asio2::detail
 			};
 
 			derive.push_event(
-			[this, this_ptr = derive.selfptr(),
-				host = std::forward<String>(host), port = std::forward<StrOrInt>(port),
-				condition = std::move(condition), pg = std::move(pg)]
+			[this, this_ptr = derive.selfptr(), &ecs, pg = std::move(pg),
+				host = std::forward<String>(host), port = std::forward<StrOrInt>(port)]
 			(event_queue_guard<derived_t> g) mutable
 			{
 				derived_t& derive = this->derived();
@@ -435,7 +438,7 @@ namespace asio2::detail
 
 					this->socket_.bind(endpoint);
 
-					derive._handle_start(error_code{}, std::move(this_ptr), std::move(condition), std::move(chain));
+					derive._handle_start(error_code{}, std::move(this_ptr), ecs, std::move(chain));
 
 					return;
 				}
@@ -448,7 +451,7 @@ namespace asio2::detail
 					set_last_error(asio::error::invalid_argument);
 				}
 
-				derive._handle_start(get_last_error(), std::move(this_ptr), std::move(condition), std::move(chain));
+				derive._handle_start(get_last_error(), std::move(this_ptr), ecs, std::move(chain));
 			});
 
 			if (!derive.io().running_in_this_thread())
@@ -469,9 +472,8 @@ namespace asio2::detail
 			return derive.is_started();
 		}
 
-		template<typename MatchCondition, typename DeferEvent>
-		void _handle_start(error_code ec, std::shared_ptr<derived_t> this_ptr,
-			condition_wrap<MatchCondition> condition, DeferEvent chain)
+		template<typename C, typename DeferEvent>
+		void _handle_start(error_code ec, std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs, DeferEvent chain)
 		{
 			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
 
@@ -496,7 +498,7 @@ namespace asio2::detail
 
 				this->buffer_.consume(this->buffer_.size());
 
-				this->derived()._post_recv(std::move(this_ptr), std::move(condition));
+				this->derived()._post_recv(std::move(this_ptr), ecs);
 			}
 			catch (system_error & e)
 			{
@@ -585,6 +587,9 @@ namespace asio2::detail
 
 			// clear recv buffer
 			this->buffer().consume(this->buffer().size());
+
+			// destroy the ecs
+			this->ecs_.reset();
 		}
 
 	protected:
@@ -595,8 +600,8 @@ namespace asio2::detail
 		}
 
 	protected:
-		template<typename MatchCondition>
-		void _post_recv(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		template<typename C>
+		void _post_recv(std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs)
 		{
 			if (!this->is_started())
 			{
@@ -610,12 +615,12 @@ namespace asio2::detail
 			try
 			{
 				this->socket_.async_receive_from(
-					this->buffer_.prepare(this->buffer_.pre_size()), this->remote_endpoint_,
-					make_allocator(this->rallocator_,
-					[this, this_ptr = std::move(this_ptr), condition = std::move(condition)]
+					this->buffer_.prepare(this->buffer_.pre_size()),
+					this->remote_endpoint_,
+					make_allocator(this->rallocator_, [this, this_ptr = std::move(this_ptr), &ecs]
 				(const error_code& ec, std::size_t bytes_recvd) mutable
 				{
-					this->derived()._handle_recv(ec, bytes_recvd, std::move(this_ptr), std::move(condition));
+					this->derived()._handle_recv(ec, bytes_recvd, std::move(this_ptr), ecs);
 				}));
 			}
 			catch (system_error & e)
@@ -626,9 +631,9 @@ namespace asio2::detail
 			}
 		}
 
-		template<typename MatchCondition>
-		void _handle_recv(const error_code& ec, std::size_t bytes_recvd,
-			std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		template<typename C>
+		void _handle_recv(
+			const error_code& ec, std::size_t bytes_recvd, std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs)
 		{
 			set_last_error(ec);
 
@@ -651,9 +656,9 @@ namespace asio2::detail
 
 			if (!ec)
 			{
-				this->derived()._fire_recv(this_ptr,
+				this->derived()._fire_recv(this_ptr, ecs,
 					std::string_view(static_cast<std::string_view::const_pointer>(
-						this->buffer_.data().data()), bytes_recvd), condition);
+						this->buffer_.data().data()), bytes_recvd));
 			}
 
 			this->buffer_.consume(this->buffer_.size());
@@ -663,7 +668,7 @@ namespace asio2::detail
 				this->buffer_.pre_size((std::min)(this->buffer_.pre_size() * 2, this->buffer_.max_size()));
 			}
 
-			this->derived()._post_recv(std::move(this_ptr), std::move(condition));
+			this->derived()._post_recv(std::move(this_ptr), ecs);
 		}
 
 		inline void _fire_init()
@@ -675,11 +680,10 @@ namespace asio2::detail
 			this->listener_.notify(event_type::init);
 		}
 
-		template<typename MatchCondition>
-		inline void _fire_recv(std::shared_ptr<derived_t>& this_ptr, std::string_view data,
-			condition_wrap<MatchCondition>& condition)
+		template<typename C>
+		inline void _fire_recv(std::shared_ptr<derived_t>& this_ptr, ecs_t<C>& ecs, std::string_view data)
 		{
-			detail::ignore_unused(this_ptr, condition);
+			detail::ignore_unused(this_ptr, ecs);
 
 			this->listener_.notify(event_type::recv, this->remote_endpoint_, data);
 		}
@@ -753,6 +757,9 @@ namespace asio2::detail
 
 		/// endpoint for udp 
 		asio::ip::udp::endpoint                     remote_endpoint_;
+
+		/// the pointer of ecs_t
+		std::unique_ptr<ecs_base>                   ecs_;
 
 	#if defined(_DEBUG) || defined(DEBUG)
 		bool                                        is_stop_called_  = false;

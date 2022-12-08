@@ -40,7 +40,7 @@
 #include <asio2/base/detail/allocator.hpp>
 #include <asio2/base/detail/util.hpp>
 #include <asio2/base/detail/buffer_wrap.hpp>
-#include <asio2/base/detail/condition_wrap.hpp>
+#include <asio2/base/detail/ecs.hpp>
 
 #include <asio2/base/impl/thread_id_cp.hpp>
 #include <asio2/base/impl/connect_time_cp.hpp>
@@ -177,7 +177,7 @@ namespace asio2::detail
 		{
 			ASIO2_ASSERT(this->io_.running_in_this_thread());
 
-			this->derived().dispatch([this]() mutable
+			this->derived().post([this]() mutable
 			{
 				// close reconnect timer
 				this->_stop_reconnect_timer();
@@ -196,10 +196,15 @@ namespace asio2::detail
 
 				// destroy user data, maybe the user data is self shared_ptr, if don't destroy it,
 				// will cause loop refrence.
+				// read/write user data in other thread which is not the io_context thread maybe 
+				// cause crash.
 				this->user_data_.reset();
 
 				// clear recv buffer
 				this->buffer().consume(this->buffer().size());
+
+				// destroy the ecs
+				this->ecs_.reset();
 			});
 		}
 
@@ -295,6 +300,9 @@ namespace asio2::detail
 
 		/// Remote call (rpc/rdc) response timeout.
 		std::chrono::steady_clock::duration         rc_timeout_ = std::chrono::milliseconds(http_execute_timeout);
+
+		/// the pointer of ecs_t
+		std::unique_ptr<ecs_base>                   ecs_;
 	};
 }
 

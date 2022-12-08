@@ -109,24 +109,27 @@ namespace asio2::detail
 		/**
 		 * @brief start the session for prepare to recv/send msg
 		 */
-		template<typename MatchCondition>
-		inline void start(condition_wrap<MatchCondition> condition)
+		template<typename C>
+		inline void start(ecs_t<C> e)
 		{
+			this->ecs_ = std::make_unique<ecs_t<C>>(std::move(e));
+
+			ecs_t<C>& ecs = *const_cast<ecs_t<C>*>(static_cast<const ecs_t<C>*>(this->ecs_.get()));
+
 			this->rep_.set_root_directory(this->root_directory_);
-			this->rep_.session_ptr_ = this->selfptr();
-			this->rep_.defer_callback_ = [this, condition, wptr = std::weak_ptr<derived_t>(this->selfptr())]
+			this->rep_.session_ptr_ = this->derived().selfptr();
+			this->rep_.defer_callback_ = [this, &ecs, wptr = std::weak_ptr<derived_t>(this->derived().selfptr())]
 			() mutable
 			{
 				std::shared_ptr<derived_t> this_ptr = wptr.lock();
 				ASIO2_ASSERT(this_ptr);
 				if (this_ptr)
 				{
-					this->derived()._do_send_http_response(
-						std::move(this_ptr), std::move(condition), this->rep_.base());
+					this->derived()._do_send_http_response(std::move(this_ptr), ecs, this->rep_.base());
 				}
 			};
 
-			super::start(std::move(condition));
+			super::_start_impl(ecs);
 		}
 
 	public:
@@ -183,14 +186,14 @@ namespace asio2::detail
 			return (this->router_);
 		}
 
-		template<typename MatchCondition>
-		inline void _do_init(std::shared_ptr<derived_t>& this_ptr, condition_wrap<MatchCondition>& condition)
+		template<typename C>
+		inline void _do_init(std::shared_ptr<derived_t>& this_ptr, ecs_t<C>& ecs)
 		{
-			super::_do_init(this_ptr, condition);
+			super::_do_init(this_ptr, ecs);
 
 			if (this->support_websocket_)
 			{
-				this->derived()._ws_init(condition, this->derived().stream());
+				this->derived()._ws_init(ecs, this->derived().stream());
 			}
 		}
 
@@ -227,9 +230,8 @@ namespace asio2::detail
 			this->websocket_router_.reset();
 		}
 
-		template<typename MatchCondition, class MessageT>
-		inline void _send_http_response(
-			std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition, MessageT& msg)
+		template<typename C, class MessageT>
+		inline void _send_http_response(std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs, MessageT& msg)
 		{
 			if (this->rep_.defer_guard_)
 			{
@@ -239,19 +241,18 @@ namespace asio2::detail
 			{
 				if (this->response_mode_ == asio2::response_mode::automatic)
 				{
-					this->derived()._do_send_http_response(std::move(this_ptr), std::move(condition), msg);
+					this->derived()._do_send_http_response(std::move(this_ptr), ecs, msg);
 				}
 			}
 		}
 
-		template<typename MatchCondition, class MessageT>
-		inline void _do_send_http_response(
-			std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition, MessageT& msg)
+		template<typename C, class MessageT>
+		inline void _do_send_http_response(std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs, MessageT& msg)
 		{
 			ASIO2_ASSERT(this->is_http());
 
 			asio::dispatch(this->derived().io().context(), make_allocator(this->derived().wallocator(),
-			[this, this_ptr = std::move(this_ptr), condition = std::move(condition), &msg]() mutable
+			[this, this_ptr = std::move(this_ptr), &ecs, &msg]() mutable
 			{
 				derived_t& derive = this->derived();
 
@@ -263,11 +264,11 @@ namespace asio2::detail
 
 				// be careful: here we pushed the reference of the msg into the queue, so the msg object
 				// must can't be destroyed or modifyed.
-				derive.push_event([&derive, this_ptr = std::move(this_ptr), condition = std::move(condition), &msg]
+				derive.push_event([&derive, this_ptr = std::move(this_ptr), &ecs, &msg]
 				(event_queue_guard<derived_t> g) mutable
 				{
 					derive._do_send(msg,
-					[&derive, this_ptr = std::move(this_ptr), condition = std::move(condition), g = std::move(g)]
+					[&derive, this_ptr = std::move(this_ptr), &ecs, g = std::move(g)]
 					(const error_code&, std::size_t) mutable
 					{
 						ASIO2_ASSERT(!g.is_empty());
@@ -281,7 +282,7 @@ namespace asio2::detail
 						}
 						else
 						{
-							derive._post_recv(std::move(this_ptr), std::move(condition));
+							derive._post_recv(std::move(this_ptr), ecs);
 						}
 					});
 				});
@@ -326,34 +327,34 @@ namespace asio2::detail
 				invoker(ec, send_data_t{}, data);
 		}
 
-		template<class Invoker, class FnData>
-		inline void _rdc_invoke_with_send(const error_code& ec, Invoker& invoker, FnData& fn_data)
+		template<class Invoker>
+		inline void _rdc_invoke_with_send(const error_code& ec, Invoker& invoker, send_data_t data)
 		{
 			ASIO2_ASSERT(this->websocket_router_ && "Only available in websocket mode");
 			if (this->derived().is_websocket() && invoker)
-				invoker(ec, fn_data(), recv_data_t{});
+				invoker(ec, data, recv_data_t{});
 		}
 
 	protected:
-		template<typename MatchCondition>
-		inline void _post_recv(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		template<typename C>
+		inline void _post_recv(std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs)
 		{
-			this->derived()._http_post_recv(std::move(this_ptr), std::move(condition));
+			this->derived()._http_post_recv(std::move(this_ptr), ecs);
 		}
 
-		template<typename MatchCondition>
-		inline void _handle_recv(const error_code& ec, std::size_t bytes_recvd,
-			std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		template<typename C>
+		inline void _handle_recv(
+			const error_code& ec, std::size_t bytes_recvd, std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs)
 		{
-			this->derived()._http_handle_recv(ec, bytes_recvd, std::move(this_ptr), std::move(condition));
+			this->derived()._http_handle_recv(ec, bytes_recvd, std::move(this_ptr), ecs);
 		}
 
-		template<typename MatchCondition, typename DeferEvent>
-		inline void _handle_upgrade(const error_code & ec, std::shared_ptr<derived_t> self_ptr,
-			condition_wrap<MatchCondition> condition, DeferEvent chain)
+		template<typename C, typename DeferEvent>
+		inline void _handle_upgrade(
+			const error_code& ec, std::shared_ptr<derived_t> self_ptr, ecs_t<C>& ecs, DeferEvent chain)
 		{
 			this->derived().sessions().post(
-			[this, ec, this_ptr = std::move(self_ptr), condition = std::move(condition), chain = std::move(chain)]
+			[this, ec, this_ptr = std::move(self_ptr), &ecs, chain = std::move(chain)]
 			() mutable
 			{
 				try
@@ -365,12 +366,12 @@ namespace asio2::detail
 					asio::detail::throw_error(ec);
 
 					asio::post(this->derived().io().context(), make_allocator(this->derived().wallocator(),
-					[this, this_ptr = std::move(this_ptr), condition = std::move(condition), chain = std::move(chain)]
+					[this, this_ptr = std::move(this_ptr), &ecs, chain = std::move(chain)]
 					() mutable
 					{
 						detail::ignore_unused(chain);
 
-						this->derived()._post_recv(std::move(this_ptr), std::move(condition));
+						this->derived()._post_recv(std::move(this_ptr), ecs);
 					}));
 				}
 				catch (system_error & e)
@@ -382,8 +383,8 @@ namespace asio2::detail
 			});
 		}
 
-		template<typename MatchCondition>
-		inline bool _check_upgrade(std::shared_ptr<derived_t>& this_ptr, condition_wrap<MatchCondition>& condition)
+		template<typename C>
+		inline bool _check_upgrade(std::shared_ptr<derived_t>& this_ptr, ecs_t<C>& ecs)
 		{
 			if (this->support_websocket_ && this->derived().is_http() && this->req_.is_upgrade())
 			{
@@ -398,15 +399,15 @@ namespace asio2::detail
 					{
 						this->derived().silence_timeout_ = std::chrono::milliseconds(tcp_silence_timeout);
 
-						this->derived()._ws_start(this_ptr, condition, this->derived().stream());
+						this->derived()._ws_start(this_ptr, ecs, this->derived().stream());
 
-						this->derived()._post_control_callback(this_ptr, condition);
+						this->derived()._post_control_callback(this_ptr, ecs);
 						this->derived().push_event(
-						[this, this_ptr = std::move(this_ptr), condition = std::move(condition)]
+						[this, this_ptr = std::move(this_ptr), &ecs]
 						(event_queue_guard<derived_t> g) mutable
 						{
 							this->derived()._post_upgrade(
-								std::move(this_ptr), std::move(condition), this->req_.base(),
+								std::move(this_ptr), ecs, this->req_.base(),
 								defer_event([](event_queue_guard<derived_t>) {}, std::move(g)));
 						});
 					}
@@ -417,7 +418,7 @@ namespace asio2::detail
 
 						this->websocket_router_.reset();
 
-						this->derived()._send_http_response(this_ptr, condition, this->rep_.base());
+						this->derived()._send_http_response(this_ptr, ecs, this->rep_.base());
 					}
 
 					// If find websocket router, the router callback must has been called, 
@@ -430,11 +431,11 @@ namespace asio2::detail
 			return false;
 		}
 
-		template<typename MatchCondition>
-		inline void _handle_control_ping(beast::string_view payload,
-			std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		template<typename C>
+		inline void _handle_control_ping(
+			beast::string_view payload, std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs)
 		{
-			detail::ignore_unused(payload, this_ptr, condition);
+			detail::ignore_unused(payload, this_ptr, ecs);
 
 			this->req_.ws_frame_type_ = websocket::frame::ping;
 			this->req_.ws_frame_data_ = payload;
@@ -442,11 +443,11 @@ namespace asio2::detail
 			this->router_._route(this_ptr, this->req_, this->rep_);
 		}
 
-		template<typename MatchCondition>
-		inline void _handle_control_pong(beast::string_view payload,
-			std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		template<typename C>
+		inline void _handle_control_pong(
+			beast::string_view payload, std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs)
 		{
-			detail::ignore_unused(payload, this_ptr, condition);
+			detail::ignore_unused(payload, this_ptr, ecs);
 
 			this->req_.ws_frame_type_ = websocket::frame::pong;
 			this->req_.ws_frame_data_ = payload;
@@ -454,11 +455,11 @@ namespace asio2::detail
 			this->router_._route(this_ptr, this->req_, this->rep_);
 		}
 
-		template<typename MatchCondition>
-		inline void _handle_control_close(beast::string_view payload,
-			std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		template<typename C>
+		inline void _handle_control_close(
+			beast::string_view payload, std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs)
 		{
-			detail::ignore_unused(payload, this_ptr, condition);
+			detail::ignore_unused(payload, this_ptr, ecs);
 
 			this->req_.ws_frame_type_ = websocket::frame::close;
 			this->req_.ws_frame_data_ = payload;
@@ -480,8 +481,8 @@ namespace asio2::detail
 			this->listener_.notify(event_type::upgrade, this_ptr);
 		}
 
-		template<typename MatchCondition>
-		inline void _fire_recv(std::shared_ptr<derived_t>& this_ptr, condition_wrap<MatchCondition>& condition)
+		template<typename C>
+		inline void _fire_recv(std::shared_ptr<derived_t>& this_ptr, ecs_t<C>& ecs)
 		{
 			if (this->is_arg0_session_)
 				this->listener_.notify(event_type::recv, this_ptr, this->req_, this->rep_);
@@ -492,11 +493,11 @@ namespace asio2::detail
 
 			if (this->derived().is_websocket())
 			{
-				this->derived()._rdc_handle_recv(this_ptr, this->req_.ws_frame_data_, condition);
+				this->derived()._rdc_handle_recv(this_ptr, ecs, this->req_.ws_frame_data_);
 			}
 			else
 			{
-				this->derived()._send_http_response(this_ptr, condition, *prep);
+				this->derived()._send_http_response(this_ptr, ecs, *prep);
 			}
 		}
 

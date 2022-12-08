@@ -169,7 +169,7 @@ namespace asio2::detail
 			else
 				return this->derived().template _do_connect<false>(
 					std::forward<String>(host), std::forward<StrOrInt>(port),
-					condition_helper::make_condition(asio::transfer_at_least(1),
+					ecs_helper::make_ecs(asio::transfer_at_least(1),
 						mqtt::mqtt_match_role, std::forward<Args>(args)...));
 		}
 
@@ -190,7 +190,7 @@ namespace asio2::detail
 			else
 				return this->derived().template _do_connect<true>(
 					std::forward<String>(host), std::forward<StrOrInt>(port),
-					condition_helper::make_condition(asio::transfer_at_least(1),
+					ecs_helper::make_ecs(asio::transfer_at_least(1),
 						mqtt::mqtt_match_role, std::forward<Args>(args)...));
 		}
 
@@ -383,20 +383,20 @@ namespace asio2::detail
 
 				return this->derived().template _do_connect<IsAsync>(
 					std::forward<String>(host), std::forward<StrOrInt>(port),
-					condition_helper::make_condition(asio::transfer_at_least(1),
+					ecs_helper::make_ecs(asio::transfer_at_least(1),
 						mqtt::mqtt_match_role, std::forward<Args>(args)...));
 			}
 			else
 			{
 				return this->derived().template _do_connect<IsAsync>(
 					std::forward<String>(host), std::forward<StrOrInt>(port),
-					condition_helper::make_condition(asio::transfer_at_least(1),
+					ecs_helper::make_ecs(asio::transfer_at_least(1),
 						mqtt::mqtt_match_role, std::forward<Arg1>(arg1), std::forward<Args>(args)...));
 			}
 		}
 
-		template<bool IsAsync, typename String, typename StrOrInt, typename MatchCondition>
-		inline bool _do_connect(String&& host, StrOrInt&& port, condition_wrap<MatchCondition> condition)
+		template<bool IsAsync, typename String, typename StrOrInt, typename C>
+		inline bool _do_connect(String&& host, StrOrInt&& port, ecs_t<C> e)
 		{
 			if (!this->connect_message_.template holds<mqtt::v3::connect, mqtt::v4::connect, mqtt::v5::connect>())
 			{
@@ -406,13 +406,13 @@ namespace asio2::detail
 			}
 
 			return super::template _do_connect<IsAsync>(
-				std::forward<String>(host), std::forward<StrOrInt>(port), std::move(condition));
+				std::forward<String>(host), std::forward<StrOrInt>(port), std::move(e));
 		}
 
-		template<typename MatchCondition>
-		inline void _bind_default_mqtt_handler(condition_wrap<MatchCondition>& condition)
+		template<typename C>
+		inline void _bind_default_mqtt_handler(ecs_t<C>& ecs)
 		{
-			detail::ignore_unused(condition);
+			detail::ignore_unused(ecs);
 
 			// must set default callback for every mqtt message.
 			if (!(this->_find_mqtt_handler(mqtt::control_packet_type::connect    ))) this->on_connect    ([](mqtt::message&                ) mutable {});
@@ -433,13 +433,13 @@ namespace asio2::detail
 		}
 
 	protected:
-		template<typename MatchCondition>
-		inline void _do_init(condition_wrap<MatchCondition>& condition)
+		template<typename C>
+		inline void _do_init(ecs_t<C>& ecs)
 		{
 			// must set default callback for every mqtt message.
-			this->derived()._bind_default_mqtt_handler(condition);
+			this->derived()._bind_default_mqtt_handler(ecs);
 
-			super::_do_init(condition);
+			super::_do_init(ecs);
 		}
 
 		template<typename DeferEvent = defer_event<void, derived_t>>
@@ -490,9 +490,9 @@ namespace asio2::detail
 			super::_do_disconnect(ec, std::move(this_ptr), std::move(chain));
 		}
 
-		template<typename MatchCondition, typename DeferEvent>
-		inline void _handle_connect(const error_code& ec, std::shared_ptr<derived_t> this_ptr,
-			condition_wrap<MatchCondition> condition, DeferEvent chain)
+		template<typename C, typename DeferEvent>
+		inline void _handle_connect(
+			const error_code& ec, std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs, DeferEvent chain)
 		{
 			derived_t& derive = this->derived();
 
@@ -500,7 +500,7 @@ namespace asio2::detail
 
 			if (ec)
 			{
-				return derive._done_connect(ec, std::move(this_ptr), std::move(condition), std::move(chain));
+				return derive._done_connect(ec, std::move(this_ptr), ecs, std::move(chain));
 			}
 
 			// send connect message to server use coroutine 
@@ -509,22 +509,22 @@ namespace asio2::detail
 				derive.io().context(),
 				derive.connect_message_,
 				derive.stream(),
-				[&derive, this_ptr = std::move(this_ptr), condition = std::move(condition), chain = std::move(chain)]
+				[&derive, this_ptr = std::move(this_ptr), &ecs, chain = std::move(chain)]
 				(error_code ec, std::unique_ptr<asio::streambuf> stream) mutable
 				{
-					derive._handle_mqtt_connect_response(ec, std::move(this_ptr), std::move(condition),
+					derive._handle_mqtt_connect_response(ec, std::move(this_ptr), ecs,
 						std::move(stream), std::move(chain));
 				}
 			};
 		}
 
-		template<typename MatchCondition, typename DeferEvent>
+		template<typename C, typename DeferEvent>
 		inline void _handle_mqtt_connect_response(error_code ec, std::shared_ptr<derived_t> this_ptr,
-			condition_wrap<MatchCondition> condition, std::unique_ptr<asio::streambuf> stream, DeferEvent chain)
+			ecs_t<C>& ecs, std::unique_ptr<asio::streambuf> stream, DeferEvent chain)
 		{
 			if (ec)
 			{
-				this->derived()._done_connect(ec, std::move(this_ptr), std::move(condition), std::move(chain));
+				this->derived()._done_connect(ec, std::move(this_ptr), ecs, std::move(chain));
 				return;
 			}
 
@@ -546,7 +546,7 @@ namespace asio2::detail
 			{
 				ASIO2_ASSERT(false);
 				ec = mqtt::make_error_code(mqtt::error::malformed_packet);
-				this->derived()._done_connect(ec, std::move(this_ptr), std::move(condition), std::move(chain));
+				this->derived()._done_connect(ec, std::move(this_ptr), ecs, std::move(chain));
 				return;
 			}
 
@@ -556,14 +556,14 @@ namespace asio2::detail
 
 			this->derived()._call_mqtt_handler(type, ec, this_ptr, static_cast<derived_t*>(this), data);
 
-			this->derived()._done_connect(ec, std::move(this_ptr), std::move(condition), std::move(chain));
+			this->derived()._done_connect(ec, std::move(this_ptr), ecs, std::move(chain));
 		}
 
-		template<typename MatchCondition, typename DeferEvent>
+		template<typename C, typename DeferEvent>
 		inline void _do_start(
-			std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition, DeferEvent chain)
+			std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs, DeferEvent chain)
 		{
-			super::_do_start(std::move(this_ptr), std::move(condition), std::move(chain));
+			super::_do_start(std::move(this_ptr), ecs, std::move(chain));
 
 			this->derived()._post_pingreq_timer(std::chrono::seconds(this->derived().keep_alive_time()), this_ptr);
 		}
@@ -655,13 +655,12 @@ namespace asio2::detail
 		}
 
 	protected:
-		template<typename MatchCondition>
-		inline void _fire_recv(std::shared_ptr<derived_t>& this_ptr, std::string_view data,
-			condition_wrap<MatchCondition>& condition)
+		template<typename C>
+		inline void _fire_recv(std::shared_ptr<derived_t>& this_ptr, ecs_t<C>& ecs, std::string_view data)
 		{
 			this->listener_.notify(event_type::recv, data);
 
-			this->derived()._rdc_handle_recv(this_ptr, data, condition);
+			this->derived()._rdc_handle_recv(this_ptr, ecs, data);
 
 			mqtt::control_packet_type type = mqtt::message_type_from_data(data);
 

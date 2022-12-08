@@ -38,7 +38,7 @@
 #include <asio2/base/detail/allocator.hpp>
 #include <asio2/base/detail/util.hpp>
 #include <asio2/base/detail/buffer_wrap.hpp>
-#include <asio2/base/detail/condition_wrap.hpp>
+#include <asio2/base/detail/ecs.hpp>
 
 #include <asio2/base/impl/thread_id_cp.hpp>
 #include <asio2/base/impl/user_data_cp.hpp>
@@ -116,7 +116,7 @@ namespace asio2::detail
 		{
 			ASIO2_ASSERT(this->io_.running_in_this_thread());
 
-			this->derived().dispatch([this]() mutable
+			this->derived().post([this]() mutable
 			{
 				// close user custom timers
 				this->stop_all_timers();
@@ -129,7 +129,12 @@ namespace asio2::detail
 
 				// destroy user data, maybe the user data is self shared_ptr, 
 				// if don't destroy it, will cause loop refrence.
+				// read/write user data in other thread which is not the io_context thread maybe 
+				// cause crash.
 				this->user_data_.reset();
+
+				// destroy the ecs
+				this->ecs_.reset();
 			});
 		}
 
@@ -350,6 +355,9 @@ namespace asio2::detail
 
 		/// use this to ensure that server stop only after all sessions are closed
 		std::shared_ptr<void>                       counter_ptr_;
+
+		/// the pointer of ecs_t
+		std::unique_ptr<ecs_base>                   ecs_;
 	};
 }
 

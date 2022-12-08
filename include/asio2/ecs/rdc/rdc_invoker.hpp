@@ -163,6 +163,8 @@ namespace asio2::detail
 	public:
 		using self = rdc_invoker_t<IdT, SendDataT, RecvDataT>;
 		using callback_type = typename rdc_make_callback_t<SendDataT, RecvDataT>::callback_type;
+		using value_type    =          std::tuple<std::shared_ptr<asio::steady_timer>, callback_type>;
+		using iterator_type = typename std::multimap<IdT, value_type>::iterator;
 
 		/**
 		 * @brief constructor
@@ -217,6 +219,14 @@ namespace asio2::detail
 		/**
 		 * @brief
 		 */
+		inline auto emplace(IdT key, value_type val)
+		{
+			return this->rdc_reqs_.insert(std::pair(std::move(key), std::move(val)));
+		}
+
+		/**
+		 * @brief
+		 */
 		inline auto end()
 		{
 			return this->rdc_reqs_.end();
@@ -234,13 +244,13 @@ namespace asio2::detail
 		/**
 		 * @brief
 		 */
-		inline std::multimap<IdT, std::tuple<std::shared_ptr<asio::steady_timer>, callback_type>>& reqs() noexcept
+		inline std::multimap<IdT, value_type>& reqs() noexcept
 		{
 			return this->rdc_reqs_;
 		}
 
 	protected:
-		std::multimap<IdT, std::tuple<std::shared_ptr<asio::steady_timer>, callback_type>> rdc_reqs_;
+		std::multimap<IdT, value_type> rdc_reqs_;
 	};
 }
 

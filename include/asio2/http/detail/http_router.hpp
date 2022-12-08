@@ -59,8 +59,13 @@ namespace bho::beast::websocket
 namespace boost::beast::websocket
 #endif
 {
+	namespace detail
+	{
+		struct listener_tag {};
+	}
+
 	template<class caller_t>
-	class listener
+	class listener : public detail::listener_tag
 	{
 		template<class, class> friend class asio2::detail::http_router_t;
 
@@ -351,7 +356,7 @@ namespace asio2::detail
 		 * if fun is member function, the first caop param must the class object's pointer or refrence.
 		 */
 		template<http::verb... M, class F, class ...CAOP>
-		typename std::enable_if_t<!detail::is_template_instance_of_v<websocket::listener,
+		typename std::enable_if_t<!std::is_base_of_v<websocket::detail::listener_tag,
 			detail::remove_cvref_t<F>>, self&>
 		inline bind(std::string name, F&& fun, CAOP&&... caop)
 		{
@@ -483,7 +488,7 @@ namespace asio2::detail
 		}
 
 		template<http::verb... M, class F, class... AOP>
-		typename std::enable_if_t<!detail::is_template_instance_of_v<websocket::listener,
+		typename std::enable_if_t<!std::is_base_of_v<websocket::detail::listener_tag,
 			detail::remove_cvref_t<F>>, void>
 		inline _bind(std::string name, F f, AOP&&... aop)
 		{
@@ -505,7 +510,7 @@ namespace asio2::detail
 		}
 
 		template<http::verb... M, class F, class C, class... AOP>
-		typename std::enable_if_t<!detail::is_template_instance_of_v<websocket::listener,
+		typename std::enable_if_t<!std::is_base_of_v<websocket::detail::listener_tag,
 			detail::remove_cvref_t<F>> && std::is_same_v<C, typename function_traits<F>::class_type>, void>
 		inline _bind(std::string name, F f, C* c, AOP&&... aop)
 		{
@@ -527,7 +532,7 @@ namespace asio2::detail
 		}
 
 		template<http::verb... M, class F, class C, class... AOP>
-		typename std::enable_if_t<!detail::is_template_instance_of_v<websocket::listener,
+		typename std::enable_if_t<!std::is_base_of_v<websocket::detail::listener_tag,
 			detail::remove_cvref_t<F>> && std::is_same_v<C, typename function_traits<F>::class_type>, void>
 		inline _bind(std::string name, F f, C& c, AOP&&... aop)
 		{

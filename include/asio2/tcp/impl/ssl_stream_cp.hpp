@@ -25,7 +25,7 @@
 #include <asio2/base/iopool.hpp>
 
 #include <asio2/base/detail/allocator.hpp>
-#include <asio2/base/detail/condition_wrap.hpp>
+#include <asio2/base/detail/ecs.hpp>
 
 namespace asio2::detail
 {
@@ -56,12 +56,12 @@ namespace asio2::detail
 		}
 
 	protected:
-		template<typename MatchCondition>
-		inline void _ssl_init(condition_wrap<MatchCondition>& condition, socket_type& socket, asio::ssl::context& ctx)
+		template<typename C>
+		inline void _ssl_init(ecs_t<C>& ecs, socket_type& socket, asio::ssl::context& ctx)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			detail::ignore_unused(derive, condition, socket, ctx);
+			detail::ignore_unused(derive, ecs, socket, ctx);
 
 			if constexpr (args_t::is_client)
 			{
@@ -84,15 +84,13 @@ namespace asio2::detail
 			this->ssl_stream_ = std::make_unique<stream_type>(socket, ctx);
 		}
 
-		template<typename MatchCondition>
+		template<typename C>
 		inline void _ssl_start(
-			const std::shared_ptr<derived_t>& this_ptr,
-			const condition_wrap<MatchCondition>& condition,
-			socket_type& socket, asio::ssl::context& ctx) noexcept
+			std::shared_ptr<derived_t>& this_ptr, ecs_t<C>& ecs, socket_type& socket, asio::ssl::context& ctx) noexcept
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			detail::ignore_unused(derive, this_ptr, condition, socket, ctx);
+			detail::ignore_unused(derive, this_ptr, ecs, socket, ctx);
 
 			ASIO2_ASSERT(derive.io().running_in_this_thread());
 		}
@@ -174,9 +172,9 @@ namespace asio2::detail
 			}, chain.move_guard());
 		}
 
-		template<typename MatchCondition, typename DeferEvent>
+		template<typename C, typename DeferEvent>
 		inline void _post_handshake(
-			std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition, DeferEvent chain)
+			std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs, DeferEvent chain)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
@@ -225,7 +223,7 @@ namespace asio2::detail
 			});
 
 			this->ssl_stream_->async_handshake(this->ssl_type_, make_allocator(derive.wallocator(),
-			[&derive, self_ptr = std::move(this_ptr), condition = std::move(condition),
+			[&derive, self_ptr = std::move(this_ptr), &ecs,
 				flag_ptr = std::move(flag_ptr), timer = std::move(timer), chain = std::move(chain)]
 			(const error_code& ec) mutable
 			{
@@ -239,17 +237,15 @@ namespace asio2::detail
 				}
 
 				if (flag_ptr->test_and_set())
-					derive._handle_handshake(asio::error::timed_out,
-						std::move(self_ptr), std::move(condition), std::move(chain));
+					derive._handle_handshake(asio::error::timed_out, std::move(self_ptr), ecs, std::move(chain));
 				else
-					derive._handle_handshake(ec,
-						std::move(self_ptr), std::move(condition), std::move(chain));
+					derive._handle_handshake(ec, std::move(self_ptr), ecs, std::move(chain));
 			}));
 		}
 
-		template<typename MatchCondition, typename DeferEvent>
-		inline void _handle_handshake(const error_code & ec, std::shared_ptr<derived_t> self_ptr,
-			condition_wrap<MatchCondition> condition, DeferEvent chain)
+		template<typename C, typename DeferEvent>
+		inline void _handle_handshake(
+			const error_code& ec, std::shared_ptr<derived_t> self_ptr, ecs_t<C>& ecs, DeferEvent chain)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
@@ -258,8 +254,7 @@ namespace asio2::detail
 				// Use "sessions().dispatch" to ensure that the _fire_accept function and the _fire_handshake
 				// function are fired in the same thread
 				derive.sessions().dispatch(
-				[&derive, ec, this_ptr = std::move(self_ptr), condition = std::move(condition),
-					chain = std::move(chain)]
+				[&derive, ec, this_ptr = std::move(self_ptr), &ecs, chain = std::move(chain)]
 				() mutable
 				{
 					try
@@ -270,7 +265,7 @@ namespace asio2::detail
 
 						asio::detail::throw_error(ec);
 
-						derive._done_connect(ec, std::move(this_ptr), std::move(condition), std::move(chain));
+						derive._done_connect(ec, std::move(this_ptr), ecs, std::move(chain));
 					}
 					catch (system_error & e)
 					{
@@ -286,7 +281,7 @@ namespace asio2::detail
 
 				derive._fire_handshake(self_ptr);
 
-				derive._done_connect(ec, std::move(self_ptr), std::move(condition), std::move(chain));
+				derive._done_connect(ec, std::move(self_ptr), ecs, std::move(chain));
 			}
 		}
 

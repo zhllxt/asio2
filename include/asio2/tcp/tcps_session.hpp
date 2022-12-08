@@ -97,12 +97,12 @@ namespace asio2::detail
 		}
 
 	protected:
-		template<typename MatchCondition>
-		inline void _do_init(std::shared_ptr<derived_t>& this_ptr, condition_wrap<MatchCondition>& condition)
+		template<typename C>
+		inline void _do_init(std::shared_ptr<derived_t>& this_ptr, ecs_t<C>& ecs)
 		{
-			super::_do_init(this_ptr, condition);
+			super::_do_init(this_ptr, ecs);
 
-			this->derived()._ssl_init(condition, this->socket_, this->ctx_);
+			this->derived()._ssl_init(ecs, this->socket_, this->ctx_);
 		}
 
 		template<typename DeferEvent>
@@ -121,9 +121,9 @@ namespace asio2::detail
 			);
 		}
 
-		template<typename MatchCondition, typename DeferEvent>
-		inline void _handle_connect(const error_code& ec, std::shared_ptr<derived_t> this_ptr,
-			condition_wrap<MatchCondition> condition, DeferEvent chain)
+		template<typename C, typename DeferEvent>
+		inline void _handle_connect(
+			const error_code& ec, std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs, DeferEvent chain)
 		{
 			detail::ignore_unused(ec);
 
@@ -131,12 +131,12 @@ namespace asio2::detail
 			ASIO2_ASSERT(this->derived().sessions().io().running_in_this_thread());
 
 			asio::dispatch(this->derived().io().context(), make_allocator(this->derived().wallocator(),
-			[this, this_ptr = std::move(this_ptr), condition = std::move(condition), chain = std::move(chain)]
+			[this, this_ptr = std::move(this_ptr), &ecs, chain = std::move(chain)]
 			() mutable
 			{
-				this->derived()._ssl_start(this_ptr, condition, this->socket_, this->ctx_);
+				this->derived()._ssl_start(this_ptr, ecs, this->socket_, this->ctx_);
 
-				this->derived()._post_handshake(std::move(this_ptr), std::move(condition), std::move(chain));
+				this->derived()._post_handshake(std::move(this_ptr), ecs, std::move(chain));
 			}));
 		}
 

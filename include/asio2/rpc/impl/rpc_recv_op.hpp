@@ -21,7 +21,7 @@
 #include <string_view>
 
 #include <asio2/base/error.hpp>
-#include <asio2/base/detail/condition_wrap.hpp>
+#include <asio2/base/detail/ecs.hpp>
 
 #include <asio2/rpc/detail/rpc_serialization.hpp>
 #include <asio2/rpc/detail/rpc_protocol.hpp>
@@ -44,11 +44,10 @@ namespace asio2::detail
 		~rpc_recv_op() = default;
 
 	protected:
-		template<typename MatchCondition>
-		inline void _rpc_handle_recv(std::shared_ptr<derived_t>& this_ptr, std::string_view data,
-			condition_wrap<MatchCondition>& condition)
+		template<typename C>
+		void _rpc_handle_recv(std::shared_ptr<derived_t>& this_ptr, ecs_t<C>& ecs, std::string_view data)
 		{
-			detail::ignore_unused(condition);
+			detail::ignore_unused(ecs);
 
 			derived_t& derive = static_cast<derived_t&>(*this);
 

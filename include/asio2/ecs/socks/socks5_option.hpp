@@ -76,8 +76,6 @@ namespace asio2::socks5::detail
 		std::string password_{};
 	};
 
-	struct option_base {};
-
 	template<class T, class = void>
 	struct has_member_username : std::false_type {};
 
@@ -93,16 +91,18 @@ namespace asio2::socks5::detail
 
 namespace asio2::socks5
 {
+	struct option_base {};
+
 	template<method... ms>
-	class option : public socks5::detail::option_base, public socks5::detail::method_field<option<ms...>, ms>...
+	class option : public socks5::option_base, public socks5::detail::method_field<option<ms...>, ms>...
 	{
 	protected:
 		// vs2017 15.9.31 not supported
-		//std::enable_if_t<((!std::is_base_of_v<socks5::detail::option_base, asio2::detail::remove_cvref_t<Args>>) && ...)
+		//std::enable_if_t<((!std::is_base_of_v<socks5::option_base, asio2::detail::remove_cvref_t<Args>>) && ...)
 		template<class... Args>
 		constexpr static bool not_options() noexcept
 		{
-			return ((!std::is_base_of_v<socks5::detail::option_base, asio2::detail::remove_cvref_t<Args>>) && ...);
+			return ((!std::is_base_of_v<socks5::option_base, asio2::detail::remove_cvref_t<Args>>) && ...);
 		}
 
 	public:
@@ -123,8 +123,8 @@ namespace asio2::socks5
 		}
 
 		template<class String1, class String2, std::enable_if_t<
-			!std::is_base_of_v<socks5::detail::option_base, asio2::detail::remove_cvref_t<String1>> &&
-			!std::is_base_of_v<socks5::detail::option_base, asio2::detail::remove_cvref_t<String2>>, int> = 0>
+			!std::is_base_of_v<socks5::option_base, asio2::detail::remove_cvref_t<String1>> &&
+			!std::is_base_of_v<socks5::option_base, asio2::detail::remove_cvref_t<String2>>, int> = 0>
 		explicit option(
 			std::integral_constant<int, asio2::detail::to_underlying(method::anonymous)>,
 			String1&& proxy_host, String2&& proxy_port,
@@ -136,10 +136,10 @@ namespace asio2::socks5
 		}
 
 		template<class String1, class String2, class String3, class String4, std::enable_if_t<
-			!std::is_base_of_v<socks5::detail::option_base, asio2::detail::remove_cvref_t<String1>> &&
-			!std::is_base_of_v<socks5::detail::option_base, asio2::detail::remove_cvref_t<String2>> &&
-			!std::is_base_of_v<socks5::detail::option_base, asio2::detail::remove_cvref_t<String3>> &&
-			!std::is_base_of_v<socks5::detail::option_base, asio2::detail::remove_cvref_t<String4>>, int> = 0>
+			!std::is_base_of_v<socks5::option_base, asio2::detail::remove_cvref_t<String1>> &&
+			!std::is_base_of_v<socks5::option_base, asio2::detail::remove_cvref_t<String2>> &&
+			!std::is_base_of_v<socks5::option_base, asio2::detail::remove_cvref_t<String3>> &&
+			!std::is_base_of_v<socks5::option_base, asio2::detail::remove_cvref_t<String4>>, int> = 0>
 		explicit option(
 			std::integral_constant<int, asio2::detail::to_underlying(method::password)>,
 			String1&& proxy_host, String2&& proxy_port, String3&& username, String4&& password,

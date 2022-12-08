@@ -100,7 +100,7 @@ namespace asio2::detail
 			else
 				return this->derived().template _do_connect<false>(
 					std::forward<String>(host), std::forward<StrOrInt>(port),
-					condition_helper::make_condition('0', std::forward<Args>(args)...));
+					ecs_helper::make_ecs('0', std::forward<Args>(args)...));
 		}
 
 		/**
@@ -123,7 +123,7 @@ namespace asio2::detail
 			else
 				return this->derived().template _do_connect<true>(
 					std::forward<String>(host), std::forward<StrOrInt>(port),
-					condition_helper::make_condition('0', std::forward<Args>(args)...));
+					ecs_helper::make_ecs('0', std::forward<Args>(args)...));
 		}
 
 		/**
@@ -169,23 +169,23 @@ namespace asio2::detail
 
 				return this->derived().template _do_connect<IsAsync>(
 					std::forward<String>(host), std::forward<StrOrInt>(port),
-					condition_helper::make_condition('0', std::forward<Args>(args)...));
+					ecs_helper::make_ecs('0', std::forward<Args>(args)...));
 			}
 			else
 			{
 				return this->derived().template _do_connect<IsAsync>(
 					std::forward<String>(host), std::forward<StrOrInt>(port),
-					condition_helper::make_condition('0',
+					ecs_helper::make_ecs('0',
 						std::forward<Arg1>(arg1), std::forward<Args>(args)...));
 			}
 		}
 
-		template<typename MatchCondition>
-		inline void _do_init(condition_wrap<MatchCondition>& condition)
+		template<typename C>
+		inline void _do_init(ecs_t<C>& ecs)
 		{
-			super::_do_init(condition);
+			super::_do_init(ecs);
 
-			this->derived()._ws_init(condition, this->ssl_stream());
+			this->derived()._ws_init(ecs, this->ssl_stream());
 		}
 
 		template<typename DeferEvent>
@@ -202,25 +202,25 @@ namespace asio2::detail
 			);
 		}
 
-		template<typename MatchCondition, typename DeferEvent>
-		inline void _handle_connect(const error_code & ec, std::shared_ptr<derived_t> this_ptr,
-			condition_wrap<MatchCondition> condition, DeferEvent chain)
+		template<typename C, typename DeferEvent>
+		inline void _handle_connect(
+			const error_code& ec, std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs, DeferEvent chain)
 		{
 			set_last_error(ec);
 
 			if (ec)
-				return this->derived()._done_connect(ec, std::move(this_ptr), std::move(condition), std::move(chain));
+				return this->derived()._done_connect(ec, std::move(this_ptr), ecs, std::move(chain));
 
-			this->derived()._ssl_start(this_ptr, condition, this->socket_, *this);
+			this->derived()._ssl_start(this_ptr, ecs, this->socket_, *this);
 
-			this->derived()._ws_start(this_ptr, condition, this->ssl_stream());
+			this->derived()._ws_start(this_ptr, ecs, this->ssl_stream());
 
-			this->derived()._post_handshake(std::move(this_ptr), std::move(condition), std::move(chain));
+			this->derived()._post_handshake(std::move(this_ptr), ecs, std::move(chain));
 		}
 
-		template<typename MatchCondition, typename DeferEvent>
-		inline void _handle_handshake(const error_code & ec, std::shared_ptr<derived_t> this_ptr,
-			condition_wrap<MatchCondition> condition, DeferEvent chain)
+		template<typename C, typename DeferEvent>
+		inline void _handle_handshake(
+			const error_code& ec, std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs, DeferEvent chain)
 		{
 			set_last_error(ec);
 
@@ -228,11 +228,11 @@ namespace asio2::detail
 
 			if (ec)
 			{
-				return this->derived()._done_connect(ec, std::move(this_ptr), std::move(condition), std::move(chain));
+				return this->derived()._done_connect(ec, std::move(this_ptr), ecs, std::move(chain));
 			}
 
-			this->derived()._post_control_callback(this_ptr, condition);
-			this->derived()._post_upgrade(std::move(this_ptr), std::move(condition), this->upgrade_rep_, std::move(chain));
+			this->derived()._post_control_callback(this_ptr, ecs);
+			this->derived()._post_upgrade(std::move(this_ptr), ecs, this->upgrade_rep_, std::move(chain));
 		}
 
 		template<class Data, class Callback>
@@ -242,17 +242,17 @@ namespace asio2::detail
 		}
 
 	protected:
-		template<typename MatchCondition>
-		inline void _post_recv(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		template<typename C>
+		inline void _post_recv(std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs)
 		{
-			this->derived()._ws_post_recv(std::move(this_ptr), std::move(condition));
+			this->derived()._ws_post_recv(std::move(this_ptr), ecs);
 		}
 
-		template<typename MatchCondition>
-		inline void _handle_recv(const error_code & ec, std::size_t bytes_recvd,
-			std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		template<typename C>
+		inline void _handle_recv(
+			const error_code& ec, std::size_t bytes_recvd, std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs)
 		{
-			this->derived()._ws_handle_recv(ec, bytes_recvd, std::move(this_ptr), std::move(condition));
+			this->derived()._ws_handle_recv(ec, bytes_recvd, std::move(this_ptr), ecs);
 		}
 
 		inline void _fire_upgrade(std::shared_ptr<derived_t>& this_ptr)

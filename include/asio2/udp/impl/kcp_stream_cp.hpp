@@ -224,9 +224,9 @@ namespace asio2::detail
 				this->_post_kcp_timer(std::move(this_ptr));
 		}
 
-		template<class buffer_t, typename MatchCondition>
-		inline void _kcp_recv(std::shared_ptr<derived_t>& this_ptr, std::string_view data, buffer_t& buffer,
-			condition_wrap<MatchCondition>& condition)
+		template<class buffer_t, typename C>
+		inline void _kcp_recv(
+			std::shared_ptr<derived_t>& this_ptr, std::string_view data, buffer_t& buffer, ecs_t<C>& ecs)
 		{
 			int len = kcp::ikcp_input(this->kcp_, (const char *)data.data(), (long)data.size());
 			buffer.consume(buffer.size());
@@ -246,8 +246,8 @@ namespace asio2::detail
 				if /**/ (len >= 0)
 				{
 					buffer.commit(len);
-					derive._fire_recv(this_ptr, std::string_view(static_cast
-						<std::string_view::const_pointer>(buffer.data().data()), len), condition);
+					derive._fire_recv(this_ptr, ecs, std::string_view(static_cast
+						<std::string_view::const_pointer>(buffer.data().data()), len));
 					buffer.consume(len);
 				}
 				else if (len == -3)
@@ -259,9 +259,8 @@ namespace asio2::detail
 			kcp::ikcp_flush(this->kcp_);
 		}
 
-		template<typename MatchCondition, typename DeferEvent>
-		inline void _post_handshake(
-			std::shared_ptr<derived_t> self_ptr, condition_wrap<MatchCondition> condition, DeferEvent chain)
+		template<typename C, typename DeferEvent>
+		inline void _post_handshake(std::shared_ptr<derived_t> self_ptr, ecs_t<C>& ecs, DeferEvent chain)
 		{
 			try
 			{
@@ -283,7 +282,7 @@ namespace asio2::detail
 					asio::detail::throw_error(ec);
 
 					this->_kcp_start(self_ptr, conv);
-					this->_handle_handshake(ec, std::move(self_ptr), std::move(condition), std::move(chain));
+					this->_handle_handshake(ec, std::move(self_ptr), ecs, std::move(chain));
 				}
 				else
 				{
@@ -322,8 +321,7 @@ namespace asio2::detail
 					// step 2 : client wait for recv synack util connect timeout or recvd some data
 					derive.socket().async_receive(derive.buffer().prepare(derive.buffer().pre_size()),
 						make_allocator(derive.rallocator(),
-					[this, seq, this_ptr = std::move(self_ptr), condition = std::move(condition),
-						timer = std::move(timer), chain = std::move(chain)]
+					[this, seq, this_ptr = std::move(self_ptr), &ecs, timer = std::move(timer), chain = std::move(chain)]
 					(const error_code & ec, std::size_t bytes_recvd) mutable
 					{
 						ASIO2_ASSERT(derive.io().running_in_this_thread());
@@ -337,7 +335,7 @@ namespace asio2::detail
 							// note : when the async_resolve is failed, the socket is invalid to.
 							this->_handle_handshake(
 								derive.connect_timeout_timer_ ? ec : asio::error::timed_out,
-								std::move(this_ptr), std::move(condition), std::move(chain));
+								std::move(this_ptr), ecs, std::move(chain));
 							return;
 						}
 
@@ -356,12 +354,12 @@ namespace asio2::detail
 								ASIO2_ASSERT(derive.kcp_conv_ == conv);
 							}
 							this->_kcp_start(this_ptr, conv);
-							this->_handle_handshake(ec, std::move(this_ptr), std::move(condition), std::move(chain));
+							this->_handle_handshake(ec, std::move(this_ptr), ecs, std::move(chain));
 						}
 						else
 						{
 							this->_handle_handshake(asio::error::address_family_not_supported,
-								std::move(this_ptr), std::move(condition), std::move(chain));
+								std::move(this_ptr), ecs, std::move(chain));
 						}
 
 						derive.buffer().consume(bytes_recvd);
@@ -383,9 +381,9 @@ namespace asio2::detail
 			}
 		}
 
-		template<typename MatchCondition, typename DeferEvent>
-		inline void _handle_handshake(const error_code & ec, std::shared_ptr<derived_t> this_ptr,
-			condition_wrap<MatchCondition> condition, DeferEvent chain)
+		template<typename C, typename DeferEvent>
+		inline void _handle_handshake(
+			const error_code& ec, std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs, DeferEvent chain)
 		{
 			set_last_error(ec);
 
@@ -397,13 +395,13 @@ namespace asio2::detail
 
 					asio::detail::throw_error(ec);
 
-					derive._done_connect(ec, std::move(this_ptr), std::move(condition), std::move(chain));
+					derive._done_connect(ec, std::move(this_ptr), ecs, std::move(chain));
 				}
 				else
 				{
 					derive._fire_handshake(this_ptr);
 
-					derive._done_connect(ec, std::move(this_ptr), std::move(condition), std::move(chain));
+					derive._done_connect(ec, std::move(this_ptr), ecs, std::move(chain));
 				}
 			}
 			catch (system_error & e)

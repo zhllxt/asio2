@@ -141,7 +141,7 @@ namespace asio2::detail
 		{
 			return this->derived().template _do_connect<false>(
 				std::forward<String>(host), std::forward<StrOrInt>(port),
-				condition_helper::make_condition(asio::transfer_at_least(1), std::forward<Args>(args)...));
+				ecs_helper::make_ecs(asio::transfer_at_least(1), std::forward<Args>(args)...));
 		}
 
 		/**
@@ -161,7 +161,7 @@ namespace asio2::detail
 		{
 			return this->derived().template _do_connect<true>(
 				std::forward<String>(host), std::forward<StrOrInt>(port),
-				condition_helper::make_condition(asio::transfer_at_least(1), std::forward<Args>(args)...));
+				ecs_helper::make_ecs(asio::transfer_at_least(1), std::forward<Args>(args)...));
 		}
 
 		/**
@@ -307,10 +307,14 @@ namespace asio2::detail
 		}
 
 	protected:
-		template<bool IsAsync, typename String, typename StrOrInt, typename MatchCondition>
-		inline bool _do_connect(String&& host, StrOrInt&& port, condition_wrap<MatchCondition> condition)
+		template<bool IsAsync, typename String, typename StrOrInt, typename C>
+		inline bool _do_connect(String&& host, StrOrInt&& port, ecs_t<C> e)
 		{
 			derived_t& derive = this->derived();
+
+			this->ecs_ = std::make_unique<ecs_t<C>>(std::move(e));
+
+			ecs_t<C>& ecs = *const_cast<ecs_t<C>*>(static_cast<const ecs_t<C>*>(this->ecs_.get()));
 
 			this->start_iopool();
 
@@ -339,9 +343,8 @@ namespace asio2::detail
 			};
 
 			derive.push_event(
-			[this, this_ptr = derive.selfptr(),
-				host = std::forward<String>(host), port = std::forward<StrOrInt>(port),
-				condition = std::move(condition), pg = std::move(pg)]
+			[this, this_ptr = derive.selfptr(), &ecs,
+				host = std::forward<String>(host), port = std::forward<StrOrInt>(port), pg = std::move(pg)]
 			(event_queue_guard<derived_t> g) mutable
 			{
 				derived_t& derive = this->derived();
@@ -389,14 +392,13 @@ namespace asio2::detail
 
 					super::start();
 
-					derive._do_init(condition);
+					derive._do_init(ecs);
 
 					// ecs init
-					derive._rdc_init(condition);
-					derive._socks5_init(condition);
+					derive._rdc_init(ecs);
+					derive._socks5_init(ecs);
 
-					derive.template _start_connect<IsAsync>(
-						std::move(this_ptr), std::move(condition), std::move(chain));
+					derive.template _start_connect<IsAsync>(std::move(this_ptr), ecs, std::move(chain));
 
 					return;
 				}
@@ -446,8 +448,8 @@ namespace asio2::detail
 			}
 		}
 
-		template<typename MatchCondition>
-		inline void _do_init(condition_wrap<MatchCondition>&) noexcept
+		template<typename C>
+		inline void _do_init(ecs_t<C>&) noexcept
 		{
 		#if defined(ASIO2_ENABLE_LOG)
 			// Used to test whether the behavior of different compilers is consistent
@@ -455,20 +457,20 @@ namespace asio2::detail
 				"The behavior of different compilers is not consistent");
 		#endif
 
-			if constexpr (std::is_same_v<typename condition_wrap<MatchCondition>::condition_type, use_dgram_t>)
+			if constexpr (std::is_same_v<typename ecs_t<C>::condition_lowest_type, use_dgram_t>)
 				this->dgram_ = true;
 			else
 				this->dgram_ = false;
 		}
 
-		template<typename MatchCondition, typename DeferEvent>
+		template<typename C, typename DeferEvent>
 		inline void _do_start(
-			std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition, DeferEvent chain)
+			std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs, DeferEvent chain)
 		{
 			this->derived().update_alive_time();
 			this->derived().reset_connect_time();
 
-			this->derived()._start_recv(std::move(this_ptr), std::move(condition), std::move(chain));
+			this->derived()._start_recv(std::move(this_ptr), ecs, std::move(chain));
 		}
 
 		template<typename DeferEvent>
@@ -548,20 +550,20 @@ namespace asio2::detail
 			ASIO2_ASSERT(this->state_ == state_t::stopped);
 		}
 
-		template<typename MatchCondition, typename DeferEvent>
+		template<typename C, typename DeferEvent>
 		inline void _start_recv(
-			std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition, DeferEvent chain)
+			std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs, DeferEvent chain)
 		{
 			// Connect succeeded. post recv request.
 			asio::dispatch(this->derived().io().context(), make_allocator(this->derived().wallocator(),
-			[this, this_ptr = std::move(this_ptr), condition = std::move(condition), chain = std::move(chain)]
+			[this, this_ptr = std::move(this_ptr), &ecs, chain = std::move(chain)]
 			() mutable
 			{
-				using condition_type = typename condition_wrap<MatchCondition>::condition_type;
+				using condition_lowest_type = typename ecs_t<C>::condition_lowest_type;
 
 				detail::ignore_unused(chain);
 
-				if constexpr (!std::is_same_v<condition_type, asio2::detail::hook_buffer_t>)
+				if constexpr (!std::is_same_v<condition_lowest_type, asio2::detail::hook_buffer_t>)
 				{
 					this->derived().buffer().consume(this->derived().buffer().size());
 				}
@@ -570,7 +572,7 @@ namespace asio2::detail
 					std::ignore = true;
 				}
 
-				this->derived()._post_recv(std::move(this_ptr), std::move(condition));
+				this->derived()._post_recv(std::move(this_ptr), ecs);
 			}));
 		}
 
@@ -602,25 +604,25 @@ namespace asio2::detail
 				invoker(ec, send_data_t{}, data);
 		}
 
-		template<class Invoker, class FnData>
-		inline void _rdc_invoke_with_send(const error_code& ec, Invoker& invoker, FnData& fn_data)
+		template<class Invoker>
+		inline void _rdc_invoke_with_send(const error_code& ec, Invoker& invoker, send_data_t data)
 		{
 			if (invoker)
-				invoker(ec, fn_data(), recv_data_t{});
+				invoker(ec, data, recv_data_t{});
 		}
 
 	protected:
-		template<typename MatchCondition>
-		inline void _post_recv(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		template<typename C>
+		inline void _post_recv(std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs)
 		{
-			this->derived()._tcp_post_recv(std::move(this_ptr), std::move(condition));
+			this->derived()._tcp_post_recv(std::move(this_ptr), ecs);
 		}
 
-		template<typename MatchCondition>
+		template<typename C>
 		inline void _handle_recv(const error_code & ec, std::size_t bytes_recvd,
-			std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+			std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs)
 		{
-			this->derived()._tcp_handle_recv(ec, bytes_recvd, std::move(this_ptr), std::move(condition));
+			this->derived()._tcp_handle_recv(ec, bytes_recvd, std::move(this_ptr), ecs);
 		}
 
 		inline void _fire_init()
@@ -632,17 +634,16 @@ namespace asio2::detail
 			this->listener_.notify(event_type::init);
 		}
 
-		template<typename MatchCondition>
-		inline void _fire_recv(std::shared_ptr<derived_t>& this_ptr, std::string_view data,
-			condition_wrap<MatchCondition>& condition)
+		template<typename C>
+		inline void _fire_recv(std::shared_ptr<derived_t>& this_ptr, ecs_t<C>& ecs, std::string_view data)
 		{
 			this->listener_.notify(event_type::recv, data);
 
-			this->derived()._rdc_handle_recv(this_ptr, data, condition);
+			this->derived()._rdc_handle_recv(this_ptr, ecs, data);
 		}
 
-		template<typename MatchCondition>
-		inline void _fire_connect(std::shared_ptr<derived_t>& this_ptr, condition_wrap<MatchCondition>& condition)
+		template<typename C>
+		inline void _fire_connect(std::shared_ptr<derived_t>& this_ptr, ecs_t<C>& ecs)
 		{
 			// the _fire_connect must be executed in the thread 0.
 			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
@@ -653,7 +654,7 @@ namespace asio2::detail
 
 			if (!get_last_error())
 			{
-				this->derived()._rdc_start(this_ptr, condition);
+				this->derived()._rdc_start(this_ptr, ecs);
 			}
 
 			this->listener_.notify(event_type::connect);

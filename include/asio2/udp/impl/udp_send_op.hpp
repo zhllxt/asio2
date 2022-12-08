@@ -21,7 +21,7 @@
 #include <string_view>
 
 #include <asio2/base/error.hpp>
-#include <asio2/base/detail/condition_wrap.hpp>
+#include <asio2/base/detail/ecs.hpp>
 
 namespace asio2::detail
 {

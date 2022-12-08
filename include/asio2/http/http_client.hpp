@@ -99,7 +99,7 @@ namespace asio2::detail
 		{
 			return this->derived().template _do_connect<false>(
 				std::forward<String>(host), std::forward<StrOrInt>(port),
-				condition_helper::make_condition('0', std::forward<Args>(args)...));
+				ecs_helper::make_ecs('0', std::forward<Args>(args)...));
 		}
 
 		/**
@@ -114,7 +114,7 @@ namespace asio2::detail
 		{
 			return this->derived().template _do_connect<true>(
 				std::forward<String>(host), std::forward<StrOrInt>(port),
-				condition_helper::make_condition('0', std::forward<Args>(args)...));
+				ecs_helper::make_ecs('0', std::forward<Args>(args)...));
 		}
 
 	public:
@@ -191,33 +191,33 @@ namespace asio2::detail
 				invoker(ec, this->req_, this->rep_);
 		}
 
-		template<class Invoker, class FnData>
-		inline void _rdc_invoke_with_send(const error_code& ec, Invoker& invoker, FnData& fn_data)
+		template<class Invoker>
+		inline void _rdc_invoke_with_send(const error_code& ec, Invoker& invoker, send_data_t data)
 		{
 			if (invoker)
-				invoker(ec, fn_data(), this->rep_);
+				invoker(ec, data, this->rep_);
 		}
 
 	protected:
-		template<typename MatchCondition>
-		inline void _post_recv(std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		template<typename C>
+		inline void _post_recv(std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs)
 		{
-			this->derived()._http_post_recv(std::move(this_ptr), std::move(condition));
+			this->derived()._http_post_recv(std::move(this_ptr), ecs);
 		}
 
-		template<typename MatchCondition>
-		inline void _handle_recv(const error_code & ec, std::size_t bytes_recvd,
-			std::shared_ptr<derived_t> this_ptr, condition_wrap<MatchCondition> condition)
+		template<typename C>
+		inline void _handle_recv(
+			const error_code & ec, std::size_t bytes_recvd,std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs)
 		{
-			this->derived()._http_handle_recv(ec, bytes_recvd, std::move(this_ptr), std::move(condition));
+			this->derived()._http_handle_recv(ec, bytes_recvd, std::move(this_ptr), ecs);
 		}
 
-		template<typename MatchCondition>
-		inline void _fire_recv(std::shared_ptr<derived_t>& this_ptr, condition_wrap<MatchCondition>& condition)
+		template<typename C>
+		inline void _fire_recv(std::shared_ptr<derived_t>& this_ptr, ecs_t<C>& ecs)
 		{
 			this->listener_.notify(event_type::recv, this->req_, this->rep_);
 
-			this->derived()._rdc_handle_recv(this_ptr, this->rep_, condition);
+			this->derived()._rdc_handle_recv(this_ptr, ecs, this->rep_);
 		}
 
 	protected:

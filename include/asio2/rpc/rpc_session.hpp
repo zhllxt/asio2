@@ -93,12 +93,10 @@ namespace asio2::detail
 			return (this->invoker_);
 		}
 
-		template<typename MatchCondition, typename Socket>
-		inline void _ws_start(
-			const std::shared_ptr<derived_t>& this_ptr,
-			const condition_wrap<MatchCondition>& condition, Socket& socket)
+		template<typename C, typename Socket>
+		inline void _ws_start(std::shared_ptr<derived_t>& this_ptr, ecs_t<C>& ecs, Socket& socket)
 		{
-			super::_ws_start(this_ptr, condition, socket);
+			super::_ws_start(this_ptr, ecs, socket);
 
 			this->derived().ws_stream().binary(true);
 		}
@@ -115,13 +113,12 @@ namespace asio2::detail
 			super::_handle_disconnect(ec, std::move(this_ptr), std::move(chain));
 		}
 
-		template<typename MatchCondition>
-		inline void _fire_recv(std::shared_ptr<derived_t>& this_ptr, std::string_view data,
-			condition_wrap<MatchCondition>& condition)
+		template<typename C>
+		inline void _fire_recv(std::shared_ptr<derived_t>& this_ptr, ecs_t<C>& ecs, std::string_view data)
 		{
 			this->listener_.notify(event_type::recv, this_ptr, data);
 
-			this->derived()._rpc_handle_recv(this_ptr, data, condition);
+			this->derived()._rpc_handle_recv(this_ptr, ecs, data);
 		}
 
 	protected:

@@ -103,13 +103,13 @@ namespace asio2::detail
 		}
 
 	protected:
-		template<class Condition>
-		inline void _make_reconnect_timer(std::shared_ptr<derived_t> this_ptr, Condition&& c)
+		template<class C>
+		inline void _make_reconnect_timer(std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
 			asio::dispatch(derive.io().context(), make_allocator(derive.wallocator(),
-			[this, this_ptr = std::move(this_ptr), c = std::forward<Condition>(c)]() mutable
+			[this, this_ptr = std::move(this_ptr), &ecs]() mutable
 			{
 				derived_t& derive = static_cast<derived_t&>(*this);
 
@@ -121,14 +121,14 @@ namespace asio2::detail
 				this->reconnect_timer_ = std::make_unique<safe_timer>(derive.io().context());
 
 				derive._post_reconnect_timer(std::move(this_ptr), this->reconnect_timer_,
-					(std::chrono::nanoseconds::max)(), std::forward<Condition>(c)); // 292 yeas
+					(std::chrono::nanoseconds::max)(), ecs); // 292 yeas
 			}));
 		}
 
-		template<class Rep, class Period, class Condition>
+		template<class Rep, class Period, class C>
 		inline void _post_reconnect_timer(
 			std::shared_ptr<derived_t> this_ptr, std::shared_ptr<safe_timer> timer_ptr,
-			std::chrono::duration<Rep, Period> delay, Condition&& c)
+			std::chrono::duration<Rep, Period> delay, ecs_t<C>& ecs)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
@@ -150,17 +150,16 @@ namespace asio2::detail
 
 			ptimer->timer.expires_after(delay);
 			ptimer->timer.async_wait(
-			[&derive, self_ptr = std::move(this_ptr), timer_ptr = std::move(timer_ptr),
-				c = std::forward<Condition>(c)]
+			[&derive, self_ptr = std::move(this_ptr), timer_ptr = std::move(timer_ptr), &ecs]
 			(const error_code & ec) mutable
 			{
-				derive._handle_reconnect_timer(ec, std::move(self_ptr), std::move(timer_ptr), std::move(c));
+				derive._handle_reconnect_timer(ec, std::move(self_ptr), std::move(timer_ptr), ecs);
 			});
 		}
 
-		template<class Condition>
+		template<class C>
 		inline void _handle_reconnect_timer(const error_code& ec,
-			std::shared_ptr<derived_t> this_ptr, std::shared_ptr<safe_timer> timer_ptr, Condition&& c)
+			std::shared_ptr<derived_t> this_ptr, std::shared_ptr<safe_timer> timer_ptr, ecs_t<C>& ecs)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
@@ -185,16 +184,13 @@ namespace asio2::detail
 
 			if (ec == asio::error::operation_aborted)
 			{
-				derive._post_reconnect_timer(std::move(this_ptr), std::move(timer_ptr),
-					this->reconnect_delay_, std::forward<Condition>(c));
+				derive._post_reconnect_timer(std::move(this_ptr), std::move(timer_ptr), this->reconnect_delay_, ecs);
 			}
 			else
 			{
 				if (this->reconnect_enable_)
 				{
-					// can't use condition = std::move(c), Otherwise, the value of condition will
-					// be empty the next time the code goto here.
-					derive.push_event([&derive, this_ptr, timer_ptr, c](event_queue_guard<derived_t> g) mutable
+					derive.push_event([&derive, this_ptr, timer_ptr, &ecs](event_queue_guard<derived_t> g) mutable
 					{
 						if (timer_ptr->canceled.test_and_set())
 							return;
@@ -204,14 +200,14 @@ namespace asio2::detail
 						state_t expected = state_t::stopped;
 						if (derive.state_.compare_exchange_strong(expected, state_t::starting))
 						{
-							derive.template _start_connect<true>(std::move(this_ptr), std::move(c),
+							derive.template _start_connect<true>(std::move(this_ptr), ecs,
 								defer_event(std::move(g)));
 						}
 					});
 				}
 
 				derive._post_reconnect_timer(std::move(this_ptr), std::move(timer_ptr),
-					(std::chrono::nanoseconds::max)(), std::forward<Condition>(c)); // 292 yeas
+					(std::chrono::nanoseconds::max)(), ecs); // 292 yeas
 			}
 		}
 

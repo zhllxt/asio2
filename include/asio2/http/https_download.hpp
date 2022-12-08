@@ -82,7 +82,7 @@ namespace asio2::detail
 						"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36");
 
 				// if has socks5 proxy
-				if constexpr (std::is_base_of_v<asio2::socks5::detail::option_base,
+				if constexpr (std::is_base_of_v<asio2::socks5::option_base,
 					typename detail::element_type_adapter<detail::remove_cvref_t<Proxy>>::type>)
 				{
 					auto sk5 = detail::to_shared_ptr(std::forward<Proxy>(proxy));

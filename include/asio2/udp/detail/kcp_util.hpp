@@ -29,7 +29,7 @@
 #include <asio2/external/predef.h>
 
 #include <asio2/base/error.hpp>
-#include <asio2/base/detail/condition_wrap.hpp>
+#include <asio2/base/detail/ecs.hpp>
 #include <asio2/base/detail/util.hpp>
 
 #include <asio2/udp/detail/ikcp.h>
