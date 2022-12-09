@@ -97,9 +97,24 @@ namespace asio2::detail
 		template<typename String, typename StrOrInt, typename... Args>
 		inline bool start(String&& host, StrOrInt&& port, Args&&... args)
 		{
-			return this->derived().template _do_connect<false>(
-				std::forward<String>(host), std::forward<StrOrInt>(port),
-				ecs_helper::make_ecs('0', std::forward<Args>(args)...));
+			if constexpr (ecs_helper::args_has_rdc<Args...>())
+			{
+				return this->derived().template _do_connect<false>(
+					std::forward<String>(host), std::forward<StrOrInt>(port),
+					ecs_helper::make_ecs('0', std::forward<Args>(args)...));
+			}
+			else
+			{
+				asio2::rdc::option rdc_option
+				{
+					[](http::web_request &) { return 0; },
+					[](http::web_response&) { return 0; }
+				};
+
+				return this->derived().template _do_connect<false>(
+					std::forward<String>(host), std::forward<StrOrInt>(port),
+					ecs_helper::make_ecs('0', std::forward<Args>(args)..., std::move(rdc_option)));
+			}
 		}
 
 		/**
@@ -112,9 +127,24 @@ namespace asio2::detail
 		template<typename String, typename StrOrInt, typename... Args>
 		inline bool async_start(String&& host, StrOrInt&& port, Args&&... args)
 		{
-			return this->derived().template _do_connect<true>(
-				std::forward<String>(host), std::forward<StrOrInt>(port),
-				ecs_helper::make_ecs('0', std::forward<Args>(args)...));
+			if constexpr (ecs_helper::args_has_rdc<Args...>())
+			{
+				return this->derived().template _do_connect<true>(
+					std::forward<String>(host), std::forward<StrOrInt>(port),
+					ecs_helper::make_ecs('0', std::forward<Args>(args)...));
+			}
+			else
+			{
+				asio2::rdc::option rdc_option
+				{
+					[](http::web_request &) { return 0; },
+					[](http::web_response&) { return 0; }
+				};
+
+				return this->derived().template _do_connect<true>(
+					std::forward<String>(host), std::forward<StrOrInt>(port),
+					ecs_helper::make_ecs('0', std::forward<Args>(args)..., std::move(rdc_option)));
+			}
 		}
 
 	public:

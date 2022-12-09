@@ -100,13 +100,13 @@ namespace asio2::rdc
 		{
 			if (is_send)
 			{
-				typename detail::remove_cvref_t<SendDataT>& d = *((SendDataT*)data);
+				typename detail::remove_cvref_t<SendDataT>& d = *((typename detail::remove_cvref_t<SendDataT>*)data);
 				key_type id = rdc_send_parser_(d);
 				return std::any(std::move(id));
 			}
 			else
 			{
-				typename detail::remove_cvref_t<RecvDataT>& d = *((RecvDataT*)data);
+				typename detail::remove_cvref_t<RecvDataT>& d = *((typename detail::remove_cvref_t<RecvDataT>*)data);
 				key_type id = rdc_recv_parser_(d);
 				return std::any(std::move(id));
 			}

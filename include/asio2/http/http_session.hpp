@@ -200,8 +200,6 @@ namespace asio2::detail
 		template<typename DeferEvent>
 		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr, DeferEvent chain)
 		{
-			this->derived()._rdc_stop();
-
 			if (this->derived().is_http())
 			{
 				super::_handle_disconnect(ec, std::move(this_ptr), std::move(chain));

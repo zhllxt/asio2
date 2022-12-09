@@ -562,10 +562,10 @@ namespace asio2::detail
 			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
 
 			// close user custom timers
-			this->stop_all_timers();
+			this->_dispatch_stop_all_timers();
 
 			// close all posted timed tasks
-			this->stop_all_timed_tasks();
+			this->_dispatch_stop_all_timed_events();
 
 			// close all async_events
 			this->notify_all_condition_events();

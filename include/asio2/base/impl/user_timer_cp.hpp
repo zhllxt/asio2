@@ -486,6 +486,38 @@ namespace asio2::detail
 		}
 
 	protected:
+		/**
+		 * @brief stop all timers
+		 * Use dispatch instead of post, this function is used for inner.
+		 */
+		inline void _dispatch_stop_all_timers()
+		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
+			// must use post, otherwise when call stop_all_timers immediately after start_timer
+			// will cause the stop_all_timers has no effect.
+			asio::dispatch(derive.io().context(), make_allocator(derive.wallocator(),
+			[this, this_ptr = derive.selfptr()]() mutable
+			{
+				// close user custom timers
+				for (auto &[id, timer_obj_ptr] : this->user_timers_)
+				{
+					detail::ignore_unused(this_ptr, id);
+
+					try
+					{
+						timer_obj_ptr->exited = true;
+						timer_obj_ptr->timer.cancel();
+					}
+					catch (system_error const&)
+					{
+					}
+				}
+				this->user_timers_.clear();
+			}));
+		}
+
+	protected:
 		template<class Rep, class Period>
 		inline void _post_user_timers(std::shared_ptr<derived_t> this_ptr,
 			std::shared_ptr<user_timer_obj> timer_obj_ptr, std::chrono::duration<Rep, Period> expiry)

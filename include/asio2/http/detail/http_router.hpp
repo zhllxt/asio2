@@ -1066,8 +1066,9 @@ namespace asio2::detail
 		inline constexpr std::string_view _to_char(http::verb method) noexcept
 		{
 			using namespace std::literals;
-			constexpr std::string_view chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"sv;
-			return chars.substr(detail::to_underlying(method), 1);
+			// Use a special name to avoid conflicts with global variable names
+			constexpr std::string_view _hrmchars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"sv;
+			return _hrmchars.substr(detail::to_underlying(method), 1);
 		}
 
 	protected:

@@ -865,10 +865,10 @@ namespace asio2::detail
 			error_code ec_ignore{};
 
 			// close user custom timers
-			this->stop_all_timers();
+			this->_dispatch_stop_all_timers();
 
 			// close all posted timed tasks
-			this->stop_all_timed_tasks();
+			this->_dispatch_stop_all_timed_events();
 
 			// close all async_events
 			this->notify_all_condition_events();

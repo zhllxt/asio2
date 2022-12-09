@@ -195,10 +195,10 @@ namespace asio2::detail
 				this->_stop_connect_timeout_timer();
 
 				// close user custom timers
-				this->stop_all_timers();
+				this->_dispatch_stop_all_timers();
 
 				// close all posted timed tasks
-				this->stop_all_timed_tasks();
+				this->_dispatch_stop_all_timed_events();
 
 				// close all async_events
 				this->notify_all_condition_events();
@@ -309,9 +309,6 @@ namespace asio2::detail
 
 		/// use to check whether the user call stop in the listener
 		std::atomic<state_t>                 state_        = state_t::stopped;
-
-		/// Is it successful to insert the current session to the session map
-		bool						         in_sessions_  = false;
 
 		/// use this to ensure that server stop only after all sessions are closed
 		std::shared_ptr<void>                counter_ptr_;

@@ -227,6 +227,8 @@ namespace asio2::detail
 		 * This notification is invoked before the connection is disconnected, you can call
 		 * get_last_error/last_error_msg, etc, to get the disconnected error information
 		 * Function signature : void(std::shared_ptr<asio2::tcp_session>& session_ptr)
+		 * If is http or websocket server, when enter the disconnect callback, the socket of the
+		 * session maybe closed already.
 		 */
 		template<class F, class ...C>
 		inline derived_t & bind_disconnect(F&& fun, C&&... obj)

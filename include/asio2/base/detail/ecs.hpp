@@ -520,12 +520,30 @@ namespace asio2::detail
 		}
 
 		template<class... Args>
-		static constexpr bool has_match_condition() noexcept
+		static constexpr bool args_has_match_condition() noexcept
 		{
 			if constexpr (sizeof...(Args) == std::size_t(0))
 				return false;
 			else
 				return (!(ecs_helper::is_component<Args>() && ...));
+		}
+
+		template<class... Args>
+		static constexpr bool args_has_rdc() noexcept
+		{
+			if constexpr (sizeof...(Args) == std::size_t(0))
+				return false;
+			else
+				return (std::is_base_of_v<asio2::rdc::option_base, detail::remove_cvref_t<Args>> || ...);
+		}
+
+		template<class... Args>
+		static constexpr bool args_has_socks5() noexcept
+		{
+			if constexpr (sizeof...(Args) == std::size_t(0))
+				return false;
+			else
+				return (std::is_base_of_v<asio2::socks5::option_base, detail::remove_cvref_t<Args>> || ...);
 		}
 
 		// use "DefaultConditionT c, Args... args", not use "DefaultConditionT&& c, Args&&... args"
@@ -535,7 +553,7 @@ namespace asio2::detail
 		{
 			detail::ignore_unused(c);
 
-			if constexpr (ecs_helper::has_match_condition<Args...>())
+			if constexpr (ecs_helper::args_has_match_condition<Args...>())
 			{
 				if constexpr (sizeof...(Args) == std::size_t(1))
 					return ecs_t{ std::move(args)... };

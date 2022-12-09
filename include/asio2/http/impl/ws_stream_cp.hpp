@@ -167,6 +167,7 @@ namespace asio2::detail
 				// async_close behavior : 
 				// send a websocket close frame to the remote, and wait for recv a websocket close
 				// frame from the remote.
+				// async_close maybe close the socket directly.
 				this->ws_stream_->async_close(websocket::close_code::normal,
 				[this, this_ptr = std::move(this_ptr), chain = std::move(chain)]
 				(error_code ec) mutable

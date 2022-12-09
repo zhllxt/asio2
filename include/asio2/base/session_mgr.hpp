@@ -114,7 +114,6 @@ namespace asio2::detail
 					// -> session_ptr->stop() must not be executed.
 					asio2_unique_lock guard(this->mutex_);
 					inserted = this->sessions_.try_emplace(session_ptr->hash_key(), session_ptr).second;
-					session_ptr->in_sessions_ = inserted;
 
 				#if defined(_DEBUG) || defined(DEBUG)
 					ASIO2_ASSERT(is_all_session_stop_called_ == false);
@@ -143,8 +142,7 @@ namespace asio2::detail
 
 				{
 					asio2_unique_lock guard(this->mutex_);
-					if (session_ptr->in_sessions_)
-						erased = (this->sessions_.erase(session_ptr->hash_key()) > 0);
+					erased = (this->sessions_.erase(session_ptr->hash_key()) > 0);
 				}
 
 				(callback)(erased);

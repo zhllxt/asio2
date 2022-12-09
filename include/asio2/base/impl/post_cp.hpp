@@ -259,13 +259,53 @@ namespace asio2::detail
 		}
 
 		/**
+		 * @brief Stop all timed events which you posted with a delay duration.
+		 */
+		inline derived_t& stop_all_timed_events()
+		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
+			asio::post(derive.io().context(), make_allocator(derive.wallocator(),
+			[this, p = derive.selfptr()]() mutable
+			{
+				detail::ignore_unused(p);
+
+				for (asio::steady_timer* timer : this->timed_tasks_)
+				{
+					try
+					{
+						timer->cancel();
+					}
+					catch (system_error const&)
+					{
+					}
+				}
+			}));
+
+			return (derive);
+		}
+
+		/**
 		 * @brief Stop all timed tasks which you posted with a delay duration.
+		 * This function is the same as stop_all_timed_events.
 		 */
 		inline derived_t& stop_all_timed_tasks()
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			asio::post(derive.io().context(), make_allocator(derive.wallocator(),
+			return derive.stop_all_timed_events();
+		}
+
+	protected:
+		/**
+		 * @brief Stop all timed events which you posted with a delay duration.
+		 * Use dispatch instead of post, this function is used for inner.
+		 */
+		inline derived_t& _dispatch_stop_all_timed_events()
+		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
+			asio::dispatch(derive.io().context(), make_allocator(derive.wallocator(),
 			[this, p = derive.selfptr()]() mutable
 			{
 				detail::ignore_unused(p);
