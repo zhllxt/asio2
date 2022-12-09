@@ -387,6 +387,95 @@ namespace asio2::detail
 			return (std::tuple<typename std::tuple_element<I + 1, std::tuple<Args...>>::type...>{});
 		}
 
+		template<typename R, typename F, typename C>
+		inline bool _invoke_with_future(F& f, C* c, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller,
+			rpc_serializer& sr, rpc_deserializer& dr, typename rpc_result_t<R>::type r)
+		{
+			detail::ignore_unused(caller_ptr, caller, sr, dr);
+
+			error_code ec = rpc::make_error_code(rpc::error::success);
+
+			if (dr.buffer().in_avail() != 0)
+			{
+				ec = rpc::make_error_code(rpc::error::invalid_argument);
+			}
+
+			auto* defer = r.defer_.get();
+
+			r.defer_->_bind([caller_ptr, caller, &sr, ec, head = caller->header_, defer]() mutable
+			{
+				if (head.id() == static_cast<rpc_header::id_type>(0))
+					return;
+
+				// the "header_, async_send" should not appear in this "invoker" module, But I thought 
+				// for a long time and couldn't find of a good method to solve this problem.
+
+				// the operator for "sr" must be in the io_context thread. 
+				asio::dispatch(caller->io().context(), make_allocator(caller->wallocator(),
+				[caller_ptr = std::move(caller_ptr), caller, &sr, ec, head = std::move(head),
+					v = std::move(defer->v_)]
+				() mutable
+				{
+					if (!caller->is_started())
+						return;
+
+					head.type(rpc_type_rep);
+
+					if (v.has_value() == false && (!ec))
+					{
+						ec = rpc::make_error_code(rpc::error::no_data);
+					}
+
+					try
+					{
+						sr.reset();
+						sr << head;
+						sr << ec;
+						if (!ec)
+						{
+							if constexpr (!std::is_same_v<rpc::future<void>, R>)
+							{
+								sr << std::move(v.value()); // maybe throw some exception
+							}
+							else
+							{
+								std::ignore = v;
+							}
+						}
+
+						caller->async_send(sr.str());
+
+						return; // not exception, return
+					}
+					catch (cereal::exception const&)
+					{
+						if (!ec) ec = rpc::make_error_code(rpc::error::invalid_argument);
+					}
+					// on c++ 20 and vs2019, the next line code will compile failed, so impossible.
+					//catch (system_error const&)
+					//{
+					//	if (!ec) ec = rpc::make_error_code(rpc::error::unspecified_error);
+					//}
+					catch (std::exception const&)
+					{
+						if (!ec) ec = rpc::make_error_code(rpc::error::unspecified_error);
+					}
+
+					// the error_code must not be 0.
+					ASIO2_ASSERT(ec);
+
+					// code run to here, it means that there has some exception.
+					sr.reset();
+					sr << head;
+					sr << ec;
+
+					caller->async_send(sr.str());
+				}));
+			});
+
+			return true;
+		}
+
 		// async - return true, sync - return false
 		template<typename R, typename F, typename C, typename... Args>
 		inline bool _invoke(F& f, C* c, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller,
@@ -408,87 +497,7 @@ namespace asio2::detail
 
 			if constexpr (detail::is_template_instance_of_v<rpc::future, R>)
 			{
-				error_code ec = rpc::make_error_code(rpc::error::success);
-
-				if (dr.buffer().in_avail() != 0)
-				{
-					ec = rpc::make_error_code(rpc::error::invalid_argument);
-				}
-
-				auto* defer = r.defer_.get();
-
-				r.defer_->_bind([caller_ptr, caller, &sr, ec, head = caller->header_, defer]() mutable
-				{
-					if (head.id() == static_cast<rpc_header::id_type>(0))
-						return;
-
-					// the "header_, async_send" should not appear in this "invoker" module, But I thought 
-					// for a long time and couldn't find of a good method to solve this problem.
-
-					// the operator for "sr" must be in the io_context thread. 
-					asio::dispatch(caller->io().context(), make_allocator(caller->wallocator(),
-					[caller_ptr = std::move(caller_ptr), caller, &sr, ec, head = std::move(head),
-						v = std::move(defer->v_)]
-					() mutable
-					{
-						if (!caller->is_started())
-							return;
-
-						head.type(rpc_type_rep);
-
-						if (v.has_value() == false && (!ec))
-						{
-							ec = rpc::make_error_code(rpc::error::no_data);
-						}
-
-						try
-						{
-							sr.reset();
-							sr << head;
-							sr << ec;
-							if (!ec)
-							{
-								if constexpr (!std::is_same_v<rpc::future<void>, R>)
-								{
-									sr << std::move(v.value()); // maybe throw some exception
-								}
-								else
-								{
-									std::ignore = v;
-								}
-							}
-
-							caller->async_send(sr.str());
-
-							return; // not exception, return
-						}
-						catch (cereal::exception const&)
-						{
-							if (!ec) ec = rpc::make_error_code(rpc::error::invalid_argument);
-						}
-						// on c++ 20 and vs2019, the next line code will compile failed, so impossible.
-						//catch (system_error const&)
-						//{
-						//	if (!ec) ec = rpc::make_error_code(rpc::error::unspecified_error);
-						//}
-						catch (std::exception const&)
-						{
-							if (!ec) ec = rpc::make_error_code(rpc::error::unspecified_error);
-						}
-
-						// the error_code must not be 0.
-						ASIO2_ASSERT(ec);
-
-						// code run to here, it means that there has some exception.
-						sr.reset();
-						sr << head;
-						sr << ec;
-
-						caller->async_send(sr.str());
-					}));
-				});
-
-				return true;
+				return _invoke_with_future<R>(f, c, caller_ptr, caller, sr, dr, std::move(r));
 			}
 			else if constexpr (!std::is_same_v<R, void>)
 			{

@@ -99,8 +99,35 @@ namespace asio2::detail
 		}
 
 		template<typename C>
-		void _tcp_handle_recv(const error_code & ec, std::size_t bytes_recvd,
-			std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs)
+		void _dgram_fire_recv(
+			const error_code& ec, std::size_t bytes_recvd, std::shared_ptr<derived_t>& this_ptr, ecs_t<C>& ecs)
+		{
+			detail::ignore_unused(ec);
+
+			derived_t& derive = static_cast<derived_t&>(*this);
+
+			const std::uint8_t* buffer = static_cast<const std::uint8_t*>(derive.buffer().data().data());
+			if /**/ (std::uint8_t(buffer[0]) < std::uint8_t(254))
+			{
+				derive._fire_recv(this_ptr, ecs, std::string_view(reinterpret_cast<
+					std::string_view::const_pointer>(buffer + 1), bytes_recvd - 1));
+			}
+			else if (std::uint8_t(buffer[0]) == std::uint8_t(254))
+			{
+				derive._fire_recv(this_ptr, ecs, std::string_view(reinterpret_cast<
+					std::string_view::const_pointer>(buffer + 1 + 2), bytes_recvd - 1 - 2));
+			}
+			else
+			{
+				ASIO2_ASSERT(std::uint8_t(buffer[0]) == std::uint8_t(255));
+				derive._fire_recv(this_ptr, ecs, std::string_view(reinterpret_cast<
+					std::string_view::const_pointer>(buffer + 1 + 8), bytes_recvd - 1 - 8));
+			}
+		}
+
+		template<typename C>
+		void _tcp_handle_recv(
+			const error_code& ec, std::size_t bytes_recvd, std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs)
 		{
 			using condition_lowest_type = typename ecs_t<C>::condition_lowest_type;
 
@@ -156,23 +183,7 @@ namespace asio2::detail
 						ASIO2_ASSERT(false);
 					}
 
-					const std::uint8_t* buffer = static_cast<const std::uint8_t*>(derive.buffer().data().data());
-					if /**/ (std::uint8_t(buffer[0]) < std::uint8_t(254))
-					{
-						derive._fire_recv(this_ptr, ecs, std::string_view(reinterpret_cast<
-							std::string_view::const_pointer>(buffer + 1), bytes_recvd - 1));
-					}
-					else if (std::uint8_t(buffer[0]) == std::uint8_t(254))
-					{
-						derive._fire_recv(this_ptr, ecs, std::string_view(reinterpret_cast<
-							std::string_view::const_pointer>(buffer + 1 + 2), bytes_recvd - 1 - 2));
-					}
-					else
-					{
-						ASIO2_ASSERT(std::uint8_t(buffer[0]) == std::uint8_t(255));
-						derive._fire_recv(this_ptr, ecs, std::string_view(reinterpret_cast<
-							std::string_view::const_pointer>(buffer + 1 + 8), bytes_recvd - 1 - 8));
-					}
+					derive._dgram_fire_recv(ec, bytes_recvd, this_ptr, ecs);
 				}
 				else
 				{

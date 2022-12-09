@@ -111,6 +111,11 @@ void mqtt_test()
 				asio2::last_error_val(), asio2::last_error_msg().c_str());
 		});
 
+		mqtt::v5::connect connect;
+		connect.client_id(u8"37792738@qq.com");
+
+		client.start(host, port, connect);
+
 		client.subscribe("/asio2/mqtt/qos1", 1, [](mqtt::v5::publish& msg) mutable
 		{
 			fmt::print("recv v5::publish  , packet id : {:5d} QoS : {} topic_name : {} payload : {}\n",
@@ -189,11 +194,6 @@ void mqtt_test()
 			if (mqtt::v5::disconnect* p = static_cast<mqtt::v5::disconnect*>(msg); p)
 				printf("recv v5::disconnect, reason code : %u\n", p->reason_code());
 		});
-
-		mqtt::v5::connect connect;
-		connect.client_id(u8"37792738@qq.com");
-
-		client.start(host, port, std::move(connect));
 	}
 }
 

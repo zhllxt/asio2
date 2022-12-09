@@ -70,7 +70,7 @@ namespace asio2::detail
 		}
 
 	protected:
-		inline void _kcp_start(std::shared_ptr<derived_t> this_ptr, std::uint32_t conv)
+		void _kcp_start(std::shared_ptr<derived_t> this_ptr, std::uint32_t conv)
 		{
 			// used to restore configs
 			kcp::ikcpcb* old = this->kcp_;
@@ -118,7 +118,7 @@ namespace asio2::detail
 			}));
 		}
 
-		inline void _kcp_stop()
+		void _kcp_stop()
 		{
 			error_code ec_ignore{};
 
@@ -191,7 +191,7 @@ namespace asio2::detail
 			return (ret == 0);
 		}
 
-		inline void _post_kcp_timer(std::shared_ptr<derived_t> this_ptr)
+		void _post_kcp_timer(std::shared_ptr<derived_t> this_ptr)
 		{
 			std::uint32_t clock1 = static_cast<std::uint32_t>(std::chrono::duration_cast<
 				std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count());
@@ -205,7 +205,7 @@ namespace asio2::detail
 			}));
 		}
 
-		inline void _handle_kcp_timer(const error_code & ec, std::shared_ptr<derived_t> this_ptr)
+		void _handle_kcp_timer(const error_code & ec, std::shared_ptr<derived_t> this_ptr)
 		{
 			if (ec == asio::error::operation_aborted) return;
 
@@ -225,7 +225,7 @@ namespace asio2::detail
 		}
 
 		template<class buffer_t, typename C>
-		inline void _kcp_recv(
+		void _kcp_recv(
 			std::shared_ptr<derived_t>& this_ptr, std::string_view data, buffer_t& buffer, ecs_t<C>& ecs)
 		{
 			int len = kcp::ikcp_input(this->kcp_, (const char *)data.data(), (long)data.size());
@@ -260,110 +260,125 @@ namespace asio2::detail
 		}
 
 		template<typename C, typename DeferEvent>
-		inline void _post_handshake(std::shared_ptr<derived_t> self_ptr, ecs_t<C>& ecs, DeferEvent chain)
+		void _session_post_handshake(std::shared_ptr<derived_t> self_ptr, ecs_t<C>& ecs, DeferEvent chain)
 		{
-			try
+			error_code ec;
+
+			// step 3 : server recvd syn from client (the first_ is the syn)
+			kcp::kcphdr syn = kcp::to_kcphdr(derive.first_);
+			std::uint32_t conv = syn.th_ack;
+			if (conv == 0)
 			{
-				error_code ec;
-				if constexpr (args_t::is_session)
+				conv = derive.kcp_conv_;
+				syn.th_ack = conv;
+			}
+
+			// step 4 : server send synack to client
+			this->_kcp_send_synack(syn, ec);
+
+			asio::detail::throw_error(ec);
+
+			this->_kcp_start(self_ptr, conv);
+			this->_handle_handshake(ec, std::move(self_ptr), ecs, std::move(chain));
+		}
+
+		template<typename C, typename DeferEvent>
+		void _client_post_handshake(std::shared_ptr<derived_t> self_ptr, ecs_t<C>& ecs, DeferEvent chain)
+		{
+			error_code ec;
+
+			// step 1 : client send syn to server
+			std::uint32_t seq = static_cast<std::uint32_t>(
+				std::chrono::duration_cast<std::chrono::milliseconds>(
+				std::chrono::system_clock::now().time_since_epoch()).count());
+
+			this->_kcp_send_syn(seq, ec);
+
+			asio::detail::throw_error(ec);
+
+			// use a loop timer to execute "client send syn to server" until the server
+			// has recvd the syn packet and this client recvd reply.
+			std::shared_ptr<detail::safe_timer> timer =
+				mktimer(derive.io().context(), std::chrono::milliseconds(500),
+				[this, self_ptr, seq](error_code ec) mutable
+			{
+				if (ec == asio::error::operation_aborted)
+					return false;
+				this->_kcp_send_syn(seq, ec);
+				if (ec)
 				{
-					// step 3 : server recvd syn from client (the first_ is the syn)
-					kcp::kcphdr syn = kcp::to_kcphdr(derive.first_);
-					std::uint32_t conv = syn.th_ack;
-					if (conv == 0)
+					set_last_error(ec);
+					if (derive.state() == state_t::started)
 					{
-						conv = derive.kcp_conv_;
-						syn.th_ack = conv;
+						derive._do_disconnect(ec, std::move(self_ptr));
 					}
+					return false;
+				}
+				// return true  : let the timer continue execute.
+				// return false : kill the timer.
+				return true;
+			});
 
-					// step 4 : server send synack to client
-					this->_kcp_send_synack(syn, ec);
+			// step 2 : client wait for recv synack util connect timeout or recvd some data
+			derive.socket().async_receive(derive.buffer().prepare(derive.buffer().pre_size()),
+				make_allocator(derive.rallocator(),
+			[this, seq, this_ptr = std::move(self_ptr), &ecs, timer = std::move(timer), chain = std::move(chain)]
+			(const error_code & ec, std::size_t bytes_recvd) mutable
+			{
+				ASIO2_ASSERT(derive.io().running_in_this_thread());
 
-					asio::detail::throw_error(ec);
+				timer->cancel();
 
-					this->_kcp_start(self_ptr, conv);
-					this->_handle_handshake(ec, std::move(self_ptr), ecs, std::move(chain));
+				if (ec)
+				{
+					// if connect_timeout_timer_ is empty, it means that the connect timeout timer is
+					// timeout and the callback has called already, so reset the error to timed_out.
+					// note : when the async_resolve is failed, the socket is invalid to.
+					this->_handle_handshake(
+						derive.connect_timeout_timer_ ? ec : asio::error::timed_out,
+						std::move(this_ptr), ecs, std::move(chain));
+					return;
+				}
+
+				derive.buffer().commit(bytes_recvd);
+
+				std::string_view data = std::string_view(static_cast<std::string_view::const_pointer>
+					(derive.buffer().data().data()), bytes_recvd);
+
+				// Check whether the data is the correct handshake information
+				if (kcp::is_kcphdr_synack(data, seq))
+				{
+					kcp::kcphdr hdr = kcp::to_kcphdr(data);
+					std::uint32_t conv = hdr.th_seq;
+					if (derive.kcp_conv_ != 0)
+					{
+						ASIO2_ASSERT(derive.kcp_conv_ == conv);
+					}
+					this->_kcp_start(this_ptr, conv);
+					this->_handle_handshake(ec, std::move(this_ptr), ecs, std::move(chain));
 				}
 				else
 				{
-					// step 1 : client send syn to server
-					std::uint32_t seq = static_cast<std::uint32_t>(
-						std::chrono::duration_cast<std::chrono::milliseconds>(
-						std::chrono::system_clock::now().time_since_epoch()).count());
+					this->_handle_handshake(asio::error::address_family_not_supported,
+						std::move(this_ptr), ecs, std::move(chain));
+				}
 
-					this->_kcp_send_syn(seq, ec);
+				derive.buffer().consume(bytes_recvd);
+			}));
+		}
 
-					asio::detail::throw_error(ec);
-
-					// use a loop timer to execute "client send syn to server" until the server
-					// has recvd the syn packet and this client recvd reply.
-					std::shared_ptr<detail::safe_timer> timer =
-						mktimer(derive.io().context(), std::chrono::milliseconds(500),
-						[this, self_ptr, seq](error_code ec) mutable
-					{
-						if (ec == asio::error::operation_aborted)
-							return false;
-						this->_kcp_send_syn(seq, ec);
-						if (ec)
-						{
-							set_last_error(ec);
-							if (derive.state() == state_t::started)
-							{
-								derive._do_disconnect(ec, std::move(self_ptr));
-							}
-							return false;
-						}
-						// return true  : let the timer continue execute.
-						// return false : kill the timer.
-						return true;
-					});
-
-					// step 2 : client wait for recv synack util connect timeout or recvd some data
-					derive.socket().async_receive(derive.buffer().prepare(derive.buffer().pre_size()),
-						make_allocator(derive.rallocator(),
-					[this, seq, this_ptr = std::move(self_ptr), &ecs, timer = std::move(timer), chain = std::move(chain)]
-					(const error_code & ec, std::size_t bytes_recvd) mutable
-					{
-						ASIO2_ASSERT(derive.io().running_in_this_thread());
-
-						timer->cancel();
-
-						if (ec)
-						{
-							// if connect_timeout_timer_ is empty, it means that the connect timeout timer is
-							// timeout and the callback has called already, so reset the error to timed_out.
-							// note : when the async_resolve is failed, the socket is invalid to.
-							this->_handle_handshake(
-								derive.connect_timeout_timer_ ? ec : asio::error::timed_out,
-								std::move(this_ptr), ecs, std::move(chain));
-							return;
-						}
-
-						derive.buffer().commit(bytes_recvd);
-
-						std::string_view data = std::string_view(static_cast<std::string_view::const_pointer>
-							(derive.buffer().data().data()), bytes_recvd);
-
-						// Check whether the data is the correct handshake information
-						if (kcp::is_kcphdr_synack(data, seq))
-						{
-							kcp::kcphdr hdr = kcp::to_kcphdr(data);
-							std::uint32_t conv = hdr.th_seq;
-							if (derive.kcp_conv_ != 0)
-							{
-								ASIO2_ASSERT(derive.kcp_conv_ == conv);
-							}
-							this->_kcp_start(this_ptr, conv);
-							this->_handle_handshake(ec, std::move(this_ptr), ecs, std::move(chain));
-						}
-						else
-						{
-							this->_handle_handshake(asio::error::address_family_not_supported,
-								std::move(this_ptr), ecs, std::move(chain));
-						}
-
-						derive.buffer().consume(bytes_recvd);
-					}));
+		template<typename C, typename DeferEvent>
+		void _post_handshake(std::shared_ptr<derived_t> self_ptr, ecs_t<C>& ecs, DeferEvent chain)
+		{
+			try
+			{
+				if constexpr (args_t::is_session)
+				{
+					this->_session_post_handshake(std::move(self_ptr), ecs, std::move(chain));
+				}
+				else
+				{
+					this->_client_post_handshake(std::move(self_ptr), ecs, std::move(chain));
 				}
 			}
 			catch (system_error & e)
@@ -382,7 +397,7 @@ namespace asio2::detail
 		}
 
 		template<typename C, typename DeferEvent>
-		inline void _handle_handshake(
+		void _handle_handshake(
 			const error_code& ec, std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs, DeferEvent chain)
 		{
 			set_last_error(ec);

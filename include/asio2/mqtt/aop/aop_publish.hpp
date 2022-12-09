@@ -31,6 +31,44 @@ namespace asio2::detail
 
 	protected:
 		template<class Message>
+		inline void _do_check_publish_topic_alias(
+			error_code& ec, caller_t* caller, Message& msg, std::string_view& topic_name)
+		{
+			// << topic_alias >>
+			// A Topic Alias of 0 is not permitted. A sender MUST NOT send a PUBLISH packet containing a Topic Alias
+			// which has the value 0 [MQTT-3.3.2-8].
+			// << topic_alias_maximum >>
+			// This value indicates the highest value that the Client will accept as a Topic Alias sent by the Server.
+			// The Client uses this value to limit the number of Topic Aliases that it is willing to hold on this Connection.
+			// The Server MUST NOT send a Topic Alias in a PUBLISH packet to the Client greater than Topic Alias Maximum
+			// [MQTT-3.1.2-26]. A value of 0 indicates that the Client does not accept any Topic Aliases on this connection.
+			// If Topic Alias Maximum is absent or zero, the Server MUST NOT send any Topic Aliases to the Client [MQTT-3.1.2-27].
+			mqtt::v5::topic_alias* topic_alias = msg.properties().template get_if<mqtt::v5::topic_alias>();
+			if (topic_alias)
+			{
+				auto alias_value = topic_alias->value();
+				if (alias_value == 0 || alias_value > caller->topic_alias_maximum())
+				{
+					ec = mqtt::make_error_code(mqtt::error::malformed_packet);
+					return;
+				}
+
+				if (!topic_name.empty())
+				{
+					caller->push_topic_alias(alias_value, topic_name);
+				}
+				else
+				{
+					if (!caller->find_topic_alias(alias_value, topic_name))
+					{
+						ec = mqtt::make_error_code(mqtt::error::topic_alias_invalid);
+						return;
+					}
+				}
+			}
+		}
+
+		template<class Message>
 		inline void _check_publish_topic_alias(
 			error_code& ec, caller_t* caller, Message& msg, std::string_view& topic_name)
 		{
@@ -47,33 +85,11 @@ namespace asio2::detail
 			// If Topic Alias Maximum is absent or zero, the Server MUST NOT send any Topic Aliases to the Client [MQTT-3.1.2-27].
 			if constexpr (std::is_same_v<message_type, mqtt::v5::publish>)
 			{
-				mqtt::v5::topic_alias* topic_alias = msg.properties().template get_if<mqtt::v5::topic_alias>();
-				if (topic_alias)
-				{
-					auto alias_value = topic_alias->value();
-					if (alias_value == 0 || alias_value > caller->topic_alias_maximum())
-					{
-						ec = mqtt::make_error_code(mqtt::error::malformed_packet);
-						return;
-					}
-
-					if (!topic_name.empty())
-					{
-						caller->push_topic_alias(alias_value, topic_name);
-					}
-					else
-					{
-						if (!caller->find_topic_alias(alias_value, topic_name))
-						{
-							ec = mqtt::make_error_code(mqtt::error::topic_alias_invalid);
-							return;
-						}
-					}
-				}
+				_do_check_publish_topic_alias(ec, caller, msg, topic_name);
 			}
 			else
 			{
-				std::ignore = true;
+				detail::ignore_unused(ec, caller, msg, topic_name);
 			}
 		}
 

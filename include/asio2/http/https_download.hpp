@@ -42,6 +42,153 @@ namespace asio2::detail
 	template<class derived_t, class args_t>
 	struct https_download_impl_bridge<derived_t, args_t, true>
 	{
+	protected:
+		template<typename String, typename StrOrInt, class HeaderCallback, class BodyCallback, class Proxy,
+			class Body, class Fields, class Buffer>
+		static void _download_with_socks5(
+			asio::io_context& ioc, asio::ip::tcp::resolver& resolver, asio::ip::tcp::socket& socket,
+			asio::ssl::stream<asio::ip::tcp::socket&>& stream,
+			Buffer& buffer,
+			String&& host, StrOrInt&& port,
+			http::request<Body, Fields>& req, HeaderCallback&& cbh, BodyCallback&& cbb, Proxy&& proxy)
+		{
+			auto sk5 = detail::to_shared_ptr(std::forward<Proxy>(proxy));
+
+			std::string_view h{ sk5->host() };
+			std::string_view p{ sk5->port() };
+
+			// Look up the domain name
+			resolver.async_resolve(h, p, [&, s5 = std::move(sk5)]
+			(const error_code& ec1, const asio::ip::tcp::resolver::results_type& endpoints) mutable
+			{
+				if (ec1) { set_last_error(ec1); return; }
+
+				// Make the connection on the IP address we get from a lookup
+				asio::async_connect(socket, endpoints,
+				[&, s5 = std::move(s5)](const error_code& ec2, const asio::ip::tcp::endpoint&) mutable
+				{
+					if (ec2) { set_last_error(ec2); return; }
+
+					detail::socks5_client_connect_op
+					{
+						ioc,
+						detail::to_string(std::forward<String  >(host)),
+						detail::to_string(std::forward<StrOrInt>(port)),
+						socket,
+						std::move(s5),
+						[&](error_code ecs5) mutable
+						{
+							if (ecs5) { set_last_error(ecs5); return; }
+
+							// https://github.com/djarek/certify
+							if (auto it = req.find(http::field::host); it != req.end())
+							{
+								std::string hostname(it->value());
+								SSL_set_tlsext_host_name(stream.native_handle(), hostname.data());
+							}
+
+							stream.async_handshake(asio::ssl::stream_base::client,
+							[&](const error_code& ec3) mutable
+							{
+								if (ec3) { set_last_error(ec3); return; }
+
+								http::async_write(stream, req, [&](const error_code& ec4, std::size_t) mutable
+								{
+									// can't use stream.shutdown(),in some case the shutdowm will blocking forever.
+									if (ec4) { set_last_error(ec4); stream.async_shutdown([](const error_code&) {}); return; }
+
+									http::read_large_body<false>(stream, buffer,
+										std::forward<HeaderCallback>(cbh), std::forward<BodyCallback>(cbb));
+
+									stream.async_shutdown([](const error_code&) mutable {});
+								});
+							});
+						}
+					};
+				});
+			});
+		}
+
+		template<typename String, typename StrOrInt, class HeaderCallback, class BodyCallback,
+			class Body, class Fields, class Buffer>
+		static void _download_trivially(
+			asio::io_context& ioc, asio::ip::tcp::resolver& resolver, asio::ip::tcp::socket& socket,
+			asio::ssl::stream<asio::ip::tcp::socket&>& stream,
+			Buffer& buffer,
+			String&& host, StrOrInt&& port,
+			http::request<Body, Fields>& req, HeaderCallback&& cbh, BodyCallback&& cbb)
+		{
+			detail::ignore_unused(ioc);
+
+			// Look up the domain name
+			resolver.async_resolve(std::forward<String>(host), detail::to_string(std::forward<StrOrInt>(port)),
+			[&](const error_code& ec1, const asio::ip::tcp::resolver::results_type& endpoints) mutable
+			{
+				if (ec1) { set_last_error(ec1); return; }
+
+				// Make the connection on the IP address we get from a lookup
+				asio::async_connect(socket, endpoints,
+				[&](const error_code& ec2, const asio::ip::tcp::endpoint&) mutable
+				{
+					if (ec2) { set_last_error(ec2); return; }
+
+					// https://github.com/djarek/certify
+					if (auto it = req.find(http::field::host); it != req.end())
+					{
+						std::string hostname(it->value());
+						SSL_set_tlsext_host_name(stream.native_handle(), hostname.data());
+					}
+
+					stream.async_handshake(asio::ssl::stream_base::client,
+					[&](const error_code& ec3) mutable
+					{
+						if (ec3) { set_last_error(ec3); return; }
+
+						http::async_write(stream, req, [&](const error_code& ec4, std::size_t) mutable
+						{
+							// can't use stream.shutdown(),in some case the shutdowm will blocking forever.
+							if (ec4) { set_last_error(ec4); stream.async_shutdown([](const error_code&) {}); return; }
+
+							http::read_large_body<false>(stream, buffer,
+								std::forward<HeaderCallback>(cbh), std::forward<BodyCallback>(cbb));
+
+							stream.async_shutdown([](const error_code&) mutable {});
+						});
+					});
+				});
+			});
+		}
+
+		template<typename String, typename StrOrInt, class HeaderCallback, class BodyCallback, class Proxy,
+			class Body, class Fields, class Buffer>
+		static void _download_impl(
+			asio::io_context& ioc, asio::ip::tcp::resolver& resolver, asio::ip::tcp::socket& socket,
+			asio::ssl::stream<asio::ip::tcp::socket&>& stream,
+			Buffer& buffer,
+			String&& host, StrOrInt&& port,
+			http::request<Body, Fields>& req, HeaderCallback&& cbh, BodyCallback&& cbb, Proxy&& proxy)
+		{
+			// if has socks5 proxy
+			if constexpr (std::is_base_of_v<asio2::socks5::option_base,
+				typename detail::element_type_adapter<detail::remove_cvref_t<Proxy>>::type>)
+			{
+				derived_t::_download_with_socks5(ioc, resolver, socket, stream, buffer
+					, std::forward<String>(host), std::forward<StrOrInt>(port)
+					, req, std::forward<HeaderCallback>(cbh), std::forward<BodyCallback>(cbb)
+					, std::forward<Proxy>(proxy)
+				);
+			}
+			else
+			{
+				detail::ignore_unused(proxy);
+
+				derived_t::_download_trivially(ioc, resolver, socket, stream, buffer
+					, std::forward<String>(host), std::forward<StrOrInt>(port)
+					, req, std::forward<HeaderCallback>(cbh), std::forward<BodyCallback>(cbb)
+				);
+			}
+		}
+
 	public:
 		/**
 		 * @brief blocking download the http file until it is returned on success or failure
@@ -81,106 +228,12 @@ namespace asio2::detail
 					req.set(http::field::user_agent,
 						"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36");
 
-				// if has socks5 proxy
-				if constexpr (std::is_base_of_v<asio2::socks5::option_base,
-					typename detail::element_type_adapter<detail::remove_cvref_t<Proxy>>::type>)
-				{
-					auto sk5 = detail::to_shared_ptr(std::forward<Proxy>(proxy));
-
-					std::string_view h{ sk5->host() };
-					std::string_view p{ sk5->port() };
-
-					// Look up the domain name
-					resolver.async_resolve(h, p, [&, s5 = std::move(sk5)]
-					(const error_code& ec1, const asio::ip::tcp::resolver::results_type& endpoints) mutable
-					{
-						if (ec1) { set_last_error(ec1); return; }
-
-						// Make the connection on the IP address we get from a lookup
-						asio::async_connect(socket, endpoints,
-						[&, s5 = std::move(s5)](const error_code& ec2, const asio::ip::tcp::endpoint&) mutable
-						{
-							if (ec2) { set_last_error(ec2); return; }
-
-							detail::socks5_client_connect_op
-							{
-								ioc,
-								detail::to_string(std::forward<String  >(host)),
-								detail::to_string(std::forward<StrOrInt>(port)),
-								socket,
-								std::move(s5),
-								[&](error_code ecs5) mutable
-								{
-									if (ecs5) { set_last_error(ecs5); return; }
-
-									// https://github.com/djarek/certify
-									if (auto it = req.find(http::field::host); it != req.end())
-									{
-										std::string hostname(it->value());
-										SSL_set_tlsext_host_name(stream.native_handle(), hostname.data());
-									}
-
-									stream.async_handshake(asio::ssl::stream_base::client,
-									[&](const error_code& ec3) mutable
-									{
-										if (ec3) { set_last_error(ec3); return; }
-
-										http::async_write(stream, req, [&](const error_code& ec4, std::size_t) mutable
-										{
-											// can't use stream.shutdown(),in some case the shutdowm will blocking forever.
-											if (ec4) { set_last_error(ec4); stream.async_shutdown([](const error_code&) {}); return; }
-
-											http::read_large_body<false>(stream, buffer,
-												std::forward<HeaderCallback>(cbh), std::forward<BodyCallback>(cbb));
-
-											stream.async_shutdown([](const error_code&) mutable {});
-										});
-									});
-								}
-							};
-						});
-					});
-				}
-				else
-				{
-					// Look up the domain name
-					resolver.async_resolve(std::forward<String>(host), detail::to_string(std::forward<StrOrInt>(port)),
-					[&](const error_code& ec1, const asio::ip::tcp::resolver::results_type& endpoints) mutable
-					{
-						if (ec1) { set_last_error(ec1); return; }
-
-						// Make the connection on the IP address we get from a lookup
-						asio::async_connect(socket, endpoints,
-						[&](const error_code& ec2, const asio::ip::tcp::endpoint&) mutable
-						{
-							if (ec2) { set_last_error(ec2); return; }
-
-							// https://github.com/djarek/certify
-							if (auto it = req.find(http::field::host); it != req.end())
-							{
-								std::string hostname(it->value());
-								SSL_set_tlsext_host_name(stream.native_handle(), hostname.data());
-							}
-
-							stream.async_handshake(asio::ssl::stream_base::client,
-							[&](const error_code& ec3) mutable
-							{
-								if (ec3) { set_last_error(ec3); return; }
-
-								http::async_write(stream, req, [&](const error_code& ec4, std::size_t) mutable
-								{
-									// can't use stream.shutdown(),in some case the shutdowm will blocking forever.
-									if (ec4) { set_last_error(ec4); stream.async_shutdown([](const error_code&) {}); return; }
-
-									http::read_large_body<false>(stream, buffer,
-										std::forward<HeaderCallback>(cbh), std::forward<BodyCallback>(cbb));
-
-									stream.async_shutdown([](const error_code&) mutable {});
-								});
-							});
-						});
-					});
-				}
+				// do work
+				derived_t::_download_impl(ioc, resolver, socket, stream, buffer
+					, std::forward<String>(host), std::forward<StrOrInt>(port)
+					, req, std::forward<HeaderCallback>(cbh), std::forward<BodyCallback>(cbb)
+					, std::forward<Proxy>(proxy)
+				);
 
 				// timedout run
 				ioc.run();

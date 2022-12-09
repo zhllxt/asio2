@@ -150,7 +150,7 @@ public:
 
 void rpc_test()
 {
-	ASIO2_TEST_BEGIN_LOOP(test_loop_times);
+	ASIO2_TEST_BEGIN_LOOP(test_loop_times / 50);
 
 	// test max buffer size
 	{

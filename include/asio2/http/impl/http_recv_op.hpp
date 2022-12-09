@@ -48,6 +48,58 @@ namespace asio2::detail
 
 	protected:
 		template<typename C>
+		void _http_session_post_recv(std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs)
+		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
+			if (derive.is_http())
+			{
+				// Make the request empty before reading,
+				// otherwise the operation behavior is undefined.
+				derive.req_.reset();
+
+				// Read a request
+				http::async_read(derive.stream(), derive.buffer().base(), derive.req_,
+					make_allocator(derive.rallocator(),
+						[&derive, self_ptr = std::move(this_ptr), &ecs]
+				(const error_code & ec, std::size_t bytes_recvd) mutable
+				{
+					derive._handle_recv(ec, bytes_recvd, std::move(self_ptr), ecs);
+				}));
+			}
+			else
+			{
+				// Read a message into our buffer
+				derive.ws_stream().async_read(derive.buffer().base(),
+					make_allocator(derive.rallocator(),
+						[&derive, self_ptr = std::move(this_ptr), &ecs]
+				(const error_code & ec, std::size_t bytes_recvd) mutable
+				{
+					derive._handle_recv(ec, bytes_recvd, std::move(self_ptr), ecs);
+				}));
+			}
+		}
+
+		template<typename C>
+		void _http_client_post_recv(std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs)
+		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
+			// Make the request empty before reading,
+			// otherwise the operation behavior is undefined.
+			derive.rep_.reset();
+
+			// Receive the HTTP response
+			http::async_read(derive.stream(), derive.buffer().base(), derive.rep_,
+				make_allocator(derive.rallocator(),
+					[&derive, self_ptr = std::move(this_ptr), &ecs]
+			(const error_code & ec, std::size_t bytes_recvd) mutable
+			{
+				derive._handle_recv(ec, bytes_recvd, std::move(self_ptr), ecs);
+			}));
+		}
+
+		template<typename C>
 		void _http_post_recv(std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
@@ -65,55 +117,82 @@ namespace asio2::detail
 			{
 				if constexpr (args_t::is_session)
 				{
-					if (derive.is_http())
-					{
-						// Make the request empty before reading,
-						// otherwise the operation behavior is undefined.
-						derive.req_.reset();
-
-						// Read a request
-						http::async_read(derive.stream(), derive.buffer().base(), derive.req_,
-							make_allocator(derive.rallocator(),
-								[&derive, self_ptr = std::move(this_ptr), &ecs]
-						(const error_code & ec, std::size_t bytes_recvd) mutable
-						{
-							derive._handle_recv(ec, bytes_recvd, std::move(self_ptr), ecs);
-						}));
-					}
-					else
-					{
-						// Read a message into our buffer
-						derive.ws_stream().async_read(derive.buffer().base(),
-							make_allocator(derive.rallocator(),
-								[&derive, self_ptr = std::move(this_ptr), &ecs]
-						(const error_code & ec, std::size_t bytes_recvd) mutable
-						{
-							derive._handle_recv(ec, bytes_recvd, std::move(self_ptr), ecs);
-						}));
-					}
+					derive._http_session_post_recv(std::move(this_ptr), ecs);
 				}
 				else
 				{
-					// Make the request empty before reading,
-					// otherwise the operation behavior is undefined.
-					derive.rep_.reset();
-
-					// Receive the HTTP response
-					http::async_read(derive.stream(), derive.buffer().base(), derive.rep_,
-						make_allocator(derive.rallocator(),
-							[&derive, self_ptr = std::move(this_ptr), &ecs]
-					(const error_code & ec, std::size_t bytes_recvd) mutable
-					{
-						derive._handle_recv(ec, bytes_recvd, std::move(self_ptr), ecs);
-					}));
+					derive._http_client_post_recv(std::move(this_ptr), ecs);
 				}
 			}
-			catch (system_error & e)
+			catch (system_error& e)
 			{
 				set_last_error(e);
 
 				derive._do_disconnect(e.code(), derive.selfptr());
 			}
+		}
+
+		template<typename C>
+		void _http_session_handle_recv(
+			const error_code& ec, std::size_t bytes_recvd, std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs)
+		{
+			detail::ignore_unused(ec, bytes_recvd);
+
+			derived_t& derive = static_cast<derived_t&>(*this);
+
+			if (derive.is_http())
+			{
+				std::string_view target = derive.req_.target();
+				http::parses::http_parser_parse_url(
+					target.data(), target.size(), 0, std::addressof(derive.req_.url_.parser()));
+
+				derive.rep_.result(http::status::unknown);
+				derive.rep_.keep_alive(derive.req_.keep_alive());
+
+				if (derive._check_upgrade(this_ptr, ecs))
+					return;
+
+				derive._fire_recv(this_ptr, ecs);
+
+				// note : can't read write the variable of "req_" after _fire_recv, it maybe
+				// cause crash, eg :
+				// user called response.defer() in the recv callback, and pass the defer_ptr
+				// into another thread, then code run to here, at this time, the "req_" maybe
+				// read write in two thread : this thread and "another thread".
+				// note : can't call "_do_disconnect" at here, beacuse if user has called
+				// response.defer() in the recv callback, this session maybe closed before
+				// the response is sent to the client.
+				//if (derive.req_.need_eof() || !derive.req_.keep_alive())
+				//{
+				//	derive._do_disconnect(asio::error::operation_aborted, derive.selfptr());
+				//	return;
+				//}
+			}
+			else
+			{
+				derive.req_.ws_frame_type_ = websocket::frame::message;
+				derive.req_.ws_frame_data_ = { reinterpret_cast<std::string_view::const_pointer>(
+					derive.buffer().data().data()), bytes_recvd };
+
+				derive._fire_recv(this_ptr, ecs);
+
+				derive.buffer().consume(derive.buffer().size());
+
+				derive._post_recv(std::move(this_ptr), ecs);
+			}
+		}
+
+		template<typename C>
+		void _http_client_handle_recv(
+			const error_code& ec, std::size_t bytes_recvd, std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs)
+		{
+			detail::ignore_unused(ec, bytes_recvd);
+
+			derived_t& derive = static_cast<derived_t&>(*this);
+
+			derive._fire_recv(this_ptr, ecs);
+
+			derive._post_recv(std::move(this_ptr), ecs);
 		}
 
 		template<typename C>
@@ -142,52 +221,11 @@ namespace asio2::detail
 
 				if constexpr (args_t::is_session)
 				{
-					if (derive.is_http())
-					{
-						std::string_view target = derive.req_.target();
-						http::parses::http_parser_parse_url(
-							target.data(), target.size(), 0, std::addressof(derive.req_.url_.parser()));
-
-						derive.rep_.result(http::status::unknown);
-						derive.rep_.keep_alive(derive.req_.keep_alive());
-
-						if (derive._check_upgrade(this_ptr, ecs))
-							return;
-
-						derive._fire_recv(this_ptr, ecs);
-
-						// note : can't read write the variable of "req_" after _fire_recv, it maybe
-						// cause crash, eg :
-						// user called response.defer() in the recv callback, and pass the defer_ptr
-						// into another thread, then code run to here, at this time, the "req_" maybe
-						// read write in two thread : this thread and "another thread".
-						// note : can't call "_do_disconnect" at here, beacuse if user has called
-						// response.defer() in the recv callback, this session maybe closed before
-						// the response is sent to the client.
-						//if (derive.req_.need_eof() || !derive.req_.keep_alive())
-						//{
-						//	derive._do_disconnect(asio::error::operation_aborted, derive.selfptr());
-						//	return;
-						//}
-					}
-					else
-					{
-						derive.req_.ws_frame_type_ = websocket::frame::message;
-						derive.req_.ws_frame_data_ = { reinterpret_cast<std::string_view::const_pointer>(
-							derive.buffer().data().data()), bytes_recvd };
-
-						derive._fire_recv(this_ptr, ecs);
-
-						derive.buffer().consume(derive.buffer().size());
-
-						derive._post_recv(std::move(this_ptr), ecs);
-					}
+					derive._http_session_handle_recv(ec, bytes_recvd, std::move(this_ptr), ecs);
 				}
 				else
 				{
-					derive._fire_recv(this_ptr, ecs);
-
-					derive._post_recv(std::move(this_ptr), ecs);
+					derive._http_client_handle_recv(ec, bytes_recvd, std::move(this_ptr), ecs);
 				}
 			}
 			else

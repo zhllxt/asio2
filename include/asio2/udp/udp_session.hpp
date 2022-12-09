@@ -433,6 +433,78 @@ namespace asio2::detail
 
 	protected:
 		template<typename C>
+		inline void _kcp_handle_recv(
+			error_code ec, std::string_view data, std::shared_ptr<derived_t>& this_ptr, ecs_t<C>& ecs)
+		{
+			// the kcp message header length is 24
+			// the kcphdr length is 12 
+			if (data.size() == kcp::kcphdr::required_size())
+			{
+				// Check whether the packet is SYN handshake
+				// It is possible that the client did not receive the synack package, then the client
+				// will resend the syn package, so we just need to reply to the syncack package directly.
+				// If the client is disconnect without send a "fin" or the server has't recvd the 
+				// "fin", and then the client connect again a later, at this time, the client
+				// is in the session map already, and we need check whether the first message is fin
+				if /**/ (kcp::is_kcphdr_syn(data))
+				{
+					ASIO2_ASSERT(this->kcp_ && this->kcp_->kcp_);
+
+					if (this->kcp_ && this->kcp_->kcp_)
+					{
+						kcp::kcphdr syn = kcp::to_kcphdr(data);
+						std::uint32_t conv = syn.th_ack;
+						if (conv == 0)
+						{
+							conv = this->kcp_->kcp_->conv;
+							syn.th_ack = conv;
+						}
+
+						// If the client is forced disconnect after sent some messages, and the server
+						// has recvd the messages already, we must recreated the kcp object, otherwise
+						// the client and server will can't handle the next messages correctly.
+					#if 0
+						// set send_fin_ = false to make the _kcp_stop don't sent the fin frame.
+						this->kcp_->send_fin_ = false;
+
+						this->kcp_->_kcp_stop();
+
+						this->kcp_->_kcp_start(this_ptr, conv);
+					#else
+						this->kcp_->_kcp_reset();
+					#endif
+
+						this->kcp_->send_fin_ = true;
+
+						// every time we recv kcp syn, we sent synack to the client
+						this->kcp_->_kcp_send_synack(syn, ec);
+						if (ec)
+						{
+							this->derived()._do_disconnect(ec, this_ptr);
+						}
+					}
+					else
+					{
+						this->derived()._do_disconnect(asio::error::operation_aborted, this_ptr);
+					}
+				}
+				else if (kcp::is_kcphdr_fin(data))
+				{
+					this->kcp_->send_fin_ = false;
+					this->derived()._do_disconnect(asio::error::connection_reset, this_ptr);
+				}
+				else
+				{
+					ASIO2_ASSERT(false);
+				}
+			}
+			else
+			{
+				this->kcp_->_kcp_recv(this_ptr, data, this->buffer_ref_, ecs);
+			}
+		}
+
+		template<typename C>
 		inline void _handle_recv(
 			error_code ec, std::string_view data, std::shared_ptr<derived_t>& this_ptr, ecs_t<C>& ecs)
 		{
@@ -453,72 +525,7 @@ namespace asio2::detail
 			}
 			else
 			{
-				// the kcp message header length is 24
-				// the kcphdr length is 12 
-				if (data.size() == kcp::kcphdr::required_size())
-				{
-					// Check whether the packet is SYN handshake
-					// It is possible that the client did not receive the synack package, then the client
-					// will resend the syn package, so we just need to reply to the syncack package directly.
-					// If the client is disconnect without send a "fin" or the server has't recvd the 
-					// "fin", and then the client connect again a later, at this time, the client
-					// is in the session map already, and we need check whether the first message is fin
-					if /**/ (kcp::is_kcphdr_syn(data))
-					{
-						ASIO2_ASSERT(this->kcp_ && this->kcp_->kcp_);
-
-						if (this->kcp_ && this->kcp_->kcp_)
-						{
-							kcp::kcphdr syn = kcp::to_kcphdr(data);
-							std::uint32_t conv = syn.th_ack;
-							if (conv == 0)
-							{
-								conv = this->kcp_->kcp_->conv;
-								syn.th_ack = conv;
-							}
-
-							// If the client is forced disconnect after sent some messages, and the server
-							// has recvd the messages already, we must recreated the kcp object, otherwise
-							// the client and server will can't handle the next messages correctly.
-						#if 0
-							// set send_fin_ = false to make the _kcp_stop don't sent the fin frame.
-							this->kcp_->send_fin_ = false;
-
-							this->kcp_->_kcp_stop();
-
-							this->kcp_->_kcp_start(this_ptr, conv);
-						#else
-							this->kcp_->_kcp_reset();
-						#endif
-
-							this->kcp_->send_fin_ = true;
-
-							// every time we recv kcp syn, we sent synack to the client
-							this->kcp_->_kcp_send_synack(syn, ec);
-							if (ec)
-							{
-								this->derived()._do_disconnect(ec, this_ptr);
-							}
-						}
-						else
-						{
-							this->derived()._do_disconnect(asio::error::operation_aborted, this_ptr);
-						}
-					}
-					else if (kcp::is_kcphdr_fin(data))
-					{
-						this->kcp_->send_fin_ = false;
-						this->derived()._do_disconnect(asio::error::connection_reset, this_ptr);
-					}
-					else
-					{
-						ASIO2_ASSERT(false);
-					}
-				}
-				else
-				{
-					this->kcp_->_kcp_recv(this_ptr, data, this->buffer_ref_, ecs);
-				}
+				this->derived()._kcp_handle_recv(ec, data, this_ptr, ecs);
 			}
 		}
 

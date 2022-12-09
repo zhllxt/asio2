@@ -670,6 +670,45 @@ namespace asio2::detail
 		}
 
 		template<typename C>
+		inline void _do_rdc_handle_recv(std::shared_ptr<derived_t>& this_ptr, ecs_t<C>& ecs, recv_data_t data)
+		{
+			detail::ignore_unused(this_ptr, ecs, data);
+
+			derived_t& derive = static_cast<derived_t&>(*this);
+
+			if (!derive.ecs_)
+			{
+				ASIO2_ASSERT(false);
+				ASIO2_LOG(spdlog::level::err, "The ecs has been destroyed when do rdc handle recv.");
+				return;
+			}
+
+			auto _rdc = ecs.get_component().rdc_option(std::in_place);
+
+			auto id = (_rdc->get_recv_parser())(data);
+
+			ASIO2_ASSERT(derive.io().running_in_this_thread());
+
+			auto iter = _rdc->invoker().find(id);
+			if (iter != _rdc->invoker().end())
+			{
+				auto&[timer, invoker] = iter->second;
+
+				try
+				{
+					timer->cancel();
+				}
+				catch (system_error const&)
+				{
+				}
+
+				derive._rdc_invoke_with_recv(error_code{}, invoker, data);
+
+				_rdc->invoker().erase(iter);
+			}
+		}
+
+		template<typename C>
 		inline void _rdc_handle_recv(std::shared_ptr<derived_t>& this_ptr, ecs_t<C>& ecs, recv_data_t data)
 		{
 			detail::ignore_unused(this_ptr, ecs, data);
@@ -678,36 +717,7 @@ namespace asio2::detail
 			{
 				derived_t& derive = static_cast<derived_t&>(*this);
 
-				if (!derive.ecs_)
-				{
-					ASIO2_ASSERT(false);
-					ASIO2_LOG(spdlog::level::err, "The ecs has been destroyed when do rdc handle recv.");
-					return;
-				}
-
-				auto _rdc = ecs.get_component().rdc_option(std::in_place);
-
-				auto id = (_rdc->get_recv_parser())(data);
-
-				ASIO2_ASSERT(derive.io().running_in_this_thread());
-
-				auto iter = _rdc->invoker().find(id);
-				if (iter != _rdc->invoker().end())
-				{
-					auto&[timer, invoker] = iter->second;
-
-					try
-					{
-						timer->cancel();
-					}
-					catch (system_error const&)
-					{
-					}
-
-					derive._rdc_invoke_with_recv(error_code{}, invoker, data);
-
-					_rdc->invoker().erase(iter);
-				}
+				derive._do_rdc_handle_recv(this_ptr, ecs, data);
 			}
 			else
 			{

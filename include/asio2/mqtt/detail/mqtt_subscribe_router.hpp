@@ -391,46 +391,7 @@ namespace asio2::detail
 			}
 			else if constexpr (std::is_same_v<ReturnT, bool>)
 			{
-				return derive._do_router(key.value(), [](auto& msg) mutable
-				{
-					// qos 1 response
-					if constexpr (mqtt::is_puback_message<decltype(msg)>())
-					{
-						if constexpr (std::is_same_v<detail::remove_cvref_t<decltype(msg)>, mqtt::v5::puback>)
-						{
-							mqtt::error e = static_cast<mqtt::error>(msg.reason_code());
-							if (!(e == mqtt::error::success))
-							{
-								return false;
-							}
-							return true;
-						}
-						else
-						{
-							return true;
-						}
-					}
-					else if constexpr (mqtt::is_pubcomp_message<decltype(msg)>())
-					{
-						if constexpr (std::is_same_v<detail::remove_cvref_t<decltype(msg)>, mqtt::v5::pubcomp>)
-						{
-							mqtt::error e = static_cast<mqtt::error>(msg.reason_code());
-							if (!(e == mqtt::error::success))
-							{
-								return false;
-							}
-							return true;
-						}
-						else
-						{
-							return true;
-						}
-					}
-					else
-					{
-						return false;
-					}
-				});
+				return derive._do_bool_publish(key);
 			}
 			else if constexpr (std::is_same_v<ReturnT, mqtt::message>)
 			{
@@ -443,6 +404,53 @@ namespace asio2::detail
 		}
 
 	protected:
+		template<class K>
+		bool _do_bool_publish(std::optional<K>& key)
+		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
+			return derive._do_router(key.value(), [](auto& msg) mutable
+			{
+				// qos 1 response
+				if constexpr (mqtt::is_puback_message<decltype(msg)>())
+				{
+					if constexpr (std::is_same_v<detail::remove_cvref_t<decltype(msg)>, mqtt::v5::puback>)
+					{
+						mqtt::error e = static_cast<mqtt::error>(msg.reason_code());
+						if (!(e == mqtt::error::success))
+						{
+							return false;
+						}
+						return true;
+					}
+					else
+					{
+						return true;
+					}
+				}
+				else if constexpr (mqtt::is_pubcomp_message<decltype(msg)>())
+				{
+					if constexpr (std::is_same_v<detail::remove_cvref_t<decltype(msg)>, mqtt::v5::pubcomp>)
+					{
+						mqtt::error e = static_cast<mqtt::error>(msg.reason_code());
+						if (!(e == mqtt::error::success))
+						{
+							return false;
+						}
+						return true;
+					}
+					else
+					{
+						return true;
+					}
+				}
+				else
+				{
+					return false;
+				}
+			});
+		}
+
 		template<class ReturnT>
 		inline ReturnT _empty_result()
 		{

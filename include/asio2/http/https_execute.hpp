@@ -40,115 +40,43 @@ namespace asio2::detail
 	template<class derived_t, class args_t>
 	struct https_execute_impl_bridge<derived_t, args_t, true>
 	{
-	public:
-		template<typename String, typename StrOrInt, class Rep, class Period, class Proxy,
-			class Body = http::string_body, class Fields = http::fields, class Buffer = beast::flat_buffer>
-		typename std::enable_if_t<detail::is_character_string_v<detail::remove_cvref_t<String>>
-			&& detail::http_proxy_checker_v<Proxy>, http::response<Body, Fields>>
-		static inline execute(const asio::ssl::context& ctx, String&& host, StrOrInt&& port,
-			http::request<Body, Fields>& req, std::chrono::duration<Rep, Period> timeout, Proxy&& proxy)
+	protected:
+		template<typename String, typename StrOrInt, class Proxy, class Body, class Fields, class Buffer>
+		static void _execute_with_socks5(
+			asio::io_context& ioc, asio::ip::tcp::resolver& resolver, asio::ip::tcp::socket& socket,
+			asio::ssl::stream<asio::ip::tcp::socket&>& stream,
+			http::parser<false, Body, typename Fields::allocator_type>& parser,
+			Buffer& buffer,
+			String&& host, StrOrInt&& port,
+			http::request<Body, Fields>& req, Proxy&& proxy)
 		{
-			http::parser<false, Body, typename Fields::allocator_type> parser;
-			try
+			auto sk5 = detail::to_shared_ptr(std::forward<Proxy>(proxy));
+
+			std::string_view h{ sk5->host() };
+			std::string_view p{ sk5->port() };
+
+			// Look up the domain name
+			resolver.async_resolve(h, p, [&, s5 = std::move(sk5)]
+			(const error_code& ec1, const asio::ip::tcp::resolver::results_type& endpoints) mutable
 			{
-				// First assign default value timed_out to last error
-				set_last_error(asio::error::timed_out);
+				if (ec1) { set_last_error(ec1); return; }
 
-				// set default result to unknown
-				parser.get().result(http::status::unknown);
-				parser.eager(true);
-
-				// The io_context is required for all I/O
-				asio::io_context ioc;
-
-				// These objects perform our I/O
-				asio::ip::tcp::resolver resolver{ ioc };
-				asio::ip::tcp::socket socket{ ioc };
-				asio::ssl::stream<asio::ip::tcp::socket&> stream(socket, const_cast<asio::ssl::context&>(ctx));
-
-				// This buffer is used for reading and must be persisted
-				Buffer buffer;
-
-				// if has socks5 proxy
-				if constexpr (std::is_base_of_v<asio2::socks5::option_base,
-					typename detail::element_type_adapter<detail::remove_cvref_t<Proxy>>::type>)
+				// Make the connection on the IP address we get from a lookup
+				asio::async_connect(socket, endpoints,
+				[&, s5 = std::move(s5)](const error_code& ec2, const asio::ip::tcp::endpoint&) mutable
 				{
-					auto sk5 = detail::to_shared_ptr(std::forward<Proxy>(proxy));
+					if (ec2) { set_last_error(ec2); return; }
 
-					std::string_view h{ sk5->host() };
-					std::string_view p{ sk5->port() };
-
-					// Look up the domain name
-					resolver.async_resolve(h, p, [&, s5 = std::move(sk5)]
-					(const error_code& ec1, const asio::ip::tcp::resolver::results_type& endpoints) mutable
+					detail::socks5_client_connect_op
 					{
-						if (ec1) { set_last_error(ec1); return; }
-
-						// Make the connection on the IP address we get from a lookup
-						asio::async_connect(socket, endpoints,
-						[&, s5 = std::move(s5)](const error_code& ec2, const asio::ip::tcp::endpoint&) mutable
+						ioc,
+						detail::to_string(std::forward<String  >(host)),
+						detail::to_string(std::forward<StrOrInt>(port)),
+						socket,
+						std::move(s5),
+						[&](error_code ecs5) mutable
 						{
-							if (ec2) { set_last_error(ec2); return; }
-
-							detail::socks5_client_connect_op
-							{
-								ioc,
-								detail::to_string(std::forward<String  >(host)),
-								detail::to_string(std::forward<StrOrInt>(port)),
-								socket,
-								std::move(s5),
-								[&](error_code ecs5) mutable
-								{
-									if (ecs5) { set_last_error(ecs5); return; }
-
-									// https://github.com/djarek/certify
-									if (auto it = req.find(http::field::host); it != req.end())
-									{
-										std::string hostname(it->value());
-										SSL_set_tlsext_host_name(stream.native_handle(), hostname.data());
-									}
-
-									stream.async_handshake(asio::ssl::stream_base::client,
-									[&](const error_code& ec3) mutable
-									{
-										if (ec3) { set_last_error(ec3); return; }
-
-										http::async_write(stream, req, [&](const error_code& ec4, std::size_t) mutable
-										{
-											// can't use stream.shutdown(),in some case the shutdowm will blocking forever.
-											if (ec4) { set_last_error(ec4); stream.async_shutdown([](const error_code&) {}); return; }
-
-											// Then start asynchronous reading
-											http::async_read(stream, buffer, parser,
-											[&](const error_code& ec5, std::size_t) mutable
-											{
-												// Reading completed, assign the read the result to last error
-												// If the code does not execute into here, the last error
-												// is the default value timed_out.
-												set_last_error(ec5);
-
-												stream.async_shutdown([](const error_code&) mutable {});
-											});
-										});
-									});
-								}
-							};
-						});
-					});
-				}
-				else
-				{
-					// Look up the domain name
-					resolver.async_resolve(std::forward<String>(host), detail::to_string(std::forward<StrOrInt>(port)),
-					[&](const error_code& ec1, const asio::ip::tcp::resolver::results_type& endpoints) mutable
-					{
-						if (ec1) { set_last_error(ec1); return; }
-
-						// Make the connection on the IP address we get from a lookup
-						asio::async_connect(socket, endpoints,
-						[&](const error_code& ec2, const asio::ip::tcp::endpoint&) mutable
-						{
-							if (ec2) { set_last_error(ec2); return; }
+							if (ecs5) { set_last_error(ecs5); return; }
 
 							// https://github.com/djarek/certify
 							if (auto it = req.find(http::field::host); it != req.end())
@@ -180,9 +108,134 @@ namespace asio2::detail
 									});
 								});
 							});
+						}
+					};
+				});
+			});
+		}
+
+		template<typename String, typename StrOrInt, class Body, class Fields, class Buffer>
+		static void _execute_trivially(
+			asio::io_context& ioc, asio::ip::tcp::resolver& resolver, asio::ip::tcp::socket& socket,
+			asio::ssl::stream<asio::ip::tcp::socket&>& stream,
+			http::parser<false, Body, typename Fields::allocator_type>& parser,
+			Buffer& buffer,
+			String&& host, StrOrInt&& port,
+			http::request<Body, Fields>& req)
+		{
+			detail::ignore_unused(ioc);
+
+			// Look up the domain name
+			resolver.async_resolve(std::forward<String>(host), detail::to_string(std::forward<StrOrInt>(port)),
+			[&](const error_code& ec1, const asio::ip::tcp::resolver::results_type& endpoints) mutable
+			{
+				if (ec1) { set_last_error(ec1); return; }
+
+				// Make the connection on the IP address we get from a lookup
+				asio::async_connect(socket, endpoints,
+				[&](const error_code& ec2, const asio::ip::tcp::endpoint&) mutable
+				{
+					if (ec2) { set_last_error(ec2); return; }
+
+					// https://github.com/djarek/certify
+					if (auto it = req.find(http::field::host); it != req.end())
+					{
+						std::string hostname(it->value());
+						SSL_set_tlsext_host_name(stream.native_handle(), hostname.data());
+					}
+
+					stream.async_handshake(asio::ssl::stream_base::client,
+					[&](const error_code& ec3) mutable
+					{
+						if (ec3) { set_last_error(ec3); return; }
+
+						http::async_write(stream, req, [&](const error_code& ec4, std::size_t) mutable
+						{
+							// can't use stream.shutdown(),in some case the shutdowm will blocking forever.
+							if (ec4) { set_last_error(ec4); stream.async_shutdown([](const error_code&) {}); return; }
+
+							// Then start asynchronous reading
+							http::async_read(stream, buffer, parser,
+							[&](const error_code& ec5, std::size_t) mutable
+							{
+								// Reading completed, assign the read the result to last error
+								// If the code does not execute into here, the last error
+								// is the default value timed_out.
+								set_last_error(ec5);
+
+								stream.async_shutdown([](const error_code&) mutable {});
+							});
 						});
 					});
-				}
+				});
+			});
+		}
+
+		template<typename String, typename StrOrInt, class Proxy, class Body, class Fields, class Buffer>
+		static void _execute_impl(
+			asio::io_context& ioc, asio::ip::tcp::resolver& resolver, asio::ip::tcp::socket& socket,
+			asio::ssl::stream<asio::ip::tcp::socket&>& stream,
+			http::parser<false, Body, typename Fields::allocator_type>& parser,
+			Buffer& buffer,
+			String&& host, StrOrInt&& port,
+			http::request<Body, Fields>& req, Proxy&& proxy)
+		{
+			// if has socks5 proxy
+			if constexpr (std::is_base_of_v<asio2::socks5::option_base,
+				typename detail::element_type_adapter<detail::remove_cvref_t<Proxy>>::type>)
+			{
+				derived_t::_execute_with_socks5(ioc, resolver, socket, stream, parser, buffer
+					, std::forward<String>(host), std::forward<StrOrInt>(port)
+					, req
+					, std::forward<Proxy>(proxy)
+				);
+			}
+			else
+			{
+				detail::ignore_unused(proxy);
+
+				derived_t::_execute_trivially(ioc, resolver, socket, stream, parser, buffer
+					, std::forward<String>(host), std::forward<StrOrInt>(port)
+					, req
+				);
+			}
+		}
+
+	public:
+		template<typename String, typename StrOrInt, class Rep, class Period, class Proxy,
+			class Body = http::string_body, class Fields = http::fields, class Buffer = beast::flat_buffer>
+		typename std::enable_if_t<detail::is_character_string_v<detail::remove_cvref_t<String>>
+			&& detail::http_proxy_checker_v<Proxy>, http::response<Body, Fields>>
+		static inline execute(const asio::ssl::context& ctx, String&& host, StrOrInt&& port,
+			http::request<Body, Fields>& req, std::chrono::duration<Rep, Period> timeout, Proxy&& proxy)
+		{
+			http::parser<false, Body, typename Fields::allocator_type> parser;
+			try
+			{
+				// First assign default value timed_out to last error
+				set_last_error(asio::error::timed_out);
+
+				// set default result to unknown
+				parser.get().result(http::status::unknown);
+				parser.eager(true);
+
+				// The io_context is required for all I/O
+				asio::io_context ioc;
+
+				// These objects perform our I/O
+				asio::ip::tcp::resolver resolver{ ioc };
+				asio::ip::tcp::socket socket{ ioc };
+				asio::ssl::stream<asio::ip::tcp::socket&> stream(socket, const_cast<asio::ssl::context&>(ctx));
+
+				// This buffer is used for reading and must be persisted
+				Buffer buffer;
+
+				// do work
+				derived_t::_execute_impl(ioc, resolver, socket, stream, parser, buffer
+					, std::forward<String>(host), std::forward<StrOrInt>(port)
+					, req
+					, std::forward<Proxy>(proxy)
+				);
 
 				// timedout run
 				ioc.run_for(timeout);

@@ -189,7 +189,7 @@ namespace asio2::detail
 		}
 
 		template<class Message, class Response>
-		inline void _before_user_callback(
+		inline void _before_user_callback_with_message(
 			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om, Message& msg, Response& rep)
 		{
 			detail::ignore_unused(ec, caller_ptr, caller, om, msg, rep);
@@ -197,45 +197,123 @@ namespace asio2::detail
 			using message_type  [[maybe_unused]] = typename detail::remove_cvref_t<Message>;
 			using response_type [[maybe_unused]] = typename detail::remove_cvref_t<Response>;
 
-			if constexpr (std::is_same_v<message_type, mqtt::message>)
+			if constexpr (std::is_same_v<response_type, mqtt::message>)
 			{
-				if constexpr (std::is_same_v<response_type, mqtt::message>)
-				{
-					if (!rep.empty())
-					{
-						std::visit([&ec, &caller_ptr, &caller, &om, &rep](auto& pm) mutable
-						{
-							std::visit([&ec, &caller_ptr, &caller, &om, &pm](auto& pr) mutable
-							{
-								caller->_before_user_callback_impl(ec, caller_ptr, caller, om, pm, pr);
-							}, rep.variant());
-						}, msg.variant());
-					}
-				}
-				else
+				if (!rep.empty())
 				{
 					std::visit([&ec, &caller_ptr, &caller, &om, &rep](auto& pm) mutable
 					{
-						caller->_before_user_callback_impl(ec, caller_ptr, caller, om, pm, rep);
+						std::visit([&ec, &caller_ptr, &caller, &om, &pm](auto& pr) mutable
+						{
+							caller->_before_user_callback_impl(ec, caller_ptr, caller, om, pm, pr);
+						}, rep.variant());
 					}, msg.variant());
 				}
 			}
 			else
 			{
-				if constexpr (std::is_same_v<response_type, mqtt::message>)
+				std::visit([&ec, &caller_ptr, &caller, &om, &rep](auto& pm) mutable
 				{
-					if (!rep.empty())
+					caller->_before_user_callback_impl(ec, caller_ptr, caller, om, pm, rep);
+				}, msg.variant());
+			}
+		}
+
+		template<class Message, class Response>
+		inline void _before_user_callback_with_packet(
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om, Message& msg, Response& rep)
+		{
+			detail::ignore_unused(ec, caller_ptr, caller, om, msg, rep);
+
+			using message_type  [[maybe_unused]] = typename detail::remove_cvref_t<Message>;
+			using response_type [[maybe_unused]] = typename detail::remove_cvref_t<Response>;
+
+			if constexpr (std::is_same_v<response_type, mqtt::message>)
+			{
+				if (!rep.empty())
+				{
+					std::visit([&ec, &caller_ptr, &caller, &om, &msg](auto& pr) mutable
 					{
-						std::visit([&ec, &caller_ptr, &caller, &om, &msg](auto& pr) mutable
-						{
-							caller->_before_user_callback_impl(ec, caller_ptr, caller, om, msg, pr);
-						}, rep.variant());
-					}
+						caller->_before_user_callback_impl(ec, caller_ptr, caller, om, msg, pr);
+					}, rep.variant());
 				}
-				else
+			}
+			else
+			{
+				caller->_before_user_callback_impl(ec, caller_ptr, caller, om, msg, rep);
+			}
+		}
+
+		template<class Message, class Response>
+		inline void _before_user_callback(
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om, Message& msg, Response& rep)
+		{
+			using message_type  [[maybe_unused]] = typename detail::remove_cvref_t<Message>;
+			using response_type [[maybe_unused]] = typename detail::remove_cvref_t<Response>;
+
+			if constexpr (std::is_same_v<message_type, mqtt::message>)
+			{
+				this->_before_user_callback_with_message(ec, caller_ptr, caller, om, msg, rep);
+			}
+			else
+			{
+				this->_before_user_callback_with_packet(ec, caller_ptr, caller, om, msg, rep);
+			}
+		}
+
+		template<class Message, class Response>
+		inline void _after_user_callback_with_message(
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om, Message& msg, Response& rep)
+		{
+			detail::ignore_unused(ec, caller_ptr, caller, om, msg, rep);
+
+			using message_type  [[maybe_unused]] = typename detail::remove_cvref_t<Message>;
+			using response_type [[maybe_unused]] = typename detail::remove_cvref_t<Response>;
+
+			if constexpr (std::is_same_v<response_type, mqtt::message>)
+			{
+				if (!rep.empty())
 				{
-					caller->_before_user_callback_impl(ec, caller_ptr, caller, om, msg, rep);
+					std::visit([&ec, &caller_ptr, &caller, &om, &rep](auto& pm) mutable
+					{
+						std::visit([&ec, &caller_ptr, &caller, &om, &pm](auto& pr) mutable
+						{
+							caller->_after_user_callback_impl(ec, caller_ptr, caller, om, pm, pr);
+						}, rep.variant());
+					}, msg.variant());
 				}
+			}
+			else
+			{
+				std::visit([&ec, &caller_ptr, &caller, &om, &rep](auto& pm) mutable
+				{
+					caller->_after_user_callback_impl(ec, caller_ptr, caller, om, pm, rep);
+				}, msg.variant());
+			}
+		}
+
+		template<class Message, class Response>
+		inline void _after_user_callback_with_packet(
+			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om, Message& msg, Response& rep)
+		{
+			detail::ignore_unused(ec, caller_ptr, caller, om, msg, rep);
+
+			using message_type  [[maybe_unused]] = typename detail::remove_cvref_t<Message>;
+			using response_type [[maybe_unused]] = typename detail::remove_cvref_t<Response>;
+
+			if constexpr (std::is_same_v<response_type, mqtt::message>)
+			{
+				if (!rep.empty())
+				{
+					std::visit([&ec, &caller_ptr, &caller, &om, &msg](auto& pr) mutable
+					{
+						caller->_after_user_callback_impl(ec, caller_ptr, caller, om, msg, pr);
+					}, rep.variant());
+				}
+			}
+			else
+			{
+				caller->_after_user_callback_impl(ec, caller_ptr, caller, om, msg, rep);
 			}
 		}
 
@@ -243,50 +321,16 @@ namespace asio2::detail
 		inline void _after_user_callback(
 			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, mqtt::message& om, Message& msg, Response& rep)
 		{
-			detail::ignore_unused(ec, caller_ptr, caller, om, msg, rep);
-
 			using message_type  [[maybe_unused]] = typename detail::remove_cvref_t<Message>;
 			using response_type [[maybe_unused]] = typename detail::remove_cvref_t<Response>;
 
 			if constexpr (std::is_same_v<message_type, mqtt::message>)
 			{
-				if constexpr (std::is_same_v<response_type, mqtt::message>)
-				{
-					if (!rep.empty())
-					{
-						std::visit([&ec, &caller_ptr, &caller, &om, &rep](auto& pm) mutable
-						{
-							std::visit([&ec, &caller_ptr, &caller, &om, &pm](auto& pr) mutable
-							{
-								caller->_after_user_callback_impl(ec, caller_ptr, caller, om, pm, pr);
-							}, rep.variant());
-						}, msg.variant());
-					}
-				}
-				else
-				{
-					std::visit([&ec, &caller_ptr, &caller, &om, &rep](auto& pm) mutable
-					{
-						caller->_after_user_callback_impl(ec, caller_ptr, caller, om, pm, rep);
-					}, msg.variant());
-				}
+				this->_after_user_callback_with_message(ec, caller_ptr, caller, om, msg, rep);
 			}
 			else
 			{
-				if constexpr (std::is_same_v<response_type, mqtt::message>)
-				{
-					if (!rep.empty())
-					{
-						std::visit([&ec, &caller_ptr, &caller, &om, &msg](auto& pr) mutable
-						{
-							caller->_after_user_callback_impl(ec, caller_ptr, caller, om, msg, pr);
-						}, rep.variant());
-					}
-				}
-				else
-				{
-					caller->_after_user_callback_impl(ec, caller_ptr, caller, om, msg, rep);
-				}
+				this->_after_user_callback_with_packet(ec, caller_ptr, caller, om, msg, rep);
 			}
 		}
 	};

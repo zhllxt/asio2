@@ -244,44 +244,62 @@ namespace asio2::detail
 		}
 
 		template<typename C, typename DeferEvent>
-		inline void _handle_handshake(
+		inline void _session_handle_handshake(
 			const error_code& ec, std::shared_ptr<derived_t> self_ptr, ecs_t<C>& ecs, DeferEvent chain)
+		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
+			// Use "sessions().dispatch" to ensure that the _fire_accept function and the _fire_handshake
+			// function are fired in the same thread
+			derive.sessions().dispatch(
+			[&derive, ec, this_ptr = std::move(self_ptr), &ecs, chain = std::move(chain)]
+			() mutable
+			{
+				try
+				{
+					set_last_error(ec);
+
+					derive._fire_handshake(this_ptr);
+
+					asio::detail::throw_error(ec);
+
+					derive._done_connect(ec, std::move(this_ptr), ecs, std::move(chain));
+				}
+				catch (system_error & e)
+				{
+					set_last_error(e);
+
+					derive._do_disconnect(e.code(), std::move(this_ptr), std::move(chain));
+				}
+			});
+		}
+
+		template<typename C, typename DeferEvent>
+		inline void _client_handle_handshake(
+			const error_code& ec, std::shared_ptr<derived_t> self_ptr, ecs_t<C>& ecs, DeferEvent chain)
+		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
+			set_last_error(ec);
+
+			derive._fire_handshake(self_ptr);
+
+			derive._done_connect(ec, std::move(self_ptr), ecs, std::move(chain));
+		}
+
+		template<typename C, typename DeferEvent>
+		inline void _handle_handshake(
+			const error_code& ec, std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs, DeferEvent chain)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
 			if constexpr (args_t::is_session)
 			{
-				// Use "sessions().dispatch" to ensure that the _fire_accept function and the _fire_handshake
-				// function are fired in the same thread
-				derive.sessions().dispatch(
-				[&derive, ec, this_ptr = std::move(self_ptr), &ecs, chain = std::move(chain)]
-				() mutable
-				{
-					try
-					{
-						set_last_error(ec);
-
-						derive._fire_handshake(this_ptr);
-
-						asio::detail::throw_error(ec);
-
-						derive._done_connect(ec, std::move(this_ptr), ecs, std::move(chain));
-					}
-					catch (system_error & e)
-					{
-						set_last_error(e);
-
-						derive._do_disconnect(e.code(), std::move(this_ptr), std::move(chain));
-					}
-				});
+				derive._session_handle_handshake(ec, std::move(this_ptr), ecs, std::move(chain));
 			}
 			else
 			{
-				set_last_error(ec);
-
-				derive._fire_handshake(self_ptr);
-
-				derive._done_connect(ec, std::move(self_ptr), ecs, std::move(chain));
+				derive._client_handle_handshake(ec, std::move(this_ptr), ecs, std::move(chain));
 			}
 		}
 

@@ -394,6 +394,50 @@ namespace asio2::detail
 		}
 
 		template<typename C, typename DeferEvent>
+		inline void _session_fire_upgrade(
+			const error_code& ec, std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs, DeferEvent chain)
+		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
+			// Use "sessions().dispatch" to ensure that the _fire_accept function and the _fire_upgrade
+			// function are fired in the same thread
+			derive.sessions().dispatch(
+			[&derive, ec, this_ptr = std::move(this_ptr), &ecs, chain = std::move(chain)]
+			() mutable
+			{
+				try
+				{
+					set_last_error(ec);
+
+					derive._fire_upgrade(this_ptr);
+
+					asio::detail::throw_error(ec);
+
+					derive._done_connect(ec, std::move(this_ptr), ecs, std::move(chain));
+				}
+				catch (system_error & e)
+				{
+					set_last_error(e);
+
+					derive._do_disconnect(e.code(), derive.selfptr(), std::move(chain));
+				}
+			});
+		}
+
+		template<typename C, typename DeferEvent>
+		inline void _client_fire_upgrade(
+			const error_code& ec, std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs, DeferEvent chain)
+		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
+			set_last_error(ec);
+
+			derive._fire_upgrade(this_ptr);
+
+			derive._done_connect(ec, std::move(this_ptr), ecs, std::move(chain));
+		}
+
+		template<typename C, typename DeferEvent>
 		inline void _handle_upgrade(
 			const error_code& ec, std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs, DeferEvent chain)
 		{
@@ -403,37 +447,11 @@ namespace asio2::detail
 
 			if constexpr (args_t::is_session)
 			{
-				// Use "sessions().dispatch" to ensure that the _fire_accept function and the _fire_upgrade
-				// function are fired in the same thread
-				derive.sessions().dispatch(
-				[&derive, ec, this_ptr = std::move(this_ptr), &ecs, chain = std::move(chain)]
-				() mutable
-				{
-					try
-					{
-						set_last_error(ec);
-
-						derive._fire_upgrade(this_ptr);
-
-						asio::detail::throw_error(ec);
-
-						derive._done_connect(ec, std::move(this_ptr), ecs, std::move(chain));
-					}
-					catch (system_error & e)
-					{
-						set_last_error(e);
-
-						derive._do_disconnect(e.code(), derive.selfptr(), std::move(chain));
-					}
-				});
+				derive._session_fire_upgrade(ec, std::move(this_ptr), ecs, std::move(chain));
 			}
 			else
 			{
-				set_last_error(ec);
-
-				derive._fire_upgrade(this_ptr);
-
-				derive._done_connect(ec, std::move(this_ptr), ecs, std::move(chain));
+				derive._client_fire_upgrade(ec, std::move(this_ptr), ecs, std::move(chain));
 			}
 		}
 

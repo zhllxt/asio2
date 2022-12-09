@@ -681,34 +681,44 @@ namespace asio2::detail
 		}
 
 		template<typename C>
+		inline std::uint32_t _do_make_kcp_conv(std::string_view first, ecs_t<C>& ecs)
+		{
+			detail::ignore_unused(ecs);
+
+			std::uint32_t conv = 0;
+
+			if (kcp::is_kcphdr_syn(first))
+			{
+				kcp::kcphdr syn = kcp::to_kcphdr(first);
+
+				// the syn.th_ack is the kcp conv
+				if (syn.th_ack == 0)
+				{
+					conv = this->kcp_convs_.fetch_add(1);
+
+					if (conv == 0)
+						conv = this->kcp_convs_.fetch_add(1);
+				}
+				else
+				{
+					conv = syn.th_ack;
+				}
+			}
+
+			return conv;
+		}
+
+		template<typename C>
 		inline std::uint32_t _make_kcp_conv(std::string_view first, ecs_t<C>& ecs)
 		{
 			if constexpr (std::is_same_v<typename ecs_t<C>::condition_lowest_type, use_kcp_t>)
 			{
-				std::uint32_t conv = 0;
-
-				if (kcp::is_kcphdr_syn(first))
-				{
-					kcp::kcphdr syn = kcp::to_kcphdr(first);
-
-					// the syn.th_ack is the kcp conv
-					if (syn.th_ack == 0)
-					{
-						conv = this->kcp_convs_.fetch_add(1);
-
-						if (conv == 0)
-							conv = this->kcp_convs_.fetch_add(1);
-					}
-					else
-					{
-						conv = syn.th_ack;
-					}
-				}
-
-				return conv;
+				return this->_do_make_kcp_conv(first, ecs);
 			}
 			else
 			{
+				detail::ignore_unused(first, ecs);
+
 				return 0;
 			}
 		}
