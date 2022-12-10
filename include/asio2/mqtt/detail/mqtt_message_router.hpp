@@ -140,8 +140,6 @@ namespace asio2::detail
 		template<class FunctionT>
 		inline bool _do_add_router(key_type key, FunctionT&& callback)
 		{
-			derived_t& derive = static_cast<derived_t&>(*this);
-
 			using fun_traits_type = function_traits<FunctionT>;
 			using arg0_type = typename std::remove_cv_t<std::remove_reference_t<
 				typename fun_traits_type::template args<0>::type>>;

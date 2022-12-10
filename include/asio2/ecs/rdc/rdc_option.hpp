@@ -34,6 +34,7 @@ namespace asio2::rdc
 {
 	struct option_base
 	{
+		virtual ~option_base() {}
 		virtual std::any call_parser(bool is_send, void* data) = 0;
 		virtual void emplace_request(std::any& k, void* v) = 0;
 		virtual void execute_and_erase(std::any& k, std::function<void(void*)> cb) = 0;

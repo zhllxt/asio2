@@ -303,7 +303,7 @@ namespace asio2::detail::kcp
 		return hdr;
 	}
 
-	void ikcp_reset(ikcpcb* kcp)
+	[[maybe_unused]] void ikcp_reset(ikcpcb* kcp)
 	{
 		//#### ikcp_release without free
 		assert(kcp);

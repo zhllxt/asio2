@@ -423,8 +423,6 @@ namespace asio2::detail
 			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, M& msg)
 		{
 			using fun_traits_type = function_traits<F>;
-			using arg0_type = typename std::remove_cv_t<std::remove_reference_t<
-				typename fun_traits_type::template args<0>::type>>;
 
 			using message_type = typename std::remove_cv_t<std::remove_reference_t<
 				typename fun_traits_type::template args<1>::type>>;

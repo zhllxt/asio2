@@ -207,7 +207,7 @@ namespace asio2::detail
 				// if destroy it directly, then the rdc stop will executed after this stop.
 				// can't use post event, we need ensure when the derived stop is called,
 				// the chain must be executed completed.
-				derive.push_event([this, &derive, this_ptr = std::move(this_ptr)]
+				derive.push_event([this, this_ptr = std::move(this_ptr)]
 				(event_queue_guard<derived_t>) mutable
 				{
 					// clear recv buffer

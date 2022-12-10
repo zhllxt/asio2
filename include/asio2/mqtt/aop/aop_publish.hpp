@@ -101,8 +101,8 @@ namespace asio2::detail
 		{
 			detail::ignore_unused(ec, caller_ptr, caller, om, msg, rep);
 
-			using message_type  = typename detail::remove_cvref_t<Message>;
-			using response_type = typename detail::remove_cvref_t<Response>;
+			using message_type  [[maybe_unused]] = typename detail::remove_cvref_t<Message>;
+			using response_type [[maybe_unused]] = typename detail::remove_cvref_t<Response>;
 
 			// A PUBACK, PUBREC , PUBREL, or PUBCOMP packet MUST contain the same Packet Identifier
 			// as the PUBLISH packet that was originally sent [MQTT-2.2.1-5]. 
@@ -221,7 +221,7 @@ namespace asio2::detail
 		_multicast_publish(
 			std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, Message&& msg, std::string topic_name)
 		{
-			using message_type  = typename detail::remove_cvref_t<Message>;
+			using message_type [[maybe_unused]] = typename detail::remove_cvref_t<Message>;
 
 			// use post and push_event to ensure the publish message is sent to clients must
 			// after mqtt response is sent already.
@@ -255,7 +255,7 @@ namespace asio2::detail
 		{
 			detail::ignore_unused(caller_ptr, caller, msg);
 
-			using message_type  = typename detail::remove_cvref_t<Message>;
+			using message_type [[maybe_unused]] = typename detail::remove_cvref_t<Message>;
 
 			//                  share_name   topic_filter
 			std::set<std::tuple<std::string_view, std::string_view>> sent;

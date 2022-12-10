@@ -351,7 +351,7 @@ struct security
 		using json = nlohmann::json;
 
 		json j;
-		j << input;
+		input >> j;
 
 		groups_.emplace(std::string(any_group_name), group());
 

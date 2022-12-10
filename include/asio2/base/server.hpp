@@ -135,7 +135,7 @@ namespace asio2::detail
 				// use push event to let resources cleared after user events
 				// can't use post event, we need ensure when the derived stop is called,
 				// the chain must be executed completed.
-				derive.push_event([this, &derive, this_ptr = std::move(this_ptr)]
+				derive.push_event([this, this_ptr = std::move(this_ptr)]
 				(event_queue_guard<derived_t>) mutable
 				{
 					// destroy user data, maybe the user data is self shared_ptr, 

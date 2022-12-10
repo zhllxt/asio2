@@ -38,7 +38,7 @@ namespace asio2::detail
 		{
 			detail::ignore_unused(ec, caller_ptr, caller, om, msg);
 
-			using message_type  = typename detail::remove_cvref_t<Message>;
+			using message_type [[maybe_unused]] = typename detail::remove_cvref_t<Message>;
 
 			if (msg.reason_codes().count() == 0)
 			{

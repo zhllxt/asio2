@@ -391,7 +391,7 @@ namespace asio2::detail
 		inline bool _invoke_with_future(F& f, C* c, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller,
 			rpc_serializer& sr, rpc_deserializer& dr, typename rpc_result_t<R>::type r)
 		{
-			detail::ignore_unused(caller_ptr, caller, sr, dr);
+			detail::ignore_unused(f, c, caller_ptr, caller, sr, dr);
 
 			error_code ec = rpc::make_error_code(rpc::error::success);
 
