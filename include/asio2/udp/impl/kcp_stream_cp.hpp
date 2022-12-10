@@ -169,7 +169,7 @@ namespace asio2::detail
 		inline bool _kcp_send(Data& data, Callback&& callback)
 		{
 		#if defined(ASIO2_ENABLE_LOG)
-			static_assert(tallocator_.storage_size == 168);
+			static_assert(decltype(tallocator_)::storage_size == 168);
 		#endif
 
 			auto buffer = asio::buffer(data);

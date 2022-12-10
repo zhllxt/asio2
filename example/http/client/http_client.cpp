@@ -59,7 +59,7 @@ int main()
 		std::cout << rep4 << std::endl;
 
 	// GET
-	http::request_t<http::string_body> req6(http::verb::get, "/", 11);
+	http::web_request req6(http::verb::get, "/", 11);
 	req6.set(http::field::user_agent, "Chrome");
 	auto rep6 = asio2::http_client::execute("www.baidu.com", "80", req6, sock5_option);
 	if (asio2::get_last_error())
@@ -68,7 +68,7 @@ int main()
 		std::cout << rep6 << std::endl;
 
 	// POST
-	http::request_t<http::string_body> req7;
+	http::web_request req7;
 	req7.method(http::verb::post);
 	req7.target("/");
 	req7.set(http::field::user_agent, "Chrome");

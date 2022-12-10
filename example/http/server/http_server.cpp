@@ -131,16 +131,16 @@ int main()
 
 			rep.fill_text(str, http::status::ok, type);
 
-			http::request_t<http::string_body> re;
-			re.method(http::verb::post);
-			re.set(http::field::content_type, type);
-			re.keep_alive(true);
-			re.target("/api/user/");
-			re.body() = str;
-			re.prepare_payload();
+			http::web_request req_copy;
+			req_copy.method(http::verb::post);
+			req_copy.set(http::field::content_type, type);
+			req_copy.keep_alive(true);
+			req_copy.target("/api/user/");
+			req_copy.body() = str;
+			req_copy.prepare_payload();
 
 			std::stringstream ress;
-			ress << re;
+			ress << req_copy;
 			auto restr = ress.str();
 
 			asio2::ignore_unused(username, password, restr);

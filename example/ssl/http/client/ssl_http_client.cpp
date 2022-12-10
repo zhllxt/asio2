@@ -39,7 +39,7 @@ int main()
 
 	asio::ssl::context ctx{ asio::ssl::context::sslv23 };
 
-	http::request_t<http::string_body> req1;
+	http::web_request req1;
 	asio2::https_client::execute(ctx, "www.baidu.com", "443", req1, std::chrono::seconds(5));
 	asio2::https_client::execute(ctx, "www.baidu.com", "443", req1);
 

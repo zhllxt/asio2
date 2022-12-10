@@ -105,9 +105,9 @@ namespace asio2::detail
 		{
 		#if defined(ASIO2_ENABLE_LOG)
 		#if defined(ASIO2_ALLOCATOR_STORAGE_SIZE)
-			static_assert(wallocator_.storage_size == ASIO2_ALLOCATOR_STORAGE_SIZE);
+			static_assert(decltype(wallocator_)::storage_size == ASIO2_ALLOCATOR_STORAGE_SIZE);
 		#else
-			static_assert(wallocator_.storage_size == args_t::allocator_storage_size);
+			static_assert(decltype(wallocator_)::storage_size == args_t::allocator_storage_size);
 		#endif
 		#endif
 			
