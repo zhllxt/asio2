@@ -1877,7 +1877,7 @@ void tcp_dgram_test()
 	}
 
 	// test stop start in the io_context thread.
-	for (int x = 0; x < test_loop_times / 100; x++)
+	for (int x = 0; x < test_loop_times / 50; x++)
 	{
 		asio2::tcp_server server;
 		std::atomic<int> server_recv_counter = 0;

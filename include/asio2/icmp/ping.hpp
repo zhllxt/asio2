@@ -217,7 +217,7 @@ namespace asio2::detail
 		 */
 		inline bool is_started() const
 		{
-			return (this->state_ == state_t::started && this->socket_.lowest_layer().is_open());
+			return (this->state_ == state_t::started && this->socket().is_open());
 		}
 
 		/**
@@ -225,7 +225,7 @@ namespace asio2::detail
 		 */
 		inline bool is_stopped() const
 		{
-			return (this->state_ == state_t::stopped && !this->socket_.lowest_layer().is_open() && this->is_iopool_stopped());
+			return (this->state_ == state_t::stopped && !this->socket().is_open() && this->is_iopool_stopped());
 		}
 
 	public:
@@ -279,6 +279,7 @@ namespace asio2::detail
 							) : socket(s), dest(d)
 							{
 								error_code ec_ignore{};
+								socket.cancel(ec_ignore);
 								socket.close(ec_ignore);
 								socket.open(dest.endpoint().protocol());
 							}
@@ -287,6 +288,7 @@ namespace asio2::detail
 								error_code ec_ignore{};
 								// Gracefully close the socket
 								socket.shutdown(asio::ip::tcp::socket::shutdown_both, ec_ignore);
+								socket.cancel(ec_ignore);
 								socket.close(ec_ignore);
 							}
 							asio::ip::icmp::socket& socket;
@@ -452,9 +454,19 @@ namespace asio2::detail
 		inline socket_type & socket() noexcept { return this->socket_; }
 
 		/**
+		 * @brief get the socket object refrence
+		 */
+		inline const socket_type & socket() const noexcept { return this->socket_; }
+
+		/**
 		 * @brief get the stream object refrence
 		 */
 		inline socket_type & stream() noexcept { return this->socket_; }
+
+		/**
+		 * @brief get the stream object refrence
+		 */
+		inline const socket_type & stream() const noexcept { return this->socket_; }
 
 	public:
 		/**
@@ -738,8 +750,9 @@ namespace asio2::detail
 				
 					error_code ec_ignore{};
 
-					this->socket_.close(ec_ignore);
-					this->socket_.open(this->destination_.protocol());
+					this->socket().cancel(ec_ignore);
+					this->socket().close(ec_ignore);
+					this->socket().open(this->destination_.protocol());
 
 					derive._fire_init();
 
@@ -881,8 +894,10 @@ namespace asio2::detail
 			{
 			}
 
+			this->socket().cancel(ec_ignore);
+
 			// Call close,otherwise the _handle_recv will never return
-			this->socket_.close(ec_ignore);
+			this->socket().close(ec_ignore);
 
 			// clear recv buffer
 			this->buffer().consume(this->buffer().size());
@@ -917,13 +932,22 @@ namespace asio2::detail
 			std::ostream os(std::addressof(buffer));
 			os << req << this->body_;
 
+		#if defined(_DEBUG) || defined(DEBUG)
+			ASIO2_ASSERT(this->derived().post_send_counter_.load() == 0);
+			this->derived().post_send_counter_++;
+		#endif
+
 			// Send the request.
 			error_code ec;
 			this->time_sent_ = std::chrono::steady_clock::now();
-			this->socket_.send_to(buffer.data(), this->destination_, 0, ec);
+			this->socket().send_to(buffer.data(), this->destination_, 0, ec);
 			set_last_error(ec);
 			if (!ec)
 				this->total_send_++;
+
+		#if defined(_DEBUG) || defined(DEBUG)
+			this->derived().post_send_counter_--;
+		#endif
 
 			// Wait up to five seconds for a reply.
 			this->replies_ = 0;
@@ -980,17 +1004,30 @@ namespace asio2::detail
 
 			try
 			{
+			#if defined(_DEBUG) || defined(DEBUG)
+				ASIO2_ASSERT(this->derived().post_recv_counter_.load() == 0);
+				this->derived().post_recv_counter_++;
+			#endif
+
 				// Wait for a reply. We prepare the buffer to receive up to 64KB.
-				this->socket_.async_receive(this->buffer_.prepare(this->buffer_.pre_size()),
+				this->socket().async_receive(this->buffer_.prepare(this->buffer_.pre_size()),
 					make_allocator(this->rallocator_,
 						[this, this_ptr = std::move(this_ptr)]
 				(const error_code& ec, std::size_t bytes_recvd) mutable
 				{
+				#if defined(_DEBUG) || defined(DEBUG)
+					this->derived().post_recv_counter_--;
+				#endif
+
 					this->derived()._handle_recv(ec, bytes_recvd, std::move(this_ptr));
 				}));
 			}
 			catch (system_error & e)
 			{
+			#if defined(_DEBUG) || defined(DEBUG)
+				this->derived().post_recv_counter_--;
+			#endif
+
 				set_last_error(e);
 
 				this->derived()._do_stop(e.code(), this->derived().selfptr());
@@ -1173,6 +1210,8 @@ namespace asio2::detail
 
 	#if defined(_DEBUG) || defined(DEBUG)
 		bool                                        is_stop_called_  = false;
+		std::atomic<int>                            post_send_counter_ = 0;
+		std::atomic<int>                            post_recv_counter_ = 0;
 	#endif
 	};
 }

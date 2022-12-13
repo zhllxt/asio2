@@ -78,8 +78,7 @@ namespace asio2::detail
 		 */
 		inline typename ssl_stream_comp::stream_type & stream() noexcept
 		{
-			ASIO2_ASSERT(bool(this->ssl_stream_));
-			return (*(this->ssl_stream_));
+			return this->derived().ssl_stream();
 		}
 
 	public:
@@ -153,6 +152,11 @@ namespace asio2::detail
 
 namespace asio2
 {
+	using tcps_client_args = detail::template_args_tcp_client;
+
+	template<class derived_t, class args_t>
+	using tcps_client_impl_t = detail::tcps_client_impl_t<derived_t, args_t>;
+
 	/**
 	 * @brief ssl tcp client
 	 * @throws constructor maybe throw exception "Too many open files" (exception code : 24)
@@ -176,6 +180,30 @@ namespace asio2
 		using tcps_client_t<tcps_client>::tcps_client_t;
 	};
 }
+
+#if defined(ASIO2_INCLUDE_RATE_LIMIT)
+#include <asio2/tcp/tcp_stream.hpp>
+namespace asio2
+{
+	struct tcps_rate_client_args : public tcps_client_args
+	{
+		using socket_t = asio2::tcp_stream<asio2::simple_rate_policy>;
+	};
+
+	template<class derived_t>
+	class tcps_rate_client_t : public asio2::tcps_client_impl_t<derived_t, tcps_rate_client_args>
+	{
+	public:
+		using asio2::tcps_client_impl_t<derived_t, tcps_rate_client_args>::tcps_client_impl_t;
+	};
+
+	class tcps_rate_client : public asio2::tcps_rate_client_t<tcps_rate_client>
+	{
+	public:
+		using asio2::tcps_rate_client_t<tcps_rate_client>::tcps_rate_client_t;
+	};
+}
+#endif
 
 #include <asio2/base/detail/pop_options.hpp>
 

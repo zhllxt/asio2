@@ -80,7 +80,7 @@ namespace asio2::detail
 				{
 					[&derive, self_ptr = derive.selfptr()](event_queue_guard<derived_t> g) mutable
 					{
-						// Use push_event to ensure that reconnection will not executed until
+						// Use disp_event to ensure that reconnection will not executed until
 						// all events are completed.
 						derive.disp_event([&derive, this_ptr = std::move(self_ptr)]
 						(event_queue_guard<derived_t> g) mutable

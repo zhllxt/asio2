@@ -259,6 +259,11 @@ namespace asio2::detail
 
 namespace asio2
 {
+	using http_client_args = detail::template_args_http_client;
+
+	template<class derived_t, class args_t>
+	using http_client_impl_t = detail::http_client_impl_t<derived_t, args_t>;
+
 	template<class derived_t>
 	class http_client_t : public detail::http_client_impl_t<derived_t, detail::template_args_http_client>
 	{
@@ -272,6 +277,30 @@ namespace asio2
 		using http_client_t<http_client>::http_client_t;
 	};
 }
+
+#if defined(ASIO2_INCLUDE_RATE_LIMIT)
+#include <asio2/tcp/tcp_stream.hpp>
+namespace asio2
+{
+	struct http_rate_client_args : public http_client_args
+	{
+		using socket_t = asio2::tcp_stream<asio2::simple_rate_policy>;
+	};
+
+	template<class derived_t>
+	class http_rate_client_t : public asio2::http_client_impl_t<derived_t, http_rate_client_args>
+	{
+	public:
+		using asio2::http_client_impl_t<derived_t, http_rate_client_args>::http_client_impl_t;
+	};
+
+	class http_rate_client : public asio2::http_rate_client_t<http_rate_client>
+	{
+	public:
+		using asio2::http_rate_client_t<http_rate_client>::http_rate_client_t;
+	};
+}
+#endif
 
 #include <asio2/base/detail/pop_options.hpp>
 

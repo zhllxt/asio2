@@ -28,8 +28,8 @@
 #include <asio2/udp/udp_cast.hpp>
 #include <asio2/http/http_client.hpp>
 #include <asio2/http/http_server.hpp>
-#include <asio2/http/ws_client.hpp>
-#include <asio2/http/ws_server.hpp>
+#include <asio2/websocket/ws_client.hpp>
+#include <asio2/websocket/ws_server.hpp>
 #include <asio2/rpc/rpc_client.hpp>
 #include <asio2/rpc/rpc_server.hpp>
 #include <asio2/icmp/ping.hpp>
@@ -40,8 +40,8 @@
 #	include <asio2/tcp/tcps_server.hpp>
 #	include <asio2/http/https_client.hpp>
 #	include <asio2/http/https_server.hpp>
-#	include <asio2/http/wss_client.hpp>
-#	include <asio2/http/wss_server.hpp>
+#	include <asio2/websocket/wss_client.hpp>
+#	include <asio2/websocket/wss_server.hpp>
 #	include <asio2/rpc/rpcs_client.hpp>
 #	include <asio2/rpc/rpcs_server.hpp>
 #endif

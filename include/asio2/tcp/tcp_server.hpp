@@ -380,6 +380,7 @@ namespace asio2::detail
 
 					error_code ec_ignore{};
 
+					this->acceptor_.cancel(ec_ignore);
 					this->acceptor_.close(ec_ignore);
 
 					// parse address and port
@@ -573,17 +574,14 @@ namespace asio2::detail
 			// call the base class stop function
 			super::stop();
 
-			this->derived().push_event([this, this_ptr = std::move(this_ptr)]
-			(event_queue_guard<derived_t>) mutable
-			{
-				error_code ec_ignore{};
+			error_code ec_ignore{};
 
-				// call acceptor's close function to notify the _handle_accept
-				// function response with error > 0 , then the listen socket
-				// can get notify to exit must ensure the close function has 
-				// been called,otherwise the _handle_accept will never return
-				this->acceptor_.close(ec_ignore);
-			});
+			// call acceptor's close function to notify the _handle_accept
+			// function response with error > 0 , then the listen socket
+			// can get notify to exit must ensure the close function has 
+			// been called,otherwise the _handle_accept will never return
+			this->acceptor_.cancel(ec_ignore);
+			this->acceptor_.close(ec_ignore);
 
 			ASIO2_ASSERT(this->state_ == state_t::stopped);
 		}
@@ -608,11 +606,20 @@ namespace asio2::detail
 			{
 				std::shared_ptr<session_t> session_ptr = this->derived()._make_session();
 
+			#if defined(_DEBUG) || defined(DEBUG)
+				ASIO2_ASSERT(this->derived().post_recv_counter_.load() == 0);
+				this->derived().post_recv_counter_++;
+			#endif
+
 				auto& socket = session_ptr->socket().lowest_layer();
 				this->acceptor_.async_accept(socket, make_allocator(this->rallocator_,
 				[this, sptr = std::move(session_ptr), this_ptr = std::move(this_ptr), &ecs]
 				(const error_code& ec) mutable
 				{
+				#if defined(_DEBUG) || defined(DEBUG)
+					this->derived().post_recv_counter_--;
+				#endif
+
 					this->derived()._handle_accept(ec, std::move(sptr), std::move(this_ptr), ecs);
 				}));
 			}
@@ -620,6 +627,10 @@ namespace asio2::detail
 			// asio::error::no_descriptors - Too many open files
 			catch (system_error & e)
 			{
+			#if defined(_DEBUG) || defined(DEBUG)
+				this->derived().post_recv_counter_--;
+			#endif
+
 				set_last_error(e);
 
 				std::shared_ptr<derived_t> self_ptr = this->derived().selfptr();
@@ -717,6 +728,9 @@ namespace asio2::detail
 
 namespace asio2
 {
+	template<class derived_t, class session_t>
+	using tcp_server_impl_t = detail::tcp_server_impl_t<derived_t, session_t>;
+
 	/**
 	 * @throws constructor maybe throw exception "Too many open files" (exception code : 24)
 	 * asio::error::no_descriptors - Too many open files
@@ -735,6 +749,21 @@ namespace asio2
 	 */
 	using tcp_server = tcp_server_t<tcp_session>;
 }
+
+#if defined(ASIO2_INCLUDE_RATE_LIMIT)
+#include <asio2/tcp/tcp_stream.hpp>
+namespace asio2
+{
+	template<class session_t>
+	class tcp_rate_server_t : public asio2::tcp_server_impl_t<tcp_rate_server_t<session_t>, session_t>
+	{
+	public:
+		using asio2::tcp_server_impl_t<tcp_rate_server_t<session_t>, session_t>::tcp_server_impl_t;
+	};
+
+	using tcp_rate_server = tcp_rate_server_t<tcp_rate_session>;
+}
+#endif
 
 #include <asio2/base/detail/pop_options.hpp>
 

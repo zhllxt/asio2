@@ -205,6 +205,7 @@ namespace asio2::detail
 
 				// Gracefully close the socket
 				socket.shutdown(asio::ip::tcp::socket::shutdown_both, ec_ignore);
+				socket.cancel(ec_ignore);
 				socket.close(ec_ignore);
 			}
 			catch (system_error & e)

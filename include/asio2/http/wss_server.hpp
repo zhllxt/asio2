@@ -98,6 +98,9 @@ namespace asio2::detail
 
 namespace asio2
 {
+	template<class derived_t, class session_t>
+	using wss_server_impl_t = detail::wss_server_impl_t<derived_t, session_t>;
+
 	template<class session_t>
 	class wss_server_t : public detail::wss_server_impl_t<wss_server_t<session_t>, session_t>
 	{
@@ -107,6 +110,21 @@ namespace asio2
 
 	using wss_server = wss_server_t<wss_session>;
 }
+
+#if defined(ASIO2_INCLUDE_RATE_LIMIT)
+#include <asio2/tcp/tcp_stream.hpp>
+namespace asio2
+{
+	template<class session_t>
+	class wss_rate_server_t : public asio2::wss_server_impl_t<wss_rate_server_t<session_t>, session_t>
+	{
+	public:
+		using asio2::wss_server_impl_t<wss_rate_server_t<session_t>, session_t>::wss_server_impl_t;
+	};
+
+	using wss_rate_server = wss_rate_server_t<wss_rate_session>;
+}
+#endif
 
 #include <asio2/base/detail/pop_options.hpp>
 

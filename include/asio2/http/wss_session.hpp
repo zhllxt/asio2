@@ -27,7 +27,7 @@ namespace asio2::detail
 {
 	struct template_args_wss_session : public template_args_ws_session
 	{
-		using stream_t    = websocket::stream<asio::ssl::stream<asio::ip::tcp::socket&>&>;
+		using stream_t = websocket::stream<asio::ssl::stream<typename template_args_ws_session::socket_t&>&>;
 	};
 
 	ASIO2_CLASS_FORWARD_DECLARE_BASE;
@@ -83,6 +83,14 @@ namespace asio2::detail
 		 */
 		~wss_session_impl_t()
 		{
+		}
+
+		/**
+		 * @brief return the websocket stream object refrence
+		 */
+		inline typename args_t::stream_t& stream() noexcept
+		{
+			return this->derived().ws_stream();
 		}
 
 	public:
@@ -213,6 +221,11 @@ namespace asio2::detail
 
 namespace asio2
 {
+	using wss_session_args = detail::template_args_wss_session;
+
+	template<class derived_t, class args_t>
+	using wss_session_impl_t = detail::wss_session_impl_t<derived_t, args_t>;
+
 	template<class derived_t>
 	class wss_session_t : public detail::wss_session_impl_t<derived_t, detail::template_args_wss_session>
 	{
@@ -228,6 +241,31 @@ namespace asio2
 }
 
 #include <asio2/base/detail/pop_options.hpp>
+
+#if defined(ASIO2_INCLUDE_RATE_LIMIT)
+#include <asio2/tcp/tcp_stream.hpp>
+namespace asio2
+{
+	struct wss_rate_session_args : public wss_session_args
+	{
+		using socket_t = asio2::tcp_stream<asio2::simple_rate_policy>;
+		using stream_t = websocket::stream<asio::ssl::stream<socket_t&>&>;
+	};
+
+	template<class derived_t>
+	class wss_rate_session_t : public asio2::wss_session_impl_t<derived_t, wss_rate_session_args>
+	{
+	public:
+		using asio2::wss_session_impl_t<derived_t, wss_rate_session_args>::wss_session_impl_t;
+	};
+
+	class wss_rate_session : public asio2::wss_rate_session_t<wss_rate_session>
+	{
+	public:
+		using asio2::wss_rate_session_t<wss_rate_session>::wss_rate_session_t;
+	};
+}
+#endif
 
 #endif // !__ASIO2_WSS_SESSION_HPP__
 

@@ -19,7 +19,6 @@
 #include <type_traits>
 #include <utility>
 #include <atomic>
-#include <fstream>
 #include <mutex>
 
 #include <asio2/config.hpp>

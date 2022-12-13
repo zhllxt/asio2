@@ -32,7 +32,7 @@ struct aop_check
 
 void http_test()
 {
-	ASIO2_TEST_BEGIN_LOOP(test_loop_times / 50);
+	ASIO2_TEST_BEGIN_LOOP(test_loop_times);
 
 	// test http url encode decode
 	{

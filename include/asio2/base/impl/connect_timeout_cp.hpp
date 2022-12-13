@@ -158,9 +158,11 @@ namespace asio2::detail
 					// we close the socket, so the async_connect will returned 
 					// with operation_aborted.
 					error_code ec_ignore{};
-					derive.socket().lowest_layer().close(ec_ignore);
 
-					ASIO2_ASSERT(!derive.socket().lowest_layer().is_open());
+					derive.socket().cancel(ec_ignore);
+					derive.socket().close(ec_ignore);
+
+					ASIO2_ASSERT(!derive.socket().is_open());
 				}
 			}
 		}

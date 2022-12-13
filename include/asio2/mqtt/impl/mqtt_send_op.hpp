@@ -102,11 +102,20 @@ namespace asio2::detail
 
 			auto buffer = asio::buffer(binary);
 
+		#if defined(_DEBUG) || defined(DEBUG)
+			ASIO2_ASSERT(derive.post_send_counter_.load() == 0);
+			derive.post_send_counter_++;
+		#endif
+
 			asio::async_write(derive.stream(), buffer,
 				make_allocator(derive.wallocator(), [&derive, p = derive.selfptr(),
 					binary = std::move(binary), callback = std::forward<Callback>(callback)]
 			(const error_code& ec, std::size_t bytes_sent) mutable
 			{
+			#if defined(_DEBUG) || defined(DEBUG)
+				derive.post_send_counter_--;
+			#endif
+
 				set_last_error(ec);
 
 				callback(ec, bytes_sent);

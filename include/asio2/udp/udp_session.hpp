@@ -255,9 +255,9 @@ namespace asio2::detail
 
 			if constexpr (std::is_same_v<typename ecs_t<C>::condition_lowest_type, use_kcp_t>)
 			{
-				// step 3 : server recvd syn from client (the first_ is syn)
-				// Check whether the first_ packet is SYN handshake
-				if (!kcp::is_kcphdr_syn(this->first_))
+				// step 3 : server recvd syn from client (the first_data_ is syn)
+				// Check whether the first_data_ packet is SYN handshake
+				if (!kcp::is_kcphdr_syn(this->first_data_))
 				{
 					set_last_error(asio::error::address_family_not_supported);
 					this->derived()._fire_handshake(this_ptr);
@@ -372,8 +372,8 @@ namespace asio2::detail
 		inline void _start_recv(
 			std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs, DeferEvent chain)
 		{
-			// to avlid the user call stop in another thread,then it may be socket_.async_read_some
-			// and socket_.close be called at the same time
+			// to avlid the user call stop in another thread,then it may be socket.async_read_some
+			// and socket.close be called at the same time
 			asio::dispatch(this->io().context(), make_allocator(this->wallocator_,
 			[this, this_ptr = std::move(this_ptr), &ecs, chain = std::move(chain)]
 			() mutable
@@ -388,7 +388,7 @@ namespace asio2::detail
 				if constexpr (std::is_same_v<condition_lowest_type, asio2::detail::use_kcp_t>)
 					detail::ignore_unused(this_ptr, ecs);
 				else
-					this->derived()._handle_recv(error_code{}, this->first_, this_ptr, ecs);
+					this->derived()._handle_recv(error_code{}, this->first_data_, this_ptr, ecs);
 			}));
 		}
 
@@ -597,7 +597,7 @@ namespace asio2::detail
 		std::uint32_t                                     kcp_conv_ = 0;
 
 		/// first recvd data packet
-		std::string_view                                  first_;
+		std::string_view                                  first_data_;
 
 	#if defined(_DEBUG) || defined(DEBUG)
 		bool                                              is_disconnect_called_ = false;
@@ -607,6 +607,11 @@ namespace asio2::detail
 
 namespace asio2
 {
+	using udp_session_args = detail::template_args_udp_session;
+
+	template<class derived_t, class args_t>
+	using udp_session_impl_t = detail::udp_session_impl_t<derived_t, args_t>;
+
 	template<class derived_t>
 	class udp_session_t : public detail::udp_session_impl_t<derived_t, detail::template_args_udp_session>
 	{

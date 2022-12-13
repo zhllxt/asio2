@@ -246,7 +246,7 @@ namespace asio2::detail
 		 */
 		inline bool is_started() const
 		{
-			return (this->state_ == state_t::started && this->socket_.lowest_layer().is_open());
+			return (this->state_ == state_t::started && this->socket().is_open());
 		}
 
 		/**
@@ -254,7 +254,7 @@ namespace asio2::detail
 		 */
 		inline bool is_stopped() const
 		{
-			return (this->state_ == state_t::stopped && !this->socket_.lowest_layer().is_open() && this->is_iopool_stopped());
+			return (this->state_ == state_t::stopped && !this->socket().is_open() && this->is_iopool_stopped());
 		}
 
 	public:
@@ -335,9 +335,19 @@ namespace asio2::detail
 		inline socket_type & socket() noexcept { return this->socket_; }
 
 		/**
+		 * @brief get the socket object refrence
+		 */
+		inline const socket_type & socket() const noexcept { return this->socket_; }
+
+		/**
 		 * @brief get the stream object refrence
 		 */
 		inline socket_type & stream() noexcept { return this->socket_; }
+
+		/**
+		 * @brief get the stream object refrence
+		 */
+		inline const socket_type & stream() const noexcept { return this->socket_; }
 
 		/**
 		 * This function is used to set an option on the serial port.
@@ -357,7 +367,7 @@ namespace asio2::detail
 			{
 				clear_last_error();
 
-				this->socket_.set_option(option);
+				this->socket().set_option(option);
 			}
 			catch (system_error const& e)
 			{
@@ -386,7 +396,7 @@ namespace asio2::detail
 			{
 				clear_last_error();
 
-				this->socket_.get_option(option);
+				this->socket().get_option(option);
 			}
 			catch (system_error const& e)
 			{
@@ -414,7 +424,7 @@ namespace asio2::detail
 			{
 				clear_last_error();
 
-				this->socket_.get_option(option);
+				this->socket().get_option(option);
 			}
 			catch (system_error const& e)
 			{
@@ -513,9 +523,10 @@ namespace asio2::detail
 
 					error_code ec_ignore{};
 
-					this->socket_.close(ec_ignore);
-					this->socket_.open(d);
-					this->socket_.set_option(asio::serial_port::baud_rate(b));
+					this->socket().cancel(ec_ignore);
+					this->socket().close(ec_ignore);
+					this->socket().open(d);
+					this->socket().set_option(asio::serial_port::baud_rate(b));
 
 					// if the ecs has remote data call mode,do some thing.
 					derive._rdc_init(ecs);
@@ -694,24 +705,22 @@ namespace asio2::detail
 			// close all async_events
 			this->notify_all_condition_events();
 
-			this->derived().push_event([this, this_ptr = std::move(this_ptr)]
-			(event_queue_guard<derived_t>) mutable
-			{
-				error_code ec_ignore{};
+			error_code ec_ignore{};
 
-				// Call close,otherwise the _handle_recv will never return
-				this->socket_.close(ec_ignore);
+			this->socket().cancel(ec_ignore);
 
-				// clear recv buffer
-				this->buffer().consume(this->buffer().size());
+			// Call close,otherwise the _handle_recv will never return
+			this->socket().close(ec_ignore);
 
-				// destroy user data, maybe the user data is self shared_ptr,
-				// if don't destroy it, will cause loop refrence.
-				this->user_data_.reset();
+			// clear recv buffer
+			this->buffer().consume(this->buffer().size());
 
-				// destroy the ecs
-				this->ecs_.reset();
-			});
+			// destroy user data, maybe the user data is self shared_ptr,
+			// if don't destroy it, will cause loop refrence.
+			this->user_data_.reset();
+
+			// destroy the ecs
+			this->ecs_.reset();
 		}
 
 		template<typename C>
@@ -903,12 +912,19 @@ namespace asio2::detail
 
 	#if defined(_DEBUG) || defined(DEBUG)
 		bool                                      is_stop_called_  = false;
+		std::atomic<int>                          post_send_counter_ = 0;
+		std::atomic<int>                          post_recv_counter_ = 0;
 	#endif
 	};
 }
 
 namespace asio2
 {
+	using serial_port_args = detail::template_args_serial_port;
+
+	template<class derived_t, class args_t>
+	using serial_port_impl_t = detail::serial_port_impl_t<derived_t, args_t>;
+
 	template<class derived_t>
 	class serial_port_t : public detail::serial_port_impl_t<derived_t, detail::template_args_serial_port>
 	{

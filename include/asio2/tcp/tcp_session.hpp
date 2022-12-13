@@ -266,30 +266,32 @@ namespace asio2::detail
 
 			this->derived()._rdc_stop();
 
+			error_code ec_ignore{};
+
 			// the socket maybe closed already somewhere else.
-			if (this->socket_.lowest_layer().is_open())
+			if (this->socket().is_open())
 			{
-				this->derived().push_event([this, ec, this_ptr](event_queue_guard<derived_t>) mutable
+				asio::socket_base::linger linger = this->derived().get_linger();
+
+				// the get_linger maybe change the last error value.
+				set_last_error(ec);
+
+				// call socket's close function to notify the _handle_recv function response with error > 0 ,
+				// then the socket can get notify to exit
+				// Call shutdown() to indicate that you will not write any more data to the socket.
+				if (!(linger.enabled() == true && linger.timeout() == 0))
 				{
-					error_code ec_ignore{};
-
-					asio::socket_base::linger linger = this->derived().get_linger();
-
-					// the get_linger maybe change the last error value.
-					set_last_error(ec);
-
-					// call socket's close function to notify the _handle_recv function response with error > 0 ,
-					// then the socket can get notify to exit
-					// Call shutdown() to indicate that you will not write any more data to the socket.
-					if (!(linger.enabled() == true && linger.timeout() == 0))
-					{
-						this->socket_.lowest_layer().shutdown(asio::socket_base::shutdown_both, ec_ignore);
-					}
-
-					// Call close,otherwise the _handle_recv will never return
-					this->socket_.lowest_layer().close(ec_ignore);
-				});
+					this->socket().shutdown(asio::socket_base::shutdown_both, ec_ignore);
+				}
 			}
+
+			// if the socket is basic_stream with rate limit, we should call the cancel,
+			// otherwise the rate timer maybe can't canceled, and cause the io_context
+			// can't stopped forever, even if the socket is closed already.
+			this->socket().cancel(ec_ignore);
+
+			// Call close,otherwise the _handle_recv will never return
+			this->socket().close(ec_ignore);
 
 			this->derived()._do_stop(ec, std::move(this_ptr), std::move(chain));
 		}
@@ -335,8 +337,8 @@ namespace asio2::detail
 		template<typename C, typename DeferEvent>
 		inline void _start_recv(std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs, DeferEvent chain)
 		{
-			// to avlid the user call stop in another thread,then it may be socket_.async_read_some
-			// and socket_.close be called at the same time
+			// to avlid the user call stop in another thread,then it may be socket.async_read_some
+			// and socket.close be called at the same time
 			asio::dispatch(this->io().context(), make_allocator(this->wallocator_,
 			[this, this_ptr = std::move(this_ptr), &ecs, chain = std::move(chain)]
 			() mutable
@@ -481,6 +483,11 @@ namespace asio2::detail
 
 namespace asio2
 {
+	using tcp_session_args = detail::template_args_tcp_session;
+
+	template<class derived_t, class args_t>
+	using tcp_session_impl_t = detail::tcp_session_impl_t<derived_t, args_t>;
+
 	/**
 	 * @brief tcp session
 	 */
@@ -500,6 +507,30 @@ namespace asio2
 		using tcp_session_t<tcp_session>::tcp_session_t;
 	};
 }
+
+#if defined(ASIO2_INCLUDE_RATE_LIMIT)
+#include <asio2/tcp/tcp_stream.hpp>
+namespace asio2
+{
+	struct tcp_rate_session_args : public tcp_session_args
+	{
+		using socket_t = asio2::tcp_stream<asio2::simple_rate_policy>;
+	};
+
+	template<class derived_t>
+	class tcp_rate_session_t : public asio2::tcp_session_impl_t<derived_t, tcp_rate_session_args>
+	{
+	public:
+		using asio2::tcp_session_impl_t<derived_t, tcp_rate_session_args>::tcp_session_impl_t;
+	};
+
+	class tcp_rate_session : public asio2::tcp_rate_session_t<tcp_rate_session>
+	{
+	public:
+		using asio2::tcp_rate_session_t<tcp_rate_session>::tcp_rate_session_t;
+	};
+}
+#endif
 
 #include <asio2/base/detail/pop_options.hpp>
 

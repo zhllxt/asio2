@@ -89,10 +89,19 @@ namespace asio2::detail
 
 			derive._check_http_message(data);
 
+		#if defined(_DEBUG) || defined(DEBUG)
+			ASIO2_ASSERT(derive.post_send_counter_.load() == 0);
+			derive.post_send_counter_++;
+		#endif
+
 			http::async_write(derive.stream(), data, make_allocator(derive.wallocator(),
 			[&derive, p = derive.selfptr(), callback = std::forward<Callback>(callback)]
 			(const error_code& ec, std::size_t bytes_sent) mutable
 			{
+			#if defined(_DEBUG) || defined(DEBUG)
+				derive.post_send_counter_--;
+			#endif
+
 				set_last_error(ec);
 
 				callback(ec, bytes_sent);
@@ -116,10 +125,19 @@ namespace asio2::detail
 
 			derive._check_http_message(data.base());
 
+		#if defined(_DEBUG) || defined(DEBUG)
+			ASIO2_ASSERT(derive.post_send_counter_.load() == 0);
+			derive.post_send_counter_++;
+		#endif
+
 			http::async_write(derive.stream(), data.base(), make_allocator(derive.wallocator(),
 			[&derive, p = derive.selfptr(), callback = std::forward<Callback>(callback)]
 			(const error_code& ec, std::size_t bytes_sent) mutable
 			{
+			#if defined(_DEBUG) || defined(DEBUG)
+				derive.post_send_counter_--;
+			#endif
+
 				set_last_error(ec);
 
 				callback(ec, bytes_sent);
@@ -143,10 +161,19 @@ namespace asio2::detail
 
 			derive._check_http_message(data.base());
 
+		#if defined(_DEBUG) || defined(DEBUG)
+			ASIO2_ASSERT(derive.post_send_counter_.load() == 0);
+			derive.post_send_counter_++;
+		#endif
+
 			http::async_write(derive.stream(), data.base(), make_allocator(derive.wallocator(),
 			[&derive, p = derive.selfptr(), callback = std::forward<Callback>(callback)]
 			(const error_code& ec, std::size_t bytes_sent) mutable
 			{
+			#if defined(_DEBUG) || defined(DEBUG)
+				derive.post_send_counter_--;
+			#endif
+
 				set_last_error(ec);
 
 				callback(ec, bytes_sent);

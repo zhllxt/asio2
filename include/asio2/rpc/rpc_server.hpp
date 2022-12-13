@@ -242,6 +242,9 @@ namespace asio2::detail
 
 namespace asio2
 {
+	template<class derived_t, class executor_t>
+	using rpc_server_impl_t = detail::rpc_server_impl_t<derived_t, executor_t>;
+
 	template<class session_t, asio2::net_protocol np> class rpc_server_t;
 
 	template<class session_t>
@@ -292,6 +295,64 @@ namespace asio2
 	using rpc_server = rpc_server_use<asio2::net_protocol::ws>;
 #endif
 }
+
+#if defined(ASIO2_INCLUDE_RATE_LIMIT)
+#include <asio2/tcp/tcp_stream.hpp>
+namespace asio2
+{
+	template<class session_t, asio2::net_protocol np> class rpc_rate_server_t;
+
+	template<class session_t>
+	class rpc_rate_server_t<session_t, asio2::net_protocol::tcp> : public detail::rpc_server_impl_t<
+		rpc_rate_server_t<session_t, asio2::net_protocol::tcp>, detail::tcp_server_impl_t<
+		rpc_rate_server_t<session_t, asio2::net_protocol::tcp>, session_t>>
+	{
+	public:
+		using detail::rpc_server_impl_t<
+			rpc_rate_server_t<session_t, asio2::net_protocol::tcp>, detail::tcp_server_impl_t<
+			rpc_rate_server_t<session_t, asio2::net_protocol::tcp>, session_t>>::rpc_server_impl_t;
+	};
+
+	template<class session_t>
+	class rpc_rate_server_t<session_t, asio2::net_protocol::ws> : public detail::rpc_server_impl_t<
+		rpc_rate_server_t<session_t, asio2::net_protocol::ws>, detail::ws_server_impl_t<
+		rpc_rate_server_t<session_t, asio2::net_protocol::ws>, session_t>>
+	{
+	public:
+		using detail::rpc_server_impl_t<
+			rpc_rate_server_t<session_t, asio2::net_protocol::ws>, detail::ws_server_impl_t<
+			rpc_rate_server_t<session_t, asio2::net_protocol::ws>, session_t>>::rpc_server_impl_t;
+	};
+
+	template<asio2::net_protocol np> class rpc_rate_server_use;
+
+	template<>
+	class rpc_rate_server_use<asio2::net_protocol::tcp>
+		: public rpc_rate_server_t<rpc_rate_session_use<asio2::net_protocol::tcp>, asio2::net_protocol::tcp>
+	{
+	public:
+		using rpc_rate_server_t<rpc_rate_session_use<asio2::net_protocol::tcp>,
+			asio2::net_protocol::tcp>::rpc_rate_server_t;
+	};
+
+	template<>
+	class rpc_rate_server_use<asio2::net_protocol::ws>
+		: public rpc_rate_server_t<rpc_rate_session_use<asio2::net_protocol::ws>, asio2::net_protocol::ws>
+	{
+	public:
+		using rpc_rate_server_t<rpc_rate_session_use<asio2::net_protocol::ws>,
+			asio2::net_protocol::ws>::rpc_rate_server_t;
+	};
+
+#if !defined(ASIO2_USE_WEBSOCKET_RPC)
+	/// Using tcp dgram mode as the underlying communication support
+	using rpc_rate_server = rpc_rate_server_use<asio2::net_protocol::tcp>;
+#else
+	/// Using websocket as the underlying communication support
+	using rpc_rate_server = rpc_rate_server_use<asio2::net_protocol::ws>;
+#endif
+}
+#endif
 
 #include <asio2/base/detail/pop_options.hpp>
 

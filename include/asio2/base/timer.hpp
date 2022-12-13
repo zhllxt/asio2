@@ -20,13 +20,9 @@
 #include <cstdint>
 #include <memory>
 #include <chrono>
-#include <functional>
 #include <atomic>
 #include <string>
 #include <string_view>
-#include <tuple>
-#include <unordered_map>
-#include <type_traits>
 
 #include <asio2/base/iopool.hpp>
 #include <asio2/base/log.hpp>

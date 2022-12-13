@@ -58,23 +58,41 @@ namespace asio2::detail
 				// otherwise the operation behavior is undefined.
 				derive.req_.reset();
 
+			#if defined(_DEBUG) || defined(DEBUG)
+				ASIO2_ASSERT(derive.post_recv_counter_.load() == 0);
+				derive.post_recv_counter_++;
+			#endif
+
 				// Read a request
 				http::async_read(derive.stream(), derive.buffer().base(), derive.req_,
 					make_allocator(derive.rallocator(),
 						[&derive, self_ptr = std::move(this_ptr), &ecs]
 				(const error_code & ec, std::size_t bytes_recvd) mutable
 				{
+				#if defined(_DEBUG) || defined(DEBUG)
+					derive.post_recv_counter_--;
+				#endif
+
 					derive._handle_recv(ec, bytes_recvd, std::move(self_ptr), ecs);
 				}));
 			}
 			else
 			{
+			#if defined(_DEBUG) || defined(DEBUG)
+				ASIO2_ASSERT(derive.post_recv_counter_.load() == 0);
+				derive.post_recv_counter_++;
+			#endif
+
 				// Read a message into our buffer
 				derive.ws_stream().async_read(derive.buffer().base(),
 					make_allocator(derive.rallocator(),
 						[&derive, self_ptr = std::move(this_ptr), &ecs]
 				(const error_code & ec, std::size_t bytes_recvd) mutable
 				{
+				#if defined(_DEBUG) || defined(DEBUG)
+					derive.post_recv_counter_--;
+				#endif
+
 					derive._handle_recv(ec, bytes_recvd, std::move(self_ptr), ecs);
 				}));
 			}

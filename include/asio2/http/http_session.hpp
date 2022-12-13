@@ -28,7 +28,7 @@ namespace asio2::detail
 {
 	struct template_args_http_session : public template_args_tcp_session
 	{
-		using stream_t    = websocket::stream<asio::ip::tcp::socket&>;
+		using stream_t    = websocket::stream<typename template_args_tcp_session::socket_t&>;
 		using body_t      = http::string_body;
 		using buffer_t    = beast::flat_buffer;
 		using send_data_t = std::string_view;
@@ -219,17 +219,12 @@ namespace asio2::detail
 		}
 
 		template<typename DeferEvent>
-		inline void _do_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr, DeferEvent chain)
+		inline void _handle_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr, DeferEvent chain)
 		{
-			// call the base class _do_stop function
-			super::_do_stop(ec, this_ptr, std::move(chain));
+			super::_handle_stop(ec, std::move(this_ptr), std::move(chain));
 
-			this->derived().push_event([this, this_ptr = std::move(this_ptr)]
-			(event_queue_guard<derived_t>) mutable
-			{
-				// reset the callback shared_ptr, to avoid the callback owned this self shared_ptr.
-				this->websocket_router_.reset();
-			});
+			// reset the callback shared_ptr, to avoid the callback owned this self shared_ptr.
+			this->websocket_router_.reset();
 		}
 
 		template<typename C, class MessageT>
@@ -524,6 +519,11 @@ namespace asio2::detail
 
 namespace asio2
 {
+	using http_session_args = detail::template_args_http_session;
+
+	template<class derived_t, class args_t>
+	using http_session_impl_t = detail::http_session_impl_t<derived_t, args_t>;
+
 	template<class derived_t>
 	class http_session_t : public detail::http_session_impl_t<derived_t, detail::template_args_http_session>
 	{
@@ -537,6 +537,31 @@ namespace asio2
 		using http_session_t<http_session>::http_session_t;
 	};
 }
+
+#if defined(ASIO2_INCLUDE_RATE_LIMIT)
+#include <asio2/tcp/tcp_stream.hpp>
+namespace asio2
+{
+	struct http_rate_session_args : public http_session_args
+	{
+		using socket_t = asio2::tcp_stream<asio2::simple_rate_policy>;
+		using stream_t = websocket::stream<socket_t&>;
+	};
+
+	template<class derived_t>
+	class http_rate_session_t : public asio2::http_session_impl_t<derived_t, http_rate_session_args>
+	{
+	public:
+		using asio2::http_session_impl_t<derived_t, http_rate_session_args>::http_session_impl_t;
+	};
+
+	class http_rate_session : public asio2::http_rate_session_t<http_rate_session>
+	{
+	public:
+		using asio2::http_rate_session_t<http_rate_session>::http_rate_session_t;
+	};
+}
+#endif
 
 #include <asio2/base/detail/pop_options.hpp>
 

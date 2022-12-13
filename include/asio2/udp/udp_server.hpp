@@ -345,6 +345,7 @@ namespace asio2::detail
 
 					error_code ec_ignore{};
 
+					this->acceptor_.cancel(ec_ignore);
 					this->acceptor_.close(ec_ignore);
 
 					// parse address and port
@@ -532,20 +533,15 @@ namespace asio2::detail
 			// call the base class stop function
 			super::stop();
 
-			// the socket maybe closed already somewhere else.
-			if (this->acceptor_.lowest_layer().is_open())
-			{
-				this->derived().push_event([this, this_ptr = std::move(this_ptr)]
-				(event_queue_guard<derived_t>) mutable
-				{
-					error_code ec_ignore{};
+			error_code ec_ignore{};
 
-					// Call shutdown() to indicate that you will not write any more data to the socket.
-					this->acceptor_.shutdown(asio::socket_base::shutdown_both, ec_ignore);
-					// Call close,otherwise the _handle_recv will never return
-					this->acceptor_.close(ec_ignore);
-				});
-			}
+			// Call shutdown() to indicate that you will not write any more data to the socket.
+			this->acceptor_.shutdown(asio::socket_base::shutdown_both, ec_ignore);
+
+			this->acceptor_.cancel(ec_ignore);
+
+			// Call close,otherwise the _handle_recv will never return
+			this->acceptor_.close(ec_ignore);
 
 			ASIO2_ASSERT(this->state_ == state_t::stopped);
 		}
@@ -564,17 +560,30 @@ namespace asio2::detail
 
 			try
 			{
+			#if defined(_DEBUG) || defined(DEBUG)
+				ASIO2_ASSERT(this->derived().post_recv_counter_.load() == 0);
+				this->derived().post_recv_counter_++;
+			#endif
+
 				this->acceptor_.async_receive_from(
 					this->buffer_.prepare(this->buffer_.pre_size()),
 					this->remote_endpoint_,
 					make_allocator(this->rallocator_, [this, this_ptr = std::move(this_ptr), &ecs]
 				(const error_code& ec, std::size_t bytes_recvd) mutable
 				{
+				#if defined(_DEBUG) || defined(DEBUG)
+					this->derived().post_recv_counter_--;
+				#endif
+
 					this->derived()._handle_recv(ec, bytes_recvd, std::move(this_ptr), ecs);
 				}));
 			}
 			catch (system_error & e)
 			{
+			#if defined(_DEBUG) || defined(DEBUG)
+				this->derived().post_recv_counter_--;
+			#endif
+
 				set_last_error(e);
 
 				this->derived()._do_stop(e.code(), this->derived().selfptr());
@@ -663,7 +672,7 @@ namespace asio2::detail
 
 		template<typename C>
 		inline void _handle_accept(
-			const error_code& ec, std::string_view first, std::shared_ptr<session_t> session_ptr, ecs_t<C>& ecs)
+			const error_code& ec, std::string_view first_data, std::shared_ptr<session_t> session_ptr, ecs_t<C>& ecs)
 		{
 			set_last_error(ec);
 
@@ -673,23 +682,23 @@ namespace asio2::detail
 				{
 					session_ptr = this->derived()._make_session();
 					session_ptr->counter_ptr_ = this->counter_ptr_;
-					session_ptr->first_ = first;
-					session_ptr->kcp_conv_ = this->derived()._make_kcp_conv(first, ecs);
+					session_ptr->first_data_ = first_data;
+					session_ptr->kcp_conv_ = this->derived()._make_kcp_conv(first_data, ecs);
 					session_ptr->start(ecs.clone());
 				}
 			}
 		}
 
 		template<typename C>
-		inline std::uint32_t _do_make_kcp_conv(std::string_view first, ecs_t<C>& ecs)
+		inline std::uint32_t _do_make_kcp_conv(std::string_view first_data, ecs_t<C>& ecs)
 		{
 			detail::ignore_unused(ecs);
 
 			std::uint32_t conv = 0;
 
-			if (kcp::is_kcphdr_syn(first))
+			if (kcp::is_kcphdr_syn(first_data))
 			{
-				kcp::kcphdr syn = kcp::to_kcphdr(first);
+				kcp::kcphdr syn = kcp::to_kcphdr(first_data);
 
 				// the syn.th_ack is the kcp conv
 				if (syn.th_ack == 0)
@@ -709,15 +718,15 @@ namespace asio2::detail
 		}
 
 		template<typename C>
-		inline std::uint32_t _make_kcp_conv(std::string_view first, ecs_t<C>& ecs)
+		inline std::uint32_t _make_kcp_conv(std::string_view first_data, ecs_t<C>& ecs)
 		{
 			if constexpr (std::is_same_v<typename ecs_t<C>::condition_lowest_type, use_kcp_t>)
 			{
-				return this->_do_make_kcp_conv(first, ecs);
+				return this->_do_make_kcp_conv(first_data, ecs);
 			}
 			else
 			{
-				detail::ignore_unused(first, ecs);
+				detail::ignore_unused(first_data, ecs);
 
 				return 0;
 			}
@@ -776,6 +785,9 @@ namespace asio2::detail
 
 namespace asio2
 {
+	template<class derived_t, class session_t>
+	using udp_server_impl_t = detail::udp_server_impl_t<derived_t, session_t>;
+
 	/**
 	 * @throws constructor maybe throw exception "Too many open files" (exception code : 24)
 	 * asio::error::no_descriptors - Too many open files

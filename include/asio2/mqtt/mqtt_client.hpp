@@ -705,6 +705,11 @@ namespace asio2::detail
 
 namespace asio2
 {
+	using mqtt_client_args = detail::template_args_mqtt_client;
+
+	template<class derived_t, class args_t>
+	using mqtt_client_impl_t = detail::mqtt_client_impl_t<derived_t, args_t>;
+
 	template<class derived_t>
 	class mqtt_client_t : public detail::mqtt_client_impl_t<derived_t, detail::template_args_mqtt_client>
 	{

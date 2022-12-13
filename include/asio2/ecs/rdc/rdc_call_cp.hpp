@@ -542,43 +542,37 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			// use push event to avoid this problem: if stop is called in the bind_recv function,
-			// then the rdc callback will can't be called, beacuse the stop and here's chain
-			// will be executed before the rdc handle recv.
-			derive.push_event([&derive, p = derive.selfptr()](event_queue_guard<derived_t> g) mutable
+			ASIO2_ASSERT(derive.io().running_in_this_thread());
+
+			// this callback maybe executed after the session stop, and the session
+			// stop will destroy the ecs, so we need check whether the ecs is valid.
+			if (!derive.ecs_)
+				return;
+
+			asio2::rdc::option_base* prdc = derive.ecs_->get_rdc();
+
+			// maybe not rdc mode, so must check whether the rdc is valid.
+			if (!prdc)
+				return;
+
+			// if stoped, execute all callbacks in the requests, otherwise if some
+			// call or async_call 's timeout is too long, then the application will
+			// can't exit before all timeout timer is reached.
+			prdc->foreach_and_clear([&derive](void*, void* val) mutable
 			{
-				detail::ignore_unused(p, g);
+				std::tuple<std::shared_ptr<asio::steady_timer>, callback_type>& tp =
+					*((std::tuple<std::shared_ptr<asio::steady_timer>, callback_type>*)val);
 
-				// this callback maybe executed after the session stop, and the session
-				// stop will destroy the ecs, so we need check whether the ecs is valid.
-				if (!derive.ecs_)
-					return;
-
-				asio2::rdc::option_base* prdc = derive.ecs_->get_rdc();
-
-				// maybe not rdc mode, so must check whether the rdc is valid.
-				if (!prdc)
-					return;
-
-				// if stoped, execute all callbacks in the requests, otherwise if some
-				// call or async_call 's timeout is too long, then the application will
-				// can't exit before all timeout timer is reached.
-				prdc->foreach_and_clear([&derive](void*, void* val) mutable
+				auto& [timer, invoker] = tp;
+				try
 				{
-					std::tuple<std::shared_ptr<asio::steady_timer>, callback_type>& tp =
-						*((std::tuple<std::shared_ptr<asio::steady_timer>, callback_type>*)val);
+					timer->cancel();
+				}
+				catch (system_error const&)
+				{
+				}
 
-					auto& [timer, invoker] = tp;
-					try
-					{
-						timer->cancel();
-					}
-					catch (system_error const&)
-					{
-					}
-
-					derive._rdc_invoke_with_none(asio::error::operation_aborted, invoker);
-				});
+				derive._rdc_invoke_with_none(asio::error::operation_aborted, invoker);
 			});
 		}
 
@@ -684,6 +678,9 @@ namespace asio2::detail
 			}
 
 			auto _rdc = ecs.get_component().rdc_option(std::in_place);
+
+			if (_rdc->invoker().reqs().empty())
+				return;
 
 			auto id = (_rdc->get_recv_parser())(data);
 

@@ -58,7 +58,7 @@ namespace asio2::detail
 			{
 				derived_t& derive = static_cast<derived_t&>(*this);
 
-				auto & socket = derive.socket().lowest_layer();
+				auto & socket = derive.socket();
 				if (!socket.is_open())
 				{
 					set_last_error(asio::error::not_connected);

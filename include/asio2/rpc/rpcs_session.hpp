@@ -44,6 +44,11 @@ namespace asio2
 		};
 	}
 
+
+	using rpcs_session_args_tcp = detail::template_args_rpcs_session<asio2::net_protocol::tcps>;
+	using rpcs_session_args_ws  = detail::template_args_rpcs_session<asio2::net_protocol::wss >;
+
+
 	template<class derived_t, asio2::net_protocol np> class rpcs_session_t;
 
 	template<class derived_t>
@@ -90,6 +95,70 @@ namespace asio2
 	using rpcs_session = rpcs_session_use<asio2::net_protocol::wss>;
 #endif
 }
+
+#if defined(ASIO2_INCLUDE_RATE_LIMIT)
+#include <asio2/tcp/tcp_stream.hpp>
+namespace asio2
+{
+	struct rpcs_rate_session_args_tcp : public rpcs_session_args_tcp
+	{
+		using socket_t = asio2::tcp_stream<asio2::simple_rate_policy>;
+	};
+	struct rpcs_rate_session_args_ws : public rpcs_session_args_ws
+	{
+		using socket_t = asio2::tcp_stream<asio2::simple_rate_policy>;
+		using stream_t = websocket::stream<asio::ssl::stream<socket_t&>&>;
+	};
+
+	template<class derived_t, asio2::net_protocol np> class rpcs_rate_session_t;
+
+	template<class derived_t>
+	class rpcs_rate_session_t<derived_t, asio2::net_protocol::tcps> : public detail::rpc_session_impl_t<derived_t,
+		detail::tcps_session_impl_t<derived_t, rpcs_rate_session_args_tcp>>
+	{
+	public:
+		using detail::rpc_session_impl_t<derived_t,
+			detail::tcps_session_impl_t<derived_t, rpcs_rate_session_args_tcp>>::rpc_session_impl_t;
+	};
+
+	template<class derived_t>
+	class rpcs_rate_session_t<derived_t, asio2::net_protocol::wss> : public detail::rpc_session_impl_t<derived_t,
+		detail::wss_session_impl_t<derived_t, rpcs_rate_session_args_ws>>
+	{
+	public:
+		using detail::rpc_session_impl_t<derived_t,
+			detail::wss_session_impl_t<derived_t, rpcs_rate_session_args_ws>>::rpc_session_impl_t;
+	};
+
+	template<asio2::net_protocol np> class rpcs_rate_session_use;
+
+	template<>
+	class rpcs_rate_session_use<asio2::net_protocol::tcps>
+		: public rpcs_rate_session_t<rpcs_rate_session_use<asio2::net_protocol::tcps>, asio2::net_protocol::tcps>
+	{
+	public:
+		using rpcs_rate_session_t<rpcs_rate_session_use<asio2::net_protocol::tcps>,
+			asio2::net_protocol::tcps>::rpcs_rate_session_t;
+	};
+
+	template<>
+	class rpcs_rate_session_use<asio2::net_protocol::wss>
+		: public rpcs_rate_session_t<rpcs_rate_session_use<asio2::net_protocol::wss>, asio2::net_protocol::wss>
+	{
+	public:
+		using rpcs_rate_session_t<rpcs_rate_session_use<asio2::net_protocol::wss>,
+			asio2::net_protocol::wss>::rpcs_rate_session_t;
+	};
+
+#if !defined(ASIO2_USE_WEBSOCKET_RPC)
+	/// Using tcp dgram mode as the underlying communication support
+	using rpcs_rate_session = rpcs_rate_session_use<asio2::net_protocol::tcps>;
+#else
+	/// Using websocket as the underlying communication support
+	using rpcs_rate_session = rpcs_rate_session_use<asio2::net_protocol::wss>;
+#endif
+}
+#endif
 
 #endif
 

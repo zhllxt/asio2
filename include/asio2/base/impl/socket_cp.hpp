@@ -52,9 +52,25 @@ namespace asio2::detail
 		}
 
 		/**
+		 * @brief get the socket object refrence
+		 */
+		inline const socket_type & socket() const noexcept
+		{
+			return this->socket_;
+		}
+
+		/**
 		 * @brief get the stream object refrence
 		 */
 		inline socket_type & stream() noexcept
+		{
+			return this->socket_;
+		}
+
+		/**
+		 * @brief get the stream object refrence
+		 */
+		inline const socket_type & stream() const noexcept
 		{
 			return this->socket_;
 		}

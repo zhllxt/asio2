@@ -174,6 +174,9 @@ namespace asio2::detail
 
 namespace asio2
 {
+	template<class derived_t, class session_t>
+	using mqtt_server_impl_t = detail::mqtt_server_impl_t<derived_t, session_t>;
+
 	template<class session_t>
 	class mqtt_server_t : public detail::mqtt_server_impl_t<mqtt_server_t<session_t>, session_t>
 	{

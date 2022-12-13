@@ -150,13 +150,22 @@ namespace asio2::detail
 					set_last_error(ec);
 				});
 
+			#if defined(_DEBUG) || defined(DEBUG)
+				ASIO2_ASSERT(derive.post_send_counter_.load() == 0);
+				derive.post_send_counter_++;
+			#endif
+
 				// when server call ssl stream sync shutdown first,if the client socket is
 				// not closed forever,then here shutdowm will blocking forever.
 				this->ssl_stream_->async_shutdown(
-				[this_ptr = std::move(this_ptr), timer = std::move(timer), SSL_clear_ptr = std::move(SSL_clear_ptr)]
+				[&derive, p = std::move(this_ptr), timer = std::move(timer), clear_ptr = std::move(SSL_clear_ptr)]
 				(const error_code& ec) mutable
 				{
-					detail::ignore_unused(this_ptr, SSL_clear_ptr);
+				#if defined(_DEBUG) || defined(DEBUG)
+					derive.post_send_counter_--;
+				#endif
+
+					detail::ignore_unused(derive, p, clear_ptr);
 
 					set_last_error(ec);
 
@@ -173,8 +182,7 @@ namespace asio2::detail
 		}
 
 		template<typename C, typename DeferEvent>
-		inline void _post_handshake(
-			std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs, DeferEvent chain)
+		inline void _post_handshake(std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs, DeferEvent chain)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
@@ -199,10 +207,10 @@ namespace asio2::detail
 				{
 					flag_ptr->test_and_set();
 
+					error_code ec_ignore{};
+
 					if (derive.socket().is_open())
 					{
-						error_code ec_ignore{};
-
 						error_code oldec = get_last_error();
 
 						asio::socket_base::linger linger = derive.get_linger();
@@ -214,19 +222,30 @@ namespace asio2::detail
 						// with operation_aborted.
 						if (!(linger.enabled() == true && linger.timeout() == 0))
 						{
-							derive.socket().lowest_layer().shutdown(asio::socket_base::shutdown_both, ec_ignore);
+							derive.socket().shutdown(asio::socket_base::shutdown_both, ec_ignore);
 						}
-
-						derive.socket().lowest_layer().close(ec_ignore);
 					}
+
+					derive.socket().cancel(ec_ignore);
+
+					derive.socket().close(ec_ignore);
 				}
 			});
+
+		#if defined(_DEBUG) || defined(DEBUG)
+			ASIO2_ASSERT(derive.post_send_counter_.load() == 0);
+			derive.post_send_counter_++;
+		#endif
 
 			this->ssl_stream_->async_handshake(this->ssl_type_, make_allocator(derive.wallocator(),
 			[&derive, self_ptr = std::move(this_ptr), &ecs,
 				flag_ptr = std::move(flag_ptr), timer = std::move(timer), chain = std::move(chain)]
 			(const error_code& ec) mutable
 			{
+			#if defined(_DEBUG) || defined(DEBUG)
+				derive.post_send_counter_--;
+			#endif
+
 				try
 				{
 					// clost the timer

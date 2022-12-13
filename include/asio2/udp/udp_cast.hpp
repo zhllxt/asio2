@@ -243,7 +243,7 @@ namespace asio2::detail
 		 */
 		inline bool is_started() const
 		{
-			return (this->state_ == state_t::started && this->socket_.lowest_layer().is_open());
+			return (this->state_ == state_t::started && this->socket().is_open());
 		}
 
 		/**
@@ -251,7 +251,7 @@ namespace asio2::detail
 		 */
 		inline bool is_stopped() const
 		{
-			return (this->state_ == state_t::stopped && !this->socket_.lowest_layer().is_open() && this->is_iopool_stopped());
+			return (this->state_ == state_t::stopped && !this->socket().is_open() && this->is_iopool_stopped());
 		}
 
 	public:
@@ -412,7 +412,8 @@ namespace asio2::detail
 
 					error_code ec_ignore{};
 
-					this->socket_.close(ec_ignore);
+					this->socket().cancel(ec_ignore);
+					this->socket().close(ec_ignore);
 
 					// parse address and port
 					asio::ip::udp::resolver resolver(this->io_.context());
@@ -420,7 +421,7 @@ namespace asio2::detail
 						asio::ip::resolver_base::flags::passive |
 						asio::ip::resolver_base::flags::address_configured).begin();
 
-					this->socket_.open(endpoint.protocol());
+					this->socket().open(endpoint.protocol());
 
 					// when you close socket in linux system,and start socket
 					// immediate,you will get like this "the address is in use",
@@ -432,11 +433,11 @@ namespace asio2::detail
 					// like below
 
 					// set port reuse
-					this->socket_.set_option(asio::ip::udp::socket::reuse_address(true));
+					this->socket().set_option(asio::ip::udp::socket::reuse_address(true));
 
 					derive._fire_init();
 
-					this->socket_.bind(endpoint);
+					this->socket().bind(endpoint);
 
 					derive._handle_start(error_code{}, std::move(this_ptr), ecs, std::move(chain));
 
@@ -570,32 +571,27 @@ namespace asio2::detail
 			// close all async_events
 			this->notify_all_condition_events();
 
-			this->derived().push_event([this, this_ptr = std::move(this_ptr)]
-			(event_queue_guard<derived_t>) mutable
-			{
-				// the socket maybe closed already somewhere else.
-				if (this->socket_.lowest_layer().is_open())
-				{
-					error_code ec_ignore{};
+			error_code ec_ignore{};
 
-					// call socket's close function to notify the _handle_recv function
-					// response with error > 0 ,then the socket can get notify to exit
-					// Call shutdown() to indicate that you will not write any more data to the socket.
-					this->socket_.shutdown(asio::socket_base::shutdown_both, ec_ignore);
-					// Call close,otherwise the _handle_recv will never return
-					this->socket_.close(ec_ignore);
-				}
+			// call socket's close function to notify the _handle_recv function
+			// response with error > 0 ,then the socket can get notify to exit
+			// Call shutdown() to indicate that you will not write any more data to the socket.
+			this->socket().shutdown(asio::socket_base::shutdown_both, ec_ignore);
 
-				// clear recv buffer
-				this->buffer().consume(this->buffer().size());
+			this->socket().cancel(ec_ignore);
 
-				// destroy user data, maybe the user data is self shared_ptr,
-				// if don't destroy it, will cause loop refrence.
-				this->user_data_.reset();
+			// Call close,otherwise the _handle_recv will never return
+			this->socket().close(ec_ignore);
 
-				// destroy the ecs
-				this->ecs_.reset();
-			});
+			// clear recv buffer
+			this->buffer().consume(this->buffer().size());
+
+			// destroy user data, maybe the user data is self shared_ptr,
+			// if don't destroy it, will cause loop refrence.
+			this->user_data_.reset();
+
+			// destroy the ecs
+			this->ecs_.reset();
 		}
 
 	protected:
@@ -620,17 +616,30 @@ namespace asio2::detail
 
 			try
 			{
-				this->socket_.async_receive_from(
+			#if defined(_DEBUG) || defined(DEBUG)
+				ASIO2_ASSERT(this->derived().post_recv_counter_.load() == 0);
+				this->derived().post_recv_counter_++;
+			#endif
+
+				this->socket().async_receive_from(
 					this->buffer_.prepare(this->buffer_.pre_size()),
 					this->remote_endpoint_,
 					make_allocator(this->rallocator_, [this, this_ptr = std::move(this_ptr), &ecs]
 				(const error_code& ec, std::size_t bytes_recvd) mutable
 				{
+				#if defined(_DEBUG) || defined(DEBUG)
+					this->derived().post_recv_counter_--;
+				#endif
+
 					this->derived()._handle_recv(ec, bytes_recvd, std::move(this_ptr), ecs);
 				}));
 			}
 			catch (system_error & e)
 			{
+			#if defined(_DEBUG) || defined(DEBUG)
+				this->derived().post_recv_counter_--;
+			#endif
+
 				set_last_error(e);
 
 				this->derived()._do_stop(e.code(), this->derived().selfptr());
@@ -769,12 +778,19 @@ namespace asio2::detail
 
 	#if defined(_DEBUG) || defined(DEBUG)
 		bool                                        is_stop_called_  = false;
-	#endif
+		std::atomic<int>                            post_send_counter_ = 0;
+		std::atomic<int>                            post_recv_counter_ = 0;
+#endif
 	};
 }
 
 namespace asio2
 {
+	using udp_cast_args = detail::template_args_udp_cast;
+
+	template<class derived_t, class args_t>
+	using udp_cast_impl_t = detail::udp_cast_impl_t<derived_t, args_t>;
+
 	/**
 	 * udp unicast/multicast/broadcast
 	 * @throws constructor maybe throw exception "Too many open files" (exception code : 24)

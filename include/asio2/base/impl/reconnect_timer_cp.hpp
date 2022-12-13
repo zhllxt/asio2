@@ -190,7 +190,8 @@ namespace asio2::detail
 			{
 				if (this->reconnect_enable_)
 				{
-					derive.push_event([&derive, this_ptr, timer_ptr, &ecs](event_queue_guard<derived_t> g) mutable
+					derive.push_event(
+					[&derive, this_ptr, timer_ptr, &ecs](event_queue_guard<derived_t> g) mutable
 					{
 						if (timer_ptr->canceled.test_and_set())
 							return;

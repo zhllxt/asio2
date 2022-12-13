@@ -491,31 +491,38 @@ namespace asio2::detail
 			// auto reconnect executed, and then the _post_recv will be return with some error,
 			// and the _post_recv will cause the auto reconnect executed again.
 
+			// can't use push event to close the socket, beacuse when used with websocket,
+			// the websocket's async_close will be called, and the chain will passed into
+			// the async_close, but the async_close will cause the chain interrupted, and
+			// we don't know when the async_close will be completed, if another push event
+			// was called during async_close executing, then here push event will after 
+			// the another event in the queue.
+			error_code ec_ignore{};
+
 			// the socket maybe closed already in the connect timeout timer.
-			if (this->socket_.lowest_layer().is_open())
+			if (this->socket().is_open())
 			{
-				this->derived().push_event([this, ec, this_ptr = std::move(this_ptr)]
-				(event_queue_guard<derived_t>) mutable
+				asio::socket_base::linger linger = this->derived().get_linger();
+
+				// the get_linger maybe change the last error value.
+				set_last_error(ec);
+
+				// call socket's close function to notify the _handle_recv function response with 
+				// error > 0 ,then the socket can get notify to exit
+				// Call shutdown() to indicate that you will not write any more data to the socket.
+				if (!(linger.enabled() == true && linger.timeout() == 0))
 				{
-					error_code ec_ignore{};
-
-					asio::socket_base::linger linger = this->derived().get_linger();
-
-					// the get_linger maybe change the last error value.
-					set_last_error(ec);
-
-					// call socket's close function to notify the _handle_recv function response with 
-					// error > 0 ,then the socket can get notify to exit
-					// Call shutdown() to indicate that you will not write any more data to the socket.
-					if (!(linger.enabled() == true && linger.timeout() == 0))
-					{
-						this->socket_.lowest_layer().shutdown(asio::socket_base::shutdown_both, ec_ignore);
-					}
-
-					// Call close,otherwise the _handle_recv will never return
-					this->socket_.lowest_layer().close(ec_ignore);
-				});
+					this->socket().shutdown(asio::socket_base::shutdown_both, ec_ignore);
+				}
 			}
+
+			// if the socket is basic_stream with rate limit, we should call the cancel,
+			// otherwise the rate timer maybe can't canceled, and cause the io_context
+			// can't stopped forever, even if the socket is closed already.
+			this->socket().cancel(ec_ignore);
+
+			// Call close,otherwise the _handle_recv will never return
+			this->socket().close(ec_ignore);
 		}
 
 		template<typename DeferEvent>
@@ -689,6 +696,11 @@ namespace asio2::detail
 
 namespace asio2
 {
+	using tcp_client_args = detail::template_args_tcp_client;
+
+	template<class derived_t, class args_t>
+	using tcp_client_impl_t = detail::tcp_client_impl_t<derived_t, args_t>;
+
 	/**
 	 * @brief tcp client template class
 	 * @throws constructor maybe throw exception "Too many open files" (exception code : 24)
@@ -712,6 +724,30 @@ namespace asio2
 		using tcp_client_t<tcp_client>::tcp_client_t;
 	};
 }
+
+#if defined(ASIO2_INCLUDE_RATE_LIMIT)
+#include <asio2/tcp/tcp_stream.hpp>
+namespace asio2
+{
+	struct tcp_rate_client_args : public tcp_client_args
+	{
+		using socket_t = asio2::tcp_stream<asio2::simple_rate_policy>;
+	};
+
+	template<class derived_t>
+	class tcp_rate_client_t : public asio2::tcp_client_impl_t<derived_t, tcp_rate_client_args>
+	{
+	public:
+		using asio2::tcp_client_impl_t<derived_t, tcp_rate_client_args>::tcp_client_impl_t;
+	};
+
+	class tcp_rate_client : public asio2::tcp_rate_client_t<tcp_rate_client>
+	{
+	public:
+		using asio2::tcp_rate_client_t<tcp_rate_client>::tcp_rate_client_t;
+	};
+}
+#endif
 
 #include <asio2/base/detail/pop_options.hpp>
 

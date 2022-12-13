@@ -26,7 +26,7 @@ namespace asio2::detail
 {
 	struct template_args_https_session : public template_args_http_session
 	{
-		using stream_t    = websocket::stream<asio::ssl::stream<asio::ip::tcp::socket&>&>;
+		using stream_t = websocket::stream<asio::ssl::stream<typename template_args_http_session::socket_t&>&>;
 	};
 
 	ASIO2_CLASS_FORWARD_DECLARE_BASE;
@@ -94,8 +94,7 @@ namespace asio2::detail
 		 */
 		inline typename ssl_stream_comp::stream_type & stream() noexcept
 		{
-			ASIO2_ASSERT(bool(this->ssl_stream_));
-			return (*(this->ssl_stream_));
+			return this->derived().ssl_stream();
 		}
 
 	public:
@@ -188,6 +187,11 @@ namespace asio2::detail
 
 namespace asio2
 {
+	using https_session_args = detail::template_args_https_session;
+
+	template<class derived_t, class args_t>
+	using https_session_impl_t = detail::https_session_impl_t<derived_t, args_t>;
+
 	template<class derived_t>
 	class https_session_t : public detail::https_session_impl_t<derived_t, detail::template_args_https_session>
 	{
@@ -201,6 +205,31 @@ namespace asio2
 		using https_session_t<https_session>::https_session_t;
 	};
 }
+
+#if defined(ASIO2_INCLUDE_RATE_LIMIT)
+#include <asio2/tcp/tcp_stream.hpp>
+namespace asio2
+{
+	struct https_rate_session_args : public https_session_args
+	{
+		using socket_t = asio2::tcp_stream<asio2::simple_rate_policy>;
+		using stream_t = websocket::stream<asio::ssl::stream<socket_t&>&>;
+	};
+
+	template<class derived_t>
+	class https_rate_session_t : public asio2::https_session_impl_t<derived_t, https_rate_session_args>
+	{
+	public:
+		using asio2::https_session_impl_t<derived_t, https_rate_session_args>::https_session_impl_t;
+	};
+
+	class https_rate_session : public asio2::https_rate_session_t<https_rate_session>
+	{
+	public:
+		using asio2::https_rate_session_t<https_rate_session>::https_rate_session_t;
+	};
+}
+#endif
 
 #include <asio2/base/detail/pop_options.hpp>
 

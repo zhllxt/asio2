@@ -235,7 +235,7 @@ ayhP+MW1Gysd6TSPZgoTWNUoOAMivDcn7cezx4BjJdf8OK2s+apbBxXfVhc=
 
 void rdc_test()
 {
-	ASIO2_TEST_BEGIN_LOOP(test_loop_times / 50);
+	ASIO2_TEST_BEGIN_LOOP(test_loop_times);
 
 	// tcp dgram rdc
 	{

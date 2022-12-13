@@ -40,13 +40,6 @@ namespace asio2::detail
 	class connect_cp_member_variables<derived_t, args_t, false>
 	{
 	public:
-		using socket_t           = typename args_t::socket_t;
-		using raw_socket_t       = typename std::remove_reference_t<socket_t>;
-		using resolver_type      = typename asio::ip::basic_resolver<typename raw_socket_t::protocol_type>;
-		using endpoint_type      = typename args_t::socket_t::lowest_layer_type::endpoint_type;
-		using endpoints_type     = typename resolver_type::results_type;
-		using endpoints_iterator = typename endpoints_type::iterator;
-
 		/**
 		 * @brief Set the host of the server.
 		 * If connect failed, and you want to use a different ip when reconnect,
@@ -91,8 +84,9 @@ namespace asio2::detail
 	{
 	public:
 		using socket_t           = typename args_t::socket_t;
-		using raw_socket_t       = typename std::remove_reference_t<socket_t>;
-		using resolver_type      = typename asio::ip::basic_resolver<typename raw_socket_t::protocol_type>;
+		using decay_socket_t     = typename std::remove_cv_t<std::remove_reference_t<socket_t>>;
+		using lowest_layer_t     = typename decay_socket_t::lowest_layer_type;
+		using resolver_type      = typename asio::ip::basic_resolver<typename lowest_layer_t::protocol_type>;
 		using endpoints_type     = typename resolver_type::results_type;
 		using endpoints_iterator = typename endpoints_type::iterator;
 
@@ -247,7 +241,7 @@ namespace asio2::detail
 				// fire init function, the get_last_error will be not 0.
 				clear_last_error();
 
-				auto & socket = derive.socket().lowest_layer();
+				auto & socket = derive.socket();
 
 				// the socket.open(...) must after async_resolve, beacuse only after async_resolve,
 				// we can get the remote endpoint is ipv4 or ipv6, then we can open the socket
@@ -259,6 +253,7 @@ namespace asio2::detail
 				{
 					error_code ec_ignore{};
 
+					socket.cancel(ec_ignore);
 					socket.close(ec_ignore);
 				}
 
@@ -267,9 +262,9 @@ namespace asio2::detail
 					socket.open(iter->endpoint().protocol());
 
 					// open succeeded. set the keeplive values
-					socket.set_option(typename raw_socket_t::reuse_address(true)); // set port reuse
+					socket.set_option(asio::socket_base::reuse_address(true)); // set port reuse
 
-					if constexpr (std::is_same_v<typename raw_socket_t::protocol_type, asio::ip::tcp>)
+					if constexpr (std::is_same_v<typename lowest_layer_t::protocol_type, asio::ip::tcp>)
 					{
 						derive.set_keep_alive_options();
 					}

@@ -145,10 +145,21 @@ namespace asio2::detail
 		{
 			std::string msg = kcp::to_string(hdr);
 			std::size_t sent_bytes = 0;
+
+		#if defined(_DEBUG) || defined(DEBUG)
+			ASIO2_ASSERT(derive.post_send_counter_.load() == 0);
+			derive.post_send_counter_++;
+		#endif
+
 			if constexpr (args_t::is_session)
 				sent_bytes = derive.stream().send_to(asio::buffer(msg), derive.remote_endpoint_, 0, ec);
 			else
 				sent_bytes = derive.stream().send(asio::buffer(msg), 0, ec);
+
+		#if defined(_DEBUG) || defined(DEBUG)
+			derive.post_send_counter_--;
+		#endif
+
 			return sent_bytes;
 		}
 
@@ -174,7 +185,17 @@ namespace asio2::detail
 
 			auto buffer = asio::buffer(data);
 
+		#if defined(_DEBUG) || defined(DEBUG)
+			ASIO2_ASSERT(derive.post_send_counter_.load() == 0);
+			derive.post_send_counter_++;
+		#endif
+
 			int ret = kcp::ikcp_send(this->kcp_, (const char *)buffer.data(), (int)buffer.size());
+
+		#if defined(_DEBUG) || defined(DEBUG)
+			derive.post_send_counter_--;
+		#endif
+
 			switch (ret)
 			{
 			case  0: set_last_error(error_code{}                        ); break;
@@ -264,8 +285,8 @@ namespace asio2::detail
 		{
 			error_code ec;
 
-			// step 3 : server recvd syn from client (the first_ is the syn)
-			kcp::kcphdr syn = kcp::to_kcphdr(derive.first_);
+			// step 3 : server recvd syn from client (the first_data_ is the syn)
+			kcp::kcphdr syn = kcp::to_kcphdr(derive.first_data_);
 			std::uint32_t conv = syn.th_ack;
 			if (conv == 0)
 			{
@@ -319,12 +340,21 @@ namespace asio2::detail
 				return true;
 			});
 
+		#if defined(_DEBUG) || defined(DEBUG)
+			ASIO2_ASSERT(derive.post_recv_counter_.load() == 0);
+			derive.post_recv_counter_++;
+		#endif
+
 			// step 2 : client wait for recv synack util connect timeout or recvd some data
 			derive.socket().async_receive(derive.buffer().prepare(derive.buffer().pre_size()),
 				make_allocator(derive.rallocator(),
 			[this, seq, this_ptr = std::move(self_ptr), &ecs, timer = std::move(timer), chain = std::move(chain)]
 			(const error_code & ec, std::size_t bytes_recvd) mutable
 			{
+			#if defined(_DEBUG) || defined(DEBUG)
+				derive.post_recv_counter_--;
+			#endif
+
 				ASIO2_ASSERT(derive.io().running_in_this_thread());
 
 				timer->cancel();

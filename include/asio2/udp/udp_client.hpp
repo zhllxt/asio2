@@ -509,22 +509,17 @@ namespace asio2::detail
 			if (this->kcp_)
 				this->kcp_->_kcp_stop();
 
-			// the socket maybe closed already somewhere else.
-			if (this->socket_.lowest_layer().is_open())
-			{
-				this->derived().push_event([this, this_ptr = std::move(this_ptr)]
-				(event_queue_guard<derived_t>) mutable
-				{
-					error_code ec_ignore{};
+			error_code ec_ignore{};
 
-					// call socket's close function to notify the _handle_recv function response with 
-					// error > 0 ,then the socket can get notify to exit
-					// Call shutdown() to indicate that you will not write any more data to the socket.
-					this->socket_.shutdown(asio::socket_base::shutdown_both, ec_ignore);
-					// Call close,otherwise the _handle_recv will never return
-					this->socket_.close(ec_ignore);
-				});
-			}
+			// call socket's close function to notify the _handle_recv function response with 
+			// error > 0 ,then the socket can get notify to exit
+			// Call shutdown() to indicate that you will not write any more data to the socket.
+			this->socket().shutdown(asio::socket_base::shutdown_both, ec_ignore);
+
+			this->socket().cancel(ec_ignore);
+
+			// Call close,otherwise the _handle_recv will never return
+			this->socket().close(ec_ignore);
 		}
 
 		template<typename DeferEvent>
@@ -630,16 +625,29 @@ namespace asio2::detail
 
 			try
 			{
-				this->socket_.async_receive(this->buffer_.prepare(this->buffer_.pre_size()),
+			#if defined(_DEBUG) || defined(DEBUG)
+				ASIO2_ASSERT(this->derived().post_recv_counter_.load() == 0);
+				this->derived().post_recv_counter_++;
+			#endif
+
+				this->socket().async_receive(this->buffer_.prepare(this->buffer_.pre_size()),
 					make_allocator(this->rallocator_,
 						[this, this_ptr = std::move(this_ptr), &ecs]
 				(const error_code & ec, std::size_t bytes_recvd) mutable
 				{
+				#if defined(_DEBUG) || defined(DEBUG)
+					this->derived().post_recv_counter_--;
+				#endif
+
 					this->derived()._handle_recv(ec, bytes_recvd, std::move(this_ptr), ecs);
 				}));
 			}
 			catch (system_error & e)
 			{
+			#if defined(_DEBUG) || defined(DEBUG)
+				this->derived().post_recv_counter_--;
+			#endif
+
 				set_last_error(e);
 
 				this->derived()._do_disconnect(e.code(), this->derived().selfptr());
@@ -779,6 +787,11 @@ namespace asio2::detail
 
 namespace asio2
 {
+	using udp_client_args = detail::template_args_udp_client;
+
+	template<class derived_t, class args_t>
+	using udp_client_impl_t = detail::udp_client_impl_t<derived_t, args_t>;
+
 	/**
 	 * @throws constructor maybe throw exception "Too many open files" (exception code : 24)
 	 * asio::error::no_descriptors - Too many open files

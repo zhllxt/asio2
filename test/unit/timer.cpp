@@ -12,7 +12,7 @@ void timer_test()
 	ASIO2_CHECK(false);
 #endif
 
-	ASIO2_TEST_BEGIN_LOOP(test_loop_times / 100);
+	ASIO2_TEST_BEGIN_LOOP(test_loop_times / 50);
 
 #define diff 100ll
 

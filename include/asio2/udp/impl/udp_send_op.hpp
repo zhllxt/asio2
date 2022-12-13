@@ -45,11 +45,25 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
+		#if defined(_DEBUG) || defined(DEBUG)
+			ASIO2_ASSERT(derive.post_send_counter_.load() == 0);
+			derive.post_send_counter_++;
+		#endif
+
 			derive.stream().async_send(asio::buffer(data),
 				make_allocator(derive.wallocator(),
-					[p = derive.selfptr(), callback = std::forward<Callback>(callback)]
+					[
+					#if defined(_DEBUG) || defined(DEBUG)
+						&derive,
+					#endif
+						p = derive.selfptr(), callback = std::forward<Callback>(callback)
+					]
 			(const error_code& ec, std::size_t bytes_sent) mutable
 			{
+			#if defined(_DEBUG) || defined(DEBUG)
+				derive.post_send_counter_--;
+			#endif
+
 				set_last_error(ec);
 
 				callback(ec, bytes_sent);
@@ -62,11 +76,29 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
+		#if defined(_DEBUG) || defined(DEBUG)
+			ASIO2_ASSERT(derive.post_send_counter_.load() == 0);
+			derive.post_send_counter_++;
+		#endif
+
+			// note: when on the server, all udp session are used a same socket, so 
+			// multiple sessions maybe use the same socket to send data concurrently
+			// at the same time.
+
 			derive.stream().async_send_to(asio::buffer(data), endpoint,
 				make_allocator(derive.wallocator(),
-					[p = derive.selfptr(), callback = std::forward<Callback>(callback)]
+					[
+					#if defined(_DEBUG) || defined(DEBUG)
+						&derive,
+					#endif
+						p = derive.selfptr(), callback = std::forward<Callback>(callback)
+					]
 			(const error_code& ec, std::size_t bytes_sent) mutable
 			{
+			#if defined(_DEBUG) || defined(DEBUG)
+				derive.post_send_counter_--;
+			#endif
+
 				set_last_error(ec);
 
 				callback(ec, bytes_sent);

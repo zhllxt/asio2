@@ -127,10 +127,19 @@ namespace asio2::detail
 				std::forward<Buffer>(buffer)
 			};
 
+		#if defined(_DEBUG) || defined(DEBUG)
+			ASIO2_ASSERT(derive.post_send_counter_.load() == 0);
+			derive.post_send_counter_++;
+		#endif
+
 			asio::async_write(derive.stream(), buffers, make_allocator(derive.wallocator(),
 			[&derive, p = derive.selfptr(), bytes, head = std::move(head), callback = std::forward<Callback>(callback)]
 			(const error_code& ec, std::size_t bytes_sent) mutable
 			{
+			#if defined(_DEBUG) || defined(DEBUG)
+				derive.post_send_counter_--;
+			#endif
+
 				set_last_error(ec);
 
 				if (ec)
@@ -156,10 +165,19 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
+		#if defined(_DEBUG) || defined(DEBUG)
+			ASIO2_ASSERT(derive.post_send_counter_.load() == 0);
+			derive.post_send_counter_++;
+		#endif
+
 			asio::async_write(derive.stream(), buffer, make_allocator(derive.wallocator(),
 			[&derive, p = derive.selfptr(), callback = std::forward<Callback>(callback)]
 			(const error_code& ec, std::size_t bytes_sent) mutable
 			{
+			#if defined(_DEBUG) || defined(DEBUG)
+				derive.post_send_counter_--;
+			#endif
+
 				set_last_error(ec);
 
 				callback(ec, bytes_sent);

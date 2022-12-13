@@ -190,6 +190,14 @@ namespace asio2
 		};
 	}
 
+
+	using rpc_client_args_tcp = detail::template_args_rpc_client<asio2::net_protocol::tcp>;
+	using rpc_client_args_ws  = detail::template_args_rpc_client<asio2::net_protocol::ws >;
+
+	template<class derived_t, class executor_t>
+	using rpc_client_impl_t = detail::rpc_client_impl_t<derived_t, executor_t>;
+
+
 	template<class derived_t, asio2::net_protocol np> class rpc_client_t;
 
 	template<class derived_t>
@@ -236,6 +244,70 @@ namespace asio2
 	using rpc_client = rpc_client_use<asio2::net_protocol::ws>;
 #endif
 }
+
+#if defined(ASIO2_INCLUDE_RATE_LIMIT)
+#include <asio2/tcp/tcp_stream.hpp>
+namespace asio2
+{
+	struct rpc_rate_client_args_tcp : public rpc_client_args_tcp
+	{
+		using socket_t = asio2::tcp_stream<asio2::simple_rate_policy>;
+	};
+	struct rpc_rate_client_args_ws : public rpc_client_args_ws
+	{
+		using socket_t = asio2::tcp_stream<asio2::simple_rate_policy>;
+		using stream_t = websocket::stream<socket_t&>;
+	};
+
+	template<class derived_t, asio2::net_protocol np> class rpc_rate_client_t;
+
+	template<class derived_t>
+	class rpc_rate_client_t<derived_t, asio2::net_protocol::tcp> : public detail::rpc_client_impl_t<derived_t,
+		detail::tcp_client_impl_t<derived_t, rpc_rate_client_args_tcp>>
+	{
+	public:
+		using detail::rpc_client_impl_t<derived_t,
+			detail::tcp_client_impl_t<derived_t, rpc_rate_client_args_tcp>>::rpc_client_impl_t;
+	};
+
+	template<class derived_t>
+	class rpc_rate_client_t<derived_t, asio2::net_protocol::ws> : public detail::rpc_client_impl_t<derived_t,
+		detail::ws_client_impl_t<derived_t, rpc_rate_client_args_ws>>
+	{
+	public:
+		using detail::rpc_client_impl_t<derived_t,
+			detail::ws_client_impl_t<derived_t, rpc_rate_client_args_ws>>::rpc_client_impl_t;
+	};
+
+	template<asio2::net_protocol np> class rpc_rate_client_use;
+
+	template<>
+	class rpc_rate_client_use<asio2::net_protocol::tcp>
+		: public rpc_rate_client_t<rpc_rate_client_use<asio2::net_protocol::tcp>, asio2::net_protocol::tcp>
+	{
+	public:
+		using rpc_rate_client_t<rpc_rate_client_use<asio2::net_protocol::tcp>,
+			asio2::net_protocol::tcp>::rpc_rate_client_t;
+	};
+
+	template<>
+	class rpc_rate_client_use<asio2::net_protocol::ws>
+		: public rpc_rate_client_t<rpc_rate_client_use<asio2::net_protocol::ws>, asio2::net_protocol::ws>
+	{
+	public:
+		using rpc_rate_client_t<rpc_rate_client_use<asio2::net_protocol::ws>,
+			asio2::net_protocol::ws>::rpc_rate_client_t;
+	};
+
+#if !defined(ASIO2_USE_WEBSOCKET_RPC)
+	/// Using tcp dgram mode as the underlying communication support
+	using rpc_rate_client = rpc_rate_client_use<asio2::net_protocol::tcp>;
+#else
+	/// Using websocket as the underlying communication support
+	using rpc_rate_client = rpc_rate_client_use<asio2::net_protocol::ws>;
+#endif
+}
+#endif
 
 #include <asio2/base/detail/pop_options.hpp>
 

@@ -163,16 +163,25 @@ namespace asio2::detail
 					return;
 				}
 
+			#if defined(_DEBUG) || defined(DEBUG)
+				ASIO2_ASSERT(derive.post_send_counter_.load() == 0);
+				derive.post_send_counter_++;
+			#endif
+
 				// Close the WebSocket connection
 				// async_close behavior : 
 				// send a websocket close frame to the remote, and wait for recv a websocket close
 				// frame from the remote.
 				// async_close maybe close the socket directly.
 				this->ws_stream_->async_close(websocket::close_code::normal,
-				[this, this_ptr = std::move(this_ptr), chain = std::move(chain)]
+				[&derive, this_ptr = std::move(this_ptr), chain = std::move(chain)]
 				(error_code ec) mutable
 				{
-					detail::ignore_unused(ec);
+				#if defined(_DEBUG) || defined(DEBUG)
+					derive.post_send_counter_--;
+				#endif
+
+					detail::ignore_unused(derive, ec);
 
 					//if (ec)
 					//	return;
@@ -181,7 +190,7 @@ namespace asio2::detail
 
 					// must Reset the control frame callback. the control frame callback hold the 
 					// self shared_ptr, if don't reset it, will cause memory leaks.
-					this->ws_stream_->control_callback();
+					derive.ws_stream_->control_callback();
 				});
 			}, chain.move_guard());
 		}
@@ -203,16 +212,30 @@ namespace asio2::detail
 			try
 			{
 				ASIO2_ASSERT(bool(this->ws_stream_));
+
+			#if defined(_DEBUG) || defined(DEBUG)
+				ASIO2_ASSERT(derive.post_recv_counter_.load() == 0);
+				derive.post_recv_counter_++;
+			#endif
+
 				// Read a message into our buffer
 				this->ws_stream_->async_read(derive.buffer().base(), make_allocator(derive.rallocator(),
 				[&derive, this_ptr = std::move(this_ptr), &ecs]
 				(const error_code& ec, std::size_t bytes_recvd) mutable
 				{
+				#if defined(_DEBUG) || defined(DEBUG)
+					derive.post_recv_counter_--;
+				#endif
+
 					derive._handle_recv(ec, bytes_recvd, std::move(this_ptr), ecs);
 				}));
 			}
 			catch (system_error & e)
 			{
+			#if defined(_DEBUG) || defined(DEBUG)
+				derive.post_recv_counter_--;
+			#endif
+
 				set_last_error(e);
 
 				derive._do_disconnect(e.code(), derive.selfptr());
@@ -348,12 +371,21 @@ namespace asio2::detail
 
 			ASIO2_ASSERT(bool(this->ws_stream_));
 
+		#if defined(_DEBUG) || defined(DEBUG)
+			ASIO2_ASSERT(derive.post_send_counter_.load() == 0);
+			derive.post_send_counter_++;
+		#endif
+
 			// Perform the websocket handshake
 			this->ws_stream_->async_handshake(rep, derive.host_, derive.get_upgrade_target(),
 				make_allocator(derive.wallocator(),
 			[&derive, this_ptr = std::move(this_ptr), &ecs, chain = std::move(chain)]
 			(error_code const& ec) mutable
 			{
+			#if defined(_DEBUG) || defined(DEBUG)
+				derive.post_send_counter_--;
+			#endif
+
 				derive._handle_upgrade(ec, std::move(this_ptr), ecs, std::move(chain));
 			}));
 		}
@@ -367,11 +399,21 @@ namespace asio2::detail
 
 			ASIO2_ASSERT(bool(this->ws_stream_));
 
+		#if defined(_DEBUG) || defined(DEBUG)
+			ASIO2_ASSERT(derive.post_send_counter_.load() == 0);
+			derive.post_send_counter_++;
+		#endif
+
 			// Accept the websocket handshake
+			// just write response.
 			this->ws_stream_->async_accept(req, make_allocator(derive.wallocator(),
 			[&derive, this_ptr = std::move(this_ptr), &ecs, chain = std::move(chain)]
 			(error_code ec) mutable
 			{
+			#if defined(_DEBUG) || defined(DEBUG)
+				derive.post_send_counter_--;
+			#endif
+
 				derive._handle_upgrade(ec, std::move(this_ptr), ecs, std::move(chain));
 			}));
 		}
@@ -384,11 +426,21 @@ namespace asio2::detail
 
 			ASIO2_ASSERT(bool(this->ws_stream_));
 
+		#if defined(_DEBUG) || defined(DEBUG)
+			ASIO2_ASSERT(derive.post_recv_counter_.load() == 0);
+			derive.post_recv_counter_++;
+		#endif
+
 			// Accept the websocket handshake
+			// first read request, then write response.
 			this->ws_stream_->async_accept(make_allocator(derive.wallocator(),
 			[&derive, this_ptr = std::move(this_ptr), &ecs, chain = std::move(chain)]
 			(error_code ec) mutable
 			{
+			#if defined(_DEBUG) || defined(DEBUG)
+				derive.post_recv_counter_--;
+			#endif
+
 				derive._handle_upgrade(ec, std::move(this_ptr), ecs, std::move(chain));
 			}));
 		}

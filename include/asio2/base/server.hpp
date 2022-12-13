@@ -20,13 +20,9 @@
 #include <cstdint>
 #include <memory>
 #include <chrono>
-#include <functional>
 #include <atomic>
 #include <string>
 #include <string_view>
-#include <tuple>
-#include <unordered_map>
-#include <type_traits>
 
 #include <asio2/base/iopool.hpp>
 #include <asio2/base/log.hpp>
@@ -116,12 +112,9 @@ namespace asio2::detail
 		{
 			ASIO2_ASSERT(this->io_.running_in_this_thread());
 
-			derived_t& derive = static_cast<derived_t&>(*this);
-
 			// can't use post, we need ensure when the derived stop is called, the chain
 			// must be executed completed.
-			asio::dispatch(derive.io().context(), make_allocator(derive.wallocator(),
-			[this, &derive, this_ptr = derive.selfptr()]() mutable
+			this->derived().dispatch([this]() mutable
 			{
 				// close user custom timers
 				this->_dispatch_stop_all_timers();
@@ -132,22 +125,15 @@ namespace asio2::detail
 				// close all async_events
 				this->notify_all_condition_events();
 
-				// use push event to let resources cleared after user events
-				// can't use post event, we need ensure when the derived stop is called,
-				// the chain must be executed completed.
-				derive.push_event([this, this_ptr = std::move(this_ptr)]
-				(event_queue_guard<derived_t>) mutable
-				{
-					// destroy user data, maybe the user data is self shared_ptr, 
-					// if don't destroy it, will cause loop refrence.
-					// read/write user data in other thread which is not the io_context
-					// thread maybe cause crash.
-					this->user_data_.reset();
+				// destroy user data, maybe the user data is self shared_ptr, 
+				// if don't destroy it, will cause loop refrence.
+				// read/write user data in other thread which is not the io_context
+				// thread maybe cause crash.
+				this->user_data_.reset();
 
-					// destroy the ecs
-					this->ecs_.reset();
-				});
-			}));
+				// destroy the ecs
+				this->ecs_.reset();
+			});
 		}
 
 		/**
@@ -370,6 +356,11 @@ namespace asio2::detail
 
 		/// the pointer of ecs_t
 		std::unique_ptr<ecs_base>                   ecs_;
+
+	#if defined(_DEBUG) || defined(DEBUG)
+		std::atomic<int>                            post_send_counter_ = 0;
+		std::atomic<int>                            post_recv_counter_ = 0;
+	#endif
 	};
 }
 

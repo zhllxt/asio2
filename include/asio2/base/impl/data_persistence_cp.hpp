@@ -17,12 +17,8 @@
 
 #include <cstdint>
 #include <memory>
-#include <functional>
-#include <string>
-#include <future>
-#include <queue>
-#include <tuple>
 #include <utility>
+#include <string>
 #include <string_view>
 
 #include <asio2/base/iopool.hpp>

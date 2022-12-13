@@ -139,6 +139,9 @@ namespace asio2::detail
 
 namespace asio2
 {
+	template<class derived_t, class session_t>
+	using http_server_impl_t = detail::http_server_impl_t<derived_t, session_t>;
+
 	template<class session_t>
 	class http_server_t : public detail::http_server_impl_t<http_server_t<session_t>, session_t>
 	{
@@ -148,6 +151,21 @@ namespace asio2
 
 	using http_server = http_server_t<http_session>;
 }
+
+#if defined(ASIO2_INCLUDE_RATE_LIMIT)
+#include <asio2/tcp/tcp_stream.hpp>
+namespace asio2
+{
+	template<class session_t>
+	class http_rate_server_t : public asio2::http_server_impl_t<http_rate_server_t<session_t>, session_t>
+	{
+	public:
+		using asio2::http_server_impl_t<http_rate_server_t<session_t>, session_t>::http_server_impl_t;
+	};
+
+	using http_rate_server = http_rate_server_t<http_rate_session>;
+}
+#endif
 
 #include <asio2/base/detail/pop_options.hpp>
 

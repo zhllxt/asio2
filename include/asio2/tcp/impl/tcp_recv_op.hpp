@@ -65,6 +65,11 @@ namespace asio2::detail
 
 			try
 			{
+			#if defined(_DEBUG) || defined(DEBUG)
+				ASIO2_ASSERT(derive.post_recv_counter_.load() == 0);
+				derive.post_recv_counter_++;
+			#endif
+
 				if constexpr (
 					std::is_same_v<condition_lowest_type, asio::detail::transfer_all_t> ||
 					std::is_same_v<condition_lowest_type, asio::detail::transfer_at_least_t> ||
@@ -76,6 +81,10 @@ namespace asio2::detail
 							[&derive, self_ptr = std::move(this_ptr), &ecs]
 					(const error_code& ec, std::size_t bytes_recvd) mutable
 					{
+					#if defined(_DEBUG) || defined(DEBUG)
+						derive.post_recv_counter_--;
+					#endif
+
 						derive._handle_recv(ec, bytes_recvd, std::move(self_ptr), ecs);
 					}));
 				}
@@ -86,12 +95,20 @@ namespace asio2::detail
 							[&derive, self_ptr = std::move(this_ptr), &ecs]
 					(const error_code& ec, std::size_t bytes_recvd) mutable
 					{
+					#if defined(_DEBUG) || defined(DEBUG)
+						derive.post_recv_counter_--;
+					#endif
+
 						derive._handle_recv(ec, bytes_recvd, std::move(self_ptr), ecs);
 					}));
 				}
 			}
 			catch (system_error & e)
 			{
+			#if defined(_DEBUG) || defined(DEBUG)
+				derive.post_recv_counter_--;
+			#endif
+
 				set_last_error(e);
 
 				derive._do_disconnect(e.code(), derive.selfptr());

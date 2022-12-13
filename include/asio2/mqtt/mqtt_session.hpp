@@ -410,6 +410,11 @@ namespace asio2::detail
 
 namespace asio2
 {
+	using mqtt_session_args = detail::template_args_mqtt_session;
+
+	template<class derived_t, class args_t>
+	using mqtt_session_impl_t = detail::mqtt_session_impl_t<derived_t, args_t>;
+
 	template<class derived_t>
 	class mqtt_session_t : public detail::mqtt_session_impl_t<derived_t, detail::template_args_mqtt_session>
 	{
