@@ -187,7 +187,7 @@ namespace asio2::detail
 		}
 
 		template<typename C>
-		inline void _do_init(ecs_t<C>& ecs)
+		inline void _do_init(std::shared_ptr<ecs_t<C>>& ecs)
 		{
 			super::_do_init(ecs);
 
@@ -210,17 +210,22 @@ namespace asio2::detail
 
 		template<typename C, typename DeferEvent>
 		inline void _handle_connect(
-			const error_code& ec, std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs, DeferEvent chain)
+			const error_code& ec,
+			std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs, DeferEvent chain)
 		{
 			set_last_error(ec);
 
+			derived_t& derive = this->derived();
+
 			if (ec)
-				return this->derived()._done_connect(ec, std::move(this_ptr), ecs, std::move(chain));
+			{
+				return derive._done_connect(ec, std::move(this_ptr), std::move(ecs), std::move(chain));
+			}
 
-			this->derived()._ws_start(this_ptr, ecs, this->socket_);
+			derive._ws_start(this_ptr, ecs, this->socket_);
 
-			this->derived()._post_control_callback(this_ptr, ecs);
-			this->derived()._post_upgrade(std::move(this_ptr), ecs, this->upgrade_rep_, std::move(chain));
+			derive._post_control_callback(this_ptr, ecs);
+			derive._post_upgrade(std::move(this_ptr), std::move(ecs), this->upgrade_rep_, std::move(chain));
 		}
 
 		template<class Data, class Callback>
@@ -231,16 +236,17 @@ namespace asio2::detail
 
 	protected:
 		template<typename C>
-		inline void _post_recv(std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs)
+		inline void _post_recv(std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs)
 		{
-			this->derived()._ws_post_recv(std::move(this_ptr), ecs);
+			this->derived()._ws_post_recv(std::move(this_ptr), std::move(ecs));
 		}
 
 		template<typename C>
 		inline void _handle_recv(
-			const error_code& ec, std::size_t bytes_recvd, std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs)
+			const error_code& ec, std::size_t bytes_recvd,
+			std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs)
 		{
-			this->derived()._ws_handle_recv(ec, bytes_recvd, std::move(this_ptr), ecs);
+			this->derived()._ws_handle_recv(ec, bytes_recvd, std::move(this_ptr), std::move(ecs));
 		}
 
 		inline void _fire_upgrade(std::shared_ptr<derived_t>& this_ptr)

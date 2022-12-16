@@ -104,12 +104,12 @@ namespace asio2::detail
 
 	protected:
 		template<class C>
-		inline void _make_reconnect_timer(std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs)
+		inline void _make_reconnect_timer(std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
 			asio::dispatch(derive.io().context(), make_allocator(derive.wallocator(),
-			[this, this_ptr = std::move(this_ptr), &ecs]() mutable
+			[this, this_ptr = std::move(this_ptr), ecs = std::move(ecs)]() mutable
 			{
 				derived_t& derive = static_cast<derived_t&>(*this);
 
@@ -118,17 +118,17 @@ namespace asio2::detail
 					this->reconnect_timer_->cancel();
 				}
 
-				this->reconnect_timer_ = std::make_unique<safe_timer>(derive.io().context());
+				this->reconnect_timer_ = std::make_shared<safe_timer>(derive.io().context());
 
-				derive._post_reconnect_timer(std::move(this_ptr), this->reconnect_timer_,
-					(std::chrono::nanoseconds::max)(), ecs); // 292 yeas
+				derive._post_reconnect_timer(std::move(this_ptr), std::move(ecs),
+					this->reconnect_timer_, (std::chrono::nanoseconds::max)()); // 292 yeas
 			}));
 		}
 
 		template<class Rep, class Period, class C>
 		inline void _post_reconnect_timer(
-			std::shared_ptr<derived_t> this_ptr, std::shared_ptr<safe_timer> timer_ptr,
-			std::chrono::duration<Rep, Period> delay, ecs_t<C>& ecs)
+			std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs,
+			std::shared_ptr<safe_timer> timer_ptr, std::chrono::duration<Rep, Period> delay)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
@@ -150,16 +150,16 @@ namespace asio2::detail
 
 			ptimer->timer.expires_after(delay);
 			ptimer->timer.async_wait(
-			[&derive, self_ptr = std::move(this_ptr), timer_ptr = std::move(timer_ptr), &ecs]
+			[&derive, this_ptr = std::move(this_ptr), ecs = std::move(ecs), timer_ptr = std::move(timer_ptr)]
 			(const error_code & ec) mutable
 			{
-				derive._handle_reconnect_timer(ec, std::move(self_ptr), std::move(timer_ptr), ecs);
+				derive._handle_reconnect_timer(ec, std::move(this_ptr), std::move(ecs), std::move(timer_ptr));
 			});
 		}
 
 		template<class C>
 		inline void _handle_reconnect_timer(const error_code& ec,
-			std::shared_ptr<derived_t> this_ptr, std::shared_ptr<safe_timer> timer_ptr, ecs_t<C>& ecs)
+			std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs, std::shared_ptr<safe_timer> timer_ptr)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
@@ -184,14 +184,15 @@ namespace asio2::detail
 
 			if (ec == asio::error::operation_aborted)
 			{
-				derive._post_reconnect_timer(std::move(this_ptr), std::move(timer_ptr), this->reconnect_delay_, ecs);
+				derive._post_reconnect_timer(
+					std::move(this_ptr), std::move(ecs), std::move(timer_ptr), this->reconnect_delay_);
 			}
 			else
 			{
 				if (this->reconnect_enable_)
 				{
 					derive.push_event(
-					[&derive, this_ptr, timer_ptr, &ecs](event_queue_guard<derived_t> g) mutable
+					[&derive, this_ptr, ecs, timer_ptr](event_queue_guard<derived_t> g) mutable
 					{
 						if (timer_ptr->canceled.test_and_set())
 							return;
@@ -201,14 +202,14 @@ namespace asio2::detail
 						state_t expected = state_t::stopped;
 						if (derive.state_.compare_exchange_strong(expected, state_t::starting))
 						{
-							derive.template _start_connect<true>(std::move(this_ptr), ecs,
+							derive.template _start_connect<true>(std::move(this_ptr), std::move(ecs),
 								defer_event(std::move(g)));
 						}
 					});
 				}
 
-				derive._post_reconnect_timer(std::move(this_ptr), std::move(timer_ptr),
-					(std::chrono::nanoseconds::max)(), ecs); // 292 yeas
+				derive._post_reconnect_timer(std::move(this_ptr), std::move(ecs),
+					std::move(timer_ptr), (std::chrono::nanoseconds::max)()); // 292 yeas
 			}
 		}
 

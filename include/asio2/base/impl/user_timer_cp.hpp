@@ -530,10 +530,10 @@ namespace asio2::detail
 
 			timer.expires_after(expiry);
 			timer.async_wait(
-			[&derive, self_ptr = std::move(this_ptr), timer_ptr = std::move(timer_obj_ptr)]
+			[&derive, this_ptr = std::move(this_ptr), timer_ptr = std::move(timer_obj_ptr)]
 			(const error_code& ec) mutable
 			{
-				derive._handle_user_timers(ec, std::move(self_ptr), std::move(timer_ptr));
+				derive._handle_user_timers(ec, std::move(this_ptr), std::move(timer_ptr));
 			});
 		}
 

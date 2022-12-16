@@ -78,6 +78,12 @@ include $(BUILD_EXECUTABLE)
 
 include $(CLEAR_VARS)
 LOCAL_C_INCLUDES += $(ASIO2_INCLUDE)
+LOCAL_MODULE := rate_limit.out
+LOCAL_SRC_FILES := $(ASIO2_EXAMPLE_DIR)/rate_limit/rate_limit.cpp
+include $(BUILD_EXECUTABLE)
+
+include $(CLEAR_VARS)
+LOCAL_C_INCLUDES += $(ASIO2_INCLUDE)
 LOCAL_MODULE := rpc_client.out
 LOCAL_SRC_FILES := $(ASIO2_EXAMPLE_DIR)/rpc/client/rpc_client.cpp
 include $(BUILD_EXECUTABLE)

@@ -45,7 +45,8 @@ namespace asio2::detail
 
 	protected:
 		template<typename C>
-		void _rpc_handle_recv(std::shared_ptr<derived_t>& this_ptr, ecs_t<C>& ecs, std::string_view data)
+		void _rpc_handle_recv(
+			std::shared_ptr<derived_t>& this_ptr, std::shared_ptr<ecs_t<C>>& ecs, std::string_view data)
 		{
 			detail::ignore_unused(ecs);
 

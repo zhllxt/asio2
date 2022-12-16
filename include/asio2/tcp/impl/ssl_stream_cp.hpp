@@ -57,7 +57,7 @@ namespace asio2::detail
 
 	protected:
 		template<typename C>
-		inline void _ssl_init(ecs_t<C>& ecs, socket_type& socket, asio::ssl::context& ctx)
+		inline void _ssl_init(std::shared_ptr<ecs_t<C>>& ecs, socket_type& socket, asio::ssl::context& ctx)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
@@ -86,7 +86,8 @@ namespace asio2::detail
 
 		template<typename C>
 		inline void _ssl_start(
-			std::shared_ptr<derived_t>& this_ptr, ecs_t<C>& ecs, socket_type& socket, asio::ssl::context& ctx) noexcept
+			std::shared_ptr<derived_t>& this_ptr, std::shared_ptr<ecs_t<C>>& ecs, socket_type& socket,
+			asio::ssl::context& ctx) noexcept
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
@@ -182,7 +183,8 @@ namespace asio2::detail
 		}
 
 		template<typename C, typename DeferEvent>
-		inline void _post_handshake(std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs, DeferEvent chain)
+		inline void _post_handshake(
+			std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs, DeferEvent chain)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
@@ -238,7 +240,7 @@ namespace asio2::detail
 		#endif
 
 			this->ssl_stream_->async_handshake(this->ssl_type_, make_allocator(derive.wallocator(),
-			[&derive, self_ptr = std::move(this_ptr), &ecs,
+			[&derive, this_ptr = std::move(this_ptr), ecs = std::move(ecs),
 				flag_ptr = std::move(flag_ptr), timer = std::move(timer), chain = std::move(chain)]
 			(const error_code& ec) mutable
 			{
@@ -256,22 +258,25 @@ namespace asio2::detail
 				}
 
 				if (flag_ptr->test_and_set())
-					derive._handle_handshake(asio::error::timed_out, std::move(self_ptr), ecs, std::move(chain));
+					derive._handle_handshake(asio::error::timed_out,
+						std::move(this_ptr), std::move(ecs), std::move(chain));
 				else
-					derive._handle_handshake(ec, std::move(self_ptr), ecs, std::move(chain));
+					derive._handle_handshake(ec,
+						std::move(this_ptr), std::move(ecs), std::move(chain));
 			}));
 		}
 
 		template<typename C, typename DeferEvent>
 		inline void _session_handle_handshake(
-			const error_code& ec, std::shared_ptr<derived_t> self_ptr, ecs_t<C>& ecs, DeferEvent chain)
+			const error_code& ec,
+			std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs, DeferEvent chain)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
 			// Use "sessions().dispatch" to ensure that the _fire_accept function and the _fire_handshake
 			// function are fired in the same thread
 			derive.sessions().dispatch(
-			[&derive, ec, this_ptr = std::move(self_ptr), &ecs, chain = std::move(chain)]
+			[&derive, ec, this_ptr = std::move(this_ptr), ecs = std::move(ecs), chain = std::move(chain)]
 			() mutable
 			{
 				try
@@ -282,7 +287,7 @@ namespace asio2::detail
 
 					asio::detail::throw_error(ec);
 
-					derive._done_connect(ec, std::move(this_ptr), ecs, std::move(chain));
+					derive._done_connect(ec, std::move(this_ptr), std::move(ecs), std::move(chain));
 				}
 				catch (system_error & e)
 				{
@@ -295,30 +300,32 @@ namespace asio2::detail
 
 		template<typename C, typename DeferEvent>
 		inline void _client_handle_handshake(
-			const error_code& ec, std::shared_ptr<derived_t> self_ptr, ecs_t<C>& ecs, DeferEvent chain)
+			const error_code& ec,
+			std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs, DeferEvent chain)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
 			set_last_error(ec);
 
-			derive._fire_handshake(self_ptr);
+			derive._fire_handshake(this_ptr);
 
-			derive._done_connect(ec, std::move(self_ptr), ecs, std::move(chain));
+			derive._done_connect(ec, std::move(this_ptr), std::move(ecs), std::move(chain));
 		}
 
 		template<typename C, typename DeferEvent>
 		inline void _handle_handshake(
-			const error_code& ec, std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs, DeferEvent chain)
+			const error_code& ec,
+			std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs, DeferEvent chain)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
 			if constexpr (args_t::is_session)
 			{
-				derive._session_handle_handshake(ec, std::move(this_ptr), ecs, std::move(chain));
+				derive._session_handle_handshake(ec, std::move(this_ptr), std::move(ecs), std::move(chain));
 			}
 			else
 			{
-				derive._client_handle_handshake(ec, std::move(this_ptr), ecs, std::move(chain));
+				derive._client_handle_handshake(ec, std::move(this_ptr), std::move(ecs), std::move(chain));
 			}
 		}
 

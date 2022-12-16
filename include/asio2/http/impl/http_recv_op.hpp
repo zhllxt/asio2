@@ -48,7 +48,7 @@ namespace asio2::detail
 
 	protected:
 		template<typename C>
-		void _http_session_post_recv(std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs)
+		void _http_session_post_recv(std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
@@ -66,14 +66,14 @@ namespace asio2::detail
 				// Read a request
 				http::async_read(derive.stream(), derive.buffer().base(), derive.req_,
 					make_allocator(derive.rallocator(),
-						[&derive, self_ptr = std::move(this_ptr), &ecs]
+						[&derive, this_ptr = std::move(this_ptr), ecs = std::move(ecs)]
 				(const error_code & ec, std::size_t bytes_recvd) mutable
 				{
 				#if defined(_DEBUG) || defined(DEBUG)
 					derive.post_recv_counter_--;
 				#endif
 
-					derive._handle_recv(ec, bytes_recvd, std::move(self_ptr), ecs);
+					derive._handle_recv(ec, bytes_recvd, std::move(this_ptr), std::move(ecs));
 				}));
 			}
 			else
@@ -86,20 +86,20 @@ namespace asio2::detail
 				// Read a message into our buffer
 				derive.ws_stream().async_read(derive.buffer().base(),
 					make_allocator(derive.rallocator(),
-						[&derive, self_ptr = std::move(this_ptr), &ecs]
+						[&derive, this_ptr = std::move(this_ptr), ecs = std::move(ecs)]
 				(const error_code & ec, std::size_t bytes_recvd) mutable
 				{
 				#if defined(_DEBUG) || defined(DEBUG)
 					derive.post_recv_counter_--;
 				#endif
 
-					derive._handle_recv(ec, bytes_recvd, std::move(self_ptr), ecs);
+					derive._handle_recv(ec, bytes_recvd, std::move(this_ptr), std::move(ecs));
 				}));
 			}
 		}
 
 		template<typename C>
-		void _http_client_post_recv(std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs)
+		void _http_client_post_recv(std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
@@ -110,15 +110,15 @@ namespace asio2::detail
 			// Receive the HTTP response
 			http::async_read(derive.stream(), derive.buffer().base(), derive.rep_,
 				make_allocator(derive.rallocator(),
-					[&derive, self_ptr = std::move(this_ptr), &ecs]
+					[&derive, this_ptr = std::move(this_ptr), ecs = std::move(ecs)]
 			(const error_code & ec, std::size_t bytes_recvd) mutable
 			{
-				derive._handle_recv(ec, bytes_recvd, std::move(self_ptr), ecs);
+				derive._handle_recv(ec, bytes_recvd, std::move(this_ptr), std::move(ecs));
 			}));
 		}
 
 		template<typename C>
-		void _http_post_recv(std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs)
+		void _http_post_recv(std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
@@ -135,11 +135,11 @@ namespace asio2::detail
 			{
 				if constexpr (args_t::is_session)
 				{
-					derive._http_session_post_recv(std::move(this_ptr), ecs);
+					derive._http_session_post_recv(std::move(this_ptr), std::move(ecs));
 				}
 				else
 				{
-					derive._http_client_post_recv(std::move(this_ptr), ecs);
+					derive._http_client_post_recv(std::move(this_ptr), std::move(ecs));
 				}
 			}
 			catch (system_error& e)
@@ -152,7 +152,8 @@ namespace asio2::detail
 
 		template<typename C>
 		void _http_session_handle_recv(
-			const error_code& ec, std::size_t bytes_recvd, std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs)
+			const error_code& ec, std::size_t bytes_recvd,
+			std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs)
 		{
 			detail::ignore_unused(ec, bytes_recvd);
 
@@ -196,13 +197,14 @@ namespace asio2::detail
 
 				derive.buffer().consume(derive.buffer().size());
 
-				derive._post_recv(std::move(this_ptr), ecs);
+				derive._post_recv(std::move(this_ptr), std::move(ecs));
 			}
 		}
 
 		template<typename C>
 		void _http_client_handle_recv(
-			const error_code& ec, std::size_t bytes_recvd, std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs)
+			const error_code& ec, std::size_t bytes_recvd,
+			std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs)
 		{
 			detail::ignore_unused(ec, bytes_recvd);
 
@@ -210,12 +212,13 @@ namespace asio2::detail
 
 			derive._fire_recv(this_ptr, ecs);
 
-			derive._post_recv(std::move(this_ptr), ecs);
+			derive._post_recv(std::move(this_ptr), std::move(ecs));
 		}
 
 		template<typename C>
 		void _http_handle_recv(
-			const error_code& ec, std::size_t bytes_recvd, std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs)
+			const error_code& ec, std::size_t bytes_recvd,
+			std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
@@ -239,11 +242,11 @@ namespace asio2::detail
 
 				if constexpr (args_t::is_session)
 				{
-					derive._http_session_handle_recv(ec, bytes_recvd, std::move(this_ptr), ecs);
+					derive._http_session_handle_recv(ec, bytes_recvd, std::move(this_ptr), std::move(ecs));
 				}
 				else
 				{
-					derive._http_client_handle_recv(ec, bytes_recvd, std::move(this_ptr), ecs);
+					derive._http_client_handle_recv(ec, bytes_recvd, std::move(this_ptr), std::move(ecs));
 				}
 			}
 			else

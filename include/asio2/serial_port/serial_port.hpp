@@ -52,7 +52,7 @@
 #include <asio2/tcp/impl/tcp_send_op.hpp>
 #include <asio2/tcp/impl/tcp_recv_op.hpp>
 
-#include <asio2/ecs/rdc/rdc_call_cp.hpp>
+#include <asio2/component/rdc/rdc_call_cp.hpp>
 
 namespace asio2::detail
 {
@@ -435,13 +435,9 @@ namespace asio2::detail
 
 	protected:
 		template<typename String, typename StrOrInt, typename C>
-		bool _do_start(String&& device, StrOrInt&& baud_rate, ecs_t<C> e)
+		bool _do_start(String&& device, StrOrInt&& baud_rate, std::shared_ptr<ecs_t<C>> ecs)
 		{
 			derived_t& derive = this->derived();
-
-			this->ecs_ = std::make_unique<ecs_t<C>>(std::move(e));
-
-			ecs_t<C>& ecs = *const_cast<ecs_t<C>*>(static_cast<const ecs_t<C>*>(this->ecs_.get()));
 
 			this->start_iopool();
 
@@ -470,7 +466,7 @@ namespace asio2::detail
 			};
 
 			derive.post_event(
-			[this, this_ptr = derive.selfptr(), &ecs, pg = std::move(pg),
+			[this, this_ptr = derive.selfptr(), ecs = std::move(ecs), pg = std::move(pg),
 				device = std::forward<String>(device), baud_rate = std::forward<StrOrInt>(baud_rate)]
 			(event_queue_guard<derived_t> g) mutable
 			{
@@ -499,6 +495,9 @@ namespace asio2::detail
 
 					return;
 				}
+
+				// must read/write ecs in the io_context thread.
+				derive.ecs_ = ecs;
 
 				try
 				{
@@ -538,7 +537,7 @@ namespace asio2::detail
 					// sp.set_option(asio::serial_port::stop_bits(serial_port::stop_bits::type(stop_bits)));
 					// sp.set_option(asio::serial_port::character_size(character_size));
 
-					derive._handle_start(error_code{}, std::move(this_ptr), ecs, std::move(chain));
+					derive._handle_start(error_code{}, std::move(this_ptr), std::move(ecs), std::move(chain));
 
 					return;
 				}
@@ -551,7 +550,7 @@ namespace asio2::detail
 					set_last_error(asio::error::invalid_argument);
 				}
 
-				derive._handle_start(get_last_error(), std::move(this_ptr), ecs, std::move(chain));
+				derive._handle_start(get_last_error(), std::move(this_ptr), std::move(ecs), std::move(chain));
 			});
 
 			if (!derive.io().running_in_this_thread())
@@ -573,7 +572,8 @@ namespace asio2::detail
 		}
 
 		template<typename C, typename DeferEvent>
-		void _handle_start(error_code ec, std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs, DeferEvent chain)
+		void _handle_start(
+			error_code ec, std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs, DeferEvent chain)
 		{
 			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
 
@@ -596,7 +596,7 @@ namespace asio2::detail
 
 				asio::detail::throw_error(ec);
 
-				this->derived()._start_recv(std::move(this_ptr), ecs);
+				this->derived()._start_recv(std::move(this_ptr), std::move(ecs));
 			}
 			catch (system_error & e)
 			{
@@ -724,11 +724,11 @@ namespace asio2::detail
 		}
 
 		template<typename C>
-		inline void _start_recv(std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs)
+		inline void _start_recv(std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs)
 		{
 			// Connect succeeded. post recv request.
 			asio::dispatch(this->derived().io().context(), make_allocator(this->derived().wallocator(),
-			[this, this_ptr = std::move(this_ptr), &ecs]() mutable
+			[this, this_ptr = std::move(this_ptr), ecs = std::move(ecs)]() mutable
 			{
 				using condition_lowest_type = typename ecs_t<C>::condition_lowest_type;
 
@@ -741,7 +741,7 @@ namespace asio2::detail
 					std::ignore = true;
 				}
 
-				this->derived()._post_recv(std::move(this_ptr), ecs);
+				this->derived()._post_recv(std::move(this_ptr), std::move(ecs));
 			}));
 		}
 
@@ -782,16 +782,17 @@ namespace asio2::detail
 
 	protected:
 		template<typename C>
-		inline void _post_recv(std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs)
+		inline void _post_recv(std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs)
 		{
-			this->derived()._tcp_post_recv(std::move(this_ptr), ecs);
+			this->derived()._tcp_post_recv(std::move(this_ptr), std::move(ecs));
 		}
 
 		template<typename C>
 		inline void _handle_recv(
-			const error_code& ec, std::size_t bytes_recvd, std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs)
+			const error_code& ec, std::size_t bytes_recvd,
+			std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs)
 		{
-			this->derived()._tcp_handle_recv(ec, bytes_recvd, std::move(this_ptr), ecs);
+			this->derived()._tcp_handle_recv(ec, bytes_recvd, std::move(this_ptr), std::move(ecs));
 		}
 
 		inline void _fire_init()
@@ -804,7 +805,7 @@ namespace asio2::detail
 		}
 
 		template<typename C>
-		inline void _fire_start(std::shared_ptr<derived_t>& this_ptr, ecs_t<C>& ecs)
+		inline void _fire_start(std::shared_ptr<derived_t>& this_ptr, std::shared_ptr<ecs_t<C>>& ecs)
 		{
 			// the _fire_start must be executed in the thread 0.
 			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
@@ -834,7 +835,8 @@ namespace asio2::detail
 		}
 
 		template<typename C>
-		inline void _fire_recv(std::shared_ptr<derived_t>& this_ptr, ecs_t<C>& ecs, std::string_view data)
+		inline void _fire_recv(
+			std::shared_ptr<derived_t>& this_ptr, std::shared_ptr<ecs_t<C>>& ecs, std::string_view data)
 		{
 			this->listener_.notify(event_type::recv, data);
 
@@ -908,7 +910,7 @@ namespace asio2::detail
 		std::chrono::steady_clock::duration       rc_timeout_ = std::chrono::milliseconds(http_execute_timeout);
 
 		/// the pointer of ecs_t
-		std::unique_ptr<ecs_base>                 ecs_;
+		std::shared_ptr<ecs_base>                 ecs_;
 
 	#if defined(_DEBUG) || defined(DEBUG)
 		bool                                      is_stop_called_  = false;

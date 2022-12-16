@@ -299,13 +299,9 @@ namespace asio2::detail
 
 	protected:
 		template<typename String, typename StrOrInt, typename C>
-		inline bool _do_start(String&& host, StrOrInt&& port, ecs_t<C> e)
+		inline bool _do_start(String&& host, StrOrInt&& port, std::shared_ptr<ecs_t<C>> ecs)
 		{
 			derived_t& derive = this->derived();
-
-			this->ecs_ = std::make_unique<ecs_t<C>>(std::move(e));
-
-			ecs_t<C>& ecs = *const_cast<ecs_t<C>*>(static_cast<const ecs_t<C>*>(this->ecs_.get()));
 
 			this->start_iopool();
 
@@ -334,7 +330,7 @@ namespace asio2::detail
 			};
 
 			derive.post(
-			[this, this_ptr = derive.selfptr(), &ecs, pg = std::move(pg),
+			[this, this_ptr = derive.selfptr(), ecs = std::move(ecs), pg = std::move(pg),
 				host = std::forward<String>(host), port = std::forward<StrOrInt>(port)]
 			() mutable
 			{
@@ -348,6 +344,9 @@ namespace asio2::detail
 
 					return;
 				}
+
+				// must read/write ecs in the io_context thread.
+				derive.ecs_ = ecs;
 
 				try
 				{
@@ -412,7 +411,7 @@ namespace asio2::detail
 					// get_last_error maybe not zero, so if we use _handle_start(get_last_error()...
 					// at here, the start will failed, and the user don't know what happend.
 					// so we need use as this : _handle_start(error_code{}...
-					derive._handle_start(error_code{}, std::move(this_ptr), ecs);
+					derive._handle_start(error_code{}, std::move(this_ptr), std::move(ecs));
 
 					return;
 				}
@@ -425,7 +424,7 @@ namespace asio2::detail
 					set_last_error(asio::error::invalid_argument);
 				}
 
-				derive._handle_start(get_last_error(), std::move(this_ptr), ecs);
+				derive._handle_start(get_last_error(), std::move(this_ptr), std::move(ecs));
 			});
 
 			if (!derive.io().running_in_this_thread())
@@ -447,7 +446,7 @@ namespace asio2::detail
 		}
 
 		template<typename C>
-		inline void _handle_start(error_code ec, std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs)
+		inline void _handle_start(error_code ec, std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs)
 		{
 			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
 
@@ -470,7 +469,7 @@ namespace asio2::detail
 
 				asio::detail::throw_error(ec);
 
-				this->derived()._post_accept(std::move(this_ptr), ecs);
+				this->derived()._post_accept(std::move(this_ptr), std::move(ecs));
 			}
 			catch (system_error & e)
 			{
@@ -595,7 +594,7 @@ namespace asio2::detail
 		}
 
 		template<typename C>
-		inline void _post_accept(std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs)
+		inline void _post_accept(std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs)
 		{
 			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
 
@@ -613,14 +612,14 @@ namespace asio2::detail
 
 				auto& socket = session_ptr->socket().lowest_layer();
 				this->acceptor_.async_accept(socket, make_allocator(this->rallocator_,
-				[this, sptr = std::move(session_ptr), this_ptr = std::move(this_ptr), &ecs]
+				[this, sptr = std::move(session_ptr), this_ptr = std::move(this_ptr), ecs = std::move(ecs)]
 				(const error_code& ec) mutable
 				{
 				#if defined(_DEBUG) || defined(DEBUG)
 					this->derived().post_recv_counter_--;
 				#endif
 
-					this->derived()._handle_accept(ec, std::move(sptr), std::move(this_ptr), ecs);
+					this->derived()._handle_accept(ec, std::move(sptr), std::move(this_ptr), std::move(ecs));
 				}));
 			}
 			// handle exception, may be is the exception "Too many open files" (exception code : 24)
@@ -633,18 +632,19 @@ namespace asio2::detail
 
 				set_last_error(e);
 
-				std::shared_ptr<derived_t> self_ptr = this->derived().selfptr();
+				std::shared_ptr<derived_t> p = this->derived().selfptr();
+				std::shared_ptr<ecs_t<C>> c = std::static_pointer_cast<ecs_t<C>>(this->derived().ecs_);
 
 				this->acceptor_timer_.expires_after(std::chrono::seconds(1));
 				this->acceptor_timer_.async_wait(
-				[this, self_ptr = std::move(self_ptr), &ecs](const error_code& ec) mutable
+				[this, this_ptr = std::move(p), ecs = std::move(c)](const error_code& ec) mutable
 				{
 					set_last_error(ec);
 					if (ec) return;
 					this->derived().post(
-					[this, self_ptr = std::move(self_ptr), &ecs]() mutable
+					[this, this_ptr = std::move(this_ptr), ecs = std::move(ecs)]() mutable
 					{
-						this->derived()._post_accept(std::move(self_ptr), ecs);
+						this->derived()._post_accept(std::move(this_ptr), std::move(ecs));
 					});
 				});
 			}
@@ -653,7 +653,7 @@ namespace asio2::detail
 		template<typename C>
 		inline void _handle_accept(
 			const error_code& ec, std::shared_ptr<session_t> session_ptr,
-			std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs)
+			std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs)
 		{
 			set_last_error(ec);
 
@@ -666,11 +666,11 @@ namespace asio2::detail
 				if (this->derived().is_started())
 				{
 					session_ptr->counter_ptr_ = this->counter_ptr_;
-					session_ptr->start(ecs.clone());
+					session_ptr->start(detail::to_shared_ptr(ecs->clone()));
 				}
 			}
 
-			this->derived()._post_accept(std::move(this_ptr), ecs);
+			this->derived()._post_accept(std::move(this_ptr), std::move(ecs));
 		}
 
 		inline void _fire_init()

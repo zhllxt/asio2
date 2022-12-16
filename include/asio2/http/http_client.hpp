@@ -230,20 +230,21 @@ namespace asio2::detail
 
 	protected:
 		template<typename C>
-		inline void _post_recv(std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs)
+		inline void _post_recv(std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs)
 		{
-			this->derived()._http_post_recv(std::move(this_ptr), ecs);
+			this->derived()._http_post_recv(std::move(this_ptr), std::move(ecs));
 		}
 
 		template<typename C>
 		inline void _handle_recv(
-			const error_code & ec, std::size_t bytes_recvd,std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs)
+			const error_code & ec, std::size_t bytes_recvd,
+			std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs)
 		{
-			this->derived()._http_handle_recv(ec, bytes_recvd, std::move(this_ptr), ecs);
+			this->derived()._http_handle_recv(ec, bytes_recvd, std::move(this_ptr), std::move(ecs));
 		}
 
 		template<typename C>
-		inline void _fire_recv(std::shared_ptr<derived_t>& this_ptr, ecs_t<C>& ecs)
+		inline void _fire_recv(std::shared_ptr<derived_t>& this_ptr, std::shared_ptr<ecs_t<C>>& ecs)
 		{
 			this->listener_.notify(event_type::recv, this->req_, this->rep_);
 

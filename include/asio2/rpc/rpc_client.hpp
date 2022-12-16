@@ -133,7 +133,7 @@ namespace asio2::detail
 
 	protected:
 		template<typename C, typename Socket>
-		inline void _ws_start(std::shared_ptr<derived_t>& this_ptr, ecs_t<C>& ecs, Socket& socket)
+		inline void _ws_start(std::shared_ptr<derived_t>& this_ptr, std::shared_ptr<ecs_t<C>>& ecs, Socket& socket)
 		{
 			super::_ws_start(this_ptr, ecs, socket);
 
@@ -153,7 +153,8 @@ namespace asio2::detail
 		}
 
 		template<typename C>
-		inline void _fire_recv(std::shared_ptr<derived_t>& this_ptr, ecs_t<C>& ecs, std::string_view data)
+		inline void _fire_recv(
+			std::shared_ptr<derived_t>& this_ptr, std::shared_ptr<ecs_t<C>>& ecs, std::string_view data)
 		{
 			this->listener_.notify(event_type::recv, data);
 

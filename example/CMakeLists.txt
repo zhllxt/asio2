@@ -100,6 +100,13 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 message("CMAKE_BUILD_TYPE = ${CMAKE_BUILD_TYPE}")
 
+IF (CMAKE_SYSTEM_NAME MATCHES "Windows")
+ELSE ()
+    if(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
+        add_definitions(-D_DEBUG)
+    endif()
+ENDIF (CMAKE_SYSTEM_NAME MATCHES "Windows")
+
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
     set(ASIO2_EXES_DIR ${ASIO2_ROOT_DIR}/example/bin/x64)
 elseif(CMAKE_SIZEOF_VOID_P EQUAL 4)

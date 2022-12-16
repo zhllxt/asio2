@@ -106,11 +106,11 @@ namespace asio2::detail
 	protected:
 		template<typename C>
 		inline void _handle_start(
-			error_code ec, std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs)
+			error_code ec, std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs)
 		{
 			this->derived()._bind_default_mqtt_handler(ecs);
 
-			return super::_handle_start(std::move(ec), std::move(this_ptr), ecs);
+			return super::_handle_start(std::move(ec), std::move(this_ptr), std::move(ecs));
 		}
 
 		inline void _post_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr, state_t old_state)
@@ -127,7 +127,7 @@ namespace asio2::detail
 		}
 
 		template<typename C>
-		inline void _bind_default_mqtt_handler(ecs_t<C>& ecs)
+		inline void _bind_default_mqtt_handler(std::shared_ptr<ecs_t<C>>& ecs)
 		{
 			detail::ignore_unused(ecs);
 

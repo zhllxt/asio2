@@ -1,3 +1,6 @@
+#define ASIO2_ENABLE_HTTP_REQUEST_USER_DATA
+#define ASIO2_ENABLE_HTTP_RESPONSE_USER_DATA
+
 #include "unit_test.hpp"
 #include <iostream>
 #include <asio2/asio2.hpp>
@@ -1210,6 +1213,7 @@ void http_test()
 		iopool.start();
 
 		std::vector<std::shared_ptr<asio2::ws_client>> ws_clients;
+		std::vector<std::shared_ptr<asio2::http_client>> http_clients;
 
 		std::atomic<int> client_connect_counter = 0;
 		std::atomic<int> client_start_failed_counter = 0;
@@ -1218,10 +1222,30 @@ void http_test()
 		{
 			std::shared_ptr<asio2::ws_client> client_ptr =
 				std::make_shared<asio2::ws_client>(iopool.get(i % iopool.size()));
+			std::shared_ptr<asio2::http_client> http_client_ptr =
+				std::make_shared<asio2::http_client>(iopool.get(i % iopool.size()));
 
 			ws_clients.emplace_back(client_ptr);
+			http_clients.emplace_back(http_client_ptr);
 
 			asio2::ws_client& client = *client_ptr;
+			asio2::http_client& http_client = *http_client_ptr;
+
+			http::web_request req(http::verb::get, "/", 11);
+
+			http_client.start("127.0.0.1", 8080);
+			http_client.async_send(req);
+
+			http_client.async_start("127.0.0.1", 8080);
+			http_client.async_send(req);
+
+			http_client.stop();
+
+			http_client.async_start("127.0.0.1", 8080);
+			http_client.async_send(req);
+
+			http_client.start("127.0.0.1", 8080);
+			http_client.async_send(req);
 
 			client.set_connect_timeout(std::chrono::seconds(5));
 			client.set_auto_reconnect(false);
@@ -1298,7 +1322,7 @@ void http_test()
 			ASIO2_CHECK(!asio2::get_last_error());
 		}
 
-		while (server.get_session_count() < std::size_t(test_client_count - client_start_failed_counter))
+		while (server.get_session_count() < std::size_t(test_client_count * 2 - client_start_failed_counter))
 		{
 			ASIO2_TEST_WAIT_CHECK();
 		}
@@ -1309,7 +1333,7 @@ void http_test()
 		}
 
 		auto session_count = server.get_session_count();
-		ASIO2_CHECK_VALUE(session_count, session_count == std::size_t(test_client_count));
+		ASIO2_CHECK_VALUE(session_count, session_count == std::size_t(test_client_count * 2));
 
 		ASIO2_CHECK_VALUE(client_connect_counter.load(), client_connect_counter == test_client_count);
 
@@ -1343,7 +1367,7 @@ void http_test()
 			ASIO2_TEST_WAIT_CHECK();
 		}
 
-		while (server.get_session_count() < std::size_t(test_client_count - client_start_failed_counter))
+		while (server.get_session_count() < std::size_t(test_client_count * 2 - client_start_failed_counter))
 		{
 			ASIO2_TEST_WAIT_CHECK();
 		}
@@ -1354,7 +1378,7 @@ void http_test()
 		}
 
 		session_count = server.get_session_count();
-		ASIO2_CHECK_VALUE(session_count, session_count == std::size_t(test_client_count));
+		ASIO2_CHECK_VALUE(session_count, session_count == std::size_t(test_client_count * 2));
 
 		ASIO2_CHECK_VALUE(client_connect_counter.load(), client_connect_counter == test_client_count);
 

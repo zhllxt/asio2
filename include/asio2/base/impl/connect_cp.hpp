@@ -106,7 +106,7 @@ namespace asio2::detail
 	protected:
 		template<bool IsAsync, typename C, typename DeferEvent, bool IsSession = args_t::is_session>
 		inline typename std::enable_if_t<!IsSession, void>
-		_start_connect(std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs, DeferEvent chain)
+		_start_connect(std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs, DeferEvent chain)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
@@ -134,13 +134,13 @@ namespace asio2::detail
 				// start the timeout timer
 				derive._make_connect_timeout_timer(this_ptr, derive.get_connect_timeout());
 
-				derive._post_resolve(std::move(this_ptr), ecs, std::move(chain));
+				derive._post_resolve(this_ptr, ecs, std::move(chain));
 			}
 			catch (system_error const& e)
 			{
 				set_last_error(e);
 
-				derive._handle_connect(e.code(), std::move(this_ptr), ecs, std::move(chain));
+				derive._handle_connect(e.code(), std::move(this_ptr), std::move(ecs), std::move(chain));
 			}
 			catch (std::exception const&)
 			{
@@ -148,13 +148,13 @@ namespace asio2::detail
 
 				set_last_error(ec);
 
-				derive._handle_connect(ec, std::move(this_ptr), ecs, std::move(chain));
+				derive._handle_connect(ec, std::move(this_ptr), std::move(ecs), std::move(chain));
 			}
 		}
 
 		template<typename C, typename DeferEvent, bool IsSession = args_t::is_session>
 		inline typename std::enable_if_t<!IsSession, void>
-		_post_resolve(std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs, DeferEvent chain)
+		_post_resolve(std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs, DeferEvent chain)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
@@ -162,7 +162,7 @@ namespace asio2::detail
 
 			if constexpr (ecs_helper::has_socks5<C>())
 			{
-				auto sock5 = ecs.get_component().socks5_option(std::in_place);
+				auto sock5 = ecs->get_component().socks5_option(std::in_place);
 
 				h = sock5->host();
 				p = sock5->port();
@@ -182,7 +182,7 @@ namespace asio2::detail
 			// Before async_resolve execution is complete, we must hold the resolver object.
 			// so we captured the resolver_ptr into the lambda callback function.
 			resolver_rptr->async_resolve(h, p,
-			[&derive, this_ptr = std::move(this_ptr), &ecs,
+			[&derive, this_ptr = std::move(this_ptr), ecs = std::move(ecs),
 				resolver_ptr = std::move(resolver_ptr), chain = std::move(chain)]
 			(error_code ec, endpoints_type endpoints) mutable
 			{
@@ -200,19 +200,19 @@ namespace asio2::detail
 				endpoints_type* p = eps.get();
 
 				if (ec)
-					derive._handle_connect(ec, std::move(this_ptr), ecs, std::move(chain));
+					derive._handle_connect(ec,
+						std::move(this_ptr), std::move(ecs), std::move(chain));
 				else
 					derive._post_connect(ec, std::move(eps), p->begin(),
-						std::move(this_ptr), ecs, std::move(chain));
+						std::move(this_ptr), std::move(ecs), std::move(chain));
 			});
 		}
 
 		template<typename C, typename DeferEvent, bool IsSession = args_t::is_session>
 		typename std::enable_if_t<!IsSession, void>
 		inline _post_connect(
-			error_code ec, std::unique_ptr<endpoints_type> eps,
-			endpoints_iterator iter, std::shared_ptr<derived_t> this_ptr,
-			ecs_t<C>& ecs, DeferEvent chain)
+			error_code ec, std::unique_ptr<endpoints_type> eps, endpoints_iterator iter,
+			std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs, DeferEvent chain)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
@@ -230,7 +230,7 @@ namespace asio2::detail
 				{
 					// There are no more endpoints to try. Shut down the client.
 					derive._handle_connect(ec ? ec : asio::error::host_unreachable,
-						std::move(this_ptr), ecs, std::move(chain));
+						std::move(this_ptr), std::move(ecs), std::move(chain));
 
 					return;
 				}
@@ -294,30 +294,32 @@ namespace asio2::detail
 
 				// Start the asynchronous connect operation.
 				socket.async_connect(iter->endpoint(), make_allocator(derive.rallocator(),
-				[&derive, eps = std::move(eps), iter, this_ptr = std::move(this_ptr),
-					&ecs, chain = std::move(chain)]
+				[&derive, this_ptr = std::move(this_ptr), ecs = std::move(ecs), chain = std::move(chain),
+					eps = std::move(eps), iter]
 				(const error_code & ec) mutable
 				{
 					set_last_error(ec);
 
 					if (ec && ec != asio::error::operation_aborted)
 						derive._post_connect(ec, std::move(eps), ++iter,
-							std::move(this_ptr), ecs, std::move(chain));
+							std::move(this_ptr), std::move(ecs), std::move(chain));
 					else
-						derive._post_proxy(ec, std::move(this_ptr), ecs, std::move(chain));
+						derive._post_proxy(ec,
+							std::move(this_ptr), std::move(ecs), std::move(chain));
 				}));
 			}
 			catch (system_error & e)
 			{
 				set_last_error(e);
 
-				derive._handle_connect(e.code(), std::move(this_ptr), ecs, std::move(chain));
+				derive._handle_connect(e.code(), std::move(this_ptr), std::move(ecs), std::move(chain));
 			}
 		}
 
 		template<typename C, typename DeferEvent>
 		inline void _post_proxy(
-			const error_code& ec, std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs, DeferEvent chain)
+			const error_code& ec,
+			std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs, DeferEvent chain)
 		{
 			set_last_error(ec);
 
@@ -336,10 +338,10 @@ namespace asio2::detail
 				if constexpr (std::is_base_of_v<component_tag, detail::remove_cvref_t<C>>)
 				{
 					if (ec)
-						return derive._handle_proxy(ec, std::move(this_ptr), ecs, std::move(chain));
+						return derive._handle_proxy(ec, this_ptr, ecs, std::move(chain));
 
 					//// Traverse each component in order, and if it is a proxy component, start it
-					//detail::for_each_tuple(ecs.get_component().values(), [&](auto& component) mutable
+					//detail::for_each_tuple(ecs->get_component().values(), [&](auto& component) mutable
 					//{
 					//	using type = detail::remove_cvref_t<decltype(component)>;
 
@@ -352,37 +354,39 @@ namespace asio2::detail
 					//});
 
 					if constexpr (C::has_socks5())
-						derive._socks5_start(std::move(this_ptr), ecs, std::move(chain));
+						derive._socks5_start(this_ptr, ecs, std::move(chain));
 					else
-						derive._handle_proxy(ec, std::move(this_ptr), ecs, std::move(chain));
+						derive._handle_proxy(ec, this_ptr, ecs, std::move(chain));
 				}
 				else
 				{
-					derive._handle_proxy(ec, std::move(this_ptr), ecs, std::move(chain));
+					derive._handle_proxy(ec, this_ptr, ecs, std::move(chain));
 				}
 			}
 			catch (system_error & e)
 			{
 				set_last_error(e);
 
-				derive._handle_connect(e.code(), std::move(this_ptr), ecs, std::move(chain));
+				derive._handle_connect(e.code(), std::move(this_ptr), std::move(ecs), std::move(chain));
 			}
 		}
 
 		template<typename C, typename DeferEvent>
 		inline void _handle_proxy(
-			const error_code& ec, std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs, DeferEvent chain)
+			const error_code& ec,
+			std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs, DeferEvent chain)
 		{
 			set_last_error(ec);
 
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			derive._handle_connect(ec, std::move(this_ptr), ecs, std::move(chain));
+			derive._handle_connect(ec, std::move(this_ptr), std::move(ecs), std::move(chain));
 		}
 
 		template<typename C, typename DeferEvent>
 		inline void _handle_connect(
-			const error_code& ec, std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs, DeferEvent chain)
+			const error_code& ec,
+			std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs, DeferEvent chain)
 		{
 			set_last_error(ec);
 
@@ -397,12 +401,12 @@ namespace asio2::detail
 				ASIO2_ASSERT(derive.io().running_in_this_thread());
 			}
 
-			derive._done_connect(ec, std::move(this_ptr), ecs, std::move(chain));
+			derive._done_connect(ec, std::move(this_ptr), std::move(ecs), std::move(chain));
 		}
 
 		template<typename C, typename DeferEvent>
 		inline void _done_connect(
-			error_code ec, std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs, DeferEvent chain)
+			error_code ec, std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs, DeferEvent chain)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
@@ -490,7 +494,7 @@ namespace asio2::detail
 				// must set last error again, beacuse in the _fire_connect some errors maybe occured.
 				set_last_error(ec);
 
-				derive._do_start(std::move(this_ptr), ecs, std::move(chain));
+				derive._do_start(std::move(this_ptr), std::move(ecs), std::move(chain));
 			}
 			catch (system_error & e)
 			{

@@ -48,7 +48,7 @@ namespace asio2::detail
 
 	protected:
 		template<typename C>
-		void _tcp_post_recv(std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs)
+		void _tcp_post_recv(std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs)
 		{
 			using condition_lowest_type = typename ecs_t<C>::condition_lowest_type;
 
@@ -70,36 +70,38 @@ namespace asio2::detail
 				derive.post_recv_counter_++;
 			#endif
 
+				ecs_t<C>& e = *ecs;
+
 				if constexpr (
 					std::is_same_v<condition_lowest_type, asio::detail::transfer_all_t> ||
 					std::is_same_v<condition_lowest_type, asio::detail::transfer_at_least_t> ||
 					std::is_same_v<condition_lowest_type, asio::detail::transfer_exactly_t> ||
 					std::is_same_v<condition_lowest_type, asio2::detail::hook_buffer_t>)
 				{
-					asio::async_read(derive.stream(), derive.buffer().base(), ecs.get_condition().lowest(),
+					asio::async_read(derive.stream(), derive.buffer().base(), e.get_condition().lowest(),
 						make_allocator(derive.rallocator(),
-							[&derive, self_ptr = std::move(this_ptr), &ecs]
+							[&derive, this_ptr = std::move(this_ptr), ecs = std::move(ecs)]
 					(const error_code& ec, std::size_t bytes_recvd) mutable
 					{
 					#if defined(_DEBUG) || defined(DEBUG)
 						derive.post_recv_counter_--;
 					#endif
 
-						derive._handle_recv(ec, bytes_recvd, std::move(self_ptr), ecs);
+						derive._handle_recv(ec, bytes_recvd, std::move(this_ptr), std::move(ecs));
 					}));
 				}
 				else
 				{
-					asio::async_read_until(derive.stream(), derive.buffer().base(), ecs.get_condition().lowest(),
+					asio::async_read_until(derive.stream(), derive.buffer().base(), e.get_condition().lowest(),
 						make_allocator(derive.rallocator(),
-							[&derive, self_ptr = std::move(this_ptr), &ecs]
+							[&derive, this_ptr = std::move(this_ptr), ecs = std::move(ecs)]
 					(const error_code& ec, std::size_t bytes_recvd) mutable
 					{
 					#if defined(_DEBUG) || defined(DEBUG)
 						derive.post_recv_counter_--;
 					#endif
 
-						derive._handle_recv(ec, bytes_recvd, std::move(self_ptr), ecs);
+						derive._handle_recv(ec, bytes_recvd, std::move(this_ptr), std::move(ecs));
 					}));
 				}
 			}
@@ -117,7 +119,8 @@ namespace asio2::detail
 
 		template<typename C>
 		void _dgram_fire_recv(
-			const error_code& ec, std::size_t bytes_recvd, std::shared_ptr<derived_t>& this_ptr, ecs_t<C>& ecs)
+			const error_code& ec, std::size_t bytes_recvd,
+			std::shared_ptr<derived_t>& this_ptr, std::shared_ptr<ecs_t<C>>& ecs)
 		{
 			detail::ignore_unused(ec);
 
@@ -144,7 +147,8 @@ namespace asio2::detail
 
 		template<typename C>
 		void _tcp_handle_recv(
-			const error_code& ec, std::size_t bytes_recvd, std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs)
+			const error_code& ec, std::size_t bytes_recvd,
+			std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs)
 		{
 			using condition_lowest_type = typename ecs_t<C>::condition_lowest_type;
 
@@ -226,7 +230,7 @@ namespace asio2::detail
 					std::ignore = true;
 				}
 
-				derive._post_recv(std::move(this_ptr), ecs);
+				derive._post_recv(std::move(this_ptr), std::move(ecs));
 			}
 			else
 			{

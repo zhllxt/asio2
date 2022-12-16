@@ -21,7 +21,6 @@
 #include <string_view>
 
 #include <asio2/base/error.hpp>
-#include <asio2/base/detail/ecs.hpp>
 #include <asio2/base/detail/buffer_wrap.hpp>
 
 namespace asio2::detail

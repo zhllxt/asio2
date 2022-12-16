@@ -21,7 +21,6 @@
 #include <string_view>
 
 #include <asio2/base/error.hpp>
-#include <asio2/base/detail/ecs.hpp>
 
 namespace asio2::detail
 {
@@ -81,9 +80,10 @@ namespace asio2::detail
 			derive.post_send_counter_++;
 		#endif
 
-			// note: when on the server, all udp session are used a same socket, so 
+			// issue: when on the server, all udp session are used a same socket, so 
 			// multiple sessions maybe use the same socket to send data concurrently
-			// at the same time.
+			// at the same time. But the test can't detect this problem. On windows
+			// platform, the WSASendTo always success and return 0.
 
 			derive.stream().async_send_to(asio::buffer(data), endpoint,
 				make_allocator(derive.wallocator(),

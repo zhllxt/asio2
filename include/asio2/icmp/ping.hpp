@@ -37,7 +37,6 @@
 #include <asio2/base/detail/allocator.hpp>
 #include <asio2/base/detail/util.hpp>
 #include <asio2/base/detail/buffer_wrap.hpp>
-#include <asio2/base/detail/ecs.hpp>
 
 #include <asio2/base/impl/thread_id_cp.hpp>
 #include <asio2/base/impl/user_data_cp.hpp>
@@ -972,8 +971,7 @@ namespace asio2::detail
 
 				if (!ec && this->is_started())
 				{
-					detail::ecs_t<void> dummy{};
-					this->derived()._fire_recv(this->rep_, dummy);
+					this->derived()._fire_recv(this->rep_);
 				}
 			}
 
@@ -1095,8 +1093,7 @@ namespace asio2::detail
 				this->rep_.lag = std::chrono::steady_clock::now() - this->time_sent_;
 				this->total_time_ += this->rep_.lag;
 
-				detail::ecs_t<void> dummy{};
-				this->derived()._fire_recv(this->rep_, dummy);
+				this->derived()._fire_recv(this->rep_);
 			}
 
 			// Discard any data already in the buffer.
@@ -1138,11 +1135,8 @@ namespace asio2::detail
 			this->listener_.notify(event_type::stop);
 		}
 
-		template<typename C>
-		inline void _fire_recv(icmp_rep& rep, ecs_t<C>& ecs)
+		inline void _fire_recv(icmp_rep& rep)
 		{
-			detail::ignore_unused(ecs);
-
 			this->listener_.notify(event_type::recv, rep);
 		}
 

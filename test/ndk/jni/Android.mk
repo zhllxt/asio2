@@ -134,6 +134,14 @@ include $(BUILD_EXECUTABLE)
 
 include $(CLEAR_VARS)
 LOCAL_C_INCLUDES += $(ASIO2_INCLUDE)
+LOCAL_MODULE := rate_limit.out
+LOCAL_SRC_FILES := $(ASIO2_TEST_DIR)/unit/rate_limit.cpp
+LOCAL_STATIC_LIBRARIES += libssl
+LOCAL_STATIC_LIBRARIES += libcrypto
+include $(BUILD_EXECUTABLE)
+
+include $(CLEAR_VARS)
+LOCAL_C_INCLUDES += $(ASIO2_INCLUDE)
 LOCAL_MODULE := rdc.out
 LOCAL_SRC_FILES := $(ASIO2_TEST_DIR)/unit/rdc.cpp
 LOCAL_STATIC_LIBRARIES += libssl
@@ -162,6 +170,12 @@ include $(CLEAR_VARS)
 LOCAL_C_INCLUDES += $(ASIO2_INCLUDE)
 LOCAL_MODULE := shared_iopool.out
 LOCAL_SRC_FILES := $(ASIO2_TEST_DIR)/unit/shared_iopool.cpp
+include $(BUILD_EXECUTABLE)
+
+include $(CLEAR_VARS)
+LOCAL_C_INCLUDES += $(ASIO2_INCLUDE)
+LOCAL_MODULE := tcp_custom.out
+LOCAL_SRC_FILES := $(ASIO2_TEST_DIR)/unit/tcp_custom.cpp
 include $(BUILD_EXECUTABLE)
 
 include $(CLEAR_VARS)

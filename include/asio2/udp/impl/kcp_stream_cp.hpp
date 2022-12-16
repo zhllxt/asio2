@@ -220,9 +220,9 @@ namespace asio2::detail
 
 			this->kcp_timer_.expires_after(std::chrono::milliseconds(clock2 - clock1));
 			this->kcp_timer_.async_wait(make_allocator(this->tallocator_,
-			[this, self_ptr = std::move(this_ptr)](const error_code & ec) mutable
+			[this, this_ptr = std::move(this_ptr)](const error_code & ec) mutable
 			{
-				this->_handle_kcp_timer(ec, std::move(self_ptr));
+				this->_handle_kcp_timer(ec, std::move(this_ptr));
 			}));
 		}
 
@@ -247,7 +247,8 @@ namespace asio2::detail
 
 		template<class buffer_t, typename C>
 		void _kcp_recv(
-			std::shared_ptr<derived_t>& this_ptr, std::string_view data, buffer_t& buffer, ecs_t<C>& ecs)
+			std::shared_ptr<derived_t>& this_ptr, std::shared_ptr<ecs_t<C>>& ecs, buffer_t& buffer,
+			std::string_view data)
 		{
 			int len = kcp::ikcp_input(this->kcp_, (const char *)data.data(), (long)data.size());
 			buffer.consume(buffer.size());
@@ -281,7 +282,8 @@ namespace asio2::detail
 		}
 
 		template<typename C, typename DeferEvent>
-		void _session_post_handshake(std::shared_ptr<derived_t> self_ptr, ecs_t<C>& ecs, DeferEvent chain)
+		void _session_post_handshake(
+			std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs, DeferEvent chain)
 		{
 			error_code ec;
 
@@ -299,12 +301,13 @@ namespace asio2::detail
 
 			asio::detail::throw_error(ec);
 
-			this->_kcp_start(self_ptr, conv);
-			this->_handle_handshake(ec, std::move(self_ptr), ecs, std::move(chain));
+			this->_kcp_start(this_ptr, conv);
+			this->_handle_handshake(ec, std::move(this_ptr), std::move(ecs), std::move(chain));
 		}
 
 		template<typename C, typename DeferEvent>
-		void _client_post_handshake(std::shared_ptr<derived_t> self_ptr, ecs_t<C>& ecs, DeferEvent chain)
+		void _client_post_handshake(
+			std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs, DeferEvent chain)
 		{
 			error_code ec;
 
@@ -321,7 +324,7 @@ namespace asio2::detail
 			// has recvd the syn packet and this client recvd reply.
 			std::shared_ptr<detail::safe_timer> timer =
 				mktimer(derive.io().context(), std::chrono::milliseconds(500),
-				[this, self_ptr, seq](error_code ec) mutable
+				[this, this_ptr, seq](error_code ec) mutable
 			{
 				if (ec == asio::error::operation_aborted)
 					return false;
@@ -331,7 +334,7 @@ namespace asio2::detail
 					set_last_error(ec);
 					if (derive.state() == state_t::started)
 					{
-						derive._do_disconnect(ec, std::move(self_ptr));
+						derive._do_disconnect(ec, std::move(this_ptr));
 					}
 					return false;
 				}
@@ -348,7 +351,7 @@ namespace asio2::detail
 			// step 2 : client wait for recv synack util connect timeout or recvd some data
 			derive.socket().async_receive(derive.buffer().prepare(derive.buffer().pre_size()),
 				make_allocator(derive.rallocator(),
-			[this, seq, this_ptr = std::move(self_ptr), &ecs, timer = std::move(timer), chain = std::move(chain)]
+			[this, seq, this_ptr = std::move(this_ptr), ecs = std::move(ecs), timer = std::move(timer), chain = std::move(chain)]
 			(const error_code & ec, std::size_t bytes_recvd) mutable
 			{
 			#if defined(_DEBUG) || defined(DEBUG)
@@ -366,7 +369,7 @@ namespace asio2::detail
 					// note : when the async_resolve is failed, the socket is invalid to.
 					this->_handle_handshake(
 						derive.connect_timeout_timer_ ? ec : asio::error::timed_out,
-						std::move(this_ptr), ecs, std::move(chain));
+						std::move(this_ptr), std::move(ecs), std::move(chain));
 					return;
 				}
 
@@ -385,12 +388,12 @@ namespace asio2::detail
 						ASIO2_ASSERT(derive.kcp_conv_ == conv);
 					}
 					this->_kcp_start(this_ptr, conv);
-					this->_handle_handshake(ec, std::move(this_ptr), ecs, std::move(chain));
+					this->_handle_handshake(ec, std::move(this_ptr), std::move(ecs), std::move(chain));
 				}
 				else
 				{
 					this->_handle_handshake(asio::error::address_family_not_supported,
-						std::move(this_ptr), ecs, std::move(chain));
+						std::move(this_ptr), std::move(ecs), std::move(chain));
 				}
 
 				derive.buffer().consume(bytes_recvd);
@@ -398,17 +401,17 @@ namespace asio2::detail
 		}
 
 		template<typename C, typename DeferEvent>
-		void _post_handshake(std::shared_ptr<derived_t> self_ptr, ecs_t<C>& ecs, DeferEvent chain)
+		void _post_handshake(std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs, DeferEvent chain)
 		{
 			try
 			{
 				if constexpr (args_t::is_session)
 				{
-					this->_session_post_handshake(std::move(self_ptr), ecs, std::move(chain));
+					this->_session_post_handshake(std::move(this_ptr), std::move(ecs), std::move(chain));
 				}
 				else
 				{
-					this->_client_post_handshake(std::move(self_ptr), ecs, std::move(chain));
+					this->_client_post_handshake(std::move(this_ptr), std::move(ecs), std::move(chain));
 				}
 			}
 			catch (system_error & e)
@@ -428,7 +431,8 @@ namespace asio2::detail
 
 		template<typename C, typename DeferEvent>
 		void _handle_handshake(
-			const error_code& ec, std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs, DeferEvent chain)
+			const error_code& ec, std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs,
+			DeferEvent chain)
 		{
 			set_last_error(ec);
 
@@ -440,13 +444,13 @@ namespace asio2::detail
 
 					asio::detail::throw_error(ec);
 
-					derive._done_connect(ec, std::move(this_ptr), ecs, std::move(chain));
+					derive._done_connect(ec, std::move(this_ptr), std::move(ecs), std::move(chain));
 				}
 				else
 				{
 					derive._fire_handshake(this_ptr);
 
-					derive._done_connect(ec, std::move(this_ptr), ecs, std::move(chain));
+					derive._done_connect(ec, std::move(this_ptr), std::move(ecs), std::move(chain));
 				}
 			}
 			catch (system_error & e)

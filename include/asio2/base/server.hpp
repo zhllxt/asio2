@@ -355,7 +355,7 @@ namespace asio2::detail
 		std::shared_ptr<void>                       counter_ptr_;
 
 		/// the pointer of ecs_t
-		std::unique_ptr<ecs_base>                   ecs_;
+		std::shared_ptr<ecs_base>                   ecs_;
 
 	#if defined(_DEBUG) || defined(DEBUG)
 		std::atomic<int>                            post_send_counter_ = 0;

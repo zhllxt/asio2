@@ -82,9 +82,9 @@ namespace asio2::detail
 				{
 					this->silence_timer_.expires_after(duration);
 					this->silence_timer_.async_wait(
-					[&derive, self_ptr = std::move(this_ptr)](const error_code & ec) mutable
+					[&derive, this_ptr = std::move(this_ptr)](const error_code & ec) mutable
 					{
-						derive._handle_silence_timer(ec, std::move(self_ptr));
+						derive._handle_silence_timer(ec, std::move(this_ptr));
 					});
 				}
 			}));

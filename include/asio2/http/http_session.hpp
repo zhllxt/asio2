@@ -110,26 +110,22 @@ namespace asio2::detail
 		 * @brief start the session for prepare to recv/send msg
 		 */
 		template<typename C>
-		inline void start(ecs_t<C> e)
+		inline void start(std::shared_ptr<ecs_t<C>> ecs)
 		{
-			this->ecs_ = std::make_unique<ecs_t<C>>(std::move(e));
-
-			ecs_t<C>& ecs = *const_cast<ecs_t<C>*>(static_cast<const ecs_t<C>*>(this->ecs_.get()));
-
 			this->rep_.set_root_directory(this->root_directory_);
 			this->rep_.session_ptr_ = this->derived().selfptr();
-			this->rep_.defer_callback_ = [this, &ecs, wptr = std::weak_ptr<derived_t>(this->derived().selfptr())]
+			this->rep_.defer_callback_ = [this, ecs, wptr = std::weak_ptr<derived_t>(this->derived().selfptr())]
 			() mutable
 			{
 				std::shared_ptr<derived_t> this_ptr = wptr.lock();
 				ASIO2_ASSERT(this_ptr);
 				if (this_ptr)
 				{
-					this->derived()._do_send_http_response(std::move(this_ptr), ecs, this->rep_.base());
+					this->derived()._do_send_http_response(std::move(this_ptr), std::move(ecs), this->rep_.base());
 				}
 			};
 
-			super::_start_impl(ecs);
+			super::start(std::move(ecs));
 		}
 
 	public:
@@ -187,7 +183,7 @@ namespace asio2::detail
 		}
 
 		template<typename C>
-		inline void _do_init(std::shared_ptr<derived_t>& this_ptr, ecs_t<C>& ecs)
+		inline void _do_init(std::shared_ptr<derived_t>& this_ptr, std::shared_ptr<ecs_t<C>>& ecs)
 		{
 			super::_do_init(this_ptr, ecs);
 
@@ -228,7 +224,8 @@ namespace asio2::detail
 		}
 
 		template<typename C, class MessageT>
-		inline void _send_http_response(std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs, MessageT& msg)
+		inline void _send_http_response(
+			std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs, MessageT& msg)
 		{
 			if (this->rep_.defer_guard_)
 			{
@@ -238,51 +235,67 @@ namespace asio2::detail
 			{
 				if (this->response_mode_ == asio2::response_mode::automatic)
 				{
-					this->derived()._do_send_http_response(std::move(this_ptr), ecs, msg);
+					this->derived()._do_send_http_response(std::move(this_ptr), std::move(ecs), msg);
 				}
 			}
 		}
 
 		template<typename C, class MessageT>
-		inline void _do_send_http_response(std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs, MessageT& msg)
+		inline void _do_send_http_response_impl(
+			std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs, MessageT& msg)
 		{
 			ASIO2_ASSERT(this->is_http());
 
-			asio::dispatch(this->derived().io().context(), make_allocator(this->derived().wallocator(),
-			[this, this_ptr = std::move(this_ptr), &ecs, &msg]() mutable
+			derived_t& derive = this->derived();
+
+			if (derive.is_websocket())
+				return;
+
+			if (!derive.is_started())
+				return;
+
+			// be careful: here we pushed the reference of the msg into the queue, so the msg object
+			// must can't be destroyed or modifyed.
+			derive.push_event([&derive, this_ptr = std::move(this_ptr), ecs = std::move(ecs), &msg]
+			(event_queue_guard<derived_t> g) mutable
 			{
-				derived_t& derive = this->derived();
-
-				if (derive.is_websocket())
-					return;
-
-				if (!derive.is_started())
-					return;
-
-				// be careful: here we pushed the reference of the msg into the queue, so the msg object
-				// must can't be destroyed or modifyed.
-				derive.push_event([&derive, this_ptr = std::move(this_ptr), &ecs, &msg]
-				(event_queue_guard<derived_t> g) mutable
+				derive._do_send(msg,
+				[&derive, this_ptr = std::move(this_ptr), ecs = std::move(ecs), g = std::move(g)]
+				(const error_code&, std::size_t) mutable
 				{
-					derive._do_send(msg,
-					[&derive, this_ptr = std::move(this_ptr), &ecs, g = std::move(g)]
-					(const error_code&, std::size_t) mutable
-					{
-						ASIO2_ASSERT(!g.is_empty());
+					ASIO2_ASSERT(!g.is_empty());
 
-						// after send the response, we check if the client should be disconnect.
-						if (derive.req_.need_eof())
-						{
-							// session maybe don't need check the state.
-							//if (derive.state() == state_t::started)
-							derive._do_disconnect(asio::error::operation_aborted, std::move(this_ptr));
-						}
-						else
-						{
-							derive._post_recv(std::move(this_ptr), ecs);
-						}
-					});
+					// after send the response, we check if the client should be disconnect.
+					if (derive.req_.need_eof())
+					{
+						// session maybe don't need check the state.
+						//if (derive.state() == state_t::started)
+						derive._do_disconnect(asio::error::operation_aborted, std::move(this_ptr));
+					}
+					else
+					{
+						derive._post_recv(std::move(this_ptr), std::move(ecs));
+					}
 				});
+			});
+		}
+
+		template<typename C, class MessageT>
+		inline void _do_send_http_response(
+			std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs, MessageT& msg)
+		{
+			derived_t& derive = this->derived();
+
+			if (derive.io().running_in_this_thread())
+			{
+				derive._do_send_http_response_impl(std::move(this_ptr), std::move(ecs), msg);
+				return;
+			}
+
+			asio::post(derive.io().context(), make_allocator(derive.wallocator(),
+			[&derive, this_ptr = std::move(this_ptr), ecs = std::move(ecs), &msg]() mutable
+			{
+				derive._do_send_http_response_impl(std::move(this_ptr), std::move(ecs), msg);
 			}));
 		}
 
@@ -334,24 +347,26 @@ namespace asio2::detail
 
 	protected:
 		template<typename C>
-		inline void _post_recv(std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs)
+		inline void _post_recv(std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs)
 		{
-			this->derived()._http_post_recv(std::move(this_ptr), ecs);
+			this->derived()._http_post_recv(std::move(this_ptr), std::move(ecs));
 		}
 
 		template<typename C>
 		inline void _handle_recv(
-			const error_code& ec, std::size_t bytes_recvd, std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs)
+			const error_code& ec, std::size_t bytes_recvd,
+			std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs)
 		{
-			this->derived()._http_handle_recv(ec, bytes_recvd, std::move(this_ptr), ecs);
+			this->derived()._http_handle_recv(ec, bytes_recvd, std::move(this_ptr), std::move(ecs));
 		}
 
 		template<typename C, typename DeferEvent>
 		inline void _handle_upgrade(
-			const error_code& ec, std::shared_ptr<derived_t> self_ptr, ecs_t<C>& ecs, DeferEvent chain)
+			const error_code& ec,
+			std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs, DeferEvent chain)
 		{
 			this->derived().sessions().post(
-			[this, ec, this_ptr = std::move(self_ptr), &ecs, chain = std::move(chain)]
+			[this, ec, this_ptr = std::move(this_ptr), ecs = std::move(ecs), chain = std::move(chain)]
 			() mutable
 			{
 				try
@@ -363,25 +378,25 @@ namespace asio2::detail
 					asio::detail::throw_error(ec);
 
 					asio::post(this->derived().io().context(), make_allocator(this->derived().wallocator(),
-					[this, this_ptr = std::move(this_ptr), &ecs, chain = std::move(chain)]
+					[this, this_ptr = std::move(this_ptr), ecs = std::move(ecs), chain = std::move(chain)]
 					() mutable
 					{
 						detail::ignore_unused(chain);
 
-						this->derived()._post_recv(std::move(this_ptr), ecs);
+						this->derived()._post_recv(std::move(this_ptr), std::move(ecs));
 					}));
 				}
 				catch (system_error & e)
 				{
 					set_last_error(e);
 
-					this->derived()._do_disconnect(e.code(), this->derived().selfptr(), std::move(chain));
+					this->derived()._do_disconnect(e.code(), std::move(this_ptr), std::move(chain));
 				}
 			});
 		}
 
 		template<typename C>
-		inline bool _check_upgrade(std::shared_ptr<derived_t>& this_ptr, ecs_t<C>& ecs)
+		inline bool _check_upgrade(std::shared_ptr<derived_t>& this_ptr, std::shared_ptr<ecs_t<C>>& ecs)
 		{
 			if (this->support_websocket_ && this->derived().is_http() && this->req_.is_upgrade())
 			{
@@ -400,11 +415,10 @@ namespace asio2::detail
 
 						this->derived()._post_control_callback(this_ptr, ecs);
 						this->derived().push_event(
-						[this, this_ptr = std::move(this_ptr), &ecs]
-						(event_queue_guard<derived_t> g) mutable
+						[this, this_ptr, ecs](event_queue_guard<derived_t> g) mutable
 						{
 							this->derived()._post_upgrade(
-								std::move(this_ptr), ecs, this->req_.base(),
+								std::move(this_ptr), std::move(ecs), this->req_.base(),
 								defer_event([](event_queue_guard<derived_t>) {}, std::move(g)));
 						});
 					}
@@ -430,7 +444,7 @@ namespace asio2::detail
 
 		template<typename C>
 		inline void _handle_control_ping(
-			beast::string_view payload, std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs)
+			beast::string_view payload, std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs)
 		{
 			detail::ignore_unused(payload, this_ptr, ecs);
 
@@ -442,7 +456,7 @@ namespace asio2::detail
 
 		template<typename C>
 		inline void _handle_control_pong(
-			beast::string_view payload, std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs)
+			beast::string_view payload, std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs)
 		{
 			detail::ignore_unused(payload, this_ptr, ecs);
 
@@ -454,7 +468,7 @@ namespace asio2::detail
 
 		template<typename C>
 		inline void _handle_control_close(
-			beast::string_view payload, std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs)
+			beast::string_view payload, std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs)
 		{
 			detail::ignore_unused(payload, this_ptr, ecs);
 
@@ -479,7 +493,7 @@ namespace asio2::detail
 		}
 
 		template<typename C>
-		inline void _fire_recv(std::shared_ptr<derived_t>& this_ptr, ecs_t<C>& ecs)
+		inline void _fire_recv(std::shared_ptr<derived_t>& this_ptr, std::shared_ptr<ecs_t<C>>& ecs)
 		{
 			if (this->is_arg0_session_)
 				this->listener_.notify(event_type::recv, this_ptr, this->req_, this->rep_);

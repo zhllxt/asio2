@@ -67,7 +67,7 @@ namespace asio2::detail
 
 	protected:
 		template<typename C, typename Socket>
-		inline void _ws_init(ecs_t<C>& ecs, Socket& socket)
+		inline void _ws_init(std::shared_ptr<ecs_t<C>>& ecs, Socket& socket)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
@@ -103,7 +103,7 @@ namespace asio2::detail
 		}
 
 		template<typename C, typename Socket>
-		inline void _ws_start(std::shared_ptr<derived_t>& this_ptr, ecs_t<C>& ecs, Socket& socket)
+		inline void _ws_start(std::shared_ptr<derived_t>& this_ptr, std::shared_ptr<ecs_t<C>>& ecs, Socket& socket)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
@@ -196,7 +196,7 @@ namespace asio2::detail
 		}
 
 		template<typename C>
-		inline void _ws_post_recv(std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs)
+		inline void _ws_post_recv(std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
@@ -220,14 +220,14 @@ namespace asio2::detail
 
 				// Read a message into our buffer
 				this->ws_stream_->async_read(derive.buffer().base(), make_allocator(derive.rallocator(),
-				[&derive, this_ptr = std::move(this_ptr), &ecs]
+				[&derive, this_ptr = std::move(this_ptr), ecs = std::move(ecs)]
 				(const error_code& ec, std::size_t bytes_recvd) mutable
 				{
 				#if defined(_DEBUG) || defined(DEBUG)
 					derive.post_recv_counter_--;
 				#endif
 
-					derive._handle_recv(ec, bytes_recvd, std::move(this_ptr), ecs);
+					derive._handle_recv(ec, bytes_recvd, std::move(this_ptr), std::move(ecs));
 				}));
 			}
 			catch (system_error & e)
@@ -244,7 +244,8 @@ namespace asio2::detail
 
 		template<typename C>
 		void _ws_handle_recv(
-			const error_code& ec, std::size_t bytes_recvd, std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs)
+			const error_code& ec, std::size_t bytes_recvd,
+			std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
@@ -270,7 +271,7 @@ namespace asio2::detail
 
 				derive.buffer().consume(bytes_recvd);
 
-				derive._post_recv(std::move(this_ptr), ecs);
+				derive._post_recv(std::move(this_ptr), std::move(ecs));
 			}
 			else
 			{
@@ -283,7 +284,7 @@ namespace asio2::detail
 		}
 
 		template<typename C>
-		inline void _post_control_callback(std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs)
+		inline void _post_control_callback(std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
@@ -294,10 +295,10 @@ namespace asio2::detail
 			// will not be called immediately, it is called only when it receives an event 
 			// on the another side.
 			asio::post(derive.io().context(), make_allocator(derive.wallocator(),
-			[this, &derive, this_ptr = std::move(this_ptr), &ecs]() mutable
+			[this, &derive, this_ptr = std::move(this_ptr), ecs = std::move(ecs)]() mutable
 			{
 				this->ws_stream_->control_callback(
-				[&derive, this_ptr = std::move(this_ptr), &ecs]
+				[&derive, this_ptr = std::move(this_ptr), ecs = std::move(ecs)]
 				(websocket::frame_type kind, beast::string_view payload) mutable
 				{
 					// bug fixed : can't use "std::move(this_ptr)" below, otherwise 
@@ -310,7 +311,7 @@ namespace asio2::detail
 		template<typename C>
 		inline void _handle_control_callback(
 			websocket::frame_type kind, beast::string_view payload,
-			std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs)
+			std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
@@ -322,13 +323,13 @@ namespace asio2::detail
 			switch (kind)
 			{
 			case websocket::frame_type::ping:
-				derive._handle_control_ping(payload, std::move(this_ptr), ecs);
+				derive._handle_control_ping(payload, std::move(this_ptr), std::move(ecs));
 				break;
 			case websocket::frame_type::pong:
-				derive._handle_control_pong(payload, std::move(this_ptr), ecs);
+				derive._handle_control_pong(payload, std::move(this_ptr), std::move(ecs));
 				break;
 			case websocket::frame_type::close:
-				derive._handle_control_close(payload, std::move(this_ptr), ecs);
+				derive._handle_control_close(payload, std::move(this_ptr), std::move(ecs));
 				break;
 			default:break;
 			}
@@ -336,21 +337,21 @@ namespace asio2::detail
 
 		template<typename C>
 		inline void _handle_control_ping(
-			beast::string_view payload, std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs)
+			beast::string_view payload, std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs)
 		{
 			detail::ignore_unused(payload, this_ptr, ecs);
 		}
 
 		template<typename C>
 		inline void _handle_control_pong(
-			beast::string_view payload, std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs)
+			beast::string_view payload, std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs)
 		{
 			detail::ignore_unused(payload, this_ptr, ecs);
 		}
 
 		template<typename C>
 		inline void _handle_control_close(
-			beast::string_view payload, std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs)
+			beast::string_view payload, std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
@@ -365,7 +366,7 @@ namespace asio2::detail
 		template<typename C, typename DeferEvent, typename Response, bool IsSession = args_t::is_session>
 		typename std::enable_if_t<!IsSession, void>
 		inline _post_upgrade(
-			std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs, Response& rep, DeferEvent chain)
+			std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs, Response& rep, DeferEvent chain)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
@@ -379,21 +380,21 @@ namespace asio2::detail
 			// Perform the websocket handshake
 			this->ws_stream_->async_handshake(rep, derive.host_, derive.get_upgrade_target(),
 				make_allocator(derive.wallocator(),
-			[&derive, this_ptr = std::move(this_ptr), &ecs, chain = std::move(chain)]
+			[&derive, this_ptr = std::move(this_ptr), ecs = std::move(ecs), chain = std::move(chain)]
 			(error_code const& ec) mutable
 			{
 			#if defined(_DEBUG) || defined(DEBUG)
 				derive.post_send_counter_--;
 			#endif
 
-				derive._handle_upgrade(ec, std::move(this_ptr), ecs, std::move(chain));
+				derive._handle_upgrade(ec, std::move(this_ptr), std::move(ecs), std::move(chain));
 			}));
 		}
 
 		template<typename C, typename DeferEvent, typename Request, bool IsSession = args_t::is_session>
 		typename std::enable_if_t<IsSession, void>
 		inline _post_upgrade(
-			std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs, Request const& req, DeferEvent chain)
+			std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs, Request const& req, DeferEvent chain)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
@@ -407,20 +408,20 @@ namespace asio2::detail
 			// Accept the websocket handshake
 			// just write response.
 			this->ws_stream_->async_accept(req, make_allocator(derive.wallocator(),
-			[&derive, this_ptr = std::move(this_ptr), &ecs, chain = std::move(chain)]
+			[&derive, this_ptr = std::move(this_ptr), ecs = std::move(ecs), chain = std::move(chain)]
 			(error_code ec) mutable
 			{
 			#if defined(_DEBUG) || defined(DEBUG)
 				derive.post_send_counter_--;
 			#endif
 
-				derive._handle_upgrade(ec, std::move(this_ptr), ecs, std::move(chain));
+				derive._handle_upgrade(ec, std::move(this_ptr), std::move(ecs), std::move(chain));
 			}));
 		}
 
 		template<typename C, typename DeferEvent, bool IsSession = args_t::is_session>
 		typename std::enable_if_t<IsSession, void>
-		inline _post_upgrade(std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs, DeferEvent chain)
+		inline _post_upgrade(std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs, DeferEvent chain)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
@@ -434,27 +435,28 @@ namespace asio2::detail
 			// Accept the websocket handshake
 			// first read request, then write response.
 			this->ws_stream_->async_accept(make_allocator(derive.wallocator(),
-			[&derive, this_ptr = std::move(this_ptr), &ecs, chain = std::move(chain)]
+			[&derive, this_ptr = std::move(this_ptr), ecs = std::move(ecs), chain = std::move(chain)]
 			(error_code ec) mutable
 			{
 			#if defined(_DEBUG) || defined(DEBUG)
 				derive.post_recv_counter_--;
 			#endif
 
-				derive._handle_upgrade(ec, std::move(this_ptr), ecs, std::move(chain));
+				derive._handle_upgrade(ec, std::move(this_ptr), std::move(ecs), std::move(chain));
 			}));
 		}
 
 		template<typename C, typename DeferEvent>
-		inline void _session_fire_upgrade(
-			const error_code& ec, std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs, DeferEvent chain)
+		inline void _session_handle_upgrade(
+			const error_code& ec,
+			std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs, DeferEvent chain)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
 			// Use "sessions().dispatch" to ensure that the _fire_accept function and the _fire_upgrade
 			// function are fired in the same thread
 			derive.sessions().dispatch(
-			[&derive, ec, this_ptr = std::move(this_ptr), &ecs, chain = std::move(chain)]
+			[&derive, ec, this_ptr = std::move(this_ptr), ecs = std::move(ecs), chain = std::move(chain)]
 			() mutable
 			{
 				try
@@ -465,7 +467,7 @@ namespace asio2::detail
 
 					asio::detail::throw_error(ec);
 
-					derive._done_connect(ec, std::move(this_ptr), ecs, std::move(chain));
+					derive._done_connect(ec, std::move(this_ptr), std::move(ecs), std::move(chain));
 				}
 				catch (system_error & e)
 				{
@@ -477,8 +479,9 @@ namespace asio2::detail
 		}
 
 		template<typename C, typename DeferEvent>
-		inline void _client_fire_upgrade(
-			const error_code& ec, std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs, DeferEvent chain)
+		inline void _client_handle_upgrade(
+			const error_code& ec,
+			std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs, DeferEvent chain)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
@@ -486,12 +489,13 @@ namespace asio2::detail
 
 			derive._fire_upgrade(this_ptr);
 
-			derive._done_connect(ec, std::move(this_ptr), ecs, std::move(chain));
+			derive._done_connect(ec, std::move(this_ptr), std::move(ecs), std::move(chain));
 		}
 
 		template<typename C, typename DeferEvent>
 		inline void _handle_upgrade(
-			const error_code& ec, std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs, DeferEvent chain)
+			const error_code& ec,
+			std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs, DeferEvent chain)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
@@ -499,11 +503,11 @@ namespace asio2::detail
 
 			if constexpr (args_t::is_session)
 			{
-				derive._session_fire_upgrade(ec, std::move(this_ptr), ecs, std::move(chain));
+				derive._session_handle_upgrade(ec, std::move(this_ptr), std::move(ecs), std::move(chain));
 			}
 			else
 			{
-				derive._client_fire_upgrade(ec, std::move(this_ptr), ecs, std::move(chain));
+				derive._client_handle_upgrade(ec, std::move(this_ptr), std::move(ecs), std::move(chain));
 			}
 		}
 

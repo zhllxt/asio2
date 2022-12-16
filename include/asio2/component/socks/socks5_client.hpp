@@ -9,10 +9,11 @@
  *
  * socks5 protocol : https://www.ddhigh.com/2019/08/24/socks5-protocol.html
  * UDP Associate : https://blog.csdn.net/whatday/article/details/40183555
+ * http proxy : https://blog.csdn.net/dolphin98629/article/details/54599850
  */
 
-#ifndef __ASIO2_SOCKS5_SERVER_HPP__
-#define __ASIO2_SOCKS5_SERVER_HPP__
+#ifndef __ASIO2_SOCKS5_CLIENT_HPP__
+#define __ASIO2_SOCKS5_CLIENT_HPP__
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1200)
 #pragma once
@@ -35,7 +36,7 @@
 #include <asio2/base/detail/util.hpp>
 #include <asio2/base/detail/ecs.hpp>
 
-#include <asio2/ecs/socks/socks5_core.hpp>
+#include <asio2/component/socks/socks5_core.hpp>
 
 namespace asio2::detail
 {
@@ -46,7 +47,7 @@ namespace asio2::detail
 	ASIO2_CLASS_FORWARD_DECLARE_TCP_CLIENT;
 
 	template<class SocketT, class Sock5OptT, class HandlerT>
-	class socks5_server_accept_op : public asio::coroutine
+	class socks5_client_connect_op : public asio::coroutine
 	{
 		ASIO2_CLASS_FRIEND_DECLARE_BASE;
 		ASIO2_CLASS_FRIEND_DECLARE_TCP_BASE;
@@ -77,7 +78,7 @@ namespace asio2::detail
 		socks5::method                   method{};
 
 		template<class SKT, class S5Opt, class H>
-		socks5_server_accept_op(
+		socks5_client_connect_op(
 			asio::io_context& context,
 			std::string host, std::string port,
 			SKT& skt, S5Opt s5, H&& h
@@ -561,11 +562,11 @@ namespace asio2::detail
 
 	// C++17 class template argument deduction guides
 	template<class SKT, class S5Opt, class H>
-	socks5_server_accept_op(asio::io_context&, std::string, std::string,
-		SKT&, S5Opt, H)->socks5_server_accept_op<SKT, S5Opt, H>;
+	socks5_client_connect_op(asio::io_context&, std::string, std::string,
+		SKT&, S5Opt, H)->socks5_client_connect_op<SKT, S5Opt, H>;
 
 	template<class derived_t, class args_t>
-	class socks5_server_impl
+	class socks5_client_impl
 	{
 		ASIO2_CLASS_FRIEND_DECLARE_BASE;
 		ASIO2_CLASS_FRIEND_DECLARE_TCP_BASE;
@@ -578,32 +579,46 @@ namespace asio2::detail
 		/**
 		 * @brief constructor
 		 */
-		socks5_server_impl() {}
+		socks5_client_impl() {}
 
 		/**
 		 * @brief destructor
 		 */
-		~socks5_server_impl() = default;
+		~socks5_client_impl() = default;
 
 	protected:
 		template<typename C>
-		inline void _socks5_init(ecs_t<C>& ecs)
+		inline void _socks5_init(std::shared_ptr<ecs_t<C>>& ecs)
 		{
 			detail::ignore_unused(ecs);
 		}
 
-		template<typename C>
-		inline void _socks5_start(std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs)
+		template<typename C, typename DeferEvent>
+		inline void _socks5_start(
+			std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs, DeferEvent chain)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
 			if constexpr (ecs_helper::has_socks5<C>())
 			{
+				socks5_client_connect_op
+				{
+					derive.io().context(),
+					derive.host_, derive.port_,
+					derive.socket(),
+					ecs->get_component().socks5_option(std::in_place),
+					[this, this_ptr, ecs, chain = std::move(chain)](error_code ec) mutable
+					{
+						derived_t& derive = static_cast<derived_t&>(*this);
+
+						derive._handle_proxy(ec, std::move(this_ptr), std::move(ecs), std::move(chain));
+					}
+				};
 			}
 			else
 			{
 				ASIO2_ASSERT(!get_last_error());
-				derive._handle_proxy(error_code{}, std::move(this_ptr), ecs);
+				derive._handle_proxy(error_code{}, std::move(this_ptr), std::move(ecs), std::move(chain));
 			}
 		}
 
@@ -613,4 +628,4 @@ namespace asio2::detail
 	};
 }
 
-#endif // !__ASIO2_SOCKS5_SERVER_HPP__
+#endif // !__ASIO2_SOCKS5_CLIENT_HPP__

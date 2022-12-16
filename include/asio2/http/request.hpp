@@ -42,9 +42,9 @@ namespace asio2::detail
 	template<class Body, class Fields = http::fields>
 	class http_request_impl_t
 		: public http::message<true, Body, Fields>
-#ifndef ASIO2_DISABLE_HTTP_REQUEST_USER_DATA_CP
+	#ifdef ASIO2_ENABLE_HTTP_REQUEST_USER_DATA
 		, public user_data_cp<http_request_impl_t<Body, Fields>>
-#endif
+	#endif
 	{
 		template <class>                             friend class beast::websocket::listener;
 
@@ -66,11 +66,17 @@ namespace asio2::detail
 		template<typename... Args>
 		explicit http_request_impl_t(Args&&... args)
 			: super(std::forward<Args>(args)...)
+		#ifdef ASIO2_ENABLE_HTTP_REQUEST_USER_DATA
+			, user_data_cp<http_request_impl_t<Body, Fields>>()
+		#endif
 		{
 		}
 
 		http_request_impl_t(const http_request_impl_t& o)
 			: super()
+		#ifdef ASIO2_ENABLE_HTTP_REQUEST_USER_DATA
+			, user_data_cp<http_request_impl_t<Body, Fields>>()
+		#endif
 		{
 			this->base() = o.base();
 			this->url_           = o.url_;
@@ -80,6 +86,9 @@ namespace asio2::detail
 
 		http_request_impl_t(http_request_impl_t&& o)
 			: super()
+		#ifdef ASIO2_ENABLE_HTTP_REQUEST_USER_DATA
+			, user_data_cp<http_request_impl_t<Body, Fields>>()
+		#endif
 		{
 			this->base() = std::move(o.base());
 			this->url_           = std::move(o.url_);
@@ -107,12 +116,18 @@ namespace asio2::detail
 
 		http_request_impl_t(const http::message<true, Body, Fields>& req)
 			: super()
+		#ifdef ASIO2_ENABLE_HTTP_REQUEST_USER_DATA
+			, user_data_cp<http_request_impl_t<Body, Fields>>()
+		#endif
 		{
 			this->base() = req;
 		}
 
 		http_request_impl_t(http::message<true, Body, Fields>&& req)
 			: super()
+		#ifdef ASIO2_ENABLE_HTTP_REQUEST_USER_DATA
+			, user_data_cp<http_request_impl_t<Body, Fields>>()
+		#endif
 		{
 			this->base() = std::move(req);
 		}

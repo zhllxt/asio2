@@ -22,7 +22,6 @@
 
 #include <asio2/base/iopool.hpp>
 #include <asio2/base/listener.hpp>
-#include <asio2/base/detail/ecs.hpp>
 
 #include <asio2/base/impl/event_queue_cp.hpp>
 
@@ -78,11 +77,11 @@ namespace asio2::detail
 			{
 				derive._post_disconnect(ec, std::move(this_ptr), expected, defer_event
 				{
-					[&derive, self_ptr = derive.selfptr()](event_queue_guard<derived_t> g) mutable
+					[&derive, this_ptr = derive.selfptr()](event_queue_guard<derived_t> g) mutable
 					{
 						// Use disp_event to ensure that reconnection will not executed until
 						// all events are completed.
-						derive.disp_event([&derive, this_ptr = std::move(self_ptr)]
+						derive.disp_event([&derive, this_ptr = std::move(this_ptr)]
 						(event_queue_guard<derived_t> g) mutable
 						{
 							detail::ignore_unused(this_ptr, g);
@@ -277,7 +276,7 @@ namespace asio2::detail
 					this->disconnect_timer_->cancel();
 				}
 
-				this->disconnect_timer_ = std::make_unique<safe_timer>(derive.io().context());
+				this->disconnect_timer_ = std::make_shared<safe_timer>(derive.io().context());
 
 				derive._post_disconnect_timer(std::move(this_ptr), this->disconnect_timer_);
 			}));

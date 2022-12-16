@@ -236,7 +236,8 @@ namespace asio2::detail
 
 		template<typename C, typename DeferEvent>
 		inline void _handle_connect(
-			const error_code& ec, std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs, DeferEvent chain)
+			const error_code& ec,
+			std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs, DeferEvent chain)
 		{
 			detail::ignore_unused(ec);
 
@@ -244,7 +245,7 @@ namespace asio2::detail
 			ASIO2_ASSERT(this->derived().sessions().io().running_in_this_thread());
 
 			asio::dispatch(this->derived().io().context(), make_allocator(this->derived().wallocator(),
-			[this, this_ptr = std::move(this_ptr), &ecs, chain = std::move(chain)]
+			[this, this_ptr = std::move(this_ptr), ecs = std::move(ecs), chain = std::move(chain)]
 			() mutable
 			{
 				derived_t& derive = this->derived();
@@ -256,19 +257,21 @@ namespace asio2::detail
 				{
 					derive.io().context(),
 					derive.stream(),
-					[this, this_ptr = std::move(this_ptr), &ecs, chain = std::move(chain)]
+					[this, this_ptr = std::move(this_ptr), ecs = std::move(ecs), chain = std::move(chain)]
 					(error_code ec, std::unique_ptr<asio::streambuf> stream) mutable
 					{
-						this->derived()._handle_mqtt_connect_message(ec, std::move(this_ptr),
-								ecs, std::move(stream), std::move(chain));
+						this->derived()._handle_mqtt_connect_message(ec,
+								std::move(this_ptr),std::move(ecs), std::move(stream), std::move(chain));
 					}
 				};
 			}));
 		}
 
 		template<typename C, typename DeferEvent>
-		inline void _handle_mqtt_connect_message(error_code ec, std::shared_ptr<derived_t> this_ptr,
-			ecs_t<C>& ecs, std::unique_ptr<asio::streambuf> stream, DeferEvent chain)
+		inline void _handle_mqtt_connect_message(
+			error_code ec,
+			std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs,
+			std::unique_ptr<asio::streambuf> stream, DeferEvent chain)
 		{
 			do
 			{
@@ -309,10 +312,10 @@ namespace asio2::detail
 			} while (false);
 
 			this->derived().sessions().dispatch(
-			[this, ec, this_ptr = std::move(this_ptr), &ecs, chain = std::move(chain)]
+			[this, ec, this_ptr = std::move(this_ptr), ecs = std::move(ecs), chain = std::move(chain)]
 			() mutable
 			{
-				super::_handle_connect(ec, std::move(this_ptr), ecs, std::move(chain));
+				super::_handle_connect(ec, std::move(this_ptr), std::move(ecs), std::move(chain));
 			});
 		}
 
@@ -348,7 +351,8 @@ namespace asio2::detail
 
 	protected:
 		template<typename C>
-		inline void _fire_recv(std::shared_ptr<derived_t>& this_ptr, ecs_t<C>& ecs, std::string_view data)
+		inline void _fire_recv(
+			std::shared_ptr<derived_t>& this_ptr, std::shared_ptr<ecs_t<C>>& ecs, std::string_view data)
 		{
 			this->listener_.notify(event_type::recv, this_ptr, data);
 

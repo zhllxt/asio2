@@ -63,9 +63,9 @@ namespace asio2::detail
 	template<class Body, class Fields = http::fields>
 	class http_response_impl_t
 		: public http::message<false, Body, Fields>
-#ifndef ASIO2_DISABLE_HTTP_RESPONSE_USER_DATA_CP
+	#ifdef ASIO2_ENABLE_HTTP_RESPONSE_USER_DATA
 		, public user_data_cp<http_response_impl_t<Body, Fields>>
-#endif
+	#endif
 	{
 		ASIO2_CLASS_FRIEND_DECLARE_BASE;
 		ASIO2_CLASS_FRIEND_DECLARE_TCP_BASE;
@@ -85,11 +85,17 @@ namespace asio2::detail
 		template<typename... Args>
 		explicit http_response_impl_t(Args&&... args)
 			: super(std::forward<Args>(args)...)
+		#ifdef ASIO2_ENABLE_HTTP_RESPONSE_USER_DATA
+			, user_data_cp<http_response_impl_t<Body, Fields>>()
+		#endif
 		{
 		}
 
 		http_response_impl_t(const http_response_impl_t& o)
 			: super()
+		#ifdef ASIO2_ENABLE_HTTP_RESPONSE_USER_DATA
+			, user_data_cp<http_response_impl_t<Body, Fields>>()
+		#endif
 		{
 			this->base() = o.base();
 			this->root_directory_ = o.root_directory_;
@@ -100,6 +106,9 @@ namespace asio2::detail
 
 		http_response_impl_t(http_response_impl_t&& o)
 			: super()
+		#ifdef ASIO2_ENABLE_HTTP_RESPONSE_USER_DATA
+			, user_data_cp<http_response_impl_t<Body, Fields>>()
+		#endif
 		{
 			this->base() = std::move(o.base());
 			this->root_directory_ = o.root_directory_;
@@ -131,6 +140,9 @@ namespace asio2::detail
 		template<class BodyT = Body>
 		http_response_impl_t(const http::message<false, BodyT, Fields>& rep)
 			: super()
+		#ifdef ASIO2_ENABLE_HTTP_RESPONSE_USER_DATA
+			, user_data_cp<http_response_impl_t<Body, Fields>>()
+		#endif
 		{
 			this->base() = rep;
 		}
@@ -138,6 +150,9 @@ namespace asio2::detail
 		template<class BodyT = Body>
 		http_response_impl_t(http::message<false, BodyT, Fields>&& rep)
 			: super()
+		#ifdef ASIO2_ENABLE_HTTP_RESPONSE_USER_DATA
+			, user_data_cp<http_response_impl_t<Body, Fields>>()
+		#endif
 		{
 			this->base() = std::move(rep);
 		}
@@ -160,6 +175,9 @@ namespace asio2::detail
 
 		http_response_impl_t(const http::message<false, http::string_body, Fields>& rep)
 			: super()
+		#ifdef ASIO2_ENABLE_HTTP_RESPONSE_USER_DATA
+			, user_data_cp<http_response_impl_t<Body, Fields>>()
+		#endif
 		{
 			this->base().base() = rep.base();
 			this->body().text() = rep.body();
@@ -168,6 +186,9 @@ namespace asio2::detail
 
 		http_response_impl_t(http::message<false, http::string_body, Fields>&& rep)
 			: super()
+		#ifdef ASIO2_ENABLE_HTTP_RESPONSE_USER_DATA
+			, user_data_cp<http_response_impl_t<Body, Fields>>()
+		#endif
 		{
 			this->base().base() = std::move(rep.base());
 			this->body().text() = std::move(rep.body());
@@ -194,6 +215,9 @@ namespace asio2::detail
 
 		http_response_impl_t(const http::message<false, http::file_body, Fields>& rep)
 			: super()
+		#ifdef ASIO2_ENABLE_HTTP_RESPONSE_USER_DATA
+			, user_data_cp<http_response_impl_t<Body, Fields>>()
+		#endif
 		{
 			this->base().base() = rep.base();
 			this->body().file() = rep.body();
@@ -202,6 +226,9 @@ namespace asio2::detail
 
 		http_response_impl_t(http::message<false, http::file_body, Fields>&& rep)
 			: super()
+		#ifdef ASIO2_ENABLE_HTTP_RESPONSE_USER_DATA
+			, user_data_cp<http_response_impl_t<Body, Fields>>()
+		#endif
 		{
 			this->base().base() = std::move(rep.base());
 			this->body().file() = std::move(rep.body());

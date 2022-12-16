@@ -97,7 +97,7 @@ namespace asio2::detail
 
 	protected:
 		template<typename C>
-		inline void _do_init(std::shared_ptr<derived_t>& this_ptr, ecs_t<C>& ecs)
+		inline void _do_init(std::shared_ptr<derived_t>& this_ptr, std::shared_ptr<ecs_t<C>>& ecs)
 		{
 			super::_do_init(this_ptr, ecs);
 
@@ -120,7 +120,8 @@ namespace asio2::detail
 
 		template<typename C, typename DeferEvent>
 		inline void _handle_connect(
-			const error_code& ec, std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs, DeferEvent chain)
+			const error_code& ec,
+			std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs, DeferEvent chain)
 		{
 			detail::ignore_unused(ec);
 
@@ -128,12 +129,12 @@ namespace asio2::detail
 			ASIO2_ASSERT(this->derived().sessions().io().running_in_this_thread());
 
 			asio::dispatch(this->derived().io().context(), make_allocator(this->derived().wallocator(),
-			[this, this_ptr = std::move(this_ptr), &ecs, chain = std::move(chain)]
+			[this, this_ptr = std::move(this_ptr), ecs = std::move(ecs), chain = std::move(chain)]
 			() mutable
 			{
 				this->derived()._ssl_start(this_ptr, ecs, this->socket_, this->ctx_);
 
-				this->derived()._post_handshake(std::move(this_ptr), ecs, std::move(chain));
+				this->derived()._post_handshake(std::move(this_ptr), std::move(ecs), std::move(chain));
 			}));
 		}
 

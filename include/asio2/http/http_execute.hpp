@@ -23,7 +23,7 @@
 #include <asio2/http/detail/http_make.hpp>
 #include <asio2/http/detail/http_traits.hpp>
 
-#include <asio2/ecs/socks/socks5_client.hpp>
+#include <asio2/component/socks/socks5_client.hpp>
 
 namespace asio2::detail
 {

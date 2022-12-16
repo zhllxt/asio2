@@ -36,8 +36,8 @@
 
 #include <asio2/base/impl/condition_event_cp.hpp>
 
-#include <asio2/ecs/rdc/rdc_invoker.hpp>
-#include <asio2/ecs/rdc/rdc_option.hpp>
+#include <asio2/component/rdc/rdc_invoker.hpp>
+#include <asio2/component/rdc/rdc_option.hpp>
 
 namespace asio2::detail
 {
@@ -518,19 +518,19 @@ namespace asio2::detail
 	
 	protected:
 		template<typename C>
-		inline void _rdc_init(ecs_t<C>& ecs)
+		inline void _rdc_init(std::shared_ptr<ecs_t<C>>& ecs)
 		{
 			detail::ignore_unused(ecs);
 		}
 
 		template<typename C>
-		inline void _rdc_start(std::shared_ptr<derived_t>& this_ptr, ecs_t<C>& ecs)
+		inline void _rdc_start(std::shared_ptr<derived_t>& this_ptr, std::shared_ptr<ecs_t<C>>& ecs)
 		{
 			detail::ignore_unused(this_ptr, ecs);
 
 			if constexpr (ecs_helper::has_rdc<C>())
 			{
-				ASIO2_ASSERT(ecs.get_component().rdc_option(std::in_place)->invoker().reqs().empty());
+				ASIO2_ASSERT(ecs->get_component().rdc_option(std::in_place)->invoker().reqs().empty());
 			}
 			else
 			{
@@ -664,20 +664,14 @@ namespace asio2::detail
 		}
 
 		template<typename C>
-		inline void _do_rdc_handle_recv(std::shared_ptr<derived_t>& this_ptr, ecs_t<C>& ecs, recv_data_t data)
+		inline void _do_rdc_handle_recv(
+			std::shared_ptr<derived_t>& this_ptr, std::shared_ptr<ecs_t<C>>& ecs, recv_data_t data)
 		{
-			detail::ignore_unused(this_ptr, ecs, data);
+			detail::ignore_unused(this_ptr);
 
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			if (!derive.ecs_)
-			{
-				ASIO2_ASSERT(false);
-				ASIO2_LOG(spdlog::level::err, "The ecs has been destroyed when do rdc handle recv.");
-				return;
-			}
-
-			auto _rdc = ecs.get_component().rdc_option(std::in_place);
+			auto _rdc = ecs->get_component().rdc_option(std::in_place);
 
 			if (_rdc->invoker().reqs().empty())
 				return;
@@ -706,10 +700,9 @@ namespace asio2::detail
 		}
 
 		template<typename C>
-		inline void _rdc_handle_recv(std::shared_ptr<derived_t>& this_ptr, ecs_t<C>& ecs, recv_data_t data)
+		inline void _rdc_handle_recv(
+			std::shared_ptr<derived_t>& this_ptr, std::shared_ptr<ecs_t<C>>& ecs, recv_data_t data)
 		{
-			detail::ignore_unused(this_ptr, ecs, data);
-
 			if constexpr (ecs_helper::has_rdc<C>())
 			{
 				derived_t& derive = static_cast<derived_t&>(*this);
@@ -718,7 +711,7 @@ namespace asio2::detail
 			}
 			else
 			{
-				std::ignore = true;
+				detail::ignore_unused(this_ptr, ecs, data);
 			}
 		}
 	};

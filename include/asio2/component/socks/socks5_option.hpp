@@ -17,7 +17,7 @@
 
 #include <array>
 
-#include <asio2/ecs/socks/socks5_core.hpp>
+#include <asio2/component/socks/socks5_core.hpp>
 
 namespace asio2::socks5::detail
 {

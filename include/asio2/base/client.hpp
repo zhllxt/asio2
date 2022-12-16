@@ -50,8 +50,8 @@
 #include <asio2/base/impl/reconnect_timer_cp.hpp>
 #include <asio2/base/impl/send_cp.hpp>
 
-#include <asio2/ecs/rdc/rdc_call_cp.hpp>
-#include <asio2/ecs/socks/socks5_client.hpp>
+#include <asio2/component/rdc/rdc_call_cp.hpp>
+#include <asio2/component/socks/socks5_client.hpp>
 
 namespace asio2::detail
 {
@@ -304,7 +304,7 @@ namespace asio2::detail
 		std::chrono::steady_clock::duration         rc_timeout_ = std::chrono::milliseconds(http_execute_timeout);
 
 		/// the pointer of ecs_t
-		std::unique_ptr<ecs_base>                   ecs_;
+		std::shared_ptr<ecs_base>                   ecs_;
 
 	#if defined(_DEBUG) || defined(DEBUG)
 		std::atomic<int>                            post_send_counter_ = 0;

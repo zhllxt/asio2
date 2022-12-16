@@ -95,18 +95,18 @@ namespace asio2::detail
 
 			ptimer->timer.expires_after(duration);
 			ptimer->timer.async_wait(
-			[&derive, self_ptr = std::move(this_ptr), timer_ptr = std::move(timer_ptr)]
+			[&derive, this_ptr = std::move(this_ptr), timer_ptr = std::move(timer_ptr)]
 			(const error_code& ec) mutable
 			{
 				// bug fixed : 
-				// note : after call derive._handle_connect_timeout_timer(ec, std::move(self_ptr)); 
+				// note : after call derive._handle_connect_timeout_timer(ec, std::move(this_ptr)); 
 				// the pointer of "this" can no longer be used immediately, beacuse when 
-				// self_ptr's reference counter is 1, after call 
-				// derive._handle_connect_timeout_timer(ec, std::move(self_ptr)); the self_ptr's 
+				// this_ptr's reference counter is 1, after call 
+				// derive._handle_connect_timeout_timer(ec, std::move(this_ptr)); the this_ptr's 
 				// object will be destroyed, then below code "this->..." will cause crash.
-				derive._handle_connect_timeout_timer(ec, std::move(self_ptr), std::move(timer_ptr));
+				derive._handle_connect_timeout_timer(ec, std::move(this_ptr), std::move(timer_ptr));
 
-				// after call derive._handle_connect_timeout_timer(ec, std::move(self_ptr));
+				// after call derive._handle_connect_timeout_timer(ec, std::move(this_ptr));
 				// can't do it like below, beacuse "this" maybe deleted already.
 				// this->...
 			});

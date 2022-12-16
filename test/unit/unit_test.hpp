@@ -50,7 +50,7 @@
 # define ASIO2_TEST_IOSTREAM std::cerr
 #endif // !defined(ASIO2_TEST_IOSTREAM)
 
-static const int   test_loop_times = 1000;
+static const int   test_loop_times = 100;
 static const int   test_client_count = 10;
 static const int   test_wait_count = 600000;
 static const int   test_timer_deviation = 300;

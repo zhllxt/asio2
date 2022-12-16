@@ -28,7 +28,7 @@
 #include <asio2/base/detail/util.hpp>
 #include <asio2/base/detail/function_traits.hpp>
 
-#include <asio2/ecs/rdc/rdc_invoker.hpp>
+#include <asio2/component/rdc/rdc_invoker.hpp>
 
 namespace asio2::rdc
 {

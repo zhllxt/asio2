@@ -396,7 +396,7 @@ namespace asio2::detail
 		}
 
 		template<bool IsAsync, typename String, typename StrOrInt, typename C>
-		inline bool _do_connect(String&& host, StrOrInt&& port, ecs_t<C> e)
+		inline bool _do_connect(String&& host, StrOrInt&& port, std::shared_ptr<ecs_t<C>> ecs)
 		{
 			if (!this->connect_message_.template holds<mqtt::v3::connect, mqtt::v4::connect, mqtt::v5::connect>())
 			{
@@ -406,11 +406,11 @@ namespace asio2::detail
 			}
 
 			return super::template _do_connect<IsAsync>(
-				std::forward<String>(host), std::forward<StrOrInt>(port), std::move(e));
+				std::forward<String>(host), std::forward<StrOrInt>(port), std::move(ecs));
 		}
 
 		template<typename C>
-		inline void _bind_default_mqtt_handler(ecs_t<C>& ecs)
+		inline void _bind_default_mqtt_handler(std::shared_ptr<ecs_t<C>>& ecs)
 		{
 			detail::ignore_unused(ecs);
 
@@ -434,7 +434,7 @@ namespace asio2::detail
 
 	protected:
 		template<typename C>
-		inline void _do_init(ecs_t<C>& ecs)
+		inline void _do_init(std::shared_ptr<ecs_t<C>>& ecs)
 		{
 			// must set default callback for every mqtt message.
 			this->derived()._bind_default_mqtt_handler(ecs);
@@ -492,7 +492,8 @@ namespace asio2::detail
 
 		template<typename C, typename DeferEvent>
 		inline void _handle_connect(
-			const error_code& ec, std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs, DeferEvent chain)
+			const error_code& ec,
+			std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs, DeferEvent chain)
 		{
 			derived_t& derive = this->derived();
 
@@ -500,7 +501,7 @@ namespace asio2::detail
 
 			if (ec)
 			{
-				return derive._done_connect(ec, std::move(this_ptr), ecs, std::move(chain));
+				return derive._done_connect(ec, std::move(this_ptr), std::move(ecs), std::move(chain));
 			}
 
 			// send connect message to server use coroutine 
@@ -509,22 +510,24 @@ namespace asio2::detail
 				derive.io().context(),
 				derive.connect_message_,
 				derive.stream(),
-				[&derive, this_ptr = std::move(this_ptr), &ecs, chain = std::move(chain)]
+				[&derive, this_ptr = std::move(this_ptr), ecs = std::move(ecs), chain = std::move(chain)]
 				(error_code ec, std::unique_ptr<asio::streambuf> stream) mutable
 				{
-					derive._handle_mqtt_connect_response(ec, std::move(this_ptr), ecs,
+					derive._handle_mqtt_connect_response(ec, std::move(this_ptr), std::move(ecs),
 						std::move(stream), std::move(chain));
 				}
 			};
 		}
 
 		template<typename C, typename DeferEvent>
-		inline void _handle_mqtt_connect_response(error_code ec, std::shared_ptr<derived_t> this_ptr,
-			ecs_t<C>& ecs, std::unique_ptr<asio::streambuf> stream, DeferEvent chain)
+		inline void _handle_mqtt_connect_response(
+			error_code ec,
+			std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs,
+			std::unique_ptr<asio::streambuf> stream, DeferEvent chain)
 		{
 			if (ec)
 			{
-				this->derived()._done_connect(ec, std::move(this_ptr), ecs, std::move(chain));
+				this->derived()._done_connect(ec, std::move(this_ptr), std::move(ecs), std::move(chain));
 				return;
 			}
 
@@ -546,7 +549,7 @@ namespace asio2::detail
 			{
 				ASIO2_ASSERT(false);
 				ec = mqtt::make_error_code(mqtt::error::malformed_packet);
-				this->derived()._done_connect(ec, std::move(this_ptr), ecs, std::move(chain));
+				this->derived()._done_connect(ec, std::move(this_ptr), std::move(ecs), std::move(chain));
 				return;
 			}
 
@@ -556,20 +559,22 @@ namespace asio2::detail
 
 			this->derived()._call_mqtt_handler(type, ec, this_ptr, static_cast<derived_t*>(this), data);
 
-			this->derived()._done_connect(ec, std::move(this_ptr), ecs, std::move(chain));
+			this->derived()._done_connect(ec, std::move(this_ptr), std::move(ecs), std::move(chain));
 		}
 
 		template<typename C, typename DeferEvent>
 		inline void _do_start(
-			std::shared_ptr<derived_t> this_ptr, ecs_t<C>& ecs, DeferEvent chain)
+			std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs, DeferEvent chain)
 		{
-			super::_do_start(std::move(this_ptr), ecs, std::move(chain));
+			super::_do_start(this_ptr, std::move(ecs), std::move(chain));
 
-			this->derived()._post_pingreq_timer(std::chrono::seconds(this->derived().keep_alive_time()), this_ptr);
+			this->derived()._post_pingreq_timer(
+				std::move(this_ptr), std::chrono::seconds(this->derived().keep_alive_time()));
 		}
 
 		template<class Rep, class Period>
-		inline void _post_pingreq_timer(std::chrono::duration<Rep, Period> duration, std::shared_ptr<derived_t> this_ptr)
+		inline void _post_pingreq_timer(
+			std::shared_ptr<derived_t> this_ptr, std::chrono::duration<Rep, Period> duration)
 		{
 			derived_t& derive = this->derived();
 
@@ -578,9 +583,9 @@ namespace asio2::detail
 			{
 				this->pingreq_timer_.expires_after(duration);
 				this->pingreq_timer_.async_wait(
-				[&derive, self_ptr = std::move(this_ptr)](const error_code& ec) mutable
+				[&derive, this_ptr = std::move(this_ptr)](const error_code& ec) mutable
 				{
-					derive._handle_pingreq_timer(ec, std::move(self_ptr));
+					derive._handle_pingreq_timer(ec, std::move(this_ptr));
 				});
 			}
 		}
@@ -620,7 +625,7 @@ namespace asio2::detail
 			}
 
 			// do next timer
-			derive._post_pingreq_timer(std::chrono::seconds(derive.keep_alive_time()), std::move(this_ptr));
+			derive._post_pingreq_timer(std::move(this_ptr), std::chrono::seconds(derive.keep_alive_time()));
 		}
 
 		inline void _stop_pingreq_timer()
@@ -656,7 +661,8 @@ namespace asio2::detail
 
 	protected:
 		template<typename C>
-		inline void _fire_recv(std::shared_ptr<derived_t>& this_ptr, ecs_t<C>& ecs, std::string_view data)
+		inline void _fire_recv(
+			std::shared_ptr<derived_t>& this_ptr, std::shared_ptr<ecs_t<C>>& ecs, std::string_view data)
 		{
 			this->listener_.notify(event_type::recv, data);
 
