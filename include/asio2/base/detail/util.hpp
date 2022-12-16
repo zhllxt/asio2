@@ -210,6 +210,17 @@ namespace asio2::detail
 	inline constexpr bool is_copyable_wrapper_v = is_copyable_wrapper<T>::value;
 
 
+	inline void cancel_timer(asio::steady_timer& timer) noexcept
+	{
+		try
+		{
+			timer.cancel();
+		}
+		catch (system_error const&)
+		{
+		}
+	}
+
 	struct safe_timer
 	{
 		explicit safe_timer(asio::io_context& ioc) : timer(ioc)
@@ -219,14 +230,9 @@ namespace asio2::detail
 
 		inline void cancel()
 		{
-			try
-			{
-				this->canceled.test_and_set();
-				this->timer.cancel();
-			}
-			catch (system_error const&)
-			{
-			}
+			this->canceled.test_and_set();
+
+			detail::cancel_timer(this->timer);
 		}
 
 		/// Timer impl

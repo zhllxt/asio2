@@ -244,15 +244,9 @@ namespace asio2::detail
 				{
 					ASIO2_ASSERT(this->reconnect_timer_);
 
-					try
+					if (this->reconnect_timer_)
 					{
-						if (this->reconnect_timer_)
-						{
-							this->reconnect_timer_->timer.cancel();
-						}
-					}
-					catch (system_error const&)
-					{
+						detail::cancel_timer(this->reconnect_timer_->timer);
 					}
 				}
 			});

@@ -175,17 +175,12 @@ namespace asio2::detail
 		/**
 		 * @brief Implements the SOL_SOCKET/SO_SNDBUF socket option.
 		 */
-		inline derived_t & set_sndbuf_size(int val) noexcept
+		inline derived_t& set_sndbuf_size(int val) noexcept
 		{
-			try
-			{
-				this->socket_.lowest_layer().set_option(asio::socket_base::send_buffer_size(val));
-			}
-			catch (system_error & e)
-			{
-				set_last_error(e);
-			}
-			return (static_cast<derived_t &>(*this));
+			error_code ec;
+			this->socket_.lowest_layer().set_option(asio::socket_base::send_buffer_size(val), ec);
+			set_last_error(ec);
+			return (static_cast<derived_t&>(*this));
 		}
 
 		/**
@@ -193,33 +188,22 @@ namespace asio2::detail
 		 */
 		inline int get_sndbuf_size() const noexcept
 		{
-			try
-			{
-				asio::socket_base::send_buffer_size option;
-				this->socket_.lowest_layer().get_option(option);
-				return option.value();
-			}
-			catch (system_error & e)
-			{
-				set_last_error(e);
-			}
-			return (-1);
+			error_code ec;
+			asio::socket_base::send_buffer_size option{};
+			this->socket_.lowest_layer().get_option(option, ec);
+			set_last_error(ec);
+			return option.value();
 		}
 
 		/**
 		 * @brief Implements the SOL_SOCKET/SO_RCVBUF socket option.
 		 */
-		inline derived_t & set_rcvbuf_size(int val) noexcept
+		inline derived_t& set_rcvbuf_size(int val) noexcept
 		{
-			try
-			{
-				this->socket_.lowest_layer().set_option(asio::socket_base::receive_buffer_size(val));
-			}
-			catch (system_error & e)
-			{
-				set_last_error(e);
-			}
-			return (static_cast<derived_t &>(*this));
+			error_code ec;
+			this->socket_.lowest_layer().set_option(asio::socket_base::receive_buffer_size(val), ec);
+			set_last_error(ec);
+			return (static_cast<derived_t&>(*this));
 		}
 
 		/**
@@ -227,17 +211,11 @@ namespace asio2::detail
 		 */
 		inline int get_rcvbuf_size() const noexcept
 		{
-			try
-			{
-				asio::socket_base::receive_buffer_size option;
-				this->socket_.lowest_layer().get_option(option);
-				return option.value();
-			}
-			catch (system_error & e)
-			{
-				set_last_error(e);
-			}
-			return (-1);
+			error_code ec;
+			asio::socket_base::receive_buffer_size option{};
+			this->socket_.lowest_layer().get_option(option, ec);
+			set_last_error(ec);
+			return option.value();
 		}
 
 		/**
@@ -251,17 +229,12 @@ namespace asio2::detail
 		/**
 		 * @brief Implements the SOL_SOCKET/SO_KEEPALIVE socket option.
 		 */
-		inline derived_t & set_keep_alive(bool val) noexcept
+		inline derived_t& set_keep_alive(bool val) noexcept
 		{
-			try
-			{
-				this->socket_.lowest_layer().set_option(asio::socket_base::keep_alive(val));
-			}
-			catch (system_error & e)
-			{
-				set_last_error(e);
-			}
-			return (static_cast<derived_t &>(*this));
+			error_code ec;
+			this->socket_.lowest_layer().set_option(asio::socket_base::keep_alive(val), ec);
+			set_last_error(ec);
+			return (static_cast<derived_t&>(*this));
 		}
 
 		/**
@@ -269,17 +242,11 @@ namespace asio2::detail
 		 */
 		inline bool is_keep_alive() const noexcept
 		{
-			try
-			{
-				asio::socket_base::keep_alive option;
-				this->socket_.lowest_layer().get_option(option);
-				return option.value();
-			}
-			catch (system_error & e)
-			{
-				set_last_error(e);
-			}
-			return false;
+			error_code ec;
+			asio::socket_base::keep_alive option{};
+			this->socket_.lowest_layer().get_option(option, ec);
+			set_last_error(ec);
+			return option.value();
 		}
 
 		/**
@@ -293,17 +260,12 @@ namespace asio2::detail
 		/**
 		 * @brief Implements the SOL_SOCKET/SO_REUSEADDR socket option.
 		 */
-		inline derived_t & set_reuse_address(bool val) noexcept
+		inline derived_t& set_reuse_address(bool val) noexcept
 		{
-			try
-			{
-				this->socket_.lowest_layer().set_option(asio::socket_base::reuse_address(val));
-			}
-			catch (system_error & e)
-			{
-				set_last_error(e);
-			}
-			return (static_cast<derived_t &>(*this));
+			error_code ec;
+			this->socket_.lowest_layer().set_option(asio::socket_base::reuse_address(val), ec);
+			set_last_error(ec);
+			return (static_cast<derived_t&>(*this));
 		}
 
 		/**
@@ -311,17 +273,11 @@ namespace asio2::detail
 		 */
 		inline bool is_reuse_address() const noexcept
 		{
-			try
-			{
-				asio::socket_base::reuse_address option;
-				this->socket_.lowest_layer().get_option(option);
-				return option.value();
-			}
-			catch (system_error & e)
-			{
-				set_last_error(e);
-			}
-			return false;
+			error_code ec;
+			asio::socket_base::reuse_address option{};
+			this->socket_.lowest_layer().get_option(option, ec);
+			set_last_error(ec);
+			return option.value();
 		}
 
 		/**
@@ -337,25 +293,23 @@ namespace asio2::detail
 		 * @brief Implements the TCP_NODELAY socket option.
 		 * If it's not a tcp socket, do nothing
 		 */
-		inline derived_t & set_no_delay(bool val) noexcept
+		inline derived_t& set_no_delay(bool val) noexcept
 		{
-			try
+			error_code ec;
+
+			if constexpr (std::is_same_v<typename socket_type::protocol_type, asio::ip::tcp>)
 			{
-				if constexpr (std::is_same_v<typename socket_type::protocol_type, asio::ip::tcp>)
-				{
-					this->socket_.lowest_layer().set_option(asio::ip::tcp::no_delay(val));
-				}
-				else
-				{
-					std::ignore = val;
-					//static_assert(false, "Only tcp socket has the no_delay option");
-				}
+				this->socket_.lowest_layer().set_option(asio::ip::tcp::no_delay(val), ec);
+				set_last_error(ec);
 			}
-			catch (system_error & e)
+			else
 			{
-				set_last_error(e);
+				std::ignore = val;
+				set_last_error(asio::error::operation_not_supported);
+				//static_assert(false, "Only tcp socket has the no_delay option");
 			}
-			return (static_cast<derived_t &>(*this));
+
+			return (static_cast<derived_t&>(*this));
 		}
 
 		/**
@@ -363,25 +317,21 @@ namespace asio2::detail
 		 */
 		inline bool is_no_delay() const noexcept
 		{
-			try
+			error_code ec;
+
+			if constexpr (std::is_same_v<typename socket_type::protocol_type, asio::ip::tcp>)
 			{
-				if constexpr (std::is_same_v<typename socket_type::protocol_type, asio::ip::tcp>)
-				{
-					asio::ip::tcp::no_delay option;
-					this->socket_.lowest_layer().get_option(option);
-					return option.value();
-				}
-				else
-				{
-					std::ignore = true;
-					//static_assert(false, "Only tcp socket has the no_delay option");
-				}
+				asio::ip::tcp::no_delay option{};
+				this->socket_.lowest_layer().get_option(option, ec);
+				set_last_error(ec);
+				return option.value();
 			}
-			catch (system_error & e)
+			else
 			{
-				set_last_error(e);
+				set_last_error(asio::error::operation_not_supported);
+				//static_assert(false, "Only tcp socket has the no_delay option");
+				return false;
 			}
-			return false;
 		}
 
 		/**
@@ -392,14 +342,9 @@ namespace asio2::detail
 		 */
 		inline derived_t& set_linger(bool enable, int timeout) noexcept
 		{
-			try
-			{
-				this->socket_.lowest_layer().set_option(asio::socket_base::linger(enable, timeout));
-			}
-			catch (system_error& e)
-			{
-				set_last_error(e);
-			}
+			error_code ec;
+			this->socket_.lowest_layer().set_option(asio::socket_base::linger(enable, timeout), ec);
+			set_last_error(ec);
 			return (static_cast<derived_t&>(*this));
 		}
 
@@ -408,15 +353,10 @@ namespace asio2::detail
 		 */
 		inline asio::socket_base::linger get_linger() const noexcept
 		{
+			error_code ec;
 			asio::socket_base::linger option{};
-			try
-			{
-				this->socket_.lowest_layer().get_option(option);
-			}
-			catch (system_error& e)
-			{
-				set_last_error(e);
-			}
+			this->socket_.lowest_layer().get_option(option, ec);
+			set_last_error(ec);
 			return option;
 		}
 

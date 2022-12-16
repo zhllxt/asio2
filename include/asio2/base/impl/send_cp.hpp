@@ -77,38 +77,36 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			clear_last_error();
-
 			// use this guard to fix the issue of below "# issue x:"
 			detail::integer_add_sub_guard asg(derive.io().pending());
 
 			// We must ensure that there is only one operation to send data
 			// at the same time,otherwise may be cause crash.
-			try
+			if (!derive.is_started())
 			{
-				if (!derive.is_started())
-					asio::detail::throw_error(asio::error::not_connected);
-
-				// # issue x:
-				// 1. user call "async_send" function in some worker thread (not io_context thread)
-				// 2. code run to here, "here" means between "if (!derive.is_started())" and
-				//    "derive.push_event("
-				// 3. the operating system switched from this thread to other thread
-				// 4. user call "client.stop", and the client is stopped successed
-				// 5. the operating system switched from other thread to this thread
-				// 6. code run to below, it means code run to "derive.push_event("
-				// 7. beacuse the iopool is stopped alreadly, so the "derive.push_event(" and
-				//    "derive._do_send(..." will can't be executed.
-
-				derive.push_event(
-				[&derive, p = derive.selfptr(), data = derive._data_persistence(std::forward<DataT>(data))]
-				(event_queue_guard<derived_t> g) mutable
-				{
-					derive._do_send(data, [g = std::move(g)](const error_code&, std::size_t) mutable {});
-				});
+				set_last_error(asio::error::not_connected);
+				return;
 			}
-			catch (system_error & e) { set_last_error(e); }
-			catch (std::exception &) { set_last_error(asio::error::eof); }
+
+			clear_last_error();
+
+			// # issue x:
+			// 1. user call "async_send" function in some worker thread (not io_context thread)
+			// 2. code run to here, "here" means between "if (!derive.is_started())" and
+			//    "derive.push_event("
+			// 3. the operating system switched from this thread to other thread
+			// 4. user call "client.stop", and the client is stopped successed
+			// 5. the operating system switched from other thread to this thread
+			// 6. code run to below, it means code run to "derive.push_event("
+			// 7. beacuse the iopool is stopped alreadly, so the "derive.push_event(" and
+			//    "derive._do_send(..." will can't be executed.
+
+			derive.push_event(
+			[&derive, p = derive.selfptr(), data = derive._data_persistence(std::forward<DataT>(data))]
+			(event_queue_guard<derived_t> g) mutable
+			{
+				derive._do_send(data, [g = std::move(g)](const error_code&, std::size_t) mutable {});
+			});
 		}
 
 		/**
@@ -139,28 +137,29 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			clear_last_error();
+			if (!s)
+			{
+				set_last_error(asio::error::invalid_argument);
+				return;
+			}
 
 			detail::integer_add_sub_guard asg(derive.io().pending());
 
 			// We must ensure that there is only one operation to send data
 			// at the same time,otherwise may be cause crash.
-			try
+			if (!derive.is_started())
 			{
-				if (!derive.is_started())
-					asio::detail::throw_error(asio::error::not_connected);
-
-				if (!s)
-					asio::detail::throw_error(asio::error::invalid_argument);
-
-				derive.push_event([&derive, p = derive.selfptr(), data = derive._data_persistence(s, count)]
-				(event_queue_guard<derived_t> g) mutable
-				{
-					derive._do_send(data, [g = std::move(g)](const error_code&, std::size_t) mutable {});
-				});
+				set_last_error(asio::error::not_connected);
+				return;
 			}
-			catch (system_error & e) { set_last_error(e); }
-			catch (std::exception &) { set_last_error(asio::error::eof); }
+
+			clear_last_error();
+
+			derive.push_event([&derive, p = derive.selfptr(), data = derive._data_persistence(s, count)]
+			(event_queue_guard<derived_t> g) mutable
+			{
+				derive._do_send(data, [g = std::move(g)](const error_code&, std::size_t) mutable {});
+			});
 		}
 
 		/**
@@ -178,11 +177,9 @@ namespace asio2::detail
 		 * std::basic_string<Elem, Traits, Allocator> : std::string m; async_send(m);
 		 */
 		template<class DataT>
-		inline std::future<std::pair<error_code, std::size_t>> async_send(DataT&& data, asio::use_future_t<> flag)
+		inline std::future<std::pair<error_code, std::size_t>> async_send(DataT&& data, asio::use_future_t<>)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
-
-			clear_last_error();
 
 			detail::integer_add_sub_guard asg(derive.io().pending());
 
@@ -197,35 +194,29 @@ namespace asio2::detail
 			// The program is ill-formed if the target type is not copy-constructible or
 			// initialization of the target is ill-formed.
 
-			std::ignore = flag;
 			std::promise<std::pair<error_code, std::size_t>> promise;
 			std::future<std::pair<error_code, std::size_t>> future = promise.get_future();
-			try
-			{
-				if (!derive.is_started())
-					asio::detail::throw_error(asio::error::not_connected);
 
-				derive.push_event([&derive, p = derive.selfptr(), promise = std::move(promise),
-					data = derive._data_persistence(std::forward<DataT>(data))]
-				(event_queue_guard<derived_t> g) mutable
+			if (!derive.is_started())
+			{
+				set_last_error(asio::error::not_connected);
+				promise.set_value(std::pair<error_code, std::size_t>(asio::error::not_connected, 0));
+				return future;
+			}
+
+			clear_last_error();
+
+			derive.push_event([&derive, p = derive.selfptr(), promise = std::move(promise),
+				data = derive._data_persistence(std::forward<DataT>(data))]
+			(event_queue_guard<derived_t> g) mutable
+			{
+				derive._do_send(data, [&promise, g = std::move(g)]
+				(const error_code& ec, std::size_t bytes_sent) mutable
 				{
-					derive._do_send(data, [&promise, g = std::move(g)]
-					(const error_code& ec, std::size_t bytes_sent) mutable
-					{
-						promise.set_value(std::pair<error_code, std::size_t>(ec, bytes_sent));
-					});
+					promise.set_value(std::pair<error_code, std::size_t>(ec, bytes_sent));
 				});
-			}
-			catch (system_error & e)
-			{
-				set_last_error(e);
-				promise.set_value(std::pair<error_code, std::size_t>(e.code(), 0));
-			}
-			catch (std::exception &)
-			{
-				set_last_error(asio::error::eof);
-				promise.set_value(std::pair<error_code, std::size_t>(asio::error::eof, 0));
-			}
+			});
+
 			return future;
 		}
 
@@ -262,45 +253,41 @@ namespace asio2::detail
 		template<class CharT, class SizeT>
 		inline typename std::enable_if_t<std::is_integral_v<detail::remove_cvref_t<SizeT>>,
 			std::future<std::pair<error_code, std::size_t>>>
-			async_send(CharT * s, SizeT count, asio::use_future_t<> flag)
+			async_send(CharT * s, SizeT count, asio::use_future_t<>)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			clear_last_error();
-
 			detail::integer_add_sub_guard asg(derive.io().pending());
 
-			std::ignore = flag;
 			std::promise<std::pair<error_code, std::size_t>> promise;
 			std::future<std::pair<error_code, std::size_t>> future = promise.get_future();
-			try
+
+			if (!derive.is_started())
 			{
-				if (!derive.is_started())
-					asio::detail::throw_error(asio::error::not_connected);
+				set_last_error(asio::error::not_connected);
+				promise.set_value(std::pair<error_code, std::size_t>(asio::error::not_connected, 0));
+				return future;
+			}
 
-				if (!s)
-					asio::detail::throw_error(asio::error::invalid_argument);
+			if (!s)
+			{
+				set_last_error(asio::error::invalid_argument);
+				promise.set_value(std::pair<error_code, std::size_t>(asio::error::invalid_argument, 0));
+				return future;
+			}
 
-				derive.push_event([&derive, p = derive.selfptr(), data = derive._data_persistence(s, count),
-					promise = std::move(promise)](event_queue_guard<derived_t> g) mutable
+			clear_last_error();
+
+			derive.push_event([&derive, p = derive.selfptr(), data = derive._data_persistence(s, count),
+				promise = std::move(promise)](event_queue_guard<derived_t> g) mutable
+			{
+				derive._do_send(data, [&promise, g = std::move(g)]
+				(const error_code& ec, std::size_t bytes_sent) mutable
 				{
-					derive._do_send(data, [&promise, g = std::move(g)]
-					(const error_code& ec, std::size_t bytes_sent) mutable
-					{
-						promise.set_value(std::pair<error_code, std::size_t>(ec, bytes_sent));
-					});
+					promise.set_value(std::pair<error_code, std::size_t>(ec, bytes_sent));
 				});
-			}
-			catch (system_error & e)
-			{
-				set_last_error(e);
-				promise.set_value(std::pair<error_code, std::size_t>(e.code(), 0));
-			}
-			catch (std::exception &)
-			{
-				set_last_error(asio::error::eof);
-				promise.set_value(std::pair<error_code, std::size_t>(asio::error::eof, 0));
-			}
+			});
+
 			return future;
 		}
 
@@ -321,38 +308,26 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			clear_last_error();
-
 			detail::integer_add_sub_guard asg(derive.io().pending());
 
 			// We must ensure that there is only one operation to send data
 			// at the same time,otherwise may be cause crash.
-			try
+			if (!derive.is_started())
 			{
-				if (!derive.is_started())
-					asio::detail::throw_error(asio::error::not_connected);
-
-				derive.push_event([&derive, p = derive.selfptr(), data = derive._data_persistence(std::forward<DataT>(data)),
-					fn = std::forward<Callback>(fn)](event_queue_guard<derived_t> g) mutable
-				{
-					derive._do_send(data, [&fn, g = std::move(g)]
-					(const error_code&, std::size_t bytes_sent) mutable
-					{
-						ASIO2_ASSERT(!g.is_empty());
-						callback_helper::call(fn, bytes_sent);
-					});
-				});
-				return;
+				return derive._send_cp_invoke_callback(asio::error::not_connected, std::forward<Callback>(fn));
 			}
-			catch (system_error & e) { set_last_error(e); }
-			catch (std::exception &) { set_last_error(asio::error::eof); }
 
-			// we should ensure that the callback must be called in the io_context thread.
-			derive.dispatch([ec = get_last_error(), fn = std::forward<Callback>(fn)]() mutable
+			clear_last_error();
+
+			derive.push_event([&derive, p = derive.selfptr(), data = derive._data_persistence(std::forward<DataT>(data)),
+				fn = std::forward<Callback>(fn)](event_queue_guard<derived_t> g) mutable
 			{
-				set_last_error(ec);
-
-				callback_helper::call(fn, 0);
+				derive._do_send(data, [&fn, g = std::move(g)]
+				(const error_code&, std::size_t bytes_sent) mutable
+				{
+					ASIO2_ASSERT(!g.is_empty());
+					callback_helper::call(fn, bytes_sent);
+				});
 			});
 		}
 
@@ -388,40 +363,30 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			clear_last_error();
-
 			detail::integer_add_sub_guard asg(derive.io().pending());
+
+			if (!s)
+			{
+				return derive._send_cp_invoke_callback(asio::error::invalid_argument, std::forward<Callback>(fn));
+			}
 
 			// We must ensure that there is only one operation to send data
 			// at the same time,otherwise may be cause crash.
-			try
+			if (!derive.is_started())
 			{
-				if (!derive.is_started())
-					asio::detail::throw_error(asio::error::not_connected);
-
-				if (!s)
-					asio::detail::throw_error(asio::error::invalid_argument);
-
-				derive.push_event([&derive, p = derive.selfptr(), data = derive._data_persistence(s, count),
-					fn = std::forward<Callback>(fn)](event_queue_guard<derived_t> g) mutable
-				{
-					derive._do_send(data, [&fn, g = std::move(g)]
-					(const error_code&, std::size_t bytes_sent) mutable
-					{
-						callback_helper::call(fn, bytes_sent);
-					});
-				});
-				return;
+				return derive._send_cp_invoke_callback(asio::error::not_connected, std::forward<Callback>(fn));
 			}
-			catch (system_error & e) { set_last_error(e); }
-			catch (std::exception &) { set_last_error(asio::error::eof); }
 
-			// we should ensure that the callback must be called in the io_context thread.
-			derive.dispatch([ec = get_last_error(), fn = std::forward<Callback>(fn)]() mutable
+			clear_last_error();
+
+			derive.push_event([&derive, p = derive.selfptr(), data = derive._data_persistence(s, count),
+				fn = std::forward<Callback>(fn)](event_queue_guard<derived_t> g) mutable
 			{
-				set_last_error(ec);
-
-				callback_helper::call(fn, 0);
+				derive._do_send(data, [&fn, g = std::move(g)]
+				(const error_code&, std::size_t bytes_sent) mutable
+				{
+					callback_helper::call(fn, bytes_sent);
+				});
 			});
 		}
 
@@ -523,6 +488,21 @@ namespace asio2::detail
 		}
 
 	protected:
+		template<class Callback>
+		inline void _send_cp_invoke_callback(error_code ec, Callback&& fn)
+		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
+			set_last_error(ec);
+
+			// we should ensure that the callback must be called in the io_context thread.
+			derive.dispatch([ec, fn = std::forward<Callback>(fn)]() mutable
+			{
+				set_last_error(ec);
+
+				callback_helper::call(fn, 0);
+			});
+		}
 	};
 }
 

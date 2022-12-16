@@ -54,97 +54,97 @@ namespace asio2::detail
 			unsigned int count = 3
 		) noexcept
 		{
-			try
+			derived_t& derive = static_cast<derived_t&>(*this);
+
+			auto & socket = derive.socket();
+			if (!socket.is_open())
 			{
-				derived_t& derive = static_cast<derived_t&>(*this);
-
-				auto & socket = derive.socket();
-				if (!socket.is_open())
-				{
-					set_last_error(asio::error::not_connected);
-					return false;
-				}
-
-				asio::socket_base::keep_alive option(onoff);
-				socket.set_option(option);
-
-				auto native_fd = socket.native_handle();
-
-				detail::ignore_unused(onoff, idle, interval, count, native_fd);
-
-			#if ASIO2_OS_LINUX
-				// For *n*x systems
-				int ret_keepidle  = setsockopt(native_fd, SOL_TCP, TCP_KEEPIDLE , (void*)&idle    , sizeof(unsigned int));
-				if (ret_keepidle)
-				{
-					set_last_error(errno, asio::error::get_system_category());
-					return false;
-				}
-
-				int ret_keepintvl = setsockopt(native_fd, SOL_TCP, TCP_KEEPINTVL, (void*)&interval, sizeof(unsigned int));
-				if (ret_keepintvl)
-				{
-					set_last_error(errno, asio::error::get_system_category());
-					return false;
-				}
-
-				int ret_keepcount = setsockopt(native_fd, SOL_TCP, TCP_KEEPCNT  , (void*)&count   , sizeof(unsigned int));
-				if (ret_keepcount)
-				{
-					set_last_error(errno, asio::error::get_system_category());
-					return false;
-				}
-			#elif ASIO2_OS_UNIX
-				// be pending
-			#elif ASIO2_OS_MACOS
-				int ret_keepalive = setsockopt(native_fd, IPPROTO_TCP, TCP_KEEPALIVE, (void*)&idle    , sizeof(unsigned int));
-				if (ret_keepalive)
-				{
-					set_last_error(errno, asio::error::get_system_category());
-					return false;
-				}
-
-				int ret_keepintvl = setsockopt(native_fd, IPPROTO_TCP, TCP_KEEPINTVL, (void*)&interval, sizeof(unsigned int));
-				if (ret_keepintvl)
-				{
-					set_last_error(errno, asio::error::get_system_category());
-					return false;
-				}
-
-				int ret_keepcount = setsockopt(native_fd, IPPROTO_TCP, TCP_KEEPCNT  , (void*)&count   , sizeof(unsigned int));
-				if (ret_keepcount)
-				{
-					set_last_error(errno, asio::error::get_system_category());
-					return false;
-				}
-			#elif ASIO2_OS_IOS
-				// be pending
-			#elif ASIO2_OS_WINDOWS
-				// Partially supported on windows
-				tcp_keepalive keepalive_options;
-				keepalive_options.onoff = onoff;
-				keepalive_options.keepalivetime = idle * 1000; // Keep Alive in milliseconds.
-				keepalive_options.keepaliveinterval = interval * 1000; // Resend if No-Reply 
-
-				DWORD bytes_returned = 0;
-
-				if (SOCKET_ERROR == ::WSAIoctl(native_fd, SIO_KEEPALIVE_VALS, (LPVOID)&keepalive_options,
-					(DWORD)sizeof(keepalive_options), nullptr, 0, (LPDWORD)&bytes_returned, nullptr, nullptr))
-				{
-					if (::WSAGetLastError() != WSAEWOULDBLOCK)
-					{
-						set_last_error(::WSAGetLastError(), asio::error::get_system_category());
-						return false;
-					}
-				}
-			#endif
-				return true;
+				set_last_error(asio::error::not_connected);
+				return false;
 			}
-			catch (system_error & e)
+
+			error_code ec;
+
+			asio::socket_base::keep_alive option(onoff);
+			socket.set_option(option, ec);
+
+			if (ec)
 			{
-				set_last_error(e);
+				set_last_error(ec);
+				return false;
 			}
-			return false;
+
+			auto native_fd = socket.native_handle();
+
+			detail::ignore_unused(onoff, idle, interval, count, native_fd);
+
+		#if ASIO2_OS_LINUX
+			// For *n*x systems
+			int ret_keepidle  = setsockopt(native_fd, SOL_TCP, TCP_KEEPIDLE , (void*)&idle    , sizeof(unsigned int));
+			if (ret_keepidle)
+			{
+				set_last_error(errno, asio::error::get_system_category());
+				return false;
+			}
+
+			int ret_keepintvl = setsockopt(native_fd, SOL_TCP, TCP_KEEPINTVL, (void*)&interval, sizeof(unsigned int));
+			if (ret_keepintvl)
+			{
+				set_last_error(errno, asio::error::get_system_category());
+				return false;
+			}
+
+			int ret_keepcount = setsockopt(native_fd, SOL_TCP, TCP_KEEPCNT  , (void*)&count   , sizeof(unsigned int));
+			if (ret_keepcount)
+			{
+				set_last_error(errno, asio::error::get_system_category());
+				return false;
+			}
+		#elif ASIO2_OS_UNIX
+			// be pending
+		#elif ASIO2_OS_MACOS
+			int ret_keepalive = setsockopt(native_fd, IPPROTO_TCP, TCP_KEEPALIVE, (void*)&idle    , sizeof(unsigned int));
+			if (ret_keepalive)
+			{
+				set_last_error(errno, asio::error::get_system_category());
+				return false;
+			}
+
+			int ret_keepintvl = setsockopt(native_fd, IPPROTO_TCP, TCP_KEEPINTVL, (void*)&interval, sizeof(unsigned int));
+			if (ret_keepintvl)
+			{
+				set_last_error(errno, asio::error::get_system_category());
+				return false;
+			}
+
+			int ret_keepcount = setsockopt(native_fd, IPPROTO_TCP, TCP_KEEPCNT  , (void*)&count   , sizeof(unsigned int));
+			if (ret_keepcount)
+			{
+				set_last_error(errno, asio::error::get_system_category());
+				return false;
+			}
+		#elif ASIO2_OS_IOS
+			// be pending
+		#elif ASIO2_OS_WINDOWS
+			// Partially supported on windows
+			tcp_keepalive keepalive_options;
+			keepalive_options.onoff = onoff;
+			keepalive_options.keepalivetime = idle * 1000; // Keep Alive in milliseconds.
+			keepalive_options.keepaliveinterval = interval * 1000; // Resend if No-Reply 
+
+			DWORD bytes_returned = 0;
+
+			if (SOCKET_ERROR == ::WSAIoctl(native_fd, SIO_KEEPALIVE_VALS, (LPVOID)&keepalive_options,
+				(DWORD)sizeof(keepalive_options), nullptr, 0, (LPDWORD)&bytes_returned, nullptr, nullptr))
+			{
+				if (::WSAGetLastError() != WSAEWOULDBLOCK)
+				{
+					set_last_error(::WSAGetLastError(), asio::error::get_system_category());
+					return false;
+				}
+			}
+		#endif
+			return true;
 		}
 
 	private:

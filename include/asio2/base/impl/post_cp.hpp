@@ -272,13 +272,7 @@ namespace asio2::detail
 
 				for (asio::steady_timer* timer : this->timed_tasks_)
 				{
-					try
-					{
-						timer->cancel();
-					}
-					catch (system_error const&)
-					{
-					}
+					detail::cancel_timer(timer);
 				}
 			}));
 
@@ -312,13 +306,7 @@ namespace asio2::detail
 
 				for (asio::steady_timer* timer : this->timed_tasks_)
 				{
-					try
-					{
-						timer->cancel();
-					}
-					catch (system_error const&)
-					{
-					}
+					detail::cancel_timer(timer);
 				}
 			}));
 

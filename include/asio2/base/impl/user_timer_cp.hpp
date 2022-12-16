@@ -301,46 +301,26 @@ namespace asio2::detail
 				auto iter = this->user_timers_.find(timer_handle);
 				if (iter != this->user_timers_.end())
 				{
-					try
-					{
-						iter->second->exited = true;
-						iter->second->timer.cancel();
-					}
-					catch (system_error const&)
-					{
-					}
+					iter->second->exited = true;
+					detail::cancel_timer(iter->second->timer);
 				}
 
-				try
-				{
-					// the asio::steady_timer's constructor may be throw some exception.
-					std::shared_ptr<user_timer_obj> timer_obj_ptr = std::make_shared<user_timer_obj>(
-						timer_handle, derive.io().context());
+				// the asio::steady_timer's constructor may be throw some exception.
+				std::shared_ptr<user_timer_obj> timer_obj_ptr = std::make_shared<user_timer_obj>(
+					timer_handle, derive.io().context());
 
-					// after asio::steady_timer's constructor is successed, then set the callback,
-					// avoid the callback is empty by std::move(callback) when asio::steady_timer's
-					// constructor throw some exception.
-					timer_obj_ptr->callback = std::move(callback);
-					timer_obj_ptr->interval = interval;
-					timer_obj_ptr->repeat   = static_cast<std::size_t>(repeat);
+				// after asio::steady_timer's constructor is successed, then set the callback,
+				// avoid the callback is empty by std::move(callback) when asio::steady_timer's
+				// constructor throw some exception.
+				timer_obj_ptr->callback = std::move(callback);
+				timer_obj_ptr->interval = interval;
+				timer_obj_ptr->repeat   = static_cast<std::size_t>(repeat);
 
-					this->user_timers_[std::move(timer_handle)] = timer_obj_ptr;
+				this->user_timers_[std::move(timer_handle)] = timer_obj_ptr;
 
-					derive.io().timers().emplace(std::addressof(timer_obj_ptr->timer));
+				derive.io().timers().emplace(std::addressof(timer_obj_ptr->timer));
 
-					derive._post_user_timers(std::move(this_ptr), std::move(timer_obj_ptr), first_delay);
-				}
-				catch (system_error & e)
-				{
-					set_last_error(e);
-
-					ASIO2_ASSERT(false);
-
-				#if defined(ASIO2_ENABLE_TIMER_CALLBACK_WHEN_ERROR)
-					// call the user callback directly.
-					callback();
-				#endif
-				}
+				derive._post_user_timers(std::move(this_ptr), std::move(timer_obj_ptr), first_delay);
 			}));
 		}
 
@@ -369,14 +349,9 @@ namespace asio2::detail
 				auto iter = this->user_timers_.find(timer_id);
 				if (iter != this->user_timers_.end())
 				{
-					try
-					{
-						iter->second->exited = true;
-						iter->second->timer.cancel();
-					}
-					catch (system_error const&)
-					{
-					}
+					iter->second->exited = true;
+
+					detail::cancel_timer(iter->second->timer);
 
 					this->user_timers_.erase(iter);
 				}
@@ -400,14 +375,9 @@ namespace asio2::detail
 				{
 					detail::ignore_unused(this_ptr, id);
 
-					try
-					{
-						timer_obj_ptr->exited = true;
-						timer_obj_ptr->timer.cancel();
-					}
-					catch (system_error const&)
-					{
-					}
+					timer_obj_ptr->exited = true;
+
+					detail::cancel_timer(timer_obj_ptr->timer);
 				}
 				this->user_timers_.clear();
 			}));
@@ -504,14 +474,9 @@ namespace asio2::detail
 				{
 					detail::ignore_unused(this_ptr, id);
 
-					try
-					{
-						timer_obj_ptr->exited = true;
-						timer_obj_ptr->timer.cancel();
-					}
-					catch (system_error const&)
-					{
-					}
+					timer_obj_ptr->exited = true;
+
+					detail::cancel_timer(timer_obj_ptr->timer);
 				}
 				this->user_timers_.clear();
 			}));
