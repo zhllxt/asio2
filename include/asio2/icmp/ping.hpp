@@ -237,133 +237,134 @@ namespace asio2::detail
 			std::string_view host, std::chrono::duration<Rep, Period> timeout, std::string body)
 		{
 			icmp_rep rep;
-			try
+
+			// First assign default value timed_out to last error
+			set_last_error(asio::error::timed_out);
+
+			// The io_context is required for all I/O
+			asio::io_context ioc;
+
+			// These objects perform our I/O
+			asio::ip::icmp::resolver resolver{ ioc };
+			asio::ip::icmp::socket socket{ ioc };
+
+			asio::streambuf request_buffer;
+			asio::streambuf reply_buffer;
+
+			std::ostream os(std::addressof(request_buffer));
+			std::istream is(std::addressof(reply_buffer));
+
+			icmp_header echo_request;
+
+			unsigned short id = static_cast<unsigned short>(0);
+			unsigned short sequence_number = static_cast<unsigned short>(0);
+
+			decltype(std::chrono::steady_clock::now()) time_sent;
+
+			// Look up the domain name
+			resolver.async_resolve(host, "",
+			[&](const error_code& ec1, const asio::ip::icmp::resolver::results_type& endpoints) mutable
 			{
-				// First assign default value timed_out to last error
-				set_last_error(asio::error::timed_out);
+				if (ec1) { set_last_error(ec1); return; }
 
-				// The io_context is required for all I/O
-				asio::io_context ioc;
-
-				// These objects perform our I/O
-				asio::ip::icmp::resolver resolver{ ioc };
-				asio::ip::icmp::socket socket{ ioc };
-
-				asio::streambuf request_buffer;
-				asio::streambuf reply_buffer;
-
-				std::ostream os(std::addressof(request_buffer));
-				std::istream is(std::addressof(reply_buffer));
-
-				icmp_header echo_request;
-
-				unsigned short id = static_cast<unsigned short>(0);
-				unsigned short sequence_number = static_cast<unsigned short>(0);
-
-				decltype(std::chrono::steady_clock::now()) time_sent;
-
-				// Look up the domain name
-				resolver.async_resolve(host, "",
-				[&](const error_code& ec1, const asio::ip::icmp::resolver::results_type& endpoints) mutable
+				for (auto& dest : endpoints)
 				{
-					if (ec1) { set_last_error(ec1); return; }
-
-					for (auto& dest : endpoints)
+					struct socket_guard
 					{
-						struct socket_guard
+						socket_guard(
+							asio::ip::icmp::socket& s,
+							const asio::ip::basic_resolver_entry<asio::ip::icmp>& d
+						) : socket(s), dest(d)
 						{
-							socket_guard(
-								asio::ip::icmp::socket& s,
-								const asio::ip::basic_resolver_entry<asio::ip::icmp>& d
-							) : socket(s), dest(d)
-							{
-								error_code ec_ignore{};
-								socket.cancel(ec_ignore);
-								socket.close(ec_ignore);
-								socket.open(dest.endpoint().protocol());
-							}
-							~socket_guard()
-							{
-								error_code ec_ignore{};
-								// Gracefully close the socket
-								socket.shutdown(asio::ip::tcp::socket::shutdown_both, ec_ignore);
-								socket.cancel(ec_ignore);
-								socket.close(ec_ignore);
-							}
-							asio::ip::icmp::socket& socket;
-							const asio::ip::basic_resolver_entry<asio::ip::icmp>& dest;
-						};
-
-						std::unique_ptr<socket_guard> guarder = std::make_unique<socket_guard>(socket, dest);
-
-						// Create an ICMP header for an echo request.
-						echo_request.type(icmp_header::echo_request);
-						echo_request.code(0);
-						id = (unsigned short)(std::size_t(guarder.get()));
-						echo_request.identifier(id);
-						auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-							std::chrono::steady_clock::now().time_since_epoch()).count();
-						sequence_number = static_cast<unsigned short>(ms % (std::numeric_limits<unsigned short>::max)());
-						echo_request.sequence_number(sequence_number);
-						compute_checksum(echo_request, body.begin(), body.end());
-
-						// Encode the request packet.
-						os << echo_request << body;
-
-						// Send the request.
-						time_sent = std::chrono::steady_clock::now();
-
-						socket.async_send_to(request_buffer.data(), dest, [&, guarder = std::move(guarder)]
-						(const error_code& ec2, std::size_t) mutable
+							error_code ec_ignore{};
+							socket.cancel(ec_ignore);
+							socket.close(ec_ignore);
+							socket.open(dest.endpoint().protocol());
+						}
+						~socket_guard()
 						{
-							if (ec2) { set_last_error(ec2); return; }
+							error_code ec_ignore{};
+							// Gracefully close the socket
+							socket.shutdown(asio::ip::tcp::socket::shutdown_both, ec_ignore);
+							socket.cancel(ec_ignore);
+							socket.close(ec_ignore);
+						}
+						asio::ip::icmp::socket& socket;
+						const asio::ip::basic_resolver_entry<asio::ip::icmp>& dest;
+					};
 
-							// Discard any data already in the buffer.
-							reply_buffer.consume(reply_buffer.size());
+					std::unique_ptr<socket_guard> guarder = std::make_unique<socket_guard>(socket, dest);
 
-							std::size_t length = sizeof(ipv4_header) + sizeof(icmp_header) + body.size();
+					// Create an ICMP header for an echo request.
+					echo_request.type(icmp_header::echo_request);
+					echo_request.code(0);
+					id = (unsigned short)(std::size_t(guarder.get()));
+					echo_request.identifier(id);
+					auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+						std::chrono::steady_clock::now().time_since_epoch()).count();
+					sequence_number = static_cast<unsigned short>(ms % (std::numeric_limits<unsigned short>::max)());
+					echo_request.sequence_number(sequence_number);
+					compute_checksum(echo_request, body.begin(), body.end());
 
-							// Wait for a reply. We prepare the buffer to receive up to 64KB.
-							socket.async_receive(reply_buffer.prepare(length), [&, guarder = std::move(guarder)]
-							(const error_code& ec3, std::size_t bytes_recvd) mutable
+					// Encode the request packet.
+					os << echo_request << body;
+
+					// Send the request.
+					time_sent = std::chrono::steady_clock::now();
+
+					socket.async_send_to(request_buffer.data(), dest, [&, guarder = std::move(guarder)]
+					(const error_code& ec2, std::size_t) mutable
+					{
+						if (ec2) { set_last_error(ec2); return; }
+
+						// Discard any data already in the buffer.
+						reply_buffer.consume(reply_buffer.size());
+
+						std::size_t length = sizeof(ipv4_header) + sizeof(icmp_header) + body.size();
+
+						// Wait for a reply. We prepare the buffer to receive up to 64KB.
+						socket.async_receive(reply_buffer.prepare(length), [&, guarder = std::move(guarder)]
+						(const error_code& ec3, std::size_t bytes_recvd) mutable
+						{
+							set_last_error(ec3);
+
+							// The actual number of bytes received is committed to the buffer so that we
+							// can extract it using a std::istream object.
+							reply_buffer.commit(bytes_recvd);
+
+							// Decode the reply packet.
+							ipv4_header& ipv4_hdr = rep.base_ipv4();
+							icmp_header& icmp_hdr = rep.base_icmp();
+							is >> ipv4_hdr >> icmp_hdr;
+
+							ASIO2_ASSERT(ipv4_hdr.total_length() == bytes_recvd);
+
+							// We can receive all ICMP packets received by the host, so we need to
+							// filter out only the echo replies that match the our identifier and
+							// expected sequence number.
+							if (is && icmp_hdr.type() == icmp_header::echo_reply
+								&& icmp_hdr.identifier() == id
+								&& icmp_hdr.sequence_number() == sequence_number)
 							{
-								set_last_error(ec3);
-
-								// The actual number of bytes received is committed to the buffer so that we
-								// can extract it using a std::istream object.
-								reply_buffer.commit(bytes_recvd);
-
-								// Decode the reply packet.
-								ipv4_header& ipv4_hdr = rep.base_ipv4();
-								icmp_header& icmp_hdr = rep.base_icmp();
-								is >> ipv4_hdr >> icmp_hdr;
-
-								ASIO2_ASSERT(ipv4_hdr.total_length() == bytes_recvd);
-
-								// We can receive all ICMP packets received by the host, so we need to
-								// filter out only the echo replies that match the our identifier and
-								// expected sequence number.
-								if (is && icmp_hdr.type() == icmp_header::echo_reply
-									&& icmp_hdr.identifier() == id
-									&& icmp_hdr.sequence_number() == sequence_number)
-								{
-									// Print out some information about the reply packet.
-									rep.lag = std::chrono::steady_clock::now() - time_sent;
-								}
-							});
+								// Print out some information about the reply packet.
+								rep.lag = std::chrono::steady_clock::now() - time_sent;
+							}
 						});
+					});
 
-						break;
-					}
-				});
+					break;
+				}
+			});
 
-				// timedout run
-				ioc.run_for(timeout);
-			}
-			catch (system_error & e)
-			{
-				set_last_error(e);
-			}
+			// timedout run
+			ioc.run_for(timeout);
+
+			error_code ec_ignore{};
+
+			// Gracefully close the socket
+			socket.shutdown(asio::ip::tcp::socket::shutdown_both, ec_ignore);
+			socket.cancel(ec_ignore);
+			socket.close(ec_ignore);
 
 			return rep;
 		}
@@ -723,52 +724,58 @@ namespace asio2::detail
 					return;
 				}
 
-				try
+				error_code ec, ec_ignore;
+
+				derive.io().regobj(&derive);
+
+			#if defined(_DEBUG) || defined(DEBUG)
+				this->is_stop_called_ = false;
+			#endif
+
+				expected = state_t::starting;
+				if (!this->state_.compare_exchange_strong(expected, state_t::starting))
 				{
-					clear_last_error();
-
-					derive.io().regobj(&derive);
-
-				#if defined(_DEBUG) || defined(DEBUG)
-					this->is_stop_called_ = false;
-				#endif
-
-					expected = state_t::starting;
-					if (!this->state_.compare_exchange_strong(expected, state_t::starting))
-					{
-						ASIO2_ASSERT(false);
-						asio::detail::throw_error(asio::error::operation_aborted);
-					}
-
-					this->seq_ = 0;
-					this->total_send_ = 0;
-					this->total_recv_ = 0;
-					this->total_time_ = std::chrono::steady_clock::duration{ 0 };
-					asio::ip::icmp::resolver resolver(this->io_.context());
-					this->destination_ = *resolver.resolve(host, "").begin();
-				
-					error_code ec_ignore{};
-
-					this->socket().cancel(ec_ignore);
-					this->socket().close(ec_ignore);
-					this->socket().open(this->destination_.protocol());
-
-					derive._fire_init();
-
-					derive._handle_start(error_code{}, std::move(this_ptr));
-
+					ASIO2_ASSERT(false);
+					derive._handle_start(asio::error::operation_aborted, std::move(this_ptr));
 					return;
 				}
-				catch (system_error const& e)
+
+				this->seq_ = 0;
+				this->total_send_ = 0;
+				this->total_recv_ = 0;
+				this->total_time_ = std::chrono::steady_clock::duration{ 0 };
+
+				asio::ip::icmp::resolver resolver(this->io().context());
+
+				auto results = resolver.resolve(host, "", ec);
+				if (ec)
 				{
-					set_last_error(e.code());
+					derive._handle_start(ec, std::move(this_ptr));
+					return;
 				}
-				catch (std::exception const&)
+				if (results.empty())
 				{
-					set_last_error(asio::error::invalid_argument);
+					derive._handle_start(asio::error::host_not_found, std::move(this_ptr));
+					return;
 				}
 
-				derive._handle_start(get_last_error(), std::move(this_ptr));
+				this->destination_ = *results.begin();
+				
+				this->socket().cancel(ec_ignore);
+				this->socket().close(ec_ignore);
+				this->socket().open(this->destination_.protocol(), ec);
+
+				if (ec)
+				{
+					derive._handle_start(ec, std::move(this_ptr));
+					return;
+				}
+
+				clear_last_error();
+
+				derive._fire_init();
+
+				derive._handle_start(ec, std::move(this_ptr));
 			});
 
 			if (!derive.io().running_in_this_thread())
@@ -793,36 +800,31 @@ namespace asio2::detail
 		{
 			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
 
-			try
+			// Whether the startup succeeds or fails, always call fire_start notification
+			state_t expected = state_t::starting;
+			if (!ec)
+				if (!this->state_.compare_exchange_strong(expected, state_t::started))
+					ec = asio::error::operation_aborted;
+
+			set_last_error(ec);
+
+			this->derived()._fire_start();
+
+			expected = state_t::started;
+			if (!ec)
+				if (!this->state_.compare_exchange_strong(expected, state_t::started))
+					ec = asio::error::operation_aborted;
+
+			if (ec)
 			{
-				// Whether the startup succeeds or fails, always call fire_start notification
-				state_t expected = state_t::starting;
-				if (!ec)
-					if (!this->state_.compare_exchange_strong(expected, state_t::started))
-						ec = asio::error::operation_aborted;
-
-				set_last_error(ec);
-
-				this->derived()._fire_start();
-
-				expected = state_t::started;
-				if (!ec)
-					if (!this->state_.compare_exchange_strong(expected, state_t::started))
-						ec = asio::error::operation_aborted;
-
-				asio::detail::throw_error(ec);
-
-				this->buffer_.consume(this->buffer_.size());
-
-				this->derived()._post_send(this_ptr);
-				this->derived()._post_recv(std::move(this_ptr));
+				this->derived()._do_stop(ec, std::move(this_ptr));
+				return;
 			}
-			catch (system_error & e)
-			{
-				set_last_error(e);
 
-				this->derived()._do_stop(e.code(), this->derived().selfptr());
-			}
+			this->buffer_.consume(this->buffer_.size());
+
+			this->derived()._post_send(this_ptr);
+			this->derived()._post_recv(std::move(this_ptr));
 		}
 
 		inline void _do_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
@@ -885,13 +887,7 @@ namespace asio2::detail
 			// close all async_events
 			this->notify_all_condition_events();
 
-			try
-			{
-				this->timer_.cancel();
-			}
-			catch (system_error const&)
-			{
-			}
+			detail::cancel_timer(this->timer_);
 
 			this->socket().cancel(ec_ignore);
 
@@ -965,6 +961,8 @@ namespace asio2::detail
 		{
 			detail::ignore_unused(ec);
 
+			set_last_error(ec);
+
 			if (this->replies_ == 0)
 			{
 				this->rep_.lag = std::chrono::steady_clock::duration(-1);
@@ -1000,36 +998,23 @@ namespace asio2::detail
 				return;
 			}
 
-			try
-			{
-			#if defined(_DEBUG) || defined(DEBUG)
-				ASIO2_ASSERT(this->derived().post_recv_counter_.load() == 0);
-				this->derived().post_recv_counter_++;
-			#endif
+		#if defined(_DEBUG) || defined(DEBUG)
+			ASIO2_ASSERT(this->derived().post_recv_counter_.load() == 0);
+			this->derived().post_recv_counter_++;
+		#endif
 
-				// Wait for a reply. We prepare the buffer to receive up to 64KB.
-				this->socket().async_receive(this->buffer_.prepare(this->buffer_.pre_size()),
-					make_allocator(this->rallocator_,
-						[this, this_ptr = std::move(this_ptr)]
-				(const error_code& ec, std::size_t bytes_recvd) mutable
-				{
-				#if defined(_DEBUG) || defined(DEBUG)
-					this->derived().post_recv_counter_--;
-				#endif
-
-					this->derived()._handle_recv(ec, bytes_recvd, std::move(this_ptr));
-				}));
-			}
-			catch (system_error & e)
+			// Wait for a reply. We prepare the buffer to receive up to 64KB.
+			this->socket().async_receive(this->buffer_.prepare(this->buffer_.pre_size()),
+				make_allocator(this->rallocator_,
+					[this, this_ptr = std::move(this_ptr)]
+			(const error_code& ec, std::size_t bytes_recvd) mutable
 			{
 			#if defined(_DEBUG) || defined(DEBUG)
 				this->derived().post_recv_counter_--;
 			#endif
 
-				set_last_error(e);
-
-				this->derived()._do_stop(e.code(), this->derived().selfptr());
-			}
+				this->derived()._handle_recv(ec, bytes_recvd, std::move(this_ptr));
+			}));
 		}
 
 		void _handle_recv(const error_code& ec, std::size_t bytes_recvd, std::shared_ptr<derived_t> this_ptr)
@@ -1080,13 +1065,7 @@ namespace asio2::detail
 				// If this is the first reply, interrupt the five second timeout.
 				if (this->replies_++ == 0)
 				{
-					try
-					{
-						this->timer_.cancel();
-					}
-					catch (system_error const&)
-					{
-					}
+					detail::cancel_timer(this->timer_);
 				}
 
 				this->total_recv_++;

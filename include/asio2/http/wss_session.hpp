@@ -162,30 +162,26 @@ namespace asio2::detail
 			{
 				ASIO2_ASSERT(this->derived().sessions().io().running_in_this_thread());
 
-				try
+				set_last_error(ec);
+
+				this->derived()._fire_handshake(this_ptr);
+
+				if (ec)
 				{
-					set_last_error(ec);
+					this->derived()._do_disconnect(ec, std::move(this_ptr), std::move(chain));
 
-					this->derived()._fire_handshake(this_ptr);
-
-					asio::detail::throw_error(ec);
-
-					asio::dispatch(this->io().context(), make_allocator(this->wallocator_,
-					[this, this_ptr = std::move(this_ptr), ecs = std::move(ecs), chain = std::move(chain)]
-					() mutable
-					{
-						ASIO2_ASSERT(this->derived().io().running_in_this_thread());
-
-						this->derived()._post_control_callback(this_ptr, ecs);
-						this->derived()._post_upgrade(std::move(this_ptr), std::move(ecs), std::move(chain));
-					}));
+					return;
 				}
-				catch (system_error & e)
+
+				asio::dispatch(this->io().context(), make_allocator(this->wallocator_,
+				[this, this_ptr = std::move(this_ptr), ecs = std::move(ecs), chain = std::move(chain)]
+				() mutable
 				{
-					set_last_error(e);
+					ASIO2_ASSERT(this->derived().io().running_in_this_thread());
 
-					this->derived()._do_disconnect(e.code(), std::move(this_ptr), std::move(chain));
-				}
+					this->derived()._post_control_callback(this_ptr, ecs);
+					this->derived()._post_upgrade(std::move(this_ptr), std::move(ecs), std::move(chain));
+				}));
 			});
 		}
 

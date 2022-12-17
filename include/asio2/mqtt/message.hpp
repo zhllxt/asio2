@@ -345,6 +345,8 @@ namespace asio2::mqtt
 	{
 		mqtt::control_packet_type type = mqtt::message_type_from_data(data);
 
+		asio2::clear_last_error();
+
 		if /**/ (ver == mqtt::version::v3)
 		{
 			switch (type)
@@ -364,8 +366,8 @@ namespace asio2::mqtt
 			case mqtt::control_packet_type::pingresp    : { mqtt::message m{ mqtt::v3::pingresp    {} }; std::get<mqtt::v3::pingresp    >(m).deserialize(data); f(std::move(m)); } break;
 			case mqtt::control_packet_type::disconnect  : { mqtt::message m{ mqtt::v3::disconnect  {} }; std::get<mqtt::v3::disconnect  >(m).deserialize(data); f(std::move(m)); } break;
 			default:
-				ASIO2_ASSERT(false);
-				asio::detail::throw_error(mqtt::make_error_code(mqtt::error::malformed_packet));
+				asio2::set_last_error(mqtt::make_error_code(mqtt::error::malformed_packet));
+				f(mqtt::message{});
 				break;
 			}
 		}
@@ -388,8 +390,8 @@ namespace asio2::mqtt
 			case mqtt::control_packet_type::pingresp    : { mqtt::message m{ mqtt::v4::pingresp    {} }; std::get<mqtt::v4::pingresp    >(m).deserialize(data); f(std::move(m)); } break;
 			case mqtt::control_packet_type::disconnect  : { mqtt::message m{ mqtt::v4::disconnect  {} }; std::get<mqtt::v4::disconnect  >(m).deserialize(data); f(std::move(m)); } break;
 			default:
-				ASIO2_ASSERT(false);
-				asio::detail::throw_error(mqtt::make_error_code(mqtt::error::malformed_packet));
+				asio2::set_last_error(mqtt::make_error_code(mqtt::error::malformed_packet));
+				f(mqtt::message{});
 				break;
 			}
 		}
@@ -413,43 +415,46 @@ namespace asio2::mqtt
 			case mqtt::control_packet_type::disconnect  : { mqtt::message m{ mqtt::v5::disconnect  {} }; std::get<mqtt::v5::disconnect  >(m).deserialize(data); f(std::move(m)); } break;
 			case mqtt::control_packet_type::auth        : { mqtt::message m{ mqtt::v5::auth        {} }; std::get<mqtt::v5::auth        >(m).deserialize(data); f(std::move(m)); } break;
 			default:
-				ASIO2_ASSERT(false);
-				asio::detail::throw_error(mqtt::make_error_code(mqtt::error::malformed_packet));
+				asio2::set_last_error(mqtt::make_error_code(mqtt::error::malformed_packet));
+				f(mqtt::message{});
 				break;
 			}
 		}
 		else
 		{
-			ASIO2_ASSERT(false);
-			asio::detail::throw_error(mqtt::make_error_code(mqtt::error::malformed_packet));
+			asio2::set_last_error(mqtt::make_error_code(mqtt::error::malformed_packet));
+			f(mqtt::message{});
 		}
-
-		ASIO2_ASSERT(data.empty());
 	}
 
 	template<typename = void>
 	inline mqtt::version version_from_connect_data(std::string_view data)
 	{
-		try
-		{
-			mqtt::fixed_header<0> header{};
-			header.deserialize(data);
+		asio2::clear_last_error();
 
-			// The Protocol Name is a UTF-8 Encoded String that represents the protocol name MQTT. 
-			// The string, its offset and length will not be changed by future versions of the MQTT specification.
-			mqtt::utf8_string protocol_name{};
-			protocol_name.deserialize(data);
+		mqtt::fixed_header<0> header{};
+		header.deserialize(data);
 
-			// The 8 bit unsigned value that represents the revision level of the protocol used by the Client. 
-			// The value of the Protocol Level field for the version 3.1.1 of the protocol is 4 (0x04).
-			mqtt::one_byte_integer protocol_version{};
-			protocol_version.deserialize(data);
+		if (asio2::get_last_error())
+			return static_cast<mqtt::version>(0);
 
-			return static_cast<mqtt::version>(protocol_version.value());
-		}
-		catch (system_error const&) {}
+		// The Protocol Name is a UTF-8 Encoded String that represents the protocol name MQTT. 
+		// The string, its offset and length will not be changed by future versions of the MQTT specification.
+		mqtt::utf8_string protocol_name{};
+		protocol_name.deserialize(data);
 
-		return static_cast<mqtt::version>(0);
+		if (asio2::get_last_error())
+			return static_cast<mqtt::version>(0);
+
+		// The 8 bit unsigned value that represents the revision level of the protocol used by the Client. 
+		// The value of the Protocol Level field for the version 3.1.1 of the protocol is 4 (0x04).
+		mqtt::one_byte_integer protocol_version{};
+		protocol_version.deserialize(data);
+
+		if (asio2::get_last_error())
+			return static_cast<mqtt::version>(0);
+
+		return static_cast<mqtt::version>(protocol_version.value());
 	}
 }
 

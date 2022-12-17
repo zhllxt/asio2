@@ -102,77 +102,71 @@ namespace asio2::detail
 				static_assert(!std::is_reference_v<return_t> && !std::is_pointer_v<return_t>);
 				static_assert(!is_template_instance_of_v<std::basic_string_view, return_t>);
 
-				error_code ec;
-				std::shared_ptr<return_t> result = std::make_shared<return_t>();
-				try
+				// should't read the ecs in other thread which is not the io_context thread.
+				//if (!derive.ecs_->get_rdc())
+				//{
+				//	ASIO2_ASSERT(false && "This function is only available in rdc mode");
+				//}
+
+				if (!derive.is_started())
 				{
-					// should't read the ecs in other thread which is not the io_context thread.
-					//if (!derive.ecs_->get_rdc())
-					//{
-					//	ASIO2_ASSERT(false && "This function is only available in rdc mode");
+					set_last_error(asio::error::not_connected);
 
-					//	asio::detail::throw_error(asio::error::operation_not_supported);
-					//}
+					// [20210818] don't throw an error, you can use get_last_error() to check
+					// is there any exception.
 
-					if (!derive.is_started())
-						asio::detail::throw_error(asio::error::not_connected);
+					return return_t{};
+				}
 
-					std::shared_ptr<std::promise<error_code>> promise = std::make_shared<std::promise<error_code>>();
-					std::future<error_code> future = promise->get_future();
+				std::shared_ptr<return_t> result = std::make_shared<return_t>();
 
-					auto invoker = [&derive, result, pm = std::move(promise)]
-					(const error_code& ec, send_data_t s, recv_data_t r) mutable
+				std::shared_ptr<std::promise<error_code>> promise = std::make_shared<std::promise<error_code>>();
+				std::future<error_code> future = promise->get_future();
+
+				auto invoker = [&derive, result, pm = std::move(promise)]
+				(const error_code& ec, send_data_t s, recv_data_t r) mutable
+				{
+					ASIO2_ASSERT(derive.io().running_in_this_thread());
+
+					detail::ignore_unused(derive, s);
+
+					if (!ec)
 					{
-						ASIO2_ASSERT(derive.io().running_in_this_thread());
+						convert_recv_data_to_result(result, r);
+					}
 
-						detail::ignore_unused(derive, s);
+					pm->set_value(ec);
+				};
 
-						if (!ec)
-						{
-							convert_recv_data_to_result(result, r);
-						}
+				// All pending sending events will be cancelled after enter the callback below.
+				derive.post(
+				[&derive, p = derive.selfptr(), timeout,
+					invoker = std::move(invoker), data = std::forward<DataT>(data)]
+				() mutable
+				{
+					derive._rdc_send(std::move(p), std::move(data), std::move(timeout), std::move(invoker));
+				});
 
-						pm->set_value(ec);
-					};
-
-					// All pending sending events will be cancelled after enter the callback below.
-					derive.post(
-					[&derive, p = derive.selfptr(), timeout,
-						invoker = std::move(invoker), data = std::forward<DataT>(data)]
-					() mutable
+				// Whether we run on the io_context thread
+				if (!derive.io().running_in_this_thread())
+				{
+					std::future_status status = future.wait_for(timeout);
+					if (status == std::future_status::ready)
 					{
-						derive._rdc_send(std::move(p), std::move(data), std::move(timeout), std::move(invoker));
-					});
-
-					// Whether we run on the io_context thread
-					if (!derive.io().running_in_this_thread())
-					{
-						std::future_status status = future.wait_for(timeout);
-						if (status == std::future_status::ready)
-						{
-							ec = future.get();
-						}
-						else
-						{
-							ec = asio::error::timed_out;
-						}
+						set_last_error(future.get());
 					}
 					else
 					{
-						// If invoke synchronization rdc call function in communication thread,
-						// it will degenerates into async_call and the return value is empty.
-
-						ec = asio::error::in_progress;
+						set_last_error(asio::error::timed_out);
 					}
 				}
-				catch (system_error      const& e) { ec = e.code(); }
-				catch (std::exception    const&  ) { ec = asio::error::eof; }
+				else
+				{
+					// If invoke synchronization rdc call function in communication thread,
+					// it will degenerates into async_call and the return value is empty.
 
-				set_last_error(ec);
-
-				// [20210818] don't throw an error, you can use get_last_error() to check
-				// is there any exception.
-				// asio::detail::throw_error(ec);
+					set_last_error(asio::error::in_progress);
+				}
 
 				return std::move(*result);
 			}
@@ -188,46 +182,38 @@ namespace asio2::detail
 			inline static void exec(derive_t& derive, DataT&& data,
 				std::chrono::duration<Rep, Period> timeout, Invoker&& invoker)
 			{
-				error_code ec;
+				// should't read the ecs in other thread which is not the io_context thread.
+				//if (!derive.ecs_->get_rdc())
+				//{
+				//	ASIO2_ASSERT(false && "This function is only available in rdc mode");
+				//}
 
-				try
+				if (!derive.is_started())
 				{
-					// should't read the ecs in other thread which is not the io_context thread.
-					//if (!derive.ecs_->get_rdc())
-					//{
-					//	ASIO2_ASSERT(false && "This function is only available in rdc mode");
+					set_last_error(asio::error::not_connected);
 
-					//	asio::detail::throw_error(asio::error::operation_not_supported);
-					//}
-
-					if (!derive.is_started())
-						asio::detail::throw_error(asio::error::not_connected);
-
-					// All pending sending events will be cancelled after enter the callback below.
+					// ensure the callback was called in the communication thread.
 					derive.post(
-					[&derive, p = derive.selfptr(), timeout,
-						invoker = std::forward<Invoker>(invoker), data = std::forward<DataT>(data)]
+					[&derive, invoker = std::forward<Invoker>(invoker),
+						data = derive._data_persistence(std::forward<DataT>(data))]
 					() mutable
 					{
-						derive._rdc_send(std::move(p), std::move(data), std::move(timeout), std::move(invoker));
+						set_last_error(asio::error::not_connected);
+
+						derive._rdc_invoke_with_send(asio::error::not_connected,
+							invoker, derive._rdc_convert_to_send_data(data));
 					});
 
 					return;
 				}
-				catch (system_error     & e) { ec = e.code();             }
-				catch (std::exception   &  ) { ec = asio::error::eof;     }
 
-				set_last_error(ec);
-
-				// ensure the callback was called in the communication thread.
+				// All pending sending events will be cancelled after enter the callback below.
 				derive.post(
-				[&derive, ec, invoker = std::forward<Invoker>(invoker),
-					data = derive._data_persistence(std::forward<DataT>(data))]
+				[&derive, p = derive.selfptr(), timeout,
+					invoker = std::forward<Invoker>(invoker), data = std::forward<DataT>(data)]
 				() mutable
 				{
-					set_last_error(ec);
-
-					derive._rdc_invoke_with_send(ec, invoker, derive._rdc_convert_to_send_data(data));
+					derive._rdc_send(std::move(p), std::move(data), std::move(timeout), std::move(invoker));
 				});
 			}
 		};
@@ -564,13 +550,8 @@ namespace asio2::detail
 					*((std::tuple<std::shared_ptr<asio::steady_timer>, callback_type>*)val);
 
 				auto& [timer, invoker] = tp;
-				try
-				{
-					timer->cancel();
-				}
-				catch (system_error const&)
-				{
-				}
+
+				detail::cancel_timer(*timer);
 
 				derive._rdc_invoke_with_none(asio::error::operation_aborted, invoker);
 			});
@@ -626,13 +607,7 @@ namespace asio2::detail
 
 					auto& [tmer, cb] = tp;
 
-					try
-					{
-						tmer->cancel();
-					}
-					catch (system_error const&)
-					{
-					}
+					detail::cancel_timer(*tmer);
 
 					derive._rdc_invoke_with_none(asio::error::timed_out, cb);
 				});
@@ -685,13 +660,7 @@ namespace asio2::detail
 			{
 				auto&[timer, invoker] = iter->second;
 
-				try
-				{
-					timer->cancel();
-				}
-				catch (system_error const&)
-				{
-				}
+				detail::cancel_timer(*timer);
 
 				derive._rdc_invoke_with_recv(error_code{}, invoker, data);
 

@@ -705,7 +705,7 @@ namespace asio2::detail
 						http::web_response::super msg{ std::move(rep.base()) };
 						if (msg.body().to_text())
 						{
-							msg.prepare_payload();
+							http::try_prepare_payload(msg);
 							this->http_cache_.shrink_to_fit();
 							pcn = this->http_cache_.emplace(req.target(), std::move(msg));
 							return std::addressof(pcn->msg);
@@ -777,7 +777,7 @@ namespace asio2::detail
 						http::web_response::super msg{ std::move(rep.base()) };
 						if (msg.body().to_text())
 						{
-							msg.prepare_payload();
+							http::try_prepare_payload(msg);
 							this->http_cache_.shrink_to_fit();
 							pcn = this->http_cache_.emplace(req.target(), std::move(msg));
 							return std::addressof(pcn->msg);

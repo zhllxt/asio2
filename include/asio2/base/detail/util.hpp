@@ -560,13 +560,20 @@ namespace asio2::detail
 	}
 
 	template<typename IntegerType, typename T>
-	inline IntegerType to_integer(T&& v)
+	inline IntegerType to_integer(T&& v) noexcept
 	{
-		using type = detail::remove_cvref_t<T>;
-		if constexpr (std::is_integral_v<type>)
+		if constexpr (std::is_integral_v<typename detail::remove_cvref_t<T>>)
+		{
 			return static_cast<IntegerType>(v);
+		}
 		else
-			return static_cast<IntegerType>(std::stoull(to_string(std::forward<T>(v))));
+		{
+			std::string s = detail::to_string(std::forward<T>(v));
+			int rx = 10;
+			if (s.size() >= std::size_t(2) && s[0] == '0' && (s[1] == 'x' || s[1] == 'X'))
+				rx = 16;
+			return static_cast<IntegerType>(std::strtoull(s.data(), nullptr, rx));
+		}
 	}
 
 	template<typename Protocol, typename String, typename StrOrInt>
@@ -579,17 +586,35 @@ namespace asio2::detail
 		// the resolve function is a time-consuming operation
 		if /**/ constexpr (std::is_same_v<asio::ip::udp::endpoint, Protocol>)
 		{
+			error_code ec;
 			asio::ip::udp::resolver resolver(ioc);
-			asio::ip::udp::endpoint endpoint = *resolver.resolve(h, p,
-				asio::ip::resolver_base::flags::address_configured);
-			return endpoint;
+			auto rs = resolver.resolve(h, p, asio::ip::resolver_base::flags::address_configured, ec);
+			if (rs.empty())
+			{
+				set_last_error(asio::error::host_not_found);
+				return *rs;
+			}
+			else
+			{
+				clear_last_error();
+				return asio::ip::udp::endpoint{};
+			}
 		}
 		else if constexpr (std::is_same_v<asio::ip::tcp::endpoint, Protocol>)
 		{
+			error_code ec;
 			asio::ip::tcp::resolver resolver(ioc);
-			asio::ip::tcp::endpoint endpoint = *resolver.resolve(h, p,
-				asio::ip::resolver_base::flags::address_configured);
-			return endpoint;
+			auto rs = resolver.resolve(h, p, asio::ip::resolver_base::flags::address_configured, ec);
+			if (rs.empty())
+			{
+				set_last_error(asio::error::host_not_found);
+				return *rs;
+			}
+			else
+			{
+				clear_last_error();
+				return asio::ip::tcp::endpoint{};
+			}
 		}
 		else
 		{

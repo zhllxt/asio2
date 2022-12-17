@@ -380,47 +380,30 @@ namespace asio2::detail
 				// must read/write ecs in the io_context thread.
 				derive.ecs_ = ecs;
 
-				try
-				{
-					clear_last_error();
+				clear_last_error();
 
-					derive.io().regobj(&derive);
+				derive.io().regobj(&derive);
 
-				#if defined(_DEBUG) || defined(DEBUG)
-					this->is_stop_reconnect_timer_called_ = false;
-					this->is_post_reconnect_timer_called_ = false;
-					this->is_stop_connect_timeout_timer_called_ = false;
-					this->is_disconnect_called_ = false;
-				#endif
+			#if defined(_DEBUG) || defined(DEBUG)
+				this->is_stop_reconnect_timer_called_ = false;
+				this->is_post_reconnect_timer_called_ = false;
+				this->is_stop_connect_timeout_timer_called_ = false;
+				this->is_disconnect_called_ = false;
+			#endif
 
-					// convert to string maybe throw some exception.
-					this->host_ = detail::to_string(std::move(host));
-					this->port_ = detail::to_string(std::move(port));
+				// convert to string maybe throw some exception.
+				this->host_ = detail::to_string(std::move(host));
+				this->port_ = detail::to_string(std::move(port));
 
-					super::start();
+				super::start();
 
-					derive._do_init(ecs);
+				derive._do_init(ecs);
 
-					// ecs init
-					derive._rdc_init(ecs);
-					derive._socks5_init(ecs);
+				// ecs init
+				derive._rdc_init(ecs);
+				derive._socks5_init(ecs);
 
-					derive.template _start_connect<IsAsync>(std::move(this_ptr), std::move(ecs), std::move(chain));
-
-					return;
-				}
-				catch (system_error const& e)
-				{
-					ASIO2_ASSERT(false);
-					set_last_error(e);
-				}
-				catch (std::exception const&)
-				{
-					ASIO2_ASSERT(false);
-					set_last_error(asio::error::invalid_argument);
-				}
-
-				derive._do_disconnect(get_last_error(), derive.selfptr(), defer_event(chain.move_guard()));
+				derive.template _start_connect<IsAsync>(std::move(this_ptr), std::move(ecs), std::move(chain));
 			});
 
 			if constexpr (IsAsync)
@@ -623,35 +606,22 @@ namespace asio2::detail
 				return;
 			}
 
-			try
-			{
-			#if defined(_DEBUG) || defined(DEBUG)
-				ASIO2_ASSERT(this->derived().post_recv_counter_.load() == 0);
-				this->derived().post_recv_counter_++;
-			#endif
+		#if defined(_DEBUG) || defined(DEBUG)
+			ASIO2_ASSERT(this->derived().post_recv_counter_.load() == 0);
+			this->derived().post_recv_counter_++;
+		#endif
 
-				this->socket().async_receive(this->buffer_.prepare(this->buffer_.pre_size()),
-					make_allocator(this->rallocator_,
-						[this, this_ptr = std::move(this_ptr), ecs = std::move(ecs)]
-				(const error_code & ec, std::size_t bytes_recvd) mutable
-				{
-				#if defined(_DEBUG) || defined(DEBUG)
-					this->derived().post_recv_counter_--;
-				#endif
-
-					this->derived()._handle_recv(ec, bytes_recvd, std::move(this_ptr), std::move(ecs));
-				}));
-			}
-			catch (system_error & e)
+			this->socket().async_receive(this->buffer_.prepare(this->buffer_.pre_size()),
+				make_allocator(this->rallocator_,
+					[this, this_ptr = std::move(this_ptr), ecs = std::move(ecs)]
+			(const error_code & ec, std::size_t bytes_recvd) mutable
 			{
 			#if defined(_DEBUG) || defined(DEBUG)
 				this->derived().post_recv_counter_--;
 			#endif
 
-				set_last_error(e);
-
-				this->derived()._do_disconnect(e.code(), this->derived().selfptr());
-			}
+				this->derived()._handle_recv(ec, bytes_recvd, std::move(this_ptr), std::move(ecs));
+			}));
 		}
 
 		template<typename C>

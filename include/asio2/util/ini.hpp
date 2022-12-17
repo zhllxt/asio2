@@ -548,34 +548,32 @@ namespace asio2
 					std::ignore = true;
 				}
 
-				try
+				std::error_code ec;
+
+				// if file is not exists, create it
+				if (bool b = std::filesystem::exists(filepath_, ec); !b && !ec)
 				{
-					// if file is not exists, create it
-					if (!std::filesystem::exists(filepath_))
-					{
-						Stream f(filepath_, std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
-					}
-
-					if constexpr /**/ (detail::util::is_fstream_v<Stream>)
-					{
-						mode |= std::ios_base::in | std::ios_base::out | std::ios_base::binary;
-					}
-					else if constexpr (detail::util::is_ifstream_v<Stream>)
-					{
-						mode |= std::ios_base::in | std::ios_base::binary;
-					}
-					else if constexpr (detail::util::is_ofstream_v<Stream>)
-					{
-						mode |= std::ios_base::out | std::ios_base::binary;
-					}
-					else
-					{
-						mode |= std::ios_base::in | std::ios_base::out | std::ios_base::binary;
-					}
-
-					Stream::open(filepath_, mode);
+					Stream f(filepath_, std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
 				}
-				catch (std::exception const&) {}
+
+				if constexpr /**/ (detail::util::is_fstream_v<Stream>)
+				{
+					mode |= std::ios_base::in | std::ios_base::out | std::ios_base::binary;
+				}
+				else if constexpr (detail::util::is_ifstream_v<Stream>)
+				{
+					mode |= std::ios_base::in | std::ios_base::binary;
+				}
+				else if constexpr (detail::util::is_ofstream_v<Stream>)
+				{
+					mode |= std::ios_base::out | std::ios_base::binary;
+				}
+				else
+				{
+					mode |= std::ios_base::in | std::ios_base::out | std::ios_base::binary;
+				}
+
+				Stream::open(filepath_, mode);
 			}
 
 			~basic_file_ini_impl()

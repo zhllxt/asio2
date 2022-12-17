@@ -272,7 +272,7 @@ namespace asio2::detail
 
 				for (asio::steady_timer* timer : this->timed_tasks_)
 				{
-					detail::cancel_timer(timer);
+					detail::cancel_timer(*timer);
 				}
 			}));
 
@@ -306,7 +306,7 @@ namespace asio2::detail
 
 				for (asio::steady_timer* timer : this->timed_tasks_)
 				{
-					detail::cancel_timer(timer);
+					detail::cancel_timer(*timer);
 				}
 			}));
 

@@ -135,13 +135,7 @@ namespace asio2
 			{
 				detail::ignore_unused(this_ptr);
 
-				try
-				{
-					this->event_timer_.cancel();
-				}
-				catch (system_error const&)
-				{
-				}
+				detail::cancel_timer(this->event_timer_);
 			});
 		}
 

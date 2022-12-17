@@ -136,14 +136,15 @@ namespace asio2::detail
 				// must construct a new chain
 				defer_event chain(std::move(e), std::move(g));
 
+				// Set the handshake timeout to a small value, otherwise if the remote don't
+				// send a websocket close frame, the async_close's callback will never be
+				// called.
+				websocket::stream_base::timeout opt{};
+				opt.handshake_timeout = std::chrono::milliseconds(ws_shutdown_timeout);
+				opt.idle_timeout      = websocket::stream_base::none();
+
 				try
 				{
-					// Set the handshake timeout to a small value, otherwise if the remote don't
-					// send a websocket close frame, the async_close's callback will never be
-					// called.
-					websocket::stream_base::timeout opt{};
-					opt.handshake_timeout = std::chrono::milliseconds(ws_shutdown_timeout);
-					opt.idle_timeout      = websocket::stream_base::none();
 					derive.ws_stream_->set_option(opt);
 				}
 				catch (system_error const& e)
@@ -209,37 +210,24 @@ namespace asio2::detail
 				return;
 			}
 
-			try
-			{
-				ASIO2_ASSERT(bool(this->ws_stream_));
+			ASIO2_ASSERT(bool(this->ws_stream_));
 
-			#if defined(_DEBUG) || defined(DEBUG)
-				ASIO2_ASSERT(derive.post_recv_counter_.load() == 0);
-				derive.post_recv_counter_++;
-			#endif
+		#if defined(_DEBUG) || defined(DEBUG)
+			ASIO2_ASSERT(derive.post_recv_counter_.load() == 0);
+			derive.post_recv_counter_++;
+		#endif
 
-				// Read a message into our buffer
-				this->ws_stream_->async_read(derive.buffer().base(), make_allocator(derive.rallocator(),
-				[&derive, this_ptr = std::move(this_ptr), ecs = std::move(ecs)]
-				(const error_code& ec, std::size_t bytes_recvd) mutable
-				{
-				#if defined(_DEBUG) || defined(DEBUG)
-					derive.post_recv_counter_--;
-				#endif
-
-					derive._handle_recv(ec, bytes_recvd, std::move(this_ptr), std::move(ecs));
-				}));
-			}
-			catch (system_error & e)
+			// Read a message into our buffer
+			this->ws_stream_->async_read(derive.buffer().base(), make_allocator(derive.rallocator(),
+			[&derive, this_ptr = std::move(this_ptr), ecs = std::move(ecs)]
+			(const error_code& ec, std::size_t bytes_recvd) mutable
 			{
 			#if defined(_DEBUG) || defined(DEBUG)
 				derive.post_recv_counter_--;
 			#endif
 
-				set_last_error(e);
-
-				derive._do_disconnect(e.code(), derive.selfptr());
-			}
+				derive._handle_recv(ec, bytes_recvd, std::move(this_ptr), std::move(ecs));
+			}));
 		}
 
 		template<typename C>
@@ -248,6 +236,8 @@ namespace asio2::detail
 			std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
+
+			ASIO2_ASSERT(derive.io().running_in_this_thread());
 
 			set_last_error(ec);
 
@@ -275,7 +265,7 @@ namespace asio2::detail
 			}
 			else
 			{
-				derive._do_disconnect(ec, derive.selfptr());
+				derive._do_disconnect(ec, std::move(this_ptr));
 			}
 			// If an error occurs then no new asynchronous operations are started. This
 			// means that all shared_ptr references to the connection object will
@@ -459,22 +449,18 @@ namespace asio2::detail
 			[&derive, ec, this_ptr = std::move(this_ptr), ecs = std::move(ecs), chain = std::move(chain)]
 			() mutable
 			{
-				try
+				set_last_error(ec);
+
+				derive._fire_upgrade(this_ptr);
+
+				if (ec)
 				{
-					set_last_error(ec);
+					derive._do_disconnect(ec, std::move(this_ptr), std::move(chain));
 
-					derive._fire_upgrade(this_ptr);
-
-					asio::detail::throw_error(ec);
-
-					derive._done_connect(ec, std::move(this_ptr), std::move(ecs), std::move(chain));
+					return;
 				}
-				catch (system_error & e)
-				{
-					set_last_error(e);
 
-					derive._do_disconnect(e.code(), derive.selfptr(), std::move(chain));
-				}
+				derive._done_connect(ec, std::move(this_ptr), std::move(ecs), std::move(chain));
 			});
 		}
 

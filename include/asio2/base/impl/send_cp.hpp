@@ -314,7 +314,9 @@ namespace asio2::detail
 			// at the same time,otherwise may be cause crash.
 			if (!derive.is_started())
 			{
-				return derive._send_cp_invoke_callback(asio::error::not_connected, std::forward<Callback>(fn));
+				derive._send_cp_invoke_callback(asio::error::not_connected, std::forward<Callback>(fn));
+
+				return;
 			}
 
 			clear_last_error();
@@ -367,14 +369,18 @@ namespace asio2::detail
 
 			if (!s)
 			{
-				return derive._send_cp_invoke_callback(asio::error::invalid_argument, std::forward<Callback>(fn));
+				derive._send_cp_invoke_callback(asio::error::invalid_argument, std::forward<Callback>(fn));
+
+				return;
 			}
 
 			// We must ensure that there is only one operation to send data
 			// at the same time,otherwise may be cause crash.
 			if (!derive.is_started())
 			{
-				return derive._send_cp_invoke_callback(asio::error::not_connected, std::forward<Callback>(fn));
+				derive._send_cp_invoke_callback(asio::error::not_connected, std::forward<Callback>(fn));
+
+				return;
 			}
 
 			clear_last_error();
@@ -496,7 +502,7 @@ namespace asio2::detail
 			set_last_error(ec);
 
 			// we should ensure that the callback must be called in the io_context thread.
-			derive.dispatch([ec, fn = std::forward<Callback>(fn)]() mutable
+			derive.post([ec, fn = std::forward<Callback>(fn)]() mutable
 			{
 				set_last_error(ec);
 

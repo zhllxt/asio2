@@ -630,13 +630,7 @@ namespace asio2::detail
 
 		inline void _stop_pingreq_timer()
 		{
-			try
-			{
-				this->pingreq_timer_.cancel();
-			}
-			catch (system_error const&)
-			{
-			}
+			detail::cancel_timer(this->pingreq_timer_);
 		}
 
 		template<typename DeferEvent>

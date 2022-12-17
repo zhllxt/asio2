@@ -170,14 +170,7 @@ namespace asio2::detail
 
 					set_last_error(ec);
 
-					try
-					{
-						// clost the timer
-						timer->cancel();
-					}
-					catch (system_error const&)
-					{
-					}
+					detail::cancel_timer(*timer);
 				});
 			}, chain.move_guard());
 		}
@@ -248,14 +241,7 @@ namespace asio2::detail
 				derive.post_send_counter_--;
 			#endif
 
-				try
-				{
-					// clost the timer
-					timer->cancel();
-				}
-				catch (system_error const&)
-				{
-				}
+				detail::cancel_timer(*timer);
 
 				if (flag_ptr->test_and_set())
 					derive._handle_handshake(asio::error::timed_out,
@@ -279,22 +265,17 @@ namespace asio2::detail
 			[&derive, ec, this_ptr = std::move(this_ptr), ecs = std::move(ecs), chain = std::move(chain)]
 			() mutable
 			{
-				try
+				set_last_error(ec);
+
+				derive._fire_handshake(this_ptr);
+
+				if (ec)
 				{
-					set_last_error(ec);
-
-					derive._fire_handshake(this_ptr);
-
-					asio::detail::throw_error(ec);
-
-					derive._done_connect(ec, std::move(this_ptr), std::move(ecs), std::move(chain));
+					derive._do_disconnect(ec, std::move(this_ptr), std::move(chain));
+					return;
 				}
-				catch (system_error & e)
-				{
-					set_last_error(e);
 
-					derive._do_disconnect(e.code(), std::move(this_ptr), std::move(chain));
-				}
+				derive._done_connect(ec, std::move(this_ptr), std::move(ecs), std::move(chain));
 			});
 		}
 

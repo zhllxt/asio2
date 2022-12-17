@@ -180,8 +180,6 @@ namespace asio2::detail
 					ec = asio::error::timed_out;
 				}
 
-				set_last_error(ec);
-
 				std::unique_ptr<endpoints_type> eps = std::make_unique<endpoints_type>(std::move(endpoints));
 
 				endpoints_type* p = eps.get();
@@ -223,12 +221,6 @@ namespace asio2::detail
 
 				return;
 			}
-
-			// maybe there has multi endpoints, and connect the first endpoint failed, then the
-			// next endpoint is connected, at this time, the ec and get_last_error maybe not 0,
-			// so we need clear the last error, otherwise if use call get_last_error in the
-			// fire init function, the get_last_error will be not 0.
-			clear_last_error();
 
 			auto& socket = derive.socket();
 
@@ -287,6 +279,12 @@ namespace asio2::detail
 				// 
 				// client.socket().bind(ep);
 
+				// maybe there has multi endpoints, and connect the first endpoint failed, then the
+				// next endpoint is connected, at this time, the ec and get_last_error maybe not 0,
+				// so we need clear the last error, otherwise if use call get_last_error in the
+				// fire init function, the get_last_error will be not 0.
+				clear_last_error();
+
 				derive._fire_init();
 			}
 			else
@@ -300,8 +298,6 @@ namespace asio2::detail
 				eps = std::move(eps), iter]
 			(const error_code & ec) mutable
 			{
-				set_last_error(ec);
-
 				if (ec && ec != asio::error::operation_aborted)
 					derive._post_connect(ec, std::move(eps), ++iter,
 						std::move(this_ptr), std::move(ecs), std::move(chain));

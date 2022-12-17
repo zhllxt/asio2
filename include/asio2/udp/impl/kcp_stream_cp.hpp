@@ -126,13 +126,7 @@ namespace asio2::detail
 			if (this->send_fin_)
 				this->_kcp_send_hdr(kcp::make_kcphdr_fin(0), ec_ignore);
 
-			try
-			{
-				this->kcp_timer_.cancel();
-			}
-			catch (system_error const&)
-			{
-			}
+			detail::cancel_timer(this->kcp_timer_);
 		}
 
 		inline void _kcp_reset()
@@ -299,7 +293,11 @@ namespace asio2::detail
 			// step 4 : server send synack to client
 			this->_kcp_send_synack(syn, ec);
 
-			asio::detail::throw_error(ec);
+			if (ec)
+			{
+				derive._do_disconnect(ec, std::move(this_ptr), std::move(chain));
+				return;
+			}
 
 			this->_kcp_start(this_ptr, conv);
 			this->_handle_handshake(ec, std::move(this_ptr), std::move(ecs), std::move(chain));
@@ -318,13 +316,17 @@ namespace asio2::detail
 
 			this->_kcp_send_syn(seq, ec);
 
-			asio::detail::throw_error(ec);
+			if (ec)
+			{
+				derive._do_disconnect(ec, std::move(this_ptr), defer_event(chain.move_guard()));
+				return;
+			}
 
 			// use a loop timer to execute "client send syn to server" until the server
 			// has recvd the syn packet and this client recvd reply.
 			std::shared_ptr<detail::safe_timer> timer =
 				mktimer(derive.io().context(), std::chrono::milliseconds(500),
-				[this, this_ptr, seq](error_code ec) mutable
+			[this, this_ptr, seq](error_code ec) mutable
 			{
 				if (ec == asio::error::operation_aborted)
 					return false;
@@ -351,7 +353,8 @@ namespace asio2::detail
 			// step 2 : client wait for recv synack util connect timeout or recvd some data
 			derive.socket().async_receive(derive.buffer().prepare(derive.buffer().pre_size()),
 				make_allocator(derive.rallocator(),
-			[this, seq, this_ptr = std::move(this_ptr), ecs = std::move(ecs), timer = std::move(timer), chain = std::move(chain)]
+			[this, this_ptr = std::move(this_ptr), ecs = std::move(ecs), chain = std::move(chain),
+				seq, timer = std::move(timer)]
 			(const error_code & ec, std::size_t bytes_recvd) mutable
 			{
 			#if defined(_DEBUG) || defined(DEBUG)
@@ -403,29 +406,13 @@ namespace asio2::detail
 		template<typename C, typename DeferEvent>
 		void _post_handshake(std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs, DeferEvent chain)
 		{
-			try
+			if constexpr (args_t::is_session)
 			{
-				if constexpr (args_t::is_session)
-				{
-					this->_session_post_handshake(std::move(this_ptr), std::move(ecs), std::move(chain));
-				}
-				else
-				{
-					this->_client_post_handshake(std::move(this_ptr), std::move(ecs), std::move(chain));
-				}
+				this->_session_post_handshake(std::move(this_ptr), std::move(ecs), std::move(chain));
 			}
-			catch (system_error & e)
+			else
 			{
-				set_last_error(e);
-
-				if constexpr (args_t::is_session)
-				{
-					derive._do_disconnect(e.code(), derive.selfptr(), std::move(chain));
-				}
-				else
-				{
-					derive._do_disconnect(e.code(), derive.selfptr(), defer_event(chain.move_guard()));
-				}
+				this->_client_post_handshake(std::move(this_ptr), std::move(ecs), std::move(chain));
 			}
 		}
 
@@ -436,28 +423,24 @@ namespace asio2::detail
 		{
 			set_last_error(ec);
 
-			try
+			if constexpr (args_t::is_session)
 			{
-				if constexpr (args_t::is_session)
+				derive._fire_handshake(this_ptr);
+
+				if (ec)
 				{
-					derive._fire_handshake(this_ptr);
+					derive._do_disconnect(ec, std::move(this_ptr), std::move(chain));
 
-					asio::detail::throw_error(ec);
-
-					derive._done_connect(ec, std::move(this_ptr), std::move(ecs), std::move(chain));
+					return;
 				}
-				else
-				{
-					derive._fire_handshake(this_ptr);
 
-					derive._done_connect(ec, std::move(this_ptr), std::move(ecs), std::move(chain));
-				}
+				derive._done_connect(ec, std::move(this_ptr), std::move(ecs), std::move(chain));
 			}
-			catch (system_error & e)
+			else
 			{
-				set_last_error(e);
+				derive._fire_handshake(this_ptr);
 
-				derive._do_disconnect(e.code(), derive.selfptr(), defer_event(chain.move_guard()));
+				derive._done_connect(ec, std::move(this_ptr), std::move(ecs), std::move(chain));
 			}
 		}
 

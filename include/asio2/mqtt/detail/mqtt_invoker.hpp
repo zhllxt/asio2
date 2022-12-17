@@ -394,28 +394,18 @@ namespace asio2::detail
 		inline _argc_proxy(F& f, C* c,
 			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, std::string_view& data)
 		{
-			try
+			mqtt::data_to_message(caller->version(), data, [this, &f, &c, &ec, &caller_ptr, caller]
+			(auto msg) mutable
 			{
-				mqtt::data_to_message(caller->version(), data, [this, &f, &c, &ec, &caller_ptr, caller]
-				(auto msg) mutable
+				if (msg.empty() || asio2::get_last_error())
 				{
-					if (msg.empty())
-					{
-						this->_do_malformed_packet(f, ec, caller_ptr, caller);
+					this->_do_malformed_packet(f, ec ? ec : asio2::get_last_error(), caller_ptr, caller);
 
-						return;
-					}
+					return;
+				}
 
-					this->_do_argc_1_proxy(f, c, ec, caller_ptr, caller, msg);
-				});
-			}
-			catch (system_error const& e)
-			{
-				if (!ec)
-					ec = e.code();
-
-				this->_handle_mqtt_error(ec, caller_ptr, caller);
-			}
+				this->_do_argc_1_proxy(f, c, ec, caller_ptr, caller, msg);
+			});
 		}
 
 		template<class F, class C, class M>
@@ -454,28 +444,18 @@ namespace asio2::detail
 		inline void _argc_2_proxy_server(F& f, C* c,
 			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, std::string_view& data)
 		{
-			try
+			mqtt::data_to_message(caller->version(), data, [this, &f, &c, &ec, &caller_ptr, caller]
+			(auto msg) mutable
 			{
-				mqtt::data_to_message(caller->version(), data, [this, &f, &c, &ec, &caller_ptr, caller]
-				(auto msg) mutable
+				if (msg.empty() || asio2::get_last_error())
 				{
-					if (msg.empty())
-					{
-						this->_do_malformed_packet(f, ec, caller_ptr, caller);
+					this->_do_malformed_packet(f, ec ? ec : asio2::get_last_error(), caller_ptr, caller);
 
-						return;
-					}
+					return;
+				}
 
-					this->_do_argc_2_proxy_server(f, c, ec, caller_ptr, caller, msg);
-				});
-			}
-			catch (system_error const& e)
-			{
-				if (!ec)
-					ec = e.code();
-
-				this->_handle_mqtt_error(ec, caller_ptr, caller);
-			}
+				this->_do_argc_2_proxy_server(f, c, ec, caller_ptr, caller, msg);
+			});
 		}
 
 		template<class F, class C, class M>
@@ -519,28 +499,18 @@ namespace asio2::detail
 		inline void _argc_2_proxy_client(F& f, C* c,
 			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, std::string_view& data)
 		{
-			try
+			mqtt::data_to_message(caller->version(), data, [this, &f, &c, &ec, &caller_ptr, caller]
+			(auto msg) mutable
 			{
-				mqtt::data_to_message(caller->version(), data, [this, &f, &c, &ec, &caller_ptr, caller]
-				(auto msg) mutable
+				if (msg.empty() || asio2::get_last_error())
 				{
-					if (msg.empty())
-					{
-						this->_do_malformed_packet(f, ec, caller_ptr, caller);
+					this->_do_malformed_packet(f, ec ? ec : asio2::get_last_error(), caller_ptr, caller);
 
-						return;
-					}
+					return;
+				}
 
-					this->_do_argc_2_proxy_client(f, c, ec, caller_ptr, caller, msg);
-				});
-			}
-			catch (system_error const& e)
-			{
-				if (!ec)
-					ec = e.code();
-
-				this->_handle_mqtt_error(ec, caller_ptr, caller);
-			}
+				this->_do_argc_2_proxy_client(f, c, ec, caller_ptr, caller, msg);
+			});
 		}
 
 		// Argc == 2 : client or server
@@ -614,28 +584,18 @@ namespace asio2::detail
 		inline _argc_proxy(F& f, C* c,
 			error_code& ec, std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, std::string_view& data)
 		{
-			try
+			mqtt::data_to_message(caller->version(), data, [this, &f, &c, &ec, &caller_ptr, caller]
+			(auto msg) mutable
 			{
-				mqtt::data_to_message(caller->version(), data, [this, &f, &c, &ec, &caller_ptr, caller]
-				(auto msg) mutable
+				if (msg.empty() || asio2::get_last_error())
 				{
-					if (msg.empty())
-					{
-						this->_do_malformed_packet(f, ec, caller_ptr, caller);
+					this->_do_malformed_packet(f, ec ? ec : asio2::get_last_error(), caller_ptr, caller);
 
-						return;
-					}
+					return;
+				}
 
-					this->_do_argc_3_proxy(f, c, ec, caller_ptr, caller, msg);
-				});
-			}
-			catch (system_error const& e)
-			{
-				if (!ec)
-					ec = e.code();
-
-				this->_handle_mqtt_error(ec, caller_ptr, caller);
-			}
+				this->_do_argc_3_proxy(f, c, ec, caller_ptr, caller, msg);
+			});
 		}
 
 		template<class F>

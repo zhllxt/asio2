@@ -313,85 +313,93 @@ namespace asio2::detail
 				// must read/write ecs in the io_context thread.
 				derive.ecs_ = ecs;
 
-				try
+				derive.io().regobj(&derive);
+
+			#if defined(_DEBUG) || defined(DEBUG)
+				this->sessions_.is_all_session_stop_called_ = false;
+				this->is_stop_called_ = false;
+			#endif
+
+				// convert to string maybe throw some exception.
+				std::string h = detail::to_string(std::move(host));
+				std::string p = detail::to_string(std::move(port));
+
+				expected = state_t::starting;
+				if (!this->state_.compare_exchange_strong(expected, state_t::starting))
 				{
-					clear_last_error();
-
-					derive.io().regobj(&derive);
-
-				#if defined(_DEBUG) || defined(DEBUG)
-					this->sessions_.is_all_session_stop_called_ = false;
-					this->is_stop_called_ = false;
-				#endif
-
-					// convert to string maybe throw some exception.
-					std::string h = detail::to_string(std::move(host));
-					std::string p = detail::to_string(std::move(port));
-
-					expected = state_t::starting;
-					if (!this->state_.compare_exchange_strong(expected, state_t::starting))
-					{
-						ASIO2_ASSERT(false);
-						asio::detail::throw_error(asio::error::operation_aborted);
-					}
-
-					super::start();
-
-					this->counter_ptr_ = std::shared_ptr<void>((void*)1, [&derive](void*) mutable
-					{
-						derive._exec_stop(asio::error::operation_aborted, derive.selfptr());
-					});
-
-					error_code ec_ignore{};
-
-					this->acceptor_.cancel(ec_ignore);
-					this->acceptor_.close(ec_ignore);
-
-					// parse address and port
-					asio::ip::udp::resolver resolver(this->io_.context());
-					asio::ip::udp::endpoint endpoint = *resolver.resolve(h, p,
-						asio::ip::resolver_base::flags::passive |
-						asio::ip::resolver_base::flags::address_configured).begin();
-
-					this->acceptor_.open(endpoint.protocol());
-
-					// when you close socket in linux system,and start socket
-					// immediate,you will get like this "the address is in use",
-					// and bind is failed,but i'm suer i close the socket correct
-					// already before,why does this happen? the reasion is the
-					// socket option "TIME_WAIT",although you close the socket,
-					// but the system not release the socket,util 2~4 seconds later,
-					// so we can use the SO_REUSEADDR option to avoid this problem,
-					// like below
-
-					// set port reuse
-					this->acceptor_.set_option(asio::ip::udp::socket::reuse_address(true));
-
-					//// Join the multicast group. you can set this option in the on_init(_fire_init) function.
-					//this->acceptor_.set_option(
-					//	// for ipv6, the host must be a ipv6 address like 0::0
-					//	asio::ip::multicast::join_group(asio::ip::make_address("ff31::8000:1234")));
-					//	// for ipv4, the host must be a ipv4 address like 0.0.0.0
-					//	//asio::ip::multicast::join_group(asio::ip::make_address("239.255.0.1")));
-
-					derive._fire_init();
-
-					this->acceptor_.bind(endpoint);
-
-					derive._handle_start(error_code{}, std::move(this_ptr), std::move(ecs));
-
+					ASIO2_ASSERT(false);
+					derive._handle_start(asio::error::operation_aborted, std::move(this_ptr), std::move(ecs));
 					return;
 				}
-				catch (system_error const& e)
+
+				super::start();
+
+				this->counter_ptr_ = std::shared_ptr<void>((void*)1, [&derive](void*) mutable
 				{
-					set_last_error(e.code());
+					derive._exec_stop(asio::error::operation_aborted, derive.selfptr());
+				});
+
+				error_code ec, ec_ignore;
+
+				// parse address and port
+				asio::ip::udp::resolver resolver(this->io_.context());
+
+				auto results = resolver.resolve(h, p,
+					asio::ip::resolver_base::flags::passive |
+					asio::ip::resolver_base::flags::address_configured, ec);
+				if (ec)
+				{
+					derive._handle_start(ec, std::move(this_ptr), std::move(ecs));
+					return;
 				}
-				catch (std::exception const&)
+				if (results.empty())
 				{
-					set_last_error(asio::error::invalid_argument);
+					derive._handle_start(asio::error::host_not_found, std::move(this_ptr), std::move(ecs));
+					return;
 				}
 
-				derive._handle_start(get_last_error(), std::move(this_ptr), std::move(ecs));
+				asio::ip::udp::endpoint endpoint = *results.begin();
+
+				this->acceptor_.cancel(ec_ignore);
+				this->acceptor_.close(ec_ignore);
+				this->acceptor_.open(endpoint.protocol(), ec);
+				if (ec)
+				{
+					derive._handle_start(ec, std::move(this_ptr), std::move(ecs));
+					return;
+				}
+
+				// when you close socket in linux system,and start socket
+				// immediate,you will get like this "the address is in use",
+				// and bind is failed,but i'm suer i close the socket correct
+				// already before,why does this happen? the reasion is the
+				// socket option "TIME_WAIT",although you close the socket,
+				// but the system not release the socket,util 2~4 seconds later,
+				// so we can use the SO_REUSEADDR option to avoid this problem,
+				// like below
+
+				// set port reuse
+				this->acceptor_.set_option(asio::ip::udp::socket::reuse_address(true), ec_ignore);
+
+				//// Join the multicast group. you can set this option in the on_init(_fire_init) function.
+				//this->acceptor_.set_option(
+				//	// for ipv6, the host must be a ipv6 address like 0::0
+				//	asio::ip::multicast::join_group(asio::ip::make_address("ff31::8000:1234")));
+				//	// for ipv4, the host must be a ipv4 address like 0.0.0.0
+				//	//asio::ip::multicast::join_group(asio::ip::make_address("239.255.0.1")));
+
+				clear_last_error();
+
+				derive._fire_init();
+
+				this->acceptor_.bind(endpoint, ec);
+				if (ec)
+				{
+					derive._handle_start(ec, std::move(this_ptr), std::move(ecs));
+					return;
+				}
+
+				derive._handle_start(ec, std::move(this_ptr), std::move(ecs));
 			});
 
 			if (!derive.io().running_in_this_thread())
@@ -417,35 +425,31 @@ namespace asio2::detail
 		{
 			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
 
-			try
+			// Whether the startup succeeds or fails, always call fire_start notification
+			state_t expected = state_t::starting;
+			if (!ec)
+				if (!this->state_.compare_exchange_strong(expected, state_t::started))
+					ec = asio::error::operation_aborted;
+
+			set_last_error(ec);
+
+			this->derived()._fire_start();
+
+			expected = state_t::started;
+			if (!ec)
+				if (!this->state_.compare_exchange_strong(expected, state_t::started))
+					ec = asio::error::operation_aborted;
+
+			if (ec)
 			{
-				// Whether the startup succeeds or fails, always call fire_start notification
-				state_t expected = state_t::starting;
-				if (!ec)
-					if (!this->state_.compare_exchange_strong(expected, state_t::started))
-						ec = asio::error::operation_aborted;
+				this->derived()._do_stop(ec, std::move(this_ptr));
 
-				set_last_error(ec);
-
-				this->derived()._fire_start();
-
-				expected = state_t::started;
-				if (!ec)
-					if (!this->state_.compare_exchange_strong(expected, state_t::started))
-						ec = asio::error::operation_aborted;
-
-				asio::detail::throw_error(ec);
-
-				this->buffer_.consume(this->buffer_.size());
-
-				this->derived()._post_recv(std::move(this_ptr), std::move(ecs));
+				return;
 			}
-			catch (system_error & e)
-			{
-				set_last_error(e);
 
-				this->derived()._do_stop(e.code(), this->derived().selfptr());
-			}
+			this->buffer_.consume(this->buffer_.size());
+
+			this->derived()._post_recv(std::move(this_ptr), std::move(ecs));
 		}
 
 		inline void _do_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
@@ -557,36 +561,23 @@ namespace asio2::detail
 				return;
 			}
 
-			try
-			{
-			#if defined(_DEBUG) || defined(DEBUG)
-				ASIO2_ASSERT(this->derived().post_recv_counter_.load() == 0);
-				this->derived().post_recv_counter_++;
-			#endif
+		#if defined(_DEBUG) || defined(DEBUG)
+			ASIO2_ASSERT(this->derived().post_recv_counter_.load() == 0);
+			this->derived().post_recv_counter_++;
+		#endif
 
-				this->acceptor_.async_receive_from(
-					this->buffer_.prepare(this->buffer_.pre_size()),
-					this->remote_endpoint_,
-					make_allocator(this->rallocator_, [this, this_ptr = std::move(this_ptr), ecs = std::move(ecs)]
-				(const error_code& ec, std::size_t bytes_recvd) mutable
-				{
-				#if defined(_DEBUG) || defined(DEBUG)
-					this->derived().post_recv_counter_--;
-				#endif
-
-					this->derived()._handle_recv(ec, bytes_recvd, std::move(this_ptr), std::move(ecs));
-				}));
-			}
-			catch (system_error & e)
+			this->acceptor_.async_receive_from(
+				this->buffer_.prepare(this->buffer_.pre_size()),
+				this->remote_endpoint_,
+				make_allocator(this->rallocator_, [this, this_ptr = std::move(this_ptr), ecs = std::move(ecs)]
+			(const error_code& ec, std::size_t bytes_recvd) mutable
 			{
 			#if defined(_DEBUG) || defined(DEBUG)
 				this->derived().post_recv_counter_--;
 			#endif
 
-				set_last_error(e);
-
-				this->derived()._do_stop(e.code(), this->derived().selfptr());
-			}
+				this->derived()._handle_recv(ec, bytes_recvd, std::move(this_ptr), std::move(ecs));
+			}));
 		}
 
 		template<typename C>

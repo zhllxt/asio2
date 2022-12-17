@@ -254,12 +254,7 @@ namespace asio2::detail
 		 */
 		inline unsigned short get_listen_port() noexcept
 		{
-			try
-			{
-				return this->acceptor().local_endpoint().port();
-			}
-			catch (system_error & e) { set_last_error(e); }
-			return static_cast<unsigned short>(0);
+			return this->acceptor().local_endpoint(get_last_error()).port();
 		}
 
 		/**

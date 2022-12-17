@@ -426,21 +426,22 @@ namespace asio2::detail
 						ec = rpc::make_error_code(rpc::error::no_data);
 					}
 
+					sr.reset();
+					sr << head;
+					sr << ec;
+
 					try
 					{
-						sr.reset();
-						sr << head;
-						sr << ec;
-						if (!ec)
+						if constexpr (!std::is_same_v<rpc::future<void>, R>)
 						{
-							if constexpr (!std::is_same_v<rpc::future<void>, R>)
+							if (!ec)
 							{
 								sr << std::move(v.value()); // maybe throw some exception
 							}
-							else
-							{
-								std::ignore = v;
-							}
+						}
+						else
+						{
+							std::ignore = v;
 						}
 
 						caller->async_send(sr.str());
@@ -451,11 +452,6 @@ namespace asio2::detail
 					{
 						if (!ec) ec = rpc::make_error_code(rpc::error::invalid_argument);
 					}
-					// on c++ 20 and vs2019, the next line code will compile failed, so impossible.
-					//catch (system_error const&)
-					//{
-					//	if (!ec) ec = rpc::make_error_code(rpc::error::unspecified_error);
-					//}
 					catch (std::exception const&)
 					{
 						if (!ec) ec = rpc::make_error_code(rpc::error::unspecified_error);

@@ -226,11 +226,17 @@ namespace asio2::mqtt
 	template<class Integer>
 	std::array<std::uint8_t, 4> encode_variable_byte_integer(Integer X)
 	{
-		if (static_cast<std::size_t>(X) > static_cast<std::size_t>(mqtt::max_payload))
-			asio::detail::throw_error(asio::error::invalid_argument);
-
 		std::int32_t i = 0;
 		std::array<std::uint8_t, 4> value{};
+
+		if (static_cast<std::size_t>(X) > static_cast<std::size_t>(mqtt::max_payload))
+		{
+			asio2::set_last_error(asio::error::invalid_argument);
+			return value;
+		}
+
+		asio2::clear_last_error();
+
 		do
 		{
 			std::uint8_t encodedByte = X % 128;
@@ -254,19 +260,19 @@ namespace asio2::mqtt
 	}
 
 	template<class Integer>
-	inline void check_size(Integer size)
+	inline bool check_size(Integer size)
 	{
-		if (size > std::size_t(65535))
-			asio::detail::throw_error(asio::error::invalid_argument);
+		return (std::size_t(size) <= std::size_t(65535));
 	}
 
 	template<class String>
-	inline void check_utf8(String& str)
+	inline bool check_utf8(String& str)
 	{
-		asio2::detail::ignore_unused(str);
 	#if defined(ASIO2_CHECK_UTF8)
-		if (!beast::websocket::detail::check_utf8(str.data(), str.size()))
-			asio::detail::throw_error(asio::error::invalid_argument);
+		return beast::websocket::detail::check_utf8(str.data(), str.size());
+	#else
+		asio2::detail::ignore_unused(str);
+		return true;
 	#endif
 	}
 
@@ -290,7 +296,12 @@ namespace asio2::mqtt
 		do
 		{
 			if (X.size() < std::size_t(i + 1))
-				asio::detail::throw_error(asio::error::no_buffer_space);
+			{
+				i = 0;
+				value = 0;
+				asio2::set_last_error(asio::error::no_buffer_space);
+				return { value, i };
+			}
 
 			encodedByte = static_cast<std::uint8_t>(X[i]); // 'next byte from stream'
 
@@ -299,11 +310,18 @@ namespace asio2::mqtt
 			value += (encodedByte & 127) * multiplier;
 
 			if (multiplier > 128 * 128 * 128)
-				asio::detail::throw_error(asio::error::invalid_argument);
+			{
+				i = 0;
+				value = 0;
+				asio2::set_last_error(asio::error::invalid_argument);
+				return { value, i };
+			}
 
 			multiplier *= 128;
 
 		} while ((encodedByte & 128) != 0);
+
+		asio2::clear_last_error();
 
 		// When this algorithm terminates, value contains the Variable Byte Integer value.
 		return { value, i };
@@ -373,7 +391,12 @@ namespace asio2::mqtt
 		inline one_byte_integer& deserialize(std::string_view& data)
 		{
 			if (data.size() < required_size())
-				asio::detail::throw_error(mqtt::make_error_code(mqtt::error::malformed_packet));
+			{
+				set_last_error(mqtt::make_error_code(mqtt::error::malformed_packet));
+				return (*this);
+			}
+
+			asio2::clear_last_error();
 
 			value_ = data[0];
 
@@ -460,7 +483,12 @@ namespace asio2::mqtt
 		inline two_byte_integer& deserialize(std::string_view& data)
 		{
 			if (data.size() < required_size())
-				asio::detail::throw_error(mqtt::make_error_code(mqtt::error::malformed_packet));
+			{
+				set_last_error(mqtt::make_error_code(mqtt::error::malformed_packet));
+				return (*this);
+			}
+
+			asio2::clear_last_error();
 
 			value_ = ((data[1] << 8) & 0xff00) | ((data[0] << 0) & 0x00ff);
 
@@ -552,7 +580,12 @@ namespace asio2::mqtt
 		inline four_byte_integer& deserialize(std::string_view& data)
 		{
 			if (data.size() < required_size())
-				asio::detail::throw_error(mqtt::make_error_code(mqtt::error::malformed_packet));
+			{
+				set_last_error(mqtt::make_error_code(mqtt::error::malformed_packet));
+				return (*this);
+			}
+
+			asio2::clear_last_error();
 
 			value_ =
 				((data[3] << 24) & 0xff000000) | 
@@ -654,6 +687,9 @@ namespace asio2::mqtt
 		{
 			auto[value, bytes] = decode_variable_byte_integer(data);
 
+			if (asio2::get_last_error())
+				return (*this);
+
 			asio2::detail::ignore_unused(value);
 
 			std::memcpy((void*)value_.data(), (const void*)data.data(), bytes);
@@ -716,8 +752,18 @@ namespace asio2::mqtt
 
 		inline utf8_string& operator=(std::string s)
 		{
-			check_size(s.size());
-			check_utf8(s);
+			if (!check_size(s.size()))
+			{
+				asio2::set_last_error(asio::error::invalid_argument);
+				return (*this);
+			}
+			if (!check_utf8(s))
+			{
+				asio2::set_last_error(asio::error::invalid_argument);
+				return (*this);
+			}
+
+			asio2::clear_last_error();
 
 			data_   = std::move(s);
 			length_ = static_cast<std::uint16_t>(data_.size());
@@ -748,8 +794,18 @@ namespace asio2::mqtt
 
 		inline utf8_string& operator+=(const std::string      & s)
 		{
-			check_size(data_.size() + s.size());
-			check_utf8(s);
+			if (!check_size(data_.size() + s.size()))
+			{
+				asio2::set_last_error(asio::error::invalid_argument);
+				return (*this);
+			}
+			if (!check_utf8(s))
+			{
+				asio2::set_last_error(asio::error::invalid_argument);
+				return (*this);
+			}
+
+			asio2::clear_last_error();
 
 			data_  += s;
 			length_ = static_cast<std::uint16_t>(data_.size());
@@ -760,8 +816,18 @@ namespace asio2::mqtt
 		}
 		inline utf8_string& operator+=(const std::string_view & s)
 		{
-			check_size(data_.size() + s.size());
-			check_utf8(s);
+			if (!check_size(data_.size() + s.size()))
+			{
+				asio2::set_last_error(asio::error::invalid_argument);
+				return (*this);
+			}
+			if (!check_utf8(s))
+			{
+				asio2::set_last_error(asio::error::invalid_argument);
+				return (*this);
+			}
+
+			asio2::clear_last_error();
 
 			data_  += s;
 			length_ = static_cast<std::uint16_t>(data_.size());
@@ -884,8 +950,16 @@ namespace asio2::mqtt
 		{
 			length_.deserialize(data);
 
+			if (asio2::get_last_error())
+				return (*this);
+
 			if (data.size() < length_.value())
-				asio::detail::throw_error(mqtt::make_error_code(mqtt::error::malformed_packet));
+			{
+				set_last_error(mqtt::make_error_code(mqtt::error::malformed_packet));
+				return (*this);
+			}
+
+			asio2::clear_last_error();
 
 			data_ = data.substr(0, length_.value());
 
@@ -949,7 +1023,13 @@ namespace asio2::mqtt
 
 		inline binary_data& operator=(std::string s)
 		{
-			check_size(s.size());
+			if (!check_size(s.size()))
+			{
+				asio2::set_last_error(asio::error::invalid_argument);
+				return (*this);
+			}
+
+			asio2::clear_last_error();
 
 			data_   = std::move(s);
 			length_ = static_cast<std::uint16_t>(data_.size());
@@ -980,7 +1060,13 @@ namespace asio2::mqtt
 
 		inline binary_data& operator+=(const std::string      & s)
 		{
-			check_size(data_.size() + s.size());
+			if (!check_size(data_.size() + s.size()))
+			{
+				asio2::set_last_error(asio::error::invalid_argument);
+				return (*this);
+			}
+
+			asio2::clear_last_error();
 
 			data_  += s;
 			length_ = static_cast<std::uint16_t>(data_.size());
@@ -991,7 +1077,13 @@ namespace asio2::mqtt
 		}
 		inline binary_data& operator+=(const std::string_view & s)
 		{
-			check_size(data_.size() + s.size());
+			if (!check_size(data_.size() + s.size()))
+			{
+				asio2::set_last_error(asio::error::invalid_argument);
+				return (*this);
+			}
+
+			asio2::clear_last_error();
 
 			data_  += s;
 			length_ = static_cast<std::uint16_t>(data_.size());
@@ -1113,8 +1205,16 @@ namespace asio2::mqtt
 		{
 			length_.deserialize(data);
 
+			if (asio2::get_last_error())
+				return (*this);
+
 			if (data.size() < length_.value())
-				asio::detail::throw_error(mqtt::make_error_code(mqtt::error::malformed_packet));
+			{
+				set_last_error(mqtt::make_error_code(mqtt::error::malformed_packet));
+				return (*this);
+			}
+
+			asio2::clear_last_error();
 
 			data_ = data.substr(0, length_.value());
 
@@ -1277,6 +1377,10 @@ namespace asio2::mqtt
 		inline utf8_string_pair& deserialize(std::string_view& data)
 		{
 			key_.deserialize(data);
+
+			if (asio2::get_last_error())
+				return (*this);
+
 			val_.deserialize(data);
 
 			return (*this);
@@ -1335,7 +1439,12 @@ namespace asio2::mqtt
 		inline application_message& operator=(std::string s)
 		{
 			if (s.size() > std::size_t(max_payload))
-				asio::detail::throw_error(asio::error::invalid_argument);
+			{
+				set_last_error(asio::error::invalid_argument);
+				return (*this);
+			}
+
+			asio2::clear_last_error();
 
 			data_   = std::move(s);
 
@@ -1366,7 +1475,12 @@ namespace asio2::mqtt
 		inline application_message& operator+=(const std::string      & s)
 		{
 			if (data_.size() + s.size() > std::size_t(max_payload))
-				asio::detail::throw_error(asio::error::invalid_argument);
+			{
+				set_last_error(asio::error::invalid_argument);
+				return (*this);
+			}
+
+			asio2::clear_last_error();
 
 			data_  += s;
 
@@ -1377,7 +1491,12 @@ namespace asio2::mqtt
 		inline application_message& operator+=(const std::string_view & s)
 		{
 			if (data_.size() + s.size() > std::size_t(max_payload))
-				asio::detail::throw_error(asio::error::invalid_argument);
+			{
+				set_last_error(asio::error::invalid_argument);
+				return (*this);
+			}
+
+			asio2::clear_last_error();
 
 			data_  += s;
 
@@ -1609,6 +1728,10 @@ namespace asio2::mqtt
 		inline fixed_header& deserialize(std::string_view& data)
 		{
 			type_and_flags_.byte.deserialize(data);
+
+			if (asio2::get_last_error())
+				return (*this);
+
 			remain_length_      .deserialize(data);
 
 			return (*this);
@@ -1687,6 +1810,10 @@ namespace asio2::mqtt
 		inline subscription& deserialize(std::string_view& data)
 		{
 			topic_filter_.deserialize(data);
+
+			if (asio2::get_last_error())
+				return (*this);
+
 			option_.byte .deserialize(data);
 
 			return (*this);
@@ -1855,6 +1982,10 @@ namespace asio2::mqtt
 			{
 				subscription s{};
 				s.deserialize(data);
+
+				if (asio2::get_last_error())
+					return (*this);
+
 				data_.emplace_back(std::move(s));
 			}
 
@@ -1958,6 +2089,10 @@ namespace asio2::mqtt
 			{
 				one_byte_integer v{};
 				v.deserialize(data);
+
+				if (asio2::get_last_error())
+					return (*this);
+
 				data_.emplace_back(std::move(v));
 			}
 
@@ -2066,6 +2201,10 @@ namespace asio2::mqtt
 			{
 				utf8_string s{};
 				s.deserialize(data);
+
+				if (asio2::get_last_error())
+					return (*this);
+
 				data_.emplace_back(std::move(s));
 			}
 
@@ -2108,18 +2247,14 @@ namespace asio2::mqtt
 
 				// Remaining Length
 				std::int32_t remain_length = 0, remain_bytes = 0;
-				try
-				{
-					auto[value, bytes] = decode_variable_byte_integer(std::string_view{ reinterpret_cast<
-						std::string_view::const_pointer>(p.operator->()), static_cast<std::size_t>(end - p) });
 
-					remain_length = value;
-					remain_bytes  = bytes;
-				}
-				catch (system_error const& e)
+				auto[value, bytes] = decode_variable_byte_integer(std::string_view{ reinterpret_cast<
+					std::string_view::const_pointer>(p.operator->()), static_cast<std::size_t>(end - p) });
+
+				if (error_code ec = asio2::get_last_error(); ec)
 				{
 					// need more data
-					if (e.code() == asio::error::no_buffer_space)
+					if (ec == asio::error::no_buffer_space)
 					{
 						return std::pair(begin, false);
 					}
@@ -2129,6 +2264,9 @@ namespace asio2::mqtt
 						return std::pair(begin, true);
 					}
 				}
+
+				remain_length = value;
+				remain_bytes  = bytes;
 
 				p += remain_bytes;
 

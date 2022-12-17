@@ -181,7 +181,7 @@ namespace asio2::detail
 		{
 			this->base().base() = rep.base();
 			this->body().text() = rep.body();
-			this->prepare_payload();
+			http::try_prepare_payload(*this);
 		}
 
 		http_response_impl_t(http::message<false, http::string_body, Fields>&& rep)
@@ -192,14 +192,14 @@ namespace asio2::detail
 		{
 			this->base().base() = std::move(rep.base());
 			this->body().text() = std::move(rep.body());
-			this->prepare_payload();
+			http::try_prepare_payload(*this);
 		}
 
 		self& operator=(const http::message<false, http::string_body, Fields>& rep)
 		{
 			this->base().base() = rep.base();
 			this->body().text() = rep.body();
-			this->prepare_payload();
+			http::try_prepare_payload(*this);
 			return *this;
 		}
 
@@ -207,7 +207,7 @@ namespace asio2::detail
 		{
 			this->base().base() = std::move(rep.base());
 			this->body().text() = std::move(rep.body());
-			this->prepare_payload();
+			http::try_prepare_payload(*this);
 			return *this;
 		}
 
@@ -221,7 +221,7 @@ namespace asio2::detail
 		{
 			this->base().base() = rep.base();
 			this->body().file() = rep.body();
-			this->prepare_payload();
+			http::try_prepare_payload(*this);
 		}
 
 		http_response_impl_t(http::message<false, http::file_body, Fields>&& rep)
@@ -232,14 +232,14 @@ namespace asio2::detail
 		{
 			this->base().base() = std::move(rep.base());
 			this->body().file() = std::move(rep.body());
-			this->prepare_payload();
+			http::try_prepare_payload(*this);
 		}
 
 		self& operator=(const http::message<false, http::file_body, Fields>& rep)
 		{
 			this->base().base() = rep.base();
 			this->body().file() = rep.body();
-			this->prepare_payload();
+			http::try_prepare_payload(*this);
 			return *this;
 		}
 
@@ -247,7 +247,7 @@ namespace asio2::detail
 		{
 			this->base().base() = std::move(rep.base());
 			this->body().file() = std::move(rep.body());
-			this->prepare_payload();
+			http::try_prepare_payload(*this);
 			return *this;
 		}
 
@@ -326,7 +326,7 @@ namespace asio2::detail
 			this->version(version < 10 ? 11 : version);
 
 			this->body().text() = detail::to_string(std::forward<StringT>(content));
-			this->prepare_payload();
+			http::try_prepare_payload(*this);
 
 			return (*this);
 		}

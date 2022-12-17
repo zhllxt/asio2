@@ -152,13 +152,7 @@ namespace asio2::detail
 				for (asio::steady_timer* timer : this->timers_)
 				{
 					// when the timer is canceled, it will erase itself from timers_.
-					try
-					{
-						timer->cancel();
-					}
-					catch (system_error const&)
-					{
-					}
+					detail::cancel_timer(*timer);
 				}
 
 				for (auto&[ptr, fun] : this->objects_)
@@ -663,17 +657,11 @@ namespace asio2::detail
 				return;
 			}
 
-			try
-			{
-				clear_last_error();
-				asio::steady_timer timer(this->iots_[0]->context());
-				timer.expires_after(rel_time);
-				timer.wait();
-			}
-			catch (system_error const& e)
-			{
-				set_last_error(e);
-			}
+			clear_last_error();
+
+			asio::steady_timer timer(this->iots_[0]->context());
+			timer.expires_after(rel_time);
+			timer.wait(get_last_error());
 		}
 
 		/**
@@ -691,17 +679,11 @@ namespace asio2::detail
 				return;
 			}
 
-			try
-			{
-				clear_last_error();
-				asio::steady_timer timer(this->iots_[0]->context());
-				timer.expires_at(abs_time);
-				timer.wait();
-			}
-			catch (system_error const& e)
-			{
-				set_last_error(e);
-			}
+			clear_last_error();
+
+			asio::steady_timer timer(this->iots_[0]->context());
+			timer.expires_at(abs_time);
+			timer.wait(get_last_error());
 		}
 
 		/**
@@ -715,34 +697,25 @@ namespace asio2::detail
 			if (this->running_in_threads())
 			{
 				set_last_error(asio::error::operation_not_supported);
-				return -1;
+				return 0;
 			}
 
-			try
+			clear_last_error();
+
+			// note: The variable name signals will conflict with the macro signals of qt
+			asio::signal_set signalset(this->iots_[0]->context());
+
+			(signalset.add(signal_number), ...);
+
+			std::promise<int> promise;
+			std::future<int> future = promise.get_future();
+
+			signalset.async_wait([&](const error_code& /*ec*/, int signo)
 			{
-				clear_last_error();
+				promise.set_value(signo);
+			});
 
-				// note: The variable name signals will conflict with the macro signals of qt
-				asio::signal_set signalset(this->iots_[0]->context());
-
-				(signalset.add(signal_number), ...);
-
-				std::promise<int> promise;
-				std::future<int> future = promise.get_future();
-
-				signalset.async_wait([&](const error_code& /*ec*/, int signo)
-				{
-					promise.set_value(signo);
-				});
-
-				return future.get();
-			}
-			catch (system_error const& e)
-			{
-				set_last_error(e);
-			}
-
-			return -2;
+			return future.get();
 		}
 
 	protected:
@@ -1119,48 +1092,34 @@ namespace asio2::detail
 				return;
 			}
 
-			try
+			clear_last_error();
+
+			derived_t& derive = static_cast<derived_t&>(*this);
+
+			std::promise<error_code> promise;
+			std::future<error_code> future = promise.get_future();
+
+			// We must use asio::post to ensure the wait_stop_timer_ is read write in the 
+			// same thread.
+			asio::post(iots_[0]->context(), [this, this_ptr = derive.selfptr(), promise = std::move(promise)]
+			() mutable
 			{
-				clear_last_error();
+				this->wait_stop_timer_ = std::make_unique<asio::steady_timer>(iots_[0]->context());
 
-				derived_t& derive = static_cast<derived_t&>(*this);
+				this->iots_[0]->timers().emplace(this->wait_stop_timer_.get());
 
-				std::promise<error_code> promise;
-				std::future<error_code> future = promise.get_future();
-
-				// We must use asio::post to ensure the wait_stop_timer_ is read write in the 
-				// same thread.
-				asio::post(iots_[0]->context(), [this, this_ptr = derive.selfptr(), promise = std::move(promise)]
-				() mutable
+				this->wait_stop_timer_->expires_after((std::chrono::nanoseconds::max)());
+				this->wait_stop_timer_->async_wait(
+				[this_ptr = std::move(this_ptr), promise = std::move(promise)]
+				(const error_code&) mutable
 				{
-					try
-					{
-						this->wait_stop_timer_ = std::make_unique<asio::steady_timer>(iots_[0]->context());
+					detail::ignore_unused(this_ptr);
 
-						this->iots_[0]->timers().emplace(this->wait_stop_timer_.get());
-
-						this->wait_stop_timer_->expires_after((std::chrono::nanoseconds::max)());
-						this->wait_stop_timer_->async_wait(
-						[this_ptr = std::move(this_ptr), promise = std::move(promise)]
-						(const error_code&) mutable
-						{
-							detail::ignore_unused(this_ptr);
-
-							promise.set_value(error_code{});
-						});
-					}
-					catch (system_error const& e)
-					{
-						promise.set_value(e.code());
-					}
+					promise.set_value(error_code{});
 				});
+			});
 
-				set_last_error(future.get());
-			}
-			catch (system_error const& e)
-			{
-				set_last_error(e);
-			}
+			set_last_error(future.get());
 		}
 
 		/**
@@ -1178,17 +1137,11 @@ namespace asio2::detail
 				return;
 			}
 
-			try
-			{
-				clear_last_error();
-				asio::steady_timer timer(iots_[0]->context());
-				timer.expires_after(rel_time);
-				timer.wait();
-			}
-			catch (system_error const& e)
-			{
-				set_last_error(e);
-			}
+			clear_last_error();
+
+			asio::steady_timer timer(iots_[0]->context());
+			timer.expires_after(rel_time);
+			timer.wait(get_last_error());
 		}
 
 		/**
@@ -1206,17 +1159,11 @@ namespace asio2::detail
 				return;
 			}
 
-			try
-			{
-				clear_last_error();
-				asio::steady_timer timer(iots_[0]->context());
-				timer.expires_at(abs_time);
-				timer.wait();
-			}
-			catch (system_error const& e)
-			{
-				set_last_error(e);
-			}
+			clear_last_error();
+
+			asio::steady_timer timer(iots_[0]->context());
+			timer.expires_at(abs_time);
+			timer.wait(get_last_error());
 		}
 
 		/**
@@ -1230,34 +1177,25 @@ namespace asio2::detail
 			if (this->iopool().running_in_threads())
 			{
 				set_last_error(asio::error::operation_not_supported);
-				return -1;
+				return 0;
 			}
 
-			try
+			clear_last_error();
+
+			// note: The variable name signals will conflict with the macro signals of qt
+			asio::signal_set signalset(iots_[0]->context());
+
+			(signalset.add(signal_number), ...);
+
+			std::promise<int> promise;
+			std::future<int> future = promise.get_future();
+
+			signalset.async_wait([&](const error_code& /*ec*/, int signo)
 			{
-				clear_last_error();
+				promise.set_value(signo);
+			});
 
-				// note: The variable name signals will conflict with the macro signals of qt
-				asio::signal_set signalset(iots_[0]->context());
-
-				(signalset.add(signal_number), ...);
-
-				std::promise<int> promise;
-				std::future<int> future = promise.get_future();
-
-				signalset.async_wait([&](const error_code& /*ec*/, int signo)
-				{
-					promise.set_value(signo);
-				});
-
-				return future.get();
-			}
-			catch (system_error const& e)
-			{
-				set_last_error(e);
-			}
-
-			return -2;
+			return future.get();
 		}
 
 		/**
@@ -1299,16 +1237,12 @@ namespace asio2::detail
 			asio::post(iots_[0]->context(), [this, this_ptr = derive.selfptr()]() mutable
 			{
 				detail::ignore_unused(this_ptr);
-				try
+
+				if (this->wait_stop_timer_)
 				{
-					if (this->wait_stop_timer_)
-					{
-						this->iots_[0]->timers().erase(this->wait_stop_timer_.get());
-						this->wait_stop_timer_->cancel();
-					}
-				}
-				catch (system_error const&)
-				{
+					this->iots_[0]->timers().erase(this->wait_stop_timer_.get());
+
+					detail::cancel_timer(*(this->wait_stop_timer_));
 				}
 			});
 

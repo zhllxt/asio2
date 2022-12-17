@@ -111,40 +111,34 @@ namespace asio2::detail
 		#endif
 		#endif
 			
-			try
+		#if defined(_DEBUG) || defined(DEBUG)
+			this->is_stop_silence_timer_called_ = false;
+			this->is_stop_connect_timeout_timer_called_ = false;
+			this->is_disconnect_called_ = false;
+		#endif
+
+			std::shared_ptr<derived_t> this_ptr = this->derived().selfptr();
+
+			state_t expected = state_t::stopped;
+			if (!this->state_.compare_exchange_strong(expected, state_t::starting))
 			{
-			#if defined(_DEBUG) || defined(DEBUG)
-				this->is_stop_silence_timer_called_ = false;
-				this->is_stop_connect_timeout_timer_called_ = false;
-				this->is_disconnect_called_ = false;
-			#endif
-
-				state_t expected = state_t::stopped;
-				if (!this->state_.compare_exchange_strong(expected, state_t::starting))
-					asio::detail::throw_error(asio::error::already_started);
-
-				// must read/write ecs in the io_context thread.
-				this->derived().ecs_ = ecs;
-
-				std::shared_ptr<derived_t> this_ptr = this->derived().selfptr();
-
-				this->derived()._do_init(this_ptr, ecs);
-
-				// First call the base class start function
-				super::start();
-
-				// if the ecs has remote data call mode,do some thing.
-				this->derived()._rdc_init(ecs);
-
-				this->derived()._handle_connect(error_code{}, std::move(this_ptr), std::move(ecs),
-					defer_event(event_queue_guard<derived_t>()));
+				this->derived()._do_disconnect(asio::error::already_started, std::move(this_ptr));
+				return;
 			}
-			catch (system_error & e)
-			{
-				set_last_error(e);
 
-				this->derived()._do_disconnect(e.code(), this->derived().selfptr());
-			}
+			// must read/write ecs in the io_context thread.
+			this->derived().ecs_ = ecs;
+
+			this->derived()._do_init(this_ptr, ecs);
+
+			// First call the base class start function
+			super::start();
+
+			// if the ecs has remote data call mode,do some thing.
+			this->derived()._rdc_init(ecs);
+
+			this->derived()._handle_connect(error_code{}, std::move(this_ptr), std::move(ecs),
+				defer_event(event_queue_guard<derived_t>()));
 		}
 
 	public:
@@ -184,12 +178,7 @@ namespace asio2::detail
 		 */
 		inline unsigned short get_remote_port() const noexcept
 		{
-			try
-			{
-				return this->remote_endpoint_.port();
-			}
-			catch (system_error & e) { set_last_error(e); }
-			return static_cast<unsigned short>(0);
+			return this->remote_endpoint_.port();
 		}
 		/**
 		 * @brief get the remote port, same as get_remote_port

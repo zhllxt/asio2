@@ -119,36 +119,37 @@ namespace asio2::detail
 			std::string_view private_password
 		) noexcept
 		{
-			try
+			error_code ec{};
+
+			this->set_password_callback([password = std::string{ private_password }]
+			(std::size_t max_length, asio::ssl::context_base::password_purpose purpose)->std::string
 			{
-				this->set_password_callback([password = std::string{ private_password }]
-				(std::size_t max_length, asio::ssl::context_base::password_purpose purpose)->std::string
-				{
-					detail::ignore_unused(max_length, purpose);
+				detail::ignore_unused(max_length, purpose);
 
-					return password;
-				});
+				return password;
+			}, ec);
+			if (ec)
+				goto end;
 
-				ASIO2_ASSERT(!private_cert_buffer.empty() && !private_key_buffer.empty());
+			ASIO2_ASSERT(!private_cert_buffer.empty() && !private_key_buffer.empty());
 
-				this->use_certificate(asio::buffer(private_cert_buffer), asio::ssl::context::pem);
-				this->use_private_key(asio::buffer(private_key_buffer), asio::ssl::context::pem);
+			this->use_certificate(asio::buffer(private_cert_buffer), asio::ssl::context::pem, ec);
+			if (ec)
+				goto end;
 
-				if (!ca_cert_buffer.empty())
-					this->add_certificate_authority(asio::buffer(ca_cert_buffer));
-			}
-			catch (system_error const& e)
+			this->use_private_key(asio::buffer(private_key_buffer), asio::ssl::context::pem, ec);
+			if (ec)
+				goto end;
+
+			if (!ca_cert_buffer.empty())
 			{
-				ASIO2_ASSERT(false);
-				set_last_error(e);
-			}
-			catch (std::exception const& e)
-			{
-				detail::ignore_unused(e);
-				ASIO2_ASSERT(false);
-				set_last_error(asio::error::invalid_argument);
+				this->add_certificate_authority(asio::buffer(ca_cert_buffer), ec);
+				if (ec)
+					goto end;
 			}
 
+		end:
+			set_last_error(ec);
 			return (static_cast<derived_t&>(*this));
 		}
 
@@ -173,36 +174,37 @@ namespace asio2::detail
 			const std::string& private_password
 		) noexcept
 		{
-			try
+			error_code ec{};
+
+			this->set_password_callback([password = private_password]
+			(std::size_t max_length, asio::ssl::context_base::password_purpose purpose)->std::string
 			{
-				this->set_password_callback([password = private_password]
-				(std::size_t max_length, asio::ssl::context_base::password_purpose purpose)->std::string
-				{
-					detail::ignore_unused(max_length, purpose);
+				detail::ignore_unused(max_length, purpose);
 
-					return password;
-				});
+				return password;
+			}, ec);
+			if (ec)
+				goto end;
 
-				ASIO2_ASSERT(!private_cert_file.empty() && !private_key_file.empty());
+			ASIO2_ASSERT(!private_cert_file.empty() && !private_key_file.empty());
 
-				this->use_certificate_chain_file(private_cert_file);
-				this->use_private_key_file(private_key_file, asio::ssl::context::pem);
+			this->use_certificate_chain_file(private_cert_file, ec);
+			if (ec)
+				goto end;
 
-				if (!ca_cert_file.empty())
-					this->load_verify_file(ca_cert_file);
-			}
-			catch (system_error const& e)
+			this->use_private_key_file(private_key_file, asio::ssl::context::pem, ec);
+			if (ec)
+				goto end;
+
+			if (!ca_cert_file.empty())
 			{
-				ASIO2_ASSERT(false);
-				set_last_error(e);
-			}
-			catch (std::exception const& e)
-			{
-				detail::ignore_unused(e);
-				ASIO2_ASSERT(false);
-				set_last_error(asio::error::invalid_argument);
+				this->load_verify_file(ca_cert_file, ec);
+				if (ec)
+					goto end;
 			}
 
+		end:
+			set_last_error(ec);
 			return (static_cast<derived_t&>(*this));
 		}
 
@@ -211,22 +213,12 @@ namespace asio2::detail
 		 */
 		inline derived_t& set_dh_buffer(std::string_view dh_buffer) noexcept
 		{
-			try
-			{
-				if (!dh_buffer.empty())
-					this->use_tmp_dh(asio::buffer(dh_buffer));
-			}
-			catch (system_error const& e)
-			{
-				ASIO2_ASSERT(false);
-				set_last_error(e);
-			}
-			catch (std::exception const& e)
-			{
-				detail::ignore_unused(e);
-				ASIO2_ASSERT(false);
-				set_last_error(asio::error::invalid_argument);
-			}
+			error_code ec{};
+
+			if (!dh_buffer.empty())
+				this->use_tmp_dh(asio::buffer(dh_buffer), ec);
+
+			set_last_error(ec);
 
 			return (static_cast<derived_t&>(*this));
 		}
@@ -236,22 +228,12 @@ namespace asio2::detail
 		 */
 		inline derived_t& set_dh_file(const std::string& dh_file) noexcept
 		{
-			try
-			{
-				if (!dh_file.empty())
-					this->use_tmp_dh_file(dh_file);
-			}
-			catch (system_error const& e)
-			{
-				ASIO2_ASSERT(false);
-				set_last_error(e);
-			}
-			catch (std::exception const& e)
-			{
-				detail::ignore_unused(e);
-				ASIO2_ASSERT(false);
-				set_last_error(asio::error::invalid_argument);
-			}
+			error_code ec{};
+
+			if (!dh_file.empty())
+				this->use_tmp_dh_file(dh_file, ec);
+
+			set_last_error(ec);
 
 			return (static_cast<derived_t&>(*this));
 		}

@@ -107,12 +107,21 @@ namespace asio2::detail
 			// otherwise the operation behavior is undefined.
 			derive.rep_.reset();
 
+		#if defined(_DEBUG) || defined(DEBUG)
+			ASIO2_ASSERT(derive.post_recv_counter_.load() == 0);
+			derive.post_recv_counter_++;
+		#endif
+
 			// Receive the HTTP response
 			http::async_read(derive.stream(), derive.buffer().base(), derive.rep_,
 				make_allocator(derive.rallocator(),
 					[&derive, this_ptr = std::move(this_ptr), ecs = std::move(ecs)]
 			(const error_code & ec, std::size_t bytes_recvd) mutable
 			{
+			#if defined(_DEBUG) || defined(DEBUG)
+				derive.post_recv_counter_--;
+			#endif
+
 				derive._handle_recv(ec, bytes_recvd, std::move(this_ptr), std::move(ecs));
 			}));
 		}
@@ -131,22 +140,13 @@ namespace asio2::detail
 				return;
 			}
 
-			try
+			if constexpr (args_t::is_session)
 			{
-				if constexpr (args_t::is_session)
-				{
-					derive._http_session_post_recv(std::move(this_ptr), std::move(ecs));
-				}
-				else
-				{
-					derive._http_client_post_recv(std::move(this_ptr), std::move(ecs));
-				}
+				derive._http_session_post_recv(std::move(this_ptr), std::move(ecs));
 			}
-			catch (system_error& e)
+			else
 			{
-				set_last_error(e);
-
-				derive._do_disconnect(e.code(), derive.selfptr());
+				derive._http_client_post_recv(std::move(this_ptr), std::move(ecs));
 			}
 		}
 
@@ -222,6 +222,8 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
+			ASIO2_ASSERT(derive.io().running_in_this_thread());
+
 			set_last_error(ec);
 
 			std::ignore = bytes_recvd;
@@ -253,7 +255,7 @@ namespace asio2::detail
 			{
 				// This means they closed the connection
 				//if (ec == http::error::end_of_stream)
-				derive._do_disconnect(ec, derive.selfptr());
+				derive._do_disconnect(ec, std::move(this_ptr));
 			}
 			// If an error occurs then no new asynchronous operations are started. This
 			// means that all shared_ptr references to the connection object will

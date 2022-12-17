@@ -363,16 +363,7 @@ namespace asio2::detail
 		template <typename SettableSerialPortOption>
 		derived_t& set_option(const SettableSerialPortOption& option) noexcept
 		{
-			try
-			{
-				clear_last_error();
-
-				this->socket().set_option(option);
-			}
-			catch (system_error const& e)
-			{
-				set_last_error(e);
-			}
+			this->socket().set_option(option, get_last_error());
 			return (this->derived());
 		}
 
@@ -392,16 +383,7 @@ namespace asio2::detail
 		GettableSerialPortOption get_option() const
 		{
 			GettableSerialPortOption option{};
-			try
-			{
-				clear_last_error();
-
-				this->socket().get_option(option);
-			}
-			catch (system_error const& e)
-			{
-				set_last_error(e);
-			}
+			this->socket().get_option(option, get_last_error());
 			return option;
 		}
 
@@ -420,16 +402,7 @@ namespace asio2::detail
 		template <typename GettableSerialPortOption>
 		derived_t& get_option(GettableSerialPortOption& option)
 		{
-			try
-			{
-				clear_last_error();
-
-				this->socket().get_option(option);
-			}
-			catch (system_error const& e)
-			{
-				set_last_error(e);
-			}
+			this->socket().get_option(option, get_last_error());
 			return (this->derived());
 		}
 
@@ -499,58 +472,52 @@ namespace asio2::detail
 				// must read/write ecs in the io_context thread.
 				derive.ecs_ = ecs;
 
-				try
+				derive.io().regobj(&derive);
+
+			#if defined(_DEBUG) || defined(DEBUG)
+				this->is_stop_called_ = false;
+			#endif
+
+				// convert to string maybe throw some exception.
+				std::string  d = detail::to_string(std::move(device));
+				unsigned int b = detail::to_integer<unsigned int>(std::move(baud_rate));
+
+				expected = state_t::starting;
+				if (!this->state_.compare_exchange_strong(expected, state_t::starting))
 				{
-					clear_last_error();
-
-					derive.io().regobj(&derive);
-
-				#if defined(_DEBUG) || defined(DEBUG)
-					this->is_stop_called_ = false;
-				#endif
-
-					// convert to string maybe throw some exception.
-					std::string  d = detail::to_string(std::move(device));
-					unsigned int b = detail::to_integer<unsigned int>(std::move(baud_rate));
-
-					expected = state_t::starting;
-					if (!this->state_.compare_exchange_strong(expected, state_t::starting))
-					{
-						ASIO2_ASSERT(false);
-						asio::detail::throw_error(asio::error::operation_aborted);
-					}
-
-					error_code ec_ignore{};
-
-					this->socket().cancel(ec_ignore);
-					this->socket().close(ec_ignore);
-					this->socket().open(d);
-					this->socket().set_option(asio::serial_port::baud_rate(b));
-
-					// if the ecs has remote data call mode,do some thing.
-					derive._rdc_init(ecs);
-
-					derive._fire_init();
-					// You can set other serial port parameters in on_init(bind_init) callback function like this:
-					// sp.set_option(asio::serial_port::flow_control(serial_port::flow_control::type(flow_control)));
-					// sp.set_option(asio::serial_port::parity(serial_port::parity::type(parity)));
-					// sp.set_option(asio::serial_port::stop_bits(serial_port::stop_bits::type(stop_bits)));
-					// sp.set_option(asio::serial_port::character_size(character_size));
-
-					derive._handle_start(error_code{}, std::move(this_ptr), std::move(ecs), std::move(chain));
-
+					ASIO2_ASSERT(false);
+					derive._handle_start(asio::error::operation_aborted,
+						std::move(this_ptr), std::move(ecs), std::move(chain));
 					return;
 				}
-				catch (system_error const& e)
+
+				error_code ec, ec_ignore;
+
+				this->socket().cancel(ec_ignore);
+				this->socket().close(ec_ignore);
+				this->socket().open(d, ec);
+
+				if (ec)
 				{
-					set_last_error(e.code());
-				}
-				catch (std::exception const&)
-				{
-					set_last_error(asio::error::invalid_argument);
+					derive._handle_start(ec, std::move(this_ptr), std::move(ecs), std::move(chain));
+					return;
 				}
 
-				derive._handle_start(get_last_error(), std::move(this_ptr), std::move(ecs), std::move(chain));
+				this->socket().set_option(asio::serial_port::baud_rate(b), ec_ignore);
+
+				// if the ecs has remote data call mode,do some thing.
+				derive._rdc_init(ecs);
+
+				clear_last_error();
+
+				derive._fire_init();
+				// You can set other serial port parameters in on_init(bind_init) callback function like this:
+				// sp.set_option(asio::serial_port::flow_control(serial_port::flow_control::type(flow_control)));
+				// sp.set_option(asio::serial_port::parity(serial_port::parity::type(parity)));
+				// sp.set_option(asio::serial_port::stop_bits(serial_port::stop_bits::type(stop_bits)));
+				// sp.set_option(asio::serial_port::character_size(character_size));
+
+				derive._handle_start(ec, std::move(this_ptr), std::move(ecs), std::move(chain));
 			});
 
 			if (!derive.io().running_in_this_thread())
@@ -577,33 +544,28 @@ namespace asio2::detail
 		{
 			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
 
-			try
+			// Whether the startup succeeds or fails, always call fire_start notification
+			state_t expected = state_t::starting;
+			if (!ec)
+				if (!this->state_.compare_exchange_strong(expected, state_t::started))
+					ec = asio::error::operation_aborted;
+
+			set_last_error(ec);
+
+			this->derived()._fire_start(this_ptr, ecs);
+
+			expected = state_t::started;
+			if (!ec)
+				if (!this->state_.compare_exchange_strong(expected, state_t::started))
+					ec = asio::error::operation_aborted;
+
+			if (ec)
 			{
-				// Whether the startup succeeds or fails, always call fire_start notification
-				state_t expected = state_t::starting;
-				if (!ec)
-					if (!this->state_.compare_exchange_strong(expected, state_t::started))
-						ec = asio::error::operation_aborted;
-
-				set_last_error(ec);
-
-				this->derived()._fire_start(this_ptr, ecs);
-
-				expected = state_t::started;
-				if (!ec)
-					if (!this->state_.compare_exchange_strong(expected, state_t::started))
-						ec = asio::error::operation_aborted;
-
-				asio::detail::throw_error(ec);
-
-				this->derived()._start_recv(std::move(this_ptr), std::move(ecs));
+				this->derived()._do_disconnect(ec, std::move(this_ptr), std::move(chain));
+				return;
 			}
-			catch (system_error & e)
-			{
-				set_last_error(e);
 
-				this->derived()._do_disconnect(e.code(), this->derived().selfptr(), std::move(chain));
-			}
+			this->derived()._start_recv(std::move(this_ptr), std::move(ecs));
 		}
 
 		template<typename DeferEvent = defer_event<void, derived_t>>
@@ -636,8 +598,6 @@ namespace asio2::detail
 			{
 				detail::ignore_unused(g);
 
-				set_last_error(ec);
-
 				this->derived()._handle_disconnect(ec, std::move(this_ptr), old_state,
 					defer_event(std::move(e), std::move(g)));
 			}, chain.move_guard());
@@ -647,6 +607,8 @@ namespace asio2::detail
 		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr,
 			state_t old_state, DeferEvent chain)
 		{
+			set_last_error(ec);
+
 			this->derived()._rdc_stop();
 
 			this->derived()._do_stop(ec, std::move(this_ptr), old_state, std::move(chain));

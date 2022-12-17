@@ -33,62 +33,63 @@ namespace boost::beast::http
 	http::web_request make_request(String&& uri)
 	{
 		http::web_request req;
-		try
+
+		asio2::clear_last_error();
+
+		std::string url = asio2::detail::to_string(std::forward<String>(uri));
+
+		// if uri is empty, break
+		if (url.empty())
 		{
-			asio2::clear_last_error();
+			asio2::set_last_error(::asio::error::invalid_argument);
+			return req;
+		}
 
-			std::string url = asio2::detail::to_string(std::forward<String>(uri));
+		bool has_crlf = (url.find("\r\n") != std::string::npos);
 
-			// if uri is empty, break
-			if (url.empty())
-				::asio::detail::throw_error(::asio::error::invalid_argument);
+		std::string buf = (has_crlf ? url : "");
 
-			bool has_crlf = (url.find("\r\n") != std::string::npos);
+		req.url() = http::url{ std::move(url) };
 
-			std::string buf = (has_crlf ? url : "");
+		// If a \r\n string is found, it is not a URL
+		// If get_last_error is not zero, it means that the uri is not a URL.
+		if (has_crlf && asio2::get_last_error())
+		{
+			http::request_parser<http::string_body> parser;
+			parser.eager(true);
+			parser.put(::asio::buffer(buf), asio2::get_last_error());
+			req = parser.get();
+		}
+		// It is a URL
+		else
+		{
+			if (asio2::get_last_error())
+				return req;
 
-			req.url() = http::url{ std::move(url) };
+			/* <scheme>://<user>:<password>@<host>:<port>/<path>;<params>?<query>#<fragment> */
 
-			// If a \r\n string is found, it is not a URL
-			// If get_last_error is not zero, it means that the uri is not a URL.
-			if (has_crlf && asio2::get_last_error())
+			std::string_view host   = req.url().host();
+			std::string_view port   = req.url().port();
+			std::string_view target = req.url().target();
+
+			// Set up an HTTP GET request message
+			req.method(http::verb::get);
+			req.version(11);
+			req.target(beast::string_view(target.data(), target.size()));
+			//req.set(http::field::server, BEAST_VERSION_STRING);
+
+			if (host.empty())
 			{
-				http::request_parser<http::string_body> parser;
-				parser.eager(true);
-				parser.put(::asio::buffer(buf), asio2::get_last_error());
-				req = parser.get();
+				asio2::set_last_error(::asio::error::invalid_argument);
+				return req;
 			}
-			// It is a URL
+
+			if (!port.empty() && port != "443" && port != "80")
+				req.set(http::field::host, std::string(host) + ":" + std::string(port));
 			else
-			{
-				if (asio2::get_last_error())
-					::asio::detail::throw_error(::asio::error::invalid_argument);
-
-				/* <scheme>://<user>:<password>@<host>:<port>/<path>;<params>?<query>#<fragment> */
-
-				std::string_view host   = req.url().host();
-				std::string_view port   = req.url().port();
-				std::string_view target = req.url().target();
-
-				// Set up an HTTP GET request message
-				req.method(http::verb::get);
-				req.version(11);
-				req.target(beast::string_view(target.data(), target.size()));
-				//req.set(http::field::server, BEAST_VERSION_STRING);
-
-				if (host.empty())
-					::asio::detail::throw_error(::asio::error::invalid_argument);
-
-				if (!port.empty() && port != "443" && port != "80")
-					req.set(http::field::host, std::string(host) + ":" + std::string(port));
-				else
-					req.set(http::field::host, host);
-			}
+				req.set(http::field::host, host);
 		}
-		catch (system_error & e)
-		{
-			asio2::set_last_error(e);
-		}
+
 		return req;
 	}
 
@@ -100,74 +101,70 @@ namespace boost::beast::http
 		std::string_view target, http::verb method = http::verb::get, unsigned version = 11)
 	{
 		http::web_request req;
-		try
+
+		asio2::clear_last_error();
+
+		std::string h = asio2::detail::to_string(std::forward<String>(host));
+		asio2::trim_both(h);
+
+		std::string p = asio2::detail::to_string(std::forward<StrOrInt>(port));
+		asio2::trim_both(p);
+
+		std::string_view schema{ h.data(), (std::min<std::string_view::size_type>)(4, h.size()) };
+
+		std::string url;
+		if (!asio2::iequals(schema, "http"))
 		{
-			asio2::clear_last_error();
+			if /**/ (p == "80")
+				url += "http://";
+			else if (p == "443")
+				url += "https://";
+			else
+				url += "http://";
+		}
+		url += h;
+		if (!p.empty() && p != "443" && p != "80")
+		{
+			url += ":";
+			url += p;
+		}
+		url += target;
 
-			std::string h = asio2::detail::to_string(std::forward<String>(host));
-			asio2::trim_both(h);
+		req.url() = http::url{ std::move(url) };
 
-			std::string p = asio2::detail::to_string(std::forward<StrOrInt>(port));
-			asio2::trim_both(p);
+		// if url is invalid, break
+		if (asio2::get_last_error())
+			return req;
 
-			std::string_view schema{ h.data(), (std::min<std::string_view::size_type>)(4, h.size()) };
-
-			std::string url;
-			if (!asio2::iequals(schema, "http"))
+		// Set up an HTTP GET request message
+		req.method(method);
+		req.version(version);
+		if (target.empty())
+		{
+			req.target(beast::string_view{ "/" });
+		}
+		else
+		{
+			if (http::has_unencode_char(target, 1))
 			{
-				if /**/ (p == "80")
-					url += "http://";
-				else if (p == "443")
-					url += "https://";
-				else
-					url += "http://";
-			}
-			url += h;
-			if (!p.empty() && p != "443" && p != "80")
-			{
-				url += ":";
-				url += p;
-			}
-			url += target;
-
-			req.url() = http::url{ std::move(url) };
-
-			// if url is invalid, break
-			::asio::detail::throw_error(asio2::get_last_error());
-
-			// Set up an HTTP GET request message
-			req.method(method);
-			req.version(version);
-			if (target.empty())
-			{
-				req.target(beast::string_view{ "/" });
+				std::string encoded = http::url_encode(target);
+				req.target(beast::string_view(encoded.data(), encoded.size()));
 			}
 			else
 			{
-				if (http::has_unencode_char(target, 1))
-				{
-					std::string encoded = http::url_encode(target);
-					req.target(beast::string_view(encoded.data(), encoded.size()));
-				}
-				else
-				{
-					req.target(beast::string_view(target.data(), target.size()));
-				}
+				req.target(beast::string_view(target.data(), target.size()));
 			}
-			if (!p.empty() && p != "443" && p != "80")
-			{
-				req.set(http::field::host, h + ":" + p);
-			}
-			else
-			{
-				req.set(http::field::host, std::move(h));
-			}
-			//req.set(http::field::server, BEAST_VERSION_STRING);
 		}
-		catch (system_error & e)
+		if (!p.empty() && p != "443" && p != "80")
 		{
-			asio2::set_last_error(e);
+			req.set(http::field::host, h + ":" + p);
 		}
+		else
+		{
+			req.set(http::field::host, std::move(h));
+		}
+		//req.set(http::field::server, BEAST_VERSION_STRING);
+
 		return req;
 	}
 
@@ -191,7 +188,7 @@ namespace boost::beast::http
 		//rep.set(http::field::server, BEAST_VERSION_STRING);
 		rep.result(code);
 		rep.body() = body;
-		rep.prepare_payload();
+		http::try_prepare_payload(rep);
 		return rep;
 	}
 

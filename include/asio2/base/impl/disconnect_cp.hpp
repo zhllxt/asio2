@@ -54,6 +54,8 @@ namespace asio2::detail
 
 			ASIO2_ASSERT(derive.io().running_in_this_thread());
 
+			set_last_error(ec);
+
 			state_t expected = state_t::started;
 			if (derive.state().compare_exchange_strong(expected, state_t::stopping))
 			{
@@ -155,6 +157,8 @@ namespace asio2::detail
 			DeferEvent chain = defer_event<void, derived_t>{})
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
+
+			set_last_error(ec);
 
 			// Normally, _do_disconnect function will be called in the io_context thread, but if some
 			// exception occured, _do_disconnect maybe called in the "catch(){ ... }", then this maybe

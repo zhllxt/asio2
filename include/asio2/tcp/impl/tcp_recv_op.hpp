@@ -63,57 +63,44 @@ namespace asio2::detail
 				return;
 			}
 
-			try
+		#if defined(_DEBUG) || defined(DEBUG)
+			ASIO2_ASSERT(derive.post_recv_counter_.load() == 0);
+			derive.post_recv_counter_++;
+		#endif
+
+			ecs_t<C>& e = *ecs;
+
+			if constexpr (
+				std::is_same_v<condition_lowest_type, asio::detail::transfer_all_t> ||
+				std::is_same_v<condition_lowest_type, asio::detail::transfer_at_least_t> ||
+				std::is_same_v<condition_lowest_type, asio::detail::transfer_exactly_t> ||
+				std::is_same_v<condition_lowest_type, asio2::detail::hook_buffer_t>)
 			{
-			#if defined(_DEBUG) || defined(DEBUG)
-				ASIO2_ASSERT(derive.post_recv_counter_.load() == 0);
-				derive.post_recv_counter_++;
-			#endif
-
-				ecs_t<C>& e = *ecs;
-
-				if constexpr (
-					std::is_same_v<condition_lowest_type, asio::detail::transfer_all_t> ||
-					std::is_same_v<condition_lowest_type, asio::detail::transfer_at_least_t> ||
-					std::is_same_v<condition_lowest_type, asio::detail::transfer_exactly_t> ||
-					std::is_same_v<condition_lowest_type, asio2::detail::hook_buffer_t>)
+				asio::async_read(derive.stream(), derive.buffer().base(), e.get_condition().lowest(),
+					make_allocator(derive.rallocator(),
+						[&derive, this_ptr = std::move(this_ptr), ecs = std::move(ecs)]
+				(const error_code& ec, std::size_t bytes_recvd) mutable
 				{
-					asio::async_read(derive.stream(), derive.buffer().base(), e.get_condition().lowest(),
-						make_allocator(derive.rallocator(),
-							[&derive, this_ptr = std::move(this_ptr), ecs = std::move(ecs)]
-					(const error_code& ec, std::size_t bytes_recvd) mutable
-					{
-					#if defined(_DEBUG) || defined(DEBUG)
-						derive.post_recv_counter_--;
-					#endif
+				#if defined(_DEBUG) || defined(DEBUG)
+					derive.post_recv_counter_--;
+				#endif
 
-						derive._handle_recv(ec, bytes_recvd, std::move(this_ptr), std::move(ecs));
-					}));
-				}
-				else
-				{
-					asio::async_read_until(derive.stream(), derive.buffer().base(), e.get_condition().lowest(),
-						make_allocator(derive.rallocator(),
-							[&derive, this_ptr = std::move(this_ptr), ecs = std::move(ecs)]
-					(const error_code& ec, std::size_t bytes_recvd) mutable
-					{
-					#if defined(_DEBUG) || defined(DEBUG)
-						derive.post_recv_counter_--;
-					#endif
-
-						derive._handle_recv(ec, bytes_recvd, std::move(this_ptr), std::move(ecs));
-					}));
-				}
+					derive._handle_recv(ec, bytes_recvd, std::move(this_ptr), std::move(ecs));
+				}));
 			}
-			catch (system_error & e)
+			else
 			{
-			#if defined(_DEBUG) || defined(DEBUG)
-				derive.post_recv_counter_--;
-			#endif
+				asio::async_read_until(derive.stream(), derive.buffer().base(), e.get_condition().lowest(),
+					make_allocator(derive.rallocator(),
+						[&derive, this_ptr = std::move(this_ptr), ecs = std::move(ecs)]
+				(const error_code& ec, std::size_t bytes_recvd) mutable
+				{
+				#if defined(_DEBUG) || defined(DEBUG)
+					derive.post_recv_counter_--;
+				#endif
 
-				set_last_error(e);
-
-				derive._do_disconnect(e.code(), derive.selfptr());
+					derive._handle_recv(ec, bytes_recvd, std::move(this_ptr), std::move(ecs));
+				}));
 			}
 		}
 
@@ -153,6 +140,8 @@ namespace asio2::detail
 			using condition_lowest_type = typename ecs_t<C>::condition_lowest_type;
 
 			derived_t& derive = static_cast<derived_t&>(*this);
+
+			ASIO2_ASSERT(derive.io().running_in_this_thread());
 
 			set_last_error(ec);
 
@@ -234,7 +223,7 @@ namespace asio2::detail
 			}
 			else
 			{
-				derive._do_disconnect(ec, derive.selfptr());
+				derive._do_disconnect(ec, std::move(this_ptr));
 			}
 			// If an error occurs then no new asynchronous operations are started. This
 			// means that all shared_ptr references to the connection object will

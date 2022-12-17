@@ -964,46 +964,52 @@ namespace asio2::mqtt::v5
 
 		inline variable_byte_integer::value_type id()
 		{
-			asio2::clear_last_error();
 			variable_byte_integer::value_type r = 0;
-			try
+
+			if (this->base().index() != std::variant_npos)
 			{
+				asio2::clear_last_error();
 				r = std::visit([](auto& prop) mutable { return prop.id(); }, this->base());
 			}
-			catch (std::bad_variant_access const&)
+			else
 			{
 				asio2::set_last_error(asio::error::no_data);
 			}
+
 			return r;
 		}
 
 		inline property_type type()
 		{
-			asio2::clear_last_error();
 			property_type r = static_cast<property_type>(0);
-			try
+
+			if (this->base().index() != std::variant_npos)
 			{
+				asio2::clear_last_error();
 				r = std::visit([](auto& prop) mutable { return prop.type(); }, this->base());
 			}
-			catch (std::bad_variant_access const&)
+			else
 			{
 				asio2::set_last_error(asio::error::no_data);
 			}
+
 			return r;
 		}
 
 		inline std::string_view name()
 		{
-			asio2::clear_last_error();
 			std::string_view r{};
-			try
+
+			if (this->base().index() != std::variant_npos)
 			{
+				asio2::clear_last_error();
 				r = std::visit([](auto& prop) mutable { return prop.name(); }, this->base());
 			}
-			catch (std::bad_variant_access const&)
+			else
 			{
 				asio2::set_last_error(asio::error::no_data);
 			}
+
 			return r;
 		}
 
@@ -1222,93 +1228,96 @@ namespace asio2::mqtt::v5
 
 		inline properties_set& deserialize(std::string_view& data)
 		{
-			try
+			asio2::clear_last_error();
+
+			length_.deserialize(data);
+
+			if (asio2::get_last_error())
 			{
-				length_.deserialize(data);
+				asio2::set_last_error(mqtt::make_error_code(mqtt::error::malformed_packet));
+				return (*this);
+			}
 
-				std::int32_t length = length_.value();
+			std::int32_t length = length_.value();
 
-				std::string_view props_data = data.substr(0, length);
+			std::string_view props_data = data.substr(0, length);
 
-				data.remove_prefix(length);
+			data.remove_prefix(length);
 
-				while (!props_data.empty())
+			while (!props_data.empty())
+			{
+				variable_byte_integer id{};
+
+				id.deserialize(props_data);
+
+				if (asio2::get_last_error())
 				{
-					variable_byte_integer id{};
+					asio2::set_last_error(mqtt::make_error_code(mqtt::error::malformed_packet));
+					return (*this);
+				}
 
-					id.deserialize(props_data);
-
-					bool succeed = true;
-
-					// It is a Protocol Error to include the Session Expiry Interval more than once.
-					for (auto& prop : data_)
+				// It is a Protocol Error to include the Session Expiry Interval more than once.
+				for (auto& prop : data_)
+				{
+					if (prop.id() == id)
 					{
-						if (prop.id() == id)
-						{
-							ASIO2_ASSERT(false);
-							asio2::set_last_error(mqtt::make_error_code(mqtt::error::protocol_error));
-							break;
-						}
-					}
-
-					switch (static_cast<property_type>(id.value()))
-					{
-					case property_type::payload_format_indicator          : data_.emplace_back(payload_format_indicator         {}); break;
-					case property_type::message_expiry_interval           : data_.emplace_back(message_expiry_interval          {}); break;
-					case property_type::content_type                      : data_.emplace_back(content_type                     {}); break;
-					case property_type::response_topic                    : data_.emplace_back(response_topic                   {}); break;
-					case property_type::correlation_data                  : data_.emplace_back(correlation_data                 {}); break;
-					case property_type::subscription_identifier           : data_.emplace_back(subscription_identifier          {}); break;
-					case property_type::session_expiry_interval           : data_.emplace_back(session_expiry_interval          {}); break;
-					case property_type::assigned_client_identifier        : data_.emplace_back(assigned_client_identifier       {}); break;
-					case property_type::server_keep_alive                 : data_.emplace_back(server_keep_alive                {}); break;
-					case property_type::authentication_method             : data_.emplace_back(authentication_method            {}); break;
-					case property_type::authentication_data               : data_.emplace_back(authentication_data              {}); break;
-					case property_type::request_problem_information       : data_.emplace_back(request_problem_information      {}); break;
-					case property_type::will_delay_interval               : data_.emplace_back(will_delay_interval              {}); break;
-					case property_type::request_response_information      : data_.emplace_back(request_response_information     {}); break;
-					case property_type::response_information              : data_.emplace_back(response_information             {}); break;
-					case property_type::server_reference                  : data_.emplace_back(server_reference                 {}); break;
-					case property_type::reason_string                     : data_.emplace_back(reason_string                    {}); break;
-					case property_type::receive_maximum                   : data_.emplace_back(receive_maximum                  {}); break;
-					case property_type::topic_alias_maximum               : data_.emplace_back(topic_alias_maximum              {}); break;
-					case property_type::topic_alias                       : data_.emplace_back(topic_alias                      {}); break;
-					case property_type::maximum_qos                       : data_.emplace_back(maximum_qos                      {}); break;
-					case property_type::retain_available                  : data_.emplace_back(retain_available                 {}); break;
-					case property_type::user_property                     : data_.emplace_back(user_property                    {}); break;
-					case property_type::maximum_packet_size               : data_.emplace_back(maximum_packet_size              {}); break;
-					case property_type::wildcard_subscription_available   : data_.emplace_back(wildcard_subscription_available  {}); break;
-					case property_type::subscription_identifier_available : data_.emplace_back(subscription_identifier_available{}); break;
-					case property_type::shared_subscription_available     : data_.emplace_back(shared_subscription_available    {}); break;
-					default:
-						// A Control Packet which contains an Identifier which is not valid for its packet type,
-						// or contains a value not of the specified data type, is a Malformed Packet. If received,
-						// use a CONNACK or DISCONNECT packet with Reason Code 0x81 (Malformed Packet) as described
-						// in section 4.13 Handling errors.
-						succeed = false;
-						ASIO2_ASSERT(false);
-						asio2::set_last_error(mqtt::make_error_code(mqtt::error::malformed_packet));
+						asio2::set_last_error(mqtt::make_error_code(mqtt::error::protocol_error));
 						break;
 					}
-
-					if (succeed)
-					{
-						std::visit([&props_data](auto& prop) mutable
-						{
-							prop.value_.deserialize(props_data);
-						}, data_.back().base());
-					}
 				}
-			}
-			catch (system_error const&)
-			{
-				ASIO2_ASSERT(false);
-				asio2::set_last_error(mqtt::make_error_code(mqtt::error::malformed_packet));
-			}
-			catch (std::exception const&)
-			{
-				ASIO2_ASSERT(false);
-				asio2::set_last_error(mqtt::make_error_code(mqtt::error::malformed_packet));
+
+				switch (static_cast<property_type>(id.value()))
+				{
+				case property_type::payload_format_indicator          : data_.emplace_back(payload_format_indicator         {}); break;
+				case property_type::message_expiry_interval           : data_.emplace_back(message_expiry_interval          {}); break;
+				case property_type::content_type                      : data_.emplace_back(content_type                     {}); break;
+				case property_type::response_topic                    : data_.emplace_back(response_topic                   {}); break;
+				case property_type::correlation_data                  : data_.emplace_back(correlation_data                 {}); break;
+				case property_type::subscription_identifier           : data_.emplace_back(subscription_identifier          {}); break;
+				case property_type::session_expiry_interval           : data_.emplace_back(session_expiry_interval          {}); break;
+				case property_type::assigned_client_identifier        : data_.emplace_back(assigned_client_identifier       {}); break;
+				case property_type::server_keep_alive                 : data_.emplace_back(server_keep_alive                {}); break;
+				case property_type::authentication_method             : data_.emplace_back(authentication_method            {}); break;
+				case property_type::authentication_data               : data_.emplace_back(authentication_data              {}); break;
+				case property_type::request_problem_information       : data_.emplace_back(request_problem_information      {}); break;
+				case property_type::will_delay_interval               : data_.emplace_back(will_delay_interval              {}); break;
+				case property_type::request_response_information      : data_.emplace_back(request_response_information     {}); break;
+				case property_type::response_information              : data_.emplace_back(response_information             {}); break;
+				case property_type::server_reference                  : data_.emplace_back(server_reference                 {}); break;
+				case property_type::reason_string                     : data_.emplace_back(reason_string                    {}); break;
+				case property_type::receive_maximum                   : data_.emplace_back(receive_maximum                  {}); break;
+				case property_type::topic_alias_maximum               : data_.emplace_back(topic_alias_maximum              {}); break;
+				case property_type::topic_alias                       : data_.emplace_back(topic_alias                      {}); break;
+				case property_type::maximum_qos                       : data_.emplace_back(maximum_qos                      {}); break;
+				case property_type::retain_available                  : data_.emplace_back(retain_available                 {}); break;
+				case property_type::user_property                     : data_.emplace_back(user_property                    {}); break;
+				case property_type::maximum_packet_size               : data_.emplace_back(maximum_packet_size              {}); break;
+				case property_type::wildcard_subscription_available   : data_.emplace_back(wildcard_subscription_available  {}); break;
+				case property_type::subscription_identifier_available : data_.emplace_back(subscription_identifier_available{}); break;
+				case property_type::shared_subscription_available     : data_.emplace_back(shared_subscription_available    {}); break;
+				default:
+					// A Control Packet which contains an Identifier which is not valid for its packet type,
+					// or contains a value not of the specified data type, is a Malformed Packet. If received,
+					// use a CONNACK or DISCONNECT packet with Reason Code 0x81 (Malformed Packet) as described
+					// in section 4.13 Handling errors.
+					asio2::set_last_error(mqtt::make_error_code(mqtt::error::malformed_packet));
+					return (*this);
+				}
+
+				error_code ec{};
+
+				std::visit([&props_data, &ec](auto& prop) mutable
+				{
+					prop.value_.deserialize(props_data);
+
+					ec = asio2::get_last_error();
+				}, data_.back().base());
+
+				if (ec)
+				{
+					asio2::set_last_error(mqtt::make_error_code(mqtt::error::malformed_packet));
+					return (*this);
+				}
 			}
 
 			return (*this);

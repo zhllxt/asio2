@@ -207,48 +207,41 @@ namespace asio2::detail
 		static inline download(const asio::ssl::context& ctx, String&& host, StrOrInt&& port,
 			http::request<Body, Fields>& req, HeaderCallback&& cbh, BodyCallback&& cbb, Proxy&& proxy)
 		{
-			try
-			{
-				// First assign default value 0 to last error
-				clear_last_error();
+			// First assign default value 0 to last error
+			clear_last_error();
 
-				// The io_context is required for all I/O
-				asio::io_context ioc;
+			// The io_context is required for all I/O
+			asio::io_context ioc;
 
-				// These objects perform our I/O
-				asio::ip::tcp::resolver resolver{ ioc };
-				asio::ip::tcp::socket socket{ ioc };
-				asio::ssl::stream<asio::ip::tcp::socket&> stream(socket, const_cast<asio::ssl::context&>(ctx));
+			// These objects perform our I/O
+			asio::ip::tcp::resolver resolver{ ioc };
+			asio::ip::tcp::socket socket{ ioc };
+			asio::ssl::stream<asio::ip::tcp::socket&> stream(socket, const_cast<asio::ssl::context&>(ctx));
 
-				// This buffer is used for reading and must be persisted
-				Buffer buffer;
+			// This buffer is used for reading and must be persisted
+			Buffer buffer;
 
-				// Some sites must set the http::field::user_agent
-				if (req.find(http::field::user_agent) == req.end())
-					req.set(http::field::user_agent,
-						"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36");
+			// Some sites must set the http::field::user_agent
+			if (req.find(http::field::user_agent) == req.end())
+				req.set(http::field::user_agent,
+					"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36");
 
-				// do work
-				derived_t::_download_impl(ioc, resolver, socket, stream, buffer
-					, std::forward<String>(host), std::forward<StrOrInt>(port)
-					, req, std::forward<HeaderCallback>(cbh), std::forward<BodyCallback>(cbb)
-					, std::forward<Proxy>(proxy)
-				);
+			// do work
+			derived_t::_download_impl(ioc, resolver, socket, stream, buffer
+				, std::forward<String>(host), std::forward<StrOrInt>(port)
+				, req, std::forward<HeaderCallback>(cbh), std::forward<BodyCallback>(cbb)
+				, std::forward<Proxy>(proxy)
+			);
 
-				// timedout run
-				ioc.run();
+			// timedout run
+			ioc.run();
 
-				error_code ec_ignore{};
+			error_code ec_ignore{};
 
-				// Gracefully close the socket
-				socket.shutdown(asio::ip::tcp::socket::shutdown_both, ec_ignore);
-				socket.cancel(ec_ignore);
-				socket.close(ec_ignore);
-			}
-			catch (system_error & e)
-			{
-				set_last_error(e);
-			}
+			// Gracefully close the socket
+			socket.shutdown(asio::ip::tcp::socket::shutdown_both, ec_ignore);
+			socket.cancel(ec_ignore);
+			socket.close(ec_ignore);
 
 			return bool(!get_last_error());
 		}

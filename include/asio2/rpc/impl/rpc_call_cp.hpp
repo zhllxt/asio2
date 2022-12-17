@@ -88,125 +88,115 @@ namespace asio2::detail
 			inline static return_t exec(derive_t& derive,
 				std::chrono::duration<Rep, Period> timeout, std::string name, Args&&... args)
 			{
-				error_code ec = rpc::make_error_code(rpc::error::success);
-				std::shared_ptr<typename rpc_result_t<return_t>::type> result =
-					std::make_shared<typename rpc_result_t<return_t>::type>();
-				try
+				using result_t = typename rpc_result_t<return_t>::type;
+
+				if (!derive.is_started())
 				{
-					if (!derive.is_started())
-						asio::detail::throw_error(rpc::make_error_code(rpc::error::not_connected));
+					set_last_error(rpc::make_error_code(rpc::error::not_connected));
 
-					rpc_header::id_type id = derive.mkid();
-					rpc_request<Args...> req(id, std::move(name), std::forward<Args>(args)...);
-
-					std::shared_ptr<std::promise<error_code>> promise =
-						std::make_shared<std::promise<error_code>>();
-					std::future<error_code> future = promise->get_future();
-
-					auto ex = [&derive, result, id, pm = std::move(promise)]
-					(error_code ec, std::string_view data) mutable
+					if constexpr (!std::is_void_v<return_t>)
 					{
-						detail::ignore_unused(data);
-
-						// when async_send failed, the error category is not rpc category.
-						//ASIO2_ASSERT(std::string_view(ec.category().name()) == rpc::rpc_category().name());
-
-						ASIO2_ASSERT(derive.io().running_in_this_thread());
-
-						if (!ec)
-						{
-							try
-							{
-								derive.dr_ >> ec;
-								if constexpr (!std::is_void_v<return_t>)
-								{
-									if (!ec)
-										derive.dr_ >> (*result);
-								}
-								else
-								{
-									std::ignore = result;
-								}
-							}
-							catch (cereal::exception const&)
-							{
-								ec = rpc::make_error_code(rpc::error::no_data);
-							}
-							catch (system_error      const& e)
-							{
-								ec = e.code();
-								if (std::addressof(ec.category()) != std::addressof(rpc::rpc_category()))
-								{
-									ec = rpc::make_error_code(rpc::error::unspecified_error);
-								}
-							}
-							catch (std::exception    const&)
-							{
-								ec = rpc::make_error_code(rpc::error::unspecified_error);
-							}
-						}
-
-						if (std::addressof(ec.category()) != std::addressof(rpc::rpc_category()))
-						{
-							ec.assign(ec.value(), rpc::rpc_category());
-						}
-
-						ASIO2_ASSERT(std::string_view(ec.category().name()) == rpc::rpc_category().name());
-
-						set_last_error(ec);
-
-						pm->set_value(ec);
-
-						derive.reqs_.erase(id);
-					};
-
-					asio::post(derive.io().context(), make_allocator(derive.callocator_,
-					[&derive, req = std::move(req), ex = std::move(ex), p = derive.selfptr()]() mutable
-					{
-						detail::ignore_unused(p);
-
-						derive.reqs_.emplace(req.id(), std::move(ex));
-
-						derive.async_send((derive.sr_.reset() << req).str(),
-						[&derive, id = req.id()]() mutable
-						{
-							if (get_last_error()) // send data failed with error
-							{
-								auto iter = derive.reqs_.find(id);
-								if (iter != derive.reqs_.end())
-								{
-									auto& ex = iter->second;
-									ex(get_last_error(), std::string_view{});
-								}
-							}
-						});
-					}));
-
-					// Whether we run on the io_context thread
-					if (!derive.io().running_in_this_thread())
-					{
-						std::future_status status = future.wait_for(timeout);
-						if (status == std::future_status::ready)
-						{
-							ec = future.get();
-						}
-						else
-						{
-							ec = rpc::make_error_code(rpc::error::timed_out);
-
-							asio::post(derive.io().context(), make_allocator(derive.callocator_,
-							[&derive, id, p = derive.selfptr()]() mutable
-							{
-								detail::ignore_unused(p);
-
-								derive.reqs_.erase(id);
-							}));
-						}
+						return result_t{};
 					}
 					else
 					{
-						// If invoke synchronization rpc call function in communication thread, it will degenerates
-						// into async_call and the return value is empty.
+						return;
+					}
+				}
+
+				std::shared_ptr<result_t> result = std::make_shared<result_t>();
+
+				set_last_error(rpc::make_error_code(rpc::error::success));
+
+				rpc_header::id_type id = derive.mkid();
+				rpc_request<Args...> req(id, std::move(name), std::forward<Args>(args)...);
+
+				std::shared_ptr<std::promise<error_code>> promise = std::make_shared<std::promise<error_code>>();
+				std::future<error_code> future = promise->get_future();
+
+				auto ex = [&derive, result, id, pm = std::move(promise)]
+				(error_code ec, std::string_view data) mutable
+				{
+					detail::ignore_unused(data);
+
+					// when async_send failed, the error category is not rpc category.
+					//ASIO2_ASSERT(std::string_view(ec.category().name()) == rpc::rpc_category().name());
+
+					ASIO2_ASSERT(derive.io().running_in_this_thread());
+
+					if (!ec)
+					{
+						try
+						{
+							derive.dr_ >> ec;
+
+							if constexpr (!std::is_void_v<return_t>)
+							{
+								if (!ec)
+									derive.dr_ >> (*result);
+							}
+							else
+							{
+								std::ignore = result;
+							}
+						}
+						catch (cereal::exception const&)
+						{
+							ec = rpc::make_error_code(rpc::error::no_data);
+						}
+						catch (std::exception    const&)
+						{
+							ec = rpc::make_error_code(rpc::error::unspecified_error);
+						}
+					}
+
+					if (std::addressof(ec.category()) != std::addressof(rpc::rpc_category()))
+					{
+						ec.assign(ec.value(), rpc::rpc_category());
+					}
+
+					ASIO2_ASSERT(std::string_view(ec.category().name()) == rpc::rpc_category().name());
+
+					set_last_error(ec);
+
+					pm->set_value(ec);
+
+					derive.reqs_.erase(id);
+				};
+
+				asio::post(derive.io().context(), make_allocator(derive.callocator_,
+				[&derive, req = std::move(req), ex = std::move(ex), p = derive.selfptr()]() mutable
+				{
+					detail::ignore_unused(p);
+
+					derive.reqs_.emplace(req.id(), std::move(ex));
+
+					derive.async_send((derive.sr_.reset() << req).str(),
+					[&derive, id = req.id()]() mutable
+					{
+						if (get_last_error()) // send data failed with error
+						{
+							auto iter = derive.reqs_.find(id);
+							if (iter != derive.reqs_.end())
+							{
+								auto& ex = iter->second;
+								ex(get_last_error(), std::string_view{});
+							}
+						}
+					});
+				}));
+
+				// Whether we run on the io_context thread
+				if (!derive.io().running_in_this_thread())
+				{
+					std::future_status status = future.wait_for(timeout);
+					if (status == std::future_status::ready)
+					{
+						set_last_error(future.get());
+					}
+					else
+					{
+						set_last_error(rpc::make_error_code(rpc::error::timed_out));
 
 						asio::post(derive.io().context(), make_allocator(derive.callocator_,
 						[&derive, id, p = derive.selfptr()]() mutable
@@ -215,34 +205,28 @@ namespace asio2::detail
 
 							derive.reqs_.erase(id);
 						}));
-
-						ec = rpc::make_error_code(rpc::error::in_progress);
 					}
 				}
-				catch (cereal::exception const&)
+				else
 				{
-					ec = rpc::make_error_code(rpc::error::no_data);
-				}
-				catch (system_error      const& e)
-				{
-					ec = e.code();
-					if (std::addressof(ec.category()) != std::addressof(rpc::rpc_category()))
+					// If invoke synchronization rpc call function in communication thread, it will degenerates
+					// into async_call and the return value is empty.
+
+					asio::post(derive.io().context(), make_allocator(derive.callocator_,
+					[&derive, id, p = derive.selfptr()]() mutable
 					{
-						ec = rpc::make_error_code(rpc::error::unspecified_error);
-					}
-				}
-				catch (std::exception    const&)
-				{
-					ec = rpc::make_error_code(rpc::error::unspecified_error);
+						detail::ignore_unused(p);
+
+						derive.reqs_.erase(id);
+					}));
+
+					set_last_error(rpc::make_error_code(rpc::error::in_progress));
 				}
 
-				ASIO2_ASSERT(std::string_view(ec.category().name()) == rpc::rpc_category().name());
-
-				set_last_error(ec);
+				ASIO2_ASSERT(std::string_view(get_last_error().category().name()) == rpc::rpc_category().name());
 
 				// [20210818] don't throw an error, you can use get_last_error() to check
 				// is there any exception.
-				//asio::detail::throw_error(ec);
 
 				if constexpr (!std::is_void_v<return_t>)
 				{
@@ -250,7 +234,7 @@ namespace asio2::detail
 				}
 				else
 				{
-					std::ignore = true;
+					return;
 				}
 			}
 		};
@@ -312,14 +296,6 @@ namespace asio2::detail
 						{
 							ec = rpc::make_error_code(rpc::error::no_data);
 						}
-						catch (system_error      const& e)
-						{
-							ec = e.code();
-							if (std::addressof(ec.category()) != std::addressof(rpc::rpc_category()))
-							{
-								ec = rpc::make_error_code(rpc::error::unspecified_error);
-							}
-						}
 						catch (std::exception    const&)
 						{
 							ec = rpc::make_error_code(rpc::error::unspecified_error);
@@ -364,14 +340,6 @@ namespace asio2::detail
 						{
 							ec = rpc::make_error_code(rpc::error::no_data);
 						}
-						catch (system_error      const& e)
-						{
-							ec = e.code();
-							if (std::addressof(ec.category()) != std::addressof(rpc::rpc_category()))
-							{
-								ec = rpc::make_error_code(rpc::error::unspecified_error);
-							}
-						}
 						catch (std::exception    const&)
 						{
 							ec = rpc::make_error_code(rpc::error::unspecified_error);
@@ -396,48 +364,22 @@ namespace asio2::detail
 			{
 				ASIO2_ASSERT(!req.id());
 
-				error_code ec = rpc::make_error_code(rpc::error::success);
-
-				try
+				if (!derive.is_started())
 				{
-					if (!derive.is_started())
-						asio::detail::throw_error(rpc::make_error_code(rpc::error::not_connected));
-
-					asio::post(derive.io().context(), make_allocator(derive.callocator_,
-					[&derive, req = std::forward<Req>(req), p = derive.selfptr()]() mutable
-					{
-						detail::ignore_unused(p);
-
-						derive.async_send((derive.sr_.reset() << req).str());
-					}));
+					set_last_error(rpc::make_error_code(rpc::error::not_connected));
 
 					return;
 				}
-				catch (cereal::exception const&)
-				{
-					ec = rpc::make_error_code(rpc::error::no_data);
-				}
-				catch (system_error      const& e)
-				{
-					ec = e.code();
-					if (std::addressof(ec.category()) != std::addressof(rpc::rpc_category()))
-					{
-						ec = rpc::make_error_code(rpc::error::unspecified_error);
-					}
-				}
-				catch (std::exception    const&)
-				{
-					ec = rpc::make_error_code(rpc::error::unspecified_error);
-				}
 
-				ASIO2_ASSERT(std::string_view(ec.category().name()) == rpc::rpc_category().name());
+				set_last_error(rpc::make_error_code(rpc::error::success));
 
-				if (std::addressof(ec.category()) != std::addressof(rpc::rpc_category()))
+				asio::post(derive.io().context(), make_allocator(derive.callocator_,
+				[&derive, req = std::forward<Req>(req), p = derive.selfptr()]() mutable
 				{
-					ec.assign(ec.value(), rpc::rpc_category());
-				}
+					detail::ignore_unused(p);
 
-				set_last_error(ec);
+					derive.async_send((derive.sr_.reset() << req).str());
+				}));
 			}
 
 			template<class Callback, class Rep, class Period, class Req>
@@ -445,8 +387,6 @@ namespace asio2::detail
 				std::chrono::duration<Rep, Period> timeout, Callback&& cb, Req&& req)
 			{
 				ASIO2_ASSERT(id);
-
-				error_code ec = rpc::make_error_code(rpc::error::success);
 
 				req.id(id);
 
@@ -461,122 +401,92 @@ namespace asio2::detail
 				{
 					ASIO2_ASSERT(derive.io().running_in_this_thread());
 
-					try
-					{
-						timer->cancel();
-					}
-					catch (system_error const&)
-					{
-					}
+					detail::cancel_timer(*timer);
 
 					if (cb) { cb(ec, data); }
 
 					derive.reqs_.erase(id);
 				};
 
-				try
+				if (!derive.is_started())
 				{
-					if (!derive.is_started())
-						asio::detail::throw_error(rpc::make_error_code(rpc::error::not_connected));
+					set_last_error(rpc::make_error_code(rpc::error::not_connected));
 
-					// 2019-11-28 fixed the bug of issue #6 : task() cannot be called directly
-
-					// 2021-12-10 : can't save the request id in async_send's callback.
-					// The following will occurs when using async_send with callback :
-					// 1. call async_send with callback
-					// 2. recv response by rpc_recv_op
-					// 3. the callback was called
-					// It means that : The callback function of async_send may be called after 
-					// recved response data.
-
+					// bug fixed : can't call ex(...) directly, it will 
+					// cause "reqs_.erase(id)" be called in multithread 
 					asio::post(derive.io().context(), make_allocator(derive.callocator_,
-					[&derive, timer = std::move(timer), timeout, req = std::forward<Req>(req),
-						ex = std::move(ex), p = derive.selfptr()]() mutable
+					[ex = std::move(ex), p = derive.selfptr()]() mutable
 					{
-						// 1. first, save the request id
-						derive.reqs_.emplace(req.id(), std::move(ex));
+						detail::ignore_unused(p);
 
-						// 2. second, start the timeout timer.
-						// note : cannot put "start timer" after "async_send", beacust the async_send
-						// maybe failed immediately with the "derive.is_started() == false", then the
-						// callback of async_send will be called immediately, and the "ex" will be called,
-						// and the timer will be canceled, but at this time, the timer has't start yet,
-						// when async_send is return, the timer will be begin "async_wait", but the timer
-						// "cancel" is called already, so this will cause some small problem.
+						set_last_error(rpc::make_error_code(rpc::error::not_connected));
 
-						// must start a timeout timer, othwise if not recved response, it will cause the
-						// request id in the map forever.
-
-						timer->expires_after(timeout);
-						timer->async_wait(
-						[this_ptr = std::move(p), &derive, id = req.id()]
-						(const error_code& ec) mutable
-						{
-							if (ec == asio::error::operation_aborted)
-								return;
-
-							auto iter = derive.reqs_.find(id);
-							if (iter != derive.reqs_.end())
-							{
-								auto& ex = iter->second;
-								ex(rpc::make_error_code(rpc::error::timed_out), std::string_view{});
-							}
-						});
-
-						// 3. third, send request.
-						derive.async_send((derive.sr_.reset() << req).str(),
-						[&derive, id = req.id()]() mutable
-						{
-							if (get_last_error()) // send data failed with error
-							{
-								auto iter = derive.reqs_.find(id);
-								if (iter != derive.reqs_.end())
-								{
-									auto& ex = iter->second;
-									ex(get_last_error(), std::string_view{});
-								}
-							}
-						});
+						ex(rpc::make_error_code(rpc::error::not_connected), std::string_view{});
 					}));
 
 					return;
 				}
-				catch (cereal::exception const&)
-				{
-					ec = rpc::make_error_code(rpc::error::no_data);
-				}
-				catch (system_error      const& e)
-				{
-					ec = e.code();
-					if (std::addressof(ec.category()) != std::addressof(rpc::rpc_category()))
-					{
-						ec = rpc::make_error_code(rpc::error::unspecified_error);
-					}
-				}
-				catch (std::exception    const&)
-				{
-					ec = rpc::make_error_code(rpc::error::unspecified_error);
-				}
 
-				ASIO2_ASSERT(std::string_view(ec.category().name()) == rpc::rpc_category().name());
+				set_last_error(rpc::make_error_code(rpc::error::success));
 
-				if (std::addressof(ec.category()) != std::addressof(rpc::rpc_category()))
-				{
-					ec.assign(ec.value(), rpc::rpc_category());
-				}
+				// 2019-11-28 fixed the bug of issue #6 : task() cannot be called directly
 
-				set_last_error(ec);
+				// 2021-12-10 : can't save the request id in async_send's callback.
+				// The following will occurs when using async_send with callback :
+				// 1. call async_send with callback
+				// 2. recv response by rpc_recv_op
+				// 3. the callback was called
+				// It means that : The callback function of async_send may be called after 
+				// recved response data.
 
-				// bug fixed : can't call ex(...) directly, it will 
-				// cause "reqs_.erase(id)" be called in multithread 
 				asio::post(derive.io().context(), make_allocator(derive.callocator_,
-				[ec, ex = std::move(ex), p = derive.selfptr()]() mutable
+				[&derive, timer = std::move(timer), timeout, req = std::forward<Req>(req),
+					ex = std::move(ex), p = derive.selfptr()]() mutable
 				{
-					detail::ignore_unused(p);
+					// 1. first, save the request id
+					derive.reqs_.emplace(req.id(), std::move(ex));
 
-					set_last_error(ec);
+					// 2. second, start the timeout timer.
+					// note : cannot put "start timer" after "async_send", beacust the async_send
+					// maybe failed immediately with the "derive.is_started() == false", then the
+					// callback of async_send will be called immediately, and the "ex" will be called,
+					// and the timer will be canceled, but at this time, the timer has't start yet,
+					// when async_send is return, the timer will be begin "async_wait", but the timer
+					// "cancel" is called already, so this will cause some small problem.
 
-					ex(ec, std::string_view{});
+					// must start a timeout timer, othwise if not recved response, it will cause the
+					// request id in the map forever.
+
+					timer->expires_after(timeout);
+					timer->async_wait(
+					[this_ptr = std::move(p), &derive, id = req.id()]
+					(const error_code& ec) mutable
+					{
+						if (ec == asio::error::operation_aborted)
+							return;
+
+						auto iter = derive.reqs_.find(id);
+						if (iter != derive.reqs_.end())
+						{
+							auto& ex = iter->second;
+							ex(rpc::make_error_code(rpc::error::timed_out), std::string_view{});
+						}
+					});
+
+					// 3. third, send request.
+					derive.async_send((derive.sr_.reset() << req).str(),
+					[&derive, id = req.id()]() mutable
+					{
+						if (get_last_error()) // send data failed with error
+						{
+							auto iter = derive.reqs_.find(id);
+							if (iter != derive.reqs_.end())
+							{
+								auto& ex = iter->second;
+								ex(get_last_error(), std::string_view{});
+							}
+						}
+					});
 				}));
 			}
 		};

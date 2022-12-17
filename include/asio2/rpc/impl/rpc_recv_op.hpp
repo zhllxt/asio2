@@ -44,6 +44,22 @@ namespace asio2::detail
 		~rpc_recv_op() = default;
 
 	protected:
+		inline void _rpc_handle_failed_request(rpc::error e, rpc_serializer& sr, rpc_header& head)
+		{
+			if (head.id() != static_cast<rpc_header::id_type>(0))
+			{
+				derived_t& derive = static_cast<derived_t&>(*this);
+
+				error_code ec = rpc::make_error_code(e);
+
+				sr.reset();
+				sr << head;
+				sr << ec;
+
+				derive.async_send(sr.str());
+			}
+		}
+
 		template<typename C>
 		void _rpc_handle_recv(
 			std::shared_ptr<derived_t>& this_ptr, std::shared_ptr<ecs_t<C>>& ecs, std::string_view data)
@@ -65,83 +81,77 @@ namespace asio2::detail
 			}
 			catch (cereal::exception const&)
 			{
-				error_code ec = rpc::make_error_code(rpc::error::illegal_data);
-				set_last_error(ec);
-				derive._do_disconnect(ec, this_ptr);
+				derive._do_disconnect(rpc::make_error_code(rpc::error::illegal_data), this_ptr);
 				return;
 			}
 			// bug fixed : illegal data being parsed into string object fails to allocate
 			// memory due to excessively long data
 			catch (std::bad_alloc const&)
 			{
-				error_code ec = rpc::make_error_code(rpc::error::illegal_data);
-				set_last_error(ec);
-				derive._do_disconnect(ec, this_ptr);
+				derive._do_disconnect(rpc::make_error_code(rpc::error::illegal_data), this_ptr);
 				return;
 			}
 			catch (std::exception const&)
 			{
-				error_code ec = rpc::make_error_code(rpc::error::unspecified_error);
-				set_last_error(ec);
-				derive._do_disconnect(ec, this_ptr);
+				derive._do_disconnect(rpc::make_error_code(rpc::error::unspecified_error), this_ptr);
 				return;
 			}
 
 			if /**/ (head.is_request())
 			{
-				try
+				head.type(rpc_type_rep);
+				sr.reset();
+				sr << head;
+				auto* fn = derive._invoker().find(head.name());
+				if (fn)
 				{
-					head.type(rpc_type_rep);
-					sr.reset();
-					sr << head;
-					auto* fn = derive._invoker().find(head.name());
-					if (fn)
+					// async - return true, sync - return false
+					// call this function will deserialize data, so it maybe throw some exception,
+					// and it will call user function inner, the user function maybe throw some 
+					// exception also.
+					try
 					{
-						// async - return true, sync - return false
-						// call this function will deserialize data, so it maybe throw some exception,
-						// and it will call user function inner, the user function maybe throw some 
-						// exception also.
 						if ((*fn)(this_ptr, std::addressof(derive), sr, dr))
 							return;
-
-						// The number of parameters passed in when calling rpc function exceeds 
-						// the number of parameters of local function
-						if (dr.buffer().in_avail() != 0 && head.id() != static_cast<rpc_header::id_type>(0))
-						{
-							sr.reset();
-							sr << head;
-							error_code ec = rpc::make_error_code(rpc::error::invalid_argument);
-							sr << ec;
-						}
 					}
-					else
+					catch (cereal::exception const&)
 					{
-						if (head.id() != static_cast<rpc_header::id_type>(0))
+						derive._rpc_handle_failed_request(rpc::error::invalid_argument, sr, head);
+						return;
+					}
+					catch (system_error      const&)
+					{
+						derive._rpc_handle_failed_request(rpc::error::unspecified_error, sr, head);
+						return;
+					}
+					catch (std::exception    const&)
+					{
+						derive._rpc_handle_failed_request(rpc::error::unspecified_error, sr, head);
+						return;
+					}
+
+					// The number of parameters passed in when calling rpc function exceeds 
+					// the number of parameters of local function
+					if (head.id() != static_cast<rpc_header::id_type>(0))
+					{
+						if (dr.buffer().in_avail() == 0)
 						{
-							error_code ec = rpc::make_error_code(rpc::error::not_found);
-							sr << ec;
+							derive.async_send(sr.str());
+						}
+						else
+						{
+							derive._rpc_handle_failed_request(rpc::error::invalid_argument, sr, head);
 						}
 					}
 				}
-				catch (cereal::exception const&)
+				else
 				{
-					error_code ec = rpc::make_error_code(rpc::error::invalid_argument);
-					sr << ec;
-				}
-				catch (system_error      const&)
-				{
-					error_code ec = rpc::make_error_code(rpc::error::unspecified_error);
-					sr << ec;
-				}
-				catch (std::exception    const&)
-				{
-					error_code ec = rpc::make_error_code(rpc::error::unspecified_error);
-					sr << ec;
-				}
-
-				if (head.id() != static_cast<rpc_header::id_type>(0))
-				{
-					derive.async_send(sr.str());
+					if (head.id() != static_cast<rpc_header::id_type>(0))
+					{
+						error_code ec = rpc::make_error_code(rpc::error::not_found);
+						sr << ec;
+						derive.async_send(sr.str());
+					}
 				}
 			}
 			else if (head.is_response())
@@ -155,9 +165,7 @@ namespace asio2::detail
 			}
 			else
 			{
-				error_code ec = rpc::make_error_code(rpc::error::no_data);
-				set_last_error(ec);
-				derive._do_disconnect(ec, this_ptr);
+				derive._do_disconnect(rpc::make_error_code(rpc::error::no_data), this_ptr);
 			}
 		}
 

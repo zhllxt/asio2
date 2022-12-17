@@ -660,6 +660,19 @@ namespace boost::beast::http
 		}
 	}
 
+	template<bool isRequest, class Body, class Fields>
+	inline void try_prepare_payload(http::message<isRequest, Body, Fields>& msg)
+	{
+		try
+		{
+			msg.prepare_payload();
+		}
+		catch (const std::exception&)
+		{
+			asio2::set_last_error(asio::error::invalid_argument);
+		}
+	}
+
 	template<typename, typename = void>
 	struct is_http_message : std::false_type {};
 

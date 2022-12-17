@@ -108,49 +108,49 @@ namespace asio2::detail
 
 			ASIO2_ASSERT(this->sessions().io().running_in_this_thread());
 
-			try
+		#if defined(_DEBUG) || defined(DEBUG)
+			this->is_stop_silence_timer_called_ = false;
+			this->is_stop_connect_timeout_timer_called_ = false;
+			this->is_disconnect_called_ = false;
+		#endif
+
+			std::shared_ptr<derived_t> this_ptr = this->derived().selfptr();
+
+			state_t expected = state_t::stopped;
+			if (!this->state_.compare_exchange_strong(expected, state_t::starting))
 			{
-			#if defined(_DEBUG) || defined(DEBUG)
-				this->is_stop_silence_timer_called_ = false;
-				this->is_stop_connect_timeout_timer_called_ = false;
-				this->is_disconnect_called_ = false;
-			#endif
-
-				state_t expected = state_t::stopped;
-				if (!this->state_.compare_exchange_strong(expected, state_t::starting))
-					asio::detail::throw_error(asio::error::already_started);
-
-				// must read/write ecs in the io_context thread.
-				this->derived().ecs_ = ecs;
-
-				std::shared_ptr<derived_t> this_ptr = this->derived().selfptr();
-
-				this->derived()._do_init(this_ptr, ecs);
-
-				this->derived()._fire_accept(this_ptr);
-
-				expected = state_t::starting;
-				if (!this->state_.compare_exchange_strong(expected, state_t::starting))
-					asio::detail::throw_error(asio::error::operation_aborted);
-
-				if (!this->derived().socket().is_open())
-					asio::detail::throw_error(asio::error::operation_aborted);
-
-				// First call the base class start function
-				super::start();
-
-				// if the ecs has remote data call mode,do some thing.
-				this->derived()._rdc_init(ecs);
-
-				this->derived()._handle_connect(
-					error_code{}, std::move(this_ptr), std::move(ecs), defer_event<void, derived_t>{});
+				this->derived()._do_disconnect(asio::error::already_started, std::move(this_ptr));
+				return;
 			}
-			catch (system_error & e)
+
+			// must read/write ecs in the io_context thread.
+			this->derived().ecs_ = ecs;
+
+			this->derived()._do_init(this_ptr, ecs);
+
+			this->derived()._fire_accept(this_ptr);
+
+			expected = state_t::starting;
+			if (!this->state_.compare_exchange_strong(expected, state_t::starting))
 			{
-				set_last_error(e);
-
-				this->derived()._do_disconnect(e.code(), this->derived().selfptr());
+				this->derived()._do_disconnect(asio::error::operation_aborted, std::move(this_ptr));
+				return;
 			}
+
+			if (!this->derived().socket().is_open())
+			{
+				this->derived()._do_disconnect(asio::error::operation_aborted, std::move(this_ptr));
+				return;
+			}
+
+			// First call the base class start function
+			super::start();
+
+			// if the ecs has remote data call mode,do some thing.
+			this->derived()._rdc_init(ecs);
+
+			this->derived()._handle_connect(
+				error_code{}, std::move(this_ptr), std::move(ecs), defer_event<void, derived_t>{});
 		}
 
 	public:

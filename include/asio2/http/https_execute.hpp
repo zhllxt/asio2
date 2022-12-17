@@ -210,47 +210,41 @@ namespace asio2::detail
 			http::request<Body, Fields>& req, std::chrono::duration<Rep, Period> timeout, Proxy&& proxy)
 		{
 			http::parser<false, Body, typename Fields::allocator_type> parser;
-			try
-			{
-				// First assign default value timed_out to last error
-				set_last_error(asio::error::timed_out);
 
-				// set default result to unknown
-				parser.get().result(http::status::unknown);
-				parser.eager(true);
+			// First assign default value timed_out to last error
+			set_last_error(asio::error::timed_out);
 
-				// The io_context is required for all I/O
-				asio::io_context ioc;
+			// set default result to unknown
+			parser.get().result(http::status::unknown);
+			parser.eager(true);
 
-				// These objects perform our I/O
-				asio::ip::tcp::resolver resolver{ ioc };
-				asio::ip::tcp::socket socket{ ioc };
-				asio::ssl::stream<asio::ip::tcp::socket&> stream(socket, const_cast<asio::ssl::context&>(ctx));
+			// The io_context is required for all I/O
+			asio::io_context ioc;
 
-				// This buffer is used for reading and must be persisted
-				Buffer buffer;
+			// These objects perform our I/O
+			asio::ip::tcp::resolver resolver{ ioc };
+			asio::ip::tcp::socket socket{ ioc };
+			asio::ssl::stream<asio::ip::tcp::socket&> stream(socket, const_cast<asio::ssl::context&>(ctx));
 
-				// do work
-				derived_t::_execute_impl(ioc, resolver, socket, stream, parser, buffer
-					, std::forward<String>(host), std::forward<StrOrInt>(port)
-					, req
-					, std::forward<Proxy>(proxy)
-				);
+			// This buffer is used for reading and must be persisted
+			Buffer buffer;
 
-				// timedout run
-				ioc.run_for(timeout);
+			// do work
+			derived_t::_execute_impl(ioc, resolver, socket, stream, parser, buffer
+				, std::forward<String>(host), std::forward<StrOrInt>(port)
+				, req
+				, std::forward<Proxy>(proxy)
+			);
 
-				error_code ec_ignore{};
+			// timedout run
+			ioc.run_for(timeout);
 
-				// Gracefully close the socket
-				socket.shutdown(asio::ip::tcp::socket::shutdown_both, ec_ignore);
-				socket.cancel(ec_ignore);
-				socket.close(ec_ignore);
-			}
-			catch (system_error & e)
-			{
-				set_last_error(e);
-			}
+			error_code ec_ignore{};
+
+			// Gracefully close the socket
+			socket.shutdown(asio::ip::tcp::socket::shutdown_both, ec_ignore);
+			socket.cancel(ec_ignore);
+			socket.close(ec_ignore);
 
 			return parser.release();
 		}

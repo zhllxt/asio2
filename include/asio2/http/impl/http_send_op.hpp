@@ -55,21 +55,12 @@ namespace asio2::detail
 			// https://datatracker.ietf.org/doc/html/rfc2616#section-14.13
 			// If an http message header don't has neither "Content-Length" nor "Transfer-Encoding"(chunk)
 			// Then the receiver may not be able to parse the http message normally.
-			try
+			if (!msg.chunked())
 			{
-				if (!msg.chunked())
+				if (msg.find(http::field::content_length) == msg.end())
 				{
-					if (msg.find(http::field::content_length) == msg.end())
-					{
-						msg.prepare_payload();
-					}
+					http::try_prepare_payload(msg);
 				}
-			}
-			catch (system_error const&)
-			{
-			}
-			catch (std::exception const&)
-			{
 			}
 		}
 
