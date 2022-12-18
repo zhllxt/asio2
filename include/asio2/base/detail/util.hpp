@@ -589,9 +589,9 @@ namespace asio2::detail
 			error_code ec;
 			asio::ip::udp::resolver resolver(ioc);
 			auto rs = resolver.resolve(h, p, asio::ip::resolver_base::flags::address_configured, ec);
-			if (rs.empty())
+			if (ec || rs.empty())
 			{
-				set_last_error(asio::error::host_not_found);
+				set_last_error(ec ? ec : asio::error::host_not_found);
 				return *rs;
 			}
 			else
@@ -605,9 +605,9 @@ namespace asio2::detail
 			error_code ec;
 			asio::ip::tcp::resolver resolver(ioc);
 			auto rs = resolver.resolve(h, p, asio::ip::resolver_base::flags::address_configured, ec);
-			if (rs.empty())
+			if (ec || rs.empty())
 			{
-				set_last_error(asio::error::host_not_found);
+				set_last_error(ec ? ec : asio::error::host_not_found);
 				return *rs;
 			}
 			else

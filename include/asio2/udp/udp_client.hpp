@@ -134,7 +134,11 @@ namespace asio2::detail
 
 		/**
 		 * @brief stop the client
-		 * You can call this function on the communication thread and anywhere to stop the client.
+		 * You can call this function in the communication thread and anywhere to stop the client.
+		 * If this function is called in the communication thread, it will post a asynchronous
+		 * event into the event queue, then return immediately.
+		 * If this function is called not in the communication thread, it will blocking forever
+		 * util the client is stopped completed.
 		 */
 		inline void stop()
 		{

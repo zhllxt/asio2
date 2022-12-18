@@ -263,17 +263,7 @@ namespace asio2::detail
 		 */
 		inline derived_t& set_no_delay(bool val) noexcept
 		{
-			if constexpr (std::is_same_v<typename socket_type::protocol_type, asio::ip::tcp>)
-			{
-				this->socket_.lowest_layer().set_option(asio::ip::tcp::no_delay(val), get_last_error());
-			}
-			else
-			{
-				std::ignore = val;
-				set_last_error(asio::error::operation_not_supported);
-				//static_assert(false, "Only tcp socket has the no_delay option");
-			}
-
+			this->socket_.lowest_layer().set_option(asio::ip::tcp::no_delay(val), get_last_error());
 			return (static_cast<derived_t&>(*this));
 		}
 
@@ -282,18 +272,9 @@ namespace asio2::detail
 		 */
 		inline bool is_no_delay() const noexcept
 		{
-			if constexpr (std::is_same_v<typename socket_type::protocol_type, asio::ip::tcp>)
-			{
-				asio::ip::tcp::no_delay option{};
-				this->socket_.lowest_layer().get_option(option, get_last_error());
-				return option.value();
-			}
-			else
-			{
-				set_last_error(asio::error::operation_not_supported);
-				//static_assert(false, "Only tcp socket has the no_delay option");
-				return false;
-			}
+			asio::ip::tcp::no_delay option{};
+			this->socket_.lowest_layer().get_option(option, get_last_error());
+			return option.value();
 		}
 
 		/**

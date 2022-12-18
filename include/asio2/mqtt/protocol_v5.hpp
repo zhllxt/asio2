@@ -1304,16 +1304,13 @@ namespace asio2::mqtt::v5
 					return (*this);
 				}
 
-				error_code ec{};
-
-				std::visit([&props_data, &ec](auto& prop) mutable
+				std::visit([&props_data](auto& prop) mutable
 				{
 					prop.value_.deserialize(props_data);
-
-					ec = asio2::get_last_error();
 				}, data_.back().base());
 
-				if (ec)
+				// aboved deserialize maybe failed.
+				if (asio2::get_last_error())
 				{
 					asio2::set_last_error(mqtt::make_error_code(mqtt::error::malformed_packet));
 					return (*this);

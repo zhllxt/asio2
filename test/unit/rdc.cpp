@@ -794,12 +794,14 @@ void rdc_test()
 			{
 				client_init_counter++;
 
-				client.set_no_delay(true);
-
 				ASIO2_CHECK(client.io().running_in_this_thread());
 				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
 				ASIO2_CHECK(!asio2::get_last_error());
 				ASIO2_CHECK(client.is_reuse_address());
+
+				client.set_no_delay(true);
+
+				ASIO2_CHECK(asio2::get_last_error());
 			});
 			client.bind_connect([&]()
 			{
@@ -1143,12 +1145,14 @@ void rdc_test()
 			{
 				client_init_counter++;
 
-				client.set_no_delay(true);
-
 				ASIO2_CHECK(client.io().running_in_this_thread());
 				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
 				ASIO2_CHECK(!asio2::get_last_error());
 				ASIO2_CHECK(client.is_reuse_address());
+
+				client.set_no_delay(true);
+
+				ASIO2_CHECK(asio2::get_last_error());
 			});
 			client.bind_connect([&]()
 			{

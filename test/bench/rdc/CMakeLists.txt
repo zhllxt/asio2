@@ -1,5 +1,5 @@
 #
-# COPYRIGHT (C) 2017-2019, zhllxt
+# COPYRIGHT (C) 2017-2021, zhllxt
 # 
 # author   : zhllxt
 # email    : 37792738@qq.com
@@ -8,7 +8,5 @@
 # (See accompanying file LICENSE or see <http://www.gnu.org/licenses/>)
 #
 
-add_subdirectory (rpc)
-add_subdirectory (tcp)
-add_subdirectory (udp)
-add_subdirectory (rdc)
+add_subdirectory (asio2_rdc_qps_client)
+add_subdirectory (asio2_rdc_qps_server)

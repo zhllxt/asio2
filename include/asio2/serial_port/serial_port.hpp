@@ -191,6 +191,11 @@ namespace asio2::detail
 
 		/**
 		 * @brief stop
+		 * You can call this function in the communication thread and anywhere to stop the serial port.
+		 * If this function is called in the communication thread, it will post a asynchronous
+		 * event into the event queue, then return immediately.
+		 * If this function is called not in the communication thread, it will blocking forever
+		 * util the serial port is stopped completed.
 		 */
 		inline void stop()
 		{

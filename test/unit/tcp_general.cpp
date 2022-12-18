@@ -3563,6 +3563,230 @@ void tcp_general_test()
 		ASIO2_CHECK_VALUE(server_stop_counter      .load(), server_stop_counter       == 1);
 	}
 
+	// test close session in no io_context thread.
+	{
+		asio2::tcp_server server;
+		std::atomic<int> server_accept_counter = 0;
+		server.bind_accept([&](auto & session_ptr)
+		{
+			session_ptr->no_delay(true);
+
+			server_accept_counter++;
+
+			ASIO2_CHECK(!asio2::get_last_error());
+			ASIO2_CHECK(server.get_listen_address() == "127.0.0.1");
+			ASIO2_CHECK(server.get_listen_port() == 18028);
+			ASIO2_CHECK(session_ptr->remote_address() == "127.0.0.1");
+			ASIO2_CHECK(session_ptr->local_address() == "127.0.0.1");
+			ASIO2_CHECK(session_ptr->local_port() == 18028);
+			ASIO2_CHECK(server.io().running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+		});
+		std::atomic<int> server_connect_counter = 0;
+		server.bind_connect([&](auto & session_ptr)
+		{
+			session_ptr->set_user_data(server_connect_counter.load());
+			server_connect_counter++;
+
+			ASIO2_CHECK(!asio2::get_last_error());
+			ASIO2_CHECK(!server.find_session(session_ptr->hash_key()));
+			ASIO2_CHECK(session_ptr->remote_address() == "127.0.0.1");
+			ASIO2_CHECK(session_ptr->local_address() == "127.0.0.1");
+			ASIO2_CHECK(session_ptr->local_port() == 18028);
+			ASIO2_CHECK(server.io().running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(session_ptr->is_keep_alive());
+			ASIO2_CHECK(session_ptr->is_no_delay());
+		});
+		std::atomic<int> server_disconnect_counter = 0;
+		server.bind_disconnect([&](auto & session_ptr)
+		{
+			server_disconnect_counter++;
+
+			ASIO2_CHECK(asio2::get_last_error());
+			ASIO2_CHECK(!server.find_session(session_ptr->hash_key()));
+			ASIO2_CHECK(session_ptr->socket().is_open());
+			//ASIO2_CHECK(session_ptr->remote_address() == "127.0.0.1");
+			ASIO2_CHECK(session_ptr->local_port() == 18028);
+			ASIO2_CHECK(server.io().running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+		});
+		std::atomic<int> server_init_counter = 0;
+		server.bind_init([&]()
+		{
+			server_init_counter++;
+
+			ASIO2_CHECK(!asio2::get_last_error());
+			ASIO2_CHECK(server.io().running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+
+			asio::socket_base::reuse_address option;
+			server.acceptor().get_option(option);
+			ASIO2_CHECK(option.value());
+		});
+		std::atomic<int> server_start_counter = 0;
+		server.bind_start([&]()
+		{
+			server_start_counter++;
+
+			ASIO2_CHECK(!asio2::get_last_error());
+			ASIO2_CHECK(server.get_listen_address() == "127.0.0.1");
+			ASIO2_CHECK(server.get_listen_port() == 18028);
+			ASIO2_CHECK(server.io().running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+		});
+		std::atomic<int> server_stop_counter = 0;
+		server.bind_stop([&]()
+		{
+			server_stop_counter++;
+
+			ASIO2_CHECK(asio2::get_last_error());
+			ASIO2_CHECK(server.get_listen_address() == "127.0.0.1");
+			ASIO2_CHECK(server.get_listen_port() == 18028);
+			ASIO2_CHECK(server.io().running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+		});
+
+		bool server_start_ret = server.start("127.0.0.1", 18028);
+
+		ASIO2_CHECK(server_start_ret);
+		ASIO2_CHECK(server.is_started());
+
+		ASIO2_CHECK_VALUE(server_init_counter      .load(), server_init_counter       == 1);
+		ASIO2_CHECK_VALUE(server_start_counter     .load(), server_start_counter      == 1);
+
+		std::vector<std::shared_ptr<asio2::tcp_client>> clients;
+		std::atomic<int> client_init_counter = 0;
+		std::atomic<int> client_connect_counter = 0;
+		std::atomic<int> client_disconnect_counter = 0;
+		for (int i = 0; i < test_client_count; i++)
+		{
+			auto iter = clients.emplace_back(std::make_shared<asio2::tcp_client>());
+
+			asio2::tcp_client& client = *iter;
+
+			// enable auto reconnect and use custom delay, default delay is 1 seconds
+			client.set_auto_reconnect(false);
+
+			client.bind_init([&]()
+			{
+				client_init_counter++;
+
+				client.set_no_delay(true);
+
+				ASIO2_CHECK(client.io().running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(!asio2::get_last_error());
+				ASIO2_CHECK(client.is_keep_alive());
+				ASIO2_CHECK(client.is_reuse_address());
+				ASIO2_CHECK(client.is_no_delay());
+			});
+			client.bind_connect([&]()
+			{
+				ASIO2_CHECK(client.io().running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(!asio2::get_last_error());
+				ASIO2_CHECK(client.get_local_address() == "127.0.0.1");
+				ASIO2_CHECK(client.get_remote_address() == "127.0.0.1");
+				ASIO2_CHECK(client.get_remote_port() == 18028);
+
+				client_connect_counter++;
+
+				std::size_t bytes = client.send("defg");
+				ASIO2_CHECK(bytes == 0);
+				ASIO2_CHECK(asio2::get_last_error() == asio::error::in_progress);
+			});
+			client.bind_disconnect([&]()
+			{
+				client_disconnect_counter++;
+
+				ASIO2_CHECK(asio2::get_last_error());
+				ASIO2_CHECK(client.io().running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+			});
+			client.bind_recv([&]([[maybe_unused]] std::string_view data)
+			{
+				ASIO2_CHECK(!asio2::get_last_error());
+				ASIO2_CHECK(client.io().running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(!data.empty());
+				ASIO2_CHECK(client.is_started());
+			});
+
+			bool client_start_ret = client.start("127.0.0.1", 18028);
+
+			ASIO2_CHECK(client_start_ret);
+			ASIO2_CHECK(!asio2::get_last_error());
+		}
+
+		while (server.get_session_count() < std::size_t(test_client_count))
+		{
+			ASIO2_TEST_WAIT_CHECK();
+		}
+
+		while (client_connect_counter < test_client_count)
+		{
+			ASIO2_TEST_WAIT_CHECK();
+		}
+
+		auto session_count = server.get_session_count();
+		ASIO2_CHECK_VALUE(session_count, session_count == std::size_t(test_client_count));
+
+		ASIO2_CHECK_VALUE(client_init_counter      .load(), client_init_counter    == test_client_count);
+		ASIO2_CHECK_VALUE(client_connect_counter   .load(), client_connect_counter == test_client_count);
+
+		ASIO2_CHECK_VALUE(server_accept_counter    .load(), server_accept_counter     == test_client_count);
+		ASIO2_CHECK_VALUE(server_connect_counter   .load(), server_connect_counter    == test_client_count);
+
+		std::vector<std::shared_ptr<asio2::tcp_session>> sessions;
+
+		// find session maybe true, beacuse the next session maybe used the stopped session "this" address
+		//ASIO2_CHECK(!server.find_session(session_key));
+		server.foreach_session([&sessions](std::shared_ptr<asio2::tcp_session>& session_ptr) mutable
+		{
+			ASIO2_CHECK(session_ptr->user_data_any().has_value());
+
+			sessions.emplace_back(session_ptr);
+		});
+
+		ASIO2_CHECK_VALUE(sessions.size(), sessions.size() == std::size_t(test_client_count));
+
+		for (std::size_t i = 0; i < sessions.size(); i++)
+		{
+			std::shared_ptr<asio2::tcp_session>& session = sessions[i];
+
+			if (i % 2 == 0)
+			{
+				session->stop();
+				ASIO2_CHECK(session->is_stopped());
+			}
+			else
+			{
+				session->post([session]()
+				{
+					session->stop();
+				});
+				ASIO2_CHECK(!session->is_stopped());
+			}
+		}
+
+		sessions.clear();
+
+		// use this to ensure the ASIO2_CHECK(session_ptr->is_started());
+		while (server_disconnect_counter != test_client_count)
+		{
+			ASIO2_TEST_WAIT_CHECK();
+		}
+				
+		ASIO2_CHECK_VALUE(client_disconnect_counter.load(), client_disconnect_counter == test_client_count);
+
+		server.stop();
+		ASIO2_CHECK(server.is_stopped());
+
+		ASIO2_CHECK_VALUE(server_disconnect_counter.load(), server_disconnect_counter == test_client_count);
+		ASIO2_CHECK_VALUE(server_stop_counter      .load(), server_stop_counter       == 1);
+	}
+
 	ASIO2_TEST_END_LOOP;
 }
 

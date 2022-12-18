@@ -144,12 +144,71 @@ namespace asio2::detail
 	public:
 		/**
 		 * @brief stop session
-		 * note : this function must be noblocking,if it's blocking,maybe cause circle lock.
-		 * You can call this function on the communication thread and anywhere to stop the session.
+		 * You can call this function in the communication thread and anywhere to stop the session.
+		 * If this function is called in the communication thread, it will post a asynchronous
+		 * event into the event queue, then return immediately.
+		 * If this function is called not in the communication thread, it will blocking forever
+		 * util the session is stopped completed.
+		 * note : this function must be noblocking if it is called in the communication thread,
+		 * otherwise if it's blocking, maybe cause circle lock.
 		 */
 		inline void stop()
 		{
-			this->derived()._do_disconnect(asio::error::operation_aborted, this->derived().selfptr());
+			derived_t& derive = this->derived();
+
+			state_t expected = state_t::stopped;
+			if (this->state_.compare_exchange_strong(expected, state_t::stopped))
+				return;
+
+			expected = state_t::stopping;
+			if (this->state_.compare_exchange_strong(expected, state_t::stopping))
+				return;
+
+			// use promise to get the result of stop
+			std::promise<state_t> promise;
+			std::future<state_t> future = promise.get_future();
+
+			// use derfer to ensure the promise's value must be seted.
+			detail::defer_event pg
+			{
+				[this, p = std::move(promise)]() mutable { p.set_value(this->state().load()); }
+			};
+
+			derive.post_event([&derive, this_ptr = derive.selfptr(), pg = std::move(pg)]
+			(event_queue_guard<derived_t> g) mutable
+			{
+				derive._do_disconnect(asio::error::operation_aborted, derive.selfptr(),
+					defer_event
+					{
+						[&derive, this_ptr = std::move(this_ptr), pg = std::move(pg)]
+						(event_queue_guard<derived_t> g) mutable
+						{
+							detail::ignore_unused(pg, g);
+
+							// the "pg" should destroyed before the "g", otherwise if the "g"
+							// is destroyed before "pg", the next event maybe called, then the
+							// state maybe change to not stopped.
+							{
+								detail::defer_event{ std::move(pg) };
+							}
+						}, std::move(g)
+					});
+			});
+
+			// use this to ensure the client is stopped completed when the stop is called not in the io_context thread
+			if (!derive.running_in_this_thread() && !derive.sessions().io().running_in_this_thread())
+			{
+				[[maybe_unused]] state_t state = future.get();
+				ASIO2_ASSERT(state == state_t::stopped);
+			}
+		}
+
+		/**
+		 * @brief check whether the session is stopped
+		 */
+		inline bool is_stopped() const
+		{
+			return (this->state_ == state_t::stopped);
 		}
 
 	public:
