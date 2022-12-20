@@ -414,6 +414,7 @@ namespace asio2::detail
 			// the task2 is in the thread 0, so the task2 will be enqueued directly, In this case, 
 			// task 2 is before task 1 in the queue
 
+		#ifndef ASIO2_STRONG_EVENT_ORDER
 			// manual dispatch has better performance.
 			// Make sure we run on the io_context thread
 			if (derive.io().running_in_this_thread())
@@ -429,6 +430,7 @@ namespace asio2::detail
 
 				return (derive);
 			}
+		#endif
 
 			// beacuse the callback "f" hold the derived_ptr already,
 			// so this callback for asio::dispatch don't need hold the derived_ptr again.

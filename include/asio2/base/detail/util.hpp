@@ -500,6 +500,24 @@ namespace asio2::detail
 		{
 			s = std::forward<T>(v);
 		}
+		else if constexpr (std::is_same_v<type, asio::const_buffer>)
+		{
+			s = { (std::string::pointer)(v.data()), v.size() };
+		}
+		else if constexpr (std::is_same_v<type, asio::mutable_buffer>)
+		{
+			s = { (std::string::pointer)(v.data()), v.size() };
+		}
+	#if !defined(ASIO_NO_DEPRECATED) && !defined(BOOST_ASIO_NO_DEPRECATED)
+		else if constexpr (std::is_same_v<type, asio::const_buffers_1>)
+		{
+			s = { (std::string::pointer)(v.data()), v.size() };
+		}
+		else if constexpr (std::is_same_v<type, asio::mutable_buffers_1>)
+		{
+			s = { (std::string::pointer)(v.data()), v.size() };
+		}
+	#endif
 		else
 		{
 			s = std::forward<T>(v);
@@ -524,6 +542,24 @@ namespace asio2::detail
 		{
 			return std::string_view{ v };
 		}
+		else if constexpr (std::is_same_v<type, asio::const_buffer>)
+		{
+			return std::string_view{ (std::string_view::const_pointer)(v.data()), v.size() };
+		}
+		else if constexpr (std::is_same_v<type, asio::mutable_buffer>)
+		{
+			return std::string_view{ (std::string_view::const_pointer)(v.data()), v.size() };
+		}
+	#if !defined(ASIO_NO_DEPRECATED) && !defined(BOOST_ASIO_NO_DEPRECATED)
+		else if constexpr (std::is_same_v<type, asio::const_buffers_1>)
+		{
+			return std::string_view{ (std::string_view::const_pointer)(v.data()), v.size() };
+		}
+		else if constexpr (std::is_same_v<type, asio::mutable_buffers_1>)
+		{
+			return std::string_view{ (std::string_view::const_pointer)(v.data()), v.size() };
+		}
+	#endif
 		else
 		{
 			return std::string_view{ v };
@@ -562,7 +598,13 @@ namespace asio2::detail
 	template<typename IntegerType, typename T>
 	inline IntegerType to_integer(T&& v) noexcept
 	{
-		if constexpr (std::is_integral_v<typename detail::remove_cvref_t<T>>)
+		using type = detail::remove_cvref_t<T>;
+
+		if /**/ constexpr (std::is_integral_v<type>)
+		{
+			return static_cast<IntegerType>(v);
+		}
+		else if constexpr (std::is_floating_point_v<type>)
 		{
 			return static_cast<IntegerType>(v);
 		}
@@ -817,18 +859,12 @@ namespace asio2
 		manual,
 	};
 
-	template <typename Enumeration>
-	inline constexpr auto to_underlying(Enumeration const value) noexcept ->
-		typename std::underlying_type<Enumeration>::type
-	{
-		return static_cast<typename std::underlying_type<Enumeration>::type>(value);
-	}
-
-	template <typename... Ts>
-	inline constexpr void ignore_unused(Ts const& ...) noexcept {}
-
-	template <typename... Ts>
-	inline constexpr void ignore_unused() noexcept {}
+	using detail::to_underlying;
+	using detail::ignore_unused;
+	using detail::to_string;
+	using detail::to_string_view;
+	using detail::to_integer;
+	using detail::to_shared_ptr;
 }
 
 // custom specialization of std::hash can be injected in namespace std

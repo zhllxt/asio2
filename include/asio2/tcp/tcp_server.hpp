@@ -741,6 +741,8 @@ namespace asio2
 
 	/**
 	 * @brief tcp server
+	 * If this object is created as a shared_ptr like std::shared_ptr<asio2::tcp_server> server;
+	 * you must call the server->stop() manual when exit, otherwise maybe cause memory leaks.
 	 * @throws constructor maybe throw exception "Too many open files" (exception code : 24)
 	 * asio::error::no_descriptors - Too many open files
 	 */

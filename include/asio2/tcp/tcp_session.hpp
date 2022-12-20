@@ -107,6 +107,7 @@ namespace asio2::detail
 		#endif
 
 			ASIO2_ASSERT(this->sessions().io().running_in_this_thread());
+			ASIO2_ASSERT(this->io().get_thread_id() != std::thread::id{});
 
 		#if defined(_DEBUG) || defined(DEBUG)
 			this->is_stop_silence_timer_called_ = false;
@@ -163,6 +164,9 @@ namespace asio2::detail
 		 * util the session is stopped completed.
 		 * note : this function must be noblocking if it is called in the communication thread,
 		 * otherwise if it's blocking, maybe cause circle lock.
+		 * If the session stop is called in the server's bind connect callback, then the session
+		 * will can't be added into the session manager, and the session's bind disconnect event
+		 * can't be called also.
 		 */
 		inline void stop()
 		{
@@ -282,7 +286,7 @@ namespace asio2::detail
 			// the join session maybe executed before the disconnect event(the bind_disconnect callback).
 			// if the join session is executed before the disconnect event, the bind_disconnect will
 			// be called.
-			asio::dispatch(derive.io().context(), make_allocator(derive.wallocator(),
+			asio::post(derive.io().context(), make_allocator(derive.wallocator(),
 			[&derive, this_ptr = std::move(this_ptr), ecs = std::move(ecs), chain = std::move(chain)]
 			() mutable
 			{
@@ -459,6 +463,8 @@ namespace asio2::detail
 		inline void _fire_recv(
 			std::shared_ptr<derived_t>& this_ptr, std::shared_ptr<ecs_t<C>>& ecs, std::string_view data)
 		{
+			data = this->derived().data_filter_before_recv(data);
+
 			this->listener_.notify(event_type::recv, this_ptr, data);
 
 			this->derived()._rdc_handle_recv(this_ptr, ecs, data);

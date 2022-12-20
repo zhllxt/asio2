@@ -805,6 +805,8 @@ namespace asio2::detail
 		inline void _fire_recv(
 			std::shared_ptr<derived_t>& this_ptr, std::shared_ptr<ecs_t<C>>& ecs, std::string_view data)
 		{
+			data = this->derived().data_filter_before_recv(data);
+
 			this->listener_.notify(event_type::recv, data);
 
 			this->derived()._rdc_handle_recv(this_ptr, ecs, data);
@@ -905,6 +907,8 @@ namespace asio2
 	 * The serial_port class provides a wrapper over serial port functionality.
 	 * You can use the following commands to query the serial device under Linux:
 	 * cat /proc/tty/driver/serial
+	 * If this object is created as a shared_ptr like std::shared_ptr<asio2::serial_port> sp;
+	 * you must call the sp->stop() manual when exit, otherwise maybe cause memory leaks.
 	 */
 	class serial_port : public serial_port_t<serial_port>
 	{

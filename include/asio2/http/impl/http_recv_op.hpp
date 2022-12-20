@@ -226,8 +226,6 @@ namespace asio2::detail
 
 			set_last_error(ec);
 
-			std::ignore = bytes_recvd;
-
 			if (!derive.is_started())
 			{
 				if (derive.state() == state_t::started)

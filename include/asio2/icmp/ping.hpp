@@ -1203,6 +1203,8 @@ namespace asio2
 	 * @param send_count - Total number of echo packets you want to send,
 	 * send_count equals -1 for infinite send,
 	 * Other parameters should use default values.
+	 * If this object is created as a shared_ptr like std::shared_ptr<asio2::ping> ping;
+	 * you must call the ping->stop() manual when exit, otherwise maybe cause memory leaks.
 	 */
 	class ping : public ping_t<ping>
 	{

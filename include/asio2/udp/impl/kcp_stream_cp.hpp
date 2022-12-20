@@ -29,6 +29,7 @@
 
 namespace asio2::detail
 {
+	ASIO2_CLASS_FORWARD_DECLARE_UDP_BASE;
 	ASIO2_CLASS_FORWARD_DECLARE_UDP_CLIENT;
 	ASIO2_CLASS_FORWARD_DECLARE_UDP_SERVER;
 	ASIO2_CLASS_FORWARD_DECLARE_UDP_SESSION;
@@ -44,6 +45,7 @@ namespace asio2::detail
 	{
 		friend derived_t; // C++11
 
+		ASIO2_CLASS_FRIEND_DECLARE_UDP_BASE;
 		ASIO2_CLASS_FRIEND_DECLARE_UDP_CLIENT;
 		ASIO2_CLASS_FRIEND_DECLARE_UDP_SERVER;
 		ASIO2_CLASS_FRIEND_DECLARE_UDP_SESSION;
@@ -239,40 +241,141 @@ namespace asio2::detail
 				this->_post_kcp_timer(std::move(this_ptr));
 		}
 
-		template<class buffer_t, typename C>
+		template<typename C>
 		void _kcp_recv(
-			std::shared_ptr<derived_t>& this_ptr, std::shared_ptr<ecs_t<C>>& ecs, buffer_t& buffer,
-			std::string_view data)
+			std::shared_ptr<derived_t>& this_ptr, std::shared_ptr<ecs_t<C>>& ecs, std::string_view data)
 		{
+			auto& buffer = derive.buffer();
+
 			int len = kcp::ikcp_input(this->kcp_, (const char *)data.data(), (long)data.size());
+
 			buffer.consume(buffer.size());
+
 			if (len != 0)
 			{
 				set_last_error(asio::error::message_size);
+
 				if (derive.state() == state_t::started)
 				{
 					derive._do_disconnect(asio::error::message_size, this_ptr);
 				}
+
 				return;
 			}
+
 			for (;;)
 			{
 				len = kcp::ikcp_recv(this->kcp_, (char *)buffer.prepare(
 					buffer.pre_size()).data(), (int)buffer.pre_size());
+
 				if /**/ (len >= 0)
 				{
 					buffer.commit(len);
+
 					derive._fire_recv(this_ptr, ecs, std::string_view(static_cast
 						<std::string_view::const_pointer>(buffer.data().data()), len));
+
 					buffer.consume(len);
 				}
 				else if (len == -3)
 				{
-					buffer.pre_size(buffer.pre_size() * 2);
+					buffer.pre_size((std::min)(buffer.pre_size() * 2, buffer.max_size()));
 				}
-				else break;
+				else
+				{
+					break;
+				}
 			}
+
 			kcp::ikcp_flush(this->kcp_);
+		}
+
+		template<typename C>
+		inline void _kcp_handle_recv(
+			error_code ec, std::string_view data,
+			std::shared_ptr<derived_t>& this_ptr, std::shared_ptr<ecs_t<C>>& ecs)
+		{
+			// the kcp message header length is 24
+			// the kcphdr length is 12 
+			if /**/ (data.size() > kcp::kcphdr::required_size())
+			{
+				this->_kcp_recv(this_ptr, ecs, data);
+			}
+			else if (data.size() == kcp::kcphdr::required_size())
+			{
+				// Check whether the packet is SYN handshake
+				// It is possible that the client did not receive the synack package, then the client
+				// will resend the syn package, so we just need to reply to the syncack package directly.
+				// If the client is disconnect without send a "fin" or the server has't recvd the 
+				// "fin", and then the client connect again a later, at this time, the client
+				// is in the session map already, and we need check whether the first message is fin
+				if /**/ (kcp::is_kcphdr_syn(data))
+				{
+					ASIO2_ASSERT(this->kcp_);
+
+					if (this->kcp_)
+					{
+						kcp::kcphdr syn = kcp::to_kcphdr(data);
+						std::uint32_t conv = syn.th_ack;
+						if (conv == 0)
+						{
+							conv = this->kcp_->conv;
+							syn.th_ack = conv;
+						}
+
+						// If the client is forced disconnect after sent some messages, and the server
+						// has recvd the messages already, we must recreated the kcp object, otherwise
+						// the client and server will can't handle the next messages correctly.
+					#if 0
+						// set send_fin_ = false to make the _kcp_stop don't sent the fin frame.
+						this->send_fin_ = false;
+
+						this->_kcp_stop();
+
+						this->_kcp_start(this_ptr, conv);
+					#else
+						this->_kcp_reset();
+					#endif
+
+						this->send_fin_ = true;
+
+						// every time we recv kcp syn, we sent synack to the client
+						this->_kcp_send_synack(syn, ec);
+						if (ec)
+						{
+							derive._do_disconnect(ec, this_ptr);
+						}
+					}
+					else
+					{
+						derive._do_disconnect(asio::error::operation_aborted, this_ptr);
+					}
+				}
+				else if (kcp::is_kcphdr_synack(data, 0, true))
+				{
+					ASIO2_ASSERT(this->kcp_);
+				}
+				else if (kcp::is_kcphdr_ack(data, 0, true))
+				{
+					ASIO2_ASSERT(this->kcp_);
+				}
+				else if (kcp::is_kcphdr_fin(data))
+				{
+					ASIO2_ASSERT(this->kcp_);
+
+					this->send_fin_ = false;
+
+					derive._do_disconnect(asio::error::connection_reset, this_ptr);
+				}
+				else
+				{
+					ASIO2_ASSERT(false);
+				}
+			}
+			else
+			{
+				ASIO2_ASSERT(false);
+			}
 		}
 
 		template<typename C, typename DeferEvent>
@@ -281,8 +384,10 @@ namespace asio2::detail
 		{
 			error_code ec;
 
-			// step 3 : server recvd syn from client (the first_data_ is the syn)
-			kcp::kcphdr syn = kcp::to_kcphdr(derive.first_data_);
+			std::string& data = *(derive.first_data_);
+
+			// step 3 : server recvd syn from client (the first data is the syn)
+			kcp::kcphdr syn = kcp::to_kcphdr(data);
 			std::uint32_t conv = syn.th_ack;
 			if (conv == 0)
 			{

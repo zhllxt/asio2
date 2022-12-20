@@ -19,8 +19,11 @@
 
 #include <asio2/base/session.hpp>
 #include <asio2/base/detail/linear_buffer.hpp>
-#include <asio2/udp/impl/udp_send_op.hpp>
+
 #include <asio2/udp/detail/kcp_util.hpp>
+
+#include <asio2/udp/impl/udp_send_op.hpp>
+#include <asio2/udp/impl/udp_recv_op.hpp>
 #include <asio2/udp/impl/kcp_stream_cp.hpp>
 
 namespace asio2::detail
@@ -32,7 +35,7 @@ namespace asio2::detail
 		static constexpr bool is_server  = false;
 
 		using socket_t    = asio::ip::udp::socket&;
-		using buffer_t    = detail::empty_buffer;
+		using buffer_t    = detail::proxy_buffer<asio2::linear_buffer>;
 		using send_data_t = std::string_view;
 		using recv_data_t = std::string_view;
 
@@ -48,6 +51,7 @@ namespace asio2::detail
 	class udp_session_impl_t
 		: public session_impl_t<derived_t, args_t>
 		, public udp_send_op   <derived_t, args_t>
+		, public udp_recv_op   <derived_t, args_t>
 	{
 		ASIO2_CLASS_FRIEND_DECLARE_BASE;
 		ASIO2_CLASS_FRIEND_DECLARE_UDP_BASE;
@@ -75,16 +79,18 @@ namespace asio2::detail
 			io_t                                     & rwio,
 			std::size_t                                init_buf_size,
 			std::size_t                                max_buf_size,
-			asio2::buffer_wrap<asio2::linear_buffer> & buffer,
+			asio2::linear_buffer                     & buffer,
 			typename args_t::socket_t                  socket,
 			asio::ip::udp::endpoint                  & endpoint
 		)
 			: super(sessions, listener, rwio, init_buf_size, max_buf_size, socket)
 			, udp_send_op<derived_t, args_t>()
-			, buffer_ref_     (buffer)
+			, udp_recv_op<derived_t, args_t>()
 			, remote_endpoint_(endpoint)
 			, wallocator_     ()
 		{
+			this->buffer_.bind_buffer(&buffer);
+
 			this->set_silence_timeout(std::chrono::milliseconds(udp_silence_timeout));
 			this->set_connect_timeout(std::chrono::milliseconds(udp_connect_timeout));
 		}
@@ -111,6 +117,9 @@ namespace asio2::detail
 		#endif
 		#endif
 			
+			ASIO2_ASSERT(this->sessions().io().running_in_this_thread());
+			ASIO2_ASSERT(this->io().get_thread_id() != std::thread::id{});
+
 		#if defined(_DEBUG) || defined(DEBUG)
 			this->is_stop_silence_timer_called_ = false;
 			this->is_stop_connect_timeout_timer_called_ = false;
@@ -151,6 +160,9 @@ namespace asio2::detail
 		 * util the session is stopped completed.
 		 * note : this function must be noblocking if it is called in the communication thread,
 		 * otherwise if it's blocking, maybe cause circle lock.
+		 * If the session stop is called in the server's bind connect callback, then the session
+		 * will can't be added into the session manager, and the session's bind disconnect event
+		 * can't be called also.
 		 */
 		inline void stop()
 		{
@@ -303,16 +315,21 @@ namespace asio2::detail
 
 			if constexpr (std::is_same_v<typename ecs_t<C>::condition_lowest_type, use_kcp_t>)
 			{
-				// step 3 : server recvd syn from client (the first_data_ is syn)
-				// Check whether the first_data_ packet is SYN handshake
-				if (!kcp::is_kcphdr_syn(this->first_data_))
+				std::string& data = *(this->first_data_);
+
+				// step 3 : server recvd syn from client (the first data is syn)
+				// Check whether the first data packet is SYN handshake
+				if (!kcp::is_kcphdr_syn(data))
 				{
 					set_last_error(asio::error::address_family_not_supported);
+
 					this->derived()._fire_handshake(this_ptr);
 					this->derived()._do_disconnect(asio::error::address_family_not_supported,
 						std::move(this_ptr), std::move(chain));
+
 					return;
 				}
+
 				this->kcp_ = std::make_unique<kcp_stream_cp<derived_t, args_t>>(this->derived(), this->io_);
 				this->kcp_->_post_handshake(std::move(this_ptr), std::move(ecs), std::move(chain));
 			}
@@ -341,7 +358,7 @@ namespace asio2::detail
 				ASIO2_ASSERT(!this->kcp_);
 			}
 
-			asio::dispatch(derive.io().context(), make_allocator(derive.wallocator(),
+			asio::post(derive.io().context(), make_allocator(derive.wallocator(),
 			[&derive, this_ptr = std::move(this_ptr), ecs = std::move(ecs), chain = std::move(chain)]
 			() mutable
 			{
@@ -434,9 +451,19 @@ namespace asio2::detail
 				this->derived()._post_silence_timer(this->silence_timeout_, this_ptr);
 
 				if constexpr (std::is_same_v<condition_lowest_type, asio2::detail::use_kcp_t>)
+				{
 					detail::ignore_unused(this_ptr, ecs);
+				}
 				else
-					this->derived()._handle_recv(error_code{}, this->first_data_, this_ptr, ecs);
+				{
+					std::string& data = *(this->first_data_);
+
+					this->derived()._fire_recv(this_ptr, ecs, data);
+				}
+
+				this->first_data_.reset();
+
+				ASIO2_ASSERT(!this->first_data_);
 			}));
 		}
 
@@ -480,109 +507,28 @@ namespace asio2::detail
 		}
 
 	protected:
+		// this function will can't be called forever
 		template<typename C>
-		inline void _kcp_handle_recv(
-			error_code ec, std::string_view data,
-			std::shared_ptr<derived_t>& this_ptr, std::shared_ptr<ecs_t<C>>& ecs)
+		inline void _post_recv(std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs)
 		{
-			// the kcp message header length is 24
-			// the kcphdr length is 12 
-			if (data.size() == kcp::kcphdr::required_size())
-			{
-				// Check whether the packet is SYN handshake
-				// It is possible that the client did not receive the synack package, then the client
-				// will resend the syn package, so we just need to reply to the syncack package directly.
-				// If the client is disconnect without send a "fin" or the server has't recvd the 
-				// "fin", and then the client connect again a later, at this time, the client
-				// is in the session map already, and we need check whether the first message is fin
-				if /**/ (kcp::is_kcphdr_syn(data))
-				{
-					ASIO2_ASSERT(this->kcp_ && this->kcp_->kcp_);
-
-					if (this->kcp_ && this->kcp_->kcp_)
-					{
-						kcp::kcphdr syn = kcp::to_kcphdr(data);
-						std::uint32_t conv = syn.th_ack;
-						if (conv == 0)
-						{
-							conv = this->kcp_->kcp_->conv;
-							syn.th_ack = conv;
-						}
-
-						// If the client is forced disconnect after sent some messages, and the server
-						// has recvd the messages already, we must recreated the kcp object, otherwise
-						// the client and server will can't handle the next messages correctly.
-					#if 0
-						// set send_fin_ = false to make the _kcp_stop don't sent the fin frame.
-						this->kcp_->send_fin_ = false;
-
-						this->kcp_->_kcp_stop();
-
-						this->kcp_->_kcp_start(this_ptr, conv);
-					#else
-						this->kcp_->_kcp_reset();
-					#endif
-
-						this->kcp_->send_fin_ = true;
-
-						// every time we recv kcp syn, we sent synack to the client
-						this->kcp_->_kcp_send_synack(syn, ec);
-						if (ec)
-						{
-							this->derived()._do_disconnect(ec, this_ptr);
-						}
-					}
-					else
-					{
-						this->derived()._do_disconnect(asio::error::operation_aborted, this_ptr);
-					}
-				}
-				else if (kcp::is_kcphdr_fin(data))
-				{
-					this->kcp_->send_fin_ = false;
-					this->derived()._do_disconnect(asio::error::connection_reset, this_ptr);
-				}
-				else
-				{
-					ASIO2_ASSERT(false);
-				}
-			}
-			else
-			{
-				this->kcp_->_kcp_recv(this_ptr, ecs, this->buffer_ref_, data);
-			}
+			ASIO2_ASSERT(false);
+			this->derived()._udp_post_recv(std::move(this_ptr), std::move(ecs));
 		}
 
 		template<typename C>
 		inline void _handle_recv(
-			const error_code& ec, std::string_view data,
+			const error_code& ec, std::size_t bytes_recvd,
 			std::shared_ptr<derived_t>& this_ptr, std::shared_ptr<ecs_t<C>>& ecs)
 		{
-			if (!this->derived().is_started())
-			{
-				if (this->derived().state() == state_t::started)
-				{
-					this->derived()._do_disconnect(ec, this_ptr);
-				}
-				return;
-			}
-
-			this->derived().update_alive_time();
-
-			if constexpr (!std::is_same_v<typename ecs_t<C>::condition_lowest_type, use_kcp_t>)
-			{
-				this->derived()._fire_recv(this_ptr, ecs, data);
-			}
-			else
-			{
-				this->derived()._kcp_handle_recv(ec, data, this_ptr, ecs);
-			}
+			this->derived()._udp_handle_recv(ec, bytes_recvd, this_ptr, ecs);
 		}
 
 		template<typename C>
 		inline void _fire_recv(
 			std::shared_ptr<derived_t>& this_ptr, std::shared_ptr<ecs_t<C>>& ecs, std::string_view data)
 		{
+			data = this->derived().data_filter_before_recv(data);
+
 			this->listener_.notify(event_type::recv, this_ptr, data);
 
 			this->derived()._rdc_handle_recv(this_ptr, ecs, data);
@@ -634,9 +580,6 @@ namespace asio2::detail
 		inline auto & wallocator() noexcept { return this->wallocator_; }
 
 	protected:
-		/// buffer
-		asio2::buffer_wrap<asio2::linear_buffer>        & buffer_ref_;
-
 		/// used for session_mgr's session unordered_map key
 		asio::ip::udp::endpoint                           remote_endpoint_;
 
@@ -648,7 +591,7 @@ namespace asio2::detail
 		std::uint32_t                                     kcp_conv_ = 0;
 
 		/// first recvd data packet
-		std::string_view                                  first_data_;
+		std::unique_ptr<std::string>                      first_data_;
 
 	#if defined(_DEBUG) || defined(DEBUG)
 		bool                                              is_disconnect_called_ = false;

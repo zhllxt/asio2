@@ -618,7 +618,7 @@ namespace asio2::detail
 				}
 				else
 				{
-					session_ptr->_handle_recv(ec, data, session_ptr, ecs);
+					session_ptr->_handle_recv(ec, bytes_recvd, session_ptr, ecs);
 				}
 			}
 			else
@@ -674,7 +674,7 @@ namespace asio2::detail
 				{
 					session_ptr = this->derived()._make_session();
 					session_ptr->counter_ptr_ = this->counter_ptr_;
-					session_ptr->first_data_ = first_data;
+					session_ptr->first_data_ = std::make_unique<std::string>(first_data);
 					session_ptr->kcp_conv_ = this->derived()._make_kcp_conv(first_data, ecs);
 					session_ptr->start(detail::to_shared_ptr(ecs->clone()));
 				}
@@ -792,6 +792,8 @@ namespace asio2
 	};
 
 	/**
+	 * If this object is created as a shared_ptr like std::shared_ptr<asio2::udp_server> server;
+	 * you must call the server->stop() manual when exit, otherwise maybe cause memory leaks.
 	 * @throws constructor maybe throw exception "Too many open files" (exception code : 24)
 	 * asio::error::no_descriptors - Too many open files
 	 */

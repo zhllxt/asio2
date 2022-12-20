@@ -614,6 +614,17 @@ namespace asio2::detail
 		}
 
 	protected:
+		/**
+		 * @brief Pre process the data before recv callback was called.
+		 * You can overload this function in a derived class to implement additional
+		 * processing of the data. eg: decrypt data with a custom encryption algorithm.
+		 */
+		inline std::string_view data_filter_before_recv(std::string_view data)
+		{
+			return data;
+		}
+
+	protected:
 		template<typename C>
 		void _post_recv(std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs)
 		{
@@ -701,6 +712,8 @@ namespace asio2::detail
 			std::shared_ptr<derived_t>& this_ptr, std::shared_ptr<ecs_t<C>>& ecs, std::string_view data)
 		{
 			detail::ignore_unused(this_ptr, ecs);
+
+			data = this->derived().data_filter_before_recv(data);
 
 			this->listener_.notify(event_type::recv, this->remote_endpoint_, data);
 		}
@@ -807,6 +820,8 @@ namespace asio2
 
 	/*
 	 * udp unicast/multicast/broadcast
+	 * If this object is created as a shared_ptr like std::shared_ptr<asio2::udp_cast> cast;
+	 * you must call the cast->stop() manual when exit, otherwise maybe cause memory leaks.
 	 * @throws constructor maybe throw exception "Too many open files" (exception code : 24)
 	 * asio::error::no_descriptors - Too many open files
 	 */

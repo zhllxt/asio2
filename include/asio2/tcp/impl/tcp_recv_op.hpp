@@ -47,6 +47,17 @@ namespace asio2::detail
 		~tcp_recv_op() = default;
 
 	protected:
+		/**
+		 * @brief Pre process the data before recv callback was called.
+		 * You can overload this function in a derived class to implement additional
+		 * processing of the data. eg: decrypt data with a custom encryption algorithm.
+		 */
+		inline std::string_view data_filter_before_recv(std::string_view data)
+		{
+			return data;
+		}
+
+	protected:
 		template<typename C>
 		void _tcp_post_recv(std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs)
 		{
@@ -105,7 +116,7 @@ namespace asio2::detail
 		}
 
 		template<typename C>
-		void _dgram_fire_recv(
+		void _tcp_dgram_fire_recv(
 			const error_code& ec, std::size_t bytes_recvd,
 			std::shared_ptr<derived_t>& this_ptr, std::shared_ptr<ecs_t<C>>& ecs)
 		{
@@ -193,7 +204,7 @@ namespace asio2::detail
 						ASIO2_ASSERT(false);
 					}
 
-					derive._dgram_fire_recv(ec, bytes_recvd, this_ptr, ecs);
+					derive._tcp_dgram_fire_recv(ec, bytes_recvd, this_ptr, ecs);
 				}
 				else
 				{

@@ -16,6 +16,43 @@ public:
 
 	// ... user custom properties and functions
 	std::string uuid;
+
+	/**
+	 * @brief Pre process the data before send it.
+	 * You can overload this function in a derived class to implement additional
+	 * processing of the data. eg: encrypt data with a custom encryption algorithm.
+	 */
+	template<class T>
+	inline auto data_filter_before_send(T&& data)
+	{
+		std::string_view sv = asio2::to_string_view(asio::buffer(data));
+
+		ASIO2_ASSERT(sv == "<0123456789abcdefghijklmnopqrstovwxyz>");
+
+		for (const char& c : sv)
+		{
+			const_cast<char&>(c) ^= 'X';
+		}
+
+		return std::forward<T>(data);
+	}
+
+	/**
+	 * @brief Pre process the data before recv callback was called.
+	 * You can overload this function in a derived class to implement additional
+	 * processing of the data. eg: decrypt data with a custom encryption algorithm.
+	 */
+	inline std::string_view data_filter_before_recv(std::string_view data)
+	{
+		for (const char& c : data)
+		{
+			const_cast<char&>(c) ^= 'X';
+		}
+
+		ASIO2_ASSERT(data == "<0123456789abcdefghijklmnopqrstovwxyz>");
+
+		return data;
+	}
 };
 
 using my_tcp_server1 = asio2::tcp_server_t<my_tcp_session>;
@@ -31,6 +68,33 @@ class my_tcp_client1 : public asio2::tcp_client_t<my_tcp_client1>
 public:
 	// ... user custom properties and functions
 	std::string uuid;
+
+	template<class T>
+	inline auto data_filter_before_send(T&& data)
+	{
+		std::string_view sv = asio2::to_string_view(asio::buffer(data));
+
+		ASIO2_ASSERT(sv == "<0123456789abcdefghijklmnopqrstovwxyz>");
+
+		for (const char& c : sv)
+		{
+			const_cast<char&>(c) ^= 'X';
+		}
+
+		return std::forward<T>(data);
+	}
+
+	inline std::string_view data_filter_before_recv(std::string_view data)
+	{
+		for (const char& c : data)
+		{
+			const_cast<char&>(c) ^= 'X';
+		}
+
+		ASIO2_ASSERT(data == "<0123456789abcdefghijklmnopqrstovwxyz>");
+
+		return data;
+	}
 };
 
 class my_tcp_client2 : public asio2::tcp_client
@@ -53,6 +117,7 @@ int main()
 		asio2::ignore_unused(session_ptr, data);
 
 		ASIO2_ASSERT(session_ptr->uuid == std::to_string(session_ptr->hash_key()));
+		ASIO2_ASSERT(data == "<0123456789abcdefghijklmnopqrstovwxyz>");
 
 		printf("recv : %zu %.*s\n", data.size(), (int)data.size(), data.data());
 
@@ -73,6 +138,7 @@ int main()
 	}).bind_recv([&](std::string_view data)
 	{
 		//printf("recv : %zu %.*s\n", data.size(), (int)data.size(), data.data());
+		ASIO2_ASSERT(data == "<0123456789abcdefghijklmnopqrstovwxyz>");
 
 		my_client1.async_send(data);
 	});

@@ -1219,7 +1219,25 @@ namespace asio2::detail
 
 		inline bool start_iopool()
 		{
-			return this->iopool_->start();
+			bool ret = this->iopool_->start();
+
+			// if the io_context is customed that passed by the user, then when the server
+			// accepted a new session, then the session's fire init will be called, but at
+			// this time, the session io_t's thread id is not inited, if use call the thread
+			// id function in the fire init callback, it will be failed, so we do all ios
+			// init thread at here first.
+			if (ret)
+			{
+				for (io_t* iot : this->iots_)
+				{
+					asio::dispatch(iot->context(), [iot]() mutable
+					{
+						iot->init_thread_id();
+					});
+				}
+			}
+
+			return ret;
 		}
 
 		inline void stop_iopool()

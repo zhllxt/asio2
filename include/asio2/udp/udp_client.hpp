@@ -19,8 +19,11 @@
 
 #include <asio2/base/client.hpp>
 #include <asio2/base/detail/linear_buffer.hpp>
-#include <asio2/udp/impl/udp_send_op.hpp>
+
 #include <asio2/udp/detail/kcp_util.hpp>
+
+#include <asio2/udp/impl/udp_send_op.hpp>
+#include <asio2/udp/impl/udp_recv_op.hpp>
 #include <asio2/udp/impl/kcp_stream_cp.hpp>
 
 namespace asio2::detail
@@ -47,6 +50,7 @@ namespace asio2::detail
 	class udp_client_impl_t
 		: public client_impl_t<derived_t, args_t>
 		, public udp_send_op  <derived_t, args_t>
+		, public udp_recv_op  <derived_t, args_t>
 	{
 		ASIO2_CLASS_FRIEND_DECLARE_BASE;
 		ASIO2_CLASS_FRIEND_DECLARE_UDP_BASE;
@@ -72,6 +76,7 @@ namespace asio2::detail
 		)
 			: super(init_buf_size, max_buf_size, concurrency)
 			, udp_send_op<derived_t, args_t>()
+			, udp_recv_op<derived_t, args_t>()
 		{
 			this->set_connect_timeout(std::chrono::milliseconds(udp_connect_timeout));
 		}
@@ -84,6 +89,7 @@ namespace asio2::detail
 		)
 			: super(init_buf_size, max_buf_size, std::forward<Scheduler>(scheduler))
 			, udp_send_op<derived_t, args_t>()
+			, udp_recv_op<derived_t, args_t>()
 		{
 			this->set_connect_timeout(std::chrono::milliseconds(udp_connect_timeout));
 		}
@@ -601,31 +607,7 @@ namespace asio2::detail
 		template<typename C>
 		inline void _post_recv(std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs)
 		{
-			if (!this->derived().is_started())
-			{
-				if (this->derived().state() == state_t::started)
-				{
-					this->derived()._do_disconnect(asio2::get_last_error(), std::move(this_ptr));
-				}
-				return;
-			}
-
-		#if defined(_DEBUG) || defined(DEBUG)
-			ASIO2_ASSERT(this->derived().post_recv_counter_.load() == 0);
-			this->derived().post_recv_counter_++;
-		#endif
-
-			this->socket().async_receive(this->buffer_.prepare(this->buffer_.pre_size()),
-				make_allocator(this->rallocator_,
-					[this, this_ptr = std::move(this_ptr), ecs = std::move(ecs)]
-			(const error_code & ec, std::size_t bytes_recvd) mutable
-			{
-			#if defined(_DEBUG) || defined(DEBUG)
-				this->derived().post_recv_counter_--;
-			#endif
-
-				this->derived()._handle_recv(ec, bytes_recvd, std::move(this_ptr), std::move(ecs));
-			}));
+			this->derived()._udp_post_recv(std::move(this_ptr), std::move(ecs));
 		}
 
 		template<typename C>
@@ -633,61 +615,7 @@ namespace asio2::detail
 			const error_code& ec, std::size_t bytes_recvd,
 			std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs)
 		{
-			set_last_error(ec);
-
-			if (!this->derived().is_started())
-			{
-				if (this->derived().state() == state_t::started)
-				{
-					this->derived()._do_disconnect(ec, std::move(this_ptr));
-				}
-				return;
-			}
-
-			if (ec == asio::error::operation_aborted || ec == asio::error::connection_refused)
-			{
-				this->derived()._do_disconnect(ec, std::move(this_ptr));
-				return;
-			}
-
-			this->buffer_.commit(bytes_recvd);
-
-			if (!ec)
-			{
-				this->derived().update_alive_time();
-
-				std::string_view data = std::string_view(static_cast<std::string_view::const_pointer>
-					(this->buffer_.data().data()), bytes_recvd);
-
-				if constexpr (!std::is_same_v<typename ecs_t<C>::condition_lowest_type, use_kcp_t>)
-				{
-					this->derived()._fire_recv(this_ptr, ecs, data);
-				}
-				else
-				{
-					if (data.size() == kcp::kcphdr::required_size())
-					{
-						if /**/ (kcp::is_kcphdr_fin(data))
-						{
-							this->kcp_->send_fin_ = false;
-							this->derived()._do_disconnect(asio::error::connection_reset, std::move(this_ptr));
-						}
-					}
-					else
-					{
-						this->kcp_->_kcp_recv(this_ptr, ecs, this->buffer_, data);
-					}
-				}
-			}
-
-			this->buffer_.consume(this->buffer_.size());
-
-			if (bytes_recvd == this->buffer_.pre_size())
-			{
-				this->buffer_.pre_size((std::min)(this->buffer_.pre_size() * 2, this->buffer_.max_size()));
-			}
-
-			this->derived()._post_recv(std::move(this_ptr), std::move(ecs));
+			this->derived()._udp_handle_recv(ec, bytes_recvd, this_ptr, ecs);
 		}
 
 		inline void _fire_init()
@@ -703,6 +631,8 @@ namespace asio2::detail
 		inline void _fire_recv(
 			std::shared_ptr<derived_t>& this_ptr, std::shared_ptr<ecs_t<C>>& ecs, std::string_view data)
 		{
+			data = this->derived().data_filter_before_recv(data);
+
 			this->listener_.notify(event_type::recv, data);
 
 			this->derived()._rdc_handle_recv(this_ptr, ecs, data);
@@ -780,6 +710,8 @@ namespace asio2
 	};
 
 	/**
+	 * If this object is created as a shared_ptr like std::shared_ptr<asio2::udp_client> client;
+	 * you must call the client->stop() manual when exit, otherwise maybe cause memory leaks.
 	 * @throws constructor maybe throw exception "Too many open files" (exception code : 24)
 	 * asio::error::no_descriptors - Too many open files
 	 */

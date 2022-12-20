@@ -131,6 +131,7 @@ namespace asio2::detail
 	template <class, class>                      KEYWORD kcp_stream_cp;             \
 	template <class, class>                      KEYWORD udp_send_cp;               \
 	template <class, class>                      KEYWORD udp_send_op;               \
+	template <class, class>                      KEYWORD udp_recv_op;               \
 	template <class, class>                      KEYWORD disable_warning_pedantic
 
 #define ASIO2_CLASS_DECLARE_UDP_CLIENT(KEYWORD)                                     \

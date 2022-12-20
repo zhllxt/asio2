@@ -192,7 +192,7 @@ namespace asio2::detail::kcp
 			static_cast<int>(kcphdr::required_size() - sizeof(kcphdr::th_sum))));
 	}
 
-	inline bool is_kcphdr_synack(std::string_view s, std::uint32_t seq) noexcept
+	inline bool is_kcphdr_synack(std::string_view s, std::uint32_t seq, bool ignore_seq = false) noexcept
 	{
 		if (s.size() != kcphdr::required_size())
 			return false;
@@ -203,14 +203,14 @@ namespace asio2::detail::kcp
 			!hdr.th_flag.bits.rst && hdr.th_flag.bits.syn && !hdr.th_flag.bits.fin))
 			return false;
 
-		if (hdr.th_ack != seq + 1)
+		if (!ignore_seq && hdr.th_ack != seq + 1)
 			return false;
 
 		return (hdr.th_sum == checksum((unsigned short *)(s.data()),
 			static_cast<int>(kcphdr::required_size() - sizeof(kcphdr::th_sum))));
 	}
 
-	inline bool is_kcphdr_ack(std::string_view s, std::uint32_t seq) noexcept
+	inline bool is_kcphdr_ack(std::string_view s, std::uint32_t seq, bool ignore_seq = false) noexcept
 	{
 		if (s.size() != kcphdr::required_size())
 			return false;
@@ -221,7 +221,7 @@ namespace asio2::detail::kcp
 			!hdr.th_flag.bits.rst && !hdr.th_flag.bits.syn && !hdr.th_flag.bits.fin))
 			return false;
 
-		if (hdr.th_ack != seq + 1)
+		if (!ignore_seq && hdr.th_ack != seq + 1)
 			return false;
 
 		return (hdr.th_sum == checksum((unsigned short *)(s.data()),

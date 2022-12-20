@@ -3780,6 +3780,13 @@ void tcp_general_test()
 				
 		ASIO2_CHECK_VALUE(client_disconnect_counter.load(), client_disconnect_counter == test_client_count);
 
+		// must call stop, otherwise will cause memory leaks.
+		for (auto& c : clients)
+		{
+			c->stop();
+			ASIO2_CHECK(c->is_stopped());
+		}
+
 		server.stop();
 		ASIO2_CHECK(server.is_stopped());
 
