@@ -463,6 +463,12 @@ namespace asio2::detail
 	template<class T, class D>
 	struct has_equal_operator<T, D, std::void_t<decltype(T{} = D{})>> : std::true_type{};
 
+	template<class, class = void>
+	struct has_bool_operator : std::false_type {};
+
+	template<class T>
+	struct has_bool_operator<T, std::void_t<decltype(std::declval<T&>().operator bool())>> : std::true_type{};
+
 
 	template<class, class = void>
 	struct can_convert_to_string : std::false_type {};

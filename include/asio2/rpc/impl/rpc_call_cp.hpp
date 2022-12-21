@@ -242,34 +242,51 @@ namespace asio2::detail
 		template<class derive_t>
 		struct async_call_op
 		{
+			template<class Callback>
+			inline static auto to_safe_callback(Callback&& cb)
+			{
+				using cbtype = typename detail::remove_cvref_t<Callback>;
+
+				if constexpr (detail::has_bool_operator<cbtype>::value)
+				{
+					using fun_traits_type = function_traits<cbtype>;
+
+					if (!cb)
+						return cbtype{ typename fun_traits_type::stl_lambda_type{} };
+					else
+						return std::forward<Callback>(cb);
+				}
+				else
+				{
+					return std::forward<Callback>(cb);
+				}
+			}
+
 			template<class return_t, class Callback>
-			inline static std::function<void(error_code, std::string_view)>
-				make_callback(derive_t& derive, Callback&& cb)
+			inline static auto make_callback(derive_t& derive, Callback&& cb)
 			{
 				return async_call_op<derive_t>::template make_callback_impl<return_t>(
-					derive, std::forward<Callback>(cb));
+					derive, async_call_op<derive_t>::to_safe_callback(std::forward<Callback>(cb)));
 			}
 
 			template<class Callback>
-			inline static std::function<void(error_code, std::string_view)>
-				make_callback(derive_t& derive, Callback&& cb)
+			inline static auto make_callback(derive_t& derive, Callback&& cb)
 			{
 				using fun_traits_type = function_traits<std::remove_cv_t<std::remove_reference_t<Callback>>>;
-				return async_call_op<derive_t>::template make_callback_argc<fun_traits_type::argc>(
-					derive, std::forward<Callback>(cb));
+				return async_call_op<derive_t>::template make_callback_argc(
+					derive, async_call_op<derive_t>::to_safe_callback(std::forward<Callback>(cb)),
+					std::integral_constant<int, fun_traits_type::argc>{});
 			}
 
-			template<std::size_t Argc, class Callback>
-			typename std::enable_if_t<Argc == 0, std::function<void(error_code, std::string_view)>>
-			inline static make_callback_argc(derive_t& derive, Callback&& cb)
+			template<class Callback>
+			inline static auto make_callback_argc(derive_t& derive, Callback&& cb, std::integral_constant<int, 0>)
 			{
 				return async_call_op<derive_t>::template make_callback_impl<void>(
 					derive, std::forward<Callback>(cb));
 			}
 
-			template<std::size_t Argc, class Callback>
-			typename std::enable_if_t<Argc == 1, std::function<void(error_code, std::string_view)>>
-			inline static make_callback_argc(derive_t& derive, Callback&& cb)
+			template<class Callback>
+			inline static auto make_callback_argc(derive_t& derive, Callback&& cb, std::integral_constant<int, 1>)
 			{
 				using fun_traits_type = function_traits<std::remove_cv_t<std::remove_reference_t<Callback>>>;
 				using return_type = typename fun_traits_type::template args<0>::type;
@@ -279,84 +296,89 @@ namespace asio2::detail
 			}
 
 			template<class return_t, class Callback>
-			typename std::enable_if_t<std::is_same_v<return_t, void>,
-				std::function<void(error_code, std::string_view)>>
-			inline static make_callback_impl(derive_t& derive, Callback&& cb)
+			inline static auto make_callback_impl_0(derive_t& derive, Callback&& cb)
 			{
-				return std::function<void(error_code, std::string_view)>
+				return [&derive, cb = std::forward<Callback>(cb)](auto ec, std::string_view) mutable
 				{
-					[&derive, cb = std::forward<Callback>(cb)](auto ec, std::string_view) mutable
+					try
 					{
-						try
-						{
-							if (!ec)
-								derive.dr_ >> ec;
-						}
-						catch (cereal::exception const&)
-						{
-							ec = rpc::make_error_code(rpc::error::no_data);
-						}
-						catch (std::exception    const&)
-						{
-							ec = rpc::make_error_code(rpc::error::unspecified_error);
-						}
-
-						if (std::addressof(ec.category()) != std::addressof(rpc::rpc_category()))
-						{
-							ec.assign(ec.value(), rpc::rpc_category());
-						}
-
-						ASIO2_ASSERT(std::string_view(ec.category().name()) == rpc::rpc_category().name());
-
-						set_last_error(ec);
-
-						cb();
+						if (!ec)
+							derive.dr_ >> ec;
 					}
+					catch (cereal::exception const&)
+					{
+						ec = rpc::make_error_code(rpc::error::no_data);
+					}
+					catch (std::exception    const&)
+					{
+						ec = rpc::make_error_code(rpc::error::unspecified_error);
+					}
+
+					if (std::addressof(ec.category()) != std::addressof(rpc::rpc_category()))
+					{
+						ec.assign(ec.value(), rpc::rpc_category());
+					}
+
+					ASIO2_ASSERT(std::string_view(ec.category().name()) == rpc::rpc_category().name());
+
+					set_last_error(ec);
+
+					cb();
 				};
 			}
 
 			template<class return_t, class Callback>
-			typename std::enable_if_t<!std::is_same_v<return_t, void>,
-				std::function<void(error_code, std::string_view)>>
-			inline static make_callback_impl(derive_t& derive, Callback&& cb)
+			inline static auto make_callback_impl_1(derive_t& derive, Callback&& cb)
 			{
-				return std::function<void(error_code, std::string_view)>
+				return [&derive, cb = std::forward<Callback>(cb)](auto ec, std::string_view data) mutable
 				{
-					[&derive, cb = std::forward<Callback>(cb)](auto ec, std::string_view data) mutable
+					detail::ignore_unused(data);
+
+					typename rpc_result_t<return_t>::type result{};
+
+					try
 					{
-						detail::ignore_unused(data);
+						if (!ec)
+							derive.dr_ >> ec;
 
-						typename rpc_result_t<return_t>::type result{};
-
-						try
-						{
-							if (!ec)
-								derive.dr_ >> ec;
-
-							if (!ec)
-								derive.dr_ >> result;
-						}
-						catch (cereal::exception const&)
-						{
-							ec = rpc::make_error_code(rpc::error::no_data);
-						}
-						catch (std::exception    const&)
-						{
-							ec = rpc::make_error_code(rpc::error::unspecified_error);
-						}
-
-						if (std::addressof(ec.category()) != std::addressof(rpc::rpc_category()))
-						{
-							ec.assign(ec.value(), rpc::rpc_category());
-						}
-
-						ASIO2_ASSERT(std::string_view(ec.category().name()) == rpc::rpc_category().name());
-
-						set_last_error(ec);
-
-						cb(std::move(result));
+						if (!ec)
+							derive.dr_ >> result;
 					}
+					catch (cereal::exception const&)
+					{
+						ec = rpc::make_error_code(rpc::error::no_data);
+					}
+					catch (std::exception    const&)
+					{
+						ec = rpc::make_error_code(rpc::error::unspecified_error);
+					}
+
+					if (std::addressof(ec.category()) != std::addressof(rpc::rpc_category()))
+					{
+						ec.assign(ec.value(), rpc::rpc_category());
+					}
+
+					ASIO2_ASSERT(std::string_view(ec.category().name()) == rpc::rpc_category().name());
+
+					set_last_error(ec);
+
+					cb(std::move(result));
 				};
+			}
+
+			template<class return_t, class Callback>
+			inline static auto make_callback_impl(derive_t& derive, Callback&& cb)
+			{
+				if constexpr (std::is_same_v<return_t, void>)
+				{
+					return async_call_op<derive_t>::make_callback_impl_0<return_t>(
+						derive, std::forward<Callback>(cb));
+				}
+				else
+				{
+					return async_call_op<derive_t>::make_callback_impl_1<return_t>(
+						derive, std::forward<Callback>(cb));
+				}
 			}
 
 			template<class Req>
@@ -403,7 +425,7 @@ namespace asio2::detail
 
 					detail::cancel_timer(*timer);
 
-					if (cb) { cb(ec, data); }
+					cb(ec, data);
 
 					derive.reqs_.erase(id);
 				};
@@ -596,8 +618,7 @@ namespace asio2::detail
 			inline async_caller& response(Callback&& cb)
 			{
 				this->id_ = derive.mkid();
-				this->cb_ = async_call_op<derive_t>::template make_callback(
-					derive, std::forward<Callback>(cb));
+				this->cb_ = async_call_op<derive_t>::template make_callback(derive, std::forward<Callback>(cb));
 				return (*this);
 			}
 
@@ -615,8 +636,16 @@ namespace asio2::detail
 					}
 					else
 					{
-						async_call_op<derive_t>::template exec(deriv, std::move(id), std::move(timeout),
-							std::move(cb), std::move(req));
+						if (!cb)
+						{
+							async_call_op<derive_t>::template exec(deriv, std::move(id), std::move(timeout),
+								[](error_code, std::string_view) {}, std::move(req));
+						}
+						else
+						{
+							async_call_op<derive_t>::template exec(deriv, std::move(id), std::move(timeout),
+								std::move(cb), std::move(req));
+						}
 					}
 				};
 

@@ -22,6 +22,31 @@
 
 namespace asio2::detail
 {
+	template<typename, typename = void>
+	struct lambda_dummy_t { };
+
+	template<typename Ret, typename... Args>
+	struct lambda_dummy_t<Ret(Args...)>
+	{
+		template<typename R = Ret>
+		inline R operator()(const Args&...)
+		{
+			if /**/ constexpr (std::is_same_v<void, std::remove_cv_t<std::remove_reference_t<R>>>)
+			{
+				return;
+			}
+			else if constexpr (std::is_reference_v<std::remove_cv_t<R>>)
+			{
+				static typename std::remove_reference_t<R> s;
+				return s;
+			}
+			else
+			{
+				return R{};
+			}
+		}
+	};
+
 	/*
 	 * 1. function type								==>	Ret(Args...)
 	 * 2. function pointer							==>	Ret(*)(Args...)
@@ -43,6 +68,7 @@ namespace asio2::detail
 		typedef Ret function_type(Args...);
 		typedef Ret return_type;
 		using stl_function_type = std::function<function_type>;
+		using stl_lambda_type = lambda_dummy_t<function_type>;
 		typedef Ret(*pointer)(Args...);
 		using class_type = void;
 
@@ -67,6 +93,7 @@ namespace asio2::detail
 		typedef Ret function_type(Args...);
 		typedef Ret return_type;
 		using stl_function_type = std::function<function_type>;
+		using stl_lambda_type = lambda_dummy_t<function_type>;
 		typedef Ret(*pointer)(Args...);
 		using class_type = Class;
 
