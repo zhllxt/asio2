@@ -3,6 +3,7 @@
 #endif
 
 #include <asio2/websocket/wss_server.hpp>
+#include <iostream>
 
 int main()
 {
@@ -19,7 +20,14 @@ int main()
 		"../../cert/server.crt",
 		"../../cert/server.key",
 		"123456");
+
+	if (asio2::get_last_error())
+		std::cout << "load cert files failed: " << asio2::last_error_msg() << std::endl;
+
 	server.set_dh_file("../../cert/dh1024.pem");
+
+	if (asio2::get_last_error())
+		std::cout << "load dh files failed: " << asio2::last_error_msg() << std::endl;
 
 	server.bind_accept([](std::shared_ptr<asio2::wss_session>& session_ptr)
 	{

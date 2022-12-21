@@ -98,6 +98,7 @@ int main()
 	{
 		// print the whole response
 		std::cout << rep << std::endl;
+
 		// print the response body
 		std::cout << rep.body() << std::endl;
 

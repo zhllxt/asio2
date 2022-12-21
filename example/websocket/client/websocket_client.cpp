@@ -61,7 +61,16 @@ int main()
 	{
 		printf("recv : %zu %.*s\n", data.size(), (int)data.size(), data.data());
 
-		client.async_send(data);
+		std::string s;
+		s += '<';
+		int len = 128 + std::rand() % 512;
+		for (int i = 0; i < len; i++)
+		{
+			s += (char)((std::rand() % 26) + 'a');
+		}
+		s += '>';
+
+		client.async_send(std::move(s));
 	});
 
 	// the /ws is the websocket upgraged target

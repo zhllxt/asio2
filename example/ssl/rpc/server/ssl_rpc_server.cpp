@@ -3,6 +3,7 @@
 #endif
 
 #include <asio2/rpc/rpcs_server.hpp>
+#include <iostream>
 
 int add(int a, int b)
 {
@@ -22,6 +23,9 @@ int main()
 		"../../cert/server.crt",
 		"../../cert/server.key",
 		"123456");
+
+	if (asio2::get_last_error())
+		std::cout << "load cert files failed: " << asio2::last_error_msg() << std::endl;
 
 	server.bind_connect([&](auto & session_ptr)
 	{

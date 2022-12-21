@@ -121,35 +121,38 @@ namespace asio2::detail
 		{
 			error_code ec{};
 
-			this->set_password_callback([password = std::string{ private_password }]
-			(std::size_t max_length, asio::ssl::context_base::password_purpose purpose)->std::string
+			do
 			{
-				detail::ignore_unused(max_length, purpose);
+				this->set_password_callback([password = std::string{ private_password }]
+				(std::size_t max_length, asio::ssl::context_base::password_purpose purpose)->std::string
+				{
+					detail::ignore_unused(max_length, purpose);
 
-				return password;
-			}, ec);
-			if (ec)
-				goto end;
-
-			ASIO2_ASSERT(!private_cert_buffer.empty() && !private_key_buffer.empty());
-
-			this->use_certificate(asio::buffer(private_cert_buffer), asio::ssl::context::pem, ec);
-			if (ec)
-				goto end;
-
-			this->use_private_key(asio::buffer(private_key_buffer), asio::ssl::context::pem, ec);
-			if (ec)
-				goto end;
-
-			if (!ca_cert_buffer.empty())
-			{
-				this->add_certificate_authority(asio::buffer(ca_cert_buffer), ec);
+					return password;
+				}, ec);
 				if (ec)
-					goto end;
-			}
+					break;
 
-		end:
+				ASIO2_ASSERT(!private_cert_buffer.empty() && !private_key_buffer.empty());
+
+				this->use_certificate(asio::buffer(private_cert_buffer), asio::ssl::context::pem, ec);
+				if (ec)
+					break;
+
+				this->use_private_key(asio::buffer(private_key_buffer), asio::ssl::context::pem, ec);
+				if (ec)
+					break;
+
+				if (!ca_cert_buffer.empty())
+				{
+					this->add_certificate_authority(asio::buffer(ca_cert_buffer), ec);
+					if (ec)
+						break;
+				}
+			} while (false);
+
 			set_last_error(ec);
+
 			return (static_cast<derived_t&>(*this));
 		}
 
@@ -176,35 +179,38 @@ namespace asio2::detail
 		{
 			error_code ec{};
 
-			this->set_password_callback([password = private_password]
-			(std::size_t max_length, asio::ssl::context_base::password_purpose purpose)->std::string
+			do
 			{
-				detail::ignore_unused(max_length, purpose);
+				this->set_password_callback([password = private_password]
+				(std::size_t max_length, asio::ssl::context_base::password_purpose purpose)->std::string
+				{
+					detail::ignore_unused(max_length, purpose);
 
-				return password;
-			}, ec);
-			if (ec)
-				goto end;
-
-			ASIO2_ASSERT(!private_cert_file.empty() && !private_key_file.empty());
-
-			this->use_certificate_chain_file(private_cert_file, ec);
-			if (ec)
-				goto end;
-
-			this->use_private_key_file(private_key_file, asio::ssl::context::pem, ec);
-			if (ec)
-				goto end;
-
-			if (!ca_cert_file.empty())
-			{
-				this->load_verify_file(ca_cert_file, ec);
+					return password;
+				}, ec);
 				if (ec)
-					goto end;
-			}
+					break;
 
-		end:
+				ASIO2_ASSERT(!private_cert_file.empty() && !private_key_file.empty());
+
+				this->use_certificate_chain_file(private_cert_file, ec);
+				if (ec)
+					break;
+
+				this->use_private_key_file(private_key_file, asio::ssl::context::pem, ec);
+				if (ec)
+					break;
+
+				if (!ca_cert_file.empty())
+				{
+					this->load_verify_file(ca_cert_file, ec);
+					if (ec)
+						break;
+				}
+			} while (false);
+
 			set_last_error(ec);
+
 			return (static_cast<derived_t&>(*this));
 		}
 

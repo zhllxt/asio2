@@ -3,6 +3,7 @@
 #endif
 
 #include <asio2/websocket/wss_client.hpp>
+#include <iostream>
 
 int main()
 {
@@ -19,6 +20,8 @@ int main()
 		"../../cert/client.crt",
 		"../../cert/client.key",
 		"123456");
+	if (asio2::get_last_error())
+		std::cout << "load cert files failed: " << asio2::last_error_msg() << std::endl;
 
 	client.bind_init([&]()
 	{
@@ -32,7 +35,16 @@ int main()
 	{
 		printf("recv : %zu %.*s\n", data.size(), (int)data.size(), data.data());
 
-		client.async_send(data);
+		std::string str;
+		str += '<';
+		int len = 128 + std::rand() % (300);
+		for (int i = 0; i < len; i++)
+		{
+			str += (char)((std::rand() % 26) + 'a');
+		}
+		str += '>';
+
+		client.async_send(std::move(str));
 	}).bind_connect([&]()
 	{
 		if (asio2::get_last_error())

@@ -59,7 +59,7 @@ int main()
 	asio2::https_client::execute(url, std::chrono::seconds(5));
 	asio2::https_client::execute(url, sock5_option);
 
-	auto reprss = asio2::https_client::execute("https://github.com/freefq/free", std::chrono::seconds(60));
+	auto reprss = asio2::https_client::execute("https://github.com/freefq/free", std::chrono::seconds(60), sock5_option);
 	std::fstream file;
 	file.open("freefq.html", std::ios::in | std::ios::out | std::ios::binary | std::ios::trunc);
 	file.write(reprss.body().data(), reprss.body().size());
@@ -86,6 +86,8 @@ int main()
 		"../../cert/client.crt",
 		"../../cert/client.key",
 		"123456");
+	if (asio2::get_last_error())
+		std::cout << "load cert files failed: " << asio2::last_error_msg() << std::endl;
 
 	client.set_connect_timeout(std::chrono::seconds(10));
 
