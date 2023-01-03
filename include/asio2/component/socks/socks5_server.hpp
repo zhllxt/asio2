@@ -1,11 +1,11 @@
 /*
- * COPYRIGHT (C) 2017-2021, zhllxt
+ * Copyright (c) 2017-2023 zhllxt
  *
  * author   : zhllxt
  * email    : 37792738@qq.com
  * 
- * Distributed under the GNU GENERAL PUBLIC LICENSE Version 3, 29 June 2007
- * (See accompanying file LICENSE or see <http://www.gnu.org/licenses/>)
+ * Distributed under the Boost Software License, Version 1.0. (See accompanying
+ * file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
  *
  * socks5 protocol : https://www.ddhigh.com/2019/08/24/socks5-protocol.html
  * UDP Associate : https://blog.csdn.net/whatday/article/details/40183555

@@ -1,5 +1,5 @@
 /*
- * COPYRIGHT (C) 2017-2021, zhllxt
+ * Copyright (c) 2017-2023 zhllxt
  *
  * author   : zhllxt
  * qq       : 37792738
