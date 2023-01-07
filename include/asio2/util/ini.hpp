@@ -24,6 +24,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cassert>
+#include <ctime>
 
 #include <memory>
 #include <string>
@@ -39,6 +40,7 @@
 #include <limits>
 #include <algorithm>
 #include <tuple>
+#include <chrono>
 
 /*
  * 
@@ -372,6 +374,80 @@ namespace asio2
 		template<class ...Args>
 		inline static std::basic_string_view<CharT, Traits> stov(Args&&... args)
 		{ return std::basic_string_view<CharT, Traits>(std::forward<Args>(args)...); }
+	};
+
+	template<class Rep, class Period>
+	struct convert<std::chrono::duration<Rep, Period>>
+	{
+		// referenced from: C# TimeSpan
+		// 30                 - 30 seconds
+		// 00:00:00.0000036   - 36 milliseconds
+		// 00:00:00           - 0 seconds
+		// 2.10:36:45         - 2 days 10 hours 36 minutes 45 seconds
+		// 2.00:00:00.0000036 - 
+		template<class S>
+		inline static std::chrono::duration<Rep, Period> stov(S&& s)
+		{
+			std::size_t n1 = s.find(':');
+
+			if (n1 == std::string::npos)
+				return std::chrono::seconds(std::stoll(s));
+
+			int day = 0, hour = 0, min = 0, sec = 0, msec = 0;
+
+			std::size_t m1 = s.find('.');
+
+			if (m1 < n1)
+			{
+				day = std::stoi(s.substr(0, m1));
+				s.erase(0, m1 + 1);
+			}
+
+			n1 = s.find(':');
+			hour = std::stoi(s.substr(0, n1));
+			s.erase(0, n1 + 1);
+
+			n1 = s.find(':');
+			min = std::stoi(s.substr(0, n1));
+			s.erase(0, n1 + 1);
+
+			n1 = s.find('.');
+			sec = std::stoi(s.substr(0, n1));
+
+			if (n1 != std::string::npos)
+			{
+				s.erase(0, n1 + 1);
+
+				msec = std::stoi(s);
+			}
+
+			return
+				std::chrono::days(day) +
+				std::chrono::hours(hour) +
+				std::chrono::minutes(min) +
+				std::chrono::seconds(sec) +
+				std::chrono::milliseconds(msec);
+		}
+	};
+
+	template<class Clock, class Duration>
+	struct convert<std::chrono::time_point<Clock, Duration>>
+	{
+		template<class S>
+		inline static std::chrono::time_point<Clock, Duration> stov(S&& s)
+		{
+			std::stringstream ss;
+			ss << std::forward<S>(s);
+
+			std::tm t{};
+
+			if (s.find('/') != std::string::npos)
+				ss >> std::get_time(&t, "%m/%d/%Y %H:%M:%S");
+			else
+				ss >> std::get_time(&t, "%Y-%m-%d %H:%M:%S");
+
+			return Clock::from_time_t(std::mktime(&t));
+		}
 	};
 }
 

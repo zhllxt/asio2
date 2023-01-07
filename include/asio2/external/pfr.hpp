@@ -48,11 +48,11 @@ namespace bho::pfr
 		struct __refl_members_iterator_dummy__
 		{
 			template<typename ThisType, typename Func>
-			static inline void for_each_field(ThisType&, const Func&)
+			static inline void for_each_field(ThisType&, Func&)
 			{
 			}
 			template<typename Func>
-			static inline void for_each_field_name(const Func&)
+			static inline void for_each_field_name(Func&)
 			{
 			}
 		};
@@ -111,7 +111,7 @@ namespace bho::pfr
 	};
 
 	template<typename BaseT, typename T, typename ...Args>
-	class dynamic_creator
+	class base_dynamic_creator
 	{
 	public:
 		struct registor
@@ -129,17 +129,58 @@ namespace bho::pfr
 			inline void makesure_construct() const noexcept { };
 		};
 
-		explicit dynamic_creator() noexcept
+		explicit base_dynamic_creator() noexcept
 		{
 			registor_.makesure_construct();
 		}
-		virtual ~dynamic_creator() noexcept
+		virtual ~base_dynamic_creator() noexcept
 		{
 			registor_.makesure_construct();
 		};
 
 	private:
 		static BaseT* create(Args&&... args)
+		{
+			return (new T(std::forward<Args>(args)...));
+		}
+
+	private:
+		static inline registor registor_{};
+	};
+
+	template<typename BaseT, typename T, typename ...Args>
+	using dynamic_creator = base_dynamic_creator<BaseT, T, Args...>;
+
+	template<typename T, typename ...Args>
+	class self_dynamic_creator
+	{
+	public:
+		struct registor
+		{
+			registor()
+			{
+				std::string name;
+			#if !defined(ASIO2_HEADER_ONLY) && __has_include(<boost/core/type_name.hpp>)
+				name = boost::core::type_name<T>();
+			#else
+				name = bho::core::type_name<T>();
+			#endif
+				class_factory<T, Args...>::instance().regist(std::move(name), create);
+			}
+			inline void makesure_construct() const noexcept { };
+		};
+
+		explicit self_dynamic_creator() noexcept
+		{
+			registor_.makesure_construct();
+		}
+		virtual ~self_dynamic_creator() noexcept
+		{
+			registor_.makesure_construct();
+		};
+
+	private:
+		static T* create(Args&&... args)
 		{
 			return (new T(std::forward<Args>(args)...));
 		}
@@ -230,18 +271,24 @@ private:                                                                        
 		public pfr::detail::__refl_members_iterator_dummy__{};                                     \
 public:                                                                                            \
     template<typename Func>                                                                        \
-    void for_each_field(const Func& func) noexcept                                                 \
+    void for_each_field(Func&& func) noexcept                                                      \
 	{                                                                                              \
-        __refl_members_iterator__<int, 0>::for_each_field(*this, func);                            \
+		decltype(auto) fun = std::forward<Func>(func);                                             \
+        __refl_members_iterator__<int, 0>::for_each_field(*this, fun);                             \
     }                                                                                              \
     template<typename Func>                                                                        \
-    static void for_each_field_name(const Func& func) noexcept                                     \
+    static void for_each_field_name(Func&& func) noexcept                                          \
 	{                                                                                              \
-        __refl_members_iterator__<int, 0>::for_each_field_name(func);                              \
+		decltype(auto) fun = std::forward<Func>(func);                                             \
+        __refl_members_iterator__<int, 0>::for_each_field_name(fun);                               \
     }                                                                                              \
+	inline static constexpr std::string_view get_class_name() noexcept                             \
+	{                                                                                              \
+		return ASIO2_STRINGIZE(Class);                                                             \
+	}                                                                                              \
     template<typename T, int N> friend struct __refl_members_iterator__                            \
 
-#define F(type, name)                                                                              \
+#define F_FIELD(type, name)                                                                        \
 public:                                                                                            \
     type name{};                                                                                   \
 private:                                                                                           \
@@ -251,13 +298,13 @@ private:                                                                        
 	{                                                                                              \
         typedef __refl_members_iterator__<T, BHO_REFLECT_F_TAG(name) + 1> next_type;               \
         template<typename ThisType, typename Func>                                                 \
-        static void for_each_field(ThisType& This, const Func& func) noexcept                      \
+        static void for_each_field(ThisType& This, Func& func) noexcept                            \
 		{                                                                                          \
             func(ASIO2_STRINGIZE(name), This.name);                                                \
             next_type::for_each_field(This, func);                                                 \
         }                                                                                          \
         template<typename Func>                                                                    \
-        static void for_each_field_name(const Func& func) noexcept                                 \
+        static void for_each_field_name(Func& func) noexcept                                       \
 		{                                                                                          \
             func(ASIO2_STRINGIZE(name));                                                           \
             next_type::for_each_field_name(func);                                                  \
@@ -267,7 +314,7 @@ private:                                                                        
 
 #define F_END()                                                                                    \
 public:                                                                                            \
-	constexpr std::size_t get_field_count() const noexcept                                         \
+	constexpr static std::size_t get_field_count() noexcept                                        \
 	{                                                                                              \
 		constexpr std::size_t field_count = BHO_REFLECT_INDEX(__refl_field_counter__);             \
 		return field_count;                                                                        \

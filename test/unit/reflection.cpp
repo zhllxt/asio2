@@ -17,7 +17,7 @@ public:
 
 class dog
 	: public actor
-	, public pfr::dynamic_creator<actor, dog, int, std::string, const char*>
+	, public pfr::base_dynamic_creator<actor, dog, int, std::string, const char*>
 {
 public:
 	dog(int index, std::string name, const char* type)
@@ -36,8 +36,8 @@ struct userinfo
 {
 	F_BEGIN(userinfo);
 
-	F(int, age);
-	F(std::string, name);
+	F_FIELD(int, age);
+	F_FIELD(std::string, name);
 
 	F_END();
 };
@@ -79,10 +79,12 @@ void reflection_test()
 
 	ASIO2_CHECK(2 == u.get_field_count());
 
+	ASIO2_CHECK(u.get_class_name() == "userinfo");
+
 	int userage = -1;
 	std::string username;
 	int c = 0;
-	u.for_each_field([&](const char* name, auto& value)
+	u.for_each_field([&](const char* name, auto& value) mutable
 	{
 		std::ignore = true;
 		if constexpr (std::is_integral_v<std::remove_reference_t<decltype(value)>>)
@@ -108,7 +110,7 @@ void reflection_test()
 	ASIO2_CHECK(username == u.name);
 
 	c = 0;
-	userinfo::for_each_field_name([&c](const char* name)
+	userinfo::for_each_field_name([&c](const char* name) mutable
 	{
 		if (c == 0)
 		{
