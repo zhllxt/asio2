@@ -93,9 +93,7 @@ namespace asio2::detail
 	{
 		friend class iopool;
 	public:
-		io_t(asio::io_context* ioc, std::atomic<std::size_t>& pending) noexcept
-			: context_(ioc)
-			, pending_(pending)
+		io_t(asio::io_context* ioc) noexcept : context_(ioc)
 		{
 		}
 		~io_t() noexcept
@@ -227,7 +225,7 @@ namespace asio2::detail
 
 		// Use this variable to ensure async_send function was executed correctly.
 		// see : send_cp.hpp "# issue x:"
-		std::atomic<std::size_t>               & pending_;
+		std::atomic<std::size_t>                 pending_{};
 
 		// Use this variable to save the timers that have not been closed properly.
 		// If we don't do this, the following problem will occurs:
@@ -301,7 +299,7 @@ namespace asio2::detail
 
 			for (std::size_t i = 0; i < concurrency; ++i)
 			{
-				this->iots_.emplace_back(std::make_unique<io_t>(this->iocs_[i].get(), this->pending_));
+				this->iots_.emplace_back(std::make_unique<io_t>(this->iocs_[i].get()));
 			}
 
 			this->threads_.reserve(this->iots_.size());
@@ -535,11 +533,11 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @brief 
+		 * @brief Get the thread id of the specified thread index.
 		 */
-		inline std::atomic<std::size_t>& pending() noexcept
+		inline std::thread::id get_thread_id(std::size_t index) const noexcept
 		{
-			return this->pending_;
+			return this->threads_[index % this->threads_.size()].get_id();
 		}
 
 		/**
@@ -554,8 +552,11 @@ namespace asio2::detail
 					return this->cancel();
 
 				// wiat fo all pending events completed.
-				while (this->pending_ > std::size_t(0))
-					std::this_thread::sleep_for(std::chrono::milliseconds(0));
+				for (auto& iot : this->iots_)
+				{
+					while (iot->pending() > std::size_t(0))
+						std::this_thread::sleep_for(std::chrono::milliseconds(0));
+				}
 
 				// first reset the acceptor io_context work guard
 				if (!this->guards_.empty())
@@ -718,6 +719,101 @@ namespace asio2::detail
 			return future.get();
 		}
 
+		/**
+		 * @brief post a function object into the thread pool, then return immediately,
+		 * the function object will never be executed inside this function. Instead, it will
+		 * be executed asynchronously in the thread pool.
+		 * @param fun - global function,static function,lambda,member function,std::function.
+		 * @return std::future<fun_return_type>
+		 */
+		template<class Fun, class... Args>
+		auto post(Fun&& fun, Args&&... args) -> std::future<std::invoke_result_t<Fun, Args...>>
+		{
+			using return_type = std::invoke_result_t<Fun, Args...>;
+
+			std::size_t index = 0, num = (std::numeric_limits<std::size_t>::max)();
+
+			for (std::size_t i = 0, n = this->iots_.size(); i < n; ++i)
+			{
+				std::size_t pending = this->iots_[i]->pending().load();
+
+				if (pending == 0)
+				{
+					index = i;
+					break;
+				}
+
+				if (pending < num)
+				{
+					num = pending;
+					index = i;
+				}
+			}
+
+			std::atomic<std::size_t>& pending = this->iots_[index]->pending();
+
+			pending++;
+
+			std::promise<return_type> promise;
+			std::future<return_type> future = promise.get_future();
+
+			asio::post(*(this->iocs_[index]),
+			[&pending, promise = std::move(promise), fun = std::forward<Fun>(fun),
+				args = std::make_tuple(std::forward<Args>(args) ...)]() mutable
+			{
+				if constexpr (std::is_void_v<return_type>)
+				{
+					std::apply(std::move(fun), std::move(args));
+
+					promise.set_value();
+				}
+				else
+				{
+					promise.set_value(std::apply(std::move(fun), std::move(args)));
+				}
+
+				pending--;
+			});
+
+			return future;
+		}
+
+		/**
+		 * @brief post a function object into the thread pool with specified thread index,
+		 * then return immediately, the function object will never be executed inside this
+		 * function. Instead, it will be executed asynchronously in the thread pool.
+		 * @param thread_index - which thread to execute the function.
+		 * @param fun - global function,static function,lambda,member function,std::function.
+		 * @return std::future<fun_return_type>
+		 */
+		template<class IntegerT, class Fun, class... Args,
+			std::enable_if_t<std::is_integral_v<std::remove_cv_t<std::remove_reference_t<IntegerT>>>, int> = 0>
+		auto post(IntegerT thread_index, Fun&& fun, Args&&... args) -> std::future<std::invoke_result_t<Fun, Args...>>
+		{
+			using return_type = std::invoke_result_t<Fun, Args...>;
+
+			std::promise<return_type> promise;
+			std::future<return_type> future = promise.get_future();
+
+			asio::post(*(this->iocs_[thread_index % this->iocs_.size()]),
+			[promise = std::move(promise), fun = std::forward<Fun>(fun),
+				args = std::make_tuple(std::forward<Args>(args) ...)]() mutable
+			{
+				if constexpr (std::is_void_v<return_type>)
+				{
+					std::apply(std::move(fun), std::move(args));
+
+					promise.set_value();
+				}
+				else
+				{
+					promise.set_value(std::apply(std::move(fun), std::move(args)));
+				}
+			});
+
+			return future;
+		}
+
 	protected:
 		/// threads to run all of the io_context
 		std::vector<std::thread>                                     threads_;
@@ -740,9 +836,6 @@ namespace asio2::detail
 		// Give all the io_contexts executor_work_guard to do so that their run() functions will not 
 		// exit until they are explicitly stopped. 
 		std::vector<asio::executor_work_guard<asio::io_context::executor_type>> guards_;
-
-		// 
-		std::atomic<std::size_t>                                     pending_  = 0;
 	};
 
 	class iopool_base
@@ -756,7 +849,6 @@ namespace asio2::detail
 		virtual bool                        stopped()            const noexcept = 0;
 		virtual io_t                      & get    (std::size_t index) noexcept = 0;
 		virtual std::size_t                 size   ()            const noexcept = 0;
-		virtual std::atomic<std::size_t>  & pending()                  noexcept = 0;
 		virtual bool             running_in_threads()            const noexcept = 0;
 	};
 
@@ -816,14 +908,6 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @brief 
-		 */
-		virtual std::atomic<std::size_t>& pending() noexcept override
-		{
-			return this->impl_.pending();
-		}
-
-		/**
 		 * @brief Determine whether current code is running in the io_context pool threads.
 		 */
 		virtual bool running_in_threads() const noexcept override
@@ -863,7 +947,7 @@ namespace asio2::detail
 				// the io_context pointer maybe "std::shared_ptr<io_context> , io_context*"
 				for (auto& ioc : copy_)
 				{
-					iots_.emplace_back(std::make_unique<io_t>(std::addressof(*ioc), this->pending_));
+					iots_.emplace_back(std::make_unique<io_t>(std::addressof(*ioc)));
 				}
 			}
 			// std::shared_ptr<io_t> , io_t*
@@ -915,8 +999,11 @@ namespace asio2::detail
 				return;
 
 			// wiat fo all pending events completed.
-			while (this->pending_ > std::size_t(0))
-				std::this_thread::sleep_for(std::chrono::milliseconds(0));
+			for (auto& iot : this->iots_)
+			{
+				while (iot->pending() > std::size_t(0))
+					std::this_thread::sleep_for(std::chrono::milliseconds(0));
+			}
 
 			this->stopped_ = true;
 		}
@@ -943,14 +1030,6 @@ namespace asio2::detail
 		virtual std::size_t size() const noexcept override
 		{
 			return this->iots_.size();
-		}
-
-		/**
-		 * @brief
-		 */
-		virtual std::atomic<std::size_t>& pending() noexcept override
-		{
-			return this->pending_;
 		}
 
 		/**
@@ -993,9 +1072,6 @@ namespace asio2::detail
 
 		/// The next io_context to use for a connection. 
 		std::size_t                              next_     = 0;
-
-		/// 
-		std::atomic<std::size_t>                 pending_  = 0;
 	};
 
 	template<class derived_t, class args_t = void>

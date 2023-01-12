@@ -1,4 +1,5 @@
 #include <asio2/asio2.hpp>
+#include <iostream>
 
 int main()
 {
@@ -7,6 +8,34 @@ int main()
 
 	// iopool must start first, othwise the server.start will blocked forever.
 	iopool.start();
+
+	std::vector<std::future<void>> futures;
+
+	auto future1 = iopool.post([]()
+	{
+		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+		std::cout << "task 1:" << std::this_thread::get_id() << std::endl;
+	});
+	auto future2 = iopool.post([]()
+	{
+		std::this_thread::sleep_for(std::chrono::milliseconds(100));
+		std::cout << "task 2:" << std::this_thread::get_id() << std::endl;
+	});
+	auto future3 = iopool.post(2, [&iopool]()
+	{
+		std::cout << "task 3:" << std::this_thread::get_id() << std::endl;
+		ASIO2_ASSERT(iopool.get_thread_id(2) == std::this_thread::get_id());
+		ASIO2_ASSERT(iopool.get(2).get_thread_id() == std::this_thread::get_id());
+	});
+
+	futures.emplace_back(std::move(future1));
+	futures.emplace_back(std::move(future2));
+	futures.emplace_back(std::move(future3));
+
+	for (auto& future : futures)
+	{
+		future.wait();
+	}
 
 	//// --------------------------------------------------------------------------------
 

@@ -101,8 +101,14 @@ namespace asio2::detail
 	static std::size_t constexpr max_buffer_size = (std::numeric_limits<std::size_t>::max)();
 
 	// std::thread::hardware_concurrency() is not constexpr, so use it with function form
+	// @see: asio::detail::default_thread_pool_size()
 	template<typename = void>
-	inline std::size_t default_concurrency() noexcept { return std::thread::hardware_concurrency() * 2; }
+	inline std::size_t default_concurrency() noexcept
+	{
+		std::size_t num_threads = std::thread::hardware_concurrency() * 2;
+		num_threads = num_threads == 0 ? 2 : num_threads;
+		return num_threads;
+	}
 }
 
 namespace asio2::detail

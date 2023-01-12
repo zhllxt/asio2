@@ -1,5 +1,6 @@
 #include "unit_test.hpp"
 #include <asio2/util/thread_pool.hpp>
+#include <set>
 
 std::atomic<int> c1 = 0;
 
@@ -82,6 +83,67 @@ void thread_pool_test()
 		}
 
 		ASIO2_CHECK_VALUE(c1.load(), c1 == 18);
+	}
+
+	{
+		asio2::thread_pool thpool;
+
+		thpool.post(0, [&thpool]()
+		{
+			ASIO2_CHECK(std::this_thread::get_id() == thpool.get_thread_id(0));
+		});
+
+		for (std::size_t i = 0; i < thpool.get_pool_size(); ++i)
+		{
+			thpool.post(i, [&thpool, i]()
+			{
+				ASIO2_CHECK(std::this_thread::get_id() == thpool.get_thread_id(i));
+			});
+		}
+
+		for (int i = 0; i < test_loop_times / 10; ++i)
+		{
+			int thread_index = std::rand();
+
+			thpool.post([&thpool]()
+			{
+				std::this_thread::yield();
+			});
+
+			thpool.post(thread_index, [&thpool, thread_index]()
+			{
+				ASIO2_CHECK(std::this_thread::get_id() == thpool.get_thread_id(thread_index % thpool.get_pool_size()));
+			});
+		}
+	}
+
+	{
+		asio2::thread_pool thpool;
+
+		std::mutex mtx;
+
+		std::set<std::thread::id> thread_ids_set;
+
+		std::vector<std::future<void>> futures;
+
+		for (int i = 0; i < test_loop_times / 10; ++i)
+		{
+			auto future = thpool.post([&thpool, &thread_ids_set, &mtx]()
+			{
+				std::lock_guard g(mtx);
+				thread_ids_set.emplace(std::this_thread::get_id());
+				std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			});
+
+			futures.emplace_back(std::move(future));
+		}
+
+		for (auto& f : futures)
+		{
+			f.wait();
+		}
+
+		ASIO2_CHECK(thread_ids_set.size() == thpool.get_pool_size());
 	}
 
 	ASIO2_TEST_END_LOOP;

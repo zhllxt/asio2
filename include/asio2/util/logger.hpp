@@ -203,7 +203,7 @@ namespace asio2
 				while (true)
 				{
 					std::unique_lock<std::mutex> lock(this->mtx_);
-					this->cv_.wait(lock);
+					this->cv_.wait(lock, [this]() { return this->is_stop_ || this->mkflag_; });
 
 					if (this->is_stop_)
 						return;
