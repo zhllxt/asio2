@@ -55,6 +55,10 @@ namespace asio2::detail
 
 		using executor_type = executor_t;
 
+		using args_type = typename executor_t::args_type;
+
+		static constexpr asio2::net_protocol net_protocol = args_type::net_protocol;
+
 	protected:
 		using super::send;
 		using super::async_send;
@@ -179,6 +183,8 @@ namespace asio2
 		template<>
 		struct template_args_rpc_client<asio2::net_protocol::tcp> : public template_args_tcp_client
 		{
+			static constexpr asio2::net_protocol net_protocol = asio2::net_protocol::tcp;
+
 			static constexpr bool rdc_call_cp_enabled = false;
 
 			static constexpr std::size_t function_storage_size = 72;
@@ -187,6 +193,8 @@ namespace asio2
 		template<>
 		struct template_args_rpc_client<asio2::net_protocol::ws> : public template_args_ws_client
 		{
+			static constexpr asio2::net_protocol net_protocol = asio2::net_protocol::ws;
+
 			static constexpr bool rdc_call_cp_enabled = false;
 
 			static constexpr std::size_t function_storage_size = 72;
@@ -221,22 +229,11 @@ namespace asio2
 			detail::template_args_rpc_client<asio2::net_protocol::ws>>>::rpc_client_impl_t;
 	};
 
-	template<asio2::net_protocol np> class rpc_client_use;
-
-	template<>
-	class rpc_client_use<asio2::net_protocol::tcp>
-		: public rpc_client_t<rpc_client_use<asio2::net_protocol::tcp>, asio2::net_protocol::tcp>
+	template<asio2::net_protocol np>
+	class rpc_client_use : public rpc_client_t<rpc_client_use<np>, np>
 	{
 	public:
-		using rpc_client_t<rpc_client_use<asio2::net_protocol::tcp>, asio2::net_protocol::tcp>::rpc_client_t;
-	};
-
-	template<>
-	class rpc_client_use<asio2::net_protocol::ws>
-		: public rpc_client_t<rpc_client_use<asio2::net_protocol::ws>, asio2::net_protocol::ws>
-	{
-	public:
-		using rpc_client_t<rpc_client_use<asio2::net_protocol::ws>, asio2::net_protocol::ws>::rpc_client_t;
+		using rpc_client_t<rpc_client_use<np>, np>::rpc_client_t;
 	};
 
 #if !defined(ASIO2_USE_WEBSOCKET_RPC)
@@ -282,24 +279,11 @@ namespace asio2
 			detail::ws_client_impl_t<derived_t, rpc_rate_client_args_ws>>::rpc_client_impl_t;
 	};
 
-	template<asio2::net_protocol np> class rpc_rate_client_use;
-
-	template<>
-	class rpc_rate_client_use<asio2::net_protocol::tcp>
-		: public rpc_rate_client_t<rpc_rate_client_use<asio2::net_protocol::tcp>, asio2::net_protocol::tcp>
+	template<asio2::net_protocol np>
+	class rpc_rate_client_use : public rpc_rate_client_t<rpc_rate_client_use<np>, np>
 	{
 	public:
-		using rpc_rate_client_t<rpc_rate_client_use<asio2::net_protocol::tcp>,
-			asio2::net_protocol::tcp>::rpc_rate_client_t;
-	};
-
-	template<>
-	class rpc_rate_client_use<asio2::net_protocol::ws>
-		: public rpc_rate_client_t<rpc_rate_client_use<asio2::net_protocol::ws>, asio2::net_protocol::ws>
-	{
-	public:
-		using rpc_rate_client_t<rpc_rate_client_use<asio2::net_protocol::ws>,
-			asio2::net_protocol::ws>::rpc_rate_client_t;
+		using rpc_rate_client_t<rpc_rate_client_use<np>, np>::rpc_rate_client_t;
 	};
 
 #if !defined(ASIO2_USE_WEBSOCKET_RPC)

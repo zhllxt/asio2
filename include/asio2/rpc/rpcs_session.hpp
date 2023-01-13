@@ -30,6 +30,8 @@ namespace asio2
 		template<>
 		struct template_args_rpcs_session<asio2::net_protocol::tcps> : public template_args_tcp_session
 		{
+			static constexpr asio2::net_protocol net_protocol = asio2::net_protocol::tcps;
+
 			static constexpr bool rdc_call_cp_enabled = false;
 
 			static constexpr std::size_t function_storage_size = 72;
@@ -38,6 +40,8 @@ namespace asio2
 		template<>
 		struct template_args_rpcs_session<asio2::net_protocol::wss> : public template_args_wss_session
 		{
+			static constexpr asio2::net_protocol net_protocol = asio2::net_protocol::wss;
+
 			static constexpr bool rdc_call_cp_enabled = false;
 
 			static constexpr std::size_t function_storage_size = 72;
@@ -69,22 +73,11 @@ namespace asio2
 			derived_t, detail::template_args_rpcs_session<asio2::net_protocol::wss>>>::rpc_session_impl_t;
 	};
 
-	template<asio2::net_protocol np> class rpcs_session_use;
-
-	template<>
-	class rpcs_session_use<asio2::net_protocol::tcps>
-		: public rpcs_session_t<rpcs_session_use<asio2::net_protocol::tcps>, asio2::net_protocol::tcps>
+	template<asio2::net_protocol np>
+	class rpcs_session_use : public rpcs_session_t<rpcs_session_use<np>, np>
 	{
 	public:
-		using rpcs_session_t<rpcs_session_use<asio2::net_protocol::tcps>, asio2::net_protocol::tcps>::rpcs_session_t;
-	};
-
-	template<>
-	class rpcs_session_use<asio2::net_protocol::wss>
-		: public rpcs_session_t<rpcs_session_use<asio2::net_protocol::wss>, asio2::net_protocol::wss>
-	{
-	public:
-		using rpcs_session_t<rpcs_session_use<asio2::net_protocol::wss>, asio2::net_protocol::wss>::rpcs_session_t;
+		using rpcs_session_t<rpcs_session_use<np>, np>::rpcs_session_t;
 	};
 
 #if !defined(ASIO2_USE_WEBSOCKET_RPC)
@@ -130,24 +123,11 @@ namespace asio2
 			detail::wss_session_impl_t<derived_t, rpcs_rate_session_args_ws>>::rpc_session_impl_t;
 	};
 
-	template<asio2::net_protocol np> class rpcs_rate_session_use;
-
-	template<>
-	class rpcs_rate_session_use<asio2::net_protocol::tcps>
-		: public rpcs_rate_session_t<rpcs_rate_session_use<asio2::net_protocol::tcps>, asio2::net_protocol::tcps>
+	template<asio2::net_protocol np>
+	class rpcs_rate_session_use : public rpcs_rate_session_t<rpcs_rate_session_use<np>, np>
 	{
 	public:
-		using rpcs_rate_session_t<rpcs_rate_session_use<asio2::net_protocol::tcps>,
-			asio2::net_protocol::tcps>::rpcs_rate_session_t;
-	};
-
-	template<>
-	class rpcs_rate_session_use<asio2::net_protocol::wss>
-		: public rpcs_rate_session_t<rpcs_rate_session_use<asio2::net_protocol::wss>, asio2::net_protocol::wss>
-	{
-	public:
-		using rpcs_rate_session_t<rpcs_rate_session_use<asio2::net_protocol::wss>,
-			asio2::net_protocol::wss>::rpcs_rate_session_t;
+		using rpcs_rate_session_t<rpcs_rate_session_use<np>, np>::rpcs_rate_session_t;
 	};
 
 #if !defined(ASIO2_USE_WEBSOCKET_RPC)

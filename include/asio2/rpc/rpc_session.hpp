@@ -59,6 +59,10 @@ namespace asio2::detail
 
 		using executor_type = executor_t;
 
+		using args_type     = typename executor_t::args_type;
+
+		static constexpr asio2::net_protocol net_protocol = args_type::net_protocol;
+
 	protected:
 		using super::send;
 		using super::async_send;
@@ -141,6 +145,8 @@ namespace asio2
 		template<>
 		struct template_args_rpc_session<asio2::net_protocol::tcp> : public template_args_tcp_session
 		{
+			static constexpr asio2::net_protocol net_protocol = asio2::net_protocol::tcp;
+
 			static constexpr bool rdc_call_cp_enabled = false;
 
 			static constexpr std::size_t function_storage_size = 72;
@@ -149,6 +155,8 @@ namespace asio2
 		template<>
 		struct template_args_rpc_session<asio2::net_protocol::ws> : public template_args_ws_session
 		{
+			static constexpr asio2::net_protocol net_protocol = asio2::net_protocol::ws;
+
 			static constexpr bool rdc_call_cp_enabled = false;
 
 			static constexpr std::size_t function_storage_size = 72;
@@ -183,22 +191,11 @@ namespace asio2
 			derived_t, detail::template_args_rpc_session<asio2::net_protocol::ws>>>::rpc_session_impl_t;
 	};
 
-	template<asio2::net_protocol np> class rpc_session_use;
-
-	template<>
-	class rpc_session_use<asio2::net_protocol::tcp>
-		: public rpc_session_t<rpc_session_use<asio2::net_protocol::tcp>, asio2::net_protocol::tcp>
+	template<asio2::net_protocol np>
+	class rpc_session_use : public rpc_session_t<rpc_session_use<np>, np>
 	{
 	public:
-		using rpc_session_t<rpc_session_use<asio2::net_protocol::tcp>, asio2::net_protocol::tcp>::rpc_session_t;
-	};
-
-	template<>
-	class rpc_session_use<asio2::net_protocol::ws>
-		: public rpc_session_t<rpc_session_use<asio2::net_protocol::ws>, asio2::net_protocol::ws>
-	{
-	public:
-		using rpc_session_t<rpc_session_use<asio2::net_protocol::ws>, asio2::net_protocol::ws>::rpc_session_t;
+		using rpc_session_t<rpc_session_use<np>, np>::rpc_session_t;
 	};
 
 #if !defined(ASIO2_USE_WEBSOCKET_RPC)
@@ -244,24 +241,11 @@ namespace asio2
 			detail::ws_session_impl_t<derived_t, rpc_rate_session_args_ws>>::rpc_session_impl_t;
 	};
 
-	template<asio2::net_protocol np> class rpc_rate_session_use;
-
-	template<>
-	class rpc_rate_session_use<asio2::net_protocol::tcp>
-		: public rpc_rate_session_t<rpc_rate_session_use<asio2::net_protocol::tcp>, asio2::net_protocol::tcp>
+	template<asio2::net_protocol np>
+	class rpc_rate_session_use : public rpc_rate_session_t<rpc_rate_session_use<np>, np>
 	{
 	public:
-		using rpc_rate_session_t<rpc_rate_session_use<asio2::net_protocol::tcp>,
-			asio2::net_protocol::tcp>::rpc_rate_session_t;
-	};
-
-	template<>
-	class rpc_rate_session_use<asio2::net_protocol::ws>
-		: public rpc_rate_session_t<rpc_rate_session_use<asio2::net_protocol::ws>, asio2::net_protocol::ws>
-	{
-	public:
-		using rpc_rate_session_t<rpc_rate_session_use<asio2::net_protocol::ws>,
-			asio2::net_protocol::ws>::rpc_rate_session_t;
+		using rpc_rate_session_t<rpc_rate_session_use<np>, np>::rpc_rate_session_t;
 	};
 
 #if !defined(ASIO2_USE_WEBSOCKET_RPC)

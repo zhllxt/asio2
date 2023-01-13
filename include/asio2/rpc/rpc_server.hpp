@@ -242,49 +242,39 @@ namespace asio2::detail
 
 namespace asio2
 {
-	template<class derived_t, class executor_t>
-	using rpc_server_impl_t = detail::rpc_server_impl_t<derived_t, executor_t>;
+	template<class derived_t, class session_t, asio2::net_protocol np = session_t::net_protocol>
+	class rpc_server_impl_t;
 
-	template<class session_t, asio2::net_protocol np> class rpc_server_t;
-
-	template<class session_t>
-	class rpc_server_t<session_t, asio2::net_protocol::tcp> : public detail::rpc_server_impl_t<
-		rpc_server_t<session_t, asio2::net_protocol::tcp>, detail::tcp_server_impl_t<
-		rpc_server_t<session_t, asio2::net_protocol::tcp>, session_t>>
+	template<class derived_t, class session_t>
+	class rpc_server_impl_t<derived_t, session_t, asio2::net_protocol::tcp>
+		: public detail::rpc_server_impl_t<derived_t, detail::tcp_server_impl_t<derived_t, session_t>>
 	{
 	public:
-		using detail::rpc_server_impl_t<
-			rpc_server_t<session_t, asio2::net_protocol::tcp>, detail::tcp_server_impl_t<
-			rpc_server_t<session_t, asio2::net_protocol::tcp>, session_t>>::rpc_server_impl_t;
+		using detail::rpc_server_impl_t<derived_t, detail::tcp_server_impl_t<derived_t, session_t>>::
+			rpc_server_impl_t;
+	};
+
+	template<class derived_t, class session_t>
+	class rpc_server_impl_t<derived_t, session_t, asio2::net_protocol::ws>
+		: public detail::rpc_server_impl_t<derived_t, detail::ws_server_impl_t<derived_t, session_t>>
+	{
+	public:
+		using detail::rpc_server_impl_t<derived_t, detail::ws_server_impl_t<derived_t, session_t>>::
+			rpc_server_impl_t;
 	};
 
 	template<class session_t>
-	class rpc_server_t<session_t, asio2::net_protocol::ws> : public detail::rpc_server_impl_t<
-		rpc_server_t<session_t, asio2::net_protocol::ws>, detail::ws_server_impl_t<
-		rpc_server_t<session_t, asio2::net_protocol::ws>, session_t>>
+	class rpc_server_t : public rpc_server_impl_t<rpc_server_t<session_t>, session_t>
 	{
 	public:
-		using detail::rpc_server_impl_t<
-			rpc_server_t<session_t, asio2::net_protocol::ws>, detail::ws_server_impl_t<
-			rpc_server_t<session_t, asio2::net_protocol::ws>, session_t>>::rpc_server_impl_t;
+		using rpc_server_impl_t<rpc_server_t<session_t>, session_t>::rpc_server_impl_t;
 	};
 
-	template<asio2::net_protocol np> class rpc_server_use;
-
-	template<>
-	class rpc_server_use<asio2::net_protocol::tcp>
-		: public rpc_server_t<rpc_session_use<asio2::net_protocol::tcp>, asio2::net_protocol::tcp>
+	template<asio2::net_protocol np>
+	class rpc_server_use : public rpc_server_t<rpc_session_use<np>>
 	{
 	public:
-		using rpc_server_t<rpc_session_use<asio2::net_protocol::tcp>, asio2::net_protocol::tcp>::rpc_server_t;
-	};
-
-	template<>
-	class rpc_server_use<asio2::net_protocol::ws>
-		: public rpc_server_t<rpc_session_use<asio2::net_protocol::ws>, asio2::net_protocol::ws>
-	{
-	public:
-		using rpc_server_t<rpc_session_use<asio2::net_protocol::ws>, asio2::net_protocol::ws>::rpc_server_t;
+		using rpc_server_t<rpc_session_use<np>>::rpc_server_t;
 	};
 
 #if !defined(ASIO2_USE_WEBSOCKET_RPC)
@@ -300,48 +290,39 @@ namespace asio2
 #include <asio2/tcp/tcp_stream.hpp>
 namespace asio2
 {
-	template<class session_t, asio2::net_protocol np> class rpc_rate_server_t;
+	template<class derived_t, class session_t, asio2::net_protocol np = session_t::net_protocol>
+	class rpc_rate_server_impl_t;
 
-	template<class session_t>
-	class rpc_rate_server_t<session_t, asio2::net_protocol::tcp> : public detail::rpc_server_impl_t<
-		rpc_rate_server_t<session_t, asio2::net_protocol::tcp>, detail::tcp_server_impl_t<
-		rpc_rate_server_t<session_t, asio2::net_protocol::tcp>, session_t>>
+	template<class derived_t, class session_t>
+	class rpc_rate_server_impl_t<derived_t, session_t, asio2::net_protocol::tcp>
+		: public detail::rpc_server_impl_t<derived_t, detail::tcp_server_impl_t<derived_t, session_t>>
 	{
 	public:
-		using detail::rpc_server_impl_t<
-			rpc_rate_server_t<session_t, asio2::net_protocol::tcp>, detail::tcp_server_impl_t<
-			rpc_rate_server_t<session_t, asio2::net_protocol::tcp>, session_t>>::rpc_server_impl_t;
+		using detail::rpc_server_impl_t<derived_t, detail::tcp_server_impl_t<derived_t, session_t>>::
+			rpc_server_impl_t;
+	};
+
+	template<class derived_t, class session_t>
+	class rpc_rate_server_impl_t<derived_t, session_t, asio2::net_protocol::ws>
+		: public detail::rpc_server_impl_t<derived_t, detail::ws_server_impl_t<derived_t, session_t>>
+	{
+	public:
+		using detail::rpc_server_impl_t<derived_t, detail::ws_server_impl_t<derived_t, session_t>>::
+			rpc_server_impl_t;
 	};
 
 	template<class session_t>
-	class rpc_rate_server_t<session_t, asio2::net_protocol::ws> : public detail::rpc_server_impl_t<
-		rpc_rate_server_t<session_t, asio2::net_protocol::ws>, detail::ws_server_impl_t<
-		rpc_rate_server_t<session_t, asio2::net_protocol::ws>, session_t>>
+	class rpc_rate_server_t : public rpc_rate_server_impl_t<rpc_rate_server_t<session_t>, session_t>
 	{
 	public:
-		using detail::rpc_server_impl_t<
-			rpc_rate_server_t<session_t, asio2::net_protocol::ws>, detail::ws_server_impl_t<
-			rpc_rate_server_t<session_t, asio2::net_protocol::ws>, session_t>>::rpc_server_impl_t;
+		using rpc_rate_server_impl_t<rpc_rate_server_t<session_t>, session_t>::rpc_rate_server_impl_t;
 	};
 
-	template<asio2::net_protocol np> class rpc_rate_server_use;
-
-	template<>
-	class rpc_rate_server_use<asio2::net_protocol::tcp>
-		: public rpc_rate_server_t<rpc_rate_session_use<asio2::net_protocol::tcp>, asio2::net_protocol::tcp>
+	template<asio2::net_protocol np>
+	class rpc_rate_server_use : public rpc_rate_server_t<rpc_rate_session_use<np>>
 	{
 	public:
-		using rpc_rate_server_t<rpc_rate_session_use<asio2::net_protocol::tcp>,
-			asio2::net_protocol::tcp>::rpc_rate_server_t;
-	};
-
-	template<>
-	class rpc_rate_server_use<asio2::net_protocol::ws>
-		: public rpc_rate_server_t<rpc_rate_session_use<asio2::net_protocol::ws>, asio2::net_protocol::ws>
-	{
-	public:
-		using rpc_rate_server_t<rpc_rate_session_use<asio2::net_protocol::ws>,
-			asio2::net_protocol::ws>::rpc_rate_server_t;
+		using rpc_rate_server_t<rpc_rate_session_use<np>>::rpc_rate_server_t;
 	};
 
 #if !defined(ASIO2_USE_WEBSOCKET_RPC)

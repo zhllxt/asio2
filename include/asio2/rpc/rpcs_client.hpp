@@ -30,6 +30,8 @@ namespace asio2
 		template<>
 		struct template_args_rpcs_client<asio2::net_protocol::tcps> : public template_args_tcp_client
 		{
+			static constexpr asio2::net_protocol net_protocol = asio2::net_protocol::tcps;
+
 			static constexpr bool rdc_call_cp_enabled = false;
 
 			static constexpr std::size_t function_storage_size = 72;
@@ -38,6 +40,8 @@ namespace asio2
 		template<>
 		struct template_args_rpcs_client<asio2::net_protocol::wss> : public template_args_wss_client
 		{
+			static constexpr asio2::net_protocol net_protocol = asio2::net_protocol::wss;
+
 			static constexpr bool rdc_call_cp_enabled = false;
 
 			static constexpr std::size_t function_storage_size = 72;
@@ -69,22 +73,11 @@ namespace asio2
 			derived_t, detail::template_args_rpcs_client<asio2::net_protocol::wss>>>::rpc_client_impl_t;
 	};
 
-	template<asio2::net_protocol np> class rpcs_client_use;
-
-	template<>
-	class rpcs_client_use<asio2::net_protocol::tcps>
-		: public rpcs_client_t<rpcs_client_use<asio2::net_protocol::tcps>, asio2::net_protocol::tcps>
+	template<asio2::net_protocol np>
+	class rpcs_client_use : public rpcs_client_t<rpcs_client_use<np>, np>
 	{
 	public:
-		using rpcs_client_t<rpcs_client_use<asio2::net_protocol::tcps>, asio2::net_protocol::tcps>::rpcs_client_t;
-	};
-
-	template<>
-	class rpcs_client_use<asio2::net_protocol::wss>
-		: public rpcs_client_t<rpcs_client_use<asio2::net_protocol::wss>, asio2::net_protocol::wss>
-	{
-	public:
-		using rpcs_client_t<rpcs_client_use<asio2::net_protocol::wss>, asio2::net_protocol::wss>::rpcs_client_t;
+		using rpcs_client_t<rpcs_client_use<np>, np>::rpcs_client_t;
 	};
 
 #if !defined(ASIO2_USE_WEBSOCKET_RPC)
@@ -130,24 +123,11 @@ namespace asio2
 			detail::wss_client_impl_t<derived_t, rpcs_rate_client_args_ws>>::rpc_client_impl_t;
 	};
 
-	template<asio2::net_protocol np> class rpcs_rate_client_use;
-
-	template<>
-	class rpcs_rate_client_use<asio2::net_protocol::tcps>
-		: public rpcs_rate_client_t<rpcs_rate_client_use<asio2::net_protocol::tcps>, asio2::net_protocol::tcps>
+	template<asio2::net_protocol np>
+	class rpcs_rate_client_use : public rpcs_rate_client_t<rpcs_rate_client_use<np>, np>
 	{
 	public:
-		using rpcs_rate_client_t<rpcs_rate_client_use<asio2::net_protocol::tcps>,
-			asio2::net_protocol::tcps>::rpcs_rate_client_t;
-	};
-
-	template<>
-	class rpcs_rate_client_use<asio2::net_protocol::wss>
-		: public rpcs_rate_client_t<rpcs_rate_client_use<asio2::net_protocol::wss>, asio2::net_protocol::wss>
-	{
-	public:
-		using rpcs_rate_client_t<rpcs_rate_client_use<asio2::net_protocol::wss>,
-			asio2::net_protocol::wss>::rpcs_rate_client_t;
+		using rpcs_rate_client_t<rpcs_rate_client_use<np>, np>::rpcs_rate_client_t;
 	};
 
 #if !defined(ASIO2_USE_WEBSOCKET_RPC)
