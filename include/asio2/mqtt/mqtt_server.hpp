@@ -51,7 +51,7 @@ namespace asio2::detail
 		explicit mqtt_server_impl_t(
 			std::size_t init_buf_size = tcp_frame_size,
 			std::size_t max_buf_size  = mqtt::max_payload,
-			std::size_t concurrency   = default_concurrency()
+			std::size_t concurrency   = default_concurrency() + 1 // The 1 is used for tcp acceptor
 		)
 			: super(init_buf_size, max_buf_size, concurrency)
 			, mqtt_options()

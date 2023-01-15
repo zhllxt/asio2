@@ -1286,40 +1286,40 @@ void http_test()
 				//{
 				//	s += (char)((std::rand() % 26) + 'a');
 				//}
-				//s += '>';
+//s += '>';
 
-				//client.async_send(std::move(s), [](std::size_t bytes_sent) { std::ignore = bytes_sent; });
+//client.async_send(std::move(s), [](std::size_t bytes_sent) { std::ignore = bytes_sent; });
 
 			}).bind_upgrade([&]()
-			{
-				//if (asio2::get_last_error())
-				//	std::cout << "upgrade failure : " << asio2::last_error_val() << " " << asio2::last_error_msg() << std::endl;
-				//else
-				//	std::cout << "upgrade success : " << client.get_upgrade_response() << std::endl;
+				{
+					//if (asio2::get_last_error())
+					//	std::cout << "upgrade failure : " << asio2::last_error_val() << " " << asio2::last_error_msg() << std::endl;
+					//else
+					//	std::cout << "upgrade success : " << client.get_upgrade_response() << std::endl;
 
-				// this send will be failed, because connection is not fully completed
-				//client.async_send("abc", []()
-				//{
-				//	ASIO2_CHECK(asio2::get_last_error());
-				//	std::cout << "send failed : " << asio2::last_error_msg() << std::endl;
-				//});
+					// this send will be failed, because connection is not fully completed
+					//client.async_send("abc", []()
+					//{
+					//	ASIO2_CHECK(asio2::get_last_error());
+					//	std::cout << "send failed : " << asio2::last_error_msg() << std::endl;
+					//});
 
-			}).bind_recv([&](std::string_view data)
-			{
-				ASIO2_CHECK(!data.empty());
-				//client.async_send(data);
-			}).bind_disconnect([&]()
-			{
-				ASIO2_CHECK(asio2::get_last_error());
-				client_connect_counter--;
-			});
+				}).bind_recv([&](std::string_view data)
+					{
+						ASIO2_CHECK(!data.empty());
+			//client.async_send(data);
+					}).bind_disconnect([&]()
+						{
+							ASIO2_CHECK(asio2::get_last_error());
+					client_connect_counter--;
+						});
 
-			// the /ws is the websocket upgraged target
-			bool ws_client_ret = client.start("127.0.0.1", 8080, "/ws");
-			if (!ws_client_ret)
-				client_start_failed_counter++;
-			ASIO2_CHECK(ws_client_ret);
-			ASIO2_CHECK(!asio2::get_last_error());
+					// the /ws is the websocket upgraged target
+					bool ws_client_ret = client.start("127.0.0.1", 8080, "/ws");
+					if (!ws_client_ret)
+						client_start_failed_counter++;
+					ASIO2_CHECK(ws_client_ret);
+					ASIO2_CHECK(!asio2::get_last_error());
 		}
 
 		while (server.get_session_count() < std::size_t(test_client_count * 2 - client_start_failed_counter))
@@ -1339,28 +1339,28 @@ void http_test()
 
 		asio2::timer timer(iopool.get(loop % iopool.size()));
 		timer.start_timer(1, 10, 1, [&]()
-		{
-			ASIO2_CHECK(timer.get_thread_id() == std::this_thread::get_id());
-			for (auto& client_ptr : ws_clients)
 			{
-				// if the client.stop function is not called in the client's io_context thread,
-				// the stop is async, it is not blocking, and will return immediately. 
-				client_ptr->stop();
+				ASIO2_CHECK(timer.get_thread_id() == std::this_thread::get_id());
+		for (auto& client_ptr : ws_clients)
+		{
+			// if the client.stop function is not called in the client's io_context thread,
+			// the stop is async, it is not blocking, and will return immediately. 
+			client_ptr->stop();
 
-				// if the client.stop function is not called in the client's io_context thread,
-				// after client.stop, the client must be stopped completed already.
-				if (client_ptr->get_thread_id() != std::this_thread::get_id())
-				{
-					ASIO2_CHECK(client_ptr->is_stopped());
-				}
-
-				// at here, the client state maybe not stopped, beacuse the stop maybe async.
-				// but this async_start event chain must will be executed after all stop event
-				// chain is completed. so when the async_start's push_event is executed, the
-				// client must be stopped already.
-				client_ptr->async_start("127.0.0.1", 8080, "/ws");
+			// if the client.stop function is not called in the client's io_context thread,
+			// after client.stop, the client must be stopped completed already.
+			if (client_ptr->get_thread_id() != std::this_thread::get_id())
+			{
+				ASIO2_CHECK(client_ptr->is_stopped());
 			}
-		});
+
+			// at here, the client state maybe not stopped, beacuse the stop maybe async.
+			// but this async_start event chain must will be executed after all stop event
+			// chain is completed. so when the async_start's push_event is executed, the
+			// client must be stopped already.
+			client_ptr->async_start("127.0.0.1", 8080, "/ws");
+		}
+			});
 
 		while (timer.is_timer_exists(1))
 		{
@@ -1384,6 +1384,57 @@ void http_test()
 
 		timer.stop();
 		iopool.stop();
+	}
+
+	{
+		http::multipart_fields mf;
+		mf.set_boundary("--7115EB26E91C48FB99C067C640EB629C");
+
+		http::multipart_field f1;
+		f1.set_content_disposition("form-data");
+		f1.set_name("filename");
+		f1.set_content_transfer_encoding("binary");
+		f1.set_value("header.png");
+		mf.insert(std::move(f1));
+
+		http::multipart_field f2;
+		f2.set_content_disposition("form-data");
+		f2.set_name("filesize");
+		f2.set_content_transfer_encoding("binary");
+		f2.set_value("1024");
+		mf.insert(std::move(f2));
+
+		http::multipart_field f3;
+		f3.set_content_disposition("form-data");
+		f3.set_name("filedata");
+		f3.set_content_transfer_encoding("binary");
+		f3.set_content_type("image/png");
+		f3.set_filename("header.png");
+		f3.set_value(".... eg: here is the file data ....");
+		mf.insert(std::move(f3));
+
+		auto mfstr = http::to_string(mf);
+
+		http::web_request req;
+		req.target("/update_header_img.html");
+		req.method(http::verb::post);
+		req.set(http::field::content_type, "multipart/form-data; boundary=--7115EB26E91C48FB99C067C640EB629C");
+		req.body() = mfstr;
+		req.prepare_payload();
+
+		std::stringstream ss;
+		ss << req;
+		auto str = ss.str();
+
+		ASIO2_CHECK(!str.empty());
+
+		// or 
+		http::basic_multipart_fields<std::string> mfs;
+		http::basic_multipart_field<std::string> fs;
+
+		asio2::ignore_unused(mfs, fs);
+
+		// ......
 	}
 
 	ASIO2_TEST_END_LOOP;

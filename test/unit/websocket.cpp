@@ -333,7 +333,10 @@ void websocket_test()
 		server.bind_recv([&](std::shared_ptr<asio2::ws_session> & session_ptr, std::string_view data)
 		{
 			server_recv_counter++;
-
+			if (server.iopool().size() > 1)
+			{
+				ASIO2_CHECK(std::addressof(session_ptr->io()) != std::addressof(server.io()));
+			}
 			ASIO2_CHECK(data.front() == '<' && data.back() == '>');
 			int len = std::stoi(std::string(data.substr(1, 5)));
 			ASIO2_CHECK(len == int(data.size() - 7));
@@ -879,7 +882,10 @@ void websocket_test()
 		server.bind_recv([&](std::shared_ptr<asio2::ws_session> & session_ptr, std::string_view data)
 		{
 			server_recv_counter++;
-
+			if (server.iopool().size() > 1)
+			{
+				ASIO2_CHECK(std::addressof(session_ptr->io()) != std::addressof(server.io()));
+			}
 			ASIO2_CHECK(!asio2::get_last_error());
 			ASIO2_CHECK(!data.empty());
 			ASIO2_CHECK(session_ptr->is_started());

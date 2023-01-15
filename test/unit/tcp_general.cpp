@@ -39,7 +39,10 @@ void tcp_general_test()
 		server.bind_recv([&](std::shared_ptr<asio2::tcp_session> & session_ptr, std::string_view data)
 		{
 			server_recv_counter++;
-
+			if (server.iopool().size() > 1)
+			{
+				ASIO2_CHECK(std::addressof(session_ptr->io()) != std::addressof(server.io()));
+			}
 			server_recv_size += data.size();
 
 			ASIO2_CHECK(!asio2::get_last_error());
@@ -758,7 +761,10 @@ void tcp_general_test()
 		server.bind_recv([&](std::shared_ptr<asio2::tcp_session> & session_ptr, std::string_view data)
 		{
 			server_recv_counter++;
-
+			if (server.iopool().size() > 1)
+			{
+				ASIO2_CHECK(std::addressof(session_ptr->io()) != std::addressof(server.io()));
+			}
 			ASIO2_CHECK(!asio2::get_last_error());
 			ASIO2_CHECK(session_ptr->is_started());
 			session_ptr->async_send(data);
@@ -1015,7 +1021,10 @@ void tcp_general_test()
 		server.bind_recv([&](std::shared_ptr<asio2::tcp_session> & session_ptr, std::string_view data)
 		{
 			server_recv_counter++;
-
+			if (server.iopool().size() > 1)
+			{
+				ASIO2_CHECK(std::addressof(session_ptr->io()) != std::addressof(server.io()));
+			}
 			ASIO2_CHECK(!asio2::get_last_error());
 			ASIO2_CHECK(session_ptr->is_started());
 			session_ptr->async_send(data);
@@ -1341,7 +1350,10 @@ void tcp_general_test()
 		server.bind_recv([&](std::shared_ptr<asio2::tcp_session> & session_ptr, std::string_view data)
 		{
 			server_recv_counter++;
-
+			if (server.iopool().size() > 1)
+			{
+				ASIO2_CHECK(std::addressof(session_ptr->io()) != std::addressof(server.io()));
+			}
 			ASIO2_CHECK(!asio2::get_last_error());
 			ASIO2_CHECK(session_ptr->is_started());
 			session_ptr->async_send(data);
@@ -1657,7 +1669,10 @@ void tcp_general_test()
 		server.bind_recv([&](std::shared_ptr<asio2::tcp_session> & session_ptr, std::string_view data)
 		{
 			server_recv_counter++;
-
+			if (server.iopool().size() > 1)
+			{
+				ASIO2_CHECK(std::addressof(session_ptr->io()) != std::addressof(server.io()));
+			}
 			ASIO2_CHECK(!asio2::get_last_error());
 			ASIO2_CHECK(session_ptr->is_started());
 
@@ -2029,7 +2044,10 @@ void tcp_general_test()
 		server.bind_recv([&](std::shared_ptr<asio2::tcp_session> & session_ptr, std::string_view data)
 		{
 			server_recv_counter++;
-
+			if (server.iopool().size() > 1)
+			{
+				ASIO2_CHECK(std::addressof(session_ptr->io()) != std::addressof(server.io()));
+			}
 			ASIO2_CHECK(!asio2::get_last_error());
 			ASIO2_CHECK(!data.empty());
 			ASIO2_CHECK(session_ptr->is_started());
@@ -2602,7 +2620,10 @@ void tcp_general_test()
 		server.bind_recv([&](std::shared_ptr<asio2::tcp_session> & session_ptr, std::string_view data)
 		{
 			server_recv_counter++;
-
+			if (server.iopool().size() > 1)
+			{
+				ASIO2_CHECK(std::addressof(session_ptr->io()) != std::addressof(server.io()));
+			}
 			ASIO2_CHECK(!asio2::get_last_error());
 			ASIO2_CHECK(!data.empty());
 			ASIO2_CHECK(session_ptr->is_started());
@@ -2838,7 +2859,10 @@ void tcp_general_test()
 		server.bind_recv([&](std::shared_ptr<asio2::tcp_session> & session_ptr, std::string_view data)
 		{
 			server_recv_counter++;
-
+			if (server.iopool().size() > 1)
+			{
+				ASIO2_CHECK(std::addressof(session_ptr->io()) != std::addressof(server.io()));
+			}
 			ASIO2_CHECK(!asio2::get_last_error());
 			ASIO2_CHECK(!data.empty());
 			ASIO2_CHECK(session_ptr->is_started());
@@ -3167,7 +3191,10 @@ void tcp_general_test()
 		{
 			ASIO2_CHECK(!asio2::get_last_error());
 			ASIO2_CHECK(session_ptr->is_started());
-
+			if (server.iopool().size() > 1)
+			{
+				ASIO2_CHECK(std::addressof(session_ptr->io()) != std::addressof(server.io()));
+			}
 			ext_data& ex = session_ptr->get_user_data<ext_data&>();
 
 			while (true)

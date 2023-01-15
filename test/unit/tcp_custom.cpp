@@ -137,6 +137,11 @@ void tcp_custom_test()
 				return;
 			}
 
+			if (server.iopool().size() > 1)
+			{
+				ASIO2_CHECK(std::addressof(session_ptr->io()) != std::addressof(server.io()));
+			}
+
 			server_recv_counter++;
 
 			ASIO2_CHECK(!asio2::get_last_error());
@@ -574,7 +579,10 @@ void tcp_custom_test()
 				session_ptr->stop();
 				return;
 			}
-
+			if (server.iopool().size() > 1)
+			{
+				ASIO2_CHECK(std::addressof(session_ptr->io()) != std::addressof(server.io()));
+			}
 			server_recv_counter++;
 
 			ASIO2_CHECK(!asio2::get_last_error());

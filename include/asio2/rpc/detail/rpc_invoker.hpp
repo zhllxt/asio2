@@ -222,6 +222,11 @@ namespace asio2::detail
 		 */
 		~rpc_invoker_t() = default;
 
+		rpc_invoker_t(rpc_invoker_t&&) noexcept = default;
+		rpc_invoker_t(rpc_invoker_t const&) = default;
+		rpc_invoker_t& operator=(rpc_invoker_t&&) noexcept = default;
+		rpc_invoker_t& operator=(rpc_invoker_t const&) = default;
+
 		/**
 		 * @brief bind a rpc function
 		 * @param name - Function name in string format.
@@ -239,12 +244,12 @@ namespace asio2::detail
 			if (name.empty())
 				return (*this);
 
-#if defined(_DEBUG) || defined(DEBUG)
-			{
-				//asio2_shared_lock guard(this->mutex_);
-				ASIO2_ASSERT(this->invokers_.find(name) == this->invokers_.end());
-			}
-#endif
+//#if defined(_DEBUG) || defined(DEBUG)
+//			{
+//				//asio2_shared_lock guard(this->mutex_);
+//				ASIO2_ASSERT(this->invokers_.find(name) == this->invokers_.end());
+//			}
+//#endif
 			this->_bind(std::move(name), std::forward<F>(fun), std::forward<C>(obj)...);
 
 			return (*this);

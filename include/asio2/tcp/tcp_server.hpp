@@ -46,7 +46,7 @@ namespace asio2::detail
 		explicit tcp_server_impl_t(
 			std::size_t init_buf_size = tcp_frame_size,
 			std::size_t  max_buf_size = max_buffer_size,
-			std::size_t   concurrency = default_concurrency()
+			std::size_t   concurrency = default_concurrency() + 1 // The 1 is used for tcp acceptor
 		)
 			: super(concurrency)
 			, acceptor_        (this->io_.context())
@@ -531,6 +531,46 @@ namespace asio2::detail
 				});
 
 			#if defined(_DEBUG) || defined(DEBUG)
+				// Check whether all sessions are evenly distributed in io threads
+				std::vector<io_t*> iots;
+				std::vector<int> session_counter;
+
+				iots.resize(this->iopool().size());
+				session_counter.resize(this->iopool().size());
+
+				for (std::size_t i = 0; i < iots.size(); ++i)
+				{
+					iots[i] = std::addressof(this->_get_io(i));
+				}
+
+				this->sessions_.for_each([&iots, &session_counter](std::shared_ptr<session_t>& session_ptr) mutable
+				{
+					for (std::size_t i = 0; i < iots.size(); ++i)
+					{
+						if (std::addressof(session_ptr->io()) == iots[i])
+						{
+							session_counter[i]++;
+							break;
+						}
+					}
+				});
+
+				if (iots.size() > std::size_t(1))
+				{
+					ASIO2_ASSERT(session_counter[0] == 0);
+
+					int count1 = session_counter[1];
+
+					for (std::size_t i = 1; i < iots.size(); ++i)
+					{
+						ASIO2_ASSERT(std::abs(count1 - session_counter[i]) < 2);
+					}
+				}
+
+				asio2::ignore_unused(iots, session_counter);
+			#endif
+
+			#if defined(_DEBUG) || defined(DEBUG)
 				this->sessions_.is_all_session_stop_called_ = true;
 			#endif
 
@@ -592,8 +632,14 @@ namespace asio2::detail
 		template<typename... Args>
 		inline std::shared_ptr<session_t> _make_session(Args&&... args)
 		{
+			// skip zero io, the 0 io is used for acceptor.
+			io_t* iot = std::addressof(this->_get_io());
+
+			if (iot == std::addressof(this->_get_io(0)))
+				iot = std::addressof(this->_get_io());
+
 			return std::make_shared<session_t>(std::forward<Args>(args)...,
-				this->sessions_, this->listener_, this->_get_io(),
+				this->sessions_, this->listener_, *iot,
 				this->init_buffer_size_, this->max_buffer_size_);
 		}
 
