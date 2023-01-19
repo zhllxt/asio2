@@ -10,7 +10,7 @@
  * boost/uuid
  * https://lowrey.me/guid-generation-in-c-11/
  * https://github.com/mariusbancila/stduuid
- * 
+ * https://stackoverflow.com/questions/13445688/how-to-generate-a-random-number-in-c
  */
 
 #ifndef __ASIO2_UUID_IMPL_HPP__
