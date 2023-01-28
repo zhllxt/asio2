@@ -17,36 +17,22 @@ struct userinfo
 	}
 };
 
-// -- method 1 for serialize the third party object
+// -- serialize the third party object
 namespace nlohmann
 {
-	void operator<<(asio2::rpc::oarchive& sr, const nlohmann::json& j)
+	template<class Archive>
+	void save(Archive& ar, json const& j)
 	{
-		sr << j.dump();
+		ar << j.dump();
 	}
 
-	void operator>>(asio2::rpc::iarchive& dr, nlohmann::json& j)
+	template<class Archive>
+	void load(Archive& ar, json& j)
 	{
 		std::string v;
-		dr >> v;
-		j = nlohmann::json::parse(v);
+		ar >> v;
+		j = json::parse(v);
 	}
-
-	// or like this :
-
-	//template<class Archive>
-	//void save(Archive& ar, json const& j)
-	//{
-	//	ar << j.dump();
-	//}
-
-	//template<class Archive>
-	//void load(Archive& ar, json& j)
-	//{
-	//	std::string v;
-	//	ar >> v;
-	//	j = json::parse(v);
-	//}
 }
 
 int add(int a, int b)

@@ -19,7 +19,7 @@ struct userinfo
 	}
 };
 
-// -- method 2 for serialize the third party object
+// -- serialize the third party object
 namespace nlohmann
 {
 	template<class Archive>
