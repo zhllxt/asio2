@@ -249,7 +249,7 @@ namespace bho::pfr
 // boost/typeof/dmc/typeof_impl.hpp
 
 #ifndef MAX_REFLECT_COUNT
-#define MAX_REFLECT_COUNT 256
+#define MAX_REFLECT_COUNT 480
 #endif
 
 #define BHO_REFLECT_INDEX(counter)                                                                 \
