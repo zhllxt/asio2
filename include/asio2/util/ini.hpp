@@ -422,7 +422,7 @@ namespace asio2
 			}
 
 			return
-				std::chrono::days(day) +
+				std::chrono::hours(day * 24) +
 				std::chrono::hours(hour) +
 				std::chrono::minutes(min) +
 				std::chrono::seconds(sec) +

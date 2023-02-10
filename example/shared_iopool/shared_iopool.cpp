@@ -26,6 +26,7 @@ int main()
 		std::cout << "task 3:" << std::this_thread::get_id() << std::endl;
 		ASIO2_ASSERT(iopool.get_thread_id(2) == std::this_thread::get_id());
 		ASIO2_ASSERT(iopool.get(2).get_thread_id() == std::this_thread::get_id());
+		asio2::ignore_unused(iopool);
 	});
 
 	futures.emplace_back(std::move(future1));

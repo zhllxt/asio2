@@ -256,13 +256,34 @@ namespace bho::pfr
 	((sizeof(*counter((pfr::detail::refl_encode_counter<MAX_REFLECT_COUNT>*)0)) -                  \
 		sizeof(*counter((void*)0))) / sizeof(char))                                                \
 
-#define BHO_REFLECT_INCREASE(counter, tag)                                                         \
-    static constexpr std::size_t tag = BHO_REFLECT_INDEX(counter);                                 \
+#define BHO_REFLECT_INCREASE(counter, index)                                                       \
+    static constexpr std::size_t index = BHO_REFLECT_INDEX(counter);                               \
     static char (*counter(pfr::detail::refl_encode_counter<                                        \
-		 sizeof(*counter((void*)0)) / sizeof(char) + tag + 1>*))                                   \
-		[sizeof(*counter((void*)0)) / sizeof(char) + tag + 1];                                     \
+		 sizeof(*counter((void*)0)) / sizeof(char) + index + 1>*))                                 \
+		[sizeof(*counter((void*)0)) / sizeof(char) + index + 1];                                   \
 
-#define BHO_REFLECT_F_TAG(name) ASIO2_JOIN(__reflect_tag_, name)
+#define BHO_REFLECT_FIELD_INDEX(name) ASIO2_JOIN(__reflect_index_, name)
+
+#define F_FIELD_MEMBER_ITERATOR(type, name)                                                        \
+private:                                                                                           \
+    BHO_REFLECT_INCREASE(__refl_field_counter__, BHO_REFLECT_FIELD_INDEX(name))                    \
+    template <typename T>                                                                          \
+    struct __refl_members_iterator__<T, BHO_REFLECT_FIELD_INDEX(name)>                             \
+	{                                                                                              \
+        typedef __refl_members_iterator__<T, BHO_REFLECT_FIELD_INDEX(name) + 1> next_type;         \
+        template<typename ThisType, typename Func>                                                 \
+        static void for_each_field(ThisType& This, Func& func) noexcept                            \
+		{                                                                                          \
+            func(ASIO2_STRINGIZE(name), This.name);                                                \
+            next_type::for_each_field(This, func);                                                 \
+        }                                                                                          \
+        template<typename Func>                                                                    \
+        static void for_each_field_name(Func& func) noexcept                                       \
+		{                                                                                          \
+            func(ASIO2_STRINGIZE(name));                                                           \
+            next_type::for_each_field_name(func);                                                  \
+        }                                                                                          \
+    }                                                                                              \
 
 #define F_BEGIN(Class)                                                                             \
 private:                                                                                           \
@@ -291,26 +312,7 @@ public:                                                                         
 #define F_FIELD(type, name)                                                                        \
 public:                                                                                            \
     type name{};                                                                                   \
-private:                                                                                           \
-    BHO_REFLECT_INCREASE(__refl_field_counter__, BHO_REFLECT_F_TAG(name))                          \
-    template <typename T>                                                                          \
-    struct __refl_members_iterator__<T, BHO_REFLECT_F_TAG(name)>                                   \
-	{                                                                                              \
-        typedef __refl_members_iterator__<T, BHO_REFLECT_F_TAG(name) + 1> next_type;               \
-        template<typename ThisType, typename Func>                                                 \
-        static void for_each_field(ThisType& This, Func& func) noexcept                            \
-		{                                                                                          \
-            func(ASIO2_STRINGIZE(name), This.name);                                                \
-            next_type::for_each_field(This, func);                                                 \
-        }                                                                                          \
-        template<typename Func>                                                                    \
-        static void for_each_field_name(Func& func) noexcept                                       \
-		{                                                                                          \
-            func(ASIO2_STRINGIZE(name));                                                           \
-            next_type::for_each_field_name(func);                                                  \
-        }                                                                                          \
-    }                                                                                              \
-
+F_FIELD_MEMBER_ITERATOR(type, name)                                                                \
 
 #define F_END()                                                                                    \
 public:                                                                                            \
@@ -319,6 +321,5 @@ public:                                                                         
 		constexpr std::size_t field_count = BHO_REFLECT_INDEX(__refl_field_counter__);             \
 		return field_count;                                                                        \
 	}                                                                                              \
-
 
 #endif

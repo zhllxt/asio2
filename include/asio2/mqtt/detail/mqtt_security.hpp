@@ -346,6 +346,24 @@ struct security
 		}
 	}
 
+	void add_sha256_authentication(std::string username, std::string digest, std::string salt)
+	{
+		authentication auth(authentication::method::sha256, std::move(digest), std::move(salt));
+		authentication_.emplace(std::move(username), std::move(auth));
+	}
+
+	void add_plain_password_authentication(std::string username, std::string password)
+	{
+		authentication auth(authentication::method::plain_password, std::move(password));
+		authentication_.emplace(std::move(username), std::move(auth));
+	}
+
+	void add_certificate_authentication(std::string username)
+	{
+		authentication auth(authentication::method::client_cert);
+		authentication_.emplace(std::move(username), std::move(auth));
+	}
+
 	void load_json(std::istream& input)
 	{
 		using json = nlohmann::json;
@@ -898,6 +916,11 @@ struct security
 
 		return result;
 	}
+
+	inline bool enabled() const noexcept { return enabled_; }
+	inline void enabled(bool v) noexcept { enabled_ = v; }
+
+	bool enabled_ = true;
 
 	std::map<std::string, authentication> authentication_;
 	std::map<std::string, group> groups_;

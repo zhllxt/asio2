@@ -164,7 +164,10 @@ namespace asio2::detail
 		inline auto& subs_map         () noexcept { return this->broker_state_.subs_map_         ; }
 		inline auto& shared_targets   () noexcept { return this->broker_state_.shared_targets_   ; }
 		inline auto& retained_messages() noexcept { return this->broker_state_.retained_messages_; }
-		inline auto& security         () noexcept { return this->broker_state_.security_         ; }
+
+	public:
+		inline auto& security         () noexcept { return this->broker_state_.security_; }
+		inline auto& get_security     () noexcept { return this->broker_state_.security_; }
 
 	protected:
 		/// 

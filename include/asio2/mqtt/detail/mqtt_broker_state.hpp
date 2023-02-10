@@ -38,6 +38,7 @@ namespace asio2::mqtt
 			: options_(options)
 			, invoker_(invoker)
 		{
+			security_.default_config();
 		}
 
 		/// use rwlock to make this id session map thread safe

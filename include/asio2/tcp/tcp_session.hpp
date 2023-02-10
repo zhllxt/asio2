@@ -199,7 +199,7 @@ namespace asio2::detail
 						[&derive, this_ptr = std::move(this_ptr), pg = std::move(pg)]
 						(event_queue_guard<derived_t> g) mutable
 						{
-							detail::ignore_unused(pg, g);
+							detail::ignore_unused(derive, pg, g);
 
 							// the "pg" should destroyed before the "g", otherwise if the "g"
 							// is destroyed before "pg", the next event maybe called, then the

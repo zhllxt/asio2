@@ -205,7 +205,7 @@ namespace asio2::detail
 			if (!username)
 				username = caller->security().login_unauthenticated();
 
-			if (!username)
+			if (caller->security().enabled() && !username)
 			{
 				ASIO2_LOG(spdlog::level::trace, "User failed to login: {}",
 					(msg.has_username() ? msg.username() : "anonymous user"));
@@ -316,7 +316,8 @@ namespace asio2::detail
 					}
 
 					// disconnect session
-					session_ptr->stop();
+					// must use post, beasue the session1 stop is called in the session2 thread.
+					session_ptr->post([session_ptr]() mutable { session_ptr->stop(); });
 
 					// 
 					bool clean_session = false;

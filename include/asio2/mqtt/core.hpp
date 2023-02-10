@@ -192,7 +192,7 @@ namespace asio2::mqtt
 	template<class QosOrInt>
 	typename std::enable_if_t<
 		std::is_same_v<asio2::detail::remove_cvref_t<QosOrInt>, mqtt::qos_type> ||
-		std::is_integral_v<detail::remove_cvref_t<QosOrInt>>, bool>
+		std::is_integral_v<asio2::detail::remove_cvref_t<QosOrInt>>, bool>
 	inline is_valid_qos(QosOrInt q)
 	{
 		return (static_cast<std::uint8_t>(q) >= qos_min_value && static_cast<std::uint8_t>(q) <= qos_max_value);

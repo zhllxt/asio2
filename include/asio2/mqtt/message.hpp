@@ -113,6 +113,23 @@ namespace asio2::mqtt
 	//	std::uint8_t, std::uint16_t
 	//>;
 
+	namespace detail
+	{
+		struct invoke_if_callback_return_type_tag {};
+
+		template<class T>
+		struct invoke_if_callback_return_type
+		{
+			using type = T;
+		};
+
+		template<>
+		struct invoke_if_callback_return_type<void>
+		{
+			using type = invoke_if_callback_return_type_tag;
+		};
+	}
+
 	class message : public message_variant
 	{
 	public:
@@ -280,9 +297,10 @@ namespace asio2::mqtt
 		template<class... Types, class FunctionT>
 		inline auto invoke_if(FunctionT&& callback) noexcept
 		{
-			using return_type = std::tuple_element_t<0, std::tuple<std::invoke_result_t<FunctionT, Types>...>>;
+			using return_type = std::tuple_element_t<0, std::tuple<typename
+				detail::invoke_if_callback_return_type<decltype(callback(std::declval<Types&>()))>::type...>>;
 
-			if constexpr (std::is_same_v<return_type, void>)
+			if constexpr (std::is_same_v<return_type, detail::invoke_if_callback_return_type_tag>)
 			{
 				return ((this->template _invoke_for_each_type<Types>(callback)) || ...);
 			}
