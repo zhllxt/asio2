@@ -285,6 +285,16 @@ namespace asio2::detail
 				return;
 			}
 
+			if (interval > std::chrono::duration_cast<
+				std::chrono::duration<Rep1, Period1>>((asio::steady_timer::duration::max)()))
+				interval = std::chrono::duration_cast<std::chrono::duration<Rep1, Period1>>(
+					(asio::steady_timer::duration::max)());
+
+			if (first_delay > std::chrono::duration_cast<
+				std::chrono::duration<Rep2, Period2>>((asio::steady_timer::duration::max)()))
+				first_delay = std::chrono::duration_cast<std::chrono::duration<Rep2, Period2>>(
+					(asio::steady_timer::duration::max)());
+
 			derived_t& derive = static_cast<derived_t&>(*this);
 
 			std::function<void()> t = std::bind(std::forward<Fun>(fun), std::forward<Args>(args)...);

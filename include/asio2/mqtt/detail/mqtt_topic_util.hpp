@@ -116,7 +116,7 @@ namespace asio2::mqtt
 
 		// All Topic Names and Topic Filters MUST be at least one character long
 		// Topic Names and Topic Filters are UTF-8 Encoded Strings; they MUST NOT encode to more than 65,535 bytes
-		if (topic_filter.empty() || (topic_filter.size() > std::numeric_limits<std::uint16_t>::max()))
+		if (topic_filter.empty() || (topic_filter.size() > (std::numeric_limits<std::uint16_t>::max)()))
 		{
 			return false;
 		}

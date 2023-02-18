@@ -27,6 +27,7 @@
 
 #include <asio2/base/detail/allocator.hpp>
 #include <asio2/base/detail/util.hpp>
+#include <asio2/base/detail/shared_mtx.hpp>
 
 namespace asio2::detail
 {
@@ -112,7 +113,7 @@ namespace asio2::detail
 					// this thread is same as the server's io thread, when code run to here,
 					// the server's _post_stop must not be executed, so the server's sessions_.for_each
 					// -> session_ptr->stop() must not be executed.
-					asio2_unique_lock guard(this->mutex_);
+					asio2::unique_locker guard(this->mutex_);
 					inserted = this->sessions_.try_emplace(session_ptr->hash_key(), session_ptr).second;
 
 				#if defined(_DEBUG) || defined(DEBUG)
@@ -141,7 +142,7 @@ namespace asio2::detail
 				bool erased = false;
 
 				{
-					asio2_unique_lock guard(this->mutex_);
+					asio2::unique_locker guard(this->mutex_);
 					erased = (this->sessions_.erase(session_ptr->hash_key()) > 0);
 				}
 
@@ -177,7 +178,8 @@ namespace asio2::detail
 		template<class Fun>
 		inline void for_each(Fun&& fn)
 		{
-			asio2_shared_lock guard(this->mutex_);
+			asio2::shared_locker guard(this->mutex_);
+
 			for (auto &[k, session_ptr] : this->sessions_)
 			{
 				std::ignore = k;
@@ -191,7 +193,7 @@ namespace asio2::detail
 		 */
 		inline std::shared_ptr<session_t> find(const key_type & key)
 		{
-			asio2_shared_lock guard(this->mutex_);
+			asio2::shared_locker guard(this->mutex_);
 			auto iter = this->sessions_.find(key);
 			return (iter == this->sessions_.end() ? std::shared_ptr<session_t>() : iter->second);
 		}
@@ -203,7 +205,7 @@ namespace asio2::detail
 		template<class Fun>
 		inline std::shared_ptr<session_t> find_if(Fun&& fn)
 		{
-			asio2_shared_lock guard(this->mutex_);
+			asio2::shared_locker guard(this->mutex_);
 			auto iter = std::find_if(this->sessions_.begin(), this->sessions_.end(),
 			[&fn](auto &pair) mutable
 			{
@@ -217,6 +219,7 @@ namespace asio2::detail
 		 */
 		inline std::size_t size() const noexcept
 		{
+			asio2::shared_locker guard(this->mutex_);
 			return this->sessions_.size();
 		}
 
@@ -225,6 +228,7 @@ namespace asio2::detail
 		 */
 		inline bool empty() const noexcept
 		{
+			asio2::shared_locker guard(this->mutex_);
 			return this->sessions_.empty();
 		}
 
@@ -237,11 +241,11 @@ namespace asio2::detail
 		}
 
 	protected:
-		/// session unorder map,these session is already connected session 
-		std::unordered_map<key_type, std::shared_ptr<session_t>> sessions_;
-
 		/// use rwlock to make this session map thread safe
-		mutable asio2_shared_mutex                mutex_;
+		mutable asio2::shared_mtx                 mutex_;
+
+		/// session unorder map,these session is already connected session 
+		std::unordered_map<key_type, std::shared_ptr<session_t>> sessions_ ASIO2_GUARDED_BY(mutex_);
 
 		/// the zero io_context refrence in the iopool
 		io_t                                    & io_;

@@ -50,7 +50,11 @@ namespace asio2::detail
 		template<class Rep, class Period>
 		inline derived_t& set_connect_timeout(std::chrono::duration<Rep, Period> timeout) noexcept
 		{
-			this->connect_timeout_ = timeout;
+			if (timeout > std::chrono::duration_cast<
+				std::chrono::duration<Rep, Period>>((std::chrono::steady_clock::duration::max)()))
+				this->connect_timeout_ = (std::chrono::steady_clock::duration::max)();
+			else
+				this->connect_timeout_ = timeout;
 			return static_cast<derived_t&>(*this);
 		}
 

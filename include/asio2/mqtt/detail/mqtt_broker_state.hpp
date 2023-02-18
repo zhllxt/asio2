@@ -15,6 +15,8 @@
 #pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
+#include <asio2/base/detail/shared_mtx.hpp>
+
 #include <asio2/mqtt/options.hpp>
 
 #include <asio2/mqtt/detail/mqtt_invoker.hpp>
@@ -42,26 +44,26 @@ namespace asio2::mqtt
 		}
 
 		/// use rwlock to make this id session map thread safe
-		mutable asio2_shared_mutex                                         mutex_;
+		mutable asio2::shared_mtx                                          mutex_;
 
 		asio2::detail::mqtt_options                                      & options_;
 
 		asio2::detail::mqtt_invoker_t<session_t, args_t>                 & invoker_;
 
 		/// client id map
-		std::unordered_map<std::string_view, std::shared_ptr<session_t>>   mqtt_sessions_;
+		std::unordered_map<std::string_view, std::shared_ptr<session_t>>   mqtt_sessions_     ASIO2_GUARDED_BY(mutex_);
 
 		/// subscription information map
-		mqtt::subscription_map<std::string_view, subnode_type>             subs_map_;
+		mqtt::subscription_map<std::string_view, subnode_type>             subs_map_          ASIO2_GUARDED_BY(mutex_);
 
 		/// shared subscription targets
-		mqtt::shared_target<mqtt::stnode<session_t>>                       shared_targets_;
+		mqtt::shared_target<mqtt::stnode<session_t>>                       shared_targets_    ASIO2_GUARDED_BY(mutex_);
 
 		/// A list of messages retained so they can be sent to newly subscribed clients.
-		mqtt::retained_messages<mqtt::rmnode>                              retained_messages_;
+		mqtt::retained_messages<mqtt::rmnode>                              retained_messages_ ASIO2_GUARDED_BY(mutex_);
 
 		// Authorization and authentication settings
-		mqtt::security                                                     security_;
+		mqtt::security                                                     security_          ASIO2_GUARDED_BY(mutex_);
 	};
 }
 

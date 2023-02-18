@@ -35,6 +35,7 @@
 
 #include <asio2/base/detail/function_traits.hpp>
 #include <asio2/base/detail/util.hpp>
+#include <asio2/base/detail/shared_mtx.hpp>
 
 #include <asio2/rpc/detail/rpc_serialization.hpp>
 #include <asio2/rpc/detail/rpc_protocol.hpp>
@@ -222,10 +223,20 @@ namespace asio2::detail
 		 */
 		~rpc_invoker_t() = default;
 
-		rpc_invoker_t(rpc_invoker_t&&) noexcept = default;
-		rpc_invoker_t(rpc_invoker_t const&) = default;
-		rpc_invoker_t& operator=(rpc_invoker_t&&) noexcept = default;
-		rpc_invoker_t& operator=(rpc_invoker_t const&) = default;
+		rpc_invoker_t(rpc_invoker_t&& o) noexcept : invokers_(std::move(o.invokers_))
+		{
+		}
+		rpc_invoker_t(rpc_invoker_t const& o) : invokers_(o.invokers_)
+		{
+		}
+		rpc_invoker_t& operator=(rpc_invoker_t&& o) noexcept
+		{
+			this->invokers_ = std::move(o.invokers_);
+		}
+		rpc_invoker_t& operator=(rpc_invoker_t const& o)
+		{
+			this->invokers_ = o.invokers_;
+		}
 
 		/**
 		 * @brief bind a rpc function
@@ -244,12 +255,15 @@ namespace asio2::detail
 			if (name.empty())
 				return (*this);
 
-//#if defined(_DEBUG) || defined(DEBUG)
-//			{
-//				//asio2_shared_lock guard(this->mutex_);
-//				ASIO2_ASSERT(this->invokers_.find(name) == this->invokers_.end());
-//			}
-//#endif
+		#if defined(_DEBUG) || defined(DEBUG)
+			{
+			#if defined(ASIO2_ENABLE_RPC_INVOKER_THREAD_SAFE)
+				asio2::shared_locker guard(this->mutex_);
+			#endif
+				ASIO2_ASSERT(this->invokers_.find(name) == this->invokers_.end());
+			}
+		#endif
+
 			this->_bind(std::move(name), std::forward<F>(fun), std::forward<C>(obj)...);
 
 			return (*this);
@@ -260,7 +274,9 @@ namespace asio2::detail
 		 */
 		inline self& unbind(std::string const& name)
 		{
-			//asio2_unique_lock guard(this->mutex_);
+		#if defined(ASIO2_ENABLE_RPC_INVOKER_THREAD_SAFE)
+			asio2::unique_locker guard(this->mutex_);
+		#endif
 			this->invokers_.erase(name);
 
 			return (*this);
@@ -272,7 +288,9 @@ namespace asio2::detail
 		inline std::function<bool(std::shared_ptr<caller_t>&, caller_t*, rpc_serializer&, rpc_deserializer&)>*
 			find(std::string const& name)
 		{
-			//asio2_shared_lock guard(this->mutex_);
+		#if defined(ASIO2_ENABLE_RPC_INVOKER_THREAD_SAFE)
+			asio2::shared_locker guard(this->mutex_);
+		#endif
 			auto iter = this->invokers_.find(name);
 			if (iter == this->invokers_.end())
 				return nullptr;
@@ -285,7 +303,9 @@ namespace asio2::detail
 		template<class F>
 		inline void _bind(std::string name, F f)
 		{
-			//asio2_unique_lock guard(this->mutex_);
+		#if defined(ASIO2_ENABLE_RPC_INVOKER_THREAD_SAFE)
+			asio2::unique_locker guard(this->mutex_);
+		#endif
 			this->invokers_[std::move(name)] = std::bind(&self::template _proxy<F, dummy>,
 				this, std::move(f), nullptr,
 				std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
@@ -294,7 +314,9 @@ namespace asio2::detail
 		template<class F, class C>
 		inline void _bind(std::string name, F f, C& c)
 		{
-			//asio2_unique_lock guard(this->mutex_);
+		#if defined(ASIO2_ENABLE_RPC_INVOKER_THREAD_SAFE)
+			asio2::unique_locker guard(this->mutex_);
+		#endif
 			this->invokers_[std::move(name)] = std::bind(&self::template _proxy<F, C>,
 				this, std::move(f), std::addressof(c),
 				std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
@@ -303,7 +325,9 @@ namespace asio2::detail
 		template<class F, class C>
 		inline void _bind(std::string name, F f, C* c)
 		{
-			//asio2_unique_lock guard(this->mutex_);
+		#if defined(ASIO2_ENABLE_RPC_INVOKER_THREAD_SAFE)
+			asio2::unique_locker guard(this->mutex_);
+		#endif
 			this->invokers_[std::move(name)] = std::bind(&self::template _proxy<F, C>,
 				this, std::move(f), c,
 				std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
@@ -543,7 +567,9 @@ namespace asio2::detail
 		}
 
 	protected:
-		//mutable asio2_shared_mutex                  mutex_;
+	#if defined(ASIO2_ENABLE_RPC_INVOKER_THREAD_SAFE)
+		mutable asio2::shared_mtx                   mutex_;
+	#endif
 
 		std::unordered_map<std::string, std::function<bool(
 			std::shared_ptr<caller_t>&, caller_t*, rpc_serializer&, rpc_deserializer&)>> invokers_;

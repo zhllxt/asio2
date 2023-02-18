@@ -133,7 +133,7 @@ namespace asio2::detail
 				bool inserted = false;
 
 				{
-					asio2_unique_lock lock{ caller->get_mutex() };
+					asio2::unique_locker lock{ caller->get_mutex() };
 
 					inserted = caller->subs_map().insert_or_assign(
 						topic_filter, caller->client_id(), std::move(node)).second;

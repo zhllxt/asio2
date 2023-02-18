@@ -186,14 +186,14 @@ namespace asio2::detail
 
 		inline void remove_subscribed_topic(std::string_view topic_filter)
 		{
-			asio2_unique_lock lock{ this->get_mutex() };
+			asio2::unique_locker lock{ this->get_mutex() };
 
 			this->subs_map().erase(topic_filter, this->client_id());
 		}
 
 		inline void remove_all_subscribed_topic()
 		{
-			asio2_unique_lock lock{ this->get_mutex() };
+			asio2::unique_locker lock{ this->get_mutex() };
 
 			this->subs_map().erase(this->client_id());
 		}
@@ -323,7 +323,7 @@ namespace asio2::detail
 		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr, DeferEvent chain)
 		{
 			{
-				asio2_unique_lock lock{ this->get_mutex() };
+				asio2::unique_locker lock{ this->get_mutex() };
 
 				std::string_view id = this->client_id();
 

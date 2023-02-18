@@ -42,10 +42,9 @@ namespace asio2::detail
 	template<class derived_t, class executor_t>
 	class rpc_session_impl_t
 		: public executor_t
-		, public rpc_invoker_t<derived_t, typename executor_t::args_type>
-		, public rpc_call_cp  <derived_t, typename executor_t::args_type>
-		, public rpc_recv_op  <derived_t, typename executor_t::args_type>
-		, protected id_maker  <typename rpc_header::id_type>
+		, public rpc_call_cp<derived_t, typename executor_t::args_type>
+		, public rpc_recv_op<derived_t, typename executor_t::args_type>
+		, protected id_maker<typename rpc_header::id_type>
 	{
 		friend executor_t;
 
@@ -74,14 +73,14 @@ namespace asio2::detail
 		 */
 		template<class ...Args>
 		explicit rpc_session_impl_t(
-			const rpc_invoker_t<derived_t, typename executor_t::args_type>& invoker,
+			rpc_invoker_t<derived_t, typename executor_t::args_type>& invoker,
 			Args&&... args
 		)
 			: super(std::forward<Args>(args)...)
-			, rpc_invoker_t<derived_t, typename executor_t::args_type>(invoker)
-			, rpc_call_cp  <derived_t, typename executor_t::args_type>(this->io_, this->serializer_, this->deserializer_)
-			, rpc_recv_op  <derived_t, typename executor_t::args_type>()
-			, id_maker     <typename rpc_header::id_type>()
+			, rpc_call_cp<derived_t, typename executor_t::args_type>(this->io_, this->serializer_, this->deserializer_)
+			, rpc_recv_op<derived_t, typename executor_t::args_type>()
+			, id_maker<typename rpc_header::id_type>()
+			, invoker_(invoker)
 		{
 		}
 
@@ -95,7 +94,7 @@ namespace asio2::detail
 	protected:
 		inline rpc_invoker_t<derived_t, typename executor_t::args_type>& _invoker() noexcept
 		{
-			return (*this);
+			return (this->invoker_);
 		}
 
 		template<typename C, typename Socket>
@@ -133,6 +132,7 @@ namespace asio2::detail
 		rpc_serializer                                             serializer_;
 		rpc_deserializer                                           deserializer_;
 		rpc_header                                                 header_;
+		rpc_invoker_t<derived_t, typename executor_t::args_type> & invoker_;
 	};
 }
 

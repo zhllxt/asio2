@@ -1,11 +1,11 @@
 #
-# COPYRIGHT (C) 2017-2021, zhllxt
+# Copyright (c) 2017-2023 zhllxt
 # 
 # author   : zhllxt
 # email    : 37792738@qq.com
 # 
-# Distributed under the GNU GENERAL PUBLIC LICENSE Version 3, 29 June 2007
-# (See accompanying file LICENSE or see <http://www.gnu.org/licenses/>)
+# Distributed under the Boost Software License, Version 1.0. (See accompanying
+# file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 #
 #
 # export CC=/usr/local/bin/gcc
@@ -102,6 +102,13 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 message("CMAKE_BUILD_TYPE = ${CMAKE_BUILD_TYPE}")
 
+IF (CMAKE_SYSTEM_NAME MATCHES "Windows")
+ELSE ()
+    if(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
+        add_definitions(-D_DEBUG)
+    endif()
+ENDIF (CMAKE_SYSTEM_NAME MATCHES "Windows")
+
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
     set(ASIO2_EXES_DIR ${ASIO2_ROOT_DIR}/example/bin/x64)
 elseif(CMAKE_SIZEOF_VOID_P EQUAL 4)
@@ -191,6 +198,8 @@ if (MSVC)
       set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /std:c++17 /Zi /Ob2 /Oi /Ot /MT")
   
       set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SAFESEH:NO")
+
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wrange-loop-analysis -Wthread-safety")
     else()
       add_compile_options(
           /bigobj       # large object file format
@@ -202,7 +211,7 @@ if (MSVC)
           /Zc:__cplusplus
           )
   
-      set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /std:c++17 /MTd /ZI")
+      set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /std:c++17 /MTd /Zi")
       set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /std:c++17 /Zi /Ob2 /Oi /Ot /GL /MT")
   
       set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
@@ -220,7 +229,7 @@ else()
     #set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -ggdb")
 
     if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wrange-loop-analysis")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wrange-loop-analysis -Wthread-safety")
     endif ()
 endif()
 

@@ -1638,6 +1638,36 @@ void rpc_test()
 			ASIO2_CHECK(sum == 0);
 		}
 
+		server.call<int>(std::chrono::milliseconds(100), "sub", 10, 2);
+
+		server.call<int>("sub", 10, 2);
+
+		server.async_call([](int v) mutable
+		{
+			if (!asio2::get_last_error())
+				ASIO2_CHECK(v == 7);
+		}, "sub", 15, 8);
+
+		server.async_call([](int v) mutable
+		{
+			if (!asio2::get_last_error())
+				ASIO2_CHECK(v == 7);
+		}, std::chrono::milliseconds(100), "sub", 15, 8);
+
+		server.async_call<int>([](auto v) mutable
+		{
+			if (!asio2::get_last_error())
+				ASIO2_CHECK(v == 7);
+		}, "sub", 15, 8);
+
+		server.async_call<int>([](auto v) mutable
+		{
+			if (!asio2::get_last_error())
+				ASIO2_CHECK(v == 7);
+		}, std::chrono::milliseconds(100), "sub", 15, 8);
+
+		server.async_call("sub", 15, 8);
+
 		for (int i = 0; i < test_client_count; i++)
 		{
 			ext_data& ex = clients[i]->get_user_data<ext_data&>();

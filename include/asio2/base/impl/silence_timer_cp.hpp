@@ -54,7 +54,11 @@ namespace asio2::detail
 		template<class Rep, class Period>
 		inline derived_t & set_silence_timeout(std::chrono::duration<Rep, Period> duration) noexcept
 		{
-			this->silence_timeout_ = duration;
+			if (duration > std::chrono::duration_cast<
+				std::chrono::duration<Rep, Period>>((std::chrono::steady_clock::duration::max)()))
+				this->silence_timeout_ = (std::chrono::steady_clock::duration::max)();
+			else
+				this->silence_timeout_ = duration;
 			return static_cast<derived_t&>(*this);
 		}
 
@@ -147,7 +151,7 @@ namespace asio2::detail
 		std::atomic_flag                            silence_timer_canceled_;
 
 		/// if there has no data transfer for a long time,the session will be disconnect
-		std::chrono::steady_clock::duration         silence_timeout_ = std::chrono::minutes(60);
+		std::chrono::steady_clock::duration         silence_timeout_ = std::chrono::milliseconds(tcp_silence_timeout);
 
 	#if defined(_DEBUG) || defined(DEBUG)
 		bool                                        is_stop_silence_timer_called_ = false;

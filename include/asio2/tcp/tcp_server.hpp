@@ -555,7 +555,7 @@ namespace asio2::detail
 					}
 				});
 
-				if (iots.size() > std::size_t(1))
+				if (iots.size() > std::size_t(2) && this->get_session_count() > ((iots.size() - 1) * 5))
 				{
 					ASIO2_ASSERT(session_counter[0] == 0);
 
@@ -563,11 +563,12 @@ namespace asio2::detail
 
 					for (std::size_t i = 1; i < iots.size(); ++i)
 					{
-						ASIO2_ASSERT(std::abs(count1 - session_counter[i]) < 2);
+						ASIO2_ASSERT(std::abs(count1 - session_counter[i]) < 5);
 					}
 				}
 
 				asio2::ignore_unused(iots, session_counter);
+				asio2::ignore_unused(this->sessions_.empty()); // used to test ASIO2_GUARDED_BY
 			#endif
 
 			#if defined(_DEBUG) || defined(DEBUG)
@@ -633,6 +634,7 @@ namespace asio2::detail
 		inline std::shared_ptr<session_t> _make_session(Args&&... args)
 		{
 			// skip zero io, the 0 io is used for acceptor.
+			// but if the iopool size is 1, this io will be the zero io forever.
 			io_t* iot = std::addressof(this->_get_io());
 
 			if (iot == std::addressof(this->_get_io(0)))

@@ -118,7 +118,7 @@ namespace asio2::detail
 			asio::dispatch(this->derived().io().context(), make_allocator(this->derived().wallocator(),
 			[this, this_ptr]() mutable
 			{
-				asio2_unique_lock lock{ this->get_mutex()};
+				asio2::unique_locker lock{ this->get_mutex()};
 
 				this->mqtt_sessions().clear();
 			}));

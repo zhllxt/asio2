@@ -17,6 +17,8 @@
 
 #include <asio2/base/detail/push_options.hpp>
 
+#include <asio2/base/detail/shared_mtx.hpp>
+
 #include <asio2/tcp/tcp_client.hpp>
 
 #include <asio2/mqtt/impl/mqtt_send_connect_op.hpp>
@@ -685,11 +687,11 @@ namespace asio2::detail
 			}
 		}
 
-		inline asio2_shared_mutex& get_mutex() noexcept { return this->mutex_; }
+		inline asio2::shared_mtx& get_mutex() noexcept { return this->mutex_; }
 
 	protected:
 		/// use rwlock to make this session map thread safe
-		mutable asio2_shared_mutex     mutex_;
+		mutable asio2::shared_mtx      mutex_;
 
 		/// Should we set a default mqtt version to v4, default client id to a uuid string ?
 		mqtt::message                  connect_message_{/* mqtt::v4::connect{ asio2::uuid().next().str() } */};

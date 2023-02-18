@@ -82,6 +82,11 @@ namespace asio2::detail
 			// wait_for_io_context_stopped() can't compelete forever,and the server.stop or client.stop
 			// never compeleted.
 
+			if (delay > std::chrono::duration_cast<
+				std::chrono::duration<Rep, Period>>((asio::steady_timer::duration::max)()))
+				delay = std::chrono::duration_cast<std::chrono::duration<Rep, Period>>(
+					(asio::steady_timer::duration::max)());
+
 			asio::post(derive.io().context(), make_allocator(derive.wallocator(),
 			[this, &derive, p = derive.selfptr(), f = std::forward<Function>(f), delay]() mutable
 			{
@@ -163,6 +168,11 @@ namespace asio2::detail
 			using return_type = std::invoke_result_t<Function>;
 
 			derived_t& derive = static_cast<derived_t&>(*this);
+
+			if (delay > std::chrono::duration_cast<
+				std::chrono::duration<Rep, Period>>((asio::steady_timer::duration::max)()))
+				delay = std::chrono::duration_cast<std::chrono::duration<Rep, Period>>(
+					(asio::steady_timer::duration::max)());
 
 			std::packaged_task<return_type()> task(std::forward<Function>(f));
 

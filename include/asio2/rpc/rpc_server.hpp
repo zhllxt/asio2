@@ -116,19 +116,6 @@ namespace asio2::detail
 		/**
 		 * @brief call a rpc function for each session
 		 */
-		template<class return_t, class Rep, class Period, class ...Args>
-		inline void call(error_code& ec, std::chrono::duration<Rep, Period> timeout,
-			const std::string& name, const Args&... args)
-		{
-			this->sessions_.for_each([&](std::shared_ptr<session_type>& session_ptr) mutable
-			{
-				session_ptr->template call<return_t>(ec, timeout, name, args...);
-			});
-		}
-
-		/**
-		 * @brief call a rpc function for each session
-		 */
 		template<class return_t, class ...Args>
 		inline void call(const std::string& name, const Args&... args)
 		{
@@ -139,21 +126,9 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @brief call a rpc function for each session
-		 */
-		template<class return_t, class ...Args>
-		inline void call(error_code& ec, const std::string& name, const Args&... args)
-		{
-			this->sessions_.for_each([&](std::shared_ptr<session_type>& session_ptr) mutable
-			{
-				session_ptr->template call<return_t>(ec, name, args...);
-			});
-		}
-
-		/**
 		 * @brief asynchronous call a rpc function for each session
-		 * Callback signature : void(asio::error_code ec, int result)
-		 * if result type is void, the Callback signature is : void(asio::error_code ec)
+		 * Callback signature : void(return_t result)
+		 * if result type is void, the Callback signature is : void()
 		 * Because the result value type is not specified in the first template parameter,
 		 * so the result value type must be specified in the Callback lambda.
 		 */
@@ -169,8 +144,8 @@ namespace asio2::detail
 
 		/**
 		 * @brief asynchronous call a rpc function for each session
-		 * Callback signature : void(asio::error_code ec, int result)
-		 * if result type is void, the Callback signature is : void(asio::error_code ec)
+		 * Callback signature : void(return_t result)
+		 * if result type is void, the Callback signature is : void()
 		 * Because the result value type is not specified in the first template parameter,
 		 * so the result value type must be specified in the Callback lambda
 		 */
@@ -187,9 +162,9 @@ namespace asio2::detail
 
 		/**
 		 * @brief asynchronous call a rpc function for each session
-		 * Callback signature : void(asio::error_code ec, return_t result) the return_t
+		 * Callback signature : void(return_t result) the return_t
 		 * is the first template parameter.
-		 * if result type is void, the Callback signature is : void(asio::error_code ec)
+		 * if result type is void, the Callback signature is : void()
 		 */
 		template<class return_t, class Callback, class ...Args>
 		inline void async_call(const Callback& fn, const std::string& name, const Args&... args)
@@ -202,9 +177,9 @@ namespace asio2::detail
 
 		/**
 		 * @brief asynchronous call a rpc function for each session
-		 * Callback signature : void(asio::error_code ec, return_t result) the return_t
+		 * Callback signature : void(return_t result) the return_t
 		 * is the first template parameter.
-		 * if result type is void, the Callback signature is : void(asio::error_code ec)
+		 * if result type is void, the Callback signature is : void()
 		 */
 		template<class return_t, class Callback, class Rep, class Period, class ...Args>
 		inline void async_call(const Callback& fn, std::chrono::duration<Rep, Period> timeout,

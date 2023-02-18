@@ -147,7 +147,7 @@ namespace asio2
 		asio::steady_timer                  event_timer_;
 
 		///
-		std::mutex                          event_life_lock_;
+		mutable std::mutex                  event_life_lock_;
 
 		///
 		bool                                event_life_flag_ = false;

@@ -236,7 +236,7 @@ namespace asio2
 				this->thread_.join();
 		#endif
 
-			std::lock_guard<std::mutex> g(this->lock_);
+			std::lock_guard<std::mutex> g(this->mutex_);
 			if (this->file_.is_open())
 			{
 				this->file_.flush();
@@ -259,6 +259,7 @@ namespace asio2
 		 */
 		inline logger & set_level(severity_level level) noexcept
 		{
+			std::lock_guard<std::mutex> g(this->mutex_);
 			this->level_ = level;
 			if (this->level_ < severity_level::trace || this->level_ > severity_level::report)
 				this->level_ = severity_level::debug;
@@ -279,6 +280,7 @@ namespace asio2
 		 */
 		inline severity_level get_level() noexcept
 		{
+			std::lock_guard<std::mutex> g(this->mutex_);
 			return this->level_;
 		}
 
@@ -287,6 +289,7 @@ namespace asio2
 		 */
 		inline severity_level level() noexcept
 		{
+			std::lock_guard<std::mutex> g(this->mutex_);
 			return this->level_;
 		}
 
@@ -295,6 +298,7 @@ namespace asio2
 		 */
 		inline logger & set_dest(unsigned int dest) noexcept
 		{
+			std::lock_guard<std::mutex> g(this->mutex_);
 			this->dest_ = dest;
 			return (*this);
 		}
@@ -312,6 +316,7 @@ namespace asio2
 		 */
 		inline unsigned int get_dest() noexcept
 		{
+			std::lock_guard<std::mutex> g(this->mutex_);
 			return this->dest_;
 		}
 
@@ -320,6 +325,7 @@ namespace asio2
 		 */
 		inline unsigned int dest() noexcept
 		{
+			std::lock_guard<std::mutex> g(this->mutex_);
 			return this->dest_;
 		}
 
@@ -330,6 +336,7 @@ namespace asio2
 		template<class Fun>
 		inline logger & set_target(Fun&& target) noexcept
 		{
+			std::lock_guard<std::mutex> g(this->mutex_);
 			this->target_ = std::forward<Fun>(target);
 			return (*this);
 		}
@@ -341,8 +348,7 @@ namespace asio2
 		template<class Fun>
 		inline logger & target(Fun&& target) noexcept
 		{
-			this->target_ = std::forward<Fun>(target);
-			return (*this);
+			return this->set_target(std::forward<Fun>(target));
 		}
 
 		/**
@@ -438,6 +444,8 @@ namespace asio2
 		template <typename S, typename... Args>
 		void log(severity_level level, const S& format_str, Args&&... args)
 		{
+			std::lock_guard<std::mutex> g(this->mutex_);
+
 			if (level < this->level_)
 				return;
 
@@ -458,7 +466,6 @@ namespace asio2
 					this->endl_;
 			}
 
-			std::lock_guard<std::mutex> g(this->lock_);
 			// call user defined target function
 			if (this->target_)
 			{
@@ -501,7 +508,7 @@ namespace asio2
 
 		inline void flush()
 		{
-			std::lock_guard<std::mutex> g(this->lock_);
+			std::lock_guard<std::mutex> g(this->mutex_);
 			if (this->file_.is_open())
 			{
 				this->file_.flush();
@@ -625,7 +632,7 @@ namespace asio2
 
 		std::string    preferred_;
 
-		std::mutex     lock_;
+		std::mutex     mutex_;
 
 		std::function<void(const std::string & text)> target_;
 

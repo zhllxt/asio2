@@ -183,42 +183,66 @@ namespace asio2::detail
 			}
 
 			// mqtt auth
-			std::optional<std::string> username;
-
-			if (caller->get_preauthed_username())
+			if (caller->security().enabled())
 			{
-				if (caller->security().login_cert(caller->get_preauthed_username().value()))
+				std::optional<std::string> username;
+
+				if (caller->get_preauthed_username())
 				{
-					username = caller->get_preauthed_username();
+					if (caller->security().login_cert(caller->get_preauthed_username().value()))
+					{
+						username = caller->get_preauthed_username();
+					}
 				}
-			}
-			else if (msg.has_username() && msg.has_password())
-			{
-				username = caller->security().login(msg.username(), msg.password());
-			}
-			else
-			{
-				username = caller->security().login_anonymous();
-			}
+				else if (msg.has_username() && msg.has_password())
+				{
+					username = caller->security().login(msg.username(), msg.password());
+				}
+				else
+				{
+					username = caller->security().login_anonymous();
+				}
 
-			// If login fails, try the unauthenticated user
-			if (!username)
-				username = caller->security().login_unauthenticated();
+				// If login fails, try the unauthenticated user
+				if (!username)
+				{
+					username = caller->security().login_unauthenticated();
+				}
 
-			if (caller->security().enabled() && !username)
-			{
-				ASIO2_LOG(spdlog::level::trace, "User failed to login: {}",
-					(msg.has_username() ? msg.username() : "anonymous user"));
+				if (!username)
+				{
+					ASIO2_LOG(spdlog::level::trace, "User failed to login: {}",
+						(msg.has_username() ? msg.username() : "anonymous user"));
 
-				if (msg.has_username() && msg.has_password())
-					return _set_connack_reason_code_with_bad_user_name_or_password(ec, rep);
+					if (msg.has_username() && msg.has_password())
+						return _set_connack_reason_code_with_bad_user_name_or_password(ec, rep);
 
-				return _set_connack_reason_code_with_not_authorized(ec, rep);
+					return _set_connack_reason_code_with_not_authorized(ec, rep);
+				}
 			}
 
 			// check client id
 			if (_check_connect_client_id(ec, caller, msg, rep); ec)
 				return;
+
+			// set keepalive timeout
+			// If the Keep Alive value is non-zero and the Server does not receive a Control Packet from
+			// the Client within one and a half times the Keep Alive time period, it MUST disconnect the
+			// Network Connection to the Client as if the network had failed [MQTT-3.1.2-24].
+			// A Keep Alive value of zero (0) has the effect of turning off the keep alive mechanism.
+			// This means that, in this case, the Server is not required to disconnect the Client on the
+			// grounds of inactivity. Note that a Server is permitted to disconnect a Client that it
+			// determines to be inactive or non-responsive at any time, regardless of the Keep Alive value
+			// provided by that Client.
+			mqtt::two_byte_integer::value_type keepalive = msg.keep_alive();
+			if (keepalive == 0)
+			{
+				caller->set_silence_timeout(std::chrono::milliseconds(detail::tcp_silence_timeout));
+			}
+			else
+			{
+				caller->set_silence_timeout(std::chrono::milliseconds(keepalive * 1500));
+			}
 
 			// fill the reason code with 0.
 			rep.reason_code(0);
@@ -247,7 +271,7 @@ namespace asio2::detail
 			// Session[MQTT-3.1.2-5].If a CONNECT packet is received with Clean Start set to 0 and there is no Session
 			// associated with the Client Identifier, the Server MUST create a new Session[MQTT-3.1.2-6].
 
-			asio2_unique_lock lock{ caller->get_mutex() };
+			asio2::unique_locker lock{ caller->get_mutex() };
 
 			auto iter = caller->mqtt_sessions().find(caller->client_id());
 
@@ -419,7 +443,7 @@ namespace asio2::detail
 
 			//	caller->connect_message_ = msg;
 
-			//	asio2_unique_lock lock{ caller->get_mutex() };
+			//	asio2::unique_locker lock{ caller->get_mutex() };
 
 			//	auto iter = caller->mqtt_sessions().find(msg.client_id());
 			//	if (iter != caller->mqtt_sessions().end())

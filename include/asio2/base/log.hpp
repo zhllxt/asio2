@@ -60,11 +60,11 @@ namespace asio2::detail
 	static std::shared_ptr<spdlog::logger>& get_logger()
 	{
 		static std::shared_ptr<spdlog::logger> logger;
-		static std::mutex mutex;
+		static std::mutex mtx;
 
 		if (!logger)
 		{
-			std::lock_guard guard(mutex);
+			std::lock_guard guard(mtx);
 
 			if (!logger)
 			{

@@ -105,7 +105,7 @@ void thread_pool_test()
 		{
 			int thread_index = std::rand();
 
-			thpool.post([&thpool]()
+			thpool.post([]()
 			{
 				std::this_thread::yield();
 			});
@@ -128,7 +128,7 @@ void thread_pool_test()
 
 		for (int i = 0; i < test_loop_times / 10; ++i)
 		{
-			auto future = thpool.post([&thpool, &thread_ids_set, &mtx]()
+			auto future = thpool.post([&thread_ids_set, &mtx]()
 			{
 				std::lock_guard g(mtx);
 				thread_ids_set.emplace(std::this_thread::get_id());

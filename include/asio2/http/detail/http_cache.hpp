@@ -30,6 +30,7 @@
 
 #include <asio2/base/detail/function_traits.hpp>
 #include <asio2/base/detail/util.hpp>
+#include <asio2/base/detail/shared_mtx.hpp>
 
 #ifdef ASIO2_HEADER_ONLY
 namespace bho::beast::http
@@ -115,12 +116,13 @@ namespace asio2::detail
 		template<class StringT>
 		inline cache_node* emplace(StringT&& url, MessageT msg)
 		{
+			asio2::unique_locker guard(this->http_cache_mutex_);
+
 			if (this->http_cache_map_.size() >= http_caches_max_count_)
 				return nullptr;
 
 			// can't use insert_or_assign, it maybe cause the msg was changed in multithread, and 
 			// other thread are using the msg at this time.
-			asio2_unique_lock guard(this->http_cache_mutex_);
 			return std::addressof(this->http_cache_map_.emplace(
 				detail::to_string(std::forward<StringT>(url)),
 				cache_node{ std::chrono::steady_clock::now(), std::move(msg) }).first->second);
@@ -140,12 +142,13 @@ namespace asio2::detail
 		template<class StringT>
 		inline cache_node* find(const StringT& url)
 		{
+			asio2::shared_locker guard(this->http_cache_mutex_);
+
 			if (this->http_cache_map_.empty())
 				return nullptr;
 
 			// If rehashing occurs due to the insertion, all iterators are invalidated.
 			// Otherwise iterators are not affected. References are not invalidated. 
-			asio2_shared_lock guard(this->http_cache_mutex_);
 			if constexpr (std::is_same_v<StringT, std::string>)
 			{
 				if (auto it = this->http_cache_map_.find(url); it != this->http_cache_map_.end())
@@ -191,10 +194,11 @@ namespace asio2::detail
 		 */
 		inline self& shrink_to_fit()
 		{
+			asio2::unique_locker guard(this->http_cache_mutex_);
+
 			if (this->http_cache_map_.size() < http_caches_max_count_)
 				return (*this);
 
-			asio2_unique_lock guard(this->http_cache_mutex_);
 			std::multimap<std::chrono::steady_clock::duration::rep, const std::string*> mms;
 			for (auto& [url, node] : this->http_cache_map_)
 			{
@@ -218,15 +222,15 @@ namespace asio2::detail
 		 */
 		inline self& clear() noexcept
 		{
-			asio2_unique_lock guard(this->http_cache_mutex_);
+			asio2::unique_locker guard(this->http_cache_mutex_);
 			this->http_cache_map_.clear();
 			return (*this);
 		}
 
 	protected:
-		asio2_shared_mutex                          http_cache_mutex_;
+		mutable asio2::shared_mtx                   http_cache_mutex_;
 
-		std::unordered_map<std::string, cache_node> http_cache_map_;
+		std::unordered_map<std::string, cache_node> http_cache_map_ ASIO2_GUARDED_BY(http_cache_mutex_);
 
 		std::size_t                                 http_caches_max_count_ = 100000;
 	};

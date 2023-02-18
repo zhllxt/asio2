@@ -202,7 +202,7 @@ namespace asio2
 		/**
 		 * @brief get thread count of the thread pool, same as get_pool_size()
 		 */
-		inline std::size_t pool_size() const noexcept
+		inline std::size_t pool_size() noexcept
 		{
 			return this->get_pool_size();
 		}
@@ -210,8 +210,9 @@ namespace asio2
 		/**
 		 * @brief get thread count of the thread pool
 		 */
-		inline std::size_t get_pool_size() const noexcept
+		inline std::size_t get_pool_size() noexcept
 		{
+			std::unique_lock<std::mutex> lock(this->mtx_);
 			return this->workers_.size();
 		}
 
@@ -243,22 +244,27 @@ namespace asio2
 		/**
 		 * @brief Determine whether current code is running in the pool's threads.
 		 */
-		inline bool running_in_threads() const noexcept
+		inline bool running_in_threads() noexcept
 		{
+			std::unique_lock<std::mutex> lock(this->mtx_);
+
 			std::thread::id curr_tid = std::this_thread::get_id();
 			for (auto & thread : this->workers_)
 			{
 				if (curr_tid == thread.get_id())
 					return true;
 			}
+
 			return false;
 		}
 
 		/**
 		 * @brief Determine whether current code is running in the thread by index
 		 */
-		inline bool running_in_thread(std::size_t index) const noexcept
+		inline bool running_in_thread(std::size_t index) noexcept
 		{
+			std::unique_lock<std::mutex> lock(this->mtx_);
+
 			if (!(index < this->workers_.size()))
 				return false;
 
@@ -268,8 +274,9 @@ namespace asio2
 		/**
 		 * @brief Get the thread id of the specified thread index.
 		 */
-		inline std::thread::id get_thread_id(std::size_t index) const noexcept
+		inline std::thread::id get_thread_id(std::size_t index) noexcept
 		{
+			std::unique_lock<std::mutex> lock(this->mtx_);
 			return this->workers_[index % this->workers_.size()].get_id();
 		}
 

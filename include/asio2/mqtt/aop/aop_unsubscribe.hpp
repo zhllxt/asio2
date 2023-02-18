@@ -58,7 +58,7 @@ namespace asio2::detail
 				std::size_t removed = 0;
 
 				{
-					asio2_unique_lock lock{ caller->get_mutex() };
+					asio2::unique_locker lock{ caller->get_mutex() };
 
 					auto handle = caller->subs_map().lookup(topic_filter);
 					if (handle)

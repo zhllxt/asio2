@@ -266,7 +266,7 @@ namespace asio2::detail
 			ASIO2_ASSERT(!topic_name.empty());
 
 			{
-				asio2_shared_lock lock{ caller->get_mutex() };
+				asio2::shared_locker lock{ caller->get_mutex() };
 
 				caller->subs_map().match(topic_name,
 				[this, caller, &msg, &sent](std::string_view key, auto& node) mutable
