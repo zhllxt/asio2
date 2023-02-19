@@ -30,7 +30,7 @@
 #include <asio2/base/error.hpp>
 #include <asio2/base/define.hpp>
 #include <asio2/base/detail/util.hpp>
-#include <asio2/base/detail/shared_mtx.hpp>
+#include <asio2/base/detail/shared_mutex.hpp>
 
 namespace asio2::detail
 {
@@ -484,6 +484,7 @@ namespace asio2::detail
 		inline bool stopped() noexcept
 		{
 			asio2::shared_locker guard(this->mutex_);
+
 			return (this->stopped_);
 		}
 
@@ -542,6 +543,7 @@ namespace asio2::detail
 		inline std::size_t size() noexcept
 		{
 			asio2::shared_locker guard(this->mutex_);
+
 			return this->iots_.size();
 		}
 
@@ -551,6 +553,7 @@ namespace asio2::detail
 		inline std::thread::id get_thread_id(std::size_t index) noexcept
 		{
 			asio2::shared_locker guard(this->mutex_);
+
 			return this->threads_[index % this->threads_.size()].get_id();
 		}
 
@@ -665,8 +668,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * The wait_for() function blocks until all work has finished and 
-		 * until the specified duration has elapsed.
+		 * The wait_for() function blocks until the specified duration has elapsed.
 		 *
 		 * @param rel_time - The duration for which the call may block.
 		 */
@@ -685,7 +687,7 @@ namespace asio2::detail
 
 			{
 				asio2::shared_locker guard(this->mutex_);
-				iot = this->iots_[0];
+				iot = this->iots_[0].get();
 			}
 
 			asio::steady_timer timer(iot->context());
@@ -694,8 +696,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * The wait_until() function blocks until all work has finished and 
-		 * until the specified time has been reached.
+		 * The wait_until() function blocks until the specified time has been reached.
 		 *
 		 * @param abs_time - The time point until which the call may block.
 		 */
@@ -714,7 +715,7 @@ namespace asio2::detail
 
 			{
 				asio2::shared_locker guard(this->mutex_);
-				iot = this->iots_[0];
+				iot = this->iots_[0].get();
 			}
 
 			asio::steady_timer timer(iot->context());
@@ -742,7 +743,7 @@ namespace asio2::detail
 
 			{
 				asio2::shared_locker guard(this->mutex_);
-				iot = this->iots_[0];
+				iot = this->iots_[0].get();
 			}
 
 			// note: The variable name signals will conflict with the macro signals of qt
@@ -861,9 +862,10 @@ namespace asio2::detail
 		}
 
 	protected:
-		inline bool running_in_threads_impl() noexcept
+		inline bool running_in_threads_impl() noexcept ASIO2_NO_THREAD_SAFETY_ANALYSIS
 		{
 			std::thread::id curr_tid = std::this_thread::get_id();
+
 			for (auto& thread : this->threads_)
 			{
 				if (curr_tid == thread.get_id())
@@ -873,7 +875,7 @@ namespace asio2::detail
 			return false;
 		}
 
-		inline void cancel_impl()
+		inline void cancel_impl() ASIO2_NO_THREAD_SAFETY_ANALYSIS
 		{
 			for (std::size_t i = 0; i < this->iocs_.size(); ++i)
 			{
@@ -886,7 +888,7 @@ namespace asio2::detail
 			}
 		}
 
-		inline std::size_t next_impl(std::size_t index) noexcept
+		inline std::size_t next_impl(std::size_t index) noexcept ASIO2_NO_THREAD_SAFETY_ANALYSIS
 		{
 			// Use a round-robin scheme to choose the next io_context to use. 
 			return (index == static_cast<std::size_t>(-1) ?
@@ -895,7 +897,7 @@ namespace asio2::detail
 
 	protected:
 		/// 
-		mutable asio2::shared_mtx                                    mutex_;
+		mutable asio2::shared_mutexer                                mutex_;
 
 		/// threads to run all of the io_context
 		std::vector<std::thread>                                     threads_ ASIO2_GUARDED_BY(mutex_);
@@ -1093,6 +1095,7 @@ namespace asio2::detail
 		virtual bool stopped() noexcept override
 		{
 			asio2::shared_locker guard(this->mutex_);
+
 			return (this->stopped_);
 		}
 
@@ -1112,6 +1115,7 @@ namespace asio2::detail
 		virtual std::size_t size() noexcept override
 		{
 			asio2::shared_locker guard(this->mutex_);
+
 			return this->iots_.size();
 		}
 
@@ -1121,6 +1125,7 @@ namespace asio2::detail
 		inline std::size_t next(std::size_t index) noexcept
 		{
 			asio2::shared_locker guard(this->mutex_);
+
 			return this->next_impl(index);
 		}
 
@@ -1130,13 +1135,15 @@ namespace asio2::detail
 		virtual bool running_in_threads() noexcept override
 		{
 			asio2::shared_locker guard(this->mutex_);
+
 			return this->running_in_threads_impl();
 		}
 
 	protected:
-		inline bool running_in_threads_impl() noexcept
+		inline bool running_in_threads_impl() noexcept ASIO2_NO_THREAD_SAFETY_ANALYSIS
 		{
 			std::thread::id curr_tid = std::this_thread::get_id();
+
 			for (auto& iot : this->iots_)
 			{
 				if (curr_tid == iot->get_thread_id())
@@ -1146,7 +1153,7 @@ namespace asio2::detail
 			return false;
 		}
 
-		inline std::size_t next_impl(std::size_t index) noexcept
+		inline std::size_t next_impl(std::size_t index) noexcept ASIO2_NO_THREAD_SAFETY_ANALYSIS
 		{
 			// Use a round-robin scheme to choose the next io_context to use. 
 			// Use this->iots_.size() instead of this->size() to avoid call virtual function.
@@ -1156,7 +1163,7 @@ namespace asio2::detail
 
 	protected:
 		/// 
-		mutable asio2::shared_mtx                mutex_;
+		mutable asio2::shared_mutexer            mutex_;
 
 		/// user container copy, maybe the user passed shared_ptr, and expect us to keep it
 		copy_container_type                      copy_    ASIO2_GUARDED_BY(mutex_);
@@ -1310,8 +1317,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * The wait_for() function blocks until all work has finished and 
-		 * until the specified duration has elapsed.
+		 * The wait_for() function blocks until the specified duration has elapsed.
 		 *
 		 * @param rel_time - The duration for which the call may block.
 		 */
@@ -1339,8 +1345,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * The wait_until() function blocks until all work has finished and 
-		 * until the specified time has been reached.
+		 * The wait_until() function blocks until the specified time has been reached.
 		 *
 		 * @param abs_time - The time point until which the call may block.
 		 */
@@ -1487,7 +1492,7 @@ namespace asio2::detail
 
 	protected:
 		/// 
-		mutable asio2::shared_mtx                mutex_;
+		mutable asio2::shared_mutexer            mutex_;
 
 		/// the io_context pool for socket event
 		std::unique_ptr<iopool_base>             iopool_;

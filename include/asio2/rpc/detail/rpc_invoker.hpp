@@ -35,7 +35,7 @@
 
 #include <asio2/base/detail/function_traits.hpp>
 #include <asio2/base/detail/util.hpp>
-#include <asio2/base/detail/shared_mtx.hpp>
+#include <asio2/base/detail/shared_mutex.hpp>
 
 #include <asio2/rpc/detail/rpc_serialization.hpp>
 #include <asio2/rpc/detail/rpc_protocol.hpp>
@@ -568,7 +568,7 @@ namespace asio2::detail
 
 	protected:
 	#if defined(ASIO2_ENABLE_RPC_INVOKER_THREAD_SAFE)
-		mutable asio2::shared_mtx                   mutex_;
+		mutable asio2::shared_mutexer               mutex_;
 	#endif
 
 		std::unordered_map<std::string, std::function<bool(

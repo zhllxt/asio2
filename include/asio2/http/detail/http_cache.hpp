@@ -30,7 +30,7 @@
 
 #include <asio2/base/detail/function_traits.hpp>
 #include <asio2/base/detail/util.hpp>
-#include <asio2/base/detail/shared_mtx.hpp>
+#include <asio2/base/detail/shared_mutex.hpp>
 
 #ifdef ASIO2_HEADER_ONLY
 namespace bho::beast::http
@@ -133,6 +133,8 @@ namespace asio2::detail
 		 */
 		inline bool empty() const noexcept
 		{
+			asio2::shared_locker guard(this->http_cache_mutex_);
+
 			return this->http_cache_map_.empty();
 		}
 
@@ -186,6 +188,8 @@ namespace asio2::detail
 		 */
 		inline std::size_t get_cache_count() const noexcept
 		{
+			asio2::shared_locker guard(this->http_cache_mutex_);
+
 			return this->http_cache_map_.size();
 		}
 
@@ -228,7 +232,7 @@ namespace asio2::detail
 		}
 
 	protected:
-		mutable asio2::shared_mtx                   http_cache_mutex_;
+		mutable asio2::shared_mutexer               http_cache_mutex_;
 
 		std::unordered_map<std::string, cache_node> http_cache_map_ ASIO2_GUARDED_BY(http_cache_mutex_);
 

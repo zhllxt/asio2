@@ -211,7 +211,7 @@ namespace asio2::detail
 		/**
 		 * @brief check whether the session is started
 		 */
-		inline bool is_started() const
+		inline bool is_started()
 		{
 			return (this->state_ == state_t::started && this->socket().is_open());
 		}
@@ -219,7 +219,7 @@ namespace asio2::detail
 		/**
 		 * @brief check whether the session is stopped
 		 */
-		inline bool is_stopped() const
+		inline bool is_stopped()
 		{
 			return (this->state_ == state_t::stopped && !this->socket().is_open());
 		}

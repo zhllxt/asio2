@@ -134,7 +134,7 @@ namespace asio2
 				if (!(i < msg.size()))
 				{
 					// Amount of padding on file
-					uint8_t padding = uint8_t(0);
+					[[maybe_unused]] uint8_t padding = uint8_t(0);
 
 					// Check for and record padding on end
 					while (!(block & uint64_t(0x00000000000000ff)))

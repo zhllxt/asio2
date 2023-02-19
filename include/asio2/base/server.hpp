@@ -139,7 +139,7 @@ namespace asio2::detail
 		/**
 		 * @brief check whether the server is started 
 		 */
-		inline bool is_started() const noexcept
+		inline bool is_started() noexcept
 		{
 			return (this->state_ == state_t::started);
 		}
@@ -147,7 +147,7 @@ namespace asio2::detail
 		/**
 		 * @brief check whether the server is stopped
 		 */
-		inline bool is_stopped() const noexcept
+		inline bool is_stopped() noexcept
 		{
 			return (this->state_ == state_t::stopped && this->is_iopool_stopped());
 		}

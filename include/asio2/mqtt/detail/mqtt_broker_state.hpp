@@ -15,7 +15,7 @@
 #pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
-#include <asio2/base/detail/shared_mtx.hpp>
+#include <asio2/base/detail/shared_mutex.hpp>
 
 #include <asio2/mqtt/options.hpp>
 
@@ -44,7 +44,7 @@ namespace asio2::mqtt
 		}
 
 		/// use rwlock to make this id session map thread safe
-		mutable asio2::shared_mtx                                          mutex_;
+		mutable asio2::shared_mutexer                                      mutex_;
 
 		asio2::detail::mqtt_options                                      & options_;
 

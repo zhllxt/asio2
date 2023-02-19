@@ -137,6 +137,14 @@ void tcp_general_test()
 			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
 		});
 
+		ASIO2_CHECK(server.find_session(0) == nullptr);
+		ASIO2_CHECK(server.find_session_if([](std::shared_ptr<asio2::tcp_session>& session_ptr)
+		{
+			return session_ptr->get_remote_port() == 0;
+		}) == nullptr);
+		server.foreach_session([](std::shared_ptr<asio2::tcp_session>&) {});
+		ASIO2_CHECK(server.get_session_count() == 0);
+
 		bool server_start_ret = server.start("127.0.0.1", 18028);
 
 		ASIO2_CHECK(server_start_ret);
@@ -170,6 +178,10 @@ void tcp_general_test()
 			ASIO2_CHECK(client.is_keep_alive());
 			ASIO2_CHECK(client.is_reuse_address());
 			ASIO2_CHECK(client.is_no_delay());
+
+			ASIO2_CHECK(client.get_sndbuf_size() > 0); // just used for test "const function"
+			ASIO2_CHECK(client.get_rcvbuf_size() > 0); // just used for test "const function"
+			ASIO2_CHECK(int(client.get_linger().enabled()) != 100); // just used for test "const function"
 		});
 		std::atomic<int> client_connect_counter = 0;
 		client.bind_connect([&]()
@@ -3804,8 +3816,6 @@ void tcp_general_test()
 		{
 			ASIO2_TEST_WAIT_CHECK();
 		}
-				
-		ASIO2_CHECK_VALUE(client_disconnect_counter.load(), client_disconnect_counter == test_client_count);
 
 		// must call stop, otherwise will cause memory leaks.
 		for (auto& c : clients)
@@ -3813,6 +3823,8 @@ void tcp_general_test()
 			c->stop();
 			ASIO2_CHECK(c->is_stopped());
 		}
+				
+		ASIO2_CHECK_VALUE(client_disconnect_counter.load(), client_disconnect_counter == test_client_count);
 
 		server.stop();
 		ASIO2_CHECK(server.is_stopped());

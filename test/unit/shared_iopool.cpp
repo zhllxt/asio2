@@ -17,6 +17,34 @@ void shared_iopool_test()
 	// iopool must start first, othwise the server.start will blocked forever.
 	iopool.start();
 
+	ASIO2_CHECK(iopool.stopped() == false);
+	ASIO2_CHECK(std::addressof(iopool.get()) != nullptr);
+	ASIO2_CHECK(std::addressof(iopool.get_context()) != nullptr);
+	ASIO2_CHECK(iopool.running_in_threads() == false);
+	ASIO2_CHECK(iopool.running_in_thread(0) == false);
+	ASIO2_CHECK(iopool.running_in_thread(1) == false);
+	ASIO2_CHECK(iopool.running_in_thread(2) == false);
+	ASIO2_CHECK(iopool.running_in_thread(3) == false);
+	ASIO2_CHECK(iopool.size() == 4);
+	ASIO2_CHECK(iopool.get_thread_id(0) != std::this_thread::get_id());
+	ASIO2_CHECK(iopool.get_thread_id(1) != std::this_thread::get_id());
+	ASIO2_CHECK(iopool.get_thread_id(2) != std::this_thread::get_id());
+	ASIO2_CHECK(iopool.get_thread_id(3) != std::this_thread::get_id());
+	ASIO2_CHECK(iopool.next(30) != 30);
+	iopool.wait_for(std::chrono::milliseconds(10));
+	iopool.wait_until(std::chrono::steady_clock::now() + std::chrono::milliseconds(10));
+	ASIO2_CHECK(loop < loops);
+	if (loop > loops)
+	{
+		iopool.wait_signal(SIGINT);
+	}
+
+	iopool.post([]() {});
+	iopool.post(0, []() {});
+	iopool.post(1, []() {});
+	iopool.post(2, []() {});
+	iopool.post(3, []() {});
+
 	std::vector<std::shared_ptr<std::thread>> threads;
 
 	//// --------------------------------------------------------------------------------
@@ -34,6 +62,11 @@ void shared_iopool_test()
 	asio2::tcp_server  _serverc(&iopool.get(0));
 	asio2::tcp_server  _serverd( iopool.get(0));
 	asio2::tcp_server  _servere( iopool);
+
+	ASIO2_CHECK(_server5.iopool().stopped() == true);
+	ASIO2_CHECK(std::addressof(_server5.iopool().get(10)) != nullptr);
+	ASIO2_CHECK(_server5.iopool().size() == 2);
+	ASIO2_CHECK(_server5.iopool().running_in_threads() == false);
 
 	asio2::tcp_client  _client1(1024);
 	asio2::tcp_client  _client2(1024, 65535);
@@ -155,6 +188,15 @@ void shared_iopool_test()
 
 	asio2::tcp_server server(std::vector<asio2::io_t*>{
 		&iopool.get(0), &iopool.get(1), &iopool.get(2), &iopool.get(3) });
+
+	server.wait_for(std::chrono::milliseconds(10));
+	server.wait_until(std::chrono::steady_clock::now() + std::chrono::milliseconds(10));
+	ASIO2_CHECK(loop < loops);
+	if (loop > loops)
+	{
+		server.wait_signal(SIGINT);
+		server.wait_stop();
+	}
 
 	// the server's io_context must be the user passed io_context.
 	for (std::size_t i = 0; i < server.iopool().size(); i++)

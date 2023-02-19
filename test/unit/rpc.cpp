@@ -1,5 +1,7 @@
 #include "unit_test.hpp"
 
+#define ASIO2_ENABLE_RPC_INVOKER_THREAD_SAFE
+
 #include <asio2/config.hpp>
 
 #undef ASIO2_USE_WEBSOCKET_RPC
@@ -235,6 +237,9 @@ void rpc_test()
 		});
 
 		server.bind("echo", echo);
+		
+		server.unbind("test_guard_by");
+		ASIO2_CHECK(server.find("echo") != nullptr);
 
 		bool server_start_ret = server.start("127.0.0.1", 18010);
 

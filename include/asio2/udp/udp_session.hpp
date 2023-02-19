@@ -218,7 +218,7 @@ namespace asio2::detail
 		/**
 		 * @brief check whether the session is stopped
 		 */
-		inline bool is_stopped() const
+		inline bool is_stopped()
 		{
 			return (this->state_ == state_t::stopped);
 		}

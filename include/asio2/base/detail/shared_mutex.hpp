@@ -124,7 +124,7 @@ namespace asio2
 {
 	// Defines an annotated interface for mutexes.
 	// These methods can be implemented to use any internal mutex implementation.
-	class ASIO2_CAPABILITY("mutex") shared_mtx
+	class ASIO2_CAPABILITY("mutex") shared_mutexer
 	{
 	public:
 		inline asio2_shared_mutex& native_handle() { return mutex_; }
@@ -144,7 +144,7 @@ namespace asio2
 	{
 	public:
 		// Acquire mutex in shared mode, implicitly acquire *this and associate it with mutex.
-		explicit shared_locker(shared_mtx& m) ASIO2_ACQUIRE_SHARED(m) : lock_(m.native_handle()) {}
+		explicit shared_locker(shared_mutexer& m) ASIO2_ACQUIRE_SHARED(m) : lock_(m.native_handle()) {}
 
 		// Release *this and all associated mutexes, if they are still held.
 		// There is no warning if the scope was already unlocked before.
@@ -164,7 +164,7 @@ namespace asio2
 	{
 	public:
 		// Acquire mutex, implicitly acquire *this and associate it with mutex.
-		explicit unique_locker(shared_mtx& m) ASIO2_ACQUIRE(m) : lock_(m.native_handle()) {}
+		explicit unique_locker(shared_mutexer& m) ASIO2_ACQUIRE(m) : lock_(m.native_handle()) {}
 
 		// Release *this and all associated mutexes, if they are still held.
 		// There is no warning if the scope was already unlocked before.

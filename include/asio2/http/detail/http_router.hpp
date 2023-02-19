@@ -341,6 +341,12 @@ namespace asio2::detail
 
 				return std::addressof(rep.base());
 			});
+
+		#if defined(_DEBUG) || defined(DEBUG)
+			// used to test ThreadSafetyAnalysis
+			asio2::ignore_unused(this->http_cache_.empty());
+			asio2::ignore_unused(this->http_cache_.get_cache_count());
+		#endif
 		}
 
 		/**

@@ -27,7 +27,7 @@
 
 #include <asio2/base/detail/allocator.hpp>
 #include <asio2/base/detail/util.hpp>
-#include <asio2/base/detail/shared_mtx.hpp>
+#include <asio2/base/detail/shared_mutex.hpp>
 
 namespace asio2::detail
 {
@@ -242,22 +242,22 @@ namespace asio2::detail
 
 	protected:
 		/// use rwlock to make this session map thread safe
-		mutable asio2::shared_mtx                 mutex_;
+		mutable asio2::shared_mutexer                            mutex_;
 
 		/// session unorder map,these session is already connected session 
 		std::unordered_map<key_type, std::shared_ptr<session_t>> sessions_ ASIO2_GUARDED_BY(mutex_);
 
 		/// the zero io_context refrence in the iopool
-		io_t                                    & io_;
+		io_t                                                   & io_;
 
 		/// The memory to use for handler-based custom memory allocation.
 		handler_memory<std::false_type, assizer<args_type>>      allocator_;
 
 		/// server state refrence
-		std::atomic<state_t>                    & state_;
+		std::atomic<state_t>                                   & state_;
 
 	#if defined(_DEBUG) || defined(DEBUG)
-		bool                                      is_all_session_stop_called_ = false;
+		bool                                                     is_all_session_stop_called_ = false;
 	#endif
 	};
 }

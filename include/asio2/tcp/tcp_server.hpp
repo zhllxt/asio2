@@ -153,12 +153,12 @@ namespace asio2::detail
 		/**
 		 * @brief check whether the server is started
 		 */
-		inline bool is_started() const { return (super::is_started() && this->acceptor_.is_open()); }
+		inline bool is_started() { return (super::is_started() && this->acceptor_.is_open()); }
 
 		/**
 		 * @brief check whether the server is stopped
 		 */
-		inline bool is_stopped() const
+		inline bool is_stopped()
 		{
 			return (this->state_ == state_t::stopped && !this->acceptor_.is_open() && this->is_iopool_stopped());
 		}
@@ -568,7 +568,7 @@ namespace asio2::detail
 				}
 
 				asio2::ignore_unused(iots, session_counter);
-				asio2::ignore_unused(this->sessions_.empty()); // used to test ASIO2_GUARDED_BY
+				asio2::ignore_unused(this->sessions_.empty()); // used to test ThreadSafetyAnalysis
 			#endif
 
 			#if defined(_DEBUG) || defined(DEBUG)

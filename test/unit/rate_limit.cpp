@@ -13,9 +13,6 @@
 #include <asio2/asio2.hpp>
 #include <asio2/external/fmt.hpp>
 
-static std::string_view chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-
-
 std::string_view server_key = R"(
 -----BEGIN RSA PRIVATE KEY-----
 Proc-Type: 4,ENCRYPTED
@@ -458,7 +455,7 @@ void rate_limit_test()
 
 				fn();
 			}
-		}).bind_recv([&client](std::string_view data)
+		}).bind_recv([](std::string_view data)
 		{
 			asio2::ignore_unused(data);
 		});
@@ -557,7 +554,7 @@ void rate_limit_test()
 
 				fn();
 			}
-		}).bind_recv([&client](std::string_view data)
+		}).bind_recv([](std::string_view data)
 		{
 			asio2::ignore_unused(data);
 		});
