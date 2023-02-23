@@ -212,7 +212,11 @@ namespace asio2
 		 */
 		inline std::size_t get_pool_size() noexcept
 		{
+			// is std container.size() thread safety ?
+			// @see: the size() function in file: /asio2/base/session_mgr.hpp
+
 			std::unique_lock<std::mutex> lock(this->mtx_);
+
 			return this->workers_.size();
 		}
 

@@ -118,9 +118,7 @@ namespace asio2::detail
 			asio::dispatch(this->derived().io().context(), make_allocator(this->derived().wallocator(),
 			[this, this_ptr]() mutable
 			{
-				asio2::unique_locker lock{ this->get_mutex()};
-
-				this->mqtt_sessions().clear();
+				this->mqtt_sessions().clear_mqtt_sessions();
 			}));
 
 			super::_post_stop(ec, std::move(this_ptr), old_state);
@@ -158,7 +156,6 @@ namespace asio2::detail
 			return p;
 		}
 
-		inline auto& get_mutex        () noexcept { return this->broker_state_.mutex_            ; }
 		inline auto& invoker          () noexcept { return this->broker_state_.invoker_          ; }
 		inline auto& mqtt_sessions    () noexcept { return this->broker_state_.mqtt_sessions_    ; }
 		inline auto& subs_map         () noexcept { return this->broker_state_.subs_map_         ; }

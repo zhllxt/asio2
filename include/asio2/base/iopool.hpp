@@ -1074,19 +1074,28 @@ namespace asio2::detail
 		 */
 		virtual void stop() override
 		{
-			asio2::unique_locker guard(this->mutex_);
-
-			if (this->stopped_)
-				return;
-
-			// wiat fo all pending events completed.
-			for (auto& iot : this->iots_)
 			{
-				while (iot->pending() > std::size_t(0))
-					std::this_thread::sleep_for(std::chrono::milliseconds(0));
+				asio2::shared_locker guard(this->mutex_);
+
+				if (this->stopped_)
+					return;
+
+				// wiat fo all pending events completed.
+				for (auto& iot : this->iots_)
+				{
+					while (iot->pending() > std::size_t(0))
+						std::this_thread::sleep_for(std::chrono::milliseconds(0));
+				}
 			}
 
-			this->stopped_ = true;
+			{
+				asio2::unique_locker guard(this->mutex_);
+
+				if (this->stopped_)
+					return;
+
+				this->stopped_ = true;
+			}
 		}
 
 		/**
@@ -1279,12 +1288,7 @@ namespace asio2::detail
 			std::promise<error_code> promise;
 			std::future<error_code> future = promise.get_future();
 
-			io_t* iot = nullptr;
-
-			{
-				asio2::shared_locker guard(this->mutex_);
-				iot = this->iots_[0];
-			}
+			io_t* iot = this->iots_[0];
 
 			// We must use asio::post to ensure the wait_stop_timer_ is read write in the 
 			// same thread.
@@ -1332,14 +1336,7 @@ namespace asio2::detail
 
 			clear_last_error();
 
-			io_t* iot = nullptr;
-
-			{
-				asio2::shared_locker guard(this->mutex_);
-				iot = this->iots_[0];
-			}
-
-			asio::steady_timer timer(iot->context());
+			asio::steady_timer timer(this->iots_[0]->context());
 			timer.expires_after(rel_time);
 			timer.wait(get_last_error());
 		}
@@ -1360,14 +1357,7 @@ namespace asio2::detail
 
 			clear_last_error();
 
-			io_t* iot = nullptr;
-
-			{
-				asio2::shared_locker guard(this->mutex_);
-				iot = this->iots_[0];
-			}
-
-			asio::steady_timer timer(iot->context());
+			asio::steady_timer timer(this->iots_[0]->context());
 			timer.expires_at(abs_time);
 			timer.wait(get_last_error());
 		}
@@ -1388,15 +1378,8 @@ namespace asio2::detail
 
 			clear_last_error();
 
-			io_t* iot = nullptr;
-
-			{
-				asio2::shared_locker guard(this->mutex_);
-				iot = this->iots_[0];
-			}
-
 			// note: The variable name signals will conflict with the macro signals of qt
-			asio::signal_set signalset(iot->context());
+			asio::signal_set signalset(this->iots_[0]->context());
 
 			(signalset.add(signal_number), ...);
 
@@ -1419,11 +1402,10 @@ namespace asio2::detail
 	protected:
 		inline io_t& _get_io(std::size_t index = static_cast<std::size_t>(-1)) noexcept
 		{
-			asio2::shared_locker guard(this->mutex_);
 			ASIO2_ASSERT(!iots_.empty());
 			std::size_t n = (index == static_cast<std::size_t>(-1) ?
 				((++(this->next_)) % this->iots_.size()) : (index % this->iots_.size()));
-			return *(iots_[n]);
+			return *(this->iots_[n]);
 		}
 
 		inline bool is_iopool_stopped() noexcept
@@ -1442,8 +1424,6 @@ namespace asio2::detail
 			// init thread at here first.
 			if (ret)
 			{
-				asio2::shared_locker guard(this->mutex_);
-
 				for (io_t* iot : this->iots_)
 				{
 					asio::dispatch(iot->context(), [iot]() mutable
@@ -1463,12 +1443,7 @@ namespace asio2::detail
 
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			io_t* iot = nullptr;
-
-			{
-				asio2::shared_locker guard(this->mutex_);
-				iot = this->iots_[0];
-			}
+			io_t* iot = this->iots_[0];
 
 			// if the server's or client's iopool is user_iopool, and when the server.stop 
 			// or client.stop is called, we need notify the timer to cancel for the function
@@ -1491,14 +1466,11 @@ namespace asio2::detail
 		}
 
 	protected:
-		/// 
-		mutable asio2::shared_mutexer            mutex_;
-
 		/// the io_context pool for socket event
 		std::unique_ptr<iopool_base>             iopool_;
 
 		/// Use a copy to avoid calling the virtual function "iopool_base::get"
-		std::vector<io_t*>                       iots_ ASIO2_GUARDED_BY(mutex_);
+		std::vector<io_t*>                       iots_;
 
 		/// The next io_context to use for a connection. 
 		std::size_t                              next_;

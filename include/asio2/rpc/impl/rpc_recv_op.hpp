@@ -102,7 +102,7 @@ namespace asio2::detail
 				head.type(rpc_type_rep);
 				sr.reset();
 				sr << head;
-				auto* fn = derive._invoker().find(head.name());
+				auto fn = derive._invoker().find(head.name());
 				if (fn)
 				{
 					// async - return true, sync - return false

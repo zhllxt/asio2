@@ -186,15 +186,11 @@ namespace asio2::detail
 
 		inline void remove_subscribed_topic(std::string_view topic_filter)
 		{
-			asio2::unique_locker lock{ this->get_mutex() };
-
 			this->subs_map().erase(topic_filter, this->client_id());
 		}
 
 		inline void remove_all_subscribed_topic()
 		{
-			asio2::unique_locker lock{ this->get_mutex() };
-
 			this->subs_map().erase(this->client_id());
 		}
 
@@ -322,22 +318,11 @@ namespace asio2::detail
 		template<typename DeferEvent>
 		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr, DeferEvent chain)
 		{
-			{
-				asio2::unique_locker lock{ this->get_mutex() };
+			std::string_view clientid = this->client_id();
 
-				std::string_view id = this->client_id();
+			this->subs_map().erase(clientid);
 
-				this->subs_map().erase(id);
-
-				auto iter = this->mqtt_sessions().find(id);
-				if (iter != this->mqtt_sessions().end())
-				{
-					if (iter->second.get() == this)
-					{
-						this->mqtt_sessions().erase(id);
-					}
-				}
-			}
+			this->mqtt_sessions().erase_mqtt_session(clientid, static_cast<derived_t*>(this));
 
 			super::_handle_disconnect(ec, std::move(this_ptr), std::move(chain));
 		}
@@ -379,7 +364,6 @@ namespace asio2::detail
 			}
 		}
 
-		inline auto& get_mutex        () noexcept { return this->broker_state_.mutex_            ; }
 		inline auto& invoker          () noexcept { return this->broker_state_.invoker_          ; }
 		inline auto& mqtt_sessions    () noexcept { return this->broker_state_.mqtt_sessions_    ; }
 		inline auto& subs_map         () noexcept { return this->broker_state_.subs_map_         ; }

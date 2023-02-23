@@ -687,12 +687,7 @@ namespace asio2::detail
 			}
 		}
 
-		inline asio2::shared_mutexer& get_mutex() noexcept { return this->mutex_; }
-
 	protected:
-		/// use rwlock to make this session map thread safe
-		mutable asio2::shared_mutexer  mutex_;
-
 		/// Should we set a default mqtt version to v4, default client id to a uuid string ?
 		mqtt::message                  connect_message_{/* mqtt::v4::connect{ asio2::uuid().next().str() } */};
 

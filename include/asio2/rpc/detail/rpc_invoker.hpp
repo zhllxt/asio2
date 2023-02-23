@@ -212,6 +212,8 @@ namespace asio2::detail
 
 	public:
 		using self = rpc_invoker_t<caller_t, args_t>;
+		using fntype = std::function<
+			bool(std::shared_ptr<caller_t>&, caller_t*, rpc_serializer&, rpc_deserializer&)>;
 
 		/**
 		 * @brief constructor
@@ -285,16 +287,14 @@ namespace asio2::detail
 		/**
 		 * @brief find binded rpc function by name
 		 */
-		inline std::function<bool(std::shared_ptr<caller_t>&, caller_t*, rpc_serializer&, rpc_deserializer&)>*
-			find(std::string const& name)
+		inline std::shared_ptr<fntype> find(std::string const& name)
 		{
 		#if defined(ASIO2_ENABLE_RPC_INVOKER_THREAD_SAFE)
 			asio2::shared_locker guard(this->mutex_);
 		#endif
-			auto iter = this->invokers_.find(name);
-			if (iter == this->invokers_.end())
-				return nullptr;
-			return (std::addressof(iter->second));
+			if (auto iter = this->invokers_.find(name); iter != this->invokers_.end())
+				return iter->second;
+			return nullptr;
 		}
 
 	protected:
@@ -306,9 +306,9 @@ namespace asio2::detail
 		#if defined(ASIO2_ENABLE_RPC_INVOKER_THREAD_SAFE)
 			asio2::unique_locker guard(this->mutex_);
 		#endif
-			this->invokers_[std::move(name)] = std::bind(&self::template _proxy<F, dummy>,
+			this->invokers_[std::move(name)] = std::make_shared<fntype>(std::bind(&self::template _proxy<F, dummy>,
 				this, std::move(f), nullptr,
-				std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
+				std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
 		}
 
 		template<class F, class C>
@@ -317,9 +317,9 @@ namespace asio2::detail
 		#if defined(ASIO2_ENABLE_RPC_INVOKER_THREAD_SAFE)
 			asio2::unique_locker guard(this->mutex_);
 		#endif
-			this->invokers_[std::move(name)] = std::bind(&self::template _proxy<F, C>,
+			this->invokers_[std::move(name)] = std::make_shared<fntype>(std::bind(&self::template _proxy<F, C>,
 				this, std::move(f), std::addressof(c),
-				std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
+				std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
 		}
 
 		template<class F, class C>
@@ -328,9 +328,9 @@ namespace asio2::detail
 		#if defined(ASIO2_ENABLE_RPC_INVOKER_THREAD_SAFE)
 			asio2::unique_locker guard(this->mutex_);
 		#endif
-			this->invokers_[std::move(name)] = std::bind(&self::template _proxy<F, C>,
+			this->invokers_[std::move(name)] = std::make_shared<fntype>(std::bind(&self::template _proxy<F, C>,
 				this, std::move(f), c,
-				std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
+				std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
 		}
 
 		template<class F, class C>
@@ -568,11 +568,14 @@ namespace asio2::detail
 
 	protected:
 	#if defined(ASIO2_ENABLE_RPC_INVOKER_THREAD_SAFE)
-		mutable asio2::shared_mutexer               mutex_;
+		mutable asio2::shared_mutexer                            mutex_;
 	#endif
 
-		std::unordered_map<std::string, std::function<bool(
-			std::shared_ptr<caller_t>&, caller_t*, rpc_serializer&, rpc_deserializer&)>> invokers_;
+		std::unordered_map<std::string, std::shared_ptr<fntype>> invokers_
+	#if defined(ASIO2_ENABLE_RPC_INVOKER_THREAD_SAFE)
+			ASIO2_GUARDED_BY(mutex_)
+	#endif
+			;
 	};
 }
 

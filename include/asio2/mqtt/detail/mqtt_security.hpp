@@ -43,6 +43,8 @@
 #include <asio2/base/iopool.hpp>
 #include <asio2/util/string.hpp>
 
+#include <asio2/base/detail/shared_mutex.hpp>
+
 #if !defined(INCLUDE_NLOHMANN_JSON_HPP_) && !defined(NLOHMANN_JSON_HPP)
 #include <asio2/external/json.hpp>
 #endif
@@ -128,12 +130,16 @@ struct security
 	/** Return username of anonymous user */
 	std::optional<std::string> const& login_anonymous() const
 	{
+		asio2::shared_locker g(this->mutex_);
+
 		return this->anonymous_;
 	}
 
 	/** Return username of unauthorized user */
 	std::optional<std::string> const& login_unauthenticated() const
 	{
+		asio2::shared_locker g(this->mutex_);
+
 		return this->unauthenticated_;
 	}
 
@@ -170,6 +176,8 @@ struct security
 
 	bool login_cert(std::string_view username) const
 	{
+		asio2::shared_locker g(this->mutex_);
+
 		auto i = authentication_.find(std::string(username));
 		return
 			i != authentication_.end() &&
@@ -178,6 +186,8 @@ struct security
 
 	std::optional<std::string> login(std::string_view username, std::string_view password) const
 	{
+		asio2::shared_locker g(this->mutex_);
+
 		auto i = authentication_.find(std::string(username));
 		if (i != authentication_.end() &&
 			i->second.auth_method == security::authentication::method::sha256)
@@ -237,23 +247,22 @@ struct security
 
 	std::size_t get_next_rule_nr() const
 	{
-		std::size_t rule_nr = 0;
-		for (auto const& i : authorization_)
-		{
-			rule_nr = (std::max)(rule_nr, i.rule_nr);
-		}
-		return rule_nr + 1;
+		asio2::shared_locker g(this->mutex_);
+
+		return this->get_next_rule_nr_impl();
 	}
 
 	void default_config()
 	{
+		asio2::unique_locker g(this->mutex_);
+
 		char const* username = "anonymous";
 		authentication login(authentication::method::anonymous);
 		authentication_.emplace(username, login);
 		anonymous_ = username;
 
 		char const* topic = "#";
-		authorization auth(topic, get_next_rule_nr());
+		authorization auth(topic, get_next_rule_nr_impl());
 		auth.topic_tokens = get_topic_filter_tokens("#");
 		auth.sub_type = authorization::type::allow;
 		auth.sub.emplace(username);
@@ -274,6 +283,8 @@ struct security
         authorization::type auth_sub_type
     )
     {
+		asio2::unique_locker g(this->mutex_);
+
         for(auto const& j : pub)
         {
             if (!is_valid_user_name(j) && !is_valid_group_name(j))
@@ -296,7 +307,7 @@ struct security
             validate_entry("topic " + topic_filter, j);
         }
 
-        std::size_t rule_nr = get_next_rule_nr();
+        std::size_t rule_nr = get_next_rule_nr_impl();
         authorization auth(topic_filter, rule_nr);
         auth.topic_tokens = get_topic_filter_tokens(topic_filter);
         auth.pub = pub;
@@ -327,6 +338,8 @@ struct security
 
 	void remove_auth(std::size_t rule_nr)
 	{
+		asio2::unique_locker g(this->mutex_);
+
 		for (auto i = authorization_.begin(); i != authorization_.end(); ++i)
 		{
 			if (i->rule_nr == rule_nr)
@@ -348,18 +361,24 @@ struct security
 
 	void add_sha256_authentication(std::string username, std::string digest, std::string salt)
 	{
+		asio2::unique_locker g(this->mutex_);
+
 		authentication auth(authentication::method::sha256, std::move(digest), std::move(salt));
 		authentication_.emplace(std::move(username), std::move(auth));
 	}
 
 	void add_plain_password_authentication(std::string username, std::string password)
 	{
+		asio2::unique_locker g(this->mutex_);
+
 		authentication auth(authentication::method::plain_password, std::move(password));
 		authentication_.emplace(std::move(username), std::move(auth));
 	}
 
 	void add_certificate_authentication(std::string username)
 	{
+		asio2::unique_locker g(this->mutex_);
+
 		authentication auth(authentication::method::client_cert);
 		authentication_.emplace(std::move(username), std::move(auth));
 	}
@@ -370,6 +389,8 @@ struct security
 
 		json j;
 		input >> j;
+
+		asio2::unique_locker g(this->mutex_);
 
 		groups_.emplace(std::string(any_group_name), group());
 
@@ -537,7 +558,7 @@ struct security
 					continue;
 				}
 
-				authorization auth(name, get_next_rule_nr());
+				authorization auth(name, get_next_rule_nr_impl());
 				auth.topic_tokens = get_topic_filter_tokens(name);
 
 				if (auto& j_allow = i["allow"]; j_allow.is_object())
@@ -604,6 +625,8 @@ struct security
 		std::set<std::string> username_and_groups;
 		username_and_groups.insert(std::string(username));
 
+		asio2::shared_locker g(this->mutex_);
+
 		for (auto const& i : groups_)
 		{
 			if (i.first == any_group_name ||
@@ -649,6 +672,8 @@ struct security
 
 		std::set<std::string> username_and_groups;
 		username_and_groups.insert(std::string(username));
+
+		asio2::shared_locker g(this->mutex_);
 
 		for (auto const& i : groups_)
 		{
@@ -702,6 +727,8 @@ struct security
 		auto it = result.find(username);
 		if (it != result.end())
 			return it->second;
+
+		asio2::shared_locker g(this->mutex_);
 
 		for (auto& [k, v] : groups_)
 		{
@@ -920,15 +947,18 @@ struct security
 	inline bool enabled() const noexcept { return enabled_; }
 	inline void enabled(bool v) noexcept { enabled_ = v; }
 
+	/// use rwlock to make thread safe
+	mutable asio2::shared_mutexer  mutex_;
+
 	bool enabled_ = true;
 
-	std::map<std::string, authentication> authentication_;
-	std::map<std::string, group> groups_;
+	std::map<std::string, authentication> authentication_ ASIO2_GUARDED_BY(mutex_);
+	std::map<std::string, group         > groups_         ASIO2_GUARDED_BY(mutex_);
 
-	std::vector<authorization> authorization_;
+	std::vector<authorization> authorization_   ASIO2_GUARDED_BY(mutex_);
 
-	std::optional<std::string> anonymous_;
-	std::optional<std::string> unauthenticated_;
+	std::optional<std::string> anonymous_       ASIO2_GUARDED_BY(mutex_);
+	std::optional<std::string> unauthenticated_ ASIO2_GUARDED_BY(mutex_);
 
 	using auth_map_type = subscription_map<std::string, std::pair<authorization::type, std::size_t>>;
 
@@ -936,7 +966,17 @@ struct security
 	auth_map_type auth_sub_map_;
 
 protected:
-	void validate_entry(std::string const& context, std::string const& name) const
+	std::size_t get_next_rule_nr_impl() const ASIO2_NO_THREAD_SAFETY_ANALYSIS
+	{
+		std::size_t rule_nr = 0;
+		for (auto const& i : authorization_)
+		{
+			rule_nr = (std::max)(rule_nr, i.rule_nr);
+		}
+		return rule_nr + 1;
+	}
+
+	void validate_entry(std::string const& context, std::string const& name) const ASIO2_NO_THREAD_SAFETY_ANALYSIS
 	{
 		if (is_valid_group_name(name) && groups_.find(name) == groups_.end())
 		{
@@ -948,7 +988,7 @@ protected:
 		}
 	}
 
-	void validate()
+	void validate() ASIO2_NO_THREAD_SAFETY_ANALYSIS
 	{
 		for (auto const& i : groups_)
 		{

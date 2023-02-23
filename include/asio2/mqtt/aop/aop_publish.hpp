@@ -32,7 +32,7 @@ namespace asio2::detail
 	protected:
 		template<class Message>
 		inline void _do_check_publish_topic_alias(
-			error_code& ec, caller_t* caller, Message& msg, std::string_view& topic_name)
+			error_code& ec, caller_t* caller, Message& msg, std::string& topic_name)
 		{
 			// << topic_alias >>
 			// A Topic Alias of 0 is not permitted. A sender MUST NOT send a PUBLISH packet containing a Topic Alias
@@ -70,7 +70,7 @@ namespace asio2::detail
 
 		template<class Message>
 		inline void _check_publish_topic_alias(
-			error_code& ec, caller_t* caller, Message& msg, std::string_view& topic_name)
+			error_code& ec, caller_t* caller, Message& msg, std::string& topic_name)
 		{
 			using message_type = typename detail::remove_cvref_t<Message>;
 
@@ -148,7 +148,7 @@ namespace asio2::detail
 				return;
 			}
 
-			std::string_view topic_name = msg.topic_name();
+			std::string topic_name{ msg.topic_name() };
 
 			// must first determine whether topic_name is empty, beacuse v5::publish's topic_name maybe empty.
 			if (!topic_name.empty())
@@ -213,7 +213,7 @@ namespace asio2::detail
 				std::ignore = true;
 			}
 
-			_multicast_publish(caller_ptr, caller, msg, std::string(topic_name));
+			_multicast_publish(caller_ptr, caller, msg, std::move(topic_name));
 		}
 
 		template<class Message, bool IsClient = args_t::is_client>
@@ -258,59 +258,55 @@ namespace asio2::detail
 			using message_type [[maybe_unused]] = typename detail::remove_cvref_t<Message>;
 
 			//                  share_name   topic_filter
-			std::set<std::tuple<std::string_view, std::string_view>> sent;
+			std::set<std::tuple<std::string, std::string>> sent;
 
 			if (topic_name.empty())
 				topic_name = msg.topic_name();
 
 			ASIO2_ASSERT(!topic_name.empty());
 
+			caller->subs_map().match(topic_name,
+			[this, caller, &msg, &sent](std::string_view key, auto& node) mutable
 			{
-				asio2::shared_locker lock{ caller->get_mutex() };
+				detail::ignore_unused(this, key);
 
-				caller->subs_map().match(topic_name,
-				[this, caller, &msg, &sent](std::string_view key, auto& node) mutable
+				mqtt::subscription& sub = node.sub;
+
+				std::string_view share_name   = sub.share_name();
+				std::string_view topic_filter = sub.topic_filter();
+
+				if (share_name.empty())
 				{
-					detail::ignore_unused(this, key);
+					// Non shared subscriptions
 
-					mqtt::subscription& sub = node.sub;
+					auto session_ptr = node.caller.lock();
 
-					std::string_view share_name   = sub.share_name();
-					std::string_view topic_filter = sub.topic_filter();
+					if (!session_ptr)
+						return;
 
-					if (share_name.empty())
+					// If NL (no local) subscription option is set and
+					// publisher is the same as subscriber, then skip it.
+					if (sub.no_local() && session_ptr->hash_key() == caller->hash_key())
+						return;
+
+					// send message
+					_send_publish_to_subscriber(std::move(session_ptr), node.sub, node.props, msg);
+				}
+				else
+				{
+					// Shared subscriptions
+					bool inserted;
+					std::tie(std::ignore, inserted) = sent.emplace(share_name, topic_filter);
+					if (inserted)
 					{
-						// Non shared subscriptions
-
-						auto session_ptr = node.caller.lock();
-
-						if (!session_ptr)
-							return;
-
-						// If NL (no local) subscription option is set and
-						// publisher is the same as subscriber, then skip it.
-						if (sub.no_local() && session_ptr->hash_key() == caller->hash_key())
-							return;
-
-						// send message
-						_send_publish_to_subscriber(std::move(session_ptr), node.sub, node.props, msg);
-					}
-					else
-					{
-						// Shared subscriptions
-						bool inserted;
-						std::tie(std::ignore, inserted) = sent.emplace(share_name, topic_filter);
-						if (inserted)
+						auto session_ptr = caller->shared_targets().get_target(share_name, topic_filter);
+						if (session_ptr)
 						{
-							auto session_ptr = caller->shared_targets().get_target(share_name, topic_filter);
-							if (session_ptr)
-							{
-								_send_publish_to_subscriber(std::move(session_ptr), node.sub, node.props, msg);
-							}
+							_send_publish_to_subscriber(std::move(session_ptr), node.sub, node.props, msg);
 						}
 					}
-				});
-			}
+				}
+			});
 
 			if (msg.retain())
 			{
@@ -664,7 +660,7 @@ namespace asio2::detail
 			using message_type  [[maybe_unused]] = typename detail::remove_cvref_t<Message>;
 			using response_type [[maybe_unused]] = typename detail::remove_cvref_t<Response>;
 
-			[[maybe_unused]] std::string_view topic_name = msg.topic_name();
+			[[maybe_unused]] std::string topic_name{ msg.topic_name() };
 
 			// << topic_alias >>
 			// A Topic Alias of 0 is not permitted. A sender MUST NOT send a PUBLISH packet containing a Topic Alias

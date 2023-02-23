@@ -22,6 +22,7 @@
 
 #include <asio2/base/detail/function_traits.hpp>
 #include <asio2/base/detail/util.hpp>
+#include <asio2/base/detail/shared_mutex.hpp>
 
 #include <asio2/mqtt/detail/mqtt_topic_util.hpp>
 
@@ -35,6 +36,17 @@ namespace asio2::detail
 	ASIO2_CLASS_FORWARD_DECLARE_TCP_SESSION;
 	ASIO2_CLASS_FORWARD_DECLARE_TCP_CLIENT;
 
+	/**
+	 * used for:
+	 * 
+	 * bool ret = client.subscribe("/usr/topic1", 0, [](mqtt::message& msg){});
+	 * util recvd the suback message, then the ret is true.
+	 * 
+	 * bool ret = client.publish("/usr/topic1", "...payload...", 0); 
+	 * util recvd the puback message, then the ret is true.
+	 * 
+	 * and so on...
+	 */
 	template<class derived_t, class args_t>
 	class mqtt_message_router_t
 	{
@@ -144,6 +156,8 @@ namespace asio2::detail
 			using arg0_type = typename std::remove_cv_t<std::remove_reference_t<
 				typename fun_traits_type::template args<0>::type>>;
 
+			asio2::unique_locker g(this->mutex_);
+
 			if constexpr (std::is_same_v<arg0_type, mqtt::message>)
 			{
 				auto[_1, inserted] = this->message_router_.insert_or_assign(std::move(key),
@@ -221,6 +235,8 @@ namespace asio2::detail
 
 			derive.dispatch([this, key = std::move(key)]() mutable
 			{
+				asio2::unique_locker g(this->mutex_);
+
 				this->message_router_.erase(key);
 			});
 		}
@@ -243,6 +259,8 @@ namespace asio2::detail
 
 			derive.dispatch([this, msg, key = std::move(key)]() mutable
 			{
+				asio2::unique_locker g(this->mutex_);
+
 				auto it = this->message_router_.find(key);
 				if (it == this->message_router_.end())
 					return;
@@ -320,8 +338,11 @@ namespace asio2::detail
 		}
 
 	protected:
+		/// use rwlock to make thread safe
+		mutable asio2::shared_mutexer                  mutex_;
+
 		/// router map, key - pair<mqtt::control_packet_type, packet id>
-		std::unordered_map<key_type, val_type, hasher> message_router_;
+		std::unordered_map<key_type, val_type, hasher> message_router_ ASIO2_GUARDED_BY(mutex_);
 	};
 }
 

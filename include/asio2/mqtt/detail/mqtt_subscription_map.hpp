@@ -30,6 +30,7 @@
 
 #include <asio2/base/error.hpp>
 #include <asio2/base/detail/util.hpp>
+#include <asio2/base/detail/shared_mutex.hpp>
 
 #include <asio2/mqtt/detail/mqtt_topic_util.hpp>
 
@@ -62,7 +63,7 @@ namespace asio2::mqtt
 		struct node
 		{
 			std::size_t        id;
-			std::size_t        count = 0;
+			std::size_t        count = 1;
 			bool               has_plus = false;
 			bool               has_hash = false;
 			key_type           parent;
@@ -93,131 +94,10 @@ namespace asio2::mqtt
 			map_.emplace(root_key_, node(this->root_node_id_, root_key_, ""));
 		}
 
-		inline map_iterator       get_root()       { return map_.find(root_key_); };
-		inline map_const_iterator get_root() const { return map_.find(root_key_); };
-
 		// Return the number of registered topic filters
-		inline std::size_t get_subscribe_count() const { return this->subscribe_count_; }
-
-		std::vector<map_iterator> find(std::string_view topic_filter)
+		inline std::size_t get_subscribe_count() const
 		{
-			std::size_t id = this->get_root()->second.id;
-
-			std::vector<map_iterator> iters;
-
-			topic_filter_tokenizer(topic_filter, [this, &iters, &id](std::string_view t) mutable
-			{
-				auto it = map_.find(key_type(id, t));
-
-				if (it == map_.end())
-				{
-					iters.clear();
-					return false;
-				}
-
-				id = it->second.id;
-				iters.emplace_back(std::move(it));
-				return true;
-			});
-
-			return iters;
-		}
-
-		std::optional<key_type> lookup(std::string_view topic_filter)
-		{
-			std::vector<map_iterator> iters = this->find(topic_filter);
-
-			if (iters.empty())
-				return std::nullopt;
-			else
-				return iters.back()->first;
-		}
-
-		std::vector<map_iterator> emplace(std::string_view topic_filter)
-		{
-			map_iterator parent = this->get_root();
-
-			std::vector<map_iterator> iters;
-
-			topic_filter_tokenizer(topic_filter, [this, &parent, &iters](std::string_view t) mutable
-			{
-				node& pn = parent->second;
-
-				auto it = map_.find(key_type(pn.id, t));
-
-				if (it == map_.end())
-				{
-					node     val{ idmgr_.get(), parent->first, t };
-					key_type key{ pn.id, val.tokenize_view() };
-
-					it = map_.emplace(std::move(key), std::move(val)).first;
-
-					pn.has_plus |= (t == "+");
-					pn.has_hash |= (t == "#");
-				}
-				else
-				{
-					it->second.count++;
-				}
-
-				iters.emplace_back(it);
-				parent = std::move(it);
-				return true;
-			});
-
-			return iters;
-		}
-
-		void erase(std::vector<map_iterator>& iters)
-		{
-			bool remove_plus_flag = false;
-			bool remove_hash_flag = false;
-
-			std::reverse(iters.begin(), iters.end());
-
-			for (map_iterator& it : iters)
-			{
-				node& n = it->second;
-
-				if (remove_plus_flag)
-				{
-					n.has_plus = false;
-					remove_plus_flag = false;
-				}
-
-				if (remove_hash_flag)
-				{
-					n.has_hash = false;
-					remove_hash_flag = false;
-				}
-
-				n.count--;
-
-				if (n.count == 0)
-				{
-					remove_plus_flag = (it->first.second == "+");
-					remove_hash_flag = (it->first.second == "#");
-
-					this->idmgr_.release(it->second.id);
-
-					// std::unordered_map<Key,T,Hash,KeyEqual,Allocator>::erase
-					// References and iterators to the erased elements are invalidated.
-					// Other iterators and references are not invalidated.
-					map_.erase(it);
-				}
-			}
-
-			map_iterator root = this->get_root();
-
-			if (remove_plus_flag)
-			{
-				root->second.has_plus = false;
-			}
-
-			if (remove_hash_flag)
-			{
-				root->second.has_hash = false;
-			}
+			return this->subscribe_count_;
 		}
 
 		template<typename Function>
@@ -225,53 +105,13 @@ namespace asio2::mqtt
 		{
 			std::vector<map_iterator> iters;
 
+			asio2::shared_locker g(this->mutex_);
+
 			iters.emplace_back(this->get_root());
 
 			topic_filter_tokenizer(topic, [this, &iters, &callback](std::string_view t) mutable
 			{
-				std::vector<map_iterator> new_iters;
-
-				for (auto& it : iters)
-				{
-					node& pn = it->second;
-
-					auto i = this->map_.find(key_type(pn.id, t));
-					if (i != this->map_.end())
-					{
-						new_iters.emplace_back(i);
-					}
-
-					if (pn.has_plus)
-					{
-						i = this->map_.find(key_type(pn.id, std::string_view("+")));
-						if (i != this->map_.end())
-						{
-							if (pn.id != this->root_node_id_ || t.empty() || t[0] != '$')
-							{
-								new_iters.emplace_back(i);
-							}
-						}
-					}
-
-					if (pn.has_hash)
-					{
-						i = this->map_.find(key_type(pn.id, std::string_view("#")));
-						if (i != this->map_.end())
-						{
-							if (pn.id != this->root_node_id_ || t.empty() || t[0] != '$')
-							{
-								for (auto&[k, v] : i->second.subscribers)
-								{
-									callback(k, v);
-								}
-							}
-						}
-					}
-				}
-
-				std::swap(iters, new_iters);
-
-				return !iters.empty();
+				return this->match_subfun(iters, callback, t);
 			});
 
 			for (auto& it : iters)
@@ -283,62 +123,14 @@ namespace asio2::mqtt
 			}
 		}
 
-		template<typename Function>
-		void handle_to_iterators(key_type const& h, Function&& callback)
-		{
-			key_type k = h;
-			while (k != this->root_key_)
-			{
-				auto it = this->map_.find(k);
-				if (it == this->map_.end())
-				{
-					return;
-				}
-
-				callback(it);
-
-				k = it->second.parent;
-			}
-		}
-
-		inline std::vector<map_iterator> handle_to_iterators(key_type const& h)
-		{
-			std::vector<map_iterator> iters;
-			this->handle_to_iterators(h, [&iters](map_iterator it) mutable
-			{
-				iters.emplace_back(it);
-			});
-			std::reverse(iters.begin(), iters.end());
-			return iters;
-		}
-
-		// Get path of topic_filter
-		std::string handle_to_topic_filter(key_type const& h) const
-		{
-			std::string result;
-
-			handle_to_iterators(h, [&result](map_iterator it) mutable
-			{
-				if (result.empty())
-				{
-					result = std::string(it->first.second);
-				}
-				else
-				{
-					result.insert(0, "/");
-					result.insert(0, it->first.second);
-				}
-			});
-
-			return result;
-		}
-
 		// Insert a key => value at the specified topic filter
 		// returns the handle and true if key was inserted, false if key was updated
 		template <typename K, typename V>
 		std::pair<key_type, bool> insert_or_assign(std::string_view topic_filter, K&& key, V&& val)
 		{
-			auto iters = this->find(topic_filter);
+			asio2::unique_locker g(this->mutex_);
+
+			std::vector<map_iterator> iters = this->get_nodes_by_topic_filter(topic_filter);
 			if (iters.empty())
 			{
 				iters = this->emplace(topic_filter);
@@ -376,6 +168,8 @@ namespace asio2::mqtt
 		template <typename K, typename V>
 		std::pair<key_type, bool> insert_or_assign(key_type const& h, K&& key, V&& val)
 		{
+			asio2::unique_locker g(this->mutex_);
+
 			auto it = this->map_.find(h);
 			if (it == this->map_.end())
 			{
@@ -402,6 +196,8 @@ namespace asio2::mqtt
 		// returns the number of removed elements
 		std::size_t erase(key_type const& h, Key const& key)
 		{
+			asio2::unique_locker g(this->mutex_);
+
 			auto it = this->map_.find(h);
 			if (it == this->map_.end())
 			{
@@ -424,7 +220,9 @@ namespace asio2::mqtt
 		// returns the number of removed elements
 		std::size_t erase(std::string_view topic_filter, Key const& key)
 		{
-			auto iters = this->find(topic_filter);
+			asio2::unique_locker g(this->mutex_);
+
+			std::vector<map_iterator> iters = this->get_nodes_by_topic_filter(topic_filter);
 			if (iters.empty())
 			{
 				return 0;
@@ -445,6 +243,8 @@ namespace asio2::mqtt
 		// returns the number of removed elements
 		std::size_t erase(Key const& key)
 		{
+			asio2::unique_locker g(this->mutex_);
+
 			auto iter = this->subscriber_nodes_.find(key);
 			if (iter == this->subscriber_nodes_.end())
 				return 0;
@@ -474,6 +274,9 @@ namespace asio2::mqtt
 		}
 
 	protected:
+		inline map_iterator       get_root()       ASIO2_NO_THREAD_SAFETY_ANALYSIS { return map_.find(root_key_); };
+		inline map_const_iterator get_root() const ASIO2_NO_THREAD_SAFETY_ANALYSIS { return map_.find(root_key_); };
+
 		// Increase the map size (total number of subscriptions stored)
 		inline void increase_subscribe_count()
 		{
@@ -503,15 +306,119 @@ namespace asio2::mqtt
 				i->second.count++;
 			}
 		}
+		std::optional<key_type> lookup(std::string_view topic_filter)
+		{
+			std::vector<map_iterator> iters = this->get_nodes_by_topic_filter(topic_filter);
+
+			if (iters.empty())
+				return std::nullopt;
+			else
+				return iters.back()->first;
+		}
+
+		std::vector<map_iterator> emplace(std::string_view topic_filter) ASIO2_NO_THREAD_SAFETY_ANALYSIS
+		{
+			map_iterator parent = this->get_root();
+
+			std::vector<map_iterator> iters;
+
+			topic_filter_tokenizer(topic_filter, [this, &iters, &parent](std::string_view t) mutable
+			{
+				return emplace_subfun(iters, parent, t);
+			});
+
+			return iters;
+		}
+
+		inline bool emplace_subfun(std::vector<map_iterator>& iters, map_iterator& parent, std::string_view t)
+			ASIO2_NO_THREAD_SAFETY_ANALYSIS
+		{
+			node& pn = parent->second;
+
+			auto it = map_.find(key_type(pn.id, t));
+
+			if (it == map_.end())
+			{
+				node     val{ idmgr_.get(), parent->first, t };
+				key_type key{ pn.id, val.tokenize_view() };
+
+				it = map_.emplace(std::move(key), std::move(val)).first;
+
+				pn.has_plus |= (t == "+");
+				pn.has_hash |= (t == "#");
+			}
+			else
+			{
+				it->second.count++;
+			}
+
+			iters.emplace_back(it);
+			parent = std::move(it);
+			return true;
+		}
+
+		void erase(std::vector<map_iterator>& iters) ASIO2_NO_THREAD_SAFETY_ANALYSIS
+		{
+			bool remove_plus_flag = false;
+			bool remove_hash_flag = false;
+
+			std::reverse(iters.begin(), iters.end());
+
+			for (map_iterator& it : iters)
+			{
+				node& n = it->second;
+
+				if (remove_plus_flag)
+				{
+					n.has_plus = false;
+					remove_plus_flag = false;
+				}
+
+				if (remove_hash_flag)
+				{
+					n.has_hash = false;
+					remove_hash_flag = false;
+				}
+
+				ASIO2_ASSERT(n.count > 0);
+
+				n.count--;
+
+				if (n.count == 0)
+				{
+					remove_plus_flag = (it->first.second == "+");
+					remove_hash_flag = (it->first.second == "#");
+
+					this->idmgr_.release(it->second.id);
+
+					// std::unordered_map<Key,T,Hash,KeyEqual,Allocator>::erase
+					// References and iterators to the erased elements are invalidated.
+					// Other iterators and references are not invalidated.
+					map_.erase(it);
+				}
+			}
+
+			map_iterator root = this->get_root();
+
+			if (remove_plus_flag)
+			{
+				root->second.has_plus = false;
+			}
+
+			if (remove_hash_flag)
+			{
+				root->second.has_hash = false;
+			}
+		}
 
 		template <typename K>
-		inline void emplace_subscriber_node(K&& key, key_type node_key)
+		inline void emplace_subscriber_node(K&& key, key_type node_key) ASIO2_NO_THREAD_SAFETY_ANALYSIS
 		{
 			std::unordered_set<key_type, hasher>& node_keys = this->subscriber_nodes_[key];
 			node_keys.emplace(std::move(node_key));
 		}
 
-		inline void erase_subscriber_node(const Key& key, const key_type& node_key)
+		inline void erase_subscriber_node(const Key& key, const key_type& node_key) ASIO2_NO_THREAD_SAFETY_ANALYSIS
 		{
 			std::unordered_set<key_type, hasher>& node_keys = this->subscriber_nodes_[key];
 			node_keys.erase(node_key);
@@ -521,18 +428,151 @@ namespace asio2::mqtt
 			}
 		}
 
+		std::vector<map_iterator> get_nodes_by_topic_filter(std::string_view topic_filter)
+			ASIO2_NO_THREAD_SAFETY_ANALYSIS
+		{
+			std::size_t id = this->get_root()->second.id;
+
+			std::vector<map_iterator> iters;
+
+			topic_filter_tokenizer(topic_filter, [this, &iters, &id](std::string_view t) mutable
+			{
+				return this->get_nodes_by_topic_filter_subfun(iters, id, t);
+			});
+
+			return iters;
+		}
+
+		inline bool get_nodes_by_topic_filter_subfun(
+			std::vector<map_iterator>& iters, std::size_t& id, std::string_view t) ASIO2_NO_THREAD_SAFETY_ANALYSIS
+		{
+			auto it = map_.find(key_type(id, t));
+
+			if (it == map_.end())
+			{
+				iters.clear();
+				return false;
+			}
+
+			id = it->second.id;
+			iters.emplace_back(it);
+			return true;
+		}
+
+		template<typename Function>
+		bool match_subfun(std::vector<map_iterator>& iters, Function& callback, std::string_view t)
+			ASIO2_NO_THREAD_SAFETY_ANALYSIS
+		{
+			std::vector<map_iterator> new_iters;
+
+			for (auto& it : iters)
+			{
+				node& pn = it->second;
+
+				auto i = this->map_.find(key_type(pn.id, t));
+				if (i != this->map_.end())
+				{
+					new_iters.emplace_back(i);
+				}
+
+				if (pn.has_plus)
+				{
+					i = this->map_.find(key_type(pn.id, std::string_view("+")));
+					if (i != this->map_.end())
+					{
+						if (pn.id != this->root_node_id_ || t.empty() || t[0] != '$')
+						{
+							new_iters.emplace_back(i);
+						}
+					}
+				}
+
+				if (pn.has_hash)
+				{
+					i = this->map_.find(key_type(pn.id, std::string_view("#")));
+					if (i != this->map_.end())
+					{
+						if (pn.id != this->root_node_id_ || t.empty() || t[0] != '$')
+						{
+							for (auto& [k, v] : i->second.subscribers)
+							{
+								callback(k, v);
+							}
+						}
+					}
+				}
+			}
+
+			std::swap(iters, new_iters);
+
+			return !iters.empty();
+		}
+
+		template<typename Function>
+		void handle_to_iterators(key_type const& h, Function&& callback) ASIO2_NO_THREAD_SAFETY_ANALYSIS
+		{
+			key_type k = h;
+			while (k != this->root_key_)
+			{
+				auto it = this->map_.find(k);
+				if (it == this->map_.end())
+				{
+					return;
+				}
+
+				callback(it);
+
+				k = it->second.parent;
+			}
+		}
+
+		inline std::vector<map_iterator> handle_to_iterators(key_type const& h) ASIO2_NO_THREAD_SAFETY_ANALYSIS
+		{
+			std::vector<map_iterator> iters;
+			this->handle_to_iterators(h, [&iters](map_iterator it) mutable
+			{
+				iters.emplace_back(it);
+			});
+			std::reverse(iters.begin(), iters.end());
+			return iters;
+		}
+
+		// Get path of topic_filter
+		std::string handle_to_topic_filter(key_type const& h) const ASIO2_NO_THREAD_SAFETY_ANALYSIS
+		{
+			std::string result;
+
+			handle_to_iterators(h, [&result](map_iterator it) mutable
+			{
+				if (result.empty())
+				{
+					result = std::string(it->first.second);
+				}
+				else
+				{
+					result.insert(0, "/");
+					result.insert(0, it->first.second);
+				}
+			});
+
+			return result;
+		}
+
 	protected:
 		static constexpr key_type                                     root_key_{ 0, "" };
 
+		/// use rwlock to make thread safe
+		mutable asio2::shared_mutexer                                 mutex_;
+
 		std::size_t                                                   root_node_id_ = 1;
 
-		map_type                                                      map_;
-
-		// Map size tracks the total number of subscriptions within the map
-		std::size_t                                                   subscribe_count_ = 0;
+		map_type                                                      map_              ASIO2_GUARDED_BY(mutex_);
 
 		// Key - client id, Val - all nodes keys for the subscriber
-		std::unordered_map<Key, std::unordered_set<key_type, hasher>> subscriber_nodes_;
+		std::unordered_map<Key, std::unordered_set<key_type, hasher>> subscriber_nodes_ ASIO2_GUARDED_BY(mutex_);
+
+		// Map size tracks the total number of subscriptions within the map
+		std::atomic<std::size_t>                                      subscribe_count_ = 0;
 
 		mqtt::idmgr<std::set<std::size_t>>                            idmgr_;
 	};

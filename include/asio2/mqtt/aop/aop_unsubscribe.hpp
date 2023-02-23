@@ -55,18 +55,7 @@ namespace asio2::detail
 					caller->shared_targets().erase(caller_ptr, share_name, topic_filter);
 				}
 
-				std::size_t removed = 0;
-
-				{
-					asio2::unique_locker lock{ caller->get_mutex() };
-
-					auto handle = caller->subs_map().lookup(topic_filter);
-					if (handle)
-					{
-						//handles_.erase(handle.value());
-						removed = caller->subs_map().erase(handle.value(), caller->client_id());
-					}
-				}
+				std::size_t removed = caller->subs_map().erase(topic_filter, caller->client_id());
 
 				// The Payload contains a list of Reason Codes.
 				// https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901194

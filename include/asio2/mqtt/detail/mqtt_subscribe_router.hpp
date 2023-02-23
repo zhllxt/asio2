@@ -41,6 +41,18 @@ namespace asio2::detail
 
 		using args_type = args_t;
 		using subnode_type = typename args_type::template subnode<derived_t>;
+		using key_type = typename mqtt_message_router_t<derived_t, args_t>::key_type;
+
+		struct hasher
+		{
+			inline std::size_t operator()(key_type const& pair) const noexcept
+			{
+				std::size_t v = asio2::detail::fnv1a_hash<std::size_t>(
+					(const unsigned char*)(std::addressof(pair.first)), sizeof(pair.first));
+				return asio2::detail::fnv1a_hash<std::size_t>(v,
+					(const unsigned char*)(std::addressof(pair.second)), sizeof(pair.second));
+			}
+		};
 
 		/**
 		 * @brief constructor
@@ -108,8 +120,6 @@ namespace asio2::detail
 		subscribe(Message&& msg, FunctionT&& callback)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
-
-			using key_type = typename mqtt_message_router_t<derived_t, args_t>::key_type;
 
 			if (!derive.is_started())
 			{
@@ -231,8 +241,6 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			using key_type = typename mqtt_message_router_t<derived_t, args_t>::key_type;
-
 			if (!derive.is_started())
 			{
 				set_last_error(asio::error::not_connected);
@@ -255,7 +263,23 @@ namespace asio2::detail
 
 			[[maybe_unused]] key_type key = { msg.packet_type(), msg.packet_id() };
 
-			derive.async_send(std::forward<Message>(msg));
+			// must ensure the member variable is read write in the io_context thread.
+			// save the subscribed key and topic filters, beacuse if the unsubscribed
+			// is sucussed, we need remove the topics from the sub map.
+			derive.dispatch([&derive, key, topics = msg.topic_filters()]() mutable
+			{
+				if (derive.subs_map().get_subscribe_count() > 0)
+					derive.unsubscribed_topics_.emplace(key, std::move(topics));
+			});
+
+			derive.async_send(std::forward<Message>(msg), [&derive, key]() mutable
+			{
+				// if send data failed, we need remove the added key and topics from the map.
+				if (asio2::get_last_error())
+				{
+					derive.unsubscribed_topics_.erase(key);
+				}
+			});
 
 			if (derive.io().running_in_this_thread())
 			{
@@ -346,8 +370,6 @@ namespace asio2::detail
 		publish(Message&& msg)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
-
-			using key_type = typename mqtt_message_router_t<derived_t, args_t>::key_type;
 
 			if (!derive.is_started())
 			{
@@ -627,7 +649,11 @@ namespace asio2::detail
 
 	protected:
 		/// subscription information map
-		mqtt::subscription_map<std::string_view, subnode_type> subs_map_;
+		mqtt::subscription_map<std::string_view, subnode_type>      subs_map_;
+
+		/// don't need mutex, beacuse client only has one thread, we use post to ensure this
+		/// variable was read write in the client io_context thread.
+		std::unordered_map<key_type, mqtt::utf8_string_set, hasher> unsubscribed_topics_;
 	};
 }
 

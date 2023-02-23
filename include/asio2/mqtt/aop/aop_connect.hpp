@@ -271,9 +271,7 @@ namespace asio2::detail
 			// Session[MQTT-3.1.2-5].If a CONNECT packet is received with Clean Start set to 0 and there is no Session
 			// associated with the Client Identifier, the Server MUST create a new Session[MQTT-3.1.2-6].
 
-			asio2::unique_locker lock{ caller->get_mutex() };
-
-			auto iter = caller->mqtt_sessions().find(caller->client_id());
+			std::shared_ptr<caller_t> session_ptr = caller->mqtt_sessions().find_mqtt_session(caller->client_id());
 
 			// If the Server accepts a connection with Clean Start set to 1, the Server MUST set Session
 			// Present to 0 in the CONNACK packet in addition to setting a 0x00 (Success) Reason Code in
@@ -285,16 +283,16 @@ namespace asio2::detail
 			// it MUST set Session Present to 0 in the CONNACK packet. In both cases it MUST set a 0x00
 			// (Success) Reason Code in the CONNACK packet [MQTT-3.2.2-3].
 			else
-				rep.session_present(iter != caller->mqtt_sessions().end());
+				rep.session_present(session_ptr != nullptr);
 
-			if (iter == caller->mqtt_sessions().end())
+			if (session_ptr == nullptr)
 			{
-				iter = caller->mqtt_sessions().emplace(caller->client_id(), caller_ptr).first;
+				caller->mqtt_sessions().push_mqtt_session(caller->client_id(), caller_ptr);
+
+				session_ptr = caller_ptr;
 			}
 			else
 			{
-				auto& session_ptr = iter->second;
-
 				if (session_ptr->is_started())
 				{
 					// send will message
@@ -443,10 +441,8 @@ namespace asio2::detail
 
 			//	caller->connect_message_ = msg;
 
-			//	asio2::unique_locker lock{ caller->get_mutex() };
-
-			//	auto iter = caller->mqtt_sessions().find(msg.client_id());
-			//	if (iter != caller->mqtt_sessions().end())
+			//	std::shared_ptr<caller_t> session_ptr = caller->mqtt_sessions().find_mqtt_session(msg.client_id());
+			//	if (session_ptr != nullptr)
 			//	{
 
 			//	}

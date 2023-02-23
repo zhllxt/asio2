@@ -130,14 +130,8 @@ namespace asio2::detail
 					caller->shared_targets().insert(caller_ptr, share_name, topic_filter);
 				}
 
-				bool inserted = false;
-
-				{
-					asio2::unique_locker lock{ caller->get_mutex() };
-
-					inserted = caller->subs_map().insert_or_assign(
-						topic_filter, caller->client_id(), std::move(node)).second;
-				}
+				bool inserted = caller->subs_map().insert_or_assign(
+					topic_filter, caller->client_id(), std::move(node)).second;
 
 				mqtt::retain_handling_type rh = sub.retain_handling();
 

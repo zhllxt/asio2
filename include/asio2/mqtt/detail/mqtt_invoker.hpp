@@ -21,6 +21,7 @@
 
 #include <asio2/base/detail/function_traits.hpp>
 #include <asio2/base/detail/util.hpp>
+#include <asio2/base/detail/shared_mutex.hpp>
 
 #include <asio2/mqtt/detail/mqtt_topic_util.hpp>
 #include <asio2/mqtt/detail/mqtt_subscription_map.hpp>
@@ -60,12 +61,13 @@ namespace asio2::detail
 
 	public:
 		using self = mqtt_invoker_t<caller_t, args_t>;
-		using handler_type = std::function<void(error_code&, std::shared_ptr<caller_t>&, caller_t*, std::string_view&)>;
+		using handler_type = std::function<
+			void(error_code&, std::shared_ptr<caller_t>&, caller_t*, std::string_view&)>;
 
 		/**
 		 * @brief constructor
 		 */
-		mqtt_invoker_t() = default;
+		mqtt_invoker_t() noexcept : handlers_() {}
 
 		/**
 		 * @brief destructor
@@ -340,10 +342,12 @@ namespace asio2::detail
 		template<class F, class C>
 		inline void _do_bind(mqtt::control_packet_type type, F f, C* c)
 		{
-			this->handlers_[detail::to_underlying(type)] = std::bind(
+			asio2::unique_locker g(this->mutex_);
+
+			this->handlers_[detail::to_underlying(type)] = std::make_shared<handler_type>(std::bind(
 				&self::template _proxy<F, C>,
 				this, std::move(f), c,
-				std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
+				std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
 		}
 
 		template<class F, class C>
@@ -1124,14 +1128,20 @@ namespace asio2::detail
 		{
 			ASIO2_ASSERT(caller->io().running_in_this_thread());
 
-			handler_type* f = nullptr;
+			std::shared_ptr<handler_type> p;
 
-			if (detail::to_underlying(type) < this->handlers_.size())
-				f = std::addressof(this->handlers_[detail::to_underlying(type)]);
-
-			if (f && (*f))
 			{
-				(*f)(ec, caller_ptr, caller, data);
+				asio2::shared_locker g(this->mutex_);
+
+				if (detail::to_underlying(type) < this->handlers_.size())
+				{
+					p = this->handlers_[detail::to_underlying(type)];
+				}
+			}
+
+			if (p && (*p))
+			{
+				(*p)(ec, caller_ptr, caller, data);
 			}
 			else
 			{
@@ -1168,19 +1178,28 @@ namespace asio2::detail
 			}
 		}
 
-		inline const handler_type& _find_mqtt_handler(mqtt::control_packet_type type)
+		inline std::shared_ptr<handler_type> _find_mqtt_handler(mqtt::control_packet_type type)
 		{
-			if (detail::to_underlying(type) < this->handlers_.size())
-				return handlers_[detail::to_underlying(type)];
+			asio2::shared_locker g(this->mutex_);
 
-			return this->dummy_handler_;
+			if (detail::to_underlying(type) < this->handlers_.size())
+			{
+				std::shared_ptr<handler_type> p = handlers_[detail::to_underlying(type)];
+
+				if (p && (*p))
+					return p;
+			}
+
+			return nullptr;
 		}
 
 	protected:
-		inline static handler_type dummy_handler_{};
+		/// use rwlock to make thread safe
+		mutable asio2::shared_mutexer               mutex_;
 
 		// magic_enum has bug: maybe return 0 under wsl ubuntu
-		std::array<handler_type, detail::to_underlying(mqtt::control_packet_type::auth) + 1> handlers_{};
+		std::array<std::shared_ptr<handler_type>, detail::to_underlying(mqtt::control_packet_type::auth) + 1>
+			                                        handlers_ ASIO2_GUARDED_BY(mutex_);
 	};
 }
 

@@ -26,6 +26,8 @@
 #include <optional>
 #include <deque>
 
+#include <asio2/base/detail/shared_mutex.hpp>
+
 #include <asio2/mqtt/message.hpp>
 
 #include <asio2/mqtt/detail/mqtt_topic_util.hpp>
@@ -104,81 +106,96 @@ namespace asio2::mqtt
 		using map_iterator       = typename map_type::iterator;
 		using map_const_iterator = typename map_type::const_iterator;
 
-		std::unordered_map<key_type, path_entry, hasher> map;
-		std::unordered_multimap<std::size_t, path_entry*> wildcard_map;
+		/// use rwlock to make thread safe
+		mutable asio2::shared_mutexer  mutex_;
 
-		std::size_t map_size;
-		std::size_t next_node_id;
+		std::unordered_map     <key_type, path_entry, hasher> map_          ASIO2_GUARDED_BY(mutex_);
+		std::unordered_multimap<std::size_t, path_entry*    > wildcard_map_ ASIO2_GUARDED_BY(mutex_);
 
-		inline map_iterator create_topic(std::string_view topic_name)
+		std::size_t map_size     ASIO2_GUARDED_BY(mutex_);
+		std::size_t next_node_id ASIO2_GUARDED_BY(mutex_);
+
+		inline map_iterator create_topic(std::string_view topic_name) ASIO2_NO_THREAD_SAFETY_ANALYSIS
 		{
 			map_iterator parent = get_root();
 
 			topic_filter_tokenizer(topic_name, [this, &parent](std::string_view t) mutable
 			{
-				if (t == "+" || t == "#")
-				{
-					throw_no_wildcards_allowed();
-				}
-
-				std::size_t parent_id = parent->second.id;
-
-				map_iterator it = map.find(key_type(parent_id, t));
-
-				if (it == map.end())
-				{
-					it = map.emplace(
-						key_type(parent_id, t),
-						path_entry(parent_id, t, next_node_id++)
-					).first;
-
-					wildcard_map.emplace(parent_id, std::addressof(it->second));
-
-					if (next_node_id == max_node_id)
-					{
-						throw_max_stored_topics();
-					}
-				}
-				else
-				{
-					it->second.increase_count();
-				}
-
-				parent = it;
-				return true;
+				return this->create_topic_subfun(parent, t);
 			});
 
 			return parent;
 		}
 
-		inline std::vector<map_iterator> find_topic(std::string_view topic_name)
+		inline bool create_topic_subfun(map_iterator& parent, std::string_view t) ASIO2_NO_THREAD_SAFETY_ANALYSIS
+		{
+			if (t == "+" || t == "#")
+			{
+				throw_no_wildcards_allowed();
+			}
+
+			std::size_t parent_id = parent->second.id;
+
+			map_iterator it = map_.find(key_type(parent_id, t));
+
+			if (it == map_.end())
+			{
+				it = map_.emplace(
+					key_type(parent_id, t),
+					path_entry(parent_id, t, next_node_id++)
+				).first;
+
+				wildcard_map_.emplace(parent_id, std::addressof(it->second));
+
+				if (next_node_id == max_node_id)
+				{
+					throw_max_stored_topics();
+				}
+			}
+			else
+			{
+				it->second.increase_count();
+			}
+
+			parent = it;
+			return true;
+		}
+
+		inline std::vector<map_iterator> find_topic(std::string_view topic_name) ASIO2_NO_THREAD_SAFETY_ANALYSIS
 		{
 			std::vector<map_iterator> path;
 
 			map_iterator parent = get_root();
 
-			topic_filter_tokenizer(topic_name, [this, &parent, &path](std::string_view t) mutable
+			topic_filter_tokenizer(topic_name, [this, &path, &parent](std::string_view t) mutable
 			{
-				auto it = map.find(key_type(parent->second.id, t));
-
-				if (it == map.end())
-				{
-					path.clear();
-					return false;
-				}
-
-				path.push_back(it);
-				parent = it;
-				return true;
+				return this->find_topic_subfun(path, parent, t);
 			});
 
 			return path;
+		}
+
+		inline bool find_topic_subfun(std::vector<map_iterator>& path, map_iterator& parent, std::string_view t)
+			ASIO2_NO_THREAD_SAFETY_ANALYSIS
+		{
+			auto it = map_.find(key_type(parent->second.id, t));
+
+			if (it == map_.end())
+			{
+				path.clear();
+				return false;
+			}
+
+			path.push_back(it);
+			parent = it;
+			return true;
 		}
 
 		// Match all underlying topics when a hash entry is matched
 		// perform a breadth-first iteration over all items in the tree below
 		template<typename Output>
 		inline void match_hash_entries(std::size_t parent_id, Output&& callback, bool ignore_system)
+			ASIO2_NO_THREAD_SAFETY_ANALYSIS
 		{
 			std::deque<std::size_t> ids;
 			ids.push_back(parent_id);
@@ -191,7 +208,7 @@ namespace asio2::mqtt
 
 				for (auto it : ids)
 				{
-					auto range = wildcard_map.equal_range(it);
+					auto range = wildcard_map_.equal_range(it);
 					for (auto i = range.first; i != range.second && i->second->parent_id == it; ++i)
 					{
 						// Should we ignore system matches
@@ -216,7 +233,7 @@ namespace asio2::mqtt
 
 		// Find all topics that match the specified topic filter
 		template<typename Output>
-		inline void find_match(std::string_view topic_filter, Output&& callback)
+		inline void find_match(std::string_view topic_filter, Output&& callback) ASIO2_NO_THREAD_SAFETY_ANALYSIS
 		{
 			std::deque<map_iterator> iters;
 			iters.push_back(get_root());
@@ -226,48 +243,7 @@ namespace asio2::mqtt
 			topic_filter_tokenizer(topic_filter,
 			[this, &iters, &new_iters, &callback](std::string_view t) mutable
 			{
-				new_iters.resize(0);
-
-				for (auto& it : iters)
-				{
-					std::size_t parent_id = it->second.id;
-
-					if (t == std::string_view("+"))
-					{
-						auto range = wildcard_map.equal_range(parent_id);
-
-						for (auto i = range.first; i != range.second && i->second->parent_id == parent_id; ++i)
-						{
-							if (parent_id != root_node_id || i->second->name.empty() || i->second->name[0] != '$')
-							{
-								auto j = map.find(key_type(i->second->parent_id, i->second->name));
-								ASIO2_ASSERT(j != map.end());
-								new_iters.push_back(j);
-							}
-							else
-							{
-								break;
-							}
-						}
-					}
-					else if (t == std::string_view("#"))
-					{
-						match_hash_entries(parent_id, callback, parent_id == root_node_id);
-						return false;
-					}
-					else
-					{
-						map_iterator i = map.find(key_type(parent_id, t));
-						if (i != map.end())
-						{
-							new_iters.push_back(i);
-						}
-					}
-				}
-
-				std::swap(new_iters, iters);
-
-				return !iters.empty();
+				return this->find_match_subfun(iters, new_iters, callback, t);
 			});
 
 			for (auto& it : iters)
@@ -279,8 +255,57 @@ namespace asio2::mqtt
 			}
 		}
 
+		template<typename Output>
+		inline bool find_match_subfun(
+			std::deque<map_iterator>& iters, std::deque<map_iterator>& new_iters, Output& callback, std::string_view t)
+			ASIO2_NO_THREAD_SAFETY_ANALYSIS
+		{
+			new_iters.resize(0);
+
+			for (auto& it : iters)
+			{
+				std::size_t parent_id = it->second.id;
+
+				if (t == std::string_view("+"))
+				{
+					auto range = wildcard_map_.equal_range(parent_id);
+
+					for (auto i = range.first; i != range.second && i->second->parent_id == parent_id; ++i)
+					{
+						if (parent_id != root_node_id || i->second->name.empty() || i->second->name[0] != '$')
+						{
+							auto j = map_.find(key_type(i->second->parent_id, i->second->name));
+							ASIO2_ASSERT(j != map_.end());
+							new_iters.push_back(j);
+						}
+						else
+						{
+							break;
+						}
+					}
+				}
+				else if (t == std::string_view("#"))
+				{
+					match_hash_entries(parent_id, callback, parent_id == root_node_id);
+					return false;
+				}
+				else
+				{
+					map_iterator i = map_.find(key_type(parent_id, t));
+					if (i != map_.end())
+					{
+						new_iters.push_back(i);
+					}
+				}
+			}
+
+			std::swap(new_iters, iters);
+
+			return !iters.empty();
+		}
+
 		// Remove a value at the specified topic name
-		inline std::size_t erase_topic(std::string_view topic_name)
+		inline std::size_t erase_topic(std::string_view topic_name) ASIO2_NO_THREAD_SAFETY_ANALYSIS
 		{
 			auto path = find_topic(topic_name);
 
@@ -296,18 +321,18 @@ namespace asio2::mqtt
 
 					if (iter->second.count == 0)
 					{
-						auto range = wildcard_map.equal_range(std::get<0>(iter->first));
+						auto range = wildcard_map_.equal_range(std::get<0>(iter->first));
 
 						for (auto it = range.first; it != range.second; ++it)
 						{
 							if (std::addressof(iter->second) == it->second)
 							{
-								wildcard_map.erase(it);
+								wildcard_map_.erase(it);
 								break;
 							}
 						}
 
-						map.erase(iter);
+						map_.erase(iter);
 					}
 				}
 
@@ -318,7 +343,7 @@ namespace asio2::mqtt
 		}
 
 		// Increase the number of topics for this path
-		inline void increase_topics(std::vector<map_iterator> const &path)
+		inline void increase_topics(std::vector<map_iterator> const &path) ASIO2_NO_THREAD_SAFETY_ANALYSIS
 		{
 			for (auto& it : path)
 			{
@@ -327,7 +352,7 @@ namespace asio2::mqtt
 		}
 
 		// Increase the map size (total number of topics stored)
-		inline void increase_map_size()
+		inline void increase_map_size() ASIO2_NO_THREAD_SAFETY_ANALYSIS
 		{
 			if (map_size == (std::numeric_limits<decltype(map_size)>::max)())
 			{
@@ -338,26 +363,26 @@ namespace asio2::mqtt
 		}
 
 		// Decrease the map size (total number of topics stored)
-		inline void decrease_map_size(std::size_t count)
+		inline void decrease_map_size(std::size_t count) ASIO2_NO_THREAD_SAFETY_ANALYSIS
 		{
 			ASIO2_ASSERT(map_size >= count);
 			map_size -= count;
 		}
 
-		inline void init_map()
+		inline void init_map() ASIO2_NO_THREAD_SAFETY_ANALYSIS
 		{
 			map_size = 0;
 			// Create the root node
-			auto it = map.emplace(key_type(root_parent_id, ""),
+			auto it = map_.emplace(key_type(root_parent_id, ""),
 				path_entry(root_parent_id, "", root_node_id)).first;
 			next_node_id = root_node_id + 1;
 			// 
-			wildcard_map.emplace(root_parent_id, std::addressof(it->second));
+			wildcard_map_.emplace(root_parent_id, std::addressof(it->second));
 		}
 
-		inline map_iterator get_root()
+		inline map_iterator get_root() ASIO2_NO_THREAD_SAFETY_ANALYSIS
 		{
-			return map.find(key_type(root_parent_id, ""));
+			return map_.find(key_type(root_parent_id, ""));
 		}
 
 	public:
@@ -370,6 +395,8 @@ namespace asio2::mqtt
 		template<typename V>
 		inline std::size_t insert_or_assign(std::string_view topic_name, V&& value)
 		{
+			asio2::unique_locker g(this->mutex_);
+
 			auto path = this->find_topic(topic_name);
 
 			if (path.empty())
@@ -398,26 +425,44 @@ namespace asio2::mqtt
 		template<typename Output>
 		inline void find(std::string_view topic_filter, Output&& callback)
 		{
+			asio2::shared_locker g(this->mutex_);
+
 			find_match(topic_filter, std::forward<Output>(callback));
 		}
 
 		// Remove a stored value at the specified topic name
 		inline std::size_t erase(std::string_view topic_name)
 		{
+			asio2::unique_locker g(this->mutex_);
+
 			auto result = erase_topic(topic_name);
+
 			decrease_map_size(result);
+
 			return result;
 		}
 
-		inline std::size_t size() const { return map_size; }
+		inline std::size_t size() const
+		{
+			asio2::shared_locker g(this->mutex_);
 
-		inline std::size_t internal_size() const { return map.size(); }
+			return map_size;
+		}
+
+		inline std::size_t internal_size() const
+		{
+			asio2::shared_locker g(this->mutex_);
+
+			return map_.size();
+		}
 
 		// Clear all topics
 		inline void clear()
 		{
-			map.clear();
-			wildcard_map.clear();
+			asio2::unique_locker g(this->mutex_);
+
+			map_.clear();
+			wildcard_map_.clear();
 			init_map();
 		}
 
@@ -425,7 +470,9 @@ namespace asio2::mqtt
 		template<typename Output>
 		inline void dump(Output &out)
 		{
-			for (auto const&[k, v] : map)
+			asio2::shared_locker g(this->mutex_);
+
+			for (auto const&[k, v] : map_)
 			{
 				std::ignore = k;
 				out << v.parent_id << " " << v.name << " " << (v.value ? "init" : "-")

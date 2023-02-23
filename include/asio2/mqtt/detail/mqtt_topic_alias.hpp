@@ -20,6 +20,7 @@
 #include <asio2/base/define.hpp>
 
 #include <asio2/base/detail/util.hpp>
+#include <asio2/base/detail/shared_mutex.hpp>
 
 #include <asio2/mqtt/message.hpp>
 
@@ -57,23 +58,24 @@ namespace asio2::detail
 		 */
 		~mqtt_topic_alias_t() = default;
 
+	public:
 		template<class String>
 		inline derived_t& push_topic_alias(std::uint16_t alias_value, String&& topic_name)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			asio2::unique_locker guard(derive.get_mutex());
+			asio2::unique_locker guard(this->mutex_);
 
 			topic_aliases_[alias_value] = detail::to_string(std::forward<String>(topic_name));
 
 			return static_cast<derived_t&>(*this);
 		}
 
-		inline bool find_topic_alias(std::uint16_t alias_value, std::string_view& topic_name)
+		inline bool find_topic_alias(std::uint16_t alias_value, std::string& topic_name)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			asio2::shared_locker guard(derive.get_mutex());
+			asio2::shared_locker guard(this->mutex_);
 
 			auto iter = topic_aliases_.find(alias_value);
 
@@ -87,7 +89,11 @@ namespace asio2::detail
 		}
 
 	protected:
-		std::unordered_map<std::uint16_t, std::string> topic_aliases_;
+		/// use rwlock to make thread safe
+		mutable asio2::shared_mutexer  mutex_;
+
+		/// 
+		std::unordered_map<std::uint16_t, std::string> topic_aliases_ ASIO2_GUARDED_BY(mutex_);
 	};
 }
 
