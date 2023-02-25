@@ -53,13 +53,25 @@
 #include <asio2/component/rdc/rdc_call_cp.hpp>
 #include <asio2/component/socks/socks5_client.hpp>
 
+namespace asio2
+{
+	class client
+	{
+	public:
+		inline constexpr static bool is_session() noexcept { return false; }
+		inline constexpr static bool is_client () noexcept { return true ; }
+		inline constexpr static bool is_server () noexcept { return false; }
+	};
+}
+
 namespace asio2::detail
 {
 	ASIO2_CLASS_FORWARD_DECLARE_BASE;
 
 	template<class derived_t, class args_t>
 	class client_impl_t
-		: public object_t              <derived_t        >
+		: public asio2::client
+		, public object_t              <derived_t        >
 		, public iopool_cp             <derived_t, args_t>
 		, public thread_id_cp          <derived_t, args_t>
 		, public event_queue_cp        <derived_t, args_t>
@@ -274,12 +286,6 @@ namespace asio2::detail
 
 		inline listener_t                 & listener() noexcept { return this->listener_; }
 		inline std::atomic<state_t>       & state   () noexcept { return this->state_;    }
-
-	public:
-		inline constexpr static bool is_session() noexcept { return false; }
-		inline constexpr static bool is_client () noexcept { return true ; }
-		inline constexpr static bool is_server () noexcept { return false; }
-		inline constexpr static bool is_sslmode() noexcept { return false; }
 
 	protected:
 		/// The memory to use for handler-based custom memory allocation. used fo recv/read.

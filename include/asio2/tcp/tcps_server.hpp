@@ -96,9 +96,6 @@ namespace asio2::detail
 		{
 			return super::_make_session(std::forward<Args>(args)..., *this);
 		}
-
-	public:
-		inline constexpr static bool is_sslmode() noexcept { return true; }
 	};
 }
 

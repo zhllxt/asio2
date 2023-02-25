@@ -149,9 +149,6 @@ namespace asio2::detail
 
 			this->listener_.notify(event_type::handshake);
 		}
-
-	public:
-		inline constexpr static bool is_sslmode() noexcept { return true; }
 	};
 }
 

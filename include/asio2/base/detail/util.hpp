@@ -826,23 +826,32 @@ namespace asio2::detail
 
 namespace asio2
 {
-	enum class net_protocol : std::int8_t
+	enum class net_protocol : std::uint8_t
 	{
+		none = 0,
+
 		udp = 1,
 
 		tcp,
 		http,
 		websocket,
+		rpc,
+		mqtt,
 
 		tcps,
 		https,
 		websockets,
+		rpcs,
+		mqtts,
+
+		icmp,
+		serialport,
 
 		ws = websocket,
 		wss = websockets
 	};
 
-	enum class response_mode : std::int8_t
+	enum class response_mode : std::uint8_t
 	{
 		automatic = 1,
 		manual,

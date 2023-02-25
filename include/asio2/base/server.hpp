@@ -43,13 +43,25 @@
 #include <asio2/base/impl/event_queue_cp.hpp>
 #include <asio2/base/impl/condition_event_cp.hpp>
 
+namespace asio2
+{
+	class server
+	{
+	public:
+		inline constexpr static bool is_session() noexcept { return false; }
+		inline constexpr static bool is_client () noexcept { return false; }
+		inline constexpr static bool is_server () noexcept { return true ; }
+	};
+}
+
 namespace asio2::detail
 {
 	ASIO2_CLASS_FORWARD_DECLARE_BASE;
 
 	template<class derived_t, class session_t>
 	class server_impl_t
-		: public object_t          <derived_t>
+		: public asio2::server
+		, public object_t          <derived_t>
 		, public iopool_cp         <derived_t>
 		, public thread_id_cp      <derived_t>
 		, public event_queue_cp    <derived_t>
@@ -320,12 +332,6 @@ namespace asio2::detail
 		inline session_mgr_t<session_t> & sessions() noexcept { return this->sessions_; }
 		inline listener_t               & listener() noexcept { return this->listener_; }
 		inline std::atomic<state_t>     & state   () noexcept { return this->state_;    }
-
-	public:
-		inline constexpr static bool is_session() noexcept { return false; }
-		inline constexpr static bool is_client () noexcept { return false; }
-		inline constexpr static bool is_server () noexcept { return true ; }
-		inline constexpr static bool is_sslmode() noexcept { return false; }
 
 	protected:
 		// The memory to use for handler-based custom memory allocation. used for acceptor.

@@ -22,6 +22,14 @@
 
 #include <asio2/base/error.hpp>
 
+namespace asio2
+{
+	class object
+	{
+	public:
+	};
+}
+
 namespace asio2::detail
 {
 	/**
@@ -30,7 +38,7 @@ namespace asio2::detail
 	 * https://stackoverflow.com/questions/18174441/crtp-and-multilevel-inheritance
 	 */
 	template<class derived_t, bool enable_shared_from_this = true>
-	class object_t : public std::enable_shared_from_this<derived_t>
+	class object_t : public asio2::object, public std::enable_shared_from_this<derived_t>
 	{
 	protected:
 		/**
@@ -85,7 +93,7 @@ namespace asio2::detail
 	};
 
 	template<class derived_t>
-	class object_t<derived_t, false>
+	class object_t<derived_t, false> : public asio2::object
 	{
 	protected:
 		/**
