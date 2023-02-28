@@ -338,7 +338,15 @@ namespace asio2::detail
 					}
 
 					// disconnect session
-					// must use post, beasue the session1 stop is called in the session2 thread.
+					// In previous versions, the mutex is a global variable, when code reached here,
+					// the mutex status is locked already, so if we call session_ptr->stop()
+					// directly, the stop maybe blocked forever, beacuse the session1 stop maybe
+					// called in the session2 thread, and in the _handle_disconnect funcion of mqtt
+					// session, the global mutex is required to lock again, so it caused deaklock,
+					// to solve this problem, we can use session->post([](){session->stop()}).
+					// but now, we change the mutex from global variable to member variable for each
+					// mqtt class, so now, it won't caused deaklock, even we only use session->stop,
+					// but we still use session->post([](){session->stop()}), to enhanced stability.
 					session_ptr->post([session_ptr]() mutable { session_ptr->stop(); });
 
 					// 

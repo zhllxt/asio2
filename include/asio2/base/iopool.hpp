@@ -601,7 +601,28 @@ namespace asio2::detail
 					{
 						// the timer may not be canceled successed when using visual
 						// studio break point for debugging, so cancel it at each loop
-						iot->cancel();
+
+						// must cancel all iots, otherwise maybe cause deaklock like below:
+						// the client_ptr->bind_recv has hold the session_ptr, and the session_ptr
+						// is in the indexed 1 iot ( not indexed 0 iot ), so if call iot->cancel,
+						// the cancel function of indexed 1 iot wont be called, so the stop function
+						// of client_ptr won't be called too, so the session_ptr which holded by the
+						// client_ptr will can't be destroyed, so the server's acceptor io will 
+						// can't be stopped(this means the indexed 0 io can't be stopped).
+
+						//server.bind_accept([](std::shared_ptr<asio2::tcp_session>& session_ptr)
+						//{
+						//	std::shared_ptr<asio2::tcp_client> client_ptr = std::make_shared<asio2::tcp_client>(
+						//		512, 1024, session_ptr->io());
+						//
+						//	client_ptr->bind_recv([session_ptr](std::string_view data) mutable
+						//	{
+						//	});
+						//
+						//	client_ptr->async_start("127.0.0.1", 8888);
+						//});
+
+						this->cancel_impl();
 
 						auto t2 = std::chrono::steady_clock::now();
 						auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1);
@@ -634,7 +655,7 @@ namespace asio2::detail
 					{
 						// the timer may not be canceled successed when using visual
 						// studio break point for debugging, so cancel it at each loop
-						iot->cancel();
+						this->cancel_impl();
 
 						auto t2 = std::chrono::steady_clock::now();
 						auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1);
