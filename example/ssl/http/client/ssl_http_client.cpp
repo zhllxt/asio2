@@ -14,10 +14,10 @@ int main()
 		sock5_option{ "127.0.0.1",10808 };
 
 	// 1. download and save the file directly. 
-	// The file is in this directory: /asio2/example/bin/x64/QQ9.6.7.28807.exe
+	// The file is in this directory: /asio2/example/bin/x64/100mb.test.ssl
 	asio2::https_client::download(
-		"https://dldir1.qq.com/qqfile/qq/PCQQ9.6.7/QQ9.6.7.28807.exe",
-		"QQ9.6.7.28807.exe");
+		"https://cachefly.cachefly.net/100mb.test",
+		"100mb.test.ssl");
 
 	// 2. you can save the file content by youself. 
 	// I find that, we must specify the SSL version to tlsv13, otherwise it will fail.

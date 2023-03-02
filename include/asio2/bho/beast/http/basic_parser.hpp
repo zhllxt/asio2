@@ -79,7 +79,7 @@ class basic_parser
     std::unique_ptr<char[]> buf_;           // temp storage
     std::size_t buf_len_ = 0;               // size of buf_
     std::size_t skip_ = 0;                  // resume search here
-    std::uint32_t header_limit_ = (std::numeric_limits<std::uint32_t>::max)();     // max header size
+    std::uint32_t header_limit_ = 1 * 1024 * 1024;     // max header size
     unsigned short status_ = 0;             // response status
     state state_ = state::nothing_yet;      // initial state
     unsigned f_ = 0;                        // flags

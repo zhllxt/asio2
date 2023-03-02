@@ -285,6 +285,13 @@ namespace asio2::detail
 				// fire init function, the get_last_error will be not 0.
 				clear_last_error();
 
+				// every time the socket is recreated, we should call the _do_init function, then
+				// the ssl stream will recreated too, otherwise when client disconnected and 
+				// reconnect to the ssl server, this will happen: ssl handshake will failed, and
+				// next time reconnect again, ssl handshake will successed.
+				derive._do_init(ecs);
+
+				// call the user callback which setted by bind_init
 				derive._fire_init();
 			}
 			else

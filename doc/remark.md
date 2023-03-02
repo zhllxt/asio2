@@ -39,7 +39,7 @@ public:
 std::uint64_t body_limit_ = (std::numeric_limits<std::uint64_t>::max)();
     //default_body_limit(is_request{});   // max payload body
 // line 78
-std::uint32_t header_limit_ = (std::numeric_limits<std::uint32_t>::max)();     // max header size
+std::uint32_t header_limit_ = 1 * 1024 * 1024;     // max header size
 ```
 
 ##### Modify file /beast/http/basic_file_body.hpp
