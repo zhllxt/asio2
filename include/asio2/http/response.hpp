@@ -81,7 +81,19 @@ namespace asio2::detail
 	public:
 		/**
 		 * @brief constructor
+		 * this default constructor it used for rdc call, beacuse the default status of
+		 * http response is 200, and if the rdc call failed, the status of the returned
+		 * http response is 200 too, so we set the status to another value at here.
 		 */
+		explicit http_response_impl_t()
+			: super()
+		#ifdef ASIO2_ENABLE_HTTP_RESPONSE_USER_DATA
+			, user_data_cp<http_response_impl_t<Body, Fields>>()
+		#endif
+		{
+			super::result(http::status::unknown);
+		}
+
 		template<typename... Args>
 		explicit http_response_impl_t(Args&&... args)
 			: super(std::forward<Args>(args)...)

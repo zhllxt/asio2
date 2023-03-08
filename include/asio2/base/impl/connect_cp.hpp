@@ -325,6 +325,14 @@ namespace asio2::detail
 
 			ASIO2_ASSERT(derive.io().running_in_this_thread());
 
+			try
+			{
+				derive.remote_endpoint_copy_ = derive.socket_.lowest_layer().remote_endpoint();
+			}
+			catch (const system_error&)
+			{
+			}
+
 			state_t expected = state_t::starting;
 			if (!derive.state_.compare_exchange_strong(expected, state_t::starting))
 			{

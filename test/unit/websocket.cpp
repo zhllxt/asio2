@@ -111,7 +111,7 @@ void websocket_test()
 			// after test, on linux, when disconnect is called, and there has some data 
 			// is transmiting(by async_send), the remote_address maybe empty.
 			// and under websocket, the socket maybe closed already in the websocket close frame.
-			//ASIO2_CHECK(session_ptr->remote_address() == "127.0.0.1");
+			ASIO2_CHECK(session_ptr->remote_address() == "127.0.0.1");
 			//ASIO2_CHECK(session_ptr->local_port() == 18039);
 			ASIO2_CHECK(server.io().running_in_this_thread());
 			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());

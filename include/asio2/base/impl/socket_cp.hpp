@@ -88,11 +88,12 @@ namespace asio2::detail
 		 */
 		inline std::string get_local_address() noexcept
 		{
+			clear_last_error();
 			try
 			{
 				return this->socket_.lowest_layer().local_endpoint().address().to_string();
 			}
-			catch (system_error & e)
+			catch (const system_error& e)
 			{
 				set_last_error(e);
 			}
@@ -128,14 +129,29 @@ namespace asio2::detail
 		 */
 		inline std::string get_remote_address() noexcept
 		{
+			clear_last_error();
+
+			error_code ec{};
+
 			try
 			{
 				return this->socket_.lowest_layer().remote_endpoint().address().to_string();
 			}
-			catch (system_error & e)
+			catch (const system_error& e)
 			{
-				set_last_error(e);
+				ec = e.code();
 			}
+
+			try
+			{
+				return this->remote_endpoint_copy_.address().to_string();
+			}
+			catch (const system_error&)
+			{
+			}
+
+			set_last_error(ec);
+
 			return std::string();
 		}
 
@@ -152,7 +168,30 @@ namespace asio2::detail
 		 */
 		inline unsigned short get_remote_port() noexcept
 		{
-			return this->socket_.lowest_layer().remote_endpoint(get_last_error()).port();
+			clear_last_error();
+
+			error_code ec{};
+
+			try
+			{
+				return this->socket_.lowest_layer().remote_endpoint().port();
+			}
+			catch (const system_error& e)
+			{
+				ec = e.code();
+			}
+
+			try
+			{
+				return this->remote_endpoint_copy_.port();
+			}
+			catch (const system_error&)
+			{
+			}
+
+			set_last_error(ec);
+
+			return 0;
 		}
 
 	public:
@@ -302,6 +341,11 @@ namespace asio2::detail
 	protected:
 		/// socket 
 		typename args_t::socket_t socket_;
+
+		/// the call of remote_endpoint() maybe failed when the remote socket is closed, 
+		/// even if local socket is not closed, so we use this variable to ensure the
+		/// call of remote_endpoint() must be successed.
+		typename socket_type::endpoint_type remote_endpoint_copy_;
 	};
 }
 

@@ -195,7 +195,7 @@ void tcp_custom_test()
 			ASIO2_CHECK(asio2::get_last_error());
 			ASIO2_CHECK(!server.find_session(session_ptr->hash_key()));
 			ASIO2_CHECK(session_ptr->socket().is_open());
-			//ASIO2_CHECK(session_ptr->remote_address() == "127.0.0.1");
+			ASIO2_CHECK(session_ptr->remote_address() == "127.0.0.1");
 			ASIO2_CHECK(session_ptr->local_port() == 18026);
 			ASIO2_CHECK(server.io().running_in_this_thread());
 			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
@@ -636,7 +636,7 @@ void tcp_custom_test()
 			ASIO2_CHECK(asio2::get_last_error());
 			ASIO2_CHECK(!server.find_session(session_ptr->hash_key()));
 			ASIO2_CHECK(session_ptr->socket().is_open());
-			//ASIO2_CHECK(session_ptr->remote_address() == "127.0.0.1");
+			ASIO2_CHECK(session_ptr->remote_address() == "127.0.0.1");
 			ASIO2_CHECK(session_ptr->local_port() == 18026);
 			ASIO2_CHECK(server.io().running_in_this_thread());
 			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());

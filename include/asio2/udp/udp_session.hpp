@@ -128,6 +128,14 @@ namespace asio2::detail
 
 			std::shared_ptr<derived_t> this_ptr = this->derived().selfptr();
 
+			try
+			{
+				this->remote_endpoint_copy_ = this->socket_.lowest_layer().remote_endpoint();
+			}
+			catch (const system_error&)
+			{
+			}
+
 			state_t expected = state_t::stopped;
 			if (!this->state_.compare_exchange_strong(expected, state_t::starting))
 			{

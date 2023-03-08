@@ -103,7 +103,7 @@ int main()
 
 		for (auto it = req.begin(); it != req.end(); ++it)
 		{
-			std::cout << it->name_string() << " " << it->value() << std::endl;
+			std::cout << it->name_string() << ": " << it->value() << std::endl;
 		}
 
 		auto mpbody = req.multipart();

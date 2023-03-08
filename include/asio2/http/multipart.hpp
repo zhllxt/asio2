@@ -127,7 +127,7 @@ protected:
 	String content_transfer_encoding_;
 };
 
-using multipart_field = basic_multipart_field<std::string_view>;
+using multipart_field = basic_multipart_field<std::string>;
 
 
 template<class String>
@@ -351,7 +351,7 @@ protected:
 	inline static basic_multipart_field<String>           dummy_{};
 };
 
-using multipart_fields = basic_multipart_fields<std::string_view>;
+using multipart_fields = basic_multipart_fields<std::string>;
 
 
 /*
@@ -544,7 +544,7 @@ namespace multipart_parser
 	}
 }
 
-template<class String = std::string_view>
+template<class String = std::string>
 basic_multipart_fields<String> multipart_parser_execute(std::string_view body, std::string_view boundary)
 {
 	using namespace multipart_parser;
@@ -607,7 +607,7 @@ basic_multipart_fields<String> multipart_parser_execute(std::string_view body, s
 	return fields;
 }
 
-template<bool isRequest, class Body, class Fields, class String = std::string_view>
+template<bool isRequest, class Body, class Fields, class String = std::string>
 basic_multipart_fields<String> multipart_parser_execute(const http::message<isRequest, Body, Fields>& msg)
 {
 	std::string_view type = msg[http::field::content_type];
