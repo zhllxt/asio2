@@ -69,10 +69,13 @@ int main()
 
 	server.bind_accept([](std::shared_ptr<asio2::https_session> & session_ptr)
 	{
-		// close the invalid client
-		if (session_ptr->remote_address().find("192") != std::string::npos)
-			session_ptr->stop();
-
+		// accept callback maybe has error like "Too many open files", etc...
+		if (!asio2::get_last_error())
+		{
+			// how to close the invalid client:
+			if (session_ptr->remote_address().find("192.168.10.") != std::string::npos)
+				session_ptr->stop();
+		}
 	}).bind_start([&]()
 	{
 		printf("start https server : %s %u %d %s\n",

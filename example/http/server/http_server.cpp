@@ -90,7 +90,7 @@ int main()
 	}, aop_check{}, http::enable_cache);
 
 	// Test http multipart
-	server.bind<http::verb::get, http::verb::post>("/multipart", [](http::web_request& req, http::web_response& rep)
+	server.bind<http::verb::get, http::verb::post>("/multipart_test", [](http::web_request& req, http::web_response& rep)
 	{
 		auto& body = req.body();
 		auto target = req.target();
@@ -165,6 +165,21 @@ int main()
 	server.bind<http::verb::get, http::verb::post>("/api/user/*", [](http::web_request& req, http::web_response& rep)
 	{
 		asio2::ignore_unused(req, rep);
+
+		// if the url is :
+		// /api/user/add_user?name=hanmeimei&age=20&height=168
+
+		[[maybe_unused]] std::string_view t = req.target(); // t == /api/user/add_user?name=hanmeimei&age=20&height=168
+		[[maybe_unused]] std::string_view p = req.get_path(); // p == /api/user/add_user
+		[[maybe_unused]] std::string_view q = req.get_query(); // q == name=hanmeimei&age=20&height=168
+
+		std::vector<std::string_view> kvs = asio2::split(q, '&');
+
+		for (std::string_view kv : kvs)
+		{
+			[[maybe_unused]] std::string_view k = kv.substr(0, kv.find('='));
+			[[maybe_unused]] std::string_view v = kv.substr(kv.find('=') + 1);
+		}
 
 		//rep.fill_text("the user name is hanmeimei, .....");
 

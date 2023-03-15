@@ -114,6 +114,12 @@ namespace asio2::detail
 		{
 			derived_t& derive = this->derived();
 
+			// if log is enabled, init the log first, otherwise when "Too many open files" error occurs,
+			// the log file will be created failed too.
+		#if defined(ASIO2_ENABLE_LOG)
+			asio2::detail::get_logger();
+		#endif
+
 			bool ret = this->start_iopool(); // start the io_context pool
 
 			if (ret)

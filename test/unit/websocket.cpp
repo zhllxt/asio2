@@ -32,29 +32,31 @@ void websocket_test()
 		std::atomic<int> server_accept_counter = 0;
 		server.bind_accept([&](auto & session_ptr)
 		{
-			session_ptr->no_delay(true);
-
-			session_ptr->ws_stream().set_option(websocket::stream_base::decorator(
-			[](websocket::response_type& rep)
+			if (!asio2::get_last_error())
 			{
-				rep.set(http::field::authorization, " websocket-server-coro");
-			}));
+				session_ptr->no_delay(true);
 
-			server_accept_counter++;
+				session_ptr->ws_stream().set_option(websocket::stream_base::decorator(
+				[](websocket::response_type& rep)
+				{
+					rep.set(http::field::authorization, " websocket-server-coro");
+				}));
 
-			ASIO2_CHECK(!asio2::get_last_error());
-			ASIO2_CHECK(server.get_listen_address() == "127.0.0.1");
-			ASIO2_CHECK(server.get_listen_port() == 18039);
-			ASIO2_CHECK(session_ptr->remote_address() == "127.0.0.1");
-			ASIO2_CHECK(session_ptr->local_address() == "127.0.0.1");
-			ASIO2_CHECK(session_ptr->local_port() == 18039);
-			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+				server_accept_counter++;
 
-			//// You can close the connection directly here.
-			//if (session_ptr->remote_address() == "192.168.0.254")
-			//	session_ptr->stop();
+				ASIO2_CHECK(!asio2::get_last_error());
+				ASIO2_CHECK(server.get_listen_address() == "127.0.0.1");
+				ASIO2_CHECK(server.get_listen_port() == 18039);
+				ASIO2_CHECK(session_ptr->remote_address() == "127.0.0.1");
+				ASIO2_CHECK(session_ptr->local_address() == "127.0.0.1");
+				ASIO2_CHECK(session_ptr->local_port() == 18039);
+				ASIO2_CHECK(server.io().running_in_this_thread());
+				ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
 
+				//// You can close the connection directly here.
+				//if (session_ptr->remote_address() == "192.168.0.254")
+				//	session_ptr->stop();
+			}
 		});
 		std::atomic<int> server_upgrade_counter = 0;
 		server.bind_upgrade([&](auto & session_ptr)
@@ -69,13 +71,6 @@ void websocket_test()
 			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
 			ASIO2_CHECK(session_ptr->is_keep_alive());
 			ASIO2_CHECK(session_ptr->is_no_delay());
-
-			// this send will be failed, because connection is not fully completed
-			session_ptr->async_send("abc", [](std::size_t bytes)
-			{
-				ASIO2_CHECK(asio2::get_last_error() == asio::error::not_connected);
-				ASIO2_CHECK(bytes == 0);
-			});
 		});
 		std::atomic<int> server_connect_counter = 0;
 		server.bind_connect([&](auto & session_ptr)
@@ -200,13 +195,6 @@ void websocket_test()
 			ASIO2_CHECK(client.get_remote_port() == 18039);
 
 			client_upgrade_counter++;
-
-			// this send will be failed, because connection is not fully completed
-			client.async_send("abc", [](std::size_t bytes)
-			{
-				ASIO2_CHECK(asio2::get_last_error() == asio::error::not_connected);
-				ASIO2_CHECK(bytes == 0);
-			});
 		});
 		std::atomic<int> client_connect_counter = 0;
 		client.bind_connect([&]()
@@ -351,23 +339,25 @@ void websocket_test()
 		std::atomic<int> server_accept_counter = 0;
 		server.bind_accept([&](auto & session_ptr)
 		{
-			session_ptr->no_delay(true);
+			if (!asio2::get_last_error())
+			{
+				session_ptr->no_delay(true);
 
-			server_accept_counter++;
+				server_accept_counter++;
 
-			ASIO2_CHECK(!asio2::get_last_error());
-			ASIO2_CHECK(server.get_listen_address() == "127.0.0.1");
-			ASIO2_CHECK(server.get_listen_port() == 18039);
-			ASIO2_CHECK(session_ptr->remote_address() == "127.0.0.1");
-			ASIO2_CHECK(session_ptr->local_address() == "127.0.0.1");
-			ASIO2_CHECK(session_ptr->local_port() == 18039);
-			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(!asio2::get_last_error());
+				ASIO2_CHECK(server.get_listen_address() == "127.0.0.1");
+				ASIO2_CHECK(server.get_listen_port() == 18039);
+				ASIO2_CHECK(session_ptr->remote_address() == "127.0.0.1");
+				ASIO2_CHECK(session_ptr->local_address() == "127.0.0.1");
+				ASIO2_CHECK(session_ptr->local_port() == 18039);
+				ASIO2_CHECK(server.io().running_in_this_thread());
+				ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
 
-			//// You can close the connection directly here.
-			//if (session_ptr->remote_address() == "192.168.0.254")
-			//	session_ptr->stop();
-
+				//// You can close the connection directly here.
+				//if (session_ptr->remote_address() == "192.168.0.254")
+				//	session_ptr->stop();
+			}
 		});
 		std::atomic<int> server_connect_counter = 0;
 		server.bind_connect([&](auto & session_ptr)
@@ -758,7 +748,7 @@ void websocket_test()
 
 				std::size_t bytes = client.send("defg");
 				ASIO2_CHECK(bytes == 0);
-				ASIO2_CHECK(asio2::get_last_error() == asio::error::not_connected);
+				ASIO2_CHECK(asio2::get_last_error() == asio::error::in_progress);
 			});
 			client.bind_disconnect([&]()
 			{
@@ -909,23 +899,25 @@ void websocket_test()
 		std::atomic<int> server_accept_counter = 0;
 		server.bind_accept([&](auto & session_ptr)
 		{
-			session_ptr->no_delay(true);
+			if (!asio2::get_last_error())
+			{
+				session_ptr->no_delay(true);
 
-			server_accept_counter++;
+				server_accept_counter++;
 
-			ASIO2_CHECK(!asio2::get_last_error());
-			ASIO2_CHECK(server.get_listen_address() == "127.0.0.1");
-			ASIO2_CHECK(server.get_listen_port() == 18039);
-			ASIO2_CHECK(session_ptr->remote_address() == "127.0.0.1");
-			ASIO2_CHECK(session_ptr->local_address() == "127.0.0.1");
-			ASIO2_CHECK(session_ptr->local_port() == 18039);
-			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(!asio2::get_last_error());
+				ASIO2_CHECK(server.get_listen_address() == "127.0.0.1");
+				ASIO2_CHECK(server.get_listen_port() == 18039);
+				ASIO2_CHECK(session_ptr->remote_address() == "127.0.0.1");
+				ASIO2_CHECK(session_ptr->local_address() == "127.0.0.1");
+				ASIO2_CHECK(session_ptr->local_port() == 18039);
+				ASIO2_CHECK(server.io().running_in_this_thread());
+				ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
 
-			//// You can close the connection directly here.
-			//if (session_ptr->remote_address() == "192.168.0.254")
-			//	session_ptr->stop();
-
+				//// You can close the connection directly here.
+				//if (session_ptr->remote_address() == "192.168.0.254")
+				//	session_ptr->stop();
+			}
 		});
 		std::atomic<int> server_connect_counter = 0;
 		server.bind_connect([&](auto & session_ptr)

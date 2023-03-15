@@ -314,23 +314,25 @@ void rdc_test()
 		std::atomic<int> server_accept_counter = 0;
 		server.bind_accept([&](auto & session_ptr)
 		{
-			session_ptr->no_delay(true);
+			if (!asio2::get_last_error())
+			{
+				session_ptr->no_delay(true);
 
-			server_accept_counter++;
+				server_accept_counter++;
 
-			ASIO2_CHECK(!asio2::get_last_error());
-			ASIO2_CHECK(server.get_listen_address() == "127.0.0.1");
-			ASIO2_CHECK(server.get_listen_port() == 18037);
-			ASIO2_CHECK(session_ptr->remote_address() == "127.0.0.1");
-			ASIO2_CHECK(session_ptr->local_address() == "127.0.0.1");
-			ASIO2_CHECK(session_ptr->local_port() == 18037);
-			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(!asio2::get_last_error());
+				ASIO2_CHECK(server.get_listen_address() == "127.0.0.1");
+				ASIO2_CHECK(server.get_listen_port() == 18037);
+				ASIO2_CHECK(session_ptr->remote_address() == "127.0.0.1");
+				ASIO2_CHECK(session_ptr->local_address() == "127.0.0.1");
+				ASIO2_CHECK(session_ptr->local_port() == 18037);
+				ASIO2_CHECK(server.io().running_in_this_thread());
+				ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
 
-			//// You can close the connection directly here.
-			//if (session_ptr->remote_address() == "192.168.0.254")
-			//	session_ptr->stop();
-
+				//// You can close the connection directly here.
+				//if (session_ptr->remote_address() == "192.168.0.254")
+				//	session_ptr->stop();
+			}
 		});
 		std::atomic<int> server_connect_counter = 0;
 		server.bind_connect([&](auto & session_ptr)
@@ -1483,23 +1485,25 @@ void rdc_test()
 		std::atomic<int> server_accept_counter = 0;
 		server.bind_accept([&](auto & session_ptr)
 		{
-			session_ptr->no_delay(true);
+			if (!asio2::get_last_error())
+			{
+				session_ptr->no_delay(true);
 
-			server_accept_counter++;
+				server_accept_counter++;
 
-			ASIO2_CHECK(!asio2::get_last_error());
-			ASIO2_CHECK(server.get_listen_address() == "127.0.0.1");
-			ASIO2_CHECK(server.get_listen_port() == 18037);
-			ASIO2_CHECK(session_ptr->remote_address() == "127.0.0.1");
-			ASIO2_CHECK(session_ptr->local_address() == "127.0.0.1");
-			ASIO2_CHECK(session_ptr->local_port() == 18037);
-			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(!asio2::get_last_error());
+				ASIO2_CHECK(server.get_listen_address() == "127.0.0.1");
+				ASIO2_CHECK(server.get_listen_port() == 18037);
+				ASIO2_CHECK(session_ptr->remote_address() == "127.0.0.1");
+				ASIO2_CHECK(session_ptr->local_address() == "127.0.0.1");
+				ASIO2_CHECK(session_ptr->local_port() == 18037);
+				ASIO2_CHECK(server.io().running_in_this_thread());
+				ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
 
-			//// You can close the connection directly here.
-			//if (session_ptr->remote_address() == "192.168.0.254")
-			//	session_ptr->stop();
-
+				//// You can close the connection directly here.
+				//if (session_ptr->remote_address() == "192.168.0.254")
+				//	session_ptr->stop();
+			}
 		});
 		std::atomic<int> server_connect_counter = 0;
 		server.bind_connect([&](auto & session_ptr)
@@ -1847,18 +1851,21 @@ void rdc_test()
 		std::atomic<int> server_accept_counter = 0;
 		server.bind_accept([&](auto & session_ptr)
 		{
-			session_ptr->no_delay(true);
+			if (!asio2::get_last_error())
+			{
+				session_ptr->no_delay(true);
 
-			server_accept_counter++;
+				server_accept_counter++;
 
-			ASIO2_CHECK(!asio2::get_last_error());
-			ASIO2_CHECK(server.get_listen_address() == "127.0.0.1");
-			ASIO2_CHECK(server.get_listen_port() == 18037);
-			ASIO2_CHECK(session_ptr->remote_address() == "127.0.0.1");
-			ASIO2_CHECK(session_ptr->local_address() == "127.0.0.1");
-			ASIO2_CHECK(session_ptr->local_port() == 18037);
-			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(!asio2::get_last_error());
+				ASIO2_CHECK(server.get_listen_address() == "127.0.0.1");
+				ASIO2_CHECK(server.get_listen_port() == 18037);
+				ASIO2_CHECK(session_ptr->remote_address() == "127.0.0.1");
+				ASIO2_CHECK(session_ptr->local_address() == "127.0.0.1");
+				ASIO2_CHECK(session_ptr->local_port() == 18037);
+				ASIO2_CHECK(server.io().running_in_this_thread());
+				ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			}
 		});
 		std::atomic<int> server_connect_counter = 0;
 		server.bind_connect([&](auto & session_ptr)
@@ -2253,23 +2260,25 @@ void rdc_test()
 		std::atomic<int> server_accept_counter = 0;
 		server.bind_accept([&](auto & session_ptr)
 		{
-			session_ptr->no_delay(true);
+			if (!asio2::get_last_error())
+			{
+				session_ptr->no_delay(true);
 
-			server_accept_counter++;
+				server_accept_counter++;
 
-			ASIO2_CHECK(!asio2::get_last_error());
-			ASIO2_CHECK(server.get_listen_address() == "127.0.0.1");
-			ASIO2_CHECK(server.get_listen_port() == 18037);
-			ASIO2_CHECK(session_ptr->remote_address() == "127.0.0.1");
-			ASIO2_CHECK(session_ptr->local_address() == "127.0.0.1");
-			ASIO2_CHECK(session_ptr->local_port() == 18037);
-			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(!asio2::get_last_error());
+				ASIO2_CHECK(server.get_listen_address() == "127.0.0.1");
+				ASIO2_CHECK(server.get_listen_port() == 18037);
+				ASIO2_CHECK(session_ptr->remote_address() == "127.0.0.1");
+				ASIO2_CHECK(session_ptr->local_address() == "127.0.0.1");
+				ASIO2_CHECK(session_ptr->local_port() == 18037);
+				ASIO2_CHECK(server.io().running_in_this_thread());
+				ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
 
-			//// You can close the connection directly here.
-			//if (session_ptr->remote_address() == "192.168.0.254")
-			//	session_ptr->stop();
-
+				//// You can close the connection directly here.
+				//if (session_ptr->remote_address() == "192.168.0.254")
+				//	session_ptr->stop();
+			}
 		});
 		std::atomic<int> server_connect_counter = 0;
 		server.bind_connect([&](auto & session_ptr)
@@ -2675,23 +2684,25 @@ void rdc_test()
 		std::atomic<int> server_accept_counter = 0;
 		server.bind_accept([&](auto & session_ptr)
 		{
-			session_ptr->no_delay(true);
+			if (!asio2::get_last_error())
+			{
+				session_ptr->no_delay(true);
 
-			server_accept_counter++;
+				server_accept_counter++;
 
-			ASIO2_CHECK(!asio2::get_last_error());
-			ASIO2_CHECK(server.get_listen_address() == "127.0.0.1");
-			ASIO2_CHECK(server.get_listen_port() == 18037);
-			ASIO2_CHECK(session_ptr->remote_address() == "127.0.0.1");
-			ASIO2_CHECK(session_ptr->local_address() == "127.0.0.1");
-			ASIO2_CHECK(session_ptr->local_port() == 18037);
-			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(!asio2::get_last_error());
+				ASIO2_CHECK(server.get_listen_address() == "127.0.0.1");
+				ASIO2_CHECK(server.get_listen_port() == 18037);
+				ASIO2_CHECK(session_ptr->remote_address() == "127.0.0.1");
+				ASIO2_CHECK(session_ptr->local_address() == "127.0.0.1");
+				ASIO2_CHECK(session_ptr->local_port() == 18037);
+				ASIO2_CHECK(server.io().running_in_this_thread());
+				ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
 
-			//// You can close the connection directly here.
-			//if (session_ptr->remote_address() == "192.168.0.254")
-			//	session_ptr->stop();
-
+				//// You can close the connection directly here.
+				//if (session_ptr->remote_address() == "192.168.0.254")
+				//	session_ptr->stop();
+			}
 		});
 		std::atomic<int> server_connect_counter = 0;
 		server.bind_connect([&](auto & session_ptr)

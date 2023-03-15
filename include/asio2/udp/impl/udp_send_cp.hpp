@@ -77,13 +77,6 @@ namespace asio2::detail
 
 			// We must ensure that there is only one operation to send data
 			// at the same time,otherwise may be cause crash.
-			if (!derive.is_started())
-			{
-				set_last_error(asio::error::not_connected);
-				return;
-			}
-
-			clear_last_error();
 
 			derive._do_resolve(std::forward<String>(host), std::forward<StrOrInt>(port),
 				derive._data_persistence(std::forward<DataT>(data)),
@@ -132,13 +125,6 @@ namespace asio2::detail
 
 			// We must ensure that there is only one operation to send data
 			// at the same time,otherwise may be cause crash.
-			if (!derive.is_started())
-			{
-				set_last_error(asio::error::not_connected);
-				return;
-			}
-
-			clear_last_error();
 
 			derive._do_resolve(std::forward<String>(host), std::forward<StrOrInt>(port),
 				derive._data_persistence(s, count), [](const error_code&, std::size_t) mutable {});
@@ -171,15 +157,6 @@ namespace asio2::detail
 			std::shared_ptr<std::promise<std::pair<error_code, std::size_t>>> promise =
 				std::make_shared<std::promise<std::pair<error_code, std::size_t>>>();
 			std::future<std::pair<error_code, std::size_t>> future = promise->get_future();
-
-			if (!derive.is_started())
-			{
-				set_last_error(asio::error::not_connected);
-				promise->set_value(std::pair<error_code, std::size_t>(asio::error::not_connected, 0));
-				return future;
-			}
-
-			clear_last_error();
 
 			derive._do_resolve(std::forward<String>(host), std::forward<StrOrInt>(port),
 				derive._data_persistence(std::forward<DataT>(data)),
@@ -246,21 +223,12 @@ namespace asio2::detail
 				std::make_shared<std::promise<std::pair<error_code, std::size_t>>>();
 			std::future<std::pair<error_code, std::size_t>> future = promise->get_future();
 
-			if (!derive.is_started())
-			{
-				set_last_error(asio::error::not_connected);
-				promise->set_value(std::pair<error_code, std::size_t>(asio::error::not_connected, 0));
-				return future;
-			}
-
 			if (!s)
 			{
 				set_last_error(asio::error::invalid_argument);
 				promise->set_value(std::pair<error_code, std::size_t>(asio::error::invalid_argument, 0));
 				return future;
 			}
-
-			clear_last_error();
 
 			derive._do_resolve(std::forward<String>(host), std::forward<StrOrInt>(port),
 				derive._data_persistence(s, count),
@@ -304,14 +272,6 @@ namespace asio2::detail
 
 			// We must ensure that there is only one operation to send data
 			// at the same time,otherwise may be cause crash.
-			if (!derive.is_started())
-			{
-				derive._udp_send_cp_invoke_callback(asio::error::not_connected, std::forward<Callback>(fn));
-
-				return;
-			}
-
-			clear_last_error();
 
 			derive._do_resolve(std::forward<String>(host), std::forward<StrOrInt>(port),
 				derive._data_persistence(std::forward<DataT>(data)),
@@ -361,12 +321,6 @@ namespace asio2::detail
 
 			// We must ensure that there is only one operation to send data
 			// at the same time,otherwise may be cause crash.
-			if (!derive.is_started())
-			{
-				derive._udp_send_cp_invoke_callback(asio::error::not_connected, std::forward<Callback>(fn));
-
-				return;
-			}
 
 			if (!s)
 			{
@@ -374,8 +328,6 @@ namespace asio2::detail
 
 				return;
 			}
-
-			clear_last_error();
 
 			derive._do_resolve(std::forward<String>(host), std::forward<StrOrInt>(port),
 				derive._data_persistence(s, count),
@@ -408,18 +360,19 @@ namespace asio2::detail
 
 			// We must ensure that there is only one operation to send data
 			// at the same time,otherwise may be cause crash.
-			if (!derive.is_started())
-			{
-				set_last_error(asio::error::not_connected);
-				return;
-			}
-
-			clear_last_error();
 
 			derive.push_event([&derive, p = derive.selfptr(), endpoint = std::forward<Endpoint>(endpoint),
 				data = derive._data_persistence(std::forward<DataT>(data))]
 				(event_queue_guard<derived_t> g) mutable
 			{
+				if (!derive.is_started())
+				{
+					set_last_error(asio::error::not_connected);
+					return;
+				}
+
+				clear_last_error();
+
 				derive._do_send(endpoint, data, [g = std::move(g)](const error_code&, std::size_t) mutable {});
 			});
 		}
@@ -465,17 +418,18 @@ namespace asio2::detail
 
 			// We must ensure that there is only one operation to send data
 			// at the same time,otherwise may be cause crash.
-			if (!derive.is_started())
-			{
-				set_last_error(asio::error::not_connected);
-				return;
-			}
-
-			clear_last_error();
 
 			derive.push_event([&derive, p = derive.selfptr(), endpoint = std::forward<Endpoint>(endpoint),
 				data = derive._data_persistence(s, count)](event_queue_guard<derived_t> g) mutable
 			{
+				if (!derive.is_started())
+				{
+					set_last_error(asio::error::not_connected);
+					return;
+				}
+
+				clear_last_error();
+
 				derive._do_send(endpoint, data, [g = std::move(g)](const error_code&, std::size_t) mutable {});
 			});
 		}
@@ -508,19 +462,19 @@ namespace asio2::detail
 				std::make_shared<std::promise<std::pair<error_code, std::size_t>>>();
 			std::future<std::pair<error_code, std::size_t>> future = promise->get_future();
 
-			if (!derive.is_started())
-			{
-				set_last_error(asio::error::not_connected);
-				promise->set_value(std::pair<error_code, std::size_t>(asio::error::not_connected, 0));
-				return future;
-			}
-
-			clear_last_error();
-
 			derive.push_event([&derive, p = derive.selfptr(), endpoint = std::forward<Endpoint>(endpoint),
 				data = derive._data_persistence(std::forward<DataT>(data)),
 				promise = std::move(promise)](event_queue_guard<derived_t> g) mutable
 			{
+				if (!derive.is_started())
+				{
+					set_last_error(asio::error::not_connected);
+					promise->set_value(std::pair<error_code, std::size_t>(asio::error::not_connected, 0));
+					return;
+				}
+
+				clear_last_error();
+
 				derive._do_send(endpoint, data, [&promise, g = std::move(g)]
 				(const error_code& ec, std::size_t bytes_sent) mutable
 				{
@@ -577,13 +531,6 @@ namespace asio2::detail
 				std::make_shared<std::promise<std::pair<error_code, std::size_t>>>();
 			std::future<std::pair<error_code, std::size_t>> future = promise->get_future();
 
-			if (!derive.is_started())
-			{
-				set_last_error(asio::error::not_connected);
-				promise->set_value(std::pair<error_code, std::size_t>(asio::error::not_connected, 0));
-				return future;
-			}
-
 			if (!s)
 			{
 				set_last_error(asio::error::invalid_argument);
@@ -591,12 +538,19 @@ namespace asio2::detail
 				return future;
 			}
 
-			clear_last_error();
-
 			derive.push_event([&derive, p = derive.selfptr(), endpoint = std::forward<Endpoint>(endpoint),
 				data = derive._data_persistence(s, count),
 				promise = std::move(promise)](event_queue_guard<derived_t> g) mutable
 			{
+				if (!derive.is_started())
+				{
+					set_last_error(asio::error::not_connected);
+					promise->set_value(std::pair<error_code, std::size_t>(asio::error::not_connected, 0));
+					return;
+				}
+
+				clear_last_error();
+
 				derive._do_send(endpoint, data, [&promise, g = std::move(g)]
 				(const error_code& ec, std::size_t bytes_sent) mutable
 				{
@@ -630,19 +584,19 @@ namespace asio2::detail
 
 			// We must ensure that there is only one operation to send data
 			// at the same time,otherwise may be cause crash.
-			if (!derive.is_started())
-			{
-				derive._udp_send_cp_invoke_callback(asio::error::not_connected, std::forward<Callback>(fn));
-
-				return;
-			}
-
-			clear_last_error();
-
 			derive.push_event([&derive, p = derive.selfptr(), endpoint = std::forward<Endpoint>(endpoint),
 				data = derive._data_persistence(std::forward<DataT>(data)),
 				fn = std::forward<Callback>(fn)](event_queue_guard<derived_t> g) mutable
 			{
+				if (!derive.is_started())
+				{
+					derive._udp_send_cp_invoke_callback(asio::error::not_connected, std::forward<Callback>(fn));
+
+					return;
+				}
+
+				clear_last_error();
+
 				derive._do_send(endpoint, data, [&fn, g = std::move(g)]
 				(const error_code&, std::size_t bytes_sent) mutable
 				{
@@ -690,12 +644,6 @@ namespace asio2::detail
 
 			// We must ensure that there is only one operation to send data
 			// at the same time,otherwise may be cause crash.
-			if (!derive.is_started())
-			{
-				derive._udp_send_cp_invoke_callback(asio::error::not_connected, std::forward<Callback>(fn));
-
-				return;
-			}
 
 			if (!s)
 			{
@@ -704,12 +652,19 @@ namespace asio2::detail
 				return;
 			}
 
-			clear_last_error();
-
 			derive.push_event([&derive, p = derive.selfptr(), endpoint = std::forward<Endpoint>(endpoint),
 				data = derive._data_persistence(s, count),
 				fn = std::forward<Callback>(fn)](event_queue_guard<derived_t> g) mutable
 			{
+				if (!derive.is_started())
+				{
+					derive._udp_send_cp_invoke_callback(asio::error::not_connected, std::forward<Callback>(fn));
+
+					return;
+				}
+
+				clear_last_error();
+
 				derive._do_send(endpoint, data, [&fn, g = std::move(g)]
 				(const error_code&, std::size_t bytes_sent) mutable
 				{
@@ -946,6 +901,17 @@ namespace asio2::detail
 							callback = (endpoints.size() == i ? std::move(callback) : callback)]
 						(event_queue_guard<derived_t> g) mutable
 						{
+							if (!derive.is_started())
+							{
+								set_last_error(asio::error::not_connected);
+
+								callback(asio::error::not_connected, 0);
+
+								return;
+							}
+
+							clear_last_error();
+
 							derive._do_send(endpoint, data, [g = std::move(g), f = std::move(callback)]
 							(const error_code& ec, std::size_t bytes_sent) mutable
 							{

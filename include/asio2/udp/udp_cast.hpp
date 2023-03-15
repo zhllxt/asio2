@@ -210,7 +210,10 @@ namespace asio2::detail
 			// use derfer to ensure the promise's value must be seted.
 			detail::defer_event pg
 			{
-				[this, p = std::move(promise)]() mutable { p.set_value(this->state().load()); }
+				[this, p = std::move(promise)]() mutable
+				{
+					p.set_value(this->state().load());
+				}
 			};
 
 			derive.post_event([&derive, this_ptr = derive.selfptr(), pg = std::move(pg)]
@@ -227,7 +230,7 @@ namespace asio2::detail
 							// is destroyed before "pg", the next event maybe called, then the
 							// state maybe change to not stopped.
 							{
-								detail::defer_event{ std::move(pg) };
+								[[maybe_unused]] detail::defer_event t{ std::move(pg) };
 							}
 						}, std::move(g)
 					}
@@ -333,6 +336,12 @@ namespace asio2::detail
 		{
 			derived_t& derive = this->derived();
 
+			// if log is enabled, init the log first, otherwise when "Too many open files" error occurs,
+			// the log file will be created failed too.
+		#if defined(ASIO2_ENABLE_LOG)
+			asio2::detail::get_logger();
+		#endif
+
 			this->start_iopool();
 
 			if (this->is_iopool_stopped())
@@ -356,7 +365,10 @@ namespace asio2::detail
 			// use derfer to ensure the promise's value must be seted.
 			detail::defer_event pg
 			{
-				[promise = std::move(promise)]() mutable { promise.set_value(get_last_error()); }
+				[promise = std::move(promise)]() mutable
+				{
+					promise.set_value(get_last_error());
+				}
 			};
 
 			derive.post_event(
@@ -376,7 +388,7 @@ namespace asio2::detail
 						// is destroyed before "pg", the next event maybe called, then the
 						// state maybe change to not stopped.
 						{
-							detail::defer_event{ std::move(pg) };
+							[[maybe_unused]] detail::defer_event t{ std::move(pg) };
 						}
 					}, std::move(g)
 				};

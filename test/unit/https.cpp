@@ -136,9 +136,11 @@ void https_test()
 
 		server.bind_accept([](std::shared_ptr<asio2::https_session> & session_ptr)
 		{
-			if (session_ptr->remote_address().find("192") != std::string::npos)
-				session_ptr->stop();
-
+			if (!asio2::get_last_error())
+			{
+				if (session_ptr->remote_address().find("192.168.10.") != std::string::npos)
+					session_ptr->stop();
+			}
 		}).bind_start([&]()
 		{
 		}).bind_stop([&]()
@@ -265,10 +267,9 @@ void https_test()
 			}).join();
 		}).bind_upgrade([&]()
 		{
-			// this send will be failed, because connection is not fully completed
 			wss_client.async_send("abc", []()
 			{
-				ASIO2_CHECK(asio2::get_last_error());
+				ASIO2_CHECK(!asio2::get_last_error());
 			});
 		}).bind_disconnect([]()
 		{

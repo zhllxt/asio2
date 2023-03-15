@@ -31,13 +31,16 @@ int main()
 
 	server.bind_accept([](std::shared_ptr<asio2::wss_session>& session_ptr)
 	{
-		// how to set custom websocket response data : 
-		session_ptr->ws_stream().set_option(websocket::stream_base::decorator(
-			[](websocket::response_type& rep)
+		// accept callback maybe has error like "Too many open files", etc...
+		if (!asio2::get_last_error())
 		{
-			rep.set(http::field::authorization, " ssl-websocket-server-coro");
-		}));
-
+			// how to set custom websocket response data : 
+			session_ptr->ws_stream().set_option(websocket::stream_base::decorator(
+				[](websocket::response_type& rep)
+			{
+				rep.set(http::field::authorization, " ssl-websocket-server-coro");
+			}));
+		}
 	}).bind_recv([](std::shared_ptr<asio2::wss_session> & session_ptr, std::string_view data)
 	{
 		printf("recv : %zu %.*s\n", data.size(), (int)data.size(), data.data());

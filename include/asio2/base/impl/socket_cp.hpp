@@ -144,7 +144,12 @@ namespace asio2::detail
 
 			try
 			{
-				return this->remote_endpoint_copy_.address().to_string();
+				asio::ip::address addr = this->remote_endpoint_copy_.address();
+
+				if (!addr.is_unspecified())
+				{
+					return addr.to_string();
+				}
 			}
 			catch (const system_error&)
 			{

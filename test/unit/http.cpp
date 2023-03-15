@@ -937,11 +937,10 @@ void http_test()
 
 		}).bind_upgrade([&]()
 		{
-			// this send will be failed, because connection is not fully completed
 			ws_client.async_send("abc", [](std::size_t bytes)
 			{
-				ASIO2_CHECK(asio2::get_last_error() == asio::error::not_connected);
-				ASIO2_CHECK(bytes == 0);
+				ASIO2_CHECK(!asio2::get_last_error());
+				ASIO2_CHECK(bytes == 3);
 			});
 
 		}).bind_recv([&](std::string_view data)
@@ -1296,13 +1295,6 @@ void http_test()
 					//	std::cout << "upgrade failure : " << asio2::last_error_val() << " " << asio2::last_error_msg() << std::endl;
 					//else
 					//	std::cout << "upgrade success : " << client.get_upgrade_response() << std::endl;
-
-					// this send will be failed, because connection is not fully completed
-					//client.async_send("abc", []()
-					//{
-					//	ASIO2_CHECK(asio2::get_last_error());
-					//	std::cout << "send failed : " << asio2::last_error_msg() << std::endl;
-					//});
 
 				}).bind_recv([&](std::string_view data)
 					{

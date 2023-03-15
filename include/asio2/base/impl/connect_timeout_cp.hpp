@@ -203,7 +203,7 @@ namespace asio2::detail
 		/// to reduce memory space occupied when running
 		std::shared_ptr<safe_timer>                 connect_timeout_timer_;
 
-		std::chrono::steady_clock::duration         connect_timeout_         = std::chrono::seconds(5);
+		std::chrono::steady_clock::duration         connect_timeout_         = std::chrono::seconds(30);
 
 	#if defined(_DEBUG) || defined(DEBUG)
 		bool                                        is_stop_connect_timeout_timer_called_ = false;

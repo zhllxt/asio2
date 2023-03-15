@@ -59,7 +59,7 @@ namespace asio2::detail
 		static auto t1 = std::chrono::steady_clock::now();
 
 		auto t2 = std::chrono::steady_clock::now();
-		if (std::chrono::duration_cast<std::chrono::seconds>(t2 - t1).count() > 5)
+		if (std::chrono::duration_cast<std::chrono::seconds>(t2 - t1).count() > 60)
 		{
 			t1 = std::chrono::steady_clock::now();
 

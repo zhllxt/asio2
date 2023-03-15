@@ -42,27 +42,34 @@ namespace asio2::detail
 {
 	enum class state_t : std::int8_t { stopped, stopping, starting, started };
 
-	static long constexpr  tcp_handshake_timeout = 5 * 1000;
-	static long constexpr  udp_handshake_timeout = 5 * 1000;
-	static long constexpr http_handshake_timeout = 5 * 1000;
+	// /bho/beast/websocket/stream_base.hpp line 147
+	// opt.handshake_timeout = std::chrono::seconds(30);
 
-	static long constexpr  tcp_connect_timeout   = 5 * 1000;
-	static long constexpr  udp_connect_timeout   = 5 * 1000;
-	static long constexpr http_connect_timeout   = 5 * 1000;
+	// When there are a lot of connections, there will maybe a lot of COSE_WAIT,LAST_ACK,TIME_WAIT
+	// and other problems, resulting in the client being unable to connect to the server normally.
+	// Increasing the connect,handshake,shutdown timeout can effectively alleviate this problem.
+
+	static long constexpr  tcp_handshake_timeout = 30 * 1000;
+	static long constexpr  udp_handshake_timeout = 30 * 1000;
+	static long constexpr http_handshake_timeout = 30 * 1000;
+
+	static long constexpr  tcp_connect_timeout   = 30 * 1000;
+	static long constexpr  udp_connect_timeout   = 30 * 1000;
+	static long constexpr http_connect_timeout   = 30 * 1000;
 
 	static long constexpr  tcp_silence_timeout   = 60 * 60 * 1000;
 	static long constexpr  udp_silence_timeout   = 60 * 1000;
 	static long constexpr http_silence_timeout   = 85 * 1000;
 	static long constexpr mqtt_silence_timeout   = 90 * 1000; // 60 * 1.5
 
-	static long constexpr http_execute_timeout   = 5 * 1000;
-	static long constexpr icmp_execute_timeout   = 4 * 1000;
+	static long constexpr http_execute_timeout   = 15 * 1000;
+	static long constexpr icmp_execute_timeout   =  4 * 1000;
 
-	static long constexpr ssl_shutdown_timeout   = 5 * 1000;
-	static long constexpr  ws_shutdown_timeout   = 5 * 1000;
+	static long constexpr ssl_shutdown_timeout   = 30 * 1000;
+	static long constexpr  ws_shutdown_timeout   = 30 * 1000;
 
-	static long constexpr ssl_handshake_timeout  = 5 * 1000;
-	static long constexpr  ws_handshake_timeout  = 5 * 1000;
+	static long constexpr ssl_handshake_timeout  = 30 * 1000;
+	static long constexpr  ws_handshake_timeout  = 30 * 1000;
 
 	/*
 	 * The read buffer has to be at least as large

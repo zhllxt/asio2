@@ -109,6 +109,8 @@ namespace asio2::detail
 		template<typename C>
 		inline void start(std::shared_ptr<ecs_t<C>> ecs)
 		{
+			derived_t& derive = this->derived();
+
 		#if defined(ASIO2_ENABLE_LOG)
 		#if defined(ASIO2_ALLOCATOR_STORAGE_SIZE)
 			static_assert(decltype(wallocator_)::storage_size == ASIO2_ALLOCATOR_STORAGE_SIZE);
@@ -126,7 +128,7 @@ namespace asio2::detail
 			this->is_disconnect_called_ = false;
 		#endif
 
-			std::shared_ptr<derived_t> this_ptr = this->derived().selfptr();
+			std::shared_ptr<derived_t> this_ptr = derive.selfptr();
 
 			try
 			{
@@ -139,23 +141,33 @@ namespace asio2::detail
 			state_t expected = state_t::stopped;
 			if (!this->state_.compare_exchange_strong(expected, state_t::starting))
 			{
-				this->derived()._do_disconnect(asio::error::already_started, std::move(this_ptr));
+				derive._do_disconnect(asio::error::already_started, std::move(this_ptr));
 				return;
 			}
 
 			// must read/write ecs in the io_context thread.
-			this->derived().ecs_ = ecs;
+			derive.ecs_ = ecs;
 
-			this->derived()._do_init(this_ptr, ecs);
+			derive._do_init(this_ptr, ecs);
 
 			// First call the base class start function
 			super::start();
 
 			// if the ecs has remote data call mode,do some thing.
-			this->derived()._rdc_init(ecs);
+			derive._rdc_init(ecs);
 
-			this->derived()._handle_connect(error_code{}, std::move(this_ptr), std::move(ecs),
-				defer_event(event_queue_guard<derived_t>()));
+			derive.push_event(
+			[&derive, this_ptr = std::move(this_ptr), ecs = std::move(ecs)]
+			(event_queue_guard<derived_t> g) mutable
+			{
+				derive.sessions().dispatch(
+				[&derive, this_ptr = std::move(this_ptr), ecs = std::move(ecs), g = std::move(g)]
+				() mutable
+				{
+					derive._handle_connect(
+						error_code{}, std::move(this_ptr), std::move(ecs), defer_event(std::move(g)));
+				});
+			});
 		}
 
 	public:
@@ -191,7 +203,10 @@ namespace asio2::detail
 			// use derfer to ensure the promise's value must be seted.
 			detail::defer_event pg
 			{
-				[this, p = std::move(promise)]() mutable { p.set_value(this->state().load()); }
+				[this, p = std::move(promise)]() mutable
+				{
+					p.set_value(this->state().load());
+				}
 			};
 
 			derive.post_event([&derive, this_ptr = derive.selfptr(), pg = std::move(pg)]
@@ -209,7 +224,7 @@ namespace asio2::detail
 							// is destroyed before "pg", the next event maybe called, then the
 							// state maybe change to not stopped.
 							{
-								detail::defer_event{ std::move(pg) };
+								[[maybe_unused]] detail::defer_event t{ std::move(pg) };
 							}
 						}, std::move(g)
 					});
@@ -366,18 +381,19 @@ namespace asio2::detail
 				ASIO2_ASSERT(!this->kcp_);
 			}
 
-			asio::post(derive.io().context(), make_allocator(derive.wallocator(),
-			[&derive, this_ptr = std::move(this_ptr), ecs = std::move(ecs), chain = std::move(chain)]
-			() mutable
+			derive.post_event(
+			[&derive, this_ptr = std::move(this_ptr), ecs = std::move(ecs), e = chain.move_event()]
+			(event_queue_guard<derived_t> g) mutable
 			{
 				if (!derive.is_started())
 				{
-					derive._do_disconnect(asio::error::operation_aborted, std::move(this_ptr), std::move(chain));
+					derive._do_disconnect(asio::error::operation_aborted, std::move(this_ptr),
+						defer_event(std::move(e), std::move(g)));
 					return;
 				}
 
-				derive._join_session(std::move(this_ptr), std::move(ecs), std::move(chain));
-			}));
+				derive._join_session(std::move(this_ptr), std::move(ecs), defer_event(std::move(e), std::move(g)));
+			});
 		}
 
 		template<typename DeferEvent>

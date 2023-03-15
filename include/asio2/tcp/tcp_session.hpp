@@ -100,6 +100,10 @@ namespace asio2::detail
 		template<typename C>
 		inline void start(std::shared_ptr<ecs_t<C>> ecs)
 		{
+			derived_t& derive = this->derived();
+
+			error_code ec = get_last_error();
+
 		#if defined(ASIO2_ENABLE_LOG)
 			// Used to test whether the behavior of different compilers is consistent
 			static_assert(tcp_send_op<derived_t, args_t>::template has_member_dgram<self>::value,
@@ -115,7 +119,7 @@ namespace asio2::detail
 			this->is_disconnect_called_ = false;
 		#endif
 
-			std::shared_ptr<derived_t> this_ptr = this->derived().selfptr();
+			std::shared_ptr<derived_t> this_ptr = derive.selfptr();
 
 			try
 			{
@@ -128,27 +132,44 @@ namespace asio2::detail
 			state_t expected = state_t::stopped;
 			if (!this->state_.compare_exchange_strong(expected, state_t::starting))
 			{
-				this->derived()._do_disconnect(asio::error::already_started, std::move(this_ptr));
+				derive._do_disconnect(asio::error::already_started, std::move(this_ptr));
 				return;
 			}
 
 			// must read/write ecs in the io_context thread.
-			this->derived().ecs_ = ecs;
+			derive.ecs_ = ecs;
 
-			this->derived()._do_init(this_ptr, ecs);
+			// init function maybe change the last error.
+			derive._do_init(this_ptr, ecs);
 
-			this->derived()._fire_accept(this_ptr);
-
-			expected = state_t::starting;
-			if (!this->state_.compare_exchange_strong(expected, state_t::starting))
+			// if the accept function has error, reset the last error to it.
+			if (ec)
 			{
-				this->derived()._do_disconnect(asio::error::operation_aborted, std::move(this_ptr));
+				set_last_error(ec);
+			}
+
+			// now, the fire accept maybe has error, so the user should check it.
+			derive._fire_accept(this_ptr);
+
+			// if the accept has error, disconnect this session.
+			if (ec)
+			{
+				derive._do_disconnect(ec, std::move(this_ptr));
 				return;
 			}
 
-			if (!this->derived().socket().is_open())
+			// user maybe called the session stop in the accept callbak, so we need check it.
+			expected = state_t::starting;
+			if (!this->state_.compare_exchange_strong(expected, state_t::starting))
 			{
-				this->derived()._do_disconnect(asio::error::operation_aborted, std::move(this_ptr));
+				derive._do_disconnect(asio::error::operation_aborted, std::move(this_ptr));
+				return;
+			}
+
+			// user maybe closed the socket in the accept callbak, so we need check it.
+			if (!derive.socket().is_open())
+			{
+				derive._do_disconnect(asio::error::operation_aborted, std::move(this_ptr));
 				return;
 			}
 
@@ -156,10 +177,25 @@ namespace asio2::detail
 			super::start();
 
 			// if the ecs has remote data call mode,do some thing.
-			this->derived()._rdc_init(ecs);
+			derive._rdc_init(ecs);
 
-			this->derived()._handle_connect(
-				error_code{}, std::move(this_ptr), std::move(ecs), defer_event<void, derived_t>{});
+			// use push event to avoid this problem in ssl session: 
+			// 1. _post_handshake not completed, this means the handshake callback hasn't been called.
+			// 2. call session stop, then the ssl async shutdown will be called. 
+			// 3. then "ASIO2_ASSERT(derive.post_send_counter_.load() == 0);" will be failed.
+
+			derive.push_event(
+			[&derive, this_ptr = std::move(this_ptr), ecs = std::move(ecs)]
+			(event_queue_guard<derived_t> g) mutable
+			{
+				derive.sessions().dispatch(
+				[&derive, this_ptr = std::move(this_ptr), ecs = std::move(ecs), g = std::move(g)]
+				() mutable
+				{
+					derive._handle_connect(
+						error_code{}, std::move(this_ptr), std::move(ecs), defer_event(std::move(g)));
+				});
+			});
 		}
 
 	public:
@@ -195,7 +231,10 @@ namespace asio2::detail
 			// use derfer to ensure the promise's value must be seted.
 			detail::defer_event pg
 			{
-				[this, p = std::move(promise)]() mutable { p.set_value(this->state().load()); }
+				[this, p = std::move(promise)]() mutable
+				{
+					p.set_value(this->state().load());
+				}
 			};
 
 			derive.post_event([&derive, this_ptr = derive.selfptr(), pg = std::move(pg)]
@@ -213,7 +252,7 @@ namespace asio2::detail
 							// is destroyed before "pg", the next event maybe called, then the
 							// state maybe change to not stopped.
 							{
-								detail::defer_event{ std::move(pg) };
+								[[maybe_unused]] detail::defer_event t{ std::move(pg) };
 							}
 						}, std::move(g)
 					});
@@ -289,23 +328,25 @@ namespace asio2::detail
 			// Beacuse we ensured that the session::_do_disconnect must be called in the session's
 			// io_context thread, so if the session::stop is called in the server's bind_connect 
 			// callback, the session's disconnect event maybe still be called, However, in this case,
-			// we do not want the disconnect event to be called, so at here, we need use asio::post
+			// we do not want the disconnect event to be called, so at here, we need use post_event
 			// to ensure the join session is must be executed after the disconnect event, otherwise,
 			// the join session maybe executed before the disconnect event(the bind_disconnect callback).
 			// if the join session is executed before the disconnect event, the bind_disconnect will
 			// be called.
-			asio::post(derive.io().context(), make_allocator(derive.wallocator(),
-			[&derive, this_ptr = std::move(this_ptr), ecs = std::move(ecs), chain = std::move(chain)]
-			() mutable
+
+			derive.post_event(
+			[&derive, this_ptr = std::move(this_ptr), ecs = std::move(ecs), e = chain.move_event()]
+			(event_queue_guard<derived_t> g) mutable
 			{
 				if (!derive.is_started())
 				{
-					derive._do_disconnect(asio::error::operation_aborted, std::move(this_ptr), std::move(chain));
+					derive._do_disconnect(asio::error::operation_aborted, std::move(this_ptr),
+						defer_event(std::move(e), std::move(g)));
 					return;
 				}
 
-				derive._join_session(std::move(this_ptr), std::move(ecs), std::move(chain));
-			}));
+				derive._join_session(std::move(this_ptr), std::move(ecs), defer_event(std::move(e), std::move(g)));
+			});
 		}
 
 		template<typename DeferEvent>

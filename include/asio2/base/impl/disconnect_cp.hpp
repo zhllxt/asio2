@@ -54,19 +54,34 @@ namespace asio2::detail
 
 			ASIO2_ASSERT(derive.io().running_in_this_thread());
 
-			set_last_error(ec);
+			// use disp event to change the state to avoid this problem:
+			// 1. when the event queue is not empty, call client stop, then the stop event will pushed
+			//    into the event queue.
+			// 2. in the io_context thread, the do disconnect is called directly (without event queue),
+			//    it will change the state to stopping.
+			// 3. when the client _do stop is called, the state is not equal to stopped, it is equal to
+			//    stopping.
 
-			state_t expected = state_t::started;
-			if (derive.state().compare_exchange_strong(expected, state_t::stopping))
+			derive.disp_event(
+			[&derive, ec, this_ptr = std::move(this_ptr), e = chain.move_event()]
+			(event_queue_guard<derived_t> g) mutable
 			{
-				return derive._check_reconnect(ec, std::move(this_ptr), expected, std::move(chain));
-			}
+				set_last_error(ec);
 
-			expected = state_t::starting;
-			if (derive.state().compare_exchange_strong(expected, state_t::stopping))
-			{
-				return derive._check_reconnect(ec, std::move(this_ptr), expected, std::move(chain));
-			}
+				state_t expected = state_t::started;
+				if (derive.state().compare_exchange_strong(expected, state_t::stopping))
+				{
+					return derive._check_reconnect(ec, std::move(this_ptr), expected,
+						defer_event(std::move(e), std::move(g)));
+				}
+
+				expected = state_t::starting;
+				if (derive.state().compare_exchange_strong(expected, state_t::stopping))
+				{
+					return derive._check_reconnect(ec, std::move(this_ptr), expected,
+						defer_event(std::move(e), std::move(g)));
+				}
+			}, chain.move_guard());
 		}
 
 		template<typename DeferEvent, bool IsSession = args_t::is_session>
@@ -158,8 +173,6 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			set_last_error(ec);
-
 			// Normally, _do_disconnect function will be called in the io_context thread, but if some
 			// exception occured, _do_disconnect maybe called in the "catch(){ ... }", then this maybe
 			// not in the io_context thread.
@@ -172,23 +185,28 @@ namespace asio2::detail
 
 			//ASIO2_ASSERT(derive.io().running_in_this_thread());
 
-			asio::dispatch(derive.io().context(), make_allocator(derive.wallocator(),
-			[&derive, ec, this_ptr = std::move(this_ptr), chain = std::move(chain)]() mutable
+			derive.disp_event(
+			[&derive, ec, this_ptr = std::move(this_ptr), e = chain.move_event()]
+			(event_queue_guard<derived_t> g) mutable
 			{
+				set_last_error(ec);
+
 				ASIO2_ASSERT(derive.io().running_in_this_thread());
 
 				state_t expected = state_t::started;
 				if (derive.state().compare_exchange_strong(expected, state_t::stopping))
 				{
-					return derive._post_disconnect(ec, std::move(this_ptr), expected, std::move(chain));
+					return derive._post_disconnect(ec, std::move(this_ptr), expected,
+						defer_event(std::move(e), std::move(g)));
 				}
 
 				expected = state_t::starting;
 				if (derive.state().compare_exchange_strong(expected, state_t::stopping))
 				{
-					return derive._post_disconnect(ec, std::move(this_ptr), expected, std::move(chain));
+					return derive._post_disconnect(ec, std::move(this_ptr), expected,
+						defer_event(std::move(e), std::move(g)));
 				}
-			}));
+			}, chain.move_guard());
 		}
 
 		template<typename DeferEvent, bool IsSession = args_t::is_session>

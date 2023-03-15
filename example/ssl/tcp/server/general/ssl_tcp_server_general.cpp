@@ -154,13 +154,17 @@ int main()
 		session_ptr->async_send(s);
 	}).bind_accept([&](auto& session_ptr)
 	{
-		// You can close the connection directly here.
-		if (session_ptr->remote_address() == "192.168.0.254")
-			session_ptr->stop();
-
-		printf("client accept : %s %u %s %u\n",
-			session_ptr->remote_address().c_str(), session_ptr->remote_port(),
-			session_ptr->local_address().c_str(), session_ptr->local_port());
+		// accept callback maybe has error like "Too many open files", etc...
+		if (!asio2::get_last_error())
+		{
+			// You can close the connection directly here.
+			if (session_ptr->remote_address() == "192.168.0.254")
+				session_ptr->stop();
+			else
+				printf("client accept : %s %u %s %u\n",
+					session_ptr->remote_address().c_str(), session_ptr->remote_port(),
+					session_ptr->local_address().c_str(), session_ptr->local_port());
+		}
 	}).bind_connect([&](auto & session_ptr)
 	{
 		printf("client enter : %s %u %s %u\n",

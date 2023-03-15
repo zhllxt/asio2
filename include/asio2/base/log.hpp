@@ -22,6 +22,7 @@
 #include <string>
 
 #include <asio2/external/predef.h>
+#include <asio2/external/assert.hpp>
 
 #include <asio2/base/detail/filesystem.hpp>
 
@@ -69,42 +70,52 @@ namespace asio2::detail
 			if (!logger)
 			{
 				std::string filepath;
+				std::shared_ptr<spdlog::logger> loger;
 
-			#if ASIO2_OS_LINUX || ASIO2_OS_UNIX
-				filepath.resize(PATH_MAX);
-				auto r = readlink("/proc/self/exe", (char *)filepath.data(), PATH_MAX);
-				std::ignore = r; // gcc 7 warning: ignoring return value of ... [-Wunused-result]
-			#elif ASIO2_OS_WINDOWS
-				filepath.resize(MAX_PATH);
-				filepath.resize(::GetModuleFileNameA(NULL, (LPSTR)filepath.data(), MAX_PATH));
-			#elif ASIO2_OS_MACOS
-				filepath.resize(PATH_MAX);
-				std::uint32_t bufsize = std::uint32_t(PATH_MAX);
-				_NSGetExecutablePath(filepath.data(), std::addressof(bufsize));
-			#endif
+				try
+				{
+				#if ASIO2_OS_LINUX || ASIO2_OS_UNIX
+					filepath.resize(PATH_MAX);
+					auto r = readlink("/proc/self/exe", (char *)filepath.data(), PATH_MAX);
+					std::ignore = r; // gcc 7 warning: ignoring return value of ... [-Wunused-result]
+				#elif ASIO2_OS_WINDOWS
+					filepath.resize(MAX_PATH);
+					filepath.resize(::GetModuleFileNameA(NULL, (LPSTR)filepath.data(), MAX_PATH));
+				#elif ASIO2_OS_MACOS
+					filepath.resize(PATH_MAX);
+					std::uint32_t bufsize = std::uint32_t(PATH_MAX);
+					_NSGetExecutablePath(filepath.data(), std::addressof(bufsize));
+				#endif
 
-				if (std::string::size_type pos = filepath.find('\0'); pos != std::string::npos)
-					filepath.resize(pos);
+					if (std::string::size_type pos = filepath.find('\0'); pos != std::string::npos)
+						filepath.resize(pos);
 
-			#if defined(_DEBUG) || defined(DEBUG)
-				assert(!filepath.empty());
-			#endif
+					ASIO2_ASSERT(!filepath.empty());
 
-				std::filesystem::path path{ filepath };
+					std::filesystem::path path{ filepath };
 
-				std::string name = path.filename().string();
+					std::string name = path.filename().string();
 
-				std::string ext = path.extension().string();
+					std::string ext = path.extension().string();
 
-				name.resize(name.size() - ext.size());
+					name.resize(name.size() - ext.size());
 
-				filepath = path.parent_path().append(name).string() + ".asio2.log";
+					filepath = path.parent_path().append(name).string() + ".asio2.log";
 
-				auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(filepath, true);
-				file_sink->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%l] %v");
-				auto loger = std::make_shared<spdlog::logger>("ASIO2_LOG", std::move(file_sink));
-				loger->set_level(spdlog::level::debug);
-				loger->flush_on(spdlog::level::err);
+					auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(filepath, true);
+					file_sink->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%l] %v");
+
+					loger = std::make_shared<spdlog::logger>("ASIO2_LOG", std::move(file_sink));
+
+					loger->set_level(spdlog::level::debug);
+					loger->flush_on(spdlog::level::err);
+				}
+				catch (const std::exception&)
+				{
+					loger.reset();
+
+					ASIO2_ASSERT(false);
+				}
 
 				logger = std::move(loger);
 			}

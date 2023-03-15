@@ -54,13 +54,6 @@ int main()
 		else
 			printf("handshake success : %d %s\n",
 				asio2::last_error_val(), asio2::last_error_msg().c_str());
-
-		// this send will be failed, because connection is not fully completed
-		client.async_send("abc", []()
-		{
-			ASIO2_ASSERT(asio2::get_last_error());
-			std::cout << "send failed : " << asio2::last_error_msg() << std::endl;
-		});
 	}).bind_init([&]()
 	{
 		// Specify the local port to which the socket is bind.

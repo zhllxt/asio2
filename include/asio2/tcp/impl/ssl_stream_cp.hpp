@@ -55,6 +55,28 @@ namespace asio2::detail
 			return (*(this->ssl_stream_));
 		}
 
+		/**
+		 * @brief get the ssl handshake timeout
+		 */
+		inline std::chrono::steady_clock::duration get_handshake_timeout() noexcept
+		{
+			return this->handshake_timeout_;
+		}
+
+		/**
+		 * @brief set the ssl handshake timeout
+		 */
+		template<class Rep, class Period>
+		inline derived_t& set_handshake_timeout(std::chrono::duration<Rep, Period> timeout) noexcept
+		{
+			if (timeout > std::chrono::duration_cast<
+				std::chrono::duration<Rep, Period>>((std::chrono::steady_clock::duration::max)()))
+				this->handshake_timeout_ = (std::chrono::steady_clock::duration::max)();
+			else
+				this->handshake_timeout_ = timeout;
+			return static_cast<derived_t&>(*this);
+		}
+
 	protected:
 		template<typename C>
 		inline void _ssl_init(std::shared_ptr<ecs_t<C>>& ecs, socket_type& socket, asio::ssl::context& ctx)
@@ -122,8 +144,15 @@ namespace asio2::detail
 					// When the client auto reconnect, SSL_clear must be called,
 					// otherwise the SSL handshake will failed.
 
-					SSL_clear_op(stream_type* p) : s(p) {}
-					~SSL_clear_op() { if (s) SSL_clear(s->native_handle()); }
+					SSL_clear_op(stream_type* p) : s(p)
+					{
+					}
+
+					~SSL_clear_op()
+					{
+						if (s)
+							SSL_clear(s->native_handle());
+					}
 				};
 
 				// use "std::shared_ptr<SSL_clear_op>" to enusre that the SSL_clear(...) function is 
@@ -137,7 +166,7 @@ namespace asio2::detail
 				// be called.
 				std::shared_ptr<asio::steady_timer> timer = 
 					std::make_shared<asio::steady_timer>(derive.io().context());
-				timer->expires_after(std::chrono::milliseconds(ssl_shutdown_timeout));
+				timer->expires_after(this->handshake_timeout_);
 				timer->async_wait(
 				[this_ptr, chain = std::move(chain), SSL_clear_ptr]
 				(const error_code& ec) mutable
@@ -155,6 +184,10 @@ namespace asio2::detail
 				ASIO2_ASSERT(derive.post_send_counter_.load() == 0);
 				derive.post_send_counter_++;
 			#endif
+
+				// https://stackoverflow.com/questions/52990455/boost-asio-ssl-stream-shutdownec-always-had-error-which-is-boostasiossl
+				error_code ec_ignore{};
+				derive.socket().cancel(ec_ignore);
 
 				// when server call ssl stream sync shutdown first,if the client socket is
 				// not closed forever,then here shutdowm will blocking forever.
@@ -191,7 +224,7 @@ namespace asio2::detail
 
 			std::shared_ptr<asio::steady_timer> timer =
 				std::make_shared<asio::steady_timer>(derive.io().context());
-			timer->expires_after(std::chrono::milliseconds(ssl_handshake_timeout));
+			timer->expires_after(this->handshake_timeout_);
 			timer->async_wait(
 			[&derive, this_ptr, flag_ptr](const error_code& ec) mutable
 			{
@@ -316,6 +349,8 @@ namespace asio2::detail
 		handshake_type                 ssl_type_;
 
 		std::unique_ptr<stream_type>   ssl_stream_;
+
+		std::chrono::steady_clock::duration handshake_timeout_ = std::chrono::milliseconds(ssl_handshake_timeout);
 	};
 }
 

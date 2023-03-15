@@ -49,14 +49,6 @@ int main()
 			std::cout << "upgrade failure : " << asio2::last_error_val() << " " << asio2::last_error_msg() << std::endl;
 		else
 			std::cout << "upgrade success : " << client.get_upgrade_response() << std::endl;
-
-		// this send will be failed, because connection is not fully completed
-		client.async_send("abc", []()
-		{
-			ASIO2_ASSERT(asio2::get_last_error());
-			std::cout << "send failed : " << asio2::last_error_msg() << std::endl;
-		});
-
 	}).bind_recv([&](std::string_view data)
 	{
 		printf("recv : %zu %.*s\n", data.size(), (int)data.size(), data.data());

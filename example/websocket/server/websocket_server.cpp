@@ -9,19 +9,22 @@ int main()
 
 	server.bind_accept([&](std::shared_ptr<asio2::ws_session>& session_ptr)
 	{
-		// Set the binary message write option.
-		session_ptr->ws_stream().binary(true);
-
-		// Set the text message write option. The sent text must be utf8 format.
-		//session_ptr->ws_stream().text(true);
-
-		// how to set custom websocket response data : 
-		session_ptr->ws_stream().set_option(websocket::stream_base::decorator(
-			[](websocket::response_type& rep)
+		// accept callback maybe has error like "Too many open files", etc...
+		if (!asio2::get_last_error())
 		{
-			rep.set(http::field::authorization, " websocket-server-coro");
-		}));
+			// Set the binary message write option.
+			session_ptr->ws_stream().binary(true);
 
+			// Set the text message write option. The sent text must be utf8 format.
+			//session_ptr->ws_stream().text(true);
+
+			// how to set custom websocket response data : 
+			session_ptr->ws_stream().set_option(websocket::stream_base::decorator(
+				[](websocket::response_type& rep)
+			{
+				rep.set(http::field::authorization, " websocket-server-coro");
+			}));
+		}
 	}).bind_recv([&](auto & session_ptr, std::string_view data)
 	{
 		printf("recv : %zu %.*s\n", data.size(), (int)data.size(), data.data());

@@ -495,16 +495,18 @@ namespace asio2::detail
 
 			if (ec)
 			{
-				if constexpr (args_t::is_session)
+				// The connect process has finished, call the callback at here directly,
+				// otherwise the callback maybe passed to other event queue chain, and the 
+				// last error maybe changed by other event.
+
+				// can't pass the whole chain to the client _do_disconnect, it will cause
+				// the auto reconnect has no effect.
+
 				{
-					derive._do_disconnect(ec, std::move(this_ptr), std::move(chain));
+					[[maybe_unused]] detail::defer_event t{ chain.move_event() };
 				}
-				else
-				{
-					// can't pass the whole chain to the _do_disconnect, it will cause the auto
-					// reconnect has no effect.
-					derive._do_disconnect(ec, std::move(this_ptr), defer_event(chain.move_guard()));
-				}
+
+				derive._do_disconnect(ec, std::move(this_ptr), defer_event(chain.move_guard()));
 
 				return;
 			}
