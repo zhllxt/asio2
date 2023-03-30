@@ -65,6 +65,8 @@ namespace asio2::detail
 
 			derived_t& derive = static_cast<derived_t&>(*this);
 
+			ASIO2_ASSERT(derive.io().running_in_this_thread());
+
 			if (!derive.is_started())
 			{
 				if (derive.state() == state_t::started)
@@ -78,6 +80,8 @@ namespace asio2::detail
 			ASIO2_ASSERT(derive.post_recv_counter_.load() == 0);
 			derive.post_recv_counter_++;
 		#endif
+
+			derive.reading_ = true;
 
 			ecs_t<C>& e = *ecs;
 
@@ -96,6 +100,8 @@ namespace asio2::detail
 					derive.post_recv_counter_--;
 				#endif
 
+					derive.reading_ = false;
+
 					derive._handle_recv(ec, bytes_recvd, std::move(this_ptr), std::move(ecs));
 				}));
 			}
@@ -109,6 +115,8 @@ namespace asio2::detail
 				#if defined(_DEBUG) || defined(DEBUG)
 					derive.post_recv_counter_--;
 				#endif
+
+					derive.reading_ = false;
 
 					derive._handle_recv(ec, bytes_recvd, std::move(this_ptr), std::move(ecs));
 				}));
@@ -179,8 +187,13 @@ namespace asio2::detail
 			{
 				if (derive.state() == state_t::started)
 				{
-					derive._do_disconnect(ec, std::move(this_ptr));
+					ASIO2_LOG_INFOR("_tcp_handle_recv with closed socket: {} {}", ec.value(), ec.message());
+
+					derive._do_disconnect(ec, this_ptr);
 				}
+
+				derive._stop_readend_timer(std::move(this_ptr));
+
 				return;
 			}
 
@@ -195,7 +208,8 @@ namespace asio2::detail
 					{
 						if (bytes_recvd == 0)
 						{
-							derive._do_disconnect(asio::error::no_data, std::move(this_ptr));
+							derive._do_disconnect(asio::error::no_data, this_ptr);
+							derive._stop_readend_timer(std::move(this_ptr));
 							return;
 						}
 					}
@@ -234,7 +248,29 @@ namespace asio2::detail
 			}
 			else
 			{
-				derive._do_disconnect(ec, std::move(this_ptr));
+				ASIO2_LOG_DEBUG("_tcp_handle_recv with error: {} {}", ec.value(), ec.message());
+
+				if (ec == asio::error::eof)
+				{
+					// /beast/http/impl/read.hpp
+					//if (ec == net::error::eof)
+					//{
+					//	BHO_ASSERT(bytes_transferred == 0);
+					//	...
+					//}
+
+					ASIO2_ASSERT(bytes_recvd == 0);
+
+					if (bytes_recvd)
+					{
+						// http://www.purecpp.cn/detail?id=2303
+						ASIO2_LOG_INFOR("_tcp_handle_recv with eof: {}", bytes_recvd);
+					}
+				}
+
+				derive._do_disconnect(ec, this_ptr);
+
+				derive._stop_readend_timer(std::move(this_ptr));
 			}
 			// If an error occurs then no new asynchronous operations are started. This
 			// means that all shared_ptr references to the connection object will

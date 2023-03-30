@@ -63,7 +63,7 @@ namespace asio2::detail
 		template<class StringT>
 		inline self& push_mqtt_session(StringT&& clientid, std::shared_ptr<session_t> session_ptr)
 		{
-			asio2::unique_locker guard(this->mutex_);
+			asio2::unique_locker guard(this->session_persistence_mutex_);
 
 			this->mqtt_sessions_map_[detail::to_string(std::forward<StringT>(clientid))] = std::move(session_ptr);
 
@@ -75,7 +75,7 @@ namespace asio2::detail
 		 */
 		inline std::shared_ptr<session_t> find_mqtt_session(const std::string& clientid)
 		{
-			asio2::shared_locker guard(this->mutex_);
+			asio2::shared_locker guard(this->session_persistence_mutex_);
 
 			auto iter = this->mqtt_sessions_map_.find(clientid);
 
@@ -95,7 +95,7 @@ namespace asio2::detail
 		 */
 		inline bool erase_mqtt_session(const std::string& clientid)
 		{
-			asio2::unique_locker guard(this->mutex_);
+			asio2::unique_locker guard(this->session_persistence_mutex_);
 
 			return this->mqtt_sessions_map_.erase(clientid) > 0;
 		}
@@ -113,7 +113,7 @@ namespace asio2::detail
 		 */
 		inline bool erase_mqtt_session(const std::string& clientid, session_t* p)
 		{
-			asio2::unique_locker guard(this->mutex_);
+			asio2::unique_locker guard(this->session_persistence_mutex_);
 
 			auto iter = this->mqtt_sessions_map_.find(clientid);
 
@@ -142,7 +142,7 @@ namespace asio2::detail
 		 */
 		inline self& clear_mqtt_sessions()
 		{
-			asio2::unique_locker guard(this->mutex_);
+			asio2::unique_locker guard(this->session_persistence_mutex_);
 
 			this->mqtt_sessions_map_.clear();
 
@@ -151,10 +151,10 @@ namespace asio2::detail
 
 	protected:
 		/// use rwlock to make thread safe
-		mutable asio2::shared_mutexer  mutex_;
+		mutable asio2::shared_mutexer  session_persistence_mutex_;
 
 		/// 
-		std::unordered_map<std::string, std::shared_ptr<session_t>> mqtt_sessions_map_ ASIO2_GUARDED_BY(mutex_);
+		std::unordered_map<std::string, std::shared_ptr<session_t>> mqtt_sessions_map_ ASIO2_GUARDED_BY(session_persistence_mutex_);
 	};
 }
 

@@ -523,9 +523,15 @@ namespace asio2::detail
 		template<class session_t, class Response>
 		inline void _do_send_publish(std::shared_ptr<session_t> session, Response&& rep)
 		{
-			session->push_event([session, rep = std::forward<Response>(rep)]
+			session->push_event([session, id = session->life_id(), rep = std::forward<Response>(rep)]
 			(event_queue_guard<caller_t> g) mutable
 			{
+				if (id != session->life_id())
+				{
+					set_last_error(asio::error::operation_aborted);
+					return;
+				}
+
 				session->_do_send(rep, [session, &rep, g = std::move(g)]
 				(const error_code& ec, std::size_t) mutable
 				{

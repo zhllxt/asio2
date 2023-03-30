@@ -18,17 +18,16 @@ int main()
 		// accept callback maybe has error like "Too many open files", etc...
 		if (!asio2::get_last_error())
 		{
-			session_ptr->set_silence_timeout(std::chrono::seconds(5));
-
 			// eg: If the remote ip is in the blacklist, we close the connection with RST.
 			if (session_ptr->remote_address() == "192.168.0.250")
-			{
-				// How to close the socket with RST instead of FIN/ACK/FIN/ACK ?
-				// set the linger with 1,0 
-				session_ptr->set_linger(true, 0);
-				// close the socket directly.
-				session_ptr->socket().close(asio2::get_last_error());
-			}
+				session_ptr->stop();
+			else
+				session_ptr->set_silence_timeout(std::chrono::seconds(60));
+		}
+		else
+		{
+			printf("error occurred when calling the accept function : %d %s\n",
+				asio2::get_last_error_val(), asio2::get_last_error_msg().data());
 		}
 	}).bind_connect([&](std::shared_ptr<asio2::tcp_session>& session_ptr)
 	{

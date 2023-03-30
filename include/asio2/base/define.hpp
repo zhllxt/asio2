@@ -37,6 +37,8 @@ namespace asio2::detail
 	template <class, class>                      KEYWORD connect_time_cp;           \
 	template <class, class>                      KEYWORD connect_timeout_cp;        \
 	template <class, class>                      KEYWORD data_persistence_cp;       \
+	template <class, class>                      KEYWORD shutdown_cp;               \
+	template <class, class>                      KEYWORD close_cp;                  \
 	template <class, class>                      KEYWORD disconnect_cp;             \
 	template <class, class>                      KEYWORD event_queue_cp;            \
 	template <class       >                      KEYWORD event_queue_guard;         \

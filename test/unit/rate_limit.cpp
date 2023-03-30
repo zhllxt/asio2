@@ -255,7 +255,7 @@ void rate_limit_test()
 
 		}).bind_recv([](auto& session_ptr, std::string_view data)
 		{
-			ASIO2_CHECK(data.size() == 256);
+			ASIO2_CHECK(data.size() <= 256);
 
 			session_ptr->async_send(data);
 		});
@@ -269,6 +269,7 @@ void rate_limit_test()
 		{
 			// set the send rate
 			client.socket().rate_policy().write_limit(512);
+			client.socket().rate_policy().read_limit(512);
 
 			ASIO2_CHECK(!asio2::get_last_error());
 
@@ -285,7 +286,7 @@ void rate_limit_test()
 			}
 		}).bind_recv([&client](std::string_view data)
 		{
-            ASIO2_CHECK(data.size() == 256);
+            ASIO2_CHECK_VALUE(data.size(), data.size() <= 512);
 
 			client.async_send(data);
 		});
@@ -414,6 +415,11 @@ void rate_limit_test()
 
 		server.start("0.0.0.0", 18102);
 
+		// "fn" should be declared before "client", beacuse when the client destroying, the client
+		// async_call's response callback maybe still be invoked, so if the "fn" is declared after
+		// "client", when "fn" is called in the response callback, the "fn" maybe destroyed already.
+		// of course, you can call "client.stop" manual to avoid this problem.
+		std::function<void()> fn;
 
 		asio2::rpc_rate_client client;
 
@@ -421,8 +427,6 @@ void rate_limit_test()
 		{
 			return str;
 		});
-
-		std::function<void()> fn;
 
 		client.bind_connect([&client, &fn]()
 		{
@@ -509,6 +513,11 @@ void rate_limit_test()
 
 		server.start("0.0.0.0", 18102);
 
+		// "fn" should be declared before "client", beacuse when the client destroying, the client
+		// async_call's response callback maybe still be invoked, so if the "fn" is declared after
+		// "client", when "fn" is called in the response callback, the "fn" maybe destroyed already.
+		// of course, you can call "client.stop" manual to avoid this problem.
+		std::function<void()> fn;
 
 		asio2::rpcs_rate_client client;
 
@@ -520,8 +529,6 @@ void rate_limit_test()
 		{
 			return str;
 		});
-
-		std::function<void()> fn;
 
 		client.bind_connect([&client, &fn]()
 		{

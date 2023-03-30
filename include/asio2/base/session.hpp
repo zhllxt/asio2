@@ -42,6 +42,8 @@
 #include <asio2/base/impl/user_data_cp.hpp>
 #include <asio2/base/impl/socket_cp.hpp>
 #include <asio2/base/impl/connect_cp.hpp>
+#include <asio2/base/impl/shutdown_cp.hpp>
+#include <asio2/base/impl/close_cp.hpp>
 #include <asio2/base/impl/disconnect_cp.hpp>
 #include <asio2/base/impl/user_timer_cp.hpp>
 #include <asio2/base/impl/silence_timer_cp.hpp>
@@ -79,6 +81,8 @@ namespace asio2::detail
 		, public alive_time_cp         <derived_t, args_t>
 		, public socket_cp             <derived_t, args_t>
 		, public connect_cp            <derived_t, args_t>
+		, public shutdown_cp           <derived_t, args_t>
+		, public close_cp              <derived_t, args_t>
 		, public disconnect_cp         <derived_t, args_t>
 		, public user_timer_cp         <derived_t, args_t>
 		, public silence_timer_cp      <derived_t, args_t>
@@ -122,6 +126,8 @@ namespace asio2::detail
 			, alive_time_cp       <derived_t, args_t>()
 			, socket_cp           <derived_t, args_t>(std::forward<Args>(args)...)
 			, connect_cp          <derived_t, args_t>()
+			, shutdown_cp         <derived_t, args_t>()
+			, close_cp            <derived_t, args_t>()
 			, disconnect_cp       <derived_t, args_t>()
 			, user_timer_cp       <derived_t, args_t>()
 			, silence_timer_cp    <derived_t, args_t>(rwio)
@@ -217,6 +223,9 @@ namespace asio2::detail
 				// function, so we must destroy ecs, otherwise the server will can't be exited
 				// forever.
 				this->ecs_.reset();
+
+				// 
+				this->reset_life_id();
 			});
 		}
 
@@ -275,6 +284,9 @@ namespace asio2::detail
 		inline listener_t               & listener() noexcept { return this->listener_; }
 		inline std::atomic<state_t>     & state   () noexcept { return this->state_;    }
 
+		inline constexpr bool             life_id () noexcept { return true; }
+		inline constexpr void       reset_life_id () noexcept { }
+
 	protected:
 		/// asio::strand ,used to ensure socket multi thread safe,we must ensure that only one operator
 		/// can operate the same socket at the same time,and strand can enuser that the event will
@@ -305,6 +317,9 @@ namespace asio2::detail
 
 		/// the pointer of ecs_t
 		std::shared_ptr<ecs_base>            ecs_;
+
+		/// Whether the async_read... is called.
+		bool                                 reading_ = false;
 
 	#if defined(_DEBUG) || defined(DEBUG)
 		std::atomic<int>                     post_send_counter_ = 0;

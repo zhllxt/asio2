@@ -56,6 +56,8 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
+			ASIO2_ASSERT(derive.io().running_in_this_thread());
+
 			if (!derive.is_started())
 			{
 				if (derive.state() == state_t::started)
@@ -70,6 +72,8 @@ namespace asio2::detail
 			derive.post_recv_counter_++;
 		#endif
 
+			derive.reading_ = true;
+
 			derive.socket().async_receive(derive.buffer().prepare(derive.buffer().pre_size()),
 				make_allocator(derive.rallocator(),
 					[&derive, this_ptr = std::move(this_ptr), ecs = std::move(ecs)]
@@ -78,6 +82,8 @@ namespace asio2::detail
 			#if defined(_DEBUG) || defined(DEBUG)
 				derive.post_recv_counter_--;
 			#endif
+
+				derive.reading_ = false;
 
 				derive._handle_recv(ec, bytes_recvd, std::move(this_ptr), std::move(ecs));
 			}));
@@ -111,6 +117,22 @@ namespace asio2::detail
 					{
 						ASIO2_ASSERT(false);
 						derive._do_disconnect(asio::error::invalid_argument, this_ptr);
+						derive._stop_readend_timer(std::move(this_ptr));
+					}
+				}
+			}
+			else
+			{
+				ASIO2_LOG_DEBUG("_udp_handle_recv with error: {} {}", ec.value(), ec.message());
+
+				if (ec == asio::error::eof)
+				{
+					ASIO2_ASSERT(bytes_recvd == 0);
+
+					if (bytes_recvd)
+					{
+						// http://www.purecpp.cn/detail?id=2303
+						ASIO2_LOG_INFOR("_udp_handle_recv with eof: {}", bytes_recvd);
 					}
 				}
 			}
@@ -136,6 +158,7 @@ namespace asio2::detail
 			if (ec == asio::error::operation_aborted || ec == asio::error::connection_refused)
 			{
 				derive._do_disconnect(ec, this_ptr);
+				derive._stop_readend_timer(std::move(this_ptr));
 				return;
 			}
 
@@ -170,6 +193,9 @@ namespace asio2::detail
 				{
 					derive._do_disconnect(ec, this_ptr);
 				}
+
+				derive._stop_readend_timer(std::move(this_ptr));
+
 				return;
 			}
 

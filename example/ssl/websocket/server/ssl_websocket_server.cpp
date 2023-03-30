@@ -41,6 +41,11 @@ int main()
 				rep.set(http::field::authorization, " ssl-websocket-server-coro");
 			}));
 		}
+		else
+		{
+			printf("error occurred when calling the accept function : %d %s\n",
+				asio2::get_last_error_val(), asio2::get_last_error_msg().data());
+		}
 	}).bind_recv([](std::shared_ptr<asio2::wss_session> & session_ptr, std::string_view data)
 	{
 		printf("recv : %zu %.*s\n", data.size(), (int)data.size(), data.data());

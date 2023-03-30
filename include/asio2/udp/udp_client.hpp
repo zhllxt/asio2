@@ -175,37 +175,46 @@ namespace asio2::detail
 				// first close the reconnect timer
 				derive._stop_reconnect_timer();
 
-				derive._do_disconnect(asio::error::operation_aborted, derive.selfptr(),
-					defer_event
+				derive._do_disconnect(asio::error::operation_aborted, derive.selfptr(), defer_event
+				{
+					[&derive, this_ptr = std::move(this_ptr), pg = std::move(pg)]
+					(event_queue_guard<derived_t> g) mutable
 					{
-						[&derive, this_ptr = std::move(this_ptr), pg = std::move(pg)]
-						(event_queue_guard<derived_t> g) mutable
+						derive._do_stop(asio::error::operation_aborted, std::move(this_ptr), defer_event
 						{
-							derive._do_stop(asio::error::operation_aborted, std::move(this_ptr),
-								defer_event
-								{
-									[pg = std::move(pg)](event_queue_guard<derived_t> g) mutable
-									{
-										detail::ignore_unused(pg, g);
+							[pg = std::move(pg)](event_queue_guard<derived_t> g) mutable
+							{
+								detail::ignore_unused(pg, g);
 
-										// the "pg" should destroyed before the "g", otherwise if the "g"
-										// is destroyed before "pg", the next event maybe called, then the
-										// state maybe change to not stopped.
-										{
-											[[maybe_unused]] detail::defer_event t{ std::move(pg) };
-										}
-									}, std::move(g)
+								// the "pg" should destroyed before the "g", otherwise if the "g"
+								// is destroyed before "pg", the next event maybe called, then the
+								// state maybe change to not stopped.
+								{
+									[[maybe_unused]] detail::defer_event t{ std::move(pg) };
 								}
-							);
-						}, std::move(g)
-					}
-				);
+							}, std::move(g)
+						});
+					}, std::move(g)
+				});
 			});
 
-			if (!derive.running_in_this_thread())
+			while (!derive.running_in_this_thread())
 			{
-				[[maybe_unused]] state_t state = future.get();
-				ASIO2_ASSERT(state == state_t::stopped);
+				std::future_status status = future.wait_for(std::chrono::milliseconds(100));
+
+				if (status == std::future_status::ready)
+				{
+					ASIO2_ASSERT(future.get() == state_t::stopped);
+					break;
+				}
+				else
+				{
+					if (derive.get_thread_id() == std::thread::id{})
+						break;
+
+					if (derive.io().context().stopped())
+						break;
+				}
 			}
 
 			this->stop_iopool();
@@ -340,7 +349,7 @@ namespace asio2::detail
 
 			this->start_iopool();
 
-			if (this->is_iopool_stopped())
+			if (!this->is_iopool_started())
 			{
 				set_last_error(asio::error::operation_aborted);
 				return false;
@@ -507,8 +516,6 @@ namespace asio2::detail
 
 			ASIO2_ASSERT(this->state_ == state_t::stopped);
 
-			detail::ignore_unused(ec, this_ptr, chain);
-
 			this->derived()._rdc_stop();
 
 			if (this->kcp_)
@@ -525,6 +532,8 @@ namespace asio2::detail
 
 			// Call close,otherwise the _handle_recv will never return
 			this->socket().close(ec_ignore);
+
+			super::_handle_disconnect(ec, std::move(this_ptr), std::move(chain));
 		}
 
 		template<typename DeferEvent>
@@ -545,11 +554,13 @@ namespace asio2::detail
 			{
 				set_last_error(ec);
 
+				defer_event chain(std::move(e), std::move(g));
+
 				// call the base class stop function
 				super::stop();
 
 				// call CRTP polymorphic stop
-				this->derived()._handle_stop(ec, std::move(this_ptr), defer_event(std::move(e), std::move(g)));
+				this->derived()._handle_stop(ec, std::move(this_ptr), std::move(chain));
 			}, chain.move_guard());
 		}
 

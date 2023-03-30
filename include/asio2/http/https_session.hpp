@@ -136,40 +136,36 @@ namespace asio2::detail
 		}
 
 		template<typename DeferEvent>
-		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr, DeferEvent chain)
+		inline void _post_shutdown(const error_code& ec, std::shared_ptr<derived_t> this_ptr, DeferEvent chain)
 		{
+			ASIO2_LOG_DEBUG("https_session::_post_shutdown: {} {}", ec.value(), ec.message());
+
 			if (this->is_http())
 			{
-				this->derived()._ssl_stop(this_ptr,
-					defer_event
+				this->derived()._ssl_stop(this_ptr, defer_event
+				{
+					[this, ec, this_ptr, e = chain.move_event()](event_queue_guard<derived_t> g) mutable
 					{
-						[this, ec, this_ptr, e = chain.move_event()](event_queue_guard<derived_t> g) mutable
-						{
-							super::_handle_disconnect(ec, std::move(this_ptr), defer_event(std::move(e), std::move(g)));
-						}, chain.move_guard()
-					}
-				);
+						super::_post_shutdown(ec, std::move(this_ptr), defer_event(std::move(e), std::move(g)));
+					}, chain.move_guard()
+				});
 			}
 			else
 			{
-				this->derived()._ws_stop(this_ptr,
-					defer_event
+				this->derived()._ws_stop(this_ptr, defer_event
+				{
+					[this, ec, this_ptr, e = chain.move_event()](event_queue_guard<derived_t> g) mutable
 					{
-						[this, ec, this_ptr, e = chain.move_event()](event_queue_guard<derived_t> g) mutable
+						this->derived()._ssl_stop(this_ptr, defer_event
 						{
-							this->derived()._ssl_stop(this_ptr,
-								defer_event
-								{
-									[this, ec, this_ptr, e = std::move(e)](event_queue_guard<derived_t> g) mutable
-									{
-										super::super::_handle_disconnect(ec,
-											std::move(this_ptr), defer_event(std::move(e), std::move(g)));
-									}, std::move(g)
-								}
-							);
-						}, chain.move_guard()
-					}
-				);
+							[this, ec, this_ptr, e = std::move(e)](event_queue_guard<derived_t> g) mutable
+							{
+								super::super::_post_shutdown(
+									ec, std::move(this_ptr), defer_event(std::move(e), std::move(g)));
+							}, std::move(g)
+						});
+					}, chain.move_guard()
+				});
 			}
 		}
 

@@ -160,7 +160,7 @@ namespace asio2::detail
 		 */
 		inline bool is_stopped()
 		{
-			return (this->state_ == state_t::stopped && !this->acceptor_.is_open() && this->is_iopool_stopped());
+			return (this->state_ == state_t::stopped && !this->acceptor_.is_open());
 		}
 
 	public:
@@ -311,7 +311,7 @@ namespace asio2::detail
 
 			this->start_iopool();
 
-			if (this->is_iopool_stopped())
+			if (!this->is_iopool_started())
 			{
 				set_last_error(asio::error::operation_aborted);
 				return false;
@@ -529,8 +529,14 @@ namespace asio2::detail
 				ASIO2_ASSERT(this->state_ == state_t::stopping);
 
 				// start timer to hold the acceptor io_context
+				// should hold the server shared ptr too, if server is constructed with iopool, and 
+				// server is a tmp local variable, then the server maybe destroyed before sessions.
+				// so we need hold this ptr to ensure server must be destroyed after sessions.
 				this->counter_timer_.expires_after((std::chrono::nanoseconds::max)());
-				this->counter_timer_.async_wait([](const error_code&) {});
+				this->counter_timer_.async_wait([this_ptr](const error_code&)
+				{
+					detail::ignore_unused(this_ptr);
+				});
 
 				// stop all the sessions, the session::stop must be no blocking,
 				// otherwise it may be cause loop lock.
@@ -568,11 +574,11 @@ namespace asio2::detail
 				{
 					ASIO2_ASSERT(session_counter[0] == 0);
 
-					int count1 = session_counter[1];
+					int count_diff = (std::max)(int(this->get_session_count() / (iots.size() - 1) / 10), 10);
 
 					for (std::size_t i = 1; i < iots.size(); ++i)
 					{
-						ASIO2_ASSERT(std::abs(count1 - session_counter[i]) < 5);
+						ASIO2_ASSERT(std::abs(session_counter[1] - session_counter[i]) < count_diff);
 					}
 				}
 
@@ -706,7 +712,7 @@ namespace asio2::detail
 			// asio::error::no_descriptors - Too many open files
 			if (ec)
 			{
-				ASIO2_LOG(spdlog::level::err, "Error occurred when accept:{} {}", ec.value(), ec.message());
+				ASIO2_LOG_ERROR("Error occurred when accept:{} {}", ec.value(), ec.message());
 
 				this->acceptor_timer_.expires_after(std::chrono::seconds(1));
 				this->acceptor_timer_.async_wait(

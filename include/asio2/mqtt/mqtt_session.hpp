@@ -195,9 +195,9 @@ namespace asio2::detail
 		}
 
 	protected:
-		template<typename DeferEvent = defer_event<void, derived_t>>
-		inline void _do_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr,
-			DeferEvent chain = defer_event<void, derived_t>{})
+		template<typename E = defer_event<void, derived_t>>
+		inline void _do_disconnect(
+			const error_code& ec, std::shared_ptr<derived_t> this_ptr, E chain = defer_event<void, derived_t>{})
 		{
 			state_t expected = state_t::started;
 			if (this->derived().state_.compare_exchange_strong(expected, state_t::started))

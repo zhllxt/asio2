@@ -161,7 +161,7 @@ namespace asio2::detail
 			(event_queue_guard<derived_t> g) mutable
 			{
 				derive.sessions().dispatch(
-				[&derive, this_ptr = std::move(this_ptr), ecs = std::move(ecs), g = std::move(g)]
+				[&derive, this_ptr, ecs = std::move(ecs), g = std::move(g)]
 				() mutable
 				{
 					derive._handle_connect(
@@ -212,29 +212,44 @@ namespace asio2::detail
 			derive.post_event([&derive, this_ptr = derive.selfptr(), pg = std::move(pg)]
 			(event_queue_guard<derived_t> g) mutable
 			{
-				derive._do_disconnect(asio::error::operation_aborted, derive.selfptr(),
-					defer_event
+				derive._do_disconnect(asio::error::operation_aborted, derive.selfptr(), defer_event
+				{
+					[&derive, this_ptr = std::move(this_ptr), pg = std::move(pg)]
+					(event_queue_guard<derived_t> g) mutable
 					{
-						[&derive, this_ptr = std::move(this_ptr), pg = std::move(pg)]
-						(event_queue_guard<derived_t> g) mutable
-						{
-							detail::ignore_unused(derive, pg, g);
+						detail::ignore_unused(derive, pg, g);
 
-							// the "pg" should destroyed before the "g", otherwise if the "g"
-							// is destroyed before "pg", the next event maybe called, then the
-							// state maybe change to not stopped.
-							{
-								[[maybe_unused]] detail::defer_event t{ std::move(pg) };
-							}
-						}, std::move(g)
-					});
+						// the "pg" should destroyed before the "g", otherwise if the "g"
+						// is destroyed before "pg", the next event maybe called, then the
+						// state maybe change to not stopped.
+						{
+							[[maybe_unused]] detail::defer_event t{ std::move(pg) };
+						}
+					}, std::move(g)
+				});
 			});
 
 			// use this to ensure the client is stopped completed when the stop is called not in the io_context thread
-			if (!derive.running_in_this_thread() && !derive.sessions().io().running_in_this_thread())
+			while (!derive.running_in_this_thread() && !derive.sessions().io().running_in_this_thread())
 			{
-				[[maybe_unused]] state_t state = future.get();
-				ASIO2_ASSERT(state == state_t::stopped);
+				std::future_status status = future.wait_for(std::chrono::milliseconds(100));
+
+				if (status == std::future_status::ready)
+				{
+					ASIO2_ASSERT(future.get() == state_t::stopped);
+					break;
+				}
+				else
+				{
+					if (derive.get_thread_id() == std::thread::id{})
+						break;
+
+					if (derive.sessions().io().get_thread_id() == std::thread::id{})
+						break;
+
+					if (derive.io().context().stopped())
+						break;
+				}
 			}
 		}
 
@@ -385,14 +400,15 @@ namespace asio2::detail
 			[&derive, this_ptr = std::move(this_ptr), ecs = std::move(ecs), e = chain.move_event()]
 			(event_queue_guard<derived_t> g) mutable
 			{
+				defer_event chain(std::move(e), std::move(g));
+
 				if (!derive.is_started())
 				{
-					derive._do_disconnect(asio::error::operation_aborted, std::move(this_ptr),
-						defer_event(std::move(e), std::move(g)));
+					derive._do_disconnect(asio::error::operation_aborted, std::move(this_ptr), std::move(chain));
 					return;
 				}
 
-				derive._join_session(std::move(this_ptr), std::move(ecs), defer_event(std::move(e), std::move(g)));
+				derive._join_session(std::move(this_ptr), std::move(ecs), std::move(chain));
 			});
 		}
 
@@ -401,12 +417,13 @@ namespace asio2::detail
 		{
 			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
 			ASIO2_ASSERT(this->state_ == state_t::stopped);
+			ASIO2_ASSERT(this->reading_ == false);
 
 			set_last_error(ec);
 
 			this->derived()._rdc_stop();
 
-			this->derived()._do_stop(ec, std::move(this_ptr), std::move(chain));
+			super::_handle_disconnect(ec, std::move(this_ptr), std::move(chain));
 		}
 
 		template<typename DeferEvent>
@@ -488,6 +505,7 @@ namespace asio2::detail
 				this->first_data_.reset();
 
 				ASIO2_ASSERT(!this->first_data_);
+				ASIO2_ASSERT(this->reading_ == false);
 			}));
 		}
 

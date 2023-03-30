@@ -165,6 +165,11 @@ int main()
 					session_ptr->remote_address().c_str(), session_ptr->remote_port(),
 					session_ptr->local_address().c_str(), session_ptr->local_port());
 		}
+		else
+		{
+			printf("error occurred when calling the accept function : %d %s\n",
+				asio2::get_last_error_val(), asio2::get_last_error_msg().data());
+		}
 	}).bind_connect([&](auto & session_ptr)
 	{
 		printf("client enter : %s %u %s %u\n",

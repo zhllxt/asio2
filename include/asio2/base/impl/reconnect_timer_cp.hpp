@@ -208,8 +208,8 @@ namespace asio2::detail
 						state_t expected = state_t::stopped;
 						if (derive.state_.compare_exchange_strong(expected, state_t::starting))
 						{
-							derive.template _start_connect<true>(std::move(this_ptr), std::move(ecs),
-								defer_event(std::move(g)));
+							derive.template _start_connect<true>(
+								std::move(this_ptr), std::move(ecs), defer_event(std::move(g)));
 						}
 					});
 				}

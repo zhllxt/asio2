@@ -128,7 +128,7 @@ namespace asio2::detail
 		 */
 		inline bool is_stopped()
 		{
-			return (this->state_ == state_t::stopped && !this->acceptor_.is_open() && this->is_iopool_stopped());
+			return (this->state_ == state_t::stopped && !this->acceptor_.is_open());
 		}
 
 	public:
@@ -276,7 +276,7 @@ namespace asio2::detail
 
 			this->start_iopool();
 
-			if (this->is_iopool_stopped())
+			if (!this->is_iopool_started())
 			{
 				set_last_error(asio::error::operation_aborted);
 				return false;
@@ -343,9 +343,12 @@ namespace asio2::detail
 
 				super::start();
 
-				this->counter_ptr_ = std::shared_ptr<void>((void*)1, [&derive](void*) mutable
+				// should hold the server shared ptr too, if server is constructed with iopool, and 
+				// server is a tmp local variable, then the server maybe destroyed before sessions.
+				// so we need hold this ptr to ensure server must be destroyed after sessions.
+				this->counter_ptr_ = std::shared_ptr<void>((void*)1, [&derive, this_ptr](void*) mutable
 				{
-					derive._exec_stop(asio::error::operation_aborted, derive.selfptr());
+					derive._exec_stop(asio::error::operation_aborted, std::move(this_ptr));
 				});
 
 				error_code ec, ec_ignore;
@@ -493,6 +496,8 @@ namespace asio2::detail
 				// stop all the sessions, the session::stop must be no blocking,
 				// otherwise it may be cause loop lock.
 				set_last_error(ec);
+
+				ASIO2_ASSERT(this->state_ == state_t::stopping);
 
 				// stop all the sessions, the session::stop must be no blocking,
 				// otherwise it may be cause loop lock.
@@ -675,19 +680,11 @@ namespace asio2::detail
 			const error_code& ec, std::string_view first_data,
 			std::shared_ptr<session_t> session_ptr, std::shared_ptr<ecs_t<C>>& ecs)
 		{
-			set_last_error(ec);
-
-			if (!ec)
-			{
-				if (this->derived().is_started())
-				{
-					session_ptr = this->derived()._make_session();
-					session_ptr->counter_ptr_ = this->counter_ptr_;
-					session_ptr->first_data_ = std::make_unique<std::string>(first_data);
-					session_ptr->kcp_conv_ = this->derived()._make_kcp_conv(first_data, ecs);
-					session_ptr->start(detail::to_shared_ptr(ecs->clone()));
-				}
-			}
+			session_ptr = this->derived()._make_session();
+			session_ptr->counter_ptr_ = this->counter_ptr_;
+			session_ptr->first_data_ = std::make_unique<std::string>(first_data);
+			session_ptr->kcp_conv_ = this->derived()._make_kcp_conv(first_data, ecs);
+			session_ptr->start(detail::to_shared_ptr(ecs->clone()));
 		}
 
 		template<typename C>

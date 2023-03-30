@@ -64,7 +64,7 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			asio2::unique_locker guard(this->mutex_);
+			asio2::unique_locker guard(this->topic_alias_mutex_);
 
 			topic_aliases_[alias_value] = detail::to_string(std::forward<String>(topic_name));
 
@@ -75,7 +75,7 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			asio2::shared_locker guard(this->mutex_);
+			asio2::shared_locker guard(this->topic_alias_mutex_);
 
 			auto iter = topic_aliases_.find(alias_value);
 
@@ -90,10 +90,10 @@ namespace asio2::detail
 
 	protected:
 		/// use rwlock to make thread safe
-		mutable asio2::shared_mutexer  mutex_;
+		mutable asio2::shared_mutexer  topic_alias_mutex_;
 
 		/// 
-		std::unordered_map<std::uint16_t, std::string> topic_aliases_ ASIO2_GUARDED_BY(mutex_);
+		std::unordered_map<std::uint16_t, std::string> topic_aliases_ ASIO2_GUARDED_BY(topic_alias_mutex_);
 	};
 }
 

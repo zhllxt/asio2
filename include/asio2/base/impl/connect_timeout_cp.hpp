@@ -163,6 +163,7 @@ namespace asio2::detail
 					// with operation_aborted.
 					error_code ec_ignore{};
 
+					derive.socket().shutdown(asio::socket_base::shutdown_both, ec_ignore);
 					derive.socket().cancel(ec_ignore);
 					derive.socket().close(ec_ignore);
 

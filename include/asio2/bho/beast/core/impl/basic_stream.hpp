@@ -104,6 +104,8 @@ on_timer(Executor2 const& ex2)
                 return;
             if(ec == net::error::operation_aborted)
                 return;
+            if (!sp->socket.is_open())
+                return;
             BHO_ASSERT(! ec);
             if(ec)
                 return;

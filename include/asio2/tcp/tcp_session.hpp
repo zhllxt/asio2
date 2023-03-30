@@ -189,7 +189,7 @@ namespace asio2::detail
 			(event_queue_guard<derived_t> g) mutable
 			{
 				derive.sessions().dispatch(
-				[&derive, this_ptr = std::move(this_ptr), ecs = std::move(ecs), g = std::move(g)]
+				[&derive, this_ptr, ecs = std::move(ecs), g = std::move(g)]
 				() mutable
 				{
 					derive._handle_connect(
@@ -224,6 +224,22 @@ namespace asio2::detail
 			if (this->state_.compare_exchange_strong(expected, state_t::stopping))
 				return;
 
+			// if user call session stop in the bind accept callback, we close the connection with RST.
+			// after test, if close the connection with RST, no timewait will be generated.
+			if (derive.sessions().io().running_in_this_thread())
+			{
+				if (this->state_ == state_t::starting)
+				{
+					// How to close the socket with RST instead of FIN/ACK/FIN/ACK ?
+					// set the linger with 1,0 
+					derive.set_linger(true, 0);
+
+					// close the socket directly.
+					error_code ec_ignore;
+					derive.socket().close(ec_ignore);
+				}
+			}
+
 			// use promise to get the result of stop
 			std::promise<state_t> promise;
 			std::future<state_t> future = promise.get_future();
@@ -240,29 +256,44 @@ namespace asio2::detail
 			derive.post_event([&derive, this_ptr = derive.selfptr(), pg = std::move(pg)]
 			(event_queue_guard<derived_t> g) mutable
 			{
-				derive._do_disconnect(asio::error::operation_aborted, derive.selfptr(),
-					defer_event
+				derive._do_disconnect(asio::error::operation_aborted, derive.selfptr(), defer_event
+				{
+					[&derive, this_ptr = std::move(this_ptr), pg = std::move(pg)]
+					(event_queue_guard<derived_t> g) mutable
 					{
-						[&derive, this_ptr = std::move(this_ptr), pg = std::move(pg)]
-						(event_queue_guard<derived_t> g) mutable
-						{
-							detail::ignore_unused(derive, pg, g);
+						detail::ignore_unused(derive, pg, g);
 
-							// the "pg" should destroyed before the "g", otherwise if the "g"
-							// is destroyed before "pg", the next event maybe called, then the
-							// state maybe change to not stopped.
-							{
-								[[maybe_unused]] detail::defer_event t{ std::move(pg) };
-							}
-						}, std::move(g)
-					});
+						// the "pg" should destroyed before the "g", otherwise if the "g"
+						// is destroyed before "pg", the next event maybe called, then the
+						// state maybe change to not stopped.
+						{
+							[[maybe_unused]] detail::defer_event t{ std::move(pg) };
+						}
+					}, std::move(g)
+				});
 			});
 
 			// use this to ensure the client is stopped completed when the stop is called not in the io_context thread
-			if (!derive.running_in_this_thread() && !derive.sessions().io().running_in_this_thread())
+			while (!derive.running_in_this_thread() && !derive.sessions().io().running_in_this_thread())
 			{
-				[[maybe_unused]] state_t state = future.get();
-				ASIO2_ASSERT(state == state_t::stopped);
+				std::future_status status = future.wait_for(std::chrono::milliseconds(100));
+
+				if (status == std::future_status::ready)
+				{
+					ASIO2_ASSERT(future.get() == state_t::stopped);
+					break;
+				}
+				else
+				{
+					if (derive.get_thread_id() == std::thread::id{})
+						break;
+
+					if (derive.sessions().io().get_thread_id() == std::thread::id{})
+						break;
+
+					if (derive.io().context().stopped())
+						break;
+				}
 			}
 		}
 
@@ -338,14 +369,15 @@ namespace asio2::detail
 			[&derive, this_ptr = std::move(this_ptr), ecs = std::move(ecs), e = chain.move_event()]
 			(event_queue_guard<derived_t> g) mutable
 			{
+				defer_event chain(std::move(e), std::move(g));
+
 				if (!derive.is_started())
 				{
-					derive._do_disconnect(asio::error::operation_aborted, std::move(this_ptr),
-						defer_event(std::move(e), std::move(g)));
+					derive._do_disconnect(asio::error::operation_aborted, std::move(this_ptr), std::move(chain));
 					return;
 				}
 
-				derive._join_session(std::move(this_ptr), std::move(ecs), defer_event(std::move(e), std::move(g)));
+				derive._join_session(std::move(this_ptr), std::move(ecs), std::move(chain));
 			});
 		}
 
@@ -355,38 +387,42 @@ namespace asio2::detail
 			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
 			ASIO2_ASSERT(this->state_ == state_t::stopped);
 
+			ASIO2_LOG_DEBUG("tcp_session::_handle_disconnect: {} {}", ec.value(), ec.message());
+
 			set_last_error(ec);
 
 			this->derived()._rdc_stop();
 
-			error_code ec_ignore{};
-
+			// call shutdown again, beacuse the do shutdown maybe not called, eg: when
+			// protocol error is checked in the mqtt or http, then the do disconnect 
+			// maybe called directly.
 			// the socket maybe closed already somewhere else.
 			if (this->socket().is_open())
 			{
-				asio::socket_base::linger linger = this->derived().get_linger();
+				error_code ec_linger{}, ec_ignore{};
 
-				// the get_linger maybe change the last error value.
-				set_last_error(ec);
+				asio::socket_base::linger lnger{};
 
-				// call socket's close function to notify the _handle_recv function response with error > 0 ,
-				// then the socket can get notify to exit
+				this->socket().lowest_layer().get_option(lnger, ec_linger);
+
+				// call socket's close function to notify the _handle_recv function response with 
+				// error > 0 ,then the socket can get notify to exit
 				// Call shutdown() to indicate that you will not write any more data to the socket.
-				if (!(linger.enabled() == true && linger.timeout() == 0))
+				if (!ec_linger && !(lnger.enabled() == true && lnger.timeout() == 0))
 				{
 					this->socket().shutdown(asio::socket_base::shutdown_both, ec_ignore);
 				}
+
+				// if the socket is basic_stream with rate limit, we should call the cancel,
+				// otherwise the rate timer maybe can't canceled, and cause the io_context
+				// can't stopped forever, even if the socket is closed already.
+				this->socket().cancel(ec_ignore);
+
+				// Call close,otherwise the _handle_recv will never return
+				this->socket().close(ec_ignore);
 			}
 
-			// if the socket is basic_stream with rate limit, we should call the cancel,
-			// otherwise the rate timer maybe can't canceled, and cause the io_context
-			// can't stopped forever, even if the socket is closed already.
-			this->socket().cancel(ec_ignore);
-
-			// Call close,otherwise the _handle_recv will never return
-			this->socket().close(ec_ignore);
-
-			this->derived()._do_stop(ec, std::move(this_ptr), std::move(chain));
+			super::_handle_disconnect(ec, std::move(this_ptr), std::move(chain));
 		}
 
 		template<typename DeferEvent>

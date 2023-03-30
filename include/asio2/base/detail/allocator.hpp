@@ -26,9 +26,9 @@
 
 namespace asio2::detail
 {
-#if defined(ASIO2_ENABLE_LOG)
+#if defined(ASIO2_ENABLE_LOG) && defined(ASIO2_ENABLE_LOG_STORAGE_SIZE)
 	template<typename = void>
-	inline void log_allocator_size(bool is_lookfree, bool is_stack, std::size_t size)
+	inline void log_allocator_storage_size(bool is_lookfree, bool is_stack, std::size_t size)
 	{
 		static std::mutex mtx;
 		static std::map<std::size_t, std::size_t> unlock_stack_map;
@@ -131,7 +131,7 @@ namespace asio2::detail
 			str += "------------------------------------------------------------\n";
 			str += "\n";
 
-			ASIO2_LOG(spdlog::level::critical, "{}", str);
+			ASIO2_LOG_FATAL("{}", str);
 		}
 	}
 
@@ -320,14 +320,14 @@ namespace asio2::detail
 
 		inline void* allocate(std::size_t size)
 		{
-		#if defined(ASIO2_ENABLE_LOG)
+		#if defined(ASIO2_ENABLE_LOG) && defined(ASIO2_ENABLE_LOG_STORAGE_SIZE)
 			lockfree_allocator_threadsafe_test(std::size_t(this), true);
 		#endif
 
 			if (!in_use_ && size < sizeof(storage_))
 			{
-			#if defined(ASIO2_ENABLE_LOG)
-				log_allocator_size(true, true, size);
+			#if defined(ASIO2_ENABLE_LOG) && defined(ASIO2_ENABLE_LOG_STORAGE_SIZE)
+				log_allocator_storage_size(true, true, size);
 			#endif
 
 				in_use_ = true;
@@ -335,8 +335,8 @@ namespace asio2::detail
 			}
 			else
 			{
-			#if defined(ASIO2_ENABLE_LOG)
-				log_allocator_size(true, false, size);
+			#if defined(ASIO2_ENABLE_LOG) && defined(ASIO2_ENABLE_LOG_STORAGE_SIZE)
+				log_allocator_storage_size(true, false, size);
 			#endif
 
 				return ::operator new(size);
@@ -347,7 +347,7 @@ namespace asio2::detail
 		{
 			// must erase when deallocate, otherwise if call server.stop -> server.start
 			// then the test map will incorrect.
-		#if defined(ASIO2_ENABLE_LOG)
+		#if defined(ASIO2_ENABLE_LOG) && defined(ASIO2_ENABLE_LOG_STORAGE_SIZE)
 			lockfree_allocator_threadsafe_test(std::size_t(this), false);
 		#endif
 
@@ -392,16 +392,16 @@ namespace asio2::detail
 		{
 			if (size < sizeof(storage_) && (!in_use_.test_and_set()))
 			{
-			#if defined(ASIO2_ENABLE_LOG)
-				log_allocator_size(false, true, size);
+			#if defined(ASIO2_ENABLE_LOG) && defined(ASIO2_ENABLE_LOG_STORAGE_SIZE)
+				log_allocator_storage_size(false, true, size);
 			#endif
 
 				return &storage_;
 			}
 			else
 			{
-			#if defined(ASIO2_ENABLE_LOG)
-				log_allocator_size(false, false, size);
+			#if defined(ASIO2_ENABLE_LOG) && defined(ASIO2_ENABLE_LOG_STORAGE_SIZE)
+				log_allocator_storage_size(false, false, size);
 			#endif
 
 				return ::operator new(size);

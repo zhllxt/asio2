@@ -194,30 +194,32 @@ namespace asio2::detail
 		}
 
 		template<typename DeferEvent>
-		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr, DeferEvent chain)
+		inline void _post_shutdown(const error_code& ec, std::shared_ptr<derived_t> this_ptr, DeferEvent chain)
 		{
+			ASIO2_LOG_DEBUG("http_session::_post_shutdown: {} {}", ec.value(), ec.message());
+
 			if (this->derived().is_http())
 			{
-				super::_handle_disconnect(ec, std::move(this_ptr), std::move(chain));
+				super::_post_shutdown(ec, std::move(this_ptr), std::move(chain));
 			}
 			else
 			{
-				this->derived()._ws_stop(this_ptr,
-					defer_event
+				this->derived()._ws_stop(this_ptr, defer_event
+				{
+					[this, ec, this_ptr, e = chain.move_event()] (event_queue_guard<derived_t> g) mutable
 					{
-						[this, ec, this_ptr, e = chain.move_event()] (event_queue_guard<derived_t> g) mutable
-						{
-							super::_handle_disconnect(ec, std::move(this_ptr), defer_event(std::move(e), std::move(g)));
-						}, chain.move_guard()
-					}
-				);
+						super::_post_shutdown(ec, std::move(this_ptr), defer_event(std::move(e), std::move(g)));
+					}, chain.move_guard()
+				});
 			}
 		}
 
 		template<typename DeferEvent>
 		inline void _handle_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr, DeferEvent chain)
 		{
-			super::_handle_stop(ec, std::move(this_ptr), std::move(chain));
+			// can not use std::move(this_ptr), beacuse after handle stop with std::move(this_ptr),
+			// this object maybe destroyed, then call "this" will crash.
+			super::_handle_stop(ec, this_ptr, std::move(chain));
 
 			// reset the callback shared_ptr, to avoid the callback owned this self shared_ptr.
 			this->websocket_router_.reset();
@@ -259,15 +261,25 @@ namespace asio2::detail
 			derive.push_event([&derive, this_ptr = std::move(this_ptr), ecs = std::move(ecs), &msg]
 			(event_queue_guard<derived_t> g) mutable
 			{
+				// use this_ptr to instead of std::move(this_ptr) in the lambda capture has better safety.
 				derive._do_send(msg,
-				[&derive, this_ptr = std::move(this_ptr), ecs = std::move(ecs), g = std::move(g)]
+				[&derive, this_ptr, ecs = std::move(ecs), g = std::move(g)]
 				(const error_code&, std::size_t) mutable
 				{
 					ASIO2_ASSERT(!g.is_empty());
 
+				#if defined(ASIO2_ENABLE_LOG)
+					auto now = std::chrono::system_clock::now();
+					auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+					ASIO2_LOG_TRACE("http_session::send {:%Y-%m-%d %H:%M:%S}.{:03d} {}",
+						now, ms % 1000, derive.req_.target());
+				#endif
+
 					// after send the response, we check if the client should be disconnect.
 					if (derive.req_.need_eof())
 					{
+						ASIO2_LOG_DEBUG("http_session send response need_eof");
+
 						// session maybe don't need check the state.
 						//if (derive.state() == state_t::started)
 						derive._do_disconnect(asio::error::operation_aborted, std::move(this_ptr));
@@ -414,7 +426,7 @@ namespace asio2::detail
 						[this, this_ptr, ecs](event_queue_guard<derived_t> g) mutable
 						{
 							this->derived()._post_upgrade(
-								std::move(this_ptr), std::move(ecs), this->req_.base(),
+								this_ptr, std::move(ecs), this->req_.base(),
 								defer_event([](event_queue_guard<derived_t>) {}, std::move(g)));
 						});
 					}
@@ -475,9 +487,11 @@ namespace asio2::detail
 
 			// session maybe don't need check the state.
 			//if (this->derived().state() == state_t::started)
-			//{
+			{
+				ASIO2_LOG_DEBUG("http_session::_handle_control_close _do_disconnect");
+
 				this->derived()._do_disconnect(websocket::error::closed, std::move(this_ptr));
-			//}
+			}
 		}
 
 		inline void _fire_upgrade(std::shared_ptr<derived_t>& this_ptr)
@@ -495,6 +509,13 @@ namespace asio2::detail
 				this->listener_.notify(event_type::recv, this_ptr, this->req_, this->rep_);
 			else
 				this->listener_.notify(event_type::recv, this->req_, this->rep_);
+
+		#if defined(ASIO2_ENABLE_LOG)
+			auto now = std::chrono::system_clock::now();
+			auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+			ASIO2_LOG_TRACE("http_session::recv {:%Y-%m-%d %H:%M:%S}.{:03d} {}",
+				now, ms % 1000, this->req_.target());
+		#endif
 
 			auto* prep = this->router_._route(this_ptr, this->req_, this->rep_);
 

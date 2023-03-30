@@ -224,7 +224,7 @@ namespace asio2::detail
 		 */
 		inline bool is_stopped()
 		{
-			return (this->state_ == state_t::stopped && !this->socket().is_open() && this->is_iopool_stopped());
+			return (this->state_ == state_t::stopped && !this->socket().is_open());
 		}
 
 	public:
@@ -691,7 +691,7 @@ namespace asio2::detail
 
 			this->start_iopool();
 
-			if (this->is_iopool_stopped())
+			if (!this->is_iopool_started())
 			{
 				set_last_error(asio::error::operation_aborted);
 				return false;

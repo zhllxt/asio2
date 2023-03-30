@@ -112,17 +112,17 @@ namespace asio2::detail
 		}
 
 		template<typename DeferEvent>
-		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr, DeferEvent chain)
+		inline void _post_shutdown(const error_code& ec, std::shared_ptr<derived_t> this_ptr, DeferEvent chain)
 		{
-			this->derived()._ws_stop(this_ptr,
-				defer_event
+			ASIO2_LOG_DEBUG("wss_session::_post_shutdown: {} {}", ec.value(), ec.message());
+
+			this->derived()._ws_stop(this_ptr, defer_event
+			{
+				[this, ec, this_ptr, e = chain.move_event()](event_queue_guard<derived_t> g) mutable
 				{
-					[this, ec, this_ptr, e = chain.move_event()](event_queue_guard<derived_t> g) mutable
-					{
-						super::_handle_disconnect(ec, std::move(this_ptr), defer_event(std::move(e), std::move(g)));
-					}, chain.move_guard()
-				}
-			);
+					super::_post_shutdown(ec, std::move(this_ptr), defer_event(std::move(e), std::move(g)));
+				}, chain.move_guard()
+			});
 		}
 
 		template<typename C, typename DeferEvent>

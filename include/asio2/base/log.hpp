@@ -50,6 +50,7 @@
 
 		#include <spdlog/spdlog.h>
 		#include <spdlog/sinks/basic_file_sink.h>
+		#include <spdlog/fmt/bundled/chrono.h>
 	#else
 		#undef ASIO2_ENABLE_LOG
 	#endif
@@ -113,8 +114,6 @@ namespace asio2::detail
 				catch (const std::exception&)
 				{
 					loger.reset();
-
-					ASIO2_ASSERT(false);
 				}
 
 				logger = std::move(loger);
@@ -170,9 +169,21 @@ namespace asio2::detail
 #endif
 
 #if defined(ASIO2_ENABLE_LOG)
-	#define ASIO2_LOG(...) asio2::detail::log(__VA_ARGS__)
+	#define ASIO2_LOG(...)       asio2::detail::log(__VA_ARGS__)
+	#define ASIO2_LOG_TRACE(...) asio2::detail::log(spdlog::level::trace   , __VA_ARGS__)
+	#define ASIO2_LOG_DEBUG(...) asio2::detail::log(spdlog::level::debug   , __VA_ARGS__)
+	#define ASIO2_LOG_INFOR(...) asio2::detail::log(spdlog::level::info    , __VA_ARGS__)
+	#define ASIO2_LOG_WARNS(...) asio2::detail::log(spdlog::level::warn    , __VA_ARGS__)
+	#define ASIO2_LOG_ERROR(...) asio2::detail::log(spdlog::level::err     , __VA_ARGS__)
+	#define ASIO2_LOG_FATAL(...) asio2::detail::log(spdlog::level::critical, __VA_ARGS__)
 #else
-	#define ASIO2_LOG(...) ((void)0)
+	#define ASIO2_LOG(...)       ((void)0)
+	#define ASIO2_LOG_TRACE(...) ((void)0)
+	#define ASIO2_LOG_DEBUG(...) ((void)0)
+	#define ASIO2_LOG_INFOR(...) ((void)0)
+	#define ASIO2_LOG_WARNS(...) ((void)0)
+	#define ASIO2_LOG_ERROR(...) ((void)0)
+	#define ASIO2_LOG_FATAL(...) ((void)0)
 #endif
 
 #include <asio2/base/detail/pop_options.hpp>

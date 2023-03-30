@@ -107,13 +107,13 @@ namespace asio2::mqtt
 		using map_const_iterator = typename map_type::const_iterator;
 
 		/// use rwlock to make thread safe
-		mutable asio2::shared_mutexer  mutex_;
+		mutable asio2::shared_mutexer  retained_mutex_;
 
-		std::unordered_map     <key_type, path_entry, hasher> map_          ASIO2_GUARDED_BY(mutex_);
-		std::unordered_multimap<std::size_t, path_entry*    > wildcard_map_ ASIO2_GUARDED_BY(mutex_);
+		std::unordered_map     <key_type, path_entry, hasher> map_          ASIO2_GUARDED_BY(retained_mutex_);
+		std::unordered_multimap<std::size_t, path_entry*    > wildcard_map_ ASIO2_GUARDED_BY(retained_mutex_);
 
-		std::size_t map_size     ASIO2_GUARDED_BY(mutex_);
-		std::size_t next_node_id ASIO2_GUARDED_BY(mutex_);
+		std::size_t map_size     ASIO2_GUARDED_BY(retained_mutex_);
+		std::size_t next_node_id ASIO2_GUARDED_BY(retained_mutex_);
 
 		inline map_iterator create_topic(std::string_view topic_name) ASIO2_NO_THREAD_SAFETY_ANALYSIS
 		{
@@ -395,7 +395,7 @@ namespace asio2::mqtt
 		template<typename V>
 		inline std::size_t insert_or_assign(std::string_view topic_name, V&& value)
 		{
-			asio2::unique_locker g(this->mutex_);
+			asio2::unique_locker g(this->retained_mutex_);
 
 			auto path = this->find_topic(topic_name);
 
@@ -425,7 +425,7 @@ namespace asio2::mqtt
 		template<typename Output>
 		inline void find(std::string_view topic_filter, Output&& callback)
 		{
-			asio2::shared_locker g(this->mutex_);
+			asio2::shared_locker g(this->retained_mutex_);
 
 			find_match(topic_filter, std::forward<Output>(callback));
 		}
@@ -433,7 +433,7 @@ namespace asio2::mqtt
 		// Remove a stored value at the specified topic name
 		inline std::size_t erase(std::string_view topic_name)
 		{
-			asio2::unique_locker g(this->mutex_);
+			asio2::unique_locker g(this->retained_mutex_);
 
 			auto result = erase_topic(topic_name);
 
@@ -444,14 +444,14 @@ namespace asio2::mqtt
 
 		inline std::size_t size() const
 		{
-			asio2::shared_locker g(this->mutex_);
+			asio2::shared_locker g(this->retained_mutex_);
 
 			return map_size;
 		}
 
 		inline std::size_t internal_size() const
 		{
-			asio2::shared_locker g(this->mutex_);
+			asio2::shared_locker g(this->retained_mutex_);
 
 			return map_.size();
 		}
@@ -459,7 +459,7 @@ namespace asio2::mqtt
 		// Clear all topics
 		inline void clear()
 		{
-			asio2::unique_locker g(this->mutex_);
+			asio2::unique_locker g(this->retained_mutex_);
 
 			map_.clear();
 			wildcard_map_.clear();
@@ -470,7 +470,7 @@ namespace asio2::mqtt
 		template<typename Output>
 		inline void dump(Output &out)
 		{
-			asio2::shared_locker g(this->mutex_);
+			asio2::shared_locker g(this->retained_mutex_);
 
 			for (auto const&[k, v] : map_)
 			{

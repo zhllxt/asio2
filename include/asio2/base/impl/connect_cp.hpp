@@ -296,7 +296,7 @@ namespace asio2::detail
 			}
 			else
 			{
-				ASIO2_LOG(spdlog::level::err, "The client socket is opened already.");
+				ASIO2_LOG_ERROR("The client socket is opened already.");
 			}
 
 			// Start the asynchronous connect operation.

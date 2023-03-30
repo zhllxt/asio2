@@ -156,7 +156,7 @@ namespace asio2::detail
 			using arg0_type = typename std::remove_cv_t<std::remove_reference_t<
 				typename fun_traits_type::template args<0>::type>>;
 
-			asio2::unique_locker g(this->mutex_);
+			asio2::unique_locker g(this->message_router_mutex_);
 
 			if constexpr (std::is_same_v<arg0_type, mqtt::message>)
 			{
@@ -235,7 +235,7 @@ namespace asio2::detail
 
 			derive.dispatch([this, key = std::move(key)]() mutable
 			{
-				asio2::unique_locker g(this->mutex_);
+				asio2::unique_locker g(this->message_router_mutex_);
 
 				this->message_router_.erase(key);
 			});
@@ -259,7 +259,7 @@ namespace asio2::detail
 
 			derive.dispatch([this, msg, key = std::move(key)]() mutable
 			{
-				asio2::unique_locker g(this->mutex_);
+				asio2::unique_locker g(this->message_router_mutex_);
 
 				auto it = this->message_router_.find(key);
 				if (it == this->message_router_.end())
@@ -339,10 +339,10 @@ namespace asio2::detail
 
 	protected:
 		/// use rwlock to make thread safe
-		mutable asio2::shared_mutexer                  mutex_;
+		mutable asio2::shared_mutexer                  message_router_mutex_;
 
 		/// router map, key - pair<mqtt::control_packet_type, packet id>
-		std::unordered_map<key_type, val_type, hasher> message_router_ ASIO2_GUARDED_BY(mutex_);
+		std::unordered_map<key_type, val_type, hasher> message_router_ ASIO2_GUARDED_BY(message_router_mutex_);
 	};
 }
 

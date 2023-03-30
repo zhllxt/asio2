@@ -76,6 +76,11 @@ int main()
 			if (session_ptr->remote_address().find("192.168.10.") != std::string::npos)
 				session_ptr->stop();
 		}
+		else
+		{
+			printf("error occurred when calling the accept function : %d %s\n",
+				asio2::get_last_error_val(), asio2::get_last_error_msg().data());
+		}
 	}).bind_start([&]()
 	{
 		printf("start https server : %s %u %d %s\n",

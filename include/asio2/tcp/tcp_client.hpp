@@ -194,15 +194,6 @@ namespace asio2::detail
 				}
 			};
 
-			// Asio end socket functions: cancel, shutdown, close, release :
-			// https://stackoverflow.com/questions/51468848/asio-end-socket-functions-cancel-shutdown-close-release
-			// The proper steps are:
-			// 1.Call shutdown() to indicate that you will not write any more data to the socket.
-			// 2.Continue to (async-) read from the socket until you get either an error or the connection is closed.
-			// 3.Now close() the socket (in the async read handler).
-			// If you don't do this, you may end up closing the connection while the other side is still sending data.
-			// This will result in an ungraceful close.
-
 			// if user call stop in the recv callback, use post event to executed a async event.
 			derive.post_event([&derive, this_ptr = derive.selfptr(), pg = std::move(pg)]
 			(event_queue_guard<derived_t> g) mutable
@@ -210,38 +201,48 @@ namespace asio2::detail
 				// first close the reconnect timer
 				derive._stop_reconnect_timer();
 
-				derive._do_disconnect(asio::error::operation_aborted, derive.selfptr(),
-					defer_event
+				derive._do_disconnect(asio::error::operation_aborted, derive.selfptr(), defer_event
+				{
+					[&derive, this_ptr = std::move(this_ptr), pg = std::move(pg)]
+					(event_queue_guard<derived_t> g) mutable
 					{
-						[&derive, this_ptr = std::move(this_ptr), pg = std::move(pg)]
-						(event_queue_guard<derived_t> g) mutable
+						derive._do_stop(asio::error::operation_aborted, std::move(this_ptr), defer_event
 						{
-							derive._do_stop(asio::error::operation_aborted, std::move(this_ptr),
-								defer_event
-								{
-									[pg = std::move(pg)](event_queue_guard<derived_t> g) mutable
-									{
-										detail::ignore_unused(pg, g);
+							[pg = std::move(pg)](event_queue_guard<derived_t> g) mutable
+							{
+								detail::ignore_unused(pg, g);
 
-										// the "pg" should destroyed before the "g", otherwise if the "g"
-										// is destroyed before "pg", the next event maybe called, then the
-										// state maybe change to not stopped.
-										{
-											[[maybe_unused]] detail::defer_event t{ std::move(pg) };
-										}
-									}, std::move(g)
+								// the "pg" should destroyed before the "g", otherwise if the "g"
+								// is destroyed before "pg", the next event maybe called, then the
+								// state maybe change to not stopped.
+								{
+									[[maybe_unused]] detail::defer_event t{ std::move(pg) };
 								}
-							);
-						}, std::move(g)
-					}
-				);
+							}, std::move(g)
+						});
+					}, std::move(g)
+				});
 			});
 
-			// use this to ensure the client is stopped completed when the stop is called not in the io_context thread
-			if (!derive.running_in_this_thread())
+			// use this to ensure the client is stopped completed when the stop is called not in
+			// the io_context thread
+			while (!derive.running_in_this_thread())
 			{
-				[[maybe_unused]] state_t state = future.get();
-				ASIO2_ASSERT(state == state_t::stopped);
+				std::future_status status = future.wait_for(std::chrono::milliseconds(100));
+
+				if (status == std::future_status::ready)
+				{
+					ASIO2_ASSERT(future.get() == state_t::stopped);
+					break;
+				}
+				else
+				{
+					if (derive.get_thread_id() == std::thread::id{})
+						break;
+
+					if (derive.io().context().stopped())
+						break;
+				}
 			}
 
 			this->stop_iopool();
@@ -328,7 +329,7 @@ namespace asio2::detail
 
 			this->start_iopool();
 
-			if (this->is_iopool_stopped())
+			if (!this->is_iopool_started())
 			{
 				set_last_error(asio::error::operation_aborted);
 				return false;
@@ -480,11 +481,11 @@ namespace asio2::detail
 
 			ASIO2_ASSERT(this->state_ == state_t::stopped);
 
-			detail::ignore_unused(ec, this_ptr, chain);
+			ASIO2_LOG_DEBUG("tcp_client::_handle_disconnect: {} {}", ec.value(), ec.message());
 
 			this->derived()._rdc_stop();
 
-			// should we close the socket in _handle_disconnect function? otherwise when send
+			// should we close the socket in handle disconnect function? otherwise when send
 			// data failed, will cause the _do_disconnect function be called, then cause the
 			// auto reconnect executed, and then the _post_recv will be return with some error,
 			// and the _post_recv will cause the auto reconnect executed again.
@@ -495,32 +496,37 @@ namespace asio2::detail
 			// we don't know when the async_close will be completed, if another push event
 			// was called during async_close executing, then here push event will after 
 			// the another event in the queue.
-			error_code ec_ignore{};
 
+			// call shutdown again, beacuse the do shutdown maybe not called, eg: when
+			// protocol error is checked in the mqtt or http, then the do disconnect 
+			// maybe called directly.
 			// the socket maybe closed already in the connect timeout timer.
 			if (this->socket().is_open())
 			{
-				asio::socket_base::linger linger = this->derived().get_linger();
+				error_code ec_linger{}, ec_ignore{};
 
-				// the get_linger maybe change the last error value.
-				set_last_error(ec);
+				asio::socket_base::linger lnger{};
+
+				this->socket().lowest_layer().get_option(lnger, ec_linger);
 
 				// call socket's close function to notify the _handle_recv function response with 
 				// error > 0 ,then the socket can get notify to exit
 				// Call shutdown() to indicate that you will not write any more data to the socket.
-				if (!(linger.enabled() == true && linger.timeout() == 0))
+				if (!ec_linger && !(lnger.enabled() == true && lnger.timeout() == 0))
 				{
 					this->socket().shutdown(asio::socket_base::shutdown_both, ec_ignore);
 				}
+
+				// if the socket is basic_stream with rate limit, we should call the cancel,
+				// otherwise the rate timer maybe can't canceled, and cause the io_context
+				// can't stopped forever, even if the socket is closed already.
+				this->socket().cancel(ec_ignore);
+
+				// Call close,otherwise the _handle_recv will never return
+				this->socket().close(ec_ignore);
 			}
 
-			// if the socket is basic_stream with rate limit, we should call the cancel,
-			// otherwise the rate timer maybe can't canceled, and cause the io_context
-			// can't stopped forever, even if the socket is closed already.
-			this->socket().cancel(ec_ignore);
-
-			// Call close,otherwise the _handle_recv will never return
-			this->socket().close(ec_ignore);
+			super::_handle_disconnect(ec, std::move(this_ptr), std::move(chain));
 		}
 
 		template<typename DeferEvent>
@@ -543,11 +549,13 @@ namespace asio2::detail
 			{
 				set_last_error(ec);
 
+				defer_event chain(std::move(e), std::move(g));
+
 				// call the base class stop function
 				super::stop();
 
 				// call CRTP polymorphic stop
-				this->derived()._handle_stop(ec, std::move(this_ptr), defer_event(std::move(e), std::move(g)));
+				this->derived()._handle_stop(ec, std::move(this_ptr), std::move(chain));
 			}, chain.move_guard());
 		}
 

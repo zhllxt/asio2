@@ -67,7 +67,7 @@ namespace asio2::detail
 		/**
 		 * @brief constructor
 		 */
-		mqtt_invoker_t() noexcept : handlers_() {}
+		mqtt_invoker_t() noexcept : mqtt_handlers_() {}
 
 		/**
 		 * @brief destructor
@@ -342,9 +342,9 @@ namespace asio2::detail
 		template<class F, class C>
 		inline void _do_bind(mqtt::control_packet_type type, F f, C* c)
 		{
-			asio2::unique_locker g(this->mutex_);
+			asio2::unique_locker g(this->mqtt_invoker_mutex_);
 
-			this->handlers_[detail::to_underlying(type)] = std::make_shared<handler_type>(std::bind(
+			this->mqtt_handlers_[detail::to_underlying(type)] = std::make_shared<handler_type>(std::bind(
 				&self::template _proxy<F, C>,
 				this, std::move(f), c,
 				std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
@@ -621,12 +621,12 @@ namespace asio2::detail
 			detail::ignore_unused(f, pmsg);
 
 		#if !defined(ASIO2_HEADER_ONLY) && __has_include(<boost/core/type_name.hpp>)
-			ASIO2_LOG(spdlog::level::info, "The user callback function signature do not match : {}({} ...)"
+			ASIO2_LOG_INFOR("The user callback function signature do not match : {}({} ...)"
 				, boost::core::type_name<detail::remove_cvref_t<F>>()
 				, boost::core::type_name<detail::remove_cvref_t<M>>()
 			);
 		#else
-			ASIO2_LOG(spdlog::level::info, "The user callback function signature do not match : {}({} ...)"
+			ASIO2_LOG_INFOR("The user callback function signature do not match : {}({} ...)"
 				, bho::core::type_name<detail::remove_cvref_t<F>>()
 				, bho::core::type_name<detail::remove_cvref_t<M>>()
 			);
@@ -1062,18 +1062,25 @@ namespace asio2::detail
 				return;
 
 			// can't use async_send, beacuse the caller maybe not started yet
-			caller->push_event([caller_ptr, caller, rep = std::forward<Response>(rep)]
+			caller->push_event([caller_ptr, caller, id = caller->life_id(), rep = std::forward<Response>(rep)]
 			(event_queue_guard<caller_t> g) mutable
 			{
 				detail::ignore_unused(caller_ptr);
 
+				if (id != caller->life_id())
+				{
+					set_last_error(asio::error::operation_aborted);
+					return;
+				}
+
 				std::visit([caller, g = std::move(g)](auto& pr) mutable
 				{
 				#if !defined(ASIO2_HEADER_ONLY) && __has_include(<boost/core/type_name.hpp>)
-					ASIO2_LOG(spdlog::level::debug, "send {}", boost::core::type_name<decltype(pr)>());
+					ASIO2_LOG_DEBUG("mqtt send {}", boost::core::type_name<decltype(pr)>());
 				#else
-					ASIO2_LOG(spdlog::level::debug, "send {}", bho::core::type_name<decltype(pr)>());
+					ASIO2_LOG_DEBUG("mqtt send {}", bho::core::type_name<decltype(pr)>());
 				#endif
+
 					caller->_do_send(pr, [g = std::move(g)](const error_code&, std::size_t) mutable {});
 				}, rep.variant());
 			});
@@ -1093,15 +1100,23 @@ namespace asio2::detail
 				return;
 
 			// can't use async_send, beacuse the caller maybe not started yet
-			caller->push_event([caller_ptr, caller, rep = std::forward<Response>(rep)]
+			caller->push_event([caller_ptr, caller, id = caller->life_id(), rep = std::forward<Response>(rep)]
 			(event_queue_guard<caller_t> g) mutable
 			{
 				detail::ignore_unused(caller_ptr);
+
+				if (id != caller->life_id())
+				{
+					set_last_error(asio::error::operation_aborted);
+					return;
+				}
+
 			#if !defined(ASIO2_HEADER_ONLY) && __has_include(<boost/core/type_name.hpp>)
-				ASIO2_LOG(spdlog::level::debug, "send {}", boost::core::type_name<decltype(rep)>());
+				ASIO2_LOG_DEBUG("mqtt send {}", boost::core::type_name<decltype(rep)>());
 			#else
-				ASIO2_LOG(spdlog::level::debug, "send {}", bho::core::type_name<decltype(rep)>());
+				ASIO2_LOG_DEBUG("mqtt send {}", bho::core::type_name<decltype(rep)>());
 			#endif
+
 				caller->_do_send(rep, [g = std::move(g)](const error_code&, std::size_t) mutable {});
 			});
 		}
@@ -1131,11 +1146,11 @@ namespace asio2::detail
 			std::shared_ptr<handler_type> p;
 
 			{
-				asio2::shared_locker g(this->mutex_);
+				asio2::shared_locker g(this->mqtt_invoker_mutex_);
 
-				if (detail::to_underlying(type) < this->handlers_.size())
+				if (detail::to_underlying(type) < this->mqtt_handlers_.size())
 				{
-					p = this->handlers_[detail::to_underlying(type)];
+					p = this->mqtt_handlers_[detail::to_underlying(type)];
 				}
 			}
 
@@ -1180,11 +1195,11 @@ namespace asio2::detail
 
 		inline std::shared_ptr<handler_type> _find_mqtt_handler(mqtt::control_packet_type type)
 		{
-			asio2::shared_locker g(this->mutex_);
+			asio2::shared_locker g(this->mqtt_invoker_mutex_);
 
-			if (detail::to_underlying(type) < this->handlers_.size())
+			if (detail::to_underlying(type) < this->mqtt_handlers_.size())
 			{
-				std::shared_ptr<handler_type> p = handlers_[detail::to_underlying(type)];
+				std::shared_ptr<handler_type> p = mqtt_handlers_[detail::to_underlying(type)];
 
 				if (p && (*p))
 					return p;
@@ -1195,11 +1210,11 @@ namespace asio2::detail
 
 	protected:
 		/// use rwlock to make thread safe
-		mutable asio2::shared_mutexer               mutex_;
+		mutable asio2::shared_mutexer               mqtt_invoker_mutex_;
 
 		// magic_enum has bug: maybe return 0 under wsl ubuntu
 		std::array<std::shared_ptr<handler_type>, detail::to_underlying(mqtt::control_packet_type::auth) + 1>
-			                                        handlers_ ASIO2_GUARDED_BY(mutex_);
+			                                        mqtt_handlers_ ASIO2_GUARDED_BY(mqtt_invoker_mutex_);
 	};
 }
 

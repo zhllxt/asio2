@@ -130,7 +130,7 @@ struct security
 	/** Return username of anonymous user */
 	std::optional<std::string> const& login_anonymous() const
 	{
-		asio2::shared_locker g(this->mutex_);
+		asio2::shared_locker g(this->security_mutex_);
 
 		return this->anonymous_;
 	}
@@ -138,7 +138,7 @@ struct security
 	/** Return username of unauthorized user */
 	std::optional<std::string> const& login_unauthenticated() const
 	{
-		asio2::shared_locker g(this->mutex_);
+		asio2::shared_locker g(this->security_mutex_);
 
 		return this->unauthenticated_;
 	}
@@ -176,7 +176,7 @@ struct security
 
 	bool login_cert(std::string_view username) const
 	{
-		asio2::shared_locker g(this->mutex_);
+		asio2::shared_locker g(this->security_mutex_);
 
 		auto i = authentication_.find(std::string(username));
 		return
@@ -186,7 +186,7 @@ struct security
 
 	std::optional<std::string> login(std::string_view username, std::string_view password) const
 	{
-		asio2::shared_locker g(this->mutex_);
+		asio2::shared_locker g(this->security_mutex_);
 
 		auto i = authentication_.find(std::string(username));
 		if (i != authentication_.end() &&
@@ -247,14 +247,14 @@ struct security
 
 	std::size_t get_next_rule_nr() const
 	{
-		asio2::shared_locker g(this->mutex_);
+		asio2::shared_locker g(this->security_mutex_);
 
 		return this->get_next_rule_nr_impl();
 	}
 
 	void default_config()
 	{
-		asio2::unique_locker g(this->mutex_);
+		asio2::unique_locker g(this->security_mutex_);
 
 		char const* username = "anonymous";
 		authentication login(authentication::method::anonymous);
@@ -283,7 +283,7 @@ struct security
         authorization::type auth_sub_type
     )
     {
-		asio2::unique_locker g(this->mutex_);
+		asio2::unique_locker g(this->security_mutex_);
 
         for(auto const& j : pub)
         {
@@ -338,7 +338,7 @@ struct security
 
 	void remove_auth(std::size_t rule_nr)
 	{
-		asio2::unique_locker g(this->mutex_);
+		asio2::unique_locker g(this->security_mutex_);
 
 		for (auto i = authorization_.begin(); i != authorization_.end(); ++i)
 		{
@@ -361,7 +361,7 @@ struct security
 
 	void add_sha256_authentication(std::string username, std::string digest, std::string salt)
 	{
-		asio2::unique_locker g(this->mutex_);
+		asio2::unique_locker g(this->security_mutex_);
 
 		authentication auth(authentication::method::sha256, std::move(digest), std::move(salt));
 		authentication_.emplace(std::move(username), std::move(auth));
@@ -369,7 +369,7 @@ struct security
 
 	void add_plain_password_authentication(std::string username, std::string password)
 	{
-		asio2::unique_locker g(this->mutex_);
+		asio2::unique_locker g(this->security_mutex_);
 
 		authentication auth(authentication::method::plain_password, std::move(password));
 		authentication_.emplace(std::move(username), std::move(auth));
@@ -377,7 +377,7 @@ struct security
 
 	void add_certificate_authentication(std::string username)
 	{
-		asio2::unique_locker g(this->mutex_);
+		asio2::unique_locker g(this->security_mutex_);
 
 		authentication auth(authentication::method::client_cert);
 		authentication_.emplace(std::move(username), std::move(auth));
@@ -390,7 +390,7 @@ struct security
 		json j;
 		input >> j;
 
-		asio2::unique_locker g(this->mutex_);
+		asio2::unique_locker g(this->security_mutex_);
 
 		groups_.emplace(std::string(any_group_name), group());
 
@@ -625,7 +625,7 @@ struct security
 		std::set<std::string> username_and_groups;
 		username_and_groups.insert(std::string(username));
 
-		asio2::shared_locker g(this->mutex_);
+		asio2::shared_locker g(this->security_mutex_);
 
 		for (auto const& i : groups_)
 		{
@@ -673,7 +673,7 @@ struct security
 		std::set<std::string> username_and_groups;
 		username_and_groups.insert(std::string(username));
 
-		asio2::shared_locker g(this->mutex_);
+		asio2::shared_locker g(this->security_mutex_);
 
 		for (auto const& i : groups_)
 		{
@@ -728,7 +728,7 @@ struct security
 		if (it != result.end())
 			return it->second;
 
-		asio2::shared_locker g(this->mutex_);
+		asio2::shared_locker g(this->security_mutex_);
 
 		for (auto& [k, v] : groups_)
 		{
@@ -948,17 +948,17 @@ struct security
 	inline void enabled(bool v) noexcept { enabled_ = v; }
 
 	/// use rwlock to make thread safe
-	mutable asio2::shared_mutexer  mutex_;
+	mutable asio2::shared_mutexer  security_mutex_;
 
 	bool enabled_ = true;
 
-	std::map<std::string, authentication> authentication_ ASIO2_GUARDED_BY(mutex_);
-	std::map<std::string, group         > groups_         ASIO2_GUARDED_BY(mutex_);
+	std::map<std::string, authentication> authentication_ ASIO2_GUARDED_BY(security_mutex_);
+	std::map<std::string, group         > groups_         ASIO2_GUARDED_BY(security_mutex_);
 
-	std::vector<authorization> authorization_   ASIO2_GUARDED_BY(mutex_);
+	std::vector<authorization> authorization_   ASIO2_GUARDED_BY(security_mutex_);
 
-	std::optional<std::string> anonymous_       ASIO2_GUARDED_BY(mutex_);
-	std::optional<std::string> unauthenticated_ ASIO2_GUARDED_BY(mutex_);
+	std::optional<std::string> anonymous_       ASIO2_GUARDED_BY(security_mutex_);
+	std::optional<std::string> unauthenticated_ ASIO2_GUARDED_BY(security_mutex_);
 
 	using auth_map_type = subscription_map<std::string, std::pair<authorization::type, std::size_t>>;
 

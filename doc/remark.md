@@ -47,6 +47,18 @@ std::uint32_t header_limit_ = 1 * 1024 * 1024;     // max header size
 // to support copyable
 ```
 
+##### Modify file /beast/core/impl/basic_stream.hpp
+```c++
+// line 107 
+// in function: impl_type::on_timer::operator()(error_code ec)
+// beacuase the ec param maybe zero when the timer callback is
+// called even if the timer cancel function has called already, 
+// then the timer will never exited.
+// add this code:
+if (!sp->socket.is_open())
+    return;
+```
+
 ## Modify the code to be compatible with the mysql "IS_NUM" macro
 
 ##### Modify file /asio2/http/detail/http_parser.h

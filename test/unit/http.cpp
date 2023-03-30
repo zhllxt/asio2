@@ -1331,28 +1331,28 @@ void http_test()
 
 		asio2::timer timer(iopool.get(loop % iopool.size()));
 		timer.start_timer(1, 10, 1, [&]()
-			{
-				ASIO2_CHECK(timer.get_thread_id() == std::this_thread::get_id());
-		for (auto& client_ptr : ws_clients)
 		{
-			// if the client.stop function is not called in the client's io_context thread,
-			// the stop is async, it is not blocking, and will return immediately. 
-			client_ptr->stop();
-
-			// if the client.stop function is not called in the client's io_context thread,
-			// after client.stop, the client must be stopped completed already.
-			if (client_ptr->get_thread_id() != std::this_thread::get_id())
+			ASIO2_CHECK(timer.get_thread_id() == std::this_thread::get_id());
+			for (auto& client_ptr : ws_clients)
 			{
-				ASIO2_CHECK(client_ptr->is_stopped());
-			}
+				// if the client.stop function is not called in the client's io_context thread,
+				// the stop is async, it is not blocking, and will return immediately. 
+				client_ptr->stop();
 
-			// at here, the client state maybe not stopped, beacuse the stop maybe async.
-			// but this async_start event chain must will be executed after all stop event
-			// chain is completed. so when the async_start's push_event is executed, the
-			// client must be stopped already.
-			client_ptr->async_start("127.0.0.1", 8080, "/ws");
-		}
-			});
+				// if the client.stop function is not called in the client's io_context thread,
+				// after client.stop, the client must be stopped completed already.
+				if (client_ptr->get_thread_id() != std::this_thread::get_id())
+				{
+					ASIO2_CHECK(client_ptr->is_stopped());
+				}
+
+				// at here, the client state maybe not stopped, beacuse the stop maybe async.
+				// but this async_start event chain must will be executed after all stop event
+				// chain is completed. so when the async_start's push_event is executed, the
+				// client must be stopped already.
+				client_ptr->async_start("127.0.0.1", 8080, "/ws");
+			}
+		});
 
 		while (timer.is_timer_exists(1))
 		{

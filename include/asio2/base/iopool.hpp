@@ -29,11 +29,15 @@
 
 #include <asio2/base/error.hpp>
 #include <asio2/base/define.hpp>
+#include <asio2/base/log.hpp>
+
 #include <asio2/base/detail/util.hpp>
 #include <asio2/base/detail/shared_mutex.hpp>
 
 namespace asio2::detail
 {
+	using io_context_work_guard = asio::executor_work_guard<asio::io_context::executor_type>;
+
 	// unbelievable :
 	// the 1 sfinae need use   std::declval<std::decay_t<T>>()
 	// the 2 sfinae need use  (std::declval<std::decay_t<T>>())
@@ -90,9 +94,13 @@ namespace asio2::detail
 
 	class iopool;
 
+	template<class, class> class iopool_cp;
+
 	class io_t
 	{
 		friend class iopool;
+		template<class, class> friend class iopool_cp;
+
 	public:
 		io_t(asio::io_context* ioc) noexcept : context_(ioc)
 		{
@@ -108,35 +116,42 @@ namespace asio2::detail
 		template<class Object>
 		inline void regobj(Object* p)
 		{
-			if (p)
+			if (!p)
+				return;
+
+			// should hold a io_contxt guard to ensure that the unregobj must be called, otherwise 
+			// the objects maybe is not empty and the unregobj maybe not be called.
+			asio::dispatch(this->context(), [this, p, optr = p->derived().selfptr()]() mutable
 			{
-				asio::dispatch(this->context(), [this, p, optr = p->derived().selfptr()]() mutable
+				std::size_t k = reinterpret_cast<std::size_t>(p);
+
+				io_context_work_guard iocg(this->context_->get_executor());
+
+				this->objects_[k] = [p, optr = std::move(optr), iocg = std::move(iocg)]() mutable
 				{
-					std::size_t k = reinterpret_cast<std::size_t>(p);
-					this->objects_[k] = [p, optr = std::move(optr)]() mutable
-					{
-						detail::ignore_unused(optr);
-						p->stop();
-					};
-				});
-			}
+					detail::ignore_unused(optr, iocg);
+
+					p->stop();
+				};
+			});
 		}
 
 		template<class Object>
 		inline void unregobj(Object* p)
 		{
-			if (p)
+			if (!p)
+				return;
+
+			// must use post, beacuse the "for each objects_" was called in the iopool.stop,
+			// then the object->stop is called in the for each, then the unregobj is called 
+			// in the object->stop, if we erase the elem of the objects_ directly at here,
+			// it will cause the iterator is invalid when executed at "for each objects_" .
+			asio::post(this->context(), [this, p, optr = p->derived().selfptr()]() mutable
 			{
-				// must use post, beacuse the "for each objects_" was called in the iopool.stop,
-				// then the object->stop is called in the for each, then the unregobj is called 
-				// in the object->stop, if we erase the elem of the objects_ directly at here,
-				// it will cause the iterator is invalid when executed at "for each objects_" .
-				asio::post(this->context(), [this, p, optr = p->derived().selfptr()]() mutable
-				{
-					detail::ignore_unused(optr);
-					this->objects_.erase(reinterpret_cast<std::size_t>(p));
-				});
-			}
+				detail::ignore_unused(optr);
+
+				this->objects_.erase(reinterpret_cast<std::size_t>(p));
+			});
 		}
 
 		/**
@@ -281,12 +296,14 @@ namespace asio2::detail
 	 */
 	class iopool
 	{
+		template<class, class> friend class iopool_cp;
+
 	public:
 		/**
 		 * @brief constructor
 		 * @param concurrency - the pool size, default is double the number of CPU cores
 		 */
-		explicit iopool(std::size_t concurrency = default_concurrency()) : stopped_(true), next_(0)
+		explicit iopool(std::size_t concurrency = default_concurrency()) : state_(state_t::stopped), next_(0)
 		{
 			if (concurrency == 0)
 			{
@@ -322,9 +339,27 @@ namespace asio2::detail
 		{
 			clear_last_error();
 
+			// use read lock to check the state, to avoid deadlock.
+			{
+				asio2::shared_locker guard(this->mutex_);
+
+				if (this->state_ != state_t::stopped)
+				{
+					set_last_error(asio::error::already_started);
+					return true;
+				}
+
+				if (!this->guards_.empty() || !this->threads_.empty())
+				{
+					set_last_error(asio::error::already_started);
+					return true;
+				}
+			}
+
+			// then must use write lock again yet.
 			asio2::unique_locker guard(this->mutex_);
 
-			if (!this->stopped_)
+			if (this->state_ != state_t::stopped)
 			{
 				set_last_error(asio::error::already_started);
 				return true;
@@ -335,6 +370,8 @@ namespace asio2::detail
 				set_last_error(asio::error::already_started);
 				return true;
 			}
+
+			this->state_ = state_t::starting;
 
 			std::vector<std::promise<void>> promises(this->iots_.size());
 
@@ -371,16 +408,32 @@ namespace asio2::detail
 					// If an exception occurs here, what should we do ?
 					// We should handle exceptions in other business functions to ensure that
 					// exceptions will not be triggered here.
-					//try
-					//{
+					try
+					{
 						iot->context().run();
-					//}
-					//catch (system_error const& e)
-					//{
-					//	std::ignore = e;
+					}
+					catch (system_error const& e)
+					{
+						std::ignore = e;
 
-					//	ASIO2_ASSERT(false);
-					//}
+						ASIO2_LOG_ERROR("fatal exception in io_context::run:1: {}", e.what());
+
+						ASIO2_ASSERT(false);
+					}
+					catch (std::exception const& e)
+					{
+						std::ignore = e;
+
+						ASIO2_LOG_ERROR("fatal exception in io_context::run:2: {}", e.what());
+
+						ASIO2_ASSERT(false);
+					}
+					catch (...)
+					{
+						ASIO2_LOG_ERROR("fatal exception in io_context::run:3");
+
+						ASIO2_ASSERT(false);
+					}
 
 					// memory leaks occur when SSL is used in multithreading
 					// https://github.com/chriskohlhoff/asio/issues/368
@@ -402,7 +455,7 @@ namespace asio2::detail
 			}
 		#endif
 
-			this->stopped_ = false;
+			this->state_ = state_t::started;
 
 			return true;
 		}
@@ -424,7 +477,7 @@ namespace asio2::detail
 			{
 				asio2::shared_locker guard(this->mutex_);
 
-				if (this->stopped_)
+				if (this->state_ != state_t::started)
 					return;
 
 				if (this->guards_.empty() && this->threads_.empty())
@@ -437,10 +490,10 @@ namespace asio2::detail
 			{
 				asio2::unique_locker guard(this->mutex_);
 
-				if (this->stopped_)
+				if (this->state_ != state_t::started)
 					return;
 
-				this->stopped_ = true;
+				this->state_ = state_t::stopping;
 			}
 
 			// Waiting for all nested events to complete.
@@ -475,7 +528,19 @@ namespace asio2::detail
 					ASIO2_ASSERT(this->iots_[i]->objects_.empty());
 				}
 			#endif
+
+				this->state_ = state_t::stopped;
 			}
+		}
+
+		/**
+		 * @brief check whether the io_context pool is started
+		 */
+		inline bool started() noexcept
+		{
+			asio2::shared_locker guard(this->mutex_);
+
+			return (this->state_ == state_t::started);
 		}
 
 		/**
@@ -485,7 +550,7 @@ namespace asio2::detail
 		{
 			asio2::shared_locker guard(this->mutex_);
 
-			return (this->stopped_);
+			return (this->state_ == state_t::stopped);
 		}
 
 		/**
@@ -564,7 +629,7 @@ namespace asio2::detail
 		{
 			// split read and write to avoid deadlock caused by iopool.post([&iopool]() {iopool.stop(); });
 			{
-				asio2::shared_locker guard(this->mutex_);
+				//asio2::shared_locker guard(this->mutex_);
 
 				if (this->running_in_threads_impl())
 					return this->cancel_impl();
@@ -589,7 +654,8 @@ namespace asio2::detail
 			constexpr auto min = std::chrono::milliseconds(1);
 
 			{
-				asio2::shared_locker guard(this->mutex_);
+				// don't need lock, maybe cause deadlock in client start iopool
+				//asio2::shared_locker guard(this->mutex_);
 
 				// second wait indefinitely until the acceptor io_context is stopped
 				for (std::size_t i = 0; i < std::size_t(1) && i < this->iocs_.size(); ++i)
@@ -644,7 +710,8 @@ namespace asio2::detail
 			}
 
 			{
-				asio2::shared_locker guard(this->mutex_);
+				// don't need lock, maybe cause deadlock in client start iopool
+				//asio2::shared_locker guard(this->mutex_);
 
 				for (std::size_t i = 1; i < this->iocs_.size(); ++i)
 				{
@@ -930,14 +997,19 @@ namespace asio2::detail
 		std::vector<std::unique_ptr<io_t>>                           iots_    ASIO2_GUARDED_BY(mutex_);
 
 		/// Flag whether the io_context pool has stopped already
-		bool                                                         stopped_ ASIO2_GUARDED_BY(mutex_);
+		detail::state_t                                              state_   ASIO2_GUARDED_BY(mutex_);
 
 		/// The next io_context to use for a connection. 
 		std::size_t                                                  next_;
 
 		// Give all the io_contexts executor_work_guard to do so that their run() functions will not 
 		// exit until they are explicitly stopped. 
-		std::vector<asio::executor_work_guard<asio::io_context::executor_type>> guards_ ASIO2_GUARDED_BY(mutex_);
+		std::vector<io_context_work_guard>                           guards_ ASIO2_GUARDED_BY(mutex_);
+
+		// for debug, to see the derived object details.
+	#if defined(_DEBUG) || defined(DEBUG)
+		std::function<void()>                                        derive_pointer_;
+	#endif
 	};
 
 	class iopool_base
@@ -948,6 +1020,7 @@ namespace asio2::detail
 
 		virtual bool                        start  ()                           = 0;
 		virtual void                        stop   ()                           = 0;
+		virtual bool                        started()                  noexcept = 0;
 		virtual bool                        stopped()                  noexcept = 0;
 		virtual io_t                      & get    (std::size_t index) noexcept = 0;
 		virtual std::size_t                 size   ()                  noexcept = 0;
@@ -956,6 +1029,8 @@ namespace asio2::detail
 
 	class default_iopool : public iopool_base
 	{
+		template<class, class> friend class iopool_cp;
+
 	public:
 		explicit default_iopool(std::size_t concurrency) : impl_(concurrency)
 		{
@@ -983,6 +1058,14 @@ namespace asio2::detail
 		virtual void stop() override
 		{
 			this->impl_.stop();
+		}
+
+		/**
+		 * @brief check whether the io_context pool is started
+		 */
+		virtual bool started() noexcept override
+		{
+			return this->impl_.started();
 		}
 
 		/**
@@ -1027,6 +1110,8 @@ namespace asio2::detail
 	template<class Container>
 	class user_iopool : public iopool_base
 	{
+		template<class, class> friend class iopool_cp;
+
 	public:
 		using copy_container_type = typename detail::remove_cvref_t<Container>;
 		using copy_value_type     = typename copy_container_type::value_type;
@@ -1117,6 +1202,16 @@ namespace asio2::detail
 
 				this->stopped_ = true;
 			}
+		}
+
+		/**
+		 * @brief check whether the io_context pool is started
+		 */
+		virtual bool started() noexcept override
+		{
+			asio2::shared_locker guard(this->mutex_);
+
+			return (!this->stopped_);
 		}
 
 		/**
@@ -1221,6 +1316,11 @@ namespace asio2::detail
 			{
 				using pool_type = default_iopool;
 				this->iopool_ = std::make_unique<pool_type>(v);
+
+			#if defined(_DEBUG) || defined(DEBUG)
+				derived_t& derive = static_cast<derived_t&>(*this);
+				static_cast<default_iopool*>(this->iopool_.get())->impl_.derive_pointer_ = [&derive]() {};
+			#endif
 			}
 			else if constexpr (std::is_same_v<type, detail::iopool>)
 			{
@@ -1427,6 +1527,11 @@ namespace asio2::detail
 			std::size_t n = (index == static_cast<std::size_t>(-1) ?
 				((++(this->next_)) % this->iots_.size()) : (index % this->iots_.size()));
 			return *(this->iots_[n]);
+		}
+
+		inline bool is_iopool_started() noexcept
+		{
+			return this->iopool_->started();
 		}
 
 		inline bool is_iopool_stopped() noexcept

@@ -225,19 +225,19 @@ namespace asio2::detail
 		 */
 		~rpc_invoker_t() = default;
 
-		rpc_invoker_t(rpc_invoker_t&& o) noexcept : invokers_(std::move(o.invokers_))
+		rpc_invoker_t(rpc_invoker_t&& o) noexcept : rpc_invokers_(std::move(o.rpc_invokers_))
 		{
 		}
-		rpc_invoker_t(rpc_invoker_t const& o) : invokers_(o.invokers_)
+		rpc_invoker_t(rpc_invoker_t const& o) : rpc_invokers_(o.rpc_invokers_)
 		{
 		}
 		rpc_invoker_t& operator=(rpc_invoker_t&& o) noexcept
 		{
-			this->invokers_ = std::move(o.invokers_);
+			this->rpc_invokers_ = std::move(o.rpc_invokers_);
 		}
 		rpc_invoker_t& operator=(rpc_invoker_t const& o)
 		{
-			this->invokers_ = o.invokers_;
+			this->rpc_invokers_ = o.rpc_invokers_;
 		}
 
 		/**
@@ -260,9 +260,9 @@ namespace asio2::detail
 		#if defined(_DEBUG) || defined(DEBUG)
 			{
 			#if defined(ASIO2_ENABLE_RPC_INVOKER_THREAD_SAFE)
-				asio2::shared_locker guard(this->mutex_);
+				asio2::shared_locker guard(this->rpc_invoker_mutex_);
 			#endif
-				ASIO2_ASSERT(this->invokers_.find(name) == this->invokers_.end());
+				ASIO2_ASSERT(this->rpc_invokers_.find(name) == this->rpc_invokers_.end());
 			}
 		#endif
 
@@ -277,9 +277,9 @@ namespace asio2::detail
 		inline self& unbind(std::string const& name)
 		{
 		#if defined(ASIO2_ENABLE_RPC_INVOKER_THREAD_SAFE)
-			asio2::unique_locker guard(this->mutex_);
+			asio2::unique_locker guard(this->rpc_invoker_mutex_);
 		#endif
-			this->invokers_.erase(name);
+			this->rpc_invokers_.erase(name);
 
 			return (*this);
 		}
@@ -290,9 +290,9 @@ namespace asio2::detail
 		inline std::shared_ptr<fntype> find(std::string const& name)
 		{
 		#if defined(ASIO2_ENABLE_RPC_INVOKER_THREAD_SAFE)
-			asio2::shared_locker guard(this->mutex_);
+			asio2::shared_locker guard(this->rpc_invoker_mutex_);
 		#endif
-			if (auto iter = this->invokers_.find(name); iter != this->invokers_.end())
+			if (auto iter = this->rpc_invokers_.find(name); iter != this->rpc_invokers_.end())
 				return iter->second;
 			return nullptr;
 		}
@@ -304,9 +304,9 @@ namespace asio2::detail
 		inline void _bind(std::string name, F f)
 		{
 		#if defined(ASIO2_ENABLE_RPC_INVOKER_THREAD_SAFE)
-			asio2::unique_locker guard(this->mutex_);
+			asio2::unique_locker guard(this->rpc_invoker_mutex_);
 		#endif
-			this->invokers_[std::move(name)] = std::make_shared<fntype>(std::bind(&self::template _proxy<F, dummy>,
+			this->rpc_invokers_[std::move(name)] = std::make_shared<fntype>(std::bind(&self::template _proxy<F, dummy>,
 				this, std::move(f), nullptr,
 				std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
 		}
@@ -315,9 +315,9 @@ namespace asio2::detail
 		inline void _bind(std::string name, F f, C& c)
 		{
 		#if defined(ASIO2_ENABLE_RPC_INVOKER_THREAD_SAFE)
-			asio2::unique_locker guard(this->mutex_);
+			asio2::unique_locker guard(this->rpc_invoker_mutex_);
 		#endif
-			this->invokers_[std::move(name)] = std::make_shared<fntype>(std::bind(&self::template _proxy<F, C>,
+			this->rpc_invokers_[std::move(name)] = std::make_shared<fntype>(std::bind(&self::template _proxy<F, C>,
 				this, std::move(f), std::addressof(c),
 				std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
 		}
@@ -326,9 +326,9 @@ namespace asio2::detail
 		inline void _bind(std::string name, F f, C* c)
 		{
 		#if defined(ASIO2_ENABLE_RPC_INVOKER_THREAD_SAFE)
-			asio2::unique_locker guard(this->mutex_);
+			asio2::unique_locker guard(this->rpc_invoker_mutex_);
 		#endif
-			this->invokers_[std::move(name)] = std::make_shared<fntype>(std::bind(&self::template _proxy<F, C>,
+			this->rpc_invokers_[std::move(name)] = std::make_shared<fntype>(std::bind(&self::template _proxy<F, C>,
 				this, std::move(f), c,
 				std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
 		}
@@ -568,12 +568,12 @@ namespace asio2::detail
 
 	protected:
 	#if defined(ASIO2_ENABLE_RPC_INVOKER_THREAD_SAFE)
-		mutable asio2::shared_mutexer                            mutex_;
+		mutable asio2::shared_mutexer                            rpc_invoker_mutex_;
 	#endif
 
-		std::unordered_map<std::string, std::shared_ptr<fntype>> invokers_
+		std::unordered_map<std::string, std::shared_ptr<fntype>> rpc_invokers_
 	#if defined(ASIO2_ENABLE_RPC_INVOKER_THREAD_SAFE)
-			ASIO2_GUARDED_BY(mutex_)
+			ASIO2_GUARDED_BY(rpc_invoker_mutex_)
 	#endif
 			;
 	};

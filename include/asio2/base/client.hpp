@@ -41,6 +41,8 @@
 #include <asio2/base/impl/user_data_cp.hpp>
 #include <asio2/base/impl/socket_cp.hpp>
 #include <asio2/base/impl/connect_cp.hpp>
+#include <asio2/base/impl/shutdown_cp.hpp>
+#include <asio2/base/impl/close_cp.hpp>
 #include <asio2/base/impl/disconnect_cp.hpp>
 #include <asio2/base/impl/user_timer_cp.hpp>
 #include <asio2/base/impl/post_cp.hpp>
@@ -80,6 +82,8 @@ namespace asio2::detail
 		, public alive_time_cp         <derived_t, args_t>
 		, public socket_cp             <derived_t, args_t>
 		, public connect_cp            <derived_t, args_t>
+		, public shutdown_cp           <derived_t, args_t>
+		, public close_cp              <derived_t, args_t>
 		, public disconnect_cp         <derived_t, args_t>
 		, public reconnect_timer_cp    <derived_t, args_t>
 		, public user_timer_cp         <derived_t, args_t>
@@ -126,6 +130,8 @@ namespace asio2::detail
 			, alive_time_cp       <derived_t, args_t>()
 			, socket_cp           <derived_t, args_t>(iopoolcp::_get_io(0).context(), std::forward<Args>(args)...)
 			, connect_cp          <derived_t, args_t>()
+			, shutdown_cp         <derived_t, args_t>()
+			, close_cp            <derived_t, args_t>()
 			, disconnect_cp       <derived_t, args_t>()
 			, reconnect_timer_cp  <derived_t, args_t>()
 			, user_timer_cp       <derived_t, args_t>()
@@ -162,6 +168,8 @@ namespace asio2::detail
 		{
 			ASIO2_ASSERT(this->io_.running_in_this_thread());
 
+			this->stopped_ = false;
+
 			return true;
 		}
 
@@ -171,6 +179,8 @@ namespace asio2::detail
 		inline bool async_start() noexcept
 		{
 			ASIO2_ASSERT(this->io_.running_in_this_thread());
+
+			this->stopped_ = false;
 
 			return true;
 		}
@@ -219,6 +229,12 @@ namespace asio2::detail
 
 				// destroy the ecs
 				this->ecs_.reset();
+
+				// 
+				this->reset_life_id();
+
+				//
+				this->stopped_ = true;
 			});
 		}
 
@@ -235,7 +251,7 @@ namespace asio2::detail
 		 */
 		inline bool is_stopped()
 		{
-			return (this->state_ == state_t::stopped && !this->socket().is_open() && this->is_iopool_stopped());
+			return (this->state_ == state_t::stopped && !this->socket().is_open() && this->stopped_);
 		}
 
 		/**
@@ -287,6 +303,9 @@ namespace asio2::detail
 		inline listener_t                 & listener() noexcept { return this->listener_; }
 		inline std::atomic<state_t>       & state   () noexcept { return this->state_;    }
 
+		inline const char*                  life_id () noexcept { return this->life_id_.get(); }
+		inline void                   reset_life_id () noexcept { this->life_id_ = std::make_unique<char>(); }
+
 	protected:
 		/// The memory to use for handler-based custom memory allocation. used fo recv/read.
 		handler_memory<std::true_type , assizer<args_t>>   rallocator_;
@@ -311,6 +330,52 @@ namespace asio2::detail
 
 		/// the pointer of ecs_t
 		std::shared_ptr<ecs_base>                   ecs_;
+
+		/// client has two status:
+		/// 1. completely stopped.
+		/// 2. disconnected but not stopped, the timer or other event are running.
+		bool                                        stopped_ = true;
+
+		/// Whether the async_read... is called.
+		bool                                        reading_ = false;
+
+		/// Used to solve this problem:
+		/// 
+		/// client_ptr->bind_connect([client_ptr]()
+		/// {
+		///		client_ptr->async_send(...);
+		/// });
+		/// 
+		/// client_ptr->post([client_ptr]()
+		/// {
+		/// 	client_ptr->stop();
+		/// 	client_ptr->start(...);
+		/// 
+		/// 	client_ptr->stop();
+		/// 	client_ptr->start(...);
+		/// });
+		/// 
+		/// We wanted is :
+		/// 
+		/// stop  event
+		/// start event 
+		/// async send event
+		/// stop  event
+		/// start event
+		/// async send event
+		/// 
+		/// but beacuse the async send will push event into the event queue, so the
+		/// event queue will be like this:
+		/// 
+		/// stop  event
+		/// start event 
+		/// stop  event
+		/// start event
+		/// async send event
+		/// async send event
+		///
+		/// the async send will be called twice for the last time started client.
+		std::unique_ptr<char>                       life_id_ = std::make_unique<char>();
 
 	#if defined(_DEBUG) || defined(DEBUG)
 		std::atomic<int>                            post_send_counter_ = 0;

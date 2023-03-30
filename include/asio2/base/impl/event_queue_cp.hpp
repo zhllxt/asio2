@@ -381,6 +381,87 @@ namespace asio2::detail
 			return this->events_.size();
 		}
 
+		/**
+		 * post a task to the tail of the event queue
+		 * Callback signature : void()
+		 */
+		template<class Callback>
+		inline derived_t& post_queued_event(Callback&& f)
+		{
+			using return_type = std::invoke_result_t<Callback>;
+
+			derived_t& derive = static_cast<derived_t&>(*this);
+
+			std::packaged_task<return_type()> task(std::forward<Callback>(f));
+
+			auto fn = [p = derive.selfptr(), t = std::move(task)](event_queue_guard<derived_t> g) mutable
+			{
+				detail::ignore_unused(p, g);
+
+				t();
+			};
+
+			// Make sure we run on the io_context thread
+			// beacuse the callback "f" hold the derived_ptr already,
+			// so this callback for asio::dispatch don't need hold the derived_ptr again.
+			asio::post(derive.io().context(), make_allocator(derive.wallocator(),
+			[this, fn = std::move(fn)]() mutable
+			{
+				ASIO2_ASSERT(this->events_.size() < std::size_t(32767));
+
+				bool empty = this->events_.empty();
+				this->events_.emplace(std::move(fn));
+				if (empty)
+				{
+					(this->events_.front())(event_queue_guard<derived_t>{static_cast<derived_t&>(*this)});
+				}
+			}));
+
+			return (derive);
+		}
+
+		/**
+		 * post a task to the tail of the event queue
+		 * Callback signature : void()
+		 */
+		template<class Callback, typename Allocator>
+		inline auto post_queued_event(Callback&& f, asio::use_future_t<Allocator>) ->
+			std::future<std::invoke_result_t<Callback>>
+		{
+			using return_type = std::invoke_result_t<Callback>;
+
+			derived_t& derive = static_cast<derived_t&>(*this);
+
+			std::packaged_task<return_type()> task(std::forward<Callback>(f));
+
+			std::future<return_type> future = task.get_future();
+
+			auto fn = [p = derive.selfptr(), t = std::move(task)](event_queue_guard<derived_t> g) mutable
+			{
+				detail::ignore_unused(p, g);
+
+				t();
+			};
+
+			// Make sure we run on the io_context thread
+			// beacuse the callback "f" hold the derived_ptr already,
+			// so this callback for asio::dispatch don't need hold the derived_ptr again.
+			asio::post(derive.io().context(), make_allocator(derive.wallocator(),
+			[this, fn = std::move(fn)]() mutable
+			{
+				ASIO2_ASSERT(this->events_.size() < std::size_t(32767));
+
+				bool empty = this->events_.empty();
+				this->events_.emplace(std::move(fn));
+				if (empty)
+				{
+					(this->events_.front())(event_queue_guard<derived_t>{static_cast<derived_t&>(*this)});
+				}
+			}));
+
+			return future;
+		}
+
 	protected:
 		/**
 		 * push a task to the tail of the event queue

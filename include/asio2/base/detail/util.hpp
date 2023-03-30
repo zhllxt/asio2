@@ -42,6 +42,21 @@ namespace asio2::detail
 {
 	enum class state_t : std::int8_t { stopped, stopping, starting, started };
 
+	template<typename = void>
+	inline constexpr std::string_view to_string(state_t v)
+	{
+		using namespace std::string_view_literals;
+		switch (v)
+		{
+		case state_t::stopped  : return "stopped";
+		case state_t::stopping : return "stopping";
+		case state_t::starting : return "starting";
+		case state_t::started  : return "started";
+		default                : return "none";
+		}
+		return "none";
+	}
+
 	// /bho/beast/websocket/stream_base.hpp line 147
 	// opt.handshake_timeout = std::chrono::seconds(30);
 

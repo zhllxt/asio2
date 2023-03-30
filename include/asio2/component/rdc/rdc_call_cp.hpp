@@ -623,9 +623,16 @@ namespace asio2::detail
 			});
 
 			derive.push_event(
-			[&derive, p = std::move(this_ptr), ex = std::move(ex), data = std::move(persisted_data)]
+			[&derive, p = std::move(this_ptr), id = derive.life_id(), ex = std::move(ex), data = std::move(persisted_data)]
 			(event_queue_guard<derived_t> g) mutable
 			{
+				if (id != derive.life_id())
+				{
+					set_last_error(asio::error::operation_aborted);
+					ex();
+					return;
+				}
+
 				derive._do_send(data, [&ex, g = std::move(g)](const error_code& ec, std::size_t) mutable
 				{
 					detail::ignore_unused(g);

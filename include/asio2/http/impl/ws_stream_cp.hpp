@@ -89,17 +89,21 @@ namespace asio2::detail
 
 			this->ws_stream_ = std::make_unique<stream_type>(socket);
 
+			websocket::stream_base::timeout opt{};
+
 			// Set suggested timeout settings for the websocket
 			if constexpr (args_t::is_session)
 			{
-				this->ws_stream_->set_option(websocket::stream_base::timeout::suggested(
-					beast::role_type::server));
+				opt = websocket::stream_base::timeout::suggested(beast::role_type::server);
 			}
 			else
 			{
-				this->ws_stream_->set_option(websocket::stream_base::timeout::suggested(
-					beast::role_type::client));
+				opt = websocket::stream_base::timeout::suggested(beast::role_type::client);
 			}
+
+			opt.handshake_timeout = derive.get_connect_timeout();
+
+			this->ws_stream_->set_option(opt);
 		}
 
 		template<typename C, typename Socket>
@@ -140,7 +144,7 @@ namespace asio2::detail
 				// send a websocket close frame, the async_close's callback will never be
 				// called.
 				websocket::stream_base::timeout opt{};
-				opt.handshake_timeout = std::chrono::milliseconds(ws_shutdown_timeout);
+				opt.handshake_timeout = derive.get_disconnect_timeout();
 				opt.idle_timeout      = websocket::stream_base::none();
 
 				try
@@ -169,6 +173,8 @@ namespace asio2::detail
 				derive.post_send_counter_++;
 			#endif
 
+				ASIO2_LOG_DEBUG("ws_stream_cp enter async_close");
+
 				// Close the WebSocket connection
 				// async_close behavior : 
 				// send a websocket close frame to the remote, and wait for recv a websocket close
@@ -183,6 +189,26 @@ namespace asio2::detail
 				#endif
 
 					detail::ignore_unused(derive, ec);
+
+					ASIO2_LOG_DEBUG("ws_stream_cp leave async_close:{} {}", ec.value(), ec.message());
+
+					// if async close failed, the inner timer of async close will exists for timeout,
+					// it will cause the ws client can't be exited, so we reset the timeout to none
+					// to notify the timer to exit.
+					if (ec)
+					{
+						websocket::stream_base::timeout opt{};
+						opt.handshake_timeout = websocket::stream_base::none();
+						opt.idle_timeout      = websocket::stream_base::none();
+
+						try
+						{
+							derive.ws_stream_->set_option(opt);
+						}
+						catch (system_error const&)
+						{
+						}
+					}
 
 					//if (ec)
 					//	return;
@@ -210,12 +236,15 @@ namespace asio2::detail
 				return;
 			}
 
+			ASIO2_ASSERT(derive.io().running_in_this_thread());
 			ASIO2_ASSERT(bool(this->ws_stream_));
 
 		#if defined(_DEBUG) || defined(DEBUG)
 			ASIO2_ASSERT(derive.post_recv_counter_.load() == 0);
 			derive.post_recv_counter_++;
 		#endif
+
+			derive.reading_ = true;
 
 			// Read a message into our buffer
 			this->ws_stream_->async_read(derive.buffer().base(), make_allocator(derive.rallocator(),
@@ -225,6 +254,8 @@ namespace asio2::detail
 			#if defined(_DEBUG) || defined(DEBUG)
 				derive.post_recv_counter_--;
 			#endif
+
+				derive.reading_ = false;
 
 				derive._handle_recv(ec, bytes_recvd, std::move(this_ptr), std::move(ecs));
 			}));
@@ -245,8 +276,13 @@ namespace asio2::detail
 			{
 				if (derive.state() == state_t::started)
 				{
-					derive._do_disconnect(ec, std::move(this_ptr));
+					ASIO2_LOG_INFOR("_ws_handle_recv with closed socket: {} {}", ec.value(), ec.message());
+
+					derive._do_disconnect(ec, this_ptr);
 				}
+
+				derive._stop_readend_timer(std::move(this_ptr));
+
 				return;
 			}
 
@@ -265,7 +301,11 @@ namespace asio2::detail
 			}
 			else
 			{
-				derive._do_disconnect(ec, std::move(this_ptr));
+				ASIO2_LOG_DEBUG("_ws_handle_recv with error: {} {}", ec.value(), ec.message());
+
+				derive._do_disconnect(ec, this_ptr);
+
+				derive._stop_readend_timer(std::move(this_ptr));
 			}
 			// If an error occurs then no new asynchronous operations are started. This
 			// means that all shared_ptr references to the connection object will
@@ -287,13 +327,31 @@ namespace asio2::detail
 			asio::post(derive.io().context(), make_allocator(derive.wallocator(),
 			[this, &derive, this_ptr = std::move(this_ptr), ecs = std::move(ecs)]() mutable
 			{
+				// Because hole this_ptr in control callback can easily cause circular references,
+				// Once forget to call control callback with empty param or due to exceptions or
+				// other reasons, will result in a circular reference, so we hold the weak ptr
+				// in the control callback instead of shared ptr.
+
+				std::weak_ptr<derived_t> this_wptr{ this_ptr };
+
+				bool check_alive = (this_ptr != nullptr);
+
 				this->ws_stream_->control_callback(
-				[&derive, this_ptr = std::move(this_ptr), ecs = std::move(ecs)]
+				[&derive, this_wptr = std::move(this_wptr), ecs = std::move(ecs), check_alive]
 				(websocket::frame_type kind, beast::string_view payload) mutable
 				{
-					// bug fixed : can't use "std::move(this_ptr)" below, otherwise 
-					// when enter this lambda next time, the "this_ptr" is nullptr.
-					derive._handle_control_callback(kind, payload, this_ptr, ecs);
+					std::shared_ptr<derived_t> this_ptr = this_wptr.lock();
+
+					// If the original shared ptr is not empty, but now it is empty, it means that
+					// the object is destroyed, so we need return.
+					// But this situation shouldn't happen.
+					if (check_alive && this_ptr == nullptr)
+					{
+						ASIO2_ASSERT(false);
+						return;
+					}
+
+					derive._handle_control_callback(kind, payload, std::move(this_ptr), ecs);
 				});
 			}));
 		}
@@ -349,6 +407,8 @@ namespace asio2::detail
 
 			if (derive.state() == state_t::started)
 			{
+				ASIO2_LOG_DEBUG("ws_stream_cp::_handle_control_close _do_disconnect");
+
 				derive._do_disconnect(websocket::error::closed, std::move(this_ptr));
 			}
 		}

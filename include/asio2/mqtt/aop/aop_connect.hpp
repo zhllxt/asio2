@@ -211,7 +211,7 @@ namespace asio2::detail
 
 				if (!username)
 				{
-					ASIO2_LOG(spdlog::level::trace, "User failed to login: {}",
+					ASIO2_LOG_TRACE("User failed to login: {}",
 						(msg.has_username() ? msg.username() : "anonymous user"));
 
 					if (msg.has_username() && msg.has_password())
@@ -341,7 +341,7 @@ namespace asio2::detail
 					// In previous versions, the mutex is a global variable, when code reached here,
 					// the mutex status is locked already, so if we call session_ptr->stop()
 					// directly, the stop maybe blocked forever, beacuse the session1 stop maybe
-					// called in the session2 thread, and in the _handle_disconnect funcion of mqtt
+					// called in the session2 thread, and in the handle disconnect funcion of mqtt
 					// session, the global mutex is required to lock again, so it caused deaklock,
 					// to solve this problem, we can use session->post([](){session->stop()}).
 					// but now, we change the mutex from global variable to member variable for each

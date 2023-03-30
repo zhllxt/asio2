@@ -105,7 +105,7 @@ namespace asio2::mqtt
 		{
 			std::vector<map_iterator> iters;
 
-			asio2::shared_locker g(this->mutex_);
+			asio2::shared_locker g(this->submap_mutex_);
 
 			iters.emplace_back(this->get_root());
 
@@ -128,7 +128,7 @@ namespace asio2::mqtt
 		template <typename K, typename V>
 		std::pair<key_type, bool> insert_or_assign(std::string_view topic_filter, K&& key, V&& val)
 		{
-			asio2::unique_locker g(this->mutex_);
+			asio2::unique_locker g(this->submap_mutex_);
 
 			std::vector<map_iterator> iters = this->get_nodes_by_topic_filter(topic_filter);
 			if (iters.empty())
@@ -168,7 +168,7 @@ namespace asio2::mqtt
 		template <typename K, typename V>
 		std::pair<key_type, bool> insert_or_assign(key_type const& h, K&& key, V&& val)
 		{
-			asio2::unique_locker g(this->mutex_);
+			asio2::unique_locker g(this->submap_mutex_);
 
 			auto it = this->map_.find(h);
 			if (it == this->map_.end())
@@ -196,7 +196,7 @@ namespace asio2::mqtt
 		// returns the number of removed elements
 		std::size_t erase(key_type const& h, Key const& key)
 		{
-			asio2::unique_locker g(this->mutex_);
+			asio2::unique_locker g(this->submap_mutex_);
 
 			auto it = this->map_.find(h);
 			if (it == this->map_.end())
@@ -220,7 +220,7 @@ namespace asio2::mqtt
 		// returns the number of removed elements
 		std::size_t erase(std::string_view topic_filter, Key const& key)
 		{
-			asio2::unique_locker g(this->mutex_);
+			asio2::unique_locker g(this->submap_mutex_);
 
 			std::vector<map_iterator> iters = this->get_nodes_by_topic_filter(topic_filter);
 			if (iters.empty())
@@ -243,7 +243,7 @@ namespace asio2::mqtt
 		// returns the number of removed elements
 		std::size_t erase(Key const& key)
 		{
-			asio2::unique_locker g(this->mutex_);
+			asio2::unique_locker g(this->submap_mutex_);
 
 			auto iter = this->subscriber_nodes_.find(key);
 			if (iter == this->subscriber_nodes_.end())
@@ -562,14 +562,14 @@ namespace asio2::mqtt
 		static constexpr key_type                                     root_key_{ 0, "" };
 
 		/// use rwlock to make thread safe
-		mutable asio2::shared_mutexer                                 mutex_;
+		mutable asio2::shared_mutexer                                 submap_mutex_;
 
 		std::size_t                                                   root_node_id_ = 1;
 
-		map_type                                                      map_              ASIO2_GUARDED_BY(mutex_);
+		map_type                                                      map_              ASIO2_GUARDED_BY(submap_mutex_);
 
 		// Key - client id, Val - all nodes keys for the subscriber
-		std::unordered_map<Key, std::unordered_set<key_type, hasher>> subscriber_nodes_ ASIO2_GUARDED_BY(mutex_);
+		std::unordered_map<Key, std::unordered_set<key_type, hasher>> subscriber_nodes_ ASIO2_GUARDED_BY(submap_mutex_);
 
 		// Map size tracks the total number of subscriptions within the map
 		std::atomic<std::size_t>                                      subscribe_count_ = 0;

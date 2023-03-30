@@ -222,28 +222,39 @@ namespace asio2::detail
 			derive.post_event([&derive, this_ptr = derive.selfptr(), pg = std::move(pg)]
 			(event_queue_guard<derived_t> g) mutable
 			{
-				derive._do_disconnect(asio::error::operation_aborted, std::move(this_ptr),
-					defer_event
+				derive._do_disconnect(asio::error::operation_aborted, std::move(this_ptr), defer_event
+				{
+					[pg = std::move(pg)](event_queue_guard<derived_t> g) mutable
 					{
-						[pg = std::move(pg)](event_queue_guard<derived_t> g) mutable
-						{
-							detail::ignore_unused(pg, g);
+						detail::ignore_unused(pg, g);
 
-							// the "pg" should destroyed before the "g", otherwise if the "g"
-							// is destroyed before "pg", the next event maybe called, then the
-							// state maybe change to not stopped.
-							{
-								[[maybe_unused]] detail::defer_event t{ std::move(pg) };
-							}
-						}, std::move(g)
-					}
-				);
+						// the "pg" should destroyed before the "g", otherwise if the "g"
+						// is destroyed before "pg", the next event maybe called, then the
+						// state maybe change to not stopped.
+						{
+							[[maybe_unused]] detail::defer_event t{ std::move(pg) };
+						}
+					}, std::move(g)
+				});
 			});
 
-			if (!derive.running_in_this_thread())
+			while (!derive.running_in_this_thread())
 			{
-				[[maybe_unused]] state_t state = future.get();
-				ASIO2_ASSERT(state == state_t::stopped);
+				std::future_status status = future.wait_for(std::chrono::milliseconds(100));
+
+				if (status == std::future_status::ready)
+				{
+					ASIO2_ASSERT(future.get() == state_t::stopped);
+					break;
+				}
+				else
+				{
+					if (derive.get_thread_id() == std::thread::id{})
+						break;
+
+					if (derive.io().context().stopped())
+						break;
+				}
 			}
 
 			this->stop_iopool();
@@ -262,7 +273,7 @@ namespace asio2::detail
 		 */
 		inline bool is_stopped()
 		{
-			return (this->state_ == state_t::stopped && !this->socket().is_open() && this->is_iopool_stopped());
+			return (this->state_ == state_t::stopped && !this->socket().is_open());
 		}
 
 	public:
@@ -428,7 +439,7 @@ namespace asio2::detail
 
 			this->start_iopool();
 
-			if (this->is_iopool_stopped())
+			if (!this->is_iopool_started())
 			{
 				set_last_error(asio::error::operation_aborted);
 				return false;
@@ -585,9 +596,9 @@ namespace asio2::detail
 			this->derived()._start_recv(std::move(this_ptr), std::move(ecs));
 		}
 
-		template<typename DeferEvent = defer_event<void, derived_t>>
-		inline void _do_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr,
-			DeferEvent chain = defer_event<void, derived_t>{})
+		template<typename E = defer_event<void, derived_t>>
+		inline void _do_disconnect(
+			const error_code& ec, std::shared_ptr<derived_t> this_ptr, E chain = defer_event<void, derived_t>{})
 		{
 			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
 
@@ -615,8 +626,8 @@ namespace asio2::detail
 			{
 				detail::ignore_unused(g);
 
-				this->derived()._handle_disconnect(ec, std::move(this_ptr), old_state,
-					defer_event(std::move(e), std::move(g)));
+				this->derived()._handle_disconnect(
+					ec, std::move(this_ptr), old_state, defer_event(std::move(e), std::move(g)));
 			}, chain.move_guard());
 		}
 
@@ -629,6 +640,11 @@ namespace asio2::detail
 			this->derived()._rdc_stop();
 
 			this->derived()._do_stop(ec, std::move(this_ptr), old_state, std::move(chain));
+		}
+
+		inline void _stop_readend_timer(std::shared_ptr<derived_t> this_ptr)
+		{
+			detail::ignore_unused(this_ptr);
 		}
 
 		template<typename DeferEvent>
@@ -651,13 +667,15 @@ namespace asio2::detail
 
 				set_last_error(ec);
 
+				defer_event chain(std::move(e), std::move(g));
+
 				state_t expected = state_t::stopping;
 				if (this->state_.compare_exchange_strong(expected, state_t::stopped))
 				{
 					this->derived()._fire_stop(this_ptr);
 
 					// call CRTP polymorphic stop
-					this->derived()._handle_stop(ec, std::move(this_ptr), defer_event(std::move(e), std::move(g)));
+					this->derived()._handle_stop(ec, std::move(this_ptr), std::move(chain));
 				}
 				else
 				{
@@ -700,6 +718,9 @@ namespace asio2::detail
 
 			// destroy the ecs
 			this->ecs_.reset();
+
+			//
+			this->reset_life_id();
 		}
 
 		template<typename C>
@@ -865,6 +886,9 @@ namespace asio2::detail
 		inline listener_t                 & listener() noexcept { return this->listener_; }
 		inline std::atomic<state_t>       & state   () noexcept { return this->state_;    }
 
+		inline const char*                  life_id () noexcept { return this->life_id_.get(); }
+		inline void                   reset_life_id () noexcept { this->life_id_ = std::make_unique<char>(); }
+
 	protected:
 		/// socket 
 		socket_type                                        socket_;
@@ -892,6 +916,12 @@ namespace asio2::detail
 
 		/// the pointer of ecs_t
 		std::shared_ptr<ecs_base>                 ecs_;
+
+		/// Whether the async_read... is called.
+		bool                                      reading_ = false;
+
+		/// @see client life id
+		std::unique_ptr<char>                     life_id_ = std::make_unique<char>();
 
 	#if defined(_DEBUG) || defined(DEBUG)
 		bool                                      is_stop_called_  = false;

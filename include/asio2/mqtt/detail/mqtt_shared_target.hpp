@@ -89,7 +89,7 @@ namespace asio2::mqtt
 		template<class Function>
 		inline shared_target& set_policy(Function&& fun)
 		{
-			asio2::unique_locker g(this->mutex_);
+			asio2::unique_locker g(this->shared_target_mutex_);
 
 			policy_ = std::forward<Function>(fun);
 
@@ -101,7 +101,7 @@ namespace asio2::mqtt
 		{
 			auto key = std::pair{ share_name, topic_filter };
 
-			asio2::unique_locker g(this->mutex_);
+			asio2::unique_locker g(this->shared_target_mutex_);
 
 			auto it = targets_.find(key);
 			if (it == targets_.end())
@@ -154,7 +154,7 @@ namespace asio2::mqtt
 		{
 			auto key = std::pair{ share_name, topic_filter };
 
-			asio2::unique_locker g(this->mutex_);
+			asio2::unique_locker g(this->shared_target_mutex_);
 
 			auto it = targets_.find(key);
 			if (it == targets_.end())
@@ -202,7 +202,7 @@ namespace asio2::mqtt
 		{
 			auto key = std::pair{ share_name, topic_filter };
 
-			asio2::shared_locker g(this->mutex_);
+			asio2::shared_locker g(this->shared_target_mutex_);
 
 			auto it = targets_.find(key);
 			if (it == targets_.end())
@@ -215,12 +215,12 @@ namespace asio2::mqtt
 
 	protected:
 		/// use rwlock to make thread safe
-		mutable asio2::shared_mutexer  mutex_;
+		mutable asio2::shared_mutexer  shared_target_mutex_;
 
 		/// key : share_name - topic_filter, val : shared target node
-		std::unordered_map<std::pair<std::string_view, std::string_view>, STNode, hasher> targets_ ASIO2_GUARDED_BY(mutex_);
+		std::unordered_map<std::pair<std::string_view, std::string_view>, STNode, hasher> targets_ ASIO2_GUARDED_BY(shared_target_mutex_);
 
-		std::function<std::shared_ptr<session_type>(STNode&)>                             policy_  ASIO2_GUARDED_BY(mutex_);
+		std::function<std::shared_ptr<session_type>(STNode&)>                             policy_  ASIO2_GUARDED_BY(shared_target_mutex_);
 	};
 
 	template<class session_t>
