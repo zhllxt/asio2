@@ -21,6 +21,7 @@
 
 #include <asio2/config.hpp>
 
+#include <asio2/udp/udp_client.hpp>
 #include <asio2/tcp/tcp_client.hpp>
 #include <asio2/tcp/tcps_client.hpp>
 #include <asio2/http/ws_client.hpp>
@@ -34,6 +35,10 @@
 namespace asio2::detail
 {
 	ASIO2_CLASS_FORWARD_DECLARE_BASE;
+
+	ASIO2_CLASS_FORWARD_DECLARE_UDP_BASE;
+	ASIO2_CLASS_FORWARD_DECLARE_UDP_CLIENT;
+
 	ASIO2_CLASS_FORWARD_DECLARE_TCP_BASE;
 	ASIO2_CLASS_FORWARD_DECLARE_TCP_CLIENT;
 
@@ -46,6 +51,10 @@ namespace asio2::detail
 		, protected id_maker  <typename rpc_header::id_type>
 	{
 		ASIO2_CLASS_FRIEND_DECLARE_BASE;
+
+		ASIO2_CLASS_FRIEND_DECLARE_UDP_BASE;
+		ASIO2_CLASS_FRIEND_DECLARE_UDP_CLIENT;
+
 		ASIO2_CLASS_FRIEND_DECLARE_TCP_BASE;
 		ASIO2_CLASS_FRIEND_DECLARE_TCP_CLIENT;
 
@@ -103,6 +112,12 @@ namespace asio2::detail
 					std::forward<String>(host), std::forward<StrOrInt>(port),
 					std::forward<Args>(args)...);
 			}
+			else if constexpr (net_protocol == asio2::net_protocol::udp)
+			{
+				return executor_t::template start(
+					std::forward<String>(host), std::forward<StrOrInt>(port),
+					asio2::use_kcp, std::forward<Args>(args)...);
+			}
 			else
 			{
 				return executor_t::template start(
@@ -121,11 +136,18 @@ namespace asio2::detail
 		template<typename String, typename StrOrInt, typename... Args>
 		bool async_start(String&& host, StrOrInt&& port, Args&&... args)
 		{
+			//static_assert(net_protocol != asio2::net_protocol::udp, "net_protocol::udp not supported");
 			if constexpr (is_websocket_client<executor_t>::value)
 			{
 				return executor_t::template async_start(
 					std::forward<String>(host), std::forward<StrOrInt>(port),
 					std::forward<Args>(args)...);
+			}
+			else if constexpr (net_protocol == asio2::net_protocol::udp)
+			{
+				return executor_t::template start(
+					std::forward<String>(host), std::forward<StrOrInt>(port),
+					asio2::use_kcp, std::forward<Args>(args)...);
 			}
 			else
 			{
@@ -181,6 +203,16 @@ namespace asio2
 		template<asio2::net_protocol np> struct template_args_rpc_client;
 
 		template<>
+		struct template_args_rpc_client<asio2::net_protocol::udp> : public template_args_udp_client
+		{
+			static constexpr asio2::net_protocol net_protocol = asio2::net_protocol::udp;
+
+			static constexpr bool rdc_call_cp_enabled = false;
+
+			static constexpr std::size_t function_storage_size = 72;
+		};
+
+		template<>
 		struct template_args_rpc_client<asio2::net_protocol::tcp> : public template_args_tcp_client
 		{
 			static constexpr asio2::net_protocol net_protocol = asio2::net_protocol::tcp;
@@ -201,7 +233,7 @@ namespace asio2
 		};
 	}
 
-
+	using rpc_client_args_udp = detail::template_args_rpc_client<asio2::net_protocol::udp>;
 	using rpc_client_args_tcp = detail::template_args_rpc_client<asio2::net_protocol::tcp>;
 	using rpc_client_args_ws  = detail::template_args_rpc_client<asio2::net_protocol::ws >;
 
@@ -210,6 +242,15 @@ namespace asio2
 
 
 	template<class derived_t, asio2::net_protocol np> class rpc_client_t;
+
+	template<class derived_t>
+	class rpc_client_t<derived_t, asio2::net_protocol::udp> : public detail::rpc_client_impl_t<derived_t,
+		detail::udp_client_impl_t<derived_t, detail::template_args_rpc_client<asio2::net_protocol::udp>>>
+	{
+	public:
+		using detail::rpc_client_impl_t<derived_t, detail::udp_client_impl_t
+			<derived_t, detail::template_args_rpc_client<asio2::net_protocol::udp>>>::rpc_client_impl_t;
+	};
 
 	template<class derived_t>
 	class rpc_client_t<derived_t, asio2::net_protocol::tcp> : public detail::rpc_client_impl_t<derived_t,
@@ -235,6 +276,8 @@ namespace asio2
 	public:
 		using rpc_client_t<rpc_client_use<np>, np>::rpc_client_t;
 	};
+	
+	using rpc_kcp_client = rpc_client_use<asio2::net_protocol::udp>;
 
 #if !defined(ASIO2_USE_WEBSOCKET_RPC)
 	/// Using tcp dgram mode as the underlying communication support
