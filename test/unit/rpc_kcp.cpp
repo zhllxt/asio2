@@ -154,25 +154,8 @@ void rpc_test()
 
 	// test max buffer size
 	{
-		asio2::rpc_server server(512, 1024, 4);
+		asio2::rpc_kcp_server server(512, 1024, 4);
 
-		std::atomic<int> server_accept_counter = 0;
-		server.bind_accept([&](auto & session_ptr)
-		{
-			session_ptr->no_delay(true);
-
-			server_accept_counter++;
-
-			ASIO2_CHECK(!asio2::get_last_error());
-			ASIO2_CHECK(server.get_listen_address() == "127.0.0.1");
-			ASIO2_CHECK(server.get_listen_port() == 18010);
-			ASIO2_CHECK(session_ptr->remote_address() == "127.0.0.1");
-			ASIO2_CHECK(session_ptr->local_address() == "127.0.0.1");
-			ASIO2_CHECK(session_ptr->local_port() == 18010);
-			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
-
-		});
 		std::atomic<int> server_connect_counter = 0;
 		server.bind_connect([&](auto & session_ptr)
 		{
@@ -184,9 +167,6 @@ void rpc_test()
 			ASIO2_CHECK(session_ptr->local_port() == 18010);
 			ASIO2_CHECK(server.io().running_in_this_thread());
 			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
-			ASIO2_CHECK(session_ptr->is_keep_alive());
-			ASIO2_CHECK(session_ptr->is_no_delay());
-
 		});
 		std::atomic<int> server_disconnect_counter = 0;
 		server.bind_disconnect([&](auto & session_ptr)
@@ -256,8 +236,6 @@ void rpc_test()
 			asio2::rpc_kcp_client& client = *iter;
 
 			// set default rpc call timeout
-			client.set_default_timeout(std::chrono::seconds(3));
-			ASIO2_CHECK(client.get_default_timeout() == std::chrono::seconds(3));
 			client.set_auto_reconnect(false);
 			ASIO2_CHECK(!client.is_auto_reconnect());
 
@@ -265,16 +243,13 @@ void rpc_test()
 			{
 				client_init_counter++;
 
-				client.set_no_delay(true);
 				if (asio2::get_last_error()) {
 					std::cerr << " val: " << asio2::get_last_error_val() << std::endl << asio2::get_last_error_msg() << std::endl;
 				}
 				ASIO2_CHECK(client.io().running_in_this_thread());
 				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
 				ASIO2_CHECK(!asio2::get_last_error());
-				ASIO2_CHECK(client.is_keep_alive());
 				ASIO2_CHECK(client.is_reuse_address());
-				ASIO2_CHECK(client.is_no_delay());
 			});
 			client.bind_connect([&]()
 			{
@@ -320,7 +295,6 @@ void rpc_test()
 		auto session_count = server.get_session_count();
 		ASIO2_CHECK_VALUE(session_count, session_count == std::size_t(test_client_count));
 
-		ASIO2_CHECK_VALUE(server_accept_counter    .load(), server_accept_counter     == test_client_count);
 		ASIO2_CHECK_VALUE(server_connect_counter   .load(), server_connect_counter    == test_client_count);
 
 		while (client_connect_counter < test_client_count - client_start_failed_counter)
@@ -391,7 +365,6 @@ void rpc_test()
 		server_start_counter = 0;
 		server_disconnect_counter = 0;
 		server_stop_counter = 0;
-		server_accept_counter = 0;
 		server_connect_counter = 0;
 
 		server_start_ret = server.start("127.0.0.1", 18010);
@@ -411,7 +384,7 @@ void rpc_test()
 		{
 			bool client_start_ret = clients[i]->async_start("127.0.0.1", 18010);
 			ASIO2_CHECK(client_start_ret);
-			ASIO2_CHECK(asio2::get_last_error() == asio::error::in_progress);
+			
 		}
 
 		while (server.get_session_count() < std::size_t(test_client_count - client_start_failed_counter))
@@ -421,7 +394,6 @@ void rpc_test()
 
 		ASIO2_CHECK_VALUE(server.get_session_count(), server.get_session_count() == std::size_t(test_client_count));
 
-		ASIO2_CHECK_VALUE(server_accept_counter    .load(), server_accept_counter     == test_client_count);
 		ASIO2_CHECK_VALUE(server_connect_counter   .load(), server_connect_counter    == test_client_count);
 
 		while (client_connect_counter < test_client_count - client_start_failed_counter)
@@ -487,7 +459,6 @@ void rpc_test()
 	{
 		asio2::rpc_kcp_server server;
 
-		std::atomic<int> server_accept_counter = 0;
 		std::atomic<int> server_connect_counter = 0;
 		server.bind_connect([&](auto & session_ptr)
 		{
@@ -499,8 +470,8 @@ void rpc_test()
 			ASIO2_CHECK(session_ptr->local_port() == 18010);
 			ASIO2_CHECK(server.io().running_in_this_thread());
 			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
-			ASIO2_CHECK(session_ptr->is_keep_alive());
-			ASIO2_CHECK(session_ptr->is_no_delay());
+			
+			
 
 		});
 		std::atomic<int> server_disconnect_counter = 0;
@@ -579,15 +550,11 @@ void rpc_test()
 			client.bind_init([&]()
 			{
 				client_init_counter++;
-
-				client.set_no_delay(true);
-
 				ASIO2_CHECK(client.io().running_in_this_thread());
 				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
 				ASIO2_CHECK(!asio2::get_last_error());
-				ASIO2_CHECK(client.is_keep_alive());
 				ASIO2_CHECK(client.is_reuse_address());
-				ASIO2_CHECK(client.is_no_delay());
+				
 			});
 			client.bind_connect([&]()
 			{
@@ -634,7 +601,6 @@ void rpc_test()
 		auto session_count = server.get_session_count();
 		ASIO2_CHECK_VALUE(session_count, session_count == std::size_t(test_client_count));
 
-		ASIO2_CHECK_VALUE(server_accept_counter    .load(), server_accept_counter     == test_client_count);
 		ASIO2_CHECK_VALUE(server_connect_counter   .load(), server_connect_counter    == test_client_count);
 
 		while (client_connect_counter < test_client_count - client_start_failed_counter)
@@ -701,7 +667,6 @@ void rpc_test()
 		server_start_counter = 0;
 		server_disconnect_counter = 0;
 		server_stop_counter = 0;
-		server_accept_counter = 0;
 		server_connect_counter = 0;
 
 		server_start_ret = server.start("127.0.0.1", 18010);
@@ -721,7 +686,7 @@ void rpc_test()
 		{
 			bool client_start_ret = clients[i]->async_start("127.0.0.1", 18010);
 			ASIO2_CHECK(client_start_ret);
-			ASIO2_CHECK(asio2::get_last_error() == asio::error::in_progress);
+			
 		}
 
 		while (server.get_session_count() < std::size_t(test_client_count - client_start_failed_counter))
@@ -731,7 +696,6 @@ void rpc_test()
 
 		ASIO2_CHECK_VALUE(server.get_session_count(), server.get_session_count() == std::size_t(test_client_count));
 
-		ASIO2_CHECK_VALUE(server_accept_counter    .load(), server_accept_counter     == test_client_count);
 		ASIO2_CHECK_VALUE(server_connect_counter   .load(), server_connect_counter    == test_client_count);
 
 		while (client_connect_counter < test_client_count - client_start_failed_counter)
@@ -803,7 +767,6 @@ void rpc_test()
 
 		asio2::rpc_kcp_server server(512, 1024, 4);
 
-		std::atomic<int> server_accept_counter = 0;
 		std::atomic<int> server_connect_counter = 0;
 		server.bind_connect([&](auto & session_ptr)
 		{
@@ -815,8 +778,8 @@ void rpc_test()
 			ASIO2_CHECK(session_ptr->local_port() == 18010);
 			ASIO2_CHECK(server.io().running_in_this_thread());
 			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
-			ASIO2_CHECK(session_ptr->is_keep_alive());
-			ASIO2_CHECK(session_ptr->is_no_delay());
+			
+			
 
 		});
 		std::atomic<int> server_disconnect_counter = 0;
@@ -896,14 +859,12 @@ void rpc_test()
 				ext_data& ex = client.get_user_data<ext_data&>();
 				ex.client_init_counter++;
 
-				client.set_no_delay(true);
-
 				ASIO2_CHECK(client.io().running_in_this_thread());
 				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
 				ASIO2_CHECK(!asio2::get_last_error());
-				ASIO2_CHECK(client.is_keep_alive());
+				
 				ASIO2_CHECK(client.is_reuse_address());
-				ASIO2_CHECK(client.is_no_delay());
+				
 			});
 			client.bind_connect([&]()
 			{
@@ -1019,7 +980,6 @@ void rpc_test()
 			ASIO2_TEST_WAIT_CHECK();
 		}
 
-		ASIO2_CHECK_VALUE(server_accept_counter    .load(), server_accept_counter     == test_client_count * 3);
 		ASIO2_CHECK_VALUE(server_connect_counter   .load(), server_connect_counter    == test_client_count * 3);
 
 		for (int i = 0; i < test_client_count; i++)
@@ -1072,7 +1032,6 @@ void rpc_test()
 		server_start_counter = 0;
 		server_disconnect_counter = 0;
 		server_stop_counter = 0;
-		server_accept_counter = 0;
 		server_connect_counter = 0;
 
 		server_start_ret = server.start("127.0.0.1", 18010);
@@ -1124,7 +1083,6 @@ void rpc_test()
 			ASIO2_TEST_WAIT_CHECK();
 		}
 
-		ASIO2_CHECK_VALUE(server_accept_counter    .load(), server_accept_counter     == test_client_count * 1);
 		ASIO2_CHECK_VALUE(server_connect_counter   .load(), server_connect_counter    == test_client_count * 1);
 
 		for (int i = 0; i < test_client_count; i++)
@@ -1176,7 +1134,6 @@ void rpc_test()
 
 		asio2::rpc_kcp_server server;
 
-		std::atomic<int> server_accept_counter = 0;
 		std::atomic<int> server_async_call_counter = 0;
 		std::atomic<int> server_connect_counter = 0;
 		server.bind_connect([&](auto & session_ptr)
@@ -1199,8 +1156,8 @@ void rpc_test()
 			ASIO2_CHECK(session_ptr->local_port() == 18010);
 			ASIO2_CHECK(server.io().running_in_this_thread());
 			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
-			ASIO2_CHECK(session_ptr->is_keep_alive());
-			ASIO2_CHECK(session_ptr->is_no_delay());
+			
+			
 
 		});
 		std::atomic<int> server_disconnect_counter = 0;
@@ -1320,14 +1277,11 @@ void rpc_test()
 				ext_data& ex = client.get_user_data<ext_data&>();
 				ex.client_init_counter++;
 
-				client.set_no_delay(true);
-
 				ASIO2_CHECK(client.io().running_in_this_thread());
 				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
 				ASIO2_CHECK(!asio2::get_last_error());
-				ASIO2_CHECK(client.is_keep_alive());
 				ASIO2_CHECK(client.is_reuse_address());
-				ASIO2_CHECK(client.is_no_delay());
+				
 			});
 			client.bind_connect([&]()
 			{
@@ -1351,6 +1305,10 @@ void rpc_test()
 				client.async_call([&](int v)
 				{
 					ASIO2_CHECK(client.io().running_in_this_thread());
+					if (asio2::get_last_error()) {
+						std::cerr << asio2::get_last_error_val() << std::endl << asio2::get_last_error_msg();
+					}
+					std::cerr << " gggget " << v << std::endl;
 					ASIO2_CHECK(!asio2::get_last_error());
 					ASIO2_CHECK(v == 12 + 11);
 					ex.async_call_counter++;
@@ -1359,6 +1317,9 @@ void rpc_test()
 				client.async_call([&]()
 				{
 					ASIO2_CHECK(client.io().running_in_this_thread());
+					if (asio2::get_last_error()) {
+						std::cerr << asio2::get_last_error_val() << std::endl << asio2::get_last_error_msg();
+					}
 					ASIO2_CHECK(!asio2::get_last_error());
 					ex.async_call_counter++;
 				}, std::chrono::seconds(3), "heartbeat");
@@ -1613,7 +1574,6 @@ void rpc_test()
 			ASIO2_TEST_WAIT_CHECK();
 		}
 
-		ASIO2_CHECK_VALUE(server_accept_counter    .load(), server_accept_counter     == test_client_count * 1);
 		ASIO2_CHECK_VALUE(server_connect_counter   .load(), server_connect_counter    == test_client_count * 1);
 
 		for (int i = 0; i < test_client_count; i++)
@@ -1672,7 +1632,6 @@ void rpc_test()
 		server_start_counter = 0;
 		server_disconnect_counter = 0;
 		server_stop_counter = 0;
-		server_accept_counter = 0;
 		server_connect_counter = 0;
 		server_async_call_counter = 0;
 
@@ -1699,7 +1658,7 @@ void rpc_test()
 
 			bool client_start_ret = client.async_start("127.0.0.1", 18010);
 			ASIO2_CHECK(client_start_ret);
-			ASIO2_CHECK(asio2::get_last_error() == asio::error::in_progress);
+			
 		}
 
 		for (int i = 0; i < test_client_count; i++)
@@ -1845,7 +1804,6 @@ void rpc_test()
 			ASIO2_TEST_WAIT_CHECK();
 		}
 
-		ASIO2_CHECK_VALUE(server_accept_counter    .load(), server_accept_counter     == test_client_count * 1);
 		ASIO2_CHECK_VALUE(server_connect_counter   .load(), server_connect_counter    == test_client_count * 1);
 
 		for (int i = 0; i < test_client_count; i++)
