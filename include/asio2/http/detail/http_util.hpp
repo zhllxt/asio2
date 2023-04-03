@@ -562,6 +562,13 @@ namespace boost::beast::http
 		//	return;
 		//}
 
+		// if the http response has no body, returned with error.
+		if (hp.is_done())
+		{
+			ec = http::error::end_of_stream;
+			return;
+		}
+
 		http::parser<isRequest, http::buffer_body> p(std::move(hp));
 
 		if (p.get().chunked())

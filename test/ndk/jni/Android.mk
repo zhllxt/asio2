@@ -174,6 +174,14 @@ include $(BUILD_EXECUTABLE)
 
 include $(CLEAR_VARS)
 LOCAL_C_INCLUDES += $(ASIO2_INCLUDE)
+LOCAL_MODULE := start_stop.out
+LOCAL_SRC_FILES := $(ASIO2_TEST_DIR)/unit/start_stop.cpp
+LOCAL_STATIC_LIBRARIES += libssl
+LOCAL_STATIC_LIBRARIES += libcrypto
+include $(BUILD_EXECUTABLE)
+
+include $(CLEAR_VARS)
+LOCAL_C_INCLUDES += $(ASIO2_INCLUDE)
 LOCAL_MODULE := tcp_custom.out
 LOCAL_SRC_FILES := $(ASIO2_TEST_DIR)/unit/tcp_custom.cpp
 include $(BUILD_EXECUTABLE)

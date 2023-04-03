@@ -6,8 +6,6 @@
 #include <asio2/asio2.hpp>
 #include <asio2/external/fmt.hpp>
 
-static std::string_view chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-
 
 std::string_view server_key = R"(
 -----BEGIN RSA PRIVATE KEY-----
@@ -737,6 +735,7 @@ void start_stop_test()
 		for (int i = 0; i < test_client_count; i++)
 		{
 			std::shared_ptr<asio2::tcps_client> p = clients[i];
+			// @see /asio2/base/iopool.hpp ~iopool()
 			p->post([p]()
 			{
 				p->stop();
@@ -745,6 +744,13 @@ void start_stop_test()
 
 		server.stop();
 		ASIO2_CHECK(server.is_stopped());
+
+		for (int i = 0; i < test_client_count; i++)
+		{
+			std::shared_ptr<asio2::tcps_client> p = clients[i];
+			p->stop();
+			ASIO2_CHECK(p->is_stopped());
+		}
 	}
 
 	// test tcps stop then start in io_context thread and non io_context thread

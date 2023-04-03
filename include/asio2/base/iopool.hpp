@@ -330,6 +330,30 @@ namespace asio2::detail
 		~iopool()
 		{
 			this->stop();
+
+			// only call object's stop function in io_context thread and hasn't call object's 
+			// stop function in non io_context thread maybe cause this problem:
+			// the io_context do one task, and at this time, the shared ptr object reference
+			// counter is 1 in the task,
+			// when the task is finished, the shared ptr object will be destroyed, when 
+			// it destroyed, the iopool will be destroyed too, but at this time, the iopool
+			// stop is running in the io_context thread, so the iopool and the iopool thread
+			// will can not stopped, then this caused a crash.
+			// so we must ensure that: we must hold a shared ptr object manual, to avoid
+			// the shared ptr object destroyed in the io_context thread, so a method is:
+			// we call stop in non io_context thread can solve this problem.
+
+		#if defined(ASIO2_ENABLE_LOG)
+			if (!this->threads_.empty())
+			{
+				ASIO2_LOG_FATAL(
+					"fatal error: the object is destroyed in the io_context thread. {}",
+					this->threads_.size());
+			}
+		#endif
+
+			ASIO2_ASSERT(!this->running_in_threads());
+			ASIO2_ASSERT(this->threads_.empty());
 		}
 
 		/**
@@ -625,7 +649,7 @@ namespace asio2::detail
 		/**
 		 * Use to ensure that all nested asio::post(...) events are fully invoked.
 		 */
-		inline void wait_for_io_context_stopped()
+		inline void wait_for_io_context_stopped() ASIO2_NO_THREAD_SAFETY_ANALYSIS
 		{
 			// split read and write to avoid deadlock caused by iopool.post([&iopool]() {iopool.stop(); });
 			{

@@ -616,8 +616,8 @@ namespace asio2::detail
 		}
 
 		template<typename DeferEvent>
-		inline void _post_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr,
-			state_t old_state, DeferEvent chain)
+		inline void _post_disconnect(
+			const error_code& ec, std::shared_ptr<derived_t> this_ptr, state_t old_state, DeferEvent chain)
 		{
 			// All pending sending events will be cancelled after enter the callback below.
 			this->derived().disp_event(
@@ -632,8 +632,8 @@ namespace asio2::detail
 		}
 
 		template<typename DeferEvent>
-		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr,
-			state_t old_state, DeferEvent chain)
+		inline void _handle_disconnect(
+			const error_code& ec, std::shared_ptr<derived_t> this_ptr, state_t old_state, DeferEvent chain)
 		{
 			set_last_error(ec);
 
@@ -648,8 +648,8 @@ namespace asio2::detail
 		}
 
 		template<typename DeferEvent>
-		inline void _do_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr,
-			state_t old_state, DeferEvent chain)
+		inline void _do_stop(
+			const error_code& ec, std::shared_ptr<derived_t> this_ptr, state_t old_state, DeferEvent chain)
 		{
 			this->derived()._post_stop(ec, std::move(this_ptr), old_state, std::move(chain));
 		}
