@@ -135,7 +135,7 @@ namespace asio2::detail
 		/**
 		 * @brief get the websocket upgraged response object
 		 */
-		inline const http::response<body_type>& get_upgrade_response() noexcept { return this->upgrade_rep_; }
+		inline const websocket::response_type& get_upgrade_response() noexcept { return this->upgrade_rep_; }
 
 		/**
 		 * @brief get the websocket upgraged target
@@ -260,7 +260,7 @@ namespace asio2::detail
 		}
 
 	protected:
-		http::response<body_type> upgrade_rep_;
+		websocket::response_type  upgrade_rep_;
 
 		std::string               upgrade_target_ = "/";
 	};

@@ -44,7 +44,7 @@ namespace asio2::detail
 	class ws_stream_cp
 	{
 	public:
-		using stream_type = typename args_t::stream_t;
+		using ws_stream_type = typename args_t::stream_t;
 
 		/**
 		 * @brief constructor
@@ -59,7 +59,7 @@ namespace asio2::detail
 		/**
 		 * @brief get the websocket stream object refrence
 		 */
-		inline stream_type & ws_stream() noexcept
+		inline ws_stream_type & ws_stream() noexcept
 		{
 			ASIO2_ASSERT(bool(this->ws_stream_));
 			return (*(this->ws_stream_));
@@ -87,7 +87,7 @@ namespace asio2::detail
 				ASIO2_ASSERT(derive.sessions().io().running_in_this_thread());
 			}
 
-			this->ws_stream_ = std::make_unique<stream_type>(socket);
+			this->ws_stream_ = std::make_unique<ws_stream_type>(socket);
 
 			websocket::stream_base::timeout opt{};
 
@@ -150,6 +150,13 @@ namespace asio2::detail
 				try
 				{
 					derive.ws_stream_->set_option(opt);
+
+					// Reset the decorator, beacuse the decorator maybe hold the self 
+					// shared_ptr, if don't reset it, the session ptr maybe can't detroyed.
+					derive.ws_stream_->set_option(
+						websocket::stream_base::decorator([](websocket::request_type&) {}));
+					derive.ws_stream_->set_option(
+						websocket::stream_base::decorator([](websocket::response_type&) {}));
 				}
 				catch (system_error const& e)
 				{
@@ -413,6 +420,67 @@ namespace asio2::detail
 			}
 		}
 
+		template<typename C, typename DeferEvent>
+		inline void _post_read_upgrade_request(
+			std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs, DeferEvent chain)
+		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
+			ASIO2_ASSERT(derive.io().running_in_this_thread());
+
+			// Make the request empty before reading,
+			// otherwise the operation behavior is undefined.
+			derive.upgrade_req_ = {};
+
+		#if defined(_DEBUG) || defined(DEBUG)
+			ASIO2_ASSERT(derive.post_recv_counter_.load() == 0);
+			derive.post_recv_counter_++;
+		#endif
+
+			derive.reading_ = true;
+
+			// Read a request
+			http::async_read(derive.upgrade_stream(), derive.buffer().base(), derive.upgrade_req_,
+				make_allocator(derive.rallocator(),
+					[&derive, this_ptr = std::move(this_ptr), ecs = std::move(ecs), chain = std::move(chain)]
+			(const error_code & ec, [[maybe_unused]] std::size_t bytes_recvd) mutable
+			{
+			#if defined(_DEBUG) || defined(DEBUG)
+				derive.post_recv_counter_--;
+			#endif
+
+				derive.reading_ = false;
+
+				derive._handle_read_upgrade_request(ec, std::move(this_ptr), std::move(ecs), std::move(chain));
+			}));
+		}
+
+		template<typename C, typename DeferEvent>
+		inline void _handle_read_upgrade_request(
+			const error_code& ec,
+			std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs, DeferEvent chain)
+		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
+			ASIO2_ASSERT(derive.io().running_in_this_thread());
+
+			set_last_error(ec);
+
+			if (!ec)
+			{
+				// every times recv data,we update the last alive time.
+				derive.update_alive_time();
+
+				derive._post_control_callback(this_ptr, ecs);
+				derive._post_upgrade(
+					std::move(this_ptr), std::move(ecs), derive.upgrade_req_, std::move(chain));
+			}
+			else
+			{
+				derive._handle_upgrade(ec, std::move(this_ptr), std::move(ecs), std::move(chain));
+			}
+		}
+
 		template<typename C, typename DeferEvent, typename Response, bool IsSession = args_t::is_session>
 		typename std::enable_if_t<!IsSession, void>
 		inline _post_upgrade(
@@ -558,7 +626,7 @@ namespace asio2::detail
 		}
 
 	protected:
-		std::unique_ptr<stream_type>   ws_stream_;
+		std::unique_ptr<ws_stream_type>   ws_stream_;
 	};
 }
 

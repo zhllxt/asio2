@@ -26,10 +26,10 @@ int main()
 	client.bind_init([&]()
 	{
 		// how to set custom websocket request data : 
-		client.ws_stream().set_option(websocket::stream_base::decorator(
-			[](websocket::request_type& req)
+		client.ws_stream().set_option(
+			websocket::stream_base::decorator([](websocket::request_type& req)
 		{
-			req.set(http::field::authorization, " ssl-websocket-client-coro");
+			req.set(http::field::authorization, "ssl-websocket-client-coro");
 		}));
 	}).bind_recv([&](std::string_view data)
 	{
@@ -81,8 +81,14 @@ int main()
 			printf("upgrade failure : %d %s\n",
 				asio2::last_error_val(), asio2::last_error_msg().c_str());
 		else
-			printf("upgrade success : %s %u\n",
-				client.local_address().c_str(), client.local_port());
+		{
+			const websocket::response_type& rep = client.get_upgrade_response();
+			beast::string_view auth = rep.at(http::field::authentication_results);
+			std::cout << auth << std::endl;
+			ASIO2_ASSERT(auth == "200 OK");
+
+			std::cout << "upgrade success : " << rep << std::endl;
+		}
 	}).bind_disconnect([]()
 	{
 		printf("disconnect : %d %s\n",

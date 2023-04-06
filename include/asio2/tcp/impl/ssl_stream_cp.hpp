@@ -33,11 +33,11 @@ namespace asio2::detail
 	class ssl_stream_cp
 	{
 	public:
-		using ssl_socket_type = typename args_t::socket_t;
-		using stream_type     = asio::ssl::stream<ssl_socket_type&>;
-		using handshake_type  = typename asio::ssl::stream_base::handshake_type;
+		using ssl_socket_type    = typename args_t::socket_t;
+		using ssl_stream_type    = asio::ssl::stream<ssl_socket_type&>;
+		using ssl_handshake_type = typename asio::ssl::stream_base::handshake_type;
 
-		ssl_stream_cp(io_t& ssl_io, asio::ssl::context& ctx, handshake_type type) noexcept
+		ssl_stream_cp(io_t& ssl_io, asio::ssl::context& ctx, ssl_handshake_type type) noexcept
 			: ssl_ctx_(ctx)
 			, ssl_type_(type)
 		{
@@ -49,7 +49,7 @@ namespace asio2::detail
 		/**
 		 * @brief get the ssl socket object refrence
 		 */
-		inline stream_type & ssl_stream() noexcept
+		inline ssl_stream_type & ssl_stream() noexcept
 		{
 			ASIO2_ASSERT(bool(this->ssl_stream_));
 			return (*(this->ssl_stream_));
@@ -81,7 +81,7 @@ namespace asio2::detail
 			// When construct a tcps_client object, beacuse the tcps_client is derived
 			// from ssl_stream_cp, so the ssl_stream_cp's constructor will be called,
 			// but at this time, the SSL_CTX_... function has not been called.
-			this->ssl_stream_ = std::make_unique<stream_type>(socket, ctx);
+			this->ssl_stream_ = std::make_unique<ssl_stream_type>(socket, ctx);
 		}
 
 		template<typename C>
@@ -114,7 +114,7 @@ namespace asio2::detail
 
 				struct SSL_clear_op
 				{
-					stream_type* s{};
+					ssl_stream_type* s{};
 
 					// SSL_clear : 
 					// Reset ssl to allow another connection. All settings (method, ciphers, BIOs) are kept.
@@ -122,7 +122,7 @@ namespace asio2::detail
 					// When the client auto reconnect, SSL_clear must be called,
 					// otherwise the SSL handshake will failed.
 
-					SSL_clear_op(stream_type* p) : s(p)
+					SSL_clear_op(ssl_stream_type* p) : s(p)
 					{
 					}
 
@@ -327,11 +327,11 @@ namespace asio2::detail
 		}
 
 	protected:
-		asio::ssl::context           & ssl_ctx_;
+		asio::ssl::context               & ssl_ctx_;
 
-		handshake_type                 ssl_type_;
+		ssl_handshake_type                 ssl_type_;
 
-		std::unique_ptr<stream_type>   ssl_stream_;
+		std::unique_ptr<ssl_stream_type>   ssl_stream_;
 	};
 }
 

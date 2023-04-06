@@ -35,10 +35,18 @@ int main()
 		if (!asio2::get_last_error())
 		{
 			// how to set custom websocket response data : 
-			session_ptr->ws_stream().set_option(websocket::stream_base::decorator(
-				[](websocket::response_type& rep)
+			// the decorator is just a callback function, when the upgrade response is send,
+			// this callback will be called.
+			session_ptr->ws_stream().set_option(
+				websocket::stream_base::decorator([session_ptr](websocket::response_type& rep)
 			{
-				rep.set(http::field::authorization, " ssl-websocket-server-coro");
+				// @see /asio2/example/ssl/websocket/client/ssl_websocket_client.cpp
+				const websocket::request_type& req = session_ptr->get_upgrade_request();
+				auto it = req.find(http::field::authorization);
+				if (it != req.end())
+					rep.set(http::field::authentication_results, "200 OK");
+				else
+					rep.set(http::field::authentication_results, "401 unauthorized");
 			}));
 		}
 		else
@@ -75,6 +83,12 @@ int main()
 			session_ptr->remote_address().c_str(), session_ptr->remote_port(),
 			asio2::last_error_val(), asio2::last_error_msg().c_str());
 
+		// how to get the upgrade request request data : 
+		// @see /asio2/example/ssl/websocket/client/ssl_websocket_client.cpp
+		const websocket::request_type& req = session_ptr->get_upgrade_request();
+		beast::string_view auth = req.at(http::field::authorization);
+		std::cout << auth << std::endl;
+		ASIO2_ASSERT(auth == "ssl-websocket-client-coro");
 	}).bind_start([&]()
 	{
 		if (asio2::get_last_error())

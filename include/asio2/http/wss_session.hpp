@@ -102,7 +102,17 @@ namespace asio2::detail
 			return reinterpret_cast<key_type>(this);
 		}
 
+		/**
+		 * @brief get the websocket upgraged request object
+		 */
+		inline const websocket::request_type& get_upgrade_request() noexcept { return this->upgrade_req_; }
+
 	protected:
+		inline typename super::ssl_stream_type& upgrade_stream() noexcept
+		{
+			return this->ssl_stream();
+		}
+
 		template<typename C>
 		inline void _do_init(std::shared_ptr<derived_t>& this_ptr, std::shared_ptr<ecs_t<C>>& ecs)
 		{
@@ -179,8 +189,8 @@ namespace asio2::detail
 				{
 					ASIO2_ASSERT(this->derived().io().running_in_this_thread());
 
-					this->derived()._post_control_callback(this_ptr, ecs);
-					this->derived()._post_upgrade(std::move(this_ptr), std::move(ecs), std::move(chain));
+					this->derived()._post_read_upgrade_request(
+						std::move(this_ptr), std::move(ecs), std::move(chain));
 				}));
 			});
 		}
@@ -215,6 +225,7 @@ namespace asio2::detail
 		}
 
 	protected:
+		websocket::request_type                   upgrade_req_;
 	};
 }
 
