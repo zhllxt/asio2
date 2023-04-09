@@ -36,7 +36,7 @@
 	#endif
 #else
 	#ifndef BOOST_BEAST_USE_STD_STRING_VIEW
-	#define BOOST_NO_CXX17_HDR_STRING_VIEW
+	#define BOOST_BEAST_USE_STD_STRING_VIEW
 	#endif
 	#include <boost/beast.hpp>
 	#if defined(ASIO2_ENABLE_SSL) || defined(ASIO2_USE_SSL)
