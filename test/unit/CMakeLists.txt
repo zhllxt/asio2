@@ -57,6 +57,7 @@ endfunction()
 
 AddExecutableTarget(mqtt)
 AddExecutableTarget(rpc)
+AddExecutableTarget(rpc_kcp)
 AddExecutableTarget(timer)
 AddExecutableTarget(timer_enable_error)
 AddExecutableTarget(http)

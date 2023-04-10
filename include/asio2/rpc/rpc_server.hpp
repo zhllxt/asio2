@@ -21,6 +21,7 @@
 
 #include <asio2/config.hpp>
 
+#include <asio2/udp/udp_server.hpp>
 #include <asio2/tcp/tcp_server.hpp>
 #include <asio2/tcp/tcps_server.hpp>
 #include <asio2/http/ws_server.hpp>
@@ -31,6 +32,10 @@
 namespace asio2::detail
 {
 	ASIO2_CLASS_FORWARD_DECLARE_BASE;
+
+	ASIO2_CLASS_FORWARD_DECLARE_UDP_BASE;
+	ASIO2_CLASS_FORWARD_DECLARE_UDP_SERVER;
+
 	ASIO2_CLASS_FORWARD_DECLARE_TCP_BASE;
 	ASIO2_CLASS_FORWARD_DECLARE_TCP_SERVER;
 
@@ -42,6 +47,10 @@ namespace asio2::detail
 		friend executor_t;
 
 		ASIO2_CLASS_FRIEND_DECLARE_BASE;
+
+		ASIO2_CLASS_FRIEND_DECLARE_UDP_BASE;
+		ASIO2_CLASS_FRIEND_DECLARE_UDP_SERVER;
+
 		ASIO2_CLASS_FRIEND_DECLARE_TCP_BASE;
 		ASIO2_CLASS_FRIEND_DECLARE_TCP_SERVER;
 
@@ -91,6 +100,12 @@ namespace asio2::detail
 				return executor_t::template start(
 					std::forward<String>(host), std::forward<StrOrInt>(service),
 					std::forward<Args>(args)...);
+			}
+			else if constexpr (session_type::net_protocol == asio2::net_protocol::udp)
+			{
+				return executor_t::template start(
+					std::forward<String>(host), std::forward<StrOrInt>(service),
+					asio2::use_kcp, std::forward<Args>(args)...);
 			}
 			else
 			{
@@ -221,6 +236,15 @@ namespace asio2
 	class rpc_server_impl_t;
 
 	template<class derived_t, class session_t>
+	class rpc_server_impl_t<derived_t, session_t, asio2::net_protocol::udp>
+		: public detail::rpc_server_impl_t<derived_t, detail::udp_server_impl_t<derived_t, session_t>>
+	{
+	public:
+		using detail::rpc_server_impl_t<derived_t, detail::udp_server_impl_t<derived_t, session_t>>::
+			rpc_server_impl_t;
+	};
+
+	template<class derived_t, class session_t>
 	class rpc_server_impl_t<derived_t, session_t, asio2::net_protocol::tcp>
 		: public detail::rpc_server_impl_t<derived_t, detail::tcp_server_impl_t<derived_t, session_t>>
 	{
@@ -252,6 +276,7 @@ namespace asio2
 		using rpc_server_t<rpc_session_use<np>>::rpc_server_t;
 	};
 
+	using rpc_kcp_server = rpc_server_use<asio2::net_protocol::udp>;
 #if !defined(ASIO2_USE_WEBSOCKET_RPC)
 	/// Using tcp dgram mode as the underlying communication support
 	using rpc_server = rpc_server_use<asio2::net_protocol::tcp>;

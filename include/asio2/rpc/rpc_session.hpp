@@ -21,6 +21,7 @@
 
 #include <asio2/config.hpp>
 
+#include <asio2/udp/udp_session.hpp>
 #include <asio2/tcp/tcp_session.hpp>
 #include <asio2/tcp/tcps_session.hpp>
 #include <asio2/http/ws_session.hpp>
@@ -35,6 +36,11 @@
 namespace asio2::detail
 {
 	ASIO2_CLASS_FORWARD_DECLARE_BASE;
+	
+	ASIO2_CLASS_FORWARD_DECLARE_UDP_BASE;
+	ASIO2_CLASS_FORWARD_DECLARE_UDP_SERVER;
+	ASIO2_CLASS_FORWARD_DECLARE_UDP_SESSION;
+	
 	ASIO2_CLASS_FORWARD_DECLARE_TCP_BASE;
 	ASIO2_CLASS_FORWARD_DECLARE_TCP_SERVER;
 	ASIO2_CLASS_FORWARD_DECLARE_TCP_SESSION;
@@ -49,6 +55,11 @@ namespace asio2::detail
 		friend executor_t;
 
 		ASIO2_CLASS_FRIEND_DECLARE_BASE;
+		
+		ASIO2_CLASS_FRIEND_DECLARE_UDP_BASE;
+		ASIO2_CLASS_FRIEND_DECLARE_UDP_SERVER;
+		ASIO2_CLASS_FRIEND_DECLARE_UDP_SESSION;
+
 		ASIO2_CLASS_FRIEND_DECLARE_TCP_BASE;
 		ASIO2_CLASS_FRIEND_DECLARE_TCP_SERVER;
 		ASIO2_CLASS_FRIEND_DECLARE_TCP_SESSION;
@@ -143,6 +154,16 @@ namespace asio2
 		template<asio2::net_protocol np> struct template_args_rpc_session;
 
 		template<>
+		struct template_args_rpc_session<asio2::net_protocol::udp> : public template_args_udp_session
+		{
+			static constexpr asio2::net_protocol net_protocol = asio2::net_protocol::udp;
+
+			static constexpr bool rdc_call_cp_enabled = false;
+
+			static constexpr std::size_t function_storage_size = 72;
+		};
+
+		template<>
 		struct template_args_rpc_session<asio2::net_protocol::tcp> : public template_args_tcp_session
 		{
 			static constexpr asio2::net_protocol net_protocol = asio2::net_protocol::tcp;
@@ -163,7 +184,7 @@ namespace asio2
 		};
 	}
 
-
+	using rpc_session_args_udp = detail::template_args_rpc_session<asio2::net_protocol::udp>;
 	using rpc_session_args_tcp = detail::template_args_rpc_session<asio2::net_protocol::tcp>;
 	using rpc_session_args_ws  = detail::template_args_rpc_session<asio2::net_protocol::ws >;
 
@@ -172,6 +193,15 @@ namespace asio2
 
 
 	template<class derived_t, asio2::net_protocol np> class rpc_session_t;
+
+	template<class derived_t>
+	class rpc_session_t<derived_t, asio2::net_protocol::udp> : public detail::rpc_session_impl_t<derived_t,
+		detail::udp_session_impl_t<derived_t, detail::template_args_rpc_session<asio2::net_protocol::udp>>>
+	{
+	public:
+		using detail::rpc_session_impl_t<derived_t, detail::udp_session_impl_t<
+			derived_t, detail::template_args_rpc_session<asio2::net_protocol::udp>>>::rpc_session_impl_t;
+	};
 
 	template<class derived_t>
 	class rpc_session_t<derived_t, asio2::net_protocol::tcp> : public detail::rpc_session_impl_t<derived_t,
@@ -198,6 +228,7 @@ namespace asio2
 		using rpc_session_t<rpc_session_use<np>, np>::rpc_session_t;
 	};
 
+	using rpc_kcp_session = rpc_session_use<asio2::net_protocol::udp>;
 #if !defined(ASIO2_USE_WEBSOCKET_RPC)
 	/// Using tcp dgram mode as the underlying communication support
 	using rpc_session = rpc_session_use<asio2::net_protocol::tcp>;
