@@ -198,11 +198,7 @@ namespace asio2::detail
 		 * PodType * : async_send("abc");
 		 */
 		template<class CharT, class Traits = std::char_traits<CharT>>
-		inline typename std::enable_if_t<
-			std::is_same_v<detail::remove_cvref_t<CharT>, char> ||
-			std::is_same_v<detail::remove_cvref_t<CharT>, wchar_t> ||
-			std::is_same_v<detail::remove_cvref_t<CharT>, char16_t> ||
-			std::is_same_v<detail::remove_cvref_t<CharT>, char32_t>, derived_t&> async_send(CharT * s)
+		inline typename std::enable_if_t<detail::is_char_v<CharT>, derived_t&> async_send(CharT* s)
 		{
 			return this->async_send(s, s ? Traits::length(s) : 0);
 		}

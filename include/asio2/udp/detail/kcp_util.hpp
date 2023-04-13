@@ -250,7 +250,7 @@ namespace asio2::detail::kcp
 		hdr.th_ack = conv;
 		hdr.th_flag.bits.syn = 1;
 
-		std::string s = to_string(hdr);
+		std::string s = kcp::to_string(hdr);
 
 		hdr.th_sum = checksum(reinterpret_cast<unsigned short *>(s.data()),
 			static_cast<int>(kcphdr::required_size() - sizeof(kcphdr::th_sum)));
@@ -266,7 +266,7 @@ namespace asio2::detail::kcp
 		hdr.th_flag.bits.ack = 1;
 		hdr.th_flag.bits.syn = 1;
 
-		std::string s = to_string(hdr);
+		std::string s = kcp::to_string(hdr);
 
 		hdr.th_sum = checksum(reinterpret_cast<unsigned short *>(s.data()),
 			static_cast<int>(kcphdr::required_size() - sizeof(kcphdr::th_sum)));
@@ -280,7 +280,7 @@ namespace asio2::detail::kcp
 		hdr.th_ack = ack + 1;
 		hdr.th_flag.bits.ack = 1;
 
-		std::string s = to_string(hdr);
+		std::string s = kcp::to_string(hdr);
 
 		hdr.th_sum = checksum(reinterpret_cast<unsigned short *>(s.data()),
 			static_cast<int>(kcphdr::required_size() - sizeof(kcphdr::th_sum)));
@@ -294,7 +294,7 @@ namespace asio2::detail::kcp
 		hdr.th_seq = seq;
 		hdr.th_flag.bits.fin = 1;
 
-		std::string s = to_string(hdr);
+		std::string s = kcp::to_string(hdr);
 
 		hdr.th_sum = checksum(reinterpret_cast<unsigned short *>(s.data()),
 			static_cast<int>(kcphdr::required_size() - sizeof(kcphdr::th_sum)));

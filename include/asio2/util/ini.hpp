@@ -202,12 +202,6 @@ namespace asio2
 	template<>
 	struct convert<bool>
 	{
-		template<typename = void>
-		inline static char ascii_tolower(char c) noexcept
-		{
-			return char(((static_cast<unsigned>(c) - 65U) < 26) ? c + 'a' - 'A' : c);
-		}
-
 		/**
 		 * @brief Returns `true` if two strings are equal, using a case-insensitive comparison.
 		 */
@@ -232,7 +226,7 @@ namespace asio2
 		slow:
 			do
 			{
-				if (ascii_tolower(a) != ascii_tolower(b))
+				if (std::tolower(a) != std::tolower(b))
 					return false;
 				a = *p1++;
 				b = *p2++;
@@ -526,6 +520,9 @@ namespace asio2
 			(
 				std::is_same_v<std::remove_cv_t<std::remove_pointer_t<std::remove_cv_t<std::remove_reference_t<T>>>>, char    > ||
 				std::is_same_v<std::remove_cv_t<std::remove_pointer_t<std::remove_cv_t<std::remove_reference_t<T>>>>, wchar_t > ||
+			#if defined(__cpp_lib_char8_t)
+				std::is_same_v<std::remove_cv_t<std::remove_pointer_t<std::remove_cv_t<std::remove_reference_t<T>>>>, char8_t > ||
+			#endif
 				std::is_same_v<std::remove_cv_t<std::remove_pointer_t<std::remove_cv_t<std::remove_reference_t<T>>>>, char16_t> ||
 				std::is_same_v<std::remove_cv_t<std::remove_pointer_t<std::remove_cv_t<std::remove_reference_t<T>>>>, char32_t>
 			)
@@ -544,6 +541,9 @@ namespace asio2
 			(
 				std::is_same_v<std::remove_cv_t<std::remove_all_extents_t<std::remove_cv_t<std::remove_reference_t<T>>>>, char    > ||
 				std::is_same_v<std::remove_cv_t<std::remove_all_extents_t<std::remove_cv_t<std::remove_reference_t<T>>>>, wchar_t > ||
+			#if defined(__cpp_lib_char8_t)
+				std::is_same_v<std::remove_cv_t<std::remove_all_extents_t<std::remove_cv_t<std::remove_reference_t<T>>>>, char8_t > ||
+			#endif
 				std::is_same_v<std::remove_cv_t<std::remove_all_extents_t<std::remove_cv_t<std::remove_reference_t<T>>>>, char16_t> ||
 				std::is_same_v<std::remove_cv_t<std::remove_all_extents_t<std::remove_cv_t<std::remove_reference_t<T>>>>, char32_t>
 			)

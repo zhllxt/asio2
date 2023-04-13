@@ -334,6 +334,9 @@ namespace boost::asio
 	inline typename std::enable_if_t<
 		std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, char    > ||
 		std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, wchar_t > ||
+	#if defined(__cpp_lib_char8_t)
+		std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, char8_t > ||
+	#endif
 		std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, char16_t> ||
 		std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, char32_t>,
 		ASIO_CONST_BUFFER> buffer(CharT* & data) ASIO_NOEXCEPT
@@ -345,6 +348,9 @@ namespace boost::asio
 	inline typename std::enable_if_t<
 		std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, char    > ||
 		std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, wchar_t > ||
+	#if defined(__cpp_lib_char8_t)
+		std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, char8_t > ||
+	#endif
 		std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, char16_t> ||
 		std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, char32_t>,
 		ASIO_CONST_BUFFER> buffer(const CharT* & data) ASIO_NOEXCEPT
@@ -356,6 +362,9 @@ namespace boost::asio
 	inline typename std::enable_if_t<
 		std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, char    > ||
 		std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, wchar_t > ||
+	#if defined(__cpp_lib_char8_t)
+		std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, char8_t > ||
+	#endif
 		std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, char16_t> ||
 		std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, char32_t>,
 		ASIO_CONST_BUFFER> buffer(CharT* const& data) ASIO_NOEXCEPT
@@ -367,6 +376,9 @@ namespace boost::asio
 	inline typename std::enable_if_t<
 		std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, char    > ||
 		std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, wchar_t > ||
+	#if defined(__cpp_lib_char8_t)
+		std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, char8_t > ||
+	#endif
 		std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, char16_t> ||
 		std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, char32_t>,
 		ASIO_CONST_BUFFER> buffer(const CharT* const& data) ASIO_NOEXCEPT

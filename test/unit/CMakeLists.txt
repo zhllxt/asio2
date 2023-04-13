@@ -79,6 +79,7 @@ AddUtilExecutableTarget(thread_pool)
 AddUtilExecutableTarget(zlib)
 AddUtilExecutableTarget(event_dispatcher)
 AddUtilExecutableTarget(reflection)
+AddUtilExecutableTarget(strutil)
 
 AddSslExecutableTarget(https)
 AddSslExecutableTarget(rdc)

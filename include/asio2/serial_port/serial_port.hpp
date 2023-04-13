@@ -508,7 +508,7 @@ namespace asio2::detail
 
 				// convert to string maybe throw some exception.
 				std::string  d = detail::to_string(std::move(device));
-				unsigned int b = detail::to_integer<unsigned int>(std::move(baud_rate));
+				unsigned int b = detail::to_numeric<unsigned int>(std::move(baud_rate));
 
 				expected = state_t::starting;
 				if (!this->state_.compare_exchange_strong(expected, state_t::starting))

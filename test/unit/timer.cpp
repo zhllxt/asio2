@@ -18,7 +18,53 @@ void timer_test()
 
 	asio2::timer timer1;
 
-	int c1 = 0, c2 = 0, c3 = 0, c4 = 0, c5 = 0, c6 = 0;
+	int c0 = 0, c1 = 0, c2 = 0, c3 = 0, c4 = 0, c5 = 0, c6 = 0;
+
+	int n0 = 0;
+
+	auto t0 = std::chrono::high_resolution_clock::now();
+	timer1.start_timer(0, 500, [&c0, &t0, &n0, &timer1]() mutable
+	{
+		c0++;
+		ASIO2_CHECK(!asio2::get_last_error());
+
+		if (n0 == 0)
+		{
+			auto elapse1 = std::abs(std::chrono::duration_cast<std::chrono::milliseconds>(
+				std::chrono::high_resolution_clock::now() - t0).count() - 500);
+			ASIO2_CHECK_VALUE(elapse1, elapse1 <= diff);
+			timer1.set_timer_interval(0, 1000);
+		}
+		else if (n0 == 1)
+		{
+			auto elapse1 = std::abs(std::chrono::duration_cast<std::chrono::milliseconds>(
+				std::chrono::high_resolution_clock::now() - t0).count() - 1000);
+			ASIO2_CHECK_VALUE(elapse1, elapse1 <= diff);
+			timer1.set_timer_interval(0, std::chrono::milliseconds(500));
+		}
+		else if (n0 == 2)
+		{
+			auto elapse1 = std::abs(std::chrono::duration_cast<std::chrono::milliseconds>(
+				std::chrono::high_resolution_clock::now() - t0).count() - 500);
+			ASIO2_CHECK_VALUE(elapse1, elapse1 <= diff);
+			timer1.reset_timer_interval(0, std::chrono::milliseconds(1000));
+		}
+		else if (n0 == 3)
+		{
+			auto elapse1 = std::abs(std::chrono::duration_cast<std::chrono::milliseconds>(
+				std::chrono::high_resolution_clock::now() - t0).count() - 1000);
+			ASIO2_CHECK_VALUE(elapse1, elapse1 <= diff);
+			timer1.reset_timer_interval(0, 500);
+		}
+		else
+		{
+			auto elapse1 = std::abs(std::chrono::duration_cast<std::chrono::milliseconds>(
+				std::chrono::high_resolution_clock::now() - t0).count() - 500);
+			ASIO2_CHECK_VALUE(elapse1, elapse1 <= diff);
+		}
+		t0 = std::chrono::high_resolution_clock::now();
+		n0++;
+	});
 
 	auto t1 = std::chrono::high_resolution_clock::now();
 	timer1.start_timer(1, 100, [&c1, &t1]() mutable

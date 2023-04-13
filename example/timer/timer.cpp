@@ -8,9 +8,13 @@ int main()
 
 	// 1    - timer id
 	// 1000 - timer inteval, 1000 milliseconds
-	timer.start_timer(1, 1000, []()
+	timer.start_timer(1, 1000, [&]()
 	{
 		printf("timer 1, loop infinite\n");
+
+		timer.reset_timer_interval(1, 2000);
+		// or:
+		// timer.reset_timer_interval(1, std::chrono::milliseconds(2000));
 	});
 
 	// "id2"- timer id, this timer id is a string

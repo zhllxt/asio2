@@ -90,11 +90,7 @@ namespace asio2::detail
 		 */
 		template<typename String, typename StrOrInt, class CharT, class Traits = std::char_traits<CharT>>
 		inline typename std::enable_if_t<!std::is_same_v<detail::remove_cvref_t<String>,
-			asio::ip::udp::endpoint> && (
-				std::is_same_v<detail::remove_cvref_t<CharT>, char> ||
-				std::is_same_v<detail::remove_cvref_t<CharT>, wchar_t> ||
-				std::is_same_v<detail::remove_cvref_t<CharT>, char16_t> ||
-				std::is_same_v<detail::remove_cvref_t<CharT>, char32_t>), void>
+			asio::ip::udp::endpoint> && detail::is_char_v<CharT>, void>
 			async_send(String&& host, StrOrInt&& port, CharT* s) noexcept
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
@@ -187,11 +183,7 @@ namespace asio2::detail
 		 */
 		template<typename String, typename StrOrInt, class CharT, class Traits = std::char_traits<CharT>>
 		inline typename std::enable_if_t<
-			!std::is_same_v<detail::remove_cvref_t<String>, asio::ip::udp::endpoint> && (
-				std::is_same_v<detail::remove_cvref_t<CharT>, char> ||
-				std::is_same_v<detail::remove_cvref_t<CharT>, wchar_t> ||
-				std::is_same_v<detail::remove_cvref_t<CharT>, char16_t> ||
-				std::is_same_v<detail::remove_cvref_t<CharT>, char32_t>),
+			!std::is_same_v<detail::remove_cvref_t<String>, asio::ip::udp::endpoint> && detail::is_char_v<CharT>,
 			std::future<std::pair<error_code, std::size_t>>>
 			async_send(String&& host, StrOrInt&& port, CharT * s, asio::use_future_t<> flag)
 		{
@@ -290,11 +282,8 @@ namespace asio2::detail
 		template<typename String, typename StrOrInt, class Callback, class CharT,
 			class Traits = std::char_traits<CharT>>
 		inline typename std::enable_if_t<is_callable_v<Callback> &&
-			!std::is_same_v<detail::remove_cvref_t<String>, asio::ip::udp::endpoint> && (
-				std::is_same_v<detail::remove_cvref_t<CharT>, char> ||
-				std::is_same_v<detail::remove_cvref_t<CharT>, wchar_t> ||
-				std::is_same_v<detail::remove_cvref_t<CharT>, char16_t> ||
-				std::is_same_v<detail::remove_cvref_t<CharT>, char32_t>), void>
+			!std::is_same_v<detail::remove_cvref_t<String>, asio::ip::udp::endpoint> &&
+			detail::is_char_v<CharT>, void>
 			async_send(String&& host, StrOrInt&& port, CharT * s, Callback&& fn)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
@@ -391,11 +380,8 @@ namespace asio2::detail
 		 */
 		template<class Endpoint, class CharT, class Traits = std::char_traits<CharT>>
 		inline typename std::enable_if_t<
-			std::is_same_v<detail::remove_cvref_t<Endpoint>, asio::ip::udp::endpoint> && (
-				std::is_same_v<detail::remove_cvref_t<CharT>, char> ||
-				std::is_same_v<detail::remove_cvref_t<CharT>, wchar_t> ||
-				std::is_same_v<detail::remove_cvref_t<CharT>, char16_t> ||
-				std::is_same_v<detail::remove_cvref_t<CharT>, char32_t>), void>
+			std::is_same_v<detail::remove_cvref_t<Endpoint>, asio::ip::udp::endpoint> &&
+			detail::is_char_v<CharT>, void>
 			async_send(Endpoint&& endpoint, CharT * s) noexcept
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
@@ -518,11 +504,7 @@ namespace asio2::detail
 		 */
 		template<class Endpoint, class CharT, class Traits = std::char_traits<CharT>>
 		inline typename std::enable_if_t<
-			std::is_same_v<detail::remove_cvref_t<Endpoint>, asio::ip::udp::endpoint> && (
-				std::is_same_v<detail::remove_cvref_t<CharT>, char> ||
-				std::is_same_v<detail::remove_cvref_t<CharT>, wchar_t> ||
-				std::is_same_v<detail::remove_cvref_t<CharT>, char16_t> ||
-				std::is_same_v<detail::remove_cvref_t<CharT>, char32_t>),
+			std::is_same_v<detail::remove_cvref_t<Endpoint>, asio::ip::udp::endpoint> && detail::is_char_v<CharT>,
 			std::future<std::pair<error_code, std::size_t>>>
 			async_send(Endpoint&& endpoint, CharT * s, asio::use_future_t<> flag)
 		{
@@ -650,11 +632,8 @@ namespace asio2::detail
 		 */
 		template<class Endpoint, class Callback, class CharT, class Traits = std::char_traits<CharT>>
 		inline typename std::enable_if_t<is_callable_v<Callback> &&
-			std::is_same_v<detail::remove_cvref_t<Endpoint>, asio::ip::udp::endpoint> && (
-			std::is_same_v<detail::remove_cvref_t<CharT>, char> ||
-			std::is_same_v<detail::remove_cvref_t<CharT>, wchar_t> ||
-			std::is_same_v<detail::remove_cvref_t<CharT>, char16_t> ||
-			std::is_same_v<detail::remove_cvref_t<CharT>, char32_t>), void>
+			std::is_same_v<detail::remove_cvref_t<Endpoint>, asio::ip::udp::endpoint> &&
+			detail::is_char_v<CharT>, void>
 			async_send(Endpoint&& endpoint, CharT * s, Callback&& fn)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
@@ -780,11 +759,7 @@ namespace asio2::detail
 		 */
 		template<typename String, typename StrOrInt, class CharT, class Traits = std::char_traits<CharT>>
 		inline typename std::enable_if_t<!std::is_same_v<detail::remove_cvref_t<String>,
-			asio::ip::udp::endpoint> && (
-				std::is_same_v<detail::remove_cvref_t<CharT>, char> ||
-				std::is_same_v<detail::remove_cvref_t<CharT>, wchar_t> ||
-				std::is_same_v<detail::remove_cvref_t<CharT>, char16_t> ||
-				std::is_same_v<detail::remove_cvref_t<CharT>, char32_t>), std::size_t>
+			asio::ip::udp::endpoint> && detail::is_char_v<CharT>, std::size_t>
 			send(String&& host, StrOrInt&& port, CharT* s)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
@@ -876,11 +851,8 @@ namespace asio2::detail
 		 */
 		template<class Endpoint, class CharT, class Traits = std::char_traits<CharT>>
 		inline typename std::enable_if_t<
-			std::is_same_v<detail::remove_cvref_t<Endpoint>, asio::ip::udp::endpoint> && (
-				std::is_same_v<detail::remove_cvref_t<CharT>, char> ||
-				std::is_same_v<detail::remove_cvref_t<CharT>, wchar_t> ||
-				std::is_same_v<detail::remove_cvref_t<CharT>, char16_t> ||
-				std::is_same_v<detail::remove_cvref_t<CharT>, char32_t>), std::size_t>
+			std::is_same_v<detail::remove_cvref_t<Endpoint>, asio::ip::udp::endpoint> &&
+			detail::is_char_v<CharT>, std::size_t>
 			send(Endpoint&& endpoint, CharT * s)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
@@ -923,7 +895,7 @@ namespace asio2::detail
 			// Before async_resolve execution is complete, we must hold the resolver object.
 			// so we captured the resolver_ptr into the lambda callback function.
 			resolver_type * resolver_pointer = resolver_ptr.get();
-			resolver_pointer->async_resolve(std::forward<String>(host), to_string(std::forward<StrOrInt>(port)),
+			resolver_pointer->async_resolve(std::forward<String>(host), detail::to_string(std::forward<StrOrInt>(port)),
 			[&derive, p = derive.selfptr(), resolver_ptr = std::move(resolver_ptr),
 				data = std::forward<Data>(data), callback = std::forward<Callback>(callback)]
 			(const error_code& ec, const endpoints_type& endpoints) mutable

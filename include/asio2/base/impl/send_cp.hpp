@@ -123,11 +123,7 @@ namespace asio2::detail
 		 * PodType * : async_send("abc");
 		 */
 		template<class CharT, class Traits = std::char_traits<CharT>>
-		inline typename std::enable_if_t<
-			std::is_same_v<detail::remove_cvref_t<CharT>, char> ||
-			std::is_same_v<detail::remove_cvref_t<CharT>, wchar_t> ||
-			std::is_same_v<detail::remove_cvref_t<CharT>, char16_t> ||
-			std::is_same_v<detail::remove_cvref_t<CharT>, char32_t>, void> async_send(CharT * s) noexcept
+		inline typename std::enable_if_t<detail::is_char_v<CharT>, void> async_send(CharT * s) noexcept
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
@@ -253,12 +249,7 @@ namespace asio2::detail
 		 * PodType * : async_send("abc");
 		 */
 		template<class CharT, class Traits = std::char_traits<CharT>>
-		inline typename std::enable_if_t<
-			std::is_same_v<detail::remove_cvref_t<CharT>, char> ||
-			std::is_same_v<detail::remove_cvref_t<CharT>, wchar_t> ||
-			std::is_same_v<detail::remove_cvref_t<CharT>, char16_t> ||
-			std::is_same_v<detail::remove_cvref_t<CharT>, char32_t>,
-			std::future<std::pair<error_code, std::size_t>>>
+		inline typename std::enable_if_t<detail::is_char_v<CharT>, std::future<std::pair<error_code, std::size_t>>>
 			async_send(CharT * s, asio::use_future_t<> flag)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
@@ -381,11 +372,7 @@ namespace asio2::detail
 		 * Callback signature : void() or void(std::size_t bytes_sent)
 		 */
 		template<class Callback, class CharT, class Traits = std::char_traits<CharT>>
-		inline typename std::enable_if_t<is_callable_v<Callback> && (
-			std::is_same_v<detail::remove_cvref_t<CharT>, char> ||
-			std::is_same_v<detail::remove_cvref_t<CharT>, wchar_t> ||
-			std::is_same_v<detail::remove_cvref_t<CharT>, char16_t> ||
-			std::is_same_v<detail::remove_cvref_t<CharT>, char32_t>), void>
+		inline typename std::enable_if_t<is_callable_v<Callback> && detail::is_char_v<CharT>, void>
 			async_send(CharT * s, Callback&& fn)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
@@ -511,11 +498,7 @@ namespace asio2::detail
 		 * PodType * : send("abc");
 		 */
 		template<class CharT, class Traits = std::char_traits<CharT>>
-		inline typename std::enable_if_t<
-			std::is_same_v<detail::remove_cvref_t<CharT>, char> ||
-			std::is_same_v<detail::remove_cvref_t<CharT>, wchar_t> ||
-			std::is_same_v<detail::remove_cvref_t<CharT>, char16_t> ||
-			std::is_same_v<detail::remove_cvref_t<CharT>, char32_t>, std::size_t> send(CharT * s)
+		inline typename std::enable_if_t<detail::is_char_v<CharT>, std::size_t> send(CharT * s)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
