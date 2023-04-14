@@ -1757,6 +1757,6 @@ void strutil_test()
 
 ASIO2_TEST_SUITE
 (
-	"asio2",
+	"strutil",
 	ASIO2_TEST_CASE(strutil_test)
 )

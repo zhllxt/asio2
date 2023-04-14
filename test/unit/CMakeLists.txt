@@ -70,6 +70,7 @@ AddExecutableTarget(udp)
 
 AddUtilExecutableTarget(aes)
 AddUtilExecutableTarget(base64)
+AddUtilExecutableTarget(codecvt)
 AddUtilExecutableTarget(des)
 AddUtilExecutableTarget(ini)
 AddUtilExecutableTarget(md5)
