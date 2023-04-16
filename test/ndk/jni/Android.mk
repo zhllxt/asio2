@@ -90,6 +90,12 @@ include $(BUILD_EXECUTABLE)
 
 include $(CLEAR_VARS)
 LOCAL_C_INCLUDES += $(ASIO2_INCLUDE)
+LOCAL_MODULE := codecvt.out
+LOCAL_SRC_FILES := $(ASIO2_TEST_DIR)/unit/codecvt.cpp
+include $(BUILD_EXECUTABLE)
+
+include $(CLEAR_VARS)
+LOCAL_C_INCLUDES += $(ASIO2_INCLUDE)
 LOCAL_MODULE := des.out
 LOCAL_SRC_FILES := $(ASIO2_TEST_DIR)/unit/des.cpp
 include $(BUILD_EXECUTABLE)
@@ -178,6 +184,12 @@ LOCAL_MODULE := start_stop.out
 LOCAL_SRC_FILES := $(ASIO2_TEST_DIR)/unit/start_stop.cpp
 LOCAL_STATIC_LIBRARIES += libssl
 LOCAL_STATIC_LIBRARIES += libcrypto
+include $(BUILD_EXECUTABLE)
+
+include $(CLEAR_VARS)
+LOCAL_C_INCLUDES += $(ASIO2_INCLUDE)
+LOCAL_MODULE := strutil.out
+LOCAL_SRC_FILES := $(ASIO2_TEST_DIR)/unit/strutil.cpp
 include $(BUILD_EXECUTABLE)
 
 include $(CLEAR_VARS)

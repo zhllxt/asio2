@@ -92,10 +92,7 @@ void codecvt_test()
             ASIO2_CHECK(ucs2.size() == 3);
             ASIO2_CHECK(ucs2[0] == 'z');
             ASIO2_CHECK(ucs2[1] == 0x6c34);
-            if (asio2::get_codecvt_locale() == ".936")
-                ASIO2_CHECK(ucs2[2] == 0xd10b); // chinese windows, why ?
-            else
-                ASIO2_CHECK(ucs2[2] == 0x1d10b); // ubuntu
+            ASIO2_CHECK(ucs2[2] == 0xd10b);
         }
         catch (const std::range_error&)
         {
@@ -290,10 +287,7 @@ void codecvt_test()
             ASIO2_CHECK(ucs2.size() == 3);
             ASIO2_CHECK(ucs2[0] == 'z');
             ASIO2_CHECK(ucs2[1] == 0x6c34);
-            if (asio2::get_codecvt_locale() == ".936")
-                ASIO2_CHECK_VALUE(ucs2[2], ucs2[2] == 0xd10b); // chinese windows, why ?
-            else
-                ASIO2_CHECK_VALUE(ucs2[2], ucs2[2] == 0x1d10b); // ubuntu
+            ASIO2_CHECK(ucs2[2] == 0xd10b);
         }
         catch (const std::range_error&)
         {
