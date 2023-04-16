@@ -126,23 +126,26 @@ namespace asio2::detail
 		#elif ASIO2_OS_IOS
 			// be pending
 		#elif ASIO2_OS_WINDOWS
-			// Partially supported on windows
-			tcp_keepalive keepalive_options;
-			keepalive_options.onoff = onoff;
-			keepalive_options.keepalivetime = idle * 1000; // Keep Alive in milliseconds.
-			keepalive_options.keepaliveinterval = interval * 1000; // Resend if No-Reply 
+			// on WSL ubuntu, the ASIO2_OS_WINDOWS is true, but can't find the <Mstcpip.h> file.
+			#if __has_include(<Mstcpip.h>)
+				// Partially supported on windows
+				tcp_keepalive keepalive_options;
+				keepalive_options.onoff = onoff;
+				keepalive_options.keepalivetime = idle * 1000; // Keep Alive in milliseconds.
+				keepalive_options.keepaliveinterval = interval * 1000; // Resend if No-Reply 
 
-			DWORD bytes_returned = 0;
+				DWORD bytes_returned = 0;
 
-			if (SOCKET_ERROR == ::WSAIoctl(native_fd, SIO_KEEPALIVE_VALS, (LPVOID)&keepalive_options,
-				(DWORD)sizeof(keepalive_options), nullptr, 0, (LPDWORD)&bytes_returned, nullptr, nullptr))
-			{
-				if (::WSAGetLastError() != WSAEWOULDBLOCK)
+				if (SOCKET_ERROR == ::WSAIoctl(native_fd, SIO_KEEPALIVE_VALS, (LPVOID)&keepalive_options,
+					(DWORD)sizeof(keepalive_options), nullptr, 0, (LPDWORD)&bytes_returned, nullptr, nullptr))
 				{
-					set_last_error(::WSAGetLastError(), asio::error::get_system_category());
-					return false;
+					if (::WSAGetLastError() != WSAEWOULDBLOCK)
+					{
+						set_last_error(::WSAGetLastError(), asio::error::get_system_category());
+						return false;
+					}
 				}
-			}
+			#endif
 		#endif
 			return true;
 		}

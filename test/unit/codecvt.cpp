@@ -1,4 +1,6 @@
 #include "unit_test.hpp"
+
+#include <asio2/base/detail/push_options.hpp>
 #include <asio2/util/string.hpp>
 #include <asio2/base/detail/util.hpp>
 #include <asio2/util/codecvt.hpp>
@@ -6,12 +8,29 @@
 #include <fstream>
 #include <asio2/base/detail/filesystem.hpp>
 
+std::string ensure_char_pointer_valid(const char* p)
+{
+    if (p && *p)
+        return p;
+    return {};
+}
+
 void codecvt_test()
 {
 #if defined(__cpp_lib_char8_t)
+    {
+        ASIO2_TEST_IOSTREAM << "LC_CTYPE: " << ensure_char_pointer_valid(std::getenv("LC_CTYPE")) << std::endl;
+        ASIO2_TEST_IOSTREAM << "LC_ALL  : " << ensure_char_pointer_valid(std::getenv("LC_ALL")) << std::endl;
+        ASIO2_TEST_IOSTREAM << "LANG    : " << ensure_char_pointer_valid(std::getenv("LANG")) << std::endl;
+        ASIO2_TEST_IOSTREAM << "get_system_locale : " << asio2::get_system_locale() << std::endl;
+        ASIO2_TEST_IOSTREAM << "get_codecvt_locale: " << asio2::get_codecvt_locale() << std::endl;
+    }
+
     // wide char and ansi char convert
-	{
-		auto* p = new asio2::codecvt_byname<wchar_t, char, std::mbstate_t>("CHS");
+    // if the locale has gbk envirment
+    if (asio2::get_codecvt_locale() == ".936")
+    {
+        auto* p = new asio2::codecvt_byname<wchar_t, char, std::mbstate_t>("chs");
         std::wstring str;
         str += 'H';
         str += 'i';
@@ -19,14 +38,14 @@ void codecvt_test()
         str += 20320;
         str += 22909;
         str += 65281;
-		asio2::wstring_convert<asio2::codecvt<wchar_t, char, std::mbstate_t>> conv(p);
-		std::string narrowStr = conv.to_bytes(str);
-		std::wstring wideStr = conv.from_bytes(narrowStr);
-		ASIO2_CHECK(wideStr == str);
-	}
+        asio2::wstring_convert<asio2::codecvt<wchar_t, char, std::mbstate_t>> conv(p);
+        std::string narrowStr = conv.to_bytes(str);
+        std::wstring wideStr = conv.from_bytes(narrowStr);
+        ASIO2_CHECK(wideStr == str);
+    }
 
     // wcstombs mbstowcs
-	{
+    {
         std::wstring str;
         str += 'H';
         str += 'i';
@@ -36,22 +55,23 @@ void codecvt_test()
         str += 65281;
         std::string mstr = asio2::wcstombs(str);
         std::wstring wstr = asio2::mbstowcs(mstr);
-		ASIO2_CHECK(wstr == str);
-	}
+        ASIO2_CHECK(wstr == str);
+    }
 
     // gbk_to_utf8 utf8_to_gbk
-	{
+    if (asio2::get_codecvt_locale() == ".936")
+    {
         std::u8string utf8 = u8"z\u6c34\u6c49";
         std::string g = asio2::utf8_to_gbk(utf8);
         std::string u = asio2::gbk_to_utf8(g);
-		ASIO2_CHECK(u.size() == utf8.size());
+        ASIO2_CHECK(u.size() == utf8.size());
         for (std::size_t i = 0; i < u.size(); ++i)
         {
             ASIO2_CHECK(
                 static_cast<std::make_unsigned_t<char>>(u[i]) ==
                 static_cast<std::make_unsigned_t<char8_t>>(utf8[i]));
         }
-	}
+    }
 
     // https://en.cppreference.com/w/cpp/locale/codecvt_utf8
     {
@@ -72,7 +92,10 @@ void codecvt_test()
             ASIO2_CHECK(ucs2.size() == 3);
             ASIO2_CHECK(ucs2[0] == 'z');
             ASIO2_CHECK(ucs2[1] == 0x6c34);
-            ASIO2_CHECK(ucs2[2] == 0xd10b);
+            if (asio2::get_codecvt_locale() == ".936")
+                ASIO2_CHECK(ucs2[2] == 0xd10b); // chinese windows, why ?
+            else
+                ASIO2_CHECK(ucs2[2] == 0x1d10b); // ubuntu
         }
         catch (const std::range_error&)
         {
@@ -81,33 +104,36 @@ void codecvt_test()
     }
 
     // https://en.cppreference.com/w/cpp/locale/codecvt_utf16
-	{
-		// UTF-16le data (if host system is little-endian)
-		char16_t utf16le[4] = { 0x007a,          // latin small letter 'z' U+007a
-							   0x6c34,          // CJK ideograph "water"  U+6c34
-							   0xd834, 0xdd0b }; // musical sign segno U+1d10b    
+    {
+        // UTF-16le data (if host system is little-endian)
+        char16_t utf16le[4] = { 0x007a,          // latin small letter 'z' U+007a
+                               0x6c34,          // CJK ideograph "water"  U+6c34
+                               0xd834, 0xdd0b }; // musical sign segno U+1d10b    
 
-		// store in a file
-		std::ofstream fout("text.txt");
-		fout.write(reinterpret_cast<char*>(utf16le), sizeof utf16le);
-		fout.close();
+        // store in a file
+        std::ofstream fout("text.txt");
+        fout.write(reinterpret_cast<char*>(utf16le), sizeof utf16le);
+        fout.close();
 
-		// open as a byte stream
-		std::wifstream fin("text.txt", std::ios::binary);
-		// apply facet
-		fin.imbue(std::locale(fin.getloc(),
-			new asio2::codecvt_utf16<wchar_t, char, 0x10ffff, asio2::little_endian>));
+        // open as a byte stream
+        std::wifstream fin("text.txt", std::ios::binary);
+        // apply facet
+        fin.imbue(std::locale(fin.getloc(),
+            new asio2::codecvt_utf16<wchar_t, char, 0x10ffff, asio2::little_endian>));
 
-		std::wstring str;
+        std::wstring str;
 
-		wchar_t c = 0;
-		for (; fin.get(c); str += c);
+        wchar_t c = 0;
+        for (; fin.get(c); str += c);
 
-		ASIO2_CHECK(str.size() == 3);
-		ASIO2_CHECK(str[0] == 0x7a);
-		ASIO2_CHECK(str[1] == 0x6c34);
-		ASIO2_CHECK(str[2] == 0xd10b);
-	}
+        ASIO2_CHECK(str.size() == 3);
+        ASIO2_CHECK(str[0] == 0x7a);
+        ASIO2_CHECK(str[1] == 0x6c34);
+        if (asio2::get_codecvt_locale() == ".936")
+            ASIO2_CHECK(str[2] == 0xd10b); // chinese windows, why ?
+        else
+            ASIO2_CHECK(str[2] == 0x1d10b); // ubuntu
+    }
 
     // https://en.cppreference.com/w/cpp/locale/codecvt_utf8_utf16
     {
@@ -126,67 +152,89 @@ void codecvt_test()
     }
 
     // https://en.cppreference.com/w/cpp/locale/wbuffer_convert/wbuffer_convert
-    {
-		const char* filepathutf8 = "../../codecvt_utf8.json";
-		const char* filepathgbk = "../../codecvt_gbk.json";
-		std::fstream fileutf8(filepathutf8, std::ios::in | std::ios::binary);
-		std::fstream filegbk(filepathgbk, std::ios::in | std::ios::binary);
-		std::string contentutf8, contentgbk;
-        contentutf8.resize(std::filesystem::file_size(filepathutf8));
-        contentgbk.resize(std::filesystem::file_size(filepathgbk));
-        fileutf8.read(contentutf8.data(), contentutf8.size());
-        filegbk.read(contentgbk.data(), contentgbk.size());
-
-        // wrap a UTF-8 string stream in a UCS4 wbuffer_convert
-        std::stringbuf utf8buf(contentutf8);  // or 
-        // or "\x7a\xc3\x9f\xe6\xb0\xb4\xf0\x9f\x8d\x8c";
-		asio2::wbuffer_convert<asio2::codecvt_utf8<wchar_t>> conv_in(&utf8buf);
-        std::wistream ucsbuf(&conv_in);
-        std::ostringstream ucsout;
-        for (wchar_t c; ucsbuf.get(c); )
-            ucsout << std::hex << std::showbase << int(c) << '\n';
-
-        // wrap a UTF-8 aware std::cout in a UCS4 wbuffer_convert to output UCS4
-        asio2::wbuffer_convert<asio2::codecvt_utf8<wchar_t>> conv_out(ucsout.rdbuf());
-        std::wostream out(&conv_out);
-        out << L"z\u00df\u6c34\U0001f34c\n";
-    }
-
-	{
-		const char* filepathutf8 = "../../codecvt_utf8.json";
-		const char* filepathgbk = "../../codecvt_gbk.json";
-		std::fstream fileutf8(filepathutf8, std::ios::in | std::ios::binary);
-		std::fstream filegbk(filepathgbk, std::ios::in | std::ios::binary);
-		std::string contentutf8, contentgbk;
-        contentutf8.resize(std::filesystem::file_size(filepathutf8));
-        contentgbk.resize(std::filesystem::file_size(filepathgbk));
-        fileutf8.read(contentutf8.data(), contentutf8.size());
-        filegbk.read(contentgbk.data(), contentgbk.size());
-		std::string g = asio2::utf8_to_gbk(contentutf8);
-		ASIO2_CHECK(g == contentgbk);
-        std::string u = asio2::gbk_to_utf8(contentgbk);
-        ASIO2_CHECK(u == contentutf8);
-	}
-
+    if (asio2::get_codecvt_locale() == ".936")
     {
         const char* filepathutf8 = "../../codecvt_utf8.json";
         const char* filepathgbk = "../../codecvt_gbk.json";
         std::fstream fileutf8(filepathutf8, std::ios::in | std::ios::binary);
         std::fstream filegbk(filepathgbk, std::ios::in | std::ios::binary);
-        std::string contentutf8, contentgbk;
-        contentutf8.resize(std::filesystem::file_size(filepathutf8));
-        contentgbk.resize(std::filesystem::file_size(filepathgbk));
-        fileutf8.read(contentutf8.data(), contentutf8.size());
-        filegbk.read(contentgbk.data(), contentgbk.size());
-        std::string g = asio2::utf8_to_locale(contentutf8);
-        ASIO2_CHECK(g == contentgbk);
-        std::string u = asio2::locale_to_utf8(contentgbk);
-        ASIO2_CHECK(u == contentutf8);
+        if (fileutf8 && filegbk)
+        {
+            std::string contentutf8, contentgbk;
+            contentutf8.resize(std::filesystem::file_size(filepathutf8));
+            contentgbk.resize(std::filesystem::file_size(filepathgbk));
+            fileutf8.read(contentutf8.data(), contentutf8.size());
+            filegbk.read(contentgbk.data(), contentgbk.size());
+
+            // wrap a UTF-8 string stream in a UCS4 wbuffer_convert
+            std::stringbuf utf8buf(contentutf8);  // or 
+            // or "\x7a\xc3\x9f\xe6\xb0\xb4\xf0\x9f\x8d\x8c";
+            asio2::wbuffer_convert<asio2::codecvt_utf8<wchar_t>> conv_in(&utf8buf);
+            std::wistream ucsbuf(&conv_in);
+            std::ostringstream ucsout;
+            for (wchar_t c; ucsbuf.get(c); )
+                ucsout << std::hex << std::showbase << int(c) << '\n';
+
+            // wrap a UTF-8 aware std::cout in a UCS4 wbuffer_convert to output UCS4
+            asio2::wbuffer_convert<asio2::codecvt_utf8<wchar_t>> conv_out(ucsout.rdbuf());
+            std::wostream out(&conv_out);
+            out << L"z\u00df\u6c34\U0001f34c\n";
+        }
+    }
+
+    if (asio2::get_codecvt_locale() == ".936")
+    {
+        const char* filepathutf8 = "../../codecvt_utf8.json";
+        const char* filepathgbk = "../../codecvt_gbk.json";
+        std::fstream fileutf8(filepathutf8, std::ios::in | std::ios::binary);
+        std::fstream filegbk(filepathgbk, std::ios::in | std::ios::binary);
+        if (fileutf8 && filegbk)
+        {
+            std::string contentutf8, contentgbk;
+            contentutf8.resize(std::filesystem::file_size(filepathutf8));
+            contentgbk.resize(std::filesystem::file_size(filepathgbk));
+            fileutf8.read(contentutf8.data(), contentutf8.size());
+            filegbk.read(contentgbk.data(), contentgbk.size());
+            std::string g = asio2::utf8_to_gbk(contentutf8);
+            ASIO2_CHECK(g == contentgbk);
+            std::string u = asio2::gbk_to_utf8(contentgbk);
+            ASIO2_CHECK(u == contentutf8);
+        }
+    }
+
+    if (asio2::get_codecvt_locale() == ".936")
+    {
+        const char* filepathutf8 = "../../codecvt_utf8.json";
+        const char* filepathgbk = "../../codecvt_gbk.json";
+        std::fstream fileutf8(filepathutf8, std::ios::in | std::ios::binary);
+        std::fstream filegbk(filepathgbk, std::ios::in | std::ios::binary);
+        if (fileutf8 && filegbk)
+        {
+            std::string contentutf8, contentgbk;
+            contentutf8.resize(std::filesystem::file_size(filepathutf8));
+            contentgbk.resize(std::filesystem::file_size(filepathgbk));
+            fileutf8.read(contentutf8.data(), contentutf8.size());
+            filegbk.read(contentgbk.data(), contentgbk.size());
+            std::string g = asio2::utf8_to_locale(contentutf8);
+            ASIO2_CHECK(g == contentgbk);
+            std::string u = asio2::locale_to_utf8(contentgbk);
+            ASIO2_CHECK(u == contentutf8);
+        }
     }
 #else
-    // wide char and ansi char convert
 	{
-		auto* p = new asio2::codecvt_byname<wchar_t, char, std::mbstate_t>("CHS");
+		ASIO2_TEST_IOSTREAM << "LC_CTYPE: " << ensure_char_pointer_valid(std::getenv("LC_CTYPE")) << std::endl;
+		ASIO2_TEST_IOSTREAM << "LC_ALL  : " << ensure_char_pointer_valid(std::getenv("LC_ALL")) << std::endl;
+		ASIO2_TEST_IOSTREAM << "LANG    : " << ensure_char_pointer_valid(std::getenv("LANG")) << std::endl;
+		ASIO2_TEST_IOSTREAM << "get_system_locale : " << asio2::get_system_locale() << std::endl;
+		ASIO2_TEST_IOSTREAM << "get_codecvt_locale: " << asio2::get_codecvt_locale() << std::endl;
+	}
+
+    // wide char and ansi char convert
+    // if the locale has gbk envirment
+    if (asio2::get_codecvt_locale() == ".936")
+	{
+		auto* p = new asio2::codecvt_byname<wchar_t, char, std::mbstate_t>("chs");
         std::wstring str;
         str += 'H';
         str += 'i';
@@ -215,6 +263,7 @@ void codecvt_test()
 	}
 
     // gbk_to_utf8 utf8_to_gbk
+    if (asio2::get_codecvt_locale() == ".936")
 	{
         std::string utf8 = u8"z\u6c34\u6c49";
         std::string g = asio2::utf8_to_gbk(utf8);
@@ -241,7 +290,10 @@ void codecvt_test()
             ASIO2_CHECK(ucs2.size() == 3);
             ASIO2_CHECK(ucs2[0] == 'z');
             ASIO2_CHECK(ucs2[1] == 0x6c34);
-            ASIO2_CHECK(ucs2[2] == 0xd10b);
+            if (asio2::get_codecvt_locale() == ".936")
+                ASIO2_CHECK_VALUE(ucs2[2], ucs2[2] == 0xd10b); // chinese windows, why ?
+            else
+                ASIO2_CHECK_VALUE(ucs2[2], ucs2[2] == 0x1d10b); // ubuntu
         }
         catch (const std::range_error&)
         {
@@ -275,7 +327,10 @@ void codecvt_test()
 		ASIO2_CHECK(str.size() == 3);
 		ASIO2_CHECK(str[0] == 0x7a);
 		ASIO2_CHECK(str[1] == 0x6c34);
-		ASIO2_CHECK(str[2] == 0xd10b);
+		if (asio2::get_codecvt_locale() == ".936")
+			ASIO2_CHECK_VALUE(str[2], str[2] == 0xd10b); // chinese windows, why ?
+		else
+			ASIO2_CHECK_VALUE(str[2], str[2] == 0x1d10b); // ubuntu
 	}
 
     // https://en.cppreference.com/w/cpp/locale/codecvt_utf8_utf16
@@ -310,36 +365,44 @@ void codecvt_test()
         out << L"z\u00df\u6c34\U0001f34c\n";
     }
 
+    if (asio2::get_codecvt_locale() == ".936")
     {
         const char* filepathutf8 = "../../codecvt_utf8.json";
         const char* filepathgbk = "../../codecvt_gbk.json";
         std::fstream fileutf8(filepathutf8, std::ios::in | std::ios::binary);
         std::fstream filegbk(filepathgbk, std::ios::in | std::ios::binary);
-        std::string contentutf8, contentgbk;
-        contentutf8.resize(std::filesystem::file_size(filepathutf8));
-        contentgbk.resize(std::filesystem::file_size(filepathgbk));
-        fileutf8.read(contentutf8.data(), contentutf8.size());
-        filegbk.read(contentgbk.data(), contentgbk.size());
-        std::string g = asio2::utf8_to_gbk(contentutf8);
-        ASIO2_CHECK(g == contentgbk);
-        std::string u = asio2::gbk_to_utf8(contentgbk);
-        ASIO2_CHECK(u == contentutf8);
+        if (fileutf8 && filegbk)
+        {
+            std::string contentutf8, contentgbk;
+            contentutf8.resize(std::filesystem::file_size(filepathutf8));
+            contentgbk.resize(std::filesystem::file_size(filepathgbk));
+            fileutf8.read(contentutf8.data(), contentutf8.size());
+            filegbk.read(contentgbk.data(), contentgbk.size());
+            std::string g = asio2::utf8_to_gbk(contentutf8);
+            ASIO2_CHECK(g == contentgbk);
+            std::string u = asio2::gbk_to_utf8(contentgbk);
+            ASIO2_CHECK(u == contentutf8);
+        }
     }
 
+    if (asio2::get_codecvt_locale() == ".936")
     {
         const char* filepathutf8 = "../../codecvt_utf8.json";
         const char* filepathgbk = "../../codecvt_gbk.json";
         std::fstream fileutf8(filepathutf8, std::ios::in | std::ios::binary);
         std::fstream filegbk(filepathgbk, std::ios::in | std::ios::binary);
-        std::string contentutf8, contentgbk;
-        contentutf8.resize(std::filesystem::file_size(filepathutf8));
-        contentgbk.resize(std::filesystem::file_size(filepathgbk));
-        fileutf8.read(contentutf8.data(), contentutf8.size());
-        filegbk.read(contentgbk.data(), contentgbk.size());
-        std::string g = asio2::utf8_to_locale(contentutf8);
-        ASIO2_CHECK(g == contentgbk);
-        std::string u = asio2::locale_to_utf8(contentgbk);
-        ASIO2_CHECK(u == contentutf8);
+        if (fileutf8 && filegbk)
+        {
+            std::string contentutf8, contentgbk;
+            contentutf8.resize(std::filesystem::file_size(filepathutf8));
+            contentgbk.resize(std::filesystem::file_size(filepathgbk));
+            fileutf8.read(contentutf8.data(), contentutf8.size());
+            filegbk.read(contentgbk.data(), contentgbk.size());
+            std::string g = asio2::utf8_to_locale(contentutf8);
+            ASIO2_CHECK(g == contentgbk);
+            std::string u = asio2::locale_to_utf8(contentgbk);
+            ASIO2_CHECK(u == contentutf8);
+        }
     }
 #endif
 

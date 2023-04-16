@@ -26,14 +26,17 @@
 #include <codecvt>
 
 #include <asio2/external/predef.h>
+#include <asio2/external/asio.hpp>
 
-#include <asio2/base/detail/type_traits.hpp>
+#include <asio2/util/string.hpp>
 
 #if defined(ASIO2_OS_WINDOWS) || defined(__CYGWIN__)
-#include <Windows.h>
-#ifndef ASIO2_LOCALE_USE_WIN32_API
-#define ASIO2_LOCALE_USE_WIN32_API
-#endif
+#  if __has_include(<Windows.h>)
+#    include <Windows.h>
+#    ifndef ASIO2_LOCALE_USE_WIN32_API
+#    define ASIO2_LOCALE_USE_WIN32_API
+#    endif
+#  endif
 #endif
 
 namespace asio2
@@ -439,7 +442,7 @@ protected:
             if (*_Pstate == detail::_Codecvt_Little_first) {
                 if (_Extra) { // put a pair of words LS byte first
                     unsigned short _Ch0 =
-                        static_cast<unsigned short>(0xd800 | static_cast<unsigned short>(_Ch >> 10) - 0x0040);
+                        static_cast<unsigned short>(0xd800 | (static_cast<unsigned short>(_Ch >> 10) - 0x0040));
                     *_Mid2++ = static_cast<_Byte>(_Ch0);
                     *_Mid2++ = static_cast<_Byte>(_Ch0 >> 8);
 
@@ -453,7 +456,7 @@ protected:
             } else {
                 if (_Extra) { // put a pair of words MS byte first
                     unsigned short _Ch0 =
-                        static_cast<unsigned short>(0xd800 | static_cast<unsigned short>(_Ch >> 10) - 0x0040);
+                        static_cast<unsigned short>(0xd800 | (static_cast<unsigned short>(_Ch >> 10) - 0x0040));
                     *_Mid2++ = static_cast<_Byte>(_Ch0 >> 8);
                     *_Mid2++ = static_cast<_Byte>(_Ch0);
 
@@ -600,7 +603,7 @@ protected:
             }
 
             if (0xffffu < _Ch) { // deliver first half of two-word value, save second word
-                unsigned short _Ch0 = static_cast<unsigned short>(0xd800 | (_Ch >> 10) - 0x0040);
+                unsigned short _Ch0 = static_cast<unsigned short>(0xd800 | ((_Ch >> 10) - 0x0040));
 
                 *_Mid2++ = static_cast<_Elem>(_Ch0);
                 *_Pstate = static_cast<unsigned short>(0xdc00 | (_Ch & 0x03ff));
@@ -817,7 +820,7 @@ public:
                     ptrdiff_t _Count = _Dest - _Buf;
                     if (0 < _Count
                         && _Byte_traits::eq_int_type(
-                            _Byte_traits::eof(), static_cast<_Byte_traits::int_type>(_Mystrbuf->sputn(_Buf, _Count)))) {
+                            _Byte_traits::eof(), static_cast<typename _Byte_traits::int_type>(_Mystrbuf->sputn(_Buf, _Count)))) {
                         return; // write failed
                     }
 
@@ -880,7 +883,7 @@ protected:
                         ptrdiff_t _Count = _Dest - _Buf;
                         if (0 < _Count
                             && _Byte_traits::eq_int_type(_Byte_traits::eof(),
-                                static_cast<_Byte_traits::int_type>(_Mystrbuf->sputn(_Buf, _Count)))) {
+                                static_cast<typename _Byte_traits::int_type>(_Mystrbuf->sputn(_Buf, _Count)))) {
                             return _Traits::eof(); // write failed
                         }
 
@@ -946,9 +949,6 @@ protected:
         return _Traits::to_int_type(_Myback[_Nback - 1]);
     }
 
-#pragma warning(push)
-#pragma warning(disable : 6385) // Reading invalid data from 'this->_Myback':
-                                // the readable size is 'X' bytes, but 'Y' bytes may be read.
     int_type uflow() override { // get an element from stream, point past it
         int_type _Meta;
 
@@ -962,7 +962,6 @@ protected:
 
         return _Traits::to_int_type(_Myback[--_Nback]);
     }
-#pragma warning(pop)
 
     pos_type seekoff(off_type, std::ios_base::seekdir,
         std::ios_base::openmode = static_cast<std::ios_base::openmode>(std::ios_base::in | std::ios_base::out)) override {
@@ -1016,7 +1015,7 @@ private:
                         break; // no conversion, but need more chars
                     }
 
-                    _CSTD memcpy(&_Ch, _Buf, sizeof(_Elem)); // copy raw bytes to element
+                    std::memcpy(&_Ch, _Buf, sizeof(_Elem)); // copy raw bytes to element
                     _Str.erase(0, sizeof(_Elem));
                     return _Traits::to_int_type(_Ch); // return result
 
@@ -1103,7 +1102,7 @@ public:
     }
 
     [[nodiscard]] wide_string from_bytes(const CharT* _Ptr) { // convert a NTBS to a wide string
-        return from_bytes(_Ptr, _Ptr + _CSTD strlen(_Ptr));
+        return from_bytes(_Ptr, _Ptr + std::strlen(_Ptr));
     }
 
     [[nodiscard]] wide_string from_bytes(const byte_string& _Bstr) { // convert a byte string to a wide string
@@ -1248,11 +1247,6 @@ private:
 
 namespace asio2
 {
-	namespace detail
-	{
-		constexpr const char* default_locale_name = "chs";
-	}
-
     /**
      * @brief Return default system locale name in POSIX format.
      *
@@ -1364,16 +1358,63 @@ namespace asio2
 	 * @return Converted value as std::string.
 	 */
 	template<class StringT>
-    inline auto gbk_to_utf8(const StringT& str)
+	inline auto gbk_to_utf8(const StringT& str, const std::string& locale_name = "chs") noexcept
 	{
-        using CharT = typename detail::char_type<StringT>::type;
+		using CharT = typename detail::char_type<StringT>::type;
 
-		asio2::wstring_convert<std::codecvt_byname<wchar_t, CharT, std::mbstate_t>, wchar_t, CharT> gbk_cvt(
-			new std::codecvt_byname<wchar_t, CharT, std::mbstate_t>(detail::default_locale_name));
-		std::wstring w = gbk_cvt.from_bytes(str);
+		clear_last_error();
 
-		asio2::wstring_convert<asio2::codecvt_utf8<wchar_t, CharT>, wchar_t, CharT> utf8_cvt;
-		return utf8_cvt.to_bytes(w);
+		std::wstring w;
+
+		std::codecvt_byname<wchar_t, CharT, std::mbstate_t>* c = nullptr;
+		try
+		{
+			c = new std::codecvt_byname<wchar_t, CharT, std::mbstate_t>(locale_name);
+		}
+		catch (const std::exception&)
+		{
+			set_last_error(std::errc::invalid_argument);
+
+			return std::basic_string<CharT>{};
+		}
+
+        // gbk to widechar
+        {
+            auto sv = asio2::to_basic_string_view(str);
+
+            asio2::wstring_convert<std::codecvt_byname<wchar_t, CharT, std::mbstate_t>, wchar_t, CharT> conv(c);
+            try
+            {
+                w = conv.from_bytes(sv.data(), sv.data() + sv.size());
+            }
+            catch (const std::range_error&)
+            {
+                set_last_error(std::errc::result_out_of_range);
+
+                sv = sv.substr(0, conv.converted());
+
+                w = conv.from_bytes(sv.data(), sv.data() + sv.size());
+            }
+        }
+
+        // widechar to utf8
+        {
+            auto sv = asio2::to_basic_string_view(w);
+
+            asio2::wstring_convert<asio2::codecvt_utf8<wchar_t, CharT>, wchar_t, CharT> conv;
+            try
+            {
+                return conv.to_bytes(sv.data(), sv.data() + sv.size());
+            }
+            catch (const std::range_error&)
+            {
+                set_last_error(std::errc::result_out_of_range);
+
+                sv = sv.substr(0, conv.converted());
+
+                return conv.to_bytes(sv.data(), sv.data() + sv.size());
+            }
+        }
 	}
 
 	/**
@@ -1382,16 +1423,63 @@ namespace asio2
 	 * @return Converted value as std::string.
 	 */
 	template<class StringT>
-    inline auto utf8_to_gbk(const StringT& str)
+    inline auto utf8_to_gbk(const StringT& str, const std::string& locale_name = "chs") noexcept
 	{
         using CharT = typename detail::char_type<StringT>::type;
 
-		asio2::wstring_convert<asio2::codecvt_utf8<wchar_t, CharT>, wchar_t, CharT> utf8_cvt;
-        std::wstring w = utf8_cvt.from_bytes(str);
+        clear_last_error();
 
-		asio2::wstring_convert<std::codecvt_byname<wchar_t, char, std::mbstate_t>> gbk_cvt(
-			new std::codecvt_byname<wchar_t, char, std::mbstate_t>(detail::default_locale_name));
-		return gbk_cvt.to_bytes(w);
+		std::wstring w;
+
+        std::codecvt_byname<wchar_t, char, std::mbstate_t>* c = nullptr;
+        try
+        {
+            c = new std::codecvt_byname<wchar_t, char, std::mbstate_t>(locale_name);
+        }
+        catch (const std::exception&)
+        {
+            set_last_error(std::errc::invalid_argument);
+
+            return std::string{};
+        }
+
+        // utf8 to widechar
+        {
+            auto sv = asio2::to_basic_string_view(str);
+
+            asio2::wstring_convert<asio2::codecvt_utf8<wchar_t, CharT>, wchar_t, CharT> conv;
+            try
+            {
+                w = conv.from_bytes(sv.data(), sv.data() + sv.size());
+            }
+            catch (const std::range_error&)
+            {
+                set_last_error(std::errc::result_out_of_range);
+
+                sv = sv.substr(0, conv.converted());
+
+                w = conv.from_bytes(sv.data(), sv.data() + sv.size());
+            }
+        }
+
+        // widechar to gbk
+        {
+            auto sv = asio2::to_basic_string_view(w);
+
+            asio2::wstring_convert<std::codecvt_byname<wchar_t, char, std::mbstate_t>> conv(c);
+            try
+            {
+                return conv.to_bytes(sv.data(), sv.data() + sv.size());
+            }
+            catch (const std::range_error&)
+            {
+                set_last_error(std::errc::result_out_of_range);
+
+                sv = sv.substr(0, conv.converted());
+
+                return conv.to_bytes(sv.data(), sv.data() + sv.size());
+            }
+        }
 	}
 
 	/**
@@ -1401,11 +1489,38 @@ namespace asio2
 	 * @return Converted value as std::string.
 	 */
 	template<class StringT>
-    inline std::string wcstombs(const StringT& str, const std::string& locale_name = detail::default_locale_name)
+    inline std::string wcstombs(const StringT& str, const std::string& locale_name = asio2::get_codecvt_locale()) noexcept
 	{
-		asio2::wstring_convert<std::codecvt<wchar_t, char, std::mbstate_t>> conv(
-			new std::codecvt_byname<wchar_t, char, std::mbstate_t>(locale_name));
-		return conv.to_bytes(str);
+        clear_last_error();
+
+        auto sv = asio2::to_basic_string_view(str);
+
+        std::codecvt_byname<wchar_t, char, std::mbstate_t>* c = nullptr;
+        try
+        {
+            c = new std::codecvt_byname<wchar_t, char, std::mbstate_t>(locale_name);
+        }
+        catch (const std::exception&)
+        {
+            set_last_error(std::errc::invalid_argument);
+
+            return std::string{};
+        }
+
+		asio2::wstring_convert<std::codecvt_byname<wchar_t, char, std::mbstate_t>> conv(c);
+
+        try
+        {
+            return conv.to_bytes(sv.data(), sv.data() + sv.size());
+        }
+        catch (const std::range_error&)
+        {
+            set_last_error(std::errc::result_out_of_range);
+
+            sv = sv.substr(0, conv.converted());
+
+            return conv.to_bytes(sv.data(), sv.data() + sv.size());
+        }
 	}
 
 	/**
@@ -1415,11 +1530,38 @@ namespace asio2
 	 * @return Converted value as std::wstring.
 	 */
 	template<class StringT>
-    inline std::wstring mbstowcs(const StringT& str, const std::string& locale_name = detail::default_locale_name)
+    inline std::wstring mbstowcs(const StringT& str, const std::string& locale_name = asio2::get_codecvt_locale()) noexcept
 	{
-		asio2::wstring_convert<std::codecvt<wchar_t, char, std::mbstate_t>> conv(
-			new std::codecvt_byname<wchar_t, char, std::mbstate_t>(locale_name));
-		return conv.from_bytes(str);
+        clear_last_error();
+
+        auto sv = asio2::to_basic_string_view(str);
+
+        std::codecvt_byname<wchar_t, char, std::mbstate_t>* c = nullptr;
+        try
+        {
+            c = new std::codecvt_byname<wchar_t, char, std::mbstate_t>(locale_name);
+        }
+        catch (const std::exception&)
+        {
+            set_last_error(std::errc::invalid_argument);
+
+            return std::wstring{};
+        }
+
+		asio2::wstring_convert<std::codecvt_byname<wchar_t, char, std::mbstate_t>> conv(c);
+
+        try
+        {
+            return conv.from_bytes(sv.data(), sv.data() + sv.size());
+        }
+        catch (const std::range_error&)
+        {
+            set_last_error(std::errc::result_out_of_range);
+
+            sv = sv.substr(0, conv.converted());
+
+            return conv.from_bytes(sv.data(), sv.data() + sv.size());
+        }
 	}
 
 	/**
@@ -1428,18 +1570,63 @@ namespace asio2
 	 * @return Converted value as std::string.
 	 */
 	template<class StringT>
-	inline std::string utf8_to_locale(const StringT& str)
+	inline std::string utf8_to_locale(const StringT& str) noexcept
 	{
 		using CharT = typename detail::char_type<StringT>::type;
 
-		std::string locale_name = asio2::get_codecvt_locale();
+        clear_last_error();
 
-		asio2::wstring_convert<asio2::codecvt_utf8<wchar_t, CharT>, wchar_t, CharT> utf8_cvt;
-		std::wstring w = utf8_cvt.from_bytes(str);
+        std::wstring w;
 
-		asio2::wstring_convert<std::codecvt_byname<wchar_t, char, std::mbstate_t>> curr_cvt(
-			new std::codecvt_byname<wchar_t, char, std::mbstate_t>(locale_name));
-		return curr_cvt.to_bytes(w);
+        std::codecvt_byname<wchar_t, char, std::mbstate_t>* c = nullptr;
+        try
+        {
+            c = new std::codecvt_byname<wchar_t, char, std::mbstate_t>(asio2::get_codecvt_locale());
+        }
+        catch (const std::exception&)
+        {
+            set_last_error(std::errc::invalid_argument);
+
+            return std::string{};
+        }
+
+        // utf8 to widechar
+        {
+            auto sv = asio2::to_basic_string_view(str);
+
+            asio2::wstring_convert<asio2::codecvt_utf8<wchar_t, CharT>, wchar_t, CharT> conv;
+            try
+            {
+                w = conv.from_bytes(sv.data(), sv.data() + sv.size());
+            }
+            catch (const std::range_error&)
+            {
+                set_last_error(std::errc::result_out_of_range);
+
+                sv = sv.substr(0, conv.converted());
+
+                w = conv.from_bytes(sv.data(), sv.data() + sv.size());
+            }
+        }
+
+        // widechar to locale
+        {
+            auto sv = asio2::to_basic_string_view(w);
+
+            asio2::wstring_convert<std::codecvt_byname<wchar_t, char, std::mbstate_t>> conv(c);
+            try
+            {
+                return conv.to_bytes(sv.data(), sv.data() + sv.size());
+            }
+            catch (const std::range_error&)
+            {
+                set_last_error(std::errc::result_out_of_range);
+
+                sv = sv.substr(0, conv.converted());
+
+                return conv.to_bytes(sv.data(), sv.data() + sv.size());
+            }
+        }
 	}
 
 	/**
@@ -1448,18 +1635,63 @@ namespace asio2
 	 * @return Converted value as std::string.
 	 */
 	template<class StringT>
-	inline std::string locale_to_utf8(const StringT& str)
+	inline std::string locale_to_utf8(const StringT& str) noexcept
 	{
         using CharT = typename detail::char_type<StringT>::type;
 
-        std::string locale_name = asio2::get_codecvt_locale();
+        clear_last_error();
 
-        asio2::wstring_convert<std::codecvt_byname<wchar_t, CharT, std::mbstate_t>, wchar_t, CharT> curr_cvt(
-            new std::codecvt_byname<wchar_t, CharT, std::mbstate_t>(locale_name));
-        std::wstring w = curr_cvt.from_bytes(str);
+        std::wstring w;
 
-        asio2::wstring_convert<asio2::codecvt_utf8<wchar_t, CharT>, wchar_t, CharT> utf8_cvt;
-        return utf8_cvt.to_bytes(w);
+        std::codecvt_byname<wchar_t, CharT, std::mbstate_t>* c = nullptr;
+        try
+        {
+            c = new std::codecvt_byname<wchar_t, CharT, std::mbstate_t>(asio2::get_codecvt_locale());
+        }
+        catch (const std::exception&)
+        {
+            set_last_error(std::errc::invalid_argument);
+
+            return std::string{};
+        }
+
+        // locale to widechar
+        {
+            auto sv = asio2::to_basic_string_view(str);
+
+            asio2::wstring_convert<std::codecvt_byname<wchar_t, CharT, std::mbstate_t>, wchar_t, CharT> conv(c);
+            try
+            {
+                w = conv.from_bytes(sv.data(), sv.data() + sv.size());
+            }
+            catch (const std::range_error&)
+            {
+                set_last_error(std::errc::result_out_of_range);
+
+                sv = sv.substr(0, conv.converted());
+
+                w = conv.from_bytes(sv.data(), sv.data() + sv.size());
+            }
+        }
+
+        // widechar to utf8
+        {
+            auto sv = asio2::to_basic_string_view(w);
+
+            asio2::wstring_convert<asio2::codecvt_utf8<wchar_t, CharT>, wchar_t, CharT> conv;
+            try
+            {
+                return conv.to_bytes(sv.data(), sv.data() + sv.size());
+            }
+            catch (const std::range_error&)
+            {
+                set_last_error(std::errc::result_out_of_range);
+
+                sv = sv.substr(0, conv.converted());
+
+                return conv.to_bytes(sv.data(), sv.data() + sv.size());
+            }
+        }
 	}
 }
 
