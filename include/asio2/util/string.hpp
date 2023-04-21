@@ -280,6 +280,7 @@ namespace asio2
 			return static_cast<IntegerType>(std::strtoull(s.data(), nullptr, rx));
 		}
 	}
+
 	/**
 	 * @brief Converts std::string into any datatype.
 	 *        Datatype must support << operator.

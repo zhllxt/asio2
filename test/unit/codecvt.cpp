@@ -126,10 +126,10 @@ void codecvt_test()
         ASIO2_CHECK(str.size() == 3);
         ASIO2_CHECK(str[0] == 0x7a);
         ASIO2_CHECK(str[1] == 0x6c34);
-        if (asio2::get_codecvt_locale() == ".936")
+        if constexpr (sizeof(wchar_t) == 2)
             ASIO2_CHECK(str[2] == 0xd10b); // chinese windows, why ?
-        else
-            ASIO2_CHECK(str[2] == 0x1d10b); // ubuntu
+        else // sizeof(wchar_t) == 4
+            ASIO2_CHECK(str[2] == 0x1d10b); // wsl ubuntu
     }
 
     // https://en.cppreference.com/w/cpp/locale/codecvt_utf8_utf16
@@ -321,10 +321,10 @@ void codecvt_test()
 		ASIO2_CHECK(str.size() == 3);
 		ASIO2_CHECK(str[0] == 0x7a);
 		ASIO2_CHECK(str[1] == 0x6c34);
-		if (asio2::get_codecvt_locale() == ".936")
+		if constexpr (sizeof(wchar_t) == 2)
 			ASIO2_CHECK_VALUE(str[2], str[2] == 0xd10b); // chinese windows, why ?
-		else
-			ASIO2_CHECK_VALUE(str[2], str[2] == 0x1d10b); // ubuntu
+		else // sizeof(wchar_t) == 4
+			ASIO2_CHECK_VALUE(str[2], str[2] == 0x1d10b); // wsl ubuntu
 	}
 
     // https://en.cppreference.com/w/cpp/locale/codecvt_utf8_utf16

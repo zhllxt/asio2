@@ -68,6 +68,22 @@ namespace asio2::detail
 			return (static_cast<derived_t&>(*this));
 		}
 
+		/**
+		 * @brief Get the host of the connected server.
+		 */
+		inline const std::string& get_host() noexcept
+		{
+			return this->host_;
+		}
+
+		/**
+		 * @brief Get the port of the connected server.
+		 */
+		inline const std::string& get_port() noexcept
+		{
+			return this->port_;
+		}
+
 	protected:
 		/// Save the host and port of the server
 		std::string                     host_, port_;

@@ -126,9 +126,9 @@ void thread_pool_test()
 
 		std::vector<std::future<void>> futures;
 
-		for (int i = 0; i < test_loop_times / 10; ++i)
+		for (std::size_t i = 0; i < thpool.get_pool_size(); ++i)
 		{
-			auto future = thpool.post([&thread_ids_set, &mtx]()
+			auto future = thpool.post(i, [&thread_ids_set, &mtx]()
 			{
 				std::lock_guard g(mtx);
 				thread_ids_set.emplace(std::this_thread::get_id());
