@@ -18,6 +18,10 @@
 
 #include <asio2/base/detail/push_options.hpp>
 
+#if defined(__GNUC__) || defined(__GNUG__)
+#  pragma GCC diagnostic ignored "-Warray-bounds"
+#endif
+
 #include <cstdint>
 #include <cstdarg>
 #include <cstdio>

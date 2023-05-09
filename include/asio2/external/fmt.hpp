@@ -25,6 +25,10 @@
 #endif
 #endif
 
+// used to compatible with the UE4 "check" macro
+#pragma push_macro("check")
+#undef check
+
 #include <fmt/format.h>
 #include <fmt/args.h>
 #include <fmt/chrono.h>
@@ -195,6 +199,8 @@ struct fmt::formatter<wxString, wchar_t>
 
 #endif
 #endif
+
+#pragma pop_macro("check")
 
 #include <asio2/base/detail/pop_options.hpp>
 

@@ -476,7 +476,7 @@ std::string_view device = "COM1"; // for windows
 //std::string_view device = "/dev/ttyS0"; // for linux
 std::string_view baud_rate = "9600";
 
-asio2::scp sp;
+asio2::serial_port sp;
 
 sp.bind_init([&]()
 {

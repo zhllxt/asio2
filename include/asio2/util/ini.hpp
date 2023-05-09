@@ -15,6 +15,11 @@
 #pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
+#if defined(__GNUC__) || defined(__GNUG__)
+#  pragma GCC diagnostic push
+#  pragma GCC diagnostic ignored "-Warray-bounds"
+#endif
+
 #include <cstring>
 #include <cctype>
 #include <cstdarg>
@@ -1259,5 +1264,9 @@ namespace asio2
 
 	using ini     = basic_ini<std::fstream>;
 }
+
+#if defined(__GNUC__) || defined(__GNUG__)
+#  pragma GCC diagnostic pop
+#endif
 
 #endif // !__ASIO2_INI_HPP__

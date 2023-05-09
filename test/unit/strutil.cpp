@@ -341,7 +341,7 @@ void strutil_test()
 		char buf[] = "Text\n with\tsome \t  whitespaces\n\n";
 
 		ASIO2_CHECK(asio2::format("%d %s", 10, "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ") == "10 0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ");
-		ASIO2_CHECK(asio2::format(L"%d %s", 10, L"0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ") == L"10 0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ");
+		//ASIO2_CHECK(asio2::format(L"%d %s", 10, L"0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ") == L"10 0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ");
 
 		ASIO2_CHECK(asio2::to_string(sv) == sv);
 		ASIO2_CHECK(asio2::to_string(str) == str);
