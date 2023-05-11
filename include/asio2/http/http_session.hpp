@@ -229,6 +229,8 @@ namespace asio2::detail
 		inline void _send_http_response(
 			std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs, MessageT& msg)
 		{
+			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
+
 			if (this->rep_.defer_guard_)
 			{
 				this->rep_.defer_guard_.reset();
@@ -238,6 +240,20 @@ namespace asio2::detail
 				if (this->response_mode_ == asio2::response_mode::automatic)
 				{
 					this->derived()._do_send_http_response(std::move(this_ptr), std::move(ecs), msg);
+				}
+				// if the manual mode is used, then the user maybe use async send to send the 
+				// response by self, at this time, the post recv will can't be called automaticly,
+				// so we need to call it manualy.
+				// But there may be some drawbacks in this situation:
+				// we can't call the post recv inside the async send callback, beacuse the 
+				// user maybe call async send with a string, and the string is just half of
+				// http protocol data, and we don't know when the all completed http protocol
+				// data will send finished.
+				// so we have to call the post recv directly at here.
+				// So the user should be best to send a completed http protocol packet at once.
+				else
+				{
+					this->derived()._post_recv(std::move(this_ptr), std::move(ecs));
 				}
 			}
 		}

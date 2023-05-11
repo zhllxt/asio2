@@ -63,6 +63,8 @@ namespace asio2::detail
 				derive.post_recv_counter_++;
 			#endif
 
+				ASIO2_ASSERT(derive.reading_ == false);
+
 				derive.reading_ = true;
 
 				// Read a request
@@ -86,6 +88,8 @@ namespace asio2::detail
 				ASIO2_ASSERT(derive.post_recv_counter_.load() == 0);
 				derive.post_recv_counter_++;
 			#endif
+
+				ASIO2_ASSERT(derive.reading_ == false);
 
 				derive.reading_ = true;
 
@@ -119,6 +123,8 @@ namespace asio2::detail
 			ASIO2_ASSERT(derive.post_recv_counter_.load() == 0);
 			derive.post_recv_counter_++;
 		#endif
+
+			ASIO2_ASSERT(derive.reading_ == false);
 
 			derive.reading_ = true;
 

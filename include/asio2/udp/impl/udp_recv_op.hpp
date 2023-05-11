@@ -72,6 +72,8 @@ namespace asio2::detail
 			derive.post_recv_counter_++;
 		#endif
 
+			ASIO2_ASSERT(derive.reading_ == false);
+
 			derive.reading_ = true;
 
 			derive.socket().async_receive(derive.buffer().prepare(derive.buffer().pre_size()),

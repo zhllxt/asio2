@@ -81,6 +81,8 @@ namespace asio2::detail
 			derive.post_recv_counter_++;
 		#endif
 
+			ASIO2_ASSERT(derive.reading_ == false);
+
 			derive.reading_ = true;
 
 			ecs_t<C>& e = *ecs;
