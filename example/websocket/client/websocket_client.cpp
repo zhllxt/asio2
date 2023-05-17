@@ -50,9 +50,13 @@ int main()
 		else
 		{
 			const websocket::response_type& rep = client.get_upgrade_response();
-			beast::string_view auth = rep.at(http::field::authentication_results);
-			std::cout << auth << std::endl;
-			ASIO2_ASSERT(auth == "200 OK");
+			auto it = rep.find(http::field::authentication_results);
+			if (it != rep.end())
+			{
+				beast::string_view auth = it->value();
+				std::cout << auth << std::endl;
+				ASIO2_ASSERT(auth == "200 OK");
+			}
 
 			std::cout << "upgrade success : " << rep << std::endl;
 		}

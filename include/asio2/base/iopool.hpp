@@ -432,9 +432,15 @@ namespace asio2::detail
 					// If an exception occurs here, what should we do ?
 					// We should handle exceptions in other business functions to ensure that
 					// exceptions will not be triggered here.
+
+					// You can define ASIO2_NO_EXCEPTIONS in the /asio2/config.hpp to disable the
+					// exception. so when the exception occurs, you can check the stack trace.
+				#if !defined(ASIO2_NO_EXCEPTIONS)
 					try
 					{
+				#endif
 						iot->context().run();
+				#if !defined(ASIO2_NO_EXCEPTIONS)
 					}
 					catch (system_error const& e)
 					{
@@ -458,6 +464,7 @@ namespace asio2::detail
 
 						ASIO2_ASSERT(false);
 					}
+				#endif
 
 					// memory leaks occur when SSL is used in multithreading
 					// https://github.com/chriskohlhoff/asio/issues/368
@@ -1343,7 +1350,8 @@ namespace asio2::detail
 
 			#if defined(_DEBUG) || defined(DEBUG)
 				derived_t& derive = static_cast<derived_t&>(*this);
-				static_cast<default_iopool*>(this->iopool_.get())->impl_.derive_pointer_ = [&derive]() {};
+				static_cast<default_iopool*>(this->iopool_.get())->impl_.derive_pointer_ =
+					[&derive]() { detail::ignore_unused(derive); };
 			#endif
 			}
 			else if constexpr (std::is_same_v<type, detail::iopool>)

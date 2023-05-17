@@ -1121,7 +1121,7 @@ public:
 	// when assigning to self there is a deep copy which is inefficient.
 	callback_list_base & operator = (const callback_list_base & other)
 	{
-		if(this != &other)
+		if(this != std::addressof(other))
 		{
 			callback_list_base copied(other);
 			swap(copied);
@@ -1131,7 +1131,7 @@ public:
 
 	callback_list_base & operator = (callback_list_base && other) noexcept
 	{
-		if(this != &other)
+		if(this != std::addressof(other))
 		{
 			do_free_all_nodes();
 
@@ -2119,10 +2119,10 @@ public:
 
 	std::size_t get_listener_count(const listener_name_type& name, std::optional<event_type> e = std::nullopt)
 	{
+		typename thread_type::template shared_lock<mutex_type> guard(listener_mtx_);
+
 		if (listener_name_map_.empty())
 			return 0;
-
-		typename thread_type::template shared_lock<mutex_type> guard(listener_mtx_);
 
 		auto it = listener_name_map_.find(name);
 		if (it != listener_name_map_.end())
@@ -2138,12 +2138,12 @@ public:
 
 	std::size_t get_listener_count()
 	{
-		if (listener_map_.empty())
-			return 0;
-
 		std::size_t count = 0;
 
 		typename thread_type::template shared_lock<mutex_type> guard(listener_mtx_);
+
+		if (listener_map_.empty())
+			return 0;
 
 		for (auto& [e, cblist] : listener_map_)
 		{
@@ -2299,7 +2299,7 @@ private:
 		auto it = self->listener_map_.find(e);
 		if(it != self->listener_map_.end())
 		{
-			return &it->second;
+			return std::addressof(it->second);
 		}
 		else
 		{

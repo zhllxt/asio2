@@ -65,9 +65,13 @@ int main()
 		// how to get the upgrade request data : 
 		// @see /asio2/example/websocket/client/websocket_client.cpp
 		const websocket::request_type& req = session_ptr->get_upgrade_request();
-		beast::string_view auth = req.at(http::field::authorization);
-		std::cout << auth << std::endl;
-		ASIO2_ASSERT(auth == "websocket-client-authorization");
+		auto it = req.find(http::field::authorization);
+		if (it != req.end())
+		{
+			beast::string_view auth = it->value();
+			std::cout << auth << std::endl;
+			ASIO2_ASSERT(auth == "websocket-client-authorization");
+		}
 		
 	}).bind_start([&]()
 	{

@@ -85,19 +85,40 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			std::ostringstream oss;
-			oss << data;
-			std::unique_ptr<std::string> str = std::make_unique<std::string>(oss.str());
+			std::vector<asio::const_buffer> buffers;
 
-			auto buffer = asio::buffer(*str);
+			http::serializer<isRequest, Body, Fields> sr(data);
+
+			sr.split(false);
+
+			for (;;)
+			{
+				error_code ec;
+
+				sr.next(ec, [&sr, &buffers](error_code& ec, auto const& bufs) mutable
+				{
+					for (auto const& buf : bufs)
+					{
+						buffers.emplace_back(buf.data(), buf.size());
+
+						sr.consume(buf.size());
+					}
+				});
+
+				if (ec)
+					break;
+
+				if (sr.is_done())
+					break;
+			}
 
 		#if defined(_DEBUG) || defined(DEBUG)
 			ASIO2_ASSERT(derive.post_send_counter_.load() == 0);
 			derive.post_send_counter_++;
 		#endif
 
-			derive.ws_stream().async_write(buffer, make_allocator(derive.wallocator(),
-			[&derive, p = derive.selfptr(), str = std::move(str), callback = std::forward<Callback>(callback)]
+			derive.ws_stream().async_write(buffers, make_allocator(derive.wallocator(),
+			[&derive, p = derive.selfptr(), callback = std::forward<Callback>(callback)]
 			(const error_code& ec, std::size_t bytes_sent) mutable
 			{
 			#if defined(_DEBUG) || defined(DEBUG)

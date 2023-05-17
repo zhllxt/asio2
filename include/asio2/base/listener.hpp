@@ -25,6 +25,8 @@
 #include <type_traits>
 
 #include <asio2/base/error.hpp>
+#include <asio2/base/log.hpp>
+
 #include <asio2/base/detail/util.hpp>
 
 namespace asio2::detail
@@ -43,6 +45,28 @@ namespace asio2::detail
 		stop,
 		max
 	};
+
+	template<typename = void>
+	inline constexpr std::string_view to_string(event_type v)
+	{
+		using namespace std::string_view_literals;
+		switch (v)
+		{
+		case event_type::recv       : return "recv";
+		case event_type::send       : return "send";
+		case event_type::connect    : return "connect";
+		case event_type::disconnect : return "disconnect";
+		case event_type::accept     : return "accept";
+		case event_type::handshake  : return "handshake";
+		case event_type::upgrade    : return "upgrade";
+		case event_type::init       : return "init";
+		case event_type::start      : return "start";
+		case event_type::stop       : return "stop";
+		case event_type::max		: return "max";
+		default				        : return "none";
+		}
+		return "none";
+	}
 
 	class observer_base
 	{
@@ -201,7 +225,67 @@ namespace asio2::detail
 				this->observers_[detail::to_underlying(e)].get());
 			if (observer_ptr)
 			{
-				(*observer_ptr)(std::forward<Args>(args)...);
+				// You can define ASIO2_NO_EXCEPTIONS in the /asio2/config.hpp to disable the
+				// exception. so when the exception occurs, you can check the stack trace.
+			#if !defined(ASIO2_NO_EXCEPTIONS)
+				try
+				{
+			#endif
+					(*observer_ptr)(std::forward<Args>(args)...);
+			#if !defined(ASIO2_NO_EXCEPTIONS)
+				}
+				catch (system_error const& ex)
+				{
+					std::ignore = ex;
+
+				#if defined(_DEBUG) || defined(DEBUG)
+					// just for see the exception information.
+					std::string msg = "An exception occured in the user callback function 'bind_";
+					msg += detail::to_string(e);
+					msg += "' : ";
+					msg += ex.what();
+					std::ignore = msg;
+				#endif
+
+					ASIO2_LOG_ERROR("An exception occured in the user callback function 'bind_{}' :1: {}",
+						detail::to_string(e), ex.what());
+
+					ASIO2_ASSERT(false);
+				}
+				catch (std::exception const& ex)
+				{
+					std::ignore = ex;
+
+				#if defined(_DEBUG) || defined(DEBUG)
+					// just for see the exception information.
+					std::string msg = "An exception occured in the user callback function 'bind_";
+					msg += detail::to_string(e);
+					msg += "' : ";
+					msg += ex.what();
+					std::ignore = msg;
+				#endif
+
+					ASIO2_LOG_ERROR("An exception occured in the user callback function 'bind_{}' :2: {}",
+						detail::to_string(e), ex.what());
+
+					ASIO2_ASSERT(false);
+				}
+				catch (...)
+				{
+				#if defined(_DEBUG) || defined(DEBUG)
+					// just for see the exception information.
+					std::string msg = "An exception occured in the user callback function 'bind_";
+					msg += detail::to_string(e);
+					msg += "'";
+					std::ignore = msg;
+				#endif
+
+					ASIO2_LOG_ERROR("An exception occured in the user callback function 'bind_{}' :3",
+						detail::to_string(e));
+
+					ASIO2_ASSERT(false);
+				}
+			#endif
 			}
 		}
 
