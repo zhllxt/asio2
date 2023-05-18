@@ -39,7 +39,7 @@ namespace asio2::detail
 		/**
 		 * @brief get the connect timeout
 		 */
-		inline std::chrono::steady_clock::duration get_connect_timeout() noexcept
+		inline std::chrono::steady_clock::duration get_connect_timeout() const noexcept
 		{
 			return this->connect_timeout_;
 		}

@@ -98,6 +98,14 @@ namespace asio2::detail
 			return this->derived().ssl_stream();
 		}
 
+		/**
+		 * @brief get the stream object refrence
+		 */
+		inline typename ssl_stream_comp::ssl_stream_type const& stream() const noexcept
+		{
+			return this->derived().ssl_stream();
+		}
+
 	public:
 		/**
 		 * @brief bind ssl handshake listener

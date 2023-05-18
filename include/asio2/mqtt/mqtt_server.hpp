@@ -162,9 +162,18 @@ namespace asio2::detail
 		inline auto& shared_targets   () noexcept { return this->broker_state_.shared_targets_   ; }
 		inline auto& retained_messages() noexcept { return this->broker_state_.retained_messages_; }
 
+		inline auto const& invoker          () const noexcept { return this->broker_state_.invoker_          ; }
+		inline auto const& mqtt_sessions    () const noexcept { return this->broker_state_.mqtt_sessions_    ; }
+		inline auto const& subs_map         () const noexcept { return this->broker_state_.subs_map_         ; }
+		inline auto const& shared_targets   () const noexcept { return this->broker_state_.shared_targets_   ; }
+		inline auto const& retained_messages() const noexcept { return this->broker_state_.retained_messages_; }
+
 	public:
 		inline auto& security         () noexcept { return this->broker_state_.security_; }
 		inline auto& get_security     () noexcept { return this->broker_state_.security_; }
+
+		inline auto const& security         () const noexcept { return this->broker_state_.security_; }
+		inline auto const& get_security     () const noexcept { return this->broker_state_.security_; }
 
 	protected:
 		/// 

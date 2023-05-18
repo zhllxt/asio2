@@ -109,7 +109,7 @@ namespace asio2::rpc
 		promise& operator=(promise&&) noexcept = default;
 		promise& operator=(promise const&) noexcept = default;
 
-		inline future<T> get_future() noexcept { return future<T>{ defer_ }; }
+		inline future<T> get_future() const noexcept { return future<T>{ defer_ }; }
 
 		template<class V>
 		inline void set_value(V&& v) { defer_->set_value(std::forward<V>(v)); }
@@ -180,7 +180,7 @@ namespace asio2::rpc
 		promise& operator=(promise&&) noexcept = default;
 		promise& operator=(promise const&) noexcept = default;
 
-		inline future<void> get_future() noexcept { return future<void>{ defer_ }; }
+		inline future<void> get_future() const noexcept { return future<void>{ defer_ }; }
 
 		template<typename = void>
 		inline void set_value() { defer_->set_value(); }
@@ -299,6 +299,7 @@ namespace asio2::detail
 
 	protected:
 		inline self& _invoker() noexcept { return (*this); }
+		inline self const& _invoker() const noexcept { return (*this); }
 
 		template<class F>
 		inline void _bind(std::string name, F f)

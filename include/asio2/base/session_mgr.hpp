@@ -353,6 +353,14 @@ namespace asio2::detail
 			return this->io_;
 		}
 
+		/**
+		 * @brief get the io object refrence
+		 */
+		inline io_t const& io() const noexcept
+		{
+			return this->io_;
+		}
+
 	protected:
 		/// use rwlock to make this session map thread safe
 		mutable asio2::shared_mutexer                            mutex_;

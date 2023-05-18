@@ -93,6 +93,14 @@ namespace asio2::detail
 			return this->derived().ws_stream();
 		}
 
+		/**
+		 * @brief return the websocket stream object refrence
+		 */
+		inline typename args_t::stream_t const& stream() const noexcept
+		{
+			return this->derived().ws_stream();
+		}
+
 	public:
 		/**
 		 * @brief get this object hash key,used for session map
@@ -105,10 +113,19 @@ namespace asio2::detail
 		/**
 		 * @brief get the websocket upgraged request object
 		 */
-		inline const websocket::request_type& get_upgrade_request() noexcept { return this->upgrade_req_; }
+		inline       websocket::request_type& get_upgrade_request()      noexcept { return this->upgrade_req_; }
+
+		/**
+		 * @brief get the websocket upgraged request object
+		 */
+		inline const websocket::request_type& get_upgrade_request() const noexcept { return this->upgrade_req_; }
 
 	protected:
 		inline typename super::ssl_stream_type& upgrade_stream() noexcept
+		{
+			return this->ssl_stream();
+		}
+		inline typename super::ssl_stream_type const& upgrade_stream() const noexcept
 		{
 			return this->ssl_stream();
 		}

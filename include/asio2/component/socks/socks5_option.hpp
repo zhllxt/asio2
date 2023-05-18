@@ -68,8 +68,14 @@ namespace asio2::socks5::detail
 		inline std::string&     username() noexcept { return  username_; }
 		inline std::string&     password() noexcept { return  password_; }
 
+		inline std::string const&     username() const noexcept { return  username_; }
+		inline std::string const&     password() const noexcept { return  password_; }
+
 		inline std::string& get_username() noexcept { return  username_; }
 		inline std::string& get_password() noexcept { return  password_; }
+
+		inline std::string const& get_username() const noexcept { return  username_; }
+		inline std::string const& get_password() const noexcept { return  password_; }
 
 	protected:
 		std::string username_{};
@@ -177,8 +183,14 @@ namespace asio2::socks5
 		inline std::string&     host() noexcept { return host_; }
 		inline std::string&     port() noexcept { return port_; }
 
+		inline std::string const&     host() const noexcept { return host_; }
+		inline std::string const&     port() const noexcept { return port_; }
+
 		inline std::string& get_host() noexcept { return host_; }
 		inline std::string& get_port() noexcept { return port_; }
+
+		inline std::string const& get_host() const noexcept { return host_; }
+		inline std::string const& get_port() const noexcept { return port_; }
 
 		// vs2017 15.9.31 not supported
 		//constexpr static bool has_password_method = ((ms == method::password) || ...);
@@ -208,8 +220,8 @@ namespace asio2::socks5
 			return methods_.size();
 		}
 
-		inline socks5::command     command()                    noexcept { return cmd_;                }
-		inline socks5::command get_command()                    noexcept { return cmd_;                }
+		inline socks5::command     command() const              noexcept { return cmd_;                }
+		inline socks5::command get_command() const              noexcept { return cmd_;                }
 
 		inline option&             command(socks5::command cmd) noexcept { cmd_ = cmd; return (*this); }
 		inline option&         set_command(socks5::command cmd) noexcept { cmd_ = cmd; return (*this); }

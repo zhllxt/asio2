@@ -167,6 +167,11 @@ namespace asio2::detail
 		 */
 		inline io_t & io() noexcept { return this->io_; }
 
+		/**
+		 * @brief get the io object refrence
+		 */
+		inline io_t const& io() const noexcept { return this->io_; }
+
 	protected:
 		/**
 		 * @brief get the recv/read allocator object refrence

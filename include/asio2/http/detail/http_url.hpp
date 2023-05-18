@@ -69,7 +69,7 @@ namespace boost::beast::http
 		 * @brief Gets the content of the "schema" section, maybe empty
 		 * The return value is usually http or https
 		 */
-		inline std::string_view get_schema() noexcept
+		inline std::string_view get_schema() const noexcept
 		{
 			return this->field(http::parses::url_fields::UF_SCHEMA);
 		}
@@ -79,7 +79,7 @@ namespace boost::beast::http
 		 * The return value is usually http or https
 		 * same as get_schema
 		 */
-		inline std::string_view schema() noexcept
+		inline std::string_view schema() const noexcept
 		{
 			return this->get_schema();
 		}
@@ -87,7 +87,7 @@ namespace boost::beast::http
 		/**
 		 * @brief Gets the content of the "host" section, maybe empty
 		 */
-		inline std::string_view get_host() noexcept
+		inline std::string_view get_host() const noexcept
 		{
 			return this->field(http::parses::url_fields::UF_HOST);
 		}
@@ -96,12 +96,12 @@ namespace boost::beast::http
 		 * @brief Gets the content of the "host" section, maybe empty
 		 * same as get_host
 		 */
-		inline std::string_view host() noexcept
+		inline std::string_view host() const noexcept
 		{
 			return this->get_host();
 		}
 
-		inline std::string_view get_default_port() noexcept
+		inline std::string_view get_default_port() const noexcept
 		{
 			std::string_view schema = this->schema();
 			if (asio2::iequals(schema, "http"))
@@ -111,7 +111,7 @@ namespace boost::beast::http
 			return std::string_view{ "80" };
 		}
 
-		inline std::string_view default_port() noexcept
+		inline std::string_view default_port() const noexcept
 		{
 			return this->get_default_port();
 		}
@@ -119,7 +119,7 @@ namespace boost::beast::http
 		/**
 		 * @brief Gets the content of the "port" section
 		 */
-		inline std::string_view get_port() noexcept
+		inline std::string_view get_port() const noexcept
 		{
 			std::string_view p = this->field(http::parses::url_fields::UF_PORT);
 			if (p.empty())
@@ -131,7 +131,7 @@ namespace boost::beast::http
 		 * @brief Gets the content of the "port" section
 		 * same as get_port
 		 */
-		inline std::string_view port() noexcept
+		inline std::string_view port() const noexcept
 		{
 			return this->get_port();
 		}
@@ -140,7 +140,7 @@ namespace boost::beast::http
 		 * @brief Gets the content of the "path" section
 		 * the return value maybe has undecoded char, you can use http::url_decode(...) to decoded it.
 		 */
-		inline std::string_view get_path() noexcept
+		inline std::string_view get_path() const noexcept
 		{
 			std::string_view p = this->field(http::parses::url_fields::UF_PATH);
 			if (p.empty())
@@ -153,7 +153,7 @@ namespace boost::beast::http
 		 * the return value maybe has undecoded char, you can use http::url_decode(...) to decoded it.
 		 * same as get_path
 		 */
-		inline std::string_view path() noexcept
+		inline std::string_view path() const noexcept
 		{
 			return this->get_path();
 		}
@@ -162,7 +162,7 @@ namespace boost::beast::http
 		 * @brief Gets the content of the "query" section, maybe empty
 		 * the return value maybe has undecoded char, you can use http::url_decode(...) to decoded it.
 		 */
-		inline std::string_view get_query() noexcept
+		inline std::string_view get_query() const noexcept
 		{
 			return this->field(http::parses::url_fields::UF_QUERY);
 		}
@@ -172,7 +172,7 @@ namespace boost::beast::http
 		 * the return value maybe has undecoded char, you can use http::url_decode(...) to decoded it.
 		 * same as get_query
 		 */
-		inline std::string_view query() noexcept
+		inline std::string_view query() const noexcept
 		{
 			return this->get_query();
 		}
@@ -181,7 +181,7 @@ namespace boost::beast::http
 		 * @brief Gets the "target", which composed by path and query
 		 * the return value maybe has undecoded char, you can use http::url_decode(...) to decoded it.
 		 */
-		inline std::string_view get_target() noexcept
+		inline std::string_view get_target() const noexcept
 		{
 			if (parser_.field_set & (1 << (int)http::parses::url_fields::UF_PATH))
 			{
@@ -199,7 +199,7 @@ namespace boost::beast::http
 		 * the return value maybe has undecoded char, you can use http::url_decode(...) to decoded it.
 		 * same as get_target
 		 */
-		inline std::string_view target() noexcept
+		inline std::string_view target() const noexcept
 		{
 			return this->get_target();
 		}
@@ -207,7 +207,7 @@ namespace boost::beast::http
 		/**
 		 * @brief Gets the content of the specific section, maybe empty
 		 */
-		inline std::string_view get_field(http::parses::url_fields f) noexcept
+		inline std::string_view get_field(http::parses::url_fields f) const noexcept
 		{
 			if (!(parser_.field_set & (1 << int(f))))
 				return std::string_view{};
@@ -219,7 +219,7 @@ namespace boost::beast::http
 		 * @brief Gets the content of the specific section, maybe empty
 		 * same as get_field
 		 */
-		inline std::string_view field(http::parses::url_fields f) noexcept
+		inline std::string_view field(http::parses::url_fields f) const noexcept
 		{
 			return this->get_field(std::move(f));
 		}
@@ -228,6 +228,11 @@ namespace boost::beast::http
 		inline std::string                   &     string() noexcept { return this->string_; }
 		inline http::parses::http_parser_url & get_parser() noexcept { return this->parser_; }
 		inline std::string                   & get_string() noexcept { return this->string_; }
+
+		inline http::parses::http_parser_url const&     parser() const noexcept { return this->parser_; }
+		inline std::string                   const&     string() const noexcept { return this->string_; }
+		inline http::parses::http_parser_url const& get_parser() const noexcept { return this->parser_; }
+		inline std::string                   const& get_string() const noexcept { return this->string_; }
 
 	protected:
 		http::parses::http_parser_url         parser_;

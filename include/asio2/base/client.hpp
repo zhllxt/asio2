@@ -241,7 +241,7 @@ namespace asio2::detail
 		/**
 		 * @brief check whether the client is started
 		 */
-		inline bool is_started()
+		inline bool is_started() const
 		{
 			return (this->state_ == state_t::started && this->socket().is_open());
 		}
@@ -249,7 +249,7 @@ namespace asio2::detail
 		/**
 		 * @brief check whether the client is stopped
 		 */
-		inline bool is_stopped()
+		inline bool is_stopped() const
 		{
 			return (this->state_ == state_t::stopped && !this->socket().is_open() && this->stopped_);
 		}
@@ -273,6 +273,11 @@ namespace asio2::detail
 		inline io_t & io() noexcept { return this->io_; }
 
 		/**
+		 * @brief get the io object refrence
+		 */
+		inline io_t const& io() const noexcept { return this->io_; }
+
+		/**
 		 * @brief set the default remote call timeout for rpc/rdc
 		 */
 		template<class Rep, class Period>
@@ -285,7 +290,7 @@ namespace asio2::detail
 		/**
 		 * @brief get the default remote call timeout for rpc/rdc
 		 */
-		inline std::chrono::steady_clock::duration get_default_timeout() noexcept
+		inline std::chrono::steady_clock::duration get_default_timeout() const noexcept
 		{
 			return this->rc_timeout_;
 		}

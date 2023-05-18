@@ -89,6 +89,14 @@ namespace asio2::detail
 		}
 
 		/**
+		 * @brief return the websocket stream object refrence
+		 */
+		inline typename args_t::stream_t const& stream() const noexcept
+		{
+			return this->derived().ws_stream();
+		}
+
+		/**
 		 * @brief start the client, blocking connect to server
 		 * @param host - A string identifying a location. May be a descriptive name or
 		 * a numeric address string.
@@ -137,12 +145,17 @@ namespace asio2::detail
 		/**
 		 * @brief get the websocket upgraged response object
 		 */
-		inline const websocket::response_type& get_upgrade_response() noexcept { return this->upgrade_rep_; }
+		inline       websocket::response_type& get_upgrade_response()      noexcept { return this->upgrade_rep_; }
+
+		/**
+		 * @brief get the websocket upgraged response object
+		 */
+		inline const websocket::response_type& get_upgrade_response() const noexcept { return this->upgrade_rep_; }
 
 		/**
 		 * @brief get the websocket upgraged target
 		 */
-		inline const std::string& get_upgrade_target() noexcept { return this->upgrade_target_; }
+		inline const std::string& get_upgrade_target() const noexcept { return this->upgrade_target_; }
 
 		/**
 		 * @brief set the websocket upgraged target

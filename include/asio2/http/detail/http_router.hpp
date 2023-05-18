@@ -468,7 +468,7 @@ namespace asio2::detail
 		/**
 		 * @brief get whether websocket is supported, default is true
 		 */
-		inline bool is_support_websocket() noexcept
+		inline bool is_support_websocket() const noexcept
 		{
 			return this->support_websocket_;
 		}

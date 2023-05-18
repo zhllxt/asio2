@@ -93,8 +93,8 @@ namespace asio2::detail
 		inline       id_type      get_id  () const noexcept { return this->id_;   }
 		inline const std::string& get_name() const noexcept { return this->name_; }
 
-		inline bool is_request () noexcept { return this->type_ == rpc_type_req; }
-		inline bool is_response() noexcept { return this->type_ == rpc_type_rep; }
+		inline bool is_request () const noexcept { return this->type_ == rpc_type_req; }
+		inline bool is_response() const noexcept { return this->type_ == rpc_type_rep; }
 
 		inline rpc_header&     type(char type            ) noexcept { this->type_ = type; return (*this); }
 		inline rpc_header&     id  (id_type id           ) noexcept { this->id_   = id  ; return (*this); }

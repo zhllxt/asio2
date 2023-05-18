@@ -129,6 +129,11 @@ namespace asio2::detail
 		 */
 		inline std::any& user_data_any() noexcept { return this->user_data_; }
 
+		/**
+		 * @brief return the std::any reference
+		 */
+		inline std::any const& user_data_any() const noexcept { return this->user_data_; }
+
 	protected:
 		/// user data
 		std::any user_data_;

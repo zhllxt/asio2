@@ -256,7 +256,7 @@ namespace asio2::detail
 		/**
 		 * @brief check whether the session is stopped
 		 */
-		inline bool is_stopped()
+		inline bool is_stopped() const noexcept
 		{
 			return (this->state_ == state_t::stopped);
 		}
@@ -320,12 +320,34 @@ namespace asio2::detail
 		}
 
 		/**
+		 * @brief get the kcp pointer, just used for kcp mode
+		 * default mode : ikcp_nodelay(kcp, 0, 10, 0, 0);
+		 * generic mode : ikcp_nodelay(kcp, 0, 10, 0, 1);
+		 * fast    mode : ikcp_nodelay(kcp, 1, 10, 2, 1);
+		 */
+		inline const kcp::ikcpcb* get_kcp() const noexcept
+		{
+			return (this->kcp_ ? this->kcp_->kcp_ : nullptr);
+		}
+
+		/**
 		 * @brief get the kcp pointer, just used for kcp mode. same as get_kcp
 		 * default mode : ikcp_nodelay(kcp, 0, 10, 0, 0);
 		 * generic mode : ikcp_nodelay(kcp, 0, 10, 0, 1);
 		 * fast    mode : ikcp_nodelay(kcp, 1, 10, 2, 1);
 		 */
 		inline kcp::ikcpcb* kcp() noexcept
+		{
+			return this->get_kcp();
+		}
+
+		/**
+		 * @brief get the kcp pointer, just used for kcp mode. same as get_kcp
+		 * default mode : ikcp_nodelay(kcp, 0, 10, 0, 0);
+		 * generic mode : ikcp_nodelay(kcp, 0, 10, 0, 1);
+		 * fast    mode : ikcp_nodelay(kcp, 1, 10, 2, 1);
+		 */
+		inline const kcp::ikcpcb* kcp() const noexcept
 		{
 			return this->get_kcp();
 		}

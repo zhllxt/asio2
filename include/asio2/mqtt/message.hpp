@@ -170,6 +170,12 @@ namespace asio2::mqtt
 		}
 
 		template<class T, std::enable_if_t<is_rawmsg<T>(), int> = 0>
+		operator const T&() const
+		{
+			return std::get<T>(this->base());
+		}
+
+		template<class T, std::enable_if_t<is_rawmsg<T>(), int> = 0>
 		operator T*() noexcept
 		{
 			return std::get_if<T>(std::addressof(this->base()));
@@ -177,6 +183,12 @@ namespace asio2::mqtt
 
 		template<class T, std::enable_if_t<is_rawmsg<T>(), int> = 0>
 		operator const T*() noexcept
+		{
+			return std::get_if<T>(std::addressof(this->base()));
+		}
+
+		template<class T, std::enable_if_t<is_rawmsg<T>(), int> = 0>
+		operator const T*() const noexcept
 		{
 			return std::get_if<T>(std::addressof(this->base()));
 		}
@@ -209,7 +221,7 @@ namespace asio2::mqtt
 		 * @brief Checks if the variant holds anyone of the alternative Types...
 		 */
 		template<class... Types>
-		inline bool has() noexcept
+		inline bool has() const noexcept
 		{
 			return (std::holds_alternative<Types>(this->base()) || ...);
 		}
@@ -218,7 +230,7 @@ namespace asio2::mqtt
 		 * @brief Checks if the variant holds anyone of the alternative Types...
 		 */
 		template<class... Types>
-		inline bool holds() noexcept
+		inline bool holds() const noexcept
 		{
 			return (std::holds_alternative<Types>(this->base()) || ...);
 		}
@@ -264,6 +276,16 @@ namespace asio2::mqtt
 		}
 
 		/**
+		 * @brief If this holds the alternative T, returns a pointer to the value stored in the variant.
+		 * Otherwise, returns a null pointer value.
+		 */
+		template<class T>
+		inline std::add_pointer_t<std::add_const_t<T>> get_if() const noexcept
+		{
+			return std::get_if<T>(std::addressof(this->base()));
+		}
+
+		/**
 		 * @brief If this holds the alternative T, returns a reference to the value stored in the variant.
 		 * Otherwise, throws std::bad_variant_access.
 		 */
@@ -274,9 +296,19 @@ namespace asio2::mqtt
 		}
 
 		/**
+		 * @brief If this holds the alternative T, returns a reference to the value stored in the variant.
+		 * Otherwise, throws std::bad_variant_access.
+		 */
+		template<class T>
+		inline T const& get() const
+		{
+			return std::get<T>(this->base());
+		}
+
+		/**
 		 * @brief If this holds a valid value.
 		 */
-		inline bool empty() noexcept
+		inline bool empty() const noexcept
 		{
 			return (this->index() == std::variant_npos || std::holds_alternative<mqtt::nullmsg>(this->base()));
 		}

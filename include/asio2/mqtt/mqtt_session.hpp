@@ -139,7 +139,7 @@ namespace asio2::detail
 		/**
 		 * @brief get the mqtt version number
 		 */
-		inline mqtt::version version()
+		inline mqtt::version version() const
 		{
 			return this->get_version();
 		}
@@ -147,7 +147,7 @@ namespace asio2::detail
 		/**
 		 * @brief get the mqtt version number
 		 */
-		inline mqtt::version get_version()
+		inline mqtt::version get_version() const
 		{
 			return this->version_;
 		}
@@ -155,7 +155,7 @@ namespace asio2::detail
 		/**
 		 * @brief get the mqtt client id 
 		 */
-		inline std::string_view client_id()
+		inline std::string_view client_id() const
 		{
 			return this->get_client_id();
 		}
@@ -163,7 +163,7 @@ namespace asio2::detail
 		/**
 		 * @brief get the mqtt client id 
 		 */
-		inline std::string_view get_client_id()
+		inline std::string_view get_client_id() const
 		{
 			std::string_view id{};
 			if (!this->connect_message_.empty())
@@ -370,6 +370,13 @@ namespace asio2::detail
 		inline auto& shared_targets   () noexcept { return this->broker_state_.shared_targets_   ; }
 		inline auto& retained_messages() noexcept { return this->broker_state_.retained_messages_; }
 		inline auto& security         () noexcept { return this->broker_state_.security_         ; }
+
+		inline auto const& invoker          () const noexcept { return this->broker_state_.invoker_          ; }
+		inline auto const& mqtt_sessions    () const noexcept { return this->broker_state_.mqtt_sessions_    ; }
+		inline auto const& subs_map         () const noexcept { return this->broker_state_.subs_map_         ; }
+		inline auto const& shared_targets   () const noexcept { return this->broker_state_.shared_targets_   ; }
+		inline auto const& retained_messages() const noexcept { return this->broker_state_.retained_messages_; }
+		inline auto const& security         () const noexcept { return this->broker_state_.security_         ; }
 
 		inline void set_preauthed_username(std::optional<std::string> username)
 		{

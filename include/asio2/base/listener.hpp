@@ -294,6 +294,11 @@ namespace asio2::detail
 			return this->observers_[detail::to_underlying(e)];
 		}
 
+		inline std::unique_ptr<observer_base> const& find(event_type e) const noexcept
+		{
+			return this->observers_[detail::to_underlying(e)];
+		}
+
 	protected:
 		std::array<std::unique_ptr<observer_base>, detail::to_underlying(event_type::max)> observers_;
 	};

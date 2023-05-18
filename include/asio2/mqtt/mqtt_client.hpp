@@ -200,7 +200,7 @@ namespace asio2::detail
 		/**
 		 * @brief get the mqtt version number
 		 */
-		inline mqtt::version version()
+		inline mqtt::version version() const
 		{
 			return this->get_version();
 		}
@@ -208,7 +208,7 @@ namespace asio2::detail
 		/**
 		 * @brief get the mqtt version number
 		 */
-		inline mqtt::version get_version()
+		inline mqtt::version get_version() const
 		{
 			if /**/ (std::holds_alternative<mqtt::v3::connect>(connect_message_.base()))
 			{
@@ -230,7 +230,7 @@ namespace asio2::detail
 		/**
 		 * @brief get the mqtt client identifier 
 		 */
-		inline std::string_view client_id()
+		inline std::string_view client_id() const
 		{
 			return this->get_client_id();
 		}
@@ -238,7 +238,7 @@ namespace asio2::detail
 		/**
 		 * @brief get the mqtt client identifier 
 		 */
-		inline std::string_view get_client_id()
+		inline std::string_view get_client_id() const
 		{
 			std::string_view v{};
 			if (!this->connect_message_.empty())
@@ -272,7 +272,7 @@ namespace asio2::detail
 		/**
 		 * @brief get the mqtt Keep Alive which is a time interval measured in seconds. 
 		 */
-		inline std::uint16_t keep_alive_time()
+		inline std::uint16_t keep_alive_time() const
 		{
 			return this->get_keep_alive_time();
 		}
@@ -280,7 +280,7 @@ namespace asio2::detail
 		/**
 		 * @brief get the mqtt Keep Alive which is a time interval measured in seconds. 
 		 */
-		inline std::uint16_t get_keep_alive_time()
+		inline std::uint16_t get_keep_alive_time() const
 		{
 			//The Keep Alive is a Two Byte Integer which is a time interval measured in seconds.
 			// It is the maximum time interval that is permitted to elapse between the point at
@@ -291,9 +291,9 @@ namespace asio2::detail
 			// MQTT Control Packets, the Client MUST send a PINGREQ packet [MQTT-3.1.2-20].
 			// If the Server returns a Server Keep Alive on the CONNACK packet, the Client MUST 
 			// use that value instead of the value it sent as the Keep Alive [MQTT-3.1.2-21].
-			if (mqtt::v5::connack* m = std::get_if<mqtt::v5::connack>(std::addressof(connack_message_.base())))
+			if (const mqtt::v5::connack* m = std::get_if<mqtt::v5::connack>(std::addressof(connack_message_.base())))
 			{
-				mqtt::v5::server_keep_alive* p =
+				const mqtt::v5::server_keep_alive* p =
 					m->properties().get_if<mqtt::v5::server_keep_alive>();
 				if (p)
 					return p->value();
@@ -345,6 +345,11 @@ namespace asio2::detail
 		 * @brief get the mqtt connect message refrence
 		 */
 		inline mqtt::message& get_connect_message() { return this->connect_message_; }
+
+		/**
+		 * @brief get the mqtt connect message refrence
+		 */
+		inline mqtt::message const& get_connect_message() const { return this->connect_message_; }
 
 		/**
 		 * @brief get the mqtt connect message packet refrence

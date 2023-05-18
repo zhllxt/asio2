@@ -638,12 +638,12 @@ namespace asio2::mqtt
 			*this = v;
 		}
 
-		inline std::int32_t value()
+		inline std::int32_t value() const
 		{
 			return std::get<0>(decode_variable_byte_integer(value_));
 		}
 
-		inline operator std::int32_t() { return value(); }
+		inline operator std::int32_t() const { return value(); }
 
 		inline variable_byte_integer& operator=(std::int32_t v)
 		{
@@ -652,12 +652,12 @@ namespace asio2::mqtt
 			return (*this);
 		}
 
-		inline std::size_t required_size()
+		inline std::size_t required_size() const
 		{
 			return std::get<1>(decode_variable_byte_integer(value_));
 		}
 
-		inline std::size_t size()
+		inline std::size_t size() const
 		{
 			return std::get<1>(decode_variable_byte_integer(value_));
 		}
@@ -918,11 +918,11 @@ namespace asio2::mqtt
 
 		inline bool empty() const noexcept  { return data_.empty(); }
 
-		inline std::string      data     () { return data_; }
-		inline std::string_view data_view() { return data_; }
+		inline std::string      data     () const { return data_; }
+		inline std::string_view data_view() const { return data_; }
 
-		inline operator std::string      () { return data_; }
-		inline operator std::string_view () { return data_; }
+		inline operator std::string      () const { return data_; }
+		inline operator std::string_view () const { return data_; }
 
 		inline utf8_string& serialize(std::vector<asio::const_buffer>& buffers)
 		{
@@ -1173,11 +1173,11 @@ namespace asio2::mqtt
 
 		inline bool empty() const noexcept  { return data_.empty(); }
 
-		inline std::string      data     () { return data_; }
-		inline std::string_view data_view() { return data_; }
+		inline std::string      data     () const { return data_; }
+		inline std::string_view data_view() const { return data_; }
 
-		inline operator std::string      () { return data_; }
-		inline operator std::string_view () { return data_; }
+		inline operator std::string      () const { return data_; }
+		inline operator std::string_view () const { return data_; }
 
 		inline binary_data& serialize(std::vector<asio::const_buffer>& buffers)
 		{
@@ -1356,11 +1356,11 @@ namespace asio2::mqtt
 			return (key_.size() + val_.size());
 		}
 
-		inline std::string key() { return key_.data(); }
-		inline std::string val() { return val_.data(); }
+		inline std::string key() const { return key_.data(); }
+		inline std::string val() const { return val_.data(); }
 
-		inline std::string_view key_view() { return key_.data_view(); }
-		inline std::string_view val_view() { return val_.data_view(); }
+		inline std::string_view key_view() const { return key_.data_view(); }
+		inline std::string_view val_view() const { return val_.data_view(); }
 
 		/*
 		 * The Container is usually a std::string, std::vector<char>, ...
@@ -1585,11 +1585,11 @@ namespace asio2::mqtt
 
 		inline bool empty() const noexcept  { return data_.empty(); }
 
-		inline std::string      data     () { return data_; }
-		inline std::string_view data_view() { return data_; }
+		inline std::string      data     () const { return data_; }
+		inline std::string_view data_view() const { return data_; }
 
-		inline operator std::string      () { return data_; }
-		inline operator std::string_view () { return data_; }
+		inline operator std::string      () const { return data_; }
+		inline operator std::string_view () const { return data_; }
 
 		inline application_message& serialize(std::vector<asio::const_buffer>& buffers)
 		{
@@ -1641,7 +1641,7 @@ namespace asio2::mqtt
 
 	//protected:
 		inline derived_t& set_send_flag(bool v) { send_flag_ = v; return (static_cast<derived_t&>(*this)); }
-		inline bool       get_send_flag(      ) { return send_flag_; }
+		inline bool       get_send_flag(      ) const { return send_flag_; }
 
 	protected:
 		bool send_flag_ = true;
@@ -1708,7 +1708,7 @@ namespace asio2::mqtt
 
 		constexpr std::uint8_t version() const noexcept { return Version; }
 
-		inline std::size_t required_size()
+		inline std::size_t required_size() const
 		{
 			return (type_and_flags_.byte.required_size() + remain_length_.required_size());
 		}
@@ -1737,9 +1737,9 @@ namespace asio2::mqtt
 			return (*this);
 		}
 
-		inline control_packet_type packet_type  () { return static_cast<control_packet_type>(type_and_flags_.bits.type  ); }
-		inline control_packet_type message_type () { return packet_type(); }
-		inline std::int32_t        remain_length() { return remain_length_.value(); }
+		inline control_packet_type packet_type  () const { return static_cast<control_packet_type>(type_and_flags_.bits.type  ); }
+		inline control_packet_type message_type () const { return packet_type(); }
+		inline std::int32_t        remain_length() const { return remain_length_.value(); }
 
 	protected:
 		type_and_flags        type_and_flags_{   };
@@ -1790,7 +1790,7 @@ namespace asio2::mqtt
 			option_.bits.retain_handling = asio2::detail::to_underlying(retain_handling);
 		}
 
-		inline std::size_t required_size()
+		inline std::size_t required_size() const
 		{
 			return (topic_filter_.required_size() + option_.byte.required_size());
 		}
@@ -1819,18 +1819,18 @@ namespace asio2::mqtt
 			return (*this);
 		}
 
-		inline qos_type               qos            () { return static_cast<qos_type>(option_.bits.qos); }
-		inline bool                   no_local       () { return option_.bits.nl             ; }
-		inline bool                   rap            () { return option_.bits.rap            ; }
-		inline retain_handling_type   retain_handling() { return static_cast<retain_handling_type>(option_.bits.retain_handling); }
+		inline qos_type               qos            () const { return static_cast<qos_type>(option_.bits.qos); }
+		inline bool                   no_local       () const { return option_.bits.nl             ; }
+		inline bool                   rap            () const { return option_.bits.rap            ; }
+		inline retain_handling_type   retain_handling() const { return static_cast<retain_handling_type>(option_.bits.retain_handling); }
 
-		inline std::string_view       share_name     ()
+		inline std::string_view       share_name     () const
 		{
 			auto[name, filter] = parse_topic_filter(topic_filter_.data_view());
 			std::ignore = filter;
 			return name;
 		}
-		inline std::string_view       topic_filter   ()
+		inline std::string_view       topic_filter   () const
 		{
 			auto[name, filter] = parse_topic_filter(topic_filter_.data_view());
 			std::ignore = name;
@@ -1947,7 +1947,7 @@ namespace asio2::mqtt
 			return (*this);
 		}
 
-		inline std::size_t required_size()
+		inline std::size_t required_size() const
 		{
 			std::size_t r = 0;
 			for (auto& v : data_)
@@ -1993,6 +1993,7 @@ namespace asio2::mqtt
 		}
 
 		inline std::vector<subscription>& data() { return data_; }
+		inline std::vector<subscription> const& data() const { return data_; }
 
 	protected:
 		std::vector<subscription> data_{};
@@ -2059,7 +2060,7 @@ namespace asio2::mqtt
 			return (*this);
 		}
 
-		inline std::size_t required_size()
+		inline std::size_t required_size() const
 		{
 			return (data_.empty() ? 0 : data_.size() * data_.front().required_size());
 		}
@@ -2100,8 +2101,9 @@ namespace asio2::mqtt
 		}
 
 		inline std::vector<one_byte_integer>& data() { return data_; }
+		inline std::vector<one_byte_integer> const& data() const { return data_; }
 
-		inline one_byte_integer::value_type at(std::size_t i)
+		inline one_byte_integer::value_type at(std::size_t i) const
 		{
 			return static_cast<one_byte_integer::value_type>(data_.size() > i ? data_[i].value() : -1);
 		}
@@ -2166,7 +2168,7 @@ namespace asio2::mqtt
 			return (*this);
 		}
 
-		inline std::size_t required_size()
+		inline std::size_t required_size() const
 		{
 			std::size_t r = 0;
 			for (auto& v : data_)
@@ -2212,6 +2214,7 @@ namespace asio2::mqtt
 		}
 
 		inline std::vector<utf8_string>& data() { return data_; }
+		inline std::vector<utf8_string> const& data() const { return data_; }
 
 		/**
 		 * function signature : void(mqtt::utf8_string& str)

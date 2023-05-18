@@ -137,28 +137,48 @@ namespace asio2::detail
 			return reinterpret_cast<key_type>(this);
 		}
 
-		inline bool is_websocket() noexcept { return (bool(this->websocket_router_)); }
-		inline bool is_http     () noexcept { return (!(this->is_websocket()));       }
+		inline bool is_websocket() const noexcept { return (bool(this->websocket_router_)); }
+		inline bool is_http     () const noexcept { return (!(this->is_websocket()));       }
 
 		/**
 		 * @brief get the request object, same as get_request
 		 */
-		inline const http::web_request & request() noexcept { return this->req_; }
+		inline       http::web_request & request()       noexcept { return this->req_; }
+
+		/**
+		 * @brief get the request object, same as get_request
+		 */
+		inline const http::web_request & request() const noexcept { return this->req_; }
 
 		/**
 		 * @brief get the response object, same as get_response
 		 */
-		inline const http::web_response& response() noexcept { return this->rep_; }
+		inline       http::web_response& response()       noexcept { return this->rep_; }
+
+		/**
+		 * @brief get the response object, same as get_response
+		 */
+		inline const http::web_response& response() const noexcept { return this->rep_; }
 
 		/**
 		 * @brief get the request object
 		 */
-		inline const http::web_request & get_request() noexcept { return this->req_; }
+		inline       http::web_request & get_request()       noexcept { return this->req_; }
+
+		/**
+		 * @brief get the request object
+		 */
+		inline const http::web_request & get_request() const noexcept { return this->req_; }
 
 		/**
 		 * @brief get the response object
 		 */
-		inline const http::web_response& get_response() noexcept { return this->rep_; }
+		inline       http::web_response& get_response()       noexcept { return this->rep_; }
+
+		/**
+		 * @brief get the response object
+		 */
+		inline const http::web_response& get_response() const noexcept { return this->rep_; }
 
 		/**
 		 * @brief set how to send the http response in the bind_recv callback
@@ -174,7 +194,7 @@ namespace asio2::detail
 		/**
 		 * @brief get the response mode
 		 */
-		inline asio2::response_mode get_response_mode() { return this->response_mode_; }
+		inline asio2::response_mode get_response_mode() const { return this->response_mode_; }
 
 	protected:
 		inline http_router_t<derived_t, args_t>& _router() noexcept

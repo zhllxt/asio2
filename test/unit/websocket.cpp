@@ -895,6 +895,22 @@ void websocket_test()
 			ASIO2_CHECK(asio2::get_last_error() == asio::error::in_progress);
 
 			ASIO2_CHECK(session_ptr->io().running_in_this_thread());
+
+			http::request<http::string_body> req;
+			req.body() = "req";
+			req.prepare_payload();
+
+			session_ptr->async_send(req);
+			session_ptr->send(std::move(req));
+
+			http::response<http::buffer_body> res;
+			res.body().data = (void*)"res";
+			res.body().size = 3;
+			res.body().more = false;
+
+			session_ptr->async_send(res);
+			session_ptr->send(std::move(res));
+
 		});
 		std::atomic<int> server_accept_counter = 0;
 		server.bind_accept([&](auto & session_ptr)
@@ -1026,6 +1042,21 @@ void websocket_test()
 				std::size_t bytes = client.send("defg");
 				ASIO2_CHECK(bytes == 0);
 				ASIO2_CHECK(asio2::get_last_error() == asio::error::in_progress);
+
+				http::request<http::string_body> req;
+				req.body() = "req";
+				req.prepare_payload();
+
+				client.async_send(req);
+				client.send(std::move(req));
+
+				http::response<http::buffer_body> res;
+				res.body().data = (void*)"res";
+				res.body().size = 3;
+				res.body().more = false;
+
+				client.async_send(res);
+				client.send(std::move(res));
 			});
 			client.bind_disconnect([&]()
 			{

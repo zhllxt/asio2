@@ -153,12 +153,12 @@ namespace asio2::detail
 		/**
 		 * @brief check whether the server is started
 		 */
-		inline bool is_started() { return (super::is_started() && this->acceptor_.is_open()); }
+		inline bool is_started() const { return (super::is_started() && this->acceptor_.is_open()); }
 
 		/**
 		 * @brief check whether the server is stopped
 		 */
-		inline bool is_stopped()
+		inline bool is_stopped() const
 		{
 			return (this->state_ == state_t::stopped && !this->acceptor_.is_open());
 		}
@@ -296,6 +296,11 @@ namespace asio2::detail
 		 * @brief get the acceptor refrence
 		 */
 		inline asio::ip::tcp::acceptor & acceptor() noexcept { return this->acceptor_; }
+
+		/**
+		 * @brief get the acceptor refrence
+		 */
+		inline asio::ip::tcp::acceptor const& acceptor() const noexcept { return this->acceptor_; }
 
 	protected:
 		template<typename String, typename StrOrInt, typename C>

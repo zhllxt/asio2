@@ -66,7 +66,7 @@ namespace asio2::detail
 			return (*this);
 		}
 
-		inline auto receive_maximum() { return _receive_maximum; }
+		inline auto receive_maximum() const { return _receive_maximum; }
 
 
 		// This value indicates the highest value that the Client will accept as a Topic Alias sent by the Server.
@@ -82,7 +82,7 @@ namespace asio2::detail
 			return (*this);
 		}
 
-		inline auto topic_alias_maximum() { return _topic_alias_maximum; }
+		inline auto topic_alias_maximum() const { return _topic_alias_maximum; }
 
 
 		// Followed by a Byte with a value of either 0 or 1. 
@@ -97,7 +97,7 @@ namespace asio2::detail
 			return (*this);
 		}
 
-		inline auto maximum_qos() { return _maximum_qos; }
+		inline auto maximum_qos() const { return _maximum_qos; }
 
 
 		// If present, this byte declares whether the Server supports retained messages. 
@@ -111,7 +111,7 @@ namespace asio2::detail
 			return (*this);
 		}
 
-		inline bool retain_available() { return (_retain_available == static_cast<decltype(_retain_available)>(1)); }
+		inline bool retain_available() const { return (_retain_available == static_cast<decltype(_retain_available)>(1)); }
 
 	protected:
 		template<class MqttOptions>

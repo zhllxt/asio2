@@ -433,7 +433,7 @@ namespace asio2::detail
 		/**
 		 * @brief Returns `true` if this HTTP response's Content-Type is "multipart/form-data";
 		 */
-		inline bool has_multipart() noexcept
+		inline bool has_multipart() const noexcept
 		{
 			return http::has_multipart(*this);
 		}

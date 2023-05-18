@@ -65,6 +65,15 @@ namespace asio2::detail
 			return (*(this->ws_stream_));
 		}
 
+		/**
+		 * @brief get the websocket stream object refrence
+		 */
+		inline ws_stream_type const& ws_stream() const noexcept
+		{
+			ASIO2_ASSERT(bool(this->ws_stream_));
+			return (*(this->ws_stream_));
+		}
+
 	protected:
 		template<typename C, typename Socket>
 		inline void _ws_init(std::shared_ptr<ecs_t<C>>& ecs, Socket& socket)

@@ -77,9 +77,25 @@ namespace asio2::detail
 		}
 
 		/**
+		 * @brief Get the host of the connected server.
+		 */
+		inline const std::string& get_host() const noexcept
+		{
+			return this->host_;
+		}
+
+		/**
 		 * @brief Get the port of the connected server.
 		 */
 		inline const std::string& get_port() noexcept
+		{
+			return this->port_;
+		}
+
+		/**
+		 * @brief Get the port of the connected server.
+		 */
+		inline const std::string& get_port() const noexcept
 		{
 			return this->port_;
 		}

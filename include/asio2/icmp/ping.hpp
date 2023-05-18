@@ -57,15 +57,15 @@ namespace asio2
 	public:
 		std::chrono::steady_clock::duration lag{ std::chrono::steady_clock::duration(-1) };
 
-		inline bool is_timeout() noexcept { return (this->lag.count() == -1); }
+		inline bool is_timeout() const noexcept { return (this->lag.count() == -1); }
 
-		inline auto get_milliseconds() noexcept
+		inline auto get_milliseconds() const noexcept
 		{
 			return this->lag.count() == -1 ? -1 :
 				std::chrono::duration_cast<std::chrono::milliseconds>(this->lag).count();
 		}
 
-		inline auto milliseconds() noexcept
+		inline auto milliseconds() const noexcept
 		{
 			return this->get_milliseconds();
 		}
@@ -73,6 +73,10 @@ namespace asio2
 		detail::ipv4_header& base_ipv4() noexcept { return static_cast<detail::ipv4_header&>(*this); }
 		//detail::ipv6_header& base_ipv6() noexcept { return static_cast<detail::ipv6_header&>(*this); }
 		detail::icmp_header& base_icmp() noexcept { return static_cast<detail::icmp_header&>(*this); }
+
+		detail::ipv4_header const& base_ipv4() const noexcept { return static_cast<detail::ipv4_header const&>(*this); }
+		//detail::ipv6_header const& base_ipv6() const noexcept { return static_cast<detail::ipv6_header&>(*this); }
+		detail::icmp_header const& base_icmp() const noexcept { return static_cast<detail::icmp_header const&>(*this); }
 
 	protected:
 
@@ -214,7 +218,7 @@ namespace asio2::detail
 		/**
 		 * @brief check whether the client is started
 		 */
-		inline bool is_started()
+		inline bool is_started() const
 		{
 			return (this->state_ == state_t::started && this->socket().is_open());
 		}
@@ -222,7 +226,7 @@ namespace asio2::detail
 		/**
 		 * @brief check whether the client is stopped
 		 */
-		inline bool is_stopped()
+		inline bool is_stopped() const
 		{
 			return (this->state_ == state_t::stopped && !this->socket().is_open());
 		}
@@ -481,7 +485,7 @@ namespace asio2::detail
 		/**
 		 * @brief get icmp protocol identifier
 		 */
-		inline unsigned short get_identifier() noexcept
+		inline unsigned short get_identifier() const noexcept
 		{
 			return this->identifier_;
 		}
@@ -507,14 +511,14 @@ namespace asio2::detail
 		/**
 		 * @brief get reply timeout duration value
 		 */
-		inline std::chrono::steady_clock::duration get_timeout() noexcept
+		inline std::chrono::steady_clock::duration get_timeout() const noexcept
 		{
 			return this->timeout_;
 		}
 		/**
 		 * @brief get reply timeout duration value, same as get_timeout
 		 */
-		inline std::chrono::steady_clock::duration timeout() noexcept
+		inline std::chrono::steady_clock::duration timeout() const noexcept
 		{
 			return this->get_timeout();
 		}
@@ -541,7 +545,7 @@ namespace asio2::detail
 		/**
 		 * @brief get send interval duration value
 		 */
-		inline std::chrono::steady_clock::duration get_interval() noexcept
+		inline std::chrono::steady_clock::duration get_interval() const noexcept
 		{
 			return this->interval_;
 		}
@@ -549,7 +553,7 @@ namespace asio2::detail
 		/**
 		 * @brief get send interval duration value, same as get_interval
 		 */
-		inline std::chrono::steady_clock::duration interval() noexcept
+		inline std::chrono::steady_clock::duration interval() const noexcept
 		{
 			return this->interval_;
 		}
@@ -596,12 +600,12 @@ namespace asio2::detail
 		/**
 		 * @brief get the resolved host ip
 		 */
-		inline std::string get_host_ip() { return this->destination_.address().to_string(); }
+		inline std::string get_host_ip() const { return this->destination_.address().to_string(); }
 
 		/**
 		 * @brief get the resolved host ip, same as get_host_ip
 		 */
-		inline std::string host_ip() { return this->get_host_ip(); }
+		inline std::string host_ip() const { return this->get_host_ip(); }
 
 		/**
 		 * @brief Set the total number of echo packets you want to send
@@ -623,27 +627,27 @@ namespace asio2::detail
 		/**
 		 * @brief Get the total number of echo packets has sent, same as get_total_send
 		 */
-		inline std::size_t total_send() noexcept { return this->total_send_; }
+		inline std::size_t total_send() const noexcept { return this->total_send_; }
 
 		/**
 		 * @brief Get the total number of reply packets has recved, same as get_total_recv
 		 */
-		inline std::size_t total_recv() noexcept { return this->total_recv_; }
+		inline std::size_t total_recv() const noexcept { return this->total_recv_; }
 
 		/**
 		 * @brief Get the total number of echo packets has sent
 		 */
-		inline std::size_t get_total_send() noexcept { return this->total_send_; }
+		inline std::size_t get_total_send() const noexcept { return this->total_send_; }
 
 		/**
 		 * @brief Get the total number of reply packets has recved
 		 */
-		inline std::size_t get_total_recv() noexcept { return this->total_recv_; }
+		inline std::size_t get_total_recv() const noexcept { return this->total_recv_; }
 
 		/**
 		 * @brief Get the packet loss probability (loss rate)
 		 */
-		inline double get_plp() noexcept
+		inline double get_plp() const noexcept
 		{
 			if (this->total_send_ == static_cast<std::size_t>(0))
 				return 0.0;
@@ -653,7 +657,7 @@ namespace asio2::detail
 		/**
 		 * @brief Get the packet loss probability (loss rate), same as get_plp
 		 */
-		inline double plp() noexcept
+		inline double plp() const noexcept
 		{
 			return this->get_plp();
 		}
@@ -661,7 +665,7 @@ namespace asio2::detail
 		/**
 		 * @brief Get the average duration of elapsed when recved reply packets
 		 */
-		inline std::chrono::steady_clock::duration get_avg_lag() noexcept
+		inline std::chrono::steady_clock::duration get_avg_lag() const noexcept
 		{
 			if (this->total_recv_ == static_cast<std::size_t>(0))
 				return std::chrono::steady_clock::duration(0);
@@ -672,7 +676,7 @@ namespace asio2::detail
 		/**
 		 * @brief Get the average duration of elapsed when recved reply packets, same as get_avg_lag
 		 */
-		inline std::chrono::steady_clock::duration avg_lag() noexcept
+		inline std::chrono::steady_clock::duration avg_lag() const noexcept
 		{
 			return this->get_avg_lag();
 		}
@@ -1137,6 +1141,10 @@ namespace asio2::detail
 		 * @brief get the io object refrence
 		 */
 		inline io_t & io() noexcept { return this->io_; }
+		/**
+		 * @brief get the io object refrence
+		 */
+		inline io_t const& io() const noexcept { return this->io_; }
 
 	protected:
 		/**

@@ -216,6 +216,10 @@ int main()
 
 		// print the websocket request header.
 		std::cout << session_ptr->request() << std::endl;
+		
+		// same as above
+		auto& req = session_ptr->get_request();
+		std::cout << req.get_path() << std::endl;
 
 		// Set the binary message write option.
 		session_ptr->ws_stream().binary(true);

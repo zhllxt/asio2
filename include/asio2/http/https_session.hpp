@@ -92,7 +92,15 @@ namespace asio2::detail
 		/**
 		 * @brief get the stream object refrence
 		 */
-		inline typename ssl_stream_comp::ssl_stream_type& stream() noexcept
+		inline typename ssl_stream_comp::ssl_stream_type & stream() noexcept
+		{
+			return this->derived().ssl_stream();
+		}
+
+		/**
+		 * @brief get the stream object refrence
+		 */
+		inline typename ssl_stream_comp::ssl_stream_type const& stream() const noexcept
 		{
 			return this->derived().ssl_stream();
 		}

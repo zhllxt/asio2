@@ -151,22 +151,42 @@ namespace asio2::detail
 		/**
 		 * @brief get the request object, same as get_request
 		 */
-		inline const http::web_request & request() noexcept { return this->req_; }
+		inline       http::web_request & request()      noexcept { return this->req_; }
+
+		/**
+		 * @brief get the request object, same as get_request
+		 */
+		inline const http::web_request & request() const noexcept { return this->req_; }
 
 		/**
 		 * @brief get the response object, same as get_response
 		 */
-		inline const http::web_response& response() noexcept { return this->rep_; }
+		inline      http::web_response& response()      noexcept { return this->rep_; }
+
+		/**
+		 * @brief get the response object, same as get_response
+		 */
+		inline const http::web_response& response() const noexcept { return this->rep_; }
 
 		/**
 		 * @brief get the request object
 		 */
-		inline const http::web_request & get_request() noexcept { return this->req_; }
+		inline       http::web_request & get_request()      noexcept { return this->req_; }
+
+		/**
+		 * @brief get the request object
+		 */
+		inline const http::web_request & get_request() const noexcept { return this->req_; }
 
 		/**
 		 * @brief get the response object
 		 */
-		inline const http::web_response& get_response() noexcept { return this->rep_; }
+		inline       http::web_response& get_response()      noexcept { return this->rep_; }
+
+		/**
+		 * @brief get the response object
+		 */
+		inline const http::web_response& get_response() const noexcept { return this->rep_; }
 
 	public:
 		/**

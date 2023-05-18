@@ -78,7 +78,7 @@ namespace asio2::detail
 		/**
 		 * @brief get the local address, same as get_local_address
 		 */
-		inline std::string local_address() noexcept
+		inline std::string local_address() const noexcept
 		{
 			return this->get_local_address();
 		}
@@ -86,7 +86,7 @@ namespace asio2::detail
 		/**
 		 * @brief get the local address
 		 */
-		inline std::string get_local_address() noexcept
+		inline std::string get_local_address() const noexcept
 		{
 			clear_last_error();
 			try
@@ -103,7 +103,7 @@ namespace asio2::detail
 		/**
 		 * @brief get the local port, same as get_local_port
 		 */
-		inline unsigned short local_port() noexcept
+		inline unsigned short local_port() const noexcept
 		{
 			return this->get_local_port();
 		}
@@ -111,7 +111,7 @@ namespace asio2::detail
 		/**
 		 * @brief get the local port
 		 */
-		inline unsigned short get_local_port() noexcept
+		inline unsigned short get_local_port() const noexcept
 		{
 			return this->socket_.lowest_layer().local_endpoint(get_last_error()).port();
 		}
@@ -119,7 +119,7 @@ namespace asio2::detail
 		/**
 		 * @brief get the remote address, same as get_remote_address
 		 */
-		inline std::string remote_address() noexcept
+		inline std::string remote_address() const noexcept
 		{
 			return this->get_remote_address();
 		}
@@ -127,7 +127,7 @@ namespace asio2::detail
 		/**
 		 * @brief get the remote address
 		 */
-		inline std::string get_remote_address() noexcept
+		inline std::string get_remote_address() const noexcept
 		{
 			clear_last_error();
 
@@ -163,7 +163,7 @@ namespace asio2::detail
 		/**
 		 * @brief get the remote port, same as get_remote_port
 		 */
-		inline unsigned short remote_port() noexcept
+		inline unsigned short remote_port() const noexcept
 		{
 			return this->get_remote_port();
 		}
@@ -171,7 +171,7 @@ namespace asio2::detail
 		/**
 		 * @brief get the remote port
 		 */
-		inline unsigned short get_remote_port() noexcept
+		inline unsigned short get_remote_port() const noexcept
 		{
 			clear_last_error();
 

@@ -172,13 +172,13 @@ namespace asio2::detail
 		/**
 		 * @brief Returns `true` if this HTTP request is a WebSocket Upgrade.
 		 */
-		inline bool is_upgrade() noexcept { return websocket::is_upgrade(*this); }
+		inline bool is_upgrade() const noexcept { return websocket::is_upgrade(*this); }
 
 		/**
 		 * @brief Gets the content of the "schema" section, maybe empty
 		 * <scheme>://<user>:<password>@<host>:<port>/<path>;<params>?<query>#<fragment>
 		 */
-		inline std::string_view get_schema() noexcept
+		inline std::string_view get_schema() const noexcept
 		{
 			return this->url_.schema();
 		}
@@ -188,7 +188,7 @@ namespace asio2::detail
 		 * <scheme>://<user>:<password>@<host>:<port>/<path>;<params>?<query>#<fragment>
 		 * same as get_schema
 		 */
-		inline std::string_view schema() noexcept
+		inline std::string_view schema() const noexcept
 		{
 			return this->get_schema();
 		}
@@ -197,7 +197,7 @@ namespace asio2::detail
 		 * @brief Gets the content of the "host" section, maybe empty
 		 * <scheme>://<user>:<password>@<host>:<port>/<path>;<params>?<query>#<fragment>
 		 */
-		inline std::string_view get_host() noexcept
+		inline std::string_view get_host() const noexcept
 		{
 			return this->url_.host();
 		}
@@ -207,7 +207,7 @@ namespace asio2::detail
 		 * <scheme>://<user>:<password>@<host>:<port>/<path>;<params>?<query>#<fragment>
 		 * same as get_host
 		 */
-		inline std::string_view host() noexcept
+		inline std::string_view host() const noexcept
 		{
 			return this->get_host();
 		}
@@ -216,7 +216,7 @@ namespace asio2::detail
 		 * @brief Gets the content of the "port" section, maybe empty
 		 * <scheme>://<user>:<password>@<host>:<port>/<path>;<params>?<query>#<fragment>
 		 */
-		inline std::string_view get_port() noexcept
+		inline std::string_view get_port() const noexcept
 		{
 			return this->url_.port();
 		}
@@ -226,7 +226,7 @@ namespace asio2::detail
 		 * <scheme>://<user>:<password>@<host>:<port>/<path>;<params>?<query>#<fragment>
 		 * same as get_port
 		 */
-		inline std::string_view port() noexcept
+		inline std::string_view port() const noexcept
 		{
 			return this->get_port();
 		}
@@ -235,7 +235,7 @@ namespace asio2::detail
 		 * @brief Gets the content of the "path" section of the target
 		 * <scheme>://<user>:<password>@<host>:<port>/<path>;<params>?<query>#<fragment>
 		 */
-		inline std::string_view get_path()
+		inline std::string_view get_path() const
 		{
 			if (!this->url_.string().empty())
 				return this->url_.path();
@@ -255,7 +255,7 @@ namespace asio2::detail
 		 * <scheme>://<user>:<password>@<host>:<port>/<path>;<params>?<query>#<fragment>
 		 * same as get_path
 		 */
-		inline std::string_view path()
+		inline std::string_view path() const
 		{
 			return this->get_path();
 		}
@@ -264,7 +264,7 @@ namespace asio2::detail
 		 * @brief Gets the content of the "query" section of the target
 		 * <scheme>://<user>:<password>@<host>:<port>/<path>;<params>?<query>#<fragment>
 		 */
-		inline std::string_view get_query()
+		inline std::string_view get_query() const
 		{
 			if (!this->url_.string().empty())
 				return this->url_.query();
@@ -284,7 +284,7 @@ namespace asio2::detail
 		 * <scheme>://<user>:<password>@<host>:<port>/<path>;<params>?<query>#<fragment>
 		 * same as get_query
 		 */
-		inline std::string_view query()
+		inline std::string_view query() const
 		{
 			return this->get_query();
 		}
@@ -292,7 +292,7 @@ namespace asio2::detail
 		/**
 		 * @brief Returns `true` if this HTTP request's Content-Type is "multipart/form-data";
 		 */
-		inline bool has_multipart() noexcept
+		inline bool has_multipart() const noexcept
 		{
 			return http::has_multipart(*this);
 		}
@@ -319,9 +319,19 @@ namespace asio2::detail
 		inline http::url&    url() { return this->url_; }
 
 		/**
+		 * @brief Get the url object reference. same as get_url
+		 */
+		inline http::url const&    url() const { return this->url_; }
+
+		/**
 		 * @brief Get the url object reference.
 		 */
 		inline http::url& get_url() { return this->url_; }
+
+		/**
+		 * @brief Get the url object reference.
+		 */
+		inline http::url const& get_url() const { return this->url_; }
 
 	protected:
 		http::url                             url_{ "" };

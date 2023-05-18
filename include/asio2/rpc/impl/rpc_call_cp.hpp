@@ -371,12 +371,12 @@ namespace asio2::detail
 			{
 				if constexpr (std::is_same_v<return_t, void>)
 				{
-					return async_call_op<derive_t>::make_callback_impl_0<return_t>(
+					return async_call_op<derive_t>::template make_callback_impl_0<return_t>(
 						derive, std::forward<Callback>(cb));
 				}
 				else
 				{
-					return async_call_op<derive_t>::make_callback_impl_1<return_t>(
+					return async_call_op<derive_t>::template make_callback_impl_1<return_t>(
 						derive, std::forward<Callback>(cb));
 				}
 			}

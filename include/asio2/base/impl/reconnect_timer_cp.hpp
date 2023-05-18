@@ -94,7 +94,7 @@ namespace asio2::detail
 		 * @brief get whether auto reconnect is enabled or not
 		 */
 		template<typename = void>
-		inline bool is_auto_reconnect() noexcept
+		inline bool is_auto_reconnect() const noexcept
 		{
 			return this->reconnect_enable_;
 		}
@@ -103,7 +103,7 @@ namespace asio2::detail
 		 * @brief get the delay before reconnecting, when enalbe is
 		 */
 		template<typename = void>
-		inline std::chrono::steady_clock::duration get_auto_reconnect_delay() noexcept
+		inline std::chrono::steady_clock::duration get_auto_reconnect_delay() const noexcept
 		{
 			return this->reconnect_delay_;
 		}

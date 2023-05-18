@@ -55,6 +55,15 @@ namespace asio2::detail
 			return (*(this->ssl_stream_));
 		}
 
+		/**
+		 * @brief get the ssl socket object refrence
+		 */
+		inline ssl_stream_type const& ssl_stream() const noexcept
+		{
+			ASIO2_ASSERT(bool(this->ssl_stream_));
+			return (*(this->ssl_stream_));
+		}
+
 	protected:
 		template<typename C>
 		inline void _ssl_init(std::shared_ptr<ecs_t<C>>& ecs, ssl_socket_type& socket, asio::ssl::context& ctx)

@@ -151,7 +151,7 @@ namespace asio2::detail
 		/**
 		 * @brief check whether the server is started 
 		 */
-		inline bool is_started() noexcept
+		inline bool is_started() const noexcept
 		{
 			return (this->state_ == state_t::started);
 		}
@@ -159,7 +159,7 @@ namespace asio2::detail
 		/**
 		 * @brief check whether the server is stopped
 		 */
-		inline bool is_stopped() noexcept
+		inline bool is_stopped() const noexcept
 		{
 			return (this->state_ == state_t::stopped);
 		}
@@ -229,9 +229,14 @@ namespace asio2::detail
 		inline auto & acceptor() noexcept { return this->derived().acceptor(); }
 
 		/**
+		 * @brief get the acceptor refrence, derived classes must override this function
+		 */
+		inline auto const& acceptor() const noexcept { return this->derived().acceptor(); }
+
+		/**
 		 * @brief get the listen address, same as get_listen_address
 		 */
-		inline std::string listen_address() noexcept
+		inline std::string listen_address() const noexcept
 		{
 			return this->get_listen_address();
 		}
@@ -239,7 +244,7 @@ namespace asio2::detail
 		/**
 		 * @brief get the listen address
 		 */
-		inline std::string get_listen_address() noexcept
+		inline std::string get_listen_address() const noexcept
 		{
 			try
 			{
@@ -252,7 +257,7 @@ namespace asio2::detail
 		/**
 		 * @brief get the listen port, same as get_listen_port
 		 */
-		inline unsigned short listen_port() noexcept
+		inline unsigned short listen_port() const noexcept
 		{
 			return this->get_listen_port();
 		}
@@ -260,7 +265,7 @@ namespace asio2::detail
 		/**
 		 * @brief get the listen port
 		 */
-		inline unsigned short get_listen_port() noexcept
+		inline unsigned short get_listen_port() const noexcept
 		{
 			return this->acceptor().local_endpoint(get_last_error()).port();
 		}
@@ -268,12 +273,12 @@ namespace asio2::detail
 		/**
 		 * @brief get connected session count, same as get_session_count
 		 */
-		inline std::size_t session_count() noexcept { return this->get_session_count(); }
+		inline std::size_t session_count() const noexcept { return this->get_session_count(); }
 
 		/**
 		 * @brief get connected session count
 		 */
-		inline std::size_t get_session_count() noexcept { return this->sessions_.size(); }
+		inline std::size_t get_session_count() const noexcept { return this->sessions_.size(); }
 
 		/**
 		 * @brief Applies the given function object fn for each session.
@@ -314,6 +319,11 @@ namespace asio2::detail
 		 * @brief get the io object refrence
 		 */
 		inline io_t & io() noexcept { return this->io_; }
+
+		/**
+		 * @brief get the io object refrence
+		 */
+		inline io_t const& io() const noexcept { return this->io_; }
 
 	protected:
 		/**

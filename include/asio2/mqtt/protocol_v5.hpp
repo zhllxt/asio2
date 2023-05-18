@@ -133,11 +133,11 @@ namespace asio2::mqtt::v5
 	{
 		template<class> friend struct property_ops; friend class properties_set;
 
-		inline variable_byte_integer::value_type id() { return id_.value();  }
+		inline variable_byte_integer::value_type id() const { return id_.value();  }
 
-		inline constexpr property_type         type() { return T;            }
+		inline constexpr property_type         type() const { return T;            }
 
-		inline constexpr std::string_view      name() { return mqtt::to_string(T); }
+		inline constexpr std::string_view      name() const { return mqtt::to_string(T); }
 
 	protected:
 		// Property Identifier
@@ -183,6 +183,13 @@ namespace asio2::mqtt::v5
 
 			return (derive.id_.required_size() + derive.value_.required_size());
 		}
+
+		inline std::size_t required_size() const
+		{
+			derived_t const& derive = static_cast<derived_t const&>(*this);
+
+			return (derive.id_.required_size() + derive.value_.required_size());
+		}
 	};
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -218,7 +225,7 @@ namespace asio2::mqtt::v5
 		 */
 		payload_format_indicator(std::uint8_t v) : value_(v) {}
 
-		inline one_byte_integer::value_type value() { return value_.value(); }
+		inline one_byte_integer::value_type value() const { return value_.value(); }
 
 	protected:
 		// Followed by the value of the Payload Format Indicator, either of: 0 or 1
@@ -238,7 +245,7 @@ namespace asio2::mqtt::v5
 		message_expiry_interval() = default;
 		message_expiry_interval(std::uint32_t v) : value_(v) {}
 
-		inline four_byte_integer::value_type value() { return value_.value(); }
+		inline four_byte_integer::value_type value() const { return value_.value(); }
 
 	protected:
 		// The Four Byte value is the lifetime of the Application Message in seconds.
@@ -260,7 +267,7 @@ namespace asio2::mqtt::v5
 		template<class String, std::enable_if_t<asio2::detail::is_character_string_v<String>, int> = 0>
 		explicit content_type(String&& v) : value_(std::forward<String>(v)) {}
 
-		inline utf8_string::view_type value() { return value_.data_view(); }
+		inline utf8_string::view_type value() const { return value_.data_view(); }
 
 	protected:
 		// Followed by a UTF-8 Encoded String describing the content of the Application Message.
@@ -285,7 +292,7 @@ namespace asio2::mqtt::v5
 		template<class String, std::enable_if_t<asio2::detail::is_character_string_v<String>, int> = 0>
 		response_topic(String&& v) : value_(std::forward<String>(v)) {}
 
-		inline utf8_string::view_type value() { return value_.data_view(); }
+		inline utf8_string::view_type value() const { return value_.data_view(); }
 
 	protected:
 		// Followed by a UTF-8 Encoded String which is used as the Topic Name for a response message. 
@@ -311,7 +318,7 @@ namespace asio2::mqtt::v5
 		template<class String, std::enable_if_t<asio2::detail::is_character_string_v<String>, int> = 0>
 		correlation_data(String&& v) : value_(std::forward<String>(v)) {}
 
-		inline binary_data::view_type value() { return value_.data_view(); }
+		inline binary_data::view_type value() const { return value_.data_view(); }
 
 	protected:
 		// Followed by Binary Data.
@@ -339,7 +346,7 @@ namespace asio2::mqtt::v5
 		subscription_identifier() = default;
 		subscription_identifier(std::int32_t v) : value_(v) {}
 
-		inline variable_byte_integer::value_type value() { return value_.value(); }
+		inline variable_byte_integer::value_type value() const { return value_.value(); }
 
 	protected:
 		// Followed by a Variable Byte Integer representing the identifier of the subscription.
@@ -362,7 +369,7 @@ namespace asio2::mqtt::v5
 		session_expiry_interval() = default;
 		session_expiry_interval(std::uint32_t v) : value_(v) {}
 
-		inline four_byte_integer::value_type value() { return value_.value(); }
+		inline four_byte_integer::value_type value() const { return value_.value(); }
 
 	protected:
 		// Followed by the Four Byte Integer representing the Session Expiry Interval in seconds. 
@@ -385,7 +392,7 @@ namespace asio2::mqtt::v5
 		template<class String, std::enable_if_t<asio2::detail::is_character_string_v<String>, int> = 0>
 		assigned_client_identifier(String&& v) : value_(std::forward<String>(v)) {}
 
-		inline utf8_string::view_type value() { return value_.data_view(); }
+		inline utf8_string::view_type value() const { return value_.data_view(); }
 
 	protected:
 		// Followed by the UTF-8 string which is the Assigned Client Identifier. 
@@ -406,7 +413,7 @@ namespace asio2::mqtt::v5
 		server_keep_alive() = default;
 		server_keep_alive(std::uint16_t v) : value_(v) {}
 
-		inline two_byte_integer::value_type value() { return value_.value(); }
+		inline two_byte_integer::value_type value() const { return value_.value(); }
 
 	protected:
 		// Followed by a Two Byte Integer with the Keep Alive time assigned by the Server. 
@@ -433,7 +440,7 @@ namespace asio2::mqtt::v5
 		template<class String, std::enable_if_t<asio2::detail::is_character_string_v<String>, int> = 0>
 		authentication_method(String&& v) : value_(std::forward<String>(v)) {}
 
-		inline utf8_string::view_type value() { return value_.data_view(); }
+		inline utf8_string::view_type value() const { return value_.data_view(); }
 
 	protected:
 		// Followed by a UTF-8 Encoded String containing the name of the authentication method used
@@ -458,7 +465,7 @@ namespace asio2::mqtt::v5
 		template<class String, std::enable_if_t<asio2::detail::is_character_string_v<String>, int> = 0>
 		authentication_data(String&& v) : value_(std::forward<String>(v)) {}
 
-		inline binary_data::view_type value() { return value_.data_view(); }
+		inline binary_data::view_type value() const { return value_.data_view(); }
 
 	protected:
 		// Followed by Binary Data containing authentication data.
@@ -480,7 +487,7 @@ namespace asio2::mqtt::v5
 		request_problem_information() = default;
 		request_problem_information(std::uint8_t v) : value_(v) {}
 
-		inline one_byte_integer::value_type value() { return value_.value(); }
+		inline one_byte_integer::value_type value() const { return value_.value(); }
 
 	protected:
 		// Followed by a Byte with a value of either 0 or 1.
@@ -502,7 +509,7 @@ namespace asio2::mqtt::v5
 		will_delay_interval() = default;
 		will_delay_interval(std::uint32_t v) : value_(v) {}
 
-		inline four_byte_integer::value_type value() { return value_.value(); }
+		inline four_byte_integer::value_type value() const { return value_.value(); }
 
 	protected:
 		// Followed by the Four Byte Integer representing the Will Delay Interval in seconds.
@@ -525,7 +532,7 @@ namespace asio2::mqtt::v5
 		request_response_information() = default;
 		request_response_information(std::uint8_t v) : value_(v) {}
 
-		inline one_byte_integer::value_type value() { return value_.value(); }
+		inline one_byte_integer::value_type value() const { return value_.value(); }
 
 	protected:
 		// Followed by a Byte with a value of either 0 or 1. 
@@ -549,7 +556,7 @@ namespace asio2::mqtt::v5
 		template<class String, std::enable_if_t<asio2::detail::is_character_string_v<String>, int> = 0>
 		response_information(String&& v) : value_(std::forward<String>(v)) {}
 
-		inline utf8_string::view_type value() { return value_.data_view(); }
+		inline utf8_string::view_type value() const { return value_.data_view(); }
 
 	protected:
 		// Followed by a UTF-8 Encoded String which is used as the basis for creating a Response Topic.
@@ -574,7 +581,7 @@ namespace asio2::mqtt::v5
 		template<class String, std::enable_if_t<asio2::detail::is_character_string_v<String>, int> = 0>
 		server_reference(String&& v) : value_(std::forward<String>(v)) {}
 
-		inline utf8_string::view_type value() { return value_.data_view(); }
+		inline utf8_string::view_type value() const { return value_.data_view(); }
 
 	protected:
 		// Followed by a UTF-8 Encoded String which can be used by the Client to identify another Server to use.
@@ -597,7 +604,7 @@ namespace asio2::mqtt::v5
 		template<class String, std::enable_if_t<asio2::detail::is_character_string_v<String>, int> = 0>
 		reason_string(String&& v) : value_(std::forward<String>(v)) {}
 
-		inline utf8_string::view_type value() { return value_.data_view(); }
+		inline utf8_string::view_type value() const { return value_.data_view(); }
 
 	protected:
 		// Followed by the UTF-8 Encoded String representing the reason associated with this response.
@@ -619,7 +626,7 @@ namespace asio2::mqtt::v5
 		receive_maximum() = default;
 		receive_maximum(std::uint16_t v) : value_(v) {}
 
-		inline two_byte_integer::value_type value() { return value_.value(); }
+		inline two_byte_integer::value_type value() const { return value_.value(); }
 
 	protected:
 		// Followed by the Two Byte Integer representing the Receive Maximum value.
@@ -639,7 +646,7 @@ namespace asio2::mqtt::v5
 		topic_alias_maximum() = default;
 		topic_alias_maximum(std::uint16_t v) : value_(v) {}
 
-		inline two_byte_integer::value_type value() { return value_.value(); }
+		inline two_byte_integer::value_type value() const { return value_.value(); }
 
 	protected:
 		// Followed by the Two Byte Integer representing the Topic Alias Maximum value.
@@ -660,7 +667,7 @@ namespace asio2::mqtt::v5
 		topic_alias() = default;
 		topic_alias(std::uint16_t v) : value_(v) {}
 
-		inline two_byte_integer::value_type value() { return value_.value(); }
+		inline two_byte_integer::value_type value() const { return value_.value(); }
 
 	protected:
 		// Followed by the Two Byte integer representing the Topic Alias value.
@@ -680,7 +687,7 @@ namespace asio2::mqtt::v5
 		maximum_qos() = default;
 		maximum_qos(std::uint8_t v) : value_(v) {}
 
-		inline one_byte_integer::value_type value() { return value_.value(); }
+		inline one_byte_integer::value_type value() const { return value_.value(); }
 
 	protected:
 		// Followed by a Byte with a value of either 0 or 1.
@@ -701,7 +708,7 @@ namespace asio2::mqtt::v5
 		retain_available() = default;
 		retain_available(std::uint8_t v) : value_(v) {}
 
-		inline one_byte_integer::value_type value() { return value_.value(); }
+		inline one_byte_integer::value_type value() const { return value_.value(); }
 
 	protected:
 		// Followed by a Byte field.
@@ -730,7 +737,7 @@ namespace asio2::mqtt::v5
 			asio2::detail::is_character_string_v<String2>, int> = 0>
 		user_property(String1&& k, String2&& v) : value_(std::forward<String1>(k), std::forward<String2>(v)) {}
 
-		inline utf8_string_pair::view_type value() { return { value_.key_view(), value_.val_view() }; }
+		inline utf8_string_pair::view_type value() const { return { value_.key_view(), value_.val_view() }; }
 
 	protected:
 		// Followed by a UTF-8 String Pair.
@@ -749,7 +756,7 @@ namespace asio2::mqtt::v5
 		maximum_packet_size() = default;
 		maximum_packet_size(std::uint32_t v) : value_(v) {}
 
-		inline four_byte_integer::value_type value() { return value_.value(); }
+		inline four_byte_integer::value_type value() const { return value_.value(); }
 
 	protected:
 		// Followed by a Four Byte Integer representing the Maximum Packet Size the Client is willing to accept.
@@ -770,7 +777,7 @@ namespace asio2::mqtt::v5
 		wildcard_subscription_available() = default;
 		wildcard_subscription_available(std::uint8_t v) : value_(v) {}
 
-		inline one_byte_integer::value_type value() { return value_.value(); }
+		inline one_byte_integer::value_type value() const { return value_.value(); }
 
 	protected:
 		// Followed by a Byte field.
@@ -795,7 +802,7 @@ namespace asio2::mqtt::v5
 		subscription_identifier_available() = default;
 		subscription_identifier_available(std::uint8_t v) : value_(v) {}
 
-		inline one_byte_integer::value_type value() { return value_.value(); }
+		inline one_byte_integer::value_type value() const { return value_.value(); }
 
 	protected:
 		// Followed by a Byte field.
@@ -820,7 +827,7 @@ namespace asio2::mqtt::v5
 		shared_subscription_available() = default;
 		shared_subscription_available(std::uint8_t v) : value_(v) {}
 
-		inline one_byte_integer::value_type value() { return value_.value(); }
+		inline one_byte_integer::value_type value() const { return value_.value(); }
 
 	protected:
 		// Followed by a Byte field.
@@ -944,6 +951,12 @@ namespace asio2::mqtt::v5
 		}
 
 		template<class T, std::enable_if_t<is_v5_property<T>(), int> = 0>
+		operator const T&() const
+		{
+			return std::get<T>(this->base());
+		}
+
+		template<class T, std::enable_if_t<is_v5_property<T>(), int> = 0>
 		operator T*() noexcept
 		{
 			return std::get_if<T>(std::addressof(this->base()));
@@ -955,6 +968,12 @@ namespace asio2::mqtt::v5
 			return std::get_if<T>(std::addressof(this->base()));
 		}
 
+		template<class T, std::enable_if_t<is_v5_property<T>(), int> = 0>
+		operator const T*() const noexcept
+		{
+			return std::get_if<T>(std::addressof(this->base()));
+		}
+
 		// this overload will cause compile error on gcc, see mqtt/message.hpp   operator T()
 		//template<class T, std::enable_if_t<is_v5_property<T>(), int> = 0>
 		//operator T()
@@ -962,7 +981,7 @@ namespace asio2::mqtt::v5
 		//	return std::get<T>(this->base());
 		//}
 
-		inline variable_byte_integer::value_type id()
+		inline variable_byte_integer::value_type id() const
 		{
 			variable_byte_integer::value_type r = 0;
 
@@ -979,7 +998,7 @@ namespace asio2::mqtt::v5
 			return r;
 		}
 
-		inline property_type type()
+		inline property_type type() const
 		{
 			property_type r = static_cast<property_type>(0);
 
@@ -996,7 +1015,7 @@ namespace asio2::mqtt::v5
 			return r;
 		}
 
-		inline std::string_view name()
+		inline std::string_view name() const
 		{
 			std::string_view r{};
 
@@ -1029,7 +1048,7 @@ namespace asio2::mqtt::v5
 		 * @brief Checks if the variant holds anyone of the alternative Types...
 		 */
 		template<class... Types>
-		inline bool has() noexcept
+		inline bool has() const noexcept
 		{
 			return (std::holds_alternative<Types>(this->base()) || ...);
 		}
@@ -1038,7 +1057,7 @@ namespace asio2::mqtt::v5
 		 * @brief Checks if the variant holds anyone of the alternative Types...
 		 */
 		template<class... Types>
-		inline bool holds() noexcept
+		inline bool holds() const noexcept
 		{
 			return (std::holds_alternative<Types>(this->base()) || ...);
 		}
@@ -1054,11 +1073,31 @@ namespace asio2::mqtt::v5
 		}
 
 		/**
+		 * @brief If this holds the alternative T, returns a pointer to the value stored in the variant.
+		 * Otherwise, returns a null pointer value.
+		 */
+		template<class T>
+		inline std::add_pointer_t<std::add_const_t<T>> get_if() const noexcept
+		{
+			return std::get_if<T>(std::addressof(this->base()));
+		}
+
+		/**
 		 * @brief If this holds the alternative T, returns a reference to the value stored in the variant.
 		 * Otherwise, throws std::bad_variant_access.
 		 */
 		template<class T>
 		inline T& get()
+		{
+			return std::get<T>(this->base());
+		}
+
+		/**
+		 * @brief If this holds the alternative T, returns a reference to the value stored in the variant.
+		 * Otherwise, throws std::bad_variant_access.
+		 */
+		template<class T>
+		inline T const& get() const
 		{
 			return std::get<T>(this->base());
 		}
@@ -1173,12 +1212,12 @@ namespace asio2::mqtt::v5
 			return (*this);
 		}
 
-		inline std::size_t required_size()
+		inline std::size_t required_size() const
 		{
 			return (length_.required_size() + length_.value());
 		}
 
-		inline std::size_t count() noexcept
+		inline std::size_t count() const noexcept
 		{
 			return data_.size();
 		}
@@ -1187,7 +1226,7 @@ namespace asio2::mqtt::v5
 		 * @brief Checks if the properties holds the alternative property T.
 		 */
 		template<class T>
-		inline bool has() noexcept
+		inline bool has() const noexcept
 		{
 			for (auto& v : data_)
 			{
@@ -1199,6 +1238,17 @@ namespace asio2::mqtt::v5
 
 		template<class T>
 		inline std::add_pointer_t<T> get_if() noexcept
+		{
+			for (auto& v : data_)
+			{
+				if (auto pval = std::get_if<T>(std::addressof(v)))
+					return pval;
+			}
+			return nullptr;
+		}
+
+		template<class T>
+		inline std::add_pointer_t<std::add_const_t<T>> get_if() const noexcept
 		{
 			for (auto& v : data_)
 			{
@@ -1321,6 +1371,7 @@ namespace asio2::mqtt::v5
 		}
 
 		inline std::vector<property>& data() { return data_; }
+		inline std::vector<property> const& data() const { return data_; }
 
 		inline properties_set& update_length()
 		{
@@ -1365,14 +1416,14 @@ namespace asio2::mqtt::v5
 		template<class derived_t>
 		struct reason_string_ops
 		{
-			inline bool has_reason_string()
+			inline bool has_reason_string() const
 			{
 				derived_t& derive = static_cast<derived_t&>(*this);
 
 				return derive.properties().template has<v5::reason_string>();
 			}
 
-			inline std::string_view reason_string()
+			inline std::string_view reason_string() const
 			{
 				derived_t& derive = static_cast<derived_t&>(*this);
 
@@ -1408,7 +1459,7 @@ namespace asio2::mqtt::v5
 			update_remain_length();
 		}
 
-		inline std::size_t required_size()
+		inline std::size_t required_size() const
 		{
 			return (fixed_header::required_size() + fixed_header::remain_length());
 		}
@@ -1483,26 +1534,28 @@ namespace asio2::mqtt::v5
 			return (*this);
 		}
 
-		inline std::uint8_t protocol_version() { return                      (protocol_version_                ); }
-		inline bool         clean_start     () { return                      (connect_flags_.bits.clean_start  ); }
-		inline bool         clean_session   () { return                      (connect_flags_.bits.clean_start  ); }
-		inline bool         has_will        () { return                      (connect_flags_.bits.will_flag    ); }
-		inline qos_type     will_qos        () { return static_cast<qos_type>(connect_flags_.bits.will_qos     ); }
-		inline bool         will_retain     () { return                      (connect_flags_.bits.will_retain  ); }
-		inline bool         has_password    () { return                      (connect_flags_.bits.password_flag); }
-		inline bool         has_username    () { return                      (connect_flags_.bits.username_flag); }
+		inline std::uint8_t protocol_version() const { return                      (protocol_version_                ); }
+		inline bool         clean_start     () const { return                      (connect_flags_.bits.clean_start  ); }
+		inline bool         clean_session   () const { return                      (connect_flags_.bits.clean_start  ); }
+		inline bool         has_will        () const { return                      (connect_flags_.bits.will_flag    ); }
+		inline qos_type     will_qos        () const { return static_cast<qos_type>(connect_flags_.bits.will_qos     ); }
+		inline bool         will_retain     () const { return                      (connect_flags_.bits.will_retain  ); }
+		inline bool         has_password    () const { return                      (connect_flags_.bits.password_flag); }
+		inline bool         has_username    () const { return                      (connect_flags_.bits.username_flag); }
 
 		inline connect&     clean_start     (bool v) { connect_flags_.bits.clean_start = v; return (*this); }
 		inline connect&     clean_session   (bool v) { connect_flags_.bits.clean_start = v; return (*this); }
 
-		inline two_byte_integer::value_type keep_alive        () { return keep_alive_   .value()    ; }
-		inline properties_set&              properties        () { return properties_               ; }
-		inline utf8_string::view_type       client_id         () { return client_id_    .data_view(); }
-		inline properties_set&              will_properties   () { return will_props_   .value()    ; }
-		inline utf8_string::view_type       will_topic        () { return will_topic_   ? will_topic_  ->data_view() : ""; }
-		inline binary_data::view_type       will_payload      () { return will_payload_ ? will_payload_->data_view() : ""; }
-		inline utf8_string::view_type       username          () { return username_     ? username_    ->data_view() : ""; }
-		inline binary_data::view_type       password          () { return password_     ? password_    ->data_view() : ""; }
+		inline two_byte_integer::value_type keep_alive        () const { return keep_alive_   .value()    ; }
+		inline properties_set&              properties        ()       { return properties_               ; }
+		inline properties_set const&        properties        () const { return properties_               ; }
+		inline utf8_string::view_type       client_id         () const { return client_id_    .data_view(); }
+		inline properties_set&              will_properties   ()       { return will_props_   .value()    ; }
+		inline properties_set const&        will_properties   () const { return will_props_   .value()    ; }
+		inline utf8_string::view_type       will_topic        () const { return will_topic_   ? will_topic_  ->data_view() : ""; }
+		inline binary_data::view_type       will_payload      () const { return will_payload_ ? will_payload_->data_view() : ""; }
+		inline utf8_string::view_type       username          () const { return username_     ? username_    ->data_view() : ""; }
+		inline binary_data::view_type       password          () const { return password_     ? password_    ->data_view() : ""; }
 
 		inline connect& keep_alive(two_byte_integer::value_type   v)
 		{
@@ -1553,9 +1606,9 @@ namespace asio2::mqtt::v5
 			return (*this);
 		}
 
-		inline bool has_will      () const noexcept { return will_props_.has_value(); }
-		inline bool has_username  () const noexcept { return username_  .has_value(); }
-		inline bool has_password  () const noexcept { return password_  .has_value(); }
+		inline bool will_topic_has_value() const noexcept { return will_props_.has_value(); }
+		inline bool username_has_value  () const noexcept { return username_  .has_value(); }
+		inline bool password_has_value  () const noexcept { return password_  .has_value(); }
 
 		inline connect& update_remain_length()
 		{
@@ -1670,7 +1723,7 @@ namespace asio2::mqtt::v5
 			update_remain_length();
 		}
 
-		inline std::size_t required_size()
+		inline std::size_t required_size() const
 		{
 			return (fixed_header::required_size() + fixed_header::remain_length());
 		}
@@ -1705,9 +1758,10 @@ namespace asio2::mqtt::v5
 			return (*this);
 		}
 
-		inline bool            session_present() { return connack_flags_.bits.session_present; }
-		inline mqtt::error     reason_code    () { return static_cast<mqtt::error>(reason_code_.value()); }
-		inline properties_set& properties     () { return properties_                        ; }
+		inline bool            session_present() const { return connack_flags_.bits.session_present; }
+		inline mqtt::error     reason_code    () const { return static_cast<mqtt::error>(reason_code_.value()); }
+		inline properties_set& properties     ()       { return properties_                        ; }
+		inline properties_set const& properties() const { return properties_                        ; }
 
 		inline connack       & session_present(bool         v) { connack_flags_.bits.session_present = v; return (*this); }
 		inline connack       & reason_code    (std::uint8_t v) { reason_code_                        = v; return (*this); }
@@ -1805,7 +1859,7 @@ namespace asio2::mqtt::v5
 			update_remain_length();
 		}
 
-		inline std::size_t required_size()
+		inline std::size_t required_size() const
 		{
 			return (fixed_header::required_size() + fixed_header::remain_length());
 		}
@@ -1859,19 +1913,20 @@ namespace asio2::mqtt::v5
 			return (*this);
 		}
 
-		inline bool                dup   () { return                      (type_and_flags_.bits.dup   ); }
-		inline qos_type            qos   () { return static_cast<qos_type>(type_and_flags_.bits.qos   ); }
-		inline bool                retain() { return                      (type_and_flags_.bits.retain); }
+		inline bool                dup   () const { return                      (type_and_flags_.bits.dup   ); }
+		inline qos_type            qos   () const { return static_cast<qos_type>(type_and_flags_.bits.qos   ); }
+		inline bool                retain() const { return                      (type_and_flags_.bits.retain); }
 
 		inline publish       &     dup   (bool     v) { type_and_flags_.bits.dup    = v;                            return (*this); }
 		template<class QosOrInt>
 		inline publish       &     qos   (QosOrInt v) { type_and_flags_.bits.qos    = static_cast<std::uint8_t>(v); return (*this); }
 		inline publish       &     retain(bool     v) { type_and_flags_.bits.retain = v;                            return (*this); }
 
-		inline utf8_string::view_type          topic_name() { return topic_name_.data_view(); }
-		inline two_byte_integer::value_type    packet_id () { return packet_id_ ? packet_id_->value() : 0; }
-		inline properties_set&                 properties() { return properties_            ; }
-		inline application_message::view_type  payload   () { return payload_.data_view()   ; }
+		inline utf8_string::view_type          topic_name() const { return topic_name_.data_view(); }
+		inline two_byte_integer::value_type    packet_id () const { return packet_id_ ? packet_id_->value() : 0; }
+		inline properties_set&                 properties()       { return properties_            ; }
+		inline properties_set const&           properties() const { return properties_            ; }
+		inline application_message::view_type  payload   () const { return payload_.data_view()   ; }
 
 		inline publish       &  packet_id (std::uint16_t    v) { packet_id_  = v             ;                      return (*this); }
 		template<class String>
@@ -1944,7 +1999,7 @@ namespace asio2::mqtt::v5
 			update_remain_length();
 		}
 
-		inline std::size_t required_size()
+		inline std::size_t required_size() const
 		{
 			return (fixed_header::required_size() + fixed_header::remain_length());
 		}
@@ -1987,9 +2042,10 @@ namespace asio2::mqtt::v5
 			return (*this);
 		}
 
-		inline two_byte_integer::value_type    packet_id  () { return packet_id_  .value()   ; }
-		inline std::uint8_t                    reason_code() { return reason_code_.value()   ; }
-		inline properties_set&                 properties () { return properties_            ; }
+		inline two_byte_integer::value_type    packet_id  () const { return packet_id_  .value()   ; }
+		inline std::uint8_t                    reason_code() const { return reason_code_.value()   ; }
+		inline properties_set&                 properties ()       { return properties_            ; }
+		inline properties_set const&           properties () const { return properties_            ; }
 
 		inline puback       &  packet_id  (std::uint16_t v) { packet_id_   = v; return (*this); }
 		inline puback       &  reason_code(std::uint8_t  v) { reason_code_ = v; return (*this); }
@@ -2051,7 +2107,7 @@ namespace asio2::mqtt::v5
 			update_remain_length();
 		}
 
-		inline std::size_t required_size()
+		inline std::size_t required_size() const
 		{
 			return (fixed_header::required_size() + fixed_header::remain_length());
 		}
@@ -2094,9 +2150,10 @@ namespace asio2::mqtt::v5
 			return (*this);
 		}
 
-		inline two_byte_integer::value_type    packet_id  () { return packet_id_  .value()   ; }
-		inline std::uint8_t                    reason_code() { return reason_code_.value()   ; }
-		inline properties_set&                 properties () { return properties_            ; }
+		inline two_byte_integer::value_type    packet_id  () const { return packet_id_  .value()   ; }
+		inline std::uint8_t                    reason_code() const { return reason_code_.value()   ; }
+		inline properties_set&                 properties ()       { return properties_            ; }
+		inline properties_set const&           properties () const { return properties_            ; }
 
 		inline pubrec       &  packet_id  (std::uint16_t v) { packet_id_   = v; return (*this); }
 		inline pubrec       &  reason_code(std::uint8_t  v) { reason_code_ = v; return (*this); }
@@ -2165,7 +2222,7 @@ namespace asio2::mqtt::v5
 			update_remain_length();
 		}
 
-		inline std::size_t required_size()
+		inline std::size_t required_size() const
 		{
 			return (fixed_header::required_size() + fixed_header::remain_length());
 		}
@@ -2208,9 +2265,10 @@ namespace asio2::mqtt::v5
 			return (*this);
 		}
 
-		inline two_byte_integer::value_type    packet_id  () { return packet_id_  .value()   ; }
-		inline std::uint8_t                    reason_code() { return reason_code_.value()   ; }
-		inline properties_set&                 properties () { return properties_            ; }
+		inline two_byte_integer::value_type    packet_id  () const { return packet_id_  .value()   ; }
+		inline std::uint8_t                    reason_code() const { return reason_code_.value()   ; }
+		inline properties_set&                 properties ()       { return properties_            ; }
+		inline properties_set const&           properties () const { return properties_            ; }
 
 		inline pubrel       &  packet_id  (std::uint16_t v) { packet_id_   = v; return (*this); }
 		inline pubrel       &  reason_code(std::uint8_t  v) { reason_code_ = v; return (*this); }
@@ -2272,7 +2330,7 @@ namespace asio2::mqtt::v5
 			update_remain_length();
 		}
 
-		inline std::size_t required_size()
+		inline std::size_t required_size() const
 		{
 			return (fixed_header::required_size() + fixed_header::remain_length());
 		}
@@ -2315,9 +2373,10 @@ namespace asio2::mqtt::v5
 			return (*this);
 		}
 
-		inline two_byte_integer::value_type    packet_id  () { return packet_id_  .value()   ; }
-		inline std::uint8_t                    reason_code() { return reason_code_.value()   ; }
-		inline properties_set&                 properties () { return properties_            ; }
+		inline two_byte_integer::value_type    packet_id  () const { return packet_id_  .value()   ; }
+		inline std::uint8_t                    reason_code() const { return reason_code_.value()   ; }
+		inline properties_set&                 properties ()       { return properties_            ; }
+		inline properties_set const&           properties () const { return properties_            ; }
 
 		inline pubcomp       &  packet_id  (std::uint16_t v) { packet_id_   = v; return (*this); }
 		inline pubcomp       &  reason_code(std::uint8_t  v) { reason_code_ = v; return (*this); }
@@ -2389,7 +2448,7 @@ namespace asio2::mqtt::v5
 			update_remain_length();
 		}
 
-		inline std::size_t required_size()
+		inline std::size_t required_size() const
 		{
 			return (fixed_header::required_size() + fixed_header::remain_length());
 		}
@@ -2424,9 +2483,11 @@ namespace asio2::mqtt::v5
 			return (*this);
 		}
 
-		inline two_byte_integer::value_type    packet_id    () { return packet_id_  .value()   ; }
-		inline properties_set   &              properties   () { return properties_            ; }
-		inline subscriptions_set&              subscriptions() { return subscriptions_         ; }
+		inline two_byte_integer::value_type    packet_id    () const { return packet_id_  .value()   ; }
+		inline properties_set   &              properties   ()       { return properties_            ; }
+		inline subscriptions_set&              subscriptions()       { return subscriptions_         ; }
+		inline properties_set    const&        properties   () const { return properties_            ; }
+		inline subscriptions_set const&        subscriptions() const { return subscriptions_         ; }
 
 		inline subscribe       &  packet_id  (std::uint16_t v) { packet_id_   = v; return (*this); }
 		template<class... Properties>
@@ -2500,7 +2561,7 @@ namespace asio2::mqtt::v5
 			update_remain_length();
 		}
 
-		inline std::size_t required_size()
+		inline std::size_t required_size() const
 		{
 			return (fixed_header::required_size() + fixed_header::remain_length());
 		}
@@ -2535,9 +2596,11 @@ namespace asio2::mqtt::v5
 			return (*this);
 		}
 
-		inline two_byte_integer::value_type    packet_id    () { return packet_id_  .value()   ; }
-		inline properties_set        &         properties   () { return properties_            ; }
-		inline one_byte_integer_set  &         reason_codes () { return reason_codes_          ; }
+		inline two_byte_integer::value_type    packet_id    () const { return packet_id_  .value()   ; }
+		inline properties_set        &         properties   ()       { return properties_            ; }
+		inline one_byte_integer_set  &         reason_codes ()       { return reason_codes_          ; }
+		inline properties_set        const&    properties   () const { return properties_            ; }
+		inline one_byte_integer_set  const&    reason_codes () const { return reason_codes_          ; }
 
 		inline suback       &  packet_id  (std::uint16_t v) { packet_id_   = v; return (*this); }
 		template<class... Properties>
@@ -2629,7 +2692,7 @@ namespace asio2::mqtt::v5
 			update_remain_length();
 		}
 
-		inline std::size_t required_size()
+		inline std::size_t required_size() const
 		{
 			return (fixed_header::required_size() + fixed_header::remain_length());
 		}
@@ -2664,9 +2727,11 @@ namespace asio2::mqtt::v5
 			return (*this);
 		}
 
-		inline two_byte_integer::value_type    packet_id    () { return packet_id_  .value()   ; }
-		inline properties_set   &              properties   () { return properties_            ; }
-		inline utf8_string_set  &              topic_filters() { return topic_filters_         ; }
+		inline two_byte_integer::value_type    packet_id    () const { return packet_id_  .value()   ; }
+		inline properties_set   &              properties   ()       { return properties_            ; }
+		inline utf8_string_set  &              topic_filters()       { return topic_filters_         ; }
+		inline properties_set   const&         properties   () const { return properties_            ; }
+		inline utf8_string_set  const&         topic_filters() const { return topic_filters_         ; }
 
 		inline unsubscribe       &  packet_id  (std::uint16_t v) { packet_id_   = v; return (*this); }
 		template<class... Properties>
@@ -2743,7 +2808,7 @@ namespace asio2::mqtt::v5
 			update_remain_length();
 		}
 
-		inline std::size_t required_size()
+		inline std::size_t required_size() const
 		{
 			return (fixed_header::required_size() + fixed_header::remain_length());
 		}
@@ -2778,9 +2843,11 @@ namespace asio2::mqtt::v5
 			return (*this);
 		}
 
-		inline two_byte_integer::value_type    packet_id    () { return packet_id_  .value()   ; }
-		inline properties_set        &         properties   () { return properties_            ; }
-		inline one_byte_integer_set  &         reason_codes () { return reason_codes_          ; }
+		inline two_byte_integer::value_type    packet_id    () const { return packet_id_  .value()   ; }
+		inline properties_set        &         properties   ()       { return properties_            ; }
+		inline one_byte_integer_set  &         reason_codes ()       { return reason_codes_          ; }
+		inline properties_set        const&    properties   () const { return properties_            ; }
+		inline one_byte_integer_set  const&    reason_codes () const { return reason_codes_          ; }
 
 		inline unsuback       &  packet_id  (std::uint16_t v) { packet_id_   = v; return (*this); }
 		template<class... Properties>
@@ -2844,7 +2911,7 @@ namespace asio2::mqtt::v5
 			update_remain_length();
 		}
 
-		inline std::size_t required_size()
+		inline std::size_t required_size() const
 		{
 			return (fixed_header::required_size() + fixed_header::remain_length());
 		}
@@ -2898,7 +2965,7 @@ namespace asio2::mqtt::v5
 			update_remain_length();
 		}
 
-		inline std::size_t required_size()
+		inline std::size_t required_size() const
 		{
 			return (fixed_header::required_size() + fixed_header::remain_length());
 		}
@@ -2967,7 +3034,7 @@ namespace asio2::mqtt::v5
 			update_remain_length();
 		}
 
-		inline std::size_t required_size()
+		inline std::size_t required_size() const
 		{
 			return (fixed_header::required_size() + fixed_header::remain_length());
 		}
@@ -3004,8 +3071,9 @@ namespace asio2::mqtt::v5
 			return (*this);
 		}
 
-		inline std::uint8_t    reason_code    () { return reason_code_.value()               ; }
-		inline properties_set& properties     () { return properties_                        ; }
+		inline std::uint8_t    reason_code    () const { return reason_code_.value()               ; }
+		inline properties_set& properties     ()       { return properties_                        ; }
+		inline properties_set const& properties() const { return properties_                        ; }
 
 		inline disconnect       & reason_code    (std::uint8_t v) { reason_code_ = v; return (*this); }
 		template<class... Properties>
@@ -3065,7 +3133,7 @@ namespace asio2::mqtt::v5
 			update_remain_length();
 		}
 
-		inline std::size_t required_size()
+		inline std::size_t required_size() const
 		{
 			return (fixed_header::required_size() + fixed_header::remain_length());
 		}
@@ -3103,8 +3171,9 @@ namespace asio2::mqtt::v5
 			return (*this);
 		}
 
-		inline std::uint8_t    reason_code    () { return reason_code_.value()               ; }
-		inline properties_set& properties     () { return properties_                        ; }
+		inline std::uint8_t    reason_code    () const { return reason_code_.value()               ; }
+		inline properties_set& properties     ()       { return properties_                        ; }
+		inline properties_set const& properties() const { return properties_                        ; }
 
 		inline auth       & reason_code    (std::uint8_t v) { reason_code_ = v; return (*this); }
 		template<class... Properties>

@@ -107,6 +107,10 @@ namespace asio2::detail
 		{
 			return (this->invoker_);
 		}
+		inline rpc_invoker_t<derived_t, typename executor_t::args_type> const& _invoker() const noexcept
+		{
+			return (this->invoker_);
+		}
 
 		template<typename C, typename Socket>
 		inline void _ws_start(std::shared_ptr<derived_t>& this_ptr, std::shared_ptr<ecs_t<C>>& ecs, Socket& socket)

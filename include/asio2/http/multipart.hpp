@@ -60,19 +60,19 @@ public:
 	/// Assignment
 	basic_multipart_field& operator=(basic_multipart_field const&) = default;
 
-	inline const String&     content_disposition      () { return content_disposition_      ; }
-	inline const String&     name                     () { return name_                     ; }
-	inline const String&     value                    () { return value_                    ; }
-	inline const String&     content_type             () { return content_type_             ; }
-	inline const String&     filename                 () { return filename_                 ; }
-	inline const String&     content_transfer_encoding() { return content_transfer_encoding_; }
+	inline const String&     content_disposition      ()      { return content_disposition_      ; }
+	inline const String&     name                     ()      { return name_                     ; }
+	inline const String&     value                    ()      { return value_                    ; }
+	inline const String&     content_type             ()      { return content_type_             ; }
+	inline const String&     filename                 ()      { return filename_                 ; }
+	inline const String&     content_transfer_encoding()      { return content_transfer_encoding_; }
 
-	inline const String& get_content_disposition      () { return content_disposition_      ; }
-	inline const String& get_name                     () { return name_                     ; }
-	inline const String& get_value                    () { return value_                    ; }
-	inline const String& get_content_type             () { return content_type_             ; }
-	inline const String& get_filename                 () { return filename_                 ; }
-	inline const String& get_content_transfer_encoding() { return content_transfer_encoding_; }
+	inline const String& get_content_disposition      ()      { return content_disposition_      ; }
+	inline const String& get_name                     ()      { return name_                     ; }
+	inline const String& get_value                    ()      { return value_                    ; }
+	inline const String& get_content_type             ()      { return content_type_             ; }
+	inline const String& get_filename                 ()      { return filename_                 ; }
+	inline const String& get_content_transfer_encoding()      { return content_transfer_encoding_; }
 
 	inline const String&     content_disposition      () const { return content_disposition_      ; }
 	inline const String&     name                     () const { return name_                     ; }
@@ -102,7 +102,7 @@ public:
 	template<class Str> inline basic_multipart_field& set_filename                 (Str&& v) { filename_                  = std::forward<Str>(v); return (*this); }
 	template<class Str> inline basic_multipart_field& set_content_transfer_encoding(Str&& v) { content_transfer_encoding_ = std::forward<Str>(v); return (*this); }
 
-	inline bool is_empty()
+	inline bool is_empty() const
 	{
 		return (
 			content_disposition_      .empty() && 
@@ -113,7 +113,7 @@ public:
 			content_transfer_encoding_.empty()    );
 	}
 
-	inline bool empty()
+	inline bool empty() const
 	{
 		return this->is_empty();
 	}

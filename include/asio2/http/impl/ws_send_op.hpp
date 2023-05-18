@@ -95,7 +95,7 @@ namespace asio2::detail
 			{
 				error_code ec;
 
-				sr.next(ec, [&sr, &buffers](error_code& ec, auto const& bufs) mutable
+				sr.next(ec, [&sr, &buffers](error_code&, auto const& bufs) mutable
 				{
 					for (auto const& buf : bufs)
 					{
