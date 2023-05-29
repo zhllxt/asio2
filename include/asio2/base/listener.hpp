@@ -225,14 +225,14 @@ namespace asio2::detail
 				this->observers_[detail::to_underlying(e)].get());
 			if (observer_ptr)
 			{
-				// You can define ASIO2_NO_EXCEPTIONS in the /asio2/config.hpp to disable the
+				// You can define ASIO_NO_EXCEPTIONS in the /asio2/config.hpp to disable the
 				// exception. so when the exception occurs, you can check the stack trace.
-			#if !defined(ASIO2_NO_EXCEPTIONS)
+			#if !defined(ASIO_NO_EXCEPTIONS) && !defined(BOOST_ASIO_NO_EXCEPTIONS)
 				try
 				{
 			#endif
 					(*observer_ptr)(std::forward<Args>(args)...);
-			#if !defined(ASIO2_NO_EXCEPTIONS)
+			#if !defined(ASIO_NO_EXCEPTIONS) && !defined(BOOST_ASIO_NO_EXCEPTIONS)
 				}
 				catch (system_error const& ex)
 				{

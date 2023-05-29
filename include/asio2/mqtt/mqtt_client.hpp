@@ -258,9 +258,9 @@ namespace asio2::detail
 			}
 			if (v.empty())
 			{
-				if (mqtt::v5::connack* m = std::get_if<mqtt::v5::connack>(std::addressof(connack_message_.base())))
+				if (const mqtt::v5::connack* m = std::get_if<mqtt::v5::connack>(std::addressof(connack_message_.base())))
 				{
-					mqtt::v5::assigned_client_identifier* p =
+					const mqtt::v5::assigned_client_identifier* p =
 						m->properties().get_if<mqtt::v5::assigned_client_identifier>();
 					if (p)
 						v = p->value();

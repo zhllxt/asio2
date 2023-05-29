@@ -41,4 +41,10 @@
 // eg : stop_timer will awake the timer with error of asio::error::operation_aborted.
 //#define ASIO2_ENABLE_TIMER_CALLBACK_WHEN_ERROR
 
+// Define ASIO_NO_EXCEPTIONS to disable the exception. so when the exception occurs, you can
+// check the stack trace.
+// If the ASIO_NO_EXCEPTIONS is defined, you can impl the throw_exception function by youself,
+// see: /asio2/external/asio.hpp
+//#define ASIO_NO_EXCEPTIONS
+
 #endif // !__ASIO2_CONFIG_HPP__

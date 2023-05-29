@@ -109,9 +109,12 @@ namespace asio2::detail
 			}
 			else
 			{
+			#if !defined(ASIO_NO_EXCEPTIONS) && !defined(BOOST_ASIO_NO_EXCEPTIONS)
 				try
 				{
+			#endif
 					return std::any_cast<DataT>(this->user_data_);
+			#if !defined(ASIO_NO_EXCEPTIONS) && !defined(BOOST_ASIO_NO_EXCEPTIONS)
 				}
 				catch (const std::bad_any_cast&)
 				{
@@ -121,6 +124,7 @@ namespace asio2::detail
 					}
 				}
 				return DataT{};
+			#endif
 			}
 		}
 

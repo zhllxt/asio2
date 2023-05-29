@@ -73,7 +73,9 @@ int main()
 
 	asio2::rpc_client client;
 
+	// just for test get_current_caller
 	pclient = &client;
+	client.set_user_data(1);
 
 	// set default rpc call timeout
 	client.set_default_timeout(std::chrono::seconds(3));

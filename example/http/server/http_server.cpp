@@ -234,6 +234,13 @@ int main()
 			rep.set(http::field::authorization, " http-server-coro");
 		}));
 
+		// how to send a message to client when the websocket connection is connected.
+		// can't use session_ptr->async_send(...) directly, because the websocket connection is not ready.
+		session_ptr->post_queued_event([session_ptr]()
+		{
+			session_ptr->async_send("eg: hello websocket");
+		});
+
 	}).on("close", [](std::shared_ptr<asio2::http_session>& session_ptr)
 	{
 		asio2::ignore_unused(session_ptr);

@@ -126,8 +126,10 @@ namespace asio2::detail
 
 					if (!ec)
 					{
+					#if !defined(ASIO_NO_EXCEPTIONS) && !defined(BOOST_ASIO_NO_EXCEPTIONS)
 						try
 						{
+					#endif
 							derive.dr_ >> ec;
 
 							if constexpr (!std::is_void_v<return_t>)
@@ -139,6 +141,7 @@ namespace asio2::detail
 							{
 								std::ignore = result;
 							}
+					#if !defined(ASIO_NO_EXCEPTIONS) && !defined(BOOST_ASIO_NO_EXCEPTIONS)
 						}
 						catch (cereal::exception const&)
 						{
@@ -148,6 +151,7 @@ namespace asio2::detail
 						{
 							ec = rpc::make_error_code(rpc::error::unspecified_error);
 						}
+					#endif
 					}
 
 					if (std::addressof(ec.category()) != std::addressof(rpc::rpc_category()))
@@ -300,10 +304,13 @@ namespace asio2::detail
 			{
 				return [&derive, cb = std::forward<Callback>(cb)](auto ec, std::string_view) mutable
 				{
+				#if !defined(ASIO_NO_EXCEPTIONS) && !defined(BOOST_ASIO_NO_EXCEPTIONS)
 					try
 					{
+				#endif
 						if (!ec)
 							derive.dr_ >> ec;
+				#if !defined(ASIO_NO_EXCEPTIONS) && !defined(BOOST_ASIO_NO_EXCEPTIONS)
 					}
 					catch (cereal::exception const&)
 					{
@@ -313,6 +320,7 @@ namespace asio2::detail
 					{
 						ec = rpc::make_error_code(rpc::error::unspecified_error);
 					}
+				#endif
 
 					if (std::addressof(ec.category()) != std::addressof(rpc::rpc_category()))
 					{
@@ -336,13 +344,16 @@ namespace asio2::detail
 
 					typename rpc_result_t<return_t>::type result{};
 
+				#if !defined(ASIO_NO_EXCEPTIONS) && !defined(BOOST_ASIO_NO_EXCEPTIONS)
 					try
 					{
+				#endif
 						if (!ec)
 							derive.dr_ >> ec;
 
 						if (!ec)
 							derive.dr_ >> result;
+				#if !defined(ASIO_NO_EXCEPTIONS) && !defined(BOOST_ASIO_NO_EXCEPTIONS)
 					}
 					catch (cereal::exception const&)
 					{
@@ -352,6 +363,7 @@ namespace asio2::detail
 					{
 						ec = rpc::make_error_code(rpc::error::unspecified_error);
 					}
+				#endif
 
 					if (std::addressof(ec.category()) != std::addressof(rpc::rpc_category()))
 					{

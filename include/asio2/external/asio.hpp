@@ -384,6 +384,25 @@ namespace boost::asio
 	}
 }
 
+#if (defined(ASIO_NO_EXCEPTIONS) || defined(BOOST_ASIO_NO_EXCEPTIONS)) && !defined(ASIO2_NO_EXCEPTIONS_IMPL)
+#include <asio2/external/assert.hpp>
+#include <iostream>
+#ifdef ASIO_STANDALONE
+namespace asio::detail
+#else
+namespace boost::asio::detail
+#endif
+{
+	template <typename Exception>
+	void throw_exception(const Exception& e ASIO_SOURCE_LOCATION_PARAM)
+	{
+		std::cerr << "exception occured: " << e.what() << std::endl;
+		ASIO2_ASSERT(false);
+		std::terminate();
+	}
+}
+#endif
+
 #include <asio2/base/detail/pop_options.hpp>
 
 #endif // !__ASIO2_ASIO_HPP__

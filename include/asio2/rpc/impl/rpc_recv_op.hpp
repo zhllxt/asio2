@@ -109,10 +109,13 @@ namespace asio2::detail
 					// call this function will deserialize data, so it maybe throw some exception,
 					// and it will call user function inner, the user function maybe throw some 
 					// exception also.
+				#if !defined(ASIO_NO_EXCEPTIONS) && !defined(BOOST_ASIO_NO_EXCEPTIONS)
 					try
 					{
+				#endif
 						if ((*fn)(this_ptr, std::addressof(derive), sr, dr))
 							return;
+				#if !defined(ASIO_NO_EXCEPTIONS) && !defined(BOOST_ASIO_NO_EXCEPTIONS)
 					}
 					catch (cereal::exception const&)
 					{
@@ -129,6 +132,7 @@ namespace asio2::detail
 						derive._rpc_handle_failed_request(rpc::error::unspecified_error, sr, head);
 						return;
 					}
+				#endif
 
 					// The number of parameters passed in when calling rpc function exceeds 
 					// the number of parameters of local function

@@ -460,8 +460,10 @@ namespace asio2::detail
 					sr << head;
 					sr << ec;
 
+				#if !defined(ASIO_NO_EXCEPTIONS) && !defined(BOOST_ASIO_NO_EXCEPTIONS)
 					try
 					{
+				#endif
 						if constexpr (!std::is_same_v<rpc::future<void>, R>)
 						{
 							if (!ec)
@@ -476,6 +478,7 @@ namespace asio2::detail
 
 						caller->async_send(sr.str());
 
+				#if !defined(ASIO_NO_EXCEPTIONS) && !defined(BOOST_ASIO_NO_EXCEPTIONS)
 						return; // not exception, return
 					}
 					catch (cereal::exception const&)
@@ -496,6 +499,7 @@ namespace asio2::detail
 					sr << ec;
 
 					caller->async_send(sr.str());
+				#endif
 				}));
 			});
 

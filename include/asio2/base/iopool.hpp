@@ -420,6 +420,11 @@ namespace asio2::detail
 			}
 		#endif
 
+			// You should call stop function manually by youself to avoid this problem.
+			// eg:
+			// asio2::tcp_client client;
+			// ...
+			// client.stop();
 			ASIO2_ASSERT(!this->running_in_threads());
 			ASIO2_ASSERT(this->threads_.empty());
 		}
@@ -501,14 +506,14 @@ namespace asio2::detail
 					// We should handle exceptions in other business functions to ensure that
 					// exceptions will not be triggered here.
 
-					// You can define ASIO2_NO_EXCEPTIONS in the /asio2/config.hpp to disable the
+					// You can define ASIO_NO_EXCEPTIONS in the /asio2/config.hpp to disable the
 					// exception. so when the exception occurs, you can check the stack trace.
-				#if !defined(ASIO2_NO_EXCEPTIONS)
+				#if !defined(ASIO_NO_EXCEPTIONS) && !defined(BOOST_ASIO_NO_EXCEPTIONS)
 					try
 					{
 				#endif
 						iot->context().run();
-				#if !defined(ASIO2_NO_EXCEPTIONS)
+				#if !defined(ASIO_NO_EXCEPTIONS) && !defined(BOOST_ASIO_NO_EXCEPTIONS)
 					}
 					catch (system_error const& e)
 					{
