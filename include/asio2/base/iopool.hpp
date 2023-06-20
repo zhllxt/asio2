@@ -727,6 +727,21 @@ namespace asio2::detail
 		}
 
 		/**
+		 * @brief Get the thread native handle of the specified thread index.
+		 * @note after test, on Windows:
+		 * this will be failed:
+		 * SetThreadPriority((HANDLE)thread.native_handle(), THREAD_PRIORITY_HIGHEST);
+		 * this will be successed:
+		 * SetThreadPriority(::GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
+		 */
+		inline std::thread::native_handle_type get_thread_handle(std::size_t index) noexcept
+		{
+			asio2::shared_locker guard(this->mutex_);
+
+			return this->threads_[index % this->threads_.size()].native_handle();
+		}
+
+		/**
 		 * Use to ensure that all nested asio::post(...) events are fully invoked.
 		 */
 		inline void wait_for_io_context_stopped() ASIO2_NO_THREAD_SAFETY_ANALYSIS

@@ -106,6 +106,31 @@ namespace bho::pfr
 			}
 		}
 
+		template<class Function>
+		void for_each(Function&& callback) noexcept
+		{
+			for (const auto& [name, func] : create_functions_)
+			{
+				callback(name, func);
+			}
+		}
+
+		std::function<BaseT* (Args&&...)>* find(const std::string& name)
+		{
+			auto it = create_functions_.find(name);
+			return it == create_functions_.end() ? nullptr : std::addressof(it->second);
+		}
+
+		inline std::size_t size() const noexcept
+		{
+			return create_functions_.size();
+		}
+
+		inline bool empty() const noexcept
+		{
+			return create_functions_.empty();
+		}
+
 	private:
 		std::unordered_map<std::string, std::function<BaseT*(Args&&...)>> create_functions_;
 	};

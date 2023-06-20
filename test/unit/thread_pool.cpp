@@ -86,7 +86,7 @@ void thread_pool_test()
 	}
 
 	{
-		asio2::thread_pool thpool;
+		asio2::thread_group thpool;
 
 		thpool.post(0, [&thpool]()
 		{
@@ -105,7 +105,7 @@ void thread_pool_test()
 		{
 			int thread_index = std::rand();
 
-			thpool.post([]()
+			thpool.post(thread_index, []()
 			{
 				std::this_thread::yield();
 			});
@@ -117,8 +117,9 @@ void thread_pool_test()
 		}
 	}
 
+	for (int n = 0; n < 10; n++)
 	{
-		asio2::thread_pool thpool;
+		asio2::thread_group thpool;
 
 		std::mutex mtx;
 

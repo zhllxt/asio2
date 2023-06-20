@@ -484,6 +484,26 @@ namespace asio2
 	}
 
 	/**
+	 * @brief Converts string to lower case.
+	 * @param str - string that needs to be converted.
+	 * @return Lower case input string.
+	 */
+	template<
+		class CharT,
+		class Traits = std::char_traits<CharT>,
+		class Allocator = std::allocator<CharT>
+	>
+	inline std::basic_string<CharT, Traits, Allocator> to_lower(std::basic_string<CharT, Traits, Allocator>&& str)
+	{
+		std::transform(str.begin(), str.end(), str.begin(), [](CharT c) -> CharT
+		{
+			return static_cast<CharT>(std::tolower(c));
+		});
+
+		return std::move(str);
+	}
+
+	/**
 	 * @brief Converts string to upper case.
 	 * @param str - string that needs to be converted.
 	 * @return Upper case input string.
@@ -501,6 +521,26 @@ namespace asio2
 		});
 
 		return str;
+	}
+
+	/**
+	 * @brief Converts string to upper case.
+	 * @param str - string that needs to be converted.
+	 * @return Upper case input string.
+	 */
+	template<
+		class CharT,
+		class Traits = std::char_traits<CharT>,
+		class Allocator = std::allocator<CharT>
+	>
+	inline std::basic_string<CharT, Traits, Allocator> to_upper(std::basic_string<CharT, Traits, Allocator>&& str)
+	{
+		std::transform(str.begin(), str.end(), str.begin(), [](CharT c) -> CharT
+		{
+			return static_cast<CharT>(std::toupper(c));
+		});
+
+		return std::move(str);
 	}
 
 	/**
@@ -526,6 +566,28 @@ namespace asio2
 	}
 
 	/**
+	 * @brief Converts the first character of a string to uppercase letter and lowercases all other characters, if any.
+	 * @param str - input string to be capitalized.
+	 * @return A string with the first letter capitalized and all other characters lowercased.
+	 */
+	template<
+		class CharT,
+		class Traits = std::char_traits<CharT>,
+		class Allocator = std::allocator<CharT>
+	>
+	inline std::basic_string<CharT, Traits, Allocator> capitalize(std::basic_string<CharT, Traits, Allocator>&& str)
+	{
+		asio2::to_lower(str);
+
+		if (!str.empty())
+		{
+			str.front() = static_cast<CharT>(std::toupper(str.front()));
+		}
+
+		return std::move(str);
+	}
+
+	/**
 	 * @brief Converts only the first character of a string to uppercase letter, all other characters stay unchanged.
 	 * @param str - input string to be modified.
 	 * @return A string with the first letter capitalized. All other characters stay unchanged.
@@ -544,6 +606,27 @@ namespace asio2
 		}
 
 		return str;
+	}
+
+	/**
+	 * @brief Converts only the first character of a string to uppercase letter, all other characters stay unchanged.
+	 * @param str - input string to be modified.
+	 * @return A string with the first letter capitalized. All other characters stay unchanged.
+	 */
+	template<
+		class CharT,
+		class Traits = std::char_traits<CharT>,
+		class Allocator = std::allocator<CharT>
+	>
+	inline std::basic_string<CharT, Traits, Allocator> capitalize_first_char(
+		std::basic_string<CharT, Traits, Allocator>&& str)
+	{
+		if (!str.empty())
+		{
+			str.front() = static_cast<CharT>(std::toupper(str.front()));
+		}
+
+		return std::move(str);
 	}
 
 	/**
@@ -589,6 +672,21 @@ namespace asio2
 	}
 
 	/**
+	 * @brief trim each space character of the string: space \t \r \n and so on
+	 */
+	template<
+		class CharT,
+		class Traits = std::char_traits<CharT>,
+		class Allocator = std::allocator<CharT>
+	>
+	inline std::basic_string<CharT, Traits, Allocator> trim_all(std::basic_string<CharT, Traits, Allocator>&& str)
+	{
+		// https://zh.cppreference.com/w/cpp/algorithm/remove
+		str.erase(std::remove_if(str.begin(), str.end(), [](int x) {return std::isspace(x); }), str.end());
+		return std::move(str);
+	}
+
+	/**
 	 * @brief trim left space character of the string: space \t \r \n and so on
 	 */
 	template<
@@ -610,9 +708,36 @@ namespace asio2
 		class Traits = std::char_traits<CharT>,
 		class Allocator = std::allocator<CharT>
 	>
+	inline std::basic_string<CharT, Traits, Allocator> trim_left(std::basic_string<CharT, Traits, Allocator>&& str)
+	{
+		str.erase(str.begin(), std::find_if(str.begin(), str.end(), [](int ch) { return !std::isspace(ch); }));
+		return std::move(str);
+	}
+
+	/**
+	 * @brief trim left space character of the string: space \t \r \n and so on
+	 */
+	template<
+		class CharT,
+		class Traits = std::char_traits<CharT>,
+		class Allocator = std::allocator<CharT>
+	>
 	inline std::basic_string<CharT, Traits, Allocator>& ltrim(std::basic_string<CharT, Traits, Allocator>& str)
 	{
 		return asio2::trim_left(str);
+	}
+
+	/**
+	 * @brief trim left space character of the string: space \t \r \n and so on
+	 */
+	template<
+		class CharT,
+		class Traits = std::char_traits<CharT>,
+		class Allocator = std::allocator<CharT>
+	>
+	inline std::basic_string<CharT, Traits, Allocator> ltrim(std::basic_string<CharT, Traits, Allocator>&& str)
+	{
+		return asio2::trim_left(std::move(str));
 	}
 
 	/**
@@ -637,9 +762,36 @@ namespace asio2
 		class Traits = std::char_traits<CharT>,
 		class Allocator = std::allocator<CharT>
 	>
+	inline std::basic_string<CharT, Traits, Allocator> trim_right(std::basic_string<CharT, Traits, Allocator>&& str)
+	{
+		str.erase(std::find_if(str.rbegin(), str.rend(), [](int ch) { return !std::isspace(ch); }).base(), str.end());
+		return std::move(str);
+	}
+
+	/**
+	 * @brief trim right space character of the string: space \t \r \n and so on
+	 */
+	template<
+		class CharT,
+		class Traits = std::char_traits<CharT>,
+		class Allocator = std::allocator<CharT>
+	>
 	inline std::basic_string<CharT, Traits, Allocator>& rtrim(std::basic_string<CharT, Traits, Allocator>& str)
 	{
 		return asio2::trim_right(str);
+	}
+
+	/**
+	 * @brief trim right space character of the string: space \t \r \n and so on
+	 */
+	template<
+		class CharT,
+		class Traits = std::char_traits<CharT>,
+		class Allocator = std::allocator<CharT>
+	>
+	inline std::basic_string<CharT, Traits, Allocator> rtrim(std::basic_string<CharT, Traits, Allocator>&& str)
+	{
+		return asio2::trim_right(std::move(str));
 	}
 
 	/**
@@ -652,9 +804,20 @@ namespace asio2
 	>
 	inline std::basic_string<CharT, Traits, Allocator>& trim_both(std::basic_string<CharT, Traits, Allocator>& str)
 	{
-		trim_left(str);
-		trim_right(str);
-		return str;
+		return trim_right(trim_left(str));
+	}
+
+	/**
+	 * @brief trim left and right space character of the string: space \t \r \n and so on
+	 */
+	template<
+		class CharT,
+		class Traits = std::char_traits<CharT>,
+		class Allocator = std::allocator<CharT>
+	>
+	inline std::basic_string<CharT, Traits, Allocator> trim_both(std::basic_string<CharT, Traits, Allocator>&& str)
+	{
+		return trim_right(trim_left(std::move(str)));
 	}
 
 	/**
@@ -671,6 +834,19 @@ namespace asio2
 	}
 
 	/**
+	 * @brief trim left and right space character of the string: space \t \r \n and so on
+	 */
+	template<
+		class CharT,
+		class Traits = std::char_traits<CharT>,
+		class Allocator = std::allocator<CharT>
+	>
+	inline std::basic_string<CharT, Traits, Allocator> trim(std::basic_string<CharT, Traits, Allocator>&& str)
+	{
+		return asio2::trim_both(std::move(str));
+	}
+
+	/**
 	 * @brief Trims white spaces from the left side of string.
 	 * @param str - input string to remove white spaces from.
 	 * @return Copy of input str with trimmed white spaces.
@@ -682,8 +858,7 @@ namespace asio2
 	>
 	inline std::basic_string<CharT, Traits, Allocator> trim_left_copy(std::basic_string<CharT, Traits, Allocator> str)
 	{
-		asio2::trim_left(str);
-		return str;
+		return asio2::trim_left(std::move(str));
 	}
 
 	/**
@@ -698,8 +873,7 @@ namespace asio2
 	>
 	inline std::basic_string<CharT, Traits, Allocator> ltrim_copy(std::basic_string<CharT, Traits, Allocator> str)
 	{
-		asio2::trim_left(str);
-		return str;
+		return asio2::trim_left(std::move(str));
 	}
 
 	/**
@@ -714,8 +888,7 @@ namespace asio2
 	>
 	inline std::basic_string<CharT, Traits, Allocator> trim_right_copy(std::basic_string<CharT, Traits, Allocator> str)
 	{
-		asio2::trim_right(str);
-		return str;
+		return asio2::trim_right(std::move(str));
 	}
 
 	/**
@@ -730,8 +903,7 @@ namespace asio2
 	>
 	inline std::basic_string<CharT, Traits, Allocator> rtrim_copy(std::basic_string<CharT, Traits, Allocator> str)
 	{
-		asio2::trim_right(str);
-		return str;
+		return asio2::trim_right(std::move(str));
 	}
 
 	/**
@@ -746,8 +918,7 @@ namespace asio2
 	>
 	inline std::basic_string<CharT, Traits, Allocator> trim_copy(std::basic_string<CharT, Traits, Allocator> str)
 	{
-		asio2::trim(str);
-		return str;
+		return asio2::trim(std::move(str));
 	}
 
 	/**
@@ -779,9 +950,43 @@ namespace asio2
 		class CharT,
 		class Traits = std::char_traits<CharT>
 	>
+	inline std::basic_string_view<CharT, Traits> trim_left(std::basic_string_view<CharT, Traits>&& str)
+	{
+		if (str.empty())
+			return std::move(str);
+		using size_type = typename std::basic_string_view<CharT, Traits>::size_type;
+		size_type pos = 0;
+		for (; pos < str.size(); ++pos)
+		{
+			if (!std::isspace(static_cast<unsigned char>(str[pos])))
+				break;
+		}
+		str.remove_prefix(pos);
+		return std::move(str);
+	}
+
+	/**
+	 * @brief trim left space character of the string: space \t \r \n and so on
+	 */
+	template<
+		class CharT,
+		class Traits = std::char_traits<CharT>
+	>
 	inline std::basic_string_view<CharT, Traits>& ltrim(std::basic_string_view<CharT, Traits>& str)
 	{
 		return asio2::trim_left(str);
+	}
+
+	/**
+	 * @brief trim left space character of the string: space \t \r \n and so on
+	 */
+	template<
+		class CharT,
+		class Traits = std::char_traits<CharT>
+	>
+	inline std::basic_string_view<CharT, Traits> ltrim(std::basic_string_view<CharT, Traits>&& str)
+	{
+		return asio2::trim_left(std::move(str));
 	}
 
 	/**
@@ -813,9 +1018,43 @@ namespace asio2
 		class CharT,
 		class Traits = std::char_traits<CharT>
 	>
+	inline std::basic_string_view<CharT, Traits> trim_right(std::basic_string_view<CharT, Traits>&& str)
+	{
+		if (str.empty())
+			return std::move(str);
+		using size_type = typename std::basic_string_view<CharT, Traits>::size_type;
+		size_type pos = str.size() - 1;
+		for (; pos != size_type(-1); pos--)
+		{
+			if (!std::isspace(static_cast<unsigned char>(str[pos])))
+				break;
+		}
+		str.remove_suffix(str.size() - pos - 1);
+		return std::move(str);
+	}
+
+	/**
+	 * @brief trim right space character of the string: space \t \r \n and so on
+	 */
+	template<
+		class CharT,
+		class Traits = std::char_traits<CharT>
+	>
 	inline std::basic_string_view<CharT, Traits>& rtrim(std::basic_string_view<CharT, Traits>& str)
 	{
 		return asio2::trim_right(str);
+	}
+
+	/**
+	 * @brief trim right space character of the string: space \t \r \n and so on
+	 */
+	template<
+		class CharT,
+		class Traits = std::char_traits<CharT>
+	>
+	inline std::basic_string_view<CharT, Traits> rtrim(std::basic_string_view<CharT, Traits>&& str)
+	{
+		return asio2::trim_right(std::move(str));
 	}
 
 	/**
@@ -827,9 +1066,19 @@ namespace asio2
 	>
 	inline std::basic_string_view<CharT, Traits>& trim_both(std::basic_string_view<CharT, Traits>& str)
 	{
-		asio2::trim_left(str);
-		asio2::trim_right(str);
-		return str;
+		return asio2::trim_right(asio2::trim_left(str));
+	}
+
+	/**
+	 * @brief trim left and right space character of the string: space \t \r \n and so on
+	 */
+	template<
+		class CharT,
+		class Traits = std::char_traits<CharT>
+	>
+	inline std::basic_string_view<CharT, Traits> trim_both(std::basic_string_view<CharT, Traits>&& str)
+	{
+		return asio2::trim_right(asio2::trim_left(std::move(str)));
 	}
 
 	/**
@@ -842,6 +1091,18 @@ namespace asio2
 	inline std::basic_string_view<CharT, Traits>& trim(std::basic_string_view<CharT, Traits>& str)
 	{
 		return asio2::trim_both(str);
+	}
+
+	/**
+	 * @brief trim left and right space character of the string: space \t \r \n and so on
+	 */
+	template<
+		class CharT,
+		class Traits = std::char_traits<CharT>
+	>
+	inline std::basic_string_view<CharT, Traits> trim(std::basic_string_view<CharT, Traits>&& str)
+	{
+		return asio2::trim_both(std::move(str));
 	}
 
 	/**
@@ -877,6 +1138,38 @@ namespace asio2
 	}
 
 	/**
+	 * @brief Replaces (in-place) the first occurrence of target with replacement.
+	 * @param str - input string that will be modified.
+	 * @param target - substring that will be replaced with replacement.
+	 * @param replacement - substring that will replace target.
+	 * @return Replacemented input string.
+	 */
+	template<
+		class String1,
+		class String2,
+		class CharT,
+		class Traits = std::char_traits<CharT>,
+		class Allocator = std::allocator<CharT>
+	>
+	inline std::basic_string<CharT, Traits, Allocator> replace_first(
+		std::basic_string<CharT, Traits, Allocator>&& str,
+		const String1& target,
+		const String2& replacement)
+	{
+		auto t = asio2::to_basic_string_view(target);
+		auto r = asio2::to_basic_string_view(replacement);
+
+		const std::size_t start_pos = str.find(t);
+		if (start_pos == std::string::npos)
+		{
+			return std::move(str);
+		}
+
+		str.replace(start_pos, t.length(), r);
+		return std::move(str);
+	}
+
+	/**
 	 * @brief Replaces (in-place) last occurrence of target with replacement.
 	 * @param str - input string that will be modified.
 	 * @param target - substring that will be replaced with replacement.
@@ -906,6 +1199,38 @@ namespace asio2
 
 		str.replace(start_pos, t.length(), r);
 		return str;
+	}
+
+	/**
+	 * @brief Replaces (in-place) last occurrence of target with replacement.
+	 * @param str - input string that will be modified.
+	 * @param target - substring that will be replaced with replacement.
+	 * @param replacement - substring that will replace target.
+	 * @return Replacemented input string.
+	 */
+	template<
+		class String1,
+		class String2,
+		class CharT,
+		class Traits = std::char_traits<CharT>,
+		class Allocator = std::allocator<CharT>
+	>
+	inline std::basic_string<CharT, Traits, Allocator> replace_last(
+		std::basic_string<CharT, Traits, Allocator>&& str,
+		const String1& target,
+		const String2& replacement)
+	{
+		auto t = asio2::to_basic_string_view(target);
+		auto r = asio2::to_basic_string_view(replacement);
+
+		std::size_t start_pos = str.rfind(t);
+		if (start_pos == std::string::npos)
+		{
+			return std::move(str);
+		}
+
+		str.replace(start_pos, t.length(), r);
+		return std::move(str);
 	}
 
 	/**
@@ -960,12 +1285,72 @@ namespace asio2
 		class Traits = std::char_traits<CharT>,
 		class Allocator = std::allocator<CharT>
 	>
+	inline std::basic_string<CharT, Traits, Allocator> replace_all(
+		std::basic_string<CharT, Traits, Allocator>&& str,
+		const String1& target,
+		const String2& replacement)
+	{
+		auto t = asio2::to_basic_string_view(target);
+		auto r = asio2::to_basic_string_view(replacement);
+
+		if (t.empty())
+		{
+			return std::move(str);
+		}
+
+		std::size_t start_pos = 0;
+
+		while ((start_pos = str.find(t, start_pos)) != std::string::npos)
+		{
+			str.replace(start_pos, t.length(), r);
+			start_pos += r.length();
+		}
+
+		return std::move(str);
+	}
+
+	/**
+	 * @brief Replaces (in-place) all occurrences of target with replacement.
+	 * @param str - input string that will be modified.
+	 * @param target - substring that will be replaced with replacement.
+	 * @param replacement - substring that will replace target.
+	 * @return Replacemented input string.
+	 */
+	template<
+		class String1,
+		class String2,
+		class CharT,
+		class Traits = std::char_traits<CharT>,
+		class Allocator = std::allocator<CharT>
+	>
 	inline std::basic_string<CharT, Traits, Allocator>& replace(
 		std::basic_string<CharT, Traits, Allocator>& str,
 		const String1& target,
 		const String2& replacement)
 	{
 		return asio2::replace_all(str, target, replacement);
+	}
+
+	/**
+	 * @brief Replaces (in-place) all occurrences of target with replacement.
+	 * @param str - input string that will be modified.
+	 * @param target - substring that will be replaced with replacement.
+	 * @param replacement - substring that will replace target.
+	 * @return Replacemented input string.
+	 */
+	template<
+		class String1,
+		class String2,
+		class CharT,
+		class Traits = std::char_traits<CharT>,
+		class Allocator = std::allocator<CharT>
+	>
+	inline std::basic_string<CharT, Traits, Allocator> replace(
+		std::basic_string<CharT, Traits, Allocator>&& str,
+		const String1& target,
+		const String2& replacement)
+	{
+		return asio2::replace_all(std::move(str), target, replacement);
 	}
 
 	/**

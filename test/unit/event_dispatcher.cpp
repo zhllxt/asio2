@@ -131,7 +131,7 @@ void event_dispatcher_test_basic()
 	ASIO2_CHECK(f51 == 1);
 	ASIO2_CHECK(f52 == 1);
 
-	dispatcher.clear_listeners();
+	dispatcher.clear_all_listeners();
 	ASIO2_CHECK(dispatcher.get_listener_count() == 0);
 }
 
@@ -307,6 +307,8 @@ void event_dispatcher_test_event_filter()
 
 	asio2::event_dispatcher<int, void (int e, int i, std::string), MyPolicy> dispatcher;
 
+	dispatcher.reserve(100);
+
 	std::vector<int> v;
 
 	int f3 = -1;
@@ -417,7 +419,7 @@ void event_dispatcher_test_event_filter()
 	ASIO2_CHECK(v[4] == 501);
 	ASIO2_CHECK(v[5] == 502);
 
-	dispatcher.clear_filters();
+	dispatcher.clear_all_filters();
 	ASIO2_CHECK(dispatcher.get_filter_count() == 0);
 }
 
@@ -577,7 +579,7 @@ void event_dispatcher_test_name()
 	ASIO2_CHECK(f51 == 1);
 	ASIO2_CHECK(f52 == 1);
 
-	dispatcher.clear_listeners();
+	dispatcher.clear_all_listeners();
 	ASIO2_CHECK(dispatcher.get_listener_count() == 0);
 }
 

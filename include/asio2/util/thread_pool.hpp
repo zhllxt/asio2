@@ -60,6 +60,7 @@ namespace asio2
 {
 	/**
 	 * thread pool interface, this pool is multi thread safed.
+	 * the tasks will be running in random thread.
 	 */
 	class thread_pool
 	{
@@ -69,10 +70,8 @@ namespace asio2
 		 */
 		explicit thread_pool(std::size_t thread_count = std::thread::hardware_concurrency())
 		{
-			if (thread_count < 1)
-				thread_count = 1;
-
-			this->indexed_tasks_ = std::vector<std::queue<std::packaged_task<void()>>>{ thread_count };
+			if (thread_count < static_cast<std::size_t>(1))
+				thread_count = static_cast<std::size_t>(1);
 
 			this->workers_.reserve(thread_count);
 
@@ -80,32 +79,21 @@ namespace asio2
 			{
 				// emplace_back can use the parameters to construct the std::thread object automictly
 				// use lambda function as the thread proc function,lambda can has no parameters list
-				this->workers_.emplace_back([this, i]() mutable
+				this->workers_.emplace_back([this]() mutable
 				{
-					std::queue<std::packaged_task<void()>>& indexed_tasks = this->indexed_tasks_[i];
-
 					for (;;)
 					{
 						std::packaged_task<void()> task;
 
 						{
 							std::unique_lock<std::mutex> lock(this->mtx_);
-							this->cv_.wait(lock, [this, &indexed_tasks]
-								{ return (this->stop_ || !this->tasks_.empty() || !indexed_tasks.empty()); });
+							this->cv_.wait(lock, [this] { return (this->stop_ || !this->tasks_.empty()); });
 
-							if (this->stop_ && this->tasks_.empty() && indexed_tasks.empty())
+							if (this->stop_ && this->tasks_.empty())
 								return;
 
-							if (indexed_tasks.empty())
-							{
-								task = std::move(this->tasks_.front());
-								this->tasks_.pop();
-							}
-							else
-							{
-								task = std::move(indexed_tasks.front());
-								indexed_tasks.pop();
-							}
+							task = std::move(this->tasks_.front());
+							this->tasks_.pop();
 						}
 
 						task();
@@ -126,7 +114,7 @@ namespace asio2
 
 			this->cv_.notify_all();
 
-			for (auto & worker : this->workers_)
+			for (std::thread& worker : this->workers_)
 			{
 				if (worker.joinable())
 					worker.join();
@@ -166,49 +154,33 @@ namespace asio2
 		}
 
 		/**
-		 * @brief post a function object into the thread pool with specified thread index, 
-		 * then return immediately, the function object will never be executed inside this 
-		 * function. Instead, it will be executed asynchronously in the thread pool.
-		 * @param thread_index - which thread to execute the function.
-		 * @param fun - global function,static function,lambda,member function,std::function.
-		 * @return std::future<fun_return_type>
+		 * @brief get thread count of the thread pool with no lock
 		 */
-		template<class IntegerT, class Fun, class... Args,
-			std::enable_if_t<std::is_integral_v<std::remove_cv_t<std::remove_reference_t<IntegerT>>>, int> = 0>
-		auto post(IntegerT thread_index, Fun&& fun, Args&&... args) -> std::future<std::invoke_result_t<Fun, Args...>>
+		inline std::size_t thread_count() noexcept
 		{
-			using return_type = std::invoke_result_t<Fun, Args...>;
-
-			std::packaged_task<return_type()> task(
-				std::bind(std::forward<Fun>(fun), std::forward<Args>(args)...));
-
-			std::future<return_type> future = task.get_future();
-
-			{
-				std::unique_lock<std::mutex> lock(this->mtx_);
-
-				// don't allow post after stopping the pool
-				if (this->stop_)
-					throw std::runtime_error("post a task into thread pool but the pool is stopped");
-
-				this->indexed_tasks_[thread_index % this->indexed_tasks_.size()].emplace(std::move(task));
-			}
-
-			this->cv_.notify_one();
-
-			return future;
+			return this->workers_.size();
 		}
 
 		/**
-		 * @brief get thread count of the thread pool, same as get_pool_size()
+		 * @brief get thread count of the thread pool with lock
+		 */
+		inline std::size_t get_thread_count() noexcept
+		{
+			std::unique_lock<std::mutex> lock(this->mtx_);
+
+			return this->workers_.size();
+		}
+
+		/**
+		 * @brief get thread count of the thread pool with no lock, same as thread_count()
 		 */
 		inline std::size_t pool_size() noexcept
 		{
-			return this->get_pool_size();
+			return this->workers_.size();
 		}
 
 		/**
-		 * @brief get thread count of the thread pool
+		 * @brief get thread count of the thread pool with lock, same as get_thread_count()
 		 */
 		inline std::size_t get_pool_size() noexcept
 		{
@@ -221,28 +193,21 @@ namespace asio2
 		}
 
 		/**
-		 * @brief get remain task size, same as get_task_size()
+		 * @brief get remain task size with no lock
 		 */
 		inline std::size_t task_size() noexcept
 		{
-			return this->get_task_size();
+			return this->tasks_.size();
 		}
 
 		/**
-		 * @brief get remain task size
+		 * @brief get remain task size with lock
 		 */
 		inline std::size_t get_task_size() noexcept
 		{
 			std::unique_lock<std::mutex> lock(this->mtx_);
 
-			std::size_t count = this->tasks_.size();
-
-			for (std::queue<std::packaged_task<void()>>& queue : this->indexed_tasks_)
-			{
-				count += queue.size();
-			}
-
-			return count;
+			return this->tasks_.size();
 		}
 
 		/**
@@ -253,7 +218,7 @@ namespace asio2
 			std::unique_lock<std::mutex> lock(this->mtx_);
 
 			std::thread::id curr_tid = std::this_thread::get_id();
-			for (auto & thread : this->workers_)
+			for (std::thread& thread : this->workers_)
 			{
 				if (curr_tid == thread.get_id())
 					return true;
@@ -276,7 +241,15 @@ namespace asio2
 		}
 
 		/**
-		 * @brief Get the thread id of the specified thread index.
+		 * @brief Get the thread id of the specified thread index with no lock.
+		 */
+		inline std::thread::id thread_id(std::size_t index) noexcept
+		{
+			return this->workers_[index % this->workers_.size()].get_id();
+		}
+
+		/**
+		 * @brief Get the thread id of the specified thread index with lock.
 		 */
 		inline std::thread::id get_thread_id(std::size_t index) noexcept
 		{
@@ -298,15 +271,198 @@ namespace asio2
 		// the task queue
 		std::queue<std::packaged_task<void()>> tasks_;
 
-		// the task queue with thread index can be specified
-		std::vector<std::queue<std::packaged_task<void()>>> indexed_tasks_;
-
 		// synchronization
 		std::mutex mtx_;
 		std::condition_variable cv_;
 
 		// flag indicate the pool is stoped
 		bool stop_ = false;
+	};
+
+	/**
+	 * thread group interface, this group is multi thread safed.
+	 * the task will be running in the specified thread.
+	 */
+	class thread_group
+	{
+	public:
+		// Avoid conflicts with thread_pool in other namespace
+		using worker_t = asio2::thread_pool;
+
+		/**
+		 * @brief constructor
+		 */
+		explicit thread_group(std::size_t thread_count = std::thread::hardware_concurrency())
+		{
+			if (thread_count < static_cast<std::size_t>(1))
+				thread_count = static_cast<std::size_t>(1);
+
+			this->workers_.reserve(thread_count);
+
+			for (std::size_t i = 0; i < thread_count; ++i)
+			{
+				this->workers_.emplace_back(new worker_t(static_cast<std::size_t>(1)));
+			}
+		}
+
+		/**
+		 * @brief destructor
+		 */
+		~thread_group()
+		{
+			for (worker_t* p : this->workers_)
+			{
+				delete p;
+			}
+
+			this->workers_.clear();
+		}
+
+		/**
+		 * @brief post a function object into the thread group with specified thread index, 
+		 * then return immediately, the function object will never be executed inside this 
+		 * function. Instead, it will be executed asynchronously in the thread group.
+		 * @param thread_index - which thread to execute the function.
+		 * @param fun - global function,static function,lambda,member function,std::function.
+		 * @return std::future<fun_return_type>
+		 */
+		template<class IntegerT, class Fun, class... Args,
+			std::enable_if_t<std::is_integral_v<std::remove_cv_t<std::remove_reference_t<IntegerT>>>, int> = 0>
+		auto post(IntegerT thread_index, Fun&& fun, Args&&... args) -> std::future<std::invoke_result_t<Fun, Args...>>
+		{
+			return this->workers_[thread_index % this->workers_.size()]->post(
+				std::forward<Fun>(fun), std::forward<Args>(args)...);
+		}
+
+		/**
+		 * @brief get thread count of the thread group with no lock
+		 */
+		inline std::size_t thread_count() noexcept
+		{
+			return this->workers_.size();
+		}
+
+		/**
+		 * @brief get thread count of the thread group with lock
+		 */
+		inline std::size_t get_thread_count() noexcept
+		{
+			return this->workers_.size();
+		}
+
+		/**
+		 * @brief get thread count of the thread group with no lock, same as thread_count()
+		 */
+		inline std::size_t pool_size() noexcept
+		{
+			return this->workers_.size();
+		}
+
+		/**
+		 * @brief get thread count of the thread group with lock, same as get_thread_count()
+		 */
+		inline std::size_t get_pool_size() noexcept
+		{
+			return this->workers_.size();
+		}
+
+		/**
+		 * @brief get remain task size with no lock
+		 */
+		inline std::size_t task_size() noexcept
+		{
+			std::size_t count = 0;
+
+			for (worker_t* p : this->workers_)
+			{
+				count += p->task_size();
+			}
+
+			return count;
+		}
+
+		/**
+		 * @brief get remain task size with lock
+		 */
+		inline std::size_t get_task_size() noexcept
+		{
+			std::size_t count = 0;
+
+			for (worker_t* p : this->workers_)
+			{
+				count += p->get_task_size();
+			}
+
+			return count;
+		}
+
+		/**
+		 * @brief get remain task size of the specified thread with no lock
+		 */
+		inline std::size_t task_size(std::size_t thread_index) noexcept
+		{
+			return this->workers_[thread_index % this->workers_.size()]->task_size();
+		}
+
+		/**
+		 * @brief get remain task size of the specified thread with lock
+		 */
+		inline std::size_t get_task_size(std::size_t thread_index) noexcept
+		{
+			return this->workers_[thread_index % this->workers_.size()]->get_task_size();
+		}
+
+		/**
+		 * @brief Determine whether current code is running in the group's threads.
+		 */
+		inline bool running_in_threads() noexcept
+		{
+			for (worker_t* p : this->workers_)
+			{
+				if (p->running_in_threads())
+					return true;
+			}
+
+			return false;
+		}
+
+		/**
+		 * @brief Determine whether current code is running in the thread by index
+		 */
+		inline bool running_in_thread(std::size_t index) noexcept
+		{
+			if (!(index < this->workers_.size()))
+				return false;
+
+			return this->workers_[index]->running_in_thread(index);
+		}
+
+		/**
+		 * @brief Get the thread id of the specified thread index with no lock.
+		 */
+		inline std::thread::id thread_id(std::size_t index) noexcept
+		{
+			return this->workers_[index % this->workers_.size()]->thread_id(index);
+		}
+
+		/**
+		 * @brief Get the thread id of the specified thread index with lock.
+		 */
+		inline std::thread::id get_thread_id(std::size_t index) noexcept
+		{
+			return this->workers_[index % this->workers_.size()]->get_thread_id(index);
+		}
+
+	private:
+		/// no copy construct function
+		thread_group(const thread_group&) = delete;
+
+		/// no operator equal function
+		thread_group& operator=(const thread_group&) = delete;
+
+	protected:
+		// 
+		std::vector<worker_t*> workers_;
 	};
 }
 

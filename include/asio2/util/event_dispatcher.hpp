@@ -689,6 +689,13 @@ public:
 	enum { value = !! decltype(test<T>(0))() };
 };
 
+template<class T, class R, class... Args>
+struct has_member_reserve : std::false_type {};
+
+template<class T, class... Args>
+struct has_member_reserve<T, decltype(std::declval<std::decay_t<T>>().
+	reserve((std::declval<Args>())...)), Args...> : std::true_type {};
+
 template <typename Key, typename Value, typename T, bool>
 struct select_map
 {
@@ -1738,22 +1745,22 @@ public:
 
 public:
 	event_dispatcher_base()
-		: listener_map_()
-		, listener_mtx_()
+		: listener_mtx_()
+		, listener_map_()
 		, listener_name_map_()
 	{
 	}
 
 	event_dispatcher_base(const event_dispatcher_base & other)
-		: listener_map_(other.listener_map_)
-		, listener_mtx_()
+		: listener_mtx_()
+		, listener_map_(other.listener_map_)
 		, listener_name_map_(other.listener_name_map_)
 	{
 	}
 
 	event_dispatcher_base(event_dispatcher_base && other) noexcept
-		: listener_map_(std::move(other.listener_map_))
-		, listener_mtx_()
+		: listener_mtx_()
+		, listener_map_(std::move(other.listener_map_))
 		, listener_name_map_(std::move(other.listener_name_map_))
 	{
 	}
@@ -2085,7 +2092,7 @@ public:
 		return false;
 	}
 
-	void clear_listeners() noexcept
+	void clear_all_listeners() noexcept
 	{
 		typename thread_type::template unique_lock<mutex_type> guard(listener_mtx_);
 
@@ -2098,6 +2105,14 @@ public:
 
 		listener_map_.clear();
 		listener_name_map_.clear();
+	}
+
+	void reserve(std::size_t new_cap)
+	{
+		typename thread_type::template unique_lock<mutex_type> guard(listener_mtx_);
+
+		this->do_reserve(listener_map_, new_cap);
+		this->do_reserve(listener_name_map_, new_cap);
 	}
 
 	std::size_t get_listener_count(const event_type& e)
@@ -2285,6 +2300,20 @@ protected:
 		return do_find_callable_list_helper(this, e);
 	}
 
+	template<class M>
+	inline void do_reserve(M& map, std::size_t new_cap)
+	{
+		if constexpr (has_member_reserve<M, void, std::size_t>::value)
+		{
+			map.reserve(new_cap);
+		}
+		else
+		{
+			std::ignore = map;
+			std::ignore = new_cap;
+		}
+	}
+
 private:
 	// template helper to avoid code duplication in do_find_callable_list
 	template <typename T>
@@ -2327,8 +2356,8 @@ private:
 	};
 
 private:
-	map_type               listener_map_;
 	mutable mutex_type     listener_mtx_;
+	map_type               listener_map_;
 	listener_name_map_type listener_name_map_;
 };
 
@@ -2374,7 +2403,7 @@ public:
 		return filter_list_.remove(filter);
 	}
 
-	inline void clear_filters() noexcept
+	inline void clear_all_filters() noexcept
 	{
 		return filter_list_.clear();
 	}

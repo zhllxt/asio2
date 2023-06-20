@@ -24,6 +24,18 @@ inline std::istream& operator>>(std::istream& is, userinfo& v)
 	return is;
 }
 
+std::string make_string()
+{
+	std::string s(" a B c ");
+	return s;
+}
+
+std::string_view make_string_view()
+{
+	std::string_view s(" a B c ");
+	return s;
+}
+
 void strutil_test()
 {
 	{
@@ -399,10 +411,14 @@ void strutil_test()
 		ASIO2_CHECK(asio2::to_lower(str) == "text\n with\tsome \t  whitespaces\n\n");
 	}
 
+	ASIO2_CHECK(asio2::to_lower(make_string()) == " a b c ");
+
 	{
 		std::string str = "Text\n with\tsome \t  whitespaces\n\n";
 		ASIO2_CHECK(asio2::to_upper(str) == "TEXT\n WITH\tSOME \t  WHITESPACES\n\n");
 	}
+
+	ASIO2_CHECK(asio2::to_upper(make_string()) == " A B C ");
 
 	{
 		std::string str = "Textwithsomewhitespaces";
@@ -419,10 +435,14 @@ void strutil_test()
 		ASIO2_CHECK(asio2::capitalize(str) == "Text\n with\tsome \t  whitespaces\n\n");
 	}
 
+	ASIO2_CHECK(asio2::capitalize(make_string()) == " a b c ");
+
 	{
 		std::string str = "text\n With\tSome \t  whitespaces\n\n";
 		ASIO2_CHECK(asio2::capitalize_first_char(str) == "Text\n With\tSome \t  whitespaces\n\n");
 	}
+
+	ASIO2_CHECK(asio2::capitalize_first_char(make_string()) == " a B c ");
 
 	{
 		std::string str = "Text\n with\tsome \t  whitespaces\n\n";
@@ -457,35 +477,49 @@ void strutil_test()
 		ASIO2_CHECK(asio2::trim_all(str) == "Textwithsomewhitespaces");
 	}
 
+	ASIO2_CHECK(asio2::trim_all(make_string()) == "aBc");
+
 	{
 		std::string str = " \nText\n with\tsome \t  whitespaces\n\n";
 		ASIO2_CHECK(asio2::trim_left(str) == "Text\n with\tsome \t  whitespaces\n\n");
 	}
+
+	ASIO2_CHECK(asio2::trim_left(make_string()) == "a B c ");
 
 	{
 		std::string str = " \nText\n with\tsome \t  whitespaces\n\n";
 		ASIO2_CHECK(asio2::ltrim(str) == "Text\n with\tsome \t  whitespaces\n\n");
 	}
 
+	ASIO2_CHECK(asio2::ltrim(make_string()) == "a B c ");
+
 	{
 		std::string str = " \nText\n with\tsome \t  whitespaces \n\n ";
 		ASIO2_CHECK(asio2::trim_right(str) == " \nText\n with\tsome \t  whitespaces");
 	}
+
+	ASIO2_CHECK(asio2::trim_right(make_string()) == " a B c");
 
 	{
 		std::string str = " \nText\n with\tsome \t  whitespaces \n\n ";
 		ASIO2_CHECK(asio2::rtrim(str) == " \nText\n with\tsome \t  whitespaces");
 	}
 
+	ASIO2_CHECK(asio2::rtrim(make_string()) == " a B c");
+
 	{
 		std::string str = " \nText\n with\tsome \t  whitespaces \n\n ";
 		ASIO2_CHECK(asio2::trim_both(str) == "Text\n with\tsome \t  whitespaces");
 	}
 
+	ASIO2_CHECK(asio2::trim_both(make_string()) == "a B c");
+
 	{
 		std::string str = " \nText\n with\tsome \t  whitespaces \n\n ";
 		ASIO2_CHECK(asio2::trim(str) == "Text\n with\tsome \t  whitespaces");
 	}
+
+	ASIO2_CHECK(asio2::trim(make_string()) == "a B c");
 
 	{
 		std::string str = " \nText\n with\tsome \t  whitespaces \n\n ";
@@ -522,30 +556,45 @@ void strutil_test()
 		ASIO2_CHECK(asio2::trim_left(str) == "Text\n with\tsome \t  whitespaces \n\n ");
 	}
 
+	ASIO2_CHECK(asio2::trim_left(make_string_view()) == "a B c ");
+
 	{
 		std::string_view str = " \nText\n with\tsome \t  whitespaces \n\n ";
 		ASIO2_CHECK(asio2::ltrim(str) == "Text\n with\tsome \t  whitespaces \n\n ");
 	}
+
+	ASIO2_CHECK(asio2::ltrim(make_string_view()) == "a B c ");
 
 	{
 		std::string_view str = " \nText\n with\tsome \t  whitespaces \n\n ";
 		ASIO2_CHECK(asio2::trim_right(str) == " \nText\n with\tsome \t  whitespaces");
 	}
 
+	using namespace std::string_view_literals;
+
+	ASIO2_CHECK(asio2::trim_right(make_string_view()) == " a B c");
+	ASIO2_CHECK(asio2::trim_right(" a B c "sv) == " a B c");
+
 	{
 		std::string_view str = " \nText\n with\tsome \t  whitespaces \n\n ";
 		ASIO2_CHECK(asio2::rtrim(str) == " \nText\n with\tsome \t  whitespaces");
 	}
+
+	ASIO2_CHECK(asio2::rtrim(make_string_view()) == " a B c");
 
 	{
 		std::string_view str = " \nText\n with\tsome \t  whitespaces \n\n ";
 		ASIO2_CHECK(asio2::trim_both(str) == "Text\n with\tsome \t  whitespaces");
 	}
 
+	ASIO2_CHECK(asio2::trim_both(make_string_view()) == "a B c");
+
 	{
 		std::string_view str = " \nText\n with\tsome \t  whitespaces \n\n ";
 		ASIO2_CHECK(asio2::trim(str) == "Text\n with\tsome \t  whitespaces");
 	}
+
+	ASIO2_CHECK(asio2::trim(make_string_view()) == "a B c");
 
 	{
 		std::string str = " \nText\n with\tsome \t some whitespaces \n\n ";
@@ -576,6 +625,8 @@ void strutil_test()
 		ASIO2_CHECK(asio2::replace_first(str, 'T', "t") == " \ntext\n with\tsome \t some whitespaces \n\n ");
 	}
 
+	ASIO2_CHECK(asio2::replace_first(make_string(), " ", "") == "a B c ");
+
 	{
 		std::string str = " \nText\n with\tsome \t some whitespaces \n\n ";
 		ASIO2_CHECK(asio2::replace_last(str, "some", "Any") == " \nText\n with\tsome \t Any whitespaces \n\n ");
@@ -604,6 +655,8 @@ void strutil_test()
 		str = " \nText\n with\tsome \t some whitespaces \n\n ";
 		ASIO2_CHECK(asio2::replace_last(str, 't', "x") == " \nText\n with\tsome \t some whixespaces \n\n ");
 	}
+
+	ASIO2_CHECK(asio2::replace_last(make_string(), ' ', "") == " a B c");
 
 	{
 		std::string str = " \nText\n with\tsome \t some whitespaces \n\n ";
@@ -634,6 +687,8 @@ void strutil_test()
 		ASIO2_CHECK(asio2::replace_all(str, 't', "x") == " \nTexx\n wixh\tsome \t some whixespaces \n\n ");
 	}
 
+	ASIO2_CHECK(asio2::replace_all(make_string(), ' ', "") == "aBc");
+
 	{
 		std::string str = " \nText\n with\tsome \t some whitespaces \n\n ";
 		ASIO2_CHECK(asio2::replace(str, "some", "Any") == " \nText\n with\tAny \t Any whitespaces \n\n ");
@@ -662,6 +717,8 @@ void strutil_test()
 		str = " \nText\n with\tsome \t some whitespaces \n\n ";
 		ASIO2_CHECK(asio2::replace(str, 't', "x") == " \nTexx\n wixh\tsome \t some whixespaces \n\n ");
 	}
+
+	ASIO2_CHECK(asio2::replace(make_string(), ' ', "") == "aBc");
 
 	{
 		std::string str = " \nText\n with\tsome \t some whitespaces \n\n ";

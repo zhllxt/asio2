@@ -60,6 +60,7 @@ int main()
 			session_ptr->remote_address().c_str(), session_ptr->remote_port(),
 			session_ptr->local_address().c_str(), session_ptr->local_port());
 		//session_ptr->set_response_mode(asio2::response_mode::manual);
+		session_ptr->set_disconnect_timeout(std::chrono::seconds(2));
 	}).bind_disconnect([](auto & session_ptr)
 	{
 		printf("client leave : %s %u %s\n",

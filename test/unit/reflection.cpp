@@ -42,8 +42,53 @@ struct userinfo
 	F_END();
 };
 
+class imodule
+{
+public:
+	imodule() {}
+	virtual ~imodule() {}
+	virtual int status() = 0;
+};
+
+class config_module : public imodule, public pfr::base_dynamic_creator<imodule, config_module>
+{
+public:
+	config_module() : imodule() {}
+	virtual ~config_module() {}
+	virtual int status() override
+	{
+		return 12;
+	}
+};
+
+class config_module_ex : public config_module, public pfr::base_dynamic_creator<imodule, config_module_ex>
+{
+public:
+	config_module_ex() : config_module() {}
+	virtual ~config_module_ex() {}
+	virtual int status() override
+	{
+		return 13;
+	}
+};
+
 void reflection_test()
 {
+	int N = 0;
+	pfr::class_factory<imodule>& factory = pfr::class_factory<imodule>::instance();
+	factory.for_each([&N](const auto& name, const auto& func)
+	{
+		N++;
+		ASIO2_CHECK(name == "config_module_ex" || name == "config_module");
+		std::shared_ptr<imodule> p(func());
+		ASIO2_CHECK(12 == p->status() || 13 == p->status());
+	});
+	ASIO2_CHECK(N == 2);
+	ASIO2_CHECK(factory.size() == 2);
+	ASIO2_CHECK(factory.empty() == false);
+	ASIO2_CHECK(factory.find("config_module_ex") != nullptr);
+	ASIO2_CHECK(factory.find("config_module_ex_2") == nullptr);
+
 	int i1 = 1;
 	actor* p1 = pfr::create_helper<actor>::create(
 		"dog", i1, std::string("dog1"), (const char*)"d1");
