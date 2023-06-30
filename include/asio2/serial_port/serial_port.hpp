@@ -121,7 +121,7 @@ namespace asio2::detail
 			, post_cp           <derived_t, args_t>()
 			, condition_event_cp<derived_t, args_t>()
 			, rdc_call_cp       <derived_t, args_t>()
-			, socket_    (iopoolcp::_get_io(0).context())
+			, socket_    (iopoolcp::_get_io(0)->context())
 			, rallocator_()
 			, wallocator_()
 			, listener_  ()
@@ -148,7 +148,7 @@ namespace asio2::detail
 			, post_cp           <derived_t, args_t>()
 			, condition_event_cp<derived_t, args_t>()
 			, rdc_call_cp       <derived_t, args_t>()
-			, socket_    (iopoolcp::_get_io(0).context())
+			, socket_    (iopoolcp::_get_io(0)->context())
 			, rallocator_()
 			, wallocator_()
 			, listener_  ()
@@ -204,7 +204,7 @@ namespace asio2::detail
 
 			derived_t& derive = this->derived();
 
-			derive.io().unregobj(&derive);
+			derive.io_->unregobj(&derive);
 
 			// use promise to get the result of stop
 			std::promise<state_t> promise;
@@ -252,7 +252,7 @@ namespace asio2::detail
 					if (derive.get_thread_id() == std::thread::id{})
 						break;
 
-					if (derive.io().context().stopped())
+					if (derive.io_->context().stopped())
 						break;
 				}
 			}
@@ -282,7 +282,7 @@ namespace asio2::detail
 		 * @param fun - a user defined callback function.
 		 * @param obj - a pointer or reference to a class object, this parameter can be none.
 		 * @li if fun is nonmember function, the obj param must be none, otherwise the obj must be the
-		 * the class object's pointer or refrence.
+		 * the class object's pointer or reference.
 		 * void on_recv(std::string_view data){...}
 		 * or a lumbda function like this :
 		 * [&](std::string_view data){...}
@@ -300,7 +300,7 @@ namespace asio2::detail
 		 * @param fun - a user defined callback function.
 		 * @param obj - a pointer or reference to a class object, this parameter can be none.
 		 * @li if fun is nonmember function, the obj param must be none, otherwise the obj must be the
-		 * the class object's pointer or refrence.
+		 * the class object's pointer or reference.
 		 * void on_init(){...}
 		 * or a lumbda function like this :
 		 * [&](){...}
@@ -318,7 +318,7 @@ namespace asio2::detail
 		 * @param fun - a user defined callback function.
 		 * @param obj - a pointer or reference to a class object, this parameter can be none.
 		 * @li if fun is nonmember function, the obj param must be none, otherwise the obj must be the
-		 * the class object's pointer or refrence.
+		 * the class object's pointer or reference.
 		 * This notification is called after the server starts up, whether successful or unsuccessful
 		 * Function signature : void()
 		 */
@@ -335,7 +335,7 @@ namespace asio2::detail
 		 * @param fun - a user defined callback function.
 		 * @param obj - a pointer or reference to a class object, this parameter can be none.
 		 * @li if fun is nonmember function, the obj param must be none, otherwise the obj must be the
-		 * the class object's pointer or refrence.
+		 * the class object's pointer or reference.
 		 * This notification is called before the server is ready to stop
 		 * Function signature : void()
 		 */
@@ -349,22 +349,22 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @brief get the socket object refrence
+		 * @brief get the socket object reference
 		 */
 		inline socket_type & socket() noexcept { return this->socket_; }
 
 		/**
-		 * @brief get the socket object refrence
+		 * @brief get the socket object reference
 		 */
 		inline const socket_type & socket() const noexcept { return this->socket_; }
 
 		/**
-		 * @brief get the stream object refrence
+		 * @brief get the stream object reference
 		 */
 		inline socket_type & stream() noexcept { return this->socket_; }
 
 		/**
-		 * @brief get the stream object refrence
+		 * @brief get the stream object reference
 		 */
 		inline const socket_type & stream() const noexcept { return this->socket_; }
 
@@ -445,12 +445,12 @@ namespace asio2::detail
 				return false;
 			}
 
-			asio::dispatch(derive.io().context(), [&derive, this_ptr = derive.selfptr()]() mutable
+			asio::dispatch(derive.io_->context(), [&derive, this_ptr = derive.selfptr()]() mutable
 			{
 				detail::ignore_unused(this_ptr);
 
 				// init the running thread id 
-				derive.io().init_thread_id();
+				derive.io_->init_thread_id();
 			});
 
 			// use promise to get the result of async connect
@@ -500,7 +500,7 @@ namespace asio2::detail
 				// must read/write ecs in the io_context thread.
 				derive.ecs_ = ecs;
 
-				derive.io().regobj(&derive);
+				derive.io_->regobj(&derive);
 
 			#if defined(_DEBUG) || defined(DEBUG)
 				this->is_stop_called_ = false;
@@ -548,7 +548,7 @@ namespace asio2::detail
 				derive._handle_start(ec, std::move(this_ptr), std::move(ecs), std::move(chain));
 			});
 
-			if (!derive.io().running_in_this_thread())
+			if (!derive.io_->running_in_this_thread())
 			{
 				set_last_error(future.get());
 
@@ -570,7 +570,7 @@ namespace asio2::detail
 		void _handle_start(
 			error_code ec, std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs, DeferEvent chain)
 		{
-			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
+			ASIO2_ASSERT(this->derived().io_->running_in_this_thread());
 
 			// Whether the startup succeeds or fails, always call fire_start notification
 			state_t expected = state_t::starting;
@@ -600,7 +600,7 @@ namespace asio2::detail
 		inline void _do_disconnect(
 			const error_code& ec, std::shared_ptr<derived_t> this_ptr, E chain = defer_event<void, derived_t>{})
 		{
-			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
+			ASIO2_ASSERT(this->derived().io_->running_in_this_thread());
 
 			state_t expected = state_t::started;
 			if (this->state_.compare_exchange_strong(expected, state_t::stopping))
@@ -691,7 +691,7 @@ namespace asio2::detail
 
 			ASIO2_ASSERT(this->state_ == state_t::stopped);
 
-			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
+			ASIO2_ASSERT(this->derived().io_->running_in_this_thread());
 
 			// close user custom timers
 			this->_dispatch_stop_all_timers();
@@ -713,7 +713,7 @@ namespace asio2::detail
 			this->buffer().consume(this->buffer().size());
 
 			// destroy user data, maybe the user data is self shared_ptr,
-			// if don't destroy it, will cause loop refrence.
+			// if don't destroy it, will cause loop reference.
 			this->user_data_.reset();
 
 			// destroy the ecs
@@ -727,7 +727,7 @@ namespace asio2::detail
 		inline void _start_recv(std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs)
 		{
 			// Connect succeeded. post recv request.
-			asio::dispatch(this->derived().io().context(), make_allocator(this->derived().wallocator(),
+			asio::dispatch(this->derived().io_->context(), make_allocator(this->derived().wallocator(),
 			[this, this_ptr = std::move(this_ptr), ecs = std::move(ecs)]() mutable
 			{
 				using condition_lowest_type = typename ecs_t<C>::condition_lowest_type;
@@ -798,7 +798,7 @@ namespace asio2::detail
 		inline void _fire_init()
 		{
 			// the _fire_init must be executed in the thread 0.
-			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
+			ASIO2_ASSERT(this->derived().io_->running_in_this_thread());
 			ASIO2_ASSERT(!get_last_error());
 
 			this->listener_.notify(event_type::init);
@@ -808,7 +808,7 @@ namespace asio2::detail
 		inline void _fire_start(std::shared_ptr<derived_t>& this_ptr, std::shared_ptr<ecs_t<C>>& ecs)
 		{
 			// the _fire_start must be executed in the thread 0.
-			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
+			ASIO2_ASSERT(this->derived().io_->running_in_this_thread());
 
 		#if defined(_DEBUG) || defined(DEBUG)
 			ASIO2_ASSERT(this->is_stop_called_ == false);
@@ -825,7 +825,7 @@ namespace asio2::detail
 		inline void _fire_stop(std::shared_ptr<derived_t>&)
 		{
 			// the _fire_stop must be executed in the thread 0.
-			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
+			ASIO2_ASSERT(this->derived().io_->running_in_this_thread());
 
 		#if defined(_DEBUG) || defined(DEBUG)
 			this->is_stop_called_ = true;
@@ -865,25 +865,25 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @brief get the buffer object refrence
+		 * @brief get the buffer object reference
 		 */
 		inline buffer_wrap<buffer_type> & buffer() noexcept { return this->buffer_; }
 		/**
-		 * @brief get the io object refrence
+		 * @brief get the io object reference
 		 */
-		inline io_t & io() noexcept { return this->io_; }
+		inline io_t & io() noexcept { return *(this->io_); }
 		/**
-		 * @brief get the io object refrence
+		 * @brief get the io object reference
 		 */
-		inline io_t const& io() const noexcept { return this->io_; }
+		inline io_t const& io() const noexcept { return *(this->io_); }
 	
 	protected:
 		/**
-		 * @brief get the recv/read allocator object refrence
+		 * @brief get the recv/read allocator object reference
 		 */
 		inline auto & rallocator() noexcept { return this->rallocator_; }
 		/**
-		 * @brief get the send/write allocator object refrence
+		 * @brief get the send/write allocator object reference
 		 */
 		inline auto & wallocator() noexcept { return this->wallocator_; }
 
@@ -907,7 +907,7 @@ namespace asio2::detail
 		listener_t                                listener_;
 
 		/// The io_context wrapper used to handle the accept event.
-		io_t                                    & io_;
+		std::shared_ptr<io_t>                     io_;
 
 		/// buffer
 		buffer_wrap<buffer_type>                  buffer_;

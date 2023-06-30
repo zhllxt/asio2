@@ -48,7 +48,7 @@ namespace asio2::detail
 		{
 			derived_t& derive = const_cast<derived_t&>(static_cast<const derived_t&>(*this));
 
-			return (derive.io().get_thread_id() == std::this_thread::get_id());
+			return (derive.io_->get_thread_id() == std::this_thread::get_id());
 		}
 
 		/**
@@ -58,7 +58,7 @@ namespace asio2::detail
 		{
 			derived_t& derive = const_cast<derived_t&>(static_cast<const derived_t&>(*this));
 
-			return derive.io().get_thread_id();
+			return derive.io_->get_thread_id();
 		}
 
 	protected:

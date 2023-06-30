@@ -65,7 +65,7 @@ namespace asio2::detail
 
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			ASIO2_ASSERT(derive.io().running_in_this_thread());
+			ASIO2_ASSERT(derive.io_->running_in_this_thread());
 
 			if (!derive.is_started())
 			{
@@ -162,7 +162,7 @@ namespace asio2::detail
 
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			ASIO2_ASSERT(derive.io().running_in_this_thread());
+			ASIO2_ASSERT(derive.io_->running_in_this_thread());
 
 			set_last_error(ec);
 

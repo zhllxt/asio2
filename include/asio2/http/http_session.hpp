@@ -80,11 +80,11 @@ namespace asio2::detail
 			bool                               support_websocket,
 			session_mgr_t<derived_t>         & sessions,
 			listener_t                       & listener,
-			io_t                             & rwio,
+			std::shared_ptr<io_t>              rwio,
 			std::size_t                        init_buf_size,
 			std::size_t                        max_buf_size
 		)
-			: super(sessions, listener, rwio, init_buf_size, max_buf_size)
+			: super(sessions, listener, std::move(rwio), init_buf_size, max_buf_size)
 			, http_send_op<derived_t, args_t>()
 			, ws_stream_cp<derived_t, args_t>()
 			, ws_send_op  <derived_t, args_t>()
@@ -249,7 +249,7 @@ namespace asio2::detail
 		inline void _send_http_response(
 			std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs, MessageT& msg)
 		{
-			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
+			ASIO2_ASSERT(this->derived().io_->running_in_this_thread());
 
 			if (this->rep_.defer_guard_)
 			{
@@ -334,13 +334,13 @@ namespace asio2::detail
 		{
 			derived_t& derive = this->derived();
 
-			if (derive.io().running_in_this_thread())
+			if (derive.io_->running_in_this_thread())
 			{
 				derive._do_send_http_response_impl(std::move(this_ptr), std::move(ecs), msg);
 				return;
 			}
 
-			asio::post(derive.io().context(), make_allocator(derive.wallocator(),
+			asio::post(derive.io_->context(), make_allocator(derive.wallocator(),
 			[&derive, this_ptr = std::move(this_ptr), ecs = std::move(ecs), &msg]() mutable
 			{
 				derive._do_send_http_response_impl(std::move(this_ptr), std::move(ecs), msg);
@@ -428,7 +428,7 @@ namespace asio2::detail
 					return;
 				}
 
-				asio::post(this->derived().io().context(), make_allocator(this->derived().wallocator(),
+				asio::post(this->derived().io_->context(), make_allocator(this->derived().wallocator(),
 				[this, this_ptr = std::move(this_ptr), ecs = std::move(ecs), chain = std::move(chain)]
 				() mutable
 				{
@@ -533,7 +533,7 @@ namespace asio2::detail
 		inline void _fire_upgrade(std::shared_ptr<derived_t>& this_ptr)
 		{
 			// the _fire_upgrade must be executed in the thread 0.
-			ASIO2_ASSERT(this->sessions().io().running_in_this_thread());
+			ASIO2_ASSERT(this->sessions().io_->running_in_this_thread());
 
 			this->listener_.notify(event_type::upgrade, this_ptr);
 		}

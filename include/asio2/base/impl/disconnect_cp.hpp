@@ -64,7 +64,7 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			ASIO2_ASSERT(derive.io().running_in_this_thread());
+			ASIO2_ASSERT(derive.io_->running_in_this_thread());
 
 			ASIO2_LOG_DEBUG("disconnect_cp::_post_disconnect: {} {}", ec.value(), ec.message());
 
@@ -76,7 +76,7 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			ASIO2_ASSERT(derive.io().running_in_this_thread());
+			ASIO2_ASSERT(derive.io_->running_in_this_thread());
 
 			// we should wait for the async read functions returned.
 			// the reading flag will be always false of udp session.
@@ -95,7 +95,7 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			ASIO2_ASSERT(derive.io().running_in_this_thread());
+			ASIO2_ASSERT(derive.io_->running_in_this_thread());
 
 			// at here the disconnect is completely finished.
 			derive.disconnecting_ = false;
@@ -116,9 +116,9 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			ASIO2_ASSERT(derive.io().running_in_this_thread());
+			ASIO2_ASSERT(derive.io_->running_in_this_thread());
 
-			asio::dispatch(derive.io().context(), make_allocator(derive.wallocator(),
+			asio::dispatch(derive.io_->context(), make_allocator(derive.wallocator(),
 			[this, ec, this_ptr = std::move(this_ptr), chain = std::move(chain)]() mutable
 			{
 				derived_t& derive = static_cast<derived_t&>(*this);
@@ -130,7 +130,7 @@ namespace asio2::detail
 					this->readend_timer_->cancel();
 				}
 
-				this->readend_timer_ = std::make_shared<safe_timer>(derive.io().context());
+				this->readend_timer_ = std::make_shared<safe_timer>(derive.io_->context());
 
 				derive._post_readend_timer(ec, std::move(this_ptr), std::move(chain), this->readend_timer_);
 			}));
@@ -202,7 +202,7 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			asio::dispatch(derive.io().context(), make_allocator(derive.wallocator(),
+			asio::dispatch(derive.io_->context(), make_allocator(derive.wallocator(),
 			[this, this_ptr = std::move(this_ptr)]() mutable
 			{
 				if (this->readend_timer_)

@@ -126,7 +126,7 @@ namespace asio2::detail
 				auto invoker = [&derive, result, pm = std::move(promise)]
 				(const error_code& ec, send_data_t s, recv_data_t r) mutable
 				{
-					ASIO2_ASSERT(derive.io().running_in_this_thread());
+					ASIO2_ASSERT(derive.io_->running_in_this_thread());
 
 					detail::ignore_unused(derive, s);
 
@@ -148,7 +148,7 @@ namespace asio2::detail
 				});
 
 				// Whether we run on the io_context thread
-				if (!derive.io().running_in_this_thread())
+				if (!derive.io_->running_in_this_thread())
 				{
 					std::future_status status = future.wait_for(timeout);
 					if (status == std::future_status::ready)
@@ -528,7 +528,7 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			ASIO2_ASSERT(derive.io().running_in_this_thread());
+			ASIO2_ASSERT(derive.io_->running_in_this_thread());
 
 			// this callback maybe executed after the session stop, and the session
 			// stop will destroy the ecs, so we need check whether the ecs is valid.
@@ -564,7 +564,7 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			ASIO2_ASSERT(derive.io().running_in_this_thread());
+			ASIO2_ASSERT(derive.io_->running_in_this_thread());
 
 			auto persisted_data = derive._data_persistence(std::forward<DataT>(data));
 
@@ -590,7 +590,7 @@ namespace asio2::detail
 			std::any id = prdc->call_parser(true, (void*)&sent_typed_data);
 
 			std::shared_ptr<asio::steady_timer> timer =
-				std::make_shared<asio::steady_timer>(derive.io().context());
+				std::make_shared<asio::steady_timer>(derive.io_->context());
 
 			std::tuple tp(timer, std::move(invoker));
 
@@ -598,7 +598,7 @@ namespace asio2::detail
 
 			auto ex = [&derive, id = std::move(id), prdc]() mutable
 			{
-				ASIO2_ASSERT(derive.io().running_in_this_thread());
+				ASIO2_ASSERT(derive.io_->running_in_this_thread());
 
 				prdc->execute_and_erase(id, [&derive](void* val) mutable
 				{
@@ -660,7 +660,7 @@ namespace asio2::detail
 
 			auto id = (_rdc->get_recv_parser())(data);
 
-			ASIO2_ASSERT(derive.io().running_in_this_thread());
+			ASIO2_ASSERT(derive.io_->running_in_this_thread());
 
 			auto iter = _rdc->invoker().find(id);
 			if (iter != _rdc->invoker().end())

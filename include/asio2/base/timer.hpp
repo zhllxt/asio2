@@ -124,12 +124,12 @@ namespace asio2::detail
 
 			if (ret)
 			{
-				derive.io().regobj(&derive);
+				derive.io_->regobj(&derive);
 
 				derive.dispatch([&derive]() mutable
 				{
 					// init the running thread id 
-					derive.io().init_thread_id();
+					derive.io_->init_thread_id();
 				});
 			}
 
@@ -146,7 +146,7 @@ namespace asio2::detail
 
 			derived_t& derive = this->derived();
 
-			derive.io().unregobj(&derive);
+			derive.io_->unregobj(&derive);
 
 			// close user custom timers
 			this->stop_all_timers();
@@ -163,28 +163,28 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @brief get the io object refrence
+		 * @brief get the io object reference
 		 */
-		inline io_t & io() noexcept { return this->io_; }
+		inline io_t & io() noexcept { return *(this->io_); }
 
 		/**
-		 * @brief get the io object refrence
+		 * @brief get the io object reference
 		 */
-		inline io_t const& io() const noexcept { return this->io_; }
+		inline io_t const& io() const noexcept { return *(this->io_); }
 
 	protected:
 		/**
-		 * @brief get the recv/read allocator object refrence
+		 * @brief get the recv/read allocator object reference
 		 */
 		inline auto & rallocator() noexcept { return this->wallocator_; }
 		/**
-		 * @brief get the send/write allocator object refrence
+		 * @brief get the send/write allocator object reference
 		 */
 		inline auto & wallocator() noexcept { return this->wallocator_; }
 
 	protected:
 		/// The io_context wrapper used to handle the accept event.
-		io_t                                             & io_;
+		std::shared_ptr<io_t>                              io_;
 
 		/// The memory to use for handler-based custom memory allocation. used fo send/write.
 		handler_memory<std::false_type, assizer<args_t>>   wallocator_;

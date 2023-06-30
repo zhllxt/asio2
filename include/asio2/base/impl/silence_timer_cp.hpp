@@ -29,7 +29,7 @@ namespace asio2::detail
 		/**
 		 * @brief constructor
 		 */
-		explicit silence_timer_cp(io_t & io) : silence_timer_(io.context())
+		explicit silence_timer_cp(asio::io_context& ioc) : silence_timer_(ioc)
 		{
 			this->silence_timer_canceled_.clear();
 		}
@@ -69,7 +69,7 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			asio::dispatch(derive.io().context(), make_allocator(derive.wallocator(),
+			asio::dispatch(derive.io_->context(), make_allocator(derive.wallocator(),
 			[this, this_ptr = std::move(this_ptr), duration]() mutable
 			{
 				derived_t& derive = static_cast<derived_t&>(*this);

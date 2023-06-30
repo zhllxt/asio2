@@ -44,7 +44,7 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @brief get the socket object refrence
+		 * @brief get the socket object reference
 		 */
 		inline socket_type & socket() noexcept
 		{
@@ -52,7 +52,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @brief get the socket object refrence
+		 * @brief get the socket object reference
 		 */
 		inline const socket_type & socket() const noexcept
 		{
@@ -60,7 +60,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @brief get the stream object refrence
+		 * @brief get the stream object reference
 		 */
 		inline socket_type & stream() noexcept
 		{
@@ -68,7 +68,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @brief get the stream object refrence
+		 * @brief get the stream object reference
 		 */
 		inline const socket_type & stream() const noexcept
 		{

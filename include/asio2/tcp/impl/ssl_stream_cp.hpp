@@ -37,17 +37,16 @@ namespace asio2::detail
 		using ssl_stream_type    = asio::ssl::stream<ssl_socket_type&>;
 		using ssl_handshake_type = typename asio::ssl::stream_base::handshake_type;
 
-		ssl_stream_cp(io_t& ssl_io, asio::ssl::context& ctx, ssl_handshake_type type) noexcept
+		ssl_stream_cp(asio::ssl::context& ctx, ssl_handshake_type type) noexcept
 			: ssl_ctx_(ctx)
 			, ssl_type_(type)
 		{
-			detail::ignore_unused(ssl_io);
 		}
 
 		~ssl_stream_cp() = default;
 
 		/**
-		 * @brief get the ssl socket object refrence
+		 * @brief get the ssl socket object reference
 		 */
 		inline ssl_stream_type & ssl_stream() noexcept
 		{
@@ -56,7 +55,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @brief get the ssl socket object refrence
+		 * @brief get the ssl socket object reference
 		 */
 		inline ssl_stream_type const& ssl_stream() const noexcept
 		{
@@ -74,11 +73,11 @@ namespace asio2::detail
 
 			if constexpr (args_t::is_client)
 			{
-				ASIO2_ASSERT(derive.io().running_in_this_thread());
+				ASIO2_ASSERT(derive.io_->running_in_this_thread());
 			}
 			else
 			{
-				ASIO2_ASSERT(derive.sessions().io().running_in_this_thread());
+				ASIO2_ASSERT(derive.sessions().io_->running_in_this_thread());
 			}
 
 			// Why put the initialization code of ssl stream here ?
@@ -102,7 +101,7 @@ namespace asio2::detail
 
 			detail::ignore_unused(derive, this_ptr, ecs, socket, ctx);
 
-			ASIO2_ASSERT(derive.io().running_in_this_thread());
+			ASIO2_ASSERT(derive.io_->running_in_this_thread());
 		}
 
 		template<typename DeferEvent>
@@ -110,7 +109,7 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			ASIO2_ASSERT(derive.io().running_in_this_thread());
+			ASIO2_ASSERT(derive.io_->running_in_this_thread());
 
 			if (!this->ssl_stream_)
 				return;
@@ -152,7 +151,7 @@ namespace asio2::detail
 				// force close the socket,then the async_shutdown callback will
 				// be called.
 				std::shared_ptr<asio::steady_timer> timer = 
-					std::make_shared<asio::steady_timer>(derive.io().context());
+					std::make_shared<asio::steady_timer>(derive.io_->context());
 				timer->expires_after(derive.get_disconnect_timeout());
 				timer->async_wait(
 				[this_ptr, chain = std::move(chain), SSL_clear_ptr]
@@ -206,7 +205,7 @@ namespace asio2::detail
 			derived_t& derive = static_cast<derived_t&>(*this);
 
 			ASIO2_ASSERT(bool(this->ssl_stream_));
-			ASIO2_ASSERT(derive.io().running_in_this_thread());
+			ASIO2_ASSERT(derive.io_->running_in_this_thread());
 
 			// Used to chech whether the ssl handshake is timeout
 			std::shared_ptr<std::atomic_flag> flag_ptr = std::make_shared<std::atomic_flag>();
@@ -214,7 +213,7 @@ namespace asio2::detail
 			flag_ptr->clear();
 
 			std::shared_ptr<asio::steady_timer> timer =
-				std::make_shared<asio::steady_timer>(derive.io().context());
+				std::make_shared<asio::steady_timer>(derive.io_->context());
 			timer->expires_after(derive.get_connect_timeout());
 			timer->async_wait(
 			[&derive, this_ptr, flag_ptr](const error_code& ec) mutable

@@ -128,7 +128,7 @@ namespace asio2::detail
 			, user_data_cp        <derived_t, args_t>()
 			, connect_time_cp     <derived_t, args_t>()
 			, alive_time_cp       <derived_t, args_t>()
-			, socket_cp           <derived_t, args_t>(iopoolcp::_get_io(0).context(), std::forward<Args>(args)...)
+			, socket_cp           <derived_t, args_t>(iopoolcp::_get_io(0)->context(), std::forward<Args>(args)...)
 			, connect_cp          <derived_t, args_t>()
 			, shutdown_cp         <derived_t, args_t>()
 			, close_cp            <derived_t, args_t>()
@@ -166,7 +166,7 @@ namespace asio2::detail
 		 */
 		inline bool start() noexcept
 		{
-			ASIO2_ASSERT(this->io_.running_in_this_thread());
+			ASIO2_ASSERT(this->io_->running_in_this_thread());
 
 			this->stopped_ = false;
 
@@ -178,7 +178,7 @@ namespace asio2::detail
 		 */
 		inline bool async_start() noexcept
 		{
-			ASIO2_ASSERT(this->io_.running_in_this_thread());
+			ASIO2_ASSERT(this->io_->running_in_this_thread());
 
 			this->stopped_ = false;
 
@@ -190,7 +190,7 @@ namespace asio2::detail
 		 */
 		inline void stop()
 		{
-			ASIO2_ASSERT(this->io_.running_in_this_thread());
+			ASIO2_ASSERT(this->io_->running_in_this_thread());
 
 			// can't use post, we need ensure when the derived stop is called, the chain
 			// must be executed completed.
@@ -222,7 +222,7 @@ namespace asio2::detail
 				this->buffer().consume(this->buffer().size());
 
 				// destroy user data, maybe the user data is self shared_ptr, if
-				// don't destroy it, will cause loop refrence.
+				// don't destroy it, will cause loop reference.
 				// read/write user data in other thread which is not the io_context
 				// thread maybe cause crash.
 				this->user_data_.reset();
@@ -263,19 +263,19 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @brief get the buffer object refrence
+		 * @brief get the buffer object reference
 		 */
 		inline buffer_wrap<buffer_type> & buffer() noexcept { return this->buffer_; }
 
 		/**
-		 * @brief get the io object refrence
+		 * @brief get the io object reference
 		 */
-		inline io_t & io() noexcept { return this->io_; }
+		inline io_t & io() noexcept { return *(this->io_); }
 
 		/**
-		 * @brief get the io object refrence
+		 * @brief get the io object reference
 		 */
-		inline io_t const& io() const noexcept { return this->io_; }
+		inline io_t const& io() const noexcept { return *(this->io_); }
 
 		/**
 		 * @brief set the default remote call timeout for rpc/rdc
@@ -297,11 +297,11 @@ namespace asio2::detail
 
 	protected:
 		/**
-		 * @brief get the recv/read allocator object refrence
+		 * @brief get the recv/read allocator object reference
 		 */
 		inline auto & rallocator() noexcept { return this->rallocator_; }
 		/**
-		 * @brief get the send/write allocator object refrence
+		 * @brief get the send/write allocator object reference
 		 */
 		inline auto & wallocator() noexcept { return this->wallocator_; }
 
@@ -322,7 +322,7 @@ namespace asio2::detail
 		listener_t                                  listener_;
 
 		/// The io_context wrapper used to handle the connect/recv/send event.
-		io_t                                      & io_;
+		std::shared_ptr<io_t>                       io_;
 
 		/// buffer
 		buffer_wrap<buffer_type>                    buffer_;

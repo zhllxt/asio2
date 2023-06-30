@@ -65,7 +65,7 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			asio::dispatch(derive.io().context(), make_allocator(derive.wallocator(),
+			asio::dispatch(derive.io_->context(), make_allocator(derive.wallocator(),
 			[this, this_ptr = std::move(this_ptr), duration = std::move(duration)]() mutable
 			{
 				derived_t& derive = static_cast<derived_t&>(*this);
@@ -75,7 +75,7 @@ namespace asio2::detail
 					this->connect_timeout_timer_->cancel();
 				}
 
-				this->connect_timeout_timer_ = std::make_shared<safe_timer>(derive.io().context());
+				this->connect_timeout_timer_ = std::make_shared<safe_timer>(derive.io_->context());
 
 				derive._post_connect_timeout_timer(std::move(this_ptr), this->connect_timeout_timer_, duration);
 			}));

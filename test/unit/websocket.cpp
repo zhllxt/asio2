@@ -51,7 +51,7 @@ void websocket_test()
 				ASIO2_CHECK(session_ptr->local_address() == "127.0.0.1");
 				ASIO2_CHECK(session_ptr->local_port() == 18039);
 				ASIO2_CHECK(server.io().running_in_this_thread());
-				ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 
 				//// You can close the connection directly here.
 				//if (session_ptr->remote_address() == "192.168.0.254")
@@ -68,7 +68,7 @@ void websocket_test()
 			ASIO2_CHECK(session_ptr->local_address() == "127.0.0.1");
 			ASIO2_CHECK(session_ptr->local_port() == 18039);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 			ASIO2_CHECK(session_ptr->is_keep_alive());
 			ASIO2_CHECK(session_ptr->is_no_delay());
 		});
@@ -93,7 +93,7 @@ void websocket_test()
 			ASIO2_CHECK(session_ptr->local_address() == "127.0.0.1");
 			ASIO2_CHECK(session_ptr->local_port() == 18039);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 			ASIO2_CHECK(session_ptr->is_keep_alive());
 			ASIO2_CHECK(session_ptr->is_no_delay());
 		});
@@ -109,7 +109,7 @@ void websocket_test()
 			ASIO2_CHECK(session_ptr->remote_address() == "127.0.0.1");
 			//ASIO2_CHECK(session_ptr->local_port() == 18039);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 		});
 		std::atomic<int> server_init_counter = 0;
 		server.bind_init([&]()
@@ -118,7 +118,7 @@ void websocket_test()
 
 			ASIO2_CHECK(!asio2::get_last_error());
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 
 			asio::socket_base::reuse_address option;
 			server.acceptor().get_option(option);
@@ -133,7 +133,7 @@ void websocket_test()
 			ASIO2_CHECK(server.get_listen_address() == "127.0.0.1");
 			ASIO2_CHECK(server.get_listen_port() == 18039);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 		});
 		std::atomic<int> server_stop_counter = 0;
 		server.bind_stop([&]()
@@ -144,7 +144,7 @@ void websocket_test()
 			ASIO2_CHECK(server.get_listen_address() == "127.0.0.1");
 			ASIO2_CHECK(server.get_listen_port() == 18039);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 		});
 
 		bool server_start_ret = server.start("127.0.0.1", 18039);
@@ -178,7 +178,7 @@ void websocket_test()
 			}));
 
 			ASIO2_CHECK(client.io().running_in_this_thread());
-			ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 			ASIO2_CHECK(!asio2::get_last_error());
 			ASIO2_CHECK(client.is_keep_alive());
 			ASIO2_CHECK(client.is_reuse_address());
@@ -188,7 +188,7 @@ void websocket_test()
 		client.bind_upgrade([&]()
 		{
 			ASIO2_CHECK(client.io().running_in_this_thread());
-			ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 			ASIO2_CHECK(!asio2::get_last_error());
 			ASIO2_CHECK(client.get_local_address() == "127.0.0.1");
 			ASIO2_CHECK(client.get_remote_address() == "127.0.0.1");
@@ -200,7 +200,7 @@ void websocket_test()
 		client.bind_connect([&]()
 		{
 			ASIO2_CHECK(client.io().running_in_this_thread());
-			ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 			ASIO2_CHECK(!asio2::get_last_error());
 			ASIO2_CHECK(client.get_local_address() == "127.0.0.1");
 			ASIO2_CHECK(client.get_remote_address() == "127.0.0.1");
@@ -249,13 +249,13 @@ void websocket_test()
 
 			ASIO2_CHECK(asio2::get_last_error());
 			ASIO2_CHECK(client.io().running_in_this_thread());
-			ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 		});
 		client.bind_recv([&](std::string_view data)
 		{
 			ASIO2_CHECK(!asio2::get_last_error());
 			ASIO2_CHECK(client.io().running_in_this_thread());
-			ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 			ASIO2_CHECK(client.is_started());
 			client_recv_size += data.size();
 			ASIO2_CHECK(data.front() == '<' && data.back() == '>');
@@ -352,7 +352,7 @@ void websocket_test()
 				ASIO2_CHECK(session_ptr->local_address() == "127.0.0.1");
 				ASIO2_CHECK(session_ptr->local_port() == 18039);
 				ASIO2_CHECK(server.io().running_in_this_thread());
-				ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 
 				//// You can close the connection directly here.
 				//if (session_ptr->remote_address() == "192.168.0.254")
@@ -384,7 +384,7 @@ void websocket_test()
 			ASIO2_CHECK(session_ptr->local_address() == "127.0.0.1");
 			ASIO2_CHECK(session_ptr->local_port() == 18039);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 			ASIO2_CHECK(session_ptr->is_keep_alive());
 			ASIO2_CHECK(session_ptr->is_no_delay());
 		});
@@ -396,7 +396,7 @@ void websocket_test()
 			ASIO2_CHECK(asio2::get_last_error());
 			ASIO2_CHECK(!server.find_session(session_ptr->hash_key()));
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 		});
 		std::atomic<int> server_init_counter = 0;
 		server.bind_init([&]()
@@ -405,7 +405,7 @@ void websocket_test()
 
 			ASIO2_CHECK(!asio2::get_last_error());
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 
 			asio::socket_base::reuse_address option;
 			server.acceptor().get_option(option);
@@ -420,7 +420,7 @@ void websocket_test()
 			ASIO2_CHECK(server.get_listen_address() == "127.0.0.1");
 			ASIO2_CHECK(server.get_listen_port() == 18039);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 		});
 		std::atomic<int> server_stop_counter = 0;
 		server.bind_stop([&]()
@@ -431,7 +431,7 @@ void websocket_test()
 			ASIO2_CHECK(server.get_listen_address() == "127.0.0.1");
 			ASIO2_CHECK(server.get_listen_port() == 18039);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 		});
 
 		bool server_start_ret = server.start("127.0.0.1", 18039);
@@ -462,7 +462,7 @@ void websocket_test()
 				client.set_no_delay(true);
 
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(!asio2::get_last_error());
 				ASIO2_CHECK(client.is_keep_alive());
 				ASIO2_CHECK(client.is_reuse_address());
@@ -471,7 +471,7 @@ void websocket_test()
 			client.bind_connect([&]()
 			{
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(!asio2::get_last_error());
 				ASIO2_CHECK(client.get_local_address() == "127.0.0.1");
 				ASIO2_CHECK(client.get_remote_address() == "127.0.0.1");
@@ -518,13 +518,13 @@ void websocket_test()
 
 				ASIO2_CHECK(asio2::get_last_error());
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 			});
 			client.bind_recv([&]([[maybe_unused]] std::string_view data)
 			{
 				ASIO2_CHECK(!asio2::get_last_error());
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(!data.empty());
 				ASIO2_CHECK(client.is_started());
 				ASIO2_CHECK(data.front() == '<' && data.back() == '>');
@@ -710,7 +710,7 @@ void websocket_test()
 				ex.client_init_counter++;
 
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(!asio2::get_last_error());
 				ASIO2_CHECK(client.is_keep_alive());
 				ASIO2_CHECK(client.is_reuse_address());
@@ -718,7 +718,7 @@ void websocket_test()
 			client.bind_connect([&]()
 			{
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(asio2::get_last_error());
 
 				ext_data& ex = client.get_user_data<ext_data&>();
@@ -757,13 +757,13 @@ void websocket_test()
 
 				ASIO2_CHECK(asio2::get_last_error());
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 			});
 			client.bind_recv([&]([[maybe_unused]] std::string_view data)
 			{
 				ASIO2_CHECK(!asio2::get_last_error());
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(!data.empty());
 				ASIO2_CHECK(client.is_started());
 			});
@@ -928,7 +928,7 @@ void websocket_test()
 				ASIO2_CHECK(session_ptr->local_address() == "127.0.0.1");
 				ASIO2_CHECK(session_ptr->local_port() == 18039);
 				ASIO2_CHECK(server.io().running_in_this_thread());
-				ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 
 				//// You can close the connection directly here.
 				//if (session_ptr->remote_address() == "192.168.0.254")
@@ -949,7 +949,7 @@ void websocket_test()
 			ASIO2_CHECK(session_ptr->local_address() == "127.0.0.1");
 			ASIO2_CHECK(session_ptr->local_port() == 18039);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 			ASIO2_CHECK(session_ptr->is_keep_alive());
 			ASIO2_CHECK(session_ptr->is_no_delay());
 		});
@@ -961,7 +961,7 @@ void websocket_test()
 			ASIO2_CHECK(asio2::get_last_error());
 			ASIO2_CHECK(!server.find_session(session_ptr->hash_key()));
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 		});
 		std::atomic<int> server_init_counter = 0;
 		server.bind_init([&]()
@@ -970,7 +970,7 @@ void websocket_test()
 
 			ASIO2_CHECK(!asio2::get_last_error());
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 
 			asio::socket_base::reuse_address option;
 			server.acceptor().get_option(option);
@@ -985,7 +985,7 @@ void websocket_test()
 			ASIO2_CHECK(server.get_listen_address() == "127.0.0.1");
 			ASIO2_CHECK(server.get_listen_port() == 18039);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 		});
 		std::atomic<int> server_stop_counter = 0;
 		server.bind_stop([&]()
@@ -996,7 +996,7 @@ void websocket_test()
 			ASIO2_CHECK(server.get_listen_address() == "127.0.0.1");
 			ASIO2_CHECK(server.get_listen_port() == 18039);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 		});
 
 		bool server_start_ret = server.start("127.0.0.1", 18039);
@@ -1025,7 +1025,7 @@ void websocket_test()
 				ex.client_init_counter++;
 
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(!asio2::get_last_error());
 				ASIO2_CHECK(client.is_keep_alive());
 				ASIO2_CHECK(client.is_reuse_address());
@@ -1033,7 +1033,7 @@ void websocket_test()
 			client.bind_connect([&]()
 			{
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(!asio2::get_last_error());
 
 				ext_data& ex = client.get_user_data<ext_data&>();
@@ -1065,13 +1065,13 @@ void websocket_test()
 
 				ASIO2_CHECK(asio2::get_last_error());
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 			});
 			client.bind_recv([&]([[maybe_unused]] std::string_view data)
 			{
 				ASIO2_CHECK(!asio2::get_last_error());
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(!data.empty());
 				ASIO2_CHECK(client.is_started());
 			});

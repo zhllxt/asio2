@@ -78,7 +78,7 @@ namespace asio2::detail
 			derived_t& derive = static_cast<derived_t&>(*this);
 
 			// use this guard to fix the issue of below "# issue x:"
-			detail::integer_add_sub_guard asg(derive.io().pending());
+			detail::integer_add_sub_guard asg(derive.io_->pending());
 
 			// We must ensure that there is only one operation to send data
 			// at the same time,otherwise may be cause crash.
@@ -147,7 +147,7 @@ namespace asio2::detail
 				return;
 			}
 
-			detail::integer_add_sub_guard asg(derive.io().pending());
+			detail::integer_add_sub_guard asg(derive.io_->pending());
 
 			// We must ensure that there is only one operation to send data
 			// at the same time,otherwise may be cause crash.
@@ -193,7 +193,7 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			detail::integer_add_sub_guard asg(derive.io().pending());
+			detail::integer_add_sub_guard asg(derive.io_->pending());
 
 			// why use copyable_wrapper? beacuse std::promise is moveable-only, but
 			// std::function need copy-constructible.
@@ -272,7 +272,7 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			detail::integer_add_sub_guard asg(derive.io().pending());
+			detail::integer_add_sub_guard asg(derive.io_->pending());
 
 			std::promise<std::pair<error_code, std::size_t>> promise;
 			std::future<std::pair<error_code, std::size_t>> future = promise.get_future();
@@ -332,7 +332,7 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			detail::integer_add_sub_guard asg(derive.io().pending());
+			detail::integer_add_sub_guard asg(derive.io_->pending());
 
 			// We must ensure that there is only one operation to send data
 			// at the same time,otherwise may be cause crash.
@@ -393,7 +393,7 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			detail::integer_add_sub_guard asg(derive.io().pending());
+			detail::integer_add_sub_guard asg(derive.io_->pending());
 
 			if (!s)
 			{
@@ -459,7 +459,7 @@ namespace asio2::detail
 				std::forward<DataT>(data), asio::use_future);
 
 			// Whether we run on the io_context thread
-			if (derive.io().running_in_this_thread())
+			if (derive.io_->running_in_this_thread())
 			{
 				std::future_status status = future.wait_for(std::chrono::nanoseconds(0));
 

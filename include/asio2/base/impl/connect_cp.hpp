@@ -142,7 +142,7 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			ASIO2_ASSERT(derive.io().running_in_this_thread());
+			ASIO2_ASSERT(derive.io_->running_in_this_thread());
 
 			clear_last_error();
 
@@ -194,7 +194,7 @@ namespace asio2::detail
 
 			// resolve the server address.
 			std::unique_ptr<resolver_type> resolver_ptr = std::make_unique<resolver_type>(
-				derive.io().context());
+				derive.io_->context());
 
 			resolver_type* resolver_rptr = resolver_ptr.get();
 
@@ -233,7 +233,7 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			ASIO2_ASSERT(derive.io().running_in_this_thread());
+			ASIO2_ASSERT(derive.io_->running_in_this_thread());
 
 			state_t expected = state_t::starting;
 			if (!derive.state_.compare_exchange_strong(expected, state_t::starting))
@@ -355,7 +355,7 @@ namespace asio2::detail
 
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			ASIO2_ASSERT(derive.io().running_in_this_thread());
+			ASIO2_ASSERT(derive.io_->running_in_this_thread());
 
 			try
 			{
@@ -428,11 +428,11 @@ namespace asio2::detail
 
 			if constexpr (args_t::is_session)
 			{
-				ASIO2_ASSERT(derive.sessions().io().running_in_this_thread());
+				ASIO2_ASSERT(derive.sessions().io_->running_in_this_thread());
 			}
 			else
 			{
-				ASIO2_ASSERT(derive.io().running_in_this_thread());
+				ASIO2_ASSERT(derive.io_->running_in_this_thread());
 			}
 
 			derive._done_connect(ec, std::move(this_ptr), std::move(ecs), std::move(chain));
@@ -449,7 +449,7 @@ namespace asio2::detail
 
 			if constexpr (args_t::is_session)
 			{
-				ASIO2_ASSERT(derive.sessions().io().running_in_this_thread());
+				ASIO2_ASSERT(derive.sessions().io_->running_in_this_thread());
 
 				// if socket is invalid, it means that the connect is timeout and the socket has
 				// been closed by the connect timeout timer, so reset the error to timed_out.
@@ -460,7 +460,7 @@ namespace asio2::detail
 			}
 			else
 			{
-				ASIO2_ASSERT(derive.io().running_in_this_thread());
+				ASIO2_ASSERT(derive.io_->running_in_this_thread());
 
 				// if connect_timeout_timer_ is empty, it means that the connect timeout timer is
 				// timeout and the callback has called already, so reset the error to timed_out.
@@ -488,7 +488,7 @@ namespace asio2::detail
 			// Is session : Only call fire_connect notification when the connection is succeed.
 			if constexpr (args_t::is_session)
 			{
-				ASIO2_ASSERT(derive.sessions().io().running_in_this_thread());
+				ASIO2_ASSERT(derive.sessions().io_->running_in_this_thread());
 
 				if (!ec)
 				{
@@ -502,7 +502,7 @@ namespace asio2::detail
 			// Is client : Whether the connection succeeds or fails, always call fire_connect notification
 			else
 			{
-				ASIO2_ASSERT(derive.io().running_in_this_thread());
+				ASIO2_ASSERT(derive.io_->running_in_this_thread());
 
 				// if state is not stopped, call _fire_connect
 				expected = state_t::stopped;

@@ -71,11 +71,11 @@ namespace asio2::detail
 		explicit tcp_session_impl_t(
 			session_mgr_t<derived_t> & sessions,
 			listener_t               & listener,
-			io_t                     & rwio,
+			std::shared_ptr<io_t>      rwio,
 			std::size_t                init_buf_size,
 			std::size_t                max_buf_size
 		)
-			: super(sessions, listener, rwio, init_buf_size, max_buf_size, rwio.context())
+			: super(sessions, listener, rwio, init_buf_size, max_buf_size, rwio->context())
 			, tcp_keepalive_cp<derived_t, args_t>()
 			, tcp_send_op     <derived_t, args_t>()
 			, tcp_recv_op     <derived_t, args_t>()
@@ -110,8 +110,8 @@ namespace asio2::detail
 				"The behavior of different compilers is not consistent");
 		#endif
 
-			ASIO2_ASSERT(this->sessions().io().running_in_this_thread());
-			ASIO2_ASSERT(this->io().get_thread_id() != std::thread::id{});
+			ASIO2_ASSERT(this->sessions().io_->running_in_this_thread());
+			ASIO2_ASSERT(this->io_->get_thread_id() != std::thread::id{});
 
 		#if defined(_DEBUG) || defined(DEBUG)
 			this->is_stop_silence_timer_called_ = false;
@@ -226,7 +226,7 @@ namespace asio2::detail
 
 			// if user call session stop in the bind accept callback, we close the connection with RST.
 			// after test, if close the connection with RST, no timewait will be generated.
-			if (derive.sessions().io().running_in_this_thread())
+			if (derive.sessions().io_->running_in_this_thread())
 			{
 				if (this->state_ == state_t::starting)
 				{
@@ -274,7 +274,7 @@ namespace asio2::detail
 			});
 
 			// use this to ensure the client is stopped completed when the stop is called not in the io_context thread
-			while (!derive.running_in_this_thread() && !derive.sessions().io().running_in_this_thread())
+			while (!derive.running_in_this_thread() && !derive.sessions().io_->running_in_this_thread())
 			{
 				std::future_status status = future.wait_for(std::chrono::milliseconds(100));
 
@@ -288,10 +288,10 @@ namespace asio2::detail
 					if (derive.get_thread_id() == std::thread::id{})
 						break;
 
-					if (derive.sessions().io().get_thread_id() == std::thread::id{})
+					if (derive.sessions().io_->get_thread_id() == std::thread::id{})
 						break;
 
-					if (derive.io().context().stopped())
+					if (derive.io_->context().stopped())
 						break;
 				}
 			}
@@ -384,7 +384,7 @@ namespace asio2::detail
 		template<typename DeferEvent>
 		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr, DeferEvent chain)
 		{
-			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
+			ASIO2_ASSERT(this->derived().io_->running_in_this_thread());
 			ASIO2_ASSERT(this->state_ == state_t::stopped);
 
 			ASIO2_LOG_DEBUG("tcp_session::_handle_disconnect: {} {}", ec.value(), ec.message());
@@ -470,7 +470,7 @@ namespace asio2::detail
 		{
 			// to avlid the user call stop in another thread,then it may be socket.async_read_some
 			// and socket.close be called at the same time
-			asio::dispatch(this->io().context(), make_allocator(this->wallocator_,
+			asio::dispatch(this->io_->context(), make_allocator(this->wallocator_,
 			[this, this_ptr = std::move(this_ptr), ecs = std::move(ecs), chain = std::move(chain)]
 			() mutable
 			{
@@ -558,7 +558,7 @@ namespace asio2::detail
 		inline void _fire_accept(std::shared_ptr<derived_t>& this_ptr)
 		{
 			// the _fire_accept must be executed in the thread 0.
-			ASIO2_ASSERT(this->sessions().io().running_in_this_thread());
+			ASIO2_ASSERT(this->sessions().io_->running_in_this_thread());
 
 			this->listener_.notify(event_type::accept, this_ptr);
 		}
@@ -567,7 +567,7 @@ namespace asio2::detail
 		inline void _fire_connect(std::shared_ptr<derived_t>& this_ptr, std::shared_ptr<ecs_t<C>>& ecs)
 		{
 			// the _fire_connect must be executed in the thread 0.
-			ASIO2_ASSERT(this->sessions().io().running_in_this_thread());
+			ASIO2_ASSERT(this->sessions().io_->running_in_this_thread());
 
 		#if defined(_DEBUG) || defined(DEBUG)
 			ASIO2_ASSERT(this->is_disconnect_called_ == false);
@@ -581,7 +581,7 @@ namespace asio2::detail
 		inline void _fire_disconnect(std::shared_ptr<derived_t>& this_ptr)
 		{
 			// the _fire_disconnect must be executed in the thread 0.
-			ASIO2_ASSERT(this->sessions().io().running_in_this_thread());
+			ASIO2_ASSERT(this->sessions().io_->running_in_this_thread());
 
 		#if defined(_DEBUG) || defined(DEBUG)
 			this->is_disconnect_called_ = true;
@@ -592,11 +592,11 @@ namespace asio2::detail
 
 	protected:
 		/**
-		 * @brief get the recv/read allocator object refrence
+		 * @brief get the recv/read allocator object reference
 		 */
 		inline auto & rallocator() noexcept { return this->rallocator_; }
 		/**
-		 * @brief get the send/write allocator object refrence
+		 * @brief get the send/write allocator object reference
 		 */
 		inline auto & wallocator() noexcept { return this->wallocator_; }
 

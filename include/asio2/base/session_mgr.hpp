@@ -31,8 +31,11 @@
 
 namespace asio2::detail
 {
+	ASIO2_CLASS_FORWARD_DECLARE_BASE;
+	ASIO2_CLASS_FORWARD_DECLARE_TCP_BASE;
 	ASIO2_CLASS_FORWARD_DECLARE_TCP_SERVER;
 	ASIO2_CLASS_FORWARD_DECLARE_TCP_SESSION;
+	ASIO2_CLASS_FORWARD_DECLARE_UDP_BASE;
 	ASIO2_CLASS_FORWARD_DECLARE_UDP_SERVER;
 	ASIO2_CLASS_FORWARD_DECLARE_UDP_SESSION;
 
@@ -44,8 +47,11 @@ namespace asio2::detail
 	{
 		friend session_t; // C++11
 
+		ASIO2_CLASS_FRIEND_DECLARE_BASE;
+		ASIO2_CLASS_FRIEND_DECLARE_TCP_BASE;
 		ASIO2_CLASS_FRIEND_DECLARE_TCP_SERVER;
 		ASIO2_CLASS_FRIEND_DECLARE_TCP_SESSION;
+		ASIO2_CLASS_FRIEND_DECLARE_UDP_BASE;
 		ASIO2_CLASS_FRIEND_DECLARE_UDP_SERVER;
 		ASIO2_CLASS_FRIEND_DECLARE_UDP_SESSION;
 
@@ -57,8 +63,8 @@ namespace asio2::detail
 		/**
 		 * @brief constructor
 		 */
-		explicit session_mgr_t(io_t& acceptor_io, std::atomic<state_t>& server_state)
-			: io_   (acceptor_io )
+		explicit session_mgr_t(std::shared_ptr<io_t> acceptor_io, std::atomic<state_t>& server_state)
+			: io_   (std::move(acceptor_io))
 			, state_(server_state)
 		{
 			this->sessions_.reserve(64);
@@ -79,7 +85,7 @@ namespace asio2::detail
 			if (!session_ptr)
 				return;
 
-			asio::dispatch(this->io().context(), make_allocator(this->allocator_,
+			asio::dispatch(this->io_->context(), make_allocator(this->allocator_,
 			[this, session_ptr = std::move(session_ptr), callback = std::forward<Fun>(callback)]
 			() mutable
 			{
@@ -135,7 +141,7 @@ namespace asio2::detail
 			if (!session_ptr)
 				return;
 
-			asio::dispatch(this->io().context(), make_allocator(this->allocator_,
+			asio::dispatch(this->io_->context(), make_allocator(this->allocator_,
 			[this, session_ptr = std::move(session_ptr), callback = std::forward<Fun>(callback)]
 			() mutable
 			{
@@ -157,7 +163,7 @@ namespace asio2::detail
 		template<class Fun>
 		inline void post(Fun&& task)
 		{
-			asio::post(this->io().context(), make_allocator(this->allocator_, std::forward<Fun>(task)));
+			asio::post(this->io_->context(), make_allocator(this->allocator_, std::forward<Fun>(task)));
 		}
 
 		/**
@@ -167,7 +173,7 @@ namespace asio2::detail
 		template<class Fun>
 		inline void dispatch(Fun&& task)
 		{
-			asio::dispatch(this->io().context(), make_allocator(this->allocator_, std::forward<Fun>(task)));
+			asio::dispatch(this->io_->context(), make_allocator(this->allocator_, std::forward<Fun>(task)));
 		}
 
 		/**
@@ -346,19 +352,19 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @brief get the io object refrence
+		 * @brief get the io object reference
 		 */
 		inline io_t & io() noexcept
 		{
-			return this->io_;
+			return (*this->io_);
 		}
 
 		/**
-		 * @brief get the io object refrence
+		 * @brief get the io object reference
 		 */
 		inline io_t const& io() const noexcept
 		{
-			return this->io_;
+			return (*this->io_);
 		}
 
 	protected:
@@ -368,13 +374,13 @@ namespace asio2::detail
 		/// session unorder map,these session is already connected session 
 		std::unordered_map<key_type, std::shared_ptr<session_t>> sessions_ ASIO2_GUARDED_BY(mutex_);
 
-		/// the zero io_context refrence in the iopool
-		io_t                                                   & io_;
+		/// the zero io_context reference in the iopool
+		std::shared_ptr<io_t>                                    io_;
 
 		/// The memory to use for handler-based custom memory allocation.
 		handler_memory<std::false_type, assizer<args_type>>      allocator_;
 
-		/// server state refrence
+		/// server state reference
 		std::atomic<state_t>                                   & state_;
 
 	#if defined(_DEBUG) || defined(DEBUG)

@@ -401,10 +401,17 @@ namespace asio2::detail
 				t();
 			};
 
+			std::shared_ptr<asio::io_context> ioc_ptr = derive.io_->context_wptr().lock();
+			if (ioc_ptr == nullptr)
+			{
+				ASIO2_ASSERT(false);
+				return derive;
+			}
+
 			// Make sure we run on the io_context thread
 			// beacuse the callback "f" hold the derived_ptr already,
 			// so this callback for asio::dispatch don't need hold the derived_ptr again.
-			asio::post(derive.io().context(), make_allocator(derive.wallocator(),
+			asio::post(derive.io_->context(), make_allocator(derive.wallocator(),
 			[this, fn = std::move(fn)]() mutable
 			{
 				ASIO2_ASSERT(this->events_.size() < std::size_t(32767));
@@ -417,7 +424,7 @@ namespace asio2::detail
 				}
 			}));
 
-			return (derive);
+			return derive;
 		}
 
 		/**
@@ -443,10 +450,17 @@ namespace asio2::detail
 				t();
 			};
 
+			std::shared_ptr<asio::io_context> ioc_ptr = derive.io_->context_wptr().lock();
+			if (ioc_ptr == nullptr)
+			{
+				ASIO2_ASSERT(false);
+				return future;
+			}
+
 			// Make sure we run on the io_context thread
 			// beacuse the callback "f" hold the derived_ptr already,
 			// so this callback for asio::dispatch don't need hold the derived_ptr again.
-			asio::post(derive.io().context(), make_allocator(derive.wallocator(),
+			asio::post(derive.io_->context(), make_allocator(derive.wallocator(),
 			[this, fn = std::move(fn)]() mutable
 			{
 				ASIO2_ASSERT(this->events_.size() < std::size_t(32767));
@@ -484,7 +498,7 @@ namespace asio2::detail
 		#ifndef ASIO2_STRONG_EVENT_ORDER
 			// manual dispatch has better performance.
 			// Make sure we run on the io_context thread
-			if (derive.io().running_in_this_thread())
+			if (derive.io_->running_in_this_thread())
 			{
 				ASIO2_ASSERT(this->events_.size() < std::size_t(32767));
 
@@ -495,13 +509,13 @@ namespace asio2::detail
 					(this->events_.front())(event_queue_guard<derived_t>{derive});
 				}
 
-				return (derive);
+				return derive;
 			}
 		#endif
 
 			// beacuse the callback "f" hold the derived_ptr already,
 			// so this callback for asio::dispatch don't need hold the derived_ptr again.
-			asio::post(derive.io().context(), make_allocator(derive.wallocator(),
+			asio::post(derive.io_->context(), make_allocator(derive.wallocator(),
 			[this, f = std::forward<Callback>(f)]() mutable
 			{
 				ASIO2_ASSERT(this->events_.size() < std::size_t(32767));
@@ -514,7 +528,7 @@ namespace asio2::detail
 				}
 			}));
 
-			return (derive);
+			return derive;
 		}
 
 		/**
@@ -531,7 +545,7 @@ namespace asio2::detail
 			// Make sure we run on the io_context thread
 			// beacuse the callback "f" hold the derived_ptr already,
 			// so this callback for asio::dispatch don't need hold the derived_ptr again.
-			asio::post(derive.io().context(), make_allocator(derive.wallocator(),
+			asio::post(derive.io_->context(), make_allocator(derive.wallocator(),
 			[this, f = std::forward<Callback>(f)]() mutable
 			{
 				ASIO2_ASSERT(this->events_.size() < std::size_t(32767));
@@ -544,7 +558,7 @@ namespace asio2::detail
 				}
 			}));
 
-			return (derive);
+			return derive;
 		}
 
 		/**
@@ -569,18 +583,18 @@ namespace asio2::detail
 				// when some exception occured, disp_event maybe called in the "catch(){ ... }", 
 				// then this maybe not in the io_context thread.
 
-				//ASIO2_ASSERT(derive.io().running_in_this_thread());
+				//ASIO2_ASSERT(derive.io_->running_in_this_thread());
 
 				// beacuse the callback "f" hold the derived_ptr already,
 				// so this callback for asio::dispatch don't need hold the derived_ptr again.
-				asio::dispatch(derive.io().context(), make_allocator(derive.wallocator(),
+				asio::dispatch(derive.io_->context(), make_allocator(derive.wallocator(),
 				[f = std::forward<Callback>(f), guard = std::move(guard)]() mutable
 				{
 					f(std::move(guard));
 				}));
 			}
 
-			return (derive);
+			return derive;
 		}
 
 		/**
@@ -594,7 +608,7 @@ namespace asio2::detail
 
 			// manual dispatch has better performance.
 			// Make sure we run on the io_context thread
-			if (derive.io().running_in_this_thread())
+			if (derive.io_->running_in_this_thread())
 			{
 				ASIO2_ASSERT(!g.is_empty());
 				ASIO2_ASSERT(!this->events_.empty());
@@ -617,13 +631,13 @@ namespace asio2::detail
 
 				ASIO2_ASSERT(g.is_empty());
 
-				return (derive);
+				return derive;
 			}
 
 			// must hold the derived_ptr, beacuse next_event is called by event_queue_guard, when
 			// event_queue_guard is destroyed, the event queue and event_queue_guard maybe has't
 			// hold derived object both.
-			asio::post(derive.io().context(), make_allocator(derive.wallocator(),
+			asio::post(derive.io_->context(), make_allocator(derive.wallocator(),
 			[this, p = derive.selfptr(), g = std::move(g)]() mutable
 			{
 				ASIO2_ASSERT(!g.is_empty());
@@ -648,7 +662,7 @@ namespace asio2::detail
 				ASIO2_ASSERT(g.is_empty());
 			}));
 
-			return (derive);
+			return derive;
 		}
 
 	protected:

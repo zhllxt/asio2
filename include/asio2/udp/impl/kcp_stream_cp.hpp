@@ -54,8 +54,8 @@ namespace asio2::detail
 		/**
 		 * @brief constructor
 		 */
-		kcp_stream_cp(derived_t& d, io_t& io)
-			: derive(d), kcp_timer_(io.context())
+		kcp_stream_cp(derived_t& d, asio::io_context& ioc)
+			: derive(d), kcp_timer_(ioc)
 		{
 		}
 
@@ -113,7 +113,7 @@ namespace asio2::detail
 
 			// if call kcp_timer_.cancel first, then call _post_kcp_timer second immediately,
 			// use asio::post to avoid start timer failed.
-			asio::post(derive.io().context(), make_allocator(derive.wallocator(),
+			asio::post(derive.io_->context(), make_allocator(derive.wallocator(),
 			[this, this_ptr = std::move(this_ptr)]() mutable
 			{
 				this->_post_kcp_timer(std::move(this_ptr));
@@ -430,7 +430,7 @@ namespace asio2::detail
 			// use a loop timer to execute "client send syn to server" until the server
 			// has recvd the syn packet and this client recvd reply.
 			std::shared_ptr<detail::safe_timer> timer =
-				mktimer(derive.io().context(), std::chrono::milliseconds(500),
+				mktimer(derive.io_->context(), std::chrono::milliseconds(500),
 			[this, this_ptr, seq](error_code ec) mutable
 			{
 				if (ec == asio::error::operation_aborted)
@@ -466,7 +466,7 @@ namespace asio2::detail
 				derive.post_recv_counter_--;
 			#endif
 
-				ASIO2_ASSERT(derive.io().running_in_this_thread());
+				ASIO2_ASSERT(derive.io_->running_in_this_thread());
 
 				timer->cancel();
 

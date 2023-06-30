@@ -135,13 +135,13 @@ namespace asio2::detail
 			, user_timer_cp      <derived_t, args_t>()
 			, post_cp            <derived_t, args_t>()
 			, condition_event_cp <derived_t, args_t>()
-			, socket_    (iopoolcp::_get_io(0).context())
+			, socket_    (iopoolcp::_get_io(0)->context())
 			, rallocator_()
 			, wallocator_()
 			, listener_  ()
 			, io_        (iopoolcp::_get_io(0))
 			, buffer_    (init_buf_size, max_buf_size)
-			, timer_     (iopoolcp::_get_io(0).context())
+			, timer_     (iopoolcp::_get_io(0)->context())
 			, ncount_    (send_count)
 		{
 		}
@@ -159,13 +159,13 @@ namespace asio2::detail
 			, user_timer_cp      <derived_t, args_t>()
 			, post_cp            <derived_t, args_t>()
 			, condition_event_cp <derived_t, args_t>()
-			, socket_    (iopoolcp::_get_io(0).context())
+			, socket_    (iopoolcp::_get_io(0)->context())
 			, rallocator_()
 			, wallocator_()
 			, listener_  ()
 			, io_        (iopoolcp::_get_io(0))
 			, buffer_    (init_buf_size, max_buf_size)
-			, timer_     (iopoolcp::_get_io(0).context())
+			, timer_     (iopoolcp::_get_io(0)->context())
 			, ncount_    (send_count)
 		{
 		}
@@ -205,7 +205,7 @@ namespace asio2::detail
 
 			derived_t& derive = this->derived();
 
-			derive.io().unregobj(&derive);
+			derive.io_->unregobj(&derive);
 
 			derive.dispatch([&derive]() mutable
 			{
@@ -453,22 +453,22 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @brief get the socket object refrence
+		 * @brief get the socket object reference
 		 */
 		inline socket_type & socket() noexcept { return this->socket_; }
 
 		/**
-		 * @brief get the socket object refrence
+		 * @brief get the socket object reference
 		 */
 		inline const socket_type & socket() const noexcept { return this->socket_; }
 
 		/**
-		 * @brief get the stream object refrence
+		 * @brief get the stream object reference
 		 */
 		inline socket_type & stream() noexcept { return this->socket_; }
 
 		/**
-		 * @brief get the stream object refrence
+		 * @brief get the stream object reference
 		 */
 		inline const socket_type & stream() const noexcept { return this->socket_; }
 
@@ -701,12 +701,12 @@ namespace asio2::detail
 				return false;
 			}
 
-			asio::dispatch(derive.io().context(), [&derive, this_ptr = derive.selfptr()]() mutable
+			asio::dispatch(derive.io_->context(), [&derive, this_ptr = derive.selfptr()]() mutable
 			{
 				detail::ignore_unused(this_ptr);
 
 				// init the running thread id 
-				derive.io().init_thread_id();
+				derive.io_->init_thread_id();
 			});
 
 			// use promise to get the result of async accept
@@ -739,7 +739,7 @@ namespace asio2::detail
 
 				error_code ec, ec_ignore;
 
-				derive.io().regobj(&derive);
+				derive.io_->regobj(&derive);
 
 			#if defined(_DEBUG) || defined(DEBUG)
 				this->is_stop_called_ = false;
@@ -758,7 +758,7 @@ namespace asio2::detail
 				this->total_recv_ = 0;
 				this->total_time_ = std::chrono::steady_clock::duration{ 0 };
 
-				asio::ip::icmp::resolver resolver(this->io().context());
+				asio::ip::icmp::resolver resolver(this->io_->context());
 
 				auto results = resolver.resolve(host, "", ec);
 				if (ec)
@@ -791,7 +791,7 @@ namespace asio2::detail
 				derive._handle_start(ec, std::move(this_ptr));
 			});
 
-			if (!derive.io().running_in_this_thread())
+			if (!derive.io_->running_in_this_thread())
 			{
 				set_last_error(future.get());
 
@@ -811,7 +811,7 @@ namespace asio2::detail
 
 		void _handle_start(error_code ec, std::shared_ptr<derived_t> this_ptr)
 		{
-			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
+			ASIO2_ASSERT(this->derived().io_->running_in_this_thread());
 
 			// Whether the startup succeeds or fails, always call fire_start notification
 			state_t expected = state_t::starting;
@@ -842,7 +842,7 @@ namespace asio2::detail
 
 		inline void _do_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
 		{
-			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
+			ASIO2_ASSERT(this->derived().io_->running_in_this_thread());
 
 			state_t expected = state_t::starting;
 			if (this->state_.compare_exchange_strong(expected, state_t::stopping))
@@ -861,7 +861,7 @@ namespace asio2::detail
 			// must care for operate the socket.when need close the 
 			// socket ,we use the io_context to post a event,make sure the
 			// socket's close operation is in the same thread.
-			asio::dispatch(this->io().context(), make_allocator(this->derived().wallocator(),
+			asio::dispatch(this->io_->context(), make_allocator(this->derived().wallocator(),
 			[this, ec, this_ptr = std::move(this_ptr), old_state]() mutable
 			{
 				detail::ignore_unused(old_state);
@@ -885,7 +885,7 @@ namespace asio2::detail
 
 		inline void _handle_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
 		{
-			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
+			ASIO2_ASSERT(this->derived().io_->running_in_this_thread());
 
 			detail::ignore_unused(ec, this_ptr);
 
@@ -911,7 +911,7 @@ namespace asio2::detail
 			this->buffer().consume(this->buffer().size());
 
 			// destroy user data, maybe the user data is self shared_ptr,
-			// if don't destroy it, will cause loop refrence.
+			// if don't destroy it, will cause loop reference.
 			this->user_data_.reset();
 		}
 
@@ -1097,7 +1097,7 @@ namespace asio2::detail
 		inline void _fire_init()
 		{
 			// the _fire_init must be executed in the thread 0.
-			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
+			ASIO2_ASSERT(this->derived().io_->running_in_this_thread());
 			ASIO2_ASSERT(!get_last_error());
 
 			this->listener_.notify(event_type::init);
@@ -1106,7 +1106,7 @@ namespace asio2::detail
 		inline void _fire_start()
 		{
 			// the _fire_start must be executed in the thread 0.
-			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
+			ASIO2_ASSERT(this->derived().io_->running_in_this_thread());
 
 		#if defined(_DEBUG) || defined(DEBUG)
 			ASIO2_ASSERT(this->is_stop_called_ == false);
@@ -1118,7 +1118,7 @@ namespace asio2::detail
 		inline void _fire_stop()
 		{
 			// the _fire_stop must be executed in the thread 0.
-			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
+			ASIO2_ASSERT(this->derived().io_->running_in_this_thread());
 
 		#if defined(_DEBUG) || defined(DEBUG)
 			this->is_stop_called_ = true;
@@ -1134,25 +1134,25 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @brief get the buffer object refrence
+		 * @brief get the buffer object reference
 		 */
 		inline buffer_wrap<buffer_type> & buffer() noexcept { return this->buffer_; }
 		/**
-		 * @brief get the io object refrence
+		 * @brief get the io object reference
 		 */
-		inline io_t & io() noexcept { return this->io_; }
+		inline io_t & io() noexcept { return *(this->io_); }
 		/**
-		 * @brief get the io object refrence
+		 * @brief get the io object reference
 		 */
-		inline io_t const& io() const noexcept { return this->io_; }
+		inline io_t const& io() const noexcept { return *(this->io_); }
 
 	protected:
 		/**
-		 * @brief get the recv/read allocator object refrence
+		 * @brief get the recv/read allocator object reference
 		 */
 		inline auto & rallocator() noexcept { return this->rallocator_; }
 		/**
-		 * @brief get the timer/post allocator object refrence
+		 * @brief get the timer/post allocator object reference
 		 */
 		inline auto & wallocator() noexcept { return this->wallocator_; }
 
@@ -1173,7 +1173,7 @@ namespace asio2::detail
 		listener_t                                  listener_;
 
 		/// The io_context wrapper used to handle the accept event.
-		io_t                                      & io_;
+		std::shared_ptr<io_t>                       io_;
 
 		/// buffer
 		buffer_wrap<buffer_type>                    buffer_;

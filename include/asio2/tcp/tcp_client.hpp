@@ -179,7 +179,7 @@ namespace asio2::detail
 
 			derived_t& derive = this->derived();
 
-			derive.io().unregobj(&derive);
+			derive.io_->unregobj(&derive);
 
 			// use promise to get the result of stop
 			std::promise<state_t> promise;
@@ -240,7 +240,7 @@ namespace asio2::detail
 					if (derive.get_thread_id() == std::thread::id{})
 						break;
 
-					if (derive.io().context().stopped())
+					if (derive.io_->context().stopped())
 						break;
 				}
 			}
@@ -254,7 +254,7 @@ namespace asio2::detail
 		 * @param fun - a user defined callback function.
 		 * @param obj - a pointer or reference to a class object, this parameter can be none.
 		 * @li if fun is nonmember function, the obj param must be none, otherwise the obj must be the
-		 * the class object's pointer or refrence.
+		 * the class object's pointer or reference.
 		 * Function signature : void(std::string_view data)
 		 */
 		template<class F, class ...C>
@@ -270,7 +270,7 @@ namespace asio2::detail
 		 * @param fun - a user defined callback function.
 		 * @param obj - a pointer or reference to a class object, this parameter can be none.
 		 * @li if fun is nonmember function, the obj param must be none, otherwise the obj must be the
-		 * the class object's pointer or refrence.
+		 * the class object's pointer or reference.
 		 * This notification is called after the client connection completed, whether successful or unsuccessful
 		 * Function signature : void()
 		 */
@@ -287,7 +287,7 @@ namespace asio2::detail
 		 * @param fun - a user defined callback function.
 		 * @param obj - a pointer or reference to a class object, this parameter can be none.
 		 * @li if fun is nonmember function, the obj param must be none, otherwise the obj must be the
-		 * the class object's pointer or refrence.
+		 * the class object's pointer or reference.
 		 * This notification is called before the client is ready to disconnect
 		 * Function signature : void()
 		 */
@@ -304,7 +304,7 @@ namespace asio2::detail
 		 * @param fun - a user defined callback function.
 		 * @param obj - a pointer or reference to a class object, this parameter can be none.
 		 * @li if fun is nonmember function, the obj param must be none, otherwise the obj must be the
-		 * the class object's pointer or refrence.
+		 * the class object's pointer or reference.
 		 * Function signature : void()
 		 */
 		template<class F, class ...C>
@@ -335,12 +335,12 @@ namespace asio2::detail
 				return false;
 			}
 
-			asio::dispatch(derive.io().context(), [&derive, this_ptr = derive.selfptr()]() mutable
+			asio::dispatch(derive.io_->context(), [&derive, this_ptr = derive.selfptr()]() mutable
 			{
 				detail::ignore_unused(this_ptr);
 
 				// init the running thread id 
-				derive.io().init_thread_id();
+				derive.io_->init_thread_id();
 			});
 
 			// use promise to get the result of async connect
@@ -393,7 +393,7 @@ namespace asio2::detail
 
 				clear_last_error();
 
-				derive.io().regobj(&derive);
+				derive.io_->regobj(&derive);
 
 			#if defined(_DEBUG) || defined(DEBUG)
 				this->is_stop_reconnect_timer_called_ = false;
@@ -425,7 +425,7 @@ namespace asio2::detail
 			}
 			else
 			{
-				if (!derive.io().running_in_this_thread())
+				if (!derive.io_->running_in_this_thread())
 				{
 					set_last_error(future.get());
 
@@ -477,7 +477,7 @@ namespace asio2::detail
 		template<typename DeferEvent>
 		inline void _handle_disconnect(const error_code& ec, std::shared_ptr<derived_t> this_ptr, DeferEvent chain)
 		{
-			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
+			ASIO2_ASSERT(this->derived().io_->running_in_this_thread());
 
 			ASIO2_ASSERT(this->state_ == state_t::stopped);
 
@@ -572,7 +572,7 @@ namespace asio2::detail
 			std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs, DeferEvent chain)
 		{
 			// Connect succeeded. post recv request.
-			asio::dispatch(this->derived().io().context(), make_allocator(this->derived().wallocator(),
+			asio::dispatch(this->derived().io_->context(), make_allocator(this->derived().wallocator(),
 			[this, this_ptr = std::move(this_ptr), ecs = std::move(ecs), chain = std::move(chain)]
 			() mutable
 			{
@@ -645,7 +645,7 @@ namespace asio2::detail
 		inline void _fire_init()
 		{
 			// the _fire_init must be executed in the thread 0.
-			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
+			ASIO2_ASSERT(this->derived().io_->running_in_this_thread());
 			ASIO2_ASSERT(!get_last_error());
 
 			this->listener_.notify(event_type::init);
@@ -666,7 +666,7 @@ namespace asio2::detail
 		inline void _fire_connect(std::shared_ptr<derived_t>& this_ptr, std::shared_ptr<ecs_t<C>>& ecs)
 		{
 			// the _fire_connect must be executed in the thread 0.
-			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
+			ASIO2_ASSERT(this->derived().io_->running_in_this_thread());
 
 		#if defined(_DEBUG) || defined(DEBUG)
 			ASIO2_ASSERT(this->is_disconnect_called_ == false);
@@ -683,7 +683,7 @@ namespace asio2::detail
 		inline void _fire_disconnect(std::shared_ptr<derived_t>& this_ptr)
 		{
 			// the _fire_disconnect must be executed in the thread 0.
-			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
+			ASIO2_ASSERT(this->derived().io_->running_in_this_thread());
 
 		#if defined(_DEBUG) || defined(DEBUG)
 			this->is_disconnect_called_ = true;

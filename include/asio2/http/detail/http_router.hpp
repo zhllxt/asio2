@@ -359,7 +359,7 @@ namespace asio2::detail
 		 * @param name - uri name in string format.
 		 * @param fun - Function object.
 		 * @param caop - A pointer or reference to a class object, and aop object list.
-		 * if fun is member function, the first caop param must the class object's pointer or refrence.
+		 * if fun is member function, the first caop param must the class object's pointer or reference.
 		 */
 		template<http::verb... M, class F, class ...CAOP>
 		typename std::enable_if_t<!std::is_base_of_v<websocket::detail::listener_tag,

@@ -102,20 +102,22 @@ namespace asio2::detail
 		template<class, class> friend class iopool_cp;
 
 	public:
-		io_t(asio::io_context* ioc) noexcept : context_(ioc)
+		io_t(std::shared_ptr<asio::io_context> ioc_ptr) noexcept : context_(ioc_ptr.get()), context_wptr_(ioc_ptr)
 		{
 		}
 		~io_t() noexcept
 		{
 		}
 
-		inline asio::io_context                        & context() noexcept { return (*(this->context_)); }
-		inline std::atomic<std::size_t>                & pending() noexcept { return    this->pending_  ; }
-		inline std::unordered_set<asio::steady_timer*> & timers () noexcept { return    this->timers_   ; }
+		inline asio::io_context                        & context     () noexcept { return (*(this->context_))   ; }
+		inline std::weak_ptr<asio::io_context>         & context_wptr() noexcept { return    this->context_wptr_; }
+		inline std::atomic<std::size_t>                & pending     () noexcept { return    this->pending_     ; }
+		inline std::unordered_set<asio::steady_timer*> & timers      () noexcept { return    this->timers_      ; }
 
-		inline asio::io_context                        const& context() const noexcept { return (*(this->context_)); }
-		inline std::atomic<std::size_t>                const& pending() const noexcept { return    this->pending_  ; }
-		inline std::unordered_set<asio::steady_timer*> const& timers () const noexcept { return    this->timers_   ; }
+		inline asio::io_context                        const& context     () const noexcept { return (*(this->context_))   ; }
+		inline std::weak_ptr<asio::io_context>         const& context_wptr() const noexcept { return    this->context_wptr_; }
+		inline std::atomic<std::size_t>                const& pending     () const noexcept { return    this->pending_     ; }
+		inline std::unordered_set<asio::steady_timer*> const& timers      () const noexcept { return    this->timers_      ; }
 
 		template<class Object>
 		inline void regobj(Object* p)
@@ -232,6 +234,9 @@ namespace asio2::detail
 		// reference will cause the thread can not quit, and finally the thread will be
 		// more and more, then cause the program crash.
 		asio::io_context                       * context_ = nullptr;
+
+		// 
+		std::weak_ptr<asio::io_context>          context_wptr_;
 
 		// the strand will cause some problem when used in dll.
 		// 1. when declare a strand in dll, and export it, when use the strand in exe which 
@@ -380,12 +385,12 @@ namespace asio2::detail
 
 			for (std::size_t i = 0; i < concurrency; ++i)
 			{
-				this->iocs_.emplace_back(std::make_unique<asio::io_context>(1));
+				this->iocs_.emplace_back(std::make_shared<asio::io_context>(1));
 			}
 
 			for (std::size_t i = 0; i < concurrency; ++i)
 			{
-				this->iots_.emplace_back(std::make_unique<io_t>(this->iocs_[i].get()));
+				this->iots_.emplace_back(std::make_shared<io_t>(this->iocs_[i]));
 			}
 
 			this->threads_.reserve(this->iots_.size());
@@ -660,13 +665,13 @@ namespace asio2::detail
 		/**
 		 * @brief get an io_t to use
 		 */
-		inline io_t& get(std::size_t index = static_cast<std::size_t>(-1)) noexcept
+		inline std::shared_ptr<io_t> get(std::size_t index = static_cast<std::size_t>(-1)) noexcept
 		{
 			asio2::shared_locker guard(this->mutex_);
 
 			ASIO2_ASSERT(!this->iots_.empty());
 
-			return *(this->iots_[this->next_impl(index)]);
+			return this->iots_[this->next_impl(index)];
 		}
 
 		/**
@@ -679,6 +684,18 @@ namespace asio2::detail
 			ASIO2_ASSERT(!this->iots_.empty());
 
 			return this->iots_[this->next_impl(index)]->context();
+		}
+
+		/**
+		 * @brief get an io_context shared_ptr to use
+		 */
+		inline std::shared_ptr<asio::io_context> get_context_ptr(std::size_t index = std::size_t(-1)) noexcept
+		{
+			asio2::shared_locker guard(this->mutex_);
+
+			ASIO2_ASSERT(!this->iocs_.empty());
+
+			return this->iocs_[this->next_impl(index)];
 		}
 
 		/**
@@ -1103,10 +1120,10 @@ namespace asio2::detail
 		std::vector<std::thread>                                     threads_ ASIO2_GUARDED_BY(mutex_);
 
 		/// The pool of io_context. 
-		std::vector<std::unique_ptr<asio::io_context>>               iocs_    ASIO2_GUARDED_BY(mutex_);
+		std::vector<std::shared_ptr<asio::io_context>>               iocs_    ASIO2_GUARDED_BY(mutex_);
 
 		/// The pool of io_context. 
-		std::vector<std::unique_ptr<io_t>>                           iots_    ASIO2_GUARDED_BY(mutex_);
+		std::vector<std::shared_ptr<io_t>>                           iots_    ASIO2_GUARDED_BY(mutex_);
 
 		/// Flag whether the io_context pool has stopped already
 		detail::state_t                                              state_   ASIO2_GUARDED_BY(mutex_);
@@ -1134,7 +1151,7 @@ namespace asio2::detail
 		virtual void                        stop   ()                           = 0;
 		virtual bool                        started()                  noexcept = 0;
 		virtual bool                        stopped()                  noexcept = 0;
-		virtual io_t                      & get    (std::size_t index) noexcept = 0;
+		virtual std::shared_ptr<io_t>       get    (std::size_t index) noexcept = 0;
 		virtual std::size_t                 size   ()                  noexcept = 0;
 		virtual bool             running_in_threads()                  noexcept = 0;
 	};
@@ -1191,7 +1208,7 @@ namespace asio2::detail
 		/**
 		 * @brief get an io_t to use
 		 */
-		virtual io_t& get(std::size_t index) noexcept override
+		virtual std::shared_ptr<io_t> get(std::size_t index) noexcept override
 		{
 			return this->impl_.get(index);
 		}
@@ -1219,44 +1236,16 @@ namespace asio2::detail
 	/**
 	 * This io_context pool is passed in by the user
 	 */
-	template<class Container>
 	class user_iopool : public iopool_base
 	{
 		template<class, class> friend class iopool_cp;
 
 	public:
-		using copy_container_type = typename detail::remove_cvref_t<Container>;
-		using copy_value_type     = typename copy_container_type::value_type;
-
-		using io_container_type = std::conditional_t<
-			is_io_context_pointer<copy_value_type>::value,
-			std::vector<std::unique_ptr<io_t>>, std::vector<io_t*>>;
-		using io_value_type     = typename io_container_type::value_type;
-
 		/**
 		 * @brief constructor
 		 */
-		template<class C>
-		explicit user_iopool(C&& copy) : copy_(std::forward<C>(copy)), stopped_(true), next_(0)
+		explicit user_iopool(std::vector<std::shared_ptr<io_t>> iots) : iots_(std::move(iots)), stopped_(true), next_(0)
 		{
-			// std::shared_ptr<io_context> , io_context*
-			if constexpr (is_io_context_pointer<copy_value_type>::value)
-			{
-				// why use std::addressof(*ioc) ?
-				// the io_context pointer maybe "std::shared_ptr<io_context> , io_context*"
-				for (auto& ioc : copy_)
-				{
-					iots_.emplace_back(std::make_unique<io_t>(std::addressof(*ioc)));
-				}
-			}
-			// std::shared_ptr<io_t> , io_t*
-			else
-			{
-				for (auto& iot : copy_)
-				{
-					iots_.emplace_back(std::addressof(*iot));
-				}
-			}
 		}
 
 		/**
@@ -1339,11 +1328,11 @@ namespace asio2::detail
 		/**
 		 * @brief get an io_t to use
 		 */
-		virtual io_t& get(std::size_t index) noexcept override
+		virtual std::shared_ptr<io_t> get(std::size_t index) noexcept override
 		{
 			asio2::shared_locker guard(this->mutex_);
 
-			return *(this->iots_[this->next_impl(index)]);
+			return this->iots_[this->next_impl(index)];
 		}
 
 		/**
@@ -1402,11 +1391,8 @@ namespace asio2::detail
 		/// 
 		mutable asio2::shared_mutexer            mutex_;
 
-		/// user container copy, maybe the user passed shared_ptr, and expect us to keep it
-		copy_container_type                      copy_    ASIO2_GUARDED_BY(mutex_);
-
 		/// The pool of io_t. 
-		io_container_type                        iots_    ASIO2_GUARDED_BY(mutex_);
+		std::vector<std::shared_ptr<io_t>>       iots_    ASIO2_GUARDED_BY(mutex_);
 
 		/// Flag whether the io_context pool has stopped already
 		bool                                     stopped_ ASIO2_GUARDED_BY(mutex_);
@@ -1426,8 +1412,7 @@ namespace asio2::detail
 
 			if /**/ constexpr (std::is_integral_v<type>)
 			{
-				using pool_type = default_iopool;
-				this->iopool_ = std::make_unique<pool_type>(v);
+				this->iopool_ = std::make_unique<default_iopool>(v);
 
 			#if defined(_DEBUG) || defined(DEBUG)
 				derived_t& derive = static_cast<derived_t&>(*this);
@@ -1435,70 +1420,14 @@ namespace asio2::detail
 					[&derive]() { detail::ignore_unused(derive); };
 			#endif
 			}
-			else if constexpr (std::is_same_v<type, detail::iopool>)
-			{
-				using container = std::vector<io_t*>;
-				container copy{};
-
-				for (std::size_t i = 0; i < v.size(); ++i)
-				{
-					copy.emplace_back(&(v.get(i)));
-				}
-
-				using pool_type = user_iopool<container>;
-				this->iopool_ = std::make_unique<pool_type>(std::move(copy));
-			}
-			else if constexpr (is_io_context_pointer<type>::value)
-			{
-				ASIO2_ASSERT(v && "The io_context pointer is nullptr.");
-
-				using container = std::vector<type>;
-				container copy{ std::forward<T>(v) };
-
-				using pool_type = user_iopool<container>;
-				this->iopool_ = std::make_unique<pool_type>(std::move(copy));
-			}
-			else if constexpr (is_io_context_object<type>::value)
-			{
-				static_assert(std::is_reference_v<std::remove_cv_t<T>>);
-
-				using container = std::vector<std::add_pointer_t<type>>;
-				container copy{ &v };
-
-				using pool_type = user_iopool<container>;
-				this->iopool_ = std::make_unique<pool_type>(std::move(copy));
-			}
-			else if constexpr (is_io_t_pointer<type>::value)
-			{
-				ASIO2_ASSERT(v && "The io_t pointer is nullptr.");
-
-				using container = std::vector<type>;
-				container copy{ std::forward<T>(v) };
-
-				using pool_type = user_iopool<container>;
-				this->iopool_ = std::make_unique<pool_type>(std::move(copy));
-			}
-			else if constexpr (is_io_t_object<type>::value)
-			{
-				static_assert(std::is_reference_v<std::remove_cv_t<T>>);
-
-				using container = std::vector<std::add_pointer_t<type>>;
-				container copy{ &v };
-
-				using pool_type = user_iopool<container>;
-				this->iopool_ = std::make_unique<pool_type>(std::move(copy));
-			}
 			else
 			{
-				ASIO2_ASSERT(!v.empty() && "The container is empty.");
-
-				using pool_type = user_iopool<type>;
-				this->iopool_ = std::make_unique<pool_type>(std::forward<T>(v));
+				this->iopool_ = std::make_unique<user_iopool>(this->to_iots(std::forward<T>(v)));
 			}
 
 			for (std::size_t i = 0, size = iopool_->size(); i < size; ++i)
 			{
-				iots_.emplace_back(std::addressof(iopool_->get(i)));
+				iots_.emplace_back(iopool_->get(i));
 			}
 		}
 
@@ -1522,7 +1451,7 @@ namespace asio2::detail
 			std::promise<error_code> promise;
 			std::future<error_code> future = promise.get_future();
 
-			io_t* iot = this->iots_[0];
+			std::shared_ptr<io_t>& iot = this->iots_[0];
 
 			// We must use asio::post to ensure the wait_stop_timer_ is read write in the 
 			// same thread.
@@ -1639,12 +1568,12 @@ namespace asio2::detail
 		inline iopool_base const& iopool() const noexcept { return (*(this->iopool_)); }
 
 	protected:
-		inline io_t& _get_io(std::size_t index = static_cast<std::size_t>(-1)) noexcept
+		inline std::shared_ptr<io_t> _get_io(std::size_t index = static_cast<std::size_t>(-1)) noexcept
 		{
 			ASIO2_ASSERT(!iots_.empty());
 			std::size_t n = (index == static_cast<std::size_t>(-1) ?
 				((++(this->next_)) % this->iots_.size()) : (index % this->iots_.size()));
-			return *(this->iots_[n]);
+			return this->iots_[n];
 		}
 
 		inline bool is_iopool_started() const noexcept
@@ -1668,7 +1597,7 @@ namespace asio2::detail
 			// init thread at here first.
 			if (ret)
 			{
-				for (io_t* iot : this->iots_)
+				for (std::shared_ptr<io_t>& iot : this->iots_)
 				{
 					asio::dispatch(iot->context(), [iot]() mutable
 					{
@@ -1687,7 +1616,7 @@ namespace asio2::detail
 
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			io_t* iot = this->iots_[0];
+			std::shared_ptr<io_t>& iot = this->iots_[0];
 
 			// if the server's or client's iopool is user_iopool, and when the server.stop 
 			// or client.stop is called, we need notify the timer to cancel for the function
@@ -1710,17 +1639,103 @@ namespace asio2::detail
 		}
 
 	protected:
+		template<class T>
+		std::vector<std::shared_ptr<io_t>> to_iots(T&& v)
+		{
+			using type = typename detail::remove_cvref_t<T>;
+
+			std::vector<std::shared_ptr<io_t>> iots{};
+
+			if constexpr (std::is_same_v<type, detail::iopool>)
+			{
+				ASIO2_ASSERT(v.size() && "The iopool is empty.");
+
+				for (std::size_t i = 0; i < v.size(); ++i)
+				{
+					iots.emplace_back(v.get(i));
+				}
+			}
+			else if constexpr (std::is_same_v<type, std::shared_ptr<asio::io_context>>)
+			{
+				ASIO2_ASSERT(v && "The io_context pointer is nullptr.");
+
+				this->iocs_.emplace_back(v);
+
+				iots.emplace_back(std::make_shared<io_t>(std::forward<T>(v)));
+			}
+			else if constexpr (std::is_same_v<type, asio::io_context*>)
+			{
+				ASIO2_ASSERT(v && "The io_context pointer is nullptr.");
+
+				std::shared_ptr<asio::io_context> iop(v, [](asio::io_context*) {});
+
+				this->iocs_.emplace_back(iop);
+
+				iots.emplace_back(std::make_shared<io_t>(std::move(iop)));
+			}
+			else if constexpr (std::is_same_v<type, asio::io_context>)
+			{
+				static_assert(std::is_reference_v<std::remove_cv_t<T>>);
+
+				std::shared_ptr<asio::io_context> iop(std::addressof(v), [](asio::io_context*) {});
+
+				this->iocs_.emplace_back(iop);
+
+				iots.emplace_back(std::make_shared<io_t>(std::move(iop)));
+			}
+			else if constexpr (std::is_same_v<type, std::shared_ptr<io_t>>)
+			{
+				ASIO2_ASSERT(v && "The io_t pointer is nullptr.");
+
+				iots.emplace_back(std::forward<T>(v));
+			}
+			else if constexpr (std::is_same_v<type, io_t*>)
+			{
+				ASIO2_ASSERT(v && "The io_t pointer is nullptr.");
+
+				iots.emplace_back(std::shared_ptr<io_t>(v, [](io_t*) {}));
+			}
+			else if constexpr (std::is_same_v<type, io_t>)
+			{
+				static_assert(std::is_reference_v<std::remove_cv_t<T>>);
+
+				iots.emplace_back(std::shared_ptr<io_t>(std::addressof(v), [](io_t*) {}));
+			}
+			else
+			{
+				// std::vector<...> std::list<...>
+
+				ASIO2_ASSERT(!v.empty() && "The container is empty.");
+
+				for (auto& e : v)
+				{
+					std::vector<std::shared_ptr<io_t>> tmps = this->to_iots(e);
+
+					for (std::shared_ptr<io_t>& iot : tmps)
+					{
+						iots.emplace_back(std::move(iot));
+					}
+				}
+			}
+
+			return iots;
+		}
+
+	protected:
 		/// the io_context pool for socket event
-		std::unique_ptr<iopool_base>             iopool_;
+		std::unique_ptr<iopool_base>                       iopool_;
 
 		/// Use a copy to avoid calling the virtual function "iopool_base::get"
-		std::vector<io_t*>                       iots_;
+		std::vector<std::shared_ptr<io_t>>                 iots_;
+
+		/// Hold the temp shared_ptr io_context, otherwise the context_wptr will be expired forever.
+		std::vector<std::shared_ptr<asio::io_context>>     iocs_;
 
 		/// The next io_context to use for a connection. 
-		std::size_t                              next_;
+		std::size_t                                        next_;
 
 		/// the timer used for wait_stop function.
-		std::unique_ptr<asio::steady_timer>      wait_stop_timer_;
+		std::unique_ptr<asio::steady_timer>                wait_stop_timer_;
 	};
 }
 

@@ -82,7 +82,7 @@ namespace asio2::detail
 		)
 			: super(std::forward<Args>(args)...)
 			, rpc_invoker_t<derived_t, typename executor_t::args_type>()
-			, rpc_call_cp  <derived_t, typename executor_t::args_type>(this->io_, this->serializer_, this->deserializer_)
+			, rpc_call_cp  <derived_t, typename executor_t::args_type>(this->serializer_, this->deserializer_)
 			, rpc_recv_op  <derived_t, typename executor_t::args_type>()
 			, id_maker     <typename rpc_header::id_type>()
 		{

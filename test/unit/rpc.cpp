@@ -174,7 +174,7 @@ void rpc_test()
 				ASIO2_CHECK(session_ptr->local_address() == "127.0.0.1");
 				ASIO2_CHECK(session_ptr->local_port() == 18010);
 				ASIO2_CHECK(server.io().running_in_this_thread());
-				ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 			}
 		});
 		std::atomic<int> server_connect_counter = 0;
@@ -187,7 +187,7 @@ void rpc_test()
 			ASIO2_CHECK(session_ptr->local_address() == "127.0.0.1");
 			ASIO2_CHECK(session_ptr->local_port() == 18010);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 			ASIO2_CHECK(session_ptr->is_keep_alive());
 			ASIO2_CHECK(session_ptr->is_no_delay());
 
@@ -200,7 +200,7 @@ void rpc_test()
 			ASIO2_CHECK(asio2::get_last_error());
 			ASIO2_CHECK(session_ptr->socket().is_open());
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 		});
 		std::atomic<int> server_init_counter = 0;
 		server.bind_init([&]()
@@ -209,7 +209,7 @@ void rpc_test()
 
 			ASIO2_CHECK(!asio2::get_last_error());
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 
 			asio::socket_base::reuse_address option;
 			server.acceptor().get_option(option);
@@ -224,7 +224,7 @@ void rpc_test()
 			ASIO2_CHECK(server.get_listen_address() == "127.0.0.1");
 			ASIO2_CHECK(server.get_listen_port() == 18010);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 		});
 		std::atomic<int> server_stop_counter = 0;
 		server.bind_stop([&]()
@@ -235,7 +235,7 @@ void rpc_test()
 			ASIO2_CHECK(server.get_listen_address() == "127.0.0.1");
 			ASIO2_CHECK(server.get_listen_port() == 18010);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 		});
 
 		server.bind("echo", echo);
@@ -275,7 +275,7 @@ void rpc_test()
 				client.set_no_delay(true);
 
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(!asio2::get_last_error());
 				ASIO2_CHECK(client.is_keep_alive());
 				ASIO2_CHECK(client.is_reuse_address());
@@ -284,7 +284,7 @@ void rpc_test()
 			client.bind_connect([&]()
 			{
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(!asio2::get_last_error());
 				ASIO2_CHECK(client.get_local_address() == "127.0.0.1");
 				ASIO2_CHECK(client.get_remote_address() == "127.0.0.1");
@@ -299,13 +299,13 @@ void rpc_test()
 
 				ASIO2_CHECK(asio2::get_last_error());
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 			});
 			client.bind_recv([&]([[maybe_unused]] std::string_view data)
 			{
 				ASIO2_CHECK(!asio2::get_last_error());
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(!data.empty());
 				ASIO2_CHECK(client.is_started());
 			});
@@ -508,7 +508,7 @@ void rpc_test()
 				ASIO2_CHECK(session_ptr->local_address() == "127.0.0.1");
 				ASIO2_CHECK(session_ptr->local_port() == 18010);
 				ASIO2_CHECK(server.io().running_in_this_thread());
-				ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 			}
 		});
 		std::atomic<int> server_connect_counter = 0;
@@ -521,7 +521,7 @@ void rpc_test()
 			ASIO2_CHECK(session_ptr->local_address() == "127.0.0.1");
 			ASIO2_CHECK(session_ptr->local_port() == 18010);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 			ASIO2_CHECK(session_ptr->is_keep_alive());
 			ASIO2_CHECK(session_ptr->is_no_delay());
 
@@ -534,7 +534,7 @@ void rpc_test()
 			ASIO2_CHECK(asio2::get_last_error());
 			ASIO2_CHECK(session_ptr->socket().is_open());
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 		});
 		std::atomic<int> server_init_counter = 0;
 		server.bind_init([&]()
@@ -543,7 +543,7 @@ void rpc_test()
 
 			ASIO2_CHECK(!asio2::get_last_error());
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 
 			asio::socket_base::reuse_address option;
 			server.acceptor().get_option(option);
@@ -558,7 +558,7 @@ void rpc_test()
 			ASIO2_CHECK(server.get_listen_address() == "127.0.0.1");
 			ASIO2_CHECK(server.get_listen_port() == 18010);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 		});
 		std::atomic<int> server_stop_counter = 0;
 		server.bind_stop([&]()
@@ -569,7 +569,7 @@ void rpc_test()
 			ASIO2_CHECK(server.get_listen_address() == "127.0.0.1");
 			ASIO2_CHECK(server.get_listen_port() == 18010);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 		});
 
 		server.bind("echo", echo);
@@ -606,7 +606,7 @@ void rpc_test()
 				client.set_no_delay(true);
 
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(!asio2::get_last_error());
 				ASIO2_CHECK(client.is_keep_alive());
 				ASIO2_CHECK(client.is_reuse_address());
@@ -615,7 +615,7 @@ void rpc_test()
 			client.bind_connect([&]()
 			{
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(!asio2::get_last_error());
 				ASIO2_CHECK(client.get_local_address() == "127.0.0.1");
 				ASIO2_CHECK(client.get_remote_address() == "127.0.0.1");
@@ -631,13 +631,13 @@ void rpc_test()
 
 				ASIO2_CHECK(asio2::get_last_error());
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 			});
 			client.bind_recv([&]([[maybe_unused]] std::string_view data)
 			{
 				ASIO2_CHECK(!asio2::get_last_error());
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(!data.empty());
 				ASIO2_CHECK(client.is_started());
 			});
@@ -842,7 +842,7 @@ void rpc_test()
 				ASIO2_CHECK(session_ptr->local_address() == "127.0.0.1");
 				ASIO2_CHECK(session_ptr->local_port() == 18010);
 				ASIO2_CHECK(server.io().running_in_this_thread());
-				ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 			}
 		});
 		std::atomic<int> server_connect_counter = 0;
@@ -855,7 +855,7 @@ void rpc_test()
 			ASIO2_CHECK(session_ptr->local_address() == "127.0.0.1");
 			ASIO2_CHECK(session_ptr->local_port() == 18010);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 			ASIO2_CHECK(session_ptr->is_keep_alive());
 			ASIO2_CHECK(session_ptr->is_no_delay());
 
@@ -868,7 +868,7 @@ void rpc_test()
 			ASIO2_CHECK(asio2::get_last_error());
 			ASIO2_CHECK(session_ptr->socket().is_open());
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 		});
 		std::atomic<int> server_init_counter = 0;
 		server.bind_init([&]()
@@ -877,7 +877,7 @@ void rpc_test()
 
 			ASIO2_CHECK(!asio2::get_last_error());
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 
 			asio::socket_base::reuse_address option;
 			server.acceptor().get_option(option);
@@ -892,7 +892,7 @@ void rpc_test()
 			ASIO2_CHECK(server.get_listen_address() == "127.0.0.1");
 			ASIO2_CHECK(server.get_listen_port() == 18010);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 		});
 		std::atomic<int> server_stop_counter = 0;
 		server.bind_stop([&]()
@@ -903,7 +903,7 @@ void rpc_test()
 			ASIO2_CHECK(server.get_listen_address() == "127.0.0.1");
 			ASIO2_CHECK(server.get_listen_port() == 18010);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 		});
 
 		server.bind("echo", echo);
@@ -940,7 +940,7 @@ void rpc_test()
 				client.set_no_delay(true);
 
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(!asio2::get_last_error());
 				ASIO2_CHECK(client.is_keep_alive());
 				ASIO2_CHECK(client.is_reuse_address());
@@ -952,7 +952,7 @@ void rpc_test()
 					return;
 
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(!asio2::get_last_error());
 				ASIO2_CHECK(client.get_local_address() == "127.0.0.1");
 				ASIO2_CHECK(client.get_remote_address() == "127.0.0.1");
@@ -1018,13 +1018,13 @@ void rpc_test()
 
 				ASIO2_CHECK(asio2::get_last_error());
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 			});
 			client.bind_recv([&]([[maybe_unused]] std::string_view data)
 			{
 				ASIO2_CHECK(!asio2::get_last_error());
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(!data.empty());
 				ASIO2_CHECK(client.is_started());
 			});
@@ -1234,7 +1234,7 @@ void rpc_test()
 				ASIO2_CHECK(session_ptr->local_address() == "127.0.0.1");
 				ASIO2_CHECK(session_ptr->local_port() == 18010);
 				ASIO2_CHECK(server.io().running_in_this_thread());
-				ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 			}
 		});
 		std::atomic<int> server_connect_counter = 0;
@@ -1257,7 +1257,7 @@ void rpc_test()
 			ASIO2_CHECK(session_ptr->local_address() == "127.0.0.1");
 			ASIO2_CHECK(session_ptr->local_port() == 18010);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 			ASIO2_CHECK(session_ptr->is_keep_alive());
 			ASIO2_CHECK(session_ptr->is_no_delay());
 
@@ -1270,7 +1270,7 @@ void rpc_test()
 			ASIO2_CHECK(asio2::get_last_error());
 			ASIO2_CHECK(session_ptr->socket().is_open());
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 		});
 		std::atomic<int> server_init_counter = 0;
 		server.bind_init([&]()
@@ -1279,7 +1279,7 @@ void rpc_test()
 
 			ASIO2_CHECK(!asio2::get_last_error());
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 
 			asio::socket_base::reuse_address option;
 			server.acceptor().get_option(option);
@@ -1294,7 +1294,7 @@ void rpc_test()
 			ASIO2_CHECK(server.get_listen_address() == "127.0.0.1");
 			ASIO2_CHECK(server.get_listen_port() == 18010);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 		});
 		std::atomic<int> server_stop_counter = 0;
 		server.bind_stop([&]()
@@ -1305,7 +1305,7 @@ void rpc_test()
 			ASIO2_CHECK(server.get_listen_address() == "127.0.0.1");
 			ASIO2_CHECK(server.get_listen_port() == 18010);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 		});
 
 		server.bind("echo", echo);
@@ -1382,7 +1382,7 @@ void rpc_test()
 				client.set_no_delay(true);
 
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(!asio2::get_last_error());
 				ASIO2_CHECK(client.is_keep_alive());
 				ASIO2_CHECK(client.is_reuse_address());
@@ -1394,7 +1394,7 @@ void rpc_test()
 					return;
 
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(!asio2::get_last_error());
 				ASIO2_CHECK(client.get_local_address() == "127.0.0.1");
 				ASIO2_CHECK(client.get_remote_address() == "127.0.0.1");
@@ -1512,13 +1512,13 @@ void rpc_test()
 
 				ASIO2_CHECK(asio2::get_last_error());
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 			});
 			client.bind_recv([&]([[maybe_unused]] std::string_view data)
 			{
 				ASIO2_CHECK(!asio2::get_last_error());
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(!data.empty());
 				ASIO2_CHECK(client.is_started());
 			});
@@ -1570,7 +1570,7 @@ void rpc_test()
 			client.async_call([&]()
 			{
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(!asio2::get_last_error());
 				ext_data& ex = client.get_user_data<ext_data&>();
 				ex.async_call_counter++;
@@ -1584,7 +1584,7 @@ void rpc_test()
 			client.async_call("del_user", "hanmeimei").response([&](userinfo)
 			{
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(asio2::get_last_error() == rpc::error::invalid_argument);
 				ext_data& ex = client.get_user_data<ext_data&>();
 				ex.async_call_counter++;
@@ -1594,7 +1594,7 @@ void rpc_test()
 			client.async_call("del_user", 10, std::string("lilei"), 1).response([&](userinfo)
 			{
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(asio2::get_last_error() == rpc::error::invalid_argument);
 				ext_data& ex = client.get_user_data<ext_data&>();
 				ex.async_call_counter++;
@@ -1604,7 +1604,7 @@ void rpc_test()
 			client.async_call("del_user", u, std::string("lilei"), 1).response([&](userinfo)
 			{
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(asio2::get_last_error() == rpc::error::invalid_argument);
 				ext_data& ex = client.get_user_data<ext_data&>();
 				ex.async_call_counter++;
@@ -1640,7 +1640,7 @@ void rpc_test()
 			client.async_call([&](int)
 			{
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(asio2::get_last_error() == rpc::error::not_found);
 				ext_data& ex = client.get_user_data<ext_data&>();
 				ex.async_call_counter++;
@@ -1848,7 +1848,7 @@ void rpc_test()
 			client.async_call([&]()
 			{
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(!asio2::get_last_error());
 				ext_data& ex = client.get_user_data<ext_data&>();
 				ex.async_call_counter++;
@@ -1862,7 +1862,7 @@ void rpc_test()
 			client.async_call("del_user", "hanmeimei").response([&](userinfo)
 			{
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(asio2::get_last_error() == rpc::error::invalid_argument);
 				ext_data& ex = client.get_user_data<ext_data&>();
 				ex.async_call_counter++;
@@ -1872,7 +1872,7 @@ void rpc_test()
 			client.async_call("del_user", 10, std::string("lilei"), 1).response([&](userinfo)
 			{
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(asio2::get_last_error() == rpc::error::invalid_argument);
 				ext_data& ex = client.get_user_data<ext_data&>();
 				ex.async_call_counter++;
@@ -1882,7 +1882,7 @@ void rpc_test()
 			client.async_call("del_user", u, std::string("lilei"), 1).response([&](userinfo)
 			{
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(asio2::get_last_error() == rpc::error::invalid_argument);
 				ext_data& ex = client.get_user_data<ext_data&>();
 				ex.async_call_counter++;
@@ -1918,7 +1918,7 @@ void rpc_test()
 			client.async_call([&](int)
 			{
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(asio2::get_last_error() == rpc::error::not_found);
 				ext_data& ex = client.get_user_data<ext_data&>();
 				ex.async_call_counter++;
@@ -2016,7 +2016,7 @@ void rpc_test()
 				ASIO2_CHECK(session_ptr->local_address() == "127.0.0.1");
 				ASIO2_CHECK(session_ptr->local_port() == 18010);
 				ASIO2_CHECK(server.io().running_in_this_thread());
-				ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 			}
 		});
 		std::atomic<int> server_connect_counter = 0;
@@ -2039,7 +2039,7 @@ void rpc_test()
 			ASIO2_CHECK(session_ptr->local_address() == "127.0.0.1");
 			ASIO2_CHECK(session_ptr->local_port() == 18010);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 			ASIO2_CHECK(session_ptr->is_keep_alive());
 			ASIO2_CHECK(session_ptr->is_no_delay());
 
@@ -2051,7 +2051,7 @@ void rpc_test()
 			asio2::ignore_unused(session_ptr);
 			ASIO2_CHECK(asio2::get_last_error());
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 		});
 		std::atomic<int> server_init_counter = 0;
 		server.bind_init([&]()
@@ -2060,7 +2060,7 @@ void rpc_test()
 
 			ASIO2_CHECK(!asio2::get_last_error());
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 
 			asio::socket_base::reuse_address option;
 			server.acceptor().get_option(option);
@@ -2075,7 +2075,7 @@ void rpc_test()
 			ASIO2_CHECK(server.get_listen_address() == "127.0.0.1");
 			ASIO2_CHECK(server.get_listen_port() == 18010);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 		});
 		std::atomic<int> server_stop_counter = 0;
 		server.bind_stop([&]()
@@ -2086,7 +2086,7 @@ void rpc_test()
 			ASIO2_CHECK(server.get_listen_address() == "127.0.0.1");
 			ASIO2_CHECK(server.get_listen_port() == 18010);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 		});
 
 		server.bind("echo", echo);
@@ -2207,7 +2207,7 @@ void rpc_test()
 				client.set_no_delay(true);
 
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(!asio2::get_last_error());
 				ASIO2_CHECK(client.is_keep_alive());
 				ASIO2_CHECK(client.is_reuse_address());
@@ -2219,7 +2219,7 @@ void rpc_test()
 					return;
 
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(!asio2::get_last_error());
 				ASIO2_CHECK(client.get_local_address() == "127.0.0.1");
 				ASIO2_CHECK(client.get_remote_address() == "127.0.0.1");
@@ -2369,13 +2369,13 @@ void rpc_test()
 
 				ASIO2_CHECK(asio2::get_last_error());
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 			});
 			client.bind_recv([&]([[maybe_unused]] std::string_view data)
 			{
 				ASIO2_CHECK(!asio2::get_last_error());
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(!data.empty());
 				ASIO2_CHECK(client.is_started());
 			});
@@ -2431,7 +2431,7 @@ void rpc_test()
 			client.async_call([&]()
 			{
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(!asio2::get_last_error());
 				ext_data& ex = client.get_user_data<ext_data&>();
 				ex.async_call_counter++;
@@ -2445,7 +2445,7 @@ void rpc_test()
 			client.async_call("del_user", "hanmeimei").response([&](userinfo)
 			{
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(asio2::get_last_error() == rpc::error::invalid_argument);
 				ext_data& ex = client.get_user_data<ext_data&>();
 				ex.async_call_counter++;
@@ -2455,7 +2455,7 @@ void rpc_test()
 			client.async_call("del_user", 10, std::string("lilei"), 1).response([&](userinfo)
 			{
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(asio2::get_last_error() == rpc::error::invalid_argument);
 				ext_data& ex = client.get_user_data<ext_data&>();
 				ex.async_call_counter++;
@@ -2465,7 +2465,7 @@ void rpc_test()
 			client.async_call("del_user", u, std::string("lilei"), 1).response([&](userinfo)
 			{
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(asio2::get_last_error() == rpc::error::invalid_argument);
 				ext_data& ex = client.get_user_data<ext_data&>();
 				ex.async_call_counter++;
@@ -2501,7 +2501,7 @@ void rpc_test()
 			client.async_call([&](int)
 			{
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(asio2::get_last_error() == rpc::error::not_found);
 				ext_data& ex = client.get_user_data<ext_data&>();
 				ex.async_call_counter++;
@@ -2679,7 +2679,7 @@ void rpc_test()
 			client.async_call([&]()
 			{
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(!asio2::get_last_error());
 				ext_data& ex = client.get_user_data<ext_data&>();
 				ex.async_call_counter++;
@@ -2693,7 +2693,7 @@ void rpc_test()
 			client.async_call("del_user", "hanmeimei").response([&](userinfo)
 			{
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(asio2::get_last_error() == rpc::error::invalid_argument);
 				ext_data& ex = client.get_user_data<ext_data&>();
 				ex.async_call_counter++;
@@ -2703,7 +2703,7 @@ void rpc_test()
 			client.async_call("del_user", 10, std::string("lilei"), 1).response([&](userinfo)
 			{
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(asio2::get_last_error() == rpc::error::invalid_argument);
 				ext_data& ex = client.get_user_data<ext_data&>();
 				ex.async_call_counter++;
@@ -2713,7 +2713,7 @@ void rpc_test()
 			client.async_call("del_user", u, std::string("lilei"), 1).response([&](userinfo)
 			{
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(asio2::get_last_error() == rpc::error::invalid_argument);
 				ext_data& ex = client.get_user_data<ext_data&>();
 				ex.async_call_counter++;
@@ -2749,7 +2749,7 @@ void rpc_test()
 			client.async_call([&](int)
 			{
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(asio2::get_last_error() == rpc::error::not_found);
 				ext_data& ex = client.get_user_data<ext_data&>();
 				ex.async_call_counter++;

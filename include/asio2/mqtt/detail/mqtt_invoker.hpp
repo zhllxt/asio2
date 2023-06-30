@@ -1141,7 +1141,7 @@ namespace asio2::detail
 		inline void _call_mqtt_handler(mqtt::control_packet_type type, error_code& ec,
 			std::shared_ptr<caller_t>& caller_ptr, caller_t* caller, std::string_view& data)
 		{
-			ASIO2_ASSERT(caller->io().running_in_this_thread());
+			ASIO2_ASSERT(caller->io_->running_in_this_thread());
 
 			std::shared_ptr<handler_type> p;
 
@@ -1180,9 +1180,13 @@ namespace asio2::detail
 				if (!ec)
 					return;
 
+				std::shared_ptr<asio::io_context> ioc_ptr = caller->io_->context_wptr().lock();
+				if (ioc_ptr == nullptr)
+					return;
+
 				// post a async event to disconnect, don't call _do_disconnect directly,
 				// otherwise the client's bind_disconnect callback maybe can't be called.
-				asio::post(caller->io().context(), make_allocator(caller->wallocator(),
+				asio::post(caller->io_->context(), make_allocator(caller->wallocator(),
 				[ec, caller_ptr, caller]() mutable
 				{
 					if (caller->state() == state_t::started)

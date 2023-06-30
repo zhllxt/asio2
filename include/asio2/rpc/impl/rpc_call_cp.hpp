@@ -70,7 +70,7 @@ namespace asio2::detail
 		/**
 		 * @brief constructor
 		 */
-		rpc_call_cp(io_t&, rpc_serializer& sr, rpc_deserializer& dr)
+		rpc_call_cp(rpc_serializer& sr, rpc_deserializer& dr)
 			: sr_(sr), dr_(dr)
 		{
 		}
@@ -122,7 +122,7 @@ namespace asio2::detail
 					// when async_send failed, the error category is not rpc category.
 					//ASIO2_ASSERT(std::string_view(ec.category().name()) == rpc::rpc_category().name());
 
-					ASIO2_ASSERT(derive.io().running_in_this_thread());
+					ASIO2_ASSERT(derive.io_->running_in_this_thread());
 
 					if (!ec)
 					{
@@ -168,7 +168,7 @@ namespace asio2::detail
 					derive.reqs_.erase(id);
 				};
 
-				asio::post(derive.io().context(), make_allocator(derive.callocator_,
+				asio::post(derive.io_->context(), make_allocator(derive.callocator_,
 				[&derive, req = std::move(req), ex = std::move(ex), p = derive.selfptr()]() mutable
 				{
 					detail::ignore_unused(p);
@@ -191,7 +191,7 @@ namespace asio2::detail
 				}));
 
 				// Whether we run on the io_context thread
-				if (!derive.io().running_in_this_thread())
+				if (!derive.io_->running_in_this_thread())
 				{
 					std::future_status status = future.wait_for(timeout);
 					if (status == std::future_status::ready)
@@ -202,7 +202,7 @@ namespace asio2::detail
 					{
 						set_last_error(rpc::make_error_code(rpc::error::timed_out));
 
-						asio::post(derive.io().context(), make_allocator(derive.callocator_,
+						asio::post(derive.io_->context(), make_allocator(derive.callocator_,
 						[&derive, id, p = derive.selfptr()]() mutable
 						{
 							detail::ignore_unused(p);
@@ -216,7 +216,7 @@ namespace asio2::detail
 					// If invoke synchronization rpc call function in communication thread, it will degenerates
 					// into async_call and the return value is empty.
 
-					asio::post(derive.io().context(), make_allocator(derive.callocator_,
+					asio::post(derive.io_->context(), make_allocator(derive.callocator_,
 					[&derive, id, p = derive.selfptr()]() mutable
 					{
 						detail::ignore_unused(p);
@@ -407,7 +407,7 @@ namespace asio2::detail
 
 				set_last_error(rpc::make_error_code(rpc::error::success));
 
-				asio::post(derive.io().context(), make_allocator(derive.callocator_,
+				asio::post(derive.io_->context(), make_allocator(derive.callocator_,
 				[&derive, req = std::forward<Req>(req), p = derive.selfptr()]() mutable
 				{
 					detail::ignore_unused(p);
@@ -428,12 +428,12 @@ namespace asio2::detail
 				// otherwise the "derive.send" maybe has't called, the "timer->async_wait" has called
 				// already.
 				std::shared_ptr<asio::steady_timer> timer =
-					std::make_shared<asio::steady_timer>(derive.io().context());
+					std::make_shared<asio::steady_timer>(derive.io_->context());
 
 				auto ex = [&derive, id, timer, cb = std::forward<Callback>(cb)]
 				(error_code ec, std::string_view data) mutable
 				{
-					ASIO2_ASSERT(derive.io().running_in_this_thread());
+					ASIO2_ASSERT(derive.io_->running_in_this_thread());
 
 					detail::cancel_timer(*timer);
 
@@ -448,7 +448,7 @@ namespace asio2::detail
 
 					// bug fixed : can't call ex(...) directly, it will 
 					// cause "reqs_.erase(id)" be called in multithread 
-					asio::post(derive.io().context(), make_allocator(derive.callocator_,
+					asio::post(derive.io_->context(), make_allocator(derive.callocator_,
 					[ex = std::move(ex), p = derive.selfptr()]() mutable
 					{
 						detail::ignore_unused(p);
@@ -473,7 +473,7 @@ namespace asio2::detail
 				// It means that : The callback function of async_send may be called after 
 				// recved response data.
 
-				asio::post(derive.io().context(), make_allocator(derive.callocator_,
+				asio::post(derive.io_->context(), make_allocator(derive.callocator_,
 				[&derive, timer = std::move(timer), timeout, req = std::forward<Req>(req),
 					ex = std::move(ex), p = derive.selfptr()]() mutable
 				{

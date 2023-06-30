@@ -164,7 +164,7 @@ namespace asio2::mqtt::v5
 			derive.id_   .serialize(buffer);
 			derive.value_.serialize(buffer);
 
-			return (derive);
+			return derive;
 		}
 
 		inline derived_t& deserialize(std::string_view& data)
@@ -174,7 +174,7 @@ namespace asio2::mqtt::v5
 			derive.id_   .deserialize(data);
 			derive.value_.deserialize(data);
 
-			return (derive);
+			return derive;
 		}
 
 		inline std::size_t required_size()

@@ -18,7 +18,7 @@ void shared_iopool_test()
 	iopool.start();
 
 	ASIO2_CHECK(iopool.stopped() == false);
-	ASIO2_CHECK(std::addressof(iopool.get()) != nullptr);
+	ASIO2_CHECK(iopool.get() != nullptr);
 	ASIO2_CHECK(std::addressof(iopool.get_context()) != nullptr);
 	ASIO2_CHECK(iopool.running_in_threads() == false);
 	ASIO2_CHECK(iopool.running_in_thread(0) == false);
@@ -53,36 +53,40 @@ void shared_iopool_test()
 	asio2::tcp_server  _server1(1024);
 	asio2::tcp_server  _server2(1024, 65535);
 	asio2::tcp_server  _server3(1024, 65535, 4);
-	asio2::tcp_server  _server5(1024, 65535, std::vector{ &iopool.get(0), &iopool.get(1) });
-	asio2::tcp_server  _server6(1024, 65535, std::list  { &iopool.get(0), &iopool.get(1) });
-	asio2::rpc_server  _server7(1024, 65535, &iopool.get(0));
-	asio2::http_server _server8(1024, 65535,  iopool.get(0));
-	asio2::udp_server  _servera(std::vector<asio2::io_t*>{ &iopool.get(0), &iopool.get(1) });
-	asio2::ws_server   _serverb(std::list  <asio2::io_t*>{ &iopool.get(0), &iopool.get(1) });
-	asio2::tcp_server  _serverc(&iopool.get(0));
-	asio2::tcp_server  _serverd( iopool.get(0));
-	asio2::tcp_server  _servere( iopool);
+	asio2::tcp_server  _server5(1024, 65535, std::vector{ iopool.get(0), iopool.get(1) });
+	asio2::tcp_server  _server6(1024, 65535, std::list  { iopool.get(0), iopool.get(1) });
+	asio2::rpc_server  _server7(1024, 65535, iopool.get(0));
+	asio2::http_server _server8(1024, 65535, iopool.get(0));
+	asio2::udp_server  _servera(std::vector<std::shared_ptr<asio2::io_t>>{ iopool.get(0), iopool.get(1) });
+	asio2::ws_server   _serverb(std::list  <std::shared_ptr<asio2::io_t>>{ iopool.get(0), iopool.get(1) });
+	asio2::tcp_server  _serverc(iopool.get(0));
+	asio2::tcp_server  _serverd(iopool.get(0));
+	asio2::tcp_server  _servere(iopool);
+	asio2::udp_server  _serverf(std::vector<asio2::io_t*>{ iopool.get(0).get(), iopool.get(1).get() });
+	asio2::ws_server   _serverg(std::list  <asio2::io_t*>{ iopool.get(0).get(), iopool.get(1).get() });
 
 	ASIO2_CHECK(_server5.iopool().stopped() == true);
-	ASIO2_CHECK(std::addressof(_server5.iopool().get(10)) != nullptr);
+	ASIO2_CHECK(_server5.iopool().get(10) != nullptr);
 	ASIO2_CHECK(_server5.iopool().size() == 2);
 	ASIO2_CHECK(_server5.iopool().running_in_threads() == false);
 
 	asio2::tcp_client  _client1(1024);
 	asio2::tcp_client  _client2(1024, 65535);
 	asio2::tcp_client  _client3(1024, 65535, 4);
-	asio2::tcp_client  _client5(1024, 65535, std::vector{ &iopool.get(0) });
-	asio2::tcp_client  _client6(1024, 65535, std::list  { &iopool.get(0) });
-	asio2::tcp_client  _client7(1024, 65535, &iopool.get(0));
-	asio2::tcp_client  _client8(1024, 65535,  iopool.get(0));
-	asio2::http_client _clienta(std::vector<asio2::io_t*>{ &iopool.get(0) });
-	asio2::ws_client   _clientb(std::list  <asio2::io_t*>{ &iopool.get(0) });
-	asio2::udp_client  _clientc(&iopool.get(0));
-	asio2::rpc_client  _clientd( iopool.get(0));
+	asio2::tcp_client  _client5(1024, 65535, std::vector{ iopool.get(0) });
+	asio2::tcp_client  _client6(1024, 65535, std::list  { iopool.get(0) });
+	asio2::tcp_client  _client7(1024, 65535, iopool.get(0));
+	asio2::tcp_client  _client8(1024, 65535, iopool.get(0));
+	asio2::http_client _clienta(std::vector<std::shared_ptr<asio2::io_t>>{ iopool.get(0) });
+	asio2::ws_client   _clientb(std::list  <std::shared_ptr<asio2::io_t>>{ iopool.get(0) });
+	asio2::udp_client  _clientc(iopool.get(0));
+	asio2::rpc_client  _clientd(iopool.get(0));
+	asio2::http_client _cliente(std::vector<asio2::io_t*>{ iopool.get(0).get() });
+	asio2::ws_client   _clientf(std::list  <asio2::io_t*>{ iopool.get(0).get() });
 
-	asio2::serial_port _sp1  ( iopool.get(1));
-	asio2::udp_cast    _cast1(&iopool.get(2));
-	asio2::ping        _ping1(&iopool.get(3));
+	asio2::serial_port _sp1  (iopool.get(1));
+	asio2::udp_cast    _cast1(iopool.get(2));
+	asio2::ping        _ping1(iopool.get(3));
 
 	//// --------------------------------------------------------------------------------
 
@@ -110,7 +114,7 @@ void shared_iopool_test()
 		ASIO2_CHECK(!asio2::get_last_error()); \
 	}
 
-	asio2::timer t1(iopool.get(index));
+	asio2::timer t1(iopool.get(index).get());
 	t1.start_timer("3011", std::chrono::milliseconds(10), timer_check);
 	t1.start_timer("3012", std::chrono::milliseconds(10), std::chrono::milliseconds(10), timer_check);
 	t1.start_timer("3013", std::chrono::milliseconds(10), 3, timer_check);
@@ -142,7 +146,7 @@ void shared_iopool_test()
 
 	index = std::rand() % iopool.size();
 
-	asio2::udp_cast cast1(iopool.get(index));
+	asio2::udp_cast cast1(*iopool.get(index));
 
 	cast1.start_timer(1, std::chrono::seconds(1), timer_check);
 
@@ -186,8 +190,8 @@ void shared_iopool_test()
 
 	index = 0;
 
-	asio2::tcp_server server(std::vector<asio2::io_t*>{
-		&iopool.get(0), &iopool.get(1), &iopool.get(2), &iopool.get(3) });
+	asio2::tcp_server server(std::vector<std::shared_ptr<asio2::io_t>>{
+		iopool.get(0), iopool.get(1), iopool.get(2), iopool.get(3) });
 
 	server.wait_for(std::chrono::milliseconds(10));
 	server.wait_until(std::chrono::steady_clock::now() + std::chrono::milliseconds(10));
@@ -201,8 +205,8 @@ void shared_iopool_test()
 	// the server's io_context must be the user passed io_context.
 	for (std::size_t i = 0; i < server.iopool().size(); i++)
 	{
-		[[maybe_unused]] asio::io_context& ioc1 = iopool.get(i).context();
-		[[maybe_unused]] asio::io_context& ioc2 = server.iopool().get(i).context();
+		[[maybe_unused]] asio::io_context& ioc1 = iopool.get(i)->context();
+		[[maybe_unused]] asio::io_context& ioc2 = server.iopool().get(i)->context();
 
 		ASIO2_CHECK(&ioc1 == &ioc2);
 	}
@@ -254,19 +258,19 @@ void shared_iopool_test()
 		std::this_thread::sleep_for(std::chrono::milliseconds(2 + std::rand() % 2));
 	}
 
-	asio2::tcp_client client(iopool.get(index));
+	asio2::tcp_client client1(iopool.get(index)->context());
 
-	client.auto_reconnect(true, std::chrono::milliseconds(1000));
+	client1.auto_reconnect(true, std::chrono::milliseconds(1000));
 
-	client.start_timer(1, std::chrono::seconds(1), timer_check); // test timer
+	client1.start_timer(1, std::chrono::seconds(1), timer_check); // test timer
 
-	client.bind_connect([&, index]()
+	client1.bind_connect([&, index]()
 	{
 		ASIO2_CHECK(iopool.running_in_thread(index));
 
 		std::string str(std::size_t(100 + (std::rand() % 300)), char(std::rand() % 255));
 
-		client.async_send(std::move(str), iothread_check);
+		client1.async_send(std::move(str), iothread_check);
 	}).bind_disconnect([&]()
 	{
 		ASIO2_CHECK(iopool.running_in_thread(index));
@@ -274,21 +278,75 @@ void shared_iopool_test()
 	{
 		ASIO2_CHECK(iopool.running_in_thread(index));
 
-		client.async_send(sv, iothread_check);
+		client1.async_send(sv, iothread_check);
 	});
 
-	client.async_start("127.0.0.1", 39001);
+	client1.async_start("127.0.0.1", 39001);
+
+	asio2::tcp_client client2(std::addressof(iopool.get(index)->context()));
+
+	client2.auto_reconnect(true, std::chrono::milliseconds(1000));
+
+	client2.start_timer(1, std::chrono::seconds(1), timer_check); // test timer
+
+	client2.bind_connect([&, index]()
+	{
+		ASIO2_CHECK(iopool.running_in_thread(index));
+
+		std::string str(std::size_t(100 + (std::rand() % 300)), char(std::rand() % 255));
+
+		client2.async_send(std::move(str), iothread_check);
+	}).bind_disconnect([&]()
+	{
+		ASIO2_CHECK(iopool.running_in_thread(index));
+	}).bind_recv([&, index](std::string_view sv)
+	{
+		ASIO2_CHECK(iopool.running_in_thread(index));
+
+		client2.async_send(sv, iothread_check);
+	});
+
+	client2.async_start("127.0.0.1", 39001);
+
+	asio2::tcp_client client3(iopool.get_context_ptr(index));
+
+	client3.auto_reconnect(true, std::chrono::milliseconds(1000));
+
+	client3.start_timer(1, std::chrono::seconds(1), timer_check); // test timer
+
+	client3.bind_connect([&, index]()
+	{
+		ASIO2_CHECK(iopool.running_in_thread(index));
+
+		std::string str(std::size_t(100 + (std::rand() % 300)), char(std::rand() % 255));
+
+		client3.async_send(std::move(str), iothread_check);
+	}).bind_disconnect([&]()
+	{
+		ASIO2_CHECK(iopool.running_in_thread(index));
+	}).bind_recv([&, index](std::string_view sv)
+	{
+		ASIO2_CHECK(iopool.running_in_thread(index));
+
+		client3.async_send(sv, iothread_check);
+	});
+
+	client3.async_start("127.0.0.1", 39001);
 
 	std::this_thread::sleep_for(std::chrono::milliseconds(20 + std::rand() % 10));
 
 	cast1.stop();
-	client.stop();
+	client1.stop();
+	client2.stop();
+	client3.stop();
 	server.stop();
 	t1.stop();
 
 	iopool.stop();
 
-	ASIO2_CHECK(client.is_stopped());
+	ASIO2_CHECK(client1.is_stopped());
+	ASIO2_CHECK(client2.is_stopped());
+	ASIO2_CHECK(client3.is_stopped());
 	ASIO2_CHECK(server.is_stopped());
 	ASIO2_CHECK(cast1 .is_stopped());
 	ASIO2_CHECK(iopool.stopped());
@@ -352,8 +410,8 @@ void shared_iopool_test()
 	// the server's io_context must be the user passed io_context.
 	for (std::size_t i = 0; i < server.iopool().size(); i++)
 	{
-		[[maybe_unused]] asio::io_context& ioc1 = iopool.get(i).context();
-        [[maybe_unused]] asio::io_context& ioc2 = server.iopool().get(i).context();
+		[[maybe_unused]] asio::io_context& ioc1 = iopool.get(i)->context();
+        [[maybe_unused]] asio::io_context& ioc2 = server.iopool().get(i)->context();
 
 		ASIO2_CHECK(&ioc1 == &ioc2);
 	}
@@ -381,33 +439,39 @@ void shared_iopool_test()
 
 	//-----------------------------------------------------------------------------------
 
-	client.start_timer(1, std::chrono::seconds(1), []() {}); // test timer
+	client1.start_timer(1, std::chrono::seconds(1), []() {}); // test timer
 
-	client.bind_connect([&]()
+	client1.bind_connect([&]()
 	{
 		std::string s(std::size_t(100 + (std::rand() % 300)), char(std::rand() % 255));
 
-		client.async_send(std::move(s));
+		client1.async_send(std::move(s));
 	}).bind_disconnect([&]()
 	{
 	}).bind_recv([&](std::string_view sv)
 	{
-		client.async_send(sv);
+			client1.async_send(sv);
 	});
 
-	client.async_start("127.0.0.1", 39001);
+	client1.async_start("127.0.0.1", 39001);
+	client2.async_start("127.0.0.1", 39001);
+	client3.async_start("127.0.0.1", 39001);
 
 	std::this_thread::sleep_for(std::chrono::milliseconds(20 + std::rand() % 80));
 
 	//cast1.stop();
-	//client.stop();
+	client1.stop(); // client1 not use the iot, must call stop manual.
+	client2.stop(); // client2 not use the iot, must call stop manual.
+	client3.stop(); // client3 not use the iot, must call stop manual.
 	//server.stop();
-	//t1.stop();
+	t1.stop(); // timer not use the iot, must call stop manual.
 
 	// the iopool.stop will cal all "server,client,timer,serial_port,ping" objects stop();
 	iopool.stop();
 
-	ASIO2_CHECK(client.is_stopped());
+	ASIO2_CHECK(client1.is_stopped());
+	ASIO2_CHECK(client2.is_stopped());
+	ASIO2_CHECK(client3.is_stopped());
 	ASIO2_CHECK(server.is_stopped());
 	ASIO2_CHECK(cast1 .is_stopped());
 	ASIO2_CHECK(iopool.stopped());

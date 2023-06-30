@@ -26,6 +26,13 @@ void event_dispatcher_test_basic()
 		f31 = 1;
 	});
 
+	dispatcher.for_each(3, [](const auto& listener_wptr, const auto& callback)
+	{
+		auto listener_ptr = listener_wptr.lock();
+		std::ignore = listener_ptr;
+		std::ignore = callback;
+	});
+
 	ASIO2_CHECK(dispatcher.get_listener_count() == 1);
 	listeners.emplace_back(listener);
 	ASIO2_CHECK(dispatcher.has_any_listener(3));
@@ -76,6 +83,13 @@ void event_dispatcher_test_basic()
 	});
 	ASIO2_CHECK(dispatcher.get_listener_count() == 2);
 	ASIO2_CHECK(dispatcher.get_listener_count(5) == 1);
+
+	dispatcher.for_each([](const auto& listener_wptr, const auto& callback)
+	{
+		auto listener_ptr = listener_wptr.lock();
+		std::ignore = listener_ptr;
+		std::ignore = callback;
+	});
 
 	int f52 = -1;
 	dispatcher.append_listener(5, [&]()

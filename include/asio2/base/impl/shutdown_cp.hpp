@@ -114,7 +114,7 @@ namespace asio2::detail
 			//    shutdown is not yet called by manual, then we should call shutdown. if it is false,
 			//    it means the shutdown is called already by manual, then we should call closesocket.
 
-			ASIO2_ASSERT(derive.io().running_in_this_thread());
+			ASIO2_ASSERT(derive.io_->running_in_this_thread());
 
 			ASIO2_LOG_DEBUG("shutdown_cp::_do_shutdown enter: {} {}", ec.value(), ec.message());
 
@@ -184,7 +184,7 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			ASIO2_ASSERT(derive.io().running_in_this_thread());
+			ASIO2_ASSERT(derive.io_->running_in_this_thread());
 
 			ASIO2_LOG_DEBUG("shutdown_cp::_post_shutdown: {} {}", ec.value(), ec.message());
 
@@ -250,7 +250,7 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			ASIO2_ASSERT(derive.io().running_in_this_thread());
+			ASIO2_ASSERT(derive.io_->running_in_this_thread());
 
 			ASIO2_LOG_DEBUG("shutdown_cp::_handle_shutdown: {} {}", ec.value(), ec.message());
 
@@ -265,9 +265,9 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			ASIO2_ASSERT(derive.io().running_in_this_thread());
+			ASIO2_ASSERT(derive.io_->running_in_this_thread());
 
-			asio::dispatch(derive.io().context(), make_allocator(derive.wallocator(),
+			asio::dispatch(derive.io_->context(), make_allocator(derive.wallocator(),
 			[this, ec, this_ptr = std::move(this_ptr), chain = std::move(chain)]() mutable
 			{
 				derived_t& derive = static_cast<derived_t&>(*this);
@@ -279,7 +279,7 @@ namespace asio2::detail
 					this->shutdown_timer_->cancel();
 				}
 
-				this->shutdown_timer_ = std::make_shared<safe_timer>(derive.io().context());
+				this->shutdown_timer_ = std::make_shared<safe_timer>(derive.io_->context());
 
 				derive._post_shutdown_timer(ec, std::move(this_ptr), std::move(chain),
 					derive.get_disconnect_timeout(), this->shutdown_timer_);
@@ -365,7 +365,7 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			asio::dispatch(derive.io().context(), make_allocator(derive.wallocator(),
+			asio::dispatch(derive.io_->context(), make_allocator(derive.wallocator(),
 			[this, this_ptr = std::move(this_ptr)]() mutable
 			{
 				if (this->shutdown_timer_)

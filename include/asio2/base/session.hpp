@@ -114,7 +114,7 @@ namespace asio2::detail
 		explicit session_impl_t(
 			session_mgr_t<derived_t> & sessions,
 			listener_t               & listener,
-			io_t                     & rwio,
+			std::shared_ptr<io_t>      rwio,
 			std::size_t                init_buf_size,
 			std::size_t                max_buf_size,
 			Args&&...                  args
@@ -130,7 +130,7 @@ namespace asio2::detail
 			, close_cp            <derived_t, args_t>()
 			, disconnect_cp       <derived_t, args_t>()
 			, user_timer_cp       <derived_t, args_t>()
-			, silence_timer_cp    <derived_t, args_t>(rwio)
+			, silence_timer_cp    <derived_t, args_t>(rwio->context())
 			, connect_timeout_cp  <derived_t, args_t>()
 			, send_cp             <derived_t, args_t>()
 			, post_cp             <derived_t, args_t>()
@@ -138,7 +138,7 @@ namespace asio2::detail
 			, rdc_call_cp         <derived_t, args_t>()
 			, sessions_(sessions)
 			, listener_(listener)
-			, io_      (rwio)
+			, io_      (std::move(rwio))
 			, buffer_  (init_buf_size, max_buf_size)
 		{
 		}
@@ -148,20 +148,6 @@ namespace asio2::detail
 		 */
 		~session_impl_t()
 		{
-			// Previously "counter_ptr_.reset()" was in the "stop" function, I don't remember
-			// why I put "counter_ptr_.reset()" in "stop" function before, but now, i find 
-			// some problem if put "counter_ptr_.reset()" in "stop" function, It looks like 
-			// this:
-			// when use async rpc user function, when code run to 
-			// "asio::dispatch(caller->io().context(), make_allocator(caller->wallocator(),"
-			// ( the code is in the rpc_invoker.hpp, line 405 ), the server maybe stopped 
-			// already ( beacuse server.stop will call all session's stop, and session.stop
-			// will call "counter_ptr_.reset()", so the server's counter_ptr_'s destructor
-			// can be called, so the iopool.stop can be returned in the server's stop function)
-			// after the iopool is stopped, the all io_context will be invalid, so when the 
-			// rpc_invoker call "caller->io().context()", it will be crashed.
-			// destroy the counter
-			this->counter_ptr_.reset();
 		}
 
 	protected:
@@ -173,7 +159,7 @@ namespace asio2::detail
 			this->derived().dispatch([this]() mutable
 			{
 				// init the running thread id 
-				this->derived().io().init_thread_id();
+				this->derived().io_->init_thread_id();
 
 				// start the timer of check connect timeout
 				this->derived()._make_connect_timeout_timer(
@@ -189,7 +175,7 @@ namespace asio2::detail
 		 */
 		inline void stop()
 		{
-			ASIO2_ASSERT(this->io_.running_in_this_thread());
+			ASIO2_ASSERT(this->io_->running_in_this_thread());
 
 			// can't use post, we need ensure when the derived stop is called, the chain
 			// must be executed completed.
@@ -214,7 +200,7 @@ namespace asio2::detail
 				this->buffer().consume(this->buffer().size());
 
 				// destroy user data, maybe the user data is self shared_ptr, 
-				// if don't destroy it, will cause loop refrence.
+				// if don't destroy it, will cause loop reference.
 				// read/write user data in other thread which is not the io_context 
 				// thread maybe cause crash.
 				this->user_data_.reset();
@@ -226,6 +212,11 @@ namespace asio2::detail
 
 				// 
 				this->reset_life_id();
+
+				// 
+				this->counter_ptr_.reset();
+
+				ASIO2_ASSERT(this->sessions_.find(this->derived().hash_key()) == nullptr);
 			});
 		}
 
@@ -246,7 +237,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @brief get the buffer object refrence
+		 * @brief get the buffer object reference
 		 */
 		inline buffer_wrap<buffer_type> & buffer() noexcept
 		{
@@ -254,19 +245,19 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @brief get the io object refrence
+		 * @brief get the io object reference
 		 */
 		inline io_t & io() noexcept
 		{
-			return this->io_;
+			return *(this->io_);
 		}
 
 		/**
-		 * @brief get the io object refrence
+		 * @brief get the io object reference
 		 */
 		inline io_t const& io() const noexcept
 		{
-			return this->io_;
+			return *(this->io_);
 		}
 
 		/**
@@ -309,7 +300,7 @@ namespace asio2::detail
 		listener_t                         & listener_;
 
 		/// The io_context wrapper used to handle the recv/send event.
-		io_t                               & io_;
+		std::shared_ptr<io_t>                io_;
 
 		/// buffer
 		buffer_wrap<buffer_type>             buffer_;

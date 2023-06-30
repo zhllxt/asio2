@@ -50,7 +50,7 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			ASIO2_ASSERT(derive.io().running_in_this_thread());
+			ASIO2_ASSERT(derive.io_->running_in_this_thread());
 
 			ASIO2_LOG_DEBUG("close_cp::_do_close enter: {} {}", ec.value(), ec.message());
 
@@ -103,7 +103,7 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			ASIO2_ASSERT(derive.io().running_in_this_thread());
+			ASIO2_ASSERT(derive.io_->running_in_this_thread());
 
 			ASIO2_LOG_DEBUG("close_cp::_post_close: {} {}", ec.value(), ec.message());
 
@@ -176,7 +176,7 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			ASIO2_ASSERT(derive.io().running_in_this_thread());
+			ASIO2_ASSERT(derive.io_->running_in_this_thread());
 
 			ASIO2_LOG_DEBUG("close_cp::_post_close: {} {}", ec.value(), ec.message());
 
@@ -201,7 +201,7 @@ namespace asio2::detail
 
 				defer_event chain(std::move(e), std::move(g));
 
-				asio::post(derive.io().context(), make_allocator(derive.wallocator(),
+				asio::post(derive.io_->context(), make_allocator(derive.wallocator(),
 				[&derive, ec, old_state, this_ptr = std::move(this_ptr), chain = std::move(chain)]
 				() mutable
 				{
@@ -224,7 +224,7 @@ namespace asio2::detail
 						}
 
 						// Third we can stop this session and close this socket now.
-						asio::dispatch(derive.io().context(), make_allocator(derive.wallocator(),
+						asio::dispatch(derive.io_->context(), make_allocator(derive.wallocator(),
 						[&derive, ec, this_ptr = std::move(this_ptr), chain = std::move(chain)]
 						() mutable
 						{
@@ -241,7 +241,7 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			ASIO2_ASSERT(derive.io().running_in_this_thread());
+			ASIO2_ASSERT(derive.io_->running_in_this_thread());
 
 			ASIO2_LOG_DEBUG("close_cp::_handle_close: {} {}", ec.value(), ec.message());
 

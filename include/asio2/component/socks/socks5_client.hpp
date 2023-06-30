@@ -603,7 +603,7 @@ namespace asio2::detail
 			{
 				socks5_client_connect_op
 				{
-					derive.io().context(),
+					derive.io_->context(),
 					derive.host_, derive.port_,
 					derive.socket(),
 					ecs->get_component().socks5_option(std::in_place),

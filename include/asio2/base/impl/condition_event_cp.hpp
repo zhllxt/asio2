@@ -48,9 +48,9 @@ namespace asio2
 		template<class, class> friend class asio2::detail::rdc_call_cp_impl;
 
 	public:
-		explicit condition_event(detail::io_t& io)
-			: event_timer_io_(io)
-			, event_timer_(io.context())
+		explicit condition_event(std::shared_ptr<detail::io_t> iot)
+			: event_timer_io_(std::move(iot))
+			, event_timer_(event_timer_io_->context())
 		{
 		}
 
@@ -84,7 +84,7 @@ namespace asio2
 				this->event_life_flag_ = true;
 			}
 
-			this->event_timer_io_.timers().emplace(std::addressof(event_timer_));
+			this->event_timer_io_->timers().emplace(std::addressof(event_timer_));
 
 			// Setting expiration to infinity will cause handlers to
 			// wait on the timer until cancelled.
@@ -109,7 +109,7 @@ namespace asio2
 					this->event_life_flag_ = false;
 				}
 
-				this->event_timer_io_.timers().erase(std::addressof(event_timer_));
+				this->event_timer_io_->timers().erase(std::addressof(event_timer_));
 
 				handler();
 			});
@@ -131,7 +131,7 @@ namespace asio2
 			if (this->event_life_flag_ == false)
 				return;
 
-			asio::dispatch(this->event_timer_io_.context(), [this, this_ptr = this->selfptr()]() mutable
+			asio::dispatch(this->event_timer_io_->context(), [this, this_ptr = this->selfptr()]() mutable
 			{
 				detail::ignore_unused(this_ptr);
 
@@ -141,7 +141,7 @@ namespace asio2
 
 	protected:
 		/// The io used for the timer.
-		detail::io_t                      & event_timer_io_;
+		std::shared_ptr<detail::io_t>       event_timer_io_;
 
 		/// Used to implementing asynchronous condition event
 		asio::steady_timer                  event_timer_;
@@ -181,9 +181,16 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			std::shared_ptr<condition_event> event_ptr = std::make_shared<condition_event>(derive.io());
+			std::shared_ptr<asio::io_context> ioc_ptr = derive.io_->context_wptr().lock();
+			if (ioc_ptr == nullptr)
+			{
+				ASIO2_ASSERT(false);
+				return nullptr;
+			}
 
-			asio::dispatch(derive.io().context(), make_allocator(derive.wallocator(),
+			std::shared_ptr<condition_event> event_ptr = std::make_shared<condition_event>(derive.io_);
+
+			asio::dispatch(derive.io_->context(), make_allocator(derive.wallocator(),
 			[this, this_ptr = derive.selfptr(), event_ptr, f = std::forward<Function>(f)]() mutable
 			{
 				condition_event* evt = event_ptr.get();
@@ -202,25 +209,21 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @brief Notify all async_events to execute.
-		 */
-		[[deprecated("Replace notify_all_events with notify_all_condition_events")]]
-		inline derived_t& notify_all_events()
-		{
-			ASIO2_ASSERT(false);
-
-			return (static_cast<derived_t&>(*this));
-		}
-
-		/**
 		 * @brief Notify all condition events to execute.
 		 */
 		inline derived_t& notify_all_condition_events()
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
+			std::shared_ptr<asio::io_context> ioc_ptr = derive.io_->context_wptr().lock();
+			if (ioc_ptr == nullptr)
+			{
+				ASIO2_ASSERT(false);
+				return derive;
+			}
+
 			// Make sure we run on the io_context thread
-			asio::dispatch(derive.io().context(), make_allocator(derive.wallocator(),
+			asio::dispatch(derive.io_->context(), make_allocator(derive.wallocator(),
 			[this, this_ptr = derive.selfptr()]() mutable
 			{
 				for (auto&[key, event_ptr] : this->condition_events_)
@@ -230,7 +233,7 @@ namespace asio2::detail
 				}
 			}));
 
-			return (derive);
+			return derive;
 		}
 
 	protected:

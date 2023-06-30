@@ -78,7 +78,7 @@ namespace asio2::detail
 		)
 			: ssl_context_comp(method)
 			, super(std::forward<Args>(args)...)
-			, ssl_stream_comp(this->io_, *this, asio::ssl::stream_base::client)
+			, ssl_stream_comp(*this, asio::ssl::stream_base::client)
 		{
 		}
 
@@ -91,7 +91,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @brief get the stream object refrence
+		 * @brief get the stream object reference
 		 */
 		inline typename ssl_stream_comp::ssl_stream_type & stream() noexcept
 		{
@@ -99,7 +99,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @brief get the stream object refrence
+		 * @brief get the stream object reference
 		 */
 		inline typename ssl_stream_comp::ssl_stream_type const& stream() const noexcept
 		{
@@ -165,7 +165,7 @@ namespace asio2::detail
 		inline void _fire_handshake(std::shared_ptr<derived_t>& this_ptr)
 		{
 			// the _fire_handshake must be executed in the thread 0.
-			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
+			ASIO2_ASSERT(this->derived().io_->running_in_this_thread());
 
 			detail::ignore_unused(this_ptr);
 

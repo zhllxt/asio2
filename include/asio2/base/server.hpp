@@ -112,7 +112,7 @@ namespace asio2::detail
 		 */
 		inline bool start() noexcept
 		{
-			ASIO2_ASSERT(this->io_.running_in_this_thread());
+			ASIO2_ASSERT(this->io_->running_in_this_thread());
 
 			return true;
 		}
@@ -122,7 +122,7 @@ namespace asio2::detail
 		 */
 		inline void stop()
 		{
-			ASIO2_ASSERT(this->io_.running_in_this_thread());
+			ASIO2_ASSERT(this->io_->running_in_this_thread());
 
 			// can't use post, we need ensure when the derived stop is called, the chain
 			// must be executed completed.
@@ -138,7 +138,7 @@ namespace asio2::detail
 				this->notify_all_condition_events();
 
 				// destroy user data, maybe the user data is self shared_ptr, 
-				// if don't destroy it, will cause loop refrence.
+				// if don't destroy it, will cause loop reference.
 				// read/write user data in other thread which is not the io_context
 				// thread maybe cause crash.
 				this->user_data_.reset();
@@ -224,12 +224,12 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @brief get the acceptor refrence, derived classes must override this function
+		 * @brief get the acceptor reference, derived classes must override this function
 		 */
 		inline auto & acceptor() noexcept { return this->derived().acceptor(); }
 
 		/**
-		 * @brief get the acceptor refrence, derived classes must override this function
+		 * @brief get the acceptor reference, derived classes must override this function
 		 */
 		inline auto const& acceptor() const noexcept { return this->derived().acceptor(); }
 
@@ -316,22 +316,22 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @brief get the io object refrence
+		 * @brief get the io object reference
 		 */
-		inline io_t & io() noexcept { return this->io_; }
+		inline io_t & io() noexcept { return *(this->io_); }
 
 		/**
-		 * @brief get the io object refrence
+		 * @brief get the io object reference
 		 */
-		inline io_t const& io() const noexcept { return this->io_; }
+		inline io_t const& io() const noexcept { return *(this->io_); }
 
 	protected:
 		/**
-		 * @brief get the recv/read allocator object refrence
+		 * @brief get the recv/read allocator object reference
 		 */
 		inline auto & rallocator() noexcept { return this->rallocator_; }
 		/**
-		 * @brief get the send/write/post allocator object refrence
+		 * @brief get the send/write/post allocator object reference
 		 */
 		inline auto & wallocator() noexcept { return this->wallocator_; }
 
@@ -350,7 +350,7 @@ namespace asio2::detail
 		listener_t                                  listener_;
 
 		/// The io_context wrapper used to handle the accept event.
-		io_t                                      & io_;
+		std::shared_ptr<io_t>                       io_;
 
 		/// state
 		std::atomic<state_t>                        state_ = state_t::stopped;

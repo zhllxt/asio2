@@ -157,12 +157,12 @@ namespace asio2::detail
 
 			derive._dispatch_subscribe(std::forward<Message>(msg), std::forward<FunctionT>(callback));
 
-			if (derive.io().running_in_this_thread())
+			if (derive.io_->running_in_this_thread())
 			{
 				return derive.template _in_progress<ReturnT>();
 			}
 
-			ASIO2_ASSERT(!derive.io().running_in_this_thread());
+			ASIO2_ASSERT(!derive.io_->running_in_this_thread());
 
 			if /**/ constexpr (std::is_same_v<ReturnT, void>)
 			{
@@ -281,12 +281,12 @@ namespace asio2::detail
 				}
 			});
 
-			if (derive.io().running_in_this_thread())
+			if (derive.io_->running_in_this_thread())
 			{
 				return derive.template _in_progress<ReturnT>();
 			}
 
-			ASIO2_ASSERT(!derive.io().running_in_this_thread());
+			ASIO2_ASSERT(!derive.io_->running_in_this_thread());
 
 			if /**/ constexpr (std::is_same_v<ReturnT, void>)
 			{
@@ -400,12 +400,12 @@ namespace asio2::detail
 				return derive.template _empty_result<ReturnT>();
 			}
 
-			if (derive.io().running_in_this_thread())
+			if (derive.io_->running_in_this_thread())
 			{
 				return derive.template _in_progress<ReturnT>();
 			}
 
-			ASIO2_ASSERT(!derive.io().running_in_this_thread());
+			ASIO2_ASSERT(!derive.io_->running_in_this_thread());
 
 			if /**/ constexpr (std::is_same_v<ReturnT, void>)
 			{

@@ -2224,6 +2224,18 @@ public:
 	}
 
 	template <typename Func>
+	void for_each(Func&& func) const
+	{
+		typename thread_type::template shared_lock<mutex_type> guard(listener_mtx_);
+
+		for (auto& [e, cblist] : this->listener_map_)
+		{
+			std::ignore = e;
+			cblist.for_each(func);
+		}
+	}
+
+	template <typename Func>
 	void for_each(const event_type & e, Func && func) const
 	{
 		const callback_list_type * callable_list = do_find_callable_list(e);

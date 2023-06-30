@@ -49,9 +49,9 @@ namespace asio2::detail
 			std::size_t   concurrency = default_concurrency() + 1 // The 1 is used for tcp acceptor
 		)
 			: super(concurrency)
-			, acceptor_        (this->io_.context())
-			, acceptor_timer_  (this->io_.context())
-			, counter_timer_   (this->io_.context())
+			, acceptor_        (this->io_->context())
+			, acceptor_timer_  (this->io_->context())
+			, counter_timer_   (this->io_->context())
 			, init_buffer_size_(init_buf_size)
 			, max_buffer_size_ ( max_buf_size)
 		{
@@ -64,9 +64,9 @@ namespace asio2::detail
 			Scheduler&& scheduler
 		)
 			: super(std::forward<Scheduler>(scheduler))
-			, acceptor_        (this->io_.context())
-			, acceptor_timer_  (this->io_.context())
-			, counter_timer_   (this->io_.context())
+			, acceptor_        (this->io_->context())
+			, acceptor_timer_  (this->io_->context())
+			, counter_timer_   (this->io_->context())
 			, init_buffer_size_(init_buf_size)
 			, max_buffer_size_ ( max_buf_size)
 		{
@@ -135,7 +135,7 @@ namespace asio2::detail
 
 			derived_t& derive = this->derived();
 
-			derive.io().unregobj(&derive);
+			derive.io_->unregobj(&derive);
 
 			derive.post([&derive]() mutable
 			{
@@ -169,7 +169,7 @@ namespace asio2::detail
 		 * @param fun - a user defined callback function.
 		 * @param obj - a pointer or reference to a class object, this parameter can be none.
 		 * @li if fun is nonmember function, the obj param must be none, otherwise the obj must be the
-		 * the class object's pointer or refrence.
+		 * the class object's pointer or reference.
 		 * Function signature : void(std::shared_ptr<asio2::tcp_session>& session_ptr, std::string_view data)
 		 */
 		template<class F, class ...C>
@@ -186,7 +186,7 @@ namespace asio2::detail
 		 * @param fun - a user defined callback function.
 		 * @param obj - a pointer or reference to a class object, this parameter can be none.
 		 * @li if fun is nonmember function, the obj param must be none, otherwise the obj must be the
-		 * the class object's pointer or refrence.
+		 * the class object's pointer or reference.
 		 * This notification is invoked immediately when the server accept a new connection
 		 * Function signature : void(std::shared_ptr<asio2::tcp_session>& session_ptr)
 		 */
@@ -204,7 +204,7 @@ namespace asio2::detail
 		 * @param fun - a user defined callback function.
 		 * @param obj - a pointer or reference to a class object, this parameter can be none.
 		 * @li if fun is nonmember function, the obj param must be none, otherwise the obj must be the
-		 * the class object's pointer or refrence.
+		 * the class object's pointer or reference.
 		 * This notification is invoked after the connection is fully established,
 		 * and only after the connect/handshake/upgrade are completed.
 		 * Function signature : void(std::shared_ptr<asio2::tcp_session>& session_ptr)
@@ -223,7 +223,7 @@ namespace asio2::detail
 		 * @param fun - a user defined callback function.
 		 * @param obj - a pointer or reference to a class object, this parameter can be none.
 		 * @li if fun is nonmember function, the obj param must be none, otherwise the obj must be the
-		 * the class object's pointer or refrence.
+		 * the class object's pointer or reference.
 		 * This notification is invoked before the connection is disconnected, you can call
 		 * get_last_error/last_error_msg, etc, to get the disconnected error information
 		 * Function signature : void(std::shared_ptr<asio2::tcp_session>& session_ptr)
@@ -244,7 +244,7 @@ namespace asio2::detail
 		 * @param fun - a user defined callback function.
 		 * @param obj - a pointer or reference to a class object, this parameter can be none.
 		 * @li if fun is nonmember function, the obj param must be none, otherwise the obj must be the
-		 * the class object's pointer or refrence.
+		 * the class object's pointer or reference.
 		 * This notification is called after the socket is opened.
 		 * You can set the socket option in this notification.
 		 * Function signature : void()
@@ -262,7 +262,7 @@ namespace asio2::detail
 		 * @param fun - a user defined callback function.
 		 * @param obj - a pointer or reference to a class object, this parameter can be none.
 		 * @li if fun is nonmember function, the obj param must be none, otherwise the obj must be the
-		 * the class object's pointer or refrence.
+		 * the class object's pointer or reference.
 		 * This notification is called after the server starts up, whether successful or unsuccessful
 		 * Function signature : void()
 		 */
@@ -279,7 +279,7 @@ namespace asio2::detail
 		 * @param fun - a user defined callback function.
 		 * @param obj - a pointer or reference to a class object, this parameter can be none.
 		 * @li if fun is nonmember function, the obj param must be none, otherwise the obj must be the
-		 * the class object's pointer or refrence.
+		 * the class object's pointer or reference.
 		 * This notification is called before the server is ready to stop
 		 * Function signature : void()
 		 */
@@ -293,12 +293,12 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @brief get the acceptor refrence
+		 * @brief get the acceptor reference
 		 */
 		inline asio::ip::tcp::acceptor & acceptor() noexcept { return this->acceptor_; }
 
 		/**
-		 * @brief get the acceptor refrence
+		 * @brief get the acceptor reference
 		 */
 		inline asio::ip::tcp::acceptor const& acceptor() const noexcept { return this->acceptor_; }
 
@@ -322,12 +322,12 @@ namespace asio2::detail
 				return false;
 			}
 
-			asio::dispatch(derive.io().context(), [&derive, this_ptr = derive.selfptr()]() mutable
+			asio::dispatch(derive.io_->context(), [&derive, this_ptr = derive.selfptr()]() mutable
 			{
 				detail::ignore_unused(this_ptr);
 
 				// init the running thread id 
-				derive.io().init_thread_id();
+				derive.io_->init_thread_id();
 			});
 
 			// use promise to get the result of async accept
@@ -362,7 +362,7 @@ namespace asio2::detail
 				// must read/write ecs in the io_context thread.
 				derive.ecs_ = ecs;
 
-				derive.io().regobj(&derive);
+				derive.io_->regobj(&derive);
 
 			#if defined(_DEBUG) || defined(DEBUG)
 				this->sessions_.is_all_session_stop_called_ = false;
@@ -394,7 +394,7 @@ namespace asio2::detail
 				this->acceptor_.close(ec_ignore);
 
 				// parse address and port
-				asio::ip::tcp::resolver resolver(this->io_.context());
+				asio::ip::tcp::resolver resolver(this->io_->context());
 
 				auto results = resolver.resolve(h, p,
 					asio::ip::resolver_base::flags::passive |
@@ -456,7 +456,7 @@ namespace asio2::detail
 				derive._handle_start(ec, std::move(this_ptr), std::move(ecs));
 			});
 
-			if (!derive.io().running_in_this_thread())
+			if (!derive.io_->running_in_this_thread())
 			{
 				set_last_error(future.get());
 
@@ -477,7 +477,7 @@ namespace asio2::detail
 		template<typename C>
 		inline void _handle_start(error_code ec, std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs)
 		{
-			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
+			ASIO2_ASSERT(this->derived().io_->running_in_this_thread());
 
 			// Whether the startup succeeds or fails, always call fire_start notification
 			state_t expected = state_t::starting;
@@ -505,7 +505,7 @@ namespace asio2::detail
 
 		inline void _do_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
 		{
-			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
+			ASIO2_ASSERT(this->derived().io_->running_in_this_thread());
 
 			state_t expected = state_t::starting;
 			if (this->state_.compare_exchange_strong(expected, state_t::stopping))
@@ -524,7 +524,7 @@ namespace asio2::detail
 			// must care for operate the socket. when need close the 
 			// socket ,we use the io_context to post a event,make sure the
 			// socket's close operation is in the same thread.
-			asio::dispatch(this->derived().io().context(), make_allocator(this->derived().wallocator(),
+			asio::dispatch(this->derived().io_->context(), make_allocator(this->derived().wallocator(),
 			[this, ec, old_state, this_ptr = std::move(this_ptr)]() mutable
 			{
 				detail::ignore_unused(this, ec, old_state, this_ptr);
@@ -552,7 +552,7 @@ namespace asio2::detail
 
 			#if defined(_DEBUG) || defined(DEBUG)
 				// Check whether all sessions are evenly distributed in io threads
-				std::vector<io_t*> iots;
+				std::vector<std::shared_ptr<io_t>> iots;
 				std::vector<int> session_counter;
 
 				iots.resize(this->iopool().size());
@@ -560,14 +560,14 @@ namespace asio2::detail
 
 				for (std::size_t i = 0; i < iots.size(); ++i)
 				{
-					iots[i] = std::addressof(this->_get_io(i));
+					iots[i] = this->_get_io(i);
 				}
 
 				this->sessions_.for_each([&iots, &session_counter](std::shared_ptr<session_t>& session_ptr) mutable
 				{
 					for (std::size_t i = 0; i < iots.size(); ++i)
 					{
-						if (std::addressof(session_ptr->io()) == iots[i])
+						if (session_ptr->io_ == iots[i])
 						{
 							session_counter[i]++;
 							break;
@@ -611,7 +611,7 @@ namespace asio2::detail
 			// use asio::post to ensure this server's _handle_stop is called must be after 
 			// all sessions _handle_stop has been called already.
 			// if use asio::dispatch, session's _handle_stop maybe called first.
-			asio::post(this->derived().io().context(), make_allocator(this->derived().wallocator(),
+			asio::post(this->derived().io_->context(), make_allocator(this->derived().wallocator(),
 			[this, ec, this_ptr = std::move(this_ptr)]() mutable
 			{
 				state_t expected = state_t::stopping;
@@ -655,20 +655,29 @@ namespace asio2::detail
 		{
 			// skip zero io, the 0 io is used for acceptor.
 			// but if the iopool size is 1, this io will be the zero io forever.
-			io_t* iot = std::addressof(this->_get_io());
+			std::shared_ptr<io_t> iot;
 
-			if (iot == std::addressof(this->_get_io(0)))
-				iot = std::addressof(this->_get_io());
+			if (this->iots_.size() > std::size_t(1))
+			{
+				iot = this->_get_io();
+
+				if (iot == this->_get_io(0))
+					iot = this->_get_io();
+			}
+			else
+			{
+				iot = this->_get_io();
+			}
 
 			return std::make_shared<session_t>(std::forward<Args>(args)...,
-				this->sessions_, this->listener_, *iot,
+				this->sessions_, this->listener_, std::move(iot),
 				this->init_buffer_size_, this->max_buffer_size_);
 		}
 
 		template<typename C>
 		inline void _post_accept(std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs)
 		{
-			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
+			ASIO2_ASSERT(this->derived().io_->running_in_this_thread());
 
 			if (!this->derived().is_started())
 				return;
@@ -680,7 +689,7 @@ namespace asio2::detail
 			this->derived().post_recv_counter_++;
 		#endif
 
-			asio::io_context& ex = session_ptr->io().context();
+			asio::io_context& ex = session_ptr->io_->context();
 
 			this->acceptor_.async_accept(ex, make_allocator(this->rallocator_,
 			[this, sptr = std::move(session_ptr), this_ptr = std::move(this_ptr), ecs = std::move(ecs)]
@@ -727,7 +736,7 @@ namespace asio2::detail
 					if (ec == asio::error::operation_aborted)
 						return;
 
-					asio::post(this->io().context(), make_allocator(this->wallocator(),
+					asio::post(this->io_->context(), make_allocator(this->wallocator(),
 					[this, this_ptr = std::move(this_ptr), ecs = std::move(ecs)]() mutable
 					{
 						this->derived()._post_accept(std::move(this_ptr), std::move(ecs));
@@ -743,7 +752,7 @@ namespace asio2::detail
 		inline void _fire_init()
 		{
 			// the _fire_init must be executed in the thread 0.
-			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
+			ASIO2_ASSERT(this->derived().io_->running_in_this_thread());
 			ASIO2_ASSERT(!get_last_error());
 
 			this->listener_.notify(event_type::init);
@@ -752,7 +761,7 @@ namespace asio2::detail
 		inline void _fire_start()
 		{
 			// the _fire_start must be executed in the thread 0.
-			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
+			ASIO2_ASSERT(this->derived().io_->running_in_this_thread());
 
 		#if defined(_DEBUG) || defined(DEBUG)
 			ASIO2_ASSERT(this->is_stop_called_ == false);
@@ -764,7 +773,7 @@ namespace asio2::detail
 		inline void _fire_stop()
 		{
 			// the _fire_stop must be executed in the thread 0.
-			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
+			ASIO2_ASSERT(this->derived().io_->running_in_this_thread());
 
 		#if defined(_DEBUG) || defined(DEBUG)
 			this->is_stop_called_ = true;

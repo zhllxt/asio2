@@ -25,7 +25,7 @@ int main()
 	{
 		std::cout << "task 3:" << std::this_thread::get_id() << std::endl;
 		ASIO2_ASSERT(iopool.get_thread_id(2) == std::this_thread::get_id());
-		ASIO2_ASSERT(iopool.get(2).get_thread_id() == std::this_thread::get_id());
+		ASIO2_ASSERT(iopool.get(2)->get_thread_id() == std::this_thread::get_id());
 		asio2::ignore_unused(iopool);
 	});
 
@@ -50,7 +50,7 @@ int main()
 	//-----------------------------------------------------------------------------------
 
 	// 256 - init recv buffer size, 2048 - max recv buffer size, see the constructor of tcp_server
-	asio2::tcp_server server(256, 2048, std::vector<asio2::io_t*>{ &iopool.get(0), & iopool.get(1) });
+	asio2::tcp_server server(256, 2048, std::vector<std::shared_ptr<asio2::io_t>>{ iopool.get(0), iopool.get(1) });
 
 	server.bind_recv([&](std::shared_ptr<asio2::tcp_session>& session_ptr, std::string_view data)
 	{

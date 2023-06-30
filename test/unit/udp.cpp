@@ -152,7 +152,7 @@ void udp_test()
 			ASIO2_CHECK(session_ptr->local_address() == "127.0.0.1");
 			ASIO2_CHECK(session_ptr->local_port() == 18036);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 		});
 		std::atomic<int> server_disconnect_counter = 0;
 		server.bind_disconnect([&](auto & session_ptr)
@@ -165,7 +165,7 @@ void udp_test()
 			ASIO2_CHECK(session_ptr->remote_address() == "127.0.0.1");
 			ASIO2_CHECK(session_ptr->local_port() == 18036);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 		});
 		std::atomic<int> server_init_counter = 0;
 		server.bind_init([&]()
@@ -174,7 +174,7 @@ void udp_test()
 
 			ASIO2_CHECK(!asio2::get_last_error());
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 
 			asio::socket_base::reuse_address option;
 			server.acceptor().get_option(option);
@@ -189,7 +189,7 @@ void udp_test()
 			ASIO2_CHECK(server.get_listen_address() == "127.0.0.1");
 			ASIO2_CHECK(server.get_listen_port() == 18036);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 		});
 		std::atomic<int> server_stop_counter = 0;
 		server.bind_stop([&]()
@@ -200,7 +200,7 @@ void udp_test()
 			ASIO2_CHECK(server.get_listen_address() == "127.0.0.1");
 			ASIO2_CHECK(server.get_listen_port() == 18036);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 		});
 
 		bool server_start_ret = server.start("127.0.0.1", 18036, asio2::use_kcp);
@@ -229,7 +229,7 @@ void udp_test()
 				client_init_counter++;
 
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(!asio2::get_last_error());
 				ASIO2_CHECK(client.is_reuse_address());
 
@@ -238,7 +238,7 @@ void udp_test()
 			client.bind_connect([&]()
 			{
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(!asio2::get_last_error());
 				ASIO2_CHECK(client.get_local_address() == "127.0.0.1");
 				ASIO2_CHECK(client.get_remote_address() == "127.0.0.1");
@@ -257,13 +257,13 @@ void udp_test()
 
 				ASIO2_CHECK(asio2::get_last_error());
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 			});
 			client.bind_recv([&]([[maybe_unused]] std::string_view data)
 			{
 				ASIO2_CHECK(!asio2::get_last_error());
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(!data.empty());
 				ASIO2_CHECK(client.is_started());
 				//client.async_send(data);
@@ -488,7 +488,7 @@ void udp_test()
 			ASIO2_CHECK(session_ptr->local_address() == "127.0.0.1");
 			ASIO2_CHECK(session_ptr->local_port() == 18036);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 		});
 		std::atomic<int> server_disconnect_counter = 0;
 		server.bind_disconnect([&](auto & session_ptr)
@@ -501,7 +501,7 @@ void udp_test()
 			ASIO2_CHECK(session_ptr->remote_address() == "127.0.0.1");
 			ASIO2_CHECK(session_ptr->local_port() == 18036);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 		});
 		std::atomic<int> server_init_counter = 0;
 		server.bind_init([&]()
@@ -510,7 +510,7 @@ void udp_test()
 
 			ASIO2_CHECK(!asio2::get_last_error());
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 
 			asio::socket_base::reuse_address option;
 			server.acceptor().get_option(option);
@@ -525,7 +525,7 @@ void udp_test()
 			ASIO2_CHECK(server.get_listen_address() == "127.0.0.1");
 			ASIO2_CHECK(server.get_listen_port() == 18036);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 		});
 		std::atomic<int> server_stop_counter = 0;
 		server.bind_stop([&]()
@@ -536,7 +536,7 @@ void udp_test()
 			ASIO2_CHECK(server.get_listen_address() == "127.0.0.1");
 			ASIO2_CHECK(server.get_listen_port() == 18036);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 		});
 
 		bool server_start_ret = server.start("127.0.0.1", 18036, asio2::use_kcp);
@@ -567,7 +567,7 @@ void udp_test()
 				client_init_counter++;
 
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(!asio2::get_last_error());
 				ASIO2_CHECK(client.is_reuse_address());
 
@@ -576,7 +576,7 @@ void udp_test()
 			client.bind_connect([&, i]()
 			{
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(!asio2::get_last_error());
 				ASIO2_CHECK(client.get_local_address() == "127.0.0.1");
 				ASIO2_CHECK(client.get_remote_address() == "127.0.0.1");
@@ -600,13 +600,13 @@ void udp_test()
 
 				ASIO2_CHECK(asio2::get_last_error());
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 			});
 			client.bind_recv([&]([[maybe_unused]] std::string_view data)
 			{
 				ASIO2_CHECK(!asio2::get_last_error());
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(!data.empty());
 				ASIO2_CHECK(client.is_started());
 				//client.async_send(data);
@@ -831,7 +831,7 @@ void udp_test()
 			ASIO2_CHECK(session_ptr->local_address() == "127.0.0.1");
 			ASIO2_CHECK(session_ptr->local_port() == 18036);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 		});
 		std::atomic<int> server_disconnect_counter = 0;
 		server.bind_disconnect([&](auto & session_ptr)
@@ -844,7 +844,7 @@ void udp_test()
 			ASIO2_CHECK(session_ptr->remote_address() == "127.0.0.1");
 			ASIO2_CHECK(session_ptr->local_port() == 18036);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 		});
 		std::atomic<int> server_init_counter = 0;
 		server.bind_init([&]()
@@ -853,7 +853,7 @@ void udp_test()
 
 			ASIO2_CHECK(!asio2::get_last_error());
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 
 			asio::socket_base::reuse_address option;
 			server.acceptor().get_option(option);
@@ -868,7 +868,7 @@ void udp_test()
 			ASIO2_CHECK(server.get_listen_address() == "127.0.0.1");
 			ASIO2_CHECK(server.get_listen_port() == 18036);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 		});
 		std::atomic<int> server_stop_counter = 0;
 		server.bind_stop([&]()
@@ -879,7 +879,7 @@ void udp_test()
 			ASIO2_CHECK(server.get_listen_address() == "127.0.0.1");
 			ASIO2_CHECK(server.get_listen_port() == 18036);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 		});
 
 		bool server_start_ret = server.start("127.0.0.1", 18036, asio2::use_kcp);
@@ -910,7 +910,7 @@ void udp_test()
 				client_init_counter++;
 
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(!asio2::get_last_error());
 				ASIO2_CHECK(client.is_reuse_address());
 
@@ -923,7 +923,7 @@ void udp_test()
 			client.bind_connect([&, i]()
 			{
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(!asio2::get_last_error());
 				ASIO2_CHECK(client.get_local_address() == "127.0.0.1");
 				ASIO2_CHECK(client.get_remote_address() == "127.0.0.1");
@@ -947,13 +947,13 @@ void udp_test()
 
 				ASIO2_CHECK(asio2::get_last_error());
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 			});
 			client.bind_recv([&]([[maybe_unused]] std::string_view data)
 			{
 				ASIO2_CHECK(!asio2::get_last_error());
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(!data.empty());
 				ASIO2_CHECK(client.is_started());
 				//client.async_send(data);
@@ -1144,7 +1144,7 @@ void udp_test()
 			ASIO2_CHECK(session_ptr->local_address() == "127.0.0.1");
 			ASIO2_CHECK(session_ptr->local_port() == 18036);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 		});
 		std::atomic<int> server_disconnect_counter = 0;
 		server.bind_disconnect([&](auto & session_ptr)
@@ -1157,7 +1157,7 @@ void udp_test()
 			ASIO2_CHECK(session_ptr->remote_address() == "127.0.0.1");
 			ASIO2_CHECK(session_ptr->local_port() == 18036);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 		});
 		std::atomic<int> server_init_counter = 0;
 		server.bind_init([&]()
@@ -1166,7 +1166,7 @@ void udp_test()
 
 			ASIO2_CHECK(!asio2::get_last_error());
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 
 			asio::socket_base::reuse_address option;
 			server.acceptor().get_option(option);
@@ -1181,7 +1181,7 @@ void udp_test()
 			ASIO2_CHECK(server.get_listen_address() == "127.0.0.1");
 			ASIO2_CHECK(server.get_listen_port() == 18036);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 		});
 		std::atomic<int> server_stop_counter = 0;
 		server.bind_stop([&]()
@@ -1192,7 +1192,7 @@ void udp_test()
 			ASIO2_CHECK(server.get_listen_address() == "127.0.0.1");
 			ASIO2_CHECK(server.get_listen_port() == 18036);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 		});
 
 		bool server_start_ret = server.start("127.0.0.1", 18036);
@@ -1221,13 +1221,13 @@ void udp_test()
 				client_init_counter++;
 
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(!asio2::get_last_error());
 			});
 			client.bind_connect([&]()
 			{
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(!asio2::get_last_error());
 				ASIO2_CHECK(client.get_local_address() == "127.0.0.1");
 				ASIO2_CHECK(client.get_remote_address() == "127.0.0.1");
@@ -1245,13 +1245,13 @@ void udp_test()
 
 				ASIO2_CHECK(asio2::get_last_error());
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 			});
 			client.bind_recv([&]([[maybe_unused]] std::string_view data)
 			{
 				ASIO2_CHECK(!asio2::get_last_error());
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(!data.empty());
 				ASIO2_CHECK(client.is_started());
 			});

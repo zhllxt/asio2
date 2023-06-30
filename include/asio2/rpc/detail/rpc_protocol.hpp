@@ -129,8 +129,8 @@ namespace asio2::detail
 		{
 			// if the parameters of rpc calling is raw pointer like char* , must convert it to std::string
 			// if the parameters of rpc calling is std::string_view , must convert it to std::string
-			// if the parameters of rpc calling is refrence like std::string& , must remove it's 
-			//   refrence to std::string
+			// if the parameters of rpc calling is reference like std::string& , must remove it's 
+			//   reference to std::string
 			using ncvr_type = std::remove_cv_t<std::remove_reference_t<T>>;
 			using char_type = std::remove_cv_t<std::remove_reference_t<
 				std::remove_all_extents_t<std::remove_pointer_t<ncvr_type>>>>;

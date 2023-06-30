@@ -118,7 +118,7 @@ namespace asio2::detail
 			, mqtt_subscribe_router_t<derived_t, args_t>()
 			, mqtt_topic_alias_t     <derived_t, args_t>()
 			, mqtt_send_op           <derived_t, args_t>()
-			, pingreq_timer_(this->io_.context())
+			, pingreq_timer_(this->io_->context())
 		{
 		}
 
@@ -136,7 +136,7 @@ namespace asio2::detail
 			, mqtt_subscribe_router_t<derived_t, args_t>()
 			, mqtt_topic_alias_t     <derived_t, args_t>()
 			, mqtt_send_op           <derived_t, args_t>()
-			, pingreq_timer_(this->io_.context())
+			, pingreq_timer_(this->io_->context())
 		{
 		}
 
@@ -342,17 +342,17 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @brief get the mqtt connect message refrence
+		 * @brief get the mqtt connect message reference
 		 */
 		inline mqtt::message& get_connect_message() { return this->connect_message_; }
 
 		/**
-		 * @brief get the mqtt connect message refrence
+		 * @brief get the mqtt connect message reference
 		 */
 		inline mqtt::message const& get_connect_message() const { return this->connect_message_; }
 
 		/**
-		 * @brief get the mqtt connect message packet refrence
+		 * @brief get the mqtt connect message packet reference
 		 */
 		template<mqtt::version v>
 		inline auto& get_connect_packet()
@@ -514,7 +514,7 @@ namespace asio2::detail
 			// send connect message to server use coroutine 
 			mqtt_send_connect_op
 			{
-				derive.io().context(),
+				derive.io_->context(),
 				derive.connect_message_,
 				derive.stream(),
 				[&derive, this_ptr = std::move(this_ptr), ecs = std::move(ecs), chain = std::move(chain)]

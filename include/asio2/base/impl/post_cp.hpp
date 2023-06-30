@@ -50,10 +50,17 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
+			std::shared_ptr<asio::io_context> ioc_ptr = derive.io_->context_wptr().lock();
+			if (ioc_ptr == nullptr)
+			{
+				ASIO2_ASSERT(false);
+				return derive;
+			}
+
 			// if use call post, but the user callback "f" has't hold the session_ptr,
 			// it maybe cause crash, so we need hold the session_ptr again at here.
 			// if the session_ptr is already destroyed, the selfptr() will cause crash.
-			asio::post(derive.io().context(), make_allocator(derive.wallocator(),
+			asio::post(derive.io_->context(), make_allocator(derive.wallocator(),
 			[p = derive.selfptr(), f = std::forward<Function>(f)]() mutable
 			{
 				detail::ignore_unused(p);
@@ -61,7 +68,7 @@ namespace asio2::detail
 				f();
 			}));
 
-			return (derive);
+			return derive;
 		}
 
 		/**
@@ -87,15 +94,22 @@ namespace asio2::detail
 				delay = std::chrono::duration_cast<std::chrono::duration<Rep, Period>>(
 					(asio::steady_timer::duration::max)());
 
-			asio::post(derive.io().context(), make_allocator(derive.wallocator(),
+			std::shared_ptr<asio::io_context> ioc_ptr = derive.io_->context_wptr().lock();
+			if (ioc_ptr == nullptr)
+			{
+				ASIO2_ASSERT(false);
+				return derive;
+			}
+
+			asio::post(derive.io_->context(), make_allocator(derive.wallocator(),
 			[this, &derive, p = derive.selfptr(), f = std::forward<Function>(f), delay]() mutable
 			{
 				std::unique_ptr<asio::steady_timer> timer = std::make_unique<
-					asio::steady_timer>(derive.io().context());
+					asio::steady_timer>(derive.io_->context());
 
 				this->timed_tasks_.emplace(timer.get());
 
-				derive.io().timers().emplace(timer.get());
+				derive.io_->timers().emplace(timer.get());
 
 				timer->expires_after(delay);
 				timer->async_wait(
@@ -104,7 +118,7 @@ namespace asio2::detail
 				{
 					ASIO2_ASSERT((!ec) || ec == asio::error::operation_aborted);
 
-					derive.io().timers().erase(timer.get());
+					derive.io_->timers().erase(timer.get());
 					detail::ignore_unused(p);
 					set_last_error(ec);
 				#if defined(ASIO2_ENABLE_TIMER_CALLBACK_WHEN_ERROR)
@@ -119,7 +133,7 @@ namespace asio2::detail
 				});
 			}));
 
-			return (derive);
+			return derive;
 		}
 
 		/**
@@ -142,7 +156,14 @@ namespace asio2::detail
 
 			std::future<return_type> future = task.get_future();
 
-			asio::post(derive.io().context(), make_allocator(derive.wallocator(),
+			std::shared_ptr<asio::io_context> ioc_ptr = derive.io_->context_wptr().lock();
+			if (ioc_ptr == nullptr)
+			{
+				ASIO2_ASSERT(false);
+				return future;
+			}
+
+			asio::post(derive.io_->context(), make_allocator(derive.wallocator(),
 			[p = derive.selfptr(), t = std::move(task)]() mutable
 			{
 				detail::ignore_unused(p);
@@ -178,15 +199,22 @@ namespace asio2::detail
 
 			std::future<return_type> future = task.get_future();
 
-			asio::post(derive.io().context(), make_allocator(derive.wallocator(),
+			std::shared_ptr<asio::io_context> ioc_ptr = derive.io_->context_wptr().lock();
+			if (ioc_ptr == nullptr)
+			{
+				ASIO2_ASSERT(false);
+				return future;
+			}
+
+			asio::post(derive.io_->context(), make_allocator(derive.wallocator(),
 			[this, &derive, p = derive.selfptr(), t = std::move(task), delay]() mutable
 			{
 				std::unique_ptr<asio::steady_timer> timer = std::make_unique<
-					asio::steady_timer>(derive.io().context());
+					asio::steady_timer>(derive.io_->context());
 
 				this->timed_tasks_.emplace(timer.get());
 
-				derive.io().timers().emplace(timer.get());
+				derive.io_->timers().emplace(timer.get());
 
 				timer->expires_after(delay);
 				timer->async_wait(
@@ -195,7 +223,7 @@ namespace asio2::detail
 				{
 					ASIO2_ASSERT((!ec) || ec == asio::error::operation_aborted);
 
-					derive.io().timers().erase(timer.get());
+					derive.io_->timers().erase(timer.get());
 					detail::ignore_unused(p);
 					set_last_error(ec);
 				#if defined(ASIO2_ENABLE_TIMER_CALLBACK_WHEN_ERROR)
@@ -225,14 +253,22 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			asio::dispatch(derive.io().context(), make_allocator(derive.wallocator(),
+			std::shared_ptr<asio::io_context> ioc_ptr = derive.io_->context_wptr().lock();
+			if (ioc_ptr == nullptr)
+			{
+				ASIO2_ASSERT(false);
+				return derive;
+			}
+
+			asio::dispatch(derive.io_->context(), make_allocator(derive.wallocator(),
 			[p = derive.selfptr(), f = std::forward<Function>(f)]() mutable
 			{
 				detail::ignore_unused(p);
 
 				f();
 			}));
-			return (derive);
+
+			return derive;
 		}
 
 		/**
@@ -256,8 +292,15 @@ namespace asio2::detail
 
 			std::future<return_type> future = task.get_future();
 
+			std::shared_ptr<asio::io_context> ioc_ptr = derive.io_->context_wptr().lock();
+			if (ioc_ptr == nullptr)
+			{
+				ASIO2_ASSERT(false);
+				return future;
+			}
+
 			// Make sure we run on the io_context thread
-			asio::dispatch(derive.io().context(), make_allocator(derive.wallocator(),
+			asio::dispatch(derive.io_->context(), make_allocator(derive.wallocator(),
 			[p = derive.selfptr(), t = std::move(task)]() mutable
 			{
 				detail::ignore_unused(p);
@@ -275,7 +318,14 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			asio::post(derive.io().context(), make_allocator(derive.wallocator(),
+			std::shared_ptr<asio::io_context> ioc_ptr = derive.io_->context_wptr().lock();
+			if (ioc_ptr == nullptr)
+			{
+				ASIO2_ASSERT(false);
+				return derive;
+			}
+
+			asio::post(derive.io_->context(), make_allocator(derive.wallocator(),
 			[this, p = derive.selfptr()]() mutable
 			{
 				detail::ignore_unused(p);
@@ -286,7 +336,7 @@ namespace asio2::detail
 				}
 			}));
 
-			return (derive);
+			return derive;
 		}
 
 		/**
@@ -309,7 +359,14 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			asio::dispatch(derive.io().context(), make_allocator(derive.wallocator(),
+			std::shared_ptr<asio::io_context> ioc_ptr = derive.io_->context_wptr().lock();
+			if (ioc_ptr == nullptr)
+			{
+				ASIO2_ASSERT(false);
+				return derive;
+			}
+
+			asio::dispatch(derive.io_->context(), make_allocator(derive.wallocator(),
 			[this, p = derive.selfptr()]() mutable
 			{
 				detail::ignore_unused(p);
@@ -320,7 +377,7 @@ namespace asio2::detail
 				}
 			}));
 
-			return (derive);
+			return derive;
 		}
 
 	protected:

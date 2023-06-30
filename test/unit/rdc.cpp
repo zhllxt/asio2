@@ -327,7 +327,7 @@ void rdc_test()
 				ASIO2_CHECK(session_ptr->local_address() == "127.0.0.1");
 				ASIO2_CHECK(session_ptr->local_port() == 18037);
 				ASIO2_CHECK(server.io().running_in_this_thread());
-				ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 
 				//// You can close the connection directly here.
 				//if (session_ptr->remote_address() == "192.168.0.254")
@@ -350,7 +350,7 @@ void rdc_test()
 			ASIO2_CHECK(session_ptr->local_address() == "127.0.0.1");
 			ASIO2_CHECK(session_ptr->local_port() == 18037);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 			ASIO2_CHECK(session_ptr->is_keep_alive());
 			ASIO2_CHECK(session_ptr->is_no_delay());
 		});
@@ -365,7 +365,7 @@ void rdc_test()
 			ASIO2_CHECK(session_ptr->remote_address() == "127.0.0.1");
 			ASIO2_CHECK(session_ptr->local_port() == 18037);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 		});
 		std::atomic<int> server_init_counter = 0;
 		server.bind_init([&]()
@@ -374,7 +374,7 @@ void rdc_test()
 
 			ASIO2_CHECK(!asio2::get_last_error());
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 
 			asio::socket_base::reuse_address option;
 			server.acceptor().get_option(option);
@@ -389,7 +389,7 @@ void rdc_test()
 			ASIO2_CHECK(server.get_listen_address() == "127.0.0.1");
 			ASIO2_CHECK(server.get_listen_port() == 18037);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 		});
 		std::atomic<int> server_stop_counter = 0;
 		server.bind_stop([&]()
@@ -400,7 +400,7 @@ void rdc_test()
 			ASIO2_CHECK(server.get_listen_address() == "127.0.0.1");
 			ASIO2_CHECK(server.get_listen_port() == 18037);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 		});
 
 		bool server_start_ret = server.start("127.0.0.1", 18037, asio2::use_dgram, server_rdc_option);
@@ -431,7 +431,7 @@ void rdc_test()
 				client.set_no_delay(true);
 
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(!asio2::get_last_error());
 				ASIO2_CHECK(client.is_keep_alive());
 				ASIO2_CHECK(client.is_reuse_address());
@@ -440,7 +440,7 @@ void rdc_test()
 			client.bind_connect([&]()
 			{
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(!asio2::get_last_error());
 				ASIO2_CHECK(client.get_local_address() == "127.0.0.1");
 				ASIO2_CHECK(client.get_remote_address() == "127.0.0.1");
@@ -459,13 +459,13 @@ void rdc_test()
 
 				ASIO2_CHECK(asio2::get_last_error());
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 			});
 			client.bind_recv([&]([[maybe_unused]] std::string_view data)
 			{
 				ASIO2_CHECK(!asio2::get_last_error());
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(!data.empty());
 				ASIO2_CHECK(client.is_started());
 
@@ -720,7 +720,7 @@ void rdc_test()
 			ASIO2_CHECK(session_ptr->local_address() == "127.0.0.1");
 			ASIO2_CHECK(session_ptr->local_port() == 18037);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 		});
 		std::atomic<int> server_disconnect_counter = 0;
 		server.bind_disconnect([&](auto & session_ptr)
@@ -733,7 +733,7 @@ void rdc_test()
 			ASIO2_CHECK(session_ptr->remote_address() == "127.0.0.1");
 			ASIO2_CHECK(session_ptr->local_port() == 18037);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 		});
 		std::atomic<int> server_init_counter = 0;
 		server.bind_init([&]()
@@ -742,7 +742,7 @@ void rdc_test()
 
 			ASIO2_CHECK(!asio2::get_last_error());
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 
 			asio::socket_base::reuse_address option;
 			server.acceptor().get_option(option);
@@ -757,7 +757,7 @@ void rdc_test()
 			ASIO2_CHECK(server.get_listen_address() == "127.0.0.1");
 			ASIO2_CHECK(server.get_listen_port() == 18037);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 		});
 		std::atomic<int> server_stop_counter = 0;
 		server.bind_stop([&]()
@@ -768,7 +768,7 @@ void rdc_test()
 			ASIO2_CHECK(server.get_listen_address() == "127.0.0.1");
 			ASIO2_CHECK(server.get_listen_port() == 18037);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 		});
 
 		bool server_start_ret = server.start("127.0.0.1", 18037, udp_rdc_option);
@@ -797,7 +797,7 @@ void rdc_test()
 				client_init_counter++;
 
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(!asio2::get_last_error());
 				ASIO2_CHECK(client.is_reuse_address());
 
@@ -808,7 +808,7 @@ void rdc_test()
 			client.bind_connect([&]()
 			{
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(!asio2::get_last_error());
 				ASIO2_CHECK(client.get_local_address() == "127.0.0.1");
 				ASIO2_CHECK(client.get_remote_address() == "127.0.0.1");
@@ -827,13 +827,13 @@ void rdc_test()
 
 				ASIO2_CHECK(asio2::get_last_error());
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 			});
 			client.bind_recv([&]([[maybe_unused]] std::string_view data)
 			{
 				ASIO2_CHECK(!asio2::get_last_error());
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(!data.empty());
 				ASIO2_CHECK(client.is_started());
 
@@ -1071,7 +1071,7 @@ void rdc_test()
 			ASIO2_CHECK(session_ptr->local_address() == "127.0.0.1");
 			ASIO2_CHECK(session_ptr->local_port() == 18037);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 		});
 		std::atomic<int> server_disconnect_counter = 0;
 		server.bind_disconnect([&](auto & session_ptr)
@@ -1084,7 +1084,7 @@ void rdc_test()
 			ASIO2_CHECK(session_ptr->remote_address() == "127.0.0.1");
 			ASIO2_CHECK(session_ptr->local_port() == 18037);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 		});
 		std::atomic<int> server_init_counter = 0;
 		server.bind_init([&]()
@@ -1093,7 +1093,7 @@ void rdc_test()
 
 			ASIO2_CHECK(!asio2::get_last_error());
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 
 			asio::socket_base::reuse_address option;
 			server.acceptor().get_option(option);
@@ -1108,7 +1108,7 @@ void rdc_test()
 			ASIO2_CHECK(server.get_listen_address() == "127.0.0.1");
 			ASIO2_CHECK(server.get_listen_port() == 18037);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 		});
 		std::atomic<int> server_stop_counter = 0;
 		server.bind_stop([&]()
@@ -1119,7 +1119,7 @@ void rdc_test()
 			ASIO2_CHECK(server.get_listen_address() == "127.0.0.1");
 			ASIO2_CHECK(server.get_listen_port() == 18037);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 		});
 
 		bool server_start_ret = server.start("127.0.0.1", 18037, asio2::use_kcp, udp_rdc_option);
@@ -1148,7 +1148,7 @@ void rdc_test()
 				client_init_counter++;
 
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(!asio2::get_last_error());
 				ASIO2_CHECK(client.is_reuse_address());
 
@@ -1159,7 +1159,7 @@ void rdc_test()
 			client.bind_connect([&]()
 			{
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(!asio2::get_last_error());
 				ASIO2_CHECK(client.get_local_address() == "127.0.0.1");
 				ASIO2_CHECK(client.get_remote_address() == "127.0.0.1");
@@ -1178,13 +1178,13 @@ void rdc_test()
 
 				ASIO2_CHECK(asio2::get_last_error());
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 			});
 			client.bind_recv([&]([[maybe_unused]] std::string_view data)
 			{
 				ASIO2_CHECK(!asio2::get_last_error());
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(!data.empty());
 				ASIO2_CHECK(client.is_started());
 
@@ -1498,7 +1498,7 @@ void rdc_test()
 				ASIO2_CHECK(session_ptr->local_address() == "127.0.0.1");
 				ASIO2_CHECK(session_ptr->local_port() == 18037);
 				ASIO2_CHECK(server.io().running_in_this_thread());
-				ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 
 				//// You can close the connection directly here.
 				//if (session_ptr->remote_address() == "192.168.0.254")
@@ -1521,7 +1521,7 @@ void rdc_test()
 			ASIO2_CHECK(session_ptr->local_address() == "127.0.0.1");
 			ASIO2_CHECK(session_ptr->local_port() == 18037);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 			ASIO2_CHECK(session_ptr->is_keep_alive());
 			ASIO2_CHECK(session_ptr->is_no_delay());
 		});
@@ -1536,7 +1536,7 @@ void rdc_test()
 			ASIO2_CHECK(session_ptr->remote_address() == "127.0.0.1");
 			//ASIO2_CHECK(session_ptr->local_port() == 18037);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 		});
 		std::atomic<int> server_init_counter = 0;
 		server.bind_init([&]()
@@ -1545,7 +1545,7 @@ void rdc_test()
 
 			ASIO2_CHECK(!asio2::get_last_error());
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 
 			asio::socket_base::reuse_address option;
 			server.acceptor().get_option(option);
@@ -1560,7 +1560,7 @@ void rdc_test()
 			ASIO2_CHECK(server.get_listen_address() == "127.0.0.1");
 			ASIO2_CHECK(server.get_listen_port() == 18037);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 		});
 		std::atomic<int> server_stop_counter = 0;
 		server.bind_stop([&]()
@@ -1571,7 +1571,7 @@ void rdc_test()
 			ASIO2_CHECK(server.get_listen_address() == "127.0.0.1");
 			ASIO2_CHECK(server.get_listen_port() == 18037);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 		});
 
 		bool server_start_ret = server.start("127.0.0.1", 18037, server_rdc_option);
@@ -1602,7 +1602,7 @@ void rdc_test()
 				client.set_no_delay(true);
 
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(!asio2::get_last_error());
 				ASIO2_CHECK(client.is_keep_alive());
 				ASIO2_CHECK(client.is_reuse_address());
@@ -1611,7 +1611,7 @@ void rdc_test()
 			client.bind_connect([&]()
 			{
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(!asio2::get_last_error());
 				ASIO2_CHECK(client.get_local_address() == "127.0.0.1");
 				ASIO2_CHECK(client.get_remote_address() == "127.0.0.1");
@@ -1630,13 +1630,13 @@ void rdc_test()
 
 				ASIO2_CHECK(asio2::get_last_error());
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 			});
 			client.bind_recv([&]([[maybe_unused]] std::string_view data)
 			{
 				ASIO2_CHECK(!asio2::get_last_error());
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(!data.empty());
 				ASIO2_CHECK(client.is_started());
 
@@ -1864,7 +1864,7 @@ void rdc_test()
 				ASIO2_CHECK(session_ptr->local_address() == "127.0.0.1");
 				ASIO2_CHECK(session_ptr->local_port() == 18037);
 				ASIO2_CHECK(server.io().running_in_this_thread());
-				ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 			}
 		});
 		std::atomic<int> server_connect_counter = 0;
@@ -1878,7 +1878,7 @@ void rdc_test()
 			ASIO2_CHECK(session_ptr->local_address() == "127.0.0.1");
 			ASIO2_CHECK(session_ptr->local_port() == 18037);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 			ASIO2_CHECK(session_ptr->is_keep_alive());
 			ASIO2_CHECK(session_ptr->is_no_delay());
 		});
@@ -1893,7 +1893,7 @@ void rdc_test()
 			ASIO2_CHECK(session_ptr->remote_address() == "127.0.0.1");
 			//ASIO2_CHECK(session_ptr->local_port() == 18037);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 		});
 		std::atomic<int> server_init_counter = 0;
 		server.bind_init([&]()
@@ -1902,7 +1902,7 @@ void rdc_test()
 
 			ASIO2_CHECK(!asio2::get_last_error());
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 
 			asio::socket_base::reuse_address option;
 			server.acceptor().get_option(option);
@@ -1917,7 +1917,7 @@ void rdc_test()
 			ASIO2_CHECK(server.get_listen_address() == "127.0.0.1");
 			ASIO2_CHECK(server.get_listen_port() == 18037);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 		});
 		std::atomic<int> server_stop_counter = 0;
 		server.bind_stop([&]()
@@ -1928,7 +1928,7 @@ void rdc_test()
 			ASIO2_CHECK(server.get_listen_address() == "127.0.0.1");
 			ASIO2_CHECK(server.get_listen_port() == 18037);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 		});
 		server.bind("*", [&](http::web_request& req, http::web_response& rep)
 		{
@@ -1973,7 +1973,7 @@ void rdc_test()
 				client.set_no_delay(true);
 
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(!asio2::get_last_error());
 				ASIO2_CHECK(client.is_keep_alive());
 				ASIO2_CHECK(client.is_reuse_address());
@@ -1982,7 +1982,7 @@ void rdc_test()
 			client.bind_connect([&]()
 			{
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(!asio2::get_last_error());
 				ASIO2_CHECK(client.get_local_address() == "127.0.0.1");
 				ASIO2_CHECK(client.get_remote_address() == "127.0.0.1");
@@ -1996,13 +1996,13 @@ void rdc_test()
 
 				ASIO2_CHECK(asio2::get_last_error());
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 			});
 			client.bind_recv([&](http::web_request& req, http::web_response& rep)
 			{
 				ASIO2_CHECK(!asio2::get_last_error());
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(client.is_started());
 
 				asio2::ignore_unused(req, rep);
@@ -2273,7 +2273,7 @@ void rdc_test()
 				ASIO2_CHECK(session_ptr->local_address() == "127.0.0.1");
 				ASIO2_CHECK(session_ptr->local_port() == 18037);
 				ASIO2_CHECK(server.io().running_in_this_thread());
-				ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 
 				//// You can close the connection directly here.
 				//if (session_ptr->remote_address() == "192.168.0.254")
@@ -2296,7 +2296,7 @@ void rdc_test()
 			ASIO2_CHECK(session_ptr->local_address() == "127.0.0.1");
 			ASIO2_CHECK(session_ptr->local_port() == 18037);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 			ASIO2_CHECK(session_ptr->is_keep_alive());
 			ASIO2_CHECK(session_ptr->is_no_delay());
 		});
@@ -2311,7 +2311,7 @@ void rdc_test()
 			ASIO2_CHECK(session_ptr->remote_address() == "127.0.0.1");
 			ASIO2_CHECK(session_ptr->local_port() == 18037);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 		});
 		std::atomic<int> server_init_counter = 0;
 		server.bind_init([&]()
@@ -2320,7 +2320,7 @@ void rdc_test()
 
 			ASIO2_CHECK(!asio2::get_last_error());
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 
 			asio::socket_base::reuse_address option;
 			server.acceptor().get_option(option);
@@ -2335,7 +2335,7 @@ void rdc_test()
 			ASIO2_CHECK(server.get_listen_address() == "127.0.0.1");
 			ASIO2_CHECK(server.get_listen_port() == 18037);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 		});
 		std::atomic<int> server_stop_counter = 0;
 		server.bind_stop([&]()
@@ -2346,7 +2346,7 @@ void rdc_test()
 			ASIO2_CHECK(server.get_listen_address() == "127.0.0.1");
 			ASIO2_CHECK(server.get_listen_port() == 18037);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 		});
 
 		bool server_start_ret = server.start("127.0.0.1", 18037, asio2::use_dgram, server_rdc_option);
@@ -2381,7 +2381,7 @@ void rdc_test()
 				client.set_no_delay(true);
 
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(!asio2::get_last_error());
 				ASIO2_CHECK(client.is_keep_alive());
 				ASIO2_CHECK(client.is_reuse_address());
@@ -2390,7 +2390,7 @@ void rdc_test()
 			client.bind_connect([&]()
 			{
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(!asio2::get_last_error());
 				ASIO2_CHECK(client.get_local_address() == "127.0.0.1");
 				ASIO2_CHECK(client.get_remote_address() == "127.0.0.1");
@@ -2409,13 +2409,13 @@ void rdc_test()
 
 				ASIO2_CHECK(asio2::get_last_error());
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 			});
 			client.bind_recv([&]([[maybe_unused]] std::string_view data)
 			{
 				ASIO2_CHECK(!asio2::get_last_error());
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(!data.empty());
 				ASIO2_CHECK(client.is_started());
 
@@ -2697,7 +2697,7 @@ void rdc_test()
 				ASIO2_CHECK(session_ptr->local_address() == "127.0.0.1");
 				ASIO2_CHECK(session_ptr->local_port() == 18037);
 				ASIO2_CHECK(server.io().running_in_this_thread());
-				ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 
 				//// You can close the connection directly here.
 				//if (session_ptr->remote_address() == "192.168.0.254")
@@ -2720,7 +2720,7 @@ void rdc_test()
 			ASIO2_CHECK(session_ptr->local_address() == "127.0.0.1");
 			ASIO2_CHECK(session_ptr->local_port() == 18037);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 			ASIO2_CHECK(session_ptr->is_keep_alive());
 			ASIO2_CHECK(session_ptr->is_no_delay());
 		});
@@ -2735,7 +2735,7 @@ void rdc_test()
 			ASIO2_CHECK(session_ptr->remote_address() == "127.0.0.1");
 			//ASIO2_CHECK(session_ptr->local_port() == 18037);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 		});
 		std::atomic<int> server_init_counter = 0;
 		server.bind_init([&]()
@@ -2744,7 +2744,7 @@ void rdc_test()
 
 			ASIO2_CHECK(!asio2::get_last_error());
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 
 			asio::socket_base::reuse_address option;
 			server.acceptor().get_option(option);
@@ -2759,7 +2759,7 @@ void rdc_test()
 			ASIO2_CHECK(server.get_listen_address() == "127.0.0.1");
 			ASIO2_CHECK(server.get_listen_port() == 18037);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 		});
 		std::atomic<int> server_stop_counter = 0;
 		server.bind_stop([&]()
@@ -2770,7 +2770,7 @@ void rdc_test()
 			ASIO2_CHECK(server.get_listen_address() == "127.0.0.1");
 			ASIO2_CHECK(server.get_listen_port() == 18037);
 			ASIO2_CHECK(server.io().running_in_this_thread());
-			ASIO2_CHECK(server.iopool().get(0).running_in_this_thread());
+			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 		});
 
 		bool server_start_ret = server.start("127.0.0.1", 18037, server_rdc_option);
@@ -2805,7 +2805,7 @@ void rdc_test()
 				client.set_no_delay(true);
 
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(!asio2::get_last_error());
 				ASIO2_CHECK(client.is_keep_alive());
 				ASIO2_CHECK(client.is_reuse_address());
@@ -2814,7 +2814,7 @@ void rdc_test()
 			client.bind_connect([&]()
 			{
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(!asio2::get_last_error());
 				ASIO2_CHECK(client.get_local_address() == "127.0.0.1");
 				ASIO2_CHECK(client.get_remote_address() == "127.0.0.1");
@@ -2833,13 +2833,13 @@ void rdc_test()
 
 				ASIO2_CHECK(asio2::get_last_error());
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 			});
 			client.bind_recv([&]([[maybe_unused]] std::string_view data)
 			{
 				ASIO2_CHECK(!asio2::get_last_error());
 				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0).running_in_this_thread());
+				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(!data.empty());
 				ASIO2_CHECK(client.is_started());
 

@@ -106,11 +106,11 @@ namespace asio2::detail
 			mqtt::broker_state<derived_t, args_t>& broker_state,
 			session_mgr_t <derived_t>& sessions,
 			listener_t               & listener,
-			io_t                     & rwio,
+			std::shared_ptr<io_t>      rwio,
 			std::size_t                init_buf_size,
 			std::size_t                max_buf_size
 		)
-			: super(sessions, listener, rwio, init_buf_size, max_buf_size)
+			: super(sessions, listener, std::move(rwio), init_buf_size, max_buf_size)
 			, mqtt_options                         ()
 			, mqtt_handler_t    <derived_t, args_t>()
 			, mqtt_topic_alias_t<derived_t, args_t>()
@@ -238,20 +238,20 @@ namespace asio2::detail
 			detail::ignore_unused(ec);
 
 			ASIO2_ASSERT(!ec);
-			ASIO2_ASSERT(this->derived().sessions().io().running_in_this_thread());
+			ASIO2_ASSERT(this->derived().sessions().io_->running_in_this_thread());
 
-			asio::dispatch(this->derived().io().context(), make_allocator(this->derived().wallocator(),
+			asio::dispatch(this->derived().io_->context(), make_allocator(this->derived().wallocator(),
 			[this, this_ptr = std::move(this_ptr), ecs = std::move(ecs), chain = std::move(chain)]
 			() mutable
 			{
 				derived_t& derive = this->derived();
 
-				ASIO2_ASSERT(derive.io().running_in_this_thread());
+				ASIO2_ASSERT(derive.io_->running_in_this_thread());
 
 				// wait for the connect message which send by the client.
 				mqtt_recv_connect_op
 				{
-					derive.io().context(),
+					derive.io_->context(),
 					derive.stream(),
 					[this, this_ptr = std::move(this_ptr), ecs = std::move(ecs), chain = std::move(chain)]
 					(error_code ec, std::unique_ptr<asio::streambuf> stream) mutable

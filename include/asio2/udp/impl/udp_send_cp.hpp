@@ -47,7 +47,7 @@ namespace asio2::detail
 		/**
 		 * @brief constructor
 		 */
-		udp_send_cp(io_t&) noexcept {}
+		udp_send_cp() noexcept {}
 
 		/**
 		 * @brief destructor
@@ -73,7 +73,7 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			detail::integer_add_sub_guard asg(derive.io().pending());
+			detail::integer_add_sub_guard asg(derive.io_->pending());
 
 			// We must ensure that there is only one operation to send data
 			// at the same time,otherwise may be cause crash.
@@ -117,7 +117,7 @@ namespace asio2::detail
 				return;
 			}
 
-			detail::integer_add_sub_guard asg(derive.io().pending());
+			detail::integer_add_sub_guard asg(derive.io_->pending());
 
 			// We must ensure that there is only one operation to send data
 			// at the same time,otherwise may be cause crash.
@@ -148,7 +148,7 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			detail::integer_add_sub_guard asg(derive.io().pending());
+			detail::integer_add_sub_guard asg(derive.io_->pending());
 
 			std::shared_ptr<std::promise<std::pair<error_code, std::size_t>>> promise =
 				std::make_shared<std::promise<std::pair<error_code, std::size_t>>>();
@@ -209,7 +209,7 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			detail::integer_add_sub_guard asg(derive.io().pending());
+			detail::integer_add_sub_guard asg(derive.io_->pending());
 
 			std::shared_ptr<std::promise<std::pair<error_code, std::size_t>>> promise =
 				std::make_shared<std::promise<std::pair<error_code, std::size_t>>>();
@@ -260,7 +260,7 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			detail::integer_add_sub_guard asg(derive.io().pending());
+			detail::integer_add_sub_guard asg(derive.io_->pending());
 
 			// We must ensure that there is only one operation to send data
 			// at the same time,otherwise may be cause crash.
@@ -306,7 +306,7 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			detail::integer_add_sub_guard asg(derive.io().pending());
+			detail::integer_add_sub_guard asg(derive.io_->pending());
 
 			// We must ensure that there is only one operation to send data
 			// at the same time,otherwise may be cause crash.
@@ -345,7 +345,7 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			detail::integer_add_sub_guard asg(derive.io().pending());
+			detail::integer_add_sub_guard asg(derive.io_->pending());
 
 			// We must ensure that there is only one operation to send data
 			// at the same time,otherwise may be cause crash.
@@ -407,7 +407,7 @@ namespace asio2::detail
 				return;
 			}
 
-			detail::integer_add_sub_guard asg(derive.io().pending());
+			detail::integer_add_sub_guard asg(derive.io_->pending());
 
 			// We must ensure that there is only one operation to send data
 			// at the same time,otherwise may be cause crash.
@@ -457,7 +457,7 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			detail::integer_add_sub_guard asg(derive.io().pending());
+			detail::integer_add_sub_guard asg(derive.io_->pending());
 
 			std::shared_ptr<std::promise<std::pair<error_code, std::size_t>>> promise =
 				std::make_shared<std::promise<std::pair<error_code, std::size_t>>>();
@@ -530,7 +530,7 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			detail::integer_add_sub_guard asg(derive.io().pending());
+			detail::integer_add_sub_guard asg(derive.io_->pending());
 
 			std::shared_ptr<std::promise<std::pair<error_code, std::size_t>>> promise =
 				std::make_shared<std::promise<std::pair<error_code, std::size_t>>>();
@@ -593,7 +593,7 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			detail::integer_add_sub_guard asg(derive.io().pending());
+			detail::integer_add_sub_guard asg(derive.io_->pending());
 
 			// We must ensure that there is only one operation to send data
 			// at the same time,otherwise may be cause crash.
@@ -656,7 +656,7 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			detail::integer_add_sub_guard asg(derive.io().pending());
+			detail::integer_add_sub_guard asg(derive.io_->pending());
 
 			// We must ensure that there is only one operation to send data
 			// at the same time,otherwise may be cause crash.
@@ -723,7 +723,7 @@ namespace asio2::detail
 				std::forward<DataT>(data), asio::use_future);
 
 			// Whether we run on the io_context thread
-			if (derive.io().running_in_this_thread())
+			if (derive.io_->running_in_this_thread())
 			{
 				std::future_status status = future.wait_for(std::chrono::nanoseconds(0));
 
@@ -815,7 +815,7 @@ namespace asio2::detail
 				std::forward<Endpoint>(endpoint), std::forward<DataT>(data), asio::use_future);
 
 			// Whether we run on the io_context thread
-			if (derive.io().running_in_this_thread())
+			if (derive.io_->running_in_this_thread())
 			{
 				std::future_status status = future.wait_for(std::chrono::nanoseconds(0));
 
@@ -890,7 +890,7 @@ namespace asio2::detail
 			//using endpoints_iterator = typename endpoints_type::iterator;
 
 			std::unique_ptr<resolver_type> resolver_ptr = std::make_unique<resolver_type>(
-				derive.io().context());
+				derive.io_->context());
 
 			// Before async_resolve execution is complete, we must hold the resolver object.
 			// so we captured the resolver_ptr into the lambda callback function.

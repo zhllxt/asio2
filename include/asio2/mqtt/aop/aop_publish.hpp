@@ -223,9 +223,13 @@ namespace asio2::detail
 		{
 			using message_type [[maybe_unused]] = typename detail::remove_cvref_t<Message>;
 
+			std::shared_ptr<asio::io_context> ioc_ptr = caller->io_->context_wptr().lock();
+			if (ioc_ptr == nullptr)
+				return;
+
 			// use post and push_event to ensure the publish message is sent to clients must
 			// after mqtt response is sent already.
-			asio::post(caller->io().context(), make_allocator(caller->wallocator(),
+			asio::post(caller->io_->context(), make_allocator(caller->wallocator(),
 			[this, caller, caller_ptr, msg = std::move(msg), topic_name = std::move(topic_name)]
 			() mutable
 			{
@@ -349,6 +353,10 @@ namespace asio2::detail
 			}
 			else
 			{
+				std::shared_ptr<asio::io_context> ioc_ptr = caller->io_->context_wptr().lock();
+				if (ioc_ptr == nullptr)
+					return;
+
 				std::shared_ptr<asio::steady_timer> expiry_timer;
 
 				if constexpr (std::is_same_v<message_type, mqtt::v5::publish>)
@@ -358,7 +366,7 @@ namespace asio2::detail
 					if (mei)
 					{
 						expiry_timer = std::make_shared<asio::steady_timer>(
-							caller->io().context(), std::chrono::seconds(mei->value()));
+							caller->io_->context(), std::chrono::seconds(mei->value()));
 						expiry_timer->async_wait(
 						[caller, topic_name, wp = std::weak_ptr<asio::steady_timer>(expiry_timer)]
 						(error_code const& ec) mutable
@@ -494,7 +502,7 @@ namespace asio2::detail
 							ASIO2_ASSERT(false);
 
 							// offline_messages_ is not empty or packet_id_exhausted
-							session->offline_messages_.push_back(session->io().context(),
+							session->offline_messages_.push_back(session->io_->context(),
 								std::forward<Response>(rep));
 						}
 					}
@@ -516,7 +524,7 @@ namespace asio2::detail
 			}
 			else
 			{
-				session->offline_messages_.push_back(session->io().context(), std::forward<Response>(rep));
+				session->offline_messages_.push_back(session->io_->context(), std::forward<Response>(rep));
 			}
 		}
 
@@ -538,7 +546,7 @@ namespace asio2::detail
 					// send failed, add it to offline messages
 					if (ec)
 					{
-						session->offline_messages_.push_back(session->io().context(), std::move(rep));
+						session->offline_messages_.push_back(session->io_->context(), std::move(rep));
 					}
 				});
 			});

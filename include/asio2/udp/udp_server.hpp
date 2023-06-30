@@ -49,7 +49,7 @@ namespace asio2::detail
 			std::size_t concurrency   = 1
 		)
 			: super(concurrency)
-			, acceptor_(this->io_.context())
+			, acceptor_(this->io_->context())
 			, remote_endpoint_()
 			, buffer_(init_buf_size, max_buf_size)
 		{
@@ -62,7 +62,7 @@ namespace asio2::detail
 			Scheduler&& scheduler
 		)
 			: super(std::forward<Scheduler>(scheduler))
-			, acceptor_(this->io_.context())
+			, acceptor_(this->io_->context())
 			, remote_endpoint_()
 			, buffer_(init_buf_size, max_buf_size)
 		{
@@ -108,7 +108,7 @@ namespace asio2::detail
 
 			derived_t& derive = this->derived();
 
-			derive.io().unregobj(&derive);
+			derive.io_->unregobj(&derive);
 
 			derive.post([&derive]() mutable
 			{
@@ -137,7 +137,7 @@ namespace asio2::detail
 		 * @param fun - a user defined callback function.
 		 * @param obj - a pointer or reference to a class object, this parameter can be none.
 		 * @li if fun is nonmember function, the obj param must be none, otherwise the obj must be the
-		 * the class object's pointer or refrence.
+		 * the class object's pointer or reference.
 		 * Function signature : void(std::shared_ptr<asio2::udp_session>& session_ptr, std::string_view data)
 		 */
 		template<class F, class ...C>
@@ -154,7 +154,7 @@ namespace asio2::detail
 		 * @param fun - a user defined callback function.
 		 * @param obj - a pointer or reference to a class object, this parameter can be none.
 		 * @li if fun is nonmember function, the obj param must be none, otherwise the obj must be the
-		 * the class object's pointer or refrence.
+		 * the class object's pointer or reference.
 		 * This notification is invoked after the connection is fully established,
 		 * and only after the connect/handshake/upgrade are completed.
 		 * Function signature : void(std::shared_ptr<asio2::udp_session>& session_ptr)
@@ -173,7 +173,7 @@ namespace asio2::detail
 		 * @param fun - a user defined callback function.
 		 * @param obj - a pointer or reference to a class object, this parameter can be none.
 		 * @li if fun is nonmember function, the obj param must be none, otherwise the obj must be the
-		 * the class object's pointer or refrence.
+		 * the class object's pointer or reference.
 		 * This notification is invoked before the connection is disconnected, you can call
 		 * get_last_error/last_error_msg, etc, to get the disconnected error information
 		 * Function signature : void(std::shared_ptr<asio2::udp_session>& session_ptr)
@@ -192,7 +192,7 @@ namespace asio2::detail
 		 * @param fun - a user defined callback function.
 		 * @param obj - a pointer or reference to a class object, this parameter can be none.
 		 * @li if fun is nonmember function, the obj param must be none, otherwise the obj must be the
-		 * the class object's pointer or refrence.
+		 * the class object's pointer or reference.
 		 * This notification is called after the socket is opened.
 		 * You can set the socket option in this notification.
 		 * Function signature : void()
@@ -210,7 +210,7 @@ namespace asio2::detail
 		 * @param fun - a user defined callback function.
 		 * @param obj - a pointer or reference to a class object, this parameter can be none.
 		 * @li if fun is nonmember function, the obj param must be none, otherwise the obj must be the
-		 * the class object's pointer or refrence.
+		 * the class object's pointer or reference.
 		 * This notification is called after the server starts up, whether successful or unsuccessful
 		 * Function signature : void()
 		 */
@@ -227,7 +227,7 @@ namespace asio2::detail
 		 * @param fun - a user defined callback function.
 		 * @param obj - a pointer or reference to a class object, this parameter can be none.
 		 * @li if fun is nonmember function, the obj param must be none, otherwise the obj must be the
-		 * the class object's pointer or refrence.
+		 * the class object's pointer or reference.
 		 * This notification is called before the server is ready to stop
 		 * Function signature : void()
 		 */
@@ -244,7 +244,7 @@ namespace asio2::detail
 		 * @param fun - a user defined callback function.
 		 * @param obj - a pointer or reference to a class object, this parameter can be none.
 		 * @li if fun is nonmember function, the obj param must be none, otherwise the obj must be the
-		 * the class object's pointer or refrence.
+		 * the class object's pointer or reference.
 		 * Function signature : void(std::shared_ptr<asio2::udp_session>& session_ptr)
 		 */
 		template<class F, class ...C>
@@ -258,11 +258,11 @@ namespace asio2::detail
 
 	public:
 		/**
-		 * @brief get the acceptor refrence
+		 * @brief get the acceptor reference
 		 */
 		inline asio::ip::udp::socket & acceptor() noexcept { return this->acceptor_; }
 		/**
-		 * @brief get the acceptor refrence
+		 * @brief get the acceptor reference
 		 */
 		inline asio::ip::udp::socket const& acceptor() const noexcept { return this->acceptor_; }
 
@@ -286,12 +286,12 @@ namespace asio2::detail
 				return false;
 			}
 
-			asio::dispatch(derive.io().context(), [&derive, this_ptr = derive.selfptr()]() mutable
+			asio::dispatch(derive.io_->context(), [&derive, this_ptr = derive.selfptr()]() mutable
 			{
 				detail::ignore_unused(this_ptr);
 
 				// init the running thread id 
-				derive.io().init_thread_id();
+				derive.io_->init_thread_id();
 			});
 
 			// use promise to get the result of async accept
@@ -326,7 +326,7 @@ namespace asio2::detail
 				// must read/write ecs in the io_context thread.
 				derive.ecs_ = ecs;
 
-				derive.io().regobj(&derive);
+				derive.io_->regobj(&derive);
 
 			#if defined(_DEBUG) || defined(DEBUG)
 				this->sessions_.is_all_session_stop_called_ = false;
@@ -358,7 +358,7 @@ namespace asio2::detail
 				error_code ec, ec_ignore;
 
 				// parse address and port
-				asio::ip::udp::resolver resolver(this->io_.context());
+				asio::ip::udp::resolver resolver(this->io_->context());
 
 				auto results = resolver.resolve(h, p,
 					asio::ip::resolver_base::flags::passive |
@@ -418,7 +418,7 @@ namespace asio2::detail
 				derive._handle_start(ec, std::move(this_ptr), std::move(ecs));
 			});
 
-			if (!derive.io().running_in_this_thread())
+			if (!derive.io_->running_in_this_thread())
 			{
 				set_last_error(future.get());
 
@@ -439,7 +439,7 @@ namespace asio2::detail
 		template<typename C>
 		inline void _handle_start(error_code ec, std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs)
 		{
-			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
+			ASIO2_ASSERT(this->derived().io_->running_in_this_thread());
 
 			// Whether the startup succeeds or fails, always call fire_start notification
 			state_t expected = state_t::starting;
@@ -470,7 +470,7 @@ namespace asio2::detail
 
 		inline void _do_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr)
 		{
-			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
+			ASIO2_ASSERT(this->derived().io_->running_in_this_thread());
 
 			state_t expected = state_t::starting;
 			if (this->state_.compare_exchange_strong(expected, state_t::stopping))
@@ -530,7 +530,7 @@ namespace asio2::detail
 			// use asio::post to ensure this server's _handle_stop is called must be after 
 			// all sessions _handle_stop has been called already.
 			// is use asio::dispatch, session's _handle_stop maybe called first.
-			asio::post(this->derived().io().context(), make_allocator(this->derived().wallocator(),
+			asio::post(this->derived().io_->context(), make_allocator(this->derived().wallocator(),
 			[this, ec, this_ptr = std::move(this_ptr)]() mutable
 			{
 				state_t expected = state_t::stopping;
@@ -737,7 +737,7 @@ namespace asio2::detail
 		inline void _fire_init()
 		{
 			// the _fire_init must be executed in the thread 0.
-			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
+			ASIO2_ASSERT(this->derived().io_->running_in_this_thread());
 			ASIO2_ASSERT(!get_last_error());
 
 			this->listener_.notify(event_type::init);
@@ -746,7 +746,7 @@ namespace asio2::detail
 		inline void _fire_start()
 		{
 			// the _fire_start must be executed in the thread 0.
-			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
+			ASIO2_ASSERT(this->derived().io_->running_in_this_thread());
 
 		#if defined(_DEBUG) || defined(DEBUG)
 			ASIO2_ASSERT(this->is_stop_called_ == false);
@@ -758,7 +758,7 @@ namespace asio2::detail
 		inline void _fire_stop()
 		{
 			// the _fire_stop must be executed in the thread 0.
-			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
+			ASIO2_ASSERT(this->derived().io_->running_in_this_thread());
 
 		#if defined(_DEBUG) || defined(DEBUG)
 			this->is_stop_called_ = true;

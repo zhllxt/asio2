@@ -114,7 +114,7 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			asio::dispatch(derive.io().context(), make_allocator(derive.wallocator(),
+			asio::dispatch(derive.io_->context(), make_allocator(derive.wallocator(),
 			[this, this_ptr = std::move(this_ptr), ecs = std::move(ecs)]() mutable
 			{
 				derived_t& derive = static_cast<derived_t&>(*this);
@@ -124,7 +124,7 @@ namespace asio2::detail
 					this->reconnect_timer_->cancel();
 				}
 
-				this->reconnect_timer_ = std::make_shared<safe_timer>(derive.io().context());
+				this->reconnect_timer_ = std::make_shared<safe_timer>(derive.io_->context());
 
 				derive._post_reconnect_timer(std::move(this_ptr), std::move(ecs),
 					this->reconnect_timer_, (std::chrono::nanoseconds::max)()); // 292 yeas

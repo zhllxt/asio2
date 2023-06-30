@@ -57,7 +57,7 @@ namespace asio2::detail
 		~ws_stream_cp() noexcept {}
 
 		/**
-		 * @brief get the websocket stream object refrence
+		 * @brief get the websocket stream object reference
 		 */
 		inline ws_stream_type & ws_stream() noexcept
 		{
@@ -66,7 +66,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @brief get the websocket stream object refrence
+		 * @brief get the websocket stream object reference
 		 */
 		inline ws_stream_type const& ws_stream() const noexcept
 		{
@@ -89,11 +89,11 @@ namespace asio2::detail
 
 			if constexpr (args_t::is_client)
 			{
-				ASIO2_ASSERT(derive.io().running_in_this_thread());
+				ASIO2_ASSERT(derive.io_->running_in_this_thread());
 			}
 			else
 			{
-				ASIO2_ASSERT(derive.sessions().io().running_in_this_thread());
+				ASIO2_ASSERT(derive.sessions().io_->running_in_this_thread());
 			}
 
 			this->ws_stream_ = std::make_unique<ws_stream_type>(socket);
@@ -122,7 +122,7 @@ namespace asio2::detail
 
 			detail::ignore_unused(derive, this_ptr, ecs, socket);
 
-			ASIO2_ASSERT(derive.io().running_in_this_thread());
+			ASIO2_ASSERT(derive.io_->running_in_this_thread());
 		}
 
 		template<typename DeferEvent>
@@ -130,7 +130,7 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			ASIO2_ASSERT(derive.io().running_in_this_thread());
+			ASIO2_ASSERT(derive.io_->running_in_this_thread());
 
 			if (!this->ws_stream_)
 				return;
@@ -252,7 +252,7 @@ namespace asio2::detail
 				return;
 			}
 
-			ASIO2_ASSERT(derive.io().running_in_this_thread());
+			ASIO2_ASSERT(derive.io_->running_in_this_thread());
 			ASIO2_ASSERT(bool(this->ws_stream_));
 
 		#if defined(_DEBUG) || defined(DEBUG)
@@ -286,7 +286,7 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			ASIO2_ASSERT(derive.io().running_in_this_thread());
+			ASIO2_ASSERT(derive.io_->running_in_this_thread());
 
 			set_last_error(ec);
 
@@ -342,7 +342,7 @@ namespace asio2::detail
 			// can't use push_event, just only use asio::post, beacuse the callback handler
 			// will not be called immediately, it is called only when it receives an event 
 			// on the another side.
-			asio::post(derive.io().context(), make_allocator(derive.wallocator(),
+			asio::post(derive.io_->context(), make_allocator(derive.wallocator(),
 			[this, &derive, this_ptr = std::move(this_ptr), ecs = std::move(ecs)]() mutable
 			{
 				// Because hole this_ptr in control callback can easily cause circular references,
@@ -437,7 +437,7 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			ASIO2_ASSERT(derive.io().running_in_this_thread());
+			ASIO2_ASSERT(derive.io_->running_in_this_thread());
 
 			// Make the request empty before reading,
 			// otherwise the operation behavior is undefined.
@@ -475,7 +475,7 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			ASIO2_ASSERT(derive.io().running_in_this_thread());
+			ASIO2_ASSERT(derive.io_->running_in_this_thread());
 
 			set_last_error(ec);
 

@@ -61,12 +61,12 @@ namespace asio2::detail
 			asio::ssl::context       & ctx,
 			session_mgr_t<derived_t> & sessions,
 			listener_t               & listener,
-			io_t                     & rwio,
+			std::shared_ptr<io_t>      rwio,
 			std::size_t                init_buf_size,
 			std::size_t                max_buf_size
 		)
-			: super(sessions, listener, rwio, init_buf_size, max_buf_size)
-			, ssl_stream_comp(this->io_, ctx, asio::ssl::stream_base::server)
+			: super(sessions, listener, std::move(rwio), init_buf_size, max_buf_size)
+			, ssl_stream_comp(ctx, asio::ssl::stream_base::server)
 			, ctx_(ctx)
 		{
 		}
@@ -88,7 +88,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @brief get the stream object refrence
+		 * @brief get the stream object reference
 		 */
 		inline typename ssl_stream_comp::ssl_stream_type& stream() noexcept
 		{
@@ -96,7 +96,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @brief get the stream object refrence
+		 * @brief get the stream object reference
 		 */
 		inline typename ssl_stream_comp::ssl_stream_type const& stream() const noexcept
 		{
@@ -134,9 +134,9 @@ namespace asio2::detail
 			detail::ignore_unused(ec);
 
 			ASIO2_ASSERT(!ec);
-			ASIO2_ASSERT(this->derived().sessions().io().running_in_this_thread());
+			ASIO2_ASSERT(this->derived().sessions().io_->running_in_this_thread());
 
-			asio::dispatch(this->derived().io().context(), make_allocator(this->derived().wallocator(),
+			asio::dispatch(this->derived().io_->context(), make_allocator(this->derived().wallocator(),
 			[this, this_ptr = std::move(this_ptr), ecs = std::move(ecs), chain = std::move(chain)]
 			() mutable
 			{
@@ -149,7 +149,7 @@ namespace asio2::detail
 		inline void _fire_handshake(std::shared_ptr<derived_t>& this_ptr)
 		{
 			// the _fire_handshake must be executed in the thread 0.
-			ASIO2_ASSERT(this->sessions().io().running_in_this_thread());
+			ASIO2_ASSERT(this->sessions().io_->running_in_this_thread());
 
 			this->listener_.notify(event_type::handshake, this_ptr);
 		}

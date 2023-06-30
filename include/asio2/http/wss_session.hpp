@@ -68,11 +68,11 @@ namespace asio2::detail
 			asio::ssl::context       & ctx,
 			session_mgr_t<derived_t> & sessions,
 			listener_t               & listener,
-			io_t                     & rwio,
+			std::shared_ptr<io_t>      rwio,
 			std::size_t                init_buf_size,
 			std::size_t                max_buf_size
 		)
-			: super(ctx, sessions, listener, rwio, init_buf_size, max_buf_size)
+			: super(ctx, sessions, listener, std::move(rwio), init_buf_size, max_buf_size)
 			, ws_stream_cp<derived_t, args_t>()
 			, ws_send_op  <derived_t, args_t>()
 		{
@@ -86,7 +86,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @brief return the websocket stream object refrence
+		 * @brief return the websocket stream object reference
 		 */
 		inline typename args_t::stream_t& stream() noexcept
 		{
@@ -94,7 +94,7 @@ namespace asio2::detail
 		}
 
 		/**
-		 * @brief return the websocket stream object refrence
+		 * @brief return the websocket stream object reference
 		 */
 		inline typename args_t::stream_t const& stream() const noexcept
 		{
@@ -160,9 +160,9 @@ namespace asio2::detail
 			detail::ignore_unused(ec);
 
 			ASIO2_ASSERT(!ec);
-			ASIO2_ASSERT(this->derived().sessions().io().running_in_this_thread());
+			ASIO2_ASSERT(this->derived().sessions().io_->running_in_this_thread());
 
-			asio::dispatch(this->derived().io().context(), make_allocator(this->derived().wallocator(),
+			asio::dispatch(this->derived().io_->context(), make_allocator(this->derived().wallocator(),
 			[this, this_ptr = std::move(this_ptr), ecs = std::move(ecs), chain = std::move(chain)]
 			() mutable
 			{
@@ -179,7 +179,7 @@ namespace asio2::detail
 			const error_code& ec,
 			std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs, DeferEvent chain)
 		{
-			ASIO2_ASSERT(this->derived().io().running_in_this_thread());
+			ASIO2_ASSERT(this->derived().io_->running_in_this_thread());
 
 			// Use "sessions().dispatch" to ensure that the _fire_accept function and the _fire_handshake
 			// function are fired in the same thread
@@ -187,7 +187,7 @@ namespace asio2::detail
 			[this, ec, this_ptr = std::move(this_ptr), ecs = std::move(ecs), chain = std::move(chain)]
 			() mutable
 			{
-				ASIO2_ASSERT(this->derived().sessions().io().running_in_this_thread());
+				ASIO2_ASSERT(this->derived().sessions().io_->running_in_this_thread());
 
 				set_last_error(ec);
 
@@ -200,11 +200,11 @@ namespace asio2::detail
 					return;
 				}
 
-				asio::dispatch(this->io().context(), make_allocator(this->wallocator_,
+				asio::dispatch(this->io_->context(), make_allocator(this->wallocator_,
 				[this, this_ptr = std::move(this_ptr), ecs = std::move(ecs), chain = std::move(chain)]
 				() mutable
 				{
-					ASIO2_ASSERT(this->derived().io().running_in_this_thread());
+					ASIO2_ASSERT(this->derived().io_->running_in_this_thread());
 
 					this->derived()._post_read_upgrade_request(
 						std::move(this_ptr), std::move(ecs), std::move(chain));
@@ -236,7 +236,7 @@ namespace asio2::detail
 		inline void _fire_upgrade(std::shared_ptr<derived_t>& this_ptr)
 		{
 			// the _fire_upgrade must be executed in the thread 0.
-			ASIO2_ASSERT(this->sessions().io().running_in_this_thread());
+			ASIO2_ASSERT(this->sessions().io_->running_in_this_thread());
 
 			this->listener_.notify(event_type::upgrade, this_ptr);
 		}

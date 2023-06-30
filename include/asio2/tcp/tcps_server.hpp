@@ -78,7 +78,7 @@ namespace asio2::detail
 		 * @param fun - a user defined callback function.
 		 * @param obj - a pointer or reference to a class object, this parameter can be none.
 		 * if fun is nonmember function, the obj param must be none, otherwise the obj must be the
-		 * the class object's pointer or refrence.
+		 * the class object's pointer or reference.
 		 * Function signature : void(std::shared_ptr<asio2::tcps_session>& session_ptr)
 		 */
 		template<class F, class ...C>

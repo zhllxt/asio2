@@ -246,7 +246,7 @@ namespace asio2::detail
 		 * @param fun - Function object.
 		 * @param obj - A pointer or reference to a class object, this parameter can be none.
 		 * if fun is nonmember function, the obj param must be none, otherwise the obj must be the
-		 * the class object's pointer or refrence.
+		 * the class object's pointer or reference.
 		 */
 		template<class F, class ...C>
 		inline self& bind(std::string name, F&& fun, C&&... obj)
@@ -440,8 +440,12 @@ namespace asio2::detail
 				// the "header_, async_send" should not appear in this "invoker" module, But I thought 
 				// for a long time and couldn't find of a good method to solve this problem.
 
+				std::shared_ptr<asio::io_context> ioc_ptr = caller->io_->context_wptr().lock();
+				if (ioc_ptr == nullptr)
+					return;
+
 				// the operator for "sr" must be in the io_context thread. 
-				asio::dispatch(caller->io().context(), make_allocator(caller->wallocator(),
+				asio::dispatch(caller->io_->context(), make_allocator(caller->wallocator(),
 				[caller_ptr = std::move(caller_ptr), caller, &sr, ec, head = std::move(head),
 					v = std::move(defer->v_)]
 				() mutable
