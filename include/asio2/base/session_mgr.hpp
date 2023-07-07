@@ -55,6 +55,35 @@ namespace asio2::detail
 		ASIO2_CLASS_FRIEND_DECLARE_UDP_SERVER;
 		ASIO2_CLASS_FRIEND_DECLARE_UDP_SESSION;
 
+	protected:
+	#if defined(_DEBUG) || defined(DEBUG)
+		class [[maybe_unused]] deadlock_checker_value
+		{
+		public:
+			[[maybe_unused]] static bool& get() noexcept
+			{
+				thread_local static bool b = false;
+
+				return b;
+			}
+		};
+
+		struct deadlock_checker_guard
+		{
+			deadlock_checker_guard(bool& b) : b_(b)
+			{
+				ASIO2_ASSERT(b_ == false);
+				b_ = true;
+			}
+			~deadlock_checker_guard()
+			{
+				ASIO2_ASSERT(b_ == true);
+				b_ = false;
+			}
+			bool& b_;
+		};
+	#endif
+
 	public:
 		using self     = session_mgr_t<session_t>;
 		using args_type = typename session_t::args_type;
@@ -114,6 +143,7 @@ namespace asio2::detail
 					// session_ptr->stop(); must not be executed yet.
 				#if defined(_DEBUG) || defined(DEBUG)
 					ASIO2_ASSERT(is_all_session_stop_called_ == false);
+					ASIO2_ASSERT(deadlock_checker_value::get() == false);
 				#endif
 
 					// this thread is same as the server's io thread, when code run to here,
@@ -146,6 +176,10 @@ namespace asio2::detail
 			() mutable
 			{
 				bool erased = false;
+
+			#if defined(_DEBUG) || defined(DEBUG)
+				ASIO2_ASSERT(deadlock_checker_value::get() == false);
+			#endif
 
 				{
 					asio2::unique_locker guard(this->mutex_);
@@ -188,6 +222,10 @@ namespace asio2::detail
 			// 
 			std::vector<std::shared_ptr<session_t>> sessions;
 
+		#if defined(_DEBUG) || defined(DEBUG)
+			ASIO2_ASSERT(deadlock_checker_value::get() == false);
+		#endif
+
 			{
 				asio2::shared_locker guard(this->mutex_);
 
@@ -221,10 +259,39 @@ namespace asio2::detail
 		}
 
 		/**
+		 * @brief call user custom callback function for every session
+		 * the custom callback function is like this :
+		 * void on_callback(std::shared_ptr<tcp_session> & session_ptr)
+		 */
+		template<class Fun>
+		inline void quick_for_each(Fun&& fn)
+		{
+			// if the unique locker was called in the callback inner, then will cause deadlock.
+			// and if the callback is a time-consuming operation, the new session will can't enter.
+
+			asio2::shared_locker guard(this->mutex_);
+
+		#if defined(_DEBUG) || defined(DEBUG)
+			[[maybe_unused]] deadlock_checker_guard leg(deadlock_checker_value::get());
+		#endif
+
+			for (auto& [k, session_ptr] : this->sessions_)
+			{
+				std::ignore = k;
+
+				fn(session_ptr);
+			}
+		}
+
+		/**
 		 * @brief find the session by map key
 		 */
 		inline std::shared_ptr<session_t> find(const key_type & key)
 		{
+		#if defined(_DEBUG) || defined(DEBUG)
+			ASIO2_ASSERT(deadlock_checker_value::get() == false);
+		#endif
+
 			asio2::shared_locker guard(this->mutex_);
 			auto iter = this->sessions_.find(key);
 			return (iter == this->sessions_.end() ? std::shared_ptr<session_t>() : iter->second);
@@ -237,6 +304,10 @@ namespace asio2::detail
 		template<class Fun>
 		inline std::shared_ptr<session_t> find_if(Fun&& fn)
 		{
+		#if defined(_DEBUG) || defined(DEBUG)
+			ASIO2_ASSERT(deadlock_checker_value::get() == false);
+		#endif
+
 			// if the unique locker was called in the callback inner, then will cause deadlock.
 			asio2::shared_locker guard(this->mutex_);
 			auto iter = std::find_if(this->sessions_.begin(), this->sessions_.end(),
@@ -252,6 +323,10 @@ namespace asio2::detail
 		 */
 		inline std::size_t size() const noexcept
 		{
+		#if defined(_DEBUG) || defined(DEBUG)
+			ASIO2_ASSERT(deadlock_checker_value::get() == false);
+		#endif
+
 			asio2::shared_locker guard(this->mutex_);
 
 			// is std map.size() thread safety?
@@ -346,6 +421,10 @@ namespace asio2::detail
 		 */
 		inline bool empty() const noexcept
 		{
+		#if defined(_DEBUG) || defined(DEBUG)
+			ASIO2_ASSERT(deadlock_checker_value::get() == false);
+		#endif
+
 			asio2::shared_locker guard(this->mutex_);
 
 			return this->sessions_.empty();

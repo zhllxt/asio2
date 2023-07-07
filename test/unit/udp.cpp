@@ -1280,6 +1280,8 @@ void udp_test()
 
 		ASIO2_CHECK_VALUE(server_connect_counter   .load(), server_connect_counter    == test_client_count);
 
+		server.async_send("abc0123456789def");
+
 		std::vector<std::shared_ptr<asio2::udp_session>> sessions;
 
 		// find session maybe true, beacuse the next session maybe used the stopped session "this" address

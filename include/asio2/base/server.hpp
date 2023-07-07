@@ -185,7 +185,7 @@ namespace asio2::detail
 		template<class T>
 		inline derived_t & async_send(const T& data)
 		{
-			this->sessions_.for_each([&data](std::shared_ptr<session_t>& session_ptr) mutable
+			this->sessions_.quick_for_each([&data](std::shared_ptr<session_t>& session_ptr) mutable
 			{
 				session_ptr->async_send(data);
 			});
@@ -214,7 +214,7 @@ namespace asio2::detail
 		{
 			if (s)
 			{
-				this->sessions_.for_each([s, count](std::shared_ptr<session_t>& session_ptr) mutable
+				this->sessions_.quick_for_each([s, count](std::shared_ptr<session_t>& session_ptr) mutable
 				{
 					session_ptr->async_send(s, count);
 				});

@@ -545,7 +545,7 @@ namespace asio2::detail
 
 				// stop all the sessions, the session::stop must be no blocking,
 				// otherwise it may be cause loop lock.
-				this->sessions_.for_each([](std::shared_ptr<session_t> & session_ptr) mutable
+				this->sessions_.quick_for_each([](std::shared_ptr<session_t> & session_ptr) mutable
 				{
 					session_ptr->stop();
 				});
@@ -563,7 +563,7 @@ namespace asio2::detail
 					iots[i] = this->_get_io(i);
 				}
 
-				this->sessions_.for_each([&iots, &session_counter](std::shared_ptr<session_t>& session_ptr) mutable
+				this->sessions_.quick_for_each([&iots, &session_counter](std::shared_ptr<session_t>& session_ptr) mutable
 				{
 					for (std::size_t i = 0; i < iots.size(); ++i)
 					{

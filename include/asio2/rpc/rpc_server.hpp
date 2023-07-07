@@ -151,7 +151,7 @@ namespace asio2::detail
 		inline typename std::enable_if_t<is_callable_v<Callback>, void>
 		async_call(const Callback& fn, const std::string& name, const Args&... args)
 		{
-			this->sessions_.for_each([&](std::shared_ptr<session_type>& session_ptr) mutable
+			this->sessions_.quick_for_each([&](std::shared_ptr<session_type>& session_ptr) mutable
 			{
 				session_ptr->async_call(fn, name, args...);
 			});
@@ -169,7 +169,7 @@ namespace asio2::detail
 		async_call(const Callback& fn, std::chrono::duration<Rep, Period> timeout,
 			const std::string& name, const Args&... args)
 		{
-			this->sessions_.for_each([&](std::shared_ptr<session_type>& session_ptr) mutable
+			this->sessions_.quick_for_each([&](std::shared_ptr<session_type>& session_ptr) mutable
 			{
 				session_ptr->async_call(fn, timeout, name, args...);
 			});
@@ -184,7 +184,7 @@ namespace asio2::detail
 		template<class return_t, class Callback, class ...Args>
 		inline void async_call(const Callback& fn, const std::string& name, const Args&... args)
 		{
-			this->sessions_.for_each([&](std::shared_ptr<session_type>& session_ptr) mutable
+			this->sessions_.quick_for_each([&](std::shared_ptr<session_type>& session_ptr) mutable
 			{
 				session_ptr->template async_call<return_t>(fn, name, args...);
 			});
@@ -200,7 +200,7 @@ namespace asio2::detail
 		inline void async_call(const Callback& fn, std::chrono::duration<Rep, Period> timeout,
 			const std::string& name, const Args&... args)
 		{
-			this->sessions_.for_each([&](std::shared_ptr<session_type>& session_ptr) mutable
+			this->sessions_.quick_for_each([&](std::shared_ptr<session_type>& session_ptr) mutable
 			{
 				session_ptr->template async_call<return_t>(fn, timeout, name, args...);
 			});
@@ -213,7 +213,7 @@ namespace asio2::detail
 		template<class ...Args>
 		inline void async_call(const std::string& name, const Args&... args)
 		{
-			this->sessions_.for_each([&](std::shared_ptr<session_type>& session_ptr) mutable
+			this->sessions_.quick_for_each([&](std::shared_ptr<session_type>& session_ptr) mutable
 			{
 				session_ptr->async_call(name, args...);
 			});
