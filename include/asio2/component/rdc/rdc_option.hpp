@@ -114,18 +114,19 @@ namespace asio2::rdc
 		}
 		virtual void emplace_request(std::any& k, void* v) override
 		{
-			key_type& key = *std::any_cast<key_type>(&k);
+			key_type& key = *std::any_cast<key_type>(std::addressof(k));
 			val_type& val = *((val_type*)v);
 
-			rdc_invoker_.emplace(std::move(key), std::move(val));
+			// 2023-07-11 bug fix : can't use std::move(key), beacuse the key will be used at later.
+			rdc_invoker_.emplace(key, std::move(val));
 		}
 		virtual void execute_and_erase(std::any& k, std::function<void(void*)> cb) override
 		{
-			key_type& key = *std::any_cast<key_type>(&k);
+			key_type& key = *std::any_cast<key_type>(std::addressof(k));
 
 			if (auto iter = rdc_invoker_.find(key); iter != rdc_invoker_.end())
 			{
-				cb((void*)(&(iter->second)));
+				cb((void*)(std::addressof(iter->second)));
 
 				rdc_invoker_.erase(iter);
 			}
@@ -134,7 +135,7 @@ namespace asio2::rdc
 		{
 			for (auto& [k, v] : rdc_invoker_.reqs())
 			{
-				cb((void*)&k, (void*)&v);
+				cb((void*)std::addressof(k), (void*)std::addressof(v));
 			}
 
 			rdc_invoker_.reqs().clear();

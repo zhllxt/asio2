@@ -587,20 +587,20 @@ namespace asio2::detail
 				return;
 			}
 
-			std::any id = prdc->call_parser(true, (void*)&sent_typed_data);
+			std::any rdc_id = prdc->call_parser(true, (void*)std::addressof(sent_typed_data));
 
 			std::shared_ptr<asio::steady_timer> timer =
 				std::make_shared<asio::steady_timer>(derive.io_->context());
 
 			std::tuple tp(timer, std::move(invoker));
 
-			prdc->emplace_request(id, (void*)&tp);
+			prdc->emplace_request(rdc_id, (void*)std::addressof(tp));
 
-			auto ex = [&derive, id = std::move(id), prdc]() mutable
+			auto ex = [&derive, rdc_id = std::move(rdc_id), prdc]() mutable
 			{
 				ASIO2_ASSERT(derive.io_->running_in_this_thread());
 
-				prdc->execute_and_erase(id, [&derive](void* val) mutable
+				prdc->execute_and_erase(rdc_id, [&derive](void* val) mutable
 				{
 					std::tuple<std::shared_ptr<asio::steady_timer>, callback_type>& tp =
 						*((std::tuple<std::shared_ptr<asio::steady_timer>, callback_type>*)val);
@@ -623,10 +623,11 @@ namespace asio2::detail
 			});
 
 			derive.push_event(
-			[&derive, p = std::move(this_ptr), id = derive.life_id(), ex = std::move(ex), data = std::move(persisted_data)]
+			[&derive, p = std::move(this_ptr),
+				life_id = derive.life_id(), ex = std::move(ex), data = std::move(persisted_data)]
 			(event_queue_guard<derived_t> g) mutable
 			{
-				if (id != derive.life_id())
+				if (life_id != derive.life_id())
 				{
 					set_last_error(asio::error::operation_aborted);
 					ex();
@@ -658,11 +659,11 @@ namespace asio2::detail
 			if (_rdc->invoker().reqs().empty())
 				return;
 
-			auto id = (_rdc->get_recv_parser())(data);
+			auto rdc_id = (_rdc->get_recv_parser())(data);
 
 			ASIO2_ASSERT(derive.io_->running_in_this_thread());
 
-			auto iter = _rdc->invoker().find(id);
+			auto iter = _rdc->invoker().find(rdc_id);
 			if (iter != _rdc->invoker().end())
 			{
 				auto&[timer, invoker] = iter->second;

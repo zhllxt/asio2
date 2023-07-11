@@ -263,12 +263,12 @@ void rdc_test()
 			[](std::string_view data)
 			{
 				std::string num { data.substr(0,data.find(','))};
-				return std::stoi(num);
+				return num;
 			},
 			[](std::string_view data)
 			{
 				std::string num { data.substr(0,data.find(','))};
-				return std::stoi(num);
+				return num;
 			}
 		};
 
