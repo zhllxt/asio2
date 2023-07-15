@@ -434,7 +434,7 @@ namespace asio2
 			if (!(index < this->workers_.size()))
 				return false;
 
-			return this->workers_[index]->running_in_thread(index);
+			return this->workers_[index]->running_in_thread(0);
 		}
 
 		/**
@@ -442,7 +442,7 @@ namespace asio2
 		 */
 		inline std::thread::id thread_id(std::size_t index) noexcept
 		{
-			return this->workers_[index % this->workers_.size()]->thread_id(index);
+			return this->workers_[index % this->workers_.size()]->thread_id(0);
 		}
 
 		/**
@@ -450,7 +450,7 @@ namespace asio2
 		 */
 		inline std::thread::id get_thread_id(std::size_t index) noexcept
 		{
-			return this->workers_[index % this->workers_.size()]->get_thread_id(index);
+			return this->workers_[index % this->workers_.size()]->get_thread_id(0);
 		}
 
 	private:

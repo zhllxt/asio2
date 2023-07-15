@@ -895,7 +895,7 @@ public:
 	using listener_name_type = typename select_listener_name<
 		policy_type,
 		has_type_listener_name_t<policy_type>::value,
-		std::string_view
+		std::string
 	>::type;
 
 	using user_data_type = typename policy_type::user_data_t;
@@ -930,7 +930,7 @@ public:
 		}
 
 		inline const event_type get_event_type() const noexcept { return evt; }
-		inline const listener_name_type get_listener_name() const noexcept { return name; }
+		inline const listener_name_type& get_listener_name() const noexcept { return name; }
 
 		inline node& set_user_data(user_data_type data) noexcept { userdata = std::move(data); return (*this); }
 		inline const user_data_type& get_user_data() const noexcept { return userdata; }
@@ -987,7 +987,7 @@ public:
 	using listener_name_type = typename select_listener_name<
 		policy_type,
 		has_type_listener_name_t<policy_type>::value,
-		std::string_view
+		std::string
 	>::type;
 
 	using user_data_type = void;
@@ -1022,7 +1022,7 @@ public:
 		}
 
 		inline const event_type get_event_type() const noexcept { return evt; }
-		inline const listener_name_type get_listener_name() const noexcept { return name; }
+		inline const listener_name_type& get_listener_name() const noexcept { return name; }
 
 	protected:
 		event_type         evt;

@@ -90,7 +90,26 @@ void thread_pool_test()
 
 		thpool.post(0, [&thpool]()
 		{
+			ASIO2_CHECK(std::this_thread::get_id() == thpool.thread_id(0));
 			ASIO2_CHECK(std::this_thread::get_id() == thpool.get_thread_id(0));
+			ASIO2_CHECK(thpool.running_in_thread(0));
+			ASIO2_CHECK(thpool.running_in_threads());
+		});
+
+		thpool.post(1, [&thpool]()
+		{
+			ASIO2_CHECK(std::this_thread::get_id() == thpool.thread_id(1));
+			ASIO2_CHECK(std::this_thread::get_id() == thpool.get_thread_id(1));
+			ASIO2_CHECK(thpool.running_in_thread(1));
+			ASIO2_CHECK(thpool.running_in_threads());
+		});
+
+		thpool.post(2, [&thpool]()
+		{
+			ASIO2_CHECK(std::this_thread::get_id() == thpool.thread_id(2));
+			ASIO2_CHECK(std::this_thread::get_id() == thpool.get_thread_id(2));
+			ASIO2_CHECK(thpool.running_in_thread(2));
+			ASIO2_CHECK(thpool.running_in_threads());
 		});
 
 		for (std::size_t i = 0; i < thpool.get_pool_size(); ++i)
