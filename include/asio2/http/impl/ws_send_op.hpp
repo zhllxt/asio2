@@ -56,7 +56,7 @@ namespace asio2::detail
 		#endif
 
 			derive.ws_stream().async_write(asio::buffer(data), make_allocator(derive.wallocator(),
-			[&derive, p = derive.selfptr(), callback = std::forward<Callback>(callback)]
+			[&derive, callback = std::forward<Callback>(callback)]
 			(const error_code& ec, std::size_t bytes_sent) mutable
 			{
 			#if defined(_DEBUG) || defined(DEBUG)
@@ -72,7 +72,7 @@ namespace asio2::detail
 					// must stop, otherwise re-sending will cause body confusion
 					if (derive.state() == state_t::started)
 					{
-						derive._do_disconnect(ec, std::move(p));
+						derive._do_disconnect(ec, derive.selfptr());
 					}
 				}
 			}));
@@ -118,7 +118,7 @@ namespace asio2::detail
 		#endif
 
 			derive.ws_stream().async_write(buffers, make_allocator(derive.wallocator(),
-			[&derive, p = derive.selfptr(), callback = std::forward<Callback>(callback)]
+			[&derive, callback = std::forward<Callback>(callback)]
 			(const error_code& ec, std::size_t bytes_sent) mutable
 			{
 			#if defined(_DEBUG) || defined(DEBUG)
@@ -134,7 +134,7 @@ namespace asio2::detail
 					// must stop, otherwise re-sending will cause body confusion
 					if (derive.state() == state_t::started)
 					{
-						derive._do_disconnect(ec, std::move(p));
+						derive._do_disconnect(ec, derive.selfptr());
 					}
 				}
 			}));

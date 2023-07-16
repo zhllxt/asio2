@@ -2815,6 +2815,12 @@ void rpc_test()
 
 		ASIO2_CHECK_VALUE(server_disconnect_counter.load(), server_disconnect_counter == test_client_count*1);
 		ASIO2_CHECK_VALUE(server_stop_counter      .load(), server_stop_counter       == 1);
+
+		// test memory leaks 
+		for (int i = 0; i < test_client_count; i++)
+		{
+			clients[i]->async_call("leak_test").response([](std::string) {});
+		}
 	}
 
 	ASIO2_TEST_END_LOOP;

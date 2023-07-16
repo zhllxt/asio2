@@ -138,12 +138,22 @@ namespace asio2::detail
 					pm->set_value(ec);
 				};
 
+				auto w = derive.weak_from_this();
+				bool f = w.expired();
+
 				// All pending sending events will be cancelled after enter the callback below.
 				derive.post(
-				[&derive, p = derive.selfptr(), timeout,
+				[&derive, f, w = std::move(w), timeout,
 					invoker = std::move(invoker), data = std::forward<DataT>(data)]
 				() mutable
 				{
+					auto p = w.lock();
+					if (!f && !p)
+					{
+						ASIO2_ASSERT(false);
+						return;
+					}
+
 					derive._rdc_send(std::move(p), std::move(data), std::move(timeout), std::move(invoker));
 				});
 
@@ -207,12 +217,22 @@ namespace asio2::detail
 					return;
 				}
 
+				auto w = derive.weak_from_this();
+				bool f = w.expired();
+
 				// All pending sending events will be cancelled after enter the callback below.
 				derive.post(
-				[&derive, p = derive.selfptr(), timeout,
+				[&derive, f, w = std::move(w), timeout,
 					invoker = std::forward<Invoker>(invoker), data = std::forward<DataT>(data)]
 				() mutable
 				{
+					auto p = w.lock();
+					if (!f && !p)
+					{
+						ASIO2_ASSERT(false);
+						return;
+					}
+
 					derive._rdc_send(std::move(p), std::move(data), std::move(timeout), std::move(invoker));
 				});
 			}

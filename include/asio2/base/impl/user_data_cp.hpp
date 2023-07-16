@@ -129,6 +129,15 @@ namespace asio2::detail
 		}
 
 		/**
+		 * @brief clear user data
+		 */
+		inline derived_t& clear_user_data() noexcept
+		{
+			this->user_data_.reset();
+			return (static_cast<derived_t&>(*this));
+		}
+
+		/**
 		 * @brief return the std::any reference
 		 */
 		inline std::any& user_data_any() noexcept { return this->user_data_; }

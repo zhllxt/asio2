@@ -93,8 +93,8 @@ namespace asio2
 			// bind is used to adapt the user provided handler to the 
 			// timer's wait handler type requirement.
 			// the "handler" has hold the derive_ptr already, so this lambda don't need hold it again.
-			// this event_ptr (means selfptr) has holded by the map "condition_events_" already, 
-			// so this lambda don't need hold selfptr again.
+			// this event_ptr (means self ptr) has holded by the map "condition_events_" already, 
+			// so this lambda don't need hold self ptr again.
 			this->event_timer_.async_wait(
 			[this, handler = std::forward<WaitHandler>(handler)](const error_code& ec) mutable
 			{
@@ -132,11 +132,11 @@ namespace asio2
 				return;
 
 			asio::dispatch(this->event_timer_io_->context(), [this, this_ptr = this->selfptr()]() mutable
-			{
-				detail::ignore_unused(this_ptr);
+				{
+					detail::ignore_unused(this_ptr);
 
-				detail::cancel_timer(this->event_timer_);
-			});
+					detail::cancel_timer(this->event_timer_);
+				});
 		}
 
 	protected:
@@ -177,7 +177,7 @@ namespace asio2::detail
 		 * The function signature of the handler must be : void handler();
 		 */
 		template<typename Function>
-		inline std::shared_ptr<condition_event> post_condition_event(Function&& f)
+		inline std::shared_ptr<condition_event> post_condition_event(Function&& fn)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
@@ -188,18 +188,28 @@ namespace asio2::detail
 				return nullptr;
 			}
 
+			auto w = derive.weak_from_this();
+			bool f = w.expired();
+
 			std::shared_ptr<condition_event> event_ptr = std::make_shared<condition_event>(derive.io_);
 
 			asio::dispatch(derive.io_->context(), make_allocator(derive.wallocator(),
-			[this, this_ptr = derive.selfptr(), event_ptr, f = std::forward<Function>(f)]() mutable
+			[this, f, w = std::move(w), event_ptr, fn = std::forward<Function>(fn)]() mutable
 			{
+				auto p = w.lock();
+				if (!f && !p)
+				{
+					ASIO2_ASSERT(false);
+					return;
+				}
+
 				condition_event* evt = event_ptr.get();
 
 				this->condition_events_.emplace(evt, std::move(event_ptr));
 
-				evt->async_wait([this, this_ptr = std::move(this_ptr), key = evt, f = std::move(f)]() mutable
+				evt->async_wait([this, this_ptr = std::move(p), key = evt, fn = std::move(fn)]() mutable
 				{
-					f();
+					fn();
 
 					this->condition_events_.erase(key);
 				});
@@ -222,13 +232,23 @@ namespace asio2::detail
 				return derive;
 			}
 
+			auto w = derive.weak_from_this();
+			bool f = w.expired();
+
 			// Make sure we run on the io_context thread
 			asio::dispatch(derive.io_->context(), make_allocator(derive.wallocator(),
-			[this, this_ptr = derive.selfptr()]() mutable
+			[this, f, w = std::move(w)]() mutable
 			{
+				auto p = w.lock();
+				if (!f && !p)
+				{
+					ASIO2_ASSERT(false);
+					return;
+				}
+
 				for (auto&[key, event_ptr] : this->condition_events_)
 				{
-					detail::ignore_unused(this_ptr, key);
+					detail::ignore_unused(key);
 					event_ptr->notify();
 				}
 			}));

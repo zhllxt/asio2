@@ -1453,11 +1453,22 @@ namespace asio2::detail
 
 			std::shared_ptr<io_t>& iot = this->iots_[0];
 
+			auto w = derive.weak_from_this();
+			bool f = w.expired();
+
 			// We must use asio::post to ensure the wait_stop_timer_ is read write in the 
 			// same thread.
-			asio::post(iot->context(), [this, iot, this_ptr = derive.selfptr(), promise = std::move(promise)]
+			asio::post(iot->context(), [this, iot, f, w = std::move(w), promise = std::move(promise)]
 			() mutable
 			{
+				auto p = w.lock();
+				if (!f && !p)
+				{
+					ASIO2_ASSERT(false);
+					promise.set_value(asio::error::eof);
+					return;
+				}
+
 				if (this->wait_stop_timer_)
 				{
 					iot->timers().erase(this->wait_stop_timer_.get());
@@ -1471,7 +1482,7 @@ namespace asio2::detail
 
 				this->wait_stop_timer_->expires_after((std::chrono::nanoseconds::max)());
 				this->wait_stop_timer_->async_wait(
-				[this_ptr = std::move(this_ptr), promise = std::move(promise)]
+				[this_ptr = std::move(p), promise = std::move(promise)]
 				(const error_code&) mutable
 				{
 					detail::ignore_unused(this_ptr);
@@ -1618,14 +1629,22 @@ namespace asio2::detail
 
 			std::shared_ptr<io_t>& iot = this->iots_[0];
 
+			auto w = derive.weak_from_this();
+			bool f = w.expired();
+
 			// if the server's or client's iopool is user_iopool, and when the server.stop 
 			// or client.stop is called, we need notify the timer to cancel for the function
 			// wait_stop, otherwise the wait_stop function will blocked forever.
 			// We must use asio::post to ensure the wait_stop_timer_ is read write in the 
 			// same thread.
-			asio::post(iot->context(), [this, iot, this_ptr = derive.selfptr()]() mutable
+			asio::post(iot->context(), [this, iot, f, w = std::move(w)]() mutable
 			{
-				detail::ignore_unused(this_ptr);
+				auto p = w.lock();
+				if (!f && !p)
+				{
+					ASIO2_ASSERT(false);
+					return;
+				}
 
 				if (this->wait_stop_timer_)
 				{

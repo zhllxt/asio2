@@ -313,8 +313,24 @@ namespace asio2::detail
 
 			if (!s)
 			{
-				derive._udp_send_cp_invoke_callback(asio::error::invalid_argument, std::forward<Callback>(fn));
+				auto w = derive.weak_from_this();
+				bool f = w.expired();
 
+				// we should ensure that the callback must be called in the io_context thread.
+				asio::post(derive.io_->context(), make_allocator(derive.wallocator(),
+				[f, w = std::move(w), fn = std::forward<Callback>(fn)]() mutable
+				{
+					auto p = w.lock();
+					if (!f && !p)
+					{
+						ASIO2_ASSERT(false);
+						set_last_error(asio::error::eof);
+						return;
+					}
+
+					set_last_error(asio::error::invalid_argument);
+					callback_helper::call(fn, 0);
+				}));
 				return;
 			}
 
@@ -350,11 +366,22 @@ namespace asio2::detail
 			// We must ensure that there is only one operation to send data
 			// at the same time,otherwise may be cause crash.
 
+			auto w = derive.weak_from_this();
+			bool f = w.expired();
+
 			derive.push_event(
-			[&derive, p = derive.selfptr(), id = derive.life_id(), endpoint = std::forward<Endpoint>(endpoint),
+			[&derive, f, w = std::move(w), id = derive.life_id(), endpoint = std::forward<Endpoint>(endpoint),
 				data = derive._data_persistence(std::forward<DataT>(data))]
 			(event_queue_guard<derived_t> g) mutable
 			{
+				auto p = w.lock();
+				if (!f && !p)
+				{
+					ASIO2_ASSERT(false);
+					set_last_error(asio::error::eof);
+					return;
+				}
+
 				if (!derive.is_started())
 				{
 					set_last_error(asio::error::not_connected);
@@ -369,7 +396,12 @@ namespace asio2::detail
 
 				clear_last_error();
 
-				derive._do_send(endpoint, data, [g = std::move(g)](const error_code&, std::size_t) mutable {});
+				derive._do_send(endpoint, data, [g = std::move(g), p = std::move(p)](const error_code&, std::size_t) mutable
+				{
+					{
+						[[maybe_unused]] auto t{ std::move(g) };
+					}
+				});
 			});
 		}
 
@@ -412,11 +444,22 @@ namespace asio2::detail
 			// We must ensure that there is only one operation to send data
 			// at the same time,otherwise may be cause crash.
 
+			auto w = derive.weak_from_this();
+			bool f = w.expired();
+
 			derive.push_event(
-			[&derive, p = derive.selfptr(), id = derive.life_id(), endpoint = std::forward<Endpoint>(endpoint),
+			[&derive, f, w = std::move(w), id = derive.life_id(), endpoint = std::forward<Endpoint>(endpoint),
 				data = derive._data_persistence(s, count)]
 			(event_queue_guard<derived_t> g) mutable
 			{
+				auto p = w.lock();
+				if (!f && !p)
+				{
+					ASIO2_ASSERT(false);
+					set_last_error(asio::error::eof);
+					return;
+				}
+
 				if (!derive.is_started())
 				{
 					set_last_error(asio::error::not_connected);
@@ -431,7 +474,12 @@ namespace asio2::detail
 
 				clear_last_error();
 
-				derive._do_send(endpoint, data, [g = std::move(g)](const error_code&, std::size_t) mutable {});
+				derive._do_send(endpoint, data, [g = std::move(g), p = std::move(p)](const error_code&, std::size_t) mutable
+				{
+					{
+						[[maybe_unused]] auto t{ std::move(g) };
+					}
+				});
 			});
 		}
 
@@ -463,11 +511,23 @@ namespace asio2::detail
 				std::make_shared<std::promise<std::pair<error_code, std::size_t>>>();
 			std::future<std::pair<error_code, std::size_t>> future = promise->get_future();
 
+			auto w = derive.weak_from_this();
+			bool f = w.expired();
+
 			derive.push_event(
-			[&derive, p = derive.selfptr(), id = derive.life_id(), endpoint = std::forward<Endpoint>(endpoint),
+			[&derive, f, w = std::move(w), id = derive.life_id(), endpoint = std::forward<Endpoint>(endpoint),
 				data = derive._data_persistence(std::forward<DataT>(data)), promise = std::move(promise)]
 			(event_queue_guard<derived_t> g) mutable
 			{
+				auto p = w.lock();
+				if (!f && !p)
+				{
+					ASIO2_ASSERT(false);
+					set_last_error(asio::error::eof);
+					promise->set_value(std::pair<error_code, std::size_t>(asio::error::eof, 0));
+					return;
+				}
+
 				if (!derive.is_started())
 				{
 					set_last_error(asio::error::not_connected);
@@ -484,10 +544,14 @@ namespace asio2::detail
 
 				clear_last_error();
 
-				derive._do_send(endpoint, data, [&promise, g = std::move(g)]
+				derive._do_send(endpoint, data, [&promise, g = std::move(g), p = std::move(p)]
 				(const error_code& ec, std::size_t bytes_sent) mutable
 				{
 					promise->set_value(std::pair<error_code, std::size_t>(ec, bytes_sent));
+
+					{
+						[[maybe_unused]] auto t{ std::move(g) };
+					}
 				});
 			});
 
@@ -543,11 +607,23 @@ namespace asio2::detail
 				return future;
 			}
 
+			auto w = derive.weak_from_this();
+			bool f = w.expired();
+
 			derive.push_event(
-			[&derive, p = derive.selfptr(), id = derive.life_id(), endpoint = std::forward<Endpoint>(endpoint),
+			[&derive, f, w = std::move(w), id = derive.life_id(), endpoint = std::forward<Endpoint>(endpoint),
 				data = derive._data_persistence(s, count), promise = std::move(promise)]
 			(event_queue_guard<derived_t> g) mutable
 			{
+				auto p = w.lock();
+				if (!f && !p)
+				{
+					ASIO2_ASSERT(false);
+					set_last_error(asio::error::eof);
+					promise->set_value(std::pair<error_code, std::size_t>(asio::error::eof, 0));
+					return;
+				}
+
 				if (!derive.is_started())
 				{
 					set_last_error(asio::error::not_connected);
@@ -564,10 +640,14 @@ namespace asio2::detail
 
 				clear_last_error();
 
-				derive._do_send(endpoint, data, [&promise, g = std::move(g)]
+				derive._do_send(endpoint, data, [&promise, g = std::move(g), p = std::move(p)]
 				(const error_code& ec, std::size_t bytes_sent) mutable
 				{
 					promise->set_value(std::pair<error_code, std::size_t>(ec, bytes_sent));
+
+					{
+						[[maybe_unused]] auto t{ std::move(g) };
+					}
 				});
 			});
 
@@ -595,31 +675,47 @@ namespace asio2::detail
 
 			detail::integer_add_sub_guard asg(derive.io_->pending());
 
+			auto w = derive.weak_from_this();
+			bool f = w.expired();
+
 			// We must ensure that there is only one operation to send data
 			// at the same time,otherwise may be cause crash.
 			derive.push_event(
-			[&derive, p = derive.selfptr(), id = derive.life_id(), endpoint = std::forward<Endpoint>(endpoint),
+			[&derive, f, w = std::move(w), id = derive.life_id(), endpoint = std::forward<Endpoint>(endpoint),
 				data = derive._data_persistence(std::forward<DataT>(data)), fn = std::forward<Callback>(fn)]
 			(event_queue_guard<derived_t> g) mutable
 			{
+				auto p = w.lock();
+				if (!f && !p)
+				{
+					ASIO2_ASSERT(false);
+					set_last_error(asio::error::eof);
+					return;
+				}
+
 				if (!derive.is_started())
 				{
-					derive._udp_send_cp_invoke_callback(asio::error::not_connected, std::forward<Callback>(fn));
+					set_last_error(asio::error::not_connected);
+					callback_helper::call(fn, 0);
 					return;
 				}
 
 				if (id != derive.life_id())
 				{
-					derive._udp_send_cp_invoke_callback(asio::error::operation_aborted, std::forward<Callback>(fn));
+					set_last_error(asio::error::operation_aborted);
+					callback_helper::call(fn, 0);
 					return;
 				}
 
 				clear_last_error();
 
-				derive._do_send(endpoint, data, [&fn, g = std::move(g)]
+				derive._do_send(endpoint, data, [&fn, g = std::move(g), p = std::move(p)]
 				(const error_code&, std::size_t bytes_sent) mutable
 				{
 					callback_helper::call(fn, bytes_sent);
+					{
+						[[maybe_unused]] auto t{ std::move(g) };
+					}
 				});
 			});
 		}
@@ -661,36 +757,65 @@ namespace asio2::detail
 			// We must ensure that there is only one operation to send data
 			// at the same time,otherwise may be cause crash.
 
+			auto w = derive.weak_from_this();
+			bool f = w.expired();
+
 			if (!s)
 			{
-				derive._udp_send_cp_invoke_callback(asio::error::invalid_argument, std::forward<Callback>(fn));
+				// we should ensure that the callback must be called in the io_context thread.
+				asio::post(derive.io_->context(), make_allocator(derive.wallocator(),
+				[f, w = std::move(w), fn = std::forward<Callback>(fn)]() mutable
+				{
+					auto p = w.lock();
+					if (!f && !p)
+					{
+						ASIO2_ASSERT(false);
+						set_last_error(asio::error::eof);
+						return;
+					}
 
+					set_last_error(asio::error::invalid_argument);
+					callback_helper::call(fn, 0);
+				}));
 				return;
 			}
 
 			derive.push_event(
-			[&derive, p = derive.selfptr(), id = derive.life_id(), endpoint = std::forward<Endpoint>(endpoint),
+			[&derive, f, w = std::move(w), id = derive.life_id(), endpoint = std::forward<Endpoint>(endpoint),
 				data = derive._data_persistence(s, count), fn = std::forward<Callback>(fn)]
 			(event_queue_guard<derived_t> g) mutable
 			{
+				auto p = w.lock();
+				if (!f && !p)
+				{
+					ASIO2_ASSERT(false);
+					set_last_error(asio::error::eof);
+					return;
+				}
+
 				if (!derive.is_started())
 				{
-					derive._udp_send_cp_invoke_callback(asio::error::not_connected, std::forward<Callback>(fn));
+					set_last_error(asio::error::not_connected);
+					callback_helper::call(fn, 0);
 					return;
 				}
 
 				if (id != derive.life_id())
 				{
-					derive._udp_send_cp_invoke_callback(asio::error::operation_aborted, std::forward<Callback>(fn));
+					set_last_error(asio::error::operation_aborted);
+					callback_helper::call(fn, 0);
 					return;
 				}
 
 				clear_last_error();
 
-				derive._do_send(endpoint, data, [&fn, g = std::move(g)]
+				derive._do_send(endpoint, data, [&fn, g = std::move(g), p = std::move(p)]
 				(const error_code&, std::size_t bytes_sent) mutable
 				{
 					callback_helper::call(fn, bytes_sent);
+					{
+						[[maybe_unused]] auto t{ std::move(g) };
+					}
 				});
 			});
 		}
@@ -892,14 +1017,26 @@ namespace asio2::detail
 			std::unique_ptr<resolver_type> resolver_ptr = std::make_unique<resolver_type>(
 				derive.io_->context());
 
+			auto w = derive.weak_from_this();
+			bool f = w.expired();
+
 			// Before async_resolve execution is complete, we must hold the resolver object.
 			// so we captured the resolver_ptr into the lambda callback function.
 			resolver_type * resolver_pointer = resolver_ptr.get();
 			resolver_pointer->async_resolve(std::forward<String>(host), detail::to_string(std::forward<StrOrInt>(port)),
-			[&derive, p = derive.selfptr(), resolver_ptr = std::move(resolver_ptr),
+			[&derive, f, w = std::move(w), resolver_ptr = std::move(resolver_ptr),
 				data = std::forward<Data>(data), callback = std::forward<Callback>(callback)]
 			(const error_code& ec, const endpoints_type& endpoints) mutable
 			{
+				auto p = w.lock();
+				if (!f && !p)
+				{
+					ASIO2_ASSERT(false);
+					set_last_error(asio::error::eof);
+					callback(asio::error::eof, 0);
+					return;
+				}
+
 				set_last_error(ec);
 
 				if (ec)
@@ -912,7 +1049,8 @@ namespace asio2::detail
 					for (auto iter = endpoints.begin(); iter != endpoints.end(); ++iter, ++i)
 					{
 						derive.push_event(
-						[&derive, p, id = derive.life_id(), endpoint = iter->endpoint(),
+						[&derive, id = derive.life_id(), endpoint = iter->endpoint(),
+							p = (endpoints.size() == i ? std::move(p) : p),
 							data = (endpoints.size() == i ? std::move(data) : data),
 							callback = (endpoints.size() == i ? std::move(callback) : callback)]
 						(event_queue_guard<derived_t> g) mutable
@@ -945,22 +1083,6 @@ namespace asio2::detail
 						});
 					}
 				}
-			});
-		}
-
-		template<class Callback>
-		inline void _udp_send_cp_invoke_callback(error_code ec, Callback&& fn)
-		{
-			derived_t& derive = static_cast<derived_t&>(*this);
-
-			set_last_error(ec);
-
-			// we should ensure that the callback must be called in the io_context thread.
-			derive.post([ec, fn = std::forward<Callback>(fn)]() mutable
-			{
-				set_last_error(ec);
-
-				callback_helper::call(fn, 0);
 			});
 		}
 	};

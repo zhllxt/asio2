@@ -55,7 +55,7 @@ namespace asio2::detail
 					#if defined(_DEBUG) || defined(DEBUG)
 						&derive,
 					#endif
-						p = derive.selfptr(), callback = std::forward<Callback>(callback)
+						callback = std::forward<Callback>(callback)
 					]
 			(const error_code& ec, std::size_t bytes_sent) mutable
 			{
@@ -91,7 +91,7 @@ namespace asio2::detail
 					#if defined(_DEBUG) || defined(DEBUG)
 						&derive,
 					#endif
-						p = derive.selfptr(), callback = std::forward<Callback>(callback)
+						callback = std::forward<Callback>(callback)
 					]
 			(const error_code& ec, std::size_t bytes_sent) mutable
 			{
