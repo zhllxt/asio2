@@ -69,7 +69,6 @@ namespace asio2::detail
 				auto p = w.lock();
 				if (!f && !p)
 				{
-					ASIO2_ASSERT(false);
 					return;
 				}
 
@@ -118,7 +117,6 @@ namespace asio2::detail
 				auto p = w.lock();
 				if (!f && !p)
 				{
-					ASIO2_ASSERT(false);
 					return;
 				}
 
@@ -190,7 +188,6 @@ namespace asio2::detail
 				auto p = w.lock();
 				if (!f && !p)
 				{
-					ASIO2_ASSERT(false);
 					return;
 				}
 
@@ -241,7 +238,6 @@ namespace asio2::detail
 				auto p = w.lock();
 				if (!f && !p)
 				{
-					ASIO2_ASSERT(false);
 					return;
 				}
 
@@ -305,7 +301,6 @@ namespace asio2::detail
 				auto p = w.lock();
 				if (!f && !p)
 				{
-					ASIO2_ASSERT(false);
 					return;
 				}
 
@@ -353,7 +348,6 @@ namespace asio2::detail
 				auto p = w.lock();
 				if (!f && !p)
 				{
-					ASIO2_ASSERT(false);
 					return;
 				}
 
@@ -386,7 +380,6 @@ namespace asio2::detail
 				auto p = w.lock();
 				if (!f && !p)
 				{
-					ASIO2_ASSERT(false);
 					return;
 				}
 

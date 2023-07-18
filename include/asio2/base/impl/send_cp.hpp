@@ -105,7 +105,6 @@ namespace asio2::detail
 				auto p = w.lock();
 				if (!f && !p)
 				{
-					ASIO2_ASSERT(false);
 					set_last_error(asio::error::eof);
 					return;
 				}
@@ -178,7 +177,6 @@ namespace asio2::detail
 				auto p = w.lock();
 				if (!f && !p)
 				{
-					ASIO2_ASSERT(false);
 					set_last_error(asio::error::eof);
 					return;
 				}
@@ -252,7 +250,6 @@ namespace asio2::detail
 				auto p = w.lock();
 				if (!f && !p)
 				{
-					ASIO2_ASSERT(false);
 					set_last_error(asio::error::eof);
 					promise.set_value(std::pair<error_code, std::size_t>(asio::error::eof, 0));
 					return;
@@ -343,7 +340,6 @@ namespace asio2::detail
 				auto p = w.lock();
 				if (!f && !p)
 				{
-					ASIO2_ASSERT(false);
 					set_last_error(asio::error::eof);
 					promise.set_value(std::pair<error_code, std::size_t>(asio::error::eof, 0));
 					return;
@@ -412,7 +408,6 @@ namespace asio2::detail
 				auto p = w.lock();
 				if (!f && !p)
 				{
-					ASIO2_ASSERT(false);
 					set_last_error(asio::error::eof);
 					return;
 				}
@@ -487,7 +482,6 @@ namespace asio2::detail
 					auto p = w.lock();
 					if (!f && !p)
 					{
-						ASIO2_ASSERT(false);
 						set_last_error(asio::error::eof);
 						return;
 					}
@@ -509,7 +503,6 @@ namespace asio2::detail
 				auto p = w.lock();
 				if (!f && !p)
 				{
-					ASIO2_ASSERT(false);
 					set_last_error(asio::error::eof);
 					return;
 				}
