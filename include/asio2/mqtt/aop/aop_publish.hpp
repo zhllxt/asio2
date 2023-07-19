@@ -225,7 +225,10 @@ namespace asio2::detail
 
 			std::shared_ptr<asio::io_context> ioc_ptr = caller->io_->context_wptr().lock();
 			if (ioc_ptr == nullptr)
+			{
+				set_last_error(asio::error::eof);
 				return;
+			}
 
 			// use post and push_event to ensure the publish message is sent to clients must
 			// after mqtt response is sent already.
@@ -355,7 +358,10 @@ namespace asio2::detail
 			{
 				std::shared_ptr<asio::io_context> ioc_ptr = caller->io_->context_wptr().lock();
 				if (ioc_ptr == nullptr)
+				{
+					set_last_error(asio::error::eof);
 					return;
+				}
 
 				std::shared_ptr<asio::steady_timer> expiry_timer;
 

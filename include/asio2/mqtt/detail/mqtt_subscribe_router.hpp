@@ -596,6 +596,8 @@ namespace asio2::detail
 
 			derived_t& derive = static_cast<derived_t&>(*this);
 
+			ASIO2_ASSERT(derive.io_->running_in_this_thread());
+
 			mqtt::v5::properties_set props;
 
 			if constexpr (std::is_same_v<message_type, mqtt::v5::subscribe>)

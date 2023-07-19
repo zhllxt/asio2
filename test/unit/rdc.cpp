@@ -2601,6 +2601,7 @@ void rdc_test()
 	}
 
 	// test ssl websocket rdc
+	std::shared_ptr<asio2::wss_session> wss_session_ptr;
 	{
 		struct ext_data
 		{
@@ -2708,6 +2709,9 @@ void rdc_test()
 		server.bind_connect([&](auto & session_ptr)
 		{
 			server_connect_counter++;
+
+			if (!wss_session_ptr)
+				wss_session_ptr = session_ptr;
 
 			ext_data ex;
 			ex.num = 1;
@@ -3023,6 +3027,15 @@ void rdc_test()
 
 		ASIO2_CHECK_VALUE(server_stop_counter      .load(), server_stop_counter       == 1);
 	}
+
+	ASIO2_CHECK(wss_session_ptr->call<std::string>("abc").empty());
+	ASIO2_CHECK(asio2::get_last_error() == asio::error::eof); asio2::clear_last_error();
+
+	wss_session_ptr->async_call("abc").response([](std::string_view data)
+	{
+		std::ignore = data;
+	});
+	ASIO2_CHECK(asio2::get_last_error() == asio::error::eof); asio2::clear_last_error();
 
 	ASIO2_TEST_END_LOOP;
 }

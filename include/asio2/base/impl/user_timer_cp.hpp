@@ -297,14 +297,14 @@ namespace asio2::detail
 
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			std::function<void()> t = std::bind(std::forward<Fun>(fun), std::forward<Args>(args)...);
-
 			std::shared_ptr<asio::io_context> ioc_ptr = derive.io_->context_wptr().lock();
 			if (ioc_ptr == nullptr)
 			{
-				ASIO2_ASSERT(false);
+				set_last_error(asio::error::eof);
 				return;
 			}
+
+			std::function<void()> t = std::bind(std::forward<Fun>(fun), std::forward<Args>(args)...);
 
 			auto w = derive.weak_from_this();
 			bool f = w.expired();
@@ -361,7 +361,7 @@ namespace asio2::detail
 			std::shared_ptr<asio::io_context> ioc_ptr = derive.io_->context_wptr().lock();
 			if (ioc_ptr == nullptr)
 			{
-				ASIO2_ASSERT(false);
+				set_last_error(asio::error::eof);
 				return;
 			}
 
@@ -408,7 +408,7 @@ namespace asio2::detail
 			std::shared_ptr<asio::io_context> ioc_ptr = derive.io_->context_wptr().lock();
 			if (ioc_ptr == nullptr)
 			{
-				ASIO2_ASSERT(false);
+				set_last_error(asio::error::eof);
 				return;
 			}
 
@@ -447,6 +447,13 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
+			std::shared_ptr<asio::io_context> ioc_ptr = derive.io_->context_wptr().lock();
+			if (ioc_ptr == nullptr)
+			{
+				set_last_error(asio::error::eof);
+				return false;
+			}
+
 			if (derive.io_->running_in_this_thread())
 			{
 				return (this->user_timers_.find(timer_id) != this->user_timers_.end());
@@ -454,14 +461,6 @@ namespace asio2::detail
 
 			std::promise<bool> prm;
 			std::future<bool> fut = prm.get_future();
-
-			std::shared_ptr<asio::io_context> ioc_ptr = derive.io_->context_wptr().lock();
-			if (ioc_ptr == nullptr)
-			{
-				ASIO2_ASSERT(false);
-				prm.set_value(false);
-				return fut.get();
-			}
 
 			auto w = derive.weak_from_this();
 			bool f = w.expired();
@@ -491,6 +490,13 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
+			std::shared_ptr<asio::io_context> ioc_ptr = derive.io_->context_wptr().lock();
+			if (ioc_ptr == nullptr)
+			{
+				set_last_error(asio::error::eof);
+				return typename asio::steady_timer::duration{};
+			}
+
 			if (derive.io_->running_in_this_thread())
 			{
 				auto iter = this->user_timers_.find(timer_id);
@@ -506,14 +512,6 @@ namespace asio2::detail
 
 			std::promise<typename asio::steady_timer::duration> prm;
 			std::future<typename asio::steady_timer::duration> fut = prm.get_future();
-
-			std::shared_ptr<asio::io_context> ioc_ptr = derive.io_->context_wptr().lock();
-			if (ioc_ptr == nullptr)
-			{
-				ASIO2_ASSERT(false);
-				prm.set_value(typename asio::steady_timer::duration{});
-				return fut.get();
-			}
 
 			auto w = derive.weak_from_this();
 			bool f = w.expired();
@@ -551,6 +549,13 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
+			std::shared_ptr<asio::io_context> ioc_ptr = derive.io_->context_wptr().lock();
+			if (ioc_ptr == nullptr)
+			{
+				set_last_error(asio::error::eof);
+				return;
+			}
+
 			if (interval > std::chrono::duration_cast<
 				std::chrono::duration<Rep, Period>>((asio::steady_timer::duration::max)()))
 				interval = std::chrono::duration_cast<std::chrono::duration<Rep, Period>>(
@@ -563,13 +568,6 @@ namespace asio2::detail
 				{
 					iter->second->interval = interval;
 				}
-				return;
-			}
-
-			std::shared_ptr<asio::io_context> ioc_ptr = derive.io_->context_wptr().lock();
-			if (ioc_ptr == nullptr)
-			{
-				ASIO2_ASSERT(false);
 				return;
 			}
 
@@ -641,7 +639,7 @@ namespace asio2::detail
 			std::shared_ptr<asio::io_context> ioc_ptr = derive.io_->context_wptr().lock();
 			if (ioc_ptr == nullptr)
 			{
-				ASIO2_ASSERT(false);
+				set_last_error(asio::error::eof);
 				return;
 			}
 

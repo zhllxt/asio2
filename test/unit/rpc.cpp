@@ -66,6 +66,21 @@ rpc::future<int> async_add(int a, int b)
 	return f;
 }
 
+rpc::future<void> async_life_test()
+{
+	rpc::promise<void> promise;
+	rpc::future<void> f = promise.get_future();
+
+	std::thread([promise = std::move(promise)]() mutable
+	{
+		std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+		promise.set_value();
+	}).detach();
+
+	return f;
+}
+
 rpc::future<void> async_test(std::shared_ptr<asio2::rpc_session>& session_ptr, std::string a, std::string b)
 {
 	ASIO2_CHECK(session_ptr->io().running_in_this_thread());
@@ -140,6 +155,15 @@ void client_fn_test(asio2::rpc_client& client, std::string str)
 	ASIO2_CHECK(client.io().running_in_this_thread());
 	ASIO2_CHECK(str == "i love you");
 }
+
+class my_rpc_session_ws : public asio2::rpc_session_t<my_rpc_session_ws, asio2::net_protocol::ws>
+{
+public:
+	using asio2::rpc_session_t<my_rpc_session_ws, asio2::net_protocol::ws>::rpc_session_t;
+
+	using super::send;
+	using super::async_send;
+};
 
 class my_rpc_client_tcp : public asio2::rpc_client_use<asio2::net_protocol::tcp>
 {
@@ -1987,6 +2011,7 @@ void rpc_test()
 	}
 
 	// test websocket rpc function 
+	std::shared_ptr<my_rpc_session_ws> rpc_session_ptr;
 	{
 		struct ext_data
 		{
@@ -1997,7 +2022,7 @@ void rpc_test()
 			int client_disconnect_counter = 0;
 		};
 
-		asio2::rpc_server_use<asio2::net_protocol::ws> server;
+		asio2::rpc_server_t<my_rpc_session_ws> server;
 
 		std::atomic<int> server_accept_counter = 0;
 		std::atomic<int> server_async_call_counter = 0;
@@ -2023,6 +2048,9 @@ void rpc_test()
 		server.bind_connect([&](auto & session_ptr)
 		{
 			server_connect_counter++;
+
+			if (!rpc_session_ptr)
+				rpc_session_ptr = session_ptr;
 
 			session_ptr->async_call([&, session_ptr](int v)
 			{
@@ -2097,7 +2125,7 @@ void rpc_test()
 			.bind("add", add)
 			.bind("mul", &usercrud::mul, crud)
 			.bind("get_user", []
-			(std::shared_ptr<asio2::rpc_session_use<asio2::net_protocol::ws>>& session_ptr)
+			(std::shared_ptr<my_rpc_session_ws>& session_ptr)
 			{
 				ASIO2_CHECK(session_ptr->io().running_in_this_thread());
 
@@ -2108,7 +2136,7 @@ void rpc_test()
 				return u;
 			})
 			.bind("del_user", []
-			(std::shared_ptr<asio2::rpc_session_use<asio2::net_protocol::ws>>& session_ptr, const userinfo& u)
+			(std::shared_ptr<my_rpc_session_ws>& session_ptr, const userinfo& u)
 			{
 				ASIO2_CHECK(session_ptr->io().running_in_this_thread());
 				ASIO2_CHECK(u.name == "hanmeimei");
@@ -2124,7 +2152,7 @@ void rpc_test()
 
 		server.bind("async_add", async_add);
 		server.bind("async_test", []
-		(std::shared_ptr<asio2::rpc_session_use<asio2::net_protocol::ws>>& session_ptr, std::string a, std::string b)
+		(std::shared_ptr<my_rpc_session_ws>& session_ptr, std::string a, std::string b)
 		{
 			ASIO2_CHECK(session_ptr->io().running_in_this_thread());
 
@@ -2144,12 +2172,12 @@ void rpc_test()
 
 		server.bind("test_json", test_json);
 		server.bind("heartbeat", []
-		(std::shared_ptr<asio2::rpc_session_use<asio2::net_protocol::ws>>& session_ptr)
+		(std::shared_ptr<my_rpc_session_ws>& session_ptr)
 		{
 			ASIO2_CHECK(session_ptr->io().running_in_this_thread());
 		});
 
-		server.bind("cat", [&](std::shared_ptr<asio2::rpc_session_use<asio2::net_protocol::ws>>& session_ptr,
+		server.bind("cat", [&](std::shared_ptr<my_rpc_session_ws>& session_ptr,
 			const std::string& a, const std::string& b)
 		{
 			ASIO2_CHECK(session_ptr->io().running_in_this_thread());
@@ -2822,6 +2850,164 @@ void rpc_test()
 			clients[i]->async_call("leak_test").response([](std::string) {});
 		}
 	}
+
+	ASIO2_CHECK(rpc_session_ptr != nullptr);
+
+	// server is destroyed already, and the io_context is destroyed already, test session for this.
+	std::shared_ptr<asio2::condition_event> evt_ptr = rpc_session_ptr->post_condition_event([]()
+	{
+		std::ignore = true;
+	});
+	ASIO2_CHECK(asio2::get_last_error() == asio::error::eof); asio2::clear_last_error();
+	ASIO2_CHECK(evt_ptr == nullptr);
+
+	rpc_session_ptr->notify_all_condition_events();
+	ASIO2_CHECK(asio2::get_last_error() == asio::error::eof); asio2::clear_last_error();
+
+	rpc_session_ptr->post_queued_event([]()
+	{
+		std::ignore = true;
+	});
+	ASIO2_CHECK(asio2::get_last_error() == asio::error::eof); asio2::clear_last_error();
+
+	auto fut1 = rpc_session_ptr->post_queued_event([]()
+	{
+		std::ignore = true;
+	}, asio::use_future);
+	ASIO2_CHECK(fut1.wait_for(std::chrono::milliseconds(10)) == std::future_status::ready);
+	ASIO2_CHECK(asio2::get_last_error() == asio::error::eof); asio2::clear_last_error();
+
+	rpc_session_ptr->post([]()
+	{
+		std::ignore = true;
+	});
+	ASIO2_CHECK(asio2::get_last_error() == asio::error::eof); asio2::clear_last_error();
+
+	rpc_session_ptr->post([]()
+	{
+		std::ignore = true;
+	}, std::chrono::milliseconds(50));
+	ASIO2_CHECK(asio2::get_last_error() == asio::error::eof); asio2::clear_last_error();
+
+	auto fut2 = rpc_session_ptr->post([]()
+	{
+		std::ignore = true;
+	}, asio::use_future);
+	ASIO2_CHECK(fut2.wait_for(std::chrono::milliseconds(10)) == std::future_status::ready);
+	ASIO2_CHECK(asio2::get_last_error() == asio::error::eof); asio2::clear_last_error();
+
+	auto fut3 = rpc_session_ptr->post([]()
+	{
+		std::ignore = true;
+	}, std::chrono::milliseconds(50), asio::use_future);
+	ASIO2_CHECK(fut3.wait_for(std::chrono::milliseconds(10)) == std::future_status::ready);
+	ASIO2_CHECK(asio2::get_last_error() == asio::error::eof); asio2::clear_last_error();
+
+	rpc_session_ptr->dispatch([]()
+	{
+		std::ignore = true;
+	});
+	ASIO2_CHECK(asio2::get_last_error() == asio::error::eof); asio2::clear_last_error();
+
+	auto fut4 = rpc_session_ptr->dispatch([]()
+	{
+		std::ignore = true;
+	}, asio::use_future);
+	ASIO2_CHECK(fut4.wait_for(std::chrono::milliseconds(10)) == std::future_status::ready);
+	ASIO2_CHECK(asio2::get_last_error() == asio::error::eof); asio2::clear_last_error();
+
+	rpc_session_ptr->stop_all_timed_events();
+	ASIO2_CHECK(asio2::get_last_error() == asio::error::eof); asio2::clear_last_error();
+
+	std::string msg = "abc";
+
+	rpc_session_ptr->async_send(msg);
+	ASIO2_CHECK(asio2::get_last_error() == asio::error::eof); asio2::clear_last_error();
+
+	rpc_session_ptr->async_send("abc", 3);
+	ASIO2_CHECK(asio2::get_last_error() == asio::error::eof); asio2::clear_last_error();
+
+	auto fut5 = rpc_session_ptr->async_send(msg, asio::use_future);
+	auto [ec5, bytes5] = fut5.get();
+	ASIO2_CHECK(ec5 == asio::error::eof && bytes5 == 0);
+
+	auto fut6 = rpc_session_ptr->async_send("abc", 3, asio::use_future);
+	auto [ec6, bytes6] = fut6.get();
+	ASIO2_CHECK(ec6 == asio::error::eof && bytes6 == 0);
+
+	rpc_session_ptr->async_send(msg, []()
+	{
+		std::ignore = true;
+	});
+	ASIO2_CHECK(asio2::get_last_error() == asio::error::eof); asio2::clear_last_error();
+
+	rpc_session_ptr->async_send("abc", 3, []()
+	{
+		std::ignore = true;
+	});
+	ASIO2_CHECK(asio2::get_last_error() == asio::error::eof); asio2::clear_last_error();
+
+	rpc_session_ptr->start_timer("abc", 1000, []()
+	{
+		std::ignore = true;
+	});
+	ASIO2_CHECK(asio2::get_last_error() == asio::error::eof); asio2::clear_last_error();
+
+	rpc_session_ptr->stop_timer("abc");
+	ASIO2_CHECK(asio2::get_last_error() == asio::error::eof); asio2::clear_last_error();
+
+	rpc_session_ptr->stop_all_timers();
+	ASIO2_CHECK(asio2::get_last_error() == asio::error::eof); asio2::clear_last_error();
+
+	ASIO2_CHECK(rpc_session_ptr->is_timer_exists("abc") == false);
+	ASIO2_CHECK(asio2::get_last_error() == asio::error::eof); asio2::clear_last_error();
+
+	ASIO2_CHECK(rpc_session_ptr->get_timer_interval("abc") == asio::steady_timer::duration{});
+	ASIO2_CHECK(asio2::get_last_error() == asio::error::eof); asio2::clear_last_error();
+
+	rpc_session_ptr->set_timer_interval("abc", asio::steady_timer::duration{});
+	ASIO2_CHECK(asio2::get_last_error() == asio::error::eof); asio2::clear_last_error();
+
+	ASIO2_CHECK(rpc_session_ptr->call<int>("add", 1, 2) == 0);
+	ASIO2_CHECK(asio2::get_last_error() == rpc::error::eof); asio2::clear_last_error();
+
+	rpc_session_ptr->async_call("add", 1, 2).response([](int sum)
+	{
+		std::ignore = sum;
+	});
+	ASIO2_CHECK(asio2::get_last_error() == rpc::error::eof); asio2::clear_last_error();
+
+	std::shared_ptr<asio2::rpc_session> life_rpc_session_ptr;
+	{
+		asio2::rpc_server server;
+		server.bind_connect([&](auto & session_ptr)
+		{
+			if (!life_rpc_session_ptr)
+				life_rpc_session_ptr = session_ptr;
+		});
+
+		server.bind("async_life_test", async_life_test);
+
+		bool server_start_ret = server.start("127.0.0.1", 18010);
+
+		ASIO2_CHECK(server_start_ret);
+		ASIO2_CHECK(server.is_started());
+
+		asio2::rpc_client client;
+
+		bool client_start_ret = client.start("127.0.0.1", 18010);
+		ASIO2_CHECK(client_start_ret);
+		ASIO2_CHECK(!asio2::get_last_error());
+
+		client.async_call("async_life_test").response([]()
+		{
+			std::ignore = true;
+		});
+
+		std::this_thread::sleep_for(std::chrono::milliseconds(100));
+	}
+
+	ASIO2_ASSERT(life_rpc_session_ptr != nullptr);
 
 	ASIO2_TEST_END_LOOP;
 }

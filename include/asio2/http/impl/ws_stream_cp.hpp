@@ -238,6 +238,11 @@ namespace asio2::detail
 			}, chain.move_guard());
 		}
 
+		inline void _ws_uninit() noexcept
+		{
+			this->ws_stream_.reset();
+		}
+
 		template<typename C>
 		inline void _ws_post_recv(std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs)
 		{

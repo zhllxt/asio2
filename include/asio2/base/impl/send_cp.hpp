@@ -77,6 +77,13 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
+			std::shared_ptr<asio::io_context> ioc_ptr = derive.io_->context_wptr().lock();
+			if (ioc_ptr == nullptr)
+			{
+				set_last_error(asio::error::eof);
+				return;
+			}
+
 			// use this guard to fix the issue of below "# issue x:"
 			detail::integer_add_sub_guard asg(derive.io_->pending());
 
@@ -162,6 +169,13 @@ namespace asio2::detail
 				return;
 			}
 
+			std::shared_ptr<asio::io_context> ioc_ptr = derive.io_->context_wptr().lock();
+			if (ioc_ptr == nullptr)
+			{
+				set_last_error(asio::error::eof);
+				return;
+			}
+
 			detail::integer_add_sub_guard asg(derive.io_->pending());
 
 			// We must ensure that there is only one operation to send data
@@ -223,8 +237,6 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			detail::integer_add_sub_guard asg(derive.io_->pending());
-
 			// why use copyable_wrapper? beacuse std::promise is moveable-only, but
 			// std::function need copy-constructible.
 
@@ -238,6 +250,16 @@ namespace asio2::detail
 
 			std::promise<std::pair<error_code, std::size_t>> promise;
 			std::future<std::pair<error_code, std::size_t>> future = promise.get_future();
+
+			std::shared_ptr<asio::io_context> ioc_ptr = derive.io_->context_wptr().lock();
+			if (ioc_ptr == nullptr)
+			{
+				promise.set_value(std::pair<error_code, std::size_t>(asio::error::eof, 0));
+				set_last_error(asio::error::eof);
+				return future;
+			}
+
+			detail::integer_add_sub_guard asg(derive.io_->pending());
 
 			auto w = derive.weak_from_this();
 			bool f = w.expired();
@@ -317,8 +339,6 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			detail::integer_add_sub_guard asg(derive.io_->pending());
-
 			std::promise<std::pair<error_code, std::size_t>> promise;
 			std::future<std::pair<error_code, std::size_t>> future = promise.get_future();
 
@@ -328,6 +348,16 @@ namespace asio2::detail
 				promise.set_value(std::pair<error_code, std::size_t>(asio::error::invalid_argument, 0));
 				return future;
 			}
+
+			std::shared_ptr<asio::io_context> ioc_ptr = derive.io_->context_wptr().lock();
+			if (ioc_ptr == nullptr)
+			{
+				promise.set_value(std::pair<error_code, std::size_t>(asio::error::eof, 0));
+				set_last_error(asio::error::eof);
+				return future;
+			}
+
+			detail::integer_add_sub_guard asg(derive.io_->pending());
 
 			auto w = derive.weak_from_this();
 			bool f = w.expired();
@@ -391,6 +421,13 @@ namespace asio2::detail
 		inline typename std::enable_if_t<is_callable_v<Callback>, void> async_send(DataT&& data, Callback&& fn)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
+
+			std::shared_ptr<asio::io_context> ioc_ptr = derive.io_->context_wptr().lock();
+			if (ioc_ptr == nullptr)
+			{
+				set_last_error(asio::error::eof);
+				return;
+			}
 
 			detail::integer_add_sub_guard asg(derive.io_->pending());
 
@@ -467,6 +504,13 @@ namespace asio2::detail
 			async_send(CharT * s, SizeT count, Callback&& fn)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
+
+			std::shared_ptr<asio::io_context> ioc_ptr = derive.io_->context_wptr().lock();
+			if (ioc_ptr == nullptr)
+			{
+				set_last_error(asio::error::eof);
+				return;
+			}
 
 			detail::integer_add_sub_guard asg(derive.io_->pending());
 
@@ -625,6 +669,106 @@ namespace asio2::detail
 			derived_t& derive = static_cast<derived_t&>(*this);
 
 			return derive.send(derive._data_persistence(s, count));
+		}
+
+	protected:
+		/**
+		 * @brief Asynchronous send data, support multiple data formats,
+		 *             see asio::buffer(...) in /asio/buffer.hpp
+		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
+		 * use like this : std::string m; async_send(std::move(m)); can reducing memory allocation.
+		 * PodType * : async_send("abc");
+		 * PodType (&data)[N] : double m[10]; async_send(m);
+		 * std::array<PodType, N> : std::array<int,10> m; async_send(m);
+		 * std::vector<PodType, Allocator> : std::vector<float> m; async_send(m);
+		 * std::basic_string<Elem, Traits, Allocator> : std::string m; async_send(m);
+		 */
+		template<class DataT>
+		inline void internal_async_send(std::shared_ptr<derived_t> this_ptr, DataT&& data) noexcept
+		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
+			ASIO2_ASSERT(derive.io_->running_in_this_thread());
+
+			derive.push_event(
+			[&derive, p = std::move(this_ptr), id = derive.life_id(),
+				data = derive._data_persistence(std::forward<DataT>(data))]
+			(event_queue_guard<derived_t> g) mutable
+			{
+				if (!derive.is_started())
+				{
+					set_last_error(asio::error::not_connected);
+					return;
+				}
+
+				if (id != derive.life_id())
+				{
+					set_last_error(asio::error::operation_aborted);
+					return;
+				}
+
+				clear_last_error();
+
+				derive._do_send(data, [g = std::move(g), p = std::move(p)](const error_code&, std::size_t) mutable
+				{
+					{
+						[[maybe_unused]] auto t{ std::move(g) };
+					}
+				});
+			});
+		}
+
+		/**
+		 * @brief Asynchronous send data, support multiple data formats,
+		 *             see asio::buffer(...) in /asio/buffer.hpp
+		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
+		 * use like this : std::string m; async_send(std::move(m)); can reducing memory allocation.
+		 * PodType * : async_send("abc");
+		 * PodType (&data)[N] : double m[10]; async_send(m);
+		 * std::array<PodType, N> : std::array<int,10> m; async_send(m);
+		 * std::vector<PodType, Allocator> : std::vector<float> m; async_send(m);
+		 * std::basic_string<Elem, Traits, Allocator> : std::string m; async_send(m);
+		 * Callback signature : void() or void(std::size_t bytes_sent)
+		 */
+		template<class DataT, class Callback>
+		inline typename std::enable_if_t<is_callable_v<Callback>, void> internal_async_send(
+			std::shared_ptr<derived_t> this_ptr, DataT&& data, Callback&& fn)
+		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
+			ASIO2_ASSERT(derive.io_->running_in_this_thread());
+
+			derive.push_event(
+			[&derive, p = std::move(this_ptr), id = derive.life_id(), fn = std::forward<Callback>(fn),
+				data = derive._data_persistence(std::forward<DataT>(data))]
+			(event_queue_guard<derived_t> g) mutable
+			{
+				if (!derive.is_started())
+				{
+					set_last_error(asio::error::not_connected);
+					callback_helper::call(fn, 0);
+					return;
+				}
+
+				if (id != derive.life_id())
+				{
+					set_last_error(asio::error::operation_aborted);
+					callback_helper::call(fn, 0);
+					return;
+				}
+
+				clear_last_error();
+
+				derive._do_send(data, [&fn, g = std::move(g), p = std::move(p)]
+				(const error_code&, std::size_t bytes_sent) mutable
+				{
+					ASIO2_ASSERT(!g.is_empty());
+					callback_helper::call(fn, bytes_sent);
+					{
+						[[maybe_unused]] auto t{ std::move(g) };
+					}
+				});
+			});
 		}
 	};
 }

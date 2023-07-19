@@ -601,6 +601,7 @@ namespace asio2::detail
 		{
 			derived_t& derive = this->derived();
 
+			ASIO2_ASSERT(derive.io_->running_in_this_thread());
 			ASIO2_ASSERT((!ec) || ec == asio::error::operation_aborted);
 
 			if (ec)
@@ -620,15 +621,15 @@ namespace asio2::detail
 			mqtt::version ver = derive.version();
 			if /**/ (ver == mqtt::version::v3)
 			{
-				derive.async_send(mqtt::v3::pingreq{});
+				derive.internal_async_send(this_ptr, mqtt::v3::pingreq{});
 			}
 			else if (ver == mqtt::version::v4)
 			{
-				derive.async_send(mqtt::v4::pingreq{});
+				derive.internal_async_send(this_ptr, mqtt::v4::pingreq{});
 			}
 			else if (ver == mqtt::version::v5)
 			{
-				derive.async_send(mqtt::v5::pingreq{});
+				derive.internal_async_send(this_ptr, mqtt::v5::pingreq{});
 			}
 
 			// do next timer

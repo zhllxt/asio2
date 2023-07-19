@@ -212,6 +212,14 @@ namespace asio2::detail
 			});
 		}
 
+		template<typename DeferEvent>
+		inline void _handle_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr, DeferEvent chain)
+		{
+			this->derived()._ws_uninit();
+
+			super::_handle_stop(ec, std::move(this_ptr), std::move(chain));
+		}
+
 		template<class Data, class Callback>
 		inline bool _do_send(Data& data, Callback&& callback)
 		{

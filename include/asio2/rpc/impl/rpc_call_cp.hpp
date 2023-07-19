@@ -90,6 +90,21 @@ namespace asio2::detail
 			{
 				using result_t = typename rpc_result_t<return_t>::type;
 
+				std::shared_ptr<asio::io_context> ioc_ptr = derive.io_->context_wptr().lock();
+				if (ioc_ptr == nullptr)
+				{
+					set_last_error(rpc::make_error_code(rpc::error::eof));
+
+					if constexpr (!std::is_void_v<return_t>)
+					{
+						return result_t{};
+					}
+					else
+					{
+						return;
+					}
+				}
+
 				if (!derive.is_started())
 				{
 					set_last_error(rpc::make_error_code(rpc::error::not_connected));
@@ -182,7 +197,7 @@ namespace asio2::detail
 
 					derive.reqs_.emplace(req.id(), std::move(ex));
 
-					derive.async_send((derive.sr_.reset() << req).str(),
+					derive.internal_async_send(std::move(p), (derive.sr_.reset() << req).str(),
 					[&derive, id = req.id()]() mutable
 					{
 						if (get_last_error()) // send data failed with error
@@ -413,10 +428,16 @@ namespace asio2::detail
 			{
 				ASIO2_ASSERT(!req.id());
 
+				std::shared_ptr<asio::io_context> ioc_ptr = derive.io_->context_wptr().lock();
+				if (ioc_ptr == nullptr)
+				{
+					set_last_error(rpc::make_error_code(rpc::error::eof));
+					return;
+				}
+
 				if (!derive.is_started())
 				{
 					set_last_error(rpc::make_error_code(rpc::error::not_connected));
-
 					return;
 				}
 
@@ -434,7 +455,7 @@ namespace asio2::detail
 						return;
 					}
 
-					derive.async_send((derive.sr_.reset() << req).str());
+					derive.internal_async_send(std::move(p), (derive.sr_.reset() << req).str());
 				}));
 			}
 
@@ -443,6 +464,13 @@ namespace asio2::detail
 				std::chrono::duration<Rep, Period> timeout, Callback&& cb, Req&& req)
 			{
 				ASIO2_ASSERT(id);
+
+				std::shared_ptr<asio::io_context> ioc_ptr = derive.io_->context_wptr().lock();
+				if (ioc_ptr == nullptr)
+				{
+					set_last_error(rpc::make_error_code(rpc::error::eof));
+					return;
+				}
 
 				req.id(id);
 
@@ -536,9 +564,11 @@ namespace asio2::detail
 
 					timer->expires_after(timeout);
 					timer->async_wait(
-					[this_ptr = std::move(p), &derive, id = req.id()]
+					[p, &derive, id = req.id()]
 					(const error_code& ec) mutable
 					{
+						detail::ignore_unused(p);
+
 						if (ec == asio::error::operation_aborted)
 							return;
 
@@ -551,7 +581,7 @@ namespace asio2::detail
 					});
 
 					// 3. third, send request.
-					derive.async_send((derive.sr_.reset() << req).str(),
+					derive.internal_async_send(std::move(p), (derive.sr_.reset() << req).str(),
 					[&derive, id = req.id()]() mutable
 					{
 						if (get_last_error()) // send data failed with error

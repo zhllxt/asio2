@@ -44,8 +44,11 @@ namespace asio2::detail
 		~rpc_recv_op() = default;
 
 	protected:
-		inline void _rpc_handle_failed_request(rpc::error e, rpc_serializer& sr, rpc_header& head)
+		inline void _rpc_handle_failed_request(
+			std::shared_ptr<derived_t>& this_ptr, rpc::error e, rpc_serializer& sr, rpc_header& head)
 		{
+			ASIO2_ASSERT(static_cast<derived_t&>(*this).io_->running_in_this_thread());
+
 			if (head.id() != static_cast<rpc_header::id_type>(0))
 			{
 				derived_t& derive = static_cast<derived_t&>(*this);
@@ -56,7 +59,7 @@ namespace asio2::detail
 				sr << head;
 				sr << ec;
 
-				derive.async_send(sr.str());
+				derive.internal_async_send(this_ptr, sr.str());
 			}
 		}
 
@@ -119,17 +122,17 @@ namespace asio2::detail
 					}
 					catch (cereal::exception const&)
 					{
-						derive._rpc_handle_failed_request(rpc::error::invalid_argument, sr, head);
+						derive._rpc_handle_failed_request(this_ptr, rpc::error::invalid_argument, sr, head);
 						return;
 					}
 					catch (system_error      const&)
 					{
-						derive._rpc_handle_failed_request(rpc::error::unspecified_error, sr, head);
+						derive._rpc_handle_failed_request(this_ptr, rpc::error::unspecified_error, sr, head);
 						return;
 					}
 					catch (std::exception    const&)
 					{
-						derive._rpc_handle_failed_request(rpc::error::unspecified_error, sr, head);
+						derive._rpc_handle_failed_request(this_ptr, rpc::error::unspecified_error, sr, head);
 						return;
 					}
 				#endif
@@ -140,11 +143,11 @@ namespace asio2::detail
 					{
 						if (dr.buffer().in_avail() == 0)
 						{
-							derive.async_send(sr.str());
+							derive.internal_async_send(this_ptr, sr.str());
 						}
 						else
 						{
-							derive._rpc_handle_failed_request(rpc::error::invalid_argument, sr, head);
+							derive._rpc_handle_failed_request(this_ptr, rpc::error::invalid_argument, sr, head);
 						}
 					}
 				}
@@ -154,7 +157,7 @@ namespace asio2::detail
 					{
 						error_code ec = rpc::make_error_code(rpc::error::not_found);
 						sr << ec;
-						derive.async_send(sr.str());
+						derive.internal_async_send(this_ptr, sr.str());
 					}
 				}
 			}

@@ -26,6 +26,15 @@ namespace asio2::rpc
 		// The operation completed successfully. 
 		success = 0,
 
+		// Already open.
+		already_open = 1,
+
+		// End of file or stream.
+		eof,
+
+		// Element not found.
+		not_found,
+
 		// Operation aborted.
 		operation_aborted,
 
@@ -46,9 +55,6 @@ namespace asio2::rpc
 
 		// Transport endpoint is not connected.
 		not_connected,
-
-		// Element not found.
-		not_found,
 
 		// Unspecified error.
 		unspecified_error,
@@ -59,6 +65,15 @@ namespace asio2::rpc
 		// The operation completed successfully. 
 		success = 0,
 
+		// Already open.
+		already_open = 1,
+
+		// End of file or stream.
+		eof,
+
+		// Element not found.
+		not_found,
+
 		// Operation aborted.
 		operation_aborted,
 
@@ -80,10 +95,7 @@ namespace asio2::rpc
 		// Transport endpoint is not connected.
 		not_connected,
 
-		// Element not found.
-		not_found,
-
-		// Unknown error.
+		// Unspecified error.
 		unspecified_error,
 	};
 
@@ -106,6 +118,9 @@ namespace asio2::rpc
 			switch (static_cast<error>(ev))
 			{
 			case error::success               : return "The operation completed successfully.";
+			case error::already_open          : return "Already open.";
+			case error::eof                   : return "End of file or stream.";
+			case error::not_found             : return "Element not found.";
 			case error::operation_aborted     : return "Operation aborted.";
 			case error::invalid_argument      : return "Invalid argument.";
 			case error::illegal_data          : return "Illegal data.";
@@ -113,7 +128,6 @@ namespace asio2::rpc
 			case error::no_data               : return "Does not have associated data.";
 			case error::in_progress           : return "Operation now in progress.";
 			case error::not_connected         : return "Transport endpoint is not connected.";
-			case error::not_found             : return "Element not found.";
 			case error::unspecified_error     : return "Unspecified error.";
 			default                           : return "Unknown error";
 			}

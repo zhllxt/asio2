@@ -53,7 +53,7 @@ namespace asio2::detail
 			std::shared_ptr<asio::io_context> ioc_ptr = derive.io_->context_wptr().lock();
 			if (ioc_ptr == nullptr)
 			{
-				ASIO2_ASSERT(false);
+				set_last_error(asio::error::eof);
 				return derive;
 			}
 
@@ -104,7 +104,7 @@ namespace asio2::detail
 			std::shared_ptr<asio::io_context> ioc_ptr = derive.io_->context_wptr().lock();
 			if (ioc_ptr == nullptr)
 			{
-				ASIO2_ASSERT(false);
+				set_last_error(asio::error::eof);
 				return derive;
 			}
 
@@ -175,7 +175,7 @@ namespace asio2::detail
 			std::shared_ptr<asio::io_context> ioc_ptr = derive.io_->context_wptr().lock();
 			if (ioc_ptr == nullptr)
 			{
-				ASIO2_ASSERT(false);
+				set_last_error(asio::error::eof);
 				return future;
 			}
 
@@ -225,7 +225,7 @@ namespace asio2::detail
 			std::shared_ptr<asio::io_context> ioc_ptr = derive.io_->context_wptr().lock();
 			if (ioc_ptr == nullptr)
 			{
-				ASIO2_ASSERT(false);
+				set_last_error(asio::error::eof);
 				return future;
 			}
 
@@ -288,7 +288,7 @@ namespace asio2::detail
 			std::shared_ptr<asio::io_context> ioc_ptr = derive.io_->context_wptr().lock();
 			if (ioc_ptr == nullptr)
 			{
-				ASIO2_ASSERT(false);
+				set_last_error(asio::error::eof);
 				return derive;
 			}
 
@@ -334,7 +334,7 @@ namespace asio2::detail
 			std::shared_ptr<asio::io_context> ioc_ptr = derive.io_->context_wptr().lock();
 			if (ioc_ptr == nullptr)
 			{
-				ASIO2_ASSERT(false);
+				set_last_error(asio::error::eof);
 				return future;
 			}
 
@@ -367,7 +367,7 @@ namespace asio2::detail
 			std::shared_ptr<asio::io_context> ioc_ptr = derive.io_->context_wptr().lock();
 			if (ioc_ptr == nullptr)
 			{
-				ASIO2_ASSERT(false);
+				set_last_error(asio::error::eof);
 				return derive;
 			}
 
@@ -415,7 +415,7 @@ namespace asio2::detail
 			std::shared_ptr<asio::io_context> ioc_ptr = derive.io_->context_wptr().lock();
 			if (ioc_ptr == nullptr)
 			{
-				ASIO2_ASSERT(false);
+				set_last_error(asio::error::eof);
 				return derive;
 			}
 
