@@ -3028,14 +3028,15 @@ void rdc_test()
 		ASIO2_CHECK_VALUE(server_stop_counter      .load(), server_stop_counter       == 1);
 	}
 
+	// the sessions is stopped already, do post again, this will cause memory leaks .
 	ASIO2_CHECK(wss_session_ptr->call<std::string>("abc").empty());
-	ASIO2_CHECK(asio2::get_last_error() == asio::error::eof); asio2::clear_last_error();
+	ASIO2_CHECK(asio2::get_last_error() == asio::error::not_connected); asio2::clear_last_error();
 
 	wss_session_ptr->async_call("abc").response([](std::string_view data)
 	{
 		std::ignore = data;
 	});
-	ASIO2_CHECK(asio2::get_last_error() == asio::error::eof); asio2::clear_last_error();
+	ASIO2_CHECK(asio2::get_last_error() == asio::error::not_connected); asio2::clear_last_error();
 
 	ASIO2_TEST_END_LOOP;
 }

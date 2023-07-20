@@ -392,26 +392,10 @@ namespace asio2::detail
 
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			std::shared_ptr<asio::io_context> ioc_ptr = derive.io_->context_wptr().lock();
-			if (ioc_ptr == nullptr)
-			{
-				set_last_error(asio::error::eof);
-				return derive;
-			}
-
 			std::packaged_task<return_type()> task(std::forward<Callback>(func));
 
-			auto w = derive.weak_from_this();
-			bool f = w.expired();
-
-			auto fn = [f, w = std::move(w), t = std::move(task)](event_queue_guard<derived_t> g) mutable
+			auto fn = [p = derive.selfptr(), t = std::move(task)](event_queue_guard<derived_t> g) mutable
 			{
-				auto p = w.lock();
-				if (!f && !p)
-				{
-					return;
-				}
-
 				detail::ignore_unused(p, g);
 
 				t();
@@ -452,24 +436,8 @@ namespace asio2::detail
 
 			std::future<return_type> future = task.get_future();
 
-			std::shared_ptr<asio::io_context> ioc_ptr = derive.io_->context_wptr().lock();
-			if (ioc_ptr == nullptr)
+			auto fn = [p = derive.selfptr(), t = std::move(task)](event_queue_guard<derived_t> g) mutable
 			{
-				set_last_error(asio::error::eof);
-				return future;
-			}
-
-			auto w = derive.weak_from_this();
-			bool f = w.expired();
-
-			auto fn = [f, w = std::move(w), t = std::move(task)](event_queue_guard<derived_t> g) mutable
-			{
-				auto p = w.lock();
-				if (!f && !p)
-				{
-					return;
-				}
-
 				detail::ignore_unused(p, g);
 
 				t();

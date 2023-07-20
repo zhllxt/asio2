@@ -223,13 +223,6 @@ namespace asio2::detail
 		{
 			using message_type [[maybe_unused]] = typename detail::remove_cvref_t<Message>;
 
-			std::shared_ptr<asio::io_context> ioc_ptr = caller->io_->context_wptr().lock();
-			if (ioc_ptr == nullptr)
-			{
-				set_last_error(asio::error::eof);
-				return;
-			}
-
 			// use post and push_event to ensure the publish message is sent to clients must
 			// after mqtt response is sent already.
 			asio::post(caller->io_->context(), make_allocator(caller->wallocator(),
@@ -356,13 +349,6 @@ namespace asio2::detail
 			}
 			else
 			{
-				std::shared_ptr<asio::io_context> ioc_ptr = caller->io_->context_wptr().lock();
-				if (ioc_ptr == nullptr)
-				{
-					set_last_error(asio::error::eof);
-					return;
-				}
-
 				std::shared_ptr<asio::steady_timer> expiry_timer;
 
 				if constexpr (std::is_same_v<message_type, mqtt::v5::publish>)

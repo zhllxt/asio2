@@ -90,21 +90,6 @@ namespace asio2::detail
 			{
 				using result_t = typename rpc_result_t<return_t>::type;
 
-				std::shared_ptr<asio::io_context> ioc_ptr = derive.io_->context_wptr().lock();
-				if (ioc_ptr == nullptr)
-				{
-					set_last_error(rpc::make_error_code(rpc::error::eof));
-
-					if constexpr (!std::is_void_v<return_t>)
-					{
-						return result_t{};
-					}
-					else
-					{
-						return;
-					}
-				}
-
 				if (!derive.is_started())
 				{
 					set_last_error(rpc::make_error_code(rpc::error::not_connected));
@@ -183,18 +168,9 @@ namespace asio2::detail
 					derive.reqs_.erase(id);
 				};
 
-				auto w = derive.weak_from_this();
-				bool f = w.expired();
-
 				asio::post(derive.io_->context(), make_allocator(derive.callocator_,
-				[&derive, req = std::move(req), ex = std::move(ex), f, w]() mutable
+				[&derive, req = std::move(req), ex = std::move(ex), p = derive.selfptr()]() mutable
 				{
-					auto p = w.lock();
-					if (!f && !p)
-					{
-						return;
-					}
-
 					derive.reqs_.emplace(req.id(), std::move(ex));
 
 					derive.internal_async_send(std::move(p), (derive.sr_.reset() << req).str(),
@@ -225,13 +201,9 @@ namespace asio2::detail
 						set_last_error(rpc::make_error_code(rpc::error::timed_out));
 
 						asio::post(derive.io_->context(), make_allocator(derive.callocator_,
-						[&derive, id, f, w = std::move(w)]() mutable
+						[&derive, id, p = derive.selfptr()]() mutable
 						{
-							auto p = w.lock();
-							if (!f && !p)
-							{
-								return;
-							}
+							detail::ignore_unused(p);
 
 							derive.reqs_.erase(id);
 						}));
@@ -243,13 +215,9 @@ namespace asio2::detail
 					// into async_call and the return value is empty.
 
 					asio::post(derive.io_->context(), make_allocator(derive.callocator_,
-					[&derive, id, f, w = std::move(w)]() mutable
+					[&derive, id, p = derive.selfptr()]() mutable
 					{
-						auto p = w.lock();
-						if (!f && !p)
-						{
-							return;
-						}
+						detail::ignore_unused(p);
 
 						derive.reqs_.erase(id);
 					}));
@@ -428,13 +396,6 @@ namespace asio2::detail
 			{
 				ASIO2_ASSERT(!req.id());
 
-				std::shared_ptr<asio::io_context> ioc_ptr = derive.io_->context_wptr().lock();
-				if (ioc_ptr == nullptr)
-				{
-					set_last_error(rpc::make_error_code(rpc::error::eof));
-					return;
-				}
-
 				if (!derive.is_started())
 				{
 					set_last_error(rpc::make_error_code(rpc::error::not_connected));
@@ -443,18 +404,9 @@ namespace asio2::detail
 
 				set_last_error(rpc::make_error_code(rpc::error::success));
 
-				auto w = derive.weak_from_this();
-				bool f = w.expired();
-
 				asio::post(derive.io_->context(), make_allocator(derive.callocator_,
-				[&derive, req = std::forward<Req>(req), f, w = std::move(w)]() mutable
+				[&derive, req = std::forward<Req>(req), p = derive.selfptr()]() mutable
 				{
-					auto p = w.lock();
-					if (!f && !p)
-					{
-						return;
-					}
-
 					derive.internal_async_send(std::move(p), (derive.sr_.reset() << req).str());
 				}));
 			}
@@ -464,13 +416,6 @@ namespace asio2::detail
 				std::chrono::duration<Rep, Period> timeout, Callback&& cb, Req&& req)
 			{
 				ASIO2_ASSERT(id);
-
-				std::shared_ptr<asio::io_context> ioc_ptr = derive.io_->context_wptr().lock();
-				if (ioc_ptr == nullptr)
-				{
-					set_last_error(rpc::make_error_code(rpc::error::eof));
-					return;
-				}
 
 				req.id(id);
 
@@ -492,17 +437,6 @@ namespace asio2::detail
 					derive.reqs_.erase(id);
 				};
 
-				// use weak ptr and expired test to solve the memory leaks, like this:
-				// int main()
-				// {
-				//   std::shared_ptr<asio2::rpc_client> client = std::make_shared<asio2::rpc_client>();
-				//   client->async_call("add", 1, 2).response([](int) {});
-				// }
-				// it will cause the io_context hold the derived shared_ptr, and the derive has hold
-				// the io_context already, then cause loop references.
-				auto w = derive.weak_from_this();
-				bool f = w.expired();
-
 				if (!derive.is_started())
 				{
 					set_last_error(rpc::make_error_code(rpc::error::not_connected));
@@ -510,13 +444,9 @@ namespace asio2::detail
 					// bug fixed : can't call ex(...) directly, it will 
 					// cause "reqs_.erase(id)" be called in multithread 
 					asio::post(derive.io_->context(), make_allocator(derive.callocator_,
-					[ex = std::move(ex), f, w = std::move(w)]() mutable
+					[ex = std::move(ex), p = derive.selfptr()]() mutable
 					{
-						auto p = w.lock();
-						if (!f && !p)
-						{
-							return;
-						}
+						detail::ignore_unused(p);
 
 						set_last_error(rpc::make_error_code(rpc::error::not_connected));
 
@@ -540,14 +470,8 @@ namespace asio2::detail
 
 				asio::post(derive.io_->context(), make_allocator(derive.callocator_,
 				[&derive, timer = std::move(timer), timeout, req = std::forward<Req>(req),
-					ex = std::move(ex), f, w = std::move(w)]() mutable
+					ex = std::move(ex), p = derive.selfptr()]() mutable
 				{
-					auto p = w.lock();
-					if (!f && !p)
-					{
-						return;
-					}
-
 					// 1. first, save the request id
 					derive.reqs_.emplace(req.id(), std::move(ex));
 

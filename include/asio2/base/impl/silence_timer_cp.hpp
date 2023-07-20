@@ -29,10 +29,7 @@ namespace asio2::detail
 		/**
 		 * @brief constructor
 		 */
-		explicit silence_timer_cp(asio::io_context& ioc) : silence_timer_(ioc)
-		{
-			this->silence_timer_canceled_.clear();
-		}
+		silence_timer_cp() = default;
 
 		/**
 		 * @brief destructor
@@ -64,8 +61,8 @@ namespace asio2::detail
 
 	protected:
 		template<class Rep, class Period>
-		inline void _post_silence_timer(std::chrono::duration<Rep, Period> duration,
-			std::shared_ptr<derived_t> this_ptr)
+		inline void _post_silence_timer(
+			std::chrono::duration<Rep, Period> duration, std::shared_ptr<derived_t> this_ptr)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
@@ -84,8 +81,13 @@ namespace asio2::detail
 				// start the timer of check silence timeout
 				if (duration > std::chrono::duration<Rep, Period>::zero())
 				{
-					this->silence_timer_.expires_after(duration);
-					this->silence_timer_.async_wait(
+					if (this->silence_timer_ == nullptr)
+					{
+						this->silence_timer_ = std::make_unique<asio::steady_timer>(derive.io_->context());
+					}
+
+					this->silence_timer_->expires_after(duration);
+					this->silence_timer_->async_wait(
 					[&derive, this_ptr = std::move(this_ptr)](const error_code & ec) mutable
 					{
 						derive._handle_silence_timer(ec, std::move(this_ptr));
@@ -102,7 +104,10 @@ namespace asio2::detail
 
 			// ec maybe zero when timer_canceled_ is true.
 			if (ec == asio::error::operation_aborted || this->silence_timer_canceled_.test_and_set())
+			{
+				this->silence_timer_.reset();
 				return;
+			}
 
 			this->silence_timer_canceled_.clear();
 
@@ -123,6 +128,8 @@ namespace asio2::detail
 				set_last_error(asio::error::timed_out);
 
 				derive._do_disconnect(asio::error::timed_out, std::move(this_ptr));
+
+				this->silence_timer_.reset();
 			}
 		}
 
@@ -138,13 +145,16 @@ namespace asio2::detail
 
 				this->silence_timer_canceled_.test_and_set();
 
-				detail::cancel_timer(this->silence_timer_);
+				if (this->silence_timer_)
+				{
+					detail::cancel_timer(*(this->silence_timer_));
+				}
 			});
 		}
 
 	protected:
 		/// timer for session silence time out
-		asio::steady_timer                          silence_timer_;
+		std::unique_ptr<asio::steady_timer>         silence_timer_;
 
 		/// Why use this flag, beacuase the ec param maybe zero when the timer callback is
 		/// called after the timer cancel function has called already.

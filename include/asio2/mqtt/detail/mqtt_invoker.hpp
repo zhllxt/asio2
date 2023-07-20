@@ -1180,13 +1180,6 @@ namespace asio2::detail
 				if (!ec)
 					return;
 
-				std::shared_ptr<asio::io_context> ioc_ptr = caller->io_->context_wptr().lock();
-				if (ioc_ptr == nullptr)
-				{
-					set_last_error(asio::error::eof);
-					return;
-				}
-
 				// post a async event to disconnect, don't call _do_disconnect directly,
 				// otherwise the client's bind_disconnect callback maybe can't be called.
 				asio::post(caller->io_->context(), make_allocator(caller->wallocator(),

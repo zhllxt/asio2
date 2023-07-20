@@ -79,11 +79,6 @@ namespace asio2
 
 			// when code run to here, the io_context must be not destroy.
 
-			{
-				std::lock_guard g{ this->event_life_lock_ };
-				this->event_life_flag_ = true;
-			}
-
 			this->event_timer_io_->timers().emplace(std::addressof(event_timer_));
 
 			// Setting expiration to infinity will cause handlers to
@@ -102,13 +97,6 @@ namespace asio2
 
 				detail::ignore_unused(ec);
 
-				// after this lambda is executed, the io_context maybe destroyed,
-				// we set the flag to false.
-				{
-					std::lock_guard g{ this->event_life_lock_ };
-					this->event_life_flag_ = false;
-				}
-
 				this->event_timer_io_->timers().erase(std::addressof(event_timer_));
 
 				handler();
@@ -124,19 +112,12 @@ namespace asio2
 			// must use dispatch, otherwise if use called post_condition_event, and then called 
 			// notify() immediately, the event will can't be notifyed.
 
-			// when code run to here, the io_context maybe destroyed already, if the 
-			// io_context is destroyed already, the flag must be false, so the io_context
-			// will can't be used.
-			std::lock_guard g{ this->event_life_lock_ };
-			if (this->event_life_flag_ == false)
-				return;
-
 			asio::dispatch(this->event_timer_io_->context(), [this, this_ptr = this->selfptr()]() mutable
-				{
-					detail::ignore_unused(this_ptr);
+			{
+				detail::ignore_unused(this_ptr);
 
-					detail::cancel_timer(this->event_timer_);
-				});
+				detail::cancel_timer(this->event_timer_);
+			});
 		}
 
 	protected:
@@ -145,12 +126,6 @@ namespace asio2
 
 		/// Used to implementing asynchronous condition event
 		asio::steady_timer                  event_timer_;
-
-		///
-		mutable std::mutex                  event_life_lock_;
-
-		///
-		bool                                event_life_flag_ = false;
 	};
 }
 
@@ -181,32 +156,16 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			std::shared_ptr<asio::io_context> ioc_ptr = derive.io_->context_wptr().lock();
-			if (ioc_ptr == nullptr)
-			{
-				set_last_error(asio::error::eof);
-				return nullptr;
-			}
-
-			auto w = derive.weak_from_this();
-			bool f = w.expired();
-
 			std::shared_ptr<condition_event> event_ptr = std::make_shared<condition_event>(derive.io_);
 
 			asio::dispatch(derive.io_->context(), make_allocator(derive.wallocator(),
-			[this, f, w = std::move(w), event_ptr, fn = std::forward<Function>(fn)]() mutable
+			[this, this_ptr = derive.selfptr(), event_ptr, fn = std::forward<Function>(fn)]() mutable
 			{
-				auto p = w.lock();
-				if (!f && !p)
-				{
-					return;
-				}
-
 				condition_event* evt = event_ptr.get();
 
 				this->condition_events_.emplace(evt, std::move(event_ptr));
 
-				evt->async_wait([this, this_ptr = std::move(p), key = evt, fn = std::move(fn)]() mutable
+				evt->async_wait([this, this_ptr = std::move(this_ptr), key = evt, fn = std::move(fn)]() mutable
 				{
 					fn();
 
@@ -224,29 +183,14 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			std::shared_ptr<asio::io_context> ioc_ptr = derive.io_->context_wptr().lock();
-			if (ioc_ptr == nullptr)
-			{
-				set_last_error(asio::error::eof);
-				return derive;
-			}
-
-			auto w = derive.weak_from_this();
-			bool f = w.expired();
-
 			// Make sure we run on the io_context thread
 			asio::dispatch(derive.io_->context(), make_allocator(derive.wallocator(),
-			[this, f, w = std::move(w)]() mutable
+			[this, this_ptr = derive.selfptr()]() mutable
 			{
-				auto p = w.lock();
-				if (!f && !p)
-				{
-					return;
-				}
-
 				for (auto&[key, event_ptr] : this->condition_events_)
 				{
-					detail::ignore_unused(key);
+					detail::ignore_unused(this_ptr, key);
+
 					event_ptr->notify();
 				}
 			}));

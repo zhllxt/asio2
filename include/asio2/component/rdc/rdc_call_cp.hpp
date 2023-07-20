@@ -108,14 +108,6 @@ namespace asio2::detail
 				//	ASIO2_ASSERT(false && "This function is only available in rdc mode");
 				//}
 
-				std::shared_ptr<asio::io_context> ioc_ptr = derive.io_->context_wptr().lock();
-				if (ioc_ptr == nullptr)
-				{
-					set_last_error(asio::error::eof);
-
-					return return_t{};
-				}
-
 				if (!derive.is_started())
 				{
 					set_last_error(asio::error::not_connected);
@@ -146,21 +138,12 @@ namespace asio2::detail
 					pm->set_value(ec);
 				};
 
-				auto w = derive.weak_from_this();
-				bool f = w.expired();
-
 				// All pending sending events will be cancelled after enter the callback below.
 				asio::post(derive.io_->context(), make_allocator(derive.wallocator(),
-				[&derive, f, w = std::move(w), timeout,
+				[&derive, p = derive.selfptr(), timeout,
 					invoker = std::move(invoker), data = std::forward<DataT>(data)]
 				() mutable
 				{
-					auto p = w.lock();
-					if (!f && !p)
-					{
-						return;
-					}
-
 					derive._rdc_send(std::move(p), std::move(data), std::move(timeout), std::move(invoker));
 				}));
 
@@ -205,33 +188,19 @@ namespace asio2::detail
 				//	ASIO2_ASSERT(false && "This function is only available in rdc mode");
 				//}
 
-				std::shared_ptr<asio::io_context> ioc_ptr = derive.io_->context_wptr().lock();
-				if (ioc_ptr == nullptr)
-				{
-					set_last_error(asio::error::eof);
-					return;
-				}
-
-				auto w = derive.weak_from_this();
-				bool f = w.expired();
-
 				if (!derive.is_started())
 				{
 					set_last_error(asio::error::not_connected);
 
 					// ensure the callback was called in the communication thread.
 					asio::post(derive.io_->context(), make_allocator(derive.wallocator(),
-					[&derive, f, w = std::move(w), invoker = std::forward<Invoker>(invoker),
+					[&derive, p = derive.selfptr(), invoker = std::forward<Invoker>(invoker),
 						data = derive._data_persistence(std::forward<DataT>(data))]
 					() mutable
 					{
-						set_last_error(asio::error::not_connected);
+						detail::ignore_unused(p);
 
-						auto p = w.lock();
-						if (!f && !p)
-						{
-							return;
-						}
+						set_last_error(asio::error::not_connected);
 
 						derive._rdc_invoke_with_send(asio::error::not_connected,
 							invoker, derive._rdc_convert_to_send_data(data));
@@ -242,16 +211,10 @@ namespace asio2::detail
 
 				// All pending sending events will be cancelled after enter the callback below.
 				asio::post(derive.io_->context(), make_allocator(derive.wallocator(),
-				[&derive, f, w = std::move(w), timeout,
+				[&derive, p = derive.selfptr(), timeout,
 					invoker = std::forward<Invoker>(invoker), data = std::forward<DataT>(data)]
 				() mutable
 				{
-					auto p = w.lock();
-					if (!f && !p)
-					{
-						return;
-					}
-
 					derive._rdc_send(std::move(p), std::move(data), std::move(timeout), std::move(invoker));
 				}));
 			}

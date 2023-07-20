@@ -130,7 +130,7 @@ namespace asio2::detail
 			, close_cp            <derived_t, args_t>()
 			, disconnect_cp       <derived_t, args_t>()
 			, user_timer_cp       <derived_t, args_t>()
-			, silence_timer_cp    <derived_t, args_t>(rwio->context())
+			, silence_timer_cp    <derived_t, args_t>()
 			, connect_timeout_cp  <derived_t, args_t>()
 			, send_cp             <derived_t, args_t>()
 			, post_cp             <derived_t, args_t>()

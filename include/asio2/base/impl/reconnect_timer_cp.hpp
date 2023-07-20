@@ -184,7 +184,10 @@ namespace asio2::detail
 
 			// current reconnect timer is canceled, so return directly
 			if (timer_ptr->canceled.test_and_set())
+			{
+				this->reconnect_timer_.reset();
 				return;
+			}
 
 			timer_ptr->canceled.clear();
 

@@ -108,6 +108,11 @@ namespace asio2::detail
 			
 			derived_t& derive = static_cast<derived_t&>(*this);
 
+			if (!s)
+			{
+				return std::basic_string<value_type>{};
+			}
+
 			return derive.data_filter_before_send(std::basic_string<value_type>(s, count));
 		}
 

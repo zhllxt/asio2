@@ -432,24 +432,18 @@ namespace asio2::detail
 
 			auto* defer = r.defer_.get();
 
-			std::weak_ptr<asio::io_context> ioc_wptr = caller->io_->context_wptr();
+			detail::io_context_work_guard iocg(caller->io_->context().get_executor());
 
 			r.defer_->_bind(
-			[caller_ptr, caller, &sr, ec, head = caller->header_, defer, ioc_wptr = std::move(ioc_wptr)]
-			() mutable
+			[caller_ptr, caller, &sr, ec, head = caller->header_, defer, iocg = std::move(iocg)]() mutable
 			{
+				detail::ignore_unused(caller_ptr, iocg);
+
 				if (head.id() == static_cast<rpc_header::id_type>(0))
 					return;
 
 				// the "header_, async_send" should not appear in this "invoker" module, But I thought 
 				// for a long time and couldn't find of a good method to solve this problem.
-
-				std::shared_ptr<asio::io_context> ioc_ptr = ioc_wptr.lock();
-				if (ioc_ptr == nullptr)
-				{
-					set_last_error(asio::error::eof);
-					return;
-				}
 
 				// the operator for "sr" must be in the io_context thread. 
 				asio::dispatch(caller->io_->context(), make_allocator(caller->wallocator(),

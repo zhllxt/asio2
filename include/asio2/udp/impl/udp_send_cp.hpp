@@ -311,27 +311,11 @@ namespace asio2::detail
 			// We must ensure that there is only one operation to send data
 			// at the same time,otherwise may be cause crash.
 
-			if (!s)
-			{
-				auto w = derive.weak_from_this();
-				bool f = w.expired();
-
-				// we should ensure that the callback must be called in the io_context thread.
-				asio::post(derive.io_->context(), make_allocator(derive.wallocator(),
-				[f, w = std::move(w), fn = std::forward<Callback>(fn)]() mutable
-				{
-					auto p = w.lock();
-					if (!f && !p)
-					{
-						set_last_error(asio::error::eof);
-						return;
-					}
-
-					set_last_error(asio::error::invalid_argument);
-					callback_helper::call(fn, 0);
-				}));
-				return;
-			}
+			//// don't need do this
+			//if (!s)
+			//{
+			//	// ... 
+			//}
 
 			derive._do_resolve(std::forward<String>(host), std::forward<StrOrInt>(port),
 				derive._data_persistence(s, count),
@@ -365,21 +349,11 @@ namespace asio2::detail
 			// We must ensure that there is only one operation to send data
 			// at the same time,otherwise may be cause crash.
 
-			auto w = derive.weak_from_this();
-			bool f = w.expired();
-
 			derive.push_event(
-			[&derive, f, w = std::move(w), id = derive.life_id(), endpoint = std::forward<Endpoint>(endpoint),
+			[&derive, p = derive.selfptr(), id = derive.life_id(), endpoint = std::forward<Endpoint>(endpoint),
 				data = derive._data_persistence(std::forward<DataT>(data))]
 			(event_queue_guard<derived_t> g) mutable
 			{
-				auto p = w.lock();
-				if (!f && !p)
-				{
-					set_last_error(asio::error::eof);
-					return;
-				}
-
 				if (!derive.is_started())
 				{
 					set_last_error(asio::error::not_connected);
@@ -394,12 +368,7 @@ namespace asio2::detail
 
 				clear_last_error();
 
-				derive._do_send(endpoint, data, [g = std::move(g), p = std::move(p)](const error_code&, std::size_t) mutable
-				{
-					{
-						[[maybe_unused]] auto t{ std::move(g) };
-					}
-				});
+				derive._do_send(endpoint, data, [g = std::move(g)](const error_code&, std::size_t) mutable {});
 			});
 		}
 
@@ -442,21 +411,11 @@ namespace asio2::detail
 			// We must ensure that there is only one operation to send data
 			// at the same time,otherwise may be cause crash.
 
-			auto w = derive.weak_from_this();
-			bool f = w.expired();
-
 			derive.push_event(
-			[&derive, f, w = std::move(w), id = derive.life_id(), endpoint = std::forward<Endpoint>(endpoint),
+			[&derive, p = derive.selfptr(), id = derive.life_id(), endpoint = std::forward<Endpoint>(endpoint),
 				data = derive._data_persistence(s, count)]
 			(event_queue_guard<derived_t> g) mutable
 			{
-				auto p = w.lock();
-				if (!f && !p)
-				{
-					set_last_error(asio::error::eof);
-					return;
-				}
-
 				if (!derive.is_started())
 				{
 					set_last_error(asio::error::not_connected);
@@ -471,12 +430,7 @@ namespace asio2::detail
 
 				clear_last_error();
 
-				derive._do_send(endpoint, data, [g = std::move(g), p = std::move(p)](const error_code&, std::size_t) mutable
-				{
-					{
-						[[maybe_unused]] auto t{ std::move(g) };
-					}
-				});
+				derive._do_send(endpoint, data, [g = std::move(g)](const error_code&, std::size_t) mutable {});
 			});
 		}
 
@@ -508,22 +462,11 @@ namespace asio2::detail
 				std::make_shared<std::promise<std::pair<error_code, std::size_t>>>();
 			std::future<std::pair<error_code, std::size_t>> future = promise->get_future();
 
-			auto w = derive.weak_from_this();
-			bool f = w.expired();
-
 			derive.push_event(
-			[&derive, f, w = std::move(w), id = derive.life_id(), endpoint = std::forward<Endpoint>(endpoint),
+			[&derive, p = derive.selfptr(), id = derive.life_id(), endpoint = std::forward<Endpoint>(endpoint),
 				data = derive._data_persistence(std::forward<DataT>(data)), promise = std::move(promise)]
 			(event_queue_guard<derived_t> g) mutable
 			{
-				auto p = w.lock();
-				if (!f && !p)
-				{
-					set_last_error(asio::error::eof);
-					promise->set_value(std::pair<error_code, std::size_t>(asio::error::eof, 0));
-					return;
-				}
-
 				if (!derive.is_started())
 				{
 					set_last_error(asio::error::not_connected);
@@ -540,14 +483,10 @@ namespace asio2::detail
 
 				clear_last_error();
 
-				derive._do_send(endpoint, data, [&promise, g = std::move(g), p = std::move(p)]
+				derive._do_send(endpoint, data, [&promise, g = std::move(g)]
 				(const error_code& ec, std::size_t bytes_sent) mutable
 				{
 					promise->set_value(std::pair<error_code, std::size_t>(ec, bytes_sent));
-
-					{
-						[[maybe_unused]] auto t{ std::move(g) };
-					}
 				});
 			});
 
@@ -603,22 +542,11 @@ namespace asio2::detail
 				return future;
 			}
 
-			auto w = derive.weak_from_this();
-			bool f = w.expired();
-
 			derive.push_event(
-			[&derive, f, w = std::move(w), id = derive.life_id(), endpoint = std::forward<Endpoint>(endpoint),
+			[&derive, p = derive.selfptr(), id = derive.life_id(), endpoint = std::forward<Endpoint>(endpoint),
 				data = derive._data_persistence(s, count), promise = std::move(promise)]
 			(event_queue_guard<derived_t> g) mutable
 			{
-				auto p = w.lock();
-				if (!f && !p)
-				{
-					set_last_error(asio::error::eof);
-					promise->set_value(std::pair<error_code, std::size_t>(asio::error::eof, 0));
-					return;
-				}
-
 				if (!derive.is_started())
 				{
 					set_last_error(asio::error::not_connected);
@@ -635,14 +563,10 @@ namespace asio2::detail
 
 				clear_last_error();
 
-				derive._do_send(endpoint, data, [&promise, g = std::move(g), p = std::move(p)]
+				derive._do_send(endpoint, data, [&promise, g = std::move(g)]
 				(const error_code& ec, std::size_t bytes_sent) mutable
 				{
 					promise->set_value(std::pair<error_code, std::size_t>(ec, bytes_sent));
-
-					{
-						[[maybe_unused]] auto t{ std::move(g) };
-					}
 				});
 			});
 
@@ -670,23 +594,13 @@ namespace asio2::detail
 
 			detail::integer_add_sub_guard asg(derive.io_->pending());
 
-			auto w = derive.weak_from_this();
-			bool f = w.expired();
-
 			// We must ensure that there is only one operation to send data
 			// at the same time,otherwise may be cause crash.
 			derive.push_event(
-			[&derive, f, w = std::move(w), id = derive.life_id(), endpoint = std::forward<Endpoint>(endpoint),
+			[&derive, p = derive.selfptr(), id = derive.life_id(), endpoint = std::forward<Endpoint>(endpoint),
 				data = derive._data_persistence(std::forward<DataT>(data)), fn = std::forward<Callback>(fn)]
 			(event_queue_guard<derived_t> g) mutable
 			{
-				auto p = w.lock();
-				if (!f && !p)
-				{
-					set_last_error(asio::error::eof);
-					return;
-				}
-
 				if (!derive.is_started())
 				{
 					set_last_error(asio::error::not_connected);
@@ -703,13 +617,10 @@ namespace asio2::detail
 
 				clear_last_error();
 
-				derive._do_send(endpoint, data, [&fn, g = std::move(g), p = std::move(p)]
+				derive._do_send(endpoint, data, [&fn, g = std::move(g)]
 				(const error_code&, std::size_t bytes_sent) mutable
 				{
 					callback_helper::call(fn, bytes_sent);
-					{
-						[[maybe_unused]] auto t{ std::move(g) };
-					}
 				});
 			});
 		}
@@ -751,37 +662,15 @@ namespace asio2::detail
 			// We must ensure that there is only one operation to send data
 			// at the same time,otherwise may be cause crash.
 
-			auto w = derive.weak_from_this();
-			bool f = w.expired();
-
-			if (!s)
-			{
-				// we should ensure that the callback must be called in the io_context thread.
-				asio::post(derive.io_->context(), make_allocator(derive.wallocator(),
-				[f, w = std::move(w), fn = std::forward<Callback>(fn)]() mutable
-				{
-					auto p = w.lock();
-					if (!f && !p)
-					{
-						set_last_error(asio::error::eof);
-						return;
-					}
-
-					set_last_error(asio::error::invalid_argument);
-					callback_helper::call(fn, 0);
-				}));
-				return;
-			}
-
 			derive.push_event(
-			[&derive, f, w = std::move(w), id = derive.life_id(), endpoint = std::forward<Endpoint>(endpoint),
+			[&derive, p = derive.selfptr(), id = derive.life_id(), endpoint = std::forward<Endpoint>(endpoint),
 				data = derive._data_persistence(s, count), fn = std::forward<Callback>(fn)]
 			(event_queue_guard<derived_t> g) mutable
 			{
-				auto p = w.lock();
-				if (!f && !p)
+				if (!s)
 				{
-					set_last_error(asio::error::eof);
+					set_last_error(asio::error::invalid_argument);
+					callback_helper::call(fn, 0);
 					return;
 				}
 
@@ -801,13 +690,10 @@ namespace asio2::detail
 
 				clear_last_error();
 
-				derive._do_send(endpoint, data, [&fn, g = std::move(g), p = std::move(p)]
+				derive._do_send(endpoint, data, [&fn, g = std::move(g)]
 				(const error_code&, std::size_t bytes_sent) mutable
 				{
 					callback_helper::call(fn, bytes_sent);
-					{
-						[[maybe_unused]] auto t{ std::move(g) };
-					}
 				});
 			});
 		}
@@ -1009,70 +895,61 @@ namespace asio2::detail
 			std::unique_ptr<resolver_type> resolver_ptr = std::make_unique<resolver_type>(
 				derive.io_->context());
 
-			auto w = derive.weak_from_this();
-			bool f = w.expired();
-
 			// Before async_resolve execution is complete, we must hold the resolver object.
 			// so we captured the resolver_ptr into the lambda callback function.
-			resolver_type * resolver_pointer = resolver_ptr.get();
-			resolver_pointer->async_resolve(std::forward<String>(host), detail::to_string(std::forward<StrOrInt>(port)),
-			[&derive, f, w = std::move(w), resolver_ptr = std::move(resolver_ptr),
+
+			resolver_type * rp = resolver_ptr.get();
+
+			rp->async_resolve(std::forward<String>(host), detail::to_string(std::forward<StrOrInt>(port)),
+			[&derive, p = derive.selfptr(), resolver_ptr = std::move(resolver_ptr),
 				data = std::forward<Data>(data), callback = std::forward<Callback>(callback)]
 			(const error_code& ec, const endpoints_type& endpoints) mutable
 			{
-				auto p = w.lock();
-				if (!f && !p)
-				{
-					set_last_error(asio::error::eof);
-					callback(asio::error::eof, 0);
-					return;
-				}
-
 				set_last_error(ec);
 
 				if (ec)
 				{
 					callback(ec, 0);
+					return;
 				}
-				else
+
+				decltype(endpoints.size()) i = 1;
+
+				for (auto iter = endpoints.begin(); iter != endpoints.end(); ++iter, ++i)
 				{
-					decltype(endpoints.size()) i = 1;
-					for (auto iter = endpoints.begin(); iter != endpoints.end(); ++iter, ++i)
+					derive.push_event(
+					[&derive, id = derive.life_id(), endpoint = iter->endpoint(),
+						p = (endpoints.size() == i ? std::move(p) : p),
+						data = (endpoints.size() == i ? std::move(data) : data),
+						callback = (endpoints.size() == i ? std::move(callback) : callback)]
+					(event_queue_guard<derived_t> g) mutable
 					{
-						derive.push_event(
-						[&derive, id = derive.life_id(), endpoint = iter->endpoint(),
-							p = (endpoints.size() == i ? std::move(p) : p),
-							data = (endpoints.size() == i ? std::move(data) : data),
-							callback = (endpoints.size() == i ? std::move(callback) : callback)]
-						(event_queue_guard<derived_t> g) mutable
+						if (!derive.is_started())
 						{
-							if (!derive.is_started())
-							{
-								set_last_error(asio::error::not_connected);
+							set_last_error(asio::error::not_connected);
 
-								callback(asio::error::not_connected, 0);
+							callback(asio::error::not_connected, 0);
 
-								return;
-							}
+							return;
+						}
 
-							if (id != derive.life_id())
-							{
-								set_last_error(asio::error::operation_aborted);
+						if (id != derive.life_id())
+						{
+							set_last_error(asio::error::operation_aborted);
 
-								callback(asio::error::operation_aborted, 0);
+							callback(asio::error::operation_aborted, 0);
 
-								return;
-							}
+							return;
+						}
 
-							clear_last_error();
+						clear_last_error();
 
-							derive._do_send(endpoint, data, [g = std::move(g), f = std::move(callback)]
-							(const error_code& ec, std::size_t bytes_sent) mutable
-							{
-								f(ec, bytes_sent);
-							});
+						derive._do_send(endpoint, data, [g = std::move(g), f = std::move(callback)]
+						(const error_code& ec, std::size_t bytes_sent) mutable
+						{
+							f(ec, bytes_sent);
 						});
-					}
+					});
 				}
 			});
 		}

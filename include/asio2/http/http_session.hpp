@@ -237,12 +237,12 @@ namespace asio2::detail
 		template<typename DeferEvent>
 		inline void _handle_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr, DeferEvent chain)
 		{
+			// can not use std::move(this_ptr), beacuse after handle stop with std::move(this_ptr),
+			// this object maybe destroyed, then call "this" will crash.
+			super::_handle_stop(ec, this_ptr, std::move(chain));
+
 			// reset the callback shared_ptr, to avoid the callback owned this self shared_ptr.
 			this->websocket_router_.reset();
-
-			this->derived()._ws_uninit();
-
-			super::_handle_stop(ec, std::move(this_ptr), std::move(chain));
 		}
 
 		template<typename C, class MessageT>

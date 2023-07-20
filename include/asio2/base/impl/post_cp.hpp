@@ -50,27 +50,13 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			std::shared_ptr<asio::io_context> ioc_ptr = derive.io_->context_wptr().lock();
-			if (ioc_ptr == nullptr)
-			{
-				set_last_error(asio::error::eof);
-				return derive;
-			}
-
-			auto w = derive.weak_from_this();
-			bool f = w.expired();
-
 			// if use call post, but the user callback "fn" has't hold the session_ptr,
 			// it maybe cause crash, so we need hold the session_ptr again at here.
 			// if the session_ptr is already destroyed, the selfptr() will cause crash.
 			asio::post(derive.io_->context(), make_allocator(derive.wallocator(),
-			[f, w = std::move(w), fn = std::forward<Function>(fn)]() mutable
+			[p = derive.selfptr(), fn = std::forward<Function>(fn)]() mutable
 			{
-				auto p = w.lock();
-				if (!f && !p)
-				{
-					return;
-				}
+				detail::ignore_unused(p);
 
 				fn();
 			}));
@@ -101,25 +87,9 @@ namespace asio2::detail
 				delay = std::chrono::duration_cast<std::chrono::duration<Rep, Period>>(
 					(asio::steady_timer::duration::max)());
 
-			std::shared_ptr<asio::io_context> ioc_ptr = derive.io_->context_wptr().lock();
-			if (ioc_ptr == nullptr)
-			{
-				set_last_error(asio::error::eof);
-				return derive;
-			}
-
-			auto w = derive.weak_from_this();
-			bool f = w.expired();
-
 			asio::post(derive.io_->context(), make_allocator(derive.wallocator(),
-			[this, &derive, f, w = std::move(w), fn = std::forward<Function>(fn), delay]() mutable
+			[this, &derive, p = derive.selfptr(), fn = std::forward<Function>(fn), delay]() mutable
 			{
-				auto p = w.lock();
-				if (!f && !p)
-				{
-					return;
-				}
-
 				std::unique_ptr<asio::steady_timer> timer = std::make_unique<
 					asio::steady_timer>(derive.io_->context());
 
@@ -172,24 +142,10 @@ namespace asio2::detail
 
 			std::future<return_type> future = task.get_future();
 
-			std::shared_ptr<asio::io_context> ioc_ptr = derive.io_->context_wptr().lock();
-			if (ioc_ptr == nullptr)
-			{
-				set_last_error(asio::error::eof);
-				return future;
-			}
-
-			auto w = derive.weak_from_this();
-			bool f = w.expired();
-
 			asio::post(derive.io_->context(), make_allocator(derive.wallocator(),
-			[f, w = std::move(w), t = std::move(task)]() mutable
+			[p = derive.selfptr(), t = std::move(task)]() mutable
 			{
-				auto p = w.lock();
-				if (!f && !p)
-				{
-					return;
-				}
+				detail::ignore_unused(p);
 
 				t();
 			}));
@@ -222,25 +178,9 @@ namespace asio2::detail
 
 			std::future<return_type> future = task.get_future();
 
-			std::shared_ptr<asio::io_context> ioc_ptr = derive.io_->context_wptr().lock();
-			if (ioc_ptr == nullptr)
-			{
-				set_last_error(asio::error::eof);
-				return future;
-			}
-
-			auto w = derive.weak_from_this();
-			bool f = w.expired();
-
 			asio::post(derive.io_->context(), make_allocator(derive.wallocator(),
-			[this, &derive, f, w = std::move(w), t = std::move(task), delay]() mutable
+			[this, &derive, p = derive.selfptr(), t = std::move(task), delay]() mutable
 			{
-				auto p = w.lock();
-				if (!f && !p)
-				{
-					return;
-				}
-
 				std::unique_ptr<asio::steady_timer> timer = std::make_unique<
 					asio::steady_timer>(derive.io_->context());
 
@@ -285,24 +225,10 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			std::shared_ptr<asio::io_context> ioc_ptr = derive.io_->context_wptr().lock();
-			if (ioc_ptr == nullptr)
-			{
-				set_last_error(asio::error::eof);
-				return derive;
-			}
-
-			auto w = derive.weak_from_this();
-			bool f = w.expired();
-
 			asio::dispatch(derive.io_->context(), make_allocator(derive.wallocator(),
-			[f, w = std::move(w), fn = std::forward<Function>(fn)]() mutable
+			[p = derive.selfptr(), fn = std::forward<Function>(fn)]() mutable
 			{
-				auto p = w.lock();
-				if (!f && !p)
-				{
-					return;
-				}
+				detail::ignore_unused(p);
 
 				fn();
 			}));
@@ -331,25 +257,11 @@ namespace asio2::detail
 
 			std::future<return_type> future = task.get_future();
 
-			std::shared_ptr<asio::io_context> ioc_ptr = derive.io_->context_wptr().lock();
-			if (ioc_ptr == nullptr)
-			{
-				set_last_error(asio::error::eof);
-				return future;
-			}
-
-			auto w = derive.weak_from_this();
-			bool f = w.expired();
-
 			// Make sure we run on the io_context thread
 			asio::dispatch(derive.io_->context(), make_allocator(derive.wallocator(),
-			[f, w = std::move(w), t = std::move(task)]() mutable
+			[p = derive.selfptr(), t = std::move(task)]() mutable
 			{
-				auto p = w.lock();
-				if (!f && !p)
-				{
-					return;
-				}
+				detail::ignore_unused(p);
 
 				t();
 			}));
@@ -364,24 +276,10 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			std::shared_ptr<asio::io_context> ioc_ptr = derive.io_->context_wptr().lock();
-			if (ioc_ptr == nullptr)
-			{
-				set_last_error(asio::error::eof);
-				return derive;
-			}
-
-			auto w = derive.weak_from_this();
-			bool f = w.expired();
-
 			asio::post(derive.io_->context(), make_allocator(derive.wallocator(),
-			[this, f, w = std::move(w)]() mutable
+			[this, p = derive.selfptr()]() mutable
 			{
-				auto p = w.lock();
-				if (!f && !p)
-				{
-					return;
-				}
+				detail::ignore_unused(p);
 
 				for (asio::steady_timer* timer : this->timed_tasks_)
 				{
@@ -412,25 +310,10 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			std::shared_ptr<asio::io_context> ioc_ptr = derive.io_->context_wptr().lock();
-			if (ioc_ptr == nullptr)
-			{
-				set_last_error(asio::error::eof);
-				return derive;
-			}
-
-			auto w = derive.weak_from_this();
-			bool f = w.expired();
-
 			asio::dispatch(derive.io_->context(), make_allocator(derive.wallocator(),
-			[this, f, w = std::move(w)]() mutable
+			[this, p = derive.selfptr()]() mutable
 			{
-				auto p = w.lock();
-				if (!f && !p)
-				{
-					ASIO2_ASSERT(false);
-					return;
-				}
+				detail::ignore_unused(p);
 
 				for (asio::steady_timer* timer : this->timed_tasks_)
 				{
