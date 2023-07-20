@@ -121,12 +121,12 @@ namespace asio2::detail
 			, post_cp           <derived_t, args_t>()
 			, condition_event_cp<derived_t, args_t>()
 			, rdc_call_cp       <derived_t, args_t>()
-			, socket_    (iopoolcp::_get_io(0)->context())
 			, rallocator_()
 			, wallocator_()
 			, listener_  ()
 			, io_        (iopoolcp::_get_io(0))
 			, buffer_    (init_buf_size, max_buf_size)
+			, socket_    (iopoolcp::_get_io(0)->context())
 		{
 		}
 
@@ -148,12 +148,12 @@ namespace asio2::detail
 			, post_cp           <derived_t, args_t>()
 			, condition_event_cp<derived_t, args_t>()
 			, rdc_call_cp       <derived_t, args_t>()
-			, socket_    (iopoolcp::_get_io(0)->context())
 			, rallocator_()
 			, wallocator_()
 			, listener_  ()
 			, io_        (iopoolcp::_get_io(0))
 			, buffer_    (init_buf_size, max_buf_size)
+			, socket_    (iopoolcp::_get_io(0)->context())
 		{
 		}
 
@@ -894,9 +894,6 @@ namespace asio2::detail
 		inline void                   reset_life_id () noexcept { this->life_id_ = std::make_unique<char>(); }
 
 	protected:
-		/// socket 
-		socket_type                                        socket_;
-
 		/// The memory to use for handler-based custom memory allocation. used fo recv/read.
 		handler_memory<std::true_type , assizer<args_t>>   rallocator_;
 
@@ -914,6 +911,9 @@ namespace asio2::detail
 
 		/// state
 		std::atomic<state_t>                      state_ = state_t::stopped;
+
+		/// socket, shoule be destroyed before io_context
+		socket_type                               socket_;
 
 		/// Remote call (rpc/rdc) response timeout.
 		std::chrono::steady_clock::duration       rc_timeout_ = std::chrono::milliseconds(http_execute_timeout);

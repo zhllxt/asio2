@@ -39,6 +39,7 @@
 #include <asio2/base/detail/buffer_wrap.hpp>
 #include <asio2/base/detail/ecs.hpp>
 
+#include <asio2/base/impl/io_context_cp.hpp>
 #include <asio2/base/impl/thread_id_cp.hpp>
 #include <asio2/base/impl/alive_time_cp.hpp>
 #include <asio2/base/impl/user_data_cp.hpp>
@@ -70,6 +71,7 @@ namespace asio2::detail
 	class udp_cast_impl_t
 		: public object_t          <derived_t        >
 		, public iopool_cp         <derived_t, args_t>
+		, public io_context_cp     <derived_t, args_t>
 		, public thread_id_cp      <derived_t, args_t>
 		, public event_queue_cp    <derived_t, args_t>
 		, public user_data_cp      <derived_t, args_t>
@@ -105,6 +107,7 @@ namespace asio2::detail
 		)
 			: super()
 			, iopool_cp         <derived_t, args_t>(concurrency)
+			, io_context_cp     <derived_t, args_t>(iopoolcp::_get_io(0))
 			, event_queue_cp    <derived_t, args_t>()
 			, user_data_cp      <derived_t, args_t>()
 			, alive_time_cp     <derived_t, args_t>()
@@ -117,7 +120,6 @@ namespace asio2::detail
 			, rallocator_()
 			, wallocator_()
 			, listener_  ()
-			, io_        (iopoolcp::_get_io(0))
 			, buffer_    (init_buf_size, max_buf_size)
 		{
 		}
@@ -130,6 +132,7 @@ namespace asio2::detail
 		)
 			: super()
 			, iopool_cp         <derived_t, args_t>(std::forward<Scheduler>(scheduler))
+			, io_context_cp     <derived_t, args_t>(iopoolcp::_get_io(0))
 			, event_queue_cp    <derived_t, args_t>()
 			, user_data_cp      <derived_t, args_t>()
 			, alive_time_cp     <derived_t, args_t>()
@@ -142,7 +145,6 @@ namespace asio2::detail
 			, rallocator_()
 			, wallocator_()
 			, listener_  ()
-			, io_        (iopoolcp::_get_io(0))
 			, buffer_    (init_buf_size, max_buf_size)
 		{
 		}
@@ -776,16 +778,6 @@ namespace asio2::detail
 		 */
 		inline buffer_wrap<buffer_type> & buffer() noexcept { return this->buffer_; }
 
-		/**
-		 * @brief get the io object reference
-		 */
-		inline io_t & io() noexcept { return *(this->io_); }
-
-		/**
-		 * @brief get the io object reference
-		 */
-		inline io_t const& io() const noexcept { return *(this->io_); }
-
 	protected:
 		/**
 		 * @brief get the recv/read allocator object reference
@@ -811,9 +803,6 @@ namespace asio2::detail
 
 		/// listener 
 		listener_t                                  listener_;
-
-		/// The io_context wrapper used to handle the connect/recv/send event.
-		std::shared_ptr<io_t>                       io_;
 
 		/// buffer
 		buffer_wrap<buffer_type>                    buffer_;

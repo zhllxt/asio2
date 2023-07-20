@@ -40,7 +40,9 @@ namespace asio2::detail
 		/**
 		 * @brief destructor
 		 */
-		~socket_cp() = default;
+		~socket_cp()
+		{
+		}
 
 	public:
 		/**

@@ -36,6 +36,7 @@
 #include <asio2/base/detail/buffer_wrap.hpp>
 #include <asio2/base/detail/ecs.hpp>
 
+#include <asio2/base/impl/io_context_cp.hpp>
 #include <asio2/base/impl/thread_id_cp.hpp>
 #include <asio2/base/impl/user_data_cp.hpp>
 #include <asio2/base/impl/user_timer_cp.hpp>
@@ -63,6 +64,7 @@ namespace asio2::detail
 		: public asio2::server
 		, public object_t          <derived_t>
 		, public iopool_cp         <derived_t>
+		, public io_context_cp     <derived_t>
 		, public thread_id_cp      <derived_t>
 		, public event_queue_cp    <derived_t>
 		, public user_data_cp      <derived_t>
@@ -87,16 +89,19 @@ namespace asio2::detail
 		 */
 		template<class ThreadCountOrScheduler>
 		explicit server_impl_t(ThreadCountOrScheduler&& tcos)
-			: object_t     <derived_t>()
-			, iopool_cp    <derived_t>(std::forward<ThreadCountOrScheduler>(tcos))
-			, user_data_cp <derived_t>()
-			, user_timer_cp<derived_t>()
-			, post_cp      <derived_t>()
+			: object_t          <derived_t>()
+			, iopool_cp         <derived_t>(std::forward<ThreadCountOrScheduler>(tcos))
+			, io_context_cp     <derived_t>(iopoolcp::_get_io(0))
+			, thread_id_cp      <derived_t>()
+			, event_queue_cp    <derived_t>()
+			, user_data_cp      <derived_t>()
+			, user_timer_cp     <derived_t>()
+			, post_cp           <derived_t>()
+			, condition_event_cp<derived_t>()
 			, rallocator_()
 			, wallocator_()
 			, listener_  ()
-			, io_        (iopoolcp::_get_io(0))
-			, sessions_  (io_, this->state_)
+			, sessions_  (this->io_, this->state_)
 		{
 		}
 
@@ -315,16 +320,6 @@ namespace asio2::detail
 			return std::shared_ptr<session_t>(this->sessions_.find_if(std::forward<Fun>(fn)));
 		}
 
-		/**
-		 * @brief get the io object reference
-		 */
-		inline io_t & io() noexcept { return *(this->io_); }
-
-		/**
-		 * @brief get the io object reference
-		 */
-		inline io_t const& io() const noexcept { return *(this->io_); }
-
 	protected:
 		/**
 		 * @brief get the recv/read allocator object reference
@@ -348,9 +343,6 @@ namespace asio2::detail
 
 		/// listener
 		listener_t                                  listener_;
-
-		/// The io_context wrapper used to handle the accept event.
-		std::shared_ptr<io_t>                       io_;
 
 		/// state
 		std::atomic<state_t>                        state_ = state_t::stopped;

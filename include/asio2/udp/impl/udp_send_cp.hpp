@@ -664,7 +664,7 @@ namespace asio2::detail
 
 			derive.push_event(
 			[&derive, p = derive.selfptr(), id = derive.life_id(), endpoint = std::forward<Endpoint>(endpoint),
-				data = derive._data_persistence(s, count), fn = std::forward<Callback>(fn)]
+				s, data = derive._data_persistence(s, count), fn = std::forward<Callback>(fn)]
 			(event_queue_guard<derived_t> g) mutable
 			{
 				if (!s)

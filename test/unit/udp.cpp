@@ -4,6 +4,7 @@
 #include <asio2/external/fmt.hpp>
 #include <asio2/udp/udp_server.hpp>
 #include <asio2/udp/udp_client.hpp>
+#include <asio2/udp/udp_cast.hpp>
 
 static std::string_view chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
@@ -1240,21 +1241,21 @@ void udp_test()
 				ASIO2_CHECK(asio2::get_last_error() == asio::error::in_progress);
 			});
 			client.bind_disconnect([&]()
-			{
-				client_disconnect_counter++;
+				{
+					client_disconnect_counter++;
 
-				ASIO2_CHECK(asio2::get_last_error());
-				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
-			});
+					ASIO2_CHECK(asio2::get_last_error());
+					ASIO2_CHECK(client.io().running_in_this_thread());
+					ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
+				});
 			client.bind_recv([&]([[maybe_unused]] std::string_view data)
-			{
-				ASIO2_CHECK(!asio2::get_last_error());
-				ASIO2_CHECK(client.io().running_in_this_thread());
-				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
-				ASIO2_CHECK(!data.empty());
-				ASIO2_CHECK(client.is_started());
-			});
+				{
+					ASIO2_CHECK(!asio2::get_last_error());
+					ASIO2_CHECK(client.io().running_in_this_thread());
+					ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
+					ASIO2_CHECK(!data.empty());
+					ASIO2_CHECK(client.is_started());
+				});
 
 			bool client_start_ret = client.start("127.0.0.1", 18036);
 
@@ -1287,11 +1288,11 @@ void udp_test()
 		// find session maybe true, beacuse the next session maybe used the stopped session "this" address
 		//ASIO2_CHECK(!server.find_session(session_key));
 		server.foreach_session([&sessions](std::shared_ptr<asio2::udp_session>& session_ptr) mutable
-		{
-			ASIO2_CHECK(session_ptr->user_data_any().has_value());
+			{
+				ASIO2_CHECK(session_ptr->user_data_any().has_value());
 
-			sessions.emplace_back(session_ptr);
-		});
+				sessions.emplace_back(session_ptr);
+			});
 
 		ASIO2_CHECK_VALUE(sessions.size(), sessions.size() == std::size_t(test_client_count));
 
@@ -1307,9 +1308,9 @@ void udp_test()
 			else
 			{
 				session->post([session]()
-				{
-					session->stop();
-				});
+					{
+						session->stop();
+					});
 				//ASIO2_CHECK(!session->is_stopped()); // maybe stopped==true
 			}
 		}
@@ -1327,7 +1328,7 @@ void udp_test()
 			c->stop();
 			ASIO2_CHECK(c->is_stopped());
 		}
-				
+
 		ASIO2_CHECK_VALUE(client_disconnect_counter.load(), client_disconnect_counter == test_client_count);
 
 		server.stop();
@@ -1335,6 +1336,214 @@ void udp_test()
 
 		ASIO2_CHECK_VALUE(server_disconnect_counter.load(), server_disconnect_counter == test_client_count);
 		ASIO2_CHECK_VALUE(server_stop_counter      .load(), server_stop_counter       == 1);
+	}
+
+	// test udp cast
+	{
+		std::shared_ptr<asio2::udp_cast> udp_cast_ptr = std::make_shared<asio2::udp_cast>();
+		asio2::udp_cast& udp_cast = *udp_cast_ptr;
+
+		udp_cast.bind_recv([&](asio::ip::udp::endpoint& endpoint, std::string_view data)
+		{
+			udp_cast.async_send(endpoint, data);
+		}).bind_start([&]()
+		{
+			ASIO2_CHECK(!asio2::get_last_error());
+			ASIO2_CHECK(udp_cast.get_local_port() == 18036);
+			ASIO2_CHECK(udp_cast.io().running_in_this_thread());
+			ASIO2_CHECK(udp_cast.iopool().get(0)->running_in_this_thread());
+		}).bind_stop([&]()
+		{
+			ASIO2_CHECK(asio2::get_last_error());
+			ASIO2_CHECK(udp_cast.get_local_port() == 18036);
+			ASIO2_CHECK(udp_cast.io().running_in_this_thread());
+			ASIO2_CHECK(udp_cast.iopool().get(0)->running_in_this_thread());
+		}).bind_init([&]()
+		{
+			ASIO2_CHECK(udp_cast.io().running_in_this_thread());
+			ASIO2_CHECK(udp_cast.iopool().get(0)->running_in_this_thread());
+			ASIO2_CHECK(!asio2::get_last_error());
+		});
+
+		udp_cast.start("0.0.0.0", 18036);
+
+		std::string str("<0123456789abcdefghijklmnopqrstowvxyz>");
+
+		udp_cast.async_send("127.0.0.1", 18036, str);
+		udp_cast.async_send("127.0.0.1", "18036", str);
+		udp_cast.async_send("127.0.0.1", 18036, "abc123");
+		udp_cast.async_send("127.0.0.1", 18036, "abc123", 6);
+		{
+			auto fut1 = udp_cast.async_send("127.0.0.1", 18036, str, asio::use_future);
+			auto [e1, s1] = fut1.get();
+			ASIO2_CHECK(!e1);
+			ASIO2_CHECK(s1 == str.size());
+		}
+		{
+			auto fut1 = udp_cast.async_send("127.0.0.1", "18036", str, asio::use_future);
+			auto [e1, s1] = fut1.get();
+			ASIO2_CHECK(!e1);
+			ASIO2_CHECK(s1 == str.size());
+		}
+		{
+			auto fut1 = udp_cast.async_send("127.0.0.1", 18036, "abc123", asio::use_future);
+			auto [e1, s1] = fut1.get();
+			ASIO2_CHECK(!e1);
+			ASIO2_CHECK(s1 == 6);
+		}
+		{
+			auto fut1 = udp_cast.async_send("127.0.0.1", "18036", "abc123", asio::use_future);
+			auto [e1, s1] = fut1.get();
+			ASIO2_CHECK(!e1);
+			ASIO2_CHECK(s1 == 6);
+		}
+		{
+			auto fut1 = udp_cast.async_send("127.0.0.1", 18036, "abc123", 6, asio::use_future);
+			auto [e1, s1] = fut1.get();
+			ASIO2_CHECK(!e1);
+			ASIO2_CHECK(s1 == 6);
+		}
+		{
+			auto fut1 = udp_cast.async_send("127.0.0.1", "18036", "abc123", 6, asio::use_future);
+			auto [e1, s1] = fut1.get();
+			ASIO2_CHECK(!e1);
+			ASIO2_CHECK(s1 == 6);
+		}
+
+		udp_cast.async_send("127.0.0.1", 18036, str, [str](std::size_t bytes)
+		{
+			ASIO2_CHECK(bytes == str.size());
+			ASIO2_CHECK(!asio2::get_last_error());
+		});
+		udp_cast.async_send("127.0.0.1", "18036", str, [str](std::size_t bytes)
+		{
+			ASIO2_CHECK(bytes == str.size());
+			ASIO2_CHECK(!asio2::get_last_error());
+		});
+
+		udp_cast.async_send("127.0.0.1", 18036, "abc123", [](std::size_t bytes)
+		{
+			ASIO2_CHECK(bytes == 6);
+			ASIO2_CHECK(!asio2::get_last_error());
+		});
+		udp_cast.async_send("127.0.0.1", "18036", "abc123", [](std::size_t bytes)
+		{
+			ASIO2_CHECK(bytes == 6);
+			ASIO2_CHECK(!asio2::get_last_error());
+		});
+
+		udp_cast.async_send("127.0.0.1", 18036, "abc123", 6, [](std::size_t bytes)
+		{
+			ASIO2_CHECK(bytes == 6);
+			ASIO2_CHECK(!asio2::get_last_error());
+		});
+		udp_cast.async_send("127.0.0.1", "18036", "abc123", 6, [](std::size_t bytes)
+		{
+			ASIO2_CHECK(bytes == 6);
+			ASIO2_CHECK(!asio2::get_last_error());
+		});
+
+		asio::ip::udp::endpoint ep(asio::ip::make_address("127.0.0.1"), 18020);
+
+		udp_cast.async_send(ep, str);
+		udp_cast.async_send(ep, str);
+		udp_cast.async_send(ep, "abc123");
+		udp_cast.async_send(ep, "abc123", 6);
+		{
+			auto fut1 = udp_cast.async_send(ep, str, asio::use_future);
+			auto [e1, s1] = fut1.get();
+			ASIO2_CHECK(!e1);
+			ASIO2_CHECK(s1 == str.size());
+		}
+		{
+			auto fut1 = udp_cast.async_send(ep, str, asio::use_future);
+			auto [e1, s1] = fut1.get();
+			ASIO2_CHECK(!e1);
+			ASIO2_CHECK(s1 == str.size());
+		}
+		{
+			auto fut1 = udp_cast.async_send(ep, "abc123", asio::use_future);
+			auto [e1, s1] = fut1.get();
+			ASIO2_CHECK(!e1);
+			ASIO2_CHECK(s1 == 6);
+		}
+		{
+			auto fut1 = udp_cast.async_send(ep, "abc123", asio::use_future);
+			auto [e1, s1] = fut1.get();
+			ASIO2_CHECK(!e1);
+			ASIO2_CHECK(s1 == 6);
+		}
+		{
+			auto fut1 = udp_cast.async_send(ep, "abc123", 6, asio::use_future);
+			auto [e1, s1] = fut1.get();
+			ASIO2_CHECK(!e1);
+			ASIO2_CHECK(s1 == 6);
+		}
+		{
+			auto fut1 = udp_cast.async_send(ep, "abc123", 6, asio::use_future);
+			auto [e1, s1] = fut1.get();
+			ASIO2_CHECK(!e1);
+			ASIO2_CHECK(s1 == 6);
+		}
+
+		udp_cast.async_send(ep, str, [str](std::size_t bytes)
+		{
+			ASIO2_CHECK(bytes == str.size());
+			ASIO2_CHECK(!asio2::get_last_error());
+		});
+		udp_cast.async_send(ep, str, [str](std::size_t bytes)
+		{
+			ASIO2_CHECK(bytes == str.size());
+			ASIO2_CHECK(!asio2::get_last_error());
+		});
+
+		udp_cast.async_send(ep, "abc123", [](std::size_t bytes)
+		{
+			ASIO2_CHECK(bytes == 6);
+			ASIO2_CHECK(!asio2::get_last_error());
+		});
+		udp_cast.async_send(ep, "abc123", [](std::size_t bytes)
+		{
+			ASIO2_CHECK(bytes == 6);
+			ASIO2_CHECK(!asio2::get_last_error());
+		});
+
+		udp_cast.async_send(ep, "abc123", 6, [](std::size_t bytes)
+		{
+			ASIO2_CHECK(bytes == 6);
+			ASIO2_CHECK(!asio2::get_last_error());
+		});
+		udp_cast.async_send(ep, "abc123", 6, [](std::size_t bytes)
+		{
+			ASIO2_CHECK(bytes == 6);
+			ASIO2_CHECK(!asio2::get_last_error());
+		});
+
+		// this is a multicast address
+		udp_cast.async_send("239.255.0.1", "8030", str);
+
+		// the resolve function is a time-consuming operation
+		asio::ip::udp::resolver resolver(udp_cast.io().context());
+		asio::ip::udp::resolver::query query("127.0.0.1", "18080");
+		asio::ip::udp::endpoint ep2 = *resolver.resolve(query);
+		udp_cast.async_send(ep2, str);
+
+		// stop the udp cast after 10 seconds. 
+		udp_cast.start_timer(1, 3000, 1, [&]()
+		{
+			// note : the stop is called in the io_context thread is ok.
+			// of course you can call the udp_cast.stop() function anywhere.
+			udp_cast.stop();
+		});
+
+		// the udp_cast.wait_stop() will be blocked forever until the udp_cast.stop() is called.
+		udp_cast.wait_stop();
+
+		// Or you can call the wait_for function directly to block for 10 seconds
+		//udp_cast.wait_for(std::chrono::seconds(10));
+		
+		// must call stop, beacuse this is std::shared_ptr<asio2::udp_cast>
+		udp_cast.stop();
 	}
 
 	ASIO2_TEST_END_LOOP;
