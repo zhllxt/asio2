@@ -489,6 +489,8 @@ namespace asio2::detail
 				// start work thread
 				this->threads_.emplace_back([this, &iot, &promise]() mutable
 				{
+					detail::ignore_unused(this);
+
 					iot->thread_id_ = std::this_thread::get_id();
 
 					// after the thread id is seted already, we set the promise
@@ -870,6 +872,24 @@ namespace asio2::detail
 		}
 
 		/**
+		 * @brief destroy the content of all member variables, this is used for solve the memory leaks.
+		 * After this function is called, this class object cannot be used again.
+		 */
+		inline void destroy() noexcept
+		{
+			asio2::unique_locker guard(this->mutex_);
+
+			this->threads_.clear();
+			this->iocs_.clear();
+			this->iots_.clear();
+			this->guards_.clear();
+
+		#if defined(_DEBUG) || defined(DEBUG)
+			this->derive_pointer_ = []() {};
+		#endif
+		}
+
+		/**
 		 * @brief
 		 */
 		inline std::size_t next(std::size_t index) noexcept
@@ -1139,6 +1159,7 @@ namespace asio2::detail
 		virtual void                        stop   ()                           = 0;
 		virtual bool                        started()                  noexcept = 0;
 		virtual bool                        stopped()                  noexcept = 0;
+		virtual void                        destroy()                  noexcept = 0;
 		virtual std::shared_ptr<io_t>       get    (std::size_t index) noexcept = 0;
 		virtual std::size_t                 size   ()                  noexcept = 0;
 		virtual bool             running_in_threads()                  noexcept = 0;
@@ -1191,6 +1212,15 @@ namespace asio2::detail
 		virtual bool stopped() noexcept override
 		{
 			return this->impl_.stopped();
+		}
+
+		/**
+		 * @brief destroy the content of all member variables, this is used for solve the memory leaks.
+		 * After this function is called, this class object cannot be used again.
+		 */
+		virtual void destroy() noexcept override
+		{
+			return this->impl_.destroy();
 		}
 
 		/**
@@ -1311,6 +1341,17 @@ namespace asio2::detail
 			asio2::shared_locker guard(this->mutex_);
 
 			return (this->stopped_);
+		}
+
+		/**
+		 * @brief destroy the content of all member variables, this is used for solve the memory leaks.
+		 * After this function is called, this class object cannot be used again.
+		 */
+		virtual void destroy() noexcept override
+		{
+			asio2::unique_locker guard(this->mutex_);
+
+			this->iots_.clear();
 		}
 
 		/**
@@ -1624,6 +1665,22 @@ namespace asio2::detail
 			});
 
 			this->iopool_->stop();
+		}
+
+		/**
+		 * @brief destroy the content of all member variables, this is used for solve the memory leaks.
+		 * After this function is called, this class object cannot be used again.
+		 */
+		void destroy_iopool() noexcept
+		{
+			this->iots_.clear();
+			this->wait_stop_timer_.reset();
+
+			this->iopool_->destroy();
+
+			// cant reset the iopool pointer to nullptr, beacuse the derived class destructor will call
+			// the iopool.is_stopped() functions.
+			//this->iopool_.reset();
 		}
 
 	protected:

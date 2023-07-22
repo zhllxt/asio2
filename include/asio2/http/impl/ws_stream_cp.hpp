@@ -93,7 +93,7 @@ namespace asio2::detail
 			}
 			else
 			{
-				ASIO2_ASSERT(derive.sessions().io_->running_in_this_thread());
+				ASIO2_ASSERT(derive.sessions_.io_->running_in_this_thread());
 			}
 
 			this->ws_stream_ = std::make_unique<ws_stream_type>(socket);
@@ -245,7 +245,7 @@ namespace asio2::detail
 
 			if (!derive.is_started())
 			{
-				if (derive.state() == state_t::started)
+				if (derive.state_ == state_t::started)
 				{
 					derive._do_disconnect(asio2::get_last_error(), std::move(this_ptr));
 				}
@@ -292,7 +292,7 @@ namespace asio2::detail
 
 			if (!derive.is_started())
 			{
-				if (derive.state() == state_t::started)
+				if (derive.state_ == state_t::started)
 				{
 					ASIO2_LOG_INFOR("_ws_handle_recv with closed socket: {} {}", ec.value(), ec.message());
 
@@ -423,7 +423,7 @@ namespace asio2::detail
 
 			detail::ignore_unused(payload, this_ptr, ecs);
 
-			if (derive.state() == state_t::started)
+			if (derive.state_ == state_t::started)
 			{
 				ASIO2_LOG_DEBUG("ws_stream_cp::_handle_control_close _do_disconnect");
 
@@ -584,9 +584,9 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			// Use "sessions().dispatch" to ensure that the _fire_accept function and the _fire_upgrade
+			// Use "sessions_.dispatch" to ensure that the _fire_accept function and the _fire_upgrade
 			// function are fired in the same thread
-			derive.sessions().dispatch(
+			derive.sessions_.dispatch(
 			[&derive, ec, this_ptr = std::move(this_ptr), ecs = std::move(ecs), chain = std::move(chain)]
 			() mutable
 			{

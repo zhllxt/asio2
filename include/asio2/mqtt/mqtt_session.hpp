@@ -238,7 +238,7 @@ namespace asio2::detail
 			detail::ignore_unused(ec);
 
 			ASIO2_ASSERT(!ec);
-			ASIO2_ASSERT(this->derived().sessions().io_->running_in_this_thread());
+			ASIO2_ASSERT(this->derived().sessions_.io_->running_in_this_thread());
 
 			asio::dispatch(this->derived().io_->context(), make_allocator(this->derived().wallocator(),
 			[this, this_ptr = std::move(this_ptr), ecs = std::move(ecs), chain = std::move(chain)]
@@ -307,7 +307,7 @@ namespace asio2::detail
 
 			} while (false);
 
-			this->derived().sessions().dispatch(
+			this->derived().sessions_.dispatch(
 			[this, ec, this_ptr = std::move(this_ptr), ecs = std::move(ecs), chain = std::move(chain)]
 			() mutable
 			{

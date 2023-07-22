@@ -572,7 +572,7 @@ namespace asio2::detail
 		{
 			if (!this->derived().is_started())
 			{
-				if (this->derived().state() == state_t::started)
+				if (this->derived().state_ == state_t::started)
 				{
 					this->derived()._do_stop(asio2::get_last_error(), std::move(this_ptr));
 				}
@@ -607,7 +607,7 @@ namespace asio2::detail
 
 			if (!this->derived().is_started())
 			{
-				if (this->derived().state() == state_t::started)
+				if (this->derived().state_ == state_t::started)
 				{
 					this->derived()._do_stop(ec, std::move(this_ptr));
 				}

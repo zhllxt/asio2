@@ -299,6 +299,14 @@ namespace asio2::detail
 			return this->observers_[detail::to_underlying(e)];
 		}
 
+		inline void clear() noexcept
+		{
+			for (std::unique_ptr<observer_base>& p : this->observers_)
+			{
+				p.reset();
+			}
+		}
+
 	protected:
 		std::array<std::unique_ptr<observer_base>, detail::to_underlying(event_type::max)> observers_;
 	};

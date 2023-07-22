@@ -154,6 +154,20 @@ namespace asio2::detail
 		}
 
 		/**
+		 * @brief destroy the content of all member variables, this is used for solve the memory leaks.
+		 * After this function is called, this class object cannot be used again.
+		 */
+		inline void destroy()
+		{
+			derived_t& derive = this->derived();
+
+			derive.listener_.clear();
+			derive.io_.reset();
+
+			derive.destroy_iopool();
+		}
+
+		/**
 		 * @brief check whether the server is started 
 		 */
 		inline bool is_started() const noexcept
@@ -329,10 +343,6 @@ namespace asio2::detail
 		 * @brief get the send/write/post allocator object reference
 		 */
 		inline auto & wallocator() noexcept { return this->wallocator_; }
-
-		inline session_mgr_t<session_t> & sessions() noexcept { return this->sessions_; }
-		inline listener_t               & listener() noexcept { return this->listener_; }
-		inline std::atomic<state_t>     & state   () noexcept { return this->state_;    }
 
 	protected:
 		// The memory to use for handler-based custom memory allocation. used for acceptor.

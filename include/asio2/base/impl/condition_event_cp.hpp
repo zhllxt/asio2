@@ -48,9 +48,8 @@ namespace asio2
 		template<class, class> friend class asio2::detail::rdc_call_cp_impl;
 
 	public:
-		explicit condition_event(std::shared_ptr<detail::io_t> iot)
-			: event_timer_io_(std::move(iot))
-			, event_timer_(event_timer_io_->context())
+		explicit condition_event(std::shared_ptr<detail::io_t>& iot)
+			: event_timer_io_(iot)
 		{
 		}
 
@@ -79,25 +78,35 @@ namespace asio2
 
 			// when code run to here, the io_context must be not destroy.
 
-			this->event_timer_io_->timers().emplace(std::addressof(event_timer_));
+			std::shared_ptr<detail::io_t> io_ptr = this->event_timer_io_.lock();
+			if (!io_ptr)
+				return;
+
+			this->event_timer_ = std::make_unique<asio::steady_timer>(io_ptr->context());
+
+			io_ptr->timers().emplace(this->event_timer_.get());
 
 			// Setting expiration to infinity will cause handlers to
 			// wait on the timer until cancelled.
-			this->event_timer_.expires_after((std::chrono::nanoseconds::max)());
+			this->event_timer_->expires_after((std::chrono::nanoseconds::max)());
 
 			// bind is used to adapt the user provided handler to the 
 			// timer's wait handler type requirement.
 			// the "handler" has hold the derive_ptr already, so this lambda don't need hold it again.
 			// this event_ptr (means self ptr) has holded by the map "condition_events_" already, 
 			// so this lambda don't need hold self ptr again.
-			this->event_timer_.async_wait(
+			this->event_timer_->async_wait(
 			[this, handler = std::forward<WaitHandler>(handler)](const error_code& ec) mutable
 			{
 				ASIO2_ASSERT((!ec) || ec == asio::error::operation_aborted);
 
 				detail::ignore_unused(ec);
 
-				this->event_timer_io_->timers().erase(std::addressof(event_timer_));
+				std::shared_ptr<detail::io_t> io_ptr = this->event_timer_io_.lock();
+				if (!io_ptr)
+					return;
+
+				io_ptr->timers().erase(this->event_timer_.get());
 
 				handler();
 			});
@@ -112,20 +121,24 @@ namespace asio2
 			// must use dispatch, otherwise if use called post_condition_event, and then called 
 			// notify() immediately, the event will can't be notifyed.
 
-			asio::dispatch(this->event_timer_io_->context(), [this, this_ptr = this->selfptr()]() mutable
+			std::shared_ptr<detail::io_t> io_ptr = this->event_timer_io_.lock();
+			if (!io_ptr)
+				return;
+
+			asio::dispatch(io_ptr->context(), [this, this_ptr = this->selfptr()]() mutable
 			{
 				detail::ignore_unused(this_ptr);
 
-				detail::cancel_timer(this->event_timer_);
+				detail::cancel_timer(*(this->event_timer_));
 			});
 		}
 
 	protected:
-		/// The io used for the timer.
-		std::shared_ptr<detail::io_t>       event_timer_io_;
+		/// The io used for the timer. use weak_ptr, otherwise will cause circular reference.
+		std::weak_ptr<detail::io_t>         event_timer_io_;
 
 		/// Used to implementing asynchronous condition event
-		asio::steady_timer                  event_timer_;
+		std::unique_ptr<asio::steady_timer> event_timer_;
 	};
 }
 

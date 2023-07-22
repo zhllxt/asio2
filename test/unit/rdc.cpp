@@ -3038,6 +3038,9 @@ void rdc_test()
 	});
 	ASIO2_CHECK(asio2::get_last_error() == asio::error::not_connected); asio2::clear_last_error();
 
+	// call destroy to clear the all circular references and memory leaks.
+	wss_session_ptr->destroy();
+
 	ASIO2_TEST_END_LOOP;
 }
 

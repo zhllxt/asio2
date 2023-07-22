@@ -159,10 +159,10 @@ namespace asio2::detail
 				defer_event chain(std::move(e), std::move(g));
 
 				ASIO2_LOG_DEBUG("shutdown_cp::_do_shutdown leave: {} {} state={}",
-					ec.value(), ec.message(), detail::to_string(derive.state().load()));
+					ec.value(), ec.message(), detail::to_string(derive.state_.load()));
 
 				state_t expected = state_t::started;
-				if (derive.state().compare_exchange_strong(expected, state_t::started))
+				if (derive.state_.compare_exchange_strong(expected, state_t::started))
 				{
 					derive.disconnecting_ = true;
 
@@ -170,7 +170,7 @@ namespace asio2::detail
 				}
 
 				expected = state_t::starting;
-				if (derive.state().compare_exchange_strong(expected, state_t::starting))
+				if (derive.state_.compare_exchange_strong(expected, state_t::starting))
 				{
 					derive.disconnecting_ = true;
 

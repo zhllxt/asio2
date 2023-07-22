@@ -141,6 +141,19 @@ namespace asio2::detail
 		}
 
 		/**
+		 * @brief destroy the content of all member variables, this is used for solve the memory leaks.
+		 * After this function is called, this class object cannot be used again.
+		 */
+		inline void destroy()
+		{
+			derived_t& derive = this->derived();
+
+			derive.ws_stream_.reset();
+
+			super::destroy();
+		}
+
+		/**
 		 * @brief get the websocket upgraged response object
 		 */
 		inline       websocket::response_type& get_upgrade_response()      noexcept { return this->upgrade_rep_; }

@@ -231,7 +231,7 @@ namespace asio2::detail
 			kcp::ikcp_update(this->kcp_, clock);
 			if (this->kcp_->state == (kcp::IUINT32)-1)
 			{
-				if (derive.state() == state_t::started)
+				if (derive.state_ == state_t::started)
 				{
 					derive._do_disconnect(asio::error::network_reset, std::move(this_ptr));
 				}
@@ -255,7 +255,7 @@ namespace asio2::detail
 			{
 				set_last_error(asio::error::message_size);
 
-				if (derive.state() == state_t::started)
+				if (derive.state_ == state_t::started)
 				{
 					derive._do_disconnect(asio::error::message_size, this_ptr);
 				}
@@ -439,7 +439,7 @@ namespace asio2::detail
 				if (ec)
 				{
 					set_last_error(ec);
-					if (derive.state() == state_t::started)
+					if (derive.state_ == state_t::started)
 					{
 						derive._do_disconnect(ec, std::move(this_ptr));
 					}

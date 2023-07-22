@@ -87,6 +87,19 @@ namespace asio2::detail
 		}
 
 		/**
+		 * @brief destroy the content of all member variables, this is used for solve the memory leaks.
+		 * After this function is called, this class object cannot be used again.
+		 */
+		inline void destroy()
+		{
+			derived_t& derive = this->derived();
+
+			derive.ws_stream_.reset();
+
+			super::destroy();
+		}
+
+		/**
 		 * @brief return the websocket stream object reference
 		 */
 		inline typename args_t::stream_t & stream() noexcept
@@ -161,7 +174,7 @@ namespace asio2::detail
 			detail::ignore_unused(ec);
 
 			ASIO2_ASSERT(!ec);
-			ASIO2_ASSERT(this->derived().sessions().io_->running_in_this_thread());
+			ASIO2_ASSERT(this->derived().sessions_.io_->running_in_this_thread());
 
 			asio::dispatch(this->io_->context(), make_allocator(this->wallocator_,
 			[this, this_ptr = std::move(this_ptr), ecs = std::move(ecs), chain = std::move(chain)]
@@ -197,7 +210,7 @@ namespace asio2::detail
 		inline void _fire_upgrade(std::shared_ptr<derived_t>& this_ptr)
 		{
 			// the _fire_upgrade must be executed in the thread 0.
-			ASIO2_ASSERT(this->sessions().io_->running_in_this_thread());
+			ASIO2_ASSERT(this->sessions_.io_->running_in_this_thread());
 
 			this->listener_.notify(event_type::upgrade, this_ptr);
 		}

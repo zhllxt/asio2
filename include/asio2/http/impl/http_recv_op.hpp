@@ -153,7 +153,7 @@ namespace asio2::detail
 
 			if (!derive.is_started())
 			{
-				if (derive.state() == state_t::started)
+				if (derive.state_ == state_t::started)
 				{
 					derive._do_disconnect(asio2::get_last_error(), std::move(this_ptr));
 				}
@@ -248,7 +248,7 @@ namespace asio2::detail
 
 			if (!derive.is_started())
 			{
-				if (derive.state() == state_t::started)
+				if (derive.state_ == state_t::started)
 				{
 					ASIO2_LOG_INFOR("_http_handle_recv with closed socket: {} {}", ec.value(), ec.message());
 

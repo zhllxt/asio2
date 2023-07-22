@@ -15,9 +15,7 @@
 #pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
-#include <memory>
-
-#include <asio2/external/asio.hpp>
+#include <asio2/base/iopool.hpp>
 
 namespace asio2::detail
 {

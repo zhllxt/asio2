@@ -164,7 +164,7 @@ namespace asio2::detail
 			{
 				[this, p = std::move(promise)]() mutable
 				{
-					p.set_value(this->state().load());
+					p.set_value(this->state_.load());
 				}
 			};
 

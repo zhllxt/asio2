@@ -130,6 +130,20 @@ namespace asio2::detail
 
 	public:
 		/**
+		 * @brief destroy the content of all member variables, this is used for solve the memory leaks.
+		 * After this function is called, this class object cannot be used again.
+		 */
+		inline void destroy()
+		{
+			derived_t& derive = this->derived();
+
+			derive.ws_stream_.reset();
+
+			super::destroy();
+		}
+
+	public:
+		/**
 		 * @brief get this object hash key,used for session map
 		 */
 		inline key_type hash_key() const noexcept
@@ -317,7 +331,7 @@ namespace asio2::detail
 						ASIO2_LOG_DEBUG("http_session send response need_eof");
 
 						// session maybe don't need check the state.
-						//if (derive.state() == state_t::started)
+						//if (derive.state_ == state_t::started)
 						derive._do_disconnect(asio::error::operation_aborted, std::move(this_ptr));
 					}
 					else
@@ -413,7 +427,7 @@ namespace asio2::detail
 			const error_code& ec,
 			std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs, DeferEvent chain)
 		{
-			this->derived().sessions().post(
+			this->derived().sessions_.post(
 			[this, ec, this_ptr = std::move(this_ptr), ecs = std::move(ecs), chain = std::move(chain)]
 			() mutable
 			{
@@ -522,7 +536,7 @@ namespace asio2::detail
 			this->router_._route(this_ptr, this->req_, this->rep_);
 
 			// session maybe don't need check the state.
-			//if (this->derived().state() == state_t::started)
+			//if (this->derived().state_ == state_t::started)
 			{
 				ASIO2_LOG_DEBUG("http_session::_handle_control_close _do_disconnect");
 
@@ -533,7 +547,7 @@ namespace asio2::detail
 		inline void _fire_upgrade(std::shared_ptr<derived_t>& this_ptr)
 		{
 			// the _fire_upgrade must be executed in the thread 0.
-			ASIO2_ASSERT(this->sessions().io_->running_in_this_thread());
+			ASIO2_ASSERT(this->sessions_.io_->running_in_this_thread());
 
 			this->listener_.notify(event_type::upgrade, this_ptr);
 		}

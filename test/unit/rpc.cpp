@@ -2845,10 +2845,16 @@ void rpc_test()
 		ASIO2_CHECK_VALUE(server_stop_counter      .load(), server_stop_counter       == 1);
 
 		// test memory leaks 
-		// the clients is stopped already, do post again, this will cause memory leaks .
+		// the clients is stopped already, do post again, this will cause circular reference.
 		for (int i = 0; i < test_client_count; i++)
 		{
 			clients[i]->async_call("leak_test").response([](std::string) {});
+		}
+
+		// So, we can call destroy to clear the all circular references. then there will has no memory leaks.
+		for (int i = 0; i < test_client_count; i++)
+		{
+			clients[i]->destroy();
 		}
 	}
 
@@ -2982,6 +2988,9 @@ void rpc_test()
 	//ASIO2_CHECK(asio2::get_last_error() == rpc::error::eof); asio2::clear_last_error();
 	ASIO2_CHECK(asio2::get_last_error() == rpc::error::not_connected); asio2::clear_last_error();
 
+	// call destroy to clear the all circular references and memory leaks.
+	rpc_session_ptr->destroy();
+
 	std::shared_ptr<asio2::rpc_session> life_rpc_session_ptr;
 	{
 		asio2::rpc_server server;
@@ -3013,6 +3022,9 @@ void rpc_test()
 	}
 
 	ASIO2_ASSERT(life_rpc_session_ptr != nullptr);
+
+	// call destroy to clear the all circular references and memory leaks.
+	life_rpc_session_ptr->destroy();
 
 	ASIO2_TEST_END_LOOP;
 }

@@ -58,12 +58,16 @@
 
 namespace asio2
 {
+	class thread_group;
+
 	/**
 	 * thread pool interface, this pool is multi thread safed.
 	 * the tasks will be running in random thread.
 	 */
 	class thread_pool
 	{
+		friend class thread_group;
+
 	public:
 		/**
 		 * @brief constructor
@@ -107,18 +111,7 @@ namespace asio2
 		 */
 		~thread_pool()
 		{
-			{
-				std::unique_lock<std::mutex> lock(this->mtx_);
-				this->stop_ = true;
-			}
-
-			this->cv_.notify_all();
-
-			for (std::thread& worker : this->workers_)
-			{
-				if (worker.joinable())
-					worker.join();
-			}
+			this->stop();
 		}
 
 		/**
@@ -257,6 +250,26 @@ namespace asio2
 			return this->workers_[index % this->workers_.size()].get_id();
 		}
 
+	protected:
+		/**
+		 * @brief Stop the thread pool and block until all tasks finish executing
+		 */
+		void stop()
+		{
+			{
+				std::unique_lock<std::mutex> lock(this->mtx_);
+				this->stop_ = true;
+			}
+
+			this->cv_.notify_all();
+
+			for (std::thread& worker : this->workers_)
+			{
+				if (worker.joinable())
+					worker.join();
+			}
+		}
+
 	private:
 		/// no copy construct function
 		thread_pool(const thread_pool&) = delete;
@@ -310,6 +323,19 @@ namespace asio2
 		 */
 		~thread_group()
 		{
+			// must block until all threads exited, otherwise maybe cause crash.
+			// eg: 
+			// asio2::thread_group thpool;
+			// thpool.post(1, [&thpool]()
+			// {
+			//    // here, if the thread 0 is deleted already, this function will cause crash.
+			//    thpool.running_in_threads();
+			// });
+			for (worker_t* p : this->workers_)
+			{
+				p->stop();
+			}
+
 			for (worker_t* p : this->workers_)
 			{
 				delete p;

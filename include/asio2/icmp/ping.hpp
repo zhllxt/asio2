@@ -216,6 +216,20 @@ namespace asio2::detail
 		}
 
 		/**
+		 * @brief destroy the content of all member variables, this is used for solve the memory leaks.
+		 * After this function is called, this class object cannot be used again.
+		 */
+		inline void destroy()
+		{
+			derived_t& derive = this->derived();
+
+			derive.listener_.clear();
+			derive.io_.reset();
+
+			derive.destroy_iopool();
+		}
+
+		/**
 		 * @brief check whether the client is started
 		 */
 		inline bool is_started() const
@@ -275,15 +289,11 @@ namespace asio2::detail
 				{
 					struct socket_guard
 					{
-						socket_guard(
-							asio::ip::icmp::socket& s,
-							const asio::ip::basic_resolver_entry<asio::ip::icmp>& d
-						) : socket(s), dest(d)
+						socket_guard(asio::ip::icmp::socket& s) : socket(s)
 						{
 							error_code ec_ignore{};
 							socket.cancel(ec_ignore);
 							socket.close(ec_ignore);
-							socket.open(dest.endpoint().protocol());
 						}
 						~socket_guard()
 						{
@@ -294,10 +304,14 @@ namespace asio2::detail
 							socket.close(ec_ignore);
 						}
 						asio::ip::icmp::socket& socket;
-						const asio::ip::basic_resolver_entry<asio::ip::icmp>& dest;
 					};
 
-					std::unique_ptr<socket_guard> guarder = std::make_unique<socket_guard>(socket, dest);
+					std::unique_ptr<socket_guard> guarder = std::make_unique<socket_guard>(socket);
+
+					error_code ec_open{};
+					socket.open(dest.endpoint().protocol(), ec_open);
+
+					if (ec_open) { set_last_error(ec_open); return; }
 
 					// Create an ICMP header for an echo request.
 					echo_request.type(icmp_header::echo_request);
@@ -1004,7 +1018,7 @@ namespace asio2::detail
 		{
 			if (!this->is_started())
 			{
-				if (this->derived().state() == state_t::started)
+				if (this->derived().state_ == state_t::started)
 				{
 					this->derived()._do_stop(asio2::get_last_error(), std::move(this_ptr));
 				}
@@ -1036,7 +1050,7 @@ namespace asio2::detail
 
 			if (!this->is_started())
 			{
-				if (this->derived().state() == state_t::started)
+				if (this->derived().state_ == state_t::started)
 				{
 					this->derived()._do_stop(ec, std::move(this_ptr));
 				}
@@ -1155,9 +1169,6 @@ namespace asio2::detail
 		 * @brief get the timer/post allocator object reference
 		 */
 		inline auto & wallocator() noexcept { return this->wallocator_; }
-
-		inline listener_t                 & listener() noexcept { return this->listener_; }
-		inline std::atomic<state_t>       & state   () noexcept { return this->state_;    }
 
 	protected:
 		/// The memory to use for handler-based custom memory allocation. used fo recv/read.

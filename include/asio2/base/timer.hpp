@@ -161,6 +161,19 @@ namespace asio2::detail
 			this->stop_iopool();
 		}
 
+		/**
+		 * @brief destroy the content of all member variables, this is used for solve the memory leaks.
+		 * After this function is called, this class object cannot be used again.
+		 */
+		inline void destroy()
+		{
+			derived_t& derive = this->derived();
+
+			derive.io_.reset();
+
+			derive.destroy_iopool();
+		}
+
 	public:
 		/**
 		 * @brief get the io object reference

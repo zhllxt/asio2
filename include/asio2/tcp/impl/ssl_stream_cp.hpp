@@ -77,7 +77,7 @@ namespace asio2::detail
 			}
 			else
 			{
-				ASIO2_ASSERT(derive.sessions().io_->running_in_this_thread());
+				ASIO2_ASSERT(derive.sessions_.io_->running_in_this_thread());
 			}
 
 			// Why put the initialization code of ssl stream here ?
@@ -282,9 +282,9 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			// Use "sessions().dispatch" to ensure that the _fire_accept function and the _fire_handshake
+			// Use "sessions_.dispatch" to ensure that the _fire_accept function and the _fire_handshake
 			// function are fired in the same thread
-			derive.sessions().dispatch(
+			derive.sessions_.dispatch(
 			[&derive, ec, this_ptr = std::move(this_ptr), ecs = std::move(ecs), chain = std::move(chain)]
 			() mutable
 			{

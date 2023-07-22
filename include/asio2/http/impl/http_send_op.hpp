@@ -100,7 +100,7 @@ namespace asio2::detail
 				if (ec)
 				{
 					// must stop, otherwise re-sending will cause body confusion
-					if (derive.state() == state_t::started)
+					if (derive.state_ == state_t::started)
 					{
 						derive._do_disconnect(ec, derive.selfptr());
 					}
@@ -136,7 +136,7 @@ namespace asio2::detail
 				if (ec)
 				{
 					// must stop, otherwise re-sending will cause body confusion
-					if (derive.state() == state_t::started)
+					if (derive.state_ == state_t::started)
 					{
 						derive._do_disconnect(ec, derive.selfptr());
 					}
@@ -172,7 +172,7 @@ namespace asio2::detail
 				if (ec)
 				{
 					// must stop, otherwise re-sending will cause body confusion
-					if (derive.state() == state_t::started)
+					if (derive.state_ == state_t::started)
 					{
 						derive._do_disconnect(ec, derive.selfptr());
 					}

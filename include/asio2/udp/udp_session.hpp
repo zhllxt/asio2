@@ -119,7 +119,7 @@ namespace asio2::detail
 		#endif
 		#endif
 			
-			ASIO2_ASSERT(this->sessions().io_->running_in_this_thread());
+			ASIO2_ASSERT(this->sessions_.io_->running_in_this_thread());
 			ASIO2_ASSERT(this->io_->get_thread_id() != std::thread::id{});
 
 		#if defined(_DEBUG) || defined(DEBUG)
@@ -160,7 +160,7 @@ namespace asio2::detail
 			[&derive, this_ptr = std::move(this_ptr), ecs = std::move(ecs)]
 			(event_queue_guard<derived_t> g) mutable
 			{
-				derive.sessions().dispatch(
+				derive.sessions_.dispatch(
 				[&derive, this_ptr, ecs = std::move(ecs), g = std::move(g)]
 				() mutable
 				{
@@ -205,7 +205,7 @@ namespace asio2::detail
 			{
 				[this, p = std::move(promise)]() mutable
 				{
-					p.set_value(this->state().load());
+					p.set_value(this->state_.load());
 				}
 			};
 
@@ -230,7 +230,7 @@ namespace asio2::detail
 			});
 
 			// use this to ensure the client is stopped completed when the stop is called not in the io_context thread
-			while (!derive.running_in_this_thread() && !derive.sessions().io_->running_in_this_thread())
+			while (!derive.running_in_this_thread() && !derive.sessions_.io_->running_in_this_thread())
 			{
 				std::future_status status = future.wait_for(std::chrono::milliseconds(100));
 
@@ -244,7 +244,7 @@ namespace asio2::detail
 					if (derive.get_thread_id() == std::thread::id{})
 						break;
 
-					if (derive.sessions().io_->get_thread_id() == std::thread::id{})
+					if (derive.sessions_.io_->get_thread_id() == std::thread::id{})
 						break;
 
 					if (derive.io_->context().stopped())
@@ -371,7 +371,7 @@ namespace asio2::detail
 			detail::ignore_unused(ec);
 
 			ASIO2_ASSERT(!ec);
-			ASIO2_ASSERT(this->derived().sessions().io_->running_in_this_thread());
+			ASIO2_ASSERT(this->derived().sessions_.io_->running_in_this_thread());
 
 			if constexpr (std::is_same_v<typename ecs_t<C>::condition_lowest_type, use_kcp_t>)
 			{
@@ -601,7 +601,7 @@ namespace asio2::detail
 		inline void _fire_handshake(std::shared_ptr<derived_t>& this_ptr)
 		{
 			// the _fire_handshake must be executed in the thread 0.
-			ASIO2_ASSERT(this->sessions().io_->running_in_this_thread());
+			ASIO2_ASSERT(this->sessions_.io_->running_in_this_thread());
 
 			this->listener_.notify(event_type::handshake, this_ptr);
 		}
@@ -610,7 +610,7 @@ namespace asio2::detail
 		inline void _fire_connect(std::shared_ptr<derived_t>& this_ptr, std::shared_ptr<ecs_t<C>>& ecs)
 		{
 			// the _fire_connect must be executed in the thread 0.
-			ASIO2_ASSERT(this->sessions().io_->running_in_this_thread());
+			ASIO2_ASSERT(this->sessions_.io_->running_in_this_thread());
 
 		#if defined(_DEBUG) || defined(DEBUG)
 			ASIO2_ASSERT(this->is_disconnect_called_ == false);
@@ -624,7 +624,7 @@ namespace asio2::detail
 		inline void _fire_disconnect(std::shared_ptr<derived_t>& this_ptr)
 		{
 			// the _fire_disconnect must be executed in the thread 0.
-			ASIO2_ASSERT(this->sessions().io_->running_in_this_thread());
+			ASIO2_ASSERT(this->sessions_.io_->running_in_this_thread());
 
 		#if defined(_DEBUG) || defined(DEBUG)
 			this->is_disconnect_called_ = true;

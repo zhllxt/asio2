@@ -81,16 +81,16 @@ namespace asio2::detail
 				defer_event chain(std::move(e), std::move(g));
 
 				ASIO2_LOG_DEBUG("close_cp::_do_close leave: {} {} state={}",
-					ec.value(), ec.message(), detail::to_string(derive.state().load()));
+					ec.value(), ec.message(), detail::to_string(derive.state_.load()));
 
 				state_t expected = state_t::started;
-				if (derive.state().compare_exchange_strong(expected, state_t::stopping))
+				if (derive.state_.compare_exchange_strong(expected, state_t::stopping))
 				{
 					return derive._post_close(ec, std::move(this_ptr), expected, std::move(chain));
 				}
 
 				expected = state_t::starting;
-				if (derive.state().compare_exchange_strong(expected, state_t::stopping))
+				if (derive.state_.compare_exchange_strong(expected, state_t::stopping))
 				{
 					return derive._post_close(ec, std::move(this_ptr), expected, std::move(chain));
 				}
@@ -126,7 +126,7 @@ namespace asio2::detail
 				// if the state is stopped.
 
 				state_t expected = state_t::stopping;
-				if (derive.state().compare_exchange_strong(expected, state_t::stopped))
+				if (derive.state_.compare_exchange_strong(expected, state_t::stopped))
 				{
 					if (old_state == state_t::started)
 					{
@@ -213,7 +213,7 @@ namespace asio2::detail
 						set_last_error(ec);
 
 						state_t expected = state_t::stopping;
-						if (derive.state().compare_exchange_strong(expected, state_t::stopped))
+						if (derive.state_.compare_exchange_strong(expected, state_t::stopped))
 						{
 							if (old_state == state_t::started && erased)
 								derive._fire_disconnect(const_cast<std::shared_ptr<derived_t>&>(this_ptr));

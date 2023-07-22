@@ -428,7 +428,7 @@ namespace asio2::detail
 
 			if constexpr (args_t::is_session)
 			{
-				ASIO2_ASSERT(derive.sessions().io_->running_in_this_thread());
+				ASIO2_ASSERT(derive.sessions_.io_->running_in_this_thread());
 			}
 			else
 			{
@@ -445,11 +445,11 @@ namespace asio2::detail
 			derived_t& derive = static_cast<derived_t&>(*this);
 
 			// code run to here, the state must not be stopped( stopping is possible but stopped is impossible )
-			//ASIO2_ASSERT(derive.state() != state_t::stopped);
+			//ASIO2_ASSERT(derive.state_ != state_t::stopped);
 
 			if constexpr (args_t::is_session)
 			{
-				ASIO2_ASSERT(derive.sessions().io_->running_in_this_thread());
+				ASIO2_ASSERT(derive.sessions_.io_->running_in_this_thread());
 
 				// if socket is invalid, it means that the connect is timeout and the socket has
 				// been closed by the connect timeout timer, so reset the error to timed_out.
@@ -478,7 +478,7 @@ namespace asio2::detail
 			if (!ec)
 			{
 				expected = state_t::starting;
-				if (!derive.state().compare_exchange_strong(expected, state_t::started))
+				if (!derive.state_.compare_exchange_strong(expected, state_t::started))
 					ec = asio::error::operation_aborted;
 			}
 
@@ -488,12 +488,12 @@ namespace asio2::detail
 			// Is session : Only call fire_connect notification when the connection is succeed.
 			if constexpr (args_t::is_session)
 			{
-				ASIO2_ASSERT(derive.sessions().io_->running_in_this_thread());
+				ASIO2_ASSERT(derive.sessions_.io_->running_in_this_thread());
 
 				if (!ec)
 				{
 					expected = state_t::started;
-					if (derive.state().compare_exchange_strong(expected, state_t::started))
+					if (derive.state_.compare_exchange_strong(expected, state_t::started))
 					{
 						derive._fire_connect(this_ptr, ecs);
 					}
@@ -506,7 +506,7 @@ namespace asio2::detail
 
 				// if state is not stopped, call _fire_connect
 				expected = state_t::stopped;
-				if (!derive.state().compare_exchange_strong(expected, state_t::stopped))
+				if (!derive.state_.compare_exchange_strong(expected, state_t::stopped))
 				{
 					derive._fire_connect(this_ptr, ecs);
 				}
@@ -515,7 +515,7 @@ namespace asio2::detail
 			if (!ec)
 			{
 				expected = state_t::started;
-				if (!derive.state().compare_exchange_strong(expected, state_t::started))
+				if (!derive.state_.compare_exchange_strong(expected, state_t::started))
 					ec = asio::error::operation_aborted;
 			}
 
