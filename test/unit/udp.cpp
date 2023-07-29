@@ -14,11 +14,11 @@ struct hasher
 	{
 		std::uint32_t addr = ep.address().to_v4().to_uint();
 
-		std::uint32_t v = asio2::detail::fnv1a_hash<std::uint32_t>((const unsigned char* const)&addr, sizeof(std::uint32_t));
+		std::uint32_t v = asio2::detail::fnv1a_hash<std::uint32_t>((const unsigned char*)&addr, sizeof(std::uint32_t));
 
 		std::uint16_t port = ep.port();
 
-		return asio2::detail::fnv1a_hash<std::uint32_t>(v, (const unsigned char* const)&port, sizeof(std::uint16_t));
+		return asio2::detail::fnv1a_hash<std::uint32_t>(v, (const unsigned char*)&port, sizeof(std::uint16_t));
 	}
 };
 

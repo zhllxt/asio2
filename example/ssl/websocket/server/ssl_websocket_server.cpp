@@ -16,15 +16,15 @@ int main()
 	server.set_verify_mode(asio::ssl::verify_peer | asio::ssl::verify_fail_if_no_peer_cert);
 
 	server.set_cert_file(
-		"../../cert/ca.crt",
-		"../../cert/server.crt",
-		"../../cert/server.key",
+		"../../example/cert/ca.crt",
+		"../../example/cert/server.crt",
+		"../../example/cert/server.key",
 		"123456");
 
 	if (asio2::get_last_error())
 		std::cout << "load cert files failed: " << asio2::last_error_msg() << std::endl;
 
-	server.set_dh_file("../../cert/dh1024.pem");
+	server.set_dh_file("../../example/cert/dh1024.pem");
 
 	if (asio2::get_last_error())
 		std::cout << "load dh files failed: " << asio2::last_error_msg() << std::endl;

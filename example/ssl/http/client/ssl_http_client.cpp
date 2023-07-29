@@ -82,9 +82,9 @@ int main()
 	asio2::https_client client;
 	//client.set_verify_mode(asio::ssl::verify_peer);
 	client.set_cert_file(
-		"../../cert/ca.crt",
-		"../../cert/client.crt",
-		"../../cert/client.key",
+		"../../example/cert/ca.crt",
+		"../../example/cert/client.crt",
+		"../../example/cert/client.key",
 		"123456");
 	if (asio2::get_last_error())
 		std::cout << "load cert files failed: " << asio2::last_error_msg() << std::endl;

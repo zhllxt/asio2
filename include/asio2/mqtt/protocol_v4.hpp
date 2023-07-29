@@ -150,15 +150,17 @@ namespace asio2::mqtt::v4
 			keep_alive_ = std::move(v);
 			return (*this);
 		}
-		inline connect& client_id(utf8_string::value_type  v)
+		template<class String>
+		inline connect& client_id(String&& v)
 		{
-			client_id_ = std::move(v);
+			client_id_ = std::forward<String>(v);
 			update_remain_length();
 			return (*this);
 		}
-		inline connect& username(utf8_string::value_type   v)
+		template<class String>
+		inline connect& username(String&& v)
 		{
-			username_ = std::move(v);
+			username_ = std::forward<String>(v);
 			connect_flags_.bits.username_flag = true;
 			update_remain_length();
 			return (*this);

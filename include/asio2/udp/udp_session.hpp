@@ -86,9 +86,10 @@ namespace asio2::detail
 			: super(sessions, listener, std::move(rwio), init_buf_size, max_buf_size, socket)
 			, udp_send_op<derived_t, args_t>()
 			, udp_recv_op<derived_t, args_t>()
-			, remote_endpoint_(endpoint)
 			, wallocator_     ()
 		{
+			this->remote_endpoint_ = endpoint;
+
 			this->buffer_.bind_buffer(&buffer);
 
 			this->set_silence_timeout(std::chrono::milliseconds(udp_silence_timeout));
@@ -129,14 +130,6 @@ namespace asio2::detail
 		#endif
 
 			std::shared_ptr<derived_t> this_ptr = derive.selfptr();
-
-			try
-			{
-				this->remote_endpoint_copy_ = this->socket_.lowest_layer().remote_endpoint();
-			}
-			catch (const system_error&)
-			{
-			}
 
 			state_t expected = state_t::stopped;
 			if (!this->state_.compare_exchange_strong(expected, state_t::starting))
@@ -309,6 +302,22 @@ namespace asio2::detail
 		}
 
 		/**
+		 * @brief get the kcp stream component
+		 */
+		inline kcp_stream_cp<derived_t, args_t>* get_kcp_stream() noexcept
+		{
+			return this->kcp_stream_.get();
+		}
+
+		/**
+		 * @brief get the kcp stream component
+		 */
+		inline const kcp_stream_cp<derived_t, args_t>* get_kcp_stream() const noexcept
+		{
+			return this->kcp_stream_.get();
+		}
+
+		/**
 		 * @brief get the kcp pointer, just used for kcp mode
 		 * default mode : ikcp_nodelay(kcp, 0, 10, 0, 0);
 		 * generic mode : ikcp_nodelay(kcp, 0, 10, 0, 1);
@@ -316,7 +325,7 @@ namespace asio2::detail
 		 */
 		inline kcp::ikcpcb* get_kcp() noexcept
 		{
-			return (this->kcp_ ? this->kcp_->kcp_ : nullptr);
+			return (this->kcp_stream_ ? this->kcp_stream_->kcp_ : nullptr);
 		}
 
 		/**
@@ -327,7 +336,7 @@ namespace asio2::detail
 		 */
 		inline const kcp::ikcpcb* get_kcp() const noexcept
 		{
-			return (this->kcp_ ? this->kcp_->kcp_ : nullptr);
+			return (this->kcp_stream_ ? this->kcp_stream_->kcp_ : nullptr);
 		}
 
 		/**
@@ -390,12 +399,13 @@ namespace asio2::detail
 					return;
 				}
 
-				this->kcp_ = std::make_unique<kcp_stream_cp<derived_t, args_t>>(this->derived(), this->io_->context());
-				this->kcp_->_post_handshake(std::move(this_ptr), std::move(ecs), std::move(chain));
+				this->kcp_stream_ = std::make_unique<kcp_stream_cp<derived_t, args_t>>(
+					this->derived(), this->io_->context());
+				this->kcp_stream_->_post_handshake(std::move(this_ptr), std::move(ecs), std::move(chain));
 			}
 			else
 			{
-				this->kcp_.reset();
+				this->kcp_stream_.reset();
 				this->derived()._done_connect(ec, std::move(this_ptr), std::move(ecs), std::move(chain));
 			}
 		}
@@ -408,14 +418,14 @@ namespace asio2::detail
 
 			if constexpr (std::is_same_v<typename ecs_t<C>::condition_lowest_type, use_kcp_t>)
 			{
-				ASIO2_ASSERT(this->kcp_);
+				ASIO2_ASSERT(this->kcp_stream_);
 
-				if (this->kcp_)
-					this->kcp_->send_fin_ = true;
+				if (this->kcp_stream_)
+					this->kcp_stream_->send_fin_ = true;
 			}
 			else
 			{
-				ASIO2_ASSERT(!this->kcp_);
+				ASIO2_ASSERT(!this->kcp_stream_);
 			}
 
 			derive.post_event(
@@ -463,8 +473,8 @@ namespace asio2::detail
 			// and the _handle_stop is called, and the socket will be closed, then the 
 			// _kcp_stop send kcphdr will failed.
 			// but if we use asio::post in server's _exec_stop, there is no such problem.
-			if (this->kcp_)
-				this->kcp_->_kcp_stop();
+			if (this->kcp_stream_)
+				this->kcp_stream_->_kcp_stop();
 
 			// call the base class stop function
 			super::stop();
@@ -535,10 +545,10 @@ namespace asio2::detail
 		template<class Data, class Callback>
 		inline bool _do_send(Data& data, Callback&& callback)
 		{
-			if (!this->kcp_)
+			if (!this->kcp_stream_)
 				return this->derived()._udp_send_to(
 					this->remote_endpoint_, data, std::forward<Callback>(callback));
-			return this->kcp_->_kcp_send(data, std::forward<Callback>(callback));
+			return this->kcp_stream_->_kcp_send(data, std::forward<Callback>(callback));
 		}
 
 		template<class Data>
@@ -644,13 +654,10 @@ namespace asio2::detail
 		inline auto & wallocator() noexcept { return this->wallocator_; }
 
 	protected:
-		/// used for session_mgr's session unordered_map key
-		asio::ip::udp::endpoint                           remote_endpoint_;
-
 		/// The memory to use for handler-based custom memory allocation. used fo send/write.
 		handler_memory<std::false_type, assizer<args_t>>  wallocator_;
 
-		std::unique_ptr<kcp_stream_cp<derived_t, args_t>> kcp_;
+		std::unique_ptr<kcp_stream_cp<derived_t, args_t>> kcp_stream_;
 
 		std::uint32_t                                     kcp_conv_ = 0;
 

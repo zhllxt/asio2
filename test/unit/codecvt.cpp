@@ -74,6 +74,8 @@ void codecvt_test()
     }
 
     // https://en.cppreference.com/w/cpp/locale/codecvt_utf8
+    // on visual studio 2017, when include char16_t, will cause compile error.
+#if defined(_MSC_VER) && (_MSC_VER > 1916)
     {
         // UTF-8 data. The character U+1d10b, musical sign segno, does not fit in UCS-2
         std::u8string utf8 = u8"z\u6c34\U0001d10b";
@@ -99,6 +101,7 @@ void codecvt_test()
             //std::u16string ucs2 = ucs2conv.from_bytes(utf8.substr(0, ucs2conv.converted()));
         }
     }
+#endif
 
     // https://en.cppreference.com/w/cpp/locale/codecvt_utf16
     {
@@ -133,6 +136,7 @@ void codecvt_test()
     }
 
     // https://en.cppreference.com/w/cpp/locale/codecvt_utf8_utf16
+#if defined(_MSC_VER) && (_MSC_VER > 1916)
     {
         std::u8string u8 = u8"z\u00df\u6c34\U0001f34c";
         std::u16string u16 = u"z\u00df\u6c34\U0001f34c";
@@ -147,12 +151,13 @@ void codecvt_test()
             asio2::codecvt_utf8_utf16<char16_t, char8_t>, char16_t, char8_t>{}.to_bytes(u16);
         ASIO2_CHECK(u8 == u8_conv);
     }
+#endif
 
     // https://en.cppreference.com/w/cpp/locale/wbuffer_convert/wbuffer_convert
     if (asio2::get_codecvt_locale() == ".936")
     {
-        const char* filepathutf8 = "../../codecvt_utf8.json";
-        const char* filepathgbk = "../../codecvt_gbk.json";
+        const char* filepathutf8 = "../../test/codecvt_utf8.json";
+        const char* filepathgbk = "../../test/codecvt_gbk.json";
         std::fstream fileutf8(filepathutf8, std::ios::in | std::ios::binary);
         std::fstream filegbk(filepathgbk, std::ios::in | std::ios::binary);
         if (fileutf8 && filegbk)
@@ -181,8 +186,8 @@ void codecvt_test()
 
     if (asio2::get_codecvt_locale() == ".936")
     {
-        const char* filepathutf8 = "../../codecvt_utf8.json";
-        const char* filepathgbk = "../../codecvt_gbk.json";
+        const char* filepathutf8 = "../../test/codecvt_utf8.json";
+        const char* filepathgbk = "../../test/codecvt_gbk.json";
         std::fstream fileutf8(filepathutf8, std::ios::in | std::ios::binary);
         std::fstream filegbk(filepathgbk, std::ios::in | std::ios::binary);
         if (fileutf8 && filegbk)
@@ -201,8 +206,8 @@ void codecvt_test()
 
     if (asio2::get_codecvt_locale() == ".936")
     {
-        const char* filepathutf8 = "../../codecvt_utf8.json";
-        const char* filepathgbk = "../../codecvt_gbk.json";
+        const char* filepathutf8 = "../../test/codecvt_utf8.json";
+        const char* filepathgbk = "../../test/codecvt_gbk.json";
         std::fstream fileutf8(filepathutf8, std::ios::in | std::ios::binary);
         std::fstream filegbk(filepathgbk, std::ios::in | std::ios::binary);
         if (fileutf8 && filegbk)
@@ -269,6 +274,7 @@ void codecvt_test()
 	}
 
     // https://en.cppreference.com/w/cpp/locale/codecvt_utf8
+#if defined(_MSC_VER) && (_MSC_VER > 1916)
     {
         // UTF-8 data. The character U+1d10b, musical sign segno, does not fit in UCS-2
         std::string utf8 = u8"z\u6c34\U0001d10b";
@@ -294,6 +300,7 @@ void codecvt_test()
             //std::u16string ucs2 = ucs2conv.from_bytes(utf8.substr(0, ucs2conv.converted()));
         }
     }
+#endif
 
     // https://en.cppreference.com/w/cpp/locale/codecvt_utf16
 	{
@@ -328,6 +335,7 @@ void codecvt_test()
 	}
 
     // https://en.cppreference.com/w/cpp/locale/codecvt_utf8_utf16
+#if defined(_MSC_VER) && (_MSC_VER > 1916)
     {
         std::string u8 = u8"z\u00df\u6c34\U0001f34c";
         std::u16string u16 = u"z\u00df\u6c34\U0001f34c";
@@ -342,6 +350,7 @@ void codecvt_test()
             asio2::codecvt_utf8_utf16<char16_t>, char16_t>{}.to_bytes(u16);
         ASIO2_CHECK(u8 == u8_conv);
     }
+#endif
 
     // https://en.cppreference.com/w/cpp/locale/wbuffer_convert/wbuffer_convert
     {
@@ -361,8 +370,8 @@ void codecvt_test()
 
     if (asio2::get_codecvt_locale() == ".936")
     {
-        const char* filepathutf8 = "../../codecvt_utf8.json";
-        const char* filepathgbk = "../../codecvt_gbk.json";
+        const char* filepathutf8 = "../../test/codecvt_utf8.json";
+        const char* filepathgbk = "../../test/codecvt_gbk.json";
         std::fstream fileutf8(filepathutf8, std::ios::in | std::ios::binary);
         std::fstream filegbk(filepathgbk, std::ios::in | std::ios::binary);
         if (fileutf8 && filegbk)
@@ -381,8 +390,8 @@ void codecvt_test()
 
     if (asio2::get_codecvt_locale() == ".936")
     {
-        const char* filepathutf8 = "../../codecvt_utf8.json";
-        const char* filepathgbk = "../../codecvt_gbk.json";
+        const char* filepathutf8 = "../../test/codecvt_utf8.json";
+        const char* filepathgbk = "../../test/codecvt_gbk.json";
         std::fstream fileutf8(filepathutf8, std::ios::in | std::ios::binary);
         std::fstream filegbk(filepathgbk, std::ios::in | std::ios::binary);
         if (fileutf8 && filegbk)

@@ -12,7 +12,7 @@ void ini_test()
 	std::error_code ec;
 	std::filesystem::resize_file(ini.filepath(), 0, ec);
 
-	ASIO2_CHECK(std::filesystem::path(ini.filepath()).filename().string() == "ini.ini");
+	ASIO2_CHECK(std::filesystem::path(ini.filepath()).filename().string() == "test_ini.ini");
 
 	ASIO2_CHECK(ini.get<bool>("number", "boolean",  true ) == true );
 	ASIO2_CHECK(ini.get<bool>("number", "boolean",  false) == false);

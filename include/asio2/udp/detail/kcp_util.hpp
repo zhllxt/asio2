@@ -46,72 +46,72 @@ namespace asio2::detail::kcp
 //
 //	struct tcphdr
 //	{
-//		std::uint16_t th_sport;        /* source port */
-//		std::uint16_t th_dport;        /* destination port */
-//		std::uint32_t th_seq;          /* sequence number */
-//		std::uint32_t th_ack;          /* acknowledgement number */
+//		::std::uint16_t th_sport;        /* source port */
+//		::std::uint16_t th_dport;        /* destination port */
+//		::std::uint32_t th_seq;          /* sequence number */
+//		::std::uint32_t th_ack;          /* acknowledgement number */
 //#if IWORDS_BIG_ENDIAN
-//		std::uint16_t th_off : 4;      /* data offset */
-//		std::uint16_t th_x2 : 6;       /* (unused) */
+//		::std::uint16_t th_off : 4;      /* data offset */
+//		::std::uint16_t th_x2 : 6;       /* (unused) */
 //#else
-//		std::uint16_t th_x2 : 6;       /* (unused) */
-//		std::uint16_t th_off : 4;      /* data offset */
+//		::std::uint16_t th_x2 : 6;       /* (unused) */
+//		::std::uint16_t th_off : 4;      /* data offset */
 //#endif
-//		std::uint16_t thf_urg : 1;     /* flags : Urgent Pointer Field Significant */
-//		std::uint16_t thf_ack : 1;     /* flags : Acknowledgement field significant */
-//		std::uint16_t thf_psh : 1;     /* flags : Push Function */
-//		std::uint16_t thf_rst : 1;     /* flags : Reset the connection */
-//		std::uint16_t thf_syn : 1;     /* flags : Synchronize sequence numbers */
-//		std::uint16_t thf_fin : 1;     /* flags : No more data from sender */
-//		std::uint16_t th_win;          /* window */
-//		std::uint16_t th_sum;          /* checksum */
-//		std::uint16_t th_urp;          /* urgent pointer */
-//		std::uint32_t th_option : 24;  /* option */
-//		std::uint32_t th_padding : 8;  /* padding */
+//		::std::uint16_t thf_urg : 1;     /* flags : Urgent Pointer Field Significant */
+//		::std::uint16_t thf_ack : 1;     /* flags : Acknowledgement field significant */
+//		::std::uint16_t thf_psh : 1;     /* flags : Push Function */
+//		::std::uint16_t thf_rst : 1;     /* flags : Reset the connection */
+//		::std::uint16_t thf_syn : 1;     /* flags : Synchronize sequence numbers */
+//		::std::uint16_t thf_fin : 1;     /* flags : No more data from sender */
+//		::std::uint16_t th_win;          /* window */
+//		::std::uint16_t th_sum;          /* checksum */
+//		::std::uint16_t th_urp;          /* urgent pointer */
+//		::std::uint32_t th_option : 24;  /* option */
+//		::std::uint32_t th_padding : 8;  /* padding */
 //	};
 
 	struct kcphdr
 	{
-		std::uint32_t th_seq{};
-		std::uint32_t th_ack{};
+		::std::uint32_t th_seq{};
+		::std::uint32_t th_ack{};
 		union
 		{
-			std::uint8_t      byte{};
+			::std::uint8_t      byte{};
 		#if ASIO2_ENDIAN_BIG_BYTE
 			struct
 			{
-				std::uint8_t  urg     : 1;
-				std::uint8_t  ack     : 1;
-				std::uint8_t  psh     : 1;
-				std::uint8_t  rst     : 1;
-				std::uint8_t  syn     : 1;
-				std::uint8_t  fin     : 1;
-				std::uint8_t  padding : 2;
+				::std::uint8_t  urg     : 1;
+				::std::uint8_t  ack     : 1;
+				::std::uint8_t  psh     : 1;
+				::std::uint8_t  rst     : 1;
+				::std::uint8_t  syn     : 1;
+				::std::uint8_t  fin     : 1;
+				::std::uint8_t  padding : 2;
 			} bits;
 		#else
 			struct
 			{
-				std::uint8_t  padding : 2;
-				std::uint8_t  fin     : 1;
-				std::uint8_t  syn     : 1;
-				std::uint8_t  rst     : 1;
-				std::uint8_t  psh     : 1;
-				std::uint8_t  ack     : 1;
-				std::uint8_t  urg     : 1;
+				::std::uint8_t  padding : 2;
+				::std::uint8_t  fin     : 1;
+				::std::uint8_t  syn     : 1;
+				::std::uint8_t  rst     : 1;
+				::std::uint8_t  psh     : 1;
+				::std::uint8_t  ack     : 1;
+				::std::uint8_t  urg     : 1;
 			} bits;
 		#endif
-		}             th_flag   {};
-		std::uint8_t  th_padding{};
-		std::uint16_t th_sum    {};
+		}               th_flag   {};
+		::std::uint8_t  th_padding{};
+		::std::uint16_t th_sum    {};
 
-		static constexpr std::size_t required_size() noexcept
+		static constexpr ::std::size_t required_size() noexcept
 		{
 			return (0
-				+ sizeof(std::uint32_t) // std::uint32_t th_seq;
-				+ sizeof(std::uint32_t) // std::uint32_t th_ack;
-				+ sizeof(std::uint8_t )	// std::uint8_t  th_flag;
-				+ sizeof(std::uint8_t )	// std::uint8_t  th_padding;
-				+ sizeof(std::uint16_t) // std::uint16_t th_sum;
+				+ sizeof(::std::uint32_t) // ::std::uint32_t th_seq;
+				+ sizeof(::std::uint32_t) // ::std::uint32_t th_ack;
+				+ sizeof(::std::uint8_t ) // ::std::uint8_t  th_flag;
+				+ sizeof(::std::uint8_t ) // ::std::uint8_t  th_padding;
+				+ sizeof(::std::uint16_t) // ::std::uint16_t th_sum;
 				);
 		}
 	};
@@ -123,13 +123,13 @@ namespace asio2::detail::kcp
 
 	namespace
 	{
-	std::string to_string(kcphdr& hdr)
+	::std::string to_string(kcphdr& hdr)
 	{
-		std::string s/*{ kcphdr::required_size(), '\0' }*/;
+		::std::string s/*{ kcphdr::required_size(), '\0' }*/;
 
 		s.resize(kcphdr::required_size());
 
-		std::string::pointer p = s.data();
+		::std::string::pointer p = s.data();
 
 		detail::write(p, hdr.th_seq      );
 		detail::write(p, hdr.th_ack      );
@@ -140,19 +140,19 @@ namespace asio2::detail::kcp
 		return s;
 	}
 
-	kcphdr to_kcphdr(std::string_view s) noexcept
+	kcphdr to_kcphdr(::std::string_view s) noexcept
 	{
 		kcphdr hdr{};
 
-		std::string_view::pointer p = const_cast<std::string_view::pointer>(s.data());
+		::std::string_view::pointer p = const_cast<::std::string_view::pointer>(s.data());
 
 		if (s.size() >= kcphdr::required_size())
 		{
-			hdr.th_seq       = detail::read<std::uint32_t>(p);
-			hdr.th_ack       = detail::read<std::uint32_t>(p);
-			hdr.th_flag.byte = detail::read<std::uint8_t >(p);
-			hdr.th_padding   = detail::read<std::uint8_t >(p);
-			hdr.th_sum       = detail::read<std::uint16_t>(p);
+			hdr.th_seq       = detail::read<::std::uint32_t>(p);
+			hdr.th_ack       = detail::read<::std::uint32_t>(p);
+			hdr.th_flag.byte = detail::read<::std::uint8_t >(p);
+			hdr.th_padding   = detail::read<::std::uint8_t >(p);
+			hdr.th_sum       = detail::read<::std::uint16_t>(p);
 		}
 
 		return hdr;
@@ -168,8 +168,8 @@ namespace asio2::detail::kcp
 		}
 		if (size > 0)
 		{
-			std::uint8_t left_over[2] = { 0 };
-			left_over[0] = static_cast<std::uint8_t>(*addr);
+			::std::uint8_t left_over[2] = { 0 };
+			left_over[0] = static_cast<::std::uint8_t>(*addr);
 			sum += *(unsigned short*)left_over;
 		}
 		while (sum >> 16)
@@ -177,7 +177,7 @@ namespace asio2::detail::kcp
 		return static_cast<unsigned short>(~sum);
 	}
 
-	inline bool is_kcphdr_syn(std::string_view s) noexcept
+	inline bool is_kcphdr_syn(::std::string_view s) noexcept
 	{
 		if (s.size() != kcphdr::required_size())
 			return false;
@@ -192,7 +192,7 @@ namespace asio2::detail::kcp
 			static_cast<int>(kcphdr::required_size() - sizeof(kcphdr::th_sum))));
 	}
 
-	inline bool is_kcphdr_synack(std::string_view s, std::uint32_t seq, bool ignore_seq = false) noexcept
+	inline bool is_kcphdr_synack(::std::string_view s, ::std::uint32_t seq, bool ignore_seq = false) noexcept
 	{
 		if (s.size() != kcphdr::required_size())
 			return false;
@@ -210,7 +210,7 @@ namespace asio2::detail::kcp
 			static_cast<int>(kcphdr::required_size() - sizeof(kcphdr::th_sum))));
 	}
 
-	inline bool is_kcphdr_ack(std::string_view s, std::uint32_t seq, bool ignore_seq = false) noexcept
+	inline bool is_kcphdr_ack(::std::string_view s, ::std::uint32_t seq, bool ignore_seq = false) noexcept
 	{
 		if (s.size() != kcphdr::required_size())
 			return false;
@@ -228,7 +228,7 @@ namespace asio2::detail::kcp
 			static_cast<int>(kcphdr::required_size() - sizeof(kcphdr::th_sum))));
 	}
 
-	inline bool is_kcphdr_fin(std::string_view s) noexcept
+	inline bool is_kcphdr_fin(::std::string_view s) noexcept
 	{
 		if (s.size() != kcphdr::required_size())
 			return false;
@@ -243,14 +243,14 @@ namespace asio2::detail::kcp
 			static_cast<int>(kcphdr::required_size() - sizeof(kcphdr::th_sum))));
 	}
 
-	inline kcphdr make_kcphdr_syn(std::uint32_t conv, std::uint32_t seq)
+	inline kcphdr make_kcphdr_syn(::std::uint32_t conv, ::std::uint32_t seq)
 	{
 		kcphdr hdr{};
 		hdr.th_seq = seq;
 		hdr.th_ack = conv;
 		hdr.th_flag.bits.syn = 1;
 
-		std::string s = kcp::to_string(hdr);
+		::std::string s = kcp::to_string(hdr);
 
 		hdr.th_sum = checksum(reinterpret_cast<unsigned short *>(s.data()),
 			static_cast<int>(kcphdr::required_size() - sizeof(kcphdr::th_sum)));
@@ -258,7 +258,7 @@ namespace asio2::detail::kcp
 		return hdr;
 	}
 
-	inline kcphdr make_kcphdr_synack(std::uint32_t conv, std::uint32_t ack)
+	inline kcphdr make_kcphdr_synack(::std::uint32_t conv, ::std::uint32_t ack)
 	{
 		kcphdr hdr{};
 		hdr.th_seq = conv;
@@ -266,7 +266,7 @@ namespace asio2::detail::kcp
 		hdr.th_flag.bits.ack = 1;
 		hdr.th_flag.bits.syn = 1;
 
-		std::string s = kcp::to_string(hdr);
+		::std::string s = kcp::to_string(hdr);
 
 		hdr.th_sum = checksum(reinterpret_cast<unsigned short *>(s.data()),
 			static_cast<int>(kcphdr::required_size() - sizeof(kcphdr::th_sum)));
@@ -274,13 +274,13 @@ namespace asio2::detail::kcp
 		return hdr;
 	}
 
-	inline kcphdr make_kcphdr_ack(std::uint32_t ack)
+	inline kcphdr make_kcphdr_ack(::std::uint32_t ack)
 	{
 		kcphdr hdr{};
 		hdr.th_ack = ack + 1;
 		hdr.th_flag.bits.ack = 1;
 
-		std::string s = kcp::to_string(hdr);
+		::std::string s = kcp::to_string(hdr);
 
 		hdr.th_sum = checksum(reinterpret_cast<unsigned short *>(s.data()),
 			static_cast<int>(kcphdr::required_size() - sizeof(kcphdr::th_sum)));
@@ -288,13 +288,13 @@ namespace asio2::detail::kcp
 		return hdr;
 	}
 
-	inline kcphdr make_kcphdr_fin(std::uint32_t seq)
+	inline kcphdr make_kcphdr_fin(::std::uint32_t seq)
 	{
 		kcphdr hdr{};
 		hdr.th_seq = seq;
 		hdr.th_flag.bits.fin = 1;
 
-		std::string s = kcp::to_string(hdr);
+		::std::string s = kcp::to_string(hdr);
 
 		hdr.th_sum = checksum(reinterpret_cast<unsigned short *>(s.data()),
 			static_cast<int>(kcphdr::required_size() - sizeof(kcphdr::th_sum)));

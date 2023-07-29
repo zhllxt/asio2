@@ -2,8 +2,6 @@
 
 #include <asio2/config.hpp>
 
-#undef ASIO2_USE_WEBSOCKET_RPC
-
 #include <asio2/rpc/rpc_server.hpp>
 #include <asio2/rpc/rpc_client.hpp>
 #include <asio2/external/json.hpp>
@@ -148,7 +146,7 @@ public:
 	using super::async_send;
 };
 
-void rpc_test()
+void rpc_kcp_test()
 {
 	ASIO2_TEST_BEGIN_LOOP(test_loop_times);
 
@@ -160,6 +158,13 @@ void rpc_test()
 		server.bind_connect([&](auto & session_ptr)
 		{
 			server_connect_counter++;
+
+			session_ptr->get_kcp_stream()->set_illegal_response_handler(
+			[p = session_ptr.get()](std::string_view data)
+			{
+				std::ignore = data;
+				p->stop();
+			});
 
 			ASIO2_CHECK(!asio2::get_last_error());
 			ASIO2_CHECK(session_ptr->remote_address() == "127.0.0.1");
@@ -243,9 +248,13 @@ void rpc_test()
 			{
 				client_init_counter++;
 
-				if (asio2::get_last_error()) {
-					std::cerr << " val: " << asio2::get_last_error_val() << std::endl << asio2::get_last_error_msg() << std::endl;
-				}
+				client.get_kcp_stream()->set_illegal_response_handler(
+				[&client](std::string_view data)
+				{
+					std::ignore = data;
+					client.stop();
+				});
+
 				ASIO2_CHECK(client.io().running_in_this_thread());
 				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(!asio2::get_last_error());
@@ -471,7 +480,12 @@ void rpc_test()
 			ASIO2_CHECK(server.io().running_in_this_thread());
 			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 			
-			
+			session_ptr->get_kcp_stream()->set_illegal_response_handler(
+			[p = session_ptr.get()](std::string_view data)
+			{
+				std::ignore = data;
+				p->stop();
+			});
 
 		});
 		std::atomic<int> server_disconnect_counter = 0;
@@ -550,6 +564,14 @@ void rpc_test()
 			client.bind_init([&]()
 			{
 				client_init_counter++;
+
+				client.get_kcp_stream()->set_illegal_response_handler(
+				[&client](std::string_view data)
+				{
+					std::ignore = data;
+					client.stop();
+				});
+
 				ASIO2_CHECK(client.io().running_in_this_thread());
 				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
 				ASIO2_CHECK(!asio2::get_last_error());
@@ -779,7 +801,12 @@ void rpc_test()
 			ASIO2_CHECK(server.io().running_in_this_thread());
 			ASIO2_CHECK(server.iopool().get(0)->running_in_this_thread());
 			
-			
+			session_ptr->get_kcp_stream()->set_illegal_response_handler(
+			[p = session_ptr.get()](std::string_view data)
+			{
+				std::ignore = data;
+				p->stop();
+			});
 
 		});
 		std::atomic<int> server_disconnect_counter = 0;
@@ -858,6 +885,13 @@ void rpc_test()
 			{
 				ext_data& ex = client.get_user_data<ext_data&>();
 				ex.client_init_counter++;
+
+				client.get_kcp_stream()->set_illegal_response_handler(
+				[&client](std::string_view data)
+				{
+					std::ignore = data;
+					client.stop();
+				});
 
 				ASIO2_CHECK(client.io().running_in_this_thread());
 				ASIO2_CHECK(client.iopool().get(0)->running_in_this_thread());
@@ -1140,6 +1174,11 @@ void rpc_test()
 		{
 			server_connect_counter++;
 
+			session_ptr->get_kcp_stream()->set_illegal_response_handler([](std::string_view data)
+			{
+				std::ignore = data;
+			});
+
 			session_ptr->async_call([&, session_ptr](int v)
 			{
 				server_async_call_counter++;
@@ -1282,6 +1321,10 @@ void rpc_test()
 				ASIO2_CHECK(!asio2::get_last_error());
 				ASIO2_CHECK(client.is_reuse_address());
 				
+				client.get_kcp_stream()->set_illegal_response_handler([](std::string_view data)
+				{
+					std::ignore = data;
+				});
 			});
 			client.bind_connect([&]()
 			{
@@ -1305,10 +1348,6 @@ void rpc_test()
 				client.async_call([&](int v)
 				{
 					ASIO2_CHECK(client.io().running_in_this_thread());
-					if (asio2::get_last_error()) {
-						std::cerr << asio2::get_last_error_val() << std::endl << asio2::get_last_error_msg();
-					}
-					std::cerr << " gggget " << v << std::endl;
 					ASIO2_CHECK(!asio2::get_last_error());
 					ASIO2_CHECK(v == 12 + 11);
 					ex.async_call_counter++;
@@ -1317,9 +1356,6 @@ void rpc_test()
 				client.async_call([&]()
 				{
 					ASIO2_CHECK(client.io().running_in_this_thread());
-					if (asio2::get_last_error()) {
-						std::cerr << asio2::get_last_error_val() << std::endl << asio2::get_last_error_msg();
-					}
 					ASIO2_CHECK(!asio2::get_last_error());
 					ex.async_call_counter++;
 				}, std::chrono::seconds(3), "heartbeat");
@@ -1862,5 +1898,5 @@ void rpc_test()
 ASIO2_TEST_SUITE
 (
 	"rpc_kcp",
-	ASIO2_TEST_CASE(rpc_test)
+	ASIO2_TEST_CASE(rpc_kcp_test)
 )

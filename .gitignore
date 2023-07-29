@@ -20,7 +20,7 @@
 # x64/
 # x86/
 bld/
-# [Bb]in/
+[Bb]in/
 [Oo]bj/
 [Ll]og/
 
@@ -33,6 +33,23 @@ demo/vcproj_linux/bin
 demo/vcproj_linux/obj
 
 #########################################################
+
+.GenerateProjectFiles.cmd
+.Generate.cmd
+.generate.cmd
+
+.CMakeGenerate.cmd
+.CMakeBuild.cmd
+.CMakeTest.cmd
+
+*.log.tmp*
+
+*.tlog/
+*.dir/
+
+[Tt]esting/
+[Bb]uild/
+[Oo]ut/
 
 example/bin/
 example/obj/
@@ -396,3 +413,4 @@ __pycache__/
 # Cancel Ignore
 !/lib/x64/ossl_static.pdb
 !/3rd/openssl/prebuilt/windows/x64/ossl_static.pdb
+!/3rd/openssl/bin

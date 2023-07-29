@@ -128,11 +128,11 @@ void https_test()
 		server.set_root_directory(std::move(root));
 
 		server.set_cert_file(
-			"../../../example/cert/ca.crt",
-			"../../../example/cert/server.crt",
-			"../../../example/cert/server.key",
+			"../../example/cert/ca.crt",
+			"../../example/cert/server.crt",
+			"../../example/cert/server.key",
 			"123456");
-		server.set_dh_file("../../../example/cert/dh1024.pem");
+		server.set_dh_file("../../example/cert/dh1024.pem");
 
 		server.bind_accept([](std::shared_ptr<asio2::https_session> & session_ptr)
 		{
@@ -204,9 +204,9 @@ void https_test()
 		asio2::https_client https_client;
 		//https_client.set_verify_mode(asio::ssl::verify_peer);
 		https_client.set_cert_file(
-			"../../../example/cert/ca.crt",
-			"../../../example/cert/client.crt",
-			"../../../example/cert/client.key",
+			"../../example/cert/ca.crt",
+			"../../example/cert/client.crt",
+			"../../example/cert/client.key",
 			"123456");
 
 		https_client.set_connect_timeout(std::chrono::seconds(10));
@@ -235,9 +235,9 @@ void https_test()
 
 		wss_client.set_verify_mode(asio::ssl::verify_peer);
 		wss_client.set_cert_file(
-			"../../../example/cert/ca.crt",
-			"../../../example/cert/client.crt",
-			"../../../example/cert/client.key",
+			"../../example/cert/ca.crt",
+			"../../example/cert/client.crt",
+			"../../example/cert/client.key",
 			"123456");
 
 		wss_client.bind_init([&]()

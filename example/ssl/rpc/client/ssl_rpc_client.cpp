@@ -19,7 +19,11 @@ int main()
 	// our client may not load the ssl certificate.
 	//------------------------------------------------------------------------------
 	//client.set_verify_mode(asio::ssl::verify_peer);
-	//client.set_cert_file("../../cert/ca.crt", "../../cert/client.crt", "../../cert/client.key", "123456");
+	//client.set_cert_file(
+	//	"../../example/cert/ca.crt",
+	//	"../../example/cert/client.crt",
+	//	"../../example/cert/client.key",
+	//	"123456");
 
 	client.bind_connect([&]()
 	{

@@ -19,9 +19,9 @@ int main()
 
 	// use file for cert
 	server.set_cert_file(
-		"../../cert/ca.crt",
-		"../../cert/server.crt",
-		"../../cert/server.key",
+		"../../example/cert/ca.crt",
+		"../../example/cert/server.crt",
+		"../../example/cert/server.key",
 		"123456");
 
 	if (asio2::get_last_error())

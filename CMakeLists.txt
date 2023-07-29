@@ -11,8 +11,6 @@
 # export CC=/usr/local/bin/gcc
 # export CXX=/usr/local/bin/g++
 #
-# cmake -G "Visual Studio 15 Win64" .
-#
 
 cmake_minimum_required (VERSION 2.8...3.20)
 
@@ -24,10 +22,9 @@ string(REGEX REPLACE "/$" "" CMAKELISTS_DIR_PATH ${CMAKE_CURRENT_SOURCE_DIR})
 # get current relative dir name and set target name
 string(REGEX REPLACE ".*/(.*)" "\\1" CMAKELISTS_DIR_NAME ${CMAKELISTS_DIR_PATH})
 
-# get above dir name and set target group name
-get_filename_component(ASIO2_ROOT_DIR ${CMAKELISTS_DIR_PATH} DIRECTORY)
-string(REGEX REPLACE "/$" "" ASIO2_ROOT_DIR ${ASIO2_ROOT_DIR})
-get_filename_component(ASIO2_ROOT_DIR ${ASIO2_ROOT_DIR} DIRECTORY)
+# set root directory
+set(ASIO2_ROOT_DIR ${CMAKELISTS_DIR_PATH})
+
 message("ASIO2_ROOT_DIR = ${ASIO2_ROOT_DIR}")
 
 
@@ -66,7 +63,7 @@ endfunction()
 #
 #-------------------------------------------------------------------------------
 
-project (asio2_server_example)
+project (asio2)
 
 set_property (GLOBAL PROPERTY USE_FOLDERS ON)
 
@@ -110,9 +107,9 @@ ELSE ()
 ENDIF (CMAKE_SYSTEM_NAME MATCHES "Windows")
 
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-    set(ASIO2_EXES_DIR ${ASIO2_ROOT_DIR}/example/bin/x64)
+    set(ASIO2_EXES_DIR ${ASIO2_ROOT_DIR}/bin/x64)
 elseif(CMAKE_SIZEOF_VOID_P EQUAL 4)
-    set(ASIO2_EXES_DIR ${ASIO2_ROOT_DIR}/example/bin/x86)
+    set(ASIO2_EXES_DIR ${ASIO2_ROOT_DIR}/bin/x86)
 endif()
  
 IF (CMAKE_SYSTEM_NAME MATCHES "Linux")
@@ -259,29 +256,11 @@ file (GLOB_RECURSE CEREAL_FILES  ${ASIO2_ROOT_DIR}/3rd/cereal/*.*)
 # exclude : asio/impl/src.cpp
 list(REMOVE_ITEM ASIO_FILES ${ASIO2_ROOT_DIR}/3rd/asio/impl/src.cpp)
 
+enable_testing()
 
-add_subdirectory (${ASIO2_ROOT_DIR}/example/http/server          asio2_server_example_project/http_server)
-add_subdirectory (${ASIO2_ROOT_DIR}/example/rpc/server           asio2_server_example_project/rpc_server)
-add_subdirectory (${ASIO2_ROOT_DIR}/example/tcp/server           asio2_server_example_project/tcp_server)
-add_subdirectory (${ASIO2_ROOT_DIR}/example/udp/server           asio2_server_example_project/udp_server)
-add_subdirectory (${ASIO2_ROOT_DIR}/example/websocket/server     asio2_server_example_project/websocket_server)
-add_subdirectory (${ASIO2_ROOT_DIR}/example/mqtt/server          asio2_server_example_project/mqtt_server)
+# after test, i find that it will linked failed on MINGW when use the static ssl librarys, 
+# but it will successed when use the shared ssl librarys like this:
+# https://github.com/axmolengine/buildware/releases/tag/v41
 
-if(MINGW OR CYGWIN)
-        add_subdirectory (${ASIO2_ROOT_DIR}/example/ssl/http/server      asio2_server_example_project/ssl_http_server     )
-        add_subdirectory (${ASIO2_ROOT_DIR}/example/ssl/rpc/server       asio2_server_example_project/ssl_rpc_server      )
-        add_subdirectory (${ASIO2_ROOT_DIR}/example/ssl/tcp/server       asio2_server_example_project/ssl_tcp_server      )
-        add_subdirectory (${ASIO2_ROOT_DIR}/example/ssl/websocket/server asio2_server_example_project/ssl_websocket_server)
-else()
-    if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
-        add_subdirectory (${ASIO2_ROOT_DIR}/example/ssl/http/server      asio2_server_example_project/ssl_http_server     )
-        add_subdirectory (${ASIO2_ROOT_DIR}/example/ssl/rpc/server       asio2_server_example_project/ssl_rpc_server      )
-        add_subdirectory (${ASIO2_ROOT_DIR}/example/ssl/tcp/server       asio2_server_example_project/ssl_tcp_server      )
-        add_subdirectory (${ASIO2_ROOT_DIR}/example/ssl/websocket/server asio2_server_example_project/ssl_websocket_server)
-    else()
-        add_subdirectory (${ASIO2_ROOT_DIR}/example/ssl/http/server      asio2_server_example_project/ssl_http_server     )
-        add_subdirectory (${ASIO2_ROOT_DIR}/example/ssl/rpc/server       asio2_server_example_project/ssl_rpc_server      )
-        add_subdirectory (${ASIO2_ROOT_DIR}/example/ssl/tcp/server       asio2_server_example_project/ssl_tcp_server      )
-        add_subdirectory (${ASIO2_ROOT_DIR}/example/ssl/websocket/server asio2_server_example_project/ssl_websocket_server)
-    endif()
-endif()
+add_subdirectory (example)
+add_subdirectory (test)

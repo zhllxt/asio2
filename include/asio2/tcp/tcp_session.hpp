@@ -121,12 +121,11 @@ namespace asio2::detail
 
 			std::shared_ptr<derived_t> this_ptr = derive.selfptr();
 
-			try
+			error_code ec_ignore{};
+			auto ep = this->socket_.lowest_layer().remote_endpoint(ec_ignore);
+			if (!ec_ignore)
 			{
-				this->remote_endpoint_copy_ = this->socket_.lowest_layer().remote_endpoint();
-			}
-			catch (const system_error&)
-			{
+				this->remote_endpoint_ = std::move(ep);
 			}
 
 			state_t expected = state_t::stopped;

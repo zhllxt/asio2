@@ -821,9 +821,6 @@ namespace asio2::detail
 		/// state
 		std::atomic<state_t>                        state_ = state_t::stopped;
 
-		/// endpoint for udp 
-		asio::ip::udp::endpoint                     remote_endpoint_;
-
 		/// the pointer of ecs_t
 		std::shared_ptr<ecs_base>                   ecs_;
 

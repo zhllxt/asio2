@@ -1,6 +1,30 @@
 #include <asio2/base/detail/push_options.hpp>
 
+#if defined(__GNUC__) || defined(__GNUG__)
+#  pragma GCC diagnostic push
+#  pragma GCC diagnostic ignored "-Wunused-value"
+#  pragma GCC diagnostic ignored "-Wreorder-ctor"
+#endif
+
+
+#if defined(__clang__)
+#  pragma clang diagnostic push
+#  pragma clang diagnostic ignored "-Wunused-value"
+#  pragma clang diagnostic ignored "-Wreorder-ctor"
+#endif
+
+#include <type_traits>
+
 #define ASIO_STANDALONE
+
+#if (defined(__cplusplus) && __cplusplus >= 202002L) || (defined(_MSVC_LANG) && _MSVC_LANG >= 202002L)
+namespace std
+{
+	template <typename> struct result_of;
+	template <typename F, typename... Args>
+	struct result_of<F(Args...)> : std::invoke_result<F, Args...> {};
+}
+#endif
 
 // https://github.com/qicosmos/rest_rpc
 

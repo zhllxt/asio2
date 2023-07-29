@@ -15,15 +15,15 @@ aux_source_directory(. SRC_FILES)
 
 source_group("" FILES ${SRC_FILES})
 
-set(TARGET_NAME asio2_rdc_qps_server)
+set(PROJECT_NAME asio2_rdc_qps_server)
+set(TARGET_NAME bench_${PROJECT_NAME})
 
 add_executable (
     ${TARGET_NAME}
-    ${ASIO2_FILES}
-    ${TARGET_NAME}.cpp
+    ${PROJECT_NAME}.cpp
 )
 
-set_property(TARGET ${TARGET_NAME} PROPERTY FOLDER "bench/rdc")
+set_property(TARGET ${TARGET_NAME} PROPERTY FOLDER "test/bench/rdc")
 
 #SET_TARGET_PROPERTIES(${TARGET_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${ASIO2_EXES_DIR})
 

@@ -71,6 +71,16 @@ namespace asio2::detail
 			}
 		}
 
+		/**
+		 * @brief The udp protocol may received some illegal data. Use this function 
+		 * to set up an illegal data handler. The default illegal data handler is empty,
+		 * when recvd illegal data, the default illegal data handler will do nothing.
+		 */
+		inline void set_illegal_response_handler(std::function<void(std::string_view)> fn) noexcept
+		{
+			this->illegal_response_handler_ = std::move(fn);
+		}
+
 	protected:
 		void _kcp_start(std::shared_ptr<derived_t> this_ptr, std::uint32_t conv)
 		{
@@ -255,10 +265,7 @@ namespace asio2::detail
 			{
 				set_last_error(asio::error::message_size);
 
-				if (derive.state_ == state_t::started)
-				{
-					derive._do_disconnect(asio::error::message_size, this_ptr);
-				}
+				this->_call_illegal_data_callback(data);
 
 				return;
 			}
@@ -369,12 +376,12 @@ namespace asio2::detail
 				}
 				else
 				{
-					ASIO2_ASSERT(false);
+					this->_call_illegal_data_callback(data);
 				}
 			}
 			else
 			{
-				ASIO2_ASSERT(false);
+				this->_call_illegal_data_callback(data);
 			}
 		}
 
@@ -559,12 +566,19 @@ namespace asio2::detail
 
 			error_code ec;
 			if constexpr (args_t::is_session)
-				derive.stream().send_to(asio::buffer(buf, len),
-					derive.remote_endpoint_, 0, ec);
+				derive.stream().send_to(asio::buffer(buf, len), derive.remote_endpoint_, 0, ec);
 			else
 				derive.stream().send(asio::buffer(buf, len), 0, ec);
 
 			return 0;
+		}
+
+		inline void _call_illegal_data_callback(std::string_view data)
+		{
+			if (this->illegal_response_handler_)
+			{
+				this->illegal_response_handler_(data);
+			}
 		}
 
 	protected:
@@ -577,6 +591,8 @@ namespace asio2::detail
 		asio::steady_timer                             kcp_timer_;
 
 		handler_memory<std::true_type, allocator_fixed_size_op<168>> tallocator_;
+
+		std::function<void(std::string_view)>          illegal_response_handler_;
 	};
 }
 

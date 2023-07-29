@@ -146,7 +146,7 @@ namespace asio2::detail
 
 			try
 			{
-				asio::ip::address addr = this->remote_endpoint_copy_.address();
+				asio::ip::address addr = this->remote_endpoint_.address();
 
 				if (!addr.is_unspecified())
 				{
@@ -190,7 +190,7 @@ namespace asio2::detail
 
 			try
 			{
-				return this->remote_endpoint_copy_.port();
+				return this->remote_endpoint_.port();
 			}
 			catch (const system_error&)
 			{
@@ -352,7 +352,7 @@ namespace asio2::detail
 		/// the call of remote_endpoint() maybe failed when the remote socket is closed, 
 		/// even if local socket is not closed, so we use this variable to ensure the
 		/// call of remote_endpoint() must be successed.
-		typename socket_type::endpoint_type remote_endpoint_copy_;
+		typename socket_type::endpoint_type remote_endpoint_{};
 	};
 }
 

@@ -49,20 +49,25 @@ int main()
 
 	server.support_websocket(true);
 
-	// set the root directory, here is:  /asio2/example/wwwroot
-	std::filesystem::path root = std::filesystem::current_path().parent_path().parent_path().append("wwwroot");
+	// root = /asio2/bin/x64
+	std::filesystem::path root = std::filesystem::current_path();
+
+	// root = /asio2/example/wwwroot
+	root = root.parent_path().parent_path().append("example/wwwroot");
+
+	// set the http server root directory
 	server.set_root_directory(std::move(root));
 
 	server.set_cert_file(
-		"../../cert/ca.crt",
-		"../../cert/server.crt",
-		"../../cert/server.key",
+		"../../example/cert/ca.crt",
+		"../../example/cert/server.crt",
+		"../../example/cert/server.key",
 		"123456");
 
 	if (asio2::get_last_error())
 		std::cout << "load cert files failed: " << asio2::last_error_msg() << std::endl;
 
-	server.set_dh_file("../../cert/dh1024.pem");
+	server.set_dh_file("../../example/cert/dh1024.pem");
 
 	if (asio2::get_last_error())
 		std::cout << "load dh files failed: " << asio2::last_error_msg() << std::endl;

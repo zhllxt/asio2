@@ -24,6 +24,8 @@
 #include <iterator>
 #include <string>
 #include <string_view>
+#include <fstream>
+#include <thread>
 
 #ifndef ASIO2_ENABLE_LOG
 #define ASIO2_ENABLE_LOG
@@ -51,9 +53,9 @@
 #endif // !defined(ASIO2_TEST_IOSTREAM)
 
 static const int   test_loop_times = 100;
-static const int   test_client_count = 10;
-static const int   test_wait_count = 600000;
-static const int   test_timer_deviation = 300;
+static const int   test_client_count = int(std::thread::hardware_concurrency() * 2);
+static const int   test_wait_count = 12000;
+static const int   test_timer_deviation = 500;
 
 bool test_has_error = false;
 
@@ -79,6 +81,14 @@ inline std::mutex& test_lock()
   return mtx;
 }
 
+inline std::fstream& test_log()
+{
+    static std::fstream file("test.log", std::ios::out | std::ios::binary | std::ios::app);
+    return file;
+}
+
+#define ASIO2_TEST_LOGSTREAM asio2::detail::test_log()
+
 #define ASIO2_TEST_LOCK_GUARD \
   std::lock_guard guard(asio2::detail::test_lock());
 
@@ -87,15 +97,20 @@ inline void begin_test_suite(const char* name)
   asio2::detail::test_name();
   asio2::detail::test_errors();
   ASIO2_TEST_IOSTREAM << name << " test suite begins" << std::endl;
+  ASIO2_TEST_LOGSTREAM << name << " test suite begins" << std::endl;
 }
 
 inline int end_test_suite(const char* name)
 {
   ASIO2_TEST_IOSTREAM << name << " test suite ends" << std::endl;
+  ASIO2_TEST_LOGSTREAM << name << " test suite ends" << std::endl;
   ASIO2_TEST_IOSTREAM << "\n*** ";
+  ASIO2_TEST_LOGSTREAM << "\n*** ";
   long errors = asio2::detail::test_errors();
   ASIO2_TEST_IOSTREAM << errors << " errors detected." << std::endl;
+  ASIO2_TEST_LOGSTREAM << errors << " errors detected." << std::endl;
   ASIO2_TEST_IOSTREAM << std::endl;
+  ASIO2_TEST_LOGSTREAM << std::endl; ASIO2_TEST_LOGSTREAM.flush();
   return errors == 0 ? 0 : 1;
 }
 
@@ -108,17 +123,25 @@ inline void run_test(const char* name)
   if (!test_has_error)
   {
     ASIO2_TEST_IOSTREAM << std::endl;
+    ASIO2_TEST_LOGSTREAM << std::endl;
   }
   if (test_errors() == errors_before)
+  {
     ASIO2_TEST_IOSTREAM << name << " passed" << std::endl;
+    ASIO2_TEST_LOGSTREAM << name << " passed" << std::endl;
+  }
   else
+  {
     ASIO2_TEST_IOSTREAM << name << " failed" << std::endl;
+    ASIO2_TEST_LOGSTREAM << name << " failed" << std::endl;
+  }
 }
 
 template <void (*)()>
 inline void compile_test(const char* name)
 {
   ASIO2_TEST_IOSTREAM << name << " passed" << std::endl;
+  ASIO2_TEST_LOGSTREAM << name << " passed" << std::endl;
 }
 
 #if defined(ASIO_NO_EXCEPTIONS) || defined(BOOST_ASIO_NO_EXCEPTIONS)
@@ -127,6 +150,7 @@ template <typename T>
 void throw_exception(const T& t)
 {
   ASIO2_TEST_IOSTREAM << "Exception: " << t.what() << std::endl;
+  ASIO2_TEST_LOGSTREAM << "Exception: " << t.what() << std::endl; ASIO2_TEST_LOGSTREAM.flush();
   std::abort();
 }
 
@@ -143,7 +167,7 @@ void check_memory_leaks()
 void pause_cmd_window()
 {
 #if defined(WIN32) || defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS_)
-  while (std::getchar() != '\n');
+  //while (std::getchar() != '\n');
 #endif
 }
 
@@ -156,6 +180,7 @@ void pause_cmd_window()
     if (!test_has_error) \
     { \
       ASIO2_TEST_IOSTREAM << std::endl; \
+      ASIO2_TEST_LOGSTREAM << std::endl; \
       test_has_error = true; \
     } \
     std::string_view file{__FILE__}; \
@@ -163,6 +188,10 @@ void pause_cmd_window()
       << std::next(std::next(file.data(), file.find_last_of("\\/"))) << "(" << __LINE__ << "): " \
       << asio2::detail::test_name() << ": " \
       << "check '" << #expr << "' failed" << std::endl; \
+    ASIO2_TEST_LOGSTREAM \
+      << std::next(std::next(file.data(), file.find_last_of("\\/"))) << "(" << __LINE__ << "): " \
+      << asio2::detail::test_name() << ": " \
+      << "check '" << #expr << "' failed" << std::endl; ASIO2_TEST_LOGSTREAM.flush(); \
     ++asio2::detail::test_errors(); \
   } } while (0)
 
@@ -172,6 +201,7 @@ void pause_cmd_window()
     if (!test_has_error) \
     { \
       ASIO2_TEST_IOSTREAM << std::endl; \
+      ASIO2_TEST_LOGSTREAM << std::endl; \
       test_has_error = true; \
     } \
     std::string_view file{__FILE__}; \
@@ -180,6 +210,11 @@ void pause_cmd_window()
       << std::next(std::next(file.data(), file.find_last_of("\\/"))) << "(" << __LINE__ << "): " \
       << asio2::detail::test_name() << ": " \
       << "check '" << #expr << "' failed" << std::endl; \
+    ASIO2_TEST_LOGSTREAM \
+      << #val << "=" << val << " \t" \
+      << std::next(std::next(file.data(), file.find_last_of("\\/"))) << "(" << __LINE__ << "): " \
+      << asio2::detail::test_name() << ": " \
+      << "check '" << #expr << "' failed" << std::endl; ASIO2_TEST_LOGSTREAM.flush(); \
     ++asio2::detail::test_errors(); \
   } } while (0)
 
@@ -189,6 +224,7 @@ void pause_cmd_window()
     if (!test_has_error) \
     { \
       ASIO2_TEST_IOSTREAM << std::endl; \
+      ASIO2_TEST_LOGSTREAM << std::endl; \
       test_has_error = true; \
     } \
     std::string_view file{__FILE__}; \
@@ -196,6 +232,10 @@ void pause_cmd_window()
       << std::next(std::next(file.data(), file.find_last_of("\\/"))) << "(" << __LINE__ << "): " \
       << asio2::detail::test_name() << ": " \
       << msg << std::endl; \
+    ASIO2_TEST_LOGSTREAM \
+      << std::next(std::next(file.data(), file.find_last_of("\\/"))) << "(" << __LINE__ << "): " \
+      << asio2::detail::test_name() << ": " \
+      << msg << std::endl; ASIO2_TEST_LOGSTREAM.flush(); \
     ++asio2::detail::test_errors(); \
   } } while (0)
 
@@ -205,6 +245,7 @@ void pause_cmd_window()
     if (!test_has_error) \
     { \
       ASIO2_TEST_IOSTREAM << std::endl; \
+      ASIO2_TEST_LOGSTREAM << std::endl; \
       test_has_error = true; \
     } \
     std::string_view file{__FILE__}; \
@@ -212,6 +253,10 @@ void pause_cmd_window()
       << std::next(std::next(file.data(), file.find_last_of("\\/"))) << "(" << __LINE__ << "): " \
       << asio2::detail::test_name() << ": " \
       << msg << std::endl; \
+    ASIO2_TEST_LOGSTREAM \
+      << std::next(std::next(file.data(), file.find_last_of("\\/"))) << "(" << __LINE__ << "): " \
+      << asio2::detail::test_name() << ": " \
+      << msg << std::endl; ASIO2_TEST_LOGSTREAM.flush(); \
   } } while (0)
 
 #define ASIO2_ERROR(msg) \
@@ -222,6 +267,10 @@ void pause_cmd_window()
       << std::next(std::next(file.data(), file.find_last_of("\\/"))) << "(" << __LINE__ << "): " \
       << asio2::detail::test_name() << ": " \
       << msg << std::endl; \
+    ASIO2_TEST_LOGSTREAM \
+      << std::next(std::next(file.data(), file.find_last_of("\\/"))) << "(" << __LINE__ << "): " \
+      << asio2::detail::test_name() << ": " \
+      << msg << std::endl; ASIO2_TEST_LOGSTREAM.flush(); \
     ++asio2::detail::test_errors(); \
   } while (0)
 
@@ -270,7 +319,8 @@ void pause_cmd_window()
     { \
       __time1__ = std::chrono::steady_clock::now(); \
       ASIO2_TEST_LOCK_GUARD \
-      ASIO2_TEST_IOSTREAM << '#'; \
+      ASIO2_TEST_IOSTREAM << '.'; \
+      ASIO2_TEST_LOGSTREAM << '.'; \
     }
 
 #define ASIO2_TEST_END_LOOP \
@@ -282,7 +332,11 @@ void pause_cmd_window()
   }
 
 template<class... Args>
-void print(Args&&... args) { ((ASIO2_TEST_IOSTREAM << args << " "), ...); }
+void print(Args&&... args)
+{
+    ((ASIO2_TEST_IOSTREAM << args << " "), ...);
+    ((ASIO2_TEST_LOGSTREAM << args << " "), ...);
+}
 
 #define ASIO2_TEST_WAIT_CHECK(...) \
 std::this_thread::sleep_for(std::chrono::milliseconds(1)); \
@@ -294,9 +348,14 @@ if ((++waits) > test_wait_count) \
     ASIO2_TEST_IOSTREAM \
       << "wait timeout: " \
       << std::next(std::next(file.data(), file.find_last_of("\\/"))) << "(" << __LINE__ << "): "; \
-      print(__VA_ARGS__); \
-      ASIO2_TEST_IOSTREAM << std::endl; \
+    ASIO2_TEST_LOGSTREAM \
+      << "wait timeout: " \
+      << std::next(std::next(file.data(), file.find_last_of("\\/"))) << "(" << __LINE__ << "): "; \
+    print(__VA_ARGS__); \
+    ASIO2_TEST_IOSTREAM << std::endl; \
+    ASIO2_TEST_LOGSTREAM << std::endl; ASIO2_TEST_LOGSTREAM.flush(); \
   waits = 0; \
+  break; \
 } \
 std::ignore = waits
 

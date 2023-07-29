@@ -111,9 +111,9 @@ namespace asio2::detail
 				}
 				else
 				{
-					if (derive.kcp_)
+					if (derive.kcp_stream_)
 					{
-						derive.kcp_->_kcp_handle_recv(ec, data, this_ptr, ecs);
+						derive.kcp_stream_->_kcp_handle_recv(ec, data, this_ptr, ecs);
 					}
 					else
 					{

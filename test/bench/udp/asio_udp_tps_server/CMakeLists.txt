@@ -15,14 +15,15 @@ aux_source_directory(. SRC_FILES)
 
 source_group("" FILES ${SRC_FILES})
 
-set(TARGET_NAME asio_udp_tps_server)
+set(PROJECT_NAME asio_udp_tps_server)
+set(TARGET_NAME bench_${PROJECT_NAME})
 
 add_executable (
     ${TARGET_NAME}
-    ${TARGET_NAME}.cpp
+    ${PROJECT_NAME}.cpp
 )
 
-set_property(TARGET ${TARGET_NAME} PROPERTY FOLDER "bench/udp")
+set_property(TARGET ${TARGET_NAME} PROPERTY FOLDER "test/bench/udp")
 
 #SET_TARGET_PROPERTIES(${TARGET_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${ASIO2_EXES_DIR})
 

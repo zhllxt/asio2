@@ -222,6 +222,22 @@ namespace asio2::detail
 
 	public:
 		/**
+		 * @brief get the kcp stream component
+		 */
+		inline kcp_stream_cp<derived_t, args_t>* get_kcp_stream() noexcept
+		{
+			return this->kcp_stream_.get();
+		}
+
+		/**
+		 * @brief get the kcp stream component
+		 */
+		inline const kcp_stream_cp<derived_t, args_t>* get_kcp_stream() const noexcept
+		{
+			return this->kcp_stream_.get();
+		}
+
+		/**
 		 * @brief get the kcp pointer, just used for kcp mode
 		 * default mode : ikcp_nodelay(kcp, 0, 10, 0, 0);
 		 * generic mode : ikcp_nodelay(kcp, 0, 10, 0, 1);
@@ -229,7 +245,7 @@ namespace asio2::detail
 		 */
 		inline kcp::ikcpcb* get_kcp() noexcept
 		{
-			return (this->kcp_ ? this->kcp_->kcp_ : nullptr);
+			return (this->kcp_stream_ ? this->kcp_stream_->kcp_ : nullptr);
 		}
 
 		/**
@@ -240,7 +256,7 @@ namespace asio2::detail
 		 */
 		inline const kcp::ikcpcb* get_kcp() const noexcept
 		{
-			return (this->kcp_ ? this->kcp_->kcp_ : nullptr);
+			return (this->kcp_stream_ ? this->kcp_stream_->kcp_ : nullptr);
 		}
 
 		/**
@@ -490,9 +506,10 @@ namespace asio2::detail
 		inline void _do_init(std::shared_ptr<ecs_t<C>>&)
 		{
 			if constexpr (std::is_same_v<typename ecs_t<C>::condition_lowest_type, use_kcp_t>)
-				this->kcp_ = std::make_unique<kcp_stream_cp<derived_t, args_t>>(this->derived(), this->io_->context());
+				this->kcp_stream_ = std::make_unique<kcp_stream_cp<derived_t, args_t>>(
+					this->derived(), this->io_->context());
 			else
-				this->kcp_.reset();
+				this->kcp_stream_.reset();
 		}
 
 		template<typename C, typename DeferEvent>
@@ -508,7 +525,7 @@ namespace asio2::detail
 				return derive._done_connect(ec, std::move(this_ptr), std::move(ecs), std::move(chain));
 
 			if constexpr (std::is_same_v<typename ecs_t<C>::condition_lowest_type, use_kcp_t>)
-				this->kcp_->_post_handshake(std::move(this_ptr), std::move(ecs), std::move(chain));
+				this->kcp_stream_->_post_handshake(std::move(this_ptr), std::move(ecs), std::move(chain));
 			else
 				derive._done_connect(ec, std::move(this_ptr), std::move(ecs), std::move(chain));
 		}
@@ -522,10 +539,10 @@ namespace asio2::detail
 
 			if constexpr (std::is_same_v<typename ecs_t<C>::condition_lowest_type, use_kcp_t>)
 			{
-				ASIO2_ASSERT(this->kcp_);
+				ASIO2_ASSERT(this->kcp_stream_);
 
-				if (this->kcp_)
-					this->kcp_->send_fin_ = true;
+				if (this->kcp_stream_)
+					this->kcp_stream_->send_fin_ = true;
 			}
 
 			this->derived()._start_recv(std::move(this_ptr), std::move(ecs), std::move(chain));
@@ -540,8 +557,8 @@ namespace asio2::detail
 
 			this->derived()._rdc_stop();
 
-			if (this->kcp_)
-				this->kcp_->_kcp_stop();
+			if (this->kcp_stream_)
+				this->kcp_stream_->_kcp_stop();
 
 			error_code ec_ignore{};
 
@@ -614,9 +631,9 @@ namespace asio2::detail
 		template<class Data, class Callback>
 		inline bool _do_send(Data& data, Callback&& callback)
 		{
-			if (!this->kcp_)
+			if (!this->kcp_stream_)
 				return this->derived()._udp_send(data, std::forward<Callback>(callback));
-			return this->kcp_->_kcp_send(data, std::forward<Callback>(callback));
+			return this->kcp_stream_->_kcp_send(data, std::forward<Callback>(callback));
 		}
 
 		template<class Data>
@@ -726,7 +743,7 @@ namespace asio2::detail
 		}
 
 	protected:
-		std::unique_ptr<kcp_stream_cp<derived_t, args_t>> kcp_;
+		std::unique_ptr<kcp_stream_cp<derived_t, args_t>> kcp_stream_;
 
 		std::uint32_t                                     kcp_conv_ = 0;
 
