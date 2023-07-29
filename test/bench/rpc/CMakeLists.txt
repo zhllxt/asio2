@@ -11,5 +11,7 @@
 add_subdirectory (asio2_rpc_qps_client)
 add_subdirectory (asio2_rpc_qps_server)
 
-add_subdirectory (rest_rpc_qps_client)
-add_subdirectory (rest_rpc_qps_server)
+if (EXISTS "${ASIO2_ROOT_DIR}/test/bench/rpc/rest_rpc-master")
+  add_subdirectory (rest_rpc_qps_client)
+  add_subdirectory (rest_rpc_qps_server)
+endif()
