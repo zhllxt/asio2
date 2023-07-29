@@ -1958,7 +1958,7 @@ void tcp_general_test()
 		{
 			ASIO2_TEST_WAIT_CHECK();
 		}
-		ASIO2_CHECK_VALUE(client_finish_counter.load(), client_finish_counter == std::size_t(test_client_count));
+		ASIO2_CHECK_VALUE(client_finish_counter.load(), client_finish_counter == test_client_count);
 
 		auto session_count = server.get_session_count();
 		ASIO2_CHECK_VALUE(session_count, session_count == std::size_t(test_client_count));
