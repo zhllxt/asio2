@@ -28,9 +28,9 @@ public:
 	using asio2::udp_client_t<my_udp_client>::udp_client_t;
 
 public:
-	using asio2::udp_client_t<my_udp_client>::kcp_;
+	using asio2::udp_client_t<my_udp_client>::kcp_stream_;
 
-	void set_send_fin(bool v) { kcp_->send_fin_ = v; }
+	void set_send_fin(bool v) { kcp_stream_->send_fin_ = v; }
 };
 
 void udp_test()
