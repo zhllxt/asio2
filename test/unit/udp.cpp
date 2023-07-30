@@ -961,7 +961,7 @@ void udp_test()
 
 				ext_data* ex = client.get_user_data<ext_data*>();
 
-				if (ex->num > 5)
+				if (ex->num > 10)
 				{
 					// before client.stop, the recvd kcp message should be reponsed ack, so
 					// we use a post to delay call client.stop, otherwise if we call
