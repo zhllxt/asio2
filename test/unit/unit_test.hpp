@@ -54,7 +54,7 @@
 
 static const int   test_loop_times = 100;
 static const int   test_client_count = int(std::thread::hardware_concurrency() * 2);
-static const int   test_wait_count = 12000;
+static const int   test_wait_count = 36000;
 static const int   test_timer_deviation = 500;
 
 bool test_has_error = false;

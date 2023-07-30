@@ -86,7 +86,7 @@ void thread_pool_test()
 	}
 
 	{
-		asio2::thread_group thpool;
+		asio2::thread_group thpool(4);
 
 		thpool.post(0, [&thpool]()
 		{
