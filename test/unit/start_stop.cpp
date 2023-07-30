@@ -336,7 +336,7 @@ void start_stop_test()
 			ASIO2_TEST_WAIT_CHECK();
 		}
 
-		ASIO2_CHECK_VALUE(client_connect_counter, client_connect_counter == std::size_t(test_client_count));
+		ASIO2_CHECK_VALUE(client_connect_counter, client_connect_counter == test_client_count);
 
 		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
@@ -364,7 +364,7 @@ void start_stop_test()
 			ASIO2_TEST_WAIT_CHECK();
 		}
 
-		ASIO2_CHECK_VALUE(client_connect_counter, client_connect_counter == std::size_t(test_client_count));
+		ASIO2_CHECK_VALUE(client_connect_counter, client_connect_counter == test_client_count);
 
         for (int i = 0; i < test_client_count; i++)
         {
@@ -426,7 +426,7 @@ void start_stop_test()
 			ASIO2_TEST_WAIT_CHECK();
 		}
 
-		ASIO2_CHECK_VALUE(client_connect_counter, client_connect_counter == std::size_t(test_client_count));
+		ASIO2_CHECK_VALUE(client_connect_counter, client_connect_counter == test_client_count);
 
         for (int i = 0; i < test_client_count; i++)
         {
@@ -468,7 +468,7 @@ void start_stop_test()
 			ASIO2_TEST_WAIT_CHECK();
 		}
 
-		ASIO2_CHECK_VALUE(client_connect_counter, client_connect_counter == std::size_t(test_client_count));
+		ASIO2_CHECK_VALUE(client_connect_counter, client_connect_counter == test_client_count);
 
         for (int i = 0; i < test_client_count; i++)
         {
@@ -606,7 +606,7 @@ void start_stop_test()
 			ASIO2_TEST_WAIT_CHECK();
 		}
 
-		ASIO2_CHECK_VALUE(client_connect_counter, client_connect_counter == std::size_t(test_client_count));
+		ASIO2_CHECK_VALUE(client_connect_counter, client_connect_counter == test_client_count);
 
 		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
@@ -643,7 +643,7 @@ void start_stop_test()
 			ASIO2_TEST_WAIT_CHECK();
 		}
 
-		ASIO2_CHECK_VALUE(client_connect_counter, client_connect_counter == std::size_t(test_client_count));
+		ASIO2_CHECK_VALUE(client_connect_counter, client_connect_counter == test_client_count);
 
         for (int i = 0; i < test_client_count; i++)
         {
@@ -716,7 +716,7 @@ void start_stop_test()
 			ASIO2_TEST_WAIT_CHECK();
 		}
 
-		ASIO2_CHECK_VALUE(client_connect_counter, client_connect_counter == std::size_t(test_client_count));
+		ASIO2_CHECK_VALUE(client_connect_counter, client_connect_counter == test_client_count);
 
         for (int i = 0; i < test_client_count; i++)
         {
@@ -859,7 +859,7 @@ void start_stop_test()
 			ASIO2_TEST_WAIT_CHECK();
 		}
 
-		ASIO2_CHECK_VALUE(client_connect_counter, client_connect_counter == std::size_t(test_client_count));
+		ASIO2_CHECK_VALUE(client_connect_counter, client_connect_counter == test_client_count);
 
 		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
