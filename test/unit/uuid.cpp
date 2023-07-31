@@ -188,6 +188,7 @@ void uuid_test()
 		ASIO2_CHECK(inserted);
 	}
 
+	while (true)
 	{
 		int len = 8 + std::rand() % 24;
 
@@ -201,6 +202,20 @@ void uuid_test()
 			ASIO2_CHECK(pos != std::string::npos);
 			short_uuid_chars_flags[pos] = 1;
 		}
+
+		bool finded_0 = false;
+
+		for (auto i : short_uuid_chars_flags)
+		{
+			if (i != 1)
+			{
+				finded_0 = true;
+				break;
+			}
+		}
+
+		if (!finded_0)
+			break;
 	}
 
 	ASIO2_CHECK(std::memcmp(d1, d2, 16) != 0);

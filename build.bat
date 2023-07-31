@@ -14,7 +14,7 @@ del /f /q build.log
 :: >>              append log and logs are not displayed on the terminal
 :: -O --output-log append log and logs will displayed on the terminal
 
-powershell -Command "(gc D:\asio2\test\unit\unit_test.hpp).replace('static const int   test_loop_times = 100;', 'static const int   test_loop_times = 1;') | Out-File -Encoding Ascii D:\asio2\test\unit\unit_test.hpp"
+::powershell -Command "(gc D:\asio2\test\unit\unit_test.hpp).replace('static const int   test_loop_times = 100;', 'static const int   test_loop_times = 1;') | Out-File -Encoding Ascii D:\asio2\test\unit\unit_test.hpp"
 
 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
@@ -843,5 +843,5 @@ powershell -Command "(gc D:\asio2\include\asio2\config.hpp).replace('#define ASI
 
 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-powershell -Command "(gc D:\asio2\test\unit\unit_test.hpp).replace('static const int   test_loop_times = 1;', 'static const int   test_loop_times = 100;') | Out-File -Encoding Ascii D:\asio2\test\unit\unit_test.hpp"
+::powershell -Command "(gc D:\asio2\test\unit\unit_test.hpp).replace('static const int   test_loop_times = 1;', 'static const int   test_loop_times = 100;') | Out-File -Encoding Ascii D:\asio2\test\unit\unit_test.hpp"
 
