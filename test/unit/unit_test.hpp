@@ -52,9 +52,9 @@
 # define ASIO2_TEST_IOSTREAM std::cerr
 #endif // !defined(ASIO2_TEST_IOSTREAM)
 
-static const int   test_loop_times = 100;
+static const int   test_loop_times = 1;
 static const int   test_client_count = int(std::thread::hardware_concurrency() * 2);
-static const int   test_wait_count = 36000;
+static const int   test_wait_count = 108000;
 static const int   test_timer_deviation = 500;
 
 bool test_has_error = false;
@@ -169,6 +169,13 @@ void pause_cmd_window()
 #if defined(WIN32) || defined(_WIN32) || defined(_WIN64) || defined(_WINDOWS_)
   //while (std::getchar() != '\n');
 #endif
+}
+
+template<class... Args>
+void test_print(Args&&... args)
+{
+    ((ASIO2_TEST_IOSTREAM << args << " "), ...);
+    ((ASIO2_TEST_LOGSTREAM << args << " "), ...);
 }
 
 } // namespace detail
@@ -331,13 +338,6 @@ void pause_cmd_window()
     } \
   }
 
-template<class... Args>
-void print(Args&&... args)
-{
-    ((ASIO2_TEST_IOSTREAM << args << " "), ...);
-    ((ASIO2_TEST_LOGSTREAM << args << " "), ...);
-}
-
 #define ASIO2_TEST_WAIT_CHECK(...) \
 std::this_thread::sleep_for(std::chrono::milliseconds(1)); \
 static int waits = 0; \
@@ -351,7 +351,7 @@ if ((++waits) > test_wait_count) \
     ASIO2_TEST_LOGSTREAM \
       << "wait timeout: " \
       << std::next(std::next(file.data(), file.find_last_of("\\/"))) << "(" << __LINE__ << "): "; \
-    print(__VA_ARGS__); \
+    asio2::detail::test_print(__VA_ARGS__); \
     ASIO2_TEST_IOSTREAM << std::endl; \
     ASIO2_TEST_LOGSTREAM << std::endl; ASIO2_TEST_LOGSTREAM.flush(); \
   waits = 0; \

@@ -969,7 +969,7 @@ void udp_test()
 					// this will cause the kcp server will resent the message, and when 
 					// this client restart again, this client maybe recvd the prev kcp
 					// message in the handshaking, it will cause the handshake failed.
-					client.post([&client]() { client.stop(); }, std::chrono::seconds(3));
+					client.post([&client]() { client.stop(); }, std::chrono::seconds(1));
 					return;
 				}
 
