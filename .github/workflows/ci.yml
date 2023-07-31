@@ -18,6 +18,7 @@ jobs:
   ## cpp17 ----------------------------------------------------------------------------------------
 
   windows-cpp17:
+    name: windows-cpp17
     # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.
     # You can convert this to a matrix build if you need cross-platform coverage.
     # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
@@ -42,6 +43,8 @@ jobs:
       run: ctest -C ${{env.BUILD_TYPE_RELEASE}} --test-dir ${{github.workspace}}/build --output-on-failure
 
   ubuntu-cpp17:
+    name: ubuntu-cpp17
+    needs: windows-cpp17
     # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.
     # You can convert this to a matrix build if you need cross-platform coverage.
     # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
@@ -66,6 +69,8 @@ jobs:
       run: ctest -C ${{env.BUILD_TYPE_RELEASE}} --test-dir ${{github.workspace}}/build --output-on-failure
 
   macos-cpp17:
+    name: macos-cpp17
+    needs: ubuntu-cpp17
     # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.
     # You can convert this to a matrix build if you need cross-platform coverage.
     # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
@@ -92,6 +97,8 @@ jobs:
   ## cpp20 ----------------------------------------------------------------------------------------
 
   windows-cpp20:
+    name: windows-cpp20
+    needs: macos-cpp17
     # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.
     # You can convert this to a matrix build if you need cross-platform coverage.
     # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
@@ -116,6 +123,8 @@ jobs:
       run: ctest -C ${{env.BUILD_TYPE_RELEASE}} --test-dir ${{github.workspace}}/build --output-on-failure
 
   ubuntu-cpp20:
+    name: ubuntu-cpp20
+    needs: windows-cpp20
     # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.
     # You can convert this to a matrix build if you need cross-platform coverage.
     # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
@@ -140,6 +149,8 @@ jobs:
       run: ctest -C ${{env.BUILD_TYPE_RELEASE}} --test-dir ${{github.workspace}}/build --output-on-failure
 
   macos-cpp20:
+    name: macos-cpp20
+    needs: ubuntu-cpp20
     # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.
     # You can convert this to a matrix build if you need cross-platform coverage.
     # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix

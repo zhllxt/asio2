@@ -1,9 +1,9 @@
 #include "unit_test.hpp"
 
 #include <asio2/base/detail/push_options.hpp>
+#include <asio2/external/predef.h>
 #include <asio2/util/string.hpp>
 #include <asio2/base/detail/util.hpp>
-#include <asio2/util/codecvt.hpp>
 #include <sstream>
 #include <fstream>
 #include <asio2/base/detail/filesystem.hpp>
@@ -15,6 +15,15 @@ std::string ensure_char_pointer_valid(const char* p)
     return {};
 }
 
+// https://github.com/llvm/llvm-project/issues/56655
+// clang maybe don't have the std::codecvt, github actions with macos-latest has this problem.
+
+#if BHO_COMP_CLANG
+void codecvt_test()
+{
+}
+#else
+#include <asio2/util/codecvt.hpp>
 void codecvt_test()
 {
 #if defined(__cpp_lib_char8_t)
@@ -413,7 +422,7 @@ void codecvt_test()
 
 	//ASIO2_TEST_END_LOOP;
 }
-
+#endif
 
 ASIO2_TEST_SUITE
 (
