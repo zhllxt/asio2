@@ -251,7 +251,13 @@ void http_test()
 		ASIO2_CHECK(http::url_match("/*/api/index/user", "/admin/crud/api/index/person") == false);
 	}
 
+	asio2::http_client http_client_bd;
+	asio2::http_client http_client_qq;
+
+	bool has_internet = http_client_bd.start("www.baidu.com", 80) || http_client_qq.start("qq.com", 80);
+
 	// test http_client::execute
+	if (has_internet)
 	{
 		std::string_view url = "http://www.baidu.com/query?x@y";
 
@@ -461,6 +467,7 @@ void http_test()
 	}
 
 	// test http_client::execute
+	if (has_internet)
 	{
 		std::shared_ptr<asio2::socks5::option<asio2::socks5::method::anonymous>>
 			sock5_option = std::make_shared<asio2::socks5::option<asio2::socks5::method::anonymous>>(
@@ -566,6 +573,7 @@ void http_test()
 		}
 	}
 
+	if (has_internet)
 	{
 		asio::error_code ec;
 
@@ -662,6 +670,7 @@ void http_test()
 	}
 
 	// test http download
+	if (has_internet)
 	{
 		asio2::socks5::option<asio2::socks5::method::anonymous>
 			sock5_option{ "127.0.0.1",10808 };
@@ -792,7 +801,7 @@ void http_test()
 
 		}, aop_log{}, aop_check{});
 
-		server.bind<http::verb::get>("/defer", [](http::web_request& req, http::web_response& rep)
+		server.bind<http::verb::get>("/defer", [has_internet](http::web_request& req, http::web_response& rep)
 		{
 			asio2::ignore_unused(req, rep);
 
@@ -800,11 +809,14 @@ void http_test()
 			// is destroyed, then the response will be sent.
 			std::shared_ptr<http::response_defer> rep_defer = rep.defer();
 
-			std::thread([rep_defer, &rep]() mutable
+			std::thread([has_internet, rep_defer, &rep]() mutable
 			{
 				std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
-				rep = asio2::http_client::execute("http://www.baidu.com");
+				if (has_internet)
+					rep = asio2::http_client::execute("http://www.baidu.com");
+				else
+					rep.fill_file("index.html");
 			}).detach();
 
 		}, aop_log{}, aop_check{});
@@ -1017,16 +1029,19 @@ void http_test()
 			}
 		});
 
-		bool http_client_ret = http_client.start("www.baidu.com", 80, std::move(sock5_option));
-		if (std::filesystem::exists("../../.CMakeBuild.cmd") ||
-			std::filesystem::exists("../../.CMakeGenerate.cmd") ||
-			std::filesystem::exists("../../.CMakeTest.cmd"))
+		if (has_internet)
 		{
-			ASIO2_CHECK(http_client_ret);
-		}
-		while (http_client_ret && counter < 3)
-		{
-			ASIO2_TEST_WAIT_CHECK();
+			bool http_client_ret = http_client.start("www.baidu.com", 80, std::move(sock5_option));
+			if (std::filesystem::exists("../../.CMakeBuild.cmd") ||
+				std::filesystem::exists("../../.CMakeGenerate.cmd") ||
+				std::filesystem::exists("../../.CMakeTest.cmd"))
+			{
+				ASIO2_CHECK(http_client_ret);
+			}
+			while (http_client_ret && counter < 3)
+			{
+				ASIO2_TEST_WAIT_CHECK();
+			}
 		}
 		std::this_thread::sleep_for(std::chrono::milliseconds(10 + std::rand() % 10));
 	}
@@ -1154,7 +1169,7 @@ void http_test()
 
 		}, aop_log{}, aop_check{});
 
-		server.bind<http::verb::get>("/defer", [](http::web_request& req, http::web_response& rep)
+		server.bind<http::verb::get>("/defer", [has_internet](http::web_request& req, http::web_response& rep)
 		{
 			asio2::ignore_unused(req, rep);
 
@@ -1162,11 +1177,14 @@ void http_test()
 			// is destroyed, then the response will be sent.
 			std::shared_ptr<http::response_defer> rep_defer = rep.defer();
 
-			std::thread([rep_defer, &rep]() mutable
+			std::thread([has_internet, rep_defer, &rep]() mutable
 			{
 				std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
-				rep = asio2::http_client::execute("http://www.baidu.com");
+				if (has_internet)
+					rep = asio2::http_client::execute("http://www.baidu.com");
+				else
+					rep.fill_file("index.html");
 			}).detach();
 
 		}, aop_log{}, aop_check{});

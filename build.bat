@@ -175,6 +175,8 @@ call clean.bat
 
 cmake -A Win32 . -B build
 
+xcopy %curdir%\3rd\openssl\prebuilt\windows\x86 %curdir%\bin\x86 /E /I /Y
+
 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 :: x86
@@ -588,6 +590,8 @@ ctest -C Release --test-dir build >> build.log
 call clean.bat
 
 cmake -A Win32 . -B build
+
+xcopy %curdir%\3rd\openssl\prebuilt\windows\x86 %curdir%\bin\x86 /E /I /Y
 
 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 

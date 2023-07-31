@@ -38,6 +38,12 @@ void https_test()
 {
 	ASIO2_TEST_BEGIN_LOOP(test_loop_times);
 
+	asio2::http_client http_client_bd;
+	asio2::http_client http_client_qq;
+
+	bool has_internet = http_client_bd.start("www.baidu.com", 80) || http_client_qq.start("qq.com", 80);
+
+	if (has_internet)
 	{
 		asio::error_code ec;
 
@@ -56,6 +62,7 @@ void https_test()
 		}
 	}
 
+	if (has_internet)
 	{
 		std::shared_ptr<asio2::socks5::option<asio2::socks5::method::anonymous>>
 			sock5_option = std::make_shared<asio2::socks5::option<asio2::socks5::method::anonymous>>(
@@ -78,6 +85,7 @@ void https_test()
 		}
 	}
 
+	if (has_internet)
 	{
 		asio2::socks5::option<asio2::socks5::method::anonymous>
 			sock5_option{ "127.0.0.1", 10808 };
@@ -100,6 +108,7 @@ void https_test()
 	}
 
 	// test https download
+	if (has_internet)
 	{
 		asio2::socks5::option<asio2::socks5::method::anonymous>
 			sock5_option{ "127.0.0.1",10808 };
@@ -331,16 +340,19 @@ void https_test()
 			}
 		});
 
-		bool http_client_ret = https_client.start("www.baidu.com", 443, std::move(sock5_option));
-		if (std::filesystem::exists("../../.CMakeBuild.cmd") ||
-			std::filesystem::exists("../../.CMakeGenerate.cmd") ||
-			std::filesystem::exists("../../.CMakeTest.cmd"))
+		if (has_internet)
 		{
-			ASIO2_CHECK(http_client_ret);
-		}
-		while (http_client_ret && counter < 3)
-		{
-			ASIO2_TEST_WAIT_CHECK();
+			bool http_client_ret = https_client.start("www.baidu.com", 443, std::move(sock5_option));
+			if (std::filesystem::exists("../../.CMakeBuild.cmd") ||
+				std::filesystem::exists("../../.CMakeGenerate.cmd") ||
+				std::filesystem::exists("../../.CMakeTest.cmd"))
+			{
+				ASIO2_CHECK(http_client_ret);
+			}
+			while (http_client_ret && counter < 3)
+			{
+				ASIO2_TEST_WAIT_CHECK();
+			}
 		}
 		std::this_thread::sleep_for(std::chrono::milliseconds(10 + std::rand() % 10));
 	}
@@ -390,16 +402,19 @@ void https_test()
 			}
 		});
 
-		bool http_client_ret = https_client.start("www.baidu.com", 443, std::move(sock5_option));
-		if (std::filesystem::exists("../../.CMakeBuild.cmd") ||
-			std::filesystem::exists("../../.CMakeGenerate.cmd") ||
-			std::filesystem::exists("../../.CMakeTest.cmd"))
+		if (has_internet)
 		{
-			ASIO2_CHECK(http_client_ret);
-		}
-		while (http_client_ret && counter < 3)
-		{
-			ASIO2_TEST_WAIT_CHECK();
+			bool http_client_ret = https_client.start("www.baidu.com", 443, std::move(sock5_option));
+			if (std::filesystem::exists("../../.CMakeBuild.cmd") ||
+				std::filesystem::exists("../../.CMakeGenerate.cmd") ||
+				std::filesystem::exists("../../.CMakeTest.cmd"))
+			{
+				ASIO2_CHECK(http_client_ret);
+			}
+			while (http_client_ret && counter < 3)
+			{
+				ASIO2_TEST_WAIT_CHECK();
+			}
 		}
 		std::this_thread::sleep_for(std::chrono::milliseconds(10 + std::rand() % 10));
 	}
