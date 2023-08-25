@@ -126,7 +126,7 @@ namespace asio2::detail
 			, listener_  ()
 			, io_        (iopoolcp::_get_io(0))
 			, buffer_    (init_buf_size, max_buf_size)
-			, socket_    (iopoolcp::_get_io(0)->context())
+			, socket_    (std::make_shared<socket_type>(iopoolcp::_get_io(0)->context()))
 		{
 		}
 
@@ -153,7 +153,7 @@ namespace asio2::detail
 			, listener_  ()
 			, io_        (iopoolcp::_get_io(0))
 			, buffer_    (init_buf_size, max_buf_size)
-			, socket_    (iopoolcp::_get_io(0)->context())
+			, socket_    (std::make_shared<socket_type>(iopoolcp::_get_io(0)->context()))
 		{
 		}
 
@@ -268,8 +268,9 @@ namespace asio2::detail
 		{
 			derived_t& derive = this->derived();
 
-			derive.listener_.clear();
+			derive.socket_.reset();
 			derive.io_.reset();
+			derive.listener_.clear();
 
 			derive.destroy_iopool();
 		}
@@ -279,7 +280,7 @@ namespace asio2::detail
 		 */
 		inline bool is_started() const
 		{
-			return (this->state_ == state_t::started && this->socket().is_open());
+			return (this->state_ == state_t::started && this->socket_->is_open());
 		}
 
 		/**
@@ -287,7 +288,7 @@ namespace asio2::detail
 		 */
 		inline bool is_stopped() const
 		{
-			return (this->state_ == state_t::stopped && !this->socket().is_open());
+			return (this->state_ == state_t::stopped && !this->socket_->is_open());
 		}
 
 	public:
@@ -365,22 +366,22 @@ namespace asio2::detail
 		/**
 		 * @brief get the socket object reference
 		 */
-		inline socket_type & socket() noexcept { return this->socket_; }
+		inline       socket_type & socket()       noexcept { return *(this->socket_); }
 
 		/**
 		 * @brief get the socket object reference
 		 */
-		inline const socket_type & socket() const noexcept { return this->socket_; }
+		inline const socket_type & socket() const noexcept { return *(this->socket_); }
 
 		/**
 		 * @brief get the stream object reference
 		 */
-		inline socket_type & stream() noexcept { return this->socket_; }
+		inline       socket_type & stream()       noexcept { return *(this->socket_); }
 
 		/**
 		 * @brief get the stream object reference
 		 */
-		inline const socket_type & stream() const noexcept { return this->socket_; }
+		inline const socket_type & stream() const noexcept { return *(this->socket_); }
 
 		/**
 		 * This function is used to set an option on the serial port.
@@ -396,7 +397,7 @@ namespace asio2::detail
 		template <typename SettableSerialPortOption>
 		derived_t& set_option(const SettableSerialPortOption& option) noexcept
 		{
-			this->socket().set_option(option, get_last_error());
+			this->socket_->set_option(option, get_last_error());
 			return (this->derived());
 		}
 
@@ -416,7 +417,7 @@ namespace asio2::detail
 		GettableSerialPortOption get_option() const
 		{
 			GettableSerialPortOption option{};
-			this->socket().get_option(option, get_last_error());
+			this->socket_->get_option(option, get_last_error());
 			return option;
 		}
 
@@ -435,7 +436,7 @@ namespace asio2::detail
 		template <typename GettableSerialPortOption>
 		derived_t& get_option(GettableSerialPortOption& option)
 		{
-			this->socket().get_option(option, get_last_error());
+			this->socket_->get_option(option, get_last_error());
 			return (this->derived());
 		}
 
@@ -535,9 +536,9 @@ namespace asio2::detail
 
 				error_code ec, ec_ignore;
 
-				this->socket().cancel(ec_ignore);
-				this->socket().close(ec_ignore);
-				this->socket().open(d, ec);
+				this->socket_->cancel(ec_ignore);
+				this->socket_->close(ec_ignore);
+				this->socket_->open(d, ec);
 
 				if (ec)
 				{
@@ -545,7 +546,7 @@ namespace asio2::detail
 					return;
 				}
 
-				this->socket().set_option(asio::serial_port::baud_rate(b), ec_ignore);
+				this->socket_->set_option(asio::serial_port::baud_rate(b), ec_ignore);
 
 				// if the ecs has remote data call mode,do some thing.
 				derive._rdc_init(ecs);
@@ -718,10 +719,10 @@ namespace asio2::detail
 
 			error_code ec_ignore{};
 
-			this->socket().cancel(ec_ignore);
+			this->socket_->cancel(ec_ignore);
 
 			// Call close,otherwise the _handle_recv will never return
-			this->socket().close(ec_ignore);
+			this->socket_->close(ec_ignore);
 
 			// clear recv buffer
 			this->buffer().consume(this->buffer().size());
@@ -924,7 +925,7 @@ namespace asio2::detail
 		std::atomic<state_t>                      state_ = state_t::stopped;
 
 		/// socket, shoule be destroyed before io_context
-		socket_type                               socket_;
+		std::shared_ptr<socket_type>              socket_;
 
 		/// Remote call (rpc/rdc) response timeout.
 		std::chrono::steady_clock::duration       rc_timeout_ = std::chrono::milliseconds(http_execute_timeout);

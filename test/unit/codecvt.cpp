@@ -18,11 +18,9 @@ std::string ensure_char_pointer_valid(const char* p)
 // https://github.com/llvm/llvm-project/issues/56655
 // clang maybe don't have the std::codecvt, github actions with macos-latest has this problem.
 
-#if BHO_COMP_CLANG
-void codecvt_test()
-{
-}
-#else
+// after test, codecvt should't be used again, it has some issues under the gcc clang compiler.
+
+#if defined(_MSC_VER) && (_MSC_VER > 1916)
 #include <asio2/util/codecvt.hpp>
 void codecvt_test()
 {
@@ -421,6 +419,10 @@ void codecvt_test()
 	//ASIO2_TEST_BEGIN_LOOP(test_loop_times);
 
 	//ASIO2_TEST_END_LOOP;
+}
+#else
+void codecvt_test()
+{
 }
 #endif
 

@@ -149,7 +149,7 @@ namespace asio2::detail
 		{
 			super::_do_init(this_ptr, ecs);
 
-			this->derived()._ws_init(ecs, this->socket_);
+			this->derived()._ws_init(ecs, this->derived().socket());
 		}
 
 		template<typename DeferEvent>
@@ -173,16 +173,18 @@ namespace asio2::detail
 		{
 			detail::ignore_unused(ec);
 
+			derived_t& derive = this->derived();
+
 			ASIO2_ASSERT(!ec);
-			ASIO2_ASSERT(this->derived().sessions_.io_->running_in_this_thread());
+			ASIO2_ASSERT(derive.sessions_.io_->running_in_this_thread());
 
 			asio::dispatch(this->io_->context(), make_allocator(this->wallocator_,
-			[this, this_ptr = std::move(this_ptr), ecs = std::move(ecs), chain = std::move(chain)]
+			[&derive, this_ptr = std::move(this_ptr), ecs = std::move(ecs), chain = std::move(chain)]
 			() mutable
 			{
-				this->derived()._ws_start(this_ptr, ecs, this->socket_);
+				derive._ws_start(this_ptr, ecs, derive.socket());
 
-				this->derived()._post_read_upgrade_request(std::move(this_ptr), std::move(ecs), std::move(chain));
+				derive._post_read_upgrade_request(std::move(this_ptr), std::move(ecs), std::move(chain));
 			}));
 		}
 

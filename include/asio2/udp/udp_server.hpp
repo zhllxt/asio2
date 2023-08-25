@@ -49,7 +49,7 @@ namespace asio2::detail
 			std::size_t concurrency   = 1
 		)
 			: super(concurrency)
-			, acceptor_(this->io_->context())
+			, acceptor_(std::make_shared<asio::ip::udp::socket>(this->io_->context()))
 			, remote_endpoint_()
 			, buffer_(init_buf_size, max_buf_size)
 		{
@@ -62,7 +62,7 @@ namespace asio2::detail
 			Scheduler&& scheduler
 		)
 			: super(std::forward<Scheduler>(scheduler))
-			, acceptor_(this->io_->context())
+			, acceptor_(std::make_shared<asio::ip::udp::socket>(this->io_->context()))
 			, remote_endpoint_()
 			, buffer_(init_buf_size, max_buf_size)
 		{
@@ -119,16 +119,29 @@ namespace asio2::detail
 		}
 
 		/**
+		 * @brief destroy the content of all member variables, this is used for solve the memory leaks.
+		 * After this function is called, this class object cannot be used again.
+		 */
+		inline void destroy()
+		{
+			derived_t& derive = this->derived();
+
+			derive.acceptor_.reset();
+
+			super::destroy();
+		}
+
+		/**
 		 * @brief check whether the server is started
 		 */
-		inline bool is_started() const { return (super::is_started() && this->acceptor_.is_open()); }
+		inline bool is_started() const { return (super::is_started() && this->acceptor_->is_open()); }
 
 		/**
 		 * @brief check whether the server is stopped
 		 */
 		inline bool is_stopped() const
 		{
-			return (this->state_ == state_t::stopped && !this->acceptor_.is_open());
+			return (this->state_ == state_t::stopped && !this->acceptor_->is_open());
 		}
 
 	public:
@@ -260,11 +273,11 @@ namespace asio2::detail
 		/**
 		 * @brief get the acceptor reference
 		 */
-		inline asio::ip::udp::socket & acceptor() noexcept { return this->acceptor_; }
+		inline asio::ip::udp::socket      & acceptor()       noexcept { return *(this->acceptor_); }
 		/**
 		 * @brief get the acceptor reference
 		 */
-		inline asio::ip::udp::socket const& acceptor() const noexcept { return this->acceptor_; }
+		inline asio::ip::udp::socket const& acceptor() const noexcept { return *(this->acceptor_); }
 
 	protected:
 		template<typename String, typename StrOrInt, typename C>
@@ -376,9 +389,9 @@ namespace asio2::detail
 
 				asio::ip::udp::endpoint endpoint = *results.begin();
 
-				this->acceptor_.cancel(ec_ignore);
-				this->acceptor_.close(ec_ignore);
-				this->acceptor_.open(endpoint.protocol(), ec);
+				this->acceptor_->cancel(ec_ignore);
+				this->acceptor_->close(ec_ignore);
+				this->acceptor_->open(endpoint.protocol(), ec);
 				if (ec)
 				{
 					derive._handle_start(ec, std::move(this_ptr), std::move(ecs));
@@ -395,10 +408,10 @@ namespace asio2::detail
 				// like below
 
 				// set port reuse
-				this->acceptor_.set_option(asio::ip::udp::socket::reuse_address(true), ec_ignore);
+				this->acceptor_->set_option(asio::ip::udp::socket::reuse_address(true), ec_ignore);
 
 				//// Join the multicast group. you can set this option in the on_init(_fire_init) function.
-				//this->acceptor_.set_option(
+				//this->acceptor_->set_option(
 				//	// for ipv6, the host must be a ipv6 address like 0::0
 				//	asio::ip::multicast::join_group(asio::ip::make_address("ff31::8000:1234")));
 				//	// for ipv4, the host must be a ipv4 address like 0.0.0.0
@@ -408,7 +421,7 @@ namespace asio2::detail
 
 				derive._fire_init();
 
-				this->acceptor_.bind(endpoint, ec);
+				this->acceptor_->bind(endpoint, ec);
 				if (ec)
 				{
 					derive._handle_start(ec, std::move(this_ptr), std::move(ecs));
@@ -557,12 +570,12 @@ namespace asio2::detail
 			error_code ec_ignore{};
 
 			// Call shutdown() to indicate that you will not write any more data to the socket.
-			this->acceptor_.shutdown(asio::socket_base::shutdown_both, ec_ignore);
+			this->acceptor_->shutdown(asio::socket_base::shutdown_both, ec_ignore);
 
-			this->acceptor_.cancel(ec_ignore);
+			this->acceptor_->cancel(ec_ignore);
 
 			// Call close,otherwise the _handle_recv will never return
-			this->acceptor_.close(ec_ignore);
+			this->acceptor_->close(ec_ignore);
 
 			ASIO2_ASSERT(this->state_ == state_t::stopped);
 		}
@@ -584,7 +597,7 @@ namespace asio2::detail
 			this->derived().post_recv_counter_++;
 		#endif
 
-			this->acceptor_.async_receive_from(
+			this->acceptor_->async_receive_from(
 				this->buffer_.prepare(this->buffer_.pre_size()),
 				this->remote_endpoint_,
 				make_allocator(this->rallocator_, [this, this_ptr = std::move(this_ptr), ecs = std::move(ecs)]
@@ -769,10 +782,10 @@ namespace asio2::detail
 
 	protected:
 		/// acceptor to accept client connection
-		asio::ip::udp::socket    acceptor_;
+		std::shared_ptr<asio::ip::udp::socket>   acceptor_;
 
 		/// endpoint for udp 
-		asio::ip::udp::endpoint  remote_endpoint_;
+		asio::ip::udp::endpoint                  remote_endpoint_;
 
 		/// buffer
 		asio2::buffer_wrap<asio2::linear_buffer> buffer_;

@@ -161,8 +161,8 @@ namespace asio2::detail
 		{
 			derived_t& derive = this->derived();
 
-			derive.listener_.clear();
 			derive.io_.reset();
+			derive.listener_.clear();
 
 			derive.destroy_iopool();
 		}

@@ -456,7 +456,9 @@ namespace asio2::detail
 		template<typename C>
 		inline bool _check_upgrade(std::shared_ptr<derived_t>& this_ptr, std::shared_ptr<ecs_t<C>>& ecs)
 		{
-			if (this->support_websocket_ && this->derived().is_http() && this->req_.is_upgrade())
+			derived_t& derive = this->derived();
+
+			if (this->support_websocket_ && derive.is_http() && this->req_.is_upgrade())
 			{
 				this->websocket_router_ = this->router_.template _find<false>(this->req_, this->rep_);
 
@@ -467,16 +469,16 @@ namespace asio2::detail
 
 					if (this->router_._route(this_ptr, this->req_, this->rep_))
 					{
-						this->derived().silence_timeout_ = std::chrono::milliseconds(tcp_silence_timeout);
+						derive.silence_timeout_ = std::chrono::milliseconds(tcp_silence_timeout);
 
-						this->derived()._ws_start(this_ptr, ecs, this->derived().stream());
+						derive._ws_start(this_ptr, ecs, derive.stream());
 
-						this->derived()._post_control_callback(this_ptr, ecs);
-						this->derived().push_event(
-						[this, this_ptr, ecs](event_queue_guard<derived_t> g) mutable
+						derive._post_control_callback(this_ptr, ecs);
+						derive.push_event(
+						[&derive, this_ptr, ecs](event_queue_guard<derived_t> g) mutable
 						{
-							this->derived()._post_upgrade(
-								this_ptr, std::move(ecs), this->req_.base(),
+							derive._post_upgrade(
+								this_ptr, std::move(ecs), derive.req_.base(),
 								defer_event([](event_queue_guard<derived_t>) {}, std::move(g)));
 						});
 					}
@@ -487,7 +489,7 @@ namespace asio2::detail
 
 						this->websocket_router_.reset();
 
-						this->derived()._send_http_response(this_ptr, ecs, this->rep_.base());
+						derive._send_http_response(this_ptr, ecs, this->rep_.base());
 					}
 
 					// If find websocket router, the router callback must has been called, 

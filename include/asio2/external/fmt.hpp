@@ -16,6 +16,7 @@
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
 #include <asio2/base/detail/push_options.hpp>
+#include <asio2/util/string.hpp>
 
 #include <string_view>
 
@@ -199,6 +200,68 @@ struct fmt::formatter<wxString, wchar_t>
 
 #endif
 #endif
+
+FMT_BEGIN_NAMESPACE
+namespace detail {
+template<class AllFmt, class Tuple, class FmtStr, class T, class... Args>
+auto kvformat_cat(AllFmt& allfmt, Tuple&& tp_vals, FmtStr&& fmtstr, T&& val, Args&&... args)
+{
+	allfmt += ::std::forward<FmtStr>(fmtstr);
+
+	if constexpr (sizeof...(Args) > ::std::size_t(0))
+	{
+		return detail::kvformat_cat(allfmt,
+			::std::tuple_cat(::std::forward<Tuple>(tp_vals), ::std::tuple(::std::forward<T>(val))),
+			::std::forward<Args>(args)...);
+	}
+	else
+	{
+		return ::std::tuple_cat(::std::forward<Tuple>(tp_vals), ::std::tuple(::std::forward<T>(val)));
+	}
+}
+
+template<class CharT, class Tuple, ::std::size_t... I>
+auto kvformat_do(::std::basic_string<CharT>& allfmt, Tuple&& tp_vals, ::std::index_sequence<I...>)
+{
+	if constexpr (::std::is_same_v<CharT, wchar_t>)
+	{
+		return fmt::vformat(fmt::wstring_view(allfmt),
+			fmt::make_wformat_args(::std::get<I>(::std::forward<Tuple>(tp_vals))...));
+	}
+	else
+	{
+		return fmt::vformat(allfmt,
+			fmt::make_format_args(::std::get<I>(::std::forward<Tuple>(tp_vals))...));
+	}
+}
+
+template<class CharT, class Tuple>
+auto kvformat_do(::std::basic_string<CharT>& allfmt, Tuple&& tp_vals)
+{
+	return detail::kvformat_do(allfmt, ::std::forward<Tuple>(tp_vals),
+		::std::make_index_sequence<::std::tuple_size_v<::std::remove_cv_t<::std::remove_reference_t<Tuple>>>>{});
+}
+}  // namespace detail
+
+template<class FmtStr, class T, class... Args>
+auto kvformat(FmtStr&& fmtstr, T&& val, Args&&... args)
+{
+	auto allfmt = asio2::to_basic_string(::std::forward<FmtStr>(fmtstr));
+
+	if constexpr (sizeof...(Args) > ::std::size_t(0))
+	{
+		return detail::kvformat_do(allfmt, detail::kvformat_cat(allfmt,
+			::std::tuple(::std::forward<T>(val)), ::std::forward<Args>(args)...));
+	}
+	else
+	{
+		// this will compile failed on c++ 20
+		//return fmt::format(::std::forward<FmtStr>(fmtstr), ::std::forward<T>(val));
+
+		return detail::kvformat_do(allfmt, ::std::tuple(::std::forward<T>(val)));
+	}
+}
+FMT_END_NAMESPACE
 
 #pragma pop_macro("check")
 

@@ -231,6 +231,7 @@ namespace asio2::detail
 		{
 			derived_t& derive = this->derived();
 
+			derive.socket_.reset();
 			derive.io_.reset();
 		}
 

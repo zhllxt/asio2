@@ -51,7 +51,7 @@ void https_test()
 		ec = asio2::get_last_error();
 		if (ec)
 		{
-			ASIO2_CHECK_VALUE(asio2::last_error_msg(), asio2::get_last_error() == asio::error::connection_refused ||
+			ASIO2_CHECK_VALUE(asio2::last_error_val(), asio2::get_last_error() == asio::error::connection_refused ||
 				ec == asio::error::timed_out || ec == http::error::end_of_stream);
 		}
 		else
@@ -74,7 +74,7 @@ void https_test()
 		ec = asio2::get_last_error();
 		if (ec)
 		{
-			ASIO2_CHECK_VALUE(asio2::last_error_msg(), asio2::get_last_error() == asio::error::connection_refused ||
+			ASIO2_CHECK_VALUE(asio2::last_error_val(), asio2::get_last_error() == asio::error::connection_refused ||
 				ec == asio::error::timed_out || ec == http::error::end_of_stream || ec == asio::ssl::error::stream_truncated);
 		}
 		else
@@ -96,7 +96,7 @@ void https_test()
 		ec = asio2::get_last_error();
 		if (ec)
 		{
-			ASIO2_CHECK_VALUE(asio2::last_error_msg(), asio2::get_last_error() == asio::error::connection_refused ||
+			ASIO2_CHECK_VALUE(asio2::last_error_val(), asio2::get_last_error() == asio::error::connection_refused ||
 				ec == asio::error::timed_out || ec == http::error::end_of_stream || ec == asio::ssl::error::stream_truncated);
 		}
 		else
@@ -236,7 +236,7 @@ void https_test()
 		});
 
 		bool https_client_ret = https_client.start("127.0.0.1", 8443);
-		ASIO2_CHECK_VALUE(asio2::last_error_msg(), https_client_ret);
+		ASIO2_CHECK_VALUE(asio2::last_error_val(), https_client_ret);
 
 		asio2::wss_client wss_client;
 

@@ -219,7 +219,7 @@ namespace asio2::detail
 		{
 			super::_do_init(ecs);
 
-			this->derived()._ws_init(ecs, this->ssl_stream());
+			this->derived()._ws_init(ecs, this->derived().ssl_stream());
 		}
 
 		template<typename DeferEvent>
@@ -250,9 +250,9 @@ namespace asio2::detail
 				return derive._done_connect(ec, std::move(this_ptr), std::move(ecs), std::move(chain));
 			}
 
-			derive._ssl_start(this_ptr, ecs, this->socket_, *this);
+			derive._ssl_start(this_ptr, ecs, derive.socket(), *this);
 
-			derive._ws_start(this_ptr, ecs, this->ssl_stream());
+			derive._ws_start(this_ptr, ecs, derive.ssl_stream());
 
 			derive._post_handshake(std::move(this_ptr), std::move(ecs), std::move(chain));
 		}

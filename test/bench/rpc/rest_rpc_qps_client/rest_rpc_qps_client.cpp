@@ -3,7 +3,7 @@
 #if defined(__GNUC__) || defined(__GNUG__)
 #  pragma GCC diagnostic push
 #  pragma GCC diagnostic ignored "-Wunused-value"
-#  pragma GCC diagnostic ignored "-Wreorder-ctor"
+#  pragma GCC diagnostic ignored "-Wreorder"
 #endif
 
 

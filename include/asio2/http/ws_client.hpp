@@ -217,7 +217,7 @@ namespace asio2::detail
 		{
 			super::_do_init(ecs);
 
-			this->derived()._ws_init(ecs, this->socket_);
+			this->derived()._ws_init(ecs, this->derived().socket());
 		}
 
 		template<typename DeferEvent>
@@ -248,7 +248,7 @@ namespace asio2::detail
 				return derive._done_connect(ec, std::move(this_ptr), std::move(ecs), std::move(chain));
 			}
 
-			derive._ws_start(this_ptr, ecs, this->socket_);
+			derive._ws_start(this_ptr, ecs, derive.socket());
 
 			derive._post_control_callback(this_ptr, ecs);
 			derive._post_upgrade(std::move(this_ptr), std::move(ecs), this->upgrade_rep_, std::move(chain));

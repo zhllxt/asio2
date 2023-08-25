@@ -114,7 +114,8 @@ void mqtt_test()
 		mqtt::v5::connect connect;
 		connect.client_id(u8"37792738@qq.com");
 
-		client.start(host, port, connect);
+		if (!client.start(host, port, connect))
+			return;
 
 		client.subscribe("/asio2/mqtt/qos1", 1, [](mqtt::v5::publish& msg) mutable
 		{

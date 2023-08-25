@@ -49,9 +49,9 @@ namespace asio2::detail
 			std::size_t   concurrency = default_concurrency() + 1 // The 1 is used for tcp acceptor
 		)
 			: super(concurrency)
-			, acceptor_        (this->io_->context())
-			, acceptor_timer_  (this->io_->context())
-			, counter_timer_   (this->io_->context())
+			, acceptor_        (std::make_unique<asio::ip::tcp::acceptor>(this->io_->context()))
+			, acceptor_timer_  (std::make_unique<asio::steady_timer>(this->io_->context()))
+			, counter_timer_   (std::make_unique<asio::steady_timer>(this->io_->context()))
 			, init_buffer_size_(init_buf_size)
 			, max_buffer_size_ ( max_buf_size)
 		{
@@ -64,9 +64,9 @@ namespace asio2::detail
 			Scheduler&& scheduler
 		)
 			: super(std::forward<Scheduler>(scheduler))
-			, acceptor_        (this->io_->context())
-			, acceptor_timer_  (this->io_->context())
-			, counter_timer_   (this->io_->context())
+			, acceptor_        (std::make_unique<asio::ip::tcp::acceptor>(this->io_->context()))
+			, acceptor_timer_  (std::make_unique<asio::steady_timer>(this->io_->context()))
+			, counter_timer_   (std::make_unique<asio::steady_timer>(this->io_->context()))
 			, init_buffer_size_(init_buf_size)
 			, max_buffer_size_ ( max_buf_size)
 		{
@@ -151,16 +151,31 @@ namespace asio2::detail
 		}
 
 		/**
+		 * @brief destroy the content of all member variables, this is used for solve the memory leaks.
+		 * After this function is called, this class object cannot be used again.
+		 */
+		inline void destroy()
+		{
+			derived_t& derive = this->derived();
+
+			derive.counter_timer_.reset();
+			derive.acceptor_timer_.reset();
+			derive.acceptor_.reset();
+
+			super::destroy();
+		}
+
+		/**
 		 * @brief check whether the server is started
 		 */
-		inline bool is_started() const { return (super::is_started() && this->acceptor_.is_open()); }
+		inline bool is_started() const { return (super::is_started() && this->acceptor_->is_open()); }
 
 		/**
 		 * @brief check whether the server is stopped
 		 */
 		inline bool is_stopped() const
 		{
-			return (this->state_ == state_t::stopped && !this->acceptor_.is_open());
+			return (this->state_ == state_t::stopped && !this->acceptor_->is_open());
 		}
 
 	public:
@@ -295,12 +310,12 @@ namespace asio2::detail
 		/**
 		 * @brief get the acceptor reference
 		 */
-		inline asio::ip::tcp::acceptor & acceptor() noexcept { return this->acceptor_; }
+		inline asio::ip::tcp::acceptor      & acceptor()       noexcept { return *(this->acceptor_); }
 
 		/**
 		 * @brief get the acceptor reference
 		 */
-		inline asio::ip::tcp::acceptor const& acceptor() const noexcept { return this->acceptor_; }
+		inline asio::ip::tcp::acceptor const& acceptor() const noexcept { return *(this->acceptor_); }
 
 	protected:
 		template<typename String, typename StrOrInt, typename C>
@@ -390,8 +405,8 @@ namespace asio2::detail
 
 				error_code ec, ec_ignore;
 
-				this->acceptor_.cancel(ec_ignore);
-				this->acceptor_.close(ec_ignore);
+				this->acceptor_->cancel(ec_ignore);
+				this->acceptor_->close(ec_ignore);
 
 				// parse address and port
 				asio::ip::tcp::resolver resolver(this->io_->context());
@@ -412,7 +427,7 @@ namespace asio2::detail
 
 				asio::ip::tcp::endpoint endpoint = *results.begin();
 
-				this->acceptor_.open(endpoint.protocol(), ec);
+				this->acceptor_->open(endpoint.protocol(), ec);
 				if (ec)
 				{
 					derive._handle_start(ec, std::move(this_ptr), std::move(ecs));
@@ -429,20 +444,20 @@ namespace asio2::detail
 				// problem,like below
 				
 				// set port reuse
-				this->acceptor_.set_option(asio::ip::tcp::acceptor::reuse_address(true), ec_ignore);
+				this->acceptor_->set_option(asio::ip::tcp::acceptor::reuse_address(true), ec_ignore);
 
 				clear_last_error();
 
 				derive._fire_init();
 
-				this->acceptor_.bind(endpoint, ec);
+				this->acceptor_->bind(endpoint, ec);
 				if (ec)
 				{
 					derive._handle_start(ec, std::move(this_ptr), std::move(ecs));
 					return;
 				}
 
-				this->acceptor_.listen(asio::socket_base::max_listen_connections, ec);
+				this->acceptor_->listen(asio::socket_base::max_listen_connections, ec);
 				if (ec)
 				{
 					derive._handle_start(ec, std::move(this_ptr), std::move(ecs));
@@ -537,8 +552,8 @@ namespace asio2::detail
 				// should hold the server shared ptr too, if server is constructed with iopool, and 
 				// server is a tmp local variable, then the server maybe destroyed before sessions.
 				// so we need hold this ptr to ensure server must be destroyed after sessions.
-				this->counter_timer_.expires_after((std::chrono::nanoseconds::max)());
-				this->counter_timer_.async_wait([this_ptr](const error_code&)
+				this->counter_timer_->expires_after((std::chrono::nanoseconds::max)());
+				this->counter_timer_->async_wait([this_ptr](const error_code&)
 				{
 					detail::ignore_unused(this_ptr);
 				});
@@ -632,8 +647,8 @@ namespace asio2::detail
 
 			this->derived()._fire_stop();
 
-			detail::cancel_timer(this->acceptor_timer_);
-			detail::cancel_timer(this->counter_timer_);
+			detail::cancel_timer(*(this->acceptor_timer_));
+			detail::cancel_timer(*(this->counter_timer_));
 
 			// call the base class stop function
 			super::stop();
@@ -644,8 +659,8 @@ namespace asio2::detail
 			// function response with error > 0 , then the listen socket
 			// can get notify to exit must ensure the close function has 
 			// been called,otherwise the _handle_accept will never return
-			this->acceptor_.cancel(ec_ignore);
-			this->acceptor_.close(ec_ignore);
+			this->acceptor_->cancel(ec_ignore);
+			this->acceptor_->close(ec_ignore);
 
 			ASIO2_ASSERT(this->state_ == state_t::stopped);
 		}
@@ -691,7 +706,7 @@ namespace asio2::detail
 
 			asio::io_context& ex = session_ptr->io_->context();
 
-			this->acceptor_.async_accept(ex, make_allocator(this->rallocator_,
+			this->acceptor_->async_accept(ex, make_allocator(this->rallocator_,
 			[this, sptr = std::move(session_ptr), this_ptr = std::move(this_ptr), ecs = std::move(ecs)]
 			(const error_code& ec, asio::ip::tcp::socket peer) mutable
 			{
@@ -728,8 +743,8 @@ namespace asio2::detail
 			{
 				ASIO2_LOG_ERROR("Error occurred when accept:{} {}", ec.value(), ec.message());
 
-				this->acceptor_timer_.expires_after(std::chrono::seconds(1));
-				this->acceptor_timer_.async_wait(
+				this->acceptor_timer_->expires_after(std::chrono::seconds(1));
+				this->acceptor_timer_->async_wait(
 				[this, this_ptr = std::move(this_ptr), ecs = std::move(ecs)]
 				(const error_code& ec) mutable
 				{
@@ -784,13 +799,13 @@ namespace asio2::detail
 
 	protected:
 		/// acceptor to accept client connection
-		asio::ip::tcp::acceptor acceptor_;
+		std::unique_ptr<asio::ip::tcp::acceptor> acceptor_;
 
 		/// timer for acceptor exception, like the exception "Too many open files" (exception code : 24)
-		asio::steady_timer      acceptor_timer_;
+		std::unique_ptr<asio::steady_timer>      acceptor_timer_;
 
 		/// used to hold the acceptor io_context util all sessions are closed already.
-		asio::steady_timer      counter_timer_;
+		std::unique_ptr<asio::steady_timer>      counter_timer_;
 
 		std::size_t             init_buffer_size_ = tcp_frame_size;
 

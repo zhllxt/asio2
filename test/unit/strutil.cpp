@@ -1,6 +1,7 @@
 #include "unit_test.hpp"
 #include <asio2/util/string.hpp>
 #include <asio2/base/detail/util.hpp>
+#include <asio2/external/fmt.hpp>
 
 struct userinfo
 {
@@ -38,6 +39,15 @@ std::string_view make_string_view()
 
 void strutil_test()
 {
+	{
+		ASIO2_CHECK(fmt::kvformat("{}", 1) == "1");
+		ASIO2_CHECK(fmt::kvformat("{}", 1, "{}", 2) == "12");
+		ASIO2_CHECK(fmt::kvformat("{:02}", 1, "{:02}", 2, "{:.3f}", 3.56789) == "01023.568");
+		ASIO2_CHECK(fmt::kvformat(L"{}", 1) == L"1");
+		ASIO2_CHECK(fmt::kvformat(L"{}", 1, L"{}", 2) == L"12");
+		ASIO2_CHECK(fmt::kvformat(L"{:02}", 1, L"{:02}", 2, L"{:.3f}", 3.56789) == L"01023.568");
+	}
+
 	{
 		std::string str = "Text\n with\tsome \t  whitespaces\n\n";
 		std::string_view sv = "Text\n with\tsome \t  whitespaces\n\n";

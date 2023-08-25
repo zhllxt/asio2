@@ -34,7 +34,7 @@ namespace asio2::detail
 		static constexpr bool is_client  = false;
 		static constexpr bool is_server  = false;
 
-		using socket_t    = asio::ip::udp::socket&;
+		using socket_t    = asio::ip::udp::socket;
 		using buffer_t    = detail::proxy_buffer<asio2::linear_buffer>;
 		using send_data_t = std::string_view;
 		using recv_data_t = std::string_view;
@@ -80,10 +80,10 @@ namespace asio2::detail
 			std::size_t                                init_buf_size,
 			std::size_t                                max_buf_size,
 			asio2::linear_buffer                     & buffer,
-			typename args_t::socket_t                  socket,
+			std::shared_ptr<typename args_t::socket_t> socket,
 			asio::ip::udp::endpoint                  & endpoint
 		)
-			: super(sessions, listener, std::move(rwio), init_buf_size, max_buf_size, socket)
+			: super(sessions, listener, std::move(rwio), init_buf_size, max_buf_size, std::move(socket))
 			, udp_send_op<derived_t, args_t>()
 			, udp_recv_op<derived_t, args_t>()
 			, wallocator_     ()

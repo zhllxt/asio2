@@ -273,7 +273,7 @@ void http_test()
 		ec = asio2::get_last_error();
 		if (ec)
 		{
-			ASIO2_CHECK_VALUE(asio2::last_error_msg(), asio2::get_last_error() == asio::error::connection_refused ||
+			ASIO2_CHECK_VALUE(asio2::last_error_val(), asio2::get_last_error() == asio::error::connection_refused ||
 				ec == asio::error::timed_out || ec == http::error::end_of_stream);
 		}
 		else
@@ -371,7 +371,7 @@ void http_test()
 		ec = asio2::get_last_error();
 		if (ec)
 		{
-			ASIO2_CHECK_VALUE(asio2::last_error_msg(), asio2::get_last_error() == asio::error::connection_refused ||
+			ASIO2_CHECK_VALUE(asio2::last_error_val(), asio2::get_last_error() == asio::error::connection_refused ||
 				ec == asio::error::timed_out || ec == http::error::end_of_stream);
 		}
 		else
@@ -385,7 +385,7 @@ void http_test()
 		ec = asio2::get_last_error();
 		if (ec)
 		{
-			ASIO2_CHECK_VALUE(asio2::last_error_msg(), asio2::get_last_error() == asio::error::connection_refused ||
+			ASIO2_CHECK_VALUE(asio2::last_error_val(), asio2::get_last_error() == asio::error::connection_refused ||
 				ec == asio::error::timed_out || ec == http::error::end_of_stream);
 		}
 		else
@@ -399,7 +399,7 @@ void http_test()
 		ec = asio2::get_last_error();
 		if (ec)
 		{
-			ASIO2_CHECK_VALUE(asio2::last_error_msg(), asio2::get_last_error() == asio::error::connection_refused ||
+			ASIO2_CHECK_VALUE(asio2::last_error_val(), asio2::get_last_error() == asio::error::connection_refused ||
 				ec == asio::error::timed_out || ec == http::error::end_of_stream);
 		}
 		else
@@ -413,7 +413,7 @@ void http_test()
 		ec = asio2::get_last_error();
 		if (ec)
 		{
-			ASIO2_CHECK_VALUE(asio2::last_error_msg(), asio2::get_last_error() == asio::error::connection_refused ||
+			ASIO2_CHECK_VALUE(asio2::last_error_val(), asio2::get_last_error() == asio::error::connection_refused ||
 				ec == asio::error::timed_out || ec == http::error::end_of_stream);
 		}
 		else
@@ -427,7 +427,7 @@ void http_test()
 		ec = asio2::get_last_error();
 		if (ec)
 		{
-			ASIO2_CHECK_VALUE(asio2::last_error_msg(), asio2::get_last_error() == asio::error::connection_refused ||
+			ASIO2_CHECK_VALUE(asio2::last_error_val(), asio2::get_last_error() == asio::error::connection_refused ||
 				ec == asio::error::timed_out || ec == http::error::end_of_stream);
 		}
 		else
@@ -441,7 +441,7 @@ void http_test()
 		ec = asio2::get_last_error();
 		if (ec)
 		{
-			ASIO2_CHECK_VALUE(asio2::last_error_msg(), asio2::get_last_error() == asio::error::connection_refused ||
+			ASIO2_CHECK_VALUE(asio2::last_error_val(), asio2::get_last_error() == asio::error::connection_refused ||
 				ec == asio::error::timed_out || ec == http::error::end_of_stream);
 		}
 		else
@@ -455,7 +455,7 @@ void http_test()
 		ec = asio2::get_last_error();
 		if (ec)
 		{
-			ASIO2_CHECK_VALUE(asio2::last_error_msg(), asio2::get_last_error() == asio::error::connection_refused ||
+			ASIO2_CHECK_VALUE(asio2::last_error_val(), asio2::get_last_error() == asio::error::connection_refused ||
 				ec == asio::error::timed_out || ec == http::error::end_of_stream);
 		}
 		else
@@ -482,7 +482,7 @@ void http_test()
 		ec = asio2::get_last_error();
 		if (ec)
 		{
-			ASIO2_CHECK_VALUE(asio2::last_error_msg(), asio2::get_last_error() == asio::error::connection_refused ||
+			ASIO2_CHECK_VALUE(asio2::last_error_val(), asio2::get_last_error() == asio::error::connection_refused ||
 				ec == asio::error::timed_out || ec == http::error::end_of_stream);
 		}
 		else
@@ -534,7 +534,7 @@ void http_test()
 		ec = asio2::get_last_error();
 		if (ec)
 		{
-			ASIO2_CHECK_VALUE(asio2::last_error_msg(), asio2::get_last_error() == asio::error::connection_refused ||
+			ASIO2_CHECK_VALUE(asio2::last_error_val(), asio2::get_last_error() == asio::error::connection_refused ||
 				ec == asio::error::timed_out || ec == http::error::end_of_stream);
 		}
 		else
@@ -548,7 +548,7 @@ void http_test()
 		ec = asio2::get_last_error();
 		if (ec)
 		{
-			ASIO2_CHECK_VALUE(asio2::last_error_msg(), asio2::get_last_error() == asio::error::connection_refused ||
+			ASIO2_CHECK_VALUE(asio2::last_error_val(), asio2::get_last_error() == asio::error::connection_refused ||
 				ec == asio::error::timed_out || ec == http::error::end_of_stream);
 		}
 		else
@@ -562,7 +562,7 @@ void http_test()
 		ec = asio2::get_last_error();
 		if (ec)
 		{
-			ASIO2_CHECK_VALUE(asio2::last_error_msg(), asio2::get_last_error() == asio::error::connection_refused ||
+			ASIO2_CHECK_VALUE(asio2::last_error_val(), asio2::get_last_error() == asio::error::connection_refused ||
 				ec == asio::error::timed_out || ec == http::error::end_of_stream);
 		}
 		else

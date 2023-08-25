@@ -122,7 +122,7 @@ namespace asio2::detail
 			std::shared_ptr<derived_t> this_ptr = derive.selfptr();
 
 			error_code ec_ignore{};
-			auto ep = this->socket_.lowest_layer().remote_endpoint(ec_ignore);
+			auto ep = this->socket_->lowest_layer().remote_endpoint(ec_ignore);
 			if (!ec_ignore)
 			{
 				this->remote_endpoint_ = std::move(ep);

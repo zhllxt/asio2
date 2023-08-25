@@ -358,7 +358,7 @@ namespace asio2::detail
 			ASIO2_ASSERT(derive.io_->running_in_this_thread());
 
 			error_code ec_ignore{};
-			auto ep = derive.socket_.lowest_layer().remote_endpoint(ec_ignore);
+			auto ep = derive.socket_->lowest_layer().remote_endpoint(ec_ignore);
 			if (!ec_ignore)
 			{
 				derive.remote_endpoint_ = std::move(ep);

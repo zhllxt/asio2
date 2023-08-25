@@ -140,8 +140,8 @@ namespace asio2::detail
 			, listener_  ()
 			, io_        (iopoolcp::_get_io(0))
 			, buffer_    (init_buf_size, max_buf_size)
-			, socket_    (iopoolcp::_get_io(0)->context())
-			, timer_     (iopoolcp::_get_io(0)->context())
+			, socket_    (std::make_shared<socket_type>(iopoolcp::_get_io(0)->context()))
+			, timer_     (std::make_unique<asio::steady_timer>(iopoolcp::_get_io(0)->context()))
 			, ncount_    (send_count)
 		{
 		}
@@ -164,8 +164,8 @@ namespace asio2::detail
 			, listener_  ()
 			, io_        (iopoolcp::_get_io(0))
 			, buffer_    (init_buf_size, max_buf_size)
-			, socket_    (iopoolcp::_get_io(0)->context())
-			, timer_     (iopoolcp::_get_io(0)->context())
+			, socket_    (std::make_shared<socket_type>(iopoolcp::_get_io(0)->context()))
+			, timer_     (std::make_unique<asio::steady_timer>(iopoolcp::_get_io(0)->context()))
 			, ncount_    (send_count)
 		{
 		}
@@ -223,8 +223,10 @@ namespace asio2::detail
 		{
 			derived_t& derive = this->derived();
 
-			derive.listener_.clear();
+			derive.timer_.reset();
+			derive.socket_.reset();
 			derive.io_.reset();
+			derive.listener_.clear();
 
 			derive.destroy_iopool();
 		}
@@ -234,7 +236,7 @@ namespace asio2::detail
 		 */
 		inline bool is_started() const
 		{
-			return (this->state_ == state_t::started && this->socket().is_open());
+			return (this->state_ == state_t::started && this->socket_->is_open());
 		}
 
 		/**
@@ -242,7 +244,7 @@ namespace asio2::detail
 		 */
 		inline bool is_stopped() const
 		{
-			return (this->state_ == state_t::stopped && !this->socket().is_open());
+			return (this->state_ == state_t::stopped && !this->socket_->is_open());
 		}
 
 	public:
@@ -469,22 +471,22 @@ namespace asio2::detail
 		/**
 		 * @brief get the socket object reference
 		 */
-		inline socket_type & socket() noexcept { return this->socket_; }
+		inline       socket_type & socket()       noexcept { return *(this->socket_); }
 
 		/**
 		 * @brief get the socket object reference
 		 */
-		inline const socket_type & socket() const noexcept { return this->socket_; }
+		inline const socket_type & socket() const noexcept { return *(this->socket_); }
 
 		/**
 		 * @brief get the stream object reference
 		 */
-		inline socket_type & stream() noexcept { return this->socket_; }
+		inline       socket_type & stream()       noexcept { return *(this->socket_); }
 
 		/**
 		 * @brief get the stream object reference
 		 */
-		inline const socket_type & stream() const noexcept { return this->socket_; }
+		inline const socket_type & stream() const noexcept { return *(this->socket_); }
 
 	public:
 		/**
@@ -788,9 +790,9 @@ namespace asio2::detail
 
 				this->destination_ = *results.begin();
 				
-				this->socket().cancel(ec_ignore);
-				this->socket().close(ec_ignore);
-				this->socket().open(this->destination_.protocol(), ec);
+				this->socket_->cancel(ec_ignore);
+				this->socket_->close(ec_ignore);
+				this->socket_->open(this->destination_.protocol(), ec);
 
 				if (ec)
 				{
@@ -914,12 +916,12 @@ namespace asio2::detail
 			// close all async_events
 			this->notify_all_condition_events();
 
-			detail::cancel_timer(this->timer_);
+			detail::cancel_timer(*(this->timer_));
 
-			this->socket().cancel(ec_ignore);
+			this->socket_->cancel(ec_ignore);
 
 			// Call close,otherwise the _handle_recv will never return
-			this->socket().close(ec_ignore);
+			this->socket_->close(ec_ignore);
 
 			// clear recv buffer
 			this->buffer().consume(this->buffer().size());
@@ -962,7 +964,7 @@ namespace asio2::detail
 			// Send the request.
 			error_code ec;
 			this->time_sent_ = std::chrono::steady_clock::now();
-			this->socket().send_to(buffer.data(), this->destination_, 0, ec);
+			this->socket_->send_to(buffer.data(), this->destination_, 0, ec);
 			set_last_error(ec);
 			if (!ec)
 				this->total_send_++;
@@ -975,8 +977,8 @@ namespace asio2::detail
 			this->replies_ = 0;
 			if (this->is_started())
 			{
-				this->timer_.expires_after(this->timeout_);
-				this->timer_.async_wait(
+				this->timer_->expires_after(this->timeout_);
+				this->timer_->async_wait(
 				[this, this_ptr = std::move(this_ptr)](const error_code & ec) mutable
 				{
 					this->derived()._handle_timer(ec, std::move(this_ptr));
@@ -1003,8 +1005,8 @@ namespace asio2::detail
 			// Requests must be sent no less than one second apart.
 			if (this->is_started())
 			{
-				this->timer_.expires_after(this->interval_);
-				this->timer_.async_wait(
+				this->timer_->expires_after(this->interval_);
+				this->timer_->async_wait(
 				[this, this_ptr = std::move(this_ptr)](const error_code & ec) mutable
 				{
 					detail::ignore_unused(ec);
@@ -1031,7 +1033,7 @@ namespace asio2::detail
 		#endif
 
 			// Wait for a reply. We prepare the buffer to receive up to 64KB.
-			this->socket().async_receive(this->buffer_.prepare(this->buffer_.pre_size()),
+			this->socket_->async_receive(this->buffer_.prepare(this->buffer_.pre_size()),
 				make_allocator(this->rallocator_,
 					[this, this_ptr = std::move(this_ptr)]
 			(const error_code& ec, std::size_t bytes_recvd) mutable
@@ -1092,7 +1094,7 @@ namespace asio2::detail
 				// If this is the first reply, interrupt the five second timeout.
 				if (this->replies_++ == 0)
 				{
-					detail::cancel_timer(this->timer_);
+					detail::cancel_timer(*(this->timer_));
 				}
 
 				this->total_recv_++;
@@ -1190,9 +1192,9 @@ namespace asio2::detail
 		std::atomic<state_t>                        state_ = state_t::stopped;
 
 		/// socket, shoule be destroyed before io_context
-		socket_type                                 socket_;
+		std::shared_ptr<socket_type>                socket_;
 
-		asio::steady_timer                          timer_;
+		std::unique_ptr<asio::steady_timer>         timer_;
 		std::string                                 body_{ R"("Hello!" from Asio ping.)" };
 		unsigned short                              seq_ = 0;
 		std::size_t                                 replies_ = 0;
