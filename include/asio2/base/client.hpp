@@ -311,6 +311,9 @@ namespace asio2::detail
 		 */
 		inline auto & wallocator() noexcept { return this->wallocator_; }
 
+		inline listener_t                 & listener() noexcept { return this->listener_; }
+		inline std::atomic<state_t>       & state   () noexcept { return this->state_;    }
+
 		inline const char*                  life_id () noexcept { return this->life_id_.get(); }
 		inline void                   reset_life_id () noexcept { this->life_id_ = std::make_unique<char>(); }
 

@@ -987,7 +987,19 @@ namespace asio2::detail
 			}
 			else
 			{
-				return this->_do_call_aop_after(aops, caller, req, rep);
+				if (rep.defer_guard_)
+				{
+					rep.defer_guard_->defered_aop_after_cb_ = std::make_unique<std::function<void()>>(
+						[this, &aops, &caller, &req, &rep]() mutable
+						{
+							this->_do_call_aop_after(aops, caller, req, rep);
+						});
+					return true;
+				}
+				else
+				{
+					return this->_do_call_aop_after(aops, caller, req, rep);
+				}
 			}
 		}
 

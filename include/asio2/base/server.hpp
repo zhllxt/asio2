@@ -344,6 +344,10 @@ namespace asio2::detail
 		 */
 		inline auto & wallocator() noexcept { return this->wallocator_; }
 
+		inline session_mgr_t<session_t> & sessions() noexcept { return this->sessions_; }
+		inline listener_t               & listener() noexcept { return this->listener_; }
+		inline std::atomic<state_t>     & state   () noexcept { return this->state_;    }
+
 	protected:
 		// The memory to use for handler-based custom memory allocation. used for acceptor.
 		handler_memory<std::true_type , assizer<args_type>>     rallocator_;

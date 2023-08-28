@@ -470,6 +470,18 @@ namespace asio2::detail
 			}
 
 			// prepare send
+			session_t* p = session.get();
+			p->dispatch([this, session = std::move(session), rep = std::forward<Response>(rep)]() mutable
+			{
+				this->_check_send_publish(std::move(session), std::move(rep));
+			});
+		}
+
+		template<class session_t, class Response>
+		inline void _check_send_publish(std::shared_ptr<session_t> session, Response&& rep)
+		{
+			using response_type = typename detail::remove_cvref_t<Response>;
+
 			if (session->is_started())
 			{
 				if (session->offline_messages_.empty())
