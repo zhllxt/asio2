@@ -32,38 +32,62 @@ namespace boost::beast::http
 	public:
 		/**
 		 * @brief constructor
-		 * if the 'str' has unencoded char, it will be encoded automatically, otherwise
-		 * the url parsing will be failed.
 		 */
-		url(std::string str) : string_(std::move(str))
+		url()
 		{
-			std::memset((void*)(std::addressof(parser_)), 0, sizeof(http::parses::http_parser_url));
+			this->reset("");
+		}
 
-			if (!string_.empty())
-			{
-				bool has_unencode_ch = http::has_unencode_char(string_);
+		/**
+		 * @brief constructor
+		 */
+		url(std::string str)
+		{
+			this->reset(std::move(str));
+		}
 
-				if (has_unencode_ch)
-				{
-					string_ = http::url_encode(string_);
-				}
+		url(std::string_view str)
+		{
+			this->reset(str);
+		}
 
-				if (0 != http::parses::http_parser_parse_url(string_.data(), string_.size(), 0, std::addressof(parser_)))
-				{
-					if (has_unencode_ch)
-					{
-						string_ = http::url_decode(string_);
-					}
-
-					asio2::set_last_error(asio::error::invalid_argument);
-				}
-			}
+		url(const char* str)
+		{
+			this->reset(str);
 		}
 
 		url(url&&) noexcept = default;
 		url(url const&) = default;
 		url& operator=(url&&) noexcept = default;
 		url& operator=(url const&) = default;
+
+		url& reset(std::string str)
+		{
+			string_ = std::move(str);
+
+			std::memset((void*)(std::addressof(parser_)), 0, sizeof(http::parses::http_parser_url));
+
+			if (!string_.empty())
+			{
+				if (0 != http::parses::http_parser_parse_url(
+					string_.data(), string_.size(), 0, std::addressof(parser_)))
+				{
+					asio2::set_last_error(asio::error::invalid_argument);
+				}
+			}
+
+			return *this;
+		}
+
+		url& reset(std::string_view str)
+		{
+			return reset(std::string(str));
+		}
+
+		url& reset(const char* str)
+		{
+			return reset(std::string(str));
+		}
 
 		/**
 		 * @brief Gets the content of the "schema" section, maybe empty
@@ -238,6 +262,59 @@ namespace boost::beast::http
 		http::parses::http_parser_url         parser_;
 		std::string                           string_;
 	};
+
+	template<class derived_t>
+	std::string make_url_string(derived_t& derive, std::string_view target)
+	{
+		std::string url;
+
+		if constexpr (std::is_base_of_v<asio2::detail::ssl_stream_tag, derived_t>)
+		{
+			url += "https://";
+
+			url += derive.get_local_address();
+
+			if (unsigned short n = derive.get_local_port(); n != 443)
+			{
+				url += ":";
+				url += std::to_string(n);
+			}
+		}
+		else
+		{
+			url = "http://";
+
+			url += derive.get_local_address();
+
+			if (unsigned short n = derive.get_local_port(); n != 80)
+			{
+				url += ":";
+				url += std::to_string(n);
+			}
+		}
+
+		url += target;
+
+		return url;
+	}
+
+	template<class derived_t>
+	std::string make_url_string(std::shared_ptr<derived_t>& derive_ptr, std::string_view target)
+	{
+		return make_url_string(*derive_ptr, target);
+	}
+
+	template<class derived_t>
+	http::url make_url(derived_t& derive, std::string_view target)
+	{
+		return http::url(make_url_string(derive, target));
+	}
+
+	template<class derived_t>
+	http::url make_url(std::shared_ptr<derived_t>& derive_ptr, std::string_view target)
+	{
+		return http::url(make_url_string(derive_ptr, target));
+	}
 }
 
 #endif // !__ASIO2_HTTP_URL_HPP__

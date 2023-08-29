@@ -34,8 +34,6 @@ namespace boost::beast::http
 	{
 		http::web_request req;
 
-		asio2::clear_last_error();
-
 		std::string url = asio2::detail::to_string(std::forward<String>(uri));
 
 		// if uri is empty, break
@@ -45,24 +43,38 @@ namespace boost::beast::http
 			return req;
 		}
 
+		asio2::clear_last_error();
+
 		bool has_crlf = (url.find("\r\n") != std::string::npos);
 
-		std::string buf = (has_crlf ? url : "");
+		http::parses::http_parser_url& url_parser = req.url().parser();
 
-		req.url() = http::url{ std::move(url) };
+		int f = http::parses::http_parser_parse_url(url.data(), url.size(), 0, std::addressof(url_parser));
 
-		// If a \r\n string is found, it is not a URL
-		// If get_last_error is not zero, it means that the uri is not a URL.
-		if (has_crlf && asio2::get_last_error())
+		// If \r\n string is found, and parse the uri failed, it means that the uri is not a URL.
+		if (has_crlf && f != 0)
 		{
-			http::request_parser<http::string_body> parser;
-			parser.eager(true);
-			parser.put(::asio::buffer(buf), asio2::get_last_error());
-			req = parser.get();
+			http::request_parser<http::string_body> req_parser;
+			req_parser.eager(true);
+			req_parser.put(::asio::buffer(url), asio2::get_last_error());
+			req = req_parser.get();
+			req.url().reset(std::string(req.target()));
 		}
 		// It is a URL
 		else
 		{
+			if (f != 0)
+				return req;
+
+			if (http::has_unencode_char(url))
+			{
+				req.url().reset(http::url_encode(url));
+			}
+			else
+			{
+				req.url().string() = std::move(url);
+			}
+
 			if (asio2::get_last_error())
 				return req;
 
@@ -172,10 +184,10 @@ namespace boost::beast::http
 	inline http::response<Body, Fields> make_response(std::string_view uri)
 	{
 		asio2::clear_last_error();
-		http::response_parser<Body> parser;
-		parser.eager(true);
-		parser.put(::asio::buffer(uri), asio2::get_last_error());
-		http::response<Body, Fields> rep = parser.get();
+		http::response_parser<Body> rep_parser;
+		rep_parser.eager(true);
+		rep_parser.put(::asio::buffer(uri), asio2::get_last_error());
+		http::response<Body, Fields> rep = rep_parser.get();
 		return rep;
 	}
 

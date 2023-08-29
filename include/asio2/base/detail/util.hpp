@@ -42,6 +42,16 @@
 
 #include <asio2/util/string.hpp>
 
+// 
+// you can define this macro before include asio2 files to use custom ssl method.
+// eg:
+// #define ASIO2_DEFAULT_SSL_METHOD asio::ssl::context::tlsv13
+// #include <asio2/asio2.hpp>
+// 
+#ifndef ASIO2_DEFAULT_SSL_METHOD
+#define ASIO2_DEFAULT_SSL_METHOD asio::ssl::context::sslv23
+#endif
+
 namespace asio2
 {
 	template<typename = void>
@@ -102,6 +112,12 @@ namespace asio2::detail
 	using asio2::to_string;
 	using asio2::to_string_view;
 	using asio2::to_numeric;
+}
+
+namespace asio2::detail
+{
+	struct ssl_stream_tag {};
+	struct ws_stream_tag {};
 }
 
 namespace asio2

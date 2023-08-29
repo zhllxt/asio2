@@ -294,7 +294,7 @@ namespace asio2::detail
 			detail::can_convert_to_string_v<detail::remove_cvref_t<String2>>, bool>
 		static inline download(String1&& url, String2&& filepath)
 		{
-			return derived_t::download(asio::ssl::context{ asio::ssl::context::sslv23 },
+			return derived_t::download(asio::ssl::context{ ASIO2_DEFAULT_SSL_METHOD },
 				std::forward<String1>(url), std::forward<String2>(filepath));
 		}
 
@@ -331,7 +331,7 @@ namespace asio2::detail
 			detail::is_callable_v<BodyCallback>, bool>
 		static inline download(String1&& url, BodyCallback&& cbb)
 		{
-			return derived_t::download(asio::ssl::context{ asio::ssl::context::sslv23 },
+			return derived_t::download(asio::ssl::context{ ASIO2_DEFAULT_SSL_METHOD },
 				std::forward<String1>(url), std::forward<BodyCallback>(cbb));
 		}
 
@@ -368,7 +368,7 @@ namespace asio2::detail
 			detail::is_callable_v<BodyCallback>, bool>
 		static inline download(String1&& url, HeaderCallback&& cbh, BodyCallback&& cbb)
 		{
-			return derived_t::download(asio::ssl::context{ asio::ssl::context::sslv23 },
+			return derived_t::download(asio::ssl::context{ ASIO2_DEFAULT_SSL_METHOD },
 				std::forward<String1>(url), std::forward<HeaderCallback>(cbh), std::forward<BodyCallback>(cbb));
 		}
 	};

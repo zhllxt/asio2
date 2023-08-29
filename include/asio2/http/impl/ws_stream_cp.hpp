@@ -24,6 +24,7 @@
 #include <asio2/external/beast.hpp>
 
 #include <asio2/base/error.hpp>
+#include <asio2/base/detail/util.hpp>
 
 namespace asio2::detail
 {
@@ -41,7 +42,7 @@ namespace asio2::detail
 		ws_stream())>> : std::true_type {};
 
 	template<class derived_t, class args_t>
-	class ws_stream_cp
+	class ws_stream_cp : public detail::ws_stream_tag
 	{
 	public:
 		using ws_stream_type = typename args_t::stream_t;

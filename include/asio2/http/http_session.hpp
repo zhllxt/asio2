@@ -297,6 +297,7 @@ namespace asio2::detail
 			std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs, MessageT& msg)
 		{
 			ASIO2_ASSERT(this->is_http());
+			ASIO2_ASSERT(this->io_->running_in_this_thread());
 
 			derived_t& derive = this->derived();
 

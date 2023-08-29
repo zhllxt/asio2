@@ -47,10 +47,27 @@ namespace asio2::detail
 		 */
 		template<class... Args>
 		explicit wss_server_impl_t(
-			asio::ssl::context::method method = asio::ssl::context::sslv23,
+			asio::ssl::context::method method,
 			Args&&... args
 		)
 			: super(method, std::forward<Args>(args)...)
+		{
+		}
+
+		/**
+		 * @brief constructor
+		 */
+		template<class... Args>
+		explicit wss_server_impl_t(Args&&... args)
+			: super(ASIO2_DEFAULT_SSL_METHOD, std::forward<Args>(args)...)
+		{
+		}
+
+		/**
+		 * @brief constructor
+		 */
+		explicit wss_server_impl_t()
+			: super(ASIO2_DEFAULT_SSL_METHOD)
 		{
 		}
 

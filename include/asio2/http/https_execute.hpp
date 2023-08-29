@@ -284,7 +284,7 @@ namespace asio2::detail
 		static inline execute(String&& host, StrOrInt&& port,
 			http::request<Body, Fields>& req, std::chrono::duration<Rep, Period> timeout)
 		{
-			return derived_t::execute(asio::ssl::context{ asio::ssl::context::sslv23 },
+			return derived_t::execute(asio::ssl::context{ ASIO2_DEFAULT_SSL_METHOD },
 				std::forward<String>(host), std::forward<StrOrInt>(port), req, timeout, std::in_place);
 		}
 
@@ -318,7 +318,7 @@ namespace asio2::detail
 		static inline http::response<Body, Fields> execute(
 			http::web_request& req, std::chrono::duration<Rep, Period> timeout)
 		{
-			return derived_t::execute(asio::ssl::context{ asio::ssl::context::sslv23 }, req, timeout);
+			return derived_t::execute(asio::ssl::context{ ASIO2_DEFAULT_SSL_METHOD }, req, timeout);
 		}
 
 		template<class Body = http::string_body, class Fields = http::fields>
@@ -362,7 +362,7 @@ namespace asio2::detail
 		static inline http::response<Body, Fields> execute(std::string_view url,
 			std::chrono::duration<Rep, Period> timeout)
 		{
-			return derived_t::execute(asio::ssl::context{ asio::ssl::context::sslv23 }, url, timeout);
+			return derived_t::execute(asio::ssl::context{ ASIO2_DEFAULT_SSL_METHOD }, url, timeout);
 		}
 
 		/**
@@ -424,7 +424,7 @@ namespace asio2::detail
 		static inline execute(String&& host, StrOrInt&& port, std::string_view target,
 			std::chrono::duration<Rep, Period> timeout)
 		{
-			return derived_t::execute(asio::ssl::context{ asio::ssl::context::sslv23 },
+			return derived_t::execute(asio::ssl::context{ ASIO2_DEFAULT_SSL_METHOD },
 				std::forward<String>(host), std::forward<StrOrInt>(port),
 				target, timeout);
 		}
@@ -465,7 +465,7 @@ namespace asio2::detail
 		static inline execute(String&& host, StrOrInt&& port,
 			http::request<Body, Fields>& req, std::chrono::duration<Rep, Period> timeout, Proxy&& proxy)
 		{
-			return derived_t::execute(asio::ssl::context{ asio::ssl::context::sslv23 },
+			return derived_t::execute(asio::ssl::context{ ASIO2_DEFAULT_SSL_METHOD },
 				std::forward<String>(host), std::forward<StrOrInt>(port),
 				req, timeout, std::forward<Proxy>(proxy));
 		}
@@ -508,7 +508,7 @@ namespace asio2::detail
 		static inline execute(
 			http::web_request& req, std::chrono::duration<Rep, Period> timeout, Proxy&& proxy)
 		{
-			return derived_t::execute(asio::ssl::context{ asio::ssl::context::sslv23 }, req, timeout,
+			return derived_t::execute(asio::ssl::context{ ASIO2_DEFAULT_SSL_METHOD }, req, timeout,
 				std::forward<Proxy>(proxy));
 		}
 
@@ -561,7 +561,7 @@ namespace asio2::detail
 		typename std::enable_if_t<detail::http_proxy_checker_v<Proxy>, http::response<Body, Fields>>
 		static inline execute(std::string_view url, std::chrono::duration<Rep, Period> timeout, Proxy&& proxy)
 		{
-			return derived_t::execute(asio::ssl::context{ asio::ssl::context::sslv23 }, url, timeout,
+			return derived_t::execute(asio::ssl::context{ ASIO2_DEFAULT_SSL_METHOD }, url, timeout,
 				std::forward<Proxy>(proxy));
 		}
 
@@ -627,7 +627,7 @@ namespace asio2::detail
 		static inline execute(String&& host, StrOrInt&& port, std::string_view target,
 			std::chrono::duration<Rep, Period> timeout, Proxy&& proxy)
 		{
-			return derived_t::execute(asio::ssl::context{ asio::ssl::context::sslv23 },
+			return derived_t::execute(asio::ssl::context{ ASIO2_DEFAULT_SSL_METHOD },
 				std::forward<String>(host), std::forward<StrOrInt>(port),
 				target, timeout, std::forward<Proxy>(proxy));
 		}

@@ -47,9 +47,9 @@ namespace boost::beast::http
 		}
 		~response_defer()
 		{
-			if (defered_aop_after_cb_)
+			if (aop_after_cb_)
 			{
-				(*defered_aop_after_cb_)();
+				(*aop_after_cb_)();
 			}
 			if (cb_)
 			{
@@ -60,7 +60,7 @@ namespace boost::beast::http
 	protected:
 		std::function<void()> cb_;
 
-		std::unique_ptr<std::function<void()>> defered_aop_after_cb_;
+		std::unique_ptr<std::function<void()>> aop_after_cb_;
 
 		// hold the http_session ptr, otherwise when the cb_ is calling, the session
 		// maybe destroyed already, then the response("rep_") in the cb_ is destroyed
@@ -211,7 +211,6 @@ namespace asio2::detail
 		{
 			this->base().base() = rep.base();
 			this->body().text() = rep.body();
-			http::try_prepare_payload(*this);
 		}
 
 		http_response_impl_t(http::message<false, http::string_body, Fields>&& rep)
@@ -222,14 +221,12 @@ namespace asio2::detail
 		{
 			this->base().base() = std::move(rep.base());
 			this->body().text() = std::move(rep.body());
-			http::try_prepare_payload(*this);
 		}
 
 		self& operator=(const http::message<false, http::string_body, Fields>& rep)
 		{
 			this->base().base() = rep.base();
 			this->body().text() = rep.body();
-			http::try_prepare_payload(*this);
 			return *this;
 		}
 
@@ -237,7 +234,6 @@ namespace asio2::detail
 		{
 			this->base().base() = std::move(rep.base());
 			this->body().text() = std::move(rep.body());
-			http::try_prepare_payload(*this);
 			return *this;
 		}
 
@@ -251,7 +247,6 @@ namespace asio2::detail
 		{
 			this->base().base() = rep.base();
 			this->body().file() = rep.body();
-			http::try_prepare_payload(*this);
 		}
 
 		http_response_impl_t(http::message<false, http::file_body, Fields>&& rep)
@@ -262,14 +257,12 @@ namespace asio2::detail
 		{
 			this->base().base() = std::move(rep.base());
 			this->body().file() = std::move(rep.body());
-			http::try_prepare_payload(*this);
 		}
 
 		self& operator=(const http::message<false, http::file_body, Fields>& rep)
 		{
 			this->base().base() = rep.base();
 			this->body().file() = rep.body();
-			http::try_prepare_payload(*this);
 			return *this;
 		}
 
@@ -277,7 +270,6 @@ namespace asio2::detail
 		{
 			this->base().base() = std::move(rep.base());
 			this->body().file() = std::move(rep.body());
-			http::try_prepare_payload(*this);
 			return *this;
 		}
 

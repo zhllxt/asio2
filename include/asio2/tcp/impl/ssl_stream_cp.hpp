@@ -24,13 +24,14 @@
 
 #include <asio2/base/iopool.hpp>
 
+#include <asio2/base/detail/util.hpp>
 #include <asio2/base/detail/allocator.hpp>
 #include <asio2/base/detail/ecs.hpp>
 
 namespace asio2::detail
 {
 	template<class derived_t, class args_t>
-	class ssl_stream_cp
+	class ssl_stream_cp : public detail::ssl_stream_tag
 	{
 	public:
 		using ssl_socket_type    = typename args_t::socket_t;

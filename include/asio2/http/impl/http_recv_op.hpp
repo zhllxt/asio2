@@ -181,9 +181,7 @@ namespace asio2::detail
 
 			if (derive.is_http())
 			{
-				std::string_view target = derive.req_.target();
-				http::parses::http_parser_parse_url(
-					target.data(), target.size(), 0, std::addressof(derive.req_.url_.parser()));
+				derive.req_.url_.reset(derive.req_.target());
 
 				derive.rep_.result(http::status::unknown);
 				derive.rep_.keep_alive(derive.req_.keep_alive());

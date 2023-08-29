@@ -2638,6 +2638,15 @@ void rdc_test()
 
 		asio2::wss_server server;
 
+		[[maybe_unused]] asio2::wss_server server1(ASIO2_DEFAULT_SSL_METHOD);
+		[[maybe_unused]] asio2::wss_server server2(ASIO2_DEFAULT_SSL_METHOD, 512);
+		[[maybe_unused]] asio2::wss_server server3(512);
+		[[maybe_unused]] asio2::wss_server server4(server.io_ptr());
+		[[maybe_unused]] asio2::wss_client client1(ASIO2_DEFAULT_SSL_METHOD);
+		[[maybe_unused]] asio2::wss_client client2(ASIO2_DEFAULT_SSL_METHOD, 512);
+		[[maybe_unused]] asio2::wss_client client3(512);
+		[[maybe_unused]] asio2::wss_client client4(server.io_ptr());
+
 		server.set_verify_mode(asio::ssl::verify_peer | asio::ssl::verify_fail_if_no_peer_cert);
 
 		// use memory string for cert

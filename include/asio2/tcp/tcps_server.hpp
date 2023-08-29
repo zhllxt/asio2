@@ -56,11 +56,30 @@ namespace asio2::detail
 		 */
 		template<class... Args>
 		explicit tcps_server_impl_t(
-			asio::ssl::context::method method = asio::ssl::context::sslv23,
+			asio::ssl::context::method method,
 			Args&&... args
 		)
 			: ssl_context_cp<derived_t, template_args_tcps_server>(method)
 			, super(std::forward<Args>(args)...)
+		{
+		}
+
+		/**
+		 * @brief constructor
+		 */
+		template<class... Args>
+		explicit tcps_server_impl_t(Args&&... args)
+			: ssl_context_cp<derived_t, template_args_tcps_server>(ASIO2_DEFAULT_SSL_METHOD)
+			, super(std::forward<Args>(args)...)
+		{
+		}
+
+		/**
+		 * @brief constructor
+		 */
+		explicit tcps_server_impl_t()
+			: ssl_context_cp<derived_t, template_args_tcps_server>(ASIO2_DEFAULT_SSL_METHOD)
+			, super()
 		{
 		}
 

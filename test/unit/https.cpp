@@ -115,18 +115,23 @@ void https_test()
 		std::string url = "https://www.baidu.com/img/flexible/logo/pc/result.png";
 		std::string pth = "result.png";
 		asio2::https_client::download(url, [](auto&) {}, [](std::string_view) {});
-		asio2::https_client::download(asio::ssl::context{ asio::ssl::context::sslv23 }, url, [](auto&) {}, [](std::string_view) {});
+		asio2::https_client::download(asio::ssl::context{ ASIO2_DEFAULT_SSL_METHOD }, url, [](auto&) {}, [](std::string_view) {});
 		asio2::https_client::download(url, [](std::string_view) {});
-		asio2::https_client::download(asio::ssl::context{ asio::ssl::context::sslv23 }, url, [](std::string_view) {});
+		asio2::https_client::download(asio::ssl::context{ ASIO2_DEFAULT_SSL_METHOD }, url, [](std::string_view) {});
 		asio2::https_client::download(url, pth);
-		asio2::https_client::download(asio::ssl::context{ asio::ssl::context::sslv23 }, url, pth);
+		asio2::https_client::download(asio::ssl::context{ ASIO2_DEFAULT_SSL_METHOD }, url, pth);
 		auto req = http::make_request(url);
-		asio2::https_client::download(asio::ssl::context{ asio::ssl::context::sslv23 }, req.host(), req.port(), req, [](auto&) {}, [](std::string_view) {}, nullptr);
-		asio2::https_client::download(asio::ssl::context{ asio::ssl::context::sslv23 }, req.host(), req.port(), req, [](auto&) {}, [](std::string_view) {}, sock5_option);
+		asio2::https_client::download(asio::ssl::context{ ASIO2_DEFAULT_SSL_METHOD }, req.host(), req.port(), req, [](auto&) {}, [](std::string_view) {}, nullptr);
+		asio2::https_client::download(asio::ssl::context{ ASIO2_DEFAULT_SSL_METHOD }, req.host(), req.port(), req, [](auto&) {}, [](std::string_view) {}, sock5_option);
 	}
 
 	{
 		asio2::https_server server;
+
+		[[maybe_unused]] asio2::https_server server1(ASIO2_DEFAULT_SSL_METHOD);
+		[[maybe_unused]] asio2::https_server server2(ASIO2_DEFAULT_SSL_METHOD, 512);
+		[[maybe_unused]] asio2::https_server server3(512);
+		[[maybe_unused]] asio2::https_server server4(server.io_ptr());
 
 		server.support_websocket(true);
 
@@ -201,7 +206,7 @@ void https_test()
 		bool https_server_ret = server.start("127.0.0.1", 8443);
 		ASIO2_CHECK(https_server_ret);
 
-		asio::ssl::context ctx{ asio::ssl::context::sslv23 };
+		asio::ssl::context ctx{ ASIO2_DEFAULT_SSL_METHOD };
 
 		http::request_t<http::string_body> req1;
 		asio2::https_client::execute(ctx, "127.0.0.1", 8443, req1, std::chrono::seconds(5));
@@ -211,6 +216,12 @@ void https_test()
 		asio2::https_client::execute("127.0.0.1", 8443, req1);
 
 		asio2::https_client https_client;
+
+		[[maybe_unused]] asio2::https_client https_client1(ASIO2_DEFAULT_SSL_METHOD);
+		[[maybe_unused]] asio2::https_client https_client2(ASIO2_DEFAULT_SSL_METHOD, 512);
+		[[maybe_unused]] asio2::https_client https_client3(512);
+		[[maybe_unused]] asio2::https_client https_client4(https_client.io_ptr());
+
 		//https_client.set_verify_mode(asio::ssl::verify_peer);
 		https_client.set_cert_file(
 			"../../example/cert/ca.crt",

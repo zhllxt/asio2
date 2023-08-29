@@ -55,11 +55,32 @@ namespace asio2::detail
 		 */
 		template<class... Args>
 		explicit tcps_client_impl_t(
-			asio::ssl::context::method method = asio::ssl::context::sslv23,
+			asio::ssl::context::method method,
 			Args&&... args
 		)
 			: ssl_context_comp(method)
 			, super(std::forward<Args>(args)...)
+			, ssl_stream_comp(*this, asio::ssl::stream_base::client)
+		{
+		}
+
+		/**
+		 * @brief constructor
+		 */
+		template<class... Args>
+		explicit tcps_client_impl_t(Args&&... args)
+			: ssl_context_comp(ASIO2_DEFAULT_SSL_METHOD)
+			, super(std::forward<Args>(args)...)
+			, ssl_stream_comp(*this, asio::ssl::stream_base::client)
+		{
+		}
+
+		/**
+		 * @brief constructor
+		 */
+		explicit tcps_client_impl_t()
+			: ssl_context_comp(ASIO2_DEFAULT_SSL_METHOD)
+			, super()
 			, ssl_stream_comp(*this, asio::ssl::stream_base::client)
 		{
 		}

@@ -38,6 +38,7 @@ namespace asio2::detail
 {
 	using io_context_work_guard = asio::executor_work_guard<asio::io_context::executor_type>;
 
+	/*
 	// unbelievable :
 	// the 1 sfinae need use   std::declval<std::decay_t<T>>()
 	// the 2 sfinae need use  (std::declval<std::decay_t<T>>())
@@ -89,6 +90,7 @@ namespace asio2::detail
 	static_assert(is_io_context_object<asio::io_context& >::value);
 	static_assert(is_io_context_object<asio::io_context&&>::value);
 #endif
+	*/
 
 	//-----------------------------------------------------------------------------------
 

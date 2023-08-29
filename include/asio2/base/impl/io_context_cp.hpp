@@ -53,6 +53,14 @@ namespace asio2::detail
 			return *(this->io_);
 		}
 
+		/**
+		 * @brief get the io object shared_ptr
+		 */
+		inline std::shared_ptr<io_t> io_ptr() noexcept
+		{
+			return this->io_;
+		}
+
 	protected:
 		/// The io_context wrapper used to handle the recv/send event.
 		/// the io_context should be destroyed after socket, beacuse the socket used the
