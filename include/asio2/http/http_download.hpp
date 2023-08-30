@@ -212,18 +212,13 @@ namespace asio2::detail
 
 		/**
 		 * @brief blocking download the http file until it is returned on success or failure
-		 * @param url - The url of the file to download.
+		 * @param req - The web_request which can be create by http::make_request(...)
 		 * @param filepath - The file path to saved the received file content.
 		 */
-		template<class String1, class String2>
-		typename std::enable_if_t<detail::can_convert_to_string_v<detail::remove_cvref_t<String1>> &&
-			detail::can_convert_to_string_v<detail::remove_cvref_t<String2>>, bool>
-		static inline download(String1&& url, String2&& filepath)
+		template<class String2>
+		typename std::enable_if_t<detail::can_convert_to_string_v<detail::remove_cvref_t<String2>>, bool>
+		static inline download(http::web_request& req, String2&& filepath)
 		{
-			http::web_request req = http::make_request(std::forward<String1>(url));
-			if (get_last_error())
-				return false;
-
 			std::filesystem::path path(std::forward<String2>(filepath));
 
 			std::filesystem::create_directories(path.parent_path(), get_last_error());
@@ -244,6 +239,24 @@ namespace asio2::detail
 			return derived_t::download(req.host(), req.port(), req.base(), cbh, cbb, std::in_place);
 		}
 
+		/**
+		 * @brief blocking download the http file until it is returned on success or failure
+		 * @param url - The url of the file to download.
+		 * @param filepath - The file path to saved the received file content.
+		 */
+		template<class String1, class String2>
+		typename std::enable_if_t<
+			detail::can_convert_to_string_v<detail::remove_cvref_t<String1>> &&
+			detail::can_convert_to_string_v<detail::remove_cvref_t<String2>>, bool>
+		static inline download(String1&& url, String2&& filepath)
+		{
+			http::web_request req = http::make_request(std::forward<String1>(url));
+			if (get_last_error())
+				return false;
+
+			return derived_t::download(req, std::forward<String2>(filepath));
+		}
+
 		// ----------------------------------------------------------------------------------------
 
 		/**
@@ -252,7 +265,8 @@ namespace asio2::detail
 		 * @param cbb - A function that circularly receives the contents of the file in chunks. void(std::string_view data)
 		 */
 		template<class String1, class BodyCallback>
-		typename std::enable_if_t<detail::can_convert_to_string_v<detail::remove_cvref_t<String1>> &&
+		typename std::enable_if_t<
+			detail::can_convert_to_string_v<detail::remove_cvref_t<String1>> &&
 			detail::is_callable_v<BodyCallback>, bool>
 		static inline download(String1&& url, BodyCallback&& cbb)
 		{
@@ -272,7 +286,8 @@ namespace asio2::detail
 		 * @param cbb - A function that circularly receives the contents of the file in chunks. void(std::string_view data)
 		 */
 		template<class String1, class HeaderCallback, class BodyCallback>
-		typename std::enable_if_t<detail::can_convert_to_string_v<detail::remove_cvref_t<String1>> &&
+		typename std::enable_if_t<
+			detail::can_convert_to_string_v<detail::remove_cvref_t<String1>> &&
 			detail::is_callable_v<BodyCallback>, bool>
 		static inline download(String1&& url, HeaderCallback&& cbh, BodyCallback&& cbb)
 		{
@@ -281,6 +296,34 @@ namespace asio2::detail
 				return false;
 
 			return derived_t::download(req.host(), req.port(), req.base(), cbh, cbb, std::in_place);
+		}
+
+		/**
+		 * @brief blocking download the http file until it is returned on success or failure
+		 * @param req - The web_request which can be create by http::make_request(...)
+		 * @param cbh - A function that recv the http response header message. void(auto& message)
+		 * @param cbb - A function that circularly receives the contents of the file in chunks. void(std::string_view data)
+		 */
+		template<class HeaderCallback, class BodyCallback>
+		typename std::enable_if_t<detail::is_callable_v<BodyCallback>, bool>
+		static inline download(http::web_request& req, HeaderCallback&& cbh, BodyCallback&& cbb)
+		{
+			return derived_t::download(req.host(), req.port(), req.base(), cbh, cbb, std::in_place);
+		}
+
+		/**
+		 * @brief blocking download the http file until it is returned on success or failure
+		 * @param req - The web_request which can be create by http::make_request(...)
+		 * @param cbh - A function that recv the http response header message. void(auto& message)
+		 * @param cbb - A function that circularly receives the contents of the file in chunks. void(std::string_view data)
+		 */
+		template<class BodyCallback>
+		typename std::enable_if_t<detail::is_callable_v<BodyCallback>, bool>
+		static inline download(http::web_request& req, BodyCallback&& cbb)
+		{
+			auto cbh = [](const auto&) {};
+
+			return derived_t::download(req, cbh, cbb);
 		}
 	};
 

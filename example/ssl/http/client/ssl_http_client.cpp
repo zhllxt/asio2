@@ -35,6 +35,36 @@ int main()
 	);
 	hugefile.close();
 
+	// download the first part: 0-1024
+	{
+		auto req = http::make_request("https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ls-lR.gz");
+		req.set(http::field::range, "bytes=0-1024");
+
+		std::fstream file("ls-lR.gz", std::ios::out | std::ios::binary | std::ios::trunc);
+		asio2::https_client::download(asio::ssl::context{ asio::ssl::context::tlsv13 }, req,
+			[&file](std::string_view chunk) // http body callback.
+			{
+				file.write(chunk.data(), chunk.size());
+			}
+		);
+		file.close();
+	}
+
+	// download the second part: 1025-end
+	{
+		auto req = http::make_request("https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ls-lR.gz");
+		req.set(http::field::range, "bytes=1025-");
+
+		std::fstream file("ls-lR.gz", std::ios::out | std::ios::binary | std::ios::app);
+		asio2::https_client::download(asio::ssl::context{ asio::ssl::context::tlsv13 }, req,
+			[&file](std::string_view chunk) // http body callback.
+			{
+				file.write(chunk.data(), chunk.size());
+			}
+		);
+		file.close();
+	}
+
 	std::string_view url = "https://www.baidu.com/query?key=x!#$&'()*+,/:;=?@[ ]-_.~%^{}\"|<>`\\y";
 
 	asio::ssl::context ctx{ asio::ssl::context::sslv23 };
