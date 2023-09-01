@@ -38,7 +38,7 @@ namespace asio2::detail
 {
 	using io_context_work_guard = asio::executor_work_guard<asio::io_context::executor_type>;
 
-	/*
+	/* the below sfinae will cause compile error on gcc 7.3
 	// unbelievable :
 	// the 1 sfinae need use   std::declval<std::decay_t<T>>()
 	// the 2 sfinae need use  (std::declval<std::decay_t<T>>())

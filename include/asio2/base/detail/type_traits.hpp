@@ -283,6 +283,21 @@ namespace asio2::detail
 	{
 		using type = typename detail::remove_cvref_t<T>;
 	};
+
+	template<class T>
+	inline typename element_type_adapter<T>::type& to_element_ref(T& value) noexcept
+	{
+		using rawt = typename remove_cvref_t<T>;
+
+		if /**/ constexpr (is_template_instance_of_v<std::shared_ptr, rawt>)
+			return *value;
+		else if constexpr (is_template_instance_of_v<std::unique_ptr, rawt>)
+			return *value;
+		else if constexpr (std::is_pointer_v<rawt>)
+			return *value;
+		else
+			return value;
+	}
 }
 
 namespace asio2

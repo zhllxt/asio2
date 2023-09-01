@@ -22,8 +22,10 @@
 #include <cstddef>
 
 #include <string>
+#include <fstream>
 
 #include <asio2/config.hpp>
+#include <asio2/base/detail/filesystem.hpp>
 
 #if !defined(ASIO2_HEADER_ONLY) && __has_include(<boost/predef/other/endian.h>)
 #include <boost/predef/other/endian.h>
@@ -77,6 +79,45 @@ namespace asio2
 		md5(const void * message, std::size_t size) : md5()
 		{
 			MD5_Update(&ctx_, message, static_cast<unsigned long>(size));
+		}
+
+		/**
+		 * @construct Construct a MD5 object from a file path.
+		 */
+		md5(const std::filesystem::path& filepath) : md5()
+		{
+			std::error_code ec{};
+			std::uintmax_t size = std::filesystem::file_size(filepath, ec);
+			if (!ec && size > static_cast<std::uintmax_t>(0))
+			{
+				std::fstream file(filepath, std::ios::in | std::ios::binary);
+				if (file)
+				{
+					char buffer[1024];
+
+					while (size > static_cast<std::uintmax_t>(0))
+					{
+						if (size >= static_cast<std::uintmax_t>(1024))
+						{
+							if (!file.read(buffer, 1024))
+								break;
+
+							MD5_Update(&ctx_, (const void*)buffer, static_cast<unsigned long>(1024));
+
+							size -= 1024;
+						}
+						else
+						{
+							if (!file.read(buffer, static_cast<std::streamsize>(size)))
+								break;
+
+							MD5_Update(&ctx_, (const void*)buffer, static_cast<unsigned long>(size));
+
+							size -= size;
+						}
+					}
+				}
+			}
 		}
 
 		/* Convert digest to std::string value */

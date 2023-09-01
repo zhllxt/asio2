@@ -30,6 +30,7 @@ namespace asio2::detail
 	{
 		using iterator = asio::buffers_iterator<asio::streambuf::const_buffers_type>;
 		using diff_type = typename iterator::difference_type;
+
 		std::pair<iterator, bool> dgram_match_role(iterator begin, iterator end) noexcept
 		{
 			for (iterator p = begin; p < end;)
@@ -110,6 +111,100 @@ namespace asio2::detail
 			}
 			return std::pair(begin, false);
 		}
+
+		/*
+		std::pair<iterator, bool> json_format_match_role_impl(
+			iterator begin, iterator end,
+			typename iterator::value_type head, typename iterator::value_type tail) noexcept
+		{
+			for (iterator p = begin; p < end; ++p)
+			{
+				if (std::isspace(*p))
+					continue;
+
+				// illegal data
+				if (*p != head)
+					return std::pair(begin, true);
+
+				for (std::int32_t depth = 0; p < end; ++p)
+				{
+					if (*p == head)
+					{
+						++depth;
+					}
+					else if (*p == tail)
+					{
+						--depth;
+
+						if (depth == 0)
+							return std::pair(p + 1, true);
+					}
+				}
+			}
+			return std::pair(begin, false);
+		}
+
+		std::pair<iterator, bool> json_object_match_role(iterator begin, iterator end) noexcept
+		{
+			return json_format_match_role_impl(begin, end, '{', '}');
+		}
+
+		std::pair<iterator, bool> json_array_match_role(iterator begin, iterator end) noexcept
+		{
+			return json_format_match_role_impl(begin, end, '[', ']');
+		}
+
+		std::pair<iterator, bool> json_match_role(iterator begin, iterator end) noexcept
+		{
+			for (iterator p = begin; p < end; ++p)
+			{
+				if (std::isspace(*p))
+					continue;
+
+				// object
+				if (*p == '{')
+					return json_object_match_role(begin, end);
+
+				// array
+				if (*p == '[')
+					return json_array_match_role(begin, end);
+
+				// string
+				if (*p == '\"')
+				{
+					for (++p; p < end; ++p)
+					{
+						if (*p == '\"')
+							return std::pair(p + 1, true);
+					}
+					break;
+				}
+
+				// null
+				if (*p == 'n')
+				{
+					if (end - p >= static_cast<diff_type>(4))
+					{
+						if (p[1] == 'u' && p[2] == 'l' && p[3] == 'l')
+							return std::pair(p + 4, true);
+						else
+							return std::pair(begin, true);
+					}
+
+					break;
+				}
+
+				// integer
+				// we can't know when the numeric string will end, so we can only return the entire string.
+				if ((*p >= '0') && (*p <= '9'))
+					return std::pair(end, true);
+
+				// illegal data
+				return std::pair(begin, true);
+			}
+			return std::pair(begin, false);
+		}
+		*/
 	}
 }
 
