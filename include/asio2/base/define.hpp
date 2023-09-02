@@ -53,7 +53,7 @@ namespace asio2::detail
 	template <class, class>                      KEYWORD user_timer_cp;             \
 	template <class       >                      KEYWORD session_mgr_t;             \
 	template <class, class>                      KEYWORD socks5_client_impl;        \
-	template <class, class, class>               KEYWORD socks5_client_connect_op;  \
+	template <class, class>                      KEYWORD socks5_client_handshake_op;\
 	template <class, class>                      KEYWORD thread_id_cp;              \
 	template <class, class>                      KEYWORD disable_warning_pedantic
 

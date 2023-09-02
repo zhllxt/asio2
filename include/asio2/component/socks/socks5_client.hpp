@@ -46,8 +46,8 @@ namespace asio2::detail
 	ASIO2_CLASS_FORWARD_DECLARE_TCP_SESSION;
 	ASIO2_CLASS_FORWARD_DECLARE_TCP_CLIENT;
 
-	template<class SocketT, class Sock5OptT, class HandlerT>
-	class socks5_client_connect_op : public asio::coroutine
+	template<class SocketT, class Sock5OptT>
+	class socks5_client_handshake_op : public asio::coroutine
 	{
 		ASIO2_CLASS_FRIEND_DECLARE_BASE;
 		ASIO2_CLASS_FRIEND_DECLARE_TCP_BASE;
@@ -56,17 +56,10 @@ namespace asio2::detail
 		ASIO2_CLASS_FRIEND_DECLARE_TCP_CLIENT;
 
 	public:
-		asio::io_context        & context_;
-
 		std::string    host_{}, port_{};
 
 		SocketT&       socket_;
-		Sock5OptT      sock5_;
-		HandlerT       handler_;
-
-	#if defined(ASIO2_ENABLE_LOG)
-		static_assert(detail::is_template_instance_of_v<std::shared_ptr, Sock5OptT>);
-	#endif
+		Sock5OptT      socks5_;
 
 		std::unique_ptr<asio::streambuf> stream{ std::make_unique<asio::streambuf>() };
 		asio::mutable_buffer             buffer{};
@@ -77,24 +70,24 @@ namespace asio2::detail
 		std::uint8_t                     addr_type{}, addr_size{};
 		socks5::method                   method{};
 
-		template<class SKT, class S5Opt, class H>
-		socks5_client_connect_op(
-			asio::io_context& context,
-			std::string host, std::string port,
-			SKT& skt, S5Opt s5, H&& h
-		)
-			: context_(context)
-			, host_   (std::move(host))
-			, port_   (std::move(port))
-			, socket_ (skt)
-			, sock5_  (std::move(s5))
-			, handler_(std::forward<H>(h))
+		using socks5_value_type = typename detail::element_type_adapter<Sock5OptT>::type;
+
+		inline socks5_value_type& socks5() noexcept
 		{
-			(*this)();
+			return detail::to_element_ref(socks5_);
 		}
 
-		template<typename = void>
-		void operator()(error_code ec = {}, std::size_t bytes_transferred = 0)
+		template<class SKT, class S5Opt>
+		socks5_client_handshake_op(std::string host, std::string port, SKT& skt, S5Opt s5)
+			: host_   (std::move(host))
+			, port_   (std::move(port))
+			, socket_ (skt)
+			, socks5_  (std::move(s5))
+		{
+		}
+
+		template <typename Self>
+		void operator()(Self& self, error_code ec = {}, std::size_t bytes_transferred = 0)
 		{
 			detail::ignore_unused(ec, bytes_transferred);
 
@@ -116,13 +109,13 @@ namespace asio2::detail
 
 				stream->consume(stream->size());
 
-				bytes  = 1 + 1 + sock5_->methods_count();
+				bytes  = 1 + 1 + socks5().methods_count();
 				buffer = stream->prepare(bytes);
 				p      = static_cast<char*>(buffer.data());
 
 				write(p, std::uint8_t(0x05));                         // SOCKS VERSION 5.
-				write(p, std::uint8_t(sock5_->methods_count()));      // NMETHODS
-				for (auto m : sock5_->methods())
+				write(p, std::uint8_t(socks5().methods_count()));     // NMETHODS
+				for (auto m : socks5().methods())
 				{
 					write(p, std::uint8_t(detail::to_underlying(m))); // METHODS
 				}
@@ -130,7 +123,7 @@ namespace asio2::detail
 				stream->commit(bytes);
 
 				ASIO_CORO_YIELD
-					asio::async_write(socket_, strbuf, asio::transfer_exactly(bytes), std::move(*this));
+					asio::async_write(socket_, strbuf, asio::transfer_exactly(bytes), std::move(self));
 				if (ec)
 					goto end;
 
@@ -146,7 +139,7 @@ namespace asio2::detail
 				stream->consume(stream->size());
 
 				ASIO_CORO_YIELD
-					asio::async_read(socket_, strbuf, asio::transfer_exactly(1 + 1), std::move(*this));
+					asio::async_read(socket_, strbuf, asio::transfer_exactly(1 + 1), std::move(self));
 				if (ec)
 					goto end;
 
@@ -228,18 +221,18 @@ namespace asio2::detail
 					//         | 1  |  1   | 1 to 255 |  1   | 1 to 255 |
 					//         +----+------+----------+------+----------+
 
-					if constexpr (socks5::detail::has_member_username<typename Sock5OptT::element_type>::value)
+					if constexpr (socks5::detail::has_member_username<socks5_value_type>::value)
 					{
-						username = sock5_->username();
+						username = socks5().username();
 					}
 					else
 					{
 						ASIO2_ASSERT(false);
 					}
 
-					if constexpr (socks5::detail::has_member_password<typename Sock5OptT::element_type>::value)
+					if constexpr (socks5::detail::has_member_password<socks5_value_type>::value)
 					{
-						password = sock5_->password();
+						password = socks5().password();
 					}
 					else
 					{
@@ -287,7 +280,7 @@ namespace asio2::detail
 
 					// send username and password to server
 					ASIO_CORO_YIELD
-						asio::async_write(socket_, strbuf, asio::transfer_exactly(bytes), std::move(*this));
+						asio::async_write(socket_, strbuf, asio::transfer_exactly(bytes), std::move(self));
 					if (ec)
 						goto end;
 
@@ -308,7 +301,7 @@ namespace asio2::detail
 					stream->consume(stream->size());
 
 					ASIO_CORO_YIELD
-						asio::async_read(socket_, strbuf, asio::transfer_exactly(1 + 1), std::move(*this));
+						asio::async_read(socket_, strbuf, asio::transfer_exactly(1 + 1), std::move(self));
 					if (ec)
 						goto end;
 
@@ -356,9 +349,9 @@ namespace asio2::detail
 				buffer = stream->prepare(1 + 1 + 1 + 1 + (std::max)(16, int(host_.size() + 1)) + 2);
 				p      = static_cast<char*>(buffer.data());
 
-				write(p, std::uint8_t(0x05));                                     // VER 5.
-				write(p, std::uint8_t(detail::to_underlying(sock5_->command()))); // CMD CONNECT .
-				write(p, std::uint8_t(0x00));                                     // RSV.
+				write(p, std::uint8_t(0x05));                                      // VER 5.
+				write(p, std::uint8_t(detail::to_underlying(socks5().command()))); // CMD CONNECT .
+				write(p, std::uint8_t(0x00));                                      // RSV.
 
 				// ATYP
 				endpoint = asio::ip::make_address(host_, ec);
@@ -415,7 +408,7 @@ namespace asio2::detail
 				stream->commit(bytes);
 
 				ASIO_CORO_YIELD
-					asio::async_write(socket_, strbuf, asio::transfer_exactly(bytes), std::move(*this));
+					asio::async_write(socket_, strbuf, asio::transfer_exactly(bytes), std::move(self));
 				if (ec)
 					goto end;
 
@@ -451,7 +444,7 @@ namespace asio2::detail
 
 				// 1. read the first 5 bytes : VER REP RSV ATYP [LEN]
 				ASIO_CORO_YIELD
-					asio::async_read(socket_, strbuf, asio::transfer_exactly(5), std::move(*this));
+					asio::async_read(socket_, strbuf, asio::transfer_exactly(5), std::move(self));
 				if (ec)
 					goto end;
 
@@ -505,7 +498,7 @@ namespace asio2::detail
 				stream->consume(stream->size());
 
 				ASIO_CORO_YIELD
-					asio::async_read(socket_, strbuf, asio::transfer_exactly(bytes), std::move(*this));
+					asio::async_read(socket_, strbuf, asio::transfer_exactly(bytes), std::move(self));
 				if (ec)
 					goto end;
 
@@ -555,16 +548,78 @@ namespace asio2::detail
 				ec = {};
 
 			end:
-				handler_(ec);
+				self.complete(ec);
 			}
 		}
 	};
 
 	// C++17 class template argument deduction guides
-	template<class SKT, class S5Opt, class H>
-	socks5_client_connect_op(asio::io_context&, std::string, std::string,
-		SKT&, S5Opt, H)->socks5_client_connect_op<SKT, S5Opt, H>;
+	template<class SKT, class S5Opt>
+	socks5_client_handshake_op(std::string, std::string, SKT&, S5Opt) -> socks5_client_handshake_op<SKT, S5Opt>;
+}
 
+namespace asio2
+{
+	/**
+	 * @brief Perform the socks5 handshake asynchronously in the client role.
+	 * @param host - The target server ip. note: not the socks5 proxy server ip.
+	 * @param port - The target server port. note: not the socks5 proxy server port.
+	 * @param socket - The asio::ip::tcp::socket object reference.
+	 * @param socks5_opt - The socks5 option, must contains the socks5 proxy server ip and port.
+	 * @param token - The completion handler to invoke when the operation completes. 
+	 *    The implementation takes ownership of the handler by performing a decay-copy.
+	 *	  The equivalent function signature of the handler must be:
+     *    @code
+     *    void handler(
+     *        error_code const& ec    // Result of operation
+     *    );
+	 */
+	template <typename SocketT, typename Sock5OptT, typename CompletionToken>
+	auto socks5_async_handshake(
+		std::string host, std::string port, SocketT& socket, Sock5OptT socks5_opt, CompletionToken&& token)
+		-> decltype(asio::async_compose<CompletionToken, void(asio::error_code)>(
+			std::declval<detail::socks5_client_handshake_op<SocketT, Sock5OptT>>(), token, socket))
+	{
+		return asio::async_compose<CompletionToken, void(asio::error_code)>(
+			detail::socks5_client_handshake_op<SocketT, Sock5OptT>{
+			std::move(host), std::move(port), socket, std::move(socks5_opt)},
+			token, socket);
+	}
+
+	/**
+	 * @brief Perform the socks5 handshake in the client role.
+	 * @param host - The target server ip. note: not the socks5 proxy server ip.
+	 * @param port - The target server port. note: not the socks5 proxy server port.
+	 * @param socket - The asio::ip::tcp::socket object reference.
+	 * @param socks5_opt - The socks5 option, must contains the socks5 proxy server ip and port.
+	 * @param ec - Save the error information when handshake failed.
+	 * @return true if handshake successed, otherwise false.
+	 */
+	template <typename SocketT, typename Sock5OptT>
+	bool socks5_handshake(std::string host, std::string port, SocketT& socket, Sock5OptT socks5_opt, error_code& ec)
+	{
+		std::future<void> f = socks5_async_handshake(
+			std::move(host), std::move(port), socket, std::move(socks5_opt), asio::use_future);
+
+		try
+		{
+			f.get();
+
+			ec = {};
+
+			return true;
+		}
+		catch (const system_error& e)
+		{
+			ec = e.code();
+		}
+
+		return false;
+	}
+}
+
+namespace asio2::detail
+{
 	template<class derived_t, class args_t>
 	class socks5_client_impl
 	{
@@ -601,9 +656,8 @@ namespace asio2::detail
 
 			if constexpr (ecs_helper::has_socks5<C>())
 			{
-				socks5_client_connect_op
-				{
-					derive.io_->context(),
+				socks5_async_handshake
+				(
 					derive.host_, derive.port_,
 					derive.socket(),
 					ecs->get_component().socks5_option(std::in_place),
@@ -613,7 +667,7 @@ namespace asio2::detail
 
 						derive._handle_proxy(ec, std::move(this_ptr), std::move(ecs), std::move(chain));
 					}
-				};
+				);
 			}
 			else
 			{

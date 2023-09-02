@@ -69,9 +69,8 @@ namespace asio2::detail
 				{
 					if (ec2) { set_last_error(ec2); return; }
 
-					detail::socks5_client_connect_op
-					{
-						ioc,
+					socks5_async_handshake
+					(
 						detail::to_string(std::forward<String  >(host)),
 						detail::to_string(std::forward<StrOrInt>(port)),
 						socket,
@@ -104,7 +103,7 @@ namespace asio2::detail
 								});
 							});
 						}
-					};
+					);
 				});
 			});
 		}

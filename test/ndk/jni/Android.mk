@@ -140,8 +140,32 @@ include $(BUILD_EXECUTABLE)
 
 include $(CLEAR_VARS)
 LOCAL_C_INCLUDES += $(ASIO2_INCLUDE)
-LOCAL_MODULE := rate_limit.out
-LOCAL_SRC_FILES := $(ASIO2_TEST_DIR)/unit/rate_limit.cpp
+LOCAL_MODULE := rate_limit_http.out
+LOCAL_SRC_FILES := $(ASIO2_TEST_DIR)/unit/rate_limit_http.cpp
+LOCAL_STATIC_LIBRARIES += libssl
+LOCAL_STATIC_LIBRARIES += libcrypto
+include $(BUILD_EXECUTABLE)
+
+include $(CLEAR_VARS)
+LOCAL_C_INCLUDES += $(ASIO2_INCLUDE)
+LOCAL_MODULE := rate_limit_rpc.out
+LOCAL_SRC_FILES := $(ASIO2_TEST_DIR)/unit/rate_limit_rpc.cpp
+LOCAL_STATIC_LIBRARIES += libssl
+LOCAL_STATIC_LIBRARIES += libcrypto
+include $(BUILD_EXECUTABLE)
+
+include $(CLEAR_VARS)
+LOCAL_C_INCLUDES += $(ASIO2_INCLUDE)
+LOCAL_MODULE := rate_limit_tcp.out
+LOCAL_SRC_FILES := $(ASIO2_TEST_DIR)/unit/rate_limit_tcp.cpp
+LOCAL_STATIC_LIBRARIES += libssl
+LOCAL_STATIC_LIBRARIES += libcrypto
+include $(BUILD_EXECUTABLE)
+
+include $(CLEAR_VARS)
+LOCAL_C_INCLUDES += $(ASIO2_INCLUDE)
+LOCAL_MODULE := rate_limit_ws.out
+LOCAL_SRC_FILES := $(ASIO2_TEST_DIR)/unit/rate_limit_ws.cpp
 LOCAL_STATIC_LIBRARIES += libssl
 LOCAL_STATIC_LIBRARIES += libcrypto
 include $(BUILD_EXECUTABLE)
