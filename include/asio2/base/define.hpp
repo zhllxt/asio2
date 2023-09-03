@@ -105,6 +105,7 @@ namespace asio2::detail
 	template <class, class>                      KEYWORD wss_client_impl_t;         \
 	template <class, class>                      KEYWORD rpc_client_impl_t;         \
 	template <class, class>                      KEYWORD mqtt_client_impl_t;        \
+	template <class, class>                      KEYWORD socks5_client_impl_t;      \
 	template <class, class>                      KEYWORD disable_warning_pedantic
 
 #define ASIO2_CLASS_DECLARE_TCP_SERVER(KEYWORD)                                     \
@@ -117,6 +118,7 @@ namespace asio2::detail
 	template <class, class>                      KEYWORD wss_server_impl_t;         \
 	template <class, class>                      KEYWORD rpc_server_impl_t;         \
 	template <class, class>                      KEYWORD mqtt_server_impl_t;        \
+	template <class, class>                      KEYWORD socks5_server_impl_t;      \
 	template <class, class>                      KEYWORD disable_warning_pedantic
 
 #define ASIO2_CLASS_DECLARE_TCP_SESSION(KEYWORD)                                    \
@@ -129,6 +131,7 @@ namespace asio2::detail
 	template <class, class>                      KEYWORD wss_session_impl_t;        \
 	template <class, class>                      KEYWORD rpc_session_impl_t;        \
 	template <class, class>                      KEYWORD mqtt_session_impl_t;       \
+	template <class, class>                      KEYWORD socks5_session_impl_t;     \
 	template <class, class>                      KEYWORD disable_warning_pedantic
 
 #define ASIO2_CLASS_DECLARE_UDP_BASE(KEYWORD)                                       \

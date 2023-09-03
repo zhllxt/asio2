@@ -12,8 +12,8 @@
  * http proxy : https://blog.csdn.net/dolphin98629/article/details/54599850
  */
 
-#ifndef __ASIO2_SOCKS5_CLIENT_HPP__
-#define __ASIO2_SOCKS5_CLIENT_HPP__
+#ifndef __ASIO2_SOCKS5_CLIENT_CP_HPP__
+#define __ASIO2_SOCKS5_CLIENT_CP_HPP__
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1200)
 #pragma once
@@ -61,6 +61,31 @@ namespace asio2::detail
 		SocketT&       socket_;
 		Sock5OptT      socks5_;
 
+		using socks5_value_type = typename detail::element_type_adapter<Sock5OptT>::type;
+
+		inline socks5_value_type& socks5() noexcept
+		{
+			return detail::to_element_ref(socks5_);
+		}
+
+		template<class S5Opt>
+		inline std::string socks5_opt_username(S5Opt& s5opt) noexcept
+		{
+			if constexpr (socks5::detail::has_member_username<S5Opt>::value)
+				return s5opt.username();
+			else
+				return "";
+		}
+
+		template<class S5Opt>
+		inline std::string socks5_opt_password(S5Opt& s5opt) noexcept
+		{
+			if constexpr (socks5::detail::has_member_password<S5Opt>::value)
+				return s5opt.password();
+			else
+				return "";
+		}
+
 		std::unique_ptr<asio::streambuf> stream{ std::make_unique<asio::streambuf>() };
 		asio::mutable_buffer             buffer{};
 		std::size_t                      bytes{};
@@ -69,13 +94,6 @@ namespace asio2::detail
 		std::string                      username{}, password{};
 		std::uint8_t                     addr_type{}, addr_size{};
 		socks5::method                   method{};
-
-		using socks5_value_type = typename detail::element_type_adapter<Sock5OptT>::type;
-
-		inline socks5_value_type& socks5() noexcept
-		{
-			return detail::to_element_ref(socks5_);
-		}
 
 		template<class SKT, class S5Opt>
 		socks5_client_handshake_op(std::string host, std::string port, SKT& skt, S5Opt s5)
@@ -221,25 +239,10 @@ namespace asio2::detail
 					//         | 1  |  1   | 1 to 255 |  1   | 1 to 255 |
 					//         +----+------+----------+------+----------+
 
-					if constexpr (socks5::detail::has_member_username<socks5_value_type>::value)
-					{
-						username = socks5().username();
-					}
-					else
-					{
-						ASIO2_ASSERT(false);
-					}
+					username = socks5_opt_username(socks5());
+					password = socks5_opt_password(socks5());
 
-					if constexpr (socks5::detail::has_member_password<socks5_value_type>::value)
-					{
-						password = socks5().password();
-					}
-					else
-					{
-						ASIO2_ASSERT(false);
-					}
-
-					if (username.empty() && password.empty())
+					if (username.empty() || password.empty())
 					{
 						ASIO2_ASSERT(false);
 						ec = socks5::make_error_code(socks5::error::username_required);
@@ -460,17 +463,17 @@ namespace asio2::detail
 				// REP
 				switch (read<std::uint8_t>(p))
 				{
-				case std::uint8_t(0x00): ec = {}													; break;
-				case std::uint8_t(0x02): ec = asio::error::no_permission                            ; break;
-				case std::uint8_t(0x03): ec = asio::error::network_unreachable                      ; break;
-				case std::uint8_t(0x04): ec = asio::error::host_unreachable                         ; break;
-				case std::uint8_t(0x05): ec = asio::error::connection_refused                       ; break;
-				case std::uint8_t(0x06): ec = asio::error::timed_out                                ; break;
-				case std::uint8_t(0x08): ec = asio::error::address_family_not_supported             ; break;
-				case std::uint8_t(0x01): ec = socks5::make_error_code(socks5::error::general_socks_server_failure)	; break;
-				case std::uint8_t(0x07): ec = socks5::make_error_code(socks5::error::command_not_supported)			; break;
-				case std::uint8_t(0x09): ec = socks5::make_error_code(socks5::error::unassigned)                    ; break;
-				default:                 ec = socks5::make_error_code(socks5::error::unassigned)                    ; break;
+				case std::uint8_t(0x00): ec = {}													                   ; break;
+				case std::uint8_t(0x01): ec = socks5::make_error_code(socks5::error::general_socks_server_failure     ); break;
+				case std::uint8_t(0x02): ec = socks5::make_error_code(socks5::error::connection_not_allowed_by_ruleset); break;
+				case std::uint8_t(0x03): ec = socks5::make_error_code(socks5::error::network_unreachable              ); break;
+				case std::uint8_t(0x04): ec = socks5::make_error_code(socks5::error::host_unreachable                 ); break;
+				case std::uint8_t(0x05): ec = socks5::make_error_code(socks5::error::connection_refused               ); break;
+				case std::uint8_t(0x06): ec = socks5::make_error_code(socks5::error::ttl_expired                      ); break;
+				case std::uint8_t(0x07): ec = socks5::make_error_code(socks5::error::command_not_supported            ); break;
+				case std::uint8_t(0x08): ec = socks5::make_error_code(socks5::error::address_type_not_supported       ); break;
+				case std::uint8_t(0x09): ec = socks5::make_error_code(socks5::error::unassigned                       ); break;
+				default:                 ec = socks5::make_error_code(socks5::error::unassigned                       ); break;
 				}
 
 				if (ec)
@@ -490,7 +493,7 @@ namespace asio2::detail
 				case std::uint8_t(0x04): bytes = 16        + 2 - 1; break; // IP V6 address: X'04'
 				default:
 				{
-					ec = socks5::make_error_code(socks5::error::general_failure);
+					ec = socks5::make_error_code(socks5::error::address_type_not_supported);
 					goto end;
 				}
 				}
@@ -508,15 +511,11 @@ namespace asio2::detail
 				{
 				case std::uint8_t(0x01): // IP V4 address: X'01'
 				{
-					std::uint8_t addr[4]{ 0 };
+					asio::ip::address_v4::bytes_type addr{};
 					addr[0] = addr_size;
 					addr[1] = read<std::uint8_t>(p);
 					addr[2] = read<std::uint8_t>(p);
 					addr[3] = read<std::uint8_t>(p);
-					if (is_little_endian())
-					{
-						swap_bytes<4>(reinterpret_cast<std::uint8_t *>(addr));
-					}
 					std::uint16_t port = read<std::uint16_t>(p);
 					detail::ignore_unused(addr, port);
 				}
@@ -533,7 +532,7 @@ namespace asio2::detail
 				break;
 				case std::uint8_t(0x04): // IP V6 address: X'04'
 				{
-					std::uint8_t addr[16]{ 0 };
+					asio::ip::address_v6::bytes_type addr{};
 					addr[0] = addr_size;
 					for (int i = 1; i < 16; i++)
 					{
@@ -682,4 +681,4 @@ namespace asio2::detail
 	};
 }
 
-#endif // !__ASIO2_SOCKS5_CLIENT_HPP__
+#endif // !__ASIO2_SOCKS5_CLIENT_CP_HPP__

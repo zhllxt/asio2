@@ -747,4 +747,30 @@ namespace asio2
 	}
 }
 
+namespace asio2::detail
+{
+	struct wait_timer_op : public asio::coroutine
+	{
+		asio::steady_timer& timer_;
+
+		wait_timer_op(asio::steady_timer& timer) : timer_(timer)
+		{
+		}
+
+		template <typename Self>
+		void operator()(Self& self, error_code ec = {})
+		{
+			detail::ignore_unused(ec);
+
+			ASIO_CORO_REENTER(*this)
+			{
+				ASIO_CORO_YIELD
+					timer_.async_wait(std::move(self));
+
+				self.complete(get_last_error());
+			}
+		}
+	};
+}
+
 #endif // !__ASIO2_UTIL_HPP__

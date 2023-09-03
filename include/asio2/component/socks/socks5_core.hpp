@@ -276,4 +276,6 @@ namespace asio2::socks5
 	};
 }
 
+namespace socks5 = ::asio2::socks5;
+
 #endif // !__ASIO2_SOCKS5_CORE_HPP__
