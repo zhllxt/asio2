@@ -52,6 +52,7 @@ namespace asio2::detail
 		explicit socks5_client_impl_t(Args&&... args)
 			: super(std::forward<Args>(args)...)
 		{
+			this->co_timer_ = std::make_shared<asio::steady_timer>(this->io_->context());
 		}
 
 		/**
@@ -110,7 +111,7 @@ namespace asio2::detail
 		}
 
 	protected:
-		std::shared_ptr<asio::steady_timer> co_timer_ = std::make_shared<asio::steady_timer>(io_->context());
+		std::shared_ptr<asio::steady_timer> co_timer_;
 	};
 }
 

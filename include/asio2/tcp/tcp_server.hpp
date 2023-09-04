@@ -27,7 +27,7 @@ namespace asio2::detail
 	ASIO2_CLASS_FORWARD_DECLARE_TCP_SERVER;
 
 	template<class derived_t, class session_t>
-	class tcp_server_impl_t : public server_impl_t<derived_t, session_t>
+	class tcp_server_impl_t : public server_impl_t<derived_t, session_t>, public tcp_tag
 	{
 		ASIO2_CLASS_FRIEND_DECLARE_BASE;
 		ASIO2_CLASS_FRIEND_DECLARE_TCP_BASE;

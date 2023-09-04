@@ -55,10 +55,12 @@
 
 namespace asio2::detail
 {
-	struct template_args_udp_cast
+	struct template_args_udp_cast : public udp_tag
 	{
 		using socket_t = asio::ip::udp::socket;
 		using buffer_t = asio2::linear_buffer;
+
+		using socks5_socket_t = asio::ip::tcp::socket;
 
 		static constexpr std::size_t function_storage_size = 88;
 		static constexpr std::size_t allocator_storage_size = 256;
@@ -82,6 +84,7 @@ namespace asio2::detail
 		, public condition_event_cp<derived_t, args_t>
 		, public udp_send_cp       <derived_t, args_t>
 		, public udp_send_op       <derived_t, args_t>
+		, public udp_tag
 	{
 		ASIO2_CLASS_FRIEND_DECLARE_BASE;
 		ASIO2_CLASS_FRIEND_DECLARE_UDP_BASE;

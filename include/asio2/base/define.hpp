@@ -52,7 +52,7 @@ namespace asio2::detail
 	template <class, class>                      KEYWORD user_data_cp;              \
 	template <class, class>                      KEYWORD user_timer_cp;             \
 	template <class       >                      KEYWORD session_mgr_t;             \
-	template <class, class>                      KEYWORD socks5_client_impl;        \
+	template <class, class>                      KEYWORD socks5_client_cp;          \
 	template <class, class>                      KEYWORD socks5_client_handshake_op;\
 	template <class, class>                      KEYWORD thread_id_cp;              \
 	template <class, class>                      KEYWORD disable_warning_pedantic
@@ -106,6 +106,9 @@ namespace asio2::detail
 	template <class, class>                      KEYWORD rpc_client_impl_t;         \
 	template <class, class>                      KEYWORD mqtt_client_impl_t;        \
 	template <class, class>                      KEYWORD socks5_client_impl_t;      \
+	template <class, class>                      KEYWORD socks5_client_cp;          \
+	template <class, class>                      KEYWORD socks5_client_cp_impl;     \
+	template <class, class, class>               KEYWORD socks5_client_cp_bridge;   \
 	template <class, class>                      KEYWORD disable_warning_pedantic
 
 #define ASIO2_CLASS_DECLARE_TCP_SERVER(KEYWORD)                                     \
@@ -144,6 +147,10 @@ namespace asio2::detail
 #define ASIO2_CLASS_DECLARE_UDP_CLIENT(KEYWORD)                                     \
 	template <class, class>                      KEYWORD client_impl_t;             \
 	template <class, class>                      KEYWORD udp_client_impl_t;         \
+	template <class, class>                      KEYWORD socks5_client_impl_t;      \
+	template <class, class>                      KEYWORD socks5_client_cp;          \
+	template <class, class>                      KEYWORD socks5_client_cp_impl;     \
+	template <class, class, class>               KEYWORD socks5_client_cp_bridge;   \
 	template <class, class>                      KEYWORD disable_warning_pedantic
 
 #define ASIO2_CLASS_DECLARE_UDP_SERVER(KEYWORD)                                     \

@@ -25,7 +25,7 @@
 #include <asio2/http/detail/http_make.hpp>
 #include <asio2/http/detail/http_traits.hpp>
 
-#include <asio2/component/socks/socks5_client.hpp>
+#include <asio2/component/socks/socks5_client_cp.hpp>
 
 namespace asio2::detail
 {
@@ -54,6 +54,11 @@ namespace asio2::detail
 
 			std::string_view h{ sk5->host() };
 			std::string_view p{ sk5->port() };
+			
+			if (static_cast<int>(sk5->command()) == 0)
+			{
+				sk5->command(socks5::command::connect);
+			}
 
 			// Look up the domain name
 			resolver.async_resolve(h, p, [&, s5 = std::move(sk5)]
@@ -73,7 +78,7 @@ namespace asio2::detail
 						detail::to_string(std::forward<StrOrInt>(port)),
 						socket,
 						std::move(s5),
-						[&](error_code ecs5) mutable
+						[&](error_code ecs5, std::string, std::string) mutable
 						{
 							if (ecs5) { set_last_error(ecs5); return; }
 

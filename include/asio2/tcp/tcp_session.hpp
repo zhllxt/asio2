@@ -25,7 +25,7 @@
 
 namespace asio2::detail
 {
-	struct template_args_tcp_session
+	struct template_args_tcp_session : public tcp_tag
 	{
 		static constexpr bool is_session = true;
 		static constexpr bool is_client  = false;
@@ -48,6 +48,7 @@ namespace asio2::detail
 		, public tcp_keepalive_cp <derived_t, args_t>
 		, public tcp_send_op      <derived_t, args_t>
 		, public tcp_recv_op      <derived_t, args_t>
+		, public tcp_tag
 	{
 		ASIO2_CLASS_FRIEND_DECLARE_BASE;
 		ASIO2_CLASS_FRIEND_DECLARE_TCP_BASE;

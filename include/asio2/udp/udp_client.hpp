@@ -28,7 +28,7 @@
 
 namespace asio2::detail
 {
-	struct template_args_udp_client
+	struct template_args_udp_client : public udp_tag
 	{
 		static constexpr bool is_session = false;
 		static constexpr bool is_client  = true;
@@ -38,6 +38,8 @@ namespace asio2::detail
 		using buffer_t    = asio2::linear_buffer;
 		using send_data_t = std::string_view;
 		using recv_data_t = std::string_view;
+
+		using socks5_socket_t = asio::ip::tcp::socket;
 
 		static constexpr std::size_t allocator_storage_size = 256;
 	};
@@ -51,6 +53,7 @@ namespace asio2::detail
 		: public client_impl_t<derived_t, args_t>
 		, public udp_send_op  <derived_t, args_t>
 		, public udp_recv_op  <derived_t, args_t>
+		, public udp_tag
 	{
 		ASIO2_CLASS_FRIEND_DECLARE_BASE;
 		ASIO2_CLASS_FRIEND_DECLARE_UDP_BASE;

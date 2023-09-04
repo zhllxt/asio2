@@ -18,7 +18,7 @@
 #include <asio2/base/detail/push_options.hpp>
 
 #include <asio2/tcp/tcp_session.hpp>
-#include <asio2/component/socks/socks5_server.hpp>
+#include <asio2/component/socks/socks5_server_cp.hpp>
 #include <asio2/proxy/socks5_client.hpp>
 
 namespace asio2::detail
@@ -57,6 +57,7 @@ namespace asio2::detail
 		explicit socks5_session_impl_t(Args&&... args)
 			: super(std::forward<Args>(args)...)
 		{
+			this->end_client_ = std::make_shared<asio2::socks5_client>(this->io_);
 		}
 
 		/**
@@ -201,7 +202,7 @@ namespace asio2::detail
 		socks5::options socks5_options_{};
 
 		// create a new client, and connect to the target server.
-		std::shared_ptr<asio2::socks5_client> end_client_ = std::make_shared<asio2::socks5_client>(io_);
+		std::shared_ptr<asio2::socks5_client> end_client_;
 	};
 }
 

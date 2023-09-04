@@ -13,6 +13,7 @@ del /f /s /q *.ninja_log
 del /f /s /q *.ninja_deps
 del /f /s /q *.log.tmp*
 del /f /s /q Makefile
+del /f /s /q CTestTestfile.cmake
 
 rmdir /s /q Testing
 rmdir /s /q CMakeFiles

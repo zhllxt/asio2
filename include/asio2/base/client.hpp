@@ -54,7 +54,7 @@
 #include <asio2/base/impl/send_cp.hpp>
 
 #include <asio2/component/rdc/rdc_call_cp.hpp>
-#include <asio2/component/socks/socks5_client.hpp>
+#include <asio2/component/socks/socks5_client_cp.hpp>
 
 namespace asio2
 {
@@ -94,7 +94,7 @@ namespace asio2::detail
 		, public post_cp               <derived_t, args_t>
 		, public condition_event_cp    <derived_t, args_t>
 		, public rdc_call_cp           <derived_t, args_t>
-		, public socks5_client_impl    <derived_t, args_t>
+		, public socks5_client_cp      <derived_t, args_t>
 	{
 		ASIO2_CLASS_FRIEND_DECLARE_BASE;
 

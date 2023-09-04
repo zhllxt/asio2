@@ -23,8 +23,142 @@
 #include <asio2/base/iopool.hpp>
 #include <asio2/base/listener.hpp>
 #include <asio2/base/detail/ecs.hpp>
+#include <asio2/base/detail/keepalive_options.hpp>
 
 #include <asio2/base/impl/event_queue_cp.hpp>
+
+namespace asio2::detail
+{
+	template<class SocketT>
+	class run_connect_op : public asio::coroutine
+	{
+	public:
+		using socket_t           = typename SocketT;
+		using decay_socket_t     = typename std::remove_cv_t<std::remove_reference_t<socket_t>>;
+		using lowest_layer_t     = typename decay_socket_t::lowest_layer_type;
+		using resolver_type      = typename asio::ip::basic_resolver<typename lowest_layer_t::protocol_type>;
+		using endpoints_type     = typename resolver_type::results_type;
+		using endpoints_iterator = typename endpoints_type::iterator;
+
+		std::string    host_{}, port_{};
+
+		SocketT&       socket_;
+
+		std::unique_ptr<resolver_type> resolver_ptr;
+		std::unique_ptr<endpoints_type> endpoints_ptr;
+		endpoints_iterator iter;
+
+		template<class SKT>
+		run_connect_op(std::string host, std::string port, SKT& skt)
+			: host_   (std::move(host))
+			, port_   (std::move(port))
+			, socket_ (skt)
+		{
+			resolver_ptr = std::make_unique<resolver_type>(socket_.get_executor());
+		}
+
+		template <typename Self>
+		void operator()(Self& self, error_code ec = {}, endpoints_type endpoints = {})
+		{
+			detail::ignore_unused(ec, endpoints);
+
+			ASIO_CORO_REENTER(*this)
+			{
+				ASIO_CORO_YIELD
+					resolver_ptr->async_resolve(host_, port_, std::move(self));
+				if (ec)
+					goto end;
+
+				endpoints_ptr = std::make_unique<endpoints_type>(std::move(endpoints));
+				iter = endpoints_ptr->begin();
+
+			loop:
+
+				ASIO_CORO_YIELD
+					socket_.async_connect(iter->endpoint(), std::move(self));
+				if (!ec)
+					goto end;
+
+				iter++;
+
+				if (iter == endpoints_ptr->end())
+				{
+					ec = asio::error::host_unreachable;
+					goto end;
+				}
+				else
+				{
+					goto loop;
+				}
+
+			end:
+				self.complete(ec);
+			}
+		}
+	};
+
+	// C++17 class template argument deduction guides
+	template<class SKT>
+	run_connect_op(std::string, std::string, SKT&) -> run_connect_op<SKT>;
+}
+
+namespace asio2
+{
+	/**
+	 * @brief Perform the socks5 handshake asynchronously in the client role.
+	 * @param host - The target server ip. 
+	 * @param port - The target server port. 
+	 * @param socket - The asio::ip::tcp::socket object reference.
+	 * @param token - The completion handler to invoke when the operation completes. 
+	 *    The implementation takes ownership of the handler by performing a decay-copy.
+	 *	  The equivalent function signature of the handler must be:
+     *    @code
+     *    void handler(
+     *        error_code const& ec    // Result of operation
+     *    );
+	 */
+	template <typename SocketT, typename CompletionToken>
+	auto async_connect(
+		std::string host, std::string port, SocketT& socket, CompletionToken&& token)
+		-> decltype(asio::async_compose<CompletionToken, void(asio::error_code)>(
+			std::declval<detail::run_connect_op<SocketT>>(), token, socket))
+	{
+		return asio::async_compose<CompletionToken, void(asio::error_code)>(
+			detail::run_connect_op<SocketT>{
+			std::move(host), std::move(port), socket},
+			token, socket);
+	}
+
+	/**
+	 * @brief Perform the socks5 handshake in the client role.
+	 * @param host - The target server ip.
+	 * @param port - The target server port.
+	 * @param socket - The asio::ip::tcp::socket object reference.
+	 * @param ec - Save the error information when handshake failed.
+	 * @return true if handshake successed, otherwise false.
+	 */
+	template <typename SocketT>
+	bool connect(std::string host, std::string port, SocketT& socket, error_code& ec)
+	{
+		std::future<void> f = async_connect(
+			std::move(host), std::move(port), socket, asio::use_future);
+
+		try
+		{
+			f.get();
+
+			ec = {};
+
+			return true;
+		}
+		catch (const system_error& e)
+		{
+			ec = e.code();
+		}
+
+		return false;
+	}
+}
 
 namespace asio2::detail
 {
@@ -171,26 +305,44 @@ namespace asio2::detail
 			derive._post_resolve(std::move(this_ptr), std::move(ecs), std::move(chain));
 		}
 
+		template<typename C>
+		std::string_view _get_real_host(std::shared_ptr<derived_t>&, std::shared_ptr<ecs_t<C>>& ecs)
+		{
+			if constexpr (ecs_helper::has_socks5<C>())
+			{
+				auto sock5 = ecs->get_component().socks5_option(std::in_place);
+
+				return sock5->host();
+			}
+			else
+			{
+				return this->host_;
+			}
+		}
+
+		template<typename C>
+		std::string_view _get_real_port(std::shared_ptr<derived_t>&, std::shared_ptr<ecs_t<C>>& ecs)
+		{
+			if constexpr (ecs_helper::has_socks5<C>())
+			{
+				auto sock5 = ecs->get_component().socks5_option(std::in_place);
+
+				return sock5->port();
+			}
+			else
+			{
+				return this->port_;
+			}
+		}
+
 		template<typename C, typename DeferEvent, bool IsSession = args_t::is_session>
 		inline typename std::enable_if_t<!IsSession, void>
 		_post_resolve(std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs, DeferEvent chain)
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			std::string_view h, p;
-
-			if constexpr (ecs_helper::has_socks5<C>())
-			{
-				auto sock5 = ecs->get_component().socks5_option(std::in_place);
-
-				h = sock5->host();
-				p = sock5->port();
-			}
-			else
-			{
-				h = this->host_;
-				p = this->port_;
-			}
+			std::string_view h = derive._get_real_host(this_ptr, ecs);
+			std::string_view p = derive._get_real_port(this_ptr, ecs);
 
 			// resolve the server address.
 			std::unique_ptr<resolver_type> resolver_ptr = std::make_unique<resolver_type>(
@@ -290,14 +442,7 @@ namespace asio2::detail
 				socket.set_option(asio::socket_base::reuse_address(true), ec_ignore);
 
 				// open succeeded. set the keeplive values
-				if constexpr (std::is_same_v<typename lowest_layer_t::protocol_type, asio::ip::tcp>)
-				{
-					derive.set_keep_alive_options();
-				}
-				else
-				{
-					std::ignore = true;
-				}
+				detail::set_keepalive_options(socket);
 
 				// We don't call the bind function, beacuse it will be called internally in asio
 				//socket.bind(endpoint);

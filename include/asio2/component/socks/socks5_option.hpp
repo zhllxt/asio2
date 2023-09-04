@@ -138,11 +138,9 @@ namespace asio2::socks5
 			!std::is_base_of_v<socks5::option_base, asio2::detail::remove_cvref_t<String2>>, int> = 0>
 		explicit option(
 			std::integral_constant<int, asio2::detail::to_underlying(method::anonymous)>,
-			String1&& proxy_host, String2&& proxy_port,
-			socks5::command cmd = socks5::command::connect)
+			String1&& proxy_host, String2&& proxy_port)
 			: host_(asio2::detail::to_string(std::forward<String1>(proxy_host)))
 			, port_(asio2::detail::to_string(std::forward<String2>(proxy_port)))
-			, cmd_ (cmd)
 		{
 		}
 
@@ -153,11 +151,9 @@ namespace asio2::socks5
 			!std::is_base_of_v<socks5::option_base, asio2::detail::remove_cvref_t<String4>>, int> = 0>
 		explicit option(
 			std::integral_constant<int, asio2::detail::to_underlying(method::password)>,
-			String1&& proxy_host, String2&& proxy_port, String3&& username, String4&& password,
-			socks5::command cmd = socks5::command::connect)
+			String1&& proxy_host, String2&& proxy_port, String3&& username, String4&& password)
 			: host_(asio2::detail::to_string(std::forward<String1>(proxy_host)))
 			, port_(asio2::detail::to_string(std::forward<String2>(proxy_port)))
-			, cmd_ (cmd)
 		{
 			this->username(asio2::detail::to_string(std::forward<String3>(username)));
 			this->password(asio2::detail::to_string(std::forward<String4>(password)));
@@ -248,7 +244,7 @@ namespace asio2::socks5
 		std::string host_{};
 		std::string port_{};
 
-		socks5::command cmd_{ socks5::command::connect };
+		socks5::command cmd_{};
 	};
 
 	class options : public socks5::option_base
@@ -460,7 +456,7 @@ namespace asio2::socks5
 		std::string username_{};
 		std::string password_{};
 
-		socks5::command cmd_{ socks5::command::connect };
+		socks5::command cmd_{};
 
 		std::function<bool(const std::string&, const std::string&)> auth_cb_;
 	};

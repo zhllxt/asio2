@@ -90,10 +90,11 @@ namespace asio2::detail
 		asio::mutable_buffer             buffer{};
 		std::size_t                      bytes{};
 		char*                            p{};
-		asio::ip::address                endpoint{};
+		asio::ip::tcp::endpoint          endpoint{};
 		std::string                      username{}, password{};
 		std::uint8_t                     addr_type{}, addr_size{};
 		socks5::method                   method{};
+		std::string                      host{}, port{};
 
 		template<class SKT, class S5Opt>
 		socks5_client_handshake_op(std::string host, std::string port, SKT& skt, S5Opt s5)
@@ -357,7 +358,7 @@ namespace asio2::detail
 				write(p, std::uint8_t(0x00));                                      // RSV.
 
 				// ATYP
-				endpoint = asio::ip::make_address(host_, ec);
+				endpoint.address(asio::ip::make_address(host_, ec));
 				if (ec)
 				{
 					ASIO2_ASSERT(host_.size() <= std::size_t(0xff));
@@ -377,7 +378,7 @@ namespace asio2::detail
 				}
 				else
 				{
-					if /**/ (endpoint.is_v4())
+					if /**/ (endpoint.address().is_v4())
 					{
 						// real length
 						bytes = 1 + 1 + 1 + 1 + 4 + 2;
@@ -385,9 +386,9 @@ namespace asio2::detail
 						// type is ipv4
 						write(p, std::uint8_t(0x01));
 
-						write(p, std::uint32_t(endpoint.to_v4().to_uint()));
+						write(p, std::uint32_t(endpoint.address().to_v4().to_uint()));
 					}
-					else if (endpoint.is_v6())
+					else if (endpoint.address().is_v6())
 					{
 						// real length
 						bytes = 1 + 1 + 1 + 1 + 16 + 2;
@@ -395,7 +396,7 @@ namespace asio2::detail
 						// type is ipv6
 						write(p, std::uint8_t(0x04));
 
-						auto addr_bytes = endpoint.to_v6().to_bytes();
+						auto addr_bytes = endpoint.address().to_v6().to_bytes();
 						std::copy(addr_bytes.begin(), addr_bytes.end(), p);
 						p += 16;
 					}
@@ -516,8 +517,17 @@ namespace asio2::detail
 					addr[1] = read<std::uint8_t>(p);
 					addr[2] = read<std::uint8_t>(p);
 					addr[3] = read<std::uint8_t>(p);
-					std::uint16_t port = read<std::uint16_t>(p);
-					detail::ignore_unused(addr, port);
+					try
+					{
+						endpoint.address(asio::ip::address_v4(addr));
+						host = endpoint.address().to_string();
+					}
+					catch (const system_error&)
+					{
+					}
+					std::uint16_t uport = read<std::uint16_t>(p);
+					endpoint.port(uport);
+					port = std::to_string(uport);
 				}
 				break;
 				case std::uint8_t(0x03): // DOMAINNAME: X'03'
@@ -526,8 +536,10 @@ namespace asio2::detail
 					addr.resize(addr_size);
 					std::copy(p, p + addr_size, addr.data());
 					p += addr_size;
-					std::uint16_t port = read<std::uint16_t>(p);
-					detail::ignore_unused(addr, port);
+					host = std::move(addr);
+					std::uint16_t uport = read<std::uint16_t>(p);
+					endpoint.port(uport);
+					port = std::to_string(uport);
 				}
 				break;
 				case std::uint8_t(0x04): // IP V6 address: X'04'
@@ -538,8 +550,17 @@ namespace asio2::detail
 					{
 						addr[i] = read<std::uint8_t>(p);
 					}
-					std::uint16_t port = read<std::uint16_t>(p);
-					detail::ignore_unused(addr, port);
+					try
+					{
+						endpoint.address(asio::ip::address_v6(addr));
+						host = endpoint.address().to_string();
+					}
+					catch (const system_error&)
+					{
+					}
+					std::uint16_t uport = read<std::uint16_t>(p);
+					endpoint.port(uport);
+					port = std::to_string(uport);
 				}
 				break;
 				}
@@ -547,7 +568,7 @@ namespace asio2::detail
 				ec = {};
 
 			end:
-				self.complete(ec);
+				self.complete(ec, std::move(host), std::move(port));
 			}
 		}
 	};
@@ -569,17 +590,15 @@ namespace asio2
 	 *    The implementation takes ownership of the handler by performing a decay-copy.
 	 *	  The equivalent function signature of the handler must be:
      *    @code
-     *    void handler(
-     *        error_code const& ec    // Result of operation
-     *    );
+     *    void handler(error_code const& ec, std::string host, std::string port);
 	 */
 	template <typename SocketT, typename Sock5OptT, typename CompletionToken>
 	auto socks5_async_handshake(
 		std::string host, std::string port, SocketT& socket, Sock5OptT socks5_opt, CompletionToken&& token)
-		-> decltype(asio::async_compose<CompletionToken, void(asio::error_code)>(
+		-> decltype(asio::async_compose<CompletionToken, void(asio::error_code, std::string, std::string)>(
 			std::declval<detail::socks5_client_handshake_op<SocketT, Sock5OptT>>(), token, socket))
 	{
-		return asio::async_compose<CompletionToken, void(asio::error_code)>(
+		return asio::async_compose<CompletionToken, void(asio::error_code, std::string, std::string)>(
 			detail::socks5_client_handshake_op<SocketT, Sock5OptT>{
 			std::move(host), std::move(port), socket, std::move(socks5_opt)},
 			token, socket);
@@ -597,7 +616,7 @@ namespace asio2
 	template <typename SocketT, typename Sock5OptT>
 	bool socks5_handshake(std::string host, std::string port, SocketT& socket, Sock5OptT socks5_opt, error_code& ec)
 	{
-		std::future<void> f = socks5_async_handshake(
+		std::future<std::tuple<std::string, std::string>> f = socks5_async_handshake(
 			std::move(host), std::move(port), socket, std::move(socks5_opt), asio::use_future);
 
 		try
@@ -620,7 +639,7 @@ namespace asio2
 namespace asio2::detail
 {
 	template<class derived_t, class args_t>
-	class socks5_client_impl
+	class socks5_client_cp_impl
 	{
 		ASIO2_CLASS_FRIEND_DECLARE_BASE;
 		ASIO2_CLASS_FRIEND_DECLARE_TCP_BASE;
@@ -633,20 +652,51 @@ namespace asio2::detail
 		/**
 		 * @brief constructor
 		 */
-		socks5_client_impl() {}
+		socks5_client_cp_impl() {}
 
 		/**
 		 * @brief destructor
 		 */
-		~socks5_client_impl() = default;
+		~socks5_client_cp_impl() = default;
 
 	protected:
+		template<typename C>
+		inline void _check_socks5_command(std::shared_ptr<derived_t>&, std::shared_ptr<ecs_t<C>>& ecs)
+		{
+			auto s5opt = ecs->get_component().socks5_option(std::in_place);
+
+			if (s5opt && static_cast<int>(s5opt->command()) == 0)
+			{
+				if (std::is_base_of_v<detail::tcp_tag, derived_t>)
+				{
+					s5opt->command(socks5::command::connect);
+				}
+				else if (std::is_base_of_v<detail::udp_tag, derived_t>)
+				{
+					s5opt->command(socks5::command::udp_associate);
+				}
+			}
+		}
+
 		template<typename C>
 		inline void _socks5_init(std::shared_ptr<ecs_t<C>>& ecs)
 		{
 			detail::ignore_unused(ecs);
 		}
 
+		inline void _socks5_stop()
+		{
+		}
+	};
+
+	template<class derived_t, class args_t, typename TagType = typename args_t::tl_tag_type>
+	class socks5_client_cp_bridge {};
+
+	template<class derived_t, class args_t>
+	class socks5_client_cp_bridge<derived_t, args_t, detail::tcp_tag>
+		: public socks5_client_cp_impl<derived_t, args_t>
+	{
+	protected:
 		template<typename C, typename DeferEvent>
 		inline void _socks5_start(
 			std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs, DeferEvent chain)
@@ -655,14 +705,19 @@ namespace asio2::detail
 
 			if constexpr (ecs_helper::has_socks5<C>())
 			{
+				this->_check_socks5_command(this_ptr, ecs);
+
 				socks5_async_handshake
 				(
 					derive.host_, derive.port_,
-					derive.socket(),
+					derive.socks5_socket(),
 					ecs->get_component().socks5_option(std::in_place),
-					[this, this_ptr, ecs, chain = std::move(chain)](error_code ec) mutable
+					[this, this_ptr, ecs, chain = std::move(chain)]
+					(error_code ec, std::string host, std::string port) mutable
 					{
 						derived_t& derive = static_cast<derived_t&>(*this);
+
+						detail::ignore_unused(host, port);
 
 						derive._handle_proxy(ec, std::move(this_ptr), std::move(ecs), std::move(chain));
 					}
@@ -675,10 +730,137 @@ namespace asio2::detail
 			}
 		}
 
-		inline void _socks5_stop()
+		inline auto& socks5_socket() noexcept
 		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+			return derive.socket();
+		}
+
+		inline const auto& socks5_socket() const noexcept
+		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+			return derive.socket();
 		}
 	};
+
+	template<class derived_t, class args_t>
+	class socks5_client_cp_bridge<derived_t, args_t, detail::udp_tag>
+		: public socks5_client_cp_impl<derived_t, args_t>
+	{
+	protected:
+		template<typename C, typename DeferEvent>
+		inline void _socks5_start(
+			std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs, DeferEvent chain)
+		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
+			if constexpr (ecs_helper::has_socks5<C>())
+			{
+				this->socks5_socket_ = std::make_unique<typename args_t::socks5_socket_t>(derive.io_->context());
+
+				error_code ec{};
+
+				auto addr = derive.socket().local_endpoint(ec).address();
+				if (ec)
+				{
+					derive._handle_proxy(ec,
+						std::move(this_ptr), std::move(ecs), std::move(chain));
+					return;
+				}
+
+				using socks5_socket_protocol = typename args_t::socks5_socket_t::protocol_type;
+
+				if (this->socks5_socket_->is_open() == false)
+					this->socks5_socket_->open(addr.is_v4() ?
+						socks5_socket_protocol::v4() : socks5_socket_protocol::v6(), ec);
+				if (ec)
+				{
+					derive._handle_proxy(ec,
+						std::move(this_ptr), std::move(ecs), std::move(chain));
+					return;
+				}
+
+				this->socks5_socket_->set_option(asio::socket_base::reuse_address(true), ec);
+
+				detail::set_keepalive_options(*(this->socks5_socket_));
+
+				auto s5opt = ecs->get_component().socks5_option(std::in_place);
+
+				this->_check_socks5_command(this_ptr, ecs);
+
+				asio2::async_connect(s5opt->host(), s5opt->port(), derive.socks5_socket(),
+				[&derive, this_ptr = std::move(this_ptr), ecs = std::move(ecs), chain = std::move(chain)]
+				(const error_code& ec) mutable
+				{
+					if (ec)
+					{
+						derive._handle_proxy(ec,
+							std::move(this_ptr), std::move(ecs), std::move(chain));
+						return;
+					}
+
+					socks5_async_handshake
+					(
+						derive.host_, derive.port_,
+						derive.socks5_socket(),
+						ecs->get_component().socks5_option(std::in_place),
+						[&derive, this_ptr, ecs, chain = std::move(chain)]
+						(error_code ec, std::string host, std::string port) mutable
+						{
+							if (ec)
+							{
+								derive._handle_proxy(ec, std::move(this_ptr), std::move(ecs), std::move(chain));
+								return;
+							}
+							
+							auto s5opt = ecs->get_component().socks5_option(std::in_place);
+
+							asio::ip::address addr = asio::ip::address::from_string(host, ec);
+							if (ec)
+							{
+								host = s5opt->host();
+							}
+							else
+							{
+								if (addr.is_unspecified())
+								{
+									host = s5opt->host();
+								}
+							}
+
+							asio2::async_connect(host, port, derive.socket(),
+							[&derive, this_ptr = std::move(this_ptr), ecs = std::move(ecs), chain = std::move(chain)]
+							(const error_code& ec) mutable
+							{
+								derive._handle_proxy(ec, std::move(this_ptr), std::move(ecs), std::move(chain));
+							});
+						}
+					);
+				});
+			}
+			else
+			{
+				socks5_client_cp_impl<derived_t, args_t>::_socks5_start(
+					std::move(this_ptr), std::move(ecs), std::move(chain));
+			}
+		}
+
+		inline auto& socks5_socket() noexcept
+		{
+			return *(this->socks5_socket_);
+		}
+
+		inline const auto& socks5_socket() const noexcept
+		{
+			return *(this->socks5_socket_);
+		}
+
+	protected:
+		std::unique_ptr<typename args_t::socks5_socket_t> socks5_socket_;
+	};
+
+	template<class derived_t, class args_t>
+	class socks5_client_cp : public socks5_client_cp_bridge<derived_t, args_t> {};
 }
 
 #endif // !__ASIO2_SOCKS5_CLIENT_CP_HPP__
