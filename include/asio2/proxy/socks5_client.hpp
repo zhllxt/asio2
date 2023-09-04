@@ -83,12 +83,13 @@ namespace asio2::detail
 		 * @param port - A string identifying the requested service. This may be a
 		 * descriptive name or a numeric string corresponding to a port number.
 		 */
-		template<typename String, typename StrOrInt, typename CompletionToken>
-		auto async_start(String&& host, StrOrInt&& port, CompletionToken&& token)
+		template<typename String, typename StrOrInt, typename CompletionToken, typename... Args>
+		auto async_start(String&& host, StrOrInt&& port, CompletionToken&& token, Args&&... args)
 		{
 			derived_t& derive = this->derived();
 
-			bool f = super::async_start(std::forward<String>(host), std::forward<StrOrInt>(port));
+			bool f = super::async_start(
+				std::forward<String>(host), std::forward<StrOrInt>(port), std::forward<Args>(args)...);
 
 			derive.co_timer_->expires_after(f ?
 				std::chrono::steady_clock::duration::max() :

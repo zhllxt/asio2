@@ -565,6 +565,8 @@ namespace asio2::detail
 		{
 			detail::ignore_unused(ec, this_ptr, chain);
 
+			this->derived()._socks5_stop();
+
 			ASIO2_ASSERT(this->state_ == state_t::stopped);
 		}
 

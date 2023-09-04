@@ -26,6 +26,8 @@
 #include <asio2/udp/impl/udp_recv_op.hpp>
 #include <asio2/udp/impl/kcp_stream_cp.hpp>
 
+#include <asio2/proxy/socks5_client.hpp>
+
 namespace asio2::detail
 {
 	struct template_args_udp_client : public udp_tag
@@ -39,7 +41,8 @@ namespace asio2::detail
 		using send_data_t = std::string_view;
 		using recv_data_t = std::string_view;
 
-		using socks5_socket_t = asio::ip::tcp::socket;
+		template<class derived_t>
+		using socks5_client_t = asio2::socks5_client_t<derived_t>;
 
 		static constexpr std::size_t allocator_storage_size = 256;
 	};
@@ -610,6 +613,8 @@ namespace asio2::detail
 		inline void _handle_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr, DeferEvent chain)
 		{
 			detail::ignore_unused(ec, this_ptr, chain);
+
+			this->derived()._socks5_stop();
 
 			ASIO2_ASSERT(this->state_ == state_t::stopped);
 		}

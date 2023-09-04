@@ -39,8 +39,6 @@ namespace asio2::detail
 		using send_data_t = std::string_view;
 		using recv_data_t = std::string_view;
 
-		using socks5_socket_t = asio::ip::tcp::socket;
-
 		static constexpr std::size_t allocator_storage_size = 256;
 	};
 

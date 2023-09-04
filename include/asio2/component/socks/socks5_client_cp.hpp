@@ -638,6 +638,55 @@ namespace asio2
 
 namespace asio2::detail
 {
+	namespace
+	{
+		using iterator = asio::buffers_iterator<asio::streambuf::const_buffers_type>;
+		using diff_type = typename iterator::difference_type;
+
+		std::pair<iterator, bool> socks5_udp_match_role(iterator begin, iterator end) noexcept
+		{
+			// +----+------+------+----------+----------+----------+
+			// |RSV | FRAG | ATYP | DST.ADDR | DST.PORT |   DATA   |
+			// +----+------+------+----------+----------+----------+
+			// | 2  |  1   |  1   | Variable |    2     | Variable |
+			// +----+------+------+----------+----------+----------+
+
+			for (iterator p = begin; p < end;)
+			{
+				if (end - p < static_cast<diff_type>(5))
+					break;
+
+				std::uint16_t data_size = *(reinterpret_cast<const std::uint16_t*>(p.operator->()));
+
+				// use little endian
+				if (!is_little_endian())
+				{
+					swap_bytes<sizeof(std::uint16_t)>(reinterpret_cast<std::uint8_t*>(std::addressof(data_size)));
+				}
+
+				std::uint8_t atyp = std::uint8_t(p[3]);
+
+				diff_type need = 0;
+
+				// ATYP
+				if /**/ (atyp == std::uint8_t(0x01))
+					need = static_cast<diff_type>(2 + 1 + 1 + 4 + 2 + data_size);
+				else if (atyp == std::uint8_t(0x03))
+					need = static_cast<diff_type>(2 + 1 + 1 + p[4] + 2 + data_size);
+				else if (atyp == std::uint8_t(0x04))
+					need = static_cast<diff_type>(2 + 1 + 1 + 16 + 2 + data_size);
+				else
+					return std::pair(begin, true);
+
+				if (end - p < need)
+					break;
+
+				return std::pair(p + need, true);
+			}
+			return std::pair(begin, false);
+		}
+	}
+
 	template<class derived_t, class args_t>
 	class socks5_client_cp_impl
 	{
@@ -663,6 +712,9 @@ namespace asio2::detail
 		template<typename C>
 		inline void _check_socks5_command(std::shared_ptr<derived_t>&, std::shared_ptr<ecs_t<C>>& ecs)
 		{
+			if (!ecs)
+				return;
+
 			auto s5opt = ecs->get_component().socks5_option(std::in_place);
 
 			if (s5opt && static_cast<int>(s5opt->command()) == 0)
@@ -683,10 +735,6 @@ namespace asio2::detail
 		{
 			detail::ignore_unused(ecs);
 		}
-
-		inline void _socks5_stop()
-		{
-		}
 	};
 
 	template<class derived_t, class args_t, typename TagType = typename args_t::tl_tag_type>
@@ -696,6 +744,42 @@ namespace asio2::detail
 	class socks5_client_cp_bridge<derived_t, args_t, detail::tcp_tag>
 		: public socks5_client_cp_impl<derived_t, args_t>
 	{
+		template<class T, class R, class... Args>
+		struct has_member_set_bnd_addr : std::false_type {};
+
+		template<class T, class... Args>
+		struct has_member_set_bnd_addr<T, decltype(std::declval<std::decay_t<T>>().
+			set_bnd_addr((std::declval<Args>())...)), Args...> : std::true_type {};
+
+		template<class T, class R, class... Args>
+		struct has_member_set_bnd_port : std::false_type {};
+
+		template<class T, class... Args>
+		struct has_member_set_bnd_port<T, decltype(std::declval<std::decay_t<T>>().
+			set_bnd_port((std::declval<Args>())...)), Args...> : std::true_type {};
+
+	protected:
+		template<class D = derived_t>
+		inline void set_bnd_addr(std::string addr)
+		{
+			D& derive = static_cast<D&>(*this);
+
+			if constexpr (has_member_set_bnd_addr<D, void, std::string>::value)
+				derive.set_bnd_addr(std::move(addr));
+			else
+				detail::ignore_unused(addr);
+		}
+		template<class D = derived_t>
+		inline void set_bnd_port(std::string port)
+		{
+			D& derive = static_cast<D&>(*this);
+
+			if constexpr (has_member_set_bnd_port<D, void, std::string>::value)
+				derive.set_bnd_port(std::move(port));
+			else
+				detail::ignore_unused(port);
+		}
+
 	protected:
 		template<typename C, typename DeferEvent>
 		inline void _socks5_start(
@@ -717,7 +801,8 @@ namespace asio2::detail
 					{
 						derived_t& derive = static_cast<derived_t&>(*this);
 
-						detail::ignore_unused(host, port);
+						this->set_bnd_addr(std::move(host));
+						this->set_bnd_port(std::move(port));
 
 						derive._handle_proxy(ec, std::move(this_ptr), std::move(ecs), std::move(chain));
 					}
@@ -728,6 +813,10 @@ namespace asio2::detail
 				ASIO2_ASSERT(!get_last_error());
 				derive._handle_proxy(error_code{}, std::move(this_ptr), std::move(ecs), std::move(chain));
 			}
+		}
+
+		inline void _socks5_stop()
+		{
 		}
 
 		inline auto& socks5_socket() noexcept
@@ -748,6 +837,45 @@ namespace asio2::detail
 		: public socks5_client_cp_impl<derived_t, args_t>
 	{
 	protected:
+		class internal_socks5_client_impl : public args_t::template socks5_client_t<internal_socks5_client_impl>
+		{
+		public:
+			using super = typename args_t::template socks5_client_t<internal_socks5_client_impl>;
+
+			template<class... Args>
+			internal_socks5_client_impl(Args&&... args)
+				: super(std::forward<Args>(args)...)
+			{
+			}
+
+			template<class T>
+			inline auto data_filter_before_send(T&& data)
+			{
+				std::string_view sv = asio2::to_string_view(asio::buffer(data));
+
+				return std::forward<T>(data);
+			}
+
+			inline std::string_view data_filter_before_recv(std::string_view data)
+			{
+
+				return data;
+			}
+
+			inline void set_bnd_addr(std::string addr)
+			{
+				bnd_addr_ = std::move(addr);
+			}
+			inline void set_bnd_port(std::string port)
+			{
+				bnd_port_ = std::move(port);
+			}
+
+			std::string bnd_addr_{};
+			std::string bnd_port_{};
+		};
+
+	protected:
 		template<typename C, typename DeferEvent>
 		inline void _socks5_start(
 			std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs, DeferEvent chain)
@@ -756,41 +884,29 @@ namespace asio2::detail
 
 			if constexpr (ecs_helper::has_socks5<C>())
 			{
-				this->socks5_socket_ = std::make_unique<typename args_t::socks5_socket_t>(derive.io_->context());
+				this->_check_socks5_command(this_ptr, ecs);
 
-				error_code ec{};
-
-				auto addr = derive.socket().local_endpoint(ec).address();
-				if (ec)
-				{
-					derive._handle_proxy(ec,
-						std::move(this_ptr), std::move(ecs), std::move(chain));
-					return;
-				}
-
-				using socks5_socket_protocol = typename args_t::socks5_socket_t::protocol_type;
-
-				if (this->socks5_socket_->is_open() == false)
-					this->socks5_socket_->open(addr.is_v4() ?
-						socks5_socket_protocol::v4() : socks5_socket_protocol::v6(), ec);
-				if (ec)
-				{
-					derive._handle_proxy(ec,
-						std::move(this_ptr), std::move(ecs), std::move(chain));
-					return;
-				}
-
-				this->socks5_socket_->set_option(asio::socket_base::reuse_address(true), ec);
-
-				detail::set_keepalive_options(*(this->socks5_socket_));
+				if (this->socks5_client_ == nullptr)
+					this->socks5_client_ = std::make_shared<internal_socks5_client_impl>(derive.io_->context());
 
 				auto s5opt = ecs->get_component().socks5_option(std::in_place);
 
-				this->_check_socks5_command(this_ptr, ecs);
+				//this->socks5_client_->set_disconnect_timeout(std::chrono::seconds(3));
 
-				asio2::async_connect(s5opt->host(), s5opt->port(), derive.socks5_socket(),
-				[&derive, this_ptr = std::move(this_ptr), ecs = std::move(ecs), chain = std::move(chain)]
-				(const error_code& ec) mutable
+				this->socks5_client_->bind_connect([&derive, this_ptr]() mutable
+				{
+						
+				}).bind_disconnect([&derive, this_ptr]() mutable
+				{
+					derive._do_disconnect(asio2::get_last_error(), this_ptr);
+				}).bind_recv([&derive, this_ptr, ecs](std::string_view data) mutable
+				{
+					derive._fire_recv(this_ptr, ecs, data);
+				});
+
+				this->socks5_client_->async_start(s5opt->host(), s5opt->port(),
+				[this, &derive, this_ptr = std::move(this_ptr), ecs = std::move(ecs), chain = std::move(chain)]
+				(error_code ec) mutable
 				{
 					if (ec)
 					{
@@ -799,44 +915,31 @@ namespace asio2::detail
 						return;
 					}
 
-					socks5_async_handshake
-					(
-						derive.host_, derive.port_,
-						derive.socks5_socket(),
-						ecs->get_component().socks5_option(std::in_place),
-						[&derive, this_ptr, ecs, chain = std::move(chain)]
-						(error_code ec, std::string host, std::string port) mutable
+					auto s5opt = ecs->get_component().socks5_option(std::in_place);
+
+					std::string host = this->socks5_client_->bnd_addr_;
+					std::string port = this->socks5_client_->bnd_port_;
+
+					asio::ip::address addr = asio::ip::address::from_string(host, ec);
+					if (ec)
+					{
+						host = s5opt->host();
+					}
+					else
+					{
+						if (addr.is_unspecified())
 						{
-							if (ec)
-							{
-								derive._handle_proxy(ec, std::move(this_ptr), std::move(ecs), std::move(chain));
-								return;
-							}
-							
-							auto s5opt = ecs->get_component().socks5_option(std::in_place);
-
-							asio::ip::address addr = asio::ip::address::from_string(host, ec);
-							if (ec)
-							{
-								host = s5opt->host();
-							}
-							else
-							{
-								if (addr.is_unspecified())
-								{
-									host = s5opt->host();
-								}
-							}
-
-							asio2::async_connect(host, port, derive.socket(),
-							[&derive, this_ptr = std::move(this_ptr), ecs = std::move(ecs), chain = std::move(chain)]
-							(const error_code& ec) mutable
-							{
-								derive._handle_proxy(ec, std::move(this_ptr), std::move(ecs), std::move(chain));
-							});
+							host = s5opt->host();
 						}
-					);
-				});
+					}
+
+					asio2::async_connect(host, port, derive.socket(),
+					[&derive, this_ptr = std::move(this_ptr), ecs = std::move(ecs), chain = std::move(chain)]
+					(const error_code& ec) mutable
+					{
+						derive._handle_proxy(ec, std::move(this_ptr), std::move(ecs), std::move(chain));
+					});
+				}, socks5_udp_match_role, s5opt);
 			}
 			else
 			{
@@ -845,18 +948,27 @@ namespace asio2::detail
 			}
 		}
 
+		inline void _socks5_stop()
+		{
+			if (this->socks5_client_)
+			{
+				this->socks5_client_->stop();
+				this->socks5_client_.reset();
+			}
+		}
+
 		inline auto& socks5_socket() noexcept
 		{
-			return *(this->socks5_socket_);
+			return this->socks5_client_->socket();
 		}
 
 		inline const auto& socks5_socket() const noexcept
 		{
-			return *(this->socks5_socket_);
+			return this->socks5_client_->socket();
 		}
 
 	protected:
-		std::unique_ptr<typename args_t::socks5_socket_t> socks5_socket_;
+		std::shared_ptr<internal_socks5_client_impl> socks5_client_;
 	};
 
 	template<class derived_t, class args_t>
