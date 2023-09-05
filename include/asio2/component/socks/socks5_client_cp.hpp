@@ -37,6 +37,7 @@
 #include <asio2/base/detail/ecs.hpp>
 
 #include <asio2/component/socks/socks5_core.hpp>
+#include <asio2/component/socks/socks5_util.hpp>
 
 namespace asio2::detail
 {
@@ -812,7 +813,8 @@ namespace asio2::detail
 		class internal_socks5_client_impl : public args_t::template socks5_client_t<internal_socks5_client_impl>
 		{
 			friend derived_t;
-			template<class, class, typename>friend class socks5_client_cp_bridge;
+			template<class, class, typename> friend class socks5_client_cp_bridge;
+			template<class, class> friend class connect_cp;
 
 		public:
 			using super = typename args_t::template socks5_client_t<internal_socks5_client_impl>;
@@ -846,51 +848,22 @@ namespace asio2::detail
 				bnd_port_ = std::move(port);
 			}
 
-			void set_udp_data_head(const std::string& host, const std::string& port)
+		protected:
+			template<typename C, typename DeferEvent>
+			inline void _post_proxy(
+				const error_code& ec,
+				std::shared_ptr<internal_socks5_client_impl> this_ptr, std::shared_ptr<ecs_t<C>> ecs, DeferEvent chain)
 			{
-				std::vector<std::uint8_t>& head = this->udp_data_head;
+				this->set_port(this->dst_port_);
 
-				head.push_back(std::uint8_t(0x00)); // RSV 
-				head.push_back(std::uint8_t(0x00)); // RSV 
-				head.push_back(std::uint8_t(0x00)); // FRAG 
-
-				error_code ec{};
-				asio::ip::address addr = asio::ip::address::from_string(host, ec);
-
-				if (ec) // DOMAINNAME: X'03'
-				{
-					head.push_back(std::uint8_t(0x03));
-					head.push_back(std::uint8_t(host.size()));
-					head.insert(head.end(), host.begin(), host.end());
-				}
-				else if (addr.is_v4()) // IP V4 address: X'01'
-				{
-					head.push_back(std::uint8_t(0x01));
-					asio::ip::address_v4::bytes_type bytes = addr.to_v4().to_bytes();
-					head.insert(head.end(), bytes.begin(), bytes.end());
-				}
-				else if (addr.is_v6()) // IP V6 address: X'04'
-				{
-					head.push_back(std::uint8_t(0x04));
-					asio::ip::address_v6::bytes_type bytes = addr.to_v6().to_bytes();
-					head.insert(head.end(), bytes.begin(), bytes.end());
-				}
-
-				std::uint16_t uport = std::uint16_t(std::strtoul(port.data(), nullptr, 10));
-				std::uint8_t* pport = reinterpret_cast<std::uint8_t*>(std::addressof(uport));
-				if (detail::is_little_endian())
-				{
-					swap_bytes<sizeof(std::uint16_t)>(pport);
-				}
-				head.push_back(pport[0]);
-				head.push_back(pport[1]);
+				super::_post_proxy(ec, std::move(this_ptr), std::move(ecs), std::move(chain));
 			}
 
 		protected:
+			std::uint16_t dst_port_{};
+
 			std::string bnd_addr_{};
 			std::string bnd_port_{};
-
-			std::vector<std::uint8_t> udp_data_head;
 		};
 
 	protected:
@@ -919,6 +892,8 @@ namespace asio2::detail
 				{
 					derive._fire_recv(this_ptr, ecs, data);
 				});
+
+				this->socks5_client_->dst_port_ = derive.get_local_port();
 
 				this->socks5_client_->async_start(s5opt->host(), s5opt->port(),
 				[this, &derive, this_ptr = std::move(this_ptr), ecs = std::move(ecs), chain = std::move(chain)]
@@ -949,7 +924,7 @@ namespace asio2::detail
 						}
 					}
 
-					this->socks5_client_->set_udp_data_head(derive.host_, derive.port_);
+					this->set_udp_data_head(derive.host_, derive.port_);
 
 					asio2::async_connect(host, port, derive.socket(),
 					[&derive, this_ptr = std::move(this_ptr), ecs = std::move(ecs), chain = std::move(chain)]
@@ -980,7 +955,7 @@ namespace asio2::detail
 		{
 			std::string_view sv = asio2::to_string_view(asio::buffer(data));
 
-			std::vector<std::uint8_t>& head = this->socks5_client_->udp_data_head;
+			std::vector<std::uint8_t>& head = this->udp_data_head_;
 
 			// the data is: stds::string, std::vector...
 			if constexpr (detail::has_member_insert<T>::value)
@@ -998,54 +973,53 @@ namespace asio2::detail
 
 		inline std::string_view data_filter_before_recv(std::string_view data)
 		{
-			// RSV FRAG 
-			if (data.size() < std::size_t(3))
-				return std::string_view{};
+			auto [err, ep, domain, real_data] = asio2::socks5::parse_udp_packet(data, false);
 
-			data.remove_prefix(3);
+			detail::ignore_unused(err, ep, domain, real_data);
 
-			// ATYP 
-			if (data.size() < std::size_t(1))
-				return std::string_view{};
+			return real_data;
+		}
 
-			std::uint8_t atyp = std::uint8_t(data[0]);
+		void set_udp_data_head(const std::string& host, const std::string& port)
+		{
+			std::vector<std::uint8_t>& head = this->udp_data_head_;
 
-			data.remove_prefix(1);
+			head.reserve(4 + 4 + 2);
 
-			if /**/ (atyp == std::uint8_t(0x01)) // IP V4 address: X'01'
+			head.push_back(std::uint8_t(0x00)); // RSV 
+			head.push_back(std::uint8_t(0x00)); // RSV 
+			head.push_back(std::uint8_t(0x00)); // FRAG 
+
+			error_code ec{};
+			asio::ip::address addr = asio::ip::address::from_string(host, ec);
+
+			if (ec) // DOMAINNAME: X'03'
 			{
-				if (data.size() < std::size_t(4 + 2))
-					return std::string_view{};
-
-				data.remove_prefix(4 + 2);
+				head.push_back(std::uint8_t(0x03));
+				head.push_back(std::uint8_t(host.size()));
+				head.insert(head.end(), host.begin(), host.end());
 			}
-			else if (atyp == std::uint8_t(0x04)) // IP V6 address: X'04'
+			else if (addr.is_v4()) // IP V4 address: X'01'
 			{
-				if (data.size() < std::size_t(16 + 2))
-					return std::string_view{};
-
-				data.remove_prefix(16 + 2);
+				head.push_back(std::uint8_t(0x01));
+				asio::ip::address_v4::bytes_type bytes = addr.to_v4().to_bytes();
+				head.insert(head.end(), bytes.begin(), bytes.end());
 			}
-			else if (atyp == std::uint8_t(0x03)) // DOMAINNAME: X'03'
+			else if (addr.is_v6()) // IP V6 address: X'04'
 			{
-				if (data.size() < std::size_t(1))
-					return std::string_view{};
-
-				std::uint8_t domain_len = std::uint8_t(data[0]);
-
-				data.remove_prefix(1);
-
-				if (data.size() < std::size_t(domain_len + 2))
-					return std::string_view{};
-
-				data.remove_prefix(domain_len + 2);
-			}
-			else
-			{
-				return std::string_view{};
+				head.push_back(std::uint8_t(0x04));
+				asio::ip::address_v6::bytes_type bytes = addr.to_v6().to_bytes();
+				head.insert(head.end(), bytes.begin(), bytes.end());
 			}
 
-			return data;
+			std::uint16_t uport = std::uint16_t(std::strtoul(port.data(), nullptr, 10));
+			std::uint8_t* pport = reinterpret_cast<std::uint8_t*>(std::addressof(uport));
+			if (detail::is_little_endian())
+			{
+				swap_bytes<sizeof(std::uint16_t)>(pport);
+			}
+			head.push_back(pport[0]);
+			head.push_back(pport[1]);
 		}
 
 	public:
@@ -1066,6 +1040,7 @@ namespace asio2::detail
 
 	protected:
 		std::shared_ptr<internal_socks5_client_impl> socks5_client_;
+		std::vector<std::uint8_t> udp_data_head_;
 	};
 
 	template<class derived_t, class args_t>

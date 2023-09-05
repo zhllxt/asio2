@@ -50,6 +50,8 @@ namespace asio2::detail
 
 		using args_type = typename executor_t::args_type;
 
+		using super::async_start;
+
 	public:
 		/**
 		 * @brief constructor
@@ -80,6 +82,30 @@ namespace asio2::detail
 			derive.connect_finish_timer_.reset();
 
 			super::destroy();
+		}
+
+		/**
+		 * @brief async start the client, asynchronous connect to server.
+		 * @param host - A string identifying a location. May be a descriptive name or
+		 * a numeric address string.
+		 * @param port - A string identifying the requested service. This may be a
+		 * descriptive name or a numeric string corresponding to a port number.
+		 */
+		template<typename String, typename StrOrInt, typename CompletionToken, typename... Args>
+		auto async_start(String&& host, StrOrInt&& port, CompletionToken&& token, Args&&... args)
+		{
+			derived_t& derive = this->derived();
+
+			bool f = executor_t::template async_start(
+				std::forward<String>(host), std::forward<StrOrInt>(port), std::forward<Args>(args)...);
+
+			derive.connect_finish_timer_->expires_after(f ?
+				std::chrono::steady_clock::duration::max() :
+				std::chrono::steady_clock::duration::zero());
+
+			return asio::async_compose<CompletionToken, void(asio::error_code)>(
+				detail::wait_timer_op{*(derive.connect_finish_timer_)},
+				token, derive.socket());
 		}
 
 	protected:

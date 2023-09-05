@@ -169,18 +169,47 @@ namespace asio2::detail
 			{
 				auto client = std::make_shared<asio2::socks5_udp_client>(this->io_);
 
-				client->bind_start([]() mutable
+				client->bind_start([strbuf = s5_server_handshake_op.stream.get(), pclient = client.get()]() mutable
 				{
 					set_last_error(get_last_error());
+
+					std::uint16_t uport = pclient->get_local_port();
+
+					char* p = const_cast<char*>(static_cast<const char*>(strbuf->data().data()));
+
+					std::uint8_t addr_type = std::uint8_t(p[3]);
+
+					if /**/ (addr_type == std::uint8_t(0x01))
+					{
+						p += 1 + 1 + 1 + 1 + 4;
+
+						detail::write(p, uport);
+					}
+					else if (addr_type == std::uint8_t(0x04))
+					{
+						p += 1 + 1 + 1 + 1 + 16;
+
+						detail::write(p, uport);
+					}
+					else if (addr_type == std::uint8_t(0x03))
+					{
+						// real length
+						p += 1 + 1 + 1 + 1 + 1 + p[4];
+
+						detail::write(p, uport);
+					}
 				}).bind_stop([session_ptr]() mutable
 				{
 					session_ptr->stop();
-				}).bind_recv([session_ptr](asio::ip::udp::endpoint& endpoint, std::string_view data) mutable
+				}).bind_recv([this, pclient = client.get()](asio::ip::udp::endpoint& endpoint, std::string_view data) mutable
 				{
-					session_ptr->async_send(data);
+					// recvd data, maybe from front client or end client, we need to check whether from front or end by ip.
+					this->_forward_udp_data(pclient, endpoint, data);
 				});
 
-				if (!client->async_start(std::move(host), std::move(port)))
+				this->udp_associate_port_ = std::uint16_t(std::strtoul(port.data(), nullptr, 10));
+
+				if (!client->async_start(std::move(host), 0))
 					return nullptr;
 
 				client->connect_finish_timer_->expires_after(std::chrono::steady_clock::duration::max());
@@ -192,6 +221,71 @@ namespace asio2::detail
 			else
 			{
 				return nullptr;
+			}
+		}
+
+		// recvd data from udp
+		template<class T>
+		void _forward_udp_data(T* client, asio::ip::udp::endpoint& endpoint, std::string_view data)
+		{
+			// socks5 session is the front client.
+			asio::ip::address front_addr = this->socket().lowest_layer().remote_endpoint().address();
+
+			bool is_from_front = false;
+
+			if (front_addr.is_loopback())
+				is_from_front = (endpoint.address() == front_addr && endpoint.port() == this->udp_associate_port_);
+			else
+				is_from_front = (endpoint.address() == front_addr);
+
+			// recvd data from the front client. forward it to the target endpoint.
+			if (is_from_front)
+			{
+				auto [err, ep, domain, real_data] = asio2::socks5::parse_udp_packet(data, false);
+				if (err == 0)
+				{
+					if (domain.empty())
+						client->async_send(std::move(ep), real_data);
+					else
+						client->async_send(std::move(domain), ep.port(), real_data);
+				}
+			}
+			// recvd data not from the front client. forward it to the front client.
+			else
+			{
+				std::vector<std::uint8_t> edit_data;
+				edit_data.reserve(data.size() + 4 + 4 + 2);
+
+				edit_data.push_back(std::uint8_t(0x00)); // RSV 
+				edit_data.push_back(std::uint8_t(0x00)); // RSV 
+				edit_data.push_back(std::uint8_t(0x00)); // FRAG 
+
+				asio::ip::address end_addr = endpoint.address();
+
+				if (end_addr.is_v4()) // IP V4 address: X'01'
+				{
+					edit_data.push_back(std::uint8_t(0x01));
+					asio::ip::address_v4::bytes_type bytes = end_addr.to_v4().to_bytes();
+					edit_data.insert(edit_data.end(), bytes.begin(), bytes.end());
+				}
+				else if (end_addr.is_v6()) // IP V6 address: X'04'
+				{
+					edit_data.push_back(std::uint8_t(0x04));
+					asio::ip::address_v6::bytes_type bytes = end_addr.to_v6().to_bytes();
+					edit_data.insert(edit_data.end(), bytes.begin(), bytes.end());
+				}
+
+				std::uint16_t uport = endpoint.port();
+				std::uint8_t* pport = reinterpret_cast<std::uint8_t*>(std::addressof(uport));
+				if (detail::is_little_endian())
+				{
+					swap_bytes<sizeof(std::uint16_t)>(pport);
+				}
+				edit_data.push_back(pport[0]);
+				edit_data.push_back(pport[1]);
+				edit_data.insert(edit_data.end(), data.begin(), data.end());
+
+				client->async_send(asio::ip::udp::endpoint(front_addr, this->udp_associate_port_), std::move(edit_data));
 			}
 		}
 
@@ -257,134 +351,33 @@ namespace asio2::detail
 			if (data.empty())
 				return;
 
+			// recvd data from the front client by tcp, forward the data to the end client.
 			std::visit(variant_overloaded
 			{
 				[](auto) {},
-				[data](std::shared_ptr<asio2::socks5_tcp_client>& client_ptr) mutable
+				[data](std::shared_ptr<asio2::socks5_tcp_client>& end_client_ptr) mutable
 				{
-					if (client_ptr)
-						client_ptr->async_send(data);
+					if (end_client_ptr)
+						end_client_ptr->async_send(data);
 				},
-				[this, data](std::shared_ptr<asio2::socks5_udp_client>& client_ptr) mutable
+				[this, data](std::shared_ptr<asio2::socks5_udp_client>& end_client_ptr) mutable
 				{
-					if (client_ptr)
-						this->derived()._forward_udp_data(client_ptr, data);
+					if (end_client_ptr)
+						this->derived()._forward_udp_data(end_client_ptr, data);
 				}
 			}, this->end_client_);
 		}
 
-		inline void _forward_udp_data(std::shared_ptr<asio2::socks5_udp_client>& client_ptr, std::string_view data)
+		// recvd data from tcp
+		inline void _forward_udp_data(std::shared_ptr<asio2::socks5_udp_client>& end_client_ptr, std::string_view data)
 		{
-			// RSV FRAG 
-			if (data.size() < std::size_t(3))
-				return;
-
-			std::uint16_t data_size = *(reinterpret_cast<const std::uint16_t*>(data.data()));
-
-			// use little endian
-			if (!detail::is_little_endian())
+			auto [err, ep, domain, real_data] = asio2::socks5::parse_udp_packet(data, true);
+			if (err == 0)
 			{
-				swap_bytes<sizeof(std::uint16_t)>(reinterpret_cast<std::uint8_t*>(std::addressof(data_size)));
-			}
-
-			data.remove_prefix(3);
-
-			// ATYP 
-			if (data.size() < std::size_t(1))
-				return;
-
-			std::uint8_t atyp = std::uint8_t(data[0]);
-
-			data.remove_prefix(1);
-
-			if /**/ (atyp == std::uint8_t(0x01)) // IP V4 address: X'01'
-			{
-				if (data.size() < std::size_t(4 + 2))
-					return;
-
-				asio::ip::udp::endpoint endpoint{};
-
-				asio::ip::address_v4::bytes_type addr{};
-				for (std::size_t i = 0; i < addr.size(); i++)
-				{
-					addr[i] = asio::ip::address_v4::bytes_type::value_type(data[i]);
-				}
-				endpoint.address(asio::ip::address_v4(addr));
-
-				data.remove_prefix(4);
-
-				auto* p = data.data();
-
-				std::uint16_t uport = detail::read<std::uint16_t>(p);
-				endpoint.port(uport);
-
-				data.remove_prefix(2);
-
-				if (data.size() != data_size)
-					return;
-
-				client_ptr->async_send(endpoint, data);
-			}
-			else if (atyp == std::uint8_t(0x04)) // IP V6 address: X'04'
-			{
-				if (data.size() < std::size_t(16 + 2))
-					return;
-
-				data.remove_prefix(16 + 2);
-
-				asio::ip::udp::endpoint endpoint{};
-
-				asio::ip::address_v6::bytes_type addr{};
-				for (std::size_t i = 0; i < addr.size(); i++)
-				{
-					addr[i] = asio::ip::address_v6::bytes_type::value_type(data[i]);
-				}
-				endpoint.address(asio::ip::address_v6(addr));
-
-				data.remove_prefix(16);
-
-				auto* p = data.data();
-
-				std::uint16_t uport = detail::read<std::uint16_t>(p);
-				endpoint.port(uport);
-
-				data.remove_prefix(2);
-
-				if (data.size() != data_size)
-					return;
-
-				client_ptr->async_send(endpoint, data);
-			}
-			else if (atyp == std::uint8_t(0x03)) // DOMAINNAME: X'03'
-			{
-				if (data.size() < std::size_t(1))
-					return;
-
-				std::uint8_t domain_len = std::uint8_t(data[0]);
-
-				data.remove_prefix(1);
-
-				if (data.size() < std::size_t(domain_len + 2))
-					return;
-
-				std::string domain{ data.substr(0, domain_len) };
-
-				data.remove_prefix(domain_len);
-
-				auto* p = data.data();
-
-				std::uint16_t uport = detail::read<std::uint16_t>(p);
-
-				data.remove_prefix(2);
-
-				if (data.size() != data_size)
-					return;
-
-				client_ptr->async_send(std::move(domain), uport, data);
-			}
-			else
-			{
-				return;
+				if (domain.empty())
+					end_client_ptr->async_send(std::move(ep), real_data);
+				else
+					end_client_ptr->async_send(std::move(domain), ep.port(), real_data);
 			}
 		}
 
@@ -398,6 +391,8 @@ namespace asio2::detail
 
 	protected:
 		socks5::options socks5_options_{};
+
+		std::uint16_t   udp_associate_port_{};
 
 		// create a new client, and connect to the target server.
 		std::variant<

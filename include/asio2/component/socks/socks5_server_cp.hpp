@@ -36,6 +36,7 @@
 #include <asio2/base/detail/ecs.hpp>
 
 #include <asio2/component/socks/socks5_core.hpp>
+#include <asio2/component/socks/socks5_util.hpp>
 
 namespace asio2::detail
 {
@@ -439,7 +440,7 @@ namespace asio2::detail
 				break;
 				}
 
-				if (host.empty())
+				if (host.empty() || port.empty() || std::strtoull(port.data(), nullptr, 10) == 0)
 				{
 					ec = socks5::make_error_code(socks5::error::host_unreachable);
 					goto end;
