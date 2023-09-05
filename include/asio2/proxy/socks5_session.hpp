@@ -15,6 +15,8 @@
 #pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
+#include <variant>
+
 #include <asio2/base/detail/push_options.hpp>
 
 #include <asio2/tcp/tcp_session.hpp>
@@ -57,7 +59,6 @@ namespace asio2::detail
 		explicit socks5_session_impl_t(Args&&... args)
 			: super(std::forward<Args>(args)...)
 		{
-			this->end_client_ = std::make_shared<asio2::socks5_client>(this->io_);
 		}
 
 		/**
@@ -76,7 +77,11 @@ namespace asio2::detail
 		{
 			derived_t& derive = this->derived();
 
-			derive.end_client_.reset();
+			std::visit([](auto& ptr) mutable
+			{
+				ptr.reset();
+			}, this->end_client_);
+
 			derive.socks5_options_ = {};
 
 			super::destroy();
@@ -115,7 +120,81 @@ namespace asio2::detail
 			return this->socks5_options_;
 		}
 
+		/**
+		 * @brief Get the front client type. tcp or udp.
+		 */
+		inline asio2::net_protocol get_front_client_type() const noexcept
+		{
+			switch (this->end_client_.index())
+			{
+			case 0: return asio2::net_protocol::tcp;
+			case 1: return asio2::net_protocol::udp;
+			default:return asio2::net_protocol::none;
+			}
+		}
+
 	protected:
+		template<class T>
+		inline asio::steady_timer* _handle_socks5_command(
+			std::shared_ptr<derived_t> session_ptr, T& s5_server_handshake_op)
+		{
+			auto host = s5_server_handshake_op.host;
+			auto port = s5_server_handshake_op.port;
+
+			if (s5_server_handshake_op.cmd == socks5::command::connect)
+			{
+				auto client = std::make_shared<asio2::socks5_tcp_client>(this->io_);
+
+				client->bind_connect([]() mutable
+				{
+					set_last_error(get_last_error());
+				}).bind_disconnect([session_ptr]() mutable
+				{
+					session_ptr->stop();
+				}).bind_recv([session_ptr](std::string_view data) mutable
+				{
+					session_ptr->async_send(data);
+				});
+
+				if (!client->async_start(std::move(host), std::move(port)))
+					return nullptr;
+
+				client->connect_finish_timer_->expires_after(std::chrono::steady_clock::duration::max());
+
+				this->end_client_ = client;
+
+				return client->connect_finish_timer_.get();
+			}
+			else if (s5_server_handshake_op.cmd == socks5::command::udp_associate)
+			{
+				auto client = std::make_shared<asio2::socks5_udp_client>(this->io_);
+
+				client->bind_start([]() mutable
+				{
+					set_last_error(get_last_error());
+				}).bind_stop([session_ptr]() mutable
+				{
+					session_ptr->stop();
+				}).bind_recv([session_ptr](asio::ip::udp::endpoint& endpoint, std::string_view data) mutable
+				{
+					session_ptr->async_send(data);
+				});
+
+				if (!client->async_start(std::move(host), std::move(port)))
+					return nullptr;
+
+				client->connect_finish_timer_->expires_after(std::chrono::steady_clock::duration::max());
+
+				this->end_client_ = client;
+
+				return client->connect_finish_timer_.get();
+			}
+			else
+			{
+				return nullptr;
+			}
+		}
+
 		template<typename C, typename DeferEvent>
 		inline void _handle_connect(
 			const error_code& ec,
@@ -133,23 +212,9 @@ namespace asio2::detail
 			() mutable
 			{
 				socks5_async_handshake(derive.socket(), derive.socks5_options_,
-				[&derive, this_ptr](auto& s5_server_handshake_op, auto& compose_op) mutable
+				[&derive, this_ptr](auto& s5_server_handshake_op) mutable
 				{
-					derive.end_client_->bind_connect([]() mutable
-					{
-						set_last_error(get_last_error());
-					}).bind_disconnect([this_ptr]() mutable
-					{
-						this_ptr->stop();
-					}).bind_recv([this_ptr](std::string_view data) mutable
-					{
-						this_ptr->async_send(data);
-					});
-
-					auto host = s5_server_handshake_op.host;
-					auto port = s5_server_handshake_op.port;
-
-					return derive.end_client_->async_start(std::move(host), std::move(port), std::move(compose_op));
+					return derive._handle_socks5_command(std::move(this_ptr), s5_server_handshake_op);
 				},
 				[this, &derive, this_ptr, ecs = std::move(ecs), chain = std::move(chain)]
 				(const error_code& ec) mutable
@@ -171,11 +236,14 @@ namespace asio2::detail
 		template<typename DeferEvent>
 		inline void _handle_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr, DeferEvent chain)
 		{
-			if (this->end_client_)
+			std::visit([](auto& ptr) mutable
 			{
-				this->end_client_->stop();
-				this->end_client_.reset();
-			}
+				if (ptr)
+				{
+					ptr->stop();
+					ptr.reset();
+				}
+			}, this->end_client_);
 
 			super::_handle_stop(ec, std::move(this_ptr), std::move(chain));
 		}
@@ -186,8 +254,138 @@ namespace asio2::detail
 		{
 			this->listener_.notify(event_type::recv, this_ptr, data);
 
-			if (this->end_client_)
-				this->end_client_->async_send(data);
+			if (data.empty())
+				return;
+
+			std::visit(variant_overloaded
+			{
+				[](auto) {},
+				[data](std::shared_ptr<asio2::socks5_tcp_client>& client_ptr) mutable
+				{
+					if (client_ptr)
+						client_ptr->async_send(data);
+				},
+				[this, data](std::shared_ptr<asio2::socks5_udp_client>& client_ptr) mutable
+				{
+					if (client_ptr)
+						this->derived()._forward_udp_data(client_ptr, data);
+				}
+			}, this->end_client_);
+		}
+
+		inline void _forward_udp_data(std::shared_ptr<asio2::socks5_udp_client>& client_ptr, std::string_view data)
+		{
+			// RSV FRAG 
+			if (data.size() < std::size_t(3))
+				return;
+
+			std::uint16_t data_size = *(reinterpret_cast<const std::uint16_t*>(data.data()));
+
+			// use little endian
+			if (!detail::is_little_endian())
+			{
+				swap_bytes<sizeof(std::uint16_t)>(reinterpret_cast<std::uint8_t*>(std::addressof(data_size)));
+			}
+
+			data.remove_prefix(3);
+
+			// ATYP 
+			if (data.size() < std::size_t(1))
+				return;
+
+			std::uint8_t atyp = std::uint8_t(data[0]);
+
+			data.remove_prefix(1);
+
+			if /**/ (atyp == std::uint8_t(0x01)) // IP V4 address: X'01'
+			{
+				if (data.size() < std::size_t(4 + 2))
+					return;
+
+				asio::ip::udp::endpoint endpoint{};
+
+				asio::ip::address_v4::bytes_type addr{};
+				for (std::size_t i = 0; i < addr.size(); i++)
+				{
+					addr[i] = asio::ip::address_v4::bytes_type::value_type(data[i]);
+				}
+				endpoint.address(asio::ip::address_v4(addr));
+
+				data.remove_prefix(4);
+
+				auto* p = data.data();
+
+				std::uint16_t uport = detail::read<std::uint16_t>(p);
+				endpoint.port(uport);
+
+				data.remove_prefix(2);
+
+				if (data.size() != data_size)
+					return;
+
+				client_ptr->async_send(endpoint, data);
+			}
+			else if (atyp == std::uint8_t(0x04)) // IP V6 address: X'04'
+			{
+				if (data.size() < std::size_t(16 + 2))
+					return;
+
+				data.remove_prefix(16 + 2);
+
+				asio::ip::udp::endpoint endpoint{};
+
+				asio::ip::address_v6::bytes_type addr{};
+				for (std::size_t i = 0; i < addr.size(); i++)
+				{
+					addr[i] = asio::ip::address_v6::bytes_type::value_type(data[i]);
+				}
+				endpoint.address(asio::ip::address_v6(addr));
+
+				data.remove_prefix(16);
+
+				auto* p = data.data();
+
+				std::uint16_t uport = detail::read<std::uint16_t>(p);
+				endpoint.port(uport);
+
+				data.remove_prefix(2);
+
+				if (data.size() != data_size)
+					return;
+
+				client_ptr->async_send(endpoint, data);
+			}
+			else if (atyp == std::uint8_t(0x03)) // DOMAINNAME: X'03'
+			{
+				if (data.size() < std::size_t(1))
+					return;
+
+				std::uint8_t domain_len = std::uint8_t(data[0]);
+
+				data.remove_prefix(1);
+
+				if (data.size() < std::size_t(domain_len + 2))
+					return;
+
+				std::string domain{ data.substr(0, domain_len) };
+
+				data.remove_prefix(domain_len);
+
+				auto* p = data.data();
+
+				std::uint16_t uport = detail::read<std::uint16_t>(p);
+
+				data.remove_prefix(2);
+
+				if (data.size() != data_size)
+					return;
+
+				client_ptr->async_send(std::move(domain), uport, data);
+			}
+			else
+			{
+				return;
+			}
 		}
 
 		inline void _fire_socks5_handshake(std::shared_ptr<derived_t>& this_ptr)
@@ -202,7 +400,9 @@ namespace asio2::detail
 		socks5::options socks5_options_{};
 
 		// create a new client, and connect to the target server.
-		std::shared_ptr<asio2::socks5_client> end_client_;
+		std::variant<
+			std::shared_ptr<asio2::socks5_tcp_client>,
+			std::shared_ptr<asio2::socks5_udp_client>> end_client_;
 	};
 }
 

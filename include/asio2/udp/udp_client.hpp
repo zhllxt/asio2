@@ -42,7 +42,7 @@ namespace asio2::detail
 		using recv_data_t = std::string_view;
 
 		template<class derived_t>
-		using socks5_client_t = asio2::socks5_client_t<derived_t>;
+		using socks5_client_t = asio2::socks5_tcp_client_t<derived_t>;
 
 		static constexpr std::size_t allocator_storage_size = 256;
 	};
@@ -701,7 +701,7 @@ namespace asio2::detail
 		inline void _fire_recv(
 			std::shared_ptr<derived_t>& this_ptr, std::shared_ptr<ecs_t<C>>& ecs, std::string_view data)
 		{
-			data = this->derived().data_filter_before_recv(data);
+			data = detail::call_data_filter_before_recv(this->derived(), data);
 
 			this->listener_.notify(event_type::recv, data);
 

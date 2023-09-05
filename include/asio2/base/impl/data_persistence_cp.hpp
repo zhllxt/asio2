@@ -44,18 +44,6 @@ namespace asio2::detail
 		~data_persistence_cp() = default;
 
 	protected:
-		/**
-		 * @brief Pre process the data before send it.
-		 * You can overload this function in a derived class to implement additional
-		 * processing of the data. eg: encrypt data with a custom encryption algorithm.
-		 */
-		template<class T>
-		inline auto data_filter_before_send(T&& data)
-		{
-			return std::forward<T>(data);
-		}
-
-	protected:
 		template<class T>
 		inline auto _data_persistence(T&& data)
 		{
@@ -67,19 +55,22 @@ namespace asio2::detail
 			if constexpr /**/ (detail::is_string_view_v<data_type>)
 			{
 				using value_type = typename data_type::value_type;
-				return derive.data_filter_before_send(std::basic_string<value_type>(data.data(), data.size()));
+				return detail::call_data_filter_before_send(derive,
+					std::basic_string<value_type>(data.data(), data.size()));
 			}
 			// char* , const char* , const char* const
 			else if constexpr (detail::is_char_pointer_v<data_type>)
 			{
 				using value_type = typename detail::remove_cvref_t<std::remove_pointer_t<data_type>>;
-				return derive.data_filter_before_send(std::basic_string<value_type>(std::forward<T>(data)));
+				return detail::call_data_filter_before_send(derive,
+					std::basic_string<value_type>(std::forward<T>(data)));
 			}
 			// char[]
 			else if constexpr (detail::is_char_array_v<data_type>)
 			{
 				using value_type = typename detail::remove_cvref_t<std::remove_all_extents_t<data_type>>;
-				return derive.data_filter_before_send(std::basic_string<value_type>(std::forward<T>(data)));
+				return detail::call_data_filter_before_send(derive,
+					std::basic_string<value_type>(std::forward<T>(data)));
 			}
 			// object like : std::string, std::vector
 			else if constexpr (
@@ -90,13 +81,14 @@ namespace asio2::detail
 				std::is_trivially_move_assignable_v   <data_type> ||
 				std::is_nothrow_move_assignable_v     <data_type> )
 			{
-				return derive.data_filter_before_send(std::forward<T>(data));
+				return detail::call_data_filter_before_send(derive, std::forward<T>(data));
 			}
 			else
 			{
 				// PodType (&data)[N] like : int buf[5], double buf[5]
 				auto buffer = asio::buffer(data);
-				return derive.data_filter_before_send(std::string(reinterpret_cast<const std::string::value_type*>(
+				return detail::call_data_filter_before_send(derive,
+					std::string(reinterpret_cast<const std::string::value_type*>(
 					const_cast<const void*>(buffer.data())), buffer.size()));
 			}
 		}
@@ -113,7 +105,8 @@ namespace asio2::detail
 				return std::basic_string<value_type>{};
 			}
 
-			return derive.data_filter_before_send(std::basic_string<value_type>(s, count));
+			return detail::call_data_filter_before_send(derive,
+				std::basic_string<value_type>(s, count));
 		}
 
 		template<typename = void>
@@ -121,7 +114,8 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			return derive.data_filter_before_send(derive._data_persistence(asio::const_buffer(data)));
+			return detail::call_data_filter_before_send(derive,
+				derive._data_persistence(asio::const_buffer(data)));
 		}
 
 		template<typename = void>
@@ -129,7 +123,8 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			return derive.data_filter_before_send(derive._data_persistence(asio::const_buffer(data)));
+			return detail::call_data_filter_before_send(derive,
+				derive._data_persistence(asio::const_buffer(data)));
 		}
 
 		template<typename = void>
@@ -138,7 +133,7 @@ namespace asio2::detail
 			derived_t& derive = static_cast<derived_t&>(*this);
 
 			// "data" is rvalue reference, should use std::move()
-			return derive.data_filter_before_send(std::move(data));
+			return detail::call_data_filter_before_send(derive, std::move(data));
 		}
 
 		template<typename = void>
@@ -146,7 +141,8 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			return derive.data_filter_before_send(derive._data_persistence(asio::const_buffer(data)));
+			return detail::call_data_filter_before_send(derive,
+				derive._data_persistence(asio::const_buffer(data)));
 		}
 
 		template<typename = void>
@@ -154,7 +150,8 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			return derive.data_filter_before_send(derive._data_persistence(asio::const_buffer(data)));
+			return detail::call_data_filter_before_send(derive,
+				derive._data_persistence(asio::const_buffer(data)));
 		}
 
 		template<typename = void>
@@ -162,7 +159,8 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			return derive.data_filter_before_send(derive._data_persistence(asio::const_buffer(std::move(data))));
+			return detail::call_data_filter_before_send(derive,
+				derive._data_persistence(asio::const_buffer(std::move(data))));
 		}
 
 #if !defined(ASIO_NO_DEPRECATED) && !defined(BOOST_ASIO_NO_DEPRECATED)
@@ -171,7 +169,8 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			return derive.data_filter_before_send(derive._data_persistence(asio::const_buffer(data)));
+			return detail::call_data_filter_before_send(derive,
+				derive._data_persistence(asio::const_buffer(data)));
 		}
 
 		template<typename = void>
@@ -179,7 +178,8 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			return derive.data_filter_before_send(derive._data_persistence(asio::const_buffer(data)));
+			return detail::call_data_filter_before_send(derive,
+				derive._data_persistence(asio::const_buffer(data)));
 		}
 
 		template<typename = void>
@@ -187,7 +187,8 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			return derive.data_filter_before_send(derive._data_persistence(asio::const_buffer(std::move(data))));
+			return detail::call_data_filter_before_send(derive,
+				derive._data_persistence(asio::const_buffer(std::move(data))));
 		}
 
 		template<typename = void>
@@ -195,7 +196,8 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			return derive.data_filter_before_send(derive._data_persistence(asio::const_buffer(data)));
+			return detail::call_data_filter_before_send(derive,
+				derive._data_persistence(asio::const_buffer(data)));
 		}
 
 		template<typename = void>
@@ -203,7 +205,8 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			return derive.data_filter_before_send(derive._data_persistence(asio::const_buffer(data)));
+			return detail::call_data_filter_before_send(derive,
+				derive._data_persistence(asio::const_buffer(data)));
 		}
 
 		template<typename = void>
@@ -211,7 +214,8 @@ namespace asio2::detail
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
 
-			return derive.data_filter_before_send(derive._data_persistence(asio::const_buffer(std::move(data))));
+			return detail::call_data_filter_before_send(derive,
+				derive._data_persistence(asio::const_buffer(std::move(data))));
 		}
 #endif
 

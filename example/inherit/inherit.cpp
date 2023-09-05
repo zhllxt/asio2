@@ -21,6 +21,7 @@ public:
 	 * @brief Pre process the data before send it.
 	 * You can overload this function in a derived class to implement additional
 	 * processing of the data. eg: encrypt data with a custom encryption algorithm.
+	 * @note this function must be public, or define "friend class asio2::detail::data_filter_before_helper;"
 	 */
 	template<class T>
 	inline auto data_filter_before_send(T&& data)
@@ -41,6 +42,7 @@ public:
 	 * @brief Pre process the data before recv callback was called.
 	 * You can overload this function in a derived class to implement additional
 	 * processing of the data. eg: decrypt data with a custom encryption algorithm.
+	 * @note this function must be public, or define "friend class asio2::detail::data_filter_before_helper;"
 	 */
 	inline std::string_view data_filter_before_recv(std::string_view data)
 	{

@@ -45,7 +45,7 @@ namespace asio2::detail
 	ASIO2_CLASS_FORWARD_DECLARE_TCP_SESSION;
 	ASIO2_CLASS_FORWARD_DECLARE_TCP_CLIENT;
 
-	template<class SocketT, class Sock5OptT, class ConnCallback>
+	template<class SocketT, class Sock5OptT, class CommandCallback>
 	class socks5_server_handshake_op : public asio::coroutine
 	{
 		ASIO2_CLASS_FRIEND_DECLARE_BASE;
@@ -57,7 +57,7 @@ namespace asio2::detail
 	public:
 		SocketT&          socket_;
 		Sock5OptT         socks5_;
-		ConnCallback      conncb_;
+		CommandCallback   cmd_cb_;
 
 		using socks5_value_type = typename detail::element_type_adapter<Sock5OptT>::type;
 
@@ -99,6 +99,8 @@ namespace asio2::detail
 		socks5::command cmd{};
 		std::string host{}, port{};
 
+		asio::steady_timer* connect_finish_timer = nullptr;
+
 		inline bool check_auth()
 		{
 			bool f = (username == socks5_opt_username(socks5()) && password == socks5_opt_password(socks5()));
@@ -114,11 +116,11 @@ namespace asio2::detail
 			return f;
 		}
 
-		template<class SKT, class S5Opt, class ConnCB>
-		socks5_server_handshake_op(SKT& skt, S5Opt&& s5, ConnCB&& conncb)
-			: socket_(skt)
-			, socks5_(std::forward<S5Opt>(s5))
-			, conncb_(std::forward<ConnCB>(conncb))
+		template<class Sock, class S5Opt, class CmdCB>
+		socks5_server_handshake_op(Sock& sock, S5Opt&& s5opt, CmdCB&& cmdcb)
+			: socket_(sock)
+			, socks5_(std::forward<S5Opt>(s5opt))
+			, cmd_cb_(std::forward<CmdCB>(cmdcb))
 		{
 		}
 
@@ -504,10 +506,22 @@ namespace asio2::detail
 				//             o  X'08' Address type not supported
 				//             o  X'09' to X'FF' unassigned
 
-				if (cmd == socks5::command::connect)
+				if (cmd == socks5::command::connect || cmd == socks5::command::udp_associate)
 				{
+					connect_finish_timer = cmd_cb_(*this);
+
+					if (!connect_finish_timer)
+					{
+						if (!ec)
+							ec = socks5::make_error_code(socks5::error::host_unreachable);
+						goto end;
+					}
+
 					ASIO_CORO_YIELD
-						conncb_(*this, self);
+						connect_finish_timer->async_wait(std::move(self));
+
+					ec = get_last_error();
+
 					if (!ec)
 						p[1] = char(0x00);
 					else if (ec == asio::error::network_unreachable)
@@ -524,7 +538,7 @@ namespace asio2::detail
 					if (ec)
 						goto end;
 				}
-				else if (cmd == socks5::command::bind)
+				else/* if (cmd == socks5::command::bind)*/
 				{
 					p[1] = char(0x07);
 
@@ -533,15 +547,6 @@ namespace asio2::detail
 
 					ec = socks5::make_error_code(socks5::error::command_not_supported);
 					goto end;
-				}
-				else if (cmd == socks5::command::udp_associate)
-				{
-					p[1] = char(0x00);
-
-					ASIO_CORO_YIELD
-						asio::async_write(socket_, strbuf, asio::transfer_exactly(bytes), std::move(self));
-					if (ec)
-						goto end;
 				}
 
 				ec = {};
@@ -553,8 +558,9 @@ namespace asio2::detail
 	};
 
 	// C++17 class template argument deduction guides
-	template<class SKT, class S5Opt, class ConnCallback>
-	socks5_server_handshake_op(SKT&, S5Opt, ConnCallback) -> socks5_server_handshake_op<SKT, S5Opt, ConnCallback>;
+	template<class SKT, class S5Opt, class CommandCallback>
+	socks5_server_handshake_op(SKT&, S5Opt, CommandCallback) ->
+		socks5_server_handshake_op<SKT, S5Opt, CommandCallback>;
 }
 
 namespace asio2
@@ -563,7 +569,7 @@ namespace asio2
 	 * @brief Perform the socks5 handshake asynchronously in the client role.
 	 * @param socket - The asio::ip::tcp::socket object reference.
 	 * @param socks5_opt - The socks5 option, must contains the socks5 proxy server ip and port.
-	 * @param conncb - command::connect callback. Signature: auto(auto& s5_server_handshake_op, auto& compose_op){}
+	 * @param cmd_cb - command callback. Signature: asio::steady_timer*(auto& s5_server_handshake_op){}
 	 * @param token - The completion handler to invoke when the operation completes.
 	 *    The implementation takes ownership of the handler by performing a decay-copy.
 	 *	  The equivalent function signature of the handler must be:
@@ -572,46 +578,16 @@ namespace asio2
 	 *        error_code const& ec    // Result of operation
 	 *    );
 	 */
-	template <typename SocketT, typename Sock5OptT, typename ConnCallback, typename CompletionToken>
+	template <typename SocketT, typename Sock5OptT, typename CommandCallback, typename CompletionToken>
 	auto socks5_async_handshake(
-		SocketT& socket, Sock5OptT&& socks5_opt, ConnCallback&& conncb, CompletionToken&& token)
+		SocketT& socket, Sock5OptT&& socks5_opt, CommandCallback&& cmd_cb, CompletionToken&& token)
 		-> decltype(asio::async_compose<CompletionToken, void(asio::error_code)>(
-			std::declval<detail::socks5_server_handshake_op<SocketT, Sock5OptT, ConnCallback>>(), token, socket))
+			std::declval<detail::socks5_server_handshake_op<SocketT, Sock5OptT, CommandCallback>>(), token, socket))
 	{
 		return asio::async_compose<CompletionToken, void(asio::error_code)>(
-			detail::socks5_server_handshake_op<SocketT, Sock5OptT, ConnCallback>{
-			socket, std::forward<Sock5OptT>(socks5_opt), std::forward<ConnCallback>(conncb)},
+			detail::socks5_server_handshake_op<SocketT, Sock5OptT, CommandCallback>{
+			socket, std::forward<Sock5OptT>(socks5_opt), std::forward<CommandCallback>(cmd_cb)},
 			token, socket);
-	}
-
-	/**
-	 * @brief Perform the socks5 handshake in the client role.
-	 * @param socket - The asio::ip::tcp::socket object reference.
-	 * @param socks5_opt - The socks5 option, must contains the socks5 proxy server ip and port.
-	 * @param conncb - command::connect callback. Signature: auto(auto& s5_server_handshake_op, auto& compose_op){}
-	 * @param ec - Save the error information when handshake failed.
-	 * @return true if handshake successed, otherwise false.
-	 */
-	template <typename SocketT, typename Sock5OptT, typename ConnCallback>
-	bool socks5_handshake(SocketT& socket, Sock5OptT&& socks5_opt, ConnCallback&& conncb, error_code& ec)
-	{
-		std::future<void> f = socks5_async_handshake(
-			socket, std::forward<Sock5OptT>(socks5_opt), std::forward<ConnCallback>(conncb), asio::use_future);
-
-		try
-		{
-			f.get();
-
-			ec = {};
-
-			return true;
-		}
-		catch (const system_error& e)
-		{
-			ec = e.code();
-		}
-
-		return false;
 	}
 }
 

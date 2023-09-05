@@ -18,31 +18,37 @@
 #include <asio2/base/detail/push_options.hpp>
 
 #include <asio2/tcp/tcp_client.hpp>
+#include <asio2/udp/udp_cast.hpp>
 
 namespace asio2::detail
 {
 	ASIO2_CLASS_FORWARD_DECLARE_BASE;
 	ASIO2_CLASS_FORWARD_DECLARE_TCP_BASE;
+	ASIO2_CLASS_FORWARD_DECLARE_UDP_BASE;
 	ASIO2_CLASS_FORWARD_DECLARE_TCP_CLIENT;
+	ASIO2_CLASS_FORWARD_DECLARE_UDP_CLIENT;
 
 	template<class, class> class socks5_session_impl_t;
 
-	template<class derived_t, class args_t = template_args_tcp_client>
+	template<class derived_t, class executor_t>
 	class socks5_client_impl_t
-		: public tcp_client_impl_t <derived_t, args_t>
+		: public executor_t
 	{
 		ASIO2_CLASS_FRIEND_DECLARE_BASE;
 		ASIO2_CLASS_FRIEND_DECLARE_TCP_BASE;
+		ASIO2_CLASS_FRIEND_DECLARE_UDP_BASE;
 		ASIO2_CLASS_FRIEND_DECLARE_TCP_CLIENT;
+		ASIO2_CLASS_FRIEND_DECLARE_UDP_CLIENT;
 
 		template<class, class> friend class socks5_session_impl_t;
 
 	public:
-		using super = tcp_client_impl_t   <derived_t, args_t>;
-		using self  = socks5_client_impl_t<derived_t, args_t>;
+		using super = executor_t;
+		using self  = socks5_client_impl_t<derived_t, executor_t>;
 
-		using args_type   = args_t;
-		using buffer_type = typename args_t::buffer_t;
+		using executor_type = executor_t;
+
+		using args_type = typename executor_t::args_type;
 
 	public:
 		/**
@@ -52,7 +58,7 @@ namespace asio2::detail
 		explicit socks5_client_impl_t(Args&&... args)
 			: super(std::forward<Args>(args)...)
 		{
-			this->co_timer_ = std::make_shared<asio::steady_timer>(this->io_->context());
+			this->connect_finish_timer_ = std::make_shared<asio::steady_timer>(this->io_->context());
 		}
 
 		/**
@@ -71,33 +77,9 @@ namespace asio2::detail
 		{
 			derived_t& derive = this->derived();
 
-			derive.co_timer_.reset();
+			derive.connect_finish_timer_.reset();
 
 			super::destroy();
-		}
-
-		/**
-		 * @brief async start the client, asynchronous connect to server.
-		 * @param host - A string identifying a location. May be a descriptive name or
-		 * a numeric address string.
-		 * @param port - A string identifying the requested service. This may be a
-		 * descriptive name or a numeric string corresponding to a port number.
-		 */
-		template<typename String, typename StrOrInt, typename CompletionToken, typename... Args>
-		auto async_start(String&& host, StrOrInt&& port, CompletionToken&& token, Args&&... args)
-		{
-			derived_t& derive = this->derived();
-
-			bool f = super::async_start(
-				std::forward<String>(host), std::forward<StrOrInt>(port), std::forward<Args>(args)...);
-
-			derive.co_timer_->expires_after(f ?
-				std::chrono::steady_clock::duration::max() :
-				std::chrono::steady_clock::duration::zero());
-
-			return asio::async_compose<CompletionToken, void(asio::error_code)>(
-				detail::wait_timer_op{*(derive.co_timer_)},
-				token, derive.socket());
 		}
 
 	protected:
@@ -106,44 +88,57 @@ namespace asio2::detail
 			const error_code& ec,
 			std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs, DeferEvent chain)
 		{
-			detail::cancel_timer(*(this->derived().co_timer_));
+			detail::cancel_timer(*(this->derived().connect_finish_timer_));
 
 			super::_handle_connect(ec, std::move(this_ptr), std::move(ecs), std::move(chain));
 		}
 
 	protected:
-		std::shared_ptr<asio::steady_timer> co_timer_;
+		std::shared_ptr<asio::steady_timer> connect_finish_timer_;
 	};
 }
 
 namespace asio2
 {
-	using socks5_client_args = detail::template_args_tcp_client;
-
-	template<class derived_t, class args_t>
-	using socks5_client_impl_t = detail::socks5_client_impl_t<derived_t, args_t>;
+	template<class derived_t, class executor_t>
+	using socks5_client_impl_t = detail::socks5_client_impl_t<derived_t, executor_t>;
 
 	/**
 	 * @brief socks5 tcp client
-	 * @throws constructor maybe throw exception "Too many open files" (exception code : 24)
-	 * asio::error::no_descriptors - Too many open files
 	 */
 	template<class derived_t>
-	class socks5_client_t : public detail::socks5_client_impl_t<derived_t, detail::template_args_tcp_client>
+	class socks5_tcp_client_t : public detail::socks5_client_impl_t<derived_t, tcp_client_t<derived_t>>
 	{
 	public:
-		using detail::socks5_client_impl_t<derived_t, detail::template_args_tcp_client>::socks5_client_impl_t;
+		using detail::socks5_client_impl_t<derived_t, tcp_client_t<derived_t>>::socks5_client_impl_t;
 	};
 
 	/**
 	 * @brief socks5 tcp client
-	 * @throws constructor maybe throw exception "Too many open files" (exception code : 24)
-	 * asio::error::no_descriptors - Too many open files
 	 */
-	class socks5_client : public socks5_client_t<socks5_client>
+	class socks5_tcp_client : public socks5_tcp_client_t<socks5_tcp_client>
 	{
 	public:
-		using socks5_client_t<socks5_client>::socks5_client_t;
+		using socks5_tcp_client_t<socks5_tcp_client>::socks5_tcp_client_t;
+	};
+
+	/**
+	 * @brief socks5 udp client
+	 */
+	template<class derived_t>
+	class socks5_udp_client_t : public detail::socks5_client_impl_t<derived_t, udp_cast_t<derived_t>>
+	{
+	public:
+		using detail::socks5_client_impl_t<derived_t, udp_cast_t<derived_t>>::socks5_client_impl_t;
+	};
+
+	/**
+	 * @brief socks5 udp client
+	 */
+	class socks5_udp_client : public socks5_udp_client_t<socks5_udp_client>
+	{
+	public:
+		using socks5_udp_client_t<socks5_udp_client>::socks5_udp_client_t;
 	};
 }
 

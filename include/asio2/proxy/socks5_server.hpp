@@ -22,6 +22,80 @@
 
 namespace asio2::detail
 {
+struct socks5_server_match_role
+{
+	template <typename Iterator>
+	std::pair<Iterator, bool> operator()(Iterator begin, Iterator end) const
+	{
+		// +----+------+------+----------+----------+----------+
+		// |RSV | FRAG | ATYP | DST.ADDR | DST.PORT |   DATA   |
+		// +----+------+------+----------+----------+----------+
+		// | 2  |  1   |  1   | Variable |    2     | Variable |
+		// +----+------+------+----------+----------+----------+
+
+		for (Iterator p = begin; p < end;)
+		{
+			if (this->get_front_client_type() == asio2::net_protocol::tcp)
+				return std::pair(end, true);
+
+			if (end - p < static_cast<diff_type>(5))
+				break;
+
+			std::uint16_t data_size = *(reinterpret_cast<const std::uint16_t*>(p.operator->()));
+
+			// use little endian
+			if (!is_little_endian())
+			{
+				swap_bytes<sizeof(std::uint16_t)>(reinterpret_cast<std::uint8_t*>(std::addressof(data_size)));
+			}
+
+			std::uint8_t atyp = std::uint8_t(p[3]);
+
+			diff_type need = 0;
+
+			// ATYP
+			if /**/ (atyp == std::uint8_t(0x01))
+				need = static_cast<diff_type>(2 + 1 + 1 + 4 + 2 + data_size);
+			else if (atyp == std::uint8_t(0x03))
+				need = static_cast<diff_type>(2 + 1 + 1 + p[4] + 2 + data_size);
+			else if (atyp == std::uint8_t(0x04))
+				need = static_cast<diff_type>(2 + 1 + 1 + 16 + 2 + data_size);
+			else
+				return std::pair(begin, true);
+
+			if (end - p < need)
+				break;
+
+			return std::pair(p + need, true);
+		}
+
+		return std::pair(begin, false);
+	}
+
+	template<class T>
+	void init(std::shared_ptr<T>& session_ptr)
+	{
+		this->get_front_client_type = [p = session_ptr.get()]() mutable
+		{
+			return p->get_front_client_type();
+		};
+	}
+
+	std::function<asio2::net_protocol()> get_front_client_type;
+};
+}
+
+#ifdef ASIO_STANDALONE
+namespace asio
+#else
+namespace boost::asio
+#endif
+{
+	template <> struct is_match_condition<asio2::detail::socks5_server_match_role> : public std::true_type {};
+}
+
+namespace asio2::detail
+{
 	ASIO2_CLASS_FORWARD_DECLARE_BASE;
 	ASIO2_CLASS_FORWARD_DECLARE_TCP_BASE;
 	ASIO2_CLASS_FORWARD_DECLARE_TCP_SERVER;
@@ -56,6 +130,21 @@ namespace asio2::detail
 		~socks5_server_impl_t()
 		{
 			this->stop();
+		}
+
+		/**
+		 * @brief start the server
+		 * @param host - A string identifying a location. May be a descriptive name or
+		 * a numeric address string.
+		 * @param service - A string identifying the requested service. This may be a
+		 * descriptive name or a numeric string corresponding to a port number.
+		 */
+		template<typename String, typename StrOrInt, typename... Args>
+		inline bool start(String&& host, StrOrInt&& service, Args&&... args)
+		{
+			return this->derived()._do_start(
+				std::forward<String>(host), std::forward<StrOrInt>(service),
+				ecs_helper::make_ecs(detail::socks5_server_match_role{}, std::forward<Args>(args)...));
 		}
 
 	public:

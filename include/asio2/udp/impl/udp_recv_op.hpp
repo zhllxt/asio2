@@ -40,17 +40,6 @@ namespace asio2::detail
 		~udp_recv_op() = default;
 
 	protected:
-		/**
-		 * @brief Pre process the data before recv callback was called.
-		 * You can overload this function in a derived class to implement additional
-		 * processing of the data. eg: decrypt data with a custom encryption algorithm.
-		 */
-		inline std::string_view data_filter_before_recv(std::string_view data)
-		{
-			return data;
-		}
-
-	protected:
 		template<typename C>
 		void _udp_post_recv(std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs)
 		{

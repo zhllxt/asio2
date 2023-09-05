@@ -30,6 +30,7 @@ namespace asio2::detail
 #define ASIO2_CLASS_DECLARE_BASE(KEYWORD)                                           \
 	                                             KEYWORD io_t;                      \
 	                                             KEYWORD iopool;                    \
+	                                             KEYWORD data_filter_before_helper; \
 	template <class, class>                      KEYWORD iopool_cp;                 \
 	template <class, class>                      KEYWORD alive_time_cp;             \
 	template <class, class>                      KEYWORD condition_event_cp;        \
@@ -147,6 +148,7 @@ namespace asio2::detail
 #define ASIO2_CLASS_DECLARE_UDP_CLIENT(KEYWORD)                                     \
 	template <class, class>                      KEYWORD client_impl_t;             \
 	template <class, class>                      KEYWORD udp_client_impl_t;         \
+	template <class, class>                      KEYWORD udp_cast_impl_t;           \
 	template <class, class>                      KEYWORD socks5_client_impl_t;      \
 	template <class, class>                      KEYWORD socks5_client_cp;          \
 	template <class, class>                      KEYWORD socks5_client_cp_impl;     \

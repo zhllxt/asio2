@@ -603,37 +603,6 @@ namespace asio2
 			std::move(host), std::move(port), socket, std::move(socks5_opt)},
 			token, socket);
 	}
-
-	/**
-	 * @brief Perform the socks5 handshake in the client role.
-	 * @param host - The target server ip. note: not the socks5 proxy server ip.
-	 * @param port - The target server port. note: not the socks5 proxy server port.
-	 * @param socket - The asio::ip::tcp::socket object reference.
-	 * @param socks5_opt - The socks5 option, must contains the socks5 proxy server ip and port.
-	 * @param ec - Save the error information when handshake failed.
-	 * @return true if handshake successed, otherwise false.
-	 */
-	template <typename SocketT, typename Sock5OptT>
-	bool socks5_handshake(std::string host, std::string port, SocketT& socket, Sock5OptT socks5_opt, error_code& ec)
-	{
-		std::future<std::tuple<std::string, std::string>> f = socks5_async_handshake(
-			std::move(host), std::move(port), socket, std::move(socks5_opt), asio::use_future);
-
-		try
-		{
-			f.get();
-
-			ec = {};
-
-			return true;
-		}
-		catch (const system_error& e)
-		{
-			ec = e.code();
-		}
-
-		return false;
-	}
 }
 
 namespace asio2::detail
@@ -744,37 +713,39 @@ namespace asio2::detail
 	class socks5_client_cp_bridge<derived_t, args_t, detail::tcp_tag>
 		: public socks5_client_cp_impl<derived_t, args_t>
 	{
-		template<class T, class R, class... Args>
+		template<class, class = void>
 		struct has_member_set_bnd_addr : std::false_type {};
 
-		template<class T, class... Args>
-		struct has_member_set_bnd_addr<T, decltype(std::declval<std::decay_t<T>>().
-			set_bnd_addr((std::declval<Args>())...)), Args...> : std::true_type {};
+		template<class T>
+		struct has_member_set_bnd_addr<T, std::void_t<decltype(
+			std::declval<std::decay_t<T>&>().set_bnd_addr(std::string{}))>> : std::true_type {};
 
-		template<class T, class R, class... Args>
+		template<class, class = void>
 		struct has_member_set_bnd_port : std::false_type {};
 
-		template<class T, class... Args>
-		struct has_member_set_bnd_port<T, decltype(std::declval<std::decay_t<T>>().
-			set_bnd_port((std::declval<Args>())...)), Args...> : std::true_type {};
+		template<class T>
+		struct has_member_set_bnd_port<T, std::void_t<decltype(
+			std::declval<std::decay_t<T>&>().set_bnd_port(std::string{}))>> : std::true_type {};
 
 	protected:
+		// this function name can't be set_bnd_addr, it maybe cause recursive deadloop
 		template<class D = derived_t>
-		inline void set_bnd_addr(std::string addr)
+		inline void do_set_bnd_addr(std::string addr)
 		{
 			D& derive = static_cast<D&>(*this);
 
-			if constexpr (has_member_set_bnd_addr<D, void, std::string>::value)
+			if constexpr (has_member_set_bnd_addr<D>::value)
 				derive.set_bnd_addr(std::move(addr));
 			else
 				detail::ignore_unused(addr);
 		}
+		// this function name can't be set_bnd_port, it maybe cause recursive deadloop
 		template<class D = derived_t>
-		inline void set_bnd_port(std::string port)
+		inline void do_set_bnd_port(std::string port)
 		{
 			D& derive = static_cast<D&>(*this);
 
-			if constexpr (has_member_set_bnd_port<D, void, std::string>::value)
+			if constexpr (has_member_set_bnd_port<D>::value)
 				derive.set_bnd_port(std::move(port));
 			else
 				detail::ignore_unused(port);
@@ -801,8 +772,8 @@ namespace asio2::detail
 					{
 						derived_t& derive = static_cast<derived_t&>(*this);
 
-						this->set_bnd_addr(std::move(host));
-						this->set_bnd_port(std::move(port));
+						this->do_set_bnd_addr(std::move(host));
+						this->do_set_bnd_port(std::move(port));
 
 						derive._handle_proxy(ec, std::move(this_ptr), std::move(ecs), std::move(chain));
 					}
@@ -815,10 +786,11 @@ namespace asio2::detail
 			}
 		}
 
-		inline void _socks5_stop()
+		inline void _socks5_stop() noexcept
 		{
 		}
 
+	public:
 		inline auto& socks5_socket() noexcept
 		{
 			derived_t& derive = static_cast<derived_t&>(*this);
@@ -839,6 +811,9 @@ namespace asio2::detail
 	protected:
 		class internal_socks5_client_impl : public args_t::template socks5_client_t<internal_socks5_client_impl>
 		{
+			friend derived_t;
+			template<class, class, typename>friend class socks5_client_cp_bridge;
+
 		public:
 			using super = typename args_t::template socks5_client_t<internal_socks5_client_impl>;
 
@@ -871,8 +846,51 @@ namespace asio2::detail
 				bnd_port_ = std::move(port);
 			}
 
+			void set_udp_data_head(const std::string& host, const std::string& port)
+			{
+				std::vector<std::uint8_t>& head = this->udp_data_head;
+
+				head.push_back(std::uint8_t(0x00)); // RSV 
+				head.push_back(std::uint8_t(0x00)); // RSV 
+				head.push_back(std::uint8_t(0x00)); // FRAG 
+
+				error_code ec{};
+				asio::ip::address addr = asio::ip::address::from_string(host, ec);
+
+				if (ec) // DOMAINNAME: X'03'
+				{
+					head.push_back(std::uint8_t(0x03));
+					head.push_back(std::uint8_t(host.size()));
+					head.insert(head.end(), host.begin(), host.end());
+				}
+				else if (addr.is_v4()) // IP V4 address: X'01'
+				{
+					head.push_back(std::uint8_t(0x01));
+					asio::ip::address_v4::bytes_type bytes = addr.to_v4().to_bytes();
+					head.insert(head.end(), bytes.begin(), bytes.end());
+				}
+				else if (addr.is_v6()) // IP V6 address: X'04'
+				{
+					head.push_back(std::uint8_t(0x04));
+					asio::ip::address_v6::bytes_type bytes = addr.to_v6().to_bytes();
+					head.insert(head.end(), bytes.begin(), bytes.end());
+				}
+
+				std::uint16_t uport = std::uint16_t(std::strtoul(port.data(), nullptr, 10));
+				std::uint8_t* pport = reinterpret_cast<std::uint8_t*>(std::addressof(uport));
+				if (detail::is_little_endian())
+				{
+					swap_bytes<sizeof(std::uint16_t)>(pport);
+				}
+				head.push_back(pport[0]);
+				head.push_back(pport[1]);
+			}
+
+		protected:
 			std::string bnd_addr_{};
 			std::string bnd_port_{};
+
+			std::vector<std::uint8_t> udp_data_head;
 		};
 
 	protected:
@@ -890,8 +908,6 @@ namespace asio2::detail
 					this->socks5_client_ = std::make_shared<internal_socks5_client_impl>(derive.io_->context());
 
 				auto s5opt = ecs->get_component().socks5_option(std::in_place);
-
-				//this->socks5_client_->set_disconnect_timeout(std::chrono::seconds(3));
 
 				this->socks5_client_->bind_connect([&derive, this_ptr]() mutable
 				{
@@ -933,6 +949,8 @@ namespace asio2::detail
 						}
 					}
 
+					this->socks5_client_->set_udp_data_head(derive.host_, derive.port_);
+
 					asio2::async_connect(host, port, derive.socket(),
 					[&derive, this_ptr = std::move(this_ptr), ecs = std::move(ecs), chain = std::move(chain)]
 					(const error_code& ec) mutable
@@ -957,6 +975,80 @@ namespace asio2::detail
 			}
 		}
 
+		template<class T>
+		inline auto data_filter_before_send(T&& data)
+		{
+			std::string_view sv = asio2::to_string_view(asio::buffer(data));
+
+			std::vector<std::uint8_t>& head = this->socks5_client_->udp_data_head;
+
+			// the data is: stds::string, std::vector...
+			if constexpr (detail::has_member_insert<T>::value)
+			{
+				data.insert(data.begin(), head.begin(), head.end());
+				return std::forward<T>(data);
+			}
+			else
+			{
+				std::string str{sv};
+				str.insert(str.begin(), head.begin(), head.end());
+				return str;
+			}
+		}
+
+		inline std::string_view data_filter_before_recv(std::string_view data)
+		{
+			// RSV FRAG 
+			if (data.size() < std::size_t(3))
+				return std::string_view{};
+
+			data.remove_prefix(3);
+
+			// ATYP 
+			if (data.size() < std::size_t(1))
+				return std::string_view{};
+
+			std::uint8_t atyp = std::uint8_t(data[0]);
+
+			data.remove_prefix(1);
+
+			if /**/ (atyp == std::uint8_t(0x01)) // IP V4 address: X'01'
+			{
+				if (data.size() < std::size_t(4 + 2))
+					return std::string_view{};
+
+				data.remove_prefix(4 + 2);
+			}
+			else if (atyp == std::uint8_t(0x04)) // IP V6 address: X'04'
+			{
+				if (data.size() < std::size_t(16 + 2))
+					return std::string_view{};
+
+				data.remove_prefix(16 + 2);
+			}
+			else if (atyp == std::uint8_t(0x03)) // DOMAINNAME: X'03'
+			{
+				if (data.size() < std::size_t(1))
+					return std::string_view{};
+
+				std::uint8_t domain_len = std::uint8_t(data[0]);
+
+				data.remove_prefix(1);
+
+				if (data.size() < std::size_t(domain_len + 2))
+					return std::string_view{};
+
+				data.remove_prefix(domain_len + 2);
+			}
+			else
+			{
+				return std::string_view{};
+			}
+
+			return data;
+		}
+
+	public:
 		inline auto& socks5_socket() noexcept
 		{
 			return this->socks5_client_->socket();
@@ -965,6 +1057,11 @@ namespace asio2::detail
 		inline const auto& socks5_socket() const noexcept
 		{
 			return this->socks5_client_->socket();
+		}
+
+		inline std::shared_ptr<internal_socks5_client_impl> get_socks5_connection() noexcept
+		{
+			return this->socks5_client_;
 		}
 
 	protected:
