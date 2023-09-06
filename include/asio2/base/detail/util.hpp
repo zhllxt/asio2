@@ -116,8 +116,9 @@ namespace asio2::detail
 
 namespace asio2::detail
 {
-	struct tcp_tag { using tl_tag_type = tcp_tag; }; // transport layer
-	struct udp_tag { using tl_tag_type = udp_tag; }; // transport layer
+	struct tcp_tag  { using tl_tag_type = tcp_tag ; }; // transport layer
+	struct udp_tag  { using tl_tag_type = udp_tag ; }; // transport layer
+	struct cast_tag { using tl_tag_type = cast_tag; };
 
 	struct ssl_stream_tag {};
 	struct ws_stream_tag  {};
