@@ -33,7 +33,7 @@ namespace asio2::detail
 	class run_connect_op : public asio::coroutine
 	{
 	public:
-		using socket_t           = typename SocketT;
+		using socket_t           = SocketT;
 		using decay_socket_t     = typename std::remove_cv_t<std::remove_reference_t<socket_t>>;
 		using lowest_layer_t     = typename decay_socket_t::lowest_layer_type;
 		using resolver_type      = typename asio::ip::basic_resolver<typename lowest_layer_t::protocol_type>;

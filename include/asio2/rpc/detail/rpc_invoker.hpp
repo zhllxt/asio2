@@ -88,9 +88,9 @@ namespace asio2::rpc
 		~future() = default;
 
 		future(future&&) noexcept = default;
-		future(future const&) noexcept = default;
+		future(future const&) = default;
 		future& operator=(future&&) noexcept = default;
-		future& operator=(future const&) noexcept = default;
+		future& operator=(future const&) = default;
 
 	protected:
 		std::shared_ptr<response_defer<T>> defer_{};
@@ -105,9 +105,9 @@ namespace asio2::rpc
 		~promise() = default;
 
 		promise(promise&&) noexcept = default;
-		promise(promise const&) noexcept = default;
+		promise(promise const&) = default;
 		promise& operator=(promise&&) noexcept = default;
-		promise& operator=(promise const&) noexcept = default;
+		promise& operator=(promise const&) = default;
 
 		inline future<T> get_future() const noexcept { return future<T>{ defer_ }; }
 
@@ -159,9 +159,9 @@ namespace asio2::rpc
 		~future() = default;
 
 		future(future&&) noexcept = default;
-		future(future const&) noexcept = default;
+		future(future const&) = default;
 		future& operator=(future&&) noexcept = default;
-		future& operator=(future const&) noexcept = default;
+		future& operator=(future const&) = default;
 
 	protected:
 		std::shared_ptr<response_defer<void>> defer_{};
@@ -176,9 +176,9 @@ namespace asio2::rpc
 		~promise() = default;
 
 		promise(promise&&) noexcept = default;
-		promise(promise const&) noexcept = default;
+		promise(promise const&) = default;
 		promise& operator=(promise&&) noexcept = default;
-		promise& operator=(promise const&) noexcept = default;
+		promise& operator=(promise const&) = default;
 
 		inline future<void> get_future() const noexcept { return future<void>{ defer_ }; }
 

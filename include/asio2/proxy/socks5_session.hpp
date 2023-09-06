@@ -21,7 +21,7 @@
 
 #include <asio2/tcp/tcp_session.hpp>
 #include <asio2/component/socks/socks5_server_cp.hpp>
-#include <asio2/proxy/socks5_client.hpp>
+#include <asio2/proxy/socks5_transfer.hpp>
 
 namespace asio2::detail
 {
@@ -80,7 +80,7 @@ namespace asio2::detail
 			std::visit([](auto& ptr) mutable
 			{
 				ptr.reset();
-			}, this->end_client_);
+			}, this->back_client_);
 
 			derive.socks5_options_ = {};
 
@@ -125,7 +125,7 @@ namespace asio2::detail
 		 */
 		inline asio2::net_protocol get_front_client_type() const noexcept
 		{
-			switch (this->end_client_.index())
+			switch (this->back_client_.index())
 			{
 			case 0: return asio2::net_protocol::tcp;
 			case 1: return asio2::net_protocol::udp;
@@ -138,42 +138,60 @@ namespace asio2::detail
 		inline asio::steady_timer* _handle_socks5_command(
 			std::shared_ptr<derived_t> session_ptr, T& s5_server_handshake_op)
 		{
+			ASIO2_ASSERT(session_ptr->running_in_this_thread());
+
 			auto host = s5_server_handshake_op.host;
 			auto port = s5_server_handshake_op.port;
 
 			if (s5_server_handshake_op.cmd == socks5::command::connect)
 			{
-				auto client = std::make_shared<asio2::socks5_tcp_client>(this->io_);
+				auto back_client = std::make_shared<asio2::socks5_tcp_transfer>(this->io_);
 
-				client->bind_connect([]() mutable
+				back_client->bind_connect([]() mutable
 				{
 					set_last_error(get_last_error());
 				}).bind_disconnect([session_ptr]() mutable
 				{
+					// back client has disconnected, so we need disconnect the front client too.
+					ASIO2_ASSERT(session_ptr->running_in_this_thread());
 					session_ptr->stop();
 				}).bind_recv([session_ptr](std::string_view data) mutable
 				{
+					// tcp: recvd data from the back client, forward the data to the front client.
+					ASIO2_ASSERT(session_ptr->running_in_this_thread());
 					session_ptr->async_send(data);
 				});
 
-				if (!client->async_start(std::move(host), std::move(port)))
+				// async start the back client.
+				if (!back_client->async_start(std::move(host), std::move(port)))
 					return nullptr;
 
-				client->connect_finish_timer_->expires_after(std::chrono::steady_clock::duration::max());
+				// set timer expire, the socks5 async handshake will wait this timer by coroutine.
+				back_client->connect_finish_timer_->expires_after(std::chrono::steady_clock::duration::max());
 
-				this->end_client_ = client;
+				this->back_client_ = back_client;
 
-				return client->connect_finish_timer_.get();
+				return back_client->connect_finish_timer_.get();
 			}
 			else if (s5_server_handshake_op.cmd == socks5::command::udp_associate)
 			{
-				auto client = std::make_shared<asio2::socks5_udp_client>(this->io_);
+				auto back_client = std::make_shared<asio2::socks5_udp_transfer>(this->io_);
 
-				client->bind_start([strbuf = s5_server_handshake_op.stream.get(), pclient = client.get()]() mutable
+				back_client->bind_start(
+				[strbuf = s5_server_handshake_op.stream.get(), pback_client = back_client.get()]() mutable
 				{
 					set_last_error(get_last_error());
 
-					std::uint16_t uport = pclient->get_local_port();
+					// when code run to here, the socks5 async handshake is waiting the 
+					// connect finished timer.
+					// when this callback returned, the connect finished timer will be canceled.
+					// so timer waiter of the socks5 async handshake will be returned too.
+
+					// we need reset the BND.PORT as the local binded port, beacuse the 
+					// BND.PORT will be sent to the front client, and the front client 
+					// will sent data to this BND.PORT
+
+					std::uint16_t uport = pback_client->get_local_port();
 
 					char* p = const_cast<char*>(static_cast<const char*>(strbuf->data().data()));
 
@@ -200,23 +218,30 @@ namespace asio2::detail
 					}
 				}).bind_stop([session_ptr]() mutable
 				{
+					// back client has stoped, so we need disconnect the front client too.
+					ASIO2_ASSERT(session_ptr->running_in_this_thread());
 					session_ptr->stop();
-				}).bind_recv([this, pclient = client.get()](asio::ip::udp::endpoint& endpoint, std::string_view data) mutable
+				}).bind_recv([this, wptr = std::weak_ptr<asio2::socks5_udp_transfer>(back_client)]
+				(asio::ip::udp::endpoint& endpoint, std::string_view data) mutable
 				{
-					// recvd data, maybe from front client or end client, we need to check whether from front or end by ip.
-					this->_forward_udp_data(pclient, endpoint, data);
+					// udp: recvd data, maybe from front client or back client, 
+					// we need to check whether from front or back by ip and port.
+					ASIO2_ASSERT(this->running_in_this_thread());
+					this->_forward_udp_data(wptr.lock(), endpoint, data);
 				});
 
-				this->udp_associate_port_ = std::uint16_t(std::strtoul(port.data(), nullptr, 10));
+				this->udp_dst_port_ = std::uint16_t(std::strtoul(port.data(), nullptr, 10));
 
-				if (!client->async_start(std::move(host), 0))
+				// async start the back client
+				if (!back_client->async_start(std::move(host), 0))
 					return nullptr;
 
-				client->connect_finish_timer_->expires_after(std::chrono::steady_clock::duration::max());
+				// set timer expire, the socks5 async handshake will wait this timer by coroutine.
+				back_client->connect_finish_timer_->expires_after(std::chrono::steady_clock::duration::max());
 
-				this->end_client_ = client;
+				this->back_client_ = back_client;
 
-				return client->connect_finish_timer_.get();
+				return back_client->connect_finish_timer_.get();
 			}
 			else
 			{
@@ -225,29 +250,39 @@ namespace asio2::detail
 		}
 
 		// recvd data from udp
-		template<class T>
-		void _forward_udp_data(T* client, asio::ip::udp::endpoint& endpoint, std::string_view data)
+		void _forward_udp_data(
+			std::shared_ptr<asio2::socks5_udp_transfer> udp_cast_ptr,
+			asio::ip::udp::endpoint& endpoint, std::string_view data)
 		{
+			if (!udp_cast_ptr)
+				return;
+
+			ASIO2_ASSERT(udp_cast_ptr->running_in_this_thread());
+			ASIO2_ASSERT(this->running_in_this_thread());
+
 			// socks5 session is the front client.
 			asio::ip::address front_addr = this->socket().lowest_layer().remote_endpoint().address();
 
 			bool is_from_front = false;
 
 			if (front_addr.is_loopback())
-				is_from_front = (endpoint.address() == front_addr && endpoint.port() == this->udp_associate_port_);
+				is_from_front = (endpoint.address() == front_addr && endpoint.port() == this->udp_dst_port_);
 			else
 				is_from_front = (endpoint.address() == front_addr);
 
 			// recvd data from the front client. forward it to the target endpoint.
 			if (is_from_front)
 			{
+				// when socks5 server recvd data from the front client by udp, set the channel flag.
+				this->udp_dst_channel_ = asio2::net_protocol::udp;
+
 				auto [err, ep, domain, real_data] = asio2::socks5::parse_udp_packet(data, false);
 				if (err == 0)
 				{
 					if (domain.empty())
-						client->async_send(std::move(ep), real_data);
+						udp_cast_ptr->async_send(std::move(ep), real_data);
 					else
-						client->async_send(std::move(domain), ep.port(), real_data);
+						udp_cast_ptr->async_send(std::move(domain), ep.port(), real_data);
 				}
 			}
 			// recvd data not from the front client. forward it to the front client.
@@ -266,26 +301,35 @@ namespace asio2::detail
 				{
 					edit_data.push_back(std::uint8_t(0x01));
 					asio::ip::address_v4::bytes_type bytes = end_addr.to_v4().to_bytes();
-					edit_data.insert(edit_data.end(), bytes.begin(), bytes.end());
+					edit_data.insert(edit_data.cend(), bytes.begin(), bytes.end());
 				}
 				else if (end_addr.is_v6()) // IP V6 address: X'04'
 				{
 					edit_data.push_back(std::uint8_t(0x04));
 					asio::ip::address_v6::bytes_type bytes = end_addr.to_v6().to_bytes();
-					edit_data.insert(edit_data.end(), bytes.begin(), bytes.end());
+					edit_data.insert(edit_data.cend(), bytes.begin(), bytes.end());
 				}
 
-				std::uint16_t uport = endpoint.port();
+				std::uint16_t uport = detail::host_to_network(std::uint16_t(endpoint.port()));
 				std::uint8_t* pport = reinterpret_cast<std::uint8_t*>(std::addressof(uport));
-				if (detail::is_little_endian())
-				{
-					swap_bytes<sizeof(std::uint16_t)>(pport);
-				}
 				edit_data.push_back(pport[0]);
 				edit_data.push_back(pport[1]);
-				edit_data.insert(edit_data.end(), data.begin(), data.end());
+				edit_data.insert(edit_data.cend(), data.begin(), data.end());
 
-				client->async_send(asio::ip::udp::endpoint(front_addr, this->udp_associate_port_), std::move(edit_data));
+				if (this->udp_dst_channel_ == asio2::net_protocol::tcp)
+				{
+					std::uint16_t udatalen = detail::host_to_network(std::uint16_t(data.size()));
+					std::uint8_t* pdatalen = reinterpret_cast<std::uint8_t*>(std::addressof(udatalen));
+					edit_data[0] = pdatalen[0];
+					edit_data[1] = pdatalen[1];
+
+					this->derived().async_send(std::move(edit_data));
+				}
+				else if (this->udp_dst_channel_ == asio2::net_protocol::udp)
+				{
+					udp_cast_ptr->async_send(
+						asio::ip::udp::endpoint(front_addr, this->udp_dst_port_), std::move(edit_data));
+				}
 			}
 		}
 
@@ -314,12 +358,12 @@ namespace asio2::detail
 				(const error_code& ec) mutable
 				{
 					derive.sessions_.dispatch(
-					[this, &derive, ec, this_ptr = std::move(this_ptr), ecs = std::move(ecs), chain = std::move(chain)]
+					[this, ec, this_ptr = std::move(this_ptr), ecs = std::move(ecs), chain = std::move(chain)]
 					() mutable
 					{
 						set_last_error(ec);
 
-						derive._fire_socks5_handshake(this_ptr);
+						this->derived()._fire_socks5_handshake(this_ptr);
 
 						super::_handle_connect(ec, std::move(this_ptr), std::move(ecs), std::move(chain));
 					});
@@ -330,6 +374,7 @@ namespace asio2::detail
 		template<typename DeferEvent>
 		inline void _handle_stop(const error_code& ec, std::shared_ptr<derived_t> this_ptr, DeferEvent chain)
 		{
+			// front client has disconnected, so we need disconnect the back client too.
 			std::visit([](auto& ptr) mutable
 			{
 				if (ptr)
@@ -337,7 +382,7 @@ namespace asio2::detail
 					ptr->stop();
 					ptr.reset();
 				}
-			}, this->end_client_);
+			}, this->back_client_);
 
 			super::_handle_stop(ec, std::move(this_ptr), std::move(chain));
 		}
@@ -351,34 +396,42 @@ namespace asio2::detail
 			if (data.empty())
 				return;
 
-			// recvd data from the front client by tcp, forward the data to the end client.
+			// recvd data from the front client by tcp, we need check the front client is tcp or udp.
 			std::visit(variant_overloaded
 			{
 				[](auto) {},
-				[data](std::shared_ptr<asio2::socks5_tcp_client>& end_client_ptr) mutable
+				// if it is tcp, just forward the data to back client.
+				[data](std::shared_ptr<asio2::socks5_tcp_transfer>& back_client_ptr) mutable
 				{
-					if (end_client_ptr)
-						end_client_ptr->async_send(data);
+					if (back_client_ptr)
+						back_client_ptr->async_send(data);
 				},
-				[this, data](std::shared_ptr<asio2::socks5_udp_client>& end_client_ptr) mutable
+				// if it is udp, it means that the packet is a extension protocol base of below:
+				// +----+------+------+----------+----------+----------+
+				// |RSV | FRAG | ATYP | DST.ADDR | DST.PORT |   DATA   |
+				// +----+------+------+----------+----------+----------+
+				// | 2  |  1   |  1   | Variable |    2     | Variable |
+				// +----+------+------+----------+----------+----------+
+				// the RSV field is the real data length of the field DATA.
+				// so we need unpacket this data, and send the real data to the back client.
+				[this, data](std::shared_ptr<asio2::socks5_udp_transfer>& back_client_ptr) mutable
 				{
-					if (end_client_ptr)
-						this->derived()._forward_udp_data(end_client_ptr, data);
-				}
-			}, this->end_client_);
-		}
+					// when socks5 server recvd data from the front client by tcp, set the channel flag.
+					this->udp_dst_channel_ = asio2::net_protocol::tcp;
 
-		// recvd data from tcp
-		inline void _forward_udp_data(std::shared_ptr<asio2::socks5_udp_client>& end_client_ptr, std::string_view data)
-		{
-			auto [err, ep, domain, real_data] = asio2::socks5::parse_udp_packet(data, true);
-			if (err == 0)
-			{
-				if (domain.empty())
-					end_client_ptr->async_send(std::move(ep), real_data);
-				else
-					end_client_ptr->async_send(std::move(domain), ep.port(), real_data);
-			}
+					if (back_client_ptr)
+					{
+						auto [err, ep, domain, real_data] = asio2::socks5::parse_udp_packet(data, true);
+						if (err == 0)
+						{
+							if (domain.empty())
+								back_client_ptr->async_send(std::move(ep), real_data);
+							else
+								back_client_ptr->async_send(std::move(domain), ep.port(), real_data);
+						}
+					}
+				}
+			}, this->back_client_);
 		}
 
 		inline void _fire_socks5_handshake(std::shared_ptr<derived_t>& this_ptr)
@@ -390,14 +443,21 @@ namespace asio2::detail
 		}
 
 	protected:
-		socks5::options socks5_options_{};
+		socks5::options      socks5_options_{};
 
-		std::uint16_t   udp_associate_port_{};
+		// if the command is UDP ASSOCIATE, we need save the port of the front udp client.
+		std::uint16_t        udp_dst_port_{};
+
+		// if the front client is udp, and when socks5 server recvd data from the back client, 
+		// whether we use tcp channel or udp channcel to forward the data to the front client?
+		asio2::net_protocol  udp_dst_channel_ = asio2::net_protocol::udp;
 
 		// create a new client, and connect to the target server.
+		// if the command is CONNECT, we need create a tcp client.
+		// if the command is UDP ASSOCIATE, we need create a udp cast.
 		std::variant<
-			std::shared_ptr<asio2::socks5_tcp_client>,
-			std::shared_ptr<asio2::socks5_udp_client>> end_client_;
+			std::shared_ptr<asio2::socks5_tcp_transfer>,
+			std::shared_ptr<asio2::socks5_udp_transfer>> back_client_;
 	};
 }
 

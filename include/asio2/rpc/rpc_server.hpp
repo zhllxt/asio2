@@ -276,7 +276,10 @@ namespace asio2
 		using rpc_server_t<rpc_session_use<np>>::rpc_server_t;
 	};
 
+	using rpc_tcp_server = rpc_server_use<asio2::net_protocol::tcp>;
+	using rpc_ws_server  = rpc_server_use<asio2::net_protocol::ws>;
 	using rpc_kcp_server = rpc_server_use<asio2::net_protocol::udp>;
+
 #if !defined(ASIO2_USE_WEBSOCKET_RPC)
 	/// Using tcp dgram mode as the underlying communication support
 	using rpc_server = rpc_server_use<asio2::net_protocol::tcp>;

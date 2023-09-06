@@ -462,10 +462,53 @@ namespace asio2::detail
 	 * @tparam DataSize - The true size of the data
 	 */
 	template <std::size_t DataSize>
-	inline void swap_bytes(std::uint8_t * data) noexcept
+	inline void swap_bytes(std::uint8_t* data) noexcept
 	{
 		for (std::size_t i = 0, end = DataSize / 2; i < end; ++i)
 			std::swap(data[i], data[DataSize - i - 1]);
+	}
+
+	/**
+	 * Swaps the order of bytes for some chunk of memory
+	 * @param v - The variable reference.
+	 */
+	template <class T>
+	inline void swap_bytes(T& v) noexcept
+	{
+		std::uint8_t* p = reinterpret_cast<std::uint8_t*>(std::addressof(v));
+		swap_bytes<sizeof(T)>(p);
+	}
+
+	/**
+	 * converts the value from host to TCP/IP network byte order (which is big-endian).
+	 * @param v - The variable reference.
+	 */
+	template <class T>
+	inline T host_to_network(T v) noexcept
+	{
+		if (is_little_endian())
+		{
+			std::uint8_t* p = reinterpret_cast<std::uint8_t*>(std::addressof(v));
+			swap_bytes<sizeof(T)>(p);
+		}
+
+		return v;
+	}
+
+	/**
+	 * converts the value from TCP/IP network order to host byte order (which is little-endian on Intel processors).
+	 * @param v - The variable reference.
+	 */
+	template <class T>
+	inline T network_to_host(T v) noexcept
+	{
+		if (is_little_endian())
+		{
+			std::uint8_t* p = reinterpret_cast<std::uint8_t*>(std::addressof(v));
+			swap_bytes<sizeof(T)>(p);
+		}
+
+		return v;
 	}
 
 	template<class T, class Pointer>

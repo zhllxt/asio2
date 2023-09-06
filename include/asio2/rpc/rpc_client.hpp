@@ -277,6 +277,8 @@ namespace asio2
 		using rpc_client_t<rpc_client_use<np>, np>::rpc_client_t;
 	};
 	
+	using rpc_tcp_client = rpc_client_use<asio2::net_protocol::tcp>;
+	using rpc_ws_client  = rpc_client_use<asio2::net_protocol::ws>;
 	using rpc_kcp_client = rpc_client_use<asio2::net_protocol::udp>;
 
 #if !defined(ASIO2_USE_WEBSOCKET_RPC)

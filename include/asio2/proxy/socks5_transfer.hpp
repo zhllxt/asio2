@@ -8,8 +8,8 @@
  * file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
  */
 
-#ifndef __ASIO2_SOCKS5_CLIENT_HPP__
-#define __ASIO2_SOCKS5_CLIENT_HPP__
+#ifndef __ASIO2_SOCKS5_TRANSFER_HPP__
+#define __ASIO2_SOCKS5_TRANSFER_HPP__
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1200)
 #pragma once
@@ -18,6 +18,7 @@
 #include <asio2/base/detail/push_options.hpp>
 
 #include <asio2/tcp/tcp_client.hpp>
+#include <asio2/udp/udp_cast.hpp>
 
 namespace asio2::detail
 {
@@ -30,7 +31,7 @@ namespace asio2::detail
 	template<class, class> class socks5_session_impl_t;
 
 	template<class derived_t, class executor_t>
-	class socks5_client_impl_t
+	class socks5_transfer_impl_t
 		: public executor_t
 	{
 		ASIO2_CLASS_FRIEND_DECLARE_BASE;
@@ -43,7 +44,7 @@ namespace asio2::detail
 
 	public:
 		using super = executor_t;
-		using self  = socks5_client_impl_t<derived_t, executor_t>;
+		using self  = socks5_transfer_impl_t<derived_t, executor_t>;
 
 		using executor_type = executor_t;
 
@@ -56,7 +57,7 @@ namespace asio2::detail
 		 * @brief constructor
 		 */
 		template<class... Args>
-		explicit socks5_client_impl_t(Args&&... args)
+		explicit socks5_transfer_impl_t(Args&&... args)
 			: super(std::forward<Args>(args)...)
 		{
 			this->connect_finish_timer_ = std::make_shared<asio::steady_timer>(this->io_->context());
@@ -65,7 +66,7 @@ namespace asio2::detail
 		/**
 		 * @brief destructor
 		 */
-		~socks5_client_impl_t()
+		~socks5_transfer_impl_t()
 		{
 			this->stop();
 		}
@@ -126,28 +127,47 @@ namespace asio2::detail
 namespace asio2
 {
 	template<class derived_t, class executor_t>
-	using socks5_client_impl_t = detail::socks5_client_impl_t<derived_t, executor_t>;
+	using socks5_transfer_impl_t = detail::socks5_transfer_impl_t<derived_t, executor_t>;
 
 	/**
-	 * @brief socks5 tcp client
+	 * @brief socks5 tcp transfer
 	 */
 	template<class derived_t>
-	class socks5_tcp_client_t : public detail::socks5_client_impl_t<derived_t, tcp_client_t<derived_t>>
+	class socks5_tcp_transfer_t : public detail::socks5_transfer_impl_t<derived_t, tcp_client_t<derived_t>>
 	{
 	public:
-		using detail::socks5_client_impl_t<derived_t, tcp_client_t<derived_t>>::socks5_client_impl_t;
+		using detail::socks5_transfer_impl_t<derived_t, tcp_client_t<derived_t>>::socks5_transfer_impl_t;
 	};
 
 	/**
-	 * @brief socks5 tcp client
+	 * @brief socks5 tcp transfer
 	 */
-	class socks5_tcp_client : public socks5_tcp_client_t<socks5_tcp_client>
+	class socks5_tcp_transfer : public socks5_tcp_transfer_t<socks5_tcp_transfer>
 	{
 	public:
-		using socks5_tcp_client_t<socks5_tcp_client>::socks5_tcp_client_t;
+		using socks5_tcp_transfer_t<socks5_tcp_transfer>::socks5_tcp_transfer_t;
+	};
+
+	/**
+	 * @brief socks5 udp transfer
+	 */
+	template<class derived_t>
+	class socks5_udp_transfer_t : public detail::socks5_transfer_impl_t<derived_t, udp_cast_t<derived_t>>
+	{
+	public:
+		using detail::socks5_transfer_impl_t<derived_t, udp_cast_t<derived_t>>::socks5_transfer_impl_t;
+	};
+
+	/**
+	 * @brief socks5 udp transfer
+	 */
+	class socks5_udp_transfer : public socks5_udp_transfer_t<socks5_udp_transfer>
+	{
+	public:
+		using socks5_udp_transfer_t<socks5_udp_transfer>::socks5_udp_transfer_t;
 	};
 }
 
 #include <asio2/base/detail/pop_options.hpp>
 
-#endif // !__ASIO2_SOCKS5_CLIENT_HPP__
+#endif // !__ASIO2_SOCKS5_TRANSFER_HPP__

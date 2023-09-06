@@ -24,11 +24,17 @@ int main()
 	std::fstream hugefile("CentOS-7-x86_64-DVD-2009.iso", std::ios::out | std::ios::binary | std::ios::trunc);
 	asio2::https_client::download(asio::ssl::context{ asio::ssl::context::tlsv13 },
 		"https://mirrors.tuna.tsinghua.edu.cn/centos/7.9.2009/isos/x86_64/CentOS-7-x86_64-DVD-2009.iso",
-		//[](auto& header) // http header callback. this param is optional. the body callback is required.
-		//{
-		//	std::cout << header << std::endl;
-		//},
-		[&hugefile](std::string_view chunk) // http body callback.
+		// http header callback. this param is optional. the body callback is required.
+		[](http::response<http::string_body>& header)
+		{
+			std::cout << header << std::endl;
+			if (header.has_content_length())
+			{
+				std::cout << header.result_int() << " " << header.at(http::field::content_length) << std::endl;
+			}
+		},
+		// http body callback.
+		[&hugefile](std::string_view chunk)
 		{
 			hugefile.write(chunk.data(), chunk.size());
 		}

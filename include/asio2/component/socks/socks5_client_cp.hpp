@@ -608,55 +608,6 @@ namespace asio2
 
 namespace asio2::detail
 {
-	namespace
-	{
-		using iterator = asio::buffers_iterator<asio::streambuf::const_buffers_type>;
-		using diff_type = typename iterator::difference_type;
-
-		std::pair<iterator, bool> socks5_udp_match_role(iterator begin, iterator end) noexcept
-		{
-			// +----+------+------+----------+----------+----------+
-			// |RSV | FRAG | ATYP | DST.ADDR | DST.PORT |   DATA   |
-			// +----+------+------+----------+----------+----------+
-			// | 2  |  1   |  1   | Variable |    2     | Variable |
-			// +----+------+------+----------+----------+----------+
-
-			for (iterator p = begin; p < end;)
-			{
-				if (end - p < static_cast<diff_type>(5))
-					break;
-
-				std::uint16_t data_size = *(reinterpret_cast<const std::uint16_t*>(p.operator->()));
-
-				// use little endian
-				if (!is_little_endian())
-				{
-					swap_bytes<sizeof(std::uint16_t)>(reinterpret_cast<std::uint8_t*>(std::addressof(data_size)));
-				}
-
-				std::uint8_t atyp = std::uint8_t(p[3]);
-
-				diff_type need = 0;
-
-				// ATYP
-				if /**/ (atyp == std::uint8_t(0x01))
-					need = static_cast<diff_type>(2 + 1 + 1 + 4 + 2 + data_size);
-				else if (atyp == std::uint8_t(0x03))
-					need = static_cast<diff_type>(2 + 1 + 1 + p[4] + 2 + data_size);
-				else if (atyp == std::uint8_t(0x04))
-					need = static_cast<diff_type>(2 + 1 + 1 + 16 + 2 + data_size);
-				else
-					return std::pair(begin, true);
-
-				if (end - p < need)
-					break;
-
-				return std::pair(p + need, true);
-			}
-			return std::pair(begin, false);
-		}
-	}
-
 	template<class derived_t, class args_t>
 	class socks5_client_cp_impl
 	{
@@ -699,12 +650,6 @@ namespace asio2::detail
 				}
 			}
 		}
-
-		template<typename C>
-		inline void _socks5_init(std::shared_ptr<ecs_t<C>>& ecs)
-		{
-			detail::ignore_unused(ecs);
-		}
 	};
 
 	template<class derived_t, class args_t, typename TagType = typename args_t::tl_tag_type>
@@ -730,6 +675,11 @@ namespace asio2::detail
 
 	protected:
 		// this function name can't be set_bnd_addr, it maybe cause recursive deadloop
+		// when use udp client with socks5 option, the udp client will create a tcp client
+		// to connect to the socks5 server, and the tcp client will use the same socks5 option
+		// as the udp client's too, so the tcp client will derived from current class again,
+		// so at here, the tparam D is the tcp client with socks5 option which is the internal
+		// tcp connection of the udp client.
 		template<class D = derived_t>
 		inline void do_set_bnd_addr(std::string addr)
 		{
@@ -753,6 +703,12 @@ namespace asio2::detail
 		}
 
 	protected:
+		template<typename C>
+		inline void _socks5_init(std::shared_ptr<ecs_t<C>>& ecs)
+		{
+			detail::ignore_unused(ecs);
+		}
+
 		template<typename C, typename DeferEvent>
 		inline void _socks5_start(
 			std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs, DeferEvent chain)
@@ -772,6 +728,8 @@ namespace asio2::detail
 					(error_code ec, std::string host, std::string port) mutable
 					{
 						derived_t& derive = static_cast<derived_t&>(*this);
+
+						ASIO2_ASSERT(derive.running_in_this_thread());
 
 						this->do_set_bnd_addr(std::move(host));
 						this->do_set_bnd_port(std::move(port));
@@ -830,14 +788,39 @@ namespace asio2::detail
 			{
 				std::string_view sv = asio2::to_string_view(asio::buffer(data));
 
-				return std::forward<T>(data);
+				std::vector<std::uint8_t>& head = this->udp_data_head_;
+
+				std::uint16_t udatalen = detail::host_to_network(std::uint16_t(sv.size()));
+				std::uint8_t* pdatalen = reinterpret_cast<std::uint8_t*>(std::addressof(udatalen));
+				head[0] = pdatalen[0];
+				head[1] = pdatalen[1];
+
+				// the data is: stds::string, std::vector...
+				if constexpr (detail::has_member_insert<T>::value && !std::is_const_v<std::remove_reference_t<T>>)
+				{
+					data.insert(data.cbegin(), head.begin(), head.end());
+					return std::forward<T>(data);
+				}
+				else
+				{
+					std::string str{sv};
+					str.insert(str.cbegin(), head.begin(), head.end());
+					return str;
+				}
 			}
 
-			inline std::string_view data_filter_before_recv(std::string_view data)
-			{
+			// recvd data from the socks5 server by tcp.
+			// cant remove the socks5 protocol head, beacuse when this bind_recv is called,
+			// it will call the udp client's _fire_recv, and the _fire_recv will remove the
+			// socks5 protocol head by itself.
+			//inline std::string_view data_filter_before_recv(std::string_view data)
+			//{
+			//	auto [err, ep, domain, real_data] = asio2::socks5::parse_udp_packet(data, true);
 
-				return data;
-			}
+			//	detail::ignore_unused(err, ep, domain, real_data);
+
+			//	return real_data;
+			//}
 
 			inline void set_bnd_addr(std::string addr)
 			{
@@ -854,7 +837,13 @@ namespace asio2::detail
 				const error_code& ec,
 				std::shared_ptr<internal_socks5_client_impl> this_ptr, std::shared_ptr<ecs_t<C>> ecs, DeferEvent chain)
 			{
+				// after _post_proxy, the socks5_async_handshake will be called, and the socks5_async_handshake
+				// will use the derive.host_ and derive.port_ to as the DST.ADDR and DST.PORT of the 
+				// socks5 protocol. and this is udp, so we need set the DST.PORT to the udp client's
+				// local port.
 				this->set_port(this->dst_port_);
+
+				ASIO2_ASSERT(this->running_in_this_thread());
 
 				super::_post_proxy(ec, std::move(this_ptr), std::move(ecs), std::move(chain));
 			}
@@ -864,9 +853,24 @@ namespace asio2::detail
 
 			std::string bnd_addr_{};
 			std::string bnd_port_{};
+
+			std::vector<std::uint8_t> udp_data_head_;
 		};
 
 	protected:
+		template<typename C>
+		inline void _socks5_init(std::shared_ptr<ecs_t<C>>& ecs)
+		{
+			detail::ignore_unused(ecs);
+
+			derived_t& derive = static_cast<derived_t&>(*this);
+
+			if constexpr (ecs_helper::has_socks5<C>())
+				this->socks5_client_ = std::make_shared<internal_socks5_client_impl>(derive.io_->context());
+			else
+				std::ignore = true;
+		}
+
 		template<typename C, typename DeferEvent>
 		inline void _socks5_start(
 			std::shared_ptr<derived_t> this_ptr, std::shared_ptr<ecs_t<C>> ecs, DeferEvent chain)
@@ -877,28 +881,35 @@ namespace asio2::detail
 			{
 				this->_check_socks5_command(this_ptr, ecs);
 
-				if (this->socks5_client_ == nullptr)
-					this->socks5_client_ = std::make_shared<internal_socks5_client_impl>(derive.io_->context());
-
 				auto s5opt = ecs->get_component().socks5_option(std::in_place);
 
-				this->socks5_client_->bind_connect([&derive, this_ptr]() mutable
+				this->socks5_client_->bind_connect([]() mutable
 				{
-						
-				}).bind_disconnect([&derive, this_ptr]() mutable
+				}).bind_disconnect([&derive, wptr = derive.weak_from_this()]() mutable
 				{
-					derive._do_disconnect(asio2::get_last_error(), this_ptr);
-				}).bind_recv([&derive, this_ptr, ecs](std::string_view data) mutable
+					// socks5 connection is disconnected, so close the udp client too.
+					ASIO2_ASSERT(derive.running_in_this_thread());
+					derive._do_disconnect(asio2::get_last_error(), wptr.lock());
+				}).bind_recv([&derive, wptr = derive.weak_from_this(), ecs](std::string_view data) mutable
 				{
+					// recvd data from the socks5 server by tcp, forward the data to the udp client.
+					ASIO2_ASSERT(derive.running_in_this_thread());
+					std::shared_ptr<derived_t> this_ptr = wptr.lock();
 					derive._fire_recv(this_ptr, ecs, data);
 				});
 
+				// save this udp client's local bind port.
 				this->socks5_client_->dst_port_ = derive.get_local_port();
+
+				// disable the auto reconnect
+				this->socks5_client_->set_auto_reconnect(false);
 
 				this->socks5_client_->async_start(s5opt->host(), s5opt->port(),
 				[this, &derive, this_ptr = std::move(this_ptr), ecs = std::move(ecs), chain = std::move(chain)]
 				(error_code ec) mutable
 				{
+					ASIO2_ASSERT(derive.running_in_this_thread());
+
 					if (ec)
 					{
 						derive._handle_proxy(ec,
@@ -930,9 +941,10 @@ namespace asio2::detail
 					[&derive, this_ptr = std::move(this_ptr), ecs = std::move(ecs), chain = std::move(chain)]
 					(const error_code& ec) mutable
 					{
+						ASIO2_ASSERT(derive.running_in_this_thread());
 						derive._handle_proxy(ec, std::move(this_ptr), std::move(ecs), std::move(chain));
 					});
-				}, socks5_udp_match_role, s5opt);
+				}, detail::socks5_udp_match_role, s5opt);
 			}
 			else
 			{
@@ -946,31 +958,31 @@ namespace asio2::detail
 			if (this->socks5_client_)
 			{
 				this->socks5_client_->stop();
-				this->socks5_client_.reset();
+				//this->socks5_client_.reset();
 			}
 		}
 
+		// send data to the socks5 server by udp, we need add socks5 protocol head before the data.
 		template<class T>
 		inline auto data_filter_before_send(T&& data)
 		{
-			std::string_view sv = asio2::to_string_view(asio::buffer(data));
-
 			std::vector<std::uint8_t>& head = this->udp_data_head_;
 
 			// the data is: stds::string, std::vector...
-			if constexpr (detail::has_member_insert<T>::value)
+			if constexpr (detail::has_member_insert<T>::value && !std::is_const_v<std::remove_reference_t<T>>)
 			{
-				data.insert(data.begin(), head.begin(), head.end());
+				data.insert(data.cbegin(), head.begin(), head.end());
 				return std::forward<T>(data);
 			}
 			else
 			{
-				std::string str{sv};
-				str.insert(str.begin(), head.begin(), head.end());
+				std::string str{asio2::to_string_view(asio::buffer(data))};
+				str.insert(str.cbegin(), head.begin(), head.end());
 				return str;
 			}
 		}
 
+		// recvd data from the socks5 server by udp, we need remove the socks5 protocol head.
 		inline std::string_view data_filter_before_recv(std::string_view data)
 		{
 			auto [err, ep, domain, real_data] = asio2::socks5::parse_udp_packet(data, false);
@@ -997,29 +1009,33 @@ namespace asio2::detail
 			{
 				head.push_back(std::uint8_t(0x03));
 				head.push_back(std::uint8_t(host.size()));
-				head.insert(head.end(), host.begin(), host.end());
+				head.insert(head.cend(), host.begin(), host.end());
 			}
 			else if (addr.is_v4()) // IP V4 address: X'01'
 			{
 				head.push_back(std::uint8_t(0x01));
 				asio::ip::address_v4::bytes_type bytes = addr.to_v4().to_bytes();
-				head.insert(head.end(), bytes.begin(), bytes.end());
+				head.insert(head.cend(), bytes.begin(), bytes.end());
 			}
 			else if (addr.is_v6()) // IP V6 address: X'04'
 			{
 				head.push_back(std::uint8_t(0x04));
 				asio::ip::address_v6::bytes_type bytes = addr.to_v6().to_bytes();
-				head.insert(head.end(), bytes.begin(), bytes.end());
+				head.insert(head.cend(), bytes.begin(), bytes.end());
 			}
 
-			std::uint16_t uport = std::uint16_t(std::strtoul(port.data(), nullptr, 10));
+			std::uint16_t uport = detail::host_to_network(std::uint16_t(std::strtoul(port.data(), nullptr, 10)));
 			std::uint8_t* pport = reinterpret_cast<std::uint8_t*>(std::addressof(uport));
-			if (detail::is_little_endian())
-			{
-				swap_bytes<sizeof(std::uint16_t)>(pport);
-			}
 			head.push_back(pport[0]);
 			head.push_back(pport[1]);
+
+			// copy head to the socks5 client.
+			// this class have to save the head byself, this class can't use the head of
+			// the socks5 client, beacuse the when the socks5 stop function is called, 
+			// the socks5 client will be destroyed, but after it destoyed, the 
+			// data_filter_before_send of this class maybe called agagin, and it will read
+			// the head of the socks5 client, so it will cause crash.
+			this->socks5_client_->udp_data_head_ = this->udp_data_head_;
 		}
 
 	public:
@@ -1037,6 +1053,17 @@ namespace asio2::detail
 		{
 			return this->socks5_client_;
 		}
+
+		//template<class... Args>
+		//inline void async_send_by_socks5_connection(Args&&... args) noexcept
+		//{
+		//	ASIO2_ASSERT(this->socks5_client_ != nullptr);
+
+		//	if (this->socks5_client_)
+		//	{
+		//		this->socks5_client_->async_send(std::forward<Args>(args)...);
+		//	}
+		//}
 
 	protected:
 		std::shared_ptr<internal_socks5_client_impl> socks5_client_;

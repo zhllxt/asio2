@@ -53,7 +53,7 @@
 #include <asio2/udp/impl/udp_send_cp.hpp>
 #include <asio2/udp/impl/udp_send_op.hpp>
 
-#include <asio2/component/socks/socks5_client_cp.hpp>
+//#include <asio2/component/socks/socks5_client_cp.hpp>
 
 //#include <asio2/proxy/socks5_client.hpp>
 

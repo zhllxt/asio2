@@ -118,9 +118,9 @@ namespace asio2::socks5
 
 	public:
 		option() = default;
-		option(option&&) = default;
+		option(option&&) noexcept = default;
 		option(option const&) = default;
-		option& operator=(option&&) = default;
+		option& operator=(option&&) noexcept = default;
 		option& operator=(option const&) = default;
 
 		// constructor sfinae
@@ -269,13 +269,13 @@ namespace asio2::socks5
 		}
 
 	public:
-		options() noexcept = default;
-		~options() noexcept = default;
+		options() = default;
+		~options() = default;
 
 		options(options&&) noexcept = default;
-		options(options const&) noexcept = default;
+		options(options const&) = default;
 		options& operator=(options&&) noexcept = default;
-		options& operator=(options const&) noexcept = default;
+		options& operator=(options const&) = default;
 
 		template<class String1, class String2>
 		options(String1&& host, String2&& port)

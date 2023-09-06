@@ -25,9 +25,10 @@ int main()
 		socks5::options opts;
 		//opts.set_methods(socks5::method::anonymous);
 		opts.set_methods(socks5::method::password);
+		// set a default username and password for all clients.
 		opts.set_username("admin");
 		opts.set_password("123456");
-		// if the default username and password is wrong, then this auth callback will be called.
+		// if the default username and password is auth failed, then this auth callback will be called.
 		opts.set_auth_callback([&](const std::string& username, const std::string& password)
 		{
 			if (auto it = auths.find(username); it != auths.end())
@@ -37,10 +38,6 @@ int main()
 			return false;
 		});
 		session_ptr->set_socks5_options(std::move(opts));
-	}).bind_recv([&](auto & session_ptr, std::string_view data)
-	{
-		asio2::ignore_unused(session_ptr, data);
-
 	}).bind_connect([](auto & session_ptr)
 	{
 		printf("client enter : %s %u %s %u\n",
