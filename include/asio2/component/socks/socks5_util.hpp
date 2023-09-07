@@ -22,6 +22,8 @@
 
 namespace asio2::socks5
 {
+namespace
+{
 /**
  * @return tuple: error, endpoint, domain, real_data.
  */
@@ -132,6 +134,7 @@ std::tuple<int, asio::ip::udp::endpoint, std::string_view, std::string_view>
 	}
 
 	return { 0, std::move(endpoint), domain, data };
+}
 }
 }
 

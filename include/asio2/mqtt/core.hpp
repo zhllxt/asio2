@@ -38,8 +38,13 @@
 #include <tuple>
 #include <type_traits>
 
-#include <asio2/external/beast.hpp>
 #include <asio2/external/predef.h>
+
+#ifdef ASIO2_HEADER_ONLY
+#include <asio2/bho/beast/websocket/detail/utf8_checker.hpp>
+#else
+#include <boost/beast/websocket/detail/utf8_checker.hpp>
+#endif
 
 #include <asio2/base/detail/util.hpp>
 
@@ -268,6 +273,11 @@ namespace asio2::mqtt
 	template<class String>
 	inline bool check_utf8(String& str)
 	{
+	#ifdef ASIO2_HEADER_ONLY
+		namespace beast = ::bho::beast;
+	#else
+		namespace beast = ::boost::beast;
+	#endif
 	#if defined(ASIO2_CHECK_UTF8)
 		return beast::websocket::detail::check_utf8(str.data(), str.size());
 	#else

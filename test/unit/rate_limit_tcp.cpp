@@ -29,7 +29,7 @@ void rate_limit_tcp_test()
 			session_ptr->async_send(data);
 		});
 
-		server.start("0.0.0.0", 18102);
+		server.start("127.0.0.1", 18102);
 
 
 		asio2::tcp_rate_client client;

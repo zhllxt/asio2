@@ -54,9 +54,9 @@
 #include <asio2/udp/impl/udp_send_cp.hpp>
 #include <asio2/udp/impl/udp_send_op.hpp>
 
-#include <asio2/component/socks/socks5_client_cp.hpp>
+//#include <asio2/component/socks/socks5_client_cp.hpp>
 
-#include <asio2/proxy/socks5_client.hpp>
+//#include <asio2/proxy/socks5_client.hpp>
 
 namespace asio2::detail
 {
@@ -65,8 +65,8 @@ namespace asio2::detail
 		using socket_t = asio::ip::udp::socket;
 		using buffer_t = asio2::linear_buffer;
 
-		template<class derived_t>
-		using socks5_client_t = asio2::socks5_tcp_client_t<derived_t>;
+		//template<class derived_t>
+		//using socks5_client_t = asio2::socks5_tcp_client_t<derived_t>;
 
 		static constexpr std::size_t function_storage_size = 88;
 		static constexpr std::size_t allocator_storage_size = 256;
@@ -92,7 +92,7 @@ namespace asio2::detail
 		, public udp_send_cp       <derived_t, args_t>
 		, public udp_send_op       <derived_t, args_t>
 		, public connect_cp_member_variables<derived_t, args_t, false>
-		, public socks5_client_cp  <derived_t, args_t>
+		//, public socks5_client_cp  <derived_t, args_t>
 		, public udp_tag
 		, public cast_tag
 	{
@@ -525,7 +525,7 @@ namespace asio2::detail
 				// set port reuse
 				this->socket().set_option(asio::ip::udp::socket::reuse_address(true), ec_ignore);
 
-				derive._socks5_init(ecs);
+				//derive._socks5_init(ecs);
 
 				clear_last_error();
 
@@ -579,17 +579,17 @@ namespace asio2::detail
 
 			ASIO2_ASSERT(derive.io_->running_in_this_thread());
 
-			if constexpr (std::is_base_of_v<component_tag, detail::remove_cvref_t<C>>)
-			{
-				if (ec)
-					return derive._handle_proxy(ec, std::move(this_ptr), std::move(ecs), std::move(chain));
+			//if constexpr (std::is_base_of_v<component_tag, detail::remove_cvref_t<C>>)
+			//{
+			//	if (ec)
+			//		return derive._handle_proxy(ec, std::move(this_ptr), std::move(ecs), std::move(chain));
 
-				if constexpr (C::has_socks5())
-					derive._socks5_start(std::move(this_ptr), std::move(ecs), std::move(chain));
-				else
-					derive._handle_proxy(ec, std::move(this_ptr), std::move(ecs), std::move(chain));
-			}
-			else
+			//	if constexpr (C::has_socks5())
+			//		derive._socks5_start(std::move(this_ptr), std::move(ecs), std::move(chain));
+			//	else
+			//		derive._handle_proxy(ec, std::move(this_ptr), std::move(ecs), std::move(chain));
+			//}
+			//else
 			{
 				derive._handle_proxy(ec, std::move(this_ptr), std::move(ecs), std::move(chain));
 			}
@@ -729,7 +729,7 @@ namespace asio2::detail
 			// close all async_events
 			derive.notify_all_condition_events();
 
-			derive._socks5_stop();
+			//derive._socks5_stop();
 
 			error_code ec_ignore{};
 

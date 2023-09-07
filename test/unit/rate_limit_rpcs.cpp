@@ -271,7 +271,7 @@ void rate_limit_rpcs_test()
 		server.set_cert_buffer(ca_crt, server_crt, server_key, "123456");
 		server.set_dh_buffer(dh);
 
-		server.start("0.0.0.0", 18102);
+		server.start("127.0.0.1", 18102);
 
 		// "fn" should be declared before "client", beacuse when the client destroying, the client
 		// async_call's response callback maybe still be invoked, so if the "fn" is declared after

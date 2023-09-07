@@ -29,7 +29,7 @@ void rate_limit_http_test()
 			rep.fill_text(req.target());
 		});
 
-		server.start("0.0.0.0", 18102);
+		server.start("127.0.0.1", 18102);
 
 
 		asio2::http_rate_client client;

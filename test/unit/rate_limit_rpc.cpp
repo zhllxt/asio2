@@ -34,7 +34,7 @@ void rate_limit_rpc_test()
 			return str;
 		});
 
-		server.start("0.0.0.0", 18102);
+		server.start("127.0.0.1", 18102);
 
 		// "fn" should be declared before "client", beacuse when the client destroying, the client
 		// async_call's response callback maybe still be invoked, so if the "fn" is declared after

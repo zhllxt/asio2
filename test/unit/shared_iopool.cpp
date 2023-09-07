@@ -164,7 +164,7 @@ void shared_iopool_test()
 
 	ptr->notify();
 
-	cast1.start("0.0.0.0", 4444);
+	cast1.start("127.0.0.1", 4444);
 
 	std::this_thread::sleep_for(std::chrono::milliseconds(2 + std::rand() % 5));
 
@@ -379,7 +379,7 @@ void shared_iopool_test()
 
 	ptr->notify();
 
-	cast1.start("0.0.0.0", 4444);
+	cast1.start("127.0.0.1", 4444);
 
 	std::this_thread::sleep_for(std::chrono::milliseconds(10 + std::rand() % 10));
 
@@ -403,7 +403,7 @@ void shared_iopool_test()
 
 	ptr = cast1.post_condition_event([]() {});
 
-	cast1.start("0.0.0.0", 4444);
+	cast1.start("127.0.0.1", 4444);
 
 	//-----------------------------------------------------------------------------------
 

@@ -204,6 +204,24 @@ include $(BUILD_EXECUTABLE)
 
 include $(CLEAR_VARS)
 LOCAL_C_INCLUDES += $(ASIO2_INCLUDE)
+LOCAL_MODULE := socks5_rpc.out
+LOCAL_SRC_FILES := $(ASIO2_TEST_DIR)/unit/socks5_rpc.cpp
+include $(BUILD_EXECUTABLE)
+
+include $(CLEAR_VARS)
+LOCAL_C_INCLUDES += $(ASIO2_INCLUDE)
+LOCAL_MODULE := socks5_tcp.out
+LOCAL_SRC_FILES := $(ASIO2_TEST_DIR)/unit/socks5_tcp.cpp
+include $(BUILD_EXECUTABLE)
+
+include $(CLEAR_VARS)
+LOCAL_C_INCLUDES += $(ASIO2_INCLUDE)
+LOCAL_MODULE := socks5_udp.out
+LOCAL_SRC_FILES := $(ASIO2_TEST_DIR)/unit/socks5_udp.cpp
+include $(BUILD_EXECUTABLE)
+
+include $(CLEAR_VARS)
+LOCAL_C_INCLUDES += $(ASIO2_INCLUDE)
 LOCAL_MODULE := start_stop.out
 LOCAL_SRC_FILES := $(ASIO2_TEST_DIR)/unit/start_stop.cpp
 LOCAL_STATIC_LIBRARIES += libssl

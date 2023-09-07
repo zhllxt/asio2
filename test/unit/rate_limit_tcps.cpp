@@ -263,7 +263,7 @@ void rate_limit_tcps_test()
             ASIO2_CHECK(data.size() <= 256);
 		});
 
-		server.start("0.0.0.0", 18102);
+		server.start("127.0.0.1", 18102);
 
 
 		asio2::tcps_rate_client client;
