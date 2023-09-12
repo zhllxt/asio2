@@ -515,13 +515,14 @@ namespace asio2::detail
 					{
 						if (!ec)
 							ec = socks5::make_error_code(socks5::error::host_unreachable);
-						goto end;
 					}
+					else
+					{
+						ASIO_CORO_YIELD
+							connect_finish_timer->async_wait(std::move(self));
 
-					ASIO_CORO_YIELD
-						connect_finish_timer->async_wait(std::move(self));
-
-					ec = get_last_error();
+						ec = get_last_error();
+					}
 
 					if (!ec)
 						p[1] = char(0x00);
