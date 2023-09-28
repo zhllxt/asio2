@@ -11,7 +11,7 @@
 #define BHO_BEAST_CORE_DETAIL_FLAT_STREAM_HPP
 
 #include <asio2/bho/beast/core/buffer_traits.hpp>
-#include <asio2/external/asio.hpp>
+#include <asio2/bho/asio/buffer.hpp>
 #include <cstdlib>
 
 namespace bho {

@@ -27,7 +27,9 @@ struct file : file_stdio
 {
 };
 #else
+#if 1
 using file = file_stdio;
+#endif
 #endif
 
 } // beast

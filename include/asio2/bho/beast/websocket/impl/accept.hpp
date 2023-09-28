@@ -22,7 +22,8 @@
 #include <asio2/bho/beast/core/stream_traits.hpp>
 #include <asio2/bho/beast/core/detail/buffer.hpp>
 #include <asio2/bho/beast/version.hpp>
-#include <asio2/external/asio.hpp>
+#include <asio2/bho/asio/coroutine.hpp>
+#include <asio2/bho/asio/post.hpp>
 #include <asio2/bho/assert.hpp>
 #include <asio2/bho/throw_exception.hpp>
 #include <memory>
@@ -165,7 +166,7 @@ template<class Handler>
 class stream<NextLayer, deflateSupported>::response_op
     : public beast::stable_async_base<
         Handler, beast::executor_type<stream>>
-    , public net::coroutine
+    , public asio::coroutine
 {
     std::weak_ptr<impl_type> wp_;
     error_code result_; // must come before res_
@@ -246,7 +247,7 @@ template<class Handler, class Decorator>
 class stream<NextLayer, deflateSupported>::accept_op
     : public beast::stable_async_base<
         Handler, beast::executor_type<stream>>
-    , public net::coroutine
+    , public asio::coroutine
 {
     std::weak_ptr<impl_type> wp_;
     http::request_parser<http::empty_body>& p_;

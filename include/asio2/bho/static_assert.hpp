@@ -15,7 +15,7 @@
 #define BHO_STATIC_ASSERT_HPP
 
 #include <asio2/bho/config.hpp>
-#include <asio2/bho/config/workaround.hpp>
+#include <asio2/bho/detail/workaround.hpp>
 #include <cstddef> //for std::size_t
 
 #if defined(__GNUC__) && !defined(__GXX_EXPERIMENTAL_CXX0X__)

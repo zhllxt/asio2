@@ -11,6 +11,7 @@
 #define BHO_BEAST_DETAIL_TYPE_TRAITS_HPP
 
 #include <type_traits>
+#include <type_traits>
 #include <new>
 
 namespace bho {

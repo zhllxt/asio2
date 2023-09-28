@@ -13,7 +13,8 @@
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/core/basic_stream.hpp>
 #include <asio2/bho/beast/core/rate_policy.hpp>
-#include <asio2/external/asio.hpp>
+#include <asio2/bho/asio/executor.hpp>
+#include <asio2/bho/asio/ip/tcp.hpp>
 
 namespace bho {
 namespace beast {

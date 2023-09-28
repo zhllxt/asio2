@@ -38,23 +38,13 @@
 #ifndef BHO_BEAST_ZLIB_IMPL_ERROR_HPP
 #define BHO_BEAST_ZLIB_IMPL_ERROR_HPP
 
-#ifdef ASIO_STANDALONE
 namespace std {
-#else
-namespace boost {
-namespace system {
-#endif
 template<>
 struct is_error_code_enum<::bho::beast::zlib::error>
 {
     static bool const value = true;
 };
-#ifdef ASIO_STANDALONE
-} // std
-#else
-} // system
-} // boost
-#endif
+} // bho
 
 namespace bho {
 namespace beast {

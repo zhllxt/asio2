@@ -20,7 +20,6 @@
 #include <cstdio>
 #include <cstdint>
 #include <utility>
-#include <memory>
 
 namespace bho {
 namespace beast {
@@ -352,6 +351,12 @@ writer(header<isRequest, Fields>& h, value_type& b)
     : body_(b)
 {
     bho::ignore_unused(h);
+
+    // The file must already be open
+    //BHO_ASSERT(body_.file_->is_open());
+
+    // Get the size of the file
+    remain_ = body_.file_size_;
 }
 
 // Initializer
@@ -361,6 +366,12 @@ basic_file_body<File>::
 writer::
 init(error_code& ec)
 {
+    // The error_code specification requires that we
+    // either set the error to some value, or set it
+    // to indicate no error.
+    //
+    // We don't do anything fancy so set "no error"
+
     // The file must already be open
     BHO_ASSERT(body_.file_->is_open());
 
@@ -369,13 +380,7 @@ init(error_code& ec)
     // Get the size of the file
     remain_ = ec ? 0 : body_.file_size_;
 
-    // The error_code specification requires that we
-    // either set the error to some value, or set it
-    // to indicate no error.
-    //
-    // We don't do anything fancy so set "no error"
     //ec = {};
-
 }
 
 // This function is called repeatedly by the serializer to
@@ -524,7 +529,7 @@ init(
     error_code& ec)
 {
     // The file must already be open for writing
-	BHO_ASSERT(body_.file_->is_open());
+    BHO_ASSERT(body_.file_->is_open());
 
     // We don't do anything with this but a sophisticated
     // application might check available space on the device

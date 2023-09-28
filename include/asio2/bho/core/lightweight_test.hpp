@@ -147,7 +147,7 @@ inline void no_throw_failed_impl(const char* expr, const char* what, const char*
 }
 
 // In the comparisons below, it is possible that T and U are signed and unsigned integer types, which generates warnings in some compilers.
-// A cleaner fix would require common_type trait or some meta-programming, which would introduce a dependency on Boost.TypeTraits. To avoid
+// A cleaner fix would require common_type trait or some meta-programming, which would introduce a dependency on BHO.TypeTraits. To avoid
 // the dependency we just disable the warnings.
 #if defined(__clang__) && defined(__has_warning)
 # if __has_warning("-Wsign-compare")

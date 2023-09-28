@@ -12,16 +12,12 @@
 
 #include <asio2/bho/beast/core/detail/tuple.hpp>
 #include <asio2/bho/beast/core/detail/variant.hpp>
-//#include <asio2/bho/beast/core/mp_with_index.hpp>
-#include <asio2/bho/mp11/algorithm.hpp>
-#include <asio2/external/asio.hpp>
+#include <asio2/bho/asio/buffer.hpp>
 #include <cstdint>
 #include <iterator>
 #include <new>
 #include <stdexcept>
 #include <utility>
-#include <tuple>
-#include <variant>
 
 namespace bho {
 namespace beast {
@@ -126,8 +122,8 @@ class buffers_cat_view<Bn...>::const_iterator
     static_assert(sizeof...(Bn) >= 2,
         "A minimum of two sequences are required");
 
-    std::tuple<Bn...> const* bn_ = nullptr;
-    std::variant<
+    detail::tuple<Bn...> const* bn_ = nullptr;
+    detail::variant<
         buffers_iterator_type<Bn>..., past_end> it_{};
 
     friend class buffers_cat_view<Bn...>;
@@ -178,28 +174,28 @@ public:
 
 private:
     const_iterator(
-        std::tuple<Bn...> const& bn,
+        detail::tuple<Bn...> const& bn,
         std::true_type);
 
     const_iterator(
-        std::tuple<Bn...> const& bn,
+        detail::tuple<Bn...> const& bn,
         std::false_type);
 
     struct dereference
     {
         const_iterator const& self;
 
-        //reference
-        //operator()(mp11::mp_size_t<0>)
-        //{
-        //    BHO_BEAST_LOGIC_ERROR_RETURN({},
-        //        "Dereferencing a default-constructed iterator");
-        //}
+        reference
+        operator()(mp11::mp_size_t<0>)
+        {
+            BHO_BEAST_LOGIC_ERROR_RETURN({},
+                "Dereferencing a default-constructed iterator");
+        }
 
         template<class I>
         reference operator()(I)
         {
-            return *std::get<I::value>(self.it_);
+            return *self.it_.template get<I::value>();
         }
     };
 
@@ -207,38 +203,38 @@ private:
     {
         const_iterator& self;
 
-        //void
-        //operator()(mp11::mp_size_t<0>)
-        //{
-        //    BHO_BEAST_LOGIC_ERROR(
-        //        "Incrementing a default-constructed iterator");
-        //}
+        void
+        operator()(mp11::mp_size_t<0>)
+        {
+            BHO_BEAST_LOGIC_ERROR(
+                "Incrementing a default-constructed iterator");
+        }
 
         template<std::size_t I>
         void
         operator()(mp11::mp_size_t<I>)
         {
-            ++std::get<I>(self.it_);
-            next(mp11::mp_size_t<I+1>{});
+            ++self.it_.template get<I>();
+            next(mp11::mp_size_t<I>{});
         }
 
         template<std::size_t I>
         void
         next(mp11::mp_size_t<I>)
         {
-            auto& it = std::get<I-1>(self.it_);
+            auto& it = self.it_.template get<I>();
             for(;;)
             {
                 if (it == net::buffer_sequence_end(
-                        std::get<I-1>(*self.bn_)))
+                        detail::get<I-1>(*self.bn_)))
                     break;
                 if(net::const_buffer(*it).size() > 0)
                     return;
                 ++it;
             }
-            self.it_.template emplace<I>(
+            self.it_.template emplace<I+1>(
                 net::buffer_sequence_begin(
-                    std::get<I>(*self.bn_)));
+                    detail::get<I>(*self.bn_)));
             next(mp11::mp_size_t<I+1>{});
         }
 
@@ -246,7 +242,7 @@ private:
         operator()(mp11::mp_size_t<sizeof...(Bn)>)
         {
             auto constexpr I = sizeof...(Bn);
-            ++std::get<I-1>(self.it_);
+            ++self.it_.template get<I>();
             next(mp11::mp_size_t<I>{});
         }
 
@@ -254,18 +250,18 @@ private:
         next(mp11::mp_size_t<sizeof...(Bn)>)
         {
             auto constexpr I = sizeof...(Bn);
-            auto& it = std::get<I-1>(self.it_);
+            auto& it = self.it_.template get<I>();
             for(;;)
             {
                 if (it == net::buffer_sequence_end(
-                        std::get<I-1>(*self.bn_)))
+                        detail::get<I-1>(*self.bn_)))
                     break;
                 if(net::const_buffer(*it).size() > 0)
                     return;
                 ++it;
             }
             // end
-            self.it_.template emplace<I>();
+            self.it_.template emplace<I+1>();
         }
 
         void
@@ -283,13 +279,20 @@ private:
         void
         operator()(mp11::mp_size_t<0>)
         {
-            auto constexpr I = 0;
+            BHO_BEAST_LOGIC_ERROR(
+                "Decrementing a default-constructed iterator");
+        }
 
-            auto& it = std::get<I>(self.it_);
+        void
+        operator()(mp11::mp_size_t<1>)
+        {
+            auto constexpr I = 1;
+
+            auto& it = self.it_.template get<I>();
             for(;;)
             {
                 if(it == net::buffer_sequence_begin(
-                    std::get<I>(*self.bn_)))
+                    detail::get<I-1>(*self.bn_)))
                 {
                     BHO_BEAST_LOGIC_ERROR(
                         "Decrementing an iterator to the beginning");
@@ -304,11 +307,11 @@ private:
         void
         operator()(mp11::mp_size_t<I>)
         {
-            auto& it = std::get<I>(self.it_);
+            auto& it = self.it_.template get<I>();
             for(;;)
             {
                 if(it == net::buffer_sequence_begin(
-                        std::get<I>(*self.bn_)))
+                        detail::get<I-1>(*self.bn_)))
                     break;
                 --it;
                 if(net::const_buffer(*it).size() > 0)
@@ -316,17 +319,17 @@ private:
             }
             self.it_.template emplace<I-1>(
                 net::buffer_sequence_end(
-					std::get<I-1>(*self.bn_)));
+                    detail::get<I-2>(*self.bn_)));
             (*this)(mp11::mp_size_t<I-1>{});
         }
 
         void
-        operator()(mp11::mp_size_t<sizeof...(Bn)>)
+        operator()(mp11::mp_size_t<sizeof...(Bn)+1>)
         {
-            auto constexpr I = sizeof...(Bn);
+            auto constexpr I = sizeof...(Bn)+1;
             self.it_.template emplace<I-1>(
                 net::buffer_sequence_end(
-					std::get<I-1>(*self.bn_)));
+                    detail::get<I-2>(*self.bn_)));
             (*this)(mp11::mp_size_t<I-1>{});
         }
     };
@@ -338,25 +341,25 @@ template<class... Bn>
 buffers_cat_view<Bn...>::
 const_iterator::
 const_iterator(
-    std::tuple<Bn...> const& bn,
+    detail::tuple<Bn...> const& bn,
     std::true_type)
     : bn_(&bn)
 {
     // one past the end
-    it_.template emplace<sizeof...(Bn)>();
+    it_.template emplace<sizeof...(Bn)+1>();
 }
 
 template<class... Bn>
 buffers_cat_view<Bn...>::
 const_iterator::
 const_iterator(
-    std::tuple<Bn...> const& bn,
+    detail::tuple<Bn...> const& bn,
     std::false_type)
     : bn_(&bn)
 {
-    it_.template emplace<0>(
+    it_.template emplace<1>(
         net::buffer_sequence_begin(
-            std::get<0>(*bn_)));
+            detail::get<0>(*bn_)));
     increment{*this}.next(
         mp11::mp_size_t<1>{});
 }
@@ -378,7 +381,7 @@ operator*() const ->
     reference
 {
     return mp11::mp_with_index<
-        sizeof...(Bn) + 1>(
+        sizeof...(Bn) + 2>(
             it_.index(),
             dereference{*this});
 }
@@ -391,7 +394,7 @@ operator++() ->
     const_iterator&
 {
     mp11::mp_with_index<
-        sizeof...(Bn) + 1>(
+        sizeof...(Bn) + 2>(
             it_.index(),
             increment{*this});
     return *this;
@@ -417,7 +420,7 @@ operator--() ->
     const_iterator&
 {
     mp11::mp_with_index<
-        sizeof...(Bn) + 1>(
+        sizeof...(Bn) + 2>(
             it_.index(),
             decrement{*this});
     return *this;

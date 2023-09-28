@@ -376,7 +376,7 @@ doWrite(z_params& zs, std::optional<Flush> flush, error_code& ec)
 
     // value of flush param for previous deflate call
     auto old_flush = std::make_optional<Flush>(
-        last_flush_ ? (*last_flush_) : Flush::none);
+        last_flush_ ? *last_flush_ : Flush::none);
 
     last_flush_ = flush;
 

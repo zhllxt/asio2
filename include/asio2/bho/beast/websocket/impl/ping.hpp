@@ -16,7 +16,8 @@
 #include <asio2/bho/beast/core/detail/bind_continuation.hpp>
 #include <asio2/bho/beast/websocket/detail/frame.hpp>
 #include <asio2/bho/beast/websocket/impl/stream_impl.hpp>
-#include <asio2/external/asio.hpp>
+#include <asio2/bho/asio/coroutine.hpp>
+#include <asio2/bho/asio/post.hpp>
 #include <asio2/bho/throw_exception.hpp>
 #include <memory>
 
@@ -34,7 +35,7 @@ template<class Handler>
 class stream<NextLayer, deflateSupported>::ping_op
     : public beast::stable_async_base<
         Handler, beast::executor_type<stream>>
-    , public net::coroutine
+    , public asio::coroutine
 {
     std::weak_ptr<impl_type> wp_;
     detail::frame_buffer& fb_;
@@ -132,7 +133,7 @@ public:
 template<class NextLayer, bool deflateSupported>
 template<class Executor>
 class stream<NextLayer, deflateSupported>::idle_ping_op
-    : public net::coroutine
+    : public asio::coroutine
     , public bho::empty_value<Executor>
 {
     std::weak_ptr<impl_type> wp_;

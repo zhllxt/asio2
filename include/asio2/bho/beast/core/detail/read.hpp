@@ -14,7 +14,7 @@
 #include <asio2/bho/beast/core/error.hpp>
 #include <asio2/bho/beast/core/stream_traits.hpp>
 #include <asio2/bho/beast/core/detail/is_invocable.hpp>
-#include <asio2/external/asio.hpp>
+#include <asio2/bho/asio/async_result.hpp>
 #include <cstdlib>
 
 namespace bho {

@@ -11,7 +11,7 @@
 #define BHO_BEAST_HTTP_IMPL_BASIC_PARSER_HPP
 
 #include <asio2/bho/beast/core/buffer_traits.hpp>
-#include <asio2/external/asio.hpp>
+#include <asio2/bho/asio/buffer.hpp>
 
 namespace bho {
 namespace beast {

@@ -71,12 +71,12 @@
 // #define BHO_DISABLE_ABI_HEADERS
 
 // BHO_ABI_PREFIX: A prefix header to include in place of whatever
-// boost.config would normally select, any replacement should set up 
+// bho.config would normally select, any replacement should set up 
 // struct packing and alignment options as required. 
 // #define BHO_ABI_PREFIX my-header-name
 
 // BHO_ABI_SUFFIX: A suffix header to include in place of whatever 
-// boost.config would normally select, any replacement should undo 
+// bho.config would normally select, any replacement should undo 
 // the effects of the prefix header. 
 // #define BHO_ABI_SUFFIX my-header-name
 
@@ -119,7 +119,7 @@
 // that feature off.
 // #define BHO_WHATEVER_NO_LIB
  
-// BHO_LIB_BUILDID: Set to the same value as the value passed to Boost.Build's
+// BHO_LIB_BUILDID: Set to the same value as the value passed to BHO.Build's
 // --buildid command line option.  For example if you built using:
 //
 // bjam address-model=64 --buildid=amd64

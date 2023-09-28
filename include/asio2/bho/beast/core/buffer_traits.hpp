@@ -13,7 +13,7 @@
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/core/detail/buffer_traits.hpp>
 #include <asio2/bho/beast/core/detail/static_const.hpp>
-#include <asio2/external/asio.hpp>
+#include <asio2/bho/asio/buffer.hpp>
 #include <asio2/bho/config/workaround.hpp>
 #include <asio2/bho/mp11/function.hpp>
 #include <type_traits>
@@ -35,9 +35,6 @@ template<class... BufferSequence>
 #if BHO_BEAST_DOXYGEN
 using is_const_buffer_sequence = __see_below__;
 #else
-//using is_const_buffer_sequence = std::integral_constant<bool,
-//    (net::is_const_buffer_sequence<
-//        typename std::decay<BufferSequence>::type>::value && ...)>;
 using is_const_buffer_sequence = mp11::mp_all<
     net::is_const_buffer_sequence<
         typename std::decay<BufferSequence>::type>...>;
@@ -57,24 +54,10 @@ template<class... BufferSequence>
 #if BHO_BEAST_DOXYGEN
 using is_mutable_buffer_sequence = __see_below__;
 #else
-//using is_mutable_buffer_sequence = std::integral_constant<bool,
-//    (net::is_mutable_buffer_sequence<
-//        typename std::decay<BufferSequence>::type>::value && ...)>;
 using is_mutable_buffer_sequence = mp11::mp_all<
     net::is_mutable_buffer_sequence<
         typename std::decay<BufferSequence>::type>...>;
 #endif
-
-namespace detail {
-
-	template<class... BufferSequence>
-	struct buffers_type_impl
-	{
-		using type = typename std::conditional<
-			(is_mutable_buffer_sequence<BufferSequence>::value && ...),
-			net::mutable_buffer, net::const_buffer>::type;
-	};
-}
 
 /** Type alias for the underlying buffer type of a list of buffer sequence types.
 
@@ -113,7 +96,9 @@ template<class... BufferSequence>
 #if BHO_BEAST_DOXYGEN
 using buffers_type = __see_below__;
 #else
-using buffers_type = typename detail::buffers_type_impl<BufferSequence...>::type;
+using buffers_type = typename std::conditional<
+    is_mutable_buffer_sequence<BufferSequence...>::value,
+    net::mutable_buffer, net::const_buffer>::type;
 #endif
 
 /** Type alias for the iterator type of a buffer sequence type.

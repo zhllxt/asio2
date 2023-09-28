@@ -50,7 +50,7 @@
 // Note that GLIBC is a bit inconsistent about whether int64_t is defined or not
 // depending upon what headers happen to have been included first...
 // so we disable use of stdint.h when GLIBC does not define __GLIBC_HAVE_LONG_LONG.
-// See https://svn.boost.org/trac/boost/ticket/3548 and http://sources.redhat.com/bugzilla/show_bug.cgi?id=10990
+// See https://svn.boost.org/trac/bho/ticket/3548 and http://sources.redhat.com/bugzilla/show_bug.cgi?id=10990
 //
 #if defined(BHO_HAS_STDINT_H)            \
   && (!defined(__GLIBC__)                  \
@@ -420,7 +420,7 @@ INT#_C macros if they're not already defined (John Maddock).
    (!defined(INT8_C) || !defined(INT16_C) || !defined(INT32_C) || !defined(INT64_C))
 //
 // Undef the macros as a precaution, since we may get here if <stdint.h> has failed
-// to define them all, see https://svn.boost.org/trac/boost/ticket/12786
+// to define them all, see https://svn.boost.org/trac/bho/ticket/12786
 //
 #undef INT8_C
 #undef INT16_C

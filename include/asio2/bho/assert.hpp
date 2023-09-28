@@ -22,7 +22,7 @@
 //
 // Stop inspect complaining about use of 'assert':
 //
-// boostinspect:naassert_macro
+// bhoinspect:naassert_macro
 //
 
 //

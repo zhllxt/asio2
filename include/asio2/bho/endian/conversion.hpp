@@ -1,4 +1,4 @@
-//  boost/endian/conversion.hpp  -------------------------------------------------------//
+//  bho/endian/conversion.hpp  -------------------------------------------------------//
 
 //  Copyright Beman Dawes 2010, 2011, 2014
 
@@ -8,12 +8,11 @@
 #ifndef BHO_ENDIAN_CONVERSION_HPP
 #define BHO_ENDIAN_CONVERSION_HPP
 
-#include <type_traits>
-
 #include <asio2/bho/endian/detail/endian_reverse.hpp>
 #include <asio2/bho/endian/detail/endian_load.hpp>
 #include <asio2/bho/endian/detail/endian_store.hpp>
 #include <asio2/bho/endian/detail/order.hpp>
+#include <type_traits>
 #include <asio2/bho/static_assert.hpp>
 #include <asio2/bho/cstdint.hpp>
 #include <asio2/bho/config.hpp>

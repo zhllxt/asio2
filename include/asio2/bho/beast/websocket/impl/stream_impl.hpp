@@ -30,7 +30,7 @@
 #include <asio2/bho/beast/core/static_buffer.hpp>
 #include <asio2/bho/beast/core/stream_traits.hpp>
 #include <asio2/bho/beast/core/detail/clamp.hpp>
-#include <asio2/external/asio.hpp>
+#include <asio2/bho/asio/steady_timer.hpp>
 #include <asio2/bho/core/empty_value.hpp>
 #include <optional>
 
@@ -155,7 +155,6 @@ struct stream<NextLayer, deflateSupported>::impl_type
         timed_out = false;
         cr.code = close_code::none;
         role = role_;
-		BHO_ASSERT(status_ != status::open);
         status_ = status::open;
         rd_remain = 0;
         rd_cont = false;
@@ -938,6 +937,7 @@ void
 stream<NextLayer, deflateSupported>::impl_type::
 write_close(DynamicBuffer& db, close_reason const& cr)
 {
+    using namespace bho::endian;
     detail::frame_header fh;
     fh.op = detail::opcode::close;
     fh.fin = true;

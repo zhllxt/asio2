@@ -10,7 +10,7 @@
 #ifndef BHO_BEAST_CORE_DETAIL_STREAM_BASE_HPP
 #define BHO_BEAST_CORE_DETAIL_STREAM_BASE_HPP
 
-#include <asio2/external/asio.hpp>
+#include <asio2/bho/asio/steady_timer.hpp>
 #include <asio2/bho/assert.hpp>
 #include <asio2/bho/core/exchange.hpp>
 #include <chrono>

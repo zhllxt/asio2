@@ -101,9 +101,7 @@ open(char const* path, file_mode mode, error_code& ec)
         f_ = nullptr;
     }
     ec = {};
-
     char const* s;
-
     switch(mode)
     {
     default:
@@ -285,3 +283,4 @@ write(void const* buffer, std::size_t n, error_code& ec)
 #endif
 
 #endif
+

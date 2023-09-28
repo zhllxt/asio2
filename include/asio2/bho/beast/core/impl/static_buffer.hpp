@@ -10,7 +10,7 @@
 #ifndef BHO_BEAST_IMPL_STATIC_BUFFER_HPP
 #define BHO_BEAST_IMPL_STATIC_BUFFER_HPP
 
-#include <asio2/external/asio.hpp>
+#include <asio2/bho/asio/buffer.hpp>
 #include <stdexcept>
 
 namespace bho {

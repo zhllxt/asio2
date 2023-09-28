@@ -1,8 +1,8 @@
 #ifndef BHO_BEAST_CORE_DETAIL_WORK_GUARD_HPP
 #define BHO_BEAST_CORE_DETAIL_WORK_GUARD_HPP
 
-#include <asio2/external/asio.hpp>
-#include <asio2/bho/assert.hpp>
+#include <asio2/bho/asio/executor_work_guard.hpp>
+#include <asio2/bho/asio/execution.hpp>
 #include <optional>
 
 namespace bho {
@@ -34,9 +34,9 @@ struct select_work_guard
 template<class Executor>
 struct execution_work_guard
 {
-    using executor_type = typename std::decay<decltype(
+    using executor_type = decltype(
         net::prefer(std::declval<Executor const&>(),
-            net::execution::outstanding_work.tracked))>::type;
+            net::execution::outstanding_work.tracked));
 
     execution_work_guard(Executor const& exec)
     : ex_(net::prefer(exec, net::execution::outstanding_work.tracked))

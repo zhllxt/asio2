@@ -200,7 +200,7 @@
 #  define BHO_NO_COMPLETE_VALUE_INITIALIZATION
 
 #  if defined(NDEBUG) && defined(__cplusplus)
-      // fix broken <cstring> so that Boost.test works:
+      // fix broken <cstring> so that BHO.test works:
 #     include <cstring>
 #     undef strcmp
 #  endif

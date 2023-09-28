@@ -366,7 +366,7 @@
 // last known and checked version is 8.1:
 #if (BHO_GCC_VERSION > 80100)
 #  if defined(BHO_ASSERT_CONFIG)
-#     error "Boost.Config is older than your compiler - please check for an updated Boost release."
+#     error "BHO.Config is older than your compiler - please check for an updated Boost release."
 #  else
 // we don't emit warnings here anymore since there are no defect macros defined for
 // gcc post 3.4, so any failures are gcc regressions...

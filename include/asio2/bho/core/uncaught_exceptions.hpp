@@ -13,7 +13,6 @@
  *
  * The code in this file is based on the implementation by Evgeny Panasyuk:
  *
- * https://github.com/panaseleus/stack_unwinding/blob/master/boost/exception/uncaught_exception_count.hpp
  */
 
 #ifndef BHO_CORE_UNCAUGHT_EXCEPTIONS_HPP_INCLUDED_

@@ -40,7 +40,6 @@ BHO_NORETURN void throw_exception( std::exception const & e, bho::source_locatio
 
 #endif
 
-
 // All boost exceptions are required to derive from std::exception,
 // to ensure compatibility with BHO_NO_EXCEPTIONS.
 
@@ -75,8 +74,7 @@ template<class E> BHO_NORETURN void throw_exception( E const & e )
 template<class E> BHO_NORETURN void throw_exception( E const & e, bho::source_location const & loc )
 {
     throw_exception_assert_compatibility( e );
-    ((void)loc);
-    throw e;
+    ((void)loc); throw e;
 }
 
 #endif // defined( BHO_EXCEPTION_DISABLE )

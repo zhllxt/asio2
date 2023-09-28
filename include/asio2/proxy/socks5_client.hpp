@@ -99,8 +99,8 @@ namespace asio2::detail
 				std::forward<String>(host), std::forward<StrOrInt>(port), std::forward<Args>(args)...);
 
 			derive.connect_finish_timer_->expires_after(f ?
-				std::chrono::steady_clock::duration::max() :
-				std::chrono::steady_clock::duration::zero());
+				(std::chrono::steady_clock::duration::max)() :
+				(std::chrono::steady_clock::duration::zero)());
 
 			return asio::async_compose<CompletionToken, void(asio::error_code)>(
 				detail::wait_timer_op{*(derive.connect_finish_timer_)},

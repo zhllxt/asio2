@@ -15,15 +15,10 @@
 #include <asio2/bho/version.hpp>
 #include <asio2/bho/core/ignore_unused.hpp>
 #include <asio2/bho/static_assert.hpp>
-#include <asio2/external/asio.hpp>
 
 namespace bho {
 namespace beast {
-#ifdef ASIO_STANDALONE
 namespace net = ::asio;
-#else
-namespace net = ::boost::asio;
-#endif
 } // beast
 } // bho
 

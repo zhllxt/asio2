@@ -117,8 +117,8 @@ namespace bho { namespace pfr { namespace detail {
         }
     };
 
-    // Hash combine functions copied from Boost.ContainerHash
-    // https://github.com/boostorg/container_hash/blob/171c012d4723c5e93cc7cffe42919afdf8b27dfa/include/boost/container_hash/hash.hpp#L311
+    // Hash combine functions copied from BHO.ContainerHash
+    // https://github.com/boostorg/container_hash/blob/171c012d4723c5e93cc7cffe42919afdf8b27dfa/include/bho/container_hash/hash.hpp#L311
     // that is based on Peter Dimov's proposal
     // http://www.open-std.org/JTC1/SC22/WG21/docs/papers/2005/n1756.pdf
     // issue 6.18.

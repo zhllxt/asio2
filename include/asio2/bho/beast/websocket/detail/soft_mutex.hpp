@@ -11,7 +11,6 @@
 #define BHO_BEAST_WEBSOCKET_DETAIL_SOFT_MUTEX_HPP
 
 #include <asio2/bho/assert.hpp>
-#include <utility>
 
 namespace bho {
 namespace beast {

@@ -564,7 +564,7 @@ template<> struct assert_intrinsic_wchar_t<unsigned short> {};
 // last known and checked version:
 #if (BHO_INTEL_CXX_VERSION > 1700)
 #  if defined(BHO_ASSERT_CONFIG)
-#     error "Boost.Config is older than your compiler - please check for an updated Boost release."
+#     error "BHO.Config is older than your compiler - please check for an updated Boost release."
 #  elif defined(_MSC_VER)
 //
 //      We don't emit this warning any more, since we have so few

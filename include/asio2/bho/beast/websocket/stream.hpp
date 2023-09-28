@@ -24,7 +24,8 @@
 #include <asio2/bho/beast/core/stream_traits.hpp>
 #include <asio2/bho/beast/core/string.hpp>
 #include <asio2/bho/beast/http/detail/type_traits.hpp>
-#include <asio2/external/asio.hpp>
+#include <asio2/bho/asio/async_result.hpp>
+#include <asio2/bho/asio/error.hpp>
 #include <algorithm>
 #include <cstdint>
 #include <functional>

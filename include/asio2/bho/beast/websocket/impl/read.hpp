@@ -25,7 +25,8 @@
 #include <asio2/bho/beast/core/detail/buffer.hpp>
 #include <asio2/bho/beast/core/detail/clamp.hpp>
 #include <asio2/bho/beast/core/detail/config.hpp>
-#include <asio2/external/asio.hpp>
+#include <asio2/bho/asio/coroutine.hpp>
+#include <asio2/bho/asio/post.hpp>
 #include <asio2/bho/assert.hpp>
 #include <asio2/bho/config.hpp>
 #include <optional>
@@ -47,13 +48,13 @@ template<class Handler, class MutableBufferSequence>
 class stream<NextLayer, deflateSupported>::read_some_op
     : public beast::async_base<
         Handler, beast::executor_type<stream>>
-    , public net::coroutine
+    , public asio::coroutine
 {
     std::weak_ptr<impl_type> wp_;
     MutableBufferSequence bs_;
     buffers_suffix<MutableBufferSequence> cb_;
     std::size_t bytes_written_ = 0;
-    beast::error_code result_;
+    error_code result_;
     close_code code_;
     bool did_read_ = false;
 
@@ -78,7 +79,7 @@ public:
     }
 
     void operator()(
-        beast::error_code ec = {},
+        error_code ec = {},
         std::size_t bytes_transferred = 0,
         bool cont = true)
     {
@@ -713,7 +714,7 @@ template<class Handler,  class DynamicBuffer>
 class stream<NextLayer, deflateSupported>::read_op
     : public beast::async_base<
         Handler, beast::executor_type<stream>>
-    , public net::coroutine
+    , public asio::coroutine
 {
     std::weak_ptr<impl_type> wp_;
     DynamicBuffer& b_;
@@ -743,7 +744,7 @@ public:
     }
 
     void operator()(
-        beast::error_code ec = {},
+        error_code ec = {},
         std::size_t bytes_transferred = 0,
         bool cont = true)
     {
@@ -762,7 +763,7 @@ public:
         {
             do
             {
-                // VFALCO TODO use beast::bind_continuation
+                // VFALCO TODO use bho::beast::bind_continuation
                 ASIO_CORO_YIELD
                 {
                     auto mb = beast::detail::dynamic_buffer_prepare(b_,
@@ -811,7 +812,7 @@ struct stream<NextLayer, deflateSupported>::
 
         static_assert(
             beast::detail::is_invocable<ReadHandler,
-                void(beast::error_code, std::size_t)>::value,
+                void(error_code, std::size_t)>::value,
             "ReadHandler type requirements not met");
 
         read_some_op<
@@ -844,7 +845,7 @@ struct stream<NextLayer, deflateSupported>::
 
         static_assert(
             beast::detail::is_invocable<ReadHandler,
-                void(beast::error_code, std::size_t)>::value,
+                void(error_code, std::size_t)>::value,
             "ReadHandler type requirements not met");
 
         read_op<
@@ -871,7 +872,7 @@ read(DynamicBuffer& buffer)
     static_assert(
         net::is_dynamic_buffer<DynamicBuffer>::value,
         "DynamicBuffer type requirements not met");
-    beast::error_code ec;
+    error_code ec;
     auto const bytes_written = read(buffer, ec);
     if(ec)
         BHO_THROW_EXCEPTION(system_error{ec});
@@ -882,7 +883,7 @@ template<class NextLayer, bool deflateSupported>
 template<class DynamicBuffer>
 std::size_t
 stream<NextLayer, deflateSupported>::
-read(DynamicBuffer& buffer, beast::error_code& ec)
+read(DynamicBuffer& buffer, error_code& ec)
 {
     static_assert(is_sync_stream<next_layer_type>::value,
         "SyncStream type requirements not met");
@@ -913,7 +914,7 @@ async_read(DynamicBuffer& buffer, ReadHandler&& handler)
         "DynamicBuffer type requirements not met");
     return net::async_initiate<
         ReadHandler,
-        void(beast::error_code, std::size_t)>(
+        void(error_code, std::size_t)>(
             run_read_op{},
             handler,
             impl_,
@@ -937,7 +938,7 @@ read_some(
     static_assert(
         net::is_dynamic_buffer<DynamicBuffer>::value,
         "DynamicBuffer type requirements not met");
-    beast::error_code ec;
+    error_code ec;
     auto const bytes_written =
         read_some(buffer, limit, ec);
     if(ec)
@@ -952,7 +953,7 @@ stream<NextLayer, deflateSupported>::
 read_some(
     DynamicBuffer& buffer,
     std::size_t limit,
-    beast::error_code& ec)
+    error_code& ec)
 {
     static_assert(is_sync_stream<next_layer_type>::value,
         "SyncStream type requirements not met");
@@ -990,7 +991,7 @@ async_read_some(
         "DynamicBuffer type requirements not met");
     return net::async_initiate<
         ReadHandler,
-        void(beast::error_code, std::size_t)>(
+        void(error_code, std::size_t)>(
             run_read_op{},
             handler,
             impl_,
@@ -1013,7 +1014,7 @@ read_some(
     static_assert(net::is_mutable_buffer_sequence<
             MutableBufferSequence>::value,
         "MutableBufferSequence type requirements not met");
-    beast::error_code ec;
+    error_code ec;
     auto const bytes_written = read_some(buffers, ec);
     if(ec)
         BHO_THROW_EXCEPTION(system_error{ec});
@@ -1026,7 +1027,7 @@ std::size_t
 stream<NextLayer, deflateSupported>::
 read_some(
     MutableBufferSequence const& buffers,
-    beast::error_code& ec)
+    error_code& ec)
 {
     static_assert(is_sync_stream<next_layer_type>::value,
         "SyncStream type requirements not met");
@@ -1050,7 +1051,7 @@ loop:
         ! impl.rd_fh.fin || impl.rd_done))
     {
         // Read frame header
-        beast::error_code result;
+        error_code result;
         while(! impl.parse_fh(impl.rd_fh, impl.rd_buf, result))
         {
             if(result)
@@ -1371,7 +1372,7 @@ async_read_some(
         "MutableBufferSequence type requirements not met");
     return net::async_initiate<
         ReadHandler,
-        void(beast::error_code, std::size_t)>(
+        void(error_code, std::size_t)>(
             run_read_some_op{},
             handler,
             impl_,

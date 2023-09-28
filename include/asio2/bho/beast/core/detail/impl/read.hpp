@@ -14,7 +14,8 @@
 #include <asio2/bho/beast/core/async_base.hpp>
 #include <asio2/bho/beast/core/flat_static_buffer.hpp>
 #include <asio2/bho/beast/core/read_size.hpp>
-#include <asio2/external/asio.hpp>
+#include <asio2/bho/asio/basic_stream_socket.hpp>
+#include <asio2/bho/asio/coroutine.hpp>
 #include <asio2/bho/throw_exception.hpp>
 
 namespace bho {
@@ -37,7 +38,7 @@ template<
     class Condition,
     class Handler>
 class read_op
-    : public net::coroutine
+    : public asio::coroutine
     , public async_base<
         Handler, beast::executor_type<Stream>>
 {

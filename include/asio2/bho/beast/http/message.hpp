@@ -17,6 +17,7 @@
 #include <asio2/bho/beast/http/type_traits.hpp>
 #include <asio2/bho/beast/core/string.hpp>
 #include <asio2/bho/core/empty_value.hpp>
+#include <asio2/bho/mp11/integer_sequence.hpp>
 #include <asio2/bho/assert.hpp>
 #include <optional>
 #include <asio2/bho/throw_exception.hpp>
@@ -683,7 +684,7 @@ public:
 
     /** Construct a message.
 
-        @param body_args A std::tuple forwarded as a parameter
+        @param body_args A tuple forwarded as a parameter
         pack to the body constructor.
     */
     template<class... BodyArgs>
@@ -692,10 +693,10 @@ public:
 
     /** Construct a message.
 
-        @param body_args A std::tuple forwarded as a parameter
+        @param body_args A tuple forwarded as a parameter
         pack to the body constructor.
 
-        @param fields_args A std::tuple forwarded as a parameter
+        @param fields_args A tuple forwarded as a parameter
         pack to the `Fields` constructor.
     */
     template<class... BodyArgs, class... FieldsArgs>
@@ -905,7 +906,7 @@ private:
     message(
         std::piecewise_construct_t,
         std::tuple<BodyArgs...>& body_args,
-        std::index_sequence<IBodyArgs...>)
+        mp11::index_sequence<IBodyArgs...>)
         : bho::empty_value<
             typename Body::value_type>(bho::empty_init_t(),
                 std::forward<BodyArgs>(
@@ -923,8 +924,8 @@ private:
         std::piecewise_construct_t,
         std::tuple<BodyArgs...>& body_args,
         std::tuple<FieldsArgs...>& fields_args,
-        std::index_sequence<IBodyArgs...>,
-        std::index_sequence<IFieldsArgs...>)
+        mp11::index_sequence<IBodyArgs...>,
+        mp11::index_sequence<IFieldsArgs...>)
         : header_type(std::forward<FieldsArgs>(
             std::get<IFieldsArgs>(fields_args))...)
         , bho::empty_value<

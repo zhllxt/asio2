@@ -6,8 +6,8 @@
 #ifndef BHO_PFR_HPP
 #define BHO_PFR_HPP
 
-/// \file boost/pfr.hpp
-/// Includes all the Boost.PFR headers
+/// \file bho/pfr.hpp
+/// Includes all the BHO.PFR headers
 
 #include <asio2/bho/pfr/core.hpp>
 #include <asio2/bho/pfr/functions_for.hpp>

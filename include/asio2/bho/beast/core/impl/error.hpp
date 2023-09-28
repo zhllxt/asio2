@@ -12,12 +12,7 @@
 
 #include <type_traits>
 
-#ifdef ASIO_STANDALONE
 namespace std {
-#else
-namespace boost {
-namespace system {
-#endif
 template<>
 struct is_error_code_enum<::bho::beast::error>
 {
@@ -28,12 +23,7 @@ struct is_error_condition_enum<::bho::beast::condition>
 {
     static bool const value = true;
 };
-#ifdef ASIO_STANDALONE
-} // std
-#else
-} // system
-} // boost
-#endif
+} // bho
 
 namespace bho {
 namespace beast {

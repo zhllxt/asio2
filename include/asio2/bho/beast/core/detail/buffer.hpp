@@ -11,7 +11,7 @@
 #define BHO_BEAST_CORE_DETAIL_BUFFER_HPP
 
 #include <asio2/bho/beast/core/error.hpp>
-#include <asio2/external/asio.hpp>
+#include <asio2/bho/asio/buffer.hpp>
 #include <optional>
 #include <stdexcept>
 

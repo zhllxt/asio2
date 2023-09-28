@@ -12,7 +12,8 @@
 
 #include <utility>
 #include <asio2/bho/beast/websocket/teardown.hpp>
-#include <asio2/external/asio.hpp>
+#include <asio2/bho/asio/compose.hpp>
+#include <asio2/bho/asio/coroutine.hpp>
 
 namespace bho {
 namespace beast {
@@ -36,12 +37,12 @@ template<class AsyncStream>
 void
 teardown(
     role_type role,
-    net::ssl::stream<AsyncStream>& stream,
-    beast::error_code& ec)
+    asio::ssl::stream<AsyncStream>& stream,
+    error_code& ec)
 {
     stream.shutdown(ec);
     using bho::beast::websocket::teardown;
-    beast::error_code ec2;
+    error_code ec2;
     teardown(role, stream.next_layer(), ec ? ec2 : ec);
 }
 
@@ -49,10 +50,10 @@ namespace detail {
 
 template<class AsyncStream>
 struct ssl_shutdown_op
-    : net::coroutine
+    : asio::coroutine
 {
     ssl_shutdown_op(
-        net::ssl::stream<AsyncStream>& s,
+        asio::ssl::stream<AsyncStream>& s,
         role_type role)
         : s_(s)
         , role_(role)
@@ -61,7 +62,7 @@ struct ssl_shutdown_op
 
     template<class Self>
     void
-    operator()(Self& self, beast::error_code ec = {}, std::size_t = 0)
+    operator()(Self& self, error_code ec = {}, std::size_t = 0)
     {
         ASIO_CORO_REENTER(*this)
         {
@@ -80,9 +81,9 @@ struct ssl_shutdown_op
     }
 
 private:
-    net::ssl::stream<AsyncStream>& s_;
+    asio::ssl::stream<AsyncStream>& s_;
     role_type role_;
-    beast::error_code ec_;
+    error_code ec_;
 };
 
 } // detail
@@ -93,10 +94,10 @@ template<
 void
 async_teardown(
     role_type role,
-    net::ssl::stream<AsyncStream>& stream,
+    asio::ssl::stream<AsyncStream>& stream,
     TeardownHandler&& handler)
 {
-    return net::async_compose<TeardownHandler, void(beast::error_code)>(
+    return asio::async_compose<TeardownHandler, void(error_code)>(
         detail::ssl_shutdown_op<AsyncStream>(stream, role),
         handler,
         stream);

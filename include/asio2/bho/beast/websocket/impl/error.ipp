@@ -23,7 +23,7 @@ public:
     const char*
     name() const noexcept override
     {
-        return "beast.websocket";
+        return "bho.beast.websocket";
     }
 
     std::string
@@ -120,7 +120,7 @@ public:
     const char*
     name() const noexcept override
     {
-        return "beast.websocket";
+        return "bho.beast.websocket";
     }
 
     std::string

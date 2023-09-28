@@ -370,11 +370,11 @@
 // last known and checked version is 19.20.27508 (VC++ 2019 RC3):
 #if (_MSC_VER > 1920)
 #  if defined(BHO_ASSERT_CONFIG)
-#     error "Boost.Config is older than your current compiler version."
+#     error "BHO.Config is older than your current compiler version."
 #  elif !defined(BHO_CONFIG_SUPPRESS_OUTDATED_MESSAGE)
       //
       // Disabled as of March 2018 - the pace of VS releases is hard to keep up with
       // and in any case, we have relatively few defect macros defined now.
-      // BHO_PRAGMA_MESSAGE("Info: Boost.Config is older than your compiler version - probably nothing bad will happen - but you may wish to look for an updated Boost version. Define BHO_CONFIG_SUPPRESS_OUTDATED_MESSAGE to suppress this message.")
+      // BHO_PRAGMA_MESSAGE("Info: BHO.Config is older than your compiler version - probably nothing bad will happen - but you may wish to look for an updated Boost version. Define BHO_CONFIG_SUPPRESS_OUTDATED_MESSAGE to suppress this message.")
 #  endif
 #endif

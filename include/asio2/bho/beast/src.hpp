@@ -25,6 +25,7 @@ the program, with the macro BHO_BEAST_SEPARATE_COMPILATION defined.
 # error Do not compile Beast library source with BEAST_HEADER_ONLY defined
 #endif
 
+
 #include <asio2/bho/beast/core/detail/base64.ipp>
 #include <asio2/bho/beast/core/detail/sha1.ipp>
 #include <asio2/bho/beast/core/detail/impl/temporary_buffer.ipp>

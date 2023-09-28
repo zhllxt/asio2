@@ -13,7 +13,7 @@
 #include <asio2/bho/beast/core/buffers_prefix.hpp>
 #include <asio2/bho/beast/core/buffers_range.hpp>
 #include <asio2/bho/throw_exception.hpp>
-#include <asio2/external/asio.hpp>
+#include <asio2/bho/asio/buffer.hpp>
 #include <memory>
 #include <ostream>
 #include <streambuf>

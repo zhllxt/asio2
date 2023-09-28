@@ -11,25 +11,14 @@
 #define BHO_BEAST_HTTP_IMPL_ERROR_HPP
 
 #include <type_traits>
-#include <system_error>
 
-#ifdef ASIO_STANDALONE
 namespace std {
-#else
-namespace boost {
-namespace system {
-#endif
 template<>
 struct is_error_code_enum<::bho::beast::http::error>
 {
     static bool const value = true;
 };
-#ifdef ASIO_STANDALONE
-} // std
-#else
-} // system
-} // boost
-#endif
+} // bho
 
 namespace bho {
 namespace beast {

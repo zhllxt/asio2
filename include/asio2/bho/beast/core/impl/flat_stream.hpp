@@ -15,7 +15,7 @@
 #include <asio2/bho/beast/core/static_buffer.hpp>
 #include <asio2/bho/beast/core/stream_traits.hpp>
 #include <asio2/bho/beast/websocket/teardown.hpp>
-#include <asio2/external/asio.hpp>
+#include <asio2/bho/asio/buffer.hpp>
 #include <memory>
 
 namespace bho {
@@ -76,7 +76,7 @@ public:
 
     void
     operator()(
-        beast::error_code ec,
+        asio::error_code ec,
         std::size_t bytes_transferred)
     {
         this->complete_now(ec, bytes_transferred);
@@ -133,7 +133,7 @@ read_some(MutableBufferSequence const& buffers)
     error_code ec;
     auto n = read_some(buffers, ec);
     if(ec)
-        BHO_THROW_EXCEPTION(beast::system_error{ec});
+        BHO_THROW_EXCEPTION(asio::system_error{ec});
     return n;
 }
 
@@ -184,7 +184,7 @@ write_some(ConstBufferSequence const& buffers)
     error_code ec;
     auto n = write_some(buffers, ec);
     if(ec)
-        BHO_THROW_EXCEPTION(beast::system_error{ec});
+        BHO_THROW_EXCEPTION(asio::system_error{ec});
     return n;
 }
 

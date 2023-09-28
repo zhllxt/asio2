@@ -15,7 +15,7 @@
 #include <asio2/bho/beast/websocket/rfc6455.hpp>
 #include <asio2/bho/beast/websocket/detail/utf8_checker.hpp>
 #include <asio2/bho/beast/core/flat_static_buffer.hpp>
-#include <asio2/external/asio.hpp>
+#include <asio2/bho/asio/buffer.hpp>
 #include <asio2/bho/assert.hpp>
 #include <asio2/bho/endian/conversion.hpp>
 #include <cstdint>

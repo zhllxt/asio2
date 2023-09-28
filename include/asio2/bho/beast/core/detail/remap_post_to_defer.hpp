@@ -10,7 +10,7 @@
 #ifndef BHO_BEAST_DETAIL_REMAP_POST_TO_DEFER_HPP
 #define BHO_BEAST_DETAIL_REMAP_POST_TO_DEFER_HPP
 
-#include <asio2/external/asio.hpp>
+#include <asio2/bho/asio/is_executor.hpp>
 #include <asio2/bho/core/empty_value.hpp>
 #include <type_traits>
 #include <utility>

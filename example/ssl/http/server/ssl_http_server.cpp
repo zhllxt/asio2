@@ -86,6 +86,7 @@ int main()
 			printf("error occurred when calling the accept function : %d %s\n",
 				asio2::get_last_error_val(), asio2::get_last_error_msg().data());
 		}
+		session_ptr->set_disconnect_timeout(std::chrono::seconds(2));
 	}).bind_start([&]()
 	{
 		printf("start https server : %s %u %d %s\n",

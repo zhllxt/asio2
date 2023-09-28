@@ -1,4 +1,4 @@
-//  boost/endian/arithmetic.hpp  -------------------------------------------------------//
+//  bho/endian/arithmetic.hpp  -------------------------------------------------------//
 
 //  (C) Copyright Darin Adler 2000
 //  (C) Copyright Beman Dawes 2006, 2009, 2014

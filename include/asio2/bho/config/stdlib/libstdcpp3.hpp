@@ -414,7 +414,7 @@ extern "C" char *gets (char *__s);
 #define BHO_NO_CXX11_HDR_FORWARD_LIST 
 #define BHO_NO_CXX11_HDR_ATOMIC
 // shared_ptr is present, but is not convertible to bool
-// which causes all kinds of problems especially in Boost.Thread
+// which causes all kinds of problems especially in BHO.Thread
 // but probably elsewhere as well.
 #define BHO_NO_CXX11_SMART_PTR
 #endif

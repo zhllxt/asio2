@@ -25,7 +25,7 @@
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/websocket/detail/frame.hpp>
 #include <asio2/bho/beast/websocket/impl/stream_impl.hpp>
-#include <asio2/external/asio.hpp>
+#include <asio2/bho/asio/coroutine.hpp>
 #include <asio2/bho/assert.hpp>
 #include <asio2/bho/config.hpp>
 #include <asio2/bho/throw_exception.hpp>
@@ -41,7 +41,7 @@ template<class Handler, class Buffers>
 class stream<NextLayer, deflateSupported>::write_some_op
     : public beast::async_base<
         Handler, beast::executor_type<stream>>
-    , public net::coroutine
+    , public asio::coroutine
 {
     enum
     {

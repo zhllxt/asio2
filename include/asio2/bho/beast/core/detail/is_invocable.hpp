@@ -10,7 +10,8 @@
 #ifndef BHO_BEAST_DETAIL_IS_INVOCABLE_HPP
 #define BHO_BEAST_DETAIL_IS_INVOCABLE_HPP
 
-#include <asio2/external/asio.hpp>
+#include <asio2/bho/asio/async_result.hpp>
+#include <type_traits>
 #include <type_traits>
 #include <utility>
 
@@ -66,7 +67,7 @@ struct any_initiation
 template<class CompletionToken, class R, class...Args>
 struct is_completion_token_for<
     CompletionToken, R(Args...), std::void_t<decltype(
-        net::async_initiate<CompletionToken, R(Args...)>(
+        asio::async_initiate<CompletionToken, R(Args...)>(
             any_initiation(), std::declval<CompletionToken&>())
         )>> : std::true_type
 {

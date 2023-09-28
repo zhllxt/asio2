@@ -48,9 +48,9 @@ void
 serializer<isRequest, Body, Fields>::
 do_visit(error_code& ec, Visit& visit)
 {
-    pv_.template emplace<I-1>(limit_, &std::get<I-1>(v_));
+    pv_.template emplace<I>(limit_, v_.template get<I>());
     visit(ec, beast::detail::make_buffers_ref(
-        std::get<I-1>(pv_)));
+        pv_.template get<I>()));
 }
 
 //------------------------------------------------------------------------------
@@ -60,7 +60,7 @@ template<
 serializer<isRequest, Body, Fields>::
 serializer(value_type& m)
     : m_(m)
-    , wr_(this->m_.base(), this->m_.body())
+    , wr_(m_.base(), m_.body())
 {
 }
 
@@ -98,7 +98,7 @@ next(error_code& ec, Visit&& visit)
         if(! result)
             goto go_header_only;
         more_ = result->second;
-        v_.template emplace<2 - 1>(
+        v_.template emplace<2>(
             std::in_place,
             fwr_->get(),
             result->first);
@@ -111,7 +111,7 @@ next(error_code& ec, Visit&& visit)
         break;
 
     go_header_only:
-        v_.template emplace<1 - 1>(fwr_->get());
+        v_.template emplace<1>(fwr_->get());
         s_ = do_header_only;
         BHO_FALLTHROUGH;
     case do_header_only:
@@ -130,7 +130,7 @@ next(error_code& ec, Visit&& visit)
         if(! result)
             goto go_complete;
         more_ = result->second;
-        v_.template emplace<3 - 1>(result->first);
+        v_.template emplace<3>(result->first);
         s_ = do_body + 2;
         BHO_FALLTHROUGH;
     }
@@ -162,7 +162,7 @@ next(error_code& ec, Visit&& visit)
         if(! more_)
         {
             // do it all in one buffer
-            v_.template emplace<7 - 1>(
+            v_.template emplace<7>(
                 std::in_place,
                 fwr_->get(),
                 buffer_bytes(result->first),
@@ -175,7 +175,7 @@ next(error_code& ec, Visit&& visit)
                 chunk_crlf{});
             goto go_all_c;
         }
-        v_.template emplace<4 - 1>(
+        v_.template emplace<4>(
             std::in_place,
             fwr_->get(),
             buffer_bytes(result->first),
@@ -192,7 +192,7 @@ next(error_code& ec, Visit&& visit)
         break;
 
     go_header_only_c:
-        v_.template emplace<1 - 1>(fwr_->get());
+        v_.template emplace<1>(fwr_->get());
         s_ = do_header_only_c;
         BHO_FALLTHROUGH;
 
@@ -215,7 +215,7 @@ next(error_code& ec, Visit&& visit)
         if(! more_)
         {
             // do it all in one buffer
-            v_.template emplace<6 - 1>(
+            v_.template emplace<6>(
                 std::in_place,
                 buffer_bytes(result->first),
                 net::const_buffer{nullptr, 0},
@@ -227,7 +227,7 @@ next(error_code& ec, Visit&& visit)
                 chunk_crlf{});
             goto go_body_final_c;
         }
-        v_.template emplace<5 - 1>(
+        v_.template emplace<5>(
             std::in_place,
             buffer_bytes(result->first),
             net::const_buffer{nullptr, 0},
@@ -258,7 +258,7 @@ next(error_code& ec, Visit&& visit)
 
     go_final_c:
     case do_final_c:
-        v_.template emplace<8 - 1>(
+        v_.template emplace<8>(
             std::in_place,
             detail::chunk_last(),
             net::const_buffer{nullptr, 0},
@@ -293,12 +293,12 @@ consume(std::size_t n)
     {
     case do_header:
         BHO_ASSERT(
-            n <= buffer_bytes(std::get<2-1>(v_)));
-        std::get<2-1>(v_).consume(n);
-        if(buffer_bytes(std::get<2-1>(v_)) > 0)
+            n <= buffer_bytes(v_.template get<2>()));
+        v_.template get<2>().consume(n);
+        if(buffer_bytes(v_.template get<2>()) > 0)
             break;
         header_done_ = true;
-		v_.template emplace<1 - 1>();
+        v_.reset();
         if(! more_)
             goto go_complete;
         s_ = do_body + 1;
@@ -306,9 +306,9 @@ consume(std::size_t n)
 
     case do_header_only:
         BHO_ASSERT(
-            n <= buffer_bytes(std::get<1-1>(v_)));
-        std::get<1-1>(v_).consume(n);
-        if(buffer_bytes(std::get<1-1>(v_)) > 0)
+            n <= buffer_bytes(v_.template get<1>()));
+        v_.template get<1>().consume(n);
+        if(buffer_bytes(v_.template get<1>()) > 0)
             break;
         fwr_ = std::nullopt;
         header_done_ = true;
@@ -320,11 +320,11 @@ consume(std::size_t n)
     case do_body + 2:
     {
         BHO_ASSERT(
-            n <= buffer_bytes(std::get<3-1>(v_)));
-        std::get<3-1>(v_).consume(n);
-        if(buffer_bytes(std::get<3-1>(v_)) > 0)
+            n <= buffer_bytes(v_.template get<3>()));
+        v_.template get<3>().consume(n);
+        if(buffer_bytes(v_.template get<3>()) > 0)
             break;
-        v_.template emplace<1 - 1>();
+        v_.reset();
         if(! more_)
             goto go_complete;
         s_ = do_body + 1;
@@ -335,12 +335,12 @@ consume(std::size_t n)
 
     case do_header_c:
         BHO_ASSERT(
-            n <= buffer_bytes(std::get<4-1>(v_)));
-        std::get<4-1>(v_).consume(n);
-        if(buffer_bytes(std::get<4-1>(v_)) > 0)
+            n <= buffer_bytes(v_.template get<4>()));
+        v_.template get<4>().consume(n);
+        if(buffer_bytes(v_.template get<4>()) > 0)
             break;
         header_done_ = true;
-        v_.template emplace<1 - 1>();
+        v_.reset();
         if(more_)
             s_ = do_body_c + 1;
         else
@@ -350,9 +350,9 @@ consume(std::size_t n)
     case do_header_only_c:
     {
         BHO_ASSERT(
-            n <= buffer_bytes(std::get<1-1>(v_)));
-        std::get<1-1>(v_).consume(n);
-        if(buffer_bytes(std::get<1-1>(v_)) > 0)
+            n <= buffer_bytes(v_.template get<1>()));
+        v_.template get<1>().consume(n);
+        if(buffer_bytes(v_.template get<1>()) > 0)
             break;
         fwr_ = std::nullopt;
         header_done_ = true;
@@ -367,11 +367,11 @@ consume(std::size_t n)
 
     case do_body_c + 2:
         BHO_ASSERT(
-            n <= buffer_bytes(std::get<5-1>(v_)));
-        std::get<5-1>(v_).consume(n);
-        if(buffer_bytes(std::get<5-1>(v_)) > 0)
+            n <= buffer_bytes(v_.template get<5>()));
+        v_.template get<5>().consume(n);
+        if(buffer_bytes(v_.template get<5>()) > 0)
             break;
-        v_.template emplace<1 - 1>();
+        v_.reset();
         if(more_)
             s_ = do_body_c + 1;
         else
@@ -381,11 +381,11 @@ consume(std::size_t n)
     case do_body_final_c:
     {
         BHO_ASSERT(
-            n <= buffer_bytes(std::get<6-1>(v_)));
-        std::get<6-1>(v_).consume(n);
-        if(buffer_bytes(std::get<6-1>(v_)) > 0)
+            n <= buffer_bytes(v_.template get<6>()));
+        v_.template get<6>().consume(n);
+        if(buffer_bytes(v_.template get<6>()) > 0)
             break;
-        v_.template emplace<1 - 1>();
+        v_.reset();
         s_ = do_complete;
         break;
     }
@@ -393,22 +393,22 @@ consume(std::size_t n)
     case do_all_c:
     {
         BHO_ASSERT(
-            n <= buffer_bytes(std::get<7-1>(v_)));
-        std::get<7-1>(v_).consume(n);
-        if(buffer_bytes(std::get<7-1>(v_)) > 0)
+            n <= buffer_bytes(v_.template get<7>()));
+        v_.template get<7>().consume(n);
+        if(buffer_bytes(v_.template get<7>()) > 0)
             break;
         header_done_ = true;
-        v_.template emplace<1 - 1>();
+        v_.reset();
         s_ = do_complete;
         break;
     }
 
     case do_final_c + 1:
-        BHO_ASSERT(buffer_bytes(std::get<8-1>(v_)));
-        std::get<8-1>(v_).consume(n);
-        if(buffer_bytes(std::get<8-1>(v_)) > 0)
+        BHO_ASSERT(buffer_bytes(v_.template get<8>()));
+        v_.template get<8>().consume(n);
+        if(buffer_bytes(v_.template get<8>()) > 0)
             break;
-        v_.template emplace<1 - 1>();
+        v_.reset();
         goto go_complete;
 
     //----------------------------------------------------------------------

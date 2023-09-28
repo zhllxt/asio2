@@ -65,7 +65,7 @@
 /// template <class Char, class Traits>
 /// std::basic_istream<Char, Traits>& operator>>(std::basic_istream<Char, Traits>& in, T& value);
 ///
-/// // helper function for Boost unordered containers and boost::hash<>.
+/// // helper function for Boost unordered containers and bho::hash<>.
 /// std::size_t hash_value(const T& value);
 /// \endcode
 

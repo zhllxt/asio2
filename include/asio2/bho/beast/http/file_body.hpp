@@ -30,5 +30,7 @@ using file_body = basic_file_body<file>;
 } // beast
 } // bho
 
+#ifndef BHO_BEAST_NO_FILE_BODY_WIN32
+#endif
 
 #endif

@@ -35,7 +35,7 @@
 #    endif
 
 #    if (__SUNPRO_CC <= 0x530)
-       // Requesting debug info (-g) with Boost.Python results
+       // Requesting debug info (-g) with BHO.Python results
        // in an internal compiler error for "static const"
        // initialized in-class.
        //    >> Assertion:   (../links/dbg_cstabs.cc, line 611)
@@ -210,6 +210,6 @@
 // last known and checked version:
 #if (__SUNPRO_CC > 0x5150)
 #  if defined(BHO_ASSERT_CONFIG)
-#     error "Boost.Config is older than your compiler - please check for an updated Boost release."
+#     error "BHO.Config is older than your compiler - please check for an updated Boost release."
 #  endif
 #endif

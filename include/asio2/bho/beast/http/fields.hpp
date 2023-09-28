@@ -14,8 +14,10 @@
 #include <asio2/bho/beast/core/string.hpp>
 #include <asio2/bho/beast/core/detail/allocator.hpp>
 #include <asio2/bho/beast/http/field.hpp>
-#include <asio2/external/asio.hpp>
+#include <asio2/bho/asio/buffer.hpp>
 #include <asio2/bho/core/empty_value.hpp>
+#include <asio2/bho/intrusive/list.hpp>
+#include <asio2/bho/intrusive/set.hpp>
 #include <optional>
 #include <algorithm>
 #include <cctype>
@@ -24,8 +26,6 @@
 #include <string>
 #include <type_traits>
 #include <utility>
-#include <list>
-#include <map>
 
 namespace bho {
 namespace beast {
@@ -77,7 +77,6 @@ public:
         off_t off_;
         off_t len_;
         field f_;
-		value_type* self_;
 
         char*
         data() const;
@@ -87,14 +86,14 @@ public:
 
     protected:
         value_type(field name,
-            string_view sname, string_view value, value_type* self);
+            string_view sname, string_view value);
 
     public:
         /// Constructor (deleted)
-        value_type(value_type const&) = default;
+        value_type(value_type const&) = delete;
 
         /// Assignment (deleted)
-        value_type& operator=(value_type const&) = default;
+        value_type& operator=(value_type const&) = delete;
 
         /// Returns the field enum, which can be @ref field::unknown
         field
@@ -135,19 +134,6 @@ public:
         /// Returns `true` if lhs is less than rhs using a strict ordering
         bool
         operator()(
-            string_view const& lhs,
-			string_view const& rhs) const noexcept
-        {
-            if(lhs.size() < rhs.size())
-                return true;
-            if(lhs.size() > rhs.size())
-                return false;
-            return iless::operator()(lhs, rhs);
-        }
-
-        /// Returns `true` if lhs is less than rhs using a strict ordering
-        bool
-        operator()(
             value_type const& lhs,
             string_view rhs) const noexcept
         {
@@ -181,24 +167,31 @@ public:
 
 private:
     struct element
-        : public value_type
+        : public bho::intrusive::list_base_hook<
+            bho::intrusive::link_mode<
+                bho::intrusive::normal_link>>
+        , public bho::intrusive::set_base_hook<
+            bho::intrusive::link_mode<
+                bho::intrusive::normal_link>>
+        , public value_type
     {
         element(field name,
-            string_view sname, string_view value, value_type* self);
-
-        /// Constructor (deleted)
-		element(element const&) = default;
-
-        /// Assignment (deleted)
-		element& operator=(element const&) = default;
+            string_view sname, string_view value);
     };
 
-	using list_t = typename std::list<element>;
+    using list_t = typename bho::intrusive::make_list<
+        element,
+        bho::intrusive::constant_time_size<false>
+            >::type;
 
-	using set_t = typename std::multimap<beast::string_view, element*, key_compare>;
+    using set_t = typename bho::intrusive::make_multiset<
+        element,
+        bho::intrusive::constant_time_size<true>,
+        bho::intrusive::compare<key_compare>
+            >::type;
 
     using align_type = typename
-        beast::type_with_alignment<alignof(element)>::type;
+        bho::type_with_alignment<alignof(element)>::type;
 
     using rebind_type = typename
         beast::detail::allocator_traits<Allocator>::

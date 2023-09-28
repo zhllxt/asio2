@@ -11,20 +11,20 @@
 #define BHO_BEAST_ERROR_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
-#include <asio2/external/asio.hpp>
+#include <asio2/bho/asio/error.hpp>
 #include <system_error>
 
 namespace bho {
 namespace beast {
 
 /// The type of error code used by the library
-using error_code = net::error_code;
+using error_code = asio::error_code;
 
 /// The type of system error thrown by the library
-using system_error = net::system_error;
+using system_error = asio::system_error;
 
 /// The type of error category used by the library
-using error_category = net::error_category;
+using error_category = asio::error_category;
 
 /// A function to return the generic error category used by the library
 #if BHO_BEAST_DOXYGEN
@@ -39,11 +39,11 @@ using std::generic_category;
 error_category const&
 system_category();
 #else
-using net::system_category;
+using asio::system_category;
 #endif
 
 /// The type of error condition used by the library
-using error_condition = net::error_condition;
+using error_condition = asio::error_condition;
 
 /// The set of constants used for cross-platform error codes
 #if BHO_BEAST_DOXYGEN

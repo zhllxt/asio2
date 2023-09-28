@@ -19,7 +19,9 @@
 
 // VFALCO We include this because anyone who uses ssl will
 //        very likely need to check for ssl::error::stream_truncated
-#include <asio2/external/asio.hpp>
+#include <asio2/bho/asio/ssl/error.hpp>
+
+#include <asio2/bho/asio/ssl/stream.hpp>
 #include <cstddef>
 #include <memory>
 #include <type_traits>
@@ -192,7 +194,7 @@ public:
 
         @param v A bitmask of peer verification modes.
 
-        @throws beast::system_error Thrown on failure.
+        @throws asio::system_error Thrown on failure.
 
         @note Calls @c SSL_set_verify.
     */
@@ -216,7 +218,7 @@ public:
     */
     void
     set_verify_mode(net::ssl::verify_mode v,
-        beast::error_code& ec)
+        asio::error_code& ec)
     {
         p_->next_layer().set_verify_mode(v, ec);
     }
@@ -229,7 +231,7 @@ public:
         @param depth Maximum depth for the certificate chain verification that
         shall be allowed.
 
-        @throws beast::system_error Thrown on failure.
+        @throws asio::system_error Thrown on failure.
 
         @note Calls @c SSL_set_verify_depth.
     */
@@ -253,7 +255,7 @@ public:
     */
     void
     set_verify_depth(
-        int depth, beast::error_code& ec)
+        int depth, asio::error_code& ec)
     {
         p_->next_layer().set_verify_depth(depth, ec);
     }
@@ -272,7 +274,7 @@ public:
         The return value of the callback is true if the certificate has passed
         verification, false otherwise.
 
-        @throws beast::system_error Thrown on failure.
+        @throws asio::system_error Thrown on failure.
 
         @note Calls @c SSL_set_verify.
     */
@@ -304,7 +306,7 @@ public:
     template<class VerifyCallback>
     void
     set_verify_callback(VerifyCallback callback,
-        beast::error_code& ec)
+        asio::error_code& ec)
     {
         p_->next_layer().set_verify_callback(callback, ec);
     }
@@ -317,7 +319,7 @@ public:
         @param type The type of handshaking to be performed, i.e. as a client or as
         a server.
 
-        @throws beast::system_error Thrown on failure.
+        @throws asio::system_error Thrown on failure.
     */
     void
     handshake(handshake_type type)
@@ -337,7 +339,7 @@ public:
     */
     void
     handshake(handshake_type type,
-        beast::error_code& ec)
+        asio::error_code& ec)
     {
         p_->next_layer().handshake(type, ec);
     }
@@ -352,7 +354,7 @@ public:
 
         @param buffers The buffered data to be reused for the handshake.
 
-        @throws beast::system_error Thrown on failure.
+        @throws asio::system_error Thrown on failure.
     */
     template<class ConstBufferSequence>
     void
@@ -378,7 +380,7 @@ public:
     void
     handshake(handshake_type type,
         ConstBufferSequence const& buffers,
-            beast::error_code& ec)
+            asio::error_code& ec)
     {
         p_->next_layer().handshake(type, buffers, ec);
     }
@@ -395,11 +397,11 @@ public:
         completes. Copies will be made of the handler as required. The equivalent
         function signature of the handler must be:
         @code void handler(
-          const beast::error_code& error // Result of operation.
+          const asio::error_code& error // Result of operation.
         ); @endcode
     */
     template<class HandshakeHandler>
-    ASIO_INITFN_RESULT_TYPE(HandshakeHandler, void(beast::error_code))
+    ASIO_INITFN_RESULT_TYPE(HandshakeHandler, void(asio::error_code))
     async_handshake(handshake_type type,
         ASIO_MOVE_ARG(HandshakeHandler) handler)
     {
@@ -424,12 +426,12 @@ public:
         completes. Copies will be made of the handler as required. The equivalent
         function signature of the handler must be:
         @code void handler(
-          const beast::error_code& error, // Result of operation.
+          const asio::error_code& error, // Result of operation.
           std::size_t bytes_transferred // Amount of buffers used in handshake.
         ); @endcode
     */
     template<class ConstBufferSequence, class BufferedHandshakeHandler>
-    ASIO_INITFN_RESULT_TYPE(BufferedHandshakeHandler, void(beast::error_code, std::size_t))
+    ASIO_INITFN_RESULT_TYPE(BufferedHandshakeHandler, void(asio::error_code, std::size_t))
     async_handshake(handshake_type type, ConstBufferSequence const& buffers,
         ASIO_MOVE_ARG(BufferedHandshakeHandler) handler)
     {
@@ -442,7 +444,7 @@ public:
         This function is used to shut down SSL on the stream. The function call
         will block until SSL has been shut down or an error occurs.
 
-        @throws beast::system_error Thrown on failure.
+        @throws asio::system_error Thrown on failure.
     */
     void
     shutdown()
@@ -458,7 +460,7 @@ public:
         @param ec Set to indicate what error occurred, if any.
     */
     void
-    shutdown(beast::error_code& ec)
+    shutdown(asio::error_code& ec)
     {
         p_->next_layer().shutdown(ec);
     }
@@ -472,11 +474,11 @@ public:
         completes. Copies will be made of the handler as required. The equivalent
         function signature of the handler must be:
         @code void handler(
-          const beast::error_code& error // Result of operation.
+          const asio::error_code& error // Result of operation.
         ); @endcode
     */
     template<class ShutdownHandler>
-    ASIO_INITFN_RESULT_TYPE(ShutdownHandler, void(beast::error_code))
+    ASIO_INITFN_RESULT_TYPE(ShutdownHandler, void(asio::error_code))
     async_shutdown(ASIO_MOVE_ARG(ShutdownHandler) handler)
     {
         return p_->next_layer().async_shutdown(
@@ -493,7 +495,7 @@ public:
 
         @returns The number of bytes written.
 
-        @throws beast::system_error Thrown on failure.
+        @throws asio::system_error Thrown on failure.
 
         @note The `write_some` operation may not transmit all of the data to the
         peer. Consider using the `net::write` function if you need to
@@ -525,7 +527,7 @@ public:
     template<class ConstBufferSequence>
     std::size_t
     write_some(ConstBufferSequence const& buffers,
-        beast::error_code& ec)
+        asio::error_code& ec)
     {
         return p_->write_some(buffers, ec);
     }
@@ -544,7 +546,7 @@ public:
         Copies will be made of the handler as required. The equivalent function
         signature of the handler must be:
         @code void handler(
-          const beast::error_code& error, // Result of operation.
+          const asio::error_code& error, // Result of operation.
           std::size_t bytes_transferred           // Number of bytes written.
         ); @endcode
 
@@ -554,7 +556,7 @@ public:
         completes.
     */
     template<class ConstBufferSequence, BHO_BEAST_ASYNC_TPARAM2 WriteHandler>
-    ASIO_INITFN_RESULT_TYPE(WriteHandler, void(beast::error_code, std::size_t))
+    ASIO_INITFN_RESULT_TYPE(WriteHandler, void(asio::error_code, std::size_t))
     async_write_some(ConstBufferSequence const& buffers,
         ASIO_MOVE_ARG(WriteHandler) handler)
     {
@@ -572,7 +574,7 @@ public:
 
         @returns The number of bytes read.
 
-        @throws beast::system_error Thrown on failure.
+        @throws asio::system_error Thrown on failure.
 
         @note The `read_some` operation may not read all of the requested number of
         bytes. Consider using the `net::read` function if you need to ensure
@@ -606,7 +608,7 @@ public:
     template<class MutableBufferSequence>
     std::size_t
     read_some(MutableBufferSequence const& buffers,
-        beast::error_code& ec)
+        asio::error_code& ec)
     {
         return p_->read_some(buffers, ec);
     }
@@ -625,7 +627,7 @@ public:
         Copies will be made of the handler as required. The equivalent function
         signature of the handler must be:
         @code void handler(
-          const beast::error_code& error, // Result of operation.
+          const asio::error_code& error, // Result of operation.
           std::size_t bytes_transferred           // Number of bytes read.
         ); @endcode
 
@@ -635,7 +637,7 @@ public:
         the asynchronous operation completes.
     */
     template<class MutableBufferSequence, BHO_BEAST_ASYNC_TPARAM2 ReadHandler>
-    ASIO_INITFN_RESULT_TYPE(ReadHandler, void(beast::error_code, std::size_t))
+    ASIO_INITFN_RESULT_TYPE(ReadHandler, void(asio::error_code, std::size_t))
     async_read_some(MutableBufferSequence const& buffers,
         ASIO_MOVE_ARG(ReadHandler) handler)
     {
@@ -653,7 +655,7 @@ public:
     teardown(
         bho::beast::role_type role,
         ssl_stream<SyncStream>& stream,
-        beast::error_code& ec);
+        asio::error_code& ec);
 
     template<class AsyncStream, class TeardownHandler>
     friend
@@ -671,7 +673,7 @@ void
 teardown(
     bho::beast::role_type role,
     ssl_stream<SyncStream>& stream,
-    beast::error_code& ec)
+    asio::error_code& ec)
 {
     // Just forward it to the underlying ssl::stream
     using bho::beast::websocket::teardown;

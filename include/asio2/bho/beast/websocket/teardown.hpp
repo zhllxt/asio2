@@ -13,7 +13,7 @@
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/core/error.hpp>
 #include <asio2/bho/beast/core/role.hpp>
-#include <asio2/external/asio.hpp>
+#include <asio2/bho/asio/basic_stream_socket.hpp>
 #include <type_traits>
 
 namespace bho {
@@ -40,7 +40,7 @@ void
 teardown(
     role_type role,
     Socket& socket,
-    beast::error_code& ec)
+    error_code& ec)
 {
     bho::ignore_unused(role, socket, ec);
 /*
@@ -75,7 +75,7 @@ teardown(
     the handler must be:
     @code
     void handler(
-        beast::error_code const& error // result of operation
+        error_code const& error // result of operation
     );
     @endcode
     Regardless of whether the asynchronous operation completes
@@ -133,7 +133,7 @@ teardown(
     role_type role,
     net::basic_stream_socket<
         Protocol, Executor>& socket,
-    beast::error_code& ec);
+    error_code& ec);
 
 /** Start tearing down a `net::ip::tcp::socket`.
 
@@ -155,7 +155,7 @@ teardown(
     the handler must be:
     @code
     void handler(
-        beast::error_code const& error // result of operation
+        error_code const& error // result of operation
     );
     @endcode   
     Regardless of whether the asynchronous operation completes

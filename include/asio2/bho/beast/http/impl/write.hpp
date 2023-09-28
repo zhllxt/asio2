@@ -17,7 +17,9 @@
 #include <asio2/bho/beast/core/make_printable.hpp>
 #include <asio2/bho/beast/core/stream_traits.hpp>
 #include <asio2/bho/beast/core/detail/is_invocable.hpp>
-#include <asio2/external/asio.hpp>
+#include <asio2/bho/asio/coroutine.hpp>
+#include <asio2/bho/asio/post.hpp>
+#include <asio2/bho/asio/write.hpp>
 #include <optional>
 #include <asio2/bho/throw_exception.hpp>
 #include <ostream>
@@ -171,7 +173,7 @@ template<
 class write_op
     : public beast::async_base<
         Handler, beast::executor_type<Stream>>
-    , public net::coroutine
+    , public asio::coroutine
 {
     Stream& s_;
     serializer<isRequest, Body, Fields>& sr_;

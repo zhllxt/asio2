@@ -15,7 +15,7 @@
 #include <asio2/bho/beast/core/flat_buffer.hpp>
 #include <asio2/bho/beast/core/stream_traits.hpp>
 #include <asio2/bho/beast/core/detail/flat_stream.hpp>
-#include <asio2/external/asio.hpp>
+#include <asio2/bho/asio/async_result.hpp>
 #include <cstdlib>
 #include <utility>
 
@@ -187,7 +187,7 @@ public:
         
         @returns The number of bytes read.
         
-        @throws bho::system::system_error Thrown on failure.
+        @throws asio::system_error Thrown on failure.
         
         @note The `read_some` operation may not read all of the requested number of
         bytes. Consider using the function `net::read` if you need to ensure
@@ -271,7 +271,7 @@ public:
         
         @returns The number of bytes written.
         
-        @throws bho::system::system_error Thrown on failure.
+        @throws asio::system_error Thrown on failure.
         
         @note The `write_some` operation may not transmit all of the data to the
         peer. Consider using the function `net::write` if you need to

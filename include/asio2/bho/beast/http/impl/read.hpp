@@ -19,7 +19,9 @@
 #include <asio2/bho/beast/core/stream_traits.hpp>
 #include <asio2/bho/beast/core/detail/buffer.hpp>
 #include <asio2/bho/beast/core/detail/read.hpp>
-#include <asio2/external/asio.hpp>
+#include <asio2/bho/asio/error.hpp>
+#include <asio2/bho/asio/compose.hpp>
+#include <asio2/bho/asio/coroutine.hpp>
 
 namespace bho {
 namespace beast {
@@ -56,7 +58,7 @@ template<
 class read_msg_op
     : public beast::stable_async_base<
         Handler, beast::executor_type<Stream>>
-    , public net::coroutine
+    , public asio::coroutine
 {
     using parser_type =
         parser<isRequest, Body, Allocator>;
@@ -147,7 +149,7 @@ struct run_read_msg_op
 };
 
 template<class AsyncReadStream, class DynamicBuffer, bool isRequest>
-class read_some_op : net::coroutine
+class read_some_op : asio::coroutine
 {
     AsyncReadStream& s_;
     DynamicBuffer& b_;
@@ -253,7 +255,7 @@ public:
 
 template<class Stream, class DynamicBuffer, bool isRequest, class Condition>
 class read_op
-    : net::coroutine
+    : asio::coroutine
 {
     Stream& s_;
     DynamicBuffer& b_;

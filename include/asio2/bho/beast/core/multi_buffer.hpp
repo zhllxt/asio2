@@ -12,14 +12,14 @@
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/core/detail/allocator.hpp>
-#include <asio2/external/asio.hpp>
+#include <asio2/bho/asio/buffer.hpp>
 #include <asio2/bho/core/empty_value.hpp>
-#include <asio2/bho/beast/core/type_with_alignment.hpp>
+#include <asio2/bho/intrusive/list.hpp>
+#include <asio2/bho/type_traits/type_with_alignment.hpp>
 #include <iterator>
 #include <limits>
 #include <memory>
 #include <type_traits>
-#include <list>
 
 namespace bho {
 namespace beast {
@@ -78,6 +78,9 @@ class basic_multi_buffer
     // and output sequences. The allocation for each element
     // contains `element` followed by raw storage bytes.
     class element
+        : public bho::intrusive::list_base_hook<
+            bho::intrusive::link_mode<
+                bho::intrusive::normal_link>>
     {
         using size_type = typename
             detail::allocator_traits<Allocator>::size_type;
@@ -114,7 +117,7 @@ class basic_multi_buffer
         detail::allocator_traits<Allocator>::size_type;
 
     using align_type = typename
-        beast::type_with_alignment<alignof(element)>::type;
+        bho::type_with_alignment<alignof(element)>::type;
 
     using rebind_type = typename
         beast::detail::allocator_traits<Allocator>::
@@ -123,7 +126,8 @@ class basic_multi_buffer
     using alloc_traits =
         beast::detail::allocator_traits<rebind_type>;
 
-    using list_type = typename std::list<element*>;
+    using list_type = typename bho::intrusive::make_list<
+        element, bho::intrusive::constant_time_size<true>>::type;
 
     using iter = typename list_type::iterator;
 

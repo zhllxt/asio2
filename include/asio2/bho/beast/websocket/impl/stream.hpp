@@ -25,7 +25,7 @@
 #include <asio2/bho/beast/core/buffers_suffix.hpp>
 #include <asio2/bho/beast/core/flat_static_buffer.hpp>
 #include <asio2/bho/beast/core/detail/clamp.hpp>
-#include <asio2/external/asio.hpp>
+#include <asio2/bho/asio/steady_timer.hpp>
 #include <asio2/bho/assert.hpp>
 #include <asio2/bho/throw_exception.hpp>
 #include <algorithm>

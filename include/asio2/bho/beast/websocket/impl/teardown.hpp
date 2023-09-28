@@ -15,7 +15,8 @@
 #include <asio2/bho/beast/core/stream_traits.hpp>
 #include <asio2/bho/beast/core/detail/bind_continuation.hpp>
 #include <asio2/bho/beast/core/detail/is_invocable.hpp>
-#include <asio2/external/asio.hpp>
+#include <asio2/bho/asio/coroutine.hpp>
+#include <asio2/bho/asio/post.hpp>
 #include <memory>
 
 namespace bho {
@@ -32,7 +33,7 @@ class teardown_tcp_op
         Handler, beast::executor_type<
             net::basic_stream_socket<
                 Protocol, Executor>>>
-    , public net::coroutine
+    , public asio::coroutine
 {
     using socket_type =
         net::basic_stream_socket<Protocol, Executor>;
@@ -62,7 +63,7 @@ public:
 
     void
     operator()(
-        beast::error_code ec = {},
+        error_code ec = {},
         std::size_t bytes_transferred = 0,
         bool cont = true)
     {
@@ -131,7 +132,7 @@ public:
                 }
             }
             {
-                beast::error_code ignored;
+                error_code ignored;
                 s_.non_blocking(nb_, ignored);
             }
             this->complete_now(ec);
@@ -149,7 +150,7 @@ teardown(
     role_type role,
     net::basic_stream_socket<
         Protocol, Executor>& socket,
-    beast::error_code& ec)
+    error_code& ec)
 {
     if(role == role_type::server)
         socket.shutdown(
@@ -194,7 +195,7 @@ async_teardown(
     TeardownHandler&& handler)
 {
     static_assert(beast::detail::is_invocable<
-        TeardownHandler, void(beast::error_code)>::value,
+        TeardownHandler, void(error_code)>::value,
             "TeardownHandler type requirements not met");
     detail::teardown_tcp_op<
         Protocol,

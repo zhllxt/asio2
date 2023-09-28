@@ -13,7 +13,7 @@
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/config.hpp>
 
-/*  BEAST_VERSION
+/*  BHO_BEAST_VERSION
 
     Identifies the API version of Beast.
 
@@ -22,15 +22,7 @@
 */
 #define BHO_BEAST_VERSION 322
 
-#define BHO_BEAST_VERSION_STRING "Boost.Beast/" BHO_STRINGIZE(BHO_BEAST_VERSION)
-
-#ifndef BEAST_VERSION
-#  define BEAST_VERSION BHO_BEAST_VERSION
-#endif
-
-#ifndef BEAST_VERSION_STRING
-#  define BEAST_VERSION_STRING BHO_BEAST_VERSION_STRING
-#endif
+#define BHO_BEAST_VERSION_STRING "BHO.Beast/" BHO_STRINGIZE(BHO_BEAST_VERSION)
 
 #endif
 

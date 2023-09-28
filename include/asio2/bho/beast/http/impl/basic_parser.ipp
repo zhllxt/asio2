@@ -17,7 +17,7 @@
 #include <asio2/bho/beast/core/detail/clamp.hpp>
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/core/detail/string.hpp>
-#include <asio2/external/asio.hpp>
+#include <asio2/bho/asio/buffer.hpp>
 #include <algorithm>
 #include <utility>
 
@@ -702,7 +702,7 @@ parse_chunk_header(char const*& p0,
         BHO_ASSERT(n >= 5);
         if(f_ & flagExpectCRLF)
             BHO_VERIFY(parse_crlf(p));
-        std::uint64_t size{}; std::ignore = size;
+        std::uint64_t size;
         BHO_VERIFY(parse_hex(p, size));
         eol = find_eol(p, pend, ec);
         BHO_ASSERT(! ec);

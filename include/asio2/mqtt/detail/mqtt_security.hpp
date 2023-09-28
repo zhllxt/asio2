@@ -27,18 +27,8 @@
 #include <map>
 #include <set>
 #include <optional>
-
-#if !defined(ASIO2_HEADER_ONLY) && __has_include(<boost/iterator/function_output_iterator.hpp>)
-#include <boost/iterator/function_output_iterator.hpp>
-#else
-#include <asio2/bho/iterator/function_output_iterator.hpp>
-#endif
-
-#if !defined(ASIO2_HEADER_ONLY) && __has_include(<boost/algorithm/hex.hpp>)
-#include <boost/algorithm/hex.hpp>
-#else
-#include <asio2/bho/algorithm/hex.hpp>
-#endif
+#include <iterator>     // for std::iterator_traits
+#include <stdexcept>
 
 #include <asio2/base/iopool.hpp>
 #include <asio2/util/string.hpp>
@@ -60,6 +50,339 @@
 
 namespace asio2::mqtt
 {
+namespace detail { namespace algorithm {
+
+/*!
+    \struct hex_decode_error
+    \brief  Base exception class for all hex decoding errors
+*/ /*!
+    \struct non_hex_input
+    \brief  Thrown when a non-hex value (0-9, A-F) encountered when decoding.
+                Contains the offending character
+*/ /*!
+    \struct not_enough_input
+    \brief  Thrown when the input sequence unexpectedly ends
+
+*/
+struct hex_decode_error : virtual std::exception {};
+struct not_enough_input : virtual hex_decode_error {};
+struct non_hex_input    : virtual hex_decode_error {};
+
+namespace detail {
+/// \cond DOXYGEN_HIDE
+
+    template <typename T, typename OutputIterator>
+    OutputIterator encode_one ( T val, OutputIterator out, const char * hexDigits ) {
+        const std::size_t num_hex_digits =  2 * sizeof ( T );
+        char res [ num_hex_digits ];
+        char  *p = res + num_hex_digits;
+        for ( std::size_t i = 0; i < num_hex_digits; ++i, val >>= 4 )
+            *--p = hexDigits [ val & 0x0F ];
+        return std::copy ( res, res + num_hex_digits, out );
+        }
+
+    template <typename T>
+    unsigned char hex_char_to_int ( T val ) {
+        char c = static_cast<char> ( val );
+        unsigned retval = 0;
+        if      ( c >= '0' && c <= '9' ) retval = c - '0';
+        else if ( c >= 'A' && c <= 'F' ) retval = c - 'A' + 10;
+        else if ( c >= 'a' && c <= 'f' ) retval = c - 'a' + 10;
+        else BHO_THROW_EXCEPTION(non_hex_input());
+        return static_cast<char>(retval);
+        }
+
+//  My own iterator_traits class.
+//  It is here so that I can "reach inside" some kinds of output iterators
+//      and get the type to write.
+    template <typename Iterator>
+    struct hex_iterator_traits {
+        typedef typename std::iterator_traits<Iterator>::value_type value_type;
+    };
+
+    template<typename Container>
+    struct hex_iterator_traits< std::back_insert_iterator<Container> > {
+        typedef typename Container::value_type value_type;
+    };
+
+    template<typename Container>
+    struct hex_iterator_traits< std::front_insert_iterator<Container> > {
+        typedef typename Container::value_type value_type;
+    };
+
+    template<typename Container>
+    struct hex_iterator_traits< std::insert_iterator<Container> > {
+        typedef typename Container::value_type value_type;
+    };
+
+//  ostream_iterators have three template parameters.
+//  The first one is the output type, the second one is the character type of
+//  the underlying stream, the third is the character traits.
+//      We only care about the first one.
+    template<typename T, typename charType, typename traits>
+    struct hex_iterator_traits< std::ostream_iterator<T, charType, traits> > {
+        typedef T value_type;
+    };
+
+    template <typename Iterator>
+    bool iter_end ( Iterator current, Iterator last ) { return current == last; }
+
+    template <typename T>
+    bool ptr_end ( const T* ptr, const T* /*end*/ ) { return *ptr == '\0'; }
+
+//  What can we assume here about the inputs?
+//      is std::iterator_traits<InputIterator>::value_type always 'char' ?
+//  Could it be wchar_t, say? Does it matter?
+//      We are assuming ASCII for the values - but what about the storage?
+    template <typename InputIterator, typename OutputIterator, typename EndPred>
+    typename std::enable_if<std::is_integral_v<typename hex_iterator_traits<OutputIterator>::value_type>, OutputIterator>::type
+    decode_one ( InputIterator &first, InputIterator last, OutputIterator out, EndPred pred ) {
+        typedef typename hex_iterator_traits<OutputIterator>::value_type T;
+        T res (0);
+
+    //  Need to make sure that we get can read that many chars here.
+        for ( std::size_t i = 0; i < 2 * sizeof ( T ); ++i, ++first ) {
+            if ( pred ( first, last ))
+                BHO_THROW_EXCEPTION(not_enough_input ());
+            res = ( 16 * res ) + hex_char_to_int (*first);
+            }
+
+        *out = res;
+        return ++out;
+        }
+/// \endcond
+    }
+
+
+/// \fn hex ( InputIterator first, InputIterator last, OutputIterator out )
+/// \brief   Converts a sequence of integral types into a hexadecimal sequence of characters.
+///
+/// \param first    The start of the input sequence
+/// \param last     One past the end of the input sequence
+/// \param out      An output iterator to the results into
+/// \return         The updated output iterator
+/// \note           Based on the MySQL function of the same name
+template <typename InputIterator, typename OutputIterator>
+typename std::enable_if<std::is_integral_v<typename detail::hex_iterator_traits<InputIterator>::value_type>, OutputIterator>::type
+hex ( InputIterator first, InputIterator last, OutputIterator out ) {
+    for ( ; first != last; ++first )
+        out = detail::encode_one ( *first, out, "0123456789ABCDEF" );
+    return out;
+    }
+
+
+/// \fn hex_lower ( InputIterator first, InputIterator last, OutputIterator out )
+/// \brief   Converts a sequence of integral types into a lower case hexadecimal sequence of characters.
+///
+/// \param first    The start of the input sequence
+/// \param last     One past the end of the input sequence
+/// \param out      An output iterator to the results into
+/// \return         The updated output iterator
+/// \note           Based on the MySQL function of the same name
+template <typename InputIterator, typename OutputIterator>
+typename std::enable_if<std::is_integral_v<typename detail::hex_iterator_traits<InputIterator>::value_type>, OutputIterator>::type
+hex_lower ( InputIterator first, InputIterator last, OutputIterator out ) {
+    for ( ; first != last; ++first )
+        out = detail::encode_one ( *first, out, "0123456789abcdef" );
+    return out;
+    }
+
+
+/// \fn hex ( const T *ptr, OutputIterator out )
+/// \brief   Converts a sequence of integral types into a hexadecimal sequence of characters.
+///
+/// \param ptr      A pointer to a 0-terminated sequence of data.
+/// \param out      An output iterator to the results into
+/// \return         The updated output iterator
+/// \note           Based on the MySQL function of the same name
+template <typename T, typename OutputIterator>
+typename std::enable_if<std::is_integral_v<T>, OutputIterator>::type
+hex ( const T *ptr, OutputIterator out ) {
+    while ( *ptr )
+        out = detail::encode_one ( *ptr++, out, "0123456789ABCDEF" );
+    return out;
+    }
+
+
+/// \fn hex_lower ( const T *ptr, OutputIterator out )
+/// \brief   Converts a sequence of integral types into a lower case hexadecimal sequence of characters.
+///
+/// \param ptr      A pointer to a 0-terminated sequence of data.
+/// \param out      An output iterator to the results into
+/// \return         The updated output iterator
+/// \note           Based on the MySQL function of the same name
+template <typename T, typename OutputIterator>
+typename std::enable_if<std::is_integral_v<T>, OutputIterator>::type
+hex_lower ( const T *ptr, OutputIterator out ) {
+    while ( *ptr )
+        out = detail::encode_one ( *ptr++, out, "0123456789abcdef" );
+    return out;
+    }
+
+
+/// \fn hex ( const Range &r, OutputIterator out )
+/// \brief   Converts a sequence of integral types into a hexadecimal sequence of characters.
+///
+/// \param r        The input range
+/// \param out      An output iterator to the results into
+/// \return         The updated output iterator
+/// \note           Based on the MySQL function of the same name
+template <typename Range, typename OutputIterator>
+typename std::enable_if<std::is_integral_v<typename detail::hex_iterator_traits<typename Range::iterator>::value_type>, OutputIterator>::type
+hex ( const Range &r, OutputIterator out ) {
+    return hex (std::begin(r), std::end(r), out);
+}
+
+
+/// \fn hex_lower ( const Range &r, OutputIterator out )
+/// \brief   Converts a sequence of integral types into a lower case hexadecimal sequence of characters.
+///
+/// \param r        The input range
+/// \param out      An output iterator to the results into
+/// \return         The updated output iterator
+/// \note           Based on the MySQL function of the same name
+template <typename Range, typename OutputIterator>
+typename std::enable_if<std::is_integral_v<typename detail::hex_iterator_traits<typename Range::iterator>::value_type>, OutputIterator>::type
+hex_lower ( const Range &r, OutputIterator out ) {
+    return hex_lower (std::begin(r), std::end(r), out);
+}
+
+
+/// \fn unhex ( InputIterator first, InputIterator last, OutputIterator out )
+/// \brief   Converts a sequence of hexadecimal characters into a sequence of integers.
+///
+/// \param first    The start of the input sequence
+/// \param last     One past the end of the input sequence
+/// \param out      An output iterator to the results into
+/// \return         The updated output iterator
+/// \note           Based on the MySQL function of the same name
+template <typename InputIterator, typename OutputIterator>
+OutputIterator unhex ( InputIterator first, InputIterator last, OutputIterator out ) {
+    while ( first != last )
+        out = detail::decode_one ( first, last, out, detail::iter_end<InputIterator> );
+    return out;
+    }
+
+
+/// \fn unhex ( const T *ptr, OutputIterator out )
+/// \brief   Converts a sequence of hexadecimal characters into a sequence of integers.
+///
+/// \param ptr      A pointer to a null-terminated input sequence.
+/// \param out      An output iterator to the results into
+/// \return         The updated output iterator
+/// \note           Based on the MySQL function of the same name
+template <typename T, typename OutputIterator>
+OutputIterator unhex ( const T *ptr, OutputIterator out ) {
+//  If we run into the terminator while decoding, we will throw a
+//      malformed input exception. It would be nicer to throw a 'Not enough input'
+//      exception - but how much extra work would that require?
+    while ( *ptr )
+        out = detail::decode_one ( ptr, (const T *) NULL, out, detail::ptr_end<T> );
+    return out;
+    }
+
+
+/// \fn OutputIterator unhex ( const Range &r, OutputIterator out )
+/// \brief   Converts a sequence of hexadecimal characters into a sequence of integers.
+///
+/// \param r        The input range
+/// \param out      An output iterator to the results into
+/// \return         The updated output iterator
+/// \note           Based on the MySQL function of the same name
+template <typename Range, typename OutputIterator>
+OutputIterator unhex ( const Range &r, OutputIterator out ) {
+    return unhex (std::begin(r), std::end(r), out);
+    }
+
+
+/// \fn String hex ( const String &input )
+/// \brief   Converts a sequence of integral types into a hexadecimal sequence of characters.
+///
+/// \param input    A container to be converted
+/// \return         A container with the encoded text
+template<typename String>
+String hex ( const String &input ) {
+    String output;
+    output.reserve (input.size () * (2 * sizeof (typename String::value_type)));
+    (void) hex (input, std::back_inserter (output));
+    return output;
+    }
+
+
+/// \fn String hex_lower ( const String &input )
+/// \brief   Converts a sequence of integral types into a lower case hexadecimal sequence of characters.
+///
+/// \param input    A container to be converted
+/// \return         A container with the encoded text
+template<typename String>
+String hex_lower ( const String &input ) {
+    String output;
+    output.reserve (input.size () * (2 * sizeof (typename String::value_type)));
+    (void) hex_lower (input, std::back_inserter (output));
+    return output;
+    }
+
+
+/// \fn String unhex ( const String &input )
+/// \brief   Converts a sequence of hexadecimal characters into a sequence of characters.
+///
+/// \param input    A container to be converted
+/// \return         A container with the decoded text
+template<typename String>
+String unhex ( const String &input ) {
+    String output;
+    output.reserve (input.size () / (2 * sizeof (typename String::value_type)));
+    (void) unhex (input, std::back_inserter (output));
+    return output;
+    }
+
+}}
+
+namespace detail {
+namespace iterators {
+
+  template <class UnaryFunction>
+  class function_output_iterator {
+    typedef function_output_iterator self;
+  public:
+    typedef std::output_iterator_tag iterator_category;
+    typedef void                value_type;
+    typedef void                difference_type;
+    typedef void                pointer;
+    typedef void                reference;
+
+    explicit function_output_iterator() {}
+
+    explicit function_output_iterator(const UnaryFunction& f)
+      : m_f(f) {}
+
+    struct output_proxy {
+      output_proxy(UnaryFunction& f) : m_f(f) { }
+      template <class T> output_proxy& operator=(const T& value) {
+        m_f(value);
+        return *this;
+      }
+      UnaryFunction& m_f;
+    };
+    output_proxy operator*() { return output_proxy(m_f); }
+    self& operator++() { return *this; }
+    self& operator++(int) { return *this; }
+  private:
+    UnaryFunction m_f;
+  };
+
+  template <class UnaryFunction>
+  inline function_output_iterator<UnaryFunction>
+  make_function_output_iterator(const UnaryFunction& f = UnaryFunction()) {
+    return function_output_iterator<UnaryFunction>(f);
+  }
+
+} // namespace iterators
+
+using iterators::function_output_iterator;
+using iterators::make_function_output_iterator;
+
+} // namespace detail
 
 struct security
 {
@@ -147,11 +470,7 @@ struct security
 	static std::string to_hex(T start, T end)
 	{
 		std::string result;
-	#if !defined(ASIO2_HEADER_ONLY) && __has_include(<boost/algorithm/hex.hpp>)
-		boost::algorithm::hex(start, end, std::back_inserter(result));
-	#else
-		bho::algorithm::hex(start, end, std::back_inserter(result));
-	#endif
+		detail::algorithm::hex(start, end, std::back_inserter(result));
 		return result;
 	}
 
@@ -651,11 +970,7 @@ struct security
 					i.sub.end(),
 					username_and_groups.begin(),
 					username_and_groups.end(),
-				#if !defined(ASIO2_HEADER_ONLY) && __has_include(<boost/iterator/function_output_iterator.hpp>)
-					boost::make_function_output_iterator(std::ref(store_intersect))
-				#else
-					bho::make_function_output_iterator(std::ref(store_intersect))
-				#endif
+					detail::make_function_output_iterator(std::ref(store_intersect))
 				);
 
 				if (sets_intersect)

@@ -12,7 +12,7 @@
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/core/detail/remap_post_to_defer.hpp>
-#include <asio2/external/asio.hpp>
+#include <asio2/bho/asio/bind_executor.hpp>
 #include <asio2/bho/core/empty_value.hpp>
 #include <type_traits>
 #include <utility>

@@ -12,8 +12,14 @@
 
 #include <asio2/bho/beast/core/error.hpp>
 #include <asio2/bho/beast/core/detail/tuple.hpp>
-#include <asio2/external/asio.hpp>
+#include <asio2/bho/asio/associated_allocator.hpp>
+#include <asio2/bho/asio/associated_executor.hpp>
+#include <asio2/bho/asio/handler_alloc_hook.hpp>
+#include <asio2/bho/asio/handler_continuation_hook.hpp>
+#include <asio2/bho/asio/handler_invoke_hook.hpp>
 #include <asio2/bho/core/ignore_unused.hpp>
+#include <asio2/bho/mp11/integer_sequence.hpp>
+#include <asio2/bho/is_placeholder.hpp>
 #include <functional>
 #include <type_traits>
 #include <utility>
@@ -31,23 +37,23 @@ namespace detail {
 template<class Handler, class... Args>
 class bind_wrapper
 {
-    using args_type = std::tuple<Args...>;
+    using args_type = detail::tuple<Args...>;
 
     Handler h_;
     args_type args_;
 
     template<class T, class Executor>
-    friend struct net::associated_executor;
+    friend struct asio::associated_executor;
 
     template<class T, class Allocator>
-    friend struct net::associated_allocator;
+    friend struct asio::associated_allocator;
 
     template<class Arg, class Vals>
     static
     typename std::enable_if<
         std::is_placeholder<typename
             std::decay<Arg>::type>::value == 0 &&
-        std::is_placeholder<typename
+        bho::is_placeholder<typename
             std::decay<Arg>::type>::value == 0,
         Arg&&>::type
     extract(Arg&& arg, Vals&& vals)
@@ -61,12 +67,27 @@ class bind_wrapper
     typename std::enable_if<
         std::is_placeholder<typename
             std::decay<Arg>::type>::value != 0,
-        std::tuple_element<std::is_placeholder<
+        tuple_element<std::is_placeholder<
             typename std::decay<Arg>::type>::value - 1,
         Vals>>::type&&
     extract(Arg&&, Vals&& vals)
     {
-        return std::get<std::is_placeholder<
+        return detail::get<std::is_placeholder<
+            typename std::decay<Arg>::type>::value - 1>(
+                std::forward<Vals>(vals));
+    }
+
+    template<class Arg, class Vals>
+    static
+    typename std::enable_if<
+        bho::is_placeholder<typename
+            std::decay<Arg>::type>::value != 0,
+        tuple_element<bho::is_placeholder<
+            typename std::decay<Arg>::type>::value - 1,
+        Vals>>::type&&
+    extract(Arg&&, Vals&& vals)
+    {
+        return detail::get<bho::is_placeholder<
             typename std::decay<Arg>::type>::value - 1>(
                 std::forward<Vals>(vals));
     }
@@ -77,11 +98,11 @@ class bind_wrapper
     invoke(
         Handler& h,
         ArgsTuple& args,
-        std::tuple<>&&,
-        std::index_sequence<S...>)
+        tuple<>&&,
+        mp11::index_sequence<S...>)
     {
         bho::ignore_unused(args);
-        h(std::get<S>(std::move(args))...);
+        h(detail::get<S>(std::move(args))...);
     }
 
     template<
@@ -94,11 +115,11 @@ class bind_wrapper
         Handler& h,
         ArgsTuple& args,
         ValsTuple&& vals,
-        std::index_sequence<S...>)
+        mp11::index_sequence<S...>)
     {
         bho::ignore_unused(args);
         bho::ignore_unused(vals);
-        h(extract(std::get<S>(std::move(args)),
+        h(extract(detail::get<S>(std::move(args)),
             std::forward<ValsTuple>(vals))...);
     }
 
@@ -125,20 +146,20 @@ public:
     operator()(Values&&... values)
     {
         invoke(h_, args_,
-            std::tuple<Values&&...>(
+            tuple<Values&&...>(
                 std::forward<Values>(values)...),
-            std::index_sequence_for<Args...>());
+            mp11::index_sequence_for<Args...>());
     }
 
     //
 
     template<class Function>
     friend
-    net::asio_handler_invoke_is_deprecated
+    asio::asio_handler_invoke_is_deprecated
     asio_handler_invoke(
         Function&& f, bind_wrapper* op)
     {
-        using net::asio_handler_invoke;
+        using asio::asio_handler_invoke;
         return asio_handler_invoke(f, std::addressof(op->h_));
     }
 
@@ -146,27 +167,27 @@ public:
     bool asio_handler_is_continuation(
         bind_wrapper* op)
     {
-        using net::asio_handler_is_continuation;
+        using asio::asio_handler_is_continuation;
         return asio_handler_is_continuation(
                 std::addressof(op->h_));
     }
 
     friend
-    net::asio_handler_allocate_is_deprecated
+    asio::asio_handler_allocate_is_deprecated
     asio_handler_allocate(
         std::size_t size, bind_wrapper* op)
     {
-        using net::asio_handler_allocate;
+        using asio::asio_handler_allocate;
         return asio_handler_allocate(
             size, std::addressof(op->h_));
     }
 
     friend
-    net::asio_handler_deallocate_is_deprecated
+    asio::asio_handler_deallocate_is_deprecated
     asio_handler_deallocate(
         void* p, std::size_t size, bind_wrapper* op)
     {
-        using net::asio_handler_deallocate;
+        using asio::asio_handler_deallocate;
         return asio_handler_deallocate(
             p, size, std::addressof(op->h_));
     }
@@ -188,22 +209,22 @@ template<class Handler, class... Args>
 class bind_front_wrapper
 {
     Handler h_;
-    std::tuple<Args...> args_;
+    detail::tuple<Args...> args_;
 
     template<class T, class Executor>
-    friend struct net::associated_executor;
+    friend struct asio::associated_executor;
 
     template<class T, class Allocator>
-    friend struct net::associated_allocator;
+    friend struct asio::associated_allocator;
 
     template<std::size_t... I, class... Ts>
     void
     invoke(
         std::false_type,
-        std::index_sequence<I...>,
+        mp11::index_sequence<I...>,
         Ts&&... ts)
     {
-        h_( std::get<I>(std::move(args_))...,
+        h_( detail::get<I>(std::move(args_))...,
             std::forward<Ts>(ts)...);
     }
 
@@ -211,11 +232,11 @@ class bind_front_wrapper
     void
     invoke(
         std::true_type,
-        std::index_sequence<I...>,
+        mp11::index_sequence<I...>,
         Ts&&... ts)
     {
         std::mem_fn(h_)(
-            std::get<I>(std::move(args_))...,
+            detail::get<I>(std::move(args_))...,
             std::forward<Ts>(ts)...);
     }
 
@@ -239,7 +260,7 @@ public:
     {
         invoke(
             std::is_member_function_pointer<Handler>{},
-            std::index_sequence_for<Args...>{},
+            mp11::index_sequence_for<Args...>{},
             std::forward<Ts>(ts)...);
     }
 
@@ -247,11 +268,11 @@ public:
 
     template<class Function>
     friend
-    net::asio_handler_invoke_is_deprecated
+    asio::asio_handler_invoke_is_deprecated
     asio_handler_invoke(
         Function&& f, bind_front_wrapper* op)
     {
-        using net::asio_handler_invoke;
+        using asio::asio_handler_invoke;
         return asio_handler_invoke(f, std::addressof(op->h_));
     }
 
@@ -259,27 +280,27 @@ public:
     bool asio_handler_is_continuation(
         bind_front_wrapper* op)
     {
-        using net::asio_handler_is_continuation;
+        using asio::asio_handler_is_continuation;
         return asio_handler_is_continuation(
             std::addressof(op->h_));
     }
 
     friend
-    net::asio_handler_allocate_is_deprecated
+    asio::asio_handler_allocate_is_deprecated
     asio_handler_allocate(
         std::size_t size, bind_front_wrapper* op)
     {
-        using net::asio_handler_allocate;
+        using asio::asio_handler_allocate;
         return asio_handler_allocate(
             size, std::addressof(op->h_));
     }
 
     friend
-    net::asio_handler_deallocate_is_deprecated
+    asio::asio_handler_deallocate_is_deprecated
     asio_handler_deallocate(
         void* p, std::size_t size, bind_front_wrapper* op)
     {
-        using net::asio_handler_deallocate;
+        using asio::asio_handler_deallocate;
         return asio_handler_deallocate(
             p, size, std::addressof(op->h_));
     }
@@ -291,11 +312,7 @@ public:
 
 //------------------------------------------------------------------------------
 
-#ifdef ASIO_STANDALONE
 namespace asio {
-#else
-namespace boost::asio {
-#endif
 
 template<class Handler, class... Args, class Executor>
 struct associated_executor<
@@ -316,7 +333,7 @@ struct associated_executor<
 
 template<class Handler, class... Args, class Executor>
 struct associated_executor<
-	bho::beast::detail::bind_front_wrapper<Handler, Args...>, Executor>
+    bho::beast::detail::bind_front_wrapper<Handler, Args...>, Executor>
 {
     using type = typename
         associated_executor<Handler, Executor>::type;
@@ -335,7 +352,7 @@ struct associated_executor<
 
 template<class Handler, class... Args, class Allocator>
 struct associated_allocator<
-	bho::beast::detail::bind_wrapper<Handler, Args...>, Allocator>
+    bho::beast::detail::bind_wrapper<Handler, Args...>, Allocator>
 {
     using type = typename
         associated_allocator<Handler, Allocator>::type;
@@ -352,7 +369,7 @@ struct associated_allocator<
 
 template<class Handler, class... Args, class Allocator>
 struct associated_allocator<
-	bho::beast::detail::bind_front_wrapper<Handler, Args...>, Allocator>
+    bho::beast::detail::bind_front_wrapper<Handler, Args...>, Allocator>
 {
     using type = typename
         associated_allocator<Handler, Allocator>::type;

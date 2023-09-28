@@ -18,7 +18,7 @@
 
 #elif defined(__BYTE_ORDER__) && defined(__ORDER_PDP_ENDIAN__) && __BYTE_ORDER__ == __ORDER_PDP_ENDIAN__
 
-# error The Boost.Endian library does not support platforms with PDP endianness.
+# error The BHO.Endian library does not support platforms with PDP endianness.
 
 #elif defined(__LITTLE_ENDIAN__)
 
@@ -34,7 +34,7 @@
 
 #else
 
-# error The Boost.Endian library could not determine the endianness of this platform.
+# error The BHO.Endian library could not determine the endianness of this platform.
 
 #endif
 

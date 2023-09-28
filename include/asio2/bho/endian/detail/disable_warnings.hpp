@@ -19,7 +19,7 @@
 
 # pragma warning(push)
 
-// triggered by boost/detail/lightweight_test.hpp
+// triggered by bho/detail/lightweight_test.hpp
 # pragma warning( disable : 4640 )  // ... construction of local static object is not thread-safe
 
 // triggered by Microsoft's own headers, so disable

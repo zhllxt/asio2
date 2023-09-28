@@ -13,7 +13,7 @@
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/core/detail/static_const.hpp>
 #include <asio2/bho/beast/core/detail/stream_traits.hpp>
-#include <asio2/external/asio.hpp>
+#include <asio2/bho/asio/basic_socket.hpp>
 
 namespace bho {
 namespace beast {
@@ -111,7 +111,7 @@ using executor_type =
 #else
 template<class T>
 using executor_type =
-    typename std::decay<decltype(std::declval<T&>().get_executor())>::type;
+    decltype(std::declval<T&>().get_executor());
 #endif
 
 /** Determine if `T` has the `get_executor` member function.
@@ -212,7 +212,7 @@ struct is_sync_read_stream<T, std::void_t<decltype(
         std::declval<detail::MutableBufferSequence>()),
     std::declval<std::size_t&>() = std::declval<T&>().read_some(
         std::declval<detail::MutableBufferSequence>(),
-        std::declval<beast::error_code&>())
+        std::declval<asio::error_code&>())
             )>> : std::true_type {};
 #endif
 
@@ -257,7 +257,7 @@ struct is_sync_write_stream<T, std::void_t<decltype(
         std::declval<detail::ConstBufferSequence>()))
     ,std::declval<std::size_t&>() = std::declval<T&>().write_some(
         std::declval<detail::ConstBufferSequence>(),
-        std::declval<beast::error_code&>())
+        std::declval<asio::error_code&>())
             )>> : std::true_type {};
 #endif
 
@@ -443,7 +443,7 @@ beast_close_socket(
     net::basic_socket<
         Protocol, Executor>& sock)
 {
-    beast::error_code ec;
+    asio::error_code ec;
     sock.close(ec);
 }
 

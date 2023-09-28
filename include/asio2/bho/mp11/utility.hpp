@@ -59,7 +59,7 @@ template<class C, class T, class... E> using mp_if = typename detail::mp_if_c_im
 
 #if BHO_MP11_WORKAROUND( BHO_MP11_INTEL, != 0 ) // tested at 1800
 
-// contributed by Roland Schulz in https://github.com/b00storg/mp11/issues/17
+// contributed by Roland Schulz in https://github.com/boostorg/mp11/issues/17
 
 namespace detail
 {

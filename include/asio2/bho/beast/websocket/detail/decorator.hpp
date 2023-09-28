@@ -11,6 +11,8 @@
 #define BHO_BEAST_WEBSOCKET_DETAIL_DECORATOR_HPP
 
 #include <asio2/bho/beast/websocket/rfc6455.hpp>
+#include <asio2/bho/core/exchange.hpp>
+#include <type_traits>
 #include <algorithm>
 #include <memory>
 #include <new>

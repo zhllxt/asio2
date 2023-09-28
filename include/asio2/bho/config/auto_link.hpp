@@ -18,7 +18,7 @@ USAGE:
 Before including this header you must define one or more of define the following macros:
 
 BHO_LIB_NAME:           Required: A string containing the basename of the library,
-                          for example boost_regex.
+                          for example bho_regex.
 BHO_LIB_TOOLSET:        Optional: the base name of the toolset.
 BHO_DYN_LINK:           Optional: when set link to dll rather than static library.
 BHO_LIB_DIAGNOSTIC:     Optional: when set the header will print out the name
@@ -57,7 +57,7 @@ These are defined as:
 
 BHO_LIB_PREFIX:     "lib" for static libraries otherwise "".
 
-BHO_LIB_NAME:       The base name of the lib ( for example boost_regex).
+BHO_LIB_NAME:       The base name of the lib ( for example bho_regex).
 
 BHO_LIB_TOOLSET:    The compiler toolset name (vc6, vc7, bcb5 etc).
 

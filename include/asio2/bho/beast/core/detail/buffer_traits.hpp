@@ -10,8 +10,9 @@
 #ifndef BHO_BEAST_DETAIL_BUFFER_TRAITS_HPP
 #define BHO_BEAST_DETAIL_BUFFER_TRAITS_HPP
 
-#include <asio2/external/asio.hpp>
+#include <asio2/bho/asio/buffer.hpp>
 #include <asio2/bho/config/workaround.hpp>
+#include <type_traits>
 #include <cstdint>
 #include <type_traits>
 

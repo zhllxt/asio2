@@ -14,7 +14,7 @@
 #include <asio2/bho/beast/core/buffer_traits.hpp>
 #include <asio2/bho/beast/core/buffers_prefix.hpp>
 #include <asio2/bho/beast/websocket/teardown.hpp>
-#include <asio2/external/asio.hpp>
+#include <asio2/bho/asio/coroutine.hpp>
 #include <asio2/bho/assert.hpp>
 #include <asio2/bho/core/exchange.hpp>
 #include <cstdlib>
@@ -104,6 +104,7 @@ on_timer(Executor2 const& ex2)
                 return;
             if(ec == net::error::operation_aborted)
                 return;
+
             if (!sp->socket.is_open())
                 return;
             BHO_ASSERT(! ec);
@@ -147,7 +148,7 @@ impl_type::
 close() noexcept
 {
     {
-		error_code ec;
+        error_code ec;
         socket.close(ec);
     }
     try
@@ -213,7 +214,7 @@ struct basic_stream<Protocol, Executor, RatePolicy>::ops
 template<bool isRead, class Buffers, class Handler>
 class transfer_op
     : public async_base<Handler, Executor>
-    , public net::coroutine
+    , public asio::coroutine
 {
     std::shared_ptr<impl_type> impl_;
     pending_guard pg_;
@@ -304,7 +305,7 @@ public:
 
     void
     operator()(
-		error_code ec,
+        error_code ec,
         std::size_t bytes_transferred = 0)
     {
         ASIO_CORO_REENTER(*this)
@@ -841,7 +842,7 @@ void
 basic_stream<Protocol, Executor, RatePolicy>::
 cancel()
 {
-	error_code ec;
+    error_code ec;
     impl_->socket.cancel(ec);
     impl_->timer.cancel();
 }
@@ -1014,7 +1015,7 @@ void
 beast_close_socket(
     basic_stream<Protocol, Executor, RatePolicy>& stream)
 {
-	error_code ec;
+    error_code ec;
     stream.socket().close(ec);
 }
 
@@ -1024,7 +1025,7 @@ void
 teardown(
     role_type role,
     basic_stream<Protocol, Executor, RatePolicy>& stream,
-	error_code& ec)
+    error_code& ec)
 {
     using beast::websocket::teardown;
     teardown(role, stream.socket(), ec);

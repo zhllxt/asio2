@@ -155,7 +155,7 @@ class basic_multi_buffer<Allocator>::subrange
             [&]
             {
                 if(b_->out_end_ == 0)
-                    return (*last)->size();
+                    return last->size();
                 return b_->out_end_;
             }();
 
@@ -181,14 +181,14 @@ class basic_multi_buffer<Allocator>::subrange
         for(;;)
         {
             // is pos in this buffer?
-            if(pos < (*it)->size())
+            if(pos < it->size())
             {
                 begin_ = it;
                 begin_pos_ = pos;
 
                 // does this buffer satisfy n?
                 auto const avail =
-                    (*it)->size() - pos;
+                    it->size() - pos;
                 if(n <= avail)
                 {
                     end_ = ++it;
@@ -201,7 +201,7 @@ class basic_multi_buffer<Allocator>::subrange
                 break;
             }
 
-            pos -= (*it)->size();
+            pos -= it->size();
             ++it;
 
             // did we reach the last buffer?
@@ -238,14 +238,14 @@ class basic_multi_buffer<Allocator>::subrange
                     last_pos_ = n;
                 return;
             }
-            if(n <= (*it)->size())
+            if(n <= it->size())
             {
                 end_ = ++it;
                 last_pos_ = n;
                 return;
             }
             
-            n -= (*it)->size();
+            n -= it->size();
             ++it;
         }
     }
@@ -383,10 +383,10 @@ public:
         BHO_ASSERT(sr_->last_pos_ != 0);
         if(it_ == std::prev(sr_->end_))
             result = {
-                (*it_)->data(), sr_->last_pos_ };
+                it_->data(), sr_->last_pos_ };
         else
             result = {
-                (*it_)->data(), (*it_)->size() };
+                it_->data(), it_->size() };
         if(it_ == sr_->begin_)
             result += sr_->begin_pos_;
         return result;
@@ -650,9 +650,9 @@ capacity() const noexcept
     auto pos = out_;
     if(pos == list_.end())
         return in_size_;
-    auto n = (*pos)->size() - out_pos_;
+    auto n = pos->size() - out_pos_;
     while(++pos != list_.end())
-        n += (*pos)->size();
+        n += pos->size();
     return in_size_ + n;
 }
 
@@ -691,14 +691,14 @@ reserve(std::size_t n)
         return;
     if(out_ != list_.end())
     {
-        total += (*out_)->size() - out_pos_;
+        total += out_->size() - out_pos_;
         if(n <= total)
             return;
         for(auto it = out_;;)
         {
             if(++it == list_.end())
                 break;
-            total += (*it)->size();
+            total += it->size();
             if(n <= total)
                 return;
         }
@@ -735,7 +735,7 @@ shrink_to_fit()
     // one or more unused output buffers
     if(out_ != list_.end())
     {
-        if(out_ != std::prev(list_.end(), 1))
+        if(out_ != list_.iterator_to(list_.back()))
         {
             // unused list
             list_type extra;
@@ -752,11 +752,11 @@ shrink_to_fit()
 
         // unused out_
         BHO_ASSERT(out_ ==
-            std::prev(list_.end(), 1));
+            list_.iterator_to(list_.back()));
         if(out_pos_ == 0)
         {
             BHO_ASSERT(out_ != list_.begin());
-            auto& e = **out_;
+            auto& e = *out_;
             list_.erase(out_);
             out_ = list_.end();
             destroy(e);
@@ -771,8 +771,8 @@ shrink_to_fit()
         [&](iter pos, element& e)
         {
             auto it =
-                list_.insert(pos, &e);
-            auto& e0 = **pos;
+                list_.insert(pos, e);
+            auto& e0 = *pos;
             list_.erase(pos);
             destroy(e0);
             return it;
@@ -782,12 +782,12 @@ shrink_to_fit()
     if(list_.size() > 1 && out_ != list_.end())
     {
         BHO_ASSERT(out_ ==
-            std::prev(list_.end(), 1));
+            list_.iterator_to(list_.back()));
         BHO_ASSERT(out_pos_ != 0);
         auto& e = alloc(out_pos_);
         std::memcpy(
             e.data(),
-            (*out_)->data(),
+            out_->data(),
             out_pos_);
         replace(out_, e);
         out_ = list_.end();
@@ -804,11 +804,11 @@ shrink_to_fit()
         if(out_ != list_.begin())
         {
             auto const n =
-                list_.front()->size() - in_pos_;
+                list_.front().size() - in_pos_;
             auto& e = alloc(n);
             std::memcpy(
                 e.data(),
-                list_.front()->data() + in_pos_,
+                list_.front().data() + in_pos_,
                 n);
             replace(list_.begin(), e);
             in_pos_ = 0;
@@ -821,7 +821,7 @@ shrink_to_fit()
             auto& e = alloc(n);
             std::memcpy(
                 e.data(),
-                list_.front()->data() + in_pos_,
+                list_.front().data() + in_pos_,
                 n);
             replace(list_.begin(), e);
             in_pos_ = 0;
@@ -860,20 +860,20 @@ prepare(size_type n) ->
     // put all empty buffers on reuse list
     if(out_ != list_.end())
     {
-        total += (*out_)->size() - out_pos_;
-        if(out_ != std::prev(list_.end(), 1))
+        total += out_->size() - out_pos_;
+        if(out_ != list_.iterator_to(list_.back()))
         {
-            out_end_ = (*out_)->size();
+            out_end_ = out_->size();
             reuse.splice(reuse.end(), list_,
                 std::next(out_), list_.end());
         #if BHO_BEAST_MULTI_BUFFER_DEBUG_CHECK
             debug_check();
         #endif
         }
-        auto const avail = (*out_)->size() - out_pos_;
+        auto const avail = out_->size() - out_pos_;
         if(n > avail)
         {
-            out_end_ = (*out_)->size();
+            out_end_ = out_->size();
             n -= avail;
         }
         else
@@ -888,9 +888,9 @@ prepare(size_type n) ->
     // get space from reuse buffers
     while(n > 0 && ! reuse.empty())
     {
-        auto& e = *reuse.front();
-        reuse.erase(reuse.begin());
-        list_.push_back(&e);
+        auto& e = reuse.front();
+        reuse.erase(reuse.iterator_to(e));
+        list_.push_back(e);
         total += e.size();
         if(n > e.size())
         {
@@ -951,11 +951,11 @@ commit(size_type n) noexcept
     if(out_ == list_.end())
         return;
     auto const back =
-        std::prev(list_.end(), 1);
+        list_.iterator_to(list_.back());
     while(out_ != back)
     {
         auto const avail =
-            (*out_)->size() - out_pos_;
+            out_->size() - out_pos_;
         if(n < avail)
         {
             out_pos_ += n;
@@ -977,7 +977,7 @@ commit(size_type n) noexcept
     n = (std::min)(n, out_end_ - out_pos_);
     out_pos_ += n;
     in_size_ += n;
-    if(out_pos_ == (*out_)->size())
+    if(out_pos_ == out_->size())
     {
         ++out_;
         out_pos_ = 0;
@@ -1000,7 +1000,7 @@ consume(size_type n) noexcept
         if(list_.begin() != out_)
         {
             auto const avail =
-                list_.front()->size() - in_pos_;
+                list_.front().size() - in_pos_;
             if(n < avail)
             {
                 in_size_ -= n;
@@ -1013,8 +1013,8 @@ consume(size_type n) noexcept
             n -= avail;
             in_size_ -= avail;
             in_pos_ = 0;
-            auto& e = *list_.front();
-            list_.erase(list_.begin());
+            auto& e = list_.front();
+            list_.erase(list_.iterator_to(e));
             destroy(e);
         #if BHO_BEAST_MULTI_BUFFER_DEBUG_CHECK
             debug_check();
@@ -1031,7 +1031,7 @@ consume(size_type n) noexcept
             else
             {
                 in_size_ = 0;
-                if(out_ != std::prev(list_.end(), 1) ||
+                if(out_ != list_.iterator_to(list_.back()) ||
                     out_pos_ != out_end_)
                 {
                     in_pos_ = out_pos_;
@@ -1196,8 +1196,8 @@ basic_multi_buffer<Allocator>::
 destroy(list_type& list) noexcept
 {
     for(auto it = list.begin();
-            it != list.end(); ++it)
-        destroy(**it);
+            it != list.end();)
+        destroy(*it++);
 }
 
 template<class Allocator>
@@ -1205,8 +1205,7 @@ void
 basic_multi_buffer<Allocator>::
 destroy(const_iter it)
 {
-    auto& e = **it;
-    list_.erase(it);
+    auto& e = list_.erase(it);
     destroy(e);
 }
 
@@ -1258,7 +1257,7 @@ debug_check() const
         return;
     }
 
-    auto const& front = *list_.front();
+    auto const& front = list_.front();
 
     BHO_ASSERT(in_pos_ < front.size());
 
@@ -1269,8 +1268,8 @@ debug_check() const
     }
     else
     {
-        auto const& out = **out_;
-        auto const& back = *list_.back();
+        auto const& out = *out_;
+        auto const& back = list_.back();
 
         BHO_ASSERT(out_end_ <= back.size());
         BHO_ASSERT(out_pos_ <  out.size());

@@ -16,7 +16,7 @@ implementations. Using <exception> also has the benefit of
 being available in EC++, so we get a chance to make this work
 for embedded users. And since it's not a header impacted by TR1
 there's no magic needed for inclusion in the face of the
-Boost.TR1 library.
+BHO.TR1 library.
 */
 #include <asio2/bho/predef/detail/_exception.h>
 

@@ -10,7 +10,7 @@
 #ifndef BHO_BEAST_DETAIL_BUFFERS_PAIR_HPP
 #define BHO_BEAST_DETAIL_BUFFERS_PAIR_HPP
 
-#include <asio2/external/asio.hpp>
+#include <asio2/bho/asio/buffer.hpp>
 #include <asio2/bho/assert.hpp>
 #include <asio2/bho/config/workaround.hpp>
 #include <type_traits>
@@ -30,7 +30,7 @@ class buffers_pair
 {
 public:
     // VFALCO: This type is public otherwise
-    //         net::buffers_iterator won't compile.
+    //         asio::buffers_iterator won't compile.
     using value_type = typename
         std::conditional<isMutable,
             net::mutable_buffer,

@@ -12,7 +12,7 @@
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/core/detail/allocator.hpp>
-#include <asio2/external/asio.hpp>
+#include <asio2/bho/asio/buffer.hpp>
 #include <asio2/bho/core/empty_value.hpp>
 #include <limits>
 #include <memory>

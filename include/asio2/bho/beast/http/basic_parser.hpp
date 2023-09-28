@@ -16,7 +16,7 @@
 #include <asio2/bho/beast/http/field.hpp>
 #include <asio2/bho/beast/http/verb.hpp>
 #include <asio2/bho/beast/http/detail/basic_parser.hpp>
-#include <asio2/external/asio.hpp>
+#include <asio2/bho/asio/buffer.hpp>
 #include <optional>
 #include <asio2/bho/assert.hpp>
 #include <limits>
@@ -72,14 +72,13 @@ class basic_parser
     std::optional<std::uint64_t>
         body_limit_ =
             std::optional<std::uint64_t>(
-                (std::numeric_limits<std::uint64_t>::max)());   // max payload body
-                //default_body_limit(is_request{}));   // max payload body
+                default_body_limit(is_request{}));   // max payload body
     std::uint64_t len_ = 0;                 // size of chunk or body
     std::uint64_t len0_ = 0;                // content length if known
     std::unique_ptr<char[]> buf_;           // temp storage
     std::size_t buf_len_ = 0;               // size of buf_
     std::size_t skip_ = 0;                  // resume search here
-    std::uint32_t header_limit_ = 1 * 1024 * 1024;     // max header size
+    std::uint32_t header_limit_ = 8192;     // max header size
     unsigned short status_ = 0;             // response status
     state state_ = state::nothing_yet;      // initial state
     unsigned f_ = 0;                        // flags
@@ -125,7 +124,7 @@ class basic_parser
     default_body_limit(std::false_type)
     {
         // limit for responses
-        return 8 * 1024 * 1024; // 8MB
+        return 128 * 1024 * 1024; // 128MB
     }
 
     template<bool OtherIsRequest>
@@ -290,9 +289,7 @@ public:
         Setting the limit after any body octets have been parsed
         results in undefined behavior.
 
-        [[ The default limit is 1MB for requests and 8MB for responses. ]]
-		The default limit is no limit. -- beacuse the default limit is 
-		modifyed by asio2.
+        The default limit is 1MB for requests and 8MB for responses.
 
         @param v An optional integral value representing the body limit.
         If this is equal to `std::nullopt`, then the body limit is disabled.

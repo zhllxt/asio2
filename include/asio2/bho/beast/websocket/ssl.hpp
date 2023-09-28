@@ -12,7 +12,8 @@
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/websocket/teardown.hpp>
-#include <asio2/external/asio.hpp>
+#include <asio2/bho/asio/ip/tcp.hpp>
+#include <asio2/bho/asio/ssl/stream.hpp>
 
 namespace bho {
 namespace beast {
@@ -37,7 +38,7 @@ void
 teardown(
     role_type role,
     net::ssl::stream<SyncStream>& stream,
-    beast::error_code& ec);
+    error_code& ec);
 
 /** Start tearing down a `net::ssl::stream`.
 
@@ -59,7 +60,7 @@ teardown(
     the handler must be:
     @code
     void handler(
-        beast::error_code const& error // result of operation
+        error_code const& error // result of operation
     );
     @endcode
     Regardless of whether the asynchronous operation completes

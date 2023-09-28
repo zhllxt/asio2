@@ -8,7 +8,7 @@
 #define BHO_LOGIC_TRIBOOL_IO_HPP
 
 #include <asio2/bho/logic/tribool.hpp>
-#include <asio2/bho/config/workaround.hpp>
+#include <asio2/bho/detail/workaround.hpp>
 #include <asio2/bho/noncopyable.hpp>
 
 #if defined(_MSC_VER)

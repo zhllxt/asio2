@@ -10,14 +10,7 @@
 #ifndef BHO_BEAST_WEBSOCKET_IMPL_ERROR_HPP
 #define BHO_BEAST_WEBSOCKET_IMPL_ERROR_HPP
 
-#include <system_error>
-
-#ifdef ASIO_STANDALONE
 namespace std {
-#else
-namespace boost {
-namespace system {
-#endif
 template<>
 struct is_error_code_enum<::bho::beast::websocket::error>
 {
@@ -28,12 +21,7 @@ struct is_error_condition_enum<::bho::beast::websocket::condition>
 {
     static bool const value = true;
 };
-#ifdef ASIO_STANDALONE
-} // std
-#else
-} // system
-} // boost
-#endif
+} // bho
 
 namespace bho {
 namespace beast {

@@ -272,8 +272,9 @@ basic_fields<Allocator>::
 value_type::
 data() const
 {
-    return reinterpret_cast<char*>(
-            static_cast<element*>(this->self_) + 1);
+    return const_cast<char*>(
+        reinterpret_cast<char const*>(
+            static_cast<element const*>(this) + 1));
 }
 
 template<class Allocator>
@@ -290,11 +291,10 @@ template<class Allocator>
 basic_fields<Allocator>::
 value_type::
 value_type(field name,
-    string_view sname, string_view value, value_type* self)
+    string_view sname, string_view value)
     : off_(static_cast<off_t>(sname.size() + 2))
     , len_(static_cast<off_t>(value.size()))
     , f_(name)
-	, self_(self)
 {
     //BHO_ASSERT(name == field::unknown ||
     //    iequals(sname, to_string(name)));
@@ -340,8 +340,8 @@ template<class Allocator>
 basic_fields<Allocator>::
 element::
 element(field name,
-    string_view sname, string_view value, value_type* self)
-    : value_type(name, sname, value, self)
+    string_view sname, string_view value)
+    : value_type(name, sname, value)
 {
 }
 
@@ -567,11 +567,27 @@ insert(field name,
 {
     auto& e = new_element(name, sname,
         static_cast<string_view>(value));
-
-	auto iter = set_.emplace(e.name_string(), &e);
-	auto itel = list_.insert(std::next(list_.begin(), std::distance(set_.begin(), iter)), e);
-	bho::ignore_unused(iter, itel);
-	BHO_ASSERT(std::distance(set_.begin(), iter) == std::distance(list_.begin(), itel));
+    auto const before =
+        set_.upper_bound(sname, key_compare{});
+    if(before == set_.begin())
+    {
+        BHO_ASSERT(count(sname) == 0);
+        set_.insert_before(before, e);
+        list_.push_back(e);
+        return;
+    }
+    auto const last = std::prev(before);
+    // VFALCO is it worth comparing `field name` first?
+    if(! beast::iequals(sname, last->name_string()))
+    {
+        BHO_ASSERT(count(sname) == 0);
+        set_.insert_before(before, e);
+        list_.push_back(e);
+        return;
+    }
+    // keep duplicate fields together in the list
+    set_.insert_before(before, e);
+    list_.insert(++list_.iterator_to(*last), e);
 }
 
 template<class Allocator>
@@ -599,10 +615,9 @@ basic_fields<Allocator>::
 erase(const_iterator pos) ->
     const_iterator
 {
-	BHO_ASSERT(std::next(set_.begin(), std::distance(list_.begin(), pos))->second->self_ == pos->self_);
     auto next = pos;
     auto& e = *next++;
-	set_.erase(std::next(set_.begin(), std::distance(list_.begin(), pos)));
+    set_.erase(set_.iterator_to(e));
     list_.erase(pos);
     delete_element(const_cast<element&>(e));
     return next;
@@ -623,17 +638,13 @@ basic_fields<Allocator>::
 erase(string_view name)
 {
     std::size_t n =0;
-	auto result = set_.equal_range(name);
-	if (result.first == result.second)
-		return n;
-	list_.erase(std::next(list_.begin(), std::distance(set_.begin(), result.first)),
-		std::next(list_.begin(), std::distance(set_.begin(), result.second)));
-	for (auto it = result.first; it != result.second; ++it)
-	{
-		++n;
-		delete_element(*(it->second));
-	}
-	set_.erase(result.first, result.second);
+    set_.erase_and_dispose(name, key_compare{},
+        [&](element* e)
+        {
+            ++n;
+            list_.erase(list_.iterator_to(*e));
+            delete_element(*e);
+        });
     return n;
 }
 
@@ -676,7 +687,7 @@ std::size_t
 basic_fields<Allocator>::
 count(string_view name) const
 {
-    return set_.count(name);
+    return set_.count(name, key_compare{});
 }
 
 template<class Allocator>
@@ -697,13 +708,10 @@ find(string_view name) const ->
     const_iterator
 {
     auto const it = set_.find(
-        name);
+        name, key_compare{});
     if(it == set_.end())
-    {
         return list_.end();
-    }
-	BHO_ASSERT(std::next(list_.begin(), std::distance(set_.begin(), it))->self_ == it->second->self_);
-	return std::next(list_.begin(), std::distance(set_.begin(), it));
+    return list_.iterator_to(*it);
 }
 
 template<class Allocator>
@@ -724,12 +732,12 @@ equal_range(string_view name) const ->
     std::pair<const_iterator, const_iterator>
 {
     auto result =
-        set_.equal_range(name);
+        set_.equal_range(name, key_compare{});
     if(result.first == result.second)
         return {list_.end(), list_.end()};
     return {
-		std::next(list_.begin(),std::distance(set_.begin(),result.first)),
-		std::next(list_.begin(),std::distance(set_.begin(),result.second))};
+        list_.iterator_to(*result.first),
+        ++list_.iterator_to(*(--result.second))};
 }
 
 //------------------------------------------------------------------------------
@@ -972,15 +980,14 @@ new_element(field name,
     auto const p = alloc_traits::allocate(a,
         (sizeof(element) + off + len + 2 + sizeof(align_type) - 1) /
             sizeof(align_type));
-    return *(::new(p) element(name, sname, value, reinterpret_cast<value_type*>(p)));
+    return *(::new(p) element(name, sname, value));
 }
 
 template<class Allocator>
 void
 basic_fields<Allocator>::
-delete_element(element& v)
+delete_element(element& e)
 {
-	element& e = reinterpret_cast<element&>(*(v.self_));
     auto a = rebind_type{this->get()};
     auto const n =
         (sizeof(element) + e.off_ + e.len_ + 2 + sizeof(align_type) - 1) /
@@ -995,11 +1002,29 @@ void
 basic_fields<Allocator>::
 set_element(element& e)
 {
-	erase(e.name_string());
-	auto iter = set_.emplace(e.name_string(), &e);
-	auto itel = list_.insert(std::next(list_.begin(), std::distance(set_.begin(), iter)), e);
-	bho::ignore_unused(iter, itel);
-	BHO_ASSERT(std::distance(set_.begin(), iter) == std::distance(list_.begin(), itel));
+    auto it = set_.lower_bound(
+        e.name_string(), key_compare{});
+    if(it == set_.end() || ! beast::iequals(
+        e.name_string(), it->name_string()))
+    {
+        set_.insert_before(it, e);
+        list_.push_back(e);
+        return;
+    }
+    for(;;)
+    {
+        auto next = it;
+        ++next;
+        set_.erase(it);
+        list_.erase(list_.iterator_to(*it));
+        delete_element(*it);
+        it = next;
+        if(it == set_.end() ||
+            ! beast::iequals(e.name_string(), it->name_string()))
+            break;
+    }
+    set_.insert_before(it, e);
+    list_.push_back(e);
 }
 
 template<class Allocator>

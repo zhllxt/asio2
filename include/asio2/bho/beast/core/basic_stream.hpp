@@ -16,7 +16,11 @@
 #include <asio2/bho/beast/core/rate_policy.hpp>
 #include <asio2/bho/beast/core/role.hpp>
 #include <asio2/bho/beast/core/stream_traits.hpp>
-#include <asio2/external/asio.hpp>
+#include <asio2/bho/asio/async_result.hpp>
+#include <asio2/bho/asio/basic_stream_socket.hpp>
+#include <asio2/bho/asio/connect.hpp>
+#include <asio2/bho/asio/executor.hpp>
+#include <asio2/bho/asio/is_executor.hpp>
 #include <asio2/bho/core/empty_value.hpp>
 #include <asio2/bho/config/workaround.hpp>
 #include <chrono>
@@ -304,10 +308,10 @@ private:
     struct ops;
 
 #if ! BHO_BEAST_DOXYGEN
-    // net::ssl::stream needs these
+    // asio::ssl::stream needs these
     // DEPRECATED
     template<class>
-    friend class net::ssl::stream;
+    friend class asio::ssl::stream;
     // DEPRECATED
     using lowest_layer_type = socket_type;
     // DEPRECATED
@@ -677,7 +681,7 @@ public:
         @param end An iterator pointing to the end of a sequence of endpoints.
 
         @param ec Set to indicate what error occurred, if any. If the sequence is
-        empty, set to net::error::not_found. Otherwise, contains the error
+        empty, set to asio::error::not_found. Otherwise, contains the error
         from the last connection attempt.
 
         @returns On success, an iterator denoting the successfully connected
@@ -721,7 +725,7 @@ public:
 
         @returns The successfully connected endpoint.
 
-        @throws beast::system_error Thrown on failure. If the sequence is
+        @throws asio::system_error Thrown on failure. If the sequence is
         empty, the associated error code is `net::error::not_found`.
         Otherwise, contains the error from the last connection attempt.
     */
@@ -824,7 +828,7 @@ public:
 
         @returns An iterator denoting the successfully connected endpoint.
 
-        @throws beast::system_error Thrown on failure. If the sequence is
+        @throws asio::system_error Thrown on failure. If the sequence is
         empty, the associated @c error_code is `net::error::not_found`.
         Otherwise, contains the error from the last connection attempt.
     */

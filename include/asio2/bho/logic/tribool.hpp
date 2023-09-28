@@ -12,7 +12,7 @@
 
 #include <asio2/bho/logic/tribool_fwd.hpp>
 #include <asio2/bho/config.hpp>
-#include <asio2/bho/config/workaround.hpp>
+#include <asio2/bho/detail/workaround.hpp>
 
 #ifdef BHO_HAS_PRAGMA_ONCE
 #  pragma once

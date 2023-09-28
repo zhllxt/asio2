@@ -16,7 +16,6 @@
 #include <asio2/bho/assert.hpp>
 #include <memory>
 #include <cstring>
-#include <utility>
 
 namespace bho {
 namespace beast {

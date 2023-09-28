@@ -75,7 +75,7 @@
 #if (__BORLANDC__ <= 0x564)
 
 #  if defined(NDEBUG) && defined(__cplusplus)
-      // fix broken <cstring> so that Boost.test works:
+      // fix broken <cstring> so that BHO.test works:
 #     include <cstring>
 #     undef strcmp
 #  endif

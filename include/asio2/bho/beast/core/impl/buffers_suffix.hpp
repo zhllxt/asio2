@@ -11,6 +11,7 @@
 #define BHO_BEAST_IMPL_BUFFERS_SUFFIX_HPP
 
 #include <asio2/bho/beast/core/buffer_traits.hpp>
+#include <asio2/bho/beast/core/buffer_traits.hpp>
 #include <algorithm>
 #include <cstdint>
 #include <iterator>
@@ -121,7 +122,7 @@ private:
 template<class Buffers>
 buffers_suffix<Buffers>::
 buffers_suffix()
-    //: begin_(net::buffer_sequence_begin(bs_)) // note : There may be some problems
+    : begin_(net::buffer_sequence_begin(bs_))
 {
 }
 

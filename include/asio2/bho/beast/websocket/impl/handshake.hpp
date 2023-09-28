@@ -19,7 +19,7 @@
 #include <asio2/bho/beast/core/async_base.hpp>
 #include <asio2/bho/beast/core/flat_buffer.hpp>
 #include <asio2/bho/beast/core/stream_traits.hpp>
-#include <asio2/external/asio.hpp>
+#include <asio2/bho/asio/coroutine.hpp>
 #include <asio2/bho/assert.hpp>
 #include <asio2/bho/throw_exception.hpp>
 #include <memory>
@@ -37,7 +37,7 @@ template<class Handler>
 class stream<NextLayer, deflateSupported>::handshake_op
     : public beast::stable_async_base<Handler,
         beast::executor_type<stream>>
-    , public net::coroutine
+    , public asio::coroutine
 {
     struct data
     {

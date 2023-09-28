@@ -23,7 +23,7 @@
 #include <asio2/bho/beast/core/buffers_suffix.hpp>
 #include <asio2/bho/beast/core/error.hpp>
 #include <asio2/bho/beast/core/detail/clamp.hpp>
-#include <asio2/external/asio.hpp>
+#include <asio2/bho/asio/buffer.hpp>
 #include <cstdint>
 #include <memory>
 #include <stdexcept>

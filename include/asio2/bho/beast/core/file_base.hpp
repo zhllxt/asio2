@@ -13,6 +13,7 @@
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/core/error.hpp>
 #include <type_traits>
+#include <type_traits>
 
 namespace bho {
 namespace beast {

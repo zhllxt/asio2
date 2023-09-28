@@ -10,8 +10,6 @@
 #ifndef BHO_BEAST_IMPL_STRING_PARAM_HPP
 #define BHO_BEAST_IMPL_STRING_PARAM_HPP
 
-#include <type_traits>
-
 namespace bho {
 namespace beast {
 

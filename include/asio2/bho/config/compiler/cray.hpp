@@ -57,11 +57,11 @@
 //
 // Macro definitions are available in the source code at:
 //
-// `bho/libs/config/doc/html/boost_config/boost_macro_reference.html`
+// `bho/libs/config/doc/html/bho_config/bho_macro_reference.html`
 //
 // Macro definitions are also available online at:
 //
-// http://www.boost.org/doc/libs/master/libs/config/doc/html/boost_config/boost_macro_reference.html
+// http://www.boost.org/doc/libs/master/libs/config/doc/html/bho_config/bho_macro_reference.html
 //
 // Typically, if you enable a feature, and the tests pass, then you have
 // nothing to worry about. However, it's sometimes hard to figure out if a
@@ -170,7 +170,7 @@
 ////
 
 // FIXME: Do we really need to support compilers before 8.5? Do they pass
-// the Boost.Config tests?
+// the BHO.Config tests?
 
 #if BHO_CRAY_VERSION < 80000
 #  error "Boost is not configured for Cray compilers prior to version 8, please try the configure script."
@@ -367,7 +367,7 @@
 // appropriate value (it's not just something that you turn on or off).
 // Therefore, if you wish to test changes to 'BHO_NO_DEDUCED_TYPENAME',
 // you have to modify 'no_ded_typename_pass.cpp' to unconditionally include
-// 'boost_no_ded_typename.ipp'.
+// 'bho_no_ded_typename.ipp'.
 #undef  BHO_NO_DEDUCED_TYPENAME // This is correct. Test is broken.
 #undef  BHO_NO_SFINAE_EXPR
 #undef  BHO_NO_TWO_PHASE_NAME_LOOKUP

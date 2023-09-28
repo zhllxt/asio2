@@ -15,7 +15,13 @@
 #include <asio2/bho/beast/core/detail/allocator.hpp>
 #include <asio2/bho/beast/core/detail/async_base.hpp>
 #include <asio2/bho/beast/core/detail/work_guard.hpp>
-#include <asio2/external/asio.hpp>
+#include <asio2/bho/asio/associated_allocator.hpp>
+#include <asio2/bho/asio/associated_executor.hpp>
+#include <asio2/bho/asio/bind_executor.hpp>
+#include <asio2/bho/asio/handler_alloc_hook.hpp>
+#include <asio2/bho/asio/handler_continuation_hook.hpp>
+#include <asio2/bho/asio/handler_invoke_hook.hpp>
+#include <asio2/bho/asio/post.hpp>
 #include <asio2/bho/core/exchange.hpp>
 #include <asio2/bho/core/empty_value.hpp>
 #include <utility>
@@ -349,9 +355,7 @@ public:
         if(! is_continuation)
         {
             auto const ex = get_executor();
-            net::post(
-                wg1_.get_executor(),
-                net::bind_executor(
+            net::post(net::bind_executor(
                 ex,
                 beast::bind_front_handler(
                     std::move(h_),
@@ -480,7 +484,7 @@ public:
         using handler_type = typename net::async_completion<WriteHandler, void(error_code)>::completion_handler_type;
         using base_type = stable_async_base<handler_type, typename AsyncWriteStream::executor_type>;
 
-        struct op : base_type, net::coroutine
+        struct op : base_type, asio::coroutine
         {
             // This object must have a stable address
             struct temporary_data
@@ -516,11 +520,7 @@ public:
             }
 
             // Including this file provides the keywords for macro-based coroutines
-            #ifdef ASIO_STANDALONE
-            	#include <asio/yield.hpp>
-            #else
-            	#include <boost/asio/yield.hpp>
-            #endif
+            #include <asio2/bho/asio/yield.hpp>
 
             void operator()(error_code ec = {}, std::size_t = 0)
             {
@@ -557,11 +557,7 @@ public:
             }
 
             // Including this file undefines the macros for the coroutines
-            #ifdef ASIO_STANDALONE
-            	#include <asio/unyield.hpp>
-            #else
-            	#include <boost/asio/unyield.hpp>
-            #endif
+            #include <asio2/bho/asio/unyield.hpp>
         };
 
         net::async_completion<WriteHandler, void(error_code)> completion(handler);

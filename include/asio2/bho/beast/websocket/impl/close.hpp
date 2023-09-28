@@ -17,7 +17,8 @@
 #include <asio2/bho/beast/core/flat_static_buffer.hpp>
 #include <asio2/bho/beast/core/stream_traits.hpp>
 #include <asio2/bho/beast/core/detail/bind_continuation.hpp>
-#include <asio2/external/asio.hpp>
+#include <asio2/bho/asio/coroutine.hpp>
+#include <asio2/bho/asio/post.hpp>
 #include <asio2/bho/throw_exception.hpp>
 #include <memory>
 
@@ -37,10 +38,10 @@ template<class Handler>
 class stream<NextLayer, deflateSupported>::close_op
     : public beast::stable_async_base<
         Handler, beast::executor_type<stream>>
-    , public net::coroutine
+    , public asio::coroutine
 {
     std::weak_ptr<impl_type> wp_;
-    beast::error_code ev_;
+    error_code ev_;
     detail::frame_buffer& fb_;
 
 public:
@@ -67,7 +68,7 @@ public:
 
     void
     operator()(
-        beast::error_code ec = {},
+        error_code ec = {},
         std::size_t bytes_transferred = 0,
         bool cont = true)
     {
@@ -296,7 +297,7 @@ struct stream<NextLayer, deflateSupported>::
 
         static_assert(
             beast::detail::is_invocable<CloseHandler,
-                void(beast::error_code)>::value,
+                void(error_code)>::value,
             "CloseHandler type requirements not met");
 
         close_op<
@@ -316,7 +317,7 @@ close(close_reason const& cr)
 {
     static_assert(is_sync_stream<next_layer_type>::value,
         "SyncStream type requirements not met");
-	beast::error_code ec;
+    error_code ec;
     close(cr, ec);
     if(ec)
         BHO_THROW_EXCEPTION(system_error{ec});
@@ -325,7 +326,7 @@ close(close_reason const& cr)
 template<class NextLayer, bool deflateSupported>
 void
 stream<NextLayer, deflateSupported>::
-close(close_reason const& cr, beast::error_code& ec)
+close(close_reason const& cr, error_code& ec)
 {
     static_assert(is_sync_stream<next_layer_type>::value,
         "SyncStream type requirements not met");
@@ -352,7 +353,7 @@ close(close_reason const& cr, beast::error_code& ec)
     }
 
     // Read until a receiving a close frame
-	beast::error_code ev;
+    error_code ev;
     if(impl.rd_remain > 0)
         goto read_payload;
     for(;;)
@@ -438,7 +439,7 @@ async_close(close_reason const& cr, CloseHandler&& handler)
         "AsyncStream type requirements not met");
     return net::async_initiate<
         CloseHandler,
-        void(beast::error_code)>(
+        void(error_code)>(
             run_close_op{},
             handler,
             impl_,

@@ -14,7 +14,7 @@
 #include <asio2/bho/beast/core/error.hpp>
 #include <asio2/bho/beast/core/string.hpp>
 #include <asio2/bho/beast/http/detail/type_traits.hpp>
-#include <asio2/external/asio.hpp>
+#include <asio2/bho/asio/buffer.hpp>
 #include <optional>
 #include <type_traits>
 #include <utility>

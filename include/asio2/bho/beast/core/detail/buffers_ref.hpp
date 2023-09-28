@@ -34,12 +34,6 @@ public:
     buffers_ref(buffers_ref const&) = default;
     buffers_ref& operator=(buffers_ref const&) = default;
 
-    buffers_ref()
-        : buffers_(nullptr)
-    {
-		//BHO_ASSERT(false);
-    }
-
     explicit
     buffers_ref(BufferSequence const& buffers)
         : buffers_(std::addressof(buffers))
