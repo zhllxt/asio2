@@ -88,7 +88,7 @@ namespace detail {
         if      ( c >= '0' && c <= '9' ) retval = c - '0';
         else if ( c >= 'A' && c <= 'F' ) retval = c - 'A' + 10;
         else if ( c >= 'a' && c <= 'f' ) retval = c - 'a' + 10;
-        else BHO_THROW_EXCEPTION(non_hex_input());
+        else throw non_hex_input();
         return static_cast<char>(retval);
         }
 
@@ -143,7 +143,7 @@ namespace detail {
     //  Need to make sure that we get can read that many chars here.
         for ( std::size_t i = 0; i < 2 * sizeof ( T ); ++i, ++first ) {
             if ( pred ( first, last ))
-                BHO_THROW_EXCEPTION(not_enough_input ());
+                throw not_enough_input();
             res = ( 16 * res ) + hex_char_to_int (*first);
             }
 
