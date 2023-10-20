@@ -1928,7 +1928,7 @@ namespace asio2::mqtt::v5
 		inline properties_set const&           properties() const { return properties_            ; }
 		inline application_message::view_type  payload   () const { return payload_.data_view()   ; }
 
-		inline publish       &  packet_id (std::uint16_t    v) { packet_id_  = v             ;                      return (*this); }
+		inline publish       &  packet_id (std::uint16_t    v) { packet_id_  = v                     ;  update_remain_length(); return (*this); }
 		template<class String>
 		inline publish       &  topic_name(String&&         v) { topic_name_ = std::forward<String>(v); update_remain_length(); return (*this); }
 		template<class String>

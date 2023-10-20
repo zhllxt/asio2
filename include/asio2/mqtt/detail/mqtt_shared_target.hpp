@@ -202,7 +202,7 @@ namespace asio2::mqtt
 		{
 			auto key = std::pair{ share_name, topic_filter };
 
-			asio2::shared_locker g(this->shared_target_mutex_);
+			asio2::unique_locker g(this->shared_target_mutex_);
 
 			auto it = targets_.find(key);
 			if (it == targets_.end())

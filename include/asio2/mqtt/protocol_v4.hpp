@@ -476,7 +476,7 @@ namespace asio2::mqtt::v4
 		inline two_byte_integer::value_type    packet_id () const { return packet_id_ ? packet_id_->value() : 0; }
 		inline application_message::view_type  payload   () const { return payload_.data_view()   ; }
 
-		inline publish       &  packet_id (std::uint16_t    v) { packet_id_  = v             ;                      return (*this); }
+		inline publish       &  packet_id (std::uint16_t    v) { packet_id_  = v                      ; update_remain_length(); return (*this); }
 		template<class String>
 		inline publish       &  topic_name(String&&         v) { topic_name_ = std::forward<String>(v); update_remain_length(); return (*this); }
 		template<class String>
