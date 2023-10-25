@@ -1,16 +1,14 @@
 #ifndef BHO_CORE_REF_HPP
 #define BHO_CORE_REF_HPP
 
-// MS compatible compilers support #pragma once
-
-#if defined(_MSC_VER) && (_MSC_VER >= 1020)
-# pragma once
-#endif
-
 #include <asio2/bho/config.hpp>
 #include <asio2/bho/config/workaround.hpp>
 #include <asio2/bho/core/addressof.hpp>
 #include <asio2/bho/core/enable_if.hpp>
+
+#if defined(BHO_HAS_PRAGMA_ONCE)
+# pragma once
+#endif
 
 //
 //  ref.hpp - ref/cref, useful helper functions
@@ -61,9 +59,11 @@ template< class Y, class T > struct ref_convertible
     enum _vt { value = sizeof( (f)( static_cast<Y*>(0) ) ) == sizeof(yes) };
 };
 
+#if defined(BHO_NO_CXX11_FUNCTION_TEMPLATE_DEFAULT_ARGS)
 struct ref_empty
 {
 };
+#endif
 
 } // namespace detail
 
@@ -92,11 +92,11 @@ public:
 
      @remark Does not throw.
     */
-    BHO_FORCEINLINE explicit reference_wrapper(T& t): t_(bho::addressof(t)) {}
+    BHO_FORCEINLINE explicit reference_wrapper(T& t) BHO_NOEXCEPT : t_(bho::addressof(t)) {}
 
 #if defined( BHO_MSVC ) && BHO_WORKAROUND( BHO_MSVC, == 1600 )
 
-    BHO_FORCEINLINE explicit reference_wrapper( T & t, ref_workaround_tag ): t_( bho::addressof( t ) ) {}
+    BHO_FORCEINLINE explicit reference_wrapper( T & t, ref_workaround_tag ) BHO_NOEXCEPT : t_( bho::addressof( t ) ) {}
 
 #endif
 
@@ -117,30 +117,37 @@ public:
      @remark Only enabled when `Y*` is convertible to `T*`.
      @remark Does not throw.
     */
-    template<class Y> reference_wrapper( reference_wrapper<Y> r,
-        typename enable_if_c<bho::detail::ref_convertible<Y, T>::value,
-            bho::detail::ref_empty>::type = bho::detail::ref_empty() ): t_( r.t_ )
+#if !defined(BHO_NO_CXX11_FUNCTION_TEMPLATE_DEFAULT_ARGS)
+    template<class Y, class = typename enable_if_c<bho::detail::ref_convertible<Y, T>::value>::type>
+    reference_wrapper( reference_wrapper<Y> r ) BHO_NOEXCEPT : t_( r.t_ )
     {
     }
+#else
+    template<class Y> reference_wrapper( reference_wrapper<Y> r,
+        typename enable_if_c<bho::detail::ref_convertible<Y, T>::value,
+            bho::detail::ref_empty>::type = bho::detail::ref_empty() ) BHO_NOEXCEPT : t_( r.t_ )
+    {
+    }
+#endif
 
     /**
      @return The stored reference.
      @remark Does not throw.
     */
-    BHO_FORCEINLINE operator T& () const { return *t_; }
+    BHO_FORCEINLINE operator T& () const BHO_NOEXCEPT { return *t_; }
 
     /**
      @return The stored reference.
      @remark Does not throw.
     */
-    BHO_FORCEINLINE T& get() const { return *t_; }
+    BHO_FORCEINLINE T& get() const BHO_NOEXCEPT { return *t_; }
 
     /**
      @return A pointer to the object referenced by the stored
        reference.
      @remark Does not throw.
     */
-    BHO_FORCEINLINE T* get_pointer() const { return t_; }
+    BHO_FORCEINLINE T* get_pointer() const BHO_NOEXCEPT { return t_; }
 
 private:
 
@@ -165,7 +172,7 @@ private:
  @return `reference_wrapper<T>(t)`
  @remark Does not throw.
 */
-template<class T> BHO_FORCEINLINE reference_wrapper<T> BHO_REF_CONST ref( T & t )
+template<class T> BHO_FORCEINLINE reference_wrapper<T> BHO_REF_CONST ref( T & t ) BHO_NOEXCEPT
 {
 #if defined( BHO_MSVC ) && BHO_WORKAROUND( BHO_MSVC, == 1600 )
 
@@ -184,7 +191,7 @@ template<class T> BHO_FORCEINLINE reference_wrapper<T> BHO_REF_CONST ref( T & t 
  @return `reference_wrapper<T const>(t)`
  @remark Does not throw.
 */
-template<class T> BHO_FORCEINLINE reference_wrapper<T const> BHO_REF_CONST cref( T const & t )
+template<class T> BHO_FORCEINLINE reference_wrapper<T const> BHO_REF_CONST cref( T const & t ) BHO_NOEXCEPT
 {
     return reference_wrapper<T const>(t);
 }
@@ -315,7 +322,7 @@ template<typename T> struct unwrap_reference< reference_wrapper<T> const volatil
  @return `unwrap_reference<T>::type&(t)`
  @remark Does not throw.
 */
-template<class T> BHO_FORCEINLINE typename unwrap_reference<T>::type& unwrap_ref( T & t )
+template<class T> BHO_FORCEINLINE typename unwrap_reference<T>::type& unwrap_ref( T & t ) BHO_NOEXCEPT
 {
     return t;
 }
@@ -325,7 +332,7 @@ template<class T> BHO_FORCEINLINE typename unwrap_reference<T>::type& unwrap_ref
 /**
  @cond
 */
-template<class T> BHO_FORCEINLINE T* get_pointer( reference_wrapper<T> const & r )
+template<class T> BHO_FORCEINLINE T* get_pointer( reference_wrapper<T> const & r ) BHO_NOEXCEPT
 {
     return r.get_pointer();
 }

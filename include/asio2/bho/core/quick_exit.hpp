@@ -33,7 +33,7 @@ extern "C" _Noreturn void quick_exit(int);
 namespace bho
 {
 
-BHO_NORETURN void quick_exit( int code ) BHO_NOEXCEPT
+BHO_NORETURN inline void quick_exit( int code ) BHO_NOEXCEPT
 {
 #if defined(_MSC_VER) && _MSC_VER < 1900
 

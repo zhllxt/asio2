@@ -47,9 +47,9 @@ struct trivial_value_traits
       {  return pointer_traits<node_ptr>::pointer_to(value);  }
    BHO_INTRUSIVE_FORCEINLINE static const_node_ptr to_node_ptr (const value_type &value) BHO_NOEXCEPT
       {  return pointer_traits<const_node_ptr>::pointer_to(value);  }
-   BHO_INTRUSIVE_FORCEINLINE static const pointer  &      to_value_ptr(const node_ptr &n) BHO_NOEXCEPT
+   BHO_INTRUSIVE_FORCEINLINE static pointer  to_value_ptr(node_ptr n) BHO_NOEXCEPT
       {  return n; }
-   BHO_INTRUSIVE_FORCEINLINE static const const_pointer  &to_value_ptr(const const_node_ptr &n) BHO_NOEXCEPT
+   BHO_INTRUSIVE_FORCEINLINE static const_pointer  to_value_ptr(const_node_ptr n) BHO_NOEXCEPT
       {  return n; }
 };
 

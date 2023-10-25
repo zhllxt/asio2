@@ -10,13 +10,13 @@
 #ifndef BHO_BEAST_CORE_DETAIL_BIND_DEFAULT_EXECUTOR_HPP
 #define BHO_BEAST_CORE_DETAIL_BIND_DEFAULT_EXECUTOR_HPP
 
-#include <asio2/bho/asio/associated_allocator.hpp>
-#include <asio2/bho/asio/associated_executor.hpp>
-#include <asio2/bho/asio/dispatch.hpp>
-#include <asio2/bho/asio/executor.hpp>
-#include <asio2/bho/asio/handler_alloc_hook.hpp>
-#include <asio2/bho/asio/handler_continuation_hook.hpp>
-#include <asio2/bho/asio/handler_invoke_hook.hpp>
+#include <asio/associated_allocator.hpp>
+#include <asio/associated_executor.hpp>
+#include <asio/dispatch.hpp>
+#include <asio/executor.hpp>
+#include <asio/handler_alloc_hook.hpp>
+#include <asio/handler_continuation_hook.hpp>
+#include <asio/handler_invoke_hook.hpp>
 #include <asio2/bho/core/empty_value.hpp>
 #include <utility>
 
@@ -65,6 +65,16 @@ public:
     {
         return net::get_associated_executor(
             h_, this->get());
+    }
+
+    using cancellation_slot_type =
+        net::associated_cancellation_slot_t<Handler>;
+
+    cancellation_slot_type
+    get_cancellation_slot() const noexcept
+    {
+        return net::get_associated_cancellation_slot(h_,
+            net::cancellation_slot());
     }
 
     // The allocation hooks are still defined because they trivially forward to

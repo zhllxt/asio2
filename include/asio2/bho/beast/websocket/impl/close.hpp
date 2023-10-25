@@ -17,8 +17,8 @@
 #include <asio2/bho/beast/core/flat_static_buffer.hpp>
 #include <asio2/bho/beast/core/stream_traits.hpp>
 #include <asio2/bho/beast/core/detail/bind_continuation.hpp>
-#include <asio2/bho/asio/coroutine.hpp>
-#include <asio2/bho/asio/post.hpp>
+#include <asio/coroutine.hpp>
+#include <asio/post.hpp>
 #include <asio2/bho/throw_exception.hpp>
 #include <memory>
 
@@ -76,7 +76,7 @@ public:
         auto sp = wp_.lock();
         if(! sp)
         {
-            ec = net::error::operation_aborted;
+            BHO_BEAST_ASSIGN_EC(ec, net::error::operation_aborted);
             return this->complete(cont, ec);
         }
         auto& impl = *sp;
@@ -90,9 +90,15 @@ public:
                     ASIO_HANDLER_LOCATION((
                         __FILE__, __LINE__,
                         "websocket::async_close"));
-
-                    impl.op_close.emplace(std::move(*this));
+                    this->set_allowed_cancellation(net::cancellation_type::all);
+                    impl.op_close.emplace(std::move(*this),
+                                          net::cancellation_type::all);
                 }
+                // cancel fired before we could do anything.
+                if (ec == net::error::operation_aborted)
+                    return this->complete(cont, ec);
+                this->set_allowed_cancellation(net::cancellation_type::terminal);
+
                 impl.wr_block.lock(this);
                 ASIO_CORO_YIELD
                 {
@@ -100,7 +106,7 @@ public:
                         __FILE__, __LINE__,
                         "websocket::async_close"));
 
-                    net::post(std::move(*this));
+                    net::post(sp->stream().get_executor(), std::move(*this));
                 }
                 BHO_ASSERT(impl.wr_block.is_locked(this));
             }
@@ -143,9 +149,17 @@ public:
                     ASIO_HANDLER_LOCATION((
                         __FILE__, __LINE__,
                         "websocket::async_close"));
-
+                    // terminal only, that's the default
                     impl.op_r_close.emplace(std::move(*this));
                 }
+                if (ec == net::error::operation_aborted)
+                {
+                    // if a cancellation fires here, we do a dirty shutdown
+                    impl.change_status(status::closed);
+                    close_socket(get_lowest_layer(impl.stream()));
+                    return this->complete(cont, ec);
+                }
+
                 impl.rd_block.lock(this);
                 ASIO_CORO_YIELD
                 {
@@ -153,7 +167,7 @@ public:
                         __FILE__, __LINE__,
                         "websocket::async_close"));
 
-                    net::post(std::move(*this));
+                    net::post(sp->stream().get_executor(), std::move(*this));
                 }
                 BHO_ASSERT(impl.rd_block.is_locked(this));
                 if(impl.check_stop_now(ec))
@@ -185,7 +199,7 @@ public:
                             beast::detail::bind_continuation(std::move(*this)));
                     }
                     impl.rd_buf.commit(bytes_transferred);
-                    if(impl.check_stop_now(ec))
+                    if(impl.check_stop_now(ec)) //< this catches cancellation
                         goto upcall;
                 }
                 if(detail::is_control(impl.rd_fh.op))
@@ -260,7 +274,9 @@ public:
                 ec = {};
             }
             if(! ec)
-                ec = ev_;
+            {
+                BHO_BEAST_ASSIGN_EC(ec, ev_);
+            }
             if(ec)
                 impl.change_status(status::failed);
             else

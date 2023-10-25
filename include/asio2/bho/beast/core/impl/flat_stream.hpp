@@ -15,7 +15,7 @@
 #include <asio2/bho/beast/core/static_buffer.hpp>
 #include <asio2/bho/beast/core/stream_traits.hpp>
 #include <asio2/bho/beast/websocket/teardown.hpp>
-#include <asio2/bho/asio/buffer.hpp>
+#include <asio/buffer.hpp>
 #include <memory>
 
 namespace bho {

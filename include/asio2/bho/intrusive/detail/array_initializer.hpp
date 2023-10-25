@@ -22,8 +22,9 @@
 #endif
 
 #include <asio2/bho/config.hpp>
-#include <asio2/bho/core/no_exceptions_support.hpp>
+#include <asio2/bho/intrusive/detail/workaround.hpp>
 #include <asio2/bho/move/detail/placement_new.hpp>
+#include <asio2/bho/move/detail/force_ptr.hpp>
 
 namespace bho {
 namespace intrusive {
@@ -54,20 +55,20 @@ class array_initializer
    {
       char *init_buf = (char*)rawbuf;
       std::size_t i = 0;
-      BHO_TRY{
+      BHO_INTRUSIVE_TRY{
          for(; i != N; ++i){
             ::new(init_buf, bho_move_new_t()) T(init);
             init_buf += sizeof(T);
          }
       }
-      BHO_CATCH(...){
+      BHO_INTRUSIVE_CATCH(...){
          while(i--){
             init_buf -= sizeof(T);
-            ((T*)init_buf)->~T();
+            move_detail::force_ptr<T*>(init_buf)->~T();
          }
-         BHO_RETHROW;
+         BHO_INTRUSIVE_RETHROW;
       }
-      BHO_CATCH_END
+      BHO_INTRUSIVE_CATCH_END
    }
 
    operator T* ()
@@ -81,7 +82,7 @@ class array_initializer
       char *init_buf = (char*)rawbuf + N*sizeof(T);
       for(std::size_t i = 0; i != N; ++i){
          init_buf -= sizeof(T);
-         ((T*)init_buf)->~T();
+         move_detail::force_ptr<T*>(init_buf)->~T();
       }
    }
 

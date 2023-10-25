@@ -14,8 +14,8 @@
 #include <asio2/bho/beast/core/async_base.hpp>
 #include <asio2/bho/beast/core/flat_static_buffer.hpp>
 #include <asio2/bho/beast/core/read_size.hpp>
-#include <asio2/bho/asio/basic_stream_socket.hpp>
-#include <asio2/bho/asio/coroutine.hpp>
+#include <asio/basic_stream_socket.hpp>
+#include <asio/coroutine.hpp>
 #include <asio2/bho/throw_exception.hpp>
 
 namespace bho {
@@ -96,7 +96,7 @@ public:
                 ASIO_CORO_YIELD
                 s_.async_read_some(
                     b_.prepare(0), std::move(*this));
-                ec = ec_;
+                BHO_BEAST_ASSIGN_EC(ec, ec_);
             }
             this->complete_now(ec, total_);
         }

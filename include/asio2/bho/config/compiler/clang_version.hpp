@@ -4,14 +4,20 @@
 
 #if !defined(__APPLE__)
 
-# define BHO_CLANG_VERSION (__clang_major__ * 10000 + __clang_minor__ * 100 + __clang_patchlevel__)
+# define BHO_CLANG_VERSION (__clang_major__ * 10000 + __clang_minor__ * 100 + __clang_patchlevel__ % 100)
 
 #else
-# define BHO_CLANG_REPORTED_VERSION (__clang_major__ * 10000 + __clang_minor__ * 100 + __clang_patchlevel__)
+# define BHO_CLANG_REPORTED_VERSION (__clang_major__ * 10000 + __clang_minor__ * 100 + __clang_patchlevel__ % 100)
 
 // https://en.wikipedia.org/wiki/Xcode#Toolchain_versions
 
-# if BHO_CLANG_REPORTED_VERSION >= 130000
+# if BHO_CLANG_REPORTED_VERSION >= 140000
+#   define BHO_CLANG_VERSION 140000
+
+# elif BHO_CLANG_REPORTED_VERSION >= 130100
+#   define BHO_CLANG_VERSION 130000
+
+# elif BHO_CLANG_REPORTED_VERSION >= 130000
 #   define BHO_CLANG_VERSION 120000
 
 # elif BHO_CLANG_REPORTED_VERSION >= 120005

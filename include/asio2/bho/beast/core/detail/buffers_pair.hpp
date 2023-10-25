@@ -10,7 +10,7 @@
 #ifndef BHO_BEAST_DETAIL_BUFFERS_PAIR_HPP
 #define BHO_BEAST_DETAIL_BUFFERS_PAIR_HPP
 
-#include <asio2/bho/asio/buffer.hpp>
+#include <asio/buffer.hpp>
 #include <asio2/bho/assert.hpp>
 #include <asio2/bho/config/workaround.hpp>
 #include <type_traits>

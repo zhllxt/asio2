@@ -27,6 +27,7 @@
 # pragma warning(disable: 4127)  // conditional expression is constant
 #endif
 
+#include <asio2/bho/endian/detail/requires_cxx11.hpp>
 #include <asio2/bho/endian/detail/endian_store.hpp>
 #include <asio2/bho/endian/detail/endian_load.hpp>
 #include <asio2/bho/core/scoped_enum.hpp>

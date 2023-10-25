@@ -1,12 +1,6 @@
 #ifndef BHO_CORE_IS_SAME_HPP_INCLUDED
 #define BHO_CORE_IS_SAME_HPP_INCLUDED
 
-// MS compatible compilers support #pragma once
-
-#if defined(_MSC_VER) && (_MSC_VER >= 1020)
-# pragma once
-#endif
-
 // is_same<T1,T2>::value is true when T1 == T2
 //
 // Copyright 2014 Peter Dimov
@@ -16,6 +10,15 @@
 // http://www.boost.org/LICENSE_1_0.txt
 
 #include <asio2/bho/config.hpp>
+#include <asio2/bho/core/detail/is_same.hpp>
+
+#if defined(BHO_HAS_PRAGMA_ONCE)
+# pragma once
+#endif
+
+#include <asio2/bho/config/header_deprecated.hpp>
+
+#include <type_traits>
 
 namespace bho
 {
@@ -23,15 +26,7 @@ namespace bho
 namespace core
 {
 
-template< class T1, class T2 > struct is_same
-{
-    BHO_STATIC_CONSTANT( bool, value = false );
-};
-
-template< class T > struct is_same< T, T >
-{
-    BHO_STATIC_CONSTANT( bool, value = true );
-};
+using bho::core::detail::is_same;
 
 } // namespace core
 

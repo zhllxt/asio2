@@ -10,7 +10,7 @@
 #ifndef BHO_BEAST_DETAIL_IS_INVOCABLE_HPP
 #define BHO_BEAST_DETAIL_IS_INVOCABLE_HPP
 
-#include <asio2/bho/asio/async_result.hpp>
+#include <asio/async_result.hpp>
 #include <type_traits>
 #include <type_traits>
 #include <utility>

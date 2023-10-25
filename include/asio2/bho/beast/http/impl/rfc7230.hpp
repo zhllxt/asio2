@@ -88,8 +88,8 @@ private:
 
     BHO_BEAST_DECL
     static
-    std::string
-    unquote(string_view sr);
+    void
+    unquote(string_view sr, std::string & s);
 
     BHO_BEAST_DECL
     void

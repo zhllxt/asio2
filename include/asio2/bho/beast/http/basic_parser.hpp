@@ -16,7 +16,7 @@
 #include <asio2/bho/beast/http/field.hpp>
 #include <asio2/bho/beast/http/verb.hpp>
 #include <asio2/bho/beast/http/detail/basic_parser.hpp>
-#include <asio2/bho/asio/buffer.hpp>
+#include <asio/buffer.hpp>
 #include <optional>
 #include <asio2/bho/assert.hpp>
 #include <limits>
@@ -130,7 +130,9 @@ class basic_parser
     template<bool OtherIsRequest>
     friend class basic_parser;
 
+#ifndef BHO_BEAST_DOXYGEN
     friend class basic_parser_test;
+#endif
 
 protected:
     /// Default constructor

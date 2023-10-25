@@ -107,6 +107,14 @@
 #  define BHO_NO_RTTI
 #endif
 
+// Deprecated symbol markup
+#if (_MSC_VER >= 1400)
+#define BHO_DEPRECATED(msg) __declspec(deprecated(msg))
+#else
+// MSVC 7.1 only supports the attribute without a message
+#define BHO_DEPRECATED(msg) __declspec(deprecated)
+#endif
+
 //
 // TR1 features:
 //
@@ -175,6 +183,7 @@
 #  define BHO_NO_CXX11_REF_QUALIFIERS
 #  define BHO_NO_CXX11_USER_DEFINED_LITERALS
 #  define BHO_NO_CXX11_ALIGNAS
+#  define BHO_NO_CXX11_ALIGNOF
 #  define BHO_NO_CXX11_INLINE_NAMESPACES
 #  define BHO_NO_CXX11_CHAR16_T
 #  define BHO_NO_CXX11_CHAR32_T
@@ -262,7 +271,7 @@
 #ifndef BHO_NO_CXX11_THREAD_LOCAL
 #  define BHO_NO_CXX11_THREAD_LOCAL
 #endif
-#ifndef BHO_NO_SFINAE_EXPR
+#if !defined(BHO_NO_SFINAE_EXPR) && !defined(_MSVC_LANG)
 #  define BHO_NO_SFINAE_EXPR
 #endif
 #ifndef BHO_NO_CXX11_REF_QUALIFIERS
@@ -356,6 +365,8 @@
 #     define BHO_COMPILER_VERSION 14.1
 #   elif _MSC_VER < 1930
 #     define BHO_COMPILER_VERSION 14.2
+#   elif _MSC_VER < 1940
+#     define BHO_COMPILER_VERSION 14.3
 #   else
 #     define BHO_COMPILER_VERSION _MSC_VER
 #   endif
@@ -367,8 +378,8 @@
 #include <asio2/bho/config/pragma_message.hpp>
 
 //
-// last known and checked version is 19.20.27508 (VC++ 2019 RC3):
-#if (_MSC_VER > 1920)
+// last known and checked version is 19.3x (VS2022):
+#if (_MSC_VER >= 1940)
 #  if defined(BHO_ASSERT_CONFIG)
 #     error "BHO.Config is older than your current compiler version."
 #  elif !defined(BHO_CONFIG_SUPPRESS_OUTDATED_MESSAGE)

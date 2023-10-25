@@ -15,7 +15,7 @@
 #include <asio2/bho/beast/core/string.hpp>
 #include <asio2/bho/beast/http/type_traits.hpp>
 #include <asio2/bho/beast/http/detail/chunk_encode.hpp>
-#include <asio2/bho/asio/buffer.hpp>
+#include <asio/buffer.hpp>
 #include <memory>
 #include <type_traits>
 

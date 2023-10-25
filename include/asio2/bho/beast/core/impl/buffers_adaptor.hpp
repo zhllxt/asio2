@@ -12,7 +12,7 @@
 
 #include <asio2/bho/beast/core/buffer_traits.hpp>
 #include <asio2/bho/beast/core/buffers_adaptor.hpp>
-#include <asio2/bho/asio/buffer.hpp>
+#include <asio/buffer.hpp>
 #include <asio2/bho/config/workaround.hpp>
 #include <asio2/bho/throw_exception.hpp>
 #include <algorithm>
@@ -195,9 +195,9 @@ buffers_adaptor(
     std::size_t nout,
     std::size_t nend)
     : bs_(other.bs_)
-    , begin_(std::next(bs_.begin(), nbegin))
-    , out_(std::next(bs_.begin(), nout))
-    , end_(std::next(bs_.begin(), nend))
+    , begin_(std::next(net::buffer_sequence_begin(bs_), nbegin))
+    , out_(std::next(net::buffer_sequence_begin(bs_), nout))
+    , end_(std::next(net::buffer_sequence_begin(bs_), nend))
     , max_size_(other.max_size_)
     , in_pos_(other.in_pos_)
     , in_size_(other.in_size_)

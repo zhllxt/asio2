@@ -28,6 +28,7 @@
 #include <asio2/bho/move/detail/iterator_traits.hpp>
 #include <asio2/bho/move/algo/detail/is_sorted.hpp>
 #include <asio2/bho/move/utility_core.hpp>
+#include <cassert>
 
 #if defined(BHO_CLANG) || (defined(BHO_GCC) && (BHO_GCC >= 40600))
 #pragma GCC diagnostic push
@@ -39,7 +40,7 @@ namespace bho {  namespace movelib{
 template <class RandomAccessIterator, class Compare>
 class heap_sort_helper
 {
-   typedef typename bho::movelib::iterator_traits<RandomAccessIterator>::size_type  size_type;
+   typedef typename bho::movelib::iter_size<RandomAccessIterator>::type  size_type;
    typedef typename bho::movelib::iterator_traits<RandomAccessIterator>::value_type value_type;
 
    static void adjust_heap(RandomAccessIterator first, size_type hole_index, size_type const len, value_type &value, Compare comp)
@@ -100,7 +101,7 @@ class heap_sort_helper
    {
       make_heap(first, last, comp);
       sort_heap(first, last, comp);
-      BHO_ASSERT(bho::movelib::is_sorted(first, last, comp));
+      assert(bho::movelib::is_sorted(first, last, comp));
    }
 };
 

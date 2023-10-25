@@ -49,13 +49,13 @@ struct any_list_node_traits
    typedef typename node::node_ptr        node_ptr;
    typedef typename node::const_node_ptr  const_node_ptr;
 
-   BHO_INTRUSIVE_FORCEINLINE static node_ptr get_next(const const_node_ptr & n)
+   BHO_INTRUSIVE_FORCEINLINE static node_ptr get_next(const_node_ptr n)
    {  return n->node_ptr_1;  }
 
    BHO_INTRUSIVE_FORCEINLINE static void set_next(node_ptr n, node_ptr next)
    {  n->node_ptr_1 = next;  }
 
-   BHO_INTRUSIVE_FORCEINLINE static node_ptr get_previous(const const_node_ptr & n)
+   BHO_INTRUSIVE_FORCEINLINE static node_ptr get_previous(const_node_ptr n)
    {  return n->node_ptr_2;  }
 
    BHO_INTRUSIVE_FORCEINLINE static void set_previous(node_ptr n, node_ptr prev)
@@ -70,7 +70,7 @@ struct any_slist_node_traits
    typedef typename node::node_ptr        node_ptr;
    typedef typename node::const_node_ptr  const_node_ptr;
 
-   BHO_INTRUSIVE_FORCEINLINE static node_ptr get_next(const const_node_ptr & n)
+   BHO_INTRUSIVE_FORCEINLINE static node_ptr get_next(const_node_ptr n)
    {  return n->node_ptr_1;  }
 
    BHO_INTRUSIVE_FORCEINLINE static void set_next(node_ptr n, node_ptr next)
@@ -90,22 +90,22 @@ struct any_unordered_node_traits
    static const bool store_hash        = true;
    static const bool optimize_multikey = true;
 
-   BHO_INTRUSIVE_FORCEINLINE static node_ptr get_next(const const_node_ptr & n)
+   BHO_INTRUSIVE_FORCEINLINE static node_ptr get_next(const_node_ptr n)
    {  return n->node_ptr_1;   }
 
    BHO_INTRUSIVE_FORCEINLINE static void set_next(node_ptr n, node_ptr next)
    {  n->node_ptr_1 = next;  }
 
-   BHO_INTRUSIVE_FORCEINLINE static node_ptr get_prev_in_group(const const_node_ptr & n)
+   BHO_INTRUSIVE_FORCEINLINE static node_ptr get_prev_in_group(const_node_ptr n)
    {  return n->node_ptr_2;  }
 
    BHO_INTRUSIVE_FORCEINLINE static void set_prev_in_group(node_ptr n, node_ptr prev)
    {  n->node_ptr_2 = prev;  }
 
-   BHO_INTRUSIVE_FORCEINLINE static std::size_t get_hash(const const_node_ptr & n)
+   BHO_INTRUSIVE_FORCEINLINE static std::size_t get_hash(const_node_ptr n)
    {  return n->size_t_1;  }
 
-   BHO_INTRUSIVE_FORCEINLINE static void set_hash(const node_ptr & n, std::size_t h)
+   BHO_INTRUSIVE_FORCEINLINE static void set_hash(node_ptr n, std::size_t h)
    {  n->size_t_1 = h;  }
 };
 
@@ -119,28 +119,28 @@ struct any_rbtree_node_traits
 
    typedef std::size_t color;
 
-   BHO_INTRUSIVE_FORCEINLINE static node_ptr get_parent(const const_node_ptr & n)
+   BHO_INTRUSIVE_FORCEINLINE static node_ptr get_parent(const_node_ptr n)
    {  return n->node_ptr_1;  }
 
    BHO_INTRUSIVE_FORCEINLINE static void set_parent(node_ptr n, node_ptr p)
    {  n->node_ptr_1 = p;  }
 
-   BHO_INTRUSIVE_FORCEINLINE static node_ptr get_left(const const_node_ptr & n)
+   BHO_INTRUSIVE_FORCEINLINE static node_ptr get_left(const_node_ptr n)
    {  return n->node_ptr_2;  }
 
    BHO_INTRUSIVE_FORCEINLINE static void set_left(node_ptr n, node_ptr l)
    {  n->node_ptr_2 = l;  }
 
-   BHO_INTRUSIVE_FORCEINLINE static node_ptr get_right(const const_node_ptr & n)
+   BHO_INTRUSIVE_FORCEINLINE static node_ptr get_right(const_node_ptr n)
    {  return n->node_ptr_3;  }
 
    BHO_INTRUSIVE_FORCEINLINE static void set_right(node_ptr n, node_ptr r)
    {  n->node_ptr_3 = r;  }
 
-   BHO_INTRUSIVE_FORCEINLINE static color get_color(const const_node_ptr & n)
+   BHO_INTRUSIVE_FORCEINLINE static color get_color(const_node_ptr n)
    {  return n->size_t_1;  }
 
-   BHO_INTRUSIVE_FORCEINLINE static void set_color(const node_ptr & n, color c)
+   BHO_INTRUSIVE_FORCEINLINE static void set_color(node_ptr n, color c)
    {  n->size_t_1 = c;  }
 
    BHO_INTRUSIVE_FORCEINLINE static color black()
@@ -160,28 +160,28 @@ struct any_avltree_node_traits
 
    typedef std::size_t balance;
 
-   BHO_INTRUSIVE_FORCEINLINE static node_ptr get_parent(const const_node_ptr & n)
+   BHO_INTRUSIVE_FORCEINLINE static node_ptr get_parent(const_node_ptr n)
    {  return n->node_ptr_1;  }
 
    BHO_INTRUSIVE_FORCEINLINE static void set_parent(node_ptr n, node_ptr p)
    {  n->node_ptr_1 = p;  }
 
-   BHO_INTRUSIVE_FORCEINLINE static node_ptr get_left(const const_node_ptr & n)
+   BHO_INTRUSIVE_FORCEINLINE static node_ptr get_left(const_node_ptr n)
    {  return n->node_ptr_2;  }
 
    BHO_INTRUSIVE_FORCEINLINE static void set_left(node_ptr n, node_ptr l)
    {  n->node_ptr_2 = l;  }
 
-   BHO_INTRUSIVE_FORCEINLINE static node_ptr get_right(const const_node_ptr & n)
+   BHO_INTRUSIVE_FORCEINLINE static node_ptr get_right(const_node_ptr n)
    {  return n->node_ptr_3;  }
 
    BHO_INTRUSIVE_FORCEINLINE static void set_right(node_ptr n, node_ptr r)
    {  n->node_ptr_3 = r;  }
 
-   BHO_INTRUSIVE_FORCEINLINE static balance get_balance(const const_node_ptr & n)
+   BHO_INTRUSIVE_FORCEINLINE static balance get_balance(const_node_ptr n)
    {  return n->size_t_1;  }
 
-   BHO_INTRUSIVE_FORCEINLINE static void set_balance(const node_ptr & n, balance b)
+   BHO_INTRUSIVE_FORCEINLINE static void set_balance(node_ptr n, balance b)
    {  n->size_t_1 = b;  }
 
    BHO_INTRUSIVE_FORCEINLINE static balance negative()
@@ -202,19 +202,19 @@ struct any_tree_node_traits
    typedef typename node::node_ptr        node_ptr;
    typedef typename node::const_node_ptr  const_node_ptr;
 
-   BHO_INTRUSIVE_FORCEINLINE static node_ptr get_parent(const const_node_ptr & n)
+   BHO_INTRUSIVE_FORCEINLINE static node_ptr get_parent(const_node_ptr n)
    {  return n->node_ptr_1;  }
 
    BHO_INTRUSIVE_FORCEINLINE static void set_parent(node_ptr n, node_ptr p)
    {  n->node_ptr_1 = p;  }
 
-   BHO_INTRUSIVE_FORCEINLINE static node_ptr get_left(const const_node_ptr & n)
+   BHO_INTRUSIVE_FORCEINLINE static node_ptr get_left(const_node_ptr n)
    {  return n->node_ptr_2;  }
 
    BHO_INTRUSIVE_FORCEINLINE static void set_left(node_ptr n, node_ptr l)
    {  n->node_ptr_2 = l;  }
 
-   BHO_INTRUSIVE_FORCEINLINE static node_ptr get_right(const const_node_ptr & n)
+   BHO_INTRUSIVE_FORCEINLINE static node_ptr get_right(const_node_ptr n)
    {  return n->node_ptr_3;  }
 
    BHO_INTRUSIVE_FORCEINLINE static void set_right(node_ptr n, node_ptr r)
@@ -243,7 +243,7 @@ class any_algorithms
    typedef typename node::const_node_ptr  const_node_ptr;
    typedef any_node_traits<VoidPointer>   node_traits;
 
-   //! <b>Requires</b>: node must not be part of any tree.
+   //! <b>Requires</b>: 'n' must not be part of any tree.
    //!
    //! <b>Effects</b>: After the function unique(node) == true.
    //!
@@ -252,27 +252,27 @@ class any_algorithms
    //! <b>Throws</b>: Nothing.
    //!
    //! <b>Nodes</b>: If node is inserted in a tree, this function corrupts the tree.
-   BHO_INTRUSIVE_FORCEINLINE static void init(const node_ptr & node) BHO_NOEXCEPT
-   {  node->node_ptr_1 = node_ptr();   };
+   BHO_INTRUSIVE_FORCEINLINE static void init(node_ptr n) BHO_NOEXCEPT
+   {  n->node_ptr_1 = node_ptr();   };
 
-   //! <b>Effects</b>: Returns true if node is in the same state as if called init(node)
+   //! <b>Effects</b>: Returns true if 'n' is in the same state as if called init(node)
    //!
    //! <b>Complexity</b>: Constant.
    //!
    //! <b>Throws</b>: Nothing.
-   BHO_INTRUSIVE_FORCEINLINE static bool inited(const const_node_ptr & node)
-   {  return !node->node_ptr_1;  };
+   BHO_INTRUSIVE_FORCEINLINE static bool inited(const_node_ptr n)
+   {  return !n->node_ptr_1;  };
 
-   BHO_INTRUSIVE_FORCEINLINE static bool unique(const const_node_ptr & node) BHO_NOEXCEPT
-   {  return !node->node_ptr_1; }
+   BHO_INTRUSIVE_FORCEINLINE static bool unique(const_node_ptr n) BHO_NOEXCEPT
+   {  return !n->node_ptr_1; }
 
-   static void unlink(const node_ptr &)
+   static void unlink(node_ptr)
    {
       //Auto-unlink hooks and unlink() are not available for any hooks
       any_algorithms<VoidPointer>::template function_not_available_for_any_hooks<node_ptr>();
    }
 
-   static void swap_nodes(const node_ptr &, const node_ptr &)
+   static void swap_nodes(node_ptr, node_ptr)
    {
       //Any nodes have no swap_nodes capability because they don't know
       //what algorithm they must use to unlink the node from the container

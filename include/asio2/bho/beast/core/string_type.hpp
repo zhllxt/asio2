@@ -16,32 +16,28 @@
 #define BHO_BEAST_USE_STD_STRING_VIEW
 #endif
 
+#include <asio2/bho/core/detail/string_view.hpp>
 #if defined(BHO_BEAST_USE_STD_STRING_VIEW)
-#include <string_view>
-#else
 #include <string_view>
 #endif
 
 namespace bho {
 namespace beast {
 
-#if BHO_BEAST_DOXYGEN || ! defined(BHO_BEAST_USE_STD_STRING_VIEW)
 /// The type of string view used by the library
 using string_view = std::string_view;
 
 /// The type of `basic_string_view` used by the library
-template<class CharT, class Traits>
+template<class CharT>
 using basic_string_view =
-    std::basic_string_view<CharT, Traits>;
+    std::basic_string_view<CharT>;
 
-#else
-using string_view = std::string_view;
-
-template<class CharT, class Traits>
-using basic_string_view =
-    std::basic_string_view<CharT, Traits>;
-
-#endif
+template<class S>
+inline string_view
+to_string_view(const S& s)
+{
+    return string_view(s.data(), s.size());
+}
 
 } // beast
 } // bho

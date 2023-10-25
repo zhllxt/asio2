@@ -22,10 +22,44 @@
 #  pragma once
 #endif
 
+#if (BHO_CXX_VERSION > 201703L) && defined(__cpp_lib_concepts)
+
+#include <iterator>
+
+#define BHO_MOVE_CONTIGUOUS_ITERATOR_TAG
+
+namespace bho {
+namespace movelib {
+
+   using std::iterator_traits;
+
+   template<class T>
+   struct iter_difference
+   {
+      typedef typename std::iterator_traits<T>::difference_type type;
+   };
+
+   template<class T>
+   struct iter_value
+   {
+      typedef typename std::iterator_traits<T>::value_type type;
+   };
+
+   template<class T>
+   struct iter_category
+   {
+      typedef typename std::iterator_traits<T>::iterator_category type;
+   };
+
+}} //namespace bho::movelib
+
+#else
+
 #include <cstddef>
 #include <asio2/bho/move/detail/type_traits.hpp>
 
 #include <asio2/bho/move/detail/std_ns_begin.hpp>
+
 BHO_MOVE_STD_NS_BEG
 
 struct input_iterator_tag;
@@ -33,22 +67,74 @@ struct forward_iterator_tag;
 struct bidirectional_iterator_tag;
 struct random_access_iterator_tag;
 struct output_iterator_tag;
+
+#if (  (defined(BHO_GNU_STDLIB) && (__cplusplus > 201703L))\
+    || (defined(_LIBCPP_VERSION) && (_LIBCPP_STD_VER > 17))\
+    || (defined(_YVALS) && defined(_CPPLIB_VER) && defined(__cpp_lib_concepts))\
+    || (__cplusplus >= 202002L)\
+    )
+#  define BHO_MOVE_CONTIGUOUS_ITERATOR_TAG
 struct contiguous_iterator_tag;
 
+#endif
+
 BHO_MOVE_STD_NS_END
+
 #include <asio2/bho/move/detail/std_ns_end.hpp>
 
 namespace bho{  namespace movelib{
 
+template<class T>
+struct iter_difference
+{
+   typedef typename T::difference_type type;
+};
+
+template<class T>
+struct iter_difference<T*>
+{
+   typedef std::ptrdiff_t type;
+};
+
+template<class T>
+struct iter_value
+{
+   typedef typename T::value_type type;
+};
+
+template<class T>
+struct iter_value<T*>
+{
+   typedef T type;
+};
+
+template<class T>
+struct iter_value<const T*>
+{
+   typedef T type;
+};
+
+template<class T>
+struct iter_category
+{
+   typedef typename T::iterator_category type;
+};
+
+
+template<class T>
+struct iter_category<T*>
+{
+   typedef std::random_access_iterator_tag type;
+};
+
 template<class Iterator>
 struct iterator_traits
 {
-   typedef typename Iterator::difference_type   difference_type;
-   typedef typename Iterator::value_type        value_type;
-   typedef typename Iterator::pointer           pointer;
-   typedef typename Iterator::reference         reference;
-   typedef typename Iterator::iterator_category iterator_category;
-   typedef typename bho::move_detail::make_unsigned<difference_type>::type size_type;
+   typedef typename iter_difference<Iterator>::type   difference_type;
+   typedef typename iter_value<Iterator>::type        value_type;
+   typedef typename Iterator::pointer                 pointer;
+   typedef typename Iterator::reference               reference;
+   typedef typename iter_category<Iterator>::type     iterator_category;
 };
 
 template<class T>
@@ -59,7 +145,6 @@ struct iterator_traits<T*>
    typedef T*                                pointer;
    typedef T&                                reference;
    typedef std::random_access_iterator_tag   iterator_category;
-   typedef typename bho::move_detail::make_unsigned<difference_type>::type size_type;
 };
 
 template<class T>
@@ -70,9 +155,23 @@ struct iterator_traits<const T*>
    typedef const T*                          pointer;
    typedef const T&                          reference;
    typedef std::random_access_iterator_tag   iterator_category;
-   typedef typename bho::move_detail::make_unsigned<difference_type>::type size_type;
 };
 
-}} //namespace bho {  namespace movelib{
+}} //namespace bho::movelib
+
+#endif   //
+
+#include <asio2/bho/move/detail/type_traits.hpp>
+
+namespace bho {
+namespace movelib {
+
+template<class T>
+struct iter_size
+   : bho::move_detail::
+      make_unsigned<typename iter_difference<T>::type >
+{};
+
+}}  //namespace bho move_detail {
 
 #endif //#ifndef BHO_MOVE_DETAIL_ITERATOR_TRAITS_HPP

@@ -115,7 +115,7 @@ namespace pdqsort_detail {
     template<class Iter, class Compare>
     inline bool partial_insertion_sort(Iter begin, Iter end, Compare comp) {
         typedef typename bho::movelib::iterator_traits<Iter>::value_type T;
-        typedef typename bho::movelib::iterator_traits<Iter>::size_type  size_type;
+        typedef typename bho::movelib:: iter_size<Iter>::type  size_type;
         if (begin == end) return true;
         
         size_type limit = 0;
@@ -192,7 +192,8 @@ namespace pdqsort_detail {
 
         // Put the pivot in the right place.
         Iter pivot_pos = first - 1;
-        *begin = bho::move(*pivot_pos);
+        if(begin != pivot_pos)   //Avoid potential self-move
+            *begin = bho::move(*pivot_pos);
         *pivot_pos = bho::move(pivot);
 
         return pdqsort_detail::pair<Iter, bool>(pivot_pos, already_partitioned);
@@ -231,10 +232,10 @@ namespace pdqsort_detail {
 
    template<class Iter, class Compare>
    void pdqsort_loop( Iter begin, Iter end, Compare comp
-                    , typename bho::movelib::iterator_traits<Iter>::size_type bad_allowed
+                    , typename bho::movelib:: iter_size<Iter>::type bad_allowed
                     , bool leftmost = true)
    {
-        typedef typename bho::movelib::iterator_traits<Iter>::size_type size_type;
+        typedef typename bho::movelib:: iter_size<Iter>::type size_type;
 
         // Use a while loop for tail recursion elimination.
         while (true) {
@@ -328,7 +329,7 @@ template<class Iter, class Compare>
 void pdqsort(Iter begin, Iter end, Compare comp)
 {
    if (begin == end) return;
-   typedef typename bho::movelib::iterator_traits<Iter>::size_type size_type;
+   typedef typename bho::movelib:: iter_size<Iter>::type size_type;
    pdqsort_detail::pdqsort_loop<Iter, Compare>(begin, end, comp, pdqsort_detail::log2(size_type(end - begin)));
 }
 

@@ -25,8 +25,7 @@
 #include <asio2/bho/move/default_delete.hpp>
 #include <asio2/bho/move/utility_core.hpp>
 #include <asio2/bho/move/adl_move_swap.hpp>
-#include <asio2/bho/static_assert.hpp>
-#include <asio2/bho/assert.hpp>
+#include <cassert>
 
 #include <cstddef>   //For std::nullptr_t and std::size_t
 
@@ -394,8 +393,8 @@ class unique_ptr
    {
       //If this constructor is instantiated with a pointer type or reference type
       //for the template argument D, the program is ill-formed.
-      BHO_STATIC_ASSERT(!bmupmu::is_pointer<D>::value);
-      BHO_STATIC_ASSERT(!bmupmu::is_reference<D>::value);
+      BHO_MOVE_STATIC_ASSERT(!bmupmu::is_pointer<D>::value);
+      BHO_MOVE_STATIC_ASSERT(!bmupmu::is_reference<D>::value);
    }
 
    //! <b>Effects</b>: Same as <tt>unique_ptr()</tt> (default constructor).
@@ -405,8 +404,8 @@ class unique_ptr
    {
       //If this constructor is instantiated with a pointer type or reference type
       //for the template argument D, the program is ill-formed.
-      BHO_STATIC_ASSERT(!bmupmu::is_pointer<D>::value);
-      BHO_STATIC_ASSERT(!bmupmu::is_reference<D>::value);
+      BHO_MOVE_STATIC_ASSERT(!bmupmu::is_pointer<D>::value);
+      BHO_MOVE_STATIC_ASSERT(!bmupmu::is_reference<D>::value);
    }
 
    //! <b>Requires</b>: D shall satisfy the requirements of DefaultConstructible, and
@@ -430,12 +429,12 @@ class unique_ptr
    {
       //If T is not an array type, element_type_t<Pointer> derives from T
       //it uses the default deleter and T has no virtual destructor, then you have a problem
-      BHO_STATIC_ASSERT(( !bmupd::missing_virtual_destructor
+      BHO_MOVE_STATIC_ASSERT(( !bmupd::missing_virtual_destructor
                             <D, typename bmupd::get_element_type<Pointer>::type>::value ));
       //If this constructor is instantiated with a pointer type or reference type
       //for the template argument D, the program is ill-formed.
-      BHO_STATIC_ASSERT(!bmupmu::is_pointer<D>::value);
-      BHO_STATIC_ASSERT(!bmupmu::is_reference<D>::value);
+      BHO_MOVE_STATIC_ASSERT(!bmupmu::is_pointer<D>::value);
+      BHO_MOVE_STATIC_ASSERT(!bmupmu::is_reference<D>::value);
    }
 
    //!The signature of this constructor depends upon whether D is a reference type.
@@ -468,7 +467,7 @@ class unique_ptr
    {
       //If T is not an array type, element_type_t<Pointer> derives from T
       //it uses the default deleter and T has no virtual destructor, then you have a problem
-      BHO_STATIC_ASSERT(( !bmupd::missing_virtual_destructor
+      BHO_MOVE_STATIC_ASSERT(( !bmupd::missing_virtual_destructor
                             <D, typename bmupd::get_element_type<Pointer>::type>::value ));
    }
 
@@ -506,7 +505,7 @@ class unique_ptr
    {
       //If T is not an array type, element_type_t<Pointer> derives from T
       //it uses the default deleter and T has no virtual destructor, then you have a problem
-      BHO_STATIC_ASSERT(( !bmupd::missing_virtual_destructor
+      BHO_MOVE_STATIC_ASSERT(( !bmupd::missing_virtual_destructor
                             <D, typename bmupd::get_element_type<Pointer>::type>::value ));
    }
 
@@ -553,7 +552,7 @@ class unique_ptr
    {
       //If T is not an array type, U derives from T
       //it uses the default deleter and T has no virtual destructor, then you have a problem
-      BHO_STATIC_ASSERT(( !bmupd::missing_virtual_destructor
+      BHO_MOVE_STATIC_ASSERT(( !bmupd::missing_virtual_destructor
                             <D, typename unique_ptr<U, E>::pointer>::value ));
    }
 
@@ -620,7 +619,7 @@ class unique_ptr
    BHO_MOVE_DOC1ST(element_type&, typename bmupmu::add_lvalue_reference<element_type>::type)
       operator*() const BHO_NOEXCEPT
    {
-      BHO_STATIC_ASSERT((!bmupmu::is_array<T>::value));
+      BHO_MOVE_STATIC_ASSERT((!bmupmu::is_array<T>::value));
       return *m_data.m_p;
    }
 
@@ -632,8 +631,8 @@ class unique_ptr
    BHO_MOVE_FORCEINLINE BHO_MOVE_DOC1ST(element_type&, typename bmupmu::add_lvalue_reference<element_type>::type)
       operator[](std::size_t i) const BHO_NOEXCEPT
    {
-      BHO_ASSERT( bmupmu::extent<T>::value == 0 || i < bmupmu::extent<T>::value );
-      BHO_ASSERT(m_data.m_p);
+      assert( bmupmu::extent<T>::value == 0 || i < bmupmu::extent<T>::value );
+      assert(m_data.m_p);
       return m_data.m_p[i];
    }
 
@@ -646,8 +645,8 @@ class unique_ptr
    //! <b>Remarks</b: If T is an array type, the program is ill-formed.
    BHO_MOVE_FORCEINLINE pointer operator->() const BHO_NOEXCEPT
    {
-      BHO_STATIC_ASSERT((!bmupmu::is_array<T>::value));
-      BHO_ASSERT(m_data.m_p);
+      BHO_MOVE_STATIC_ASSERT((!bmupmu::is_array<T>::value));
+      assert(m_data.m_p);
       return m_data.m_p;
    }
 
@@ -711,7 +710,7 @@ class unique_ptr
    {
       //If T is not an array type, element_type_t<Pointer> derives from T
       //it uses the default deleter and T has no virtual destructor, then you have a problem
-      BHO_STATIC_ASSERT(( !bmupd::missing_virtual_destructor
+      BHO_MOVE_STATIC_ASSERT(( !bmupd::missing_virtual_destructor
                             <D, typename bmupd::get_element_type<Pointer>::type>::value ));
       pointer tmp = m_data.m_p;
       m_data.m_p = p;

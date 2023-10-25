@@ -15,8 +15,8 @@
 #include <asio2/bho/beast/core/stream_traits.hpp>
 #include <asio2/bho/beast/core/detail/bind_continuation.hpp>
 #include <asio2/bho/beast/core/detail/is_invocable.hpp>
-#include <asio2/bho/asio/coroutine.hpp>
-#include <asio2/bho/asio/post.hpp>
+#include <asio/coroutine.hpp>
+#include <asio/post.hpp>
 #include <memory>
 
 namespace bho {
@@ -59,6 +59,7 @@ public:
         , nb_(false)
     {
         (*this)({}, 0, false);
+        this->set_allowed_cancellation(net::cancellation_type::all);
     }
 
     void
@@ -127,7 +128,7 @@ public:
                         "websocket::tcp::async_teardown"
                         ));
 
-                    net::post(bind_front_handler(
+                    net::post(s_.get_executor(), bind_front_handler(
                         std::move(*this), ec));
                 }
             }

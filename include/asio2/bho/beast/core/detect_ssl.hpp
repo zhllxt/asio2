@@ -16,8 +16,8 @@
 #include <asio2/bho/beast/core/read_size.hpp>
 #include <asio2/bho/beast/core/stream_traits.hpp>
 #include <asio2/bho/logic/tribool.hpp>
-#include <asio2/bho/asio/async_result.hpp>
-#include <asio2/bho/asio/coroutine.hpp>
+#include <asio/async_result.hpp>
+#include <asio/coroutine.hpp>
 #include <type_traits>
 
 namespace bho {
@@ -546,7 +546,7 @@ namespace detail {
 // This example uses the Asio's stackless "fauxroutines", implemented
 // using a macro-based solution. It makes the code easier to write and
 // easier to read. This include file defines the necessary macros and types.
-#include <asio2/bho/asio/yield.hpp>
+#include <asio/yield.hpp>
 
 // detect_ssl_op is callable with the signature void(error_code, bytes_transferred),
 // allowing `*this` to be used as a ReadHandler
@@ -647,7 +647,7 @@ operator()(error_code ec, std::size_t bytes_transferred, bool cont)
             }
 
             // Restore the saved error code
-            ec = ec_;
+            BHO_BEAST_ASSIGN_EC(ec, ec_);
         }
 
         // Invoke the final handler.
@@ -659,7 +659,7 @@ operator()(error_code ec, std::size_t bytes_transferred, bool cont)
 }
 
 // Including this file undefines the macros used by the stackless fauxroutines.
-#include <asio2/bho/asio/unyield.hpp>
+#include <asio/unyield.hpp>
 
 } // detail
 

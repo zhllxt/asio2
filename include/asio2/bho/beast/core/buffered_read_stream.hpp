@@ -14,9 +14,9 @@
 #include <asio2/bho/beast/core/error.hpp>
 #include <asio2/bho/beast/core/multi_buffer.hpp>
 #include <asio2/bho/beast/core/stream_traits.hpp>
-#include <asio2/bho/asio/async_result.hpp>
-#include <asio2/bho/asio/buffer.hpp>
-#include <asio2/bho/asio/io_context.hpp>
+#include <asio/async_result.hpp>
+#include <asio/buffer.hpp>
+#include <asio/io_context.hpp>
 #include <cstdint>
 #include <utility>
 

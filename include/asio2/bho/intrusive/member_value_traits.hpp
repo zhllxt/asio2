@@ -63,13 +63,13 @@ struct member_value_traits
    BHO_INTRUSIVE_FORCEINLINE static const_node_ptr to_node_ptr(const_reference value) BHO_NOEXCEPT
    {  return pointer_traits<const_node_ptr>::pointer_to(value.*PtrToMember);   }
 
-   BHO_INTRUSIVE_FORCEINLINE static pointer to_value_ptr(const node_ptr &n) BHO_NOEXCEPT
+   BHO_INTRUSIVE_FORCEINLINE static pointer to_value_ptr(node_ptr n) BHO_NOEXCEPT
    {
       return pointer_traits<pointer>::pointer_to(*detail::parent_from_member<value_type, node>
          (bho::movelib::to_raw_pointer(n), PtrToMember));
    }
 
-   BHO_INTRUSIVE_FORCEINLINE static const_pointer to_value_ptr(const const_node_ptr &n) BHO_NOEXCEPT
+   BHO_INTRUSIVE_FORCEINLINE static const_pointer to_value_ptr(const_node_ptr n) BHO_NOEXCEPT
    {
       return pointer_traits<const_pointer>::pointer_to(*detail::parent_from_member<value_type, node>
          (bho::movelib::to_raw_pointer(n), PtrToMember));

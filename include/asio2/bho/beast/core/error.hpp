@@ -11,7 +11,7 @@
 #define BHO_BEAST_ERROR_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
-#include <asio2/bho/asio/error.hpp>
+#include <asio/error.hpp>
 #include <system_error>
 
 namespace bho {

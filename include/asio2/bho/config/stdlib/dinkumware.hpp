@@ -176,7 +176,9 @@
 #endif
 
 // C++17 features
-#if !defined(_CPPLIB_VER) || (_CPPLIB_VER < 650) || !defined(BHO_MSVC) || (BHO_MSVC < 1910) || !defined(_HAS_CXX17) || (_HAS_CXX17 == 0)
+#if !defined(_CPPLIB_VER) || (_CPPLIB_VER < 650) \
+ || ((!defined(BHO_MSVC) || (BHO_MSVC < 1910))) && (!defined(__clang__) || !defined(_MSC_VER) || (_MSC_VER < 1929))\
+ || !defined(_HAS_CXX17) || (_HAS_CXX17 == 0)
 #  define BHO_NO_CXX17_STD_APPLY
 #  define BHO_NO_CXX17_ITERATOR_TRAITS
 #  define BHO_NO_CXX17_HDR_STRING_VIEW
@@ -192,29 +194,10 @@
 #  define BHO_NO_CXX17_STD_INVOKE
 #endif
 
-// C++20 features
+// C++20 features which aren't configured in suffix.hpp correctly:
 #if !defined(_MSVC_STL_UPDATE) || (_MSVC_STL_UPDATE < 202008L) || !defined(_HAS_CXX20) || (_HAS_CXX20 == 0)
-#  define BHO_NO_CXX20_HDR_BARRIER
-#  define BHO_NO_CXX20_HDR_BIT
-#  define BHO_NO_CXX20_HDR_LATCH
-#  define BHO_NO_CXX20_HDR_SPAN
-#  define BHO_NO_CXX20_HDR_COMPARE
-#  define BHO_NO_CXX20_HDR_NUMBERS
 #  define BHO_NO_CXX20_HDR_CONCEPTS
-#  define BHO_NO_CXX20_HDR_COROUTINE
-#  define BHO_NO_CXX20_HDR_SEMAPHORE
 #endif
-#if !defined(_MSVC_STL_UPDATE) || (_MSVC_STL_UPDATE < 202011L) || !defined(_HAS_CXX20) || (_HAS_CXX20 == 0)
-#  define BHO_NO_CXX20_HDR_STOP_TOKEN
-#endif
-// C++20 features not yet implemented:
-#  define BHO_NO_CXX20_HDR_FORMAT
-#if !defined(_MSVC_STL_UPDATE) || (_MSVC_STL_UPDATE < 202108L) || !defined(_HAS_CXX20) || (_HAS_CXX20 == 0)
-#  define BHO_NO_CXX20_HDR_SOURCE_LOCATION
-#  define BHO_NO_CXX20_HDR_SYNCSTREAM
-#endif
-// Incomplete:
-#  define BHO_NO_CXX20_HDR_RANGES
 
 #if !(!defined(_CPPLIB_VER) || (_CPPLIB_VER < 650) || !defined(BHO_MSVC) || (BHO_MSVC < 1912) || !defined(_HAS_CXX17) || (_HAS_CXX17 == 0))
 // Deprecated std::iterator:
@@ -256,6 +239,8 @@
 #    define BHO_NO_AUTO_PTR
 #    define BHO_NO_CXX98_RANDOM_SHUFFLE
 #    define BHO_NO_CXX98_FUNCTION_BASE
+#    define BHO_NO_CXX98_BINDERS
+#  elif defined(_HAS_DEPRECATED_ADAPTOR_TYPEDEFS) && (_HAS_DEPRECATED_ADAPTOR_TYPEDEFS == 0)
 #    define BHO_NO_CXX98_BINDERS
 #  endif
 #endif
@@ -301,6 +286,36 @@
 #else
 #  define BHO_DINKUMWARE_STDLIB 1
 #endif
+
+// BHO_MSSTL_VERSION: as _MSVC_STL_VERSION, but for earlier releases as well
+
+#if defined(_MSVC_STL_VERSION) // VS2017 (14.1) and above
+#  define BHO_MSSTL_VERSION _MSVC_STL_VERSION
+
+#elif defined(_CPPLIB_VER) && _CPPLIB_VER >= 650 // VS2015 (14.0)
+#  define BHO_MSSTL_VERSION 140
+
+#elif defined(_CPPLIB_VER) && _CPPLIB_VER >= 610 // VS2013 (12.0)
+#  define BHO_MSSTL_VERSION 120
+
+#elif defined(_CPPLIB_VER) && _CPPLIB_VER >= 540 // VS2012 (11.0)
+#  define BHO_MSSTL_VERSION 110
+
+#elif defined(_CPPLIB_VER) && _CPPLIB_VER >= 520 // VS2010 (10.0)
+#  define BHO_MSSTL_VERSION 100
+
+#elif defined(_CPPLIB_VER) && _CPPLIB_VER >= 505 // VS2008SP1 (9.0)
+#  define BHO_MSSTL_VERSION 91
+
+#elif defined(_CPPLIB_VER) && _CPPLIB_VER >= 503 // VS2008 (also 9.0)
+#  define BHO_MSSTL_VERSION 90
+
+#elif defined(_CPPLIB_VER) && _CPPLIB_VER >= 405 // VS2005 (8.0)
+#  define BHO_MSSTL_VERSION 80
+
+#endif
+
+//
 
 #ifdef _CPPLIB_VER
 #  define BHO_STDLIB "Dinkumware standard library version " BHO_STRINGIZE(_CPPLIB_VER)

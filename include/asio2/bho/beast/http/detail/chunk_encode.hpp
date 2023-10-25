@@ -11,7 +11,7 @@
 #define BHO_BEAST_HTTP_DETAIL_CHUNK_ENCODE_HPP
 
 #include <asio2/bho/beast/http/type_traits.hpp>
-#include <asio2/bho/asio/buffer.hpp>
+#include <asio/buffer.hpp>
 #include <algorithm>
 #include <array>
 #include <cstddef>

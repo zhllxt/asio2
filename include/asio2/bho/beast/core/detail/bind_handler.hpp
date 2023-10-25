@@ -12,11 +12,12 @@
 
 #include <asio2/bho/beast/core/error.hpp>
 #include <asio2/bho/beast/core/detail/tuple.hpp>
-#include <asio2/bho/asio/associated_allocator.hpp>
-#include <asio2/bho/asio/associated_executor.hpp>
-#include <asio2/bho/asio/handler_alloc_hook.hpp>
-#include <asio2/bho/asio/handler_continuation_hook.hpp>
-#include <asio2/bho/asio/handler_invoke_hook.hpp>
+#include <asio/associated_allocator.hpp>
+#include <asio/associated_cancellation_slot.hpp>
+#include <asio/associated_executor.hpp>
+#include <asio/handler_alloc_hook.hpp>
+#include <asio/handler_continuation_hook.hpp>
+#include <asio/handler_invoke_hook.hpp>
 #include <asio2/bho/core/ignore_unused.hpp>
 #include <asio2/bho/mp11/integer_sequence.hpp>
 #include <asio2/bho/is_placeholder.hpp>
@@ -47,6 +48,9 @@ class bind_wrapper
 
     template<class T, class Allocator>
     friend struct asio::associated_allocator;
+
+    template<class T, class CancellationSlot>
+    friend struct asio::associated_cancellation_slot;
 
     template<class Arg, class Vals>
     static
@@ -81,7 +85,9 @@ class bind_wrapper
     static
     typename std::enable_if<
         bho::is_placeholder<typename
-            std::decay<Arg>::type>::value != 0,
+            std::decay<Arg>::type>::value != 0 &&
+        std::is_placeholder<typename
+            std::decay<Arg>::type>::value == 0,
         tuple_element<bho::is_placeholder<
             typename std::decay<Arg>::type>::value - 1,
         Vals>>::type&&
@@ -216,6 +222,10 @@ class bind_front_wrapper
 
     template<class T, class Allocator>
     friend struct asio::associated_allocator;
+
+    template<class T, class CancellationSlot>
+    friend struct asio::associated_cancellation_slot;
+
 
     template<std::size_t... I, class... Ts>
     void
@@ -383,6 +393,42 @@ struct associated_allocator<
             Handler, Allocator>::get(op.h_, alloc);
     }
 };
+
+template<class Handler, class... Args, class CancellationSlot>
+struct associated_cancellation_slot<
+    bho::beast::detail::bind_wrapper<Handler, Args...>, CancellationSlot>
+{
+    using type = typename
+        associated_cancellation_slot<Handler>::type;
+
+    static
+    type
+    get(bho::beast::detail::bind_wrapper<Handler, Args...> const& op,
+        CancellationSlot const& slot = CancellationSlot{}) noexcept
+    {
+        return associated_cancellation_slot<
+            Handler, CancellationSlot>::get(op.h_, slot);
+    }
+};
+
+template<class Handler, class... Args, class CancellationSlot>
+struct associated_cancellation_slot<
+    bho::beast::detail::bind_front_wrapper<Handler, Args...>, CancellationSlot>
+{
+    using type = typename
+        associated_cancellation_slot<Handler>::type;
+
+    static
+    type
+    get(bho::beast::detail::bind_front_wrapper<Handler, Args...> const& op,
+        CancellationSlot const& slot = CancellationSlot{}) noexcept
+    {
+        return associated_cancellation_slot<
+            Handler, CancellationSlot>::get(op.h_, slot);
+    }
+};
+
+
 
 } // asio
 

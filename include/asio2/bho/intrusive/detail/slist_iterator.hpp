@@ -27,6 +27,7 @@
 #include <asio2/bho/intrusive/detail/std_fwd.hpp>
 #include <asio2/bho/intrusive/detail/iiterator.hpp>
 #include <asio2/bho/intrusive/detail/mpl.hpp>
+#include <asio2/bho/static_assert.hpp>
 
 namespace bho {
 namespace intrusive {
@@ -65,9 +66,13 @@ class slist_iterator
    BHO_INTRUSIVE_FORCEINLINE slist_iterator()
    {}
 
-   BHO_INTRUSIVE_FORCEINLINE explicit slist_iterator(const node_ptr & nodeptr, const const_value_traits_ptr &traits_ptr)
+   BHO_INTRUSIVE_FORCEINLINE slist_iterator(node_ptr nodeptr, const_value_traits_ptr traits_ptr)
       : members_(nodeptr, traits_ptr)
    {}
+
+   BHO_INTRUSIVE_FORCEINLINE explicit slist_iterator(node_ptr nodeptr)
+      : members_(nodeptr, const_value_traits_ptr())
+   {  BHO_STATIC_ASSERT((stateful_value_traits == false));  }
 
    BHO_INTRUSIVE_FORCEINLINE slist_iterator(const slist_iterator &other)
       :  members_(other.pointed_node(), other.get_value_traits())
@@ -83,11 +88,14 @@ class slist_iterator
    BHO_INTRUSIVE_FORCEINLINE node_ptr pointed_node() const
    { return members_.nodeptr_; }
 
-   BHO_INTRUSIVE_FORCEINLINE slist_iterator &operator=(const node_ptr &node)
-   {  members_.nodeptr_ = node;  return static_cast<slist_iterator&>(*this);  }
+   BHO_INTRUSIVE_FORCEINLINE slist_iterator &operator=(node_ptr n)
+   {  members_.nodeptr_ = n;  return static_cast<slist_iterator&>(*this);  }
 
    BHO_INTRUSIVE_FORCEINLINE const_value_traits_ptr get_value_traits() const
    {  return members_.get_ptr(); }
+
+   BHO_INTRUSIVE_FORCEINLINE bool operator!() const
+   {  return !members_.nodeptr_; }
 
    public:
    BHO_INTRUSIVE_FORCEINLINE slist_iterator& operator++()
@@ -107,7 +115,7 @@ class slist_iterator
    {  return l.pointed_node() == r.pointed_node();   }
 
    BHO_INTRUSIVE_FORCEINLINE friend bool operator!= (const slist_iterator& l, const slist_iterator& r)
-   {  return !(l == r);   }
+   {  return l.pointed_node() != r.pointed_node();   }
 
    BHO_INTRUSIVE_FORCEINLINE reference operator*() const
    {  return *operator->();   }

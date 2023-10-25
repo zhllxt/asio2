@@ -13,16 +13,19 @@
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/config.hpp>
 
-/*  BHO_BEAST_VERSION
+//[version
 
-    Identifies the API version of Beast.
+/* Identifies the API version of Beast.
 
-    This is a simple integer that is incremented by one every
-    time a set of code changes is merged to the develop branch.
+   This is a simple integer that is incremented by one every
+   time a set of code changes is merged to the develop branch.
 */
-#define BHO_BEAST_VERSION 322
+#define BHO_BEAST_VERSION 347
 
+// A string describing BHO_BEAST_VERSION, that can be used in http headers.
 #define BHO_BEAST_VERSION_STRING "BHO.Beast/" BHO_STRINGIZE(BHO_BEAST_VERSION)
+
+//]
 
 #endif
 

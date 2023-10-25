@@ -8,6 +8,7 @@
 #ifndef BHO_ENDIAN_CONVERSION_HPP
 #define BHO_ENDIAN_CONVERSION_HPP
 
+#include <asio2/bho/endian/detail/requires_cxx11.hpp>
 #include <asio2/bho/endian/detail/endian_reverse.hpp>
 #include <asio2/bho/endian/detail/endian_load.hpp>
 #include <asio2/bho/endian/detail/endian_store.hpp>

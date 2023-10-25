@@ -15,7 +15,7 @@
 #include <asio2/bho/move/detail/config_begin.hpp>
 
 #include <asio2/bho/move/algo/detail/adaptive_sort_merge.hpp>
-#include <asio2/bho/core/ignore_unused.hpp>
+#include <cassert>
 
 #if defined(BHO_CLANG) || (defined(BHO_GCC) && (BHO_GCC >= 40600))
 #pragma GCC diagnostic push
@@ -30,7 +30,7 @@ namespace detail_adaptive {
 
 template<class RandIt>
 void move_data_backward( RandIt cur_pos
-              , typename iterator_traits<RandIt>::size_type const l_data
+              , typename iter_size<RandIt>::type const l_data
               , RandIt new_pos
               , bool const xbuf_used)
 {
@@ -47,7 +47,7 @@ void move_data_backward( RandIt cur_pos
 
 template<class RandIt>
 void move_data_forward( RandIt cur_pos
-              , typename iterator_traits<RandIt>::size_type const l_data
+              , typename iter_size<RandIt>::type const l_data
               , RandIt new_pos
               , bool const xbuf_used)
 {
@@ -83,18 +83,18 @@ void move_data_forward( RandIt cur_pos
 // As a last step, if auxiliary memory is available in-place merge is performed.
 // until all is merged or auxiliary memory is not large enough.
 template<class RandIt, class Compare, class XBuf>
-typename iterator_traits<RandIt>::size_type  
+typename iter_size<RandIt>::type  
    adaptive_sort_build_blocks
       ( RandIt const first
-      , typename iterator_traits<RandIt>::size_type const len
-      , typename iterator_traits<RandIt>::size_type const l_base
-      , typename iterator_traits<RandIt>::size_type const l_build_buf
+      , typename iter_size<RandIt>::type const len
+      , typename iter_size<RandIt>::type const l_base
+      , typename iter_size<RandIt>::type const l_build_buf
       , XBuf & xbuf
       , Compare comp)
 {
-   typedef typename iterator_traits<RandIt>::size_type       size_type;
-   BHO_ASSERT(l_build_buf <= len);
-   BHO_ASSERT(0 == ((l_build_buf / l_base)&(l_build_buf/l_base-1)));
+   typedef typename iter_size<RandIt>::type       size_type;
+   assert(l_build_buf <= len);
+   assert(0 == ((l_build_buf / l_base)&(l_build_buf/l_base-1)));
 
    //Place the start pointer after the buffer
    RandIt first_block = first + l_build_buf;
@@ -105,7 +105,7 @@ typename iterator_traits<RandIt>::size_type
    //////////////////////////////////
    size_type l_merged = 0u;
 
-   BHO_ASSERT(l_build_buf);
+   assert(l_build_buf);
    //If there is no enough buffer for the insertion sort step, just avoid the external buffer
    size_type kbuf = min_value<size_type>(l_build_buf, size_type(xbuf.capacity()));
    kbuf = kbuf < l_base ? 0 : kbuf;
@@ -136,7 +136,7 @@ typename iterator_traits<RandIt>::size_type
    l_merged = op_merge_left_step_multiple
       (first_block-l_merged, elements_in_blocks, l_merged, l_build_buf, size_type(l_build_buf - l_merged), comp, swap_op());
 
-   BHO_ASSERT(l_merged == l_build_buf);
+   assert(l_merged == l_build_buf);
 
    //////////////////////////////////
    // Start of merge to right step
@@ -163,17 +163,17 @@ void adaptive_sort_combine_blocks
    ( RandItKeys const keys
    , KeyCompare key_comp
    , RandIt const first
-   , typename iterator_traits<RandIt>::size_type const len
-   , typename iterator_traits<RandIt>::size_type const l_prev_merged
-   , typename iterator_traits<RandIt>::size_type const l_block
+   , typename iter_size<RandIt>::type const len
+   , typename iter_size<RandIt>::type const l_prev_merged
+   , typename iter_size<RandIt>::type const l_block
    , bool const use_buf
    , bool const xbuf_used
    , XBuf & xbuf
    , Compare comp
    , bool merge_left)
 {
-   bho::ignore_unused(xbuf);
-   typedef typename iterator_traits<RandIt>::size_type         size_type;
+   bho::movelib::ignore(xbuf);
+   typedef typename iter_size<RandIt>::type         size_type;
 
    size_type const l_reg_combined   = size_type(2u*l_prev_merged);
    size_type l_irreg_combined = 0;
@@ -181,8 +181,8 @@ void adaptive_sort_combine_blocks
    size_type const n_reg_combined = len/l_reg_combined;
    RandIt combined_first = first;
 
-   bho::ignore_unused(l_total_combined);
-   BHO_ASSERT(l_total_combined <= len);
+   bho::movelib::ignore(l_total_combined);
+   assert(l_total_combined <= len);
 
    size_type const max_i = size_type(n_reg_combined + (l_irreg_combined != 0));
 
@@ -245,15 +245,15 @@ void adaptive_sort_combine_blocks
 template<class RandIt, class Compare, class XBuf>
 bool adaptive_sort_combine_all_blocks
    ( RandIt keys
-   , typename iterator_traits<RandIt>::size_type &n_keys
+   , typename iter_size<RandIt>::type &n_keys
    , RandIt const buffer
-   , typename iterator_traits<RandIt>::size_type const l_buf_plus_data
-   , typename iterator_traits<RandIt>::size_type l_merged
-   , typename iterator_traits<RandIt>::size_type &l_intbuf
+   , typename iter_size<RandIt>::type const l_buf_plus_data
+   , typename iter_size<RandIt>::type l_merged
+   , typename iter_size<RandIt>::type &l_intbuf
    , XBuf & xbuf
    , Compare comp)
 {
-   typedef typename iterator_traits<RandIt>::size_type       size_type;
+   typedef typename iter_size<RandIt>::type       size_type;
 
    RandIt const first = buffer + l_intbuf;
    size_type const l_data = size_type(l_buf_plus_data - l_intbuf);
@@ -278,9 +278,9 @@ bool adaptive_sort_combine_all_blocks
       //Otherwise, just give up and and use all keys to merge using rotations (use_internal_buf = false)
       bool use_internal_buf = false;
       size_type const l_block = lblock_for_combine(l_intbuf, n_keys, size_type(2*l_merged), use_internal_buf);
-      BHO_ASSERT(!l_intbuf || (l_block == l_intbuf));
-      BHO_ASSERT(n == 0 || (!use_internal_buf || prev_use_internal_buf) );
-      BHO_ASSERT(n == 0 || (!use_internal_buf || l_prev_block == l_block) );
+      assert(!l_intbuf || (l_block == l_intbuf));
+      assert(n == 0 || (!use_internal_buf || prev_use_internal_buf) );
+      assert(n == 0 || (!use_internal_buf || l_prev_block == l_block) );
       
       bool const is_merge_left = (n&1) == 0;
       size_type const l_total_combined = calculate_total_combined(l_data, l_merged);
@@ -332,7 +332,7 @@ bool adaptive_sort_combine_all_blocks
       l_prev_block = l_block;
       prev_use_internal_buf = use_internal_buf;
    }
-   BHO_ASSERT(l_prev_total_combined == l_data);
+   assert(l_prev_total_combined == l_data);
    bool const buffer_right = prev_use_internal_buf && prev_merge_left;
 
    l_intbuf = prev_use_internal_buf ? l_prev_block : 0u;
@@ -353,16 +353,16 @@ bool adaptive_sort_combine_all_blocks
 template<class RandIt, class Compare, class XBuf>
 void adaptive_sort_final_merge( bool buffer_right
                               , RandIt const first
-                              , typename iterator_traits<RandIt>::size_type const l_intbuf
-                              , typename iterator_traits<RandIt>::size_type const n_keys
-                              , typename iterator_traits<RandIt>::size_type const len
+                              , typename iter_size<RandIt>::type const l_intbuf
+                              , typename iter_size<RandIt>::type const n_keys
+                              , typename iter_size<RandIt>::type const len
                               , XBuf & xbuf
                               , Compare comp)
 {
-   //BHO_ASSERT(n_keys || xbuf.size() == l_intbuf);
+   //assert(n_keys || xbuf.size() == l_intbuf);
    xbuf.clear();
 
-   typedef typename iterator_traits<RandIt>::size_type         size_type;
+   typedef typename iter_size<RandIt>::type         size_type;
 
    size_type const n_key_plus_buf = size_type(l_intbuf+n_keys);
    if(buffer_right){
@@ -397,7 +397,7 @@ bool adaptive_sort_build_params
    , XBuf & xbuf
    )
 {
-   typedef typename iterator_traits<RandIt>::size_type         size_type;
+   typedef typename iter_size<RandIt>::type         size_type;
 
    //Calculate ideal parameters and try to collect needed unique keys
    l_base = 0u;
@@ -423,7 +423,7 @@ bool adaptive_sort_build_params
       --n_min_ideal_keys;
    }
    ++n_min_ideal_keys;
-   BHO_ASSERT(n_min_ideal_keys <= l_intbuf);
+   assert(n_min_ideal_keys <= l_intbuf);
 
    if(xbuf.template supports_aligned_trailing<size_type>
          (l_intbuf, size_type((size_type(len-l_intbuf)-1u)/l_intbuf+1u))){
@@ -460,7 +460,7 @@ bool adaptive_sort_build_params
       //If collected keys are not enough, try to fix n_keys and l_intbuf. If no fix
       //is possible (due to very low unique keys), then go to a slow sort based on rotations.
       else{
-         BHO_ASSERT(collected < (n_min_ideal_keys+l_intbuf));
+         assert(collected < (n_min_ideal_keys+l_intbuf));
          if(collected < 4){  //No combination possible with less that 4 keys
             return false;
          }
@@ -476,7 +476,7 @@ bool adaptive_sort_build_params
          l_intbuf = 0;
          l_build_buf = n_keys;
       }
-      BHO_ASSERT((n_keys+l_intbuf) >= l_build_buf);
+      assert((n_keys+l_intbuf) >= l_build_buf);
    }
 
    return true;
@@ -541,12 +541,12 @@ bool adaptive_sort_build_params
 template<class RandIt, class Compare, class XBuf>
 void adaptive_sort_impl
    ( RandIt first
-   , typename iterator_traits<RandIt>::size_type const len
+   , typename iter_size<RandIt>::type const len
    , Compare comp
    , XBuf & xbuf
    )
 {
-   typedef typename iterator_traits<RandIt>::size_type         size_type;
+   typedef typename iter_size<RandIt>::type         size_type;
 
    //Small sorts go directly to insertion sort
    if(len <= size_type(AdaptiveSortInsertionSortThreshold)){
@@ -557,7 +557,7 @@ void adaptive_sort_impl
    }
    else{
       //Make sure it is at least four
-      BHO_STATIC_ASSERT(AdaptiveSortInsertionSortThreshold >= 4);
+      BHO_MOVE_STATIC_ASSERT(AdaptiveSortInsertionSortThreshold >= 4);
 
       size_type l_base = 0;
       size_type l_intbuf = 0;
@@ -570,12 +570,12 @@ void adaptive_sort_impl
          stable_sort(first, first+len, comp, xbuf);
       }
       else{
-         BHO_ASSERT(l_build_buf);
+         assert(l_build_buf);
          //Otherwise, continue the adaptive_sort
          BHO_MOVE_ADAPTIVE_SORT_PRINT_L1("\n   After collect_unique: ", len);
          size_type const n_key_plus_buf = size_type(l_intbuf+n_keys);
          //l_build_buf is always power of two if l_intbuf is zero
-         BHO_ASSERT(l_intbuf || (0 == (l_build_buf & (l_build_buf-1))));
+         assert(l_intbuf || (0 == (l_build_buf & (l_build_buf-1))));
 
          //Classic merge sort until internal buffer and xbuf are exhausted
          size_type const l_merged = adaptive_sort_build_blocks
@@ -626,9 +626,9 @@ void adaptive_sort_impl
 template<class RandIt, class RandRawIt, class Compare>
 void adaptive_sort( RandIt first, RandIt last, Compare comp
                , RandRawIt uninitialized
-               , typename iterator_traits<RandIt>::size_type uninitialized_len)
+               , typename iter_size<RandIt>::type uninitialized_len)
 {
-   typedef typename iterator_traits<RandIt>::size_type  size_type;
+   typedef typename iter_size<RandIt>::type  size_type;
    typedef typename iterator_traits<RandIt>::value_type value_type;
 
    ::bho::movelib::adaptive_xbuf<value_type, RandRawIt, size_type> xbuf(uninitialized, uninitialized_len);

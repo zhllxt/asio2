@@ -23,7 +23,7 @@
 #include <asio2/bho/beast/core/buffers_suffix.hpp>
 #include <asio2/bho/beast/core/error.hpp>
 #include <asio2/bho/beast/core/detail/clamp.hpp>
-#include <asio2/bho/asio/buffer.hpp>
+#include <asio/buffer.hpp>
 #include <cstdint>
 #include <memory>
 #include <stdexcept>
@@ -302,6 +302,11 @@ struct impl_base<true>
         return pmd_ != nullptr;
     }
 
+    bool should_compress(std::size_t n_bytes) const
+    {
+        return n_bytes >= pmd_opts_.msg_size_threshold;
+    }
+
     std::size_t
     read_size_hint_pmd(
         std::size_t initial_size,
@@ -443,6 +448,11 @@ struct impl_base<false>
     }
 
     bool pmd_enabled() const
+    {
+        return false;
+    }
+
+    bool should_compress(std::size_t) const
     {
         return false;
     }

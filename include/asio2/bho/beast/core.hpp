@@ -19,6 +19,7 @@
 #include <asio2/bho/beast/core/buffered_read_stream.hpp>
 #include <asio2/bho/beast/core/buffers_adaptor.hpp>
 #include <asio2/bho/beast/core/buffers_cat.hpp>
+#include <asio2/bho/beast/core/buffers_generator.hpp>
 #include <asio2/bho/beast/core/buffers_prefix.hpp>
 #include <asio2/bho/beast/core/buffers_range.hpp>
 #include <asio2/bho/beast/core/buffers_suffix.hpp>

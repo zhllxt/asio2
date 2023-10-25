@@ -219,6 +219,7 @@
 #  define BHO_NO_CXX11_LOCAL_CLASS_TEMPLATE_PARAMETERS
 #  define BHO_NO_CXX11_RAW_LITERALS
 #  define BHO_NO_CXX11_UNICODE_LITERALS
+#  define BHO_NO_CXX11_ALIGNOF
 #endif
 
 // C++0x features in 4.5.1 and later
@@ -340,10 +341,16 @@
 // Type aliasing hint. Supported since gcc 3.3.
 #define BHO_MAY_ALIAS __attribute__((__may_alias__))
 
-//
-// __builtin_unreachable:
+// Unreachable code markup
 #if BHO_GCC_VERSION >= 40500
 #define BHO_UNREACHABLE_RETURN(x) __builtin_unreachable();
+#endif
+
+// Deprecated symbol markup
+#if BHO_GCC_VERSION >= 40500
+#define BHO_DEPRECATED(msg) __attribute__((deprecated(msg)))
+#else
+#define BHO_DEPRECATED(msg) __attribute__((deprecated))
 #endif
 
 #ifndef BHO_COMPILER
@@ -359,7 +366,7 @@
 
 // versions check:
 // we don't know gcc prior to version 3.30:
-#if (BHO_GCC_VERSION< 30300)
+#if (BHO_GCC_VERSION < 30300)
 #  error "Compiler not configured - please reconfigure"
 #endif
 //

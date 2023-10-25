@@ -12,7 +12,7 @@
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/core/detail/allocator.hpp>
-#include <asio2/bho/asio/buffer.hpp>
+#include <asio/buffer.hpp>
 #include <asio2/bho/core/empty_value.hpp>
 #include <asio2/bho/intrusive/list.hpp>
 #include <asio2/bho/type_traits/type_with_alignment.hpp>
@@ -127,7 +127,7 @@ class basic_multi_buffer
         beast::detail::allocator_traits<rebind_type>;
 
     using list_type = typename bho::intrusive::make_list<
-        element, bho::intrusive::constant_time_size<true>>::type;
+        element, bho::intrusive::constant_time_size<false>>::type;
 
     using iter = typename list_type::iterator;
 

@@ -23,6 +23,7 @@
 #include <asio2/bho/beast/http/field.hpp>
 #include <asio2/bho/beast/http/fields.hpp>
 #include <asio2/bho/beast/http/file_body.hpp>
+#include <asio2/bho/beast/http/message_generator.hpp>
 #include <asio2/bho/beast/http/message.hpp>
 #include <asio2/bho/beast/http/parser.hpp>
 #include <asio2/bho/beast/http/read.hpp>

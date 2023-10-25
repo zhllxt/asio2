@@ -49,6 +49,11 @@ namespace bho {
 namespace intrusive {
 
 using bho::movelib::iterator_traits;
+using bho::movelib::iter_difference;
+using bho::movelib::iter_value;
+using bho::movelib::iter_category;
+using bho::movelib::iter_size;
+
 
 ////////////////////
 //    iterator
@@ -63,26 +68,59 @@ struct iterator
    typedef Reference    reference;
 };
 
-////////////////////////////////////////
-//    iterator_[dis|en]able_if_bho_iterator
-////////////////////////////////////////
-template<class I>
-struct is_bho_iterator
+////////////////////////////////////////////////////////////////////////////////
+//    Conversion from bho::iterator traversals to std tags
+////////////////////////////////////////////////////////////////////////////////
+
+template<class Tag>
+struct get_std_category_from_tag
 {
-   static const bool value = false;
+   typedef Tag type;
 };
 
-template<class Category, class Traversal>
-struct is_bho_iterator< bho::iterators::detail::iterator_category_with_traversal<Category, Traversal> >
+template <class Category>
+struct get_std_category_from_tag
+   <bho::iterators::detail::iterator_category_with_traversal
+      <Category, bho::iterators::incrementable_traversal_tag> >
 {
-   static const bool value = true;
+   typedef std::input_iterator_tag type;
 };
 
-template<class I, class R = void>
-struct iterator_enable_if_bho_iterator
-   : ::bho::move_detail::enable_if_c
-      < is_bho_iterator<typename bho::intrusive::iterator_traits<I>::iterator_category >::value
-      , R>
+template <class Category>
+struct get_std_category_from_tag
+   <bho::iterators::detail::iterator_category_with_traversal
+      <Category, bho::iterators::single_pass_traversal_tag> >
+{
+   typedef std::input_iterator_tag type;
+};
+
+template <class Category>
+struct get_std_category_from_tag
+   <bho::iterators::detail::iterator_category_with_traversal
+      <Category, bho::iterators::forward_traversal_tag> >
+{
+   typedef std::input_iterator_tag type;
+};
+
+template <class Category>
+struct get_std_category_from_tag
+   <bho::iterators::detail::iterator_category_with_traversal
+      <Category, bho::iterators::bidirectional_traversal_tag> >
+{
+   typedef std::bidirectional_iterator_tag type;
+};
+
+template <class Category>
+struct get_std_category_from_tag
+   <bho::iterators::detail::iterator_category_with_traversal
+      <Category, bho::iterators::random_access_traversal_tag> >
+{
+   typedef std::random_access_iterator_tag type;
+};
+
+template<class It>
+struct get_std_category_from_it
+   : get_std_category_from_tag< typename bho::intrusive::iter_category<It>::type >
 {};
 
 ////////////////////////////////////////
@@ -92,7 +130,7 @@ template<class I, class Tag, class R = void>
 struct iterator_enable_if_tag
    : ::bho::move_detail::enable_if_c
       < ::bho::move_detail::is_same
-         < typename bho::intrusive::iterator_traits<I>::iterator_category 
+         < typename get_std_category_from_it<I>::type
          , Tag
          >::value
          , R>
@@ -102,7 +140,7 @@ template<class I, class Tag, class R = void>
 struct iterator_disable_if_tag
    : ::bho::move_detail::enable_if_c
       < !::bho::move_detail::is_same
-         < typename bho::intrusive::iterator_traits<I>::iterator_category 
+         < typename get_std_category_from_it<I>::type
          , Tag
          >::value
          , R>
@@ -115,11 +153,11 @@ template<class I, class Tag, class Tag2, class R = void>
 struct iterator_enable_if_convertible_tag
    : ::bho::move_detail::enable_if_c
       < ::bho::move_detail::is_same_or_convertible
-         < typename bho::intrusive::iterator_traits<I>::iterator_category 
+         < typename get_std_category_from_it<I>::type
          , Tag
          >::value &&
         !::bho::move_detail::is_same_or_convertible
-         < typename bho::intrusive::iterator_traits<I>::iterator_category 
+         < typename get_std_category_from_it<I>::type
          , Tag2
          >::value
          , R>
@@ -130,12 +168,12 @@ struct iterator_enable_if_convertible_tag
 ////////////////////////////////////////
 template<class I, class Tag>
 struct iterator_enable_if_tag_difference_type
-   : iterator_enable_if_tag<I, Tag, typename bho::intrusive::iterator_traits<I>::difference_type>
+   : iterator_enable_if_tag<I, Tag, typename bho::intrusive::iter_difference<I>::type>
 {};
 
 template<class I, class Tag>
 struct iterator_disable_if_tag_difference_type
-   : iterator_disable_if_tag<I, Tag, typename bho::intrusive::iterator_traits<I>::difference_type>
+   : iterator_disable_if_tag<I, Tag, typename bho::intrusive::iter_difference<I>::type>
 {};
 
 ////////////////////
@@ -144,7 +182,7 @@ struct iterator_disable_if_tag_difference_type
 
 template<class InputIt>
 BHO_INTRUSIVE_FORCEINLINE typename iterator_enable_if_tag<InputIt, std::input_iterator_tag>::type
-   iterator_advance(InputIt& it, typename iterator_traits<InputIt>::difference_type n)
+   iterator_advance(InputIt& it, typename iter_difference<InputIt>::type n)
 {
    while(n--)
       ++it;
@@ -152,7 +190,7 @@ BHO_INTRUSIVE_FORCEINLINE typename iterator_enable_if_tag<InputIt, std::input_it
 
 template<class InputIt>
 typename iterator_enable_if_tag<InputIt, std::forward_iterator_tag>::type
-   iterator_advance(InputIt& it, typename iterator_traits<InputIt>::difference_type n)
+   iterator_advance(InputIt& it, typename iter_difference<InputIt>::type n)
 {
    while(n--)
       ++it;
@@ -160,7 +198,7 @@ typename iterator_enable_if_tag<InputIt, std::forward_iterator_tag>::type
 
 template<class InputIt>
 BHO_INTRUSIVE_FORCEINLINE typename iterator_enable_if_tag<InputIt, std::bidirectional_iterator_tag>::type
-   iterator_advance(InputIt& it, typename iterator_traits<InputIt>::difference_type n)
+   iterator_advance(InputIt& it, typename iter_difference<InputIt>::type n)
 {
    for (; 0 < n; --n)
       ++it;
@@ -175,59 +213,27 @@ BHO_INTRUSIVE_FORCEINLINE typename iterator_enable_if_tag<InputIt, std::random_a
    it += n;
 }
 
-template<class InputIt>
-BHO_INTRUSIVE_FORCEINLINE typename iterator_enable_if_convertible_tag
-   <InputIt, const bho::iterators::incrementable_traversal_tag&, const bho::iterators::single_pass_traversal_tag&>::type
-   iterator_advance(InputIt& it, typename iterator_traits<InputIt>::difference_type n)
+template<class InputIt, class Distance>
+BHO_INTRUSIVE_FORCEINLINE typename iterator_enable_if_tag<InputIt, std::random_access_iterator_tag, InputIt>::type
+   make_iterator_advance(InputIt it, Distance n)
 {
-   while(n--)
-      ++it;
-}
-
-template<class InputIt>
-BHO_INTRUSIVE_FORCEINLINE typename iterator_enable_if_convertible_tag
-   <InputIt, const bho::iterators::single_pass_traversal_tag &, const bho::iterators::forward_traversal_tag&>::type
-   iterator_advance(InputIt& it, typename iterator_traits<InputIt>::difference_type n)
-{
-   while(n--)
-      ++it;
-}
-
-template<class InputIt>
-BHO_INTRUSIVE_FORCEINLINE typename iterator_enable_if_convertible_tag
-   <InputIt, const bho::iterators::forward_traversal_tag&, const bho::iterators::bidirectional_traversal_tag&>::type
-   iterator_advance(InputIt& it, typename iterator_traits<InputIt>::difference_type n)
-{
-   while(n--)
-      ++it;
-}
-
-template<class InputIt>
-BHO_INTRUSIVE_FORCEINLINE typename iterator_enable_if_convertible_tag
-   <InputIt, const bho::iterators::bidirectional_traversal_tag&, const bho::iterators::random_access_traversal_tag&>::type
-   iterator_advance(InputIt& it, typename iterator_traits<InputIt>::difference_type n)
-{
-   for (; 0 < n; --n)
-      ++it;
-   for (; n < 0; ++n)
-      --it;
-}
-
-class fake{};
-
-template<class InputIt>
-BHO_INTRUSIVE_FORCEINLINE typename iterator_enable_if_convertible_tag
-   <InputIt, const bho::iterators::random_access_traversal_tag&, const fake&>::type
-   iterator_advance(InputIt& it, typename iterator_traits<InputIt>::difference_type n)
-{
-   it += n;
+   (iterator_advance)(it, n);
+   return it;
 }
 
 template<class It>
 BHO_INTRUSIVE_FORCEINLINE 
-   void iterator_uadvance(It& it, typename iterator_traits<It>::size_type n)
+   void iterator_uadvance(It& it, typename iter_size<It>::type n)
 {
    (iterator_advance)(it, (typename iterator_traits<It>::difference_type)n);
+}
+
+template<class It>
+BHO_INTRUSIVE_FORCEINLINE
+It make_iterator_uadvance(It it, typename iter_size<It>::type n)
+{
+   (iterator_uadvance)(it, n);
+   return it;
 }
 
 ////////////////////////////////////////
@@ -238,7 +244,7 @@ typename iterator_disable_if_tag_difference_type
    <InputIt, std::random_access_iterator_tag>::type
       iterator_distance(InputIt first, InputIt last)
 {
-   typename iterator_traits<InputIt>::difference_type off = 0;
+   typename iter_difference<InputIt>::type off = 0;
    while(first != last){
       ++off;
       ++first;
@@ -251,7 +257,7 @@ BHO_INTRUSIVE_FORCEINLINE typename iterator_enable_if_tag_difference_type
    <InputIt, std::random_access_iterator_tag>::type
       iterator_distance(InputIt first, InputIt last)
 {
-   typename iterator_traits<InputIt>::difference_type off = last - first;
+   typename iter_difference<InputIt>::type off = last - first;
    return off;
 }
 
@@ -260,10 +266,10 @@ BHO_INTRUSIVE_FORCEINLINE typename iterator_enable_if_tag_difference_type
 ////////////////////////////////////////
 
 template<class It>
-BHO_INTRUSIVE_FORCEINLINE typename iterator_traits<It>::size_type
+BHO_INTRUSIVE_FORCEINLINE typename iter_size<It>::type
    iterator_udistance(It first, It last)
 {
-   return (typename iterator_traits<It>::size_type)(iterator_distance)(first, last);
+   return (typename iter_size<It>::type)(iterator_distance)(first, last);
 }
 
 ////////////////////////////////////////
@@ -271,7 +277,7 @@ BHO_INTRUSIVE_FORCEINLINE typename iterator_traits<It>::size_type
 ////////////////////////////////////////
 
 template<class InputIt>
-BHO_INTRUSIVE_FORCEINLINE InputIt iterator_next(InputIt it, typename iterator_traits<InputIt>::difference_type n)
+BHO_INTRUSIVE_FORCEINLINE InputIt iterator_next(InputIt it, typename iter_difference<InputIt>::type n)
 {
    (iterator_advance)(it, n);
    return it;

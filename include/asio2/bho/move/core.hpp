@@ -58,6 +58,7 @@
    #include <asio2/bho/move/detail/type_traits.hpp>
 
    #define BHO_MOVE_TO_RV_CAST(RV_TYPE, ARG) reinterpret_cast<RV_TYPE>(ARG)
+   #define BHO_MOVE_TO_LV_CAST(LV_TYPE, ARG) static_cast<LV_TYPE>(ARG)
 
    //Move emulation rv breaks standard aliasing rules so add workarounds for some compilers
    #if defined(BHO_GCC) && (BHO_GCC >= 40400) && (BHO_GCC < 40500)
@@ -218,6 +219,10 @@
       return x;
    }
 
+   template <class T>
+   BHO_MOVE_FORCEINLINE T& unrv(::bho::rv<T> &rv) BHO_NOEXCEPT
+   {  return BHO_MOVE_TO_LV_CAST(T&, rv);   }
+
    }  //namespace move_detail {
    }  //namespace bho {
 
@@ -228,6 +233,11 @@
    #define BHO_MOVE_BASE(BASE_TYPE, ARG) \
       ::bho::move((BASE_TYPE&)(ARG))
    //
+
+   #define BHO_MOVE_TO_LV(ARG) \
+      ::bho::move_detail::unrv(ARG)
+   //
+
 
    //////////////////////////////////////////////////////////////////////////////
    //
@@ -478,6 +488,17 @@
    //!a base type is implicit.
    #define BHO_MOVE_BASE(BASE_TYPE, ARG) \
       ::bho::move((BASE_TYPE&)(ARG))
+   //
+
+   //!This macro is used to achieve portable optimal move constructors.
+   //!
+   //!In C++03 mode, when accessing a member of type through a rvalue (implemented as a `rv<T> &` type, where rv<T> derives
+   //!from T) triggers a potential UB as the program never creates objects of type rv<T>. This macro casts back `rv<T>` to
+   //!`T&` so that access to member types are done through the original type.
+   //! 
+   //!In C++11 compilers the cast from a rvalue reference of a derived type to a rvalue reference of
+   //!a base type is implicit, so it's a no-op.
+   #define BHO_MOVE_TO_LV(ARG) ARG
    //
 
    namespace bho {

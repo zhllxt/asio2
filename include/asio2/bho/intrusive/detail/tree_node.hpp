@@ -44,28 +44,28 @@ struct tree_node_traits
    typedef typename node::node_ptr   node_ptr;
    typedef typename pointer_rebind<VoidPointer, const node>::type const_node_ptr;
 
-   BHO_INTRUSIVE_FORCEINLINE static node_ptr get_parent(const const_node_ptr & n)
+   BHO_INTRUSIVE_FORCEINLINE static node_ptr get_parent(const_node_ptr n)
    {  return n->parent_;  }
 
-   BHO_INTRUSIVE_FORCEINLINE static node_ptr get_parent(const node_ptr & n)
+   BHO_INTRUSIVE_FORCEINLINE static node_ptr get_parent(node_ptr n)
    {  return n->parent_;  }
 
    BHO_INTRUSIVE_FORCEINLINE static void set_parent(node_ptr n, node_ptr p)
    {  n->parent_ = p;  }
 
-   BHO_INTRUSIVE_FORCEINLINE static node_ptr get_left(const const_node_ptr & n)
+   BHO_INTRUSIVE_FORCEINLINE static node_ptr get_left(const_node_ptr n)
    {  return n->left_;  }
 
-   BHO_INTRUSIVE_FORCEINLINE static node_ptr get_left(const node_ptr & n)
+   BHO_INTRUSIVE_FORCEINLINE static node_ptr get_left(node_ptr n)
    {  return n->left_;  }
 
    BHO_INTRUSIVE_FORCEINLINE static void set_left(node_ptr n, node_ptr l)
    {  n->left_ = l;  }
 
-   BHO_INTRUSIVE_FORCEINLINE static node_ptr get_right(const const_node_ptr & n)
+   BHO_INTRUSIVE_FORCEINLINE static node_ptr get_right(const_node_ptr n)
    {  return n->right_;  }
 
-   BHO_INTRUSIVE_FORCEINLINE static node_ptr get_right(const node_ptr & n)
+   BHO_INTRUSIVE_FORCEINLINE static node_ptr get_right(node_ptr n)
    {  return n->right_;  }
 
    BHO_INTRUSIVE_FORCEINLINE static void set_right(node_ptr n, node_ptr r)

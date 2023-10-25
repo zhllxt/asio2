@@ -14,7 +14,7 @@
 // https://www.boost.org/LICENSE_1_0.txt
 
 #include <asio2/bho/core/enable_if.hpp>
-#include <asio2/bho/core/is_same.hpp>
+#include <asio2/bho/core/detail/is_same.hpp>
 #include <asio2/bho/assert.hpp>
 #include <asio2/bho/assert/source_location.hpp>
 #include <asio2/bho/throw_exception.hpp>
@@ -31,9 +31,19 @@
 #if !defined(BHO_NO_CXX17_HDR_STRING_VIEW)
 # include <string_view>
 #endif
+#if !defined(BHO_NO_CXX20_HDR_CONCEPTS) // std::common_reference_with
+# include <type_traits>
+#endif
 
 namespace bho
 {
+
+// forward declaration of bho::basic_string_view from Utility
+template<class Ch, class Tr> class basic_string_view;
+
+// forward declaration of bho::hash_range from ContainerHash
+template<class It> std::size_t hash_range( It, It );
+
 namespace core
 {
 namespace detail
@@ -370,10 +380,10 @@ public:
     {
     }
 
-    template<class End> BHO_CXX14_CONSTEXPR basic_string_view( Ch const* begin, End end,
-        typename bho::enable_if<is_same<End, Ch const*> >::type* = 0 ) BHO_NOEXCEPT: p_( begin ), n_( end - begin )
+    template<class End> BHO_CXX14_CONSTEXPR basic_string_view( Ch const* first, End last,
+        typename bho::enable_if<bho::core::detail::is_same<End, Ch const*> >::type* = 0 ) BHO_NOEXCEPT: p_( first ), n_( last - first )
     {
-        BHO_ASSERT( end - begin >= 0 );
+        BHO_ASSERT( last - first >= 0 );
     }
 
     template<class A> basic_string_view( std::basic_string<Ch, std::char_traits<Ch>, A> const& str ) BHO_NOEXCEPT: p_( str.data() ), n_( str.size() )
@@ -388,6 +398,27 @@ public:
 
 #endif
 
+    template<class Ch2> basic_string_view( bho::basic_string_view<Ch2, std::char_traits<Ch2> > const& str,
+        typename bho::enable_if<bho::core::detail::is_same<Ch, Ch2> >::type* = 0 ) BHO_NOEXCEPT: p_( str.data() ), n_( str.size() )
+    {
+    }
+
+#if !defined(BHO_NO_CXX11_NULLPTR)
+# if !defined(BHO_NO_CXX11_DELETED_FUNCTIONS)
+
+    basic_string_view( std::nullptr_t ) = delete;
+
+# else
+
+private:
+
+    basic_string_view( std::nullptr_t );
+
+public:
+
+# endif
+#endif
+
     // BHO_CONSTEXPR basic_string_view& operator=( basic_string_view const& ) BHO_NOEXCEPT & = default;
 
     // conversions
@@ -399,13 +430,19 @@ public:
 
 #if !defined(BHO_NO_CXX17_HDR_STRING_VIEW)
 
-    template<class Ch2, class En = typename bho::enable_if<is_same<Ch2, Ch> >::type>
+    template<class Ch2, class En = typename bho::enable_if<bho::core::detail::is_same<Ch2, Ch> >::type>
     operator std::basic_string_view<Ch2>() const BHO_NOEXCEPT
     {
         return std::basic_string_view<Ch>( data(), size() );
     }
 
 #endif
+
+    template<class Ch2> operator bho::basic_string_view<Ch2,
+        typename bho::enable_if<bho::core::detail::is_same<Ch2, Ch>, std::char_traits<Ch> >::type> () const BHO_NOEXCEPT
+    {
+        return bho::basic_string_view< Ch, std::char_traits<Ch> >( data(), size() );
+    }
 
     // iterator support
 
@@ -538,7 +575,7 @@ public:
             bho::throw_exception( std::out_of_range( "basic_string_view::copy" ), BHO_CURRENT_LOCATION );
         }
 
-        std::size_t rlen = std::min( n, size() - pos );
+        std::size_t rlen = (std::min)( n, size() - pos );
 
         traits_type::copy( s, data() + pos, rlen );
 
@@ -552,7 +589,7 @@ public:
             bho::throw_exception( std::out_of_range( "basic_string_view::substr" ), BHO_CURRENT_LOCATION );
         }
 
-        std::size_t rlen = std::min( n, size() - pos );
+        std::size_t rlen = (std::min)( n, size() - pos );
 
         return basic_string_view( data() + pos, rlen );
     }
@@ -561,14 +598,14 @@ public:
 
     BHO_CXX14_CONSTEXPR int compare( basic_string_view str ) const BHO_NOEXCEPT
     {
-        std::size_t rlen = std::min( size(), str.size() );
+        std::size_t rlen = (std::min)( size(), str.size() );
 
         int cmp = traits_type::compare( data(), str.data(), rlen );
 
         if( cmp != 0 ) return cmp;
 
         if( size() == str.size() ) return 0;
-        
+
         return size() < str.size()? -1: +1;
     }
 
@@ -1144,6 +1181,11 @@ public:
     }
 
 #endif
+
+    inline friend std::size_t hash_value( basic_string_view const& sv )
+    {
+        return bho::hash_range( sv.begin(), sv.end() );
+    }
 };
 
 // stream inserter
@@ -1201,5 +1243,30 @@ typedef basic_string_view<char8_t> u8string_view;
 
 } // namespace core
 } // namespace bho
+
+// std::common_reference support
+// needed for iterators that have reference=string_view and value_type=std::string
+
+#if !defined(BHO_NO_CXX20_HDR_CONCEPTS)
+
+template<class Ch, class A, template<class> class Q1, template<class> class Q2>
+struct std::basic_common_reference<
+    bho::core::basic_string_view<Ch>,
+    std::basic_string<Ch, std::char_traits<Ch>, A>,
+    Q1, Q2>
+{
+    using type = bho::core::basic_string_view<Ch>;
+};
+
+template<class Ch, class A, template<class> class Q1, template<class> class Q2>
+struct std::basic_common_reference<
+    std::basic_string<Ch, std::char_traits<Ch>, A>,
+    bho::core::basic_string_view<Ch>,
+    Q1, Q2>
+{
+    using type = bho::core::basic_string_view<Ch>;
+};
+
+#endif
 
 #endif  // #ifndef BHO_CORE_STRING_VIEW_HPP_INCLUDED

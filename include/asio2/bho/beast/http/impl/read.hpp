@@ -19,9 +19,9 @@
 #include <asio2/bho/beast/core/stream_traits.hpp>
 #include <asio2/bho/beast/core/detail/buffer.hpp>
 #include <asio2/bho/beast/core/detail/read.hpp>
-#include <asio2/bho/asio/error.hpp>
-#include <asio2/bho/asio/compose.hpp>
-#include <asio2/bho/asio/coroutine.hpp>
+#include <asio/error.hpp>
+#include <asio/compose.hpp>
+#include <asio/coroutine.hpp>
 
 namespace bho {
 namespace beast {
@@ -199,7 +199,7 @@ public:
                     auto const size = read_size(b_, 65536);
                     if(size == 0)
                     {
-                        ec = error::buffer_overflow;
+                        BHO_BEAST_ASSIGN_EC(ec, error::buffer_overflow);
                         goto upcall;
                     }
                     auto const mb =
@@ -228,7 +228,7 @@ public:
                         BHO_ASSERT(p_.is_done());
                         goto upcall;
                     }
-                    ec = error::end_of_stream;
+                    BHO_BEAST_ASSIGN_EC(ec, error::end_of_stream);
                     break;
                 }
                 if(ec)
@@ -245,6 +245,7 @@ public:
                         "http::async_read_some"));
 
                     net::post(
+                        s_.get_executor(),
                         beast::bind_front_handler(std::move(self), ec));
                 }
             }
@@ -284,7 +285,7 @@ public:
                         __FILE__, __LINE__,
                         "http::async_read"));
 
-                    net::post(std::move(self));
+                    net::post(s_.get_executor(), std::move(self));
                 }
             }
             else
@@ -337,7 +338,7 @@ read_some(SyncReadStream& s, DynamicBuffer& b, basic_parser<isRequest>& p, error
         auto const size = read_size(b, 65536);
         if(size == 0)
         {
-            ec = error::buffer_overflow;
+            BHO_BEAST_ASSIGN_EC(ec, error::buffer_overflow);
             return total;
         }
         auto const mb =
@@ -362,7 +363,7 @@ read_some(SyncReadStream& s, DynamicBuffer& b, basic_parser<isRequest>& p, error
                 BHO_ASSERT(p.is_done());
                 return total;
             }
-            ec = error::end_of_stream;
+            BHO_BEAST_ASSIGN_EC(ec, error::end_of_stream);
             break;
         }
         if(ec)

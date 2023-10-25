@@ -69,40 +69,40 @@ struct default_avltree_node_traits_impl
 
    typedef typename node::balance balance;
 
-   BHO_INTRUSIVE_FORCEINLINE static node_ptr get_parent(const const_node_ptr & n)
+   BHO_INTRUSIVE_FORCEINLINE static node_ptr get_parent(const_node_ptr n)
    {  return n->parent_;  }
 
-   BHO_INTRUSIVE_FORCEINLINE static node_ptr get_parent(const node_ptr & n)
+   BHO_INTRUSIVE_FORCEINLINE static node_ptr get_parent(node_ptr n)
    {  return n->parent_;  }
 
    BHO_INTRUSIVE_FORCEINLINE static void set_parent(node_ptr n, node_ptr p)
    {  n->parent_ = p;  }
 
-   BHO_INTRUSIVE_FORCEINLINE static node_ptr get_left(const const_node_ptr & n)
+   BHO_INTRUSIVE_FORCEINLINE static node_ptr get_left(const_node_ptr n)
    {  return n->left_;  }
 
-   BHO_INTRUSIVE_FORCEINLINE static node_ptr get_left(const node_ptr & n)
+   BHO_INTRUSIVE_FORCEINLINE static node_ptr get_left(node_ptr n)
    {  return n->left_;  }
 
    BHO_INTRUSIVE_FORCEINLINE static void set_left(node_ptr n, node_ptr l)
    {  n->left_ = l;  }
 
-   BHO_INTRUSIVE_FORCEINLINE static node_ptr get_right(const const_node_ptr & n)
+   BHO_INTRUSIVE_FORCEINLINE static node_ptr get_right(const_node_ptr n)
    {  return n->right_;  }
 
-   BHO_INTRUSIVE_FORCEINLINE static node_ptr get_right(const node_ptr & n)
+   BHO_INTRUSIVE_FORCEINLINE static node_ptr get_right(node_ptr n)
    {  return n->right_;  }
 
    BHO_INTRUSIVE_FORCEINLINE static void set_right(node_ptr n, node_ptr r)
    {  n->right_ = r;  }
 
-   BHO_INTRUSIVE_FORCEINLINE static balance get_balance(const const_node_ptr & n)
+   BHO_INTRUSIVE_FORCEINLINE static balance get_balance(const_node_ptr n)
    {  return n->balance_;  }
 
-   BHO_INTRUSIVE_FORCEINLINE static balance get_balance(const node_ptr & n)
+   BHO_INTRUSIVE_FORCEINLINE static balance get_balance(node_ptr n)
    {  return n->balance_;  }
 
-   BHO_INTRUSIVE_FORCEINLINE static void set_balance(const node_ptr & n, balance b)
+   BHO_INTRUSIVE_FORCEINLINE static void set_balance(node_ptr n, balance b)
    {  n->balance_ = b;  }
 
    BHO_INTRUSIVE_FORCEINLINE static balance negative()
@@ -127,28 +127,28 @@ struct compact_avltree_node_traits_impl
 
    typedef pointer_plus_bits<node_ptr, 2> ptr_bit;
 
-   BHO_INTRUSIVE_FORCEINLINE static node_ptr get_parent(const const_node_ptr & n)
+   BHO_INTRUSIVE_FORCEINLINE static node_ptr get_parent(const_node_ptr n)
    {  return ptr_bit::get_pointer(n->parent_);  }
 
    BHO_INTRUSIVE_FORCEINLINE static void set_parent(node_ptr n, node_ptr p)
    {  ptr_bit::set_pointer(n->parent_, p);  }
 
-   BHO_INTRUSIVE_FORCEINLINE static node_ptr get_left(const const_node_ptr & n)
+   BHO_INTRUSIVE_FORCEINLINE static node_ptr get_left(const_node_ptr n)
    {  return n->left_;  }
 
    BHO_INTRUSIVE_FORCEINLINE static void set_left(node_ptr n, node_ptr l)
    {  n->left_ = l;  }
 
-   BHO_INTRUSIVE_FORCEINLINE static node_ptr get_right(const const_node_ptr & n)
+   BHO_INTRUSIVE_FORCEINLINE static node_ptr get_right(const_node_ptr n)
    {  return n->right_;  }
 
    BHO_INTRUSIVE_FORCEINLINE static void set_right(node_ptr n, node_ptr r)
    {  n->right_ = r;  }
 
-   BHO_INTRUSIVE_FORCEINLINE static balance get_balance(const const_node_ptr & n)
+   BHO_INTRUSIVE_FORCEINLINE static balance get_balance(const_node_ptr n)
    {  return (balance)ptr_bit::get_bits(n->parent_);  }
 
-   BHO_INTRUSIVE_FORCEINLINE static void set_balance(const node_ptr & n, balance b)
+   BHO_INTRUSIVE_FORCEINLINE static void set_balance(node_ptr n, balance b)
    {  ptr_bit::set_bits(n->parent_, (std::size_t)b);  }
 
    BHO_INTRUSIVE_FORCEINLINE static balance negative()

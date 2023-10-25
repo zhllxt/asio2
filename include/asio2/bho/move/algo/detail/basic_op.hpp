@@ -22,6 +22,7 @@
 #include <asio2/bho/move/utility_core.hpp>
 #include <asio2/bho/move/adl_move_swap.hpp>
 #include <asio2/bho/move/detail/iterator_traits.hpp>
+#include <asio2/bho/move/algo/move.hpp>
 
 namespace bho {
 namespace movelib {

@@ -17,7 +17,7 @@ namespace bho {
 namespace beast {
 namespace websocket {
 
-/// Error codes returned from @ref beast::websocket::stream operations.
+/// Error codes returned from @ref bho::beast::websocket::stream operations.
 enum class error
 {
     /** The WebSocket stream was gracefully closed at both endpoints

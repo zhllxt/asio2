@@ -11,7 +11,7 @@
 #define BHO_BEAST_WEBSOCKET_DETAIL_SERVICE_HPP
 
 #include <asio2/bho/beast/core/detail/service_base.hpp>
-#include <asio2/bho/asio/execution_context.hpp>
+#include <asio/execution_context.hpp>
 #include <mutex>
 #include <vector>
 

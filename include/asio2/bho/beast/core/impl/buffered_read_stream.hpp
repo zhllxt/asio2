@@ -16,7 +16,7 @@
 #include <asio2/bho/beast/core/read_size.hpp>
 #include <asio2/bho/beast/core/stream_traits.hpp>
 #include <asio2/bho/beast/core/detail/is_invocable.hpp>
-#include <asio2/bho/asio/post.hpp>
+#include <asio/post.hpp>
 #include <asio2/bho/throw_exception.hpp>
 
 namespace bho {

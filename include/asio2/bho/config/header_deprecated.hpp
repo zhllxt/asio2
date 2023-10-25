@@ -17,7 +17,7 @@
 
 #include <asio2/bho/config/pragma_message.hpp>
 
-#if defined(BHO_ALLOW_DEPRECATED_HEADERS)
+#if defined(BHO_ALLOW_DEPRECATED_HEADERS) || defined(BHO_ALLOW_DEPRECATED)
 # define BHO_HEADER_DEPRECATED(a)
 #else
 # define BHO_HEADER_DEPRECATED(a) BHO_PRAGMA_MESSAGE("This header is deprecated. Use " a " instead.")

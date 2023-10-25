@@ -49,7 +49,7 @@ static const unsigned MergeSortInsertionSortThreshold = 16;
 template <class RandIt, class Compare>
 void inplace_stable_sort(RandIt first, RandIt last, Compare comp)
 {
-   typedef typename iterator_traits<RandIt>::size_type  size_type;
+   typedef typename iter_size<RandIt>::type  size_type;
    if (size_type(last - first) <= size_type(MergeSortInsertionSortThreshold)) {
       insertion_sort(first, last, comp);
       return;
@@ -67,7 +67,7 @@ template<class RandIt, class RandIt2, class Compare>
 void merge_sort_copy( RandIt first, RandIt last
                    , RandIt2 dest, Compare comp)
 {
-   typedef typename iterator_traits<RandIt>::size_type         size_type;
+   typedef typename iter_size<RandIt>::type         size_type;
    
    size_type const count = size_type(last - first);
    if(count <= MergeSortInsertionSortThreshold){
@@ -89,7 +89,7 @@ void merge_sort_uninitialized_copy( RandIt first, RandIt last
                                  , RandItRaw uninitialized
                                  , Compare comp)
 {
-   typedef typename iterator_traits<RandIt>::size_type       size_type;
+   typedef typename iter_size<RandIt>::type       size_type;
    typedef typename iterator_traits<RandIt>::value_type value_type;
 
    size_type const count = size_type(last - first);
@@ -114,7 +114,7 @@ template<class RandIt, class RandItRaw, class Compare>
 void merge_sort( RandIt first, RandIt last, Compare comp
                , RandItRaw uninitialized)
 {
-   typedef typename iterator_traits<RandIt>::size_type       size_type;
+   typedef typename iter_size<RandIt>::type       size_type;
    typedef typename iterator_traits<RandIt>::value_type      value_type;
 
    size_type const count = size_type(last - first);
@@ -142,7 +142,7 @@ void merge_sort( RandIt first, RandIt last, Compare comp
 template<class RandIt, class RandItRaw, class Compare>
 void merge_sort_with_constructed_buffer( RandIt first, RandIt last, Compare comp, RandItRaw buffer)
 {
-   typedef typename iterator_traits<RandIt>::size_type       size_type;
+   typedef typename iter_size<RandIt>::type       size_type;
 
    size_type const count = size_type(last - first);
    if(count <= MergeSortInsertionSortThreshold){
@@ -166,7 +166,7 @@ template<typename RandIt, typename Pointer,
          typename Distance, typename Compare>
 void stable_sort_ONlogN_recursive(RandIt first, RandIt last, Pointer buffer, Distance buffer_size, Compare comp)
 {
-   typedef typename iterator_traits<RandIt>::size_type  size_type;
+   typedef typename iter_size<RandIt>::type  size_type;
    if (size_type(last - first) <= size_type(MergeSortInsertionSortThreshold)) {
       insertion_sort(first, last, comp);
    }

@@ -53,8 +53,7 @@
 #include <asio2/bho/move/algo/detail/heap_sort.hpp>
 #include <asio2/bho/move/algo/detail/merge.hpp>
 #include <asio2/bho/move/algo/detail/is_sorted.hpp>
-#include <asio2/bho/core/ignore_unused.hpp>
-#include <asio2/bho/assert.hpp>
+#include <cassert>
 #include <asio2/bho/cstdint.hpp>
 #include <limits.h>
 
@@ -89,7 +88,7 @@
 #endif
 
 #ifdef BHO_MOVE_ADAPTIVE_SORT_INVARIANTS
-   #define BHO_MOVE_ADAPTIVE_SORT_INVARIANT  BHO_ASSERT
+   #define BHO_MOVE_ADAPTIVE_SORT_INVARIANT  assert
 #else
    #define BHO_MOVE_ADAPTIVE_SORT_INVARIANT(L)
 #endif
@@ -118,7 +117,7 @@ namespace detail_adaptive {
 
 static const std::size_t AdaptiveSortInsertionSortThreshold = 16;
 //static const std::size_t AdaptiveSortInsertionSortThreshold = 4;
-BHO_STATIC_ASSERT((AdaptiveSortInsertionSortThreshold&(AdaptiveSortInsertionSortThreshold-1)) == 0);
+BHO_MOVE_STATIC_ASSERT((AdaptiveSortInsertionSortThreshold&(AdaptiveSortInsertionSortThreshold-1)) == 0);
 
 #if defined BHO_HAS_INTPTR_T
    typedef ::bho::uintptr_t uintptr_t;
@@ -139,10 +138,10 @@ const T &max_value(const T &a, const T &b)
 }
 
 template<class ForwardIt, class Pred, class V>
-typename iterator_traits<ForwardIt>::size_type
+typename iter_size<ForwardIt>::type
    count_if_with(ForwardIt first, ForwardIt last, Pred pred, const V &v)
 {
-   typedef typename iterator_traits<ForwardIt>::size_type size_type;
+   typedef typename iter_size<ForwardIt>::type size_type;
    size_type count = 0;
    while(first != last) {
       count = size_type(count + static_cast<size_type>(0 != pred(*first, v)));
@@ -175,7 +174,8 @@ void swap_and_update_key
 {
    if(begin != with){
       ::bho::adl_move_swap_ranges(begin, end, with);
-      ::bho::adl_move_swap(*key_next, *key_range2);
+      if(key_next != key_range2)  //Avoid potential self-swapping
+         ::bho::adl_move_swap(*key_next, *key_range2);
       if(key_next == key_mid){
          key_mid = key_range2;
       }
@@ -217,7 +217,8 @@ RandIt2 buffer_and_update_key
       while(begin != end) {
          op(three_way_t(), begin++, with++, buffer++);
       }
-      ::bho::adl_move_swap(*key_next, *key_range2);
+      if (key_next != key_range2)   //Avoid potential self-swapping
+         ::bho::adl_move_swap(*key_next, *key_range2);
       if (key_next == key_mid) {
          key_mid = key_range2;
       }
@@ -276,20 +277,20 @@ static SizeType needed_keys_count(SizeType n_block_a, SizeType n_block_b)
 }
 
 template<class RandItKeys, class KeyCompare, class RandIt, class Compare>
-typename iterator_traits<RandIt>::size_type
+typename iter_size<RandIt>::type
    find_next_block
       ( RandItKeys const key_first
       , KeyCompare key_comp
       , RandIt const first
-      , typename iterator_traits<RandIt>::size_type const l_block
-      , typename iterator_traits<RandIt>::size_type const ix_first_block
-      , typename iterator_traits<RandIt>::size_type const ix_last_block
+      , typename iter_size<RandIt>::type const l_block
+      , typename iter_size<RandIt>::type const ix_first_block
+      , typename iter_size<RandIt>::type const ix_last_block
       , Compare comp)
 {
-   typedef typename iterator_traits<RandIt>::size_type      size_type;
+   typedef typename iter_size<RandIt>::type      size_type;
    typedef typename iterator_traits<RandIt>::value_type     value_type;
    typedef typename iterator_traits<RandItKeys>::value_type key_type;
-   BHO_ASSERT(ix_first_block <= ix_last_block);
+   assert(ix_first_block <= ix_last_block);
    size_type ix_min_block = 0u;
    for (size_type szt_i = ix_first_block; szt_i < ix_last_block; ++szt_i) {
       const value_type &min_val = first[size_type(ix_min_block*l_block)];
@@ -312,17 +313,17 @@ void merge_blocks_bufferless
    ( RandItKeys const key_first
    , KeyCompare key_comp
    , RandIt const first
-   , typename iterator_traits<RandIt>::size_type const l_block
-   , typename iterator_traits<RandIt>::size_type const l_irreg1
-   , typename iterator_traits<RandIt>::size_type const n_block_a
-   , typename iterator_traits<RandIt>::size_type const n_block_b
-   , typename iterator_traits<RandIt>::size_type const l_irreg2
+   , typename iter_size<RandIt>::type const l_block
+   , typename iter_size<RandIt>::type const l_irreg1
+   , typename iter_size<RandIt>::type const n_block_a
+   , typename iter_size<RandIt>::type const n_block_b
+   , typename iter_size<RandIt>::type const l_irreg2
    , Compare comp)
 {
-   typedef typename iterator_traits<RandIt>::size_type size_type;
+   typedef typename iter_size<RandIt>::type size_type;
    size_type const key_count = needed_keys_count(n_block_a, n_block_b);
-   ::bho::ignore_unused(key_count);
-   //BHO_ASSERT(n_block_a || n_block_b);
+   ::bho::movelib::ignore(key_count);
+   //assert(n_block_a || n_block_b);
    BHO_MOVE_ADAPTIVE_SORT_INVARIANT(bho::movelib::is_sorted_and_unique(key_first, key_first + key_count, key_comp));
    BHO_MOVE_ADAPTIVE_SORT_INVARIANT(!n_block_b || n_block_a == count_if_with(key_first, key_first + key_count, key_comp, key_first[n_block_a]));
 
@@ -389,13 +390,13 @@ void merge_blocks_bufferless
 // 
 // Returns the number of collected keys
 template<class RandIt, class Compare, class XBuf>
-typename iterator_traits<RandIt>::size_type
+typename iter_size<RandIt>::type
    collect_unique
       ( RandIt const first, RandIt const last
-      , typename iterator_traits<RandIt>::size_type const max_collected, Compare comp
+      , typename iter_size<RandIt>::type const max_collected, Compare comp
       , XBuf & xbuf)
 {
-   typedef typename iterator_traits<RandIt>::size_type       size_type;
+   typedef typename iter_size<RandIt>::type       size_type;
    size_type h = 0;
 
    if(max_collected){
@@ -538,7 +539,7 @@ template<class RandIt, class Compare>
 void slow_stable_sort
    ( RandIt const first, RandIt const last, Compare comp)
 {
-   typedef typename iterator_traits<RandIt>::size_type       size_type;
+   typedef typename iter_size<RandIt>::type       size_type;
 
    size_type L = size_type(last - first);
    {  //Use insertion sort to merge first elements
@@ -574,7 +575,7 @@ template<class Unsigned>
 Unsigned lblock_for_combine
    (Unsigned const l_block, Unsigned const n_keys, Unsigned const l_data, bool &use_buf)
 {
-   BHO_ASSERT(l_data > 1);
+   assert(l_data > 1);
 
    //We need to guarantee lblock >= l_merged/(n_keys/2) keys for the combination.
    //We have at least 4 keys guaranteed (which are the minimum to merge 2 ranges)
@@ -585,8 +586,8 @@ Unsigned lblock_for_combine
    if(!l_block){
       //If l_block == 0 then n_keys is power of two
       //(guaranteed by build_params(...))
-      BHO_ASSERT(n_keys >= 4);
-      //BHO_ASSERT(0 == (n_keys &(n_keys-1)));
+      assert(n_keys >= 4);
+      //assert(0 == (n_keys &(n_keys-1)));
 
       //See if half keys are at least 4 and if half keys fulfill
       Unsigned const new_buf  = n_keys/2;
@@ -608,7 +609,7 @@ Unsigned lblock_for_combine
 template<class RandIt, class Compare, class XBuf>
 void stable_sort( RandIt first, RandIt last, Compare comp, XBuf & xbuf)
 {
-   typedef typename iterator_traits<RandIt>::size_type size_type;
+   typedef typename iter_size<RandIt>::type size_type;
    size_type const len = size_type(last - first);
    size_type const half_len = size_type(len/2u + (len&1u));
    if(std::size_t(xbuf.capacity() - xbuf.size()) >= half_len) {
@@ -625,7 +626,7 @@ void unstable_sort( RandIt first, RandIt last
                     , XBuf & xbuf)
 {
    heap_sort(first, last, comp);
-   ::bho::ignore_unused(xbuf);
+   ::bho::movelib::ignore(xbuf);
 }
 
 template<class RandIt, class Compare, class XBuf>
@@ -634,8 +635,8 @@ void stable_merge
       , Compare comp
       , XBuf &xbuf)
 {
-   BHO_ASSERT(xbuf.empty());
-   typedef typename iterator_traits<RandIt>::size_type   size_type;
+   assert(xbuf.empty());
+   typedef typename iter_size<RandIt>::type   size_type;
    size_type const len1  = size_type(middle-first);
    size_type const len2  = size_type(last-middle);
    size_type const l_min = min_value<size_type>(len1, len2);
@@ -656,7 +657,7 @@ void initialize_keys( RandIt first, RandIt last
                     , XBuf & xbuf)
 {
    unstable_sort(first, last, comp, xbuf);
-   BHO_ASSERT(bho::movelib::is_sorted_and_unique(first, last, comp));
+   assert(bho::movelib::is_sorted_and_unique(first, last, comp));
 }
 
 template<class RandIt, class U>
@@ -710,11 +711,11 @@ void combine_params
    //Initial parameters for selection sort blocks
    l_irreg1 = size_type(l_prev_merged%l_block);
    l_irreg2 = size_type((l_combined-l_irreg1)%l_block);
-   BHO_ASSERT(((l_combined-l_irreg1-l_irreg2)%l_block) == 0);
+   assert(((l_combined-l_irreg1-l_irreg2)%l_block) == 0);
    size_type const n_reg_block = size_type((l_combined-l_irreg1-l_irreg2)/l_block);
    n_block_a = l_prev_merged/l_block;
    n_block_b = size_type(n_reg_block - n_block_a);
-   BHO_ASSERT(n_reg_block>=n_block_a);
+   assert(n_reg_block>=n_block_a);
 
    //Key initialization
    if (do_initialize_keys) {
@@ -905,7 +906,7 @@ RandIt op_partial_merge_and_save_impl
       first1 = last1;
    }
    else{
-      BHO_ASSERT((last1-first1) == (buf_last1 - buf_first1));
+      assert((last1-first1) == (buf_last1 - buf_first1));
    }
 
    //Now merge from buffer
@@ -953,13 +954,13 @@ OutputIt op_merge_blocks_with_irreg
    , RandIt2 &first_irr
    , RandIt2 const last_irr
    , OutputIt dest
-   , typename iterator_traits<RandIt>::size_type const l_block
-   , typename iterator_traits<RandIt>::size_type n_block_left
-   , typename iterator_traits<RandIt>::size_type min_check
-   , typename iterator_traits<RandIt>::size_type max_check
+   , typename iter_size<RandIt>::type const l_block
+   , typename iter_size<RandIt>::type n_block_left
+   , typename iter_size<RandIt>::type min_check
+   , typename iter_size<RandIt>::type max_check
    , Compare comp, bool const is_stable, Op op)
 {
-   typedef typename iterator_traits<RandIt>::size_type size_type;
+   typedef typename iter_size<RandIt>::type size_type;
 
    for(; n_block_left; --n_block_left){
       size_type next_key_idx = find_next_block(key_first, key_comp, first_reg, l_block, min_check, max_check, comp);  
@@ -967,14 +968,14 @@ OutputIt op_merge_blocks_with_irreg
       RandIt const last_reg  = first_reg + l_block;
       RandIt first_min = first_reg + size_type(next_key_idx*l_block);
       RandIt const last_min  = first_min + l_block;
-      bho::ignore_unused(last_min);
+      bho::movelib::ignore(last_min);
 
       BHO_MOVE_ADAPTIVE_SORT_INVARIANT(bho::movelib::is_sorted(first_reg, last_reg, comp));
       BHO_MOVE_ADAPTIVE_SORT_INVARIANT(!next_key_idx || bho::movelib::is_sorted(first_min, last_min, comp));
       BHO_MOVE_ADAPTIVE_SORT_INVARIANT((!next_key_idx || !comp(*first_reg, *first_min )));
 
       OutputIt orig_dest = dest;
-      bho::ignore_unused(orig_dest);
+      bho::movelib::ignore(orig_dest);
       dest = next_key_idx ? op_partial_merge_and_swap(first_irr, last_irr, first_reg, last_reg, first_min, dest, comp, op, is_stable)
                           : op_partial_merge         (first_irr, last_irr, first_reg, last_reg, dest, comp, op, is_stable);
       BHO_MOVE_ADAPTIVE_SORT_INVARIANT(bho::movelib::is_sorted(orig_dest, dest, comp));
@@ -1015,19 +1016,19 @@ void op_merge_blocks_left
    ( RandItKeys const key_first
    , KeyCompare key_comp
    , RandIt const first
-   , typename iterator_traits<RandIt>::size_type const l_block
-   , typename iterator_traits<RandIt>::size_type const l_irreg1
-   , typename iterator_traits<RandIt>::size_type const n_block_a
-   , typename iterator_traits<RandIt>::size_type const n_block_b
-   , typename iterator_traits<RandIt>::size_type const l_irreg2
+   , typename iter_size<RandIt>::type const l_block
+   , typename iter_size<RandIt>::type const l_irreg1
+   , typename iter_size<RandIt>::type const n_block_a
+   , typename iter_size<RandIt>::type const n_block_b
+   , typename iter_size<RandIt>::type const l_irreg2
    , Compare comp, Op op)
 {
-   typedef typename iterator_traits<RandIt>::size_type       size_type;
+   typedef typename iter_size<RandIt>::type       size_type;
 
    size_type const key_count = needed_keys_count(n_block_a, n_block_b);
-   bho::ignore_unused(key_count);
+   bho::movelib::ignore(key_count);
 
-//   BHO_ASSERT(n_block_a || n_block_b);
+//   assert(n_block_a || n_block_b);
    BHO_MOVE_ADAPTIVE_SORT_INVARIANT(bho::movelib::is_sorted_and_unique(key_first, key_first + key_count, key_comp));
    BHO_MOVE_ADAPTIVE_SORT_INVARIANT(!n_block_b || n_block_a == count_if_with(key_first, key_first + key_count, key_comp, key_first[n_block_a]));
 
@@ -1056,7 +1057,7 @@ void op_merge_blocks_left
       RandIt const first_min = first2 + size_type(next_key_idx*l_block);
       RandIt const last_min  = first_min + l_block;
 
-      bho::ignore_unused(last_min);
+      bho::movelib::ignore(last_min);
       RandIt const last2  = first2 + l_block;
 
       BHO_MOVE_ADAPTIVE_SORT_INVARIANT(bho::movelib::is_sorted(first1, last1, comp));
@@ -1078,7 +1079,7 @@ void op_merge_blocks_left
                                           (!is_buffer_middle && size_type(first1-buffer) == l_block && first2 == last1));
 
       if(is_range1_A == is_range2_A){
-         BHO_ASSERT((first1 == last1) || !comp(*first_min, last1[typename iterator_traits<RandIt>::difference_type(-1)]));
+         assert((first1 == last1) || !comp(*first_min, last1[typename iterator_traits<RandIt>::difference_type(-1)]));
          if(!is_buffer_middle){
             buffer = op(forward_t(), first1, last1, buffer);
          }
@@ -1102,7 +1103,7 @@ void op_merge_blocks_left
                (buffer, buffer+(last1-first1), first2, last2, first_min, buf_beg, buf_end, comp, op, is_range1_A);
          }
 
-         bho::ignore_unused(unmerged);
+         bho::movelib::ignore(unmerged);
          BHO_MOVE_ADAPTIVE_SORT_INVARIANT(bho::movelib::is_sorted(first-l_block, unmerged, comp));
 
          swap_and_update_key( key_next, key_range2, key_mid, first2, last2
@@ -1131,7 +1132,7 @@ void op_merge_blocks_left
    }
 
    BHO_MOVE_ADAPTIVE_SORT_INVARIANT(!n_block_b || n_block_a == count_if_with(key_first, key_range2 + n_block_left, key_comp, *key_mid));
-   BHO_ASSERT(!n_block_b_left);
+   assert(!n_block_b_left);
 
    ////////////////////////////////////////////////////////////////////////////
    //Process remaining range 1 left before the irregular B block
@@ -1165,7 +1166,7 @@ void op_merge_blocks_left
       ( key_range2, key_mid, key_comp, first2, first_irr2, last_irr2
       , buffer, l_block, n_block_left, min_check, max_check, comp, false, op);
    buffer = op(forward_t(), first_irr2, last_irr2, buffer);
-   bho::ignore_unused(buffer);
+   bho::movelib::ignore(buffer);
    BHO_MOVE_ADAPTIVE_SORT_INVARIANT(bho::movelib::is_sorted(first-l_block, buffer, comp));
 }
 
@@ -1181,11 +1182,11 @@ void merge_blocks_left
    ( RandItKeys const key_first
    , KeyCompare key_comp
    , RandIt const first
-   , typename iterator_traits<RandIt>::size_type const l_block
-   , typename iterator_traits<RandIt>::size_type const l_irreg1
-   , typename iterator_traits<RandIt>::size_type const n_block_a
-   , typename iterator_traits<RandIt>::size_type const n_block_b
-   , typename iterator_traits<RandIt>::size_type const l_irreg2
+   , typename iter_size<RandIt>::type const l_block
+   , typename iter_size<RandIt>::type const l_irreg1
+   , typename iter_size<RandIt>::type const n_block_a
+   , typename iter_size<RandIt>::type const n_block_b
+   , typename iter_size<RandIt>::type const l_irreg2
    , Compare comp
    , bool const xbuf_used)
 {
@@ -1212,14 +1213,14 @@ void merge_blocks_right
    ( RandItKeys const key_first
    , KeyCompare key_comp
    , RandIt const first
-   , typename iterator_traits<RandIt>::size_type const l_block
-   , typename iterator_traits<RandIt>::size_type const n_block_a
-   , typename iterator_traits<RandIt>::size_type const n_block_b
-   , typename iterator_traits<RandIt>::size_type const l_irreg2
+   , typename iter_size<RandIt>::type const l_block
+   , typename iter_size<RandIt>::type const n_block_a
+   , typename iter_size<RandIt>::type const n_block_b
+   , typename iter_size<RandIt>::type const l_irreg2
    , Compare comp
    , bool const xbuf_used)
 {
-   typedef typename iterator_traits<RandIt>::size_type size_type;
+   typedef typename iter_size<RandIt>::type size_type;
    merge_blocks_left
       ( (make_reverse_iterator)(key_first + needed_keys_count(n_block_a, n_block_b))
       , inverse<KeyCompare>(key_comp)
@@ -1246,19 +1247,19 @@ void op_merge_blocks_with_buf
    ( RandItKeys key_first
    , KeyCompare key_comp
    , RandIt const first
-   , typename iterator_traits<RandIt>::size_type const l_block
-   , typename iterator_traits<RandIt>::size_type const l_irreg1
-   , typename iterator_traits<RandIt>::size_type const n_block_a
-   , typename iterator_traits<RandIt>::size_type const n_block_b
-   , typename iterator_traits<RandIt>::size_type const l_irreg2
+   , typename iter_size<RandIt>::type const l_block
+   , typename iter_size<RandIt>::type const l_irreg1
+   , typename iter_size<RandIt>::type const n_block_a
+   , typename iter_size<RandIt>::type const n_block_b
+   , typename iter_size<RandIt>::type const l_irreg2
    , Compare comp
    , Op op
    , RandItBuf const buf_first)
 {
-   typedef typename iterator_traits<RandIt>::size_type size_type;
+   typedef typename iter_size<RandIt>::type size_type;
    size_type const key_count = needed_keys_count(n_block_a, n_block_b);
-   bho::ignore_unused(key_count);
-   //BHO_ASSERT(n_block_a || n_block_b);
+   bho::movelib::ignore(key_count);
+   //assert(n_block_a || n_block_b);
    BHO_MOVE_ADAPTIVE_SORT_INVARIANT(bho::movelib::is_sorted_and_unique(key_first, key_first + key_count, key_comp));
    BHO_MOVE_ADAPTIVE_SORT_INVARIANT(!n_block_b || n_block_a == count_if_with(key_first, key_first + key_count, key_comp, key_first[n_block_a]));
 
@@ -1275,7 +1276,7 @@ void op_merge_blocks_with_buf
    RandIt const first_irr2 = first2 + size_type(n_block_left*l_block);
    bool is_range1_A = true;
    const size_type len = size_type(l_block * n_block_a + l_block * n_block_b + l_irreg1 + l_irreg2);
-   bho::ignore_unused(len);
+   bho::movelib::ignore(len);
 
    RandItKeys key_range2(key_first);
 
@@ -1289,11 +1290,11 @@ void op_merge_blocks_with_buf
       max_check = min_value(max_value(max_check, size_type(next_key_idx+2)), n_block_left);
       RandIt       first_min = first2 + size_type(next_key_idx*l_block);
       RandIt const last_min  = first_min + l_block;
-      bho::ignore_unused(last_min);
+      bho::movelib::ignore(last_min);
       RandIt const last2  = first2 + l_block;
 
       bool const buffer_empty = buffer == buffer_end;
-      bho::ignore_unused(buffer_empty);
+      bho::movelib::ignore(buffer_empty);
       BHO_MOVE_ADAPTIVE_SORT_INVARIANT(buffer_empty ? bho::movelib::is_sorted(first1, last1, comp) : bho::movelib::is_sorted(buffer, buffer_end, comp));
       BHO_MOVE_ADAPTIVE_SORT_INVARIANT(bho::movelib::is_sorted(first2, last2, comp));
       BHO_MOVE_ADAPTIVE_SORT_INVARIANT(!n_block_left || bho::movelib::is_sorted(first_min, last_min, comp));
@@ -1314,8 +1315,8 @@ void op_merge_blocks_with_buf
          RandIt res = op(forward_t(), buffer, buffer_end, first1);
          BHO_MOVE_ADAPTIVE_SORT_PRINT_L2("   merge_blocks_w_fwd: ", len);
          buffer    = buffer_end = buf_first;
-         BHO_ASSERT(buffer_empty || res == last1);
-         bho::ignore_unused(res);
+         assert(buffer_empty || res == last1);
+         bho::movelib::ignore(res);
          //swap_and_update_key(key_next, key_range2, key_mid, first2, last2, first_min);
          buffer_end = buffer_and_update_key(key_next, key_range2, key_mid, first2, last2, first_min, buffer = buf_first, op);
          BHO_MOVE_ADAPTIVE_SORT_PRINT_L2("   merge_blocks_w_swp: ", len);
@@ -1328,7 +1329,7 @@ void op_merge_blocks_with_buf
          RandIt const unmerged = op_partial_merge_and_save(first1, last1, first2, last2, first_min, buffer, buffer_end, comp, op, is_range1_A);
          BHO_MOVE_ADAPTIVE_SORT_PRINT_L2("   merge_blocks_w_mrs: ", len);
          bool const is_range_1_empty = buffer == buffer_end;
-         BHO_ASSERT(is_range_1_empty || (buffer_end-buffer) == (last1+l_block-unmerged));
+         assert(is_range_1_empty || (buffer_end-buffer) == (last1+l_block-unmerged));
          if(is_range_1_empty){
             buffer    = buffer_end = buf_first;
             first_min = last_min - (last2 - first2);
@@ -1347,7 +1348,7 @@ void op_merge_blocks_with_buf
          first1 = unmerged;
          BHO_MOVE_ADAPTIVE_SORT_INVARIANT(bho::movelib::is_sorted(first, unmerged, comp));
       }
-      BHO_ASSERT( (is_range2_A && n_block_a_left) || (!is_range2_A && n_block_b_left));
+      assert( (is_range2_A && n_block_a_left) || (!is_range2_A && n_block_b_left));
       is_range2_A ? --n_block_a_left : --n_block_b_left;
       last1 += l_block;
       first2 = last2;
@@ -1357,7 +1358,7 @@ void op_merge_blocks_with_buf
       max_check = size_type(max_check - (max_check != 0));
    }
    RandIt res = op(forward_t(), buffer, buffer_end, first1);
-   bho::ignore_unused(res);
+   bho::movelib::ignore(res);
    BHO_MOVE_ADAPTIVE_SORT_INVARIANT(bho::movelib::is_sorted(first, res, comp));
    BHO_MOVE_ADAPTIVE_SORT_PRINT_L2("   merge_blocks_w_fwd: ", len);
 
@@ -1380,7 +1381,7 @@ void op_merge_blocks_with_buf
    BHO_MOVE_ADAPTIVE_SORT_PRINT_L2("   merge_blocks_w_irg: ", len);
 
    buffer_end = rbuf_beg.base();
-   BHO_ASSERT((dest-last1) == (buffer_end-buffer));
+   assert((dest-last1) == (buffer_end-buffer));
    op_merge_with_left_placed(is_range1_A ? first1 : last1, last1, dest, buffer, buffer_end, comp, op);
    BHO_MOVE_ADAPTIVE_SORT_PRINT_L2("   merge_with_left_plc:", len);
    BHO_MOVE_ADAPTIVE_SORT_INVARIANT(bho::movelib::is_sorted(first, last_irr2, comp));
@@ -1397,14 +1398,14 @@ void op_merge_blocks_with_buf
 //////////////////////////////////
 
 template<class RandIt, class Compare, class Op>
-typename iterator_traits<RandIt>::size_type
+typename iter_size<RandIt>::type
    op_insertion_sort_step_left
       ( RandIt const first
-      , typename iterator_traits<RandIt>::size_type const length
-      , typename iterator_traits<RandIt>::size_type const step
+      , typename iter_size<RandIt>::type const length
+      , typename iter_size<RandIt>::type const step
       , Compare comp, Op op)
 {
-   typedef typename iterator_traits<RandIt>::size_type       size_type;
+   typedef typename iter_size<RandIt>::type       size_type;
 
    size_type const s = min_value<size_type>(step, AdaptiveSortInsertionSortThreshold);
    size_type m = 0;
@@ -1420,15 +1421,15 @@ typename iterator_traits<RandIt>::size_type
 template<class RandIt, class Compare, class Op>
 void op_merge_right_step_once
       ( RandIt first_block
-      , typename iterator_traits<RandIt>::size_type const elements_in_blocks
-      , typename iterator_traits<RandIt>::size_type const l_build_buf
+      , typename iter_size<RandIt>::type const elements_in_blocks
+      , typename iter_size<RandIt>::type const l_build_buf
       , Compare comp
       , Op op)
 {
-   typedef typename iterator_traits<RandIt>::size_type size_type;
+   typedef typename iter_size<RandIt>::type size_type;
    size_type restk = size_type(elements_in_blocks%(2*l_build_buf));
    size_type p = size_type(elements_in_blocks - restk);
-   BHO_ASSERT(0 == (p%(2*l_build_buf)));
+   assert(0 == (p%(2*l_build_buf)));
 
    if(restk <= l_build_buf){
       op(backward_t(),first_block+p, first_block+p+restk, first_block+p+restk+l_build_buf);
@@ -1455,14 +1456,14 @@ void op_merge_right_step_once
 //////////////////////////////////
 //////////////////////////////////
 template<class RandIt, class Compare>
-typename iterator_traits<RandIt>::size_type
+typename iter_size<RandIt>::type
    insertion_sort_step
       ( RandIt const first
-      , typename iterator_traits<RandIt>::size_type const length
-      , typename iterator_traits<RandIt>::size_type const step
+      , typename iter_size<RandIt>::type const length
+      , typename iter_size<RandIt>::type const step
       , Compare comp)
 {
-   typedef typename iterator_traits<RandIt>::size_type size_type;
+   typedef typename iter_size<RandIt>::type size_type;
    size_type const s = min_value<size_type>(step, AdaptiveSortInsertionSortThreshold);
    size_type m = 0;
 
@@ -1484,17 +1485,17 @@ typename iterator_traits<RandIt>::size_type
 //////////////////////////////////
 //////////////////////////////////
 template<class RandIt, class Compare, class Op>
-typename iterator_traits<RandIt>::size_type  
+typename iter_size<RandIt>::type  
    op_merge_left_step_multiple
       ( RandIt first_block
-      , typename iterator_traits<RandIt>::size_type const elements_in_blocks
-      , typename iterator_traits<RandIt>::size_type l_merged
-      , typename iterator_traits<RandIt>::size_type const l_build_buf
-      , typename iterator_traits<RandIt>::size_type l_left_space
+      , typename iter_size<RandIt>::type const elements_in_blocks
+      , typename iter_size<RandIt>::type l_merged
+      , typename iter_size<RandIt>::type const l_build_buf
+      , typename iter_size<RandIt>::type l_left_space
       , Compare comp
       , Op op)
 {
-   typedef typename iterator_traits<RandIt>::size_type size_type;
+   typedef typename iter_size<RandIt>::type size_type;
    for(; l_merged < l_build_buf && l_left_space >= l_merged; l_merged = size_type(l_merged*2u)){
       size_type p0=0;
       RandIt pos = first_block;

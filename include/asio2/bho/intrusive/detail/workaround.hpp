@@ -45,14 +45,40 @@
    #define BHO_INTRUSIVE_FORCEINLINE inline
 #elif defined(BHO_INTRUSIVE_FORCEINLINE_IS_BHO_FORCELINE)
    #define BHO_INTRUSIVE_FORCEINLINE BHO_FORCEINLINE
-#elif defined(BHO_MSVC) && defined(_DEBUG)
-   //"__forceinline" and MSVC seems to have some bugs in debug mode
+#elif defined(BHO_MSVC) && (_MSC_VER < 1900 || defined(_DEBUG))
+   //"__forceinline" and MSVC seems to have some bugs in old versions and in debug mode
    #define BHO_INTRUSIVE_FORCEINLINE inline
-#elif defined(__GNUC__) && ((__GNUC__ < 4) || (__GNUC__ == 4 && (__GNUC_MINOR__ < 5)))
+#elif defined(BHO_GCC) && ((__GNUC__ <= 5) || defined(__MINGW32__))
    //Older GCCs have problems with forceinline
    #define BHO_INTRUSIVE_FORCEINLINE inline
 #else
    #define BHO_INTRUSIVE_FORCEINLINE BHO_FORCEINLINE
+#endif
+
+#if !(defined BHO_NO_EXCEPTIONS)
+#    define BHO_INTRUSIVE_TRY { try
+#    define BHO_INTRUSIVE_CATCH(x) catch(x)
+#    define BHO_INTRUSIVE_RETHROW throw;
+#    define BHO_INTRUSIVE_CATCH_END }
+#else
+#    if !defined(BHO_MSVC) || BHO_MSVC >= 1900
+#        define BHO_INTRUSIVE_TRY { if (true)
+#        define BHO_INTRUSIVE_CATCH(x) else if (false)
+#    else
+// warning C4127: conditional expression is constant
+#        define BHO_INTRUSIVE_TRY { \
+             __pragma(warning(push)) \
+             __pragma(warning(disable: 4127)) \
+             if (true) \
+             __pragma(warning(pop))
+#        define BHO_INTRUSIVE_CATCH(x) else \
+             __pragma(warning(push)) \
+             __pragma(warning(disable: 4127)) \
+             if (false) \
+             __pragma(warning(pop))
+#    endif
+#    define BHO_INTRUSIVE_RETHROW
+#    define BHO_INTRUSIVE_CATCH_END }
 #endif
 
 #endif   //#ifndef BHO_INTRUSIVE_DETAIL_WORKAROUND_HPP

@@ -13,10 +13,10 @@
 // - swap_impl is put outside the boost namespace, to avoid infinite
 // recursion (causing stack overflow) when swapping objects of a primitive
 // type.
-// - swap_impl has a using-directive, rather than a using-declaration,
-// because some compilers (including MSVC 7.1, Borland 5.9.3, and
-// Intel 8.1) don't do argument-dependent lookup when it has a
-// using-declaration instead.
+// - std::swap is imported with a using-directive, rather than
+// a using-declaration, because some compilers (including MSVC 7.1,
+// Borland 5.9.3, and Intel 8.1) don't do argument-dependent lookup
+// when it has a using-declaration instead.
 // - bho::swap has two template arguments, instead of one, to
 // avoid ambiguity when swapping objects of a Boost type that does
 // not have its own bho::swap overload.
@@ -30,6 +30,17 @@
 #endif
 #include <cstddef> // for std::size_t
 
+#ifdef BHO_HAS_PRAGMA_ONCE
+#pragma once
+#endif
+
+#if defined(BHO_GCC) && (BHO_GCC < 40700)
+// gcc 4.6 ICEs on noexcept specifications below
+#define BHO_CORE_SWAP_NOEXCEPT_IF(x)
+#else
+#define BHO_CORE_SWAP_NOEXCEPT_IF(x) BHO_NOEXCEPT_IF(x)
+#endif
+
 namespace bho_swap_impl
 {
   // we can't use type_traits here
@@ -37,17 +48,22 @@ namespace bho_swap_impl
   template<class T> struct is_const { enum _vt { value = 0 }; };
   template<class T> struct is_const<T const> { enum _vt { value = 1 }; };
 
+  // Use std::swap if argument dependent lookup fails.
+  // We need to have this at namespace scope to be able to use unqualified swap() call
+  // in noexcept specification.
+  using namespace std;
+
   template<class T>
   BHO_GPU_ENABLED
-  void swap_impl(T& left, T& right)
+  void swap_impl(T& left, T& right) BHO_CORE_SWAP_NOEXCEPT_IF(BHO_NOEXCEPT_EXPR(swap(left, right)))
   {
-    using namespace std;//use std::swap if argument dependent lookup fails
-    swap(left,right);
+    swap(left, right);
   }
 
   template<class T, std::size_t N>
   BHO_GPU_ENABLED
   void swap_impl(T (& left)[N], T (& right)[N])
+    BHO_CORE_SWAP_NOEXCEPT_IF(BHO_NOEXCEPT_EXPR(::bho_swap_impl::swap_impl(left[0], right[0])))
   {
     for (std::size_t i = 0; i < N; ++i)
     {
@@ -62,9 +78,12 @@ namespace bho
   BHO_GPU_ENABLED
   typename enable_if_c< !bho_swap_impl::is_const<T1>::value && !bho_swap_impl::is_const<T2>::value >::type
   swap(T1& left, T2& right)
+    BHO_CORE_SWAP_NOEXCEPT_IF(BHO_NOEXCEPT_EXPR(::bho_swap_impl::swap_impl(left, right)))
   {
     ::bho_swap_impl::swap_impl(left, right);
   }
 }
 
-#endif
+#undef BHO_CORE_SWAP_NOEXCEPT_IF
+
+#endif // BHO_CORE_SWAP_HPP

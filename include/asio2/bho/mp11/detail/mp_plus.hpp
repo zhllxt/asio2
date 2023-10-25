@@ -20,7 +20,10 @@ namespace mp11
 namespace detail
 {
 
-#if defined( BHO_MP11_HAS_FOLD_EXPRESSIONS ) && !BHO_MP11_WORKAROUND( BHO_MP11_MSVC, < 1920 )
+#if defined( BHO_MP11_HAS_FOLD_EXPRESSIONS ) && !BHO_MP11_WORKAROUND( BHO_MP11_MSVC, != 0 ) && !BHO_MP11_WORKAROUND( BHO_MP11_CLANG, != 0 )
+
+// msvc fails with parser stack overflow for large sizeof...(T)
+// clang exceeds -fbracket-depth, which defaults to 256
 
 template<class... T> struct mp_plus_impl
 {

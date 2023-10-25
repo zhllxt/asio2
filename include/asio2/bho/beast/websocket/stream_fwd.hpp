@@ -12,6 +12,8 @@
 
 #include <asio2/bho/beast/core/detail/config.hpp>
 
+#ifndef BHO_BEAST_DOXYGEN
+
 //[code_websocket_1h
 
 namespace bho {
@@ -28,5 +30,7 @@ class stream;
 } // bho
 
 //]
+
+#endif
 
 #endif

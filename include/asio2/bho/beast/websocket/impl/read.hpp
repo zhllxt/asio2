@@ -25,8 +25,8 @@
 #include <asio2/bho/beast/core/detail/buffer.hpp>
 #include <asio2/bho/beast/core/detail/clamp.hpp>
 #include <asio2/bho/beast/core/detail/config.hpp>
-#include <asio2/bho/asio/coroutine.hpp>
-#include <asio2/bho/asio/post.hpp>
+#include <asio/coroutine.hpp>
+#include <asio/post.hpp>
 #include <asio2/bho/assert.hpp>
 #include <asio2/bho/config.hpp>
 #include <optional>
@@ -87,7 +87,7 @@ public:
         auto sp = wp_.lock();
         if(! sp)
         {
-            ec = net::error::operation_aborted;
+            BHO_BEAST_ASSIGN_EC(ec, net::error::operation_aborted);
             bytes_written_ = 0;
             return this->complete(cont, ec, bytes_written_);
         }
@@ -107,8 +107,14 @@ public:
                         __FILE__, __LINE__,
                         "websocket::async_read_some"));
 
-                    impl.op_r_rd.emplace(std::move(*this));
+                    this->set_allowed_cancellation(net::cancellation_type::all);
+                    impl.op_r_rd.emplace(std::move(*this), net::cancellation_type::all);
                 }
+                if (ec)
+                    return this->complete(cont, ec, bytes_written_);
+
+                this->set_allowed_cancellation(net::cancellation_type::terminal);
+
                 impl.rd_block.lock(this);
                 ASIO_CORO_YIELD
                 {
@@ -116,14 +122,18 @@ public:
                         __FILE__, __LINE__,
                         "websocket::async_read_some"));
 
-                    net::post(std::move(*this));
+                    net::post(sp->stream().get_executor(), std::move(*this));
                 }
                 BHO_ASSERT(impl.rd_block.is_locked(this));
 
                 BHO_ASSERT(!ec);
                 if(impl.check_stop_now(ec))
                 {
-                    BHO_ASSERT(ec == net::error::operation_aborted);
+                    // Issue 2264 - There is no guarantee that the next
+                    // error will be operation_aborted.
+                    // The error could be a result of the peer resetting the 
+                    // connection
+                    // BHO_ASSERT(ec == net::error::operation_aborted);
                     goto upcall;
                 }
                 // VFALCO Should never get here
@@ -132,7 +142,7 @@ public:
                 // a `close_op` wrote a close frame
                 BHO_ASSERT(impl.wr_close);
                 BHO_ASSERT(impl.status_ != status::open);
-                ec = net::error::operation_aborted;
+                BHO_BEAST_ASSIGN_EC(ec, net::error::operation_aborted);
                 goto upcall;
             }
             else
@@ -141,7 +151,7 @@ public:
                 if( impl.status_ == status::closed ||
                     impl.status_ == status::failed)
                 {
-                    ec = net::error::operation_aborted;
+                    BHO_BEAST_ASSIGN_EC(ec, net::error::operation_aborted);
                     goto upcall;
                 }
             }
@@ -228,7 +238,7 @@ public:
                                         __FILE__, __LINE__,
                                         "websocket::async_read_some"));
 
-                                    net::post(std::move(*this));
+                                    net::post(sp->stream().get_executor(), std::move(*this));
                                 }
                                 BHO_ASSERT(cont);
                                 // VFALCO call check_stop_now() here?
@@ -248,7 +258,7 @@ public:
                                 goto loop;
                             if(impl.ctrl_cb)
                                 impl.ctrl_cb(
-                                    frame_type::ping, payload);
+                                    frame_type::ping, to_string_view(payload));
                             impl.rd_fb.clear();
                             impl.template write_ping<
                                 flat_static_buffer_base>(impl.rd_fb,
@@ -271,6 +281,9 @@ public:
 
                                 impl.op_rd.emplace(std::move(*this));
                             }
+                            if (ec)
+                                return this->complete(cont, ec, bytes_written_);
+
                             impl.wr_block.lock(this);
                             ASIO_CORO_YIELD
                             {
@@ -278,7 +291,7 @@ public:
                                     __FILE__, __LINE__,
                                     "websocket::async_read_some"));
 
-                                net::post(std::move(*this));
+                                net::post(sp->stream().get_executor(), std::move(*this));
                             }
                             BHO_ASSERT(impl.wr_block.is_locked(this));
                             if(impl.check_stop_now(ec))
@@ -322,7 +335,7 @@ public:
                                         __FILE__, __LINE__,
                                         "websocket::async_read_some"));
 
-                                    net::post(std::move(*this));
+                                    net::post(sp->stream().get_executor(), std::move(*this));
                                 }
                                 BHO_ASSERT(cont);
                             }
@@ -336,7 +349,7 @@ public:
                         impl.rd_buf.consume(len);
                         // Ignore pong when closing
                         if(! impl.wr_close && impl.ctrl_cb)
-                            impl.ctrl_cb(frame_type::pong, payload);
+                            impl.ctrl_cb(frame_type::pong, to_string_view(payload));
                         goto loop;
                     }
 
@@ -353,7 +366,7 @@ public:
                                         __FILE__, __LINE__,
                                         "websocket::async_read_some"));
 
-                                    net::post(std::move(*this));
+                                    net::post(sp->stream().get_executor(), std::move(*this));
                                 }
                                 BHO_ASSERT(cont);
                             }
@@ -376,7 +389,7 @@ public:
                         impl.rd_buf.consume(len);
                         if(impl.ctrl_cb)
                             impl.ctrl_cb(frame_type::close,
-                                impl.cr.reason);
+                                to_string_view(impl.cr.reason));
                         // See if we are already closing
                         if(impl.status_ == status::closing)
                         {
@@ -625,6 +638,9 @@ public:
 
                     impl.op_rd.emplace(std::move(*this));
                 }
+                if (ec)
+                    return this->complete(cont, ec, bytes_written_);
+
                 impl.wr_block.lock(this);
                 ASIO_CORO_YIELD
                 {
@@ -632,7 +648,7 @@ public:
                         __FILE__, __LINE__,
                         "websocket::async_read_some"));
 
-                    net::post(std::move(*this));
+                    net::post(sp->stream().get_executor(), std::move(*this));
                 }
                 BHO_ASSERT(impl.wr_block.is_locked(this));
                 if(impl.check_stop_now(ec))
@@ -687,7 +703,9 @@ public:
                 ec = {};
             }
             if(! ec)
-                ec = result_;
+            {
+                BHO_BEAST_ASSIGN_EC(ec, result_);
+            }
             if(ec && ec != error::closed)
                 impl.change_status(status::failed);
             else
@@ -752,7 +770,7 @@ public:
         auto sp = wp_.lock();
         if(! sp)
         {
-            ec = net::error::operation_aborted;
+            BHO_BEAST_ASSIGN_EC(ec, net::error::operation_aborted);
             bytes_written_ = 0;
             return this->complete(cont, ec, bytes_written_);
         }
@@ -1103,7 +1121,7 @@ loop:
                     goto loop;
                 }
                 if(impl.ctrl_cb)
-                    impl.ctrl_cb(frame_type::ping, payload);
+                    impl.ctrl_cb(frame_type::ping, to_string_view(payload));
                 detail::frame_buffer fb;
                 impl.template write_ping<flat_static_buffer_base>(fb,
                     detail::opcode::pong, payload);
@@ -1119,7 +1137,7 @@ loop:
                 detail::read_ping(payload, b);
                 impl.rd_buf.consume(len);
                 if(impl.ctrl_cb)
-                    impl.ctrl_cb(frame_type::pong, payload);
+                    impl.ctrl_cb(frame_type::pong, to_string_view(payload));
                 goto loop;
             }
             // Handle close frame
@@ -1139,7 +1157,7 @@ loop:
                 impl.cr = cr;
                 impl.rd_buf.consume(len);
                 if(impl.ctrl_cb)
-                    impl.ctrl_cb(frame_type::close, impl.cr.reason);
+                    impl.ctrl_cb(frame_type::close, to_string_view(impl.cr.reason));
                 BHO_ASSERT(! impl.wr_close);
                 // _Start the WebSocket Closing Handshake_
                 do_fail(

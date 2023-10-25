@@ -11,7 +11,7 @@
 #define BHO_BEAST_FLAT_STATIC_BUFFER_HPP
 
 #include <asio2/bho/beast/core/detail/config.hpp>
-#include <asio2/bho/asio/buffer.hpp>
+#include <asio/buffer.hpp>
 #include <algorithm>
 #include <cstddef>
 #include <cstring>

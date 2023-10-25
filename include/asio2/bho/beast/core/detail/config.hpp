@@ -16,6 +16,10 @@
 #include <asio2/bho/core/ignore_unused.hpp>
 #include <asio2/bho/static_assert.hpp>
 
+#ifndef BHO_BEAST_NO_SOURCE_LOCATION
+#define BHO_BEAST_NO_SOURCE_LOCATION
+#endif
+
 namespace bho {
 namespace beast {
 namespace net = ::asio;
@@ -96,6 +100,21 @@ namespace net = ::asio;
 
 #ifndef BHO_BEAST_ASYNC_TPARAM2
 #define BHO_BEAST_ASYNC_TPARAM2 ASIO_COMPLETION_TOKEN_FOR(void(::bho::beast::error_code, ::std::size_t))
+#endif
+
+
+#ifdef BHO_BEAST_NO_SOURCE_LOCATION
+#define BHO_BEAST_ASSIGN_EC(ec, error) ec = error
+#else
+
+#define BHO_BEAST_ASSIGN_EC(ec, error) \
+    static constexpr auto BHO_PP_CAT(loc_, __LINE__) ((BHO_CURRENT_LOCATION)); \
+    ec.assign(error, & BHO_PP_CAT(loc_, __LINE__) )
+
+#endif
+
+#ifndef BHO_BEAST_FILE_BUFFER_SIZE
+#define BHO_BEAST_FILE_BUFFER_SIZE 4096
 #endif
 
 #endif

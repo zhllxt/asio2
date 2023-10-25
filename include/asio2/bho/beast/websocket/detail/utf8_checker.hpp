@@ -11,7 +11,7 @@
 #define BHO_BEAST_WEBSOCKET_DETAIL_UTF8_CHECKER_HPP
 
 #include <asio2/bho/beast/core/buffers_range.hpp>
-#include <asio2/bho/asio/buffer.hpp>
+#include <asio/buffer.hpp>
 
 #include <cstdint>
 

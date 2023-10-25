@@ -13,7 +13,7 @@
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/core/detail/buffer_traits.hpp>
 #include <asio2/bho/beast/core/detail/static_const.hpp>
-#include <asio2/bho/asio/buffer.hpp>
+#include <asio/buffer.hpp>
 #include <asio2/bho/config/workaround.hpp>
 #include <asio2/bho/mp11/function.hpp>
 #include <type_traits>

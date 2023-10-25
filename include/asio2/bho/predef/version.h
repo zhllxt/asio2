@@ -10,6 +10,6 @@ http://www.boost.org/LICENSE_1_0.txt)
 
 #include <asio2/bho/predef/version_number.h>
 
-#define BHO_PREDEF_VERSION BHO_VERSION_NUMBER(1,13,1)
+#define BHO_PREDEF_VERSION BHO_VERSION_NUMBER(1,14,0)
 
 #endif

@@ -11,7 +11,7 @@
 #define BHO_BEAST_CORE_DETAIL_BUFFER_HPP
 
 #include <asio2/bho/beast/core/error.hpp>
-#include <asio2/bho/asio/buffer.hpp>
+#include <asio/buffer.hpp>
 #include <optional>
 #include <stdexcept>
 
@@ -34,7 +34,7 @@ dynamic_buffer_prepare_noexcept(
     if(buffer.max_size() - buffer.size() < size)
     {
         // length error
-        ec = ev;
+        BHO_BEAST_ASSIGN_EC(ec, ev);
         return std::nullopt;
     }
     std::optional<typename
@@ -67,7 +67,7 @@ dynamic_buffer_prepare(
     }
     catch(std::length_error const&)
     {
-        ec = ev;
+        BHO_BEAST_ASSIGN_EC(ec, ev);
     }
     return std::nullopt;
 

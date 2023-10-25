@@ -27,6 +27,7 @@
 # pragma warning(disable:4365)  // conversion ... signed/unsigned mismatch
 #endif
 
+#include <asio2/bho/endian/detail/requires_cxx11.hpp>
 #include <asio2/bho/endian/buffers.hpp>
 #include <asio2/bho/core/scoped_enum.hpp>
 #include <asio2/bho/static_assert.hpp>

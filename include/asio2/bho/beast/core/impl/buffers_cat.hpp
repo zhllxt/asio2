@@ -12,7 +12,7 @@
 
 #include <asio2/bho/beast/core/detail/tuple.hpp>
 #include <asio2/bho/beast/core/detail/variant.hpp>
-#include <asio2/bho/asio/buffer.hpp>
+#include <asio/buffer.hpp>
 #include <cstdint>
 #include <iterator>
 #include <new>
@@ -62,30 +62,18 @@ public:
 #ifdef BHO_BEAST_TESTS
 
 #define BHO_BEAST_LOGIC_ERROR(s) \
-    do { \
+    { \
         BHO_THROW_EXCEPTION(std::logic_error((s))); \
         BHO_BEAST_UNREACHABLE(); \
-    } while(false)
-
-#define BHO_BEAST_LOGIC_ERROR_RETURN(v, s) \
-    do { \
-        BHO_THROW_EXCEPTION(std::logic_error(s)); \
-        BHO_BEAST_UNREACHABLE_RETURN(v); \
-    } while(false)
+    }
 
 #else
 
 #define BHO_BEAST_LOGIC_ERROR(s) \
-    do { \
+    { \
         BHO_ASSERT_MSG(false, s); \
         BHO_BEAST_UNREACHABLE(); \
-    } while(false)
-
-#define BHO_BEAST_LOGIC_ERROR_RETURN(v, s) \
-    do { \
-        BHO_ASSERT_MSG(false, (s)); \
-        BHO_BEAST_UNREACHABLE_RETURN(v); \
-    } while(false)
+    }
 
 #endif
 
@@ -97,11 +85,11 @@ struct buffers_cat_view_iterator_base
     {
         char unused = 0; // make g++8 happy
 
-        net::mutable_buffer
+        BHO_NORETURN net::mutable_buffer
         operator*() const
         {
-            BHO_BEAST_LOGIC_ERROR_RETURN({},
-                "Dereferencing a one-past-the-end iterator");
+            BHO_BEAST_LOGIC_ERROR(
+                    "Dereferencing a one-past-the-end iterator");
         }
 
         operator bool() const noexcept
@@ -185,10 +173,10 @@ private:
     {
         const_iterator const& self;
 
-        reference
+        BHO_NORETURN reference
         operator()(mp11::mp_size_t<0>)
         {
-            BHO_BEAST_LOGIC_ERROR_RETURN({},
+            BHO_BEAST_LOGIC_ERROR(
                 "Dereferencing a default-constructed iterator");
         }
 

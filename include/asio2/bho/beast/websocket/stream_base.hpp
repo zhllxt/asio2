@@ -54,8 +54,10 @@ struct stream_base
     {
         detail::decorator d_;
 
+#ifndef BHO_BEAST_DOXYGEN
         template<class, bool>
         friend class stream;
+#endif
 
     public:
         // Move Constructor

@@ -483,6 +483,7 @@ template<> struct assert_intrinsic_wchar_t<unsigned short> {};
 // BHO_NO_CXX11_ALIGNAS
 #if (BHO_INTEL_CXX_VERSION >= 1500) && (!defined(BHO_INTEL_GCC_VERSION) || (BHO_INTEL_GCC_VERSION >= 40800)) && (!defined(_MSC_VER) || (_MSC_FULL_VER >= 190021730))
 #  undef BHO_NO_CXX11_ALIGNAS
+#  undef BHO_NO_CXX11_ALIGNOF
 #endif
 
 // BHO_NO_CXX11_TRAILING_RESULT_TYPES

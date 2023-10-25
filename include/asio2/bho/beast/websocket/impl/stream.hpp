@@ -25,7 +25,7 @@
 #include <asio2/bho/beast/core/buffers_suffix.hpp>
 #include <asio2/bho/beast/core/flat_static_buffer.hpp>
 #include <asio2/bho/beast/core/detail/clamp.hpp>
-#include <asio2/bho/asio/steady_timer.hpp>
+#include <asio/steady_timer.hpp>
 #include <asio2/bho/assert.hpp>
 #include <asio2/bho/throw_exception.hpp>
 #include <algorithm>
@@ -56,6 +56,15 @@ stream(Args&&... args)
     BHO_ASSERT(impl_->rd_buf.max_size() >=
         max_control_frame_size);
 }
+
+template<class NextLayer, bool deflateSupported>
+template<class Other>
+stream<NextLayer, deflateSupported>::
+stream(stream<Other> && other)
+    : impl_(std::make_shared<impl_type>(std::move(other.next_layer())))
+{
+}
+
 
 template<class NextLayer, bool deflateSupported>
 auto
@@ -303,6 +312,22 @@ text() const
     return impl_->wr_opcode == detail::opcode::text;
 }
 
+template<class NextLayer, bool deflateSupported>
+void
+stream<NextLayer, deflateSupported>::
+compress(bool value)
+{
+    impl_->wr_compress_opt = value;
+}
+
+template<class NextLayer, bool deflateSupported>
+bool
+stream<NextLayer, deflateSupported>::
+compress() const
+{
+    return impl_->wr_compress_opt;
+}
+
 //------------------------------------------------------------------------------
 
 // _Fail the WebSocket Connection_
@@ -335,7 +360,9 @@ do_fail(
         ec = {};
     }
     if(! ec)
-        ec = ev;
+    {
+        BHO_BEAST_ASSIGN_EC(ec, ev);
+    }
     if(ec && ec != error::closed)
         impl_->change_status(status::failed);
     else

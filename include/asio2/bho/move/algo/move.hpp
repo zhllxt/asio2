@@ -27,7 +27,10 @@
 #include <asio2/bho/move/utility_core.hpp>
 #include <asio2/bho/move/detail/iterator_traits.hpp>
 #include <asio2/bho/move/detail/iterator_to_raw_pointer.hpp>
-#include <asio2/bho/core/no_exceptions_support.hpp>
+#include <asio2/bho/move/detail/addressof.hpp>
+#if defined(BHO_MOVE_USE_STANDARD_LIBRARY_MOVE)
+#include <algorithm>
+#endif
 
 namespace bho {
 
@@ -118,20 +121,20 @@ F uninitialized_move(I f, I l, F r
    typedef typename bho::movelib::iterator_traits<I>::value_type input_value_type;
 
    F back = r;
-   BHO_TRY{
+   BHO_MOVE_TRY{
       while (f != l) {
          void * const addr = static_cast<void*>(::bho::move_detail::addressof(*r));
          ::new(addr) input_value_type(::bho::move(*f));
          ++f; ++r;
       }
    }
-   BHO_CATCH(...){
+   BHO_MOVE_CATCH(...){
       for (; back != r; ++back){
          bho::movelib::iterator_to_raw_pointer(back)->~input_value_type();
       }
-      BHO_RETHROW;
+      BHO_MOVE_RETHROW;
    }
-   BHO_CATCH_END
+   BHO_MOVE_CATCH_END
    return r;
 }
 

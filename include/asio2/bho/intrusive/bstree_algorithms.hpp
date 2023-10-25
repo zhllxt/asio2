@@ -80,7 +80,7 @@ struct bstree_node_checker
       : base_checker_t(extra_checker), comp_(comp)
    {}
 
-   void operator () (const const_node_ptr& p,
+   void operator () (const_node_ptr p,
                      const return_type& check_return_left, const return_type& check_return_right,
                      return_type& check_return)
    {
@@ -186,7 +186,7 @@ class bstree_algorithms : public bstree_algorithms_base<NodeTraits>
    template<class Disposer>
    struct dispose_subtree_disposer
    {
-      BHO_INTRUSIVE_FORCEINLINE dispose_subtree_disposer(Disposer &disp, const node_ptr & subtree)
+      BHO_INTRUSIVE_FORCEINLINE dispose_subtree_disposer(Disposer &disp, node_ptr subtree)
          : disposer_(&disp), subtree_(subtree)
       {}
 
@@ -213,7 +213,7 @@ class bstree_algorithms : public bstree_algorithms_base<NodeTraits>
    //! <b>Complexity</b>: Constant time.
    //!
    //! <b>Throws</b>: Nothing.
-   BHO_INTRUSIVE_FORCEINLINE static node_ptr begin_node(const const_node_ptr & header) BHO_NOEXCEPT
+   BHO_INTRUSIVE_FORCEINLINE static node_ptr begin_node(const_node_ptr header) BHO_NOEXCEPT
    {  return node_traits::get_left(header);   }
 
    //! <b>Requires</b>: 'header' is the header node of a tree.
@@ -223,7 +223,7 @@ class bstree_algorithms : public bstree_algorithms_base<NodeTraits>
    //! <b>Complexity</b>: Constant time.
    //!
    //! <b>Throws</b>: Nothing.
-   BHO_INTRUSIVE_FORCEINLINE static node_ptr end_node(const const_node_ptr & header) BHO_NOEXCEPT
+   BHO_INTRUSIVE_FORCEINLINE static node_ptr end_node(const_node_ptr header) BHO_NOEXCEPT
    {  return detail::uncast(header);   }
 
    //! <b>Requires</b>: 'header' is the header node of a tree.
@@ -233,13 +233,13 @@ class bstree_algorithms : public bstree_algorithms_base<NodeTraits>
    //! <b>Complexity</b>: Constant time.
    //!
    //! <b>Throws</b>: Nothing.
-   BHO_INTRUSIVE_FORCEINLINE static node_ptr root_node(const const_node_ptr & header)
+   BHO_INTRUSIVE_FORCEINLINE static node_ptr root_node(const_node_ptr header) BHO_NOEXCEPT
    {
       node_ptr p = node_traits::get_parent(header);
       return p ? p : detail::uncast(header);
    }
 
-   //! <b>Requires</b>: 'node' is a node of the tree or a node initialized
+   //! <b>Requires</b>: 'n' is a node of the tree or a node initialized
    //!   by init(...) or init_node.
    //!
    //! <b>Effects</b>: Returns true if the node is initialized by init() or init_node().
@@ -247,18 +247,18 @@ class bstree_algorithms : public bstree_algorithms_base<NodeTraits>
    //! <b>Complexity</b>: Constant time.
    //!
    //! <b>Throws</b>: Nothing.
-   BHO_INTRUSIVE_FORCEINLINE static bool unique(const const_node_ptr & node) BHO_NOEXCEPT
-   { return !NodeTraits::get_parent(node); }
+   BHO_INTRUSIVE_FORCEINLINE static bool unique(const_node_ptr n) BHO_NOEXCEPT
+   { return !NodeTraits::get_parent(n); }
 
    #if defined(BHO_INTRUSIVE_DOXYGEN_INVOKED)
-   //! <b>Requires</b>: 'node' is a node of the tree or a header node.
+   //! <b>Requires</b>: 'n' is a node of the tree or a header node.
    //!
    //! <b>Effects</b>: Returns the header of the tree.
    //!
    //! <b>Complexity</b>: Logarithmic.
    //!
    //! <b>Throws</b>: Nothing.
-   static node_ptr get_header(const const_node_ptr & node);
+   static node_ptr get_header(const_node_ptr n);
    #endif
 
    //! <b>Requires</b>: node1 and node2 can't be header nodes
@@ -458,8 +458,6 @@ class bstree_algorithms : public bstree_algorithms_base<NodeTraits>
    //!   the node, since no rebalancing and comparison is needed. Experimental function
    BHO_INTRUSIVE_FORCEINLINE static void replace_node(node_ptr node_to_be_replaced, node_ptr new_node) BHO_NOEXCEPT
    {
-      if(node_to_be_replaced == new_node)
-         return;
       replace_node(node_to_be_replaced, base_type::get_header(node_to_be_replaced), new_node);
    }
 
@@ -479,8 +477,7 @@ class bstree_algorithms : public bstree_algorithms_base<NodeTraits>
    //!   the node, since no rebalancing or comparison is needed. Experimental function
    static void replace_node(node_ptr node_to_be_replaced, node_ptr header, node_ptr new_node) BHO_NOEXCEPT
    {
-      if(node_to_be_replaced == new_node)
-         return;
+      BHO_ASSERT(node_to_be_replaced != new_node);
 
       //Update header if necessary
       if(node_to_be_replaced == NodeTraits::get_left(header)){
@@ -521,44 +518,44 @@ class bstree_algorithms : public bstree_algorithms_base<NodeTraits>
    }
 
    #if defined(BHO_INTRUSIVE_DOXYGEN_INVOKED)
-   //! <b>Requires</b>: 'node' is a node from the tree except the header.
+   //! <b>Requires</b>: 'n' is a node from the tree except the header.
    //!
    //! <b>Effects</b>: Returns the next node of the tree.
    //!
    //! <b>Complexity</b>: Average constant time.
    //!
    //! <b>Throws</b>: Nothing.
-   static node_ptr next_node(const node_ptr & node) BHO_NOEXCEPT;
+   static node_ptr next_node(node_ptr n) BHO_NOEXCEPT;
 
-   //! <b>Requires</b>: 'node' is a node from the tree except the leftmost node.
+   //! <b>Requires</b>: 'n' is a node from the tree except the leftmost node.
    //!
    //! <b>Effects</b>: Returns the previous node of the tree.
    //!
    //! <b>Complexity</b>: Average constant time.
    //!
    //! <b>Throws</b>: Nothing.
-   static node_ptr prev_node(const node_ptr & node) BHO_NOEXCEPT;
+   static node_ptr prev_node(node_ptr n) BHO_NOEXCEPT;
 
-   //! <b>Requires</b>: 'node' is a node of a tree but not the header.
+   //! <b>Requires</b>: 'n' is a node of a tree but not the header.
    //!
    //! <b>Effects</b>: Returns the minimum node of the subtree starting at p.
    //!
    //! <b>Complexity</b>: Logarithmic to the size of the subtree.
    //!
    //! <b>Throws</b>: Nothing.
-   static node_ptr minimum(node_ptr node);
+   static node_ptr minimum(node_ptr n);
 
-   //! <b>Requires</b>: 'node' is a node of a tree but not the header.
+   //! <b>Requires</b>: 'n' is a node of a tree but not the header.
    //!
    //! <b>Effects</b>: Returns the maximum node of the subtree starting at p.
    //!
    //! <b>Complexity</b>: Logarithmic to the size of the subtree.
    //!
    //! <b>Throws</b>: Nothing.
-   static node_ptr maximum(node_ptr node);
+   static node_ptr maximum(node_ptr n);
    #endif
 
-   //! <b>Requires</b>: 'node' must not be part of any tree.
+   //! <b>Requires</b>: 'n' must not be part of any tree.
    //!
    //! <b>Effects</b>: After the function unique(node) == true.
    //!
@@ -567,11 +564,11 @@ class bstree_algorithms : public bstree_algorithms_base<NodeTraits>
    //! <b>Throws</b>: Nothing.
    //!
    //! <b>Nodes</b>: If node is inserted in a tree, this function corrupts the tree.
-   BHO_INTRUSIVE_FORCEINLINE static void init(node_ptr node) BHO_NOEXCEPT
+   static void init(node_ptr n) BHO_NOEXCEPT
    {
-      NodeTraits::set_parent(node, node_ptr());
-      NodeTraits::set_left(node, node_ptr());
-      NodeTraits::set_right(node, node_ptr());
+      NodeTraits::set_parent(n, node_ptr());
+      NodeTraits::set_left(n, node_ptr());
+      NodeTraits::set_right(n, node_ptr());
    }
 
    //! <b>Effects</b>: Returns true if node is in the same state as if called init(node)
@@ -579,14 +576,14 @@ class bstree_algorithms : public bstree_algorithms_base<NodeTraits>
    //! <b>Complexity</b>: Constant.
    //!
    //! <b>Throws</b>: Nothing.
-   BHO_INTRUSIVE_FORCEINLINE static bool inited(const const_node_ptr & node)
+   static bool inited(const_node_ptr n)
    {
-      return !NodeTraits::get_parent(node) &&
-             !NodeTraits::get_left(node)   &&
-             !NodeTraits::get_right(node)  ;
+      return !NodeTraits::get_parent(n) &&
+             !NodeTraits::get_left(n)   &&
+             !NodeTraits::get_right(n)  ;
    }
 
-   //! <b>Requires</b>: node must not be part of any tree.
+   //! <b>Requires</b>: header must not be part of any tree.
    //!
    //! <b>Effects</b>: Initializes the header to represent an empty tree.
    //!   unique(header) == true.
@@ -595,8 +592,8 @@ class bstree_algorithms : public bstree_algorithms_base<NodeTraits>
    //!
    //! <b>Throws</b>: Nothing.
    //!
-   //! <b>Nodes</b>: If node is inserted in a tree, this function corrupts the tree.
-   BHO_INTRUSIVE_FORCEINLINE static void init_header(node_ptr header) BHO_NOEXCEPT
+   //! <b>Nodes</b>: If header is inserted in a tree, this function corrupts the tree.
+   static void init_header(node_ptr header) BHO_NOEXCEPT
    {
       NodeTraits::set_parent(header, node_ptr());
       NodeTraits::set_left(header, header);
@@ -607,7 +604,7 @@ class bstree_algorithms : public bstree_algorithms_base<NodeTraits>
    //!   taking a node_ptr parameter and shouldn't throw.
    //!
    //! <b>Effects</b>: Empties the target tree calling
-   //!   <tt>void disposer::operator()(const node_ptr &)</tt> for every node of the tree
+   //!   <tt>void disposer::operator()(node_ptr)</tt> for every node of the tree
    //!    except the header.
    //!
    //! <b>Complexity</b>: Linear to the number of element of the source tree plus the.
@@ -615,7 +612,7 @@ class bstree_algorithms : public bstree_algorithms_base<NodeTraits>
    //!
    //! <b>Throws</b>: Nothing.
    template<class Disposer>
-   static void clear_and_dispose(const node_ptr & header, Disposer disposer) BHO_NOEXCEPT
+   static void clear_and_dispose(node_ptr header, Disposer disposer) BHO_NOEXCEPT
    {
       node_ptr source_root = NodeTraits::get_parent(header);
       if(!source_root)
@@ -667,14 +664,14 @@ class bstree_algorithms : public bstree_algorithms_base<NodeTraits>
       return leftmost;
    }
 
-   //! <b>Requires</b>: node is a node of the tree but it's not the header.
+   //! <b>Requires</b>: 'header' the header of the tree.
    //!
-   //! <b>Effects</b>: Returns the number of nodes of the subtree.
+   //! <b>Effects</b>: Returns the number of nodes of the tree.
    //!
    //! <b>Complexity</b>: Linear time.
    //!
    //! <b>Throws</b>: Nothing.
-   static std::size_t size(const const_node_ptr & header) BHO_NOEXCEPT
+   static std::size_t size(const_node_ptr header) BHO_NOEXCEPT
    {
       node_ptr beg(begin_node(header));
       node_ptr end(end_node(header));
@@ -740,7 +737,7 @@ class bstree_algorithms : public bstree_algorithms_base<NodeTraits>
    //! <b>Complexity</b>: Constant.
    //!
    //! <b>Throws</b>: Nothing.
-   static bool is_header(const const_node_ptr & p) BHO_NOEXCEPT;
+   static bool is_header(const_node_ptr p) BHO_NOEXCEPT;
    #endif
 
    //! <b>Requires</b>: "header" must be the header node of a tree.
@@ -756,7 +753,7 @@ class bstree_algorithms : public bstree_algorithms_base<NodeTraits>
    //! <b>Throws</b>: If "comp" throws.
    template<class KeyType, class KeyNodePtrCompare>
    static node_ptr find
-      (const const_node_ptr & header, const KeyType &key, KeyNodePtrCompare comp)
+      (const_node_ptr header, const KeyType &key, KeyNodePtrCompare comp)
    {
       node_ptr end = detail::uncast(header);
       node_ptr y = lower_bound(header, key, comp);
@@ -786,7 +783,7 @@ class bstree_algorithms : public bstree_algorithms_base<NodeTraits>
    //! <b>Note</b>: Experimental function, the interface might change.
    template< class KeyType, class KeyNodePtrCompare>
    static std::pair<node_ptr, node_ptr> bounded_range
-      ( const const_node_ptr & header
+      ( const_node_ptr header
       , const KeyType &lower_key
       , const KeyType &upper_key
       , KeyNodePtrCompare comp
@@ -853,7 +850,7 @@ class bstree_algorithms : public bstree_algorithms_base<NodeTraits>
    //! <b>Throws</b>: If "comp" throws.
    template<class KeyType, class KeyNodePtrCompare>
    static std::size_t count
-      (const const_node_ptr & header, const KeyType &key, KeyNodePtrCompare comp)
+      (const_node_ptr header, const KeyType &key, KeyNodePtrCompare comp)
    {
       std::pair<node_ptr, node_ptr> ret = equal_range(header, key, comp);
       std::size_t n = 0;
@@ -879,7 +876,7 @@ class bstree_algorithms : public bstree_algorithms_base<NodeTraits>
    //! <b>Throws</b>: If "comp" throws.
    template<class KeyType, class KeyNodePtrCompare>
    BHO_INTRUSIVE_FORCEINLINE static std::pair<node_ptr, node_ptr> equal_range
-      (const const_node_ptr & header, const KeyType &key, KeyNodePtrCompare comp)
+      (const_node_ptr header, const KeyType &key, KeyNodePtrCompare comp)
    {
       return bounded_range(header, key, key, comp, true, true);
    }
@@ -899,7 +896,7 @@ class bstree_algorithms : public bstree_algorithms_base<NodeTraits>
    //! <b>Throws</b>: If "comp" throws.
    template<class KeyType, class KeyNodePtrCompare>
    static std::pair<node_ptr, node_ptr> lower_bound_range
-      (const const_node_ptr & header, const KeyType &key, KeyNodePtrCompare comp)
+      (const_node_ptr header, const KeyType &key, KeyNodePtrCompare comp)
    {
       node_ptr const lb(lower_bound(header, key, comp));
       std::pair<node_ptr, node_ptr> ret_ii(lb, lb);
@@ -923,7 +920,7 @@ class bstree_algorithms : public bstree_algorithms_base<NodeTraits>
    //! <b>Throws</b>: If "comp" throws.
    template<class KeyType, class KeyNodePtrCompare>
    BHO_INTRUSIVE_FORCEINLINE static node_ptr lower_bound
-      (const const_node_ptr & header, const KeyType &key, KeyNodePtrCompare comp)
+      (const_node_ptr header, const KeyType &key, KeyNodePtrCompare comp)
    {
       return lower_bound_loop(NodeTraits::get_parent(header), detail::uncast(header), key, comp);
    }
@@ -941,7 +938,7 @@ class bstree_algorithms : public bstree_algorithms_base<NodeTraits>
    //! <b>Throws</b>: If "comp" throws.
    template<class KeyType, class KeyNodePtrCompare>
    BHO_INTRUSIVE_FORCEINLINE static node_ptr upper_bound
-      (const const_node_ptr & header, const KeyType &key, KeyNodePtrCompare comp)
+      (const_node_ptr header, const KeyType &key, KeyNodePtrCompare comp)
    {
       return upper_bound_loop(NodeTraits::get_parent(header), detail::uncast(header), key, comp);
    }
@@ -1003,7 +1000,7 @@ class bstree_algorithms : public bstree_algorithms_base<NodeTraits>
    //!   if no more objects are inserted or erased from the set.
    template<class KeyType, class KeyNodePtrCompare>
    static std::pair<node_ptr, bool> insert_unique_check
-      (const const_node_ptr & header, const KeyType &key
+      (const_node_ptr header, const KeyType &key
       ,KeyNodePtrCompare comp, insert_commit_data &commit_data
          #ifndef BHO_INTRUSIVE_DOXYGEN_INVOKED
          , std::size_t *pdepth = 0
@@ -1081,7 +1078,7 @@ class bstree_algorithms : public bstree_algorithms_base<NodeTraits>
    //!   if no more objects are inserted or erased from the set.
    template<class KeyType, class KeyNodePtrCompare>
    static std::pair<node_ptr, bool> insert_unique_check
-      (const const_node_ptr & header, const node_ptr &hint, const KeyType &key
+      (const_node_ptr header, node_ptr hint, const KeyType &key
       ,KeyNodePtrCompare comp, insert_commit_data &commit_data
          #ifndef BHO_INTRUSIVE_DOXYGEN_INVOKED
          , std::size_t *pdepth = 0
@@ -1262,7 +1259,7 @@ class bstree_algorithms : public bstree_algorithms_base<NodeTraits>
       insert_commit(header, new_node, commit_data);
    }
 
-   //! <b>Requires</b>: 'node' can't be a header node.
+   //! <b>Requires</b>: 'n' can't be a header node.
    //!
    //! <b>Effects</b>: Calculates the depth of a node: the depth of a
    //! node is the length (number of edges) of the path from the root
@@ -1271,13 +1268,13 @@ class bstree_algorithms : public bstree_algorithms_base<NodeTraits>
    //! <b>Complexity</b>: Logarithmic to the number of nodes in the tree.
    //!
    //! <b>Throws</b>: Nothing.
-   static std::size_t depth(const_node_ptr node) BHO_NOEXCEPT
+   static std::size_t depth(const_node_ptr n) BHO_NOEXCEPT
    {
       std::size_t depth = 0;
       node_ptr p_parent;
-      while(node != NodeTraits::get_parent(p_parent = NodeTraits::get_parent(node))){
+      while(n != NodeTraits::get_parent(p_parent = NodeTraits::get_parent(n))){
          ++depth;
-         node = p_parent;
+         n = p_parent;
       }
       return depth;
    }
@@ -1287,13 +1284,13 @@ class bstree_algorithms : public bstree_algorithms_base<NodeTraits>
    //!   take a node_ptr and shouldn't throw.
    //!
    //! <b>Effects</b>: First empties target tree calling
-   //!   <tt>void disposer::operator()(const node_ptr &)</tt> for every node of the tree
+   //!   <tt>void disposer::operator()(node_ptr)</tt> for every node of the tree
    //!    except the header.
    //!
    //!   Then, duplicates the entire tree pointed by "source_header" cloning each
-   //!   source node with <tt>node_ptr Cloner::operator()(const node_ptr &)</tt> to obtain
+   //!   source node with <tt>node_ptr Cloner::operator()(node_ptr)</tt> to obtain
    //!   the nodes of the target tree. If "cloner" throws, the cloned target nodes
-   //!   are disposed using <tt>void disposer(const node_ptr &)</tt>.
+   //!   are disposed using <tt>void disposer(node_ptr )</tt>.
    //!
    //! <b>Complexity</b>: Linear to the number of element of the source tree plus the
    //!   number of elements of tree target tree when calling this function.
@@ -1301,7 +1298,7 @@ class bstree_algorithms : public bstree_algorithms_base<NodeTraits>
    //! <b>Throws</b>: If cloner functor throws. If this happens target nodes are disposed.
    template <class Cloner, class Disposer>
    static void clone
-      (const const_node_ptr & source_header, node_ptr target_header, Cloner cloner, Disposer disposer)
+      (const_node_ptr source_header, node_ptr target_header, Cloner cloner, Disposer disposer)
    {
       if(!unique(target_header)){
          clear_and_dispose(target_header, disposer);
@@ -1368,20 +1365,20 @@ class bstree_algorithms : public bstree_algorithms_base<NodeTraits>
       transfer_equal(header1, comp, header2, z, ignored);
    }
 
-   //! <b>Requires</b>: node is a tree node but not the header.
+   //! <b>Requires</b>: 'n' is a tree node but not the header.
    //!
    //! <b>Effects</b>: Unlinks the node and rebalances the tree.
    //!
    //! <b>Complexity</b>: Average complexity is constant time.
    //!
    //! <b>Throws</b>: Nothing.
-   static void unlink(node_ptr node) BHO_NOEXCEPT
+   static void unlink(node_ptr n) BHO_NOEXCEPT
    {
-      node_ptr x = NodeTraits::get_parent(node);
+      node_ptr x = NodeTraits::get_parent(n);
       if(x){
          while(!base_type::is_header(x))
             x = NodeTraits::get_parent(x);
-         erase(x, node);
+         erase(x, n);
       }
    }
 
@@ -1458,7 +1455,7 @@ class bstree_algorithms : public bstree_algorithms_base<NodeTraits>
    //! <b>Note</b>: The method might not have effect when asserts are turned off (e.g., with NDEBUG).
    //!   Experimental function, interface might change in future versions.
    template<class Checker>
-   static void check(const const_node_ptr& header, Checker checker, typename Checker::return_type& checker_return)
+   static void check(const_node_ptr header, Checker checker, typename Checker::return_type& checker_return)
    {
       const_node_ptr root_node_ptr = NodeTraits::get_parent(header);
       if (!root_node_ptr){
@@ -1588,14 +1585,14 @@ class bstree_algorithms : public bstree_algorithms_base<NodeTraits>
       info.x_parent = x_parent;
    }
 
-   //! <b>Requires</b>: node is a node of the tree but it's not the header.
+   //! <b>Requires</b>: 'subtree' is a node of the tree but it's not the header.
    //!
    //! <b>Effects</b>: Returns the number of nodes of the subtree.
    //!
    //! <b>Complexity</b>: Linear time.
    //!
    //! <b>Throws</b>: Nothing.
-   static std::size_t subtree_size(const const_node_ptr & subtree) BHO_NOEXCEPT
+   static std::size_t subtree_size(const_node_ptr subtree) BHO_NOEXCEPT
    {
       std::size_t count = 0;
       if (subtree){
@@ -1638,7 +1635,7 @@ class bstree_algorithms : public bstree_algorithms_base<NodeTraits>
    //! <b>Complexity</b>: Constant.
    //!
    //! <b>Throws</b>: Nothing.
-   BHO_INTRUSIVE_FORCEINLINE static bool is_left_child(const node_ptr & p) BHO_NOEXCEPT
+   BHO_INTRUSIVE_FORCEINLINE static bool is_left_child(node_ptr p) BHO_NOEXCEPT
    {  return NodeTraits::get_left(NodeTraits::get_parent(p)) == p;  }
 
    //! <b>Requires</b>: p is a node of a tree.
@@ -1648,7 +1645,7 @@ class bstree_algorithms : public bstree_algorithms_base<NodeTraits>
    //! <b>Complexity</b>: Constant.
    //!
    //! <b>Throws</b>: Nothing.
-   BHO_INTRUSIVE_FORCEINLINE static bool is_right_child(const node_ptr & p) BHO_NOEXCEPT
+   BHO_INTRUSIVE_FORCEINLINE static bool is_right_child(node_ptr p) BHO_NOEXCEPT
    {  return NodeTraits::get_right(NodeTraits::get_parent(p)) == p;  }
 
    static void insert_before_check
@@ -1919,10 +1916,10 @@ class bstree_algorithms : public bstree_algorithms_base<NodeTraits>
    //! <b>Complexity</b>: Logarithmic.
    //!
    //! <b>Throws</b>: Nothing.
-   static node_ptr get_root(const node_ptr & node) BHO_NOEXCEPT
+   static node_ptr get_root(node_ptr n) BHO_NOEXCEPT
    {
-      BHO_INTRUSIVE_INVARIANT_ASSERT((!inited(node)));
-      node_ptr x = NodeTraits::get_parent(node);
+      BHO_INTRUSIVE_INVARIANT_ASSERT((!inited(n)));
+      node_ptr x = NodeTraits::get_parent(n);
       if(x){
          while(!base_type::is_header(x)){
             x = NodeTraits::get_parent(x);
@@ -1930,13 +1927,13 @@ class bstree_algorithms : public bstree_algorithms_base<NodeTraits>
          return x;
       }
       else{
-         return node;
+         return n;
       }
    }
 
    template <class Cloner, class Disposer>
    static node_ptr clone_subtree
-      (const const_node_ptr &source_parent, node_ptr target_parent
+      (const_node_ptr source_parent, node_ptr target_parent
       , Cloner cloner, Disposer disposer
       , node_ptr &leftmost_out, node_ptr &rightmost_out
       )
@@ -2062,23 +2059,23 @@ class bstree_algorithms : public bstree_algorithms_base<NodeTraits>
    }
 
    template<class Checker>
-   static void check_subtree(const const_node_ptr& node, Checker checker, typename Checker::return_type& check_return)
+   static void check_subtree(const_node_ptr n, Checker checker, typename Checker::return_type& check_return)
    {
-      const_node_ptr left = NodeTraits::get_left(node);
-      const_node_ptr right = NodeTraits::get_right(node);
+      const_node_ptr left = NodeTraits::get_left(n);
+      const_node_ptr right = NodeTraits::get_right(n);
       typename Checker::return_type check_return_left;
       typename Checker::return_type check_return_right;
       if (left)
       {
-         BHO_INTRUSIVE_INVARIANT_ASSERT(NodeTraits::get_parent(left) == node);
+         BHO_INTRUSIVE_INVARIANT_ASSERT(NodeTraits::get_parent(left) == n);
          check_subtree(left, checker, check_return_left);
       }
       if (right)
       {
-         BHO_INTRUSIVE_INVARIANT_ASSERT(NodeTraits::get_parent(right) == node);
+         BHO_INTRUSIVE_INVARIANT_ASSERT(NodeTraits::get_parent(right) == n);
          check_subtree(right, checker, check_return_right);
       }
-      checker(node, check_return_left, check_return_right, check_return);
+      checker(n, check_return_left, check_return_right, check_return);
    }
 };
 

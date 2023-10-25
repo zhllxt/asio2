@@ -25,7 +25,7 @@
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio2/bho/beast/websocket/detail/frame.hpp>
 #include <asio2/bho/beast/websocket/impl/stream_impl.hpp>
-#include <asio2/bho/asio/coroutine.hpp>
+#include <asio/coroutine.hpp>
 #include <asio2/bho/assert.hpp>
 #include <asio2/bho/config.hpp>
 #include <asio2/bho/throw_exception.hpp>
@@ -86,7 +86,7 @@ public:
         // Set up the outgoing frame header
         if(! impl.wr_cont)
         {
-            impl.begin_msg();
+            impl.begin_msg(beast::buffer_bytes(bs));
             fh_.rsv1 = impl.wr_compress;
         }
         else
@@ -114,7 +114,7 @@ public:
             else
             {
                 BHO_ASSERT(impl.wr_buf_size != 0);
-                remain_ = buffer_bytes(cb_);
+                remain_ = beast::buffer_bytes(cb_);
                 if(remain_ > impl.wr_buf_size)
                     how_ = do_nomask_frag;
                 else
@@ -130,7 +130,7 @@ public:
             else
             {
                 BHO_ASSERT(impl.wr_buf_size != 0);
-                remain_ = buffer_bytes(cb_);
+                remain_ = beast::buffer_bytes(cb_);
                 if(remain_ > impl.wr_buf_size)
                     how_ = do_mask_frag;
                 else
@@ -162,7 +162,7 @@ operator()(
     auto sp = wp_.lock();
     if(! sp)
     {
-        ec = net::error::operation_aborted;
+        BHO_BEAST_ASSIGN_EC(ec, net::error::operation_aborted);
         bytes_transferred_ = 0;
         return this->complete(cont, ec, bytes_transferred_);
     }
@@ -181,9 +181,14 @@ operator()(
                         "websocket::async_write" :
                         "websocket::async_write_some"
                     ));
-
-                impl.op_wr.emplace(std::move(*this));
+                this->set_allowed_cancellation(net::cancellation_type::all);
+                impl.op_wr.emplace(std::move(*this),
+                                   net::cancellation_type::all);
             }
+            if (ec)
+                return this->complete(cont, ec, bytes_transferred_);
+
+            this->set_allowed_cancellation(net::cancellation_type::terminal);
             impl.wr_block.lock(this);
             ASIO_CORO_YIELD
             {
@@ -194,7 +199,7 @@ operator()(
                         "websocket::async_write_some"
                     ));
 
-                net::post(std::move(*this));
+                net::post(sp->stream().get_executor(), std::move(*this));
             }
             BHO_ASSERT(impl.wr_block.is_locked(this));
         }
@@ -207,7 +212,7 @@ operator()(
         {
             // send a single frame
             fh_.fin = fin_;
-            fh_.len = buffer_bytes(cb_);
+            fh_.len = beast::buffer_bytes(cb_);
             impl.wr_fb.clear();
             detail::write<flat_static_buffer_base>(
                 impl.wr_fb, fh_);
@@ -462,13 +467,13 @@ operator()(
                 more_ = impl.deflate(b, cb_, fin_, in_, ec);
                 if(impl.check_stop_now(ec))
                     goto upcall;
-                n = buffer_bytes(b);
+                n = beast::buffer_bytes(b);
                 if(n == 0)
                 {
                     // The input was consumed, but there is
                     // no output due to compression latency.
                     BHO_ASSERT(! fin_);
-                    BHO_ASSERT(buffer_bytes(cb_) == 0);
+                    BHO_ASSERT(beast::buffer_bytes(cb_) == 0);
                     goto upcall;
                 }
                 if(fh_.mask)
@@ -622,7 +627,7 @@ write_some(bool fin,
     detail::frame_header fh;
     if(! impl.wr_cont)
     {
-        impl.begin_msg();
+        impl.begin_msg(beast::buffer_bytes(buffers));
         fh.rsv1 = impl.wr_compress;
     }
     else
@@ -634,7 +639,7 @@ write_some(bool fin,
     fh.op = impl.wr_cont ?
         detail::opcode::cont : impl.wr_opcode;
     fh.mask = impl.role == role_type::client;
-    auto remain = buffer_bytes(buffers);
+    auto remain = beast::buffer_bytes(buffers);
     if(impl.wr_compress)
     {
 
@@ -648,14 +653,14 @@ write_some(bool fin,
                 b, cb, fin, bytes_transferred, ec);
             if(impl.check_stop_now(ec))
                 return bytes_transferred;
-            auto const n = buffer_bytes(b);
+            auto const n = beast::buffer_bytes(b);
             if(n == 0)
             {
                 // The input was consumed, but there
                 // is no output due to compression
                 // latency.
                 BHO_ASSERT(! fin);
-                BHO_ASSERT(buffer_bytes(cb) == 0);
+                BHO_ASSERT(beast::buffer_bytes(cb) == 0);
                 fh.fin = false;
                 break;
             }

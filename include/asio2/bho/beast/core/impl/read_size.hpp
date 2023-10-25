@@ -10,7 +10,7 @@
 #ifndef BHO_BEAST_IMPL_READ_SIZE_HPP
 #define BHO_BEAST_IMPL_READ_SIZE_HPP
 
-#include <asio2/bho/asio/buffer.hpp>
+#include <asio/buffer.hpp>
 #include <asio2/bho/assert.hpp>
 #include <stdexcept>
 #include <type_traits>

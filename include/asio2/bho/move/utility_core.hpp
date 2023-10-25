@@ -29,7 +29,6 @@
 #include <asio2/bho/move/detail/workaround.hpp>  //forceinline
 #include <asio2/bho/move/core.hpp>
 #include <asio2/bho/move/detail/meta_utils.hpp>
-#include <asio2/bho/static_assert.hpp>
 
 #if defined(BHO_NO_CXX11_RVALUE_REFERENCES) && !defined(BHO_MOVE_DOXYGEN_INVOKED)
 
@@ -209,7 +208,8 @@
       #else //BHO_MOVE_OLD_RVALUE_REF_BINDING_RULES
 
          template <class T>
-         BHO_MOVE_FORCEINLINE typename ::bho::move_detail::remove_reference<T>::type && move(T&& t) BHO_NOEXCEPT
+         BHO_MOVE_INTRINSIC_CAST
+         typename ::bho::move_detail::remove_reference<T>::type && move(T&& t) BHO_NOEXCEPT
          { return static_cast<typename ::bho::move_detail::remove_reference<T>::type &&>(t); }
 
       #endif   //BHO_MOVE_OLD_RVALUE_REF_BINDING_RULES
@@ -245,14 +245,16 @@
       #else //Old move
 
          template <class T>
-         BHO_MOVE_FORCEINLINE T&& forward(typename ::bho::move_detail::remove_reference<T>::type& t) BHO_NOEXCEPT
+         BHO_MOVE_INTRINSIC_CAST
+         T&& forward(typename ::bho::move_detail::remove_reference<T>::type& t) BHO_NOEXCEPT
          {  return static_cast<T&&>(t);   }
 
          template <class T>
-         BHO_MOVE_FORCEINLINE T&& forward(typename ::bho::move_detail::remove_reference<T>::type&& t) BHO_NOEXCEPT
+         BHO_MOVE_INTRINSIC_CAST
+         T&& forward(typename ::bho::move_detail::remove_reference<T>::type&& t) BHO_NOEXCEPT
          {
             //"bho::forward<T> error: 'T' is a lvalue reference, can't forward as rvalue.";
-            BHO_STATIC_ASSERT(!bho::move_detail::is_lvalue_reference<T>::value);
+            BHO_MOVE_STATIC_ASSERT(!bho::move_detail::is_lvalue_reference<T>::value);
             return static_cast<T&&>(t);
          }
 
@@ -292,7 +294,7 @@
       BHO_MOVE_FORCEINLINE T&& move_if_not_lvalue_reference(typename ::bho::move_detail::remove_reference<T>::type&& t) BHO_NOEXCEPT
       {
          //"bho::forward<T> error: 'T' is a lvalue reference, can't forward as rvalue.";
-         BHO_STATIC_ASSERT(!bho::move_detail::is_lvalue_reference<T>::value);
+         BHO_MOVE_STATIC_ASSERT(!bho::move_detail::is_lvalue_reference<T>::value);
          return static_cast<T&&>(t);
       }
 

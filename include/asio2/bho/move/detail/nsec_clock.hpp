@@ -26,6 +26,7 @@
 
 #include <asio2/bho/config.hpp>
 #include <asio2/bho/cstdint.hpp>
+#include <asio2/bho/move/detail/workaround.hpp>
 #include <cstdlib>
 
 
@@ -39,26 +40,73 @@
 
 #if defined(BHO_MOVE_DETAIL_WINDOWS_API)
 
-#include <asio2/bho/winapi/time.hpp>
-#include <asio2/bho/winapi/timers.hpp>
-#include <asio2/bho/winapi/get_last_error.hpp>
-#include <asio2/bho/winapi/error_codes.hpp>
-#include <asio2/bho/assert.hpp>
-#include <asio2/bho/core/ignore_unused.hpp>
+#include <cassert>
+
+#if defined( BHO_USE_WINDOWS_H )
+#include <Windows.h>
+#else
+
+#if defined (WIN32_PLATFORM_PSPC)
+#define BHO_MOVE_WINAPI_IMPORT BHO_SYMBOL_IMPORT
+#define BHO_MOVE_WINAPI_IMPORT_EXCEPT_WM
+#elif defined (_WIN32_WCE)
+#define BHO_MOVE_WINAPI_IMPORT
+#define BHO_MOVE_WINAPI_IMPORT_EXCEPT_WM
+#else
+#define BHO_MOVE_WINAPI_IMPORT BHO_SYMBOL_IMPORT
+#define BHO_MOVE_WINAPI_IMPORT_EXCEPT_WM BHO_SYMBOL_IMPORT
+#endif
+
+#if defined(WINAPI)
+#define BHO_MOVE_WINAPI_CC WINAPI
+#else
+   #if defined(_M_IX86) || defined(__i386__)
+   #define BHO_MOVE_WINAPI_CC __stdcall
+   #else
+   // On architectures other than 32-bit x86 __stdcall is ignored. Clang also issues a warning.
+   #define BHO_MOVE_WINAPI_CC
+   #endif
+#endif
+
+
+extern "C" {
+
+union _LARGE_INTEGER;
+typedef long long QuadPart;
+
+BHO_MOVE_WINAPI_IMPORT_EXCEPT_WM int BHO_MOVE_WINAPI_CC
+QueryPerformanceCounter(::_LARGE_INTEGER* lpPerformanceCount);
+
+BHO_MOVE_WINAPI_IMPORT_EXCEPT_WM int BHO_MOVE_WINAPI_CC
+QueryPerformanceFrequency(::_LARGE_INTEGER* lpFrequency);
+
+} // extern "C"
+#endif
+
 
 namespace bho { namespace move_detail {
+
+BHO_FORCEINLINE int QueryPerformanceCounter(long long* lpPerformanceCount)
+{
+    return ::QueryPerformanceCounter(reinterpret_cast< ::_LARGE_INTEGER* >(lpPerformanceCount));
+}
+
+BHO_FORCEINLINE int QueryPerformanceFrequency(long long* lpFrequency)
+{
+    return ::QueryPerformanceFrequency(reinterpret_cast< ::_LARGE_INTEGER* >(lpFrequency));
+}
+
 
 template<int Dummy>
 struct QPFHolder
 {
    static inline double get_nsec_per_tic()
    {
-      bho::winapi::LARGE_INTEGER_ freq;
-      bho::winapi::BOOL_ r = bho::winapi::QueryPerformanceFrequency( &freq );
-      bho::ignore_unused(r);
-      BHO_ASSERT(r != 0 && "Boost::Move - get_nanosecs_per_tic Internal Error");
-
-      return double(1000000000.0L / freq.QuadPart);
+      long long freq;
+      //According to MS documentation:
+      //"On systems that run Windows XP or later, the function will always succeed and will thus never return zero"
+      (void)bho::move_detail::QueryPerformanceFrequency(&freq);
+      return double(1000000000.0L / double(freq));
    }
 
    static const double nanosecs_per_tic;
@@ -71,18 +119,11 @@ inline bho::uint64_t nsec_clock() BHO_NOEXCEPT
 {
    double nanosecs_per_tic = QPFHolder<0>::nanosecs_per_tic;
    
-   bho::winapi::LARGE_INTEGER_ pcount;
-   unsigned times=0;
-   while ( !bho::winapi::QueryPerformanceCounter( &pcount ) )
-   {
-      if ( ++times > 3 )
-      {
-         BHO_ASSERT("Boost::Move - QueryPerformanceCounter Internal Error");
-         return 0u;
-      }
-   }
-
-   return static_cast<bho::uint64_t>(nanosecs_per_tic * double(pcount.QuadPart));
+   long long pcount;
+   //According to MS documentation:
+   //"On systems that run Windows XP or later, the function will always succeed and will thus never return zero"
+   (void)bho::move_detail::QueryPerformanceCounter( &pcount );
+   return static_cast<bho::uint64_t>(nanosecs_per_tic * double(pcount));
 }
 
 }}  //namespace bho { namespace move_detail {
@@ -140,6 +181,9 @@ struct cpu_times
    nanosecond_type system;
 
    void clear() { wall = user = system = 0; }
+
+   cpu_times()
+   {  this->clear(); }
 };
 
 

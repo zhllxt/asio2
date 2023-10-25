@@ -18,6 +18,7 @@
 #include <asio2/bho/intrusive/detail/config_begin.hpp>
 #include <asio2/bho/intrusive/intrusive_fwd.hpp>
 #include <asio2/bho/intrusive/detail/common_slist_algorithms.hpp>
+#include <asio2/bho/intrusive/detail/uncast.hpp>
 #include <asio2/bho/intrusive/detail/algo_type.hpp>
 
 #if defined(BHO_HAS_PRAGMA_ONCE)
@@ -131,6 +132,10 @@ class circular_slist_algorithms
    //!
    //! <b>Throws</b>: Nothing.
    static void transfer_after(node_ptr p, node_ptr b, node_ptr e) BHO_NOEXCEPT;
+   
+   #else
+
+   using base_t::transfer_after;
 
    #endif   //#if defined(BHO_INTRUSIVE_DOXYGEN_INVOKED)
 
@@ -144,6 +149,41 @@ class circular_slist_algorithms
    BHO_INTRUSIVE_FORCEINLINE static void init_header(node_ptr this_node) BHO_NOEXCEPT
    {  NodeTraits::set_next(this_node, this_node);  }
 
+   //! <b>Requires</b>: 'p' is the first node of a list.
+   //!
+   //! <b>Effects</b>: Returns a pointer to a node that represents the "end" (one past end) node
+   //!
+   //! <b>Complexity</b>: Constant time.
+   //!
+   //! <b>Throws</b>: Nothing.
+   BHO_INTRUSIVE_FORCEINLINE static node_ptr end_node(const_node_ptr p) BHO_NOEXCEPT
+   {  return detail::uncast(p);   }
+
+   //! <b>Effects</b>: Returns true if this_node_points to an empty list.
+   //! 
+   //! <b>Complexity</b>: Constant
+   //!
+   //! <b>Throws</b>: Nothing.
+   BHO_INTRUSIVE_FORCEINLINE static bool is_empty(const_node_ptr this_node) BHO_NOEXCEPT
+   {  return NodeTraits::get_next(this_node) == this_node;  }
+
+   //! <b>Effects</b>: Returns true if this_node points to a sentinel node.
+   //! 
+   //! <b>Complexity</b>: Constant
+   //!
+   //! <b>Throws</b>: Nothing.
+   BHO_INTRUSIVE_FORCEINLINE static bool is_sentinel(const_node_ptr this_node) BHO_NOEXCEPT
+   {  return NodeTraits::get_next(this_node) == node_ptr();  }
+
+   //! <b>Effects</b>: Marks this node as a "sentinel" node, a special state that is different from "empty",
+   //!                 that can be used to mark a special state of the list
+   //!
+   //! <b>Complexity</b>: Constant
+   //!
+   //! <b>Throws</b>: Nothing.
+   BHO_INTRUSIVE_FORCEINLINE static void set_sentinel(node_ptr this_node) BHO_NOEXCEPT
+   {  NodeTraits::set_next(this_node, node_ptr());   }
+
    //! <b>Requires</b>: this_node and prev_init_node must be in the same circular list.
    //!
    //! <b>Effects</b>: Returns the previous node of this_node in the circular list starting.
@@ -153,7 +193,7 @@ class circular_slist_algorithms
    //! <b>Complexity</b>: Linear to the number of elements between prev_init_node and this_node.
    //!
    //! <b>Throws</b>: Nothing.
-   BHO_INTRUSIVE_FORCEINLINE static node_ptr get_previous_node(const node_ptr &prev_init_node, const node_ptr &this_node) BHO_NOEXCEPT
+   BHO_INTRUSIVE_FORCEINLINE static node_ptr get_previous_node(node_ptr prev_init_node, node_ptr this_node) BHO_NOEXCEPT
    {  return base_t::get_previous_node(prev_init_node, this_node);   }
 
    //! <b>Requires</b>: this_node must be in a circular list or be an empty circular list.
@@ -163,7 +203,7 @@ class circular_slist_algorithms
    //! <b>Complexity</b>: Linear to the number of elements in the circular list.
    //!
    //! <b>Throws</b>: Nothing.
-   BHO_INTRUSIVE_FORCEINLINE static node_ptr get_previous_node(const node_ptr & this_node) BHO_NOEXCEPT
+   BHO_INTRUSIVE_FORCEINLINE static node_ptr get_previous_node(node_ptr this_node) BHO_NOEXCEPT
    {  return base_t::get_previous_node(this_node, this_node); }
 
    //! <b>Requires</b>: this_node must be in a circular list or be an empty circular list.
@@ -173,7 +213,7 @@ class circular_slist_algorithms
    //! <b>Complexity</b>: Linear to the number of elements in the circular list.
    //!
    //! <b>Throws</b>: Nothing.
-   BHO_INTRUSIVE_FORCEINLINE static node_ptr get_previous_previous_node(const node_ptr & this_node) BHO_NOEXCEPT
+   BHO_INTRUSIVE_FORCEINLINE static node_ptr get_previous_previous_node(node_ptr this_node) BHO_NOEXCEPT
    {  return get_previous_previous_node(this_node, this_node); }
 
    //! <b>Requires</b>: this_node and p must be in the same circular list.
@@ -185,7 +225,7 @@ class circular_slist_algorithms
    //! <b>Complexity</b>: Linear to the number of elements in the circular list.
    //!
    //! <b>Throws</b>: Nothing.
-   static node_ptr get_previous_previous_node(node_ptr p, const node_ptr & this_node) BHO_NOEXCEPT
+   static node_ptr get_previous_previous_node(node_ptr p, node_ptr this_node) BHO_NOEXCEPT
    {
       node_ptr p_next = NodeTraits::get_next(p);
       node_ptr p_next_next = NodeTraits::get_next(p_next);
@@ -205,7 +245,7 @@ class circular_slist_algorithms
    //! <b>Complexity</b>: Linear
    //!
    //! <b>Throws</b>: Nothing.
-   static std::size_t count(const const_node_ptr & this_node) BHO_NOEXCEPT
+   static std::size_t count(const_node_ptr this_node) BHO_NOEXCEPT
    {
       std::size_t result = 0;
       const_node_ptr p = this_node;
@@ -223,7 +263,7 @@ class circular_slist_algorithms
    //! <b>Complexity</b>: Linear to the number of elements in the circular list
    //!
    //! <b>Throws</b>: Nothing.
-   BHO_INTRUSIVE_FORCEINLINE static void unlink(node_ptr this_node) BHO_NOEXCEPT
+   static void unlink(node_ptr this_node) BHO_NOEXCEPT
    {
       if(NodeTraits::get_next(this_node))
          base_t::unlink_after(get_previous_node(this_node));
@@ -386,6 +426,35 @@ class circular_slist_algorithms
       base_t::link_after(new_last, p);
       return new_last;
    }
+
+   //! <b>Requires</b>: other must be a list and p must be a node of a different list.
+   //!
+   //! <b>Effects</b>: Transfers all nodes from other after p in p's list.
+   //!
+   //! <b>Complexity</b>: Linear
+   //!
+   //! <b>Throws</b>: Nothing.
+   static void transfer_after(node_ptr p, node_ptr other) BHO_NOEXCEPT
+   {
+      node_ptr other_last((get_previous_node)(other));
+      base_t::transfer_after(p, other, other_last);
+   }
+
+   //! <b>Requires</b>: "disposer" must be an object function
+   //!   taking a node_ptr parameter and shouldn't throw.
+   //!
+   //! <b>Effects</b>: Unlinks all nodes reachable from p (but not p) and calls
+   //!   <tt>void disposer::operator()(node_ptr)</tt> for every node of the list
+   //!    where p is linked.
+   //!
+   //! <b>Returns</b>: The number of disposed nodes
+   //!
+   //! <b>Complexity</b>: Linear to the number of element of the list.
+   //!
+   //! <b>Throws</b>: Nothing.
+   template<class Disposer>
+   BHO_INTRUSIVE_FORCEINLINE static std::size_t detach_and_dispose(node_ptr p, Disposer disposer) BHO_NOEXCEPT
+   {  return base_t::unlink_after_and_dispose(p, p, disposer);   }
 };
 
 /// @cond

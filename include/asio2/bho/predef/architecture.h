@@ -16,6 +16,7 @@ http://www.boost.org/LICENSE_1_0.txt)
 #include <asio2/bho/predef/architecture/convex.h>
 #include <asio2/bho/predef/architecture/e2k.h>
 #include <asio2/bho/predef/architecture/ia64.h>
+#include <asio2/bho/predef/architecture/loongarch.h>
 #include <asio2/bho/predef/architecture/m68k.h>
 #include <asio2/bho/predef/architecture/mips.h>
 #include <asio2/bho/predef/architecture/parisc.h>

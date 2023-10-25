@@ -184,6 +184,10 @@
 #  define BHO_NO_CXX11_ALIGNAS
 #endif
 
+#if !__has_feature(cxx_alignof)
+#  define BHO_NO_CXX11_ALIGNOF
+#endif
+
 #if !__has_feature(cxx_trailing_return)
 #  define BHO_NO_CXX11_TRAILING_RESULT_TYPES
 #endif
@@ -270,6 +274,10 @@
 #  define BHO_NO_CXX14_DIGIT_SEPARATORS
 #endif
 
+// Deprecated symbol markup
+#if __has_attribute(deprecated)
+#define BHO_DEPRECATED(msg) __attribute__((deprecated(msg)))
+#endif
 
 // Unused attribute:
 #if defined(__GNUC__) && (__GNUC__ >= 4)

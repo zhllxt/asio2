@@ -139,7 +139,18 @@
 //
 #ifdef __clang__
 
-#if __has_include(<compare>)
+#ifdef _GLIBCXX_RELEASE
+#  define BHO_LIBSTDCXX_VERSION (_GLIBCXX_RELEASE * 10000 + 100)
+#else
+//
+// We figure out which gcc version issued this std lib
+// by checking which headers are available:
+//
+#if __has_include(<expected>)
+#  define BHO_LIBSTDCXX_VERSION 120100
+#elif __has_include(<source_location>)
+#  define BHO_LIBSTDCXX_VERSION 110100
+#elif __has_include(<compare>)
 #  define BHO_LIBSTDCXX_VERSION 100100
 #elif __has_include(<memory_resource>)
 #  define BHO_LIBSTDCXX_VERSION 90100
@@ -165,6 +176,7 @@
 #  define BHO_LIBSTDCXX_VERSION 40400
 #elif __has_include(<array>)
 #  define BHO_LIBSTDCXX_VERSION 40300
+#endif
 #endif
 //
 // If BHO_HAS_FLOAT128 is set, now that we know the std lib is libstdc++3, check to see if the std lib is
@@ -255,7 +267,7 @@ extern "C" char *gets (char *__s);
 #     if !_GLIBCXX_DEPRECATED
 #        define BHO_NO_AUTO_PTR
 #     endif
-#  elif !_GLIBCXX_USE_DEPRECATED
+#  elif !defined(_GLIBCXX_USE_DEPRECATED) || !_GLIBCXX_USE_DEPRECATED
 #     define BHO_NO_AUTO_PTR
 #     define BHO_NO_CXX98_BINDERS
 #  endif
@@ -385,6 +397,15 @@ extern "C" char *gets (char *__s);
 #define BHO_NO_CXX20_HDR_BIT
 #endif
 
+#if BHO_LIBSTDCXX_VERSION >= 120000
+//
+// Unary function is now deprecated in C++11 and later:
+//
+#if __cplusplus >= 201103L
+#define BHO_NO_CXX98_FUNCTION_BASE
+#endif
+#endif
+
 #ifndef __cpp_impl_coroutine
 #  define BHO_NO_CXX20_HDR_COROUTINE
 #endif
@@ -405,6 +426,24 @@ extern "C" char *gets (char *__s);
 #if !defined(BHO_NO_CXX20_HDR_RANGES)
 #  define BHO_NO_CXX20_HDR_RANGES
 #endif
+#endif
+
+#if defined(__clang__)
+#if (__clang_major__ < 11) && !defined(BHO_NO_CXX20_HDR_RANGES)
+#  define BHO_NO_CXX20_HDR_RANGES
+#endif
+#if (__clang_major__ < 10) && (BHO_LIBSTDCXX_VERSION >= 110000) && !defined(BHO_NO_CXX11_HDR_CHRONO)
+// Old clang can't parse <chrono>:
+#  define BHO_NO_CXX11_HDR_CHRONO
+#  define BHO_NO_CXX11_HDR_CONDITION_VARIABLE
+#endif
+#endif
+
+#if defined(__clang__) && (BHO_LIBSTDCXX_VERSION < 40300) && !defined(BHO_NO_CXX11_NULLPTR)
+#  define BHO_NO_CXX11_NULLPTR
+#endif
+#if defined(__clang__) && (BHO_LIBSTDCXX_VERSION < 40300) && defined(BHO_HAS_INT128) && defined(__APPLE_CC__)
+#undef BHO_HAS_INT128
 #endif
 
 //
@@ -435,7 +474,7 @@ extern "C" char *gets (char *__s);
 #  endif
 #endif
 
-#if (!defined(_GTHREAD_USE_MUTEX_TIMEDLOCK) || (_GTHREAD_USE_MUTEX_TIMEDLOCK == 0)) && !defined(BHO_NO_CXX11_HDR_MUTEX)
+#if (!defined(_GTHREAD_USE_MUTEX_TIMEDLOCK) || (_GTHREAD_USE_MUTEX_TIMEDLOCK == 0)) && !defined(BHO_NO_CXX11_HDR_MUTEX) && (__GNUC__ < 6)
 // Timed mutexes are not always available:
 #  define BHO_NO_CXX11_HDR_MUTEX
 #endif

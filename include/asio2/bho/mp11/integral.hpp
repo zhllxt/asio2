@@ -9,6 +9,7 @@
 //  http://www.boost.org/LICENSE_1_0.txt
 
 #include <asio2/bho/mp11/version.hpp>
+#include <asio2/bho/mp11/detail/mp_value.hpp>
 #include <type_traits>
 #include <cstddef>
 

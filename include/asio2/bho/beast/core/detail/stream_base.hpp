@@ -10,7 +10,7 @@
 #ifndef BHO_BEAST_CORE_DETAIL_STREAM_BASE_HPP
 #define BHO_BEAST_CORE_DETAIL_STREAM_BASE_HPP
 
-#include <asio2/bho/asio/steady_timer.hpp>
+#include <asio/steady_timer.hpp>
 #include <asio2/bho/assert.hpp>
 #include <asio2/bho/core/exchange.hpp>
 #include <chrono>
@@ -39,16 +39,21 @@ struct stream_base
         std::chrono::steady_clock::time_point;
     using tick_type = std::uint64_t;
 
-    struct op_state
+    template<typename Executor>
+    struct basic_op_state
     {
-        net::steady_timer timer;    // for timing out
+        net::basic_waitable_timer<
+                std::chrono::steady_clock,
+                net::wait_traits<
+                        std::chrono::steady_clock>,
+                Executor> timer;    // for timing out
         tick_type tick = 0;         // counts waits
         bool pending = false;       // if op is pending
         bool timeout = false;       // if timed out
 
         template<class... Args>
         explicit
-        op_state(Args&&... args)
+        basic_op_state(Args&&... args)
             : timer(std::forward<Args>(args)...)
         {
         }

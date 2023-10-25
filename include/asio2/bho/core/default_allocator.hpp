@@ -19,20 +19,24 @@ BHO_NORETURN void throw_exception(const std::exception&);
 
 namespace default_ {
 
-struct true_type {
+template<bool V>
+struct bool_constant {
     typedef bool value_type;
-    typedef true_type type;
+    typedef bool_constant type;
 
-    BHO_STATIC_CONSTANT(bool, value = true);
+    static const bool value = V;
 
-    BHO_CONSTEXPR operator bool() const BHO_NOEXCEPT {
-        return true;
+    operator bool() const BHO_NOEXCEPT {
+        return V;
     }
 
-    BHO_CONSTEXPR bool operator()() const BHO_NOEXCEPT {
-        return true;
+    bool operator()() const BHO_NOEXCEPT {
+        return V;
     }
 };
+
+template<bool V>
+const bool bool_constant<V>::value;
 
 template<class T>
 struct add_reference {
@@ -58,8 +62,8 @@ struct default_allocator {
     typedef typename add_reference<const T>::type const_reference;
     typedef std::size_t size_type;
     typedef std::ptrdiff_t difference_type;
-    typedef true_type propagate_on_container_move_assignment;
-    typedef true_type is_always_equal;
+    typedef bool_constant<true> propagate_on_container_move_assignment;
+    typedef bool_constant<true> is_always_equal;
 
     template<class U>
     struct rebind {
@@ -105,6 +109,12 @@ struct default_allocator {
 
     void deallocate(T* p, std::size_t) {
         ::operator delete(p, std::nothrow);
+    }
+#endif
+
+#if defined(BHO_NO_CXX11_ALLOCATOR)
+    T* allocate(std::size_t n, const void*) {
+        return allocate(n);
     }
 #endif
 

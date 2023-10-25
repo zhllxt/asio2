@@ -60,8 +60,8 @@ namespace std
       BHO_STATIC_CONSTANT(bool, is_integer = true);
       BHO_STATIC_CONSTANT(bool, is_exact = true);
       BHO_STATIC_CONSTANT(int, radix = 2);
-      static BHO_LLT epsilon() throw() { return 0; };
-      static BHO_LLT round_error() throw() { return 0; };
+      static BHO_LLT epsilon() BHO_NOEXCEPT_OR_NOTHROW { return 0; };
+      static BHO_LLT round_error() BHO_NOEXCEPT_OR_NOTHROW { return 0; };
 
       BHO_STATIC_CONSTANT(int, min_exponent = 0);
       BHO_STATIC_CONSTANT(int, min_exponent10 = 0);
@@ -73,10 +73,10 @@ namespace std
       BHO_STATIC_CONSTANT(bool, has_signaling_NaN = false);
       BHO_STATIC_CONSTANT(bool, has_denorm = false);
       BHO_STATIC_CONSTANT(bool, has_denorm_loss = false);
-      static BHO_LLT infinity() throw() { return 0; };
-      static BHO_LLT quiet_NaN() throw() { return 0; };
-      static BHO_LLT signaling_NaN() throw() { return 0; };
-      static BHO_LLT denorm_min() throw() { return 0; };
+      static BHO_LLT infinity() BHO_NOEXCEPT_OR_NOTHROW { return 0; };
+      static BHO_LLT quiet_NaN() BHO_NOEXCEPT_OR_NOTHROW { return 0; };
+      static BHO_LLT signaling_NaN() BHO_NOEXCEPT_OR_NOTHROW { return 0; };
+      static BHO_LLT denorm_min() BHO_NOEXCEPT_OR_NOTHROW { return 0; };
 
       BHO_STATIC_CONSTANT(bool, is_iec559 = false);
       BHO_STATIC_CONSTANT(bool, is_bounded = true);
@@ -113,8 +113,8 @@ namespace std
       BHO_STATIC_CONSTANT(bool, is_integer = true);
       BHO_STATIC_CONSTANT(bool, is_exact = true);
       BHO_STATIC_CONSTANT(int, radix = 2);
-      static BHO_ULLT epsilon() throw() { return 0; };
-      static BHO_ULLT round_error() throw() { return 0; };
+      static BHO_ULLT epsilon() BHO_NOEXCEPT_OR_NOTHROW { return 0; };
+      static BHO_ULLT round_error() BHO_NOEXCEPT_OR_NOTHROW { return 0; };
 
       BHO_STATIC_CONSTANT(int, min_exponent = 0);
       BHO_STATIC_CONSTANT(int, min_exponent10 = 0);
@@ -126,10 +126,10 @@ namespace std
       BHO_STATIC_CONSTANT(bool, has_signaling_NaN = false);
       BHO_STATIC_CONSTANT(bool, has_denorm = false);
       BHO_STATIC_CONSTANT(bool, has_denorm_loss = false);
-      static BHO_ULLT infinity() throw() { return 0; };
-      static BHO_ULLT quiet_NaN() throw() { return 0; };
-      static BHO_ULLT signaling_NaN() throw() { return 0; };
-      static BHO_ULLT denorm_min() throw() { return 0; };
+      static BHO_ULLT infinity() BHO_NOEXCEPT_OR_NOTHROW { return 0; };
+      static BHO_ULLT quiet_NaN() BHO_NOEXCEPT_OR_NOTHROW { return 0; };
+      static BHO_ULLT signaling_NaN() BHO_NOEXCEPT_OR_NOTHROW { return 0; };
+      static BHO_ULLT denorm_min() BHO_NOEXCEPT_OR_NOTHROW { return 0; };
 
       BHO_STATIC_CONSTANT(bool, is_iec559 = false);
       BHO_STATIC_CONSTANT(bool, is_bounded = true);

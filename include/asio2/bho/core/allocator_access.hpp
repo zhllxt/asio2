@@ -1,5 +1,5 @@
 /*
-Copyright 2020-2021 Glen Joseph Fernandes
+Copyright 2020-2022 Glen Joseph Fernandes
 (glenjofe@gmail.com)
 
 Distributed under the Boost Software License, Version 1.0.
@@ -9,14 +9,32 @@ Distributed under the Boost Software License, Version 1.0.
 #define BHO_CORE_ALLOCATOR_ACCESS_HPP
 
 #include <asio2/bho/config.hpp>
-#if !defined(BHO_NO_CXX11_ALLOCATOR)
 #include <asio2/bho/core/pointer_traits.hpp>
 #include <limits>
+#include <new>
+#if !defined(BHO_NO_CXX11_ALLOCATOR)
 #include <type_traits>
 #endif
-#include <new>
 #if !defined(BHO_NO_CXX11_RVALUE_REFERENCES)
 #include <utility>
+#endif
+
+#if defined(BHO_GCC_VERSION) && (BHO_GCC_VERSION >= 40300)
+#define BHO_DETAIL_ALLOC_EMPTY(T) __is_empty(T)
+#elif defined(BHO_INTEL) && defined(_MSC_VER) && (_MSC_VER >= 1500)
+#define BHO_DETAIL_ALLOC_EMPTY(T) __is_empty(T)
+#elif defined(BHO_MSVC) && (BHO_MSVC >= 1400)
+#define BHO_DETAIL_ALLOC_EMPTY(T) __is_empty(T)
+#elif defined(BHO_CLANG) && !defined(__CUDACC__)
+#if __has_feature(is_empty)
+#define BHO_DETAIL_ALLOC_EMPTY(T) __is_empty(T)
+#endif
+#elif defined(__SUNPRO_CC) && (__SUNPRO_CC >= 0x5130)
+#define BHO_DETAIL_ALLOC_EMPTY(T) __oracle_is_empty(T)
+#elif defined(__ghs__) && (__GHS_VERSION_NUMBER >= 600)
+#define BHO_DETAIL_ALLOC_EMPTY(T) __is_empty(T)
+#elif defined(BHO_CODEGEARC)
+#define BHO_DETAIL_ALLOC_EMPTY(T) __is_empty(T)
 #endif
 
 #if defined(_LIBCPP_SUPPRESS_DEPRECATED_PUSH)
@@ -37,243 +55,310 @@ struct allocator_value_type {
     typedef typename A::value_type type;
 };
 
-#if defined(BHO_NO_CXX11_ALLOCATOR)
-template<class A>
-struct allocator_pointer {
-    typedef typename A::pointer type;
-};
-#else
-template<class A, class = void>
-struct allocator_pointer {
-    typedef typename A::value_type* type;
-};
-
 namespace detail {
+
+template<class A, class = void>
+struct alloc_ptr {
+    typedef typename bho::allocator_value_type<A>::type* type;
+};
 
 template<class>
 struct alloc_void {
     typedef void type;
 };
 
-} /* detail */
-
 template<class A>
-struct allocator_pointer<A,
-    typename detail::alloc_void<typename A::pointer>::type> {
+struct alloc_ptr<A,
+    typename alloc_void<typename A::pointer>::type> {
     typedef typename A::pointer type;
 };
-#endif
 
-#if defined(BHO_NO_CXX11_ALLOCATOR)
-template<class A>
-struct allocator_const_pointer {
-    typedef typename A::const_pointer type;
-};
-#else
-template<class A, class = void>
-struct allocator_const_pointer {
-    typedef typename pointer_traits<typename
-        allocator_pointer<A>::type>::template
-            rebind_to<const typename A::value_type>::type type;
-};
+} /* detail */
 
 template<class A>
-struct allocator_const_pointer<A,
-    typename detail::alloc_void<typename A::const_pointer>::type> {
-    typedef typename A::const_pointer type;
-};
-#endif
-
-#if defined(BHO_NO_CXX11_ALLOCATOR)
-template<class A>
-struct allocator_void_pointer {
-    typedef typename A::template rebind<void>::other::pointer type;
-};
-#else
-template<class A, class = void>
-struct allocator_void_pointer {
-     typedef typename pointer_traits<typename
-        allocator_pointer<A>::type>::template
-            rebind_to<void>::type type;
+struct allocator_pointer {
+    typedef typename detail::alloc_ptr<A>::type type;
 };
 
-template<class A>
-struct allocator_void_pointer<A,
-    typename detail::alloc_void<typename A::void_pointer>::type> {
-    typedef typename A::void_pointer type;
-};
-#endif
-
-#if defined(BHO_NO_CXX11_ALLOCATOR)
-template<class A>
-struct allocator_const_void_pointer {
-    typedef typename A::template rebind<void>::other::const_pointer type;
-};
-#else
-template<class A, class = void>
-struct allocator_const_void_pointer {
-     typedef typename pointer_traits<typename
-        allocator_pointer<A>::type>::template
-            rebind_to<const void>::type type;
-};
-
-template<class A>
-struct allocator_const_void_pointer<A,
-    typename detail::alloc_void<typename A::const_void_pointer>::type> {
-    typedef typename A::const_void_pointer type;
-};
-#endif
-
-#if defined(BHO_NO_CXX11_ALLOCATOR)
-template<class A>
-struct allocator_difference_type {
-    typedef typename A::difference_type type;
-};
-#else
-template<class A, class = void>
-struct allocator_difference_type {
-    typedef typename pointer_traits<typename
-        allocator_pointer<A>::type>::difference_type type;
-};
-
-template<class A>
-struct allocator_difference_type<A,
-    typename detail::alloc_void<typename A::difference_type>::type> {
-    typedef typename A::difference_type type;
-};
-#endif
-
-#if defined(BHO_NO_CXX11_ALLOCATOR)
-template<class A>
-struct allocator_size_type {
-    typedef typename A::size_type type;
-};
-#else
-template<class A, class = void>
-struct allocator_size_type {
-    typedef typename std::make_unsigned<typename
-        allocator_difference_type<A>::type>::type type;
-};
-
-template<class A>
-struct allocator_size_type<A,
-    typename detail::alloc_void<typename A::size_type>::type> {
-    typedef typename A::size_type type;
-};
-#endif
-
-#if defined(BHO_NO_CXX11_ALLOCATOR)
 namespace detail {
 
-struct alloc_false {
-    BHO_STATIC_CONSTEXPR bool value = false;
+template<class A, class = void>
+struct alloc_const_ptr {
+    typedef typename bho::pointer_traits<typename
+        bho::allocator_pointer<A>::type>::template rebind_to<const typename
+            bho::allocator_value_type<A>::type>::type type;
+};
+
+template<class A>
+struct alloc_const_ptr<A,
+    typename alloc_void<typename A::const_pointer>::type> {
+    typedef typename A::const_pointer type;
 };
 
 } /* detail */
 
 template<class A>
-struct allocator_propagate_on_container_copy_assignment {
-    typedef detail::alloc_false type;
-};
-#else
-template<class A, class = void>
-struct allocator_propagate_on_container_copy_assignment {
-    typedef std::false_type type;
+struct allocator_const_pointer {
+    typedef typename detail::alloc_const_ptr<A>::type type;
 };
 
-template<class A>
-struct allocator_propagate_on_container_copy_assignment<A,
-    typename detail::alloc_void<typename
-        A::propagate_on_container_copy_assignment>::type> {
-    typedef typename A::propagate_on_container_copy_assignment type;
-};
-#endif
-
-#if defined(BHO_NO_CXX11_ALLOCATOR)
-template<class A>
-struct allocator_propagate_on_container_move_assignment {
-    typedef detail::alloc_false type;
-};
-#else
-template<class A, class = void>
-struct allocator_propagate_on_container_move_assignment {
-    typedef std::false_type type;
-};
-
-template<class A>
-struct allocator_propagate_on_container_move_assignment<A,
-    typename detail::alloc_void<typename
-        A::propagate_on_container_move_assignment>::type> {
-    typedef typename A::propagate_on_container_move_assignment type;
-};
-#endif
-
-#if defined(BHO_NO_CXX11_ALLOCATOR)
-template<class A>
-struct allocator_propagate_on_container_swap {
-    typedef detail::alloc_false type;
-};
-#else
-template<class A, class = void>
-struct allocator_propagate_on_container_swap {
-    typedef std::false_type type;
-};
-
-template<class A>
-struct allocator_propagate_on_container_swap<A,
-    typename detail::alloc_void<typename
-        A::propagate_on_container_swap>::type> {
-    typedef typename A::propagate_on_container_swap type;
-};
-#endif
-
-#if defined(BHO_NO_CXX11_ALLOCATOR)
-template<class A>
-struct allocator_is_always_equal {
-    typedef detail::alloc_false type;
-};
-#else
-template<class A, class = void>
-struct allocator_is_always_equal {
-    typedef typename std::is_empty<A>::type type;
-};
-
-template<class A>
-struct allocator_is_always_equal<A,
-    typename detail::alloc_void<typename A::is_always_equal>::type> {
-    typedef typename A::is_always_equal type;
-};
-#endif
-
-#if defined(BHO_NO_CXX11_ALLOCATOR)
-template<class A, class T>
-struct allocator_rebind {
-    typedef typename A::template rebind<T>::other type;
-};
-#else
 namespace detail {
 
 template<class, class>
 struct alloc_to { };
 
+#if defined(BHO_NO_CXX11_VARIADIC_TEMPLATES)
+template<template<class> class A, class T, class U>
+struct alloc_to<A<U>, T> {
+    typedef A<T> type;
+};
+
+template<template<class, class> class A, class T, class U, class V>
+struct alloc_to<A<U, V>, T> {
+    typedef A<T, V> type;
+};
+
+template<template<class, class, class> class A, class T, class U, class V1,
+    class V2>
+struct alloc_to<A<U, V1, V2>, T> {
+    typedef A<T, V1, V2> type;
+};
+#else
 template<template<class, class...> class A, class T, class U, class... V>
 struct alloc_to<A<U, V...>, T> {
     typedef A<T, V...> type;
 };
-
-} /* detail */
+#endif
 
 template<class A, class T, class = void>
-struct allocator_rebind {
-    typedef typename detail::alloc_to<A, T>::type type;
+struct alloc_rebind {
+    typedef typename alloc_to<A, T>::type type;
 };
 
 template<class A, class T>
-struct allocator_rebind<A, T,
-    typename detail::alloc_void<typename A::template rebind<T>::other>::type> {
+struct alloc_rebind<A, T,
+    typename alloc_void<typename A::template rebind<T>::other>::type> {
     typedef typename A::template rebind<T>::other type;
 };
+
+} /* detail */
+
+template<class A, class T>
+struct allocator_rebind {
+    typedef typename detail::alloc_rebind<A, T>::type type;
+};
+
+namespace detail {
+
+template<class A, class = void>
+struct alloc_void_ptr {
+     typedef typename bho::pointer_traits<typename
+        bho::allocator_pointer<A>::type>::template
+            rebind_to<void>::type type;
+};
+
+template<class A>
+struct alloc_void_ptr<A,
+    typename alloc_void<typename A::void_pointer>::type> {
+    typedef typename A::void_pointer type;
+};
+
+} /* detail */
+
+template<class A>
+struct allocator_void_pointer {
+    typedef typename detail::alloc_void_ptr<A>::type type;
+};
+
+namespace detail {
+
+template<class A, class = void>
+struct alloc_const_void_ptr {
+     typedef typename bho::pointer_traits<typename
+        bho::allocator_pointer<A>::type>::template
+            rebind_to<const void>::type type;
+};
+
+template<class A>
+struct alloc_const_void_ptr<A,
+    typename alloc_void<typename A::const_void_pointer>::type> {
+    typedef typename A::const_void_pointer type;
+};
+
+} /* detail */
+
+template<class A>
+struct allocator_const_void_pointer {
+    typedef typename detail::alloc_const_void_ptr<A>::type type;
+};
+
+namespace detail {
+
+template<class A, class = void>
+struct alloc_diff_type {
+    typedef typename bho::pointer_traits<typename
+        bho::allocator_pointer<A>::type>::difference_type type;
+};
+
+template<class A>
+struct alloc_diff_type<A,
+    typename alloc_void<typename A::difference_type>::type> {
+    typedef typename A::difference_type type;
+};
+
+} /* detail */
+
+template<class A>
+struct allocator_difference_type {
+    typedef typename detail::alloc_diff_type<A>::type type;
+};
+
+namespace detail {
+
+#if defined(BHO_NO_CXX11_ALLOCATOR)
+template<class A, class = void>
+struct alloc_size_type {
+    typedef std::size_t type;
+};
+#else
+template<class A, class = void>
+struct alloc_size_type {
+    typedef typename std::make_unsigned<typename
+        bho::allocator_difference_type<A>::type>::type type;
+};
 #endif
+
+template<class A>
+struct alloc_size_type<A,
+    typename alloc_void<typename A::size_type>::type> {
+    typedef typename A::size_type type;
+};
+
+} /* detail */
+
+template<class A>
+struct allocator_size_type {
+    typedef typename detail::alloc_size_type<A>::type type;
+};
+
+namespace detail {
+
+#if defined(BHO_NO_CXX11_ALLOCATOR)
+template<bool V>
+struct alloc_bool {
+    typedef bool value_type;
+    typedef alloc_bool type;
+
+    static const bool value = V;
+
+    operator bool() const BHO_NOEXCEPT {
+        return V;
+    }
+
+    bool operator()() const BHO_NOEXCEPT {
+        return V;
+    }
+};
+
+template<bool V>
+const bool alloc_bool<V>::value;
+
+typedef alloc_bool<false> alloc_false;
+#else
+typedef std::false_type alloc_false;
+#endif
+
+template<class A, class = void>
+struct alloc_pocca {
+    typedef alloc_false type;
+};
+
+template<class A>
+struct alloc_pocca<A,
+    typename alloc_void<typename
+        A::propagate_on_container_copy_assignment>::type> {
+    typedef typename A::propagate_on_container_copy_assignment type;
+};
+
+} /* detail */
+
+template<class A, class = void>
+struct allocator_propagate_on_container_copy_assignment {
+    typedef typename detail::alloc_pocca<A>::type type;
+};
+
+namespace detail {
+
+template<class A, class = void>
+struct alloc_pocma {
+    typedef alloc_false type;
+};
+
+template<class A>
+struct alloc_pocma<A,
+    typename alloc_void<typename
+        A::propagate_on_container_move_assignment>::type> {
+    typedef typename A::propagate_on_container_move_assignment type;
+};
+
+} /* detail */
+
+template<class A>
+struct allocator_propagate_on_container_move_assignment {
+    typedef typename detail::alloc_pocma<A>::type type;
+};
+
+namespace detail {
+
+template<class A, class = void>
+struct alloc_pocs {
+    typedef alloc_false type;
+};
+
+template<class A>
+struct alloc_pocs<A,
+    typename alloc_void<typename A::propagate_on_container_swap>::type> {
+    typedef typename A::propagate_on_container_swap type;
+};
+
+} /* detail */
+
+template<class A>
+struct allocator_propagate_on_container_swap {
+    typedef typename detail::alloc_pocs<A>::type type;
+};
+
+namespace detail {
+
+#if !defined(BHO_NO_CXX11_ALLOCATOR)
+template<class A, class = void>
+struct alloc_equal {
+    typedef typename std::is_empty<A>::type type;
+};
+#elif defined(BHO_DETAIL_ALLOC_EMPTY)
+template<class A, class = void>
+struct alloc_equal {
+    typedef alloc_bool<BHO_DETAIL_ALLOC_EMPTY(A)> type;
+};
+#else
+template<class A, class = void>
+struct alloc_equal {
+    typedef alloc_false type;
+};
+#endif
+
+template<class A>
+struct alloc_equal<A,
+    typename alloc_void<typename A::is_always_equal>::type> {
+    typedef typename A::is_always_equal type;
+};
+
+} /* detail */
+
+template<class A>
+struct allocator_is_always_equal {
+    typedef typename detail::alloc_equal<A>::type type;
+};
 
 template<class A>
 inline typename allocator_pointer<A>::type
@@ -301,21 +386,24 @@ allocator_allocate(A& a, typename allocator_size_type<A>::type n,
 #else
 namespace detail {
 
-struct alloc_none { };
+template<class>
+struct alloc_no {
+    char x, y;
+};
 
 template<class A>
 class alloc_has_allocate {
     template<class O>
-    static auto check(int) -> decltype(std::declval<O&>().allocate(
-        std::declval<typename allocator_size_type<A>::type>(),
-        std::declval<typename allocator_const_void_pointer<A>::type>()));
+    static auto check(int)
+    -> alloc_no<decltype(std::declval<O&>().allocate(std::declval<typename
+        bho::allocator_size_type<A>::type>(), std::declval<typename
+            bho::allocator_const_void_pointer<A>::type>()))>;
 
     template<class>
-    static alloc_none check(long);
+    static char check(long);
 
 public:
-    BHO_STATIC_CONSTEXPR bool value =
-        !std::is_same<decltype(check<A>(0)), alloc_none>::value;
+    BHO_STATIC_CONSTEXPR bool value = sizeof(check<A>(0)) > 1;
 };
 
 } /* detail */
@@ -339,9 +427,55 @@ allocator_allocate(A& a, typename allocator_size_type<A>::type n,
 }
 #endif
 
+namespace detail {
+
+#if defined(BHO_NO_CXX11_ALLOCATOR)
+template<class A, class = void>
+struct alloc_has_construct {
+    BHO_STATIC_CONSTEXPR bool value = false;
+};
+
+template<class A>
+struct alloc_has_construct<A,
+    typename alloc_void<typename A::_default_construct_destroy>::type> {
+    BHO_STATIC_CONSTEXPR bool value = true;
+};
+#else
+template<class A, class T, class... Args>
+class alloc_has_construct {
+    template<class O>
+    static auto check(int)
+    -> alloc_no<decltype(std::declval<O&>().construct(std::declval<T*>(),
+        std::declval<Args&&>()...))>;
+
+    template<class>
+    static char check(long);
+
+public:
+    BHO_STATIC_CONSTEXPR bool value = sizeof(check<A>(0)) > 1;
+};
+#endif
+
+template<bool, class = void>
+struct alloc_if { };
+
+template<class T>
+struct alloc_if<true, T> {
+    typedef T type;
+};
+
+} /* detail */
+
 #if defined(BHO_NO_CXX11_ALLOCATOR)
 template<class A, class T>
-inline void
+inline typename detail::alloc_if<detail::alloc_has_construct<A>::value>::type
+allocator_construct(A& a, T* p)
+{
+    a.construct(p);
+}
+
+template<class A, class T>
+inline typename detail::alloc_if<!detail::alloc_has_construct<A>::value>::type
 allocator_construct(A&, T* p)
 {
     ::new((void*)p) T();
@@ -379,25 +513,6 @@ allocator_construct(A&, T* p, V& v)
 }
 #endif
 #else
-namespace detail {
-
-template<class A, class T, class... Args>
-class alloc_has_construct {
-    template<class O>
-    static auto check(int)
-    -> decltype(std::declval<O&>().construct(std::declval<T*>(),
-        std::declval<Args&&>()...));
-
-    template<class>
-    static alloc_none check(long);
-
-public:
-    BHO_STATIC_CONSTEXPR bool value =
-        !std::is_same<decltype(check<A>(0)), alloc_none>::value;
-};
-
-} /* detail */
-
 template<class A, class T, class... Args>
 inline typename std::enable_if<detail::alloc_has_construct<A, T,
     Args...>::value>::type
@@ -415,132 +530,236 @@ allocator_construct(A&, T* p, Args&&... args)
 }
 #endif
 
-#if defined(BHO_NO_CXX11_ALLOCATOR)
-template<class A, class T>
-inline void
-allocator_destroy(A&, T* p)
-{
-    p->~T();
-    (void)p;
-}
-#else
 namespace detail {
 
+#if defined(BHO_NO_CXX11_ALLOCATOR)
+template<class A, class, class = void>
+struct alloc_has_destroy {
+    BHO_STATIC_CONSTEXPR bool value = false;
+};
+
+template<class A, class T>
+struct alloc_has_destroy<A, T,
+    typename alloc_void<typename A::_default_construct_destroy>::type> {
+    BHO_STATIC_CONSTEXPR bool value = true;
+};
+#else
 template<class A, class T>
 class alloc_has_destroy {
     template<class O>
     static auto check(int)
-    -> decltype(std::declval<O&>().destroy(std::declval<T*>()));
+    -> alloc_no<decltype(std::declval<O&>().destroy(std::declval<T*>()))>;
 
     template<class>
-    static alloc_none check(long);
+    static char check(long);
 
 public:
-    BHO_STATIC_CONSTEXPR bool value =
-        !std::is_same<decltype(check<A>(0)), alloc_none>::value;
+    BHO_STATIC_CONSTEXPR bool value = sizeof(check<A>(0)) > 1;
 };
+#endif
 
 } /* detail */
 
 template<class A, class T>
-inline typename std::enable_if<detail::alloc_has_destroy<A, T>::value>::type
+inline typename detail::alloc_if<detail::alloc_has_destroy<A, T>::value>::type
 allocator_destroy(A& a, T* p)
 {
     a.destroy(p);
 }
 
 template<class A, class T>
-inline typename std::enable_if<!detail::alloc_has_destroy<A, T>::value>::type
+inline typename detail::alloc_if<!detail::alloc_has_destroy<A, T>::value>::type
 allocator_destroy(A&, T* p)
 {
     p->~T();
     (void)p;
 }
-#endif
+
+namespace detail {
 
 #if defined(BHO_NO_CXX11_ALLOCATOR)
-template<class A>
-inline typename allocator_size_type<A>::type
-allocator_max_size(const A& a)
-{
-    return a.max_size();
-}
-#else
-namespace detail {
+template<class T, T>
+struct alloc_no {
+    char x, y;
+};
 
 template<class A>
 class alloc_has_max_size {
     template<class O>
-    static auto check(int) -> decltype(std::declval<O&>().max_size());
+    static alloc_no<typename bho::allocator_size_type<O>::type(O::*)(),
+        &O::max_size> check(int);
+
+    template<class O>
+    static alloc_no<typename bho::allocator_size_type<O>::type(O::*)() const,
+        &O::max_size> check(int);
+
+    template<class O>
+    static alloc_no<typename bho::allocator_size_type<O>::type(*)(),
+        &O::max_size> check(int);
 
     template<class>
-    static alloc_none check(long);
+    static char check(long);
 
 public:
-    BHO_STATIC_CONSTEXPR bool value =
-        !std::is_same<decltype(check<A>(0)), alloc_none>::value;
+    BHO_STATIC_CONSTEXPR bool value = sizeof(check<A>(0)) > 1;
 };
+#else
+template<class A>
+class alloc_has_max_size {
+    template<class O>
+    static auto check(int)
+    -> alloc_no<decltype(std::declval<const O&>().max_size())>;
+
+    template<class>
+    static char check(long);
+
+public:
+    BHO_STATIC_CONSTEXPR bool value = sizeof(check<A>(0)) > 1;
+};
+#endif
 
 } /* detail */
 
 template<class A>
-inline typename std::enable_if<detail::alloc_has_max_size<A>::value,
+inline typename detail::alloc_if<detail::alloc_has_max_size<A>::value,
     typename allocator_size_type<A>::type>::type
-allocator_max_size(const A& a)
+allocator_max_size(const A& a) BHO_NOEXCEPT
 {
     return a.max_size();
 }
 
 template<class A>
-inline typename std::enable_if<!detail::alloc_has_max_size<A>::value,
+inline typename detail::alloc_if<!detail::alloc_has_max_size<A>::value,
     typename allocator_size_type<A>::type>::type
-allocator_max_size(const A&)
+allocator_max_size(const A&) BHO_NOEXCEPT
 {
     return (std::numeric_limits<typename
-        allocator_size_type<A>::type>::max)() / sizeof(typename A::value_type);
+        allocator_size_type<A>::type>::max)() /
+            sizeof(typename allocator_value_type<A>::type);
 }
-#endif
+
+namespace detail {
 
 #if defined(BHO_NO_CXX11_ALLOCATOR)
 template<class A>
-inline A
-allocator_select_on_container_copy_construction(const A& a)
-{
-    return a;
-}
-#else
-namespace detail {
+class alloc_has_soccc {
+    template<class O>
+    static alloc_no<O(O::*)(), &O::select_on_container_copy_construction>
+    check(int);
 
+    template<class O>
+    static alloc_no<O(O::*)() const, &O::select_on_container_copy_construction>
+    check(int);
+
+    template<class O>
+    static alloc_no<O(*)(), &O::select_on_container_copy_construction>
+    check(int);
+
+    template<class>
+    static char check(long);
+
+public:
+    BHO_STATIC_CONSTEXPR bool value = sizeof(check<A>(0)) > 1;
+};
+#else
 template<class A>
 class alloc_has_soccc {
     template<class O>
-    static auto check(int)
-    -> decltype(std::declval<O&>().select_on_container_copy_construction());
+    static auto check(int) -> alloc_no<decltype(std::declval<const
+        O&>().select_on_container_copy_construction())>;
 
     template<class>
-    static alloc_none check(long);
+    static char check(long);
 
 public:
-    BHO_STATIC_CONSTEXPR bool value =
-        !std::is_same<decltype(check<A>(0)), alloc_none>::value;
+    BHO_STATIC_CONSTEXPR bool value = sizeof(check<A>(0)) > 1;
 };
+#endif
 
 } /* detail */
 
 template<class A>
-inline typename std::enable_if<detail::alloc_has_soccc<A>::value, A>::type
+inline typename detail::alloc_if<detail::alloc_has_soccc<A>::value, A>::type
 allocator_select_on_container_copy_construction(const A& a)
 {
     return a.select_on_container_copy_construction();
 }
 
 template<class A>
-inline typename std::enable_if<!detail::alloc_has_soccc<A>::value, A>::type
+inline typename detail::alloc_if<!detail::alloc_has_soccc<A>::value, A>::type
 allocator_select_on_container_copy_construction(const A& a)
 {
     return a;
 }
-#endif
+
+template<class A, class T>
+inline void
+allocator_destroy_n(A& a, T* p, std::size_t n)
+{
+    while (n > 0) {
+        bho::allocator_destroy(a, p + --n);
+    }
+}
+
+namespace detail {
+
+template<class A, class T>
+class alloc_destroyer {
+public:
+    alloc_destroyer(A& a, T* p) BHO_NOEXCEPT
+        : a_(a), p_(p), n_(0) { }
+
+    ~alloc_destroyer() {
+        bho::allocator_destroy_n(a_, p_, n_);
+    }
+
+    std::size_t& size() BHO_NOEXCEPT {
+        return n_;
+    }
+
+private:
+    alloc_destroyer(const alloc_destroyer&);
+    alloc_destroyer& operator=(const alloc_destroyer&);
+
+    A& a_;
+    T* p_;
+    std::size_t n_;
+};
+
+} /* detail */
+
+template<class A, class T>
+inline void
+allocator_construct_n(A& a, T* p, std::size_t n)
+{
+    detail::alloc_destroyer<A, T> d(a, p);
+    for (std::size_t& i = d.size(); i < n; ++i) {
+        bho::allocator_construct(a, p + i);
+    }
+    d.size() = 0;
+}
+
+template<class A, class T>
+inline void
+allocator_construct_n(A& a, T* p, std::size_t n, const T* l, std::size_t m)
+{
+    detail::alloc_destroyer<A, T> d(a, p);
+    for (std::size_t& i = d.size(); i < n; ++i) {
+        bho::allocator_construct(a, p + i, l[i % m]);
+    }
+    d.size() = 0;
+}
+
+template<class A, class T, class I>
+inline void
+allocator_construct_n(A& a, T* p, std::size_t n, I b)
+{
+    detail::alloc_destroyer<A, T> d(a, p);
+    for (std::size_t& i = d.size(); i < n; void(++i), void(++b)) {
+        bho::allocator_construct(a, p + i, *b);
+    }
+    d.size() = 0;
+}
 
 #if !defined(BHO_NO_CXX11_TEMPLATE_ALIASES)
 template<class A>
@@ -588,14 +807,14 @@ using allocator_rebind_t = typename allocator_rebind<A, T>::type;
 
 } /* boost */
 
-#if defined(_LIBCPP_SUPPRESS_DEPRECATED_POP)
-_LIBCPP_SUPPRESS_DEPRECATED_POP
+#if defined(_MSC_VER)
+#pragma warning(pop)
 #endif
 #if defined(_STL_RESTORE_DEPRECATED_WARNING)
 _STL_RESTORE_DEPRECATED_WARNING
 #endif
-#if defined(_MSC_VER)
-#pragma warning(pop)
+#if defined(_LIBCPP_SUPPRESS_DEPRECATED_POP)
+_LIBCPP_SUPPRESS_DEPRECATED_POP
 #endif
 
 #endif

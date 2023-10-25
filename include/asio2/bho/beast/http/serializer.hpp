@@ -18,7 +18,7 @@
 #include <asio2/bho/beast/core/detail/variant.hpp>
 #include <asio2/bho/beast/http/message.hpp>
 #include <asio2/bho/beast/http/chunk_encode.hpp>
-#include <asio2/bho/asio/buffer.hpp>
+#include <asio/buffer.hpp>
 #include <optional>
 
 namespace bho {
@@ -286,7 +286,7 @@ public:
         successfully retrieved.
     */
     bool
-    is_done()
+    is_done() const
     {
         return s_ == do_complete;
     }

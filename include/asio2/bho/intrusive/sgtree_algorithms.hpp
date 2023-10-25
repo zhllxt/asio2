@@ -85,7 +85,7 @@ class sgtree_algorithms
    };
 
    #ifdef BHO_INTRUSIVE_DOXYGEN_INVOKED
-   //! @copydoc ::bho::intrusive::bstree_algorithms::get_header(const const_node_ptr&)
+   //! @copydoc ::bho::intrusive::bstree_algorithms::get_header(const_node_ptr)
    static node_ptr get_header(const_node_ptr n) BHO_NOEXCEPT;
 
    //! @copydoc ::bho::intrusive::bstree_algorithms::begin_node
@@ -110,25 +110,25 @@ class sgtree_algorithms
    static void replace_node(node_ptr node_to_be_replaced, node_ptr header, node_ptr new_node) BHO_NOEXCEPT;
 
    //Unlink is not possible since tree metadata is needed to update the tree
-   //!static void unlink(node_ptr node) BHO_NOEXCEPT;
+   //!static void unlink(node_ptr n) BHO_NOEXCEPT;
 
    //! @copydoc ::bho::intrusive::bstree_algorithms::unlink_leftmost_without_rebalance
    static node_ptr unlink_leftmost_without_rebalance(node_ptr header) BHO_NOEXCEPT;
 
-   //! @copydoc ::bho::intrusive::bstree_algorithms::unique(const const_node_ptr&)
-   static bool unique(const_node_ptr node) BHO_NOEXCEPT;
+   //! @copydoc ::bho::intrusive::bstree_algorithms::unique(const_node_ptr)
+   static bool unique(const_node_ptr n) BHO_NOEXCEPT;
 
-   //! @copydoc ::bho::intrusive::bstree_algorithms::size(const const_node_ptr&)
+   //! @copydoc ::bho::intrusive::bstree_algorithms::size(const_node_ptr)
    static std::size_t size(const_node_ptr header) BHO_NOEXCEPT;
 
-   //! @copydoc ::bho::intrusive::bstree_algorithms::next_node(const node_ptr&)
-   static node_ptr next_node(node_ptr node) BHO_NOEXCEPT;
+   //! @copydoc ::bho::intrusive::bstree_algorithms::next_node(node_ptr)
+   static node_ptr next_node(node_ptr n) BHO_NOEXCEPT;
 
-   //! @copydoc ::bho::intrusive::bstree_algorithms::prev_node(const node_ptr&)
-   static node_ptr prev_node(node_ptr node) BHO_NOEXCEPT;
+   //! @copydoc ::bho::intrusive::bstree_algorithms::prev_node(node_ptr)
+   static node_ptr prev_node(node_ptr n) BHO_NOEXCEPT;
 
    //! @copydoc ::bho::intrusive::bstree_algorithms::init(node_ptr)
-   static void init(node_ptr node) BHO_NOEXCEPT;
+   static void init(node_ptr n) BHO_NOEXCEPT;
 
    //! @copydoc ::bho::intrusive::bstree_algorithms::init_header(node_ptr)
    static void init_header(node_ptr header) BHO_NOEXCEPT;
@@ -149,42 +149,42 @@ class sgtree_algorithms
    }
 
    #ifdef BHO_INTRUSIVE_DOXYGEN_INVOKED
-   //! @copydoc ::bho::intrusive::bstree_algorithms::clone(const const_node_ptr&,node_ptr,Cloner,Disposer)
+   //! @copydoc ::bho::intrusive::bstree_algorithms::clone(const_node_ptr,node_ptr,Cloner,Disposer)
    template <class Cloner, class Disposer>
    static void clone
       (const_node_ptr source_header, node_ptr target_header, Cloner cloner, Disposer disposer);
 
-   //! @copydoc ::bho::intrusive::bstree_algorithms::clear_and_dispose(const node_ptr&,Disposer)
+   //! @copydoc ::bho::intrusive::bstree_algorithms::clear_and_dispose(node_ptr,Disposer)
    template<class Disposer>
    static void clear_and_dispose(node_ptr header, Disposer disposer) BHO_NOEXCEPT;
 
-   //! @copydoc ::bho::intrusive::bstree_algorithms::lower_bound(const const_node_ptr&,const KeyType&,KeyNodePtrCompare)
+   //! @copydoc ::bho::intrusive::bstree_algorithms::lower_bound(const_node_ptr,const KeyType&,KeyNodePtrCompare)
    template<class KeyType, class KeyNodePtrCompare>
    static node_ptr lower_bound
       (const_node_ptr header, const KeyType &key, KeyNodePtrCompare comp);
 
-   //! @copydoc ::bho::intrusive::bstree_algorithms::upper_bound(const const_node_ptr&,const KeyType&,KeyNodePtrCompare)
+   //! @copydoc ::bho::intrusive::bstree_algorithms::upper_bound(const_node_ptr,const KeyType&,KeyNodePtrCompare)
    template<class KeyType, class KeyNodePtrCompare>
    static node_ptr upper_bound
       (const_node_ptr header, const KeyType &key, KeyNodePtrCompare comp);
 
-   //! @copydoc ::bho::intrusive::bstree_algorithms::find(const const_node_ptr&, const KeyType&,KeyNodePtrCompare)
+   //! @copydoc ::bho::intrusive::bstree_algorithms::find(const_node_ptr, const KeyType&,KeyNodePtrCompare)
    template<class KeyType, class KeyNodePtrCompare>
    static node_ptr find
       (const_node_ptr header, const KeyType &key, KeyNodePtrCompare comp);
 
-   //! @copydoc ::bho::intrusive::bstree_algorithms::equal_range(const const_node_ptr&,const KeyType&,KeyNodePtrCompare)
+   //! @copydoc ::bho::intrusive::bstree_algorithms::equal_range(const_node_ptr,const KeyType&,KeyNodePtrCompare)
    template<class KeyType, class KeyNodePtrCompare>
    static std::pair<node_ptr, node_ptr> equal_range
       (const_node_ptr header, const KeyType &key, KeyNodePtrCompare comp);
 
-   //! @copydoc ::bho::intrusive::bstree_algorithms::bounded_range(const const_node_ptr&,const KeyType&,const KeyType&,KeyNodePtrCompare,bool,bool)
+   //! @copydoc ::bho::intrusive::bstree_algorithms::bounded_range(const_node_ptr,const KeyType&,const KeyType&,KeyNodePtrCompare,bool,bool)
    template<class KeyType, class KeyNodePtrCompare>
    static std::pair<node_ptr, node_ptr> bounded_range
       (const_node_ptr header, const KeyType &lower_key, const KeyType &upper_key, KeyNodePtrCompare comp
       , bool left_closed, bool right_closed);
 
-   //! @copydoc ::bho::intrusive::bstree_algorithms::count(const const_node_ptr&,const KeyType&,KeyNodePtrCompare)
+   //! @copydoc ::bho::intrusive::bstree_algorithms::count(const_node_ptr,const KeyType&,KeyNodePtrCompare)
    template<class KeyType, class KeyNodePtrCompare>
    static std::size_t count(const_node_ptr header, const KeyType &key, KeyNodePtrCompare comp);
 
@@ -258,7 +258,7 @@ class sgtree_algorithms
       rebalance_after_insertion(new_node, depth, tree_size+1, h_alpha, max_tree_size);
    }
 
-   //! @copydoc ::bho::intrusive::bstree_algorithms::insert_unique_check(const const_node_ptr&,const KeyType&,KeyNodePtrCompare,insert_commit_data&)
+   //! @copydoc ::bho::intrusive::bstree_algorithms::insert_unique_check(const_node_ptr,const KeyType&,KeyNodePtrCompare,insert_commit_data&)
    template<class KeyType, class KeyNodePtrCompare>
    static std::pair<node_ptr, bool> insert_unique_check
       (const_node_ptr header,  const KeyType &key
@@ -271,7 +271,7 @@ class sgtree_algorithms
       return ret;
    }
 
-   //! @copydoc ::bho::intrusive::bstree_algorithms::insert_unique_check(const const_node_ptr&,const node_ptr&,const KeyType&,KeyNodePtrCompare,insert_commit_data&)
+   //! @copydoc ::bho::intrusive::bstree_algorithms::insert_unique_check(const_node_ptr,node_ptr,const KeyType&,KeyNodePtrCompare,insert_commit_data&)
    template<class KeyType, class KeyNodePtrCompare>
    static std::pair<node_ptr, bool> insert_unique_check
       (const_node_ptr header, node_ptr hint, const KeyType &key

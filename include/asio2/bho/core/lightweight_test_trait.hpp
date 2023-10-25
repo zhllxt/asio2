@@ -22,7 +22,7 @@
 
 #include <asio2/bho/core/lightweight_test.hpp>
 #include <asio2/bho/core/type_name.hpp>
-#include <asio2/bho/core/is_same.hpp>
+#include <asio2/bho/core/detail/is_same.hpp>
 #include <asio2/bho/config.hpp>
 
 namespace bho
@@ -56,7 +56,7 @@ template<class T> inline bool test_trait_same_impl_( T )
 }
 
 template<class T1, class T2> inline void test_trait_same_impl( char const * types,
-  bho::core::is_same<T1, T2> same, char const * file, int line, char const * function )
+  bho::core::detail::is_same<T1, T2> same, char const * file, int line, char const * function )
 {
     if( test_trait_same_impl_( same ) )
     {
@@ -86,6 +86,6 @@ template<class T1, class T2> inline void test_trait_same_impl( char const * type
 # pragma GCC system_header
 #endif
 
-#define BHO_TEST_TRAIT_SAME(...) ( ::bho::detail::test_trait_same_impl(#__VA_ARGS__, ::bho::core::is_same<__VA_ARGS__>(), __FILE__, __LINE__, BHO_CURRENT_FUNCTION) )
+#define BHO_TEST_TRAIT_SAME(...) ( ::bho::detail::test_trait_same_impl(#__VA_ARGS__, ::bho::core::detail::is_same< __VA_ARGS__ >(), __FILE__, __LINE__, BHO_CURRENT_FUNCTION) )
 
 #endif // #ifndef BHO_CORE_LIGHTWEIGHT_TEST_TRAIT_HPP

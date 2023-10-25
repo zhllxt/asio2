@@ -48,6 +48,22 @@
 #endif
 
 //
+// disable explicitly enforced visibility
+//
+#if defined(BHO_DISABLE_EXPLICIT_SYMBOL_VISIBILITY)
+
+#undef BHO_SYMBOL_EXPORT
+#define BHO_SYMBOL_EXPORT
+
+#undef BHO_SYMBOL_IMPORT
+#define BHO_SYMBOL_IMPORT
+
+#undef BHO_SYMBOL_VISIBLE
+#define BHO_SYMBOL_VISIBLE
+
+#endif
+
+//
 // look for long long by looking for the appropriate macros in <limits.h>.
 // Note that we use limits.h rather than climits for maximal portability,
 // remember that since these just declare a bunch of macros, there should be
@@ -632,7 +648,7 @@ namespace std{ using ::type_info; }
        // nvcc doesn't always parse __noinline__,
        // see: https://svn.boost.org/trac/bho/ticket/9392
 #      define BHO_NOINLINE __attribute__ ((noinline))
-#    elif defined(HIP_VERSION)
+#    elif defined(__HIP__)
        // See https://github.com/boostorg/config/issues/392
 #      define BHO_NOINLINE __attribute__ ((noinline))
 #    else
@@ -666,6 +682,23 @@ namespace std{ using ::type_info; }
 #if !defined(BHO_NORETURN)
 #  define BHO_NO_NORETURN
 #  define BHO_NORETURN
+#endif
+
+// BHO_DEPRECATED -------------------------------------------//
+// The macro can be used to mark deprecated symbols, such as functions, objects and types.
+// Any code that uses these symbols will produce warnings, possibly with a message specified
+// as an argument. The warnings can be suppressed by defining BHO_ALLOW_DEPRECATED_SYMBOLS
+// or BHO_ALLOW_DEPRECATED.
+#if !defined(BHO_DEPRECATED) && __cplusplus >= 201402
+#define BHO_DEPRECATED(msg) [[deprecated(msg)]]
+#endif
+
+#if defined(BHO_ALLOW_DEPRECATED_SYMBOLS) || defined(BHO_ALLOW_DEPRECATED)
+#undef BHO_DEPRECATED
+#endif
+
+#if !defined(BHO_DEPRECATED)
+#define BHO_DEPRECATED(msg)
 #endif
 
 // Branch prediction hints
@@ -1015,6 +1048,9 @@ namespace std{ using ::type_info; }
 #else
 #define BHO_CXX14_CONSTEXPR constexpr
 #endif
+#if !defined(BHO_NO_CXX17_STRUCTURED_BINDINGS) && defined(BHO_NO_CXX11_HDR_TUPLE)
+#  define BHO_NO_CXX17_STRUCTURED_BINDINGS
+#endif
 
 //
 // C++17 inline variables
@@ -1039,8 +1075,21 @@ namespace std{ using ::type_info; }
 // Unused variable/typedef workarounds:
 //
 #ifndef BHO_ATTRIBUTE_UNUSED
+#  if defined(__has_attribute) && defined(__SUNPRO_CC) && (__SUNPRO_CC > 0x5130)
+#    if __has_attribute(maybe_unused)
+#       define BHO_ATTRIBUTE_UNUSED [[maybe_unused]]
+#    endif
+#  elif defined(__has_cpp_attribute)
+#    if __has_cpp_attribute(maybe_unused)
+#      define BHO_ATTRIBUTE_UNUSED [[maybe_unused]]
+#    endif
+#  endif
+#endif
+
+#ifndef BHO_ATTRIBUTE_UNUSED
 #  define BHO_ATTRIBUTE_UNUSED
 #endif
+
 //
 // [[nodiscard]]:
 //
@@ -1068,6 +1117,12 @@ namespace std{ using ::type_info; }
 #endif
 
 #define BHO_STATIC_CONSTEXPR  static BHO_CONSTEXPR_OR_CONST
+
+#if !defined(BHO_NO_CXX11_NULLPTR)
+# define BHO_NULLPTR nullptr
+#else
+# define BHO_NULLPTR 0
+#endif
 
 //
 // Set BHO_HAS_STATIC_ASSERT when BHO_NO_CXX11_STATIC_ASSERT is not defined
@@ -1135,9 +1190,14 @@ namespace std{ using ::type_info; }
 #endif
 #endif
 #endif
+//
+// Define the std level that the compiler claims to support:
+//
+#ifndef BHO_CXX_VERSION
+#  define BHO_CXX_VERSION __cplusplus
+#endif
 
-#if !defined(_YVALS) && !defined(_CPPLIB_VER)  // msvc std lib already configured
-#if (!defined(__has_include) || (__cplusplus < 201704))
+#if (!defined(__has_include) || (BHO_CXX_VERSION < 201704))
 #  define BHO_NO_CXX20_HDR_BARRIER
 #  define BHO_NO_CXX20_HDR_FORMAT
 #  define BHO_NO_CXX20_HDR_SOURCE_LOCATION
@@ -1153,74 +1213,73 @@ namespace std{ using ::type_info; }
 #  define BHO_NO_CXX20_HDR_COROUTINE
 #  define BHO_NO_CXX20_HDR_SEMAPHORE
 #else
-#if !__has_include(<barrier>)
+#if (!__has_include(<barrier>) || !defined(__cpp_lib_barrier) || (__cpp_lib_barrier < 201907L)) && !defined(BHO_NO_CXX20_HDR_BARRIER)
 #  define BHO_NO_CXX20_HDR_BARRIER
 #endif
-#if !__has_include(<format>)
+#if (!__has_include(<format>) || !defined(__cpp_lib_format) || (__cpp_lib_format < 201907L)) && !defined(BHO_NO_CXX20_HDR_FORMAT)
 #  define BHO_NO_CXX20_HDR_FORMAT
 #endif
-#if !__has_include(<source_Location>)
+#if (!__has_include(<source_location>) || !defined(__cpp_lib_source_location) || (__cpp_lib_source_location < 201907L)) && !defined(BHO_NO_CXX20_HDR_SOURCE_LOCATION)
 #  define BHO_NO_CXX20_HDR_SOURCE_LOCATION
 #endif
-#if !__has_include(<bit>)
+#if (!__has_include(<bit>) || !defined(__cpp_lib_bit_cast) || (__cpp_lib_bit_cast < 201806L) || !defined(__cpp_lib_bitops) || (__cpp_lib_bitops < 201907L) || !defined(__cpp_lib_endian) || (__cpp_lib_endian < 201907L)) && !defined(BHO_NO_CXX20_HDR_BIT)
 #  define BHO_NO_CXX20_HDR_BIT
 #endif
-#if !__has_include(<latch>)
+#if (!__has_include(<latch>) || !defined(__cpp_lib_latch) || (__cpp_lib_latch < 201907L)) && !defined(BHO_NO_CXX20_HDR_LATCH)
 #  define BHO_NO_CXX20_HDR_LATCH
 #endif
-#if !__has_include(<span>)
+#if (!__has_include(<span>) || !defined(__cpp_lib_span) || (__cpp_lib_span < 202002L)) && !defined(BHO_NO_CXX20_HDR_SPAN)
 #  define BHO_NO_CXX20_HDR_SPAN
 #endif
-#if !__has_include(<compare>)
+#if (!__has_include(<compare>) || !defined(__cpp_lib_three_way_comparison) || (__cpp_lib_three_way_comparison < 201907L)) && !defined(BHO_NO_CXX20_HDR_COMPARE)
 #  define BHO_NO_CXX20_HDR_COMPARE
 #endif
-#if !__has_include(<numbers>)
+#if (!__has_include(<numbers>) || !defined(__cpp_lib_math_constants) || (__cpp_lib_math_constants < 201907L)) && !defined(BHO_NO_CXX20_HDR_NUMBERS)
 #  define BHO_NO_CXX20_HDR_NUMBERS
 #endif
-#if !__has_include(<stop_token>)
+#if (!__has_include(<stop_token>) || !defined(__cpp_lib_jthread) || (__cpp_lib_jthread < 201911L)) && !defined(BHO_NO_CXX20_HDR_STOP_TOKEN)
 #  define BHO_NO_CXX20_HDR_STOP_TOKEN
 #endif
-#if !__has_include(<concepts>)
+#if (!__has_include(<concepts>) || !defined(__cpp_lib_concepts) || (__cpp_lib_concepts < 202002L)) && !defined(_YVALS) && !defined(_CPPLIB_VER) && !defined(BHO_NO_CXX20_HDR_CONCEPTS)
 #  define BHO_NO_CXX20_HDR_CONCEPTS
 #endif
-#if !__has_include(<ranges>)
+#if (!__has_include(<ranges>) || !defined(__cpp_lib_ranges) || (__cpp_lib_ranges < 201911L)) && !defined(BHO_NO_CXX20_HDR_RANGES)
 #  define BHO_NO_CXX20_HDR_RANGES
 #endif
-#if !__has_include(<syncstream>)
+#if (!__has_include(<syncstream>) || !defined(__cpp_lib_syncbuf) || (__cpp_lib_syncbuf < 201803L)) && !defined(BHO_NO_CXX20_HDR_SYNCSTREAM)
 #  define BHO_NO_CXX20_HDR_SYNCSTREAM
 #endif
-#if !__has_include(<coroutine>)
+#if (!__has_include(<coroutine>) || !defined(__cpp_lib_coroutine) || (__cpp_lib_coroutine < 201902L)) && !defined(BHO_NO_CXX20_HDR_COROUTINE)
 #  define BHO_NO_CXX20_HDR_COROUTINE
 #endif
-#if !__has_include(<semaphore>)
+#if (!__has_include(<semaphore>) || !defined(__cpp_lib_semaphore) || (__cpp_lib_semaphore < 201907L)) && !defined(BHO_NO_CXX20_HDR_SEMAPHORE)
 #  define BHO_NO_CXX20_HDR_SEMAPHORE
 #endif
 #endif
+
+#if defined(__cplusplus) && defined(__has_include)
+#if !__has_include(<version>)
+#  define BHO_NO_CXX20_HDR_VERSION
+#else
+// For convenience, this is always included:
+#  include <version>
+#endif
+#else
+#  define BHO_NO_CXX20_HDR_VERSION
+#endif
+
+#if defined(BHO_MSVC)
+#if (BHO_MSVC < 1914) || (_MSVC_LANG < 201703)
+#  define BHO_NO_CXX17_DEDUCTION_GUIDES
+#endif
+#elif !defined(__cpp_deduction_guides) || (__cpp_deduction_guides < 201606)
+#  define BHO_NO_CXX17_DEDUCTION_GUIDES
 #endif
 
 //
 // Define composite agregate macros:
 //
 #include <asio2/bho/config/detail/cxx_composite.hpp>
-
-//
-// Define the std level that the compiler claims to support:
-//
-#ifndef BHO_CXX_VERSION
-#  define BHO_CXX_VERSION __cplusplus
-#endif
-
-//
-// Define composite agregate macros:
-//
-#include <asio2/bho/config/detail/cxx_composite.hpp>
-
-//
-// Define the std level that the compiler claims to support:
-//
-#ifndef BHO_CXX_VERSION
-#  define BHO_CXX_VERSION __cplusplus
-#endif
 
 //
 // Finish off with checks for macros that are depricated / no longer supported,

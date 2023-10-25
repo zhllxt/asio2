@@ -56,37 +56,37 @@ public:
 #if !defined(BHO_NO_CXX11_DEFAULTED_FUNCTIONS)
     empty_value() = default;
 #else
-    empty_value() { }
+    BHO_CONSTEXPR empty_value() { }
 #endif
 
-    empty_value(bho::empty_init_t)
+    BHO_CONSTEXPR empty_value(bho::empty_init_t)
         : value_() { }
 
 #if !defined(BHO_NO_CXX11_RVALUE_REFERENCES)
 #if !defined(BHO_NO_CXX11_VARIADIC_TEMPLATES)
     template<class U, class... Args>
-    empty_value(bho::empty_init_t, U&& value, Args&&... args)
+    BHO_CONSTEXPR empty_value(bho::empty_init_t, U&& value, Args&&... args)
         : value_(std::forward<U>(value), std::forward<Args>(args)...) { }
 #else
     template<class U>
-    empty_value(bho::empty_init_t, U&& value)
+    BHO_CONSTEXPR empty_value(bho::empty_init_t, U&& value)
         : value_(std::forward<U>(value)) { }
 #endif
 #else
     template<class U>
-    empty_value(bho::empty_init_t, const U& value)
+    BHO_CONSTEXPR empty_value(bho::empty_init_t, const U& value)
         : value_(value) { }
 
     template<class U>
-    empty_value(bho::empty_init_t, U& value)
+    BHO_CONSTEXPR empty_value(bho::empty_init_t, U& value)
         : value_(value) { }
 #endif
 
-    const T& get() const BHO_NOEXCEPT {
+    BHO_CONSTEXPR const T& get() const BHO_NOEXCEPT {
         return value_;
     }
 
-    T& get() BHO_NOEXCEPT {
+    BHO_CXX14_CONSTEXPR T& get() BHO_NOEXCEPT {
         return value_;
     }
 
@@ -104,37 +104,37 @@ public:
 #if !defined(BHO_NO_CXX11_DEFAULTED_FUNCTIONS)
     empty_value() = default;
 #else
-    empty_value() { }
+    BHO_CONSTEXPR empty_value() { }
 #endif
 
-    empty_value(bho::empty_init_t)
+    BHO_CONSTEXPR empty_value(bho::empty_init_t)
         : T() { }
 
 #if !defined(BHO_NO_CXX11_RVALUE_REFERENCES)
 #if !defined(BHO_NO_CXX11_VARIADIC_TEMPLATES)
     template<class U, class... Args>
-    empty_value(bho::empty_init_t, U&& value, Args&&... args)
+    BHO_CONSTEXPR empty_value(bho::empty_init_t, U&& value, Args&&... args)
         : T(std::forward<U>(value), std::forward<Args>(args)...) { }
 #else
     template<class U>
-    empty_value(bho::empty_init_t, U&& value)
+    BHO_CONSTEXPR empty_value(bho::empty_init_t, U&& value)
         : T(std::forward<U>(value)) { }
 #endif
 #else
     template<class U>
-    empty_value(bho::empty_init_t, const U& value)
+    BHO_CONSTEXPR empty_value(bho::empty_init_t, const U& value)
         : T(value) { }
 
     template<class U>
-    empty_value(bho::empty_init_t, U& value)
+    BHO_CONSTEXPR empty_value(bho::empty_init_t, U& value)
         : T(value) { }
 #endif
 
-    const T& get() const BHO_NOEXCEPT {
+    BHO_CONSTEXPR const T& get() const BHO_NOEXCEPT {
         return *this;
     }
 
-    T& get() BHO_NOEXCEPT {
+    BHO_CXX14_CONSTEXPR T& get() BHO_NOEXCEPT {
         return *this;
     }
 };

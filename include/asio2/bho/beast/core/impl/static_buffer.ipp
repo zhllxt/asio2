@@ -11,7 +11,7 @@
 #define BHO_BEAST_IMPL_STATIC_BUFFER_IPP
 
 #include <asio2/bho/beast/core/static_buffer.hpp>
-#include <asio2/bho/asio/buffer.hpp>
+#include <asio/buffer.hpp>
 #include <asio2/bho/throw_exception.hpp>
 #include <stdexcept>
 

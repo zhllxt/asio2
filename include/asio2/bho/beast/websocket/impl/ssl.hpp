@@ -12,8 +12,8 @@
 
 #include <utility>
 #include <asio2/bho/beast/websocket/teardown.hpp>
-#include <asio2/bho/asio/compose.hpp>
-#include <asio2/bho/asio/coroutine.hpp>
+#include <asio/compose.hpp>
+#include <asio/coroutine.hpp>
 
 namespace bho {
 namespace beast {
@@ -66,6 +66,8 @@ struct ssl_shutdown_op
     {
         ASIO_CORO_REENTER(*this)
         {
+            self.reset_cancellation_state(net::enable_total_cancellation());
+
             ASIO_CORO_YIELD
                 s_.async_shutdown(std::move(self));
             ec_ = ec;
