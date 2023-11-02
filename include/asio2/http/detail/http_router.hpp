@@ -725,6 +725,12 @@ namespace asio2::detail
 				}
 				else
 				{
+					if (!_call_aop_before(aops, caller, req, rep))
+						return std::addressof(rep.base());
+
+					if (!_call_aop_after(aops, caller, req, rep))
+						return std::addressof(rep.base());
+
 					ASIO2_ASSERT(!pcn->msg.body().is_file());
 					pcn->update_alive_time();
 					return std::addressof(pcn->msg);
@@ -796,6 +802,12 @@ namespace asio2::detail
 				}
 				else
 				{
+					if (!_call_aop_before(aops, caller, req, rep))
+						return std::addressof(rep.base());
+
+					if (!_call_aop_after(aops, caller, req, rep))
+						return std::addressof(rep.base());
+
 					ASIO2_ASSERT(!pcn->msg.body().is_file());
 					pcn->update_alive_time();
 					return std::addressof(pcn->msg);
