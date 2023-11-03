@@ -398,7 +398,15 @@ namespace asio2::detail
 
 				if (!derive.is_started())
 				{
-					set_last_error(rpc::make_error_code(rpc::error::not_connected));
+					set_last_error(rpc::make_error_code(rpc::error::in_progress));
+
+					derive.post_event([&derive, req = std::forward<Req>(req), p = derive.selfptr()]
+					(event_queue_guard<derived_t> g) mutable
+					{
+						detail::ignore_unused(g);
+						derive.internal_async_send(std::move(p), (derive.sr_.reset() << req).str());
+					});
+
 					return;
 				}
 
@@ -437,39 +445,7 @@ namespace asio2::detail
 					derive.reqs_.erase(id);
 				};
 
-				if (!derive.is_started())
-				{
-					set_last_error(rpc::make_error_code(rpc::error::not_connected));
-
-					// bug fixed : can't call ex(...) directly, it will 
-					// cause "reqs_.erase(id)" be called in multithread 
-					asio::post(derive.io_->context(), make_allocator(derive.callocator_,
-					[ex = std::move(ex), p = derive.selfptr()]() mutable
-					{
-						detail::ignore_unused(p);
-
-						set_last_error(rpc::make_error_code(rpc::error::not_connected));
-
-						ex(rpc::make_error_code(rpc::error::not_connected), std::string_view{});
-					}));
-
-					return;
-				}
-
-				set_last_error(rpc::make_error_code(rpc::error::success));
-
-				// 2019-11-28 fixed the bug of issue #6 : task() cannot be called directly
-
-				// 2021-12-10 : can't save the request id in async_send's callback.
-				// The following will occurs when using async_send with callback :
-				// 1. call async_send with callback
-				// 2. recv response by rpc_recv_op
-				// 3. the callback was called
-				// It means that : The callback function of async_send may be called after 
-				// recved response data.
-
-				asio::post(derive.io_->context(), make_allocator(derive.callocator_,
-				[&derive, timer = std::move(timer), timeout, req = std::forward<Req>(req),
+				auto fn = [&derive, timer = std::move(timer), timeout, req = std::forward<Req>(req),
 					ex = std::move(ex), p = derive.selfptr()]() mutable
 				{
 					// 1. first, save the request id
@@ -518,7 +494,34 @@ namespace asio2::detail
 							}
 						}
 					});
-				}));
+				};
+
+				if (!derive.is_started())
+				{
+					set_last_error(rpc::make_error_code(rpc::error::in_progress));
+
+					derive.post_event([fn = std::move(fn)](event_queue_guard<derived_t> g) mutable
+					{
+						detail::ignore_unused(g);
+						fn();
+					});
+
+					return;
+				}
+
+				set_last_error(rpc::make_error_code(rpc::error::success));
+
+				// 2019-11-28 fixed the bug of issue #6 : task() cannot be called directly
+
+				// 2021-12-10 : can't save the request id in async_send's callback.
+				// The following will occurs when using async_send with callback :
+				// 1. call async_send with callback
+				// 2. recv response by rpc_recv_op
+				// 3. the callback was called
+				// It means that : The callback function of async_send may be called after 
+				// recved response data.
+
+				asio::post(derive.io_->context(), make_allocator(derive.callocator_, std::move(fn)));
 			}
 		};
 

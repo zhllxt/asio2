@@ -190,24 +190,20 @@ namespace asio2::detail
 
 				if (!derive.is_started())
 				{
-					set_last_error(asio::error::not_connected);
+					set_last_error(asio::error::in_progress);
 
-					// ensure the callback was called in the communication thread.
-					asio::post(derive.io_->context(), make_allocator(derive.wallocator(),
-					[&derive, p = derive.selfptr(), invoker = std::forward<Invoker>(invoker),
-						data = derive._data_persistence(std::forward<DataT>(data))]
-					() mutable
+					derive.post_event([&derive, p = derive.selfptr(), timeout,
+						invoker = std::forward<Invoker>(invoker), data = std::forward<DataT>(data)]
+					(event_queue_guard<derived_t> g) mutable
 					{
-						detail::ignore_unused(p);
-
-						set_last_error(asio::error::not_connected);
-
-						derive._rdc_invoke_with_send(asio::error::not_connected,
-							invoker, derive._rdc_convert_to_send_data(data));
-					}));
+						detail::ignore_unused(g);
+						derive._rdc_send(std::move(p), std::move(data), std::move(timeout), std::move(invoker));
+					});
 
 					return;
 				}
+
+				clear_last_error();
 
 				// All pending sending events will be cancelled after enter the callback below.
 				asio::post(derive.io_->context(), make_allocator(derive.wallocator(),

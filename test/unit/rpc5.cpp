@@ -1154,7 +1154,7 @@ void rpc5_test()
 		std::ignore = sum;
 	});
 	//ASIO2_CHECK(asio2::get_last_error() == rpc::error::eof); asio2::clear_last_error();
-	ASIO2_CHECK(asio2::get_last_error() == rpc::error::not_connected); asio2::clear_last_error();
+	ASIO2_CHECK(asio2::get_last_error() == rpc::error::in_progress); asio2::clear_last_error();
 
 	// call destroy to clear the all circular references and memory leaks.
 	rpc_session_ptr->destroy();
