@@ -547,6 +547,8 @@ namespace boost::beast::http
 		// we plan on capturing the chunks ourselves.
 		http::parser<isRequest, http::string_body> hp;
 
+		hp.body_limit((std::numeric_limits<std::uint64_t>::max)());
+
 		// First read the complete header
 		http::read_header(stream, buffer, hp, ec);
 		if (ec)
