@@ -124,7 +124,7 @@ class basic_parser
     default_body_limit(std::false_type)
     {
         // limit for responses
-        return 128 * 1024 * 1024; // 128MB
+        return 8 * 1024 * 1024; // 8MB
     }
 
     template<bool OtherIsRequest>
