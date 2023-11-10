@@ -37,6 +37,7 @@ int main()
 		[&hugefile](std::string_view chunk)
 		{
 			hugefile.write(chunk.data(), chunk.size());
+			return true; // false will break the downloading.
 		}
 	);
 	hugefile.close();
@@ -51,6 +52,7 @@ int main()
 			[&file](std::string_view chunk) // http body callback.
 			{
 				file.write(chunk.data(), chunk.size());
+				return true; // false will break the downloading.
 			}
 		);
 		file.close();
@@ -66,6 +68,7 @@ int main()
 			[&file](std::string_view chunk) // http body callback.
 			{
 				file.write(chunk.data(), chunk.size());
+				return true; // false will break the downloading.
 			}
 		);
 		file.close();

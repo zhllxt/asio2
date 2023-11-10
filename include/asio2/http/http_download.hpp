@@ -238,6 +238,7 @@ namespace asio2::detail
 			auto cbb = [&file](std::string_view chunk) mutable
 			{
 				file.write(chunk.data(), chunk.size());
+				return true;
 			};
 
 			return derived_t::download(req.host(), req.port(), req.base(), cbh, cbb, std::in_place);
