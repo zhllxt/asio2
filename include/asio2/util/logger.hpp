@@ -462,7 +462,7 @@ namespace asio2
 			{
 				content =
 					fmt::format("[{}] [{:%Y-%m-%d %H:%M:%S}] ", level2severity(level), *std::localtime(&t)) +
-					fmt::format(format_str, std::forward<Args>(args)...) +
+					fmt::vformat(format_str, fmt::make_format_args(std::forward<Args>(args)...)) +
 					this->endl_;
 			}
 
