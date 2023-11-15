@@ -100,6 +100,9 @@ namespace asio2::detail
 		socks5::command cmd{};
 		std::string host{}, port{};
 
+		asio::ip::address bnd_addr{};
+		std::uint16_t     bnd_port{};
+
 		asio::steady_timer* connect_finish_timer = nullptr;
 
 		inline bool check_auth()
@@ -440,6 +443,9 @@ namespace asio2::detail
 				break;
 				}
 
+				bnd_addr = socket_.local_endpoint(ec).address();
+				bnd_port = socket_.local_endpoint(ec).port();
+
 				if (host.empty() || port.empty() || std::strtoull(port.data(), nullptr, 10) == 0)
 				{
 					ec = socks5::make_error_code(socks5::error::host_unreachable);
@@ -459,33 +465,21 @@ namespace asio2::detail
 				write(p, std::uint8_t(0x00));      // RSV.
 				write(p, std::uint8_t(addr_type)); // ATYP 
 
-				if /**/ (addr_type == std::uint8_t(0x01))
+				if (bnd_addr.is_v4())
 				{
 					// real length
 					bytes = 1 + 1 + 1 + 1 + 4 + 2;
 
-					write(p, std::uint32_t(endpoint.address().to_v4().to_uint()));
+					write(p, bnd_addr.to_v4().to_uint());
 				}
-				else if (addr_type == std::uint8_t(0x04))
+				else
 				{
 					// real length
 					bytes = 1 + 1 + 1 + 1 + 16 + 2;
 
-					auto addr_bytes = endpoint.address().to_v6().to_bytes();
+					auto addr_bytes = bnd_addr.to_v6().to_bytes();
 					std::copy(addr_bytes.begin(), addr_bytes.end(), p);
 					p += 16;
-				}
-				else if (addr_type == std::uint8_t(0x03))
-				{
-					// real length
-					bytes = 1 + 1 + 1 + 1 + 1 + host.size() + 2;
-
-					// domain size
-					write(p, std::uint8_t(host.size()));
-
-					// domain name 
-					std::copy(host.begin(), host.end(), p);
-					p += host.size();
 				}
 
 				// port

@@ -193,26 +193,19 @@ namespace asio2::detail
 
 					std::uint16_t uport = pback_client->get_local_port();
 
+					auto addr = pback_client->socket().local_endpoint(get_last_error()).address();
+
 					char* p = const_cast<char*>(static_cast<const char*>(strbuf->data().data()));
 
-					std::uint8_t addr_type = std::uint8_t(p[3]);
-
-					if /**/ (addr_type == std::uint8_t(0x01))
+					if /**/ (addr.is_v4())
 					{
 						p += 1 + 1 + 1 + 1 + 4;
 
 						detail::write(p, uport);
 					}
-					else if (addr_type == std::uint8_t(0x04))
+					else
 					{
 						p += 1 + 1 + 1 + 1 + 16;
-
-						detail::write(p, uport);
-					}
-					else if (addr_type == std::uint8_t(0x03))
-					{
-						// real length
-						p += 1 + 1 + 1 + 1 + 1 + p[4];
 
 						detail::write(p, uport);
 					}
