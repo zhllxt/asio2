@@ -463,10 +463,11 @@ namespace asio2::detail
 				write(p, std::uint8_t(0x05));      // VER 5.
 				write(p, std::uint8_t(0x00));      // REP 
 				write(p, std::uint8_t(0x00));      // RSV.
-				write(p, std::uint8_t(addr_type)); // ATYP 
 
 				if (bnd_addr.is_v4())
 				{
+					write(p, std::uint8_t(0x01)); // ATYP 
+
 					// real length
 					bytes = 1 + 1 + 1 + 1 + 4 + 2;
 
@@ -474,6 +475,8 @@ namespace asio2::detail
 				}
 				else
 				{
+					write(p, std::uint8_t(0x04)); // ATYP 
+
 					// real length
 					bytes = 1 + 1 + 1 + 1 + 16 + 2;
 
