@@ -107,7 +107,15 @@ namespace asio2::detail
 
 		inline bool check_auth()
 		{
-			bool f = (username == socks5_opt_username(socks5()) && password == socks5_opt_password(socks5()));
+			std::string username_in_opt = socks5_opt_username(socks5());
+			std::string password_in_opt = socks5_opt_password(socks5());
+
+			bool f = false;
+
+			if (!username_in_opt.empty() && !password_in_opt.empty())
+			{
+				f = (username == username_in_opt && password == password_in_opt);
+			}
 
 			if (!f)
 			{

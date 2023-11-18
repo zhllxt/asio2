@@ -26,6 +26,7 @@ int main()
 		//opts.set_methods(socks5::method::anonymous);
 		opts.set_methods(socks5::method::password);
 		// set a default username and password for all clients.
+		// if the default username or password is empty, the auth callback will be called.
 		opts.set_username("admin");
 		opts.set_password("123456");
 		// if the default username and password is auth failed, then this auth callback will be called.
