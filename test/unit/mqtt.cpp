@@ -111,29 +111,6 @@ void mqtt_test()
 				asio2::last_error_val(), asio2::last_error_msg().c_str());
 		});
 
-		mqtt::v5::connect connect;
-		connect.client_id(u8"37792738@qq.com");
-
-		if (!client.start(host, port, connect))
-			return;
-
-		client.subscribe("/asio2/mqtt/qos1", 1, [](mqtt::v5::publish& msg) mutable
-		{
-			fmt::print("recv v5::publish  , packet id : {:5d} QoS : {} topic_name : {} payload : {}\n",
-				msg.packet_id(), int(msg.qos()), msg.topic_name(), msg.payload());
-		});
-
-		client.subscribe("/asio2/mqtt/qos0", 0, [](mqtt::message& msg) mutable
-		{
-			ASIO2_ASSERT(!msg.empty());
-			mqtt::v5::publish* p = msg.get_if<mqtt::v5::publish>();
-			if (p)
-			{
-				fmt::print("recv v5::publish  , packet id : {:5d} QoS : {} topic_name : {} payload : {}\n",
-					p->packet_id(), int(p->qos()), p->topic_name(), p->payload());
-			}
-		});
-
 		client.on_connack([](mqtt::v5::connack& connack)
 		{
 			fmt::print("recv v5::connack  , reason code: {}", int(connack.reason_code()));
@@ -194,6 +171,31 @@ void mqtt_test()
 			asio2::ignore_unused(msg);
 			if (mqtt::v5::disconnect* p = static_cast<mqtt::v5::disconnect*>(msg); p)
 				printf("recv v5::disconnect, reason code : %u\n", p->reason_code());
+		});
+
+		mqtt::v5::connect connect;
+		connect.client_id(u8"37792738@qq.com");
+
+		client.set_disconnect_timeout(std::chrono::seconds(3));
+
+		if (!client.start(host, port, connect))
+			return;
+
+		client.subscribe("/asio2/mqtt/qos1", 1, [](mqtt::v5::publish& msg) mutable
+		{
+			fmt::print("recv v5::publish  , packet id : {:5d} QoS : {} topic_name : {} payload : {}\n",
+				msg.packet_id(), int(msg.qos()), msg.topic_name(), msg.payload());
+		});
+
+		client.subscribe("/asio2/mqtt/qos0", 0, [](mqtt::message& msg) mutable
+		{
+			ASIO2_ASSERT(!msg.empty());
+			mqtt::v5::publish* p = msg.get_if<mqtt::v5::publish>();
+			if (p)
+			{
+				fmt::print("recv v5::publish  , packet id : {:5d} QoS : {} topic_name : {} payload : {}\n",
+					p->packet_id(), int(p->qos()), p->topic_name(), p->payload());
+			}
 		});
 	}
 }

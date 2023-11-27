@@ -48,7 +48,7 @@ namespace asio2::detail
 		/**
 		 * set the mqtt options
 		 */
-		inline self& set_options(const mqtt_options& options)
+		inline self& set_mqtt_options(const mqtt_options& options)
 		{
 			this->_mqtt_options_copy_from(options);
 			return (*this);

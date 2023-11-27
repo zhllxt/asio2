@@ -460,12 +460,28 @@ namespace asio2::detail
 				if /**/ (ver == mqtt::version::v3)
 				{
 					mqtt::v3::disconnect disconnect;
-					this->derived().async_send(std::move(disconnect));
+					this->derived().internal_async_send(std::move(this_ptr), std::move(disconnect),
+					[this, ec, e = chain.move_event()]
+					(std::shared_ptr<derived_t> this_ptr, const error_code&,
+						std::size_t, event_queue_guard<derived_t> g) mutable
+					{
+						defer_event chain(std::move(e), std::move(g));
+						super::_do_disconnect(ec, std::move(this_ptr), std::move(chain));
+					}, chain.move_guard());
+					return;
 				}
 				else if (ver == mqtt::version::v4)
 				{
 					mqtt::v4::disconnect disconnect;
-					this->derived().async_send(std::move(disconnect));
+					this->derived().internal_async_send(std::move(this_ptr), std::move(disconnect),
+					[this, ec, e = chain.move_event()]
+					(std::shared_ptr<derived_t> this_ptr, const error_code&,
+						std::size_t, event_queue_guard<derived_t> g) mutable
+					{
+						defer_event chain(std::move(e), std::move(g));
+						super::_do_disconnect(ec, std::move(this_ptr), std::move(chain));
+					}, chain.move_guard());
+					return;
 				}
 				else if (ver == mqtt::version::v5)
 				{
@@ -490,7 +506,15 @@ namespace asio2::detail
 						disconnect.reason_code(static_cast<std::uint8_t>(ec.value())); break;
 					default: break;
 					}
-					this->derived().async_send(std::move(disconnect));
+					this->derived().internal_async_send(std::move(this_ptr), std::move(disconnect),
+					[this, ec, e = chain.move_event()]
+					(std::shared_ptr<derived_t> this_ptr, const error_code&,
+						std::size_t, event_queue_guard<derived_t> g) mutable
+					{
+						defer_event chain(std::move(e), std::move(g));
+						super::_do_disconnect(ec, std::move(this_ptr), std::move(chain));
+					}, chain.move_guard());
+					return;
 				}
 			}
 

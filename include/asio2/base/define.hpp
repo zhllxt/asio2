@@ -106,6 +106,7 @@ namespace asio2::detail
 	template <class, class>                      KEYWORD wss_client_impl_t;         \
 	template <class, class>                      KEYWORD rpc_client_impl_t;         \
 	template <class, class>                      KEYWORD mqtt_client_impl_t;        \
+	template <class, class>                      KEYWORD mqtts_client_impl_t;       \
 	template <class, class>                      KEYWORD socks5_client_impl_t;      \
 	template <class, class>                      KEYWORD socks5_client_cp;          \
 	template <class, class>                      KEYWORD socks5_client_cp_impl;     \
@@ -122,6 +123,7 @@ namespace asio2::detail
 	template <class, class>                      KEYWORD wss_server_impl_t;         \
 	template <class, class>                      KEYWORD rpc_server_impl_t;         \
 	template <class, class>                      KEYWORD mqtt_server_impl_t;        \
+	template <class, class>                      KEYWORD mqtts_server_impl_t;       \
 	template <class, class>                      KEYWORD socks5_server_impl_t;      \
 	template <class, class>                      KEYWORD disable_warning_pedantic
 
@@ -135,6 +137,7 @@ namespace asio2::detail
 	template <class, class>                      KEYWORD wss_session_impl_t;        \
 	template <class, class>                      KEYWORD rpc_session_impl_t;        \
 	template <class, class>                      KEYWORD mqtt_session_impl_t;       \
+	template <class, class>                      KEYWORD mqtts_session_impl_t;      \
 	template <class, class>                      KEYWORD socks5_session_impl_t;     \
 	template <class, class>                      KEYWORD disable_warning_pedantic
 

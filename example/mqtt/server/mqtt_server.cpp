@@ -11,7 +11,7 @@ int main()
 	asio2::mqtt_options options;
 	//mqtt::options options;
 
-	server.set_options(options);
+	server.set_mqtt_options(options);
 
 	server.bind_accept([](std::shared_ptr<asio2::mqtt_session>& session_ptr)
 	{
@@ -63,15 +63,15 @@ int main()
 			subset = std::addressof(msg.subscriptions());
 		});
 
-		if (subset)
-		{
-			rep.invoke_if<mqtt::v3::suback, mqtt::v4::suback, mqtt::v5::suback>([](auto& msg) mutable
-			{
-				// if the msg is v3::suback or v4::suback or v5::suback, then this lambda
-				// will be called, otherwise this lambda will can't be called
-				msg.reason_codes().clear();
-			});
-		}
+		//if (subset)
+		//{
+		//	rep.invoke_if<mqtt::v3::suback, mqtt::v4::suback, mqtt::v5::suback>([](auto& msg) mutable
+		//	{
+		//		// if the msg is v3::suback or v4::suback or v5::suback, then this lambda
+		//		// will be called, otherwise this lambda will can't be called
+		//		msg.reason_codes().clear();
+		//	});
+		//}
 	});
 
 	server.start(host, port);

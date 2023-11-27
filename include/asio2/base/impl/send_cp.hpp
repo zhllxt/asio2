@@ -628,6 +628,55 @@ namespace asio2::detail
 				});
 			});
 		}
+
+		/**
+		 * @brief Asynchronous send data, support multiple data formats,
+		 *             see asio::buffer(...) in /asio/buffer.hpp
+		 * You can call this function on the communication thread and anywhere,it's multi thread safed.
+		 * use like this : std::string m; async_send(std::move(m)); can reducing memory allocation.
+		 * PodType * : async_send("abc");
+		 * PodType (&data)[N] : double m[10]; async_send(m);
+		 * std::array<PodType, N> : std::array<int,10> m; async_send(m);
+		 * std::vector<PodType, Allocator> : std::vector<float> m; async_send(m);
+		 * std::basic_string<Elem, Traits, Allocator> : std::string m; async_send(m);
+		 * Callback signature : void() or void(std::size_t bytes_sent)
+		 */
+		template<class DataT, class Callback>
+		inline void internal_async_send(
+			std::shared_ptr<derived_t> this_ptr, DataT&& data, Callback&& fn, event_queue_guard<derived_t> g)
+		{
+			derived_t& derive = static_cast<derived_t&>(*this);
+
+			ASIO2_ASSERT(derive.io_->running_in_this_thread());
+
+			derive.disp_event(
+			[&derive, p = std::move(this_ptr), id = derive.life_id(), fn = std::forward<Callback>(fn),
+				data = derive._data_persistence(std::forward<DataT>(data))]
+			(event_queue_guard<derived_t> g) mutable
+			{
+				if (!derive.is_started())
+				{
+					set_last_error(asio::error::not_connected);
+					fn(std::move(p), asio::error::not_connected, 0, std::move(g));
+					return;
+				}
+
+				if (id != derive.life_id())
+				{
+					set_last_error(asio::error::operation_aborted);
+					fn(std::move(p), asio::error::operation_aborted, 0, std::move(g));
+					return;
+				}
+
+				clear_last_error();
+
+				derive._do_send(data, [fn = std::move(fn), p = std::move(p), g = std::move(g)]
+				(const error_code& ec, std::size_t bytes_sent) mutable
+				{
+					fn(std::move(p), ec, bytes_sent, std::move(g));
+				});
+			}, std::move(g));
+		}
 	};
 }
 

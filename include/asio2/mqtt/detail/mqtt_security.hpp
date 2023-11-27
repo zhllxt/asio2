@@ -475,10 +475,10 @@ struct security
 	}
 
 #if defined(ASIO2_ENABLE_SSL) || defined(ASIO2_USE_SSL)
-    static std::string sha256hash(string_view message) {
+    static std::string sha256hash(std::string_view msg) {
         std::shared_ptr<EVP_MD_CTX> mdctx(EVP_MD_CTX_new(), EVP_MD_CTX_free);
         EVP_DigestInit_ex(mdctx.get(), EVP_sha256(), NULL);
-        EVP_DigestUpdate(mdctx.get(), message.data(), message.size());
+        EVP_DigestUpdate(mdctx.get(), msg.data(), msg.size());
 
         std::vector<unsigned char> digest(static_cast<std::size_t>(EVP_MD_size(EVP_sha256())));
         unsigned int digest_size = static_cast<unsigned int>(digest.size());
@@ -487,9 +487,9 @@ struct security
         return to_hex(digest.data(), digest.data() + digest_size);
     }
 #else
-	static std::string sha256hash(std::string_view message)
+	static std::string sha256hash(std::string_view msg)
 	{
-		return std::string(message);
+		return std::string(msg);
 	}
 #endif
 
