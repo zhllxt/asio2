@@ -84,8 +84,7 @@ namespace asio2::detail
 			}
 			else if constexpr (std::is_integral_v<type>)
 			{
-				handle.resize(sizeof(type));
-				std::memcpy((void*)handle.data(), (const void*)&id, sizeof(type));
+				handle = std::to_string(id);
 			}
 			else if constexpr (std::is_floating_point_v<type>)
 			{

@@ -114,15 +114,15 @@ void https1_test()
 			sock5_option{ "127.0.0.1",10808 };
 		std::string url = "https://www.baidu.com/img/flexible/logo/pc/result.png";
 		std::string pth = "result.png";
-		asio2::https_client::download(url, [](auto&) {}, [](std::string_view) {});
-		asio2::https_client::download(asio::ssl::context{ ASIO2_DEFAULT_SSL_METHOD }, url, [](auto&) {}, [](std::string_view) {});
-		asio2::https_client::download(url, [](std::string_view) {});
-		asio2::https_client::download(asio::ssl::context{ ASIO2_DEFAULT_SSL_METHOD }, url, [](std::string_view) {});
+		asio2::https_client::download(url, [](auto&) {}, [](std::string_view) { return true; });
+		asio2::https_client::download(asio::ssl::context{ ASIO2_DEFAULT_SSL_METHOD }, url, [](auto&) {}, [](std::string_view) {return true; });
+		asio2::https_client::download(url, [](std::string_view) {return true; });
+		asio2::https_client::download(asio::ssl::context{ ASIO2_DEFAULT_SSL_METHOD }, url, [](std::string_view) {return true; });
 		asio2::https_client::download(url, pth);
 		asio2::https_client::download(asio::ssl::context{ ASIO2_DEFAULT_SSL_METHOD }, url, pth);
 		auto req = http::make_request(url);
-		asio2::https_client::download(asio::ssl::context{ ASIO2_DEFAULT_SSL_METHOD }, req.host(), req.port(), req, [](auto&) {}, [](std::string_view) {}, nullptr);
-		asio2::https_client::download(asio::ssl::context{ ASIO2_DEFAULT_SSL_METHOD }, req.host(), req.port(), req, [](auto&) {}, [](std::string_view) {}, sock5_option);
+		asio2::https_client::download(asio::ssl::context{ ASIO2_DEFAULT_SSL_METHOD }, req.host(), req.port(), req, [](auto&) {}, [](std::string_view) {return true; }, nullptr);
+		asio2::https_client::download(asio::ssl::context{ ASIO2_DEFAULT_SSL_METHOD }, req.host(), req.port(), req, [](auto&) {}, [](std::string_view) {return true; }, sock5_option);
 	}
 
 	ASIO2_TEST_END_LOOP;

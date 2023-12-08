@@ -3,7 +3,7 @@
 
 #include "unit_test.hpp"
 #include <iostream>
-#include <filesystem>
+#include <asio2/base/detail/filesystem.hpp>
 #include <asio2/asio2.hpp>
 
 struct aop_log
@@ -76,7 +76,7 @@ void http4_test()
 		{
 			asio2::ignore_unused(req, rep);
 
-			rep.fill_file("index.html");
+			rep.fill_file("/index.html");
 			rep.chunked(true);
 
 		}, aop_log{});
@@ -181,7 +181,7 @@ void http4_test()
 				if (has_internet)
 					rep = asio2::http_client::execute("http://www.baidu.com");
 				else
-					rep.fill_file("index.html");
+					rep.fill_file("/index.html");
 			}).detach();
 
 		}, aop_log{}, aop_check{});

@@ -184,6 +184,43 @@ namespace
 	}
 }
 
+// on vs2017 the std::function<asio2::net_protocol()> will cause compile error.
+#if defined(_MSC_VER) && (_MSC_VER < 1929)
+struct socks5_server_match_role
+{
+	template <typename Iterator>
+	std::pair<Iterator, bool> operator()(Iterator begin, Iterator end) const
+	{
+		// +----+------+------+----------+----------+----------+
+		// |RSV | FRAG | ATYP | DST.ADDR | DST.PORT |   DATA   |
+		// +----+------+------+----------+----------+----------+
+		// | 2  |  1   |  1   | Variable |    2     | Variable |
+		// +----+------+------+----------+----------+----------+
+
+		for (Iterator p = begin; p < end;)
+		{
+			if (this->get_front_client_type && (*(this->get_front_client_type))() == asio2::net_protocol::tcp)
+				return std::pair(end, true);
+
+			return socks5_udp_match_role(p, end);
+		}
+
+		return std::pair(begin, false);
+	}
+
+	template<class T>
+	void init(std::shared_ptr<T>& session_ptr)
+	{
+		this->get_front_client_type = std::make_shared<std::function<asio2::net_protocol()>>(
+		[p = session_ptr.get()]() mutable
+		{
+			return p->get_front_client_type();
+		});
+	}
+
+	std::shared_ptr<std::function<asio2::net_protocol()>> get_front_client_type;
+};
+#else
 struct socks5_server_match_role
 {
 	template <typename Iterator>
@@ -217,6 +254,7 @@ struct socks5_server_match_role
 
 	std::function<asio2::net_protocol()> get_front_client_type;
 };
+#endif
 }
 
 #ifdef ASIO_STANDALONE

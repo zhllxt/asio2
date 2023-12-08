@@ -654,13 +654,16 @@ namespace asio2::detail
 			}
 			else
 			{
-			#ifndef ASIO2_DISABLE_STOP_SESSION_WHEN_RECVD_0BYTES
+			#ifdef ASIO2_STOP_SESSION_WHEN_RECVD_0BYTES
 				// has error, and bytes_recvd == 0
 				if (bytes_recvd == 0)
 				{
 					std::shared_ptr<session_t> session_ptr = this->sessions_.find(this->remote_endpoint_);
 					if (session_ptr)
 					{
+						ASIO2_LOG_INFOR("udp session stoped by recvd 0 bytes: {}",
+							session_ptr->get_remote_address());
+
 						session_ptr->stop();
 					}
 				}

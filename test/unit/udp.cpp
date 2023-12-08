@@ -1,5 +1,4 @@
 #include "unit_test.hpp"
-#define ASIO2_DISABLE_STOP_SESSION_WHEN_RECVD_0BYTES
 #include <unordered_set>
 #include <asio2/external/fmt.hpp>
 #include <asio2/udp/udp_server.hpp>

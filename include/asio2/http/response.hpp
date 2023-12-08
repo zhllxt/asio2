@@ -401,17 +401,17 @@ namespace asio2::detail
 
 			// Build the path to the requested file
 			std::filesystem::path filepath;
+
 			if (this->root_directory_.empty())
 			{
 				filepath = std::move(path);
-				filepath.make_preferred();
 			}
 			else
 			{
-				filepath = this->root_directory_;
-				filepath.make_preferred();
-				filepath /= path.make_preferred().relative_path();
+				filepath = detail::make_filepath(this->root_directory_, path);
 			}
+
+			filepath.make_preferred();
 
 			// Attempt to open the file
 			beast::error_code ec;

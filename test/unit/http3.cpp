@@ -3,7 +3,7 @@
 
 #include "unit_test.hpp"
 #include <iostream>
-#include <filesystem>
+#include <asio2/base/detail/filesystem.hpp>
 #include <asio2/asio2.hpp>
 
 struct aop_log
@@ -50,12 +50,12 @@ void http3_test()
 			sock5_option{ "127.0.0.1",10808 };
 		std::string url = "http://www.baidu.com/img/flexible/logo/pc/result.png";
 		std::string pth = "result.png";
-		asio2::http_client::download(url, [](auto&) {}, [](std::string_view) {});
-		asio2::http_client::download(url, [](std::string_view) {});
+		asio2::http_client::download(url, [](auto&) {}, [](std::string_view) { return true; });
+		asio2::http_client::download(url, [](std::string_view) {return true; });
 		asio2::http_client::download(url, pth);
 		auto req = http::make_request(url);
-		asio2::http_client::download(req.host(), req.port(), req, [](auto&) {}, [](std::string_view) {}, nullptr);
-		asio2::http_client::download(req.host(), req.port(), req, [](auto&) {}, [](std::string_view) {}, sock5_option);
+		asio2::http_client::download(req.host(), req.port(), req, [](auto&) {}, [](std::string_view) {return true; }, nullptr);
+		asio2::http_client::download(req.host(), req.port(), req, [](auto&) {}, [](std::string_view) {return true; }, sock5_option);
 	}
 
 	{
@@ -89,7 +89,7 @@ void http3_test()
 		{
 			asio2::ignore_unused(req, rep);
 
-			rep.fill_file("index.html");
+			rep.fill_file("/index.html");
 			rep.chunked(true);
 
 		}, aop_log{});
@@ -190,7 +190,7 @@ void http3_test()
 				if (has_internet)
 					rep = asio2::http_client::execute("http://www.baidu.com");
 				else
-					rep.fill_file("index.html");
+					rep.fill_file("/index.html");
 			}).detach();
 
 		}, aop_log{}, aop_check{});

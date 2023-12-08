@@ -78,7 +78,7 @@ void https2_test()
 		{
 			asio2::ignore_unused(req, rep);
 
-			rep.fill_file("index.html");
+			rep.fill_file("/index.html");
 		}, aop_log{});
 
 		// If no method is specified, GET and POST are both enabled by default.

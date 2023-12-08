@@ -254,7 +254,7 @@ namespace asio2
 {
 	struct mqtts_rate_client_args : public mqtts_client_args
 	{
-		using socket_t = asio2::mqtt_stream<asio2::simple_rate_policy>;
+		using socket_t = asio2::tcp_stream<asio2::simple_rate_policy>;
 	};
 
 	template<class derived_t>

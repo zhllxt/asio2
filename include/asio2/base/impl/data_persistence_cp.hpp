@@ -106,7 +106,7 @@ namespace asio2::detail
 			}
 
 			return detail::call_data_filter_before_send(derive,
-				std::basic_string<value_type>(s, count));
+				std::basic_string<value_type>(s, std::size_t(count)));
 		}
 
 		template<typename = void>
