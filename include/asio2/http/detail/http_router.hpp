@@ -434,9 +434,11 @@ namespace asio2::detail
 		/**
 		 * @brief set the root directory where we load the files.
 		 */
-		inline self& set_root_directory(std::filesystem::path path)
+		inline self& set_root_directory(const std::filesystem::path& path)
 		{
-			this->root_directory_ = std::move(path);
+			std::error_code ec{};
+			this->root_directory_ = std::filesystem::canonical(path, ec);
+			assert(!ec);
 			return (*this);
 		}
 

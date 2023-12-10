@@ -632,15 +632,21 @@ namespace asio2::detail
 	template<typename = void>
 	std::filesystem::path make_filepath(const std::filesystem::path& base, const std::filesystem::path& p) noexcept
 	{
-		assert(std::filesystem::is_directory(base));
+		std::error_code ec{};
+		std::filesystem::path b = std::filesystem::canonical(base, ec);
+		if (ec)
+		{
+			return {};
+		}
 
-		std::filesystem::path filepath = base;
+		assert(std::filesystem::is_directory(b));
+
+		std::filesystem::path filepath = b;
 		filepath += p;
 
-		std::error_code ec{};
 		filepath = std::filesystem::canonical(filepath, ec);
 
-		if (ec || !is_subpath_of(base, filepath))
+		if (ec || !is_subpath_of(b, filepath))
 		{
 			return {};
 		}
