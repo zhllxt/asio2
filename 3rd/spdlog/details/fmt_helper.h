@@ -18,11 +18,6 @@ namespace spdlog {
 namespace details {
 namespace fmt_helper {
 
-inline spdlog::string_view_t to_string_view(const memory_buf_t &buf) SPDLOG_NOEXCEPT
-{
-    return spdlog::string_view_t{buf.data(), buf.size()};
-}
-
 inline void append_string_view(spdlog::string_view_t view, memory_buf_t &dest)
 {
     auto *buf_ptr = view.data();
@@ -107,7 +102,7 @@ inline void pad2(int n, memory_buf_t &dest)
     }
     else // unlikely, but just in case, let fmt deal with it
     {
-        fmt_lib::format_to(std::back_inserter(dest), "{:02}", n);
+        fmt_lib::format_to(std::back_inserter(dest), SPDLOG_FMT_STRING("{:02}"), n);
     }
 }
 

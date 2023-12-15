@@ -92,12 +92,13 @@ public:
     void format(const details::log_msg &msg, memory_buf_t &dest) override;
 
     template<typename T, typename... Args>
-    pattern_formatter &add_flag(char flag, Args &&... args)
+    pattern_formatter &add_flag(char flag, Args &&...args)
     {
         custom_handlers_[flag] = details::make_unique<T>(std::forward<Args>(args)...);
         return *this;
     }
     void set_pattern(std::string pattern);
+    void need_localtime(bool need = true);
 
 private:
     std::string pattern_;

@@ -4,6 +4,7 @@
 #pragma once
 
 #include <spdlog/fmt/fmt.h>
+#include <chrono>
 
 // Stopwatch support for spdlog  (using std::chrono::steady_clock).
 // Displays elapsed seconds since construction as double.
@@ -60,7 +61,7 @@ template<>
 struct formatter<spdlog::stopwatch> : formatter<double>
 {
     template<typename FormatContext>
-    auto format(const spdlog::stopwatch &sw, FormatContext &ctx) -> decltype(ctx.out())
+    auto format(const spdlog::stopwatch &sw, FormatContext &ctx) const -> decltype(ctx.out())
     {
         return formatter<double>::format(sw.elapsed().count(), ctx);
     }
