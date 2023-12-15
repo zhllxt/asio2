@@ -412,7 +412,7 @@ public:
         ); @endcode
     */
     template<BHO_BEAST_ASYNC_TPARAM1 HandshakeHandler = net::default_completion_token_t<executor_type>>
-    ASIO_INITFN_RESULT_TYPE(HandshakeHandler, void(asio::error_code))
+    ASIO_INITFN_AUTO_RESULT_TYPE(HandshakeHandler, void(asio::error_code))
     async_handshake(handshake_type type,
         ASIO_MOVE_ARG(HandshakeHandler) handler = net::default_completion_token_t<executor_type>{})
     {
@@ -443,7 +443,7 @@ public:
     */
     template<class ConstBufferSequence,
              BHO_BEAST_ASYNC_TPARAM2 BufferedHandshakeHandler = net::default_completion_token_t<executor_type>>
-    ASIO_INITFN_RESULT_TYPE(BufferedHandshakeHandler, void(asio::error_code, std::size_t))
+    ASIO_INITFN_AUTO_RESULT_TYPE(BufferedHandshakeHandler, void(asio::error_code, std::size_t))
     async_handshake(handshake_type type, ConstBufferSequence const& buffers,
         ASIO_MOVE_ARG(BufferedHandshakeHandler) handler
             = net::default_completion_token_t<executor_type>{})
@@ -491,7 +491,7 @@ public:
         ); @endcode
     */
     template<BHO_BEAST_ASYNC_TPARAM1 ShutdownHandler = net::default_completion_token_t<executor_type>>
-    ASIO_INITFN_RESULT_TYPE(ShutdownHandler, void(asio::error_code))
+    ASIO_INITFN_AUTO_RESULT_TYPE(ShutdownHandler, void(asio::error_code))
     async_shutdown(ASIO_MOVE_ARG(ShutdownHandler) handler = net::default_completion_token_t<executor_type>{})
     {
         return p_->next_layer().async_shutdown(
@@ -570,7 +570,7 @@ public:
     */
     template<class ConstBufferSequence,
              BHO_BEAST_ASYNC_TPARAM2 WriteHandler = net::default_completion_token_t<executor_type>>
-    ASIO_INITFN_RESULT_TYPE(WriteHandler, void(asio::error_code, std::size_t))
+    ASIO_INITFN_AUTO_RESULT_TYPE(WriteHandler, void(asio::error_code, std::size_t))
     async_write_some(ConstBufferSequence const& buffers,
         ASIO_MOVE_ARG(WriteHandler) handler= net::default_completion_token_t<executor_type>{})
     {
@@ -652,7 +652,7 @@ public:
     */
     template<class MutableBufferSequence,
              BHO_BEAST_ASYNC_TPARAM2 ReadHandler = net::default_completion_token_t<executor_type>>
-    ASIO_INITFN_RESULT_TYPE(ReadHandler, void(asio::error_code, std::size_t))
+    ASIO_INITFN_AUTO_RESULT_TYPE(ReadHandler, void(asio::error_code, std::size_t))
     async_read_some(MutableBufferSequence const& buffers,
         ASIO_MOVE_ARG(ReadHandler) handler
             = net::default_completion_token_t<executor_type>{})
@@ -673,7 +673,7 @@ public:
         ssl_stream<SyncStream>& stream,
         asio::error_code& ec);
 
-    template<class AsyncStream, BHO_BEAST_ASYNC_TPARAM1 TeardownHandler>
+    template<class AsyncStream, typename TeardownHandler>
     friend
     void
     async_teardown(
@@ -697,7 +697,7 @@ teardown(
 }
 
 template<class AsyncStream,
-        BHO_BEAST_ASYNC_TPARAM1 TeardownHandler = net::default_completion_token_t<beast::executor_type<AsyncStream>>>
+        typename TeardownHandler = net::default_completion_token_t<beast::executor_type<AsyncStream>>>
 void
 async_teardown(
     bho::beast::role_type role,

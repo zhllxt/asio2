@@ -18,7 +18,7 @@
 #include <asio2/bho/beast/core/stream_traits.hpp>
 #include <asio2/bho/beast/core/detail/bind_continuation.hpp>
 #include <asio/coroutine.hpp>
-#include <asio/post.hpp>
+#include <asio/dispatch.hpp>
 #include <asio2/bho/throw_exception.hpp>
 #include <memory>
 
@@ -106,7 +106,8 @@ public:
                         __FILE__, __LINE__,
                         "websocket::async_close"));
 
-                    net::post(sp->stream().get_executor(), std::move(*this));
+                    const auto ex = this->get_immediate_executor();
+                    net::dispatch(ex, std::move(*this));
                 }
                 BHO_ASSERT(impl.wr_block.is_locked(this));
             }
@@ -167,7 +168,8 @@ public:
                         __FILE__, __LINE__,
                         "websocket::async_close"));
 
-                    net::post(sp->stream().get_executor(), std::move(*this));
+                    const auto ex = this->get_immediate_executor();
+                    net::dispatch(ex, std::move(*this));
                 }
                 BHO_ASSERT(impl.rd_block.is_locked(this));
                 if(impl.check_stop_now(ec))

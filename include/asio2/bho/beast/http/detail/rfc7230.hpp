@@ -11,6 +11,7 @@
 #define BHO_BEAST_HTTP_DETAIL_RFC7230_HPP
 
 #include <asio2/bho/beast/core/string.hpp>
+#include <cstdint>
 #include <iterator>
 #include <utility>
 

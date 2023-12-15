@@ -26,7 +26,6 @@
 #include <asio2/bho/beast/core/detail/clamp.hpp>
 #include <asio2/bho/beast/core/detail/config.hpp>
 #include <asio/coroutine.hpp>
-#include <asio/post.hpp>
 #include <asio2/bho/assert.hpp>
 #include <asio2/bho/config.hpp>
 #include <optional>
@@ -122,7 +121,8 @@ public:
                         __FILE__, __LINE__,
                         "websocket::async_read_some"));
 
-                    net::post(sp->stream().get_executor(), std::move(*this));
+                    const auto ex = this->get_immediate_executor();
+                    net::dispatch(ex, std::move(*this));
                 }
                 BHO_ASSERT(impl.rd_block.is_locked(this));
 
@@ -238,7 +238,8 @@ public:
                                         __FILE__, __LINE__,
                                         "websocket::async_read_some"));
 
-                                    net::post(sp->stream().get_executor(), std::move(*this));
+                                    const auto ex = this->get_immediate_executor();
+                                    net::dispatch(ex, std::move(*this));
                                 }
                                 BHO_ASSERT(cont);
                                 // VFALCO call check_stop_now() here?
@@ -291,7 +292,8 @@ public:
                                     __FILE__, __LINE__,
                                     "websocket::async_read_some"));
 
-                                net::post(sp->stream().get_executor(), std::move(*this));
+                                const auto ex = this->get_immediate_executor();
+                                net::dispatch(ex, std::move(*this));
                             }
                             BHO_ASSERT(impl.wr_block.is_locked(this));
                             if(impl.check_stop_now(ec))
@@ -335,7 +337,8 @@ public:
                                         __FILE__, __LINE__,
                                         "websocket::async_read_some"));
 
-                                    net::post(sp->stream().get_executor(), std::move(*this));
+                                    const auto ex = this->get_immediate_executor();
+                                    net::dispatch(ex, std::move(*this));
                                 }
                                 BHO_ASSERT(cont);
                             }
@@ -366,7 +369,8 @@ public:
                                         __FILE__, __LINE__,
                                         "websocket::async_read_some"));
 
-                                    net::post(sp->stream().get_executor(), std::move(*this));
+                                    const auto ex = this->get_immediate_executor();
+                                    net::dispatch(ex, std::move(*this));
                                 }
                                 BHO_ASSERT(cont);
                             }
@@ -648,7 +652,8 @@ public:
                         __FILE__, __LINE__,
                         "websocket::async_read_some"));
 
-                    net::post(sp->stream().get_executor(), std::move(*this));
+                    const auto ex = this->get_immediate_executor();
+                    net::dispatch(ex, std::move(*this));
                 }
                 BHO_ASSERT(impl.wr_block.is_locked(this));
                 if(impl.check_stop_now(ec))

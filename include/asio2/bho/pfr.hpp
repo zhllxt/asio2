@@ -11,6 +11,7 @@
 
 #include <asio2/bho/pfr/config.hpp>
 #include <asio2/bho/pfr/core.hpp>
+#include <asio2/bho/pfr/core_name.hpp>
 #include <asio2/bho/pfr/functions_for.hpp>
 #include <asio2/bho/pfr/functors.hpp>
 #include <asio2/bho/pfr/io.hpp>

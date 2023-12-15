@@ -11,6 +11,6 @@
 // Same format as BHO_VERSION:
 //   major * 100000 + minor * 100 + patch
 
-#define BHO_MP11_VERSION 108300
+#define BHO_MP11_VERSION 108400
 
 #endif // #ifndef BHO_MP11_VERSION_HPP_INCLUDED

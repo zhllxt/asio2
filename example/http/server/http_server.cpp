@@ -92,7 +92,8 @@ int main()
 	// If no method is specified, GET and POST are both enabled by default.
 	server.bind("*", [](http::web_request& req, http::web_response& rep)
 	{
-		rep.fill_file(req.target());
+		rep.fill_file(http::url_decode(req.target()));
+		rep.chunked(true);
 	}, aop_check{}, http::enable_cache);
 
 	// Test http multipart

@@ -15,6 +15,7 @@
 #include <asio2/bho/beast/core/file_base.hpp>
 #include <cstdio>
 #include <cstdint>
+#include <fstream>
 
 namespace bho {
 namespace beast {
@@ -26,14 +27,14 @@ namespace beast {
 */
 class file_stdio
 {
-    std::FILE* f_ = nullptr;
+    mutable std::fstream f_;
 
 public:
     /** The type of the underlying file handle.
 
         This is platform-specific.
     */
-    using native_handle_type = std::FILE*;
+    using native_handle_type = std::fstream;
 
     /** Destructor
 
@@ -63,7 +64,7 @@ public:
     file_stdio& operator=(file_stdio&& other);
 
     /// Returns the native handle associated with the file.
-    std::FILE*
+    const std::fstream&
     native_handle() const
     {
         return f_;
@@ -77,13 +78,13 @@ public:
     */
     BHO_BEAST_DECL
     void
-    native_handle(std::FILE* f);
+    native_handle(std::fstream& f);
 
     /// Returns `true` if the file is open
     bool
     is_open() const
     {
-        return f_ != nullptr;
+        return f_.is_open();
     }
 
     /** Close the file if open

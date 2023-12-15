@@ -81,6 +81,7 @@ private:
 
 	text_t text_;
 	file_t file_;
+    std::uint64_t to_text_limit_ = std::uint64_t(8 * 1024 * 1024);
 
 public:
     /** Destructor.
@@ -135,13 +136,18 @@ public:
 	inline bool is_text() const noexcept { return !is_file();      }
 	inline bool is_file() const noexcept { return file_.is_open(); }
 
+    inline void set_to_text_limit(std::uint64_t v) const noexcept
+    {
+        this->to_text_limit_ = v;
+    }
+
     /// Convert the file body to text body.
     inline bool to_text()
     {
         if (this->is_text())
             return true;
 
-        if (this->size() > std::uint64_t(text_.max_size()))
+		if (this->size() > this->to_text_limit_)
             return false;
 
         error_code ec;

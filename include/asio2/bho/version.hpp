@@ -19,7 +19,7 @@
 //  BHO_VERSION / 100 % 1000 is the minor version
 //  BHO_VERSION / 100000 is the major version
 
-#define BHO_VERSION 108300
+#define BHO_VERSION 108400
 
 //
 //  BHO_LIB_VERSION must be defined to be the same as BHO_VERSION
@@ -27,6 +27,6 @@
 //  number, y is the minor version number, and z is the patch level if not 0.
 //  This is used by <config/auto_link.hpp> to select which library version to link to.
 
-#define BHO_LIB_VERSION "1_83"
+#define BHO_LIB_VERSION "1_84"
 
 #endif

@@ -1,4 +1,4 @@
-//  This file was automatically generated on Sun Jun  5 16:50:18 2022
+//  This file was automatically generated on Fri Oct 13 19:09:38 2023
 //  by libs/config/tools/generate.cpp
 //  Copyright John Maddock 2002-21.
 //  Use, modification and distribution are subject to the 
@@ -81,6 +81,7 @@
 #if defined(BHO_NO_CXX03)\
    || defined(BHO_NO_CXX11_ADDRESSOF)\
    || defined(BHO_NO_CXX11_ALIGNAS)\
+   || defined(BHO_NO_CXX11_ALIGNOF)\
    || defined(BHO_NO_CXX11_ALLOCATOR)\
    || defined(BHO_NO_CXX11_AUTO_DECLARATIONS)\
    || defined(BHO_NO_CXX11_AUTO_MULTIDECLARATIONS)\
@@ -199,5 +200,18 @@
    || defined(BHO_NO_CXX20_HDR_SYNCSTREAM)\
    || defined(BHO_NO_CXX20_HDR_VERSION)
 #    define BHO_NO_CXX20
+#endif
+
+#if defined(BHO_NO_CXX20)\
+   || defined(BHO_NO_CXX23_HDR_EXPECTED)\
+   || defined(BHO_NO_CXX23_HDR_FLAT_MAP)\
+   || defined(BHO_NO_CXX23_HDR_FLAT_SET)\
+   || defined(BHO_NO_CXX23_HDR_GENERATOR)\
+   || defined(BHO_NO_CXX23_HDR_MDSPAN)\
+   || defined(BHO_NO_CXX23_HDR_PRINT)\
+   || defined(BHO_NO_CXX23_HDR_SPANSTREAM)\
+   || defined(BHO_NO_CXX23_HDR_STACKTRACE)\
+   || defined(BHO_NO_CXX23_HDR_STDFLOAT)
+#    define BHO_NO_CXX23
 #endif
 

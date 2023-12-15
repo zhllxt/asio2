@@ -10,8 +10,8 @@
 #include <asio2/bho/endian/detail/order.hpp>
 #include <asio2/bho/endian/detail/integral_by_size.hpp>
 #include <asio2/bho/endian/detail/is_trivially_copyable.hpp>
+#include <asio2/bho/endian/detail/static_assert.hpp>
 #include <type_traits>
-#include <asio2/bho/static_assert.hpp>
 #include <cstddef>
 #include <cstring>
 
@@ -23,7 +23,7 @@ namespace endian
 namespace detail
 {
 
-template<class T, std::size_t N1, BHO_SCOPED_ENUM(order) O1, std::size_t N2, BHO_SCOPED_ENUM(order) O2> struct endian_load_impl
+template<class T, std::size_t N1, order O1, std::size_t N2, order O2> struct endian_load_impl
 {
 };
 
@@ -36,11 +36,11 @@ template<class T, std::size_t N1, BHO_SCOPED_ENUM(order) O1, std::size_t N2, BHO
 //    T is TriviallyCopyable
 //    if N < sizeof(T), T is integral or enum
 
-template<class T, std::size_t N, BHO_SCOPED_ENUM(order) Order>
+template<class T, std::size_t N, order Order>
 inline T endian_load( unsigned char const * p ) BHO_NOEXCEPT
 {
-    BHO_STATIC_ASSERT( sizeof(T) == 1 || sizeof(T) == 2 || sizeof(T) == 4 || sizeof(T) == 8 );
-    BHO_STATIC_ASSERT( N >= 1 && N <= sizeof(T) );
+    BHO_ENDIAN_STATIC_ASSERT( sizeof(T) == 1 || sizeof(T) == 2 || sizeof(T) == 4 || sizeof(T) == 8 );
+    BHO_ENDIAN_STATIC_ASSERT( N >= 1 && N <= sizeof(T) );
 
     return detail::endian_load_impl<T, sizeof(T), order::native, N, Order>()( p );
 }
@@ -50,11 +50,11 @@ namespace detail
 
 // same endianness, same size
 
-template<class T, std::size_t N, BHO_SCOPED_ENUM(order) O> struct endian_load_impl<T, N, O, N, O>
+template<class T, std::size_t N, order O> struct endian_load_impl<T, N, O, N, O>
 {
     inline T operator()( unsigned char const * p ) const BHO_NOEXCEPT
     {
-        BHO_STATIC_ASSERT( is_trivially_copyable<T>::value );
+        BHO_ENDIAN_STATIC_ASSERT( is_trivially_copyable<T>::value );
 
         T t;
         std::memcpy( &t, p, N );
@@ -64,11 +64,11 @@ template<class T, std::size_t N, BHO_SCOPED_ENUM(order) O> struct endian_load_im
 
 // same size, reverse endianness
 
-template<class T, std::size_t N, BHO_SCOPED_ENUM(order) O1, BHO_SCOPED_ENUM(order) O2> struct endian_load_impl<T, N, O1, N, O2>
+template<class T, std::size_t N, order O1, order O2> struct endian_load_impl<T, N, O1, N, O2>
 {
     inline T operator()( unsigned char const * p ) const BHO_NOEXCEPT
     {
-        BHO_STATIC_ASSERT( is_trivially_copyable<T>::value );
+        BHO_ENDIAN_STATIC_ASSERT( is_trivially_copyable<T>::value );
 
         typename integral_by_size<N>::type tmp;
         std::memcpy( &tmp, p, N );
@@ -83,11 +83,11 @@ template<class T, std::size_t N, BHO_SCOPED_ENUM(order) O1, BHO_SCOPED_ENUM(orde
 
 // expanding load 1 -> 2
 
-template<class T, BHO_SCOPED_ENUM(order) Order> struct endian_load_impl<T, 2, Order, 1, order::little>
+template<class T, order Order> struct endian_load_impl<T, 2, Order, 1, order::little>
 {
     inline T operator()( unsigned char const * p ) const BHO_NOEXCEPT
     {
-        BHO_STATIC_ASSERT( std::is_integral<T>::value || std::is_enum<T>::value );
+        BHO_ENDIAN_STATIC_ASSERT( std::is_integral<T>::value || std::is_enum<T>::value );
 
         unsigned char tmp[ 2 ];
 
@@ -98,11 +98,11 @@ template<class T, BHO_SCOPED_ENUM(order) Order> struct endian_load_impl<T, 2, Or
     }
 };
 
-template<class T, BHO_SCOPED_ENUM(order) Order> struct endian_load_impl<T, 2, Order, 1, order::big>
+template<class T, order Order> struct endian_load_impl<T, 2, Order, 1, order::big>
 {
     inline T operator()( unsigned char const * p ) const BHO_NOEXCEPT
     {
-        BHO_STATIC_ASSERT( std::is_integral<T>::value || std::is_enum<T>::value );
+        BHO_ENDIAN_STATIC_ASSERT( std::is_integral<T>::value || std::is_enum<T>::value );
 
         unsigned char tmp[ 2 ];
 
@@ -115,11 +115,11 @@ template<class T, BHO_SCOPED_ENUM(order) Order> struct endian_load_impl<T, 2, Or
 
 // expanding load 1 -> 4
 
-template<class T, BHO_SCOPED_ENUM(order) Order> struct endian_load_impl<T, 4, Order, 1, order::little>
+template<class T, order Order> struct endian_load_impl<T, 4, Order, 1, order::little>
 {
     inline T operator()( unsigned char const * p ) const BHO_NOEXCEPT
     {
-        BHO_STATIC_ASSERT( std::is_integral<T>::value || std::is_enum<T>::value );
+        BHO_ENDIAN_STATIC_ASSERT( std::is_integral<T>::value || std::is_enum<T>::value );
 
         unsigned char tmp[ 4 ];
 
@@ -134,11 +134,11 @@ template<class T, BHO_SCOPED_ENUM(order) Order> struct endian_load_impl<T, 4, Or
     }
 };
 
-template<class T, BHO_SCOPED_ENUM(order) Order> struct endian_load_impl<T, 4, Order, 1, order::big>
+template<class T, order Order> struct endian_load_impl<T, 4, Order, 1, order::big>
 {
     inline T operator()( unsigned char const * p ) const BHO_NOEXCEPT
     {
-        BHO_STATIC_ASSERT( std::is_integral<T>::value || std::is_enum<T>::value );
+        BHO_ENDIAN_STATIC_ASSERT( std::is_integral<T>::value || std::is_enum<T>::value );
 
         unsigned char tmp[ 4 ];
 
@@ -155,11 +155,11 @@ template<class T, BHO_SCOPED_ENUM(order) Order> struct endian_load_impl<T, 4, Or
 
 // expanding load 2 -> 4
 
-template<class T, BHO_SCOPED_ENUM(order) Order> struct endian_load_impl<T, 4, Order, 2, order::little>
+template<class T, order Order> struct endian_load_impl<T, 4, Order, 2, order::little>
 {
     inline T operator()( unsigned char const * p ) const BHO_NOEXCEPT
     {
-        BHO_STATIC_ASSERT( std::is_integral<T>::value || std::is_enum<T>::value );
+        BHO_ENDIAN_STATIC_ASSERT( std::is_integral<T>::value || std::is_enum<T>::value );
 
         unsigned char tmp[ 4 ];
 
@@ -174,11 +174,11 @@ template<class T, BHO_SCOPED_ENUM(order) Order> struct endian_load_impl<T, 4, Or
     }
 };
 
-template<class T, BHO_SCOPED_ENUM(order) Order> struct endian_load_impl<T, 4, Order, 2, order::big>
+template<class T, order Order> struct endian_load_impl<T, 4, Order, 2, order::big>
 {
     inline T operator()( unsigned char const * p ) const BHO_NOEXCEPT
     {
-        BHO_STATIC_ASSERT( std::is_integral<T>::value || std::is_enum<T>::value );
+        BHO_ENDIAN_STATIC_ASSERT( std::is_integral<T>::value || std::is_enum<T>::value );
 
         unsigned char tmp[ 4 ];
 
@@ -195,11 +195,11 @@ template<class T, BHO_SCOPED_ENUM(order) Order> struct endian_load_impl<T, 4, Or
 
 // expanding load 3 -> 4
 
-template<class T, BHO_SCOPED_ENUM(order) Order> struct endian_load_impl<T, 4, Order, 3, order::little>
+template<class T, order Order> struct endian_load_impl<T, 4, Order, 3, order::little>
 {
     inline T operator()( unsigned char const * p ) const BHO_NOEXCEPT
     {
-        BHO_STATIC_ASSERT( std::is_integral<T>::value || std::is_enum<T>::value );
+        BHO_ENDIAN_STATIC_ASSERT( std::is_integral<T>::value || std::is_enum<T>::value );
 
         unsigned char tmp[ 4 ];
 
@@ -212,11 +212,11 @@ template<class T, BHO_SCOPED_ENUM(order) Order> struct endian_load_impl<T, 4, Or
     }
 };
 
-template<class T, BHO_SCOPED_ENUM(order) Order> struct endian_load_impl<T, 4, Order, 3, order::big>
+template<class T, order Order> struct endian_load_impl<T, 4, Order, 3, order::big>
 {
     inline T operator()( unsigned char const * p ) const BHO_NOEXCEPT
     {
-        BHO_STATIC_ASSERT( std::is_integral<T>::value || std::is_enum<T>::value );
+        BHO_ENDIAN_STATIC_ASSERT( std::is_integral<T>::value || std::is_enum<T>::value );
 
         unsigned char tmp[ 4 ];
 
@@ -231,11 +231,11 @@ template<class T, BHO_SCOPED_ENUM(order) Order> struct endian_load_impl<T, 4, Or
 
 // expanding load 1 -> 8
 
-template<class T, BHO_SCOPED_ENUM(order) Order> struct endian_load_impl<T, 8, Order, 1, order::little>
+template<class T, order Order> struct endian_load_impl<T, 8, Order, 1, order::little>
 {
     inline T operator()( unsigned char const * p ) const BHO_NOEXCEPT
     {
-        BHO_STATIC_ASSERT( std::is_integral<T>::value || std::is_enum<T>::value );
+        BHO_ENDIAN_STATIC_ASSERT( std::is_integral<T>::value || std::is_enum<T>::value );
 
         unsigned char tmp[ 8 ];
 
@@ -255,11 +255,11 @@ template<class T, BHO_SCOPED_ENUM(order) Order> struct endian_load_impl<T, 8, Or
     }
 };
 
-template<class T, BHO_SCOPED_ENUM(order) Order> struct endian_load_impl<T, 8, Order, 1, order::big>
+template<class T, order Order> struct endian_load_impl<T, 8, Order, 1, order::big>
 {
     inline T operator()( unsigned char const * p ) const BHO_NOEXCEPT
     {
-        BHO_STATIC_ASSERT( std::is_integral<T>::value || std::is_enum<T>::value );
+        BHO_ENDIAN_STATIC_ASSERT( std::is_integral<T>::value || std::is_enum<T>::value );
 
         unsigned char tmp[ 8 ];
 
@@ -281,11 +281,11 @@ template<class T, BHO_SCOPED_ENUM(order) Order> struct endian_load_impl<T, 8, Or
 
 // expanding load 2 -> 8
 
-template<class T, BHO_SCOPED_ENUM(order) Order> struct endian_load_impl<T, 8, Order, 2, order::little>
+template<class T, order Order> struct endian_load_impl<T, 8, Order, 2, order::little>
 {
     inline T operator()( unsigned char const * p ) const BHO_NOEXCEPT
     {
-        BHO_STATIC_ASSERT( std::is_integral<T>::value || std::is_enum<T>::value );
+        BHO_ENDIAN_STATIC_ASSERT( std::is_integral<T>::value || std::is_enum<T>::value );
 
         unsigned char tmp[ 8 ];
 
@@ -305,11 +305,11 @@ template<class T, BHO_SCOPED_ENUM(order) Order> struct endian_load_impl<T, 8, Or
     }
 };
 
-template<class T, BHO_SCOPED_ENUM(order) Order> struct endian_load_impl<T, 8, Order, 2, order::big>
+template<class T, order Order> struct endian_load_impl<T, 8, Order, 2, order::big>
 {
     inline T operator()( unsigned char const * p ) const BHO_NOEXCEPT
     {
-        BHO_STATIC_ASSERT( std::is_integral<T>::value || std::is_enum<T>::value );
+        BHO_ENDIAN_STATIC_ASSERT( std::is_integral<T>::value || std::is_enum<T>::value );
 
         unsigned char tmp[ 8 ];
 
@@ -331,11 +331,11 @@ template<class T, BHO_SCOPED_ENUM(order) Order> struct endian_load_impl<T, 8, Or
 
 // expanding load 3 -> 8
 
-template<class T, BHO_SCOPED_ENUM(order) Order> struct endian_load_impl<T, 8, Order, 3, order::little>
+template<class T, order Order> struct endian_load_impl<T, 8, Order, 3, order::little>
 {
     inline T operator()( unsigned char const * p ) const BHO_NOEXCEPT
     {
-        BHO_STATIC_ASSERT( std::is_integral<T>::value || std::is_enum<T>::value );
+        BHO_ENDIAN_STATIC_ASSERT( std::is_integral<T>::value || std::is_enum<T>::value );
 
         unsigned char tmp[ 8 ];
 
@@ -355,11 +355,11 @@ template<class T, BHO_SCOPED_ENUM(order) Order> struct endian_load_impl<T, 8, Or
     }
 };
 
-template<class T, BHO_SCOPED_ENUM(order) Order> struct endian_load_impl<T, 8, Order, 3, order::big>
+template<class T, order Order> struct endian_load_impl<T, 8, Order, 3, order::big>
 {
     inline T operator()( unsigned char const * p ) const BHO_NOEXCEPT
     {
-        BHO_STATIC_ASSERT( std::is_integral<T>::value || std::is_enum<T>::value );
+        BHO_ENDIAN_STATIC_ASSERT( std::is_integral<T>::value || std::is_enum<T>::value );
 
         unsigned char tmp[ 8 ];
 
@@ -381,11 +381,11 @@ template<class T, BHO_SCOPED_ENUM(order) Order> struct endian_load_impl<T, 8, Or
 
 // expanding load 4 -> 8
 
-template<class T, BHO_SCOPED_ENUM(order) Order> struct endian_load_impl<T, 8, Order, 4, order::little>
+template<class T, order Order> struct endian_load_impl<T, 8, Order, 4, order::little>
 {
     inline T operator()( unsigned char const * p ) const BHO_NOEXCEPT
     {
-        BHO_STATIC_ASSERT( std::is_integral<T>::value || std::is_enum<T>::value );
+        BHO_ENDIAN_STATIC_ASSERT( std::is_integral<T>::value || std::is_enum<T>::value );
 
         unsigned char tmp[ 8 ];
 
@@ -405,11 +405,11 @@ template<class T, BHO_SCOPED_ENUM(order) Order> struct endian_load_impl<T, 8, Or
     }
 };
 
-template<class T, BHO_SCOPED_ENUM(order) Order> struct endian_load_impl<T, 8, Order, 4, order::big>
+template<class T, order Order> struct endian_load_impl<T, 8, Order, 4, order::big>
 {
     inline T operator()( unsigned char const * p ) const BHO_NOEXCEPT
     {
-        BHO_STATIC_ASSERT( std::is_integral<T>::value || std::is_enum<T>::value );
+        BHO_ENDIAN_STATIC_ASSERT( std::is_integral<T>::value || std::is_enum<T>::value );
 
         unsigned char tmp[ 8 ];
 
@@ -431,11 +431,11 @@ template<class T, BHO_SCOPED_ENUM(order) Order> struct endian_load_impl<T, 8, Or
 
 // expanding load 5 -> 8
 
-template<class T, BHO_SCOPED_ENUM(order) Order> struct endian_load_impl<T, 8, Order, 5, order::little>
+template<class T, order Order> struct endian_load_impl<T, 8, Order, 5, order::little>
 {
     inline T operator()( unsigned char const * p ) const BHO_NOEXCEPT
     {
-        BHO_STATIC_ASSERT( std::is_integral<T>::value || std::is_enum<T>::value );
+        BHO_ENDIAN_STATIC_ASSERT( std::is_integral<T>::value || std::is_enum<T>::value );
 
         unsigned char tmp[ 8 ];
 
@@ -455,11 +455,11 @@ template<class T, BHO_SCOPED_ENUM(order) Order> struct endian_load_impl<T, 8, Or
     }
 };
 
-template<class T, BHO_SCOPED_ENUM(order) Order> struct endian_load_impl<T, 8, Order, 5, order::big>
+template<class T, order Order> struct endian_load_impl<T, 8, Order, 5, order::big>
 {
     inline T operator()( unsigned char const * p ) const BHO_NOEXCEPT
     {
-        BHO_STATIC_ASSERT( std::is_integral<T>::value || std::is_enum<T>::value );
+        BHO_ENDIAN_STATIC_ASSERT( std::is_integral<T>::value || std::is_enum<T>::value );
 
         unsigned char tmp[ 8 ];
 
@@ -481,11 +481,11 @@ template<class T, BHO_SCOPED_ENUM(order) Order> struct endian_load_impl<T, 8, Or
 
 // expanding load 6 -> 8
 
-template<class T, BHO_SCOPED_ENUM(order) Order> struct endian_load_impl<T, 8, Order, 6, order::little>
+template<class T, order Order> struct endian_load_impl<T, 8, Order, 6, order::little>
 {
     inline T operator()( unsigned char const * p ) const BHO_NOEXCEPT
     {
-        BHO_STATIC_ASSERT( std::is_integral<T>::value || std::is_enum<T>::value );
+        BHO_ENDIAN_STATIC_ASSERT( std::is_integral<T>::value || std::is_enum<T>::value );
 
         unsigned char tmp[ 8 ];
 
@@ -505,11 +505,11 @@ template<class T, BHO_SCOPED_ENUM(order) Order> struct endian_load_impl<T, 8, Or
     }
 };
 
-template<class T, BHO_SCOPED_ENUM(order) Order> struct endian_load_impl<T, 8, Order, 6, order::big>
+template<class T, order Order> struct endian_load_impl<T, 8, Order, 6, order::big>
 {
     inline T operator()( unsigned char const * p ) const BHO_NOEXCEPT
     {
-        BHO_STATIC_ASSERT( std::is_integral<T>::value || std::is_enum<T>::value );
+        BHO_ENDIAN_STATIC_ASSERT( std::is_integral<T>::value || std::is_enum<T>::value );
 
         unsigned char tmp[ 8 ];
 
@@ -531,11 +531,11 @@ template<class T, BHO_SCOPED_ENUM(order) Order> struct endian_load_impl<T, 8, Or
 
 // expanding load 7 -> 8
 
-template<class T, BHO_SCOPED_ENUM(order) Order> struct endian_load_impl<T, 8, Order, 7, order::little>
+template<class T, order Order> struct endian_load_impl<T, 8, Order, 7, order::little>
 {
     inline T operator()( unsigned char const * p ) const BHO_NOEXCEPT
     {
-        BHO_STATIC_ASSERT( std::is_integral<T>::value || std::is_enum<T>::value );
+        BHO_ENDIAN_STATIC_ASSERT( std::is_integral<T>::value || std::is_enum<T>::value );
 
         unsigned char tmp[ 8 ];
 
@@ -555,11 +555,11 @@ template<class T, BHO_SCOPED_ENUM(order) Order> struct endian_load_impl<T, 8, Or
     }
 };
 
-template<class T, BHO_SCOPED_ENUM(order) Order> struct endian_load_impl<T, 8, Order, 7, order::big>
+template<class T, order Order> struct endian_load_impl<T, 8, Order, 7, order::big>
 {
     inline T operator()( unsigned char const * p ) const BHO_NOEXCEPT
     {
-        BHO_STATIC_ASSERT( std::is_integral<T>::value || std::is_enum<T>::value );
+        BHO_ENDIAN_STATIC_ASSERT( std::is_integral<T>::value || std::is_enum<T>::value );
 
         unsigned char tmp[ 8 ];
 

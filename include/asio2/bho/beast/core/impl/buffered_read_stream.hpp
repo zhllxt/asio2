@@ -16,7 +16,7 @@
 #include <asio2/bho/beast/core/read_size.hpp>
 #include <asio2/bho/beast/core/stream_traits.hpp>
 #include <asio2/bho/beast/core/detail/is_invocable.hpp>
-#include <asio/post.hpp>
+#include <asio/dispatch.hpp>
 #include <asio2/bho/throw_exception.hpp>
 
 namespace bho {
@@ -80,11 +80,13 @@ public:
                             std::move(*this));
             }
             step_ = 3;
-            return net::post(
-                s_.get_executor(),
-                beast::bind_front_handler(
-                    std::move(*this), ec, 0));
-
+            {
+                const auto ex = this->get_immediate_executor();
+                return net::dispatch(
+                    ex,
+                    beast::bind_front_handler(
+                        std::move(*this), ec, 0));
+            }
         case 1:
             // upcall
             break;

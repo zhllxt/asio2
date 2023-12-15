@@ -305,6 +305,10 @@
 #  define BHO_CXX_VERSION 201402L
 #endif
 
+#if BHO_CXX_VERSION >= 201703L
+#  define BHO_ATTRIBUTE_UNUSED [[maybe_unused]]
+#endif
+
 #ifndef BHO_COMPILER
 // TODO:
 // these things are mostly bogus. 1200 means version 12.0 of the compiler. The

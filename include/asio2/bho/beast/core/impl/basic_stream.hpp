@@ -299,7 +299,7 @@ public:
             // This can occur even if an existing async_read is in progress.
             // In this specific case, we will complete the async op with no error
             // in order to prevent assertions and/or internal corruption of the basic_stream
-            this->complete(false, error_code(), 0);
+            this->complete(false, error_code(), std::size_t{0});
         }
         else
         {
@@ -895,7 +895,7 @@ template<
     class EndpointSequence,
     ASIO_COMPLETION_TOKEN_FOR(void(error_code, typename Protocol::endpoint)) RangeConnectHandler,
     class>
-ASIO_INITFN_RESULT_TYPE(RangeConnectHandler,void(error_code, typename Protocol::endpoint))
+ASIO_INITFN_AUTO_RESULT_TYPE(RangeConnectHandler,void(error_code, typename Protocol::endpoint))
 basic_stream<Protocol, Executor, RatePolicy>::
 async_connect(
     EndpointSequence const& endpoints,
@@ -917,7 +917,7 @@ template<
     class ConnectCondition,
     ASIO_COMPLETION_TOKEN_FOR(void(error_code, typename Protocol::endpoint)) RangeConnectHandler,
     class>
-ASIO_INITFN_RESULT_TYPE(RangeConnectHandler,void (error_code, typename Protocol::endpoint))
+ASIO_INITFN_AUTO_RESULT_TYPE(RangeConnectHandler,void (error_code, typename Protocol::endpoint))
 basic_stream<Protocol, Executor, RatePolicy>::
 async_connect(
     EndpointSequence const& endpoints,
@@ -938,7 +938,7 @@ template<class Protocol, class Executor, class RatePolicy>
 template<
     class Iterator,
     ASIO_COMPLETION_TOKEN_FOR(void(error_code, Iterator)) IteratorConnectHandler>
-ASIO_INITFN_RESULT_TYPE(IteratorConnectHandler,void (error_code, Iterator))
+ASIO_INITFN_AUTO_RESULT_TYPE(IteratorConnectHandler,void (error_code, Iterator))
 basic_stream<Protocol, Executor, RatePolicy>::
 async_connect(
     Iterator begin, Iterator end,
@@ -959,7 +959,7 @@ template<
     class Iterator,
     class ConnectCondition,
     ASIO_COMPLETION_TOKEN_FOR(void(error_code, Iterator)) IteratorConnectHandler>
-ASIO_INITFN_RESULT_TYPE(IteratorConnectHandler,void (error_code, Iterator))
+ASIO_INITFN_AUTO_RESULT_TYPE(IteratorConnectHandler,void (error_code, Iterator))
 basic_stream<Protocol, Executor, RatePolicy>::
 async_connect(
     Iterator begin, Iterator end,

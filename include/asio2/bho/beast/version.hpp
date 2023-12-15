@@ -20,7 +20,7 @@
    This is a simple integer that is incremented by one every
    time a set of code changes is merged to the develop branch.
 */
-#define BHO_BEAST_VERSION 347
+#define BHO_BEAST_VERSION 351
 
 // A string describing BHO_BEAST_VERSION, that can be used in http headers.
 #define BHO_BEAST_VERSION_STRING "BHO.Beast/" BHO_STRINGIZE(BHO_BEAST_VERSION)

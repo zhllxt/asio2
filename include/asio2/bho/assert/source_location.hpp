@@ -7,9 +7,7 @@
 // Distributed under the Boost Software License, Version 1.0.
 // http://www.boost.org/LICENSE_1_0.txt
 
-#include <asio2/bho/current_function.hpp>
 #include <asio2/bho/config.hpp>
-#include <asio2/bho/config/workaround.hpp>
 #include <asio2/bho/cstdint.hpp>
 #include <iosfwd>
 #include <string>

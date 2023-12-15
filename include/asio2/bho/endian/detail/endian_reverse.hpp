@@ -8,10 +8,11 @@
 #include <asio2/bho/endian/detail/integral_by_size.hpp>
 #include <asio2/bho/endian/detail/intrinsic.hpp>
 #include <asio2/bho/endian/detail/is_scoped_enum.hpp>
-#include <type_traits>
-#include <asio2/bho/static_assert.hpp>
-#include <asio2/bho/cstdint.hpp>
+#include <asio2/bho/endian/detail/is_integral.hpp>
+#include <asio2/bho/endian/detail/static_assert.hpp>
 #include <asio2/bho/config.hpp>
+#include <type_traits>
+#include <cstdint>
 #include <cstddef>
 #include <cstring>
 
@@ -43,12 +44,12 @@ namespace detail
 //  -- intrinsic approach suggested by reviewers, and by David Stone, who provided
 //     his Boost licensed macro implementation (detail/intrinsic.hpp)
 
-inline uint8_t BHO_CONSTEXPR endian_reverse_impl( uint8_t x ) BHO_NOEXCEPT
+inline std::uint8_t BHO_CONSTEXPR endian_reverse_impl( std::uint8_t x ) BHO_NOEXCEPT
 {
     return x;
 }
 
-inline uint16_t BHO_ENDIAN_CONSTEXPR endian_reverse_impl( uint16_t x ) BHO_NOEXCEPT
+inline std::uint16_t BHO_ENDIAN_CONSTEXPR endian_reverse_impl( std::uint16_t x ) BHO_NOEXCEPT
 {
 #ifdef BHO_ENDIAN_NO_INTRINSICS
 
@@ -61,11 +62,11 @@ inline uint16_t BHO_ENDIAN_CONSTEXPR endian_reverse_impl( uint16_t x ) BHO_NOEXC
 #endif
 }
 
-inline uint32_t BHO_ENDIAN_CONSTEXPR endian_reverse_impl( uint32_t x ) BHO_NOEXCEPT
+inline std::uint32_t BHO_ENDIAN_CONSTEXPR endian_reverse_impl( std::uint32_t x ) BHO_NOEXCEPT
 {
 #ifdef BHO_ENDIAN_NO_INTRINSICS
 
-    uint32_t step16 = x << 16 | x >> 16;
+    std::uint32_t step16 = x << 16 | x >> 16;
     return ((step16 << 8) & 0xff00ff00) | ((step16 >> 8) & 0x00ff00ff);
 
 #else
@@ -75,12 +76,12 @@ inline uint32_t BHO_ENDIAN_CONSTEXPR endian_reverse_impl( uint32_t x ) BHO_NOEXC
 #endif
 }
 
-inline uint64_t BHO_ENDIAN_CONSTEXPR endian_reverse_impl( uint64_t x ) BHO_NOEXCEPT
+inline std::uint64_t BHO_ENDIAN_CONSTEXPR endian_reverse_impl( std::uint64_t x ) BHO_NOEXCEPT
 {
 #ifdef BHO_ENDIAN_NO_INTRINSICS
 
-    uint64_t step32 = x << 32 | x >> 32;
-    uint64_t step16 = (step32 & 0x0000FFFF0000FFFFULL) << 16 | (step32 & 0xFFFF0000FFFF0000ULL) >> 16;
+    std::uint64_t step32 = x << 32 | x >> 32;
+    std::uint64_t step16 = (step32 & 0x0000FFFF0000FFFFULL) << 16 | (step32 & 0xFFFF0000FFFF0000ULL) >> 16;
     return (step16 & 0x00FF00FF00FF00FFULL) << 8 | (step16 & 0xFF00FF00FF00FF00ULL) >> 8;
 
 #else
@@ -90,12 +91,12 @@ inline uint64_t BHO_ENDIAN_CONSTEXPR endian_reverse_impl( uint64_t x ) BHO_NOEXC
 # endif
 }
 
-#if defined(BHO_HAS_INT128)
+#if defined(__SIZEOF_INT128__)
 
-inline uint128_type BHO_ENDIAN_CONSTEXPR endian_reverse_impl( uint128_type x ) BHO_NOEXCEPT
+inline __uint128_t BHO_ENDIAN_CONSTEXPR endian_reverse_impl( __uint128_t x ) BHO_NOEXCEPT
 {
-    return endian_reverse_impl( static_cast<uint64_t>( x >> 64 ) ) |
-        static_cast<uint128_type>( endian_reverse_impl( static_cast<uint64_t>( x ) ) ) << 64;
+    return endian_reverse_impl( static_cast<std::uint64_t>( x >> 64 ) ) |
+        static_cast<__uint128_t>( endian_reverse_impl( static_cast<std::uint64_t>( x ) ) ) << 64;
 }
 
 #endif
@@ -103,7 +104,7 @@ inline uint128_type BHO_ENDIAN_CONSTEXPR endian_reverse_impl( uint128_type x ) B
 // is_endian_reversible
 
 template<class T> struct is_endian_reversible: std::integral_constant<bool,
-    (std::is_integral<T>::value && !std::is_same<T, bool>::value) || is_scoped_enum<T>::value>
+    (is_integral<T>::value && !std::is_same<T, bool>::value) || is_scoped_enum<T>::value>
 {
 };
 
@@ -123,7 +124,7 @@ template<class T> inline BHO_CONSTEXPR
     typename std::enable_if< !std::is_class<T>::value, T >::type
     endian_reverse( T x ) BHO_NOEXCEPT
 {
-    BHO_STATIC_ASSERT( detail::is_endian_reversible<T>::value );
+    BHO_ENDIAN_STATIC_ASSERT( detail::is_endian_reversible<T>::value );
 
     typedef typename detail::integral_by_size< sizeof(T) >::type uintN_t;
 
@@ -137,7 +138,7 @@ template<class T> inline
     typename std::enable_if< !std::is_class<T>::value >::type
     endian_reverse_inplace( T & x ) BHO_NOEXCEPT
 {
-    BHO_STATIC_ASSERT( detail::is_endian_reversible_inplace<T>::value );
+    BHO_ENDIAN_STATIC_ASSERT( detail::is_endian_reversible_inplace<T>::value );
 
     typename detail::integral_by_size< sizeof(T) >::type x2;
 

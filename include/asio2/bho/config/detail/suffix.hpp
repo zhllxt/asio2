@@ -1257,6 +1257,46 @@ namespace std{ using ::type_info; }
 #endif
 #endif
 
+#if (!defined(__has_include) || (BHO_CXX_VERSION < 202003L))
+#  define BHO_NO_CXX23_HDR_EXPECTED
+#  define BHO_NO_CXX23_HDR_FLAT_MAP
+#  define BHO_NO_CXX23_HDR_FLAT_SET
+#  define BHO_NO_CXX23_HDR_GENERATOR
+#  define BHO_NO_CXX23_HDR_MDSPAN
+#  define BHO_NO_CXX23_HDR_PRINT
+#  define BHO_NO_CXX23_HDR_SPANSTREAM
+#  define BHO_NO_CXX23_HDR_STACKTRACE
+#  define BHO_NO_CXX23_HDR_STDFLOAT
+#else
+#if (!__has_include(<expected>) || !defined(__cpp_lib_expected) || (__cpp_lib_expected < 202211L)) && !defined(BHO_NO_CXX23_HDR_EXPECTED)
+#  define BHO_NO_CXX23_HDR_EXPECTED
+#endif
+#if (!__has_include(<flat_map>) || !defined(__cpp_lib_flat_map) || (__cpp_lib_flat_map < 202207L)) && !defined(BHO_NO_CXX23_HDR_FLAT_MAP)
+#  define BHO_NO_CXX23_HDR_FLAT_MAP
+#endif
+#if (!__has_include(<flat_set>) || !defined(__cpp_lib_flat_set) || (__cpp_lib_flat_set < 202207L)) && !defined(BHO_NO_CXX23_HDR_FLAT_SET)
+#  define BHO_NO_CXX23_HDR_FLAT_SET
+#endif
+#if (!__has_include(<generator>) || !defined(__cpp_lib_generator) || (__cpp_lib_generator < 202207L)) && !defined(BHO_NO_CXX23_HDR_GENERATOR)
+#  define BHO_NO_CXX23_HDR_GENERATOR
+#endif
+#if (!__has_include(<mdspan>) || !defined(__cpp_lib_mdspan) || (__cpp_lib_mdspan < 202207L)) && !defined(BHO_NO_CXX23_HDR_MDSPAN)
+#  define BHO_NO_CXX23_HDR_MDSPAN
+#endif
+#if (!__has_include(<print>) || !defined(__cpp_lib_print) || (__cpp_lib_print < 202207L)) && !defined(BHO_NO_CXX23_HDR_PRINT)
+#  define BHO_NO_CXX23_HDR_PRINT
+#endif
+#if (!__has_include(<spanstream>) || !defined(__cpp_lib_spanstream) || (__cpp_lib_spanstream < 202106L)) && !defined(BHO_NO_CXX23_HDR_SPANSTREAM)
+#  define BHO_NO_CXX23_HDR_SPANSTREAM
+#endif
+#if (!__has_include(<stacktrace>) || !defined(__cpp_lib_stacktrace) || (__cpp_lib_stacktrace < 202011L)) && !defined(BHO_NO_CXX23_HDR_STACKTRACE)
+#  define BHO_NO_CXX23_HDR_STACKTRACE
+#endif
+#if !__has_include(<stdfloat>) && !defined(BHO_NO_CXX23_HDR_STDFLOAT)
+#  define BHO_NO_CXX23_HDR_STDFLOAT
+#endif
+#endif
+
 #if defined(__cplusplus) && defined(__has_include)
 #if !__has_include(<version>)
 #  define BHO_NO_CXX20_HDR_VERSION

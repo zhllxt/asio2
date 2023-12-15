@@ -2,7 +2,7 @@
 // Distributed under the Boost Software License, Version 1.0.
 // https://www.boost.org/LICENSE_1_0.txt)
 
-#if !defined(__APPLE__)
+#if !defined(__apple_build_version__)
 
 # define BHO_CLANG_VERSION (__clang_major__ * 10000 + __clang_minor__ * 100 + __clang_patchlevel__ % 100)
 
@@ -11,7 +11,13 @@
 
 // https://en.wikipedia.org/wiki/Xcode#Toolchain_versions
 
-# if BHO_CLANG_REPORTED_VERSION >= 140000
+# if BHO_CLANG_REPORTED_VERSION >= 150000
+#   define BHO_CLANG_VERSION 160000
+
+# elif BHO_CLANG_REPORTED_VERSION >= 140003
+#   define BHO_CLANG_VERSION 150000
+
+# elif BHO_CLANG_REPORTED_VERSION >= 140000
 #   define BHO_CLANG_VERSION 140000
 
 # elif BHO_CLANG_REPORTED_VERSION >= 130100

@@ -43,12 +43,12 @@ file_stdio::
 ~file_stdio()
 {
     if(f_)
-        fclose(f_);
+        f_.close();
 }
 
 file_stdio::
 file_stdio(file_stdio&& other)
-    : f_(std::exchange(other.f_, nullptr))
+    : f_(std::move(other.f_))
 {
 }
 
@@ -59,19 +59,18 @@ operator=(file_stdio&& other)
     if(&other == this)
         return *this;
     if(f_)
-        fclose(f_);
-    f_ = other.f_;
-    other.f_ = nullptr;
+        f_.close();
+    f_ = std::move(other.f_);
     return *this;
 }
 
 void
 file_stdio::
-native_handle(std::FILE* f)
+native_handle(std::fstream& f)
 {
     if(f_)
-        fclose(f_);
-    f_ = f;
+        f_.close();
+    f_ = std::move(f);
 }
 
 void
@@ -80,13 +79,7 @@ close(error_code& ec)
 {
     if(f_)
     {
-        int failed = fclose(f_);
-        f_ = nullptr;
-        if(failed)
-        {
-            ec.assign(errno, generic_category());
-            return;
-        }
+        f_.close();
     }
     ec = {};
 }
@@ -97,56 +90,47 @@ open(char const* path, file_mode mode, error_code& ec)
 {
     if(f_)
     {
-        fclose(f_);
-        f_ = nullptr;
+        f_.close();
     }
     ec = {};
-    char const* s;
+    std::ios_base::openmode s;
     switch(mode)
     {
     default:
     case file_mode::read:
-        s = "rb";
+        s = std::ios_base::in | std::ios_base::binary;
         break;
 
     case file_mode::scan:
-        s = "rb";
+        s = std::ios_base::in | std::ios_base::binary;
         break;
 
     case file_mode::write:
-        s = "wb+";
+        s = std::ios_base::out | std::ios_base::binary;
         break;
 
     case file_mode::write_new:
     {
-        s = "wbx";
+        s = std::ios_base::out | std::ios_base::binary | std::ios_base::trunc;
         break;
     }
 
     case file_mode::write_existing:
-        s = "rb+";
+        s = std::ios_base::out | std::ios_base::binary;
         break;
 
     case file_mode::append:
-        s = "ab";
+        s = std::ios_base::out | std::ios_base::binary | std::ios_base::app;
         break;
 
     case file_mode::append_existing:
     {
-        auto const f0 =
-            std::fopen(path, "rb+");
-        if(! f0)
-        {
-            ec.assign(errno, generic_category());
-            return;
-        }
-        std::fclose(f0);
-        s = "ab";
+        s = std::ios_base::out | std::ios_base::binary | std::ios_base::app;
         break;
     }
     }
 
-    f_ = std::fopen(path, s);
+    f_.open(path, s);
     if(! f_)
     {
         ec.assign(errno, generic_category());
@@ -163,27 +147,27 @@ size(error_code& ec) const
         ec = make_error_code(errc::bad_file_descriptor);
         return 0;
     }
-    long pos = std::ftell(f_);
-    if(pos == -1L)
+    std::fstream::pos_type pos = f_.tellg();
+    if(pos == std::fstream::pos_type(-1))
     {
         ec.assign(errno, generic_category());
         return 0;
     }
-    int result = std::fseek(f_, 0, SEEK_END);
-    if(result != 0)
+    auto& result = f_.seekg(0, std::ios_base::end);
+    if(!result)
     {
         ec.assign(errno, generic_category());
         return 0;
     }
-    long size = std::ftell(f_);
-    if(size == -1L)
+    std::fstream::pos_type size = f_.tellg();
+    if(size == std::fstream::pos_type(-1))
     {
         ec.assign(errno, generic_category());
-        std::fseek(f_, pos, SEEK_SET);
+        f_.seekg(pos, std::ios_base::beg);
         return 0;
     }
-    result = std::fseek(f_, pos, SEEK_SET);
-    if(result != 0)
+    auto& result2 = f_.seekg(pos, std::ios_base::beg);
+    if(!result2)
         ec.assign(errno, generic_category());
     else
         ec = {};
@@ -199,8 +183,8 @@ pos(error_code& ec) const
         ec = make_error_code(errc::bad_file_descriptor);
         return 0;
     }
-    long pos = std::ftell(f_);
-    if(pos == -1L)
+    std::fstream::pos_type pos = f_.tellg();
+    if(pos == std::fstream::pos_type(-1))
     {
         ec.assign(errno, generic_category());
         return 0;
@@ -223,9 +207,8 @@ seek(std::uint64_t offset, error_code& ec)
         ec = make_error_code(errc::invalid_seek);
         return;
     }
-    int result = std::fseek(f_,
-        static_cast<long>(offset), SEEK_SET);
-    if(result != 0)
+    auto& result = f_.seekg(offset, std::ios_base::beg);
+    if(!result)
         ec.assign(errno, generic_category());
     else
         ec = {};
@@ -240,13 +223,13 @@ read(void* buffer, std::size_t n, error_code& ec) const
         ec = make_error_code(errc::bad_file_descriptor);
         return 0;
     }
-    auto nread = std::fread(buffer, 1, n, f_);
-    if(std::ferror(f_))
+    auto& result = f_.read(reinterpret_cast<char*>(buffer), n);
+    if(!result)
     {
         ec.assign(errno, generic_category());
         return 0;
     }
-    return nread;
+    return n;
 }
 
 std::size_t
@@ -258,13 +241,13 @@ write(void const* buffer, std::size_t n, error_code& ec)
         ec = make_error_code(errc::bad_file_descriptor);
         return 0;
     }
-    auto nwritten = std::fwrite(buffer, 1, n, f_);
-    if(std::ferror(f_))
+    auto& result = f_.write(reinterpret_cast<const char*>(buffer), n);
+    if(!result)
     {
         ec.assign(errno, generic_category());
         return 0;
     }
-    return nwritten;
+    return n;
 }
 
 } // beast

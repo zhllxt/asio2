@@ -16,7 +16,7 @@
 #include <asio2/bho/beast/core/detail/bind_continuation.hpp>
 #include <asio2/bho/beast/core/detail/is_invocable.hpp>
 #include <asio/coroutine.hpp>
-#include <asio/post.hpp>
+#include <asio/dispatch.hpp>
 #include <memory>
 
 namespace bho {
@@ -128,7 +128,8 @@ public:
                         "websocket::tcp::async_teardown"
                         ));
 
-                    net::post(s_.get_executor(), bind_front_handler(
+                    const auto ex = this->get_immediate_executor();
+                    net::dispatch(ex, bind_front_handler(
                         std::move(*this), ec));
                 }
             }

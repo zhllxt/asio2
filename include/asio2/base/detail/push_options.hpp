@@ -74,6 +74,7 @@
 #  pragma clang diagnostic ignored "-Wmissing-field-initializers"
 #  pragma clang diagnostic ignored "-Wimplicit-fallthrough="
 #  pragma clang diagnostic ignored "-Wunused-but-set-parameter"
+#  pragma clang diagnostic ignored "-Wmicrosoft-template"
 #endif
 
 

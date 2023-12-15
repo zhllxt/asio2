@@ -8,15 +8,14 @@
 #ifndef BHO_ENDIAN_CONVERSION_HPP
 #define BHO_ENDIAN_CONVERSION_HPP
 
-#include <asio2/bho/endian/detail/requires_cxx11.hpp>
 #include <asio2/bho/endian/detail/endian_reverse.hpp>
 #include <asio2/bho/endian/detail/endian_load.hpp>
 #include <asio2/bho/endian/detail/endian_store.hpp>
 #include <asio2/bho/endian/detail/order.hpp>
-#include <type_traits>
-#include <asio2/bho/static_assert.hpp>
-#include <asio2/bho/cstdint.hpp>
+#include <asio2/bho/endian/detail/static_assert.hpp>
 #include <asio2/bho/config.hpp>
+#include <type_traits>
+#include <cstdint>
 
 //------------------------------------- synopsis ---------------------------------------//
 
@@ -64,7 +63,7 @@ namespace endian
     //  Returns: x if native endian order is little, otherwise endian_reverse(x)
 
   //  generic conditional reverse byte order
-  template <BHO_SCOPED_ENUM(order) From, BHO_SCOPED_ENUM(order) To,
+  template <order From, order To,
     class EndianReversible>
       inline BHO_CONSTEXPR EndianReversible conditional_reverse(EndianReversible from) BHO_NOEXCEPT;
     //  Returns: If From == To have different values, from.
@@ -75,7 +74,7 @@ namespace endian
   //  runtime conditional reverse byte order
   template <class EndianReversible >
     inline BHO_CONSTEXPR EndianReversible conditional_reverse(EndianReversible from,
-      BHO_SCOPED_ENUM(order) from_order, BHO_SCOPED_ENUM(order) to_order)
+      order from_order, order to_order)
         BHO_NOEXCEPT;
       //  Returns: from_order == to_order ? from : endian_reverse(from).
 
@@ -131,14 +130,14 @@ namespace endian
     //  Effects: none if native byte-order is little, otherwise endian_reverse_inplace(x);
 
   //  generic conditional reverse in place
-  template <BHO_SCOPED_ENUM(order) From, BHO_SCOPED_ENUM(order) To,
+  template <order From, order To,
     class EndianReversibleInplace>
   inline void conditional_reverse_inplace(EndianReversibleInplace& x) BHO_NOEXCEPT;
 
   //  runtime reverse in place
   template <class EndianReversibleInplace>
   inline void conditional_reverse_inplace(EndianReversibleInplace& x,
-    BHO_SCOPED_ENUM(order) from_order,  BHO_SCOPED_ENUM(order) to_order)
+    order from_order, order to_order)
     BHO_NOEXCEPT;
 
 //----------------------------------- end synopsis -------------------------------------//
@@ -185,19 +184,19 @@ inline BHO_CONSTEXPR EndianReversible conditional_reverse_impl( EndianReversible
 } // namespace detail
 
 // generic conditional reverse
-template <BHO_SCOPED_ENUM(order) From, BHO_SCOPED_ENUM(order) To, class EndianReversible>
+template <order From, order To, class EndianReversible>
 inline BHO_CONSTEXPR EndianReversible conditional_reverse( EndianReversible x ) BHO_NOEXCEPT
 {
-    BHO_STATIC_ASSERT( std::is_class<EndianReversible>::value || detail::is_endian_reversible<EndianReversible>::value );
+    BHO_ENDIAN_STATIC_ASSERT( std::is_class<EndianReversible>::value || detail::is_endian_reversible<EndianReversible>::value );
     return detail::conditional_reverse_impl( x, std::integral_constant<bool, From == To>() );
 }
 
 // runtime conditional reverse
 template <class EndianReversible>
 inline BHO_CONSTEXPR EndianReversible conditional_reverse( EndianReversible x,
-    BHO_SCOPED_ENUM(order) from_order, BHO_SCOPED_ENUM(order) to_order ) BHO_NOEXCEPT
+    order from_order, order to_order ) BHO_NOEXCEPT
 {
-    BHO_STATIC_ASSERT( std::is_class<EndianReversible>::value || detail::is_endian_reversible<EndianReversible>::value );
+    BHO_ENDIAN_STATIC_ASSERT( std::is_class<EndianReversible>::value || detail::is_endian_reversible<EndianReversible>::value );
     return from_order == to_order? x: endian_reverse( x );
 }
 
@@ -246,10 +245,10 @@ inline void conditional_reverse_inplace_impl( EndianReversibleInplace& x, std::f
 }  // namespace detail
 
 // generic conditional reverse in place
-template <BHO_SCOPED_ENUM(order) From, BHO_SCOPED_ENUM(order) To, class EndianReversibleInplace>
+template <order From, order To, class EndianReversibleInplace>
 inline void conditional_reverse_inplace( EndianReversibleInplace& x ) BHO_NOEXCEPT
 {
-    BHO_STATIC_ASSERT(
+    BHO_ENDIAN_STATIC_ASSERT(
         std::is_class<EndianReversibleInplace>::value ||
         std::is_array<EndianReversibleInplace>::value ||
         detail::is_endian_reversible_inplace<EndianReversibleInplace>::value );
@@ -260,9 +259,9 @@ inline void conditional_reverse_inplace( EndianReversibleInplace& x ) BHO_NOEXCE
 // runtime reverse in place
 template <class EndianReversibleInplace>
 inline void conditional_reverse_inplace( EndianReversibleInplace& x,
-    BHO_SCOPED_ENUM(order) from_order, BHO_SCOPED_ENUM(order) to_order ) BHO_NOEXCEPT
+    order from_order, order to_order ) BHO_NOEXCEPT
 {
-    BHO_STATIC_ASSERT(
+    BHO_ENDIAN_STATIC_ASSERT(
         std::is_class<EndianReversibleInplace>::value ||
         std::is_array<EndianReversibleInplace>::value ||
         detail::is_endian_reversible_inplace<EndianReversibleInplace>::value );
@@ -277,310 +276,310 @@ inline void conditional_reverse_inplace( EndianReversibleInplace& x,
 
 // load 16
 
-inline bho::int16_t load_little_s16( unsigned char const * p ) BHO_NOEXCEPT
+inline std::int16_t load_little_s16( unsigned char const * p ) BHO_NOEXCEPT
 {
-    return bho::endian::endian_load<bho::int16_t, 2, order::little>( p );
+    return bho::endian::endian_load<std::int16_t, 2, order::little>( p );
 }
 
-inline bho::uint16_t load_little_u16( unsigned char const * p ) BHO_NOEXCEPT
+inline std::uint16_t load_little_u16( unsigned char const * p ) BHO_NOEXCEPT
 {
-    return bho::endian::endian_load<bho::uint16_t, 2, order::little>( p );
+    return bho::endian::endian_load<std::uint16_t, 2, order::little>( p );
 }
 
-inline bho::int16_t load_big_s16( unsigned char const * p ) BHO_NOEXCEPT
+inline std::int16_t load_big_s16( unsigned char const * p ) BHO_NOEXCEPT
 {
-    return bho::endian::endian_load<bho::int16_t, 2, order::big>( p );
+    return bho::endian::endian_load<std::int16_t, 2, order::big>( p );
 }
 
-inline bho::uint16_t load_big_u16( unsigned char const * p ) BHO_NOEXCEPT
+inline std::uint16_t load_big_u16( unsigned char const * p ) BHO_NOEXCEPT
 {
-    return bho::endian::endian_load<bho::uint16_t, 2, order::big>( p );
+    return bho::endian::endian_load<std::uint16_t, 2, order::big>( p );
 }
 
 // load 24
 
-inline bho::int32_t load_little_s24( unsigned char const * p ) BHO_NOEXCEPT
+inline std::int32_t load_little_s24( unsigned char const * p ) BHO_NOEXCEPT
 {
-    return bho::endian::endian_load<bho::int32_t, 3, order::little>( p );
+    return bho::endian::endian_load<std::int32_t, 3, order::little>( p );
 }
 
-inline bho::uint32_t load_little_u24( unsigned char const * p ) BHO_NOEXCEPT
+inline std::uint32_t load_little_u24( unsigned char const * p ) BHO_NOEXCEPT
 {
-    return bho::endian::endian_load<bho::uint32_t, 3, order::little>( p );
+    return bho::endian::endian_load<std::uint32_t, 3, order::little>( p );
 }
 
-inline bho::int32_t load_big_s24( unsigned char const * p ) BHO_NOEXCEPT
+inline std::int32_t load_big_s24( unsigned char const * p ) BHO_NOEXCEPT
 {
-    return bho::endian::endian_load<bho::int32_t, 3, order::big>( p );
+    return bho::endian::endian_load<std::int32_t, 3, order::big>( p );
 }
 
-inline bho::uint32_t load_big_u24( unsigned char const * p ) BHO_NOEXCEPT
+inline std::uint32_t load_big_u24( unsigned char const * p ) BHO_NOEXCEPT
 {
-    return bho::endian::endian_load<bho::uint32_t, 3, order::big>( p );
+    return bho::endian::endian_load<std::uint32_t, 3, order::big>( p );
 }
 
 // load 32
 
-inline bho::int32_t load_little_s32( unsigned char const * p ) BHO_NOEXCEPT
+inline std::int32_t load_little_s32( unsigned char const * p ) BHO_NOEXCEPT
 {
-    return bho::endian::endian_load<bho::int32_t, 4, order::little>( p );
+    return bho::endian::endian_load<std::int32_t, 4, order::little>( p );
 }
 
-inline bho::uint32_t load_little_u32( unsigned char const * p ) BHO_NOEXCEPT
+inline std::uint32_t load_little_u32( unsigned char const * p ) BHO_NOEXCEPT
 {
-    return bho::endian::endian_load<bho::uint32_t, 4, order::little>( p );
+    return bho::endian::endian_load<std::uint32_t, 4, order::little>( p );
 }
 
-inline bho::int32_t load_big_s32( unsigned char const * p ) BHO_NOEXCEPT
+inline std::int32_t load_big_s32( unsigned char const * p ) BHO_NOEXCEPT
 {
-    return bho::endian::endian_load<bho::int32_t, 4, order::big>( p );
+    return bho::endian::endian_load<std::int32_t, 4, order::big>( p );
 }
 
-inline bho::uint32_t load_big_u32( unsigned char const * p ) BHO_NOEXCEPT
+inline std::uint32_t load_big_u32( unsigned char const * p ) BHO_NOEXCEPT
 {
-    return bho::endian::endian_load<bho::uint32_t, 4, order::big>( p );
+    return bho::endian::endian_load<std::uint32_t, 4, order::big>( p );
 }
 
 // load 40
 
-inline bho::int64_t load_little_s40( unsigned char const * p ) BHO_NOEXCEPT
+inline std::int64_t load_little_s40( unsigned char const * p ) BHO_NOEXCEPT
 {
-    return bho::endian::endian_load<bho::int64_t, 5, order::little>( p );
+    return bho::endian::endian_load<std::int64_t, 5, order::little>( p );
 }
 
-inline bho::uint64_t load_little_u40( unsigned char const * p ) BHO_NOEXCEPT
+inline std::uint64_t load_little_u40( unsigned char const * p ) BHO_NOEXCEPT
 {
-    return bho::endian::endian_load<bho::uint64_t, 5, order::little>( p );
+    return bho::endian::endian_load<std::uint64_t, 5, order::little>( p );
 }
 
-inline bho::int64_t load_big_s40( unsigned char const * p ) BHO_NOEXCEPT
+inline std::int64_t load_big_s40( unsigned char const * p ) BHO_NOEXCEPT
 {
-    return bho::endian::endian_load<bho::int64_t, 5, order::big>( p );
+    return bho::endian::endian_load<std::int64_t, 5, order::big>( p );
 }
 
-inline bho::uint64_t load_big_u40( unsigned char const * p ) BHO_NOEXCEPT
+inline std::uint64_t load_big_u40( unsigned char const * p ) BHO_NOEXCEPT
 {
-    return bho::endian::endian_load<bho::uint64_t, 5, order::big>( p );
+    return bho::endian::endian_load<std::uint64_t, 5, order::big>( p );
 }
 
 // load 48
 
-inline bho::int64_t load_little_s48( unsigned char const * p ) BHO_NOEXCEPT
+inline std::int64_t load_little_s48( unsigned char const * p ) BHO_NOEXCEPT
 {
-    return bho::endian::endian_load<bho::int64_t, 6, order::little>( p );
+    return bho::endian::endian_load<std::int64_t, 6, order::little>( p );
 }
 
-inline bho::uint64_t load_little_u48( unsigned char const * p ) BHO_NOEXCEPT
+inline std::uint64_t load_little_u48( unsigned char const * p ) BHO_NOEXCEPT
 {
-    return bho::endian::endian_load<bho::uint64_t, 6, order::little>( p );
+    return bho::endian::endian_load<std::uint64_t, 6, order::little>( p );
 }
 
-inline bho::int64_t load_big_s48( unsigned char const * p ) BHO_NOEXCEPT
+inline std::int64_t load_big_s48( unsigned char const * p ) BHO_NOEXCEPT
 {
-    return bho::endian::endian_load<bho::int64_t, 6, order::big>( p );
+    return bho::endian::endian_load<std::int64_t, 6, order::big>( p );
 }
 
-inline bho::uint64_t load_big_u48( unsigned char const * p ) BHO_NOEXCEPT
+inline std::uint64_t load_big_u48( unsigned char const * p ) BHO_NOEXCEPT
 {
-    return bho::endian::endian_load<bho::uint64_t, 6, order::big>( p );
+    return bho::endian::endian_load<std::uint64_t, 6, order::big>( p );
 }
 
 // load 56
 
-inline bho::int64_t load_little_s56( unsigned char const * p ) BHO_NOEXCEPT
+inline std::int64_t load_little_s56( unsigned char const * p ) BHO_NOEXCEPT
 {
-    return bho::endian::endian_load<bho::int64_t, 7, order::little>( p );
+    return bho::endian::endian_load<std::int64_t, 7, order::little>( p );
 }
 
-inline bho::uint64_t load_little_u56( unsigned char const * p ) BHO_NOEXCEPT
+inline std::uint64_t load_little_u56( unsigned char const * p ) BHO_NOEXCEPT
 {
-    return bho::endian::endian_load<bho::uint64_t, 7, order::little>( p );
+    return bho::endian::endian_load<std::uint64_t, 7, order::little>( p );
 }
 
-inline bho::int64_t load_big_s56( unsigned char const * p ) BHO_NOEXCEPT
+inline std::int64_t load_big_s56( unsigned char const * p ) BHO_NOEXCEPT
 {
-    return bho::endian::endian_load<bho::int64_t, 7, order::big>( p );
+    return bho::endian::endian_load<std::int64_t, 7, order::big>( p );
 }
 
-inline bho::uint64_t load_big_u56( unsigned char const * p ) BHO_NOEXCEPT
+inline std::uint64_t load_big_u56( unsigned char const * p ) BHO_NOEXCEPT
 {
-    return bho::endian::endian_load<bho::uint64_t, 7, order::big>( p );
+    return bho::endian::endian_load<std::uint64_t, 7, order::big>( p );
 }
 
 // load 64
 
-inline bho::int64_t load_little_s64( unsigned char const * p ) BHO_NOEXCEPT
+inline std::int64_t load_little_s64( unsigned char const * p ) BHO_NOEXCEPT
 {
-    return bho::endian::endian_load<bho::int64_t, 8, order::little>( p );
+    return bho::endian::endian_load<std::int64_t, 8, order::little>( p );
 }
 
-inline bho::uint64_t load_little_u64( unsigned char const * p ) BHO_NOEXCEPT
+inline std::uint64_t load_little_u64( unsigned char const * p ) BHO_NOEXCEPT
 {
-    return bho::endian::endian_load<bho::uint64_t, 8, order::little>( p );
+    return bho::endian::endian_load<std::uint64_t, 8, order::little>( p );
 }
 
-inline bho::int64_t load_big_s64( unsigned char const * p ) BHO_NOEXCEPT
+inline std::int64_t load_big_s64( unsigned char const * p ) BHO_NOEXCEPT
 {
-    return bho::endian::endian_load<bho::int64_t, 8, order::big>( p );
+    return bho::endian::endian_load<std::int64_t, 8, order::big>( p );
 }
 
-inline bho::uint64_t load_big_u64( unsigned char const * p ) BHO_NOEXCEPT
+inline std::uint64_t load_big_u64( unsigned char const * p ) BHO_NOEXCEPT
 {
-    return bho::endian::endian_load<bho::uint64_t, 8, order::big>( p );
+    return bho::endian::endian_load<std::uint64_t, 8, order::big>( p );
 }
 
 // store 16
 
-inline void store_little_s16( unsigned char * p, bho::int16_t v )
+inline void store_little_s16( unsigned char * p, std::int16_t v )
 {
-    bho::endian::endian_store<bho::int16_t, 2, order::little>( p, v );
+    bho::endian::endian_store<std::int16_t, 2, order::little>( p, v );
 }
 
-inline void store_little_u16( unsigned char * p, bho::uint16_t v )
+inline void store_little_u16( unsigned char * p, std::uint16_t v )
 {
-    bho::endian::endian_store<bho::uint16_t, 2, order::little>( p, v );
+    bho::endian::endian_store<std::uint16_t, 2, order::little>( p, v );
 }
 
-inline void store_big_s16( unsigned char * p, bho::int16_t v )
+inline void store_big_s16( unsigned char * p, std::int16_t v )
 {
-    bho::endian::endian_store<bho::int16_t, 2, order::big>( p, v );
+    bho::endian::endian_store<std::int16_t, 2, order::big>( p, v );
 }
 
-inline void store_big_u16( unsigned char * p, bho::uint16_t v )
+inline void store_big_u16( unsigned char * p, std::uint16_t v )
 {
-    bho::endian::endian_store<bho::uint16_t, 2, order::big>( p, v );
+    bho::endian::endian_store<std::uint16_t, 2, order::big>( p, v );
 }
 
 // store 24
 
-inline void store_little_s24( unsigned char * p, bho::int32_t v )
+inline void store_little_s24( unsigned char * p, std::int32_t v )
 {
-    bho::endian::endian_store<bho::int32_t, 3, order::little>( p, v );
+    bho::endian::endian_store<std::int32_t, 3, order::little>( p, v );
 }
 
-inline void store_little_u24( unsigned char * p, bho::uint32_t v )
+inline void store_little_u24( unsigned char * p, std::uint32_t v )
 {
-    bho::endian::endian_store<bho::uint32_t, 3, order::little>( p, v );
+    bho::endian::endian_store<std::uint32_t, 3, order::little>( p, v );
 }
 
-inline void store_big_s24( unsigned char * p, bho::int32_t v )
+inline void store_big_s24( unsigned char * p, std::int32_t v )
 {
-    bho::endian::endian_store<bho::int32_t, 3, order::big>( p, v );
+    bho::endian::endian_store<std::int32_t, 3, order::big>( p, v );
 }
 
-inline void store_big_u24( unsigned char * p, bho::uint32_t v )
+inline void store_big_u24( unsigned char * p, std::uint32_t v )
 {
-    bho::endian::endian_store<bho::uint32_t, 3, order::big>( p, v );
+    bho::endian::endian_store<std::uint32_t, 3, order::big>( p, v );
 }
 
 // store 32
 
-inline void store_little_s32( unsigned char * p, bho::int32_t v )
+inline void store_little_s32( unsigned char * p, std::int32_t v )
 {
-    bho::endian::endian_store<bho::int32_t, 4, order::little>( p, v );
+    bho::endian::endian_store<std::int32_t, 4, order::little>( p, v );
 }
 
-inline void store_little_u32( unsigned char * p, bho::uint32_t v )
+inline void store_little_u32( unsigned char * p, std::uint32_t v )
 {
-    bho::endian::endian_store<bho::uint32_t, 4, order::little>( p, v );
+    bho::endian::endian_store<std::uint32_t, 4, order::little>( p, v );
 }
 
-inline void store_big_s32( unsigned char * p, bho::int32_t v )
+inline void store_big_s32( unsigned char * p, std::int32_t v )
 {
-    bho::endian::endian_store<bho::int32_t, 4, order::big>( p, v );
+    bho::endian::endian_store<std::int32_t, 4, order::big>( p, v );
 }
 
-inline void store_big_u32( unsigned char * p, bho::uint32_t v )
+inline void store_big_u32( unsigned char * p, std::uint32_t v )
 {
-    bho::endian::endian_store<bho::uint32_t, 4, order::big>( p, v );
+    bho::endian::endian_store<std::uint32_t, 4, order::big>( p, v );
 }
 
 // store 40
 
-inline void store_little_s40( unsigned char * p, bho::int64_t v )
+inline void store_little_s40( unsigned char * p, std::int64_t v )
 {
-    bho::endian::endian_store<bho::int64_t, 5, order::little>( p, v );
+    bho::endian::endian_store<std::int64_t, 5, order::little>( p, v );
 }
 
-inline void store_little_u40( unsigned char * p, bho::uint64_t v )
+inline void store_little_u40( unsigned char * p, std::uint64_t v )
 {
-    bho::endian::endian_store<bho::uint64_t, 5, order::little>( p, v );
+    bho::endian::endian_store<std::uint64_t, 5, order::little>( p, v );
 }
 
-inline void store_big_s40( unsigned char * p, bho::int64_t v )
+inline void store_big_s40( unsigned char * p, std::int64_t v )
 {
-    bho::endian::endian_store<bho::int64_t, 5, order::big>( p, v );
+    bho::endian::endian_store<std::int64_t, 5, order::big>( p, v );
 }
 
-inline void store_big_u40( unsigned char * p, bho::uint64_t v )
+inline void store_big_u40( unsigned char * p, std::uint64_t v )
 {
-    bho::endian::endian_store<bho::uint64_t, 5, order::big>( p, v );
+    bho::endian::endian_store<std::uint64_t, 5, order::big>( p, v );
 }
 
 // store 48
 
-inline void store_little_s48( unsigned char * p, bho::int64_t v )
+inline void store_little_s48( unsigned char * p, std::int64_t v )
 {
-    bho::endian::endian_store<bho::int64_t, 6, order::little>( p, v );
+    bho::endian::endian_store<std::int64_t, 6, order::little>( p, v );
 }
 
-inline void store_little_u48( unsigned char * p, bho::uint64_t v )
+inline void store_little_u48( unsigned char * p, std::uint64_t v )
 {
-    bho::endian::endian_store<bho::uint64_t, 6, order::little>( p, v );
+    bho::endian::endian_store<std::uint64_t, 6, order::little>( p, v );
 }
 
-inline void store_big_s48( unsigned char * p, bho::int64_t v )
+inline void store_big_s48( unsigned char * p, std::int64_t v )
 {
-    bho::endian::endian_store<bho::int64_t, 6, order::big>( p, v );
+    bho::endian::endian_store<std::int64_t, 6, order::big>( p, v );
 }
 
-inline void store_big_u48( unsigned char * p, bho::uint64_t v )
+inline void store_big_u48( unsigned char * p, std::uint64_t v )
 {
-    bho::endian::endian_store<bho::uint64_t, 6, order::big>( p, v );
+    bho::endian::endian_store<std::uint64_t, 6, order::big>( p, v );
 }
 
 // store 56
 
-inline void store_little_s56( unsigned char * p, bho::int64_t v )
+inline void store_little_s56( unsigned char * p, std::int64_t v )
 {
-    bho::endian::endian_store<bho::int64_t, 7, order::little>( p, v );
+    bho::endian::endian_store<std::int64_t, 7, order::little>( p, v );
 }
 
-inline void store_little_u56( unsigned char * p, bho::uint64_t v )
+inline void store_little_u56( unsigned char * p, std::uint64_t v )
 {
-    bho::endian::endian_store<bho::uint64_t, 7, order::little>( p, v );
+    bho::endian::endian_store<std::uint64_t, 7, order::little>( p, v );
 }
 
-inline void store_big_s56( unsigned char * p, bho::int64_t v )
+inline void store_big_s56( unsigned char * p, std::int64_t v )
 {
-    bho::endian::endian_store<bho::int64_t, 7, order::big>( p, v );
+    bho::endian::endian_store<std::int64_t, 7, order::big>( p, v );
 }
 
-inline void store_big_u56( unsigned char * p, bho::uint64_t v )
+inline void store_big_u56( unsigned char * p, std::uint64_t v )
 {
-    bho::endian::endian_store<bho::uint64_t, 7, order::big>( p, v );
+    bho::endian::endian_store<std::uint64_t, 7, order::big>( p, v );
 }
 
 // store 64
 
-inline void store_little_s64( unsigned char * p, bho::int64_t v )
+inline void store_little_s64( unsigned char * p, std::int64_t v )
 {
-    bho::endian::endian_store<bho::int64_t, 8, order::little>( p, v );
+    bho::endian::endian_store<std::int64_t, 8, order::little>( p, v );
 }
 
-inline void store_little_u64( unsigned char * p, bho::uint64_t v )
+inline void store_little_u64( unsigned char * p, std::uint64_t v )
 {
-    bho::endian::endian_store<bho::uint64_t, 8, order::little>( p, v );
+    bho::endian::endian_store<std::uint64_t, 8, order::little>( p, v );
 }
 
-inline void store_big_s64( unsigned char * p, bho::int64_t v )
+inline void store_big_s64( unsigned char * p, std::int64_t v )
 {
-    bho::endian::endian_store<bho::int64_t, 8, order::big>( p, v );
+    bho::endian::endian_store<std::int64_t, 8, order::big>( p, v );
 }
 
-inline void store_big_u64( unsigned char * p, bho::uint64_t v )
+inline void store_big_u64( unsigned char * p, std::uint64_t v )
 {
-    bho::endian::endian_store<bho::uint64_t, 8, order::big>( p, v );
+    bho::endian::endian_store<std::uint64_t, 8, order::big>( p, v );
 }
 
 }  // namespace endian

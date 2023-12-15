@@ -17,6 +17,7 @@
 #include <asio2/bho/beast/websocket/detail/frame.hpp>
 #include <asio2/bho/beast/websocket/impl/stream_impl.hpp>
 #include <asio/coroutine.hpp>
+#include <asio/dispatch.hpp>
 #include <asio/post.hpp>
 #include <asio2/bho/throw_exception.hpp>
 #include <memory>
@@ -99,7 +100,8 @@ public:
                         __FILE__, __LINE__,
                         "websocket::async_ping"));
 
-                    net::post(sp->stream().get_executor(), std::move(*this));
+                    const auto ex = this->get_immediate_executor();
+                    net::dispatch(ex, std::move(*this));
                 }
                 BHO_ASSERT(impl.wr_block.is_locked(this));
             }
@@ -325,15 +327,15 @@ pong(ping_data const& payload, error_code& ec)
 }
 
 template<class NextLayer, bool deflateSupported>
-template<BHO_BEAST_ASYNC_TPARAM1 WriteHandler>
-BHO_BEAST_ASYNC_RESULT1(WriteHandler)
+template<BHO_BEAST_ASYNC_TPARAM1 PingHandler>
+BHO_BEAST_ASYNC_RESULT1(PingHandler)
 stream<NextLayer, deflateSupported>::
-async_ping(ping_data const& payload, WriteHandler&& handler)
+async_ping(ping_data const& payload, PingHandler&& handler)
 {
     static_assert(is_async_stream<next_layer_type>::value,
         "AsyncStream type requirements not met");
     return net::async_initiate<
-        WriteHandler,
+        PingHandler,
         void(error_code)>(
             run_ping_op{},
             handler,
@@ -343,15 +345,15 @@ async_ping(ping_data const& payload, WriteHandler&& handler)
 }
 
 template<class NextLayer, bool deflateSupported>
-template<BHO_BEAST_ASYNC_TPARAM1 WriteHandler>
-BHO_BEAST_ASYNC_RESULT1(WriteHandler)
+template<BHO_BEAST_ASYNC_TPARAM1 PongHandler>
+BHO_BEAST_ASYNC_RESULT1(PongHandler)
 stream<NextLayer, deflateSupported>::
-async_pong(ping_data const& payload, WriteHandler&& handler)
+async_pong(ping_data const& payload, PongHandler&& handler)
 {
     static_assert(is_async_stream<next_layer_type>::value,
         "AsyncStream type requirements not met");
     return net::async_initiate<
-        WriteHandler,
+        PongHandler,
         void(error_code)>(
             run_ping_op{},
             handler,

@@ -18,13 +18,11 @@
 #include <asio2/bho/assert/source_location.hpp>
 #include <asio2/bho/config.hpp>
 #include <asio2/bho/config/workaround.hpp>
-#include <asio2/bho/cstdint.hpp>
 #include <cstddef>
 #include <type_traits>
 #include <exception>
-#include <initializer_list>
 #include <utility>
-#include <functional> // std::hash
+#include <typeindex> // std::hash
 #include <iosfwd>
 #include <cstdint>
 #include <cerrno>
@@ -691,8 +689,11 @@ template<class T1, class... T> union variant_storage_impl<mp11::mp_true, T1, T..
 # pragma GCC diagnostic push
 // False positive in at least GCC 7 and GCC 10 ASAN triggered by monostate (via result<void>)
 # pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#if __GNUC__ >= 12
+// False positive in at least GCC 12 and GCC 13 ASAN and -Og triggered by monostate (via result<void>)
+# pragma GCC diagnostic ignored "-Wuninitialized"
 #endif
-
+#endif
         *this = variant_storage_impl( mp11::mp_size_t<I>(), std::forward<A>(a)... );
 
 #if defined(BHO_GCC) && (__GNUC__ >= 7)
@@ -2319,8 +2320,8 @@ namespace detail
 
 inline std::size_t hash_value_impl_( mp11::mp_true, std::size_t index, std::size_t value )
 {
-    bho::ulong_long_type hv = ( bho::ulong_long_type( 0xCBF29CE4 ) << 32 ) + 0x84222325;
-    bho::ulong_long_type const prime = ( bho::ulong_long_type( 0x00000100 ) << 32 ) + 0x000001B3;
+    unsigned long long hv = 0xCBF29CE484222325ull;
+    unsigned long long const prime = 0x100000001B3ull;
 
     hv ^= index;
     hv *= prime;
@@ -2497,16 +2498,16 @@ template<class V> struct tag_invoke_L2
     bho::json::value const& v;
     typename bho::json::result_for<V, bho::json::value>::type& r;
 
-    template<class I> void operator()( I i ) const
+    template<class I> void operator()( I /*i*/ ) const
     {
         if( !r )
         {
-            using Ti = mp11::mp_at_c<V, i>;
+            using Ti = mp11::mp_at_c<V, I::value>;
             auto r2 = bho::json::try_value_to<Ti>( v );
 
             if( r2 )
             {
-                r.emplace( in_place_index_t<i>{}, std::move( *r2 ) );
+                r.emplace( in_place_index_t<I::value>{}, std::move( *r2 ) );
             }
         }
     }

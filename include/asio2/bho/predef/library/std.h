@@ -16,6 +16,7 @@ http://www.boost.org/LICENSE_1_0.txt)
 #include <asio2/bho/predef/library/std/libcomo.h>
 #include <asio2/bho/predef/library/std/modena.h>
 #include <asio2/bho/predef/library/std/msl.h>
+#include <asio2/bho/predef/library/std/msvc.h>
 #include <asio2/bho/predef/library/std/roguewave.h>
 #include <asio2/bho/predef/library/std/sgi.h>
 #include <asio2/bho/predef/library/std/stdcpp3.h>

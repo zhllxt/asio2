@@ -16,6 +16,7 @@
 #include <asio2/bho/beast/http/detail/type_traits.hpp>
 #include <asio/buffer.hpp>
 #include <optional>
+#include <cstdint>
 #include <type_traits>
 #include <utility>
 

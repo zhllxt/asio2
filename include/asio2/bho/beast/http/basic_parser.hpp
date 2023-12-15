@@ -19,6 +19,7 @@
 #include <asio/buffer.hpp>
 #include <optional>
 #include <asio2/bho/assert.hpp>
+#include <cstdint>
 #include <limits>
 #include <memory>
 #include <type_traits>

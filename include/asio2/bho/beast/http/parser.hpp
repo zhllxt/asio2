@@ -16,6 +16,7 @@
 #include <asio2/bho/beast/http/type_traits.hpp>
 #include <optional>
 #include <asio2/bho/throw_exception.hpp>
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <type_traits>
