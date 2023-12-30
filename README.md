@@ -23,12 +23,6 @@ Header only c++ network library, based on asio,support tcp,udp,http,websocket,rp
  - [4、rpc使用教程](/doc/blog/zh-cn/rpc.md)
  - [asio做tcp的自动拆包时，asio的match condition如何使用的详细说明](/doc/blog/zh-cn/match_condition.md)
 
-## 重大的接口变更:
-* 将原来的异步函数send拆分为send和async_send两个函数,现在send表示同步发送,async_send表示异步发送(查找你代码中的send直接替换为async_send即可).现在send函数的返回值为发送数据的字节数(以前是bool),async_send的返回值为void.如果在通信线程中调用了同步发送函数send,则会退化为异步调用;
-* 将http回调函数中的http::request和http::response修改为http::web_request和http::web_response,目的是为了兼容boost(查找你代码中的http::request直接替换为http::web_request即可,response同理,具体可参考example/http代码示例).
-* 删除了所有回调函数中的错误码参数,比如以前是bind_start([](asio::error_code ec){});现在是bind_start([](){}); 现在需要用asio2::get_last_error();函数来判断是否有错误;修改的接口包括:bind_start,bind_stop,bind_connect,bind_disconnect,以及rpc的async_call的回调函数等;
-* 删除了若干函数中的错误码参数,主要包括http_client::execute,ping::execute,http::make_request,http::make_response等,现在需要使用asio2::get_last_error()来判断是否发生错误;
-
 ## 与其它框架的一点区别:
 ```c++
 目前看到的很多基于asio的框架的模式大都如下:

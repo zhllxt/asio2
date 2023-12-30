@@ -1,8 +1,8 @@
-# [indeterminate]
+# 2023-12-30 version 2.8:
 
-  * Upgrade the asio library to version 1.18.2
-  * Upgrade the beast library to version 318 (boost-1.77.0)
-  * Upgrade the fmt library to version 8.0.1
+  * Upgrade the asio library to version 1.29.0
+  * Upgrade the beast library to version 351 (boost-1.84.0)
+  * Upgrade the fmt library to version 9.1.0
   * Add CMake to build the example projects
   * Add mqtt, support mqtt v3.1 v3.1.1 v5.0
   * Change the "_fire_init, _fire_start, _fire_stop" triggered thread from thread main to thread 0.
@@ -37,8 +37,7 @@
   * Fixed the problem where the endian of the KCP handshake data header was not handled correctly.
   * Fixed problem : when the client.stop is called, and at this time the async_send is called in another thread, the async_send maybe has unexpected behavior (e.g. async_send's callback is not called).
   * Fixed unnecessary memory allocation problems in allocator to reduce the number of memory allocation. Now all timers do not use customized allocator to allocate memory, but use asio to allocate memory automatically.
-  * Various code fixes and improvements.
-  * Other general enhancements.
+  * Many other general enhancements, code fixes and improvements. See the commits records between 2020-12-23 and 2023-12-30.
 
 # 2020-12-23 version 2.7:
 

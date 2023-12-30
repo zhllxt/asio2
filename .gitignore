@@ -42,6 +42,9 @@ demo/vcproj_linux/obj
 .CMakeBuild.cmd
 .CMakeTest.cmd
 
+.build.bat
+.clean.bat
+
 *.log.tmp*
 
 *.tlog/
