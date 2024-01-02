@@ -56,7 +56,7 @@ struct execution_work_guard
     executor_type
     get_executor() const noexcept
     {
-        BHO_ASSERT(ex_.has_value());
+        assert(ex_.has_value());
         return *ex_;
     }
 
