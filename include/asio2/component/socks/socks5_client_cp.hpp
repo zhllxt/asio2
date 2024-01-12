@@ -797,14 +797,14 @@ namespace asio2::detail
 				// the data is: stds::string, std::vector...
 				if constexpr (detail::has_member_insert<T>::value && !std::is_const_v<std::remove_reference_t<T>>)
 				{
-					data.insert(data.cbegin(), head.begin(), head.end());
-					std::memcpy((void*)(data.cbegin().operator->()), (const void*)pdatalen, sizeof(std::uint16_t));
+					data.insert(data.begin(), head.begin(), head.end());
+					std::memcpy((void*)(data.begin().operator->()), (const void*)pdatalen, sizeof(std::uint16_t));
 					return std::forward<T>(data);
 				}
 				else
 				{
 					std::string str{sv};
-					str.insert(str.cbegin(), head.begin(), head.end());
+					str.insert(str.begin(), head.begin(), head.end());
 					str[0] = std::string::value_type(pdatalen[0]);
 					str[1] = std::string::value_type(pdatalen[1]);
 					return str;
@@ -1035,7 +1035,7 @@ namespace asio2::detail
 					return std::forward<T>(data);
 
 				std::vector<std::uint8_t>& head = this->socks5_client_->udp_data_head_;
-				data.insert(data.cbegin(), head.begin(), head.end());
+				data.insert(data.begin(), head.begin(), head.end());
 				return std::forward<T>(data);
 			}
 			else
@@ -1046,7 +1046,7 @@ namespace asio2::detail
 					return str;
 
 				std::vector<std::uint8_t>& head = this->socks5_client_->udp_data_head_;
-				str.insert(str.cbegin(), head.begin(), head.end());
+				str.insert(str.begin(), head.begin(), head.end());
 				return str;
 			}
 		}
