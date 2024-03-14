@@ -94,6 +94,12 @@ namespace asio2::detail
 				{
 					return derive._post_close(ec, std::move(this_ptr), expected, std::move(chain));
 				}
+
+				asio::post(derive.io_->context(), make_allocator(derive.wallocator(),
+				[this_ptr = std::move(this_ptr), chain = std::move(chain)]() mutable
+				{
+					detail::ignore_unused(this_ptr, chain);
+				}));
 			}, chain.move_guard());
 		}
 

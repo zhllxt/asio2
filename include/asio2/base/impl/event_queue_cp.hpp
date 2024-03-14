@@ -32,6 +32,10 @@
 #include <asio2/base/detail/buffer_wrap.hpp>
 #include <asio2/base/detail/function.hpp>
 
+#ifndef ASIO2_EVENT_QUEUE_STACK_MAX_SIZE
+#define ASIO2_EVENT_QUEUE_STACK_MAX_SIZE 256
+#endif
+
 namespace asio2::detail
 {
 	template <class, class>                      class event_queue_cp;
@@ -362,6 +366,21 @@ namespace asio2::detail
 	template<class derived_t, class args_t = void>
 	class event_queue_cp
 	{
+	protected:
+		struct event_stack_size_guard
+		{
+			std::int16_t& x;
+
+			event_stack_size_guard(std::int16_t& n) : x(n)
+			{
+				++x;
+			}
+			~event_stack_size_guard()
+			{
+				--x;
+			}
+		};
+
 	public:
 		/**
 		 * @brief constructor
@@ -599,25 +618,34 @@ namespace asio2::detail
 				ASIO2_ASSERT(!g.is_empty());
 				ASIO2_ASSERT(!this->events_.empty());
 
-				if (!this->events_.empty())
+				if (this->event_stack_size_ < std::int16_t(ASIO2_EVENT_QUEUE_STACK_MAX_SIZE))
 				{
-					this->events_.pop();
-
 					if (!this->events_.empty())
 					{
-						(this->events_.front())(std::move(g));
+						this->events_.pop();
+
+						if (!this->events_.empty())
+						{
+							event_stack_size_guard sg{ this->event_stack_size_ };
+
+							(this->events_.front())(std::move(g));
+						}
+						else
+						{
+							// must set valid to false, otherwise when g is destroyed, it will enter
+							// next_event again, this will cause a infinite loop, and cause stack overflow.
+							g.valid_ = false;
+						}
 					}
-					else
-					{
-						// must set valid to false, otherwise when g is destroyed, it will enter
-						// next_event again, this will cause a infinite loop, and cause stack overflow.
-						g.valid_ = false;
-					}
+
+					ASIO2_ASSERT(g.is_empty());
+
+					return derive;
 				}
-
-				ASIO2_ASSERT(g.is_empty());
-
-				return derive;
+				else
+				{
+					std::ignore = true;
+				}
 			}
 
 			// must hold the derived_ptr, beacuse next_event is called by event_queue_guard, when
@@ -652,6 +680,8 @@ namespace asio2::detail
 		}
 
 	protected:
+		std::int16_t event_stack_size_{ std::int16_t(0) };
+
 		std::queue<detail::function<
 			void(event_queue_guard<derived_t>), detail::function_size_traits<args_t>::value>> events_;
 	};
