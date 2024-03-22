@@ -20,6 +20,7 @@
 #include <asio2/base/detail/push_options.hpp>
 
 #include <asio2/base/detail/function_traits.hpp>
+#include <asio2/util/string.hpp>
 
 #include <asio2/http/detail/http_util.hpp>
 #include <asio2/http/detail/http_make.hpp>
@@ -232,6 +233,25 @@ namespace asio2::detail
 
 			// This buffer is used for reading and must be persisted
 			Buffer buffer;
+
+			// Some sites must set the http::field::host
+			if (req.find(http::field::host) == req.end())
+			{
+				std::string strhost = asio2::to_string(host);
+				std::string strport = asio2::to_string(port);
+				if (strport != "443")
+				{
+					strhost += ":";
+					strhost += strport;
+				}
+				req.set(http::field::host, strhost);
+			}
+			// Some sites must set the http::field::user_agent
+			if (req.find(http::field::user_agent) == req.end())
+			{
+				req.set(http::field::user_agent,
+					"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36");
+			}
 
 			// do work
 			derived_t::_execute_impl(ioc, resolver, socket, stream, parser, buffer
