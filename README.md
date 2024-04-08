@@ -284,14 +284,14 @@ client.async_call("del_user", std::move(u));
 // http 请求拦截器
 struct aop_log
 {
-	bool before(http::request& req, http::response& rep)
+	bool before(http::web_request& req, http::web_response& rep)
 	{
 		asio2::detail::ignore_unused(rep);
 		printf("aop_log before %s\n", req.method_string().data());
 		// 返回true则后续的拦截器会接着调用,返回false则后续的拦截器不会被调用
 		return true;
 	}
-	bool after(std::shared_ptr<asio2::http_session>& session_ptr, http::request& req, http::response& rep)
+	bool after(std::shared_ptr<asio2::http_session>& session_ptr, http::web_request& req, http::web_response& rep)
 	{
 		asio2::detail::ignore_unused(session_ptr, req, rep);
 		printf("aop_log after\n");
@@ -301,13 +301,13 @@ struct aop_log
 
 struct aop_check
 {
-	bool before(std::shared_ptr<asio2::http_session>& session_ptr, http::request& req, http::response& rep)
+	bool before(std::shared_ptr<asio2::http_session>& session_ptr, http::web_request& req, http::web_response& rep)
 	{
 		asio2::detail::ignore_unused(session_ptr, req, rep);
 		printf("aop_check before\n");
 		return true;
 	}
-	bool after(http::request& req, http::response& rep)
+	bool after(http::web_request& req, http::web_response& rep)
 	{
 		asio2::detail::ignore_unused(req, rep);
 		printf("aop_check after\n");
@@ -317,7 +317,7 @@ struct aop_check
 
 asio2::http_server server;
 
-server.bind<http::verb::get, http::verb::post>("/index.*", [](http::request& req, http::response& rep)
+server.bind<http::verb::get, http::verb::post>("/index.*", [](http::web_request& req, http::web_response& rep)
 {
 	std::cout << req.path() << std::endl;
 	std::cout << req.query() << std::endl;
@@ -328,7 +328,7 @@ server.bind<http::verb::get, http::verb::post>("/index.*", [](http::request& req
 }, aop_log{});
 
 server.bind<http::verb::get>("/del_user",
-	[](std::shared_ptr<asio2::http_session>& session_ptr, http::request& req, http::response& rep)
+	[](std::shared_ptr<asio2::http_session>& session_ptr, http::web_request& req, http::web_response& rep)
 {
 	// 回调函数的第一个参数可以是会话指针session_ptr(这个参数也可以不要)
 	printf("del_user ip : %s\n", session_ptr->remote_address().data());
@@ -338,13 +338,13 @@ server.bind<http::verb::get>("/del_user",
 
 }, aop_check{});
 
-server.bind<http::verb::get>("/api/user/*", [](http::request& req, http::response& rep)
+server.bind<http::verb::get>("/api/user/*", [](http::web_request& req, http::web_response& rep)
 {
 	rep.fill_text("the user name is hanmeimei, .....");
 
 }, aop_log{}, aop_check{});
 
-server.bind<http::verb::get>("/defer", [](http::request& req, http::response& rep)
+server.bind<http::verb::get>("/defer", [](http::web_request& req, http::web_response& rep)
 {
 	// 使用defer让http响应延迟发送,defer的智能指针销毁时,才会自动发送response
 	std::shared_ptr<http::response_defer> rep_defer = rep.defer();
@@ -389,7 +389,7 @@ server.bind("/ws", websocket::listener<asio2::http_session>{}.
 
 }));
 
-server.bind_not_found([](http::request& req, http::response& rep)
+server.bind_not_found([](http::web_request& req, http::web_response& rep)
 {
 	// fill_page函数可以构造一个简单的标准错误页
 	rep.fill_page(http::status::not_found);

@@ -208,14 +208,14 @@ client.async_call("del_user", std::move(u));
 
 struct aop_log
 {
-	bool before(http::request& req, http::response& rep)
+	bool before(http::web_request& req, http::web_response& rep)
 	{
 		asio2::detail::ignore_unused(rep);
 		printf("aop_log before %s\n", req.method_string().data());
 		return true;
 	}
 	bool after(std::shared_ptr<asio2::http_session>& session_ptr,
-		http::request& req, http::response& rep)
+		http::web_request& req, http::web_response& rep)
 	{
 		asio2::detail::ignore_unused(session_ptr, req, rep);
 		printf("aop_log after\n");
@@ -226,13 +226,13 @@ struct aop_log
 struct aop_check
 {
 	bool before(std::shared_ptr<asio2::http_session>& session_ptr,
-		http::request& req, http::response& rep)
+		http::web_request& req, http::web_response& rep)
 	{
 		asio2::detail::ignore_unused(session_ptr, req, rep);
 		printf("aop_check before\n");
 		return true;
 	}
-	bool after(http::request& req, http::response& rep)
+	bool after(http::web_request& req, http::web_response& rep)
 	{
 		asio2::detail::ignore_unused(req, rep);
 		printf("aop_check after\n");
@@ -242,7 +242,7 @@ struct aop_check
 
 asio2::http_server server;
 
-server.bind_recv([&](http::request& req, http::response& rep)
+server.bind_recv([&](http::web_request& req, http::web_response& rep)
 {
 	std::cout << req.path() << std::endl;
 	std::cout << req.query() << std::endl;
@@ -268,7 +268,7 @@ server.bind_recv([&](http::request& req, http::response& rep)
 });
 
 server.bind<http::verb::get, http::verb::post>("/index.*",
- [](http::request& req, http::response& rep)
+ [](http::web_request& req, http::web_response& rep)
 {
 	rep.fill_file("../../../index.html");
 	rep.chunked(true);
@@ -277,7 +277,7 @@ server.bind<http::verb::get, http::verb::post>("/index.*",
 
 server.bind<http::verb::get>("/del_user",
 	[](std::shared_ptr<asio2::http_session>& session_ptr,
-		http::request& req, http::response& rep)
+		http::web_request& req, http::web_response& rep)
 {
 	printf("del_user ip : %s\n", session_ptr->remote_address().data());
 
@@ -285,13 +285,13 @@ server.bind<http::verb::get>("/del_user",
 
 }, aop_check{});
 
-server.bind<http::verb::get>("/api/user/*", [](http::request& req, http::response& rep)
+server.bind<http::verb::get>("/api/user/*", [](http::web_request& req, http::web_response& rep)
 {
 	rep.fill_text("the user name is hanmeimei, .....");
 
 }, aop_log{}, aop_check{});
 
-server.bind<http::verb::get>("/defer", [](http::request& req, http::response& rep)
+server.bind<http::verb::get>("/defer", [](http::web_request& req, http::web_response& rep)
 {
 	// use defer to make the reponse not send immediately, util the derfer shared_ptr
 	// is destroyed, then the response will be sent.
@@ -336,7 +336,7 @@ server.bind("/ws", websocket::listener<asio2::http_session>{}.
 
 }));
 
-server.bind_not_found([](http::request& req, http::response& rep)
+server.bind_not_found([](http::web_request& req, http::web_response& rep)
 {
 	rep.fill_page(http::status::not_found);
 });
