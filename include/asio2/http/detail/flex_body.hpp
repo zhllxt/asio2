@@ -136,7 +136,7 @@ public:
 	inline bool is_text() const noexcept { return !is_file();      }
 	inline bool is_file() const noexcept { return file_.is_open(); }
 
-    inline void set_to_text_limit(std::uint64_t v) const noexcept
+    inline void set_to_text_limit(std::uint64_t v) noexcept
     {
         this->to_text_limit_ = v;
     }
