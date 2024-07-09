@@ -62,6 +62,13 @@ int main()
 	{
 		printf("recv : %zu %.*s\n", data.size(), (int)data.size(), data.data());
 
+		if (data.size() == 0)
+		{
+			// close the socket directly, should't use "client_ptr->stop()"
+			client_ptr->socket().close(asio2::get_last_error());
+			return;
+		}
+
 		std::string str;
 		str += '#';
 		uint8_t len = uint8_t(100 + (std::rand() % 100));

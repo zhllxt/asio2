@@ -85,14 +85,15 @@ int main()
 
 	asio2::tcp_server server;
 
-	server.bind_recv([&](auto & session_ptr, std::string_view data)
+	server.bind_recv([&](std::shared_ptr<asio2::tcp_session>& session_ptr, std::string_view data)
 	{
 		// how to close the illegal client, see : https://blog.csdn.net/zhllxt/article/details/127670983
 		if (data.size() == 0)
 		{
 			printf("close illegal client : %s %u\n",
 				session_ptr->remote_address().c_str(), session_ptr->remote_port());
-			session_ptr->stop();
+			// close the socket directly, should't use "session_ptr->stop()"
+			session_ptr->socket().close(asio2::get_last_error());
 			return;
 		}
 

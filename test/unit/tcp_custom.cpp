@@ -133,7 +133,8 @@ void tcp_custom_test()
 		{
 			if (data.size() == 0)
 			{
-				session_ptr->stop();
+				// close the socket directly, should't use "session_ptr->stop()"
+				session_ptr->socket().close(asio2::get_last_error());
 				return;
 			}
 
@@ -578,7 +579,8 @@ void tcp_custom_test()
 		{
 			if (data.size() == 0)
 			{
-				session_ptr->stop();
+				// close the socket directly, should't use "session_ptr->stop()"
+				session_ptr->socket().close(asio2::get_last_error());
 				return;
 			}
 			if (server.iopool().size() > 1)
