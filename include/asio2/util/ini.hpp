@@ -1226,10 +1226,11 @@ namespace asio2
 			if (s.empty())
 				return s;
 			using size_type = typename std::basic_string<CharT, Traits, Allocator>::size_type;
+			std::locale l{};
 			size_type pos = 0;
 			for (; pos < s.size(); ++pos)
 			{
-				if (!std::isspace(static_cast<unsigned char>(s[pos])))
+				if (!std::isspace(s[pos], l))
 					break;
 			}
 			s.erase(0, pos);
@@ -1246,10 +1247,11 @@ namespace asio2
 			if (s.empty())
 				return s;
 			using size_type = typename std::basic_string<CharT, Traits, Allocator>::size_type;
+			std::locale l{};
 			size_type pos = s.size() - 1;
 			for (; pos != size_type(-1); pos--)
 			{
-				if (!std::isspace(static_cast<unsigned char>(s[pos])))
+				if (!std::isspace(s[pos], l))
 					break;
 			}
 			s.erase(pos + 1);

@@ -147,6 +147,18 @@ namespace asio2::detail
 			{
 				auto back_client = std::make_shared<asio2::socks5_tcp_transfer>(this->io_);
 
+			#if defined(ASIO2_SOCKS5_BIND_LOCAL_ENDPOINT)
+				back_client->bind_init([session_ptr, pback_client = back_client.get()]() mutable
+				{
+					asio::error_code ec{};
+					asio::ip::tcp::endpoint ep = session_ptr->socket().local_endpoint(ec);
+					if (!ec)
+					{
+						ep.port(0);
+						pback_client->socket().bind(ep, ec);
+					}
+				});
+			#endif
 				back_client->bind_connect([]() mutable
 				{
 					set_last_error(get_last_error());

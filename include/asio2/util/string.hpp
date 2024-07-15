@@ -38,6 +38,7 @@
 #include <sstream>
 #include <regex>
 #include <map>
+#include <locale>
 
 #include <asio2/base/detail/type_traits.hpp>
 
@@ -667,7 +668,8 @@ namespace asio2
 	inline std::basic_string<CharT, Traits, Allocator>& trim_all(std::basic_string<CharT, Traits, Allocator>& str)
 	{
 		// https://zh.cppreference.com/w/cpp/algorithm/remove
-		str.erase(std::remove_if(str.begin(), str.end(), [](int x) {return std::isspace(x); }), str.end());
+		std::locale l{};
+		str.erase(std::remove_if(str.begin(), str.end(), [&l](CharT x) {return std::isspace(x, l); }), str.end());
 		return str;
 	}
 
@@ -682,7 +684,8 @@ namespace asio2
 	inline std::basic_string<CharT, Traits, Allocator> trim_all(std::basic_string<CharT, Traits, Allocator>&& str)
 	{
 		// https://zh.cppreference.com/w/cpp/algorithm/remove
-		str.erase(std::remove_if(str.begin(), str.end(), [](int x) {return std::isspace(x); }), str.end());
+		std::locale l{};
+		str.erase(std::remove_if(str.begin(), str.end(), [&l](CharT x) {return std::isspace(x, l); }), str.end());
 		return std::move(str);
 	}
 
@@ -696,7 +699,8 @@ namespace asio2
 	>
 	inline std::basic_string<CharT, Traits, Allocator>& trim_left(std::basic_string<CharT, Traits, Allocator>& str)
 	{
-		str.erase(str.begin(), std::find_if(str.begin(), str.end(), [](int ch) { return !std::isspace(ch); }));
+		std::locale l{};
+		str.erase(str.begin(), std::find_if(str.begin(), str.end(), [&l](CharT ch) { return !std::isspace(ch, l); }));
 		return str;
 	}
 
@@ -710,7 +714,8 @@ namespace asio2
 	>
 	inline std::basic_string<CharT, Traits, Allocator> trim_left(std::basic_string<CharT, Traits, Allocator>&& str)
 	{
-		str.erase(str.begin(), std::find_if(str.begin(), str.end(), [](int ch) { return !std::isspace(ch); }));
+		std::locale l{};
+		str.erase(str.begin(), std::find_if(str.begin(), str.end(), [&l](CharT ch) { return !std::isspace(ch, l); }));
 		return std::move(str);
 	}
 
@@ -750,7 +755,8 @@ namespace asio2
 	>
 	inline std::basic_string<CharT, Traits, Allocator>& trim_right(std::basic_string<CharT, Traits, Allocator>& str)
 	{
-		str.erase(std::find_if(str.rbegin(), str.rend(), [](int ch) { return !std::isspace(ch); }).base(), str.end());
+		std::locale l{};
+		str.erase(std::find_if(str.rbegin(), str.rend(), [&l](CharT ch) { return !std::isspace(ch, l); }).base(), str.end());
 		return str;
 	}
 
@@ -764,7 +770,8 @@ namespace asio2
 	>
 	inline std::basic_string<CharT, Traits, Allocator> trim_right(std::basic_string<CharT, Traits, Allocator>&& str)
 	{
-		str.erase(std::find_if(str.rbegin(), str.rend(), [](int ch) { return !std::isspace(ch); }).base(), str.end());
+		std::locale l{};
+		str.erase(std::find_if(str.rbegin(), str.rend(), [&l](CharT ch) { return !std::isspace(ch, l); }).base(), str.end());
 		return std::move(str);
 	}
 
@@ -933,10 +940,11 @@ namespace asio2
 		if (str.empty())
 			return str;
 		using size_type = typename std::basic_string_view<CharT, Traits>::size_type;
+		std::locale l{};
 		size_type pos = 0;
 		for (; pos < str.size(); ++pos)
 		{
-			if (!std::isspace(static_cast<unsigned char>(str[pos])))
+			if (!std::isspace(str[pos], l))
 				break;
 		}
 		str.remove_prefix(pos);
@@ -955,10 +963,11 @@ namespace asio2
 		if (str.empty())
 			return std::move(str);
 		using size_type = typename std::basic_string_view<CharT, Traits>::size_type;
+		std::locale l{};
 		size_type pos = 0;
 		for (; pos < str.size(); ++pos)
 		{
-			if (!std::isspace(static_cast<unsigned char>(str[pos])))
+			if (!std::isspace(str[pos], l))
 				break;
 		}
 		str.remove_prefix(pos);
@@ -1001,10 +1010,11 @@ namespace asio2
 		if (str.empty())
 			return str;
 		using size_type = typename std::basic_string_view<CharT, Traits>::size_type;
+		std::locale l{};
 		size_type pos = str.size() - 1;
 		for (; pos != size_type(-1); pos--)
 		{
-			if (!std::isspace(static_cast<unsigned char>(str[pos])))
+			if (!std::isspace(str[pos], l))
 				break;
 		}
 		str.remove_suffix(str.size() - pos - 1);
@@ -1023,10 +1033,11 @@ namespace asio2
 		if (str.empty())
 			return std::move(str);
 		using size_type = typename std::basic_string_view<CharT, Traits>::size_type;
+		std::locale l{};
 		size_type pos = str.size() - 1;
 		for (; pos != size_type(-1); pos--)
 		{
-			if (!std::isspace(static_cast<unsigned char>(str[pos])))
+			if (!std::isspace(str[pos], l))
 				break;
 		}
 		str.remove_suffix(str.size() - pos - 1);
