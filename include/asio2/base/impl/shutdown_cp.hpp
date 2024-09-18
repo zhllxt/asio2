@@ -350,6 +350,7 @@ namespace asio2::detail
 			{
 				timer_ptr->canceled.clear();
 
+			#if defined(ASIO2_WAIT_FOR_READING_END)
 				std::chrono::system_clock::duration silence = derive.get_silence_duration();
 
 				// if recvd data in shutdown timeout period, lengthened the timer to remained times.
@@ -359,6 +360,7 @@ namespace asio2::detail
 						derive.get_disconnect_timeout() - silence, std::move(timer_ptr));
 				}
 				else
+			#endif
 				{
 					ASIO2_LOG_DEBUG("shutdown_cp::_handle_shutdown_timer: timeout");
 
