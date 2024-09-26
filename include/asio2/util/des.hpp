@@ -54,12 +54,12 @@ namespace asio2
 			return (*this);
 		}
 
-		des(des && other)
+		des(des && other) noexcept
 		{
 			std::memcpy((void *)(this->sub_key), (const void *)(other.sub_key), sizeof(this->sub_key));
 		}
 
-		des & operator=(des && other)
+		des & operator=(des && other) noexcept
 		{
 			std::memcpy((void *)(this->sub_key), (const void *)(other.sub_key), sizeof(this->sub_key));
 			return (*this);

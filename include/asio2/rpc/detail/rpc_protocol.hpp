@@ -104,9 +104,9 @@ namespace asio2::detail
 		inline rpc_header& set_name(std::string_view name)          { this->name_ = name; return (*this); }
 
 	protected:
-		char           type_;
+		char           type_{};
 		id_type        id_ = 0;
-		std::string    name_;
+		std::string    name_{};
 	};
 
 	template<class ...Args>

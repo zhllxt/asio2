@@ -68,23 +68,23 @@ namespace asio2
 			return (*this);
 		}
 
-		aes(aes && other) : key_(std::move(other.key_))
+		aes(aes && other) noexcept : key_(std::move(other.key_))
 		{
 			init();
 		}
 
-		aes & operator=(aes && other)
+		aes & operator=(aes && other) noexcept
 		{
 			key_ = std::move(other.key_);
 			init();
 			return (*this);
 		}
 
-		mode_t     mode() { return mode_; }
-		mode_t set_mode() { return mode_; }
+		mode_t     mode() noexcept { return mode_; }
+		mode_t get_mode() noexcept { return mode_; }
 
-		aes &     mode(mode_t mode) { mode_ = mode; return (*this); }
-		aes & get_mode(mode_t mode) { mode_ = mode; return (*this); }
+		aes &     mode(mode_t mode) noexcept { mode_ = mode; return (*this); }
+		aes & set_mode(mode_t mode) noexcept { mode_ = mode; return (*this); }
 
 		aes & iv(uint8_t iv[AES_BLOCKLEN]) { memcpy(&Iv_[0], iv, AES_BLOCKLEN); return (*this); }
 
