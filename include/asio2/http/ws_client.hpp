@@ -177,6 +177,14 @@ namespace asio2::detail
 			return (this->derived());
 		}
 
+		/**
+		 * @brief set the websocket upgraged target
+		 */
+		inline derived_t & set_upgrade_target(std::string_view target)
+		{
+			return set_upgrade_target(std::string(target);
+		}
+
 	public:
 		/**
 		 * @brief bind websocket upgrade listener
