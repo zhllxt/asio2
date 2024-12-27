@@ -132,6 +132,10 @@ namespace boost::beast::http
 				return std::string_view{ "80" };
 			if (asio2::iequals(schema, "https"))
 				return std::string_view{ "443" };
+			if (asio2::iequals(schema, "ws"))
+				return std::string_view{ "80" };
+			if (asio2::iequals(schema, "wss"))
+				return std::string_view{ "443" };
 			return std::string_view{ "80" };
 		}
 

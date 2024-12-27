@@ -194,9 +194,11 @@ namespace asio2::detail
 		/**
 		 * @brief set the websocket upgraged target
 		 */
-		inline derived_t & set_upgrade_target(std::string target)
+		template<typename String>
+		typename std::enable_if_t<detail::is_character_string_v<detail::remove_cvref_t<String>>, derived_t&>
+		inline set_upgrade_target(String&& target)
 		{
-			this->upgrade_target_ = std::move(target);
+			this->upgrade_target_ = asio2::to_string(std::forward<String>(target));
 			return (this->derived());
 		}
 
