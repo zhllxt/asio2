@@ -163,7 +163,7 @@ namespace asio2::detail
 				derive._data_persistence(asio::const_buffer(std::move(data))));
 		}
 
-#if !defined(ASIO_NO_DEPRECATED) && !defined(BOOST_ASIO_NO_DEPRECATED)
+	#if !defined(ASIO_NO_DEPRECATED) && !defined(BOOST_ASIO_NO_DEPRECATED) && (defined(ASIO_CONST_BUFFER) || defined(BOOST_ASIO_CONST_BUFFER))
 		template<typename = void>
 		inline auto _data_persistence(asio::const_buffers_1& data) noexcept
 		{
@@ -190,7 +190,9 @@ namespace asio2::detail
 			return detail::call_data_filter_before_send(derive,
 				derive._data_persistence(asio::const_buffer(std::move(data))));
 		}
+	#endif
 
+	#if !defined(ASIO_NO_DEPRECATED) && !defined(BOOST_ASIO_NO_DEPRECATED) && (defined(ASIO_MUTABLE_BUFFER) || defined(BOOST_ASIO_MUTABLE_BUFFER))
 		template<typename = void>
 		inline auto _data_persistence(asio::mutable_buffers_1& data) noexcept
 		{
@@ -217,7 +219,7 @@ namespace asio2::detail
 			return detail::call_data_filter_before_send(derive,
 				derive._data_persistence(asio::const_buffer(std::move(data))));
 		}
-#endif
+	#endif
 
 	protected:
 	};

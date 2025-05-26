@@ -336,7 +336,12 @@ namespace boost::asio
 	#endif
 		std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, char16_t> ||
 		std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, char32_t>,
-		ASIO_CONST_BUFFER> buffer(CharT* & data) ASIO_NOEXCEPT
+	#if defined(ASIO_CONST_BUFFER)
+		ASIO_CONST_BUFFER
+	#else
+		asio::const_buffer
+	#endif
+	> buffer(CharT* & data) ASIO_NOEXCEPT
 	{
 		return asio::buffer(std::basic_string_view<CharT>(data));
 	}
@@ -350,7 +355,12 @@ namespace boost::asio
 	#endif
 		std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, char16_t> ||
 		std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, char32_t>,
-		ASIO_CONST_BUFFER> buffer(const CharT* & data) ASIO_NOEXCEPT
+	#if defined(ASIO_CONST_BUFFER)
+		ASIO_CONST_BUFFER
+	#else
+		asio::const_buffer
+	#endif
+	> buffer(const CharT* & data) ASIO_NOEXCEPT
 	{
 		return asio::buffer(std::basic_string_view<CharT>(data));
 	}
@@ -364,7 +374,12 @@ namespace boost::asio
 	#endif
 		std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, char16_t> ||
 		std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, char32_t>,
-		ASIO_CONST_BUFFER> buffer(CharT* const& data) ASIO_NOEXCEPT
+	#if defined(ASIO_CONST_BUFFER)
+		ASIO_CONST_BUFFER
+	#else
+		asio::const_buffer
+	#endif
+	> buffer(CharT* const& data) ASIO_NOEXCEPT
 	{
 		return asio::buffer(std::basic_string_view<CharT>(data));
 	}
@@ -378,7 +393,12 @@ namespace boost::asio
 	#endif
 		std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, char16_t> ||
 		std::is_same_v<std::remove_cv_t<std::remove_reference_t<CharT>>, char32_t>,
-		ASIO_CONST_BUFFER> buffer(const CharT* const& data) ASIO_NOEXCEPT
+	#if defined(ASIO_CONST_BUFFER)
+		ASIO_CONST_BUFFER
+	#else
+		asio::const_buffer
+	#endif
+	> buffer(const CharT* const& data) ASIO_NOEXCEPT
 	{
 		return asio::buffer(std::basic_string_view<CharT>(data));
 	}

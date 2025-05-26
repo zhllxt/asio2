@@ -42,8 +42,7 @@ int main()
 
 	// the resolve function is a time-consuming operation
 	//asio::ip::udp::resolver resolver(udp_cast.io().context());
-	//asio::ip::udp::resolver::query query("www.baidu.com", "18080");
-	//asio::ip::udp::endpoint ep2 = *resolver.resolve(query);
+	//asio::ip::udp::endpoint ep2 = resolver.resolve("www.baidu.com", "18080").begin()->endpoint();
 	//udp_cast.async_send(ep2, std::move(str));
 
 

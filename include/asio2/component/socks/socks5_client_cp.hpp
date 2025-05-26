@@ -835,7 +835,7 @@ namespace asio2::detail
 				head.push_back(std::uint8_t(0x00)); // FRAG 
 
 				error_code ec{};
-				asio::ip::address addr = asio::ip::address::from_string(host, ec);
+				asio::ip::address addr = asio::ip::make_address(host, ec);
 
 				if (ec) // DOMAINNAME: X'03'
 				{
@@ -961,7 +961,7 @@ namespace asio2::detail
 
 					auto s5opt = ecs->get_component().socks5_option(std::in_place);
 
-					asio::ip::address addr = asio::ip::address::from_string(this->socks5_client_->bnd_addr_, ec);
+					asio::ip::address addr = asio::ip::make_address(this->socks5_client_->bnd_addr_, ec);
 					if (ec)
 					{
 						this->socks5_client_->bnd_addr_ = s5opt->host();

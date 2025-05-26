@@ -46,7 +46,7 @@ namespace std
 using namespace rest_rpc;
 using namespace rest_rpc::rpc_service;
 
-std::string str(128, 'A');
+std::string strmsg(128, 'A');
 
 void test_performance1() {
 	rpc_client client("127.0.0.1", 8080);
@@ -57,7 +57,7 @@ void test_performance1() {
 	}
 
 	for (;;) {
-		auto future = client.async_call<FUTURE>("echo", str);
+		auto future = client.async_call<FUTURE>("echo", strmsg);
 		auto status = future.wait_for(std::chrono::seconds(2));
 		if (status == std::future_status::deferred) {
 			std::cout << "deferred\n";

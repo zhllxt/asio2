@@ -67,13 +67,15 @@ namespace asio2
 		return std::string{ (std::string::pointer)(v.data()), v.size() };
 	}
 
-#if !defined(ASIO_NO_DEPRECATED) && !defined(BOOST_ASIO_NO_DEPRECATED)
+#if !defined(ASIO_NO_DEPRECATED) && !defined(BOOST_ASIO_NO_DEPRECATED) && (defined(ASIO_CONST_BUFFER) || defined(BOOST_ASIO_CONST_BUFFER))
 	template<typename = void>
 	inline std::string to_string(const asio::const_buffers_1& v) noexcept
 	{
 		return std::string{ (std::string::pointer)(v.data()), v.size() };
 	}
+#endif
 
+#if !defined(ASIO_NO_DEPRECATED) && !defined(BOOST_ASIO_NO_DEPRECATED) && (defined(ASIO_MUTABLE_BUFFER) || defined(BOOST_ASIO_MUTABLE_BUFFER))
 	template<typename = void>
 	inline std::string to_string(const asio::mutable_buffers_1& v) noexcept
 	{
@@ -93,13 +95,15 @@ namespace asio2
 		return std::string_view{ (std::string_view::const_pointer)(v.data()), v.size() };
 	}
 
-#if !defined(ASIO_NO_DEPRECATED) && !defined(BOOST_ASIO_NO_DEPRECATED)
+#if !defined(ASIO_NO_DEPRECATED) && !defined(BOOST_ASIO_NO_DEPRECATED) && (defined(ASIO_CONST_BUFFER) || defined(BOOST_ASIO_CONST_BUFFER))
 	template<typename = void>
 	inline std::string_view to_string_view(const asio::const_buffers_1& v) noexcept
 	{
 		return std::string_view{ (std::string_view::const_pointer)(v.data()), v.size() };
 	}
+#endif
 
+#if !defined(ASIO_NO_DEPRECATED) && !defined(BOOST_ASIO_NO_DEPRECATED) && (defined(ASIO_MUTABLE_BUFFER) || defined(BOOST_ASIO_MUTABLE_BUFFER))
 	template<typename = void>
 	inline std::string_view to_string_view(const asio::mutable_buffers_1& v) noexcept
 	{

@@ -1768,8 +1768,7 @@ void udp_test()
 
 		// the resolve function is a time-consuming operation
 		asio::ip::udp::resolver resolver(udp_cast.io().context());
-		asio::ip::udp::resolver::query query("127.0.0.1", "18080");
-		asio::ip::udp::endpoint ep2 = *resolver.resolve(query);
+		asio::ip::udp::endpoint ep2 = resolver.resolve("127.0.0.1", "18080").begin()->endpoint();
 		udp_cast.async_send(ep2, str);
 
 		// stop the udp cast after 10 seconds. 
