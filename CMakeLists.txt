@@ -67,6 +67,9 @@ project (asio2)
 
 set_property (GLOBAL PROPERTY USE_FOLDERS ON)
 
+option(BUILD_EXAMPLES "Build examples" OFF)
+option(BUILD_TESTS "Build tests" OFF)
+
 # how to detect current is 32 bit or 64 bit ?
 #if(NOT "${CMAKE_GENERATOR}" MATCHES "(Win64|IA64)")
 #endif()
@@ -171,6 +174,29 @@ if(CMAKE_SYSTEM_NAME MATCHES "CYGWIN" OR CMAKE_SYSTEM_NAME MATCHES "MSYS")
 endif()
 
 
+add_library(asio2 INTERFACE)
+
+target_include_directories(asio2
+  INTERFACE
+    ${ASIO2_ROOT_DIR}/3rd
+    ${ASIO2_ROOT_DIR}/3rd/openssl/include
+    ${ASIO2_ROOT_DIR}/include
+)
+
+target_link_directories(asio2
+  INTERFACE
+    ${ASIO2_LIBS_DIR}
+)
+
+target_link_libraries(asio2
+  INTERFACE
+    ${CMAKE_THREAD_LIBS_INIT}
+    ${GENERAL_LIBS}
+    ${OPENSSL_LIBS}
+)
+
+target_compile_features(asio2 INTERFACE cxx_std_17)
+
 
 if (MSVC)
     set (CMAKE_VERBOSE_MAKEFILE FALSE)
@@ -239,15 +265,6 @@ if(MINGW OR CYGWIN)
 endif()
 
 
-#include_directories (/usr/local/include) # for boost header file include
-#include_directories (D:/boost)           # for boost header file include
-
-include_directories (${ASIO2_ROOT_DIR}/3rd)
-include_directories (${ASIO2_ROOT_DIR}/3rd/openssl/include)
-include_directories (${ASIO2_ROOT_DIR}/include)
-
-#link_directories    (/usr/local/lib)     # for boost library file include
-#link_directories    (D:/boost/stage/lib) # for boost library file include
 
 
 file (GLOB_RECURSE  ASIO2_FILES  ${ASIO2_ROOT_DIR}/include/asio2/*.*)
@@ -263,5 +280,30 @@ enable_testing()
 # but it will successed when use the shared ssl librarys like this:
 # https://github.com/axmolengine/buildware/releases/tag/v41
 
-add_subdirectory (example)
-add_subdirectory (test)
+if (BUILD_EXAMPLES)
+  #include_directories (/usr/local/include) # for boost header file include
+  #include_directories (D:/boost)           # for boost header file include
+  
+  include_directories (${ASIO2_ROOT_DIR}/3rd)
+  include_directories (${ASIO2_ROOT_DIR}/3rd/openssl/include)
+  include_directories (${ASIO2_ROOT_DIR}/include)
+  
+  #link_directories    (/usr/local/lib)     # for boost library file include
+  #link_directories    (D:/boost/stage/lib) # for boost library file include
+  
+  add_subdirectory (example)
+endif(BUILD_EXAMPLES)
+
+if (BUILD_TESTS)
+  #include_directories (/usr/local/include) # for boost header file include
+  #include_directories (D:/boost)           # for boost header file include
+  
+  include_directories (${ASIO2_ROOT_DIR}/3rd)
+  include_directories (${ASIO2_ROOT_DIR}/3rd/openssl/include)
+  include_directories (${ASIO2_ROOT_DIR}/include)
+  
+  #link_directories    (/usr/local/lib)     # for boost library file include
+  #link_directories    (D:/boost/stage/lib) # for boost library file include
+  
+  add_subdirectory (test)
+endif(BUILD_TESTS)

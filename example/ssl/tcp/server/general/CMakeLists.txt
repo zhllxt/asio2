@@ -17,8 +17,6 @@ source_group("" FILES ${SRC_FILES})
 
 set(TARGET_NAME ssl_tcp_server_general)
 
-link_directories    (${ASIO2_LIBS_DIR})
-
 add_executable (
     ${TARGET_NAME}
     ${ASIO2_FILES}
@@ -36,6 +34,8 @@ set_target_properties(${TARGET_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY ${
 if (MSVC)
     set_target_properties(${TARGET_NAME} PROPERTIES LINK_FLAGS "/ignore:4099")
 endif()
+
+target_link_directories(${TARGET_NAME} PRIVATE ${ASIO2_LIBS_DIR})
 
 target_link_libraries(${TARGET_NAME} ${CMAKE_THREAD_LIBS_INIT})
 target_link_libraries(${TARGET_NAME} ${GENERAL_LIBS})

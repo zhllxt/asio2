@@ -32,4 +32,4 @@ set_target_properties(${TARGET_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY ${
 target_link_libraries(${TARGET_NAME} ${CMAKE_THREAD_LIBS_INIT})
 target_link_libraries(${TARGET_NAME} ${GENERAL_LIBS})
 
-include_directories (${ASIO2_ROOT_DIR}/asio)
+target_include_directories(${TARGET_NAME} PRIVATE ${ASIO2_ROOT_DIR}/asio)
