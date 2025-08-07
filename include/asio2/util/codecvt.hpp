@@ -25,6 +25,7 @@
 #include <locale>
 #include <codecvt>
 
+#include <asio2/base/error.hpp>
 #include <asio2/external/predef.h>
 #include <asio2/external/asio.hpp>
 
