@@ -185,12 +185,21 @@ namespace boost::beast::http
 				return r;
 
 			size_type i = 0;
+			size_type query_pos_beg = 0, query_pos_end = 0;
 
 			if (offset == 0)
 			{
 				http::parses::http_parser_url u;
 				if (0 == http::parses::http_parser_parse_url(url.data(), url.size(), 0, std::addressof(u)))
 				{
+					if /**/ (u.field_set & (1 << (int)http::parses::url_fields::UF_QUERY))
+					{
+						query_pos_beg = u.field_data[(int)http::parses::url_fields::UF_QUERY].off;
+						query_pos_end =
+							u.field_data[(int)http::parses::url_fields::UF_QUERY].off +
+							u.field_data[(int)http::parses::url_fields::UF_QUERY].len;
+					}
+
 					if /**/ (u.field_set & (1 << (int)http::parses::url_fields::UF_PATH))
 					{
 						i = u.field_data[(int)http::parses::url_fields::UF_PATH].off + 1;
@@ -235,11 +244,23 @@ namespace boost::beast::http
 				}
 				else
 				{
-					r += static_cast<rvalue_type>('%');
-					rvalue_type h = rvalue_type(c >> 4);
-					r += h > rvalue_type(9) ? rvalue_type(h + 55) : rvalue_type(h + 48);
-					rvalue_type l = rvalue_type(c % 16);
-					r += l > rvalue_type(9) ? rvalue_type(l + 55) : rvalue_type(l + 48);
+					// why use + in query string like:     ?q=search+term
+					// 1. Only for the query string section
+					// 2. Historical conventions for submitting HTML forms.
+					// 3. Query string ->Priority use+(following HTML form standards)
+					// 4. Old systems may only recognize+(such as 1990s CGI programs)
+					if (c == ' ' && i >= query_pos_beg && i <= query_pos_end)
+					{
+						r += static_cast<rvalue_type>('+');
+					}
+					else
+					{
+						r += static_cast<rvalue_type>('%');
+						rvalue_type h = rvalue_type(c >> 4);
+						r += h > rvalue_type(9) ? rvalue_type(h + 55) : rvalue_type(h + 48);
+						rvalue_type l = rvalue_type(c % 16);
+						r += l > rvalue_type(9) ? rvalue_type(l + 55) : rvalue_type(l + 48);
+					}
 				}
 			}
 			return r;
