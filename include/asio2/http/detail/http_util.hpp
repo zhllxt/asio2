@@ -276,12 +276,21 @@ namespace boost::beast::http
 				return false;
 
 			size_type i = 0;
+			size_type query_pos_beg = 0, query_pos_end = 0;
 
 			if (offset == 0)
 			{
 				http::parses::http_parser_url u;
 				if (0 == http::parses::http_parser_parse_url(url.data(), url.size(), 0, std::addressof(u)))
 				{
+					if /**/ (u.field_set & (1 << (int)http::parses::url_fields::UF_QUERY))
+					{
+						query_pos_beg = u.field_data[(int)http::parses::url_fields::UF_QUERY].off;
+						query_pos_end =
+							u.field_data[(int)http::parses::url_fields::UF_QUERY].off +
+							u.field_data[(int)http::parses::url_fields::UF_QUERY].len;
+					}
+
 					if /**/ (u.field_set & (1 << (int)http::parses::url_fields::UF_PATH))
 					{
 						i = u.field_data[(int)http::parses::url_fields::UF_PATH].off + 1;
@@ -331,9 +340,16 @@ namespace boost::beast::http
 						return true;
 					}
 				}
-				else if (!unreserved_char[c])
+				else
 				{
-					return true;
+					if (c == '+' && i >= query_pos_beg && i <= query_pos_end)
+					{
+						std::ignore = true;
+					}
+					else if (!unreserved_char[c])
+					{
+						return true;
+					}
 				}
 			}
 			return false;

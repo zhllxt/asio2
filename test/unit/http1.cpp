@@ -137,7 +137,7 @@ void http1_test()
 	// test http url encode decode
 	{
 		std::string_view url = "https://github.com/search?q=utf8 user:zhllxt";
-		std::string_view dst = "https://github.com/search?q=utf8%20user%3Azhllxt";
+		std::string_view dst = "https://github.com/search?q=utf8+user%3Azhllxt";
 
 		ASIO2_CHECK(http::url_encode(url) == dst);
 		ASIO2_CHECK(http::url_decode(dst) == url);
@@ -154,8 +154,8 @@ void http1_test()
 		ASIO2_CHECK(req.host  () == "github.com");
 		ASIO2_CHECK(req.port  () == "443");
 		ASIO2_CHECK(req.path  () == "/search");
-		ASIO2_CHECK(req.query () == "q=utf8%20user%3Azhllxt");
-		ASIO2_CHECK(req.target() == "/search?q=utf8%20user%3Azhllxt");
+		ASIO2_CHECK(req.query () == "q=utf8+user%3Azhllxt");
+		ASIO2_CHECK(req.target() == "/search?q=utf8+user%3Azhllxt");
 
 		ASIO2_CHECK(req.url().schema() == req.schema());
 		ASIO2_CHECK(req.url().host  () == req.host  ());
@@ -178,7 +178,7 @@ void http1_test()
 	// test http url encode decode
 	{
 		std::string_view url = "http://127.0.0.1:8080/search?q=c++ module user:zhllxt&s=f48fcb6f-f7d2-4ac0-b688-9931785f16bb";
-		std::string_view dst = "http://127.0.0.1:8080/search?q=c%2B%2B%20module%20user%3Azhllxt&s=f48fcb6f-f7d2-4ac0-b688-9931785f16bb";
+		std::string_view dst = "http://127.0.0.1:8080/search?q=c%2B%2B+module+user%3Azhllxt&s=f48fcb6f-f7d2-4ac0-b688-9931785f16bb";
 		
 		ASIO2_CHECK(http::url_encode(url) == dst);
 		ASIO2_CHECK(http::url_decode(dst) == url);
@@ -195,8 +195,8 @@ void http1_test()
 		ASIO2_CHECK(req.host  () == "127.0.0.1");
 		ASIO2_CHECK(req.port  () == "8080");
 		ASIO2_CHECK(req.path  () == "/search");
-		ASIO2_CHECK(req.query () == "q=c%2B%2B%20module%20user%3Azhllxt&s=f48fcb6f-f7d2-4ac0-b688-9931785f16bb");
-		ASIO2_CHECK(req.target() == "/search?q=c%2B%2B%20module%20user%3Azhllxt&s=f48fcb6f-f7d2-4ac0-b688-9931785f16bb");
+		ASIO2_CHECK(req.query () == "q=c%2B%2B+module+user%3Azhllxt&s=f48fcb6f-f7d2-4ac0-b688-9931785f16bb");
+		ASIO2_CHECK(req.target() == "/search?q=c%2B%2B+module+user%3Azhllxt&s=f48fcb6f-f7d2-4ac0-b688-9931785f16bb");
 
 		ASIO2_CHECK(req.url().schema() == req.schema());
 		ASIO2_CHECK(req.url().host  () == req.host  ());
