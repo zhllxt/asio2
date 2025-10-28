@@ -191,8 +191,7 @@ namespace asio2
 		this->endl_ = { '\n' };
 		this->preferred_ = { '/' };
 
-		#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(_WIN64) || \
-			defined(_WINDOWS_) || defined(__WINDOWS__) || defined(__TOS_WIN__)
+		#if defined(_WIN32) || defined(_WIN64) || defined(__WIN32__) || defined(__WINDOWS__) || defined(__TOS_WIN__)
 			this->endl_ = { '\r','\n' };
 			this->preferred_ = { '\\' };
 		#endif

@@ -172,8 +172,7 @@ namespace std {
 #	if __has_include(<dirent.h>)
 #		include <dirent.h>
 #	endif
-#elif defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(_WIN64) || \
-	defined(_WINDOWS_) || defined(__WINDOWS__) || defined(__TOS_WIN__)
+#elif defined(_WIN32) || defined(_WIN64) || defined(__WIN32__) || defined(__WINDOWS__) || defined(__TOS_WIN__)
 #	ifndef WIN32_LEAN_AND_MEAN
 #		define WIN32_LEAN_AND_MEAN
 #	endif
@@ -594,8 +593,7 @@ namespace asio2
 					filepath_.resize(PATH_MAX);
 					auto r = readlink("/proc/self/exe", (char *)filepath_.data(), PATH_MAX);
 					std::ignore = r; // gcc 7 warning: ignoring return value of ... [-Wunused-result]
-				#elif defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(_WIN64) || \
-					defined(_WINDOWS_) || defined(__WINDOWS__) || defined(__TOS_WIN__)
+				#elif defined(_WIN32) || defined(_WIN64) || defined(__WIN32__) || defined(__WINDOWS__) || defined(__TOS_WIN__)
 					filepath_.resize(MAX_PATH);
 					filepath_.resize(::GetModuleFileNameA(NULL, (LPSTR)filepath_.data(), MAX_PATH));
 				#elif defined(__APPLE__) && defined(__MACH__)
@@ -755,8 +753,7 @@ namespace asio2
 		basic_ini(Args&&... args) : detail::basic_ini_impl<Stream>(std::forward<Args>(args)...)
 		{
 			this->endl_ = { '\n' };
-		#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(_WIN64) || \
-			defined(_WINDOWS_) || defined(__WINDOWS__) || defined(__TOS_WIN__)
+		#if defined(_WIN32) || defined(_WIN64) || defined(__WIN32__) || defined(__WINDOWS__) || defined(__TOS_WIN__)
 			this->endl_ = { '\r','\n' };
 		#elif defined(__APPLE__) && defined(__MACH__)
 			// on the macos 9, the newline character is '\r'.

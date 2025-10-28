@@ -81,8 +81,7 @@
 /*
  * see : https://github.com/retf/Boost.Application/pull/40
  */
-#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(_WIN64) || \
-	defined(_WINDOWS_) || defined(__WINDOWS__) || defined(__TOS_WIN__)
+#if defined(_WIN32) || defined(_WIN64) || defined(__WIN32__) || defined(__WINDOWS__) || defined(__TOS_WIN__)
 #	ifndef _WIN32_WINNT
 #		if __has_include(<winsdkver.h>)
 #			include <winsdkver.h>
